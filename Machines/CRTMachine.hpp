@@ -44,11 +44,15 @@ class Machine: public ROMMachine::Machine {
 		/// Runs the machine for @c cycles.
 		virtual void run_for(const Cycles cycles) = 0;
 
+		/// @returns The confidence that this machine is running content it understands.
+		virtual float get_confidence() { return 0.5f; }
+		virtual void print_type() {}
+
 		// TODO: sever the clock-rate stuff.
-		double get_clock_rate() {
+		virtual double get_clock_rate() {
 			return clock_rate_;
 		}
-		bool get_clock_is_unlimited() {
+		virtual bool get_clock_is_unlimited() {
 			return clock_is_unlimited_;
 		}
 		class Delegate {
@@ -56,7 +60,7 @@ class Machine: public ROMMachine::Machine {
 				virtual void machine_did_change_clock_rate(Machine *machine) = 0;
 				virtual void machine_did_change_clock_is_unlimited(Machine *machine) = 0;
 		};
-		void set_delegate(Delegate *delegate) { delegate_ = delegate; }
+		virtual void set_delegate(Delegate *delegate) { delegate_ = delegate; }
 
 	protected:
 		void set_clock_rate(double clock_rate) {

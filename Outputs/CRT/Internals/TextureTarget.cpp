@@ -26,8 +26,7 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 	while(expanded_height_ < height)	expanded_height_ <<= 1;
 
 	glGenTextures(1, &texture_);
-	glActiveTexture(texture_unit);
-	glBindTexture(GL_TEXTURE_2D, texture_);
+	bind_texture();
 
 	std::vector<uint8_t> blank_buffer(static_cast<size_t>(expanded_width_ * expanded_height_ * 4), 0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, static_cast<GLsizei>(expanded_width_), static_cast<GLsizei>(expanded_height_), 0, GL_RGBA, GL_UNSIGNED_BYTE, blank_buffer.data());
@@ -53,6 +52,7 @@ void TextureTarget::bind_framebuffer() {
 }
 
 void TextureTarget::bind_texture() {
+	glActiveTexture(texture_unit_);
 	glBindTexture(GL_TEXTURE_2D, texture_);
 }
 

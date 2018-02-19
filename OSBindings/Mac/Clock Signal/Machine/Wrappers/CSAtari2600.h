@@ -6,14 +6,12 @@
 //  Copyright © 2015 Thomas Harte. All rights reserved.
 //
 
-#include "CSMachine.h"
-#include "Atari2600Inputs.h"
+@class CSAtari2600;
+#import "CSMachine.h"
 
-@interface CSAtari2600 : CSMachine
+@interface CSAtari2600 : NSObject
 
-- (instancetype)init;
-
-- (void)setResetLineEnabled:(BOOL)enabled;
+- (instancetype)initWithAtari2600:(void *)atari2600 owner:(CSMachine *)machine;
 
 @property (nonatomic, assign) BOOL colourButton;
 @property (nonatomic, assign) BOOL leftPlayerDifficultyButton;

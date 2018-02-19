@@ -9,60 +9,65 @@
 #import "CSAtari2600.h"
 
 #include "Atari2600.hpp"
-#include "TypedDynamicMachine.hpp"
-#import "CSMachine+Subclassing.h"
 
 @implementation CSAtari2600 {
-	Machine::TypedDynamicMachine<Atari2600::Machine> _atari2600;
+	Atari2600::Machine *_atari2600;
+	__weak CSMachine *_machine;
 }
 
-- (instancetype)init {
-	_atari2600 = Machine::TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());
-	return [super initWithMachine:&_atari2600];
-}
-
-- (void)setResetLineEnabled:(BOOL)enabled {
-	@synchronized(self) {
-		_atari2600.get()->set_reset_switch(enabled ? true : false);
+- (instancetype)initWithAtari2600:(void *)atari2600 owner:(CSMachine *)machine {
+	self = [super init];
+	if(self) {
+		_atari2600 = (Atari2600::Machine *)atari2600;
+		_machine = machine;
 	}
+	return self;
 }
-
-- (void)setupOutputWithAspectRatio:(float)aspectRatio {
-	@synchronized(self) {
-		[super setupOutputWithAspectRatio:aspectRatio];
-	}
-}
-
-#pragma mark - Switches
 
 - (void)setColourButton:(BOOL)colourButton {
-	_colourButton = colourButton;
-	@synchronized(self) {
-		_atari2600.get()->set_switch_is_enabled(Atari2600SwitchColour, colourButton);
+	@synchronized(_machine) {
+		_atari2600->set_switch_is_enabled(Atari2600SwitchColour, colourButton);
+	}
+}
+
+- (BOOL)colourButton {
+	@synchronized(_machine) {
+		return _atari2600->get_switch_is_enabled(Atari2600SwitchColour);
 	}
 }
 
 - (void)setLeftPlayerDifficultyButton:(BOOL)leftPlayerDifficultyButton {
-	_leftPlayerDifficultyButton = leftPlayerDifficultyButton;
-	@synchronized(self) {
-		_atari2600.get()->set_switch_is_enabled(Atari2600SwitchLeftPlayerDifficulty, leftPlayerDifficultyButton);
+	@synchronized(_machine) {
+		_atari2600->set_switch_is_enabled(Atari2600SwitchLeftPlayerDifficulty, leftPlayerDifficultyButton);
+	}
+}
+
+- (BOOL)leftPlayerDifficultyButton {
+	@synchronized(_machine) {
+		return _atari2600->get_switch_is_enabled(Atari2600SwitchLeftPlayerDifficulty);
 	}
 }
 
 - (void)setRightPlayerDifficultyButton:(BOOL)rightPlayerDifficultyButton {
-	_rightPlayerDifficultyButton = rightPlayerDifficultyButton;
-	@synchronized(self) {
-		_atari2600.get()->set_switch_is_enabled(Atari2600SwitchRightPlayerDifficulty, rightPlayerDifficultyButton);
+	@synchronized(_machine) {
+		_atari2600->set_switch_is_enabled(Atari2600SwitchRightPlayerDifficulty, rightPlayerDifficultyButton);
+	}
+}
+
+- (BOOL)rightPlayerDifficultyButton {
+	@synchronized(_machine) {
+		return _atari2600->get_switch_is_enabled(Atari2600SwitchRightPlayerDifficulty);
 	}
 }
 
 - (void)toggleSwitch:(Atari2600Switch)toggleSwitch {
-	@synchronized(self) {
-		_atari2600.get()->set_switch_is_enabled(toggleSwitch, true);
+	@synchronized(_machine) {
+		_atari2600->set_switch_is_enabled(toggleSwitch, true);
 	}
+
 	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-		@synchronized(self) {
-			_atari2600.get()->set_switch_is_enabled(toggleSwitch, false);
+		@synchronized(_machine) {
+			_atari2600->set_switch_is_enabled(toggleSwitch, false);
 		}
 	});
 }
@@ -74,7 +79,5 @@
 - (void)pressSelectButton {
 	[self toggleSwitch:Atari2600SwitchSelect];
 }
-
-- (NSString *)userDefaultsPrefix {	return @"atari2600";	}
 
 @end

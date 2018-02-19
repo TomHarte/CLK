@@ -9,7 +9,7 @@
 class Atari2600OptionsPanel: MachinePanel {
 	var atari2600: CSAtari2600! {
 		get {
-			return self.machine as! CSAtari2600
+			return self.machine.atari2600
 		}
 	}
 

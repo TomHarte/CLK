@@ -238,7 +238,7 @@ template<bool is_zx81> class ConcreteMachine:
 			z80_.run_for(cycles);
 		}
 
-		void configure_as_target(const StaticAnalyser::Target &target) override final {
+		void configure_as_target(const Analyser::Static::Target &target) override final {
 			is_zx81_ = target.zx8081.isZX81;
 			if(is_zx81_) {
 				rom_ = zx81_rom_;
@@ -260,17 +260,17 @@ template<bool is_zx81> class ConcreteMachine:
 			rom_mask_ = static_cast<uint16_t>(rom_.size() - 1);
 
 			switch(target.zx8081.memory_model) {
-				case StaticAnalyser::ZX8081MemoryModel::Unexpanded:
+				case Analyser::Static::ZX8081MemoryModel::Unexpanded:
 					ram_.resize(1024);
 					ram_base_ = 16384;
 					ram_mask_ = 1023;
 				break;
-				case StaticAnalyser::ZX8081MemoryModel::SixteenKB:
+				case Analyser::Static::ZX8081MemoryModel::SixteenKB:
 					ram_.resize(16384);
 					ram_base_ = 16384;
 					ram_mask_ = 16383;
 				break;
-				case StaticAnalyser::ZX8081MemoryModel::SixtyFourKB:
+				case Analyser::Static::ZX8081MemoryModel::SixtyFourKB:
 					ram_.resize(65536);
 					ram_base_ = 8192;
 					ram_mask_ = 65535;
@@ -285,7 +285,7 @@ template<bool is_zx81> class ConcreteMachine:
 			insert_media(target.media);
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) override final {
 			if(!media.tapes.empty()) {
 				tape_player_.set_tape(media.tapes.front());
 			}
@@ -341,16 +341,21 @@ template<bool is_zx81> class ConcreteMachine:
 				tape_player_.set_motor_control(false);
 			}
 		}
+
 		void set_tape_is_playing(bool is_playing) override final {
 			tape_player_.set_motor_control(is_playing);
+		}
+
+		bool get_tape_is_playing() override final {
+			return tape_player_.get_motor_control();
 		}
 
 		// MARK: - Typer timing
 		HalfCycles get_typer_delay() override final { return Cycles(7000000); }
 		HalfCycles get_typer_frequency() override final { return Cycles(390000); }
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
@@ -442,7 +447,7 @@ template<bool is_zx81> class ConcreteMachine:
 using namespace ZX8081;
 
 // See header; constructs and returns an instance of the ZX80 or 81.
-Machine *Machine::ZX8081(const StaticAnalyser::Target &target_hint) {
+Machine *Machine::ZX8081(const Analyser::Static::Target &target_hint) {
 	// Instantiate the correct type of machine.
 	if(target_hint.zx8081.isZX81)
 		return new ZX8081::ConcreteMachine<true>();

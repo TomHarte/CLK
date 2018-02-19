@@ -6,8 +6,6 @@
 #import "CSFastLoading.h"
 
 #import "CSAtari2600.h"
-#import "CSElectron.h"
-#import "CSOric.h"
 #import "CSVic20.h"
 #import "CSZX8081.h"
 

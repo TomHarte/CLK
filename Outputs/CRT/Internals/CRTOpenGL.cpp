@@ -107,6 +107,12 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		glDeleteSync(fence_);
 	}
 
+	// make sure everything is bound
+	composite_texture_->bind_texture();
+	separated_texture_->bind_texture();
+	filtered_texture_->bind_texture();
+	if(work_texture_) work_texture_->bind_texture();
+
 	// make sure there's a target to draw to
 	if(!framebuffer_ || static_cast<unsigned int>(framebuffer_->get_height()) != output_height || static_cast<unsigned int>(framebuffer_->get_width()) != output_width) {
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(new OpenGL::TextureTarget((GLsizei)output_width, (GLsizei)output_height, pixel_accumulation_texture_unit, GL_LINEAR));
@@ -131,6 +137,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// upload new source pixels, if any
 	glActiveTexture(source_data_texture_unit);
+	texture_builder.bind();
 	texture_builder.submit();
 
 	// buffer usage restart from 0 for the next time around

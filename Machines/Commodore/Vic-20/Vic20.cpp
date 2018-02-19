@@ -346,19 +346,19 @@ class ConcreteMachine:
 			return true;
 		}
 
-		void configure_as_target(const StaticAnalyser::Target &target) override final {
+		void configure_as_target(const Analyser::Static::Target &target) override final {
 			if(target.loading_command.length()) {
 				type_string(target.loading_command);
 			}
 
 			switch(target.vic20.memory_model) {
-				case StaticAnalyser::Vic20MemoryModel::Unexpanded:
+				case Analyser::Static::Vic20MemoryModel::Unexpanded:
 					set_memory_size(Default);
 				break;
-				case StaticAnalyser::Vic20MemoryModel::EightKB:
+				case Analyser::Static::Vic20MemoryModel::EightKB:
 					set_memory_size(ThreeKB);
 				break;
-				case StaticAnalyser::Vic20MemoryModel::ThirtyTwoKB:
+				case Analyser::Static::Vic20MemoryModel::ThirtyTwoKB:
 					set_memory_size(ThirtyTwoKB);
 				break;
 			}
@@ -377,7 +377,7 @@ class ConcreteMachine:
 			insert_media(target.media);
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) override final {
 			if(!media.tapes.empty()) {
 				tape_->set_tape(media.tapes.front());
 			}
@@ -662,8 +662,8 @@ class ConcreteMachine:
 			keyboard_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !tape->get_input());
 		}
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.

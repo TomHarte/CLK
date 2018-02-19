@@ -45,8 +45,8 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 			return get<Configurable::Device>();
 		}
 
-		Utility::TypeRecipient *type_recipient() override {
-			return get<Utility::TypeRecipient>();
+		void *raw_pointer() override {
+			return get();
 		}
 
 	private:

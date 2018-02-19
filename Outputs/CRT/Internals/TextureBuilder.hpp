@@ -114,9 +114,13 @@ class TextureBuilder {
 		/// Supply nullptr to engage the default bookender.
 		void set_bookender(std::unique_ptr<Bookender> bookender);
 
+		/// Binds this texture to the unit supplied at instantiation.
+		void bind();
+
 	private:
-		// the buffer size
+		// the buffer size and target unit
 		std::size_t bytes_per_pixel_;
+		GLenum texture_unit_;
 
 		// the buffer
 		std::vector<uint8_t> image_;

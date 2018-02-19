@@ -119,7 +119,7 @@ class ConcreteMachine:
 			use_fast_tape_hack_ = activate;
 		}
 
-		void configure_as_target(const StaticAnalyser::Target &target) override final {
+		void configure_as_target(const Analyser::Static::Target &target) override final {
 			if(target.loading_command.length()) {
 				type_string(target.loading_command);
 			}
@@ -143,7 +143,7 @@ class ConcreteMachine:
 			insert_media(target.media);
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) override final {
 			if(!media.tapes.empty()) {
 				tape_.set_tape(media.tapes.front());
 			}
@@ -425,8 +425,8 @@ class ConcreteMachine:
 			Utility::TypeRecipient::add_typer(string, std::move(mapper));
 		}
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.

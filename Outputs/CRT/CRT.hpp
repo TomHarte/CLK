@@ -232,8 +232,7 @@ class CRT {
 		inline void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty) {
 			{
 				std::lock_guard<std::mutex> function_guard(function_mutex_);
-				for(std::function<void(void)> function : enqueued_openGL_functions_)
-				{
+				for(std::function<void(void)> function : enqueued_openGL_functions_) {
 					function();
 				}
 				enqueued_openGL_functions_.clear();

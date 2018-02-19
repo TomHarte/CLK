@@ -17,7 +17,7 @@
 
 - (instancetype)init {
 	_vic20 = Machine::TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());
-	return [super initWithMachine:&_vic20];
+	return nil;//[super initWithMachine:&_vic20];
 }
 
 - (NSString *)userDefaultsPrefix		{	return @"vic20";	}

@@ -6,10 +6,12 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
+@class CSZX8081;
 #import "CSMachine.h"
-#import "CSFastLoading.h"
 
-@interface CSZX8081 : CSMachine <CSFastLoading>
+@interface CSZX8081 : NSObject
+
+- (instancetype)initWithZX8081:(void *)zx8081 owner:(CSMachine *)machine;
 
 @property (nonatomic, assign) BOOL tapeIsPlaying;
 

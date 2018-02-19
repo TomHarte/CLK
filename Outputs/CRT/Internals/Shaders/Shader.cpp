@@ -14,7 +14,9 @@
 using namespace OpenGL;
 
 namespace {
-	Shader *bound_shader = nullptr;
+	// The below is disabled because it isn't context/thread-specific. Which makes it
+	// fairly 'unuseful'.
+//	Shader *bound_shader = nullptr;
 }
 
 GLuint Shader::compile_shader(const std::string &source, GLenum type) {
@@ -75,20 +77,20 @@ Shader::Shader(const std::string &vertex_shader, const std::string &fragment_sha
 }
 
 Shader::~Shader() {
-	if(bound_shader == this) Shader::unbind();
+//	if(bound_shader == this) Shader::unbind();
 	glDeleteProgram(shader_program_);
 }
 
 void Shader::bind() {
-	if(bound_shader != this) {
+//	if(bound_shader != this) {
 		glUseProgram(shader_program_);
-		bound_shader = this;
-	}
+//		bound_shader = this;
+//	}
 	flush_functions();
 }
 
 void Shader::unbind() {
-	bound_shader = nullptr;
+//	bound_shader = nullptr;
 	glUseProgram(0);
 }
 

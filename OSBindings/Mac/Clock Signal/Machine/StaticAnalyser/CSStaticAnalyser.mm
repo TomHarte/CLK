@@ -10,77 +10,55 @@
 
 #import "CSMachine.h"
 #import "CSMachine+Target.h"
-#import "CSMachine+Subclassing.h"
 
 #include "StaticAnalyser.hpp"
-
-#import "CSAmstradCPC.h"
-#import "CSAtari2600.h"
-#import "CSElectron.h"
-#import "CSMSX.h"
-#import "CSOric.h"
-#import "CSVic20.h"
-#import "CSZX8081+Instantiation.h"
 
 #import "Clock_Signal-Swift.h"
 
 @implementation CSStaticAnalyser {
-	StaticAnalyser::Target _target;
+	std::vector<std::unique_ptr<Analyser::Static::Target>> _targets;
 }
 
 - (instancetype)initWithFileAtURL:(NSURL *)url {
 	self = [super init];
 	if(self) {
-		std::list<StaticAnalyser::Target> targets = StaticAnalyser::GetTargets([url fileSystemRepresentation]);
-		if(!targets.size()) return nil;
-		_target = targets.front();
+		_targets = Analyser::Static::GetTargets([url fileSystemRepresentation]);
+		if(!_targets.size()) return nil;
 
-		// TODO: can this better be supplied by the analyser?
+		// TODO: could this better be supplied by the analyser? A hypothetical file format might
+		// provide a better name for it contents than the file name?
 		_displayName = [[url pathComponents] lastObject];
 	}
 	return self;
 }
 
 - (NSString *)optionsPanelNibName {
-	switch(_target.machine) {
-		case StaticAnalyser::Target::AmstradCPC:	return nil;
-		case StaticAnalyser::Target::Atari2600:		return @"Atari2600Options";
-		case StaticAnalyser::Target::Electron:		return @"QuickLoadCompositeOptions";
-		case StaticAnalyser::Target::MSX:			return @"QuickLoadCompositeOptions";
-		case StaticAnalyser::Target::Oric:			return @"OricOptions";
-		case StaticAnalyser::Target::Vic20:			return @"Vic20Options";
-		case StaticAnalyser::Target::ZX8081:		return @"ZX8081Options";
+	switch(_targets.front()->machine) {
+		case Analyser::Machine::AmstradCPC:	return nil;
+		case Analyser::Machine::Atari2600:	return @"Atari2600Options";
+		case Analyser::Machine::Electron:	return @"QuickLoadCompositeOptions";
+		case Analyser::Machine::MSX:		return @"QuickLoadCompositeOptions";
+		case Analyser::Machine::Oric:		return @"OricOptions";
+		case Analyser::Machine::Vic20:		nil; //return @"Vic20Options";
+		case Analyser::Machine::ZX8081:		return @"ZX8081Options";
 		default: return nil;
 	}
 }
 
-- (CSMachine *)newMachine {
-	switch(_target.machine) {
-		case StaticAnalyser::Target::AmstradCPC:	return [[CSAmstradCPC alloc] init];
-		case StaticAnalyser::Target::Atari2600:		return [[CSAtari2600 alloc] init];
-		case StaticAnalyser::Target::Electron:		return [[CSElectron alloc] init];
-		case StaticAnalyser::Target::MSX:			return [[CSMSX alloc] init];
-		case StaticAnalyser::Target::Oric:			return [[CSOric alloc] init];
-		case StaticAnalyser::Target::Vic20:			return [[CSVic20 alloc] init];
-		case StaticAnalyser::Target::ZX8081:		return [[CSZX8081 alloc] initWithIntendedTarget:_target];
-		default: return nil;
-	}
-}
-
-- (void)applyToMachine:(CSMachine *)machine {
-	[machine applyTarget:_target];
+- (std::vector<std::unique_ptr<Analyser::Static::Target>> &)targets {
+	return _targets;
 }
 
 @end
 
 @implementation CSMediaSet {
-	StaticAnalyser::Media _media;
+	Analyser::Static::Media _media;
 }
 
 - (instancetype)initWithFileAtURL:(NSURL *)url {
 	self = [super init];
 	if(self) {
-		_media = StaticAnalyser::GetMedia([url fileSystemRepresentation]);
+		_media = Analyser::Static::GetMedia([url fileSystemRepresentation]);
 	}
 	return self;
 }

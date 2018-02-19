@@ -8,4 +8,4 @@
 
 #include "ROMMachine.hpp"
 
-void CSApplyROMFetcher(ROMMachine::Machine &rom_machine);
+ROMMachine::ROMFetcher CSROMFetcher();

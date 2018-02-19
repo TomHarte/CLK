@@ -9,16 +9,16 @@
 #import <XCTest/XCTest.h>
 
 #import <CommonCrypto/CommonDigest.h>
-#include "../../../StaticAnalyser/StaticAnalyser.hpp"
+#include "../../../Analyser/Static/StaticAnalyser.hpp"
 
 @interface AtariROMRecord : NSObject
-@property(nonatomic, readonly) StaticAnalyser::Atari2600PagingModel pagingModel;
+@property(nonatomic, readonly) Analyser::Static::Atari2600PagingModel pagingModel;
 @property(nonatomic, readonly) BOOL usesSuperchip;
-+ (instancetype)recordWithPagingModel:(StaticAnalyser::Atari2600PagingModel)pagingModel usesSuperchip:(BOOL)usesSuperchip;
++ (instancetype)recordWithPagingModel:(Analyser::Static::Atari2600PagingModel)pagingModel usesSuperchip:(BOOL)usesSuperchip;
 @end
 
 @implementation AtariROMRecord
-+ (instancetype)recordWithPagingModel:(StaticAnalyser::Atari2600PagingModel)pagingModel usesSuperchip:(BOOL)usesSuperchip
++ (instancetype)recordWithPagingModel:(Analyser::Static::Atari2600PagingModel)pagingModel usesSuperchip:(BOOL)usesSuperchip
 {
 	AtariROMRecord *record = [[AtariROMRecord alloc] init];
 	record->_pagingModel = pagingModel;
@@ -27,7 +27,7 @@
 }
 @end
 
-#define Record(sha, model, uses) sha : [AtariROMRecord recordWithPagingModel:StaticAnalyser::Atari2600PagingModel::model usesSuperchip:uses],
+#define Record(sha, model, uses) sha : [AtariROMRecord recordWithPagingModel:Analyser::Static::Atari2600PagingModel::model usesSuperchip:uses],
 static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"58dbcbdffbe80be97746e94a0a75614e64458fdc", None, NO)			// 4kraVCS
 	Record(@"9967a76efb68017f793188f691159f04e6bb4447", None, NO)			// 'X'Mission
@@ -591,15 +591,15 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 		for(int c = 0; c < CC_SHA1_DIGEST_LENGTH; c++) [sha1 appendFormat:@"%02x", sha1Bytes[c]];
 
 		// get an analysis of the file
-		std::list<StaticAnalyser::Target> targets = StaticAnalyser::GetTargets([fullPath UTF8String]);
+		std::vector<std::unique_ptr<Analyser::Static::Target>> targets = Analyser::Static::GetTargets([fullPath UTF8String]);
 
 		// grab the ROM record
 		AtariROMRecord *romRecord = romRecordsBySHA1[sha1];
 		if(!romRecord) continue;
 
 		// assert equality
-		XCTAssert(targets.front().atari.paging_model == romRecord.pagingModel, @"%@; should be %d, is %d", testFile, romRecord.pagingModel, targets.front().atari.paging_model);
-		XCTAssert(targets.front().atari.uses_superchip == romRecord.usesSuperchip, @"%@; should be %@", testFile, romRecord.usesSuperchip ? @"true" : @"false");
+		XCTAssert(targets.front()->atari.paging_model == romRecord.pagingModel, @"%@; should be %d, is %d", testFile, romRecord.pagingModel, targets.front()->atari.paging_model);
+		XCTAssert(targets.front()->atari.uses_superchip == romRecord.usesSuperchip, @"%@; should be %@", testFile, romRecord.usesSuperchip ? @"true" : @"false");
 	}
 }
 

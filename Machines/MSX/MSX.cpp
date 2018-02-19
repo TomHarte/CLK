@@ -12,6 +12,7 @@
 #include "Keyboard.hpp"
 #include "ROMSlotHandler.hpp"
 
+#include "../../Analyser/Static/MSX/Cartridge.hpp"
 #include "Cartridges/ASCII8kb.hpp"
 #include "Cartridges/ASCII16kb.hpp"
 #include "Cartridges/Konami.hpp"
@@ -156,7 +157,21 @@ class ConcreteMachine:
 			z80_.run_for(cycles);
 		}
 
-		void configure_as_target(const StaticAnalyser::Target &target) override {
+		float get_confidence() override {
+			if(performed_unmapped_access_ || pc_zero_accesses_ > 1) return 0.0f;
+			if(memory_slots_[1].handler) {
+				return memory_slots_[1].handler->get_confidence();
+			}
+			return 0.5f;
+		}
+
+		void print_type() override {
+			if(memory_slots_[1].handler) {
+				memory_slots_[1].handler->print_type();
+			}
+		}
+
+		void configure_as_target(const Analyser::Static::Target &target) override {
 			// Add a disk cartridge if any disks were supplied.
 			if(!target.media.disks.empty()) {
 				map(2, 0, 0x4000, 0x2000);
@@ -171,30 +186,32 @@ class ConcreteMachine:
 			if(target.loading_command.length()) {
 				type_string(target.loading_command);
 			}
-
-			// Attach the hardware necessary for a game cartridge, if any.
-			switch(target.msx.cartridge_type) {
-				default: break;
-				case StaticAnalyser::MSXCartridgeType::Konami:
-					memory_slots_[1].set_handler(new Cartridge::KonamiROMSlotHandler(*this, 1));
-				break;
-				case StaticAnalyser::MSXCartridgeType::KonamiWithSCC:
-					memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1, scc_));
-				break;
-				case StaticAnalyser::MSXCartridgeType::ASCII8kb:
-					memory_slots_[1].set_handler(new Cartridge::ASCII8kbROMSlotHandler(*this, 1));
-				break;
-				case StaticAnalyser::MSXCartridgeType::ASCII16kb:
-					memory_slots_[1].set_handler(new Cartridge::ASCII16kbROMSlotHandler(*this, 1));
-				break;
-			}
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) override {
+		bool insert_media(const Analyser::Static::Media &media) override {
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
 				memory_slots_[1].source = segment.data;
 				map(1, 0, static_cast<uint16_t>(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
+
+				auto msx_cartridge = dynamic_cast<Analyser::Static::MSX::Cartridge *>(media.cartridges.front().get());
+				if(msx_cartridge) {
+					switch(msx_cartridge->type) {
+						default: break;
+						case Analyser::Static::MSX::Cartridge::Konami:
+							memory_slots_[1].set_handler(new Cartridge::KonamiROMSlotHandler(*this, 1));
+						break;
+						case Analyser::Static::MSX::Cartridge::KonamiWithSCC:
+							memory_slots_[1].set_handler(new Cartridge::KonamiWithSCCROMSlotHandler(*this, 1, scc_));
+						break;
+						case Analyser::Static::MSX::Cartridge::ASCII8kb:
+							memory_slots_[1].set_handler(new Cartridge::ASCII8kbROMSlotHandler(*this, 1));
+						break;
+						case Analyser::Static::MSX::Cartridge::ASCII16kb:
+							memory_slots_[1].set_handler(new Cartridge::ASCII16kbROMSlotHandler(*this, 1));
+						break;
+					}
+				}
 			}
 
 			if(!media.tapes.empty()) {
@@ -324,6 +341,14 @@ class ConcreteMachine:
 							break;
 						}
 					}
+
+					if(!address) {
+						pc_zero_accesses_++;
+					}
+					if(read_pointers_[address >> 13] == unpopulated_) {
+						performed_unmapped_access_ = true;
+					}
+					pc_address_ = address;	// This is retained so as to be able to name the source of an access to cartridge handlers.
 				case CPU::Z80::PartialMachineCycle::Read:
 					if(read_pointers_[address >> 13]) {
 						*cycle.value = read_pointers_[address >> 13][address & 8191];
@@ -341,7 +366,7 @@ class ConcreteMachine:
 					if(memory_slots_[slot_hit].handler) {
 						update_audio();
 						memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
-						memory_slots_[slot_hit].handler->write(address, *cycle.value);
+						memory_slots_[slot_hit].handler->write(address, *cycle.value, read_pointers_[pc_address_ >> 13] != memory_slots_[0].read_pointers[pc_address_ >> 13]);
 					}
 				} break;
 
@@ -505,8 +530,8 @@ class ConcreteMachine:
 			if(is_pressed) key_states_[line] &= ~mask; else key_states_[line] |= mask;
 		}
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
@@ -637,6 +662,10 @@ class ConcreteMachine:
 		std::string input_text_;
 
 		MSX::KeyboardMapper keyboard_mapper_;
+
+		int pc_zero_accesses_ = 0;
+		bool performed_unmapped_access_ = false;
+		uint16_t pc_address_;
 };
 
 }

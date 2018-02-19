@@ -18,8 +18,10 @@ class MachineDocument:
 	CSBestEffortUpdaterDelegate,
 	CSAudioQueueDelegate
 {
-	lazy var actionLock = NSLock()
-	lazy var drawLock = NSLock()
+	fileprivate let actionLock = NSLock()
+	fileprivate let drawLock = NSLock()
+	fileprivate let bestEffortLock = NSLock()
+
 	var machine: CSMachine!
 	var name: String! {
 		get {
@@ -77,7 +79,9 @@ class MachineDocument:
 	}
 
 	func machineDidChangeClockIsUnlimited(_ machine: CSMachine!) {
+		bestEffortLock.lock()
 		self.bestEffortUpdater?.runAsUnlimited = machine.clockIsUnlimited
+		bestEffortLock.unlock()
 	}
 
 	fileprivate func setupClockRate() {
@@ -91,20 +95,24 @@ class MachineDocument:
 			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.preferredBufferSize)
 		}
 
+		bestEffortLock.lock()
 		self.bestEffortUpdater?.clockRate = self.machine.clockRate
+		bestEffortLock.unlock()
 	}
 
 	override func close() {
 		optionsPanel?.setIsVisible(false)
 		optionsPanel = nil
 
-		openGLView.delegate = nil
+		bestEffortLock.lock()
 		bestEffortUpdater!.delegate = nil
 		bestEffortUpdater = nil
+		bestEffortLock.unlock()
 
 		actionLock.lock()
 		drawLock.lock()
 		machine = nil
+		openGLView.delegate = nil
 		openGLView.invalidate()
 		actionLock.unlock()
 		drawLock.unlock()
@@ -114,10 +122,9 @@ class MachineDocument:
 
 	// MARK: configuring
 	func configureAs(_ analysis: CSStaticAnalyser) {
-		if let machine = analysis.newMachine() {
+		if let machine = CSMachine(analyser: analysis) {
 			self.machine = machine
 		}
-		analysis.apply(to: self.machine)
 
 		if let optionsPanelNibName = analysis.optionsPanelNibName {
 			Bundle.main.loadNibNamed(NSNib.Name(rawValue: optionsPanelNibName), owner: self, topLevelObjects: nil)
@@ -149,6 +156,7 @@ class MachineDocument:
 	}
 
 	func runForNumberOfCycles(_ numberOfCycles: Int32) {
+		bestEffortLock.lock()
 		if let bestEffortUpdater = bestEffortUpdater {
 			let cyclesToRunFor = min(numberOfCycles, Int32(bestEffortUpdater.clockRate / 10))
 			if actionLock.try() {
@@ -156,15 +164,19 @@ class MachineDocument:
 				actionLock.unlock()
 			}
 		}
+		bestEffortLock.unlock()
 	}
 
 	// MARK: CSAudioQueueDelegate
 	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
+		bestEffortLock.lock()
 		bestEffortUpdater?.update()
+		bestEffortLock.unlock()
 	}
 
 	// MARK: CSOpenGLViewDelegate
 	final func openGLView(_ view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
+		bestEffortLock.lock()
 		if let bestEffortUpdater = bestEffortUpdater {
 			bestEffortUpdater.update()
 			if drawLock.try() {
@@ -172,6 +184,7 @@ class MachineDocument:
 				drawLock.unlock()
 			}
 		}
+		bestEffortLock.unlock()
 	}
 
 	final func openGLView(_ view: CSOpenGLView, didReceiveFileAt URL: URL) {

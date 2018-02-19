@@ -867,19 +867,19 @@ class ConcreteMachine:
 		}
 
 		/// The ConfigurationTarget entry point; should configure this meachine as described by @c target.
-		void configure_as_target(const StaticAnalyser::Target &target) override final  {
+		void configure_as_target(const Analyser::Static::Target &target) override final  {
 			switch(target.amstradcpc.model) {
-				case StaticAnalyser::AmstradCPCModel::CPC464:
+				case Analyser::Static::AmstradCPCModel::CPC464:
 					rom_model_ = ROMType::OS464;
 					has_128k_ = false;
 					has_fdc_ = false;
 				break;
-				case StaticAnalyser::AmstradCPCModel::CPC664:
+				case Analyser::Static::AmstradCPCModel::CPC664:
 					rom_model_ = ROMType::OS664;
 					has_128k_ = false;
 					has_fdc_ = true;
 				break;
-				case StaticAnalyser::AmstradCPCModel::CPC6128:
+				case Analyser::Static::AmstradCPCModel::CPC6128:
 					rom_model_ = ROMType::OS6128;
 					has_128k_ = true;
 					has_fdc_ = true;
@@ -908,7 +908,7 @@ class ConcreteMachine:
 			insert_media(target.media);
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) override final {
 			// If there are any tapes supplied, use the first of them.
 			if(!media.tapes.empty()) {
 				tape_player_.set_tape(media.tapes.front());
@@ -976,8 +976,8 @@ class ConcreteMachine:
 			key_state_.clear_all_keys();
 		}
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 	private:

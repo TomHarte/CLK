@@ -7,7 +7,6 @@
 //
 
 #import "CSMachine.h"
-#import "CSMachine+Subclassing.h"
 #import "CSMachine+Target.h"
 
 #include "CSROMFetcher.hpp"
@@ -20,6 +19,7 @@
 #include "StandardOptions.hpp"
 #include "Typer.hpp"
 
+#import "CSStaticAnalyser+TargetVector.h"
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
 
@@ -61,13 +61,20 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	SpeakerDelegate _speakerDelegate;
 	MachineDelegate _machineDelegate;
 	NSLock *_delegateMachineAccessLock;
-	Machine::DynamicMachine *_machine;
+
+	CSStaticAnalyser *_analyser;
+	std::unique_ptr<Machine::DynamicMachine> _machine;
 }
 
-- (instancetype)initWithMachine:(void *)machine {
+- (instancetype)initWithAnalyser:(CSStaticAnalyser *)result {
 	self = [super init];
 	if(self) {
-		_machine = (Machine::DynamicMachine *)machine;
+		_analyser = result;
+
+		Machine::Error error;
+		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(), error));
+		if(!_machine) return nil;
+
 		_delegateMachineAccessLock = [[NSLock alloc] init];
 
 		_machineDelegate.machine = self;
@@ -76,7 +83,6 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
 
 		_machine->crt_machine()->set_delegate(&_machineDelegate);
-		CSApplyROMFetcher(*_machine->crt_machine());
 	}
 	return self;
 }
@@ -174,19 +180,12 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 }
 
 - (void)paste:(NSString *)paste {
-	KeyboardMachine::Machine *keyboardMachine = _machine->type_recipient();
+	KeyboardMachine::Machine *keyboardMachine = _machine->keyboard_machine();
 	if(keyboardMachine)
 		keyboardMachine->type_string([paste UTF8String]);
 }
 
-- (void)applyTarget:(const StaticAnalyser::Target &)target {
-	@synchronized(self) {
-		ConfigurationTarget::Machine *const configurationTarget = _machine->configuration_target();
-		if(configurationTarget) configurationTarget->configure_as_target(target);
-	}
-}
-
-- (void)applyMedia:(const StaticAnalyser::Media &)media {
+- (void)applyMedia:(const Analyser::Static::Media &)media {
 	@synchronized(self) {
 		ConfigurationTarget::Machine *const configurationTarget = _machine->configuration_target();
 		if(configurationTarget) configurationTarget->insert_media(media);
@@ -334,6 +333,22 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 		append_automatic_tape_motor_control_selection(selection_set, useAutomaticTapeMotorControl ? true : false);
 		configurable_device->set_selections(selection_set);
 	}
+}
+
+- (NSString *)userDefaultsPrefix {
+	// Assumes that the first machine in the targets list is the source of user defaults.
+	std::string name = Machine::ShortNameForTargetMachine(_analyser.targets.front()->machine);
+	return [[NSString stringWithUTF8String:name.c_str()] lowercaseString];
+}
+
+#pragma mark - Special machines
+
+- (CSAtari2600 *)atari2600 {
+	return [[CSAtari2600 alloc] initWithAtari2600:_machine->raw_pointer() owner:self];
+}
+
+- (CSZX8081 *)zx8081 {
+	return [[CSZX8081 alloc] initWithZX8081:_machine->raw_pointer() owner:self];
 }
 
 @end

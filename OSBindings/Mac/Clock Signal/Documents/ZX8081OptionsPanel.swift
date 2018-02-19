@@ -9,7 +9,7 @@
 class ZX8081OptionsPanel: MachinePanel {
 	var zx8081: CSZX8081! {
 		get {
-			return self.machine as! CSZX8081
+			return self.machine.zx8081
 		}
 	}
 
@@ -21,7 +21,7 @@ class ZX8081OptionsPanel: MachinePanel {
 		let isEnabled = sender.state == .on
 		UserDefaults.standard.set(isEnabled, forKey: self.automaticTapeMotorControlDefaultsKey)
 		self.playOrPauseTapeButton.isEnabled = !isEnabled
-		self.zx8081.useAutomaticTapeMotorControl = isEnabled
+		self.machine.useAutomaticTapeMotorControl = isEnabled
 	}
 
 	@IBOutlet var playOrPauseTapeButton: NSButton!
@@ -44,6 +44,6 @@ class ZX8081OptionsPanel: MachinePanel {
 		let automaticTapeMotorControlIsEnabled = standardUserDefaults.bool(forKey: self.automaticTapeMotorControlDefaultsKey)
 		self.automaticTapeMotorControlButton.state = automaticTapeMotorControlIsEnabled ? .on : .off
 		self.playOrPauseTapeButton.isEnabled = !automaticTapeMotorControlIsEnabled
-		self.zx8081.useAutomaticTapeMotorControl = automaticTapeMotorControlIsEnabled
+		self.machine.useAutomaticTapeMotorControl = automaticTapeMotorControlIsEnabled
 	}
 }

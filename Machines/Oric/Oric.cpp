@@ -254,7 +254,7 @@ class ConcreteMachine:
 		}
 
 		// to satisfy ConfigurationTarget::Machine
-		void configure_as_target(const StaticAnalyser::Target &target) override final {
+		void configure_as_target(const Analyser::Static::Target &target) override final {
 			if(target.oric.has_microdisc) {
 				microdisc_is_enabled_ = true;
 				microdisc_did_change_paging_flags(&microdisc_);
@@ -284,7 +284,7 @@ class ConcreteMachine:
 			insert_media(target.media);
 		}
 
-		bool insert_media(const StaticAnalyser::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) override final {
 			if(media.tapes.size()) {
 				tape_player_.set_tape(media.tapes.front());
 			}
@@ -432,8 +432,8 @@ class ConcreteMachine:
 			set_interrupt_line();
 		}
 
-		KeyboardMapper &get_keyboard_mapper() override {
-			return keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.

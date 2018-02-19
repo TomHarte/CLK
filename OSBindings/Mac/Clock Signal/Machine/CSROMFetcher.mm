@@ -14,8 +14,8 @@
 
 #include <string>
 
-void CSApplyROMFetcher(ROMMachine::Machine &rom_machine) {
-	rom_machine.set_rom_fetcher( [] (const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
+ROMMachine::ROMFetcher CSROMFetcher() {
+	return [] (const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
 		NSString *subDirectory = [@"ROMImages/" stringByAppendingString:[NSString stringWithUTF8String:machine.c_str()]];
 		std::vector<std::unique_ptr<std::vector<std::uint8_t>>> results;
 		for(auto &name: names) {
@@ -31,5 +31,5 @@ void CSApplyROMFetcher(ROMMachine::Machine &rom_machine) {
 		}
 
 		return results;
-	});
+	};
 }

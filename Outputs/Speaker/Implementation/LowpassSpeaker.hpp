@@ -82,6 +82,8 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			at construction, filtering it and passing it on to the speaker's delegate if there is one.
 		*/
 		void run_for(const Cycles cycles) {
+			if(!delegate_) return;
+
 			std::size_t cycles_remaining = static_cast<size_t>(cycles.as_int());
 			if(!cycles_remaining) return;
 			if(filter_parameters_.parameters_are_dirty) update_filter_coefficients();
@@ -99,9 +101,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 					// announce to delegate if full
 					if(output_buffer_pointer_ == output_buffer_.size()) {
 						output_buffer_pointer_ = 0;
-						if(delegate_) {
-							delegate_->speaker_did_complete_samples(this, output_buffer_);
-						}
+						delegate_->speaker_did_complete_samples(this, output_buffer_);
 					}
 
 					cycles_remaining -= cycles_to_read;
@@ -126,9 +126,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 						// Announce to delegate if full.
 						if(output_buffer_pointer_ == output_buffer_.size()) {
 							output_buffer_pointer_ = 0;
-							if(delegate_) {
-								delegate_->speaker_did_complete_samples(this, output_buffer_);
-							}
+							delegate_->speaker_did_complete_samples(this, output_buffer_);
 						}
 
 						// If the next loop around is going to reuse some of the samples just collected, use a memmove to

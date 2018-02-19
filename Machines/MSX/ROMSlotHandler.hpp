@@ -10,6 +10,7 @@
 #define ROMSlotHandler_hpp
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../Analyser/Dynamic/ConfidenceCounter.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -46,7 +47,7 @@ class ROMSlotHandler {
 		virtual void run_for(HalfCycles half_cycles) {}
 
 		/*! Announces an attempt to write @c value to @c address. */
-		virtual void write(uint16_t address, uint8_t value) = 0;
+		virtual void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) = 0;
 
 		/*! Seeks the result of a read at @c address; this is used only if the area is unmapped. */
 		virtual uint8_t read(uint16_t address) { return 0xff; }
@@ -57,12 +58,22 @@ class ROMSlotHandler {
 			/// Empty causes all out-of-bounds accesses to read a vacant bus.
 			Empty
 		};
-		/*!
-			Returns the wrapping strategy to apply to mapping requests from this ROM slot.
-		*/
+
+		/*! @returns The wrapping strategy to apply to mapping requests from this ROM slot. */
 		virtual WrappingStrategy wrapping_strategy() const {
 			return WrappingStrategy::Repeat;
 		}
+
+		/*! @returns The probability that this handler is correct for the data it owns. */
+		float get_confidence() {
+			return confidence_counter_.get_confidence();
+		}
+
+		virtual void print_type() {
+		}
+
+	protected:
+		Analyser::Dynamic::ConfidenceCounter confidence_counter_;
 };
 
 }
