@@ -8,6 +8,7 @@
 
 #include "StaticAnalyser.hpp"
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 
@@ -166,9 +167,10 @@ std::vector<std::unique_ptr<Target>> Analyser::Static::GetTargets(const char *fi
 
 	// Sort by initial confidence. Use a stable sort in case any of the machine-specific analysers
 	// picked their insertion order carefully.
-	std::stable_sort(targets.begin(), targets.end(), [](auto &a, auto &b) {
-		return a->confidence > b->confidence;
-	});
+	std::stable_sort(targets.begin(), targets.end(),
+        [] (const std::unique_ptr<Target> &a, const std::unique_ptr<Target> &b) {
+		    return a->confidence > b->confidence;
+	    });
 
 	return targets;
 }

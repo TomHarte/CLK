@@ -8,6 +8,8 @@
 
 #include "MultiConfigurable.hpp"
 
+#include <algorithm>
+
 using namespace Analyser::Dynamic;
 
 MultiConfigurable::MultiConfigurable(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) {

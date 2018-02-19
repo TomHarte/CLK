@@ -10,6 +10,20 @@ env.ParseConfig('sdl2-config --libs')
 # gather a list of source files
 SOURCES = glob.glob('*.cpp')
 
+SOURCES += glob.glob('../../Analyser/Dynamic/*.cpp')
+SOURCES += glob.glob('../../Analyser/Dynamic/MultiMachine/*.cpp')
+SOURCES += glob.glob('../../Analyser/Dynamic/MultiMachine/Implementation/*.cpp')
+
+SOURCES += glob.glob('../../Analyser/Static/*.cpp')
+SOURCES += glob.glob('../../Analyser/Static/Acorn/*.cpp')
+SOURCES += glob.glob('../../Analyser/Static/AmstradCPC/*.cpp')
+SOURCES += glob.glob('../../Analyser/Static/Atari/*.cpp')
+SOURCES += glob.glob('../../Analyser/Static/Commodore/*.cpp')
+SOURCES += glob.glob('../../Analyser/Static/Disassembler/*.cpp')
+SOURCES += glob.glob('../../Analyser/Static/MSX/*.cpp')
+SOURCES += glob.glob('../../Analyser/Static/Oric/*.cpp')
+SOURCES += glob.glob('../../Analyser/Static/ZX8081/*.cpp')
+
 SOURCES += glob.glob('../../Components/1770/*.cpp')
 SOURCES += glob.glob('../../Components/6522/Implementation/*.cpp')
 SOURCES += glob.glob('../../Components/6560/*.cpp')
@@ -45,16 +59,6 @@ SOURCES += glob.glob('../../Processors/6502/Implementation/*.cpp')
 SOURCES += glob.glob('../../Processors/Z80/Implementation/*.cpp')
 
 SOURCES += glob.glob('../../SignalProcessing/*.cpp')
-
-SOURCES += glob.glob('../../StaticAnalyser/*.cpp')
-SOURCES += glob.glob('../../StaticAnalyser/Acorn/*.cpp')
-SOURCES += glob.glob('../../StaticAnalyser/AmstradCPC/*.cpp')
-SOURCES += glob.glob('../../StaticAnalyser/Atari/*.cpp')
-SOURCES += glob.glob('../../StaticAnalyser/Commodore/*.cpp')
-SOURCES += glob.glob('../../StaticAnalyser/Disassembler/*.cpp')
-SOURCES += glob.glob('../../StaticAnalyser/MSX/*.cpp')
-SOURCES += glob.glob('../../StaticAnalyser/Oric/*.cpp')
-SOURCES += glob.glob('../../StaticAnalyser/ZX8081/*.cpp')
 
 SOURCES += glob.glob('../../Storage/*.cpp')
 SOURCES += glob.glob('../../Storage/Cartridge/*.cpp')
