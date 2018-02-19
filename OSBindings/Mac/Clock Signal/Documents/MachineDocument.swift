@@ -158,13 +158,15 @@ class MachineDocument:
 	func runForNumberOfCycles(_ numberOfCycles: Int32) {
 		bestEffortLock.lock()
 		if let bestEffortUpdater = bestEffortUpdater {
+			bestEffortLock.unlock()
 			let cyclesToRunFor = min(numberOfCycles, Int32(bestEffortUpdater.clockRate / 10))
 			if actionLock.try() {
 				self.machine.runForNumber(ofCycles: cyclesToRunFor)
 				actionLock.unlock()
 			}
+		} else {
+			bestEffortLock.unlock()
 		}
-		bestEffortLock.unlock()
 	}
 
 	// MARK: CSAudioQueueDelegate
@@ -178,13 +180,15 @@ class MachineDocument:
 	final func openGLView(_ view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
 		bestEffortLock.lock()
 		if let bestEffortUpdater = bestEffortUpdater {
+			bestEffortLock.unlock()
 			bestEffortUpdater.update()
 			if drawLock.try() {
 				self.machine.drawView(forPixelSize: view.backingSize, onlyIfDirty: onlyIfDirty)
 				drawLock.unlock()
 			}
+		} else {
+			bestEffortLock.unlock()
 		}
-		bestEffortLock.unlock()
 	}
 
 	final func openGLView(_ view: CSOpenGLView, didReceiveFileAt URL: URL) {
