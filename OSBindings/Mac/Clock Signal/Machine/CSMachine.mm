@@ -23,7 +23,7 @@
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
 
-@interface CSMachine()
+@interface CSMachine() <CSFastLoading>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)machineDidChangeClockRate;
 - (void)machineDidChangeClockIsUnlimited;
