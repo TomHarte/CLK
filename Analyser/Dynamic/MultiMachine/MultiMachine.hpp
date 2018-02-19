@@ -28,13 +28,15 @@ namespace Dynamic {
 	Provides the same interface as to a single machine, while multiplexing all
 	underlying calls to an array of real dynamic machines.
 
-	Calls to crt_machine->get_crt will return that for the first machine.
+	Calls to crt_machine->get_crt will return that for the frontmost machine;
+	anything installed as the speaker's delegate will similarly receive
+	feedback only from that machine.
 
 	Following each crt_machine->run_for, reorders the supplied machines by
 	confidence.
 
 	If confidence for any machine becomes disproportionately low compared to
-	the others in the set, that machine is removed from the array.
+	the others in the set, that machine stops running.
 */
 class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::Delegate {
 	public:
@@ -47,10 +49,9 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::De
 		Configurable::Device *configurable_device() override;
 		void *raw_pointer() override;
 
+	private:
 		void multi_crt_did_run_machines() override;
 
-
-	private:
 		std::vector<std::unique_ptr<DynamicMachine>> machines_;
 		std::mutex machines_mutex_;
 

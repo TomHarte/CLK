@@ -22,10 +22,37 @@
 namespace Analyser {
 namespace Dynamic {
 
-class MultiCRTMachine: public ::CRTMachine::Machine, public ::CRTMachine::Machine::Delegate {
+/*!
+	Provides a class that multiplexes the CRT machine interface to multiple machines.
+
+	Keeps a reference to the original vector of machines; will access it only after
+	acquiring a supplied mutex. The owner should also call did_change_machine_order()
+	if the order of machines changes.
+*/
+class MultiCRTMachine: public CRTMachine::Machine, public CRTMachine::Machine::Delegate {
 	public:
 		MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines, std::mutex &machines_mutex);
 
+		/*!
+			Informs the MultiCRTMachine that the order of machines has changed; the MultiCRTMachine
+			uses this as an opportunity to synthesis any CRTMachine::Machine::Delegate messages that
+			are necessary to bridge the gap between one machine and the next.
+		*/
+		void did_change_machine_order();
+
+		/*!
+			Provides a mechanism by which a delegate can be informed each time a call to run_for has
+			been received.
+		*/
+		struct Delegate {
+			virtual void multi_crt_did_run_machines() = 0;
+		};
+		/// Sets @c delegate as the receiver of delegate messages.
+		void set_delegate(Delegate *delegate) {
+			delegate_ = delegate;
+		}
+
+		// Below is the standard CRTMachine::Machine interface; see there for documentation.
 		void setup_output(float aspect_ratio) override;
 		void close_output() override;
 		Outputs::CRT::CRT *get_crt() override;
@@ -35,19 +62,11 @@ class MultiCRTMachine: public ::CRTMachine::Machine, public ::CRTMachine::Machin
 		bool get_clock_is_unlimited() override;
 		void set_delegate(::CRTMachine::Machine::Delegate *delegate) override;
 
+	private:
+		// CRTMachine::Machine::Delegate
 		void machine_did_change_clock_rate(Machine *machine) override;
 		void machine_did_change_clock_is_unlimited(Machine *machine) override;
 
-		void did_change_machine_order();
-
-		struct Delegate {
-			virtual void multi_crt_did_run_machines() = 0;
-		};
-		void set_delegate(Delegate *delegate) {
-			delegate_ = delegate;
-		}
-
-	private:
 		const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines_;
 		std::mutex &machines_mutex_;
 		std::vector<Concurrency::AsyncTaskQueue> queues_;
