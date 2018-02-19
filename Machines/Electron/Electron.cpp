@@ -115,10 +115,6 @@ class ConcreteMachine:
 			if(is_holding_shift_) set_key_state(KeyShift, true);
 		}
 
-		void set_use_fast_tape_hack(bool activate) {
-			use_fast_tape_hack_ = activate;
-		}
-
 		void configure_as_target(const Analyser::Static::Target &target) override final {
 			if(target.loading_command.length()) {
 				type_string(target.loading_command);
@@ -158,6 +154,7 @@ class ConcreteMachine:
 				slot = static_cast<ROMSlot>((static_cast<int>(slot) + 1)&15);
 			}
 
+			set_use_fast_tape_hack();
 			return !media.tapes.empty() || !media.disks.empty() || !media.cartridges.empty();
 		}
 
@@ -283,7 +280,6 @@ class ConcreteMachine:
 							if(isReadOperation(operation)) {
 								if(
 									use_fast_tape_hack_ &&
-									tape_.has_tape() &&
 									(operation == CPU::MOS6502::BusOperation::ReadOpcode) &&
 									(
 										(address == 0xf4e5) || (address == 0xf4e6) ||	// double NOPs at 0xf4e5, 0xf6de, 0xf6fa and 0xfa51
@@ -437,7 +433,8 @@ class ConcreteMachine:
 		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
 			bool quickload;
 			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				set_use_fast_tape_hack(quickload);
+				allow_fast_tape_hack_ = quickload;
+				set_use_fast_tape_hack();
 			}
 
 			Configurable::Display display;
@@ -526,6 +523,10 @@ class ConcreteMachine:
 		// Tape
 		Tape tape_;
 		bool use_fast_tape_hack_ = false;
+		bool allow_fast_tape_hack_ = false;
+		void set_use_fast_tape_hack() {
+			use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_.has_tape();
+		}
 		bool fast_load_is_in_data_ = false;
 
 		// Disk

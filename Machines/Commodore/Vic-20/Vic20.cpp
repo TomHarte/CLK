@@ -312,9 +312,6 @@ class ConcreteMachine:
 			delete[] rom_;
 		}
 
-		void set_rom(ROMSlot slot, const std::vector<uint8_t> &data) {
-		}
-
 		// Obtains the system ROMs.
 		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
 			auto roms = roms_with_names(
@@ -395,6 +392,8 @@ class ConcreteMachine:
 				std::memcpy(rom_, rom_image.data(), rom_image.size());
 				write_to_map(processor_read_memory_map_, rom_, rom_address_, 0x2000);
 			}
+
+			set_use_fast_tape();
 
 			return !media.tapes.empty() || (!media.disks.empty() && c1540_ != nullptr) || !media.cartridges.empty();
 		}
@@ -516,10 +515,6 @@ class ConcreteMachine:
 			}
 		}
 
-		void set_use_fast_tape_hack(bool activate) {
-			use_fast_tape_hack_ = activate;
-		}
-
 		// to satisfy CPU::MOS6502::Processor
 		forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			// run the phase-1 part of this cycle, in which the VIC accesses memory
@@ -539,7 +534,7 @@ class ConcreteMachine:
 				// PC hits the start of the loop that just waits for an interesting tape interrupt to have
 				// occurred then skip both 6522s and the tape ahead to the next interrupt without any further
 				// CPU or 6560 costs.
-				if(use_fast_tape_hack_ && tape_->has_tape() && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
+				if(use_fast_tape_hack_ && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
 					if(address == 0xf7b2) {
 						// Address 0xf7b2 contains a JSR to 0xf8c0 that will fill the tape buffer with the next header.
 						// So cancel that via a double NOP and fill in the next header programmatically.
@@ -674,7 +669,8 @@ class ConcreteMachine:
 		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
 			bool quickload;
 			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				set_use_fast_tape_hack(quickload);
+				allow_fast_tape_hack_ = quickload;
+				set_use_fast_tape();
 			}
 		}
 
@@ -739,8 +735,12 @@ class ConcreteMachine:
 
 		// Tape
 		std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape_;
-		bool use_fast_tape_hack_;
+		bool use_fast_tape_hack_ = false;
+		bool allow_fast_tape_hack_ = false;
 		bool is_running_at_zero_cost_ = false;
+		void set_use_fast_tape() {
+			use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_->has_tape();
+		}
 
 		// Disk
 		std::shared_ptr<::Commodore::C1540::Machine> c1540_;
