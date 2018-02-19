@@ -158,7 +158,7 @@ template<bool is_zx81> class ConcreteMachine:
 
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
 					// Check for use of the fast tape hack.
-					if(use_fast_tape_hack_ && address == tape_trap_address_ && tape_player_.has_tape()) {
+					if(use_fast_tape_hack_ && address == tape_trap_address_) {
 						uint64_t prior_offset = tape_player_.get_tape()->get_offset();
 						int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 						if(next_byte != -1) {
@@ -290,6 +290,7 @@ template<bool is_zx81> class ConcreteMachine:
 				tape_player_.set_tape(media.tapes.front());
 			}
 
+			set_use_fast_tape();
 			return !media.tapes.empty();
 		}
 
@@ -331,9 +332,6 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// MARK: - Tape control
-		void set_use_fast_tape_hack(bool activate) {
-			use_fast_tape_hack_ = activate;
-		}
 
 		void set_use_automatic_tape_motor_control(bool enabled) {
 			use_automatic_tape_motor_control_ = enabled;
@@ -366,7 +364,8 @@ template<bool is_zx81> class ConcreteMachine:
 		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
 			bool quickload;
 			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				set_use_fast_tape_hack(quickload);
+				allow_fast_tape_hack_ = quickload;
+				set_use_fast_tape();
 			}
 
 			bool autotapemotor;
@@ -423,6 +422,10 @@ template<bool is_zx81> class ConcreteMachine:
 		bool has_latched_video_byte_ = false;
 
 		bool use_fast_tape_hack_ = false;
+		bool allow_fast_tape_hack_ = false;
+		void set_use_fast_tape() {
+			use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_player_.has_tape();
+		}
 		bool use_automatic_tape_motor_control_;
 		HalfCycles tape_advance_delay_ = 0;
 

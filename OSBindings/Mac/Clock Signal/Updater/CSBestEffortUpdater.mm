@@ -16,8 +16,10 @@ struct UpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
 
 	void update(Concurrency::BestEffortUpdater *updater, int cycles, bool did_skip_previous_update) {
 		[delegateLock lock];
-		[delegate bestEffortUpdater:nil runForCycles:(NSUInteger)cycles didSkipPreviousUpdate:did_skip_previous_update];
+		__weak id<CSBestEffortUpdaterDelegate> delegateCopy = delegate;
 		[delegateLock unlock];
+
+		[delegateCopy bestEffortUpdater:nil runForCycles:(NSUInteger)cycles didSkipPreviousUpdate:did_skip_previous_update];
 	}
 };
 
