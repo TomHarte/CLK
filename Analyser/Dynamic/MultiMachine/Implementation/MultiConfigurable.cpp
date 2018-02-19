@@ -15,7 +15,7 @@ using namespace Analyser::Dynamic;
 MultiConfigurable::MultiConfigurable(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) {
 	for(const auto &machine: machines) {
 		Configurable::Device *device = machine->configurable_device();
-  		if(device) devices_.push_back(device);
+		if(device) devices_.push_back(device);
     }
 }
 

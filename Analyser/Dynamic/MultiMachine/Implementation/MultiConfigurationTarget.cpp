@@ -13,7 +13,7 @@ using namespace Analyser::Dynamic;
 MultiConfigurationTarget::MultiConfigurationTarget(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) {
 	for(const auto &machine: machines) {
 		ConfigurationTarget::Machine *configuration_target = machine->configuration_target();
-  		if(configuration_target) targets_.push_back(configuration_target);
+		if(configuration_target) targets_.push_back(configuration_target);
     }
 }
 
