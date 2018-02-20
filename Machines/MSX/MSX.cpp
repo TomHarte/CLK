@@ -38,6 +38,7 @@
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
 #include "../../Configurable/StandardOptions.hpp"
+#include "../../ClockReceiver/ForceInline.hpp"
 
 namespace MSX {
 
@@ -280,7 +281,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: Z80::BusHandler
-		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			if(time_until_interrupt_ > 0) {
 				time_until_interrupt_ -= cycle.length;
 				if(time_until_interrupt_ <= HalfCycles(0)) {
@@ -573,6 +574,7 @@ class ConcreteMachine:
 		// MARK: - Sleeper
 		void set_component_is_sleeping(void *component, bool is_sleeping) override {
 			tape_player_is_sleeping_ = tape_player_.is_sleeping();
+			set_use_fast_tape();
 		}
 
 	private:
@@ -639,7 +641,7 @@ class ConcreteMachine:
 		bool allow_fast_tape_ = false;
 		bool use_fast_tape_ = false;
 		void set_use_fast_tape() {
-			use_fast_tape_ = allow_fast_tape_ && tape_player_.has_tape();
+			use_fast_tape_ = !tape_player_is_sleeping_ && allow_fast_tape_ && tape_player_.has_tape();
 		}
 
 		i8255PortHandler i8255_port_handler_;
