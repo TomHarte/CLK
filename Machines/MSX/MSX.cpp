@@ -38,6 +38,7 @@
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
 #include "../../Configurable/StandardOptions.hpp"
+#include "../../ClockReceiver/ForceInline.hpp"
 
 namespace MSX {
 
@@ -116,7 +117,8 @@ class ConcreteMachine:
 	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine,
 	public Configurable::Device,
-	public MemoryMap {
+	public MemoryMap,
+	public Sleeper::SleepObserver {
 	public:
 		ConcreteMachine():
 			z80_(*this),
@@ -135,6 +137,7 @@ class ConcreteMachine:
 
 			ay_.set_port_handler(&ay_port_handler_);
 			speaker_.set_input_rate(3579545.0f / 2.0f);
+			tape_player_.set_sleep_observer(this);
 		}
 
 		void setup_output(float aspect_ratio) override {
@@ -278,7 +281,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: Z80::BusHandler
-		HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			if(time_until_interrupt_ > 0) {
 				time_until_interrupt_ -= cycle.length;
 				if(time_until_interrupt_ <= HalfCycles(0)) {
@@ -460,8 +463,8 @@ class ConcreteMachine:
 				default: break;
 			}
 
-			// Update the tape. (TODO: allow for sleeping)
-			tape_player_.run_for(cycle.length.as_int());
+			if(!tape_player_is_sleeping_)
+				tape_player_.run_for(cycle.length.as_int());
 
 			// Per the best information I currently have, the MSX inserts an extra cycle into each opcode read,
 			// but otherwise runs without pause.
@@ -568,6 +571,12 @@ class ConcreteMachine:
 			return selection_set;
 		}
 
+		// MARK: - Sleeper
+		void set_component_is_sleeping(void *component, bool is_sleeping) override {
+			tape_player_is_sleeping_ = tape_player_.is_sleeping();
+			set_use_fast_tape();
+		}
+
 	private:
 		void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
@@ -628,10 +637,11 @@ class ConcreteMachine:
 		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle, Konami::SCC>> speaker_;
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
+		bool tape_player_is_sleeping_ = false;
 		bool allow_fast_tape_ = false;
 		bool use_fast_tape_ = false;
 		void set_use_fast_tape() {
-			use_fast_tape_ = allow_fast_tape_ && tape_player_.has_tape();
+			use_fast_tape_ = !tape_player_is_sleeping_ && allow_fast_tape_ && tape_player_.has_tape();
 		}
 
 		i8255PortHandler i8255_port_handler_;

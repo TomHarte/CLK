@@ -39,9 +39,9 @@ struct UpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
 	return self;
 }
 
-- (void)dealloc {
-	_updater.flush();
-}
+//- (void)dealloc {
+//	_updater.flush();
+//}
 
 - (void)update {
 	_updater.update();
