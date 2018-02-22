@@ -53,6 +53,25 @@ const uint8_t StatusFifthSprite = 0x40;
 const int StatusSpriteCollisionShift = 5;
 const uint8_t StatusSpriteCollision = 0x20;
 
+struct ReverseTable {
+	std::uint8_t map[256];
+
+	ReverseTable() {
+		for(int c = 0; c < 256; ++c) {
+			map[c] = static_cast<uint8_t>(
+				((c & 0x80) >> 7) |
+				((c & 0x40) >> 5) |
+				((c & 0x20) >> 3) |
+				((c & 0x10) >> 1) |
+				((c & 0x08) << 1) |
+				((c & 0x04) << 3) |
+				((c & 0x02) << 5) |
+				((c & 0x01) << 7)
+			);
+		}
+	}
+} reverse_table;
+
 }
 
 TMS9918Base::TMS9918Base() :
@@ -380,21 +399,21 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 							const int shift = (output_column_ - first_pixel_column_) % 6;
 							int byte_column = (output_column_ - first_pixel_column_) / 6;
-							int pattern = pattern_buffer_[byte_column] << shift;
+							int pattern = reverse_table.map[pattern_buffer_[byte_column]] >> shift;
 							int pixels_left = pixels_end - output_column_;
 							int length = std::min(pixels_left, 6 - shift);
 							while(true) {
 								pixels_left -= length;
-								while(length--) {
-									*pixel_target_ = colours[(pattern >> 7)&0x01];
-									pixel_target_++;
-									pattern <<= 1;
+								for(int c = 0; c < length; ++c) {
+									pixel_target_[c] = colours[pattern&0x01];
+									pattern >>= 1;
 								}
+								pixel_target_ += length;
 
 								if(!pixels_left) break;
 								length = std::min(6, pixels_left);
 								byte_column++;
-								pattern = pattern_buffer_[byte_column];
+								pattern = reverse_table.map[pattern_buffer_[byte_column]];
 							}
 							output_column_ = pixels_end;
 						} break;
@@ -422,7 +441,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							const int pixels_left = pixels_end - output_column_;
 							int length = std::min(pixels_left, 8 - shift);
 
-							int pattern = pattern_buffer_[byte_column] << shift;
+							int pattern = reverse_table.map[pattern_buffer_[byte_column]] >> shift;
 							uint8_t colour = colour_buffer_[byte_column];
 							uint32_t colours[2] = {
 								palette[(colour & 15) ? (colour & 15) : background_colour_],
@@ -432,17 +451,17 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							int background_pixels_left = pixels_left;
 							while(true) {
 								background_pixels_left -= length;
-								while(length--) {
-									*pixel_target_ = colours[(pattern >> 7)&0x01];
-									pixel_target_++;
-									pattern <<= 1;
+								for(int c = 0; c < length; ++c) {
+									pixel_target_[c] = colours[pattern&0x01];
+									pattern >>= 1;
 								}
+								pixel_target_ += length;
 
 								if(!background_pixels_left) break;
 								length = std::min(8, background_pixels_left);
 								byte_column++;
 
-								pattern = pattern_buffer_[byte_column];
+								pattern = reverse_table.map[pattern_buffer_[byte_column]];
 								colour = colour_buffer_[byte_column];
 								colours[0] = palette[(colour & 15) ? (colour & 15) : background_colour_];
 								colours[1] = palette[(colour >> 4) ? (colour >> 4) : background_colour_];
