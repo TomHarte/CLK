@@ -33,6 +33,10 @@ void PulseQueuedTape::emplace_back(Tape::Pulse::Type type, Time length) {
 	queued_pulses_.emplace_back(type, length);
 }
 
+void PulseQueuedTape::emplace_back(const Tape::Pulse &&pulse) {
+	queued_pulses_.emplace_back(pulse);
+}
+
 Tape::Pulse PulseQueuedTape::silence() {
 	Pulse silence;
 	silence.type = Pulse::Zero;

@@ -32,6 +32,7 @@ class PulseQueuedTape: public Tape {
 
 	protected:
 		void emplace_back(Tape::Pulse::Type type, Time length);
+		void emplace_back(const Tape::Pulse &&pulse);
 		void clear();
 		bool empty();
 

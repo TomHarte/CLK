@@ -44,11 +44,10 @@ class TZX: public PulseQueuedTape {
 		void get_pure_tone_data_block();
 		void get_pulse_sequence();
 		void get_pure_data_block();
+		void get_direct_recording_block();
+		void get_csw_recording_block();
 		void get_generalised_data_block();
 		void get_pause();
-		void get_kansas_city_block();
-
-		void get_hardware_type();
 
 		void ignore_group_start();
 		void ignore_group_end();
@@ -58,8 +57,18 @@ class TZX: public PulseQueuedTape {
 		void ignore_call_sequence();
 		void ignore_return_from_sequence();
 		void ignore_select_block();
+		void ignore_stop_tape_if_in_48kb_mode();
+
+		void get_set_signal_level();
+
 		void ignore_text_description();
 		void ignore_message_block();
+		void ignore_archive_info();
+		void get_hardware_type();
+		void ignore_custom_info_block();
+
+		void get_kansas_city_block();
+		void ignore_glue_block();
 
 		struct Data {
 			unsigned int length_of_zero_bit_pulse;

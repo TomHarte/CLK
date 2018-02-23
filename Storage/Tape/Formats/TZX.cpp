@@ -8,6 +8,8 @@
 
 #include "TZX.hpp"
 
+#include "CSW.hpp"
+
 using namespace Storage::Tape;
 
 namespace {
@@ -59,6 +61,8 @@ void TZX::get_next_pulses() {
 			case 0x12:	get_pure_tone_data_block();			break;
 			case 0x13:	get_pulse_sequence();				break;
 			case 0x14:	get_pure_data_block();				break;
+			case 0x15:	get_direct_recording_block();		break;
+			case 0x18:	get_csw_recording_block();			break;
 			case 0x19:	get_generalised_data_block();		break;
 			case 0x20:	get_pause();						break;
 
@@ -70,12 +74,19 @@ void TZX::get_next_pulses() {
 			case 0x26:	ignore_call_sequence();				break;
 			case 0x27:	ignore_return_from_sequence();		break;
 			case 0x28:	ignore_select_block();				break;
+			case 0x2a:	ignore_stop_tape_if_in_48kb_mode();	break;
+
+			case 0x2b:	get_set_signal_level();				break;
 
 			case 0x30:	ignore_text_description();			break;
 			case 0x31:	ignore_message_block();				break;
+			case 0x32:	ignore_archive_info();				break;
 			case 0x33:	get_hardware_type();				break;
+			case 0x35:	ignore_custom_info_block();			break;
 
 			case 0x4b:	get_kansas_city_block();			break;
+
+			case 0x5a:	ignore_glue_block();				break;
 
 			default:
 				// In TZX each chunk has a different way of stating or implying its length,
@@ -85,6 +96,26 @@ void TZX::get_next_pulses() {
 			return;
 		}
 	}
+}
+
+void TZX::get_csw_recording_block() {
+	const uint32_t block_length = file_.get32le();
+	const uint16_t pause_after_block = file_.get16le();
+	const uint32_t sampling_rate = file_.get24le();
+	const uint8_t compression_type = file_.get8();
+	const uint32_t number_of_compressed_pulses = file_.get32le();
+
+	std::vector<uint8_t> raw_block = file_.read(block_length - 10);
+
+	CSW csw(std::move(raw_block), (compression_type == 2) ? CSW::CompressionType::ZRLE : CSW::CompressionType::RLE, current_level_, sampling_rate);
+	while(!csw.is_at_end()) {
+		Tape::Pulse next_pulse = csw.get_next_pulse();
+		current_level_ = (next_pulse.type == Tape::Pulse::High);
+		emplace_back(std::move(next_pulse));
+	}
+
+	(void)number_of_compressed_pulses;
+	post_gap(pause_after_block);
 }
 
 void TZX::get_generalised_data_block() {
@@ -250,6 +281,36 @@ void TZX::get_pure_data_block() {
 	get_data(data);
 }
 
+void TZX::get_direct_recording_block() {
+	const Storage::Time length_per_sample(static_cast<unsigned>(file_.get16le()), StandardTZXClock);
+	const uint16_t pause_after_block = file_.get16le();
+	uint8_t used_bits_in_final_byte = file_.get8();
+	const uint32_t length_of_data = file_.get24le();
+
+	if(used_bits_in_final_byte < 1) used_bits_in_final_byte = 1;
+	if(used_bits_in_final_byte > 8) used_bits_in_final_byte = 8;
+
+	uint8_t byte = 0;
+	unsigned int bits_at_level = 0;
+	uint8_t level = 0;
+	for(std::size_t bit = 0; bit < (length_of_data - 1) * 8 + used_bits_in_final_byte; ++bit) {
+		if(!(bit&7)) byte = file_.get8();
+		if(!bit) level = byte&0x80;
+
+		if((byte&0x80) != level) {
+			emplace_back(level ? Tape::Pulse::High : Tape::Pulse::Low, length_per_sample * bits_at_level);
+			bits_at_level = 0;
+			level = byte&0x80;
+		}
+		bits_at_level++;
+	}
+
+	current_level_ = !!(level);
+	emplace_back(level ? Tape::Pulse::High : Tape::Pulse::Low, length_per_sample * bits_at_level);
+
+	post_gap(pause_after_block);
+}
+
 void TZX::get_pulse_sequence() {
 	uint8_t number_of_pulses = file_.get8();
 	while(number_of_pulses--) {
@@ -264,6 +325,12 @@ void TZX::get_pause() {
 	} else {
 		post_gap(duration);
 	}
+}
+
+void TZX::get_set_signal_level() {
+	file_.seek(4, SEEK_CUR);
+	const uint8_t level = file_.get8();
+	current_level_ = !!level;
 }
 
 void TZX::get_kansas_city_block() {
@@ -350,7 +417,6 @@ void TZX::post_pulse(const Storage::Time &time) {
 // MARK: - Flow control; currently ignored
 
 void TZX::ignore_group_start() {
-	printf("Ignoring TZX group\n");
 	uint8_t length = file_.get8();
 	file_.seek(length, SEEK_CUR);
 }
@@ -361,13 +427,11 @@ void TZX::ignore_group_end() {
 void TZX::ignore_jump_to_block() {
 	uint16_t target = file_.get16le();
 	(void)target;
-	printf("Ignoring TZX jump\n");
 }
 
 void TZX::ignore_loop_start() {
 	uint16_t number_of_repetitions = file_.get16le();
 	(void)number_of_repetitions;
-	printf("Ignoring TZX loop\n");
 }
 
 void TZX::ignore_loop_end() {
@@ -376,17 +440,25 @@ void TZX::ignore_loop_end() {
 void TZX::ignore_call_sequence() {
 	uint16_t number_of_entries = file_.get16le();
 	file_.seek(number_of_entries * sizeof(uint16_t), SEEK_CUR);
-	printf("Ignoring TZX call sequence\n");
 }
 
 void TZX::ignore_return_from_sequence() {
-	printf("Ignoring TZX return from sequence\n");
 }
 
 void TZX::ignore_select_block() {
 	uint16_t length_of_block = file_.get16le();
 	file_.seek(length_of_block, SEEK_CUR);
-	printf("Ignoring TZX select block\n");
+}
+
+void TZX::ignore_stop_tape_if_in_48kb_mode() {
+	file_.seek(4, SEEK_CUR);
+}
+
+void TZX::ignore_custom_info_block() {
+	// TODO: enquire about this; the TZX documentation is ambiguous as to whether this is really 10, or 0x10.
+	file_.seek(10, SEEK_CUR);
+	uint32_t length = file_.get32le();
+	file_.seek(length, SEEK_CUR);
 }
 
 // MARK: - Messaging
@@ -394,7 +466,6 @@ void TZX::ignore_select_block() {
 void TZX::ignore_text_description() {
 	uint8_t length = file_.get8();
 	file_.seek(length, SEEK_CUR);
-	printf("Ignoring TZX text description\n");
 }
 
 void TZX::ignore_message_block() {
@@ -402,12 +473,19 @@ void TZX::ignore_message_block() {
 	uint8_t length = file_.get8();
 	file_.seek(length, SEEK_CUR);
 	(void)time_for_display;
-	printf("Ignoring TZX message\n");
+}
+
+void TZX::ignore_archive_info() {
+	uint16_t length = file_.get16le();
+	file_.seek(length, SEEK_CUR);
 }
 
 void TZX::get_hardware_type() {
 	// TODO: pick a way to retain and communicate this.
 	uint8_t number_of_machines = file_.get8();
 	file_.seek(number_of_machines * 3, SEEK_CUR);
-	printf("Ignoring TZX hardware types (%d)\n", number_of_machines);
+}
+
+void TZX::ignore_glue_block() {
+	file_.seek(9, SEEK_CUR);
 }
