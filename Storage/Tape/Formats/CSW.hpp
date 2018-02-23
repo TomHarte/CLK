@@ -30,6 +30,16 @@ class CSW: public Tape {
 		*/
 		CSW(const char *file_name);
 
+		enum class CompressionType {
+			RLE,
+			ZRLE
+		};
+
+		/*!
+			Constructs a @c CSW containing content as specified. Does not throw.
+		*/
+		CSW(const std::vector<uint8_t> &&data, CompressionType compression_type, bool initial_level, uint32_t sampling_rate);
+
 		enum {
 			ErrorNotCSW
 		};
@@ -38,16 +48,11 @@ class CSW: public Tape {
 		bool is_at_end();
 
 	private:
-		Storage::FileHolder file_;
-
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
 
 		Pulse pulse_;
-		enum class CompressionType {
-			RLE,
-			ZRLE
-		} compression_type_;
+		CompressionType compression_type_;
 
 		uint8_t get_next_byte();
 		uint32_t get_next_int32le();
@@ -55,8 +60,6 @@ class CSW: public Tape {
 
 		std::vector<uint8_t> source_data_;
 		std::size_t source_data_pointer_;
-
-		long rle_start_;
 };
 
 }
