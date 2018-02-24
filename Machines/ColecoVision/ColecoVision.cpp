@@ -13,6 +13,7 @@
 #include "../../Components/9918/9918.hpp"
 
 #include "../CRTMachine.hpp"
+#include "../ConfigurationTarget.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
 
@@ -22,7 +23,8 @@ namespace Vision {
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
-	public CRTMachine::Machine {
+	public CRTMachine::Machine,
+	public ConfigurationTarget::Machine {
 
 	public:
 		ConcreteMachine() : z80_(*this) {
@@ -48,6 +50,20 @@ class ConcreteMachine:
 
 		void run_for(const Cycles cycles) override {
 			z80_.run_for(cycles);
+		}
+
+		void configure_as_target(const Analyser::Static::Target &target) override {
+			// Insert the media.
+			insert_media(target.media);
+		}
+
+		bool insert_media(const Analyser::Static::Media &media) override {
+			if(!media.cartridges.empty()) {
+				const auto &segment = media.cartridges.front()->get_segments().front();
+				cartridge_ = segment.data;
+			}
+
+			return true;
 		}
 
 		// Obtains the system ROMs.
@@ -83,6 +99,8 @@ class ConcreteMachine:
 						*cycle.value = bios_[address];
 					} else if(address >= 0x6000 && address < 0x8000) {
 						*cycle.value = ram_[address & 1023];
+					} else if(address >= 0x8000 && address < 0x8000 + cartridge_.size()) {
+						*cycle.value = cartridge_[address - 0x8000];
 					} else {
 						*cycle.value = 0xff;
 					}
@@ -139,6 +157,7 @@ class ConcreteMachine:
 		std::unique_ptr<TI::TMS9918> vdp_;
 
 		std::vector<uint8_t> bios_;
+		std::vector<uint8_t> cartridge_;
 		uint8_t ram_[1024];
 
 		HalfCycles time_since_vdp_update_;
