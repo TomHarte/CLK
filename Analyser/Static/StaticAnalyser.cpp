@@ -16,6 +16,7 @@
 #include "Acorn/StaticAnalyser.hpp"
 #include "AmstradCPC/StaticAnalyser.hpp"
 #include "Atari/StaticAnalyser.hpp"
+#include "Coleco/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
 #include "MSX/StaticAnalyser.hpp"
 #include "Oric/StaticAnalyser.hpp"
@@ -90,6 +91,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 		Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)						// BIN
 		Format("cas", result.tapes, Tape::CAS, TargetPlatform::MSX)												// CAS
 		Format("cdt", result.tapes, Tape::TZX, TargetPlatform::AmstradCPC)										// CDT
+		Format("col", result.cartridges, Cartridge::BinaryDump, TargetPlatform::ColecoVision)					// COL
 		Format("csw", result.tapes, Tape::CSW, TargetPlatform::AllTape)											// CSW
 		Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)		// D64
 		Format("dmk", result.disks, Disk::DiskImageHolder<Storage::Disk::DMK>, TargetPlatform::MSX)				// DMK
@@ -115,7 +117,10 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 			}
 		}
 
-		Format("rom", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Acorn | TargetPlatform::MSX)	// ROM
+		Format(	"rom",
+				result.cartridges,
+				Cartridge::BinaryDump,
+				TargetPlatform::Acorn | TargetPlatform::MSX | TargetPlatform::ColecoVision)						// ROM
 		Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// SSD
 		Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)								// TAP (Commodore)
 		Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)										// TAP (Oric)
@@ -153,6 +158,7 @@ std::vector<std::unique_ptr<Target>> Analyser::Static::GetTargets(const char *fi
 	if(potential_platforms & TargetPlatform::Acorn)			Acorn::AddTargets(media, targets);
 	if(potential_platforms & TargetPlatform::AmstradCPC)	AmstradCPC::AddTargets(media, targets);
 	if(potential_platforms & TargetPlatform::Atari2600)		Atari::AddTargets(media, targets);
+	if(potential_platforms & TargetPlatform::ColecoVision)	Coleco::AddTargets(media, targets);
 	if(potential_platforms & TargetPlatform::Commodore)		Commodore::AddTargets(media, targets);
 	if(potential_platforms & TargetPlatform::MSX)			MSX::AddTargets(media, targets);
 	if(potential_platforms & TargetPlatform::Oric)			Oric::AddTargets(media, targets);
