@@ -206,7 +206,7 @@ class ProcessorBase: public ProcessorStorage {
 
 			@param offset See discussion in set_interrupt_line.
 		*/
-		inline void set_non_maskable_interrupt_line(bool value, int offset = 0);
+		inline void set_non_maskable_interrupt_line(bool value, HalfCycles offset = 0);
 
 		/*!
 			Gets the value of the non-maskable interrupt line.
