@@ -252,9 +252,19 @@ class Joystick: public Inputs::Joystick {
 			user_port_via_port_handler_(user_port_via_port_handler),
 			keyboard_via_port_handler_(keyboard_via_port_handler) {}
 
-		void set_digital_input(DigitalInput digital_input, bool is_active) override {
+		std::vector<DigitalInput> get_inputs() override {
+			return {
+				DigitalInput(DigitalInput::Up),
+				DigitalInput(DigitalInput::Down),
+				DigitalInput(DigitalInput::Left),
+				DigitalInput(DigitalInput::Right),
+				DigitalInput(DigitalInput::Fire)
+			};
+		}
+
+		void set_digital_input(const DigitalInput &digital_input, bool is_active) override {
 			JoystickInput mapped_input;
-			switch (digital_input) {
+			switch(digital_input.type) {
 				default: return;
 				case DigitalInput::Up: mapped_input = Up;		break;
 				case DigitalInput::Down: mapped_input = Down;	break;

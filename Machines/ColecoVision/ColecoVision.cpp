@@ -12,23 +12,104 @@
 
 #include "../../Components/9918/9918.hpp"
 
-#include "../CRTMachine.hpp"
 #include "../ConfigurationTarget.hpp"
+#include "../CRTMachine.hpp"
+#include "../JoystickMachine.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
 
 namespace Coleco {
 namespace Vision {
 
+class Joystick: public Inputs::Joystick {
+	public:
+		std::vector<DigitalInput> get_inputs() override {
+			return {
+				DigitalInput(DigitalInput::Up),
+				DigitalInput(DigitalInput::Down),
+				DigitalInput(DigitalInput::Left),
+				DigitalInput(DigitalInput::Right),
+
+				DigitalInput(DigitalInput::Fire, 0),
+				DigitalInput(DigitalInput::Fire, 1),
+
+				DigitalInput('0'),	DigitalInput('1'),	DigitalInput('2'),
+				DigitalInput('3'),	DigitalInput('4'),	DigitalInput('5'),
+				DigitalInput('6'),	DigitalInput('7'),	DigitalInput('8'),
+				DigitalInput('9'),	DigitalInput('*'),	DigitalInput('#'),
+			};
+		}
+
+		void set_digital_input(const DigitalInput &digital_input, bool is_active) override {
+			switch(digital_input.type) {
+				default: return;
+
+				case DigitalInput::Key:
+					if(!is_active) keypad_ |= 0xf;
+					else {
+						uint8_t mask = 0xf;
+						switch(digital_input.info.key.symbol) {
+							case '0':	mask = 0x5;		break;
+							case '1':	mask = 0xb;		break;
+							case '2':	mask = 0xe;		break;
+							case '3':	mask = 0x3;		break;
+							case '4':	mask = 0x4;		break;
+							case '5':	mask = 0xc;		break;
+							case '6':	mask = 0x7;		break;
+							case '7':	mask = 0xa;		break;
+							case '8':	mask = 0x8;		break;
+							case '9':	mask = 0xd;		break;
+							case '*':	mask = 0x9;		break;
+							case '#':	mask = 0x6;		break;
+							default: break;
+						}
+						keypad_ = (keypad_ & 0xf0) | mask;
+					}
+				break;
+
+				case DigitalInput::Up: 		if(is_active) direction_ = direction_ &= ~0x08; else direction_ |= 0x08;	break;
+				case DigitalInput::Down:	if(is_active) direction_ = direction_ &= ~0x02; else direction_ |= 0x02;	break;
+				case DigitalInput::Left:	if(is_active) direction_ = direction_ &= ~0x01; else direction_ |= 0x01;	break;
+				case DigitalInput::Right:	if(is_active) direction_ = direction_ &= ~0x04; else direction_ |= 0x04;	break;
+				case DigitalInput::Fire:
+					switch(digital_input.info.control.index) {
+						default: break;
+						case 0:	if(is_active) direction_ = direction_ &= ~0x10; else direction_ |= 0x10;	break;
+						case 1:	if(is_active) keypad_ = keypad_ &= ~0x10; else keypad_ |= 0x10;				break;
+					}
+				break;
+			}
+		}
+
+		uint8_t get_direction_input() {
+			return direction_;
+		}
+
+		uint8_t get_keypad_input() {
+			return keypad_;
+		}
+
+	private:
+		uint8_t direction_ = 0xff;
+		uint8_t keypad_ = 0xff;
+};
+
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine {
+	public ConfigurationTarget::Machine,
+	public JoystickMachine::Machine {
 
 	public:
 		ConcreteMachine() : z80_(*this) {
 			set_clock_rate(3579545);
+			joysticks_.emplace_back(new Joystick);
+			joysticks_.emplace_back(new Joystick);
+		}
+
+		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+			return joysticks_;
 		}
 
 		void setup_output(float aspect_ratio) override {
@@ -121,6 +202,14 @@ class ConcreteMachine:
 							time_until_interrupt_ = vdp_->get_time_until_interrupt();
 						break;
 
+						case 7:
+							if(joysticks_in_keypad_mode_) {
+								*cycle.value = static_cast<Joystick *>(joysticks_[address&1].get())->get_keypad_input();
+							} else {
+								*cycle.value = static_cast<Joystick *>(joysticks_[address&1].get())->get_direction_input();
+							}
+						break;
+
 						default:
 							*cycle.value = 0xff;
 						break;
@@ -129,11 +218,19 @@ class ConcreteMachine:
 
 				case CPU::Z80::PartialMachineCycle::Output:
 					switch((address >> 5) & 7) {
+						case 4: case 6:
+							joysticks_in_keypad_mode_ = ((address >> 5) & 7) == 4;
+						break;
+
 						case 5:
 							vdp_->run_for(time_since_vdp_update_.flush());
 							vdp_->set_register(address, *cycle.value);
 							z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
 							time_until_interrupt_ = vdp_->get_time_until_interrupt();
+						break;
+
+						case 7:
+							// TODO: write to audio.
 						break;
 
 						default: break;
@@ -159,6 +256,9 @@ class ConcreteMachine:
 		std::vector<uint8_t> bios_;
 		std::vector<uint8_t> cartridge_;
 		uint8_t ram_[1024];
+
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+		bool joysticks_in_keypad_mode_ = false;
 
 		HalfCycles time_since_vdp_update_;
 		HalfCycles time_until_interrupt_;
