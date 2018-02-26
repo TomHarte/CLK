@@ -49,33 +49,33 @@ class Joystick: public Inputs::Joystick {
 					else {
 						uint8_t mask = 0xf;
 						switch(digital_input.info.key.symbol) {
-							case '0':	mask = 0x5;		break;
-							case '1':	mask = 0xb;		break;
-							case '2':	mask = 0xe;		break;
-							case '3':	mask = 0x3;		break;
-							case '4':	mask = 0x4;		break;
-							case '5':	mask = 0xc;		break;
-							case '6':	mask = 0x7;		break;
-							case '7':	mask = 0xa;		break;
-							case '8':	mask = 0x8;		break;
-							case '9':	mask = 0xd;		break;
-							case '*':	mask = 0x9;		break;
+							case '8':	mask = 0x1;		break;
+							case '4':	mask = 0x2;		break;
+							case '5':	mask = 0x3;		break;
+							case '7':	mask = 0x5;		break;
 							case '#':	mask = 0x6;		break;
+							case '2':	mask = 0x7;		break;
+							case '*':	mask = 0x9;		break;
+							case '0':	mask = 0xa;		break;
+							case '9':	mask = 0xb;		break;
+							case '3':	mask = 0xc;		break;
+							case '1':	mask = 0xd;		break;
+							case '6':	mask = 0xe;		break;
 							default: break;
 						}
-						keypad_ = (keypad_ & 0xf0) | mask;
+						keypad_ = (keypad_ & 0xf0) | (mask ^ 0xf);
 					}
 				break;
 
-				case DigitalInput::Up: 		if(is_active) direction_ = direction_ &= ~0x08; else direction_ |= 0x08;	break;
-				case DigitalInput::Down:	if(is_active) direction_ = direction_ &= ~0x02; else direction_ |= 0x02;	break;
-				case DigitalInput::Left:	if(is_active) direction_ = direction_ &= ~0x01; else direction_ |= 0x01;	break;
-				case DigitalInput::Right:	if(is_active) direction_ = direction_ &= ~0x04; else direction_ |= 0x04;	break;
+				case DigitalInput::Up: 		if(is_active) direction_ &= ~0x01; else direction_ |= 0x01;	break;
+				case DigitalInput::Right:	if(is_active) direction_ &= ~0x02; else direction_ |= 0x02;	break;
+				case DigitalInput::Down:	if(is_active) direction_ &= ~0x04; else direction_ |= 0x04;	break;
+				case DigitalInput::Left:	if(is_active) direction_ &= ~0x08; else direction_ |= 0x08;	break;
 				case DigitalInput::Fire:
 					switch(digital_input.info.control.index) {
 						default: break;
-						case 0:	if(is_active) direction_ = direction_ &= ~0x10; else direction_ |= 0x10;	break;
-						case 1:	if(is_active) keypad_ = keypad_ &= ~0x10; else keypad_ |= 0x10;				break;
+						case 0:	if(is_active) direction_ &= ~0x40; else direction_ |= 0x40;	break;
+						case 1:	if(is_active) keypad_ &= ~0x40; else keypad_ |= 0x40;		break;
 					}
 				break;
 			}
@@ -202,13 +202,15 @@ class ConcreteMachine:
 							time_until_interrupt_ = vdp_->get_time_until_interrupt();
 						break;
 
-						case 7:
+						case 7: {
+							const std::size_t joystick_id = (address&2) >> 1;
+							Joystick *joystick = static_cast<Joystick *>(joysticks_[joystick_id].get());
 							if(joysticks_in_keypad_mode_) {
-								*cycle.value = static_cast<Joystick *>(joysticks_[address&1].get())->get_keypad_input();
+								*cycle.value = joystick->get_keypad_input();
 							} else {
-								*cycle.value = static_cast<Joystick *>(joysticks_[address&1].get())->get_direction_input();
+								*cycle.value = joystick->get_direction_input();
 							}
-						break;
+						} break;
 
 						default:
 							*cycle.value = 0xff;
@@ -216,10 +218,11 @@ class ConcreteMachine:
 					}
 				break;
 
-				case CPU::Z80::PartialMachineCycle::Output:
-					switch((address >> 5) & 7) {
+				case CPU::Z80::PartialMachineCycle::Output: {
+					const int eighth = (address >> 5) & 7;
+					switch(eighth) {
 						case 4: case 6:
-							joysticks_in_keypad_mode_ = ((address >> 5) & 7) == 4;
+							joysticks_in_keypad_mode_ = eighth == 4;
 						break;
 
 						case 5:
@@ -235,10 +238,9 @@ class ConcreteMachine:
 
 						default: break;
 					}
-				break;
+				} break;
 
-				default:
-				break;
+				default: break;
 			}
 
 			time_since_vdp_update_ += cycle.length;
