@@ -11,12 +11,15 @@
 #include "../../Processors/Z80/Z80.hpp"
 
 #include "../../Components/9918/9918.hpp"
+#include "../../Components/SN76489/SN76489.hpp"
 
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
+
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 namespace Coleco {
 namespace Vision {
@@ -102,7 +105,10 @@ class ConcreteMachine:
 	public JoystickMachine::Machine {
 
 	public:
-		ConcreteMachine() : z80_(*this) {
+		ConcreteMachine() :
+			z80_(*this),
+			sn76489_(audio_queue_),
+			speaker_(sn76489_) {
 			set_clock_rate(3579545);
 			joysticks_.emplace_back(new Joystick);
 			joysticks_.emplace_back(new Joystick);
@@ -233,7 +239,8 @@ class ConcreteMachine:
 						break;
 
 						case 7:
-							// TODO: write to audio.
+							update_audio();
+							sn76489_.write(*cycle.value);
 						break;
 
 						default: break;
@@ -244,16 +251,27 @@ class ConcreteMachine:
 			}
 
 			time_since_vdp_update_ += cycle.length;
+			time_since_sn76489_update_ += cycle.length;
 			return HalfCycles(0);
 		}
 
 		void flush() {
 			vdp_->run_for(time_since_vdp_update_.flush());
+			update_audio();
+			audio_queue_.perform();
 		}
 
 	private:
+		void update_audio() {
+			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(2)));
+		}
+
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		std::unique_ptr<TI::TMS9918> vdp_;
+
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		TI::SN76489 sn76489_;
+		Outputs::Speaker::LowpassSpeaker<TI::SN76489> speaker_;
 
 		std::vector<uint8_t> bios_;
 		std::vector<uint8_t> cartridge_;
@@ -263,6 +281,7 @@ class ConcreteMachine:
 		bool joysticks_in_keypad_mode_ = false;
 
 		HalfCycles time_since_vdp_update_;
+		HalfCycles time_since_sn76489_update_;
 		HalfCycles time_until_interrupt_;
 };
 
