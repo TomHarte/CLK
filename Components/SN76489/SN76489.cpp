@@ -84,25 +84,25 @@ void SN76489::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 	while(c < number_of_samples) {
 		bool did_flip = false;
 
-#define step_channel(c) \
-		if(channels_[c].counter) channels_[c].counter--;\
+#define step_channel(x, s) \
+		if(channels_[x].counter) channels_[x].counter--;\
 		else {\
-			channels_[c].level ^= 1;\
-			channels_[c].counter = channels_[c].divider;\
-			did_flip = true;\
+			channels_[x].level ^= 1;\
+			channels_[x].counter = channels_[x].divider;\
+			s;\
 		}
 
-		step_channel(0);
-		step_channel(1);
-		step_channel(2);
+		step_channel(0, /**/);
+		step_channel(1, /**/);
+		step_channel(2, did_flip = true);
 
 #undef step_channel
 
-		if(channels_[c].divider != 0xffff) {
+		if(channels_[3].divider != 0xffff) {
 			if(channels_[3].counter) channels_[3].counter--;
 			else {
 				did_flip = true;
-				channels_[c].counter = channels_[c].divider;
+				channels_[3].counter = channels_[3].divider;
 			}
 		}
 
