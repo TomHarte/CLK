@@ -20,10 +20,38 @@ class SN76489: public Outputs::Speaker::SampleSource {
 		SN76489(Concurrency::DeferringAsyncTaskQueue &task_queue);
 
 		/// Writes a new value to the SN76489.
-		void write(uint8_t value);
+		void set_register(uint8_t value);
+
+		// As per SampleSource.
+		void get_samples(std::size_t number_of_samples, std::int16_t *target);
 
 	private:
+		std::size_t master_divider_ = 0;
+		int16_t output_volume_ = 0;;
+		void evaluate_output_volume();
+		int volumes_[16];
+
 		Concurrency::DeferringAsyncTaskQueue &task_queue_;
+
+		struct ToneChannel {
+			// Programmatically-set state; updated by the processor.
+			uint16_t divider = 0;
+			uint8_t volume = 0xf;
+
+			// Active state; self-evolving as a function of time.
+			uint16_t counter = 0;
+			int level = 0;
+		} channels_[4];
+		enum {
+			Periodic15,
+			Periodic16,
+			Noise15,
+			Noise16
+		} noise_mode_ = Periodic15;
+		uint16_t noise_shifter_ = 0;
+		int active_register_ = 0;
+
+		bool shifter_is_16bit_ = false;
 };
 
 }

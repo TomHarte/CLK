@@ -66,7 +66,7 @@ class Joystick: public Inputs::Joystick {
 							case '6':	mask = 0xe;		break;
 							default: break;
 						}
-						keypad_ = (keypad_ & 0xf0) | (mask ^ 0xf);
+						keypad_ = (keypad_ & 0xf0) | mask;
 					}
 				break;
 
@@ -109,6 +109,7 @@ class ConcreteMachine:
 			z80_(*this),
 			sn76489_(audio_queue_),
 			speaker_(sn76489_) {
+			speaker_.set_input_rate(3579545.0f);	// TODO: try to find out whether this is correct.
 			set_clock_rate(3579545);
 			joysticks_.emplace_back(new Joystick);
 			joysticks_.emplace_back(new Joystick);
@@ -132,7 +133,7 @@ class ConcreteMachine:
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
-			return nullptr;
+			return &speaker_;
 		}
 
 		void run_for(const Cycles cycles) override {
@@ -171,10 +172,15 @@ class ConcreteMachine:
 
 		// MARK: Z80::BusHandler
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+			time_since_vdp_update_ += cycle.length;
+			time_since_sn76489_update_ += cycle.length;
+
 			if(time_until_interrupt_ > 0) {
 				time_until_interrupt_ -= cycle.length;
 				if(time_until_interrupt_ <= HalfCycles(0)) {
 					z80_.set_non_maskable_interrupt_line(true, time_until_interrupt_);
+					update_video();
+					time_until_interrupt_ = vdp_->get_time_until_interrupt();
 				}
 			}
 
@@ -186,8 +192,8 @@ class ConcreteMachine:
 						*cycle.value = bios_[address];
 					} else if(address >= 0x6000 && address < 0x8000) {
 						*cycle.value = ram_[address & 1023];
-					} else if(address >= 0x8000 && address < 0x8000 + cartridge_.size()) {
-						*cycle.value = cartridge_[address - 0x8000];
+					} else if(address >= 0x8000) {
+						*cycle.value = cartridge_[(address - 0x8000) % cartridge_.size()];	// This probably isn't how 24kb ROMs work?
 					} else {
 						*cycle.value = 0xff;
 					}
@@ -202,7 +208,7 @@ class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::Input:
 					switch((address >> 5) & 7) {
 						case 5:
-							vdp_->run_for(time_since_vdp_update_.flush());
+							update_video();
 							*cycle.value = vdp_->get_register(address);
 							z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
 							time_until_interrupt_ = vdp_->get_time_until_interrupt();
@@ -232,7 +238,7 @@ class ConcreteMachine:
 						break;
 
 						case 5:
-							vdp_->run_for(time_since_vdp_update_.flush());
+							update_video();
 							vdp_->set_register(address, *cycle.value);
 							z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
 							time_until_interrupt_ = vdp_->get_time_until_interrupt();
@@ -240,7 +246,7 @@ class ConcreteMachine:
 
 						case 7:
 							update_audio();
-							sn76489_.write(*cycle.value);
+							sn76489_.set_register(*cycle.value);
 						break;
 
 						default: break;
@@ -250,8 +256,6 @@ class ConcreteMachine:
 				default: break;
 			}
 
-			time_since_vdp_update_ += cycle.length;
-			time_since_sn76489_update_ += cycle.length;
 			return HalfCycles(0);
 		}
 
@@ -264,6 +268,9 @@ class ConcreteMachine:
 	private:
 		void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(2)));
+		}
+		void update_video() {
+			vdp_->run_for(time_since_vdp_update_.flush());
 		}
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
