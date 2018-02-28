@@ -109,7 +109,7 @@ class ConcreteMachine:
 			z80_(*this),
 			sn76489_(audio_queue_),
 			speaker_(sn76489_) {
-			speaker_.set_input_rate(3579545.0f);	// TODO: try to find out whether this is correct.
+			speaker_.set_input_rate(3579545.0f / 2.0f);	// TODO: try to find out whether this is correct.
 			set_clock_rate(3579545);
 			joysticks_.emplace_back(new Joystick);
 			joysticks_.emplace_back(new Joystick);
