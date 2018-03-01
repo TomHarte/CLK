@@ -30,7 +30,7 @@ namespace Concurrency {
 class AsyncTaskQueue {
 	public:
 		AsyncTaskQueue();
-		~AsyncTaskQueue();
+		virtual ~AsyncTaskQueue();
 
 		/*!
 			Adds @c function to the queue.
@@ -69,6 +69,8 @@ class AsyncTaskQueue {
 */
 class DeferringAsyncTaskQueue: public AsyncTaskQueue {
 	public:
+		~DeferringAsyncTaskQueue();
+
 		/*!
 			Adds a function to the deferral list.
 

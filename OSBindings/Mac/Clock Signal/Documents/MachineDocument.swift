@@ -106,6 +106,7 @@ class MachineDocument:
 
 		bestEffortLock.lock()
 		bestEffortUpdater!.delegate = nil
+		bestEffortUpdater!.flush()
 		bestEffortUpdater = nil
 		bestEffortLock.unlock()
 
