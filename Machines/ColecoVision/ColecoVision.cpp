@@ -21,6 +21,10 @@
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+namespace {
+const int sn76489_divider = 4;
+}
+
 namespace Coleco {
 namespace Vision {
 
@@ -107,10 +111,9 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 			z80_(*this),
-			sn76489_(TI::SN76489::Personality::SN76489, audio_queue_),
+			sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, sn76489_divider),
 			speaker_(sn76489_) {
-//			speaker_.set_input_rate(3579545.0f);
-			speaker_.set_input_rate(3579545.0f / 2.0f);
+			speaker_.set_input_rate(3579545.0f / static_cast<float>(sn76489_divider));
 			set_clock_rate(3579545);
 			joysticks_.emplace_back(new Joystick);
 			joysticks_.emplace_back(new Joystick);
@@ -176,7 +179,7 @@ class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
 				case CPU::Z80::PartialMachineCycle::Read:
 					if(address < 0x2000) {
-						*cycle.value = bios_[address];
+						*cycle.value = bios_[address & 0x1fff];
 					} else if(address >= 0x6000 && address < 0x8000) {
 						*cycle.value = ram_[address & 1023];
 					} else if(address >= 0x8000) {
@@ -264,8 +267,7 @@ class ConcreteMachine:
 
 	private:
 		void update_audio() {
-			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(2)));
-//			speaker_.run_for(audio_queue_, time_since_sn76489_update_.cycles());
+			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
 		}
 		void update_video() {
 			vdp_->run_for(time_since_vdp_update_.flush());

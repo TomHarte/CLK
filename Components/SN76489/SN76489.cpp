@@ -8,11 +8,12 @@
 
 #include "SN76489.hpp"
 
+#include <cassert>
 #include <cmath>
 
 using namespace TI;
 
-SN76489::SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {
+SN76489::SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue, int additional_divider) : task_queue_(task_queue) {
 	// Build a volume table.
 	double multiplier = pow(10.0, -0.1);
 	double volume = 8191.0f;
@@ -37,6 +38,10 @@ SN76489::SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &
 			shifter_is_16bit_ = true;
 		break;
 	}
+
+	assert((master_divider_period_ % additional_divider) == 0);
+	assert(additional_divider < master_divider_period_);
+	master_divider_period_ /= additional_divider;
 }
 
 void SN76489::set_register(uint8_t value) {

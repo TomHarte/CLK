@@ -23,7 +23,7 @@ class SN76489: public Outputs::Speaker::SampleSource {
 		};
 
 		/// Creates a new SN76489.
-		SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue);
+		SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue, int additional_divider = 1);
 
 		/// Writes a new value to the SN76489.
 		void set_register(uint8_t value);
