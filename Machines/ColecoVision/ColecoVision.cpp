@@ -107,9 +107,10 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 			z80_(*this),
-			sn76489_(audio_queue_),
+			sn76489_(TI::SN76489::Personality::SN76489, audio_queue_),
 			speaker_(sn76489_) {
-			speaker_.set_input_rate(3579545.0f / 2.0f);	// TODO: try to find out whether this is correct.
+//			speaker_.set_input_rate(3579545.0f);
+			speaker_.set_input_rate(3579545.0f / 2.0f);
 			set_clock_rate(3579545);
 			joysticks_.emplace_back(new Joystick);
 			joysticks_.emplace_back(new Joystick);
@@ -158,9 +159,7 @@ class ConcreteMachine:
 		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
 			auto roms = roms_with_names(
 				"ColecoVision",
-				{
-					"coleco.rom"
-				});
+				{ "coleco.rom" });
 
 			if(!roms[0]) return false;
 
@@ -172,18 +171,6 @@ class ConcreteMachine:
 
 		// MARK: Z80::BusHandler
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-			time_since_vdp_update_ += cycle.length;
-			time_since_sn76489_update_ += cycle.length;
-
-			if(time_until_interrupt_ > 0) {
-				time_until_interrupt_ -= cycle.length;
-				if(time_until_interrupt_ <= HalfCycles(0)) {
-					z80_.set_non_maskable_interrupt_line(true, time_until_interrupt_);
-					update_video();
-					time_until_interrupt_ = vdp_->get_time_until_interrupt();
-				}
-			}
-
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
@@ -256,11 +243,21 @@ class ConcreteMachine:
 				default: break;
 			}
 
+			time_since_vdp_update_ += cycle.length;
+			time_since_sn76489_update_ += cycle.length;
+
+			if(time_until_interrupt_ > 0) {
+				time_until_interrupt_ -= cycle.length;
+				if(time_until_interrupt_ <= HalfCycles(0)) {
+					z80_.set_non_maskable_interrupt_line(true, time_until_interrupt_);
+				}
+			}
+
 			return HalfCycles(0);
 		}
 
 		void flush() {
-			vdp_->run_for(time_since_vdp_update_.flush());
+			update_video();
 			update_audio();
 			audio_queue_.perform();
 		}
@@ -268,6 +265,7 @@ class ConcreteMachine:
 	private:
 		void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(2)));
+//			speaker_.run_for(audio_queue_, time_since_sn76489_update_.cycles());
 		}
 		void update_video() {
 			vdp_->run_for(time_since_vdp_update_.flush());

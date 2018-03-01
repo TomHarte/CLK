@@ -16,8 +16,14 @@ namespace TI {
 
 class SN76489: public Outputs::Speaker::SampleSource {
 	public:
+		enum class Personality {
+			SN76489,
+			SN76494,
+			SMS
+		};
+
 		/// Creates a new SN76489.
-		SN76489(Concurrency::DeferringAsyncTaskQueue &task_queue);
+		SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue);
 
 		/// Writes a new value to the SN76489.
 		void set_register(uint8_t value);
@@ -26,8 +32,9 @@ class SN76489: public Outputs::Speaker::SampleSource {
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
 
 	private:
-		std::size_t master_divider_ = 0;
-		int16_t output_volume_ = 0;;
+		int master_divider_ = 0;
+		int master_divider_period_ = 16;
+		int16_t output_volume_ = 0;
 		void evaluate_output_volume();
 		int volumes_[16];
 

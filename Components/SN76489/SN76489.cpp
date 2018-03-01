@@ -12,7 +12,7 @@
 
 using namespace TI;
 
-SN76489::SN76489(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {
+SN76489::SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {
 	// Build a volume table.
 	double multiplier = pow(10.0, -0.1);
 	double volume = 8191.0f;
@@ -22,6 +22,21 @@ SN76489::SN76489(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_
 	}
 	volumes_[15] = 0;
 	evaluate_output_volume();
+
+	switch(personality) {
+		case Personality::SN76494:
+			master_divider_period_ = 2;
+			shifter_is_16bit_ = false;
+		break;
+		case Personality::SN76489:
+			master_divider_period_ = 16;
+			shifter_is_16bit_ = false;
+		break;
+		case Personality::SMS:
+			master_divider_period_ = 16;
+			shifter_is_16bit_ = true;
+		break;
+	}
 }
 
 void SN76489::set_register(uint8_t value) {
@@ -72,10 +87,8 @@ void SN76489::evaluate_output_volume() {
 }
 
 void SN76489::get_samples(std::size_t number_of_samples, std::int16_t *target) {
-	// For now: assume a divide by eight.
-
 	std::size_t c = 0;
-	while((master_divider_&7) && c < number_of_samples) {
+	while((master_divider_& (master_divider_period_ - 1)) && c < number_of_samples) {
 		target[c] = output_volume_;
 		master_divider_++;
 		c++;
@@ -124,12 +137,12 @@ void SN76489::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 
 		evaluate_output_volume();
 
-		for(int ic = 0; ic < 8 && c < number_of_samples; ic++) {
+		for(int ic = 0; ic < master_divider_period_ && c < number_of_samples; ++ic) {
 			target[c] = output_volume_;
 			c++;
 			master_divider_++;
 		}
 	}
 
-	master_divider_ &= 7;
+	master_divider_ &= (master_divider_period_ - 1);
 }
