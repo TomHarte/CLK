@@ -1003,11 +1003,13 @@ bool ProcessorBase::get_interrupt_line() {
 
 void ProcessorBase::set_non_maskable_interrupt_line(bool value, HalfCycles offset) {
 	// NMIs are edge triggered and cannot be masked.
-	nmi_line_ = value;
-	if(value) {
-		request_status_ |= Interrupt::NMI;
-		if(offset.as_int() < 0) {
-			last_request_status_ |= Interrupt::NMI;
+	if(nmi_line_ != value) {
+		nmi_line_ = value;
+		if(value) {
+			request_status_ |= Interrupt::NMI;
+			if(offset.as_int() < 0) {
+				last_request_status_ |= Interrupt::NMI;
+			}
 		}
 	}
 }
