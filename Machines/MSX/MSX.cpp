@@ -282,13 +282,6 @@ class ConcreteMachine:
 
 		// MARK: Z80::BusHandler
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-			if(time_until_interrupt_ > 0) {
-				time_until_interrupt_ -= cycle.length;
-				if(time_until_interrupt_ <= HalfCycles(0)) {
-					z80_.set_interrupt_line(true, time_until_interrupt_);
-				}
-			}
-
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
@@ -468,13 +461,21 @@ class ConcreteMachine:
 
 			// Per the best information I currently have, the MSX inserts an extra cycle into each opcode read,
 			// but otherwise runs without pause.
-			HalfCycles addition((cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) ? 2 : 0);
-			time_since_vdp_update_ += cycle.length + addition;
-			time_since_ay_update_ += cycle.length + addition;
-			memory_slots_[0].cycles_since_update  += cycle.length + addition;
-			memory_slots_[1].cycles_since_update  += cycle.length + addition;
-			memory_slots_[2].cycles_since_update  += cycle.length + addition;
-			memory_slots_[3].cycles_since_update  += cycle.length + addition;
+			const HalfCycles addition((cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) ? 2 : 0);
+			const HalfCycles total_length = addition + cycle.length;
+
+			if(time_until_interrupt_ > 0) {
+				time_until_interrupt_ -= total_length;
+				if(time_until_interrupt_ <= HalfCycles(0)) {
+					z80_.set_interrupt_line(true, time_until_interrupt_);
+				}
+			}
+			time_since_vdp_update_ += total_length;
+			time_since_ay_update_ += total_length;
+			memory_slots_[0].cycles_since_update += total_length;
+			memory_slots_[1].cycles_since_update += total_length;
+			memory_slots_[2].cycles_since_update += total_length;
+			memory_slots_[3].cycles_since_update += total_length;
 			return addition;
 		}
 
