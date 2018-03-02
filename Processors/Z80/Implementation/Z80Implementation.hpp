@@ -1002,12 +1002,24 @@ bool ProcessorBase::get_interrupt_line() {
 }
 
 void ProcessorBase::set_non_maskable_interrupt_line(bool value, HalfCycles offset) {
-	// NMIs are edge triggered and cannot be masked.
+	// NMIs are edge triggered, so react to changes only, particularly changes to active.
 	if(nmi_line_ != value) {
 		nmi_line_ = value;
 		if(value) {
+			// request_status_ holds a bit mask of interrupt requests pending; since
+			// this was a new transition, an NMI is now definitely pending.
 			request_status_ |= Interrupt::NMI;
-			if(offset.as_int() < 0) {
+
+			// If the caller is indicating that this request actually happened in the
+			// recent past, and it happened long enough ago that it should have been
+			// spotted during this instruction* then change history to ensure that an
+			// NMI happens next.
+			//
+			// * it actually doesn't matter what sort of bus cycle is currently ongoing;
+			// either it is that which terminates a whole instruction, in which case this
+			// test is correct, or it isn't, in which case setting request_status_ above
+			// was sufficient and the below is merely redundant.
+			if(offset <= HalfCycles(-2)) {
 				last_request_status_ |= Interrupt::NMI;
 			}
 		}
