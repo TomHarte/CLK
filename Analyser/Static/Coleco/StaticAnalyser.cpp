@@ -22,11 +22,15 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		const Storage::Cartridge::Cartridge::Segment &segment = segments.front();
 		const std::size_t data_size = segment.data.size();
 		if((data_size&8191) && (data_size != 12*1024)) continue;
-		if(data_size < 8192 || data_size > 32768) continue;
+		if(data_size < 8192) continue;
 
-		// the two first bytes must be 0xaa and 0x55, either way around
-		if(segment.data[0] != 0xaa && segment.data[0] != 0x55 && segment.data[1] != 0xaa && segment.data[1] != 0x55) continue;
-		if(segment.data[0] == segment.data[1]) continue;
+		// the two bytes that will be first must be 0xaa and 0x55, either way around
+		auto *start = &segment.data[0];
+		if(data_size > 32768) {
+			start = &segment.data[segment.data.size() - 16384];
+		}
+		if(start[0] != 0xaa && start[0] != 0x55 && start[1] != 0xaa && start[1] != 0x55) continue;
+		if(start[0] == start[1]) continue;
 
 		// probability of a random binary blob that isn't a Coleco ROM proceeding to here is 1 - 1/32768.
 		coleco_cartridges.push_back(cartridge);

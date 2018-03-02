@@ -153,6 +153,20 @@ class ConcreteMachine:
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
 				cartridge_ = segment.data;
+				if(cartridge_.size() >= 32768)
+					cartridge_address_limit_ = 0xffff;
+				else
+					cartridge_address_limit_ = static_cast<uint16_t>(0x8000 + cartridge_.size() - 1);
+
+				if(cartridge_.size() > 32768) {
+					cartridge_pages_[0] = &cartridge_[cartridge_.size() - 16384];
+					cartridge_pages_[1] = cartridge_.data();
+					is_megacart_ = true;
+				} else {
+					cartridge_pages_[0] = cartridge_.data();
+					cartridge_pages_[1] = cartridge_.data() + 16384;
+					is_megacart_ = false;
+				}
 			}
 
 			return true;
@@ -182,8 +196,11 @@ class ConcreteMachine:
 						*cycle.value = bios_[address & 0x1fff];
 					} else if(address >= 0x6000 && address < 0x8000) {
 						*cycle.value = ram_[address & 1023];
-					} else if(address >= 0x8000) {
-						*cycle.value = cartridge_[(address - 0x8000) % cartridge_.size()];	// This probably isn't how 24kb ROMs work?
+					} else if(address >= 0x8000 && address <= cartridge_address_limit_) {
+						if(is_megacart_ && address >= 0xffc0) {
+							page_megacart(address);
+						}
+						*cycle.value = cartridge_pages_[(address >> 14)&1][address&0x3fff];
 					} else {
 						*cycle.value = 0xff;
 					}
@@ -192,6 +209,8 @@ class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::Write:
 					if(address >= 0x6000 && address < 0x8000) {
 						ram_[address & 1023] = *cycle.value;
+					} else if(is_megacart_ && address >= 0xffc0) {
+						page_megacart(address);
 					}
 				break;
 
@@ -266,10 +285,14 @@ class ConcreteMachine:
 		}
 
 	private:
-		void update_audio() {
+		inline void page_megacart(uint16_t address) {
+			const std::size_t selected_start = (static_cast<std::size_t>(address&63) << 14) % cartridge_.size();
+			cartridge_pages_[1] = &cartridge_[selected_start];
+		}
+		inline void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
 		}
-		void update_video() {
+		inline void update_video() {
 			vdp_->run_for(time_since_vdp_update_.flush());
 		}
 
@@ -282,7 +305,10 @@ class ConcreteMachine:
 
 		std::vector<uint8_t> bios_;
 		std::vector<uint8_t> cartridge_;
+		uint8_t *cartridge_pages_[2];
 		uint8_t ram_[1024];
+		bool is_megacart_ = false;
+		uint16_t cartridge_address_limit_ = 0;
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 		bool joysticks_in_keypad_mode_ = false;
