@@ -220,6 +220,8 @@
 		4B79E4441E3AF38600141F11 /* cassette.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4411E3AF38600141F11 /* cassette.png */; };
 		4B79E4451E3AF38600141F11 /* floppy35.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4421E3AF38600141F11 /* floppy35.png */; };
 		4B79E4461E3AF38600141F11 /* floppy525.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4431E3AF38600141F11 /* floppy525.png */; };
+		4B7A90E52041097C008514A2 /* ColecoVision.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7A90E42041097C008514A2 /* ColecoVision.cpp */; };
+		4B7A90ED20410A85008514A2 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7A90EC20410A85008514A2 /* StaticAnalyser.cpp */; };
 		4B7BC7F51F58F27800D1B1B4 /* 6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C911F58F09E00E3F787 /* 6502AllRAM.cpp */; };
 		4B7BC7F61F58F7D200D1B1B4 /* 6502Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */; };
 		4B80AD001F85CACA00176895 /* BestEffortUpdater.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B80ACFE1F85CAC900176895 /* BestEffortUpdater.cpp */; };
@@ -297,6 +299,10 @@
 		4BAE495920328897004BE78E /* ZX8081OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */; };
 		4BAF2B4E2004580C00480230 /* DMK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAF2B4C2004580C00480230 /* DMK.cpp */; };
 		4BAF2B4F2004580C00480230 /* DMK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAF2B4C2004580C00480230 /* DMK.cpp */; };
+		4BB0A65B2044FD3000FB3688 /* SN76489.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB0A6592044FD3000FB3688 /* SN76489.cpp */; };
+		4BB0A65C2044FD3000FB3688 /* SN76489.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB0A6592044FD3000FB3688 /* SN76489.cpp */; };
+		4BB0A65D2045009000FB3688 /* ColecoVision.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7A90E42041097C008514A2 /* ColecoVision.cpp */; };
+		4BB0A65E204500A900FB3688 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7A90EC20410A85008514A2 /* StaticAnalyser.cpp */; };
 		4BB17D4E1ED7909F00ABD1E1 /* tests.expected.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */; };
 		4BB17D4F1ED7909F00ABD1E1 /* tests.in.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4D1ED7909F00ABD1E1 /* tests.in.json */; };
 		4BB298F11B587D8400A49093 /*  start in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E51B587D8300A49093 /*  start */; };
@@ -880,6 +886,10 @@
 		4B79E4411E3AF38600141F11 /* cassette.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = cassette.png; sourceTree = "<group>"; };
 		4B79E4421E3AF38600141F11 /* floppy35.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = floppy35.png; sourceTree = "<group>"; };
 		4B79E4431E3AF38600141F11 /* floppy525.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = floppy525.png; sourceTree = "<group>"; };
+		4B7A90E32041097C008514A2 /* ColecoVision.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ColecoVision.hpp; sourceTree = "<group>"; };
+		4B7A90E42041097C008514A2 /* ColecoVision.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ColecoVision.cpp; sourceTree = "<group>"; };
+		4B7A90EB20410A85008514A2 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
+		4B7A90EC20410A85008514A2 /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
 		4B80ACFE1F85CAC900176895 /* BestEffortUpdater.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BestEffortUpdater.cpp; path = ../../Concurrency/BestEffortUpdater.cpp; sourceTree = "<group>"; };
 		4B80ACFF1F85CACA00176895 /* BestEffortUpdater.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = BestEffortUpdater.hpp; path = ../../Concurrency/BestEffortUpdater.hpp; sourceTree = "<group>"; };
 		4B8334811F5D9FF70097E338 /* PartialMachineCycle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PartialMachineCycle.cpp; sourceTree = "<group>"; };
@@ -978,6 +988,8 @@
 		4BAF2B4C2004580C00480230 /* DMK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DMK.cpp; sourceTree = "<group>"; };
 		4BAF2B4D2004580C00480230 /* DMK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DMK.hpp; sourceTree = "<group>"; };
 		4BB06B211F316A3F00600C7A /* ForceInline.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ForceInline.hpp; sourceTree = "<group>"; };
+		4BB0A6592044FD3000FB3688 /* SN76489.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SN76489.cpp; sourceTree = "<group>"; };
+		4BB0A65A2044FD3000FB3688 /* SN76489.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SN76489.hpp; sourceTree = "<group>"; };
 		4BB146C61F49D7D700253439 /* Sleeper.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sleeper.hpp; sourceTree = "<group>"; };
 		4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = tests.expected.json; path = FUSE/tests.expected.json; sourceTree = "<group>"; };
 		4BB17D4D1ED7909F00ABD1E1 /* tests.in.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = tests.in.json; path = FUSE/tests.in.json; sourceTree = "<group>"; };
@@ -2020,6 +2032,24 @@
 			name = MSX;
 			sourceTree = "<group>";
 		};
+		4B7A90E22041097C008514A2 /* ColecoVision */ = {
+			isa = PBXGroup;
+			children = (
+				4B7A90E32041097C008514A2 /* ColecoVision.hpp */,
+				4B7A90E42041097C008514A2 /* ColecoVision.cpp */,
+			);
+			path = ColecoVision;
+			sourceTree = "<group>";
+		};
+		4B7A90EA20410A85008514A2 /* Coleco */ = {
+			isa = PBXGroup;
+			children = (
+				4B7A90EC20410A85008514A2 /* StaticAnalyser.cpp */,
+				4B7A90EB20410A85008514A2 /* StaticAnalyser.hpp */,
+			);
+			path = Coleco;
+			sourceTree = "<group>";
+		};
 		4B8334881F5DB8470097E338 /* Implementation */ = {
 			isa = PBXGroup;
 			children = (
@@ -2114,6 +2144,7 @@
 				4B8944EB201967B4007DE474 /* Acorn */,
 				4B894514201967B4007DE474 /* AmstradCPC */,
 				4B8944F3201967B4007DE474 /* Atari */,
+				4B7A90EA20410A85008514A2 /* Coleco */,
 				4B8944FB201967B4007DE474 /* Commodore */,
 				4B894507201967B4007DE474 /* Disassembler */,
 				4B89450F201967B4007DE474 /* MSX */,
@@ -2240,6 +2271,15 @@
 				4B4518701F75E91800926311 /* Track */,
 			);
 			path = Disk;
+			sourceTree = "<group>";
+		};
+		4BB0A6582044FD3000FB3688 /* SN76489 */ = {
+			isa = PBXGroup;
+			children = (
+				4BB0A6592044FD3000FB3688 /* SN76489.cpp */,
+				4BB0A65A2044FD3000FB3688 /* SN76489.hpp */,
+			);
+			path = SN76489;
 			sourceTree = "<group>";
 		};
 		4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */ = {
@@ -2647,6 +2687,7 @@
 				4BDCC5F81FB27A5E001220C5 /* ROMMachine.hpp */,
 				4B38F3491F2EC12000D9235D /* AmstradCPC */,
 				4B2E2D961C3A06EC00138695 /* Atari2600 */,
+				4B7A90E22041097C008514A2 /* ColecoVision */,
 				4B4DC81D1D2C2425003C5BF8 /* Commodore */,
 				4B2E2D9E1C3A070900138695 /* Electron */,
 				4B79A4FC1FC8FF9800EEDAD5 /* MSX */,
@@ -2753,6 +2794,7 @@
 				4B0E04F71FC9F2C800F43484 /* 9918 */,
 				4B4A762D1DB1A35C007AAE2E /* AY38910 */,
 				4B4B1A39200198C900A0F866 /* KonamiSCC */,
+				4BB0A6582044FD3000FB3688 /* SN76489 */,
 			);
 			name = Components;
 			path = ../../Components;
@@ -3395,6 +3437,7 @@
 				4B894529201967B4007DE474 /* Disk.cpp in Sources */,
 				4B055AEA1FAE9B990060FFFF /* 6502Storage.cpp in Sources */,
 				4B055AA71FAE85EF0060FFFF /* SegmentParser.cpp in Sources */,
+				4BB0A65E204500A900FB3688 /* StaticAnalyser.cpp in Sources */,
 				4B055AC11FAE98DC0060FFFF /* MachineForTarget.cpp in Sources */,
 				4BBB70A9202014E2002FE009 /* MultiCRTMachine.cpp in Sources */,
 				4B055AD81FAE9B180060FFFF /* Video.cpp in Sources */,
@@ -3505,6 +3548,8 @@
 				4B055AEC1FAE9BA20060FFFF /* Z80Base.cpp in Sources */,
 				4B0E04EB1FC9E78800F43484 /* CAS.cpp in Sources */,
 				4B055AE31FAE9B6F0060FFFF /* TextureBuilder.cpp in Sources */,
+				4BB0A65D2045009000FB3688 /* ColecoVision.cpp in Sources */,
+				4BB0A65C2044FD3000FB3688 /* SN76489.cpp in Sources */,
 				4B055AB91FAE86170060FFFF /* Acorn.cpp in Sources */,
 				4B055A931FAE85B50060FFFF /* BinaryDump.cpp in Sources */,
 				4B89452D201967B4007DE474 /* Tape.cpp in Sources */,
@@ -3520,6 +3565,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4B7A90E52041097C008514A2 /* ColecoVision.cpp in Sources */,
 				4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */,
 				4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */,
 				4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */,
@@ -3528,6 +3574,7 @@
 				4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */,
 				4B7136861F78724F008B8ED9 /* Encoder.cpp in Sources */,
 				4B0E04EA1FC9E5DA00F43484 /* CAS.cpp in Sources */,
+				4B7A90ED20410A85008514A2 /* StaticAnalyser.cpp in Sources */,
 				4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */,
 				4B448E841F1C4C480009ABD6 /* PulseQueuedTape.cpp in Sources */,
 				4B0E61071FF34737002A9DBD /* MSX.cpp in Sources */,
@@ -3565,6 +3612,7 @@
 				4B4518A41F75FD1C00926311 /* OricMFMDSK.cpp in Sources */,
 				4BBB14311CD2CECE00BDB55C /* IntermediateShader.cpp in Sources */,
 				4B4B1A3C200198CA00A0F866 /* KonamiSCC.cpp in Sources */,
+				4BB0A65B2044FD3000FB3688 /* SN76489.cpp in Sources */,
 				4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.mm in Sources */,
 				4B894532201967B4007DE474 /* 6502.cpp in Sources */,
 				4BDB61EC203285AE0048AF91 /* Atari2600OptionsPanel.swift in Sources */,

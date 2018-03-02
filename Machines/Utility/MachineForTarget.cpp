@@ -10,6 +10,7 @@
 
 #include "../AmstradCPC/AmstradCPC.hpp"
 #include "../Atari2600/Atari2600.hpp"
+#include "../ColecoVision/ColecoVision.hpp"
 #include "../Commodore/Vic-20/Vic20.hpp"
 #include "../Electron/Electron.hpp"
 #include "../MSX/MSX.hpp"
@@ -25,13 +26,14 @@ namespace {
 	error = Machine::Error::None;
 	::Machine::DynamicMachine *machine = nullptr;
 	switch(target.machine) {
-		case Analyser::Machine::AmstradCPC:	machine = new Machine::TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());			break;
-		case Analyser::Machine::Atari2600:	machine = new Machine::TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());			break;
-		case Analyser::Machine::Electron:	machine = new Machine::TypedDynamicMachine<Electron::Machine>(Electron::Machine::Electron());				break;
-		case Analyser::Machine::MSX:		machine = new Machine::TypedDynamicMachine<MSX::Machine>(MSX::Machine::MSX());								break;
-		case Analyser::Machine::Oric:		machine = new Machine::TypedDynamicMachine<Oric::Machine>(Oric::Machine::Oric());							break;
-		case Analyser::Machine::Vic20:		machine = new Machine::TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());	break;
-		case Analyser::Machine::ZX8081:		machine = new Machine::TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(target));				break;
+		case Analyser::Machine::AmstradCPC:		machine = new Machine::TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());				break;
+		case Analyser::Machine::Atari2600:		machine = new Machine::TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());				break;
+		case Analyser::Machine::ColecoVision:	machine = new Machine::TypedDynamicMachine<Coleco::Vision::Machine>(Coleco::Vision::Machine::ColecoVision());	break;
+		case Analyser::Machine::Electron:		machine = new Machine::TypedDynamicMachine<Electron::Machine>(Electron::Machine::Electron());					break;
+		case Analyser::Machine::MSX:			machine = new Machine::TypedDynamicMachine<MSX::Machine>(MSX::Machine::MSX());									break;
+		case Analyser::Machine::Oric:			machine = new Machine::TypedDynamicMachine<Oric::Machine>(Oric::Machine::Oric());								break;
+		case Analyser::Machine::Vic20:			machine = new Machine::TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());		break;
+		case Analyser::Machine::ZX8081:			machine = new Machine::TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(target));					break;
 
 		default:
 			error = Machine::Error::UnknownMachine;
@@ -88,6 +90,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 	switch(machine) {
 		case Analyser::Machine::AmstradCPC:		return "AmstradCPC";
 		case Analyser::Machine::Atari2600:		return "Atari2600";
+		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Electron";
 		case Analyser::Machine::MSX:			return "MSX";
 		case Analyser::Machine::Oric:			return "Oric";
@@ -102,6 +105,7 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 	switch(machine) {
 		case Analyser::Machine::AmstradCPC:		return "Amstrad CPC";
 		case Analyser::Machine::Atari2600:		return "Atari 2600";
+		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Acorn Electron";
 		case Analyser::Machine::MSX:			return "MSX";
 		case Analyser::Machine::Oric:			return "Oric";

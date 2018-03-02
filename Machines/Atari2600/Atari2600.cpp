@@ -36,8 +36,18 @@ class Joystick: public Inputs::Joystick {
 		Joystick(Bus *bus, std::size_t shift, std::size_t fire_tia_input) :
 			bus_(bus), shift_(shift), fire_tia_input_(fire_tia_input) {}
 
-		void set_digital_input(DigitalInput digital_input, bool is_active) {
-			switch(digital_input) {
+		std::vector<DigitalInput> get_inputs() override {
+			return {
+				DigitalInput(DigitalInput::Up),
+				DigitalInput(DigitalInput::Down),
+				DigitalInput(DigitalInput::Left),
+				DigitalInput(DigitalInput::Right),
+				DigitalInput(DigitalInput::Fire)
+			};
+		}
+
+		void set_digital_input(const DigitalInput &digital_input, bool is_active) override {
+			switch(digital_input.type) {
 				case DigitalInput::Up:		bus_->mos6532_.update_port_input(0, 0x10 >> shift_, is_active);		break;
 				case DigitalInput::Down:	bus_->mos6532_.update_port_input(0, 0x20 >> shift_, is_active);		break;
 				case DigitalInput::Left:	bus_->mos6532_.update_port_input(0, 0x40 >> shift_, is_active);		break;
@@ -50,6 +60,8 @@ class Joystick: public Inputs::Joystick {
 					else
 						bus_->tia_input_value_[fire_tia_input_] |= 0x80;
 				break;
+
+				default: break;
 			}
 		}
 

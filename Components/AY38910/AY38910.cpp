@@ -108,6 +108,7 @@ void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
 		}
 
 		evaluate_output_volume();
+		printf("%d ", output_volume_);
 
 		for(int ic = 0; ic < 8 && c < number_of_samples; ic++) {
 			target[c] = output_volume_;

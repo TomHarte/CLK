@@ -106,6 +106,7 @@ class MachineDocument:
 
 		bestEffortLock.lock()
 		bestEffortUpdater!.delegate = nil
+		bestEffortUpdater!.flush()
 		bestEffortUpdater = nil
 		bestEffortLock.unlock()
 
@@ -209,17 +210,17 @@ class MachineDocument:
 	}
 
 	func keyDown(_ event: NSEvent) {
-		self.machine.setKey(event.keyCode, isPressed: true)
+		self.machine.setKey(event.keyCode, characters: event.characters, isPressed: true)
 	}
 
 	func keyUp(_ event: NSEvent) {
-		self.machine.setKey(event.keyCode, isPressed: false)
+		self.machine.setKey(event.keyCode, characters: event.characters, isPressed: false)
 	}
 
 	func flagsChanged(_ newModifiers: NSEvent) {
-		self.machine.setKey(VK_Shift, isPressed: newModifiers.modifierFlags.contains(.shift))
-		self.machine.setKey(VK_Control, isPressed: newModifiers.modifierFlags.contains(.control))
-		self.machine.setKey(VK_Command, isPressed: newModifiers.modifierFlags.contains(.command))
-		self.machine.setKey(VK_Option, isPressed: newModifiers.modifierFlags.contains(.option))
+		self.machine.setKey(VK_Shift, characters: nil, isPressed: newModifiers.modifierFlags.contains(.shift))
+		self.machine.setKey(VK_Control, characters: nil, isPressed: newModifiers.modifierFlags.contains(.control))
+		self.machine.setKey(VK_Command, characters: nil, isPressed: newModifiers.modifierFlags.contains(.command))
+		self.machine.setKey(VK_Option, characters: nil, isPressed: newModifiers.modifierFlags.contains(.option))
 	}
 }

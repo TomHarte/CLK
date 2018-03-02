@@ -14,6 +14,7 @@ namespace Analyser {
 enum class Machine {
 	AmstradCPC,
 	Atari2600,
+	ColecoVision,
 	Electron,
 	MSX,
 	Oric,

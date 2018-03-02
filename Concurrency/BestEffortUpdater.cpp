@@ -17,6 +17,11 @@ BestEffortUpdater::BestEffortUpdater() {
 	update_is_ongoing_.clear();
 }
 
+BestEffortUpdater::~BestEffortUpdater() {
+	// Don't allow further deconstruction until the task queue is stopped.
+	flush();
+}
+
 void BestEffortUpdater::update() {
 	// Perform an update only if one is not currently ongoing.
 	if(!update_is_ongoing_.test_and_set()) {

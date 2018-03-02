@@ -80,6 +80,10 @@ void AsyncTaskQueue::flush() {
 #endif
 }
 
+DeferringAsyncTaskQueue::~DeferringAsyncTaskQueue() {
+	perform();
+}
+
 void DeferringAsyncTaskQueue::defer(std::function<void(void)> function) {
 	if(!deferred_tasks_) {
 		deferred_tasks_.reset(new std::list<std::function<void(void)>>);

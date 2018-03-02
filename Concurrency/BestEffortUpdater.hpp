@@ -26,6 +26,7 @@ namespace Concurrency {
 class BestEffortUpdater {
 	public:
 		BestEffortUpdater();
+		~BestEffortUpdater();
 
 		/// A delegate receives timing cues.
 		struct Delegate {

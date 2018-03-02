@@ -21,18 +21,45 @@ class Joystick {
 	public:
 		virtual ~Joystick() {}
 
-		enum class DigitalInput {
-			Up, Down, Left, Right, Fire
+		struct DigitalInput {
+			enum Type {
+				Up, Down, Left, Right, Fire,
+				Key
+			} type;
+			union {
+				struct {
+					int index;
+				} control;
+				struct {
+					wchar_t symbol;
+				} key;
+			} info;
+
+			DigitalInput(Type type, int index = 0) : type(type) {
+				info.control.index = index;
+			}
+			DigitalInput(wchar_t symbol) : type(Key) {
+				info.key.symbol = symbol;
+			}
+
+			bool operator == (const DigitalInput &rhs) {
+				if(rhs.type != type) return false;
+				if(rhs.type == Key) {
+					return rhs.info.key.symbol == info.key.symbol;
+				} else {
+					return rhs.info.control.index == info.control.index;
+				}
+			}
 		};
 
+		virtual std::vector<DigitalInput> get_inputs() = 0;
+
 		// Host interface.
-		virtual void set_digital_input(DigitalInput digital_input, bool is_active) = 0;
+		virtual void set_digital_input(const DigitalInput &digital_input, bool is_active) = 0;
 		virtual void reset_all_inputs() {
-			set_digital_input(DigitalInput::Up, false);
-			set_digital_input(DigitalInput::Down, false);
-			set_digital_input(DigitalInput::Left, false);
-			set_digital_input(DigitalInput::Right, false);
-			set_digital_input(DigitalInput::Fire, false);
+			for(const auto &input: get_inputs()) {
+				set_digital_input(input, false);
+			}
 		}
 };
 

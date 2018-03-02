@@ -41,7 +41,7 @@
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio;
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty;
 
-- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed;
+- (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed;
 - (void)clearAllKeys;
 
 @property (nonatomic, strong) CSAudioQueue *audioQueue;

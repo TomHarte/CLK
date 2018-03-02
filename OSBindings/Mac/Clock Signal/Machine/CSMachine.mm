@@ -192,7 +192,7 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	}
 }
 
-- (void)setKey:(uint16_t)key isPressed:(BOOL)isPressed {
+- (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed {
 	auto keyboard_machine = _machine->keyboard_machine();
 	if(keyboard_machine) {
 		@synchronized(self) {
@@ -267,8 +267,15 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 					case VK_RightArrow:	joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Right, isPressed);	break;
 					case VK_UpArrow:	joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Up, isPressed);		break;
 					case VK_DownArrow:	joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Down, isPressed);	break;
+					case VK_Space:		joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Fire, isPressed);	break;
+					case VK_ANSI_A:		joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput(Inputs::Joystick::DigitalInput::Fire, 0), isPressed);	break;
+					case VK_ANSI_S:		joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput(Inputs::Joystick::DigitalInput::Fire, 1), isPressed);	break;
 					default:
-						joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Fire, isPressed);	break;
+						if(characters) {
+							joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput([characters characterAtIndex:0]), isPressed);
+						} else {
+							joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Fire, isPressed);
+						}
 					break;
 				}
 			}
