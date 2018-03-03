@@ -37,7 +37,7 @@ template <typename T, typename... R> class CompoundSource<T, R...>:
 		CompoundSource(T &source, R &...next) : source_(source), next_source_(next...) {}
 
 		void get_samples(std::size_t number_of_samples, std::int16_t *target) {
-			if(source_.is_silent()) {
+			if(source_.is_zero_level()) {
 				source_.skip_samples(number_of_samples);
 				next_source_.get_samples(number_of_samples, target);
 			} else {

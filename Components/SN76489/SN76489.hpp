@@ -30,6 +30,7 @@ class SN76489: public Outputs::Speaker::SampleSource {
 
 		// As per SampleSource.
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
+		bool is_zero_level();
 
 	private:
 		int master_divider_ = 0;

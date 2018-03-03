@@ -108,7 +108,6 @@ void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
 		}
 
 		evaluate_output_volume();
-		printf("%d ", output_volume_);
 
 		for(int ic = 0; ic < 8 && c < number_of_samples; ic++) {
 			target[c] = output_volume_;
@@ -155,6 +154,11 @@ void AY38910::evaluate_output_volume() {
 		volumes_[volumes[1]] * channel_levels[1] +
 		volumes_[volumes[2]] * channel_levels[2]
 	);
+}
+
+bool AY38910::is_zero_level() {
+	// Confirm that the AY is trivially at the zero level if all three volume controls are set to fixed zero.
+	return output_registers_[0x8] == 0 && output_registers_[0x9] == 0 && output_registers_[0xa] == 0;
 }
 
 // MARK: - Register manipulation
