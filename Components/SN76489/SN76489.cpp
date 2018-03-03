@@ -82,6 +82,10 @@ void SN76489::set_register(uint8_t value) {
 	});
 }
 
+bool SN76489::is_zero_level() {
+	return channels_[0].volume == 0xf && channels_[1].volume == 0xf && channels_[2].volume == 0xf && channels_[3].volume == 0xf;
+}
+
 void SN76489::evaluate_output_volume() {
 	output_volume_ = static_cast<int16_t>(
 		channels_[0].level * volumes_[channels_[0].volume] +

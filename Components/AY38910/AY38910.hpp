@@ -85,6 +85,7 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter; not for public consumption
 		void get_samples(std::size_t number_of_samples, int16_t *target);
+		bool is_zero_level();
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue &task_queue_;

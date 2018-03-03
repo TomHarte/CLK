@@ -43,7 +43,7 @@ class SampleSource {
 				fill the target with zeroes; @c false if a call might return all zeroes or
 				might not.
 		*/
-		bool is_silent() {
+		bool is_zero_level() {
 			return false;
 		}
 };

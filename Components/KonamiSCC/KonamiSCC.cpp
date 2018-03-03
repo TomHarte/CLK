@@ -15,12 +15,12 @@ using namespace Konami;
 SCC::SCC(Concurrency::DeferringAsyncTaskQueue &task_queue) :
 	task_queue_(task_queue) {}
 
-bool SCC::is_silent() {
+bool SCC::is_zero_level() {
 	return !(channel_enable_ & 0x1f);
 }
 
 void SCC::get_samples(std::size_t number_of_samples, std::int16_t *target) {
-	if(is_silent()) {
+	if(is_zero_level()) {
 		std::memset(target, 0, sizeof(std::int16_t) * number_of_samples);
 		return;
 	}

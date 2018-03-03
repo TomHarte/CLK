@@ -11,6 +11,7 @@
 #include "../../Processors/Z80/Z80.hpp"
 
 #include "../../Components/9918/9918.hpp"
+#include "../../Components/AY38910/AY38910.hpp"	// For the Super Game Module.
 #include "../../Components/SN76489/SN76489.hpp"
 
 #include "../ConfigurationTarget.hpp"
@@ -19,10 +20,11 @@
 
 #include "../../ClockReceiver/ForceInline.hpp"
 
+#include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 namespace {
-const int sn76489_divider = 4;
+const int sn76489_divider = 2;
 }
 
 namespace Coleco {
@@ -112,7 +114,9 @@ class ConcreteMachine:
 		ConcreteMachine() :
 			z80_(*this),
 			sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, sn76489_divider),
-			speaker_(sn76489_) {
+			ay_(audio_queue_),
+			mixer_(sn76489_, ay_),
+			speaker_(mixer_) {
 			speaker_.set_input_rate(3579545.0f / static_cast<float>(sn76489_divider));
 			set_clock_rate(3579545);
 			joysticks_.emplace_back(new Joystick);
@@ -193,7 +197,13 @@ class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
 				case CPU::Z80::PartialMachineCycle::Read:
 					if(address < 0x2000) {
-						*cycle.value = bios_[address & 0x1fff];
+						if(super_game_module_.replace_bios) {
+							*cycle.value = super_game_module_.ram[address];
+						} else {
+							*cycle.value = bios_[address];
+						}
+					} else if(super_game_module_.replace_ram && address < 0x8000) {
+						*cycle.value = super_game_module_.ram[address];
 					} else if(address >= 0x6000 && address < 0x8000) {
 						*cycle.value = ram_[address & 1023];
 					} else if(address >= 0x8000 && address <= cartridge_address_limit_) {
@@ -207,7 +217,11 @@ class ConcreteMachine:
 				break;
 
 				case CPU::Z80::PartialMachineCycle::Write:
-					if(address >= 0x6000 && address < 0x8000) {
+					if(super_game_module_.replace_bios && address < 0x2000) {
+						super_game_module_.ram[address] = *cycle.value;
+					} else if(super_game_module_.replace_ram && address >= 0x2000 && address < 0x8000) {
+						super_game_module_.ram[address] = *cycle.value;
+					} else if(address >= 0x6000 && address < 0x8000) {
 						ram_[address & 1023] = *cycle.value;
 					} else if(is_megacart_ && address >= 0xffc0) {
 						page_megacart(address);
@@ -234,7 +248,15 @@ class ConcreteMachine:
 						} break;
 
 						default:
-							*cycle.value = 0xff;
+							switch(address&0xff) {
+								default: *cycle.value = 0xff; break;
+								case 0x52:
+									// Read AY data.
+									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
+									*cycle.value = ay_.get_data_output();
+									ay_.set_control_lines(GI::AY38910::ControlLines(0));
+								break;
+							}
 						break;
 					}
 				break;
@@ -258,7 +280,30 @@ class ConcreteMachine:
 							sn76489_.set_register(*cycle.value);
 						break;
 
-						default: break;
+						default:
+							// Catch Super Game Module accesses; it decodes more thoroughly.
+							switch(address&0xff) {
+								default: break;
+								case 0x7f:
+									super_game_module_.replace_bios = !((*cycle.value)&0x2);
+								break;
+								case 0x50:
+									// Set AY address.
+									ay_.set_control_lines(GI::AY38910::BC1);
+									ay_.set_data_input(*cycle.value);
+									ay_.set_control_lines(GI::AY38910::ControlLines(0));
+								break;
+								case 0x51:
+									// Set AY data.
+									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
+									ay_.set_data_input(*cycle.value);
+									ay_.set_control_lines(GI::AY38910::ControlLines(0));
+								break;
+								case 0x53:
+									super_game_module_.replace_ram = !!((*cycle.value)&0x1);
+								break;
+							}
+						break;
 					}
 				} break;
 
@@ -301,7 +346,9 @@ class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;
-		Outputs::Speaker::LowpassSpeaker<TI::SN76489> speaker_;
+		GI::AY38910::AY38910 ay_;
+		Outputs::Speaker::CompoundSource<TI::SN76489, GI::AY38910::AY38910> mixer_;
+		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<TI::SN76489, GI::AY38910::AY38910>> speaker_;
 
 		std::vector<uint8_t> bios_;
 		std::vector<uint8_t> cartridge_;
@@ -309,6 +356,11 @@ class ConcreteMachine:
 		uint8_t ram_[1024];
 		bool is_megacart_ = false;
 		uint16_t cartridge_address_limit_ = 0;
+		struct {
+			bool replace_bios = false;
+			bool replace_ram = false;
+			uint8_t ram[32768];
+		} super_game_module_;
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 		bool joysticks_in_keypad_mode_ = false;
