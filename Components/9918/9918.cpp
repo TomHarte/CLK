@@ -72,6 +72,15 @@ struct ReverseTable {
 	}
 } reverse_table;
 
+// Bits are reversed in the internal mode value; they're stored
+// in the order M1 M2 M3. Hence the definitions below.
+enum ScreenMode {
+	Text = 4,
+	MultiColour = 2,
+	ColouredText = 0,
+	Graphics = 1
+};
+
 }
 
 TMS9918Base::TMS9918Base() :
@@ -293,7 +302,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						int row_base = pattern_name_address_;
 						int pattern_base = pattern_generator_table_address_;
 						int colour_base = colour_table_address_;
-						if(screen_mode_ == 1) {
+						if(screen_mode_ == ScreenMode::Graphics) {
+							// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
 							pattern_base &= 0x2000 | ((row_ & 0xc0) << 5);
 							colour_base &= 0x2000 | ((row_ & 0xc0) << 5);
 						}
@@ -304,7 +314,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						const int pattern_names_end = (end - 27 + 3) >> 2;
 						std::memcpy(&pattern_names_[pattern_names_start], &ram_[row_base + pattern_names_start], static_cast<size_t>(pattern_names_end - pattern_names_start));
 
-						// Colours are collected ever fourth window starting from window 29.
+						// Colours are collected every fourth window starting from window 29.
 						const int colours_start = (access_pointer_ - 29 + 3) >> 2;
 						const int colours_end = (end - 29 + 3) >> 2;
 						if(screen_mode_ != 1) {
@@ -320,8 +330,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						// Patterns are collected ever fourth window starting from window 30.
 						const int pattern_buffer_start = (access_pointer_ - 30 + 3) >> 2;
 						const int pattern_buffer_end = (end - 30 + 3) >> 2;
+
+						// Multicolour mode uss a different function of row to pick bytes
+						const int row = (screen_mode_ != 2) ? (row_ & 7) : ((row_ >> 2) & 7);
 						for(int column = pattern_buffer_start; column < pattern_buffer_end; ++column) {
-							pattern_buffer_[column] = ram_[pattern_base + (pattern_names_[column] << 3) + (row_ & 7)];
+							pattern_buffer_[column] = ram_[pattern_base + (pattern_names_[column] << 3) + row];
 						}
 
 						// Sprite slots occur in three quarters of ever fourth window starting from window 28.
@@ -421,7 +434,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						case LineMode::Character: {
 							// If this is the start of the visible area, seed sprite shifter positions.
 							SpriteSet &sprite_set = sprite_sets_[active_sprite_set_ ^ 1];
-							if(line_mode_ == LineMode::Character && output_column_ == first_pixel_column_) {
+							if(output_column_ == first_pixel_column_) {
 								int c = sprite_set.active_sprite_slot;
 								while(c--) {
 									SpriteSet::ActiveSprite &sprite = sprite_set.active_sprites[c];
@@ -435,36 +448,46 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							}
 
 							// Paint the background tiles.
-							const int shift = (output_column_ - first_pixel_column_) & 7;
-							int byte_column = (output_column_ - first_pixel_column_) >> 3;
-
 							const int pixels_left = pixels_end - output_column_;
-							int length = std::min(pixels_left, 8 - shift);
-
-							int pattern = reverse_table.map[pattern_buffer_[byte_column]] >> shift;
-							uint8_t colour = colour_buffer_[byte_column];
-							uint32_t colours[2] = {
-								palette[(colour & 15) ? (colour & 15) : background_colour_],
-								palette[(colour >> 4) ? (colour >> 4) : background_colour_]
-							};
-
-							int background_pixels_left = pixels_left;
-							while(true) {
-								background_pixels_left -= length;
-								for(int c = 0; c < length; ++c) {
-									pixel_target_[c] = colours[pattern&0x01];
-									pattern >>= 1;
+							if(screen_mode_ == ScreenMode::MultiColour) {
+								int pixel_location = output_column_ - first_pixel_column_;
+								for(int c = 0; c < pixels_left; ++c) {
+									pixel_target_[c] = palette[
+										(pattern_buffer_[(pixel_location + c) >> 3] >> (((pixel_location + c) & 4)^4)) & 15
+									];
 								}
-								pixel_target_ += length;
+								pixel_target_ += pixels_left;
+							} else {
+								const int shift = (output_column_ - first_pixel_column_) & 7;
+								int byte_column = (output_column_ - first_pixel_column_) >> 3;
 
-								if(!background_pixels_left) break;
-								length = std::min(8, background_pixels_left);
-								byte_column++;
+								int length = std::min(pixels_left, 8 - shift);
 
-								pattern = reverse_table.map[pattern_buffer_[byte_column]];
-								colour = colour_buffer_[byte_column];
-								colours[0] = palette[(colour & 15) ? (colour & 15) : background_colour_];
-								colours[1] = palette[(colour >> 4) ? (colour >> 4) : background_colour_];
+								int pattern = reverse_table.map[pattern_buffer_[byte_column]] >> shift;
+								uint8_t colour = colour_buffer_[byte_column];
+								uint32_t colours[2] = {
+									palette[(colour & 15) ? (colour & 15) : background_colour_],
+									palette[(colour >> 4) ? (colour >> 4) : background_colour_]
+								};
+
+								int background_pixels_left = pixels_left;
+								while(true) {
+									background_pixels_left -= length;
+									for(int c = 0; c < length; ++c) {
+										pixel_target_[c] = colours[pattern&0x01];
+										pattern >>= 1;
+									}
+									pixel_target_ += length;
+
+									if(!background_pixels_left) break;
+									length = std::min(8, background_pixels_left);
+									byte_column++;
+
+									pattern = reverse_table.map[pattern_buffer_[byte_column]];
+									colour = colour_buffer_[byte_column];
+									colours[0] = palette[(colour & 15) ? (colour & 15) : background_colour_];
+									colours[1] = palette[(colour >> 4) ? (colour >> 4) : background_colour_];
+								}
 							}
 
 							// Paint sprites and check for collisions.
@@ -554,7 +577,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			screen_mode_ = next_screen_mode_;
 			blank_screen_ = next_blank_screen_;
 			switch(screen_mode_) {
-				case 2:
+				case ScreenMode::Text:
 					line_mode_ = LineMode::Text;
 					first_pixel_column_ = 69;
 					first_right_border_column_ = 309;
@@ -608,7 +631,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 			case 1:
 				next_blank_screen_ = !(low_write_ & 0x40);
 				generate_interrupts_ = !!(low_write_ & 0x20);
-				next_screen_mode_ = (next_screen_mode_ & 1) | ((low_write_ & 0x18) >> 3);
+				next_screen_mode_ = (next_screen_mode_ & 1) | ((low_write_ & 0x18) >> 2);
 				sprites_16x16_ = !!(low_write_ & 0x02);
 				sprites_magnified_ = !!(low_write_ & 0x01);
 
