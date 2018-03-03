@@ -210,6 +210,13 @@ class CRT {
 		*/
 		void output_default_colour_burst(unsigned int number_of_cycles);
 
+		/*! Sets the current phase of the colour subcarrier used by output_default_colour_burst.
+
+			@param phase The normalised instantaneous phase — 0.0f is the start of a colour cycle, 1.0f is the
+			end of a colour cycle, 0.25f is a quarter of the way through a colour cycle, etc.
+		*/
+		void set_immediate_default_phase(float phase);
+
 		/*!	Attempts to allocate the given number of output samples for writing.
 
 			The beginning of the most recently allocated area is used as the start

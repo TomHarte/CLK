@@ -99,6 +99,12 @@ TMS9918::TMS9918(Personality p) {
 	crt_->set_output_device(Outputs::CRT::OutputDevice::Monitor);
 	crt_->set_visible_area(Outputs::CRT::Rect(0.055f, 0.025f, 0.9f, 0.9f));
 	crt_->set_input_gamma(2.8f);
+
+	// The TMS remains in-phase with the NTSC colour clock; this is an empirical measurement
+	// intended to produce the correct relationship between the hard edges between pixels and
+	// the colour clock. It was eyeballed rather than derived from any knowledge of the TMS
+	// colour burst generator because I've yet to find any.
+	crt_->set_immediate_default_phase(0.85f);
 }
 
 Outputs::CRT::CRT *TMS9918::get_crt() {
