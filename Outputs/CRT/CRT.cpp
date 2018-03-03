@@ -379,6 +379,11 @@ void CRT::output_default_colour_burst(unsigned int number_of_cycles) {
 	output_colour_burst(number_of_cycles, static_cast<uint8_t>((phase_numerator_ * 256) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)));
 }
 
+void CRT::set_immediate_default_phase(float phase) {
+	phase = fmodf(phase, 1.0f);
+	phase_numerator_ = static_cast<unsigned int>(phase * static_cast<float>(phase_denominator_));
+}
+
 void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider) {
 	openGL_output_builder_.texture_builder.reduce_previous_allocation_to(number_of_cycles / source_divider);
 	Scan scan;
