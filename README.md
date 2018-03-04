@@ -13,6 +13,7 @@ It currently contains emulations of the:
 * Acorn Electron;
 * Amstrad CPC;
 * Atari 2600;
+* ColecoVision;
 * Commodore Vic-20 (and Commodore 1540/1);
 * MSX 1;
 * Oric 1/Atmos; and
@@ -43,6 +44,7 @@ If your machine has a 4k monitor and a 96Khz audio output? Then you'll get a 4k 
 |![Repton 3 in game, with a classic 1:1 pixel emulation](READMEImages/NaiveRepton3.png)|![Repton 3 in game, decoded from an interlaced composite feed](READMEImages/CompositeRepton3.png)|
 |![Stormlord with a classic 1:1 pixel emulation](READMEImages/NaiveStormlord.png)|![Stormlord decoded from a composite feed](READMEImages/CompositeStormlord.png)|
 |![Road Fighter with a classic 1:1 pixel emulation](READMEImages/NaiveRoadFighter.png)|![Road Fighter decoded from a composite feed](READMEImages/CompositeRoadFighter.png)|
+|![A segment of the ColecoVision Donkey Kong title screen with a classic 1:1 pixel emulation](READMEImages/NaivePresentsDonkeyKong.png)|![A segment of the ColecoVision Donkey Kong title screen decoded from a composite feed](READMEImages/CompositePresentsDonkeyKong.png)|
 
 | 1:1 Pixel Copying | Correct Aspect Ratio, Filtered |
 |---|---|
@@ -65,7 +67,7 @@ Cycle-accurate emulation for the supported target machines is fairly trite; this
 
 Self-ratings:
 * the Electron, Oric and Vic-20 are pretty much perfect;
-* the ZX80, ZX81 and MSX 1 are very strong;
+* the ZX80, ZX81, ColecoVision and MSX 1 are very strong;
 * the Amstrad CPC has known accuracy deficiencies in its 8272 and 6845;
 * the Atari 2600 has some known accuracy deficiencies in its TIA;
 * the C-1540(/1) is locked in reading mode and doesn't yet support writing.
