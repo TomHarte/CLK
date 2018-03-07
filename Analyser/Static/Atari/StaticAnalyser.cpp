@@ -179,7 +179,7 @@ static void DeterminePagingForCartridge(Analyser::Static::Target &target, const 
 }
 
 void Analyser::Static::Atari::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
-	// TODO: sanity checking; is this image really for an Atari 2600.
+	// TODO: sanity checking; is this image really for an Atari 2600?
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Atari2600;
 	target->confidence = 0.5;
