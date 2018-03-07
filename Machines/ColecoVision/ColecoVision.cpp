@@ -252,6 +252,7 @@ class ConcreteMachine:
 								default: *cycle.value = 0xff; break;
 								case 0x52:
 									// Read AY data.
+									update_audio();
 									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
 									*cycle.value = ay_.get_data_output();
 									ay_.set_control_lines(GI::AY38910::ControlLines(0));
@@ -289,12 +290,14 @@ class ConcreteMachine:
 								break;
 								case 0x50:
 									// Set AY address.
+									update_audio();
 									ay_.set_control_lines(GI::AY38910::BC1);
 									ay_.set_data_input(*cycle.value);
 									ay_.set_control_lines(GI::AY38910::ControlLines(0));
 								break;
 								case 0x51:
 									// Set AY data.
+									update_audio();
 									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
 									ay_.set_data_input(*cycle.value);
 									ay_.set_control_lines(GI::AY38910::ControlLines(0));
