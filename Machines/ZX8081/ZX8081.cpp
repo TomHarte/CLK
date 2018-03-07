@@ -8,6 +8,7 @@
 
 #include "ZX8081.hpp"
 
+#include "../../Components/AY38910/AY38910.hpp"
 #include "../../Processors/Z80/Z80.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 #include "../../Storage/Tape/Parsers/ZX8081.hpp"
@@ -17,6 +18,8 @@
 
 #include "../Utility/MemoryFuzzer.hpp"
 #include "../Utility/Typer.hpp"
+
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "Keyboard.hpp"
 #include "Video.hpp"
@@ -30,6 +33,11 @@ namespace {
 	// The clock rate is 3.25Mhz.
 	const unsigned int ZX8081ClockRate = 3250000;
 }
+
+// TODO:
+//	Quiksilva sound support:
+//  7FFFh.W   PSG index
+//  7FFEh.R/W PSG data
 
 namespace ZX8081 {
 
@@ -50,14 +58,18 @@ template<bool is_zx81> class ConcreteMachine:
 	public:
 		ConcreteMachine() :
 			z80_(*this),
-			tape_player_(ZX8081ClockRate) {
+			tape_player_(ZX8081ClockRate),
+			ay_(audio_queue_),
+			speaker_(ay_) {
 			set_clock_rate(ZX8081ClockRate);
+			speaker_.set_input_rate(static_cast<float>(ZX8081ClockRate) / 2.0f);
 			clear_all_keys();
 		}
 
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-			HalfCycles previous_counter = horizontal_counter_;
+			const HalfCycles previous_counter = horizontal_counter_;
 			horizontal_counter_ += cycle.length;
+			time_since_ay_update_ += cycle.length;
 
 			if(previous_counter < vsync_start_ && horizontal_counter_ >= vsync_start_) {
 				video_->run_for(vsync_start_ - previous_counter);
@@ -94,7 +106,7 @@ template<bool is_zx81> class ConcreteMachine:
 				return Cycles(0);
 			}
 
-			uint16_t address = cycle.address ? *cycle.address : 0;
+			const uint16_t address = cycle.address ? *cycle.address : 0;
 			bool is_opcode_read = false;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::Output:
@@ -105,6 +117,15 @@ template<bool is_zx81> class ConcreteMachine:
 						// an instant reset upon the transition from active to inactive.
 						if(vsync_) line_counter_ = 0;
 						set_vsync(false);
+					}
+
+					// The below emulates the ZonX AY expansion device.
+					if(is_zx81) {
+						if((address&0xef) == 0xcf) {
+							ay_set_register(*cycle.value);
+						} else if((address&0xef) == 0x0f) {
+							ay_set_data(*cycle.value);
+						}
 					}
 				break;
 
@@ -120,6 +141,13 @@ template<bool is_zx81> class ConcreteMachine:
 						}
 
 						value &= ~(tape_player_.get_input() ? 0x00 : 0x80);
+					}
+
+					// The below emulates the ZonX AY expansion device.
+					if(is_zx81) {
+						if((address&0xef) == 0x0f) {
+							value &= ay_read_data();
+						}
 					}
 					*cycle.value = value;
 				} break;
@@ -144,7 +172,7 @@ template<bool is_zx81> class ConcreteMachine:
 					}
 					if(has_latched_video_byte_) {
 						std::size_t char_address = static_cast<std::size_t>((address & 0xfe00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
-						uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
+						const uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
 						if(char_address < ram_base_) {
 							latched_video_byte_ = rom_[char_address & rom_mask_] ^ mask;
 						} else {
@@ -159,10 +187,10 @@ template<bool is_zx81> class ConcreteMachine:
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
 					// Check for use of the fast tape hack.
 					if(use_fast_tape_hack_ && address == tape_trap_address_) {
-						uint64_t prior_offset = tape_player_.get_tape()->get_offset();
-						int next_byte = parser_.get_next_byte(tape_player_.get_tape());
+						const uint64_t prior_offset = tape_player_.get_tape()->get_offset();
+						const int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 						if(next_byte != -1) {
-							uint16_t hl = z80_.get_value_of_register(CPU::Z80::Register::HL);
+							const uint16_t hl = z80_.get_value_of_register(CPU::Z80::Register::HL);
 							ram_[hl & ram_mask_] = static_cast<uint8_t>(next_byte);
 							*cycle.value = 0x00;
 							z80_.set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
@@ -187,7 +215,7 @@ template<bool is_zx81> class ConcreteMachine:
 					if(address < ram_base_) {
 						*cycle.value = rom_[address & rom_mask_];
 					} else {
-						uint8_t value = ram_[address & ram_mask_];
+						const uint8_t value = ram_[address & ram_mask_];
 
 						// If this is an M1 cycle reading from above the 32kb mark and HALT is not
 						// currently active, latch for video output and return a NOP. Otherwise,
@@ -210,12 +238,15 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 
 			if(typer_) typer_->run_for(cycle.length);
-
 			return HalfCycles(0);
 		}
 
 		forceinline void flush() {
 			video_->flush();
+			if(is_zx81) {
+				update_audio();
+				audio_queue_.perform();
+			}
 		}
 
 		void setup_output(float aspect_ratio) override final {
@@ -231,7 +262,7 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override final {
-			return nullptr;
+			return is_zx81 ? &speaker_ : nullptr;
 		}
 
 		void run_for(const Cycles cycles) override final {
@@ -301,7 +332,7 @@ template<bool is_zx81> class ConcreteMachine:
 
 		// Obtains the system ROMs.
 		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
-			auto roms = roms_with_names(
+			const auto roms = roms_with_names(
 				"ZX8081",
 				{
 					"zx80.rom",	"zx81.rom",
@@ -320,8 +351,8 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// MARK: - Keyboard
-		void set_key_state(uint16_t key, bool isPressed) override final {
-			if(isPressed)
+		void set_key_state(uint16_t key, bool is_pressed) override final {
+			if(is_pressed)
 				key_states_[key >> 8] &= static_cast<uint8_t>(~key);
 			else
 				key_states_[key >> 8] |= static_cast<uint8_t>(key);
@@ -442,6 +473,34 @@ template<bool is_zx81> class ConcreteMachine:
 
 		inline void update_sync() {
 			video_->set_sync(vsync_ || hsync_);
+		}
+
+		// MARK: - Audio
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		GI::AY38910::AY38910 ay_;
+		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
+		HalfCycles time_since_ay_update_;
+		inline void ay_set_register(uint8_t value) {
+			update_audio();
+			ay_.set_control_lines(GI::AY38910::BC1);
+			ay_.set_data_input(value);
+			ay_.set_control_lines(GI::AY38910::ControlLines(0));
+		}
+		inline void ay_set_data(uint8_t value) {
+			update_audio();
+			ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
+			ay_.set_data_input(value);
+			ay_.set_control_lines(GI::AY38910::ControlLines(0));
+		}
+		inline uint8_t ay_read_data() {
+			update_audio();
+			ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
+			const uint8_t value = ay_.get_data_output();
+			ay_.set_control_lines(GI::AY38910::ControlLines(0));
+			return value;
+		}
+		inline void update_audio() {
+			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
 		}
 };
 
