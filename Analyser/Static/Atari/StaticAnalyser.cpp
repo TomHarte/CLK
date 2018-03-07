@@ -182,7 +182,7 @@ void Analyser::Static::Atari::AddTargets(const Media &media, std::vector<std::un
 	// TODO: sanity checking; is this image really for an Atari 2600.
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Atari2600;
-	target->confidence = 1.0;
+	target->confidence = 0.5;
 	target->media.cartridges = media.cartridges;
 	target->atari.paging_model = Atari2600PagingModel::None;
 	target->atari.uses_superchip = false;

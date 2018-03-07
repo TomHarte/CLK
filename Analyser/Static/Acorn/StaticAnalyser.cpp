@@ -59,7 +59,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 void Analyser::Static::Acorn::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Electron;
-	target->confidence = 1.0; // TODO: a proper estimation
+	target->confidence = 0.5; // TODO: a proper estimation
 	target->acorn.has_dfs = false;
 	target->acorn.has_adfs = false;
 	target->acorn.should_shift_restart = false;

@@ -286,7 +286,7 @@ void Analyser::Static::MSX::AddTargets(const Media &media, std::vector<std::uniq
 
 	if(!target->media.empty()) {
 		target->machine = Machine::MSX;
-		target->confidence = 1.0;
+		target->confidence = 0.5;
 		destination.push_back(std::move(target));
 	}
 }
