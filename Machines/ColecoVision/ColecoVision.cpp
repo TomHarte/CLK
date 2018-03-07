@@ -192,6 +192,9 @@ class ConcreteMachine:
 
 		// MARK: Z80::BusHandler
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
+			time_since_vdp_update_ += cycle.length;
+			time_since_sn76489_update_ += cycle.length;
+
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
@@ -312,9 +315,6 @@ class ConcreteMachine:
 
 				default: break;
 			}
-
-			time_since_vdp_update_ += cycle.length;
-			time_since_sn76489_update_ += cycle.length;
 
 			if(time_until_interrupt_ > 0) {
 				time_until_interrupt_ -= cycle.length;
