@@ -79,7 +79,13 @@ namespace {
 			}
 		}
 
-		return new Analyser::Dynamic::MultiMachine(std::move(machines));
+		// If a multimachine would just instantly collapse the list to a single machine, do
+		// so without the ongoing baggage of a multimachine.
+		if(Analyser::Dynamic::MultiMachine::would_collapse(machines)) {
+			return machines.front().release();
+		} else {
+			return new Analyser::Dynamic::MultiMachine(std::move(machines));
+		}
 	}
 
 	// There's definitely exactly one target.

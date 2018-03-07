@@ -62,8 +62,15 @@ Configurable::Device *MultiMachine::configurable_device() {
 	}
 }
 
+bool MultiMachine::would_collapse(const std::vector<std::unique_ptr<DynamicMachine>> &machines) {
+	return
+		(machines.front()->crt_machine()->get_confidence() > 0.9f) ||
+		(machines.front()->crt_machine()->get_confidence() >= 2.0f * machines[1]->crt_machine()->get_confidence());
+}
+
 void MultiMachine::multi_crt_did_run_machines() {
 	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
+#ifdef DEBUG
 	for(const auto &machine: machines_) {
 		CRTMachine::Machine *crt = machine->crt_machine();
 		printf("%0.2f ", crt->get_confidence());
@@ -71,6 +78,7 @@ void MultiMachine::multi_crt_did_run_machines() {
 		printf("; ");
 	}
 	printf("\n");
+#endif
 
 	DynamicMachine *front = machines_.front().get();
 	std::stable_sort(machines_.begin(), machines_.end(),
@@ -84,10 +92,7 @@ void MultiMachine::multi_crt_did_run_machines() {
 		crt_machine_.did_change_machine_order();
 	}
 
-	if(
-		(machines_.front()->crt_machine()->get_confidence() > 0.9f) ||
-		(machines_.front()->crt_machine()->get_confidence() >= 2.0f * machines_[1]->crt_machine()->get_confidence())
-	) {
+	if(would_collapse(machines_)) {
 		pick_first();
 	}
 }
