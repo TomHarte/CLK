@@ -23,6 +23,8 @@
 #include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include "../../Analyser/Dynamic/ConfidenceCounter.hpp"
+
 namespace {
 const int sn76489_divider = 2;
 }
@@ -195,6 +197,7 @@ class ConcreteMachine:
 			uint16_t address = cycle.address ? *cycle.address : 0x0000;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::ReadOpcode:
+					if(!address) pc_zero_accesses_++;
 				case CPU::Z80::PartialMachineCycle::Read:
 					if(address < 0x2000) {
 						if(super_game_module_.replace_bios) {
@@ -245,6 +248,11 @@ class ConcreteMachine:
 							} else {
 								*cycle.value = joystick->get_direction_input();
 							}
+
+							// Hitting exactly the recommended joypad input port is an indicator that
+							// this really is a ColecoVision game. The BIOS won't do this when just waiting
+							// to start a game (unlike accessing the VDP and SN).
+							if((address&0xfc) == 0xfc) confidence_counter_.add_hit();
 						} break;
 
 						default:
@@ -329,6 +337,11 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
+		float get_confidence() override {
+			if(pc_zero_accesses_ > 1) return 0.0f;
+			return confidence_counter_.get_confidence();
+		}
+
 	private:
 		inline void page_megacart(uint16_t address) {
 			const std::size_t selected_start = (static_cast<std::size_t>(address&63) << 14) % cartridge_.size();
@@ -368,6 +381,9 @@ class ConcreteMachine:
 		HalfCycles time_since_vdp_update_;
 		HalfCycles time_since_sn76489_update_;
 		HalfCycles time_until_interrupt_;
+
+		Analyser::Dynamic::ConfidenceCounter confidence_counter_;
+		int pc_zero_accesses_ = 0;
 };
 
 }
