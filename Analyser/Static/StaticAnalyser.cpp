@@ -88,7 +88,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 		Format("81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// 81
 		Format("a26", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)						// A26
 		Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)		// ADF
-		Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)						// BIN
+		Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::AllCartridge)					// BIN
 		Format("cas", result.tapes, Tape::CAS, TargetPlatform::MSX)												// CAS
 		Format("cdt", result.tapes, Tape::TZX, TargetPlatform::AmstradCPC)										// CDT
 		Format("col", result.cartridges, Cartridge::BinaryDump, TargetPlatform::ColecoVision)					// COL
@@ -117,10 +117,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 			}
 		}
 
-		Format(	"rom",
-				result.cartridges,
-				Cartridge::BinaryDump,
-				TargetPlatform::Acorn | TargetPlatform::MSX | TargetPlatform::ColecoVision)						// ROM
+		Format("rom", result.cartridges, Cartridge::BinaryDump, TargetPlatform::AllCartridge)					// ROM
 		Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// SSD
 		Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)								// TAP (Commodore)
 		Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)										// TAP (Oric)

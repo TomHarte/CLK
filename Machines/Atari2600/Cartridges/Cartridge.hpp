@@ -39,7 +39,23 @@ template<class T> class Cartridge:
 			// consider doing something less fragile.
 		}
 
-		void run_for(const Cycles cycles)	{ m6502_.run_for(cycles);		}
+		void run_for(const Cycles cycles)	{
+			// Horizontal counter resets are used as a proxy for whether this really is an Atari 2600
+			// title. Random memory accesses are likely to trigger random counter resets.
+			horizontal_counter_resets_ = 0;
+			cycle_count_ = cycles;
+			m6502_.run_for(cycles);
+		}
+
+		/*!
+			Adjusts @c confidence_counter according to the results of the most recent run_for.
+		*/
+		void apply_confidence(Analyser::Dynamic::ConfidenceCounter &confidence_counter) {
+			if(cycle_count_.as_int() < 200) return;
+			if(horizontal_counter_resets_ > 10)
+				confidence_counter.add_miss();
+		}
+
 		void set_reset_line(bool state)		{ m6502_.set_reset_line(state);	}
 
 		// to satisfy CPU::MOS6502::Processor
@@ -108,7 +124,11 @@ template<class T> class Cartridge:
 							case 0x01:	update_video();	tia_->set_blank(*value & 0x02);		break;
 
 							case 0x02:	m6502_.set_ready_line(true);						break;
-							case 0x03:	update_video();	tia_->reset_horizontal_counter();	break;
+							case 0x03:
+								update_video();
+								tia_->reset_horizontal_counter();
+								horizontal_counter_resets_++;
+							break;
 								// TODO: audio will now be out of synchronisation — fix
 
 							case 0x04:
@@ -189,6 +209,9 @@ template<class T> class Cartridge:
 
 	private:
 		T bus_extender_;
+		int horizontal_counter_resets_ = 0;
+		Cycles cycle_count_;
+
 };
 
 }

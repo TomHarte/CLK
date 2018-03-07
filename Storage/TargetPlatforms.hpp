@@ -29,8 +29,9 @@ enum Type: IntType {
 
 	Acorn			=	AcornAtom | AcornElectron | BBCMaster | BBCModelA | BBCModelB,
 	ZX8081			=	ZX80 | ZX81,
-	AllTape			=	Acorn | AmstradCPC | Commodore | Oric | ZX80 | ZX81 | MSX,
+	AllCartridge	=	Atari2600 | AcornElectron | ColecoVision | MSX,
 	AllDisk			=	Acorn | AmstradCPC | Commodore | Oric | MSX,
+	AllTape			=	Acorn | AmstradCPC | Commodore | Oric | ZX80 | ZX81 | MSX,
 };
 
 class TypeDistinguisher {
