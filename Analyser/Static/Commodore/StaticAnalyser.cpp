@@ -41,7 +41,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Vic20;	// TODO: machine estimation
-	target->confidence = 1.0; // TODO: a proper estimation
+	target->confidence = 0.5; // TODO: a proper estimation
 
 	int device = 0;
 	std::vector<File> files;

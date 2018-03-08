@@ -40,6 +40,14 @@ namespace Dynamic {
 */
 class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::Delegate {
 	public:
+		/*!
+			Allows a potential MultiMachine creator to enquire as to whether there's any benefit in
+			requesting this class as a proxy.
+
+			@returns @c true if the multimachine would discard all but the first machine in this list;
+				@c false otherwise.
+		*/
+		static bool would_collapse(const std::vector<std::unique_ptr<DynamicMachine>> &machines);
 		MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machines);
 
 		ConfigurationTarget::Machine *configuration_target() override;

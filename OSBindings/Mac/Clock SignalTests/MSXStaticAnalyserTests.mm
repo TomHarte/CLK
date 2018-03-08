@@ -10,21 +10,22 @@
 
 #import <CommonCrypto/CommonDigest.h>
 #include "../../../Analyser/Static/StaticAnalyser.hpp"
+#include "../../../Analyser/Static/MSX/Cartridge.hpp"
 
 @interface MSXROMRecord : NSObject
-@property(nonatomic, readonly) Analyser::Static::MSXCartridgeType cartridgeType;
-+ (instancetype)recordWithCartridgeType:(Analyser::Static::MSXCartridgeType)cartridgeType;
+@property(nonatomic, readonly) Analyser::Static::MSX::Cartridge::Type cartridgeType;
++ (instancetype)recordWithCartridgeType:(Analyser::Static::MSX::Cartridge::Type)cartridgeType;
 @end
 
 @implementation MSXROMRecord
-+ (instancetype)recordWithCartridgeType:(Analyser::Static::MSXCartridgeType)cartridgeType {
++ (instancetype)recordWithCartridgeType:(Analyser::Static::MSX::Cartridge::Type)cartridgeType {
 	MSXROMRecord *record = [[MSXROMRecord alloc] init];
 	record->_cartridgeType = cartridgeType;
 	return record;
 }
 @end
 
-#define Record(sha, type) sha : [MSXROMRecord recordWithCartridgeType:Analyser::Static::MSXCartridgeType::type],
+#define Record(sha, type) sha : [MSXROMRecord recordWithCartridgeType:Analyser::Static::MSX::Cartridge::type],
 static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"da397e783d677d1a78fff222d9d6cb48b915dada", ASCII8kb)		// 1942 (1986)(ASCII)(JP).rom
 	Record(@"0733cd627467a866846e15caf1770a5594eaf4cc", ASCII8kb)		// 1942 (1986)(ASCII)(JP)[a].rom
@@ -222,7 +223,13 @@ static NSDictionary<NSString *, MSXROMRecord *> *romRecordsBySHA1 = @{
 		// assert equality
 		XCTAssert(!targets.empty(), "%@ should be recognised as an MSX file", testFile);
 		if(!targets.empty()) {
-			XCTAssert(targets.front()->msx.cartridge_type == romRecord.cartridgeType, @"%@; should be %d, is %d", testFile, romRecord.cartridgeType, targets.front()->msx.cartridge_type);
+			XCTAssert(!targets.front()->media.cartridges.empty(), "%@ should be interpreted as a cartridge", testFile);
+
+			if(!targets.front()->media.cartridges.empty()) {
+				const Analyser::Static::MSX::Cartridge *const cartridge =
+					dynamic_cast<Analyser::Static::MSX::Cartridge *>(targets.front()->media.cartridges.front().get());
+				XCTAssert(cartridge->type == romRecord.cartridgeType, @"%@; should be %d, is %d", testFile, romRecord.cartridgeType, cartridge->type);
+			}
 		}
 	}
 }

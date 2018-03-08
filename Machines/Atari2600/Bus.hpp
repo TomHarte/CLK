@@ -14,6 +14,7 @@
 #include "TIA.hpp"
 #include "TIASound.hpp"
 
+#include "../../Analyser/Dynamic/ConfidenceCounter.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
@@ -23,11 +24,10 @@ class Bus {
 	public:
 		Bus() :
 			tia_sound_(audio_queue_),
-			speaker_(tia_sound_),
-			tia_input_value_{0xff, 0xff},
-			cycles_since_speaker_update_(0) {}
+			speaker_(tia_sound_) {}
 
 		virtual void run_for(const Cycles cycles) = 0;
+		virtual void apply_confidence(Analyser::Dynamic::ConfidenceCounter &confidence_counter) = 0;
 		virtual void set_reset_line(bool state) = 0;
 
 		// the RIOT, TIA and speaker
@@ -39,7 +39,7 @@ class Bus {
 		Outputs::Speaker::LowpassSpeaker<TIASound> speaker_;
 
 		// joystick state
-		uint8_t tia_input_value_[2];
+		uint8_t tia_input_value_[2] = {0xff, 0xff};
 
 	protected:
 		// speaker backlog accumlation counter

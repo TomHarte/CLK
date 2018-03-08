@@ -55,7 +55,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 void Analyser::Static::Coleco::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::ColecoVision;
-	target->confidence = 0.5;
+	target->confidence = 1.0f - 1.0f / 32768.0f;
 	target->media.cartridges = ColecoCartridgesFrom(media.cartridges);
 	if(!target->media.empty())
 		destination.push_back(std::move(target));

@@ -74,9 +74,7 @@ class ConcreteMachine:
 	public Machine,
 	public Outputs::CRT::Delegate {
 	public:
-		ConcreteMachine() :
-			frame_record_pointer_(0),
-			is_ntsc_(true) {
+		ConcreteMachine() {
 			set_clock_rate(NTSC_clock_rate);
 		}
 
@@ -179,6 +177,7 @@ class ConcreteMachine:
 
 		void run_for(const Cycles cycles) override {
 			bus_->run_for(cycles);
+			bus_->apply_confidence(confidence_counter_);
 		}
 
 		// to satisfy Outputs::CRT::Delegate
@@ -219,6 +218,10 @@ class ConcreteMachine:
 			}
 		}
 
+		float get_confidence() override {
+			return confidence_counter_.get_confidence();
+		}
+
 	private:
 		// the bus
 		std::unique_ptr<Bus> bus_;
@@ -230,9 +233,12 @@ class ConcreteMachine:
 
 			FrameRecord() : number_of_frames(0), number_of_unexpected_vertical_syncs(0) {}
 		} frame_records_[4];
-		unsigned int frame_record_pointer_;
-		bool is_ntsc_;
+		unsigned int frame_record_pointer_ = 0;
+		bool is_ntsc_ = true;
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+
+		// a confidence counter
+		Analyser::Dynamic::ConfidenceCounter confidence_counter_;
 };
 
 }
