@@ -42,12 +42,6 @@ enum class Atari2600PagingModel {
 	Pitfall2
 };
 
-enum class ZX8081MemoryModel {
-	Unexpanded,
-	SixteenKB,
-	SixtyFourKB
-};
-
 enum class AmstradCPCModel {
 	CPC464,
 	CPC664,
@@ -72,6 +66,8 @@ struct Media {
 	and instructions on how to launch the software attached, plus a measure of confidence in this target's correctness.
 */
 struct Target {
+	virtual ~Target() {}
+
 	Machine machine;
 	Media media;
 
@@ -101,11 +97,6 @@ struct Target {
 			Vic20MemoryModel memory_model;
 			bool has_c1540;
 		} vic20;
-
-		struct {
-			ZX8081MemoryModel memory_model;
-			bool isZX81;
-		} zx8081;
 
 		struct {
 			AmstradCPCModel model;

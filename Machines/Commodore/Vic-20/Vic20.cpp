@@ -363,12 +363,12 @@ class ConcreteMachine:
 			return true;
 		}
 
-		void configure_as_target(const Analyser::Static::Target &target) override final {
-			if(target.loading_command.length()) {
-				type_string(target.loading_command);
+		void configure_as_target(const Analyser::Static::Target *target) override final {
+			if(target->loading_command.length()) {
+				type_string(target->loading_command);
 			}
 
-			switch(target.vic20.memory_model) {
+			switch(target->vic20.memory_model) {
 				case Analyser::Static::Vic20MemoryModel::Unexpanded:
 					set_memory_size(Default);
 				break;
@@ -380,7 +380,7 @@ class ConcreteMachine:
 				break;
 			}
 
-			if(target.media.disks.size()) {
+			if(target->media.disks.size()) {
 				// construct the 1540
 				c1540_.reset(new ::Commodore::C1540::Machine(Commodore::C1540::Machine::C1540));
 
@@ -391,7 +391,7 @@ class ConcreteMachine:
 				c1540_->set_rom_fetcher(rom_fetcher_);
 			}
 
-			insert_media(target.media);
+			insert_media(target->media);
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override final {

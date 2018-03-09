@@ -22,10 +22,10 @@
 
 namespace {
 
-::Machine::DynamicMachine *MachineForTarget(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher, Machine::Error &error) {
+::Machine::DynamicMachine *MachineForTarget(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher, Machine::Error &error) {
 	error = Machine::Error::None;
 	::Machine::DynamicMachine *machine = nullptr;
-	switch(target.machine) {
+	switch(target->machine) {
 		case Analyser::Machine::AmstradCPC:		machine = new Machine::TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());				break;
 		case Analyser::Machine::Atari2600:		machine = new Machine::TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());				break;
 		case Analyser::Machine::ColecoVision:	machine = new Machine::TypedDynamicMachine<Coleco::Vision::Machine>(Coleco::Vision::Machine::ColecoVision());	break;
@@ -71,7 +71,7 @@ namespace {
 	if(targets.size() > 1) {
 		std::vector<std::unique_ptr<Machine::DynamicMachine>> machines;
 		for(const auto &target: targets) {
-			machines.emplace_back(MachineForTarget(*target, rom_fetcher, error));
+			machines.emplace_back(MachineForTarget(target.get(), rom_fetcher, error));
 
 			// Exit early if any errors have occurred.
 			if(error != Error::None) {
@@ -89,7 +89,7 @@ namespace {
 	}
 
 	// There's definitely exactly one target.
-	return MachineForTarget(*targets.front(), rom_fetcher, error);
+	return MachineForTarget(targets.front().get(), rom_fetcher, error);
 }
 
 std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) {

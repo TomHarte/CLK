@@ -21,7 +21,7 @@ class Machine {
 	public:
 		virtual ~Machine();
 
-		static Machine *ZX8081(const Analyser::Static::Target &target_hint);
+		static Machine *ZX8081(const Analyser::Static::Target *target_hint);
 
 		virtual void set_tape_is_playing(bool is_playing) = 0;
 		virtual bool get_tape_is_playing() = 0;

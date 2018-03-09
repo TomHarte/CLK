@@ -874,8 +874,8 @@ class ConcreteMachine:
 		}
 
 		/// The ConfigurationTarget entry point; should configure this meachine as described by @c target.
-		void configure_as_target(const Analyser::Static::Target &target) override final  {
-			switch(target.amstradcpc.model) {
+		void configure_as_target(const Analyser::Static::Target *target) override final  {
+			switch(target->amstradcpc.model) {
 				case Analyser::Static::AmstradCPCModel::CPC464:
 					rom_model_ = ROMType::OS464;
 					has_128k_ = false;
@@ -908,11 +908,11 @@ class ConcreteMachine:
 			read_pointers_[3] = roms_[upper_rom_].data();
 
 			// Type whatever is required.
-			if(target.loading_command.length()) {
-				type_string(target.loading_command);
+			if(target->loading_command.length()) {
+				type_string(target->loading_command);
 			}
 
-			insert_media(target.media);
+			insert_media(target->media);
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override final {

@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 
+#include "Target.hpp"
 #include "../../../Storage/Tape/Parsers/ZX8081.hpp"
 
 static std::vector<Storage::Data::ZX8081::File> GetFiles(const std::shared_ptr<Storage::Tape::Tape> &tape) {
@@ -27,41 +28,41 @@ static std::vector<Storage::Data::ZX8081::File> GetFiles(const std::shared_ptr<S
 	return files;
 }
 
-void Analyser::Static::ZX8081::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination, TargetPlatform::IntType potential_platforms) {
+void Analyser::Static::ZX8081::AddTargets(const Media &media, std::vector<std::unique_ptr<::Analyser::Static::Target>> &destination, TargetPlatform::IntType potential_platforms) {
 	if(!media.tapes.empty()) {
 		std::vector<Storage::Data::ZX8081::File> files = GetFiles(media.tapes.front());
 		media.tapes.front()->reset();
 		if(!files.empty()) {
-			std::unique_ptr<Target> target(new Target);
+			Target *target = new Target;
+			destination.push_back(std::unique_ptr<::Analyser::Static::Target>(target));
 			target->machine = Machine::ZX8081;
 
 			// Guess the machine type from the file only if it isn't already known.
 			switch(potential_platforms & (TargetPlatform::ZX80 | TargetPlatform::ZX81)) {
 				default:
-					target->zx8081.isZX81 = files.front().isZX81;
+					target->isZX81 = files.front().isZX81;
 				break;
 
-				case TargetPlatform::ZX80:	target->zx8081.isZX81 = false;	break;
-				case TargetPlatform::ZX81:	target->zx8081.isZX81 = true;	break;
+				case TargetPlatform::ZX80:	target->isZX81 = false;	break;
+				case TargetPlatform::ZX81:	target->isZX81 = true;	break;
 			}
 
 			/*if(files.front().data.size() > 16384) {
 				target->zx8081.memory_model = ZX8081MemoryModel::SixtyFourKB;
 			} else*/ if(files.front().data.size() > 1024) {
-				target->zx8081.memory_model = ZX8081MemoryModel::SixteenKB;
+				target->memory_model = Target::MemoryModel::SixteenKB;
 			} else {
-				target->zx8081.memory_model = ZX8081MemoryModel::Unexpanded;
+				target->memory_model = Target::MemoryModel::Unexpanded;
 			}
 			target->media.tapes = media.tapes;
 
 			// TODO: how to run software once loaded? Might require a BASIC detokeniser.
-			if(target->zx8081.isZX81) {
+			if(target->isZX81) {
 				target->loading_command = "J\"\"\n";
 			} else {
 				target->loading_command = "W\n";
 			}
 
-			destination.push_back(std::move(target));
 		}
 	}
 }

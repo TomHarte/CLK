@@ -89,9 +89,9 @@ class ConcreteMachine:
 			close_output();
 		}
 
-		void configure_as_target(const Analyser::Static::Target &target) override {
-			const std::vector<uint8_t> &rom = target.media.cartridges.front()->get_segments().front().data;
-			switch(target.atari.paging_model) {
+		void configure_as_target(const Analyser::Static::Target *target) override {
+			const std::vector<uint8_t> &rom = target->media.cartridges.front()->get_segments().front().data;
+			switch(target->atari.paging_model) {
 				case Analyser::Static::Atari2600PagingModel::ActivisionStack:	bus_.reset(new Cartridge::Cartridge<Cartridge::ActivisionStack>(rom));	break;
 				case Analyser::Static::Atari2600PagingModel::CBSRamPlus:		bus_.reset(new Cartridge::Cartridge<Cartridge::CBSRAMPlus>(rom));		break;
 				case Analyser::Static::Atari2600PagingModel::CommaVid:		bus_.reset(new Cartridge::Cartridge<Cartridge::CommaVid>(rom));			break;
@@ -103,21 +103,21 @@ class ConcreteMachine:
 				case Analyser::Static::Atari2600PagingModel::Tigervision:		bus_.reset(new Cartridge::Cartridge<Cartridge::Tigervision>(rom));		break;
 
 				case Analyser::Static::Atari2600PagingModel::Atari8k:
-					if(target.atari.uses_superchip) {
+					if(target->atari.uses_superchip) {
 						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari8kSuperChip>(rom));
 					} else {
 						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari8k>(rom));
 					}
 				break;
 				case Analyser::Static::Atari2600PagingModel::Atari16k:
-					if(target.atari.uses_superchip) {
+					if(target->atari.uses_superchip) {
 						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari16kSuperChip>(rom));
 					} else {
 						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari16k>(rom));
 					}
 				break;
 				case Analyser::Static::Atari2600PagingModel::Atari32k:
-					if(target.atari.uses_superchip) {
+					if(target->atari.uses_superchip) {
 						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari32kSuperChip>(rom));
 					} else {
 						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari32k>(rom));

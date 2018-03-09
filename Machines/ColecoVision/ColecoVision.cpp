@@ -150,9 +150,9 @@ class ConcreteMachine:
 			z80_.run_for(cycles);
 		}
 
-		void configure_as_target(const Analyser::Static::Target &target) override {
+		void configure_as_target(const Analyser::Static::Target *target) override {
 			// Insert the media.
-			insert_media(target.media);
+			insert_media(target->media);
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override {

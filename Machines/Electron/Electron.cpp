@@ -123,28 +123,28 @@ class ConcreteMachine:
 			if(is_holding_shift_) set_key_state(KeyShift, true);
 		}
 
-		void configure_as_target(const Analyser::Static::Target &target) override final {
-			if(target.loading_command.length()) {
-				type_string(target.loading_command);
+		void configure_as_target(const Analyser::Static::Target *target) override final {
+			if(target->loading_command.length()) {
+				type_string(target->loading_command);
 			}
 
-			if(target.acorn.should_shift_restart) {
+			if(target->acorn.should_shift_restart) {
 				shift_restart_counter_ = 1000000;
 			}
 
-			if(target.acorn.has_dfs || target.acorn.has_adfs) {
+			if(target->acorn.has_dfs || target->acorn.has_adfs) {
 				plus3_.reset(new Plus3);
 
-				if(target.acorn.has_dfs) {
+				if(target->acorn.has_dfs) {
 					set_rom(ROMSlot0, dfs_, true);
 				}
-				if(target.acorn.has_adfs) {
+				if(target->acorn.has_adfs) {
 					set_rom(ROMSlot4, adfs1_, true);
 					set_rom(ROMSlot5, adfs2_, true);
 				}
 			}
 
-			insert_media(target.media);
+			insert_media(target->media);
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override final {
