@@ -119,7 +119,11 @@ void Atari2600::TIASound::get_samples(std::size_t number_of_samples, int16_t *ta
 				break;
 			}
 
-			target[c] += volume_[channel] * 1024 * level;
+			target[c] += (volume_[channel] * per_channel_volume_ * level) >> 4;
 		}
 	}
+}
+
+void Atari2600::TIASound::set_sample_volume_range(std::int16_t range) {
+	per_channel_volume_ = range / 2;
 }

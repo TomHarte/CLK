@@ -132,6 +132,9 @@ void AudioGenerator::skip_samples(std::size_t number_of_samples) {
 	}
 }
 
+void AudioGenerator::set_sample_volume_range(std::int16_t range) {
+}
+
 #undef shift
 #undef increment
 #undef update

@@ -56,13 +56,18 @@ AY38910::AY38910(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_
 		}
 	}
 
+	set_sample_volume_range(0);
+}
+
+void AY38910::set_sample_volume_range(std::int16_t range) {
 	// set up volume lookup table
-	float max_volume = 8192;
-	float root_two = sqrtf(2.0f);
+	const float max_volume = static_cast<float>(range) / 3.0f;	// As there are three channels.
+	const float root_two = sqrtf(2.0f);
 	for(int v = 0; v < 16; v++) {
 		volumes_[v] = static_cast<int>(max_volume / powf(root_two, static_cast<float>(v ^ 0xf)));
 	}
 	volumes_[0] = 0;
+	evaluate_output_volume();
 }
 
 void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {

@@ -27,7 +27,7 @@ void SCC::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 
 	std::size_t c = 0;
 	while((master_divider_&7) && c < number_of_samples) {
-		target[c] = output_volume_;
+		target[c] = transient_output_level_;
 		master_divider_++;
 		c++;
 	}
@@ -44,7 +44,7 @@ void SCC::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 		evaluate_output_volume();
 
 		for(int ic = 0; ic < 8 && c < number_of_samples; ++ic) {
-			target[c] = output_volume_;
+			target[c] = transient_output_level_;
 			c++;
 			master_divider_++;
 		}
@@ -86,16 +86,22 @@ void SCC::write(uint16_t address, uint8_t value) {
 }
 
 void SCC::evaluate_output_volume() {
-	output_volume_ =
+	transient_output_level_ =
 		static_cast<int16_t>(
-			(
+			((
 				(channel_enable_ & 0x01) ? static_cast<int8_t>(waves_[0].samples[channels_[0].offset]) * channels_[0].amplitude : 0 +
 				(channel_enable_ & 0x02) ? static_cast<int8_t>(waves_[1].samples[channels_[1].offset]) * channels_[1].amplitude : 0 +
 				(channel_enable_ & 0x04) ? static_cast<int8_t>(waves_[2].samples[channels_[2].offset]) * channels_[2].amplitude : 0 +
 				(channel_enable_ & 0x08) ? static_cast<int8_t>(waves_[3].samples[channels_[3].offset]) * channels_[3].amplitude : 0 +
 				(channel_enable_ & 0x10) ? static_cast<int8_t>(waves_[3].samples[channels_[4].offset]) * channels_[4].amplitude : 0
-			)
+			) * master_volume_) / (255*15*5)
+			// Five channels, each with 8-bit samples and 4-bit volumes implies a natural range of 0 to 255*15*5.
 		);
+}
+
+void SCC::set_sample_volume_range(std::int16_t range) {
+	master_volume_ = range;
+	evaluate_output_volume();
 }
 
 uint8_t SCC::read(uint16_t address) {
@@ -105,3 +111,5 @@ uint8_t SCC::read(uint16_t address) {
 	}
 	return 0xff;
 }
+
+
