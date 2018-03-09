@@ -91,6 +91,8 @@ class ProcessorStorage {
 
 				IndexedPlaceHolder,
 
+				SetAddrAMemptr,
+
 				Reset
 			};
 			Type type;
@@ -131,6 +133,10 @@ class ProcessorStorage {
 		uint8_t subtract_flag_;				// contains a copy of the subtract flag in isolation
 		uint8_t carry_result_;				// the carry flag is set if bit 0 of carry_result_ is set
 		uint8_t halt_mask_ = 0xff;
+
+		int flag_adjustment_history_ = 0;	// a shifting record of whether each opcode set any flags; it turns out
+											// that knowledge of what the last opcode did is necessary to get bits 5 & 3
+											// correct for SCF and CCF.
 
 		HalfCycles number_of_cycles_;
 
