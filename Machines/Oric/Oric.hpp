@@ -10,9 +10,6 @@
 #define Oric_hpp
 
 #include "../../Configurable/Configurable.hpp"
-#include "../ConfigurationTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../KeyboardMachine.hpp"
 
 namespace Oric {
 
@@ -22,11 +19,7 @@ std::vector<std::unique_ptr<Configurable::Option>> get_options();
 /*!
 	Models an Oric 1/Atmos with or without a Microdisc.
 */
-class Machine:
-	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine,
-	public Configurable::Device {
+class Machine {
 	public:
 		virtual ~Machine();
 

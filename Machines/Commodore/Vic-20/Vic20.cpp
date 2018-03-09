@@ -10,6 +10,11 @@
 
 #include "Keyboard.hpp"
 
+#include "../../ConfigurationTarget.hpp"
+#include "../../CRTMachine.hpp"
+#include "../../KeyboardMachine.hpp"
+#include "../../JoystickMachine.hpp"
+
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../Components/6560/6560.hpp"
 #include "../../../Components/6522/6522.hpp"
@@ -283,6 +288,11 @@ class Joystick: public Inputs::Joystick {
 };
 
 class ConcreteMachine:
+	public CRTMachine::Machine,
+	public ConfigurationTarget::Machine,
+	public KeyboardMachine::Machine,
+	public JoystickMachine::Machine,
+	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public Utility::TypeRecipient,

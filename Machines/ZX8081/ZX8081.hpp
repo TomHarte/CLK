@@ -10,20 +10,14 @@
 #define ZX8081_hpp
 
 #include "../../Configurable/Configurable.hpp"
-#include "../ConfigurationTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../../Analyser/Static/StaticAnalyser.hpp"
 
 namespace ZX8081 {
 
 /// @returns The options available for a ZX80 or ZX81.
 std::vector<std::unique_ptr<Configurable::Option>> get_options();
 
-class Machine:
-	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine,
-	public Configurable::Device {
+class Machine {
 	public:
 		virtual ~Machine();
 

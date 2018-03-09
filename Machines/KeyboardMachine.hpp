@@ -16,20 +16,29 @@
 
 namespace KeyboardMachine {
 
-class Machine: public Inputs::Keyboard::Delegate {
+/*!
+	Covers just the actions necessary to communicate keyboard state, as a purely abstract class.
+*/
+struct KeyActions {
+	/*!
+		Indicates that the key @c key has been either pressed or released, according to
+		the state of @c isPressed.
+	*/
+	virtual void set_key_state(uint16_t key, bool is_pressed) = 0;
+
+	/*!
+		Instructs that all keys should now be treated as released.
+	*/
+	virtual void clear_all_keys() = 0;
+};
+
+/*!
+	Describes the full functionality of being an emulated machine with a keyboard: not just being
+	able to receive key actions, but being able to vend a generic keyboard and a keyboard mapper.
+*/
+class Machine: public Inputs::Keyboard::Delegate, public KeyActions {
 	public:
 		Machine();
-
-		/*!
-			Indicates that the key @c key has been either pressed or released, according to
-			the state of @c isPressed.
-		*/
-		virtual void set_key_state(uint16_t key, bool is_pressed) = 0;
-
-		/*!
-			Instructs that all keys should now be treated as released.
-		*/
-		virtual void clear_all_keys() = 0;
 
 		/*!
 			Causes the machine to attempt to type the supplied string.

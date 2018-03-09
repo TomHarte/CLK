@@ -10,9 +10,6 @@
 #define Electron_hpp
 
 #include "../../Configurable/Configurable.hpp"
-#include "../ConfigurationTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../KeyboardMachine.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -42,11 +39,7 @@ std::vector<std::unique_ptr<Configurable::Option>> get_options();
 	@discussion An instance of Electron::Machine represents the current state of an
 	Acorn Electron.
 */
-class Machine:
-	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine,
-	public Configurable::Device {
+class Machine {
 	public:
 		virtual ~Machine();
 
