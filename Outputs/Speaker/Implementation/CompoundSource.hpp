@@ -25,6 +25,12 @@ template <typename... T> class CompoundSource: public Outputs::Speaker::SampleSo
 		void get_samples(std::size_t number_of_samples, std::int16_t *target) {
 			std::memset(target, 0, sizeof(std::int16_t) * number_of_samples);
 		}
+
+		void set_scaled_volume_range(int16_t range) {}
+
+		int size() {
+			return 0;
+		}
 };
 
 /*!
@@ -53,6 +59,19 @@ template <typename T, typename... R> class CompoundSource<T, R...>:
 		void skip_samples(const std::size_t number_of_samples) {
 			source_.skip_samples(number_of_samples);
 			next_source_.skip_samples(number_of_samples);
+		}
+
+		void set_sample_volume_range(int16_t range) {
+			set_scaled_volume_range(range / size());
+		}
+
+		void set_scaled_volume_range(int16_t range) {
+			source_.set_sample_volume_range(range);
+			next_source_.set_scaled_volume_range(range);
+		}
+
+		int size() {
+			return 1+next_source_.size();
 		}
 
 	private:

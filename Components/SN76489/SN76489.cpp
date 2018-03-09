@@ -14,15 +14,7 @@
 using namespace TI;
 
 SN76489::SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue, int additional_divider) : task_queue_(task_queue) {
-	// Build a volume table.
-	double multiplier = pow(10.0, -0.1);
-	double volume = 8191.0f;
-	for(int c = 0; c < 16; ++c) {
-		volumes_[c] = (int)round(volume);
-		volume *= multiplier;
-	}
-	volumes_[15] = 0;
-	evaluate_output_volume();
+	set_sample_volume_range(0);
 
 	switch(personality) {
 		case Personality::SN76494:
@@ -42,6 +34,18 @@ SN76489::SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &
 	assert((master_divider_period_ % additional_divider) == 0);
 	assert(additional_divider < master_divider_period_);
 	master_divider_period_ /= additional_divider;
+}
+
+void SN76489::set_sample_volume_range(std::int16_t range) {
+	// Build a volume table.
+	double multiplier = pow(10.0, -0.1);
+	double volume = static_cast<float>(range) / 4.0f;	// As there are four channels.
+	for(int c = 0; c < 16; ++c) {
+		volumes_[c] = (int)round(volume);
+		volume *= multiplier;
+	}
+	volumes_[15] = 0;
+	evaluate_output_volume();
 }
 
 void SN76489::set_register(uint8_t value) {

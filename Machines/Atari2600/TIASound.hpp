@@ -26,7 +26,9 @@ class TIASound: public Outputs::Speaker::SampleSource {
 		void set_divider(int channel, uint8_t divider);
 		void set_control(int channel, uint8_t control);
 
+		// To satisfy ::SampleSource.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
+		void set_sample_volume_range(std::int16_t range);
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
@@ -41,6 +43,7 @@ class TIASound: public Outputs::Speaker::SampleSource {
 		int output_state_[2];
 
 		int divider_counter_[2];
+		int16_t per_channel_volume_ = 0;
 };
 
 }

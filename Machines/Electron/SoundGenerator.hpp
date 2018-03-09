@@ -22,16 +22,19 @@ class SoundGenerator: public ::Outputs::Speaker::SampleSource {
 
 		void set_is_enabled(bool is_enabled);
 
+		static const unsigned int clock_rate_divider = 8;
+
+		// To satisfy ::SampleSource.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		void skip_samples(std::size_t number_of_samples);
-
-		static const unsigned int clock_rate_divider = 8;
+		void set_sample_volume_range(std::int16_t range);
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
 		unsigned int counter_ = 0;
 		unsigned int divider_ = 0;
 		bool is_enabled_ = false;
+		unsigned int volume_ = 0;
 };
 
 }

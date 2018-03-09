@@ -46,6 +46,13 @@ class SampleSource {
 		bool is_zero_level() {
 			return false;
 		}
+
+		/*!
+			Sets the proper output range for this sample source; it should write values
+			between 0 and volume.
+		*/
+		void set_sample_volume_range(std::int16_t volume) {
+		}
 };
 
 }

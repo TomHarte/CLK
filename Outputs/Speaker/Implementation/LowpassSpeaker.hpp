@@ -28,7 +28,9 @@ namespace Speaker {
 */
 template <typename T> class LowpassSpeaker: public Speaker {
 	public:
-		LowpassSpeaker(T &sample_source) : sample_source_(sample_source) {}
+		LowpassSpeaker(T &sample_source) : sample_source_(sample_source) {
+			sample_source.set_sample_volume_range(32767);
+		}
 
 		// Implemented as per Speaker.
 		float get_ideal_clock_rate_in_range(float minimum, float maximum) {

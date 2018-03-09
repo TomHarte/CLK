@@ -62,13 +62,17 @@ class AudioToggle: public Outputs::Speaker::SampleSource {
 			}
 		}
 
+		void set_sample_volume_range(std::int16_t range) {
+			volume_ = range;
+		}
+
 		void skip_samples(const std::size_t number_of_samples) {}
 
 		void set_output(bool enabled) {
 			if(is_enabled_ == enabled) return;
 			is_enabled_ = enabled;
 			audio_queue_.defer([=] {
-				level_ = enabled ? 4096 : 0;
+				level_ = enabled ? volume_ : 0;
 			});
 		}
 
@@ -78,7 +82,7 @@ class AudioToggle: public Outputs::Speaker::SampleSource {
 
 	private:
 		bool is_enabled_ = false;
-		int16_t level_ = 0;
+		int16_t level_ = 0, volume_ = 0;
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
 };
 
