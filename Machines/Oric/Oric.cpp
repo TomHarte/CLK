@@ -12,6 +12,10 @@
 #include "Microdisc.hpp"
 #include "Video.hpp"
 
+#include "../ConfigurationTarget.hpp"
+#include "../CRTMachine.hpp"
+#include "../KeyboardMachine.hpp"
+
 #include "../Utility/MemoryFuzzer.hpp"
 #include "../Utility/Typer.hpp"
 
@@ -184,6 +188,10 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 };
 
 class ConcreteMachine:
+	public CRTMachine::Machine,
+	public ConfigurationTarget::Machine,
+	public KeyboardMachine::Machine,
+	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public Utility::TypeRecipient,

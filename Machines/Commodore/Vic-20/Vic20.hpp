@@ -10,10 +10,6 @@
 #define Vic20_hpp
 
 #include "../../../Configurable/Configurable.hpp"
-#include "../../ConfigurationTarget.hpp"
-#include "../../CRTMachine.hpp"
-#include "../../KeyboardMachine.hpp"
-#include "../../JoystickMachine.hpp"
 
 namespace Commodore {
 namespace Vic20 {
@@ -35,12 +31,7 @@ enum Region {
 /// @returns The options available for a Vic-20.
 std::vector<std::unique_ptr<Configurable::Option>> get_options();
 
-class Machine:
-	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine,
-	public JoystickMachine::Machine,
-	public Configurable::Device {
+class Machine {
 	public:
 		virtual ~Machine();
 

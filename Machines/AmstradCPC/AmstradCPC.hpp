@@ -9,19 +9,12 @@
 #ifndef AmstradCPC_hpp
 #define AmstradCPC_hpp
 
-#include "../ConfigurationTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../KeyboardMachine.hpp"
-
 namespace AmstradCPC {
 
 /*!
 	Models an Amstrad CPC.
 */
-class Machine:
-	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
-	public KeyboardMachine::Machine {
+class Machine {
 	public:
 		virtual ~Machine();
 

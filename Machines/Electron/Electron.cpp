@@ -8,6 +8,10 @@
 
 #include "Electron.hpp"
 
+#include "../ConfigurationTarget.hpp"
+#include "../CRTMachine.hpp"
+#include "../KeyboardMachine.hpp"
+
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../Configurable/StandardOptions.hpp"
@@ -34,6 +38,10 @@ std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 
 class ConcreteMachine:
 	public Machine,
+	public CRTMachine::Machine,
+	public ConfigurationTarget::Machine,
+	public KeyboardMachine::Machine,
+	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public Tape::Delegate,
 	public Utility::TypeRecipient {

@@ -20,6 +20,10 @@
 #include "../Utility/MemoryFuzzer.hpp"
 #include "../Utility/Typer.hpp"
 
+#include "../ConfigurationTarget.hpp"
+#include "../CRTMachine.hpp"
+#include "../KeyboardMachine.hpp"
+
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
@@ -674,6 +678,9 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	The actual Amstrad CPC implementation; tying the 8255, 6845 and AY to the Z80.
 */
 class ConcreteMachine:
+	public CRTMachine::Machine,
+	public ConfigurationTarget::Machine,
+	public KeyboardMachine::Machine,
 	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,
 	public Sleeper::SleepObserver,

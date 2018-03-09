@@ -47,7 +47,7 @@ class CharacterMapper {
 */
 class Typer {
 	public:
-		class Delegate: public KeyboardMachine::Machine {
+		class Delegate: public KeyboardMachine::KeyActions {
 			public:
 				virtual void typer_reset(Typer *typer) = 0;
 		};
@@ -56,7 +56,6 @@ class Typer {
 
 		void run_for(const HalfCycles duration);
 		bool type_next_character();
-
 		bool is_completed();
 
 		const char BeginString = 0x02;	// i.e. ASCII start of text
@@ -81,7 +80,7 @@ class Typer {
 	which may or may not want to nominate an initial delay and typing frequency.
 */
 class TypeRecipient: public Typer::Delegate {
-	public:
+	protected:
 		/// Attaches a typer to this class that will type @c string using @c character_mapper as a source.
 		void add_typer(const std::string &string, std::unique_ptr<CharacterMapper> character_mapper) {
 			typer_.reset(new Typer(string, get_typer_delay(), get_typer_frequency(), std::move(character_mapper), this));
@@ -101,7 +100,6 @@ class TypeRecipient: public Typer::Delegate {
 			typer_ = nullptr;
 		}
 
-	protected:
 		virtual HalfCycles get_typer_delay() { return HalfCycles(0); }
 		virtual HalfCycles get_typer_frequency() { return HalfCycles(0); }
 		std::unique_ptr<Typer> typer_;

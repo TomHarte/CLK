@@ -9,10 +9,6 @@
 #ifndef Atari2600_cpp
 #define Atari2600_cpp
 
-#include "../ConfigurationTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../JoystickMachine.hpp"
-
 #include "Atari2600Inputs.h"
 
 namespace Atari2600 {
@@ -20,10 +16,7 @@ namespace Atari2600 {
 /*!
 	Models an Atari 2600.
 */
-class Machine:
-	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
-	public JoystickMachine::Machine {
+class Machine {
 	public:
 		virtual ~Machine();
 

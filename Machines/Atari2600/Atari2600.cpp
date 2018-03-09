@@ -11,6 +11,10 @@
 #include <algorithm>
 #include <cstdio>
 
+#include "../ConfigurationTarget.hpp"
+#include "../CRTMachine.hpp"
+#include "../JoystickMachine.hpp"
+
 #include "Cartridges/Atari8k.hpp"
 #include "Cartridges/Atari16k.hpp"
 #include "Cartridges/Atari32k.hpp"
@@ -72,6 +76,9 @@ class Joystick: public Inputs::Joystick {
 
 class ConcreteMachine:
 	public Machine,
+	public CRTMachine::Machine,
+	public ConfigurationTarget::Machine,
+	public JoystickMachine::Machine,
 	public Outputs::CRT::Delegate {
 	public:
 		ConcreteMachine() {
