@@ -29,6 +29,8 @@
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include "../../Analyser/Static/AmstradCPC/Target.hpp"
+
 #include <cstdint>
 #include <vector>
 
@@ -875,18 +877,20 @@ class ConcreteMachine:
 
 		/// The ConfigurationTarget entry point; should configure this meachine as described by @c target.
 		void configure_as_target(const Analyser::Static::Target *target) override final  {
-			switch(target->amstradcpc.model) {
-				case Analyser::Static::AmstradCPCModel::CPC464:
+			auto *const cpc_target = dynamic_cast<const Analyser::Static::AmstradCPC::Target *>(target);
+
+			switch(cpc_target->model) {
+				case Analyser::Static::AmstradCPC::Target::Model::CPC464:
 					rom_model_ = ROMType::OS464;
 					has_128k_ = false;
 					has_fdc_ = false;
 				break;
-				case Analyser::Static::AmstradCPCModel::CPC664:
+				case Analyser::Static::AmstradCPC::Target::Model::CPC664:
 					rom_model_ = ROMType::OS664;
 					has_128k_ = false;
 					has_fdc_ = true;
 				break;
-				case Analyser::Static::AmstradCPCModel::CPC6128:
+				case Analyser::Static::AmstradCPC::Target::Model::CPC6128:
 					rom_model_ = ROMType::OS6128;
 					has_128k_ = true;
 					has_fdc_ = true;

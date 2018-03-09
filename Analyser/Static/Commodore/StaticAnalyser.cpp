@@ -11,6 +11,7 @@
 #include "Disk.hpp"
 #include "File.hpp"
 #include "Tape.hpp"
+#include "Target.hpp"
 #include "../../../Storage/Cartridge/Encodings/CommodoreROM.hpp"
 
 #include <sstream>
@@ -38,7 +39,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return vic20_cartridges;
 }
 
-void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
+void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std::unique_ptr<Analyser::Static::Target>> &destination) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Vic20;	// TODO: machine estimation
 	target->confidence = 0.5; // TODO: a proper estimation
@@ -73,7 +74,7 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std
 	}
 
 	if(!files.empty()) {
-		target->vic20.memory_model = Vic20MemoryModel::Unexpanded;
+		target->memory_model = Target::MemoryModel::Unexpanded;
 		std::ostringstream string_stream;
 		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device << ",";
   		if(files.front().is_basic()) {
@@ -89,10 +90,10 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std
 			case 0x1001:
 			default: break;
 			case 0x1201:
-				target->vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+				target->memory_model = Target::MemoryModel::ThirtyTwoKB;
 			break;
 			case 0x0401:
-				target->vic20.memory_model = Vic20MemoryModel::EightKB;
+				target->memory_model = Target::MemoryModel::EightKB;
 			break;
 		}
 
@@ -129,9 +130,9 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std
 				// If anything above the 8kb mark is touched, mark as a 32kb machine; otherwise if the
 				// region 0x0400 to 0x1000 is touched and this is an unexpanded machine, mark as 3kb.
 				if(starting_address + file_size > 0x2000)
-					target->vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
-				else if(target->vic20.memory_model == Vic20MemoryModel::Unexpanded && !(starting_address >= 0x1000 || starting_address+file_size < 0x0400))
-					target->vic20.memory_model = Vic20MemoryModel::ThirtyTwoKB;
+					target->memory_model = Target::MemoryModel::ThirtyTwoKB;
+				else if(target->memory_model == Target::MemoryModel::Unexpanded && !(starting_address >= 0x1000 || starting_address+file_size < 0x0400))
+					target->memory_model = Target::MemoryModel::ThirtyTwoKB;
 //			}
 		}
 	}

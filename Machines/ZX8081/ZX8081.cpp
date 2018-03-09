@@ -280,8 +280,7 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		void configure_as_target(const Analyser::Static::Target *target) override final {
-			const Analyser::Static::ZX8081::Target *const zx8081_target =
-				dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
+			auto *const zx8081_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
 			is_zx81_ = zx8081_target->isZX81;
 			if(is_zx81_) {
 				rom_ = zx81_rom_;

@@ -21,33 +21,6 @@
 namespace Analyser {
 namespace Static {
 
-enum class Vic20MemoryModel {
-	Unexpanded,
-	EightKB,
-	ThirtyTwoKB
-};
-
-enum class Atari2600PagingModel {
-	None,
-	CommaVid,
-	Atari8k,
-	Atari16k,
-	Atari32k,
-	ActivisionStack,
-	ParkerBros,
-	Tigervision,
-	CBSRamPlus,
-	MNetwork,
-	MegaBoy,
-	Pitfall2
-};
-
-enum class AmstradCPCModel {
-	CPC464,
-	CPC664,
-	CPC6128
-};
-
 /*!
 	A list of disks, tapes and cartridges.
 */
@@ -73,35 +46,6 @@ struct Target {
 
 	float confidence;
 	std::string loading_command;
-
-	// TODO: this is too C-like a solution; make Target a base class and
-	// turn the following into information held by more specific subclasses.
-	union {
-		struct {
-			bool has_adfs;
-			bool has_dfs;
-			bool should_shift_restart;
-		} acorn;
-
-		struct {
-			Atari2600PagingModel paging_model;
-			bool uses_superchip;
-		} atari;
-
-		struct {
-			bool use_atmos_rom;
-			bool has_microdisc;
-		} oric;
-
-		struct {
-			Vic20MemoryModel memory_model;
-			bool has_c1540;
-		} vic20;
-
-		struct {
-			AmstradCPCModel model;
-		} amstradcpc;
-	};
 };
 
 /*!

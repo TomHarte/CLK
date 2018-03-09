@@ -11,6 +11,8 @@
 #include <algorithm>
 #include <cstring>
 
+#include "Target.hpp"
+
 #include "../../../Storage/Disk/Parsers/CPM.hpp"
 #include "../../../Storage/Disk/Encodings/MFM/Parser.hpp"
 
@@ -58,7 +60,7 @@ static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
 
 static void InspectCatalogue(
 	const Storage::Disk::CPM::Catalogue &catalogue,
-	const std::unique_ptr<Analyser::Static::Target> &target) {
+	const std::unique_ptr<Analyser::Static::AmstradCPC::Target> &target) {
 
 	std::vector<const Storage::Disk::CPM::File *> candidate_files;
 	candidate_files.reserve(catalogue.files.size());
@@ -153,7 +155,7 @@ static void InspectCatalogue(
 	target->loading_command = "cat\n";
 }
 
-static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, const std::unique_ptr<Analyser::Static::Target> &target) {
+static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, const std::unique_ptr<Analyser::Static::AmstradCPC::Target> &target) {
 	Storage::Encodings::MFM::Parser parser(true, disk);
 	Storage::Encodings::MFM::Sector *boot_sector = parser.get_sector(0, 0, 0x41);
 	if(boot_sector != nullptr && !boot_sector->samples.empty()) {
@@ -177,7 +179,7 @@ static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, co
 	return false;
 }
 
-void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
+void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<std::unique_ptr<Analyser::Static::Target>> &destination) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::AmstradCPC;
 	target->confidence = 0.5;
@@ -185,7 +187,7 @@ void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<st
 	target->media.tapes = media.tapes;
 	target->media.cartridges = media.cartridges;
 
-	target->amstradcpc.model = AmstradCPCModel::CPC6128;
+	target->model = Target::Model::CPC6128;
 
 	if(!target->media.tapes.empty()) {
 		// Ugliness flows here: assume the CPC isn't smart enough to pause between pressing
