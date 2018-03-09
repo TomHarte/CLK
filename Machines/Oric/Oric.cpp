@@ -30,6 +30,8 @@
 #include "../../Configurable/StandardOptions.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include "../../Analyser/Static/Oric/Target.hpp"
+
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -262,18 +264,20 @@ class ConcreteMachine:
 		}
 
 		// to satisfy ConfigurationTarget::Machine
-		void configure_as_target(const Analyser::Static::Target &target) override final {
-			if(target.oric.has_microdisc) {
+		void configure_as_target(const Analyser::Static::Target *target) override final {
+			auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target);
+
+			if(oric_target->has_microdisc) {
 				microdisc_is_enabled_ = true;
 				microdisc_did_change_paging_flags(&microdisc_);
 				microdisc_.set_delegate(this);
 			}
 
-			if(target.loading_command.length()) {
-				type_string(target.loading_command);
+			if(target->loading_command.length()) {
+				type_string(target->loading_command);
 			}
 
-			if(target.oric.use_atmos_rom) {
+			if(oric_target->use_atmos_rom) {
 				std::memcpy(rom_, basic11_rom_.data(), std::min(basic11_rom_.size(), sizeof(rom_)));
 
 				is_using_basic11_ = true;
@@ -289,7 +293,7 @@ class ConcreteMachine:
 				tape_speed_address_ = 0x67;
 			}
 
-			insert_media(target.media);
+			insert_media(target->media);
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override final {

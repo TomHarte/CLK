@@ -178,20 +178,20 @@ class ConcreteMachine:
 			}
 		}
 
-		void configure_as_target(const Analyser::Static::Target &target) override {
+		void configure_as_target(const Analyser::Static::Target *target) override {
 			// Add a disk cartridge if any disks were supplied.
-			if(!target.media.disks.empty()) {
+			if(!target->media.disks.empty()) {
 				map(2, 0, 0x4000, 0x2000);
 				unmap(2, 0x6000, 0x2000);
 				memory_slots_[2].set_handler(new DiskROM(memory_slots_[2].source));
 			}
 
 			// Insert the media.
-			insert_media(target.media);
+			insert_media(target->media);
 
 			// Type whatever has been requested.
-			if(target.loading_command.length()) {
-				type_string(target.loading_command);
+			if(target->loading_command.length()) {
+				type_string(target->loading_command);
 			}
 		}
 

@@ -9,6 +9,7 @@
 #include "StaticAnalyser.hpp"
 
 #include "Tape.hpp"
+#include "Target.hpp"
 #include "../Disassembler/6502.hpp"
 #include "../Disassembler/AddressMapper.hpp"
 
@@ -73,7 +74,7 @@ static int Basic11Score(const Analyser::Static::MOS6502::Disassembly &disassembl
 	return Score(disassembly, rom_functions, variable_locations);
 }
 
-void Analyser::Static::Oric::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
+void Analyser::Static::Oric::AddTargets(const Media &media, std::vector<std::unique_ptr<Analyser::Static::Target>> &destination) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Oric;
 	target->confidence = 0.5;
@@ -104,15 +105,15 @@ void Analyser::Static::Oric::AddTargets(const Media &media, std::vector<std::uni
 
 	// trust that any disk supplied can be handled by the Microdisc. TODO: check.
 	if(!media.disks.empty()) {
-		target->oric.has_microdisc = true;
+		target->has_microdisc = true;
 		target->media.disks = media.disks;
 	} else {
-		target->oric.has_microdisc = false;
+		target->has_microdisc = false;
 	}
 
 	// TODO: really this should add two targets if not all votes agree
-	target->oric.use_atmos_rom = basic11_votes >= basic10_votes;
-	if(target->oric.has_microdisc) target->oric.use_atmos_rom = true;
+	target->use_atmos_rom = basic11_votes >= basic10_votes;
+	if(target->has_microdisc) target->use_atmos_rom = true;
 
 	if(target->media.tapes.size() || target->media.disks.size() || target->media.cartridges.size())
 		destination.push_back(std::move(target));

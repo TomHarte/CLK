@@ -31,6 +31,8 @@
 
 #include "../../../Configurable/StandardOptions.hpp"
 
+#include "../../../Analyser/Static/Commodore/Target.hpp"
+
 #include <algorithm>
 #include <cstdint>
 
@@ -363,24 +365,26 @@ class ConcreteMachine:
 			return true;
 		}
 
-		void configure_as_target(const Analyser::Static::Target &target) override final {
-			if(target.loading_command.length()) {
-				type_string(target.loading_command);
+		void configure_as_target(const Analyser::Static::Target *target) override final {
+			auto *const commodore_target = dynamic_cast<const Analyser::Static::Commodore::Target *>(target);
+
+			if(target->loading_command.length()) {
+				type_string(target->loading_command);
 			}
 
-			switch(target.vic20.memory_model) {
-				case Analyser::Static::Vic20MemoryModel::Unexpanded:
+			switch(commodore_target->memory_model) {
+				case Analyser::Static::Commodore::Target::MemoryModel::Unexpanded:
 					set_memory_size(Default);
 				break;
-				case Analyser::Static::Vic20MemoryModel::EightKB:
+				case Analyser::Static::Commodore::Target::MemoryModel::EightKB:
 					set_memory_size(ThreeKB);
 				break;
-				case Analyser::Static::Vic20MemoryModel::ThirtyTwoKB:
+				case Analyser::Static::Commodore::Target::MemoryModel::ThirtyTwoKB:
 					set_memory_size(ThirtyTwoKB);
 				break;
 			}
 
-			if(target.media.disks.size()) {
+			if(target->media.disks.size()) {
 				// construct the 1540
 				c1540_.reset(new ::Commodore::C1540::Machine(Commodore::C1540::Machine::C1540));
 
@@ -391,7 +395,7 @@ class ConcreteMachine:
 				c1540_->set_rom_fetcher(rom_fetcher_);
 			}
 
-			insert_media(target.media);
+			insert_media(target->media);
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override final {

@@ -25,6 +25,8 @@
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include "../../Analyser/Static/ZX8081/Target.hpp"
+
 #include "Keyboard.hpp"
 #include "Video.hpp"
 
@@ -277,8 +279,9 @@ template<bool is_zx81> class ConcreteMachine:
 			z80_.run_for(cycles);
 		}
 
-		void configure_as_target(const Analyser::Static::Target &target) override final {
-			is_zx81_ = target.zx8081.isZX81;
+		void configure_as_target(const Analyser::Static::Target *target) override final {
+			auto *const zx8081_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
+			is_zx81_ = zx8081_target->isZX81;
 			if(is_zx81_) {
 				rom_ = zx81_rom_;
 				tape_trap_address_ = 0x37c;
@@ -298,18 +301,18 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 			rom_mask_ = static_cast<uint16_t>(rom_.size() - 1);
 
-			switch(target.zx8081.memory_model) {
-				case Analyser::Static::ZX8081MemoryModel::Unexpanded:
+			switch(zx8081_target->memory_model) {
+				case Analyser::Static::ZX8081::Target::MemoryModel::Unexpanded:
 					ram_.resize(1024);
 					ram_base_ = 16384;
 					ram_mask_ = 1023;
 				break;
-				case Analyser::Static::ZX8081MemoryModel::SixteenKB:
+				case Analyser::Static::ZX8081::Target::MemoryModel::SixteenKB:
 					ram_.resize(16384);
 					ram_base_ = 16384;
 					ram_mask_ = 16383;
 				break;
-				case Analyser::Static::ZX8081MemoryModel::SixtyFourKB:
+				case Analyser::Static::ZX8081::Target::MemoryModel::SixtyFourKB:
 					ram_.resize(65536);
 					ram_base_ = 8192;
 					ram_mask_ = 65535;
@@ -317,11 +320,11 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 			Memory::Fuzz(ram_);
 
-			if(target.loading_command.length()) {
-				type_string(target.loading_command);
+			if(target->loading_command.length()) {
+				type_string(target->loading_command);
 			}
 
-			insert_media(target.media);
+			insert_media(target->media);
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override final {
@@ -517,9 +520,11 @@ template<bool is_zx81> class ConcreteMachine:
 using namespace ZX8081;
 
 // See header; constructs and returns an instance of the ZX80 or 81.
-Machine *Machine::ZX8081(const Analyser::Static::Target &target_hint) {
+Machine *Machine::ZX8081(const Analyser::Static::Target *target_hint) {
+	const Analyser::Static::ZX8081::Target *const hint = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target_hint);
+
 	// Instantiate the correct type of machine.
-	if(target_hint.zx8081.isZX81)
+	if(hint->isZX81)
 		return new ZX8081::ConcreteMachine<true>();
 	else
 		return new ZX8081::ConcreteMachine<false>();

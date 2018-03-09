@@ -10,6 +10,7 @@
 
 #include "Disk.hpp"
 #include "Tape.hpp"
+#include "Target.hpp"
 
 using namespace Analyser::Static::Acorn;
 
@@ -56,13 +57,13 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return acorn_cartridges;
 }
 
-void Analyser::Static::Acorn::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
+void Analyser::Static::Acorn::AddTargets(const Media &media, std::vector<std::unique_ptr<::Analyser::Static::Target>> &destination) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Electron;
 	target->confidence = 0.5; // TODO: a proper estimation
-	target->acorn.has_dfs = false;
-	target->acorn.has_adfs = false;
-	target->acorn.should_shift_restart = false;
+	target->has_dfs = false;
+	target->has_adfs = false;
+	target->should_shift_restart = false;
 
 	// strip out inappropriate cartridges
 	target->media.cartridges = AcornCartridgesFrom(media.cartridges);
@@ -109,17 +110,18 @@ void Analyser::Static::Acorn::AddTargets(const Media &media, std::vector<std::un
 		if(dfs_catalogue == nullptr) adfs_catalogue = GetADFSCatalogue(disk);
 		if(dfs_catalogue || adfs_catalogue) {
 			target->media.disks = media.disks;
-			target->acorn.has_dfs = !!dfs_catalogue;
-			target->acorn.has_adfs = !!adfs_catalogue;
+			target->has_dfs = !!dfs_catalogue;
+			target->has_adfs = !!adfs_catalogue;
 
 			Catalogue::BootOption bootOption = (dfs_catalogue ?: adfs_catalogue)->bootOption;
 			if(bootOption != Catalogue::BootOption::None)
-				target->acorn.should_shift_restart = true;
+				target->should_shift_restart = true;
 			else
 				target->loading_command = "*CAT\n";
 		}
 	}
 
-	if(target->media.tapes.size() || target->media.disks.size() || target->media.cartridges.size())
+	if(target->media.tapes.size() || target->media.disks.size() || target->media.cartridges.size()) {
 		destination.push_back(std::move(target));
+	}
 }
