@@ -23,6 +23,16 @@ class Z80MemptrTests: XCTestCase {
 		return machine.value(for: .memPtr)
 	}
 
+	fileprivate func insert16(program: inout [UInt8], address: Int, offset: size_t) {
+		program[offset] = UInt8(address & 0x00ff)
+		program[offset + 1] = UInt8(address >> 8)
+	}
+
+	/*
+		Re: comments below:
+		All the CPU chips tested give the same results except KP1858BM1 and T34BM1 slices noted as "BM1".
+	*/
+
 	// LD A, (addr)
 	func testLDAnn() {
 		// MEMPTR = addr+1
@@ -39,11 +49,40 @@ class Z80MemptrTests: XCTestCase {
 		}
 	}
 
-	/* TODO:
-		LD (addr),A
-			MEMPTR_low = (addr + 1) & #FF,  MEMPTR_hi = A
-			Note for *BM1: MEMPTR_low = (addr + 1) & #FF,  MEMPTR_hi = 0
-	*/
+	// LD (bc/de),A, and LD (nn),A
+	func testLDrpA() {
+		// MEMPTR_low = (addr + 1) & #FF,  MEMPTR_hi = A
+		// Note for *BM1: MEMPTR_low = (addr + 1) & #FF,  MEMPTR_hi = 0
+		let bcProgram: [UInt8] = [
+			0x02
+		]
+		let deProgram: [UInt8] = [
+			0x12
+		]
+		var nnProgram: [UInt8] = [
+			0x32, 0x00, 0x00
+		]
+
+		for addr in 0 ..< 256 {
+			machine.setValue(UInt16(addr), for: .BC)
+			machine.setValue(UInt16(addr), for: .DE)
+			insert16(program: &nnProgram, address: addr, offset: 1)
+
+			for a in 0 ..< 256 {
+				machine.setValue(UInt16(a), for: .A)
+
+				let expectedResult = UInt16(((addr + 1) & 0xff) + (a << 8))
+
+				let bcResult = test(program: bcProgram, length: 7, initialValue: 0xffff)
+				let deResult = test(program: deProgram, length: 7, initialValue: 0xffff)
+				let nnResult = test(program: nnProgram, length: 13, initialValue: 0xffff)
+
+				XCTAssertEqual(bcResult, expectedResult)
+				XCTAssertEqual(deResult, expectedResult)
+				XCTAssertEqual(nnResult, expectedResult)
+			}
+		}
+	}
 
 	// LD A, (rp)
 	func testLDArp() {
@@ -68,19 +107,44 @@ class Z80MemptrTests: XCTestCase {
 		}
 	}
 
-	/* TODO:
-		LD (rp),A  where rp -- BC or DE
-			MEMPTR_low = (rp + 1) & #FF,  MEMPTR_hi = A
-			Note for *BM1: MEMPTR_low = (rp + 1) & #FF,  MEMPTR_hi = 0
-	*/
+	// LD (addr), rp
+	func testLDnnrp() {
+		// MEMPTR = addr + 1
+		var ldnnhlBaseProgram: [UInt8] = [
+			0x22, 0x00, 0x00
+		]
+		var ldnnbcEDProgram: [UInt8] = [
+			0xed, 0x43, 0x00, 0x00
+		]
+		var ldnndeEDProgram: [UInt8] = [
+			0xed, 0x53, 0x00, 0x00
+		]
+		var ldnnhlEDProgram: [UInt8] = [
+			0xed, 0x63, 0x00, 0x00
+		]
+		var ldnnspEDProgram: [UInt8] = [
+			0xed, 0x73, 0x00, 0x00
+		]
 
-	/* TODO:
-		LD (addr), rp
-			MEMPTR = addr + 1
-	*/
+		for addr in 0 ..< 65536 {
+			insert16(program: &ldnnhlBaseProgram, address: addr, offset: 1)
+			insert16(program: &ldnnbcEDProgram, address: addr, offset: 2)
+			insert16(program: &ldnndeEDProgram, address: addr, offset: 2)
+			insert16(program: &ldnnhlEDProgram, address: addr, offset: 2)
+			insert16(program: &ldnnspEDProgram, address: addr, offset: 2)
+
+			let expectedResult = UInt16((addr + 1) & 0xffff)
+
+			XCTAssertEqual(test(program: ldnnhlBaseProgram, length: 16, initialValue: expectedResult ^ 1), expectedResult)
+			XCTAssertEqual(test(program: ldnnbcEDProgram, length: 20, initialValue: expectedResult ^ 1), expectedResult)
+			XCTAssertEqual(test(program: ldnndeEDProgram, length: 20, initialValue: expectedResult ^ 1), expectedResult)
+			XCTAssertEqual(test(program: ldnnhlEDProgram, length: 20, initialValue: expectedResult ^ 1), expectedResult)
+			XCTAssertEqual(test(program: ldnnspEDProgram, length: 20, initialValue: expectedResult ^ 1), expectedResult)
+		}
+	}
 
 	// LD rp, (addr)
-	func testLDnnrp() {
+	func testLDrpnn() {
 		// MEMPTR = addr+1
 		var hlBaseProgram: [UInt8] = [
 			0x22, 0x00, 0x00

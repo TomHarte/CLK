@@ -621,7 +621,7 @@ template <	class T,
 				case MicroOp::BIT: {
 					uint8_t result = *static_cast<uint8_t *>(operation->source) & (1 << ((operation_ >> 3)&7));
 
-					if(current_instruction_page_->is_indexed || ((operation_&0x08) == 7)) {
+					if(current_instruction_page_->is_indexed || ((operation_&0x07) == 6)) {
 						bit53_result_ = memptr_.bytes.high;
 					} else {
 						bit53_result_ = *static_cast<uint8_t *>(operation->source);
@@ -846,6 +846,10 @@ template <	class T,
 
 				case MicroOp::CalculateIndexAddress:
 					memptr_.full = static_cast<uint16_t>(*static_cast<uint16_t *>(operation->source) + (int8_t)temp8_);
+				break;
+
+				case MicroOp::SetAddrAMemptr:
+					memptr_.full = static_cast<uint16_t>(((*static_cast<uint16_t *>(operation->source) + 1)&0xff) + (a_ << 8));
 				break;
 
 				case MicroOp::IndexedPlaceHolder:

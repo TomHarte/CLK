@@ -351,7 +351,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair 
 
 	InstructionTable base_program_table = {
 		/* 0x00 NOP */			NOP,								/* 0x01 LD BC, nn */	StdInstr(Read16Inc(pc_, bc_)),
-		/* 0x02 LD (BC), A */	StdInstr({MicroOp::Move16, &bc_.full, &memptr_.full}, Write3(memptr_, a_)),
+		/* 0x02 LD (BC), A */	StdInstr({MicroOp::SetAddrAMemptr, &bc_.full}, Write3(bc_, a_)),
 
 		/* 0x03 INC BC;	0x04 INC B;	0x05 DEC B;	0x06 LD B, n */
 		INC_INC_DEC_LD(bc_, bc_.bytes.high),
@@ -366,7 +366,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair 
 		/* 0x0f RRCA */			StdInstr({MicroOp::RRCA}),
 		/* 0x10 DJNZ */			Instr(6, ReadInc(pc_, temp8_), {MicroOp::DJNZ}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0x11 LD DE, nn */	StdInstr(Read16Inc(pc_, de_)),
-		/* 0x12 LD (DE), A */	StdInstr({MicroOp::Move16, &de_.full, &memptr_.full}, Write3(memptr_, a_)),
+		/* 0x12 LD (DE), A */	StdInstr({MicroOp::SetAddrAMemptr, &de_.full}, Write3(de_, a_)),
 
 		/* 0x13 INC DE;	0x14 INC D;	0x15 DEC D;	0x16 LD D, n */
 		INC_INC_DEC_LD(de_, de_.bytes.high),
@@ -395,7 +395,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair 
 
 		/* 0x2f CPL */			StdInstr({MicroOp::CPL}),
 		/* 0x30 JR NC */		JR(TestNC),							/* 0x31 LD SP, nn */	StdInstr(Read16Inc(pc_, sp_)),
-		/* 0x32 LD (nn), A */	StdInstr(Read16Inc(pc_, temp16_), Write3(temp16_, a_)),
+		/* 0x32 LD (nn), A */	StdInstr(Read16Inc(pc_, temp16_), {MicroOp::SetAddrAMemptr, &temp16_.full}, Write3(temp16_, a_)),
 		/* 0x33 INC SP */		Instr(8, {MicroOp::Increment16, &sp_.full}),
 		/* 0x34 INC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Increment8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
 		/* 0x35 DEC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Decrement8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),

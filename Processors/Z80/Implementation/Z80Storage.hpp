@@ -91,6 +91,8 @@ class ProcessorStorage {
 
 				IndexedPlaceHolder,
 
+				SetAddrAMemptr,
+
 				Reset
 			};
 			Type type;
