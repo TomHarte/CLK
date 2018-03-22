@@ -12,6 +12,7 @@ import AudioToolbox
 class MachineDocument:
 	NSDocument,
 	NSWindowDelegate,
+	CSMachineDelegate,
 	CSOpenGLViewDelegate,
 	CSOpenGLViewResponderDelegate,
 	CSBestEffortUpdaterDelegate,
@@ -55,6 +56,7 @@ class MachineDocument:
 			self.machine.setView(self.openGLView, aspectRatio: Float(displayAspectRatio.width / displayAspectRatio.height))
 		})
 
+		self.machine.delegate = self
 		self.bestEffortUpdater = CSBestEffortUpdater()
 
 		// callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
@@ -70,6 +72,10 @@ class MachineDocument:
 
 		// start accepting best effort updates
 		self.bestEffortUpdater!.delegate = self
+	}
+
+	func machineSpeakerDidChangeInputClock(_ machine: CSMachine!) {
+		setupClockRate()
 	}
 
 	fileprivate func setupClockRate() {

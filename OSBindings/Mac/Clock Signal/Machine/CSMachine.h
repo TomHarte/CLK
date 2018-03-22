@@ -14,6 +14,9 @@
 #import "CSStaticAnalyser.h"
 
 @class CSMachine;
+@protocol CSMachineDelegate
+- (void)machineSpeakerDidChangeInputClock:(CSMachine *)machine;
+@end
 
 // Deliberately low; to ensure CSMachine has been declared as an @class already.
 #import "CSAtari2600.h"
@@ -42,6 +45,7 @@
 
 @property (nonatomic, strong) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly) CSOpenGLView *view;
+@property (nonatomic, weak) id<CSMachineDelegate> delegate;
 
 @property (nonatomic, readonly) NSString *userDefaultsPrefix;
 

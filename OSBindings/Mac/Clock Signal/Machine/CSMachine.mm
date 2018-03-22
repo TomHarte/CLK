@@ -78,7 +78,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 }
 
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker {
-	// TODO: consider changing output audio queue rate.
+	[self.delegate machineSpeakerDidChangeInputClock:self];
 }
 
 - (void)dealloc {
