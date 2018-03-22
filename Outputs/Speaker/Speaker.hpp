@@ -28,6 +28,7 @@ class Speaker {
 
 		struct Delegate {
 			virtual void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) = 0;
+			virtual void speaker_did_change_input_clock(Speaker *speaker) {}
 		};
 		virtual void set_delegate(Delegate *delegate) {
 			delegate_ = delegate;

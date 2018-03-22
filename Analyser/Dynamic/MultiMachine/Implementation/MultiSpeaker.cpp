@@ -54,7 +54,17 @@ void MultiSpeaker::speaker_did_complete_samples(Speaker *speaker, const std::vec
 	}
 }
 
+void MultiSpeaker::speaker_did_change_input_clock(Speaker *speaker) {
+	std::lock_guard<std::mutex> lock_guard(front_speaker_mutex_);
+	if(delegate_ && speaker == front_speaker_) {
+		delegate_->speaker_did_change_input_clock(this);
+	}
+}
+
 void MultiSpeaker::set_new_front_machine(::Machine::DynamicMachine *machine) {
 	std::lock_guard<std::mutex> lock_guard(front_speaker_mutex_);
 	front_speaker_ = machine->crt_machine()->get_speaker();
+	if(delegate_) {
+		delegate_->speaker_did_change_input_clock(this);
+	}
 }

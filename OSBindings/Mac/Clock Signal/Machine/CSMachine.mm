@@ -25,6 +25,7 @@
 
 @interface CSMachine() <CSFastLoading>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
+- (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
 @end
 
 struct LockProtectedDelegate {
@@ -35,9 +36,14 @@ struct LockProtectedDelegate {
 };
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockProtectedDelegate {
-	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) {
+	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override {
 		[machineAccessLock lock];
 		[machine speaker:speaker didCompleteSamples:buffer.data() length:(int)buffer.size()];
+		[machineAccessLock unlock];
+	}
+	void speaker_did_change_input_clock(Outputs::Speaker::Speaker *speaker) override {
+		[machineAccessLock lock];
+		[machine speakerDidChangeInputClock:speaker];
 		[machineAccessLock unlock];
 	}
 };
@@ -69,6 +75,10 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
 	[self.audioQueue enqueueAudioBuffer:samples numberOfSamples:(unsigned int)length];
+}
+
+- (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker {
+	// TODO: consider changing output audio queue rate.
 }
 
 - (void)dealloc {
@@ -140,10 +150,6 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
 	_machine->crt_machine()->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
-}
-
-- (double)clockRate {
-	return _machine->crt_machine()->get_clock_rate();
 }
 
 - (void)paste:(NSString *)paste {

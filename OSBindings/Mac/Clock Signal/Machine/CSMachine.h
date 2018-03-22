@@ -43,9 +43,6 @@
 @property (nonatomic, strong) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly) CSOpenGLView *view;
 
-@property (nonatomic, readonly) double clockRate;
-@property (nonatomic, readonly) BOOL clockIsUnlimited;
-
 @property (nonatomic, readonly) NSString *userDefaultsPrefix;
 
 - (void)paste:(NSString *)string;
