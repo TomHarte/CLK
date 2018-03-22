@@ -10,8 +10,11 @@
 
 #include "Tape.hpp"
 #include "Target.hpp"
+
 #include "../Disassembler/6502.hpp"
 #include "../Disassembler/AddressMapper.hpp"
+
+#include "../../../Storage/Disk/Encodings/MFM/Parser.hpp"
 
 using namespace Analyser::Static::Oric;
 
@@ -74,6 +77,27 @@ static int Basic11Score(const Analyser::Static::MOS6502::Disassembly &disassembl
 	return Score(disassembly, rom_functions, variable_locations);
 }
 
+static bool IsMicrodisc(Storage::Encodings::MFM::Parser &parser) {
+	/*
+		The Microdisc boot sector is sector 2 of track 0 and contains a 23-byte signature.
+	*/
+	Storage::Encodings::MFM::Sector *sector = parser.get_sector(0, 0, 2);
+	if(!sector) return false;
+	if(sector->samples.empty()) return false;
+
+	const std::vector<uint8_t> &first_sample = sector->samples[0];
+	if(first_sample.size() != 256) return false;
+
+	const uint8_t signature[] = {
+		0x00, 0x00, 0xFF, 0x00, 0xD0, 0x9F, 0xD0,
+		0x9F, 0x02, 0xB9, 0x01, 0x00, 0xFF, 0x00,
+		0x00, 0xB9, 0xE4, 0xB9, 0x00, 0x00, 0xE6,
+		0x12, 0x00
+	};
+
+	return !memcmp(signature, first_sample.data(), sizeof(signature));
+}
+
 void Analyser::Static::Oric::AddTargets(const Media &media, std::vector<std::unique_ptr<Analyser::Static::Target>> &destination) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Oric;
@@ -103,10 +127,15 @@ void Analyser::Static::Oric::AddTargets(const Media &media, std::vector<std::uni
 		}
 	}
 
-	// trust that any disk supplied can be handled by the Microdisc. TODO: check.
 	if(!media.disks.empty()) {
-		target->has_microdisc = true;
-		target->media.disks = media.disks;
+		// Only the Microdisc is emulated right now, so accept only disks that it can boot from.
+		for(const auto &disk: media.disks) {
+			Storage::Encodings::MFM::Parser parser(true, disk);
+			if(IsMicrodisc(parser)) {
+				target->has_microdisc = true;
+				target->media.disks.push_back(disk);
+			}
+		}
 	} else {
 		target->has_microdisc = false;
 	}
