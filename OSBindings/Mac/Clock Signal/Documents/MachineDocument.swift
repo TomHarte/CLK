@@ -64,7 +64,7 @@ class MachineDocument:
 		self.openGLView.delegate = self
 		self.openGLView.responderDelegate = self
 
-		setupClockRate()
+		setupAudioQueueClockRate()
 		self.optionsPanel?.establishStoredOptions()
 
 		// bring OpenGL view-holding window on top of the options panel
@@ -75,10 +75,10 @@ class MachineDocument:
 	}
 
 	func machineSpeakerDidChangeInputClock(_ machine: CSMachine!) {
-		setupClockRate()
+		setupAudioQueueClockRate()
 	}
 
-	fileprivate func setupClockRate() {
+	fileprivate func setupAudioQueueClockRate() {
 		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
 		let selectedSamplingRate = self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
