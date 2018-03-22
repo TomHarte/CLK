@@ -31,7 +31,6 @@ class MultiJoystickMachine: public JoystickMachine::Machine {
 		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override;
 
 	private:
-		std::vector<JoystickMachine::Machine *> machines_;
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 };
 
