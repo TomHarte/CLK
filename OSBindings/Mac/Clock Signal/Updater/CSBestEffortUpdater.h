@@ -13,15 +13,13 @@
 
 @protocol CSBestEffortUpdaterDelegate <NSObject>
 
-- (void)bestEffortUpdater:(CSBestEffortUpdater *)bestEffortUpdater runForCycles:(NSUInteger)cycles didSkipPreviousUpdate:(BOOL)didSkipPreviousUpdate;
+- (void)bestEffortUpdater:(CSBestEffortUpdater *)bestEffortUpdater runForInterval:(NSTimeInterval)interval didSkipPreviousUpdate:(BOOL)didSkipPreviousUpdate;
 
 @end
 
 
 @interface CSBestEffortUpdater : NSObject
 
-@property (nonatomic, assign) double clockRate;
-@property (nonatomic, assign) BOOL runAsUnlimited;
 @property (nonatomic, weak) id<CSBestEffortUpdaterDelegate> delegate;
 
 - (void)update;

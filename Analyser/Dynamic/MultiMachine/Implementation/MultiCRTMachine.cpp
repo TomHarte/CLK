@@ -75,41 +75,16 @@ Outputs::Speaker::Speaker *MultiCRTMachine::get_speaker() {
 	return speaker_;
 }
 
-void MultiCRTMachine::run_for(const Cycles cycles) {
+void MultiCRTMachine::run_for(Time::Seconds duration) {
 	perform_parallel([=](::CRTMachine::Machine *machine) {
-		if(machine->get_confidence() >= 0.01f) machine->run_for(cycles);
+		if(machine->get_confidence() >= 0.01f) machine->run_for(duration);
 	});
 
 	if(delegate_) delegate_->multi_crt_did_run_machines();
-}
-
-double MultiCRTMachine::get_clock_rate() {
-	// TODO: something smarter than this? Not all clock rates will necessarily be the same.
-	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
-	CRTMachine::Machine *crt_machine = machines_.front()->crt_machine();
-	return crt_machine ? crt_machine->get_clock_rate() : 0.0;
-}
-
-bool MultiCRTMachine::get_clock_is_unlimited() {
-	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
-	CRTMachine::Machine *crt_machine = machines_.front()->crt_machine();
-	return crt_machine ? crt_machine->get_clock_is_unlimited() : false;
 }
 
 void MultiCRTMachine::did_change_machine_order() {
 	if(speaker_) {
 		speaker_->set_new_front_machine(machines_.front().get());
 	}
-}
-
-void MultiCRTMachine::set_delegate(::CRTMachine::Machine::Delegate *delegate) {
-	// TODO: 
-}
-
-void MultiCRTMachine::machine_did_change_clock_rate(Machine *machine) {
-	// TODO: consider passing along.
-}
-
-void MultiCRTMachine::machine_did_change_clock_is_unlimited(Machine *machine) {
-	// TODO: consider passing along.
 }

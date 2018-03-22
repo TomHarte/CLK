@@ -36,13 +36,11 @@ void BestEffortUpdater::update() {
 				// If the duration is valid, convert it to integer cycles, maintaining a rolling error and call the delegate
 				// if there is one. Proceed only if the number of cycles is positive, and cap it to the per-second maximum —
 				// it's possible this is an adjustable clock so be ready to swallow unexpected adjustments.
-				const int64_t duration = std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count();
-				if(duration > 0) {
-					double cycles = ((static_cast<double>(duration) * clock_rate_) / 1e9) + error_;
-					error_ = fmod(cycles, 1.0);
-
+				const int64_t integer_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count();
+				if(integer_duration > 0) {
 					if(delegate_) {
-						delegate_->update(this, static_cast<int>(std::min(cycles, clock_rate_)), has_skipped_);
+						const double duration = static_cast<double>(integer_duration) / 1e9;
+						delegate_->update(this, duration, has_skipped_);
 					}
 					has_skipped_ = false;
 				}
@@ -70,8 +68,3 @@ void BestEffortUpdater::set_delegate(Delegate *const delegate) {
 	});
 }
 
-void BestEffortUpdater::set_clock_rate(const double clock_rate) {
-	async_task_queue_.enqueue([this, clock_rate]() {
-		this->clock_rate_ = clock_rate;
-	});
-}

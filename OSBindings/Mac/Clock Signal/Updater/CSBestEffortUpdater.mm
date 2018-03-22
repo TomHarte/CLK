@@ -14,12 +14,12 @@ struct UpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
 	__weak id<CSBestEffortUpdaterDelegate> delegate;
 	NSLock *delegateLock;
 
-	void update(Concurrency::BestEffortUpdater *updater, int cycles, bool did_skip_previous_update) {
+	void update(Concurrency::BestEffortUpdater *updater, Time::Seconds cycles, bool did_skip_previous_update) {
 		[delegateLock lock];
 		__weak id<CSBestEffortUpdaterDelegate> delegateCopy = delegate;
 		[delegateLock unlock];
 
-		[delegateCopy bestEffortUpdater:nil runForCycles:(NSUInteger)cycles didSkipPreviousUpdate:did_skip_previous_update];
+		[delegateCopy bestEffortUpdater:nil runForInterval:(NSTimeInterval)cycles didSkipPreviousUpdate:did_skip_previous_update];
 	}
 };
 
@@ -49,11 +49,6 @@ struct UpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
 
 - (void)flush {
 	_updater.flush();
-}
-
-- (void)setClockRate:(double)clockRate {
-	_clockRate = clockRate;
-	_updater.set_clock_rate(clockRate);
 }
 
 - (void)setDelegate:(id<CSBestEffortUpdaterDelegate>)delegate {

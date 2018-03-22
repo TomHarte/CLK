@@ -12,7 +12,6 @@ import AudioToolbox
 class MachineDocument:
 	NSDocument,
 	NSWindowDelegate,
-	CSMachineDelegate,
 	CSOpenGLViewDelegate,
 	CSOpenGLViewResponderDelegate,
 	CSBestEffortUpdaterDelegate,
@@ -56,7 +55,6 @@ class MachineDocument:
 			self.machine.setView(self.openGLView, aspectRatio: Float(displayAspectRatio.width / displayAspectRatio.height))
 		})
 
-		self.machine.delegate = self
 		self.bestEffortUpdater = CSBestEffortUpdater()
 
 		// callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
@@ -74,16 +72,6 @@ class MachineDocument:
 		self.bestEffortUpdater!.delegate = self
 	}
 
-	func machineDidChangeClockRate(_ machine: CSMachine!) {
-		setupClockRate()
-	}
-
-	func machineDidChangeClockIsUnlimited(_ machine: CSMachine!) {
-		bestEffortLock.lock()
-		self.bestEffortUpdater?.runAsUnlimited = machine.clockIsUnlimited
-		bestEffortLock.unlock()
-	}
-
 	fileprivate func setupClockRate() {
 		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
@@ -94,10 +82,6 @@ class MachineDocument:
 			self.machine.audioQueue = self.audioQueue
 			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.preferredBufferSize)
 		}
-
-		bestEffortLock.lock()
-		self.bestEffortUpdater?.clockRate = self.machine.clockRate
-		bestEffortLock.unlock()
 	}
 
 	override func close() {
@@ -152,21 +136,10 @@ class MachineDocument:
 	}
 
 	// MARK: CSBestEffortUpdaterDelegate
-	final func bestEffortUpdater(_ bestEffortUpdater: CSBestEffortUpdater!, runForCycles cycles: UInt, didSkipPreviousUpdate: Bool) {
-		runForNumberOfCycles(Int32(cycles))
-	}
-
-	func runForNumberOfCycles(_ numberOfCycles: Int32) {
-		bestEffortLock.lock()
-		if let bestEffortUpdater = bestEffortUpdater {
-			bestEffortLock.unlock()
-			let cyclesToRunFor = min(numberOfCycles, Int32(bestEffortUpdater.clockRate / 10))
-			if actionLock.try() {
-				self.machine.runForNumber(ofCycles: cyclesToRunFor)
-				actionLock.unlock()
-			}
-		} else {
-			bestEffortLock.unlock()
+	final func bestEffortUpdater(_ bestEffortUpdater: CSBestEffortUpdater!, runForInterval duration: TimeInterval, didSkipPreviousUpdate: Bool) {
+		if actionLock.try() {
+			self.machine.run(forInterval: duration)
+			actionLock.unlock()
 		}
 	}
 

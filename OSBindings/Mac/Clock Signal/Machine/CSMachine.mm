@@ -25,8 +25,6 @@
 
 @interface CSMachine() <CSFastLoading>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
-- (void)machineDidChangeClockRate;
-- (void)machineDidChangeClockIsUnlimited;
 @end
 
 struct LockProtectedDelegate {
@@ -44,22 +42,8 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 	}
 };
 
-struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDelegate {
-	void machine_did_change_clock_rate(CRTMachine::Machine *sender) {
-		[machineAccessLock lock];
-		[machine machineDidChangeClockRate];
-		[machineAccessLock unlock];
-	}
-	void machine_did_change_clock_is_unlimited(CRTMachine::Machine *sender) {
-		[machineAccessLock lock];
-		[machine machineDidChangeClockIsUnlimited];
-		[machineAccessLock unlock];
-	}
-};
-
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
-	MachineDelegate _machineDelegate;
 	NSLock *_delegateMachineAccessLock;
 
 	CSStaticAnalyser *_analyser;
@@ -77,26 +61,14 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 
 		_delegateMachineAccessLock = [[NSLock alloc] init];
 
-		_machineDelegate.machine = self;
 		_speakerDelegate.machine = self;
-		_machineDelegate.machineAccessLock = _delegateMachineAccessLock;
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
-
-		_machine->crt_machine()->set_delegate(&_machineDelegate);
 	}
 	return self;
 }
 
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length {
 	[self.audioQueue enqueueAudioBuffer:samples numberOfSamples:(unsigned int)length];
-}
-
-- (void)machineDidChangeClockRate {
-	[self.delegate machineDidChangeClockRate:self];
-}
-
-- (void)machineDidChangeClockIsUnlimited {
-	[self.delegate machineDidChangeClockIsUnlimited:self];
 }
 
 - (void)dealloc {
@@ -107,7 +79,6 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	// They are nilled inside an explicit lock because that allows the delegates to protect their entire
 	// call into the machine, not just the pointer access.
 	[_delegateMachineAccessLock lock];
-	_machineDelegate.machine = nil;
 	_speakerDelegate.machine = nil;
 	[_delegateMachineAccessLock unlock];
 
@@ -146,9 +117,9 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	}
 }
 
-- (void)runForNumberOfCycles:(int)numberOfCycles {
+- (void)runForInterval:(NSTimeInterval)interval {
 	@synchronized(self) {
-		_machine->crt_machine()->run_for(Cycles(numberOfCycles));
+		_machine->crt_machine()->run_for(interval);
 	}
 }
 
@@ -173,10 +144,6 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 
 - (double)clockRate {
 	return _machine->crt_machine()->get_clock_rate();
-}
-
-- (BOOL)clockIsUnlimited {
-	return _machine->crt_machine()->get_clock_is_unlimited() ? YES : NO;
 }
 
 - (void)paste:(NSString *)paste {
