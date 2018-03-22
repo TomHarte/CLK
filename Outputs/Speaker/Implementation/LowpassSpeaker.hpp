@@ -35,7 +35,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 
 		// Implemented as per Speaker.
 		float get_ideal_clock_rate_in_range(float minimum, float maximum) {
-			std::lock_guard<std::recursive_mutex> lock_guard(filter_parameters_mutex_);
+			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
 
 			// return twice the cut off, if applicable
 			if(	filter_parameters_.high_frequency_cutoff > 0.0f &&
@@ -58,7 +58,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 
 		// Implemented as per Speaker.
 		void set_output_rate(float cycles_per_second, int buffer_size) {
-			std::lock_guard<std::recursive_mutex> lock_guard(filter_parameters_mutex_);
+			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
 			filter_parameters_.output_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;
 			output_buffer_.resize(static_cast<std::size_t>(buffer_size));
@@ -68,7 +68,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			Sets the clock rate of the input audio.
 		*/
 		void set_input_rate(float cycles_per_second) {
-			std::lock_guard<std::recursive_mutex> lock_guard(filter_parameters_mutex_);
+			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
 			filter_parameters_.input_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;
 			filter_parameters_.input_rate_changed = true;
@@ -81,7 +81,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			path to be explicit about its effect, and get that simulation for free.
 		*/
 		void set_high_frequency_cutoff(float high_frequency) {
-			std::lock_guard<std::recursive_mutex> lock_guard(filter_parameters_mutex_);
+			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
 			filter_parameters_.high_frequency_cutoff = high_frequency;
 			filter_parameters_.parameters_are_dirty = true;
 		}
@@ -96,17 +96,22 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			std::size_t cycles_remaining = static_cast<size_t>(cycles.as_int());
 			if(!cycles_remaining) return;
 
-			std::lock_guard<std::recursive_mutex> lock_guard(filter_parameters_mutex_);
-			if(filter_parameters_.parameters_are_dirty) update_filter_coefficients();
-			if(filter_parameters_.input_rate_changed) {
-				delegate_->speaker_did_change_input_clock(this);
+			FilterParameters filter_parameters;
+			{
+				std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
+				filter_parameters = filter_parameters_;
+				filter_parameters_.parameters_are_dirty = false;
 				filter_parameters_.input_rate_changed = false;
+			}
+			if(filter_parameters.parameters_are_dirty) update_filter_coefficients(filter_parameters);
+			if(filter_parameters.input_rate_changed) {
+				delegate_->speaker_did_change_input_clock(this);
 			}
 
 			// If input and output rates exactly match, and no additional cut-off has been specified,
 			// just accumulate results and pass on.
-			if(	filter_parameters_.input_cycles_per_second == filter_parameters_.output_cycles_per_second &&
-				filter_parameters_.high_frequency_cutoff < 0.0) {
+			if(	filter_parameters.input_cycles_per_second == filter_parameters.output_cycles_per_second &&
+				filter_parameters.high_frequency_cutoff < 0.0) {
 				while(cycles_remaining) {
 					std::size_t cycles_to_read = std::min(output_buffer_.size() - output_buffer_pointer_, cycles_remaining);
 
@@ -126,8 +131,8 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			}
 
 			// if the output rate is less than the input rate, or an additional cut-off has been specified, use the filter.
-			if(	filter_parameters_.input_cycles_per_second > filter_parameters_.output_cycles_per_second ||
-				(filter_parameters_.input_cycles_per_second == filter_parameters_.output_cycles_per_second && filter_parameters_.high_frequency_cutoff >= 0.0)) {
+			if(	filter_parameters.input_cycles_per_second > filter_parameters.output_cycles_per_second ||
+				(filter_parameters.input_cycles_per_second == filter_parameters.output_cycles_per_second && filter_parameters.high_frequency_cutoff >= 0.0)) {
 				while(cycles_remaining) {
 					std::size_t cycles_to_read = std::min(cycles_remaining, input_buffer_.size() - input_buffer_depth_);
 					sample_source_.get_samples(cycles_to_read, &input_buffer_[input_buffer_depth_]);
@@ -188,7 +193,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		std::unique_ptr<SignalProcessing::Stepper> stepper_;
 		std::unique_ptr<SignalProcessing::FIRFilter> filter_;
 
-		std::recursive_mutex filter_parameters_mutex_;
+		std::mutex filter_parameters_mutex_;
 		struct FilterParameters {
 			float input_cycles_per_second = 0.0f;
 			float output_cycles_per_second = 0.0f;
@@ -198,27 +203,26 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			bool input_rate_changed = false;
 		} filter_parameters_;
 
-		void update_filter_coefficients() {
+		void update_filter_coefficients(const FilterParameters &filter_parameters) {
 			// Make a guess at a good number of taps.
 			std::size_t number_of_taps = static_cast<std::size_t>(
-				ceilf((filter_parameters_.input_cycles_per_second + filter_parameters_.output_cycles_per_second) / filter_parameters_.output_cycles_per_second)
+				ceilf((filter_parameters.input_cycles_per_second + filter_parameters.output_cycles_per_second) / filter_parameters.output_cycles_per_second)
 			);
 			number_of_taps = (number_of_taps * 2) | 1;
 
-			filter_parameters_.parameters_are_dirty = false;
 			output_buffer_pointer_ = 0;
 
 			stepper_.reset(new SignalProcessing::Stepper(
-				static_cast<uint64_t>(filter_parameters_.input_cycles_per_second),
-				static_cast<uint64_t>(filter_parameters_.output_cycles_per_second)));
+				static_cast<uint64_t>(filter_parameters.input_cycles_per_second),
+				static_cast<uint64_t>(filter_parameters.output_cycles_per_second)));
 
-			float high_pass_frequency = filter_parameters_.output_cycles_per_second / 2.0f;
-			if(filter_parameters_.high_frequency_cutoff > 0.0) {
-				high_pass_frequency = std::min(filter_parameters_.output_cycles_per_second / 2.0f, high_pass_frequency);
+			float high_pass_frequency = filter_parameters.output_cycles_per_second / 2.0f;
+			if(filter_parameters.high_frequency_cutoff > 0.0) {
+				high_pass_frequency = std::min(filter_parameters.output_cycles_per_second / 2.0f, high_pass_frequency);
 			}
 			filter_.reset(new SignalProcessing::FIRFilter(
 				static_cast<unsigned int>(number_of_taps),
-				filter_parameters_.input_cycles_per_second,
+				filter_parameters.input_cycles_per_second,
 				0.0,
 				high_pass_frequency,
 				SignalProcessing::FIRFilter::DefaultAttenuation));
