@@ -100,7 +100,11 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 		Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MSXDSK>, TargetPlatform::MSX)			// DSK (MSX)
 		Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)		// DSK (Oric)
 		Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)		// G64
-		Format("hfe", result.disks, Disk::DiskImageHolder<Storage::Disk::HFE>, TargetPlatform::AmstradCPC)		// HFE (TODO: plus other target platforms)
+		Format(	"hfe",
+				result.disks,
+				Disk::DiskImageHolder<Storage::Disk::HFE>,
+				TargetPlatform::Acorn || TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric)
+				// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
 		Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// O
 		Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P
 		Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P81
