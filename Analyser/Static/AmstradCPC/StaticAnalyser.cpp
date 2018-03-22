@@ -158,7 +158,7 @@ static void InspectCatalogue(
 static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, const std::unique_ptr<Analyser::Static::AmstradCPC::Target> &target) {
 	Storage::Encodings::MFM::Parser parser(true, disk);
 	Storage::Encodings::MFM::Sector *boot_sector = parser.get_sector(0, 0, 0x41);
-	if(boot_sector != nullptr && !boot_sector->samples.empty()) {
+	if(boot_sector != nullptr && !boot_sector->samples.empty() && boot_sector->samples[0].size() == 512) {
 		// Check that the first 64 bytes of the sector aren't identical; if they are then probably
 		// this disk was formatted and the filler byte never replaced.
 		bool matched = true;
@@ -183,20 +183,20 @@ void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<st
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::AmstradCPC;
 	target->confidence = 0.5;
-	target->media.disks = media.disks;
-	target->media.tapes = media.tapes;
-	target->media.cartridges = media.cartridges;
 
 	target->model = Target::Model::CPC6128;
 
-	if(!target->media.tapes.empty()) {
+	if(!media.tapes.empty()) {
+		// TODO: which of these are actually potentially CPC tapes?
+		target->media.tapes = media.tapes;
+
 		// Ugliness flows here: assume the CPC isn't smart enough to pause between pressing
 		// enter and responding to the follow-on prompt to press a key, so just type for
 		// a while. Yuck!
 		target->loading_command = "|tape\nrun\"\n1234567890";
 	}
 
-	if(!target->media.disks.empty()) {
+	if(!media.disks.empty()) {
 		Storage::Disk::CPM::ParameterBlock data_format;
 		data_format.sectors_per_track = 9;
 		data_format.tracks = 40;
@@ -205,26 +205,40 @@ void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<st
 		data_format.catalogue_allocation_bitmap = 0xc000;
 		data_format.reserved_tracks = 0;
 
-		std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(target->media.disks.front(), data_format);
-		if(data_catalogue) {
-			InspectCatalogue(*data_catalogue, target);
-		} else {
-			if(!CheckBootSector(target->media.disks.front(), target)) {
-				Storage::Disk::CPM::ParameterBlock system_format;
-				system_format.sectors_per_track = 9;
-				system_format.tracks = 40;
-				system_format.block_size = 1024;
-				system_format.first_sector = 0x41;
-				system_format.catalogue_allocation_bitmap = 0xc000;
-				system_format.reserved_tracks = 2;
+		Storage::Disk::CPM::ParameterBlock system_format;
+		system_format.sectors_per_track = 9;
+		system_format.tracks = 40;
+		system_format.block_size = 1024;
+		system_format.first_sector = 0x41;
+		system_format.catalogue_allocation_bitmap = 0xc000;
+		system_format.reserved_tracks = 2;
 
-				std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target->media.disks.front(), system_format);
-				if(system_catalogue) {
-					InspectCatalogue(*system_catalogue, target);
-				}
+		for(const auto &disk: media.disks) {
+			// Check for an ordinary catalogue.
+			std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(disk, data_format);
+			if(data_catalogue) {
+				InspectCatalogue(*data_catalogue, target);
+				target->media.disks.push_back(disk);
+				continue;
+			}
+
+			// Failing that check for a boot sector.
+			if(CheckBootSector(target->media.disks.front(), target)) {
+				target->media.disks.push_back(disk);
+				continue;
+			}
+
+			// Failing that check for a system catalogue.
+			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target->media.disks.front(), system_format);
+			if(system_catalogue) {
+				InspectCatalogue(*system_catalogue, target);
+				target->media.disks.push_back(disk);
+				continue;
 			}
 		}
 	}
 
-	destination.push_back(std::move(target));
+	// If any media survived, add the target.
+	if(!target->media.empty())
+		destination.push_back(std::move(target));
 }
