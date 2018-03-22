@@ -23,20 +23,9 @@
 
 namespace {
 
-struct CRTMachineDelegate: public CRTMachine::Machine::Delegate {
-	void machine_did_change_clock_rate(CRTMachine::Machine *machine) {
-		best_effort_updater->set_clock_rate(machine->get_clock_rate());
-	}
-
-	void machine_did_change_clock_is_unlimited(CRTMachine::Machine *machine) {
-	}
-
-	Concurrency::BestEffortUpdater *best_effort_updater;
-};
-
 struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
-	void update(Concurrency::BestEffortUpdater *updater, int cycles, bool did_skip_previous_update) {
-		machine->crt_machine()->run_for(Cycles(cycles));
+	void update(Concurrency::BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update) override {
+		machine->crt_machine()->run_for(duration);
 	}
 
 	Machine::DynamicMachine *machine;
@@ -46,7 +35,7 @@ struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegat
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	static const int buffer_size = 1024;
 
-	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) {
+	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override {
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
 		if(audio_buffer_.size() > buffer_size) {
 			audio_buffer_.erase(audio_buffer_.begin(), audio_buffer_.end() - buffer_size);
@@ -258,7 +247,6 @@ int main(int argc, char *argv[]) {
 
 	Concurrency::BestEffortUpdater updater;
 	BestEffortUpdaterDelegate best_effort_updater_delegate;
-	CRTMachineDelegate crt_delegate;
 	SpeakerDelegate speaker_delegate;
 
 	// For vanilla SDL purposes, assume system ROMs can be found in one of:
@@ -321,12 +309,8 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	updater.set_clock_rate(machine->crt_machine()->get_clock_rate());
-	crt_delegate.best_effort_updater = &updater;
 	best_effort_updater_delegate.machine = machine.get();
 	speaker_delegate.updater = &updater;
-
-	machine->crt_machine()->set_delegate(&crt_delegate);
 	updater.set_delegate(&best_effort_updater_delegate);
 
 	// Attempt to set up video and audio.
