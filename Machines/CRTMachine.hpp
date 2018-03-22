@@ -55,15 +55,14 @@ class Machine: public ROMMachine::Machine {
 			run_for(Cycles(static_cast<int>(cycles)));
 		}
 
-		double get_clock_rate() {
-			return clock_rate_;
-		}
-
 	protected:
 		/// Runs the machine for @c cycles.
 		virtual void run_for(const Cycles cycles) = 0;
 		void set_clock_rate(double clock_rate) {
 			clock_rate_ = clock_rate;
+		}
+		double get_clock_rate() {
+			return clock_rate_;
 		}
 
 	private:
