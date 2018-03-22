@@ -780,6 +780,7 @@
 		4B448E801F1C45A00009ABD6 /* TZX.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TZX.hpp; sourceTree = "<group>"; };
 		4B448E821F1C4C480009ABD6 /* PulseQueuedTape.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PulseQueuedTape.cpp; sourceTree = "<group>"; };
 		4B448E831F1C4C480009ABD6 /* PulseQueuedTape.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PulseQueuedTape.hpp; sourceTree = "<group>"; };
+		4B449C942063389900A095C8 /* TimeTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TimeTypes.hpp; sourceTree = "<group>"; };
 		4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = AllSuiteA.bin; path = AllSuiteA/AllSuiteA.bin; sourceTree = "<group>"; };
 		4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 6502_functional_test.bin; path = "Klaus Dormann/6502_functional_test.bin"; sourceTree = "<group>"; };
 		4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */ = {isa = PBXFileReference; lastKnownFileType = file; name = BCDTEST_beeb; path = BCDTest/BCDTEST_beeb; sourceTree = "<group>"; };
@@ -2972,6 +2973,7 @@
 				4BF6606A1F281573002CB053 /* ClockReceiver.hpp */,
 				4BB06B211F316A3F00600C7A /* ForceInline.hpp */,
 				4BB146C61F49D7D700253439 /* Sleeper.hpp */,
+				4B449C942063389900A095C8 /* TimeTypes.hpp */,
 			);
 			name = ClockReceiver;
 			path = ../../ClockReceiver;

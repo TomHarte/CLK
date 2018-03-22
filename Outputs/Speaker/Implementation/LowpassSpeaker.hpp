@@ -15,6 +15,7 @@
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 
+#include <mutex>
 #include <cstring>
 
 namespace Outputs {
@@ -34,6 +35,8 @@ template <typename T> class LowpassSpeaker: public Speaker {
 
 		// Implemented as per Speaker.
 		float get_ideal_clock_rate_in_range(float minimum, float maximum) {
+			std::lock_guard<std::recursive_mutex> lock_guard(filter_parameters_mutex_);
+
 			// return twice the cut off, if applicable
 			if(	filter_parameters_.high_frequency_cutoff > 0.0f &&
 				filter_parameters_.input_cycles_per_second >= filter_parameters_.high_frequency_cutoff * 3.0f &&
@@ -55,6 +58,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 
 		// Implemented as per Speaker.
 		void set_output_rate(float cycles_per_second, int buffer_size) {
+			std::lock_guard<std::recursive_mutex> lock_guard(filter_parameters_mutex_);
 			filter_parameters_.output_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;
 			output_buffer_.resize(static_cast<std::size_t>(buffer_size));
@@ -64,8 +68,10 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			Sets the clock rate of the input audio.
 		*/
 		void set_input_rate(float cycles_per_second) {
+			std::lock_guard<std::recursive_mutex> lock_guard(filter_parameters_mutex_);
 			filter_parameters_.input_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;
+			filter_parameters_.input_rate_changed = true;
 		}
 
 		/*!
@@ -75,6 +81,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			path to be explicit about its effect, and get that simulation for free.
 		*/
 		void set_high_frequency_cutoff(float high_frequency) {
+			std::lock_guard<std::recursive_mutex> lock_guard(filter_parameters_mutex_);
 			filter_parameters_.high_frequency_cutoff = high_frequency;
 			filter_parameters_.parameters_are_dirty = true;
 		}
@@ -88,7 +95,13 @@ template <typename T> class LowpassSpeaker: public Speaker {
 
 			std::size_t cycles_remaining = static_cast<size_t>(cycles.as_int());
 			if(!cycles_remaining) return;
+
+			std::lock_guard<std::recursive_mutex> lock_guard(filter_parameters_mutex_);
 			if(filter_parameters_.parameters_are_dirty) update_filter_coefficients();
+			if(filter_parameters_.input_rate_changed) {
+				delegate_->speaker_did_change_input_clock(this);
+				filter_parameters_.input_rate_changed = false;
+			}
 
 			// If input and output rates exactly match, and no additional cut-off has been specified,
 			// just accumulate results and pass on.
@@ -175,12 +188,14 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		std::unique_ptr<SignalProcessing::Stepper> stepper_;
 		std::unique_ptr<SignalProcessing::FIRFilter> filter_;
 
+		std::recursive_mutex filter_parameters_mutex_;
 		struct FilterParameters {
 			float input_cycles_per_second = 0.0f;
 			float output_cycles_per_second = 0.0f;
 			float high_frequency_cutoff = -1.0;
 
 			bool parameters_are_dirty = true;
+			bool input_rate_changed = false;
 		} filter_parameters_;
 
 		void update_filter_coefficients() {

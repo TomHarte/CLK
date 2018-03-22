@@ -12,7 +12,10 @@
 #include "../Outputs/CRT/CRT.hpp"
 #include "../Outputs/Speaker/Speaker.hpp"
 #include "../ClockReceiver/ClockReceiver.hpp"
+#include "../ClockReceiver/TimeTypes.hpp"
 #include "ROMMachine.hpp"
+
+#include <cmath>
 
 namespace CRTMachine {
 
@@ -41,45 +44,30 @@ class Machine: public ROMMachine::Machine {
 		/// @returns The speaker that receives this machine's output, or @c nullptr if this machine is mute.
 		virtual Outputs::Speaker::Speaker *get_speaker() = 0;
 
-		/// Runs the machine for @c cycles.
-		virtual void run_for(const Cycles cycles) = 0;
-
 		/// @returns The confidence that this machine is running content it understands.
 		virtual float get_confidence() { return 0.5f; }
 		virtual void print_type() {}
 
-		// TODO: sever the clock-rate stuff.
-		virtual double get_clock_rate() {
-			return clock_rate_;
+		/// Runs the machine for @c duration seconds.
+		virtual void run_for(Time::Seconds duration) {
+			const double cycles = (duration * clock_rate_) + clock_conversion_error_;
+			clock_conversion_error_ = std::fmod(cycles, 1.0);
+			run_for(Cycles(static_cast<int>(cycles)));
 		}
-		virtual bool get_clock_is_unlimited() {
-			return clock_is_unlimited_;
-		}
-		class Delegate {
-			public:
-				virtual void machine_did_change_clock_rate(Machine *machine) = 0;
-				virtual void machine_did_change_clock_is_unlimited(Machine *machine) = 0;
-		};
-		virtual void set_delegate(Delegate *delegate) { delegate_ = delegate; }
 
 	protected:
+		/// Runs the machine for @c cycles.
+		virtual void run_for(const Cycles cycles) = 0;
 		void set_clock_rate(double clock_rate) {
-			if(clock_rate_ != clock_rate) {
-				clock_rate_ = clock_rate;
-				if(delegate_) delegate_->machine_did_change_clock_rate(this);
-			}
+			clock_rate_ = clock_rate;
 		}
-		void set_clock_is_unlimited(bool clock_is_unlimited) {
-			if(clock_is_unlimited != clock_is_unlimited_) {
-				clock_is_unlimited_ = clock_is_unlimited;
-				if(delegate_) delegate_->machine_did_change_clock_is_unlimited(this);
-			}
+		double get_clock_rate() {
+			return clock_rate_;
 		}
 
 	private:
-		Delegate *delegate_ = nullptr;
 		double clock_rate_ = 1.0;
-		bool clock_is_unlimited_ = false;
+		double clock_conversion_error_ = 0.0;
 };
 
 }

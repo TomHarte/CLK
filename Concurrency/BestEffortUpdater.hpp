@@ -13,6 +13,7 @@
 #include <chrono>
 
 #include "AsyncTaskQueue.hpp"
+#include "TimeTypes.hpp"
 
 namespace Concurrency {
 
@@ -30,14 +31,11 @@ class BestEffortUpdater {
 
 		/// A delegate receives timing cues.
 		struct Delegate {
-			virtual void update(BestEffortUpdater *updater, int cycles, bool did_skip_previous_update) = 0;
+			virtual void update(BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update) = 0;
 		};
 
 		/// Sets the current delegate.
 		void set_delegate(Delegate *);
-
-		/// Sets the clock rate of the delegate.
-		void set_clock_rate(double clock_rate);
 
 		/*!
 			If the delegate is not currently in the process of an `update` call, calls it now to catch up to the current time.
@@ -54,11 +52,9 @@ class BestEffortUpdater {
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> previous_time_point_;
 		bool has_previous_time_point_ = false;
-		double error_ = 0.0;
 		bool has_skipped_ = false;
 
 		Delegate *delegate_ = nullptr;
-		double clock_rate_ = 1.0;
 };
 
 }

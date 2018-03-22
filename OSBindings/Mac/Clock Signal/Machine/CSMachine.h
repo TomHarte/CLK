@@ -15,8 +15,7 @@
 
 @class CSMachine;
 @protocol CSMachineDelegate
-- (void)machineDidChangeClockRate:(CSMachine *)machine;
-- (void)machineDidChangeClockIsUnlimited:(CSMachine *)machine;
+- (void)machineSpeakerDidChangeInputClock:(CSMachine *)machine;
 @end
 
 // Deliberately low; to ensure CSMachine has been declared as an @class already.
@@ -33,7 +32,7 @@
 */
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result NS_DESIGNATED_INITIALIZER;
 
-- (void)runForNumberOfCycles:(int)numberOfCycles;
+- (void)runForInterval:(NSTimeInterval)interval;
 
 - (float)idealSamplingRateFromRange:(NSRange)range;
 - (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize;
@@ -47,9 +46,6 @@
 @property (nonatomic, strong) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly) CSOpenGLView *view;
 @property (nonatomic, weak) id<CSMachineDelegate> delegate;
-
-@property (nonatomic, readonly) double clockRate;
-@property (nonatomic, readonly) BOOL clockIsUnlimited;
 
 @property (nonatomic, readonly) NSString *userDefaultsPrefix;
 

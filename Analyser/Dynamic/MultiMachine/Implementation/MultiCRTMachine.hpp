@@ -29,7 +29,7 @@ namespace Dynamic {
 	acquiring a supplied mutex. The owner should also call did_change_machine_order()
 	if the order of machines changes.
 */
-class MultiCRTMachine: public CRTMachine::Machine, public CRTMachine::Machine::Delegate {
+class MultiCRTMachine: public CRTMachine::Machine {
 	public:
 		MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines, std::mutex &machines_mutex);
 
@@ -57,16 +57,10 @@ class MultiCRTMachine: public CRTMachine::Machine, public CRTMachine::Machine::D
 		void close_output() override;
 		Outputs::CRT::CRT *get_crt() override;
 		Outputs::Speaker::Speaker *get_speaker() override;
-		void run_for(const Cycles cycles) override;
-		double get_clock_rate() override;
-		bool get_clock_is_unlimited() override;
-		void set_delegate(::CRTMachine::Machine::Delegate *delegate) override;
+		void run_for(Time::Seconds duration) override;
 
 	private:
-		// CRTMachine::Machine::Delegate
-		void machine_did_change_clock_rate(Machine *machine) override;
-		void machine_did_change_clock_is_unlimited(Machine *machine) override;
-
+		void run_for(const Cycles cycles) override {}
 		const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines_;
 		std::mutex &machines_mutex_;
 		std::vector<Concurrency::AsyncTaskQueue> queues_;

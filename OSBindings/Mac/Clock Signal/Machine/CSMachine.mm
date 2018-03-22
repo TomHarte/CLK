@@ -25,8 +25,7 @@
 
 @interface CSMachine() <CSFastLoading>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
-- (void)machineDidChangeClockRate;
-- (void)machineDidChangeClockIsUnlimited;
+- (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
 @end
 
 struct LockProtectedDelegate {
@@ -37,29 +36,20 @@ struct LockProtectedDelegate {
 };
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockProtectedDelegate {
-	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) {
+	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override {
 		[machineAccessLock lock];
 		[machine speaker:speaker didCompleteSamples:buffer.data() length:(int)buffer.size()];
 		[machineAccessLock unlock];
 	}
-};
-
-struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDelegate {
-	void machine_did_change_clock_rate(CRTMachine::Machine *sender) {
+	void speaker_did_change_input_clock(Outputs::Speaker::Speaker *speaker) override {
 		[machineAccessLock lock];
-		[machine machineDidChangeClockRate];
-		[machineAccessLock unlock];
-	}
-	void machine_did_change_clock_is_unlimited(CRTMachine::Machine *sender) {
-		[machineAccessLock lock];
-		[machine machineDidChangeClockIsUnlimited];
+		[machine speakerDidChangeInputClock:speaker];
 		[machineAccessLock unlock];
 	}
 };
 
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
-	MachineDelegate _machineDelegate;
 	NSLock *_delegateMachineAccessLock;
 
 	CSStaticAnalyser *_analyser;
@@ -77,12 +67,8 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 
 		_delegateMachineAccessLock = [[NSLock alloc] init];
 
-		_machineDelegate.machine = self;
 		_speakerDelegate.machine = self;
-		_machineDelegate.machineAccessLock = _delegateMachineAccessLock;
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
-
-		_machine->crt_machine()->set_delegate(&_machineDelegate);
 	}
 	return self;
 }
@@ -91,12 +77,8 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	[self.audioQueue enqueueAudioBuffer:samples numberOfSamples:(unsigned int)length];
 }
 
-- (void)machineDidChangeClockRate {
-	[self.delegate machineDidChangeClockRate:self];
-}
-
-- (void)machineDidChangeClockIsUnlimited {
-	[self.delegate machineDidChangeClockIsUnlimited:self];
+- (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker {
+	[self.delegate machineSpeakerDidChangeInputClock:self];
 }
 
 - (void)dealloc {
@@ -107,7 +89,6 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	// They are nilled inside an explicit lock because that allows the delegates to protect their entire
 	// call into the machine, not just the pointer access.
 	[_delegateMachineAccessLock lock];
-	_machineDelegate.machine = nil;
 	_speakerDelegate.machine = nil;
 	[_delegateMachineAccessLock unlock];
 
@@ -146,9 +127,9 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 	}
 }
 
-- (void)runForNumberOfCycles:(int)numberOfCycles {
+- (void)runForInterval:(NSTimeInterval)interval {
 	@synchronized(self) {
-		_machine->crt_machine()->run_for(Cycles(numberOfCycles));
+		_machine->crt_machine()->run_for(interval);
 	}
 }
 
@@ -169,14 +150,6 @@ struct MachineDelegate: CRTMachine::Machine::Delegate, public LockProtectedDeleg
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
 	_machine->crt_machine()->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
-}
-
-- (double)clockRate {
-	return _machine->crt_machine()->get_clock_rate();
-}
-
-- (BOOL)clockIsUnlimited {
-	return _machine->crt_machine()->get_clock_is_unlimited() ? YES : NO;
 }
 
 - (void)paste:(NSString *)paste {
