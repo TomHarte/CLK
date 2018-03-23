@@ -22,8 +22,8 @@ struct Target: public ::Analyser::Static::Target {
 		SixtyFourKB
 	};
 
-	MemoryModel memory_model;
-	bool isZX81;
+	MemoryModel memory_model = MemoryModel::Unexpanded;
+	bool isZX81 = false;
 };
 
 }

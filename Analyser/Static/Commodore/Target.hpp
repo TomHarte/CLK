@@ -22,8 +22,8 @@ struct Target: public ::Analyser::Static::Target {
 		ThirtyTwoKB
 	};
 
-	MemoryModel memory_model;
-	bool has_c1540;
+	MemoryModel memory_model = MemoryModel::Unexpanded;
+	bool has_c1540 = false;
 };
 
 }

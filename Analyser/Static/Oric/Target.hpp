@@ -14,8 +14,8 @@ namespace Static {
 namespace Oric {
 
 struct Target: public ::Analyser::Static::Target {
-	bool use_atmos_rom;
-	bool has_microdisc;
+	bool use_atmos_rom = false;
+	bool has_microdisc = false;
 };
 
 }
