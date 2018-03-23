@@ -13,7 +13,7 @@
 #include <chrono>
 
 #include "AsyncTaskQueue.hpp"
-#include "TimeTypes.hpp"
+#include "../ClockReceiver/TimeTypes.hpp"
 
 namespace Concurrency {
 

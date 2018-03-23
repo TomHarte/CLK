@@ -16,6 +16,8 @@
 
 #include "../../../Storage/Disk/Encodings/MFM/Parser.hpp"
 
+#include <cstring>
+
 using namespace Analyser::Static::Oric;
 
 static int Score(const Analyser::Static::MOS6502::Disassembly &disassembly, const std::set<uint16_t> &rom_functions, const std::set<uint16_t> &variable_locations) {
@@ -95,7 +97,7 @@ static bool IsMicrodisc(Storage::Encodings::MFM::Parser &parser) {
 		0x12, 0x00
 	};
 
-	return !memcmp(signature, first_sample.data(), sizeof(signature));
+	return !std::memcmp(signature, first_sample.data(), sizeof(signature));
 }
 
 void Analyser::Static::Oric::AddTargets(const Media &media, std::vector<std::unique_ptr<Analyser::Static::Target>> &destination) {
