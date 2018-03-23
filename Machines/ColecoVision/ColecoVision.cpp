@@ -125,6 +125,10 @@ class ConcreteMachine:
 			joysticks_.emplace_back(new Joystick);
 		}
 
+		~ConcreteMachine() {
+			audio_queue_.flush();
+		}
+
 		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
 		}

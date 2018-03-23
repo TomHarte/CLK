@@ -126,6 +126,10 @@ class AYDeferrer {
 			speaker_.set_input_rate(1000000);
 		}
 
+		~AYDeferrer() {
+			audio_queue_.flush();
+		}
+
 		/// Adds @c half_cycles half cycles to the amount of time that has passed.
 		inline void run_for(HalfCycles half_cycles) {
 			cycles_since_update_ += half_cycles;

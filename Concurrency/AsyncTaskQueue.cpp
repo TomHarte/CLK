@@ -45,6 +45,7 @@ AsyncTaskQueue::AsyncTaskQueue()
 
 AsyncTaskQueue::~AsyncTaskQueue() {
 #ifdef __APPLE__
+	flush();
 	dispatch_release(serial_dispatch_queue_);
 	serial_dispatch_queue_ = nullptr;
 #else
@@ -82,6 +83,7 @@ void AsyncTaskQueue::flush() {
 
 DeferringAsyncTaskQueue::~DeferringAsyncTaskQueue() {
 	perform();
+	flush();
 }
 
 void DeferringAsyncTaskQueue::defer(std::function<void(void)> function) {

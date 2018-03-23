@@ -68,6 +68,10 @@ template <class T> class MOS6560 {
 			set_output_mode(OutputMode::NTSC);
 		}
 
+		~MOS6560() {
+			audio_queue_.flush();
+		}
+
 		void set_clock_rate(double clock_rate) {
 			speaker_.set_input_rate(static_cast<float>(clock_rate / 4.0));
 		}

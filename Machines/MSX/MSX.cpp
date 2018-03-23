@@ -144,6 +144,10 @@ class ConcreteMachine:
 			tape_player_.set_sleep_observer(this);
 		}
 
+		~ConcreteMachine() {
+			audio_queue_.flush();
+		}
+
 		void setup_output(float aspect_ratio) override {
 			vdp_.reset(new TI::TMS9918(TI::TMS9918::TMS9918A));
 		}
