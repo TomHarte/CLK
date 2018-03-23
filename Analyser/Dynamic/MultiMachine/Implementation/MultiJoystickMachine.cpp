@@ -8,6 +8,8 @@
 
 #include "MultiJoystickMachine.hpp"
 
+#include <algorithm>
+
 using namespace Analyser::Dynamic;
 
 namespace {
