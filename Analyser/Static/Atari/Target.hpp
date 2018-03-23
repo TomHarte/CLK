@@ -32,8 +32,8 @@ struct Target: public ::Analyser::Static::Target {
 	};
 
 	// TODO: shouldn't these be properties of the cartridge?
-	PagingModel paging_model;
-	bool uses_superchip;
+	PagingModel paging_model = PagingModel::None;
+	bool uses_superchip = false;
 };
 
 }

@@ -22,7 +22,7 @@ struct Target: public ::Analyser::Static::Target {
 		CPC6128
 	};
 
-	Model model;
+	Model model = Model::CPC464;
 };
 
 }

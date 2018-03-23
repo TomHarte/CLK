@@ -76,6 +76,10 @@ template<bool is_zx81> class ConcreteMachine:
 			clear_all_keys();
 		}
 
+		~ConcreteMachine() {
+			audio_queue_.flush();
+		}
+
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			const HalfCycles previous_counter = horizontal_counter_;
 			horizontal_counter_ += cycle.length;

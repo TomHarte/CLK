@@ -16,9 +16,9 @@ namespace Static {
 namespace Acorn {
 
 struct Target: public ::Analyser::Static::Target {
-	bool has_adfs;
-	bool has_dfs;
-	bool should_shift_restart;
+	bool has_adfs = false;
+	bool has_dfs = false;
+	bool should_shift_restart = false;
 };
 
 }

@@ -61,6 +61,10 @@ class ConcreteMachine:
 			speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
 		}
 
+		~ConcreteMachine() {
+			audio_queue_.flush();
+		}
+
 		void set_rom(ROMSlot slot, const std::vector<uint8_t> &data, bool is_writeable) override final {
 			uint8_t *target = nullptr;
 			switch(slot) {
