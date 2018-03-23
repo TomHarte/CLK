@@ -223,13 +223,13 @@ void Analyser::Static::AmstradCPC::AddTargets(const Media &media, std::vector<st
 			}
 
 			// Failing that check for a boot sector.
-			if(CheckBootSector(target->media.disks.front(), target)) {
+			if(CheckBootSector(disk, target)) {
 				target->media.disks.push_back(disk);
 				continue;
 			}
 
 			// Failing that check for a system catalogue.
-			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(target->media.disks.front(), system_format);
+			std::unique_ptr<Storage::Disk::CPM::Catalogue> system_catalogue = Storage::Disk::CPM::GetCatalogue(disk, system_format);
 			if(system_catalogue) {
 				InspectCatalogue(*system_catalogue, target);
 				target->media.disks.push_back(disk);
