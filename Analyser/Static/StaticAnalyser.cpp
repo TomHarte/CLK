@@ -103,7 +103,7 @@ static Media GetMediaAndPlatforms(const char *file_name, TargetPlatform::IntType
 		Format(	"hfe",
 				result.disks,
 				Disk::DiskImageHolder<Storage::Disk::HFE>,
-				TargetPlatform::Acorn || TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric)
+				TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric)
 				// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
 		Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// O
 		Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P

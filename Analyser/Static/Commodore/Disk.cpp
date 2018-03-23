@@ -71,19 +71,19 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 			bit_count_++;
 		}
 
-		unsigned int proceed_to_next_block() {
+		unsigned int proceed_to_next_block(int max_index_count) {
 			// find GCR lead-in
 			proceed_to_shift_value(0x3ff);
 			if(shift_register_ != 0x3ff) return 0xff;
 
 			// find end of lead-in
-			while(shift_register_ == 0x3ff && index_count_ < 2) {
+			while(shift_register_ == 0x3ff && index_count_ < max_index_count) {
 				run_for(Cycles(1));
 			}
 
 			// continue for a further nine bits
 			bit_count_ = 0;
-			while(bit_count_ < 9 && index_count_ < 2) {
+			while(bit_count_ < 9 && index_count_ < max_index_count) {
 				run_for(Cycles(1));
 			}
 
@@ -97,8 +97,8 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 		}
 
 		void proceed_to_shift_value(unsigned int shift_value) {
-			index_count_ = 0;
-			while(shift_register_ != shift_value && index_count_ < 2) {
+			const int max_index_count = index_count_ + 2;
+			while(shift_register_ != shift_value && index_count_ < max_index_count) {
 				run_for(Cycles(1));
 			}
 		}
@@ -124,13 +124,13 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 
 		std::shared_ptr<Sector> get_next_sector() {
 			std::shared_ptr<Sector> sector(new Sector);
-			index_count_ = 0;
+			const int max_index_count = index_count_ + 2;
 
-			while(index_count_ < 2) {
+			while(index_count_ < max_index_count) {
 				// look for a sector header
 				while(1) {
-					if(proceed_to_next_block() == 0x08) break;
-					if(index_count_ >= 2) return nullptr;
+					if(proceed_to_next_block(max_index_count) == 0x08) break;
+					if(index_count_ >= max_index_count) return nullptr;
 				}
 
 				// get sector details, skip if this looks malformed
@@ -144,8 +144,8 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 
 				// look for the following data
 				while(1) {
-					if(proceed_to_next_block() == 0x07) break;
-					if(index_count_ >= 2) return nullptr;
+					if(proceed_to_next_block(max_index_count) == 0x07) break;
+					if(index_count_ >= max_index_count) return nullptr;
 				}
 
 				checksum = 0;
