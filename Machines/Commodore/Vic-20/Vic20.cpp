@@ -336,6 +336,8 @@ class ConcreteMachine:
 
 		// Obtains the system ROMs.
 		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+			rom_fetcher_ = roms_with_names;
+
 			auto roms = roms_with_names(
 				"Vic20",
 				{
