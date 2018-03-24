@@ -11,4 +11,3 @@ script: cd OSBindings/SDL && scons
 compiler:
 	- clang
 	- gcc
-
