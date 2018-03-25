@@ -585,32 +585,37 @@ class ConcreteMachine:
 						uint8_t x = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
 						if(x == 0xe) {
 							Storage::Tape::Commodore::Parser parser;
+							const uint64_t tape_position = tape_->get_tape()->get_offset();
 							std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
-							uint16_t start_address, end_address;
-							start_address = static_cast<uint16_t>(user_basic_memory_[0xc1] | (user_basic_memory_[0xc2] << 8));
-							end_address = static_cast<uint16_t>(user_basic_memory_[0xae] | (user_basic_memory_[0xaf] << 8));
+							if(data) {
+								uint16_t start_address, end_address;
+								start_address = static_cast<uint16_t>(user_basic_memory_[0xc1] | (user_basic_memory_[0xc2] << 8));
+								end_address = static_cast<uint16_t>(user_basic_memory_[0xae] | (user_basic_memory_[0xaf] << 8));
 
-							// perform a via-processor_write_memory_map_ memcpy
-							uint8_t *data_ptr = data->data.data();
-							std::size_t data_left = data->data.size();
-							while(data_left && start_address != end_address) {
-								uint8_t *page = processor_write_memory_map_[start_address >> 10];
-								if(page) page[start_address & 0x3ff] = *data_ptr;
-								data_ptr++;
-								start_address++;
-								data_left--;
+								// perform a via-processor_write_memory_map_ memcpy
+								uint8_t *data_ptr = data->data.data();
+								std::size_t data_left = data->data.size();
+								while(data_left && start_address != end_address) {
+									uint8_t *page = processor_write_memory_map_[start_address >> 10];
+									if(page) page[start_address & 0x3ff] = *data_ptr;
+									data_ptr++;
+									start_address++;
+									data_left--;
+								}
+
+								// set tape status, carry and flag
+								user_basic_memory_[0x90] |= 0x40;
+								uint8_t	flags = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::Flags));
+								flags &= ~static_cast<uint8_t>((CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt));
+								m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, flags);
+
+								// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and
+								// ensure that the PC leaps to 0xfccf
+								m6502_.set_value_of_register(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
+								*value = 0xea;	// i.e. NOP implied
+							} else {
+								tape_->get_tape()->set_offset(tape_position);
 							}
-
-							// set tape status, carry and flag
-							user_basic_memory_[0x90] |= 0x40;
-							uint8_t	flags = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::Flags));
-							flags &= ~static_cast<uint8_t>((CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt));
-							m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, flags);
-
-							// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and
-							// ensure that the PC leaps to 0xfccf
-							m6502_.set_value_of_register(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
-							*value = 0xea;	// i.e. NOP implied
 						}
 					}
 				}
