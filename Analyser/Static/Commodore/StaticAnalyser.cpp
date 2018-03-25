@@ -98,8 +98,8 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std
 		}
 
 		// General approach: increase memory size conservatively such that the largest file found will fit.
-		for(File &file : files) {
-			std::size_t file_size = file.data.size();
+//		for(File &file : files) {
+//			std::size_t file_size = file.data.size();
 //			bool is_basic = file.is_basic();
 
 			/*if(is_basic)
@@ -125,16 +125,16 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std
 				// An unexpanded Vic has memory between 0x0000 and 0x0400; and between 0x1000 and 0x2000.
 				// A 3kb expanded Vic fills in the gap and has memory between 0x0000 and 0x2000.
 				// A 32kb expanded Vic has memory in the entire low 32kb.
-				uint16_t starting_address = file.starting_address;
+//				uint16_t starting_address = file.starting_address;
 
 				// If anything above the 8kb mark is touched, mark as a 32kb machine; otherwise if the
 				// region 0x0400 to 0x1000 is touched and this is an unexpanded machine, mark as 3kb.
-				if(starting_address + file_size > 0x2000)
-					target->memory_model = Target::MemoryModel::ThirtyTwoKB;
-				else if(target->memory_model == Target::MemoryModel::Unexpanded && !(starting_address >= 0x1000 || starting_address+file_size < 0x0400))
-					target->memory_model = Target::MemoryModel::ThirtyTwoKB;
+//				if(starting_address + file_size > 0x2000)
+//					target->memory_model = Target::MemoryModel::ThirtyTwoKB;
+//				else if(target->memory_model == Target::MemoryModel::Unexpanded && !(starting_address >= 0x1000 || starting_address+file_size < 0x0400))
+//					target->memory_model = Target::MemoryModel::ThirtyTwoKB;
 //			}
-		}
+//		}
 	}
 
 	if(!target->media.empty())
