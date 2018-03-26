@@ -95,20 +95,20 @@ template <class T> class MOS6560 {
 
 			// Lumunances are encoded trivially: on a 0–255 scale.
 			const uint8_t luminances[16] = {
-				0,		255,	109,	189,
-				199,	144,	159,	161,
-				126,	227,	227,	207,
-				235,	173,	188,	196
+				0,		255,	60,		189,
+				100,	144,	40,		227,
+				126,	161,	227,	207,
+				200,	196,	160,	196
 			};
 
 			// Chrominances are encoded such that 0–128 is a complete revolution of phase;
 			// anything above 191 disables the colour subcarrier. Phase is relative to the
 			// colour burst, so 0 is green.
 			const uint8_t pal_chrominances[16] = {
-				255,	255,	40,		112,
-				8,		88,		120,	56,
-				40,		48,		40,		112,
-				8,		88,		120,	56,
+				255,	255,	36,		112,
+				8,		88,		120,	48,
+				40,		56,		36,		112,
+				8,		72,		126,	56,
 			};
 			const uint8_t ntsc_chrominances[16] = {
 				255,	255,	8,		72,
@@ -140,7 +140,7 @@ template <class T> class MOS6560 {
 			}
 
 			crt_->set_new_display_type(static_cast<unsigned int>(timing_.cycles_per_line*4), display_type);
-			crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
+//			crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 
 //			switch(output_mode) {
 //				case OutputMode::PAL:
