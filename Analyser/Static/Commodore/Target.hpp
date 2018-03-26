@@ -22,7 +22,16 @@ struct Target: public ::Analyser::Static::Target {
 		ThirtyTwoKB
 	};
 
+	enum class Region {
+		American,
+		Danish,
+		Japanese,
+		European,
+		Swedish
+	};
+
 	MemoryModel memory_model = MemoryModel::Unexpanded;
+	Region region = Region::European;
 	bool has_c1540 = false;
 };
 
