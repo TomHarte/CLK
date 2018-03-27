@@ -112,8 +112,8 @@ template <class T> class MOS6560 {
 			};
 			const uint8_t ntsc_chrominances[16] = {
 				255,	255,	8,		72,
-				32,		88,		48,		112,
-				0,		0,		8,		72,
+				32,		88,		40,		112,
+				0,		8,		12,		72,
 				32,		88,		48,		112,
 			};
 			const uint8_t *chrominances;
