@@ -383,6 +383,9 @@ class ConcreteMachine:
 
 				// give it a means to obtain its ROM
 				c1540_->set_rom_fetcher(rom_fetcher_);
+
+				// give it a little warm up
+				c1540_->run_for(Cycles(2000000));
 			}
 
 			insert_media(target->media);
@@ -460,7 +463,6 @@ class ConcreteMachine:
 			switch(memory_model) {
 				default: break;
 				case Analyser::Static::Commodore::Target::MemoryModel::EightKB:
-					// TODO: is this 3kb or 8kb?
 					write_to_map(processor_read_memory_map_, expansion_ram_, 0x0000, 0x1000);
 					write_to_map(processor_write_memory_map_, expansion_ram_, 0x0000, 0x1000);
 				break;
