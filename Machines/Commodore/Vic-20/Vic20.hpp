@@ -14,20 +14,6 @@
 namespace Commodore {
 namespace Vic20 {
 
-enum MemorySize {
-	Default,
-	ThreeKB,
-	ThirtyTwoKB
-};
-
-enum Region {
-	American,
-	Danish,
-	Japanese,
-	European,
-	Swedish
-};
-
 /// @returns The options available for a Vic-20.
 std::vector<std::unique_ptr<Configurable::Option>> get_options();
 
@@ -37,12 +23,6 @@ class Machine {
 
 		/// Creates and returns a Vic-20.
 		static Machine *Vic20();
-
-		/// Sets the memory size of this Vic-20.
-		virtual void set_memory_size(MemorySize size) = 0;
-
-		/// Sets the region of this Vic-20.
-		virtual void set_region(Region region) = 0;
 };
 
 }

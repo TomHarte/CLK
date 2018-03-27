@@ -368,22 +368,10 @@ class ConcreteMachine:
 		}
 
 		void configure_as_target(const Analyser::Static::Target *target) override final {
-			auto *const commodore_target = dynamic_cast<const Analyser::Static::Commodore::Target *>(target);
+			commodore_target_ = *dynamic_cast<const Analyser::Static::Commodore::Target *>(target);
 
 			if(target->loading_command.length()) {
 				type_string(target->loading_command);
-			}
-
-			switch(commodore_target->memory_model) {
-				case Analyser::Static::Commodore::Target::MemoryModel::Unexpanded:
-					set_memory_size(Default);
-				break;
-				case Analyser::Static::Commodore::Target::MemoryModel::EightKB:
-					set_memory_size(ThreeKB);
-				break;
-				case Analyser::Static::Commodore::Target::MemoryModel::ThirtyTwoKB:
-					set_memory_size(ThirtyTwoKB);
-				break;
 			}
 
 			if(target->media.disks.size()) {
@@ -395,6 +383,9 @@ class ConcreteMachine:
 
 				// give it a means to obtain its ROM
 				c1540_->set_rom_fetcher(rom_fetcher_);
+
+				// give it a little warm up
+				c1540_->run_for(Cycles(2000000));
 			}
 
 			insert_media(target->media);
@@ -439,16 +430,6 @@ class ConcreteMachine:
 			return joysticks_;
 		}
 
-		void set_memory_size(MemorySize size) override final {
-			memory_size_ = size;
-			needs_configuration_ = true;
-		}
-
-		void set_region(Region region) override final {
-			region_ = region;
-			needs_configuration_ = true;
-		}
-
 		void set_ntsc_6560() {
 			set_clock_rate(1022727);
 			if(mos6560_) {
@@ -465,9 +446,9 @@ class ConcreteMachine:
 			}
 		}
 
-		void configure_memory() {
+		void set_memory_map(Analyser::Static::Commodore::Target::MemoryModel memory_model, Analyser::Static::Commodore::Target::Region region) {
 			// Determine PAL/NTSC
-			if(region_ == American || region_ == Japanese) {
+			if(region == Analyser::Static::Commodore::Target::Region::American || region == Analyser::Static::Commodore::Target::Region::Japanese) {
 				// NTSC
 				set_ntsc_6560();
 			} else {
@@ -479,13 +460,13 @@ class ConcreteMachine:
 			memset(processor_write_memory_map_, 0, sizeof(processor_write_memory_map_));
 			memset(mos6560_->video_memory_map, 0, sizeof(mos6560_->video_memory_map));
 
-			switch(memory_size_) {
+			switch(memory_model) {
 				default: break;
-				case ThreeKB:
+				case Analyser::Static::Commodore::Target::MemoryModel::EightKB:
 					write_to_map(processor_read_memory_map_, expansion_ram_, 0x0000, 0x1000);
 					write_to_map(processor_write_memory_map_, expansion_ram_, 0x0000, 0x1000);
 				break;
-				case ThirtyTwoKB:
+				case Analyser::Static::Commodore::Target::MemoryModel::ThirtyTwoKB:
 					write_to_map(processor_read_memory_map_, expansion_ram_, 0x0000, 0x8000);
 					write_to_map(processor_write_memory_map_, expansion_ram_, 0x0000, 0x8000);
 				break;
@@ -508,24 +489,24 @@ class ConcreteMachine:
 
 			ROM character_rom;
 			ROM kernel_rom;
-			switch(region_) {
+			switch(region) {
 				default:
 					character_rom = CharactersEnglish;
 					kernel_rom = KernelPAL;
 				break;
-				case American:
+				case Analyser::Static::Commodore::Target::Region::American:
 					character_rom = CharactersEnglish;
 					kernel_rom = KernelNTSC;
 				break;
-				case Danish:
+				case Analyser::Static::Commodore::Target::Region::Danish:
 					character_rom = CharactersDanish;
 					kernel_rom = KernelDanish;
 				break;
-				case Japanese:
+				case Analyser::Static::Commodore::Target::Region::Japanese:
 					character_rom = CharactersJapanese;
 					kernel_rom = KernelJapanese;
 				break;
-				case Swedish:
+				case Analyser::Static::Commodore::Target::Region::Swedish:
 					character_rom = CharactersSwedish;
 					kernel_rom = KernelSwedish;
 				break;
@@ -648,10 +629,6 @@ class ConcreteMachine:
 		}
 
 		void run_for(const Cycles cycles) override final {
-			if(needs_configuration_) {
-				needs_configuration_ = false;
-				configure_memory();
-			}
 			m6502_.run_for(cycles);
 		}
 
@@ -659,7 +636,7 @@ class ConcreteMachine:
 			mos6560_.reset(new Vic6560());
 			mos6560_->set_high_frequency_cutoff(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
 			// Make a guess: PAL. Without setting a clock rate the 6560 isn't fully set up so contractually something must be set.
-			set_pal_6560();
+			set_memory_map(commodore_target_.memory_model, commodore_target_.region);
 		}
 
 		void close_output() override final {
@@ -718,6 +695,8 @@ class ConcreteMachine:
 		}
 
 	private:
+		Analyser::Static::Commodore::Target commodore_target_;
+
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 
 		std::vector<uint8_t>  roms_[9];
@@ -747,10 +726,6 @@ class ConcreteMachine:
 				address++;
 			}
 		}
-
-		Region region_ = European;
-		MemorySize memory_size_ = MemorySize::Default;
-		bool needs_configuration_ = true;
 
 		Commodore::Vic20::KeyboardMapper keyboard_mapper_;
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
