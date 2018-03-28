@@ -299,7 +299,8 @@ class ConcreteMachine:
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
-	public Machine {
+	public Machine,
+	public Sleeper::SleepObserver {
 	public:
 		ConcreteMachine() :
 				m6502_(*this),
@@ -325,13 +326,10 @@ class ConcreteMachine:
 			user_port_via_port_handler_->set_interrupt_delegate(this);
 			keyboard_via_port_handler_->set_interrupt_delegate(this);
 			tape_->set_delegate(this);
+			tape_->set_sleep_observer(this);
 
 			// install a joystick
 			joysticks_.emplace_back(new Joystick(*user_port_via_port_handler_, *keyboard_via_port_handler_));
-		}
-
-		~ConcreteMachine() {
-			delete[] rom_;
 		}
 
 		// Obtains the system ROMs.
@@ -405,9 +403,8 @@ class ConcreteMachine:
 				std::vector<uint8_t> rom_image = media.cartridges.front()->get_segments().front().data;
 				rom_length_ = static_cast<uint16_t>(rom_image.size());
 
-				rom_ = new uint8_t[0x2000];
-				std::memcpy(rom_, rom_image.data(), rom_image.size());
-				write_to_map(processor_read_memory_map_, rom_, rom_address_, 0x2000);
+				rom_ = rom_image;
+				rom_.resize(0x2000);
 			}
 
 			set_use_fast_tape();
@@ -517,15 +514,15 @@ class ConcreteMachine:
 			write_to_map(processor_read_memory_map_, roms_[kernel_rom].data(), 0xe000, static_cast<uint16_t>(roms_[kernel_rom].size()));
 
 			// install the inserted ROM if there is one
-			if(rom_) {
-				write_to_map(processor_read_memory_map_, rom_, rom_address_, rom_length_);
+			if(!rom_.empty()) {
+				write_to_map(processor_read_memory_map_, rom_.data(), rom_address_, rom_length_);
 			}
 		}
 
 		// to satisfy CPU::MOS6502::Processor
 		forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			// run the phase-1 part of this cycle, in which the VIC accesses memory
-			if(!is_running_at_zero_cost_) mos6560_->run_for(Cycles(1));
+			cycles_since_mos6560_update_++;
 
 			// run the phase-2 part of the cycle, which is whatever the 6502 said it should be
 			if(isReadOperation(operation)) {
@@ -537,10 +534,7 @@ class ConcreteMachine:
 				}
 				*value = result;
 
-				// This combined with the stuff below constitutes the fast tape hack. Performed here: if the
-				// PC hits the start of the loop that just waits for an interesting tape interrupt to have
-				// occurred then skip both 6522s and the tape ahead to the next interrupt without any further
-				// CPU or 6560 costs.
+				// Consider applying the fast tape hack.
 				if(use_fast_tape_hack_ && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
 					if(address == 0xf7b2) {
 						// Address 0xf7b2 contains a JSR to 0xf8c0 that will fill the tape buffer with the next header.
@@ -601,6 +595,8 @@ class ConcreteMachine:
 					}
 				}
 			} else {
+				mos6560_->run_for(cycles_since_mos6560_update_.flush());
+
 				uint8_t *ram = processor_write_memory_map_[address >> 10];
 				if(ram) ram[address & 0x3ff] = *value;
 				if((address&0xfc00) == 0x9000) {
@@ -618,13 +614,14 @@ class ConcreteMachine:
 					typer_.reset();
 				}
 			}
-			tape_->run_for(Cycles(1));
+			if(!tape_is_sleeping_) tape_->run_for(Cycles(1));
 			if(c1540_) c1540_->run_for(Cycles(1));
 
 			return Cycles(1);
 		}
 
-		forceinline void flush() {
+		void flush() {
+			mos6560_->run_for(cycles_since_mos6560_update_.flush());
 			mos6560_->flush();
 		}
 
@@ -694,6 +691,11 @@ class ConcreteMachine:
 			return selection_set;
 		}
 
+		void set_component_is_sleeping(void *component, bool is_sleeping) override {
+			tape_is_sleeping_ = is_sleeping;
+			set_use_fast_tape();
+		}
+
 	private:
 		Analyser::Static::Commodore::Target commodore_target_;
 
@@ -706,7 +708,7 @@ class ConcreteMachine:
 		std::vector<uint8_t>  kernel_rom_;
 		uint8_t expansion_ram_[0x8000];
 
-		uint8_t *rom_ = nullptr;
+		std::vector<uint8_t> rom_;
 		uint16_t rom_address_, rom_length_;
 
 		uint8_t user_basic_memory_[0x0400];
@@ -730,6 +732,7 @@ class ConcreteMachine:
 		Commodore::Vic20::KeyboardMapper keyboard_mapper_;
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 
+		Cycles cycles_since_mos6560_update_;
 		std::unique_ptr<Vic6560> mos6560_;
 		std::shared_ptr<UserPortVIA> user_port_via_port_handler_;
 		std::shared_ptr<KeyboardVIA> keyboard_via_port_handler_;
@@ -743,9 +746,9 @@ class ConcreteMachine:
 		std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape_;
 		bool use_fast_tape_hack_ = false;
 		bool allow_fast_tape_hack_ = false;
-		bool is_running_at_zero_cost_ = false;
+		bool tape_is_sleeping_ = true;
 		void set_use_fast_tape() {
-			use_fast_tape_hack_ = allow_fast_tape_hack_ && tape_->has_tape();
+			use_fast_tape_hack_ = !tape_is_sleeping_ && allow_fast_tape_hack_ && tape_->has_tape();
 		}
 
 		// Disk
