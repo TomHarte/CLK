@@ -6,7 +6,6 @@
 #import "CSFastLoading.h"
 
 #import "CSAtari2600.h"
-#import "CSVic20.h"
 #import "CSZX8081.h"
 
 #import "CSStaticAnalyser.h"
