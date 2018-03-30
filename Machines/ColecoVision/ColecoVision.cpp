@@ -135,7 +135,7 @@ class ConcreteMachine:
 
 		void setup_output(float aspect_ratio) override {
 			vdp_.reset(new TI::TMS9918(TI::TMS9918::TMS9918A));
-			get_crt()->set_output_device(Outputs::CRT::OutputDevice::Television);
+			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 		}
 
 		void close_output() override {

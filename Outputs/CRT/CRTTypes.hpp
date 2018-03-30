@@ -36,9 +36,10 @@ enum class ColourSpace {
 	YUV
 };
 
-enum class OutputDevice {
-	Monitor,
-	Television
+enum class VideoSignal {
+	RGB,
+	SVideo,
+	Composite
 };
 
 }

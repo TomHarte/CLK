@@ -454,7 +454,7 @@ class ConcreteMachine:
 
 			Configurable::Display display;
 			if(Configurable::get_display(selections_by_option, display)) {
-				get_crt()->set_output_device((display == Configurable::Display::RGB) ? Outputs::CRT::OutputDevice::Monitor : Outputs::CRT::OutputDevice::Television);
+				get_crt()->set_video_signal((display == Configurable::Display::RGB) ? Outputs::CRT::VideoSignal::RGB : Outputs::CRT::VideoSignal::Composite);
 			}
 		}
 

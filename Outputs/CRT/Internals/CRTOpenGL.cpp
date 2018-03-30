@@ -72,7 +72,7 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder() {
 }
 
 bool OpenGLOutputBuilder::get_is_television_output() {
-	return output_device_ == OutputDevice::Television || !rgb_input_shader_program_;
+	return video_signal_ == VideoSignal::Composite || !rgb_input_shader_program_;
 }
 
 void OpenGLOutputBuilder::set_target_framebuffer(GLint target_framebuffer) {
@@ -363,9 +363,9 @@ void OpenGLOutputBuilder::prepare_output_vertex_array() {
 
 // MARK: - Public Configuration
 
-void OpenGLOutputBuilder::set_output_device(OutputDevice output_device) {
-	if(output_device_ != output_device) {
-		output_device_ = output_device;
+void OpenGLOutputBuilder::set_video_signal(VideoSignal video_signal) {
+	if(video_signal_ != video_signal) {
+		video_signal_ = video_signal;
 		composite_src_output_y_ = 0;
 		last_output_width_ = 0;
 		last_output_height_ = 0;
