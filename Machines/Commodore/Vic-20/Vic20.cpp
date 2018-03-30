@@ -528,7 +528,10 @@ class ConcreteMachine:
 			if(isReadOperation(operation)) {
 				uint8_t result = processor_read_memory_map_[address >> 10] ? processor_read_memory_map_[address >> 10][address & 0x3ff] : 0xff;
 				if((address&0xfc00) == 0x9000) {
-					if((address&0xff00) == 0x9000)	result &= mos6560_->get_register(address);
+					if((address&0xff00) == 0x9000) {
+						update_video();
+						result &= mos6560_->get_register(address);
+					}
 					if((address&0xfc10) == 0x9010)	result &= user_port_via_.get_register(address);
 					if((address&0xfc20) == 0x9020)	result &= keyboard_via_.get_register(address);
 				}
@@ -595,12 +598,16 @@ class ConcreteMachine:
 					}
 				}
 			} else {
-				mos6560_->run_for(cycles_since_mos6560_update_.flush());
-
 				uint8_t *ram = processor_write_memory_map_[address >> 10];
-				if(ram) ram[address & 0x3ff] = *value;
+				if(ram) {
+					update_video();
+					ram[address & 0x3ff] = *value;
+				}
 				if((address&0xfc00) == 0x9000) {
-					if((address&0xff00) == 0x9000)	mos6560_->set_register(address, *value);
+					if((address&0xff00) == 0x9000) {
+						update_video();
+						mos6560_->set_register(address, *value);
+					}
 					if((address&0xfc10) == 0x9010)	user_port_via_.set_register(address, *value);
 					if((address&0xfc20) == 0x9020)	keyboard_via_.set_register(address, *value);
 				}
@@ -621,7 +628,7 @@ class ConcreteMachine:
 		}
 
 		void flush() {
-			mos6560_->run_for(cycles_since_mos6560_update_.flush());
+			update_video();
 			mos6560_->flush();
 		}
 
@@ -697,6 +704,9 @@ class ConcreteMachine:
 		}
 
 	private:
+		void update_video() {
+			mos6560_->run_for(cycles_since_mos6560_update_.flush());
+		}
 		Analyser::Static::Commodore::Target commodore_target_;
 
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
