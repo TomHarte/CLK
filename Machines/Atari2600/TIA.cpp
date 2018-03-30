@@ -25,7 +25,7 @@ namespace {
 TIA::TIA(bool create_crt) {
 	if(create_crt) {
 		crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 - 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
-		crt_->set_output_device(Outputs::CRT::OutputDevice::Television);
+		crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 		set_output_mode(OutputMode::NTSC);
 	}
 
@@ -123,20 +123,20 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
 	Outputs::CRT::DisplayType display_type;
 
 	if(output_mode == OutputMode::NTSC) {
-		crt_->set_composite_sampling_function(
-			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+		crt_->set_svideo_sampling_function(
+			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
 			"{"
 				"uint c = texture(texID, coordinate).r;"
 				"uint y = c & 14u;"
 				"uint iPhase = (c >> 4);"
 
 				"float phaseOffset = 6.283185308 * float(iPhase) / 13.0 + 5.074880441076923;"
-				"return mix(float(y) / 14.0, step(1, iPhase) * cos(phase + phaseOffset), amplitude);"
+				"return vec2(float(y) / 14.0, step(1, iPhase) * cos(phase + phaseOffset));"
 			"}");
 		display_type = Outputs::CRT::DisplayType::NTSC60;
 	} else {
-		crt_->set_composite_sampling_function(
-			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+		crt_->set_svideo_sampling_function(
+			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
 			"{"
 				"uint c = texture(texID, coordinate).r;"
 				"uint y = c & 14u;"
@@ -145,10 +145,12 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
 				"uint direction = iPhase & 1u;"
 				"float phaseOffset = float(7u - direction) + (float(direction) - 0.5) * 2.0 * float(iPhase >> 1);"
 				"phaseOffset *= 6.283185308 / 12.0;"
-				"return mix(float(y) / 14.0, step(4, (iPhase + 2u) & 15u) * cos(phase + phaseOffset), amplitude);"
+				"return vec2(float(y) / 14.0, step(4, (iPhase + 2u) & 15u) * cos(phase + phaseOffset));"
 			"}");
 		display_type = Outputs::CRT::DisplayType::PAL50;
 	}
+	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
+
 	// line number of cycles in a line of video is one less than twice the number of clock cycles per line; the Atari
 	// outputs 228 colour cycles of material per line when an NTSC line 227.5. Since all clock numbers will be doubled
 	// later, cycles_per_line * 2 - 1 is therefore the real length of an NTSC line, even though we're going to supply

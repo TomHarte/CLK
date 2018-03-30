@@ -263,7 +263,7 @@ class ConcreteMachine:
 			use_fast_tape_hack_ = activate;
 		}
 
-		void set_output_device(Outputs::CRT::OutputDevice output_device) {
+		void set_output_device(Outputs::CRT::VideoSignal output_device) {
 			video_output_->set_output_device(output_device);
 		}
 
@@ -392,7 +392,7 @@ class ConcreteMachine:
 
 			video_output_.reset(new VideoOutput(ram_));
 			if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);
-			set_output_device(Outputs::CRT::OutputDevice::Monitor);
+			set_output_device(Outputs::CRT::VideoSignal::RGB);
 		}
 
 		void close_output() override final {
@@ -465,7 +465,7 @@ class ConcreteMachine:
 
 			Configurable::Display display;
 			if(Configurable::get_display(selections_by_option, display)) {
-				set_output_device((display == Configurable::Display::RGB) ? Outputs::CRT::OutputDevice::Monitor : Outputs::CRT::OutputDevice::Television);
+				set_output_device((display == Configurable::Display::RGB) ? Outputs::CRT::VideoSignal::RGB : Outputs::CRT::VideoSignal::Composite);
 			}
 		}
 

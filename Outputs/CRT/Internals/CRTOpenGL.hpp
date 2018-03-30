@@ -33,7 +33,7 @@ class OpenGLOutputBuilder {
 		ColourSpace colour_space_;
 		unsigned int colour_cycle_numerator_;
 		unsigned int colour_cycle_denominator_;
-		OutputDevice output_device_;
+		VideoSignal video_signal_;
 		float gamma_;
 
 		// timing information to allow reasoning about input information
@@ -49,12 +49,14 @@ class OpenGLOutputBuilder {
 
 		// Other things the caller may have provided.
 		std::string composite_shader_;
+		std::string svideo_shader_;
 		std::string rgb_shader_;
 		GLint target_framebuffer_ = 0;
 
 		// Methods used by the OpenGL code
 		void prepare_output_shader();
 		void prepare_rgb_input_shaders();
+		void prepare_svideo_input_shaders();
 		void prepare_composite_input_shaders();
 
 		void prepare_output_vertex_array();
@@ -72,6 +74,8 @@ class OpenGLOutputBuilder {
 		std::unique_ptr<OpenGL::IntermediateShader> composite_input_shader_program_;
 		std::unique_ptr<OpenGL::IntermediateShader> composite_separation_filter_program_;
 		std::unique_ptr<OpenGL::IntermediateShader> composite_chrominance_filter_shader_program_;
+
+		std::unique_ptr<OpenGL::IntermediateShader> svideo_input_shader_program_;
 
 		std::unique_ptr<OpenGL::IntermediateShader> rgb_input_shader_program_;
 		std::unique_ptr<OpenGL::IntermediateShader> rgb_filter_shader_program_;
@@ -99,7 +103,6 @@ class OpenGLOutputBuilder {
 		GLsync fence_;
 		float get_composite_output_width() const;
 		void set_output_shader_width();
-		bool get_is_television_output();
 
 	public:
 		// These two are protected by output_mutex_.
@@ -130,8 +133,8 @@ class OpenGLOutputBuilder {
 			return std::unique_lock<std::mutex>(output_mutex_);
 		}
 
-		inline OutputDevice get_output_device() {
-			return output_device_;
+		inline VideoSignal get_output_device() {
+			return video_signal_;
 		}
 
 		inline uint16_t get_composite_output_y() {
@@ -147,12 +150,13 @@ class OpenGLOutputBuilder {
 				composite_src_output_y_++;
 		}
 	
-		void set_target_framebuffer(GLint target_framebuffer);
+		void set_target_framebuffer(GLint);
 		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);
 		void set_openGL_context_will_change(bool should_delete_resources);
-		void set_composite_sampling_function(const std::string &shader);
-		void set_rgb_sampling_function(const std::string &shader);
-		void set_output_device(OutputDevice output_device);
+		void set_composite_sampling_function(const std::string &);
+		void set_svideo_sampling_function(const std::string &);
+		void set_rgb_sampling_function(const std::string &);
+		void set_video_signal(VideoSignal);
 		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
 };
 

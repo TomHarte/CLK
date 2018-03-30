@@ -71,10 +71,6 @@ OpenGLOutputBuilder::~OpenGLOutputBuilder() {
 	glDeleteVertexArrays(1, &output_vertex_array_);
 }
 
-bool OpenGLOutputBuilder::get_is_television_output() {
-	return output_device_ == OutputDevice::Television || !rgb_input_shader_program_;
-}
-
 void OpenGLOutputBuilder::set_target_framebuffer(GLint target_framebuffer) {
 	target_framebuffer_ = target_framebuffer;
 }
@@ -86,6 +82,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	// establish essentials
 	if(!output_shader_program_) {
 		prepare_composite_input_shaders();
+		prepare_svideo_input_shaders();
 		prepare_rgb_input_shaders();
 		prepare_source_vertex_array();
 
@@ -153,21 +150,34 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 	};
 
 	// for composite video, go through four steps to get to something that can be painted to the output
-	RenderStage composite_render_stages[] = {
+	const RenderStage composite_render_stages[] = {
 		{composite_input_shader_program_.get(),					composite_texture_.get(),		{0.0, 0.0, 0.0}},
 		{composite_separation_filter_program_.get(),			separated_texture_.get(),		{0.0, 0.5, 0.5}},
 		{composite_chrominance_filter_shader_program_.get(),	filtered_texture_.get(),		{0.0, 0.0, 0.0}},
 		{nullptr, nullptr}
 	};
 
-	// for RGB video, there's only two steps
-	RenderStage rgb_render_stages[] = {
+	// for s-video, there are two steps — it's like composite but skips separation
+	const RenderStage svideo_render_stages[] = {
+		{svideo_input_shader_program_.get(),					separated_texture_.get(),		{0.0, 0.5, 0.5}},
+		{composite_chrominance_filter_shader_program_.get(),	filtered_texture_.get(),		{0.0, 0.0, 0.0}},
+		{nullptr, nullptr}
+	};
+
+	// for RGB video, there's also only two steps; a lowpass filter is still applied per physical reality
+	const RenderStage rgb_render_stages[] = {
 		{rgb_input_shader_program_.get(),	composite_texture_.get(),	{0.0, 0.0, 0.0}},
 		{rgb_filter_shader_program_.get(),	filtered_texture_.get(),	{0.0, 0.0, 0.0}},
 		{nullptr, nullptr}
 	};
 
-	RenderStage *active_pipeline = get_is_television_output() ? composite_render_stages : rgb_render_stages;
+	const RenderStage *active_pipeline;
+	switch(video_signal_) {
+		default:
+		case VideoSignal::Composite:	active_pipeline = composite_render_stages;	break;
+		case VideoSignal::SVideo:		active_pipeline = svideo_render_stages;		break;
+		case VideoSignal::RGB:			active_pipeline = rgb_render_stages;		break;
+	}
 
 	if(array_submission.input_size || array_submission.output_size) {
 		// all drawing will be from the source vertex array and without blending
@@ -245,6 +255,7 @@ void OpenGLOutputBuilder::reset_all_OpenGL_state() {
 	composite_input_shader_program_ = nullptr;
 	composite_separation_filter_program_ = nullptr;
 	composite_chrominance_filter_shader_program_ = nullptr;
+	svideo_input_shader_program_ = nullptr;
 	rgb_input_shader_program_ = nullptr;
 	rgb_filter_shader_program_ = nullptr;
 	output_shader_program_ = nullptr;
@@ -264,6 +275,12 @@ void OpenGLOutputBuilder::set_composite_sampling_function(const std::string &sha
 	reset_all_OpenGL_state();
 }
 
+void OpenGLOutputBuilder::set_svideo_sampling_function(const std::string &shader) {
+	std::lock_guard<std::mutex> lock_guard(output_mutex_);
+	svideo_shader_ = shader;
+	reset_all_OpenGL_state();
+}
+
 void OpenGLOutputBuilder::set_rgb_sampling_function(const std::string &shader) {
 	std::lock_guard<std::mutex> lock_guard(output_mutex_);
 	rgb_shader_ = shader;
@@ -273,7 +290,7 @@ void OpenGLOutputBuilder::set_rgb_sampling_function(const std::string &shader) {
 // MARK: - Program compilation
 
 void OpenGLOutputBuilder::prepare_composite_input_shaders() {
-	composite_input_shader_program_ = OpenGL::IntermediateShader::make_source_conversion_shader(composite_shader_, rgb_shader_);
+	composite_input_shader_program_ = OpenGL::IntermediateShader::make_composite_source_shader(composite_shader_, svideo_shader_, rgb_shader_);
 	composite_input_shader_program_->set_source_texture_unit(source_data_texture_unit);
 	composite_input_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
 
@@ -285,6 +302,7 @@ void OpenGLOutputBuilder::prepare_composite_input_shaders() {
 	composite_chrominance_filter_shader_program_->set_source_texture_unit(work_texture_ ? work_texture_unit : separated_texture_unit);
 	composite_chrominance_filter_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
 
+	// TODO: the below is related to texture fencing, which is not yet implemented correctly, so not yet enabled.
 	if(work_texture_) {
 		composite_input_shader_program_->set_is_double_height(true, 0.0f, 0.0f);
 		composite_separation_filter_program_->set_is_double_height(true, 0.0f, 0.5f);
@@ -293,6 +311,19 @@ void OpenGLOutputBuilder::prepare_composite_input_shaders() {
 		composite_input_shader_program_->set_is_double_height(false);
 		composite_separation_filter_program_->set_is_double_height(false);
 		composite_chrominance_filter_shader_program_->set_is_double_height(false);
+	}
+}
+
+void OpenGLOutputBuilder::prepare_svideo_input_shaders() {
+	svideo_input_shader_program_ = OpenGL::IntermediateShader::make_svideo_source_shader(svideo_shader_, rgb_shader_);
+	svideo_input_shader_program_->set_source_texture_unit(source_data_texture_unit);
+	svideo_input_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
+
+	// TODO: the below is related to texture fencing, which is not yet implemented correctly, so not yet enabled.
+	if(work_texture_) {
+		svideo_input_shader_program_->set_is_double_height(true, 0.0f, 0.0f);
+	} else {
+		svideo_input_shader_program_->set_is_double_height(false);
 	}
 }
 
@@ -333,6 +364,11 @@ void OpenGLOutputBuilder::prepare_source_vertex_array() {
 			Shader::get_input_name(Shader::Input::PhaseTimeAndAmplitude),
 			3, GL_UNSIGNED_BYTE, GL_FALSE, SourceVertexSize,
 			(void *)SourceVertexOffsetOfPhaseTimeAndAmplitude, 1);
+
+		svideo_input_shader_program_->enable_vertex_attribute_with_pointer(
+			Shader::get_input_name(Shader::Input::InputStart),
+			2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize,
+			(void *)SourceVertexOffsetOfInputStart, 1);
 	}
 }
 
@@ -363,9 +399,9 @@ void OpenGLOutputBuilder::prepare_output_vertex_array() {
 
 // MARK: - Public Configuration
 
-void OpenGLOutputBuilder::set_output_device(OutputDevice output_device) {
-	if(output_device_ != output_device) {
-		output_device_ = output_device;
+void OpenGLOutputBuilder::set_video_signal(VideoSignal video_signal) {
+	if(video_signal_ != video_signal) {
+		video_signal_ = video_signal;
 		composite_src_output_y_ = 0;
 		last_output_width_ = 0;
 		last_output_height_ = 0;
@@ -413,6 +449,7 @@ void OpenGLOutputBuilder::set_colour_space_uniforms() {
 	if(composite_input_shader_program_)					composite_input_shader_program_->set_colour_conversion_matrices(fromRGB, toRGB);
 	if(composite_separation_filter_program_)			composite_separation_filter_program_->set_colour_conversion_matrices(fromRGB, toRGB);
 	if(composite_chrominance_filter_shader_program_)	composite_chrominance_filter_shader_program_->set_colour_conversion_matrices(fromRGB, toRGB);
+	if(svideo_input_shader_program_)					svideo_input_shader_program_->set_colour_conversion_matrices(fromRGB, toRGB);
 }
 
 void OpenGLOutputBuilder::set_gamma() {
@@ -433,7 +470,8 @@ float OpenGLOutputBuilder::get_composite_output_width() const {
 
 void OpenGLOutputBuilder::set_output_shader_width() {
 	if(output_shader_program_) {
-		const float width = get_is_television_output() ? get_composite_output_width() : 1.0f;
+		// For anything that isn't RGB, scale so that sampling is in-phase with the colour subcarrier.
+		const float width = (video_signal_ == VideoSignal::RGB) ? 1.0f : get_composite_output_width();
 		output_shader_program_->set_input_width_scaler(width);
 	}
 }
@@ -463,6 +501,10 @@ void OpenGLOutputBuilder::set_timing_uniforms() {
 	if(composite_input_shader_program_) {
 		composite_input_shader_program_->set_width_scalers(1.0f, output_width);
 		composite_input_shader_program_->set_extension(0.0f);
+	}
+	if(svideo_input_shader_program_) {
+		svideo_input_shader_program_->set_width_scalers(1.0f, output_width);
+		svideo_input_shader_program_->set_extension(0.0f);
 	}
 	if(rgb_input_shader_program_) {
 		rgb_input_shader_program_->set_width_scalers(1.0f, 1.0f);

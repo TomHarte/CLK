@@ -306,10 +306,27 @@ class CRT {
 		*/
 		void set_composite_function_type(CompositeSourceType type, float offset_of_first_sample = 0.0f);
 
+		/*!	Sets a function that will map from whatever data the machine provided to an s-video signal.
+
+			If the output mode is composite then a default mapping from RGB to the display's
+			output mode will be applied.
+
+			@param shader A GLSL fragment including a function with the signature
+			`vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)`
+			that evaluates to the s-video signal level, luminance as the first component and chrominance
+			as the second, as a function of a source buffer, sampling location and colour
+			carrier phase.
+		*/
+		inline void set_svideo_sampling_function(const std::string &shader) {
+			enqueue_openGL_function([shader, this] {
+				openGL_output_builder_.set_svideo_sampling_function(shader);
+			});
+		}
+
 		/*!	Sets a function that will map from whatever data the machine provided to an RGB signal.
 
-			If the output mode is composite then a default mapping from RGB to the display's composite
-			format will be applied.
+			If the output mode is composite or svideo then a default mapping from RGB to the display's
+			output mode will be applied.
 
 			@param shader A GLSL fragent including a function with the signature
 			`vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)` that evaluates to an RGB colour
@@ -329,9 +346,9 @@ class CRT {
 			openGL_output_builder_.texture_builder.set_bookender(std::move(bookender));
 		}
 
-		inline void set_output_device(OutputDevice output_device) {
-			enqueue_openGL_function([output_device, this] {
-				openGL_output_builder_.set_output_device(output_device);
+		inline void set_video_signal(VideoSignal video_signal) {
+			enqueue_openGL_function([video_signal, this] {
+				openGL_output_builder_.set_video_signal(video_signal);
 			});
 		}
 
