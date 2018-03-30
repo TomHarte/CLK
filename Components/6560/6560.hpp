@@ -54,14 +54,15 @@ template <class T> class MOS6560 {
 				audio_generator_(audio_queue_),
 				speaker_(audio_generator_)
 		{
-			crt_->set_composite_sampling_function(
-				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+			crt_->set_svideo_sampling_function(
+				"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
 				"{"
 					"vec2 yc = texture(texID, coordinate).rg / vec2(255.0);"
-					"float phaseOffset = 6.283185308 * 2.0 * yc.y;"
 
-					"float chroma = cos(phase + phaseOffset);"
-					"return mix(yc.x, step(yc.y, 0.75) * chroma, amplitude);"
+					"float phaseOffset = 6.283185308 * 2.0 * yc.y;"
+					"float chroma = step(yc.y, 0.75) * cos(phase + phaseOffset);"
+
+					"return vec2(yc.x, chroma);"
 				"}");
 
 			// default to NTSC

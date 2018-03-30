@@ -123,20 +123,20 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
 	Outputs::CRT::DisplayType display_type;
 
 	if(output_mode == OutputMode::NTSC) {
-		crt_->set_composite_sampling_function(
-			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+		crt_->set_svideo_sampling_function(
+			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
 			"{"
 				"uint c = texture(texID, coordinate).r;"
 				"uint y = c & 14u;"
 				"uint iPhase = (c >> 4);"
 
 				"float phaseOffset = 6.283185308 * float(iPhase) / 13.0 + 5.074880441076923;"
-				"return mix(float(y) / 14.0, step(1, iPhase) * cos(phase + phaseOffset), amplitude);"
+				"return vec2(float(y) / 14.0, step(1, iPhase) * cos(phase + phaseOffset));"
 			"}");
 		display_type = Outputs::CRT::DisplayType::NTSC60;
 	} else {
-		crt_->set_composite_sampling_function(
-			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+		crt_->set_svideo_sampling_function(
+			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
 			"{"
 				"uint c = texture(texID, coordinate).r;"
 				"uint y = c & 14u;"
@@ -145,7 +145,7 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
 				"uint direction = iPhase & 1u;"
 				"float phaseOffset = float(7u - direction) + (float(direction) - 0.5) * 2.0 * float(iPhase >> 1);"
 				"phaseOffset *= 6.283185308 / 12.0;"
-				"return mix(float(y) / 14.0, step(4, (iPhase + 2u) & 15u) * cos(phase + phaseOffset), amplitude);"
+				"return vec2(float(y) / 14.0, step(4, (iPhase + 2u) & 15u) * cos(phase + phaseOffset));"
 			"}");
 		display_type = Outputs::CRT::DisplayType::PAL50;
 	}

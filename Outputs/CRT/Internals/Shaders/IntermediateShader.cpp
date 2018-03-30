@@ -180,7 +180,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_svideo_source_shade
 		fragment_shader
 			<< rgb_shader <<
 			"uniform mat3 rgbToLumaChroma;"
-			"float svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
+			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
 			"{"
 				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
 				"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
@@ -194,7 +194,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_svideo_source_shade
 		"{"
 			"vec2 sample = svideo_sample(texID, inputPositionsVarying[5], iInputPositionVarying, phaseAndAmplitudeVarying.x);"
 			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), -sin(phaseAndAmplitudeVarying.x));"
-			"fragColour = vec3(luminance, vec2(0.5) + (chrominance * quadrature));"
+			"fragColour = vec3(sample.x, vec2(0.5) + (sample.y * quadrature));"
 		"}";
 
 	return make_shader(fragment_shader.str(), true, true);
