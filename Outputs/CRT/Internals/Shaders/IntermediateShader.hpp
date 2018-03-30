@@ -46,6 +46,8 @@ public:
 		converting them to single-channel composite values using @c composite_shader if non-empty
 		or a reference composite conversion of @c svideo_shader (first preference) or
 		@c rgb_shader (second preference) otherwise.
+
+		[input format] => one-channel composite.
 	*/
 	static std::unique_ptr<IntermediateShader> make_composite_source_shader(const std::string &composite_shader, const std::string &svideo_shader, const std::string &rgb_shader);
 
@@ -53,28 +55,38 @@ public:
 		Constructs and returns an intermediate shader that will take runs from the inputPositions,
 		converting them to two-channel svideo values using @c svideo_shader if non-empty
 		or a reference svideo conversion of @c rgb_shader otherwise.
+
+		[input format] => three-channel Y, noisy (m, n).
 	*/
 	static std::unique_ptr<IntermediateShader> make_svideo_source_shader(const std::string &svideo_shader, const std::string &rgb_shader);
 
 	/*!
 		Constructs and returns an intermediate shader that will take runs from the inputPositions,
 		converting them to RGB values using @c rgb_shader.
+
+		[input format] => three-channel RGB.
 	*/
 	static std::unique_ptr<IntermediateShader> make_rgb_source_shader(const std::string &rgb_shader);
 
 	/*!
 		Constructs and returns an intermediate shader that will read composite samples from the R channel,
 		filter then to obtain luminance, stored to R, and to separate out unfiltered chrominance, store to G and B.
+
+		one-channel composite => three-channel Y, noisy (m, n).
 	*/
 	static std::unique_ptr<IntermediateShader> make_chroma_luma_separation_shader();
 
 	/*!
 		Constructs and returns an intermediate shader that will pass R through unchanged while filtering G and B.
+
+		three-channel Y, noisy (m, n) => three-channel RGB.
 	*/
 	static std::unique_ptr<IntermediateShader> make_chroma_filter_shader();
 
 	/*!
 		Constructs and returns an intermediate shader that will filter R, G and B.
+
+		three-channel RGB => frequency-limited three-channel RGB.
 	*/
 	static std::unique_ptr<IntermediateShader> make_rgb_filter_shader();
 

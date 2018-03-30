@@ -65,6 +65,9 @@ template <class T> class MOS6560 {
 					"return vec2(yc.x, chroma);"
 				"}");
 
+			// default to s-video output
+			crt_->set_video_signal(Outputs::CRT::VideoSignal::SVideo);
+
 			// default to NTSC
 			set_output_mode(OutputMode::NTSC);
 		}

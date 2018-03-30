@@ -124,12 +124,12 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_composite_source_sh
 
 		"out vec4 fragColour;"
 
-		"uniform usampler2D texID;";
+		"uniform usampler2D texID;"
+		<< composite_shader;
 
-	if(!composite_shader.size()) {
-		std::ostringstream derived_composite_sample;
+	if(composite_shader.empty()) {
 		if(!svideo_shader.empty()) {
-			derived_composite_sample <<
+			fragment_shader <<
 				svideo_shader <<
 				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 				"{"
@@ -137,7 +137,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_composite_source_sh
 					"return mix(svideoColour.x, svideoColour.y, amplitude);"
 				"}";
 		} else {
-			derived_composite_sample <<
+			fragment_shader <<
 				rgb_shader <<
 				"uniform mat3 rgbToLumaChroma;"
 				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
@@ -148,9 +148,6 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_composite_source_sh
 					"return dot(lumaChromaColour, vec3(1.0 - amplitude, quadrature));"
 				"}";
 		}
-		fragment_shader <<  derived_composite_sample.str();
-	} else {
-		fragment_shader << composite_shader;
 	}
 
 	fragment_shader <<
@@ -185,7 +182,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_svideo_source_shade
 				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
 				"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
 				"vec2 quadrature = vec2(cos(phase), -sin(phase));"
-				"return vec2(lumaChromaColour, quadrature);"
+				"return vec2(lumaChromaColour.x, 0.5 + dot(quadrature, lumaChromaColour.yz) * 0.5);"
 			"}";
 	}
 
@@ -193,7 +190,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_svideo_source_shade
 		"void main(void)"
 		"{"
 			"vec2 sample = svideo_sample(texID, inputPositionsVarying[5], iInputPositionVarying, phaseAndAmplitudeVarying.x);"
-			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), -sin(phaseAndAmplitudeVarying.x));"
+			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), -sin(phaseAndAmplitudeVarying.x)) * 0.5 * phaseAndAmplitudeVarying.z;"
 			"fragColour = vec3(sample.x, vec2(0.5) + (sample.y * quadrature));"
 		"}";
 

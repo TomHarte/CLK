@@ -159,7 +159,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 
 	// for s-video, there are two steps — it's like composite but skips separation
 	const RenderStage svideo_render_stages[] = {
-		{composite_input_shader_program_.get(),					separated_texture_.get(),		{0.0, 0.5, 0.5}},
+		{svideo_input_shader_program_.get(),					separated_texture_.get(),		{0.0, 0.5, 0.5}},
 		{composite_chrominance_filter_shader_program_.get(),	filtered_texture_.get(),		{0.0, 0.0, 0.0}},
 		{nullptr, nullptr}
 	};
@@ -364,6 +364,11 @@ void OpenGLOutputBuilder::prepare_source_vertex_array() {
 			Shader::get_input_name(Shader::Input::PhaseTimeAndAmplitude),
 			3, GL_UNSIGNED_BYTE, GL_FALSE, SourceVertexSize,
 			(void *)SourceVertexOffsetOfPhaseTimeAndAmplitude, 1);
+
+		svideo_input_shader_program_->enable_vertex_attribute_with_pointer(
+			Shader::get_input_name(Shader::Input::InputStart),
+			2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize,
+			(void *)SourceVertexOffsetOfInputStart, 1);
 	}
 }
 
@@ -444,6 +449,7 @@ void OpenGLOutputBuilder::set_colour_space_uniforms() {
 	if(composite_input_shader_program_)					composite_input_shader_program_->set_colour_conversion_matrices(fromRGB, toRGB);
 	if(composite_separation_filter_program_)			composite_separation_filter_program_->set_colour_conversion_matrices(fromRGB, toRGB);
 	if(composite_chrominance_filter_shader_program_)	composite_chrominance_filter_shader_program_->set_colour_conversion_matrices(fromRGB, toRGB);
+	if(svideo_input_shader_program_)					svideo_input_shader_program_->set_colour_conversion_matrices(fromRGB, toRGB);
 }
 
 void OpenGLOutputBuilder::set_gamma() {
@@ -495,6 +501,10 @@ void OpenGLOutputBuilder::set_timing_uniforms() {
 	if(composite_input_shader_program_) {
 		composite_input_shader_program_->set_width_scalers(1.0f, output_width);
 		composite_input_shader_program_->set_extension(0.0f);
+	}
+	if(svideo_input_shader_program_) {
+		svideo_input_shader_program_->set_width_scalers(1.0f, output_width);
+		svideo_input_shader_program_->set_extension(0.0f);
 	}
 	if(rgb_input_shader_program_) {
 		rgb_input_shader_program_->set_width_scalers(1.0f, 1.0f);
