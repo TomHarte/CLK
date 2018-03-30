@@ -66,8 +66,8 @@
 	}
 
 	dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-		@synchronized(_machine) {
-			_atari2600->set_switch_is_enabled(toggleSwitch, false);
+		@synchronized(self->_machine) {
+			self->_atari2600->set_switch_is_enabled(toggleSwitch, false);
 		}
 	});
 }

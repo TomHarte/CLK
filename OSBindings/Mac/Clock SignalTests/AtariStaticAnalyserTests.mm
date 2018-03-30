@@ -10,15 +10,18 @@
 
 #import <CommonCrypto/CommonDigest.h>
 #include "../../../Analyser/Static/StaticAnalyser.hpp"
+#include "../../../Analyser/Static/Atari/Target.hpp"
+
+using PagingModel = Analyser::Static::Atari::Target::PagingModel;
 
 @interface AtariROMRecord : NSObject
-@property(nonatomic, readonly) Analyser::Static::Atari2600PagingModel pagingModel;
+@property(nonatomic, readonly) PagingModel pagingModel;
 @property(nonatomic, readonly) BOOL usesSuperchip;
-+ (instancetype)recordWithPagingModel:(Analyser::Static::Atari2600PagingModel)pagingModel usesSuperchip:(BOOL)usesSuperchip;
++ (instancetype)recordWithPagingModel:(PagingModel)pagingModel usesSuperchip:(BOOL)usesSuperchip;
 @end
 
 @implementation AtariROMRecord
-+ (instancetype)recordWithPagingModel:(Analyser::Static::Atari2600PagingModel)pagingModel usesSuperchip:(BOOL)usesSuperchip
++ (instancetype)recordWithPagingModel:(PagingModel)pagingModel usesSuperchip:(BOOL)usesSuperchip
 {
 	AtariROMRecord *record = [[AtariROMRecord alloc] init];
 	record->_pagingModel = pagingModel;
@@ -27,7 +30,7 @@
 }
 @end
 
-#define Record(sha, model, uses) sha : [AtariROMRecord recordWithPagingModel:Analyser::Static::Atari2600PagingModel::model usesSuperchip:uses],
+#define Record(sha, model, uses) sha : [AtariROMRecord recordWithPagingModel:PagingModel::model usesSuperchip:uses],
 static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 	Record(@"58dbcbdffbe80be97746e94a0a75614e64458fdc", None, NO)			// 4kraVCS
 	Record(@"9967a76efb68017f793188f691159f04e6bb4447", None, NO)			// 'X'Mission
@@ -598,8 +601,10 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 		if(!romRecord) continue;
 
 		// assert equality
-		XCTAssert(targets.front()->atari.paging_model == romRecord.pagingModel, @"%@; should be %d, is %d", testFile, romRecord.pagingModel, targets.front()->atari.paging_model);
-		XCTAssert(targets.front()->atari.uses_superchip == romRecord.usesSuperchip, @"%@; should be %@", testFile, romRecord.usesSuperchip ? @"true" : @"false");
+		Analyser::Static::Atari::Target *atari_target = dynamic_cast<Analyser::Static::Atari::Target *>(targets.front().get());
+		XCTAssert(atari_target != nullptr);
+		XCTAssert(atari_target->paging_model == romRecord.pagingModel, @"%@; should be %d, is %d", testFile, romRecord.pagingModel, atari_target->paging_model);
+		XCTAssert(atari_target->uses_superchip == romRecord.usesSuperchip, @"%@; should be %@", testFile, romRecord.usesSuperchip ? @"true" : @"false");
 	}
 }
 

@@ -94,7 +94,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 
 	[_view performWithGLContext:^{
 		@synchronized(self) {
-			_machine->crt_machine()->close_output();
+			self->_machine->crt_machine()->close_output();
 		}
 	}];
 }
