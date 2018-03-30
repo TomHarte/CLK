@@ -113,7 +113,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 	}));
 }
 
-std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_shader(const std::string &composite_shader, const std::string &rgb_shader) {
+std::unique_ptr<IntermediateShader> IntermediateShader::make_composite_source_shader(const std::string &composite_shader, const std::string &svideo_shader, const std::string &rgb_shader) {
 	std::ostringstream fragment_shader;
 	fragment_shader <<
 		"#version 150\n"
@@ -128,16 +128,26 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_s
 
 	if(!composite_shader.size()) {
 		std::ostringstream derived_composite_sample;
-		derived_composite_sample <<
-			rgb_shader <<
-			"uniform mat3 rgbToLumaChroma;"
-			"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
-			"{"
-				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
-				"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
-				"vec2 quadrature = vec2(cos(phase), -sin(phase)) * amplitude;"
-				"return dot(lumaChromaColour, vec3(1.0 - amplitude, quadrature));"
-			"}";
+		if(!svideo_shader.empty()) {
+			derived_composite_sample <<
+				svideo_shader <<
+				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+				"{"
+					"vec2 svideoColour = svideo_sample(texID, coordinate, iCoordinate, phase);"
+					"return mix(svideoColour.x, svideoColour.y, amplitude);"
+				"}";
+		} else {
+			derived_composite_sample <<
+				rgb_shader <<
+				"uniform mat3 rgbToLumaChroma;"
+				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+				"{"
+					"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
+					"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
+					"vec2 quadrature = vec2(cos(phase), -sin(phase)) * amplitude;"
+					"return dot(lumaChromaColour, vec3(1.0 - amplitude, quadrature));"
+				"}";
+		}
 		fragment_shader <<  derived_composite_sample.str();
 	} else {
 		fragment_shader << composite_shader;
@@ -147,6 +157,44 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_source_conversion_s
 		"void main(void)"
 		"{"
 			"fragColour = vec4(composite_sample(texID, inputPositionsVarying[5], iInputPositionVarying, phaseAndAmplitudeVarying.x, phaseAndAmplitudeVarying.y));"
+		"}";
+
+	return make_shader(fragment_shader.str(), true, true);
+}
+
+std::unique_ptr<IntermediateShader> IntermediateShader::make_svideo_source_shader(const std::string &svideo_shader, const std::string &rgb_shader) {
+	std::ostringstream fragment_shader;
+	fragment_shader <<
+		"#version 150\n"
+
+		"in vec2 inputPositionsVarying[11];"
+		"in vec2 iInputPositionVarying;"
+		"in vec3 phaseAndAmplitudeVarying;"
+
+		"out vec3 fragColour;"
+
+		"uniform usampler2D texID;"
+		<< svideo_shader;
+
+	if(svideo_shader.empty()) {
+		fragment_shader
+			<< rgb_shader <<
+			"uniform mat3 rgbToLumaChroma;"
+			"float svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
+			"{"
+				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
+				"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
+				"vec2 quadrature = vec2(cos(phase), -sin(phase));"
+				"return vec2(lumaChromaColour, quadrature);"
+			"}";
+	}
+
+	fragment_shader <<
+		"void main(void)"
+		"{"
+			"vec2 sample = svideo_sample(texID, inputPositionsVarying[5], iInputPositionVarying, phaseAndAmplitudeVarying.x);"
+			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), -sin(phaseAndAmplitudeVarying.x));"
+			"fragColour = vec3(luminance, vec2(0.5) + (chrominance * quadrature));"
 		"}";
 
 	return make_shader(fragment_shader.str(), true, true);

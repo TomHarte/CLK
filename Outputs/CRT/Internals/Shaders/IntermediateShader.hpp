@@ -43,10 +43,18 @@ public:
 
 	/*!
 		Constructs and returns an intermediate shader that will take runs from the inputPositions,
-		converting them to single-channel composite values using @c composite_shader if supplied
-		or @c rgb_shader and a reference composite conversion if @c composite_shader is @c nullptr.
+		converting them to single-channel composite values using @c composite_shader if non-empty
+		or a reference composite conversion of @c svideo_shader (first preference) or
+		@c rgb_shader (second preference) otherwise.
 	*/
-	static std::unique_ptr<IntermediateShader> make_source_conversion_shader(const std::string &composite_shader, const std::string &rgb_shader);
+	static std::unique_ptr<IntermediateShader> make_composite_source_shader(const std::string &composite_shader, const std::string &svideo_shader, const std::string &rgb_shader);
+
+	/*!
+		Constructs and returns an intermediate shader that will take runs from the inputPositions,
+		converting them to two-channel svideo values using @c svideo_shader if non-empty
+		or a reference svideo conversion of @c rgb_shader otherwise.
+	*/
+	static std::unique_ptr<IntermediateShader> make_svideo_source_shader(const std::string &svideo_shader, const std::string &rgb_shader);
 
 	/*!
 		Constructs and returns an intermediate shader that will take runs from the inputPositions,

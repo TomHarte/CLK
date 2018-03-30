@@ -49,12 +49,14 @@ class OpenGLOutputBuilder {
 
 		// Other things the caller may have provided.
 		std::string composite_shader_;
+		std::string svideo_shader_;
 		std::string rgb_shader_;
 		GLint target_framebuffer_ = 0;
 
 		// Methods used by the OpenGL code
 		void prepare_output_shader();
 		void prepare_rgb_input_shaders();
+		void prepare_svideo_input_shaders();
 		void prepare_composite_input_shaders();
 
 		void prepare_output_vertex_array();
@@ -101,7 +103,6 @@ class OpenGLOutputBuilder {
 		GLsync fence_;
 		float get_composite_output_width() const;
 		void set_output_shader_width();
-		bool get_is_television_output();
 
 	public:
 		// These two are protected by output_mutex_.
