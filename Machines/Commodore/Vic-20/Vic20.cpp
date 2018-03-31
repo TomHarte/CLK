@@ -453,37 +453,53 @@ class ConcreteMachine:
 				set_pal_6560();
 			}
 
+			// Initialise the memory maps as all pointing to nothing
 			memset(processor_read_memory_map_, 0, sizeof(processor_read_memory_map_));
 			memset(processor_write_memory_map_, 0, sizeof(processor_write_memory_map_));
 			memset(mos6560_->video_memory_map, 0, sizeof(mos6560_->video_memory_map));
 
+#define set_ram(baseaddr, length)	\
+	write_to_map(processor_read_memory_map_, &ram_[baseaddr], baseaddr, length);	\
+	write_to_map(processor_write_memory_map_, &ram_[baseaddr], baseaddr, length);
+
+			// Add 6502-visible RAM as requested
 			switch(memory_model) {
-				default: break;
+				case Analyser::Static::Commodore::Target::MemoryModel::Unexpanded:
+					// The default Vic-20 memory map has 1kb at address 0 and another 4kb at address 0x1000.
+					set_ram(0x0000, 0x0400);
+					set_ram(0x1000, 0x1000);
+				break;
 				case Analyser::Static::Commodore::Target::MemoryModel::EightKB:
-					write_to_map(processor_read_memory_map_, expansion_ram_, 0x0000, 0x1000);
-					write_to_map(processor_write_memory_map_, expansion_ram_, 0x0000, 0x1000);
+					// An 8kb Vic-20 fills in the gap between the two blocks of RAM on an unexpanded machine.
+					set_ram(0x0000, 0x2000);
 				break;
 				case Analyser::Static::Commodore::Target::MemoryModel::ThirtyTwoKB:
-					write_to_map(processor_read_memory_map_, expansion_ram_, 0x0000, 0x8000);
-					write_to_map(processor_write_memory_map_, expansion_ram_, 0x0000, 0x8000);
+					// A 32kb Vic-20 fills the entire lower 32kb with RAM.
+					set_ram(0x0000, 0x8000);
 				break;
 			}
 
-			// install the system ROMs and VIC-visible memory
-			write_to_map(processor_read_memory_map_, user_basic_memory_, 0x0000, sizeof(user_basic_memory_));
-			write_to_map(processor_read_memory_map_, screen_memory_, 0x1000, sizeof(screen_memory_));
-			write_to_map(processor_read_memory_map_, colour_memory_, 0x9400, sizeof(colour_memory_));
+#undef set_ram
 
-			write_to_map(processor_write_memory_map_, user_basic_memory_, 0x0000, sizeof(user_basic_memory_));
-			write_to_map(processor_write_memory_map_, screen_memory_, 0x1000, sizeof(screen_memory_));
-			write_to_map(processor_write_memory_map_, colour_memory_, 0x9400, sizeof(colour_memory_));
+			// all expansions also have colour RAM visible at 0x9400.
+			write_to_map(processor_read_memory_map_, colour_ram_, 0x9400, sizeof(colour_ram_));
+			write_to_map(processor_write_memory_map_, colour_ram_, 0x9400, sizeof(colour_ram_));
 
-			write_to_map(mos6560_->video_memory_map, user_basic_memory_, 0x2000, sizeof(user_basic_memory_));
-			write_to_map(mos6560_->video_memory_map, screen_memory_, 0x3000, sizeof(screen_memory_));
-			mos6560_->colour_memory = colour_memory_;
+			// also push memory resources into the 6560 video memory map; the 6560 has only a
+			// 14-bit address bus and the top bit is invested and used as bit 15 for the main
+			// memory bus.
+			for(int addr = 0; addr < 0x4000; addr += 0x400) {
+				int source_address = (addr & 0x1fff) | (((addr & 0x2000) << 2) ^ 0x8000);
+				if(processor_read_memory_map_[source_address >> 10]) {
+					write_to_map(mos6560_->video_memory_map, &ram_[source_address], static_cast<uint16_t>(addr), 0x400);
+				}
+			}
+			mos6560_->colour_memory = colour_ram_;
 
+			// install the BASIC ROM
 			write_to_map(processor_read_memory_map_, basic_rom_.data(), 0xc000, static_cast<uint16_t>(basic_rom_.size()));
 
+			// install the system ROM
 			ROM character_rom;
 			ROM kernel_rom;
 			switch(region) {
@@ -548,8 +564,8 @@ class ConcreteMachine:
 						const uint64_t tape_position = tape_->get_tape()->get_offset();
 						if(header) {
 							// serialise to wherever b2:b3 points
-							const uint16_t tape_buffer_pointer = static_cast<uint16_t>(user_basic_memory_[0xb2]) | static_cast<uint16_t>(user_basic_memory_[0xb3] << 8);
-							header->serialise(&user_basic_memory_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
+							const uint16_t tape_buffer_pointer = static_cast<uint16_t>(ram_[0xb2]) | static_cast<uint16_t>(ram_[0xb3] << 8);
+							header->serialise(&ram_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
 							hold_tape_ = true;
 							printf("Found header\n");
 						} else {
@@ -560,8 +576,8 @@ class ConcreteMachine:
 						}
 
 						// clear status and the verify flag
-						user_basic_memory_[0x90] = 0;
-						user_basic_memory_[0x93] = 0;
+						ram_[0x90] = 0;
+						ram_[0x93] = 0;
 
 						*value = 0x0c;	// i.e. NOP abs, to swallow the entire JSR
 					} else if(address == 0xf90b) {
@@ -572,8 +588,8 @@ class ConcreteMachine:
 							const std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
 							if(data) {
 								uint16_t start_address, end_address;
-								start_address = static_cast<uint16_t>(user_basic_memory_[0xc1] | (user_basic_memory_[0xc2] << 8));
-								end_address = static_cast<uint16_t>(user_basic_memory_[0xae] | (user_basic_memory_[0xaf] << 8));
+								start_address = static_cast<uint16_t>(ram_[0xc1] | (ram_[0xc2] << 8));
+								end_address = static_cast<uint16_t>(ram_[0xae] | (ram_[0xaf] << 8));
 
 								// perform a via-processor_write_memory_map_ memcpy
 								uint8_t *data_ptr = data->data.data();
@@ -587,7 +603,7 @@ class ConcreteMachine:
 								}
 
 								// set tape status, carry and flag
-								user_basic_memory_[0x90] |= 0x40;
+								ram_[0x90] |= 0x40;
 								uint8_t	flags = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::Flags));
 								flags &= ~static_cast<uint8_t>((CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt));
 								m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, flags);
@@ -725,14 +741,11 @@ class ConcreteMachine:
 		std::vector<uint8_t>  character_rom_;
 		std::vector<uint8_t>  basic_rom_;
 		std::vector<uint8_t>  kernel_rom_;
-		uint8_t expansion_ram_[0x8000];
 
 		std::vector<uint8_t> rom_;
 		uint16_t rom_address_, rom_length_;
-
-		uint8_t user_basic_memory_[0x0400];
-		uint8_t screen_memory_[0x1000];
-		uint8_t colour_memory_[0x0400];
+		uint8_t ram_[0x8000];
+		uint8_t colour_ram_[0x0400];
 
 		std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> rom_fetcher_;
 
