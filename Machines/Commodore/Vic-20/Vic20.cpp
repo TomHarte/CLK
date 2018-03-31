@@ -545,26 +545,31 @@ class ConcreteMachine:
 						Storage::Tape::Commodore::Parser parser;
 						std::unique_ptr<Storage::Tape::Commodore::Header> header = parser.get_next_header(tape_->get_tape());
 
-						// serialise to wherever b2:b3 points
-						uint16_t tape_buffer_pointer = static_cast<uint16_t>(user_basic_memory_[0xb2]) | static_cast<uint16_t>(user_basic_memory_[0xb3] << 8);
+						const uint64_t tape_position = tape_->get_tape()->get_offset();
 						if(header) {
+							// serialise to wherever b2:b3 points
+							const uint16_t tape_buffer_pointer = static_cast<uint16_t>(user_basic_memory_[0xb2]) | static_cast<uint16_t>(user_basic_memory_[0xb3] << 8);
 							header->serialise(&user_basic_memory_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
+							hold_tape_ = true;
+							printf("Found header\n");
 						} else {
-							// no header found, so store end-of-tape
-							user_basic_memory_[tape_buffer_pointer] = 0x05;	// i.e. end of tape
+							// no header found, so pretend this hack never interceded
+							tape_->get_tape()->set_offset(tape_position);
+							hold_tape_ = false;
+							printf("Didn't find header\n");
 						}
 
 						// clear status and the verify flag
 						user_basic_memory_[0x90] = 0;
 						user_basic_memory_[0x93] = 0;
 
-						*value = 0x0c;	// i.e. NOP abs
+						*value = 0x0c;	// i.e. NOP abs, to swallow the entire JSR
 					} else if(address == 0xf90b) {
 						uint8_t x = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
 						if(x == 0xe) {
 							Storage::Tape::Commodore::Parser parser;
 							const uint64_t tape_position = tape_->get_tape()->get_offset();
-							std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
+							const std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
 							if(data) {
 								uint16_t start_address, end_address;
 								start_address = static_cast<uint16_t>(user_basic_memory_[0xc1] | (user_basic_memory_[0xc2] << 8));
@@ -591,8 +596,12 @@ class ConcreteMachine:
 								// ensure that the PC leaps to 0xfccf
 								m6502_.set_value_of_register(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
 								*value = 0xea;	// i.e. NOP implied
+								hold_tape_ = true;
+								printf("Found data\n");
 							} else {
 								tape_->get_tape()->set_offset(tape_position);
+								hold_tape_ = false;
+								printf("Didn't find data\n");
 							}
 						}
 					}
@@ -621,7 +630,7 @@ class ConcreteMachine:
 					typer_.reset();
 				}
 			}
-			if(!tape_is_sleeping_) tape_->run_for(Cycles(1));
+			if(!tape_is_sleeping_ && !hold_tape_) tape_->run_for(Cycles(1));
 			if(c1540_) c1540_->run_for(Cycles(1));
 
 			return Cycles(1);
@@ -755,6 +764,7 @@ class ConcreteMachine:
 		// Tape
 		std::shared_ptr<Storage::Tape::BinaryTapePlayer> tape_;
 		bool use_fast_tape_hack_ = false;
+		bool hold_tape_ = false;
 		bool allow_fast_tape_hack_ = false;
 		bool tape_is_sleeping_ = true;
 		void set_use_fast_tape() {
