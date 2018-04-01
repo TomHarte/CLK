@@ -15,6 +15,8 @@
 #include "../ClockReceiver/TimeTypes.hpp"
 #include "ROMMachine.hpp"
 
+#include "../Configurable/StandardOptions.hpp"
+
 #include <cmath>
 
 namespace CRTMachine {
@@ -63,6 +65,23 @@ class Machine: public ROMMachine::Machine {
 		}
 		double get_clock_rate() {
 			return clock_rate_;
+		}
+
+		void set_video_signal_configurable(Configurable::Display type) {
+			Outputs::CRT::VideoSignal signal;
+			switch(type) {
+				default:
+				case Configurable::Display::RGB:
+					signal = Outputs::CRT::VideoSignal::RGB;
+				break;
+				case Configurable::Display::SVideo:
+					signal = Outputs::CRT::VideoSignal::SVideo;
+				break;
+				case Configurable::Display::Composite:
+					signal = Outputs::CRT::VideoSignal::Composite;
+				break;
+			}
+			get_crt()->set_video_signal(signal);
 		}
 
 	private:
