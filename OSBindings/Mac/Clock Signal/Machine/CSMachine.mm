@@ -289,17 +289,61 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 	}
 }
 
-- (void)setUseCompositeOutput:(BOOL)useCompositeOutput {
+- (void)setVideoSignal:(CSMachineVideoSignal)videoSignal {
 	Configurable::Device *configurable_device = _machine->configurable_device();
 	if(!configurable_device) return;
 
 	@synchronized(self) {
-		_useCompositeOutput = useCompositeOutput;
+		_videoSignal = videoSignal;
 
 		Configurable::SelectionSet selection_set;
-		append_display_selection(selection_set, useCompositeOutput ? Configurable::Display::Composite : Configurable::Display::RGB);
+		Configurable::Display display;
+		switch(videoSignal) {
+			case CSMachineVideoSignalRGB:		display = Configurable::Display::RGB;		break;
+			case CSMachineVideoSignalSVideo:	display = Configurable::Display::SVideo;	break;
+			case CSMachineVideoSignalComposite:	display = Configurable::Display::Composite;	break;
+		}
+		append_display_selection(selection_set, display);
 		configurable_device->set_selections(selection_set);
 	}
+}
+
+- (bool)supportsVideoSignal:(CSMachineVideoSignal)videoSignal {
+	Configurable::Device *configurable_device = _machine->configurable_device();
+	if(!configurable_device) return NO;
+
+	// Get the options this machine provides.
+	std::vector<std::unique_ptr<Configurable::Option>> options;
+	@synchronized(self) {
+		options = configurable_device->get_options();
+	}
+
+	// Get the standard option for this video signal.
+	Configurable::StandardOptions option;
+	switch(videoSignal) {
+		case CSMachineVideoSignalRGB:		option = Configurable::DisplayRGB;			break;
+		case CSMachineVideoSignalSVideo:	option = Configurable::DisplaySVideo;		break;
+		case CSMachineVideoSignalComposite:	option = Configurable::DisplayComposite;	break;
+	}
+	std::unique_ptr<Configurable::Option> display_option = std::move(standard_options(option).front());
+	Configurable::ListOption *display_list_option = dynamic_cast<Configurable::ListOption *>(display_option.get());
+	NSAssert(display_list_option, @"Expected display option to be a list");
+
+	// See whether the video signal is included in the machine options.
+	for(auto &candidate: options) {
+		Configurable::ListOption *list_option = dynamic_cast<Configurable::ListOption *>(candidate.get());
+
+		// Both should be list options
+		if(!list_option) continue;
+
+		// Check for same name of option.
+		if(candidate->short_name != display_option->short_name) continue;
+
+		// Check that the video signal option is included.
+		return std::find(list_option->options.begin(), list_option->options.end(), display_list_option->options.front()) != list_option->options.end();
+	}
+
+	return NO;
 }
 
 - (void)setUseAutomaticTapeMotorControl:(BOOL)useAutomaticTapeMotorControl {

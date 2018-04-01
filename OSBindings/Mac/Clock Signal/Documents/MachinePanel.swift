@@ -28,13 +28,24 @@ class MachinePanel: NSPanel {
 		}
 	}
 
+	fileprivate func signalForTag(tag: Int) -> CSMachineVideoSignal {
+		switch tag {
+			case 1: return .composite
+			case 2: return .sVideo
+			default: break
+		}
+		return .RGB
+	}
+
 	var displayTypeUserDefaultsKey: String {
 		return prefixedUserDefaultsKey("displayType")
 	}
 	@IBOutlet var displayTypeButton: NSPopUpButton?
 	@IBAction func setDisplayType(_ sender: NSPopUpButton!) {
-		machine.useCompositeOutput = (sender.indexOfSelectedItem == 1)
-		UserDefaults.standard.set(sender.indexOfSelectedItem, forKey: self.displayTypeUserDefaultsKey)
+		if let selectedItem = sender.selectedItem {
+			machine.videoSignal = signalForTag(tag: selectedItem.tag)
+			UserDefaults.standard.set(selectedItem.tag, forKey: self.displayTypeUserDefaultsKey)
+		}
 	}
 
 	func establishStoredOptions() {
@@ -50,8 +61,21 @@ class MachinePanel: NSPanel {
 			self.fastLoadingButton?.state = useFastLoadingHack ? .on : .off
 		}
 
-		let displayType = standardUserDefaults.integer(forKey: self.displayTypeUserDefaultsKey)
-		machine.useCompositeOutput = (displayType == 1)
-		self.displayTypeButton?.selectItem(at: displayType)
+		if let displayTypeButton = self.displayTypeButton {
+			// Enable or disable options as per machine support.
+			var titlesToRemove: [String] = []
+			for item in displayTypeButton.itemArray {
+				if !machine.supportsVideoSignal(signalForTag(tag: item.tag)) {
+					titlesToRemove.append(item.title)
+				}
+			}
+			for title in titlesToRemove {
+				displayTypeButton.removeItem(withTitle: title)
+			}
+
+			let displayType = standardUserDefaults.integer(forKey: self.displayTypeUserDefaultsKey)
+			displayTypeButton.selectItem(withTag: displayType)
+			setDisplayType(displayTypeButton)
+		}
 	}
 }
