@@ -47,7 +47,9 @@ enum ROMSlot {
 };
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(Configurable::QuickLoadTape);
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::DisplaySVideo | Configurable::DisplayComposite | Configurable::QuickLoadTape)
+	);
 }
 
 enum JoystickInput {
@@ -709,17 +711,24 @@ class ConcreteMachine:
 				allow_fast_tape_hack_ = quickload;
 				set_use_fast_tape();
 			}
+
+			Configurable::Display display;
+			if(Configurable::get_display(selections_by_option, display)) {
+				set_video_signal_configurable(display);
+			}
 		}
 
 		Configurable::SelectionSet get_accurate_selections() override {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, false);
+			Configurable::append_display_selection(selection_set, Configurable::Display::Composite);
 			return selection_set;
 		}
 
 		Configurable::SelectionSet get_user_friendly_selections() override {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, true);
+			Configurable::append_display_selection(selection_set, Configurable::Display::SVideo);
 			return selection_set;
 		}
 

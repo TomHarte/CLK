@@ -44,7 +44,7 @@ namespace MSX {
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGBComposite | Configurable::QuickLoadTape)
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplaySVideo | Configurable::DisplayComposite | Configurable::QuickLoadTape)
 	);
 }
 
@@ -562,7 +562,7 @@ class ConcreteMachine:
 
 			Configurable::Display display;
 			if(Configurable::get_display(selections_by_option, display)) {
-				get_crt()->set_video_signal((display == Configurable::Display::RGB) ? Outputs::CRT::VideoSignal::RGB : Outputs::CRT::VideoSignal::Composite);
+				set_video_signal_configurable(display);
 			}
 		}
 

@@ -33,7 +33,13 @@ bool get_bool(const Configurable::SelectionSet &selections_by_option, const std:
 std::vector<std::unique_ptr<Configurable::Option>> Configurable::standard_options(Configurable::StandardOptions mask) {
 	std::vector<std::unique_ptr<Configurable::Option>> options;
 	if(mask & QuickLoadTape)				options.emplace_back(new Configurable::BooleanOption("Load Tapes Quickly", "quickload"));
-	if(mask & DisplayRGBComposite)			options.emplace_back(new Configurable::ListOption("Display", "display", {"composite", "rgb"}));
+	if(mask & (DisplayRGB | DisplayComposite | DisplaySVideo)) {
+		std::vector<std::string> display_options;
+		if(mask & DisplayComposite)	display_options.emplace_back("composite");
+		if(mask & DisplaySVideo) 	display_options.emplace_back("svideo");
+		if(mask & DisplayRGB) 		display_options.emplace_back("rgb");
+		options.emplace_back(new Configurable::ListOption("Display", "display", display_options));
+	}
 	if(mask & AutomaticTapeMotorControl)	options.emplace_back(new Configurable::BooleanOption("Automatic Tape Motor Control", "autotapemotor"));
 	return options;
 }
@@ -48,7 +54,14 @@ void Configurable::append_automatic_tape_motor_control_selection(SelectionSet &s
 }
 
 void Configurable::append_display_selection(Configurable::SelectionSet &selection_set, Display selection) {
-	selection_set["display"] = std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection((selection == Display::RGB) ? "rgb" : "composite"));
+	std::string string_selection;
+	switch(selection) {
+		default:
+		case Display::RGB:			string_selection = "rgb";		break;
+		case Display::SVideo:		string_selection = "svideo";	break;
+		case Display::Composite:	string_selection = "composite";	break;
+	}
+	selection_set["display"] = std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection(string_selection));
 }
 
 // MARK: - Selection parsers
@@ -65,6 +78,10 @@ bool Configurable::get_display(const Configurable::SelectionSet &selections_by_o
 	if(display) {
 		if(display->value == "rgb") {
 			result = Configurable::Display::RGB;
+			return true;
+		}
+		if(display->value == "svideo") {
+			result = Configurable::Display::SVideo;
 			return true;
 		}
 		if(display->value == "composite") {

@@ -39,7 +39,7 @@
 		case Analyser::Machine::Electron:	return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::MSX:		return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::Oric:		return @"OricOptions";
-		case Analyser::Machine::Vic20:		return @"QuickLoadOptions";
+		case Analyser::Machine::Vic20:		return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::ZX8081:		return @"ZX8081Options";
 		default: return nil;
 	}

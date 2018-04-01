@@ -44,7 +44,7 @@ enum ROM {
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGBComposite | Configurable::QuickLoadTape)
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayComposite | Configurable::QuickLoadTape)
 	);
 }
 
@@ -465,7 +465,7 @@ class ConcreteMachine:
 
 			Configurable::Display display;
 			if(Configurable::get_display(selections_by_option, display)) {
-				set_output_device((display == Configurable::Display::RGB) ? Outputs::CRT::VideoSignal::RGB : Outputs::CRT::VideoSignal::Composite);
+				set_video_signal_configurable(display);
 			}
 		}
 
