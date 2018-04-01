@@ -87,8 +87,11 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std
 
 		// make a first guess based on loading address
 		switch(files.front().starting_address) {
+			default:
+				printf("Starting address %04x?\n", files.front().starting_address);
 			case 0x1001:
-			default: break;
+				target->memory_model = Target::MemoryModel::Unexpanded;
+			break;
 			case 0x1201:
 				target->memory_model = Target::MemoryModel::ThirtyTwoKB;
 			break;
