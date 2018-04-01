@@ -144,7 +144,7 @@ template <class T> class MOS6560 {
 			}
 
 			crt_->set_new_display_type(static_cast<unsigned int>(timing_.cycles_per_line*4), display_type);
-//			crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
+			crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.05f, 0.9f, 0.9f));
 
 //			switch(output_mode) {
 //				case OutputMode::PAL:
