@@ -52,12 +52,16 @@ class MachineDocument:
 		aController.window?.contentAspectRatio = self.aspectRatio()
 		setupMachineOutput()
 
-		// If there's no machine but the NIB has loaded, show the new machine dialogue
-		if self.machine == nil {
+	}
+
+	// Attempting to show a sheet before the window is visible (such as when the NIB is loaded) results in
+	// a sheet mysteriously floating on its own. For now, use windowDidUpdate as a proxy to know that the window
+	// is visible, though it's a little premature.
+	func windowDidUpdate(_ notification: Notification) {
+		if self.shouldShowNewMachinePanel {
+			self.shouldShowNewMachinePanel = false
 			Bundle.main.loadNibNamed(NSNib.Name(rawValue: "MachinePicker"), owner: self, topLevelObjects: nil)
-			aController.window?.beginSheet(self.machinePickerPanel!, completionHandler: { (response) in
-				Swift.print("\(response)")
-			})
+			self.windowControllers[0].window?.beginSheet(self.machinePickerPanel!, completionHandler: nil)
 		}
 	}
 
@@ -87,8 +91,9 @@ class MachineDocument:
 
 			setupAudioQueueClockRate()
 
-			// bring OpenGL view-holding window on top of the options panel
+			// bring OpenGL view-holding window on top of the options panel and show the content
 			openGLView.window!.makeKeyAndOrderFront(self)
+			openGLView.isHidden = false
 
 			// start accepting best effort updates
 			self.bestEffortUpdater!.delegate = self
@@ -143,6 +148,7 @@ class MachineDocument:
 		}
 	}
 
+	fileprivate var shouldShowNewMachinePanel = false
 	override func read(from url: URL, ofType typeName: String) throws {
 		if let analyser = CSStaticAnalyser(fileAt: url) {
 			self.displayName = analyser.displayName
@@ -155,6 +161,7 @@ class MachineDocument:
 	convenience init(type typeName: String) throws {
 		self.init()
 		self.fileType = typeName
+		self.shouldShowNewMachinePanel = true
 	}
 
 	// MARK: the pasteboard
@@ -237,7 +244,7 @@ class MachineDocument:
 
 	// MARK: New machine creation
 	@IBOutlet var machinePicker: MachinePicker?
-	@IBOutlet var machinePickerPanel: NSPanel?
+	@IBOutlet var machinePickerPanel: NSWindow?
 	@IBAction func createMachine(_ sender: NSButton?) {
 		self.configureAs(machinePicker!.selectedMachine())
 		machinePicker = nil

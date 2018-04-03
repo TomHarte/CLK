@@ -25,7 +25,7 @@
                 <rect key="frame" x="0.0" y="0.0" width="400" height="300"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <openGLView useAuxiliaryDepthBufferStencil="NO" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSOpenGLView">
+                    <openGLView hidden="YES" useAuxiliaryDepthBufferStencil="NO" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSOpenGLView">
                         <rect key="frame" x="0.0" y="0.0" width="400" height="300"/>
                     </openGLView>
                 </subviews>
