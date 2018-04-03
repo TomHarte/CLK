@@ -28,6 +28,7 @@ class MachineDocument:
 			return nil
 		}
 	}
+	var optionsPanelNibName: String?
 
 	func aspectRatio() -> NSSize {
 		return NSSize(width: 4.0, height: 3.0)
@@ -50,6 +51,14 @@ class MachineDocument:
 		super.windowControllerDidLoadNib(aController)
 		aController.window?.contentAspectRatio = self.aspectRatio()
 		setupMachineOutput()
+
+		// If there's no machine but the NIB has loaded, show the new machine dialogue
+		if self.machine == nil {
+			Bundle.main.loadNibNamed(NSNib.Name(rawValue: "MachinePicker"), owner: self, topLevelObjects: nil)
+			aController.window?.beginSheet(self.machinePickerPanel!, completionHandler: { (response) in
+				Swift.print("\(response)")
+			})
+		}
 	}
 
 	fileprivate func setupMachineOutput() {
@@ -59,6 +68,14 @@ class MachineDocument:
 			openGLView.perform(glContext: {
 				machine.setView(openGLView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
 			})
+
+			// attach an options panel if one is available
+			if let optionsPanelNibName = self.optionsPanelNibName {
+				Bundle.main.loadNibNamed(NSNib.Name(rawValue: optionsPanelNibName), owner: self, topLevelObjects: nil)
+				self.optionsPanel.machine = machine
+				self.optionsPanel?.establishStoredOptions()
+				showOptions(self)
+			}
 
 			machine.delegate = self
 			self.bestEffortUpdater = CSBestEffortUpdater()
@@ -121,14 +138,8 @@ class MachineDocument:
 	func configureAs(_ analysis: CSStaticAnalyser) {
 		if let machine = CSMachine(analyser: analysis) {
 			self.machine = machine
+			self.optionsPanelNibName = analysis.optionsPanelNibName
 			setupMachineOutput()
-
-			if let optionsPanelNibName = analysis.optionsPanelNibName {
-				Bundle.main.loadNibNamed(NSNib.Name(rawValue: optionsPanelNibName), owner: self, topLevelObjects: nil)
-				self.optionsPanel.machine = self.machine
-				self.optionsPanel?.establishStoredOptions()
-				showOptions(self)
-			}
 		}
 	}
 
@@ -139,6 +150,11 @@ class MachineDocument:
 		} else {
 			throw NSError(domain: "MachineDocument", code: -1, userInfo: nil)
 		}
+	}
+
+	convenience init(type typeName: String) throws {
+		self.init()
+		self.fileType = typeName
 	}
 
 	// MARK: the pasteboard
@@ -193,21 +209,42 @@ class MachineDocument:
 
 	// MARK: Input management
 	func windowDidResignKey(_ notification: Notification) {
-//		self.machine.clearAllKeys()
+		if let machine = self.machine {
+			machine.clearAllKeys()
+		}
 	}
 
 	func keyDown(_ event: NSEvent) {
-		self.machine.setKey(event.keyCode, characters: event.characters, isPressed: true)
+		if let machine = self.machine {
+			machine.setKey(event.keyCode, characters: event.characters, isPressed: true)
+		}
 	}
 
 	func keyUp(_ event: NSEvent) {
-		self.machine.setKey(event.keyCode, characters: event.characters, isPressed: false)
+		if let machine = self.machine {
+			machine.setKey(event.keyCode, characters: event.characters, isPressed: false)
+		}
 	}
 
 	func flagsChanged(_ newModifiers: NSEvent) {
-		self.machine.setKey(VK_Shift, characters: nil, isPressed: newModifiers.modifierFlags.contains(.shift))
-		self.machine.setKey(VK_Control, characters: nil, isPressed: newModifiers.modifierFlags.contains(.control))
-		self.machine.setKey(VK_Command, characters: nil, isPressed: newModifiers.modifierFlags.contains(.command))
-		self.machine.setKey(VK_Option, characters: nil, isPressed: newModifiers.modifierFlags.contains(.option))
+		if let machine = self.machine {
+			machine.setKey(VK_Shift, characters: nil, isPressed: newModifiers.modifierFlags.contains(.shift))
+			machine.setKey(VK_Control, characters: nil, isPressed: newModifiers.modifierFlags.contains(.control))
+			machine.setKey(VK_Command, characters: nil, isPressed: newModifiers.modifierFlags.contains(.command))
+			machine.setKey(VK_Option, characters: nil, isPressed: newModifiers.modifierFlags.contains(.option))
+		}
+	}
+
+	// MARK: New machine creation
+	@IBOutlet var machinePicker: MachinePicker?
+	@IBOutlet var machinePickerPanel: NSPanel?
+	@IBAction func createMachine(_ sender: NSButton?) {
+		self.configureAs(machinePicker!.selectedMachine())
+		machinePicker = nil
+		sender?.window?.close()
+	}
+
+	@IBAction func cancelCreateMachine(_ sender: NSButton?) {
+		close()
 	}
 }
