@@ -48,30 +48,34 @@ class MachineDocument:
 
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
+		aController.window?.contentAspectRatio = self.aspectRatio()
+		setupMachineOutput()
+	}
 
-		// establish the output aspect ratio and audio
-		let displayAspectRatio = self.aspectRatio()
-		aController.window?.contentAspectRatio = displayAspectRatio
-		openGLView.perform(glContext: {
-			self.machine.setView(self.openGLView, aspectRatio: Float(displayAspectRatio.width / displayAspectRatio.height))
-		})
+	fileprivate func setupMachineOutput() {
+		if let machine = self.machine, let openGLView = self.openGLView {
+			// establish the output aspect ratio and audio
+			let aspectRatio = self.aspectRatio()
+			openGLView.perform(glContext: {
+				machine.setView(openGLView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
+			})
 
-		self.machine.delegate = self
-		self.bestEffortUpdater = CSBestEffortUpdater()
+			machine.delegate = self
+			self.bestEffortUpdater = CSBestEffortUpdater()
 
-		// callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
-		// hence the full setup of the best-effort updater prior to setting self as a delegate
-		self.openGLView.delegate = self
-		self.openGLView.responderDelegate = self
+			// callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
+			// hence the full setup of the best-effort updater prior to setting self as a delegate
+			openGLView.delegate = self
+			openGLView.responderDelegate = self
 
-		setupAudioQueueClockRate()
-		self.optionsPanel?.establishStoredOptions()
+			setupAudioQueueClockRate()
 
-		// bring OpenGL view-holding window on top of the options panel
-		self.openGLView.window!.makeKeyAndOrderFront(self)
+			// bring OpenGL view-holding window on top of the options panel
+			openGLView.window!.makeKeyAndOrderFront(self)
 
-		// start accepting best effort updates
-		self.bestEffortUpdater!.delegate = self
+			// start accepting best effort updates
+			self.bestEffortUpdater!.delegate = self
+		}
 	}
 
 	func machineSpeakerDidChangeInputClock(_ machine: CSMachine!) {
@@ -95,9 +99,11 @@ class MachineDocument:
 		optionsPanel = nil
 
 		bestEffortLock.lock()
-		bestEffortUpdater!.delegate = nil
-		bestEffortUpdater!.flush()
-		bestEffortUpdater = nil
+		if let bestEffortUpdater = bestEffortUpdater {
+			bestEffortUpdater.delegate = nil
+			bestEffortUpdater.flush()
+			self.bestEffortUpdater = nil
+		}
 		bestEffortLock.unlock()
 
 		actionLock.lock()
@@ -115,12 +121,14 @@ class MachineDocument:
 	func configureAs(_ analysis: CSStaticAnalyser) {
 		if let machine = CSMachine(analyser: analysis) {
 			self.machine = machine
-		}
+			setupMachineOutput()
 
-		if let optionsPanelNibName = analysis.optionsPanelNibName {
-			Bundle.main.loadNibNamed(NSNib.Name(rawValue: optionsPanelNibName), owner: self, topLevelObjects: nil)
-			self.optionsPanel.machine = self.machine
-			showOptions(self)
+			if let optionsPanelNibName = analysis.optionsPanelNibName {
+				Bundle.main.loadNibNamed(NSNib.Name(rawValue: optionsPanelNibName), owner: self, topLevelObjects: nil)
+				self.optionsPanel.machine = self.machine
+				self.optionsPanel?.establishStoredOptions()
+				showOptions(self)
+			}
 		}
 	}
 
@@ -185,7 +193,7 @@ class MachineDocument:
 
 	// MARK: Input management
 	func windowDidResignKey(_ notification: Notification) {
-		self.machine.clearAllKeys()
+//		self.machine.clearAllKeys()
 	}
 
 	func keyDown(_ event: NSEvent) {

@@ -6,8 +6,8 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Target_h
-#define Target_h
+#ifndef Analyser_Static_ZX8081_Target_h
+#define Analyser_Static_ZX8081_Target_h
 
 #include "../StaticAnalyser.hpp"
 
@@ -23,11 +23,12 @@ struct Target: public ::Analyser::Static::Target {
 	};
 
 	MemoryModel memory_model = MemoryModel::Unexpanded;
-	bool isZX81 = false;
+	bool is_ZX81 = false;
+	bool ZX80_uses_ZX81_ROM = false;
 };
 
 }
 }
 }
 
-#endif /* Target_h */
+#endif /* Analyser_Static_ZX8081_Target_h */

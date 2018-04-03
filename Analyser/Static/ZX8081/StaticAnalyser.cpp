@@ -40,11 +40,11 @@ void Analyser::Static::ZX8081::AddTargets(const Media &media, std::vector<std::u
 			// Guess the machine type from the file only if it isn't already known.
 			switch(potential_platforms & (TargetPlatform::ZX80 | TargetPlatform::ZX81)) {
 				default:
-					target->isZX81 = files.front().isZX81;
+					target->is_ZX81 = files.front().isZX81;
 				break;
 
-				case TargetPlatform::ZX80:	target->isZX81 = false;	break;
-				case TargetPlatform::ZX81:	target->isZX81 = true;	break;
+				case TargetPlatform::ZX80:	target->is_ZX81 = false;	break;
+				case TargetPlatform::ZX81:	target->is_ZX81 = true;	break;
 			}
 
 			/*if(files.front().data.size() > 16384) {
@@ -57,7 +57,7 @@ void Analyser::Static::ZX8081::AddTargets(const Media &media, std::vector<std::u
 			target->media.tapes = media.tapes;
 
 			// TODO: how to run software once loaded? Might require a BASIC detokeniser.
-			if(target->isZX81) {
+			if(target->is_ZX81) {
 				target->loading_command = "J\"\"\n";
 			} else {
 				target->loading_command = "W\n";

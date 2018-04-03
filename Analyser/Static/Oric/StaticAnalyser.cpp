@@ -134,17 +134,17 @@ void Analyser::Static::Oric::AddTargets(const Media &media, std::vector<std::uni
 		for(const auto &disk: media.disks) {
 			Storage::Encodings::MFM::Parser parser(true, disk);
 			if(IsMicrodisc(parser)) {
-				target->has_microdisc = true;
+				target->has_microdrive = true;
 				target->media.disks.push_back(disk);
 			}
 		}
 	} else {
-		target->has_microdisc = false;
+		target->has_microdrive = false;
 	}
 
 	// TODO: really this should add two targets if not all votes agree
 	target->use_atmos_rom = basic11_votes >= basic10_votes;
-	if(target->has_microdisc) target->use_atmos_rom = true;
+	if(target->has_microdrive) target->use_atmos_rom = true;
 
 	if(target->media.tapes.size() || target->media.disks.size() || target->media.cartridges.size())
 		destination.push_back(std::move(target));
