@@ -41,13 +41,13 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	);
 	crt_->set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 0.0f);
 
-	set_output_device(Outputs::CRT::VideoSignal::Composite);
+	set_video_signal(Outputs::CRT::VideoSignal::Composite);
 	crt_->set_visible_area(crt_->get_rect_for_area(53, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 }
 
-void VideoOutput::set_output_device(Outputs::CRT::VideoSignal output_device) {
-	output_device_ = output_device;
-	crt_->set_video_signal(output_device);
+void VideoOutput::set_video_signal(Outputs::CRT::VideoSignal video_signal) {
+	video_signal_ = video_signal;
+	crt_->set_video_signal(video_signal);
 }
 
 void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
@@ -129,7 +129,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 				if(control_byte & 0x60) {
 					if(pixel_target_) {
 						uint16_t colours[2];
-						if(output_device_ == Outputs::CRT::VideoSignal::RGB) {
+						if(video_signal_ == Outputs::CRT::VideoSignal::RGB) {
 							colours[0] = static_cast<uint8_t>(paper_ ^ inverse_mask);
 							colours[1] = static_cast<uint8_t>(ink_ ^ inverse_mask);
 						} else {
@@ -183,7 +183,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 						pixel_target_[0] = pixel_target_[1] =
 						pixel_target_[2] = pixel_target_[3] =
 						pixel_target_[4] = pixel_target_[5] =
-							(output_device_ == Outputs::CRT::VideoSignal::RGB) ? paper_ ^ inverse_mask : colour_forms_[paper_ ^ inverse_mask];
+							(video_signal_ == Outputs::CRT::VideoSignal::RGB) ? paper_ ^ inverse_mask : colour_forms_[paper_ ^ inverse_mask];
 					}
 				}
 				if(pixel_target_) pixel_target_ += 6;

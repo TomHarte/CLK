@@ -67,6 +67,10 @@ class Machine: public ROMMachine::Machine {
 			return clock_rate_;
 		}
 
+		/*!
+			Maps from Configurable::Display to Outputs::CRT::VideoSignal and calls
+			@c set_video_signal with the result.
+		*/
 		void set_video_signal_configurable(Configurable::Display type) {
 			Outputs::CRT::VideoSignal signal;
 			switch(type) {
@@ -81,7 +85,14 @@ class Machine: public ROMMachine::Machine {
 					signal = Outputs::CRT::VideoSignal::Composite;
 				break;
 			}
-			get_crt()->set_video_signal(signal);
+			set_video_signal(signal);
+		}
+
+		/*!
+			Forwards the video signal to the CRT returned by get_crt().
+		*/
+		virtual void set_video_signal(Outputs::CRT::VideoSignal video_signal) {
+			get_crt()->set_video_signal(video_signal);
 		}
 
 	private:
