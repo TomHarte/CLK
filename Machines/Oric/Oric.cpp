@@ -271,7 +271,7 @@ class ConcreteMachine:
 		void configure_as_target(const Analyser::Static::Target *target) override final {
 			auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target);
 
-			if(oric_target->has_microdisc) {
+			if(oric_target->has_microdrive) {
 				microdisc_is_enabled_ = true;
 				microdisc_did_change_paging_flags(&microdisc_);
 				microdisc_.set_delegate(this);

@@ -10,6 +10,8 @@
 
 #include "Cartridge.hpp"
 #include "Tape.hpp"
+#include "Target.hpp"
+
 #include "../Disassembler/Z80.hpp"
 #include "../Disassembler/AddressMapper.hpp"
 
@@ -32,7 +34,7 @@ static std::unique_ptr<Analyser::Static::Target> CartridgeTarget(
 		output_segments.emplace_back(start_address, segment.data);
 	}
 
-	std::unique_ptr<Analyser::Static::Target> target(new Analyser::Static::Target);
+	std::unique_ptr<Analyser::Static::MSX::Target> target(new Analyser::Static::MSX::Target);
 	target->machine = Analyser::Machine::MSX;
 	target->confidence = confidence;
 
@@ -259,9 +261,9 @@ static std::vector<std::unique_ptr<Analyser::Static::Target>> CartridgeTargetsFr
 	return targets;
 }
 
-void Analyser::Static::MSX::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
+void Analyser::Static::MSX::AddTargets(const Media &media, std::vector<std::unique_ptr<::Analyser::Static::Target>> &destination) {
 	// Append targets for any cartridges that look correct.
-	std::vector<std::unique_ptr<Target>> cartridge_targets = CartridgeTargetsFrom(media.cartridges);
+	auto cartridge_targets = CartridgeTargetsFrom(media.cartridges);
 	std::move(cartridge_targets.begin(), cartridge_targets.end(), std::back_inserter(destination));
 
 	// Consider building a target for disks and/or tapes.
@@ -283,6 +285,7 @@ void Analyser::Static::MSX::AddTargets(const Media &media, std::vector<std::uniq
 
 	// Blindly accept disks for now.
 	target->media.disks = media.disks;
+	target->has_disk_drive = !media.disks.empty();
 
 	if(!target->media.empty()) {
 		target->machine = Machine::MSX;

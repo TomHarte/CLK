@@ -6,8 +6,8 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Target_h
-#define Target_h
+#ifndef Analyser_Static_Acorn_Target_h
+#define Analyser_Static_Acorn_Target_h
 
 #include "../StaticAnalyser.hpp"
 
@@ -25,4 +25,4 @@ struct Target: public ::Analyser::Static::Target {
 }
 }
 
-#endif /* Target_h */
+#endif /* Analyser_Static_Acorn_Target_h */

@@ -285,7 +285,7 @@ template<bool is_zx81> class ConcreteMachine:
 
 		void configure_as_target(const Analyser::Static::Target *target) override final {
 			auto *const zx8081_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
-			is_zx81_ = zx8081_target->isZX81;
+			is_zx81_ = zx8081_target->is_ZX81;
 			if(is_zx81_) {
 				rom_ = zx81_rom_;
 				tape_trap_address_ = 0x37c;
@@ -295,7 +295,7 @@ template<bool is_zx81> class ConcreteMachine:
 				automatic_tape_motor_start_address_ = 0x0340;
 				automatic_tape_motor_end_address_ = 0x03c3;
 			} else {
-				rom_ = zx80_rom_;
+				rom_ = zx8081_target->ZX80_uses_ZX81_ROM ? zx81_rom_ : zx80_rom_;
 				tape_trap_address_ = 0x220;
 				tape_return_address_ = 0x248;
 				vsync_start_ = HalfCycles(26);
@@ -528,7 +528,7 @@ Machine *Machine::ZX8081(const Analyser::Static::Target *target_hint) {
 	const Analyser::Static::ZX8081::Target *const hint = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target_hint);
 
 	// Instantiate the correct type of machine.
-	if(hint->isZX81)
+	if(hint->is_ZX81)
 		return new ZX8081::ConcreteMachine<true>();
 	else
 		return new ZX8081::ConcreteMachine<false>();
