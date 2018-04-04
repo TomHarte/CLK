@@ -61,6 +61,7 @@ class MachineDocument:
 		if self.shouldShowNewMachinePanel {
 			self.shouldShowNewMachinePanel = false
 			Bundle.main.loadNibNamed(NSNib.Name(rawValue: "MachinePicker"), owner: self, topLevelObjects: nil)
+			self.machinePicker?.establishStoredOptions()
 			self.windowControllers[0].window?.beginSheet(self.machinePickerPanel!, completionHandler: nil)
 		}
 	}
