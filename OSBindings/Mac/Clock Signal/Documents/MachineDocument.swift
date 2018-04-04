@@ -92,8 +92,9 @@ class MachineDocument:
 			setupAudioQueueClockRate()
 
 			// bring OpenGL view-holding window on top of the options panel and show the content
-			openGLView.window!.makeKeyAndOrderFront(self)
 			openGLView.isHidden = false
+			openGLView.window!.makeKeyAndOrderFront(self)
+			openGLView.window!.makeFirstResponder(openGLView)
 
 			// start accepting best effort updates
 			self.bestEffortUpdater!.delegate = self
