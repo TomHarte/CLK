@@ -315,20 +315,22 @@ void OpenGLOutputBuilder::prepare_composite_input_shaders() {
 }
 
 void OpenGLOutputBuilder::prepare_svideo_input_shaders() {
-	svideo_input_shader_program_ = OpenGL::IntermediateShader::make_svideo_source_shader(svideo_shader_, rgb_shader_);
-	svideo_input_shader_program_->set_source_texture_unit(source_data_texture_unit);
-	svideo_input_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
+	if(!svideo_shader_.empty() || !rgb_shader_.empty()) {
+		svideo_input_shader_program_ = OpenGL::IntermediateShader::make_svideo_source_shader(svideo_shader_, rgb_shader_);
+		svideo_input_shader_program_->set_source_texture_unit(source_data_texture_unit);
+		svideo_input_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
 
-	// TODO: the below is related to texture fencing, which is not yet implemented correctly, so not yet enabled.
-	if(work_texture_) {
-		svideo_input_shader_program_->set_is_double_height(true, 0.0f, 0.0f);
-	} else {
-		svideo_input_shader_program_->set_is_double_height(false);
+		// TODO: the below is related to texture fencing, which is not yet implemented correctly, so not yet enabled.
+		if(work_texture_) {
+			svideo_input_shader_program_->set_is_double_height(true, 0.0f, 0.0f);
+		} else {
+			svideo_input_shader_program_->set_is_double_height(false);
+		}
 	}
 }
 
 void OpenGLOutputBuilder::prepare_rgb_input_shaders() {
-	if(rgb_shader_.size()) {
+	if(!rgb_shader_.empty()) {
 		rgb_input_shader_program_ = OpenGL::IntermediateShader::make_rgb_source_shader(rgb_shader_);
 		rgb_input_shader_program_->set_source_texture_unit(source_data_texture_unit);
 		rgb_input_shader_program_->set_output_size(IntermediateBufferWidth, IntermediateBufferHeight);
@@ -340,11 +342,13 @@ void OpenGLOutputBuilder::prepare_rgb_input_shaders() {
 }
 
 void OpenGLOutputBuilder::prepare_source_vertex_array() {
-	if(composite_input_shader_program_) {
+	if(composite_input_shader_program_ || svideo_input_shader_program_) {
 		glBindVertexArray(source_vertex_array_);
 		array_builder.bind_input();
+	}
 
-		using Shader = OpenGL::IntermediateShader;
+	using Shader = OpenGL::IntermediateShader;
+	if(composite_input_shader_program_) {
 		composite_input_shader_program_->enable_vertex_attribute_with_pointer(
 			Shader::get_input_name(Shader::Input::InputStart),
 			2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize,
@@ -364,7 +368,9 @@ void OpenGLOutputBuilder::prepare_source_vertex_array() {
 			Shader::get_input_name(Shader::Input::PhaseTimeAndAmplitude),
 			3, GL_UNSIGNED_BYTE, GL_FALSE, SourceVertexSize,
 			(void *)SourceVertexOffsetOfPhaseTimeAndAmplitude, 1);
+	}
 
+	if(svideo_input_shader_program_) {
 		svideo_input_shader_program_->enable_vertex_attribute_with_pointer(
 			Shader::get_input_name(Shader::Input::InputStart),
 			2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize,

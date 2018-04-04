@@ -22,6 +22,7 @@ Video::Video() :
 		"}");
 
 	// Show only the centre 80% of the TV frame.
+	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 	crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 }
 

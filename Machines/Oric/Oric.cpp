@@ -263,10 +263,6 @@ class ConcreteMachine:
 			use_fast_tape_hack_ = activate;
 		}
 
-		void set_output_device(Outputs::CRT::VideoSignal output_device) {
-			video_output_->set_output_device(output_device);
-		}
-
 		// to satisfy ConfigurationTarget::Machine
 		void configure_as_target(const Analyser::Static::Target *target) override final {
 			auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target);
@@ -392,7 +388,7 @@ class ConcreteMachine:
 
 			video_output_.reset(new VideoOutput(ram_));
 			if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);
-			set_output_device(Outputs::CRT::VideoSignal::RGB);
+			set_video_signal(Outputs::CRT::VideoSignal::RGB);
 		}
 
 		void close_output() override final {
@@ -467,6 +463,10 @@ class ConcreteMachine:
 			if(Configurable::get_display(selections_by_option, display)) {
 				set_video_signal_configurable(display);
 			}
+		}
+
+		void set_video_signal(Outputs::CRT::VideoSignal video_signal) override {
+			video_output_->set_video_signal(video_signal);
 		}
 
 		Configurable::SelectionSet get_accurate_selections() override {
