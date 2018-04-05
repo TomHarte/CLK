@@ -204,22 +204,22 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		} filter_parameters_;
 
 		void update_filter_coefficients(const FilterParameters &filter_parameters) {
+			float high_pass_frequency = filter_parameters.output_cycles_per_second / 2.0f;
+			if(filter_parameters.high_frequency_cutoff > 0.0) {
+				high_pass_frequency = std::min(filter_parameters.high_frequency_cutoff, high_pass_frequency);
+			}
+
 			// Make a guess at a good number of taps.
 			std::size_t number_of_taps = static_cast<std::size_t>(
-				ceilf((filter_parameters.input_cycles_per_second + filter_parameters.output_cycles_per_second) / filter_parameters.output_cycles_per_second)
+				ceilf((filter_parameters.input_cycles_per_second + high_pass_frequency) / high_pass_frequency)
 			);
 			number_of_taps = (number_of_taps * 2) | 1;
 
 			output_buffer_pointer_ = 0;
-
 			stepper_.reset(new SignalProcessing::Stepper(
 				static_cast<uint64_t>(filter_parameters.input_cycles_per_second),
 				static_cast<uint64_t>(filter_parameters.output_cycles_per_second)));
 
-			float high_pass_frequency = filter_parameters.output_cycles_per_second / 2.0f;
-			if(filter_parameters.high_frequency_cutoff > 0.0) {
-				high_pass_frequency = std::min(filter_parameters.output_cycles_per_second / 2.0f, high_pass_frequency);
-			}
 			filter_.reset(new SignalProcessing::FIRFilter(
 				static_cast<unsigned int>(number_of_taps),
 				filter_parameters.input_cycles_per_second,
