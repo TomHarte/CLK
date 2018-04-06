@@ -145,16 +145,15 @@ template <class T> class MOS6560 {
 			}
 
 			crt_->set_new_display_type(static_cast<unsigned int>(timing_.cycles_per_line*4), display_type);
-			crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.05f, 0.9f, 0.9f));
 
-//			switch(output_mode) {
-//				case OutputMode::PAL:
-//					crt_->set_visible_area(crt_->get_rect_for_area(16, 237, 15*4, 55*4, 4.0f / 3.0f));
-//				break;
-//				case OutputMode::NTSC:
-//					crt_->set_visible_area(crt_->get_rect_for_area(16, 237, 11*4, 55*4, 4.0f / 3.0f));
-//				break;
-//			}
+			switch(output_mode) {
+				case OutputMode::PAL:
+					crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.05f, 0.9f, 0.9f));
+				break;
+				case OutputMode::NTSC:
+					crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
+				break;
+			}
 
 			for(int c = 0; c < 16; c++) {
 				uint8_t *colour = reinterpret_cast<uint8_t *>(&colours_[c]);
