@@ -36,7 +36,8 @@ class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 		unsigned int counters_[4] = {2, 1, 0, 0}; 	// create a slight phase offset for the three channels
 		unsigned int shift_registers_[4] = {0, 0, 0, 0};
 		uint8_t control_registers_[4] = {0, 0, 0, 0};
-		uint8_t volume_ = 0;
+		int16_t volume_ = 0;
+		int16_t range_multiplier_ = 1;
 };
 
 /*!
