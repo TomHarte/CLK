@@ -388,7 +388,7 @@ void OpenGLOutputBuilder::prepare_output_vertex_array() {
 	if(output_shader_program_) {
 		glBindVertexArray(output_vertex_array_);
 		array_builder.bind_output();
-		
+
 		using Shader = OpenGL::OutputShader;
 		output_shader_program_->enable_vertex_attribute_with_pointer(
 			Shader::get_input_name(Shader::Input::Horizontal),
