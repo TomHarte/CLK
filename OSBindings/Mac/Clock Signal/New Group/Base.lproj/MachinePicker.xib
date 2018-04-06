@@ -20,16 +20,16 @@
             <rect key="contentRect" x="196" y="240" width="600" height="165"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1366" height="768"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
-                <rect key="frame" x="0.0" y="0.0" width="600" height="165"/>
+                <rect key="frame" x="0.0" y="0.0" width="600" height="205"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <tabView translatesAutoresizingMaskIntoConstraints="NO" id="VUb-QG-x7c">
-                        <rect key="frame" x="13" y="51" width="574" height="100"/>
+                        <rect key="frame" x="13" y="51" width="574" height="140"/>
                         <font key="font" metaFont="system"/>
                         <tabViewItems>
                             <tabViewItem label="Acorn Electron" identifier="electron" id="muc-z9-Vqc">
                                 <view key="view" id="SRc-2D-95G">
-                                    <rect key="frame" x="10" y="33" width="516" height="54"/>
+                                    <rect key="frame" x="10" y="33" width="554" height="54"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JqM-IK-FMP">
@@ -119,18 +119,18 @@
                             </tabViewItem>
                             <tabViewItem label="Oric" identifier="oric" id="NSx-DC-p4M">
                                 <view key="view" id="sOR-e0-8iZ">
-                                    <rect key="frame" x="10" y="33" width="516" height="92"/>
+                                    <rect key="frame" x="10" y="33" width="554" height="61"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="mZw-PY-0Yv">
-                                            <rect key="frame" x="15" y="46" width="129" height="18"/>
+                                            <rect key="frame" x="15" y="15" width="129" height="18"/>
                                             <buttonCell key="cell" type="check" title="Attach Microdrive" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="Wl2-KO-smb">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0ct-tf-uRH">
-                                            <rect key="frame" x="17" y="72" width="42" height="17"/>
+                                            <rect key="frame" x="17" y="41" width="42" height="17"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model" id="Xm1-7x-YVl">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -138,7 +138,7 @@
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ENP-hI-BVZ">
-                                            <rect key="frame" x="63" y="67" width="105" height="26"/>
+                                            <rect key="frame" x="63" y="36" width="105" height="26"/>
                                             <popUpButtonCell key="cell" type="push" title="Oric-1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="proportionallyDown" inset="2" selectedItem="jGN-1a-biF" id="Jll-EJ-cMr">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -166,7 +166,7 @@
                             </tabViewItem>
                             <tabViewItem label="Vic-20" identifier="vic20" id="cyO-PU-hSU">
                                 <view key="view" id="fLI-XB-QCr">
-                                    <rect key="frame" x="10" y="33" width="516" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="554" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ueK-gq-gaF">
