@@ -348,33 +348,32 @@ void OpenGLOutputBuilder::prepare_source_vertex_array() {
 	}
 
 	using Shader = OpenGL::IntermediateShader;
-	if(composite_input_shader_program_) {
-		composite_input_shader_program_->enable_vertex_attribute_with_pointer(
+	OpenGL::IntermediateShader *const shaders[] = {
+		composite_input_shader_program_.get(),
+		svideo_input_shader_program_.get()
+	};
+	for(int c = 0; c < 2; ++c) {
+		if(!shaders[c]) continue;
+
+		shaders[c]->enable_vertex_attribute_with_pointer(
 			Shader::get_input_name(Shader::Input::InputStart),
 			2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize,
 			(void *)SourceVertexOffsetOfInputStart, 1);
 
-		composite_input_shader_program_->enable_vertex_attribute_with_pointer(
+		shaders[c]->enable_vertex_attribute_with_pointer(
 			Shader::get_input_name(Shader::Input::OutputStart),
 			2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize,
 			(void *)SourceVertexOffsetOfOutputStart, 1);
 
-		composite_input_shader_program_->enable_vertex_attribute_with_pointer(
+		shaders[c]->enable_vertex_attribute_with_pointer(
 			Shader::get_input_name(Shader::Input::Ends),
 			2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize,
 			(void *)SourceVertexOffsetOfEnds, 1);
 
-		composite_input_shader_program_->enable_vertex_attribute_with_pointer(
+		shaders[c]->enable_vertex_attribute_with_pointer(
 			Shader::get_input_name(Shader::Input::PhaseTimeAndAmplitude),
 			3, GL_UNSIGNED_BYTE, GL_FALSE, SourceVertexSize,
 			(void *)SourceVertexOffsetOfPhaseTimeAndAmplitude, 1);
-	}
-
-	if(svideo_input_shader_program_) {
-		svideo_input_shader_program_->enable_vertex_attribute_with_pointer(
-			Shader::get_input_name(Shader::Input::InputStart),
-			2, GL_UNSIGNED_SHORT, GL_FALSE, SourceVertexSize,
-			(void *)SourceVertexOffsetOfInputStart, 1);
 	}
 }
 
