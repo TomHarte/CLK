@@ -17,30 +17,30 @@
         <window title="Window" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" animationBehavior="default" titleVisibility="hidden" id="QvC-M9-y7g">
             <windowStyleMask key="styleMask" titled="YES" documentModal="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="196" y="240" width="562" height="129"/>
+            <rect key="contentRect" x="196" y="240" width="600" height="165"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1366" height="768"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
-                <rect key="frame" x="0.0" y="0.0" width="562" height="205"/>
+                <rect key="frame" x="0.0" y="0.0" width="600" height="165"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
                     <tabView translatesAutoresizingMaskIntoConstraints="NO" id="VUb-QG-x7c">
-                        <rect key="frame" x="13" y="51" width="536" height="140"/>
+                        <rect key="frame" x="13" y="51" width="574" height="100"/>
                         <font key="font" metaFont="system"/>
                         <tabViewItems>
                             <tabViewItem label="Acorn Electron" identifier="electron" id="muc-z9-Vqc">
                                 <view key="view" id="SRc-2D-95G">
-                                    <rect key="frame" x="10" y="33" width="516" height="92"/>
+                                    <rect key="frame" x="10" y="33" width="516" height="54"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JqM-IK-FMP">
-                                            <rect key="frame" x="15" y="73" width="164" height="18"/>
+                                            <rect key="frame" x="15" y="35" width="164" height="18"/>
                                             <buttonCell key="cell" type="check" title="With Disk Filing System" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="tpW-5C-xKp">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="945-wU-JOH">
-                                            <rect key="frame" x="15" y="53" width="228" height="18"/>
+                                            <rect key="frame" x="15" y="15" width="228" height="18"/>
                                             <buttonCell key="cell" type="check" title="With Advanced Disk Filing System" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="S0c-Jg-7Pu">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -243,11 +243,11 @@
                             </tabViewItem>
                             <tabViewItem label="ZX80" identifier="zx80" id="tMH-kF-GUz">
                                 <view key="view" id="8hL-Vn-Hg0">
-                                    <rect key="frame" x="10" y="33" width="516" height="92"/>
+                                    <rect key="frame" x="10" y="33" width="554" height="61"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="I1a-Eu-5UB">
-                                            <rect key="frame" x="102" y="65" width="114" height="26"/>
+                                            <rect key="frame" x="102" y="34" width="114" height="26"/>
                                             <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="4Sa-jR-xOd" id="B8M-do-Yod">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -255,13 +255,13 @@
                                                     <items>
                                                         <menuItem title="Unexpanded" state="on" id="4Sa-jR-xOd"/>
                                                         <menuItem title="16 kb" tag="16" id="bWl-oP-jGn"/>
-                                                        <menuItem title="64 kb" tag="64" id="WNJ-kT-TYn"/>
+                                                        <menuItem title="64 kb" tag="64" hidden="YES" enabled="NO" id="WNJ-kT-TYn"/>
                                                     </items>
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NCX-4e-lSu">
-                                            <rect key="frame" x="15" y="70" width="83" height="17"/>
+                                            <rect key="frame" x="15" y="39" width="83" height="17"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size" id="e6x-TE-OC5">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -269,7 +269,7 @@
                                             </textFieldCell>
                                         </textField>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ReP-bV-Thu">
-                                            <rect key="frame" x="15" y="46" width="114" height="18"/>
+                                            <rect key="frame" x="15" y="15" width="114" height="18"/>
                                             <buttonCell key="cell" type="check" title="Use ZX81 ROM" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="VQH-nv-Pfm">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -291,11 +291,11 @@
                             </tabViewItem>
                             <tabViewItem label="ZX81" identifier="zx81" id="Wnn-nQ-gZ6">
                                 <view key="view" id="bmd-gL-gzT">
-                                    <rect key="frame" x="10" y="33" width="516" height="92"/>
+                                    <rect key="frame" x="10" y="33" width="554" height="54"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="5aO-UX-HnX">
-                                            <rect key="frame" x="102" y="65" width="114" height="26"/>
+                                            <rect key="frame" x="102" y="27" width="114" height="26"/>
                                             <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="7QC-Ij-hES" id="d3W-Gl-3Mf">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -303,13 +303,13 @@
                                                     <items>
                                                         <menuItem title="Unexpanded" state="on" id="7QC-Ij-hES"/>
                                                         <menuItem title="16 kb" tag="16" id="1HK-zJ-udx"/>
-                                                        <menuItem title="64 kb" tag="64" id="PEx-W6-eGK"/>
+                                                        <menuItem title="64 kb" tag="64" hidden="YES" enabled="NO" id="PEx-W6-eGK"/>
                                                     </items>
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8tU-73-XEE">
-                                            <rect key="frame" x="15" y="70" width="83" height="17"/>
+                                            <rect key="frame" x="15" y="32" width="83" height="17"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size" id="z4b-oR-Yl2">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -330,8 +330,8 @@
                         </tabViewItems>
                     </tabView>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hKn-1l-OSN">
-                        <rect key="frame" x="412" y="13" width="136" height="32"/>
-                        <buttonCell key="cell" type="push" title="Create Machine" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="MnM-xo-4Qa">
+                        <rect key="frame" x="499" y="13" width="87" height="32"/>
+                        <buttonCell key="cell" type="push" title="Choose" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="MnM-xo-4Qa">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
                         </buttonCell>
@@ -340,7 +340,7 @@
                         </connections>
                     </button>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JQy-Cj-AOK">
-                        <rect key="frame" x="331" y="13" width="82" height="32"/>
+                        <rect key="frame" x="418" y="13" width="82" height="32"/>
                         <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="sub-rB-Req">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -352,20 +352,32 @@ Gw
                             <action selector="cancelCreateMachine:" target="-2" id="lf8-PM-c0m"/>
                         </connections>
                     </button>
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="9YM-5x-pc0">
+                        <rect key="frame" x="20" y="14" width="398" height="34"/>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" id="xTm-Oy-oz5">
+                            <font key="font" metaFont="system"/>
+                            <string key="title">If you use File -&gt; Open... to select a disk, tape or cartridge directly, the emulator will select and configure a machine for you.</string>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
                 </subviews>
                 <constraints>
                     <constraint firstAttribute="trailing" secondItem="VUb-QG-x7c" secondAttribute="trailing" constant="20" id="Bem-7v-AY6"/>
                     <constraint firstItem="JQy-Cj-AOK" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="FMm-eV-4eu"/>
                     <constraint firstAttribute="bottom" secondItem="JQy-Cj-AOK" secondAttribute="bottom" constant="20" id="Kvh-1K-iI8"/>
+                    <constraint firstItem="9YM-5x-pc0" firstAttribute="centerY" secondItem="JQy-Cj-AOK" secondAttribute="centerY" id="LM5-2z-qQj"/>
                     <constraint firstItem="hKn-1l-OSN" firstAttribute="top" secondItem="VUb-QG-x7c" secondAttribute="bottom" constant="20" id="TqB-gT-0bf"/>
                     <constraint firstItem="hKn-1l-OSN" firstAttribute="leading" secondItem="JQy-Cj-AOK" secondAttribute="trailing" constant="11" id="f3Q-Om-rI0"/>
+                    <constraint firstItem="9YM-5x-pc0" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="22" id="g8a-if-Ogh"/>
                     <constraint firstItem="VUb-QG-x7c" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="j1W-rQ-Ypd"/>
                     <constraint firstAttribute="trailing" secondItem="hKn-1l-OSN" secondAttribute="trailing" constant="20" id="mJg-vd-ddP"/>
+                    <constraint firstItem="JQy-Cj-AOK" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="9YM-5x-pc0" secondAttribute="trailing" constant="8" id="nlb-iJ-JUF"/>
                     <constraint firstAttribute="bottom" secondItem="hKn-1l-OSN" secondAttribute="bottom" constant="20" id="rG2-Ea-klR"/>
                     <constraint firstItem="VUb-QG-x7c" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" id="zT3-Ea-QQJ"/>
                 </constraints>
             </view>
-            <point key="canvasLocation" x="34" y="89.5"/>
+            <point key="canvasLocation" x="34" y="89"/>
         </window>
         <customObject id="192-Eb-Rpg" customClass="MachinePicker" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
