@@ -68,8 +68,8 @@ static int gzget32(gzFile file) {
 
 using namespace Storage::Tape;
 
-UEF::UEF(const char *file_name) {
-	file_ = gzopen(file_name, "rb");
+UEF::UEF(const std::string &file_name) {
+	file_ = gzopen(file_name.c_str(), "rb");
 
 	char identifier[10];
 	int bytes_read = gzread(file_, identifier, 10);

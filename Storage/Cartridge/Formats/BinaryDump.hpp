@@ -11,12 +11,14 @@
 
 #include "../Cartridge.hpp"
 
+#include <string>
+
 namespace Storage {
 namespace Cartridge {
 
 class BinaryDump : public Cartridge {
 	public:
-		BinaryDump(const char *file_name);
+		BinaryDump(const std::string &file_name);
 
 		enum {
 			ErrorNotAccessible

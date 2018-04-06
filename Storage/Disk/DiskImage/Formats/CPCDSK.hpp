@@ -13,6 +13,7 @@
 #include "../../../FileHolder.hpp"
 #include "../../Encodings/MFM/Sector.hpp"
 
+#include <string>
 #include <vector>
 
 namespace Storage {
@@ -29,7 +30,7 @@ class CPCDSK: public DiskImage {
 			@throws ErrorCantOpen if this file can't be opened.
 			@throws ErrorNotAcornADF if the file doesn't appear to contain an Acorn .ADF format image.
 		*/
-		CPCDSK(const char *file_name);
+		CPCDSK(const std::string &file_name);
 
 		enum {
 			ErrorNotCPCDSK,

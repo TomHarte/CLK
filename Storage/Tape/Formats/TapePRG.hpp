@@ -11,7 +11,9 @@
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
+
 #include <cstdint>
+#include <string>
 
 namespace Storage {
 namespace Tape {
@@ -27,7 +29,7 @@ class PRG: public Tape {
 			@param file_name The name of the file to load.
 			@throws ErrorBadFormat if this file could not be opened and recognised as the specified type.
 		*/
-		PRG(const char *file_name);
+		PRG(const std::string &file_name);
 
 		enum {
 			ErrorBadFormat

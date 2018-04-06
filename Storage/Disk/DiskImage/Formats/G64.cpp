@@ -16,7 +16,7 @@
 
 using namespace Storage::Disk;
 
-G64::G64(const char *file_name) :
+G64::G64(const std::string &file_name) :
 		file_(file_name) {
 	// read and check the file signature
 	if(!file_.check_signature("GCR-1541")) throw ErrorNotG64;

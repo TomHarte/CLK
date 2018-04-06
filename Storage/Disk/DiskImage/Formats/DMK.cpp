@@ -32,7 +32,7 @@ std::unique_ptr<Storage::Encodings::MFM::Encoder> new_encoder(Storage::Disk::PCM
 
 }
 
-DMK::DMK(const char *file_name) :
+DMK::DMK(const std::string &file_name) :
 	file_(file_name) {
 	// Determine whether this DMK represents a read-only disk (whether intentionally,
 	// or by virtue of placement).

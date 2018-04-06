@@ -11,7 +11,9 @@
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
+
 #include <cstdint>
+#include <string>
 
 namespace Storage {
 namespace Tape {
@@ -26,7 +28,7 @@ class CommodoreTAP: public Tape {
 
 			@throws ErrorNotCommodoreTAP if this file could not be opened and recognised as a valid Commodore-format TAP.
 		*/
-		CommodoreTAP(const char *file_name);
+		CommodoreTAP(const std::string &file_name);
 
 		enum {
 			ErrorNotCommodoreTAP

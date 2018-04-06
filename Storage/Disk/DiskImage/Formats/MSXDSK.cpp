@@ -17,7 +17,7 @@ namespace {
 
 using namespace Storage::Disk;
 
-MSXDSK::MSXDSK(const char *file_name) :
+MSXDSK::MSXDSK(const std::string &file_name) :
 	MFMSectorDump(file_name) {
 	// The only sanity check here is whether a sensible
 	// geometry can be guessed.

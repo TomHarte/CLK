@@ -26,7 +26,7 @@ class D64: public DiskImage {
 			@throws ErrorCantOpen if this file can't be opened.
 			@throws ErrorNotD64 if the file doesn't appear to contain a .D64 format image.
 		*/
-		D64(const char *file_name);
+		D64(const std::string &file_name);
 
 		enum {
 			ErrorNotD64,

@@ -17,7 +17,7 @@
 
 using namespace Storage::Disk;
 
-D64::D64(const char *file_name) :
+D64::D64(const std::string &file_name) :
 		file_(file_name) {
 	// in D64, this is it for validation without imposing potential false-negative tests — check that
 	// the file size appears to be correct. Stone-age stuff.
@@ -29,10 +29,9 @@ D64::D64(const char *file_name) :
 	// then, ostensibly, this is a valid file. Hmmm. Pick a disk ID as a function of the file_name,
 	// being the most stable thing available
 	disk_id_ = 0;
-	while(*file_name) {
-		disk_id_ ^= file_name[0];
+	for(const auto &character: file_name) {
+		disk_id_ ^= character;
 		disk_id_ = static_cast<uint16_t>((disk_id_ << 2) ^ (disk_id_ >> 13));
-		file_name++;
 	}
 }
 

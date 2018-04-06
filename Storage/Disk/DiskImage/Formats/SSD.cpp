@@ -19,7 +19,7 @@ namespace {
 
 using namespace Storage::Disk;
 
-SSD::SSD(const char *file_name) : MFMSectorDump(file_name) {
+SSD::SSD(const std::string &file_name) : MFMSectorDump(file_name) {
 	// very loose validation: the file needs to be a multiple of 256 bytes
 	// and not ungainly large
 
@@ -28,7 +28,7 @@ SSD::SSD(const char *file_name) : MFMSectorDump(file_name) {
 	if(file_.stats().st_size > 800*256) throw ErrorNotSSD;
 
 	// this has two heads if the suffix is .dsd, one if it's .ssd
-	head_count_ = (tolower(file_name[std::strlen(file_name) - 3]) == 'd') ? 2 : 1;
+	head_count_ = (tolower(file_name[file_name.size() - 3]) == 'd') ? 2 : 1;
 	track_count_ = static_cast<int>(file_.stats().st_size / (256 * 10));
 	if(track_count_ < 40) track_count_ = 40;
 	else if(track_count_ < 80) track_count_ = 80;

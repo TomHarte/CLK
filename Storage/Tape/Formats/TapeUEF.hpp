@@ -13,8 +13,9 @@
 
 #include "../../TargetPlatforms.hpp"
 
-#include <zlib.h>
 #include <cstdint>
+#include <string>
+#include <zlib.h>
 
 namespace Storage {
 namespace Tape {
@@ -29,7 +30,7 @@ class UEF : public PulseQueuedTape, public TargetPlatform::TypeDistinguisher {
 
 			@throws ErrorNotUEF if this file could not be opened and recognised as a valid UEF.
 		*/
-		UEF(const char *file_name);
+		UEF(const std::string &file_name);
 		~UEF();
 
 		enum {

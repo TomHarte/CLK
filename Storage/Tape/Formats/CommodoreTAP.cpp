@@ -12,7 +12,7 @@
 
 using namespace Storage::Tape;
 
-CommodoreTAP::CommodoreTAP(const char *file_name) :
+CommodoreTAP::CommodoreTAP(const std::string &file_name) :
 	file_(file_name)
 {
 	if(!file_.check_signature("C64-TAPE-RAW"))

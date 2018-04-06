@@ -11,6 +11,8 @@
 
 #include "MFMSectorDump.hpp"
 
+#include <string>
+
 namespace Storage {
 namespace Disk {
 
@@ -20,7 +22,7 @@ namespace Disk {
 */
 class MSXDSK: public MFMSectorDump {
 	public:
-		MSXDSK(const char *file_name);
+		MSXDSK(const std::string &file_name);
 
 		enum {
 			ErrorNotMSXDSK,

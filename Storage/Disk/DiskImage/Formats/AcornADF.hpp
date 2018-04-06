@@ -11,6 +11,8 @@
 
 #include "MFMSectorDump.hpp"
 
+#include <string>
+
 namespace Storage {
 namespace Disk {
 
@@ -25,7 +27,7 @@ class AcornADF: public MFMSectorDump {
 			@throws ErrorCantOpen if this file can't be opened.
 			@throws ErrorNotAcornADF if the file doesn't appear to contain an Acorn .ADF format image.
 		*/
-		AcornADF(const char *file_name);
+		AcornADF(const std::string &file_name);
 
 		enum {
 			ErrorNotAcornADF,

@@ -13,6 +13,7 @@
 #include "../../FileHolder.hpp"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace Storage {
@@ -28,7 +29,7 @@ class CAS: public Tape {
 
 			@throws ErrorNotCAS if this file could not be opened and recognised as a valid CAS file.
 		*/
-		CAS(const char *file_name);
+		CAS(const std::string &file_name);
 
 		enum {
 			ErrorNotCAS

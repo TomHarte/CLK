@@ -12,6 +12,8 @@
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
+#include <string>
+
 namespace Storage {
 namespace Disk {
 
@@ -20,7 +22,7 @@ namespace Disk {
 */
 class MFMSectorDump: public DiskImage {
 	public:
-		MFMSectorDump(const char *file_name);
+		MFMSectorDump(const std::string &file_name);
 		void set_geometry(int sectors_per_track, uint8_t sector_size, uint8_t first_sector, bool is_double_density);
 
 		bool get_is_read_only() override;
