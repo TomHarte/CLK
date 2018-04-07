@@ -144,6 +144,9 @@ class ConcreteMachine:
 			ay_.set_port_handler(&ay_port_handler_);
 			speaker_.set_input_rate(3579545.0f / 2.0f);
 			tape_player_.set_sleep_observer(this);
+
+			// Set the AY to 50% of available volume, the toggle to 10% and leave 40% for an SCC.
+			mixer_.set_relative_volumes({0.5f, 0.1f, 0.4f});
 		}
 
 		~ConcreteMachine() {
