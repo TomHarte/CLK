@@ -16,7 +16,7 @@
 
 using namespace Storage::Disk;
 
-OricMFMDSK::OricMFMDSK(const char *file_name) :
+OricMFMDSK::OricMFMDSK(const std::string &file_name) :
 		file_(file_name) {
 	if(!file_.check_signature("MFM_DISK"))
 		throw ErrorNotOricMFMDSK;

@@ -12,6 +12,8 @@
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
+#include <string>
+
 namespace Storage {
 namespace Disk {
 
@@ -26,7 +28,7 @@ class DMK: public DiskImage {
 
 			@throws ErrorNotDMK if this file doesn't appear to be a DMK.
 		*/
-		DMK(const char *file_name);
+		DMK(const std::string &file_name);
 
 		enum {
 			ErrorNotDMK

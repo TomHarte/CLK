@@ -13,13 +13,13 @@
 
 using namespace Storage::Cartridge;
 
-BinaryDump::BinaryDump(const char *file_name) {
+BinaryDump::BinaryDump(const std::string &file_name) {
 	// the file should be exactly 16 kb
 	struct stat file_stats;
-	stat(file_name, &file_stats);
+	stat(file_name.c_str(), &file_stats);
 
 	// grab contents
-	FILE *file = std::fopen(file_name, "rb");
+	FILE *file = std::fopen(file_name.c_str(), "rb");
 	if(!file) throw ErrorNotAccessible;
 	std::size_t data_length = static_cast<std::size_t>(file_stats.st_size);
 	std::vector<uint8_t> contents(data_length);

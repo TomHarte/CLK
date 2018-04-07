@@ -15,6 +15,7 @@
 #include "../../TargetPlatforms.hpp"
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace Storage {
@@ -30,7 +31,7 @@ class ZX80O81P: public Tape, public TargetPlatform::TypeDistinguisher {
 
 			@throws ErrorNotZX80O81P if this file could not be opened and recognised as a valid ZX80-format .O.
 		*/
-		ZX80O81P(const char *file_name);
+		ZX80O81P(const std::string &file_name);
 
 		enum {
 			ErrorNotZX80O81P

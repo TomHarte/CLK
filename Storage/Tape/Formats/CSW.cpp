@@ -12,7 +12,7 @@
 
 using namespace Storage::Tape;
 
-CSW::CSW(const char *file_name) :
+CSW::CSW(const std::string &file_name) :
 	source_data_pointer_(0) {
 	Storage::FileHolder file(file_name);
 	if(file.stats().st_size < 0x20) throw ErrorNotCSW;

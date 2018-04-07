@@ -17,7 +17,7 @@
 
 using namespace Storage::Disk;
 
-CPCDSK::CPCDSK(const char *file_name) :
+CPCDSK::CPCDSK(const std::string &file_name) :
 	file_name_(file_name),
 	is_extended_(false) {
 	FileHolder file(file_name);

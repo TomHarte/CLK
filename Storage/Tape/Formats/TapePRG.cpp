@@ -48,7 +48,7 @@
 
 using namespace Storage::Tape;
 
-PRG::PRG(const char *file_name) :
+PRG::PRG(const std::string &file_name) :
 	file_(file_name)
 {
 	// There's really no way to validate other than that if this file is larger than 64kb,

@@ -17,7 +17,7 @@ const unsigned int StandardTZXClock = 3500000;
 const unsigned int TZXClockMSMultiplier = 3500;
 }
 
-TZX::TZX(const char *file_name) :
+TZX::TZX(const std::string &file_name) :
 	file_(file_name),
 	current_level_(false) {
 

@@ -17,7 +17,7 @@ namespace {
 
 using namespace Storage::Disk;
 
-AcornADF::AcornADF(const char *file_name) : MFMSectorDump(file_name) {
+AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
 	// very loose validation: the file needs to be a multiple of 256 bytes
 	// and not ungainly large
 	if(file_.stats().st_size % static_cast<off_t>(128 << sector_size)) throw ErrorNotAcornADF;

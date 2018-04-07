@@ -44,7 +44,7 @@ void Analyser::Static::ZX8081::AddTargets(const Media &media, std::vector<std::u
 				break;
 
 				case TargetPlatform::ZX80:	target->is_ZX81 = false;	break;
-				case TargetPlatform::ZX81:	target->is_ZX81 = true;	break;
+				case TargetPlatform::ZX81:	target->is_ZX81 = true;		break;
 			}
 
 			/*if(files.front().data.size() > 16384) {

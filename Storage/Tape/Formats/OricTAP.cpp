@@ -12,7 +12,7 @@
 
 using namespace Storage::Tape;
 
-OricTAP::OricTAP(const char *file_name) :
+OricTAP::OricTAP(const std::string &file_name) :
 	file_(file_name)
 {
 	// check the file signature

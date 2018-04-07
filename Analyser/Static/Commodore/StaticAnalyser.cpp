@@ -14,6 +14,7 @@
 #include "Target.hpp"
 #include "../../../Storage/Cartridge/Encodings/CommodoreROM.hpp"
 
+#include <algorithm>
 #include <sstream>
 
 using namespace Analyser::Static::Commodore;
@@ -39,7 +40,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return vic20_cartridges;
 }
 
-void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std::unique_ptr<Analyser::Static::Target>> &destination) {
+void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std::unique_ptr<Analyser::Static::Target>> &destination, const std::string &file_name) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Vic20;	// TODO: machine estimation
 	target->confidence = 0.5; // TODO: a proper estimation
@@ -140,6 +141,14 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std
 //		}
 	}
 
-	if(!target->media.empty())
+	if(!target->media.empty()) {
+		// Inspect filename for a region hint.
+		std::string lowercase_name = file_name;
+		std::transform(lowercase_name.begin(), lowercase_name.end(), lowercase_name.begin(), ::tolower);
+		if(lowercase_name.find("ntsc") != std::string::npos) {
+			target->region = Analyser::Static::Commodore::Target::Region::American;
+		}
+
 		destination.push_back(std::move(target));
+	}
 }

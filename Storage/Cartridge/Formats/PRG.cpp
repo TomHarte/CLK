@@ -15,16 +15,16 @@
 
 using namespace Storage::Cartridge;
 
-PRG::PRG(const char *file_name) {
+PRG::PRG(const std::string &file_name) {
 	struct stat file_stats;
-	stat(file_name, &file_stats);
+	stat(file_name.c_str(), &file_stats);
 
 	// accept only files sized less than 8kb
 	if(file_stats.st_size > 0x2000 + 2)
 		throw ErrorNotROM;
 
 	// get the loading address, and the rest of the contents
-	FILE *file = std::fopen(file_name, "rb");
+	FILE *file = std::fopen(file_name.c_str(), "rb");
 
 	int loading_address = fgetc(file);
 	loading_address |= fgetc(file) << 8;

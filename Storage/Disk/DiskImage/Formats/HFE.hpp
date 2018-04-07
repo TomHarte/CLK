@@ -12,6 +12,8 @@
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
+#include <string>
+
 namespace Storage {
 namespace Disk {
 
@@ -26,7 +28,7 @@ class HFE: public DiskImage {
 			@throws ErrorCantOpen if this file can't be opened.
 			@throws ErrorNotSSD if the file doesn't appear to contain a .SSD format image.
 		*/
-		HFE(const char *file_name);
+		HFE(const std::string &file_name);
 		~HFE();
 
 		enum {

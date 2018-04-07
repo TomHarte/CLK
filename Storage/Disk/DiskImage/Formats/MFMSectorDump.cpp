@@ -12,7 +12,7 @@
 
 using namespace Storage::Disk;
 
-MFMSectorDump::MFMSectorDump(const char *file_name) : file_(file_name) {}
+MFMSectorDump::MFMSectorDump(const std::string &file_name) : file_(file_name) {}
 
 void MFMSectorDump::set_geometry(int sectors_per_track, uint8_t sector_size, uint8_t first_sector, bool is_double_density) {
 	sectors_per_track_ = sectors_per_track;

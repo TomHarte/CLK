@@ -12,6 +12,8 @@
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
+#include <string>
+
 namespace Storage {
 namespace Disk {
 
@@ -25,7 +27,7 @@ class OricMFMDSK: public DiskImage {
 
 			@throws ErrorNotOricMFMDSK if the file doesn't appear to contain an Oric MFM format image.
 		*/
-		OricMFMDSK(const char *file_name);
+		OricMFMDSK(const std::string &file_name);
 
 		enum {
 			ErrorNotOricMFMDSK,

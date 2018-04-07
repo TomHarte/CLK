@@ -14,7 +14,7 @@
 
 using namespace Storage::Disk;
 
-HFE::HFE(const char *file_name) :
+HFE::HFE(const std::string &file_name) :
 		file_(file_name) {
 	if(!file_.check_signature("HXCPICFE")) throw ErrorNotHFE;
 

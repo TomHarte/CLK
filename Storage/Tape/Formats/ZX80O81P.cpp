@@ -11,7 +11,7 @@
 
 using namespace Storage::Tape;
 
-ZX80O81P::ZX80O81P(const char *file_name) {
+ZX80O81P::ZX80O81P(const std::string &file_name) {
 	Storage::FileHolder file(file_name);
 
 	// Grab the actual file contents

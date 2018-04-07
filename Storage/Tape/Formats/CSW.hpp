@@ -12,8 +12,9 @@
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
 
-#include <zlib.h>
+#include <string>
 #include <vector>
+#include <zlib.h>
 
 namespace Storage {
 namespace Tape {
@@ -28,7 +29,7 @@ class CSW: public Tape {
 
 			@throws ErrorNotCSW if this file could not be opened and recognised as a valid CSW file.
 		*/
-		CSW(const char *file_name);
+		CSW(const std::string &file_name);
 
 		enum class CompressionType {
 			RLE,

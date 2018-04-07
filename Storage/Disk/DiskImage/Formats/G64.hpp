@@ -12,6 +12,8 @@
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
 
+#include <string>
+
 namespace Storage {
 namespace Disk {
 
@@ -27,7 +29,7 @@ class G64: public DiskImage {
 			@throws ErrorNotG64 if the file doesn't appear to contain a .G64 format image.
 			@throws ErrorUnknownVersion if this file appears to be a .G64 but has an unrecognised version number.
 		*/
-		G64(const char *file_name);
+		G64(const std::string &file_name);
 
 		enum {
 			ErrorCantOpen,

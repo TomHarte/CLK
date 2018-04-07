@@ -12,6 +12,8 @@
 #include "../PulseQueuedTape.hpp"
 #include "../../FileHolder.hpp"
 
+#include <string>
+
 namespace Storage {
 namespace Tape {
 
@@ -25,7 +27,7 @@ class TZX: public PulseQueuedTape {
 
 			@throws ErrorNotTZX if this file could not be opened and recognised as a valid TZX file.
 		*/
-		TZX(const char *file_name);
+		TZX(const std::string &file_name);
 
 		enum {
 			ErrorNotTZX

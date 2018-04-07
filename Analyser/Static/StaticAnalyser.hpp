@@ -53,12 +53,12 @@ struct Target {
 
 	@returns The list of potential targets, sorted from most to least probable.
 */
-std::vector<std::unique_ptr<Target>> GetTargets(const char *file_name);
+std::vector<std::unique_ptr<Target>> GetTargets(const std::string &file_name);
 
 /*!
 	Inspects the supplied file and determines the media included.
 */
-Media GetMedia(const char *file_name);
+Media GetMedia(const std::string &file_name);
 
 }
 }

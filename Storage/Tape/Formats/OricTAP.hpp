@@ -11,7 +11,9 @@
 
 #include "../Tape.hpp"
 #include "../../FileHolder.hpp"
+
 #include <cstdint>
+#include <string>
 
 namespace Storage {
 namespace Tape {
@@ -26,7 +28,7 @@ class OricTAP: public Tape {
 
 			@throws ErrorNotOricTAP if this file could not be opened and recognised as a valid Oric-format TAP.
 		*/
-		OricTAP(const char *file_name);
+		OricTAP(const std::string &file_name);
 
 		enum {
 			ErrorNotOricTAP

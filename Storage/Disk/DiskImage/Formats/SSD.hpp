@@ -25,7 +25,7 @@ class SSD: public MFMSectorDump {
 			@throws ErrorCantOpen if this file can't be opened.
 			@throws ErrorNotSSD if the file doesn't appear to contain a .SSD format image.
 		*/
-		SSD(const char *file_name);
+		SSD(const std::string &file_name);
 
 		enum {
 			ErrorNotSSD,
