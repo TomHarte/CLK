@@ -14,6 +14,7 @@
 #include "Target.hpp"
 #include "../../../Storage/Cartridge/Encodings/CommodoreROM.hpp"
 
+#include <algorithm>
 #include <sstream>
 
 using namespace Analyser::Static::Commodore;
