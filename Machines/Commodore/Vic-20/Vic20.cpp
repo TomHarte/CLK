@@ -374,7 +374,7 @@ class ConcreteMachine:
 				type_string(target->loading_command);
 			}
 
-			if(target->media.disks.size()) {
+			if(commodore_target_.has_c1540) {
 				// construct the 1540
 				c1540_.reset(new ::Commodore::C1540::Machine(Commodore::C1540::Machine::C1540));
 
