@@ -106,7 +106,7 @@ static uint8_t noise_pattern[] = {
 // means every second cycle, etc.
 
 void AudioGenerator::get_samples(std::size_t number_of_samples, int16_t *target) {
-	for(unsigned int c = 0; c < number_of_samples; c++) {
+	for(unsigned int c = 0; c < number_of_samples; ++c) {
 		update(0, 2, shift);
 		update(1, 1, shift);
 		update(2, 0, shift);
@@ -124,7 +124,7 @@ void AudioGenerator::get_samples(std::size_t number_of_samples, int16_t *target)
 }
 
 void AudioGenerator::skip_samples(std::size_t number_of_samples) {
-	for(unsigned int c = 0; c < number_of_samples; c++) {
+	for(unsigned int c = 0; c < number_of_samples; ++c) {
 		update(0, 2, shift);
 		update(1, 1, shift);
 		update(2, 0, shift);
