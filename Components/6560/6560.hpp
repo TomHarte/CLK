@@ -198,7 +198,7 @@ template <class T> class MOS6560 {
 					horizontal_drawing_latch_ = false;
 
 					vertical_counter_ ++;
-					if(vertical_counter_ == (registers_.interlaced ? (is_odd_frame_ ? 262 : 263) : timing_.lines_per_progressive_field)) {
+					if(vertical_counter_ == lines_this_field()) {
 						vertical_counter_ = 0;
 						full_frame_counter_ = 0;
 
@@ -414,11 +414,10 @@ template <class T> class MOS6560 {
 		*/
 		uint8_t get_register(int address) {
 			address &= 0xf;
-			int current_line = (full_frame_counter_ + timing_.line_counter_increment_offset) / timing_.cycles_per_line;
 			switch(address) {
 				default: return registers_.direct_values[address];
-				case 0x03: return static_cast<uint8_t>(current_line << 7) | (registers_.direct_values[3] & 0x7f);
-				case 0x04: return (current_line >> 1) & 0xff;
+				case 0x03: return static_cast<uint8_t>(raster_value() << 7) | (registers_.direct_values[3] & 0x7f);
+				case 0x04: return (raster_value() >> 1) & 0xff;
 			}
 		}
 
@@ -454,6 +453,12 @@ template <class T> class MOS6560 {
 
 		// counters that cover an entire field
 		int horizontal_counter_ = 0, vertical_counter_ = 0, full_frame_counter_;
+		const int lines_this_field() {
+			return registers_.interlaced ? (is_odd_frame_ ? 262 : 263) : timing_.lines_per_progressive_field;
+		}
+		const int raster_value() {
+			return ((full_frame_counter_ + timing_.line_counter_increment_offset) / timing_.cycles_per_line) % lines_this_field();
+		}
 
 		// latches dictating start and length of drawing
 		bool vertical_drawing_latch_, horizontal_drawing_latch_;
