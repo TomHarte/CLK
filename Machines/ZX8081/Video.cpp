@@ -10,6 +10,19 @@
 
 using namespace ZX8081;
 
+namespace {
+
+/*!
+	The number of bytes of PCM data to allocate at once; if/when more are required,
+	the class will simply allocate another batch.
+*/
+const std::size_t StandardAllocationSize = 40;
+
+/// The amount of time a byte takes to output.
+const std::size_t HalfCyclesPerByte = 8;
+
+}
+
 Video::Video() :
 	crt_(new Outputs::CRT::CRT(207 * 2, 1, Outputs::CRT::DisplayType::PAL50, 1)) {
 
@@ -46,10 +59,10 @@ void Video::flush(bool next_sync) {
 		if(line_data_) {
 			// If there is output data queued, output it either if it's being interrupted by
 			// sync, or if we're past its end anyway. Otherwise let it be.
-			unsigned int data_length = static_cast<unsigned int>(line_data_pointer_ - line_data_) * 8;
+			unsigned int data_length = static_cast<unsigned int>(line_data_pointer_ - line_data_) * HalfCyclesPerByte;
 			if(data_length < cycles_since_update_ || next_sync) {
 				unsigned int output_length = std::min(data_length, cycles_since_update_);
-				crt_->output_data(output_length, 8);
+				crt_->output_data(output_length, HalfCyclesPerByte);
 				line_data_pointer_ = line_data_ = nullptr;
 				cycles_since_update_ -= output_length;
 			} else return;
@@ -80,16 +93,16 @@ void Video::output_byte(uint8_t byte) {
 
 	// Grab a buffer if one isn't already available.
 	if(!line_data_) {
-		line_data_pointer_ = line_data_ = crt_->allocate_write_area(40);
+		line_data_pointer_ = line_data_ = crt_->allocate_write_area(StandardAllocationSize);
 	}
 
 	// If a buffer was obtained, serialise the new pixels.
 	if(line_data_) {
 		// If the buffer is full, output it now and obtain a new one
-		if(line_data_pointer_ - line_data_ == 40) {
-			crt_->output_data(40, 8);
-			cycles_since_update_ -= 320;
-			line_data_pointer_ = line_data_ = crt_->allocate_write_area(40);
+		if(line_data_pointer_ - line_data_ == StandardAllocationSize) {
+			crt_->output_data(StandardAllocationSize, HalfCyclesPerByte);
+			cycles_since_update_ -= StandardAllocationSize * HalfCyclesPerByte;
+			line_data_pointer_ = line_data_ = crt_->allocate_write_area(StandardAllocationSize);
 			if(!line_data_) return;
 		}
 
