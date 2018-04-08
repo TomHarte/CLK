@@ -138,7 +138,7 @@ template <class T> class MOS6560 {
 					chrominances = ntsc_chrominances;
 					display_type = Outputs::CRT::DisplayType::NTSC60;
 					timing_.cycles_per_line = 65;
-					timing_.line_counter_increment_offset = 65 - 33;	// TODO: this is a bit of a hack; separate vertical and horizontal counting
+					timing_.line_counter_increment_offset = 34;	// Indicates that the raster count increments 34 cycles ahead of the vertical counter overflowing.
 					timing_.lines_per_progressive_field = 261;
 					timing_.supports_interlacing = true;
 				break;
@@ -176,7 +176,6 @@ template <class T> class MOS6560 {
 
 				// keep track of internal time relative to this scanline
 				horizontal_counter_++;
-				full_frame_counter_++;
 				if(horizontal_counter_ == timing_.cycles_per_line) {
 					if(horizontal_drawing_latch_) {
 						current_character_row_++;
@@ -200,7 +199,6 @@ template <class T> class MOS6560 {
 					vertical_counter_ ++;
 					if(vertical_counter_ == lines_this_field()) {
 						vertical_counter_ = 0;
-						full_frame_counter_ = 0;
 
 						if(output_mode_ == OutputMode::NTSC) is_odd_frame_ ^= true;
 						current_row_ = 0;
@@ -399,6 +397,7 @@ template <class T> class MOS6560 {
 					registers_.invertedCells = !((value >> 3)&1);
 					registers_.borderColour = new_border_colour;
 					registers_.backgroundColour = colours_[value >> 4];
+//					printf("%d\n", horizontal_counter_);
 				}
 				break;
 
@@ -452,12 +451,12 @@ template <class T> class MOS6560 {
 		unsigned int cycles_in_state_;
 
 		// counters that cover an entire field
-		int horizontal_counter_ = 0, vertical_counter_ = 0, full_frame_counter_;
+		int horizontal_counter_ = 0, vertical_counter_ = 0;
 		const int lines_this_field() {
 			return registers_.interlaced ? (is_odd_frame_ ? 262 : 263) : timing_.lines_per_progressive_field;
 		}
 		const int raster_value() {
-			return ((full_frame_counter_ + timing_.line_counter_increment_offset) / timing_.cycles_per_line) % lines_this_field();
+			return (vertical_counter_ + ((horizontal_counter_ + timing_.line_counter_increment_offset) / timing_.cycles_per_line)) % lines_this_field();
 		}
 
 		// latches dictating start and length of drawing
