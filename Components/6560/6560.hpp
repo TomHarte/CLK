@@ -100,10 +100,10 @@ template <class T> class MOS6560 {
 
 			// Luminances are encoded trivially: on a 0–255 scale.
 			const uint8_t luminances[16] = {
-				0,		255,	60,		189,
-				80,		144,	40,		227,
-				90,		161,	207,	227,
-				200,	196,	160,	196
+				0,		255,	64,		192,
+				128,	128,	64,		192,
+				128,	192,	128,	255,
+				192,	192,	128,	255
 			};
 
 			// Chrominances are encoded such that 0–128 is a complete revolution of phase;
@@ -138,7 +138,7 @@ template <class T> class MOS6560 {
 					chrominances = ntsc_chrominances;
 					display_type = Outputs::CRT::DisplayType::NTSC60;
 					timing_.cycles_per_line = 65;
-					timing_.line_counter_increment_offset = 34;	// Indicates that the raster count increments 34 cycles ahead of the vertical counter overflowing.
+					timing_.line_counter_increment_offset = 40;	// Indicates that the raster count increments 34 cycles ahead of the vertical counter overflowing.
 					timing_.lines_per_progressive_field = 261;
 					timing_.supports_interlacing = true;
 				break;
@@ -397,7 +397,6 @@ template <class T> class MOS6560 {
 					registers_.invertedCells = !((value >> 3)&1);
 					registers_.borderColour = new_border_colour;
 					registers_.backgroundColour = colours_[value >> 4];
-//					printf("%d\n", horizontal_counter_);
 				}
 				break;
 
@@ -456,7 +455,12 @@ template <class T> class MOS6560 {
 			return registers_.interlaced ? (is_odd_frame_ ? 262 : 263) : timing_.lines_per_progressive_field;
 		}
 		const int raster_value() {
-			return (vertical_counter_ + ((horizontal_counter_ + timing_.line_counter_increment_offset) / timing_.cycles_per_line)) % lines_this_field();
+			const int bonus_line = (horizontal_counter_ + timing_.line_counter_increment_offset) / timing_.cycles_per_line;
+			return std::min(vertical_counter_ + bonus_line, lines_this_field() - 1);
+			// TODO: on the final line of an NTSC field, when the number is prima facie one too high,
+			// it should switch to zero about 8 cycles sooner than it does with this test. It'd be nice
+			// to figure out why, likely re: sync timing.
+			// Cf. http://www.sleepingelephant.com/ipw-web/bulletin/bb/viewtopic.php?f=14&t=7237&start=15#p80737
 		}
 
 		// latches dictating start and length of drawing
