@@ -149,6 +149,9 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std
 			target->region = Analyser::Static::Commodore::Target::Region::American;
 		}
 
+		// Attach a 1540 if there are any disks here.
+		target->has_c1540 = !target->media.disks.empty();
+
 		destination.push_back(std::move(target));
 	}
 }

@@ -374,7 +374,7 @@ class ConcreteMachine:
 				type_string(target->loading_command);
 			}
 
-			if(target->media.disks.size()) {
+			if(commodore_target_.has_c1540) {
 				// construct the 1540
 				c1540_.reset(new ::Commodore::C1540::Machine(Commodore::C1540::Machine::C1540));
 
@@ -546,12 +546,12 @@ class ConcreteMachine:
 			if(isReadOperation(operation)) {
 				uint8_t result = processor_read_memory_map_[address >> 10] ? processor_read_memory_map_[address >> 10][address & 0x3ff] : 0xff;
 				if((address&0xfc00) == 0x9000) {
-					if((address&0xff00) == 0x9000) {
+					if(!(address&0x100)) {
 						update_video();
 						result &= mos6560_->get_register(address);
 					}
-					if((address&0xfc10) == 0x9010)	result &= user_port_via_.get_register(address);
-					if((address&0xfc20) == 0x9020)	result &= keyboard_via_.get_register(address);
+					if(address & 0x10) result &= user_port_via_.get_register(address);
+					if(address & 0x20) result &= keyboard_via_.get_register(address);
 				}
 				*value = result;
 
@@ -630,13 +630,17 @@ class ConcreteMachine:
 					update_video();
 					ram[address & 0x3ff] = *value;
 				}
+				// Anything between 0x9000 and 0x9400 is the IO area.
 				if((address&0xfc00) == 0x9000) {
-					if((address&0xff00) == 0x9000) {
+					// The VIC is selected by bit 8 = 0
+					if(!(address&0x100)) {
 						update_video();
 						mos6560_->set_register(address, *value);
 					}
-					if((address&0xfc10) == 0x9010)	user_port_via_.set_register(address, *value);
-					if((address&0xfc20) == 0x9020)	keyboard_via_.set_register(address, *value);
+					// The first VIA is selected by bit 4 = 1.
+					if(address & 0x10) user_port_via_.set_register(address, *value);
+					// The second VIA is selected by bit 5 = 1.
+					if(address & 0x20) keyboard_via_.set_register(address, *value);
 				}
 			}
 
