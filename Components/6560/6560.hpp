@@ -130,6 +130,7 @@ template <class T> class MOS6560 {
 					display_type = Outputs::CRT::DisplayType::PAL50;
 					timing_.cycles_per_line = 71;
 					timing_.line_counter_increment_offset = 0;
+					timing_.final_line_increment_position = 71;
 					timing_.lines_per_progressive_field = 312;
 					timing_.supports_interlacing = false;
 				break;
@@ -138,7 +139,8 @@ template <class T> class MOS6560 {
 					chrominances = ntsc_chrominances;
 					display_type = Outputs::CRT::DisplayType::NTSC60;
 					timing_.cycles_per_line = 65;
-					timing_.line_counter_increment_offset = 40;	// Indicates that the raster count increments 34 cycles ahead of the vertical counter overflowing.
+					timing_.line_counter_increment_offset = 40;
+					timing_.final_line_increment_position = 58;
 					timing_.lines_per_progressive_field = 261;
 					timing_.supports_interlacing = true;
 				break;
@@ -260,7 +262,7 @@ template <class T> class MOS6560 {
 
 				// apply vertical sync
 				if(
-					(vertical_counter_ < 3 && (is_odd_frame_ || !registers_.interlaced)) ||
+					(vertical_counter_ < 3 && is_odd_frame()) ||
 					(registers_.interlaced &&
 						(
 							(vertical_counter_ == 0 && horizontal_counter_ > 32) ||
@@ -452,15 +454,26 @@ template <class T> class MOS6560 {
 		// counters that cover an entire field
 		int horizontal_counter_ = 0, vertical_counter_ = 0;
 		const int lines_this_field() {
+			// Necessary knowledge here: only the NTSC 6560 supports interlaced video.
 			return registers_.interlaced ? (is_odd_frame_ ? 262 : 263) : timing_.lines_per_progressive_field;
 		}
 		const int raster_value() {
 			const int bonus_line = (horizontal_counter_ + timing_.line_counter_increment_offset) / timing_.cycles_per_line;
-			return std::min(vertical_counter_ + bonus_line, lines_this_field() - 1);
-			// TODO: on the final line of an NTSC field, when the number is prima facie one too high,
-			// it should switch to zero about 8 cycles sooner than it does with this test. It'd be nice
-			// to figure out why, likely re: sync timing.
+			const int line = vertical_counter_ + bonus_line;
+			const int final_line = lines_this_field();
+
+			if(line < final_line)
+				return line;
+
+			if(is_odd_frame()) {
+				return (horizontal_counter_ >= timing_.final_line_increment_position) ? 0 : final_line - 1;
+			} else {
+				return line % final_line;
+			}
 			// Cf. http://www.sleepingelephant.com/ipw-web/bulletin/bb/viewtopic.php?f=14&t=7237&start=15#p80737
+		}
+		bool is_odd_frame() {
+			return is_odd_frame_ || !registers_.interlaced;
 		}
 
 		// latches dictating start and length of drawing
@@ -491,6 +504,7 @@ template <class T> class MOS6560 {
 		struct {
 			int cycles_per_line;
 			int line_counter_increment_offset;
+			int final_line_increment_position;
 			int lines_per_progressive_field;
 			bool supports_interlacing;
 		} timing_;
