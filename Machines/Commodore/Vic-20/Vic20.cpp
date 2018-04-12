@@ -34,6 +34,7 @@
 #include "../../../Analyser/Static/Commodore/Target.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 
 namespace Commodore {
@@ -239,10 +240,10 @@ class SerialPort : public ::Commodore::Serial::Port {
 /*!
 	Provides the bus over which the Vic 6560 fetches memory in a Vic-20.
 */
-class Vic6560: public MOS::MOS6560<Vic6560> {
+class Vic6560BusHandler {
 	public:
 		/// Performs a read on behalf of the 6560; in practice uses @c video_memory_map and @c colour_memory to find data.
-		inline void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data) {
+		forceinline void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data) {
 			*pixel_data = video_memory_map[address >> 10] ? video_memory_map[address >> 10][address & 0x3ff] : 0xff; // TODO
 			*colour_data = colour_memory[address & 0x03ff];
 		}
@@ -432,7 +433,7 @@ class ConcreteMachine:
 		void set_ntsc_6560() {
 			set_clock_rate(1022727);
 			if(mos6560_) {
-				mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::NTSC);
+				mos6560_->set_output_mode(MOS::MOS6560::OutputMode::NTSC);
 				mos6560_->set_clock_rate(1022727);
 			}
 		}
@@ -440,7 +441,7 @@ class ConcreteMachine:
 		void set_pal_6560() {
 			set_clock_rate(1108404);
 			if(mos6560_) {
-				mos6560_->set_output_mode(MOS::MOS6560<Commodore::Vic20::Vic6560>::OutputMode::PAL);
+				mos6560_->set_output_mode(MOS::MOS6560::OutputMode::PAL);
 				mos6560_->set_clock_rate(1108404);
 			}
 		}
@@ -458,7 +459,7 @@ class ConcreteMachine:
 			// Initialise the memory maps as all pointing to nothing
 			memset(processor_read_memory_map_, 0, sizeof(processor_read_memory_map_));
 			memset(processor_write_memory_map_, 0, sizeof(processor_write_memory_map_));
-			memset(mos6560_->video_memory_map, 0, sizeof(mos6560_->video_memory_map));
+			memset(mos6560_bus_handler_.video_memory_map, 0, sizeof(mos6560_bus_handler_.video_memory_map));
 
 #define set_ram(baseaddr, length)	\
 	write_to_map(processor_read_memory_map_, &ram_[baseaddr], baseaddr, length);	\
@@ -489,14 +490,24 @@ class ConcreteMachine:
 
 			// also push memory resources into the 6560 video memory map; the 6560 has only a
 			// 14-bit address bus and the top bit is invested and used as bit 15 for the main
-			// memory bus.
-			for(int addr = 0; addr < 0x4000; addr += 0x400) {
-				int source_address = (addr & 0x1fff) | (((addr & 0x2000) << 2) ^ 0x8000);
-				if(processor_read_memory_map_[source_address >> 10]) {
-					write_to_map(mos6560_->video_memory_map, &ram_[source_address], static_cast<uint16_t>(addr), 0x400);
+			// memory bus. It can access only internal memory, so the first 1kb, then the 4kb from 0x1000.
+			struct Range {
+				const std::size_t start, end;
+				Range(std::size_t start, std::size_t end) : start(start), end(end) {}
+			};
+			const std::array<Range, 2> video_ranges = {{
+				Range(0x0000, 0x0400),
+				Range(0x1000, 0x2000),
+			}};
+			for(auto &video_range : video_ranges) {
+				for(auto addr = video_range.start; addr < video_range.end; addr += 0x400) {
+					auto destination_address = (addr & 0x1fff) | (((addr & 0x8000) >> 2) ^ 0x2000);
+					if(processor_read_memory_map_[addr >> 10]) {
+						write_to_map(mos6560_bus_handler_.video_memory_map, &ram_[addr], static_cast<uint16_t>(destination_address), 0x400);
+					}
 				}
 			}
-			mos6560_->colour_memory = colour_ram_;
+			mos6560_bus_handler_.colour_memory = colour_ram_;
 
 			// install the BASIC ROM
 			write_to_map(processor_read_memory_map_, basic_rom_.data(), 0xc000, static_cast<uint16_t>(basic_rom_.size()));
@@ -528,7 +539,7 @@ class ConcreteMachine:
 			}
 
 			write_to_map(processor_read_memory_map_, roms_[character_rom].data(), 0x8000, static_cast<uint16_t>(roms_[character_rom].size()));
-			write_to_map(mos6560_->video_memory_map, roms_[character_rom].data(), 0x0000, static_cast<uint16_t>(roms_[character_rom].size()));
+			write_to_map(mos6560_bus_handler_.video_memory_map, roms_[character_rom].data(), 0x0000, static_cast<uint16_t>(roms_[character_rom].size()));
 			write_to_map(processor_read_memory_map_, roms_[kernel_rom].data(), 0xe000, static_cast<uint16_t>(roms_[kernel_rom].size()));
 
 			// install the inserted ROM if there is one
@@ -668,7 +679,7 @@ class ConcreteMachine:
 		}
 
 		void setup_output(float aspect_ratio) override final {
-			mos6560_.reset(new Vic6560());
+			mos6560_.reset(new MOS::MOS6560::MOS6560<Vic6560BusHandler>(mos6560_bus_handler_));
 			mos6560_->set_high_frequency_cutoff(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
 			// Make a guess: PAL. Without setting a clock rate the 6560 isn't fully set up so contractually something must be set.
 			set_memory_map(commodore_target_.memory_model, commodore_target_.region);
@@ -778,7 +789,8 @@ class ConcreteMachine:
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 
 		Cycles cycles_since_mos6560_update_;
-		std::unique_ptr<Vic6560> mos6560_;
+		Vic6560BusHandler mos6560_bus_handler_;
+		std::unique_ptr<MOS::MOS6560::MOS6560<Vic6560BusHandler>> mos6560_;
 		std::shared_ptr<UserPortVIA> user_port_via_port_handler_;
 		std::shared_ptr<KeyboardVIA> keyboard_via_port_handler_;
 		std::shared_ptr<SerialPort> serial_port_;

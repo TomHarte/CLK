@@ -16,6 +16,7 @@
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
 namespace MOS {
+namespace MOS6560 {
 
 // audio state
 class AudioGenerator: public ::Outputs::Speaker::SampleSource {
@@ -40,6 +41,17 @@ class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 		int16_t range_multiplier_ = 1;
 };
 
+struct BusHandler {
+	void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data) {
+		*pixel_data = 0xff;
+		*colour_data = 0xff;
+	}
+};
+
+enum class OutputMode {
+	PAL, NTSC
+};
+
 /*!
 	The 6560 Video Interface Chip ('VIC') is a video and audio output chip; it therefore vends both a @c CRT and a @c Speaker.
 
@@ -48,9 +60,10 @@ class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 
 	@c set_register and @c get_register provide register access.
 */
-template <class T> class MOS6560 {
+template <class BusHandler> class MOS6560 {
 	public:
-		MOS6560() :
+		MOS6560(BusHandler &bus_handler) :
+				bus_handler_(bus_handler),
 				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::DisplayType::NTSC60, 2)),
 				audio_generator_(audio_queue_),
 				speaker_(audio_generator_)
@@ -87,10 +100,6 @@ template <class T> class MOS6560 {
 		void set_high_frequency_cutoff(float cutoff) {
 			speaker_.set_high_frequency_cutoff(cutoff);
 		}
-
-		enum OutputMode {
-			PAL, NTSC
-		};
 
 		/*!
 			Sets the output mode to either PAL or NTSC.
@@ -248,7 +257,7 @@ template <class T> class MOS6560 {
 
 				uint8_t pixel_data;
 				uint8_t colour_data;
-				static_cast<T *>(this)->perform_read(fetch_address, &pixel_data, &colour_data);
+				bus_handler_.perform_read(fetch_address, &pixel_data, &colour_data);
 
 				// TODO: there should be a further two-cycle delay on pixels being output; the reverse bit should
 				// divide the byte it is set for 3:1 and then continue as usual.
@@ -422,6 +431,7 @@ template <class T> class MOS6560 {
 		}
 
 	private:
+		BusHandler &bus_handler_;
 		std::unique_ptr<Outputs::CRT::CRT> crt_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
@@ -511,6 +521,7 @@ template <class T> class MOS6560 {
 		OutputMode output_mode_;
 };
 
+}
 }
 
 #endif /* _560_hpp */

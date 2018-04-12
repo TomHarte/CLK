@@ -10,7 +10,7 @@
 
 #include <cstring>
 
-using namespace MOS;
+using namespace MOS::MOS6560;
 
 AudioGenerator::AudioGenerator(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
 	audio_queue_(audio_queue) {}
