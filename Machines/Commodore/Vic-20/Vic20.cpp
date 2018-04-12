@@ -491,13 +491,13 @@ class ConcreteMachine:
 			// also push memory resources into the 6560 video memory map; the 6560 has only a
 			// 14-bit address bus and the top bit is invested and used as bit 15 for the main
 			// memory bus. It can access only internal memory, so the first 1kb, then the 4kb from 0x1000.
-			struct range {
+			struct Range {
 				const std::size_t start, end;
-				range(std::size_t start, std::size_t end) : start(start), end(end) {}
+				Range(std::size_t start, std::size_t end) : start(start), end(end) {}
 			};
-			const std::array<range, 2> video_ranges = {{
-				range(0x0000, 0x0400),
-				range(0x1000, 0x2000),
+			const std::array<Range, 2> video_ranges = {{
+				Range(0x0000, 0x0400),
+				Range(0x1000, 0x2000),
 			}};
 			for(auto &video_range : video_ranges) {
 				for(auto addr = video_range.start; addr < video_range.end; addr += 0x400) {
