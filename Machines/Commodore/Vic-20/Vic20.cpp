@@ -34,6 +34,7 @@
 #include "../../../Analyser/Static/Commodore/Target.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 
 namespace Commodore {
@@ -489,11 +490,21 @@ class ConcreteMachine:
 
 			// also push memory resources into the 6560 video memory map; the 6560 has only a
 			// 14-bit address bus and the top bit is invested and used as bit 15 for the main
-			// memory bus.
-			for(int addr = 0; addr < 0x4000; addr += 0x400) {
-				int source_address = (addr & 0x1fff) | (((addr & 0x2000) << 2) ^ 0x8000);
-				if(processor_read_memory_map_[source_address >> 10]) {
-					write_to_map(mos6560_->video_memory_map, &ram_[source_address], static_cast<uint16_t>(addr), 0x400);
+			// memory bus. It can access only internal memory, so the first 1kb, then the 4kb from 0x1000.
+			struct range {
+				const std::size_t start, end;
+				range(std::size_t start, std::size_t end) : start(start), end(end) {}
+			};
+			const std::array<range, 2> video_ranges = {{
+				range(0x0000, 0x0400),
+				range(0x1000, 0x2000),
+			}};
+			for(auto &video_range : video_ranges) {
+				for(auto addr = video_range.start; addr < video_range.end; addr += 0x400) {
+					auto destination_address = (addr & 0x1fff) | (((addr & 0x8000) >> 2) ^ 0x2000);
+					if(processor_read_memory_map_[addr >> 10]) {
+						write_to_map(mos6560_->video_memory_map, &ram_[addr], static_cast<uint16_t>(destination_address), 0x400);
+					}
 				}
 			}
 			mos6560_->colour_memory = colour_ram_;
