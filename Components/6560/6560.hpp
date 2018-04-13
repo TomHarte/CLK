@@ -138,8 +138,8 @@ template <class BusHandler> class MOS6560 {
 					chrominances = pal_chrominances;
 					display_type = Outputs::CRT::DisplayType::PAL50;
 					timing_.cycles_per_line = 71;
-					timing_.line_counter_increment_offset = 0;
-					timing_.final_line_increment_position = 71;
+					timing_.line_counter_increment_offset = 4;
+					timing_.final_line_increment_position = timing_.cycles_per_line - timing_.line_counter_increment_offset;
 					timing_.lines_per_progressive_field = 312;
 					timing_.supports_interlacing = false;
 				break;
@@ -159,7 +159,7 @@ template <class BusHandler> class MOS6560 {
 
 			switch(output_mode) {
 				case OutputMode::PAL:
-					crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.05f, 0.9f, 0.9f));
+					crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.07f, 0.9f, 0.9f));
 				break;
 				case OutputMode::NTSC:
 					crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
@@ -300,6 +300,9 @@ template <class BusHandler> class MOS6560 {
 				cycles_in_state_++;
 
 				if(this_state_ == State::Pixels) {
+					// TODO: palette changes can happen within half-characters; the below needs to be divided.
+					// Also: a perfect opportunity to rearrange this inner loop for no longer needing to be
+					// two parts with a cooperative owner?
 					if(column_counter_&1) {
 						character_value_ = pixel_data;
 
@@ -340,7 +343,10 @@ template <class BusHandler> class MOS6560 {
 						character_code_ = pixel_data;
 						character_colour_ = colour_data;
 					}
+				}
 
+				// Keep counting columns even if sync or the colour burst have interceded.
+				if(column_counter_ >= 0 && column_counter_ < columns_this_line_*2) {
 					column_counter_++;
 				}
 			}
