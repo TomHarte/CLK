@@ -29,7 +29,7 @@ static std::vector<Storage::Data::ZX8081::File> GetFiles(const std::shared_ptr<S
 }
 
 Analyser::Static::TargetList Analyser::Static::ZX8081::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
-	std::vector<std::unique_ptr<Analyser::Static::Target>> destination;
+	TargetList destination;
 	if(!media.tapes.empty()) {
 		std::vector<Storage::Data::ZX8081::File> files = GetFiles(media.tapes.front());
 		media.tapes.front()->reset();

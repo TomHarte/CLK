@@ -239,7 +239,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Determine the machine for the supplied file.
-	std::vector<std::unique_ptr<Analyser::Static::Target>> targets = Analyser::Static::GetTargets(arguments.file_name);
+	TargetList targets = Analyser::Static::GetTargets(arguments.file_name);
 	if(targets.empty()) {
 		std::cerr << "Cannot open " << arguments.file_name << "; no target machine found" << std::endl;
 		return -1;

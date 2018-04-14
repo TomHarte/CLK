@@ -63,14 +63,14 @@ static std::unique_ptr<Analyser::Static::Target> CartridgeTarget(
 
 	(additional audio hardware is also sometimes included, but it's implied by the banking hardware)
 */
-static std::vector<std::unique_ptr<Analyser::Static::Target>> CartridgeTargetsFrom(
+static Analyser::Static::TargetList CartridgeTargetsFrom(
 	const std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> &cartridges) {
 	// No cartridges implies no targets.
 	if(cartridges.empty()) {
 		return {};
 	}
 
-	std::vector<std::unique_ptr<Analyser::Static::Target>> targets;
+	Analyser::Static::TargetList targets;
 	for(const auto &cartridge : cartridges) {
 		const auto &segments = cartridge->get_segments();
 

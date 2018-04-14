@@ -437,7 +437,7 @@ template<bool is_zx81> class ConcreteMachine:
 	private:
 		CPU::Z80::Processor<ConcreteMachine, false, is_zx81> z80_;
 
-		std::shared_ptr<Video> video_;
+		std::unique_ptr<Video> video_;
 		std::vector<uint8_t> zx81_rom_, zx80_rom_;
 
 		uint16_t tape_trap_address_, tape_return_address_;
