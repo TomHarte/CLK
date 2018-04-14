@@ -114,6 +114,9 @@ class MachinePicker: NSObject {
 			case "electron":
 				return CSStaticAnalyser(electronDFS: electronDFSButton!.state == .on, adfs: electronADFSButton!.state == .on)!
 
+			case "appleii":
+				return CSStaticAnalyser(appleII: ())
+
 			case "cpc":
 				switch cpcModelTypeButton!.selectedItem!.tag {
 					case 464:	return CSStaticAnalyser(amstradCPCModel: .model464)

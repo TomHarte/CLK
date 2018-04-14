@@ -23,7 +23,7 @@
 #import "Clock_Signal-Swift.h"
 
 @implementation CSStaticAnalyser {
-	std::vector<std::unique_ptr<Analyser::Static::Target>> _targets;
+	Analyser::Static::TargetList _targets;
 }
 
 - (instancetype)initWithFileAtURL:(NSURL *)url {
@@ -153,6 +153,18 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	return self;
 }
 
+- (instancetype)initWithAppleII {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::Target;
+		std::unique_ptr<Target> target(new Target);
+		target->machine = Analyser::Machine::AppleII;
+		_targets.push_back(std::move(target));
+	}
+	return self;
+
+}
+
 - (NSString *)optionsPanelNibName {
 	switch(_targets.front()->machine) {
 		case Analyser::Machine::AmstradCPC:	return nil;
@@ -166,7 +178,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	}
 }
 
-- (std::vector<std::unique_ptr<Analyser::Static::Target>> &)targets {
+- (Analyser::Static::TargetList &)targets {
 	return _targets;
 }
 

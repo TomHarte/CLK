@@ -41,7 +41,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 }
 
 Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
-	std::vector<std::unique_ptr<Analyser::Static::Target>> destination;
+	TargetList destination;
 
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Vic20;	// TODO: machine estimation
