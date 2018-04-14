@@ -40,7 +40,9 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return vic20_cartridges;
 }
 
-void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std::unique_ptr<Analyser::Static::Target>> &destination, const std::string &file_name) {
+Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+	std::vector<std::unique_ptr<Analyser::Static::Target>> destination;
+
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Vic20;	// TODO: machine estimation
 	target->confidence = 0.5; // TODO: a proper estimation
@@ -154,4 +156,6 @@ void Analyser::Static::Commodore::AddTargets(const Media &media, std::vector<std
 
 		destination.push_back(std::move(target));
 	}
+
+	return destination;
 }

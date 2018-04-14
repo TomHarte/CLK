@@ -371,8 +371,8 @@ class ConcreteMachine:
 		void configure_as_target(const Analyser::Static::Target *target) override final {
 			commodore_target_ = *dynamic_cast<const Analyser::Static::Commodore::Target *>(target);
 
-			if(target->loading_command.length()) {
-				type_string(target->loading_command);
+			if(!commodore_target_.loading_command.empty()) {
+				type_string(commodore_target_.loading_command);
 			}
 
 			if(commodore_target_.has_c1540) {

@@ -6,17 +6,18 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_ZX8081_StaticAnalyser_hpp
-#define StaticAnalyser_ZX8081_StaticAnalyser_hpp
+#ifndef Analyser_Static_ZX8081_StaticAnalyser_hpp
+#define Analyser_Static_ZX8081_StaticAnalyser_hpp
 
 #include "../StaticAnalyser.hpp"
 #include "../../../Storage/TargetPlatforms.hpp"
+#include <string>
 
 namespace Analyser {
 namespace Static {
 namespace ZX8081 {
 
-void AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination, TargetPlatform::IntType potential_platforms);
+TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
 }
 }

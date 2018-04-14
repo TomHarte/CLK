@@ -324,8 +324,8 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 			Memory::Fuzz(ram_);
 
-			if(target->loading_command.length()) {
-				type_string(target->loading_command);
+			if(!zx8081_target->loading_command.empty()) {
+				type_string(zx8081_target->loading_command);
 			}
 
 			insert_media(target->media);

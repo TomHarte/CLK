@@ -261,7 +261,9 @@ static std::vector<std::unique_ptr<Analyser::Static::Target>> CartridgeTargetsFr
 	return targets;
 }
 
-void Analyser::Static::MSX::AddTargets(const Media &media, std::vector<std::unique_ptr<::Analyser::Static::Target>> &destination) {
+Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+	TargetList destination;
+
 	// Append targets for any cartridges that look correct.
 	auto cartridge_targets = CartridgeTargetsFrom(media.cartridges);
 	std::move(cartridge_targets.begin(), cartridge_targets.end(), std::back_inserter(destination));
@@ -292,4 +294,6 @@ void Analyser::Static::MSX::AddTargets(const Media &media, std::vector<std::uniq
 		target->confidence = 0.5;
 		destination.push_back(std::move(target));
 	}
+
+	return destination;
 }

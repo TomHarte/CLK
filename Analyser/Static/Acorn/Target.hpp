@@ -10,6 +10,7 @@
 #define Analyser_Static_Acorn_Target_h
 
 #include "../StaticAnalyser.hpp"
+#include <string>
 
 namespace Analyser {
 namespace Static {
@@ -19,6 +20,7 @@ struct Target: public ::Analyser::Static::Target {
 	bool has_adfs = false;
 	bool has_dfs = false;
 	bool should_shift_restart = false;
+	std::string loading_command;
 };
 
 }

@@ -2,12 +2,12 @@
 //  StaticAnalyser.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 25/11/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Created by Thomas Harte on 14/04/2018.
+//  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_MSX_StaticAnalyser_hpp
-#define StaticAnalyser_MSX_StaticAnalyser_hpp
+#ifndef Analyser_Static_AppleII_StaticAnalyser_hpp
+#define Analyser_Static_AppleII_StaticAnalyser_hpp
 
 #include "../StaticAnalyser.hpp"
 #include "../../../Storage/TargetPlatforms.hpp"
@@ -15,7 +15,7 @@
 
 namespace Analyser {
 namespace Static {
-namespace MSX {
+namespace AppleII {
 
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
@@ -23,4 +23,4 @@ TargetList GetTargets(const Media &media, const std::string &file_name, TargetPl
 }
 }
 
-#endif /* StaticAnalyser_MSX_StaticAnalyser_hpp */
+#endif /* Analyser_Static_AppleII_StaticAnalyser_hpp */

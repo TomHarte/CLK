@@ -130,6 +130,8 @@
 		4B1497921EE4B5A800CE2596 /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1497901EE4B5A800CE2596 /* ZX8081.cpp */; };
 		4B1497981EE4B97F00CE2596 /* ZX8081Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B1497961EE4B97F00CE2596 /* ZX8081Options.xib */; };
 		4B1558C01F844ECD006E9A97 /* BitReverse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */; };
+		4B15A9FC208249BB005E6C8D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B15A9FA208249BB005E6C8D /* StaticAnalyser.cpp */; };
+		4B15A9FD208249BB005E6C8D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B15A9FA208249BB005E6C8D /* StaticAnalyser.cpp */; };
 		4B1B88BB202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */; };
 		4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */; };
 		4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FCC3F201EC24200960631 /* MultiMachine.cpp */; };
@@ -701,6 +703,8 @@
 		4B1497971EE4B97F00CE2596 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/ZX8081Options.xib"; sourceTree = SOURCE_ROOT; };
 		4B1558BE1F844ECD006E9A97 /* BitReverse.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = BitReverse.cpp; path = Data/BitReverse.cpp; sourceTree = "<group>"; };
 		4B1558BF1F844ECD006E9A97 /* BitReverse.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = BitReverse.hpp; path = Data/BitReverse.hpp; sourceTree = "<group>"; };
+		4B15A9FA208249BB005E6C8D /* StaticAnalyser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = StaticAnalyser.cpp; path = AppleII/StaticAnalyser.cpp; sourceTree = "<group>"; };
+		4B15A9FB208249BB005E6C8D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = StaticAnalyser.hpp; path = AppleII/StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4B1667F61FFF1E2400A16032 /* Konami.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Konami.hpp; path = MSX/Cartridges/Konami.hpp; sourceTree = "<group>"; };
 		4B1667F91FFF215E00A16032 /* ASCII16kb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ASCII16kb.hpp; path = MSX/Cartridges/ASCII16kb.hpp; sourceTree = "<group>"; };
 		4B1667FA1FFF215E00A16032 /* ASCII8kb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ASCII8kb.hpp; path = MSX/Cartridges/ASCII8kb.hpp; sourceTree = "<group>"; };
@@ -1505,6 +1509,15 @@
 			name = ZX8081;
 			sourceTree = "<group>";
 		};
+		4B15A9FE20824C9F005E6C8D /* AppleII */ = {
+			isa = PBXGroup;
+			children = (
+				4B15A9FA208249BB005E6C8D /* StaticAnalyser.cpp */,
+				4B15A9FB208249BB005E6C8D /* StaticAnalyser.hpp */,
+			);
+			name = AppleII;
+			sourceTree = "<group>";
+		};
 		4B1667F81FFF1E2900A16032 /* Cartridges */ = {
 			isa = PBXGroup;
 			children = (
@@ -2144,6 +2157,7 @@
 				4B8944EA201967B4007DE474 /* StaticAnalyser.hpp */,
 				4B8944EB201967B4007DE474 /* Acorn */,
 				4B894514201967B4007DE474 /* AmstradCPC */,
+				4B15A9FE20824C9F005E6C8D /* AppleII */,
 				4B8944F3201967B4007DE474 /* Atari */,
 				4B7A90EA20410A85008514A2 /* Coleco */,
 				4B8944FB201967B4007DE474 /* Commodore */,
@@ -3465,6 +3479,7 @@
 				4B894531201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B894539201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055AE51FAE9B6F0060FFFF /* IntermediateShader.cpp in Sources */,
+				4B15A9FD208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,
 				4B055AD31FAE9B0B0060FFFF /* Microdisc.cpp in Sources */,
 				4B055AB41FAE860F0060FFFF /* OricTAP.cpp in Sources */,
 				4B055AB71FAE860F0060FFFF /* TZX.cpp in Sources */,
@@ -3721,6 +3736,7 @@
 				4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */,
 				4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */,
 				4BFE7B871FC39BF100160B38 /* StandardOptions.cpp in Sources */,
+				4B15A9FC208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,
 				4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */,
 				4B54C0C81F8D91E50050900F /* Keyboard.cpp in Sources */,
 				4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */,

@@ -11,10 +11,12 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
+#include <iterator>
 
 // Analysers
 #include "Acorn/StaticAnalyser.hpp"
 #include "AmstradCPC/StaticAnalyser.hpp"
+#include "AppleII/StaticAnalyser.hpp"
 #include "Atari/StaticAnalyser.hpp"
 #include "Coleco/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
@@ -138,8 +140,8 @@ Media Analyser::Static::GetMedia(const std::string &file_name) {
 	return GetMediaAndPlatforms(file_name, throwaway);
 }
 
-std::vector<std::unique_ptr<Target>> Analyser::Static::GetTargets(const std::string &file_name) {
-	std::vector<std::unique_ptr<Target>> targets;
+TargetList Analyser::Static::GetTargets(const std::string &file_name) {
+	TargetList targets;
 
 	// Collect all disks, tapes and ROMs as can be extrapolated from this file, forming the
 	// union of all platforms this file might be a target for.
@@ -148,14 +150,20 @@ std::vector<std::unique_ptr<Target>> Analyser::Static::GetTargets(const std::str
 
 	// Hand off to platform-specific determination of whether these things are actually compatible and,
 	// if so, how to load them.
-	if(potential_platforms & TargetPlatform::Acorn)			Acorn::AddTargets(media, targets);
-	if(potential_platforms & TargetPlatform::AmstradCPC)	AmstradCPC::AddTargets(media, targets);
-	if(potential_platforms & TargetPlatform::Atari2600)		Atari::AddTargets(media, targets);
-	if(potential_platforms & TargetPlatform::ColecoVision)	Coleco::AddTargets(media, targets);
-	if(potential_platforms & TargetPlatform::Commodore)		Commodore::AddTargets(media, targets, file_name);
-	if(potential_platforms & TargetPlatform::MSX)			MSX::AddTargets(media, targets);
-	if(potential_platforms & TargetPlatform::Oric)			Oric::AddTargets(media, targets);
-	if(potential_platforms & TargetPlatform::ZX8081)		ZX8081::AddTargets(media, targets, potential_platforms);
+	#define Append(x) {\
+		auto new_targets = x::GetTargets(media, file_name, potential_platforms);\
+		std::move(new_targets.begin(), new_targets.end(), std::back_inserter(targets));\
+	}
+	if(potential_platforms & TargetPlatform::Acorn)			Append(Acorn);
+	if(potential_platforms & TargetPlatform::AmstradCPC)	Append(AmstradCPC);
+	if(potential_platforms & TargetPlatform::AppleII)		Append(AppleII);
+	if(potential_platforms & TargetPlatform::Atari2600)		Append(Atari);
+	if(potential_platforms & TargetPlatform::ColecoVision)	Append(Coleco);
+	if(potential_platforms & TargetPlatform::Commodore)		Append(Commodore);
+	if(potential_platforms & TargetPlatform::MSX)			Append(MSX);
+	if(potential_platforms & TargetPlatform::Oric)			Append(Oric);
+	if(potential_platforms & TargetPlatform::ZX8081)		Append(ZX8081);
+	#undef Append
 
 	// Reset any tapes to their initial position
 	for(auto &target : targets) {

@@ -6,19 +6,21 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-#ifndef StaticAnalyser_AmstradCPC_StaticAnalyser_hpp
-#define StaticAnalyser_AmstradCPC_StaticAnalyser_hpp
+#ifndef Analyser_Static_AmstradCPC_StaticAnalyser_hpp
+#define Analyser_Static_AmstradCPC_StaticAnalyser_hpp
 
 #include "../StaticAnalyser.hpp"
+#include "../../../Storage/TargetPlatforms.hpp"
+#include <string>
 
 namespace Analyser {
 namespace Static {
 namespace AmstradCPC {
 
-void AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination);
+TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
 }
 }
 }
 
-#endif /* StaticAnalyser_AmstradCPC_StaticAnalyser_hpp */
+#endif /* Analyser_Static_AmstradCPC_StaticAnalyser_hpp */

@@ -273,8 +273,8 @@ class ConcreteMachine:
 				microdisc_.set_delegate(this);
 			}
 
-			if(target->loading_command.length()) {
-				type_string(target->loading_command);
+			if(!oric_target->loading_command.empty()) {
+				type_string(oric_target->loading_command);
 			}
 
 			if(oric_target->use_atmos_rom) {

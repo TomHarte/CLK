@@ -9,6 +9,9 @@
 #ifndef Analyser_Static_Oric_Target_h
 #define Analyser_Static_Oric_Target_h
 
+#include "../StaticAnalyser.hpp"
+#include <string>
+
 namespace Analyser {
 namespace Static {
 namespace Oric {
@@ -16,6 +19,7 @@ namespace Oric {
 struct Target: public ::Analyser::Static::Target {
 	bool use_atmos_rom = false;
 	bool has_microdrive = false;
+	std::string loading_command;
 };
 
 }

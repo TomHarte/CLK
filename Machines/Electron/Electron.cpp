@@ -131,8 +131,8 @@ class ConcreteMachine:
 		void configure_as_target(const Analyser::Static::Target *target) override final {
 			auto *const acorn_target = dynamic_cast<const Analyser::Static::Acorn::Target *>(target);
 
-			if(target->loading_command.length()) {
-				type_string(target->loading_command);
+			if(!acorn_target->loading_command.empty()) {
+				type_string(acorn_target->loading_command);
 			}
 
 			if(acorn_target->should_shift_restart) {

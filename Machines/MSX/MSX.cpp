@@ -201,8 +201,8 @@ class ConcreteMachine:
 			insert_media(target->media);
 
 			// Type whatever has been requested.
-			if(target->loading_command.length()) {
-				type_string(target->loading_command);
+			if(!msx_target->loading_command.empty()) {
+				type_string(msx_target->loading_command);
 			}
 		}
 
