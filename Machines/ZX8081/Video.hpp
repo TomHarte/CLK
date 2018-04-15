@@ -31,7 +31,7 @@ class Video {
 		/// @returns The CRT this video feed is feeding.
 		Outputs::CRT::CRT *get_crt();
 
-		/// Advances time by @c cycles.
+		/// Advances time by @c half-cycles.
 		void run_for(const HalfCycles);
 		/// Forces output to catch up to the current output position.
 		void flush();
