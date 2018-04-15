@@ -21,6 +21,21 @@ class Video {
 		/// @returns The CRT this video feed is feeding.
 		Outputs::CRT::CRT *get_crt();
 
+		/*!
+			Advances time by @c cycles; expects to be fed by the CPU clock.
+			Implicitly adds an extra half a colour clock at the end of every
+			line.
+		*/
+		void run_for(const Cycles);
+
+		// Inputs for the various soft switches.
+		void set_graphics_mode();
+		void set_text_mode();
+		void set_mixed_mode(bool);
+		void set_video_page(int);
+		void set_low_resolution();
+		void set_high_resolution();
+
 	private:
 		std::unique_ptr<Outputs::CRT::CRT> crt_;
 };

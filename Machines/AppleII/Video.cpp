@@ -11,7 +11,7 @@
 using namespace AppleII;
 
 Video::Video() :
-	crt_(new Outputs::CRT::CRT(65, 1, Outputs::CRT::DisplayType::NTSC60, 1)) {
+	crt_(new Outputs::CRT::CRT(455, 1, Outputs::CRT::DisplayType::NTSC60, 1)) {
 
 	// Set a composite sampling function that assumes 1bpp input, and uses just 7 bits per byte.
 	crt_->set_composite_sampling_function(
@@ -29,4 +29,31 @@ Video::Video() :
 
 Outputs::CRT::CRT *Video::get_crt() {
 	return crt_.get();
+}
+
+void Video::run_for(const Cycles) {
+}
+
+void Video::set_graphics_mode() {
+	printf("Graphics mode\n");
+}
+
+void Video::set_text_mode() {
+	printf("Text mode\n");
+}
+
+void Video::set_mixed_mode(bool mixed_mode) {
+	printf("Mixed mode: %s\n", mixed_mode ? "true" : "false");
+}
+
+void Video::set_video_page(int page) {
+	printf("Video page: %d\n", page);
+}
+
+void Video::set_low_resolution() {
+	printf("Low resolution\n");
+}
+
+void Video::set_high_resolution() {
+	printf("High resolution\n");
 }
