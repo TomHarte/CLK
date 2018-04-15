@@ -38,6 +38,10 @@ class Video {
 
 	private:
 		std::unique_ptr<Outputs::CRT::CRT> crt_;
+
+		int video_page_ = 0;
+		int row_ = 0, column_ = 0;
+		uint8_t *pixel_pointer_ = nullptr;
 };
 
 }
