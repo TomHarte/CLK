@@ -18,8 +18,11 @@ Video::Video() :
 		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
-			"texValue <<= int(icoordinate.x * 7) % 6;"
+			"texValue <<= int(icoordinate.x * 8) & 7;"
 			"return float(texValue & 128u);"
+//			"uint texValue = texture(sampler, coordinate).r;"
+//			"texValue <<= uint(icoordinate.x * 7.0) % 7u;"
+//			"return float(texValue & 128u);"
 		"}");
 
 	// Show only the centre 75% of the TV frame.
@@ -50,6 +53,9 @@ void Video::run_for(const Cycles cycles) {
 		} else {
 			const int ending_column = column_ + cycles_this_line;
 
+			// The first 40 columns are submitted to the CRT only upon completion;
+			// they'll be either graphics or blank, depending on which side we are
+			// of line 192.
 			if(column_ < 40) {
 				if(row_ < 192) {
 					if(!column_) {
@@ -60,7 +66,7 @@ void Video::run_for(const Cycles cycles) {
 
 					if(ending_column >= 40) {
 						for(int c = 0; c < 40; ++c) {
-							pixel_pointer_[c] = 0xaa;
+							pixel_pointer_[c] = static_cast<uint8_t>((c * 6) ^ row_);
 						}
 						crt_->output_data(280, 7);
 					}
@@ -70,6 +76,11 @@ void Video::run_for(const Cycles cycles) {
 					}
 				}
 			}
+
+			/*
+				The left border, sync, right border pattern doesn't depend on whether
+				there were pixels this row and is output as soon as it is known.
+			*/
 
 			const int first_blank_start = std::max(40, column_);
 			const int first_blank_end = std::min(first_sync_column, ending_column);
@@ -95,6 +106,10 @@ void Video::run_for(const Cycles cycles) {
 		column_ = (column_ + cycles_this_line) % 65;
 		if(!column_) {
 			row_ = (row_ + 1) % 262;
+
+			// Add an extra half a colour cycle of blank; this isn't counted in the run_for
+			// count explicitly but is promised.
+			crt_->output_blank(1);
 		}
 	}
 }
