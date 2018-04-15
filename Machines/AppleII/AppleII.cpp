@@ -23,16 +23,45 @@ class ConcreteMachine:
 	public CRTMachine::Machine,
 	public CPU::MOS6502::BusHandler,
 	public AppleII::Machine {
-	public:
+	private:
+		struct VideoBusHandler : public AppleII::Video::BusHandler {
+			public:
+				VideoBusHandler(uint8_t *ram) : ram_(ram) {}
 
+				uint8_t perform_read(uint16_t address) {
+					return ram_[address];
+				}
+
+			private:
+				uint8_t *ram_;
+		};
+
+		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
+		VideoBusHandler video_bus_handler_;
+		std::unique_ptr<AppleII::Video::Video<VideoBusHandler>> video_;
+		int cycles_into_current_line_ = 0;
+		Cycles cycles_since_video_update_;
+
+		void update_video() {
+			video_->run_for(cycles_since_video_update_.flush());
+		}
+
+		uint8_t ram_[48*1024];
+		std::vector<uint8_t> rom_;
+		std::vector<uint8_t> character_rom_;
+		uint16_t rom_start_address_;
+
+	public:
 		ConcreteMachine():
-		 	m6502_(*this) {
+		 	m6502_(*this),
+		 	video_bus_handler_(ram_) {
 			set_clock_rate(1022727);
 			Memory::Fuzz(ram_, sizeof(ram_));
 		}
 
 		void setup_output(float aspect_ratio) override {
-			video_.reset(new AppleII::Video);
+			video_.reset(new AppleII::Video::Video<VideoBusHandler>(video_bus_handler_));
+			video_->set_character_rom(character_rom_);
 		}
 
 		void close_output() override {
@@ -105,12 +134,15 @@ class ConcreteMachine:
 			auto roms = roms_with_names(
 				"AppleII",
 				{
-					"apple2o.rom"
+					"apple2o.rom",
+					"apple2o-character.rom"
 				});
 
-			if(!roms[0]) return false;
+			if(!roms[0] || !roms[1]) return false;
 			rom_ = std::move(*roms[0]);
 			rom_start_address_ = static_cast<uint16_t>(0x10000 - rom_.size());
+
+			character_rom_ = std::move(*roms[1]);
 
 			return true;
 		}
@@ -118,20 +150,6 @@ class ConcreteMachine:
 		void run_for(const Cycles cycles) override {
 			m6502_.run_for(cycles);
 		}
-
-	private:
-		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
-		std::unique_ptr<AppleII::Video> video_;
-		int cycles_into_current_line_ = 0;
-		Cycles cycles_since_video_update_;
-
-		void update_video() {
-			video_->run_for(cycles_since_video_update_.flush());
-		}
-
-		uint8_t ram_[48*1024];
-		std::vector<uint8_t> rom_;
-		uint16_t rom_start_address_;
 };
 
 }
