@@ -35,13 +35,15 @@ template <class BusHandler> class Video {
 			crt_->set_composite_sampling_function(
 				"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
 				"{"
+//					"uint texValue = texture(sampler, coordinate).r;"
+//					"texValue <<= int(icoordinate.x * 8) & 7;"
+//					"return float(texValue & 128u);"
 					"uint texValue = texture(sampler, coordinate).r;"
-					"texValue <<= int(icoordinate.x * 8) & 7;"
-					"return float(texValue & 128u);"
-		//			"uint texValue = texture(sampler, coordinate).r;"
-		//			"texValue <<= uint(icoordinate.x * 7.0) % 7u;"
-		//			"return float(texValue & 128u);"
+					"texValue <<= uint(icoordinate.x * 7.0) % 7u;"
+					"return float(texValue & 64u);"
 				"}");
+
+				// TODO: the above has precision issues. Fix!
 
 			// Show only the centre 75% of the TV frame.
 			crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
@@ -92,10 +94,12 @@ template <class BusHandler> class Video {
 							const uint16_t line_address = static_cast<uint16_t>(0x400 + (character_row >> 3) * 40 + ((character_row&7) << 7));
 
 							for(int c = column_; c < pixel_end; ++c) {
-								// TODO: proper address calculation.
 								const uint16_t address = static_cast<uint16_t>(line_address + c);
 								const uint8_t character = bus_handler_.perform_read(address);
-								pixel_pointer_[c] = character_rom_[(static_cast<int>(character) << 3) + pixel_row];
+								const int index = (character & 0x7f) << 3;
+
+								const std::size_t character_address = static_cast<std::size_t>(index + pixel_row);
+								pixel_pointer_[c] = character_rom_[character_address] ^ ((character & 0x80) ? 0x00 : 0xff);
 							}
 
 							if(ending_column >= 40) {
@@ -146,12 +150,29 @@ template <class BusHandler> class Video {
 		}
 
 		// Inputs for the various soft switches.
-		void set_graphics_mode() {}
-		void set_text_mode() {}
-		void set_mixed_mode(bool) {}
-		void set_video_page(int) {}
-		void set_low_resolution() {}
-		void set_high_resolution() {}
+		void set_graphics_mode() {
+			printf("Graphics mode\n");
+		}
+
+		void set_text_mode() {
+			printf("Text mode\n");
+		}
+
+		void set_mixed_mode(bool mixed_mode) {
+			printf("Mixed mode: %s\n", mixed_mode ? "true" : "false");
+		}
+
+		void set_video_page(int page) {
+			printf("Video page: %d\n", page);
+		}
+
+		void set_low_resolution() {
+			printf("Low resolution\n");
+		}
+
+		void set_high_resolution() {
+			printf("High resolution\n");
+		}
 
 		void set_character_rom(const std::vector<uint8_t> &character_rom) {
 			character_rom_ = character_rom;
