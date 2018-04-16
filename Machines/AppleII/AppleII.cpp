@@ -9,6 +9,7 @@
 #include "AppleII.hpp"
 
 #include "../CRTMachine.hpp"
+#include "../KeyboardMachine.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
 
 #include "../../Processors/6502/6502.hpp"
@@ -21,7 +22,9 @@ namespace {
 
 class ConcreteMachine:
 	public CRTMachine::Machine,
+	public KeyboardMachine::Machine,
 	public CPU::MOS6502::BusHandler,
+	public Inputs::Keyboard,
 	public AppleII::Machine {
 	private:
 		struct VideoBusHandler : public AppleII::Video::BusHandler {
@@ -50,6 +53,7 @@ class ConcreteMachine:
 		std::vector<uint8_t> rom_;
 		std::vector<uint8_t> character_rom_;
 		uint16_t rom_start_address_;
+		uint8_t keyboard_input_ = 0x00;
 
 	public:
 		ConcreteMachine():
@@ -94,8 +98,7 @@ class ConcreteMachine:
 								break;
 								case 0xc000:
 									// TODO: read keyboard.
-//									printf("Keyboard poll\n");
-									*value = 0x00;//0x80 | 'A';
+									*value = keyboard_input_;
 								break;
 							}
 						}
@@ -116,6 +119,10 @@ class ConcreteMachine:
 				case 0xc055:	update_video();		video_->set_video_page(1);		break;
 				case 0xc056:	update_video();		video_->set_low_resolution();	break;
 				case 0xc057:	update_video();		video_->set_high_resolution();	break;
+
+				case 0xc010:
+					keyboard_input_ &= 0x7f;
+				break;
 			}
 
 			// The Apple II has a slightly weird timing pattern: every 65th CPU cycle is stretched
@@ -154,6 +161,16 @@ class ConcreteMachine:
 
 		void run_for(const Cycles cycles) override {
 			m6502_.run_for(cycles);
+		}
+
+		void set_key_pressed(Key key, char value, bool is_pressed) override {
+			if(is_pressed) {
+				keyboard_input_ = static_cast<uint8_t>(value | 0x80);
+			}
+		}
+
+		Inputs::Keyboard &get_keyboard() override {
+			return *this;
 		}
 };
 

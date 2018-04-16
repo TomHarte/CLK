@@ -239,7 +239,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Determine the machine for the supplied file.
-	TargetList targets = Analyser::Static::GetTargets(arguments.file_name);
+	Analyser::Static::TargetList targets = Analyser::Static::GetTargets(arguments.file_name);
 	if(targets.empty()) {
 		std::cerr << "Cannot open " << arguments.file_name << "; no target machine found" << std::endl;
 		return -1;
@@ -450,7 +450,12 @@ int main(int argc, char *argv[]) {
 					if(keyboard_machine) {
 						Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
 						if(!KeyboardKeyForSDLScancode(event.key.keysym.scancode, key)) break;
-						keyboard_machine->get_keyboard().set_key_pressed(key, is_pressed);
+
+						char key_value = '\0';
+						const char *key_name = SDL_GetKeyName(event.key.keysym.sym);
+						if(key_name[0] >= 0) key_value = key_name[0];
+
+						keyboard_machine->get_keyboard().set_key_pressed(key, key_value, is_pressed);
 						break;
 					}
 

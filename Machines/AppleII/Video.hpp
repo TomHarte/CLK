@@ -45,7 +45,7 @@ template <class BusHandler> class Video {
 
 			// Show only the centre 75% of the TV frame.
 			crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
-			crt_->set_visible_area(Outputs::CRT::Rect(0.115f, 0.115f, 0.77f, 0.77f));
+			crt_->set_visible_area(Outputs::CRT::Rect(0.115f, 0.117f, 0.77f, 0.77f));
 		}
 
 		/// @returns The CRT this video feed is feeding.
