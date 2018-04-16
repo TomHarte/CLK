@@ -88,10 +88,14 @@ class ConcreteMachine:
 							*value = rom_[address - rom_start_address_];
 						} else {
 							switch(address) {
-								default:	*value = 0xff;	break;
+								default:
+//									printf("Unknown access to %04x\n", address);
+									*value = 0xff;
+								break;
 								case 0xc000:
 									// TODO: read keyboard.
-									*value = 0;
+//									printf("Keyboard poll\n");
+									*value = 0x00;//0x80 | 'A';
 								break;
 							}
 						}
@@ -99,6 +103,7 @@ class ConcreteMachine:
 						if(address < sizeof(ram_)) {
 							update_video();	// TODO: be more selective.
 							ram_[address] = *value;
+//							printf("%04x <- %02x\n", address, *value);
 						}
 					}
 				break;
