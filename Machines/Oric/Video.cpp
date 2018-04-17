@@ -191,7 +191,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 			}
 
 			if(h_counter == 40) {
-				crt_->output_data(40 * 6, 1);
+				crt_->output_data(40 * 6);
 			}
 		} else {
 			// this is a blank line (or the equivalent part of a pixel line)

@@ -437,7 +437,10 @@ void TIA::output_for_cycles(int number_of_cycles) {
 	if(output_mode_ & blank_flag) {
 		if(pixel_target_) {
 			output_pixels(pixels_start_location_, output_cursor);
-			if(crt_) crt_->output_data(static_cast<unsigned int>(output_cursor - pixels_start_location_) * 2, 2);
+			if(crt_) {
+				const unsigned int data_length = static_cast<unsigned int>(output_cursor - pixels_start_location_);
+				crt_->output_data(data_length * 2, data_length);
+			}
 			pixel_target_ = nullptr;
 			pixels_start_location_ = 0;
 		}
@@ -459,7 +462,8 @@ void TIA::output_for_cycles(int number_of_cycles) {
 		}
 
 		if(horizontal_counter_ == cycles_per_line && crt_) {
-			crt_->output_data(static_cast<unsigned int>(output_cursor - pixels_start_location_) * 2, 2);
+			const unsigned int data_length = static_cast<unsigned int>(output_cursor - pixels_start_location_);
+			crt_->output_data(data_length * 2, data_length);
 			pixel_target_ = nullptr;
 			pixels_start_location_ = 0;
 		}

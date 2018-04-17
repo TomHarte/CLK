@@ -62,7 +62,7 @@ void Video::flush(bool next_sync) {
 			unsigned int data_length = static_cast<unsigned int>(line_data_pointer_ - line_data_) * HalfCyclesPerByte;
 			if(data_length < cycles_since_update_ || next_sync) {
 				unsigned int output_length = std::min(data_length, cycles_since_update_);
-				crt_->output_data(output_length, HalfCyclesPerByte);
+				crt_->output_data(output_length, output_length / HalfCyclesPerByte);
 				line_data_pointer_ = line_data_ = nullptr;
 				cycles_since_update_ -= output_length;
 			} else return;
@@ -100,7 +100,7 @@ void Video::output_byte(uint8_t byte) {
 	if(line_data_) {
 		// If the buffer is full, output it now and obtain a new one
 		if(line_data_pointer_ - line_data_ == StandardAllocationSize) {
-			crt_->output_data(StandardAllocationSize, HalfCyclesPerByte);
+			crt_->output_data(StandardAllocationSize * HalfCyclesPerByte, StandardAllocationSize);
 			cycles_since_update_ -= StandardAllocationSize * HalfCyclesPerByte;
 			line_data_pointer_ = line_data_ = crt_->allocate_write_area(StandardAllocationSize);
 			if(!line_data_) return;

@@ -38,9 +38,14 @@ template <class BusHandler> class Video {
 //					"uint texValue = texture(sampler, coordinate).r;"
 //					"texValue <<= int(icoordinate.x * 8) & 7;"
 //					"return float(texValue & 128u);"
+
 					"uint texValue = texture(sampler, coordinate).r;"
 					"texValue <<= uint(icoordinate.x * 7.0) % 7u;"
 					"return float(texValue & 64u);"
+
+//					"uint texValue = texture(sampler, coordinate).r;"
+//					"texValue <<= uint(mod(icoordinate.x, 1.0) * 7.0);"
+//					"return float(texValue & 64u);"
 				"}");
 
 				// TODO: the above has precision issues. Fix!
@@ -91,7 +96,7 @@ template <class BusHandler> class Video {
 							const int pixel_end = std::min(40, ending_column);
 							const int character_row = row_ >> 3;
 							const int pixel_row = row_ & 7;
-							const uint16_t line_address = static_cast<uint16_t>(0x400 + (character_row >> 3) * 40 + ((character_row&7) << 7));
+							const uint16_t line_address = static_cast<uint16_t>(0x400 + (video_page_ * 0x400) + (character_row >> 3) * 40 + ((character_row&7) << 7));
 
 							for(int c = column_; c < pixel_end; ++c) {
 								const uint16_t address = static_cast<uint16_t>(line_address + c);
@@ -102,8 +107,10 @@ template <class BusHandler> class Video {
 								pixel_pointer_[c] = character_rom_[character_address] ^ ((character & 0x80) ? 0x00 : 0xff);
 							}
 
+							// TODO: graphics; 0x2000+ for high resolution
+
 							if(ending_column >= 40) {
-								crt_->output_data(280, 7);
+								crt_->output_data(280, 40);
 							}
 						} else {
 							if(ending_column >= 40) {
@@ -163,6 +170,7 @@ template <class BusHandler> class Video {
 		}
 
 		void set_video_page(int page) {
+			video_page_ = page;
 			printf("Video page: %d\n", page);
 		}
 
