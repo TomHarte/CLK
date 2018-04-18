@@ -28,11 +28,10 @@ VideoBase::VideoBase() :
 		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
-			"texValue <<= uint(icoordinate.x * 7.0) % 7u;"
+			"texValue <<= int(icoordinate.x) % 7;"
 			"return float(texValue & 64u);"
 		"}");
-
-		// TODO: the above has precision issues. Fix!
+	crt_->set_integer_coordinate_multiplier(7.0f);
 
 	// Show only the centre 75% of the TV frame.
 	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);

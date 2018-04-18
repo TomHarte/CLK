@@ -135,6 +135,11 @@ public:
 	*/
 	void set_is_double_height(bool is_double_height, float input_offset = 0.0f, float output_offset = 0.0f);
 
+	/*!
+		Sets the multiplier applied in the vertex shader to iCoordinates.
+	*/
+	void set_integer_coordinate_multiplier(float);
+
 private:
 	static std::unique_ptr<IntermediateShader> make_shader(const std::string &fragment_shader, bool use_usampler, bool input_is_inputPosition);
 };

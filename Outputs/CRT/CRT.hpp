@@ -290,6 +290,22 @@ class CRT {
 			});
 		}
 
+		/*!
+			Sets a multiplier applied to iCoordinate values prior to their passing to the various sampling functions.
+			This multiplier is applied outside of the interpolation loop, making for a more precise interpolation
+			than if it were applied within the sampling function.
+
+			Idiomatically, this is likely to be the number of output pixels packed into each input sample where
+			packing is in use.
+
+			The default value is 1.0.
+		*/
+		inline void set_integer_coordinate_multiplier(float multiplier) {
+			enqueue_openGL_function([=] {
+				openGL_output_builder_.set_integer_coordinate_multiplier(multiplier);
+			});
+		}
+
 		enum CompositeSourceType {
 			/// The composite function provides continuous output.
 			Continuous,
@@ -333,12 +349,12 @@ class CRT {
 			output mode will be applied.
 
 			@param shader A GLSL fragent including a function with the signature
-			`vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)` that evaluates to an RGB colour
+			`vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 iCoordinate)` that evaluates to an RGB colour
 			as a function of:
 
 			* `usampler2D sampler` representing the source buffer;
 			* `vec2 coordinate` representing the source buffer location to sample from in the range [0, 1); and
-			* `vec2 icoordinate` representing the source buffer location to sample from as a pixel count, for easier multiple-pixels-per-byte unpacking.
+			* `vec2 iCoordinate` representing the source buffer location to sample from as a pixel count, for easier multiple-pixels-per-byte unpacking.
 		*/
 		inline void set_rgb_sampling_function(const std::string &shader) {
 			enqueue_openGL_function([shader, this] {

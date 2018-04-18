@@ -46,6 +46,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 		"uniform float inputVerticalOffset;"
 		"uniform float outputVerticalOffset;"
 		"uniform float textureHeightDivisor;"
+		"uniform float iCoordinateMultiplier;"
 
 		"out vec3 phaseAndAmplitudeVarying;"
 		"out vec2 inputPositionsVarying[11];"
@@ -76,8 +77,8 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 
 			// keep iInputPositionVarying in whole source pixels, scale mappedInputPosition to the ordinary normalised range
 			"vec2 textureSize = vec2(textureSize(texID, 0));"
-			"iInputPositionVarying = extendedInputPosition;"
-			"vec2 mappedInputPosition = extendedInputPosition / textureSize;"	//  + vec2(0.0, 0.5)
+			"iInputPositionVarying = extendedInputPosition * iCoordinateMultiplier;"
+			"vec2 mappedInputPosition = extendedInputPosition / textureSize;"
 
 			// setup input positions spaced as per the supplied offsets; these are for filtering where required
 			"inputPositionsVarying[0] = mappedInputPosition - (vec2(5.0, 0.0) / textureSize);"
@@ -433,4 +434,8 @@ void IntermediateShader::set_is_double_height(bool is_double_height, float input
 	set_uniform("textureHeightDivisor", is_double_height ? 2.0f : 1.0f);
 	set_uniform("inputVerticalOffset", input_offset);
 	set_uniform("outputVerticalOffset", output_offset);
+}
+
+void IntermediateShader::set_integer_coordinate_multiplier(float multiplier) {
+	set_uniform("iCoordinateMultiplier", multiplier);
 }

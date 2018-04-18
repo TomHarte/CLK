@@ -31,9 +31,10 @@ Video::Video() :
 		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
-			"texValue <<= int(icoordinate.x * 8) & 7;"
+			"texValue <<= int(icoordinate.x) & 7;"
 			"return float(texValue & 128u);"
 		"}");
+	crt_->set_integer_coordinate_multiplier(8.0f);
 
 	// Show only the centre 80% of the TV frame.
 	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);

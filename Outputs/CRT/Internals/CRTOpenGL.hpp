@@ -104,6 +104,8 @@ class OpenGLOutputBuilder {
 		float get_composite_output_width() const;
 		void set_output_shader_width();
 
+		float integer_coordinate_multiplier_ = 1.0f;
+
 	public:
 		// These two are protected by output_mutex_.
 		TextureBuilder texture_builder;
@@ -158,6 +160,7 @@ class OpenGLOutputBuilder {
 		void set_rgb_sampling_function(const std::string &);
 		void set_video_signal(VideoSignal);
 		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
+		void set_integer_coordinate_multiplier(float multiplier);
 };
 
 }
