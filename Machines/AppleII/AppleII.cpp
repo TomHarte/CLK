@@ -104,7 +104,10 @@ class ConcreteMachine:
 						}
 					} else {
 						if(address < sizeof(ram_)) {
-							update_video();	// TODO: be more selective.
+							if(address >= 0x400) {
+								// TODO: be more selective.
+								update_video();
+							}
 							ram_[address] = *value;
 //							printf("%04x <- %02x\n", address, *value);
 						}

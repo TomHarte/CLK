@@ -24,41 +24,52 @@ class BusHandler {
 		}
 };
 
-template <class BusHandler> class Video {
+class VideoBase {
+	public:
+		VideoBase();
+		static void setup_tables();
+
+		/// @returns The CRT this video feed is feeding.
+		Outputs::CRT::CRT *get_crt();
+
+		// Inputs for the various soft switches.
+		void set_graphics_mode();
+		void set_text_mode();
+		void set_mixed_mode(bool);
+		void set_video_page(int);
+		void set_low_resolution();
+		void set_high_resolution();
+
+		// Setup for text mode.
+		void set_character_rom(const std::vector<uint8_t> &);
+
+	protected:
+		std::unique_ptr<Outputs::CRT::CRT> crt_;
+
+		int video_page_ = 0;
+		int row_ = 0, column_ = 0;
+		uint16_t *pixel_pointer_ = nullptr;
+		std::vector<uint8_t> character_rom_;
+
+		enum class GraphicsMode {
+			LowRes,
+			HighRes,
+			Text
+		} graphics_mode_ = GraphicsMode::LowRes;
+		bool use_graphics_mode_ = false;
+		bool mixed_mode_ = false;
+		uint16_t graphics_carry_ = 0;
+
+		static uint16_t scaled_byte[256];
+		static uint16_t low_resolution_patterns[2][16];
+};
+
+template <class BusHandler> class Video: public VideoBase {
 	public:
 		/// Constructs an instance of the video feed; a CRT is also created.
 		Video(BusHandler &bus_handler) :
-			bus_handler_(bus_handler),
-			crt_(new Outputs::CRT::CRT(455, 1, Outputs::CRT::DisplayType::NTSC60, 1)) {
-
-			// Set a composite sampling function that assumes 1bpp input, and uses just 7 bits per byte.
-			crt_->set_composite_sampling_function(
-				"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
-				"{"
-//					"uint texValue = texture(sampler, coordinate).r;"
-//					"texValue <<= int(icoordinate.x * 8) & 7;"
-//					"return float(texValue & 128u);"
-
-					"uint texValue = texture(sampler, coordinate).r;"
-					"texValue <<= uint(icoordinate.x * 7.0) % 7u;"
-					"return float(texValue & 64u);"
-
-//					"uint texValue = texture(sampler, coordinate).r;"
-//					"texValue <<= uint(mod(icoordinate.x, 1.0) * 7.0);"
-//					"return float(texValue & 64u);"
-				"}");
-
-				// TODO: the above has precision issues. Fix!
-
-			// Show only the centre 75% of the TV frame.
-			crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
-			crt_->set_visible_area(Outputs::CRT::Rect(0.115f, 0.117f, 0.77f, 0.77f));
-		}
-
-		/// @returns The CRT this video feed is feeding.
-		Outputs::CRT::CRT *get_crt() {
-			return crt_.get();
-		}
+			VideoBase(),
+			bus_handler_(bus_handler) {}
 
 		/*!
 			Advances time by @c cycles; expects to be fed by the CPU clock.
@@ -83,6 +94,9 @@ template <class BusHandler> class Video {
 					crt_->output_sync(static_cast<unsigned int>(cycles_this_line) * 7);
 				} else {
 					const int ending_column = column_ + cycles_this_line;
+					GraphicsMode line_mode = graphics_mode_;
+					if(!use_graphics_mode_ || (mixed_mode_ && row_ >= 160))
+						line_mode = GraphicsMode::Text;
 
 					// The first 40 columns are submitted to the CRT only upon completion;
 					// they'll be either graphics or blank, depending on which side we are
@@ -90,27 +104,49 @@ template <class BusHandler> class Video {
 					if(column_ < 40) {
 						if(row_ < 192) {
 							if(!column_) {
-								pixel_pointer_ = crt_->allocate_write_area(40);
+								pixel_pointer_ = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(80, 2));
 							}
 
 							const int pixel_end = std::min(40, ending_column);
 							const int character_row = row_ >> 3;
 							const int pixel_row = row_ & 7;
-							const uint16_t line_address = static_cast<uint16_t>(0x400 + (video_page_ * 0x400) + (character_row >> 3) * 40 + ((character_row&7) << 7));
+							const uint16_t row_address = static_cast<uint16_t>((character_row >> 3) * 40 + ((character_row&7) << 7));
+							const uint16_t text_address = static_cast<uint16_t>(((video_page_+1) * 0x400) + row_address);
+							const uint16_t graphics_address = static_cast<uint16_t>(((video_page_+1) * 0x1000) + row_address + ((pixel_row&7) << 9));
+							const int row_shift = (row_&4);
 
-							for(int c = column_; c < pixel_end; ++c) {
-								const uint16_t address = static_cast<uint16_t>(line_address + c);
-								const uint8_t character = bus_handler_.perform_read(address);
-								const int index = (character & 0x7f) << 3;
+							switch(line_mode) {
+								case GraphicsMode::Text:
+									for(int c = column_; c < pixel_end; ++c) {
+										const uint8_t character = bus_handler_.perform_read(static_cast<uint16_t>(text_address + c));
+										const std::size_t character_address = static_cast<std::size_t>(((character & 0x7f) << 3) + pixel_row);
 
-								const std::size_t character_address = static_cast<std::size_t>(index + pixel_row);
-								pixel_pointer_[c] = character_rom_[character_address] ^ ((character & 0x80) ? 0x00 : 0xff);
+										const uint8_t character_pattern = character_rom_[character_address] ^ ((character & 0x80) ? 0x00 : 0xff);
+										pixel_pointer_[c] = scaled_byte[character_pattern & 0x7f];
+									}
+								break;
+
+								case GraphicsMode::LowRes:
+									for(int c = column_; c < pixel_end; ++c) {
+										const uint8_t character = bus_handler_.perform_read(static_cast<uint16_t>(text_address + c));
+										pixel_pointer_[c] = low_resolution_patterns[column_&1][(character >> row_shift)&0xf];
+									}
+								break;
+
+								case GraphicsMode::HighRes:
+									for(int c = column_; c < pixel_end; ++c) {
+										const uint8_t graphic = bus_handler_.perform_read(static_cast<uint16_t>(graphics_address + c));
+										pixel_pointer_[c] = scaled_byte[graphic];
+										if(graphic & 0x80) {
+											reinterpret_cast<uint8_t *>(&pixel_pointer_[c])[0] |= graphics_carry_ << 7;
+										}
+										graphics_carry_ = pixel_pointer_[c] & 1;
+									}
+								break;
 							}
 
-							// TODO: graphics; 0x2000+ for high resolution
-
 							if(ending_column >= 40) {
-								crt_->output_data(280, 40);
+								crt_->output_data(280, 80);
 							}
 						} else {
 							if(ending_column >= 40) {
@@ -130,15 +166,25 @@ template <class BusHandler> class Video {
 						crt_->output_blank(static_cast<unsigned int>(first_blank_end - first_blank_start) * 7);
 					}
 
-					// TODO: colour burst.
-
 					const int sync_start = std::max(first_sync_column, column_);
 					const int sync_end = std::min(first_sync_column + 4, ending_column);
 					if(sync_end > sync_start) {
 						crt_->output_sync(static_cast<unsigned int>(sync_end - sync_start) * 7);
 					}
 
-					const int second_blank_start = std::max(first_sync_column + 4, column_);
+					int second_blank_start;
+					if(line_mode != GraphicsMode::Text) {
+						const int colour_burst_start = std::max(first_sync_column + 4, column_);
+						const int colour_burst_end = std::min(first_sync_column + 7, ending_column);
+						if(colour_burst_end > colour_burst_start) {
+							crt_->output_default_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 7);
+						}
+
+						second_blank_start = std::max(first_sync_column + 7, column_);
+					} else {
+						second_blank_start = std::max(first_sync_column + 4, column_);
+					}
+
 					if(ending_column > second_blank_start) {
 						crt_->output_blank(static_cast<unsigned int>(ending_column - second_blank_start) * 7);
 					}
@@ -156,44 +202,8 @@ template <class BusHandler> class Video {
 			}
 		}
 
-		// Inputs for the various soft switches.
-		void set_graphics_mode() {
-			printf("Graphics mode\n");
-		}
-
-		void set_text_mode() {
-			printf("Text mode\n");
-		}
-
-		void set_mixed_mode(bool mixed_mode) {
-			printf("Mixed mode: %s\n", mixed_mode ? "true" : "false");
-		}
-
-		void set_video_page(int page) {
-			video_page_ = page;
-			printf("Video page: %d\n", page);
-		}
-
-		void set_low_resolution() {
-			printf("Low resolution\n");
-		}
-
-		void set_high_resolution() {
-			printf("High resolution\n");
-		}
-
-		void set_character_rom(const std::vector<uint8_t> &character_rom) {
-			character_rom_ = character_rom;
-		}
-
 	private:
 		BusHandler &bus_handler_;
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
-
-		int video_page_ = 0;
-		int row_ = 0, column_ = 0;
-		uint8_t *pixel_pointer_ = nullptr;
-		std::vector<uint8_t> character_rom_;
 };
 
 }
