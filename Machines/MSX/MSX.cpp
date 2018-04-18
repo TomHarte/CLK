@@ -23,6 +23,7 @@
 #include "../../Components/1770/1770.hpp"
 #include "../../Components/9918/9918.hpp"
 #include "../../Components/8255/i8255.hpp"
+#include "../../Components/AudioToggle/AudioToggle.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
 #include "../../Components/KonamiSCC/KonamiSCC.hpp"
 
@@ -49,44 +50,6 @@ std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplaySVideo | Configurable::DisplayComposite | Configurable::QuickLoadTape)
 	);
 }
-
-/*!
-	Provides a sample source that can programmatically be set to one of two values.
-*/
-class AudioToggle: public Outputs::Speaker::SampleSource {
-	public:
-		AudioToggle(Concurrency::DeferringAsyncTaskQueue &audio_queue) :
-			audio_queue_(audio_queue) {}
-
-		void get_samples(std::size_t number_of_samples, std::int16_t *target) {
-			for(std::size_t sample = 0; sample < number_of_samples; ++sample) {
-				target[sample] = level_;
-			}
-		}
-
-		void set_sample_volume_range(std::int16_t range) {
-			volume_ = range;
-		}
-
-		void skip_samples(const std::size_t number_of_samples) {}
-
-		void set_output(bool enabled) {
-			if(is_enabled_ == enabled) return;
-			is_enabled_ = enabled;
-			audio_queue_.defer([=] {
-				level_ = enabled ? volume_ : 0;
-			});
-		}
-
-		bool get_output() {
-			return is_enabled_;
-		}
-
-	private:
-		bool is_enabled_ = false;
-		int16_t level_ = 0, volume_ = 0;
-		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
-};
 
 class AYPortHandler: public GI::AY38910::PortHandler {
 	public:
@@ -600,7 +563,7 @@ class ConcreteMachine:
 
 		class i8255PortHandler: public Intel::i8255::PortHandler {
 			public:
-				i8255PortHandler(ConcreteMachine &machine, AudioToggle &audio_toggle, Storage::Tape::BinaryTapePlayer &tape_player) :
+				i8255PortHandler(ConcreteMachine &machine, Audio::Toggle &audio_toggle, Storage::Tape::BinaryTapePlayer &tape_player) :
 					machine_(machine), audio_toggle_(audio_toggle), tape_player_(tape_player) {}
 
 				void set_value(int port, uint8_t value) {
@@ -637,7 +600,7 @@ class ConcreteMachine:
 
 			private:
 				ConcreteMachine &machine_;
-				AudioToggle &audio_toggle_;
+				Audio::Toggle &audio_toggle_;
 				Storage::Tape::BinaryTapePlayer &tape_player_;
 		};
 
@@ -647,10 +610,10 @@ class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910 ay_;
-		AudioToggle audio_toggle_;
+		Audio::Toggle audio_toggle_;
 		Konami::SCC scc_;
-		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle, Konami::SCC> mixer_;
-		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, AudioToggle, Konami::SCC>> speaker_;
+		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, Audio::Toggle, Konami::SCC> mixer_;
+		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, Audio::Toggle, Konami::SCC>> speaker_;
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
 		bool tape_player_is_sleeping_ = false;

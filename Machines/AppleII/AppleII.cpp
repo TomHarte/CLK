@@ -13,6 +13,9 @@
 #include "../Utility/MemoryFuzzer.hpp"
 
 #include "../../Processors/6502/6502.hpp"
+#include "../../Components/AudioToggle/AudioToggle.hpp"
+
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "Video.hpp"
 
@@ -48,6 +51,9 @@ class ConcreteMachine:
 		void update_video() {
 			video_->run_for(cycles_since_video_update_.flush());
 		}
+		void update_audio() {
+			speaker_.run_for(cycles_since_audio_update_.divide(Cycles(16)));
+		}
 
 		uint8_t ram_[48*1024];
 		std::vector<uint8_t> rom_;
@@ -55,11 +61,19 @@ class ConcreteMachine:
 		uint16_t rom_start_address_;
 		uint8_t keyboard_input_ = 0x00;
 
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		Audio::Toggle audio_toggle_;
+		Outputs::Speaker::LowpassSpeaker<Audio::Toggle> speaker_;
+		Cycles cycles_since_audio_update_;
+
 	public:
 		ConcreteMachine():
 		 	m6502_(*this),
-		 	video_bus_handler_(ram_) {
+		 	video_bus_handler_(ram_),
+		 	audio_toggle_(audio_queue_),
+		 	speaker_(audio_toggle_) {
 			set_clock_rate(1022727);
+			speaker_.set_input_rate(7159089.0f / 16.0f);
 			Memory::Fuzz(ram_, sizeof(ram_));
 		}
 
@@ -77,11 +91,12 @@ class ConcreteMachine:
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
-			return nullptr;
+			return &speaker_;
 		}
 
 		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			++ cycles_since_video_update_;
+			cycles_since_audio_update_ += Cycles(7);
 
 			switch(address) {
 				default:
@@ -109,7 +124,6 @@ class ConcreteMachine:
 								update_video();
 							}
 							ram_[address] = *value;
-//							printf("%04x <- %02x\n", address, *value);
 						}
 					}
 				break;
@@ -126,16 +140,22 @@ class ConcreteMachine:
 				case 0xc010:
 					keyboard_input_ &= 0x7f;
 				break;
+
+				case 0xc030:
+					update_audio();
+					audio_toggle_.set_output(!audio_toggle_.get_output());
+				break;
 			}
 
 			// The Apple II has a slightly weird timing pattern: every 65th CPU cycle is stretched
 			// by an extra 1/7th. That's because one cycle lasts 3.5 NTSC colour clocks, so after
 			// 65 cycles a full line of 227.5 colour clocks have passed. But the high-rate binary
 			// signal approximation that produces colour needs to be in phase, so a stretch of exactly
-			// 0.5 further colour cycles is added.
+			// 0.5 further colour cycles is added. The video class handles that implicitly, but it
+			// needs to be accumulated here for the audio.
 			cycles_into_current_line_ = (cycles_into_current_line_ + 1) % 65;
 			if(!cycles_into_current_line_) {
-				// Do something. Do something else.
+				++ cycles_since_audio_update_;
 			}
 
 			return Cycles(1);
@@ -143,6 +163,8 @@ class ConcreteMachine:
 
 		void flush() {
 			update_video();
+			update_audio();
+			audio_queue_.perform();
 		}
 
 		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
