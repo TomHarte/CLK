@@ -200,6 +200,16 @@ class ConcreteMachine:
 
 		void set_key_pressed(Key key, char value, bool is_pressed) override {
 			if(is_pressed) {
+				// If no ASCII value is supplied, look for a few special cases.
+				if(!value) {
+					switch(key) {
+						case Key::Left:		value = 8;	break;
+						case Key::Right:	value = 21;	break;
+						case Key::Down:		value = 10;	break;
+						default: break;
+					}
+				}
+
 				keyboard_input_ = static_cast<uint8_t>(value | 0x80);
 			}
 		}
