@@ -72,8 +72,19 @@ class ConcreteMachine:
 		 	video_bus_handler_(ram_),
 		 	audio_toggle_(audio_queue_),
 		 	speaker_(audio_toggle_) {
-			set_clock_rate(1022727);
-			speaker_.set_input_rate(7159089.0f / 16.0f);
+		 	// The system's master clock rate.
+		 	const float master_clock = 14318180.0;
+
+		 	// This is where things get slightly convoluted: establish the machine as having a clock rate
+		 	// equal to the number of cycles of work the 6502 will actually achieve. Which is less than
+		 	// the master clock rate divided by 14 because every 65th cycle is extended by one seventh.
+			set_clock_rate((master_clock / 14.0) * 65.0 / (65.0 + 1.0 / 7.0));
+
+			// The speaker, however, should think it is clocked at half the master clock, per a general
+			// decision to sample it at seven times the CPU clock (plus stretches).
+			speaker_.set_input_rate(static_cast<float>(master_clock / (2.0 * 16.0)));
+
+			// Also, start with randomised memory contents.
 			Memory::Fuzz(ram_, sizeof(ram_));
 		}
 
@@ -112,7 +123,6 @@ class ConcreteMachine:
 									*value = 0xff;
 								break;
 								case 0xc000:
-									// TODO: read keyboard.
 									*value = keyboard_input_;
 								break;
 							}
