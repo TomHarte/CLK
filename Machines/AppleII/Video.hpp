@@ -94,9 +94,7 @@ template <class BusHandler> class Video: public VideoBase {
 					crt_->output_sync(static_cast<unsigned int>(cycles_this_line) * 7);
 				} else {
 					const int ending_column = column_ + cycles_this_line;
-					GraphicsMode line_mode = graphics_mode_;
-					if(!use_graphics_mode_ || (mixed_mode_ && row_ >= 160))
-						line_mode = GraphicsMode::Text;
+					const GraphicsMode line_mode = use_graphics_mode_ ? graphics_mode_ : GraphicsMode::Text;
 
 					// The first 40 columns are submitted to the CRT only upon completion;
 					// they'll be either graphics or blank, depending on which side we are
@@ -115,7 +113,8 @@ template <class BusHandler> class Video: public VideoBase {
 							const uint16_t graphics_address = static_cast<uint16_t>(((video_page_+1) * 0x1000) + row_address + ((pixel_row&7) << 9));
 							const int row_shift = (row_&4);
 
-							switch(line_mode) {
+							GraphicsMode pixel_mode = (!mixed_mode_ || row_ < 160) ? line_mode : GraphicsMode::Text;
+							switch(pixel_mode) {
 								case GraphicsMode::Text:
 									for(int c = column_; c < pixel_end; ++c) {
 										const uint8_t character = bus_handler_.perform_read(static_cast<uint16_t>(text_address + c));
@@ -173,7 +172,7 @@ template <class BusHandler> class Video: public VideoBase {
 					}
 
 					int second_blank_start;
-					if(line_mode != GraphicsMode::Text) {
+					if(line_mode != GraphicsMode::Text && (!mixed_mode_ || row_ < 159 || row_ >= 192)) {
 						const int colour_burst_start = std::max(first_sync_column + 4, column_);
 						const int colour_burst_end = std::min(first_sync_column + 7, ending_column);
 						if(colour_burst_end > colour_burst_start) {
