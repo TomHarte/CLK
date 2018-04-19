@@ -128,7 +128,7 @@ template <class BusHandler> class Video: public VideoBase {
 								case GraphicsMode::LowRes:
 									for(int c = column_; c < pixel_end; ++c) {
 										const uint8_t character = bus_handler_.perform_read(static_cast<uint16_t>(text_address + c));
-										pixel_pointer_[c] = low_resolution_patterns[column_&1][(character >> row_shift)&0xf];
+										pixel_pointer_[c] = low_resolution_patterns[c&1][(character >> row_shift)&0xf];
 									}
 								break;
 

@@ -57,8 +57,8 @@ void VideoBase::setup_tables() {
 			((c & 0x40) ? 0x6000 : 0x0000);
 
 		uint8_t *const table_entry = reinterpret_cast<uint8_t *>(&scaled_byte[c]);
-		table_entry[1] = static_cast<uint8_t>(value & 0xff);
 		table_entry[0] = static_cast<uint8_t>(value >> 8);
+		table_entry[1] = static_cast<uint8_t>(value & 0xff);
 	}
 	for(int c = 128; c < 256; ++c) {
 		uint8_t *const source_table_entry = reinterpret_cast<uint8_t *>(&scaled_byte[c & 0x7f]);
@@ -69,14 +69,23 @@ void VideoBase::setup_tables() {
 	}
 
 	for(int c = 0; c < 16; ++c) {
-		uint8_t *table_entry = reinterpret_cast<uint8_t *>(&low_resolution_patterns[0][c]);
-		table_entry[1] = static_cast<uint8_t>(c | (c << 4));
-		table_entry[0] = static_cast<uint8_t>((c >> 3) | (c << 1) | (c << 5));
+		// Produce the whole 28-bit pattern that would cover two bytes.
+		int pattern = 0;
+		for(int l = 0; l < 7; ++l) {
+			pattern <<= 4;
+			pattern |= c;
+		}
 
-		table_entry = reinterpret_cast<uint8_t *>(&low_resolution_patterns[1][c]);
-		table_entry[1] = static_cast<uint8_t>((c >> 2) | (c << 2) | (c << 6));
-		table_entry[0] = static_cast<uint8_t>((c >> 1) | (c << 3));
+		// Pack that 28-bit pattern into the appropriate look-up tables.
+		uint8_t *const left_entry = reinterpret_cast<uint8_t *>(&low_resolution_patterns[0][c]);
+		uint8_t *const right_entry = reinterpret_cast<uint8_t *>(&low_resolution_patterns[1][c]);
+		left_entry[0] = static_cast<uint8_t>(pattern >> 21);
+		left_entry[1] = static_cast<uint8_t>(pattern >> 14);
+		right_entry[0] = static_cast<uint8_t>(pattern >> 7);
+		right_entry[1] = static_cast<uint8_t>(pattern);
 	}
+
+	printf("");
 }
 
 void VideoBase::set_graphics_mode() {
