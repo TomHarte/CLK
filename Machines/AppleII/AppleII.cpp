@@ -182,7 +182,7 @@ class ConcreteMachine:
 				"AppleII",
 				{
 					"apple2o.rom",
-					"apple2o-character.rom"
+					"apple2-character.rom"
 				});
 
 			if(!roms[0] || !roms[1]) return false;

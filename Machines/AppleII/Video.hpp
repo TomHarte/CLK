@@ -47,7 +47,7 @@ class VideoBase {
 		std::unique_ptr<Outputs::CRT::CRT> crt_;
 
 		int video_page_ = 0;
-		int row_ = 0, column_ = 0;
+		int row_ = 0, column_ = 0, flash_ = 0;
 		uint16_t *pixel_pointer_ = nullptr;
 		std::vector<uint8_t> character_rom_;
 
@@ -115,15 +115,21 @@ template <class BusHandler> class Video: public VideoBase {
 
 							GraphicsMode pixel_mode = (!mixed_mode_ || row_ < 160) ? line_mode : GraphicsMode::Text;
 							switch(pixel_mode) {
-								case GraphicsMode::Text:
+								case GraphicsMode::Text: {
+									const uint8_t inverses[] = {
+										0xff,
+										static_cast<uint8_t>((flash_ / flash_length) * 0xff),
+										0x00,
+										0x00
+									};
 									for(int c = column_; c < pixel_end; ++c) {
 										const uint8_t character = bus_handler_.perform_read(static_cast<uint16_t>(text_address + c));
-										const std::size_t character_address = static_cast<std::size_t>(((character & 0x7f) << 3) + pixel_row);
+										const std::size_t character_address = static_cast<std::size_t>(((character & 0x3f) << 3) + pixel_row);
 
-										const uint8_t character_pattern = character_rom_[character_address] ^ ((character & 0x80) ? 0x00 : 0xff);
+										const uint8_t character_pattern = character_rom_[character_address] ^ inverses[character >> 6];
 										pixel_pointer_[c] = scaled_byte[character_pattern & 0x7f];
 									}
-								break;
+								} break;
 
 								case GraphicsMode::LowRes:
 									for(int c = column_; c < pixel_end; ++c) {
@@ -193,6 +199,7 @@ template <class BusHandler> class Video: public VideoBase {
 				column_ = (column_ + cycles_this_line) % 65;
 				if(!column_) {
 					row_ = (row_ + 1) % 262;
+					flash_ = (flash_ + 1) % (2 * flash_length);
 
 					// Add an extra half a colour cycle of blank; this isn't counted in the run_for
 					// count explicitly but is promised.
@@ -202,6 +209,7 @@ template <class BusHandler> class Video: public VideoBase {
 		}
 
 	private:
+		const int flash_length = 8406;
 		BusHandler &bus_handler_;
 };
 
