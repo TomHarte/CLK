@@ -23,6 +23,8 @@
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
 
+#include <bitset>
+
 @interface CSMachine() <CSFastLoading>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
@@ -54,6 +56,8 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 
 	CSStaticAnalyser *_analyser;
 	std::unique_ptr<Machine::DynamicMachine> _machine;
+
+	std::bitset<65536> _depressedKeys;
 }
 
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result {
@@ -168,12 +172,25 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 - (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed {
 	auto keyboard_machine = _machine->keyboard_machine();
 	if(keyboard_machine) {
+		// Don't pass anything on if this is not new information.
+		if(_depressedKeys[key] == !!isPressed) return;
+		_depressedKeys[key] = !!isPressed;
+
+		// Pick an ASCII code, if any.
+		char pressedKey = '\0';
+		if(characters.length) {
+			unichar firstCharacter = [characters characterAtIndex:0];
+			if(firstCharacter < 128) {
+				pressedKey = (char)firstCharacter;
+			}
+		}
+
 		@synchronized(self) {
 			Inputs::Keyboard &keyboard = keyboard_machine->get_keyboard();
 
 			// Connect the Carbon-era Mac keyboard scancodes to Clock Signal's 'universal' enumeration in order
 			// to pass into the platform-neutral realm.
-#define BIND(source, dest) case source: keyboard.set_key_pressed(Inputs::Keyboard::Key::dest, isPressed);	break
+#define BIND(source, dest) case source: keyboard.set_key_pressed(Inputs::Keyboard::Key::dest, pressedKey, isPressed);	break
 			switch(key) {
 				BIND(VK_ANSI_0, k0);	BIND(VK_ANSI_1, k1);	BIND(VK_ANSI_2, k2);	BIND(VK_ANSI_3, k3);	BIND(VK_ANSI_4, k4);
 				BIND(VK_ANSI_5, k5);	BIND(VK_ANSI_6, k6);	BIND(VK_ANSI_7, k7);	BIND(VK_ANSI_8, k8);	BIND(VK_ANSI_9, k9);

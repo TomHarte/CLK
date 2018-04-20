@@ -180,17 +180,21 @@ class CRT {
 		void output_level(unsigned int number_of_cycles);
 
 		/*!	Declares that the caller has created a run of data via @c allocate_write_area and @c get_write_target_for_buffer
-			that is at least @c number_of_cycles long, and that the first @c number_of_cycles/source_divider should be spread
-			over that amount of time.
+			that is at least @c number_of_samples long, and that the first @c number_of_samples should be spread
+			over @c number_of_cycles.
 
 			@param number_of_cycles The amount of data to output.
 
-			@param source_divider A divider for source data; if the divider is 1 then one source pixel is output every cycle,
-			if it is 2 then one source pixel covers two cycles; if it is n then one source pixel covers n cycles.
+			@param number_of_samples The number of samples of input data to output.
 
 			@see @c allocate_write_area , @c get_write_target_for_buffer
 		*/
-		void output_data(unsigned int number_of_cycles, unsigned int source_divider);
+		void output_data(unsigned int number_of_cycles, unsigned int number_of_samples);
+
+		/*! A shorthand form for output_data that assumes the number of cycles to output for is the same as the number of samples. */
+		void output_data(unsigned int number_of_cycles) {
+			output_data(number_of_cycles, number_of_cycles);
+		}
 
 		/*!	Outputs a colour burst.
 
@@ -286,6 +290,22 @@ class CRT {
 			});
 		}
 
+		/*!
+			Sets a multiplier applied to iCoordinate values prior to their passing to the various sampling functions.
+			This multiplier is applied outside of the interpolation loop, making for a more precise interpolation
+			than if it were applied within the sampling function.
+
+			Idiomatically, this is likely to be the number of output pixels packed into each input sample where
+			packing is in use.
+
+			The default value is 1.0.
+		*/
+		inline void set_integer_coordinate_multiplier(float multiplier) {
+			enqueue_openGL_function([=] {
+				openGL_output_builder_.set_integer_coordinate_multiplier(multiplier);
+			});
+		}
+
 		enum CompositeSourceType {
 			/// The composite function provides continuous output.
 			Continuous,
@@ -329,12 +349,12 @@ class CRT {
 			output mode will be applied.
 
 			@param shader A GLSL fragent including a function with the signature
-			`vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)` that evaluates to an RGB colour
+			`vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 iCoordinate)` that evaluates to an RGB colour
 			as a function of:
 
 			* `usampler2D sampler` representing the source buffer;
 			* `vec2 coordinate` representing the source buffer location to sample from in the range [0, 1); and
-			* `vec2 icoordinate` representing the source buffer location to sample from as a pixel count, for easier multiple-pixels-per-byte unpacking.
+			* `vec2 iCoordinate` representing the source buffer location to sample from as a pixel count, for easier multiple-pixels-per-byte unpacking.
 		*/
 		inline void set_rgb_sampling_function(const std::string &shader) {
 			enqueue_openGL_function([shader, this] {

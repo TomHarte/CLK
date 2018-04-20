@@ -24,12 +24,12 @@ struct KeyActions {
 		Indicates that the key @c key has been either pressed or released, according to
 		the state of @c isPressed.
 	*/
-	virtual void set_key_state(uint16_t key, bool is_pressed) = 0;
+	virtual void set_key_state(uint16_t key, bool is_pressed) {}
 
 	/*!
 		Instructs that all keys should now be treated as released.
 	*/
-	virtual void clear_all_keys() = 0;
+	virtual void clear_all_keys() {}
 };
 
 /*!

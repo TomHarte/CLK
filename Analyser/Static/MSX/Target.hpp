@@ -10,6 +10,7 @@
 #define Analyser_Static_MSX_Target_h
 
 #include "../StaticAnalyser.hpp"
+#include <string>
 
 namespace Analyser {
 namespace Static {
@@ -17,6 +18,7 @@ namespace MSX {
 
 struct Target: public ::Analyser::Static::Target {
 	bool has_disk_drive = false;
+	std::string loading_command;
 };
 
 }

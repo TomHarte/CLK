@@ -125,11 +125,8 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 #define output_position_y()	(*reinterpret_cast<uint16_t *>(&next_output_run[OutputVertexOffsetOfVertical + 0]))
 #define output_tex_y()		(*reinterpret_cast<uint16_t *>(&next_output_run[OutputVertexOffsetOfVertical + 2]))
 
-#define source_input_position_x1()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfInputStart + 0]))
 #define source_input_position_y()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfInputStart + 2]))
-#define source_input_position_x2()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfEnds + 0]))
 #define source_output_position_x1()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfOutputStart + 0]))
-#define source_output_position_y()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfOutputStart + 2]))
 #define source_output_position_x2()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfEnds + 2]))
 #define source_phase()				next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 0]
 #define source_amplitude()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 1]
@@ -217,6 +214,9 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 						output_tex_y() = output_y;
 						output_x2() = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
 					}
+
+					// TODO: below I've assumed a one-to-one correspondance with output runs and input data; that's
+					// obviously not completely sustainable. It's a latent bug.
 					openGL_output_builder_.array_builder.flush(
 						[=] (uint8_t *input_buffer, std::size_t input_size, uint8_t *output_buffer, std::size_t output_size) {
 							openGL_output_builder_.texture_builder.flush(
@@ -264,15 +264,11 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 #undef output_position_y
 #undef output_tex_y
 
-#undef source_input_position_x1
 #undef source_input_position_y
-#undef source_input_position_x2
 #undef source_output_position_x1
-#undef source_output_position_y
 #undef source_output_position_x2
 #undef source_phase
 #undef source_amplitude
-#undef source_phase_time
 
 // MARK: - stream feeding methods
 
@@ -384,8 +380,8 @@ void CRT::set_immediate_default_phase(float phase) {
 	phase_numerator_ = static_cast<unsigned int>(phase * static_cast<float>(phase_denominator_));
 }
 
-void CRT::output_data(unsigned int number_of_cycles, unsigned int source_divider) {
-	openGL_output_builder_.texture_builder.reduce_previous_allocation_to(number_of_cycles / source_divider);
+void CRT::output_data(unsigned int number_of_cycles, unsigned int number_of_samples) {
+	openGL_output_builder_.texture_builder.reduce_previous_allocation_to(number_of_samples);
 	Scan scan;
 	scan.type = Scan::Type::Data;
 	scan.number_of_cycles = number_of_cycles;

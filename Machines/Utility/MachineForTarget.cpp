@@ -9,6 +9,7 @@
 #include "MachineForTarget.hpp"
 
 #include "../AmstradCPC/AmstradCPC.hpp"
+#include "../AppleII/AppleII.hpp"
 #include "../Atari2600/Atari2600.hpp"
 #include "../ColecoVision/ColecoVision.hpp"
 #include "../Commodore/Vic-20/Vic20.hpp"
@@ -27,6 +28,7 @@ namespace {
 	::Machine::DynamicMachine *machine = nullptr;
 	switch(target->machine) {
 		case Analyser::Machine::AmstradCPC:		machine = new Machine::TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());				break;
+		case Analyser::Machine::AppleII:		machine = new Machine::TypedDynamicMachine<AppleII::Machine>(AppleII::Machine::AppleII());						break;
 		case Analyser::Machine::Atari2600:		machine = new Machine::TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());				break;
 		case Analyser::Machine::ColecoVision:	machine = new Machine::TypedDynamicMachine<Coleco::Vision::Machine>(Coleco::Vision::Machine::ColecoVision());	break;
 		case Analyser::Machine::Electron:		machine = new Machine::TypedDynamicMachine<Electron::Machine>(Electron::Machine::Electron());					break;
@@ -60,7 +62,7 @@ namespace {
 
 }
 
-::Machine::DynamicMachine *::Machine::MachineForTargets(const std::vector<std::unique_ptr<Analyser::Static::Target>> &targets, const ROMMachine::ROMFetcher &rom_fetcher, Error &error) {
+::Machine::DynamicMachine *::Machine::MachineForTargets(const Analyser::Static::TargetList &targets, const ROMMachine::ROMFetcher &rom_fetcher, Error &error) {
 	// Zero targets implies no machine.
 	if(targets.empty()) {
 		error = Error::NoTargets;
@@ -95,6 +97,7 @@ namespace {
 std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) {
 	switch(machine) {
 		case Analyser::Machine::AmstradCPC:		return "AmstradCPC";
+		case Analyser::Machine::AppleII:		return "AppleII";
 		case Analyser::Machine::Atari2600:		return "Atari2600";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Electron";
@@ -110,6 +113,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 	switch(machine) {
 		case Analyser::Machine::AmstradCPC:		return "Amstrad CPC";
+		case Analyser::Machine::AppleII:		return "Apple II";
 		case Analyser::Machine::Atari2600:		return "Atari 2600";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Acorn Electron";

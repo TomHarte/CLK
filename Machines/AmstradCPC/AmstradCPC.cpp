@@ -203,7 +203,7 @@ class CRTCBusHandler {
 				} else {
 					if(was_enabled_) {
 						if(cycles_) {
-							crt_->output_data(cycles_ * 16, pixel_divider_);
+							crt_->output_data(cycles_ * 16, cycles_ * 16 / pixel_divider_);
 							pixel_pointer_ = pixel_data_ = nullptr;
 						}
 					} else {
@@ -267,7 +267,7 @@ class CRTCBusHandler {
 					// widths so it's not necessarily possible to predict the correct number in advance
 					// and using the upper bound could lead to inefficient behaviour
 					if(pixel_pointer_ == pixel_data_ + 320) {
-						crt_->output_data(cycles_ * 16, pixel_divider_);
+						crt_->output_data(cycles_ * 16, cycles_ * 16 / pixel_divider_);
 						pixel_pointer_ = pixel_data_ = nullptr;
 						cycles_ = 0;
 					}
@@ -916,8 +916,8 @@ class ConcreteMachine:
 			read_pointers_[3] = roms_[upper_rom_].data();
 
 			// Type whatever is required.
-			if(target->loading_command.length()) {
-				type_string(target->loading_command);
+			if(!cpc_target->loading_command.empty()) {
+				type_string(cpc_target->loading_command);
 			}
 
 			insert_media(target->media);

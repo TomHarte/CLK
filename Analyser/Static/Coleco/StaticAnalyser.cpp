@@ -52,11 +52,13 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return coleco_cartridges;
 }
 
-void Analyser::Static::Coleco::AddTargets(const Media &media, std::vector<std::unique_ptr<Target>> &destination) {
+Analyser::Static::TargetList Analyser::Static::Coleco::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+	TargetList targets;
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::ColecoVision;
 	target->confidence = 1.0f - 1.0f / 32768.0f;
 	target->media.cartridges = ColecoCartridgesFrom(media.cartridges);
 	if(!target->media.empty())
-		destination.push_back(std::move(target));
+		targets.push_back(std::move(target));
+	return targets;
 }

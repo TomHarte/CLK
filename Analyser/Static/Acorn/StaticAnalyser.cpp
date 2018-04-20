@@ -57,7 +57,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return acorn_cartridges;
 }
 
-void Analyser::Static::Acorn::AddTargets(const Media &media, std::vector<std::unique_ptr<::Analyser::Static::Target>> &destination) {
+Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
 	std::unique_ptr<Target> target(new Target);
 	target->machine = Machine::Electron;
 	target->confidence = 0.5; // TODO: a proper estimation
@@ -121,7 +121,9 @@ void Analyser::Static::Acorn::AddTargets(const Media &media, std::vector<std::un
 		}
 	}
 
-	if(target->media.tapes.size() || target->media.disks.size() || target->media.cartridges.size()) {
-		destination.push_back(std::move(target));
+	TargetList targets;
+	if(!target->media.empty()) {
+		targets.push_back(std::move(target));
 	}
+	return targets;
 }

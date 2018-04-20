@@ -55,9 +55,10 @@ VideoOutput::VideoOutput(uint8_t *memory) : ram_(memory) {
 		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
-			"texValue >>= 4 - (int(icoordinate.x * 8) & 4);"
+			"texValue >>= 4 - (int(icoordinate.x) & 4);"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 		"}");
+	crt_->set_integer_coordinate_multiplier(8.0f);
 	std::unique_ptr<Outputs::CRT::TextureBuilder::Bookender> bookender(new FourBPPBookender);
 	crt_->set_bookender(std::move(bookender));
 	// TODO: as implied below, I've introduced a clock's latency into the graphics pipeline somehow. Investigate.
@@ -97,7 +98,10 @@ void VideoOutput::start_pixel_line() {
 }
 
 void VideoOutput::end_pixel_line() {
-	if(current_output_target_) crt_->output_data(static_cast<unsigned int>((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
+	if(current_output_target_) {
+		const unsigned int data_length = static_cast<unsigned int>(current_output_target_ - initial_output_target_);
+		crt_->output_data(data_length * current_output_divider_, data_length);
+	}
 	current_character_row_++;
 }
 
@@ -115,7 +119,10 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 		}
 
 		if(!initial_output_target_ || divider != current_output_divider_) {
-			if(current_output_target_) crt_->output_data(static_cast<unsigned int>((current_output_target_ - initial_output_target_) * current_output_divider_), current_output_divider_);
+			if(current_output_target_) {
+				const unsigned int data_length = static_cast<unsigned int>(current_output_target_ - initial_output_target_);
+				crt_->output_data(data_length * current_output_divider_, data_length);
+			}
 			current_output_divider_ = divider;
 			initial_output_target_ = current_output_target_ = crt_->allocate_write_area(640 / current_output_divider_, 4);
 		}

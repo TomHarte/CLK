@@ -42,6 +42,7 @@ typedef int Kilobytes;
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region memorySize:(Kilobytes)memorySize hasC1540:(BOOL)hasC1540;
 - (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize useZX81ROM:(BOOL)useZX81ROM;
 - (instancetype)initWithZX81MemorySize:(Kilobytes)memorySize;
+- (instancetype)initWithAppleII;
 
 @property(nonatomic, readonly) NSString *optionsPanelNibName;
 @property(nonatomic, readonly) NSString *displayName;

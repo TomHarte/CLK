@@ -536,7 +536,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					}
 
 					if(output_column_ == first_right_border_column_) {
-						crt_->output_data(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_) * 4, 4);
+						const unsigned int data_length = static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_);
+						crt_->output_data(data_length * 4, data_length);
 						pixel_target_ = nullptr;
 					}
 				}

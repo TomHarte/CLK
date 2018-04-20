@@ -86,6 +86,7 @@ class ConcreteMachine:
 				std::memcpy(&target[rom_ptr], data.data(), size_to_copy);
 				rom_ptr += size_to_copy;
 			}
+			rom_inserted_[slot] = true;
 		}
 
 		// Obtains the system ROMs.
@@ -131,8 +132,8 @@ class ConcreteMachine:
 		void configure_as_target(const Analyser::Static::Target *target) override final {
 			auto *const acorn_target = dynamic_cast<const Analyser::Static::Acorn::Target *>(target);
 
-			if(target->loading_command.length()) {
-				type_string(target->loading_command);
+			if(!acorn_target->loading_command.empty()) {
+				type_string(acorn_target->loading_command);
 			}
 
 			if(acorn_target->should_shift_restart) {
@@ -158,6 +159,7 @@ class ConcreteMachine:
 			if(!media.tapes.empty()) {
 				tape_.set_tape(media.tapes.front());
 			}
+			set_use_fast_tape_hack();
 
 			if(!media.disks.empty() && plus3_) {
 				plus3_->set_disk(media.disks.front(), 0);
@@ -165,11 +167,14 @@ class ConcreteMachine:
 
 			ROMSlot slot = ROMSlot12;
 			for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : media.cartridges) {
+				const ROMSlot first_slot_tried = slot;
+				while(rom_inserted_[slot]) {
+					slot = static_cast<ROMSlot>((static_cast<int>(slot) + 1)&15);
+					if(slot == first_slot_tried) return false;
+				}
 				set_rom(slot, cartridge->get_segments().front().data, false);
-				slot = static_cast<ROMSlot>((static_cast<int>(slot) + 1)&15);
 			}
 
-			set_use_fast_tape_hack();
 			return !media.tapes.empty() || !media.disks.empty() || !media.cartridges.empty();
 		}
 
@@ -513,6 +518,7 @@ class ConcreteMachine:
 
 		// Things that directly constitute the memory map.
 		uint8_t roms_[16][16384];
+		bool rom_inserted_[16] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
 		bool rom_write_masks_[16] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
 		uint8_t os_[16384], ram_[32768];
 		std::vector<uint8_t> dfs_, adfs1_, adfs2_;

@@ -324,8 +324,8 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 			Memory::Fuzz(ram_);
 
-			if(target->loading_command.length()) {
-				type_string(target->loading_command);
+			if(!zx8081_target->loading_command.empty()) {
+				type_string(zx8081_target->loading_command);
 			}
 
 			insert_media(target->media);
@@ -437,7 +437,7 @@ template<bool is_zx81> class ConcreteMachine:
 	private:
 		CPU::Z80::Processor<ConcreteMachine, false, is_zx81> z80_;
 
-		std::shared_ptr<Video> video_;
+		std::unique_ptr<Video> video_;
 		std::vector<uint8_t> zx81_rom_, zx80_rom_;
 
 		uint16_t tape_trap_address_, tape_return_address_;

@@ -31,7 +31,7 @@ enum class Error {
 	receive the supplied static analyser result. The machine has been allocated
 	on the heap. It is the caller's responsibility to delete the class when finished.
 */
-DynamicMachine *MachineForTargets(const std::vector<std::unique_ptr<Analyser::Static::Target>> &targets, const ::ROMMachine::ROMFetcher &rom_fetcher, Error &error);
+DynamicMachine *MachineForTargets(const Analyser::Static::TargetList &targets, const ::ROMMachine::ROMFetcher &rom_fetcher, Error &error);
 
 /*!
 	Returns a short string name for the machine identified by the target,

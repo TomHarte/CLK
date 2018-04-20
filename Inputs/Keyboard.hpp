@@ -40,7 +40,7 @@ class Keyboard {
 		};
 
 		// Host interface.
-		virtual void set_key_pressed(Key key, bool is_pressed);
+		virtual void set_key_pressed(Key key, char value, bool is_pressed);
 		virtual void reset_all_keys();
 
 		// Delegate interface.

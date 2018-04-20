@@ -12,7 +12,7 @@ using namespace Inputs;
 
 Keyboard::Keyboard() {}
 
-void Keyboard::set_key_pressed(Key key, bool is_pressed) {
+void Keyboard::set_key_pressed(Key key, char value, bool is_pressed) {
 	std::size_t key_offset = static_cast<std::size_t>(key);
 	if(key_offset >= key_states_.size()) {
 		key_states_.resize(key_offset+1, false);

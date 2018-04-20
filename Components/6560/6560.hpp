@@ -287,7 +287,7 @@ template <class BusHandler> class MOS6560 {
 						case State::Sync:			crt_->output_sync(cycles_in_state_ * 4);														break;
 						case State::ColourBurst:	crt_->output_colour_burst(cycles_in_state_ * 4, (is_odd_frame_ || is_odd_line_) ? 128 : 0);		break;
 						case State::Border:			output_border(cycles_in_state_ * 4);															break;
-						case State::Pixels:			crt_->output_data(cycles_in_state_ * 4, 1);														break;
+						case State::Pixels:			crt_->output_data(cycles_in_state_ * 4);														break;
 					}
 					output_state_ = this_state_;
 					cycles_in_state_ = 0;
