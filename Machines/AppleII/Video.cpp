@@ -85,8 +85,6 @@ void VideoBase::setup_tables() {
 		right_entry[0] = static_cast<uint8_t>(pattern >> 14);
 		right_entry[1] = static_cast<uint8_t>(pattern >> 21);
 	}
-
-	printf("");
 }
 
 void VideoBase::set_graphics_mode() {
