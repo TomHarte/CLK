@@ -28,8 +28,8 @@ VideoBase::VideoBase() :
 		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
-			"texValue <<= int(icoordinate.x) % 7;"
-			"return float(texValue & 64u);"
+			"texValue >>= int(icoordinate.x) % 7;"
+			"return float(texValue & 1u);"
 		"}");
 	crt_->set_integer_coordinate_multiplier(7.0f);
 
@@ -57,32 +57,33 @@ void VideoBase::setup_tables() {
 			((c & 0x40) ? 0x6000 : 0x0000);
 
 		uint8_t *const table_entry = reinterpret_cast<uint8_t *>(&scaled_byte[c]);
-		table_entry[0] = static_cast<uint8_t>(value >> 8);
-		table_entry[1] = static_cast<uint8_t>(value & 0xff);
+		table_entry[0] = static_cast<uint8_t>(value & 0xff);
+		table_entry[1] = static_cast<uint8_t>(value >> 8);
 	}
 	for(int c = 128; c < 256; ++c) {
 		uint8_t *const source_table_entry = reinterpret_cast<uint8_t *>(&scaled_byte[c & 0x7f]);
 		uint8_t *const destination_table_entry = reinterpret_cast<uint8_t *>(&scaled_byte[c]);
 
-		destination_table_entry[0] = static_cast<uint8_t>(source_table_entry[0] >> 1);
-		destination_table_entry[1] = static_cast<uint8_t>((source_table_entry[1] >> 1) | ((source_table_entry[0]&1) << 6));
+		destination_table_entry[0] = static_cast<uint8_t>(source_table_entry[0] << 1);
+		destination_table_entry[1] = static_cast<uint8_t>((source_table_entry[1] << 1) | (source_table_entry[0] >> 6));
 	}
 
 	for(int c = 0; c < 16; ++c) {
-		// Produce the whole 28-bit pattern that would cover two bytes.
+		// Produce the whole 28-bit pattern that would cover two columns.
+		const int reversed_c = ((c&0x1) ? 0x8 : 0x0) | ((c&0x2) ? 0x4 : 0x0) | ((c&0x4) ? 0x2 : 0x0) | ((c&0x8) ? 0x1 : 0x0);
 		int pattern = 0;
 		for(int l = 0; l < 7; ++l) {
 			pattern <<= 4;
-			pattern |= c;
+			pattern |= reversed_c;
 		}
 
 		// Pack that 28-bit pattern into the appropriate look-up tables.
 		uint8_t *const left_entry = reinterpret_cast<uint8_t *>(&low_resolution_patterns[0][c]);
 		uint8_t *const right_entry = reinterpret_cast<uint8_t *>(&low_resolution_patterns[1][c]);
-		left_entry[0] = static_cast<uint8_t>(pattern >> 21);
-		left_entry[1] = static_cast<uint8_t>(pattern >> 14);
-		right_entry[0] = static_cast<uint8_t>(pattern >> 7);
-		right_entry[1] = static_cast<uint8_t>(pattern);
+		left_entry[0] = static_cast<uint8_t>(pattern);;
+		left_entry[1] = static_cast<uint8_t>(pattern >> 7);
+		right_entry[0] = static_cast<uint8_t>(pattern >> 14);
+		right_entry[1] = static_cast<uint8_t>(pattern >> 21);
 	}
 
 	printf("");
@@ -114,4 +115,15 @@ void VideoBase::set_high_resolution() {
 
 void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
 	character_rom_ = character_rom;
+	for(auto &byte : character_rom_) {
+		byte =
+			((byte & 0x40) ? 0x01 : 0x00) |
+			((byte & 0x20) ? 0x02 : 0x00) |
+			((byte & 0x10) ? 0x04 : 0x00) |
+			((byte & 0x08) ? 0x08 : 0x00) |
+			((byte & 0x04) ? 0x10 : 0x00) |
+			((byte & 0x02) ? 0x20 : 0x00) |
+			((byte & 0x01) ? 0x40 : 0x00) |
+			(byte & 0x80);
+	}
 }
