@@ -115,6 +115,10 @@ void VideoBase::set_high_resolution() {
 
 void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
 	character_rom_ = character_rom;
+
+	// Bytes in the character ROM are stored in reverse bit order. Reverse them
+	// ahead of time so as to be able to use the same scaling table as for
+	// high-resolution graphics.
 	for(auto &byte : character_rom_) {
 		byte =
 			((byte & 0x40) ? 0x01 : 0x00) |
