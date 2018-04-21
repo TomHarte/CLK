@@ -29,9 +29,12 @@ class Toggle: public Outputs::Speaker::SampleSource {
 		bool get_output();
 
 	private:
+		// Accessed on the calling thread.
 		bool is_enabled_ = false;
-		int16_t level_ = 0, volume_ = 0;
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
+
+		// Accessed on the audio thread.
+		int16_t level_ = 0, volume_ = 0;
 };
 
 }

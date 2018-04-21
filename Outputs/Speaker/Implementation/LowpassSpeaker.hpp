@@ -87,6 +87,18 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		}
 
 		/*!
+			Schedules an advancement by the number of cycles specified on the provided queue.
+			The speaker will advance by obtaining data from the sample source supplied
+			at construction, filtering it and passing it on to the speaker's delegate if there is one.
+		*/
+		void run_for(Concurrency::DeferringAsyncTaskQueue &queue, const Cycles cycles) {
+			queue.defer([this, cycles] {
+				run_for(cycles);
+			});
+		}
+
+	private:
+		/*!
 			Advances by the number of cycles specified, obtaining data from the sample source supplied
 			at construction, filtering it and passing it on to the speaker's delegate if there is one.
 		*/
@@ -173,16 +185,6 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			// TODO: input rate is less than output rate
 		}
 
-		/*!
-			Provides a convenience shortcut for deferring a call to run_for.
-		*/
-		void run_for(Concurrency::DeferringAsyncTaskQueue &queue, const Cycles cycles) {
-			queue.defer([this, cycles] {
-				run_for(cycles);
-			});
-		}
-
-	private:
 		T &sample_source_;
 
 		std::size_t output_buffer_pointer_ = 0;
