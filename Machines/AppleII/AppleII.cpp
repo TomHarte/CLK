@@ -51,8 +51,9 @@ class ConcreteMachine:
 		void update_video() {
 			video_->run_for(cycles_since_video_update_.flush());
 		}
+		static const int audio_divider = 8;
 		void update_audio() {
-			speaker_.run_for(cycles_since_audio_update_.divide(Cycles(16)));
+			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
 		}
 
 		uint8_t ram_[48*1024];
@@ -82,7 +83,7 @@ class ConcreteMachine:
 
 			// The speaker, however, should think it is clocked at half the master clock, per a general
 			// decision to sample it at seven times the CPU clock (plus stretches).
-			speaker_.set_input_rate(static_cast<float>(master_clock / (2.0 * 16.0)));
+			speaker_.set_input_rate(static_cast<float>(master_clock / (2.0 * static_cast<float>(audio_divider))));
 
 			// Also, start with randomised memory contents.
 			Memory::Fuzz(ram_, sizeof(ram_));
