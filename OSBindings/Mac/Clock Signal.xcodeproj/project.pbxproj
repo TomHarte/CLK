@@ -157,6 +157,8 @@
 		4B2C45421E3C3896002A2389 /* cartridge.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B2C45411E3C3896002A2389 /* cartridge.png */; };
 		4B2E2D9A1C3A06EC00138695 /* Atari2600.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D971C3A06EC00138695 /* Atari2600.cpp */; };
 		4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2E2D9B1C3A070400138695 /* Electron.cpp */; };
+		4B302184208A550100773308 /* DiskII.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B302183208A550100773308 /* DiskII.cpp */; };
+		4B302185208A550100773308 /* DiskII.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B302183208A550100773308 /* DiskII.cpp */; };
 		4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512B1D989E2200B4FED8 /* Drive.cpp */; };
 		4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B30512E1D98ACC600B4FED8 /* Plus3.cpp */; };
 		4B322E011F5A2990004EB04C /* Z80AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B322DFD1F5A2981004EB04C /* Z80AllRAM.cpp */; };
@@ -579,6 +581,8 @@
 		4BB299F81B587D8400A49093 /* txsn in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298EC1B587D8400A49093 /* txsn */; };
 		4BB299F91B587D8400A49093 /* tyan in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298ED1B587D8400A49093 /* tyan */; };
 		4BB2A9AF1E13367E001A5C23 /* CRCTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */; };
+		4BB2CB2A208BDDCF00FD192E /* AppleGCR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB2CB28208BDDCF00FD192E /* AppleGCR.cpp */; };
+		4BB2CB2B208BDDCF00FD192E /* AppleGCR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB2CB28208BDDCF00FD192E /* AppleGCR.cpp */; };
 		4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */; };
 		4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */; };
 		4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EA11B587A5100552FC2 /* AppDelegate.swift */; };
@@ -754,6 +758,8 @@
 		4B2E2D991C3A06EC00138695 /* Atari2600Inputs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Atari2600Inputs.h; sourceTree = "<group>"; };
 		4B2E2D9B1C3A070400138695 /* Electron.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Electron.cpp; path = Electron/Electron.cpp; sourceTree = "<group>"; };
 		4B2E2D9C1C3A070400138695 /* Electron.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Electron.hpp; path = Electron/Electron.hpp; sourceTree = "<group>"; };
+		4B302182208A550100773308 /* DiskII.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = DiskII.hpp; sourceTree = "<group>"; };
+		4B302183208A550100773308 /* DiskII.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DiskII.cpp; sourceTree = "<group>"; };
 		4B30512B1D989E2200B4FED8 /* Drive.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Drive.cpp; sourceTree = "<group>"; };
 		4B30512C1D989E2200B4FED8 /* Drive.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Drive.hpp; sourceTree = "<group>"; };
 		4B30512E1D98ACC600B4FED8 /* Plus3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Plus3.cpp; path = Electron/Plus3.cpp; sourceTree = "<group>"; };
@@ -1275,6 +1281,8 @@
 		4BB298EC1B587D8400A49093 /* txsn */ = {isa = PBXFileReference; lastKnownFileType = file; path = txsn; sourceTree = "<group>"; };
 		4BB298ED1B587D8400A49093 /* tyan */ = {isa = PBXFileReference; lastKnownFileType = file; path = tyan; sourceTree = "<group>"; };
 		4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CRCTests.mm; sourceTree = "<group>"; };
+		4BB2CB28208BDDCF00FD192E /* AppleGCR.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AppleGCR.cpp; path = Encodings/AppleGCR.cpp; sourceTree = "<group>"; };
+		4BB2CB29208BDDCF00FD192E /* AppleGCR.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = AppleGCR.hpp; path = Encodings/AppleGCR.hpp; sourceTree = "<group>"; };
 		4BB697C61D4B558F00248BDF /* Factors.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Factors.hpp; path = ../../NumberTheory/Factors.hpp; sourceTree = "<group>"; };
 		4BB697C91D4B6D3E00248BDF /* TimedEventLoop.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TimedEventLoop.cpp; sourceTree = "<group>"; };
 		4BB697CA1D4B6D3E00248BDF /* TimedEventLoop.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TimedEventLoop.hpp; sourceTree = "<group>"; };
@@ -1672,6 +1680,15 @@
 				4B7913CB1DFCD80E00175A82 /* Video.hpp */,
 			);
 			name = Electron;
+			sourceTree = "<group>";
+		};
+		4B302181208A550100773308 /* DiskII */ = {
+			isa = PBXGroup;
+			children = (
+				4B302182208A550100773308 /* DiskII.hpp */,
+				4B302183208A550100773308 /* DiskII.cpp */,
+			);
+			path = DiskII;
 			sourceTree = "<group>";
 		};
 		4B31B88E1FBFBCD800C140D5 /* Configurable */ = {
@@ -2630,9 +2647,11 @@
 		4BB697CF1D4BA44900248BDF /* Encodings */ = {
 			isa = PBXGroup;
 			children = (
-				4B7136831F78724F008B8ED9 /* MFM */,
+				4BB2CB28208BDDCF00FD192E /* AppleGCR.cpp */,
 				4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */,
+				4BB2CB29208BDDCF00FD192E /* AppleGCR.hpp */,
 				4BB697CD1D4BA44400248BDF /* CommodoreGCR.hpp */,
+				4B7136831F78724F008B8ED9 /* MFM */,
 			);
 			name = Encodings;
 			sourceTree = "<group>";
@@ -2850,6 +2869,7 @@
 		4BC9DF4A1D04691600F44158 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				4B302181208A550100773308 /* DiskII */,
 				4B595FAA2086DFBA0083CAA8 /* AudioToggle */,
 				4BD468F81D8DF4290084958B /* 1770 */,
 				4BC9DF4B1D04691600F44158 /* 6522 */,
@@ -3598,6 +3618,7 @@
 				4B894525201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055ACD1FAE9B030060FFFF /* Keyboard.cpp in Sources */,
 				4B055AB21FAE860F0060FFFF /* CommodoreTAP.cpp in Sources */,
+				4BB2CB2B208BDDCF00FD192E /* AppleGCR.cpp in Sources */,
 				4B055ADF1FAE9B4C0060FFFF /* IRQDelegatePortHandler.cpp in Sources */,
 				4B055AB51FAE860F0060FFFF /* TapePRG.cpp in Sources */,
 				4B055AE01FAE9B660060FFFF /* CRT.cpp in Sources */,
@@ -3623,6 +3644,7 @@
 				4BB0A65C2044FD3000FB3688 /* SN76489.cpp in Sources */,
 				4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */,
 				4B055AB91FAE86170060FFFF /* Acorn.cpp in Sources */,
+				4B302185208A550100773308 /* DiskII.cpp in Sources */,
 				4B055A931FAE85B50060FFFF /* BinaryDump.cpp in Sources */,
 				4B89452D201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055AD61FAE9B130060FFFF /* MemoryFuzzer.cpp in Sources */,
@@ -3654,6 +3676,7 @@
 				4B4518A01F75FD1C00926311 /* CPCDSK.cpp in Sources */,
 				4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */,
 				4B322E041F5A2E3C004EB04C /* Z80Base.cpp in Sources */,
+				4BB2CB2A208BDDCF00FD192E /* AppleGCR.cpp in Sources */,
 				4B894530201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B4518A31F75FD1C00926311 /* HFE.cpp in Sources */,
 				4B1B88BB202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
@@ -3707,6 +3730,7 @@
 				4B448E811F1C45A00009ABD6 /* TZX.cpp in Sources */,
 				4BEBFB512002DB30000708CC /* DiskROM.cpp in Sources */,
 				4B89451C201967B4007DE474 /* Disk.cpp in Sources */,
+				4B302184208A550100773308 /* DiskII.cpp in Sources */,
 				4BEA52631DF339D7007E74F2 /* SoundGenerator.cpp in Sources */,
 				4BAE495920328897004BE78E /* ZX8081OptionsPanel.swift in Sources */,
 				4B89451A201967B4007DE474 /* ConfidenceSummary.cpp in Sources */,

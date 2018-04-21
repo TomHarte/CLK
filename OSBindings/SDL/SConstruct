@@ -34,6 +34,7 @@ SOURCES += glob.glob('../../Components/9918/*.cpp')
 SOURCES += glob.glob('../../Components/9918/Implementation/*.cpp')
 SOURCES += glob.glob('../../Components/AudioToggle/*.cpp')
 SOURCES += glob.glob('../../Components/AY38910/*.cpp')
+SOURCES += glob.glob('../../Components/DiskII/*.cpp')
 SOURCES += glob.glob('../../Components/KonamiSCC/*.cpp')
 SOURCES += glob.glob('../../Components/SN76489/*.cpp')
 

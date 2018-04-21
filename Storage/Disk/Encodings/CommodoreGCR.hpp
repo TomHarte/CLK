@@ -43,7 +43,7 @@ namespace CommodoreGCR {
 	unsigned int decoding_from_quintet(unsigned int quintet);
 
 	/*!
-		@returns the byte composted of the low five bit five-bit GCR
+		@returns the byte composed by splitting the dectet into two qintets, decoding each and composing the resulting nibbles.
 	*/
 	unsigned int decoding_from_dectet(unsigned int dectet);
 }
