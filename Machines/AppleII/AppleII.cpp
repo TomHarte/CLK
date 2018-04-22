@@ -8,6 +8,7 @@
 
 #include "AppleII.hpp"
 
+#include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
@@ -25,6 +26,7 @@ namespace {
 
 class ConcreteMachine:
 	public CRTMachine::Machine,
+	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
@@ -217,6 +219,14 @@ class ConcreteMachine:
 
 		Inputs::Keyboard &get_keyboard() override {
 			return *this;
+		}
+
+		// MARK: ConfigurationTarget
+		void configure_as_target(const Analyser::Static::Target *target) override {
+		}
+
+		bool insert_media(const Analyser::Static::Media &media) override {
+			return true;
 		}
 };
 

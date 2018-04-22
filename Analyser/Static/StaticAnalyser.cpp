@@ -36,6 +36,7 @@
 #include "../../Storage/Disk/DiskImage/Formats/DMK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/HFE.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/MSXDSK.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/NIB.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/SSD.hpp"
 
@@ -101,6 +102,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			Disk::DiskImageHolder<Storage::Disk::HFE>,
 			TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric)
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
+	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::AppleII)			// NIB
 	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// O
 	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P
 	Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P81

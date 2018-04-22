@@ -7,7 +7,14 @@
 //
 
 #include "StaticAnalyser.hpp"
+#include "Target.hpp"
 
 Analyser::Static::TargetList Analyser::Static::AppleII::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
-	return TargetList();
+	auto target = std::unique_ptr<Target>(new Target);
+	target->machine = Machine::AppleII;
+	target->media = media;
+
+	TargetList targets;
+	targets.push_back(std::move(target));
+	return targets;
 }

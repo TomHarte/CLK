@@ -120,6 +120,8 @@
 		4B0E04FA1FC9FA3100F43484 /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04F91FC9FA3100F43484 /* 9918.cpp */; };
 		4B0E04FB1FC9FA3100F43484 /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04F91FC9FA3100F43484 /* 9918.cpp */; };
 		4B0E61071FF34737002A9DBD /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E61051FF34737002A9DBD /* MSX.cpp */; };
+		4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
+		4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B121F951E05E66800BFDA12 /* PCMPatchedTrackTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
 		4B12C0ED1FCFA98D005BFD93 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */; };
@@ -697,6 +699,9 @@
 		4B0E04F91FC9FA3100F43484 /* 9918.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = 9918.cpp; path = 9918/9918.cpp; sourceTree = "<group>"; };
 		4B0E61051FF34737002A9DBD /* MSX.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = MSX.cpp; path = Parsers/MSX.cpp; sourceTree = "<group>"; };
 		4B0E61061FF34737002A9DBD /* MSX.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = MSX.hpp; path = Parsers/MSX.hpp; sourceTree = "<group>"; };
+		4B0F94FC208C1A1600FE41D9 /* NIB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NIB.cpp; sourceTree = "<group>"; };
+		4B0F94FD208C1A1600FE41D9 /* NIB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NIB.hpp; sourceTree = "<group>"; };
+		4B0F9500208C42A300FE41D9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Target.hpp; path = AppleII/Target.hpp; sourceTree = "<group>"; };
 		4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMPatchedTrackTests.mm; sourceTree = "<group>"; };
 		4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMSegmentEventSourceTests.mm; sourceTree = "<group>"; };
 		4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Keyboard.cpp; path = MSX/Keyboard.cpp; sourceTree = "<group>"; };
@@ -1534,6 +1539,7 @@
 			children = (
 				4B15A9FA208249BB005E6C8D /* StaticAnalyser.cpp */,
 				4B15A9FB208249BB005E6C8D /* StaticAnalyser.hpp */,
+				4B0F9500208C42A300FE41D9 /* Target.hpp */,
 			);
 			name = AppleII;
 			sourceTree = "<group>";
@@ -1858,6 +1864,7 @@
 				4B4518951F75FD1B00926311 /* HFE.cpp */,
 				4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */,
 				4BEBFB4B2002C4BF000708CC /* MSXDSK.cpp */,
+				4B0F94FC208C1A1600FE41D9 /* NIB.cpp */,
 				4B4518971F75FD1B00926311 /* OricMFMDSK.cpp */,
 				4B4518991F75FD1B00926311 /* SSD.cpp */,
 				4B45188E1F75FD1B00926311 /* AcornADF.hpp */,
@@ -1868,6 +1875,7 @@
 				4B4518961F75FD1B00926311 /* HFE.hpp */,
 				4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */,
 				4BEBFB4C2002C4BF000708CC /* MSXDSK.hpp */,
+				4B0F94FD208C1A1600FE41D9 /* NIB.hpp */,
 				4B4518981F75FD1B00926311 /* OricMFMDSK.hpp */,
 				4B45189A1F75FD1B00926311 /* SSD.hpp */,
 				4BFDD7891F7F2DB4008579B9 /* Utility */,
@@ -3638,6 +3646,7 @@
 				4B055AE71FAE9B6F0060FFFF /* Shader.cpp in Sources */,
 				4B894523201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B055AEC1FAE9BA20060FFFF /* Z80Base.cpp in Sources */,
+				4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */,
 				4B0E04EB1FC9E78800F43484 /* CAS.cpp in Sources */,
 				4B055AE31FAE9B6F0060FFFF /* TextureBuilder.cpp in Sources */,
 				4BB0A65D2045009000FB3688 /* ColecoVision.cpp in Sources */,
@@ -3740,6 +3749,7 @@
 				4B4518851F75E91A00926311 /* DiskController.cpp in Sources */,
 				4B8334841F5DA0360097E338 /* Z80Storage.cpp in Sources */,
 				4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */,
+				4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */,
 				4B89452A201967B4007DE474 /* File.cpp in Sources */,
 				4B4DC8211D2C2425003C5BF8 /* Vic20.cpp in Sources */,
 				4B71368E1F788112008B8ED9 /* Parser.cpp in Sources */,
