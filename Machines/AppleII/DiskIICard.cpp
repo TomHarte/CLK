@@ -18,7 +18,7 @@ DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sec
 			"state-machine.rom"
 		});
 	boot_ = std::move(*roms[0]);
-	state_machine_ = std::move(*roms[1]);
+	diskii_.set_state_machine(*roms[1]);
 }
 
 void DiskIICard::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
@@ -61,5 +61,5 @@ void DiskIICard::perform_bus_operation(CPU::MOS6502::BusOperation operation, uin
 }
 
 void DiskIICard::run_for(Cycles cycles, int stretches) {
-	diskii_.run_for(cycles);
+	diskii_.run_for(Cycles(cycles.as_int() * 2));
 }

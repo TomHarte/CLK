@@ -26,7 +26,6 @@ class DiskIICard: public Card {
 
 	private:
 		std::vector<uint8_t> boot_;
-		std::vector<uint8_t> state_machine_;
 		Apple::DiskII diskii_;
 };
 
