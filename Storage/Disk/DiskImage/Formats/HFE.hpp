@@ -18,21 +18,20 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing an HFE disk image — a bit stream representation of a floppy.
+	Provides a @c DiskImage containing an HFE — a bit stream representation of a floppy.
 */
 class HFE: public DiskImage {
 	public:
 		/*!
-			Construct an @c SSD containing content from the file with name @c file_name.
+			Construct an @c HFE containing content from the file with name @c file_name.
 
-			@throws ErrorCantOpen if this file can't be opened.
-			@throws ErrorNotSSD if the file doesn't appear to contain a .SSD format image.
+			@throws ErrorNotHFE if the file doesn't appear to contain a .SSD format image.
 		*/
 		HFE(const std::string &file_name);
 		~HFE();
 
 		enum {
-			ErrorNotHFE,
+			ErrorNotHFE
 		};
 
 		// implemented to satisfy @c Disk
