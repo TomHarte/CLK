@@ -34,7 +34,7 @@ void DiskII::set_data_register(uint8_t value) {
 }
 
 uint8_t DiskII::get_shift_register() {
-	printf("[%02x] ", shift_register_);
+//	printf("[%02x] ", shift_register_);
 	inputs_ &= ~0x1;
 	return shift_register_;
 }
@@ -63,8 +63,9 @@ The bytes in the P6 ROM has the high four bits reversed compared to the BAPD cha
 			((state_&0x2) >> 1) |
 			((state_&0x1) << 7) |
 			((state_&0x4) << 4) |
-			((state_&0x8) << 2);
-		// TODO: add pulse state in bit 4.
+			((state_&0x8) << 2) |
+			0x10;
+		// TODO: apply proper pulse state in bit 4.
 
 		const uint8_t update = state_machine_[static_cast<std::size_t>(address)];
 		state_ = update >> 4;
@@ -81,6 +82,8 @@ The bytes in the P6 ROM has the high four bits reversed compared to the BAPD cha
 			break;	// shift right, bringing in write protected status
 			default: break;
 		}
+
+//		printf(" -> %02x performing %02x (address was %02x)\n", state_, command, address);
 	}
 }
 
@@ -90,5 +93,6 @@ bool DiskII::is_write_protected() {
 
 void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
 	state_machine_ = state_machine;
+//	run_for(Cycles(15));
 	// TODO: shuffle ordering here?
 }
