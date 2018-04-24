@@ -15,6 +15,7 @@
 
 #include "../../../../../Analyser/Static/Acorn/Target.hpp"
 #include "../../../../../Analyser/Static/AmstradCPC/Target.hpp"
+#include "../../../../../Analyser/Static/AppleII/Target.hpp"
 #include "../../../../../Analyser/Static/Commodore/Target.hpp"
 #include "../../../../../Analyser/Static/MSX/Target.hpp"
 #include "../../../../../Analyser/Static/Oric/Target.hpp"
@@ -156,7 +157,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 - (instancetype)initWithAppleII {
 	self = [super init];
 	if(self) {
-		using Target = Analyser::Static::Target;
+		using Target = Analyser::Static::AppleII::Target;
 		std::unique_ptr<Target> target(new Target);
 		target->machine = Analyser::Machine::AppleII;
 		_targets.push_back(std::move(target));

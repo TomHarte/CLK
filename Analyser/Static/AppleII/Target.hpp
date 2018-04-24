@@ -16,7 +16,7 @@ namespace Static {
 namespace AppleII {
 
 struct Target: public ::Analyser::Static::Target {
-	bool has_disk_;	// TODO: Disk II versus IWM?
+	bool has_disk;	// TODO: Disk II versus IWM?
 };
 
 }

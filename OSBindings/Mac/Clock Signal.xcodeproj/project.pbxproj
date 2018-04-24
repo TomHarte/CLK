@@ -1332,6 +1332,7 @@
 		4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZX8081.cpp; path = Parsers/ZX8081.cpp; sourceTree = "<group>"; };
 		4BBFBB6B1EE8401E00C01E7A /* ZX8081.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ZX8081.hpp; path = Parsers/ZX8081.hpp; sourceTree = "<group>"; };
 		4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TrackSerialiser.cpp; sourceTree = "<group>"; };
+		4BC39565208EDFCE0044766B /* Card.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Card.hpp; sourceTree = "<group>"; };
 		4BC3B74D1CD194CC00F86E85 /* Shader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Shader.cpp; sourceTree = "<group>"; };
 		4BC3B74E1CD194CC00F86E85 /* Shader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Shader.hpp; sourceTree = "<group>"; };
 		4BC3B7501CD1956900F86E85 /* OutputShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OutputShader.cpp; sourceTree = "<group>"; };
@@ -1555,6 +1556,7 @@
 				4B15AA0A2082C799005E6C8D /* Video.cpp */,
 				4B15AA092082C799005E6C8D /* AppleII.hpp */,
 				4B15AA0B2082C799005E6C8D /* Video.hpp */,
+				4BC39565208EDFCE0044766B /* Card.hpp */,
 			);
 			path = AppleII;
 			sourceTree = "<group>";
