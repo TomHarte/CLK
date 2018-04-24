@@ -43,14 +43,15 @@ void DiskIICard::perform_bus_operation(CPU::MOS6502::BusOperation operation, uin
 			case 0xa:	diskii_.select_drive(0);					break;
 			case 0xb:	diskii_.select_drive(1);					break;
 
-			case 0xc:
+			case 0xc: {
 				/* shift register? */
+				const uint8_t shift_value = diskii_.get_shift_register();
 				if(isReadOperation(operation))
-					*value = diskii_.get_shift_register();
-			break;
+					*value = shift_value;
+			} break;
 			case 0xd:
 				/* data register? */
-				diskii_.set_shift_register(*value);
+				diskii_.set_data_register(*value);
 			break;
 
 			case 0xe:	diskii_.set_mode(Mode::Read);				break;

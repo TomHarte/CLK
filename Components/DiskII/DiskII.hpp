@@ -29,10 +29,17 @@ class DiskII {
 		void set_control(Control control, bool on);
 		void set_mode(Mode mode);
 		void select_drive(int drive);
-		void set_shift_register(uint8_t value);
+		void set_data_register(uint8_t value);
 		uint8_t get_shift_register();
 
 		void run_for(const Cycles cycles);
+
+	private:
+		uint8_t state_ = 0;
+		uint8_t shift_register_ = 0;
+		uint8_t data_register_ = 0;
+
+		bool is_write_protected();
 };
 
 }
