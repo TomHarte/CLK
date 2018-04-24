@@ -31,7 +31,7 @@ class Machine: public MachineBase, public ROMMachine::Machine {
 		/*!
 			Sets the source for this drive's ROM image.
 		*/
-		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names);
+		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names);
 
 		/*!
 			Sets the serial bus to which this drive should attach itself.

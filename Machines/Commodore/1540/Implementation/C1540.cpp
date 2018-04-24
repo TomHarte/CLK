@@ -82,7 +82,7 @@ Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, 
 	return Cycles(1);
 }
 
-bool Machine::set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) {
+bool Machine::set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) {
 	std::string rom_name;
 	switch(personality_) {
 		case Personality::C1540:	rom_name = "1540.bin";	break;
