@@ -29,8 +29,6 @@ class NIB: public DiskImage {
 		};
 
 		int get_head_position_count() override;
-		int get_head_count() override;
-		bool get_is_read_only() override;
 
 		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) override;
 

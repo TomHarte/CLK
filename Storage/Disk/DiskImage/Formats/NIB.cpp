@@ -28,17 +28,18 @@ NIB::NIB(const std::string &file_name) :
 }
 
 int NIB::get_head_position_count() {
-	return 35;
-}
-
-int NIB::get_head_count() {
-	return 1;
-}
-
-bool NIB::get_is_read_only() {
-	return true;
+	return number_of_tracks * 4;
 }
 
 std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Disk::Track::Address address) {
+	// NIBs contain data for even-numbered tracks underneath a single head only.
+	if(address.head || (address.position&1)) return nullptr;
+
+//	const int file_track = address.position >> 1;
+//	file_.seek(static_cast<long>(file_track * track_length), SEEK_SET);
+//	std::vector<uint8_t> track_data = file_.read(track_length);
+
+	// TODO: determine which FFs are syncs, and produce track.
+
 	return nullptr;
 }
