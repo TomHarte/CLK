@@ -606,6 +606,8 @@
 		4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */; };
 		4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */; };
 		4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */; };
+		4BC39568208EE6CF0044766B /* DiskIICard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC39566208EE6CF0044766B /* DiskIICard.cpp */; };
+		4BC39569208EE6CF0044766B /* DiskIICard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC39566208EE6CF0044766B /* DiskIICard.cpp */; };
 		4BC3B74F1CD194CC00F86E85 /* Shader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B74D1CD194CC00F86E85 /* Shader.cpp */; };
 		4BC3B7521CD1956900F86E85 /* OutputShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC3B7501CD1956900F86E85 /* OutputShader.cpp */; };
 		4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B11D157E61006C31D9 /* 6522Tests.swift */; };
@@ -1333,6 +1335,8 @@
 		4BBFBB6B1EE8401E00C01E7A /* ZX8081.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ZX8081.hpp; path = Parsers/ZX8081.hpp; sourceTree = "<group>"; };
 		4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TrackSerialiser.cpp; sourceTree = "<group>"; };
 		4BC39565208EDFCE0044766B /* Card.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Card.hpp; sourceTree = "<group>"; };
+		4BC39566208EE6CF0044766B /* DiskIICard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DiskIICard.cpp; sourceTree = "<group>"; };
+		4BC39567208EE6CF0044766B /* DiskIICard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DiskIICard.hpp; sourceTree = "<group>"; };
 		4BC3B74D1CD194CC00F86E85 /* Shader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Shader.cpp; sourceTree = "<group>"; };
 		4BC3B74E1CD194CC00F86E85 /* Shader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Shader.hpp; sourceTree = "<group>"; };
 		4BC3B7501CD1956900F86E85 /* OutputShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OutputShader.cpp; sourceTree = "<group>"; };
@@ -1553,10 +1557,12 @@
 			isa = PBXGroup;
 			children = (
 				4B15AA0C2082C799005E6C8D /* AppleII.cpp */,
+				4BC39566208EE6CF0044766B /* DiskIICard.cpp */,
 				4B15AA0A2082C799005E6C8D /* Video.cpp */,
 				4B15AA092082C799005E6C8D /* AppleII.hpp */,
-				4B15AA0B2082C799005E6C8D /* Video.hpp */,
 				4BC39565208EDFCE0044766B /* Card.hpp */,
+				4BC39567208EE6CF0044766B /* DiskIICard.hpp */,
+				4B15AA0B2082C799005E6C8D /* Video.hpp */,
 			);
 			path = AppleII;
 			sourceTree = "<group>";
@@ -3607,6 +3613,7 @@
 				4B15AA0E2082C799005E6C8D /* Video.cpp in Sources */,
 				4B055A991FAE85CB0060FFFF /* DiskController.cpp in Sources */,
 				4B055ACC1FAE9B030060FFFF /* Electron.cpp in Sources */,
+				4BC39569208EE6CF0044766B /* DiskIICard.cpp in Sources */,
 				4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */,
 				4BFE7B881FC39D8900160B38 /* StandardOptions.cpp in Sources */,
 				4B894533201967B4007DE474 /* 6502.cpp in Sources */,
@@ -3711,6 +3718,7 @@
 				4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */,
 				4B1497921EE4B5A800CE2596 /* ZX8081.cpp in Sources */,
 				4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */,
+				4BC39568208EE6CF0044766B /* DiskIICard.cpp in Sources */,
 				4B4518861F75E91A00926311 /* MFMDiskController.cpp in Sources */,
 				4B54C0BF1F8D8F450050900F /* Keyboard.cpp in Sources */,
 				4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */,

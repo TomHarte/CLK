@@ -19,6 +19,7 @@
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "Card.hpp"
+#include "DiskIICard.hpp"
 #include "Video.hpp"
 
 #include "../../Analyser/Static/AppleII/Target.hpp"
@@ -61,11 +62,8 @@ class ConcreteMachine:
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
 		}
 		void update_cards() {
-			cycles_since_card_update_ += stretched_cycles_since_card_update_ / 7;
-			stretched_cycles_since_card_update_ %= 7;
 			for(int c = 0; c < 7; ++c) {
-				if(cards_[c])
-					cards_[c]->run_for(cycles_since_card_update_, stretched_cycles_since_card_update_);
+				if(cards_[c]) cards_[c]->run_for(cycles_since_card_update_, stretched_cycles_since_card_update_);
 			}
 			cycles_since_card_update_ = 0;
 			stretched_cycles_since_card_update_ = 0;
@@ -83,7 +81,7 @@ class ConcreteMachine:
 		Cycles cycles_since_audio_update_;
 
 		ROMMachine::ROMFetcher rom_fetcher_;
-		AppleII::Card *cards_[7] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+		std::unique_ptr<AppleII::Card> cards_[7];
 		Cycles cycles_since_card_update_;
 		int stretched_cycles_since_card_update_ = 0;
 
@@ -193,10 +191,10 @@ class ConcreteMachine:
 					Decode the area conventionally used by cards for registers:
 						C0n0--C0nF: card n - 8.
 				*/
-				const int card_number = (address - 0xc080) >> 4;
+				const int card_number = (address - 0xc090) >> 4;
 				if(cards_[card_number]) {
 					update_cards();
-					cards_[card_number]->perform_bus_operation(operation, address, value);
+					cards_[card_number]->perform_bus_operation(operation, 0x100 | (address&0xf), value);
 				}
 			}
 
@@ -268,7 +266,7 @@ class ConcreteMachine:
 		void configure_as_target(const Analyser::Static::Target *target) override {
 			auto *const apple_target = dynamic_cast<const Analyser::Static::AppleII::Target *>(target);
 			if(apple_target->has_disk) {
-				// ... add Disk II
+				cards_[6].reset(new AppleII::DiskIICard(rom_fetcher_, true));
 			}
 		}
 

@@ -9,6 +9,7 @@
 #ifndef Card_h
 #define Card_h
 
+#include "../../Processors/6502/6502.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace AppleII {
