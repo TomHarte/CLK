@@ -222,6 +222,8 @@
 		4B69FB441C4D941400B5F0AA /* TapeUEF.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB421C4D941400B5F0AA /* TapeUEF.cpp */; };
 		4B69FB461C4D950F00B5F0AA /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
 		4B6A4C991F58F09E00E3F787 /* 6502Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */; };
+		4B6ED2F0208E2F8A0047B343 /* WOZ.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6ED2EE208E2F8A0047B343 /* WOZ.cpp */; };
+		4B6ED2F1208E2F8A0047B343 /* WOZ.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6ED2EE208E2F8A0047B343 /* WOZ.cpp */; };
 		4B7136861F78724F008B8ED9 /* Encoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136841F78724F008B8ED9 /* Encoder.cpp */; };
 		4B7136891F78725F008B8ED9 /* Shifter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136871F78725F008B8ED9 /* Shifter.cpp */; };
 		4B71368E1F788112008B8ED9 /* Parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368C1F788112008B8ED9 /* Parser.cpp */; };
@@ -889,6 +891,8 @@
 		4B6A4C911F58F09E00E3F787 /* 6502AllRAM.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6502AllRAM.cpp; sourceTree = "<group>"; };
 		4B6A4C921F58F09E00E3F787 /* 6502AllRAM.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6502AllRAM.hpp; sourceTree = "<group>"; };
 		4B6A4C951F58F09E00E3F787 /* 6502Base.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6502Base.cpp; sourceTree = "<group>"; };
+		4B6ED2EE208E2F8A0047B343 /* WOZ.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = WOZ.cpp; sourceTree = "<group>"; };
+		4B6ED2EF208E2F8A0047B343 /* WOZ.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = WOZ.hpp; sourceTree = "<group>"; };
 		4B7041271F92C26900735E45 /* JoystickMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = JoystickMachine.hpp; sourceTree = "<group>"; };
 		4B70412A1F92C2A700735E45 /* Joystick.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Joystick.hpp; sourceTree = "<group>"; };
 		4B70EF6A1FFDCDF400A3494E /* ROMSlotHandler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = ROMSlotHandler.hpp; path = MSX/ROMSlotHandler.hpp; sourceTree = "<group>"; };
@@ -1879,6 +1883,8 @@
 				4B4518981F75FD1B00926311 /* OricMFMDSK.hpp */,
 				4B45189A1F75FD1B00926311 /* SSD.hpp */,
 				4BFDD7891F7F2DB4008579B9 /* Utility */,
+				4B6ED2EE208E2F8A0047B343 /* WOZ.cpp */,
+				4B6ED2EF208E2F8A0047B343 /* WOZ.hpp */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -3536,6 +3542,7 @@
 				4BB0A65E204500A900FB3688 /* StaticAnalyser.cpp in Sources */,
 				4B055AC11FAE98DC0060FFFF /* MachineForTarget.cpp in Sources */,
 				4BBB70A9202014E2002FE009 /* MultiCRTMachine.cpp in Sources */,
+				4B6ED2F1208E2F8A0047B343 /* WOZ.cpp in Sources */,
 				4B055AD81FAE9B180060FFFF /* Video.cpp in Sources */,
 				4B89452F201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B894531201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
@@ -3808,6 +3815,7 @@
 				4B894526201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */,
 				4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */,
+				4B6ED2F0208E2F8A0047B343 /* WOZ.cpp in Sources */,
 				4BFE7B871FC39BF100160B38 /* StandardOptions.cpp in Sources */,
 				4B15A9FC208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,
 				4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */,

@@ -397,6 +397,7 @@
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>nib</string>
+				<string>woz</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy525</string>

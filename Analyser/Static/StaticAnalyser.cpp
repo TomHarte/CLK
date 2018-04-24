@@ -39,6 +39,7 @@
 #include "../../Storage/Disk/DiskImage/Formats/NIB.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/SSD.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/WOZ.hpp"
 
 // Tapes
 #include "../../Storage/Tape/Formats/CAS.hpp"
@@ -129,6 +130,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("tsx", result.tapes, Tape::TZX, TargetPlatform::MSX)												// TSX
 	Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081)											// TZX
 	Format("uef", result.tapes, Tape::UEF, TargetPlatform::Acorn)											// UEF (tape)
+	Format("woz", result.disks, Disk::DiskImageHolder<Storage::Disk::WOZ>, TargetPlatform::AppleII)			// WOZ
 
 #undef Format
 #undef Insert
