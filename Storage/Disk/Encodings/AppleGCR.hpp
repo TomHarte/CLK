@@ -10,6 +10,7 @@
 #define AppleGCR_hpp
 
 #include <cstdint>
+#include "../../Disk/Track/PCMSegment.hpp"
 
 namespace Storage {
 namespace Encodings {
@@ -45,6 +46,21 @@ namespace AppleGCR {
 		@returns the byte composed by splitting the dectet into two qintets, decoding each and composing the resulting nibbles.
 	*/
 //	unsigned int decoding_from_dectet(unsigned int dectet);
+
+	/// Describes the standard three-byte prologue that begins a header.
+	const uint8_t header_prologue[3] = {0xd5, 0xaa, 0x96};
+	/// Describes the standard three-byte prologue that begins a data section.
+	const uint8_t data_prologue[3] = {0xd5, 0xaa, 0xad};
+	/// Describes the epilogue that ends both data sections and headers.
+	const uint8_t epilogue[3] = {0xde, 0xaa, 0xeb};
+
+	Storage::Disk::PCMSegment header(uint8_t volume, uint8_t track, uint8_t sector);
+
+	Storage::Disk::PCMSegment six_and_two_data(uint8_t *source);
+	Storage::Disk::PCMSegment six_and_two_sync(int length);
+
+	Storage::Disk::PCMSegment five_and_three_data(uint8_t *source);
+	Storage::Disk::PCMSegment five_and_three_sync(int length);
 }
 
 }

@@ -51,3 +51,93 @@ void AppleGCR::encode_six_and_two_block(uint8_t *destination, uint8_t *source) {
 	destination[2] = static_cast<uint8_t>(six_and_two_encoding_for_value( (source[1] << 2) | (source[2] >> 6) ));
 	destination[3] = static_cast<uint8_t>(six_and_two_encoding_for_value( source[2] ));
 }
+
+/*!
+	Produces a PCM segment containing @c length sync bytes, each aligned to the beginning of
+	a @c bit_size -sized window.
+*/
+static Storage::Disk::PCMSegment sync(int length, int bit_size) {
+	Storage::Disk::PCMSegment segment;
+
+	// Allocate sufficient storage.
+	segment.data.resize(static_cast<size_t>(((length * bit_size) + 7) >> 3), 0);
+
+	while(length--) {
+		segment.data[segment.number_of_bits >> 3] |= 0xff >> (segment.number_of_bits & 7);
+		if(segment.number_of_bits & 7) {
+			segment.data[1 + (segment.number_of_bits >> 3)] |= 0xff << (8 - (segment.number_of_bits & 7));
+		}
+		segment.number_of_bits += static_cast<unsigned int>(bit_size);
+	}
+
+	return segment;
+}
+
+Storage::Disk::PCMSegment AppleGCR::six_and_two_sync(int length) {
+	return sync(length, 9);
+}
+
+Storage::Disk::PCMSegment AppleGCR::five_and_three_sync(int length) {
+	return sync(length, 10);
+}
+
+Storage::Disk::PCMSegment AppleGCR::header(uint8_t volume, uint8_t track, uint8_t sector) {
+	const uint8_t checksum = volume ^ track ^ sector;
+
+	// Apple headers are encoded using an FM-esque scheme rather than 6 and 2, or 5 and 3.
+	Storage::Disk::PCMSegment segment;
+	segment.data.resize(14);
+	segment.number_of_bits = 14*8;
+
+	segment.data[0] = header_prologue[0];
+	segment.data[1] = header_prologue[1];
+	segment.data[2] = header_prologue[2];
+
+#define WriteFM(index, value)	\
+	segment.data[index+0] = static_cast<uint8_t>((value >> 1) | 0xaa);	\
+	segment.data[index+1] = static_cast<uint8_t>(value | 0xaa);	\
+
+	WriteFM(3, volume);
+	WriteFM(5, track);
+	WriteFM(7, sector);
+	WriteFM(9, checksum);
+
+#undef WriteFM
+
+	segment.data[11] = epilogue[0];
+	segment.data[12] = epilogue[1];
+	segment.data[13] = epilogue[2];
+
+	return segment;
+}
+
+Storage::Disk::PCMSegment AppleGCR::five_and_three_data(uint8_t *source) {
+	Storage::Disk::PCMSegment segment;
+
+	segment.data.resize(410 + 7);
+	segment.data[0] = header_prologue[0];
+	segment.data[1] = header_prologue[1];
+	segment.data[2] = header_prologue[2];
+
+	std::size_t source_pointer = 0;
+	std::size_t destination_pointer = 3;
+	while(source_pointer < 255) {
+		encode_five_and_three_block(&segment.data[destination_pointer], &source[source_pointer]);
+
+		source_pointer += 5;
+		destination_pointer += 8;
+	}
+
+	return segment;
+}
+
+Storage::Disk::PCMSegment AppleGCR::six_and_two_data(uint8_t *source) {
+	Storage::Disk::PCMSegment segment;
+
+	segment.data.resize(342 + 7);
+	segment.data[0] = header_prologue[0];
+	segment.data[1] = header_prologue[1];
+	segment.data[2] = header_prologue[2];
+
+	return segment;
+}
