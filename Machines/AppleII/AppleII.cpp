@@ -216,6 +216,7 @@ class ConcreteMachine:
 		void flush() {
 			update_video();
 			update_audio();
+			update_cards();
 			audio_queue_.perform();
 		}
 
@@ -243,6 +244,11 @@ class ConcreteMachine:
 		}
 
 		void set_key_pressed(Key key, char value, bool is_pressed) override {
+			if(key == Key::F12) {
+				m6502_.set_reset_line(is_pressed);
+				return;
+			}
+
 			if(is_pressed) {
 				// If no ASCII value is supplied, look for a few special cases.
 				if(!value) {
