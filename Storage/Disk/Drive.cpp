@@ -47,6 +47,7 @@ bool Drive::get_is_track_zero() {
 }
 
 void Drive::step(int direction) {
+	printf("Step %d\n", direction);
 	int old_head_position = head_position_;
 	head_position_ = std::max(head_position_ + direction, 0);
 
@@ -70,7 +71,7 @@ Storage::Time Drive::get_time_into_track() {
 	Time result(cycles_since_index_hole_, static_cast<int>(get_input_clock_rate()));
 	result /= rotational_multiplier_;
 	result.simplify();
-	assert(result <= Time(1));
+//	assert(result <= Time(1));
 	return result;
 }
 
@@ -168,7 +169,7 @@ void Drive::get_next_event(const Time &duration_already_passed) {
 void Drive::process_next_event() {
 	// TODO: ready test here.
 	if(current_event_.type == Track::Event::IndexHole) {
-		assert(get_time_into_track() == Time(1) || get_time_into_track() == Time(0));
+//		assert(get_time_into_track() == Time(1) || get_time_into_track() == Time(0));
 		if(ready_index_count_ < 2) ready_index_count_++;
 		cycles_since_index_hole_ = 0;
 	}

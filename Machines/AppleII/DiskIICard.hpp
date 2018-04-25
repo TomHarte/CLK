@@ -11,9 +11,12 @@
 
 #include "Card.hpp"
 #include "../ROMMachine.hpp"
+
 #include "../../Components/DiskII/DiskII.hpp"
+#include "../../Storage/Disk/Disk.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace AppleII {
@@ -23,6 +26,7 @@ class DiskIICard: public Card {
 		DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sector);
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) override;
 		void run_for(Cycles cycles, int stretches) override;
+		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
 
 	private:
 		std::vector<uint8_t> boot_;

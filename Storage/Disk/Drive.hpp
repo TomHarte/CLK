@@ -110,10 +110,10 @@ class Drive: public Sleeper, public TimedEventLoop {
 				If the drive is in write mode, announces that all queued bits have now been written.
 				If the controller provides further bits now then there will be no gap in written data.
 			*/
-			virtual void process_write_completed() = 0;
+			virtual void process_write_completed() {}
 
 			/// Informs the delegate of the passing of @c cycles.
-			virtual void advance(const Cycles cycles) = 0;
+			virtual void advance(const Cycles cycles) {}
 		};
 
 		/// Sets the current event delegate.

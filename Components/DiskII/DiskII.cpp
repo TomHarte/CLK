@@ -12,30 +12,76 @@
 
 using namespace Apple;
 
+namespace  {
+	const uint8_t input_command = 0x1;
+	const uint8_t input_mode = 0x2;
+	const uint8_t input_flux = 0x4;
+}
+
+DiskII::DiskII() :
+	drives_{{2045454, 300, 1}, {2045454, 300, 1}}
+{
+}
+
 void DiskII::set_control(Control control, bool on) {
 	printf("Set control %d %s\n", control, on ? "on" : "off");
-	// TODO: seeking, motor control.
+
+	int previous_stepper_mask = stepper_mask_;
+	switch(control) {
+		case Control::P0: stepper_mask_ = (stepper_mask_ & 0xe) | (on ? 0x1 : 0x0);	break;
+		case Control::P1: stepper_mask_ = (stepper_mask_ & 0xd) | (on ? 0x2 : 0x0);	break;
+		case Control::P2: stepper_mask_ = (stepper_mask_ & 0xb) | (on ? 0x4 : 0x0);	break;
+		case Control::P3: stepper_mask_ = (stepper_mask_ & 0x7) | (on ? 0x8 : 0x0);	break;
+
+		case Control::Motor:
+			// TODO: does the motor control trigger both motors at once?
+			drives_[0].set_motor_on(on);
+			drives_[1].set_motor_on(on);
+		break;
+	}
+
+	// If the stepper magnet selections have changed, and any is on, see how
+	// that moves the head.
+	if(previous_stepper_mask ^ stepper_mask_ && stepper_mask_) {
+		// Convert from a representation of bits set to the centre of pull.
+		int position = 0;
+		if(stepper_mask_&2) position += 2;
+		if(stepper_mask_&4) position += 4;
+		if(stepper_mask_&8) position += 6;
+		// TODO: both 0 and 4 turned on should produce position 7
+		const int bits_set = (stepper_mask_&1) + ((stepper_mask_ >> 1)&1) + ((stepper_mask_ >> 2)&1) + ((stepper_mask_ >> 3)&1);
+		position /= bits_set;
+
+		// Compare to the stepper position to decide whether that pulls in the current cog notch,
+		// or grabs a later one.
+		int change = ((position - stepper_position_ + 4)&7) - 4;
+		drives_[active_drive_].step(change);
+
+		stepper_position_ = position;
+	}
 }
 
 void DiskII::set_mode(Mode mode) {
 	printf("Set mode %d\n", mode);
-	inputs_ = (inputs_ & ~0x08) | ((mode == Mode::Write) ? 0x2: 0x0);
+	inputs_ = (inputs_ & ~input_mode) | ((mode == Mode::Write) ? input_mode : 0);
 }
 
 void DiskII::select_drive(int drive) {
 	printf("Select drive %d\n", drive);
-	// TODO: select a drive.
+	active_drive_ = drive & 1;
+	drives_[active_drive_].set_event_delegate(this);
+	drives_[active_drive_^1].set_event_delegate(nullptr);
 }
 
 void DiskII::set_data_register(uint8_t value) {
 	printf("Set data register (?)\n");
-	inputs_ |= 0x1;
+	inputs_ |= input_command;
 	data_register_ = value;
 }
 
 uint8_t DiskII::get_shift_register() {
 //	printf("[%02x] ", shift_register_);
-	inputs_ &= ~0x1;
+	inputs_ &= ~input_command;
 	return shift_register_;
 }
 
@@ -63,9 +109,8 @@ The bytes in the P6 ROM has the high four bits reversed compared to the BAPD cha
 			((state_&0x2) >> 1) |
 			((state_&0x1) << 7) |
 			((state_&0x4) << 4) |
-			((state_&0x8) << 2) |
-			0x10;
-		// TODO: apply proper pulse state in bit 4.
+			((state_&0x8) << 2);
+		inputs_ |= input_flux;
 
 		const uint8_t update = state_machine_[static_cast<std::size_t>(address)];
 		state_ = update >> 4;
@@ -84,6 +129,10 @@ The bytes in the P6 ROM has the high four bits reversed compared to the BAPD cha
 		}
 
 //		printf(" -> %02x performing %02x (address was %02x)\n", state_, command, address);
+
+		// TODO: surely there's a less heavyweight solution than this?
+		drives_[0].run_for(Cycles(1));
+		drives_[1].run_for(Cycles(1));
 	}
 }
 
@@ -95,4 +144,14 @@ void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
 	state_machine_ = state_machine;
 //	run_for(Cycles(15));
 	// TODO: shuffle ordering here?
+}
+
+void DiskII::set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive) {
+	drives_[drive].set_disk(disk);
+}
+
+void DiskII::process_event(const Storage::Disk::Track::Event &event) {
+	if(event.type == Storage::Disk::Track::Event::FluxTransition) {
+		inputs_ &= ~input_flux;
+	}
 }

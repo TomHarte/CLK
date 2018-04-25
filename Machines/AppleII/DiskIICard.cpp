@@ -63,3 +63,7 @@ void DiskIICard::perform_bus_operation(CPU::MOS6502::BusOperation operation, uin
 void DiskIICard::run_for(Cycles cycles, int stretches) {
 	diskii_.run_for(Cycles(cycles.as_int() * 2));
 }
+
+void DiskIICard::set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive) {
+	diskii_.set_disk(disk, drive);
+}
