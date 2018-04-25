@@ -272,15 +272,15 @@ class ConcreteMachine:
 		void configure_as_target(const Analyser::Static::Target *target) override {
 			auto *const apple_target = dynamic_cast<const Analyser::Static::AppleII::Target *>(target);
 			if(apple_target->has_disk) {
-				cards_[6].reset(new AppleII::DiskIICard(rom_fetcher_, true));
+				cards_[5].reset(new AppleII::DiskIICard(rom_fetcher_, true));
 			}
 
 			insert_media(apple_target->media);
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override {
-			if(!media.disks.empty() && cards_[6]) {
-				dynamic_cast<AppleII::DiskIICard *>(cards_[6].get())->set_disk(media.disks[0], 0);
+			if(!media.disks.empty() && cards_[5]) {
+				dynamic_cast<AppleII::DiskIICard *>(cards_[5].get())->set_disk(media.disks[0], 0);
 			}
 			return true;
 		}
