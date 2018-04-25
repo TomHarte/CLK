@@ -14,8 +14,8 @@ DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sec
 	auto roms = rom_fetcher(
 		"DiskII",
 		{
-			"boot.rom",
-			"state-machine.rom"
+			is_16_sector ? "boot-16.rom" : "boot-13.rom",
+			is_16_sector ? "state-machine-16.rom" : "state-machine-13.rom"
 		});
 	boot_ = std::move(*roms[0]);
 	diskii_.set_state_machine(*roms[1]);
