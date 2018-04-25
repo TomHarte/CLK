@@ -47,12 +47,8 @@ struct Time {
 	/*!
 		@returns the floating point conversion of this @c Time. This will often be less precise.
 	*/
-	inline float get_float() const {
-		return static_cast<float>(length) / static_cast<float>(clock_rate);
-	}
-
-	inline unsigned int get_unsigned_int() const {
-		return length / clock_rate;
+	template <typename T> T get() const {
+		return static_cast<T>(length) / static_cast<T>(clock_rate);
 	}
 
 	inline bool operator < (const Time &other) const {

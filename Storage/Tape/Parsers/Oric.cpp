@@ -62,7 +62,7 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse)
 		cycle_length_ = 0.0f;
 	}
 	wave_was_high_ = wave_is_high;
-	cycle_length_ += pulse.length.get_float();
+	cycle_length_ += pulse.length.get<float>();
 }
 
 void Parser::inspect_waves(const std::vector<WaveType> &waves)

@@ -117,7 +117,7 @@ void Drive::run_for(const Cycles cycles) {
 			int cycles_until_next_event = static_cast<int>(get_cycles_until_next_event());
 			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
 			if(!is_reading_ && cycles_until_bits_written_ > zero) {
-				int write_cycles_target = static_cast<int>(cycles_until_bits_written_.get_unsigned_int());
+				int write_cycles_target = cycles_until_bits_written_.get<int>();
 				if(cycles_until_bits_written_.length % cycles_until_bits_written_.clock_rate) write_cycles_target++;
 				cycles_to_run_for = std::min(cycles_to_run_for, write_cycles_target);
 			}
@@ -168,7 +168,6 @@ void Drive::get_next_event(const Time &duration_already_passed) {
 }
 
 void Drive::process_next_event() {
-	// TODO: ready test here.
 	if(current_event_.type == Track::Event::IndexHole) {
 //		assert(get_time_into_track() == Time(1) || get_time_into_track() == Time(0));
 		if(ready_index_count_ < 2) ready_index_count_++;
