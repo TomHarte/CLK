@@ -42,48 +42,48 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 }
 
 uint32_t FileHolder::get32le() {
-    uint32_t result = (uint32_t)std::fgetc(file_);
-    result |= (uint32_t)(std::fgetc(file_) << 8);
-    result |= (uint32_t)(std::fgetc(file_) << 16);
-    result |= (uint32_t)(std::fgetc(file_) << 24);
+    uint32_t result = static_cast<uint32_t>(std::fgetc(file_));
+    result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
+    result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
+    result |= static_cast<uint32_t>(std::fgetc(file_)) << 24;
 
     return result;
 }
 
 uint32_t FileHolder::get32be() {
-    uint32_t result = (uint32_t)(std::fgetc(file_) << 24);
-    result |= (uint32_t)(std::fgetc(file_) << 16);
-    result |= (uint32_t)(std::fgetc(file_) << 8);
-    result |= (uint32_t)std::fgetc(file_);
+    uint32_t result = static_cast<uint32_t>(std::fgetc(file_)) << 24;
+    result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
+    result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
+    result |= static_cast<uint32_t>(std::fgetc(file_));
 
     return result;
 }
 
 uint32_t FileHolder::get24le() {
-    uint32_t result = (uint32_t)std::fgetc(file_);
-    result |= (uint32_t)(std::fgetc(file_) << 8);
-    result |= (uint32_t)(std::fgetc(file_) << 16);
+    uint32_t result = static_cast<uint32_t>(std::fgetc(file_));
+    result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
+    result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
 
     return result;
 }
 
 uint32_t FileHolder::get24be() {
-    uint32_t result = (uint32_t)(std::fgetc(file_) << 16);
-    result |= (uint32_t)(std::fgetc(file_) << 8);
-    result |= (uint32_t)std::fgetc(file_);
+    uint32_t result = static_cast<uint32_t>(std::fgetc(file_)) << 16;
+    result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
+    result |= static_cast<uint32_t>(std::fgetc(file_));
 
     return result;
 }
 
 uint16_t FileHolder::get16le() {
     uint16_t result = static_cast<uint16_t>(std::fgetc(file_));
-    result |= static_cast<uint16_t>(std::fgetc(file_) << 8);
+    result |= static_cast<uint16_t>(static_cast<uint16_t>(std::fgetc(file_)) << 8);
 
     return result;
 }
 
 uint16_t FileHolder::get16be() {
-    uint16_t result = static_cast<uint16_t>(std::fgetc(file_) << 8);
+    uint16_t result = static_cast<uint16_t>(static_cast<uint16_t>(std::fgetc(file_)) << 8);
     result |= static_cast<uint16_t>(std::fgetc(file_));
 
     return result;
