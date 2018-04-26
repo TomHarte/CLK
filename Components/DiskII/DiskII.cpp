@@ -24,8 +24,6 @@ DiskII::DiskII() :
 }
 
 void DiskII::set_control(Control control, bool on) {
-	printf("Set control %d %s\n", control, on ? "on" : "off");
-
 	int previous_stepper_mask = stepper_mask_;
 	switch(control) {
 		case Control::P0: stepper_mask_ = (stepper_mask_ & 0xe) | (on ? 0x1 : 0x0);	break;
@@ -40,41 +38,41 @@ void DiskII::set_control(Control control, bool on) {
 		break;
 	}
 
+//	printf("%0x: Set control %d %s\n", stepper_mask_, control, on ? "on" : "off");
+
 	// If the stepper magnet selections have changed, and any is on, see how
 	// that moves the head.
 	if(previous_stepper_mask ^ stepper_mask_ && stepper_mask_) {
 		// Convert from a representation of bits set to the centre of pull.
-		int position = 0;
-		if(stepper_mask_&2) position += 2;
-		if(stepper_mask_&4) position += 4;
-		if(stepper_mask_&8) position += 6;
-		// TODO: both 0 and 4 turned on should produce position 7
+		int direction = 0;
+		if(stepper_mask_&1) direction += (((stepper_position_ - 0) + 4)&7) - 4;
+		if(stepper_mask_&2) direction += (((stepper_position_ - 2) + 4)&7) - 4;
+		if(stepper_mask_&4) direction += (((stepper_position_ - 4) + 4)&7) - 4;
+		if(stepper_mask_&8) direction += (((stepper_position_ - 6) + 4)&7) - 4;
 		const int bits_set = (stepper_mask_&1) + ((stepper_mask_ >> 1)&1) + ((stepper_mask_ >> 2)&1) + ((stepper_mask_ >> 3)&1);
-		position /= bits_set;
+		direction /= bits_set;
 
 		// Compare to the stepper position to decide whether that pulls in the current cog notch,
 		// or grabs a later one.
-		int change = ((position - stepper_position_ + 4)&7) - 4;
-		drives_[active_drive_].step(change);
-
-		stepper_position_ = position;
+		drives_[active_drive_].step(-direction);
+		stepper_position_ = (stepper_position_ - direction + 8) & 7;
 	}
 }
 
 void DiskII::set_mode(Mode mode) {
-	printf("Set mode %d\n", mode);
+//	printf("Set mode %d\n", mode);
 	inputs_ = (inputs_ & ~input_mode) | ((mode == Mode::Write) ? input_mode : 0);
 }
 
 void DiskII::select_drive(int drive) {
-	printf("Select drive %d\n", drive);
+//	printf("Select drive %d\n", drive);
 	active_drive_ = drive & 1;
 	drives_[active_drive_].set_event_delegate(this);
 	drives_[active_drive_^1].set_event_delegate(nullptr);
 }
 
 void DiskII::set_data_register(uint8_t value) {
-	printf("Set data register (?)\n");
+//	printf("Set data register (?)\n");
 	inputs_ |= input_command;
 	data_register_ = value;
 }

@@ -90,6 +90,7 @@ void TimedEventLoop::set_next_event_time_interval(Time interval) {
 
 	// If even that doesn't work then reduce precision.
 	if(numerator < 0 || denominator < 0 || denominator > std::numeric_limits<int>::max()) {
+//		printf(".");
 		const double double_interval = interval.get<double>();
 		const double double_subcycles_remaining = subcycles_until_event_.get<double>();
 		const double output = double_interval * static_cast<double>(input_clock_rate_) + double_subcycles_remaining;

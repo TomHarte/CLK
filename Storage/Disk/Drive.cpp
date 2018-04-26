@@ -48,9 +48,9 @@ bool Drive::get_is_track_zero() {
 }
 
 void Drive::step(int direction) {
-	printf("Step %d\n", direction);
 	int old_head_position = head_position_;
 	head_position_ = std::max(head_position_ + direction, 0);
+//	printf("Step %d -> %d\n", direction, head_position_);
 
 	// If the head moved, flush the old track.
 	if(head_position_ != old_head_position) {
