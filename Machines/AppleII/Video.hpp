@@ -103,6 +103,7 @@ template <class BusHandler> class Video: public VideoBase {
 						if(row_ < 192) {
 							if(!column_) {
 								pixel_pointer_ = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(80, 2));
+								graphics_carry_ = 0;
 							}
 
 							const int pixel_end = std::min(40, ending_column);
@@ -143,9 +144,9 @@ template <class BusHandler> class Video: public VideoBase {
 										const uint8_t graphic = bus_handler_.perform_read(static_cast<uint16_t>(graphics_address + c));
 										pixel_pointer_[c] = scaled_byte[graphic];
 										if(graphic & 0x80) {
-											reinterpret_cast<uint8_t *>(&pixel_pointer_[c])[0] |= graphics_carry_ << 7;
+											reinterpret_cast<uint8_t *>(&pixel_pointer_[c])[0] |= graphics_carry_;
 										}
-										graphics_carry_ = pixel_pointer_[c] & 1;
+										graphics_carry_ = (graphic >> 6) & 1;
 									}
 								break;
 							}
