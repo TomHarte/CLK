@@ -110,7 +110,7 @@ template <class BusHandler> class Video: public VideoBase {
 							const int pixel_row = row_ & 7;
 							const uint16_t row_address = static_cast<uint16_t>((character_row >> 3) * 40 + ((character_row&7) << 7));
 							const uint16_t text_address = static_cast<uint16_t>(((video_page_+1) * 0x400) + row_address);
-							const uint16_t graphics_address = static_cast<uint16_t>(((video_page_+1) * 0x1000) + row_address + ((pixel_row&7) << 9));
+							const uint16_t graphics_address = static_cast<uint16_t>(((video_page_+1) * 0x2000) + row_address + ((pixel_row&7) << 10));
 							const int row_shift = (row_&4);
 
 							GraphicsMode pixel_mode = (!mixed_mode_ || row_ < 160) ? line_mode : GraphicsMode::Text;
