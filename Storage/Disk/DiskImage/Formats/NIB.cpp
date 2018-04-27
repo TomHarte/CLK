@@ -60,12 +60,17 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	for(size_t index = 0; index < track_data.size(); ++index) {
 		if(track_data[index] == 0xd5 && track_data[(index+1)%track_data.size()] == 0xaa) {
 			size_t start = index - 1;
-			while(track_data[start] == 0xff)
+			size_t length = 0;
+			while(track_data[start] == 0xff) {
 				start = (start + track_data.size() - 1) % track_data.size();
+				++length;
+			}
 
-			sync_starts.insert((start + 1) % track_data.size());
-			if(start > index)
-				start_index = start;
+			if(length >= 5) {
+				sync_starts.insert((start + 1) % track_data.size());
+				if(start > index)
+					start_index = start;
+			}
 		}
 	}
 
