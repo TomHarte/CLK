@@ -78,7 +78,7 @@ void DiskII::set_data_register(uint8_t value) {
 }
 
 uint8_t DiskII::get_shift_register() {
-//	printf("[%02x] ", shift_register_);
+//	if(shift_register_ & 0x80) printf("[%02x] ", shift_register_);
 	inputs_ &= ~input_command;
 	return shift_register_;
 }
