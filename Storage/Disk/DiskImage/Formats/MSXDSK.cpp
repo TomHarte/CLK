@@ -11,8 +11,9 @@
 #include "Utility/ImplicitSectors.hpp"
 
 namespace {
-	static const int sectors_per_track = 9;
-	static const int sector_size = 2;
+	const int sectors_per_track = 9;
+	const int sector_size = 2;
+	const off_t track_size = (128 << sector_size)*sectors_per_track;
 }
 
 using namespace Storage::Disk;
@@ -22,7 +23,6 @@ MSXDSK::MSXDSK(const std::string &file_name) :
 	// The only sanity check here is whether a sensible
 	// geometry can be guessed.
 	off_t file_size = file_.stats().st_size;
-	const off_t track_size = 512*9;
 
 	// Throw if there would seemingly be an incomplete track.
 	if(file_size % track_size) throw ErrorNotMSXDSK;
