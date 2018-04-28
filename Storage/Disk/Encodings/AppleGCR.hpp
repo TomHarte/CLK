@@ -20,22 +20,22 @@ namespace AppleGCR {
 	/*!
 		@returns the eight-bit 13-sector GCR encoding for the low five bits of @c value.
 	*/
-	unsigned int five_and_three_encoding_for_value(int value);
+//	unsigned int five_and_three_encoding_for_value(int value);
 
 	/*!
 		@returns the eight-bit 16-sector GCR encoding for the low six bits of @c value.
 	*/
-	unsigned int six_and_two_encoding_for_value(int value);
+//	unsigned int six_and_two_encoding_for_value(int value);
 
 	/*!
 		A block is defined to be five source bytes, which encodes to eight GCR bytes.
 	*/
-	void encode_five_and_three_block(uint8_t *destination, uint8_t *source);
+//	void encode_five_and_three_block(uint8_t *destination, uint8_t *source);
 
 	/*!
 		A block is defined to be three source bytes, which encodes to four GCR bytes.
 	*/
-	void encode_six_and_two_block(uint8_t *destination, uint8_t *source);
+//	void encode_six_and_two_block(uint8_t *destination, uint8_t *source);
 
 	/*!
 		@returns the four bit nibble for the five-bit GCR @c quintet if a valid GCR value; INT_MAX otherwise.
@@ -54,12 +54,16 @@ namespace AppleGCR {
 	/// Describes the epilogue that ends both data sections and headers.
 	const uint8_t epilogue[3] = {0xde, 0xaa, 0xeb};
 
+	/*!
+		Produces the Apple-standard '4 and 4' per-sector header. This is the same
+		for both the 13- and 16-sector formats, and is 112 bits long.
+	*/
 	Storage::Disk::PCMSegment header(uint8_t volume, uint8_t track, uint8_t sector);
 
-	Storage::Disk::PCMSegment six_and_two_data(uint8_t *source);
+	Storage::Disk::PCMSegment six_and_two_data(const uint8_t *source);
 	Storage::Disk::PCMSegment six_and_two_sync(int length);
 
-	Storage::Disk::PCMSegment five_and_three_data(uint8_t *source);
+	Storage::Disk::PCMSegment five_and_three_data(const uint8_t *source);
 	Storage::Disk::PCMSegment five_and_three_sync(int length);
 }
 

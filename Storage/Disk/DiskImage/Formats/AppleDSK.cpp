@@ -8,6 +8,9 @@
 
 #include "AppleDSK.hpp"
 
+#include "../../Track/PCMTrack.hpp"
+#include "../../Encodings/AppleGCR.hpp"
+
 using namespace Storage::Disk;
 
 namespace {
@@ -30,8 +33,29 @@ int AppleDSK::get_head_position_count() {
 std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 	const long file_offset = (address.position >> 2) * bytes_per_sector * sectors_per_track_;
 	file_.seek(file_offset, SEEK_SET);
+	const std::vector<uint8_t> track_data = file_.read(static_cast<size_t>(bytes_per_sector * sectors_per_track_));
 
-//	std::vector<uint8_t> track_data = file_.read(bytes_per_sector * sectors_per_track_);
+	std::vector<Storage::Disk::PCMSegment> segments;
+	const uint8_t track = static_cast<uint8_t>(address.position >> 2);
 
-	return nullptr;
+	// In either case below, the code aims for exactly 50,000 bits per track.
+	if(sectors_per_track_ == 16) {
+
+		// Write the sectors.
+		for(uint8_t c = 0; c < 16; ++c) {
+			segments.push_back(Encodings::AppleGCR::six_and_two_sync(10));
+			segments.push_back(Encodings::AppleGCR::header(0, track, c));
+			segments.push_back(Encodings::AppleGCR::six_and_two_sync(10));
+			segments.push_back(Encodings::AppleGCR::six_and_two_data(&track_data[c * 256]));
+			segments.push_back(Encodings::AppleGCR::six_and_two_sync(10));
+		}
+
+		int encoded_length = (80 + 112 + 80 + 2848 + 80) * sectors_per_track_;
+		segments.push_back(Encodings::AppleGCR::six_and_two_sync((50000 - encoded_length) >> 3));
+
+	} else {
+
+	}
+
+	return std::shared_ptr<PCMTrack>(new PCMTrack(segments));
 }
