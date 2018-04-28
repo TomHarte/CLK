@@ -74,11 +74,11 @@ using namespace Storage::Encodings;
 }*/
 
 Storage::Disk::PCMSegment AppleGCR::six_and_two_sync(int length) {
-	return sync(length, 9);
+	return sync(length, 10);
 }
 
 Storage::Disk::PCMSegment AppleGCR::five_and_three_sync(int length) {
-	return sync(length, 10);
+	return sync(length, 9);
 }
 
 Storage::Disk::PCMSegment AppleGCR::header(uint8_t volume, uint8_t track, uint8_t sector) {
