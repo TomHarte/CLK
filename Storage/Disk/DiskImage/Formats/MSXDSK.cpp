@@ -25,16 +25,16 @@ MSXDSK::MSXDSK(const std::string &file_name) :
 	off_t file_size = file_.stats().st_size;
 
 	// Throw if there would seemingly be an incomplete track.
-	if(file_size % track_size) throw ErrorNotMSXDSK;
+	if(file_size % track_size) throw Error::InvalidFormat;
 
 	track_count_ = static_cast<int>(file_size / track_size);
 	head_count_ = 1;
 
 	// Throw if too large or too small or too large for single sided and
 	// clearly not double sided.
-	if(track_count_ < 40) throw ErrorNotMSXDSK;
-	if(track_count_ > 82*2) throw ErrorNotMSXDSK;
-	if(track_count_ > 82 && track_count_&1) throw ErrorNotMSXDSK;
+	if(track_count_ < 40) throw Error::InvalidFormat;
+	if(track_count_ > 82*2) throw Error::InvalidFormat;
+	if(track_count_ > 82 && track_count_&1) throw Error::InvalidFormat;
 
 	// The below effectively prefers the idea of a single-sided 80-track disk
 	// to a double-sided 40-track disk. Emulators have to guess.

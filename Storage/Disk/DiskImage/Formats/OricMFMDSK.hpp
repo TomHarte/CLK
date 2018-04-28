@@ -29,10 +29,6 @@ class OricMFMDSK: public DiskImage {
 		*/
 		OricMFMDSK(const std::string &file_name);
 
-		enum {
-			ErrorNotOricMFMDSK,
-		};
-
 		// implemented to satisfy @c DiskImage
 		int get_head_position_count() override;
 		int get_head_count() override;

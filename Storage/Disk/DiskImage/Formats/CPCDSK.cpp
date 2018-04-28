@@ -27,7 +27,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 		is_extended_ = true;
 		file.seek(0, SEEK_SET);
 		if(!file.check_signature("EXTENDED"))
-			throw ErrorNotCPCDSK;
+			throw Error::InvalidFormat;
 	}
 
 	// Don't really care about about the creator; skip.
@@ -145,7 +145,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 						if(declared_data_size > data_size) {
 							number_of_samplings = declared_data_size / data_size;
 							if(declared_data_size % data_size)
-								throw ErrorNotCPCDSK;
+								throw Error::InvalidFormat;
 						} else {
 							stored_data_size = declared_data_size;
 						}

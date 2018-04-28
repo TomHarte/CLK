@@ -19,14 +19,14 @@ using namespace Storage::Disk;
 OricMFMDSK::OricMFMDSK(const std::string &file_name) :
 		file_(file_name) {
 	if(!file_.check_signature("MFM_DISK"))
-		throw ErrorNotOricMFMDSK;
+		throw Error::InvalidFormat;
 
 	head_count_ = file_.get32le();
 	track_count_ = file_.get32le();
 	geometry_type_ = file_.get32le();
 
 	if(geometry_type_ < 1 || geometry_type_ > 2)
-		throw ErrorNotOricMFMDSK;
+		throw Error::InvalidFormat;
 }
 
 int OricMFMDSK::get_head_position_count() {

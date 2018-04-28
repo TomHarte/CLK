@@ -20,8 +20,8 @@ namespace Storage {
 
 class FileHolder final {
 	public:
-		enum {
-			ErrorCantOpen = -1
+		enum class Error {
+			CantOpen = -1
 		};
 
 		enum class FileMode {

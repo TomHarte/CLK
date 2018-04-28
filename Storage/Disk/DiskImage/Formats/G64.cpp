@@ -19,11 +19,11 @@ using namespace Storage::Disk;
 G64::G64(const std::string &file_name) :
 		file_(file_name) {
 	// read and check the file signature
-	if(!file_.check_signature("GCR-1541")) throw ErrorNotG64;
+	if(!file_.check_signature("GCR-1541")) throw Error::InvalidFormat;
 
 	// check the version number
 	int version = file_.get8();
-	if(version != 0) throw ErrorUnknownVersion;
+	if(version != 0) throw Error::UnknownVersion;
 
 	// get the number of tracks and track size
 	number_of_tracks_ = file_.get8();

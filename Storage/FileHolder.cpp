@@ -38,7 +38,7 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 		break;
 	}
 
-	if(!file_) throw ErrorCantOpen;
+	if(!file_) throw Error::CantOpen;
 }
 
 uint32_t FileHolder::get32le() {

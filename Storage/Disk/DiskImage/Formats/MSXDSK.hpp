@@ -23,11 +23,6 @@ namespace Disk {
 class MSXDSK: public MFMSectorDump {
 	public:
 		MSXDSK(const std::string &file_name);
-
-		enum {
-			ErrorNotMSXDSK,
-		};
-
 		int get_head_position_count() override;
 		int get_head_count() override;
 

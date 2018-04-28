@@ -23,14 +23,10 @@ class D64: public DiskImage {
 		/*!
 			Construct a @c D64 containing content from the file with name @c file_name.
 
-			@throws ErrorCantOpen if this file can't be opened.
-			@throws ErrorNotD64 if the file doesn't appear to contain a .D64 format image.
+			@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
+			@throws Error::InvalidFormat if the file doesn't appear to contain a .D64 format image.
 		*/
 		D64(const std::string &file_name);
-
-		enum {
-			ErrorNotD64,
-		};
 
 		// implemented to satisfy @c Disk
 		int get_head_position_count() override;

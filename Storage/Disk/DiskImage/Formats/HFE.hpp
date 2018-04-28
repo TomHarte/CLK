@@ -25,14 +25,12 @@ class HFE: public DiskImage {
 		/*!
 			Construct an @c HFE containing content from the file with name @c file_name.
 
-			@throws ErrorNotHFE if the file doesn't appear to contain a .SSD format image.
+			@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
+			@throws Error::InvalidFormat if the file doesn't appear to contain an .HFE format image.
+			@throws Error::UnknownVersion if the file looks correct but is an unsupported version.
 		*/
 		HFE(const std::string &file_name);
 		~HFE();
-
-		enum {
-			ErrorNotHFE
-		};
 
 		// implemented to satisfy @c Disk
 		int get_head_position_count() override;

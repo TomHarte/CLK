@@ -26,13 +26,9 @@ class DMK: public DiskImage {
 		/*!
 			Construct a @c DMK containing content from the file with name @c file_name.
 
-			@throws ErrorNotDMK if this file doesn't appear to be a DMK.
+			@throws Error::InvalidFormat if this file doesn't appear to be a DMK.
 		*/
 		DMK(const std::string &file_name);
-
-		enum {
-			ErrorNotDMK
-		};
 
 		// implemented to satisfy @c Disk
 		int get_head_position_count() override;

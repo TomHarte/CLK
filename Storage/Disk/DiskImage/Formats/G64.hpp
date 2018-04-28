@@ -25,17 +25,11 @@ class G64: public DiskImage {
 		/*!
 			Construct a @c G64 containing content from the file with name @c file_name.
 
-			@throws ErrorCantOpen if this file can't be opened.
-			@throws ErrorNotG64 if the file doesn't appear to contain a .G64 format image.
-			@throws ErrorUnknownVersion if this file appears to be a .G64 but has an unrecognised version number.
+			@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
+			@throws Error::InvalidFormat if the file doesn't appear to contain a .G64 format image.
+			@throws Error::UnknownVersion if this file appears to be a .G64 but has an unrecognised version number.
 		*/
 		G64(const std::string &file_name);
-
-		enum {
-			ErrorCantOpen,
-			ErrorNotG64,
-			ErrorUnknownVersion
-		};
 
 		// implemented to satisfy @c Disk
 		int get_head_position_count() override;

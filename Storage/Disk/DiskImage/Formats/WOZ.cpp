@@ -19,12 +19,13 @@ WOZ::WOZ(const std::string &file_name) :
 		'W', 'O', 'Z', '1',
 		static_cast<char>(0xff), 0x0a, 0x0d, 0x0a
 	};
-	if(!file_.check_signature(signature, 8)) throw ErrorNotWOZ;
+	if(!file_.check_signature(signature, 8)) throw Error::InvalidFormat;
 
 	// TODO: check CRC32, instead of skipping it.
 	file_.seek(4, SEEK_CUR);
 
 	// Parse all chunks up front.
+	bool has_tmap = false;
 	while(true) {
 		const uint32_t chunk_id = file_.get32le();
 		const uint32_t chunk_size = file_.get32le();
@@ -48,6 +49,7 @@ WOZ::WOZ(const std::string &file_name) :
 
 			case CK("TMAP"): {
 				file_.read(track_map_, 160);
+				has_tmap = true;
 			} break;
 
 			case CK("TRKS"): {
@@ -63,6 +65,8 @@ WOZ::WOZ(const std::string &file_name) :
 
 		file_.seek(end_of_chunk, SEEK_SET);
 	}
+
+	if(tracks_offset_ == -1 || !has_tmap) throw Error::InvalidFormat;
 }
 
 int WOZ::get_head_position_count() {

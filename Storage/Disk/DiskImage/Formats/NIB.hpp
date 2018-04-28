@@ -24,10 +24,6 @@ class NIB: public DiskImage {
 	public:
 		NIB(const std::string &file_name);
 
-		enum {
-			ErrorNotNIB,
-		};
-
 		int get_head_position_count() override;
 
 		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) override;

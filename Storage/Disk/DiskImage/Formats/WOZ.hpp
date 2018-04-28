@@ -24,10 +24,6 @@ class WOZ: public DiskImage {
 	public:
 		WOZ(const std::string &file_name);
 
-		enum {
-			ErrorNotWOZ
-		};
-
 		int get_head_position_count() override;
 		int get_head_count() override;
 		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
@@ -37,7 +33,7 @@ class WOZ: public DiskImage {
 		bool is_read_only_ = false;
 		bool is_3_5_disk_ = false;
 		uint8_t track_map_[160];
-		long tracks_offset_ = 0;
+		long tracks_offset_ = -1;
 };
 
 }

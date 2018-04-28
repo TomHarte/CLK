@@ -26,7 +26,7 @@ NIB::NIB(const std::string &file_name) :
 	file_(file_name) {
 	// A NIB should be 35 tracks, each 6656 bytes long.
 	if(file_.stats().st_size != track_length*number_of_tracks) {
-		throw ErrorNotNIB;
+		throw Error::InvalidFormat;
 	}
 
 	// TODO: all other validation. I.e. does this look like a GCR disk?
