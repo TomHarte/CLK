@@ -40,7 +40,6 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 
 	// In either case below, the code aims for exactly 50,000 bits per track.
 	if(sectors_per_track_ == 16) {
-
 		// Write the sectors.
 		for(uint8_t c = 0; c < 16; ++c) {
 			segments.push_back(Encodings::AppleGCR::six_and_two_sync(10));
@@ -50,9 +49,11 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 			segments.push_back(Encodings::AppleGCR::six_and_two_sync(10));
 		}
 
+		// Pad if necessary.
 		int encoded_length = (80 + 112 + 80 + 2848 + 80) * sectors_per_track_;
-		segments.push_back(Encodings::AppleGCR::six_and_two_sync((50000 - encoded_length) >> 3));
-
+		if(encoded_length < 50000) {
+			segments.push_back(Encodings::AppleGCR::six_and_two_sync((50000 - encoded_length) >> 3));
+		}
 	} else {
 
 	}

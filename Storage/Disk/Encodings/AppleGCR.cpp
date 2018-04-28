@@ -135,6 +135,7 @@ Storage::Disk::PCMSegment AppleGCR::six_and_two_data(const uint8_t *source) {
 	Storage::Disk::PCMSegment segment;
 
 	segment.data.resize(349);
+	segment.number_of_bits = static_cast<unsigned int>(segment.data.size() * 8);
 
 	// Add the prologue and epilogue.
 	segment.data[0] = header_prologue[0];
@@ -174,7 +175,7 @@ Storage::Disk::PCMSegment AppleGCR::six_and_two_data(const uint8_t *source) {
 
 	// Map six-bit values up to full bytes.
 	for(std::size_t c = 0; c < 343; ++c) {
-		segment.data[c] = six_and_two_mapping[segment.data[c]];
+		segment.data[3 + c] = six_and_two_mapping[segment.data[3 + c]];
 	}
 
 	return segment;
