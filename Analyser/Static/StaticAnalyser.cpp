@@ -94,6 +94,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("csw", result.tapes, Tape::CSW, TargetPlatform::AllTape)											// CSW
 	Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)		// D64
 	Format("dmk", result.disks, Disk::DiskImageHolder<Storage::Disk::DMK>, TargetPlatform::MSX)				// DMK
+	Format("do", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::AppleII)		// DO
 	Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// DSD
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::CPCDSK>, TargetPlatform::AmstradCPC)	// DSK (Amstrad CPC)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::AppleII)	// DSK (Apple)
@@ -108,6 +109,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::AppleII)			// NIB
 	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// O
 	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P
+	Format("po", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::AppleII)		// PO
 	Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P81
 
 	// PRG

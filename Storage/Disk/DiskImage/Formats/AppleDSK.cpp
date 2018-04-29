@@ -24,6 +24,18 @@ AppleDSK::AppleDSK(const std::string &file_name) :
 
 	sectors_per_track_ = static_cast<int>(file_.stats().st_size / (number_of_tracks*bytes_per_sector));
 	if(sectors_per_track_ != 13 && sectors_per_track_ != 16) throw Error::InvalidFormat;
+
+	// Check whether this is a Pro DOS disk by inspecting the filename.
+	if(sectors_per_track_ == 16) {
+		size_t string_index = file_name.size()-1;
+		while(file_name[string_index] != '.') {
+			if(file_name[string_index] == 'p') {
+				is_prodos_ = true;
+				break;
+			}
+			--string_index;
+		}
+	}
 }
 
 int AppleDSK::get_head_position_count() {
@@ -51,7 +63,8 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 
 			// DOS and Pro DOS interleave sectors on disk, and they're represented in a disk
 			// image in physical order rather than logical. So that skew needs to be applied here.
-			sector_number_ = (sector_number_ + (is_prodos_ ? 8 : 7)) % 15;
+			sector_number_ += is_prodos_ ? 8 : 7;
+			if(sector_number_ > 0xf) sector_number_ %= 15;
 		}
 
 		// Pad if necessary.
