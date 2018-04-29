@@ -230,7 +230,10 @@ class ConcreteMachine:
 
 			if(!roms[0] || !roms[1]) return false;
 			rom_ = std::move(*roms[0]);
-			rom_start_address_ = static_cast<uint16_t>(0x10000 - rom_.size());
+			if(rom_.size() > 12*1024) {
+				rom_.erase(rom_.begin(), rom_.begin() + static_cast<off_t>(rom_.size()) - 12*1024);
+			}
+			rom_start_address_ = 0xd000;//static_cast<uint16_t>(0x10000 - rom_.size());
 
 			character_rom_ = std::move(*roms[1]);
 
