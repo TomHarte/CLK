@@ -94,8 +94,8 @@ Storage::Disk::PCMSegment AppleGCR::header(uint8_t volume, uint8_t track, uint8_
 	segment.data[2] = header_prologue[2];
 
 #define WriteFM(index, value)	\
-	segment.data[index+0] = static_cast<uint8_t>((value >> 1) | 0xaa);	\
-	segment.data[index+1] = static_cast<uint8_t>(value | 0xaa);	\
+	segment.data[index+0] = static_cast<uint8_t>(((value) >> 1) | 0xaa);	\
+	segment.data[index+1] = static_cast<uint8_t>((value) | 0xaa);	\
 
 	WriteFM(3, volume);
 	WriteFM(5, track);
@@ -138,9 +138,9 @@ Storage::Disk::PCMSegment AppleGCR::six_and_two_data(const uint8_t *source) {
 	segment.number_of_bits = static_cast<unsigned int>(segment.data.size() * 8);
 
 	// Add the prologue and epilogue.
-	segment.data[0] = header_prologue[0];
-	segment.data[1] = header_prologue[1];
-	segment.data[2] = header_prologue[2];
+	segment.data[0] = data_prologue[0];
+	segment.data[1] = data_prologue[1];
+	segment.data[2] = data_prologue[2];
 
 	segment.data[346] = epilogue[0];
 	segment.data[347] = epilogue[1];
@@ -162,12 +162,12 @@ Storage::Disk::PCMSegment AppleGCR::six_and_two_data(const uint8_t *source) {
 	segment.data[3 + 85] = bit_shuffle[source[255]&3];
 
 	for(std::size_t c = 0; c < 256; ++c) {
-		segment.data[3 + 85 + c] = source[c] >> 2;
+		segment.data[3 + 85 + 1 + c] = source[c] >> 2;
 	}
 
 	// Exclusive OR each byte with the one before it.
-	segment.data[344] = segment.data[343];
-	std::size_t location = 343;
+	segment.data[345] = segment.data[344];
+	std::size_t location = 344;
 	while(location > 3) {
 		segment.data[location] ^= segment.data[location-1];
 		--location;
