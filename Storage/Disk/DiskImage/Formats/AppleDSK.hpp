@@ -37,7 +37,8 @@ class AppleDSK: public DiskImage {
 
 	private:
 		Storage::FileHolder file_;
-		int sectors_per_track_;
+		int sectors_per_track_ = 16;
+		bool is_prodos_ = false;
 };
 
 }
