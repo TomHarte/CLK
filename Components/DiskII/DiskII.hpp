@@ -10,6 +10,7 @@
 #define DiskII_hpp
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/Sleeper.hpp"
 
 #include "../../Storage/Disk/Disk.hpp"
 #include "../../Storage/Disk/Drive.hpp"
@@ -22,7 +23,10 @@ namespace Apple {
 /*!
 	Provides an emulation of the Apple Disk II.
 */
-class DiskII: public Storage::Disk::Drive::EventDelegate {
+class DiskII:
+	public Storage::Disk::Drive::EventDelegate,
+	public Sleeper::SleepObserver,
+	public Sleeper {
 	public:
 		DiskII();
 
@@ -43,9 +47,11 @@ class DiskII: public Storage::Disk::Drive::EventDelegate {
 		void set_state_machine(const std::vector<uint8_t> &);
 
 		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
+		bool is_sleeping() override;
 
 	private:
 		void process_event(const Storage::Disk::Track::Event &event) override;
+		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override;
 
 		uint8_t state_ = 0;
 		uint8_t inputs_ = 0;
@@ -58,7 +64,11 @@ class DiskII: public Storage::Disk::Drive::EventDelegate {
 		bool is_write_protected();
 		std::vector<uint8_t> state_machine_;
 		Storage::Disk::Drive drives_[2];
+		bool drive_is_sleeping_[2];
+		bool controller_can_sleep_ = false;
 		int active_drive_ = 0;
+
+		void set_controller_can_sleep();
 };
 
 }

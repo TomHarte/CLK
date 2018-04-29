@@ -747,7 +747,7 @@ class ConcreteMachine:
 			return selection_set;
 		}
 
-		void set_component_is_sleeping(void *component, bool is_sleeping) override {
+		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override {
 			tape_is_sleeping_ = is_sleeping;
 			set_use_fast_tape();
 		}

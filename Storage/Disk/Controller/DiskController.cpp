@@ -22,7 +22,7 @@ Controller::Controller(Cycles clock_rate) :
 	set_drive(empty_drive_);
 }
 
-void Controller::set_component_is_sleeping(void *component, bool is_sleeping) {
+void Controller::set_component_is_sleeping(Sleeper *component, bool is_sleeping) {
 	update_sleep_observer();
 }
 

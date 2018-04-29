@@ -13,14 +13,17 @@
 using namespace Apple;
 
 namespace  {
-	const uint8_t input_command = 0x1;
-	const uint8_t input_mode = 0x2;
+	const uint8_t input_command = 0x1;	// i.e. Q6
+	const uint8_t input_mode = 0x2;		// i.e. Q7
 	const uint8_t input_flux = 0x4;
 }
 
 DiskII::DiskII() :
-	drives_{{2000000, 300, 1}, {2045454, 300, 1}}
+	inputs_(input_command),
+	drives_{{2045454, 300, 1}, {2045454, 300, 1}}
 {
+	drives_[0].set_sleep_observer(this);
+	drives_[1].set_sleep_observer(this);
 }
 
 void DiskII::set_control(Control control, bool on) {
@@ -38,7 +41,7 @@ void DiskII::set_control(Control control, bool on) {
 		break;
 	}
 
-//	printf("%0x: Set control %d %s\n", stepper_mask_, control, on ? "on" : "off");
+	printf("%0x: Set control %d %s\n", stepper_mask_, control, on ? "on" : "off");
 
 	// If the stepper magnet selections have changed, and any is on, see how
 	// that moves the head.
@@ -62,6 +65,7 @@ void DiskII::set_control(Control control, bool on) {
 void DiskII::set_mode(Mode mode) {
 //	printf("Set mode %d\n", mode);
 	inputs_ = (inputs_ & ~input_mode) | ((mode == Mode::Write) ? input_mode : 0);
+	set_controller_can_sleep();
 }
 
 void DiskII::select_drive(int drive) {
@@ -75,11 +79,13 @@ void DiskII::set_data_register(uint8_t value) {
 //	printf("Set data register (?)\n");
 	inputs_ |= input_command;
 	data_register_ = value;
+	set_controller_can_sleep();
 }
 
 uint8_t DiskII::get_shift_register() {
 //	if(shift_register_ & 0x80) printf("[%02x] ", shift_register_);
 	inputs_ &= ~input_command;
+	set_controller_can_sleep();
 	return shift_register_;
 }
 
@@ -97,41 +103,56 @@ void DiskII::run_for(const Cycles cycles) {
 The bytes in the P6 ROM has the high four bits reversed compared to the BAPD charts, so you will have to reverse them after fetching the byte.
 
 */
-	// TODO: optimise the resting state.
+	if(is_sleeping()) return;
 
 	int integer_cycles = cycles.as_int();
-	while(integer_cycles--) {
-		const int address =
-			(inputs_ << 2) |
-			((shift_register_&0x80) >> 6) |
-			((state_&0x2) >> 1) |
-			((state_&0x1) << 7) |
-			((state_&0x4) << 4) |
-			((state_&0x8) << 2);
-		inputs_ |= input_flux;
 
-		const uint8_t update = state_machine_[static_cast<std::size_t>(address)];
-		state_ = update >> 4;
-		state_ = ((state_ & 0x8) ? 0x1 : 0x0) | ((state_ & 0x4) ? 0x2 : 0x0) | ((state_ & 0x2) ? 0x4 : 0x0) | ((state_ & 0x1) ? 0x8 : 0x0);
+	if(!controller_can_sleep_) {
+		while(integer_cycles--) {
+			const int address =
+				(inputs_ << 2) |
+				((shift_register_&0x80) >> 6) |
+				((state_&0x2) >> 1) |
+				((state_&0x1) << 7) |
+				((state_&0x4) << 4) |
+				((state_&0x8) << 2);
+			inputs_ |= input_flux;
 
-		uint8_t command = update & 0xf;
-		switch(command) {
-			case 0x0:	shift_register_ = 0;													break;	// clear
-			case 0x9:	shift_register_ = static_cast<uint8_t>(shift_register_ << 1);			break;	// shift left, bringing in a zero
-			case 0xd:	shift_register_ = static_cast<uint8_t>((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
-			case 0xb:	shift_register_ = data_register_;										break;	// load
-			case 0xa:
-				shift_register_ = (shift_register_ >> 1) | (is_write_protected() ? 0x80 : 0x00);
-			break;	// shift right, bringing in write protected status
-			default: break;
+			const uint8_t update = state_machine_[static_cast<std::size_t>(address)];
+			state_ = update >> 4;
+			state_ = ((state_ & 0x8) ? 0x1 : 0x0) | ((state_ & 0x4) ? 0x2 : 0x0) | ((state_ & 0x2) ? 0x4 : 0x0) | ((state_ & 0x1) ? 0x8 : 0x0);
+
+			uint8_t command = update & 0xf;
+			switch(command) {
+				case 0x0:	shift_register_ = 0;													break;	// clear
+				case 0x9:	shift_register_ = static_cast<uint8_t>(shift_register_ << 1);			break;	// shift left, bringing in a zero
+				case 0xd:	shift_register_ = static_cast<uint8_t>((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
+				case 0xb:	shift_register_ = data_register_;										break;	// load
+				case 0xa:
+					shift_register_ = (shift_register_ >> 1) | (is_write_protected() ? 0x80 : 0x00);
+				break;	// shift right, bringing in write protected status
+				default: break;
+			}
+
+			// TODO: surely there's a less heavyweight solution than this?
+			if(!drive_is_sleeping_[0]) drives_[0].run_for(Cycles(1));
+			if(!drive_is_sleeping_[1]) drives_[1].run_for(Cycles(1));
 		}
-
-//		printf(" -> %02x performing %02x (address was %02x)\n", state_, command, address);
-
-		// TODO: surely there's a less heavyweight solution than this?
-		drives_[0].run_for(Cycles(1));
-		drives_[1].run_for(Cycles(1));
+	} else {
+		if(!drive_is_sleeping_[0]) drives_[0].run_for(cycles);
+		if(!drive_is_sleeping_[1]) drives_[1].run_for(cycles);
 	}
+
+	set_controller_can_sleep();
+}
+
+void DiskII::set_controller_can_sleep() {
+	// Permit the controller to sleep if it's in sense write protect mode, and the shift register
+	// has already filled with the result of shifting eight times.
+	controller_can_sleep_ =
+		(inputs_ == (input_command | input_flux)) &&
+		(shift_register_ == (is_write_protected() ? 0xff : 0x00));
+	if(is_sleeping()) update_sleep_observer();
 }
 
 bool DiskII::is_write_protected() {
@@ -140,7 +161,6 @@ bool DiskII::is_write_protected() {
 
 void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
 	state_machine_ = state_machine;
-//	run_for(Cycles(15));
 	// TODO: shuffle ordering here?
 }
 
@@ -151,5 +171,16 @@ void DiskII::set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int driv
 void DiskII::process_event(const Storage::Disk::Track::Event &event) {
 	if(event.type == Storage::Disk::Track::Event::FluxTransition) {
 		inputs_ &= ~input_flux;
+		set_controller_can_sleep();
 	}
+}
+
+void DiskII::set_component_is_sleeping(Sleeper *component, bool is_sleeping) {
+	drive_is_sleeping_[0] = drives_[0].is_sleeping();
+	drive_is_sleeping_[1] = drives_[1].is_sleeping();
+	update_sleep_observer();
+}
+
+bool DiskII::is_sleeping() {
+	return controller_can_sleep_ && drive_is_sleeping_[0] && drive_is_sleeping_[1];
 }

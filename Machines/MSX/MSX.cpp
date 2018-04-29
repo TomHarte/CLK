@@ -551,7 +551,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Sleeper
-		void set_component_is_sleeping(void *component, bool is_sleeping) override {
+		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override {
 			tape_player_is_sleeping_ = tape_player_.is_sleeping();
 			set_use_fast_tape();
 		}

@@ -961,7 +961,7 @@ class ConcreteMachine:
 			return true;
 		}
 
-		void set_component_is_sleeping(void *component, bool is_sleeping) override final {
+		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override final {
 			fdc_is_sleeping_ = fdc_.is_sleeping();
 			tape_player_is_sleeping_ = tape_player_.is_sleeping();
 		}

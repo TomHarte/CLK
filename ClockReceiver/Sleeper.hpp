@@ -30,7 +30,7 @@ class Sleeper {
 		class SleepObserver {
 			public:
 				/// Called to inform an observer that the component @c component has either gone to sleep or become awake.
-				virtual void set_component_is_sleeping(void *component, bool is_sleeping) = 0;
+				virtual void set_component_is_sleeping(Sleeper *component, bool is_sleeping) = 0;
 		};
 
 		/// Registers @c observer as the new sleep observer;
