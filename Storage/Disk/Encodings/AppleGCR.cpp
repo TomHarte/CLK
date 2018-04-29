@@ -115,9 +115,13 @@ Storage::Disk::PCMSegment AppleGCR::five_and_three_data(const uint8_t *source) {
 	Storage::Disk::PCMSegment segment;
 
 	segment.data.resize(410 + 7);
-	segment.data[0] = header_prologue[0];
-	segment.data[1] = header_prologue[1];
-	segment.data[2] = header_prologue[2];
+	segment.data[0] = data_prologue[0];
+	segment.data[1] = data_prologue[1];
+	segment.data[2] = data_prologue[2];
+
+	segment.data[414] = epilogue[0];
+	segment.data[411] = epilogue[1];
+	segment.data[416] = epilogue[2];
 
 //	std::size_t source_pointer = 0;
 //	std::size_t destination_pointer = 3;
@@ -151,15 +155,11 @@ Storage::Disk::PCMSegment AppleGCR::six_and_two_data(const uint8_t *source) {
 	// contents; the 256 bytes afterwards are the remaining
 	// six bits.
 	const uint8_t bit_shuffle[] = {0, 2, 1, 3};
-	for(std::size_t c = 0; c < 85; ++c) {
-		segment.data[3 + c] =
-			static_cast<uint8_t>(
-				bit_shuffle[source[c]&3] |
-				(bit_shuffle[source[c + 85]&3] << 2) |
-				(bit_shuffle[source[c + 170]&3] << 4)
-			);
+	for(std::size_t c = 0; c < 84; ++c) {
+		segment.data[3 + c] = bit_shuffle[source[c]&3];
+		if(c + 86 < 256) segment.data[3 + c] |= bit_shuffle[source[c + 86]&3] << 2;
+		if(c + 172 < 256) segment.data[3 + c] |= bit_shuffle[source[c + 172]&3] << 4;
 	}
-	segment.data[3 + 85] = bit_shuffle[source[255]&3];
 
 	for(std::size_t c = 0; c < 256; ++c) {
 		segment.data[3 + 85 + 1 + c] = source[c] >> 2;
