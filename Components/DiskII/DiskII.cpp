@@ -41,7 +41,7 @@ void DiskII::set_control(Control control, bool on) {
 		break;
 	}
 
-	printf("%0x: Set control %d %s\n", stepper_mask_, control, on ? "on" : "off");
+//	printf("%0x: Set control %d %s\n", stepper_mask_, control, on ? "on" : "off");
 
 	// If the stepper magnet selections have changed, and any is on, see how
 	// that moves the head.
