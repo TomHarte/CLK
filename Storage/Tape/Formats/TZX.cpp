@@ -190,7 +190,7 @@ void TZX::get_generalised_segment(uint32_t output_symbols, uint8_t max_pulses_pe
 			}
 
 			// Output waves.
-			for(auto length : symbol.pulse_lengths) {
+			for(const auto length : symbol.pulse_lengths) {
 				if(!length) break;
 				post_pulse(length);
 			}

@@ -302,7 +302,7 @@ class ConcreteMachine:
 			}
 
 			int drive_index = 0;
-			for(auto disk : media.disks) {
+			for(auto &disk : media.disks) {
 				if(drive_index < 4) microdisc_.set_disk(disk, drive_index);
 				drive_index++;
 			}

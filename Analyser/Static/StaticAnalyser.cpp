@@ -174,7 +174,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	#undef Append
 
 	// Reset any tapes to their initial position
-	for(auto &target : targets) {
+	for(const auto &target : targets) {
 		for(auto &tape : target->media.tapes) {
 			tape->reset();
 		}

@@ -16,14 +16,14 @@ PCMTrack::PCMTrack() : segment_pointer_(0) {}
 PCMTrack::PCMTrack(const std::vector<PCMSegment> &segments) : PCMTrack() {
 	// sum total length of all segments
 	Time total_length;
-	for(auto segment : segments) {
+	for(const auto &segment : segments) {
 		total_length += segment.length_of_a_bit * segment.number_of_bits;
 	}
 	total_length.simplify();
 
 	// each segment is then some proportion of the total; for them all to sum to 1 they'll
 	// need to be adjusted to be
-	for(auto segment : segments) {
+	for(const auto &segment : segments) {
 		Time original_length_of_segment = segment.length_of_a_bit * segment.number_of_bits;
 		Time proportion_of_whole = original_length_of_segment / total_length;
 		proportion_of_whole.simplify();

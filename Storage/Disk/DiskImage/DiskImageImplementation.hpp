@@ -24,7 +24,7 @@ template <typename T> void DiskImageHolder<T>::flush_tracks() {
 
 		using TrackMap = std::map<Track::Address, std::shared_ptr<Track>>;
 		std::shared_ptr<TrackMap> track_copies(new TrackMap);
-		for(auto &address : unwritten_tracks_) {
+		for(const auto &address : unwritten_tracks_) {
 			track_copies->insert(std::make_pair(address, std::shared_ptr<Track>(cached_tracks_[address]->clone())));
 		}
 		unwritten_tracks_.clear();

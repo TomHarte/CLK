@@ -499,7 +499,7 @@ class ConcreteMachine:
 				Range(0x0000, 0x0400),
 				Range(0x1000, 0x2000),
 			}};
-			for(auto &video_range : video_ranges) {
+			for(const auto &video_range : video_ranges) {
 				for(auto addr = video_range.start; addr < video_range.end; addr += 0x400) {
 					auto destination_address = (addr & 0x1fff) | (((addr & 0x8000) >> 2) ^ 0x2000);
 					if(processor_read_memory_map_[addr >> 10]) {

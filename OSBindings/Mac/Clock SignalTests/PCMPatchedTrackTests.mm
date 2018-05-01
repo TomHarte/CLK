@@ -59,7 +59,7 @@
 
 - (Storage::Time)timeForEvents:(const std::vector<Storage::Disk::Track::Event> &)events {
 	Storage::Time result(0);
-	for(auto event : events) {
+	for(const auto &event : events) {
 		result += event.length;
 	}
 	return result;

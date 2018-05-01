@@ -113,7 +113,7 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address)
 }
 
 void OricMFMDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
-	for(auto &track : tracks) {
+	for(const auto &track : tracks) {
 		PCMSegment segment = Storage::Disk::track_serialisation(*track.second, Storage::Encodings::MFM::MFMBitLength);
 		Storage::Encodings::MFM::Shifter shifter;
 		shifter.set_is_double_density(true);
