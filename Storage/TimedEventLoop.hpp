@@ -102,7 +102,7 @@ namespace Storage {
 		private:
 			unsigned int input_clock_rate_ = 0;
 			int cycles_until_event_ = 0;
-			Time subcycles_until_event_;
+			double subcycles_until_event_ = 0.0;
 	};
 
 }
