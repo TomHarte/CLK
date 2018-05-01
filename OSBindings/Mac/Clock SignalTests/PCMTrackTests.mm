@@ -57,14 +57,17 @@
 	Storage::Disk::PCMSegment sync_segment;
 	sync_segment.data.resize(10);
 	sync_segment.number_of_bits = 10*8;
+	memset(sync_segment.data.data(), 0xff, sync_segment.data.size());
 
 	Storage::Disk::PCMSegment header_segment;
 	header_segment.data.resize(14);
 	header_segment.number_of_bits = 14*8;
+	memset(header_segment.data.data(), 0xff, header_segment.data.size());
 
 	Storage::Disk::PCMSegment data_segment;
 	data_segment.data.resize(349);
 	data_segment.number_of_bits = 349*8;
+	memset(data_segment.data.data(), 0xff, data_segment.data.size());
 
 	for(std::size_t c = 0; c < 16; ++c) {
 		segments.push_back(sync_segment);
@@ -76,8 +79,19 @@
 
 	Storage::Disk::PCMTrack track(segments);
 	Storage::Time late_time(967445, 2045454);
-	track.seek_to(late_time);
-	track.get_next_event();
+	const auto offset = track.seek_to(late_time);
+	XCTAssert(offset <= late_time, "Found location should be at or before sought time");
+
+	const auto difference = late_time - offset;
+	const double difference_duration = difference.get<double>();
+	XCTAssert(difference_duration >= 0.0 && difference_duration < 0.005, "Next event should occur soon");
+
+	const double offset_duration = offset.get<double>();
+	XCTAssert(offset_duration >= 0.0 && offset_duration < 0.5, "Next event should occur soon");
+
+	auto next_event = track.get_next_event();
+	double next_event_duration = next_event.length.get<double>();
+	XCTAssert(next_event_duration >= 0.0 && next_event_duration < 0.005, "Next event should occur soon");
 }
 
 @end
