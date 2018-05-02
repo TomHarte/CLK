@@ -220,7 +220,7 @@ class ConcreteMachine:
 		}
 
 		// Obtains the system ROMs.
-		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
 			auto roms = roms_with_names(
 				"Oric",
 				{
@@ -302,7 +302,7 @@ class ConcreteMachine:
 			}
 
 			int drive_index = 0;
-			for(auto disk : media.disks) {
+			for(auto &disk : media.disks) {
 				if(drive_index < 4) microdisc_.set_disk(disk, drive_index);
 				drive_index++;
 			}

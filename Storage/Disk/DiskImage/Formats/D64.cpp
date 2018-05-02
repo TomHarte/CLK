@@ -22,7 +22,7 @@ D64::D64(const std::string &file_name) :
 	// in D64, this is it for validation without imposing potential false-negative tests — check that
 	// the file size appears to be correct. Stone-age stuff.
 	if(file_.stats().st_size != 174848 && file_.stats().st_size != 196608)
-		throw ErrorNotD64;
+		throw Error::InvalidFormat;
 
 	number_of_tracks_ = (file_.stats().st_size == 174848) ? 35 : 40;
 

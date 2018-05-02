@@ -8,6 +8,7 @@
 
 #include "AppleII.hpp"
 
+#include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
@@ -17,7 +18,11 @@
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include "Card.hpp"
+#include "DiskIICard.hpp"
 #include "Video.hpp"
+
+#include "../../Analyser/Static/AppleII/Target.hpp"
 
 #include <memory>
 
@@ -25,6 +30,7 @@ namespace {
 
 class ConcreteMachine:
 	public CRTMachine::Machine,
+	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
@@ -55,6 +61,13 @@ class ConcreteMachine:
 		void update_audio() {
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
 		}
+		void update_cards() {
+			for(int c = 0; c < 7; ++c) {
+				if(cards_[c]) cards_[c]->run_for(cycles_since_card_update_, stretched_cycles_since_card_update_);
+			}
+			cycles_since_card_update_ = 0;
+			stretched_cycles_since_card_update_ = 0;
+		}
 
 		uint8_t ram_[48*1024];
 		std::vector<uint8_t> rom_;
@@ -66,6 +79,11 @@ class ConcreteMachine:
 		Audio::Toggle audio_toggle_;
 		Outputs::Speaker::LowpassSpeaker<Audio::Toggle> speaker_;
 		Cycles cycles_since_audio_update_;
+
+		ROMMachine::ROMFetcher rom_fetcher_;
+		std::unique_ptr<AppleII::Card> cards_[7];
+		Cycles cycles_since_card_update_;
+		int stretched_cycles_since_card_update_ = 0;
 
 	public:
 		ConcreteMachine():
@@ -108,6 +126,7 @@ class ConcreteMachine:
 
 		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			++ cycles_since_video_update_;
+			++ cycles_since_card_update_;
 			cycles_since_audio_update_ += Cycles(7);
 
 			switch(address) {
@@ -121,7 +140,6 @@ class ConcreteMachine:
 							switch(address) {
 								default:
 //									printf("Unknown access to %04x\n", address);
-									*value = 0xff;
 								break;
 								case 0xc000:
 									*value = keyboard_input_;
@@ -158,6 +176,28 @@ class ConcreteMachine:
 				break;
 			}
 
+			if(address >= 0xc100 && address < 0xc800) {
+				/*
+					Decode the area conventionally used by cards for ROMs:
+						0xCn00 — 0xCnff: card n.
+				*/
+				const int card_number = (address - 0xc100) >> 8;
+				if(cards_[card_number]) {
+					update_cards();
+					cards_[card_number]->perform_bus_operation(operation, address & 0xff, value);
+				}
+			} else if(address >= 0xc090 && address < 0xc100) {
+				/*
+					Decode the area conventionally used by cards for registers:
+						C0n0--C0nF: card n - 8.
+				*/
+				const int card_number = (address - 0xc090) >> 4;
+				if(cards_[card_number]) {
+					update_cards();
+					cards_[card_number]->perform_bus_operation(operation, 0x100 | (address&0xf), value);
+				}
+			}
+
 			// The Apple II has a slightly weird timing pattern: every 65th CPU cycle is stretched
 			// by an extra 1/7th. That's because one cycle lasts 3.5 NTSC colour clocks, so after
 			// 65 cycles a full line of 227.5 colour clocks have passed. But the high-rate binary
@@ -167,6 +207,7 @@ class ConcreteMachine:
 			cycles_into_current_line_ = (cycles_into_current_line_ + 1) % 65;
 			if(!cycles_into_current_line_) {
 				++ cycles_since_audio_update_;
+				++ stretched_cycles_since_card_update_;
 			}
 
 			return Cycles(1);
@@ -175,10 +216,11 @@ class ConcreteMachine:
 		void flush() {
 			update_video();
 			update_audio();
+			update_cards();
 			audio_queue_.perform();
 		}
 
-		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
 			auto roms = roms_with_names(
 				"AppleII",
 				{
@@ -188,9 +230,14 @@ class ConcreteMachine:
 
 			if(!roms[0] || !roms[1]) return false;
 			rom_ = std::move(*roms[0]);
-			rom_start_address_ = static_cast<uint16_t>(0x10000 - rom_.size());
+			if(rom_.size() > 12*1024) {
+				rom_.erase(rom_.begin(), rom_.begin() + static_cast<off_t>(rom_.size()) - 12*1024);
+			}
+			rom_start_address_ = 0xd000;//static_cast<uint16_t>(0x10000 - rom_.size());
 
 			character_rom_ = std::move(*roms[1]);
+
+			rom_fetcher_ = roms_with_names;
 
 			return true;
 		}
@@ -200,6 +247,11 @@ class ConcreteMachine:
 		}
 
 		void set_key_pressed(Key key, char value, bool is_pressed) override {
+			if(key == Key::F12) {
+				m6502_.set_reset_line(is_pressed);
+				return;
+			}
+
 			if(is_pressed) {
 				// If no ASCII value is supplied, look for a few special cases.
 				if(!value) {
@@ -217,6 +269,23 @@ class ConcreteMachine:
 
 		Inputs::Keyboard &get_keyboard() override {
 			return *this;
+		}
+
+		// MARK: ConfigurationTarget
+		void configure_as_target(const Analyser::Static::Target *target) override {
+			auto *const apple_target = dynamic_cast<const Analyser::Static::AppleII::Target *>(target);
+			if(apple_target->has_disk) {
+				cards_[5].reset(new AppleII::DiskIICard(rom_fetcher_, true));
+			}
+
+			insert_media(apple_target->media);
+		}
+
+		bool insert_media(const Analyser::Static::Media &media) override {
+			if(!media.disks.empty() && cards_[5]) {
+				dynamic_cast<AppleII::DiskIICard *>(cards_[5].get())->set_disk(media.disks[0], 0);
+			}
+			return true;
 		}
 };
 

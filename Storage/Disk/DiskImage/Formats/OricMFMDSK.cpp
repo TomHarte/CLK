@@ -19,14 +19,14 @@ using namespace Storage::Disk;
 OricMFMDSK::OricMFMDSK(const std::string &file_name) :
 		file_(file_name) {
 	if(!file_.check_signature("MFM_DISK"))
-		throw ErrorNotOricMFMDSK;
+		throw Error::InvalidFormat;
 
 	head_count_ = file_.get32le();
 	track_count_ = file_.get32le();
 	geometry_type_ = file_.get32le();
 
 	if(geometry_type_ < 1 || geometry_type_ > 2)
-		throw ErrorNotOricMFMDSK;
+		throw Error::InvalidFormat;
 }
 
 int OricMFMDSK::get_head_position_count() {
@@ -113,7 +113,7 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address)
 }
 
 void OricMFMDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
-	for(auto &track : tracks) {
+	for(const auto &track : tracks) {
 		PCMSegment segment = Storage::Disk::track_serialisation(*track.second, Storage::Encodings::MFM::MFMBitLength);
 		Storage::Encodings::MFM::Shifter shifter;
 		shifter.set_is_double_density(true);

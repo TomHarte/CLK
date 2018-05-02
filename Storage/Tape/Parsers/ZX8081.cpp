@@ -31,7 +31,7 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 void Parser::post_pulse() {
 	const float expected_pulse_length = 300.0f / 1000000.0f;
 	const float expected_gap_length = 1300.0f / 1000000.0f;
-	float pulse_time = pulse_time_.get_float();
+	float pulse_time = pulse_time_.get<float>();
 
 	if(pulse_time > expected_gap_length * 1.25f) {
 		push_wave(WaveType::LongGap);

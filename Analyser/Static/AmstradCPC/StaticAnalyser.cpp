@@ -64,14 +64,14 @@ static void InspectCatalogue(
 
 	std::vector<const Storage::Disk::CPM::File *> candidate_files;
 	candidate_files.reserve(catalogue.files.size());
-	for(auto &file : catalogue.files) {
+	for(const auto &file : catalogue.files) {
 		candidate_files.push_back(&file);
 	}
 
 	// Remove all files with untypable characters.
 	candidate_files.erase(
 		std::remove_if(candidate_files.begin(), candidate_files.end(), [](const Storage::Disk::CPM::File *file) {
-			for(auto c : file->name + file->type) {
+			for(const auto c : file->name + file->type) {
 				if(c < 32) return true;
 			}
 			return false;
@@ -80,7 +80,7 @@ static void InspectCatalogue(
 
 	// If that leaves a mix of 'system' (i.e. hidden) and non-system files, remove the system files.
 	bool are_all_system = true;
-	for(auto file : candidate_files) {
+	for(const auto &file : candidate_files) {
 		if(!file->system) {
 			are_all_system = false;
 			break;
@@ -137,13 +137,13 @@ static void InspectCatalogue(
 	std::map<std::string, int> name_counts;
 	std::map<std::string, std::size_t> indices_by_name;
 	std::size_t index = 0;
-	for(auto file : candidate_files) {
+	for(const auto &file : candidate_files) {
 		name_counts[file->name]++;
 		indices_by_name[file->name] = index;
 		index++;
 	}
 	if(name_counts.size() == 2) {
-		for(auto &pair : name_counts) {
+		for(const auto &pair : name_counts) {
 			if(pair.second == 1) {
 				target->loading_command = RunCommandFor(*candidate_files[indices_by_name[pair.first]]);
 				return;
@@ -214,7 +214,7 @@ Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(const Medi
 		system_format.catalogue_allocation_bitmap = 0xc000;
 		system_format.reserved_tracks = 2;
 
-		for(const auto &disk: media.disks) {
+		for(auto &disk: media.disks) {
 			// Check for an ordinary catalogue.
 			std::unique_ptr<Storage::Disk::CPM::Catalogue> data_catalogue = Storage::Disk::CPM::GetCatalogue(disk, data_format);
 			if(data_catalogue) {

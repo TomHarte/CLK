@@ -22,14 +22,10 @@ class SSD: public MFMSectorDump {
 		/*!
 			Construct an @c SSD containing content from the file with name @c file_name.
 
-			@throws ErrorCantOpen if this file can't be opened.
-			@throws ErrorNotSSD if the file doesn't appear to contain a .SSD format image.
+			@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
+			@throws Error::InvalidFormat if the file doesn't appear to contain a .SSD format image.
 		*/
 		SSD(const std::string &file_name);
-
-		enum {
-			ErrorNotSSD,
-		};
 
 		int get_head_position_count() override;
 		int get_head_count() override;

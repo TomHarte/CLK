@@ -32,7 +32,7 @@ void Parser::install_sectors_from_track(const Storage::Disk::Track::Address &add
 		is_mfm_);
 
 	std::map<int, Storage::Encodings::MFM::Sector> sectors_by_id;
-	for(auto &sector : sectors) {
+	for(const auto &sector : sectors) {
 		sectors_by_id.insert(std::make_pair(sector.second.address.sector, std::move(sector.second)));
 	}
 	sectors_by_address_by_track_.insert(std::make_pair(address, std::move(sectors_by_id)));

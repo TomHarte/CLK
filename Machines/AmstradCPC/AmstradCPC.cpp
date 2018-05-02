@@ -941,7 +941,7 @@ class ConcreteMachine:
 		}
 
 		// Obtains the system ROMs.
-		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
 			auto roms = roms_with_names(
 				"AmstradCPC",
 				{
@@ -961,7 +961,7 @@ class ConcreteMachine:
 			return true;
 		}
 
-		void set_component_is_sleeping(void *component, bool is_sleeping) override final {
+		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override final {
 			fdc_is_sleeping_ = fdc_.is_sleeping();
 			tape_player_is_sleeping_ = tape_player_.is_sleeping();
 		}

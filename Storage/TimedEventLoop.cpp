@@ -11,6 +11,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 
 using namespace Storage;
 
@@ -54,7 +55,7 @@ unsigned int TimedEventLoop::get_input_clock_rate() {
 }
 
 void TimedEventLoop::reset_timer() {
-	subcycles_until_event_.set_zero();
+	subcycles_until_event_ = 0.0;
 	cycles_until_event_ = 0;
 }
 
@@ -63,39 +64,22 @@ void TimedEventLoop::jump_to_next_event() {
 	process_next_event();
 }
 
+char text[256];
+
 void TimedEventLoop::set_next_event_time_interval(Time interval) {
-	// Calculate [interval]*[input clock rate] + [subcycles until this event].
-	int64_t denominator = static_cast<int64_t>(interval.clock_rate) * static_cast<int64_t>(subcycles_until_event_.clock_rate);
-	int64_t numerator =
-		static_cast<int64_t>(subcycles_until_event_.clock_rate) * static_cast<int64_t>(input_clock_rate_) * static_cast<int64_t>(interval.length) +
-		static_cast<int64_t>(interval.clock_rate) * static_cast<int64_t>(subcycles_until_event_.length);
-
-	// Simplify if necessary: try just simplifying the interval and recalculating; if that doesn't
-	// work then try simplifying the whole thing.
-	if(numerator < 0 || denominator < 0 || denominator > std::numeric_limits<unsigned int>::max()) {
-		interval.simplify();
-		denominator = static_cast<int64_t>(interval.clock_rate) * static_cast<int64_t>(subcycles_until_event_.clock_rate);
-		numerator =
-			static_cast<int64_t>(subcycles_until_event_.clock_rate) * static_cast<int64_t>(input_clock_rate_) * static_cast<int64_t>(interval.length) +
-			static_cast<int64_t>(interval.clock_rate) * static_cast<int64_t>(subcycles_until_event_.length);
-	}
-
-	if(numerator < 0 || denominator < 0 || denominator > std::numeric_limits<unsigned int>::max()) {
-		int64_t common_divisor = NumberTheory::greatest_common_divisor(numerator % denominator, denominator);
-		denominator /= common_divisor;
-		numerator /= common_divisor;
-	}
-
-	// TODO: if that doesn't work then reduce precision.
+	// Calculate [interval]*[input clock rate] + [subcycles until this event]
+	double double_interval = interval.get<double>() * static_cast<double>(input_clock_rate_) + subcycles_until_event_;
 
 	// So this event will fire in the integral number of cycles from now, putting us at the remainder
 	// number of subcycles
-	assert(cycles_until_event_ == 0);
-	cycles_until_event_ += static_cast<int>(numerator / denominator);
+	const int addition = static_cast<int>(double_interval);
+	cycles_until_event_ += addition;
+	subcycles_until_event_ = fmod(double_interval, 1.0);
+
 	assert(cycles_until_event_ >= 0);
-	subcycles_until_event_.length = static_cast<unsigned int>(numerator % denominator);
-	subcycles_until_event_.clock_rate = static_cast<unsigned int>(denominator);
-	subcycles_until_event_.simplify();
+	assert(subcycles_until_event_ >= 0.0);
+
+	sprintf(text, " + %0.8f -> %d / %0.4f", interval.get<double>(), cycles_until_event_, subcycles_until_event_);
 }
 
 Time TimedEventLoop::get_time_into_next_event() {

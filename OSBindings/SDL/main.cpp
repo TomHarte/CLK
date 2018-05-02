@@ -208,16 +208,16 @@ int main(int argc, char *argv[]) {
 		std::cout << "Required machine type and configuration is determined from the file. Machines with further options:" << std::endl << std::endl;
 
 		auto all_options = Machine::AllOptionsByMachineName();
-		for(auto &machine_options: all_options) {
+		for(const auto &machine_options: all_options) {
 			std::cout << machine_options.first << ":" << std::endl;
-			for(auto &option: machine_options.second) {
+			for(const auto &option: machine_options.second) {
 				std::cout << '\t' << "--" << option->short_name;
 				
 				Configurable::ListOption *list_option = dynamic_cast<Configurable::ListOption *>(option.get());
 				if(list_option) {
 					std::cout << "={";
 					bool is_first = true;
-					for(auto option: list_option->options) {
+					for(const auto &option: list_option->options) {
 						if(!is_first) std::cout << '|';
 						is_first = false;
 						std::cout << option;
@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
 			machine_name = machine;
 
 			std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
-			for(auto &name: names) {
+			for(const auto &name: names) {
 				std::string local_path = "/usr/local/share/CLK/" + machine + "/" + name;
 				FILE *file = std::fopen(local_path.c_str(), "rb");
 				if(!file) {
@@ -300,7 +300,7 @@ int main(int argc, char *argv[]) {
 			case ::Machine::Error::MissingROM:
 				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/." << std::endl;
 				std::cerr << "One or more of the following were needed but not found:" << std::endl;
-				for(auto &name: rom_names) {
+				for(const auto &name: rom_names) {
 					std::cerr << machine_name << '/' << name << std::endl;
 				}
 			break;
@@ -379,7 +379,7 @@ int main(int argc, char *argv[]) {
 		configurable_device->set_selections(configurable_device->get_user_friendly_selections());
 		
 		// Consider transcoding any list selections that map to Boolean options.
-		for(auto &option: configurable_device->get_options()) {
+		for(const auto &option: configurable_device->get_options()) {
 			// Check for a corresponding selection.
 			auto selection = arguments.selections.find(option->short_name);
 			if(selection != arguments.selections.end()) {

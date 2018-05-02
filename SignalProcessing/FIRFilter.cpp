@@ -92,7 +92,7 @@ void FIRFilter::coefficients_for_idealised_filter_response(short *filter_coeffic
 
 std::vector<float> FIRFilter::get_coefficients() const {
 	std::vector<float> coefficients;
-	for(auto short_coefficient: filter_coefficients_) {
+	for(const auto short_coefficient: filter_coefficients_) {
 		coefficients.push_back(static_cast<float>(short_coefficient) / FixedMultiplier);
 	}
 	return coefficients;
@@ -129,7 +129,7 @@ FIRFilter::FIRFilter(std::size_t number_of_taps, float input_sample_rate, float 
 }
 
 FIRFilter::FIRFilter(const std::vector<float> &coefficients) {
-	for(auto coefficient: coefficients) {
+	for(const auto coefficient: coefficients) {
 		filter_coefficients_.push_back(static_cast<short>(coefficient * FixedMultiplier));
 	}
 }

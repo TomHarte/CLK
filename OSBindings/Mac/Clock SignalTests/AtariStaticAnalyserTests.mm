@@ -594,7 +594,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 		for(int c = 0; c < CC_SHA1_DIGEST_LENGTH; c++) [sha1 appendFormat:@"%02x", sha1Bytes[c]];
 
 		// get an analysis of the file
-		TargetList targets = Analyser::Static::GetTargets([fullPath UTF8String]);
+		auto targets = Analyser::Static::GetTargets([fullPath UTF8String]);
 
 		// grab the ROM record
 		AtariROMRecord *romRecord = romRecordsBySHA1[sha1];

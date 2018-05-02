@@ -25,7 +25,7 @@ namespace Disk {
 	Bits from each byte are taken MSB to LSB.
 */
 struct PCMSegment {
-	Time length_of_a_bit;
+	Time length_of_a_bit = Time(1);
 	unsigned int number_of_bits = 0;
 	std::vector<uint8_t> data;
 
@@ -41,6 +41,8 @@ struct PCMSegment {
 		number_of_bits = 0;
 		data.clear();
 	}
+
+	PCMSegment &operator +=(const PCMSegment &rhs);
 };
 
 /*!

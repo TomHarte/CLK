@@ -113,7 +113,7 @@ class Controller: public DigitalPhaseLockedLoop::Delegate, public Drive::EventDe
 
 		std::shared_ptr<Drive> empty_drive_;
 
-		void set_component_is_sleeping(void *component, bool is_sleeping);
+		void set_component_is_sleeping(Sleeper *component, bool is_sleeping);
 
 		// for Drive::EventDelegate
 		void process_event(const Track::Event &event);

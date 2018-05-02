@@ -35,9 +35,9 @@ std::unique_ptr<Storage::Encodings::MFM::Encoder> new_encoder(Storage::Disk::PCM
 DMK::DMK(const std::string &file_name) :
 	file_(file_name) {
 	// Determine whether this DMK represents a read-only disk (whether intentionally,
-	// or by virtue of placement).
+	// or by virtue of filesystem placement).
 	uint8_t read_only_byte = file_.get8();
-	if(read_only_byte != 0x00 && read_only_byte != 0xff) throw ErrorNotDMK;
+	if(read_only_byte != 0x00 && read_only_byte != 0xff) throw Error::InvalidFormat;
 	is_read_only_ = (read_only_byte == 0xff) || file_.get_is_known_read_only();
 
 	// Read track count and size.
@@ -46,7 +46,7 @@ DMK::DMK(const std::string &file_name) :
 
 	// Track length must be at least 0x80, as that's the size of the IDAM
 	// table before track contents.
-	if(track_length_ < 0x80) throw ErrorNotDMK;
+	if(track_length_ < 0x80) throw Error::InvalidFormat;
 
 	// Read the file flags and apply them.
 	uint8_t flags = file_.get8();
@@ -58,7 +58,7 @@ DMK::DMK(const std::string &file_name) :
 	// "in the emulator's native format".
 	file_.seek(0xc, SEEK_SET);
 	uint32_t format = file_.get32le();
-	if(format) throw ErrorNotDMK;
+	if(format) throw Error::InvalidFormat;
 }
 
 int DMK::get_head_position_count() {

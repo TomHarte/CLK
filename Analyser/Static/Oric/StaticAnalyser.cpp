@@ -23,15 +23,15 @@ using namespace Analyser::Static::Oric;
 static int Score(const Analyser::Static::MOS6502::Disassembly &disassembly, const std::set<uint16_t> &rom_functions, const std::set<uint16_t> &variable_locations) {
 	int score = 0;
 
-	for(auto address : disassembly.outward_calls)	score += (rom_functions.find(address) != rom_functions.end()) ? 1 : -1;
-	for(auto address : disassembly.external_stores)	score += (variable_locations.find(address) != variable_locations.end()) ? 1 : -1;
-	for(auto address : disassembly.external_loads)	score += (variable_locations.find(address) != variable_locations.end()) ? 1 : -1;
+	for(const auto address : disassembly.outward_calls)		score += (rom_functions.find(address) != rom_functions.end()) ? 1 : -1;
+	for(const auto address : disassembly.external_stores)	score += (variable_locations.find(address) != variable_locations.end()) ? 1 : -1;
+	for(const auto address : disassembly.external_loads)	score += (variable_locations.find(address) != variable_locations.end()) ? 1 : -1;
 
 	return score;
 }
 
 static int Basic10Score(const Analyser::Static::MOS6502::Disassembly &disassembly) {
-	std::set<uint16_t> rom_functions = {
+	const std::set<uint16_t> rom_functions = {
 		0x0228,	0x022b,
 		0xc3ca,	0xc3f8,	0xc448,	0xc47c,	0xc4b5,	0xc4e3,	0xc4e0,	0xc524,	0xc56f,	0xc5a2,	0xc5f8,	0xc60a,	0xc6a5,	0xc6de,	0xc719,	0xc738,
 		0xc773,	0xc824,	0xc832,	0xc841,	0xc8c1,	0xc8fe,	0xc91f,	0xc93f,	0xc941,	0xc91e,	0xc98b,	0xc996,	0xc9b3,	0xc9e0,	0xca0a,	0xca1c,
@@ -47,7 +47,7 @@ static int Basic10Score(const Analyser::Static::MOS6502::Disassembly &disassembl
 		0xf43c,	0xf4ef,	0xf523,	0xf561,	0xf535,	0xf57b,	0xf5d3,	0xf71a,	0xf73f,	0xf7e4,	0xf7e0,	0xf82f,	0xf88f,	0xf8af,	0xf8b5,	0xf920,
 		0xf967,	0xf960,	0xf9c9,	0xfa14,	0xfa85,	0xfa9b,	0xfab1,	0xfac7,	0xfafa,	0xfb10,	0xfb26,	0xfbb6,	0xfbfe
 	};
-	std::set<uint16_t> variable_locations = {
+	const std::set<uint16_t> variable_locations = {
 		0x0228, 0x0229, 0x022a, 0x022b, 0x022c, 0x022d, 0x0230
 	};
 
@@ -55,7 +55,7 @@ static int Basic10Score(const Analyser::Static::MOS6502::Disassembly &disassembl
 }
 
 static int Basic11Score(const Analyser::Static::MOS6502::Disassembly &disassembly) {
-	std::set<uint16_t> rom_functions = {
+	const std::set<uint16_t> rom_functions = {
 		0x0238,	0x023b,	0x023e,	0x0241,	0x0244,	0x0247,
 		0xc3c6,	0xc3f4,	0xc444,	0xc47c,	0xc4a8,	0xc4d3,	0xc4e0,	0xc524,	0xc55f,	0xc592,	0xc5e8,	0xc5fa,	0xc692,	0xc6b3,	0xc6ee,	0xc70d,
 		0xc748,	0xc7fd,	0xc809,	0xc816,	0xc82f,	0xc855,	0xc8c1,	0xc915,	0xc952,	0xc971,	0xc973,	0xc9a0,	0xc9bd,	0xc9c8,	0xc9e5,	0xca12,
@@ -72,7 +72,7 @@ static int Basic11Score(const Analyser::Static::MOS6502::Disassembly &disassembl
 		0xf88f,	0xf8af,	0xf8b5,	0xf920,	0xf967,	0xf9aa,	0xf9c9,	0xfa14,	0xfa9f,	0xfab5,	0xfacb,	0xfae1,	0xfb14,	0xfb2a,	0xfb40,	0xfbd0,
 		0xfc18
 	};
-	std::set<uint16_t> variable_locations = {
+	const std::set<uint16_t> variable_locations = {
 		0x0244, 0x0245, 0x0246, 0x0247, 0x0248, 0x0249, 0x024a, 0x024b, 0x024c
 	};
 
@@ -112,7 +112,7 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &med
 		std::vector<File> tape_files = GetFiles(tape);
 		tape->reset();
 		if(tape_files.size()) {
-			for(auto file : tape_files) {
+			for(const auto &file : tape_files) {
 				if(file.data_type == File::MachineCode) {
 					std::vector<uint16_t> entry_points = {file.starting_address};
 					Analyser::Static::MOS6502::Disassembly disassembly =
@@ -131,7 +131,7 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &med
 
 	if(!media.disks.empty()) {
 		// Only the Microdisc is emulated right now, so accept only disks that it can boot from.
-		for(const auto &disk: media.disks) {
+		for(auto &disk: media.disks) {
 			Storage::Encodings::MFM::Parser parser(true, disk);
 			if(IsMicrodisc(parser)) {
 				target->has_microdrive = true;

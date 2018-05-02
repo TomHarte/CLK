@@ -16,9 +16,9 @@ using namespace Storage::Disk;
 
 HFE::HFE(const std::string &file_name) :
 		file_(file_name) {
-	if(!file_.check_signature("HXCPICFE")) throw ErrorNotHFE;
+	if(!file_.check_signature("HXCPICFE")) throw Error::InvalidFormat;
 
-	if(file_.get8()) throw ErrorNotHFE;
+	if(file_.get8()) throw Error::UnknownVersion;
 	track_count_ = file_.get8();
 	head_count_ = file_.get8();
 
@@ -79,9 +79,7 @@ std::shared_ptr<Track> HFE::get_track_at_position(Track::Address address) {
 	// Flip bytes; HFE's preference is that the least-significant bit
 	// is serialised first, but PCMTrack posts the most-significant first.
 	Storage::Data::BitReverse::reverse(segment.data);
-
-	std::shared_ptr<Track> track(new PCMTrack(segment));
-	return track;
+	return std::make_shared<PCMTrack>(segment);
 }
 
 void HFE::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {

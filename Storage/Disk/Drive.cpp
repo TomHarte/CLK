@@ -19,6 +19,7 @@ Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, int numb
 	Storage::TimedEventLoop(input_clock_rate),
 	rotational_multiplier_(60, revolutions_per_minute),
 	available_heads_(number_of_heads) {
+	rotational_multiplier_.simplify();
 }
 
 Drive::~Drive() {
@@ -49,6 +50,7 @@ bool Drive::get_is_track_zero() {
 void Drive::step(int direction) {
 	int old_head_position = head_position_;
 	head_position_ = std::max(head_position_ + direction, 0);
+//	printf("Step %d -> %d\n", direction, head_position_);
 
 	// If the head moved, flush the old track.
 	if(head_position_ != old_head_position) {
@@ -70,7 +72,7 @@ Storage::Time Drive::get_time_into_track() {
 	Time result(cycles_since_index_hole_, static_cast<int>(get_input_clock_rate()));
 	result /= rotational_multiplier_;
 	result.simplify();
-	assert(result <= Time(1));
+//	assert(result <= Time(1));
 	return result;
 }
 
@@ -115,7 +117,7 @@ void Drive::run_for(const Cycles cycles) {
 			int cycles_until_next_event = static_cast<int>(get_cycles_until_next_event());
 			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
 			if(!is_reading_ && cycles_until_bits_written_ > zero) {
-				int write_cycles_target = static_cast<int>(cycles_until_bits_written_.get_unsigned_int());
+				int write_cycles_target = cycles_until_bits_written_.get<int>();
 				if(cycles_until_bits_written_.length % cycles_until_bits_written_.clock_rate) write_cycles_target++;
 				cycles_to_run_for = std::min(cycles_to_run_for, write_cycles_target);
 			}
@@ -161,14 +163,14 @@ void Drive::get_next_event(const Time &duration_already_passed) {
 	// divide interval, which is in terms of a single rotation of the disk, by rotation speed to
 	// convert it into revolutions per second; this is achieved by multiplying by rotational_multiplier_
 	assert(current_event_.length <= Time(1) && current_event_.length >= Time(0));
+	assert(current_event_.length > duration_already_passed);
 	Time interval = (current_event_.length - duration_already_passed) * rotational_multiplier_;
 	set_next_event_time_interval(interval);
 }
 
 void Drive::process_next_event() {
-	// TODO: ready test here.
 	if(current_event_.type == Track::Event::IndexHole) {
-		assert(get_time_into_track() == Time(1) || get_time_into_track() == Time(0));
+//		assert(get_time_into_track() == Time(1) || get_time_into_track() == Time(0));
 		if(ready_index_count_ < 2) ready_index_count_++;
 		cycles_since_index_hole_ = 0;
 	}

@@ -18,6 +18,11 @@
 namespace Storage {
 namespace Disk {
 
+enum class Error {
+	InvalidFormat = -2,
+	UnknownVersion = -3
+};
+
 /*!
 	Models a disk image as a collection of tracks, plus a range of possible track positions.
 

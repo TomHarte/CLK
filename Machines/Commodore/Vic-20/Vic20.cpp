@@ -336,7 +336,7 @@ class ConcreteMachine:
 		}
 
 		// Obtains the system ROMs.
-		bool set_rom_fetcher(const std::function<std::vector<std::unique_ptr<std::vector<uint8_t>>>(const std::string &machine, const std::vector<std::string> &names)> &roms_with_names) override {
+		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
 			rom_fetcher_ = roms_with_names;
 
 			auto roms = roms_with_names(
@@ -499,7 +499,7 @@ class ConcreteMachine:
 				Range(0x0000, 0x0400),
 				Range(0x1000, 0x2000),
 			}};
-			for(auto &video_range : video_ranges) {
+			for(const auto &video_range : video_ranges) {
 				for(auto addr = video_range.start; addr < video_range.end; addr += 0x400) {
 					auto destination_address = (addr & 0x1fff) | (((addr & 0x8000) >> 2) ^ 0x2000);
 					if(processor_read_memory_map_[addr >> 10]) {
@@ -747,7 +747,7 @@ class ConcreteMachine:
 			return selection_set;
 		}
 
-		void set_component_is_sleeping(void *component, bool is_sleeping) override {
+		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override {
 			tape_is_sleeping_ = is_sleeping;
 			set_use_fast_tape();
 		}

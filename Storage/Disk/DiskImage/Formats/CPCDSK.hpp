@@ -27,14 +27,10 @@ class CPCDSK: public DiskImage {
 		/*!
 			Construct an @c AcornADF containing content from the file with name @c file_name.
 
-			@throws ErrorCantOpen if this file can't be opened.
-			@throws ErrorNotAcornADF if the file doesn't appear to contain an Acorn .ADF format image.
+			@throws Storage::FileHolder::Error::CantOpen if this file can't be opened.
+			@throws Error::InvalidFormat if the file doesn't appear to contain an Acorn .ADF format image.
 		*/
 		CPCDSK(const std::string &file_name);
-
-		enum {
-			ErrorNotCPCDSK,
-		};
 
 		// implemented to satisfy @c Disk
 		int get_head_position_count() override;

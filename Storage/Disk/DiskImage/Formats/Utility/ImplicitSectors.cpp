@@ -52,7 +52,7 @@ void Storage::Disk::decode_sectors(Track &track, uint8_t *const destination, uin
 			is_double_density);
 
 	std::size_t byte_size = static_cast<std::size_t>(128 << sector_size);
-	for(auto &pair : sectors) {
+	for(const auto &pair : sectors) {
 		if(pair.second.address.sector > last_sector) continue;
 		if(pair.second.address.sector < first_sector) continue;
 		if(pair.second.size != sector_size) continue;

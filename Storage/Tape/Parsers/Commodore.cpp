@@ -279,7 +279,7 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse)
 		wave_period_ = 0.0f;
 	}
 
-	wave_period_ += pulse.length.get_float();
+	wave_period_ += pulse.length.get<float>();
 	previous_was_high_ = is_high;
 }
 

@@ -53,7 +53,7 @@ Shader::Shader(const std::string &vertex_shader, const std::string &fragment_sha
 	glAttachShader(shader_program_, vertex);
 	glAttachShader(shader_program_, fragment);
 
-	for(auto &binding : attribute_bindings) {
+	for(const auto &binding : attribute_bindings) {
 		glBindAttribLocation(shader_program_, binding.index, binding.name.c_str());
 	}
 

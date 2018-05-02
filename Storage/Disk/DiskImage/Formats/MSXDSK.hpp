@@ -17,17 +17,12 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing an MSX-style disk image:
+	Provides a @c DiskImage descriging an MSX-style disk image:
 	a sector dump of appropriate proportions.
 */
 class MSXDSK: public MFMSectorDump {
 	public:
 		MSXDSK(const std::string &file_name);
-
-		enum {
-			ErrorNotMSXDSK,
-		};
-
 		int get_head_position_count() override;
 		int get_head_count() override;
 

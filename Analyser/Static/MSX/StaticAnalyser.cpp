@@ -272,7 +272,7 @@ Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &medi
 	std::unique_ptr<Target> target(new Target);
 
 	// Check tapes for loadable files.
-	for(const auto &tape : media.tapes) {
+	for(auto &tape : media.tapes) {
 		std::vector<File> files_on_tape = GetFiles(tape);
 		if(!files_on_tape.empty()) {
 			switch(files_on_tape.front().type) {

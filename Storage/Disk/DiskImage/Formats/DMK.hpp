@@ -18,7 +18,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing a DMK disk image — mostly a decoded byte stream, but with
+	Provides a @c DiskImage containing a DMK disk image — mostly a decoded byte stream, but with
 	a record of IDAM locations.
 */
 class DMK: public DiskImage {
@@ -26,13 +26,9 @@ class DMK: public DiskImage {
 		/*!
 			Construct a @c DMK containing content from the file with name @c file_name.
 
-			@throws ErrorNotDMK if this file doesn't appear to be a DMK.
+			@throws Error::InvalidFormat if this file doesn't appear to be a DMK.
 		*/
 		DMK(const std::string &file_name);
-
-		enum {
-			ErrorNotDMK
-		};
 
 		// implemented to satisfy @c Disk
 		int get_head_position_count() override;
