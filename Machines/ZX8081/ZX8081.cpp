@@ -124,14 +124,12 @@ template<bool is_zx81> class ConcreteMachine:
 			bool is_opcode_read = false;
 			switch(cycle.operation) {
 				case CPU::Z80::PartialMachineCycle::Output:
-					if(!(address & 2)) nmi_is_enabled_ = false;
-					if(!(address & 1)) nmi_is_enabled_ = is_zx81_;
 					if(!nmi_is_enabled_) {
-						// Line counter reset is held low while vsync is active; simulate that lazily by performing
-						// an instant reset upon the transition from active to inactive.
-						if(vsync_) line_counter_ = 0;
+						line_counter_ = 0;
 						set_vsync(false);
 					}
+					if(!(address & 2)) nmi_is_enabled_ = false;
+					if(!(address & 1)) nmi_is_enabled_ = is_zx81_;
 
 					// The below emulates the ZonX AY expansion device.
 					if(is_zx81) {
