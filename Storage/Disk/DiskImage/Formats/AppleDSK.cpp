@@ -47,7 +47,7 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 	file_.seek(file_offset, SEEK_SET);
 	const std::vector<uint8_t> track_data = file_.read(static_cast<size_t>(bytes_per_sector * sectors_per_track_));
 
-	std::vector<Storage::Disk::PCMSegment> segments;
+	Storage::Disk::PCMSegment segment;
 	const uint8_t track = static_cast<uint8_t>(address.position >> 2);
 
 	// In either case below, the code aims for exactly 50,000 bits per track.
@@ -55,11 +55,10 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 		// Write the sectors.
 		uint8_t sector_number_ = 0;
 		for(std::size_t c = 0; c < 16; ++c) {
-			segments.push_back(Encodings::AppleGCR::six_and_two_sync(10));
-			segments.push_back(Encodings::AppleGCR::header(0, track, sector_number_));
-			segments.push_back(Encodings::AppleGCR::six_and_two_sync(10));
-			segments.push_back(Encodings::AppleGCR::six_and_two_data(&track_data[c * 256]));
-			segments.push_back(Encodings::AppleGCR::six_and_two_sync(10));
+			segment += Encodings::AppleGCR::six_and_two_sync(10);
+			segment += Encodings::AppleGCR::header(0, track, sector_number_);
+			segment += Encodings::AppleGCR::six_and_two_sync(10);
+			segment += Encodings::AppleGCR::six_and_two_data(&track_data[c * 256]);
 
 			// DOS and Pro DOS interleave sectors on disk, and they're represented in a disk
 			// image in physical order rather than logical. So that skew needs to be applied here.
@@ -68,13 +67,12 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 		}
 
 		// Pad if necessary.
-		int encoded_length = (80 + 112 + 80 + 2848 + 80) * sectors_per_track_;
-		if(encoded_length < 50000) {
-			segments.push_back(Encodings::AppleGCR::six_and_two_sync((50000 - encoded_length) >> 3));
+		if(segment.number_of_bits < 50000) {
+			segment += Encodings::AppleGCR::six_and_two_sync((50000 - segment.number_of_bits) >> 3);
 		}
 	} else {
 
 	}
 
-	return std::shared_ptr<PCMTrack>(new PCMTrack(segments));
+	return std::make_shared<PCMTrack>(segment);
 }

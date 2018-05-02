@@ -50,7 +50,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	// tracks and headers), then treat all following FFs as a sync
 	// region, then switch back to ordinary behaviour as soon as a
 	// non-FF appears.
-	std::vector<Storage::Disk::PCMSegment> segments;
+	PCMSegment segment;
 
 	std::size_t start_index = 0;
 	std::set<size_t> sync_starts;
@@ -74,8 +74,9 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 		}
 	}
 
-	if(start_index)
-		segments.push_back(Encodings::AppleGCR::six_and_two_sync(static_cast<int>(start_index)));
+	if(start_index) {
+		segment += Encodings::AppleGCR::six_and_two_sync(static_cast<int>(start_index));
+	}
 
 	std::size_t index = start_index;
 	for(const auto &location: sync_starts) {
@@ -86,7 +87,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 			track_data.begin() + static_cast<off_t>(index),
 			track_data.begin() + static_cast<off_t>(location));
 		data_segment.number_of_bits = static_cast<unsigned int>(data_segment.data.size() * 8);
-		segments.push_back(std::move(data_segment));
+		segment += data_segment;
 
 		// Add a sync from sync_start to end of 0xffs.
 		if(location == track_length-1) break;
@@ -94,8 +95,8 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 		index = location;
 		while(index < track_length && track_data[index] == 0xff)
 			++index;
-		segments.push_back(Encodings::AppleGCR::six_and_two_sync(static_cast<int>(index - location)));
+		segment += Encodings::AppleGCR::six_and_two_sync(static_cast<int>(index - location));
 	}
 
-	return std::shared_ptr<PCMTrack>(new PCMTrack(segments));
+	return std::make_shared<PCMTrack>(segment);
 }

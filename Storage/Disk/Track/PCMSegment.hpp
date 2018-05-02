@@ -41,6 +41,8 @@ struct PCMSegment {
 		number_of_bits = 0;
 		data.clear();
 	}
+
+	PCMSegment &operator +=(const PCMSegment &rhs);
 };
 
 /*!

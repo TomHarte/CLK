@@ -43,6 +43,36 @@ void PCMSegmentEventSource::reset() {
 	next_event_.type = Track::Event::FluxTransition;
 }
 
+PCMSegment &PCMSegment::operator +=(const PCMSegment &rhs) {
+	if(!rhs.number_of_bits) return *this;
+
+	if(number_of_bits&7) {
+		auto target_number_of_bits = number_of_bits + rhs.number_of_bits;
+		data.resize((target_number_of_bits + 7) >> 3);
+
+		std::size_t first_byte = number_of_bits >> 3;
+
+		int shift = number_of_bits&7;
+		data[first_byte] |= rhs.data[0] >> shift;
+		for(std::size_t target = first_byte+1; target < (data.size()-1); ++target) {
+			data[target] =
+				static_cast<uint8_t>(
+					(rhs.data[target - first_byte - 1] << (8 - shift)) |
+					(rhs.data[target - first_byte] >> shift)
+				);
+		}
+		data.back() = static_cast<uint8_t>(rhs.data.back() << (8 - shift));
+
+		number_of_bits = target_number_of_bits;
+	} else {
+		data.insert(data.end(), rhs.data.begin(), rhs.data.end());
+		number_of_bits += rhs.number_of_bits;
+	}
+
+	return *this;
+}
+
+
 Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event() {
 	// track the initial bit pointer for potentially considering whether this was an
 	// initial index hole or a subsequent one later on
