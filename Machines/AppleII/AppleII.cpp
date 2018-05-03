@@ -70,7 +70,7 @@ class ConcreteMachine:
 		}
 
 		uint8_t ram_[48*1024];
-		std::vector<uint8_t> rom_;
+		std::vector<uint8_t> apple2_rom_, apple2plus_rom_, rom_;
 		std::vector<uint8_t> character_rom_;
 		uint16_t rom_start_address_;
 		uint8_t keyboard_input_ = 0x00;
@@ -225,17 +225,16 @@ class ConcreteMachine:
 				"AppleII",
 				{
 					"apple2o.rom",
+					"apple2.rom",
 					"apple2-character.rom"
 				});
 
-			if(!roms[0] || !roms[1]) return false;
-			rom_ = std::move(*roms[0]);
-			if(rom_.size() > 12*1024) {
-				rom_.erase(rom_.begin(), rom_.begin() + static_cast<off_t>(rom_.size()) - 12*1024);
-			}
-			rom_start_address_ = 0xd000;//static_cast<uint16_t>(0x10000 - rom_.size());
+			if(!roms[0] || !roms[1] || !roms[2]) return false;
 
-			character_rom_ = std::move(*roms[1]);
+			apple2_rom_ = std::move(*roms[0]);
+			apple2plus_rom_ = std::move(*roms[1]);
+
+			character_rom_ = std::move(*roms[2]);
 
 			rom_fetcher_ = roms_with_names;
 
@@ -273,10 +272,18 @@ class ConcreteMachine:
 
 		// MARK: ConfigurationTarget
 		void configure_as_target(const Analyser::Static::Target *target) override {
-			auto *const apple_target = dynamic_cast<const Analyser::Static::AppleII::Target *>(target);
-			if(apple_target->has_disk) {
-				cards_[5].reset(new AppleII::DiskIICard(rom_fetcher_, true));
+			using Target = Analyser::Static::AppleII::Target;
+			auto *const apple_target = dynamic_cast<const Target *>(target);
+
+			if(apple_target->disk_controller != Target::DiskController::None) {
+				cards_[5].reset(new AppleII::DiskIICard(rom_fetcher_, apple_target->disk_controller == Target::DiskController::SixteenSector));
 			}
+
+			rom_ = (apple_target->model == Target::Model::II) ? apple2_rom_ : apple2plus_rom_;
+			if(rom_.size() > 12*1024) {
+				rom_.erase(rom_.begin(), rom_.begin() + static_cast<off_t>(rom_.size()) - 12*1024);
+			}
+			rom_start_address_ = 0xd000;//static_cast<uint16_t>(0x10000 - rom_.size());
 
 			insert_media(apple_target->media);
 		}

@@ -11,6 +11,10 @@ import Cocoa
 class MachinePicker: NSObject {
 	@IBOutlet var machineSelector: NSTabView?
 
+	// MARK: - Apple II properties
+	@IBOutlet var appleIIModelButton: NSPopUpButton?
+	@IBOutlet var appleIIDiskControllerButton: NSPopUpButton?
+
 	// MARK: - Electron properties
 	@IBOutlet var electronDFSButton: NSButton?
 	@IBOutlet var electronADFSButton: NSButton?
@@ -46,6 +50,10 @@ class MachinePicker: NSObject {
 			machineSelector?.selectTabViewItem(withIdentifier: machineIdentifier as Any)
 		}
 
+		// Apple II settings
+		appleIIModelButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIModel"))
+		appleIIDiskControllerButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.appleIIDiskController"))
+
 		// Electron settings
 		electronDFSButton?.state = standardUserDefaults.bool(forKey: "new.electronDFS") ? .on : .off
 		electronADFSButton?.state = standardUserDefaults.bool(forKey: "new.electronADFS") ? .on : .off
@@ -78,6 +86,10 @@ class MachinePicker: NSObject {
 
 		// Machine type
 		standardUserDefaults.set(machineSelector!.selectedTabViewItem!.identifier as! String, forKey: "new.machine")
+
+		// Apple II settings
+		standardUserDefaults.set(appleIIModelButton!.selectedTag(), forKey: "new.appleIIModel")
+		standardUserDefaults.set(appleIIDiskControllerButton!.selectedTag(), forKey: "new.appleIIDiskController")
 
 		// Electron settings
 		standardUserDefaults.set(electronDFSButton!.state == .on, forKey: "new.electronDFS")
@@ -115,7 +127,22 @@ class MachinePicker: NSObject {
 				return CSStaticAnalyser(electronDFS: electronDFSButton!.state == .on, adfs: electronADFSButton!.state == .on)!
 
 			case "appleii":
-				return CSStaticAnalyser(appleII: ())
+				var model: CSMachineAppleIIModel = .appleII
+				switch appleIIModelButton!.selectedTag() {
+					case 1:		model = .appleIIPlus
+					case 0:		fallthrough
+					default:	model = .appleII
+				}
+
+				var diskController: CSMachineAppleIIDiskController = .none
+				switch appleIIDiskControllerButton!.selectedTag() {
+					case 13:	diskController = .thirteenSector
+					case 16:	diskController = .sixteenSector
+					case 0:		fallthrough
+					default: 	diskController = .none
+				}
+
+				return CSStaticAnalyser(appleIIModel: model, diskController: diskController)
 
 			case "cpc":
 				switch cpcModelTypeButton!.selectedItem!.tag {

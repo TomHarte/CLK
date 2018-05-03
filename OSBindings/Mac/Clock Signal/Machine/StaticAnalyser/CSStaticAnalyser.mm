@@ -154,12 +154,19 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	return self;
 }
 
-- (instancetype)initWithAppleII {
+- (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::AppleII::Target;
 		std::unique_ptr<Target> target(new Target);
 		target->machine = Analyser::Machine::AppleII;
+		target->model = (model == CSMachineAppleIIModelAppleII) ? Target::Model::II : Target::Model::IIplus;
+		switch(diskController) {
+			default:
+			case CSMachineAppleIIDiskControllerNone:			target->disk_controller = Target::DiskController::None;				break;
+			case CSMachineAppleIIDiskControllerSixteenSector:	target->disk_controller = Target::DiskController::SixteenSector;	break;
+			case CSMachineAppleIIDiskControllerThirteenSector:	target->disk_controller = Target::DiskController::ThirteenSector;	break;
+		}
 		_targets.push_back(std::move(target));
 	}
 	return self;

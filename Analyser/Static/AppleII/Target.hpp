@@ -16,7 +16,18 @@ namespace Static {
 namespace AppleII {
 
 struct Target: public ::Analyser::Static::Target {
-	bool has_disk;	// TODO: Disk II versus IWM?
+	enum class Model {
+		II,
+		IIplus
+	};
+	enum class DiskController {
+		None,
+		SixteenSector,
+		ThirteenSector
+	};
+
+	Model model = Model::IIplus;
+	DiskController disk_controller = DiskController::None;
 };
 
 }
