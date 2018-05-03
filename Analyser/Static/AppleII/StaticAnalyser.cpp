@@ -14,7 +14,8 @@ Analyser::Static::TargetList Analyser::Static::AppleII::GetTargets(const Media &
 	target->machine = Machine::AppleII;
 	target->media = media;
 
-	target->has_disk = !target->media.disks.empty();
+	if(!target->media.disks.empty())
+		target->disk_controller = Target::DiskController::SixteenSector;
 
 	TargetList targets;
 	targets.push_back(std::move(target));
