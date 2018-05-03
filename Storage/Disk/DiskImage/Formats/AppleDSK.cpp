@@ -53,12 +53,12 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 	// In either case below, the code aims for exactly 50,000 bits per track.
 	if(sectors_per_track_ == 16) {
 		// Write the sectors.
-		uint8_t sector_number_ = 0;
-		for(std::size_t c = 0; c < 16; ++c) {
+		std::size_t sector_number_ = 0;
+		for(uint8_t c = 0; c < 16; ++c) {
 			segment += Encodings::AppleGCR::six_and_two_sync(10);
-			segment += Encodings::AppleGCR::header(0, track, sector_number_);
+			segment += Encodings::AppleGCR::header(0, track, c);
 			segment += Encodings::AppleGCR::six_and_two_sync(10);
-			segment += Encodings::AppleGCR::six_and_two_data(&track_data[c * 256]);
+			segment += Encodings::AppleGCR::six_and_two_data(&track_data[sector_number_ * 256]);
 
 			// DOS and Pro DOS interleave sectors on disk, and they're represented in a disk
 			// image in physical order rather than logical. So that skew needs to be applied here.

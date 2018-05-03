@@ -156,13 +156,26 @@ Storage::Disk::PCMSegment AppleGCR::six_and_two_data(const uint8_t *source) {
 	// six bits.
 	const uint8_t bit_shuffle[] = {0, 2, 1, 3};
 	for(std::size_t c = 0; c < 84; ++c) {
-		segment.data[3 + c] = bit_shuffle[source[c]&3];
-		if(c + 86 < 256) segment.data[3 + c] |= bit_shuffle[source[c + 86]&3] << 2;
-		if(c + 172 < 256) segment.data[3 + c] |= bit_shuffle[source[c + 172]&3] << 4;
+		segment.data[3 + c] =
+			static_cast<uint8_t>(
+				bit_shuffle[source[c]&3] |
+				(bit_shuffle[source[c + 86]&3] << 2) |
+				(bit_shuffle[source[c + 172]&3] << 4)
+			);
 	}
+	segment.data[87] =
+			static_cast<uint8_t>(
+				(bit_shuffle[source[84]&3] << 0) |
+				(bit_shuffle[source[170]&3] << 2)
+			);
+	segment.data[88] =
+			static_cast<uint8_t>(
+				(bit_shuffle[source[85]&3] << 0) |
+				(bit_shuffle[source[171]&3] << 2)
+			);
 
 	for(std::size_t c = 0; c < 256; ++c) {
-		segment.data[3 + 85 + 1 + c] = source[c] >> 2;
+		segment.data[3 + 86 + c] = source[c] >> 2;
 	}
 
 	// Exclusive OR each byte with the one before it.

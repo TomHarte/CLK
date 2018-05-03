@@ -205,9 +205,14 @@ void Drive::setup_track() {
 	assert(track_time_now >= Time(0) && current_event_.length <= Time(1));
 
 	Time time_found = track_->seek_to(track_time_now);
-	assert(time_found >= Time(0) && time_found < Time(1) && time_found <= track_time_now);
 
-	offset = track_time_now - time_found;
+	// time_found can be greater than track_time_now if limited precision caused rounding
+	if(time_found <= track_time_now) {
+		offset = track_time_now - time_found;
+	} else {
+		offset.set_zero();
+	}
+
 	get_next_event(offset);
 }
 
