@@ -20,6 +20,7 @@
 #include "Atari/StaticAnalyser.hpp"
 #include "Coleco/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
+#include "DiskII/StaticAnalyser.hpp"
 #include "MSX/StaticAnalyser.hpp"
 #include "Oric/StaticAnalyser.hpp"
 #include "ZX8081/StaticAnalyser.hpp"
@@ -97,7 +98,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("do", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::AppleII)		// DO
 	Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// DSD
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::CPCDSK>, TargetPlatform::AmstradCPC)	// DSK (Amstrad CPC)
-	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::AppleII)	// DSK (Apple)
+	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)		// DSK (Apple)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MSXDSK>, TargetPlatform::MSX)			// DSK (MSX)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)		// DSK (Oric)
 	Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)		// G64
@@ -168,6 +169,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	if(potential_platforms & TargetPlatform::Atari2600)		Append(Atari);
 	if(potential_platforms & TargetPlatform::ColecoVision)	Append(Coleco);
 	if(potential_platforms & TargetPlatform::Commodore)		Append(Commodore);
+	if(potential_platforms & TargetPlatform::DiskII)		Append(DiskII);
 	if(potential_platforms & TargetPlatform::MSX)			Append(MSX);
 	if(potential_platforms & TargetPlatform::Oric)			Append(Oric);
 	if(potential_platforms & TargetPlatform::ZX8081)		Append(ZX8081);
