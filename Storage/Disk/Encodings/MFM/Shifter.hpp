@@ -17,6 +17,30 @@ namespace Storage {
 namespace Encodings {
 namespace MFM {
 
+/*!
+	The MFM shifter parses a stream of bits as input in order to produce
+	a stream of MFM tokens as output. So e.g. it is suitable for use in parsing
+	the output of a PLL windowing of disk events.
+
+	It supports both FM and MFM parsing; see @c set_is_double_density.
+
+	It will ordinarily honour sync patterns; that should be turned off when within
+	a sector because false syncs can occur. See @c set_should_obey_syncs.
+
+	Bits should be fed in with @c add_input_bit.
+
+	The current output token can be read with @c get_token. It will usually be None but
+	may indicate that an index, ID, data or deleted data mark was found, that an
+	MFM sync mark was found, or that an ordinary byte has been decoded.
+
+	It will properly reset and/or seed a CRC generator based on the data and ID marks,
+	and feed it with incoming bytes. You can access that CRC generator to query its
+	value via @c get_crc_generator(). An easy way to check whether the disk contained
+	a proper CRC is to read bytes until you've just read whatever CRC was on the disk,
+	then check that the generator has a value of zero.
+
+	A specific instance of the CRC generator can be supplied at construction if preferred.
+*/
 class Shifter {
 	public:
 		Shifter();
