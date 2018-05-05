@@ -21,6 +21,14 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &m
 	auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
 		Storage::Disk::track_serialisation(*track_zero, Storage::Time(1, 50000)));
 
+	const Storage::Encodings::AppleGCR::Sector *sector_zero = nullptr;
+	for(const auto &pair: sector_map) {
+		if(!pair.second.address.sector) {
+			sector_zero = &pair.second;
+			break;
+		}
+	}
+	
 	using Target = Analyser::Static::AppleII::Target;
 	auto target = std::unique_ptr<Target>(new Target);
 	target->machine = Machine::AppleII;

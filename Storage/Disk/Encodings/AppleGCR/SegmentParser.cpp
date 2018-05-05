@@ -42,6 +42,7 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 
 	const std::size_t scanning_sentinel = std::numeric_limits<std::size_t>::max();
 	std::unique_ptr<Sector> new_sector;
+	std::size_t sector_location = 0;
 	std::size_t pointer = scanning_sentinel;
 	std::array<uint_fast8_t, 8> header{{0, 0, 0, 0, 0, 0, 0, 0}};
 	std::array<uint_fast8_t, 3> scanner;
@@ -74,6 +75,8 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 				if(scanner[2] == data_prologue[2]) {
 					new_sector.reset(new Sector);
 					new_sector->data.reserve(412);
+				} else {
+					sector_location = static_cast<std::size_t>(bit);
 				}
 			}
 		} else {
@@ -147,6 +150,9 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 
 					// Throw away the collection of two-bit chunks.
 					sector->data.erase(sector->data.begin(), sector->data.end() - 256);
+
+					// Add this sector to the map.
+					result.insert(std::make_pair(sector_location, std::move(*sector)));
 				} else {
 					new_sector->data.push_back(value);
 				}

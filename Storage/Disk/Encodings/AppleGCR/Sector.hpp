@@ -38,6 +38,22 @@ struct Sector {
 		FiveAndThree, SixAndTwo
 	};
 	Encoding encoding = Encoding::SixAndTwo;
+
+	Sector() {}
+
+	Sector(Sector &&rhs) :
+		address(rhs.address),
+		data(std::move(rhs.data)),
+		has_data_checksum_error(rhs.has_data_checksum_error),
+		has_header_checksum_error(rhs.has_header_checksum_error),
+		encoding(rhs.encoding) {}
+
+	Sector(const Sector &rhs) :
+		address(rhs.address),
+		data(rhs.data),
+		has_data_checksum_error(rhs.has_data_checksum_error),
+		has_header_checksum_error(rhs.has_header_checksum_error),
+		encoding(rhs.encoding) {}
 };
 
 }
