@@ -644,8 +644,8 @@
 		4BEE0A701D72496600532C7B /* PRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE0A6D1D72496600532C7B /* PRG.cpp */; };
 		4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */; };
 		4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */; };
-		4BF437EE209D0F7E008CBD6B /* TrackParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* TrackParser.cpp */; };
-		4BF437EF209D0F7E008CBD6B /* TrackParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* TrackParser.cpp */; };
+		4BF437EE209D0F7E008CBD6B /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */; };
+		4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */; };
 		4BFCA1241ECBDCB400AC40C1 /* AllRAMProcessor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA1211ECBDCAF00AC40C1 /* AllRAMProcessor.cpp */; };
 		4BFCA1271ECBE33200AC40C1 /* TestMachineZ80.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA1261ECBE33200AC40C1 /* TestMachineZ80.mm */; };
 		4BFCA1291ECBE7A700AC40C1 /* zexall.com in Resources */ = {isa = PBXBuildFile; fileRef = 4BFCA1281ECBE7A700AC40C1 /* zexall.com */; };
@@ -1422,8 +1422,9 @@
 		4BEF6AA81D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DigitalPhaseLockedLoopBridge.h; sourceTree = "<group>"; };
 		4BEF6AA91D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DigitalPhaseLockedLoopBridge.mm; sourceTree = "<group>"; };
 		4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DPLLTests.swift; sourceTree = "<group>"; };
-		4BF437EC209D0F7E008CBD6B /* TrackParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TrackParser.cpp; sourceTree = "<group>"; };
-		4BF437ED209D0F7E008CBD6B /* TrackParser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TrackParser.hpp; sourceTree = "<group>"; };
+		4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SegmentParser.cpp; sourceTree = "<group>"; };
+		4BF437ED209D0F7E008CBD6B /* SegmentParser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SegmentParser.hpp; sourceTree = "<group>"; };
+		4BF437F0209D112F008CBD6B /* Sector.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Sector.hpp; sourceTree = "<group>"; };
 		4BF4A2D91F534DB300B171F4 /* TargetPlatforms.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TargetPlatforms.hpp; sourceTree = "<group>"; };
 		4BF6606A1F281573002CB053 /* ClockReceiver.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ClockReceiver.hpp; sourceTree = "<group>"; };
 		4BF8295F1D8F3C87001BAE39 /* CRC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = CRC.hpp; path = ../../NumberTheory/CRC.hpp; sourceTree = "<group>"; };
@@ -3014,9 +3015,10 @@
 			isa = PBXGroup;
 			children = (
 				4BD67DCE209BF27B00AB2146 /* Encoder.cpp */,
+				4BF437EC209D0F7E008CBD6B /* SegmentParser.cpp */,
 				4BD67DCF209BF27B00AB2146 /* Encoder.hpp */,
-				4BF437EC209D0F7E008CBD6B /* TrackParser.cpp */,
-				4BF437ED209D0F7E008CBD6B /* TrackParser.hpp */,
+				4BF437F0209D112F008CBD6B /* Sector.hpp */,
+				4BF437ED209D0F7E008CBD6B /* SegmentParser.hpp */,
 			);
 			name = AppleGCR;
 			path = Encodings/AppleGCR;
@@ -3629,7 +3631,7 @@
 				4B055AEE1FAE9BBF0060FFFF /* Keyboard.cpp in Sources */,
 				4B055AED1FAE9BA20060FFFF /* Z80Storage.cpp in Sources */,
 				4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
-				4BF437EF209D0F7E008CBD6B /* TrackParser.cpp in Sources */,
+				4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */,
 				4B055AD11FAE9B030060FFFF /* Video.cpp in Sources */,
 				4B055AA21FAE85DA0060FFFF /* SSD.cpp in Sources */,
 				4BEBFB4E2002C4BF000708CC /* MSXDSK.cpp in Sources */,
@@ -3872,7 +3874,7 @@
 				4B54C0C81F8D91E50050900F /* Keyboard.cpp in Sources */,
 				4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */,
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,
-				4BF437EE209D0F7E008CBD6B /* TrackParser.cpp in Sources */,
+				4BF437EE209D0F7E008CBD6B /* SegmentParser.cpp in Sources */,
 				4B8334861F5DA3780097E338 /* 6502Storage.cpp in Sources */,
 				4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */,
 				4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */,
