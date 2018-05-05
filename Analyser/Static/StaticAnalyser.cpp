@@ -20,6 +20,7 @@
 #include "Atari/StaticAnalyser.hpp"
 #include "Coleco/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
+#include "DiskII/StaticAnalyser.hpp"
 #include "MSX/StaticAnalyser.hpp"
 #include "Oric/StaticAnalyser.hpp"
 #include "ZX8081/StaticAnalyser.hpp"
@@ -94,10 +95,10 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("csw", result.tapes, Tape::CSW, TargetPlatform::AllTape)											// CSW
 	Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)		// D64
 	Format("dmk", result.disks, Disk::DiskImageHolder<Storage::Disk::DMK>, TargetPlatform::MSX)				// DMK
-	Format("do", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::AppleII)		// DO
+	Format("do", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)		// DO
 	Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// DSD
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::CPCDSK>, TargetPlatform::AmstradCPC)	// DSK (Amstrad CPC)
-	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::AppleII)	// DSK (Apple)
+	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)		// DSK (Apple)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MSXDSK>, TargetPlatform::MSX)			// DSK (MSX)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)		// DSK (Oric)
 	Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)		// G64
@@ -106,10 +107,10 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			Disk::DiskImageHolder<Storage::Disk::HFE>,
 			TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric)
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
-	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::AppleII)			// NIB
+	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)			// NIB
 	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// O
 	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P
-	Format("po", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::AppleII)		// PO
+	Format("po", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)		// PO
 	Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P81
 
 	// PRG
@@ -134,7 +135,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("tsx", result.tapes, Tape::TZX, TargetPlatform::MSX)												// TSX
 	Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081)											// TZX
 	Format("uef", result.tapes, Tape::UEF, TargetPlatform::Acorn)											// UEF (tape)
-	Format("woz", result.disks, Disk::DiskImageHolder<Storage::Disk::WOZ>, TargetPlatform::AppleII)			// WOZ
+	Format("woz", result.disks, Disk::DiskImageHolder<Storage::Disk::WOZ>, TargetPlatform::DiskII)			// WOZ
 
 #undef Format
 #undef Insert
@@ -168,6 +169,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	if(potential_platforms & TargetPlatform::Atari2600)		Append(Atari);
 	if(potential_platforms & TargetPlatform::ColecoVision)	Append(Coleco);
 	if(potential_platforms & TargetPlatform::Commodore)		Append(Commodore);
+	if(potential_platforms & TargetPlatform::DiskII)		Append(DiskII);
 	if(potential_platforms & TargetPlatform::MSX)			Append(MSX);
 	if(potential_platforms & TargetPlatform::Oric)			Append(Oric);
 	if(potential_platforms & TargetPlatform::ZX8081)		Append(ZX8081);
@@ -183,9 +185,9 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	// Sort by initial confidence. Use a stable sort in case any of the machine-specific analysers
 	// picked their insertion order carefully.
 	std::stable_sort(targets.begin(), targets.end(),
-        [] (const std::unique_ptr<Target> &a, const std::unique_ptr<Target> &b) {
-		    return a->confidence > b->confidence;
-	    });
+		[] (const std::unique_ptr<Target> &a, const std::unique_ptr<Target> &b) {
+			return a->confidence > b->confidence;
+		});
 
 	return targets;
 }

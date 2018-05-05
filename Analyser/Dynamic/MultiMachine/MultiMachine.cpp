@@ -82,11 +82,11 @@ void MultiMachine::multi_crt_did_run_machines() {
 
 	DynamicMachine *front = machines_.front().get();
 	std::stable_sort(machines_.begin(), machines_.end(),
-        [] (const std::unique_ptr<DynamicMachine> &lhs, const std::unique_ptr<DynamicMachine> &rhs){
-		    CRTMachine::Machine *lhs_crt = lhs->crt_machine();
-		    CRTMachine::Machine *rhs_crt = rhs->crt_machine();
-		    return lhs_crt->get_confidence() > rhs_crt->get_confidence();
-	    });
+		[] (const std::unique_ptr<DynamicMachine> &lhs, const std::unique_ptr<DynamicMachine> &rhs){
+			CRTMachine::Machine *lhs_crt = lhs->crt_machine();
+			CRTMachine::Machine *rhs_crt = rhs->crt_machine();
+			return lhs_crt->get_confidence() > rhs_crt->get_confidence();
+		});
 
 	if(machines_.front().get() != front) {
 		crt_machine_.did_change_machine_order();

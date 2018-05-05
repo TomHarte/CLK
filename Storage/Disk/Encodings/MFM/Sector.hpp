@@ -33,7 +33,8 @@ struct Sector {
 	};
 
 	Address address;
-	uint8_t size = 0;
+	uint8_t size = 0;	// Size is stored in ordinary MFM form — the number of bytes included in this sector
+						// is 2^(7 + size), or 128 << size.
 
 	// Multiple samplings of the underlying data are accepted, to allow weak and fuzzy data to be communicated.
 	std::vector<std::vector<uint8_t>> samples;

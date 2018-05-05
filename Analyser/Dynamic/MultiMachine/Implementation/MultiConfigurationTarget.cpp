@@ -14,7 +14,7 @@ MultiConfigurationTarget::MultiConfigurationTarget(const std::vector<std::unique
 	for(const auto &machine: machines) {
 		ConfigurationTarget::Machine *configuration_target = machine->configuration_target();
 		if(configuration_target) targets_.push_back(configuration_target);
-    }
+	}
 }
 
 void MultiConfigurationTarget::configure_as_target(const Analyser::Static::Target *target) {

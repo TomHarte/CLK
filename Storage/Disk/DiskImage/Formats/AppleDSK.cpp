@@ -9,7 +9,7 @@
 #include "AppleDSK.hpp"
 
 #include "../../Track/PCMTrack.hpp"
-#include "../../Encodings/AppleGCR.hpp"
+#include "../../Encodings/AppleGCR/Encoder.hpp"
 
 using namespace Storage::Disk;
 

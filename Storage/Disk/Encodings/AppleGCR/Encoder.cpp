@@ -6,11 +6,11 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#include "AppleGCR.hpp"
+#include "Encoder.hpp"
 
 namespace {
 
-const unsigned int five_and_three_mapping[] = {
+const uint8_t five_and_three_mapping[] = {
 	0xab, 0xad, 0xae, 0xaf, 0xb5, 0xb6, 0xb7, 0xba,
 	0xbb, 0xbd, 0xbe, 0xbf, 0xd6, 0xd7, 0xda, 0xdb,
 	0xdd, 0xde, 0xdf, 0xea, 0xeb, 0xed, 0xee, 0xef,
@@ -52,26 +52,6 @@ Storage::Disk::PCMSegment sync(int length, int bit_size) {
 }
 
 using namespace Storage::Encodings;
-
-
-/*void AppleGCR::encode_five_and_three_block(uint8_t *destination, uint8_t *source) {
-	destination[0] = static_cast<uint8_t>(five_and_three_encoding_for_value( source[0] >> 3 ));
-	destination[1] = static_cast<uint8_t>(five_and_three_encoding_for_value( (source[0] << 2) | (source[1] >> 6) ));
-	destination[2] = static_cast<uint8_t>(five_and_three_encoding_for_value( source[1] >> 1 ));
-	destination[3] = static_cast<uint8_t>(five_and_three_encoding_for_value( (source[1] << 4) | (source[2] >> 4) ));
-	destination[4] = static_cast<uint8_t>(five_and_three_encoding_for_value( (source[2] << 1) | (source[3] >> 7) ));
-	destination[5] = static_cast<uint8_t>(five_and_three_encoding_for_value( source[3] >> 2 ));
-	destination[6] = static_cast<uint8_t>(five_and_three_encoding_for_value( (source[3] << 3) | (source[4] >> 5) ));
-	destination[7] = static_cast<uint8_t>(five_and_three_encoding_for_value( source[4] ));
-}*/
-
-
-/*void AppleGCR::encode_six_and_two_block(uint8_t *destination, uint8_t *source) {
-	destination[0] = static_cast<uint8_t>(six_and_two_encoding_for_value( source[0] >> 2 ));
-	destination[1] = static_cast<uint8_t>(six_and_two_encoding_for_value( (source[0] << 4) | (source[1] >> 4) ));
-	destination[2] = static_cast<uint8_t>(six_and_two_encoding_for_value( (source[1] << 2) | (source[2] >> 6) ));
-	destination[3] = static_cast<uint8_t>(six_and_two_encoding_for_value( source[2] ));
-}*/
 
 Storage::Disk::PCMSegment AppleGCR::six_and_two_sync(int length) {
 	return sync(length, 10);
@@ -132,6 +112,11 @@ Storage::Disk::PCMSegment AppleGCR::five_and_three_data(const uint8_t *source) {
 //		destination_pointer += 8;
 //	}
 
+	// Map five-bit values up to full bytes.
+	for(std::size_t c = 0; c < 410; ++c) {
+		segment.data[3 + c] = five_and_three_mapping[segment.data[3 + c]];
+	}
+
 	return segment;
 }
 
@@ -154,24 +139,24 @@ Storage::Disk::PCMSegment AppleGCR::six_and_two_data(const uint8_t *source) {
 	// and combined copies of the bottom two bits of the sector
 	// contents; the 256 bytes afterwards are the remaining
 	// six bits.
-	const uint8_t bit_shuffle[] = {0, 2, 1, 3};
+	const uint8_t bit_reverse[] = {0, 2, 1, 3};
 	for(std::size_t c = 0; c < 84; ++c) {
 		segment.data[3 + c] =
 			static_cast<uint8_t>(
-				bit_shuffle[source[c]&3] |
-				(bit_shuffle[source[c + 86]&3] << 2) |
-				(bit_shuffle[source[c + 172]&3] << 4)
+				bit_reverse[source[c]&3] |
+				(bit_reverse[source[c + 86]&3] << 2) |
+				(bit_reverse[source[c + 172]&3] << 4)
 			);
 	}
 	segment.data[87] =
 			static_cast<uint8_t>(
-				(bit_shuffle[source[84]&3] << 0) |
-				(bit_shuffle[source[170]&3] << 2)
+				(bit_reverse[source[84]&3] << 0) |
+				(bit_reverse[source[170]&3] << 2)
 			);
 	segment.data[88] =
 			static_cast<uint8_t>(
-				(bit_shuffle[source[85]&3] << 0) |
-				(bit_shuffle[source[171]&3] << 2)
+				(bit_reverse[source[85]&3] << 0) |
+				(bit_reverse[source[171]&3] << 2)
 			);
 
 	for(std::size_t c = 0; c < 256; ++c) {

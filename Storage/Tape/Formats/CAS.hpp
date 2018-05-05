@@ -46,11 +46,11 @@ class CAS: public Tape {
 		void get_next(Storage::FileHolder &file, uint8_t (&buffer)[10], std::size_t quantity);
 
 		// Storage for the array of data blobs to transcribe into audio;
-  		// each chunk is preceded by a header which may be long, and is optionally
-    	// also preceded by a gap.
+		// each chunk is preceded by a header which may be long, and is optionally
+		// also preceded by a gap.
 		struct Chunk {
   			bool has_gap;
-     		bool long_header;
+			bool long_header;
 			std::vector<std::uint8_t> data;
 		};
 		std::vector<Chunk> chunks_;

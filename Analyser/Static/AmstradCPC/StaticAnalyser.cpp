@@ -35,8 +35,8 @@ static bool is_implied_extension(const std::string &extension) {
 
 static void right_trim(std::string &string) {
 	string.erase(std::find_if(string.rbegin(), string.rend(), [](int ch) {
-        return !std::isspace(ch);
-    }).base(), string.end());
+		return !std::isspace(ch);
+	}).base(), string.end());
 }
 
 static std::string RunCommandFor(const Storage::Disk::CPM::File &file) {
