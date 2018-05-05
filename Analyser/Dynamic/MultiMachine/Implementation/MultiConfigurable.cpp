@@ -16,7 +16,7 @@ MultiConfigurable::MultiConfigurable(const std::vector<std::unique_ptr<::Machine
 	for(const auto &machine: machines) {
 		Configurable::Device *device = machine->configurable_device();
 		if(device) devices_.push_back(device);
-    }
+	}
 }
 
 std::vector<std::unique_ptr<Configurable::Option>> MultiConfigurable::get_options() {

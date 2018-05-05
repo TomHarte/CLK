@@ -66,7 +66,7 @@ MultiJoystickMachine::MultiJoystickMachine(const std::vector<std::unique_ptr<::M
 			joystick_machines.push_back(joystick_machine);
 			total_joysticks = std::max(total_joysticks, joystick_machine->get_joysticks().size());
 		}
-    }
+	}
 
 	for(std::size_t index = 0; index < total_joysticks; ++index) {
 		joysticks_.emplace_back(new MultiJoystick(joystick_machines, index));
