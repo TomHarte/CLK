@@ -69,10 +69,9 @@ class ConcreteMachine:
 			stretched_cycles_since_card_update_ = 0;
 		}
 
-		uint8_t ram_[48*1024];
+		uint8_t ram_[65536], aux_ram_[65536];
 		std::vector<uint8_t> apple2_rom_, apple2plus_rom_, rom_;
 		std::vector<uint8_t> character_rom_;
-		uint16_t rom_start_address_;
 		uint8_t keyboard_input_ = 0x00;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
@@ -84,6 +83,36 @@ class ConcreteMachine:
 		std::unique_ptr<AppleII::Card> cards_[7];
 		Cycles cycles_since_card_update_;
 		int stretched_cycles_since_card_update_ = 0;
+
+		struct MemoryBlock {
+			uint8_t *read_pointer = nullptr;
+			uint8_t *write_pointer = nullptr;
+		} memory_blocks_[4];	// The IO page isn't included.
+
+		// MARK: - The language card.
+		struct {
+			bool bank1 = false;
+			bool read = false;
+			bool pre_write = false;
+			bool write = false;
+		} language_card_;
+		bool has_language_card_ = true;
+		void set_language_card_paging() {
+			if(has_language_card_ && !language_card_.write) {
+				memory_blocks_[2].write_pointer = &ram_[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
+				memory_blocks_[3].write_pointer = &ram_[56*1024];
+			} else {
+				memory_blocks_[2].write_pointer = memory_blocks_[3].write_pointer = nullptr;
+			}
+
+			if(has_language_card_ && language_card_.read) {
+				memory_blocks_[2].read_pointer = &ram_[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
+				memory_blocks_[3].read_pointer = &ram_[56*1024];
+			} else {
+				memory_blocks_[2].read_pointer = rom_.data();
+				memory_blocks_[3].read_pointer = rom_.data() + 0x1000;
+			}
+		}
 
 	public:
 		ConcreteMachine():
@@ -105,6 +134,10 @@ class ConcreteMachine:
 
 			// Also, start with randomised memory contents.
 			Memory::Fuzz(ram_, sizeof(ram_));
+		}
+
+		~ConcreteMachine() {
+			audio_queue_.flush();
 		}
 
 		void setup_output(float aspect_ratio) override {
@@ -129,72 +162,109 @@ class ConcreteMachine:
 			++ cycles_since_card_update_;
 			cycles_since_audio_update_ += Cycles(7);
 
-			switch(address) {
-				default:
-					if(isReadOperation(operation)) {
-						if(address < sizeof(ram_)) {
-							*value = ram_[address];
-						} else if(address >= rom_start_address_) {
-							*value = rom_[address - rom_start_address_];
-						} else {
+			/*
+				There are five distinct zones of memory on an Apple II:
+
+				0000 — 0200	:	the zero and stack pages, which can be paged independently on a IIe
+				0200 — c000	:	the main block of RAM, which can be paged on a IIe
+				c000 — d000	:	the IO area, including card ROMs
+				d000 — e000	:	the low ROM area, which can contain indepdently-paged RAM with a language card
+				e000 —		:	the rest of ROM, also potentially replaced with RAM by a language card
+			*/
+			MemoryBlock *block = nullptr;
+			if(address < 0x200) block = &memory_blocks_[0];
+			else if(address < 0xc000) {update_video(); block = &memory_blocks_[1]; address -= 0x200; }
+			else if(address < 0xd000) block = nullptr;
+			else if(address < 0xe000) {block = &memory_blocks_[2]; address -= 0xd000; }
+			else {block = &memory_blocks_[3]; address -= 0xe000; }
+
+			if(block) {
+				if(isReadOperation(operation)) *value = block->read_pointer[address];
+				else if(block->write_pointer) block->write_pointer[address] = *value;
+			} else {
+				switch(address) {
+					default:
+						if(isReadOperation(operation)) {
+							// Read-only switches.
 							switch(address) {
-								default:
-//									printf("Unknown access to %04x\n", address);
-								break;
+								default: break;
+
 								case 0xc000:
 									*value = keyboard_input_;
 								break;
 							}
+						} else {
+							// Write-only switches.
 						}
-					} else {
-						if(address < sizeof(ram_)) {
-							if(address >= 0x400) {
-								// TODO: be more selective.
-								update_video();
-							}
-							ram_[address] = *value;
-						}
-					}
-				break;
+					break;
 
-				case 0xc050:	update_video();		video_->set_graphics_mode();	break;
-				case 0xc051:	update_video();		video_->set_text_mode();		break;
-				case 0xc052:	update_video();		video_->set_mixed_mode(false);	break;
-				case 0xc053:	update_video();		video_->set_mixed_mode(true);	break;
-				case 0xc054:	update_video();		video_->set_video_page(0);		break;
-				case 0xc055:	update_video();		video_->set_video_page(1);		break;
-				case 0xc056:	update_video();		video_->set_low_resolution();	break;
-				case 0xc057:	update_video();		video_->set_high_resolution();	break;
+					/* Read-write switches. */
+					case 0xc050:	update_video();		video_->set_graphics_mode();	break;
+					case 0xc051:	update_video();		video_->set_text_mode();		break;
+					case 0xc052:	update_video();		video_->set_mixed_mode(false);	break;
+					case 0xc053:	update_video();		video_->set_mixed_mode(true);	break;
+					case 0xc054:	update_video();		video_->set_video_page(0);		break;
+					case 0xc055:	update_video();		video_->set_video_page(1);		break;
+					case 0xc056:	update_video();		video_->set_low_resolution();	break;
+					case 0xc057:	update_video();		video_->set_high_resolution();	break;
 
-				case 0xc010:
-					keyboard_input_ &= 0x7f;
-				break;
+					case 0xc010:
+						keyboard_input_ &= 0x7f;
+					break;
 
-				case 0xc030:
-					update_audio();
-					audio_toggle_.set_output(!audio_toggle_.get_output());
-				break;
-			}
+					case 0xc030:
+						update_audio();
+						audio_toggle_.set_output(!audio_toggle_.get_output());
+					break;
 
-			if(address >= 0xc100 && address < 0xc800) {
-				/*
-					Decode the area conventionally used by cards for ROMs:
-						0xCn00 — 0xCnff: card n.
-				*/
-				const int card_number = (address - 0xc100) >> 8;
-				if(cards_[card_number]) {
-					update_cards();
-					cards_[card_number]->perform_bus_operation(operation, address & 0xff, value);
+					case 0xc080: case 0xc084: case 0xc088: case 0xc08c:
+					case 0xc081: case 0xc085: case 0xc089: case 0xc08d:
+					case 0xc082: case 0xc086: case 0xc08a: case 0xc08e:
+					case 0xc083: case 0xc087: case 0xc08b: case 0xc08f:
+						// Quotes below taken from Understanding the Apple II, p. 5-28 and 5-29.
+
+						// "A3 controls the 4K bank selection"
+						language_card_.bank1 = (address&8);
+
+						// "Access to $C080, $C083, $C084, $0087, $C088, $C08B, $C08C, or $C08F sets the READ ENABLE flip-flop"
+						// (other accesses reset it)
+						language_card_.read = !(((address&2) >> 1) ^ (address&1));
+
+						// "The WRITE ENABLE' flip-flop is reset by an odd read access to the $C08X range when the PRE-WRITE flip-flop is set."
+						if(language_card_.pre_write && isReadOperation(operation) && (address&1)) language_card_.write = false;
+
+						// "[The WRITE ENABLE' flip-flop] is set by an even access in the $C08X range."
+						if(!(address&1)) language_card_.write = true;
+
+						// ("Any other type of access causes the WRITE ENABLE' flip-flop to hold its current state.")
+
+						// "The PRE-WRITE flip-flop is set by an odd read access in the $C08X range. It is reset by an even access or a write access."
+						language_card_.pre_write = isReadOperation(operation) ? (address&1) : false;
+
+						set_language_card_paging();
+					break;
 				}
-			} else if(address >= 0xc090 && address < 0xc100) {
-				/*
-					Decode the area conventionally used by cards for registers:
-						C0n0--C0nF: card n - 8.
-				*/
-				const int card_number = (address - 0xc090) >> 4;
-				if(cards_[card_number]) {
-					update_cards();
-					cards_[card_number]->perform_bus_operation(operation, 0x100 | (address&0xf), value);
+
+				if(address >= 0xc100 && address < 0xc800) {
+					/*
+						Decode the area conventionally used by cards for ROMs:
+							0xCn00 — 0xCnff: card n.
+					*/
+					const int card_number = (address - 0xc100) >> 8;
+					if(cards_[card_number]) {
+						update_cards();
+						cards_[card_number]->perform_bus_operation(operation, address & 0xff, value);
+					}
+				} else if(address >= 0xc090 && address < 0xc100) {
+					/*
+						Decode the area conventionally used by cards for registers:
+							C0n0--C0nF: card n - 8.
+					*/
+					const int card_number = (address - 0xc090) >> 4;
+					if(cards_[card_number]) {
+						update_cards();
+						cards_[card_number]->perform_bus_operation(operation, 0x100 | (address&0xf), value);
+					}
 				}
 			}
 
@@ -283,7 +353,11 @@ class ConcreteMachine:
 			if(rom_.size() > 12*1024) {
 				rom_.erase(rom_.begin(), rom_.begin() + static_cast<off_t>(rom_.size()) - 12*1024);
 			}
-			rom_start_address_ = 0xd000;//static_cast<uint16_t>(0x10000 - rom_.size());
+
+			// Set up the default memory blocks.
+			memory_blocks_[0].read_pointer = memory_blocks_[0].write_pointer = ram_;
+			memory_blocks_[1].read_pointer = memory_blocks_[1].write_pointer = &ram_[0x200];
+			set_language_card_paging();
 
 			insert_media(apple_target->media);
 		}
