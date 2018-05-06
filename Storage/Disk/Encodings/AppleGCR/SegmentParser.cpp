@@ -56,11 +56,11 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 		const uint_fast8_t value = shift_register;
 		shift_register = 0;
 
-		if(pointer == scanning_sentinel) {
-			scanner[0] = scanner[1];
-			scanner[1] = scanner[2];
-			scanner[2] = value;
+		scanner[0] = scanner[1];
+		scanner[1] = scanner[2];
+		scanner[2] = value;
 
+		if(pointer == scanning_sentinel) {
 			if(
 				scanner[0] == header_prologue[0] &&
 				scanner[1] == header_prologue[1] &&
@@ -83,7 +83,7 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 			if(new_sector) {
 				// If this is an epilogue, make sense of this whole sector;
 				// otherwise just keep the byte for later.
-				if(value == epilogue[1]) {
+				if(scanner[1] == epilogue[0] && scanner[2] == epilogue[1]) {
 					std::unique_ptr<Sector> sector = std::move(new_sector);
 					new_sector.reset();
 					pointer = scanning_sentinel;
