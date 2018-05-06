@@ -72,7 +72,6 @@ class ConcreteMachine:
 		uint8_t ram_[48*1024];
 		std::vector<uint8_t> apple2_rom_, apple2plus_rom_, rom_;
 		std::vector<uint8_t> character_rom_;
-		uint16_t rom_start_address_;
 		uint8_t keyboard_input_ = 0x00;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
@@ -84,6 +83,11 @@ class ConcreteMachine:
 		std::unique_ptr<AppleII::Card> cards_[7];
 		Cycles cycles_since_card_update_;
 		int stretched_cycles_since_card_update_ = 0;
+
+		struct MemoryBlock {
+			uint8_t *read_pointer = nullptr;
+			uint8_t *write_pointer = nullptr;
+		} memory_blocks_[4];	// The IO page isn't included.
 
 	public:
 		ConcreteMachine():
@@ -129,72 +133,82 @@ class ConcreteMachine:
 			++ cycles_since_card_update_;
 			cycles_since_audio_update_ += Cycles(7);
 
-			switch(address) {
-				default:
-					if(isReadOperation(operation)) {
-						if(address < sizeof(ram_)) {
-							*value = ram_[address];
-						} else if(address >= rom_start_address_) {
-							*value = rom_[address - rom_start_address_];
-						} else {
+			/*
+				There are five distinct zones of memory on an Apple II:
+
+				0000 — 0200	:	the zero and stack pages, which can be paged independently on a IIe
+				0200 — c000	:	the main block of RAM, which can be paged on a IIe
+				c000 — d000	:	the IO area, including card ROMs
+				d000 — e000	:	the low ROM area, which can contain indepdently-paged RAM with a language card
+				e000 —		:	the rest of ROM, also potentially replaced with RAM by a language card
+			*/
+			MemoryBlock *block = nullptr;
+			if(address < 0x200) block = &memory_blocks_[0];
+			else if(address < 0xc000) {update_video(); block = &memory_blocks_[1]; address -= 0x200; }
+			else if(address < 0xd000) block = nullptr;
+			else if(address < 0xe000) {block = &memory_blocks_[2]; address -= 0xd000; }
+			else {block = &memory_blocks_[3]; address -= 0xe000; }
+
+			if(block) {
+				if(isReadOperation(operation)) *value = block->read_pointer[address];
+				else if(block->write_pointer) block->write_pointer[address] = *value;
+			} else {
+				switch(address) {
+					default:
+						if(isReadOperation(operation)) {
+							// Read-only switches.
 							switch(address) {
-								default:
-//									printf("Unknown access to %04x\n", address);
-								break;
+								default: break;
+
 								case 0xc000:
 									*value = keyboard_input_;
 								break;
 							}
+						} else {
+							// Write-only switches.
 						}
-					} else {
-						if(address < sizeof(ram_)) {
-							if(address >= 0x400) {
-								// TODO: be more selective.
-								update_video();
-							}
-							ram_[address] = *value;
-						}
-					}
-				break;
+					break;
 
-				case 0xc050:	update_video();		video_->set_graphics_mode();	break;
-				case 0xc051:	update_video();		video_->set_text_mode();		break;
-				case 0xc052:	update_video();		video_->set_mixed_mode(false);	break;
-				case 0xc053:	update_video();		video_->set_mixed_mode(true);	break;
-				case 0xc054:	update_video();		video_->set_video_page(0);		break;
-				case 0xc055:	update_video();		video_->set_video_page(1);		break;
-				case 0xc056:	update_video();		video_->set_low_resolution();	break;
-				case 0xc057:	update_video();		video_->set_high_resolution();	break;
+					/* Read-write switches. */
+					case 0xc050:	update_video();		video_->set_graphics_mode();	break;
+					case 0xc051:	update_video();		video_->set_text_mode();		break;
+					case 0xc052:	update_video();		video_->set_mixed_mode(false);	break;
+					case 0xc053:	update_video();		video_->set_mixed_mode(true);	break;
+					case 0xc054:	update_video();		video_->set_video_page(0);		break;
+					case 0xc055:	update_video();		video_->set_video_page(1);		break;
+					case 0xc056:	update_video();		video_->set_low_resolution();	break;
+					case 0xc057:	update_video();		video_->set_high_resolution();	break;
 
-				case 0xc010:
-					keyboard_input_ &= 0x7f;
-				break;
+					case 0xc010:
+						keyboard_input_ &= 0x7f;
+					break;
 
-				case 0xc030:
-					update_audio();
-					audio_toggle_.set_output(!audio_toggle_.get_output());
-				break;
-			}
-
-			if(address >= 0xc100 && address < 0xc800) {
-				/*
-					Decode the area conventionally used by cards for ROMs:
-						0xCn00 — 0xCnff: card n.
-				*/
-				const int card_number = (address - 0xc100) >> 8;
-				if(cards_[card_number]) {
-					update_cards();
-					cards_[card_number]->perform_bus_operation(operation, address & 0xff, value);
+					case 0xc030:
+						update_audio();
+						audio_toggle_.set_output(!audio_toggle_.get_output());
+					break;
 				}
-			} else if(address >= 0xc090 && address < 0xc100) {
-				/*
-					Decode the area conventionally used by cards for registers:
-						C0n0--C0nF: card n - 8.
-				*/
-				const int card_number = (address - 0xc090) >> 4;
-				if(cards_[card_number]) {
-					update_cards();
-					cards_[card_number]->perform_bus_operation(operation, 0x100 | (address&0xf), value);
+
+				if(address >= 0xc100 && address < 0xc800) {
+					/*
+						Decode the area conventionally used by cards for ROMs:
+							0xCn00 — 0xCnff: card n.
+					*/
+					const int card_number = (address - 0xc100) >> 8;
+					if(cards_[card_number]) {
+						update_cards();
+						cards_[card_number]->perform_bus_operation(operation, address & 0xff, value);
+					}
+				} else if(address >= 0xc090 && address < 0xc100) {
+					/*
+						Decode the area conventionally used by cards for registers:
+							C0n0--C0nF: card n - 8.
+					*/
+					const int card_number = (address - 0xc090) >> 4;
+					if(cards_[card_number]) {
+						update_cards();
+						cards_[card_number]->perform_bus_operation(operation, 0x100 | (address&0xf), value);
+					}
 				}
 			}
 
@@ -283,7 +297,12 @@ class ConcreteMachine:
 			if(rom_.size() > 12*1024) {
 				rom_.erase(rom_.begin(), rom_.begin() + static_cast<off_t>(rom_.size()) - 12*1024);
 			}
-			rom_start_address_ = 0xd000;//static_cast<uint16_t>(0x10000 - rom_.size());
+
+			// Set up the default memory blocks.
+			memory_blocks_[0].read_pointer = memory_blocks_[0].write_pointer = ram_;
+			memory_blocks_[1].read_pointer = memory_blocks_[1].write_pointer = &ram_[0x200];
+			memory_blocks_[2].read_pointer = rom_.data();
+			memory_blocks_[3].read_pointer = rom_.data() + 0x1000;
 
 			insert_media(apple_target->media);
 		}
