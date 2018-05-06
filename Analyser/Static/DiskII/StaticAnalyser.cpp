@@ -69,6 +69,7 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &m
 			return targets;
 		} else {
 			targets.push_back(std::unique_ptr<Analyser::Static::Target>(AppleTarget(nullptr)));
+			targets.back()->media = media;
 			return targets;
 		}
 	}
@@ -119,5 +120,6 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &m
 	} else {
 		targets.push_back(std::unique_ptr<Analyser::Static::Target>(AppleTarget(sector_zero)));
 	}
+	targets.back()->media = media;
 	return targets;
 }
