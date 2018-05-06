@@ -69,7 +69,7 @@ class ConcreteMachine:
 			stretched_cycles_since_card_update_ = 0;
 		}
 
-		uint8_t ram_[48*1024];
+		uint8_t ram_[65536], aux_ram_[65536];
 		std::vector<uint8_t> apple2_rom_, apple2plus_rom_, rom_;
 		std::vector<uint8_t> character_rom_;
 		uint8_t keyboard_input_ = 0x00;
@@ -88,6 +88,31 @@ class ConcreteMachine:
 			uint8_t *read_pointer = nullptr;
 			uint8_t *write_pointer = nullptr;
 		} memory_blocks_[4];	// The IO page isn't included.
+
+		// MARK: - The language card.
+		struct {
+			bool bank1 = false;
+			bool read = false;
+			bool pre_write = false;
+			bool write = false;
+		} language_card_;
+		bool has_language_card_ = true;
+		void set_language_card_paging() {
+			if(has_language_card_ && !language_card_.write) {
+				memory_blocks_[2].write_pointer = &ram_[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
+				memory_blocks_[3].write_pointer = &ram_[56*1024];
+			} else {
+				memory_blocks_[2].write_pointer = memory_blocks_[3].write_pointer = nullptr;
+			}
+
+			if(has_language_card_ && language_card_.read) {
+				memory_blocks_[2].read_pointer = &ram_[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
+				memory_blocks_[3].read_pointer = &ram_[56*1024];
+			} else {
+				memory_blocks_[2].read_pointer = rom_.data();
+				memory_blocks_[3].read_pointer = rom_.data() + 0x1000;
+			}
+		}
 
 	public:
 		ConcreteMachine():
@@ -109,6 +134,10 @@ class ConcreteMachine:
 
 			// Also, start with randomised memory contents.
 			Memory::Fuzz(ram_, sizeof(ram_));
+		}
+
+		~ConcreteMachine() {
+			audio_queue_.flush();
 		}
 
 		void setup_output(float aspect_ratio) override {
@@ -186,6 +215,33 @@ class ConcreteMachine:
 					case 0xc030:
 						update_audio();
 						audio_toggle_.set_output(!audio_toggle_.get_output());
+					break;
+
+					case 0xc080: case 0xc084: case 0xc088: case 0xc08c:
+					case 0xc081: case 0xc085: case 0xc089: case 0xc08d:
+					case 0xc082: case 0xc086: case 0xc08a: case 0xc08e:
+					case 0xc083: case 0xc087: case 0xc08b: case 0xc08f:
+						// Quotes below taken from Understanding the Apple II, p. 5-28 and 5-29.
+
+						// "A3 controls the 4K bank selection"
+						language_card_.bank1 = (address&8);
+
+						// "Access to $C080, $C083, $C084, $0087, $C088, $C08B, $C08C, or $C08F sets the READ ENABLE flip-flop"
+						// (other accesses reset it)
+						language_card_.read = !(((address&2) >> 1) ^ (address&1));
+
+						// "The WRITE ENABLE' flip-flop is reset by an odd read access to the $C08X range when the PRE-WRITE flip-flop is set."
+						if(language_card_.pre_write && isReadOperation(operation) && (address&1)) language_card_.write = false;
+
+						// "[The WRITE ENABLE' flip-flop] is set by an even access in the $C08X range."
+						if(!(address&1)) language_card_.write = true;
+
+						// ("Any other type of access causes the WRITE ENABLE' flip-flop to hold its current state.")
+
+						// "The PRE-WRITE flip-flop is set by an odd read access in the $C08X range. It is reset by an even access or a write access."
+						language_card_.pre_write = isReadOperation(operation) ? (address&1) : false;
+
+						set_language_card_paging();
 					break;
 				}
 
@@ -301,8 +357,7 @@ class ConcreteMachine:
 			// Set up the default memory blocks.
 			memory_blocks_[0].read_pointer = memory_blocks_[0].write_pointer = ram_;
 			memory_blocks_[1].read_pointer = memory_blocks_[1].write_pointer = &ram_[0x200];
-			memory_blocks_[2].read_pointer = rom_.data();
-			memory_blocks_[3].read_pointer = rom_.data() + 0x1000;
+			set_language_card_paging();
 
 			insert_media(apple_target->media);
 		}
