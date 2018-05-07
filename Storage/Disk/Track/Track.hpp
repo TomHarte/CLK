@@ -16,6 +16,53 @@ namespace Storage {
 namespace Disk {
 
 /*!
+	Contains a head position, with some degree of sub-integral precision.
+*/
+class HeadPosition {
+	public:
+		/// Creates an instance decribing position @c value at a resolution of @c scale ticks per track.
+		HeadPosition(int value, int scale) : position_(value * (4/scale)) {}
+		explicit HeadPosition(int value) : HeadPosition(value, 1) {}
+		HeadPosition() : HeadPosition(0) {}
+
+		/// @returns the whole number part of the position.
+		int as_int() const { return position_ >> 2; }
+		/// @returns n where n/2 is the head position.
+		int as_half() const { return position_ >> 1; }
+		/// @returns n where n/4 is the head position.
+		int as_quarter() const { return position_; }
+
+		/// @returns the head position at maximal but unspecified precision.
+		int as_largest() const { return as_quarter(); }
+
+		HeadPosition &operator +=(const HeadPosition &rhs) {
+			position_ += rhs.position_;
+			return *this;
+		}
+		bool operator ==(const HeadPosition &rhs) {
+			return position_ == rhs.position_;
+		}
+		bool operator !=(const HeadPosition &rhs) {
+			return position_ != rhs.position_;
+		}
+		bool operator <(const HeadPosition &rhs) {
+			return position_ < rhs.position_;
+		}
+		bool operator <=(const HeadPosition &rhs) {
+			return position_ <= rhs.position_;
+		}
+		bool operator >(const HeadPosition &rhs) {
+			return position_ > rhs.position_;
+		}
+		bool operator >=(const HeadPosition &rhs) {
+			return position_ >= rhs.position_;
+		}
+
+	private:
+		int position_ = 0;
+};
+
+/*!
 	Models a single track on a disk as a series of events, each event being of arbitrary length
 	and resulting in either a flux transition or the sensing of an index hole.
 
@@ -27,12 +74,15 @@ class Track {
 			Describes the location of a track, implementing < to allow for use as a set key.
 		*/
 		struct Address {
-			int head, position;
+			int head;
+			HeadPosition position;
 
 			bool operator < (const Address &rhs) const {
-				return std::tie(head, position) < std::tie(rhs.head, rhs.position);
+				int largest_position = position.as_largest();
+				int rhs_largest_position = rhs.position.as_largest();
+				return std::tie(head, largest_position) < std::tie(rhs.head, rhs_largest_position);
 			}
-			Address(int head, int position) : head(head), position(position) {}
+			Address(int head, HeadPosition position) : head(head), position(position) {}
 		};
 
 		/*!

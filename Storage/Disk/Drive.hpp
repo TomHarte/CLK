@@ -45,7 +45,7 @@ class Drive: public Sleeper, public TimedEventLoop {
 			Steps the disk head the specified number of tracks. Positive numbers step inwards (i.e. away from track 0),
 			negative numbers step outwards (i.e. towards track 0).
 		*/
-		void step(int direction);
+		void step(HeadPosition offset);
 
 		/*!
 			Sets the current read head.
@@ -139,7 +139,7 @@ class Drive: public Sleeper, public TimedEventLoop {
 		int cycles_since_index_hole_ = 0;
 
 		// A record of head position and active head.
-		int head_position_ = 0;
+		HeadPosition head_position_;
 		int head_ = 0;
 		int available_heads_ = 0;
 

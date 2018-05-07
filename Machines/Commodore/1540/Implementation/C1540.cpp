@@ -142,7 +142,7 @@ void MachineBase::process_index_hole()	{}
 // MARK: - Drive VIA delegate
 
 void MachineBase::drive_via_did_step_head(void *driveVIA, int direction) {
-	drive_->step(direction);
+	drive_->step(Storage::Disk::HeadPosition(direction, 2));
 }
 
 void MachineBase::drive_via_did_set_data_density(void *driveVIA, int density) {

@@ -39,7 +39,7 @@ void Parser::install_sectors_from_track(const Storage::Disk::Track::Address &add
 }
 
 Sector *Parser::get_sector(int head, int track, uint8_t sector) {
-	Disk::Track::Address address(head, track);
+	Disk::Track::Address address(head, Storage::Disk::HeadPosition(track));
 	install_sectors_from_track(address);
 
 	auto sectors = sectors_by_address_by_track_.find(address);

@@ -69,9 +69,8 @@ WOZ::WOZ(const std::string &file_name) :
 	if(tracks_offset_ == -1 || !has_tmap) throw Error::InvalidFormat;
 }
 
-int WOZ::get_head_position_count() {
-	// TODO: deal with the elephant in the room of non-integral track coordinates.
-	return is_3_5_disk_ ? 80 : 160;
+HeadPosition WOZ::get_maximum_head_position() {
+	return is_3_5_disk_ ? HeadPosition(80) : HeadPosition(160, 4);
 }
 
 int WOZ::get_head_count() {
@@ -79,12 +78,8 @@ int WOZ::get_head_count() {
 }
 
 std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
-	// Out-of-bounds => no track.
-	if(address.head >= get_head_count()) return nullptr;
-	if(address.position >= get_head_position_count()) return nullptr;
-
 	// Calculate table position; if this track is defined to be unformatted, return no track.
-	const int table_position = address.head * get_head_position_count() + address.position;
+	const int table_position = address.head * (is_3_5_disk_ ? 80 : 160) + (is_3_5_disk_ ? address.position.as_int() : address.position.as_quarter());
 	if(track_map_[table_position] == 0xff) return nullptr;
 
 	// Seek to the real track.

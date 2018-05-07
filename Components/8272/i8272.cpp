@@ -115,7 +115,7 @@ void i8272::run_for(Cycles cycles) {
 					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
 					printf("Target %d versus believed %d\n", drives_[c].target_head_position, drives_[c].head_position);
 					select_drive(c);
-					get_drive().step(direction);
+					get_drive().step(Storage::Disk::HeadPosition(direction));
 					if(drives_[c].target_head_position >= 0) drives_[c].head_position += direction;
 
 					// Check for completion.

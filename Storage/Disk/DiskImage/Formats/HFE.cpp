@@ -29,8 +29,8 @@ HFE::HFE(const std::string &file_name) :
 HFE::~HFE() {
 }
 
-int HFE::get_head_position_count() {
-	return track_count_;
+HeadPosition HFE::get_maximum_head_position() {
+	return HeadPosition(track_count_);
 }
 
 int HFE::get_head_count() {
@@ -47,7 +47,7 @@ int HFE::get_head_count() {
 uint16_t HFE::seek_track(Track::Address address) {
 	// Get track position and length from the lookup table; data is then always interleaved
 	// based on an assumption of two heads.
-	file_.seek(track_list_offset_ + address.position * 4, SEEK_SET);
+	file_.seek(track_list_offset_ + address.position.as_int() * 4, SEEK_SET);
 
 	long track_offset = static_cast<long>(file_.get16le()) << 9;
 	uint16_t track_length = file_.get16le();

@@ -32,15 +32,15 @@ NIB::NIB(const std::string &file_name) :
 	// TODO: all other validation. I.e. does this look like a GCR disk?
 }
 
-int NIB::get_head_position_count() {
-	return number_of_tracks * 4;
+HeadPosition NIB::get_maximum_head_position() {
+	return HeadPosition(number_of_tracks);
 }
 
 std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Disk::Track::Address address) {
 	// NIBs contain data for even-numbered tracks underneath a single head only.
 	if(address.head) return nullptr;
 
-	const long file_track = static_cast<long>(address.position >> 2);
+	const long file_track = static_cast<long>(address.position.as_int());
 	file_.seek(file_track * track_length, SEEK_SET);
 	std::vector<uint8_t> track_data = file_.read(track_length);
 

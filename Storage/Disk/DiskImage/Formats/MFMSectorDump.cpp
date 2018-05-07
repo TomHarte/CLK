@@ -33,7 +33,7 @@ std::shared_ptr<Track> MFMSectorDump::get_track_at_position(Track::Address addre
 		file_.read(sectors, sizeof(sectors));
 	}
 
-	return track_for_sectors(sectors, static_cast<uint8_t>(address.position), static_cast<uint8_t>(address.head), first_sector_, sector_size_, is_double_density_);
+	return track_for_sectors(sectors, sectors_per_track_, static_cast<uint8_t>(address.position.as_int()), static_cast<uint8_t>(address.head), first_sector_, sector_size_, is_double_density_);
 }
 
 void MFMSectorDump::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {

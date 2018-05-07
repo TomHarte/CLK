@@ -32,7 +32,7 @@ class G64: public DiskImage {
 		G64(const std::string &file_name);
 
 		// implemented to satisfy @c Disk
-		int get_head_position_count() override;
+		HeadPosition get_maximum_head_position() override;
 		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
 		using DiskImage::get_is_read_only;
 

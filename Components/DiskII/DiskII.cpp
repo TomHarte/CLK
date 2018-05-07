@@ -57,7 +57,7 @@ void DiskII::set_control(Control control, bool on) {
 
 		// Compare to the stepper position to decide whether that pulls in the current cog notch,
 		// or grabs a later one.
-		drives_[active_drive_].step(-direction);
+		drives_[active_drive_].step(Storage::Disk::HeadPosition(-direction, 4));
 		stepper_position_ = (stepper_position_ - direction + 8) & 7;
 	}
 }

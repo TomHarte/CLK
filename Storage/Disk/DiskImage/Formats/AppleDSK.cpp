@@ -38,17 +38,17 @@ AppleDSK::AppleDSK(const std::string &file_name) :
 	}
 }
 
-int AppleDSK::get_head_position_count() {
-	return number_of_tracks * 4;
+HeadPosition AppleDSK::get_maximum_head_position() {
+	return HeadPosition(number_of_tracks);
 }
 
 std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
-	const long file_offset = (address.position >> 2) * bytes_per_sector * sectors_per_track_;
+	const long file_offset = address.position.as_int() * bytes_per_sector * sectors_per_track_;
 	file_.seek(file_offset, SEEK_SET);
 	const std::vector<uint8_t> track_data = file_.read(static_cast<size_t>(bytes_per_sector * sectors_per_track_));
 
 	Storage::Disk::PCMSegment segment;
-	const uint8_t track = static_cast<uint8_t>(address.position >> 2);
+	const uint8_t track = static_cast<uint8_t>(address.position.as_int());
 
 	// In either case below, the code aims for exactly 50,000 bits per track.
 	if(sectors_per_track_ == 16) {

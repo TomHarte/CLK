@@ -33,7 +33,7 @@ class HFE: public DiskImage {
 		~HFE();
 
 		// implemented to satisfy @c Disk
-		int get_head_position_count() override;
+		HeadPosition get_maximum_head_position() override;
 		int get_head_count() override;
 		bool get_is_read_only() override;
 		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
