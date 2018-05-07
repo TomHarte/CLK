@@ -24,7 +24,7 @@ class NIB: public DiskImage {
 	public:
 		NIB(const std::string &file_name);
 
-		int get_head_position_count() override;
+		HeadPosition get_maximum_head_position() override;
 
 		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) override;
 

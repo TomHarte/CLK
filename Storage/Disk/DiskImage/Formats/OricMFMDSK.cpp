@@ -29,8 +29,8 @@ OricMFMDSK::OricMFMDSK(const std::string &file_name) :
 		throw Error::InvalidFormat;
 }
 
-int OricMFMDSK::get_head_position_count() {
-	return static_cast<int>(track_count_);
+HeadPosition OricMFMDSK::get_maximum_head_position() {
+	return HeadPosition(static_cast<int>(track_count_));
 }
 
 int OricMFMDSK::get_head_count() {
@@ -41,10 +41,10 @@ long OricMFMDSK::get_file_offset_for_position(Track::Address address) {
 	int seek_offset = 0;
 	switch(geometry_type_) {
 		case 1:
-			seek_offset = address.head * static_cast<int>(track_count_) + address.position;
+			seek_offset = address.head * static_cast<int>(track_count_) + address.position.as_int();
 		break;
 		case 2:
-			seek_offset = address.position * static_cast<int>(track_count_ * head_count_) + address.head;
+			seek_offset = address.position.as_int() * static_cast<int>(track_count_ * head_count_) + address.head;
 		break;
 	}
 	return static_cast<long>(seek_offset) * 6400 + 256;

@@ -31,7 +31,7 @@ class DMK: public DiskImage {
 		DMK(const std::string &file_name);
 
 		// implemented to satisfy @c Disk
-		int get_head_position_count() override;
+		HeadPosition get_maximum_head_position() override;
 		int get_head_count() override;
 		bool get_is_read_only() override;
 

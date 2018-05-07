@@ -6,8 +6,8 @@
 //  Copyright © 2017 Thomas Harte. All rights reserved.
 //
 
-template <typename T> int DiskImageHolder<T>::get_head_position_count() {
-	return disk_image_.get_head_position_count();
+template <typename T> HeadPosition DiskImageHolder<T>::get_maximum_head_position() {
+	return disk_image_.get_maximum_head_position();
 }
 
 template <typename T> int DiskImageHolder<T>::get_head_count() {
@@ -44,7 +44,7 @@ template <typename T> void DiskImageHolder<T>::set_track_at_position(Track::Addr
 
 template <typename T> std::shared_ptr<Track> DiskImageHolder<T>::get_track_at_position(Track::Address address) {
 	if(address.head >= get_head_count()) return nullptr;
-	if(address.position >= get_head_position_count()) return nullptr;
+	if(address.position >= get_maximum_head_position()) return nullptr;
 
 	auto cached_track = cached_tracks_.find(address);
 	if(cached_track != cached_tracks_.end()) return cached_track->second;

@@ -36,8 +36,8 @@ SSD::SSD(const std::string &file_name) : MFMSectorDump(file_name) {
 	set_geometry(sectors_per_track, sector_size, 0, false);
 }
 
-int SSD::get_head_position_count() {
-	return track_count_;
+HeadPosition SSD::get_maximum_head_position() {
+	return HeadPosition(track_count_);
 }
 
 int SSD::get_head_count() {
@@ -45,5 +45,5 @@ int SSD::get_head_count() {
 }
 
 long SSD::get_file_offset_for_position(Track::Address address) {
-	return (address.position * head_count_ + address.head) * 256 * 10;
+	return (address.position.as_int() * head_count_ + address.head) * 256 * 10;
 }

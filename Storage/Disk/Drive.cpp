@@ -44,13 +44,13 @@ bool Drive::is_sleeping() {
 }
 
 bool Drive::get_is_track_zero() {
-	return head_position_ == 0;
+	return head_position_ == HeadPosition(0);
 }
 
-void Drive::step(int direction) {
-	int old_head_position = head_position_;
-	head_position_ = std::max(head_position_ + direction, 0);
-//	printf("Step %d -> %d\n", direction, head_position_);
+void Drive::step(HeadPosition offset) {
+	HeadPosition old_head_position = head_position_;
+	head_position_ += offset;
+	if(head_position_ < HeadPosition(0)) head_position_ = HeadPosition(0);
 
 	// If the head moved, flush the old track.
 	if(head_position_ != old_head_position) {

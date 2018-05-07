@@ -61,8 +61,8 @@ DMK::DMK(const std::string &file_name) :
 	if(format) throw Error::InvalidFormat;
 }
 
-int DMK::get_head_position_count() {
-	return head_position_count_;
+HeadPosition DMK::get_maximum_head_position() {
+	return HeadPosition(head_position_count_);
 }
 
 int DMK::get_head_count() {
@@ -76,7 +76,7 @@ bool DMK::get_is_read_only() {
 }
 
 long DMK::get_file_offset_for_position(Track::Address address) {
-	return (address.head*head_count_ + address.position) * track_length_ + 16;
+	return (address.head*head_count_ + address.position.as_int()) * track_length_ + 16;
 }
 
 std::shared_ptr<::Storage::Disk::Track> DMK::get_track_at_position(::Storage::Disk::Track::Address address) {

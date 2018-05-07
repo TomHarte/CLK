@@ -35,12 +35,12 @@ class DiskImage {
 		virtual ~DiskImage() {}
 
 		/*!
-			@returns the number of discrete positions that this disk uses to model its complete surface area.
+			@returns the distance at which there stops being any further content.
 
 			This is not necessarily a track count. There is no implicit guarantee that every position will
 			return a distinct track, or — e.g. if the media is holeless — will return any track at all.
 		*/
-		virtual int get_head_position_count() = 0;
+		virtual HeadPosition get_maximum_head_position() = 0;
 
 		/*!
 			@returns the number of heads (and, therefore, impliedly surfaces) available on this disk.
@@ -87,7 +87,7 @@ template <typename T> class DiskImageHolder: public DiskImageHolderBase {
 			disk_image_(args...) {}
 		~DiskImageHolder();
 
-		int get_head_position_count();
+		HeadPosition get_maximum_head_position();
 		int get_head_count();
 		std::shared_ptr<Track> get_track_at_position(Track::Address address);
 		void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track);

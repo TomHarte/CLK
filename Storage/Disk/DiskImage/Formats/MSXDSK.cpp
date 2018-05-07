@@ -46,8 +46,8 @@ MSXDSK::MSXDSK(const std::string &file_name) :
 	set_geometry(sectors_per_track, sector_size, 1, true);
 }
 
-int MSXDSK::get_head_position_count() {
-	return track_count_;
+HeadPosition MSXDSK::get_maximum_head_position() {
+	return HeadPosition(track_count_);
 }
 
 int MSXDSK::get_head_count() {
@@ -55,5 +55,5 @@ int MSXDSK::get_head_count() {
 }
 
 long MSXDSK::get_file_offset_for_position(Track::Address address) {
-	return (address.position*head_count_ + address.head) * 512 * 9;
+	return (address.position.as_int()*head_count_ + address.head) * 512 * 9;
 }

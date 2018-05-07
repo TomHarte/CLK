@@ -282,7 +282,7 @@ void WD1770::posit_event(int new_event_type) {
 			track_ = 0;
 			goto verify;
 		}
-		get_drive().step(step_direction_ ? 1 : -1);
+		get_drive().step(Storage::Disk::HeadPosition(step_direction_ ? 1 : -1));
 		unsigned int time_to_wait;
 		switch(command_ & 3) {
 			default:

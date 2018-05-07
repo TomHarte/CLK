@@ -186,8 +186,8 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 	}
 }
 
-int CPCDSK::get_head_position_count() {
-	return head_position_count_;
+HeadPosition CPCDSK::get_maximum_head_position() {
+	return HeadPosition(head_position_count_);
 }
 
 int CPCDSK::get_head_count() {
@@ -195,7 +195,7 @@ int CPCDSK::get_head_count() {
 }
 
 std::size_t CPCDSK::index_for_track(::Storage::Disk::Track::Address address) {
-	return static_cast<std::size_t>((address.position * head_count_) + address.head);
+	return static_cast<std::size_t>((address.position.as_int() * head_count_) + address.head);
 }
 
 std::shared_ptr<Track> CPCDSK::get_track_at_position(::Storage::Disk::Track::Address address) {
@@ -231,14 +231,14 @@ void CPCDSK::set_tracks(const std::map<::Storage::Disk::Track::Address, std::sha
 		std::size_t chronological_track = index_for_track(pair.first);
 		if(chronological_track >= tracks_.size()) {
 			tracks_.resize(chronological_track+1);
-			head_position_count_ = pair.first.position;
+			head_position_count_ = pair.first.position.as_int();
 		}
 
 		// Get the track, or create it if necessary.
 		Track *track = tracks_[chronological_track].get();
 		if(!track) {
 			track = new Track;
-			track->track = static_cast<uint8_t>(pair.first.position);
+			track->track = static_cast<uint8_t>(pair.first.position.as_int());
 			track->side = static_cast<uint8_t>(pair.first.head);
 			track->data_rate = Track::DataRate::SingleOrDoubleDensity;
 			track->data_encoding = Track::DataEncoding::MFM;
