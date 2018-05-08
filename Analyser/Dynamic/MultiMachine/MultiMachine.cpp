@@ -22,6 +22,10 @@ MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machin
 	crt_machine_.set_delegate(this);
 }
 
+ActivitySource::Machine *MultiMachine::activity_source() {
+	return nullptr; // TODO
+}
+
 ConfigurationTarget::Machine *MultiMachine::configuration_target() {
 	if(has_picked_) {
 		return machines_.front()->configuration_target();

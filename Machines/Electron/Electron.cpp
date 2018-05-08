@@ -8,6 +8,7 @@
 
 #include "Electron.hpp"
 
+#include "../ActivitySource.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
@@ -45,7 +46,8 @@ class ConcreteMachine:
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public Tape::Delegate,
-	public Utility::TypeRecipient {
+	public Utility::TypeRecipient,
+	public ActivitySource::Machine {
 	public:
 		ConcreteMachine() :
 			m6502_(*this),
@@ -215,12 +217,15 @@ class ConcreteMachine:
 
 							tape_.set_is_enabled((*value & 6) != 6);
 							tape_.set_is_in_input_mode((*value & 6) == 0);
-							tape_.set_is_running(((*value)&0x40) ? true : false);
+							tape_.set_is_running((*value & 0x40) ? true : false);
 
-							// TODO: caps lock LED
+							caps_led_state_ = !!(*value & 0x80);
+							if(activity_observer_)
+								activity_observer_->set_led_status(caps_led, caps_led_state_);
 						}
 
-					// deliberate fallthrough
+					// deliberate fallthrough; fe07 contains the display mode.
+
 					case 0xfe02: case 0xfe03:
 					case 0xfe08: case 0xfe09: case 0xfe0a: case 0xfe0b:
 					case 0xfe0c: case 0xfe0d: case 0xfe0e: case 0xfe0f:
@@ -321,8 +326,6 @@ class ConcreteMachine:
 									if(address == 0xf0a8) {
 										if(!ram_[0x247] && service_call == 14) {
 											tape_.set_delegate(nullptr);
-
-											// TODO: handle tape wrap around.
 
 											int cycles_left_while_plausibly_in_data = 50;
 											tape_.clear_interrupts(Interrupt::ReceiveDataFull);
@@ -477,6 +480,14 @@ class ConcreteMachine:
 			return selection_set;
 		}
 
+		void set_activity_observer(ActivityObserver *observer) override {
+			activity_observer_ = observer;
+			if(activity_observer_) {
+				activity_observer_->register_led(caps_led);
+				activity_observer_->set_led_status(caps_led, caps_led_state_);
+			}
+		}
+
 	private:
 		// MARK: - Work deferral updates.
 		inline void update_display() {
@@ -563,6 +574,11 @@ class ConcreteMachine:
 		Outputs::Speaker::LowpassSpeaker<SoundGenerator> speaker_;
 
 		bool speaker_is_enabled_ = false;
+
+		// MARK: - Caps Lock status and the activity observer.
+		const std::string caps_led = "CAPS";
+		bool caps_led_state_ = false;
+		ActivityObserver *activity_observer_ = nullptr;
 };
 
 }
