@@ -29,7 +29,14 @@ typedef NS_ENUM(NSInteger, CSMachineCPCModel) {
 
 typedef NS_ENUM(NSInteger, CSMachineOricModel) {
 	CSMachineOricModelOric1,
-	CSMachineOricModelOricAtmos
+	CSMachineOricModelOricAtmos,
+	CSMachineOricModelPravetz
+};
+
+typedef NS_ENUM(NSInteger, CSMachineOricDiskInterface) {
+	CSMachineOricDiskInterfaceNone,
+	CSMachineOricDiskInterfaceMicrodisc,
+	CSMachineOricDiskInterfacePravetz
 };
 
 typedef NS_ENUM(NSInteger, CSMachineVic20Region) {
@@ -49,7 +56,7 @@ typedef int Kilobytes;
 - (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs;
 - (instancetype)initWithAmstradCPCModel:(CSMachineCPCModel)model;
 - (instancetype)initWithMSXHasDiskDrive:(BOOL)hasDiskDrive;
-- (instancetype)initWithOricModel:(CSMachineOricModel)model hasMicrodrive:(BOOL)hasMicrodrive;
+- (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface;
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region memorySize:(Kilobytes)memorySize hasC1540:(BOOL)hasC1540;
 - (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize useZX81ROM:(BOOL)useZX81ROM;
 - (instancetype)initWithZX81MemorySize:(Kilobytes)memorySize;

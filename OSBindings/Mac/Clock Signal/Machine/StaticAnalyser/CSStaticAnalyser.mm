@@ -81,14 +81,22 @@
 	return self;
 }
 
-- (instancetype)initWithOricModel:(CSMachineOricModel)model hasMicrodrive:(BOOL)hasMicrodrive {
+- (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Oric::Target;
 		std::unique_ptr<Target> target(new Target);
 		target->machine = Analyser::Machine::Oric;
-		target->use_atmos_rom = (model == CSMachineOricModelOricAtmos);
-		target->has_microdrive = !!hasMicrodrive;
+		switch(model) {
+			case CSMachineOricModelOric1:		target->rom = Target::ROM::BASIC10;	break;
+			case CSMachineOricModelOricAtmos:	target->rom = Target::ROM::BASIC11;	break;
+			case CSMachineOricModelPravetz:		target->rom = Target::ROM::Pravetz;	break;
+		}
+		switch(diskInterface) {
+			case CSMachineOricDiskInterfaceNone:		target->disk_interface = Target::DiskInterface::None;		break;
+			case CSMachineOricDiskInterfaceMicrodisc:	target->disk_interface = Target::DiskInterface::Microdisc;	break;
+			case CSMachineOricDiskInterfacePravetz:		target->disk_interface = Target::DiskInterface::Pravetz;	break;
+		}
 		_targets.push_back(std::move(target));
 	}
 	return self;
