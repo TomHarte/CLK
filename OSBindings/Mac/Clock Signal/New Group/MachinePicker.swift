@@ -27,7 +27,7 @@ class MachinePicker: NSObject {
 
 	// MARK: - Oric properties
 	@IBOutlet var oricModelTypeButton: NSPopUpButton?
-	@IBOutlet var oricHasMicrodriveButton: NSButton?
+	@IBOutlet var oricDiskInterfaceButton: NSPopUpButton?
 
 	// MARK: - Vic-20 properties
 	@IBOutlet var vic20RegionButton: NSPopUpButton?
@@ -65,7 +65,7 @@ class MachinePicker: NSObject {
 		msxHasDiskDriveButton?.state = standardUserDefaults.bool(forKey: "new.msxDiskDrive") ? .on : .off
 
 		// Oric settings
-		oricHasMicrodriveButton?.state = standardUserDefaults.bool(forKey: "new.oricMicrodrive") ? .on : .off
+		oricDiskInterfaceButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricDiskInterface"))
 		oricModelTypeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.oricModel"))
 
 		// Vic-20 settings
@@ -102,7 +102,7 @@ class MachinePicker: NSObject {
 		standardUserDefaults.set(msxHasDiskDriveButton?.state == .on, forKey: "new.msxDiskDrive")
 
 		// Oric settings
-		standardUserDefaults.set(oricHasMicrodriveButton?.state == .on, forKey: "new.oricMicrodrive")
+		standardUserDefaults.set(oricDiskInterfaceButton!.selectedTag(), forKey: "new.oricDiskInterface")
 		standardUserDefaults.set(oricModelTypeButton!.selectedTag(), forKey: "new.oricModel")
 
 		// Vic-20 settings
@@ -156,11 +156,21 @@ class MachinePicker: NSObject {
 				return CSStaticAnalyser(msxHasDiskDrive: msxHasDiskDriveButton!.state == .on)
 
 			case "oric":
-				let hasMicrodrive = oricHasMicrodriveButton!.state == .on
-				switch oricModelTypeButton!.selectedItem!.tag {
-					case 1:		return CSStaticAnalyser(oricModel: .oric1, hasMicrodrive: hasMicrodrive)
-					default:	return CSStaticAnalyser(oricModel: .oricAtmos, hasMicrodrive: hasMicrodrive)
+				var diskInterface: CSMachineOricDiskInterface = .none
+				switch oricDiskInterfaceButton!.selectedTag() {
+					case 1:		diskInterface = .microdisc
+					case 2:		diskInterface = .pravetz
+					default: 	break;
+
 				}
+				var model: CSMachineOricModel = .oric1
+				switch oricModelTypeButton!.selectedItem!.tag {
+					case 1:		model = .oricAtmos
+					case 2:		model = .pravetz
+					default:	break;
+				}
+
+				return CSStaticAnalyser(oricModel: model, diskInterface: diskInterface)
 
 			case "vic20":
 				let memorySize = Kilobytes(vic20MemorySizeButton!.selectedItem!.tag)

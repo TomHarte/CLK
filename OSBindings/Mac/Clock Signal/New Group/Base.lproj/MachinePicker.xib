@@ -18,7 +18,7 @@
             <windowStyleMask key="styleMask" titled="YES" documentModal="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="600" height="204"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1366" height="768"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
                 <rect key="frame" x="0.0" y="0.0" width="600" height="204"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -132,7 +132,7 @@ Gw
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="00d-sg-Krh">
-                                            <rect key="frame" x="54" y="66" width="94" height="26"/>
+                                            <rect key="frame" x="58" y="66" width="94" height="26"/>
                                             <popUpButtonCell key="cell" type="push" title="CPC6128" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="6128" imageScaling="proportionallyDown" inset="2" selectedItem="klh-ZE-Agp" id="hVJ-h6-iea">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -146,8 +146,8 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="q9q-sl-J0q">
-                                            <rect key="frame" x="8" y="71" width="42" height="17"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model" id="Cw3-q5-1bC">
+                                            <rect key="frame" x="8" y="71" width="46" height="17"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="Cw3-q5-1bC">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -197,11 +197,11 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="MSX" identifier="msx" id="6SR-DY-zdI">
                                 <view key="view" id="mWD-An-tR7">
-                                    <rect key="frame" x="10" y="33" width="554" height="54"/>
+                                    <rect key="frame" x="10" y="33" width="554" height="93"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8xT-Pr-8SE">
-                                            <rect key="frame" x="15" y="35" width="124" height="18"/>
+                                            <rect key="frame" x="15" y="74" width="124" height="18"/>
                                             <buttonCell key="cell" type="check" title="Attach disk drive" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="CB3-nA-VTM">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -218,48 +218,66 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Oric" identifier="oric" id="NSx-DC-p4M">
                                 <view key="view" id="sOR-e0-8iZ">
-                                    <rect key="frame" x="10" y="33" width="554" height="89"/>
+                                    <rect key="frame" x="10" y="33" width="554" height="93"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="mZw-PY-0Yv">
-                                            <rect key="frame" x="15" y="43" width="129" height="18"/>
-                                            <buttonCell key="cell" type="check" title="Attach Microdrive" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="Wl2-KO-smb">
-                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                                <font key="font" metaFont="system"/>
-                                            </buttonCell>
-                                        </button>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0ct-tf-uRH">
-                                            <rect key="frame" x="17" y="69" width="42" height="17"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model" id="Xm1-7x-YVl">
+                                            <rect key="frame" x="17" y="73" width="46" height="17"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Model:" id="Xm1-7x-YVl">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ENP-hI-BVZ">
-                                            <rect key="frame" x="63" y="64" width="105" height="26"/>
-                                            <popUpButtonCell key="cell" type="push" title="Oric-1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="proportionallyDown" inset="2" selectedItem="jGN-1a-biF" id="Jll-EJ-cMr">
+                                            <rect key="frame" x="67" y="68" width="105" height="26"/>
+                                            <popUpButtonCell key="cell" type="push" title="Oric-1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="jGN-1a-biF" id="Jll-EJ-cMr">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="E9d-fH-Eak">
                                                     <items>
-                                                        <menuItem title="Oric-1" state="on" tag="1" id="jGN-1a-biF"/>
-                                                        <menuItem title="Oric Atmos" tag="2" id="p5O-Jq-Tft"/>
+                                                        <menuItem title="Oric-1" state="on" id="jGN-1a-biF"/>
+                                                        <menuItem title="Oric Atmos" tag="1" id="p5O-Jq-Tft"/>
+                                                        <menuItem title="Pravetz 8D" tag="2" id="u6z-2t-ly9"/>
                                                     </items>
                                                 </menu>
                                             </popUpButtonCell>
                                         </popUpButton>
+                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fYL-p6-wyn">
+                                            <rect key="frame" x="111" y="37" width="96" height="26"/>
+                                            <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="XhK-Jh-oTW" id="aYb-m1-H9X">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="hy3-Li-nlW">
+                                                    <items>
+                                                        <menuItem title="None" state="on" id="XhK-Jh-oTW"/>
+                                                        <menuItem title="Microdisc" tag="1" id="1jS-Lz-FRj"/>
+                                                        <menuItem title="8DOS" tag="2" id="edb-fl-C8Y"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                        </popUpButton>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="okM-ZI-NbF">
+                                            <rect key="frame" x="15" y="42" width="92" height="17"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Disk interface:" id="SFK-hS-tFC">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="mZw-PY-0Yv" secondAttribute="bottom" constant="17" id="74q-Nf-cCV"/>
                                         <constraint firstItem="ENP-hI-BVZ" firstAttribute="top" secondItem="sOR-e0-8iZ" secondAttribute="top" constant="1" id="Bgq-8R-8I4"/>
-                                        <constraint firstItem="mZw-PY-0Yv" firstAttribute="top" secondItem="ENP-hI-BVZ" secondAttribute="bottom" constant="8" id="Mjq-84-vdN"/>
+                                        <constraint firstItem="fYL-p6-wyn" firstAttribute="leading" secondItem="okM-ZI-NbF" secondAttribute="trailing" constant="8" id="Pra-lC-JPB"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="ENP-hI-BVZ" secondAttribute="trailing" constant="17" id="Sr5-QZ-xU3"/>
                                         <constraint firstItem="ENP-hI-BVZ" firstAttribute="leading" secondItem="0ct-tf-uRH" secondAttribute="trailing" constant="8" id="Wcg-1P-z6l"/>
+                                        <constraint firstItem="okM-ZI-NbF" firstAttribute="leading" secondItem="sOR-e0-8iZ" secondAttribute="leading" constant="17" id="Xhq-0O-N2R"/>
+                                        <constraint firstItem="okM-ZI-NbF" firstAttribute="centerY" secondItem="fYL-p6-wyn" secondAttribute="centerY" id="dyC-ab-DKU"/>
                                         <constraint firstItem="0ct-tf-uRH" firstAttribute="centerY" secondItem="ENP-hI-BVZ" secondAttribute="centerY" id="e8Q-nY-gIr"/>
-                                        <constraint firstItem="mZw-PY-0Yv" firstAttribute="leading" secondItem="sOR-e0-8iZ" secondAttribute="leading" constant="17" id="equ-PG-WAg"/>
-                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="mZw-PY-0Yv" secondAttribute="trailing" constant="17" id="erm-Kw-icY"/>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="fYL-p6-wyn" secondAttribute="trailing" constant="17" id="ewV-Dw-zj2"/>
                                         <constraint firstItem="0ct-tf-uRH" firstAttribute="leading" secondItem="sOR-e0-8iZ" secondAttribute="leading" constant="19" id="huH-9L-97Y"/>
+                                        <constraint firstItem="fYL-p6-wyn" firstAttribute="top" secondItem="ENP-hI-BVZ" secondAttribute="bottom" constant="10" id="l3T-Ve-0Jw"/>
+                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="fYL-p6-wyn" secondAttribute="bottom" constant="10" id="mN9-AZ-wSn"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
@@ -269,7 +287,7 @@ Gw
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ueK-gq-gaF">
-                                            <rect key="frame" x="67" y="67" width="144" height="26"/>
+                                            <rect key="frame" x="71" y="67" width="144" height="26"/>
                                             <popUpButtonCell key="cell" type="push" title="European (PAL)" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="45i-0n-gau" id="yi7-eo-I0q">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -285,7 +303,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2eV-Us-eEv">
-                                            <rect key="frame" x="102" y="36" width="114" height="26"/>
+                                            <rect key="frame" x="106" y="36" width="114" height="26"/>
                                             <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="fOl-8Q-fsA" id="rH0-7T-pJE">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -299,16 +317,16 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="MTh-9p-FqC">
-                                            <rect key="frame" x="17" y="72" width="46" height="17"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Region" id="F3g-Ya-ypU">
+                                            <rect key="frame" x="17" y="72" width="50" height="17"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Region:" id="F3g-Ya-ypU">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                             </textFieldCell>
                                         </textField>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gRS-DK-rIy">
-                                            <rect key="frame" x="15" y="41" width="83" height="17"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size" id="a4I-vG-yCp">
+                                            <rect key="frame" x="15" y="41" width="87" height="17"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size:" id="a4I-vG-yCp">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -346,7 +364,7 @@ Gw
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="I1a-Eu-5UB">
-                                            <rect key="frame" x="102" y="66" width="114" height="26"/>
+                                            <rect key="frame" x="106" y="66" width="114" height="26"/>
                                             <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="4Sa-jR-xOd" id="B8M-do-Yod">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -360,8 +378,8 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NCX-4e-lSu">
-                                            <rect key="frame" x="15" y="71" width="83" height="17"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size" id="e6x-TE-OC5">
+                                            <rect key="frame" x="15" y="71" width="87" height="17"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size:" id="e6x-TE-OC5">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -390,11 +408,11 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="ZX81" identifier="zx81" id="Wnn-nQ-gZ6">
                                 <view key="view" id="bmd-gL-gzT">
-                                    <rect key="frame" x="10" y="33" width="554" height="54"/>
+                                    <rect key="frame" x="10" y="33" width="554" height="93"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="5aO-UX-HnX">
-                                            <rect key="frame" x="102" y="27" width="114" height="26"/>
+                                            <rect key="frame" x="106" y="66" width="114" height="26"/>
                                             <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="7QC-Ij-hES" id="d3W-Gl-3Mf">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -408,8 +426,8 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8tU-73-XEE">
-                                            <rect key="frame" x="15" y="32" width="83" height="17"/>
-                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size" id="z4b-oR-Yl2">
+                                            <rect key="frame" x="15" y="71" width="87" height="17"/>
+                                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size:" id="z4b-oR-Yl2">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
@@ -455,7 +473,7 @@ Gw
                 <outlet property="electronDFSButton" destination="JqM-IK-FMP" id="C80-1k-TdQ"/>
                 <outlet property="machineSelector" destination="VUb-QG-x7c" id="crR-hB-jGd"/>
                 <outlet property="msxHasDiskDriveButton" destination="8xT-Pr-8SE" id="zGH-GA-9QF"/>
-                <outlet property="oricHasMicrodriveButton" destination="mZw-PY-0Yv" id="EuA-uL-PNR"/>
+                <outlet property="oricDiskInterfaceButton" destination="fYL-p6-wyn" id="aAt-wM-hRZ"/>
                 <outlet property="oricModelTypeButton" destination="ENP-hI-BVZ" id="n9i-Ym-miE"/>
                 <outlet property="vic20HasC1540Button" destination="Lrf-gL-6EI" id="21g-dJ-mOo"/>
                 <outlet property="vic20MemorySizeButton" destination="2eV-Us-eEv" id="5j4-jw-89d"/>

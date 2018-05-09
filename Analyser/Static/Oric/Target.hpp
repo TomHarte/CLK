@@ -17,8 +17,20 @@ namespace Static {
 namespace Oric {
 
 struct Target: public ::Analyser::Static::Target {
-	bool use_atmos_rom = false;
-	bool has_microdrive = false;
+	enum class ROM {
+		BASIC10,
+		BASIC11,
+		Pravetz
+	};
+
+	enum class DiskInterface {
+		Microdisc,
+		Pravetz,
+		None
+	};
+
+	ROM rom = ROM::BASIC11;
+	DiskInterface disk_interface = DiskInterface::None;
 	std::string loading_command;
 };
 

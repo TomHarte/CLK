@@ -22,6 +22,7 @@
 #include "../../Processors/6502/6502.hpp"
 #include "../../Components/6522/6522.hpp"
 #include "../../Components/AY38910/AY38910.hpp"
+#include "../../Components/DiskII/DiskII.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
 #include "../../Storage/Tape/Parsers/Oric.hpp"
@@ -189,7 +190,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		Keyboard &keyboard_;
 };
 
-class ConcreteMachine:
+template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine,
@@ -202,13 +203,13 @@ class ConcreteMachine:
 	public Machine {
 
 	public:
-		ConcreteMachine() :
+		ConcreteMachine(const Analyser::Static::Oric::Target *target) :
 				m6502_(*this),
+				rom_type_(target ? target->rom : Analyser::Static::Oric::Target::ROM::BASIC10),
 				ay8910_(audio_queue_),
 				speaker_(ay8910_),
 				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),
-				via_(via_port_handler_),
-				paged_rom_(rom_) {
+				via_(via_port_handler_) {
 			set_clock_rate(1000000);
 			via_port_handler_.set_interrupt_delegate(this);
 			tape_player_.set_delegate(this);
@@ -221,26 +222,46 @@ class ConcreteMachine:
 
 		// Obtains the system ROMs.
 		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
-			auto roms = roms_with_names(
-				"Oric",
-				{
-					"basic10.rom",	"basic11.rom",
-					"microdisc.rom", "colour.rom"
-				});
+			std::vector<std::string> rom_names = {"colour.rom"};
+			switch(rom_type_) {
+				case Analyser::Static::Oric::Target::ROM::BASIC10: rom_names.push_back("basic10.rom");	break;
+				case Analyser::Static::Oric::Target::ROM::BASIC11: rom_names.push_back("basic11.rom");	break;
+				case Analyser::Static::Oric::Target::ROM::Pravetz: rom_names.push_back("pravetz.rom");	break;
+			}
+			switch(disk_interface) {
+				default: break;
+				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:	rom_names.push_back("microdisc.rom");	break;
+				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:	rom_names.push_back("8dos.rom");	break;
+			}
+
+			auto roms = roms_with_names("Oric", rom_names);
 
 			for(std::size_t index = 0; index < roms.size(); ++index) {
 				if(!roms[index]) return false;
 			}
 			
-			basic10_rom_ = std::move(*roms[0]);
-			basic11_rom_ = std::move(*roms[1]);
-			microdisc_rom_ = std::move(*roms[2]);
-			colour_rom_ = std::move(*roms[3]);
+			colour_rom_ = std::move(*roms[0]);
+			rom_ = std::move(*roms[1]);
 
-			basic10_rom_.resize(16384);
-			basic11_rom_.resize(16384);
-			microdisc_rom_.resize(8192);
+			switch(disk_interface) {
+				default: break;
+				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+					microdisc_rom_ = std::move(*roms[2]);
+					microdisc_rom_.resize(8192);
+				break;
+				case Analyser::Static::Oric::Target::DiskInterface::Pravetz: {
+					pravetz_rom_ = std::move(*roms[2]);
+					pravetz_rom_.resize(512);
+
+					auto state_machine_rom = roms_with_names("DiskII", {"state-machine-16.rom"});
+					if(!state_machine_rom[0]) return false;
+					diskii_.set_state_machine(*state_machine_rom[0]);
+				} break;
+			}
+
 			colour_rom_.resize(128);
+			rom_.resize(16384);
+			paged_rom_ = rom_.data();
 
 			if(video_output_) video_output_->set_colour_rom(colour_rom_);
 
@@ -267,47 +288,67 @@ class ConcreteMachine:
 		void configure_as_target(const Analyser::Static::Target *target) override final {
 			auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target);
 
-			if(oric_target->has_microdrive) {
-				microdisc_is_enabled_ = true;
-				microdisc_did_change_paging_flags(&microdisc_);
-				microdisc_.set_delegate(this);
+			switch(oric_target->disk_interface) {
+				default: break;
+				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+					microdisc_did_change_paging_flags(&microdisc_);
+					microdisc_.set_delegate(this);
+				break;
 			}
 
 			if(!oric_target->loading_command.empty()) {
 				type_string(oric_target->loading_command);
 			}
 
-			if(oric_target->use_atmos_rom) {
-				std::memcpy(rom_, basic11_rom_.data(), std::min(basic11_rom_.size(), sizeof(rom_)));
-
-				is_using_basic11_ = true;
-				tape_get_byte_address_ = 0xe6c9;
-				scan_keyboard_address_ = 0xf495;
-				tape_speed_address_ = 0x024d;
-			} else {
-				std::memcpy(rom_, basic10_rom_.data(), std::min(basic10_rom_.size(), sizeof(rom_)));
-
-				is_using_basic11_ = false;
-				tape_get_byte_address_ = 0xe630;
-				scan_keyboard_address_ = 0xf43c;
-				tape_speed_address_ = 0x67;
+			switch(rom_type_) {
+				case Analyser::Static::Oric::Target::ROM::BASIC10:
+					tape_get_byte_address_ = 0xe630;
+					scan_keyboard_address_ = 0xf43c;
+					tape_speed_address_ = 0x67;
+				break;
+				case Analyser::Static::Oric::Target::ROM::BASIC11:
+				case Analyser::Static::Oric::Target::ROM::Pravetz:
+					tape_get_byte_address_ = 0xe6c9;
+					scan_keyboard_address_ = 0xf495;
+					tape_speed_address_ = 0x024d;
+				break;
 			}
 
 			insert_media(target->media);
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override final {
+			bool inserted = false;
+
 			if(media.tapes.size()) {
 				tape_player_.set_tape(media.tapes.front());
+				inserted = true;
 			}
 
-			int drive_index = 0;
-			for(auto &disk : media.disks) {
-				if(drive_index < 4) microdisc_.set_disk(disk, drive_index);
-				drive_index++;
+			if(!media.disks.empty()) {
+				switch(disk_interface) {
+					case Analyser::Static::Oric::Target::DiskInterface::Microdisc: {
+						inserted = true;
+						int drive_index = 0;
+						for(auto &disk : media.disks) {
+							if(drive_index < 4) microdisc_.set_disk(disk, drive_index);
+							drive_index++;
+						}
+					} break;
+					case Analyser::Static::Oric::Target::DiskInterface::Pravetz: {
+						inserted = true;
+						int drive_index = 0;
+						for(auto &disk : media.disks) {
+							if(drive_index < 2) diskii_.set_disk(disk, drive_index);
+							drive_index++;
+						}
+					} break;
+
+					default: break;
+				}
 			}
 
-			return !media.tapes.empty() || (!media.disks.empty() && microdisc_is_enabled_);
+			return inserted;
 		}
 
 		// to satisfy CPU::MOS6502::BusHandler
@@ -318,7 +359,7 @@ class ConcreteMachine:
 				// 024D = 0 => fast; otherwise slow
 				// E6C9 = read byte: return byte in A
 				if(	address == tape_get_byte_address_ &&
-					paged_rom_ == rom_ &&
+					paged_rom_ == rom_.data() &&
 					use_fast_tape_hack_ &&
 					operation == CPU::MOS6502::BusOperation::ReadOpcode &&
 					tape_player_.has_tape() &&
@@ -331,23 +372,45 @@ class ConcreteMachine:
 				}
 			} else {
 				if((address & 0xff00) == 0x0300) {
-					if(microdisc_is_enabled_ && address >= 0x0310) {
-						switch(address) {
-							case 0x0310: case 0x0311: case 0x0312: case 0x0313:
-								if(isReadOperation(operation)) *value = microdisc_.get_register(address);
-								else microdisc_.set_register(address, *value);
-							break;
-							case 0x314: case 0x315: case 0x316: case 0x317:
-								if(isReadOperation(operation)) *value = microdisc_.get_interrupt_request_register();
-								else microdisc_.set_control_register(*value);
-							break;
-							case 0x318: case 0x319: case 0x31a: case 0x31b:
-								if(isReadOperation(operation)) *value = microdisc_.get_data_request_register();
-							break;
-						}
-					} else {
+					if(address < 0x0310 || (disk_interface == Analyser::Static::Oric::Target::DiskInterface::None)) {
 						if(isReadOperation(operation)) *value = via_.get_register(address);
 						else via_.set_register(address, *value);
+					} else {
+						switch(disk_interface) {
+							default: break;
+							case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+								switch(address) {
+									case 0x0310: case 0x0311: case 0x0312: case 0x0313:
+										if(isReadOperation(operation)) *value = microdisc_.get_register(address);
+										else microdisc_.set_register(address, *value);
+									break;
+									case 0x314: case 0x315: case 0x316: case 0x317:
+										if(isReadOperation(operation)) *value = microdisc_.get_interrupt_request_register();
+										else microdisc_.set_control_register(*value);
+									break;
+									case 0x318: case 0x319: case 0x31a: case 0x31b:
+										if(isReadOperation(operation)) *value = microdisc_.get_data_request_register();
+									break;
+								}
+							break;
+							case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
+								if(address >= 0x0320) {
+									if(isReadOperation(operation)) *value = pravetz_rom_[pravetz_rom_base_pointer_ + (address & 0xff)];
+									else {
+										switch(address) {
+											case 0x380:	case 0x381:	case 0x382:	case 0x383:
+												ram_top_ = (address&1) ? 0xffff : 0xbfff;
+												pravetz_rom_base_pointer_ = (address&2) ? 0x100 : 0x000;
+											break;
+										}
+									}
+								} else {
+									update_diskii();
+									if(isReadOperation(operation)) *value = diskii_.get_register(address);
+									else diskii_.set_register(address, *value);
+								}
+							break;
+						}
 					}
 				} else {
 					if(isReadOperation(operation))
@@ -372,7 +435,11 @@ class ConcreteMachine:
 			via_.run_for(Cycles(1));
 			via_port_handler_.run_for(Cycles(1));
 			tape_player_.run_for(Cycles(1));
-			if(microdisc_is_enabled_) microdisc_.run_for(Cycles(8));
+			switch(disk_interface) {
+				default: break;
+				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:	microdisc_.run_for(Cycles(8));		break;
+				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:	cycles_since_diskii_update_ += 2;	break;
+			}
 			cycles_since_video_update_++;
 			return Cycles(1);
 		}
@@ -380,6 +447,7 @@ class ConcreteMachine:
 		forceinline void flush() {
 			update_video();
 			via_port_handler_.flush();
+			if(disk_interface == Analyser::Static::Oric::Target::DiskInterface::Pravetz) update_diskii();
 		}
 
 		// to satisfy CRTMachine::Machine
@@ -429,7 +497,7 @@ class ConcreteMachine:
 			int flags = microdisc->get_paging_flags();
 			if(!(flags&Microdisc::PagingFlags::BASICDisable)) {
 				ram_top_ = 0xbfff;
-				paged_rom_ = rom_;
+				paged_rom_ = rom_.data();
 			} else {
 				if(flags&Microdisc::PagingFlags::MicrodscDisable) {
 					ram_top_ = 0xffff;
@@ -487,15 +555,15 @@ class ConcreteMachine:
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 
 		// RAM and ROM
-		std::vector<uint8_t> basic11_rom_, basic10_rom_, microdisc_rom_, colour_rom_;
-		uint8_t ram_[65536], rom_[16384];
+		Analyser::Static::Oric::Target::ROM rom_type_;
+		std::vector<uint8_t> rom_, microdisc_rom_, colour_rom_;
+		uint8_t ram_[65536];
 		Cycles cycles_since_video_update_;
 		inline void update_video() {
 			video_output_->run_for(cycles_since_video_update_.flush());
 		}
 
 		// ROM bookkeeping
-		bool is_using_basic11_ = false;
 		uint16_t tape_get_byte_address_ = 0, scan_keyboard_address_ = 0, tape_speed_address_ = 0;
 		int keyboard_read_count_ = 0;
 
@@ -519,14 +587,26 @@ class ConcreteMachine:
 
 		// the Microdisc, if in use
 		class Microdisc microdisc_;
-		bool microdisc_is_enabled_ = false;
-		uint16_t ram_top_ = 0xbfff;
-		uint8_t *paged_rom_;
 
+		// the Pravetz/Disk II, if in use
+		Apple::DiskII diskii_;
+		std::vector<uint8_t> pravetz_rom_;
+		std::size_t pravetz_rom_base_pointer_ = 0;
+		Cycles cycles_since_diskii_update_;
+		void update_diskii() {
+			diskii_.run_for(cycles_since_diskii_update_.flush());
+		}
+
+		// Overlay RAM
+		uint16_t ram_top_ = 0xbfff;
+		uint8_t *paged_rom_ = nullptr;
+
+		// Helper to discern current IRQ state
 		inline void set_interrupt_line() {
-			m6502_.set_irq_line(
-				via_.get_interrupt_line() ||
-				(microdisc_is_enabled_ && microdisc_.get_interrupt_request_line()));
+			bool irq_line = via_.get_interrupt_line();
+			if(disk_interface == Analyser::Static::Oric::Target::DiskInterface::Microdisc)
+				irq_line |= microdisc_.get_interrupt_request_line();
+			m6502_.set_irq_line(irq_line);
 		}
 };
 
@@ -534,8 +614,14 @@ class ConcreteMachine:
 
 using namespace Oric;
 
-Machine *Machine::Oric() {
-	return new ConcreteMachine;
+Machine *Machine::Oric(const Analyser::Static::Target *target_hint) {
+	auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target_hint);
+	using DiskInterface = Analyser::Static::Oric::Target::DiskInterface;
+	switch(oric_target->disk_interface) {
+		default:						return new ConcreteMachine<DiskInterface::None>(oric_target);
+		case DiskInterface::Microdisc:	return new ConcreteMachine<DiskInterface::Microdisc>(oric_target);
+		case DiskInterface::Pravetz:	return new ConcreteMachine<DiskInterface::Pravetz>(oric_target);
+	}
 }
 
 Machine::~Machine() {}

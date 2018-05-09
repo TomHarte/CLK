@@ -184,3 +184,39 @@ void DiskII::set_component_is_sleeping(Sleeper *component, bool is_sleeping) {
 bool DiskII::is_sleeping() {
 	return controller_can_sleep_ && drive_is_sleeping_[0] && drive_is_sleeping_[1];
 }
+
+void DiskII::set_register(int address, uint8_t value) {
+	trigger_address(address, value);
+}
+
+uint8_t DiskII::get_register(int address) {
+	return trigger_address(address, 0xff);
+}
+
+uint8_t DiskII::trigger_address(int address, uint8_t value) {
+	switch(address & 0xf) {
+		default:
+		case 0x0:	set_control(Control::P0, false);	break;
+		case 0x1:	set_control(Control::P0, true);		break;
+		case 0x2:	set_control(Control::P1, false);	break;
+		case 0x3:	set_control(Control::P1, true);		break;
+		case 0x4:	set_control(Control::P2, false);	break;
+		case 0x5:	set_control(Control::P2, true);		break;
+		case 0x6:	set_control(Control::P3, false);	break;
+		case 0x7:	set_control(Control::P3, true);		break;
+
+		case 0x8:	set_control(Control::Motor, false);	break;
+		case 0x9:	set_control(Control::Motor, true);	break;
+
+		case 0xa:	select_drive(0);					break;
+		case 0xb:	select_drive(1);					break;
+
+		case 0xc:	return get_shift_register();
+		case 0xd:	set_data_register(value);			break;
+
+		case 0xe:	set_mode(Mode::Read);				break;
+		case 0xf:	set_mode(Mode::Write);				break;
+	}
+	return 0xff;
+}
+

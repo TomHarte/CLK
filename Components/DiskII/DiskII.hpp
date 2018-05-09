@@ -30,6 +30,16 @@ class DiskII:
 	public:
 		DiskII();
 
+		void set_register(int address, uint8_t value);
+		uint8_t get_register(int address);
+
+		void run_for(const Cycles cycles);
+		void set_state_machine(const std::vector<uint8_t> &);
+
+		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
+		bool is_sleeping() override;
+
+	private:
 		enum class Control {
 			P0, P1, P2, P3,
 			Motor,
@@ -43,13 +53,7 @@ class DiskII:
 		void set_data_register(uint8_t value);
 		uint8_t get_shift_register();
 
-		void run_for(const Cycles cycles);
-		void set_state_machine(const std::vector<uint8_t> &);
-
-		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
-		bool is_sleeping() override;
-
-	private:
+		uint8_t trigger_address(int address, uint8_t value);
 		void process_event(const Storage::Disk::Track::Event &event) override;
 		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override;
 

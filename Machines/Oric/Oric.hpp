@@ -10,6 +10,7 @@
 #define Oric_hpp
 
 #include "../../Configurable/Configurable.hpp"
+#include "../../Analyser/Static/StaticAnalyser.hpp"
 
 namespace Oric {
 
@@ -24,7 +25,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns an Oric.
-		static Machine *Oric();
+		static Machine *Oric(const Analyser::Static::Target *target_hint);
 };
 
 }

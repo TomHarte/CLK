@@ -134,17 +134,19 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &med
 		for(auto &disk: media.disks) {
 			Storage::Encodings::MFM::Parser parser(true, disk);
 			if(IsMicrodisc(parser)) {
-				target->has_microdrive = true;
+				target->disk_interface = Target::DiskInterface::Microdisc;
 				target->media.disks.push_back(disk);
 			}
 		}
-	} else {
-		target->has_microdrive = false;
 	}
+	else
+		target->disk_interface = Target::DiskInterface::None;
 
 	// TODO: really this should add two targets if not all votes agree
-	target->use_atmos_rom = basic11_votes >= basic10_votes;
-	if(target->has_microdrive) target->use_atmos_rom = true;
+	if(basic11_votes >= basic10_votes || target->disk_interface == Target::DiskInterface::Microdisc)
+		target->rom = Target::ROM::BASIC11;
+	else
+		target->rom = Target::ROM::BASIC10;
 
 	TargetList targets;
 	if(target->media.tapes.size() || target->media.disks.size() || target->media.cartridges.size())

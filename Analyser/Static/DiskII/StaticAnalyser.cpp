@@ -36,9 +36,9 @@ Analyser::Static::Target *OricTarget(const Storage::Encodings::AppleGCR::Sector 
 	using Target = Analyser::Static::Oric::Target;
 	auto *target = new Target;
 	target->machine = Analyser::Machine::Oric;
-
-	// TODO: configure the Oric as a Pravetz 8D with 8DOS.
-
+	target->rom = Target::ROM::Pravetz;
+	target->disk_interface = Target::DiskInterface::Pravetz;
+	target->loading_command = "call 800\n";
 	return target;
 }
 
