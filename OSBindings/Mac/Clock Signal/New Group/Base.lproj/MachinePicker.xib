@@ -231,13 +231,13 @@ Gw
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ENP-hI-BVZ">
                                             <rect key="frame" x="67" y="68" width="105" height="26"/>
-                                            <popUpButtonCell key="cell" type="push" title="Oric-1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="proportionallyDown" inset="2" selectedItem="jGN-1a-biF" id="Jll-EJ-cMr">
+                                            <popUpButtonCell key="cell" type="push" title="Oric-1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="jGN-1a-biF" id="Jll-EJ-cMr">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="E9d-fH-Eak">
                                                     <items>
-                                                        <menuItem title="Oric-1" state="on" tag="1" id="jGN-1a-biF"/>
-                                                        <menuItem title="Oric Atmos" tag="2" id="p5O-Jq-Tft"/>
+                                                        <menuItem title="Oric-1" state="on" id="jGN-1a-biF"/>
+                                                        <menuItem title="Oric Atmos" tag="1" id="p5O-Jq-Tft"/>
                                                         <menuItem title="Pravetz 8D" tag="2" id="u6z-2t-ly9"/>
                                                     </items>
                                                 </menu>
@@ -245,13 +245,13 @@ Gw
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fYL-p6-wyn">
                                             <rect key="frame" x="111" y="37" width="96" height="26"/>
-                                            <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="proportionallyDown" inset="2" selectedItem="XhK-Jh-oTW" id="aYb-m1-H9X">
+                                            <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="XhK-Jh-oTW" id="aYb-m1-H9X">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
                                                 <menu key="menu" id="hy3-Li-nlW">
                                                     <items>
-                                                        <menuItem title="None" state="on" tag="1" id="XhK-Jh-oTW"/>
-                                                        <menuItem title="Microdisc" tag="2" id="1jS-Lz-FRj"/>
+                                                        <menuItem title="None" state="on" id="XhK-Jh-oTW"/>
+                                                        <menuItem title="Microdisc" tag="1" id="1jS-Lz-FRj"/>
                                                         <menuItem title="8DOS" tag="2" id="edb-fl-C8Y"/>
                                                     </items>
                                                 </menu>
