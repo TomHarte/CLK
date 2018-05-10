@@ -399,7 +399,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 									else {
 										switch(address) {
 											case 0x380:	case 0x381:	case 0x382:	case 0x383:
-												ram_top_ = (address&1) ? 0xffff : 0xbfff;
+												ram_top_ = (address&1) ? basic_invisible_ram_top_ : basic_visible_ram_top_;
 												pravetz_rom_base_pointer_ = (address&2) ? 0x100 : 0x000;
 											break;
 										}
@@ -496,11 +496,11 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		void microdisc_did_change_paging_flags(class Microdisc *microdisc) override final {
 			int flags = microdisc->get_paging_flags();
 			if(!(flags&Microdisc::PagingFlags::BASICDisable)) {
-				ram_top_ = 0xbfff;
+				ram_top_ = basic_invisible_ram_top_;
 				paged_rom_ = rom_.data();
 			} else {
 				if(flags&Microdisc::PagingFlags::MicrodscDisable) {
-					ram_top_ = 0xffff;
+					ram_top_ = basic_visible_ram_top_;
 				} else {
 					ram_top_ = 0xdfff;
 					paged_rom_ = microdisc_rom_.data();
@@ -552,6 +552,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 	private:
+		const uint16_t basic_invisible_ram_top_ = 0xffff;
+		const uint16_t basic_visible_ram_top_ = 0xbfff;
+
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 
 		// RAM and ROM
@@ -598,7 +601,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// Overlay RAM
-		uint16_t ram_top_ = 0xbfff;
+		uint16_t ram_top_ = basic_visible_ram_top_;
 		uint8_t *paged_rom_ = nullptr;
 
 		// Helper to discern current IRQ state
