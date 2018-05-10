@@ -15,6 +15,7 @@
 #include "../../Storage/Disk/Disk.hpp"
 #include "../../Storage/Disk/Drive.hpp"
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -66,7 +67,7 @@ class DiskII:
 		int stepper_position_ = 0;
 
 		bool is_write_protected();
-		std::vector<uint8_t> state_machine_;
+		std::array<uint8_t, 256> state_machine_;
 		Storage::Disk::Drive drives_[2];
 		bool drive_is_sleeping_[2];
 		bool controller_can_sleep_ = false;
