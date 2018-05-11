@@ -33,7 +33,7 @@ namespace {
 		case Analyser::Machine::ColecoVision:	machine = new Machine::TypedDynamicMachine<Coleco::Vision::Machine>(Coleco::Vision::Machine::ColecoVision());	break;
 		case Analyser::Machine::Electron:		machine = new Machine::TypedDynamicMachine<Electron::Machine>(Electron::Machine::Electron());					break;
 		case Analyser::Machine::MSX:			machine = new Machine::TypedDynamicMachine<MSX::Machine>(MSX::Machine::MSX());									break;
-		case Analyser::Machine::Oric:			machine = new Machine::TypedDynamicMachine<Oric::Machine>(Oric::Machine::Oric());								break;
+		case Analyser::Machine::Oric:			machine = new Machine::TypedDynamicMachine<Oric::Machine>(Oric::Machine::Oric(target));							break;
 		case Analyser::Machine::Vic20:			machine = new Machine::TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());		break;
 		case Analyser::Machine::ZX8081:			machine = new Machine::TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(target));					break;
 

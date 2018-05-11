@@ -56,7 +56,7 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 		std::size_t sector_number_ = 0;
 		for(uint8_t c = 0; c < 16; ++c) {
 			segment += Encodings::AppleGCR::six_and_two_sync(10);
-			segment += Encodings::AppleGCR::header(0, track, c);
+			segment += Encodings::AppleGCR::header(254, track, c);
 			segment += Encodings::AppleGCR::six_and_two_sync(10);
 			segment += Encodings::AppleGCR::six_and_two_data(&track_data[sector_number_ * 256]);
 

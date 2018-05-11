@@ -64,8 +64,6 @@ void TimedEventLoop::jump_to_next_event() {
 	process_next_event();
 }
 
-char text[256];
-
 void TimedEventLoop::set_next_event_time_interval(Time interval) {
 	// Calculate [interval]*[input clock rate] + [subcycles until this event]
 	double double_interval = interval.get<double>() * static_cast<double>(input_clock_rate_) + subcycles_until_event_;
@@ -78,8 +76,6 @@ void TimedEventLoop::set_next_event_time_interval(Time interval) {
 
 	assert(cycles_until_event_ >= 0);
 	assert(subcycles_until_event_ >= 0.0);
-
-	sprintf(text, " + %0.8f -> %d / %0.4f", interval.get<double>(), cycles_until_event_, subcycles_until_event_);
 }
 
 Time TimedEventLoop::get_time_into_next_event() {

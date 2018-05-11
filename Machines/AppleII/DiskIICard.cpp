@@ -22,40 +22,13 @@ DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sec
 }
 
 void DiskIICard::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
-	if(isReadOperation(operation) && address < 0x100) {
-		*value &= boot_[address];
+	if(address < 0x100) {
+		if(isReadOperation(operation)) *value &= boot_[address];
 	} else {
-		using Control = Apple::DiskII::Control;
-		using Mode = Apple::DiskII::Mode;
-		switch(address & 0xf) {
-			case 0x0:	diskii_.set_control(Control::P0, false);	break;
-			case 0x1:	diskii_.set_control(Control::P0, true);		break;
-			case 0x2:	diskii_.set_control(Control::P1, false);	break;
-			case 0x3:	diskii_.set_control(Control::P1, true);		break;
-			case 0x4:	diskii_.set_control(Control::P2, false);	break;
-			case 0x5:	diskii_.set_control(Control::P2, true);		break;
-			case 0x6:	diskii_.set_control(Control::P3, false);	break;
-			case 0x7:	diskii_.set_control(Control::P3, true);		break;
-
-			case 0x8:	diskii_.set_control(Control::Motor, false);	break;
-			case 0x9:	diskii_.set_control(Control::Motor, true);	break;
-
-			case 0xa:	diskii_.select_drive(0);					break;
-			case 0xb:	diskii_.select_drive(1);					break;
-
-			case 0xc: {
-				/* shift register? */
-				const uint8_t shift_value = diskii_.get_shift_register();
-				if(isReadOperation(operation))
-					*value = shift_value;
-			} break;
-			case 0xd:
-				/* data register? */
-				diskii_.set_data_register(*value);
-			break;
-
-			case 0xe:	diskii_.set_mode(Mode::Read);				break;
-			case 0xf:	diskii_.set_mode(Mode::Write);				break;
+		if(isReadOperation(operation)) {
+			*value = diskii_.get_register(address);
+		} else {
+			diskii_.set_register(address, *value);
 		}
 	}
 }

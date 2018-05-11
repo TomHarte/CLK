@@ -13,9 +13,9 @@
 using namespace Apple;
 
 namespace  {
-	const uint8_t input_command = 0x1;	// i.e. Q6
-	const uint8_t input_mode = 0x2;		// i.e. Q7
-	const uint8_t input_flux = 0x4;
+	const uint8_t input_command = 0x4;	// i.e. Q6
+	const uint8_t input_mode = 0x8;		// i.e. Q7
+	const uint8_t input_flux = 0x1;
 }
 
 DiskII::DiskII() :
@@ -90,47 +90,24 @@ uint8_t DiskII::get_shift_register() {
 }
 
 void DiskII::run_for(const Cycles cycles) {
-/*
-... address the P6 ROM with an index byte built up as:
-+-------+-------+-------+-------+-------+-------+-------+-------+
-| STATE | STATE | STATE | PULSE |  Q7   |  Q6   |  SR   | STATE |
-| bit 0 | bit 2 | bit 3 |       |       |       |  MSB  | bit 1 |
-+-------+-------+-------+-------+-------+-------+-------+-------+
-    7       6       5       4       3       2       1       0
-
-...
-
-The bytes in the P6 ROM has the high four bits reversed compared to the BAPD charts, so you will have to reverse them after fetching the byte.
-
-*/
 	if(is_sleeping()) return;
 
 	int integer_cycles = cycles.as_int();
 
 	if(!controller_can_sleep_) {
 		while(integer_cycles--) {
-			const int address =
-				(inputs_ << 2) |
-				((shift_register_&0x80) >> 6) |
-				((state_&0x2) >> 1) |
-				((state_&0x1) << 7) |
-				((state_&0x4) << 4) |
-				((state_&0x8) << 2);
+			const int address = (state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6);
 			inputs_ |= input_flux;
-
-			const uint8_t update = state_machine_[static_cast<std::size_t>(address)];
-			state_ = update >> 4;
-			state_ = ((state_ & 0x8) ? 0x1 : 0x0) | ((state_ & 0x4) ? 0x2 : 0x0) | ((state_ & 0x2) ? 0x4 : 0x0) | ((state_ & 0x1) ? 0x8 : 0x0);
-
-			uint8_t command = update & 0xf;
-			switch(command) {
+			state_ = state_machine_[static_cast<std::size_t>(address)];
+			switch(state_ & 0xf) {
 				case 0x0:	shift_register_ = 0;													break;	// clear
 				case 0x9:	shift_register_ = static_cast<uint8_t>(shift_register_ << 1);			break;	// shift left, bringing in a zero
 				case 0xd:	shift_register_ = static_cast<uint8_t>((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
 				case 0xb:	shift_register_ = data_register_;										break;	// load
-				case 0xa:
+
+				case 0xa:	// shift right, bringing in write protected status
 					shift_register_ = (shift_register_ >> 1) | (is_write_protected() ? 0x80 : 0x00);
-				break;	// shift right, bringing in write protected status
+				break;
 				default: break;
 			}
 
@@ -160,8 +137,47 @@ bool DiskII::is_write_protected() {
 }
 
 void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
-	state_machine_ = state_machine;
-	// TODO: shuffle ordering here?
+	/*
+		An unadulterated P6 ROM read returns values with an address formed as:
+
+			state b0, state b2, state b3, pulse, Q7, Q6, shift, state b1
+
+		... and has the top nibble reflected. Beneath Apple Pro-DOS uses a
+		different order and several of the online copies are reformatted
+		into that order.
+
+		So the code below remaps into Beneath Apple Pro-DOS order if the
+		supplied state machine isn't already in that order.
+	*/
+
+	if(state_machine[0] != 0x18) {
+		for(size_t source_address = 0; source_address < 256; ++source_address) {
+			// Remap into Beneath Apple Pro-DOS address form.
+			size_t destination_address =
+				((source_address&0x80) ? 0x10 : 0x00) |
+				((source_address&0x01) ? 0x20 : 0x00) |
+				((source_address&0x40) ? 0x40 : 0x00) |
+				((source_address&0x20) ? 0x80 : 0x00) |
+				((source_address&0x10) ? 0x01 : 0x00) |
+				((source_address&0x08) ? 0x08 : 0x00) |
+				((source_address&0x04) ? 0x04 : 0x00) |
+				((source_address&0x02) ? 0x02 : 0x00);
+			uint8_t source_value = state_machine[source_address];
+
+			// Remap into Beneath Apple Pro-DOS value form.
+			source_value =
+				((source_value & 0x80) ? 0x10 : 0x0) |
+				((source_value & 0x40) ? 0x20 : 0x0) |
+				((source_value & 0x20) ? 0x40 : 0x0) |
+				((source_value & 0x10) ? 0x80 : 0x0) |
+				(source_value & 0x0f);
+
+			// Store.
+			state_machine_[destination_address] = source_value;
+		}
+	} else {
+		memcpy(&state_machine_[0], &state_machine[0], 128);
+	}
 }
 
 void DiskII::set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive) {
@@ -184,3 +200,39 @@ void DiskII::set_component_is_sleeping(Sleeper *component, bool is_sleeping) {
 bool DiskII::is_sleeping() {
 	return controller_can_sleep_ && drive_is_sleeping_[0] && drive_is_sleeping_[1];
 }
+
+void DiskII::set_register(int address, uint8_t value) {
+	trigger_address(address, value);
+}
+
+uint8_t DiskII::get_register(int address) {
+	return trigger_address(address, 0xff);
+}
+
+uint8_t DiskII::trigger_address(int address, uint8_t value) {
+	switch(address & 0xf) {
+		default:
+		case 0x0:	set_control(Control::P0, false);	break;
+		case 0x1:	set_control(Control::P0, true);		break;
+		case 0x2:	set_control(Control::P1, false);	break;
+		case 0x3:	set_control(Control::P1, true);		break;
+		case 0x4:	set_control(Control::P2, false);	break;
+		case 0x5:	set_control(Control::P2, true);		break;
+		case 0x6:	set_control(Control::P3, false);	break;
+		case 0x7:	set_control(Control::P3, true);		break;
+
+		case 0x8:	set_control(Control::Motor, false);	break;
+		case 0x9:	set_control(Control::Motor, true);	break;
+
+		case 0xa:	select_drive(0);					break;
+		case 0xb:	select_drive(1);					break;
+
+		case 0xc:	return get_shift_register();
+		case 0xd:	set_data_register(value);			break;
+
+		case 0xe:	set_mode(Mode::Read);				break;
+		case 0xf:	set_mode(Mode::Write);				break;
+	}
+	return 0xff;
+}
+

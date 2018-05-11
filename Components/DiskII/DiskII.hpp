@@ -15,6 +15,7 @@
 #include "../../Storage/Disk/Disk.hpp"
 #include "../../Storage/Disk/Drive.hpp"
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
@@ -30,6 +31,16 @@ class DiskII:
 	public:
 		DiskII();
 
+		void set_register(int address, uint8_t value);
+		uint8_t get_register(int address);
+
+		void run_for(const Cycles cycles);
+		void set_state_machine(const std::vector<uint8_t> &);
+
+		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
+		bool is_sleeping() override;
+
+	private:
 		enum class Control {
 			P0, P1, P2, P3,
 			Motor,
@@ -43,13 +54,7 @@ class DiskII:
 		void set_data_register(uint8_t value);
 		uint8_t get_shift_register();
 
-		void run_for(const Cycles cycles);
-		void set_state_machine(const std::vector<uint8_t> &);
-
-		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
-		bool is_sleeping() override;
-
-	private:
+		uint8_t trigger_address(int address, uint8_t value);
 		void process_event(const Storage::Disk::Track::Event &event) override;
 		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override;
 
@@ -62,7 +67,7 @@ class DiskII:
 		int stepper_position_ = 0;
 
 		bool is_write_protected();
-		std::vector<uint8_t> state_machine_;
+		std::array<uint8_t, 256> state_machine_;
 		Storage::Disk::Drive drives_[2];
 		bool drive_is_sleeping_[2];
 		bool controller_can_sleep_ = false;
