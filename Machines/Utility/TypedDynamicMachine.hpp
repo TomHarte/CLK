@@ -25,8 +25,8 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 			return *this;
 		}
 
-		ActivitySource::Machine *activity_source() override {
-			return get<ActivitySource::Machine>();
+		Activity::Source *activity_source() override {
+			return get<Activity::Source>();
 		}
 
 		ConfigurationTarget::Machine *configuration_target() override {

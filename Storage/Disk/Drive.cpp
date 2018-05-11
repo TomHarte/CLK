@@ -88,6 +88,14 @@ bool Drive::get_is_ready() {
 
 void Drive::set_motor_on(bool motor_is_on) {
 	motor_is_on_ = motor_is_on;
+
+	if(observer_) {
+		observer_->set_drive_motor_status(drive_name_, motor_is_on_);
+		if(announce_motor_led_) {
+			observer_->set_led_status(drive_name_, motor_is_on_);
+		}
+	}
+
 	if(!motor_is_on) {
 		ready_index_count_ = 0;
 		if(disk_) disk_->flush_tracks();
@@ -263,5 +271,21 @@ void Drive::end_writing() {
 		patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
 		cycles_since_index_hole_ %= get_input_clock_rate();
 		invalidate_track();
+	}
+}
+
+void Drive::set_activity_observer(Activity::Observer *observer, const std::string &name, bool add_motor_led) {
+	observer_ = observer;
+	announce_motor_led_ = add_motor_led;
+	if(observer) {
+		drive_name_ = name;
+
+		observer->register_drive(drive_name_);
+		observer->set_drive_motor_status(drive_name_, motor_is_on_);
+
+		if(add_motor_led) {
+			observer->register_led(drive_name_);
+			observer->set_led_status(drive_name_, motor_is_on_);
+		}
 	}
 }

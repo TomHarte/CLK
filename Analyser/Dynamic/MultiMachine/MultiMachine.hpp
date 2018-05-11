@@ -50,7 +50,7 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::De
 		static bool would_collapse(const std::vector<std::unique_ptr<DynamicMachine>> &machines);
 		MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machines);
 
-		ActivitySource::Machine *activity_source() override;
+		Activity::Source *activity_source() override;
 		ConfigurationTarget::Machine *configuration_target() override;
 		CRTMachine::Machine *crt_machine() override;
 		JoystickMachine::Machine *joystick_machine() override;

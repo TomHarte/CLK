@@ -697,8 +697,6 @@
 		4B055ABE1FAE98000060FFFF /* MachineForTarget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MachineForTarget.cpp; sourceTree = "<group>"; };
 		4B055ABF1FAE98000060FFFF /* MachineForTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MachineForTarget.hpp; sourceTree = "<group>"; };
 		4B055AF01FAE9C080060FFFF /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
-		4B055C1E20A113B00014E5AB /* ActivityObserver.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ActivityObserver.hpp; sourceTree = "<group>"; };
-		4B055C1F20A1166A0014E5AB /* ActivitySource.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ActivitySource.hpp; sourceTree = "<group>"; };
 		4B0783591FC11D10001D12BB /* Configurable.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Configurable.cpp; sourceTree = "<group>"; };
 		4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80InterruptTests.swift; sourceTree = "<group>"; };
 		4B08A2761EE39306008B7065 /* TestMachine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TestMachine.h; sourceTree = "<group>"; };
@@ -865,6 +863,8 @@
 		4B5073051DDD3B9400C48FBD /* ArrayBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ArrayBuilder.cpp; sourceTree = "<group>"; };
 		4B5073061DDD3B9400C48FBD /* ArrayBuilder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ArrayBuilder.hpp; sourceTree = "<group>"; };
 		4B5073091DDFCFDF00C48FBD /* ArrayBuilderTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ArrayBuilderTests.mm; sourceTree = "<group>"; };
+		4B51F70920A521D700AFA2C1 /* Source.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Source.hpp; sourceTree = "<group>"; };
+		4B51F70A20A521D700AFA2C1 /* Observer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Observer.hpp; sourceTree = "<group>"; };
 		4B54C0BB1F8D8E790050900F /* KeyboardMachine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = KeyboardMachine.cpp; sourceTree = "<group>"; };
 		4B54C0BD1F8D8F450050900F /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Keyboard.cpp; path = Oric/Keyboard.cpp; sourceTree = "<group>"; };
 		4B54C0BE1F8D8F450050900F /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Keyboard.hpp; path = Oric/Keyboard.hpp; sourceTree = "<group>"; };
@@ -1498,15 +1498,6 @@
 			path = ../SDL;
 			sourceTree = "<group>";
 		};
-		4B055C1D20A113B00014E5AB /* ActivityObserver */ = {
-			isa = PBXGroup;
-			children = (
-				4B055C1E20A113B00014E5AB /* ActivityObserver.hpp */,
-			);
-			name = ActivityObserver;
-			path = ../../ActivityObserver;
-			sourceTree = "<group>";
-		};
 		4B0CCC411C62D0B3001CAC5F /* CRT */ = {
 			isa = PBXGroup;
 			children = (
@@ -1970,6 +1961,16 @@
 				4B8334931F5E25030097E338 /* Implementation */,
 			);
 			path = 1540;
+			sourceTree = "<group>";
+		};
+		4B51F70820A521D700AFA2C1 /* Activity */ = {
+			isa = PBXGroup;
+			children = (
+				4B51F70920A521D700AFA2C1 /* Source.hpp */,
+				4B51F70A20A521D700AFA2C1 /* Observer.hpp */,
+			);
+			name = Activity;
+			path = ../../Activity;
 			sourceTree = "<group>";
 		};
 		4B55CE551C3B7D360093A61B /* Documents */ = {
@@ -2708,7 +2709,7 @@
 			isa = PBXGroup;
 			children = (
 				4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */,
-				4B055C1D20A113B00014E5AB /* ActivityObserver */,
+				4B51F70820A521D700AFA2C1 /* Activity */,
 				4B8944E2201967B4007DE474 /* Analyser */,
 				4BB73EA01B587A5100552FC2 /* Clock Signal */,
 				4BB73EB51B587A5100552FC2 /* Clock SignalTests */,
@@ -2812,7 +2813,6 @@
 			isa = PBXGroup;
 			children = (
 				4B54C0BB1F8D8E790050900F /* KeyboardMachine.cpp */,
-				4B055C1F20A1166A0014E5AB /* ActivitySource.hpp */,
 				4BA9C3CF1D8164A9002DDB61 /* ConfigurationTarget.hpp */,
 				4B046DC31CFE651500E9E45E /* CRTMachine.hpp */,
 				4BBB709C2020109C002FE009 /* DynamicMachine.hpp */,

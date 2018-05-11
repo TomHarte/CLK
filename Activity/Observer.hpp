@@ -1,15 +1,17 @@
 //
-//  Header.h
+//  ActivityObserver.h
 //  Clock Signal
 //
 //  Created by Thomas Harte on 07/05/2018.
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Header_h
-#define Header_h
+#ifndef ActivityObserver_h
+#define ActivityObserver_h
 
 #include <string>
+
+namespace Activity {
 
 /*!
 	Provides a purely virtual base class for anybody that wants to receive notifications of
@@ -19,7 +21,7 @@
 	So: status LEDs, drive activity, etc. A receiver may choose to make appropriate noises
 	and/or to show or unshow status indicators.
 */
-class ActivityObserver {
+class Observer {
 	public:
 		/// Announces to the receiver that there is an LED of name @c name.
 		virtual void register_led(const std::string &name) = 0;
@@ -44,4 +46,6 @@ class ActivityObserver {
 
 };
 
-#endif /* Header_h */
+}
+
+#endif /* ActivityObserver_h */

@@ -9,13 +9,13 @@
 #ifndef ActivitySource_h
 #define ActivitySource_h
 
-#include "../ActivityObserver/ActivityObserver.hpp"
+#include "Observer.hpp"
 
-namespace ActivitySource {
+namespace Activity {
 
-class Machine {
+class Source {
 	public:
-		virtual void set_activity_observer(ActivityObserver *receiver) = 0;
+		virtual void set_activity_observer(Observer *observer) = 0;
 };
 
 }

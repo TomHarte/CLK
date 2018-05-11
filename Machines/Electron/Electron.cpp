@@ -8,7 +8,7 @@
 
 #include "Electron.hpp"
 
-#include "../ActivitySource.hpp"
+#include "../../Activity/Source.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
@@ -47,7 +47,7 @@ class ConcreteMachine:
 	public CPU::MOS6502::BusHandler,
 	public Tape::Delegate,
 	public Utility::TypeRecipient,
-	public ActivitySource::Machine {
+	public Activity::Source {
 	public:
 		ConcreteMachine() :
 			m6502_(*this),
@@ -480,7 +480,7 @@ class ConcreteMachine:
 			return selection_set;
 		}
 
-		void set_activity_observer(ActivityObserver *observer) override {
+		void set_activity_observer(Activity::Observer *observer) override {
 			activity_observer_ = observer;
 			if(activity_observer_) {
 				activity_observer_->register_led(caps_led);
@@ -578,7 +578,7 @@ class ConcreteMachine:
 		// MARK: - Caps Lock status and the activity observer.
 		const std::string caps_led = "CAPS";
 		bool caps_led_state_ = false;
-		ActivityObserver *activity_observer_ = nullptr;
+		Activity::Observer *activity_observer_ = nullptr;
 };
 
 }

@@ -22,7 +22,7 @@ MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machin
 	crt_machine_.set_delegate(this);
 }
 
-ActivitySource::Machine *MultiMachine::activity_source() {
+Activity::Source *MultiMachine::activity_source() {
 	return nullptr; // TODO
 }
 

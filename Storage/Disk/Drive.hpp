@@ -14,6 +14,7 @@
 #include "Track/PCMPatchedTrack.hpp"
 
 #include "../TimedEventLoop.hpp"
+#include "../../Activity/Observer.hpp"
 #include "../../ClockReceiver/Sleeper.hpp"
 
 #include <memory>
@@ -122,6 +123,10 @@ class Drive: public Sleeper, public TimedEventLoop {
 		// As per Sleeper.
 		bool is_sleeping();
 
+		/// Adds an activity observer; it'll be notified of disk activity.
+		/// The caller can specify whether to add an LED based on disk motor.
+		void set_activity_observer(Activity::Observer *observer, const std::string &name, bool add_motor_led);
+
 	private:
 		// Drives contain an entire disk; from that a certain track
 		// will be currently under the head.
@@ -189,6 +194,11 @@ class Drive: public Sleeper, public TimedEventLoop {
 
 		void setup_track();
 		void invalidate_track();
+
+		// Activity observer description.
+		Activity::Observer *observer_ = nullptr;
+		std::string drive_name_;
+		bool announce_motor_led_ = false;
 };
 
 
