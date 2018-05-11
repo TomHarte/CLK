@@ -50,7 +50,11 @@ bool Drive::get_is_track_zero() {
 void Drive::step(HeadPosition offset) {
 	HeadPosition old_head_position = head_position_;
 	head_position_ += offset;
-	if(head_position_ < HeadPosition(0)) head_position_ = HeadPosition(0);
+	if(observer_) observer_->announce_drive_event(drive_name_, Activity::Observer::DriveEvent::Step);
+	if(head_position_ < HeadPosition(0)) {
+		head_position_ = HeadPosition(0);
+		if(observer_) observer_->announce_drive_event(drive_name_, Activity::Observer::DriveEvent::StepBelowZero);
+	}
 
 	// If the head moved, flush the old track.
 	if(head_position_ != old_head_position) {
