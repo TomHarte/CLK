@@ -173,7 +173,11 @@ class ConcreteMachine:
 			*/
 			MemoryBlock *block = nullptr;
 			if(address < 0x200) block = &memory_blocks_[0];
-			else if(address < 0xc000) {update_video(); block = &memory_blocks_[1]; address -= 0x200; }
+			else if(address < 0xc000) {
+				if(address < 0x6000 && !isReadOperation(operation)) update_video();
+				block = &memory_blocks_[1];
+				address -= 0x200;
+			}
 			else if(address < 0xd000) block = nullptr;
 			else if(address < 0xe000) {block = &memory_blocks_[2]; address -= 0xd000; }
 			else {block = &memory_blocks_[3]; address -= 0xe000; }
