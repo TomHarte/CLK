@@ -40,3 +40,7 @@ void DiskIICard::run_for(Cycles cycles, int stretches) {
 void DiskIICard::set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive) {
 	diskii_.set_disk(disk, drive);
 }
+
+void DiskIICard::set_activity_observer(Activity::Observer *observer) {
+	diskii_.set_activity_observer(observer);
+}
