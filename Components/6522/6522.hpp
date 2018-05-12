@@ -113,6 +113,9 @@ template <class T> class MOS6522: public MOS6522Base {
 		/*! Gets a register value. */
 		uint8_t get_register(int address);
 
+		/*! @returns the bus handler. */
+		T &bus_handler();
+
 	private:
 		T &bus_handler_;
 

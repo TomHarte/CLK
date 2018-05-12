@@ -108,6 +108,11 @@ void Machine::run_for(const Cycles cycles) {
 		Storage::Disk::Controller::run_for(cycles);
 }
 
+void MachineBase::set_activity_observer(Activity::Observer *observer) {
+	drive_VIA_.bus_handler().set_activity_observer(observer);
+	drive_->set_activity_observer(observer, "Drive", false);
+}
+
 // MARK: - 6522 delegate
 
 void MachineBase::mos6522_did_change_interrupt_status(void *mos6522) {
@@ -209,8 +214,6 @@ void DriveVIA::set_delegate(Delegate *delegate) {
 }
 
 // write protect tab uncovered
-DriveVIA::DriveVIA() : port_b_(0xff), port_a_(0xff), delegate_(nullptr) {}
-
 uint8_t DriveVIA::get_port_input(MOS::MOS6522::Port port) {
 	return port ? port_b_ : port_a_;
 }
@@ -255,11 +258,19 @@ void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t d
 				delegate_->drive_via_did_set_data_density(this, (value >> 5)&3);
 			}
 
-			// TODO: something with the drive LED
-//			printf("LED: %s\n", value&8 ? "On" : "Off");
+			// post the LED status
+			if(observer_) observer_->set_led_status("Drive", !!(value&8));
 
 			previous_port_b_output_ = value;
 		}
+	}
+}
+
+void DriveVIA::set_activity_observer(Activity::Observer *observer) {
+	observer_ = observer;
+	if(observer) {
+		observer->register_led("Drive");
+		observer->set_led_status("Drive", !!(previous_port_b_output_&8));
 	}
 }
 

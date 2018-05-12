@@ -10,6 +10,7 @@
 
 #include "Keyboard.hpp"
 
+#include "../../../Activity/Source.hpp"
 #include "../../ConfigurationTarget.hpp"
 #include "../../CRTMachine.hpp"
 #include "../../KeyboardMachine.hpp"
@@ -303,7 +304,8 @@ class ConcreteMachine:
 	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Machine,
-	public Sleeper::SleepObserver {
+	public Sleeper::SleepObserver,
+	public Activity::Source {
 	public:
 		ConcreteMachine() :
 				m6502_(*this),
@@ -750,6 +752,11 @@ class ConcreteMachine:
 		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override {
 			tape_is_sleeping_ = is_sleeping;
 			set_use_fast_tape();
+		}
+
+		// MARK: - Activity Source
+		void set_activity_observer(Activity::Observer *observer) override {
+			if(c1540_) c1540_->set_activity_observer(observer);
 		}
 
 	private:

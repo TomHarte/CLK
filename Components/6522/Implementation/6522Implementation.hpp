@@ -145,6 +145,10 @@ template <typename T> uint8_t MOS6522<T>::get_port_input(Port port, uint8_t outp
 	return (input & ~output_mask) | (output & output_mask);
 }
 
+template <typename T> T &MOS6522<T>::bus_handler() {
+	return bus_handler_;
+}
+
 // Delegate and communications
 template <typename T> void MOS6522<T>::reevaluate_interrupts() {
 	bool new_interrupt_status = get_interrupt_line();
