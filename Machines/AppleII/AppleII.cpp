@@ -257,7 +257,7 @@ class ConcreteMachine:
 						Decode the area conventionally used by cards for ROMs:
 							0xCn00 — 0xCnff: card n.
 					*/
-					const int card_number = (address - 0xc100) >> 8;
+					const size_t card_number = (address - 0xc100) >> 8;
 					if(cards_[card_number]) {
 						update_cards();
 						cards_[card_number]->perform_bus_operation(operation, address & 0xff, value);
@@ -267,7 +267,7 @@ class ConcreteMachine:
 						Decode the area conventionally used by cards for registers:
 							C0n0--C0nF: card n - 8.
 					*/
-					const int card_number = (address - 0xc090) >> 4;
+					const size_t card_number = (address - 0xc090) >> 4;
 					if(cards_[card_number]) {
 						update_cards();
 						cards_[card_number]->perform_bus_operation(operation, 0x100 | (address&0xf), value);
