@@ -435,7 +435,7 @@ void OpenGLOutputBuilder::set_colour_space_uniforms() {
 	GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
 	GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
 
-	GLfloat *fromRGB, *toRGB;
+	GLfloat *fromRGB = nullptr, *toRGB = nullptr;
 
 	switch(colour_space_) {
 		case ColourSpace::YIQ:

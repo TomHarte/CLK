@@ -20,7 +20,7 @@ std::string OutputShader::get_input_name(Input input) {
 		case Input::Vertical:	return "vertical";
 
 		// Intended to be unreachable.
-		default: assert(false);
+		default: assert(false); return "";
 	}
 }
 

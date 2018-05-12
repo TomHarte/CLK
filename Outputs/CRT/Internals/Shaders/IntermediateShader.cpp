@@ -24,7 +24,7 @@ std::string IntermediateShader::get_input_name(Input input) {
 		case Input::PhaseTimeAndAmplitude:	return "phaseTimeAndAmplitude";
 
 		// Intended to be unreachable.
-		default: assert(false);
+		default: assert(false);				return "";
 	}
 }
 
