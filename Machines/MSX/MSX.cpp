@@ -30,6 +30,7 @@
 #include "../../Storage/Tape/Parsers/MSX.hpp"
 #include "../../Storage/Tape/Tape.hpp"
 
+#include "../../Activity/Source.hpp"
 #include "../CRTMachine.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../KeyboardMachine.hpp"
@@ -87,7 +88,8 @@ class ConcreteMachine:
 	public KeyboardMachine::Machine,
 	public Configurable::Device,
 	public MemoryMap,
-	public Sleeper::SleepObserver {
+	public Sleeper::SleepObserver,
+	public Activity::Source {
 	public:
 		ConcreteMachine():
 			z80_(*this),
@@ -200,12 +202,14 @@ class ConcreteMachine:
 			}
 
 			if(!media.disks.empty()) {
-				DiskROM *disk_rom = dynamic_cast<DiskROM *>(memory_slots_[2].handler.get());
-				int drive = 0;
-				for(auto &disk : media.disks) {
-					disk_rom->set_disk(disk, drive);
-					drive++;
-					if(drive == 2) break;
+				DiskROM *disk_rom = get_disk_rom();
+				if(disk_rom) {
+					size_t drive = 0;
+					for(auto &disk : media.disks) {
+						disk_rom->set_disk(disk, drive);
+						drive++;
+						if(drive == 2) break;
+					}
 				}
 			}
 
@@ -556,7 +560,18 @@ class ConcreteMachine:
 			set_use_fast_tape();
 		}
 
+		// MARK: - Activity::Source
+		void set_activity_observer(Activity::Observer *observer) override {
+			DiskROM *disk_rom = get_disk_rom();
+			if(disk_rom) {
+				disk_rom->set_activity_observer(observer);
+			}
+		}
+
 	private:
+		DiskROM *get_disk_rom() {
+			return dynamic_cast<DiskROM *>(memory_slots_[2].handler.get());
+		}
 		void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_ay_update_.divide_cycles(Cycles(2)));
 		}

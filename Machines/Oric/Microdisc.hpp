@@ -57,6 +57,8 @@ class Microdisc: public WD::WD1770 {
 		Delegate *delegate_ = nullptr;
 		uint8_t last_control_ = 0;
 		Activity::Observer *observer_ = nullptr;
+
+		std::string drive_name(size_t index);
 };
 
 }

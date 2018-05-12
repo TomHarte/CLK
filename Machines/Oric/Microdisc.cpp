@@ -26,7 +26,7 @@ void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive
 	if(!drives_[drive]) {
 		drives_[drive].reset(new Storage::Disk::Drive(8000000, 300, 2));
 		if(drive == selected_drive_) set_drive(drives_[drive]);
-		drives_[drive]->set_activity_observer(observer_, "Drive" + std::to_string(drive), false);
+		drives_[drive]->set_activity_observer(observer_, drive_name(drive), false);
 	}
 	drives_[drive]->set_disk(disk);
 }
@@ -132,7 +132,11 @@ void Microdisc::set_activity_observer(Activity::Observer *observer) {
 	}
 	size_t c = 0;
 	for(auto &drive : drives_) {
-		if(drive) drive->set_activity_observer(observer, "Drive" + std::to_string(c), false);
+		if(drive) drive->set_activity_observer(observer, drive_name(c), false);
 		++c;
 	}
+}
+
+std::string Microdisc::drive_name(size_t index) {
+	return "Drive " + std::to_string(index);
 }
