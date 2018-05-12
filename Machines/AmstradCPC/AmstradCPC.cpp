@@ -20,6 +20,7 @@
 #include "../Utility/MemoryFuzzer.hpp"
 #include "../Utility/Typer.hpp"
 
+#include "../../Activity/Source.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
@@ -607,6 +608,10 @@ class FDC: public Intel::i8272::i8272 {
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 			drive_->set_disk(disk);
 		}
+
+		void set_activity_observer(Activity::Observer *observer) {
+			drive_->set_activity_observer(observer, "Drive 1", true);
+		}
 };
 
 /*!
@@ -690,7 +695,8 @@ class ConcreteMachine:
 	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,
 	public Sleeper::SleepObserver,
-	public Machine {
+	public Machine,
+	public Activity::Source {
 	public:
 		ConcreteMachine() :
 			z80_(*this),
@@ -994,6 +1000,12 @@ class ConcreteMachine:
 		KeyboardMapper *get_keyboard_mapper() override {
 			return &keyboard_mapper_;
 		}
+
+		// MARK: - Activity Source
+		void set_activity_observer(Activity::Observer *observer) override {
+			if(has_fdc_) fdc_.set_activity_observer(observer);
+		}
+
 
 	private:
 		inline void write_to_gate_array(uint8_t value) {
