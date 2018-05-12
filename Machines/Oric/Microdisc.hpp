@@ -10,6 +10,9 @@
 #define Microdisc_hpp
 
 #include "../../Components/1770/1770.hpp"
+#include "../../Activity/Observer.hpp"
+
+#include <array>
 
 namespace Oric {
 
@@ -17,7 +20,7 @@ class Microdisc: public WD::WD1770 {
 	public:
 		Microdisc();
 
-		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive);
+		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive);
 		void set_control_register(uint8_t control);
 		uint8_t get_interrupt_request_register();
 		uint8_t get_data_request_register();
@@ -39,17 +42,21 @@ class Microdisc: public WD::WD1770 {
 		inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;	WD1770::set_delegate(delegate);	}
 		inline int get_paging_flags()					{	return paging_flags_;									}
 
+		void set_activity_observer(Activity::Observer *observer);
+
 	private:
 		void set_control_register(uint8_t control, uint8_t changes);
 		void set_head_load_request(bool head_load);
 		bool get_drive_is_ready();
-		std::shared_ptr<Storage::Disk::Drive> drives_[4];
-		int selected_drive_;
+		std::array<std::shared_ptr<Storage::Disk::Drive>, 4> drives_;
+		size_t selected_drive_;
 		bool irq_enable_ = false;
 		int paging_flags_ = BASICDisable;
 		int head_load_request_counter_ = -1;
+		bool head_load_request_ = false;
 		Delegate *delegate_ = nullptr;
 		uint8_t last_control_ = 0;
+		Activity::Observer *observer_ = nullptr;
 };
 
 }
