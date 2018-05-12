@@ -10,6 +10,7 @@
 #define DynamicMachine_h
 
 #include "../Configurable/Configurable.hpp"
+#include "../Activity/Source.hpp"
 #include "ConfigurationTarget.hpp"
 #include "CRTMachine.hpp"
 #include "JoystickMachine.hpp"
@@ -24,6 +25,8 @@ namespace Machine {
 */
 struct DynamicMachine {
 	virtual ~DynamicMachine() {}
+
+	virtual Activity::Source *activity_source() = 0;
 	virtual ConfigurationTarget::Machine *configuration_target() = 0;
 	virtual CRTMachine::Machine *crt_machine() = 0;
 	virtual JoystickMachine::Machine *joystick_machine() = 0;

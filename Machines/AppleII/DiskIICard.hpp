@@ -24,8 +24,11 @@ namespace AppleII {
 class DiskIICard: public Card {
 	public:
 		DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sector);
+
 		void perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) override;
 		void run_for(Cycles cycles, int stretches) override;
+		void set_activity_observer(Activity::Observer *observer) override;
+
 		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
 
 	private:

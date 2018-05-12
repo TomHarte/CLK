@@ -15,6 +15,8 @@
 #include "../../Storage/Disk/Disk.hpp"
 #include "../../Storage/Disk/Drive.hpp"
 
+#include "../../Activity/Observer.hpp"
+
 #include <array>
 #include <cstdint>
 #include <vector>
@@ -39,6 +41,8 @@ class DiskII:
 
 		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
 		bool is_sleeping() override;
+
+		void set_activity_observer(Activity::Observer *observer);
 
 	private:
 		enum class Control {

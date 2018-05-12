@@ -236,3 +236,7 @@ uint8_t DiskII::trigger_address(int address, uint8_t value) {
 	return 0xff;
 }
 
+void DiskII::set_activity_observer(Activity::Observer *observer) {
+	drives_[0].set_activity_observer(observer, "Drive 1", true);
+	drives_[1].set_activity_observer(observer, "Drive 2", true);
+}

@@ -12,6 +12,7 @@
 #include "Microdisc.hpp"
 #include "Video.hpp"
 
+#include "../../Activity/Source.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
@@ -200,6 +201,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Microdisc::Delegate,
+	public Activity::Source,
 	public Machine {
 
 	public:
@@ -329,10 +331,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				switch(disk_interface) {
 					case Analyser::Static::Oric::Target::DiskInterface::Microdisc: {
 						inserted = true;
-						int drive_index = 0;
+						size_t drive_index = 0;
 						for(auto &disk : media.disks) {
 							if(drive_index < 4) microdisc_.set_disk(disk, drive_index);
-							drive_index++;
+							++drive_index;
 						}
 					} break;
 					case Analyser::Static::Oric::Target::DiskInterface::Pravetz: {
@@ -340,7 +342,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 						int drive_index = 0;
 						for(auto &disk : media.disks) {
 							if(drive_index < 2) diskii_.set_disk(disk, drive_index);
-							drive_index++;
+							++drive_index;
 						}
 					} break;
 
@@ -549,6 +551,18 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			Configurable::append_quick_load_tape_selection(selection_set, true);
 			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
 			return selection_set;
+		}
+
+		void set_activity_observer(Activity::Observer *observer) override {
+			switch(disk_interface) {
+				default: break;
+				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+					microdisc_.set_activity_observer(observer);
+				break;
+				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
+					diskii_.set_activity_observer(observer);
+				break;
+			}
 		}
 
 	private:

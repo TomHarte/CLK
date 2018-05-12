@@ -22,10 +22,11 @@ Microdisc::Microdisc() : WD1770(P1793) {
 	set_control_register(last_control_, 0xff);
 }
 
-void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
+void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
 	if(!drives_[drive]) {
 		drives_[drive].reset(new Storage::Disk::Drive(8000000, 300, 2));
 		if(drive == selected_drive_) set_drive(drives_[drive]);
+		drives_[drive]->set_activity_observer(observer_, drive_name(drive), false);
 	}
 	drives_[drive]->set_disk(disk);
 }
@@ -48,8 +49,8 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 	// b4: side select
 	if(changes & 0x10) {
 		int head = (control & 0x10) ? 1 : 0;
-		for(int c = 0; c < 4; c++) {
-			if(drives_[c]) drives_[c]->set_head(head);
+		for(auto &drive : drives_) {
+			if(drive) drive->set_head(head);
 		}
 	}
 
@@ -89,10 +90,12 @@ uint8_t Microdisc::get_data_request_register() {
 }
 
 void Microdisc::set_head_load_request(bool head_load) {
+	head_load_request_ = head_load;
+
 	// The drive motors (at present: I believe **all drive motors** regardless of the selected drive) receive
 	// the current head load request state.
-	for(int c = 0; c < 4; c++) {
-		if(drives_[c]) drives_[c]->set_motor_on(head_load);
+	for(auto &drive : drives_) {
+		if(drive) drive->set_motor_on(head_load);
 	}
 
 	// A request to load the head results in a delay until the head is confirmed loaded. This delay is handled
@@ -102,6 +105,10 @@ void Microdisc::set_head_load_request(bool head_load) {
 	} else {
 		head_load_request_counter_ = head_load_request_counter_target;
 		set_head_loaded(head_load);
+	}
+
+	if(observer_) {
+		observer_->set_led_status("Microdisc", head_load);
 	}
 }
 
@@ -115,4 +122,21 @@ void Microdisc::run_for(const Cycles cycles) {
 
 bool Microdisc::get_drive_is_ready() {
 	return true;
+}
+
+void Microdisc::set_activity_observer(Activity::Observer *observer) {
+	observer_ = observer;
+	if(observer) {
+		observer->register_led("Microdisc");
+		observer_->set_led_status("Microdisc", head_load_request_);
+	}
+	size_t c = 0;
+	for(auto &drive : drives_) {
+		if(drive) drive->set_activity_observer(observer, drive_name(c), false);
+		++c;
+	}
+}
+
+std::string Microdisc::drive_name(size_t index) {
+	return "Drive " + std::to_string(index);
 }

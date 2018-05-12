@@ -53,3 +53,8 @@ void Plus3::set_motor_on(bool on) {
 	// writing state, so plenty of work to do in general here.
 	get_drive().set_motor_on(on);
 }
+
+void Plus3::set_activity_observer(Activity::Observer *observer) {
+	drives_[0]->set_activity_observer(observer, "Drive 1", true);
+	drives_[1]->set_activity_observer(observer, "Drive 2", true);
+}

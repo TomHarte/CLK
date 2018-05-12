@@ -14,6 +14,7 @@
 
 #include "../../SerialBus.hpp"
 
+#include "../../../../Activity/Source.hpp"
 #include "../../../../Storage/Disk/Disk.hpp"
 
 #include "../../../../Storage/Disk/Controller/DiskController.hpp"
@@ -83,8 +84,6 @@ class DriveVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 		};
 		void set_delegate(Delegate *);
 
-		DriveVIA();
-
 		uint8_t get_port_input(MOS::MOS6522::Port port);
 
 		void set_sync_detected(bool);
@@ -96,12 +95,15 @@ class DriveVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 
 		void set_port_output(MOS::MOS6522::Port, uint8_t value, uint8_t direction_mask);
 
+		void set_activity_observer(Activity::Observer *observer);
+
 	private:
-		uint8_t port_b_, port_a_;
-		bool should_set_overflow_;
-		bool drive_motor_;
-		uint8_t previous_port_b_output_;
-		Delegate *delegate_;
+		uint8_t port_b_ = 0xff, port_a_ = 0xff;
+		bool should_set_overflow_ = false;
+		bool drive_motor_ = false;
+		uint8_t previous_port_b_output_ = 0;
+		Delegate *delegate_ = nullptr;
+		Activity::Observer *observer_ = nullptr;
 };
 
 /*!
@@ -134,6 +136,9 @@ class MachineBase:
 		// to satisfy DriveVIA::Delegate
 		void drive_via_did_step_head(void *driveVIA, int direction);
 		void drive_via_did_set_data_density(void *driveVIA, int density);
+
+		/// Attaches the activity observer to this C1540.
+		void set_activity_observer(Activity::Observer *observer);
 
 	protected:
 		CPU::MOS6502::Processor<MachineBase, false> m6502_;

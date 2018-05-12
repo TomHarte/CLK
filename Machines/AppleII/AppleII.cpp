@@ -8,6 +8,7 @@
 
 #include "AppleII.hpp"
 
+#include "../../Activity/Source.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
@@ -24,6 +25,7 @@
 
 #include "../../Analyser/Static/AppleII/Target.hpp"
 
+#include <array>
 #include <memory>
 
 namespace {
@@ -34,7 +36,8 @@ class ConcreteMachine:
 	public KeyboardMachine::Machine,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
-	public AppleII::Machine {
+	public AppleII::Machine,
+	public Activity::Source {
 	private:
 		struct VideoBusHandler : public AppleII::Video::BusHandler {
 			public:
@@ -62,8 +65,8 @@ class ConcreteMachine:
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
 		}
 		void update_cards() {
-			for(int c = 0; c < 7; ++c) {
-				if(cards_[c]) cards_[c]->run_for(cycles_since_card_update_, stretched_cycles_since_card_update_);
+			for(const auto &card : cards_) {
+				if(card) card->run_for(cycles_since_card_update_, stretched_cycles_since_card_update_);
 			}
 			cycles_since_card_update_ = 0;
 			stretched_cycles_since_card_update_ = 0;
@@ -80,7 +83,7 @@ class ConcreteMachine:
 		Cycles cycles_since_audio_update_;
 
 		ROMMachine::ROMFetcher rom_fetcher_;
-		std::unique_ptr<AppleII::Card> cards_[7];
+		std::array<std::unique_ptr<AppleII::Card>, 7> cards_;
 		Cycles cycles_since_card_update_;
 		int stretched_cycles_since_card_update_ = 0;
 
@@ -254,7 +257,7 @@ class ConcreteMachine:
 						Decode the area conventionally used by cards for ROMs:
 							0xCn00 — 0xCnff: card n.
 					*/
-					const int card_number = (address - 0xc100) >> 8;
+					const size_t card_number = (address - 0xc100) >> 8;
 					if(cards_[card_number]) {
 						update_cards();
 						cards_[card_number]->perform_bus_operation(operation, address & 0xff, value);
@@ -264,7 +267,7 @@ class ConcreteMachine:
 						Decode the area conventionally used by cards for registers:
 							C0n0--C0nF: card n - 8.
 					*/
-					const int card_number = (address - 0xc090) >> 4;
+					const size_t card_number = (address - 0xc090) >> 4;
 					if(cards_[card_number]) {
 						update_cards();
 						cards_[card_number]->perform_bus_operation(operation, 0x100 | (address&0xf), value);
@@ -371,6 +374,13 @@ class ConcreteMachine:
 				dynamic_cast<AppleII::DiskIICard *>(cards_[5].get())->set_disk(media.disks[0], 0);
 			}
 			return true;
+		}
+
+		// MARK: Activity::Source
+		void set_activity_observer(Activity::Observer *observer) override {
+			for(const auto &card: cards_) {
+				if(card) card->set_activity_observer(observer);
+			}
 		}
 };
 

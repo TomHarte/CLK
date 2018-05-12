@@ -56,11 +56,12 @@ void DiskROM::run_for(HalfCycles half_cycles) {
 	controller_cycles_ %= 715909;
 }
 
-void DiskROM::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
+void DiskROM::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
 	if(!drives_[drive]) {
 		drives_[drive].reset(new Storage::Disk::Drive(8000000, 300, 2));
 		drives_[drive]->set_head(selected_head_);
 		if(drive == selected_drive_) set_drive(drives_[drive]);
+		drives_[drive]->set_activity_observer(observer_, drive_name(drive), true);
 	}
 	drives_[drive]->set_disk(disk);
 }
@@ -68,4 +69,17 @@ void DiskROM::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
 void DiskROM::set_head_load_request(bool head_load) {
 	// Magic!
 	set_head_loaded(head_load);
+}
+
+void DiskROM::set_activity_observer(Activity::Observer *observer) {
+	size_t c = 0;
+	observer_ = observer;
+	for(auto &drive: drives_) {
+		if(drive) drive->set_activity_observer(observer, drive_name(c), true);
+		++c;
+	}
+}
+
+std::string DiskROM::drive_name(size_t index) {
+	return "Drive " + std::to_string(index);
 }
