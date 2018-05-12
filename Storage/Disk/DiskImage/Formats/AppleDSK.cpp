@@ -20,7 +20,7 @@ namespace {
 
 AppleDSK::AppleDSK(const std::string &file_name) :
 	file_(file_name) {
-	if(file_.stats().st_size % number_of_tracks*bytes_per_sector) throw Error::InvalidFormat;
+	if(file_.stats().st_size % (number_of_tracks*bytes_per_sector)) throw Error::InvalidFormat;
 
 	sectors_per_track_ = static_cast<int>(file_.stats().st_size / (number_of_tracks*bytes_per_sector));
 	if(sectors_per_track_ != 13 && sectors_per_track_ != 16) throw Error::InvalidFormat;
