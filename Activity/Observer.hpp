@@ -33,7 +33,7 @@ class Observer {
 		virtual void set_led_status(const std::string &name, bool lit) = 0;
 
 		enum class DriveEvent {
-			Step,
+			StepNormal,
 			StepBelowZero,
 			StepBeyondMaximum
 		};
