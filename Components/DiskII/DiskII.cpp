@@ -9,6 +9,7 @@
 #include "DiskII.hpp"
 
 #include <cstdio>
+#include <cstring>
 
 using namespace Apple;
 
