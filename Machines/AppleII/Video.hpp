@@ -209,7 +209,56 @@ template <class BusHandler> class Video: public VideoBase {
 			}
 		}
 
+		/*!
+			Obtains the last value the video read prior to time now+offset.
+		*/
+		uint8_t get_last_read_value(Cycles offset) {
+			// Rules of generation:
+			// (1)	a complete sixty-five-cycle scan line consists of sixty-five consecutive bytes of
+			//		display buffer memory that starts twenty-five bytes prior to the actual data to be displayed.
+			// (2)	During VBL the data acts just as if it were starting a whole new frame from the beginning, but
+			//		it never finishes this pseudo-frame. After getting one third of the way through the frame (to
+			//		scan line $3F), it suddenly repeats the previous six scan lines ($3A through $3F) before aborting
+			//		to begin the next true frame.
+			//
+			// Source: Have an Apple Split by Bob Bishop; http://rich12345.tripod.com/aiivideo/softalk.html
+
+			// Determine column at offset.
+			int mapped_column = column_ + offset.as_int();
+
+			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
+			// (so what was column 0 is now column 25).
+			mapped_column += 25;
+
+			// Apply carry into the row counter.
+			int mapped_row = row_ + (mapped_column / 65);
+			mapped_column %= 65;
+			mapped_row %= 262;
+
+			// Apple out-of-bounds row logic.
+			if(mapped_row >= 256) {
+				mapped_row = 0x3a + (mapped_row&255);
+			} else {
+				mapped_row %= 192;
+			}
+
+			// Calculate the address and return the value.
+			uint16_t read_address = static_cast<uint16_t>(get_row_address(mapped_row) + mapped_column - 25);
+			return bus_handler_.perform_read(read_address);
+		}
+
 	private:
+		uint16_t get_row_address(int row) {
+			const int character_row = row >> 3;
+			const int pixel_row = row & 7;
+			const uint16_t row_address = static_cast<uint16_t>((character_row >> 3) * 40 + ((character_row&7) << 7));
+
+			GraphicsMode pixel_mode = ((!mixed_mode_ || row < 160) && use_graphics_mode_) ? graphics_mode_ : GraphicsMode::Text;
+			return (pixel_mode == GraphicsMode::HighRes) ?
+				static_cast<uint16_t>(((video_page_+1) * 0x2000) + row_address + ((pixel_row&7) << 10)) :
+				static_cast<uint16_t>(((video_page_+1) * 0x400) + row_address);
+		}
+
 		const int flash_length = 8406;
 		BusHandler &bus_handler_;
 };
