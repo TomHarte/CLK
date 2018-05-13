@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 14/01/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #import "CSAudioQueue.h"
@@ -141,7 +141,7 @@ static void audioOutputCallback(
 	// Since the audio callback receives a void * pointer that identifies the class it should branch into,
 	// it's therefore unsafe to pass 'self'. Instead I pass a CSWeakAudioQueuePointer which points to the actual
 	// queue. The lifetime of that class is the lifetime of this instance plus 1 second, as effected by the
-	// artificial dispatch_after below — it serves only to keep pointerSaviour alive for an extra second.
+	// artificial dispatch_after below; it serves only to keep pointerSaviour alive for an extra second.
 	//
 	// Why a second? That's definitely quite a lot longer than any amount of audio that may be queued. So
 	// probably safe. As and where Apple's audio queue works properly, CSAudioQueueDeallocLock should provide

@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 14/07/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef Storage_Disk_Controller_hpp
@@ -21,7 +21,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides the shell for emulating a disk controller — something that is connected to a disk drive and uses a
+	Provides the shell for emulating a disk controller: something that is connected to a disk drive and uses a
 	phase locked loop ('PLL') to decode a bit stream from the surface of the disk.
 
 	Partly abstract; it is expected that subclasses will provide methods to deal with receiving a newly-recognised

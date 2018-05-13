@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 03/01/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef Electron_hpp
@@ -48,7 +48,7 @@ class Machine {
 
 		/*!
 			Sets the contents of @c slot to @c data. If @c is_writeable is @c true then writing to the slot
-			is enabled — it acts as if it were sideways RAM. Otherwise the slot is modelled as containing ROM.
+			is enabled: it acts as if it were sideways RAM. Otherwise the slot is modelled as containing ROM.
 		*/
 		virtual void set_rom(ROMSlot slot, const std::vector<uint8_t> &data, bool is_writeable) = 0;
 };

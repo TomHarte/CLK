@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 21/09/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #ifndef DiskImage_hpp
@@ -38,7 +38,7 @@ class DiskImage {
 			@returns the distance at which there stops being any further content.
 
 			This is not necessarily a track count. There is no implicit guarantee that every position will
-			return a distinct track, or — e.g. if the media is holeless — will return any track at all.
+			return a distinct track, or, e.g. if the media is holeless, will return any track at all.
 		*/
 		virtual HeadPosition get_maximum_head_position() = 0;
 

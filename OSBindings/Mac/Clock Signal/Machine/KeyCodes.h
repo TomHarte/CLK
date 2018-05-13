@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Emancipated from Carbon's HIToolbox by Thomas Harte on 11/01/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef KeyCodes_h

@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 04/01/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #import "CSMachine.h"
@@ -31,7 +31,7 @@
 @end
 
 struct LockProtectedDelegate {
-	// Contractual promise is: machine — the pointer **and** the object ** — may be accessed only
+	// Contractual promise is: machine, the pointer **and** the object **, may be accessed only
 	// in sections protected by the machineAccessLock;
 	NSLock *machineAccessLock;
 	__unsafe_unretained CSMachine *machine;

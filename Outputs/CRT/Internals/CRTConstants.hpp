@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 19/03/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef CRTConstants_h
@@ -15,7 +15,7 @@
 namespace Outputs {
 namespace CRT {
 
-// Output vertices are those used to copy from an input buffer — whether it describes data that maps directly to RGB
+// Output vertices are those used to copy from an input buffer, whether it describes data that maps directly to RGB
 // or is one of the intermediate buffers that we've used to convert from composite towards RGB.
 const GLsizei OutputVertexOffsetOfHorizontal = 0;
 const GLsizei OutputVertexOffsetOfVertical = 4;

@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 25/09/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef AcornADF_hpp
@@ -17,7 +17,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing an ADF disk image — a decoded sector dump of an Acorn ADFS disk.
+	Provides a @c Disk containing an ADF disk image: a decoded sector dump of an Acorn ADFS disk.
 */
 class AcornADF: public MFMSectorDump {
 	public:

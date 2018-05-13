@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 12/10/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #include "Video.hpp"
@@ -72,8 +72,8 @@ Outputs::CRT::CRT *VideoOutput::get_crt() {
 }
 
 void VideoOutput::run_for(const Cycles cycles) {
-	// Vertical: 0–39: pixels; otherwise blank; 48–53 sync, 54–56 colour burst
-	// Horizontal: 0–223: pixels; otherwise blank; 256–259 sync
+	// Vertical: 0-39: pixels; otherwise blank; 48-53 sync, 54-56 colour burst
+	// Horizontal: 0-223: pixels; otherwise blank; 256-259 sync
 
 #define clamp(action)	\
 	if(cycles_run_for <= number_of_cycles) { action; } else cycles_run_for = number_of_cycles;

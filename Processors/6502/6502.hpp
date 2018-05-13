@@ -3,7 +3,7 @@
 //  CLK
 //
 //  Created by Thomas Harte on 09/07/2015.
-//  Copyright © 2015 Thomas Harte. All rights reserved.
+//  Copyright 2015 Thomas Harte. All rights reserved.
 //
 
 #ifndef MOS6502_cpp
@@ -80,7 +80,7 @@ class BusHandler {
 			Announces that the 6502 has performed the cycle defined by operation, address and value. On the 6502,
 			all bus cycles take one clock cycle so the amoutn of time advanced is implicit.
 
-			@param operation The type of bus cycle — read, read opcode (i.e. read, with sync active),
+			@param operation The type of bus cycle: read, read opcode (i.e. read, with sync active),
 			write or ready.
 			@param address The value of the address bus during this bus cycle.
 			@param value If this is a cycle that puts a value onto the data bus, *value is that value. If this is

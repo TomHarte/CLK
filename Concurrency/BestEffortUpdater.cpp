@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 04/10/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #include "BestEffortUpdater.hpp"
@@ -34,7 +34,7 @@ void BestEffortUpdater::update() {
 
 			if(has_previous_time_point_) {
 				// If the duration is valid, convert it to integer cycles, maintaining a rolling error and call the delegate
-				// if there is one. Proceed only if the number of cycles is positive, and cap it to the per-second maximum —
+				// if there is one. Proceed only if the number of cycles is positive, and cap it to the per-second maximum as
 				// it's possible this is an adjustable clock so be ready to swallow unexpected adjustments.
 				const int64_t integer_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count();
 				if(integer_duration > 0) {

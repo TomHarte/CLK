@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 24/11/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #include "MSX.hpp"
@@ -58,8 +58,8 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 
 		void set_port_output(bool port_b, uint8_t value) {
 			if(port_b) {
-				// Bits 0–3: touchpad handshaking (?)
-				// Bit 4—5: monostable timer pulses
+				// Bits 0-3: touchpad handshaking (?)
+				// Bit 4-5: monostable timer pulses
 				// Bit 6: joystick select
 				// Bit 7: code LED, if any
 			}
@@ -67,7 +67,7 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 
 		uint8_t get_port_input(bool port_b) {
 			if(!port_b) {
-				// Bits 0–5: Joystick (up, down, left, right, A, B)
+				// Bits 0-5: Joystick (up, down, left, right, A, B)
 				// Bit 6: keyboard switch (not universal)
 
 				// Bit 7: tape input
@@ -599,7 +599,7 @@ class ConcreteMachine:
 								audio_toggle_.set_output(new_audio_level);
 							}
 
-							// b0–b3: keyboard line
+							// b0-b3: keyboard line
 							machine_.set_keyboard_line(value & 0xf);
 						} break;
 						default: printf("What what what what?\n"); break;

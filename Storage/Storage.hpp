@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 10/07/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef Storage_hpp
@@ -35,7 +35,7 @@ struct Time {
 	}
 
 	/*!
-		Reduces this @c Time to its simplest form — eliminates all common factors from @c length
+		Reduces this @c Time to its simplest form; eliminates all common factors from @c length
 		and @c clock_rate.
 	*/
 	void simplify() {

@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 10/07/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef Disk_hpp
@@ -29,7 +29,7 @@ class Disk {
 			@returns the number of discrete positions that this disk uses to model its complete surface area.
 
 			This is not necessarily a track count. There is no implicit guarantee that every position will
-			return a distinct track, or — e.g. if the media is holeless — will return any track at all.
+			return a distinct track, or, e.g. if the media is holeless, will return any track at all.
 		*/
 		virtual HeadPosition get_maximum_head_position() = 0;
 

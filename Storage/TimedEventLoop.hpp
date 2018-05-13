@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 29/07/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef TimedEventLoop_hpp
@@ -25,9 +25,9 @@ namespace Storage {
 		until a next event; @c process_next_event will be called when that event occurs, with progression
 		determined via @c run_for.
 
-		Due to the aggregation of total timing information between events — e.g. if an event loop has
+		Due to the aggregation of total timing information between events, e.g. if an event loop has
 		a clock rate of 1000 ticks per second and a steady stream of events that occur 10,000 times a second,
-		bookkeeping is necessary to ensure that 10 events are triggered per tick — subclasses should call
+		bookkeeping is necessary to ensure that 10 events are triggered per tick. Subclasses should call
 		@c reset_timer if there is a discontinuity in events.
 
 		Subclasses may also call @c jump_to_next_event to cause the next event to be communicated instantly.

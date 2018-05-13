@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 24/09/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #ifndef Sector_h
@@ -33,7 +33,7 @@ struct Sector {
 	};
 
 	Address address;
-	uint8_t size = 0;	// Size is stored in ordinary MFM form — the number of bytes included in this sector
+	uint8_t size = 0;	// Size is stored in ordinary MFM form: the number of bytes included in this sector
 						// is 2^(7 + size), or 128 << size.
 
 	// Multiple samplings of the underlying data are accepted, to allow weak and fuzzy data to be communicated.

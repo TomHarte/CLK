@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 17/08/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #ifndef HFE_hpp
@@ -18,7 +18,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c DiskImage containing an HFE — a bit stream representation of a floppy.
+	Provides a @c DiskImage containing an HFE: a bit stream representation of a floppy.
 */
 class HFE: public DiskImage {
 	public:

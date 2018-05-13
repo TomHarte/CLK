@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 04/06/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #include "ZX80O81P.hpp"
@@ -72,14 +72,14 @@ Tape::Pulse ZX80O81P::virtual_get_next_pulse() {
 	}
 
 	if(!wave_pointer_) {
-		// post-waves silence (here actually a pre-waves silence) is 1300µs
+		// post-waves silence (here actually a pre-waves silence) is 1300 microseconds
 		pulse.length.length = 13;
 		pulse.length.clock_rate = 10000;
 		pulse.type = Pulse::Type::Low;
 
 		wave_pointer_ ++;
 	} else {
-		// pulses are of length 150µs
+		// pulses are of length 150 microseconds
 		pulse.length.length = 3;
 		pulse.length.clock_rate = 20000;
 

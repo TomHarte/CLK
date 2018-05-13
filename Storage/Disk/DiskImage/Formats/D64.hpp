@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 01/08/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef D64_hpp
@@ -16,7 +16,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing a D64 disk image — a decoded sector dump of a C1540-format disk.
+	Provides a @c Disk containing a D64 disk image: a decoded sector dump of a C1540-format disk.
 */
 class D64: public DiskImage {
 	public:

@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 10/11/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef StaticAnalyser_Disassembler_6502_hpp
@@ -21,7 +21,7 @@ namespace Static {
 namespace MOS6502 {
 
 /*!
-	Describes a 6502 instruciton — its address, the operation it performs, its addressing mode
+	Describes a 6502 instruciton: its address, the operation it performs, its addressing mode
 	and its operand, if any.
 */
 struct Instruction {

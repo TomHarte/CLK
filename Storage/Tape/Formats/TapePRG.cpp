@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 14/08/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #include "TapePRG.hpp"
@@ -195,7 +195,7 @@ void PRG::get_next_output_token() {
 		case 0:
 			output_token_ = WordMarker;
 		break;
-		default:	// i.e. 1–8
+		default:	// i.e. 1-8
 			output_token_ = (output_byte_ & (1 << (bit_offset - 1))) ? One : Zero;
 		break;
 		case 9: {

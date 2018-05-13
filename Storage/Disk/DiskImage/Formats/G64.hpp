@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 10/07/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef G64_hpp
@@ -18,7 +18,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing a G64 disk image — a raw but perfectly-clocked GCR stream.
+	Provides a @c Disk containing a G64 disk image: a raw but perfectly-clocked GCR stream.
 */
 class G64: public DiskImage {
 	public:

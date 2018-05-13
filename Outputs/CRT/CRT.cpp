@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 19/07/2015.
-//  Copyright © 2015 Thomas Harte. All rights reserved.
+//  Copyright 2015 Thomas Harte. All rights reserved.
 //
 
 #include "CRT.hpp"
@@ -24,8 +24,9 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 																// To quote:
 																//
 																//	"retrace interval; The interval of time for the return of the blanked scanning beam of
-																//	a TV picture tube or camera tube to the starting point of a line or field. It is about 7 µs
-																//	for horizontal retrace and 500 to 750 µs for vertical retrace in NTSC and PAL TV."
+																//	a TV picture tube or camera tube to the starting point of a line or field. It is about
+																//	7 microseconds for horizontal retrace and 500 to 750 microseconds for vertical retrace
+																//  in NTSC and PAL TV."
 
 	time_multiplier_ = IntermediateBufferWidth / cycles_per_line;
 	phase_denominator_ = cycles_per_line * colour_cycle_denominator * time_multiplier_;

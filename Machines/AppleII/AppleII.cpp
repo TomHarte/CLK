@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 14/04/2018.
-//  Copyright © 2018 Thomas Harte. All rights reserved.
+//  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
 #include "AppleII.hpp"
@@ -172,11 +172,11 @@ class ConcreteMachine:
 			/*
 				There are five distinct zones of memory on an Apple II:
 
-				0000 — 0200	:	the zero and stack pages, which can be paged independently on a IIe
-				0200 — c000	:	the main block of RAM, which can be paged on a IIe
-				c000 — d000	:	the IO area, including card ROMs
-				d000 — e000	:	the low ROM area, which can contain indepdently-paged RAM with a language card
-				e000 —		:	the rest of ROM, also potentially replaced with RAM by a language card
+				0000 to 0200	:	the zero and stack pages, which can be paged independently on a IIe
+				0200 to c000	:	the main block of RAM, which can be paged on a IIe
+				c000 to d000	:	the IO area, including card ROMs
+				d000 to e000	:	the low ROM area, which can contain indepdently-paged RAM with a language card
+				e000 onward		:	the rest of ROM, also potentially replaced with RAM by a language card
 			*/
 			MemoryBlock *block = nullptr;
 			if(address < 0x200) block = &memory_blocks_[0];
@@ -267,7 +267,7 @@ class ConcreteMachine:
 				if(address >= 0xc100 && address < 0xc800) {
 					/*
 						Decode the area conventionally used by cards for ROMs:
-							0xCn00 — 0xCnff: card n.
+							0xCn00 to 0xCnff: card n.
 					*/
 					const size_t card_number = (address - 0xc100) >> 8;
 					if(cards_[card_number]) {
@@ -277,7 +277,7 @@ class ConcreteMachine:
 				} else if(address >= 0xc090 && address < 0xc100) {
 					/*
 						Decode the area conventionally used by cards for registers:
-							C0n0--C0nF: card n - 8.
+							C0n0 to C0nF: card n - 8.
 					*/
 					const size_t card_number = (address - 0xc090) >> 4;
 					if(cards_[card_number]) {

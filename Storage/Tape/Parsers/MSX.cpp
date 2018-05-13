@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 26/12/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #include "MSX.hpp"
@@ -18,8 +18,8 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	}
 
 	/*
-		"When 1,111 cycles have been found with less than 35 µs variation in
-		their lengths a header has been located."
+		"When 1,111 cycles have been found with less than 35 microseconds
+		variation in their lengths a header has been located."
 	*/
 	bool last_level = tape_player.get_input();
 	float low = std::numeric_limits<float>::max();
@@ -84,7 +84,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 
 	Attempts exactly to duplicate the MSX's TAPIN function.
 
-	@returns A value in the range 0–255 if a byte is found before the end of the tape;
+	@returns A value in the range 0-255 if a byte is found before the end of the tape;
 		-1 otherwise.
 */
 int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &tape_player) {

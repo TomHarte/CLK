@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 27/04/2018.
-//  Copyright © 2018 Thomas Harte. All rights reserved.
+//  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
 #ifndef AppleDSK_hpp
@@ -18,7 +18,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c DiskImage containing an Apple DSK disk image — a representation of sector contents,
+	Provides a @c DiskImage containing an Apple DSK disk image: a representation of sector contents,
 	implicitly numbered and located.
 */
 class AppleDSK: public DiskImage {

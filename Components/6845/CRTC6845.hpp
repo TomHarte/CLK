@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 31/07/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #ifndef CRTC6845_hpp
@@ -35,7 +35,7 @@ class BusHandler {
 		void perform_bus_cycle_phase1(const BusState &) {}
 
 		/*!
-			Performs the second phase of a 6845 bus cycle. Some bus state — including sync — is updated
+			Performs the second phase of a 6845 bus cycle. Some bus state, including sync, is updated
 			directly after phase 1 and hence is visible to an observer during phase 2. Handlers may therefore
 			implement @c perform_bus_cycle_phase2 to be notified of the availability of that state without
 			having to wait until the next cycle has begun.

@@ -28,7 +28,7 @@ using namespace SignalProcessing;
 
 	Original source for this filter:
 
-		"DIGITAL SIGNAL PROCESSING, II", IEEE Press, pages 123–126.
+		"DIGITAL SIGNAL PROCESSING, II", IEEE Press, pages 123-126.
 */
 
 /*! Evaluates the 0th order Bessel function at @c a. */

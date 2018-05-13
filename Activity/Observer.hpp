@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 07/05/2018.
-//  Copyright © 2018 Thomas Harte. All rights reserved.
+//  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
 #ifndef ActivityObserver_h
@@ -15,7 +15,7 @@ namespace Activity {
 
 /*!
 	Provides a purely virtual base class for anybody that wants to receive notifications of
-	'activity' — any feedback from an emulated system which a user could perceive other than
+	'activity': any feedback from an emulated system which a user could perceive other than
 	through the machine's native audio and video outputs.
 
 	So: status LEDs, drive activity, etc. A receiver may choose to make appropriate noises

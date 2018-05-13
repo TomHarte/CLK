@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 23/04/2018.
-//  Copyright © 2018 Thomas Harte. All rights reserved.
+//  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
 #ifndef WOZ_hpp
@@ -18,7 +18,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c DiskImage containing a WOZ — a bit stream representation of a floppy.
+	Provides a @c DiskImage containing a WOZ: a bit stream representation of a floppy.
 */
 class WOZ: public DiskImage {
 	public:

@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 05/08/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #ifndef CPCDSK_hpp
@@ -20,7 +20,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing an Amstrad CPC-type disk image — some arrangement of sectors with status bits.
+	Provides a @c Disk containing an Amstrad CPC-type disk image: some arrangement of sectors with status bits.
 */
 class CPCDSK: public DiskImage {
 	public:

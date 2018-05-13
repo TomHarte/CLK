@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 11/10/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #include "Oric.hpp"
@@ -422,7 +422,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				}
 			}
 
-			// $02df is where the Oric ROMs — all of them, including BASIC 1.0, 1.1 and the Pravetz — have the
+			// $02df is where the Oric ROMs; all of them, including BASIC 1.0, 1.1 and the Pravetz; have the
 			// IRQ routine store an incoming keystroke in order for reading to occur later. By capturing the
 			// read rather than the decode and write: (i) nothing is lost while BASIC is parsing; and
 			// (ii) keyboard input is much more rapid.

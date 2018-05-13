@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 08/01/2018.
-//  Copyright © 2018 Thomas Harte. All rights reserved.
+//  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
 #ifndef DMK_hpp
@@ -18,7 +18,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c DiskImage containing a DMK disk image — mostly a decoded byte stream, but with
+	Provides a @c DiskImage containing a DMK disk image: mostly a decoded byte stream, but with
 	a record of IDAM locations.
 */
 class DMK: public DiskImage {

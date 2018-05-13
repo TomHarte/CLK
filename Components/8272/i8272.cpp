@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 05/08/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #include "i8272.hpp"
@@ -434,7 +434,7 @@ void i8272::posit_event(int event_type) {
 			ClearControlMark();
 			if(event_type == static_cast<int>(Event::Token)) {
 				if(get_latest_token().type != Token::Data && get_latest_token().type != Token::DeletedData) {
-					// Something other than a data mark came next — impliedly an ID or index mark.
+					// Something other than a data mark came next, impliedly an ID or index mark.
 					SetMissingAddressMark();
 					SetMissingDataAddressMark();
 					goto abort;	// TODO: or read_next_data?
@@ -828,7 +828,7 @@ void i8272::posit_event(int event_type) {
 
 			goto post_result;
 
-	// Posts whatever is in result_stack_ as a result phase. Be aware that it is a stack — the
+	// Posts whatever is in result_stack_ as a result phase. Be aware that it is a stack, so the
 	// last thing in it will be returned first.
 	post_result:
 			printf("Result to %02x, main %02x: ", command_[0] & 0x1f, main_status_);

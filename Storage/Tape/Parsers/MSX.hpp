@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 26/12/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #ifndef Storage_Tape_Parsers_MSX_hpp
@@ -43,7 +43,7 @@ class Parser {
 
 			Attempts exactly to duplicate the MSX's TAPIN function.
 
-			@returns A value in the range 0–255 if a byte is found before the end of the tape;
+			@returns A value in the range 0-255 if a byte is found before the end of the tape;
 				-1 otherwise.
 		*/
 		static int get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &tape_player);

@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 14/10/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #include "AY38910.hpp"
@@ -103,7 +103,7 @@ void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
 			noise_shift_register_ >>= 1;
 		}
 
-		// ... and the envelope generator. Table based for pattern lookup, with a 'refill' step — a way of
+		// ... and the envelope generator. Table based for pattern lookup, with a 'refill' step: a way of
 		// implementing non-repeating patterns by locking them to table position 0x1f.
 		if(envelope_divider_) envelope_divider_--;
 		else {
@@ -130,7 +130,7 @@ void AY38910::evaluate_output_volume() {
 	// The output level for a channel is:
 	//	1 if neither tone nor noise is enabled;
 	//	0 if either tone or noise is enabled and its value is low.
-	// The tone/noise enable bits use inverse logic — 0 = on, 1 = off — permitting the OR logic below.
+	// The tone/noise enable bits use inverse logic; 0 = on, 1 = off; permitting the OR logic below.
 #define tone_level(c, tone_bit)		(tone_outputs_[c] | (output_registers_[7] >> tone_bit))
 #define noise_level(c, noise_bit)	(noise_output_ | (output_registers_[7] >> noise_bit))
 

@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 25/11/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #ifndef TMS9918_hpp
@@ -56,7 +56,7 @@ class TMS9918: public TMS9918Base {
 
 		/*!
 			Runs the VCP for the number of cycles indicate; it is an implicit assumption of the code
-			that the input clock rate is 3579545 Hz — the NTSC colour clock rate.
+			that the input clock rate is 3579545 Hz, the NTSC colour clock rate.
 		*/
 		void run_for(const HalfCycles cycles);
 

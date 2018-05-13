@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 05/06/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef _560_hpp
@@ -107,7 +107,7 @@ template <class BusHandler> class MOS6560 {
 		void set_output_mode(OutputMode output_mode) {
 			output_mode_ = output_mode;
 
-			// Luminances are encoded trivially: on a 0–255 scale.
+			// Luminances are encoded trivially: on a 0-255 scale.
 			const uint8_t luminances[16] = {
 				0,		255,	64,		192,
 				128,	128,	64,		192,
@@ -115,7 +115,7 @@ template <class BusHandler> class MOS6560 {
 				192,	192,	128,	255
 			};
 
-			// Chrominances are encoded such that 0–128 is a complete revolution of phase;
+			// Chrominances are encoded such that 0-128 is a complete revolution of phase;
 			// anything above 191 disables the colour subcarrier. Phase is relative to the
 			// colour burst, so 0 is green.
 			const uint8_t pal_chrominances[16] = {

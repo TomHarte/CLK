@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 22/07/2017.
-//  Copyright © 2017 Thomas Harte. All rights reserved.
+//  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
 #ifndef ClockReceiver_hpp
@@ -121,7 +121,7 @@ template <class T> class WrappedInt {
 		inline int as_int() const { return length_; }
 
 		/*!
-			Severs from @c this the effect of dividing by @c divisor — @c this will end up with
+			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
 		inline T divide(const T &divisor) {
@@ -147,7 +147,7 @@ template <class T> class WrappedInt {
 		int length_;
 };
 
-/// Describes an integer number of whole cycles — pairs of clock signal transitions.
+/// Describes an integer number of whole cycles: pairs of clock signal transitions.
 class Cycles: public WrappedInt<Cycles> {
 	public:
 		inline Cycles(int l) : WrappedInt<Cycles>(l) {}
@@ -155,7 +155,7 @@ class Cycles: public WrappedInt<Cycles> {
 		inline Cycles(const Cycles &cycles) : WrappedInt<Cycles>(cycles.length_) {}
 };
 
-/// Describes an integer number of half cycles — single clock signal transitions.
+/// Describes an integer number of half cycles: single clock signal transitions.
 class HalfCycles: public WrappedInt<HalfCycles> {
 	public:
 		inline HalfCycles(int l) : WrappedInt<HalfCycles>(l) {}
@@ -184,7 +184,7 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		}
 
 		/*!
-			Severs from @c this the effect of dividing by @c divisor — @c this will end up with
+			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
 		inline Cycles divide_cycles(const Cycles &divisor) {

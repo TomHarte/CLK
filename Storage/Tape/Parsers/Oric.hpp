@@ -3,7 +3,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 06/11/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #ifndef Storage_Tape_Parsers_Oric_hpp
@@ -16,9 +16,9 @@ namespace Tape {
 namespace Oric {
 
 enum class WaveType {
-	Short,	// i.e. 416µs
-	Medium,	// i.e. 624µs
-	Long,	// i.e. 832µs
+	Short,	// i.e. 416 microseconds
+	Medium,	// i.e. 624 microseconds
+	Long,	// i.e. 832 microseconds
 	Unrecognised
 };
 
