@@ -16,7 +16,7 @@ namespace Analyser {
 namespace Static {
 namespace Acorn {
 
-/// Describes a DFS- or ADFS-format catalogue(/directory) — the list of files available and the catalogue's boot option.
+/// Describes a DFS- or ADFS-format catalogue(/directory): the list of files available and the catalogue's boot option.
 struct Catalogue {
 	std::string name;
 	std::vector<File> files;

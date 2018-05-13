@@ -86,10 +86,10 @@ class Track {
 		};
 
 		/*!
-			Describes a detectable track event — either a flux transition or the passing of the index hole,
+			Describes a detectable track event: either a flux transition or the passing of the index hole,
 			along with the length of time between the previous event and its occurance.
 
-			The sum of all lengths of time across an entire track should be 1 — if an event is said to be
+			The sum of all lengths of time across an entire track should be 1; if an event is said to be
 			1/3 away then that means 1/3 of a rotation.
 		*/
 		struct Event {

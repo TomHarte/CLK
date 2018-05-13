@@ -23,7 +23,7 @@ namespace Commodore {
 namespace C1540 {
 
 /*!
-	An implementation of the serial-port VIA in a Commodore 1540 — the VIA that facilitates all
+	An implementation of the serial-port VIA in a Commodore 1540: the VIA that facilitates all
 	IEC bus communications.
 
 	It is wired up such that Port B contains:
@@ -35,7 +35,7 @@ namespace C1540 {
 		Bits 5/6:	device select input; the 1540 will act as device 8 + [value of bits]
 		Bit 7:		attention input; 1 if the line is low, 0 if it is high
 
-	The attention input is also connected to CA1, similarly inverted — the CA1 wire will be high when the bus is low and vice versa.
+	The attention input is also connected to CA1, similarly invertedl; the CA1 wire will be high when the bus is low and vice versa.
 */
 class SerialPortVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 	public:
@@ -60,7 +60,7 @@ class SerialPortVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 };
 
 /*!
-	An implementation of the drive VIA in a Commodore 1540 — the VIA that is used to interface with the disk.
+	An implementation of the drive VIA in a Commodore 1540: the VIA that is used to interface with the disk.
 
 	It is wired up such that Port B contains:
 		Bits 0/1:	head step direction

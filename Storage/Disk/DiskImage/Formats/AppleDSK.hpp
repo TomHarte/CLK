@@ -18,7 +18,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c DiskImage containing an Apple DSK disk image — a representation of sector contents,
+	Provides a @c DiskImage containing an Apple DSK disk image: a representation of sector contents,
 	implicitly numbered and located.
 */
 class AppleDSK: public DiskImage {

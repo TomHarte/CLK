@@ -139,7 +139,7 @@ std::shared_ptr<::Storage::Disk::Track> DMK::get_track_at_position(::Storage::Di
 
 		// Now at the IDAM, which will always be an FE regardless of FM/MFM encoding,
 		// presumably through misunderstanding of the designer? Write out a real IDAM
-		// for the current density, then the rest of the ID — four bytes for the address
+		// for the current density, then the rest of the ID: four bytes for the address
 		// plus two for the CRC. Keep a copy of the header while we're here, so that the
 		// size of the sector is known momentarily.
 		std::size_t step_rate = (!is_double_density && !is_purely_single_density_) ? 2 : 1;

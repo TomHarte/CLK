@@ -216,7 +216,7 @@ class CRT {
 
 		/*! Sets the current phase of the colour subcarrier used by output_default_colour_burst.
 
-			@param phase The normalised instantaneous phase — 0.0f is the start of a colour cycle, 1.0f is the
+			@param phase The normalised instantaneous phase. 0.0f is the start of a colour cycle, 1.0f is the
 			end of a colour cycle, 0.25f is a quarter of the way through a colour cycle, etc.
 		*/
 		void set_immediate_default_phase(float phase);
@@ -267,7 +267,7 @@ class CRT {
 		/*!	Tells the CRT that the next call to draw_frame will occur on a different OpenGL context than
 			the previous.
 
-			@param should_delete_resources If @c true then all resources — textures, vertex arrays, etc —
+			@param should_delete_resources If @c true then all resources, textures, vertex arrays, etc,
 			currently held by the CRT will be deleted now via calls to glDeleteTexture and equivalent. If
 			@c false then the references are simply marked as invalid.
 		*/
@@ -313,7 +313,7 @@ class CRT {
 			DiscreteFourSamplesPerCycle
 		};
 
-		/*! Provides information about the type of output the composite sampling function provides — discrete or continuous.
+		/*! Provides information about the type of output the composite sampling function provides, discrete or continuous.
 
 			This is necessary because the CRT implementation samples discretely and therefore can use fewer intermediate
 			samples if it can exactly duplicate the sampling rate and placement of the composite sampling function.

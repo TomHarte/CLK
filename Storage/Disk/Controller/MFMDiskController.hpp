@@ -120,8 +120,8 @@ class MFMController: public Controller {
 		void write_n_bytes(int quantity, uint8_t value);
 
 		/*!
-			Writes everything that should, per the spec, appear prior to the address contained
-			in an ID mark — proper gaps and the ID mark — and appropriate seeds the CRC generator.
+			Writes everything that should per the spec appear prior to the address contained
+			in an ID mark (i.e. proper gaps and the ID mark) and appropriate seeds the CRC generator.
 		*/
 		void write_id_joiner();
 

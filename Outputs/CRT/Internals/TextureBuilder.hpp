@@ -40,7 +40,7 @@ namespace CRT {
 		(iii)	call retain_latest to add the most recently written write area to the flush queue.
 
 	The flush queue contains provisional data, that can sit in the CPU's memory space indefinitely. This facility
-	is provided because it is expected that a texture will be built alontside some other collection of data —
+	is provided because it is expected that a texture will be built alontside some other collection of data;
 	that data in the flush queue is expected to become useful in coordination with something else but should
 	be retained at least until then.
 
@@ -55,7 +55,7 @@ namespace CRT {
 
 		(i)		call submit to move data to the GPU and free up its CPU-side resources.
 
-	The latest data is now on the GPU, regardless of where the data provider may be in its process — only data
+	The latest data is now on the GPU, regardless of where the data provider may be in its process; only data
 	that has entered the submission queue is uploaded.
 
 */

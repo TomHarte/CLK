@@ -50,7 +50,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		//		1/(2^32) *
 		//		( ((2^24)-1)/(2^24)*(1/4)		+		1/(2^24)	) *
 		//		1/4
-		//	= something very improbable — around 1/16th of 1 in 2^32, but not exactly.
+		//	= something very improbable, around 1/16th of 1 in 2^32, but not exactly.
 		acorn_cartridges.push_back(cartridge);
 	}
 

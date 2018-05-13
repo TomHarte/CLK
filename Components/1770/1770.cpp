@@ -522,7 +522,7 @@ void WD1770::posit_event(int new_event_type) {
 	type2_write_loop:
 		/*
 			This deviates from the data sheet slightly since that would prima facie request one more byte
-			of data than is actually written — the last time around the loop it has transferred from the
+			of data than is actually written; the last time around the loop it has transferred from the
 			data register to the data shift register, set data request, written the byte, checked that data
 			request has been satified, then finally considers whether all bytes are done. Based on both
 			natural expectations and the way that emulated machines responded, I believe that to be a

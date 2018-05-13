@@ -20,7 +20,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing an Amstrad CPC-type disk image — some arrangement of sectors with status bits.
+	Provides a @c Disk containing an Amstrad CPC-type disk image: some arrangement of sectors with status bits.
 */
 class CPCDSK: public DiskImage {
 	public:

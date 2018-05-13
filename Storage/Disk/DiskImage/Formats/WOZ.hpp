@@ -18,7 +18,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c DiskImage containing a WOZ — a bit stream representation of a floppy.
+	Provides a @c DiskImage containing a WOZ: a bit stream representation of a floppy.
 */
 class WOZ: public DiskImage {
 	public:

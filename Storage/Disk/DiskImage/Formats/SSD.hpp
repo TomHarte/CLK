@@ -15,7 +15,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing a DSD or SSD disk image — a decoded sector dump of an Acorn DFS disk.
+	Provides a @c Disk containing a DSD or SSD disk image: a decoded sector dump of an Acorn DFS disk.
 */
 class SSD: public MFMSectorDump {
 	public:

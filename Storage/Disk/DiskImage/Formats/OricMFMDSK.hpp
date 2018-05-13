@@ -18,7 +18,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing an Oric MFM-stype disk image — a stream of the MFM data bits with clocks omitted.
+	Provides a @c Disk containing an Oric MFM-stype disk image: a stream of the MFM data bits with clocks omitted.
 */
 class OricMFMDSK: public DiskImage {
 	public:

@@ -31,7 +31,7 @@
 @end
 
 struct LockProtectedDelegate {
-	// Contractual promise is: machine — the pointer **and** the object ** — may be accessed only
+	// Contractual promise is: machine, the pointer **and** the object **, may be accessed only
 	// in sections protected by the machineAccessLock;
 	NSLock *machineAccessLock;
 	__unsafe_unretained CSMachine *machine;

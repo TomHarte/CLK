@@ -24,10 +24,10 @@ class ConfidenceCounter: public ConfidenceSource {
 		/*! @returns The computed probability, based on the history of events. */
 		float get_confidence() override;
 
-		/*! Records an event that implies this is the appropriate class — pushes probability up towards 1.0. */
+		/*! Records an event that implies this is the appropriate class: pushes probability up towards 1.0. */
 		void add_hit();
 
-		/*! Records an event that implies this is not the appropriate class — pushes probability down towards 0.0. */
+		/*! Records an event that implies this is not the appropriate class: pushes probability down towards 0.0. */
 		void add_miss();
 
 		/*!

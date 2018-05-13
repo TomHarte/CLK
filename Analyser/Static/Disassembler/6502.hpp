@@ -21,7 +21,7 @@ namespace Static {
 namespace MOS6502 {
 
 /*!
-	Describes a 6502 instruciton — its address, the operation it performs, its addressing mode
+	Describes a 6502 instruciton: its address, the operation it performs, its addressing mode
 	and its operand, if any.
 */
 struct Instruction {

@@ -17,7 +17,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing an ADF disk image — a decoded sector dump of an Acorn ADFS disk.
+	Provides a @c Disk containing an ADF disk image: a decoded sector dump of an Acorn ADFS disk.
 */
 class AcornADF: public MFMSectorDump {
 	public:

@@ -157,7 +157,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 		{nullptr, nullptr}
 	};
 
-	// for s-video, there are two steps — it's like composite but skips separation
+	// for s-video, there are two steps: it's like composite but skips separation
 	const RenderStage svideo_render_stages[] = {
 		{svideo_input_shader_program_.get(),					separated_texture_.get(),		{0.0, 0.5, 0.5}},
 		{composite_chrominance_filter_shader_program_.get(),	filtered_texture_.get(),		{0.0, 0.0, 0.0}},

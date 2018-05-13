@@ -277,7 +277,7 @@ class CRTCBusHandler {
 		}
 
 		/*!
-			The CRTC entry function for phase 2 of each bus cycle — in which the next sync line state becomes
+			The CRTC entry function for phase 2 of each bus cycle, in which the next sync line state becomes
 			visible early. The CPC uses changes in sync to clock the interrupt timer.
 		*/
 		void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &state) {
@@ -818,7 +818,7 @@ class ConcreteMachine:
 						*cycle.value &= fdc_.get_register(address & 1);
 					}
 
-					// Check for a CRTC access; the below is not a typo — the CRTC can be selected
+					// Check for a CRTC access; the below is not a typo, the CRTC can be selected
 					// for writing via an input, and will sample whatever happens to be available
 					if(!(address & 0x4000)) {
 						switch((address >> 8) & 3) {

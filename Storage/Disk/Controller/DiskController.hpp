@@ -21,7 +21,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides the shell for emulating a disk controller — something that is connected to a disk drive and uses a
+	Provides the shell for emulating a disk controller: something that is connected to a disk drive and uses a
 	phase locked loop ('PLL') to decode a bit stream from the surface of the disk.
 
 	Partly abstract; it is expected that subclasses will provide methods to deal with receiving a newly-recognised

@@ -63,8 +63,8 @@ template<class T> class Cartridge:
 			uint8_t returnValue = 0xff;
 			int cycles_run_for = 3;
 
-			// this occurs as a feedback loop — the 2600 requests ready, then performs the cycles_run_for
-			// leap to the end of ready only once ready is signalled — because on a 6502 ready doesn't take
+			// this occurs as a feedback loop: the 2600 requests ready, then performs the cycles_run_for
+			// leap to the end of ready only once ready is signalled because on a 6502 ready doesn't take
 			// effect until the next read; therefore it isn't safe to assume that signalling ready immediately
 			// skips to the end of the line.
 			if(operation == CPU::MOS6502::BusOperation::Ready)
@@ -129,7 +129,7 @@ template<class T> class Cartridge:
 								tia_->reset_horizontal_counter();
 								horizontal_counter_resets_++;
 							break;
-								// TODO: audio will now be out of synchronisation — fix
+								// TODO: audio will now be out of synchronisation. Fix.
 
 							case 0x04:
 							case 0x05:	update_video();	tia_->set_player_number_and_size(decodedAddress - 0x04, *value);	break;

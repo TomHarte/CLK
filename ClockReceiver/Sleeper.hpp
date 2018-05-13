@@ -10,7 +10,7 @@
 #define Sleeper_hpp
 
 /*!
-	A sleeper is any component that sometimes requires a clock but at other times is 'asleep' — i.e. is not doing
+	A sleeper is any component that sometimes requires a clock but at other times is 'asleep', i.e. is not doing
 	any clock-derived work, so needn't receive a clock. A disk controller is an archetypal example.
 
 	A sleeper will signal sleeps and wakes to an observer.

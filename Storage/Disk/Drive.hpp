@@ -135,7 +135,7 @@ class Drive: public Sleeper, public TimedEventLoop {
 		bool has_disk_ = false;
 
 		// Contains the multiplier that converts between track-relative lengths
-		// to real-time lengths — so it's the reciprocal of rotation speed.
+		// to real-time lengths. So it's the reciprocal of rotation speed.
 		Time rotational_multiplier_;
 
 		// A count of time since the index hole was last seen. Which is used to

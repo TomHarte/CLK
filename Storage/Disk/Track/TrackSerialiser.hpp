@@ -23,7 +23,7 @@ namespace Disk {
 	This feature is offered for the benefit of various parts of the code that need to make
 	sense of a track **other than emulation**, as it renders a one-off image of the track,
 	which can be inaccurate. However there are many occasions where a single rendering is
-	desireable — e.g. file formats that apply that constraint, or static analysis prior to
+	desireable, e.g. file formats that apply that constraint, or static analysis prior to
 	emulation launch, which works with broad strokes.
 
 	@param track The track to serialise.

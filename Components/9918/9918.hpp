@@ -56,7 +56,7 @@ class TMS9918: public TMS9918Base {
 
 		/*!
 			Runs the VCP for the number of cycles indicate; it is an implicit assumption of the code
-			that the input clock rate is 3579545 Hz — the NTSC colour clock rate.
+			that the input clock rate is 3579545 Hz, the NTSC colour clock rate.
 		*/
 		void run_for(const HalfCycles cycles);
 

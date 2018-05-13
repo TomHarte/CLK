@@ -16,7 +16,7 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c Disk containing a D64 disk image — a decoded sector dump of a C1540-format disk.
+	Provides a @c Disk containing a D64 disk image: a decoded sector dump of a C1540-format disk.
 */
 class D64: public DiskImage {
 	public:

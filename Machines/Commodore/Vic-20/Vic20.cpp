@@ -75,8 +75,8 @@ enum ROM {
 };
 
 /*!
-	Models the user-port VIA, which is the Vic's connection point for controlling its tape recorder —
-	sensing the presence or absence of a tape and controlling the tape motor — and reading the current
+	Models the user-port VIA, which is the Vic's connection point for controlling its tape recorder;
+	sensing the presence or absence of a tape and controlling the tape motor; and reading the current
 	state from its serial port. Most of the joystick input is also exposed here.
 */
 class UserPortVIA: public MOS::MOS6522::IRQDelegatePortHandler {

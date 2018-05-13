@@ -35,7 +35,7 @@ struct Time {
 	}
 
 	/*!
-		Reduces this @c Time to its simplest form — eliminates all common factors from @c length
+		Reduces this @c Time to its simplest form; eliminates all common factors from @c length
 		and @c clock_rate.
 	*/
 	void simplify() {

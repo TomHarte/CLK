@@ -58,8 +58,8 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 
 		void set_port_output(bool port_b, uint8_t value) {
 			if(port_b) {
-				// Bits 0–3: touchpad handshaking (?)
-				// Bit 4—5: monostable timer pulses
+				// Bits 0-3: touchpad handshaking (?)
+				// Bit 4-5: monostable timer pulses
 				// Bit 6: joystick select
 				// Bit 7: code LED, if any
 			}

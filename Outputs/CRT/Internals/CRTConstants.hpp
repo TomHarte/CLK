@@ -15,7 +15,7 @@
 namespace Outputs {
 namespace CRT {
 
-// Output vertices are those used to copy from an input buffer — whether it describes data that maps directly to RGB
+// Output vertices are those used to copy from an input buffer, whether it describes data that maps directly to RGB
 // or is one of the intermediate buffers that we've used to convert from composite towards RGB.
 const GLsizei OutputVertexOffsetOfHorizontal = 0;
 const GLsizei OutputVertexOffsetOfVertical = 4;
