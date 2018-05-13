@@ -264,9 +264,9 @@ uint16_t Parser::get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape
 void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse)
 {
 	// The Complete Commodore Inner Space Anthology, P 97, gives half-cycle lengths of:
-	// short: 182µs		=>	0.000364s cycle
-	// medium: 262µs	=>	0.000524s cycle
-	// long: 342µs		=>	0.000684s cycle
+	// short: 182us		=>	0.000364s cycle
+	// medium: 262us	=>	0.000524s cycle
+	// long: 342us		=>	0.000684s cycle
 	bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
 	if(!is_high && previous_was_high_)
 	{

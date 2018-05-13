@@ -182,8 +182,8 @@ class CRTCBusHandler {
 			bus state and determines what output to produce based on the current palette and mode.
 		*/
 		forceinline void perform_bus_cycle_phase1(const Motorola::CRTC::BusState &state) {
-			// The gate array waits 2µs to react to the CRTC's vsync signal, and then
-			// caps output at 4µs. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
+			// The gate array waits 2us to react to the CRTC's vsync signal, and then
+			// caps output at 4us. Since the clock rate is 1Mhz, that's 2 and 4 cycles,
 			// respectively.
 			if(state.hsync) {
 				cycles_into_hsync_++;

@@ -18,8 +18,8 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	}
 
 	/*
-		"When 1,111 cycles have been found with less than 35 µs variation in
-		their lengths a header has been located."
+		"When 1,111 cycles have been found with less than 35 microseconds
+		variation in their lengths a header has been located."
 	*/
 	bool last_level = tape_player.get_input();
 	float low = std::numeric_limits<float>::max();
