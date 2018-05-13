@@ -193,6 +193,23 @@ class ConcreteMachine:
 				if(isReadOperation(operation)) *value = block->read_pointer[address];
 				else if(block->write_pointer) block->write_pointer[address] = *value;
 			} else {
+				// Assume a vapour read unless it turns out otherwise; this is a little
+				// wasteful but works for now.
+				//
+				// Longer version: like many other machines, when the Apple II reads from
+				// an address at which no hardware loads the data bus, through a process of
+				// practical analogue effects it'll end up receiving whatever was last on
+				// the bus. Which will always be whatever the video circuit fetched because
+				// that fetches in between every instruction.
+				//
+				// So this code assumes that'll happen unless it later determines that it
+				// doesn't. The call into the video isn't free because it's a just-in-time
+				// actor, but this will actually be the result most of the time so it's not
+				// too terrible.
+				if(isReadOperation(operation) && address != 0xc000) {
+					*value = video_->get_last_read_value(cycles_since_video_update_);
+				}
+
 				switch(address) {
 					default:
 						if(isReadOperation(operation)) {
