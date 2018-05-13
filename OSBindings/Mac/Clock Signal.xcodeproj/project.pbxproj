@@ -140,6 +140,8 @@
 		4B15AA0E2082C799005E6C8D /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B15AA0A2082C799005E6C8D /* Video.cpp */; };
 		4B15AA0F2082C799005E6C8D /* AppleII.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B15AA0C2082C799005E6C8D /* AppleII.cpp */; };
 		4B15AA102082C799005E6C8D /* AppleII.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B15AA0C2082C799005E6C8D /* AppleII.cpp */; };
+		4B17B58B20A8A9D9007CCA8F /* StringSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */; };
+		4B17B58C20A8A9D9007CCA8F /* StringSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */; };
 		4B1B88BB202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */; };
 		4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */; };
 		4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FCC3F201EC24200960631 /* MultiMachine.cpp */; };
@@ -740,6 +742,8 @@
 		4B1667F91FFF215E00A16032 /* ASCII16kb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ASCII16kb.hpp; path = MSX/Cartridges/ASCII16kb.hpp; sourceTree = "<group>"; };
 		4B1667FA1FFF215E00A16032 /* ASCII8kb.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ASCII8kb.hpp; path = MSX/Cartridges/ASCII8kb.hpp; sourceTree = "<group>"; };
 		4B1667FB1FFF215F00A16032 /* KonamiWithSCC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = KonamiWithSCC.hpp; path = MSX/Cartridges/KonamiWithSCC.hpp; sourceTree = "<group>"; };
+		4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StringSerialiser.cpp; sourceTree = "<group>"; };
+		4B17B58A20A8A9D9007CCA8F /* StringSerialiser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = StringSerialiser.hpp; sourceTree = "<group>"; };
 		4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiKeyboardMachine.cpp; sourceTree = "<group>"; };
 		4B1B88BA202E2EC100B67DFF /* MultiKeyboardMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiKeyboardMachine.hpp; sourceTree = "<group>"; };
 		4B1B88BE202E3DB200B67DFF /* MultiConfigurable.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiConfigurable.cpp; sourceTree = "<group>"; };
@@ -1674,6 +1678,8 @@
 				4B2B3A491F9B8FA70062DABF /* MemoryFuzzer.hpp */,
 				4B2B3A4A1F9B8FA70062DABF /* Typer.hpp */,
 				4B79A4FE1FC9082300EEDAD5 /* TypedDynamicMachine.hpp */,
+				4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */,
+				4B17B58A20A8A9D9007CCA8F /* StringSerialiser.hpp */,
 			);
 			path = Utility;
 			sourceTree = "<group>";
@@ -3672,6 +3678,7 @@
 				4B15AA102082C799005E6C8D /* AppleII.cpp in Sources */,
 				4B055AA91FAE85EF0060FFFF /* CommodoreGCR.cpp in Sources */,
 				4B055ADB1FAE9B460060FFFF /* 6560.cpp in Sources */,
+				4B17B58C20A8A9D9007CCA8F /* StringSerialiser.cpp in Sources */,
 				4B055AA01FAE85DA0060FFFF /* MFMSectorDump.cpp in Sources */,
 				4BEBFB522002DB30000708CC /* DiskROM.cpp in Sources */,
 				4B055AA11FAE85DA0060FFFF /* OricMFMDSK.cpp in Sources */,
@@ -3838,6 +3845,7 @@
 				4B2B3A4B1F9B8FA70062DABF /* Typer.cpp in Sources */,
 				4B4518821F75E91A00926311 /* PCMSegment.cpp in Sources */,
 				4B894522201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
+				4B17B58B20A8A9D9007CCA8F /* StringSerialiser.cpp in Sources */,
 				4BE7C9181E3D397100A5496D /* TIA.cpp in Sources */,
 				4B80AD001F85CACA00176895 /* BestEffortUpdater.cpp in Sources */,
 				4B2E2D9D1C3A070400138695 /* Electron.cpp in Sources */,

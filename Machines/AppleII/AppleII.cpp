@@ -13,6 +13,7 @@
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
+#include "../Utility/StringSerialiser.hpp"
 
 #include "../../Processors/6502/6502.hpp"
 #include "../../Components/AudioToggle/AudioToggle.hpp"
@@ -118,8 +119,7 @@ class ConcreteMachine:
 		}
 
 		// MARK - typing
-		std::string input_string_;
-		std::size_t input_string_pointer_ = std::numeric_limits<std::size_t>::max();
+		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
 
 	public:
 		ConcreteMachine():
@@ -201,8 +201,8 @@ class ConcreteMachine:
 								default: break;
 
 								case 0xc000:
-									if(input_string_pointer_ != std::numeric_limits<std::size_t>::max()) {
-										*value = static_cast<uint8_t>(input_string_[input_string_pointer_]) | 0x80;
+									if(string_serialiser_) {
+										*value = string_serialiser_->head() | 0x80;
 									} else {
 										*value = keyboard_input_;
 									}
@@ -225,10 +225,9 @@ class ConcreteMachine:
 
 					case 0xc010:
 						keyboard_input_ &= 0x7f;
-						if(input_string_pointer_ != std::numeric_limits<std::size_t>::max()) {
-							++input_string_pointer_;
-							if(input_string_pointer_ == input_string_.size())
-								input_string_pointer_ = std::numeric_limits<std::size_t>::max();
+						if(string_serialiser_) {
+							if(!string_serialiser_->advance())
+								string_serialiser_.reset();
 						}
 					break;
 
@@ -361,22 +360,7 @@ class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) override {
-			input_string_.clear();
-			input_string_.reserve(string.size());
-
-			// Commute any \ns that are not immediately after \rs to \rs; remove the rest.
-			bool saw_carriage_return = false;
-			for(auto character: string) {
-				if(character != '\n') {
-					input_string_.push_back(character);
-				} else {
-					if(!saw_carriage_return) {
-						input_string_.push_back('\r');
-					}
-				}
-				saw_carriage_return = character == '\r';
-			}
-			input_string_pointer_ = 0;
+			string_serialiser_.reset(new Utility::StringSerialiser(string, true));
 		}
 
 		// MARK: ConfigurationTarget

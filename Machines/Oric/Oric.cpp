@@ -18,7 +18,7 @@
 #include "../KeyboardMachine.hpp"
 
 #include "../Utility/MemoryFuzzer.hpp"
-#include "../Utility/Typer.hpp"
+#include "../Utility/StringSerialiser.hpp"
 
 #include "../../Processors/6502/6502.hpp"
 #include "../../Components/6522/6522.hpp"
@@ -424,14 +424,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				}
 			}
 
-			if(typer_ && address == scan_keyboard_address_ && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
-				// the Oric 1 misses any key pressed on the very first entry into the read keyboard routine, so don't
-				// do anything until at least the second, regardless of machine
-				if(!keyboard_read_count_) keyboard_read_count_++;
-				else if(!typer_->type_next_character()) {
-					clear_all_keys();
-					typer_.reset();
-				}
+			if(string_serialiser_ && address == scan_keyboard_address_ && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
+				m6502_.set_value_of_register(CPU::MOS6502::Register::X, string_serialiser_->head() | 0x80);
+				*value = 0x60;
+				if(!string_serialiser_->advance()) string_serialiser_.reset();
 			}
 
 			via_.run_for(Cycles(1));
@@ -490,8 +486,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 		// for Utility::TypeRecipient::Delegate
 		void type_string(const std::string &string) override final {
-			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper);
-			Utility::TypeRecipient::add_typer(string, std::move(mapper));
+			string_serialiser_.reset(new Utility::StringSerialiser(string, true));
 		}
 
 		// for Microdisc::Delegate
@@ -625,6 +620,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				irq_line |= microdisc_.get_interrupt_request_line();
 			m6502_.set_irq_line(irq_line);
 		}
+
+		// MARK - typing
+		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
 };
 
 }
