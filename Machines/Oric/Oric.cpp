@@ -18,7 +18,7 @@
 #include "../KeyboardMachine.hpp"
 
 #include "../Utility/MemoryFuzzer.hpp"
-#include "../Utility/Typer.hpp"
+#include "../Utility/StringSerialiser.hpp"
 
 #include "../../Processors/6502/6502.hpp"
 #include "../../Components/6522/6522.hpp"
@@ -305,13 +305,11 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			switch(rom_type_) {
 				case Analyser::Static::Oric::Target::ROM::BASIC10:
 					tape_get_byte_address_ = 0xe630;
-					scan_keyboard_address_ = 0xf43c;
 					tape_speed_address_ = 0x67;
 				break;
 				case Analyser::Static::Oric::Target::ROM::BASIC11:
 				case Analyser::Static::Oric::Target::ROM::Pravetz:
 					tape_get_byte_address_ = 0xe6c9;
-					scan_keyboard_address_ = 0xf495;
 					tape_speed_address_ = 0x024d;
 				break;
 			}
@@ -424,14 +422,13 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				}
 			}
 
-			if(typer_ && address == scan_keyboard_address_ && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
-				// the Oric 1 misses any key pressed on the very first entry into the read keyboard routine, so don't
-				// do anything until at least the second, regardless of machine
-				if(!keyboard_read_count_) keyboard_read_count_++;
-				else if(!typer_->type_next_character()) {
-					clear_all_keys();
-					typer_.reset();
-				}
+			// $02df is where the Oric ROMs — all of them, including BASIC 1.0, 1.1 and the Pravetz — have the
+			// IRQ routine store an incoming keystroke in order for reading to occur later. By capturing the
+			// read rather than the decode and write: (i) nothing is lost while BASIC is parsing; and
+			// (ii) keyboard input is much more rapid.
+			if(string_serialiser_ && address == 0x02df && operation == CPU::MOS6502::BusOperation::Read) {
+				*value = string_serialiser_->head() | 0x80;
+				if(!string_serialiser_->advance()) string_serialiser_.reset();
 			}
 
 			via_.run_for(Cycles(1));
@@ -490,8 +487,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 		// for Utility::TypeRecipient::Delegate
 		void type_string(const std::string &string) override final {
-			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper);
-			Utility::TypeRecipient::add_typer(string, std::move(mapper));
+			string_serialiser_.reset(new Utility::StringSerialiser(string, true));
 		}
 
 		// for Microdisc::Delegate
@@ -581,7 +577,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// ROM bookkeeping
-		uint16_t tape_get_byte_address_ = 0, scan_keyboard_address_ = 0, tape_speed_address_ = 0;
+		uint16_t tape_get_byte_address_ = 0, tape_speed_address_ = 0;
 		int keyboard_read_count_ = 0;
 
 		// Outputs
@@ -625,6 +621,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				irq_line |= microdisc_.get_interrupt_request_line();
 			m6502_.set_irq_line(irq_line);
 		}
+
+		// MARK - typing
+		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
 };
 
 }

@@ -659,7 +659,7 @@ class ConcreteMachine:
 
 			user_port_via_.run_for(Cycles(1));
 			keyboard_via_.run_for(Cycles(1));
-			if(typer_ && operation == CPU::MOS6502::BusOperation::ReadOpcode && address == 0xEB1E) {
+			if(typer_ && address == 0xeb1e && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
 				if(!typer_->type_next_character()) {
 					clear_all_keys();
 					typer_.reset();
