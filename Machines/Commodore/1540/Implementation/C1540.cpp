@@ -50,10 +50,10 @@ Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, 
 	/*
 		Memory map (given that I'm unsure yet on any potential mirroring):
 
-			0x0000–0x07ff	RAM
-			0x1800–0x180f	the serial-port VIA
-			0x1c00–0x1c0f	the drive VIA
-			0xc000–0xffff	ROM
+			0x0000-0x07ff	RAM
+			0x1800-0x180f	the serial-port VIA
+			0x1c00-0x1c0f	the drive VIA
+			0xc000-0xffff	ROM
 	*/
 	if(address < 0x800) {
 		if(isReadOperation(operation))

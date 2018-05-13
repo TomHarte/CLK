@@ -84,7 +84,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 
 	Attempts exactly to duplicate the MSX's TAPIN function.
 
-	@returns A value in the range 0–255 if a byte is found before the end of the tape;
+	@returns A value in the range 0-255 if a byte is found before the end of the tape;
 		-1 otherwise.
 */
 int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &tape_player) {

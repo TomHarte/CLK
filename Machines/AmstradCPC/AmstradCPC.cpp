@@ -673,7 +673,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 							//	Bit 6: printer ready (1 = not)
 							//	Bit 5: the expansion port /EXP pin, so depends on connected hardware
 							//	Bit 4: 50/60Hz switch (1 = 50Hz)
-							//	Bits 1–3: distributor ID (111 = Amstrad)
+							//	Bits 1-3: distributor ID (111 = Amstrad)
 				default: return 0xff;
 			}
 		}

@@ -67,7 +67,7 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 
 		uint8_t get_port_input(bool port_b) {
 			if(!port_b) {
-				// Bits 0–5: Joystick (up, down, left, right, A, B)
+				// Bits 0-5: Joystick (up, down, left, right, A, B)
 				// Bit 6: keyboard switch (not universal)
 
 				// Bit 7: tape input
@@ -599,7 +599,7 @@ class ConcreteMachine:
 								audio_toggle_.set_output(new_audio_level);
 							}
 
-							// b0–b3: keyboard line
+							// b0-b3: keyboard line
 							machine_.set_keyboard_line(value & 0xf);
 						} break;
 						default: printf("What what what what?\n"); break;

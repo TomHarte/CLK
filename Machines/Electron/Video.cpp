@@ -388,7 +388,7 @@ unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time) 
 	// Apply the standard cost of aligning to the available 1Mhz of RAM bandwidth.
 	result += 1 + (position&1);
 
-	// In Modes 0–3 there is also a complete block on any access while pixels are being fetched.
+	// In Modes 0-3 there is also a complete block on any access while pixels are being fetched.
 	if(screen_mode_ < 4) {
 		const int current_column = graphics_column(position + (position&1));
 		int current_line = graphics_line(position);
