@@ -3,7 +3,7 @@
 //  CLK
 //
 //  Created by Thomas Harte on 09/07/2015.
-//  Copyright © 2015 Thomas Harte. All rights reserved.
+//  Copyright 2015 Thomas Harte. All rights reserved.
 //
 
 #ifndef MOS6502_cpp

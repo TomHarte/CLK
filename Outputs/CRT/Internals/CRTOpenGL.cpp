@@ -2,7 +2,7 @@
 //  Clock Signal
 //
 //  Created by Thomas Harte on 03/02/2016.
-//  Copyright © 2016 Thomas Harte. All rights reserved.
+//  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
 #include "../CRT.hpp"
