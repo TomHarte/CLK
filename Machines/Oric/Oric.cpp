@@ -305,13 +305,11 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			switch(rom_type_) {
 				case Analyser::Static::Oric::Target::ROM::BASIC10:
 					tape_get_byte_address_ = 0xe630;
-					scan_keyboard_address_ = 0xf43c;
 					tape_speed_address_ = 0x67;
 				break;
 				case Analyser::Static::Oric::Target::ROM::BASIC11:
 				case Analyser::Static::Oric::Target::ROM::Pravetz:
 					tape_get_byte_address_ = 0xe6c9;
-					scan_keyboard_address_ = 0xf495;
 					tape_speed_address_ = 0x024d;
 				break;
 			}
@@ -424,9 +422,12 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				}
 			}
 
-			if(string_serialiser_ && address == scan_keyboard_address_ && operation == CPU::MOS6502::BusOperation::ReadOpcode) {
-				m6502_.set_value_of_register(CPU::MOS6502::Register::X, string_serialiser_->head() | 0x80);
-				*value = 0x60;
+			// $02df is where the Oric ROMs — all of them, including BASIC 1.0, 1.1 and the Pravetz — have the
+			// IRQ routine store an incoming keystroke in order for reading to occur later. By capturing the
+			// read rather than the decode and write: (i) nothing is lost while BASIC is parsing; and
+			// (ii) keyboard input is much more rapid.
+			if(string_serialiser_ && address == 0x02df && operation == CPU::MOS6502::BusOperation::Read) {
+				*value = string_serialiser_->head() | 0x80;
 				if(!string_serialiser_->advance()) string_serialiser_.reset();
 			}
 
@@ -576,7 +577,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// ROM bookkeeping
-		uint16_t tape_get_byte_address_ = 0, scan_keyboard_address_ = 0, tape_speed_address_ = 0;
+		uint16_t tape_get_byte_address_ = 0, tape_speed_address_ = 0;
 		int keyboard_read_count_ = 0;
 
 		// Outputs
