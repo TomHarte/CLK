@@ -32,31 +32,33 @@
 
 @protocol CSOpenGLViewResponderDelegate <NSObject>
 /*!
-	Supplies a keyDown event to the delegate. Will always be called on the same queue as the other
-	@c CSOpenGLViewResponderDelegate methods and as -[CSOpenGLViewDelegate openGLView:didUpdateToTime:].
+	Supplies a keyDown event to the delegate.
 	@param event The @c NSEvent describing the keyDown.
 */
 - (void)keyDown:(nonnull NSEvent *)event;
 
 /*!
-	Supplies a keyUp event to the delegate. Will always be called on the same queue as the other
-	@c CSOpenGLViewResponderDelegate methods and as -[CSOpenGLViewDelegate openGLView:didUpdateToTime:].
+	Supplies a keyUp event to the delegate.
 	@param event The @c NSEvent describing the keyUp.
 */
 - (void)keyUp:(nonnull NSEvent *)event;
 
 /*!
-	Supplies a flagsChanged event to the delegate. Will always be called on the same queue as the other
-	@c CSOpenGLViewResponderDelegate methods and as -[CSOpenGLViewDelegate openGLView:didUpdateToTime:].
+	Supplies a flagsChanged event to the delegate.
 	@param event The @c NSEvent describing the flagsChanged.
 */
 - (void)flagsChanged:(nonnull NSEvent *)event;
 
+/*!
+	Supplies a paste event to the delegate.
+*/
+- (void)paste:(nonnull id)sender;
+
 @end
 
 /*!
-	Provides an OpenGL canvas with a refresh-linked update timer and manages a serial dispatch queue
-	such that a delegate may produce video and respond to keyboard events.
+	Provides an OpenGL canvas with a refresh-linked update timer that can forward a subset
+	of typical first-responder actions.
 */
 @interface CSOpenGLView : NSOpenGLView
 
@@ -72,6 +74,10 @@
 /// The size in pixels of the OpenGL canvas, factoring in screen pixel density and view size in points.
 @property (nonatomic, readonly) CGSize backingSize;
 
+/*!
+	Locks this view's OpenGL context and makes it current, performs @c action and then unlocks
+	the context. @c action is performed on the calling queue.
+*/
 - (void)performWithGLContext:(nonnull dispatch_block_t)action;
 
 @end

@@ -162,6 +162,11 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[self.responderDelegate flagsChanged:theEvent];
 }
 
+- (void)paste:(id)sender
+{
+	[self.responderDelegate paste:sender];
+}
+
 #pragma mark - NSDraggingDestination
 
 - (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
