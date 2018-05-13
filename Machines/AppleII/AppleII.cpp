@@ -117,6 +117,10 @@ class ConcreteMachine:
 			}
 		}
 
+		// MARK - typing
+		std::string input_string_;
+		std::size_t input_string_pointer_ = std::numeric_limits<std::size_t>::max();
+
 	public:
 		ConcreteMachine():
 		 	m6502_(*this),
@@ -197,7 +201,11 @@ class ConcreteMachine:
 								default: break;
 
 								case 0xc000:
-									*value = keyboard_input_;
+									if(input_string_pointer_ != std::numeric_limits<std::size_t>::max()) {
+										*value = static_cast<uint8_t>(input_string_[input_string_pointer_]) | 0x80;
+									} else {
+										*value = keyboard_input_;
+									}
 								break;
 							}
 						} else {
@@ -217,6 +225,11 @@ class ConcreteMachine:
 
 					case 0xc010:
 						keyboard_input_ &= 0x7f;
+						if(input_string_pointer_ != std::numeric_limits<std::size_t>::max()) {
+							++input_string_pointer_;
+							if(input_string_pointer_ == input_string_.size())
+								input_string_pointer_ = std::numeric_limits<std::size_t>::max();
+						}
 					break;
 
 					case 0xc030:
@@ -345,6 +358,25 @@ class ConcreteMachine:
 
 		Inputs::Keyboard &get_keyboard() override {
 			return *this;
+		}
+
+		void type_string(const std::string &string) override {
+			input_string_.clear();
+			input_string_.reserve(string.size());
+
+			// Commute any \ns that are not immediately after \rs to \rs; remove the rest.
+			bool saw_carriage_return = false;
+			for(auto character: string) {
+				if(character != '\n') {
+					input_string_.push_back(character);
+				} else {
+					if(!saw_carriage_return) {
+						input_string_.push_back('\r');
+					}
+				}
+				saw_carriage_return = character == '\r';
+			}
+			input_string_pointer_ = 0;
 		}
 
 		// MARK: ConfigurationTarget
