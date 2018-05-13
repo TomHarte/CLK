@@ -167,7 +167,7 @@ class MachineDocument:
 	}
 
 	// MARK: the pasteboard
-	func paste(_ sender: AnyObject!) {
+	func paste(_ sender: Any) {
 		let pasteboard = NSPasteboard.general
 		if let string = pasteboard.string(forType: .string) {
 			self.machine.paste(string)
