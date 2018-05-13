@@ -85,17 +85,14 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 			}
 		} else {
 			if(new_sector) {
-				// If this is an epilogue, make sense of this whole sector;
-				// otherwise just keep the byte for later.
-				if(scanner[1] == epilogue[0] && scanner[2] == epilogue[1]) {
+				new_sector->data.push_back(value);
+
+				// If this is potentially a complete sector, check it out.
+				if(new_sector->data.size() == 343) {
+					// TODO: allow for 13-sector form.
 					std::unique_ptr<Sector> sector = std::move(new_sector);
 					new_sector.reset();
 					pointer = scanning_sentinel;
-
-					// Check for an expected size; the first byte of the epilogue has been stored, so
-					// these numbers are one bigger than usual.
-					if(sector->data.size() != 412 && sector->data.size() != 344) continue;
-					sector->data.resize(sector->data.size() - 1);
 
 					// Check for apparent four and four encoding.
 					uint_fast8_t header_mask = 0xff;
@@ -111,54 +108,50 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 					uint_fast8_t checksum = ((header[6] << 1) | 1) & header[7];
 					if(checksum != (sector->address.volume^sector->address.track^sector->address.sector)) continue;
 
-					if(sector->data.size() == 343) {
-						// Unmap the sector contents as 6 and 2 data.
-						bool out_of_bounds = false;
-						for(auto &c : sector->data) {
-							if(c < 0x96 || six_and_two_unmapping[c - 0x96] == 0xff) {
-								out_of_bounds = true;
-								break;
-							}
-							c = six_and_two_unmapping[c - 0x96];
+					// Unmap the sector contents as 6 and 2 data.
+					bool out_of_bounds = false;
+					for(auto &c : sector->data) {
+						if(c < 0x96 || six_and_two_unmapping[c - 0x96] == 0xff) {
+							out_of_bounds = true;
+							break;
 						}
-						if(out_of_bounds) continue;
-
-						// Undo the XOR step on sector contents and check that checksum.
-						for(std::size_t c = 1; c < sector->data.size(); ++c) {
-							sector->data[c] ^= sector->data[c-1];
-						}
-						if(sector->data.back()) continue;
-
-						// Having checked the checksum, remove it.
-						sector->data.resize(sector->data.size() - 1);
-
-						// Undo the 6 and 2 mapping.
-						const uint8_t bit_reverse[] = {0, 2, 1, 3};
-						#define unmap(byte, nibble, shift)	\
-							sector->data[86 + byte] = static_cast<uint8_t>(\
-								(sector->data[86 + byte] << 2) | bit_reverse[(sector->data[nibble] >> shift)&3]);
-
-						for(std::size_t c = 0; c < 84; ++c) {
-							unmap(c, c, 0);
-							unmap(c+86, c, 2);
-							unmap(c+172, c, 4);
-						}
-
-						unmap(84, 84, 0);
-						unmap(170, 84, 2);
-						unmap(85, 85, 0);
-						unmap(171, 85, 2);
-
-						#undef unmap
+						c = six_and_two_unmapping[c - 0x96];
 					}
+					if(out_of_bounds) continue;
+
+					// Undo the XOR step on sector contents and check that checksum.
+					for(std::size_t c = 1; c < sector->data.size(); ++c) {
+						sector->data[c] ^= sector->data[c-1];
+					}
+					if(sector->data.back()) continue;
+
+					// Having checked the checksum, remove it.
+					sector->data.resize(sector->data.size() - 1);
+
+					// Undo the 6 and 2 mapping.
+					const uint8_t bit_reverse[] = {0, 2, 1, 3};
+					#define unmap(byte, nibble, shift)	\
+						sector->data[86 + byte] = static_cast<uint8_t>(\
+							(sector->data[86 + byte] << 2) | bit_reverse[(sector->data[nibble] >> shift)&3]);
+
+					for(std::size_t c = 0; c < 84; ++c) {
+						unmap(c, c, 0);
+						unmap(c+86, c, 2);
+						unmap(c+172, c, 4);
+					}
+
+					unmap(84, 84, 0);
+					unmap(170, 84, 2);
+					unmap(85, 85, 0);
+					unmap(171, 85, 2);
+
+					#undef unmap
 
 					// Throw away the collection of two-bit chunks.
 					sector->data.erase(sector->data.begin(), sector->data.end() - 256);
 
 					// Add this sector to the map.
 					result.insert(std::make_pair(sector_location, std::move(*sector)));
-				} else {
-					new_sector->data.push_back(value);
 				}
 			} else {
 				// Just capture the header in place; it'll be decoded
