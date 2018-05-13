@@ -21,7 +21,7 @@ bool Analyser::Static::Commodore::File::is_basic() {
 	//		[4 bytes: address of start of next line]
 	//		[4 bytes: this line number]
 	//		... null-terminated code ...
-	//	(with a next line address of 0000 indicating end of program)ß
+	//	(with a next line address of 0000 indicating end of program)
 	while(1) {
 		if(static_cast<size_t>(line_address - starting_address) >= data.size() + 2) break;
 
