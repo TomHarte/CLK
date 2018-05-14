@@ -14,6 +14,7 @@ So its aims are:
 It currently contains emulations of the:
 * Acorn Electron;
 * Amstrad CPC;
+* Apple II/II+;
 * Atari 2600;
 * ColecoVision;
 * Commodore Vic-20 (and Commodore 1540/1);
@@ -70,6 +71,7 @@ Cycle-accurate emulation for the supported target machines is fairly trite; this
 Self-ratings:
 * the Electron, Oric and Vic-20 are pretty much perfect;
 * the ZX80, ZX81, ColecoVision and MSX 1 are very strong;
+* the Apple II/II+ should be strong by design, but is currently largely untested;
 * the Amstrad CPC has known accuracy deficiencies in its 8272 and 6845;
 * the Atari 2600 has some known accuracy deficiencies in its TIA;
 * the C-1540(/1) is locked in reading mode and doesn't yet support writing.
