@@ -23,7 +23,7 @@ DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sec
 
 void DiskIICard::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 	if(address < 0x100) {
-		if(isReadOperation(operation)) *value &= boot_[address];
+		if(isReadOperation(operation)) *value = boot_[address];
 	} else {
 		if(isReadOperation(operation)) {
 			*value = diskii_.get_register(address);
