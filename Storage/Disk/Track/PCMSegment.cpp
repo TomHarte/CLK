@@ -53,15 +53,11 @@ PCMSegment &PCMSegment::operator +=(const PCMSegment &rhs) {
 		std::size_t first_byte = number_of_bits >> 3;
 
 		int shift = number_of_bits&7;
-		data[first_byte] |= rhs.data[0] >> shift;
-		for(std::size_t target = first_byte+1; target < (data.size()-1); ++target) {
-			data[target] =
-				static_cast<uint8_t>(
-					(rhs.data[target - first_byte - 1] << (8 - shift)) |
-					(rhs.data[target - first_byte] >> shift)
-				);
+		for(std::size_t source = 0; source < rhs.data.size(); ++source) {
+			data[first_byte + source] |= rhs.data[source] >> shift;
+			if(source*8 + static_cast<std::size_t>(shift) < rhs.number_of_bits)
+				data[first_byte + source + 1] = static_cast<uint8_t>(rhs.data[source] << (8-shift));
 		}
-		data.back() = static_cast<uint8_t>(rhs.data.back() << (8 - shift));
 
 		number_of_bits = target_number_of_bits;
 	} else {
