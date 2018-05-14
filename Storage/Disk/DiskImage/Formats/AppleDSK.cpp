@@ -68,7 +68,7 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 
 		// Pad if necessary.
 		if(segment.number_of_bits < 50000) {
-			segment += Encodings::AppleGCR::six_and_two_sync((50000 - segment.number_of_bits) >> 3);
+			segment += Encodings::AppleGCR::six_and_two_sync((50000 - segment.number_of_bits) / 10);
 		}
 	} else {
 
