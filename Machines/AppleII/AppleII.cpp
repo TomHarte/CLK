@@ -368,7 +368,7 @@ class ConcreteMachine:
 					}
 				}
 
-				keyboard_input_ = static_cast<uint8_t>(value | 0x80);
+				keyboard_input_ = static_cast<uint8_t>(toupper(value) | 0x80);
 			}
 		}
 
