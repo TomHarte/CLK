@@ -199,6 +199,10 @@ class Drive: public Sleeper, public TimedEventLoop {
 		Activity::Observer *observer_ = nullptr;
 		std::string drive_name_;
 		bool announce_motor_led_ = false;
+
+		// A rotating random data source.
+		uint64_t random_source_;
+		Time random_interval_;
 };
 
 
