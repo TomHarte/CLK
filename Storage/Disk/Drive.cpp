@@ -21,7 +21,7 @@ using namespace Storage::Disk;
 Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, int number_of_heads):
 	Storage::TimedEventLoop(input_clock_rate),
 	rotational_multiplier_(60, revolutions_per_minute),
-	available_heads_(number_of_heads){
+	available_heads_(number_of_heads) {
 	rotational_multiplier_.simplify();
 
 	const auto seed = static_cast<std::default_random_engine::result_type>(std::chrono::system_clock::now().time_since_epoch().count());
