@@ -139,6 +139,9 @@ class ConcreteMachine:
 			// decision to sample it at seven times the CPU clock (plus stretches).
 			speaker_.set_input_rate(static_cast<float>(master_clock / (2.0 * static_cast<float>(audio_divider))));
 
+			// Apply a 10Khz low-pass filter. This was picked by ear.
+			speaker_.set_high_frequency_cutoff(10000);
+
 			// Also, start with randomised memory contents.
 			Memory::Fuzz(ram_, sizeof(ram_));
 		}
