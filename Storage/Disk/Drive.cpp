@@ -12,6 +12,9 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
+#include <chrono>
+#include <random>
 
 using namespace Storage::Disk;
 
@@ -20,6 +23,17 @@ Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, int numb
 	rotational_multiplier_(60, revolutions_per_minute),
 	available_heads_(number_of_heads) {
 	rotational_multiplier_.simplify();
+
+	const auto seed = static_cast<std::default_random_engine::result_type>(std::chrono::system_clock::now().time_since_epoch().count());
+	std::default_random_engine randomiser(seed);
+
+	// Get at least 64 bits of random information; rounding is likey to give this a slight bias.
+	random_source_ = 0;
+	auto half_range = (randomiser.max() - randomiser.min()) / 2;
+	for(int bit = 0; bit < 64; ++bit) {
+		random_source_ <<= 1;
+		random_source_ |= ((randomiser() - randomiser.min()) >= half_range) ? 1 : 0;
+	}
 }
 
 Drive::~Drive() {
@@ -161,7 +175,25 @@ void Drive::get_next_event(const Time &duration_already_passed) {
 	// Grab a new track if not already in possession of one. This will recursively call get_next_event,
 	// supplying a proper duration_already_passed.
 	if(!track_) {
+		random_interval_.set_zero();
 		setup_track();
+		return;
+	}
+
+	// If gain has now been turned up so as to generate noise, generate some noise.
+	if(random_interval_ > Time(0)) {
+		current_event_.type = Track::Event::IndexHole;
+		current_event_.length.length = 2 + (random_source_&1);
+		current_event_.length.clock_rate = 1000000;
+		random_source_ = (random_source_ >> 1) | (random_source_ << 63);
+
+		if(random_interval_ < current_event_.length) {
+			current_event_.length = random_interval_;
+			random_interval_.set_zero();
+		} else {
+			random_interval_ -= current_event_.length;
+		}
+		set_next_event_time_interval(current_event_.length);
 		return;
 	}
 
@@ -178,6 +210,15 @@ void Drive::get_next_event(const Time &duration_already_passed) {
 	assert(current_event_.length <= Time(1) && current_event_.length >= Time(0));
 	assert(current_event_.length > duration_already_passed);
 	Time interval = (current_event_.length - duration_already_passed) * rotational_multiplier_;
+
+	// An interval greater than 15ms => adjust gain up the point where noise starts happening.
+	// Seed that up and leave a 15ms gap until it starts.
+	const Time safe_gain_period(15, 1000000);
+	if(interval >= safe_gain_period) {
+		random_interval_ = interval - safe_gain_period;
+		interval = safe_gain_period;
+	}
+
 	set_next_event_time_interval(interval);
 }
 
