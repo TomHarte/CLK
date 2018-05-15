@@ -12,16 +12,28 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstdlib>
+#include <cmath>
+#include <chrono>
+#include <random>
 
 using namespace Storage::Disk;
 
 Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, int number_of_heads):
 	Storage::TimedEventLoop(input_clock_rate),
 	rotational_multiplier_(60, revolutions_per_minute),
-	available_heads_(number_of_heads),
-	random_source_(static_cast<uint64_t>(arc4random()) | (static_cast<uint64_t>(arc4random()) << 32)) {
+	available_heads_(number_of_heads){
 	rotational_multiplier_.simplify();
+
+	const auto seed = static_cast<std::default_random_engine::result_type>(std::chrono::system_clock::now().time_since_epoch().count());
+	std::default_random_engine randomiser(seed);
+
+	// Get at least 64 bits of random information; rounding is likey to give this a slight bias.
+	random_source_ = 0;
+	auto half_range = (randomiser.max() - randomiser.min()) / 2;
+	for(int bit = 0; bit < 64; ++bit) {
+		random_source_ <<= 1;
+		random_source_ |= ((randomiser() - randomiser.min()) >= half_range) ? 1 : 0;
+	}
 }
 
 Drive::~Drive() {
