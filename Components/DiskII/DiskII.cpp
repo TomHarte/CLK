@@ -84,7 +84,7 @@ void DiskII::select_drive(int drive) {
 void DiskII::set_data_register(uint8_t value) {
 //	printf("Set data register (?)\n");
 	inputs_ |= input_command;
-//	shift_register_ = value;
+	shift_register_ = value;
 	set_controller_can_sleep();
 }
 
@@ -114,6 +114,15 @@ void DiskII::run_for(const Cycles cycles) {
 
 				case 0xa:	// shift right, bringing in write protected status
 					shift_register_ = (shift_register_ >> 1) | (is_write_protected() ? 0x80 : 0x00);
+
+					// If the controller is in the sense write protect loop but the register will never change,
+					// short circuit further work and return now.
+					if(shift_register_ == is_write_protected() ? 0xff : 0x00) {
+						if(!drive_is_sleeping_[0]) drives_[0].run_for(Cycles(integer_cycles));
+						if(!drive_is_sleeping_[1]) drives_[1].run_for(Cycles(integer_cycles));
+						set_controller_can_sleep();
+						return;
+					}
 				break;
 				case 0xb:
 					// load data register from data bus...
@@ -241,7 +250,9 @@ uint8_t DiskII::trigger_address(int address, uint8_t value) {
 		case 0xc:	return get_shift_register();
 		case 0xd:	set_data_register(value);			break;
 
-		case 0xe:	set_mode(Mode::Read);				break;
+		case 0xe:
+			set_mode(Mode::Read);
+			return shift_register_;
 		case 0xf:	set_mode(Mode::Write);				break;
 	}
 	return 0xff;
