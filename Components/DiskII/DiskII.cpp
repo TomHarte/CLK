@@ -84,7 +84,7 @@ void DiskII::select_drive(int drive) {
 void DiskII::set_data_register(uint8_t value) {
 //	printf("Set data register (?)\n");
 	inputs_ |= input_command;
-	data_register_ = value;
+//	shift_register_ = value;
 	set_controller_can_sleep();
 }
 
@@ -106,15 +106,20 @@ void DiskII::run_for(const Cycles cycles) {
 			inputs_ |= input_flux;
 			state_ = state_machine_[static_cast<std::size_t>(address)];
 			switch(state_ & 0xf) {
-				case 0x0:	shift_register_ = 0;													break;	// clear
+				default:	shift_register_ = 0;													break;	// clear
+				case 0x8:																			break;	// nop
+
 				case 0x9:	shift_register_ = static_cast<uint8_t>(shift_register_ << 1);			break;	// shift left, bringing in a zero
 				case 0xd:	shift_register_ = static_cast<uint8_t>((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
-				case 0xb:	shift_register_ = data_register_;										break;	// load
 
 				case 0xa:	// shift right, bringing in write protected status
 					shift_register_ = (shift_register_ >> 1) | (is_write_protected() ? 0x80 : 0x00);
 				break;
-				default: break;
+				case 0xb:
+					// load data register from data bus...
+					printf("TODO\n");
+				//	shift_register_ = data_register_;
+				break;	// load
 			}
 
 			// TODO: surely there's a less heavyweight solution than this?
@@ -139,7 +144,6 @@ void DiskII::set_controller_can_sleep() {
 }
 
 bool DiskII::is_write_protected() {
-return true;
 	return !!(stepper_mask_ & 2) | drives_[active_drive_].get_is_read_only();
 }
 

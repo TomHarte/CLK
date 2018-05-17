@@ -65,7 +65,6 @@ class DiskII:
 		uint8_t state_ = 0;
 		uint8_t inputs_ = 0;
 		uint8_t shift_register_ = 0;
-		uint8_t data_register_ = 0;
 
 		int stepper_mask_ = 0;
 		int stepper_position_ = 0;
