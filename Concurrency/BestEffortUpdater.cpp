@@ -39,7 +39,9 @@ void BestEffortUpdater::update() {
 				const int64_t integer_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count();
 				if(integer_duration > 0) {
 					if(delegate_) {
-						const double duration = static_cast<double>(integer_duration) / 1e9;
+						// Cap running at 1/5th of a second, to avoid doing a huge amount of work after any
+						// brief system interruption.
+						const double duration = std::min(static_cast<double>(integer_duration) / 1e9, 0.2);
 						delegate_->update(this, duration, has_skipped_);
 					}
 					has_skipped_ = false;
