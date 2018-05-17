@@ -76,6 +76,7 @@ class DiskII:
 		bool drive_is_sleeping_[2];
 		bool controller_can_sleep_ = false;
 		int active_drive_ = 0;
+		bool motor_is_enabled_ = false;
 
 		void set_controller_can_sleep();
 };

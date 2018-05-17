@@ -36,9 +36,8 @@ void DiskII::set_control(Control control, bool on) {
 		case Control::P3: stepper_mask_ = (stepper_mask_ & 0x7) | (on ? 0x8 : 0x0);	break;
 
 		case Control::Motor:
-			// TODO: does the motor control trigger both motors at once?
-			drives_[0].set_motor_on(on);
-			drives_[1].set_motor_on(on);
+			motor_is_enabled_ = on;
+			drives_[active_drive_].set_motor_on(on);
 		break;
 	}
 
@@ -71,9 +70,14 @@ void DiskII::set_mode(Mode mode) {
 
 void DiskII::select_drive(int drive) {
 //	printf("Select drive %d\n", drive);
-	active_drive_ = drive & 1;
+	if((drive&1) == active_drive_) return;
+
 	drives_[active_drive_].set_event_delegate(this);
 	drives_[active_drive_^1].set_event_delegate(nullptr);
+
+	drives_[active_drive_].set_motor_on(false);
+	active_drive_ = drive & 1;
+	drives_[active_drive_].set_motor_on(motor_is_enabled_);
 }
 
 void DiskII::set_data_register(uint8_t value) {
@@ -134,7 +138,7 @@ void DiskII::set_controller_can_sleep() {
 }
 
 bool DiskII::is_write_protected() {
-	return true;
+	return !!(stepper_mask_ & 2) | drives_[active_drive_].get_is_read_only();
 }
 
 void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
