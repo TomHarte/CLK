@@ -25,6 +25,7 @@ DiskII::DiskII() :
 {
 	drives_[0].set_sleep_observer(this);
 	drives_[1].set_sleep_observer(this);
+	drives_[active_drive_].set_event_delegate(this);
 }
 
 void DiskII::set_control(Control control, bool on) {
@@ -138,6 +139,7 @@ void DiskII::set_controller_can_sleep() {
 }
 
 bool DiskII::is_write_protected() {
+return true;
 	return !!(stepper_mask_ & 2) | drives_[active_drive_].get_is_read_only();
 }
 
