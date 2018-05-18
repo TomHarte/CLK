@@ -35,6 +35,9 @@ class AppleDSK: public DiskImage {
 		HeadPosition get_maximum_head_position() override;
 		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
 
+		// TEST!
+		bool get_is_read_only() override { return false; }
+
 	private:
 		Storage::FileHolder file_;
 		int sectors_per_track_ = 16;

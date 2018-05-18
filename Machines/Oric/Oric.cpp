@@ -405,9 +405,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 										}
 									}
 								} else {
-									update_diskii();
-									if(isReadOperation(operation)) *value = diskii_.get_register(address);
-									else diskii_.set_register(address, *value);
+									const int disk_value = diskii_.read_address(address);
+									if(isReadOperation(operation) && disk_value != diskii_.DidNotLoad) *value = static_cast<uint8_t>(disk_value);
 								}
 							break;
 						}
@@ -436,8 +435,13 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			tape_player_.run_for(Cycles(1));
 			switch(disk_interface) {
 				default: break;
-				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:	microdisc_.run_for(Cycles(8));		break;
-				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:	cycles_since_diskii_update_ += 2;	break;
+				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+					microdisc_.run_for(Cycles(8));
+				break;
+				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
+					diskii_.set_data_input(*value);
+					diskii_.run_for(Cycles(2));
+				break;
 			}
 			cycles_since_video_update_++;
 			return Cycles(1);
@@ -446,7 +450,6 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		forceinline void flush() {
 			update_video();
 			via_port_handler_.flush();
-			if(disk_interface == Analyser::Static::Oric::Target::DiskInterface::Pravetz) update_diskii();
 		}
 
 		// to satisfy CRTMachine::Machine
@@ -605,10 +608,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		Apple::DiskII diskii_;
 		std::vector<uint8_t> pravetz_rom_;
 		std::size_t pravetz_rom_base_pointer_ = 0;
-		Cycles cycles_since_diskii_update_;
-		void update_diskii() {
-			diskii_.run_for(cycles_since_diskii_update_.flush());
-		}
+//		Cycles cycles_since_diskii_update_;
+//		void update_diskii() {
+//			diskii_.run_for(cycles_since_diskii_update_.flush());
+//		}
 
 		// Overlay RAM
 		uint16_t ram_top_ = basic_visible_ram_top_;

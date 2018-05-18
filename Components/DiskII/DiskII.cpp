@@ -39,10 +39,8 @@ void DiskII::set_control(Control control, bool on) {
 		case Control::Motor:
 			motor_is_enabled_ = on;
 			drives_[active_drive_].set_motor_on(on);
-		break;
+		return;
 	}
-
-//	printf("%0x: Set control %d %s\n", stepper_mask_, control, on ? "on" : "off");
 
 	// If the stepper magnet selections have changed, and any is on, see how
 	// that moves the head.
@@ -63,14 +61,7 @@ void DiskII::set_control(Control control, bool on) {
 	}
 }
 
-void DiskII::set_mode(Mode mode) {
-//	printf("Set mode %d\n", mode);
-	inputs_ = (inputs_ & ~input_mode) | ((mode == Mode::Write) ? input_mode : 0);
-	set_controller_can_sleep();
-}
-
 void DiskII::select_drive(int drive) {
-//	printf("Select drive %d\n", drive);
 	if((drive&1) == active_drive_) return;
 
 	drives_[active_drive_].set_event_delegate(this);
@@ -79,20 +70,6 @@ void DiskII::select_drive(int drive) {
 	drives_[active_drive_].set_motor_on(false);
 	active_drive_ = drive & 1;
 	drives_[active_drive_].set_motor_on(motor_is_enabled_);
-}
-
-void DiskII::set_data_register(uint8_t value) {
-//	printf("Set data register (?)\n");
-	inputs_ |= input_command;
-	shift_register_ = value;
-	set_controller_can_sleep();
-}
-
-uint8_t DiskII::get_shift_register() {
-//	if(shift_register_ & 0x80) printf("[%02x] ", shift_register_);
-	inputs_ &= ~input_command;
-	set_controller_can_sleep();
-	return shift_register_;
 }
 
 void DiskII::run_for(const Cycles cycles) {
@@ -124,11 +101,7 @@ void DiskII::run_for(const Cycles cycles) {
 						return;
 					}
 				break;
-				case 0xb:
-					// load data register from data bus...
-					printf("TODO\n");
-				//	shift_register_ = data_register_;
-				break;	// load
+				case 0xb:	shift_register_ = data_input_;											break;	// load data register from data bus
 			}
 
 			// TODO: surely there's a less heavyweight solution than this?
@@ -221,15 +194,11 @@ bool DiskII::is_sleeping() {
 	return controller_can_sleep_ && drive_is_sleeping_[0] && drive_is_sleeping_[1];
 }
 
-void DiskII::set_register(int address, uint8_t value) {
-	trigger_address(address, value);
+void DiskII::set_data_input(uint8_t input) {
+	data_input_ = input;
 }
 
-uint8_t DiskII::get_register(int address) {
-	return trigger_address(address, 0xff);
-}
-
-uint8_t DiskII::trigger_address(int address, uint8_t value) {
+int DiskII::read_address(int address) {
 	switch(address & 0xf) {
 		default:
 		case 0x0:	set_control(Control::P0, false);	break;
@@ -241,22 +210,19 @@ uint8_t DiskII::trigger_address(int address, uint8_t value) {
 		case 0x6:	set_control(Control::P3, false);	break;
 		case 0x7:	set_control(Control::P3, true);		break;
 
-		case 0x8:	set_control(Control::Motor, false);	break;
+		case 0x8:
+			shift_register_ = 0;
+			set_control(Control::Motor, false);
+		break;
 		case 0x9:	set_control(Control::Motor, true);	break;
 
 		case 0xa:	select_drive(0);					break;
 		case 0xb:	select_drive(1);					break;
 
-		case 0xc:
-			inputs_ &= ~input_command;
-		break;
-		case 0xd:	set_data_register(value);			break;
-
-		case 0xe:
-			set_mode(Mode::Read);
-		break;
-//			return shift_register_;
-		case 0xf:	set_mode(Mode::Write);				break;
+		case 0xc:	inputs_ &= ~input_command;			break;
+		case 0xd:	inputs_ |= input_command;			break;
+		case 0xe:	inputs_ &= ~input_mode;				break;
+		case 0xf:	inputs_ |= input_mode;				break;
 	}
 	set_controller_can_sleep();
 	return (address & 1) ? 0xff : shift_register_;

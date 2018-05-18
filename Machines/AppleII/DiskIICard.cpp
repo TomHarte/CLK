@@ -25,10 +25,12 @@ void DiskIICard::perform_bus_operation(CPU::MOS6502::BusOperation operation, uin
 	if(address < 0x100) {
 		if(isReadOperation(operation)) *value = boot_[address];
 	} else {
+		// TODO: data input really shouldn't happen only upon a write.
+		diskii_.set_data_input(*value);
+		const int disk_value = diskii_.read_address(address);
 		if(isReadOperation(operation)) {
-			*value = diskii_.get_register(address);
-		} else {
-			diskii_.set_register(address, *value);
+			if(disk_value != diskii_.DidNotLoad)
+				*value = static_cast<uint8_t>(disk_value);
 		}
 	}
 }
