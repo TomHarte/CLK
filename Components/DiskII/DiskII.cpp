@@ -247,15 +247,19 @@ uint8_t DiskII::trigger_address(int address, uint8_t value) {
 		case 0xa:	select_drive(0);					break;
 		case 0xb:	select_drive(1);					break;
 
-		case 0xc:	return get_shift_register();
+		case 0xc:
+			inputs_ &= ~input_command;
+		break;
 		case 0xd:	set_data_register(value);			break;
 
 		case 0xe:
 			set_mode(Mode::Read);
-			return shift_register_;
+		break;
+//			return shift_register_;
 		case 0xf:	set_mode(Mode::Write);				break;
 	}
-	return 0xff;
+	set_controller_can_sleep();
+	return (address & 1) ? 0xff : shift_register_;
 }
 
 void DiskII::set_activity_observer(Activity::Observer *observer) {
