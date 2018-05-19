@@ -27,7 +27,7 @@ PCMPatchedTrack::PCMPatchedTrack(const PCMPatchedTrack &original) {
 	active_period_ = periods_.begin();
 }
 
-Track *PCMPatchedTrack::clone() {
+Track *PCMPatchedTrack::clone() const {
 	return new PCMPatchedTrack(*this);
 }
 

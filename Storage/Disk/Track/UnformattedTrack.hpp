@@ -19,9 +19,9 @@ namespace Disk {
 */
 class UnformattedTrack: public Track {
 	public:
-		Event get_next_event();
-		Time seek_to(const Time &time_since_index_hole);
-		Track *clone();
+		Event get_next_event() override;
+		Time seek_to(const Time &time_since_index_hole) override;
+		Track *clone() const override;
 };
 
 }

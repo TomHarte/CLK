@@ -21,6 +21,6 @@ Storage::Time UnformattedTrack::seek_to(const Time &time_since_index_hole) {
 	return Time(0);
 }
 
-Track *UnformattedTrack::clone() {
+Track *UnformattedTrack::clone() const {
 	return new UnformattedTrack;
 }

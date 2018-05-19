@@ -43,9 +43,9 @@ class PCMPatchedTrack: public Track {
 		void add_segment(const Time &start_time, const PCMSegment &segment, bool clamp_to_index_hole);
 
 		// To satisfy Storage::Disk::Track
-		Event get_next_event();
-		Time seek_to(const Time &time_since_index_hole);
-		Track *clone();
+		Event get_next_event() override;
+		Time seek_to(const Time &time_since_index_hole) override;
+		Track *clone() const override;
 
 	private:
 		std::shared_ptr<Track> underlying_track_;
