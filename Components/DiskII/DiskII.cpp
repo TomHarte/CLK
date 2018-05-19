@@ -104,6 +104,13 @@ void DiskII::run_for(const Cycles cycles) {
 				case 0xb:	shift_register_ = data_input_;											break;	// load data register from data bus
 			}
 
+			// Currently writing?
+			if(inputs_&input_mode) {
+				// state_ & 0x80 should be the current level sent to the disk;
+				// therefore transitions in that bit should become flux transitions
+				drives_[active_drive_].write_bit(!!((state_ ^ address) & 0x80));
+			}
+
 			// TODO: surely there's a less heavyweight solution than this?
 			if(!drive_is_sleeping_[0]) drives_[0].run_for(Cycles(1));
 			if(!drive_is_sleeping_[1]) drives_[1].run_for(Cycles(1));
@@ -135,9 +142,9 @@ void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
 
 			state b0, state b2, state b3, pulse, Q7, Q6, shift, state b1
 
-		... and has the top nibble reflected. Beneath Apple Pro-DOS uses a
-		different order and several of the online copies are reformatted
-		into that order.
+		... and has the top nibble of each value stored in the ROM reflected.
+		Beneath Apple Pro-DOS uses a different order and several of the
+		online copies are reformatted into that order.
 
 		So the code below remaps into Beneath Apple Pro-DOS order if the
 		supplied state machine isn't already in that order.
@@ -221,8 +228,16 @@ int DiskII::read_address(int address) {
 
 		case 0xc:	inputs_ &= ~input_command;			break;
 		case 0xd:	inputs_ |= input_command;			break;
-		case 0xe:	inputs_ &= ~input_mode;				break;
-		case 0xf:	inputs_ |= input_mode;				break;
+		case 0xe:
+			if(inputs_ & input_mode)
+				drives_[active_drive_].end_writing();
+			inputs_ &= ~input_mode;
+		break;
+		case 0xf:
+			if(!(inputs_ & input_mode))
+				drives_[active_drive_].begin_writing(Storage::Time(1, 2045454), false);
+			inputs_ |= input_mode;
+		break;
 	}
 	set_controller_can_sleep();
 	return (address & 1) ? 0xff : shift_register_;
