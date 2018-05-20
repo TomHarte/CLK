@@ -52,6 +52,13 @@ long AppleDSK::file_offset(Track::Address address) {
 	return address.position.as_int() * bytes_per_sector * sectors_per_track_;
 }
 
+size_t AppleDSK::logical_sector_for_physical_sector(size_t physical) {
+	// DOS and Pro DOS interleave sectors on disk, and they're represented in a disk
+	// image in physical order rather than logical.
+	if(physical == 15) return 15;
+	return (physical * (is_prodos_ ? 8 : 7)) % 15;
+}
+
 std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 	std::vector<uint8_t> track_data;
 	{
@@ -66,17 +73,11 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 	// In either case below, the code aims for exactly 50,000 bits per track.
 	if(sectors_per_track_ == 16) {
 		// Write the sectors.
-		std::size_t sector_number_ = 0;
 		for(uint8_t c = 0; c < 16; ++c) {
 			segment += Encodings::AppleGCR::six_and_two_sync(10);
 			segment += Encodings::AppleGCR::header(254, track, c);
 			segment += Encodings::AppleGCR::six_and_two_sync(10);
-			segment += Encodings::AppleGCR::six_and_two_data(&track_data[sector_number_ * 256]);
-
-			// DOS and Pro DOS interleave sectors on disk, and they're represented in a disk
-			// image in physical order rather than logical. So that skew needs to be applied here.
-			sector_number_ += is_prodos_ ? 8 : 7;
-			if(sector_number_ > 0xf) sector_number_ %= 15;
+			segment += Encodings::AppleGCR::six_and_two_data(&track_data[logical_sector_for_physical_sector(c) * 256]);
 		}
 
 		// Pad if necessary.
@@ -100,10 +101,7 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>>
 		// Rearrange sectors into Apple DOS or Pro-DOS order.
 		std::vector<uint8_t> track_contents(static_cast<size_t>(bytes_per_sector * sectors_per_track_));
 		for(const auto &sector_pair: sector_map) {
-			size_t target_address = sector_pair.second.address.sector;
-			if(target_address != 15) {
-				target_address = (target_address * (is_prodos_ ? 8 : 7)) % 15;
-			}
+			const size_t target_address = logical_sector_for_physical_sector(sector_pair.second.address.sector);
 			memcpy(&track_contents[target_address*256], sector_pair.second.data.data(), bytes_per_sector);
 		}
 
