@@ -102,7 +102,7 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>>
 		for(const auto &sector_pair: sector_map) {
 			size_t target_address = sector_pair.second.address.sector;
 			if(target_address != 15) {
-				target_address = (target_address * (is_prodos_ ? 2 : 13)) % 15;
+				target_address = (target_address * (is_prodos_ ? 8 : 7)) % 15;
 			}
 			memcpy(&track_contents[target_address*256], sector_pair.second.data.data(), bytes_per_sector);
 		}
