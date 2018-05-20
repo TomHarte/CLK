@@ -9,7 +9,9 @@
 #include "AppleDSK.hpp"
 
 #include "../../Track/PCMTrack.hpp"
+#include "../../Track/TrackSerialiser.hpp"
 #include "../../Encodings/AppleGCR/Encoder.hpp"
+#include "../../Encodings/AppleGCR/SegmentParser.hpp"
 
 using namespace Storage::Disk;
 
@@ -42,10 +44,21 @@ HeadPosition AppleDSK::get_maximum_head_position() {
 	return HeadPosition(number_of_tracks);
 }
 
+bool AppleDSK::get_is_read_only() {
+	return file_.get_is_known_read_only();
+}
+
+long AppleDSK::file_offset(Track::Address address) {
+	return address.position.as_int() * bytes_per_sector * sectors_per_track_;
+}
+
 std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
-	const long file_offset = address.position.as_int() * bytes_per_sector * sectors_per_track_;
-	file_.seek(file_offset, SEEK_SET);
-	const std::vector<uint8_t> track_data = file_.read(static_cast<size_t>(bytes_per_sector * sectors_per_track_));
+	std::vector<uint8_t> track_data;
+	{
+		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		file_.seek(file_offset(address), SEEK_SET);
+		track_data = file_.read(static_cast<size_t>(bytes_per_sector * sectors_per_track_));
+	}
 
 	Storage::Disk::PCMSegment segment;
 	const uint8_t track = static_cast<uint8_t>(address.position.as_int());
@@ -71,8 +84,36 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 			segment += Encodings::AppleGCR::six_and_two_sync((50000 - segment.number_of_bits) / 10);
 		}
 	} else {
-
+		// TODO: 5 and 3, 13-sector format. If DSK actually supports it?
 	}
 
 	return std::make_shared<PCMTrack>(segment);
+}
+
+void AppleDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+	std::map<Track::Address, std::vector<uint8_t>> tracks_by_address;
+	for(const auto &pair: tracks) {
+		// Decode the track.
+		auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
+			Storage::Disk::track_serialisation(*pair.second, Storage::Time(1, 50000)));
+
+		// Rearrange sectors into Apple DOS or Pro-DOS order.
+		std::vector<uint8_t> track_contents(static_cast<size_t>(bytes_per_sector * sectors_per_track_));
+		for(const auto &sector_pair: sector_map) {
+			size_t target_address = sector_pair.second.address.sector;
+			if(target_address != 15) {
+				target_address = (target_address * (is_prodos_ ? 2 : 13)) % 15;
+			}
+			memcpy(&track_contents[target_address*256], sector_pair.second.data.data(), bytes_per_sector);
+		}
+
+		// Store for later.
+		tracks_by_address[pair.first] = std::move(track_contents);
+	}
+
+	std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+	for(const auto &pair: tracks_by_address) {
+		file_.seek(file_offset(pair.first), SEEK_SET);
+		file_.write(pair.second);
+	}
 }
