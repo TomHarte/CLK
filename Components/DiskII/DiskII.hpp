@@ -61,10 +61,14 @@ class DiskII:
 			the implementation as to the content of this ROM.
 			Including:
 
-				If Q6 is set and Q7 is reset, the controller is testing
+			*	If Q6 is set and Q7 is reset, the controller is testing
 				for write protect. If and when the shift register has
 				become full with the state of the write protect value,
 				no further processing is required.
+
+			*	If both Q6 and Q7 are reset, the drive motor is disabled,
+				and the shift register is all zeroes, no further processing
+				is required.
 		*/
 		void set_state_machine(const std::vector<uint8_t> &);
 

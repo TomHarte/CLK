@@ -126,10 +126,19 @@ void DiskII::run_for(const Cycles cycles) {
 void DiskII::set_controller_can_sleep() {
 	// Permit the controller to sleep if it's in sense write protect mode, and the shift register
 	// has already filled with the result of shifting eight times.
+	bool controller_could_sleep = controller_can_sleep_;
 	controller_can_sleep_ =
-		(inputs_ == (input_command | input_flux)) &&
-		(shift_register_ == (is_write_protected() ? 0xff : 0x00));
-	if(is_sleeping()) update_sleep_observer();
+		(
+			(inputs_ == input_flux) &&
+			!motor_is_enabled_ &&
+			!shift_register_
+		) ||
+		(
+			(inputs_ == (input_command | input_flux)) &&
+			(shift_register_ == (is_write_protected() ? 0xff : 0x00))
+		);
+	if(controller_could_sleep != controller_can_sleep_)
+		update_sleep_observer();
 }
 
 bool DiskII::is_write_protected() {

@@ -201,6 +201,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Microdisc::Delegate,
+	public Sleeper::SleepObserver,
 	public Activity::Source,
 	public Machine {
 
@@ -216,6 +217,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			via_port_handler_.set_interrupt_delegate(this);
 			tape_player_.set_delegate(this);
 			Memory::Fuzz(ram_, sizeof(ram_));
+
+			if(disk_interface == Analyser::Static::Oric::Target::DiskInterface::Pravetz) {
+				diskii_.set_sleep_observer(this);
+			}
 		}
 
 		~ConcreteMachine() {
@@ -439,8 +444,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					microdisc_.run_for(Cycles(8));
 				break;
 				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
-					diskii_.set_data_input(*value);
-					diskii_.run_for(Cycles(2));
+					if(!diskii_is_sleeping_) {
+						diskii_.set_data_input(*value);
+						diskii_.run_for(Cycles(2));
+					}
 				break;
 			}
 			cycles_since_video_update_++;
@@ -564,6 +571,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 		}
 
+		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override final {
+			diskii_is_sleeping_ = diskii_.is_sleeping();
+		}
+
 	private:
 		const uint16_t basic_invisible_ram_top_ = 0xffff;
 		const uint16_t basic_visible_ram_top_ = 0xbfff;
@@ -608,10 +619,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		Apple::DiskII diskii_;
 		std::vector<uint8_t> pravetz_rom_;
 		std::size_t pravetz_rom_base_pointer_ = 0;
-//		Cycles cycles_since_diskii_update_;
-//		void update_diskii() {
-//			diskii_.run_for(cycles_since_diskii_update_.flush());
-//		}
+		bool diskii_is_sleeping_ = false;
 
 		// Overlay RAM
 		uint16_t ram_top_ = basic_visible_ram_top_;
