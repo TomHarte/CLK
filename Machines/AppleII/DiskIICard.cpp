@@ -20,6 +20,7 @@ DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sec
 	boot_ = std::move(*roms[0]);
 	diskii_.set_state_machine(*roms[1]);
 	set_select_constraints(None);
+	diskii_.set_sleep_observer(this);
 }
 
 void DiskIICard::perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) {
@@ -40,6 +41,7 @@ void DiskIICard::perform_bus_operation(Select select, bool is_read, uint16_t add
 }
 
 void DiskIICard::run_for(Cycles cycles, int stretches) {
+	if(diskii_is_sleeping_) return;
 	diskii_.run_for(Cycles(cycles.as_int() * 2));
 }
 
@@ -49,4 +51,9 @@ void DiskIICard::set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int 
 
 void DiskIICard::set_activity_observer(Activity::Observer *observer) {
 	diskii_.set_activity_observer(observer);
+}
+
+void DiskIICard::set_component_is_sleeping(Sleeper *component, bool is_sleeping) {
+	diskii_is_sleeping_ = is_sleeping;
+	set_select_constraints(is_sleeping ? (IO | Device) : 0);
 }

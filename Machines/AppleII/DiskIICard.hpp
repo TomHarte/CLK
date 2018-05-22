@@ -22,7 +22,7 @@
 
 namespace AppleII {
 
-class DiskIICard: public Card {
+class DiskIICard: public Card, public Sleeper::SleepObserver {
 	public:
 		DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sector);
 
@@ -34,8 +34,10 @@ class DiskIICard: public Card {
 		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
 
 	private:
+		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override;
 		std::vector<uint8_t> boot_;
 		Apple::DiskII diskii_;
+		bool diskii_is_sleeping_ = false;
 };
 
 }
