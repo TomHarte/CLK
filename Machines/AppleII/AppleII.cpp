@@ -286,25 +286,29 @@ class ConcreteMachine:
 					break;
 				}
 
-				if(address >= 0xc100 && address < 0xc800) {
-					/*
-						Decode the area conventionally used by cards for ROMs:
-							0xCn00 to 0xCnff: card n.
-					*/
-					const size_t card_number = (address - 0xc100) >> 8;
-					if(cards_[card_number]) {
-						update_cards();
-						cards_[card_number]->perform_bus_operation(operation, address & 0xff, value);
+				if(address >= 0xc090 && address < 0xc800) {
+					size_t card_number = 0;
+					AppleII::Card::Select select = AppleII::Card::None;
+
+					if(address >= 0xc100) {
+						/*
+							Decode the area conventionally used by cards for ROMs:
+								0xCn00 to 0xCnff: card n.
+						*/
+						card_number = (address - 0xc100) >> 8;
+						select = AppleII::Card::Device;
+					} else {
+						/*
+							Decode the area conventionally used by cards for registers:
+								C0n0 to C0nF: card n - 8.
+						*/
+						card_number = (address - 0xc090) >> 4;
+						select = AppleII::Card::IO;
 					}
-				} else if(address >= 0xc090 && address < 0xc100) {
-					/*
-						Decode the area conventionally used by cards for registers:
-							C0n0 to C0nF: card n - 8.
-					*/
-					const size_t card_number = (address - 0xc090) >> 4;
+
 					if(cards_[card_number]) {
 						update_cards();
-						cards_[card_number]->perform_bus_operation(operation, 0x100 | (address&0xf), value);
+						cards_[card_number]->perform_bus_operation(select, isReadOperation(operation), address, value);
 					}
 				}
 			}

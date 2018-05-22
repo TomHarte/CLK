@@ -19,19 +19,23 @@ DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sec
 		});
 	boot_ = std::move(*roms[0]);
 	diskii_.set_state_machine(*roms[1]);
+	set_select_constraints(None);
 }
 
-void DiskIICard::perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
-	if(address < 0x100) {
-		if(isReadOperation(operation)) *value = boot_[address];
-	} else {
-		// TODO: data input really shouldn't happen only upon a write.
-		diskii_.set_data_input(*value);
-		const int disk_value = diskii_.read_address(address);
-		if(isReadOperation(operation)) {
-			if(disk_value != diskii_.DidNotLoad)
-				*value = static_cast<uint8_t>(disk_value);
-		}
+void DiskIICard::perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) {
+	diskii_.set_data_input(*value);
+	switch(select) {
+		default: break;
+		case IO: {
+			const int disk_value = diskii_.read_address(address);
+			if(is_read) {
+				if(disk_value != diskii_.DidNotLoad)
+					*value = static_cast<uint8_t>(disk_value);
+			}
+		} break;
+		case Device:
+			if(is_read) *value = boot_[address & 0xff];
+		break;
 	}
 }
 
