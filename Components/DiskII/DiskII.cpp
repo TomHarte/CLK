@@ -75,9 +75,8 @@ void DiskII::select_drive(int drive) {
 void DiskII::run_for(const Cycles cycles) {
 	if(is_sleeping()) return;
 
-	int integer_cycles = cycles.as_int();
-
 	if(!controller_can_sleep_) {
+		int integer_cycles = cycles.as_int();
 		while(integer_cycles--) {
 			const int address = (state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6);
 			inputs_ |= input_flux;
