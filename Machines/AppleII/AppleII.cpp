@@ -66,7 +66,7 @@ class ConcreteMachine:
 		void update_audio() {
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
 		}
-		void update_cards() {
+		void update_just_in_time_cards() {
 			for(const auto &card : just_in_time_cards_) {
 				card->run_for(cycles_since_card_update_, stretched_cycles_since_card_update_);
 			}
@@ -238,8 +238,9 @@ class ConcreteMachine:
 			}
 			else if(address < 0xd000) block = nullptr;
 			else if(address < 0xe000) {block = &memory_blocks_[2]; address -= 0xd000; }
-			else {block = &memory_blocks_[3]; address -= 0xe000; }
+			else { block = &memory_blocks_[3]; address -= 0xe000; }
 
+			bool has_updated_cards = false;
 			if(block) {
 				if(isReadOperation(operation)) *value = block->read_pointer[address];
 				else if(block->write_pointer) block->write_pointer[address] = *value;
@@ -333,7 +334,7 @@ class ConcreteMachine:
 				}
 
 				/*
-					Communication with cards.
+					Communication with cards follows.
 				*/
 
 				if(address >= 0xc090 && address < 0xc800) {
@@ -360,10 +361,11 @@ class ConcreteMachine:
 
 					// If the selected card is a just-in-time card, update the just-in-time cards,
 					// and then message it specifically.
+					const bool is_read = isReadOperation(operation);
 					AppleII::Card *const target = cards_[card_number].get();
 					if(target && !is_every_cycle_card(target)) {
-						update_cards();
-						target->perform_bus_operation(select, isReadOperation(operation), address, value);
+						update_just_in_time_cards();
+						target->perform_bus_operation(select, is_read, address, value);
 					}
 
 					// Update all the every-cycle cards regardless, but send them a ::None select if they're
@@ -372,14 +374,18 @@ class ConcreteMachine:
 						card->run_for(Cycles(1), is_stretched_cycle);
 						card->perform_bus_operation(
 							(card == target) ? select : AppleII::Card::None,
-							isReadOperation(operation), address, value);
+							is_read, address, value);
 					}
-				} else {
-					// Update all every-cycle cards and give them the cycle.
-					for(const auto &card: every_cycle_cards_) {
-						card->run_for(Cycles(1), is_stretched_cycle);
-						card->perform_bus_operation(AppleII::Card::None, isReadOperation(operation), address, value);
-					}
+					has_updated_cards = true;
+				}
+			}
+
+			if(!has_updated_cards && !every_cycle_cards_.empty()) {
+				// Update all every-cycle cards and give them the cycle.
+				const bool is_read = isReadOperation(operation);
+				for(const auto &card: every_cycle_cards_) {
+					card->run_for(Cycles(1), is_stretched_cycle);
+					card->perform_bus_operation(AppleII::Card::None, is_read, address, value);
 				}
 			}
 
@@ -389,7 +395,7 @@ class ConcreteMachine:
 		void flush() {
 			update_video();
 			update_audio();
-			update_cards();
+			update_just_in_time_cards();
 			audio_queue_.perform();
 		}
 
