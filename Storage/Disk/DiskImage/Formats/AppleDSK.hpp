@@ -31,14 +31,19 @@ class AppleDSK: public DiskImage {
 		*/
 		AppleDSK(const std::string &file_name);
 
-		// implemented to satisfy @c Disk
+		// Implemented to satisfy @c Disk.
 		HeadPosition get_maximum_head_position() override;
 		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
+		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
+		bool get_is_read_only() override;
 
 	private:
 		Storage::FileHolder file_;
 		int sectors_per_track_ = 16;
 		bool is_prodos_ = false;
+
+		long file_offset(Track::Address address);
+		size_t logical_sector_for_physical_sector(size_t physical);
 };
 
 }

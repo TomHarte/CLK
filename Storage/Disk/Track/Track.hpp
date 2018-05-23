@@ -114,7 +114,7 @@ class Track {
 		/*!
 			The virtual copy constructor pattern; returns a copy of the Track.
 		*/
-		virtual Track *clone() = 0;
+		virtual Track *clone() const = 0;
 };
 
 }

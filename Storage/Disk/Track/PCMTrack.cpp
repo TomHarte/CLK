@@ -46,7 +46,7 @@ PCMTrack::PCMTrack(const PCMTrack &original) : PCMTrack() {
 	segment_event_sources_ = original.segment_event_sources_;
 }
 
-Track *PCMTrack::clone() {
+Track *PCMTrack::clone() const {
 	return new PCMTrack(*this);
 }
 

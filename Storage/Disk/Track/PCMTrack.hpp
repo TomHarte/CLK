@@ -42,9 +42,9 @@ class PCMTrack: public Track {
 		PCMTrack(const PCMTrack &);
 
 		// as per @c Track
-		Event get_next_event();
-		Time seek_to(const Time &time_since_index_hole);
-		Track *clone();
+		Event get_next_event() override;
+		Time seek_to(const Time &time_since_index_hole) override;
+		Track *clone() const override;
 
 	private:
 		// storage for the segments that describe this track

@@ -38,7 +38,8 @@ class ConcreteMachine:
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
 	public AppleII::Machine,
-	public Activity::Source {
+	public Activity::Source,
+	public AppleII::Card::Delegate {
 	private:
 		struct VideoBusHandler : public AppleII::Video::BusHandler {
 			public:
@@ -65,9 +66,9 @@ class ConcreteMachine:
 		void update_audio() {
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
 		}
-		void update_cards() {
-			for(const auto &card : cards_) {
-				if(card) card->run_for(cycles_since_card_update_, stretched_cycles_since_card_update_);
+		void update_just_in_time_cards() {
+			for(const auto &card : just_in_time_cards_) {
+				card->run_for(cycles_since_card_update_, stretched_cycles_since_card_update_);
 			}
 			cycles_since_card_update_ = 0;
 			stretched_cycles_since_card_update_ = 0;
@@ -84,10 +85,42 @@ class ConcreteMachine:
 		Cycles cycles_since_audio_update_;
 
 		ROMMachine::ROMFetcher rom_fetcher_;
+
+		// MARK: - Cards
 		std::array<std::unique_ptr<AppleII::Card>, 7> cards_;
 		Cycles cycles_since_card_update_;
+		std::vector<AppleII::Card *> every_cycle_cards_;
+		std::vector<AppleII::Card *> just_in_time_cards_;
+
 		int stretched_cycles_since_card_update_ = 0;
 
+		void install_card(std::size_t slot, AppleII::Card *card) {
+			assert(slot >= 1 && slot < 8);
+			cards_[slot - 1].reset(card);
+			card->set_delegate(this);
+			pick_card_messaging_group(card);
+		}
+
+		bool is_every_cycle_card(AppleII::Card *card) {
+			return !card->get_select_constraints();
+		}
+
+		void pick_card_messaging_group(AppleII::Card *card) {
+			const bool is_every_cycle = is_every_cycle_card(card);
+			std::vector<AppleII::Card *> &intended = is_every_cycle ? every_cycle_cards_ : just_in_time_cards_;
+		 	std::vector<AppleII::Card *> &undesired = is_every_cycle ? just_in_time_cards_ : every_cycle_cards_;
+
+			if(std::find(intended.begin(), intended.end(), card) != intended.end()) return;
+			auto old_membership = std::find(undesired.begin(), undesired.end(), card);
+			if(old_membership != undesired.end()) undesired.erase(old_membership);
+			intended.push_back(card);
+		}
+
+		void card_did_change_select_constraints(AppleII::Card *card) override {
+			pick_card_messaging_group(card);
+		}
+
+		// MARK: - Memory Map
 		struct MemoryBlock {
 			uint8_t *read_pointer = nullptr;
 			uint8_t *write_pointer = nullptr;
@@ -174,6 +207,19 @@ class ConcreteMachine:
 			++ cycles_since_card_update_;
 			cycles_since_audio_update_ += Cycles(7);
 
+			// The Apple II has a slightly weird timing pattern: every 65th CPU cycle is stretched
+			// by an extra 1/7th. That's because one cycle lasts 3.5 NTSC colour clocks, so after
+			// 65 cycles a full line of 227.5 colour clocks have passed. But the high-rate binary
+			// signal approximation that produces colour needs to be in phase, so a stretch of exactly
+			// 0.5 further colour cycles is added. The video class handles that implicitly, but it
+			// needs to be accumulated here for the audio.
+			cycles_into_current_line_ = (cycles_into_current_line_ + 1) % 65;
+			const bool is_stretched_cycle = !cycles_into_current_line_;
+			if(is_stretched_cycle) {
+				++ cycles_since_audio_update_;
+				++ stretched_cycles_since_card_update_;
+			}
+
 			/*
 				There are five distinct zones of memory on an Apple II:
 
@@ -192,8 +238,9 @@ class ConcreteMachine:
 			}
 			else if(address < 0xd000) block = nullptr;
 			else if(address < 0xe000) {block = &memory_blocks_[2]; address -= 0xd000; }
-			else {block = &memory_blocks_[3]; address -= 0xe000; }
+			else { block = &memory_blocks_[3]; address -= 0xe000; }
 
+			bool has_updated_cards = false;
 			if(block) {
 				if(isReadOperation(operation)) *value = block->read_pointer[address];
 				else if(block->write_pointer) block->write_pointer[address] = *value;
@@ -286,39 +333,60 @@ class ConcreteMachine:
 					break;
 				}
 
-				if(address >= 0xc100 && address < 0xc800) {
-					/*
-						Decode the area conventionally used by cards for ROMs:
-							0xCn00 to 0xCnff: card n.
-					*/
-					const size_t card_number = (address - 0xc100) >> 8;
-					if(cards_[card_number]) {
-						update_cards();
-						cards_[card_number]->perform_bus_operation(operation, address & 0xff, value);
+				/*
+					Communication with cards follows.
+				*/
+
+				if(address >= 0xc090 && address < 0xc800) {
+					// If this is a card access, figure out which card is at play before determining
+					// the totality of who needs messaging.
+					size_t card_number = 0;
+					AppleII::Card::Select select = AppleII::Card::None;
+
+					if(address >= 0xc100) {
+						/*
+							Decode the area conventionally used by cards for ROMs:
+								0xCn00 to 0xCnff: card n.
+						*/
+						card_number = (address - 0xc100) >> 8;
+						select = AppleII::Card::Device;
+					} else {
+						/*
+							Decode the area conventionally used by cards for registers:
+								C0n0 to C0nF: card n - 8.
+						*/
+						card_number = (address - 0xc090) >> 4;
+						select = AppleII::Card::IO;
 					}
-				} else if(address >= 0xc090 && address < 0xc100) {
-					/*
-						Decode the area conventionally used by cards for registers:
-							C0n0 to C0nF: card n - 8.
-					*/
-					const size_t card_number = (address - 0xc090) >> 4;
-					if(cards_[card_number]) {
-						update_cards();
-						cards_[card_number]->perform_bus_operation(operation, 0x100 | (address&0xf), value);
+
+					// If the selected card is a just-in-time card, update the just-in-time cards,
+					// and then message it specifically.
+					const bool is_read = isReadOperation(operation);
+					AppleII::Card *const target = cards_[card_number].get();
+					if(target && !is_every_cycle_card(target)) {
+						update_just_in_time_cards();
+						target->perform_bus_operation(select, is_read, address, value);
 					}
+
+					// Update all the every-cycle cards regardless, but send them a ::None select if they're
+					// not the one actually selected.
+					for(const auto &card: every_cycle_cards_) {
+						card->run_for(Cycles(1), is_stretched_cycle);
+						card->perform_bus_operation(
+							(card == target) ? select : AppleII::Card::None,
+							is_read, address, value);
+					}
+					has_updated_cards = true;
 				}
 			}
 
-			// The Apple II has a slightly weird timing pattern: every 65th CPU cycle is stretched
-			// by an extra 1/7th. That's because one cycle lasts 3.5 NTSC colour clocks, so after
-			// 65 cycles a full line of 227.5 colour clocks have passed. But the high-rate binary
-			// signal approximation that produces colour needs to be in phase, so a stretch of exactly
-			// 0.5 further colour cycles is added. The video class handles that implicitly, but it
-			// needs to be accumulated here for the audio.
-			cycles_into_current_line_ = (cycles_into_current_line_ + 1) % 65;
-			if(!cycles_into_current_line_) {
-				++ cycles_since_audio_update_;
-				++ stretched_cycles_since_card_update_;
+			if(!has_updated_cards && !every_cycle_cards_.empty()) {
+				// Update all every-cycle cards and give them the cycle.
+				const bool is_read = isReadOperation(operation);
+				for(const auto &card: every_cycle_cards_) {
+					card->run_for(Cycles(1), is_stretched_cycle);
+					card->perform_bus_operation(AppleII::Card::None, is_read, address, value);
+				}
 			}
 
 			return Cycles(1);
@@ -327,7 +395,7 @@ class ConcreteMachine:
 		void flush() {
 			update_video();
 			update_audio();
-			update_cards();
+			update_just_in_time_cards();
 			audio_queue_.perform();
 		}
 
@@ -391,7 +459,8 @@ class ConcreteMachine:
 			auto *const apple_target = dynamic_cast<const Target *>(target);
 
 			if(apple_target->disk_controller != Target::DiskController::None) {
-				cards_[5].reset(new AppleII::DiskIICard(rom_fetcher_, apple_target->disk_controller == Target::DiskController::SixteenSector));
+				// Apple recommended slot 6 for the (first) Disk II.
+				install_card(6, new AppleII::DiskIICard(rom_fetcher_, apple_target->disk_controller == Target::DiskController::SixteenSector));
 			}
 
 			rom_ = (apple_target->model == Target::Model::II) ? apple2_rom_ : apple2plus_rom_;

@@ -27,7 +27,7 @@ PCMPatchedTrack::PCMPatchedTrack(const PCMPatchedTrack &original) {
 	active_period_ = periods_.begin();
 }
 
-Track *PCMPatchedTrack::clone() {
+Track *PCMPatchedTrack::clone() const {
 	return new PCMPatchedTrack(*this);
 }
 
@@ -202,7 +202,8 @@ Storage::Time PCMPatchedTrack::seek_to(const Time &time_since_index_hole) {
 	else
 		current_time_ = underlying_track_->seek_to(time_since_index_hole);
 
-	assert(current_time_ <= time_since_index_hole);
+	// The assert below is disabled as it assumes too much about total precision.
+//	assert(current_time_ <= time_since_index_hole);
 	return current_time_;
 }
 

@@ -30,7 +30,7 @@ namespace Disk {
 	@param length_of_a_bit The expected length of a single bit, as a proportion of the
 	track length.
 */
-PCMSegment track_serialisation(Track &track, Time length_of_a_bit);
+PCMSegment track_serialisation(const Track &track, Time length_of_a_bit);
 
 }
 }

@@ -25,6 +25,7 @@ DiskII::DiskII() :
 {
 	drives_[0].set_sleep_observer(this);
 	drives_[1].set_sleep_observer(this);
+	drives_[active_drive_].set_event_delegate(this);
 }
 
 void DiskII::set_control(Control control, bool on) {
@@ -36,13 +37,10 @@ void DiskII::set_control(Control control, bool on) {
 		case Control::P3: stepper_mask_ = (stepper_mask_ & 0x7) | (on ? 0x8 : 0x0);	break;
 
 		case Control::Motor:
-			// TODO: does the motor control trigger both motors at once?
-			drives_[0].set_motor_on(on);
-			drives_[1].set_motor_on(on);
-		break;
+			motor_is_enabled_ = on;
+			drives_[active_drive_].set_motor_on(on);
+		return;
 	}
-
-//	printf("%0x: Set control %d %s\n", stepper_mask_, control, on ? "on" : "off");
 
 	// If the stepper magnet selections have changed, and any is on, see how
 	// that moves the head.
@@ -63,53 +61,53 @@ void DiskII::set_control(Control control, bool on) {
 	}
 }
 
-void DiskII::set_mode(Mode mode) {
-//	printf("Set mode %d\n", mode);
-	inputs_ = (inputs_ & ~input_mode) | ((mode == Mode::Write) ? input_mode : 0);
-	set_controller_can_sleep();
-}
-
 void DiskII::select_drive(int drive) {
-//	printf("Select drive %d\n", drive);
-	active_drive_ = drive & 1;
+	if((drive&1) == active_drive_) return;
+
 	drives_[active_drive_].set_event_delegate(this);
 	drives_[active_drive_^1].set_event_delegate(nullptr);
-}
 
-void DiskII::set_data_register(uint8_t value) {
-//	printf("Set data register (?)\n");
-	inputs_ |= input_command;
-	data_register_ = value;
-	set_controller_can_sleep();
-}
-
-uint8_t DiskII::get_shift_register() {
-//	if(shift_register_ & 0x80) printf("[%02x] ", shift_register_);
-	inputs_ &= ~input_command;
-	set_controller_can_sleep();
-	return shift_register_;
+	drives_[active_drive_].set_motor_on(false);
+	active_drive_ = drive & 1;
+	drives_[active_drive_].set_motor_on(motor_is_enabled_);
 }
 
 void DiskII::run_for(const Cycles cycles) {
 	if(is_sleeping()) return;
 
-	int integer_cycles = cycles.as_int();
-
 	if(!controller_can_sleep_) {
+		int integer_cycles = cycles.as_int();
 		while(integer_cycles--) {
 			const int address = (state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6);
 			inputs_ |= input_flux;
 			state_ = state_machine_[static_cast<std::size_t>(address)];
 			switch(state_ & 0xf) {
-				case 0x0:	shift_register_ = 0;													break;	// clear
+				default:	shift_register_ = 0;													break;	// clear
+				case 0x8:																			break;	// nop
+
 				case 0x9:	shift_register_ = static_cast<uint8_t>(shift_register_ << 1);			break;	// shift left, bringing in a zero
 				case 0xd:	shift_register_ = static_cast<uint8_t>((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
-				case 0xb:	shift_register_ = data_register_;										break;	// load
 
 				case 0xa:	// shift right, bringing in write protected status
 					shift_register_ = (shift_register_ >> 1) | (is_write_protected() ? 0x80 : 0x00);
+
+					// If the controller is in the sense write protect loop but the register will never change,
+					// short circuit further work and return now.
+					if(shift_register_ == is_write_protected() ? 0xff : 0x00) {
+						if(!drive_is_sleeping_[0]) drives_[0].run_for(Cycles(integer_cycles));
+						if(!drive_is_sleeping_[1]) drives_[1].run_for(Cycles(integer_cycles));
+						set_controller_can_sleep();
+						return;
+					}
 				break;
-				default: break;
+				case 0xb:	shift_register_ = data_input_;											break;	// load data register from data bus
+			}
+
+			// Currently writing?
+			if(inputs_&input_mode) {
+				// state_ & 0x80 should be the current level sent to the disk;
+				// therefore transitions in that bit should become flux transitions
+				drives_[active_drive_].write_bit(!!((state_ ^ address) & 0x80));
 			}
 
 			// TODO: surely there's a less heavyweight solution than this?
@@ -127,14 +125,23 @@ void DiskII::run_for(const Cycles cycles) {
 void DiskII::set_controller_can_sleep() {
 	// Permit the controller to sleep if it's in sense write protect mode, and the shift register
 	// has already filled with the result of shifting eight times.
+	bool controller_could_sleep = controller_can_sleep_;
 	controller_can_sleep_ =
-		(inputs_ == (input_command | input_flux)) &&
-		(shift_register_ == (is_write_protected() ? 0xff : 0x00));
-	if(is_sleeping()) update_sleep_observer();
+		(
+			(inputs_ == input_flux) &&
+			!motor_is_enabled_ &&
+			!shift_register_
+		) ||
+		(
+			(inputs_ == (input_command | input_flux)) &&
+			(shift_register_ == (is_write_protected() ? 0xff : 0x00))
+		);
+	if(controller_could_sleep != controller_can_sleep_)
+		update_sleep_observer();
 }
 
 bool DiskII::is_write_protected() {
-	return true;
+	return !!(stepper_mask_ & 2) | drives_[active_drive_].get_is_read_only();
 }
 
 void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
@@ -143,9 +150,9 @@ void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
 
 			state b0, state b2, state b3, pulse, Q7, Q6, shift, state b1
 
-		... and has the top nibble reflected. Beneath Apple Pro-DOS uses a
-		different order and several of the online copies are reformatted
-		into that order.
+		... and has the top nibble of each value stored in the ROM reflected.
+		Beneath Apple Pro-DOS uses a different order and several of the
+		online copies are reformatted into that order.
 
 		So the code below remaps into Beneath Apple Pro-DOS order if the
 		supplied state machine isn't already in that order.
@@ -202,15 +209,11 @@ bool DiskII::is_sleeping() {
 	return controller_can_sleep_ && drive_is_sleeping_[0] && drive_is_sleeping_[1];
 }
 
-void DiskII::set_register(int address, uint8_t value) {
-	trigger_address(address, value);
+void DiskII::set_data_input(uint8_t input) {
+	data_input_ = input;
 }
 
-uint8_t DiskII::get_register(int address) {
-	return trigger_address(address, 0xff);
-}
-
-uint8_t DiskII::trigger_address(int address, uint8_t value) {
+int DiskII::read_address(int address) {
 	switch(address & 0xf) {
 		default:
 		case 0x0:	set_control(Control::P0, false);	break;
@@ -222,19 +225,30 @@ uint8_t DiskII::trigger_address(int address, uint8_t value) {
 		case 0x6:	set_control(Control::P3, false);	break;
 		case 0x7:	set_control(Control::P3, true);		break;
 
-		case 0x8:	set_control(Control::Motor, false);	break;
+		case 0x8:
+			shift_register_ = 0;
+			set_control(Control::Motor, false);
+		break;
 		case 0x9:	set_control(Control::Motor, true);	break;
 
 		case 0xa:	select_drive(0);					break;
 		case 0xb:	select_drive(1);					break;
 
-		case 0xc:	return get_shift_register();
-		case 0xd:	set_data_register(value);			break;
-
-		case 0xe:	set_mode(Mode::Read);				break;
-		case 0xf:	set_mode(Mode::Write);				break;
+		case 0xc:	inputs_ &= ~input_command;			break;
+		case 0xd:	inputs_ |= input_command;			break;
+		case 0xe:
+			if(inputs_ & input_mode)
+				drives_[active_drive_].end_writing();
+			inputs_ &= ~input_mode;
+		break;
+		case 0xf:
+			if(!(inputs_ & input_mode))
+				drives_[active_drive_].begin_writing(Storage::Time(1, 2045454), false);
+			inputs_ |= input_mode;
+		break;
 	}
-	return 0xff;
+	set_controller_can_sleep();
+	return (address & 1) ? 0xff : shift_register_;
 }
 
 void DiskII::set_activity_observer(Activity::Observer *observer) {
