@@ -9,6 +9,7 @@
 #include "WOZ.hpp"
 
 #include "../../Track/PCMTrack.hpp"
+#include "../../../../NumberTheory/CRC.hpp"
 
 using namespace Storage::Disk;
 
@@ -21,8 +22,20 @@ WOZ::WOZ(const std::string &file_name) :
 	};
 	if(!file_.check_signature(signature, 8)) throw Error::InvalidFormat;
 
-	// TODO: check CRC32, instead of skipping it.
-	file_.seek(4, SEEK_CUR);
+	// Check the file's CRC32, instead of skipping it.
+	const uint32_t crc = file_.get32le();
+	CRC::CRC32 crc_generator;
+	while(true) {
+		uint8_t next = file_.get8();
+		if(file_.eof()) break;
+		crc_generator.add(next);
+	}
+	if(crc != crc_generator.get_value()) {
+		 throw Error::InvalidFormat;
+	}
+
+	// Retreat to the first byte after the CRC.
+	file_.seek(12, SEEK_SET);
 
 	// Parse all chunks up front.
 	bool has_tmap = false;
