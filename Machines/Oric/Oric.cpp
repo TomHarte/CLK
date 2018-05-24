@@ -507,7 +507,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				ram_top_ = basic_visible_ram_top_;
 				paged_rom_ = rom_.data();
 			} else {
-				if(flags&Microdisc::PagingFlags::MicrodscDisable) {
+				if(flags&Microdisc::PagingFlags::MicrodiscDisable) {
 					ram_top_ = basic_invisible_ram_top_;
 				} else {
 					ram_top_ = 0xdfff;

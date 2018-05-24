@@ -31,8 +31,14 @@ class Microdisc: public WD::WD1770 {
 		using WD::WD1770::run_for;
 
 		enum PagingFlags {
-			BASICDisable	=	(1 << 0),
-			MicrodscDisable	=	(1 << 1)
+			/// Indicates that the BASIC ROM should be disabled; if this is set then either
+			/// the Microdisc ROM or overlay RAM will be visible. If it is not set, BASIC
+			/// should be visible.
+			BASICDisable		=	(1 << 0),
+
+			/// Indicates that the Microdisc ROM is disabled. If BASIC is disabled and the Microdisc
+			/// is also disabled, overlay RAM should be visible.
+			MicrodiscDisable	=	(1 << 1)
 		};
 
 		class Delegate: public WD1770::Delegate {
