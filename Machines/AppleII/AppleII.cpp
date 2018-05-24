@@ -26,6 +26,7 @@
 
 #include "../../Analyser/Static/AppleII/Target.hpp"
 
+#include <algorithm>
 #include <array>
 #include <memory>
 

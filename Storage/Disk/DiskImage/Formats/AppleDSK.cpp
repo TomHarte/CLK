@@ -13,6 +13,8 @@
 #include "../../Encodings/AppleGCR/Encoder.hpp"
 #include "../../Encodings/AppleGCR/SegmentParser.hpp"
 
+#include <cstring>
+
 using namespace Storage::Disk;
 
 namespace {
