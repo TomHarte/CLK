@@ -504,11 +504,11 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		void microdisc_did_change_paging_flags(class Microdisc *microdisc) override final {
 			int flags = microdisc->get_paging_flags();
 			if(!(flags&Microdisc::PagingFlags::BASICDisable)) {
-				ram_top_ = basic_invisible_ram_top_;
+				ram_top_ = basic_visible_ram_top_;
 				paged_rom_ = rom_.data();
 			} else {
-				if(flags&Microdisc::PagingFlags::MicrodscDisable) {
-					ram_top_ = basic_visible_ram_top_;
+				if(flags&Microdisc::PagingFlags::MicrodiscDisable) {
+					ram_top_ = basic_invisible_ram_top_;
 				} else {
 					ram_top_ = 0xdfff;
 					paged_rom_ = microdisc_rom_.data();

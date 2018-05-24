@@ -72,7 +72,7 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 	// b7: EPROM select (0 = select)
 	// b1: ROM disable (0 = disable)
 	if(changes & 0x82) {
-		paging_flags_ = ((control & 0x02) ? 0 : BASICDisable) | ((control & 0x80) ? MicrodscDisable : 0);
+		paging_flags_ = ((control & 0x02) ? 0 : BASICDisable) | ((control & 0x80) ? MicrodiscDisable : 0);
 		if(delegate_) delegate_->microdisc_did_change_paging_flags(this);
 	}
 }
