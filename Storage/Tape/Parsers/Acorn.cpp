@@ -14,7 +14,7 @@ namespace {
 const int PLLClockRate = 1920000;
 }
 
-Parser::Parser() : crc_(0x1021, 0x0000) {
+Parser::Parser() {
 	shifter_.set_delegate(this);
 }
 
