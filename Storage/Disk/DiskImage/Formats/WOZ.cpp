@@ -90,22 +90,31 @@ int WOZ::get_head_count() {
 	return is_3_5_disk_ ? 2 : 1;
 }
 
-std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
+long WOZ::file_offset(Track::Address address) {
 	// Calculate table position; if this track is defined to be unformatted, return no track.
 	const int table_position = address.head * (is_3_5_disk_ ? 80 : 160) + (is_3_5_disk_ ? address.position.as_int() : address.position.as_quarter());
-	if(track_map_[table_position] == 0xff) return nullptr;
+	if(track_map_[table_position] == 0xff) return NoSuchTrack;
 
 	// Seek to the real track.
-	file_.seek(tracks_offset_ + track_map_[table_position] * 6656, SEEK_SET);
+	return tracks_offset_ + track_map_[table_position] * 6656;
+}
 
+std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
+	long offset = file_offset(address);
+	if(offset == NoSuchTrack) return nullptr;
+
+	// Seek to the real track.
 	PCMSegment track_contents;
-	track_contents.data = file_.read(6646);
-	track_contents.data.resize(file_.get16le());
-	track_contents.number_of_bits = file_.get16le();
+	{
+		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		file_.seek(offset, SEEK_SET);
 
-	const uint16_t splice_point = file_.get16le();
-	if(splice_point != 0xffff) {
-		// TODO: expand track from splice_point?
+		// In WOZ a track is up to 6646 bytes of data, followed by a two-byte record of the
+		// number of bytes that actually had data in them, then a two-byte count of the number
+		// of bits that were used. Other information follows but is not intended for emulation.
+		track_contents.data = file_.read(6646);
+		track_contents.data.resize(file_.get16le());
+		track_contents.number_of_bits = file_.get16le();
 	}
 
 	return std::shared_ptr<PCMTrack>(new PCMTrack(track_contents));

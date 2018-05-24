@@ -34,6 +34,15 @@ class WOZ: public DiskImage {
 		bool is_3_5_disk_ = false;
 		uint8_t track_map_[160];
 		long tracks_offset_ = -1;
+
+		/*!
+			Gets the in-file offset of a track.
+
+			@returns The offset within the file of the track at @c address or @c NoSuchTrack if
+				the track does not exit.
+		*/
+		long file_offset(Track::Address address);
+		constexpr static long NoSuchTrack = 0;	// This is definitely an offset a track can't lie at.
 };
 
 }
