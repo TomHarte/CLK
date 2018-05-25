@@ -25,7 +25,7 @@ class WOZ: public DiskImage {
 	public:
 		WOZ(const std::string &file_name);
 
-		// Implemented to satisfy @c Disk.
+		// Implemented to satisfy @c DiskImage.
 		HeadPosition get_maximum_head_position() override;
 		int get_head_count() override;
 		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
