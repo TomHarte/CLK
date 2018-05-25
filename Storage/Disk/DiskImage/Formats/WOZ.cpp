@@ -11,6 +11,8 @@
 #include "../../Track/PCMTrack.hpp"
 #include "../../Track/TrackSerialiser.hpp"
 
+#include <cstring>
+
 using namespace Storage::Disk;
 
 WOZ::WOZ(const std::string &file_name) :
