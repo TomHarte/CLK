@@ -9,6 +9,7 @@
 #include "NIB.hpp"
 
 #include "../../Track/PCMTrack.hpp"
+#include "../../Track/TrackSerialiser.hpp"
 #include "../../Encodings/AppleGCR/Encoder.hpp"
 
 #include <vector>
@@ -29,20 +30,38 @@ NIB::NIB(const std::string &file_name) :
 		throw Error::InvalidFormat;
 	}
 
-	// TODO: all other validation. I.e. does this look like a GCR disk?
+	// A real NIB should have every single top bit set. Yes, 1/8th of the
+	// file size is a complete waste. But it provides a hook for validation.
+	while(true) {
+		uint8_t next = file_.get8();
+		if(file_.eof()) break;
+		if(!(next & 0x80)) throw Error::InvalidFormat;
+	}
 }
 
 HeadPosition NIB::get_maximum_head_position() {
 	return HeadPosition(number_of_tracks);
 }
 
+bool NIB::get_is_read_only() {
+	return file_.get_is_known_read_only();
+}
+
+long NIB::file_offset(Track::Address address) {
+	return static_cast<long>(address.position.as_int()) * track_length;
+}
+
 std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Disk::Track::Address address) {
 	// NIBs contain data for even-numbered tracks underneath a single head only.
 	if(address.head) return nullptr;
 
-	const long file_track = static_cast<long>(address.position.as_int());
-	file_.seek(file_track * track_length, SEEK_SET);
-	std::vector<uint8_t> track_data = file_.read(track_length);
+	long offset = file_offset(address);
+	std::vector<uint8_t> track_data;
+	{
+		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		file_.seek(offset, SEEK_SET);
+		track_data = file_.read(track_length);
+	}
 
 	// NIB files leave sync bytes implicit and make no guarantees
 	// about overall track positioning. So the approach taken here
@@ -99,4 +118,45 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	}
 
 	return std::make_shared<PCMTrack>(segment);
+}
+
+void NIB::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+	std::map<Track::Address, std::vector<uint8_t>> tracks_by_address;
+
+	// Convert to a map from address to a vector of data that contains the NIB representation
+	// of the track.
+	for(const auto &pair: tracks) {
+		// Grab the track bit stream.
+		auto segment = Storage::Disk::track_serialisation(*pair.second, Storage::Time(1, 50000));
+
+		// Process to eliminate all sync bits.
+		std::vector<uint8_t> track;
+		track.reserve(track_length);
+		uint8_t shifter = 0;
+		for(unsigned int bit = 0; bit < segment.number_of_bits; ++bit) {
+			shifter = static_cast<uint8_t>((shifter << 1) | segment.bit(bit));
+			if(shifter & 0x80) {
+				track.push_back(shifter);
+				shifter = 0;
+			}
+		}
+
+		// Pad out to track_length.
+		if(track.size() > track_length) {
+			track.resize(track_length);
+		} else {
+			while(track.size() < track_length) {
+				track.push_back(0xff);
+			}
+		}
+
+		tracks_by_address[pair.first] = std::move(track);
+	}
+
+	// Lock the file and spool out.
+	std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+	for(const auto &track: tracks_by_address) {
+    	file_.seek(file_offset(track.first), SEEK_SET);
+    	file_.write(track.second);
+	}
 }

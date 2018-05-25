@@ -17,21 +17,23 @@ namespace Disk {
 
 /*!
 	Provides a @c DiskImage describing an Apple NIB disk image:
-	mostly a bit stream capture, but syncs are implicitly packed
-	into 8 bits instead of 9.
+	a bit stream capture that omits sync zeroes, and doesn't define
+	the means for full reconstruction.
 */
 class NIB: public DiskImage {
 	public:
 		NIB(const std::string &file_name);
 
+		// Implemented to satisfy @c DiskImage.
 		HeadPosition get_maximum_head_position() override;
-
 		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) override;
+		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
+		bool get_is_read_only() override;
 
 	private:
 		FileHolder file_;
 		long get_file_offset_for_position(Track::Address address);
-
+		long file_offset(Track::Address address);
 };
 
 }
