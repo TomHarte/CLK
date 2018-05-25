@@ -11,8 +11,8 @@
 
 using namespace Storage::Encodings::MFM;
 
-Shifter::Shifter() : owned_crc_generator_(new NumberTheory::CRC16(0x1021, 0xffff)), crc_generator_(owned_crc_generator_.get()) {}
-Shifter::Shifter(NumberTheory::CRC16 *crc_generator) : crc_generator_(crc_generator) {}
+Shifter::Shifter() : owned_crc_generator_(new CRC::CCITT()), crc_generator_(owned_crc_generator_.get()) {}
+Shifter::Shifter(CRC::CCITT *crc_generator) : crc_generator_(crc_generator) {}
 
 void Shifter::set_is_double_density(bool is_double_density) {
 	is_double_density_ = is_double_density;

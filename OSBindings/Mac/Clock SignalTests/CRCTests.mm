@@ -8,18 +8,14 @@
 
 #import <XCTest/XCTest.h>
 #include "CRC.hpp"
+#include <string>
 
 @interface CRCTests : XCTestCase
 @end
 
 @implementation CRCTests
 
-- (NumberTheory::CRC16)mfmCRCGenerator
-{
-	return NumberTheory::CRC16(0x1021, 0xffff);
-}
-
-- (uint16_t)crcOfData:(uint8_t *)data length:(size_t)length generator:(NumberTheory::CRC16 &)generator
+- (uint16_t)crcOfData:(uint8_t *)data length:(size_t)length generator:(CRC::CCITT &)generator
 {
 	generator.reset();
 	for(size_t c = 0; c < length; c++)
@@ -34,7 +30,7 @@
 		0xa1, 0xa1, 0xa1, 0xfe, 0x00, 0x00, 0x01, 0x01
 	};
 	uint16_t crc = 0xfa0c;
-	NumberTheory::CRC16 crcGenerator = self.mfmCRCGenerator;
+	CRC::CCITT crcGenerator;
 
 	uint16_t computedCRC = [self crcOfData:IDMark length:sizeof(IDMark) generator:crcGenerator];
 	XCTAssert(computedCRC == crc, @"Calculated CRC should have been %04x, was %04x", crc, computedCRC);
@@ -63,10 +59,26 @@
 		0x20, 0x20, 0x20, 0x20
 	};
 	uint16_t crc = 0x4de7;
-	NumberTheory::CRC16 crcGenerator = self.mfmCRCGenerator;
+	CRC::CCITT crcGenerator;
 
 	uint16_t computedCRC = [self crcOfData:sectorData length:sizeof(sectorData) generator:crcGenerator];
 	XCTAssert(computedCRC == crc, @"Calculated CRC should have been %04x, was %04x", crc, computedCRC);
+}
+
+- (void)testCCITTCheck {
+	CRC::CCITT crcGenerator;
+	for(auto c: std::string("123456789")) {
+		crcGenerator.add(c);
+	}
+	XCTAssertEqual(crcGenerator.get_value(), 0x29b1);
+}
+
+- (void)testCRC32Check {
+	CRC::CRC32 crcGenerator;
+	for(auto c: std::string("123456789")) {
+		crcGenerator.add(c);
+	}
+	XCTAssertEqual(crcGenerator.get_value(), 0xcbf43926);
 }
 
 @end

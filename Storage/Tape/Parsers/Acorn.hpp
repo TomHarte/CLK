@@ -63,7 +63,7 @@ class Parser: public Storage::Tape::Parser<SymbolType>, public Shifter::Delegate
 
 	private:
 		bool did_update_shifter(int new_value, int length);
-		NumberTheory::CRC16 crc_;
+		CRC::CCITT crc_;
 		Shifter shifter_;
 };
 

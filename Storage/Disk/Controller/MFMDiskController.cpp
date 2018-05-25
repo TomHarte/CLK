@@ -14,8 +14,7 @@ using namespace Storage::Disk;
 
 MFMController::MFMController(Cycles clock_rate) :
 	Storage::Disk::Controller(clock_rate),
-	shifter_(&crc_generator_),
-	crc_generator_(0x1021, 0xffff) {
+	shifter_(&crc_generator_) {
 }
 
 void MFMController::process_index_hole() {
@@ -49,7 +48,7 @@ MFMController::Token MFMController::get_latest_token() {
 	return latest_token_;
 }
 
-NumberTheory::CRC16 &MFMController::get_crc_generator() {
+CRC::CCITT &MFMController::get_crc_generator() {
 	return crc_generator_;
 }
 

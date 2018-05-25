@@ -56,7 +56,7 @@ class Encoder {
 		void add_crc(bool incorrectly);
 
 	protected:
-		NumberTheory::CRC16 crc_generator_;
+		CRC::CCITT crc_generator_;
 
 	private:
 		std::vector<uint8_t> &target_;

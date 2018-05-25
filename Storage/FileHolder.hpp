@@ -53,6 +53,28 @@ class FileHolder final {
 		uint32_t get32le();
 
 		/*!
+			Writes @c value using successive @c put8s, in little endian order.
+		*/
+		template <typename T> void put_le(T value) {
+			auto bytes = sizeof(T);
+			while(bytes--) {
+				put8(value&0xff);
+				value >>= 8;
+			}
+		}
+
+		/*!
+			Writes @c value using successive @c put8s, in big endian order.
+		*/
+		template <typename T> void put_be(T value) {
+			auto shift = sizeof(T) * 8;
+			while(shift) {
+				shift -= 8;
+				put8((value >> shift)&0xff);
+			}
+		}
+
+		/*!
 			Performs @c get8 four times on @c file, casting each result to a @c uint32_t
 			and returning the four assembled in big endian order.
 		*/

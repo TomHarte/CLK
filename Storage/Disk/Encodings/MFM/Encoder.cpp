@@ -187,7 +187,6 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 }
 
 Encoder::Encoder(std::vector<uint8_t> &target) :
-	crc_generator_(0x1021, 0xffff),
 	target_(target) {}
 
 void Encoder::output_short(uint16_t value) {

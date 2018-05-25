@@ -72,7 +72,7 @@ class MFMController: public Controller {
 		Token get_latest_token();
 
 		/// @returns The controller's CRC generator. This is automatically fed during reading.
-		NumberTheory::CRC16 &get_crc_generator();
+		CRC::CCITT &get_crc_generator();
 
 		// Events
 		enum class Event: int {
@@ -163,7 +163,7 @@ class MFMController: public Controller {
 		int last_bit_;
 
 		// CRC generator
-		NumberTheory::CRC16 crc_generator_;
+		CRC::CCITT crc_generator_;
 };
 
 }
