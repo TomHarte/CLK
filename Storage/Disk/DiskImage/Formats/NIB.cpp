@@ -30,7 +30,13 @@ NIB::NIB(const std::string &file_name) :
 		throw Error::InvalidFormat;
 	}
 
-	// TODO: all other validation. I.e. does this look like a GCR disk?
+	// A real NIB should have every single top bit set. Yes, 1/8th of the
+	// file size is a complete waste. But it provides a hook for validation.
+	while(true) {
+		uint8_t next = file_.get8();
+		if(file_.eof()) break;
+		if(!(next & 0x80)) throw Error::InvalidFormat;
+	}
 }
 
 HeadPosition NIB::get_maximum_head_position() {
