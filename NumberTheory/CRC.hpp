@@ -10,6 +10,7 @@
 #define CRC_hpp
 
 #include <cstdint>
+#include <vector>
 
 namespace CRC {
 
@@ -57,6 +58,19 @@ template <typename T, T reset_value, T xor_output, bool reflect_input, bool refl
 
 		/// Sets the current value of the CRC.
 		inline void set_value(T value) { value_ = value; }
+
+		/*!
+			A compound for:
+
+				reset()
+				[add all data from @c data]
+				get_value()
+		*/
+		T compute_crc(const std::vector<uint8_t> &data) {
+			reset();
+			for(const auto &byte: data) add(byte);
+			return get_value();
+		}
 
 	private:
 		static constexpr int multibyte_shift = (sizeof(T) * 8) - 8;

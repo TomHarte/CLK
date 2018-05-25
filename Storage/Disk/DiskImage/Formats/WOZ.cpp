@@ -9,7 +9,7 @@
 #include "WOZ.hpp"
 
 #include "../../Track/PCMTrack.hpp"
-#include "../../../../NumberTheory/CRC.hpp"
+#include "../../Track/TrackSerialiser.hpp"
 
 using namespace Storage::Disk;
 
@@ -22,15 +22,15 @@ WOZ::WOZ(const std::string &file_name) :
 	};
 	if(!file_.check_signature(signature, 8)) throw Error::InvalidFormat;
 
-	// Check the file's CRC32, instead of skipping it.
+	// Get the file's CRC32.
 	const uint32_t crc = file_.get32le();
-	CRC::CRC32 crc_generator;
-	while(true) {
-		uint8_t next = file_.get8();
-		if(file_.eof()) break;
-		crc_generator.add(next);
-	}
-	if(crc != crc_generator.get_value()) {
+
+	// Get the collection of all data that contributes to the CRC.
+	post_crc_contents_ = file_.read(static_cast<std::size_t>(file_.stats().st_size - 12));
+
+	// Test the CRC.
+	const uint32_t computed_crc = crc_generator.compute_crc(post_crc_contents_);
+	if(crc != computed_crc) {
 		 throw Error::InvalidFormat;
 	}
 
@@ -118,4 +118,37 @@ std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
 	}
 
 	return std::shared_ptr<PCMTrack>(new PCMTrack(track_contents));
+}
+
+void WOZ::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+	for(const auto &pair: tracks) {
+		// Decode the track and store, patching into the post_crc_contents_.
+		auto segment = Storage::Disk::track_serialisation(*pair.second, Storage::Time(1, 50000));
+
+		auto offset = static_cast<std::size_t>(file_offset(pair.first) - 12);
+		memcpy(&post_crc_contents_[offset - 12], segment.data.data(), segment.number_of_bits >> 3);
+
+		// Write number of bytes and number of bits.
+		post_crc_contents_[offset + 6646] = static_cast<uint8_t>(segment.number_of_bits >> 3);
+		post_crc_contents_[offset + 6647] = static_cast<uint8_t>(segment.number_of_bits >> 11);
+		post_crc_contents_[offset + 6648] = static_cast<uint8_t>(segment.number_of_bits);
+		post_crc_contents_[offset + 6649] = static_cast<uint8_t>(segment.number_of_bits >> 8);
+
+		// Set no splice information now provided, since it's been lost if ever it was known.
+		post_crc_contents_[offset + 6650] = 0xff;
+		post_crc_contents_[offset + 6651] = 0xff;
+	}
+
+	// Calculate the new CRC.
+	const uint32_t crc = crc_generator.compute_crc(post_crc_contents_);
+
+	// Grab the file lock, then write the CRC, then just dump the entire file buffer.
+	std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+	file_.seek(8, SEEK_SET);
+	file_.put_le(crc);
+	file_.write(post_crc_contents_);
+}
+
+bool WOZ::get_is_read_only() {
+	return file_.get_is_known_read_only();
 }

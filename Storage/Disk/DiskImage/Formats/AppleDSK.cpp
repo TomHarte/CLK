@@ -111,6 +111,7 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>>
 		tracks_by_address[pair.first] = std::move(track_contents);
 	}
 
+	// Grab the file lock and write out the new tracks.
 	std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
 	for(const auto &pair: tracks_by_address) {
 		file_.seek(file_offset(pair.first), SEEK_SET);
