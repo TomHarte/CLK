@@ -64,7 +64,7 @@ static std::shared_ptr<File> ZX81FileFromData(const std::vector<uint8_t> &data) 
 
 //	if(data[data_pointer]) return nullptr;
 
-	uint16_t vars = short_at(data_pointer + 0x4010 - 0x4009, data);
+//	uint16_t vars = short_at(data_pointer + 0x4010 - 0x4009, data);
 	uint16_t end_of_file = short_at(data_pointer + 0x4014 - 0x4009, data);
 //	uint16_t display_address = short_at(0x400c - 0x4009, data);
 
@@ -72,7 +72,7 @@ static std::shared_ptr<File> ZX81FileFromData(const std::vector<uint8_t> &data) 
 	if(data_pointer + end_of_file - 0x4009 > data.size()) return nullptr;
 
 	// check for the proper ordering of buffers
-	if(vars > end_of_file) return nullptr;
+//	if(vars > end_of_file) return nullptr;
 //	if(end_of_file > display_address) return nullptr;
 
 	// TODO: does it make sense to inspect the tokenised BASIC?
