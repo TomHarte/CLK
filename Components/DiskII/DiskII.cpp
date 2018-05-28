@@ -93,7 +93,7 @@ void DiskII::run_for(const Cycles cycles) {
 
 				// If the controller is in the sense write protect loop but the register will never change,
 				// short circuit further work and return now.
-				if(shift_register_ == is_write_protected() ? 0xff : 0x00) {
+				if(shift_register_ == (is_write_protected() ? 0xff : 0x00)) {
 					if(!drive_is_sleeping_[0]) drives_[0].run_for(Cycles(integer_cycles));
 					if(!drive_is_sleeping_[1]) drives_[1].run_for(Cycles(integer_cycles));
 					decide_clocking_preference();
