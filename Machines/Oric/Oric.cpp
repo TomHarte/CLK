@@ -212,7 +212,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				ay8910_(audio_queue_),
 				speaker_(ay8910_),
 				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),
-				via_(via_port_handler_) {
+				via_(via_port_handler_),
+				diskii_(2000000) {
 			set_clock_rate(1000000);
 			via_port_handler_.set_interrupt_delegate(this);
 			tape_player_.set_delegate(this);

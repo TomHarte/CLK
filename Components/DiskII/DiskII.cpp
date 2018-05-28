@@ -19,9 +19,10 @@ namespace  {
 	const uint8_t input_flux = 0x1;
 }
 
-DiskII::DiskII() :
+DiskII::DiskII(int clock_rate) :
+	clock_rate_(clock_rate),
 	inputs_(input_command),
-	drives_{{2045454, 300, 1}, {2045454, 300, 1}}
+	drives_{{static_cast<unsigned int>(clock_rate), 300, 1}, {static_cast<unsigned int>(clock_rate), 300, 1}}
 {
 	drives_[0].set_clocking_hint_observer(this);
 	drives_[1].set_clocking_hint_observer(this);
@@ -75,68 +76,72 @@ void DiskII::select_drive(int drive) {
 void DiskII::run_for(const Cycles cycles) {
 	if(preferred_clocking() == ClockingHint::Preference::None) return;
 
-	if(!controller_can_sleep_) {
-		int integer_cycles = cycles.as_int();
-		while(integer_cycles--) {
-			const int address = (state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6);
-			inputs_ |= input_flux;
-			state_ = state_machine_[static_cast<std::size_t>(address)];
-			switch(state_ & 0xf) {
-				default:	shift_register_ = 0;													break;	// clear
-				case 0x8:																			break;	// nop
+	int integer_cycles = cycles.as_int();
+	while(integer_cycles--) {
+		const int address = (state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6);
+		inputs_ |= input_flux;
+		state_ = state_machine_[static_cast<std::size_t>(address)];
+		switch(state_ & 0xf) {
+			default:	shift_register_ = 0;													break;	// clear
+			case 0x8:																			break;	// nop
 
-				case 0x9:	shift_register_ = static_cast<uint8_t>(shift_register_ << 1);			break;	// shift left, bringing in a zero
-				case 0xd:	shift_register_ = static_cast<uint8_t>((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
+			case 0x9:	shift_register_ = static_cast<uint8_t>(shift_register_ << 1);			break;	// shift left, bringing in a zero
+			case 0xd:	shift_register_ = static_cast<uint8_t>((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
 
-				case 0xa:	// shift right, bringing in write protected status
-					shift_register_ = (shift_register_ >> 1) | (is_write_protected() ? 0x80 : 0x00);
+			case 0xa:	// shift right, bringing in write protected status
+				shift_register_ = (shift_register_ >> 1) | (is_write_protected() ? 0x80 : 0x00);
 
-					// If the controller is in the sense write protect loop but the register will never change,
-					// short circuit further work and return now.
-					if(shift_register_ == is_write_protected() ? 0xff : 0x00) {
-						if(!drive_is_sleeping_[0]) drives_[0].run_for(Cycles(integer_cycles));
-						if(!drive_is_sleeping_[1]) drives_[1].run_for(Cycles(integer_cycles));
-						set_controller_can_sleep();
-						return;
-					}
-				break;
-				case 0xb:	shift_register_ = data_input_;											break;	// load data register from data bus
-			}
-
-			// Currently writing?
-			if(inputs_&input_mode) {
-				// state_ & 0x80 should be the current level sent to the disk;
-				// therefore transitions in that bit should become flux transitions
-				drives_[active_drive_].write_bit(!!((state_ ^ address) & 0x80));
-			}
-
-			// TODO: surely there's a less heavyweight solution than this?
-			if(!drive_is_sleeping_[0]) drives_[0].run_for(Cycles(1));
-			if(!drive_is_sleeping_[1]) drives_[1].run_for(Cycles(1));
+				// If the controller is in the sense write protect loop but the register will never change,
+				// short circuit further work and return now.
+				if(shift_register_ == is_write_protected() ? 0xff : 0x00) {
+					if(!drive_is_sleeping_[0]) drives_[0].run_for(Cycles(integer_cycles));
+					if(!drive_is_sleeping_[1]) drives_[1].run_for(Cycles(integer_cycles));
+					decide_clocking_preference();
+					return;
+				}
+			break;
+			case 0xb:	shift_register_ = data_input_;											break;	// load data register from data bus
 		}
-	} else {
-		if(!drive_is_sleeping_[0]) drives_[0].run_for(cycles);
-		if(!drive_is_sleeping_[1]) drives_[1].run_for(cycles);
+
+		// Currently writing?
+		if(inputs_&input_mode) {
+			// state_ & 0x80 should be the current level sent to the disk;
+			// therefore transitions in that bit should become flux transitions
+			drives_[active_drive_].write_bit(!!((state_ ^ address) & 0x80));
+		}
+
+		// TODO: surely there's a less heavyweight solution than inline updates?
+		if(!drive_is_sleeping_[0]) drives_[0].run_for(Cycles(1));
+		if(!drive_is_sleeping_[1]) drives_[1].run_for(Cycles(1));
 	}
 
-	set_controller_can_sleep();
+	decide_clocking_preference();
 }
 
-void DiskII::set_controller_can_sleep() {
-	// Permit the controller to sleep if it's in sense write protect mode, and the shift register
-	// has already filled with the result of shifting eight times.
-	bool controller_could_sleep = controller_can_sleep_;
-	controller_can_sleep_ =
-		(
-			(inputs_ == input_flux) &&
-			!motor_is_enabled_ &&
-			!shift_register_
-		) ||
-		(
-			(inputs_ == (input_command | input_flux)) &&
-			(shift_register_ == (is_write_protected() ? 0xff : 0x00))
-		);
-	if(controller_could_sleep != controller_can_sleep_)
+void DiskII::decide_clocking_preference() {
+	ClockingHint::Preference prior_preference = clocking_preference_;
+
+	// If in read mode, clocking is either:
+	//
+	//	just-in-time, if drives are running or the shift register has any 1s in it or a flux event hasn't yet passed; or
+	//	none, given that drives are not running, the shift register has already emptied and there's no flux about to fire.
+	if(!(inputs_ & ~input_flux)) {
+		clocking_preference_ = (!motor_is_enabled_ && !shift_register_ && !(inputs_&input_flux)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
+	}
+
+	// If in writing mode, clocking is real time.
+	if(inputs_ & input_mode) {
+		clocking_preference_ = ClockingHint::Preference::RealTime;
+	}
+
+	// If in sense-write-protect mode, clocking is just-in-time if the shift register hasn't yet filled with the value that
+	// corresponds to the current write protect status. Otherwise it is none.
+	if((inputs_ & ~input_flux) == input_command) {
+		clocking_preference_ = (shift_register_ == (is_write_protected() ? 0xff : 0x00)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
+	}
+
+	// Announce a change if there was one.
+	if(prior_preference != clocking_preference_)
 		update_clocking_observer();
 }
 
@@ -195,18 +200,18 @@ void DiskII::set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int driv
 void DiskII::process_event(const Storage::Disk::Track::Event &event) {
 	if(event.type == Storage::Disk::Track::Event::FluxTransition) {
 		inputs_ &= ~input_flux;
-		set_controller_can_sleep();
+		decide_clocking_preference();
 	}
 }
 
 void DiskII::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) {
 	drive_is_sleeping_[0] = drives_[0].preferred_clocking() == ClockingHint::Preference::None;
 	drive_is_sleeping_[1] = drives_[1].preferred_clocking() == ClockingHint::Preference::None;
-	update_clocking_observer();
+	decide_clocking_preference();
 }
 
 ClockingHint::Preference DiskII::preferred_clocking() {
-	return (controller_can_sleep_ && drive_is_sleeping_[0] && drive_is_sleeping_[1]) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
+	return clocking_preference_;
 }
 
 void DiskII::set_data_input(uint8_t input) {
@@ -243,11 +248,11 @@ int DiskII::read_address(int address) {
 		break;
 		case 0xf:
 			if(!(inputs_ & input_mode))
-				drives_[active_drive_].begin_writing(Storage::Time(1, 2045454), false);
+				drives_[active_drive_].begin_writing(Storage::Time(1, clock_rate_), false);
 			inputs_ |= input_mode;
 		break;
 	}
-	set_controller_can_sleep();
+	decide_clocking_preference();
 	return (address & 1) ? 0xff : shift_register_;
 }
 

@@ -31,7 +31,7 @@ class DiskII:
 	public ClockingHint::Source,
 	public ClockingHint::Observer {
 	public:
-		DiskII();
+		DiskII(int clock_rate);
 
 		/// Sets the current external value of the data bus.
 		void set_data_input(uint8_t input);
@@ -97,6 +97,8 @@ class DiskII:
 		void process_event(const Storage::Disk::Track::Event &event) override;
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) override;
 
+		const int clock_rate_ = 0;
+
 		uint8_t state_ = 0;
 		uint8_t inputs_ = 0;
 		uint8_t shift_register_ = 0;
@@ -108,11 +110,11 @@ class DiskII:
 		std::array<uint8_t, 256> state_machine_;
 		Storage::Disk::Drive drives_[2];
 		bool drive_is_sleeping_[2];
-		bool controller_can_sleep_ = false;
 		int active_drive_ = 0;
 		bool motor_is_enabled_ = false;
 
-		void set_controller_can_sleep();
+		void decide_clocking_preference();
+		ClockingHint::Preference clocking_preference_ = ClockingHint::Preference::RealTime;
 
 		uint8_t data_input_ = 0;
 };

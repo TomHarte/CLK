@@ -10,7 +10,7 @@
 
 using namespace AppleII;
 
-DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sector) {
+DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sector) : diskii_(2045454) {
 	auto roms = rom_fetcher(
 		"DiskII",
 		{
