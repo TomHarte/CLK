@@ -14,7 +14,7 @@
 
 #include "../../Components/DiskII/DiskII.hpp"
 #include "../../Storage/Disk/Disk.hpp"
-#include "../../ClockReceiver/Sleeper.hpp"
+#include "../../ClockReceiver/ClockingHintSource.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -22,7 +22,7 @@
 
 namespace AppleII {
 
-class DiskIICard: public Card, public Sleeper::SleepObserver {
+class DiskIICard: public Card, public ClockingHint::Observer {
 	public:
 		DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sector);
 
@@ -34,10 +34,10 @@ class DiskIICard: public Card, public Sleeper::SleepObserver {
 		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
 
 	private:
-		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override;
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override;
 		std::vector<uint8_t> boot_;
 		Apple::DiskII diskii_;
-		bool diskii_is_sleeping_ = false;
+		ClockingHint::Preference diskii_clocking_preference_ = ClockingHint::Preference::RealTime;
 };
 
 }

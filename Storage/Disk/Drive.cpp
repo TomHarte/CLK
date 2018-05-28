@@ -46,15 +46,15 @@ void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
 	has_disk_ = !!disk_;
 
 	invalidate_track();
-	update_sleep_observer();
+	update_clocking_observer();
 }
 
 bool Drive::has_disk() {
 	return has_disk_;
 }
 
-bool Drive::is_sleeping() {
-	return !motor_is_on_ || !has_disk_;
+ClockingHint::Preference Drive::preferred_clocking() {
+	return (!motor_is_on_ || !has_disk_) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
 bool Drive::get_is_track_zero() {
@@ -119,7 +119,7 @@ void Drive::set_motor_on(bool motor_is_on) {
 		ready_index_count_ = 0;
 		if(disk_) disk_->flush_tracks();
 	}
-	update_sleep_observer();
+	update_clocking_observer();
 }
 
 bool Drive::get_motor_on() {

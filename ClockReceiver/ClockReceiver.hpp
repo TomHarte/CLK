@@ -52,79 +52,79 @@
 */
 template <class T> class WrappedInt {
 	public:
-		inline WrappedInt(int l) : length_(l) {}
-		inline WrappedInt() : length_(0) {}
+		constexpr WrappedInt(int l) : length_(l) {}
+		constexpr WrappedInt() : length_(0) {}
 
-		inline T &operator =(const T &rhs) {
+		T &operator =(const T &rhs) {
 			length_ = rhs.length_;
 			return *this;
 		}
 
-		inline T &operator +=(const T &rhs) {
+		T &operator +=(const T &rhs) {
 			length_ += rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		inline T &operator -=(const T &rhs) {
+		T &operator -=(const T &rhs) {
 			length_ -= rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		inline T &operator ++() {
+		T &operator ++() {
 			++ length_;
 			return *static_cast<T *>(this);
 		}
 
-		inline T &operator ++(int) {
+		T &operator ++(int) {
 			length_ ++;
 			return *static_cast<T *>(this);
 		}
 
-		inline T &operator --() {
+		T &operator --() {
 			-- length_;
 			return *static_cast<T *>(this);
 		}
 
-		inline T &operator --(int) {
+		T &operator --(int) {
 			length_ --;
 			return *static_cast<T *>(this);
 		}
 
-		inline T &operator %=(const T &rhs) {
+		T &operator %=(const T &rhs) {
 			length_ %= rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		inline T &operator &=(const T &rhs) {
+		T &operator &=(const T &rhs) {
 			length_ &= rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		inline T operator +(const T &rhs) const			{	return T(length_ + rhs.length_);	}
-		inline T operator -(const T &rhs) const			{	return T(length_ - rhs.length_);	}
+		constexpr T operator +(const T &rhs) const			{	return T(length_ + rhs.length_);	}
+		constexpr T operator -(const T &rhs) const			{	return T(length_ - rhs.length_);	}
 
-		inline T operator %(const T &rhs) const			{	return T(length_ % rhs.length_);	}
-		inline T operator &(const T &rhs) const			{	return T(length_ & rhs.length_);	}
+		constexpr T operator %(const T &rhs) const			{	return T(length_ % rhs.length_);	}
+		constexpr T operator &(const T &rhs) const			{	return T(length_ & rhs.length_);	}
 
-		inline T operator -() const						{	return T(- length_);				}
+		constexpr T operator -() const						{	return T(- length_);				}
 
-		inline bool operator <(const T &rhs) const		{	return length_ < rhs.length_;		}
-		inline bool operator >(const T &rhs) const		{	return length_ > rhs.length_;		}
-		inline bool operator <=(const T &rhs) const		{	return length_ <= rhs.length_;		}
-		inline bool operator >=(const T &rhs) const		{	return length_ >= rhs.length_;		}
-		inline bool operator ==(const T &rhs) const		{	return length_ == rhs.length_;		}
-		inline bool operator !=(const T &rhs) const		{	return length_ != rhs.length_;		}
+		constexpr bool operator <(const T &rhs) const		{	return length_ < rhs.length_;		}
+		constexpr bool operator >(const T &rhs) const		{	return length_ > rhs.length_;		}
+		constexpr bool operator <=(const T &rhs) const		{	return length_ <= rhs.length_;		}
+		constexpr bool operator >=(const T &rhs) const		{	return length_ >= rhs.length_;		}
+		constexpr bool operator ==(const T &rhs) const		{	return length_ == rhs.length_;		}
+		constexpr bool operator !=(const T &rhs) const		{	return length_ != rhs.length_;		}
 
-		inline bool operator !() const					{	return !length_;					}
+		constexpr bool operator !() const					{	return !length_;					}
 		// bool operator () is not supported because it offers an implicit cast to int, which is prone silently to permit misuse
 
-		inline int as_int() const { return length_; }
+		constexpr int as_int() const { return length_; }
 
 		/*!
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
-		inline T divide(const T &divisor) {
+		T divide(const T &divisor) {
 			T result(length_ / divisor.length_);
 			length_ %= divisor.length_;
 			return result;
@@ -134,7 +134,7 @@ template <class T> class WrappedInt {
 			Flushes the value in @c this. The current value is returned, and the internal value
 			is reset to zero.
 		*/
-		inline T flush() {
+		T flush() {
 			T result(length_);
 			length_ = 0;
 			return result;
@@ -150,34 +150,34 @@ template <class T> class WrappedInt {
 /// Describes an integer number of whole cycles: pairs of clock signal transitions.
 class Cycles: public WrappedInt<Cycles> {
 	public:
-		inline Cycles(int l) : WrappedInt<Cycles>(l) {}
-		inline Cycles() : WrappedInt<Cycles>() {}
-		inline Cycles(const Cycles &cycles) : WrappedInt<Cycles>(cycles.length_) {}
+		constexpr Cycles(int l) : WrappedInt<Cycles>(l) {}
+		constexpr Cycles() : WrappedInt<Cycles>() {}
+		constexpr Cycles(const Cycles &cycles) : WrappedInt<Cycles>(cycles.length_) {}
 };
 
 /// Describes an integer number of half cycles: single clock signal transitions.
 class HalfCycles: public WrappedInt<HalfCycles> {
 	public:
-		inline HalfCycles(int l) : WrappedInt<HalfCycles>(l) {}
-		inline HalfCycles() : WrappedInt<HalfCycles>() {}
+		constexpr HalfCycles(int l) : WrappedInt<HalfCycles>(l) {}
+		constexpr HalfCycles() : WrappedInt<HalfCycles>() {}
 
-		inline HalfCycles(const Cycles cycles) : WrappedInt<HalfCycles>(cycles.as_int() * 2) {}
-		inline HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
+		constexpr HalfCycles(const Cycles cycles) : WrappedInt<HalfCycles>(cycles.as_int() * 2) {}
+		constexpr HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
 
 		/// @returns The number of whole cycles completely covered by this span of half cycles.
-		inline Cycles cycles() {
+		constexpr Cycles cycles() {
 			return Cycles(length_ >> 1);
 		}
 
 		/// Flushes the whole cycles in @c this, subtracting that many from the total stored here.
-		inline Cycles flush_cycles() {
+		Cycles flush_cycles() {
 			Cycles result(length_ >> 1);
 			length_ &= 1;
 			return result;
 		}
 
 		/// Flushes the half cycles in @c this, returning the number stored and setting this total to zero.
-		inline HalfCycles flush() {
+		HalfCycles flush() {
 			HalfCycles result(length_);
 			length_ = 0;
 			return result;
@@ -187,7 +187,7 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
-		inline Cycles divide_cycles(const Cycles &divisor) {
+		Cycles divide_cycles(const Cycles &divisor) {
 			HalfCycles half_divisor = HalfCycles(divisor);
 			Cycles result(length_ / half_divisor.length_);
 			length_ %= half_divisor.length_;
@@ -203,7 +203,6 @@ template <class T> class HalfClockReceiver: public T {
 	public:
 		using T::T;
 
-		using T::run_for;
 		inline void run_for(const HalfCycles half_cycles) {
 			half_cycles_ += half_cycles;
 			T::run_for(half_cycles_.flush_cycles());

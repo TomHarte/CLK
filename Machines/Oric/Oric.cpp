@@ -201,7 +201,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Microdisc::Delegate,
-	public Sleeper::SleepObserver,
+	public ClockingHint::Observer,
 	public Activity::Source,
 	public Machine {
 
@@ -212,14 +212,15 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				ay8910_(audio_queue_),
 				speaker_(ay8910_),
 				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),
-				via_(via_port_handler_) {
+				via_(via_port_handler_),
+				diskii_(2000000) {
 			set_clock_rate(1000000);
 			via_port_handler_.set_interrupt_delegate(this);
 			tape_player_.set_delegate(this);
 			Memory::Fuzz(ram_, sizeof(ram_));
 
 			if(disk_interface == Analyser::Static::Oric::Target::DiskInterface::Pravetz) {
-				diskii_.set_sleep_observer(this);
+				diskii_.set_clocking_hint_observer(this);
 			}
 		}
 
@@ -410,6 +411,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 										}
 									}
 								} else {
+									flush_diskii();
 									const int disk_value = diskii_.read_address(address);
 									if(isReadOperation(operation) && disk_value != diskii_.DidNotLoad) *value = static_cast<uint8_t>(disk_value);
 								}
@@ -444,9 +446,11 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					microdisc_.run_for(Cycles(8));
 				break;
 				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
-					if(!diskii_is_sleeping_) {
+					if(diskii_clocking_preference_ == ClockingHint::Preference::RealTime) {
 						diskii_.set_data_input(*value);
 						diskii_.run_for(Cycles(2));
+					} else {
+						cycles_since_diskii_update_ += Cycles(2);
 					}
 				break;
 			}
@@ -457,6 +461,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		forceinline void flush() {
 			update_video();
 			via_port_handler_.flush();
+			flush_diskii();
 		}
 
 		// to satisfy CRTMachine::Machine
@@ -571,8 +576,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 		}
 
-		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override final {
-			diskii_is_sleeping_ = diskii_.is_sleeping();
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) override final {
+			diskii_clocking_preference_ = diskii_.preferred_clocking();
 		}
 
 	private:
@@ -617,9 +622,13 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 		// the Pravetz/Disk II, if in use
 		Apple::DiskII diskii_;
+		Cycles cycles_since_diskii_update_;
+		void flush_diskii() {
+			diskii_.run_for(cycles_since_diskii_update_.flush());
+		}
 		std::vector<uint8_t> pravetz_rom_;
 		std::size_t pravetz_rom_base_pointer_ = 0;
-		bool diskii_is_sleeping_ = false;
+		ClockingHint::Preference diskii_clocking_preference_ = ClockingHint::Preference::RealTime;
 
 		// Overlay RAM
 		uint16_t ram_top_ = basic_visible_ram_top_;

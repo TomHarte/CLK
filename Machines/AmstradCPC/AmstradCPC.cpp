@@ -694,7 +694,7 @@ class ConcreteMachine:
 	public KeyboardMachine::Machine,
 	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,
-	public Sleeper::SleepObserver,
+	public ClockingHint::Observer,
 	public Machine,
 	public Activity::Source {
 	public:
@@ -714,11 +714,8 @@ class ConcreteMachine:
 			Memory::Fuzz(ram_, sizeof(ram_));
 
 			// register this class as the sleep observer for the FDC and tape
-			fdc_.set_sleep_observer(this);
-			fdc_is_sleeping_ = fdc_.is_sleeping();
-
-			tape_player_.set_sleep_observer(this);
-			tape_player_is_sleeping_ = tape_player_.is_sleeping();
+			fdc_.set_clocking_hint_observer(this);
+			tape_player_.set_clocking_hint_observer(this);
 
 			ay_.ay().set_port_handler(&key_state_);
 		}
@@ -749,7 +746,7 @@ class ConcreteMachine:
 			ay_.run_for(cycle.length);
 
 			// Clock the FDC, if connected, using a lazy scale by two
-			if(has_fdc_ && !fdc_is_sleeping_) fdc_.run_for(Cycles(cycle.length.as_int()));
+			time_since_fdc_update_ += cycle.length;
 
 			// Update typing activity
 			if(typer_) typer_->run_for(cycle.length);
@@ -796,11 +793,13 @@ class ConcreteMachine:
 
 					// Check for an FDC access
 					if(has_fdc_ && (address & 0x580) == 0x100) {
+						flush_fdc();
 						fdc_.set_register(address & 1, *cycle.value);
 					}
 
 					// Check for a disk motor access
 					if(has_fdc_ && !(address & 0x580)) {
+						flush_fdc();
 						fdc_.set_motor_on(!!(*cycle.value));
 					}
 				break;
@@ -815,6 +814,7 @@ class ConcreteMachine:
 
 					// Check for an FDC access
 					if(has_fdc_ && (address & 0x580) == 0x100) {
+						flush_fdc();
 						*cycle.value &= fdc_.get_register(address & 1);
 					}
 
@@ -858,6 +858,7 @@ class ConcreteMachine:
 			// Just flush the AY.
 			ay_.update();
 			ay_.flush();
+			flush_fdc();
 		}
 
 		/// A CRTMachine function; indicates that outputs should be created now.
@@ -967,9 +968,10 @@ class ConcreteMachine:
 			return true;
 		}
 
-		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override final {
-			fdc_is_sleeping_ = fdc_.is_sleeping();
-			tape_player_is_sleeping_ = tape_player_.is_sleeping();
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override final {
+			fdc_is_sleeping_ = fdc_.preferred_clocking() == ClockingHint::Preference::None;
+			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
+			printf("FDC: %s, tape %s\n", fdc_is_sleeping_ ? "sleeping" : "regular", tape_player_is_sleeping_ ? "sleeping" : "regular");
 		}
 
 // MARK: - Keyboard
@@ -1063,6 +1065,14 @@ class ConcreteMachine:
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		FDC fdc_;
+		HalfCycles time_since_fdc_update_;
+		void flush_fdc() {
+			// Clock the FDC, if connected, using a lazy scale by two
+			if(has_fdc_ && !fdc_is_sleeping_) {
+				fdc_.run_for(Cycles(time_since_fdc_update_.as_int()));
+			}
+			time_since_fdc_update_ = HalfCycles(0);
+		}
 
 		InterruptTimer interrupt_timer_;
 		Storage::Tape::BinaryTapePlayer tape_player_;

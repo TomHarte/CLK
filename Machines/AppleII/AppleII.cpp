@@ -24,6 +24,8 @@
 #include "DiskIICard.hpp"
 #include "Video.hpp"
 
+#include "../../ClockReceiver/ForceInline.hpp"
+
 #include "../../Analyser/Static/AppleII/Target.hpp"
 
 #include <algorithm>
@@ -203,7 +205,7 @@ class ConcreteMachine:
 			return &speaker_;
 		}
 
-		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
 			++ cycles_since_video_update_;
 			++ cycles_since_card_update_;
 			cycles_since_audio_update_ += Cycles(7);
