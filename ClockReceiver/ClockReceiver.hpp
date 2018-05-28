@@ -70,32 +70,32 @@ template <class T> class WrappedInt {
 			return *static_cast<T *>(this);
 		}
 
-		constexpr T &operator ++() {
+		T &operator ++() {
 			++ length_;
 			return *static_cast<T *>(this);
 		}
 
-		constexpr T &operator ++(int) {
+		T &operator ++(int) {
 			length_ ++;
 			return *static_cast<T *>(this);
 		}
 
-		constexpr T &operator --() {
+		T &operator --() {
 			-- length_;
 			return *static_cast<T *>(this);
 		}
 
-		constexpr T &operator --(int) {
+		T &operator --(int) {
 			length_ --;
 			return *static_cast<T *>(this);
 		}
 
-		constexpr T &operator %=(const T &rhs) {
+		T &operator %=(const T &rhs) {
 			length_ %= rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		constexpr T &operator &=(const T &rhs) {
+		T &operator &=(const T &rhs) {
 			length_ &= rhs.length_;
 			return *static_cast<T *>(this);
 		}
@@ -124,7 +124,7 @@ template <class T> class WrappedInt {
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
-		constexpr T divide(const T &divisor) {
+		T divide(const T &divisor) {
 			T result(length_ / divisor.length_);
 			length_ %= divisor.length_;
 			return result;
@@ -134,7 +134,7 @@ template <class T> class WrappedInt {
 			Flushes the value in @c this. The current value is returned, and the internal value
 			is reset to zero.
 		*/
-		constexpr T flush() {
+		T flush() {
 			T result(length_);
 			length_ = 0;
 			return result;
@@ -170,14 +170,14 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		}
 
 		/// Flushes the whole cycles in @c this, subtracting that many from the total stored here.
-		constexpr Cycles flush_cycles() {
+		Cycles flush_cycles() {
 			Cycles result(length_ >> 1);
 			length_ &= 1;
 			return result;
 		}
 
 		/// Flushes the half cycles in @c this, returning the number stored and setting this total to zero.
-		constexpr HalfCycles flush() {
+		HalfCycles flush() {
 			HalfCycles result(length_);
 			length_ = 0;
 			return result;
@@ -187,7 +187,7 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
-		constexpr Cycles divide_cycles(const Cycles &divisor) {
+		Cycles divide_cycles(const Cycles &divisor) {
 			HalfCycles half_divisor = HalfCycles(divisor);
 			Cycles result(length_ / half_divisor.length_);
 			length_ %= half_divisor.length_;
