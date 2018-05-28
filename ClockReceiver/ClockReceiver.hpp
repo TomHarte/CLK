@@ -55,17 +55,17 @@ template <class T> class WrappedInt {
 		constexpr WrappedInt(int l) : length_(l) {}
 		constexpr WrappedInt() : length_(0) {}
 
-		constexpr T &operator =(const T &rhs) {
+		T &operator =(const T &rhs) {
 			length_ = rhs.length_;
 			return *this;
 		}
 
-		constexpr T &operator +=(const T &rhs) {
+		T &operator +=(const T &rhs) {
 			length_ += rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		constexpr T &operator -=(const T &rhs) {
+		T &operator -=(const T &rhs) {
 			length_ -= rhs.length_;
 			return *static_cast<T *>(this);
 		}
