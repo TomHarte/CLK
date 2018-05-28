@@ -88,7 +88,7 @@ class ConcreteMachine:
 	public KeyboardMachine::Machine,
 	public Configurable::Device,
 	public MemoryMap,
-	public Sleeper::SleepObserver,
+	public ClockingHint::Observer,
 	public Activity::Source {
 	public:
 		ConcreteMachine():
@@ -108,7 +108,7 @@ class ConcreteMachine:
 
 			ay_.set_port_handler(&ay_port_handler_);
 			speaker_.set_input_rate(3579545.0f / 2.0f);
-			tape_player_.set_sleep_observer(this);
+			tape_player_.set_clocking_hint_observer(this);
 
 			// Set the AY to 50% of available volume, the toggle to 10% and leave 40% for an SCC.
 			mixer_.set_relative_volumes({0.5f, 0.1f, 0.4f});
@@ -555,8 +555,8 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Sleeper
-		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override {
-			tape_player_is_sleeping_ = tape_player_.is_sleeping();
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override {
+			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 			set_use_fast_tape();
 		}
 

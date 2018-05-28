@@ -10,7 +10,7 @@
 #define DiskII_hpp
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../ClockReceiver/Sleeper.hpp"
+#include "../../ClockReceiver/ClockingHintSource.hpp"
 
 #include "../../Storage/Disk/Disk.hpp"
 #include "../../Storage/Disk/Drive.hpp"
@@ -28,8 +28,8 @@ namespace Apple {
 */
 class DiskII:
 	public Storage::Disk::Drive::EventDelegate,
-	public Sleeper::SleepObserver,
-	public Sleeper {
+	public ClockingHint::Source,
+	public ClockingHint::Observer {
 	public:
 		DiskII();
 
@@ -76,7 +76,7 @@ class DiskII:
 		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
 
 		// As per Sleeper.
-		bool is_sleeping() override;
+		ClockingHint::Preference preferred_clocking() override;
 
 		// The Disk II functions as a potential target for @c Activity::Sources.
 		void set_activity_observer(Activity::Observer *observer);
@@ -95,7 +95,7 @@ class DiskII:
 
 		uint8_t trigger_address(int address, uint8_t value);
 		void process_event(const Storage::Disk::Track::Event &event) override;
-		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override;
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) override;
 
 		uint8_t state_ = 0;
 		uint8_t inputs_ = 0;

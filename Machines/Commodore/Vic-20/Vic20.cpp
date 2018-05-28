@@ -304,7 +304,7 @@ class ConcreteMachine:
 	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Machine,
-	public Sleeper::SleepObserver,
+	public ClockingHint::Observer,
 	public Activity::Source {
 	public:
 		ConcreteMachine() :
@@ -331,7 +331,7 @@ class ConcreteMachine:
 			user_port_via_port_handler_->set_interrupt_delegate(this);
 			keyboard_via_port_handler_->set_interrupt_delegate(this);
 			tape_->set_delegate(this);
-			tape_->set_sleep_observer(this);
+			tape_->set_clocking_hint_observer(this);
 
 			// install a joystick
 			joysticks_.emplace_back(new Joystick(*user_port_via_port_handler_, *keyboard_via_port_handler_));
@@ -749,8 +749,8 @@ class ConcreteMachine:
 			return selection_set;
 		}
 
-		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override {
-			tape_is_sleeping_ = is_sleeping;
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override {
+			tape_is_sleeping_ = clocking == ClockingHint::Preference::None;
 			set_use_fast_tape();
 		}
 

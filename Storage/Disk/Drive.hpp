@@ -15,14 +15,14 @@
 
 #include "../TimedEventLoop.hpp"
 #include "../../Activity/Observer.hpp"
-#include "../../ClockReceiver/Sleeper.hpp"
+#include "../../ClockReceiver/ClockingHintSource.hpp"
 
 #include <memory>
 
 namespace Storage {
 namespace Disk {
 
-class Drive: public Sleeper, public TimedEventLoop {
+class Drive: public ClockingHint::Source, public TimedEventLoop {
 	public:
 		Drive(unsigned int input_clock_rate, int revolutions_per_minute, int number_of_heads);
 		~Drive();
@@ -121,7 +121,7 @@ class Drive: public Sleeper, public TimedEventLoop {
 		void set_event_delegate(EventDelegate *);
 
 		// As per Sleeper.
-		bool is_sleeping();
+		ClockingHint::Preference preferred_clocking() override;
 
 		/// Adds an activity observer; it'll be notified of disk activity.
 		/// The caller can specify whether to add an LED based on disk motor.
@@ -171,9 +171,9 @@ class Drive: public Sleeper, public TimedEventLoop {
 		Time cycles_per_bit_;
 
 		// TimedEventLoop call-ins and state.
-		void process_next_event();
+		void process_next_event() override;
 		void get_next_event(const Time &duration_already_passed);
-		void advance(const Cycles cycles);
+		void advance(const Cycles cycles) override;
 		Track::Event current_event_;
 
 		// Helper for track changes.

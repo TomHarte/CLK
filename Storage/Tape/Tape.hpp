@@ -12,7 +12,7 @@
 #include <memory>
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../ClockReceiver/Sleeper.hpp"
+#include "../../ClockReceiver/ClockingHintSource.hpp"
 
 #include "../TimedEventLoop.hpp"
 
@@ -95,7 +95,7 @@ class Tape {
 	Will call @c process_input_pulse instantaneously upon reaching *the end* of a pulse. Therefore a subclass
 	can decode pulses into data within process_input_pulse, using the supplied pulse's @c length and @c type.
 */
-class TapePlayer: public TimedEventLoop, public Sleeper {
+class TapePlayer: public TimedEventLoop, public ClockingHint::Source {
 	public:
 		TapePlayer(unsigned int input_clock_rate);
 
@@ -107,10 +107,10 @@ class TapePlayer: public TimedEventLoop, public Sleeper {
 
 		void run_for_input_pulse();
 
-		bool is_sleeping();
+		ClockingHint::Preference preferred_clocking() override;
 
 	protected:
-		virtual void process_next_event();
+		virtual void process_next_event() override;
 		virtual void process_input_pulse(const Tape::Pulse &pulse) = 0;
 
 	private:
@@ -145,11 +145,11 @@ class BinaryTapePlayer: public TapePlayer {
 		};
 		void set_delegate(Delegate *delegate);
 
-		bool is_sleeping();
+		ClockingHint::Preference preferred_clocking() override;
 
 	protected:
 		Delegate *delegate_ = nullptr;
-		virtual void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse);
+		void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
 		bool input_level_ = false;
 		bool motor_is_running_ = false;
 };

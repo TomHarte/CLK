@@ -28,7 +28,6 @@ class Microdisc: public WD::WD1770 {
 		bool get_interrupt_request_line();
 
 		void run_for(const Cycles cycles);
-		using WD::WD1770::run_for;
 
 		enum PagingFlags {
 			/// Indicates that the BASIC ROM should be disabled; if this is set then either
@@ -52,8 +51,9 @@ class Microdisc: public WD::WD1770 {
 
 	private:
 		void set_control_register(uint8_t control, uint8_t changes);
-		void set_head_load_request(bool head_load);
+		void set_head_load_request(bool head_load) override;
 		bool get_drive_is_ready();
+
 		std::array<std::shared_ptr<Storage::Disk::Drive>, 4> drives_;
 		size_t selected_drive_;
 		bool irq_enable_ = false;

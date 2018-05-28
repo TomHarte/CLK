@@ -23,8 +23,8 @@ DiskII::DiskII() :
 	inputs_(input_command),
 	drives_{{2045454, 300, 1}, {2045454, 300, 1}}
 {
-	drives_[0].set_sleep_observer(this);
-	drives_[1].set_sleep_observer(this);
+	drives_[0].set_clocking_hint_observer(this);
+	drives_[1].set_clocking_hint_observer(this);
 	drives_[active_drive_].set_event_delegate(this);
 }
 
@@ -73,7 +73,7 @@ void DiskII::select_drive(int drive) {
 }
 
 void DiskII::run_for(const Cycles cycles) {
-	if(is_sleeping()) return;
+	if(preferred_clocking() == ClockingHint::Preference::None) return;
 
 	if(!controller_can_sleep_) {
 		int integer_cycles = cycles.as_int();
@@ -137,7 +137,7 @@ void DiskII::set_controller_can_sleep() {
 			(shift_register_ == (is_write_protected() ? 0xff : 0x00))
 		);
 	if(controller_could_sleep != controller_can_sleep_)
-		update_sleep_observer();
+		update_clocking_observer();
 }
 
 bool DiskII::is_write_protected() {
@@ -199,14 +199,14 @@ void DiskII::process_event(const Storage::Disk::Track::Event &event) {
 	}
 }
 
-void DiskII::set_component_is_sleeping(Sleeper *component, bool is_sleeping) {
-	drive_is_sleeping_[0] = drives_[0].is_sleeping();
-	drive_is_sleeping_[1] = drives_[1].is_sleeping();
-	update_sleep_observer();
+void DiskII::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) {
+	drive_is_sleeping_[0] = drives_[0].preferred_clocking() == ClockingHint::Preference::None;
+	drive_is_sleeping_[1] = drives_[1].preferred_clocking() == ClockingHint::Preference::None;
+	update_clocking_observer();
 }
 
-bool DiskII::is_sleeping() {
-	return controller_can_sleep_ && drive_is_sleeping_[0] && drive_is_sleeping_[1];
+ClockingHint::Preference DiskII::preferred_clocking() {
+	return (controller_can_sleep_ && drive_is_sleeping_[0] && drive_is_sleeping_[1]) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
 }
 
 void DiskII::set_data_input(uint8_t input) {

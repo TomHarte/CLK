@@ -694,7 +694,7 @@ class ConcreteMachine:
 	public KeyboardMachine::Machine,
 	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,
-	public Sleeper::SleepObserver,
+	public ClockingHint::Observer,
 	public Machine,
 	public Activity::Source {
 	public:
@@ -714,11 +714,8 @@ class ConcreteMachine:
 			Memory::Fuzz(ram_, sizeof(ram_));
 
 			// register this class as the sleep observer for the FDC and tape
-			fdc_.set_sleep_observer(this);
-			fdc_is_sleeping_ = fdc_.is_sleeping();
-
-			tape_player_.set_sleep_observer(this);
-			tape_player_is_sleeping_ = tape_player_.is_sleeping();
+			fdc_.set_clocking_hint_observer(this);
+			tape_player_.set_clocking_hint_observer(this);
 
 			ay_.ay().set_port_handler(&key_state_);
 		}
@@ -967,9 +964,9 @@ class ConcreteMachine:
 			return true;
 		}
 
-		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override final {
-			fdc_is_sleeping_ = fdc_.is_sleeping();
-			tape_player_is_sleeping_ = tape_player_.is_sleeping();
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override final {
+			fdc_is_sleeping_ = fdc_.preferred_clocking() == ClockingHint::Preference::None;
+			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 		}
 
 // MARK: - Keyboard

@@ -201,7 +201,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Microdisc::Delegate,
-	public Sleeper::SleepObserver,
+	public ClockingHint::Observer,
 	public Activity::Source,
 	public Machine {
 
@@ -219,7 +219,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			Memory::Fuzz(ram_, sizeof(ram_));
 
 			if(disk_interface == Analyser::Static::Oric::Target::DiskInterface::Pravetz) {
-				diskii_.set_sleep_observer(this);
+				diskii_.set_clocking_hint_observer(this);
 			}
 		}
 
@@ -571,8 +571,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 		}
 
-		void set_component_is_sleeping(Sleeper *component, bool is_sleeping) override final {
-			diskii_is_sleeping_ = diskii_.is_sleeping();
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference is_sleeping) override final {
+			diskii_is_sleeping_ = diskii_.preferred_clocking() == ClockingHint::Preference::None;
 		}
 
 	private:
