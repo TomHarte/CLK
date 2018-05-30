@@ -144,15 +144,15 @@ template <class BusHandler> class Video: public VideoBase {
 										const uint8_t graphic = bus_handler_.perform_read(static_cast<uint16_t>(graphics_address + c));
 										pixel_pointer_[c] = scaled_byte[graphic];
 										if(graphic & 0x80) {
-											reinterpret_cast<uint8_t *>(&pixel_pointer_[c])[0] |= graphics_carry_;
+											reinterpret_cast<uint8_t *>(&pixel_pointer_[c])[0] |= (graphics_carry_&1);
 										}
-										graphics_carry_ = (graphic >> 6) & 1;
+										graphics_carry_ = graphic >> 6;
 									}
 								break;
 							}
 
 							if(ending_column >= 40) {
-								crt_->output_data(280, 80);
+								output_data(80);
 							}
 						} else {
 							if(ending_column >= 40) {
@@ -261,6 +261,9 @@ template <class BusHandler> class Video: public VideoBase {
 
 		const int flash_length = 8406;
 		BusHandler &bus_handler_;
+		void output_data(unsigned int length) {
+			crt_->output_data((length*7)/2, length);
+		}
 };
 
 }

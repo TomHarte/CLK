@@ -36,6 +36,7 @@ VideoBase::VideoBase() :
 	// Show only the centre 75% of the TV frame.
 	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 	crt_->set_visible_area(Outputs::CRT::Rect(0.115f, 0.117f, 0.77f, 0.77f));
+	crt_->set_immediate_default_phase(0.0f);
 }
 
 Outputs::CRT::CRT *VideoBase::get_crt() {
@@ -46,6 +47,12 @@ uint16_t VideoBase::scaled_byte[256];
 uint16_t VideoBase::low_resolution_patterns[2][16];
 
 void VideoBase::setup_tables() {
+	// Rules of Apple II high resolution video:
+	//
+	// Bit 0 appears on screen first. Then bit 1. Etc to bit 6.
+	//
+	// If bit 7 is set, the whole serialisation is delayed for half a pixel, holding
+	// whichever level was previously being output.
 	for(int c = 0; c < 128; ++c) {
 		const uint16_t value =
 			((c & 0x01) ? 0x0003 : 0x0000) |
@@ -70,17 +77,16 @@ void VideoBase::setup_tables() {
 
 	for(int c = 0; c < 16; ++c) {
 		// Produce the whole 28-bit pattern that would cover two columns.
-		const int reversed_c = ((c&0x1) ? 0x8 : 0x0) | ((c&0x2) ? 0x4 : 0x0) | ((c&0x4) ? 0x2 : 0x0) | ((c&0x8) ? 0x1 : 0x0);
 		int pattern = 0;
 		for(int l = 0; l < 7; ++l) {
 			pattern <<= 4;
-			pattern |= reversed_c;
+			pattern |= c;
 		}
 
 		// Pack that 28-bit pattern into the appropriate look-up tables.
 		uint8_t *const left_entry = reinterpret_cast<uint8_t *>(&low_resolution_patterns[0][c]);
 		uint8_t *const right_entry = reinterpret_cast<uint8_t *>(&low_resolution_patterns[1][c]);
-		left_entry[0] = static_cast<uint8_t>(pattern);;
+		left_entry[0] = static_cast<uint8_t>(pattern);
 		left_entry[1] = static_cast<uint8_t>(pattern >> 7);
 		right_entry[0] = static_cast<uint8_t>(pattern >> 14);
 		right_entry[1] = static_cast<uint8_t>(pattern >> 21);
