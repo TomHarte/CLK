@@ -27,7 +27,7 @@ VideoBase::VideoBase() :
 	crt_->set_composite_sampling_function(
 		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
 		"{"
-			"uint texValue = texture(sampler, coordinate).r;"
+			"uint texValue = texture(sampler, vec2(icoordinate.x / (7*textureSize(sampler, 0).x), coordinate.y)).r;"
 			"texValue >>= int(icoordinate.x) % 7;"
 			"return float(texValue & 1u);"
 		"}");
