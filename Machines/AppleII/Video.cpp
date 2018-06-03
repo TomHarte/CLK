@@ -10,28 +10,16 @@
 
 using namespace AppleII::Video;
 
-namespace {
-
-struct ScaledByteFiller {
-	ScaledByteFiller() {
-		VideoBase::setup_tables();
-	}
-} throwaway;
-
-}
-
 VideoBase::VideoBase() :
-	crt_(new Outputs::CRT::CRT(455, 1, Outputs::CRT::DisplayType::NTSC60, 1)) {
+	crt_(new Outputs::CRT::CRT(910, 1, Outputs::CRT::DisplayType::NTSC60, 1)) {
 
-	// Set a composite sampling function that assumes 1bpp input, and uses just 7 bits per byte.
+	// Set a composite sampling function that assumes one byte per pixel input, and
+	// accepts any non-zero value as being fully on, zero being fully off.
 	crt_->set_composite_sampling_function(
 		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
 		"{"
-			"uint texValue = texture(sampler, vec2(icoordinate.x / (7*textureSize(sampler, 0).x), coordinate.y)).r;"
-			"texValue >>= int(icoordinate.x) % 7;"
-			"return float(texValue & 1u);"
+			"return texture(sampler, coordinate).r;"
 		"}");
-	crt_->set_integer_coordinate_multiplier(7.0f);
 
 	// Show only the centre 75% of the TV frame.
 	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
@@ -41,56 +29,6 @@ VideoBase::VideoBase() :
 
 Outputs::CRT::CRT *VideoBase::get_crt() {
 	return crt_.get();
-}
-
-uint16_t VideoBase::scaled_byte[256];
-uint16_t VideoBase::low_resolution_patterns[2][16];
-
-void VideoBase::setup_tables() {
-	// Rules of Apple II high resolution video:
-	//
-	// Bit 0 appears on screen first. Then bit 1. Etc to bit 6.
-	//
-	// If bit 7 is set, the whole serialisation is delayed for half a pixel, holding
-	// whichever level was previously being output.
-	for(int c = 0; c < 128; ++c) {
-		const uint16_t value =
-			((c & 0x01) ? 0x0003 : 0x0000) |
-			((c & 0x02) ? 0x000c : 0x0000) |
-			((c & 0x04) ? 0x0030 : 0x0000) |
-			((c & 0x08) ? 0x0140 : 0x0000) |
-			((c & 0x10) ? 0x0600 : 0x0000) |
-			((c & 0x20) ? 0x1800 : 0x0000) |
-			((c & 0x40) ? 0x6000 : 0x0000);
-
-		uint8_t *const table_entry = reinterpret_cast<uint8_t *>(&scaled_byte[c]);
-		table_entry[0] = static_cast<uint8_t>(value & 0xff);
-		table_entry[1] = static_cast<uint8_t>(value >> 8);
-	}
-	for(int c = 128; c < 256; ++c) {
-		uint8_t *const source_table_entry = reinterpret_cast<uint8_t *>(&scaled_byte[c & 0x7f]);
-		uint8_t *const destination_table_entry = reinterpret_cast<uint8_t *>(&scaled_byte[c]);
-
-		destination_table_entry[0] = static_cast<uint8_t>(source_table_entry[0] << 1);
-		destination_table_entry[1] = static_cast<uint8_t>((source_table_entry[1] << 1) | (source_table_entry[0] >> 6));
-	}
-
-	for(int c = 0; c < 16; ++c) {
-		// Produce the whole 28-bit pattern that would cover two columns.
-		int pattern = 0;
-		for(int l = 0; l < 7; ++l) {
-			pattern <<= 4;
-			pattern |= c;
-		}
-
-		// Pack that 28-bit pattern into the appropriate look-up tables.
-		uint8_t *const left_entry = reinterpret_cast<uint8_t *>(&low_resolution_patterns[0][c]);
-		uint8_t *const right_entry = reinterpret_cast<uint8_t *>(&low_resolution_patterns[1][c]);
-		left_entry[0] = static_cast<uint8_t>(pattern);
-		left_entry[1] = static_cast<uint8_t>(pattern >> 7);
-		right_entry[0] = static_cast<uint8_t>(pattern >> 14);
-		right_entry[1] = static_cast<uint8_t>(pattern >> 21);
-	}
 }
 
 void VideoBase::set_graphics_mode() {
