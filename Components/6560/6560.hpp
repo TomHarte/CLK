@@ -69,7 +69,7 @@ template <class BusHandler> class MOS6560 {
 				speaker_(audio_generator_)
 		{
 			crt_->set_svideo_sampling_function(
-				"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
+				"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 				"{"
 					"vec2 yc = texture(texID, coordinate).rg / vec2(255.0);"
 
@@ -125,10 +125,10 @@ template <class BusHandler> class MOS6560 {
 				19,		86,		123,	59,
 			};
 			const uint8_t ntsc_chrominances[16] = {
-				255,	255,	7,		71,
-				25,		86,		48,		112,
-				0,		119,	7,		71,
-				25,		86,		48,		112,
+				255,	255,	121,	57,
+				103,	42,		80,		16,
+				0,		9,		121,	57,
+				103,	42,		80,		16,
 			};
 			const uint8_t *chrominances;
 			Outputs::CRT::DisplayType display_type;

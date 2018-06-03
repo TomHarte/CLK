@@ -157,7 +157,7 @@ template<bool is_zx81> class ConcreteMachine:
 
 					// The below emulates the ZonX AY expansion device.
 					if(is_zx81) {
-						if((address&0xef) == 0x0f) {
+						if((address&0xef) == 0xcf) {
 							value &= ay_read_data();
 						}
 					}

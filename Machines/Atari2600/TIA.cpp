@@ -124,19 +124,19 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
 
 	if(output_mode == OutputMode::NTSC) {
 		crt_->set_svideo_sampling_function(
-			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
+			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 			"{"
 				"uint c = texture(texID, coordinate).r;"
 				"uint y = c & 14u;"
 				"uint iPhase = (c >> 4);"
 
 				"float phaseOffset = 6.283185308 * float(iPhase) / 13.0 + 5.074880441076923;"
-				"return vec2(float(y) / 14.0, step(1, iPhase) * cos(phase + phaseOffset));"
+				"return vec2(float(y) / 14.0, step(1, iPhase) * cos(phase - phaseOffset));"
 			"}");
 		display_type = Outputs::CRT::DisplayType::NTSC60;
 	} else {
 		crt_->set_svideo_sampling_function(
-			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
+			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 			"{"
 				"uint c = texture(texID, coordinate).r;"
 				"uint y = c & 14u;"

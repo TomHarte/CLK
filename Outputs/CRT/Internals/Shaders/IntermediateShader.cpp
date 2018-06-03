@@ -96,10 +96,10 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_shader(const std::s
 
 			// setup phaseAndAmplitudeVarying.x as colour burst subcarrier phase, in radians;
 			// setup phaseAndAmplitudeVarying.y as colour burst amplitude;
-			// setup phaseAndAmplitudeVarying.z as 1 / (colour burst amplitude), or 0.0 if amplitude is 0.0;
+			// setup phaseAndAmplitudeVarying.z as 1 / abs(colour burst amplitude), or 0.0 if amplitude is 0.0;
 			"phaseAndAmplitudeVarying.x = (extendedOutputPosition.x + (phaseTimeAndAmplitude.x / 64.0)) * 0.5 * 3.141592654;"
-			"phaseAndAmplitudeVarying.y = phaseTimeAndAmplitude.y / 255.0;"
-			"phaseAndAmplitudeVarying.z = (phaseAndAmplitudeVarying.y > 0.0) ? 1.0 / phaseAndAmplitudeVarying.y : 0.0;"
+			"phaseAndAmplitudeVarying.y = (phaseTimeAndAmplitude.y - 128) / 127.0;"
+			"phaseAndAmplitudeVarying.z = (abs(phaseAndAmplitudeVarying.y) > 0.05) ? 1.0 / abs(phaseAndAmplitudeVarying.y) : 0.0;"
 
 			// determine output position by scaling the output position according to the texture size
 			"vec2 eyePosition = 2.0*(extendedOutputPosition / outputTextureSize) - vec2(1.0);"
@@ -134,8 +134,8 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_composite_source_sh
 				svideo_shader <<
 				"float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 				"{"
-					"vec2 svideoColour = svideo_sample(texID, coordinate, iCoordinate, phase);"
-					"return mix(svideoColour.x, svideoColour.y, amplitude);"
+					"vec2 svideoColour = svideo_sample(texID, coordinate, iCoordinate, phase, amplitude);"
+					"return mix(svideoColour.x, svideoColour.y, abs(amplitude));"
 				"}";
 		} else {
 			fragment_shader <<
@@ -145,7 +145,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_composite_source_sh
 				"{"
 					"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
 					"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
-					"vec2 quadrature = vec2(cos(phase), -sin(phase)) * amplitude;"
+					"vec2 quadrature = vec2(cos(phase), sin(phase)) * vec2(abs(amplitude), amplitude);"
 					"return dot(lumaChromaColour, vec3(1.0 - amplitude, quadrature));"
 				"}";
 		}
@@ -178,11 +178,11 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_svideo_source_shade
 		fragment_shader
 			<< rgb_shader <<
 			"uniform mat3 rgbToLumaChroma;"
-			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase)"
+			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
 			"{"
 				"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
 				"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
-				"vec2 quadrature = vec2(cos(phase), -sin(phase));"
+				"vec2 quadrature = vec2(cos(phase), sin(phase)) * vec2(1.0, sign(amplitude));"
 				"return vec2(lumaChromaColour.x, 0.5 + dot(quadrature, lumaChromaColour.yz) * 0.5);"
 			"}";
 	}
@@ -190,8 +190,8 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_svideo_source_shade
 	fragment_shader <<
 		"void main(void)"
 		"{"
-			"vec2 sample = svideo_sample(texID, inputPositionsVarying[5], iInputPositionVarying, phaseAndAmplitudeVarying.x);"
-			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), -sin(phaseAndAmplitudeVarying.x)) * 0.5 * phaseAndAmplitudeVarying.z;"
+			"vec2 sample = svideo_sample(texID, inputPositionsVarying[5], iInputPositionVarying, phaseAndAmplitudeVarying.x, phaseAndAmplitudeVarying.y);"
+			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), sin(phaseAndAmplitudeVarying.x)) * vec2(1.0, sign(phaseAndAmplitudeVarying.y)) * 0.5 * phaseAndAmplitudeVarying.z;"
 			"fragColour = vec3(sample.x, vec2(0.5) + (sample.y * quadrature));"
 		"}";
 
@@ -244,11 +244,11 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 
 			// define chroma to be whatever was here, minus luma
 			"float chrominance = 0.5 * (samples.z - luminance) * phaseAndAmplitudeVarying.z;"
-			"luminance /= (1.0 - phaseAndAmplitudeVarying.y);"
+			"luminance /= (1.0 - abs(phaseAndAmplitudeVarying.y));"
 
 			// split choma colours here, as the most direct place, writing out
 			// RGB = (luma, chroma.x, chroma.y)
-			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), -sin(phaseAndAmplitudeVarying.x));"
+			"vec2 quadrature = vec2(cos(phaseAndAmplitudeVarying.x), sin(phaseAndAmplitudeVarying.x)) * vec2(1.0, sign(phaseAndAmplitudeVarying.y));"
 			"fragColour = vec3(luminance, vec2(0.5) + (chrominance * quadrature));"
 		"}",false, false);
 }

@@ -92,7 +92,7 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 		Concurrency::DeferringAsyncTaskQueue &task_queue_;
 
 		int selected_register_ = 0;
-		uint8_t registers_[16];
+		uint8_t registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 		uint8_t output_registers_[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 		uint8_t port_inputs_[2];
 

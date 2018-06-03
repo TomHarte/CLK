@@ -27,7 +27,6 @@ class BusHandler {
 class VideoBase {
 	public:
 		VideoBase();
-		static void setup_tables();
 
 		/// @returns The CRT this video feed is feeding.
 		Outputs::CRT::CRT *get_crt();
@@ -46,9 +45,12 @@ class VideoBase {
 	protected:
 		std::unique_ptr<Outputs::CRT::CRT> crt_;
 
+		uint8_t *pixel_pointer_ = nullptr;
+		int pixel_pointer_column_ = 0;
+		bool pixels_are_high_density_ = false;
+
 		int video_page_ = 0;
 		int row_ = 0, column_ = 0, flash_ = 0;
-		uint16_t *pixel_pointer_ = nullptr;
 		std::vector<uint8_t> character_rom_;
 
 		enum class GraphicsMode {
@@ -58,10 +60,7 @@ class VideoBase {
 		} graphics_mode_ = GraphicsMode::LowRes;
 		bool use_graphics_mode_ = false;
 		bool mixed_mode_ = false;
-		uint16_t graphics_carry_ = 0;
-
-		static uint16_t scaled_byte[256];
-		static uint16_t low_resolution_patterns[2][16];
+		uint8_t graphics_carry_ = 0;
 };
 
 template <class BusHandler> class Video: public VideoBase {
@@ -91,7 +90,7 @@ template <class BusHandler> class Video: public VideoBase {
 				const int cycles_this_line = std::min(65 - column_, int_cycles);
 
 				if(row_ >= first_sync_line && row_ < first_sync_line + 3) {
-					crt_->output_sync(static_cast<unsigned int>(cycles_this_line) * 7);
+					crt_->output_sync(static_cast<unsigned int>(cycles_this_line) * 14);
 				} else {
 					const int ending_column = column_ + cycles_this_line;
 					const GraphicsMode line_mode = use_graphics_mode_ ? graphics_mode_ : GraphicsMode::Text;
@@ -101,8 +100,13 @@ template <class BusHandler> class Video: public VideoBase {
 					// of line 192.
 					if(column_ < 40) {
 						if(row_ < 192) {
-							if(!column_) {
-								pixel_pointer_ = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(80, 2));
+							GraphicsMode pixel_mode = (!mixed_mode_ || row_ < 160) ? line_mode : GraphicsMode::Text;
+							bool requires_high_density = pixel_mode != GraphicsMode::Text;
+							if(!column_ || requires_high_density != pixels_are_high_density_) {
+								if(column_) output_data_to_column(column_);
+								pixel_pointer_ = crt_->allocate_write_area(561);
+								pixel_pointer_column_ = column_;
+								pixels_are_high_density_ = requires_high_density;
 								graphics_carry_ = 0;
 							}
 
@@ -111,10 +115,7 @@ template <class BusHandler> class Video: public VideoBase {
 							const int pixel_row = row_ & 7;
 							const uint16_t row_address = static_cast<uint16_t>((character_row >> 3) * 40 + ((character_row&7) << 7));
 							const uint16_t text_address = static_cast<uint16_t>(((video_page_+1) * 0x400) + row_address);
-							const uint16_t graphics_address = static_cast<uint16_t>(((video_page_+1) * 0x2000) + row_address + ((pixel_row&7) << 10));
-							const int row_shift = (row_&4);
 
-							GraphicsMode pixel_mode = (!mixed_mode_ || row_ < 160) ? line_mode : GraphicsMode::Text;
 							switch(pixel_mode) {
 								case GraphicsMode::Text: {
 									const uint8_t inverses[] = {
@@ -128,35 +129,82 @@ template <class BusHandler> class Video: public VideoBase {
 										const std::size_t character_address = static_cast<std::size_t>(((character & 0x3f) << 3) + pixel_row);
 
 										const uint8_t character_pattern = character_rom_[character_address] ^ inverses[character >> 6];
-										pixel_pointer_[c] = scaled_byte[character_pattern & 0x7f];
+
+										// The character ROM is output MSB to LSB rather than LSB to MSB.
+										pixel_pointer_[0] = character_pattern & 0x40;
+										pixel_pointer_[1] = character_pattern & 0x20;
+										pixel_pointer_[2] = character_pattern & 0x10;
+										pixel_pointer_[3] = character_pattern & 0x08;
+										pixel_pointer_[4] = character_pattern & 0x04;
+										pixel_pointer_[5] = character_pattern & 0x02;
+										pixel_pointer_[6] = character_pattern & 0x01;
+										graphics_carry_ = character_pattern & 0x40;
+										pixel_pointer_ += 7;
 									}
 								} break;
 
-								case GraphicsMode::LowRes:
+								case GraphicsMode::LowRes: {
+									const int row_shift = (row_&4);
+									// TODO: decompose into two loops, possibly.
 									for(int c = column_; c < pixel_end; ++c) {
-										const uint8_t character = bus_handler_.perform_read(static_cast<uint16_t>(text_address + c));
-										pixel_pointer_[c] = low_resolution_patterns[c&1][(character >> row_shift)&0xf];
-									}
-								break;
+										const uint8_t nibble = (bus_handler_.perform_read(static_cast<uint16_t>(text_address + c)) >> row_shift) & 0x0f;
 
-								case GraphicsMode::HighRes:
+										// Low-resolution graphics mode shifts the colour code on a loop, but has to account for whether this
+										// 14-sample output window is starting at the beginning of a colour cycle or halfway through.
+										if(c&1) {
+											pixel_pointer_[0] = pixel_pointer_[4] = pixel_pointer_[8] = pixel_pointer_[12] = nibble & 4;
+											pixel_pointer_[1] = pixel_pointer_[5] = pixel_pointer_[9] = pixel_pointer_[13] = nibble & 8;
+											pixel_pointer_[2] = pixel_pointer_[6] = pixel_pointer_[10] = nibble & 1;
+											pixel_pointer_[3] = pixel_pointer_[7] = pixel_pointer_[11] = nibble & 2;
+											graphics_carry_ = nibble & 8;
+										} else {
+											pixel_pointer_[0] = pixel_pointer_[4] = pixel_pointer_[8] = pixel_pointer_[12] = nibble & 1;
+											pixel_pointer_[1] = pixel_pointer_[5] = pixel_pointer_[9] = pixel_pointer_[13] = nibble & 2;
+											pixel_pointer_[2] = pixel_pointer_[6] = pixel_pointer_[10] = nibble & 4;
+											pixel_pointer_[3] = pixel_pointer_[7] = pixel_pointer_[11] = nibble & 8;
+											graphics_carry_ = nibble & 2;
+										}
+										pixel_pointer_ += 14;
+									}
+								} break;
+
+								case GraphicsMode::HighRes: {
+									const uint16_t graphics_address = static_cast<uint16_t>(((video_page_+1) * 0x2000) + row_address + ((pixel_row&7) << 10));
 									for(int c = column_; c < pixel_end; ++c) {
 										const uint8_t graphic = bus_handler_.perform_read(static_cast<uint16_t>(graphics_address + c));
-										pixel_pointer_[c] = scaled_byte[graphic];
+
+										// High resolution graphics shift out LSB to MSB, optionally with a delay of half a pixel.
+										// If there is a delay, the previous output level is held to bridge the gap.
 										if(graphic & 0x80) {
-											reinterpret_cast<uint8_t *>(&pixel_pointer_[c])[0] |= graphics_carry_;
+											pixel_pointer_[0] = graphics_carry_;
+											pixel_pointer_[1] = pixel_pointer_[2] = graphic & 0x01;
+											pixel_pointer_[3] = pixel_pointer_[4] = graphic & 0x02;
+											pixel_pointer_[5] = pixel_pointer_[6] = graphic & 0x04;
+											pixel_pointer_[7] = pixel_pointer_[8] = graphic & 0x08;
+											pixel_pointer_[9] = pixel_pointer_[10] = graphic & 0x10;
+											pixel_pointer_[11] = pixel_pointer_[12] = graphic & 0x20;
+											pixel_pointer_[13] = graphic & 0x40;
+										} else {
+											pixel_pointer_[0] = pixel_pointer_[1] = graphic & 0x01;
+											pixel_pointer_[2] = pixel_pointer_[3] = graphic & 0x02;
+											pixel_pointer_[4] = pixel_pointer_[5] = graphic & 0x04;
+											pixel_pointer_[6] = pixel_pointer_[7] = graphic & 0x08;
+											pixel_pointer_[8] = pixel_pointer_[9] = graphic & 0x10;
+											pixel_pointer_[10] = pixel_pointer_[11] = graphic & 0x20;
+											pixel_pointer_[12] = pixel_pointer_[13] = graphic & 0x40;
 										}
-										graphics_carry_ = (graphic >> 6) & 1;
+										graphics_carry_ = graphic & 0x40;
+										pixel_pointer_ += 14;
 									}
-								break;
+								} break;
 							}
 
 							if(ending_column >= 40) {
-								crt_->output_data(280, 80);
+								output_data_to_column(40);
 							}
 						} else {
 							if(ending_column >= 40) {
-								crt_->output_blank(280);
+								crt_->output_blank(560);
 							}
 						}
 					}
@@ -169,13 +217,13 @@ template <class BusHandler> class Video: public VideoBase {
 					const int first_blank_start = std::max(40, column_);
 					const int first_blank_end = std::min(first_sync_column, ending_column);
 					if(first_blank_end > first_blank_start) {
-						crt_->output_blank(static_cast<unsigned int>(first_blank_end - first_blank_start) * 7);
+						crt_->output_blank(static_cast<unsigned int>(first_blank_end - first_blank_start) * 14);
 					}
 
 					const int sync_start = std::max(first_sync_column, column_);
 					const int sync_end = std::min(first_sync_column + 4, ending_column);
 					if(sync_end > sync_start) {
-						crt_->output_sync(static_cast<unsigned int>(sync_end - sync_start) * 7);
+						crt_->output_sync(static_cast<unsigned int>(sync_end - sync_start) * 14);
 					}
 
 					int second_blank_start;
@@ -183,7 +231,7 @@ template <class BusHandler> class Video: public VideoBase {
 						const int colour_burst_start = std::max(first_sync_column + 4, column_);
 						const int colour_burst_end = std::min(first_sync_column + 7, ending_column);
 						if(colour_burst_end > colour_burst_start) {
-							crt_->output_default_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 7);
+							crt_->output_default_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 14);
 						}
 
 						second_blank_start = std::max(first_sync_column + 7, column_);
@@ -192,7 +240,7 @@ template <class BusHandler> class Video: public VideoBase {
 					}
 
 					if(ending_column > second_blank_start) {
-						crt_->output_blank(static_cast<unsigned int>(ending_column - second_blank_start) * 7);
+						crt_->output_blank(static_cast<unsigned int>(ending_column - second_blank_start) * 14);
 					}
 				}
 
@@ -204,7 +252,7 @@ template <class BusHandler> class Video: public VideoBase {
 
 					// Add an extra half a colour cycle of blank; this isn't counted in the run_for
 					// count explicitly but is promised.
-					crt_->output_blank(1);
+					crt_->output_blank(2);
 				}
 			}
 		}
@@ -261,6 +309,11 @@ template <class BusHandler> class Video: public VideoBase {
 
 		const int flash_length = 8406;
 		BusHandler &bus_handler_;
+		void output_data_to_column(int column) {
+			int length = column - pixel_pointer_column_;
+			crt_->output_data(static_cast<unsigned int>(length*14), static_cast<unsigned int>(length * (pixels_are_high_density_ ? 14 : 7)));
+			pixel_pointer_ = nullptr;
+		}
 };
 
 }

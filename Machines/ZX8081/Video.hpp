@@ -45,7 +45,7 @@ class Video {
 		bool sync_ = false;
 		uint8_t *line_data_ = nullptr;
 		uint8_t *line_data_pointer_ = nullptr;
-		unsigned int cycles_since_update_ = 0;
+		HalfCycles time_since_update_ = 0;
 		std::unique_ptr<Outputs::CRT::CRT> crt_;
 
 		void flush(bool next_sync);

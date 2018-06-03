@@ -170,7 +170,9 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 			// outside of the locked region
 			source_output_position_x1() = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
 			source_phase() = colour_burst_phase_;
-			source_amplitude() = colour_burst_amplitude_;
+
+			// TODO: determine what the PAL phase-shift machines actually do re: the swinging burst.
+			source_amplitude() = phase_alternates_ ? 128 - colour_burst_amplitude_ : 128 + colour_burst_amplitude_;
 		}
 
 		// decrement the number of cycles left to run for and increment the
@@ -368,7 +370,7 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 	scan.type = Scan::Type::ColourBurst;
 	scan.number_of_cycles = number_of_cycles;
 	scan.phase = phase;
-	scan.amplitude = amplitude;
+	scan.amplitude = amplitude >> 1;
 	output_scan(&scan);
 }
 
