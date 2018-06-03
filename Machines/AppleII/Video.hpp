@@ -130,11 +130,14 @@ template <class BusHandler> class Video: public VideoBase {
 
 										const uint8_t character_pattern = character_rom_[character_address] ^ inverses[character >> 6];
 
-										int mask = 0x01;
-										for(int p = 0; p < 7; ++p) {
-											pixel_pointer_[p] = character_pattern & mask;
-											mask <<= 1;
-										}
+										// The character ROM is output MSB to LSB rather than LSB to MSB.
+										pixel_pointer_[0] = character_pattern & 0x40;
+										pixel_pointer_[1] = character_pattern & 0x20;
+										pixel_pointer_[2] = character_pattern & 0x10;
+										pixel_pointer_[3] = character_pattern & 0x08;
+										pixel_pointer_[4] = character_pattern & 0x04;
+										pixel_pointer_[5] = character_pattern & 0x02;
+										pixel_pointer_[6] = character_pattern & 0x01;
 										graphics_carry_ = character_pattern & 0x40;
 										pixel_pointer_ += 7;
 									}
@@ -142,9 +145,12 @@ template <class BusHandler> class Video: public VideoBase {
 
 								case GraphicsMode::LowRes: {
 									const int row_shift = (row_&4);
+									// TODO: decompose into two loops, possibly.
 									for(int c = column_; c < pixel_end; ++c) {
 										const uint8_t nibble = (bus_handler_.perform_read(static_cast<uint16_t>(text_address + c)) >> row_shift) & 0x0f;
 
+										// Low-resolution graphics mode shifts the colour code on a loop, but has to account for whether this
+										// 14-sample output window is starting at the beginning of a colour cycle or halfway through.
 										if(c&1) {
 											pixel_pointer_[0] = pixel_pointer_[4] = pixel_pointer_[8] = pixel_pointer_[12] = nibble & 4;
 											pixel_pointer_[1] = pixel_pointer_[5] = pixel_pointer_[9] = pixel_pointer_[13] = nibble & 8;
@@ -167,23 +173,28 @@ template <class BusHandler> class Video: public VideoBase {
 									for(int c = column_; c < pixel_end; ++c) {
 										const uint8_t graphic = bus_handler_.perform_read(static_cast<uint16_t>(graphics_address + c));
 
+										// High resolution graphics shift out LSB to MSB, optionally with a delay of half a pixel.
+										// If there is a delay, the previous output level is held to bridge the gap.
 										if(graphic & 0x80) {
 											pixel_pointer_[0] = graphics_carry_;
-											pixel_pointer_++;
-										}
-										int mask = 0x01;
-										for(int p = 0; p < 12; p += 2) {
-											pixel_pointer_[p] = graphic & mask;
-											pixel_pointer_[p+1] = graphic & mask;
-											mask <<= 1;
-										}
-										pixel_pointer_[12] = graphic & 0x40;
-										pixel_pointer_ += 13;
-										if(!(graphic & 0x80)) {
-											pixel_pointer_[0] = graphic & 0x40;
-											pixel_pointer_++;
+											pixel_pointer_[1] = pixel_pointer_[2] = graphic & 0x01;
+											pixel_pointer_[3] = pixel_pointer_[4] = graphic & 0x02;
+											pixel_pointer_[5] = pixel_pointer_[6] = graphic & 0x04;
+											pixel_pointer_[7] = pixel_pointer_[8] = graphic & 0x08;
+											pixel_pointer_[9] = pixel_pointer_[10] = graphic & 0x10;
+											pixel_pointer_[11] = pixel_pointer_[12] = graphic & 0x20;
+											pixel_pointer_[13] = graphic & 0x40;
+										} else {
+											pixel_pointer_[0] = pixel_pointer_[1] = graphic & 0x01;
+											pixel_pointer_[2] = pixel_pointer_[3] = graphic & 0x02;
+											pixel_pointer_[4] = pixel_pointer_[5] = graphic & 0x04;
+											pixel_pointer_[6] = pixel_pointer_[7] = graphic & 0x08;
+											pixel_pointer_[8] = pixel_pointer_[9] = graphic & 0x10;
+											pixel_pointer_[10] = pixel_pointer_[11] = graphic & 0x20;
+											pixel_pointer_[12] = pixel_pointer_[13] = graphic & 0x40;
 										}
 										graphics_carry_ = graphic & 0x40;
+										pixel_pointer_ += 14;
 									}
 								} break;
 							}
