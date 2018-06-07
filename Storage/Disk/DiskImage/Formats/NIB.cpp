@@ -80,12 +80,12 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 		if(track_data[index] == 0xd5 && track_data[(index+1)%track_data.size()] == 0xaa) {
 			size_t start = index - 1;
 			size_t length = 0;
-			while(track_data[start] == 0xff) {
+			while(track_data[start] == 0xff && length < 5) {
 				start = (start + track_data.size() - 1) % track_data.size();
 				++length;
 			}
 
-			if(length >= 5) {
+			if(length == 5) {
 				sync_starts.insert((start + 1) % track_data.size());
 				if(start > index)
 					start_index = start;
