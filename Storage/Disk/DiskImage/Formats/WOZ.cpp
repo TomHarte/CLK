@@ -115,8 +115,9 @@ std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
 		// number of bytes that actually had data in them, then a two-byte count of the number
 		// of bits that were used. Other information follows but is not intended for emulation.
 		track_contents.data = file_.read(6646);
-		track_contents.data.resize(file_.get16le());
+		file_.seek(2, SEEK_CUR);
 		track_contents.number_of_bits = file_.get16le();
+		track_contents.data.resize((track_contents.number_of_bits + 7) >> 3);
 	}
 
 	return std::shared_ptr<PCMTrack>(new PCMTrack(track_contents));
