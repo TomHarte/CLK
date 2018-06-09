@@ -72,11 +72,11 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 	Storage::Disk::PCMSegment segment;
 	const uint8_t track = static_cast<uint8_t>(address.position.as_int());
 
-	// Write gap 1.
-	segment += Encodings::AppleGCR::six_and_two_sync(16);
-
 	// In either case below, the code aims for exactly 50,000 bits per track.
 	if(sectors_per_track_ == 16) {
+		// Write gap 1.
+		segment += Encodings::AppleGCR::six_and_two_sync(16);
+
 		// Write the sectors.
 		for(uint8_t c = 0; c < 16; ++c) {
 			segment += Encodings::AppleGCR::header(254, track, c);
