@@ -205,7 +205,7 @@ class ConcreteMachine:
 			return &speaker_;
 		}
 
-		forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		forceinline Cycles perform_bus_operation(const CPU::MOS6502::BusOperation operation, const uint16_t address, uint8_t *const value) {
 			++ cycles_since_video_update_;
 			++ cycles_since_card_update_;
 			cycles_since_audio_update_ += Cycles(7);
@@ -232,21 +232,22 @@ class ConcreteMachine:
 				d000 to e000	:	the low ROM area, which can contain indepdently-paged RAM with a language card
 				e000 onward		:	the rest of ROM, also potentially replaced with RAM by a language card
 			*/
+			uint16_t accessed_address = address;
 			MemoryBlock *block = nullptr;
 			if(address < 0x200) block = &memory_blocks_[0];
 			else if(address < 0xc000) {
 				if(address < 0x6000 && !isReadOperation(operation)) update_video();
 				block = &memory_blocks_[1];
-				address -= 0x200;
+				accessed_address -= 0x200;
 			}
 			else if(address < 0xd000) block = nullptr;
-			else if(address < 0xe000) {block = &memory_blocks_[2]; address -= 0xd000; }
-			else { block = &memory_blocks_[3]; address -= 0xe000; }
+			else if(address < 0xe000) {block = &memory_blocks_[2]; accessed_address -= 0xd000; }
+			else { block = &memory_blocks_[3]; accessed_address -= 0xe000; }
 
 			bool has_updated_cards = false;
 			if(block) {
-				if(isReadOperation(operation)) *value = block->read_pointer[address];
-				else if(block->write_pointer) block->write_pointer[address] = *value;
+				if(isReadOperation(operation)) *value = block->read_pointer[accessed_address];
+				else if(block->write_pointer) block->write_pointer[accessed_address] = *value;
 			} else {
 				// Assume a vapour read unless it turns out otherwise; this is a little
 				// wasteful but works for now.
