@@ -81,6 +81,10 @@ class DiskII:
 		// The Disk II functions as a potential target for @c Activity::Sources.
 		void set_activity_observer(Activity::Observer *observer);
 
+		// Returns the Storage::Disk::Drive in use for drive @c index.
+		// *NOT FOR HARDWARE EMULATION USAGE*.
+		Storage::Disk::Drive &get_drive(int index);
+
 	private:
 		enum class Control {
 			P0, P1, P2, P3,

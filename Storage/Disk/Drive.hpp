@@ -127,6 +127,17 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		/// The caller can specify whether to add an LED based on disk motor.
 		void set_activity_observer(Activity::Observer *observer, const std::string &name, bool add_motor_led);
 
+		/*!
+			Attempts to step to the specified offset and returns the track there if one exists; an uninitialised
+			track otherwise.
+
+			This is unambiguously **NOT A REALISTIC DRIVE FUNCTION**; real drives cannot step to a given offset.
+			So it is **NOT FOR HARDWARE EMULATION USAGE**.
+
+			It's for the benefit of user-optional fast-loading mechanisms **ONLY**.
+		*/
+		std::shared_ptr<Track> step_to(HeadPosition offset);
+
 	private:
 		// Drives contain an entire disk; from that a certain track
 		// will be currently under the head.
