@@ -123,6 +123,10 @@ class ConcreteMachine:
 			pick_card_messaging_group(card);
 		}
 
+		AppleII::DiskIICard *diskii_card() {
+			return dynamic_cast<AppleII::DiskIICard *>(cards_[5].get());
+		}
+
 		// MARK: - Memory Map
 		struct MemoryBlock {
 			uint8_t *read_pointer = nullptr;
@@ -156,6 +160,9 @@ class ConcreteMachine:
 
 		// MARK - typing
 		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
+
+		// MARK - quick loading
+		bool should_load_quickly_ = true;
 
 	public:
 		ConcreteMachine():
@@ -248,6 +255,42 @@ class ConcreteMachine:
 			if(block) {
 				if(isReadOperation(operation)) *value = block->read_pointer[accessed_address];
 				else if(block->write_pointer) block->write_pointer[accessed_address] = *value;
+
+				if(should_load_quickly_) {
+					// Check for a prima facie entry into RWTS.
+					if(operation == CPU::MOS6502::BusOperation::ReadOpcode && address == 0xb7b5) {
+						// Grab the IO control block address for inspection.
+						uint16_t io_control_block_address =
+							static_cast<uint16_t>(
+								(m6502_.get_value_of_register(CPU::MOS6502::Register::A) << 8) |
+								m6502_.get_value_of_register(CPU::MOS6502::Register::Y)
+							);
+
+						// Verify that this is table type one, for execution on card six,
+						// against drive 1 or 2, and that the command is either a seek or a sector read.
+						if(
+							ram_[io_control_block_address+0x00] == 0x01 &&
+							ram_[io_control_block_address+0x01] == 0x60 &&
+							ram_[io_control_block_address+0x02] > 0 && ram_[io_control_block_address+0x02] < 3 &&
+							ram_[io_control_block_address+0x0c] < 2
+						) {
+							printf("RWTS %d: %d %d [%d]\n", ram_[io_control_block_address+0x0c], ram_[io_control_block_address+4], ram_[io_control_block_address+5], ram_[0x478]);
+
+							// Get the track identified.
+/*							auto track = diskii_card()->get_drive(ram_[io_control_block_address+0x02] - 1).step_to(Storage::Disk::HeadPosition(ram_[io_control_block_address+4]));
+
+							// Write the new head position to the proper screen hole.
+
+							// Continue only if this was a read...
+							if(ram_[io_control_block_address+0x0c] == 1) {
+								// Read logical sector at [5], write [b] bytes (where 0 is 256) to [8]/[9]
+							}
+
+							// Force an RTS.
+							*value = 0x60;*/
+						}
+					}
+				}
 			} else {
 				// Assume a vapour read unless it turns out otherwise; this is a little
 				// wasteful but works for now.
@@ -279,6 +322,12 @@ class ConcreteMachine:
 									} else {
 										*value = keyboard_input_;
 									}
+								break;
+
+								case 0xc061:	// Switch input 0.
+								case 0xc062:	// Switch input 1.
+								case 0xc063:	// Switch input 2.
+									*value &= 0x7f;
 								break;
 							}
 						} else {
@@ -481,8 +530,10 @@ class ConcreteMachine:
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override {
-			if(!media.disks.empty() && cards_[5]) {
-				dynamic_cast<AppleII::DiskIICard *>(cards_[5].get())->set_disk(media.disks[0], 0);
+
+			if(!media.disks.empty()) {
+				auto diskii = diskii_card();
+				if(diskii) diskii->set_disk(media.disks[0], 0);
 			}
 			return true;
 		}
