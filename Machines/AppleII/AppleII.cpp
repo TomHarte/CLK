@@ -28,6 +28,9 @@
 
 #include "../../Analyser/Static/AppleII/Target.hpp"
 
+#include "../../Storage/Disk/Track/TrackSerialiser.hpp"
+#include "../../Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
+
 #include <algorithm>
 #include <array>
 #include <memory>
@@ -258,7 +261,7 @@ class ConcreteMachine:
 
 				if(should_load_quickly_) {
 					// Check for a prima facie entry into RWTS.
-					if(operation == CPU::MOS6502::BusOperation::ReadOpcode && address == 0xb7b5) {
+					if(operation == CPU::MOS6502::BusOperation::ReadOpcode && (address&0xff) == ram_[0x3da] && (address >> 8) == ram_[0x3db]) {
 						// Grab the IO control block address for inspection.
 						uint16_t io_control_block_address =
 							static_cast<uint16_t>(
@@ -274,27 +277,63 @@ class ConcreteMachine:
 							ram_[io_control_block_address+0x02] > 0 && ram_[io_control_block_address+0x02] < 3 &&
 							ram_[io_control_block_address+0x0c] < 2
 						) {
-							printf("RWTS %d: %d %d [%d]\n", ram_[io_control_block_address+0x0c], ram_[io_control_block_address+4], ram_[io_control_block_address+5], ram_[0x478]);
+							const uint8_t iob_track = ram_[io_control_block_address+4];
+							const uint8_t iob_sector = ram_[io_control_block_address+5];
+							const uint8_t iob_drive = ram_[io_control_block_address+2] - 1;
 
 							// Get the track identified and store the new head position.
-							auto track = diskii_card()->get_drive(ram_[io_control_block_address+0x02] - 1).step_to(Storage::Disk::HeadPosition(ram_[io_control_block_address+4]));
+							auto track = diskii_card()->get_drive(iob_drive).step_to(Storage::Disk::HeadPosition(iob_track));
 
 							// DOS 3.3 keeps the current track (unspecified drive) in 0x478; the current track for drive 1 and drive 2
 							// is also kept in that Disk II card's screen hole.
-							ram_[0x478] = ram_[io_control_block_address+4];
+							ram_[0x478] = iob_track;
 							if(ram_[io_control_block_address+0x02] == 1) {
-								ram_[0x47e] = ram_[io_control_block_address+4];
+								ram_[0x47e] = iob_track;
 							} else {
-								ram_[0x4fe] = ram_[io_control_block_address+4];
+								ram_[0x4fe] = iob_track;
 							}
 
 							// Check whether this is a read, not merely a seek.
-//							if(ram_[io_control_block_address+0x0c] == 1) {
-//								// Read logical sector at [5], write [b] bytes (where 0 is 256) to [8]/[9]
-//							}
+							if(ram_[io_control_block_address+0x0c] == 1) {
+								// Apple the DOS 3.3 formula to map the requested logical sector to a physical sector.
+								const int physical_sector = (iob_sector == 15) ? 15 : ((iob_sector * 13) % 15);
 
-							// Force an RTS.
-//							*value = 0x60;
+								// Parse the entire track. TODO: cache these.
+								auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
+									Storage::Disk::track_serialisation(*track, Storage::Time(1, 50000)));
+
+								bool found_sector = false;
+								for(const auto &pair: sector_map) {
+									if(pair.second.address.sector == physical_sector) {
+										found_sector = true;
+
+										// Copy the sector contents to their destination.
+										uint16_t target = static_cast<uint16_t>(
+											ram_[io_control_block_address+8] |
+											(ram_[io_control_block_address+9] << 8)
+										);
+
+										for(size_t c = 0; c < 256; ++c) {
+											ram_[target] = pair.second.data[c];
+											++target;
+										}
+
+										// Set no error encountered.
+										ram_[io_control_block_address + 0xd] = 0;
+										break;
+									}
+								}
+
+								if(found_sector) {
+									// Set no error in the flags register too, and RTS.
+									m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, m6502_.get_value_of_register(CPU::MOS6502::Register::Flags) & ~1);
+									*value = 0x60;
+								}
+							} else {
+								// No error encountered; RTS.
+								m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, m6502_.get_value_of_register(CPU::MOS6502::Register::Flags) & ~1);
+								*value = 0x60;
+							}
 						}
 					}
 				}
