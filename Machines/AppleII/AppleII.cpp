@@ -24,10 +24,9 @@
 #include "DiskIICard.hpp"
 #include "Video.hpp"
 
-#include "../../ClockReceiver/ForceInline.hpp"
-
 #include "../../Analyser/Static/AppleII/Target.hpp"
-
+#include "../../ClockReceiver/ForceInline.hpp"
+#include "../../Configurable/Configurable.hpp"
 #include "../../Storage/Disk/Track/TrackSerialiser.hpp"
 #include "../../Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
 
@@ -35,12 +34,19 @@
 #include <array>
 #include <memory>
 
+std::vector<std::unique_ptr<Configurable::Option>> AppleII::get_options() {
+	std::vector<std::unique_ptr<Configurable::Option>> options;
+	options.emplace_back(new Configurable::BooleanOption("Accelerate DOS 3.3", "quickload"));
+	return options;
+}
+
 namespace {
 
 class ConcreteMachine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine,
+	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
 	public AppleII::Machine,
@@ -165,7 +171,7 @@ class ConcreteMachine:
 		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
 
 		// MARK - quick loading
-		bool should_load_quickly_ = true;
+		bool should_load_quickly_ = false;
 
 	public:
 		ConcreteMachine():
@@ -277,6 +283,7 @@ class ConcreteMachine:
 							ram_[io_control_block_address+0x02] > 0 && ram_[io_control_block_address+0x02] < 3 &&
 							ram_[io_control_block_address+0x0c] < 2
 						) {
+							printf(".");
 							const uint8_t iob_track = ram_[io_control_block_address+4];
 							const uint8_t iob_sector = ram_[io_control_block_address+5];
 							const uint8_t iob_drive = ram_[io_control_block_address+2] - 1;
@@ -576,7 +583,6 @@ class ConcreteMachine:
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override {
-
 			if(!media.disks.empty()) {
 				auto diskii = diskii_card();
 				if(diskii) diskii->set_disk(media.disks[0], 0);
@@ -589,6 +595,30 @@ class ConcreteMachine:
 			for(const auto &card: cards_) {
 				if(card) card->set_activity_observer(observer);
 			}
+		}
+
+		// MARK: Options
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			return AppleII::get_options();
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			bool quickload;
+			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
+				should_load_quickly_ = quickload;
+			}
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_quick_load_tape_selection(selection_set, false);
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_quick_load_tape_selection(selection_set, true);
+			return selection_set;
 		}
 };
 
