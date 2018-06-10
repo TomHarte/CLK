@@ -267,7 +267,7 @@ class ConcreteMachine:
 
 				if(should_load_quickly_) {
 					// Check for a prima facie entry into RWTS.
-					if(operation == CPU::MOS6502::BusOperation::ReadOpcode && (address&0xff) == ram_[0x3da] && (address >> 8) == ram_[0x3db]) {
+					if(operation == CPU::MOS6502::BusOperation::ReadOpcode && address == 0xb7b5) {
 						// Grab the IO control block address for inspection.
 						uint16_t io_control_block_address =
 							static_cast<uint16_t>(
@@ -283,7 +283,6 @@ class ConcreteMachine:
 							ram_[io_control_block_address+0x02] > 0 && ram_[io_control_block_address+0x02] < 3 &&
 							ram_[io_control_block_address+0x0c] < 2
 						) {
-							printf(".");
 							const uint8_t iob_track = ram_[io_control_block_address+4];
 							const uint8_t iob_sector = ram_[io_control_block_address+5];
 							const uint8_t iob_drive = ram_[io_control_block_address+2] - 1;
