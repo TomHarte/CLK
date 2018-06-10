@@ -46,16 +46,18 @@ void PCMSegmentEventSource::reset() {
 PCMSegment &PCMSegment::operator +=(const PCMSegment &rhs) {
 	if(!rhs.number_of_bits) return *this;
 
+	assert(((rhs.number_of_bits+7) >> 3) == rhs.data.size());
+
 	if(number_of_bits&7) {
 		auto target_number_of_bits = number_of_bits + rhs.number_of_bits;
 		data.resize((target_number_of_bits + 7) >> 3);
 
 		std::size_t first_byte = number_of_bits >> 3;
 
-		int shift = number_of_bits&7;
+		const int shift = number_of_bits&7;
 		for(std::size_t source = 0; source < rhs.data.size(); ++source) {
 			data[first_byte + source] |= rhs.data[source] >> shift;
-			if(source*8 + static_cast<std::size_t>(shift) < rhs.number_of_bits)
+			if(source*8 + static_cast<std::size_t>(8 - shift) < rhs.number_of_bits)
 				data[first_byte + source + 1] = static_cast<uint8_t>(rhs.data[source] << (8-shift));
 		}
 
@@ -64,6 +66,8 @@ PCMSegment &PCMSegment::operator +=(const PCMSegment &rhs) {
 		data.insert(data.end(), rhs.data.begin(), rhs.data.end());
 		number_of_bits += rhs.number_of_bits;
 	}
+
+	assert(((number_of_bits+7) >> 3) == data.size());
 
 	return *this;
 }
