@@ -276,18 +276,25 @@ class ConcreteMachine:
 						) {
 							printf("RWTS %d: %d %d [%d]\n", ram_[io_control_block_address+0x0c], ram_[io_control_block_address+4], ram_[io_control_block_address+5], ram_[0x478]);
 
-							// Get the track identified.
-/*							auto track = diskii_card()->get_drive(ram_[io_control_block_address+0x02] - 1).step_to(Storage::Disk::HeadPosition(ram_[io_control_block_address+4]));
+							// Get the track identified and store the new head position.
+							auto track = diskii_card()->get_drive(ram_[io_control_block_address+0x02] - 1).step_to(Storage::Disk::HeadPosition(ram_[io_control_block_address+4]));
 
-							// Write the new head position to the proper screen hole.
-
-							// Continue only if this was a read...
-							if(ram_[io_control_block_address+0x0c] == 1) {
-								// Read logical sector at [5], write [b] bytes (where 0 is 256) to [8]/[9]
+							// DOS 3.3 keeps the current track (unspecified drive) in 0x478; the current track for drive 1 and drive 2
+							// is also kept in that Disk II card's screen hole.
+							ram_[0x478] = ram_[io_control_block_address+4];
+							if(ram_[io_control_block_address+0x02] == 1) {
+								ram_[0x47e] = ram_[io_control_block_address+4];
+							} else {
+								ram_[0x4fe] = ram_[io_control_block_address+4];
 							}
 
+							// Check whether this is a read, not merely a seek.
+//							if(ram_[io_control_block_address+0x0c] == 1) {
+//								// Read logical sector at [5], write [b] bytes (where 0 is 256) to [8]/[9]
+//							}
+
 							// Force an RTS.
-							*value = 0x60;*/
+//							*value = 0x60;
 						}
 					}
 				}
