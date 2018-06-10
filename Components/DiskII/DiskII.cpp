@@ -260,3 +260,7 @@ void DiskII::set_activity_observer(Activity::Observer *observer) {
 	drives_[0].set_activity_observer(observer, "Drive 1", true);
 	drives_[1].set_activity_observer(observer, "Drive 2", true);
 }
+
+Storage::Disk::Drive &DiskII::get_drive(int index) {
+	return drives_[index];
+}

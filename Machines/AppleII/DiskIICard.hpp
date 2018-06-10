@@ -32,6 +32,7 @@ class DiskIICard: public Card, public ClockingHint::Observer {
 		void set_activity_observer(Activity::Observer *observer) override;
 
 		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
+		Storage::Disk::Drive &get_drive(int drive);
 
 	private:
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override;

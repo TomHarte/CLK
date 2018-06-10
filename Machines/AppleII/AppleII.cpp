@@ -24,13 +24,21 @@
 #include "DiskIICard.hpp"
 #include "Video.hpp"
 
-#include "../../ClockReceiver/ForceInline.hpp"
-
 #include "../../Analyser/Static/AppleII/Target.hpp"
+#include "../../ClockReceiver/ForceInline.hpp"
+#include "../../Configurable/Configurable.hpp"
+#include "../../Storage/Disk/Track/TrackSerialiser.hpp"
+#include "../../Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
 
 #include <algorithm>
 #include <array>
 #include <memory>
+
+std::vector<std::unique_ptr<Configurable::Option>> AppleII::get_options() {
+	std::vector<std::unique_ptr<Configurable::Option>> options;
+	options.emplace_back(new Configurable::BooleanOption("Accelerate DOS 3.3", "quickload"));
+	return options;
+}
 
 namespace {
 
@@ -38,6 +46,7 @@ class ConcreteMachine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine,
+	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
 	public AppleII::Machine,
@@ -123,6 +132,10 @@ class ConcreteMachine:
 			pick_card_messaging_group(card);
 		}
 
+		AppleII::DiskIICard *diskii_card() {
+			return dynamic_cast<AppleII::DiskIICard *>(cards_[5].get());
+		}
+
 		// MARK: - Memory Map
 		struct MemoryBlock {
 			uint8_t *read_pointer = nullptr;
@@ -156,6 +169,9 @@ class ConcreteMachine:
 
 		// MARK - typing
 		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
+
+		// MARK - quick loading
+		bool should_load_quickly_ = false;
 
 	public:
 		ConcreteMachine():
@@ -205,7 +221,7 @@ class ConcreteMachine:
 			return &speaker_;
 		}
 
-		forceinline Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		forceinline Cycles perform_bus_operation(const CPU::MOS6502::BusOperation operation, const uint16_t address, uint8_t *const value) {
 			++ cycles_since_video_update_;
 			++ cycles_since_card_update_;
 			cycles_since_audio_update_ += Cycles(7);
@@ -232,21 +248,101 @@ class ConcreteMachine:
 				d000 to e000	:	the low ROM area, which can contain indepdently-paged RAM with a language card
 				e000 onward		:	the rest of ROM, also potentially replaced with RAM by a language card
 			*/
+			uint16_t accessed_address = address;
 			MemoryBlock *block = nullptr;
 			if(address < 0x200) block = &memory_blocks_[0];
 			else if(address < 0xc000) {
 				if(address < 0x6000 && !isReadOperation(operation)) update_video();
 				block = &memory_blocks_[1];
-				address -= 0x200;
+				accessed_address -= 0x200;
 			}
 			else if(address < 0xd000) block = nullptr;
-			else if(address < 0xe000) {block = &memory_blocks_[2]; address -= 0xd000; }
-			else { block = &memory_blocks_[3]; address -= 0xe000; }
+			else if(address < 0xe000) {block = &memory_blocks_[2]; accessed_address -= 0xd000; }
+			else { block = &memory_blocks_[3]; accessed_address -= 0xe000; }
 
 			bool has_updated_cards = false;
 			if(block) {
-				if(isReadOperation(operation)) *value = block->read_pointer[address];
-				else if(block->write_pointer) block->write_pointer[address] = *value;
+				if(isReadOperation(operation)) *value = block->read_pointer[accessed_address];
+				else if(block->write_pointer) block->write_pointer[accessed_address] = *value;
+
+				if(should_load_quickly_) {
+					// Check for a prima facie entry into RWTS.
+					if(operation == CPU::MOS6502::BusOperation::ReadOpcode && address == 0xb7b5) {
+						// Grab the IO control block address for inspection.
+						uint16_t io_control_block_address =
+							static_cast<uint16_t>(
+								(m6502_.get_value_of_register(CPU::MOS6502::Register::A) << 8) |
+								m6502_.get_value_of_register(CPU::MOS6502::Register::Y)
+							);
+
+						// Verify that this is table type one, for execution on card six,
+						// against drive 1 or 2, and that the command is either a seek or a sector read.
+						if(
+							ram_[io_control_block_address+0x00] == 0x01 &&
+							ram_[io_control_block_address+0x01] == 0x60 &&
+							ram_[io_control_block_address+0x02] > 0 && ram_[io_control_block_address+0x02] < 3 &&
+							ram_[io_control_block_address+0x0c] < 2
+						) {
+							const uint8_t iob_track = ram_[io_control_block_address+4];
+							const uint8_t iob_sector = ram_[io_control_block_address+5];
+							const uint8_t iob_drive = ram_[io_control_block_address+2] - 1;
+
+							// Get the track identified and store the new head position.
+							auto track = diskii_card()->get_drive(iob_drive).step_to(Storage::Disk::HeadPosition(iob_track));
+
+							// DOS 3.3 keeps the current track (unspecified drive) in 0x478; the current track for drive 1 and drive 2
+							// is also kept in that Disk II card's screen hole.
+							ram_[0x478] = iob_track;
+							if(ram_[io_control_block_address+0x02] == 1) {
+								ram_[0x47e] = iob_track;
+							} else {
+								ram_[0x4fe] = iob_track;
+							}
+
+							// Check whether this is a read, not merely a seek.
+							if(ram_[io_control_block_address+0x0c] == 1) {
+								// Apple the DOS 3.3 formula to map the requested logical sector to a physical sector.
+								const int physical_sector = (iob_sector == 15) ? 15 : ((iob_sector * 13) % 15);
+
+								// Parse the entire track. TODO: cache these.
+								auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
+									Storage::Disk::track_serialisation(*track, Storage::Time(1, 50000)));
+
+								bool found_sector = false;
+								for(const auto &pair: sector_map) {
+									if(pair.second.address.sector == physical_sector) {
+										found_sector = true;
+
+										// Copy the sector contents to their destination.
+										uint16_t target = static_cast<uint16_t>(
+											ram_[io_control_block_address+8] |
+											(ram_[io_control_block_address+9] << 8)
+										);
+
+										for(size_t c = 0; c < 256; ++c) {
+											ram_[target] = pair.second.data[c];
+											++target;
+										}
+
+										// Set no error encountered.
+										ram_[io_control_block_address + 0xd] = 0;
+										break;
+									}
+								}
+
+								if(found_sector) {
+									// Set no error in the flags register too, and RTS.
+									m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, m6502_.get_value_of_register(CPU::MOS6502::Register::Flags) & ~1);
+									*value = 0x60;
+								}
+							} else {
+								// No error encountered; RTS.
+								m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, m6502_.get_value_of_register(CPU::MOS6502::Register::Flags) & ~1);
+								*value = 0x60;
+							}
+						}
+					}
+				}
 			} else {
 				// Assume a vapour read unless it turns out otherwise; this is a little
 				// wasteful but works for now.
@@ -278,6 +374,12 @@ class ConcreteMachine:
 									} else {
 										*value = keyboard_input_;
 									}
+								break;
+
+								case 0xc061:	// Switch input 0.
+								case 0xc062:	// Switch input 1.
+								case 0xc063:	// Switch input 2.
+									*value &= 0x7f;
 								break;
 							}
 						} else {
@@ -480,8 +582,9 @@ class ConcreteMachine:
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override {
-			if(!media.disks.empty() && cards_[5]) {
-				dynamic_cast<AppleII::DiskIICard *>(cards_[5].get())->set_disk(media.disks[0], 0);
+			if(!media.disks.empty()) {
+				auto diskii = diskii_card();
+				if(diskii) diskii->set_disk(media.disks[0], 0);
 			}
 			return true;
 		}
@@ -491,6 +594,30 @@ class ConcreteMachine:
 			for(const auto &card: cards_) {
 				if(card) card->set_activity_observer(observer);
 			}
+		}
+
+		// MARK: Options
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			return AppleII::get_options();
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			bool quickload;
+			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
+				should_load_quickly_ = quickload;
+			}
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_quick_load_tape_selection(selection_set, false);
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_quick_load_tape_selection(selection_set, true);
+			return selection_set;
 		}
 };
 

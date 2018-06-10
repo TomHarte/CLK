@@ -57,3 +57,7 @@ void DiskIICard::set_component_prefers_clocking(ClockingHint::Source *component,
 	diskii_clocking_preference_ = preference;
 	set_select_constraints((preference != ClockingHint::Preference::RealTime) ? (IO | Device) : 0);
 }
+
+Storage::Disk::Drive &DiskIICard::get_drive(int drive) {
+	return diskii_.get_drive(drive);
+}

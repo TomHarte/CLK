@@ -39,22 +39,22 @@ class HeadPosition {
 			position_ += rhs.position_;
 			return *this;
 		}
-		bool operator ==(const HeadPosition &rhs) {
+		bool operator ==(const HeadPosition &rhs) const {
 			return position_ == rhs.position_;
 		}
-		bool operator !=(const HeadPosition &rhs) {
+		bool operator !=(const HeadPosition &rhs) const {
 			return position_ != rhs.position_;
 		}
-		bool operator <(const HeadPosition &rhs) {
+		bool operator <(const HeadPosition &rhs) const {
 			return position_ < rhs.position_;
 		}
-		bool operator <=(const HeadPosition &rhs) {
+		bool operator <=(const HeadPosition &rhs) const {
 			return position_ <= rhs.position_;
 		}
-		bool operator >(const HeadPosition &rhs) {
+		bool operator >(const HeadPosition &rhs) const {
 			return position_ > rhs.position_;
 		}
-		bool operator >=(const HeadPosition &rhs) {
+		bool operator >=(const HeadPosition &rhs) const {
 			return position_ >= rhs.position_;
 		}
 

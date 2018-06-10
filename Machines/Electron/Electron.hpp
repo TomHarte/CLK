@@ -12,6 +12,7 @@
 #include "../../Configurable/Configurable.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
 namespace Electron {
