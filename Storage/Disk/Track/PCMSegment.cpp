@@ -8,6 +8,8 @@
 
 #include "PCMSegment.hpp"
 
+#include <cassert>
+
 using namespace Storage::Disk;
 
 PCMSegmentEventSource::PCMSegmentEventSource(const PCMSegment &segment) :
