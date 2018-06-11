@@ -252,19 +252,21 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 		@synchronized(self) {
 			std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks = joystick_machine->get_joysticks();
 			if(!joysticks.empty()) {
+				// Convert to a C++ bool so that the following calls are resolved correctly even if overloaded.
+				bool is_pressed = !!isPressed;
 				switch(key) {
-					case VK_LeftArrow:	joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Left, isPressed);	break;
-					case VK_RightArrow:	joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Right, isPressed);	break;
-					case VK_UpArrow:	joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Up, isPressed);		break;
-					case VK_DownArrow:	joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Down, isPressed);	break;
-					case VK_Space:		joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Fire, isPressed);	break;
-					case VK_ANSI_A:		joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput(Inputs::Joystick::DigitalInput::Fire, 0), isPressed);	break;
-					case VK_ANSI_S:		joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput(Inputs::Joystick::DigitalInput::Fire, 1), isPressed);	break;
+					case VK_LeftArrow:	joysticks[0]->set_input(Inputs::Joystick::Input::Left, is_pressed);		break;
+					case VK_RightArrow:	joysticks[0]->set_input(Inputs::Joystick::Input::Right, is_pressed);	break;
+					case VK_UpArrow:	joysticks[0]->set_input(Inputs::Joystick::Input::Up, is_pressed);		break;
+					case VK_DownArrow:	joysticks[0]->set_input(Inputs::Joystick::Input::Down, is_pressed);		break;
+					case VK_Space:		joysticks[0]->set_input(Inputs::Joystick::Input::Fire, is_pressed);		break;
+					case VK_ANSI_A:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 0), is_pressed);	break;
+					case VK_ANSI_S:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 1), is_pressed);	break;
 					default:
 						if(characters) {
-							joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput([characters characterAtIndex:0]), isPressed);
+							joysticks[0]->set_input(Inputs::Joystick::Input([characters characterAtIndex:0]), is_pressed);
 						} else {
-							joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Fire, isPressed);
+							joysticks[0]->set_input(Inputs::Joystick::Input::Fire, is_pressed);
 						}
 					break;
 				}

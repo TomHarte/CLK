@@ -34,28 +34,28 @@ namespace Vision {
 
 class Joystick: public Inputs::Joystick {
 	public:
-		std::vector<DigitalInput> get_inputs() override {
+		std::vector<Input> get_inputs() override {
 			return {
-				DigitalInput(DigitalInput::Up),
-				DigitalInput(DigitalInput::Down),
-				DigitalInput(DigitalInput::Left),
-				DigitalInput(DigitalInput::Right),
+				Input(Input::Up),
+				Input(Input::Down),
+				Input(Input::Left),
+				Input(Input::Right),
 
-				DigitalInput(DigitalInput::Fire, 0),
-				DigitalInput(DigitalInput::Fire, 1),
+				Input(Input::Fire, 0),
+				Input(Input::Fire, 1),
 
-				DigitalInput('0'),	DigitalInput('1'),	DigitalInput('2'),
-				DigitalInput('3'),	DigitalInput('4'),	DigitalInput('5'),
-				DigitalInput('6'),	DigitalInput('7'),	DigitalInput('8'),
-				DigitalInput('9'),	DigitalInput('*'),	DigitalInput('#'),
+				Input('0'),	Input('1'),	Input('2'),
+				Input('3'),	Input('4'),	Input('5'),
+				Input('6'),	Input('7'),	Input('8'),
+				Input('9'),	Input('*'),	Input('#'),
 			};
 		}
 
-		void set_digital_input(const DigitalInput &digital_input, bool is_active) override {
+		void set_input(const Input &digital_input, bool is_active) override {
 			switch(digital_input.type) {
 				default: return;
 
-				case DigitalInput::Key:
+				case Input::Key:
 					if(!is_active) keypad_ |= 0xf;
 					else {
 						uint8_t mask = 0xf;
@@ -78,11 +78,11 @@ class Joystick: public Inputs::Joystick {
 					}
 				break;
 
-				case DigitalInput::Up: 		if(is_active) direction_ &= ~0x01; else direction_ |= 0x01;	break;
-				case DigitalInput::Right:	if(is_active) direction_ &= ~0x02; else direction_ |= 0x02;	break;
-				case DigitalInput::Down:	if(is_active) direction_ &= ~0x04; else direction_ |= 0x04;	break;
-				case DigitalInput::Left:	if(is_active) direction_ &= ~0x08; else direction_ |= 0x08;	break;
-				case DigitalInput::Fire:
+				case Input::Up: 	if(is_active) direction_ &= ~0x01; else direction_ |= 0x01;	break;
+				case Input::Right:	if(is_active) direction_ &= ~0x02; else direction_ |= 0x02;	break;
+				case Input::Down:	if(is_active) direction_ &= ~0x04; else direction_ |= 0x04;	break;
+				case Input::Left:	if(is_active) direction_ &= ~0x08; else direction_ |= 0x08;	break;
+				case Input::Fire:
 					switch(digital_input.info.control.index) {
 						default: break;
 						case 0:	if(is_active) direction_ &= ~0x40; else direction_ |= 0x40;	break;

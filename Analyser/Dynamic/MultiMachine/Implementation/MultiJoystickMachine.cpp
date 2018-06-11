@@ -25,11 +25,11 @@ class MultiJoystick: public Inputs::Joystick {
 			}
 		}
 
-		std::vector<DigitalInput> get_inputs() override {
-			std::vector<DigitalInput> inputs;
+		std::vector<Input> get_inputs() override {
+			std::vector<Input> inputs;
 
 			for(const auto &joystick: joysticks_) {
-				std::vector<DigitalInput> joystick_inputs = joystick->get_inputs();
+				std::vector<Input> joystick_inputs = joystick->get_inputs();
 				for(const auto &input: joystick_inputs) {
 					if(std::find(inputs.begin(), inputs.end(), input) != inputs.end()) {
 						inputs.push_back(input);
@@ -40,9 +40,9 @@ class MultiJoystick: public Inputs::Joystick {
 			return inputs;
 		}
 
-		void set_digital_input(const DigitalInput &digital_input, bool is_active) override {
+		void set_input(const Input &digital_input, bool is_active) override {
 			for(const auto &joystick: joysticks_) {
-				joystick->set_digital_input(digital_input, is_active);
+				joystick->set_input(digital_input, is_active);
 			}
 		}
 		void reset_all_inputs() override {
