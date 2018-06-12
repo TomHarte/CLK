@@ -11,6 +11,7 @@
 #include "../../Activity/Source.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
+#include "../JoystickMachine.hpp"
 #include "../KeyboardMachine.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
 #include "../Utility/StringSerialiser.hpp"
@@ -51,6 +52,7 @@ class ConcreteMachine:
 	public Inputs::Keyboard,
 	public AppleII::Machine,
 	public Activity::Source,
+	public JoystickMachine::Machine,
 	public AppleII::Card::Delegate {
 	private:
 		struct VideoBusHandler : public AppleII::Video::BusHandler {
@@ -173,6 +175,24 @@ class ConcreteMachine:
 		// MARK - quick loading
 		bool should_load_quickly_ = false;
 
+		// MARK - joysticks
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+		class Joystick: public Inputs::ConcreteJoystick {
+			public:
+				Joystick() :
+					ConcreteJoystick({
+						Input(Input::Horizontal),
+						Input(Input::Vertical),
+
+						// The Apple II offers three buttons between two joysticks;
+						// this emulator puts three buttons on each joystick and
+						// combines them.
+						Input(Input::Fire, 0),
+						Input(Input::Fire, 1),
+						Input(Input::Fire, 2),
+					}) {}
+		};
+
 	public:
 		ConcreteMachine():
 		 	m6502_(*this),
@@ -198,6 +218,10 @@ class ConcreteMachine:
 
 			// Also, start with randomised memory contents.
 			Memory::Fuzz(ram_, sizeof(ram_));
+
+			// Add a couple of joysticks.
+		 	joysticks_.emplace_back(new Joystick);
+		 	joysticks_.emplace_back(new Joystick);
 		}
 
 		~ConcreteMachine() {
@@ -381,6 +405,13 @@ class ConcreteMachine:
 								case 0xc063:	// Switch input 2.
 									*value &= 0x7f;
 								break;
+
+								case 0xc064:	// Analogue input 0.
+								case 0xc065:	// Analogue input 1.
+								case 0xc066:	// Analogue input 2.
+								case 0xc067:	// Analogue input 3.
+									*value &= 0x7f;
+								break;
 							}
 						} else {
 							// Write-only switches.
@@ -396,6 +427,9 @@ class ConcreteMachine:
 					case 0xc055:	update_video();		video_->set_video_page(1);		break;
 					case 0xc056:	update_video();		video_->set_low_resolution();	break;
 					case 0xc057:	update_video();		video_->set_high_resolution();	break;
+
+					case 0xc070:	// Reset analogue inputs.
+					break;
 
 					case 0xc010:
 						keyboard_input_ &= 0x7f;
@@ -618,6 +652,11 @@ class ConcreteMachine:
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, true);
 			return selection_set;
+		}
+
+		// MARK: JoystickMachine
+		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+			return joysticks_;
 		}
 };
 
