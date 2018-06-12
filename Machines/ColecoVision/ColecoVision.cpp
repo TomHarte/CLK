@@ -32,10 +32,10 @@ const int sn76489_divider = 2;
 namespace Coleco {
 namespace Vision {
 
-class Joystick: public Inputs::Joystick {
+class Joystick: public Inputs::ConcreteJoystick {
 	public:
-		std::vector<Input> get_inputs() override {
-			return {
+		Joystick() :
+			ConcreteJoystick({
 				Input(Input::Up),
 				Input(Input::Down),
 				Input(Input::Left),
@@ -48,10 +48,9 @@ class Joystick: public Inputs::Joystick {
 				Input('3'),	Input('4'),	Input('5'),
 				Input('6'),	Input('7'),	Input('8'),
 				Input('9'),	Input('*'),	Input('#'),
-			};
-		}
+			}) {}
 
-		void set_input(const Input &digital_input, bool is_active) override {
+		void did_set_input(const Input &digital_input, bool is_active) override {
 			switch(digital_input.type) {
 				default: return;
 

@@ -37,22 +37,19 @@ namespace {
 
 namespace Atari2600 {
 
-class Joystick: public Inputs::Joystick {
+class Joystick: public Inputs::ConcreteJoystick {
 	public:
 		Joystick(Bus *bus, std::size_t shift, std::size_t fire_tia_input) :
-			bus_(bus), shift_(shift), fire_tia_input_(fire_tia_input) {}
-
-		std::vector<Input> get_inputs() override {
-			return {
+			ConcreteJoystick({
 				Input(Input::Up),
 				Input(Input::Down),
 				Input(Input::Left),
 				Input(Input::Right),
 				Input(Input::Fire)
-			};
-		}
+			}),
+			bus_(bus), shift_(shift), fire_tia_input_(fire_tia_input) {}
 
-		void set_input(const Input &digital_input, bool is_active) override {
+		void did_set_input(const Input &digital_input, bool is_active) override {
 			switch(digital_input.type) {
 				case Input::Up:		bus_->mos6532_.update_port_input(0, 0x10 >> shift_, is_active);		break;
 				case Input::Down:	bus_->mos6532_.update_port_input(0, 0x20 >> shift_, is_active);		break;

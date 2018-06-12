@@ -257,23 +257,20 @@ class Vic6560BusHandler {
 /*!
 	Interfaces a joystick to the two VIAs.
 */
-class Joystick: public Inputs::Joystick {
+class Joystick: public Inputs::ConcreteJoystick {
 	public:
 		Joystick(UserPortVIA &user_port_via_port_handler, KeyboardVIA &keyboard_via_port_handler) :
-			user_port_via_port_handler_(user_port_via_port_handler),
-			keyboard_via_port_handler_(keyboard_via_port_handler) {}
-
-		std::vector<Input> get_inputs() override {
-			return {
+			ConcreteJoystick({
 				Input(Input::Up),
 				Input(Input::Down),
 				Input(Input::Left),
 				Input(Input::Right),
 				Input(Input::Fire)
-			};
-		}
+			}),
+			user_port_via_port_handler_(user_port_via_port_handler),
+			keyboard_via_port_handler_(keyboard_via_port_handler) {}
 
-		void set_input(const Input &digital_input, bool is_active) override {
+		void did_set_input(const Input &digital_input, bool is_active) override {
 			JoystickInput mapped_input;
 			switch(digital_input.type) {
 				default: return;
