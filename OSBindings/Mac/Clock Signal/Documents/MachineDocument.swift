@@ -256,4 +256,38 @@ class MachineDocument:
 	@IBAction func cancelCreateMachine(_ sender: NSButton?) {
 		close()
 	}
+
+	// MARK: Joystick-via-the-keyboard selection
+	@IBAction func useKeyboardAsKeyboard(_ sender: NSMenuItem?) {
+		machine.inputMode = .keyboard
+	}
+
+	@IBAction func useKeyboardAsJoystick(_ sender: NSMenuItem?) {
+		machine.inputMode = .joystick
+	}
+
+	override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+		if let menuItem = item as? NSMenuItem {
+			switch item.action {
+				case #selector(self.useKeyboardAsKeyboard):
+					if machine == nil || !machine.hasKeyboard {
+						return false
+					}
+
+					menuItem.state = machine.inputMode == .keyboard ? .on : .off
+					return true
+
+				case #selector(self.useKeyboardAsJoystick):
+					if machine == nil || !machine.hasJoystick {
+						return false
+					}
+
+					menuItem.state = machine.inputMode == .joystick ? .on : .off
+					return true
+
+				default: break
+			}
+		}
+		return super.validateUserInterfaceItem(item)
+	}
 }

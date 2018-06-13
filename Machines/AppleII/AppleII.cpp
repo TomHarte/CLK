@@ -192,11 +192,14 @@ class ConcreteMachine:
 					}) {}
 
 					void did_set_input(const Input &input, float value) override {
-						axes[(input.type == Input::Type::Horizontal) ? 1 : 0] = value;
+						if(!input.info.control.index && (input.type == Input::Type::Horizontal || input.type == Input::Type::Vertical))
+							axes[(input.type == Input::Type::Horizontal) ? 0 : 1] = 1.0f - value;
 					}
 
 					void did_set_input(const Input &input, bool value) override {
-						buttons[input.info.control.index] = value;
+						if(input.type == Input::Type::Fire && input.info.control.index < 3) {
+							buttons[input.info.control.index] = value;
+						}
 					}
 
 				bool buttons[3] = {false, false, false};
@@ -430,16 +433,19 @@ class ConcreteMachine:
 								break;
 
 								case 0xc061:	// Switch input 0.
-									if(!static_cast<Joystick *>(joysticks_[0].get())->buttons[0] || !static_cast<Joystick *>(joysticks_[1].get())->buttons[2])
-										*value &= 0x7f;
+									*value &= 0x7f;
+									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[0] || static_cast<Joystick *>(joysticks_[1].get())->buttons[2])
+										*value |= 0x80;
 								break;
 								case 0xc062:	// Switch input 1.
-									if(!static_cast<Joystick *>(joysticks_[0].get())->buttons[1] || !static_cast<Joystick *>(joysticks_[1].get())->buttons[1])
-										*value &= 0x7f;
+									*value &= 0x7f;
+									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[1] || static_cast<Joystick *>(joysticks_[1].get())->buttons[1])
+										*value |= 0x80;
 								break;
 								case 0xc063:	// Switch input 2.
-									if(!static_cast<Joystick *>(joysticks_[0].get())->buttons[2] || !static_cast<Joystick *>(joysticks_[1].get())->buttons[0])
-										*value &= 0x7f;
+									*value &= 0x7f;
+									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[2] || static_cast<Joystick *>(joysticks_[1].get())->buttons[0])
+										*value |= 0x80;
 								break;
 
 								case 0xc064:	// Analogue input 0.
