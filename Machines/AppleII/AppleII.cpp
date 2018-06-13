@@ -202,8 +202,25 @@ class ConcreteMachine:
 				bool buttons[3] = {false, false, false};
 				float axes[2] = {0.5f, 0.5f};
 		};
+
+		// On an Apple II, the programmer strobes 0xc070 and that causes each analogue input
+		// to begin a charge and discharge cycle **if they are not already charging**.
+		// The greater the analogue input, the faster they will charge and therefore the sooner
+		// they will discharge.
+		//
+		// This emulator models that with analogue_charge_ being essentially the amount of time,
+		// in charge threshold units, since 0xc070 was last strobed. But if any of the analogue
+		// inputs were already partially charged then they gain a bias in analogue_biases_.
+		//
+		// It's a little indirect, but it means only having to increment the one value in the
+		// main loop.
 		float analogue_charge_ = 0.0f;
+		float analogue_biases_[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+		bool analogue_channel_is_discharged(size_t channel) {
+			return static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1] < analogue_charge_ + analogue_biases_[channel];
+		}
 
 	public:
 		ConcreteMachine():
@@ -431,7 +448,7 @@ class ConcreteMachine:
 								case 0xc067: {	// Analogue input 3.
 									const size_t input = address - 0xc064;
 									*value &= 0x7f;
-									if(static_cast<Joystick *>(joysticks_[input >> 1].get())->axes[input & 1] < analogue_charge_) {
+									if(analogue_channel_is_discharged(input)) {
 										*value |= 0x80;
 									}
 								} break;
@@ -440,6 +457,18 @@ class ConcreteMachine:
 							// Write-only switches.
 						}
 					break;
+
+					case 0xc070: {	// Permit analogue inputs that are currently discharged to begin a charge cycle.
+									// Ensure those that were still charging retain that state.
+						for(size_t c = 0; c < 4; ++c) {
+							if(analogue_channel_is_discharged(c)) {
+								analogue_biases_[c] = 0.0f;
+							} else {
+								analogue_biases_[c] += analogue_charge_;
+							}
+						}
+						analogue_charge_ = 0.0f;
+					} break;
 
 					/* Read-write switches. */
 					case 0xc050:	update_video();		video_->set_graphics_mode();	break;
@@ -450,10 +479,6 @@ class ConcreteMachine:
 					case 0xc055:	update_video();		video_->set_video_page(1);		break;
 					case 0xc056:	update_video();		video_->set_low_resolution();	break;
 					case 0xc057:	update_video();		video_->set_high_resolution();	break;
-
-					case 0xc070:	// Reset analogue inputs.
-						analogue_charge_ = 0.0f;
-					break;
 
 					case 0xc010:
 						keyboard_input_ &= 0x7f;
