@@ -257,31 +257,28 @@ class Vic6560BusHandler {
 /*!
 	Interfaces a joystick to the two VIAs.
 */
-class Joystick: public Inputs::Joystick {
+class Joystick: public Inputs::ConcreteJoystick {
 	public:
 		Joystick(UserPortVIA &user_port_via_port_handler, KeyboardVIA &keyboard_via_port_handler) :
+			ConcreteJoystick({
+				Input(Input::Up),
+				Input(Input::Down),
+				Input(Input::Left),
+				Input(Input::Right),
+				Input(Input::Fire)
+			}),
 			user_port_via_port_handler_(user_port_via_port_handler),
 			keyboard_via_port_handler_(keyboard_via_port_handler) {}
 
-		std::vector<DigitalInput> get_inputs() override {
-			return {
-				DigitalInput(DigitalInput::Up),
-				DigitalInput(DigitalInput::Down),
-				DigitalInput(DigitalInput::Left),
-				DigitalInput(DigitalInput::Right),
-				DigitalInput(DigitalInput::Fire)
-			};
-		}
-
-		void set_digital_input(const DigitalInput &digital_input, bool is_active) override {
+		void did_set_input(const Input &digital_input, bool is_active) override {
 			JoystickInput mapped_input;
 			switch(digital_input.type) {
 				default: return;
-				case DigitalInput::Up: mapped_input = Up;		break;
-				case DigitalInput::Down: mapped_input = Down;	break;
-				case DigitalInput::Left: mapped_input = Left;	break;
-				case DigitalInput::Right: mapped_input = Right;	break;
-				case DigitalInput::Fire: mapped_input = Fire;	break;
+				case Input::Up:		mapped_input = Up;		break;
+				case Input::Down:	mapped_input = Down;	break;
+				case Input::Left:	mapped_input = Left;	break;
+				case Input::Right:	mapped_input = Right;	break;
+				case Input::Fire:	mapped_input = Fire;	break;
 			}
 
 			user_port_via_port_handler_.set_joystick_state(mapped_input, is_active);

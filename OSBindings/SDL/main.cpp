@@ -464,16 +464,16 @@ int main(int argc, char *argv[]) {
 						std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks = joystick_machine->get_joysticks();
 						if(!joysticks.empty()) {
 							switch(event.key.keysym.scancode) {
-								case SDL_SCANCODE_LEFT:		joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Left, is_pressed);	break;
-								case SDL_SCANCODE_RIGHT:	joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Right, is_pressed);	break;
-								case SDL_SCANCODE_UP:		joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Up, is_pressed);	break;
-								case SDL_SCANCODE_DOWN:		joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Down, is_pressed);	break;
-								case SDL_SCANCODE_SPACE:	joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput::Fire, is_pressed);	break;
-								case SDL_SCANCODE_A:		joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput(Inputs::Joystick::DigitalInput::Fire, 0), is_pressed);	break;
-								case SDL_SCANCODE_S:		joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput(Inputs::Joystick::DigitalInput::Fire, 1), is_pressed);	break;
+								case SDL_SCANCODE_LEFT:		joysticks[0]->set_input(Inputs::Joystick::Input::Left, is_pressed);		break;
+								case SDL_SCANCODE_RIGHT:	joysticks[0]->set_input(Inputs::Joystick::Input::Right, is_pressed);	break;
+								case SDL_SCANCODE_UP:		joysticks[0]->set_input(Inputs::Joystick::Input::Up, is_pressed);		break;
+								case SDL_SCANCODE_DOWN:		joysticks[0]->set_input(Inputs::Joystick::Input::Down, is_pressed);		break;
+								case SDL_SCANCODE_SPACE:	joysticks[0]->set_input(Inputs::Joystick::Input::Fire, is_pressed);		break;
+								case SDL_SCANCODE_A:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 0), is_pressed);	break;
+								case SDL_SCANCODE_S:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 1), is_pressed);	break;
 								default: {
 									const char *key_name = SDL_GetKeyName(event.key.keysym.sym);
-									joysticks[0]->set_digital_input(Inputs::Joystick::DigitalInput(key_name[0]), is_pressed);
+									joysticks[0]->set_input(Inputs::Joystick::Input(key_name[0]), is_pressed);
 								} break;
 							}
 						}

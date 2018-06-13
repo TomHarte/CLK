@@ -24,6 +24,11 @@ typedef NS_ENUM(NSInteger, CSMachineVideoSignal) {
 	CSMachineVideoSignalRGB
 };
 
+typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
+	CSMachineKeyboardInputModeKeyboard,
+	CSMachineKeyboardInputModeJoystick
+};
+
 // Deliberately low; to ensure CSMachine has been declared as an @class already.
 #import "CSAtari2600.h"
 #import "CSZX8081.h"
@@ -62,6 +67,11 @@ typedef NS_ENUM(NSInteger, CSMachineVideoSignal) {
 @property (nonatomic, assign) BOOL useAutomaticTapeMotorControl;
 
 - (bool)supportsVideoSignal:(CSMachineVideoSignal)videoSignal;
+
+// Input control.
+@property (nonatomic, readonly) BOOL hasKeyboard;
+@property (nonatomic, readonly) BOOL hasJoystick;
+@property (nonatomic, assign) CSMachineKeyboardInputMode inputMode;
 
 // Special-case accessors; undefined behaviour if accessed for a machine not of the corresponding type.
 @property (nonatomic, readonly) CSAtari2600 *atari2600;

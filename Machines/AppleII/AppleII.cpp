@@ -11,6 +11,7 @@
 #include "../../Activity/Source.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
+#include "../JoystickMachine.hpp"
 #include "../KeyboardMachine.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
 #include "../Utility/StringSerialiser.hpp"
@@ -51,6 +52,7 @@ class ConcreteMachine:
 	public Inputs::Keyboard,
 	public AppleII::Machine,
 	public Activity::Source,
+	public JoystickMachine::Machine,
 	public AppleII::Card::Delegate {
 	private:
 		struct VideoBusHandler : public AppleII::Video::BusHandler {
@@ -173,6 +175,56 @@ class ConcreteMachine:
 		// MARK - quick loading
 		bool should_load_quickly_ = false;
 
+		// MARK - joysticks
+		class Joystick: public Inputs::ConcreteJoystick {
+			public:
+				Joystick() :
+					ConcreteJoystick({
+						Input(Input::Horizontal),
+						Input(Input::Vertical),
+
+						// The Apple II offers three buttons between two joysticks;
+						// this emulator puts three buttons on each joystick and
+						// combines them.
+						Input(Input::Fire, 0),
+						Input(Input::Fire, 1),
+						Input(Input::Fire, 2),
+					}) {}
+
+					void did_set_input(const Input &input, float value) override {
+						if(!input.info.control.index && (input.type == Input::Type::Horizontal || input.type == Input::Type::Vertical))
+							axes[(input.type == Input::Type::Horizontal) ? 0 : 1] = 1.0f - value;
+					}
+
+					void did_set_input(const Input &input, bool value) override {
+						if(input.type == Input::Type::Fire && input.info.control.index < 3) {
+							buttons[input.info.control.index] = value;
+						}
+					}
+
+				bool buttons[3] = {false, false, false};
+				float axes[2] = {0.5f, 0.5f};
+		};
+
+		// On an Apple II, the programmer strobes 0xc070 and that causes each analogue input
+		// to begin a charge and discharge cycle **if they are not already charging**.
+		// The greater the analogue input, the faster they will charge and therefore the sooner
+		// they will discharge.
+		//
+		// This emulator models that with analogue_charge_ being essentially the amount of time,
+		// in charge threshold units, since 0xc070 was last strobed. But if any of the analogue
+		// inputs were already partially charged then they gain a bias in analogue_biases_.
+		//
+		// It's a little indirect, but it means only having to increment the one value in the
+		// main loop.
+		float analogue_charge_ = 0.0f;
+		float analogue_biases_[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+		bool analogue_channel_is_discharged(size_t channel) {
+			return static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1] < analogue_charge_ + analogue_biases_[channel];
+		}
+
 	public:
 		ConcreteMachine():
 		 	m6502_(*this),
@@ -198,6 +250,10 @@ class ConcreteMachine:
 
 			// Also, start with randomised memory contents.
 			Memory::Fuzz(ram_, sizeof(ram_));
+
+			// Add a couple of joysticks.
+		 	joysticks_.emplace_back(new Joystick);
+		 	joysticks_.emplace_back(new Joystick);
 		}
 
 		~ConcreteMachine() {
@@ -377,15 +433,48 @@ class ConcreteMachine:
 								break;
 
 								case 0xc061:	// Switch input 0.
+									*value &= 0x7f;
+									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[0] || static_cast<Joystick *>(joysticks_[1].get())->buttons[2])
+										*value |= 0x80;
+								break;
 								case 0xc062:	// Switch input 1.
+									*value &= 0x7f;
+									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[1] || static_cast<Joystick *>(joysticks_[1].get())->buttons[1])
+										*value |= 0x80;
+								break;
 								case 0xc063:	// Switch input 2.
 									*value &= 0x7f;
+									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[2] || static_cast<Joystick *>(joysticks_[1].get())->buttons[0])
+										*value |= 0x80;
 								break;
+
+								case 0xc064:	// Analogue input 0.
+								case 0xc065:	// Analogue input 1.
+								case 0xc066:	// Analogue input 2.
+								case 0xc067: {	// Analogue input 3.
+									const size_t input = address - 0xc064;
+									*value &= 0x7f;
+									if(analogue_channel_is_discharged(input)) {
+										*value |= 0x80;
+									}
+								} break;
 							}
 						} else {
 							// Write-only switches.
 						}
 					break;
+
+					case 0xc070: {	// Permit analogue inputs that are currently discharged to begin a charge cycle.
+									// Ensure those that were still charging retain that state.
+						for(size_t c = 0; c < 4; ++c) {
+							if(analogue_channel_is_discharged(c)) {
+								analogue_biases_[c] = 0.0f;
+							} else {
+								analogue_biases_[c] += analogue_charge_;
+							}
+						}
+						analogue_charge_ = 0.0f;
+					} break;
 
 					/* Read-write switches. */
 					case 0xc050:	update_video();		video_->set_graphics_mode();	break;
@@ -493,6 +582,9 @@ class ConcreteMachine:
 					card->perform_bus_operation(AppleII::Card::None, is_read, address, value);
 				}
 			}
+
+			// Update analogue charge level.
+			analogue_charge_ = std::min(analogue_charge_ + 1.0f / 2820.0f, 1.0f);
 
 			return Cycles(1);
 		}
@@ -619,6 +711,11 @@ class ConcreteMachine:
 			Configurable::append_quick_load_tape_selection(selection_set, true);
 			return selection_set;
 		}
+
+		// MARK: JoystickMachine
+		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+			return joysticks_;
+		}
 };
 
 }
@@ -630,3 +727,4 @@ Machine *Machine::AppleII() {
 }
 
 Machine::~Machine() {}
+
