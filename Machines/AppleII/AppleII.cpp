@@ -176,7 +176,6 @@ class ConcreteMachine:
 		bool should_load_quickly_ = false;
 
 		// MARK - joysticks
-		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 		class Joystick: public Inputs::ConcreteJoystick {
 			public:
 				Joystick() :
@@ -191,7 +190,20 @@ class ConcreteMachine:
 						Input(Input::Fire, 1),
 						Input(Input::Fire, 2),
 					}) {}
+
+					void did_set_input(const Input &input, float value) override {
+						axes[(input.type == Input::Type::Horizontal) ? 1 : 0] = value;
+					}
+
+					void did_set_input(const Input &input, bool value) override {
+						buttons[input.info.control.index] = value;
+					}
+
+				bool buttons[3] = {false, false, false};
+				float axes[2] = {0.5f, 0.5f};
 		};
+		float analogue_charge_ = 0.0f;
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 
 	public:
 		ConcreteMachine():
@@ -401,17 +413,28 @@ class ConcreteMachine:
 								break;
 
 								case 0xc061:	// Switch input 0.
+									if(!static_cast<Joystick *>(joysticks_[0].get())->buttons[0] || !static_cast<Joystick *>(joysticks_[1].get())->buttons[2])
+										*value &= 0x7f;
+								break;
 								case 0xc062:	// Switch input 1.
+									if(!static_cast<Joystick *>(joysticks_[0].get())->buttons[1] || !static_cast<Joystick *>(joysticks_[1].get())->buttons[1])
+										*value &= 0x7f;
+								break;
 								case 0xc063:	// Switch input 2.
-									*value &= 0x7f;
+									if(!static_cast<Joystick *>(joysticks_[0].get())->buttons[2] || !static_cast<Joystick *>(joysticks_[1].get())->buttons[0])
+										*value &= 0x7f;
 								break;
 
 								case 0xc064:	// Analogue input 0.
 								case 0xc065:	// Analogue input 1.
 								case 0xc066:	// Analogue input 2.
-								case 0xc067:	// Analogue input 3.
+								case 0xc067: {	// Analogue input 3.
+									const size_t input = address - 0xc064;
 									*value &= 0x7f;
-								break;
+									if(static_cast<Joystick *>(joysticks_[input >> 1].get())->axes[input & 1] < analogue_charge_) {
+										*value |= 0x80;
+									}
+								} break;
 							}
 						} else {
 							// Write-only switches.
@@ -429,6 +452,7 @@ class ConcreteMachine:
 					case 0xc057:	update_video();		video_->set_high_resolution();	break;
 
 					case 0xc070:	// Reset analogue inputs.
+						analogue_charge_ = 0.0f;
 					break;
 
 					case 0xc010:
@@ -527,6 +551,9 @@ class ConcreteMachine:
 					card->perform_bus_operation(AppleII::Card::None, is_read, address, value);
 				}
 			}
+
+			// Update analogue charge level.
+			analogue_charge_ = std::min(analogue_charge_ + 1.0f / 2820.0f, 1.0f);
 
 			return Cycles(1);
 		}
@@ -669,3 +696,4 @@ Machine *Machine::AppleII() {
 }
 
 Machine::~Machine() {}
+

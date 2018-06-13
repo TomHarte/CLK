@@ -138,16 +138,16 @@ class Joystick {
 class ConcreteJoystick: public Joystick {
 	public:
 		ConcreteJoystick(const std::vector<Input> &inputs) : inputs_(inputs) {
-			// Size and populate axis_types_, which is used for digital <-> analogue conversion.
+			// Size and populate stick_types_, which is used for digital <-> analogue conversion.
 			for(const auto &input: inputs_) {
 				const bool is_digital_axis = input.is_digital_axis();
 				const bool is_analogue_axis = input.is_analogue_axis();
 				if(is_digital_axis || is_analogue_axis) {
 					const size_t required_size = static_cast<size_t>(input.info.control.index+1);
-					if(axis_types_.size() < required_size) {
-						axis_types_.resize(required_size);
+					if(stick_types_.size() < required_size) {
+						stick_types_.resize(required_size);
 					}
-					axis_types_[static_cast<size_t>(input.info.control.index)] = is_digital_axis ? AxisType::Digital : AxisType::Analogue;
+					stick_types_[static_cast<size_t>(input.info.control.index)] = is_digital_axis ? StickType::Digital : StickType::Analogue;
 				}
 			}
 		}
@@ -158,7 +158,7 @@ class ConcreteJoystick: public Joystick {
 
 		void set_input(const Input &input, bool is_active) override final {
 			// If this is a digital setting to a digital property, just pass it along.
-			if(input.is_button() || axis_types_[input.info.control.index] == AxisType::Digital) {
+			if(input.is_button() || stick_types_[input.info.control.index] == StickType::Digital) {
 				did_set_input(input, is_active);
 				return;
 			}
@@ -178,7 +178,7 @@ class ConcreteJoystick: public Joystick {
 
 		void set_input(const Input &input, float value) override final {
 			// If this is an analogue setting to an analogue property, just pass it along.
-			if(!input.is_button() && axis_types_[input.info.control.index] == AxisType::Analogue) {
+			if(!input.is_button() && stick_types_[input.info.control.index] == StickType::Analogue) {
 				did_set_input(input, value);
 				return;
 			}
@@ -209,11 +209,11 @@ class ConcreteJoystick: public Joystick {
 	private:
 		std::vector<Input> inputs_;
 
-		enum class AxisType {
+		enum class StickType {
 			Digital,
 			Analogue
 		};
-		std::vector<AxisType> axis_types_;
+		std::vector<StickType> stick_types_;
 };
 
 }
