@@ -83,7 +83,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 
 		"void main(void)"
 		"{"
-			"fragColour = vec4(pow(" << colour_expression << ", vec3(gamma)), 0.9);"//*cos(lateralVarying)
+			"fragColour = vec4(pow(" << colour_expression << ", vec3(gamma)), 0.8);"//*cos(lateralVarying)
 		"}";
 
 	return std::unique_ptr<OutputShader>(new OutputShader(vertex_shader.str(), fragment_shader.str(), {

@@ -37,7 +37,7 @@ OpenGLOutputBuilder::OpenGLOutputBuilder(std::size_t bytes_per_pixel) :
 		texture_builder(bytes_per_pixel, source_data_texture_unit),
 		array_builder(SourceVertexBufferDataSize, OutputVertexBufferDataSize) {
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
-	glBlendColor(0.3f, 0.3f, 0.3f, 1.0f);
+	glBlendColor(0.4f, 0.4f, 0.4f, 1.0f);
 
 	// create the output vertex array
 	glGenVertexArrays(1, &output_vertex_array_);

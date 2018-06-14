@@ -375,7 +375,7 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 }
 
 void CRT::output_default_colour_burst(unsigned int number_of_cycles) {
-	output_colour_burst(number_of_cycles, static_cast<uint8_t>((phase_numerator_ * 256) / phase_denominator_ + (is_alernate_line_ ? 128 : 0)));
+	output_colour_burst(number_of_cycles, static_cast<uint8_t>((phase_numerator_ * 256) / phase_denominator_));
 }
 
 void CRT::set_immediate_default_phase(float phase) {
