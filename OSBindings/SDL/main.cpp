@@ -156,11 +156,11 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 			std::size_t split_index = argument.find("=");
 
 			if(split_index == std::string::npos) {
-				arguments.selections[argument] =  std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(true));
+				arguments.selections[argument].reset(new Configurable::BooleanSelection(true));
 			} else {
 				std::string name = argument.substr(0, split_index);
 				std::string value = argument.substr(split_index+1, std::string::npos);
-				arguments.selections[name] =  std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection(value));
+				arguments.selections[name].reset(new Configurable::ListSelection(value));
 			}
 		} else {
 			arguments.file_name = arg;
@@ -201,9 +201,12 @@ int main(int argc, char *argv[]) {
 	// Attempt to parse arguments.
 	ParsedArguments arguments = parse_arguments(argc, argv);
 
+	// This may be printed either as
+	const std::string usage_suffix = " [file] [OPTIONS] [--rompath={path to ROMs}]";
+
 	// Print a help message if requested.
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
-		std::cout << "Usage: " << final_path_component(argv[0]) << " [file] [OPTIONS]" << std::endl;
+		std::cout << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
 		std::cout << "Use alt+enter to toggle full screen display. Use control+shift+V to paste text." << std::endl;
 		std::cout << "Required machine type and configuration is determined from the file. Machines with further options:" << std::endl << std::endl;
 
@@ -233,7 +236,7 @@ int main(int argc, char *argv[]) {
 
 	// Perform a sanity check on arguments.
 	if(arguments.file_name.empty()) {
-		std::cerr << "Usage: " << final_path_component(argv[0]) << " [file] [OPTIONS]" << std::endl;
+		std::cerr << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
 		std::cerr << "Use --help to learn more about available options." << std::endl;
 		return -1;
 	}
@@ -251,22 +254,36 @@ int main(int argc, char *argv[]) {
 
 	// For vanilla SDL purposes, assume system ROMs can be found in one of:
 	//
-	//	/usr/local/share/CLK/[system]; or
-	//	/usr/share/CLK/[system]
+	//	/usr/local/share/CLK/[system];
+	//	/usr/share/CLK/[system]; or
+	//	[user-supplied path]/[system]
 	std::vector<std::string> rom_names;
 	std::string machine_name;
-	ROMMachine::ROMFetcher rom_fetcher = [&rom_names, &machine_name]
+	ROMMachine::ROMFetcher rom_fetcher = [&rom_names, &machine_name, &arguments]
 		(const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
 			rom_names.insert(rom_names.end(), names.begin(), names.end());
 			machine_name = machine;
 
+			std::vector<std::string> paths = {
+				"/usr/local/share/CLK/",
+				"/usr/share/CLK/"
+			};
+			if(arguments.selections.find("rompath") != arguments.selections.end()) {
+				std::string user_path = arguments.selections["rompath"]->list_selection()->value;
+				if(user_path.back() != '/') {
+					paths.push_back(user_path + "/");
+				} else {
+					paths.push_back(user_path);
+				}
+			}
+
 			std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
 			for(const auto &name: names) {
-				std::string local_path = "/usr/local/share/CLK/" + machine + "/" + name;
-				FILE *file = std::fopen(local_path.c_str(), "rb");
-				if(!file) {
-					std::string path = "/usr/share/CLK/" + machine + "/" + name;
-					file = std::fopen(path.c_str(), "rb");
+				FILE *file = nullptr;
+				for(const auto &path: paths) {
+					std::string local_path = path + machine + "/" + name;
+					file = std::fopen(local_path.c_str(), "rb");
+					if(file) break;
 				}
 
 				if(!file) {
@@ -298,7 +315,7 @@ int main(int argc, char *argv[]) {
 		switch(error) {
 			default: break;
 			case ::Machine::Error::MissingROM:
-				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/." << std::endl;
+				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath." << std::endl;
 				std::cerr << "One or more of the following were needed but not found:" << std::endl;
 				for(const auto &name: rom_names) {
 					std::cerr << machine_name << '/' << name << std::endl;
@@ -434,16 +451,19 @@ int main(int argc, char *argv[]) {
 						}
 					}
 
-					// Also syphon off alt+enter (toggle full-screen).
-					if(event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
+				// deliberate fallthrough...
+				case SDL_KEYUP: {
+
+					// Syphon off alt+enter (toggle full-screen) upon key up only; this was previously a key down action,
+					// but the SDL_KEYDOWN announcement was found to be reposted after changing graphics mode on some
+					// systems so key up is safer.
+					if(event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
 						fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
 						SDL_SetWindowFullscreen(window, fullscreen_mode);
 						SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
 						break;
 					}
 
-				// deliberate fallthrough...
-				case SDL_KEYUP: {
 					const bool is_pressed = event.type == SDL_KEYDOWN;
 
 					KeyboardMachine::Machine *const keyboard_machine = machine->keyboard_machine();
