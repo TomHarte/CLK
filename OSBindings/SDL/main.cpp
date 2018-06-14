@@ -461,6 +461,12 @@ int main(int argc, char *argv[]) {
 						fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
 						SDL_SetWindowFullscreen(window, fullscreen_mode);
 						SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
+
+						// Announce a potential discontinuity in keyboard input.
+						auto keyboard_machine = machine->keyboard_machine();
+						if(keyboard_machine) {
+							keyboard_machine->get_keyboard().reset_all_keys();
+						}
 						break;
 					}
 
