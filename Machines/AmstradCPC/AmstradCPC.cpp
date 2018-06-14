@@ -546,14 +546,14 @@ class KeyboardState: public GI::AY38910::PortHandler {
 			Sets the row currently being reported to the AY.
 		*/
 		void set_row(int row) {
-			row_ = row;
+			row_ = static_cast<size_t>(row);
 		}
 
 		/*!
 			Reports the state of the currently-selected row as Port A to the AY.
 		*/
 		uint8_t get_port_input(bool port_b) {
-			if(!port_b && row_ < 10) {
+			if(!port_b && row_ < sizeof(rows_)) {
 				return rows_[row_];
 			}
 
@@ -565,7 +565,7 @@ class KeyboardState: public GI::AY38910::PortHandler {
 		*/
 		void set_is_pressed(bool is_pressed, int line, int key) {
 			int mask = 1 << key;
-			assert(line < 10);
+			assert(static_cast<size_t>(line) < sizeof(rows_));
 			if(is_pressed) rows_[line] &= ~mask; else rows_[line] |= mask;
 		}
 
@@ -573,12 +573,12 @@ class KeyboardState: public GI::AY38910::PortHandler {
 			Sets all keys as currently unpressed.
 		*/
 		void clear_all_keys() {
-			memset(rows_, 0xff, 10);
+			memset(rows_, 0xff, sizeof(rows_));
 		}
 
 	private:
 		uint8_t rows_[10];
-		int row_;
+		size_t row_;
 };
 
 /*!
