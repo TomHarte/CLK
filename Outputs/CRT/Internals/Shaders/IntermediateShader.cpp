@@ -146,7 +146,7 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_composite_source_sh
 					"vec3 rgbColour = clamp(rgb_sample(texID, coordinate, iCoordinate), vec3(0.0), vec3(1.0));"
 					"vec3 lumaChromaColour = rgbToLumaChroma * rgbColour;"
 					"vec2 quadrature = vec2(cos(phase), sin(phase)) * vec2(abs(amplitude), amplitude);"
-					"return dot(lumaChromaColour, vec3(1.0 - amplitude, quadrature));"
+					"return dot(lumaChromaColour, vec3(1.0 - abs(amplitude), quadrature));"
 				"}";
 		}
 	}
