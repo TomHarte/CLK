@@ -201,9 +201,12 @@ int main(int argc, char *argv[]) {
 	// Attempt to parse arguments.
 	ParsedArguments arguments = parse_arguments(argc, argv);
 
+	// This may be printed either as
+	const std::string usage_suffix = " [file] [OPTIONS] [--rompath={path to ROMs}]";
+
 	// Print a help message if requested.
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
-		std::cout << "Usage: " << final_path_component(argv[0]) << " [file] [OPTIONS] [--rompath={path to ROMs}]" << std::endl;
+		std::cout << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
 		std::cout << "Use alt+enter to toggle full screen display. Use control+shift+V to paste text." << std::endl;
 		std::cout << "Required machine type and configuration is determined from the file. Machines with further options:" << std::endl << std::endl;
 
@@ -233,7 +236,7 @@ int main(int argc, char *argv[]) {
 
 	// Perform a sanity check on arguments.
 	if(arguments.file_name.empty()) {
-		std::cerr << "Usage: " << final_path_component(argv[0]) << " [file] [OPTIONS]" << std::endl;
+		std::cerr << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
 		std::cerr << "Use --help to learn more about available options." << std::endl;
 		return -1;
 	}
@@ -312,7 +315,7 @@ int main(int argc, char *argv[]) {
 		switch(error) {
 			default: break;
 			case ::Machine::Error::MissingROM:
-				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/." << std::endl;
+				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath." << std::endl;
 				std::cerr << "One or more of the following were needed but not found:" << std::endl;
 				for(const auto &name: rom_names) {
 					std::cerr << machine_name << '/' << name << std::endl;
