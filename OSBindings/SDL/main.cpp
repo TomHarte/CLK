@@ -156,11 +156,11 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 			std::size_t split_index = argument.find("=");
 
 			if(split_index == std::string::npos) {
-				arguments.selections[argument] = std::make_unique<Configurable::BooleanSelection>(true);
+				arguments.selections[argument].reset(new Configurable::BooleanSelection(true));
 			} else {
 				std::string name = argument.substr(0, split_index);
 				std::string value = argument.substr(split_index+1, std::string::npos);
-				arguments.selections[name] = std::make_unique<Configurable::ListSelection>(value);
+				arguments.selections[name].reset(new Configurable::ListSelection(value));
 			}
 		} else {
 			arguments.file_name = arg;
