@@ -56,7 +56,7 @@ void TextureTarget::bind_texture() {
 	glBindTexture(GL_TEXTURE_2D, texture_);
 }
 
-void TextureTarget::draw(float aspect_ratio) {
+void TextureTarget::draw(float aspect_ratio, float colour_threshold) {
 	if(!pixel_shader_) {
 		const char *vertex_shader =
 			"#version 150\n"
@@ -75,12 +75,15 @@ void TextureTarget::draw(float aspect_ratio) {
 			"#version 150\n"
 
 			"in vec2 texCoordVarying;"
+
 			"uniform sampler2D texID;"
+			"uniform float threshold;"
+
 			"out vec4 fragColour;"
 
 			"void main(void)"
 			"{"
-				"fragColour = texture(texID, texCoordVarying);"
+				"fragColour = clamp(texture(texID, texCoordVarying), threshold, 1.0);"
 			"}";
 		pixel_shader_.reset(new Shader(vertex_shader, fragment_shader));
 		pixel_shader_->bind();
@@ -103,6 +106,8 @@ void TextureTarget::draw(float aspect_ratio) {
 
 		GLint texIDUniform = pixel_shader_->get_uniform_location("texID");
 		glUniform1i(texIDUniform, static_cast<GLint>(texture_unit_ - GL_TEXTURE0));
+
+		threshold_uniform_ = pixel_shader_->get_uniform_location("threshold");
 	}
 
 	if(set_aspect_ratio_ != aspect_ratio) {
@@ -134,6 +139,8 @@ void TextureTarget::draw(float aspect_ratio) {
 	}
 
 	pixel_shader_->bind();
+	glUniform1f(threshold_uniform_, colour_threshold);
+
 	glBindVertexArray(drawing_vertex_array_);
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }

@@ -238,14 +238,15 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 //	glTextureBarrierNV();
 #endif
 
-	// copy framebuffer to the intended place
+	// Copy framebuffer to the intended place; apply a threshold so that any persistent errors in
+	// the lower part of the colour channels are invisible.
 	glDisable(GL_BLEND);
 	glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(target_framebuffer_));
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 
 	glActiveTexture(pixel_accumulation_texture_unit);
 	framebuffer_->bind_texture();
-	framebuffer_->draw(static_cast<float>(output_width) / static_cast<float>(output_height));
+	framebuffer_->draw(static_cast<float>(output_width) / static_cast<float>(output_height), 4.0f / 255.0f);
 
 	fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 	draw_mutex_.unlock();

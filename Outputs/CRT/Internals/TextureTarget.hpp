@@ -58,9 +58,17 @@ class TextureTarget {
 		}
 
 		/*!
+			Draws this texture to the currently-bound framebuffer, which has the aspect ratio
+			@c aspect_ratio. This texture will fill the height of the frame buffer, and pick
+			an appropriate width based o the aspect ratio.
 
+			@c colour_threshold sets a threshold test that each colour must satisfy to be
+			output. A threshold of 0.0f means that all colours will pass through. A threshold
+			of 0.5f means that only colour components above 0.5f will pass through, with
+			0.5f being substituted elsewhere. This provides a way to ensure that the sort of
+			persistent low-value errors that can result from an IIR are hidden.
 		*/
-		void draw(float aspect_ratio);
+		void draw(float aspect_ratio, float colour_threshold = 0.0f);
 
 		enum {
 			ErrorFramebufferIncomplete
@@ -75,6 +83,8 @@ class TextureTarget {
 		std::unique_ptr<Shader> pixel_shader_;
 		GLuint drawing_vertex_array_ = 0, drawing_array_buffer_ = 0;
 		float set_aspect_ratio_ = 0.0f;
+
+		GLint threshold_uniform_;
 };
 
 }
