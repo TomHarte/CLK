@@ -102,7 +102,7 @@ class MachineDocument:
 		}
 	}
 
-	func machineSpeakerDidChangeInputClock(_ machine: CSMachine!) {
+	func machineSpeakerDidChangeInputClock(_ machine: CSMachine) {
 		setupAudioQueueClockRate()
 	}
 
@@ -147,6 +147,7 @@ class MachineDocument:
 			self.machine = machine
 			self.optionsPanelNibName = analysis.optionsPanelNibName
 			setupMachineOutput()
+			setupActivityDisplay()
 		}
 	}
 
@@ -289,5 +290,44 @@ class MachineDocument:
 			}
 		}
 		return super.validateUserInterfaceItem(item)
+	}
+
+	// MARK: Activity display.
+	func setupActivityDisplay() {
+		return
+
+		if machine.leds.count > 0 {
+			let panel = NSPanel()
+			panel.title = "Activity"
+			panel.styleMask = .hudWindow
+			panel.setIsVisible(true)
+
+			for name in machine.leds {
+				let button = NSButton()
+				button.title = name
+				button.setButtonType(.radio)
+				button.translatesAutoresizingMaskIntoConstraints = false
+				button.isEnabled = false
+//				button.color
+				panel.contentView?.addSubview(button)
+
+				let views = ["button": button]
+				let horizontalConstraints =
+					NSLayoutConstraint.constraints(
+						withVisualFormat: "H:|-[button]-|",
+						options: NSLayoutConstraint.FormatOptions(rawValue: 0),
+						metrics: nil,
+						views: views)
+				let verticalConstraints =
+					NSLayoutConstraint.constraints(
+						withVisualFormat: "V:|-[button]-|",
+						options: NSLayoutConstraint.FormatOptions(rawValue: 0),
+						metrics: nil,
+						views: views)
+
+				panel.contentView?.addConstraints(horizontalConstraints)
+				panel.contentView?.addConstraints(verticalConstraints)
+			}
+		}
 	}
 }
