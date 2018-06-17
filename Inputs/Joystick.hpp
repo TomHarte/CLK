@@ -188,11 +188,11 @@ class ConcreteJoystick: public Joystick {
 				default: 			did_set_input(input, value > 0.5f);											break;
 				case Type::Horizontal:
 					did_set_input(Input(Type::Left, input.info.control.index), value <= 0.25f);
-					did_set_input(Input(Type::Right, input.info.control.index), value >= 0.25f);
+					did_set_input(Input(Type::Right, input.info.control.index), value >= 0.75f);
 				break;
 				case Type::Vertical:
 					did_set_input(Input(Type::Up, input.info.control.index), value <= 0.25f);
-					did_set_input(Input(Type::Down, input.info.control.index), value >= 0.25f);
+					did_set_input(Input(Type::Down, input.info.control.index), value >= 0.75f);
 				break;
 			}
 		}
