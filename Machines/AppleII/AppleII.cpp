@@ -584,7 +584,7 @@ class ConcreteMachine:
 			}
 
 			// Update analogue charge level.
-			analogue_charge_ = std::min(analogue_charge_ + 1.0f / 2820.0f, 1.0f);
+			analogue_charge_ = std::min(analogue_charge_ + 1.0f / 2820.0f, 1.1f);
 
 			return Cycles(1);
 		}
