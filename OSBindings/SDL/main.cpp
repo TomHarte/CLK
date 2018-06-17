@@ -416,12 +416,49 @@ int main(int argc, char *argv[]) {
 	}
 
 	// If this is a joystick machine, check for and open attached joysticks.
-	std::vector<std::unique_ptr<SDL_Joystick, decltype(&SDL_JoystickClose)>> joysticks;
+	/*!
+		Provides a wrapper for SDL_Joystick pointers that can keep track
+		of historic hat values.
+	*/
+	class SDLJoystick {
+		public:
+			SDLJoystick(SDL_Joystick *joystick) : joystick_(joystick) {
+				hat_values_.resize(SDL_JoystickNumHats(joystick));
+			}
+
+			~SDLJoystick() {
+				SDL_JoystickClose(joystick_);
+			}
+
+			/// @returns The underlying SDL_Joystick.
+			SDL_Joystick *get() {
+				return joystick_;
+			}
+
+			/// @returns A reference to the storage for the previous state of hat @c c.
+			Uint8 &last_hat_value(int c) {
+				return hat_values_[c];
+			}
+
+			/// @returns The logic OR of all stored hat states.
+			Uint8 hat_values() {
+				Uint8 value = 0;
+				for(const auto hat_value: hat_values_) {
+					value |= hat_value;
+				}
+				return value;
+			}
+
+		private:
+			SDL_Joystick *joystick_;
+			std::vector<Uint8> hat_values_;
+	};
+	std::vector<SDLJoystick> joysticks;
 	JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
 	if(joystick_machine) {
 		SDL_InitSubSystem(SDL_INIT_JOYSTICK);
 		for(int c = 0; c < SDL_NumJoysticks(); ++c) {
-			joysticks.emplace_back(SDL_JoystickOpen(c), &SDL_JoystickClose);
+			joysticks.emplace_back(SDL_JoystickOpen(c));
 		}
 	}
 
@@ -529,11 +566,38 @@ int main(int argc, char *argv[]) {
 			for(size_t c = 0; c < joysticks.size(); ++c) {
 				size_t target = c % machine_joysticks.size();
 
-				const float x_axis = static_cast<float>(SDL_JoystickGetAxis(joysticks[c].get(), 0) + 32768) / 65536.0f;
-				const float y_axis = static_cast<float>(SDL_JoystickGetAxis(joysticks[c].get(), 1) + 32768) / 65536.0f;
-				machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Horizontal), x_axis);
-				machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Vertical), y_axis);
+				// Post the first two analogue axes presented by the controller as horizontal and vertical inputs,
+				// unless the user seems to be using a hat.
+				// SDL will return a value in the range [-32768, 32767], so map from that to [0, 1.0]
+				if(!joysticks[c].hat_values()) {
+					const float x_axis = static_cast<float>(SDL_JoystickGetAxis(joysticks[c].get(), 0) + 32768) / 65535.0f;
+					const float y_axis = static_cast<float>(SDL_JoystickGetAxis(joysticks[c].get(), 1) + 32768) / 65535.0f;
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Horizontal), x_axis);
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Vertical), y_axis);
+				}
 
+				// Forward hats as directions; hats always override analogue inputs.
+				const int number_of_hats = SDL_JoystickNumHats(joysticks[c].get());
+				for(int hat = 0; hat < number_of_hats; ++hat) {
+					const Uint8 hat_value = SDL_JoystickGetHat(joysticks[c].get(), hat);
+					const Uint8 changes = hat_value ^ joysticks[c].last_hat_value(hat);
+					joysticks[c].last_hat_value(hat) = hat_value;
+
+					if(changes & SDL_HAT_UP) {
+						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Up), !!(hat_value & SDL_HAT_UP));
+					}
+					if(changes & SDL_HAT_DOWN) {
+						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Down), !!(hat_value & SDL_HAT_DOWN));
+					}
+					if(changes & SDL_HAT_LEFT) {
+						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Left), !!(hat_value & SDL_HAT_LEFT));
+					}
+					if(changes & SDL_HAT_RIGHT) {
+						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Right), !!(hat_value & SDL_HAT_RIGHT));
+					}
+				}
+
+				// Forward all fire buttons, retaining their original indices.
 				const int number_of_buttons = SDL_JoystickNumButtons(joysticks[c].get());
 				for(int button = 0; button < number_of_buttons; ++button) {
 					machine_joysticks[target]->set_input(
