@@ -146,10 +146,16 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="View" id="HyV-fh-RgO">
                         <items>
-                            <menuItem title="Show Options" keyEquivalent="o" id="WCd-6R-baV">
+                            <menuItem title="Show Activity" keyEquivalent="a" id="WCd-6R-baV">
                                 <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
                                 <connections>
-                                    <action selector="showOptions:" target="-1" id="ge3-Qg-kb5"/>
+                                    <action selector="showActivity:" target="-1" id="oeF-uJ-cOS"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Show Options" keyEquivalent="o" id="GtG-CV-Uro">
+                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                                <connections>
+                                    <action selector="showOptions:" target="-1" id="M6T-DE-Duo"/>
                                 </connections>
                             </menuItem>
                         </items>

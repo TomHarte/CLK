@@ -40,6 +40,11 @@ class MachineDocument:
 		optionsPanel?.setIsVisible(true)
 	}
 
+	@IBOutlet var activityPanel: NSPanel!
+	@IBAction func showActivity(_ sender: AnyObject!) {
+		activityPanel.setIsVisible(true)
+	}
+
 	fileprivate var audioQueue: CSAudioQueue! = nil
 	fileprivate var bestEffortUpdater: CSBestEffortUpdater?
 
@@ -119,6 +124,9 @@ class MachineDocument:
 	}
 
 	override func close() {
+		activityPanel?.setIsVisible(false)
+		activityPanel = nil
+
 		optionsPanel?.setIsVisible(false)
 		optionsPanel = nil
 
@@ -286,6 +294,9 @@ class MachineDocument:
 					menuItem.state = machine.inputMode == .joystick ? .on : .off
 					return true
 
+				case #selector(self.showActivity(_:)):
+					return self.activityPanel != nil
+
 				default: break
 			}
 		}
@@ -293,40 +304,42 @@ class MachineDocument:
 	}
 
 	// MARK: Activity display.
+	fileprivate var activityLevelIndicators: [String: NSLevelIndicator] = [:]
 	func setupActivityDisplay() {
-		return
+		var leds = machine.leds
+		if leds.count > 0 {
+			Bundle.main.loadNibNamed(NSNib.Name(rawValue: "Activity"), owner: self, topLevelObjects: nil)
+			showActivity(nil)
 
-		if machine.leds.count > 0 {
-			let panel = NSPanel()
-			panel.title = "Activity"
-			panel.styleMask = .hudWindow
-			panel.setIsVisible(true)
+			// Inspect the activity panel for indicators.
+			var activityIndicators: [NSLevelIndicator] = []
+			var textFields: [NSTextField] = []
+			if let contentView = self.activityPanel.contentView {
+				for view in contentView.subviews {
+					if let levelIndicator = view as? NSLevelIndicator {
+						activityIndicators.append(levelIndicator)
+					}
 
-			for name in machine.leds {
-				let button = NSButton()
-				button.title = name
-				button.setButtonType(.radio)
-				button.translatesAutoresizingMaskIntoConstraints = false
-				button.isEnabled = false
-//				button.color
-				panel.contentView?.addSubview(button)
+					if let textField = view as? NSTextField {
+						textFields.append(textField)
+					}
+				}
+			}
 
-				let views = ["button": button]
-				let horizontalConstraints =
-					NSLayoutConstraint.constraints(
-						withVisualFormat: "H:|-[button]-|",
-						options: NSLayoutConstraint.FormatOptions(rawValue: 0),
-						metrics: nil,
-						views: views)
-				let verticalConstraints =
-					NSLayoutConstraint.constraints(
-						withVisualFormat: "V:|-[button]-|",
-						options: NSLayoutConstraint.FormatOptions(rawValue: 0),
-						metrics: nil,
-						views: views)
+			// If there are fewer level indicators than LEDs, trim that list.
+			if activityIndicators.count < leds.count {
+				leds.removeSubrange(activityIndicators.count ..< leds.count)
+			}
 
-				panel.contentView?.addConstraints(horizontalConstraints)
-				panel.contentView?.addConstraints(verticalConstraints)
+			// Remove unused views.
+			for c in leds.count ..< activityIndicators.count {
+				textFields[c].removeFromSuperview()
+				activityIndicators[c].removeFromSuperview()
+			}
+
+			// Apply labels.
+			for c in 0 ..< leds.count {
+				textFields[c].stringValue = leds[c]
 			}
 		}
 	}
