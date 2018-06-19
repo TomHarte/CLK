@@ -7,7 +7,9 @@
 //
 
 #include "1770.hpp"
+
 #include "../../Storage/Disk/Encodings/MFM/Constants.hpp"
+#include "../../Outputs/Log.hpp"
 
 using namespace WD;
 
@@ -25,10 +27,10 @@ void WD1770::set_register(int address, uint8_t value) {
 			if((value&0xf0) == 0xd0) {
 				if(value == 0xd0) {
 					// Force interrupt **immediately**.
-					printf("Force interrupt immediately\n");
+					LOG("Force interrupt immediately");
 					posit_event(static_cast<int>(Event1770::ForceInterrupt));
 				} else {
-					printf("!!!TODO: force interrupt!!!\n");
+					ERROR("!!!TODO: force interrupt!!!");
 					update_status([] (Status &status) {
 						status.type = Status::One;
 					});
@@ -193,7 +195,7 @@ void WD1770::posit_event(int new_event_type) {
 	// Wait for a new command, branch to the appropriate handler.
 	case 0:
 	wait_for_command:
-		printf("Idle...\n");
+		LOG("Idle...");
 		set_data_mode(DataMode::Scanning);
 		index_hole_count_ = 0;
 
@@ -209,7 +211,7 @@ void WD1770::posit_event(int new_event_type) {
 			status.interrupt_request = false;
 		});
 
-		printf("Starting %02x\n", command_);
+		LOG("Starting " << std::hex << command_ << std::endl);
 
 		if(!(command_ & 0x80)) goto begin_type_1;
 		if(!(command_ & 0x40)) goto begin_type_2;
@@ -327,7 +329,7 @@ void WD1770::posit_event(int new_event_type) {
 			}
 
 			if(header_[0] == track_) {
-				printf("Reached track %d\n", track_);
+				LOG("Reached track " << std::dec << track_);
 				update_status([] (Status &status) {
 					status.crc_error = false;
 				});
@@ -396,20 +398,20 @@ void WD1770::posit_event(int new_event_type) {
 		READ_ID();
 
 		if(index_hole_count_ == 5) {
-			printf("Failed to find sector %d\n", sector_);
+			LOG("Failed to find sector " << std::dec << sector_);
 			update_status([] (Status &status) {
 				status.record_not_found = true;
 			});
 			goto wait_for_command;
 		}
 		if(distance_into_section_ == 7) {
-			printf("Considering %d/%d\n", header_[0], header_[2]);
+			LOG("Considering " << std::dec << header_[0] << "/" << header_[2]);
 			set_data_mode(DataMode::Scanning);
 			if(		header_[0] == track_ && header_[2] == sector_ &&
 					(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1])) {
-				printf("Found %d/%d\n", header_[0], header_[2]);
+				LOG("Found " << std::dec << header_[0] << "/" << header_[2]);
 				if(get_crc_generator().get_value()) {
-					printf("CRC error; back to searching\n");
+					LOG("CRC error; back to searching");
 					update_status([] (Status &status) {
 						status.crc_error = true;
 					});
@@ -465,7 +467,7 @@ void WD1770::posit_event(int new_event_type) {
 		distance_into_section_++;
 		if(distance_into_section_ == 2) {
 			if(get_crc_generator().get_value()) {
-				printf("CRC error; terminating\n");
+				LOG("CRC error; terminating");
 				update_status([this] (Status &status) {
 					status.crc_error = true;
 				});
@@ -476,7 +478,7 @@ void WD1770::posit_event(int new_event_type) {
 				sector_++;
 				goto test_type2_write_protection;
 			}
-			printf("Finished reading sector %d\n", sector_);
+			LOG("Finished reading sector " << std::dec << sector_);
 			goto wait_for_command;
 		}
 		goto type2_check_crc;
@@ -558,7 +560,7 @@ void WD1770::posit_event(int new_event_type) {
 			sector_++;
 			goto test_type2_write_protection;
 		}
-		printf("Wrote sector %d\n", sector_);
+		LOG("Wrote sector " << std::dec << sector_);
 		goto wait_for_command;
 
 
