@@ -971,7 +971,6 @@ class ConcreteMachine:
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override final {
 			fdc_is_sleeping_ = fdc_.preferred_clocking() == ClockingHint::Preference::None;
 			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
-			printf("FDC: %s, tape %s\n", fdc_is_sleeping_ ? "sleeping" : "regular", tape_player_is_sleeping_ ? "sleeping" : "regular");
 		}
 
 // MARK: - Keyboard
