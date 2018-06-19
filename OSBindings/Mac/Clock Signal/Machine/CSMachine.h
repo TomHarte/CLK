@@ -16,6 +16,8 @@
 @class CSMachine;
 @protocol CSMachineDelegate
 - (void)machineSpeakerDidChangeInputClock:(nonnull CSMachine *)machine;
+- (void)machine:(nonnull CSMachine *)machine led:(nonnull NSString *)led didChangeToLit:(BOOL)isLit;
+- (void)machine:(nonnull CSMachine *)machine ledShouldBlink:(nonnull NSString *)led;
 @end
 
 typedef NS_ENUM(NSInteger, CSMachineVideoSignal) {

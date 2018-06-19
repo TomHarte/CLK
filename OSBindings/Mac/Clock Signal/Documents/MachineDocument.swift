@@ -304,7 +304,15 @@ class MachineDocument:
 	}
 
 	// MARK: Activity display.
-	fileprivate var activityLevelIndicators: [String: NSLevelIndicator] = [:]
+	class LED {
+		let levelIndicator: NSLevelIndicator
+		init(levelIndicator: NSLevelIndicator) {
+			self.levelIndicator = levelIndicator
+		}
+		var isLit = false
+		var isBlinking = false
+	}
+	fileprivate var leds: [String: LED] = [:]
 	func setupActivityDisplay() {
 		var leds = machine.leds
 		if leds.count > 0 {
@@ -337,9 +345,39 @@ class MachineDocument:
 				activityIndicators[c].removeFromSuperview()
 			}
 
-			// Apply labels.
+			// Apply labels and create leds entries.
 			for c in 0 ..< leds.count {
 				textFields[c].stringValue = leds[c]
+				self.leds[leds[c]] = LED(levelIndicator: activityIndicators[c])
+			}
+		}
+	}
+
+	func machine(_ machine: CSMachine, ledShouldBlink ledName: String) {
+		// If there is such an LED, switch it off for 0.03 of a second; if it's meant
+		// to be off at the end of that, leave it off. Don't allow the blinks to
+		// pile up — allow there to be only one in flight at a time.
+		if let led = leds[ledName] {
+			DispatchQueue.main.async {
+				if !led.isBlinking {
+					led.levelIndicator.floatValue = 0.0
+					led.isBlinking = true
+
+					DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
+						led.levelIndicator.floatValue = led.isLit ? 1.0 : 0.0
+						led.isBlinking = false
+					}
+				}
+			}
+		}
+	}
+
+	func machine(_ machine: CSMachine, led ledName: String, didChangeToLit isLit: Bool) {
+		// If there is such an LED, switch it appropriately.
+		if let led = leds[ledName] {
+			DispatchQueue.main.async {
+				led.levelIndicator.floatValue = isLit ? 1.0 : 0.0
+				led.isLit = isLit
 			}
 		}
 	}

@@ -28,7 +28,7 @@
                         <constraints>
                             <constraint firstAttribute="width" secondItem="ySY-ir-hzb" secondAttribute="height" multiplier="1:1" id="UX0-hT-7Td"/>
                         </constraints>
-                        <levelIndicatorCell key="cell" alignment="left" doubleValue="1" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="DhQ-Di-tRT"/>
+                        <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="DhQ-Di-tRT"/>
                     </levelIndicator>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Tah-UQ-vdf">
                         <rect key="frame" x="44" y="94" width="59" height="17"/>
@@ -43,7 +43,7 @@
                         <constraints>
                             <constraint firstAttribute="width" secondItem="ncQ-wN-C61" secondAttribute="height" multiplier="1:1" id="176-v3-mVW"/>
                         </constraints>
-                        <levelIndicatorCell key="cell" alignment="left" doubleValue="1" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="jlb-bk-FPd"/>
+                        <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="jlb-bk-FPd"/>
                     </levelIndicator>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="14O-Lq-Npx">
                         <rect key="frame" x="44" y="69" width="61" height="17"/>
@@ -58,7 +58,7 @@
                         <constraints>
                             <constraint firstAttribute="width" secondItem="0rV-Th-Zwt" secondAttribute="height" multiplier="1:1" id="Ai8-b3-Nn5"/>
                         </constraints>
-                        <levelIndicatorCell key="cell" alignment="left" doubleValue="1" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="CJy-Jn-eCL"/>
+                        <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="CJy-Jn-eCL"/>
                     </levelIndicator>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Acy-tT-OFH">
                         <rect key="frame" x="44" y="44" width="61" height="17"/>
@@ -73,7 +73,7 @@
                         <constraints>
                             <constraint firstAttribute="width" secondItem="bvH-EJ-TYb" secondAttribute="height" multiplier="1:1" id="cKc-q1-2Q4"/>
                         </constraints>
-                        <levelIndicatorCell key="cell" alignment="left" doubleValue="1" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="eoN-hl-30l"/>
+                        <levelIndicatorCell key="cell" alignment="left" maxValue="1" warningValue="2" criticalValue="2" levelIndicatorStyle="continuousCapacity" id="eoN-hl-30l"/>
                     </levelIndicator>
                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="R0g-Oa-VB5">
                         <rect key="frame" x="44" y="19" width="62" height="17"/>
