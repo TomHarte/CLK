@@ -18,17 +18,18 @@ class Plus3 : public WD::WD1770 {
 	public:
 		Plus3();
 
-		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive);
+		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive);
 		void set_control_register(uint8_t control);
 		void set_activity_observer(Activity::Observer *observer);
 
 	private:
 		void set_control_register(uint8_t control, uint8_t changes);
-		std::shared_ptr<Storage::Disk::Drive> drives_[2];
+		std::vector<std::shared_ptr<Storage::Disk::Drive>> drives_;
 		int selected_drive_ = 0;
 		uint8_t last_control_ = 0;
 
 		void set_motor_on(bool on);
+		std::string drive_name(size_t drive);
 };
 
 }
