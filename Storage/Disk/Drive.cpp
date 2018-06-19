@@ -113,7 +113,6 @@ bool Drive::get_is_read_only() {
 }
 
 bool Drive::get_is_ready() {
-	return true;
 	return ready_index_count_ == 2;
 }
 

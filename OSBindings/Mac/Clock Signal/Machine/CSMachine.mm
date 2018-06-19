@@ -18,6 +18,7 @@
 #include "MachineForTarget.hpp"
 #include "StandardOptions.hpp"
 #include "Typer.hpp"
+#include "../../../../Activity/Observer.hpp"
 
 #import "CSStaticAnalyser+TargetVector.h"
 #import "NSBundle+DataResource.h"
@@ -28,6 +29,7 @@
 @interface CSMachine() <CSFastLoading>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
+- (void)addLED:(NSString *)led;
 @end
 
 struct LockProtectedDelegate {
@@ -50,14 +52,38 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 	}
 };
 
+struct ActivityObserver: public Activity::Observer {
+	void register_led(const std::string &name) override {
+		[machine addLED:[NSString stringWithUTF8String:name.c_str()]];
+	}
+
+	void register_drive(const std::string &name) override {
+	}
+
+	void set_led_status(const std::string &name, bool lit) override {
+		[machine.delegate machine:machine led:[NSString stringWithUTF8String:name.c_str()] didChangeToLit:lit];
+	}
+
+	void announce_drive_event(const std::string &name, DriveEvent event) override {
+		[machine.delegate machine:machine ledShouldBlink:[NSString stringWithUTF8String:name.c_str()]];
+	}
+
+	void set_drive_motor_status(const std::string &name, bool is_on) override {
+	}
+
+	__unsafe_unretained CSMachine *machine;
+};
+
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
+	ActivityObserver _activityObserver;
 	NSLock *_delegateMachineAccessLock;
 
 	CSStaticAnalyser *_analyser;
 	std::unique_ptr<Machine::DynamicMachine> _machine;
 
 	std::bitset<65536> _depressedKeys;
+	NSMutableArray<NSString *> *_leds;
 }
 
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result {
@@ -70,6 +96,13 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 		if(!_machine) return nil;
 
 		_inputMode = _machine->keyboard_machine() ? CSMachineKeyboardInputModeKeyboard : CSMachineKeyboardInputModeJoystick;
+
+		_leds = [[NSMutableArray alloc] init];
+		Activity::Source *const activity_source = _machine->activity_source();
+		if(activity_source) {
+			_activityObserver.machine = self;
+			activity_source->set_activity_observer(&_activityObserver);
+		}
 
 		_delegateMachineAccessLock = [[NSLock alloc] init];
 
@@ -406,6 +439,16 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 
 - (BOOL)hasKeyboard {
 	return !!_machine->keyboard_machine();
+}
+
+#pragma mark - Activity observation
+
+- (void)addLED:(NSString *)led {
+	[_leds addObject:led];
+}
+
+- (NSArray<NSString *> *)leds {
+	return _leds;
 }
 
 @end

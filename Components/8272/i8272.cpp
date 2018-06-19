@@ -7,9 +7,8 @@
 //
 
 #include "i8272.hpp"
-//#include "../../Storage/Disk/Encodings/MFM/Encoder.hpp"
 
-#include <cstdio>
+#include "../../Outputs/Log.hpp"
 
 using namespace Intel::i8272;
 
@@ -115,7 +114,7 @@ void i8272::run_for(Cycles cycles) {
 				while(steps--) {
 					// Perform a step.
 					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
-					printf("Target %d versus believed %d\n", drives_[c].target_head_position, drives_[c].head_position);
+					LOG("Target " << std::dec << drives_[c].target_head_position << " versus believed " << drives_[c].head_position);
 					select_drive(c);
 					get_drive().step(Storage::Disk::HeadPosition(direction));
 					if(drives_[c].target_head_position >= 0) drives_[c].head_position += direction;
@@ -386,17 +385,17 @@ void i8272::posit_event(int event_type) {
 		// the index hole limit is breached or a sector is found with a cylinder, head, sector and size equal to the
 		// values in the internal registers.
 			index_hole_limit_ = 2;
-//			printf("Seeking %02x %02x %02x %02x\n", cylinder_, head_, sector_, size_);
+//			LOG("Seeking " << std::dec << cylinder_ << " " << head_ " " << sector_ << " " << size_);
 		find_next_sector:
 			FIND_HEADER();
 			if(!index_hole_limit_) {
 				// Two index holes have passed wihout finding the header sought.
-//				printf("Not found\n");
+//				LOG("Not found");
 				SetNoData();
 				goto abort;
 			}
 			index_hole_count_ = 0;
-//			printf("Header\n");
+//			LOG("Header");
 			READ_HEADER();
 			if(index_hole_count_) {
 				// This implies an index hole was sighted within the header. Error out.
@@ -407,11 +406,11 @@ void i8272::posit_event(int event_type) {
 				// This implies a CRC error in the header; mark as such but continue.
 				SetDataError();
 			}
-//			printf("Considering %02x %02x %02x %02x [%04x]\n", header_[0], header_[1], header_[2], header_[3], get_crc_generator().get_value());
+//			LOG("Considering << std::hex << header_[0] << " " << header_[1] << " " << header_[2] << " " << header_[3] << " [" << get_crc_generator().get_value() << "]");
 			if(header_[0] != cylinder_ || header_[1] != head_ || header_[2] != sector_ || header_[3] != size_) goto find_next_sector;
 
 			// Branch to whatever is supposed to happen next
-//			printf("Proceeding\n");
+//			LOG("Proceeding");
 			switch(command_[0] & 0x1f) {
 				case CommandReadData:
 				case CommandReadDeletedData:
@@ -425,7 +424,7 @@ void i8272::posit_event(int event_type) {
 
 	// Performs the read data or read deleted data command.
 	read_data:
-			printf("Read [deleted] data [%02x %02x %02x %02x ... %02x %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[6], command_[8]);
+			LOG("Read [deleted] data [" << std::hex << command_[2] << " " << command_[3] << " " << command_[4] << " " << command_[5] << " ... " << command_[6] << " " << command_[8]  << "]");
 		read_next_data:
 			goto read_write_find_header;
 
@@ -509,7 +508,7 @@ void i8272::posit_event(int event_type) {
 			goto post_st012chrn;
 
 	write_data:
-			printf("Write [deleted] data [%02x %02x %02x %02x ... %02x %02x]\n", command_[2], command_[3], command_[4], command_[5], command_[6], command_[8]);
+			LOG("Write [deleted] data [" << std::hex << command_[2] << " " << command_[3] << " " << command_[4] << " " << command_[5] << " ... " << command_[6] << " " << command_[8]  << "]");
 
 			if(get_drive().get_is_read_only()) {
 				SetNotWriteable();
@@ -544,7 +543,7 @@ void i8272::posit_event(int event_type) {
 				goto write_loop;
 			}
 
-			printf("Wrote %d bytes\n", distance_into_section_);
+			LOG("Wrote " << std::dec << distance_into_section_ << " bytes");
 			write_crc();
 			expects_input_ = false;
 			WAIT_FOR_EVENT(Event::DataWritten);
@@ -560,7 +559,7 @@ void i8272::posit_event(int event_type) {
 	// Performs the read ID command.
 	read_id:
 		// Establishes the drive and head being addressed, and whether in double density mode.
-			printf("Read ID [%02x %02x]\n", command_[0], command_[1]);
+			LOG("Read ID [" << std::hex << command_[0] << " " << command_[1] << "]");
 
 		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many index holes.
 		// If a header mark is found, reads in the following bytes that produce a header. Otherwise branches to data not found.
@@ -582,7 +581,7 @@ void i8272::posit_event(int event_type) {
 
 	// Performs read track.
 	read_track:
-			printf("Read track [%02x %02x %02x %02x]\n", command_[2], command_[3], command_[4], command_[5]);
+			LOG("Read track [" << std::hex << command_[2] << " " << command_[3] << " " << command_[4] << " " << command_[5] << "]");
 
 			// Wait for the index hole.
 			WAIT_FOR_EVENT(Event::IndexHole);
@@ -623,7 +622,7 @@ void i8272::posit_event(int event_type) {
 
 	// Performs format [/write] track.
 	format_track:
-			printf("Format track\n");
+			LOG("Format track");
 			if(get_drive().get_is_read_only()) {
 				SetNotWriteable();
 				goto abort;
@@ -667,7 +666,7 @@ void i8272::posit_event(int event_type) {
 				break;
 			}
 
-			printf("W: %02x %02x %02x %02x, %04x\n", header_[0], header_[1], header_[2], header_[3], get_crc_generator().get_value());
+			LOG("W: " << std::hex << header_[0] << " " << header_[1] << " " << header_[2] << " " << header_[3] << ", " << get_crc_generator().get_value());
 			write_crc();
 
 			// Write the sector body.
@@ -699,15 +698,15 @@ void i8272::posit_event(int event_type) {
 		goto post_st012chrn;
 
 	scan_low:
-		printf("Scan low unimplemented!!\n");
+		ERROR("Scan low unimplemented!!");
 		goto wait_for_command;
 
 	scan_low_or_equal:
-		printf("Scan low or equal unimplemented!!\n");
+		ERROR("Scan low or equal unimplemented!!");
 		goto wait_for_command;
 
 	scan_high_or_equal:
-		printf("Scan high or equal unimplemented!!\n");
+		ERROR("Scan high or equal unimplemented!!");
 		goto wait_for_command;
 
 	// Performs both recalibrate and seek commands. These commands occur asynchronously, so the actual work
@@ -738,11 +737,11 @@ void i8272::posit_event(int event_type) {
 				// up in run_for understands to mean 'keep going until track 0 is active').
 				if(command_.size() > 2) {
 					drives_[drive].target_head_position = command_[2];
-					printf("Seek to %02x\n", command_[2]);
+					LOG("Seek to " << std::hex << command_[2]);
 				} else {
 					drives_[drive].target_head_position = -1;
 					drives_[drive].head_position = 0;
-					printf("Recalibrate\n");
+					LOG("Recalibrate");
 				}
 
 				// Check whether any steps are even needed; if not then mark as completed already.
@@ -755,7 +754,7 @@ void i8272::posit_event(int event_type) {
 
 	// Performs sense interrupt status.
 	sense_interrupt_status:
-			printf("Sense interrupt status\n");
+			LOG("Sense interrupt status");
 			{
 				// Find the first drive that is in the CompletedSeeking state.
 				int found_drive = -1;
@@ -783,7 +782,7 @@ void i8272::posit_event(int event_type) {
 	// Performs specify.
 	specify:
 		// Just store the values, and terminate the command.
-			printf("Specify\n");
+			LOG("Specify");
 			step_rate_time_ = 16 - (command_[1] >> 4);			// i.e. 1 to 16ms
 			head_unload_time_ = (command_[1] & 0x0f) << 4;		// i.e. 16 to 240ms
 			head_load_time_ = command_[2] & ~1;					// i.e. 2 to 254 ms in increments of 2ms
@@ -794,7 +793,7 @@ void i8272::posit_event(int event_type) {
 			goto wait_for_command;
 
 	sense_drive_status:
-			printf("Sense drive status\n");
+			LOG("Sense drive status");
 			{
 				int drive = command_[1] & 3;
 				select_drive(drive);
@@ -833,11 +832,11 @@ void i8272::posit_event(int event_type) {
 	// Posts whatever is in result_stack_ as a result phase. Be aware that it is a stack, so the
 	// last thing in it will be returned first.
 	post_result:
-			printf("Result to %02x, main %02x: ", command_[0] & 0x1f, main_status_);
+			LOGNBR("Result to " << std::hex << (command_[0] & 0x1f) << ", main " << main_status_);
 			for(std::size_t c = 0; c < result_stack_.size(); c++) {
-				printf("%02x ", result_stack_[result_stack_.size() - 1 - c]);
+				LOGNBR(result_stack_[result_stack_.size() - 1 - c]);
 			}
-			printf("\n");
+			LOGNBR(std::endl);
 
 			// Set ready to send data to the processor, no longer in non-DMA execution phase.
 			is_executing_ = false;
