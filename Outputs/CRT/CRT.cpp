@@ -42,8 +42,16 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	// the gist for simple debugging
 	sync_capacitor_charge_threshold_ = ((vertical_sync_half_lines - 2) * cycles_per_line) >> 1;
 
-	// create the two flywheels
-	horizontal_flywheel_.reset(new Flywheel(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 6));
+	// Create the two flywheels:
+	//
+	// The horizontal flywheel has an ideal period of `multiplied_cycles_per_line`, will accept syncs
+	// within 1/32nd of that (i.e. tolerates 3.125% error) and takes millisecondsHorizontalRetraceTime
+	// to retrace.
+	//
+	// The vertical slywheel has an ideal period of `multiplied_cycles_per_line * height_of_display`,
+	// will accept syncs within 1/8th of that (i.e. tolerates 12.5% error) and takes scanlinesVerticalRetraceTime
+	// to retrace.
+	horizontal_flywheel_.reset(new Flywheel(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 5));
 	vertical_flywheel_.reset(new Flywheel(multiplied_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * multiplied_cycles_per_line, (multiplied_cycles_per_line * height_of_display) >> 3));
 
 	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
