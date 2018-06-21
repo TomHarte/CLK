@@ -114,7 +114,7 @@ void i8272::run_for(Cycles cycles) {
 				while(steps--) {
 					// Perform a step.
 					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
-					LOG("Target " << std::dec << drives_[c].target_head_position << " versus believed " << drives_[c].head_position);
+					LOG("Target " << std::dec << drives_[c].target_head_position << " versus believed " << static_cast<int>(drives_[c].head_position));
 					select_drive(c);
 					get_drive().step(Storage::Disk::HeadPosition(direction));
 					if(drives_[c].target_head_position >= 0) drives_[c].head_position += direction;
@@ -424,7 +424,14 @@ void i8272::posit_event(int event_type) {
 
 	// Performs the read data or read deleted data command.
 	read_data:
-			LOG("Read [deleted] data [" << std::hex << command_[2] << " " << command_[3] << " " << command_[4] << " " << command_[5] << " ... " << command_[6] << " " << command_[8]  << "]");
+			LOGNBR(std::hex << std::setw(2) << std::left << std::setfill('0'));
+			LOG("Read [deleted] data ["
+				<< static_cast<int>(command_[2]) << " "
+				<< static_cast<int>(command_[3]) << " "
+				<< static_cast<int>(command_[4]) << " "
+				<< static_cast<int>(command_[5]) << " ... "
+				<< static_cast<int>(command_[6]) << " "
+				<< static_cast<int>(command_[8]) << "]");
 		read_next_data:
 			goto read_write_find_header;
 
@@ -508,7 +515,14 @@ void i8272::posit_event(int event_type) {
 			goto post_st012chrn;
 
 	write_data:
-			LOG("Write [deleted] data [" << std::hex << command_[2] << " " << command_[3] << " " << command_[4] << " " << command_[5] << " ... " << command_[6] << " " << command_[8]  << "]");
+			LOGNBR(std::hex << std::setw(2) << std::left << std::setfill('0'));
+			LOG("Write [deleted] data ["
+				<< static_cast<int>(command_[2]) << " "
+				<< static_cast<int>(command_[3]) << " "
+				<< static_cast<int>(command_[4]) << " "
+				<< static_cast<int>(command_[5]) << " ... "
+				<< static_cast<int>(command_[6]) << " "
+				<< static_cast<int>(command_[8]) << "]");
 
 			if(get_drive().get_is_read_only()) {
 				SetNotWriteable();
@@ -559,7 +573,8 @@ void i8272::posit_event(int event_type) {
 	// Performs the read ID command.
 	read_id:
 		// Establishes the drive and head being addressed, and whether in double density mode.
-			LOG("Read ID [" << std::hex << command_[0] << " " << command_[1] << "]");
+			LOGNBR(std::hex << std::setw(2) << std::left << std::setfill('0'));
+			LOG("Read ID [" << static_cast<int>(command_[0]) << " " << static_cast<int>(command_[1]) << "]");
 
 		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many index holes.
 		// If a header mark is found, reads in the following bytes that produce a header. Otherwise branches to data not found.
@@ -581,7 +596,12 @@ void i8272::posit_event(int event_type) {
 
 	// Performs read track.
 	read_track:
-			LOG("Read track [" << std::hex << command_[2] << " " << command_[3] << " " << command_[4] << " " << command_[5] << "]");
+			LOGNBR(std::hex << std::setw(2) << std::left << std::setfill('0'));
+			LOG("Read track ["
+				<< static_cast<int>(command_[2]) << " "
+				<< static_cast<int>(command_[3]) << " "
+				<< static_cast<int>(command_[4]) << " "
+				<< static_cast<int>(command_[5]) << "]");
 
 			// Wait for the index hole.
 			WAIT_FOR_EVENT(Event::IndexHole);
@@ -666,7 +686,13 @@ void i8272::posit_event(int event_type) {
 				break;
 			}
 
-			LOG("W: " << std::hex << header_[0] << " " << header_[1] << " " << header_[2] << " " << header_[3] << ", " << get_crc_generator().get_value());
+			LOGNBR(std::hex << std::setw(2) << std::left << std::setfill('0'));
+			LOG("W:"
+				<< static_cast<int>(header_[0]) << " "
+				<< static_cast<int>(header_[1]) << " "
+				<< static_cast<int>(header_[2]) << " "
+				<< static_cast<int>(header_[3]) << ", "
+				<< get_crc_generator().get_value());
 			write_crc();
 
 			// Write the sector body.
@@ -737,7 +763,8 @@ void i8272::posit_event(int event_type) {
 				// up in run_for understands to mean 'keep going until track 0 is active').
 				if(command_.size() > 2) {
 					drives_[drive].target_head_position = command_[2];
-					LOG("Seek to " << std::hex << command_[2]);
+					LOGNBR(std::hex << std::setw(2) << std::left << std::setfill('0'));
+					LOG("Seek to " << static_cast<int>(command_[2]));
 				} else {
 					drives_[drive].target_head_position = -1;
 					drives_[drive].head_position = 0;
@@ -832,9 +859,10 @@ void i8272::posit_event(int event_type) {
 	// Posts whatever is in result_stack_ as a result phase. Be aware that it is a stack, so the
 	// last thing in it will be returned first.
 	post_result:
-			LOGNBR("Result to " << std::hex << (command_[0] & 0x1f) << ", main " << main_status_);
+			LOGNBR(std::hex << std::setw(2) << std::left << std::setfill('0'));
+			LOGNBR("Result to " << static_cast<int>(command_[0] & 0x1f) << ", main " << static_cast<int>(main_status_));
 			for(std::size_t c = 0; c < result_stack_.size(); c++) {
-				LOGNBR(result_stack_[result_stack_.size() - 1 - c]);
+				LOGNBR(static_cast<int>(result_stack_[result_stack_.size() - 1 - c]));
 			}
 			LOGNBR(std::endl);
 

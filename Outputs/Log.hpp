@@ -18,7 +18,9 @@
 
 #else
 
+#include <iomanip>
 #include <iostream>
+#include <ios>
 
 #define LOG(x) std::cout << x << std::endl
 #define LOGNBR(x) std::cout << x
