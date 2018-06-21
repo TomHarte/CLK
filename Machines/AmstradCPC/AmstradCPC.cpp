@@ -192,29 +192,44 @@ class CRTCBusHandler {
 			}
 
 			bool is_hsync = (cycles_into_hsync_ >= 2 && cycles_into_hsync_ < 6);
+			bool is_colour_burst = (cycles_into_hsync_ >= 7 && cycles_into_hsync_ < 11);
 
 			// Sync is taken to override pixels, and is combined as a simple OR.
 			bool is_sync = is_hsync || state.vsync;
+			bool is_blank = !is_sync && state.hsync;
+
+			OutputMode output_mode;
+			if(is_sync) {
+				output_mode = OutputMode::Sync;
+			} else if(is_colour_burst) {
+				output_mode = OutputMode::ColourBurst;
+			} else if(is_blank) {
+				output_mode = OutputMode::Blank;
+			} else if(state.display_enable) {
+				output_mode = OutputMode::Pixels;
+			} else {
+				output_mode = OutputMode::Border;
+			}
 
 			// If a transition between sync/border/pixels just occurred, flush whatever was
 			// in progress to the CRT and reset counting.
-			if(state.display_enable != was_enabled_ || is_sync != was_sync_) {
-				if(was_sync_) {
-					crt_->output_sync(cycles_ * 16);
-				} else {
-					if(was_enabled_) {
-						if(cycles_) {
+			if(output_mode != previous_output_mode_) {
+				if(cycles_) {
+					switch(previous_output_mode_) {
+						default:
+						case OutputMode::Blank:			crt_->output_blank(cycles_ * 16);					break;
+						case OutputMode::Sync:			crt_->output_sync(cycles_ * 16);					break;
+						case OutputMode::Border:		output_border(cycles_);								break;
+						case OutputMode::ColourBurst:	crt_->output_default_colour_burst(cycles_ * 16);	break;
+						case OutputMode::Pixels:
 							crt_->output_data(cycles_ * 16, cycles_ * 16 / pixel_divider_);
 							pixel_pointer_ = pixel_data_ = nullptr;
-						}
-					} else {
-						output_border(cycles_);
+						break;
 					}
 				}
 
 				cycles_ = 0;
-				was_sync_ = is_sync;
-				was_enabled_ = state.display_enable;
+				previous_output_mode_ = output_mode;
 			}
 
 			// increment cycles since state changed
@@ -349,7 +364,7 @@ class CRTCBusHandler {
 			if(pen_ & 16) {
 				// If border is[/was] currently being output, flush what should have been
 				// drawn in the old colour.
-				if(!was_sync_ && !was_enabled_) {
+				if(previous_output_mode_ == OutputMode::Border) {
 					output_border(cycles_);
 					cycles_ = 0;
 				}
@@ -506,9 +521,16 @@ class CRTCBusHandler {
 			return mapping[colour];
 		}
 
+		enum class OutputMode {
+			Sync,
+			Blank,
+			ColourBurst,
+			Border,
+			Pixels
+		} previous_output_mode_ = OutputMode::Sync;
 		unsigned int cycles_ = 0;
 
-		bool was_enabled_ = false, was_sync_ = false, was_hsync_ = false, was_vsync_ = false;
+		bool was_hsync_ = false, was_vsync_ = false;
 		int cycles_into_hsync_ = 0;
 
 		std::unique_ptr<Outputs::CRT::CRT> crt_;
