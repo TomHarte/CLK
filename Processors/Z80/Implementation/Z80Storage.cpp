@@ -47,16 +47,22 @@ ProcessorStorage::ProcessorStorage() {
 #define BusOp(op)					{MicroOp::BusOperation, nullptr, nullptr, op}
 
 // Compound bus operations, as micro-ops
-#define Read3(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
-#define Read4(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, false)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
-#define Read5(addr, val)			BusOp(ReadStart(addr, val)), BusOp(ReadWait(4, addr, val, false)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
 
-#define Write3(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val))
-#define Write5(addr, val)			BusOp(WriteStart(addr, val)), BusOp(WriteWait(4, addr, val, false)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val))
+// Read3 is a standard read cycle: 1.5 cycles, then check the wait line, then 1.5 cycles;
+// Read4 is a four-cycle read that has to do something to calculate the address: 1.5 cycles, then an extra wait cycle, then check the wait line, then 1.5 cycles;
+// Read4Pre is a four-cycle read that has to do something after reading: 1.5 cycles, then check the wait line, then an extra wait cycle, then 1.5 cycles;
+// Read5 is a five-cycle read: 1.5 cycles, two wait cycles, check the wait line, 1.5 cycles.
+#define Read3(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
+#define Read4(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, false)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
+#define Read4Pre(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadWait(2, addr, val, false)), BusOp(ReadEnd(addr, val))
+#define Read5(addr, val)				BusOp(ReadStart(addr, val)), BusOp(ReadWait(4, addr, val, false)), BusOp(ReadWait(2, addr, val, true)), BusOp(ReadEnd(addr, val))
 
-#define Input(addr, val)			BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
-#define Output(addr, val)			BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
-#define InternalOperation(len)		{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, HalfCycles(len), nullptr, nullptr, false}}
+#define Write3(addr, val)				BusOp(WriteStart(addr, val)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val))
+#define Write5(addr, val)				BusOp(WriteStart(addr, val)), BusOp(WriteWait(4, addr, val, false)), BusOp(WriteWait(2, addr, val, true)), BusOp(WriteEnd(addr, val))
+
+#define Input(addr, val)				BusOp(InputStart(addr, val)), BusOp(InputWait(addr, val, false)), BusOp(InputWait(addr, val, true)), BusOp(InputEnd(addr, val))
+#define Output(addr, val)				BusOp(OutputStart(addr, val)), BusOp(OutputWait(addr, val, false)), BusOp(OutputWait(addr, val, true)), BusOp(OutputEnd(addr, val))
+#define InternalOperation(len)			{MicroOp::BusOperation, nullptr, nullptr, {PartialMachineCycle::Internal, HalfCycles(len), nullptr, nullptr, false}}
 
 /// A sequence is a series of micro-ops that ends in a move-to-next-program operation.
 #define Sequence(...)				{ __VA_ARGS__, {MicroOp::MoveToNextProgram} }
@@ -122,10 +128,10 @@ ProcessorStorage::ProcessorStorage() {
 				StdInstr({MicroOp::op, &bc_.bytes.high}),	StdInstr({MicroOp::op, &bc_.bytes.low}),	\
 				StdInstr({MicroOp::op, &de_.bytes.high}),	StdInstr({MicroOp::op, &de_.bytes.low}),	\
 				StdInstr({MicroOp::op, &index.bytes.high}),	StdInstr({MicroOp::op, &index.bytes.low}),	\
-				StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
+				StdInstr(INDEX(), Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::op, &temp8_}),	\
 				StdInstr({MicroOp::op, &a_})
 
-#define RMW(x, op, ...) StdInstr(INDEX(), Read4(INDEX_ADDR(), x), {MicroOp::op, &x}, Write3(INDEX_ADDR(), x))
+#define RMW(x, op, ...) StdInstr(INDEX(), Read4Pre(INDEX_ADDR(), x), {MicroOp::op, &x}, Write3(INDEX_ADDR(), x))
 #define RMWI(x, op, ...) StdInstr(Read4(INDEX_ADDR(), x), {MicroOp::op, &x}, Write3(INDEX_ADDR(), x))
 
 #define MODIFY_OP_GROUP(op)	\
@@ -397,8 +403,8 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair 
 		/* 0x30 JR NC */		JR(TestNC),							/* 0x31 LD SP, nn */	StdInstr(Read16Inc(pc_, sp_)),
 		/* 0x32 LD (nn), A */	StdInstr(Read16Inc(pc_, temp16_), {MicroOp::SetAddrAMemptr, &temp16_.full}, Write3(temp16_, a_)),
 		/* 0x33 INC SP */		Instr(8, {MicroOp::Increment16, &sp_.full}),
-		/* 0x34 INC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Increment8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
-		/* 0x35 DEC (HL) */		StdInstr(INDEX(), Read4(INDEX_ADDR(), temp8_), {MicroOp::Decrement8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
+		/* 0x34 INC (HL) */		StdInstr(INDEX(), Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::Increment8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
+		/* 0x35 DEC (HL) */		StdInstr(INDEX(), Read4Pre(INDEX_ADDR(), temp8_), {MicroOp::Decrement8, &temp8_}, Write3(INDEX_ADDR(), temp8_)),
 		/* 0x36 LD (HL), n */	StdInstr(ReadInc(pc_, temp8_), Write3(INDEX_ADDR(), temp8_)),
 		/* 0x37 SCF */			StdInstr({MicroOp::SCF}),
 		/* 0x38 JR C */			JR(TestC),
