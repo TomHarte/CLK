@@ -9,7 +9,16 @@
 #ifndef AmstradCPC_hpp
 #define AmstradCPC_hpp
 
+#include "../../Configurable/Configurable.hpp"
+
+#include <cstdint>
+#include <memory>
+#include <vector>
+
 namespace AmstradCPC {
+
+/// @returns The options available for an Amstrad CPC.
+std::vector<std::unique_ptr<Configurable::Option>> get_options();
 
 /*!
 	Models an Amstrad CPC.
