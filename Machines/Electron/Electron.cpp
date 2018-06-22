@@ -480,6 +480,7 @@ class ConcreteMachine:
 			return selection_set;
 		}
 
+		// MARK: - Activity Source
 		void set_activity_observer(Activity::Observer *observer) override {
 			activity_observer_ = observer;
 			if(activity_observer_) {
