@@ -37,6 +37,12 @@
 
 namespace AmstradCPC {
 
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayComposite)
+	);
+}
+
 enum ROMType: int {
 	OS464 = 0,	BASIC464,
 	OS664,		BASIC664,
@@ -717,6 +723,7 @@ class ConcreteMachine:
 	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,
 	public ClockingHint::Observer,
+	public Configurable::Device,
 	public Machine,
 	public Activity::Source {
 	public:
@@ -995,8 +1002,7 @@ class ConcreteMachine:
 			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 		}
 
-// MARK: - Keyboard
-
+		// MARK: - Keyboard
 		void type_string(const std::string &string) override final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
 			Utility::TypeRecipient::add_typer(string, std::move(mapper));
@@ -1029,6 +1035,29 @@ class ConcreteMachine:
 			if(has_fdc_) fdc_.set_activity_observer(observer);
 		}
 
+		// MARK: - Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			return AmstradCPC::get_options();
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			Configurable::Display display;
+			if(Configurable::get_display(selections_by_option, display)) {
+				set_video_signal_configurable(display);
+			}
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
+			return selection_set;
+		}
 
 	private:
 		inline void write_to_gate_array(uint8_t value) {
