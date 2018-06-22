@@ -23,6 +23,7 @@
 #include "../../Activity/Source.hpp"
 #include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
+#include "../JoystickMachine.hpp"
 #include "../KeyboardMachine.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
@@ -565,10 +566,14 @@ class CRTCBusHandler {
 
 /*!
 	Holds and vends the current keyboard state, acting as the AY's port handler.
+	Also owns the joysticks.
 */
 class KeyboardState: public GI::AY38910::PortHandler {
 	public:
-		KeyboardState() : rows_{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff} {}
+		KeyboardState() {
+			joysticks_.emplace_back(new Joystick(rows_[9]));
+			joysticks_.emplace_back(new Joystick(joy2_state_));
+		}
 
 		/*!
 			Sets the row currently being reported to the AY.
@@ -582,7 +587,7 @@ class KeyboardState: public GI::AY38910::PortHandler {
 		*/
 		uint8_t get_port_input(bool port_b) {
 			if(!port_b && row_ < sizeof(rows_)) {
-				return rows_[row_];
+				return (row_ == 6) ? rows_[row_] & joy2_state_ : rows_[row_];
 			}
 
 			return 0xff;
@@ -604,9 +609,49 @@ class KeyboardState: public GI::AY38910::PortHandler {
 			memset(rows_, 0xff, sizeof(rows_));
 		}
 
+		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+			return joysticks_;
+		}
+
 	private:
-		uint8_t rows_[10];
-		size_t row_;
+		uint8_t joy2_state_ = 0xff;
+		uint8_t rows_[10] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+		size_t row_ = 0;
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+
+		class Joystick: public Inputs::ConcreteJoystick {
+			public:
+				Joystick(uint8_t &state) :
+					ConcreteJoystick({
+						Input(Input::Up),
+						Input(Input::Down),
+						Input(Input::Left),
+						Input(Input::Right),
+						Input(Input::Fire, 0),
+						Input(Input::Fire, 1),
+					}),
+					state_(state) {}
+
+				void did_set_input(const Input &input, bool is_active) override {
+					uint8_t mask = 0;
+					switch(input.type) {
+						default: return;
+						case Input::Up:		mask = 0x01;	break;
+						case Input::Down:	mask = 0x02;	break;
+						case Input::Left:	mask = 0x04;	break;
+						case Input::Right:	mask = 0x08;	break;
+						case Input::Fire:
+							if(input.info.control.index >= 2) return;
+							mask = input.info.control.index ? 0x20 : 0x10;
+						break;
+					}
+
+					if(is_active) state_ &= ~mask; else state_ |= mask;
+				}
+
+			private:
+				uint8_t &state_;
+		};
 };
 
 /*!
@@ -724,6 +769,7 @@ class ConcreteMachine:
 	public CPU::Z80::BusHandler,
 	public ClockingHint::Observer,
 	public Configurable::Device,
+	public JoystickMachine::Machine,
 	public Machine,
 	public Activity::Source {
 	public:
@@ -1057,6 +1103,11 @@ class ConcreteMachine:
 			Configurable::SelectionSet selection_set;
 			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
 			return selection_set;
+		}
+
+		// MARK: - Joysticks
+		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+			return key_state_.get_joysticks();
 		}
 
 	private:
