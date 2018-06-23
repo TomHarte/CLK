@@ -243,7 +243,7 @@ class CRTCBusHandler {
 			cycles_++;
 
 			// collect some more pixels if output is ongoing
-			if(!is_sync && state.display_enable) {
+			if(previous_output_mode_ == OutputMode::Pixels) {
 				if(!pixel_data_) {
 					pixel_pointer_ = pixel_data_ = crt_->allocate_write_area(320, 8);
 				}
@@ -339,7 +339,7 @@ class CRTCBusHandler {
 					"uint sample = texture(texID, coordinate).r;"
 					"return vec3(float((sample >> 4) & 3u), float((sample >> 2) & 3u), float(sample & 3u)) / 2.0;"
 				"}");
-			crt_->set_visible_area(Outputs::CRT::Rect(0.075f, 0.05f, 0.9f, 0.9f));
+			crt_->set_visible_area(Outputs::CRT::Rect(0.11f, 0.1f, 0.85f, 0.85f));
 			crt_->set_video_signal(Outputs::CRT::VideoSignal::RGB);
 		}
 
