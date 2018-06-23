@@ -215,6 +215,8 @@
 		4B54C0CB1F8D92590050900F /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0CA1F8D92580050900F /* Keyboard.cpp */; };
 		4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */; };
 		4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */; };
+		4B55DD8320DF06680043F2E5 /* MachinePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B55DD8020DF06680043F2E5 /* MachinePicker.swift */; };
+		4B55DD8420DF06680043F2E5 /* MachinePicker.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B55DD8120DF06680043F2E5 /* MachinePicker.xib */; };
 		4B58601E1F806AB200AEE2E3 /* MFMSectorDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */; };
 		4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B59199A1DAC6C46005BB85C /* OricTAP.cpp */; };
 		4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
@@ -310,8 +312,6 @@
 		4B9BE400203A0C0600FFAE60 /* MultiSpeaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9BE3FE203A0C0600FFAE60 /* MultiSpeaker.cpp */; };
 		4B9BE401203A0C0600FFAE60 /* MultiSpeaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9BE3FE203A0C0600FFAE60 /* MultiSpeaker.cpp */; };
 		4BA0F68E1EEA0E8400E9489E /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */; };
-		4BA141BD2072E8A500A31EC9 /* MachinePicker.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BA141BB2072E8A400A31EC9 /* MachinePicker.xib */; };
-		4BA141BF2072E8AF00A31EC9 /* MachinePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BA141BE2072E8AF00A31EC9 /* MachinePicker.swift */; };
 		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BAD13441FF709C700FD114A /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E61051FF34737002A9DBD /* MSX.cpp */; };
 		4BAE49582032881E004BE78E /* CSZX8081.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B14978E1EE4B4D200CE2596 /* CSZX8081.mm */; };
@@ -887,6 +887,8 @@
 		4B55CE5B1C3B7D6F0093A61B /* CSOpenGLView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSOpenGLView.h; sourceTree = "<group>"; };
 		4B55CE5C1C3B7D6F0093A61B /* CSOpenGLView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSOpenGLView.m; sourceTree = "<group>"; };
 		4B55CE5E1C3B7D960093A61B /* MachineDocument.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachineDocument.swift; sourceTree = "<group>"; };
+		4B55DD8020DF06680043F2E5 /* MachinePicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachinePicker.swift; sourceTree = "<group>"; };
+		4B55DD8220DF06680043F2E5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MachinePicker.xib; sourceTree = "<group>"; };
 		4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MFMSectorDump.cpp; sourceTree = "<group>"; };
 		4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MFMSectorDump.hpp; sourceTree = "<group>"; };
 		4B59199A1DAC6C46005BB85C /* OricTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OricTAP.cpp; sourceTree = "<group>"; };
@@ -1028,8 +1030,6 @@
 		4B9BE3FF203A0C0600FFAE60 /* MultiSpeaker.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiSpeaker.hpp; sourceTree = "<group>"; };
 		4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZX8081.cpp; path = Data/ZX8081.cpp; sourceTree = "<group>"; };
 		4BA0F68D1EEA0E8400E9489E /* ZX8081.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ZX8081.hpp; path = Data/ZX8081.hpp; sourceTree = "<group>"; };
-		4BA141BC2072E8A400A31EC9 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MachinePicker.xib; sourceTree = "<group>"; };
-		4BA141BE2072E8AF00A31EC9 /* MachinePicker.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachinePicker.swift; sourceTree = "<group>"; };
 		4BA141C12073100800A31EC9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
 		4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSData+StdVector.mm"; sourceTree = "<group>"; };
@@ -2016,6 +2016,15 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		4B55DD7F20DF06680043F2E5 /* MachinePicker */ = {
+			isa = PBXGroup;
+			children = (
+				4B55DD8020DF06680043F2E5 /* MachinePicker.swift */,
+				4B55DD8120DF06680043F2E5 /* MachinePicker.xib */,
+			);
+			path = MachinePicker;
+			sourceTree = "<group>";
+		};
 		4B595FAA2086DFBA0083CAA8 /* AudioToggle */ = {
 			isa = PBXGroup;
 			children = (
@@ -2395,16 +2404,6 @@
 			path = Implementation;
 			sourceTree = "<group>";
 		};
-		4BA141C02072E8B300A31EC9 /* MachinePicker */ = {
-			isa = PBXGroup;
-			children = (
-				4BA141BE2072E8AF00A31EC9 /* MachinePicker.swift */,
-				4BA141BB2072E8A400A31EC9 /* MachinePicker.xib */,
-			);
-			name = MachinePicker;
-			path = "New Group";
-			sourceTree = "<group>";
-		};
 		4BAB62AA1D3272D200DF5BA0 /* Disk */ = {
 			isa = PBXGroup;
 			children = (
@@ -2774,7 +2773,7 @@
 				4B643F3D1D77B88000D431D6 /* Document Controller */,
 				4B55CE551C3B7D360093A61B /* Documents */,
 				4B2A53921D117D36003C6002 /* Machine */,
-				4BA141C02072E8B300A31EC9 /* MachinePicker */,
+				4B55DD7F20DF06680043F2E5 /* MachinePicker */,
 				4BB73EAA1B587A5100552FC2 /* MainMenu.xib */,
 				4BE5F85A1C3E1C2500C43F01 /* Resources */,
 				4BD5F1961D1352A000631CD1 /* Updater */,
@@ -3288,8 +3287,8 @@
 				4B2C45421E3C3896002A2389 /* cartridge.png in Resources */,
 				4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */,
 				4B79E4451E3AF38600141F11 /* floppy35.png in Resources */,
+				4B55DD8420DF06680043F2E5 /* MachinePicker.xib in Resources */,
 				4BC5FC3020CDDDEF00410AA0 /* AppleIIOptions.xib in Resources */,
-				4BA141BD2072E8A500A31EC9 /* MachinePicker.xib in Resources */,
 				4B1EDB451E39A0AC009D6819 /* chip.png in Resources */,
 				4B2A332D1DB86821002876E3 /* OricOptions.xib in Resources */,
 				4B08A56920D72BEF0016CE5A /* Activity.xib in Resources */,
@@ -3848,7 +3847,6 @@
 				4B71368E1F788112008B8ED9 /* Parser.cpp in Sources */,
 				4B12C0ED1FCFA98D005BFD93 /* Keyboard.cpp in Sources */,
 				4BA0F68E1EEA0E8400E9489E /* ZX8081.cpp in Sources */,
-				4BA141BF2072E8AF00A31EC9 /* MachinePicker.swift in Sources */,
 				4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */,
 				4BD3A30B1EE755C800B5B501 /* Video.cpp in Sources */,
 				4BBF99141C8FBA6F0075DAFB /* TextureBuilder.cpp in Sources */,
@@ -3914,6 +3912,7 @@
 				4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */,
 				4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */,
 				4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */,
+				4B55DD8320DF06680043F2E5 /* MachinePicker.swift in Sources */,
 				4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */,
 				4B89453E201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B37EE821D7345A6006A09A4 /* BinaryDump.cpp in Sources */,
@@ -4018,6 +4017,14 @@
 			name = OricOptions.xib;
 			sourceTree = "<group>";
 		};
+		4B55DD8120DF06680043F2E5 /* MachinePicker.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4B55DD8220DF06680043F2E5 /* Base */,
+			);
+			name = MachinePicker.xib;
+			sourceTree = "<group>";
+		};
 		4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */ = {
 			isa = PBXVariantGroup;
 			children = (
@@ -4040,14 +4047,6 @@
 				4B8FE2181DA19D5F0090D3CE /* Base */,
 			);
 			name = QuickLoadCompositeOptions.xib;
-			sourceTree = "<group>";
-		};
-		4BA141BB2072E8A400A31EC9 /* MachinePicker.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				4BA141BC2072E8A400A31EC9 /* Base */,
-			);
-			name = MachinePicker.xib;
 			sourceTree = "<group>";
 		};
 		4BB73EAA1B587A5100552FC2 /* MainMenu.xib */ = {
