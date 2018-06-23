@@ -17,7 +17,7 @@
         <window title="Activity" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" hidesOnDeactivate="YES" oneShot="NO" releasedWhenClosed="NO" showsToolbarButton="NO" visibleAtLaunch="NO" frameAutosaveName="" animationBehavior="default" id="ZW7-Bw-4RP" customClass="NSPanel">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES" nonactivatingPanel="YES" HUD="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="83" y="102" width="200" height="131"/>
+            <rect key="contentRect" x="300" y="100" width="200" height="131"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
             <view key="contentView" id="tpZ-0B-QQu">
                 <rect key="frame" x="0.0" y="0.0" width="200" height="131"/>
@@ -89,10 +89,7 @@
                     <constraint firstItem="bvH-EJ-TYb" firstAttribute="top" secondItem="0rV-Th-Zwt" secondAttribute="bottom" constant="9" id="0xw-qA-6vP"/>
                     <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="14O-Lq-Npx" secondAttribute="trailing" constant="20" id="5eo-XI-a3W"/>
                     <constraint firstItem="Tah-UQ-vdf" firstAttribute="centerY" secondItem="ySY-ir-hzb" secondAttribute="centerY" id="6Hn-ts-mTi"/>
-                    <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="0rV-Th-Zwt" secondAttribute="bottom" constant="20" id="CNH-SV-KNi"/>
-                    <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="bvH-EJ-TYb" secondAttribute="bottom" constant="20" id="DYI-qH-t52"/>
                     <constraint firstItem="R0g-Oa-VB5" firstAttribute="leading" secondItem="bvH-EJ-TYb" secondAttribute="trailing" constant="10" id="Dgy-JI-nA1"/>
-                    <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="ncQ-wN-C61" secondAttribute="bottom" constant="20" id="ENa-Xb-FBv"/>
                     <constraint firstItem="R0g-Oa-VB5" firstAttribute="centerY" secondItem="bvH-EJ-TYb" secondAttribute="centerY" id="Gfq-mB-Y1z"/>
                     <constraint firstItem="Acy-tT-OFH" firstAttribute="centerY" secondItem="0rV-Th-Zwt" secondAttribute="centerY" id="ImF-rK-oOr"/>
                     <constraint firstItem="Acy-tT-OFH" firstAttribute="leading" secondItem="0rV-Th-Zwt" secondAttribute="trailing" constant="10" id="JSU-pZ-l9Q"/>
@@ -108,7 +105,6 @@
                     <constraint firstItem="ncQ-wN-C61" firstAttribute="top" secondItem="ySY-ir-hzb" secondAttribute="bottom" constant="9" id="mSc-jj-amw"/>
                     <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="R0g-Oa-VB5" secondAttribute="trailing" constant="20" id="sR8-Ph-suC"/>
                     <constraint firstItem="ySY-ir-hzb" firstAttribute="top" secondItem="tpZ-0B-QQu" secondAttribute="top" constant="20" id="wbj-48-DYq"/>
-                    <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="ySY-ir-hzb" secondAttribute="bottom" constant="20" id="yxz-Hb-Pol"/>
                 </constraints>
             </view>
             <point key="canvasLocation" x="84" y="115"/>
