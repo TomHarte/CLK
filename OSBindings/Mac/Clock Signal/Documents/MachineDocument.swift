@@ -319,18 +319,6 @@ class MachineDocument:
 			Bundle.main.loadNibNamed(NSNib.Name(rawValue: "Activity"), owner: self, topLevelObjects: nil)
 			showActivity(nil)
 
-			// Add a constraints to minimise window height.
-//			let heightConstraint = NSLayoutConstraint(
-//				item: self.activityPanel.contentView!,
-//				attribute: .height,
-//				relatedBy: .equal,
-//				toItem: nil,
-//				attribute: .notAnAttribute,
-//				multiplier: 0.0,
-//				constant: 20.0)
-//			heightConstraint.priority = .defaultLow
-//			self.activityPanel.contentView?.addConstraint(heightConstraint)
-
 			// Inspect the activity panel for indicators.
 			var activityIndicators: [NSLevelIndicator] = []
 			var textFields: [NSTextField] = []
@@ -362,6 +350,17 @@ class MachineDocument:
 				textFields[c].stringValue = leds[c]
 				self.leds[leds[c]] = LED(levelIndicator: activityIndicators[c])
 			}
+
+			// Add a constraints to minimise window height.
+			let heightConstraint = NSLayoutConstraint(
+				item: self.activityPanel.contentView!,
+				attribute: .bottom,
+				relatedBy: .equal,
+				toItem: activityIndicators[leds.count-1],
+				attribute: .bottom,
+				multiplier: 1.0,
+				constant: 20.0)
+			self.activityPanel.contentView?.addConstraint(heightConstraint)
 		}
 	}
 
