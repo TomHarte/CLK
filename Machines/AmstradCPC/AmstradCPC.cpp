@@ -242,7 +242,7 @@ class CRTCBusHandler {
 			cycles_++;
 
 			// collect some more pixels if output is ongoing
-			if(!is_sync && state.display_enable) {
+			if(previous_output_mode_ == OutputMode::Pixels) {
 				if(!pixel_data_) {
 					pixel_pointer_ = pixel_data_ = crt_->allocate_write_area(320, 8);
 				}
