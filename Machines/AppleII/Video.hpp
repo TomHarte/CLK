@@ -82,8 +82,9 @@ template <class BusHandler> class Video: public VideoBase {
 
 				A frame is oriented around 65 cycles across, 262 lines down.
 			*/
-			const int first_sync_line = 220;	// A complete guess. Information needed.
-			const int first_sync_column = 49;	// Also a guess.
+			static const int first_sync_line = 220;		// A complete guess. Information needed.
+			static const int first_sync_column = 49;	// Also a guess.
+			static const int sync_length = 4;			// One of the two likely candidates.
 
 			int int_cycles = cycles.as_int();
 			while(int_cycles) {
@@ -93,8 +94,8 @@ template <class BusHandler> class Video: public VideoBase {
 				if(row_ >= first_sync_line && row_ < first_sync_line + 3) {
 					// In effect apply an XOR to HSYNC and VSYNC flags in order to include equalising
 					// pulses (and hencce keep hsync approximately where it should be during vsync).
-					const int blank_start = std::max(first_sync_column, column_);
-					const int blank_end = std::min(first_sync_column + 4, ending_column);
+					const int blank_start = std::max(first_sync_column - sync_length, column_);
+					const int blank_end = std::min(first_sync_column, ending_column);
 					if(blank_end > blank_start) {
 						if(blank_start > column_) {
 							crt_->output_sync(static_cast<unsigned int>(blank_start - column_) * 14);
@@ -235,15 +236,15 @@ template <class BusHandler> class Video: public VideoBase {
 					}
 
 					const int sync_start = std::max(first_sync_column, column_);
-					const int sync_end = std::min(first_sync_column + 4, ending_column);
+					const int sync_end = std::min(first_sync_column + sync_length, ending_column);
 					if(sync_end > sync_start) {
 						crt_->output_sync(static_cast<unsigned int>(sync_end - sync_start) * 14);
 					}
 
 					int second_blank_start;
 					if(line_mode != GraphicsMode::Text && (!mixed_mode_ || row_ < 159 || row_ >= 192)) {
-						const int colour_burst_start = std::max(first_sync_column + 4, column_);
-						const int colour_burst_end = std::min(first_sync_column + 7, ending_column);
+						const int colour_burst_start = std::max(first_sync_column + sync_length + 1, column_);
+						const int colour_burst_end = std::min(first_sync_column + sync_length + 4, ending_column);
 						if(colour_burst_end > colour_burst_start) {
 							crt_->output_default_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 14);
 						}
@@ -321,7 +322,7 @@ template <class BusHandler> class Video: public VideoBase {
 				static_cast<uint16_t>(((video_page_+1) * 0x400) + row_address);
 		}
 
-		const int flash_length = 8406;
+		static const int flash_length = 8406;
 		BusHandler &bus_handler_;
 		void output_data_to_column(int column) {
 			int length = column - pixel_pointer_column_;
