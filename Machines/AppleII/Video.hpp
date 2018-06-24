@@ -88,11 +88,25 @@ template <class BusHandler> class Video: public VideoBase {
 			int int_cycles = cycles.as_int();
 			while(int_cycles) {
 				const int cycles_this_line = std::min(65 - column_, int_cycles);
+				const int ending_column = column_ + cycles_this_line;
 
 				if(row_ >= first_sync_line && row_ < first_sync_line + 3) {
-					crt_->output_sync(static_cast<unsigned int>(cycles_this_line) * 14);
+					// In effect apply an XOR to HSYNC and VSYNC flags in order to include equalising
+					// pulses (and hencce keep hsync approximately where it should be during vsync).
+					const int blank_start = std::max(first_sync_column, column_);
+					const int blank_end = std::min(first_sync_column + 4, ending_column);
+					if(blank_end > blank_start) {
+						if(blank_start > column_) {
+							crt_->output_sync(static_cast<unsigned int>(blank_start - column_) * 14);
+						}
+						crt_->output_blank(static_cast<unsigned int>(blank_end - blank_start) * 14);
+						if(blank_end < ending_column) {
+							crt_->output_sync(static_cast<unsigned int>(ending_column - blank_end) * 14);
+						}
+					} else {
+						crt_->output_sync(static_cast<unsigned int>(cycles_this_line) * 14);
+					}
 				} else {
-					const int ending_column = column_ + cycles_this_line;
 					const GraphicsMode line_mode = use_graphics_mode_ ? graphics_mode_ : GraphicsMode::Text;
 
 					// The first 40 columns are submitted to the CRT only upon completion;
