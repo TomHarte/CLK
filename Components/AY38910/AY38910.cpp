@@ -225,14 +225,10 @@ uint8_t AY38910::get_register_value() {
 	};
 
 	if(selected_register_ > 15) return 0xff;
-	switch(selected_register_) {
-		default:	return registers_[selected_register_] & register_masks[selected_register_];
-		case 14:	return (registers_[0x7] & 0x40) ? registers_[14] : port_inputs_[0];
-		case 15:	return (registers_[0x7] & 0x80) ? registers_[15] : port_inputs_[1];
-	}
+	return registers_[selected_register_] & register_masks[selected_register_];
 }
 
-// MARK: - Port handling
+// MARK: - Port querying
 
 uint8_t AY38910::get_port_output(bool port_b) {
 	return registers_[port_b ? 15 : 14];
@@ -250,11 +246,16 @@ void AY38910::set_data_input(uint8_t r) {
 }
 
 uint8_t AY38910::get_data_output() {
-	if(control_state_ == Read && selected_register_ >= 14) {
-		if(port_handler_) {
-			return port_handler_->get_port_input(selected_register_ == 15);
-		} else {
-			return 0xff;
+	if(control_state_ == Read && selected_register_ >= 14 && selected_register_ < 16) {
+		// Per http://cpctech.cpc-live.com/docs/psgnotes.htm if a port is defined as output then the
+		// value returned to the CPU when reading it is the and of the output value and any input.
+		// If it's defined as input then you just get the input.
+		const uint8_t mask = port_handler_ ? port_handler_->get_port_input(selected_register_ == 15) : 0xff;
+
+		switch(selected_register_) {
+			default: 	break;
+			case 14:	return mask & ((registers_[0x7] & 0x40) ? registers_[14] : 0xff);
+			case 15:	return mask & ((registers_[0x7] & 0x80) ? registers_[15] : 0xff);
 		}
 	}
 	return data_output_;
@@ -276,6 +277,7 @@ void AY38910::set_control_lines(ControlLines control_lines) {
 }
 
 void AY38910::update_bus() {
+	// Assume no output, unless this turns out to be a read.
 	data_output_ = 0xff;
 	switch(control_state_) {
 		default: 			break;
