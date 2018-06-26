@@ -276,8 +276,9 @@ void AY38910::set_control_lines(ControlLines control_lines) {
 }
 
 void AY38910::update_bus() {
+	data_output_ = 0xff;
 	switch(control_state_) {
-		default: break;
+		default: 			break;
 		case LatchAddress:	select_register(data_input_);			break;
 		case Write:			set_register_value(data_input_);		break;
 		case Read:			data_output_ = get_register_value();	break;
