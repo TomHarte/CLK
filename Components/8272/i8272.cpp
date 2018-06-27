@@ -853,9 +853,9 @@ void i8272::posit_event(int event_type) {
 	// Posts whatever is in result_stack_ as a result phase. Be aware that it is a stack, so the
 	// last thing in it will be returned first.
 	post_result:
-			LOGNBR(PADHEX(2) << "Result to " << static_cast<int>(command_[0] & 0x1f) << ", main " << static_cast<int>(main_status_));
+			LOGNBR(PADHEX(2) << "Result to " << static_cast<int>(command_[0] & 0x1f) << ", main " << static_cast<int>(main_status_) << "; ");
 			for(std::size_t c = 0; c < result_stack_.size(); c++) {
-				LOGNBR(static_cast<int>(result_stack_[result_stack_.size() - 1 - c]));
+				LOGNBR(" " << static_cast<int>(result_stack_[result_stack_.size() - 1 - c]));
 			}
 			LOGNBR(std::endl);
 
