@@ -43,38 +43,33 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	file_.seek(static_cast<long>((address.position.as_half() * 4) + 0xc), SEEK_SET);
 
 	// read the track offset
-	uint32_t track_offset;
-	track_offset = file_.get32le();
+	const uint32_t track_offset = file_.get32le();
 
 	// if the track offset is zero, this track doesn't exist, so...
-	if(!track_offset) return resulting_track;
+	if(!track_offset) return nullptr;
 
 	// seek to the track start
 	file_.seek(static_cast<long>(track_offset), SEEK_SET);
 
 	// get the real track length
-	uint16_t track_length;
-	track_length = file_.get16le();
+	const uint16_t track_length = file_.get16le();
 
 	// grab the byte contents of this track
-	std::vector<uint8_t> track_contents(track_length);
-	file_.read(&track_contents[0], track_length);
+	const std::vector<uint8_t> track_contents = file_.read(track_length);
 
 	// seek to this track's entry in the speed zone table
 	file_.seek(static_cast<long>((address.position.as_half() * 4) + 0x15c), SEEK_SET);
 
 	// read the speed zone offsrt
-	uint32_t speed_zone_offset;
-	speed_zone_offset = file_.get32le();
+	const uint32_t speed_zone_offset = file_.get32le();
 
 	// if the speed zone is not constant, create a track based on the whole table; otherwise create one that's constant
 	if(speed_zone_offset > 3) {
 		// seek to start of speed zone
 		file_.seek(static_cast<long>(speed_zone_offset), SEEK_SET);
 
-		uint16_t speed_zone_length = (track_length + 3) >> 2;
-
 		// read the speed zone bytes
+		const uint16_t speed_zone_length = (track_length + 3) >> 2;
 		uint8_t speed_zone_contents[speed_zone_length];
 		file_.read(speed_zone_contents, speed_zone_length);
 
