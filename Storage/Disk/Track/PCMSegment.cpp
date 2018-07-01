@@ -120,3 +120,7 @@ Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start) {
 const PCMSegment &PCMSegmentEventSource::segment() const {
 	return *segment_;
 }
+
+PCMSegment &PCMSegmentEventSource::segment() {
+	return *segment_;
+}

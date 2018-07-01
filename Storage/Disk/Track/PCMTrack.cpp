@@ -50,7 +50,7 @@ PCMTrack::PCMTrack(unsigned int bits_per_track) : PCMTrack() {
 	PCMSegment segment;
 	segment.length_of_a_bit.length = 1;
 	segment.length_of_a_bit.clock_rate = bits_per_track;
-	segment.data.resize((bits_per_track + 7) >> 3);
+	segment.data.resize(bits_per_track);
 	segment_event_sources_.emplace_back(segment);
 }
 
@@ -59,10 +59,12 @@ Track *PCMTrack::clone() const {
 }
 
 Track *PCMTrack::resampled_clone(size_t bits_per_track) {
-	PCMTrack *new_track = new PCMTrack(static_cast<unsigned int>(bits_per_track));
+	// Create an empty track.
+	PCMTrack *const new_track = new PCMTrack(static_cast<unsigned int>(bits_per_track));
 
+	// Plot all segments from this track onto the destination.
 	Time start_time;
-	for(const auto &event_source : segment_event_sources_) {
+	for(const auto &event_source: segment_event_sources_) {
 		const PCMSegment &source = event_source.segment();
 		new_track->add_segment(start_time, source, true);
 		start_time += source.length();
@@ -131,11 +133,24 @@ Storage::Time PCMTrack::seek_to(const Time &time_since_index_hole) {
 }
 
 void PCMTrack::add_segment(const Time &start_time, const PCMSegment &segment, bool clamp_to_index_hole) {
-	// Write half a bit of silence to lead up to the first possible flux point.
+	// Get a reference to the destination.
+	PCMSegment &destination = segment_event_sources_.front().segment();
 
-	// Write out the bits contained in this segment.
+	// Determine the range to fill on the target segment.
+	const Time end_time = start_time + segment.length();
+	const size_t start_bit = start_time.length * destination.data.size() / start_time.clock_rate;
+	const size_t end_bit = end_time.length * destination.data.size() / end_time.clock_rate;
 
-	// Write half a bit of silence to end the segment.
+	// Reset the destination.
+	std::fill(destination.data.begin() + static_cast<off_t>(start_bit), destination.data.begin() + static_cast<off_t>(end_bit), false);
 
-	unsigned int position = start_time.length;
+	// Step through the source data, and for each true map to a location in the destination and set it.
+	const size_t target_width = end_bit - start_bit;
+	const size_t half_offset = target_width / (2 * segment.data.size());
+	for(size_t bit = 0; bit < segment.data.size(); ++bit) {
+		if(segment.data[bit]) {
+			const size_t output_bit = start_bit + half_offset + (bit * target_width) / segment.data.size();
+			destination.data[output_bit] = true;
+		}
+	}
 }

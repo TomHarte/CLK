@@ -179,6 +179,7 @@ class PCMSegmentEventSource {
 			@returns a reference to the underlying segment.
 		*/
 		const PCMSegment &segment() const;
+		PCMSegment &segment();
 
 	private:
 		std::shared_ptr<PCMSegment> segment_;
