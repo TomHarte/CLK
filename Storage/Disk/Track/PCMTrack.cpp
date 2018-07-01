@@ -39,15 +39,32 @@ PCMTrack::PCMTrack(const PCMSegment &segment) : PCMTrack() {
 	PCMSegment length_adjusted_segment = segment;
 	length_adjusted_segment.length_of_a_bit.length = 1;
 	length_adjusted_segment.length_of_a_bit.clock_rate = segment.number_of_bits;
-	segment_event_sources_.emplace_back(length_adjusted_segment);
+	segment_event_sources_.emplace_back(std::move(length_adjusted_segment));
 }
 
 PCMTrack::PCMTrack(const PCMTrack &original) : PCMTrack() {
 	segment_event_sources_ = original.segment_event_sources_;
 }
 
+PCMTrack::PCMTrack(unsigned int bits_per_track) : PCMTrack() {
+	PCMSegment segment;
+	segment.length_of_a_bit.length = 1;
+	segment.length_of_a_bit.clock_rate = bits_per_track;
+	segment.data.resize((bits_per_track + 7) >> 3);
+	segment_event_sources_.emplace_back(segment);
+}
+
 Track *PCMTrack::clone() const {
 	return new PCMTrack(*this);
+}
+
+Track *PCMTrack::resampled_clone(size_t bits_per_track) {
+	PCMTrack *new_track = new PCMTrack(bits_per_track);
+
+//	for(const auto &event_source : segment_event_sources_) {
+//	}
+
+	return new_track;
 }
 
 Track::Event PCMTrack::get_next_event() {
@@ -108,3 +125,4 @@ Storage::Time PCMTrack::seek_to(const Time &time_since_index_hole) {
 	// the list of segments
 	return accumulated_time;
 }
+
