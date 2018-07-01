@@ -23,8 +23,11 @@ std::map<std::size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::
 	std::size_t size = 0;
 	std::size_t start_location = 0;
 
+	std::size_t bit_cursor = 0;
 	for(const auto bit: segment.data) {
 		shifter.add_input_bit(bit ? 1 : 0);
+		++bit_cursor;
+
 		switch(shifter.get_token()) {
 			case Shifter::Token::None:
 			case Shifter::Token::Sync:
@@ -34,7 +37,7 @@ std::map<std::size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::
 			case Shifter::Token::ID:
 				new_sector.reset(new Storage::Encodings::MFM::Sector);
 				is_reading = true;
-				start_location = bit;
+				start_location = bit_cursor;
 				position = 0;
 				shifter.set_should_obey_syncs(false);
 			break;
