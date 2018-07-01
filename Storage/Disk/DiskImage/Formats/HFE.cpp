@@ -77,9 +77,9 @@ std::shared_ptr<Track> HFE::get_track_at_position(Track::Address address) {
 			std::vector<uint8_t> section = file_.read(length);
 
 			// Push those into the PCMSegment. In HFE the least-significant bit is
-			// serialised first.
+			// serialised first. TODO: move this logic to PCMSegment.
 			for(uint16_t byte = 0; byte < length; ++byte) {
-				const size_t base = (static_cast<size_t>(c) << 3) + static_cast<size_t>(byte);
+				const size_t base = static_cast<size_t>(c + byte) << 3;
 				segment.data[base + 0] = !!(section[byte] & 0x01);
 				segment.data[base + 1] = !!(section[byte] & 0x02);
 				segment.data[base + 2] = !!(section[byte] & 0x04);
