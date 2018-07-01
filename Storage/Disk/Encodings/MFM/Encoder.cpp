@@ -127,7 +127,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 			std::size_t post_data_bytes, uint8_t post_data_value,
 			std::size_t expected_track_bytes) {
 	Storage::Disk::PCMSegment segment;
-	segment.data.reserve(expected_track_bytes);
+	segment.data.reserve(expected_track_bytes * 8);
 	T shifter(segment.data);
 
 	// output the index mark
@@ -192,6 +192,7 @@ void Encoder::output_short(uint16_t value) {
 	uint16_t mask = 0x8000;
 	while(mask) {
 		target_.push_back(!!(value & mask));
+		mask >>= 1;
 	}
 }
 
