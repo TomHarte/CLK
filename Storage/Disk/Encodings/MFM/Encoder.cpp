@@ -176,10 +176,10 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		for(std::size_t c = 0; c < post_data_bytes; c++) shifter.add_byte(post_data_value);
 	}
 
-	while(segment.data.size() < expected_track_bytes) shifter.add_byte(0x00);
+	while(segment.data.size() < expected_track_bytes*8) shifter.add_byte(0x00);
 
 	// Allow the amount of data written to be up to 10% more than the expected size. Which is generous.
-	std::size_t max_size = expected_track_bytes + (expected_track_bytes / 10);
+	const std::size_t max_size = (expected_track_bytes + (expected_track_bytes / 10)) * 8;
 	if(segment.data.size() > max_size) segment.data.resize(max_size);
 
 	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(segment)));
