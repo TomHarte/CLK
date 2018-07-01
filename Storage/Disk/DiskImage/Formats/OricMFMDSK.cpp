@@ -108,7 +108,6 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address)
 		}
 	}
 
-	segment.number_of_bits = static_cast<unsigned int>(segment.data.size() * 8);
 	return std::make_shared<PCMTrack>(segment);
 }
 
@@ -123,8 +122,8 @@ void OricMFMDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track
 		int offset = 0;
 		bool capture_size = false;
 
-		for(unsigned int bit = 0; bit < segment.number_of_bits; ++bit) {
-			shifter.add_input_bit(segment.bit(bit));
+		for(const auto bit : segment.data) {
+			shifter.add_input_bit(bit ? 1 : 0);
 			if(shifter.get_token() == Storage::Encodings::MFM::Shifter::Token::None) continue;
 			parsed_track.push_back(shifter.get_byte());
 

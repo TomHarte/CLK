@@ -44,7 +44,7 @@ std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<co
 
 class Encoder {
 	public:
-		Encoder(std::vector<uint8_t> &target);
+		Encoder(std::vector<bool> &target);
 		virtual void add_byte(uint8_t input) = 0;
 		virtual void add_index_address_mark() = 0;
 		virtual void add_ID_address_mark() = 0;
@@ -59,11 +59,11 @@ class Encoder {
 		CRC::CCITT crc_generator_;
 
 	private:
-		std::vector<uint8_t> &target_;
+		std::vector<bool> &target_;
 };
 
-std::unique_ptr<Encoder> GetMFMEncoder(std::vector<uint8_t> &target);
-std::unique_ptr<Encoder> GetFMEncoder(std::vector<uint8_t> &target);
+std::unique_ptr<Encoder> GetMFMEncoder(std::vector<bool> &target);
+std::unique_ptr<Encoder> GetFMEncoder(std::vector<bool> &target);
 
 }
 }

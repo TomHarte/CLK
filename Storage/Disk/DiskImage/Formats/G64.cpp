@@ -87,11 +87,10 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 			if(byte_speed != current_speed || byte == static_cast<uint16_t>(track_length-1)) {
 				unsigned int number_of_bytes = byte - start_byte_in_current_speed;
 
-				PCMSegment segment;
-				segment.number_of_bits = number_of_bytes * 8;
-				segment.length_of_a_bit = Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(current_speed);
-				segment.data.resize(number_of_bytes);
-				std::memcpy(&segment.data[0], &track_contents[start_byte_in_current_speed], number_of_bytes);
+				PCMSegment segment(
+					Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(current_speed),
+					number_of_bytes * 8,
+					&track_contents[start_byte_in_current_speed]);
 				segments.push_back(std::move(segment));
 
 				current_speed = byte_speed;
@@ -101,10 +100,11 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 
 		resulting_track.reset(new PCMTrack(std::move(segments)));
 	} else {
-		PCMSegment segment;
-		segment.number_of_bits = track_length * 8;
-		segment.length_of_a_bit = Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(speed_zone_offset));
-		segment.data = std::move(track_contents);
+		PCMSegment segment(
+			Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(speed_zone_offset)),
+			track_length * 8,
+			track_contents
+		);
 
 		resulting_track.reset(new PCMTrack(std::move(segment)));
 	}

@@ -17,18 +17,18 @@ PCMTrack::PCMTrack(const std::vector<PCMSegment> &segments) : PCMTrack() {
 	// sum total length of all segments
 	Time total_length;
 	for(const auto &segment : segments) {
-		total_length += segment.length_of_a_bit * segment.number_of_bits;
+		total_length += segment.length_of_a_bit * static_cast<unsigned int>(segment.data.size());
 	}
 	total_length.simplify();
 
 	// each segment is then some proportion of the total; for them all to sum to 1 they'll
 	// need to be adjusted to be
 	for(const auto &segment : segments) {
-		Time original_length_of_segment = segment.length_of_a_bit * segment.number_of_bits;
+		Time original_length_of_segment = segment.length_of_a_bit * static_cast<unsigned int>(segment.data.size());
 		Time proportion_of_whole = original_length_of_segment / total_length;
 		proportion_of_whole.simplify();
 		PCMSegment length_adjusted_segment = segment;
-		length_adjusted_segment.length_of_a_bit = proportion_of_whole / segment.number_of_bits;
+		length_adjusted_segment.length_of_a_bit = proportion_of_whole / static_cast<unsigned int>(segment.data.size());
 		length_adjusted_segment.length_of_a_bit.simplify();
 		segment_event_sources_.emplace_back(length_adjusted_segment);
 	}
@@ -38,7 +38,7 @@ PCMTrack::PCMTrack(const PCMSegment &segment) : PCMTrack() {
 	// a single segment necessarily fills the track
 	PCMSegment length_adjusted_segment = segment;
 	length_adjusted_segment.length_of_a_bit.length = 1;
-	length_adjusted_segment.length_of_a_bit.clock_rate = segment.number_of_bits;
+	length_adjusted_segment.length_of_a_bit.clock_rate = static_cast<unsigned int>(segment.data.size());
 	segment_event_sources_.emplace_back(std::move(length_adjusted_segment));
 }
 
@@ -59,10 +59,14 @@ Track *PCMTrack::clone() const {
 }
 
 Track *PCMTrack::resampled_clone(size_t bits_per_track) {
-	PCMTrack *new_track = new PCMTrack(bits_per_track);
+	PCMTrack *new_track = new PCMTrack(static_cast<unsigned int>(bits_per_track));
 
-//	for(const auto &event_source : segment_event_sources_) {
-//	}
+	Time start_time;
+	for(const auto &event_source : segment_event_sources_) {
+		const PCMSegment &source = event_source.segment();
+		new_track->add_segment(start_time, source, true);
+		start_time += source.length();
+	}
 
 	return new_track;
 }
@@ -126,3 +130,12 @@ Storage::Time PCMTrack::seek_to(const Time &time_since_index_hole) {
 	return accumulated_time;
 }
 
+void PCMTrack::add_segment(const Time &start_time, const PCMSegment &segment, bool clamp_to_index_hole) {
+	// Write half a bit of silence to lead up to the first possible flux point.
+
+	// Write out the bits contained in this segment.
+
+	// Write half a bit of silence to end the segment.
+
+	unsigned int position = start_time.length;
+}

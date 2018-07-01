@@ -300,17 +300,12 @@ void Drive::begin_writing(Time bit_length, bool clamp_to_index_hole) {
 
 	write_segment_.length_of_a_bit = bit_length / rotational_multiplier_;
 	write_segment_.data.clear();
-	write_segment_.number_of_bits = 0;
 
 	write_start_time_ = get_time_into_track();
 }
 
 void Drive::write_bit(bool value) {
-	bool needs_new_byte = !(write_segment_.number_of_bits&7);
-	if(needs_new_byte) write_segment_.data.push_back(0);
-	if(value) write_segment_.data[write_segment_.number_of_bits >> 3] |= 0x80 >> (write_segment_.number_of_bits & 7);
-	write_segment_.number_of_bits++;
-
+	write_segment_.data.push_back(value);
 	cycles_until_bits_written_ += cycles_per_bit_;
 }
 

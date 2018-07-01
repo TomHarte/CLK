@@ -35,15 +35,18 @@ const uint8_t six_and_two_mapping[] = {
 Storage::Disk::PCMSegment sync(int length, int bit_size) {
 	Storage::Disk::PCMSegment segment;
 
-	// Allocate sufficient storage.
-	segment.data.resize(static_cast<size_t>(((length * bit_size) + 7) >> 3), 0);
+	// Reserve sufficient storage.
+	segment.data.reserve(static_cast<size_t>(length * bit_size));
 
+	// Write patters of 0xff padded with 0s to the selected bit size.
 	while(length--) {
-		segment.data[segment.number_of_bits >> 3] |= 0xff >> (segment.number_of_bits & 7);
-		if(segment.number_of_bits & 7) {
-			segment.data[1 + (segment.number_of_bits >> 3)] |= 0xff << (8 - (segment.number_of_bits & 7));
-		}
-		segment.number_of_bits += static_cast<unsigned int>(bit_size);
+		int c = 8;
+		while(c--)
+			segment.data.push_back(true);
+
+		c = bit_size - 8;
+		while(c--)
+			segment.data.push_back(false);
 	}
 
 	return segment;
@@ -65,17 +68,15 @@ Storage::Disk::PCMSegment AppleGCR::header(uint8_t volume, uint8_t track, uint8_
 	const uint8_t checksum = volume ^ track ^ sector;
 
 	// Apple headers are encoded using an FM-esque scheme rather than 6 and 2, or 5 and 3.
-	Storage::Disk::PCMSegment segment;
-	segment.data.resize(14);
-	segment.number_of_bits = 14*8;
+	std::vector<uint8_t> data(14);
 
-	segment.data[0] = header_prologue[0];
-	segment.data[1] = header_prologue[1];
-	segment.data[2] = header_prologue[2];
+	data[0] = header_prologue[0];
+	data[1] = header_prologue[1];
+	data[2] = header_prologue[2];
 
 #define WriteFM(index, value)	\
-	segment.data[index+0] = static_cast<uint8_t>(((value) >> 1) | 0xaa);	\
-	segment.data[index+1] = static_cast<uint8_t>((value) | 0xaa);	\
+	data[index+0] = static_cast<uint8_t>(((value) >> 1) | 0xaa);	\
+	data[index+1] = static_cast<uint8_t>((value) | 0xaa);	\
 
 	WriteFM(3, volume);
 	WriteFM(5, track);
@@ -84,24 +85,23 @@ Storage::Disk::PCMSegment AppleGCR::header(uint8_t volume, uint8_t track, uint8_
 
 #undef WriteFM
 
-	segment.data[11] = epilogue[0];
-	segment.data[12] = epilogue[1];
-	segment.data[13] = epilogue[2];
+	data[11] = epilogue[0];
+	data[12] = epilogue[1];
+	data[13] = epilogue[2];
 
-	return segment;
+	return Storage::Disk::PCMSegment(data);
 }
 
 Storage::Disk::PCMSegment AppleGCR::five_and_three_data(const uint8_t *source) {
-	Storage::Disk::PCMSegment segment;
+	std::vector<uint8_t> data(410 + 7);
 
-	segment.data.resize(410 + 7);
-	segment.data[0] = data_prologue[0];
-	segment.data[1] = data_prologue[1];
-	segment.data[2] = data_prologue[2];
+	data[0] = data_prologue[0];
+	data[1] = data_prologue[1];
+	data[2] = data_prologue[2];
 
-	segment.data[414] = epilogue[0];
-	segment.data[411] = epilogue[1];
-	segment.data[416] = epilogue[2];
+	data[414] = epilogue[0];
+	data[411] = epilogue[1];
+	data[416] = epilogue[2];
 
 //	std::size_t source_pointer = 0;
 //	std::size_t destination_pointer = 3;
@@ -114,26 +114,23 @@ Storage::Disk::PCMSegment AppleGCR::five_and_three_data(const uint8_t *source) {
 
 	// Map five-bit values up to full bytes.
 	for(std::size_t c = 0; c < 410; ++c) {
-		segment.data[3 + c] = five_and_three_mapping[segment.data[3 + c]];
+		data[3 + c] = five_and_three_mapping[data[3 + c]];
 	}
 
-	return segment;
+	return Storage::Disk::PCMSegment(data);
 }
 
 Storage::Disk::PCMSegment AppleGCR::six_and_two_data(const uint8_t *source) {
-	Storage::Disk::PCMSegment segment;
-
-	segment.data.resize(349);
-	segment.number_of_bits = static_cast<unsigned int>(segment.data.size() * 8);
+	std::vector<uint8_t> data(349);
 
 	// Add the prologue and epilogue.
-	segment.data[0] = data_prologue[0];
-	segment.data[1] = data_prologue[1];
-	segment.data[2] = data_prologue[2];
+	data[0] = data_prologue[0];
+	data[1] = data_prologue[1];
+	data[2] = data_prologue[2];
 
-	segment.data[346] = epilogue[0];
-	segment.data[347] = epilogue[1];
-	segment.data[348] = epilogue[2];
+	data[346] = epilogue[0];
+	data[347] = epilogue[1];
+	data[348] = epilogue[2];
 
 	// Fill in byte values: the first 86 bytes contain shuffled
 	// and combined copies of the bottom two bits of the sector
@@ -141,40 +138,40 @@ Storage::Disk::PCMSegment AppleGCR::six_and_two_data(const uint8_t *source) {
 	// six bits.
 	const uint8_t bit_reverse[] = {0, 2, 1, 3};
 	for(std::size_t c = 0; c < 84; ++c) {
-		segment.data[3 + c] =
+		data[3 + c] =
 			static_cast<uint8_t>(
 				bit_reverse[source[c]&3] |
 				(bit_reverse[source[c + 86]&3] << 2) |
 				(bit_reverse[source[c + 172]&3] << 4)
 			);
 	}
-	segment.data[87] =
+	data[87] =
 			static_cast<uint8_t>(
 				(bit_reverse[source[84]&3] << 0) |
 				(bit_reverse[source[170]&3] << 2)
 			);
-	segment.data[88] =
+	data[88] =
 			static_cast<uint8_t>(
 				(bit_reverse[source[85]&3] << 0) |
 				(bit_reverse[source[171]&3] << 2)
 			);
 
 	for(std::size_t c = 0; c < 256; ++c) {
-		segment.data[3 + 86 + c] = source[c] >> 2;
+		data[3 + 86 + c] = source[c] >> 2;
 	}
 
 	// Exclusive OR each byte with the one before it.
-	segment.data[345] = segment.data[344];
+	data[345] = data[344];
 	std::size_t location = 344;
 	while(location > 3) {
-		segment.data[location] ^= segment.data[location-1];
+		data[location] ^= data[location-1];
 		--location;
 	}
 
 	// Map six-bit values up to full bytes.
 	for(std::size_t c = 0; c < 343; ++c) {
-		segment.data[3 + c] = six_and_two_mapping[segment.data[3 + c]];
+		data[3 + c] = six_and_two_mapping[data[3 + c]];
 	}
 
-	return segment;
+	return Storage::Disk::PCMSegment(data);
 }

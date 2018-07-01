@@ -106,7 +106,8 @@ std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
 	if(offset == NoSuchTrack) return nullptr;
 
 	// Seek to the real track.
-	PCMSegment track_contents;
+	std::vector<uint8_t> track_contents;
+	size_t number_of_bits;
 	{
 		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
 		file_.seek(offset, SEEK_SET);
@@ -114,13 +115,12 @@ std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
 		// In WOZ a track is up to 6646 bytes of data, followed by a two-byte record of the
 		// number of bytes that actually had data in them, then a two-byte count of the number
 		// of bits that were used. Other information follows but is not intended for emulation.
-		track_contents.data = file_.read(6646);
+		track_contents = file_.read(6646);
 		file_.seek(2, SEEK_CUR);
-		track_contents.number_of_bits = file_.get16le();
-		track_contents.data.resize((track_contents.number_of_bits + 7) >> 3);
+		number_of_bits = std::min(file_.get16le(), static_cast<uint16_t>(6646*8));
 	}
 
-	return std::shared_ptr<PCMTrack>(new PCMTrack(track_contents));
+	return std::shared_ptr<PCMTrack>(new PCMTrack(PCMSegment(number_of_bits, track_contents)));
 }
 
 void WOZ::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
@@ -129,13 +129,14 @@ void WOZ::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 		auto segment = Storage::Disk::track_serialisation(*pair.second, Storage::Time(1, 50000));
 
 		auto offset = static_cast<std::size_t>(file_offset(pair.first) - 12);
-		memcpy(&post_crc_contents_[offset - 12], segment.data.data(), segment.number_of_bits >> 3);
+		std::vector<uint8_t> segment_bytes = segment.byte_data();
+		memcpy(&post_crc_contents_[offset - 12], segment_bytes.data(), segment_bytes.size());
 
 		// Write number of bytes and number of bits.
-		post_crc_contents_[offset + 6646] = static_cast<uint8_t>(segment.number_of_bits >> 3);
-		post_crc_contents_[offset + 6647] = static_cast<uint8_t>(segment.number_of_bits >> 11);
-		post_crc_contents_[offset + 6648] = static_cast<uint8_t>(segment.number_of_bits);
-		post_crc_contents_[offset + 6649] = static_cast<uint8_t>(segment.number_of_bits >> 8);
+		post_crc_contents_[offset + 6646] = static_cast<uint8_t>(segment.data.size() >> 3);
+		post_crc_contents_[offset + 6647] = static_cast<uint8_t>(segment.data.size() >> 11);
+		post_crc_contents_[offset + 6648] = static_cast<uint8_t>(segment.data.size());
+		post_crc_contents_[offset + 6649] = static_cast<uint8_t>(segment.data.size() >> 8);
 
 		// Set no splice information now provided, since it's been lost if ever it was known.
 		post_crc_contents_[offset + 6650] = 0xff;

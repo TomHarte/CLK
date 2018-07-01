@@ -46,34 +46,9 @@ void PCMSegmentEventSource::reset() {
 }
 
 PCMSegment &PCMSegment::operator +=(const PCMSegment &rhs) {
-	if(!rhs.number_of_bits) return *this;
-
-	assert(((rhs.number_of_bits+7) >> 3) == rhs.data.size());
-
-	if(number_of_bits&7) {
-		auto target_number_of_bits = number_of_bits + rhs.number_of_bits;
-		data.resize((target_number_of_bits + 7) >> 3);
-
-		std::size_t first_byte = number_of_bits >> 3;
-
-		const int shift = number_of_bits&7;
-		for(std::size_t source = 0; source < rhs.data.size(); ++source) {
-			data[first_byte + source] |= rhs.data[source] >> shift;
-			if(source*8 + static_cast<std::size_t>(8 - shift) < rhs.number_of_bits)
-				data[first_byte + source + 1] = static_cast<uint8_t>(rhs.data[source] << (8-shift));
-		}
-
-		number_of_bits = target_number_of_bits;
-	} else {
-		data.insert(data.end(), rhs.data.begin(), rhs.data.end());
-		number_of_bits += rhs.number_of_bits;
-	}
-
-	assert(((number_of_bits+7) >> 3) == data.size());
-
+	data.insert(data.end(), rhs.data.begin(), rhs.data.end());
 	return *this;
 }
-
 
 Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event() {
 	// track the initial bit pointer for potentially considering whether this was an
@@ -85,9 +60,8 @@ Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event() {
 	next_event_.length.length = bit_pointer_ ? 0 : -(segment_->length_of_a_bit.length >> 1);
 
 	// search for the next bit that is set, if any
-	const uint8_t *segment_data = segment_->data.data();
-	while(bit_pointer_ < segment_->number_of_bits) {
-		int bit = segment_data[bit_pointer_ >> 3] & (0x80 >> (bit_pointer_&7));
+	while(bit_pointer_ < segment_->data.size()) {
+		bool bit = segment_->data[bit_pointer_];
 		bit_pointer_++;	// so this always points one beyond the most recent bit returned
 		next_event_.length.length += segment_->length_of_a_bit.length;
 
@@ -102,7 +76,7 @@ Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event() {
 	// allow an extra half bit's length to run from the position of the potential final transition
 	// event to the end of the segment. Otherwise don't allow any extra time, as it's already
 	// been consumed
-	if(initial_bit_pointer <= segment_->number_of_bits) {
+	if(initial_bit_pointer <= segment_->data.size()) {
 		next_event_.length.length += (segment_->length_of_a_bit.length >> 1);
 		bit_pointer_++;
 	}
@@ -110,7 +84,7 @@ Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event() {
 }
 
 Storage::Time PCMSegmentEventSource::get_length() {
-	return segment_->length_of_a_bit * segment_->number_of_bits;
+	return segment_->length_of_a_bit * static_cast<unsigned int>(segment_->data.size());
 }
 
 Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start) {
@@ -118,7 +92,7 @@ Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start) {
 	Time length = get_length();
 	if(time_from_start >= length) {
 		next_event_.type = Track::Event::IndexHole;
-		bit_pointer_ = segment_->number_of_bits+1;
+		bit_pointer_ = segment_->data.size()+1;
 		return length;
 	}
 
@@ -142,4 +116,8 @@ Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start) {
 
 	// map up to the correct amount of time
 	return half_bit_length + segment_->length_of_a_bit * static_cast<unsigned int>(bit_pointer_ - 1);
+}
+
+const PCMSegment &PCMSegmentEventSource::segment() const {
+	return *segment_;
 }

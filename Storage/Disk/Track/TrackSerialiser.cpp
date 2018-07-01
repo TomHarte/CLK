@@ -20,12 +20,9 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 	struct ResultAccumulator: public DigitalPhaseLockedLoop::Delegate {
 		PCMSegment result;
 		void digital_phase_locked_loop_output_bit(int value) {
-			result.data.resize(1 + (result.number_of_bits >> 3));
-			if(value) result.data[result.number_of_bits >> 3] |= 0x80 >> (result.number_of_bits & 7);
-			result.number_of_bits++;
+			result.data.push_back(!!value);
 		}
 	} result_accumulator;
-	result_accumulator.result.number_of_bits = 0;
 	result_accumulator.result.length_of_a_bit = length_of_a_bit;
 
 	Time length_multiplier = Time(100*length_of_a_bit.clock_rate, length_of_a_bit.length);
