@@ -17,6 +17,8 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 	DigitalPhaseLockedLoop pll(100, history_size);
 	std::unique_ptr<Track> track_copy(track.clone());
 
+	// ResultAccumulator exists to append whatever comes out of the PLL to
+	// its PCMSegment.
 	struct ResultAccumulator: public DigitalPhaseLockedLoop::Delegate {
 		PCMSegment result;
 		void digital_phase_locked_loop_output_bit(int value) {
@@ -25,6 +27,9 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 	} result_accumulator;
 	result_accumulator.result.length_of_a_bit = length_of_a_bit;
 
+	// Obtain a length multiplier which is 100 times the reciprocal
+	// of the expected bit length. So a perfect bit length from
+	// the source data will come out as 100 ticks.
 	Time length_multiplier = Time(100*length_of_a_bit.clock_rate, length_of_a_bit.length);
 	length_multiplier.simplify();
 
