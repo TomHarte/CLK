@@ -157,22 +157,44 @@ void PCMTrack::add_segment(const Time &start_time, const PCMSegment &segment, bo
 	const size_t start_bit = start_time.length * destination.data.size() / start_time.clock_rate;
 	const size_t end_bit = end_time.length * destination.data.size() / end_time.clock_rate;
 	const size_t target_width = end_bit - start_bit;
-
-	// If clamping is applied, just put a hard cut-off at the index hole.
-//	if(clamp_to_index_hole) {
-//		end_bit = std::min(end_bit, destination.data.size());
-//	}
-	// !!TODO!! Deal with wrapping and clamping.
-
-	// Reset the destination.
-	std::fill(destination.data.begin() + static_cast<off_t>(start_bit), destination.data.begin() + static_cast<off_t>(end_bit), false);
-
-	// Step through the source data, and for each true map to a location in the destination and set it.
 	const size_t half_offset = target_width / (2 * segment.data.size());
-	for(size_t bit = 0; bit < segment.data.size(); ++bit) {
-		if(segment.data[bit]) {
-			const size_t output_bit = start_bit + half_offset + (bit * target_width) / segment.data.size();
-			destination.data[output_bit] = true;
+
+	if(clamp_to_index_hole || end_bit <= destination.data.size()) {
+		// If clamping is applied, just write a single segment, from the start_bit to whichever is
+		// closer of the end of track and the end_bit.
+		const size_t selected_end_bit = std::min(end_bit, destination.data.size());
+
+		// Reset the destination.
+		std::fill(destination.data.begin() + static_cast<off_t>(start_bit), destination.data.begin() + static_cast<off_t>(selected_end_bit), false);
+
+		// Step through the source data from start to finish, stopping early if it goes out of bounds.
+		for(size_t bit = 0; bit < segment.data.size(); ++bit) {
+			if(segment.data[bit]) {
+				const size_t output_bit = start_bit + half_offset + (bit * target_width) / segment.data.size();
+				if(output_bit >= destination.data.size()) return;
+				destination.data[output_bit] = true;
+			}
+		}
+	} else {
+		// Clamping is not enabled, so the supplied segment loops over the index hole, arbitrarily many times.
+		// So work backwards unless or until the original start position is reached, then stop.
+
+		// This definitely runs over the index hole; check whether the whole track needs clearing, or whether
+		// a centre segment is untouched.
+		if(target_width >= destination.data.size()) {
+			std::fill(destination.data.begin(), destination.data.end(), false);
+		} else {
+			std::fill(destination.data.begin(), destination.data.begin() + static_cast<off_t>(end_bit % destination.data.size()), false);
+			std::fill(destination.data.begin() + static_cast<off_t>(start_bit), destination.data.end(), false);
+		}
+
+		// Run backwards from final bit back to first, stopping early if overlapping the beginning.
+		for(off_t bit = static_cast<off_t>(segment.data.size()-1); bit >= 0; --bit) {
+			if(segment.data[static_cast<size_t>(bit)]) {
+				const size_t output_bit = start_bit + half_offset + (static_cast<size_t>(bit) * target_width) / segment.data.size();
+				if(output_bit <= end_bit - destination.data.size()) return;
+				destination.data[output_bit % destination.data.size()] = true;
+			}
 		}
 	}
 }
