@@ -8,6 +8,7 @@
 
 #include "PCMTrack.hpp"
 #include "../../../NumberTheory/Factors.hpp"
+#include "../../../Outputs/Log.hpp"
 
 using namespace Storage::Disk;
 
@@ -54,11 +55,25 @@ PCMTrack::PCMTrack(unsigned int bits_per_track) : PCMTrack() {
 	segment_event_sources_.emplace_back(segment);
 }
 
+PCMTrack *PCMTrack::resampled_clone(Track *original, size_t bits_per_track) {
+	PCMTrack *pcm_original = dynamic_cast<PCMTrack *>(original);
+	if(pcm_original) {
+		return pcm_original->resampled_clone(bits_per_track);
+	}
+
+	ERROR("NOT IMPLEMENTED: resampling non-PCMTracks");
+	return nullptr;
+}
+
+bool PCMTrack::is_resampled_clone() {
+	return is_resampled_clone_;
+}
+
 Track *PCMTrack::clone() const {
 	return new PCMTrack(*this);
 }
 
-Track *PCMTrack::resampled_clone(size_t bits_per_track) {
+PCMTrack *PCMTrack::resampled_clone(size_t bits_per_track) {
 	// Create an empty track.
 	PCMTrack *const new_track = new PCMTrack(static_cast<unsigned int>(bits_per_track));
 
@@ -70,6 +85,7 @@ Track *PCMTrack::resampled_clone(size_t bits_per_track) {
 		start_time += source.length();
 	}
 
+	new_track->is_resampled_clone_ = true;
 	return new_track;
 }
 
@@ -140,12 +156,18 @@ void PCMTrack::add_segment(const Time &start_time, const PCMSegment &segment, bo
 	const Time end_time = start_time + segment.length();
 	const size_t start_bit = start_time.length * destination.data.size() / start_time.clock_rate;
 	const size_t end_bit = end_time.length * destination.data.size() / end_time.clock_rate;
+	const size_t target_width = end_bit - start_bit;
+
+	// If clamping is applied, just put a hard cut-off at the index hole.
+//	if(clamp_to_index_hole) {
+//		end_bit = std::min(end_bit, destination.data.size());
+//	}
+	// !!TODO!! Deal with wrapping and clamping.
 
 	// Reset the destination.
 	std::fill(destination.data.begin() + static_cast<off_t>(start_bit), destination.data.begin() + static_cast<off_t>(end_bit), false);
 
 	// Step through the source data, and for each true map to a location in the destination and set it.
-	const size_t target_width = end_bit - start_bit;
 	const size_t half_offset = target_width / (2 * segment.data.size());
 	for(size_t bit = 0; bit < segment.data.size(); ++bit) {
 		if(segment.data[bit]) {

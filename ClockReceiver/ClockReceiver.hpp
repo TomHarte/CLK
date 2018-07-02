@@ -165,7 +165,7 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		constexpr HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
 
 		/// @returns The number of whole cycles completely covered by this span of half cycles.
-		constexpr Cycles cycles() {
+		constexpr Cycles cycles() const {
 			return Cycles(length_ >> 1);
 		}
 

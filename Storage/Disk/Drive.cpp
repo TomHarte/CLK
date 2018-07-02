@@ -310,14 +310,17 @@ void Drive::write_bit(bool value) {
 }
 
 void Drive::end_writing() {
+	static const size_t high_resolution_track_rate = 500000;
+
 	if(!is_reading_) {
 		is_reading_ = true;
 
 		if(!patched_track_) {
 			// Avoid creating a new patched track if this one is already patched
-			patched_track_ = std::dynamic_pointer_cast<PCMPatchedTrack>(track_);
-			if(!patched_track_) {
-				patched_track_.reset(new PCMPatchedTrack(track_));
+			patched_track_ = std::dynamic_pointer_cast<PCMTrack>(track_);
+			if(!patched_track_ || !patched_track_->is_resampled_clone()) {
+				Track *tr = track_.get();
+				patched_track_.reset(PCMTrack::resampled_clone(tr, high_resolution_track_rate));
 			}
 		}
 		patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);

@@ -43,7 +43,6 @@
 		4B055AA81FAE85EF0060FFFF /* Shifter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136871F78725F008B8ED9 /* Shifter.cpp */; };
 		4B055AA91FAE85EF0060FFFF /* CommodoreGCR.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB697CC1D4BA44400248BDF /* CommodoreGCR.cpp */; };
 		4B055AAA1FAE85F50060FFFF /* CPM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FE75C1F3CF68B00448EE4 /* CPM.cpp */; };
-		4B055AAB1FAE85FD0060FFFF /* PCMPatchedTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518711F75E91800926311 /* PCMPatchedTrack.cpp */; };
 		4B055AAC1FAE85FD0060FFFF /* PCMSegment.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518731F75E91800926311 /* PCMSegment.cpp */; };
 		4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518751F75E91800926311 /* PCMTrack.cpp */; };
 		4B055AAE1FAE85FD0060FFFF /* TrackSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */; };
@@ -125,7 +124,6 @@
 		4B0E61071FF34737002A9DBD /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E61051FF34737002A9DBD /* MSX.cpp */; };
 		4B0F94FE208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
 		4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0F94FC208C1A1600FE41D9 /* NIB.cpp */; };
-		4B121F951E05E66800BFDA12 /* PCMPatchedTrackTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */; };
 		4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */; };
 		4B12C0ED1FCFA98D005BFD93 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */; };
 		4B12C0EE1FCFAD1A005BFD93 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */; };
@@ -186,7 +184,6 @@
 		4B44EBF51DC987AF00A7820C /* AllSuiteA.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */; };
 		4B44EBF71DC9883B00A7820C /* 6502_functional_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */; };
 		4B44EBF91DC9898E00A7820C /* BCDTEST_beeb in Resources */ = {isa = PBXBuildFile; fileRef = 4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */; };
-		4B4518811F75E91A00926311 /* PCMPatchedTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518711F75E91800926311 /* PCMPatchedTrack.cpp */; };
 		4B4518821F75E91A00926311 /* PCMSegment.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518731F75E91800926311 /* PCMSegment.cpp */; };
 		4B4518831F75E91A00926311 /* PCMTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518751F75E91800926311 /* PCMTrack.cpp */; };
 		4B4518841F75E91A00926311 /* UnformattedTrack.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518771F75E91800926311 /* UnformattedTrack.cpp */; };
@@ -720,7 +717,6 @@
 		4B0F94FC208C1A1600FE41D9 /* NIB.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = NIB.cpp; sourceTree = "<group>"; };
 		4B0F94FD208C1A1600FE41D9 /* NIB.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = NIB.hpp; sourceTree = "<group>"; };
 		4B0F9500208C42A300FE41D9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Target.hpp; path = AppleII/Target.hpp; sourceTree = "<group>"; };
-		4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMPatchedTrackTests.mm; sourceTree = "<group>"; };
 		4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMSegmentEventSourceTests.mm; sourceTree = "<group>"; };
 		4B12C0EB1FCFA98D005BFD93 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = Keyboard.cpp; path = MSX/Keyboard.cpp; sourceTree = "<group>"; };
 		4B12C0EC1FCFA98D005BFD93 /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Keyboard.hpp; path = MSX/Keyboard.hpp; sourceTree = "<group>"; };
@@ -827,8 +823,6 @@
 		4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = AllSuiteA.bin; path = AllSuiteA/AllSuiteA.bin; sourceTree = "<group>"; };
 		4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 6502_functional_test.bin; path = "Klaus Dormann/6502_functional_test.bin"; sourceTree = "<group>"; };
 		4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */ = {isa = PBXFileReference; lastKnownFileType = file; name = BCDTEST_beeb; path = BCDTest/BCDTEST_beeb; sourceTree = "<group>"; };
-		4B4518711F75E91800926311 /* PCMPatchedTrack.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PCMPatchedTrack.cpp; sourceTree = "<group>"; };
-		4B4518721F75E91800926311 /* PCMPatchedTrack.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PCMPatchedTrack.hpp; sourceTree = "<group>"; };
 		4B4518731F75E91800926311 /* PCMSegment.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PCMSegment.cpp; sourceTree = "<group>"; };
 		4B4518741F75E91800926311 /* PCMSegment.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PCMSegment.hpp; sourceTree = "<group>"; };
 		4B4518751F75E91800926311 /* PCMTrack.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PCMTrack.cpp; sourceTree = "<group>"; };
@@ -1849,12 +1843,10 @@
 		4B4518701F75E91800926311 /* Track */ = {
 			isa = PBXGroup;
 			children = (
-				4B4518711F75E91800926311 /* PCMPatchedTrack.cpp */,
 				4B4518731F75E91800926311 /* PCMSegment.cpp */,
 				4B4518751F75E91800926311 /* PCMTrack.cpp */,
 				4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */,
 				4B4518771F75E91800926311 /* UnformattedTrack.cpp */,
-				4B4518721F75E91800926311 /* PCMPatchedTrack.hpp */,
 				4B4518741F75E91800926311 /* PCMSegment.hpp */,
 				4B4518761F75E91800926311 /* PCMTrack.hpp */,
 				4B4518881F75ECB100926311 /* Track.hpp */,
@@ -2789,7 +2781,6 @@
 				4B5073091DDFCFDF00C48FBD /* ArrayBuilderTests.mm */,
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
-				4B121F941E05E66800BFDA12 /* PCMPatchedTrackTests.mm */,
 				4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */,
 				4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */,
 				4B2AF8681E513FC20027EE29 /* TIATests.mm */,
@@ -3639,7 +3630,6 @@
 				4B12C0EE1FCFAD1A005BFD93 /* Keyboard.cpp in Sources */,
 				4B055AE81FAE9B7B0060FFFF /* FIRFilter.cpp in Sources */,
 				4B055A901FAE85A90060FFFF /* TimedEventLoop.cpp in Sources */,
-				4B055AAB1FAE85FD0060FFFF /* PCMPatchedTrack.cpp in Sources */,
 				4B055AC71FAE9AEE0060FFFF /* TIA.cpp in Sources */,
 				4B055AD21FAE9B0B0060FFFF /* Keyboard.cpp in Sources */,
 				4B89451B201967B4007DE474 /* ConfidenceSummary.cpp in Sources */,
@@ -3812,7 +3802,6 @@
 				4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.mm in Sources */,
 				4B894532201967B4007DE474 /* 6502.cpp in Sources */,
 				4BDB61EC203285AE0048AF91 /* Atari2600OptionsPanel.swift in Sources */,
-				4B4518811F75E91A00926311 /* PCMPatchedTrack.cpp in Sources */,
 				4BBB70A8202014E2002FE009 /* MultiCRTMachine.cpp in Sources */,
 				4B8805F71DCFF6C9003085B1 /* Commodore.cpp in Sources */,
 				4BBF99181C8FBA6F0075DAFB /* TextureTarget.cpp in Sources */,
@@ -3964,7 +3953,6 @@
 				4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */,
 				4B08A2781EE39306008B7065 /* TestMachine.mm in Sources */,
 				4BFCA1271ECBE33200AC40C1 /* TestMachineZ80.mm in Sources */,
-				4B121F951E05E66800BFDA12 /* PCMPatchedTrackTests.mm in Sources */,
 				4B322E011F5A2990004EB04C /* Z80AllRAM.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

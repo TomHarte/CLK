@@ -43,6 +43,11 @@ class PCMTrack: public Track {
 		*/
 		PCMTrack(const PCMTrack &);
 
+		/*!
+			Creates a PCMTrack by sampling the original at a rate of @c bits_per_track.
+		*/
+		static PCMTrack *resampled_clone(Track *original, size_t bits_per_track);
+
 		// as per @c Track
 		Event get_next_event() override;
 		Time seek_to(const Time &time_since_index_hole) override;
@@ -50,7 +55,8 @@ class PCMTrack: public Track {
 
 		// Obtains a copy of this track, flattened to a single PCMSegment, which
 		// consists of @c bits_per_track potential flux transition points.
-		Track *resampled_clone(size_t bits_per_track);
+		PCMTrack *resampled_clone(size_t bits_per_track);
+		bool is_resampled_clone();
 
 		/*!
 			Replaces whatever is currently on the track from @c start_position to @c start_position + segment length
@@ -80,6 +86,7 @@ class PCMTrack: public Track {
 		std::size_t segment_pointer_;
 
 		PCMTrack();
+		bool is_resampled_clone_ = false;
 };
 
 }
