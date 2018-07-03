@@ -17,11 +17,8 @@
 
 - (Storage::Disk::PCMSegmentEventSource)segmentSource
 {
-	Storage::Disk::PCMSegment alternatingFFs;
-	alternatingFFs.data = {0xff, 0x00, 0xff, 0x00};
-	alternatingFFs.length_of_a_bit.length = 1;
-	alternatingFFs.length_of_a_bit.clock_rate = 10;
-	alternatingFFs.number_of_bits = 32;
+	std::vector<uint8_t> data = {0xff, 0x00, 0xff, 0x00};
+	Storage::Disk::PCMSegment alternatingFFs(Storage::Time(1, 10), data.size()*8, data);
 	return Storage::Disk::PCMSegmentEventSource(alternatingFFs);
 }
 

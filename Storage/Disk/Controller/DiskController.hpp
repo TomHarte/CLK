@@ -12,7 +12,6 @@
 #include "../Drive.hpp"
 #include "../DPLL/DigitalPhaseLockedLoop.hpp"
 #include "../Track/PCMSegment.hpp"
-#include "../Track/PCMPatchedTrack.hpp"
 
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../ClockReceiver/ClockingHintSource.hpp"

@@ -69,8 +69,6 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	// tracks and headers), then treat all following FFs as a sync
 	// region, then switch back to ordinary behaviour as soon as a
 	// non-FF appears.
-	PCMSegment segment;
-
 	std::size_t start_index = 0;
 	std::set<size_t> sync_starts;
 
@@ -93,6 +91,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 		}
 	}
 
+	PCMSegment segment;
 	if(start_index) {
 		segment += Encodings::AppleGCR::six_and_two_sync(static_cast<int>(start_index));
 	}
@@ -100,13 +99,10 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	std::size_t index = start_index;
 	for(const auto &location: sync_starts) {
 		// Write from index to sync_start.
-		PCMSegment data_segment;
-		data_segment.data.insert(
-			data_segment.data.end(),
+		std::vector<uint8_t> data_segment(
 			track_data.begin() + static_cast<off_t>(index),
 			track_data.begin() + static_cast<off_t>(location));
-		data_segment.number_of_bits = static_cast<unsigned int>(data_segment.data.size() * 8);
-		segment += data_segment;
+		segment += PCMSegment(data_segment);
 
 		// Add a sync from sync_start to end of 0xffs.
 		if(location == track_length-1) break;
@@ -133,8 +129,8 @@ void NIB::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 		std::vector<uint8_t> track;
 		track.reserve(track_length);
 		uint8_t shifter = 0;
-		for(unsigned int bit = 0; bit < segment.number_of_bits; ++bit) {
-			shifter = static_cast<uint8_t>((shifter << 1) | segment.bit(bit));
+		for(const auto bit: segment.data) {
+			shifter = static_cast<uint8_t>((shifter << 1) | (bit ? 1 : 0));
 			if(shifter & 0x80) {
 				track.push_back(shifter);
 				shifter = 0;

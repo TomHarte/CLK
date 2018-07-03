@@ -179,10 +179,5 @@ std::shared_ptr<::Storage::Disk::Track> DMK::get_track_at_position(::Storage::Di
 		idam_pointer++;
 	}
 
-	// All segments should be exactly their number of bits in length.
-	for(auto &segment : segments) {
-		segment.number_of_bits = static_cast<unsigned int>(segment.data.size() * 8);
-	}
-
 	return std::make_shared<PCMTrack>(segments);
 }

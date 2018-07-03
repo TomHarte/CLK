@@ -18,7 +18,7 @@ using namespace Storage::Encodings::MFM;
 
 class MFMEncoder: public Encoder {
 	public:
-		MFMEncoder(std::vector<uint8_t> &target) : Encoder(target) {}
+		MFMEncoder(std::vector<bool> &target) : Encoder(target) {}
 
 		void add_byte(uint8_t input) {
 			crc_generator_.add(input);
@@ -74,7 +74,7 @@ class MFMEncoder: public Encoder {
 class FMEncoder: public Encoder {
 	// encodes each 16-bit part as clock, data, clock, data [...]
 	public:
-		FMEncoder(std::vector<uint8_t> &target) : Encoder(target) {}
+		FMEncoder(std::vector<bool> &target) : Encoder(target) {}
 
 		void add_byte(uint8_t input) {
 			crc_generator_.add(input);
@@ -127,7 +127,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 			std::size_t post_data_bytes, uint8_t post_data_value,
 			std::size_t expected_track_bytes) {
 	Storage::Disk::PCMSegment segment;
-	segment.data.reserve(expected_track_bytes);
+	segment.data.reserve(expected_track_bytes * 8);
 	T shifter(segment.data);
 
 	// output the index mark
@@ -176,22 +176,24 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		for(std::size_t c = 0; c < post_data_bytes; c++) shifter.add_byte(post_data_value);
 	}
 
-	while(segment.data.size() < expected_track_bytes) shifter.add_byte(0x00);
+	while(segment.data.size() < expected_track_bytes*8) shifter.add_byte(0x00);
 
 	// Allow the amount of data written to be up to 10% more than the expected size. Which is generous.
-	std::size_t max_size = expected_track_bytes + (expected_track_bytes / 10);
+	const std::size_t max_size = (expected_track_bytes + (expected_track_bytes / 10)) * 8;
 	if(segment.data.size() > max_size) segment.data.resize(max_size);
 
-	segment.number_of_bits = static_cast<unsigned int>(segment.data.size() * 8);
 	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(segment)));
 }
 
-Encoder::Encoder(std::vector<uint8_t> &target) :
+Encoder::Encoder(std::vector<bool> &target) :
 	target_(target) {}
 
 void Encoder::output_short(uint16_t value) {
-	target_.push_back(value >> 8);
-	target_.push_back(value & 0xff);
+	uint16_t mask = 0x8000;
+	while(mask) {
+		target_.push_back(!!(value & mask));
+		mask >>= 1;
+	}
 }
 
 void Encoder::add_crc(bool incorrectly) {
@@ -254,10 +256,10 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kbps @ 300 rpm)
 }
 
-std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<uint8_t> &target) {
+std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<bool> &target) {
 	return std::unique_ptr<Encoder>(new MFMEncoder(target));
 }
 
-std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<uint8_t> &target) {
+std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<bool> &target) {
 	return std::unique_ptr<Encoder>(new FMEncoder(target));
 }

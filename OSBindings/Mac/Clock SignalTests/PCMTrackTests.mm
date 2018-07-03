@@ -19,13 +19,11 @@
 {
 	Storage::Disk::PCMSegment quickSegment, slowSegment;
 
-	quickSegment.data = {0xff};
-	quickSegment.number_of_bits = 8;
+	quickSegment.data = {true, true, true, true, true, true, true, true};
 	quickSegment.length_of_a_bit.length = 1;
 	quickSegment.length_of_a_bit.clock_rate = 100;
 
-	slowSegment.data = {0xff};
-	slowSegment.number_of_bits = 8;
+	slowSegment.data = {true, true, true, true, true, true, true, true};
 	slowSegment.length_of_a_bit.length = 1;
 	slowSegment.length_of_a_bit.clock_rate = 3;
 
@@ -55,19 +53,16 @@
 	std::vector<Storage::Disk::PCMSegment> segments;
 
 	Storage::Disk::PCMSegment sync_segment;
-	sync_segment.data.resize(10);
-	sync_segment.number_of_bits = 10*8;
-	memset(sync_segment.data.data(), 0xff, sync_segment.data.size());
+	sync_segment.data.resize(10*8);
+	std::fill(sync_segment.data.begin(), sync_segment.data.end(), true);
 
 	Storage::Disk::PCMSegment header_segment;
-	header_segment.data.resize(14);
-	header_segment.number_of_bits = 14*8;
-	memset(header_segment.data.data(), 0xff, header_segment.data.size());
+	header_segment.data.resize(14*8);
+	std::fill(header_segment.data.begin(), header_segment.data.end(), true);
 
 	Storage::Disk::PCMSegment data_segment;
-	data_segment.data.resize(349);
-	data_segment.number_of_bits = 349*8;
-	memset(data_segment.data.data(), 0xff, data_segment.data.size());
+	data_segment.data.resize(349*8);
+	std::fill(data_segment.data.begin(), data_segment.data.end(), true);
 
 	for(std::size_t c = 0; c < 16; ++c) {
 		segments.push_back(sync_segment);

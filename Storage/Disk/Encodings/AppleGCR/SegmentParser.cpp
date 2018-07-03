@@ -49,9 +49,9 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 
 	// Scan the track 1 and 1/8th times; that's long enough to make sure that any sector which straddles the
 	// end of the track is caught. Since they're put into a map, it doesn't matter if they're caught twice.
-	unsigned int extended_length = segment.number_of_bits + (segment.number_of_bits >> 3);
-	for(unsigned int bit = 0; bit < extended_length; ++bit) {
-		shift_register = static_cast<uint_fast8_t>((shift_register << 1) | segment.bit(bit % segment.number_of_bits));
+	const size_t extended_length = segment.data.size() + (segment.data.size() >> 3);
+	for(size_t bit = 0; bit < extended_length; ++bit) {
+		shift_register = static_cast<uint_fast8_t>((shift_register << 1) | (segment.data[bit % segment.data.size()] ? 1 : 0));
 
 		// Apple GCR parsing: bytes always have the top bit set.
 		if(!(shift_register&0x80)) continue;
@@ -80,7 +80,7 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 					new_sector.reset(new Sector);
 					new_sector->data.reserve(412);
 				} else {
-					sector_location = static_cast<std::size_t>(bit % segment.number_of_bits);
+					sector_location = static_cast<std::size_t>(bit % segment.data.size());
 				}
 			}
 		} else {

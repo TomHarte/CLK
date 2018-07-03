@@ -21,28 +21,117 @@ namespace Disk {
 
 /*!
 	A segment of PCM-sampled data.
-
-	Bits from each byte are taken MSB to LSB.
 */
 struct PCMSegment {
+	/*!
+		Determines the amount of space that each bit of data occupies;
+		allows PCMSegments of different densities.
+	*/
 	Time length_of_a_bit = Time(1);
-	unsigned int number_of_bits = 0;
-	std::vector<uint8_t> data;
 
-	PCMSegment(Time length_of_a_bit, unsigned int number_of_bits, std::vector<uint8_t> data)
-		: length_of_a_bit(length_of_a_bit), number_of_bits(number_of_bits), data(data) {}
-	PCMSegment() {}
+	/*!
+		This is the actual data, taking advantage of the std::vector<bool>
+		specialisation to use whatever one-bit-per-value encoding is
+		most suited to this architecture.
 
-	int bit(std::size_t index) const {
-		return (data[index >> 3] >> (7 ^ (index & 7)))&1;
+		If a value is @c true then a flux transition occurs in that window.
+		If it is @c false then no flux transition occurs.
+	*/
+	std::vector<bool> data;
+
+	/*!
+		Constructs an instance of PCMSegment with the specified @c length_of_a_bit
+		and @c data.
+	*/
+	PCMSegment(Time length_of_a_bit, const std::vector<bool> &data)
+		: length_of_a_bit(length_of_a_bit), data(data) {}
+
+	/*!
+		Constructs an instance of PCMSegment where each bit window is 1 unit of time
+		long and @c data is populated from the supplied @c source by serialising it
+		from MSB to LSB for @c number_of_bits.
+	*/
+	PCMSegment(size_t number_of_bits, const uint8_t *source)
+		: data(number_of_bits, false) {
+		for(size_t c = 0; c < number_of_bits; ++c) {
+			if((source[c >> 3] >> (7 ^ (c & 7)))&1) {
+				data[c] = true;
+			}
+		}
 	}
 
+	/*!
+		Constructs an instance of PCMSegment where each bit window is the length
+		specified by @c length_of_a_bit, and @c data is populated from the supplied
+		@c source by serialising it from MSB to LSB for @c number_of_bits.
+	*/
+	PCMSegment(Time length_of_a_bit, size_t number_of_bits, const uint8_t *source)
+		: PCMSegment(number_of_bits, source) {
+		this->length_of_a_bit = length_of_a_bit;
+	}
+
+	/*!
+		Constructs an instance of PCMSegment where each bit window is the length
+		specified by @c length_of_a_bit, and @c data is populated from the supplied
+		@c source by serialising it from MSB to LSB for @c number_of_bits.
+	*/
+	PCMSegment(Time length_of_a_bit, size_t number_of_bits, const std::vector<uint8_t> &source) :
+		PCMSegment(length_of_a_bit, number_of_bits, source.data()) {}
+
+	/*!
+		Constructs an instance of PCMSegment where each bit window is 1 unit of time
+		long and @c data is populated from the supplied @c source by serialising it
+		from MSB to LSB for @c number_of_bits.
+	*/
+	PCMSegment(size_t number_of_bits, const std::vector<uint8_t> &source) :
+		PCMSegment(number_of_bits, source.data()) {}
+
+	/*!
+		Constructs an instance of PCMSegment where each bit window is 1 unit of time
+		long and @c data is populated from the supplied @c source by serialising it
+		from MSB to LSB, assuming every bit provided is used.
+	*/
+	PCMSegment(const std::vector<uint8_t> &source) :
+		PCMSegment(source.size() * 8, source.data()) {}
+
+	/*!
+		Constructs an instance of PCMSegment where each bit window is 1 unit of time
+		long and @c data is empty.
+	*/
+	PCMSegment() {}
+
+	/// Empties the PCMSegment.
 	void clear() {
-		number_of_bits = 0;
 		data.clear();
 	}
 
+	/*!
+		Produces a byte buffer where the contents of @c data are serialised into bytes
+
+		If @c msb_first is @c true then each byte is expected to be deserialised from
+		MSB to LSB.
+
+		If @c msb_first is @c false then each byte is expected to be deserialised from
+		LSB to MSB.
+	*/
+	std::vector<uint8_t> byte_data(bool msb_first = true) const {
+		std::vector<uint8_t> bytes((data.size() + 7) >> 3);
+		size_t pointer = 0;
+		const size_t pointer_mask = msb_first ? 7 : 0;
+		for(const auto bit: data) {
+			if(bit) bytes[pointer >> 3] |= 1 << ((pointer & 7) ^ pointer_mask);
+			++pointer;
+		}
+		return bytes;
+	}
+
+	/// Appends the data of @c rhs to the current data. Does not adjust @c length_of_a_bit.
 	PCMSegment &operator +=(const PCMSegment &rhs);
+
+	/// @returns the total amount of time occupied by all the data stored in this segment.
+	Time length() const {
+		return length_of_a_bit * static_cast<unsigned int>(data.size());
+	}
 };
 
 /*!
@@ -85,6 +174,12 @@ class PCMSegmentEventSource {
 			@returns the total length of the stream of data that the source will provide.
 		*/
 		Time get_length();
+
+		/*!
+			@returns a reference to the underlying segment.
+		*/
+		const PCMSegment &segment() const;
+		PCMSegment &segment();
 
 	private:
 		std::shared_ptr<PCMSegment> segment_;

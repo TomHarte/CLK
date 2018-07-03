@@ -300,29 +300,29 @@ void Drive::begin_writing(Time bit_length, bool clamp_to_index_hole) {
 
 	write_segment_.length_of_a_bit = bit_length / rotational_multiplier_;
 	write_segment_.data.clear();
-	write_segment_.number_of_bits = 0;
 
 	write_start_time_ = get_time_into_track();
 }
 
 void Drive::write_bit(bool value) {
-	bool needs_new_byte = !(write_segment_.number_of_bits&7);
-	if(needs_new_byte) write_segment_.data.push_back(0);
-	if(value) write_segment_.data[write_segment_.number_of_bits >> 3] |= 0x80 >> (write_segment_.number_of_bits & 7);
-	write_segment_.number_of_bits++;
-
+	write_segment_.data.push_back(value);
 	cycles_until_bits_written_ += cycles_per_bit_;
 }
 
 void Drive::end_writing() {
+	// If the user modifies a track, it's scaled up to a "high" resolution and modifications
+	// are plotted on top of that.
+	static const size_t high_resolution_track_rate = 500000;
+
 	if(!is_reading_) {
 		is_reading_ = true;
 
 		if(!patched_track_) {
 			// Avoid creating a new patched track if this one is already patched
-			patched_track_ = std::dynamic_pointer_cast<PCMPatchedTrack>(track_);
-			if(!patched_track_) {
-				patched_track_.reset(new PCMPatchedTrack(track_));
+			patched_track_ = std::dynamic_pointer_cast<PCMTrack>(track_);
+			if(!patched_track_ || !patched_track_->is_resampled_clone()) {
+				Track *tr = track_.get();
+				patched_track_.reset(PCMTrack::resampled_clone(tr, high_resolution_track_rate));
 			}
 		}
 		patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);

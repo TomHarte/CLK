@@ -79,16 +79,11 @@ std::shared_ptr<Track> D64::get_track_at_position(Track::Address address) {
 	//
 	// = 349 GCR bytes per sector
 
-	PCMSegment track;
 	std::size_t track_bytes = 349 * static_cast<std::size_t>(sectors_by_zone[zone]);
-	track.number_of_bits = static_cast<unsigned int>(track_bytes) * 8;
-	track.data.resize(track_bytes);
-	uint8_t *data = &track.data[0];
-
-	memset(data, 0, track_bytes);
+	std::vector<uint8_t> data(track_bytes);
 
 	for(int sector = 0; sector < sectors_by_zone[zone]; sector++) {
-		uint8_t *sector_data = &data[sector * 349];
+		uint8_t *sector_data = &data[static_cast<size_t>(sector) * 349];
 		sector_data[0] = sector_data[1] = sector_data[2] = 0xff;
 
 		uint8_t sector_number = static_cast<uint8_t>(sector);						// sectors count from 0
@@ -141,5 +136,5 @@ std::shared_ptr<Track> D64::get_track_at_position(Track::Address address) {
 		Encodings::CommodoreGCR::encode_block(&sector_data[target_data_offset], end_of_data);
 	}
 
-	return std::shared_ptr<Track>(new PCMTrack(std::move(track)));
+	return std::shared_ptr<Track>(new PCMTrack(PCMSegment(data)));
 }

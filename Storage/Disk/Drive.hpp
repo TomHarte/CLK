@@ -11,7 +11,7 @@
 
 #include "Disk.hpp"
 #include "Track/PCMSegment.hpp"
-#include "Track/PCMPatchedTrack.hpp"
+#include "Track/PCMTrack.hpp"
 
 #include "../TimedEventLoop.hpp"
 #include "../../Activity/Observer.hpp"
@@ -168,8 +168,8 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		bool clamp_writing_to_index_hole_ = false;
 
 		// If writing is occurring then the drive will be accumulating a write segment,
-		// for addition to a patched track.
-		std::shared_ptr<PCMPatchedTrack> patched_track_;
+		// for addition to a (high-resolution) PCM track.
+		std::shared_ptr<PCMTrack> patched_track_;
 		PCMSegment write_segment_;
 		Time write_start_time_;
 

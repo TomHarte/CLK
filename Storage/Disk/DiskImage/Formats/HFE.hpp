@@ -30,7 +30,6 @@ class HFE: public DiskImage {
 			@throws Error::UnknownVersion if the file looks correct but is an unsupported version.
 		*/
 		HFE(const std::string &file_name);
-		~HFE();
 
 		// implemented to satisfy @c Disk
 		HeadPosition get_maximum_head_position() override;
