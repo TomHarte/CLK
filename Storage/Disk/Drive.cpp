@@ -310,6 +310,8 @@ void Drive::write_bit(bool value) {
 }
 
 void Drive::end_writing() {
+	// If the user modifies a track, it's scaled up to a "high" resolution and modifications
+	// are plotted on top of that.
 	static const size_t high_resolution_track_rate = 500000;
 
 	if(!is_reading_) {
