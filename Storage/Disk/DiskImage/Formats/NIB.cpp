@@ -75,7 +75,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	// Establish where syncs start by finding instances of 0xd5 0xaa and then regressing
 	// from each along all preceding FFs.
 	for(size_t index = 0; index < track_data.size(); ++index) {
-		// This is a D% AA...
+		// This is a D5 AA...
 		if(track_data[index] == 0xd5 && track_data[(index+1)%track_data.size()] == 0xaa) {
 			// ... count backwards to find out where the preceding FFs started.
 			size_t start = index - 1;
