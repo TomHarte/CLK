@@ -75,7 +75,9 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	// Establish where syncs start by finding instances of 0xd5 0xaa and then regressing
 	// from each along all preceding FFs.
 	for(size_t index = 0; index < track_data.size(); ++index) {
+		// This is a D% AA...
 		if(track_data[index] == 0xd5 && track_data[(index+1)%track_data.size()] == 0xaa) {
+			// ... count backwards to find out where the preceding FFs started.
 			size_t start = index - 1;
 			size_t length = 0;
 			while(track_data[start] == 0xff && length < 5) {
@@ -83,8 +85,13 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 				++length;
 			}
 
+			// Record a sync position only if there were at least five FFs.
 			if(length == 5) {
 				sync_starts.insert((start + 1) % track_data.size());
+
+				// If the apparent start of this sync area is 'after' the start, then
+				// this sync period overlaps position zero. So this track will start
+				// in a sync block.
 				if(start > index)
 					start_index = start;
 			}
@@ -92,25 +99,36 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	}
 
 	PCMSegment segment;
+
+	// If the track started in a sync block, write sync first.
 	if(start_index) {
 		segment += Encodings::AppleGCR::six_and_two_sync(static_cast<int>(start_index));
 	}
 
 	std::size_t index = start_index;
-	for(const auto &location: sync_starts) {
-		// Write from index to sync_start.
+	for(const auto location: sync_starts) {
+		// Write data from index to sync_start.
 		std::vector<uint8_t> data_segment(
 			track_data.begin() + static_cast<off_t>(index),
 			track_data.begin() + static_cast<off_t>(location));
 		segment += PCMSegment(data_segment);
 
-		// Add a sync from sync_start to end of 0xffs.
-		if(location == track_length-1) break;
-
+		// Add a sync from sync_start to end of 0xffs, if there are
+		// any before the end of data.
 		index = location;
 		while(index < track_length && track_data[index] == 0xff)
 			++index;
-		segment += Encodings::AppleGCR::six_and_two_sync(static_cast<int>(index - location));
+
+		if(index - location)
+			segment += Encodings::AppleGCR::six_and_two_sync(static_cast<int>(index - location));
+	}
+
+	// If there's still data remaining on the track, write it out.
+	if(index < track_length) {
+		std::vector<uint8_t> data_segment(
+			track_data.begin() + static_cast<off_t>(index),
+			track_data.end());
+		segment += PCMSegment(data_segment);
 	}
 
 	return std::make_shared<PCMTrack>(segment);
