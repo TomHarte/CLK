@@ -147,20 +147,29 @@ void NIB::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 		std::vector<uint8_t> track;
 		track.reserve(track_length);
 		uint8_t shifter = 0;
+		int bit_count = 0;
+		size_t sync_location = 0, location = 0;
 		for(const auto bit: segment.data) {
 			shifter = static_cast<uint8_t>((shifter << 1) | (bit ? 1 : 0));
+			++bit_count;
+			++location;
 			if(shifter & 0x80) {
 				track.push_back(shifter);
+				if(bit_count == 10) {
+					sync_location = location;
+				}
 				shifter = 0;
+				bit_count = 0;
 			}
 		}
 
-		// Pad out to track_length.
+		// Trim or pad out to track_length.
 		if(track.size() > track_length) {
 			track.resize(track_length);
 		} else {
 			while(track.size() < track_length) {
-				track.push_back(0xff);
+				std::vector<uint8_t> extra_data(static_cast<size_t>(track_length) - track.size(), 0xff);
+				track.insert(track.begin() + static_cast<off_t>(sync_location), extra_data.begin(), extra_data.end());
 			}
 		}
 
