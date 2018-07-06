@@ -19,7 +19,7 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	openGL_output_builder_.set_colour_format(colour_space, colour_cycle_numerator, colour_cycle_denominator);
 
 	const unsigned int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
-	const unsigned int scanlinesVerticalRetraceTime = 10;		// source: ibid
+	const unsigned int scanlinesVerticalRetraceTime = 8;		// source: ibid
 
 																// To quote:
 																//
