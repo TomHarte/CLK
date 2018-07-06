@@ -42,7 +42,7 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	crt_->set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 0.0f);
 
 	set_video_signal(Outputs::CRT::VideoSignal::Composite);
-	crt_->set_visible_area(crt_->get_rect_for_area(53, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
+	crt_->set_visible_area(crt_->get_rect_for_area(54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 }
 
 void VideoOutput::set_video_signal(Outputs::CRT::VideoSignal video_signal) {
