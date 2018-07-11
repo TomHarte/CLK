@@ -32,7 +32,7 @@
 
 #include "../../Activity/Source.hpp"
 #include "../CRTMachine.hpp"
-#include "../ConfigurationTarget.hpp"
+#include "../MediaTarget.hpp"
 #include "../KeyboardMachine.hpp"
 
 #include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
@@ -84,7 +84,7 @@ class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
+	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
 	public Configurable::Device,
 	public MemoryMap,

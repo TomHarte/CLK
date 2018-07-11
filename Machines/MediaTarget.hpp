@@ -1,23 +1,23 @@
 //
-//  ConfigurationTarget.h
+//  MediaTarget.h
 //  Clock Signal
 //
 //  Created by Thomas Harte on 08/09/2016.
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-#ifndef ConfigurationTarget_hpp
-#define ConfigurationTarget_hpp
+#ifndef MediaTarget_hpp
+#define MediaTarget_hpp
 
 #include "../Analyser/Static/StaticAnalyser.hpp"
 #include "../Configurable/Configurable.hpp"
 
 #include <string>
 
-namespace ConfigurationTarget {
+namespace MediaTarget {
 
 /*!
-	A ConfigurationTarget::Machine is anything that can accept a Analyser::Static::Target
+	A MediaTarget::Machine is anything that can accept a Analyser::Static::Target
 	and configure itself appropriately, or accept a list of media subsequently to insert.
 */
 class Machine {
@@ -32,4 +32,4 @@ class Machine {
 
 }
 
-#endif /* ConfigurationTarget_h */
+#endif /* MediaTarget_hpp */

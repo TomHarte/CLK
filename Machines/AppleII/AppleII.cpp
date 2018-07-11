@@ -9,7 +9,7 @@
 #include "AppleII.hpp"
 
 #include "../../Activity/Source.hpp"
-#include "../ConfigurationTarget.hpp"
+#include "../MediaTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
 #include "../KeyboardMachine.hpp"
@@ -45,7 +45,7 @@ namespace {
 
 class ConcreteMachine:
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
+	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
@@ -662,7 +662,7 @@ class ConcreteMachine:
 			string_serialiser_.reset(new Utility::StringSerialiser(string, true));
 		}
 
-		// MARK: ConfigurationTarget
+		// MARK: MediaTarget
 		bool insert_media(const Analyser::Static::Media &media) override {
 			if(!media.disks.empty()) {
 				auto diskii = diskii_card();

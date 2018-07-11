@@ -11,7 +11,7 @@
 #include "Keyboard.hpp"
 
 #include "../../../Activity/Source.hpp"
-#include "../../ConfigurationTarget.hpp"
+#include "../../MediaTarget.hpp"
 #include "../../CRTMachine.hpp"
 #include "../../KeyboardMachine.hpp"
 #include "../../JoystickMachine.hpp"
@@ -280,7 +280,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 
 class ConcreteMachine:
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
+	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
 	public JoystickMachine::Machine,
 	public Configurable::Device,

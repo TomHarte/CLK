@@ -21,7 +21,7 @@
 #include "../Utility/Typer.hpp"
 
 #include "../../Activity/Source.hpp"
-#include "../ConfigurationTarget.hpp"
+#include "../MediaTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
 #include "../KeyboardMachine.hpp"
@@ -756,7 +756,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 */
 template <bool has_fdc> class ConcreteMachine:
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
+	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
 	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,

@@ -14,7 +14,7 @@
 #include "../../Components/AY38910/AY38910.hpp"	// For the Super Game Module.
 #include "../../Components/SN76489/SN76489.hpp"
 
-#include "../ConfigurationTarget.hpp"
+#include "../MediaTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
 
@@ -108,7 +108,7 @@ class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
+	public MediaTarget::Machine,
 	public JoystickMachine::Machine {
 
 	public:

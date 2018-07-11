@@ -1,15 +1,15 @@
 //
-//  MultiConfigurationTarget.hpp
+//  MultiMediaTarget.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 29/01/2018.
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiConfigurationTarget_hpp
-#define MultiConfigurationTarget_hpp
+#ifndef MultiMediaTarget_hpp
+#define MultiMediaTarget_hpp
 
-#include "../../../../Machines/ConfigurationTarget.hpp"
+#include "../../../../Machines/MediaTarget.hpp"
 #include "../../../../Machines/DynamicMachine.hpp"
 
 #include <memory>
@@ -24,18 +24,18 @@ namespace Dynamic {
 	Makes a static internal copy of the list of machines; makes no guarantees about the
 	order of delivered messages.
 */
-struct MultiConfigurationTarget: public ConfigurationTarget::Machine {
+struct MultiMediaTarget: public MediaTarget::Machine {
 	public:
-		MultiConfigurationTarget(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
+		MultiMediaTarget(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
 
-		// Below is the standard ConfigurationTarget::Machine interface; see there for documentation.
+		// Below is the standard MediaTarget::Machine interface; see there for documentation.
 		bool insert_media(const Analyser::Static::Media &media) override;
 
 	private:
-		std::vector<ConfigurationTarget::Machine *> targets_;
+		std::vector<MediaTarget::Machine *> targets_;
 };
 
 }
 }
 
-#endif /* MultiConfigurationTarget_hpp */
+#endif /* MultiMediaTarget_hpp */

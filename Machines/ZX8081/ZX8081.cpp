@@ -8,7 +8,7 @@
 
 #include "ZX8081.hpp"
 
-#include "../ConfigurationTarget.hpp"
+#include "../MediaTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
 
@@ -59,7 +59,7 @@ std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 
 template<bool is_zx81> class ConcreteMachine:
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
+	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
 	public Configurable::Device,
 	public Utility::TypeRecipient,

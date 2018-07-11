@@ -11,7 +11,7 @@
 
 #include "../Configurable/Configurable.hpp"
 #include "../Activity/Source.hpp"
-#include "ConfigurationTarget.hpp"
+#include "MediaTarget.hpp"
 #include "CRTMachine.hpp"
 #include "JoystickMachine.hpp"
 #include "KeyboardMachine.hpp"
@@ -27,11 +27,11 @@ struct DynamicMachine {
 	virtual ~DynamicMachine() {}
 
 	virtual Activity::Source *activity_source() = 0;
-	virtual ConfigurationTarget::Machine *configuration_target() = 0;
+	virtual Configurable::Device *configurable_device() = 0;
 	virtual CRTMachine::Machine *crt_machine() = 0;
 	virtual JoystickMachine::Machine *joystick_machine() = 0;
 	virtual KeyboardMachine::Machine *keyboard_machine() = 0;
-	virtual Configurable::Device *configurable_device() = 0;
+	virtual MediaTarget::Machine *media_target() = 0;
 
 	/*!
 		Provides a raw pointer to the underlying machine if and only if this dynamic machine really is

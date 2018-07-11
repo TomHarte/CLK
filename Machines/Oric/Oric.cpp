@@ -13,7 +13,7 @@
 #include "Video.hpp"
 
 #include "../../Activity/Source.hpp"
-#include "../ConfigurationTarget.hpp"
+#include "../MediaTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
 
@@ -193,7 +193,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 
 template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class ConcreteMachine:
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
+	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,

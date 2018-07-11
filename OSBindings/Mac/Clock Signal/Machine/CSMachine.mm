@@ -11,7 +11,7 @@
 
 #include "CSROMFetcher.hpp"
 
-#include "ConfigurationTarget.hpp"
+#include "MediaTarget.hpp"
 #include "JoystickMachine.hpp"
 #include "KeyboardMachine.hpp"
 #include "KeyCodes.h"
@@ -199,8 +199,8 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)applyMedia:(const Analyser::Static::Media &)media {
 	@synchronized(self) {
-		ConfigurationTarget::Machine *const configurationTarget = _machine->configuration_target();
-		if(configurationTarget) configurationTarget->insert_media(media);
+		MediaTarget::Machine *const mediaTarget = _machine->media_target();
+		if(mediaTarget) mediaTarget->insert_media(media);
 	}
 }
 

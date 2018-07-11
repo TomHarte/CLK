@@ -15,10 +15,10 @@ using namespace Analyser::Dynamic;
 MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machines) :
 	machines_(std::move(machines)),
 	configurable_(machines_),
-	configuration_target_(machines_),
 	crt_machine_(machines_, machines_mutex_),
 	joystick_machine_(machines),
-	keyboard_machine_(machines_) {
+	keyboard_machine_(machines_),
+	media_target_(machines_) {
 	crt_machine_.set_delegate(this);
 }
 
@@ -26,11 +26,11 @@ Activity::Source *MultiMachine::activity_source() {
 	return nullptr; // TODO
 }
 
-ConfigurationTarget::Machine *MultiMachine::configuration_target() {
+MediaTarget::Machine *MultiMachine::media_target() {
 	if(has_picked_) {
-		return machines_.front()->configuration_target();
+		return machines_.front()->media_target();
 	} else {
-		return &configuration_target_;
+		return &media_target_;
 	}
 }
 

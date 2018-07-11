@@ -595,8 +595,8 @@
 		4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EB61B587A5100552FC2 /* AllSuiteATests.swift */; };
 		4BB73EC21B587A5100552FC2 /* Clock_SignalUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB73EC11B587A5100552FC2 /* Clock_SignalUITests.swift */; };
 		4BBB14311CD2CECE00BDB55C /* IntermediateShader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB142F1CD2CECE00BDB55C /* IntermediateShader.cpp */; };
-		4BBB70A4202011C2002FE009 /* MultiConfigurationTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A3202011C2002FE009 /* MultiConfigurationTarget.cpp */; };
-		4BBB70A5202011C2002FE009 /* MultiConfigurationTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A3202011C2002FE009 /* MultiConfigurationTarget.cpp */; };
+		4BBB70A4202011C2002FE009 /* MultiMediaTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A3202011C2002FE009 /* MultiMediaTarget.cpp */; };
+		4BBB70A5202011C2002FE009 /* MultiMediaTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A3202011C2002FE009 /* MultiMediaTarget.cpp */; };
 		4BBB70A8202014E2002FE009 /* MultiCRTMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A6202014E2002FE009 /* MultiCRTMachine.cpp */; };
 		4BBB70A9202014E2002FE009 /* MultiCRTMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBB70A6202014E2002FE009 /* MultiCRTMachine.cpp */; };
 		4BBC951E1F368D83008F4C34 /* i8272.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBC951C1F368D83008F4C34 /* i8272.cpp */; };
@@ -1027,7 +1027,7 @@
 		4BA141C12073100800A31EC9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4BA61EAE1D91515900B3C876 /* NSData+StdVector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSData+StdVector.h"; sourceTree = "<group>"; };
 		4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = "NSData+StdVector.mm"; sourceTree = "<group>"; };
-		4BA9C3CF1D8164A9002DDB61 /* ConfigurationTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ConfigurationTarget.hpp; sourceTree = "<group>"; };
+		4BA9C3CF1D8164A9002DDB61 /* MediaTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MediaTarget.hpp; sourceTree = "<group>"; };
 		4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Disk.hpp; sourceTree = "<group>"; };
 		4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Storage.hpp; sourceTree = "<group>"; };
 		4BAF2B4C2004580C00480230 /* DMK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DMK.cpp; sourceTree = "<group>"; };
@@ -1324,8 +1324,8 @@
 		4BBB142F1CD2CECE00BDB55C /* IntermediateShader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IntermediateShader.cpp; sourceTree = "<group>"; };
 		4BBB14301CD2CECE00BDB55C /* IntermediateShader.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = IntermediateShader.hpp; sourceTree = "<group>"; };
 		4BBB709C2020109C002FE009 /* DynamicMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DynamicMachine.hpp; sourceTree = "<group>"; };
-		4BBB70A2202011C2002FE009 /* MultiConfigurationTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MultiConfigurationTarget.hpp; sourceTree = "<group>"; };
-		4BBB70A3202011C2002FE009 /* MultiConfigurationTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MultiConfigurationTarget.cpp; sourceTree = "<group>"; };
+		4BBB70A2202011C2002FE009 /* MultiMediaTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MultiMediaTarget.hpp; sourceTree = "<group>"; };
+		4BBB70A3202011C2002FE009 /* MultiMediaTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MultiMediaTarget.cpp; sourceTree = "<group>"; };
 		4BBB70A6202014E2002FE009 /* MultiCRTMachine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiCRTMachine.cpp; sourceTree = "<group>"; };
 		4BBB70A7202014E2002FE009 /* MultiCRTMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiCRTMachine.hpp; sourceTree = "<group>"; };
 		4BBC34241D2208B100FFC9DF /* CSFastLoading.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSFastLoading.h; sourceTree = "<group>"; };
@@ -2820,7 +2820,7 @@
 			isa = PBXGroup;
 			children = (
 				4B54C0BB1F8D8E790050900F /* KeyboardMachine.cpp */,
-				4BA9C3CF1D8164A9002DDB61 /* ConfigurationTarget.hpp */,
+				4BA9C3CF1D8164A9002DDB61 /* MediaTarget.hpp */,
 				4B046DC31CFE651500E9E45E /* CRTMachine.hpp */,
 				4BBB709C2020109C002FE009 /* DynamicMachine.hpp */,
 				4B7041271F92C26900735E45 /* JoystickMachine.hpp */,
@@ -2858,16 +2858,16 @@
 			isa = PBXGroup;
 			children = (
 				4B1B88BE202E3DB200B67DFF /* MultiConfigurable.cpp */,
-				4BBB70A3202011C2002FE009 /* MultiConfigurationTarget.cpp */,
 				4BBB70A6202014E2002FE009 /* MultiCRTMachine.cpp */,
 				4B1B88C6202E469300B67DFF /* MultiJoystickMachine.cpp */,
 				4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */,
+				4BBB70A3202011C2002FE009 /* MultiMediaTarget.cpp */,
 				4B9BE3FE203A0C0600FFAE60 /* MultiSpeaker.cpp */,
 				4B1B88BF202E3DB200B67DFF /* MultiConfigurable.hpp */,
-				4BBB70A2202011C2002FE009 /* MultiConfigurationTarget.hpp */,
 				4BBB70A7202014E2002FE009 /* MultiCRTMachine.hpp */,
 				4B1B88C7202E469300B67DFF /* MultiJoystickMachine.hpp */,
 				4B1B88BA202E2EC100B67DFF /* MultiKeyboardMachine.hpp */,
+				4BBB70A2202011C2002FE009 /* MultiMediaTarget.hpp */,
 				4B9BE3FF203A0C0600FFAE60 /* MultiSpeaker.hpp */,
 			);
 			path = Implementation;
@@ -3691,7 +3691,7 @@
 				4BAD13441FF709C700FD114A /* MSX.cpp in Sources */,
 				4B055AC41FAE9AE80060FFFF /* Keyboard.cpp in Sources */,
 				4B055A941FAE85B50060FFFF /* CommodoreROM.cpp in Sources */,
-				4BBB70A5202011C2002FE009 /* MultiConfigurationTarget.cpp in Sources */,
+				4BBB70A5202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
 				4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */,
 				4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */,
 				4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */,
@@ -3856,7 +3856,7 @@
 				4B4518841F75E91A00926311 /* UnformattedTrack.cpp in Sources */,
 				4B55CE5D1C3B7D6F0093A61B /* CSOpenGLView.m in Sources */,
 				4B894528201967B4007DE474 /* Disk.cpp in Sources */,
-				4BBB70A4202011C2002FE009 /* MultiConfigurationTarget.cpp in Sources */,
+				4BBB70A4202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
 				4B89453A201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
 				4B54C0C21F8D91CD0050900F /* Keyboard.cpp in Sources */,
