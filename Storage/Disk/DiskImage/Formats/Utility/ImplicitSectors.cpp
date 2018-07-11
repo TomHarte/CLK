@@ -38,7 +38,7 @@ std::shared_ptr<Track> Storage::Disk::track_for_sectors(uint8_t *const source, i
 		source_pointer += byte_size;
 	}
 
-	if(sectors.size()) {
+	if(!sectors.empty()) {
 		return is_double_density ? Storage::Encodings::MFM::GetMFMTrackWithSectors(sectors) : Storage::Encodings::MFM::GetFMTrackWithSectors(sectors);
 	}
 

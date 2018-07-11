@@ -25,36 +25,36 @@ namespace {
 
 ::Machine::DynamicMachine *MachineForTarget(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher, Machine::Error &error) {
 	error = Machine::Error::None;
-	::Machine::DynamicMachine *machine = nullptr;
-	switch(target->machine) {
-		case Analyser::Machine::AmstradCPC:		machine = new Machine::TypedDynamicMachine<AmstradCPC::Machine>(AmstradCPC::Machine::AmstradCPC());				break;
-		case Analyser::Machine::AppleII:		machine = new Machine::TypedDynamicMachine<AppleII::Machine>(AppleII::Machine::AppleII());						break;
-		case Analyser::Machine::Atari2600:		machine = new Machine::TypedDynamicMachine<Atari2600::Machine>(Atari2600::Machine::Atari2600());				break;
-		case Analyser::Machine::ColecoVision:	machine = new Machine::TypedDynamicMachine<Coleco::Vision::Machine>(Coleco::Vision::Machine::ColecoVision());	break;
-		case Analyser::Machine::Electron:		machine = new Machine::TypedDynamicMachine<Electron::Machine>(Electron::Machine::Electron());					break;
-		case Analyser::Machine::MSX:			machine = new Machine::TypedDynamicMachine<MSX::Machine>(MSX::Machine::MSX());									break;
-		case Analyser::Machine::Oric:			machine = new Machine::TypedDynamicMachine<Oric::Machine>(Oric::Machine::Oric(target));							break;
-		case Analyser::Machine::Vic20:			machine = new Machine::TypedDynamicMachine<Commodore::Vic20::Machine>(Commodore::Vic20::Machine::Vic20());		break;
-		case Analyser::Machine::ZX8081:			machine = new Machine::TypedDynamicMachine<ZX8081::Machine>(ZX8081::Machine::ZX8081(target));					break;
 
-		default:
-			error = Machine::Error::UnknownMachine;
-		return nullptr;
-	}
+	Machine::DynamicMachine *machine = nullptr;
+	try {
+#define BindD(name, m)	case Analyser::Machine::m: machine = new Machine::TypedDynamicMachine<name::Machine>(name::Machine::m(target, rom_fetcher));	break;
+#define Bind(m)	BindD(m, m)
+		switch(target->machine) {
+			Bind(AmstradCPC)
+			Bind(AppleII)
+			Bind(Atari2600)
+			BindD(Coleco::Vision, ColecoVision)
+			Bind(Electron)
+			Bind(MSX)
+			Bind(Oric)
+			BindD(Commodore::Vic20, Vic20)
+			Bind(ZX8081)
 
-	// TODO: this shouldn't depend on CRT machine's inclusion of ROM machine.
-	CRTMachine::Machine *crt_machine = machine->crt_machine();
-	if(crt_machine) {
-		if(!machine->crt_machine()->set_rom_fetcher(rom_fetcher)) {
-			delete machine;
-			error = Machine::Error::MissingROM;
+			default:
+				error = Machine::Error::UnknownMachine;
 			return nullptr;
 		}
-	}
-
-	ConfigurationTarget::Machine *configuration_target = machine->configuration_target();
-	if(configuration_target) {
-		machine->configuration_target()->configure_as_target(target);
+#undef Bind
+	} catch(ROMMachine::Error construction_error) {
+		switch(construction_error) {
+			case ROMMachine::Error::MissingROMs:
+				error = Machine::Error::MissingROM;
+			break;
+			default:
+				error = Machine::Error::UnknownError;
+			break;
+		}
 	}
 
 	return machine;

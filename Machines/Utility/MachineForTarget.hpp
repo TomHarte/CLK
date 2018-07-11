@@ -21,6 +21,7 @@ namespace Machine {
 
 enum class Error {
 	None,
+	UnknownError,
 	UnknownMachine,
 	MissingROM,
 	NoTargets

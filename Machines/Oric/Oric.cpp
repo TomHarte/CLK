@@ -13,7 +13,7 @@
 #include "Video.hpp"
 
 #include "../../Activity/Source.hpp"
-#include "../ConfigurationTarget.hpp"
+#include "../MediaTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
 
@@ -193,7 +193,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 
 template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class ConcreteMachine:
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
+	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
@@ -206,9 +206,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 	public Machine {
 
 	public:
-		ConcreteMachine(const Analyser::Static::Oric::Target *target) :
+		ConcreteMachine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 				m6502_(*this),
-				rom_type_(target ? target->rom : Analyser::Static::Oric::Target::ROM::BASIC10),
 				ay8910_(audio_queue_),
 				speaker_(ay8910_),
 				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),
@@ -222,16 +221,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			if(disk_interface == Analyser::Static::Oric::Target::DiskInterface::Pravetz) {
 				diskii_.set_clocking_hint_observer(this);
 			}
-		}
 
-		~ConcreteMachine() {
-			audio_queue_.flush();
-		}
-
-		// Obtains the system ROMs.
-		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
 			std::vector<std::string> rom_names = {"colour.rom"};
-			switch(rom_type_) {
+			switch(target.rom) {
 				case Analyser::Static::Oric::Target::ROM::BASIC10: rom_names.push_back("basic10.rom");	break;
 				case Analyser::Static::Oric::Target::ROM::BASIC11: rom_names.push_back("basic11.rom");	break;
 				case Analyser::Static::Oric::Target::ROM::Pravetz: rom_names.push_back("pravetz.rom");	break;
@@ -239,15 +231,17 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			switch(disk_interface) {
 				default: break;
 				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:	rom_names.push_back("microdisc.rom");	break;
-				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:	rom_names.push_back("8dos.rom");	break;
+				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:	rom_names.push_back("8dos.rom");		break;
 			}
 
-			auto roms = roms_with_names("Oric", rom_names);
+			const auto roms = rom_fetcher("Oric", rom_names);
 
 			for(std::size_t index = 0; index < roms.size(); ++index) {
-				if(!roms[index]) return false;
+				if(!roms[index]) {
+					throw ROMMachine::Error::MissingROMs;
+				}
 			}
-			
+
 			colour_rom_ = std::move(*roms[0]);
 			rom_ = std::move(*roms[1]);
 
@@ -261,8 +255,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					pravetz_rom_ = std::move(*roms[2]);
 					pravetz_rom_.resize(512);
 
-					auto state_machine_rom = roms_with_names("DiskII", {"state-machine-16.rom"});
-					if(!state_machine_rom[0]) return false;
+					auto state_machine_rom = rom_fetcher("DiskII", {"state-machine-16.rom"});
+					if(!state_machine_rom[0]) {
+						throw ROMMachine::Error::MissingROMs;
+					}
 					diskii_.set_state_machine(*state_machine_rom[0]);
 				} break;
 			}
@@ -271,9 +267,35 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			rom_.resize(16384);
 			paged_rom_ = rom_.data();
 
-			if(video_output_) video_output_->set_colour_rom(colour_rom_);
+			switch(target.disk_interface) {
+				default: break;
+				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+					microdisc_did_change_paging_flags(&microdisc_);
+					microdisc_.set_delegate(this);
+				break;
+			}
 
-			return true;
+			if(!target.loading_command.empty()) {
+				type_string(target.loading_command);
+			}
+
+			switch(target.rom) {
+				case Analyser::Static::Oric::Target::ROM::BASIC10:
+					tape_get_byte_address_ = 0xe630;
+					tape_speed_address_ = 0x67;
+				break;
+				case Analyser::Static::Oric::Target::ROM::BASIC11:
+				case Analyser::Static::Oric::Target::ROM::Pravetz:
+					tape_get_byte_address_ = 0xe6c9;
+					tape_speed_address_ = 0x024d;
+				break;
+			}
+
+			insert_media(target.media);
+		}
+
+		~ConcreteMachine() {
+			audio_queue_.flush();
 		}
 
 		void set_key_state(uint16_t key, bool is_pressed) override final {
@@ -292,41 +314,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			use_fast_tape_hack_ = activate;
 		}
 
-		// to satisfy ConfigurationTarget::Machine
-		void configure_as_target(const Analyser::Static::Target *target) override final {
-			auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target);
-
-			switch(oric_target->disk_interface) {
-				default: break;
-				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
-					microdisc_did_change_paging_flags(&microdisc_);
-					microdisc_.set_delegate(this);
-				break;
-			}
-
-			if(!oric_target->loading_command.empty()) {
-				type_string(oric_target->loading_command);
-			}
-
-			switch(rom_type_) {
-				case Analyser::Static::Oric::Target::ROM::BASIC10:
-					tape_get_byte_address_ = 0xe630;
-					tape_speed_address_ = 0x67;
-				break;
-				case Analyser::Static::Oric::Target::ROM::BASIC11:
-				case Analyser::Static::Oric::Target::ROM::Pravetz:
-					tape_get_byte_address_ = 0xe6c9;
-					tape_speed_address_ = 0x024d;
-				break;
-			}
-
-			insert_media(target->media);
-		}
-
 		bool insert_media(const Analyser::Static::Media &media) override final {
 			bool inserted = false;
 
-			if(media.tapes.size()) {
+			if(!media.tapes.empty()) {
 				tape_player_.set_tape(media.tapes.front());
 				inserted = true;
 			}
@@ -587,7 +578,6 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 
 		// RAM and ROM
-		Analyser::Static::Oric::Target::ROM rom_type_;
 		std::vector<uint8_t> rom_, microdisc_rom_, colour_rom_;
 		uint8_t ram_[65536];
 		Cycles cycles_since_video_update_;
@@ -650,13 +640,13 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 using namespace Oric;
 
-Machine *Machine::Oric(const Analyser::Static::Target *target_hint) {
+Machine *Machine::Oric(const Analyser::Static::Target *target_hint, const ROMMachine::ROMFetcher &rom_fetcher) {
 	auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target_hint);
 	using DiskInterface = Analyser::Static::Oric::Target::DiskInterface;
 	switch(oric_target->disk_interface) {
-		default:						return new ConcreteMachine<DiskInterface::None>(oric_target);
-		case DiskInterface::Microdisc:	return new ConcreteMachine<DiskInterface::Microdisc>(oric_target);
-		case DiskInterface::Pravetz:	return new ConcreteMachine<DiskInterface::Pravetz>(oric_target);
+		default:						return new ConcreteMachine<DiskInterface::None>(*oric_target, rom_fetcher);
+		case DiskInterface::Microdisc:	return new ConcreteMachine<DiskInterface::Microdisc>(*oric_target, rom_fetcher);
+		case DiskInterface::Pravetz:	return new ConcreteMachine<DiskInterface::Pravetz>(*oric_target, rom_fetcher);
 	}
 }
 

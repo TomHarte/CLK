@@ -16,7 +16,7 @@
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
 
-#include "../../Machines/ConfigurationTarget.hpp"
+#include "../../Machines/MediaTarget.hpp"
 #include "../../Machines/CRTMachine.hpp"
 
 #include "../../Concurrency/BestEffortUpdater.hpp"
@@ -487,7 +487,7 @@ int main(int argc, char *argv[]) {
 
 				case SDL_DROPFILE: {
 					Analyser::Static::Media media = Analyser::Static::GetMedia(event.drop.file);
-					machine->configuration_target()->insert_media(media);
+					machine->media_target()->insert_media(media);
 				} break;
 
 				case SDL_KEYDOWN:

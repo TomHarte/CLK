@@ -29,8 +29,8 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 			return get<Activity::Source>();
 		}
 
-		ConfigurationTarget::Machine *configuration_target() override {
-			return get<ConfigurationTarget::Machine>();
+		MediaTarget::Machine *media_target() override {
+			return get<MediaTarget::Machine>();
 		}
 
 		CRTMachine::Machine *crt_machine() override {

@@ -10,6 +10,11 @@
 #define Vic20_hpp
 
 #include "../../../Configurable/Configurable.hpp"
+#include "../../../Analyser/Static/StaticAnalyser.hpp"
+#include "../../ROMMachine.hpp"
+
+#include <memory>
+#include <vector>
 
 namespace Commodore {
 namespace Vic20 {
@@ -22,7 +27,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns a Vic-20.
-		static Machine *Vic20();
+		static Machine *Vic20(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 };
 
 }

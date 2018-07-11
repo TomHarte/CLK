@@ -9,7 +9,7 @@
 #include "AppleII.hpp"
 
 #include "../../Activity/Source.hpp"
-#include "../ConfigurationTarget.hpp"
+#include "../MediaTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
 #include "../KeyboardMachine.hpp"
@@ -45,7 +45,7 @@ namespace {
 
 class ConcreteMachine:
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
+	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
@@ -89,7 +89,7 @@ class ConcreteMachine:
 		}
 
 		uint8_t ram_[65536], aux_ram_[65536];
-		std::vector<uint8_t> apple2_rom_, apple2plus_rom_, rom_;
+		std::vector<uint8_t> rom_;
 		std::vector<uint8_t> character_rom_;
 		uint8_t keyboard_input_ = 0x00;
 
@@ -97,8 +97,6 @@ class ConcreteMachine:
 		Audio::Toggle audio_toggle_;
 		Outputs::Speaker::LowpassSpeaker<Audio::Toggle> speaker_;
 		Cycles cycles_since_audio_update_;
-
-		ROMMachine::ROMFetcher rom_fetcher_;
 
 		// MARK: - Cards
 		std::array<std::unique_ptr<AppleII::Card>, 7> cards_;
@@ -226,7 +224,7 @@ class ConcreteMachine:
 		}
 
 	public:
-		ConcreteMachine():
+		ConcreteMachine(const Analyser::Static::AppleII::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 		 	m6502_(*this),
 		 	video_bus_handler_(ram_),
 		 	audio_toggle_(audio_queue_),
@@ -254,6 +252,41 @@ class ConcreteMachine:
 			// Add a couple of joysticks.
 		 	joysticks_.emplace_back(new Joystick);
 		 	joysticks_.emplace_back(new Joystick);
+
+			// Pick the required ROMs.
+			using Target = Analyser::Static::AppleII::Target;
+			std::vector<std::string> rom_names = {"apple2-character.rom"};
+			switch(target.model) {
+				default:
+					rom_names.push_back("apple2o.rom");
+				break;
+				case Target::Model::IIplus:
+					rom_names.push_back("apple2.rom");
+				break;
+			}
+			const auto roms = rom_fetcher("AppleII", rom_names);
+
+			if(!roms[0] || !roms[1]) {
+				throw ROMMachine::Error::MissingROMs;
+			}
+
+			character_rom_ = std::move(*roms[0]);
+			rom_ = std::move(*roms[1]);
+			if(rom_.size() > 12*1024) {
+				rom_.erase(rom_.begin(), rom_.begin() + static_cast<off_t>(rom_.size()) - 12*1024);
+			}
+
+			if(target.disk_controller != Target::DiskController::None) {
+				// Apple recommended slot 6 for the (first) Disk II.
+				install_card(6, new AppleII::DiskIICard(rom_fetcher, target.disk_controller == Target::DiskController::SixteenSector));
+			}
+
+			// Set up the default memory blocks.
+			memory_blocks_[0].read_pointer = memory_blocks_[0].write_pointer = ram_;
+			memory_blocks_[1].read_pointer = memory_blocks_[1].write_pointer = &ram_[0x200];
+			set_language_card_paging();
+
+			insert_media(target.media);
 		}
 
 		~ConcreteMachine() {
@@ -596,27 +629,6 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
-			auto roms = roms_with_names(
-				"AppleII",
-				{
-					"apple2o.rom",
-					"apple2.rom",
-					"apple2-character.rom"
-				});
-
-			if(!roms[0] || !roms[1] || !roms[2]) return false;
-
-			apple2_rom_ = std::move(*roms[0]);
-			apple2plus_rom_ = std::move(*roms[1]);
-
-			character_rom_ = std::move(*roms[2]);
-
-			rom_fetcher_ = roms_with_names;
-
-			return true;
-		}
-
 		void run_for(const Cycles cycles) override {
 			m6502_.run_for(cycles);
 		}
@@ -650,29 +662,7 @@ class ConcreteMachine:
 			string_serialiser_.reset(new Utility::StringSerialiser(string, true));
 		}
 
-		// MARK: ConfigurationTarget
-		void configure_as_target(const Analyser::Static::Target *target) override {
-			using Target = Analyser::Static::AppleII::Target;
-			auto *const apple_target = dynamic_cast<const Target *>(target);
-
-			if(apple_target->disk_controller != Target::DiskController::None) {
-				// Apple recommended slot 6 for the (first) Disk II.
-				install_card(6, new AppleII::DiskIICard(rom_fetcher_, apple_target->disk_controller == Target::DiskController::SixteenSector));
-			}
-
-			rom_ = (apple_target->model == Target::Model::II) ? apple2_rom_ : apple2plus_rom_;
-			if(rom_.size() > 12*1024) {
-				rom_.erase(rom_.begin(), rom_.begin() + static_cast<off_t>(rom_.size()) - 12*1024);
-			}
-
-			// Set up the default memory blocks.
-			memory_blocks_[0].read_pointer = memory_blocks_[0].write_pointer = ram_;
-			memory_blocks_[1].read_pointer = memory_blocks_[1].write_pointer = &ram_[0x200];
-			set_language_card_paging();
-
-			insert_media(apple_target->media);
-		}
-
+		// MARK: MediaTarget
 		bool insert_media(const Analyser::Static::Media &media) override {
 			if(!media.disks.empty()) {
 				auto diskii = diskii_card();
@@ -722,8 +712,10 @@ class ConcreteMachine:
 
 using namespace AppleII;
 
-Machine *Machine::AppleII() {
-	return new ConcreteMachine;
+Machine *Machine::AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	using Target = Analyser::Static::AppleII::Target;
+	const Target *const appleii_target = dynamic_cast<const Target *>(target);
+	return new ConcreteMachine(*appleii_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

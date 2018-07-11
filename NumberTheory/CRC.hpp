@@ -95,14 +95,14 @@ template <typename T, T reset_value, T xor_output, bool reflect_input, bool refl
 	those used by the FM and MFM disk encodings.
 */
 struct CCITT: public Generator<uint16_t, 0xffff, 0x0000, false, false> {
-	CCITT() : Generator(0x1021) {}
+	CCITT(): Generator(0x1021) {}
 };
 
 /*!
 	Provides a generator of "standard 32-bit" CRCs.
 */
 struct CRC32: public Generator<uint32_t, 0xffffffff, 0xffffffff, true, true> {
-	CRC32() : Generator(0x04c11db7) {}
+	CRC32(): Generator(0x04c11db7) {}
 };
 
 }

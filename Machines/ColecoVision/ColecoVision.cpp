@@ -14,7 +14,6 @@
 #include "../../Components/AY38910/AY38910.hpp"	// For the Super Game Module.
 #include "../../Components/SN76489/SN76489.hpp"
 
-#include "../ConfigurationTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
 
@@ -108,11 +107,10 @@ class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
-	public ConfigurationTarget::Machine,
 	public JoystickMachine::Machine {
 
 	public:
-		ConcreteMachine() :
+		ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			z80_(*this),
 			sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, sn76489_divider),
 			ay_(audio_queue_),
@@ -122,6 +120,36 @@ class ConcreteMachine:
 			set_clock_rate(3579545);
 			joysticks_.emplace_back(new Joystick);
 			joysticks_.emplace_back(new Joystick);
+
+			const auto roms = rom_fetcher(
+				"ColecoVision",
+				{ "coleco.rom" });
+
+			if(!roms[0]) {
+				throw ROMMachine::Error::MissingROMs;
+			}
+
+			bios_ = *roms[0];
+			bios_.resize(8192);
+
+			if(!target.media.cartridges.empty()) {
+				const auto &segment = target.media.cartridges.front()->get_segments().front();
+				cartridge_ = segment.data;
+				if(cartridge_.size() >= 32768)
+					cartridge_address_limit_ = 0xffff;
+				else
+					cartridge_address_limit_ = static_cast<uint16_t>(0x8000 + cartridge_.size() - 1);
+
+				if(cartridge_.size() > 32768) {
+					cartridge_pages_[0] = &cartridge_[cartridge_.size() - 16384];
+					cartridge_pages_[1] = cartridge_.data();
+					is_megacart_ = true;
+				} else {
+					cartridge_pages_[0] = cartridge_.data();
+					cartridge_pages_[1] = cartridge_.data() + 16384;
+					is_megacart_ = false;
+				}
+			}
 		}
 
 		~ConcreteMachine() {
@@ -151,48 +179,6 @@ class ConcreteMachine:
 
 		void run_for(const Cycles cycles) override {
 			z80_.run_for(cycles);
-		}
-
-		void configure_as_target(const Analyser::Static::Target *target) override {
-			// Insert the media.
-			insert_media(target->media);
-		}
-
-		bool insert_media(const Analyser::Static::Media &media) override {
-			if(!media.cartridges.empty()) {
-				const auto &segment = media.cartridges.front()->get_segments().front();
-				cartridge_ = segment.data;
-				if(cartridge_.size() >= 32768)
-					cartridge_address_limit_ = 0xffff;
-				else
-					cartridge_address_limit_ = static_cast<uint16_t>(0x8000 + cartridge_.size() - 1);
-
-				if(cartridge_.size() > 32768) {
-					cartridge_pages_[0] = &cartridge_[cartridge_.size() - 16384];
-					cartridge_pages_[1] = cartridge_.data();
-					is_megacart_ = true;
-				} else {
-					cartridge_pages_[0] = cartridge_.data();
-					cartridge_pages_[1] = cartridge_.data() + 16384;
-					is_megacart_ = false;
-				}
-			}
-
-			return true;
-		}
-
-		// Obtains the system ROMs.
-		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
-			auto roms = roms_with_names(
-				"ColecoVision",
-				{ "coleco.rom" });
-
-			if(!roms[0]) return false;
-
-			bios_ = *roms[0];
-			bios_.resize(8192);
-
-			return true;
 		}
 
 		// MARK: Z80::BusHandler
@@ -408,8 +394,8 @@ class ConcreteMachine:
 
 using namespace Coleco::Vision;
 
-Machine *Machine::ColecoVision() {
-	return new ConcreteMachine;
+Machine *Machine::ColecoVision(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	return new ConcreteMachine(*target, rom_fetcher);
 }
 
 Machine::~Machine() {}
