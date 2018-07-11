@@ -17,8 +17,7 @@
 namespace MediaTarget {
 
 /*!
-	A MediaTarget::Machine is anything that can accept a Analyser::Static::Target
-	and configure itself appropriately, or accept a list of media subsequently to insert.
+	A MediaTarget::Machine is anything that can accept new media while running.
 */
 class Machine {
 	public:

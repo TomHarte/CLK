@@ -19,7 +19,7 @@ namespace Analyser {
 namespace Dynamic {
 
 /*!
-	Provides a class that multiplexes the configuration target interface to multiple machines.
+	Provides a class that multiplexes the media target interface to multiple machines.
 
 	Makes a static internal copy of the list of machines; makes no guarantees about the
 	order of delivered messages.
