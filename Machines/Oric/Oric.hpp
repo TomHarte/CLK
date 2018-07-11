@@ -11,6 +11,7 @@
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Analyser/Static/StaticAnalyser.hpp"
+#include "../ROMMachine.hpp"
 
 namespace Oric {
 
@@ -25,7 +26,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns an Oric.
-		static Machine *Oric(const Analyser::Static::Target *target_hint);
+		static Machine *Oric(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 };
 
 }

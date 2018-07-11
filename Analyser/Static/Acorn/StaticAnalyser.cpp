@@ -69,13 +69,13 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 	target->media.cartridges = AcornCartridgesFrom(media.cartridges);
 
 	// if there are any tapes, attempt to get data from the first
-	if(media.tapes.size() > 0) {
+	if(!media.tapes.empty()) {
 		std::shared_ptr<Storage::Tape::Tape> tape = media.tapes.front();
 		std::vector<File> files = GetFiles(tape);
 		tape->reset();
 
 		// continue if there are any files
-		if(files.size()) {
+		if(!files.empty()) {
 			bool is_basic = true;
 
 			// protected files are always for *RUNning only
@@ -103,7 +103,7 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 		}
 	}
 
-	if(media.disks.size() > 0) {
+	if(!media.disks.empty()) {
 		std::shared_ptr<Storage::Disk::Disk> disk = media.disks.front();
 		std::unique_ptr<Catalogue> dfs_catalogue, adfs_catalogue;
 		dfs_catalogue = GetDFSCatalogue(disk);

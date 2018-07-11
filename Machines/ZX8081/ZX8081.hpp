@@ -11,6 +11,7 @@
 
 #include "../../Configurable/Configurable.hpp"
 #include "../../Analyser/Static/StaticAnalyser.hpp"
+#include "../ROMMachine.hpp"
 
 namespace ZX8081 {
 
@@ -21,7 +22,7 @@ class Machine {
 	public:
 		virtual ~Machine();
 
-		static Machine *ZX8081(const Analyser::Static::Target *target_hint);
+		static Machine *ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		virtual void set_tape_is_playing(bool is_playing) = 0;
 		virtual bool get_tape_is_playing() = 0;

@@ -17,9 +17,6 @@ MultiConfigurationTarget::MultiConfigurationTarget(const std::vector<std::unique
 	}
 }
 
-void MultiConfigurationTarget::configure_as_target(const Analyser::Static::Target *target) {
-}
-
 bool MultiConfigurationTarget::insert_media(const Analyser::Static::Media &media) {
 	bool inserted = false;
 	for(const auto &target : targets_) {

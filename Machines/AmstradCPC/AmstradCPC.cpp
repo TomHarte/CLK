@@ -44,13 +44,6 @@ std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	);
 }
 
-enum ROMType: int {
-	OS464 = 0,	BASIC464,
-	OS664,		BASIC664,
-	OS6128,		BASIC6128,
-	AMSDOS
-};
-
 /*!
 	Models the CPC's interrupt timer. Inputs are vsync, hsync, interrupt acknowledge and reset, and its output
 	is simply yes or no on whether an interupt is currently requested. Internally it uses a counter with a period
@@ -761,7 +754,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 /*!
 	The actual Amstrad CPC implementation; tying the 8255, 6845 and AY to the Z80.
 */
-class ConcreteMachine:
+template <bool has_fdc> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public ConfigurationTarget::Machine,
 	public KeyboardMachine::Machine,
@@ -773,7 +766,7 @@ class ConcreteMachine:
 	public Machine,
 	public Activity::Source {
 	public:
-		ConcreteMachine() :
+		ConcreteMachine(const Analyser::Static::AmstradCPC::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			z80_(*this),
 			crtc_bus_handler_(ram_, interrupt_timer_),
 			crtc_(Motorola::CRTC::HD6845S, crtc_bus_handler_),
@@ -792,7 +785,59 @@ class ConcreteMachine:
 			fdc_.set_clocking_hint_observer(this);
 			tape_player_.set_clocking_hint_observer(this);
 
+			// install the keyboard state class as the AY port handler
 			ay_.ay().set_port_handler(&key_state_);
+
+			// construct the list of necessary ROMs
+			std::vector<std::string> required_roms = {"amsdos.rom"};
+			std::string model_number;
+			switch(target.model) {
+				default:
+					model_number = "6128";
+					has_128k_ = true;
+				break;
+				case Analyser::Static::AmstradCPC::Target::Model::CPC464:
+					model_number = "464";
+					has_128k_ = false;
+				break;
+				case Analyser::Static::AmstradCPC::Target::Model::CPC664:
+					model_number = "664";
+					has_128k_ = false;
+				break;
+			}
+			required_roms.push_back("os" + model_number + ".rom");
+			required_roms.push_back("basic" + model_number + ".rom");
+
+			// fetch and verify the ROMs
+			const auto roms = rom_fetcher("AmstradCPC", required_roms);
+
+			for(std::size_t index = 0; index < roms.size(); ++index) {
+				auto &data = roms[index];
+				if(!data) throw ROMMachine::Error::MissingROMs;
+				roms_[static_cast<int>(index)] = std::move(*data);
+				roms_[static_cast<int>(index)].resize(16384);
+			}
+
+			// Establish default memory map
+			upper_rom_is_paged_ = true;
+			upper_rom_ = ROMType::BASIC;
+
+			write_pointers_[0] = &ram_[0];
+			write_pointers_[1] = &ram_[16384];
+			write_pointers_[2] = &ram_[32768];
+			write_pointers_[3] = &ram_[49152];
+
+			read_pointers_[0] = roms_[ROMType::OS].data();
+			read_pointers_[1] = write_pointers_[1];
+			read_pointers_[2] = write_pointers_[2];
+			read_pointers_[3] = roms_[upper_rom_].data();
+
+			// Type whatever is required.
+			if(!target.loading_command.empty()) {
+				type_string(target.loading_command);
+			}
+
+			insert_media(target.media);
 		}
 
 		/// The entry point for performing a partial Z80 machine cycle.
@@ -847,8 +892,8 @@ class ConcreteMachine:
 					}
 
 					// Check for an upper ROM selection
-					if(has_fdc_ && !(address&0x2000)) {
-						upper_rom_ = (*cycle.value == 7) ? ROMType::AMSDOS : rom_model_ + 1;
+					if(has_fdc && !(address&0x2000)) {
+						upper_rom_ = (*cycle.value == 7) ? ROMType::AMSDOS : ROMType::BASIC;
 						if(upper_rom_is_paged_) read_pointers_[3] = roms_[upper_rom_].data();
 					}
 
@@ -867,13 +912,13 @@ class ConcreteMachine:
 					}
 
 					// Check for an FDC access
-					if(has_fdc_ && (address & 0x580) == 0x100) {
+					if(has_fdc && (address & 0x580) == 0x100) {
 						flush_fdc();
 						fdc_.set_register(address & 1, *cycle.value);
 					}
 
 					// Check for a disk motor access
-					if(has_fdc_ && !(address & 0x580)) {
+					if(has_fdc && !(address & 0x580)) {
 						flush_fdc();
 						fdc_.set_motor_on(!!(*cycle.value));
 					}
@@ -888,7 +933,7 @@ class ConcreteMachine:
 					}
 
 					// Check for an FDC access
-					if(has_fdc_ && (address & 0x580) == 0x100) {
+					if(has_fdc && (address & 0x580) == 0x100) {
 						flush_fdc();
 						*cycle.value &= fdc_.get_register(address & 1);
 					}
@@ -961,50 +1006,6 @@ class ConcreteMachine:
 			z80_.run_for(cycles);
 		}
 
-		/// The ConfigurationTarget entry point; should configure this meachine as described by @c target.
-		void configure_as_target(const Analyser::Static::Target *target) override final  {
-			auto *const cpc_target = dynamic_cast<const Analyser::Static::AmstradCPC::Target *>(target);
-
-			switch(cpc_target->model) {
-				case Analyser::Static::AmstradCPC::Target::Model::CPC464:
-					rom_model_ = ROMType::OS464;
-					has_128k_ = false;
-					has_fdc_ = false;
-				break;
-				case Analyser::Static::AmstradCPC::Target::Model::CPC664:
-					rom_model_ = ROMType::OS664;
-					has_128k_ = false;
-					has_fdc_ = true;
-				break;
-				case Analyser::Static::AmstradCPC::Target::Model::CPC6128:
-					rom_model_ = ROMType::OS6128;
-					has_128k_ = true;
-					has_fdc_ = true;
-				break;
-			}
-
-			// Establish default memory map
-			upper_rom_is_paged_ = true;
-			upper_rom_ = rom_model_ + 1;
-
-			write_pointers_[0] = &ram_[0];
-			write_pointers_[1] = &ram_[16384];
-			write_pointers_[2] = &ram_[32768];
-			write_pointers_[3] = &ram_[49152];
-
-			read_pointers_[0] = roms_[rom_model_].data();
-			read_pointers_[1] = write_pointers_[1];
-			read_pointers_[2] = write_pointers_[2];
-			read_pointers_[3] = roms_[upper_rom_].data();
-
-			// Type whatever is required.
-			if(!cpc_target->loading_command.empty()) {
-				type_string(cpc_target->loading_command);
-			}
-
-			insert_media(target->media);
-		}
-
 		bool insert_media(const Analyser::Static::Media &media) override final {
 			// If there are any tapes supplied, use the first of them.
 			if(!media.tapes.empty()) {
@@ -1019,28 +1020,7 @@ class ConcreteMachine:
 				if(c == 4) break;
 			}
 
-			return !media.tapes.empty() || (!media.disks.empty() && has_fdc_);
-		}
-
-		// Obtains the system ROMs.
-		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
-			auto roms = roms_with_names(
-				"AmstradCPC",
-				{
-					"os464.rom",	"basic464.rom",
-					"os664.rom",	"basic664.rom",
-					"os6128.rom",	"basic6128.rom",
-					"amsdos.rom"
-				});
-
-			for(std::size_t index = 0; index < roms.size(); ++index) {
-				auto &data = roms[index];
-				if(!data) return false;
-				roms_[static_cast<int>(index)] = std::move(*data);
-				roms_[static_cast<int>(index)].resize(16384);
-			}
-
-			return true;
+			return !media.tapes.empty() || (!media.disks.empty() && has_fdc);
 		}
 
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override final {
@@ -1078,7 +1058,7 @@ class ConcreteMachine:
 
 		// MARK: - Activity Source
 		void set_activity_observer(Activity::Observer *observer) override {
-			if(has_fdc_) fdc_.set_activity_observer(observer);
+			if(has_fdc) fdc_.set_activity_observer(observer);
 		}
 
 		// MARK: - Configuration options.
@@ -1117,7 +1097,7 @@ class ConcreteMachine:
 				case 1: crtc_bus_handler_.set_colour(value & 0x1f);		break;
 				case 2:
 					// Perform ROM paging.
-					read_pointers_[0] = (value & 4) ? write_pointers_[0] : roms_[rom_model_].data();
+					read_pointers_[0] = (value & 4) ? write_pointers_[0] : roms_[ROMType::OS].data();
 
 					upper_rom_is_paged_ = !(value & 8);
 					read_pointers_[3] = upper_rom_is_paged_ ? roms_[upper_rom_].data() : write_pointers_[3];
@@ -1169,7 +1149,7 @@ class ConcreteMachine:
 		HalfCycles time_since_fdc_update_;
 		void flush_fdc() {
 			// Clock the FDC, if connected, using a lazy scale by two
-			if(has_fdc_ && !fdc_is_sleeping_) {
+			if(has_fdc && !fdc_is_sleeping_) {
 				fdc_.run_for(Cycles(time_since_fdc_update_.as_int()));
 			}
 			time_since_fdc_update_ = HalfCycles(0);
@@ -1184,13 +1164,16 @@ class ConcreteMachine:
 
 		uint8_t ram_[128 * 1024];
 
-		std::vector<uint8_t> roms_[7];
-		int rom_model_;
-		bool has_fdc_, fdc_is_sleeping_;
+		bool fdc_is_sleeping_;
 		bool tape_player_is_sleeping_;
 		bool has_128k_;
+
+		enum ROMType: int {
+			AMSDOS = 0, OS = 1, BASIC = 2
+		};
+		std::vector<uint8_t> roms_[3];
 		bool upper_rom_is_paged_;
-		int upper_rom_;
+		ROMType upper_rom_;
 
 		uint8_t *ram_pages_[4];
 		uint8_t *read_pointers_[4];
@@ -1205,8 +1188,13 @@ class ConcreteMachine:
 using namespace AmstradCPC;
 
 // See header; constructs and returns an instance of the Amstrad CPC.
-Machine *Machine::AmstradCPC() {
-	return new AmstradCPC::ConcreteMachine;
+Machine *Machine::AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	using Target = Analyser::Static::AmstradCPC::Target;
+	const Target *const cpc_target = dynamic_cast<const Target *>(target);
+	switch(cpc_target->model) {
+		default: 					return new AmstradCPC::ConcreteMachine<true>(*cpc_target, rom_fetcher);
+		case Target::Model::CPC464:	return new AmstradCPC::ConcreteMachine<false>(*cpc_target, rom_fetcher);
+	}
 }
 
 Machine::~Machine() {}

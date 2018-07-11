@@ -22,9 +22,6 @@ namespace ConfigurationTarget {
 */
 class Machine {
 	public:
-		/// Instructs the machine to configure itself as described by @c target and insert the included media.
-		virtual void configure_as_target(const Analyser::Static::Target *target) = 0;
-
 		/*!
 			Requests that the machine insert @c media as a modification to current state
 

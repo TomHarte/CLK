@@ -112,7 +112,7 @@ class ConcreteMachine:
 	public JoystickMachine::Machine {
 
 	public:
-		ConcreteMachine() :
+		ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			z80_(*this),
 			sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, sn76489_divider),
 			ay_(audio_queue_),
@@ -122,6 +122,19 @@ class ConcreteMachine:
 			set_clock_rate(3579545);
 			joysticks_.emplace_back(new Joystick);
 			joysticks_.emplace_back(new Joystick);
+
+			const auto roms = rom_fetcher(
+				"ColecoVision",
+				{ "coleco.rom" });
+
+			if(!roms[0]) {
+				throw ROMMachine::Error::MissingROMs;
+			}
+
+			bios_ = *roms[0];
+			bios_.resize(8192);
+
+			insert_media(target.media);
 		}
 
 		~ConcreteMachine() {
@@ -153,11 +166,6 @@ class ConcreteMachine:
 			z80_.run_for(cycles);
 		}
 
-		void configure_as_target(const Analyser::Static::Target *target) override {
-			// Insert the media.
-			insert_media(target->media);
-		}
-
 		bool insert_media(const Analyser::Static::Media &media) override {
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
@@ -177,20 +185,6 @@ class ConcreteMachine:
 					is_megacart_ = false;
 				}
 			}
-
-			return true;
-		}
-
-		// Obtains the system ROMs.
-		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
-			auto roms = roms_with_names(
-				"ColecoVision",
-				{ "coleco.rom" });
-
-			if(!roms[0]) return false;
-
-			bios_ = *roms[0];
-			bios_.resize(8192);
 
 			return true;
 		}
@@ -408,8 +402,8 @@ class ConcreteMachine:
 
 using namespace Coleco::Vision;
 
-Machine *Machine::ColecoVision() {
-	return new ConcreteMachine;
+Machine *Machine::ColecoVision(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	return new ConcreteMachine(*target, rom_fetcher);
 }
 
 Machine::~Machine() {}

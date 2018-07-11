@@ -49,10 +49,10 @@ class ConcreteMachine:
 	public Utility::TypeRecipient,
 	public Activity::Source {
 	public:
-		ConcreteMachine() :
-			m6502_(*this),
-			sound_generator_(audio_queue_),
-			speaker_(sound_generator_) {
+		ConcreteMachine(const Analyser::Static::Acorn::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+				m6502_(*this),
+				sound_generator_(audio_queue_),
+				speaker_(sound_generator_) {
 			memset(key_states_, 0, sizeof(key_states_));
 			for(int c = 0; c < 16; c++)
 				memset(roms_[c], 0xff, 16384);
@@ -61,58 +61,51 @@ class ConcreteMachine:
 			set_clock_rate(2000000);
 
 			speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
+
+			std::vector<std::string> rom_names = {"basic.rom", "os.rom"};
+			if(target.has_adfs) {
+				rom_names.push_back("ADFS-E00_1.rom");
+				rom_names.push_back("ADFS-E00_2.rom");
+			}
+			const size_t dfs_rom_position = rom_names.size();
+			if(target.has_dfs) {
+				rom_names.push_back("DFS-1770-2.20.rom");
+			}
+			const auto roms = rom_fetcher("Electron", rom_names);
+
+			for(const auto &rom: roms) {
+				if(!rom) {
+					throw ROMMachine::Error::MissingROMs;
+				}
+			}
+			set_rom(ROM::BASIC, *roms[0], false);
+			set_rom(ROM::OS, *roms[1], false);
+
+			if(target.has_dfs || target.has_adfs) {
+				plus3_.reset(new Plus3);
+
+				if(target.has_dfs) {
+					set_rom(ROM::Slot0, *roms[dfs_rom_position], true);
+				}
+				if(target.has_adfs) {
+					set_rom(ROM::Slot4, *roms[2], true);
+					set_rom(ROM::Slot5, *roms[3], true);
+				}
+			}
+
+			insert_media(target.media);
+
+			if(!target.loading_command.empty()) {
+				type_string(target.loading_command);
+			}
+
+			if(target.should_shift_restart) {
+				shift_restart_counter_ = 1000000;
+			}
 		}
 
 		~ConcreteMachine() {
 			audio_queue_.flush();
-		}
-
-		void set_rom(ROMSlot slot, const std::vector<uint8_t> &data, bool is_writeable) override final {
-			uint8_t *target = nullptr;
-			switch(slot) {
-				case ROMSlotDFS:	dfs_ = data;			return;
-				case ROMSlotADFS1:	adfs1_ = data;			return;
-				case ROMSlotADFS2:	adfs2_ = data;			return;
-
-				case ROMSlotOS:		target = os_;			break;
-				default:
-					target = roms_[slot];
-					rom_write_masks_[slot] = is_writeable;
-				break;
-			}
-
-			// Copy in, with mirroring.
-			std::size_t rom_ptr = 0;
-			while(rom_ptr < 16384) {
-				std::size_t size_to_copy = std::min(16384 - rom_ptr, data.size());
-				std::memcpy(&target[rom_ptr], data.data(), size_to_copy);
-				rom_ptr += size_to_copy;
-			}
-			rom_inserted_[slot] = true;
-		}
-
-		// Obtains the system ROMs.
-		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
-			auto roms = roms_with_names(
-				"Electron",
-				{
-					"DFS-1770-2.20.rom",
-					"ADFS-E00_1.rom",	"ADFS-E00_2.rom",
-					"basic.rom",		"os.rom"
-				});
-			ROMSlot slots[] = {
-				ROMSlotDFS,
-				ROMSlotADFS1, ROMSlotADFS2,
-				ROMSlotBASIC, ROMSlotOS
-			};
-
-			for(std::size_t index = 0; index < roms.size(); ++index) {
-				auto &data = roms[index];
-				if(!data) return false;
-				set_rom(slots[index], *data, false);
-			}
-
-			return true;
 		}
 
 		void set_key_state(uint16_t key, bool isPressed) override final {
@@ -131,32 +124,6 @@ class ConcreteMachine:
 			if(is_holding_shift_) set_key_state(KeyShift, true);
 		}
 
-		void configure_as_target(const Analyser::Static::Target *target) override final {
-			auto *const acorn_target = dynamic_cast<const Analyser::Static::Acorn::Target *>(target);
-
-			if(!acorn_target->loading_command.empty()) {
-				type_string(acorn_target->loading_command);
-			}
-
-			if(acorn_target->should_shift_restart) {
-				shift_restart_counter_ = 1000000;
-			}
-
-			if(acorn_target->has_dfs || acorn_target->has_adfs) {
-				plus3_.reset(new Plus3);
-
-				if(acorn_target->has_dfs) {
-					set_rom(ROMSlot0, dfs_, true);
-				}
-				if(acorn_target->has_adfs) {
-					set_rom(ROMSlot4, adfs1_, true);
-					set_rom(ROMSlot5, adfs2_, true);
-				}
-			}
-
-			insert_media(target->media);
-		}
-
 		bool insert_media(const Analyser::Static::Media &media) override final {
 			if(!media.tapes.empty()) {
 				tape_.set_tape(media.tapes.front());
@@ -167,11 +134,11 @@ class ConcreteMachine:
 				plus3_->set_disk(media.disks.front(), 0);
 			}
 
-			ROMSlot slot = ROMSlot12;
+			ROM slot = ROM::Slot12;
 			for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : media.cartridges) {
-				const ROMSlot first_slot_tried = slot;
-				while(rom_inserted_[slot]) {
-					slot = static_cast<ROMSlot>((static_cast<int>(slot) + 1)&15);
+				const ROM first_slot_tried = slot;
+				while(rom_inserted_[static_cast<int>(slot)]) {
+					slot = static_cast<ROM>((static_cast<int>(slot) + 1) & 15);
 					if(slot == first_slot_tried) return false;
 				}
 				set_rom(slot, cartridge->get_segments().front().data, false);
@@ -258,7 +225,7 @@ class ConcreteMachine:
 							}
 
 							// latch the paged ROM in case external hardware is being emulated
-							active_rom_ = (Electron::ROMSlot)(*value & 0xf);
+							active_rom_ = *value & 0xf;
 
 							// apply the ULA's test
 							if(*value & 0x08) {
@@ -363,7 +330,7 @@ class ConcreteMachine:
 									}
 								}
 								if(basic_is_active_) {
-									*value &= roms_[ROMSlotBASIC][address & 16383];
+									*value &= roms_[static_cast<int>(ROM::BASIC)][address & 16383];
 								}
 							} else if(rom_write_masks_[active_rom_]) {
 								roms_[active_rom_][address & 16383] = *value;
@@ -494,6 +461,48 @@ class ConcreteMachine:
 		}
 
 	private:
+		enum class ROM {
+			Slot0 = 0,
+			Slot1,	Slot2,	Slot3,
+			Slot4,	Slot5,	Slot6,	Slot7,
+
+			Keyboard = 8,	Slot9,
+			BASIC = 10,		Slot11,
+
+			Slot12,	Slot13,	Slot14,	Slot15,
+
+			OS,		DFS,
+			ADFS1,	ADFS2
+		};
+
+		/*!
+			Sets the contents of @c slot to @c data. If @c is_writeable is @c true then writing to the slot
+			is enabled: it acts as if it were sideways RAM. Otherwise the slot is modelled as containing ROM.
+		*/
+		void set_rom(ROM slot, const std::vector<uint8_t> &data, bool is_writeable) {
+			uint8_t *target = nullptr;
+			switch(slot) {
+				case ROM::DFS:		dfs_ = data;			return;
+				case ROM::ADFS1:	adfs1_ = data;			return;
+				case ROM::ADFS2:	adfs2_ = data;			return;
+
+				case ROM::OS:		target = os_;			break;
+				default:
+					target = roms_[static_cast<int>(slot)];
+					rom_write_masks_[static_cast<int>(slot)] = is_writeable;
+				break;
+			}
+
+			// Copy in, with mirroring.
+			std::size_t rom_ptr = 0;
+			while(rom_ptr < 16384) {
+				std::size_t size_to_copy = std::min(16384 - rom_ptr, data.size());
+				std::memcpy(&target[rom_ptr], data.data(), size_to_copy);
+				rom_ptr += size_to_copy;
+			}
+			rom_inserted_[static_cast<int>(slot)] = true;
+		}
+
 		// MARK: - Work deferral updates.
 		inline void update_display() {
 			if(cycles_since_display_update_ > 0) {
@@ -540,7 +549,7 @@ class ConcreteMachine:
 		std::vector<uint8_t> dfs_, adfs1_, adfs2_;
 
 		// Paging
-		ROMSlot active_rom_ = ROMSlot::ROMSlot0;
+		int active_rom_ = static_cast<int>(ROM::Slot0);
 		bool keyboard_is_active_ = false;
 		bool basic_is_active_ = false;
 
@@ -590,8 +599,10 @@ class ConcreteMachine:
 
 using namespace Electron;
 
-Machine *Machine::Electron() {
-	return new Electron::ConcreteMachine;
+Machine *Machine::Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	using Target = Analyser::Static::Acorn::Target;
+	const Target *const acorn_target = dynamic_cast<const Target *>(target);
+	return new Electron::ConcreteMachine(*acorn_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

@@ -10,8 +10,9 @@
 #define AmstradCPC_hpp
 
 #include "../../Configurable/Configurable.hpp"
+#include "../../Analyser/Static/StaticAnalyser.hpp"
+#include "../ROMMachine.hpp"
 
-#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -28,7 +29,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns an Amstrad CPC.
-		static Machine *AmstradCPC();
+		static Machine *AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 };
 
 }

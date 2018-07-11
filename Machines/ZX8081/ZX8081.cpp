@@ -66,7 +66,7 @@ template<bool is_zx81> class ConcreteMachine:
 	public CPU::Z80::BusHandler,
 	public Machine {
 	public:
-		ConcreteMachine() :
+		ConcreteMachine(const Analyser::Static::ZX8081::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			z80_(*this),
 			tape_player_(ZX8081ClockRate),
 			ay_(audio_queue_),
@@ -74,6 +74,55 @@ template<bool is_zx81> class ConcreteMachine:
 			set_clock_rate(ZX8081ClockRate);
 			speaker_.set_input_rate(static_cast<float>(ZX8081ClockRate) / 2.0f);
 			clear_all_keys();
+
+			const bool use_zx81_rom = target.is_ZX81 || target.ZX80_uses_ZX81_ROM;
+			const auto roms = rom_fetcher("ZX8081", { use_zx81_rom ? "zx81.rom" : "zx80.rom" });
+			if(!roms[0]) throw ROMMachine::Error::MissingROMs;
+
+			rom_ = std::move(*roms[0]);
+			rom_.resize(use_zx81_rom ? 8192 : 4096);
+
+			if(is_zx81) {
+				tape_trap_address_ = 0x37c;
+				tape_return_address_ = 0x380;
+				vsync_start_ = HalfCycles(32);
+				vsync_end_ = HalfCycles(64);
+				automatic_tape_motor_start_address_ = 0x0340;
+				automatic_tape_motor_end_address_ = 0x03c3;
+			} else {
+				tape_trap_address_ = 0x220;
+				tape_return_address_ = 0x248;
+				vsync_start_ = HalfCycles(26);
+				vsync_end_ = HalfCycles(66);
+				automatic_tape_motor_start_address_ = 0x0206;
+				automatic_tape_motor_end_address_ = 0x024d;
+			}
+			rom_mask_ = static_cast<uint16_t>(rom_.size() - 1);
+
+			switch(target.memory_model) {
+				case Analyser::Static::ZX8081::Target::MemoryModel::Unexpanded:
+					ram_.resize(1024);
+					ram_base_ = 16384;
+					ram_mask_ = 1023;
+				break;
+				case Analyser::Static::ZX8081::Target::MemoryModel::SixteenKB:
+					ram_.resize(16384);
+					ram_base_ = 16384;
+					ram_mask_ = 16383;
+				break;
+				case Analyser::Static::ZX8081::Target::MemoryModel::SixtyFourKB:
+					ram_.resize(65536);
+					ram_base_ = 8192;
+					ram_mask_ = 65535;
+				break;
+			}
+			Memory::Fuzz(ram_);
+
+			if(!target.loading_command.empty()) {
+				type_string(target.loading_command);
+			}
+
+			insert_media(target.media);
 		}
 
 		~ConcreteMachine() {
@@ -105,7 +154,7 @@ template<bool is_zx81> class ConcreteMachine:
 				video_->run_for(cycle.length);
 			}
 
-			if(is_zx81_) horizontal_counter_ %= HalfCycles(Cycles(207));
+			if(is_zx81) horizontal_counter_ %= HalfCycles(Cycles(207));
 			if(!tape_advance_delay_) {
 				tape_player_.run_for(cycle.length);
 			} else {
@@ -129,7 +178,7 @@ template<bool is_zx81> class ConcreteMachine:
 						set_vsync(false);
 					}
 					if(!(address & 2)) nmi_is_enabled_ = false;
-					if(!(address & 1)) nmi_is_enabled_ = is_zx81_;
+					if(!(address & 1)) nmi_is_enabled_ = is_zx81;
 
 					// The below emulates the ZonX AY expansion device.
 					if(is_zx81) {
@@ -281,54 +330,6 @@ template<bool is_zx81> class ConcreteMachine:
 			z80_.run_for(cycles);
 		}
 
-		void configure_as_target(const Analyser::Static::Target *target) override final {
-			auto *const zx8081_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
-			is_zx81_ = zx8081_target->is_ZX81;
-			if(is_zx81_) {
-				rom_ = zx81_rom_;
-				tape_trap_address_ = 0x37c;
-				tape_return_address_ = 0x380;
-				vsync_start_ = HalfCycles(32);
-				vsync_end_ = HalfCycles(64);
-				automatic_tape_motor_start_address_ = 0x0340;
-				automatic_tape_motor_end_address_ = 0x03c3;
-			} else {
-				rom_ = zx8081_target->ZX80_uses_ZX81_ROM ? zx81_rom_ : zx80_rom_;
-				tape_trap_address_ = 0x220;
-				tape_return_address_ = 0x248;
-				vsync_start_ = HalfCycles(26);
-				vsync_end_ = HalfCycles(66);
-				automatic_tape_motor_start_address_ = 0x0206;
-				automatic_tape_motor_end_address_ = 0x024d;
-			}
-			rom_mask_ = static_cast<uint16_t>(rom_.size() - 1);
-
-			switch(zx8081_target->memory_model) {
-				case Analyser::Static::ZX8081::Target::MemoryModel::Unexpanded:
-					ram_.resize(1024);
-					ram_base_ = 16384;
-					ram_mask_ = 1023;
-				break;
-				case Analyser::Static::ZX8081::Target::MemoryModel::SixteenKB:
-					ram_.resize(16384);
-					ram_base_ = 16384;
-					ram_mask_ = 16383;
-				break;
-				case Analyser::Static::ZX8081::Target::MemoryModel::SixtyFourKB:
-					ram_.resize(65536);
-					ram_base_ = 8192;
-					ram_mask_ = 65535;
-				break;
-			}
-			Memory::Fuzz(ram_);
-
-			if(!zx8081_target->loading_command.empty()) {
-				type_string(zx8081_target->loading_command);
-			}
-
-			insert_media(target->media);
-		}
-
 		bool insert_media(const Analyser::Static::Media &media) override final {
 			if(!media.tapes.empty()) {
 				tape_player_.set_tape(media.tapes.front());
@@ -339,28 +340,8 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) override final {
-			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper(is_zx81_));
+			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper(is_zx81));
 			Utility::TypeRecipient::add_typer(string, std::move(mapper));
-		}
-
-		// Obtains the system ROMs.
-		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
-			const auto roms = roms_with_names(
-				"ZX8081",
-				{
-					"zx80.rom",	"zx81.rom",
-				});
-
-			for(std::size_t index = 0; index < roms.size(); ++index) {
-				if(!roms[index]) return false;
-			}
-
-			zx80_rom_ = std::move(*roms[0]);
-			zx81_rom_ = std::move(*roms[1]);
-			zx80_rom_.resize(4096);
-			zx81_rom_.resize(8192);
-
-			return true;
 		}
 
 		// MARK: - Keyboard
@@ -436,7 +417,6 @@ template<bool is_zx81> class ConcreteMachine:
 		CPU::Z80::Processor<ConcreteMachine, false, is_zx81> z80_;
 
 		std::unique_ptr<Video> video_;
-		std::vector<uint8_t> zx81_rom_, zx80_rom_;
 
 		uint16_t tape_trap_address_, tape_return_address_;
 		uint16_t automatic_tape_motor_start_address_, automatic_tape_motor_end_address_;
@@ -456,7 +436,6 @@ template<bool is_zx81> class ConcreteMachine:
 		HalfClockReceiver<Storage::Tape::BinaryTapePlayer> tape_player_;
 		Storage::Tape::ZX8081::Parser parser_;
 
-		bool is_zx81_;
 		bool nmi_is_enabled_ = false;
 
 		HalfCycles vsync_start_, vsync_end_;
@@ -522,14 +501,12 @@ template<bool is_zx81> class ConcreteMachine:
 using namespace ZX8081;
 
 // See header; constructs and returns an instance of the ZX80 or 81.
-Machine *Machine::ZX8081(const Analyser::Static::Target *target_hint) {
-	const Analyser::Static::ZX8081::Target *const hint = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target_hint);
+Machine *Machine::ZX8081(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	const Analyser::Static::ZX8081::Target *const zx_target = dynamic_cast<const Analyser::Static::ZX8081::Target *>(target);
 
 	// Instantiate the correct type of machine.
-	if(hint->is_ZX81)
-		return new ZX8081::ConcreteMachine<true>();
-	else
-		return new ZX8081::ConcreteMachine<false>();
+	if(zx_target->is_ZX81)	return new ZX8081::ConcreteMachine<true>(*zx_target, rom_fetcher);
+	else					return new ZX8081::ConcreteMachine<false>(*zx_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

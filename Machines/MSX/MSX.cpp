@@ -91,7 +91,7 @@ class ConcreteMachine:
 	public ClockingHint::Observer,
 	public Activity::Source {
 	public:
-		ConcreteMachine():
+		ConcreteMachine(const Analyser::Static::MSX::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			z80_(*this),
 			i8255_(i8255_port_handler_),
 			ay_(audio_queue_),
@@ -112,6 +112,51 @@ class ConcreteMachine:
 
 			// Set the AY to 50% of available volume, the toggle to 10% and leave 40% for an SCC.
 			mixer_.set_relative_volumes({0.5f, 0.1f, 0.4f});
+
+			// Fetch the necessary ROMs.
+			std::vector<std::string> rom_names = {"msx.rom"};
+			if(target.has_disk_drive) {
+				rom_names.push_back("disk.rom");
+			}
+			const auto roms = rom_fetcher("MSX", rom_names);
+
+			if(!roms[0] || (target.has_disk_drive && !roms[1])) {
+				throw ROMMachine::Error::MissingROMs;
+			}
+
+			memory_slots_[0].source = std::move(*roms[0]);
+			memory_slots_[0].source.resize(32768);
+
+			for(size_t c = 0; c < 8; ++c) {
+				for(size_t slot = 0; slot < 3; ++slot) {
+					memory_slots_[slot].read_pointers[c] = unpopulated_;
+					memory_slots_[slot].write_pointers[c] = scratch_;
+				}
+
+				memory_slots_[3].read_pointers[c] =
+				memory_slots_[3].write_pointers[c] = &ram_[c * 8192];
+			}
+
+			map(0, 0, 0, 32768);
+			page_memory(0);
+
+			// Add a disk cartridge if any disks were supplied.
+			if(target.has_disk_drive) {
+				memory_slots_[2].set_handler(new DiskROM(memory_slots_[2].source));
+				memory_slots_[2].source = std::move(*roms[1]);
+				memory_slots_[2].source.resize(16384);
+
+				map(2, 0, 0x4000, 0x2000);
+				unmap(2, 0x6000, 0x2000);
+			}
+
+			// Insert the media.
+			insert_media(target.media);
+
+			// Type whatever has been requested.
+			if(!target.loading_command.empty()) {
+				type_string(target.loading_command);
+			}
 		}
 
 		~ConcreteMachine() {
@@ -149,25 +194,6 @@ class ConcreteMachine:
 		void print_type() override {
 			if(memory_slots_[1].handler) {
 				memory_slots_[1].handler->print_type();
-			}
-		}
-
-		void configure_as_target(const Analyser::Static::Target *target) override {
-			auto *const msx_target = dynamic_cast<const Analyser::Static::MSX::Target *>(target);
-
-			// Add a disk cartridge if any disks were supplied.
-			if(msx_target->has_disk_drive) {
-				map(2, 0, 0x4000, 0x2000);
-				unmap(2, 0x6000, 0x2000);
-				memory_slots_[2].set_handler(new DiskROM(memory_slots_[2].source));
-			}
-
-			// Insert the media.
-			insert_media(target->media);
-
-			// Type whatever has been requested.
-			if(!msx_target->loading_command.empty()) {
-				type_string(msx_target->loading_command);
 			}
 		}
 
@@ -467,39 +493,6 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		// Obtains the system ROMs.
-		bool set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) override {
-			auto roms = roms_with_names(
-				"MSX",
-				{
-					"msx.rom",
-					"disk.rom"
-				});
-
-			if(!roms[0] || !roms[1]) return false;
-
-			memory_slots_[0].source = std::move(*roms[0]);
-			memory_slots_[0].source.resize(32768);
-
-			memory_slots_[2].source = std::move(*roms[1]);
-			memory_slots_[2].source.resize(16384);
-
-			for(size_t c = 0; c < 8; ++c) {
-				for(size_t slot = 0; slot < 3; ++slot) {
-					memory_slots_[slot].read_pointers[c] = unpopulated_;
-					memory_slots_[slot].write_pointers[c] = scratch_;
-				}
-
-				memory_slots_[3].read_pointers[c] =
-				memory_slots_[3].write_pointers[c] = &ram_[c * 8192];
-			}
-
-			map(0, 0, 0, 32768);
-			page_memory(0);
-
-			return true;
-		}
-
 		void set_keyboard_line(int line) {
 			selected_key_line_ = line;
 		}
@@ -683,8 +676,10 @@ class ConcreteMachine:
 
 using namespace MSX;
 
-Machine *Machine::MSX() {
-	return new ConcreteMachine;
+Machine *Machine::MSX(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+	using Target = Analyser::Static::MSX::Target;
+	const Target *const msx_target = dynamic_cast<const Target *>(target);
+	return new ConcreteMachine(*msx_target, rom_fetcher);
 }
 
 Machine::~Machine() {}

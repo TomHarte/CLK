@@ -19,6 +19,8 @@
 
 #include "../../../../Storage/Disk/Controller/DiskController.hpp"
 
+#include "../C1540.hpp"
+
 namespace Commodore {
 namespace C1540 {
 
@@ -125,7 +127,7 @@ class MachineBase:
 	public Storage::Disk::Controller {
 
 	public:
-		MachineBase();
+		MachineBase(Personality personality, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		// to satisfy CPU::MOS6502::Processor
 		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value);

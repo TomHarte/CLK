@@ -10,6 +10,8 @@
 #define AppleII_hpp
 
 #include "../../Configurable/Configurable.hpp"
+#include "../../Analyser/Static/StaticAnalyser.hpp"
+#include "../ROMMachine.hpp"
 
 #include <memory>
 #include <vector>
@@ -24,7 +26,7 @@ class Machine {
 		virtual ~Machine();
 
 		/// Creates and returns an AppleII.
-		static Machine *AppleII();
+		static Machine *AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 };
 
 };

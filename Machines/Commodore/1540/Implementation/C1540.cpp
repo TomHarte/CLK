@@ -16,7 +16,7 @@
 
 using namespace Commodore::C1540;
 
-MachineBase::MachineBase() :
+MachineBase::MachineBase(Personality personality, const ROMMachine::ROMFetcher &rom_fetcher) :
 		Storage::Disk::Controller(1000000),
 		m6502_(*this),
 		drive_(new Storage::Disk::Drive(1000000, 300, 2)),
@@ -38,9 +38,22 @@ MachineBase::MachineBase() :
 
 	// attach the only drive there is
 	set_drive(drive_);
+
+	std::string rom_name;
+	switch(personality) {
+		case Personality::C1540:	rom_name = "1540.bin";	break;
+		case Personality::C1541:	rom_name = "1541.bin";	break;
+	}
+
+	auto roms = rom_fetcher("Commodore1540", {rom_name});
+	if(!roms[0]) {
+		throw ROMMachine::Error::MissingROMs;
+	}
+	std::memcpy(rom_, roms[0]->data(), std::min(sizeof(rom_), roms[0]->size()));
 }
 
-Machine::Machine(Commodore::C1540::Machine::Personality personality) : personality_(personality) {}
+Machine::Machine(Personality personality, const ROMMachine::ROMFetcher &rom_fetcher) :
+	MachineBase(personality, rom_fetcher) {}
 
 void Machine::set_serial_bus(std::shared_ptr<::Commodore::Serial::Bus> serial_bus) {
 	Commodore::Serial::AttachPortAndBus(serial_port_, serial_bus);
@@ -80,19 +93,6 @@ Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, 
 	drive_VIA_.run_for(Cycles(1));
 
 	return Cycles(1);
-}
-
-bool Machine::set_rom_fetcher(const ROMMachine::ROMFetcher &roms_with_names) {
-	std::string rom_name;
-	switch(personality_) {
-		case Personality::C1540:	rom_name = "1540.bin";	break;
-		case Personality::C1541:	rom_name = "1541.bin";	break;
-	}
-
-	auto roms = roms_with_names("Commodore1540", {rom_name});
-	if(!roms[0]) return false;
-	std::memcpy(rom_, roms[0]->data(), std::min(sizeof(rom_), roms[0]->size()));
-	return true;
 }
 
 void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {

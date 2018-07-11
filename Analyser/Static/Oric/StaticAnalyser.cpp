@@ -111,7 +111,7 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &med
 	for(auto &tape : media.tapes) {
 		std::vector<File> tape_files = GetFiles(tape);
 		tape->reset();
-		if(tape_files.size()) {
+		if(!tape_files.empty()) {
 			for(const auto &file : tape_files) {
 				if(file.data_type == File::MachineCode) {
 					std::vector<uint16_t> entry_points = {file.starting_address};

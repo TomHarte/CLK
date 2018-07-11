@@ -9,13 +9,16 @@
 #ifndef ColecoVision_hpp
 #define ColecoVision_hpp
 
+#include "../../Analyser/Static/StaticAnalyser.hpp"
+#include "../ROMMachine.hpp"
+
 namespace Coleco {
 namespace Vision {
 
 class Machine {
 	public:
 		virtual ~Machine();
-		static Machine *ColecoVision();
+		static Machine *ColecoVision(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 };
 
 }
