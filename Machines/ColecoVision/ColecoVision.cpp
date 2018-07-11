@@ -14,7 +14,6 @@
 #include "../../Components/AY38910/AY38910.hpp"	// For the Super Game Module.
 #include "../../Components/SN76489/SN76489.hpp"
 
-#include "../MediaTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
 
@@ -108,7 +107,6 @@ class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
-	public MediaTarget::Machine,
 	public JoystickMachine::Machine {
 
 	public:
@@ -134,7 +132,24 @@ class ConcreteMachine:
 			bios_ = *roms[0];
 			bios_.resize(8192);
 
-			insert_media(target.media);
+			if(!target.media.cartridges.empty()) {
+				const auto &segment = target.media.cartridges.front()->get_segments().front();
+				cartridge_ = segment.data;
+				if(cartridge_.size() >= 32768)
+					cartridge_address_limit_ = 0xffff;
+				else
+					cartridge_address_limit_ = static_cast<uint16_t>(0x8000 + cartridge_.size() - 1);
+
+				if(cartridge_.size() > 32768) {
+					cartridge_pages_[0] = &cartridge_[cartridge_.size() - 16384];
+					cartridge_pages_[1] = cartridge_.data();
+					is_megacart_ = true;
+				} else {
+					cartridge_pages_[0] = cartridge_.data();
+					cartridge_pages_[1] = cartridge_.data() + 16384;
+					is_megacart_ = false;
+				}
+			}
 		}
 
 		~ConcreteMachine() {
@@ -164,29 +179,6 @@ class ConcreteMachine:
 
 		void run_for(const Cycles cycles) override {
 			z80_.run_for(cycles);
-		}
-
-		bool insert_media(const Analyser::Static::Media &media) override {
-			if(!media.cartridges.empty()) {
-				const auto &segment = media.cartridges.front()->get_segments().front();
-				cartridge_ = segment.data;
-				if(cartridge_.size() >= 32768)
-					cartridge_address_limit_ = 0xffff;
-				else
-					cartridge_address_limit_ = static_cast<uint16_t>(0x8000 + cartridge_.size() - 1);
-
-				if(cartridge_.size() > 32768) {
-					cartridge_pages_[0] = &cartridge_[cartridge_.size() - 16384];
-					cartridge_pages_[1] = cartridge_.data();
-					is_megacart_ = true;
-				} else {
-					cartridge_pages_[0] = cartridge_.data();
-					cartridge_pages_[1] = cartridge_.data() + 16384;
-					is_megacart_ = false;
-				}
-			}
-
-			return true;
 		}
 
 		// MARK: Z80::BusHandler

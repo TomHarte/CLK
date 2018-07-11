@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "../MediaTarget.hpp"
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
 
