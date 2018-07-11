@@ -486,7 +486,7 @@ class ConcreteMachine:
 				case ROM::ADFS1:	adfs1_ = data;			return;
 				case ROM::ADFS2:	adfs2_ = data;			return;
 
-				case ROM::OS:		target = os_;			break;
+				case ROM::OS:		target = os_;			return;
 				default:
 					target = roms_[static_cast<int>(slot)];
 					rom_write_masks_[static_cast<int>(slot)] = is_writeable;
@@ -500,7 +500,9 @@ class ConcreteMachine:
 				std::memcpy(&target[rom_ptr], data.data(), size_to_copy);
 				rom_ptr += size_to_copy;
 			}
-			rom_inserted_[static_cast<int>(slot)] = true;
+
+			if(static_cast<int>(slot) < 16)
+				rom_inserted_[static_cast<int>(slot)] = true;
 		}
 
 		// MARK: - Work deferral updates.
