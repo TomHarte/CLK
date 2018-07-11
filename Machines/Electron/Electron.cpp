@@ -486,7 +486,7 @@ class ConcreteMachine:
 				case ROM::ADFS1:	adfs1_ = data;			return;
 				case ROM::ADFS2:	adfs2_ = data;			return;
 
-				case ROM::OS:		target = os_;			return;
+				case ROM::OS:		target = os_;			break;
 				default:
 					target = roms_[static_cast<int>(slot)];
 					rom_write_masks_[static_cast<int>(slot)] = is_writeable;
