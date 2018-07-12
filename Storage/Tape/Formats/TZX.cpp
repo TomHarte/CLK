@@ -455,8 +455,7 @@ void TZX::ignore_stop_tape_if_in_48kb_mode() {
 }
 
 void TZX::ignore_custom_info_block() {
-	// TODO: enquire about this; the TZX documentation is ambiguous as to whether this is really 10, or 0x10.
-	file_.seek(10, SEEK_CUR);
+	file_.seek(0x10, SEEK_CUR);
 	uint32_t length = file_.get32le();
 	file_.seek(length, SEEK_CUR);
 }
