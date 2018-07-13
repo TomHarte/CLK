@@ -78,7 +78,7 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 				// Bit 6: keyboard switch (not universal)
 				// Bit 7: tape input
 				return
-					static_cast<Joystick *>(joysticks_[selected_joystick_].get())->get_state() |
+					(static_cast<Joystick *>(joysticks_[selected_joystick_].get())->get_state() & 0x3f) |
 					0x40 |
 					(tape_player_.get_input() ? 0x00 : 0x80);
 			}
