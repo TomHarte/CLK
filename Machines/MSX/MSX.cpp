@@ -32,6 +32,7 @@
 
 #include "../../Activity/Source.hpp"
 #include "../CRTMachine.hpp"
+#include "../JoystickMachine.hpp"
 #include "../MediaTarget.hpp"
 #include "../KeyboardMachine.hpp"
 
@@ -54,13 +55,19 @@ std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 
 class AYPortHandler: public GI::AY38910::PortHandler {
 	public:
-		AYPortHandler(Storage::Tape::BinaryTapePlayer &tape_player) : tape_player_(tape_player) {}
+		AYPortHandler(Storage::Tape::BinaryTapePlayer &tape_player) : tape_player_(tape_player) {
+			joysticks_.emplace_back(new Joystick);
+			joysticks_.emplace_back(new Joystick);
+		}
 
 		void set_port_output(bool port_b, uint8_t value) {
 			if(port_b) {
 				// Bits 0-3: touchpad handshaking (?)
 				// Bit 4-5: monostable timer pulses
+
 				// Bit 6: joystick select
+				selected_joystick_ = (value >> 6) & 1;
+
 				// Bit 7: code LED, if any
 			}
 		}
@@ -69,15 +76,60 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 			if(!port_b) {
 				// Bits 0-5: Joystick (up, down, left, right, A, B)
 				// Bit 6: keyboard switch (not universal)
-
 				// Bit 7: tape input
-				return 0x7f | (tape_player_.get_input() ? 0x00 : 0x80);
+				return
+					static_cast<Joystick *>(joysticks_[selected_joystick_].get())->get_state() |
+					0x40 |
+					(tape_player_.get_input() ? 0x00 : 0x80);
 			}
 			return 0xff;
 		}
 
+		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+			return joysticks_;
+		}
+
 	private:
 		Storage::Tape::BinaryTapePlayer &tape_player_;
+
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+		size_t selected_joystick_ = 0;
+		class Joystick: public Inputs::ConcreteJoystick {
+			public:
+				Joystick() :
+					ConcreteJoystick({
+						Input(Input::Up),
+						Input(Input::Down),
+						Input(Input::Left),
+						Input(Input::Right),
+						Input(Input::Fire, 0),
+						Input(Input::Fire, 1),
+					}) {}
+
+				void did_set_input(const Input &input, bool is_active) override {
+					uint8_t mask = 0;
+					switch(input.type) {
+						default: return;
+						case Input::Up:		mask = 0x01;	break;
+						case Input::Down:	mask = 0x02;	break;
+						case Input::Left:	mask = 0x04;	break;
+						case Input::Right:	mask = 0x08;	break;
+						case Input::Fire:
+							if(input.info.control.index >= 2) return;
+							mask = input.info.control.index ? 0x20 : 0x10;
+						break;
+					}
+
+					if(is_active) state_ &= ~mask; else state_ |= mask;
+				}
+
+				uint8_t get_state() {
+					return state_;
+				}
+
+			private:
+				uint8_t state_ = 0xff;
+		};
 };
 
 class ConcreteMachine:
@@ -87,6 +139,7 @@ class ConcreteMachine:
 	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
 	public Configurable::Device,
+	public JoystickMachine::Machine,
 	public MemoryMap,
 	public ClockingHint::Observer,
 	public Activity::Source {
@@ -559,6 +612,11 @@ class ConcreteMachine:
 			if(disk_rom) {
 				disk_rom->set_activity_observer(observer);
 			}
+		}
+
+		// MARK: - Joysticks
+		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+			return ay_port_handler_.get_joysticks();
 		}
 
 	private:
