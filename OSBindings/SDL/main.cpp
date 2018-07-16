@@ -6,6 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
