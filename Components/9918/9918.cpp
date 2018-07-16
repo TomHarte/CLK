@@ -496,17 +496,25 @@ void TMS9918::run_for(const HalfCycles cycles) {
 								}
 							}
 
-							// Paint sprites and check for collisions.
+							// Paint sprites and check for collisions, but only if at least one sprite is active
+							// on this line.
 							if(sprite_set.active_sprite_slot) {
 								int sprite_pixels_left = pixels_left;
 								const int shift_advance = sprites_magnified_ ? 1 : 2;
 
-								const uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
-								const int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+								static const uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
+								static const int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 								while(sprite_pixels_left--) {
+									// sprite_colour is the colour that's going to reach the display after sprite logic has been
+									// applied; by default assume that nothing is going to be drawn.
 									uint32_t sprite_colour = pixel_base_[output_column_ - first_pixel_column_];
+
+									// The sprite_mask is used to keep track of whether two sprites have both sought to output
+									// a pixel at the same location, and to feed that into the status register's sprite
+									// collision bit.
 									int sprite_mask = 0;
+
 									int c = sprite_set.active_sprite_slot;
 									while(c--) {
 										SpriteSet::ActiveSprite &sprite = sprite_set.active_sprites[c];
@@ -517,15 +525,24 @@ void TMS9918::run_for(const HalfCycles cycles) {
 										} else if(sprite.shift_position < 32) {
 											int mask = sprite.image[sprite.shift_position >> 4] << ((sprite.shift_position&15) >> 1);
 											mask = (mask >> 7) & 1;
-											status_ |= (mask & sprite_mask) << StatusSpriteCollisionShift;
-											sprite_mask |= mask;
-											sprite.shift_position += shift_advance;
 
-											mask &= colour_masks[sprite.info[3]&15];
-											sprite_colour = (sprite_colour & sprite_colour_selection_masks[mask^1]) | (palette[sprite.info[3]&15] & sprite_colour_selection_masks[mask]);
+											// Ignore the right half of whatever was collected if sprites are not in 16x16 mode.
+											if(sprite.shift_position < (sprites_16x16_ ? 32 : 16)) {
+												// If any previous sprite has been painted in this column and this sprite
+												// has this pixel set, set the sprite collision status bit.
+												status_ |= (mask & sprite_mask) << StatusSpriteCollisionShift;
+												sprite_mask |= mask;
+
+												// Check that the sprite colour is not transparent
+												mask &= colour_masks[sprite.info[3]&15];
+												sprite_colour = (sprite_colour & sprite_colour_selection_masks[mask^1]) | (palette[sprite.info[3]&15] & sprite_colour_selection_masks[mask]);
+											}
+
+											sprite.shift_position += shift_advance;
 										}
 									}
 
+									// Output whichever sprite colour was on top.
 									pixel_base_[output_column_ - first_pixel_column_] = sprite_colour;
 									output_column_++;
 								}
