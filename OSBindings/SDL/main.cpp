@@ -105,7 +105,8 @@ class ActivityObserver: public Activity::Observer {
 			const float right_x = 1.0f - 2.0f * width;
 			float y = 1.0f - 2.0f * height;
 			for(const auto &drive: drives_) {
-				lights_.emplace(std::make_pair(drive, std::make_unique<OpenGL::Rectangle>(right_x, y, width, height)));
+				// TODO: use std::make_unique as below, if/when formally embracing C++14.
+				lights_.emplace(std::make_pair(drive, std::unique_ptr<OpenGL::Rectangle>(new OpenGL::Rectangle(right_x, y, width, height))));
 				y -= height * 2.0f;
 			}
 
