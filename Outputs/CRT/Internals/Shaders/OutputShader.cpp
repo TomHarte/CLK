@@ -94,13 +94,19 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 
 void OutputShader::set_output_size(unsigned int output_width, unsigned int output_height, Outputs::CRT::Rect visible_area) {
 	GLfloat outputAspectRatioMultiplier = (static_cast<float>(output_width) / static_cast<float>(output_height)) / (4.0f / 3.0f);
-
 	GLfloat bonusWidth = (outputAspectRatioMultiplier - 1.0f) * visible_area.size.width;
-	visible_area.origin.x -= bonusWidth * 0.5f * visible_area.size.width;
+
+	right_extent_ = (1.0f / outputAspectRatioMultiplier) / visible_area.size.width;
+
+	visible_area.origin.x -= bonusWidth * 0.5f;
 	visible_area.size.width *= outputAspectRatioMultiplier;
 
 	set_uniform("boundsOrigin", (GLfloat)visible_area.origin.x, (GLfloat)visible_area.origin.y);
 	set_uniform("boundsSize", (GLfloat)visible_area.size.width, (GLfloat)visible_area.size.height);
+}
+
+float OutputShader::get_right_extent() {
+	return right_extent_;
 }
 
 void OutputShader::set_source_texture_unit(GLenum unit) {

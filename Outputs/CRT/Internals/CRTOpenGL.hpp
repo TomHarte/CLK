@@ -20,6 +20,7 @@
 
 #include "Shaders/OutputShader.hpp"
 #include "Shaders/IntermediateShader.hpp"
+#include "Rectangle.hpp"
 
 #include <mutex>
 #include <vector>
@@ -105,6 +106,18 @@ class OpenGLOutputBuilder {
 		void set_output_shader_width();
 
 		float integer_coordinate_multiplier_ = 1.0f;
+
+		// Maintain a couple of rectangles for masking off the extreme edge of the display;
+		// this is a bit of a cheat: there's some tolerance in when a sync pulse will be
+		// generated. So it might be slightly later than expected. Which might cause a scan
+		// that is slightly longer than expected. Which means that from then on, those scans
+		// might have touched parts of the extreme edge of the display which are not rescanned.
+		// Which because I've implemented persistence-of-vision as an in-buffer effect will
+		// cause perpetual persistence.
+		//
+		// The fix: just always treat that area as invisible. This is acceptable thanks to
+		// the concept of overscan. One is allowed not to display extreme ends of the image.
+		std::unique_ptr<OpenGL::Rectangle> right_overlay_;
 
 	public:
 		// These two are protected by output_mutex_.
