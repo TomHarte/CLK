@@ -229,7 +229,7 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			last_output_height_ = output_height;
 
 			// Configure a right gutter to crop the right-hand 2% of the display.
-			right_overlay_.reset(new OpenGL::Rectangle(output_shader_program_->get_right_extent() * 0.98, -1.0, 1.0, 2.0));
+			right_overlay_.reset(new OpenGL::Rectangle(output_shader_program_->get_right_extent() * 0.98f, -1.0f, 1.0f, 2.0f));
 		}
 		output_shader_program_->bind();
 
