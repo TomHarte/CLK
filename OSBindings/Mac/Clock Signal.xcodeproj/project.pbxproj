@@ -614,6 +614,8 @@
 		4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B11D157E61006C31D9 /* 6522Tests.swift */; };
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
+		4BC891AD20F6EAB300EDE5B3 /* Rectangle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC891AB20F6EAB300EDE5B3 /* Rectangle.cpp */; };
+		4BC891AE20F6EAB300EDE5B3 /* Rectangle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC891AB20F6EAB300EDE5B3 /* Rectangle.cpp */; };
 		4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */; };
 		4BC9DF451D044FCA00F44158 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9DF4D1D04691600F44158 /* 6560.cpp */; };
@@ -1356,6 +1358,8 @@
 		4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIRFilter.cpp; sourceTree = "<group>"; };
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
 		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		4BC891AB20F6EAB300EDE5B3 /* Rectangle.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Rectangle.cpp; sourceTree = "<group>"; };
+		4BC891AC20F6EAB300EDE5B3 /* Rectangle.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Rectangle.hpp; sourceTree = "<group>"; };
 		4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CommodoreTAP.cpp; sourceTree = "<group>"; };
 		4BC91B821D1F160E00884B76 /* CommodoreTAP.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CommodoreTAP.hpp; sourceTree = "<group>"; };
 		4BC9DF441D044FCA00F44158 /* ROMImages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ROMImages; path = ../../../../ROMImages; sourceTree = "<group>"; };
@@ -2896,6 +2900,7 @@
 			children = (
 				4B5073051DDD3B9400C48FBD /* ArrayBuilder.cpp */,
 				4BBF990A1C8FBA6F0075DAFB /* CRTOpenGL.cpp */,
+				4BC891AB20F6EAB300EDE5B3 /* Rectangle.cpp */,
 				4BBF99081C8FBA6F0075DAFB /* TextureBuilder.cpp */,
 				4BBF99121C8FBA6F0075DAFB /* TextureTarget.cpp */,
 				4B5073061DDD3B9400C48FBD /* ArrayBuilder.hpp */,
@@ -2903,6 +2908,7 @@
 				4BBF990B1C8FBA6F0075DAFB /* CRTOpenGL.hpp */,
 				4BBF990E1C8FBA6F0075DAFB /* Flywheel.hpp */,
 				4BBF990F1C8FBA6F0075DAFB /* OpenGL.hpp */,
+				4BC891AC20F6EAB300EDE5B3 /* Rectangle.hpp */,
 				4BBF99091C8FBA6F0075DAFB /* TextureBuilder.hpp */,
 				4BBF99131C8FBA6F0075DAFB /* TextureTarget.hpp */,
 				4BC3B74C1CD194CC00F86E85 /* Shaders */,
@@ -3614,6 +3620,7 @@
 				4B055AD81FAE9B180060FFFF /* Video.cpp in Sources */,
 				4B89452F201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B894531201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
+				4BC891AE20F6EAB300EDE5B3 /* Rectangle.cpp in Sources */,
 				4B894539201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055AE51FAE9B6F0060FFFF /* IntermediateShader.cpp in Sources */,
 				4B15A9FD208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,
@@ -3840,6 +3847,7 @@
 				4BD3A30B1EE755C800B5B501 /* Video.cpp in Sources */,
 				4BBF99141C8FBA6F0075DAFB /* TextureBuilder.cpp in Sources */,
 				4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */,
+				4BC891AD20F6EAB300EDE5B3 /* Rectangle.cpp in Sources */,
 				4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */,
 				4B1497881EE4A1DA00CE2596 /* ZX80O81P.cpp in Sources */,
 				4B894520201967B4007DE474 /* StaticAnalyser.cpp in Sources */,

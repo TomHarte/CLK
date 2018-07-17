@@ -60,7 +60,7 @@ class TextureTarget {
 		/*!
 			Draws this texture to the currently-bound framebuffer, which has the aspect ratio
 			@c aspect_ratio. This texture will fill the height of the frame buffer, and pick
-			an appropriate width based o the aspect ratio.
+			an appropriate width based on the aspect ratio.
 
 			@c colour_threshold sets a threshold test that each colour must satisfy to be
 			output. A threshold of 0.0f means that all colours will pass through. A threshold

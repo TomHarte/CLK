@@ -227,11 +227,18 @@ void OpenGLOutputBuilder::draw_frame(unsigned int output_width, unsigned int out
 			output_shader_program_->set_output_size(output_width, output_height, visible_area_);
 			last_output_width_ = output_width;
 			last_output_height_ = output_height;
+
+			// Configure a right gutter to crop the right-hand 2% of the display.
+			right_overlay_.reset(new OpenGL::Rectangle(output_shader_program_->get_right_extent() * 0.98f, -1.0f, 1.0f, 2.0f));
 		}
 		output_shader_program_->bind();
 
 		// draw
 		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)array_submission.output_size / OutputVertexSize);
+
+		// mask off the gutter
+		glDisable(GL_BLEND);
+		right_overlay_->draw(0.0, 0.0, 0.0);
 	}
 
 #ifdef GL_NV_texture_barrier

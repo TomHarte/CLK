@@ -57,18 +57,12 @@ struct ActivityObserver: public Activity::Observer {
 		[machine addLED:[NSString stringWithUTF8String:name.c_str()]];
 	}
 
-	void register_drive(const std::string &name) override {
-	}
-
 	void set_led_status(const std::string &name, bool lit) override {
 		[machine.delegate machine:machine led:[NSString stringWithUTF8String:name.c_str()] didChangeToLit:lit];
 	}
 
 	void announce_drive_event(const std::string &name, DriveEvent event) override {
 		[machine.delegate machine:machine ledShouldBlink:[NSString stringWithUTF8String:name.c_str()]];
-	}
-
-	void set_drive_motor_status(const std::string &name, bool is_on) override {
 	}
 
 	__unsafe_unretained CSMachine *machine;

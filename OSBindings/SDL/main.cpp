@@ -6,6 +6,7 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
@@ -21,6 +22,9 @@
 
 #include "../../Concurrency/BestEffortUpdater.hpp"
 
+#include "../../Activity/Observer.hpp"
+#include "../../Outputs/CRT/Internals/Rectangle.hpp"
+
 namespace {
 
 struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
@@ -31,8 +35,8 @@ struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegat
 	Machine::DynamicMachine *machine;
 };
 
-// This is set to a relatively large number for now.
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
+	// This is set to a relatively large number for now.
 	static const int buffer_size = 1024;
 
 	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override {
@@ -67,6 +71,89 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 
 	std::mutex audio_buffer_mutex_;
 	std::vector<int16_t> audio_buffer_;
+};
+
+class ActivityObserver: public Activity::Observer {
+	public:
+		ActivityObserver(Activity::Source *source, float aspect_ratio) {
+			// Get the suorce to supply all LEDs and drives.
+			source->set_activity_observer(this);
+
+			// The objective is to display drives on one side of the screen, other LEDs on the other. Drives
+			// may or may not have LEDs and this code intends to display only those which do; so a quick
+			// comparative processing of the two lists is called for.
+
+			// Strip the list of drives to only those which have LEDs. Thwy're the ones that'll be displayed.
+			drives_.resize(std::remove_if(drives_.begin(), drives_.end(), [this](const std::string &string) {
+				return std::find(leds_.begin(), leds_.end(), string) == leds_.end();
+			}) - drives_.begin());
+
+			// Remove from the list of LEDs any which are drives. Those will be represented separately.
+			leds_.resize(std::remove_if(leds_.begin(), leds_.end(), [this](const std::string &string) {
+				return std::find(drives_.begin(), drives_.end(), string) != drives_.end();
+			}) - leds_.begin());
+
+			set_aspect_ratio(aspect_ratio);
+		}
+
+		void set_aspect_ratio(float aspect_ratio) {
+			lights_.clear();
+
+			// Generate a bunch of LEDs for connected drives.
+			const float height = 0.05f;
+			const float width = height / aspect_ratio;
+			const float right_x = 1.0f - 2.0f * width;
+			float y = 1.0f - 2.0f * height;
+			for(const auto &drive: drives_) {
+				// TODO: use std::make_unique as below, if/when formally embracing C++14.
+				lights_.emplace(std::make_pair(drive, std::unique_ptr<OpenGL::Rectangle>(new OpenGL::Rectangle(right_x, y, width, height))));
+				y -= height * 2.0f;
+			}
+
+			/*
+				This would generate LEDs for things other than drives; I'm declining for now
+				due to the inexpressiveness of just painting a rectangle.
+
+				const float left_x = -1.0f + 2.0f * width;
+				y = 1.0f - 2.0f * height;
+				for(const auto &led: leds_) {
+					lights_.emplace(std::make_pair(led, std::make_unique<OpenGL::Rectangle>(left_x, y, width, height)));
+					y -= height * 2.0f;
+				}
+			*/
+		}
+
+		void draw() {
+			for(const auto &lit_led: lit_leds_) {
+				if(blinking_leds_.find(lit_led) == blinking_leds_.end() && lights_.find(lit_led) != lights_.end())
+					lights_[lit_led]->draw(0.0, 0.8, 0.0);
+			}
+			blinking_leds_.clear();
+		}
+
+	private:
+		std::vector<std::string> leds_;
+		void register_led(const std::string &name) override {
+			leds_.push_back(name);
+		}
+
+		std::vector<std::string> drives_;
+		void register_drive(const std::string &name) override {
+			drives_.push_back(name);
+		}
+
+		void set_led_status(const std::string &name, bool lit) override {
+			if(lit) lit_leds_.insert(name);
+			else lit_leds_.erase(name);
+		}
+
+		void announce_drive_event(const std::string &name, DriveEvent event) override {
+			blinking_leds_.insert(name);
+		}
+
+		std::map<std::string, std::unique_ptr<OpenGL::Rectangle>> lights_;
+		std::set<std::string> lit_leds_;
+		std::set<std::string> blinking_leds_;
 };
 
 bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key) {
@@ -462,6 +549,16 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	/*
+		If the machine offers anything for activity observation,
+		create and register an activity observer.
+	*/
+	std::unique_ptr<ActivityObserver> activity_observer;
+	Activity::Source *const activity_source = machine->activity_source();
+	if(activity_source) {
+		activity_observer.reset(new ActivityObserver(activity_source, 4.0f / 3.0f));
+	}
+
 	// Run the main event loop until the OS tells us to quit.
 	bool should_quit = false;
 	Uint32 fullscreen_mode = 0;
@@ -479,6 +576,7 @@ int main(int argc, char *argv[]) {
 							glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
 							machine->crt_machine()->get_crt()->set_target_framebuffer(target_framebuffer);
 							SDL_GetWindowSize(window, &window_width, &window_height);
+							if(activity_observer) activity_observer->set_aspect_ratio(static_cast<float>(window_width) / static_cast<float>(window_height));
 						} break;
 
 						default: break;
@@ -610,6 +708,7 @@ int main(int argc, char *argv[]) {
 		// Display a new frame and wait for vsync.
 		updater.update();
 		machine->crt_machine()->get_crt()->draw_frame(static_cast<unsigned int>(window_width), static_cast<unsigned int>(window_height), false);
+		if(activity_observer) activity_observer->draw();
 		SDL_GL_SwapWindow(window);
 	}
 
