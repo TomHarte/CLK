@@ -20,6 +20,7 @@
 #include "Typer.hpp"
 #include "../../../../Activity/Observer.hpp"
 
+#import "CSJoystickManager.h"
 #import "CSStaticAnalyser+TargetVector.h"
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
@@ -76,6 +77,7 @@ struct ActivityObserver: public Activity::Observer {
 	CSStaticAnalyser *_analyser;
 	std::unique_ptr<Machine::DynamicMachine> _machine;
 
+	CSJoystickManager *_joystickManager;
 	std::bitset<65536> _depressedKeys;
 	NSMutableArray<NSString *> *_leds;
 }
@@ -90,6 +92,8 @@ struct ActivityObserver: public Activity::Observer {
 		if(!_machine) return nil;
 
 		_inputMode = _machine->keyboard_machine() ? CSMachineKeyboardInputModeKeyboard : CSMachineKeyboardInputModeJoystick;
+
+		_joystickManager = [[CSJoystickManager alloc] init];
 
 		_leds = [[NSMutableArray alloc] init];
 		Activity::Source *const activity_source = _machine->activity_source();
