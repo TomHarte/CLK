@@ -12,6 +12,7 @@
 #import "CSFastLoading.h"
 #import "CSOpenGLView.h"
 #import "CSStaticAnalyser.h"
+#import "CSJoystickManager.h"
 
 @class CSMachine;
 @protocol CSMachineDelegate
@@ -74,6 +75,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 @property (nonatomic, readonly) BOOL hasKeyboard;
 @property (nonatomic, readonly) BOOL hasJoystick;
 @property (nonatomic, assign) CSMachineKeyboardInputMode inputMode;
+@property (nonatomic, nullable) CSJoystickManager *joystickManager;
 
 // LED list.
 @property (nonatomic, readonly, nonnull) NSArray<NSString *> *leds;
