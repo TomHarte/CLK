@@ -128,6 +128,24 @@ class Joystick {
 					set_input(input, 0.5f);
 			}
 		}
+
+		/*!
+			Gets the number of input fire buttons.
+
+			This is cached by default, but it's virtual so overridable.
+		*/
+		virtual int get_number_of_fire_buttons() {
+			if(number_of_buttons_ >= 0) return number_of_buttons_;
+
+			number_of_buttons_ = 0;
+			for(const auto &input: get_inputs()) {
+				if(input.type == Input::Type::Fire) ++number_of_buttons_;
+			}
+			return number_of_buttons_;
+		}
+
+	private:
+		int number_of_buttons_ = -1;
 };
 
 /*!
