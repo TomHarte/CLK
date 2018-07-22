@@ -13,6 +13,7 @@
 	Buttons have an index and are either currently pressed, or not.
 */
 @interface CSJoystickButton: NSObject
+/// The button index. By convention the USB spec defines the first button as number 1.
 @property(nonatomic, readonly) NSInteger index;
 @property(nonatomic, readonly) bool isPressed;
 @end

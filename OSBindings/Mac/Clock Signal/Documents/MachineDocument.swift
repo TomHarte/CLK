@@ -229,6 +229,13 @@ class MachineDocument:
 	func windowDidResignKey(_ notification: Notification) {
 		if let machine = self.machine {
 			machine.clearAllKeys()
+			machine.joystickManager = nil
+		}
+	}
+
+	func windowDidBecomeKey(_ notification: Notification) {
+		if let machine = self.machine {
+			machine.joystickManager = (DocumentController.shared as! DocumentController).joystickManager
 		}
 	}
 

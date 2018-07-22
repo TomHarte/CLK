@@ -12,6 +12,8 @@
 
 #import	"CSOpenGLView.h"
 #import "CSAudioQueue.h"
+
 #import "CSBestEffortUpdater.h"
+#import "CSJoystickManager.h"
 
 #include "KeyCodes.h"

@@ -20,7 +20,6 @@
 #include "Typer.hpp"
 #include "../../../../Activity/Observer.hpp"
 
-#import "CSJoystickManager.h"
 #import "CSStaticAnalyser+TargetVector.h"
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
@@ -76,6 +75,7 @@ struct ActivityObserver: public Activity::Observer {
 
 	CSStaticAnalyser *_analyser;
 	std::unique_ptr<Machine::DynamicMachine> _machine;
+	JoystickMachine::Machine *_joystickMachine;
 
 	CSJoystickManager *_joystickManager;
 	std::bitset<65536> _depressedKeys;
@@ -93,8 +93,6 @@ struct ActivityObserver: public Activity::Observer {
 
 		_inputMode = _machine->keyboard_machine() ? CSMachineKeyboardInputModeKeyboard : CSMachineKeyboardInputModeJoystick;
 
-		_joystickManager = [[CSJoystickManager alloc] init];
-
 		_leds = [[NSMutableArray alloc] init];
 		Activity::Source *const activity_source = _machine->activity_source();
 		if(activity_source) {
@@ -106,6 +104,8 @@ struct ActivityObserver: public Activity::Observer {
 
 		_speakerDelegate.machine = self;
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
+
+		_joystickMachine = _machine->joystick_machine();
 	}
 	return self;
 }
@@ -166,6 +166,54 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)runForInterval:(NSTimeInterval)interval {
 	@synchronized(self) {
+		if(_joystickMachine && _joystickManager) {
+			[_joystickManager update];
+
+			// TODO: configurable mapping from physical joypad inputs to machine inputs.
+			// Until then, apply a default mapping.
+
+			size_t c = 0;
+			std::vector<std::unique_ptr<Inputs::Joystick>> &machine_joysticks = _joystickMachine->get_joysticks();
+			for(CSJoystick *joystick in _joystickManager.joysticks) {
+				size_t target = c % machine_joysticks.size();
+				++++c;
+
+				// Post the first two analogue axes presented by the controller as horizontal and vertical inputs,
+				// unless the user seems to be using a hat.
+				// SDL will return a value in the range [-32768, 32767], so map from that to [0, 1.0]
+				if(!joystick.hats.count || !joystick.hats[0].direction) {
+					if(joystick.axes.count > 0) {
+						const float x_axis = joystick.axes[0].position;
+						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Horizontal), x_axis);
+					}
+					if(joystick.axes.count > 1) {
+						const float y_axis = joystick.axes[1].position;
+						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Vertical), y_axis);
+					}
+				}
+
+				// Forward hats as directions; hats always override analogue inputs.
+				for(CSJoystickHat *hat in joystick.hats) {
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Up), !!(hat.direction & CSJoystickHatDirectionUp));
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Down), !!(hat.direction & CSJoystickHatDirectionDown));
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Left), !!(hat.direction & CSJoystickHatDirectionLeft));
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Right), !!(hat.direction & CSJoystickHatDirectionRight));
+				}
+
+				// Forward all fire buttons, mapping as a function of index.
+				if(machine_joysticks[target]->get_number_of_fire_buttons()) {
+					std::vector<bool> button_states((size_t)machine_joysticks[target]->get_number_of_fire_buttons());
+					for(CSJoystickButton *button in joystick.buttons) {
+						if(button.isPressed) button_states[(size_t)(((int)button.index - 1) % machine_joysticks[target]->get_number_of_fire_buttons())] = true;
+					}
+					for(size_t index = 0; index < button_states.size(); ++index) {
+						machine_joysticks[target]->set_input(
+							Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Fire, index),
+							button_states[index]);
+					}
+				}
+			}
+		}
 		_machine->crt_machine()->run_for(interval);
 	}
 }
@@ -199,6 +247,18 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		MediaTarget::Machine *const mediaTarget = _machine->media_target();
 		if(mediaTarget) mediaTarget->insert_media(media);
+	}
+}
+
+- (void)setJoystickManager:(CSJoystickManager *)joystickManager {
+	@synchronized(self) {
+		_joystickManager = joystickManager;
+		if(_joystickMachine) {
+			std::vector<std::unique_ptr<Inputs::Joystick>> &machine_joysticks = _joystickMachine->get_joysticks();
+			for(const auto &joystick: machine_joysticks) {
+				joystick->reset_all_inputs();
+			}
+		}
 	}
 }
 

@@ -9,4 +9,5 @@
 import Cocoa
 
 class DocumentController: NSDocumentController {
+	let joystickManager = CSJoystickManager()
 }
