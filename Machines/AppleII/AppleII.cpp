@@ -62,6 +62,9 @@ class ConcreteMachine:
 				uint8_t perform_read(uint16_t address) {
 					return ram_[address];
 				}
+				uint16_t perform_aux_read(uint16_t address) {
+					return static_cast<uint16_t>(ram_[address] | (ram_[address] << 8));
+				}
 
 			private:
 				uint8_t *ram_;

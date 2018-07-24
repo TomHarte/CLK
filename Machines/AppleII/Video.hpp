@@ -19,8 +19,20 @@ namespace Video {
 
 class BusHandler {
 	public:
+		/*!
+			Reads an 8-bit value from the ordinary II/II+ memory pool.
+		*/
 		uint8_t perform_read(uint16_t address) {
 			return 0xff;
+		}
+
+		/*!
+			Reads two 8-bit values, from the same address — one from
+			main RAM, one from auxiliary. Should return as
+			(main) | (aux << 8).
+		*/
+		uint16_t perform_aux_read(uint16_t address) {
+			return 0xffff;
 		}
 };
 
@@ -55,8 +67,11 @@ class VideoBase {
 
 		enum class GraphicsMode {
 			LowRes,
+			DoubleLowRes,
 			HighRes,
-			Text
+			DoubleHighRes,
+			Text,
+			DoubleText
 		} graphics_mode_ = GraphicsMode::LowRes;
 		bool use_graphics_mode_ = false;
 		bool mixed_mode_ = false;
@@ -153,11 +168,51 @@ template <class BusHandler> class Video: public VideoBase {
 										pixel_pointer_[4] = character_pattern & 0x04;
 										pixel_pointer_[5] = character_pattern & 0x02;
 										pixel_pointer_[6] = character_pattern & 0x01;
-										graphics_carry_ = character_pattern & 0x40;
+										graphics_carry_ = character_pattern & 0x01;
 										pixel_pointer_ += 7;
 									}
 								} break;
 
+								case GraphicsMode::DoubleText: {
+									const uint8_t inverses[] = {
+										0xff,
+										static_cast<uint8_t>((flash_ / flash_length) * 0xff),
+										0x00,
+										0x00
+									};
+									for(int c = column_; c < pixel_end; ++c) {
+										const uint16_t characters = bus_handler_.perform_aux_read(static_cast<uint16_t>(text_address + c));
+										const std::size_t character_addresses[2] = {
+											static_cast<std::size_t>(((characters & 0x3f) << 3) + pixel_row),
+											static_cast<std::size_t>((((characters >> 8) & 0x3f) << 3) + pixel_row),
+										};
+
+										const uint8_t character_patterns[2] = {
+											static_cast<uint8_t>(character_rom_[character_addresses[0]] ^ inverses[(characters >> 6) & 3]),
+											static_cast<uint8_t>(character_rom_[character_addresses[1]] ^ inverses[(characters >> 14) & 3]),
+										};
+
+										// The character ROM is output MSB to LSB rather than LSB to MSB.
+										pixel_pointer_[0] = character_patterns[0] & 0x40;
+										pixel_pointer_[1] = character_patterns[0] & 0x20;
+										pixel_pointer_[2] = character_patterns[0] & 0x10;
+										pixel_pointer_[3] = character_patterns[0] & 0x08;
+										pixel_pointer_[4] = character_patterns[0] & 0x04;
+										pixel_pointer_[5] = character_patterns[0] & 0x02;
+										pixel_pointer_[6] = character_patterns[0] & 0x01;
+										pixel_pointer_[7] = character_patterns[1] & 0x40;
+										pixel_pointer_[8] = character_patterns[1] & 0x20;
+										pixel_pointer_[9] = character_patterns[1] & 0x10;
+										pixel_pointer_[10] = character_patterns[1] & 0x08;
+										pixel_pointer_[11] = character_patterns[1] & 0x04;
+										pixel_pointer_[12] = character_patterns[1] & 0x02;
+										pixel_pointer_[13] = character_patterns[1] & 0x01;
+										graphics_carry_ = character_patterns[1] & 0x01;
+										pixel_pointer_ += 14;
+									}
+								} break;
+
+								case GraphicsMode::DoubleLowRes:
 								case GraphicsMode::LowRes: {
 									const int row_shift = (row_&4);
 									// TODO: decompose into two loops, possibly.
@@ -209,6 +264,30 @@ template <class BusHandler> class Video: public VideoBase {
 											pixel_pointer_[12] = pixel_pointer_[13] = graphic & 0x40;
 										}
 										graphics_carry_ = graphic & 0x40;
+										pixel_pointer_ += 14;
+									}
+								} break;
+
+								case GraphicsMode::DoubleHighRes: {
+									const uint16_t graphics_address = static_cast<uint16_t>(((video_page_+1) * 0x2000) + row_address + ((pixel_row&7) << 10));
+									for(int c = column_; c < pixel_end; ++c) {
+										const uint16_t graphic = bus_handler_.perform_aux_read(static_cast<uint16_t>(graphics_address + c));
+
+										pixel_pointer_[0] = graphic & 0x01;
+										pixel_pointer_[1] = graphic & 0x02;
+										pixel_pointer_[2] = graphic & 0x04;
+										pixel_pointer_[3] = graphic & 0x08;
+										pixel_pointer_[4] = graphic & 0x10;
+										pixel_pointer_[5] = graphic & 0x20;
+										pixel_pointer_[6] = graphic & 0x40;
+										pixel_pointer_[7] = (graphic >> 8) & 0x01;
+										pixel_pointer_[8] = (graphic >> 8) & 0x02;
+										pixel_pointer_[9] = (graphic >> 8) & 0x04;
+										pixel_pointer_[10] = (graphic >> 8) & 0x08;
+										pixel_pointer_[11] = (graphic >> 8) & 0x10;
+										pixel_pointer_[12] = (graphic >> 8) & 0x20;
+										pixel_pointer_[13] = (graphic >> 8) & 0x40;
+										graphics_carry_ = (graphic >> 8) & 0x40;
 										pixel_pointer_ += 14;
 									}
 								} break;
