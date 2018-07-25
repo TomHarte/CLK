@@ -43,7 +43,7 @@ std::vector<std::unique_ptr<Configurable::Option>> AppleII::get_options() {
 
 namespace {
 
-class ConcreteMachine:
+template <bool is_iie> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
@@ -494,9 +494,36 @@ class ConcreteMachine:
 										*value |= 0x80;
 									}
 								} break;
+
+								// The IIe-only state reads follow...
+								case 0xc018:	if(is_iie) *value = (*value & 0x7f) | video_->get_80_store() ? 0x80 : 0x00;						break;
+								case 0xc01a:	if(is_iie) *value = (*value & 0x7f) | video_->get_text() ? 0x80 : 0x00;							break;
+								case 0xc01b:	if(is_iie) *value = (*value & 0x7f) | video_->get_mixed() ? 0x80 : 0x00;						break;
+								case 0xc01c:	if(is_iie) *value = (*value & 0x7f) | video_->get_page2() ? 0x80 : 0x00;						break;
+								case 0xc01d:	if(is_iie) *value = (*value & 0x7f) | video_->get_high_resolution() ? 0x80 : 0x00;				break;
+								case 0xc01e:	if(is_iie) *value = (*value & 0x7f) | video_->get_alternative_character_set() ? 0x80 : 0x00;	break;
+								case 0xc01f:	if(is_iie) *value = (*value & 0x7f) | video_->get_80_columns() ? 0x80 : 0x00;					break;
+								case 0xc07f:	if(is_iie) *value = (*value & 0x7f) | video_->get_double_high_resolution() ? 0x80 : 0x00;		break;
 							}
 						} else {
-							// Write-only switches.
+							// Write-only switches. All IIe as currently implemented.
+							if(is_iie) {
+								switch(address) {
+									default: break;
+
+									case 0xc00e:
+									case 0xc00f:	video_->set_alternative_character_set(!!(address&1));	break;
+
+									case 0xc00c:
+									case 0xc00d:	video_->set_80_columns(!!(address&1));					break;
+
+									case 0xc000:
+									case 0xc001:	video_->set_80_store(!!(address&1));					break;
+
+									case 0xc05e:
+									case 0xc05f:	video_->set_double_high_resolution(!(address&1));		break;
+								}
+							}
 						}
 					break;
 
@@ -513,14 +540,14 @@ class ConcreteMachine:
 					} break;
 
 					/* Read-write switches. */
-					case 0xc050:	update_video();		video_->set_graphics_mode();	break;
-					case 0xc051:	update_video();		video_->set_text_mode();		break;
-					case 0xc052:	update_video();		video_->set_mixed_mode(false);	break;
-					case 0xc053:	update_video();		video_->set_mixed_mode(true);	break;
-					case 0xc054:	update_video();		video_->set_video_page(0);		break;
-					case 0xc055:	update_video();		video_->set_video_page(1);		break;
-					case 0xc056:	update_video();		video_->set_low_resolution();	break;
-					case 0xc057:	update_video();		video_->set_high_resolution();	break;
+					case 0xc050:	update_video();		video_->set_text(false);			break;
+					case 0xc051:	update_video();		video_->set_text(true);				break;
+					case 0xc052:	update_video();		video_->set_mixed(false);			break;
+					case 0xc053:	update_video();		video_->set_mixed(true);			break;
+					case 0xc054:	update_video();		video_->set_page2(false);			break;
+					case 0xc055:	update_video();		video_->set_page2(true);			break;
+					case 0xc056:	update_video();		video_->set_high_resolution(false);	break;
+					case 0xc057:	update_video();		video_->set_high_resolution(true);	break;
 
 					case 0xc010:
 						keyboard_input_ &= 0x7f;
@@ -646,9 +673,11 @@ class ConcreteMachine:
 				// If no ASCII value is supplied, look for a few special cases.
 				if(!value) {
 					switch(key) {
-						case Key::Left:		value = 8;	break;
-						case Key::Right:	value = 21;	break;
-						case Key::Down:		value = 10;	break;
+						case Key::Left:			value = 0x08;	break;
+						case Key::Right:		value = 0x15;	break;
+						case Key::Down:			value = 0x0a;	break;
+						case Key::Up:			value = 0x0b;	break;
+						case Key::BackSpace:	value = 0x7f;	break;
 						default: break;
 					}
 				}
@@ -718,7 +747,11 @@ using namespace AppleII;
 Machine *Machine::AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::AppleII::Target;
 	const Target *const appleii_target = dynamic_cast<const Target *>(target);
-	return new ConcreteMachine(*appleii_target, rom_fetcher);
+	if(appleii_target->model == Target::Model::IIe) {
+		return new ConcreteMachine<true>(*appleii_target, rom_fetcher);
+	} else {
+		return new ConcreteMachine<false>(*appleii_target, rom_fetcher);
+	}
 }
 
 Machine::~Machine() {}
