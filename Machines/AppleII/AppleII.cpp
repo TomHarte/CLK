@@ -259,12 +259,17 @@ template <bool is_iie> class ConcreteMachine:
 			// Pick the required ROMs.
 			using Target = Analyser::Static::AppleII::Target;
 			std::vector<std::string> rom_names = {"apple2-character.rom"};
+			size_t rom_size = 12*1024;
 			switch(target.model) {
 				default:
 					rom_names.push_back("apple2o.rom");
 				break;
 				case Target::Model::IIplus:
 					rom_names.push_back("apple2.rom");
+				break;
+				case Target::Model::IIe:
+					rom_size = 15*1024;
+					rom_names.push_back("apple2e.rom");
 				break;
 			}
 			const auto roms = rom_fetcher("AppleII", rom_names);
@@ -273,11 +278,12 @@ template <bool is_iie> class ConcreteMachine:
 				throw ROMMachine::Error::MissingROMs;
 			}
 
-			character_rom_ = std::move(*roms[0]);
 			rom_ = std::move(*roms[1]);
-			if(rom_.size() > 12*1024) {
-				rom_.erase(rom_.begin(), rom_.begin() + static_cast<off_t>(rom_.size()) - 12*1024);
+			if(rom_.size() > rom_size) {
+				rom_.erase(rom_.begin(), rom_.end() - static_cast<off_t>(rom_size));
 			}
+
+			character_rom_ = std::move(*roms[0]);
 
 			if(target.disk_controller != Target::DiskController::None) {
 				// Apple recommended slot 6 for the (first) Disk II.

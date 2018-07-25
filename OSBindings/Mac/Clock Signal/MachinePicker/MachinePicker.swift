@@ -130,6 +130,7 @@ class MachinePicker: NSObject {
 				var model: CSMachineAppleIIModel = .appleII
 				switch appleIIModelButton!.selectedTag() {
 					case 1:		model = .appleIIPlus
+					case 2:		model = .appleIIe
 					case 0:		fallthrough
 					default:	model = .appleII
 				}
