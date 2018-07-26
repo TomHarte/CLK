@@ -143,7 +143,8 @@ template <bool is_iie> class ConcreteMachine:
 		struct MemoryBlock {
 			uint8_t *read_pointer = nullptr;
 			uint8_t *write_pointer = nullptr;
-		} memory_blocks_[4];	// The IO page isn't included.
+		} memory_blocks_[4];		// The IO page isn't included.
+		MemoryBlock cx_rom_block_;	// This is the IO page, for an IIe.
 
 		// MARK: - The language card.
 		struct {
@@ -165,10 +166,15 @@ template <bool is_iie> class ConcreteMachine:
 				memory_blocks_[2].read_pointer = &ram_[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
 				memory_blocks_[3].read_pointer = &ram_[56*1024];
 			} else {
-				memory_blocks_[2].read_pointer = rom_.data();
-				memory_blocks_[3].read_pointer = rom_.data() + 0x1000;
+				memory_blocks_[2].read_pointer = rom_.data() + (is_iie ? 3840 : 0);
+				memory_blocks_[3].read_pointer = memory_blocks_[2].read_pointer + 0x1000;
 			}
 		}
+
+		// MARK - The IIe's ROM controls.
+		bool internal_CX_rom_ = false;
+		bool slot_C3_rom_ = false;
+		bool internal_c8_rom_ = false;
 
 		// MARK - typing
 		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
@@ -268,7 +274,7 @@ template <bool is_iie> class ConcreteMachine:
 					rom_names.push_back("apple2.rom");
 				break;
 				case Target::Model::IIe:
-					rom_size = 15*1024;
+					rom_size += 3840;
 					rom_names.push_back("apple2e.rom");
 				break;
 			}
@@ -293,6 +299,7 @@ template <bool is_iie> class ConcreteMachine:
 			// Set up the default memory blocks.
 			memory_blocks_[0].read_pointer = memory_blocks_[0].write_pointer = ram_;
 			memory_blocks_[1].read_pointer = memory_blocks_[1].write_pointer = &ram_[0x200];
+			cx_rom_block_.read_pointer = rom_.data();
 			set_language_card_paging();
 
 			insert_media(target.media);
@@ -354,7 +361,7 @@ template <bool is_iie> class ConcreteMachine:
 				block = &memory_blocks_[1];
 				accessed_address -= 0x200;
 			}
-			else if(address < 0xd000) block = nullptr;
+			else if(address < 0xd000) {block = (internal_CX_rom_ && address >= 0xc100) ? &cx_rom_block_: nullptr; accessed_address -= 0xc100; }
 			else if(address < 0xe000) {block = &memory_blocks_[2]; accessed_address -= 0xd000; }
 			else { block = &memory_blocks_[3]; accessed_address -= 0xe000; }
 
@@ -464,7 +471,9 @@ template <bool is_iie> class ConcreteMachine:
 						if(isReadOperation(operation)) {
 							// Read-only switches.
 							switch(address) {
-								default: break;
+								default:
+									printf("Unknown read from %04x\n", address);
+								break;
 
 								case 0xc000:
 									if(string_serialiser_) {
@@ -502,6 +511,8 @@ template <bool is_iie> class ConcreteMachine:
 								} break;
 
 								// The IIe-only state reads follow...
+								case 0xc015:	if(is_iie) *value = (*value & 0x7f) | internal_CX_rom_ ? 0x80 : 0x00;							break;
+								case 0xc017:	if(is_iie) *value = (*value & 0x7f) | slot_C3_rom_ ? 0x80 : 0x00;								break;
 								case 0xc018:	if(is_iie) *value = (*value & 0x7f) | video_->get_80_store() ? 0x80 : 0x00;						break;
 								case 0xc01a:	if(is_iie) *value = (*value & 0x7f) | video_->get_text() ? 0x80 : 0x00;							break;
 								case 0xc01b:	if(is_iie) *value = (*value & 0x7f) | video_->get_mixed() ? 0x80 : 0x00;						break;
@@ -514,8 +525,16 @@ template <bool is_iie> class ConcreteMachine:
 						} else {
 							// Write-only switches. All IIe as currently implemented.
 							if(is_iie) {
+								printf("w %04x\n", address);
 								switch(address) {
-									default: break;
+									default:
+										printf("Unknown write to %04x\n", address);
+									break;
+
+									case 0xc006:
+									case 0xc007:	internal_CX_rom_ = !!(address&1);						break;
+									case 0xc00a:
+									case 0xc00b:	slot_C3_rom_ = !!(address&1);							break;
 
 									case 0xc00e:
 									case 0xc00f:	video_->set_alternative_character_set(!!(address&1));	break;
@@ -600,10 +619,10 @@ template <bool is_iie> class ConcreteMachine:
 					Communication with cards follows.
 				*/
 
-				if(address >= 0xc090 && address < 0xc800) {
+				if(!block && address >= 0xc090 && address < 0xc800) {
 					// If this is a card access, figure out which card is at play before determining
 					// the totality of who needs messaging.
-					size_t card_number = 0;
+					int card_number = 0;
 					AppleII::Card::Select select = AppleII::Card::None;
 
 					if(address >= 0xc100) {
@@ -613,6 +632,13 @@ template <bool is_iie> class ConcreteMachine:
 						*/
 						card_number = (address - 0xc100) >> 8;
 						select = AppleII::Card::Device;
+
+						// If this is a IIe then some of this space may actually be
+						// remapped to the internal ROM. Check out that condition and,
+						// if so, label this as card -1.
+						if(is_iie && slot_C3_rom_ && address >= 0xc300 && address < 0xc400) {
+							card_number = -1;
+						}
 					} else {
 						/*
 							Decode the area conventionally used by cards for registers:
@@ -622,24 +648,28 @@ template <bool is_iie> class ConcreteMachine:
 						select = AppleII::Card::IO;
 					}
 
-					// If the selected card is a just-in-time card, update the just-in-time cards,
-					// and then message it specifically.
-					const bool is_read = isReadOperation(operation);
-					AppleII::Card *const target = cards_[card_number].get();
-					if(target && !is_every_cycle_card(target)) {
-						update_just_in_time_cards();
-						target->perform_bus_operation(select, is_read, address, value);
-					}
+					if(card_number >= 0) {
+						// If the selected card is a just-in-time card, update the just-in-time cards,
+						// and then message it specifically.
+						const bool is_read = isReadOperation(operation);
+						AppleII::Card *const target = cards_[static_cast<size_t>(card_number)].get();
+						if(target && !is_every_cycle_card(target)) {
+							update_just_in_time_cards();
+							target->perform_bus_operation(select, is_read, address, value);
+						}
 
-					// Update all the every-cycle cards regardless, but send them a ::None select if they're
-					// not the one actually selected.
-					for(const auto &card: every_cycle_cards_) {
-						card->run_for(Cycles(1), is_stretched_cycle);
-						card->perform_bus_operation(
-							(card == target) ? select : AppleII::Card::None,
-							is_read, address, value);
+						// Update all the every-cycle cards regardless, but send them a ::None select if they're
+						// not the one actually selected.
+						for(const auto &card: every_cycle_cards_) {
+							card->run_for(Cycles(1), is_stretched_cycle);
+							card->perform_bus_operation(
+								(card == target) ? select : AppleII::Card::None,
+								is_read, address, value);
+						}
+						has_updated_cards = true;
+					} else {
+						if(isReadOperation(operation)) *value = rom_[address - 0xc100];
 					}
-					has_updated_cards = true;
 				}
 			}
 
