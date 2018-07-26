@@ -155,16 +155,18 @@ template <bool is_iie> class ConcreteMachine:
 		} language_card_;
 		bool has_language_card_ = true;
 		void set_language_card_paging() {
+			uint8_t *const ram = alternative_zero_page_ ? aux_ram_ : ram_;
+
 			if(has_language_card_ && !language_card_.write) {
-				memory_blocks_[2].write_pointer = &ram_[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
-				memory_blocks_[3].write_pointer = &ram_[56*1024];
+				memory_blocks_[2].write_pointer = &ram[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
+				memory_blocks_[3].write_pointer = &ram[56*1024];
 			} else {
 				memory_blocks_[2].write_pointer = memory_blocks_[3].write_pointer = nullptr;
 			}
 
 			if(has_language_card_ && language_card_.read) {
-				memory_blocks_[2].read_pointer = &ram_[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
-				memory_blocks_[3].read_pointer = &ram_[56*1024];
+				memory_blocks_[2].read_pointer = &ram[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
+				memory_blocks_[3].read_pointer = &ram[56*1024];
 			} else {
 				memory_blocks_[2].read_pointer = rom_.data() + (is_iie ? 3840 : 0);
 				memory_blocks_[3].read_pointer = memory_blocks_[2].read_pointer + 0x1000;
@@ -174,7 +176,10 @@ template <bool is_iie> class ConcreteMachine:
 		// MARK - The IIe's ROM controls.
 		bool internal_CX_rom_ = false;
 		bool slot_C3_rom_ = false;
-		bool internal_c8_rom_ = false;
+//		bool internal_c8_rom_ = false;
+
+		// MARK - The IIe's auxiliary RAM controls.
+		bool alternative_zero_page_ = false;
 
 		// MARK - typing
 		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
@@ -257,6 +262,7 @@ template <bool is_iie> class ConcreteMachine:
 
 			// Also, start with randomised memory contents.
 			Memory::Fuzz(ram_, sizeof(ram_));
+			Memory::Fuzz(aux_ram_, sizeof(aux_ram_));
 
 			// Add a couple of joysticks.
 		 	joysticks_.emplace_back(new Joystick);
@@ -296,10 +302,15 @@ template <bool is_iie> class ConcreteMachine:
 				install_card(6, new AppleII::DiskIICard(rom_fetcher, target.disk_controller == Target::DiskController::SixteenSector));
 			}
 
-			// Set up the default memory blocks.
+			// Set up the block that will provide CX ROM access on a IIe.
+			cx_rom_block_.read_pointer = rom_.data();
+
+			// Set up the default memory blocks. On a II or II+ these values will never change.
+			// On a IIe they'll be affected by selection of auxiliary RAM.
 			memory_blocks_[0].read_pointer = memory_blocks_[0].write_pointer = ram_;
 			memory_blocks_[1].read_pointer = memory_blocks_[1].write_pointer = &ram_[0x200];
-			cx_rom_block_.read_pointer = rom_.data();
+
+			// Set proper values for the language card/ROM area.
 			set_language_card_paging();
 
 			insert_media(target.media);
@@ -512,6 +523,7 @@ template <bool is_iie> class ConcreteMachine:
 
 								// The IIe-only state reads follow...
 								case 0xc015:	if(is_iie) *value = (*value & 0x7f) | internal_CX_rom_ ? 0x80 : 0x00;							break;
+								case 0xc016:	if(is_iie) *value = (*value & 0x7f) | alternative_zero_page_ ? 0x80 : 0x00;						break;
 								case 0xc017:	if(is_iie) *value = (*value & 0x7f) | slot_C3_rom_ ? 0x80 : 0x00;								break;
 								case 0xc018:	if(is_iie) *value = (*value & 0x7f) | video_->get_80_store() ? 0x80 : 0x00;						break;
 								case 0xc01a:	if(is_iie) *value = (*value & 0x7f) | video_->get_text() ? 0x80 : 0x00;							break;
@@ -547,6 +559,15 @@ template <bool is_iie> class ConcreteMachine:
 
 									case 0xc05e:
 									case 0xc05f:	video_->set_double_high_resolution(!(address&1));		break;
+
+									case 0xc008:
+									case 0xc009:
+										// The alternative zero page setting affects both bank 0 and any RAM
+										// that's paged as though it were on a language card.
+										alternative_zero_page_ = !!(address&1);
+										memory_blocks_[0].read_pointer = memory_blocks_[0].write_pointer = alternative_zero_page_ ? aux_ram_ : ram_;
+										set_language_card_paging();
+									break;
 								}
 							}
 						}
@@ -579,6 +600,12 @@ template <bool is_iie> class ConcreteMachine:
 						if(string_serialiser_) {
 							if(!string_serialiser_->advance())
 								string_serialiser_.reset();
+						}
+
+						// On the IIe, reading C010 returns additional key info.
+						if(is_iie && isReadOperation(operation)) {
+							// TODO!
+							*value = 0;
 						}
 					break;
 
