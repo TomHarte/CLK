@@ -11,6 +11,7 @@
 #include <cstring>
 #include <iostream>
 #include <memory>
+#include <sys/stat.h>
 
 #include <SDL2/SDL.h>
 
@@ -596,6 +597,45 @@ int main(int argc, char *argv[]) {
 							keyboard_machine->type_string(SDL_GetClipboardText());
 							break;
 						}
+					}
+
+					// Capture ctrl+shift+d as a take-a-screenshot command.
+					if(event.key.keysym.sym == SDLK_d && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
+						// Pick a width to capture that will preserve a 4:3 output aspect ratio.
+						const int proportional_width = (window_height * 4) / 3;
+
+						// Grab the screen buffer.
+						std::vector<uint8_t> pixels(proportional_width * window_height * 4);
+						glReadPixels((window_width - proportional_width) >> 1, 0, proportional_width, window_height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+
+						// Flip the buffer vertically, because SDL and OpenGL do not agree about
+						// the basis axes.
+						std::vector<uint8_t> swap_buffer(proportional_width*4);
+						for(int y = 0; y < window_height >> 1; ++y) {
+							memcpy(swap_buffer.data(), &pixels[y*proportional_width*4], swap_buffer.size());
+							memcpy(&pixels[y*proportional_width*4], &pixels[(window_height - 1 - y)*proportional_width*4], swap_buffer.size());
+							memcpy(&pixels[(window_height - 1 - y)*proportional_width*4], swap_buffer.data(), swap_buffer.size());
+						}
+
+						// Find the first available name of the form ~/clk-screenshot-<number>.bmp.
+						size_t index = 0;
+						const std::string home = getenv("HOME");
+						std::string target;
+						while(true) {
+							target = home + "/clk-screenshot-" + std::to_string(index) + ".bmp";
+
+							struct stat file_stats;
+							if(stat(target.c_str(), &file_stats))
+								break;
+
+							++index;
+						}
+
+						// Create a suitable SDL surface and save the thing.
+						SDL_Surface *const surface = SDL_CreateRGBSurfaceFrom(pixels.data(), proportional_width, window_height, 8*4, proportional_width*4, 0, 0, 0, 0);
+						SDL_SaveBMP(surface, target.c_str());
+						SDL_FreeSurface(surface);
+						break;
 					}
 
 				// deliberate fallthrough...
