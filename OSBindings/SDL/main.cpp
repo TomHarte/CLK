@@ -632,7 +632,16 @@ int main(int argc, char *argv[]) {
 						}
 
 						// Create a suitable SDL surface and save the thing.
-						SDL_Surface *const surface = SDL_CreateRGBSurfaceFrom(pixels.data(), proportional_width, window_height, 8*4, proportional_width*4, 0, 0, 0, 0);
+						const bool is_big_endian = SDL_BYTEORDER == SDL_BIG_ENDIAN;
+						SDL_Surface *const surface = SDL_CreateRGBSurfaceFrom(
+							pixels.data(),
+							proportional_width, window_height,
+							8*4,
+							proportional_width*4,
+							is_big_endian ? 0xff000000 : 0x000000ff,
+							is_big_endian ? 0x00ff0000 : 0x0000ff00,
+							is_big_endian ? 0x0000ff00 : 0x00ff0000,
+							0);
 						SDL_SaveBMP(surface, target.c_str());
 						SDL_FreeSurface(surface);
 						break;
