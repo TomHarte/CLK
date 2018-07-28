@@ -7,11 +7,13 @@
 //
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <SDL2/SDL.h>
 
@@ -279,6 +281,22 @@ std::string final_path_component(const std::string &path) {
 
 	// Otherwise return everything from just after the slash to the end of the path.
 	return path.substr(final_slash+1, path.size() - final_slash - 1);
+}
+
+/*!
+	Executes @c command and returns its STDOUT.
+*/
+std::string system_get(const char *command) {
+    std::unique_ptr<FILE, decltype((pclose))> pipe(popen(command, "r"), pclose); 
+    if(!pipe) return "";
+
+	std::string result;
+    while(!feof(pipe.get())) {
+		std::array<char, 256> buffer;
+        if (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+            result += buffer.data();
+    }
+    return result;
 }
 
 }
@@ -617,12 +635,16 @@ int main(int argc, char *argv[]) {
 							memcpy(&pixels[(window_height - 1 - y)*proportional_width*4], swap_buffer.data(), swap_buffer.size());
 						}
 
+						// Pick the directory for images. Try `xdg-user-dir PICTURES` first; failing that
+						// fall back on the HOME directory.
+						std::string target_directory = system_get("xdg-user-dir PICTURES");
+						if(target_directory.empty()) target_directory = getenv("HOME");
+
 						// Find the first available name of the form ~/clk-screenshot-<number>.bmp.
 						size_t index = 0;
-						const std::string home = getenv("HOME");
 						std::string target;
 						while(true) {
-							target = home + "/clk-screenshot-" + std::to_string(index) + ".bmp";
+							target = target_directory + "/clk-screenshot-" + std::to_string(index) + ".bmp";
 
 							struct stat file_stats;
 							if(stat(target.c_str(), &file_stats))
