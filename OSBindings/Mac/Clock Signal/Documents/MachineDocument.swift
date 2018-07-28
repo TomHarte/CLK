@@ -8,7 +8,6 @@
 
 import AudioToolbox
 import Cocoa
-import OpenGL
 
 class MachineDocument:
 	NSDocument,
