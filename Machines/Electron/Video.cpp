@@ -404,7 +404,7 @@ unsigned int VideoOutput::get_cycles_until_next_ram_availability(int from_time) 
 				if(current_line >= output_position_line) {
 					// Get the number of lines since then if still in the same frame.
 					int lines_since_output_position = current_line - output_position_line;
-				
+
 					// Therefore get the character row at the proposed time, modulo 10.
 					implied_row = (current_character_row_ + lines_since_output_position) % 10;
 				} else {

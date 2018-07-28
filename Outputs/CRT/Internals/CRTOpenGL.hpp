@@ -164,7 +164,7 @@ class OpenGLOutputBuilder {
 			if(!composite_output_buffer_is_full())
 				composite_src_output_y_++;
 		}
-	
+
 		void set_target_framebuffer(GLint);
 		void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty);
 		void set_openGL_context_will_change(bool should_delete_resources);
