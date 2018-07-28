@@ -243,6 +243,43 @@ struct ActivityObserver: public Activity::Observer {
 		keyboardMachine->type_string([paste UTF8String]);
 }
 
+- (NSBitmapImageRep *)imageRepresentation {
+	// Get the current viewport to establish framebuffer size. Then determine how wide the
+	// centre 4/3 of that would be.
+	GLint dimensions[4];
+	glGetIntegerv(GL_VIEWPORT, dimensions);
+	GLint proportionalWidth = (dimensions[3] * 4) / 3;
+
+	// Grab the framebuffer contents.
+	std::vector<uint8_t> temporaryData(static_cast<size_t>(proportionalWidth * dimensions[3] * 3));
+	glReadPixels((dimensions[2] - proportionalWidth) >> 1, 0, proportionalWidth, dimensions[3], GL_RGB, GL_UNSIGNED_BYTE, temporaryData.data());
+
+	// Generate an NSBitmapImageRep and populate it with a vertical flip
+	// of the original data.
+	NSBitmapImageRep *const result =
+		[[NSBitmapImageRep alloc]
+			initWithBitmapDataPlanes:NULL
+			pixelsWide:proportionalWidth
+			pixelsHigh:dimensions[3]
+			bitsPerSample:8
+			samplesPerPixel:3
+			hasAlpha:NO
+			isPlanar:NO
+			colorSpaceName:NSDeviceRGBColorSpace
+			bytesPerRow:3 * proportionalWidth
+			bitsPerPixel:0];
+
+	const size_t line_size = static_cast<size_t>(proportionalWidth * 3);
+	for(GLint y = 0; y < dimensions[3]; ++y) {
+		memcpy(
+			&result.bitmapData[static_cast<size_t>(y) * line_size],
+			&temporaryData[static_cast<size_t>(dimensions[3] - y - 1) * line_size],
+			line_size);
+	}
+
+	return result;
+}
+
 - (void)applyMedia:(const Analyser::Static::Media &)media {
 	@synchronized(self) {
 		MediaTarget::Machine *const mediaTarget = _machine->media_target();

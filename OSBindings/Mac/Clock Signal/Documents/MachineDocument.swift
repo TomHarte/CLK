@@ -6,8 +6,9 @@
 //  Copyright 2016 Thomas Harte. All rights reserved.
 //
 
-import Cocoa
 import AudioToolbox
+import Cocoa
+import OpenGL
 
 class MachineDocument:
 	NSDocument,
@@ -308,6 +309,29 @@ class MachineDocument:
 			}
 		}
 		return super.validateUserInterfaceItem(item)
+	}
+
+	// Screenshot capture.
+	@IBAction func saveScreenshot(_ sender: AnyObject!) {
+		// Grab a date formatter and form a file name.
+		let dateFormatter = DateFormatter()
+		dateFormatter.dateStyle = .short
+		dateFormatter.timeStyle = .long
+
+		let filename = ("Clock Signal Screen Shot " + dateFormatter.string(from: Date()) + ".png").replacingOccurrences(of: "/", with: "-")
+			.replacingOccurrences(of: ":", with: ".")
+		let pictursURL = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask)[0]
+		let url = pictursURL.appendingPathComponent(filename)
+
+		// Obtain the machine's current display.
+		var imageRepresentation: NSBitmapImageRep? = nil
+		self.openGLView.perform {
+			imageRepresentation = self.machine.imageRepresentation
+		}
+
+		// Encode as a PNG and save.
+		let pngData = imageRepresentation!.representation(using: .png, properties: [:])
+		try! pngData?.write(to: url)
 	}
 
 	// MARK: Activity display.
