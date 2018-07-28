@@ -7,11 +7,13 @@
 //
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <SDL2/SDL.h>
 
@@ -234,7 +236,7 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 		//	--flag			sets a Boolean option to true.
 		//	--flag=value	sets the value for a list option.
 		//	name			sets the file name to load.
-		
+
 		// Anything starting with a dash always makes a selection; otherwise it's a file name.
 		if(arg[0] == '-') {
 			while(*arg == '-') arg++;
@@ -266,7 +268,7 @@ std::string final_path_component(const std::string &path) {
 
 	// Find the last slash...
 	auto final_slash = path.find_last_of("/\\");
-	
+
 	// If no slash was found at all, return the whole path.
 	if(final_slash == std::string::npos) {
 		return path;
@@ -279,6 +281,22 @@ std::string final_path_component(const std::string &path) {
 
 	// Otherwise return everything from just after the slash to the end of the path.
 	return path.substr(final_slash+1, path.size() - final_slash - 1);
+}
+
+/*!
+	Executes @c command and returns its STDOUT.
+*/
+std::string system_get(const char *command) {
+    std::unique_ptr<FILE, decltype((pclose))> pipe(popen(command, "r"), pclose);
+    if(!pipe) return "";
+
+	std::string result;
+    while(!feof(pipe.get())) {
+		std::array<char, 256> buffer;
+        if (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+            result += buffer.data();
+    }
+    return result;
 }
 
 }
@@ -303,7 +321,7 @@ int main(int argc, char *argv[]) {
 			std::cout << machine_options.first << ":" << std::endl;
 			for(const auto &option: machine_options.second) {
 				std::cout << '\t' << "--" << option->short_name;
-				
+
 				Configurable::ListOption *list_option = dynamic_cast<Configurable::ListOption *>(option.get());
 				if(list_option) {
 					std::cout << "={";
@@ -482,7 +500,7 @@ int main(int argc, char *argv[]) {
 	if(configurable_device) {
 		// Establish user-friendly options by default.
 		configurable_device->set_selections(configurable_device->get_user_friendly_selections());
-		
+
 		// Consider transcoding any list selections that map to Boolean options.
 		for(const auto &option: configurable_device->get_options()) {
 			// Check for a corresponding selection.
@@ -617,12 +635,21 @@ int main(int argc, char *argv[]) {
 							memcpy(&pixels[(window_height - 1 - y)*proportional_width*4], swap_buffer.data(), swap_buffer.size());
 						}
 
+						// Pick the directory for images. Try `xdg-user-dir PICTURES` first.
+						std::string target_directory = system_get("xdg-user-dir PICTURES");
+
+						// Make sure there are no newlines.
+						target_directory.erase(std::remove(target_directory.begin(), target_directory.end(), '\n'), target_directory.end());
+						target_directory.erase(std::remove(target_directory.begin(), target_directory.end(), '\r'), target_directory.end());
+
+						// Fall back on the HOME directory if necessary.
+						if(target_directory.empty()) target_directory = getenv("HOME");
+
 						// Find the first available name of the form ~/clk-screenshot-<number>.bmp.
 						size_t index = 0;
-						const std::string home = getenv("HOME");
 						std::string target;
 						while(true) {
-							target = home + "/clk-screenshot-" + std::to_string(index) + ".bmp";
+							target = target_directory + "/clk-screenshot-" + std::to_string(index) + ".bmp";
 
 							struct stat file_stats;
 							if(stat(target.c_str(), &file_stats))

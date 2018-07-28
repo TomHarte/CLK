@@ -69,7 +69,7 @@ struct BooleanSelection: public Selection {
 
 struct ListSelection: public Selection {
 	std::string value;
-	
+
 	ListSelection *list_selection();
 	BooleanSelection *boolean_selection();
 	ListSelection(const std::string value) : value(value) {}
