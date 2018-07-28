@@ -186,8 +186,6 @@ template <bool is_iie> class ConcreteMachine:
 			uint8_t *const ram = alternative_zero_page_ ? aux_ram_ : ram_;
 			uint8_t *const rom = is_iie ? &rom_[3840] : rom_.data();
 
-			printf("Configuring for %c%c%c [%c]\n", language_card_.read ? 'r' : '-', language_card_.write ? 'w' : '-', language_card_.bank1 ? '1' : '-', has_language_card_ ? 'c' : '-');
-
 			for(int target = 0xd0; target < 0x100; ++target) {
 				uint8_t *const ram_page = &ram[(target << 8) - ((target < 0xe0 && language_card_.bank1) ? 0x1000 : 0x0000)];
 				uint8_t *const rom_page = &rom[(target << 8) - 0xd000];
@@ -200,6 +198,14 @@ template <bool is_iie> class ConcreteMachine:
 		bool internal_CX_rom_ = false;
 		bool slot_C3_rom_ = false;
 //		bool internal_c8_rom_ = false;
+
+		void set_card_paging() {
+			for(int c = 0xc1; c < 0xd0; ++c) {
+				read_pages_[c] = internal_CX_rom_ ? &rom_[static_cast<size_t>(c << 8) - 0xc100] : nullptr;
+			}
+			if(slot_C3_rom_) read_pages_[0xc3] = &rom_[0xc300 - 0xc100];
+		}
+
 
 		// MARK - The IIe's auxiliary RAM controls.
 		bool alternative_zero_page_ = false;
@@ -304,7 +310,7 @@ template <bool is_iie> class ConcreteMachine:
 				break;
 				case Target::Model::IIe:
 					rom_size += 3840;
-					rom_names.push_back("apple2eu.rom");
+					rom_names.push_back("apple2e.rom");
 				break;
 			}
 			const auto roms = rom_fetcher("AppleII", rom_names);
@@ -333,6 +339,8 @@ template <bool is_iie> class ConcreteMachine:
 			for(int c = 0; c < 0xc0; ++c) {
 				read_pages_[c] = write_pages_[c] = &ram_[c << 8];
 			}
+
+			// Set the whole card area to initially backed by nothing.
 			for(int c = 0xc0; c < 0xd0; ++c) {
 				read_pages_[c] = write_pages_[c] = nullptr;
 			}
@@ -554,9 +562,15 @@ template <bool is_iie> class ConcreteMachine:
 									break;
 
 									case 0xc006:
-									case 0xc007:	internal_CX_rom_ = !!(address&1);						break;
+									case 0xc007:
+										internal_CX_rom_ = !!(address&1);
+										set_card_paging();
+									break;
 									case 0xc00a:
-									case 0xc00b:	slot_C3_rom_ = !!(address&1);							break;
+									case 0xc00b:
+										slot_C3_rom_ = !!(address&1);
+										set_card_paging();
+									break;
 
 									case 0xc00e:
 									case 0xc00f:	video_->set_alternative_character_set(!!(address&1));	break;
@@ -667,7 +681,7 @@ template <bool is_iie> class ConcreteMachine:
 				if(!read_pages_[address >> 8] && address >= 0xc090 && address < 0xc800) {
 					// If this is a card access, figure out which card is at play before determining
 					// the totality of who needs messaging.
-					int card_number = 0;
+					size_t card_number = 0;
 					AppleII::Card::Select select = AppleII::Card::None;
 
 					if(address >= 0xc100) {
@@ -677,13 +691,6 @@ template <bool is_iie> class ConcreteMachine:
 						*/
 						card_number = (address - 0xc100) >> 8;
 						select = AppleII::Card::Device;
-
-						// If this is a IIe then some of this space may actually be
-						// remapped to the internal ROM. Check out that condition and,
-						// if so, label this as card -1.
-						if(is_iie && slot_C3_rom_ && address >= 0xc300 && address < 0xc400) {
-							card_number = -1;
-						}
 					} else {
 						/*
 							Decode the area conventionally used by cards for registers:
@@ -693,28 +700,24 @@ template <bool is_iie> class ConcreteMachine:
 						select = AppleII::Card::IO;
 					}
 
-					if(card_number >= 0) {
-						// If the selected card is a just-in-time card, update the just-in-time cards,
-						// and then message it specifically.
-						const bool is_read = isReadOperation(operation);
-						AppleII::Card *const target = cards_[static_cast<size_t>(card_number)].get();
-						if(target && !is_every_cycle_card(target)) {
-							update_just_in_time_cards();
-							target->perform_bus_operation(select, is_read, address, value);
-						}
-
-						// Update all the every-cycle cards regardless, but send them a ::None select if they're
-						// not the one actually selected.
-						for(const auto &card: every_cycle_cards_) {
-							card->run_for(Cycles(1), is_stretched_cycle);
-							card->perform_bus_operation(
-								(card == target) ? select : AppleII::Card::None,
-								is_read, address, value);
-						}
-						has_updated_cards = true;
-					} else {
-						if(isReadOperation(operation)) *value = rom_[address - 0xc100];
+					// If the selected card is a just-in-time card, update the just-in-time cards,
+					// and then message it specifically.
+					const bool is_read = isReadOperation(operation);
+					AppleII::Card *const target = cards_[static_cast<size_t>(card_number)].get();
+					if(target && !is_every_cycle_card(target)) {
+						update_just_in_time_cards();
+						target->perform_bus_operation(select, is_read, address, value);
 					}
+
+					// Update all the every-cycle cards regardless, but send them a ::None select if they're
+					// not the one actually selected.
+					for(const auto &card: every_cycle_cards_) {
+						card->run_for(Cycles(1), is_stretched_cycle);
+						card->perform_bus_operation(
+							(card == target) ? select : AppleII::Card::None,
+							is_read, address, value);
+					}
+					has_updated_cards = true;
 				}
 			}
 
