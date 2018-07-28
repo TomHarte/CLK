@@ -64,6 +64,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 @property (nonatomic, readonly, nonnull) NSString *userDefaultsPrefix;
 
 - (void)paste:(nonnull NSString *)string;
+@property (nonatomic, readonly, nonnull) NSBitmapImageRep *imageRepresentation;
 
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 @property (nonatomic, assign) CSMachineVideoSignal videoSignal;
