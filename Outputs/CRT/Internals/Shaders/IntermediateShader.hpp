@@ -19,7 +19,7 @@ namespace OpenGL {
 class IntermediateShader: public Shader {
 public:
 	using Shader::Shader;
-	
+
 	enum class Input {
 		/// Contains the 2d start position of this run's input data.
 		InputStart,
