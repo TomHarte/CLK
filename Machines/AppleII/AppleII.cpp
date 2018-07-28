@@ -139,12 +139,40 @@ template <bool is_iie> class ConcreteMachine:
 			return dynamic_cast<AppleII::DiskIICard *>(cards_[5].get());
 		}
 
-		// MARK: - Memory Map
-		struct MemoryBlock {
-			uint8_t *read_pointer = nullptr;
-			uint8_t *write_pointer = nullptr;
-		} memory_blocks_[4];		// The IO page isn't included.
-		MemoryBlock cx_rom_block_;	// This is the IO page, for an IIe.
+		// MARK: - Memory Map.
+
+		/*
+			The Apple II's paging mechanisms are byzantine to say the least. Painful is
+			another appropriate adjective.
+
+			On a II and II+ there are five distinct zones of memory:
+
+			0000 to c000	:	the main block of RAM
+			c000 to d000	:	the IO area, including card ROMs
+			d000 to e000	:	the low ROM area, which can alternatively contain either one of two 4kb blocks of RAM with a language card
+			e000 onward		:	the rest of ROM, also potentially replaced with RAM by a language card
+
+			On a IIe with auxiliary memory the following orthogonal changes also need to be factored in:
+
+			0000 to 0200 	:	can be paged independently of the rest of RAM, other than part of the language card area which pages with it
+			0400 to 0800	:	the text screen, can be configured to write to auxiliary RAM
+			2000 to 4000	:	the graphics screen, which can be configured to write to auxiliary RAM
+			c100 to d000	:	can be used to page an additional 3.75kb of ROM, replacing the IO area
+			c300 to c400	:	can contain the same 256-byte segment of the ROM as if the whole IO area were switched, but while leaving cards visible in the rest
+
+			If dealt with as individual blocks in the inner loop, that would therefore imply mapping
+			an address to one of 12 potential pageable zones. So I've gone reductive and surrendered
+			to paging every 6502 page of memory independently. It makes the paging events more expensive,
+			but hopefully is clear.
+
+			Those 12 block, for the record:
+
+			0000 to 0200;		0200 to 0400;		0400 to 0800;		0800 to 2000;
+			2000 to 4000;		4000 to c000;		c000 to c100;		c100 to c300;
+			c300 to c400;		c400 to d000;		d000 to e000;		e000+
+		*/
+		uint8_t *read_pages_[256];	// each is a pointer to the 256-block of memory the CPU should read when accessing that page of memory
+		uint8_t *write_pages_[256];	// as per read_pages_, but this is where the CPU should write. If a pointer is nullptr, don't write.
 
 		// MARK: - The language card.
 		struct {
@@ -156,20 +184,15 @@ template <bool is_iie> class ConcreteMachine:
 		bool has_language_card_ = true;
 		void set_language_card_paging() {
 			uint8_t *const ram = alternative_zero_page_ ? aux_ram_ : ram_;
+			uint8_t *const rom = is_iie ? &rom_[3840] : rom_.data();
 
-			if(has_language_card_ && !language_card_.write) {
-				memory_blocks_[2].write_pointer = &ram[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
-				memory_blocks_[3].write_pointer = &ram[56*1024];
-			} else {
-				memory_blocks_[2].write_pointer = memory_blocks_[3].write_pointer = nullptr;
-			}
+			printf("Configuring for %c%c%c [%c]\n", language_card_.read ? 'r' : '-', language_card_.write ? 'w' : '-', language_card_.bank1 ? '1' : '-', has_language_card_ ? 'c' : '-');
 
-			if(has_language_card_ && language_card_.read) {
-				memory_blocks_[2].read_pointer = &ram[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
-				memory_blocks_[3].read_pointer = &ram[56*1024];
-			} else {
-				memory_blocks_[2].read_pointer = rom_.data() + (is_iie ? 3840 : 0);
-				memory_blocks_[3].read_pointer = memory_blocks_[2].read_pointer + 0x1000;
+			for(int target = 0xd0; target < 0x100; ++target) {
+				uint8_t *const ram_page = &ram[(target << 8) - ((target < 0xe0 && language_card_.bank1) ? 0x1000 : 0x0000)];
+				uint8_t *const rom_page = &rom[(target << 8) - 0xd000];
+				write_pages_[target] = has_language_card_ && !language_card_.write ? ram_page : nullptr;
+				read_pages_[target] = has_language_card_ && language_card_.read ? ram_page : rom_page;
 			}
 		}
 
@@ -281,7 +304,7 @@ template <bool is_iie> class ConcreteMachine:
 				break;
 				case Target::Model::IIe:
 					rom_size += 3840;
-					rom_names.push_back("apple2e.rom");
+					rom_names.push_back("apple2eu.rom");
 				break;
 			}
 			const auto roms = rom_fetcher("AppleII", rom_names);
@@ -303,12 +326,16 @@ template <bool is_iie> class ConcreteMachine:
 			}
 
 			// Set up the block that will provide CX ROM access on a IIe.
-			cx_rom_block_.read_pointer = rom_.data();
+//			cx_rom_block_.read_pointer = rom_.data();
 
 			// Set up the default memory blocks. On a II or II+ these values will never change.
 			// On a IIe they'll be affected by selection of auxiliary RAM.
-			memory_blocks_[0].read_pointer = memory_blocks_[0].write_pointer = ram_;
-			memory_blocks_[1].read_pointer = memory_blocks_[1].write_pointer = &ram_[0x200];
+			for(int c = 0; c < 0xc0; ++c) {
+				read_pages_[c] = write_pages_[c] = &ram_[c << 8];
+			}
+			for(int c = 0xc0; c < 0xd0; ++c) {
+				read_pages_[c] = write_pages_[c] = nullptr;
+			}
 
 			// Set proper values for the language card/ROM area.
 			set_language_card_paging();
@@ -355,31 +382,14 @@ template <bool is_iie> class ConcreteMachine:
 				++ stretched_cycles_since_card_update_;
 			}
 
-			/*
-				There are five distinct zones of memory on an Apple II:
-
-				0000 to 0200	:	the zero and stack pages, which can be paged independently on a IIe
-				0200 to c000	:	the main block of RAM, which can be paged on a IIe
-				c000 to d000	:	the IO area, including card ROMs
-				d000 to e000	:	the low ROM area, which can contain indepdently-paged RAM with a language card
-				e000 onward		:	the rest of ROM, also potentially replaced with RAM by a language card
-			*/
-			uint16_t accessed_address = address;
-			MemoryBlock *block = nullptr;
-			if(address < 0x200) block = &memory_blocks_[0];
-			else if(address < 0xc000) {
-				if(address < 0x6000 && !isReadOperation(operation)) update_video();
-				block = &memory_blocks_[1];
-				accessed_address -= 0x200;
-			}
-			else if(address < 0xd000) {block = (internal_CX_rom_ && address >= 0xc100) ? &cx_rom_block_: nullptr; accessed_address -= 0xc100; }
-			else if(address < 0xe000) {block = &memory_blocks_[2]; accessed_address -= 0xd000; }
-			else { block = &memory_blocks_[3]; accessed_address -= 0xe000; }
-
 			bool has_updated_cards = false;
-			if(block) {
-				if(isReadOperation(operation)) *value = block->read_pointer[accessed_address];
-				else if(block->write_pointer) block->write_pointer[accessed_address] = *value;
+			if(read_pages_[address >> 8]) {
+				if(isReadOperation(operation)) *value = read_pages_[address >> 8][address & 0xff];
+				else if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
+
+//				if(!isReadOperation(operation) && address >= 0xd000) {
+//					printf("%02x -> %04x (%04x)\n", *value, address, &write_pages_[address >> 8][address & 0xff] - ram_);
+//				}
 
 				if(should_load_quickly_) {
 					// Check for a prima facie entry into RWTS.
@@ -483,7 +493,7 @@ template <bool is_iie> class ConcreteMachine:
 							// Read-only switches.
 							switch(address) {
 								default:
-									printf("Unknown read from %04x\n", address);
+//									printf("Unknown read from %04x\n", address);
 								break;
 
 								case 0xc000:
@@ -537,10 +547,10 @@ template <bool is_iie> class ConcreteMachine:
 						} else {
 							// Write-only switches. All IIe as currently implemented.
 							if(is_iie) {
-								printf("w %04x\n", address);
+//								printf("w %04x\n", address);
 								switch(address) {
 									default:
-										printf("Unknown write to %04x\n", address);
+//										printf("Unknown write to %04x\n", address);
 									break;
 
 									case 0xc006:
@@ -565,7 +575,14 @@ template <bool is_iie> class ConcreteMachine:
 										// The alternative zero page setting affects both bank 0 and any RAM
 										// that's paged as though it were on a language card.
 										alternative_zero_page_ = !!(address&1);
-										memory_blocks_[0].read_pointer = memory_blocks_[0].write_pointer = alternative_zero_page_ ? aux_ram_ : ram_;
+										if(alternative_zero_page_) {
+											read_pages_[0] = aux_ram_;
+										} else {
+											read_pages_[0] = ram_;
+										}
+										read_pages_[1] = read_pages_[0] + 256;
+										write_pages_[0] = read_pages_[0];
+										write_pages_[1] = read_pages_[1];
 										set_language_card_paging();
 									break;
 								}
@@ -638,6 +655,7 @@ template <bool is_iie> class ConcreteMachine:
 						// "The PRE-WRITE flip-flop is set by an odd read access in the $C08X range. It is reset by an even access or a write access."
 						language_card_.pre_write = isReadOperation(operation) ? (address&1) : false;
 
+						// Apply whatever the net effect of all that is to the memory map.
 						set_language_card_paging();
 					break;
 				}
@@ -646,7 +664,7 @@ template <bool is_iie> class ConcreteMachine:
 					Communication with cards follows.
 				*/
 
-				if(!block && address >= 0xc090 && address < 0xc800) {
+				if(!read_pages_[address >> 8] && address >= 0xc090 && address < 0xc800) {
 					// If this is a card access, figure out which card is at play before determining
 					// the totality of who needs messaging.
 					int card_number = 0;
