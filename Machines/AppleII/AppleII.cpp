@@ -209,6 +209,31 @@ template <bool is_iie> class ConcreteMachine:
 
 		// MARK - The IIe's auxiliary RAM controls.
 		bool alternative_zero_page_ = false;
+		bool read_auxiliary_memory_ = false;
+		bool write_auxiliary_memory_ = false;
+		void set_main_paging() {
+			for(int target = 0x02; target < 0xc0; ++target) {
+				write_pages_[target] = write_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
+				read_pages_[target] = read_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
+			}
+
+			if(video_->get_80_store()) {
+				int start_page, end_page;
+				if(video_->get_text()) {
+					start_page = 0x4;
+					end_page = 0x8;
+				} else {
+					start_page = 0x10;
+					end_page = 0x20;
+				}
+
+				bool use_aux_ram = video_->get_page2();
+				for(int target = start_page; target < end_page; ++target) {
+					write_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
+					read_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
+				}
+			}
+		}
 
 		// MARK - typing
 		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
@@ -310,7 +335,7 @@ template <bool is_iie> class ConcreteMachine:
 				break;
 				case Target::Model::IIe:
 					rom_size += 3840;
-					rom_names.push_back("apple2e.rom");
+					rom_names.push_back("apple2eu.rom");
 				break;
 			}
 			const auto roms = rom_fetcher("AppleII", rom_names);
@@ -501,7 +526,7 @@ template <bool is_iie> class ConcreteMachine:
 							// Read-only switches.
 							switch(address) {
 								default:
-//									printf("Unknown read from %04x\n", address);
+									printf("Unknown (?) read from %04x\n", address);
 								break;
 
 								case 0xc000:
@@ -540,6 +565,10 @@ template <bool is_iie> class ConcreteMachine:
 								} break;
 
 								// The IIe-only state reads follow...
+								case 0xc011:	if(is_iie) *value = (*value & 0x7f) | language_card_.bank1 ? 0x80 : 0x00;						break;
+								case 0xc012:	if(is_iie) *value = (*value & 0x7f) | language_card_.read ? 0x80 : 0x00;						break;
+								case 0xc013:	if(is_iie) *value = (*value & 0x7f) | read_auxiliary_memory_ ? 0x80 : 0x00;						break;
+								case 0xc014:	if(is_iie) *value = (*value & 0x7f) | write_auxiliary_memory_ ? 0x80 : 0x00;					break;
 								case 0xc015:	if(is_iie) *value = (*value & 0x7f) | internal_CX_rom_ ? 0x80 : 0x00;							break;
 								case 0xc016:	if(is_iie) *value = (*value & 0x7f) | alternative_zero_page_ ? 0x80 : 0x00;						break;
 								case 0xc017:	if(is_iie) *value = (*value & 0x7f) | slot_C3_rom_ ? 0x80 : 0x00;								break;
@@ -555,10 +584,21 @@ template <bool is_iie> class ConcreteMachine:
 						} else {
 							// Write-only switches. All IIe as currently implemented.
 							if(is_iie) {
-//								printf("w %04x\n", address);
+								if(address >= 0xc000 && address < 0xc100) printf("w %04x\n", address);
 								switch(address) {
 									default:
-//										printf("Unknown write to %04x\n", address);
+										printf("Unknown (?) write to %04x\n", address);
+									break;
+
+									case 0xc002:
+									case 0xc003:
+										read_auxiliary_memory_ = !!(address&1);
+										set_main_paging();
+									break;
+									case 0xc004:
+									case 0xc005:
+										write_auxiliary_memory_ = !!(address&1);
+										set_main_paging();
 									break;
 
 									case 0xc006:
@@ -621,8 +661,12 @@ template <bool is_iie> class ConcreteMachine:
 					case 0xc051:	update_video();		video_->set_text(true);				break;
 					case 0xc052:	update_video();		video_->set_mixed(false);			break;
 					case 0xc053:	update_video();		video_->set_mixed(true);			break;
-					case 0xc054:	update_video();		video_->set_page2(false);			break;
-					case 0xc055:	update_video();		video_->set_page2(true);			break;
+					case 0xc054:
+					case 0xc055:
+						update_video();
+						video_->set_page2(!!(address&1));
+						set_main_paging();
+					break;
 					case 0xc056:	update_video();		video_->set_high_resolution(false);	break;
 					case 0xc057:	update_video();		video_->set_high_resolution(true);	break;
 

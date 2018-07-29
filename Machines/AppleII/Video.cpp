@@ -59,7 +59,7 @@ bool VideoBase::get_80_store() {
 }
 
 void VideoBase::set_page2(bool page2) {
-	page2_ = page2;;
+	page2_ = page2;
 }
 
 bool VideoBase::get_page2() {
