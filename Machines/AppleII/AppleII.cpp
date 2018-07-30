@@ -57,17 +57,17 @@ template <bool is_iie> class ConcreteMachine:
 	private:
 		struct VideoBusHandler : public AppleII::Video::BusHandler {
 			public:
-				VideoBusHandler(uint8_t *ram) : ram_(ram) {}
+				VideoBusHandler(uint8_t *ram, uint8_t *aux_ram) : ram_(ram), aux_ram_(aux_ram) {}
 
 				uint8_t perform_read(uint16_t address) {
 					return ram_[address];
 				}
 				uint16_t perform_aux_read(uint16_t address) {
-					return static_cast<uint16_t>(ram_[address] | (ram_[address] << 8));
+					return static_cast<uint16_t>(ram_[address] | (aux_ram_[address] << 8));
 				}
 
 			private:
-				uint8_t *ram_;
+				uint8_t *ram_, *aux_ram_;
 		};
 
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
@@ -212,12 +212,14 @@ template <bool is_iie> class ConcreteMachine:
 		bool read_auxiliary_memory_ = false;
 		bool write_auxiliary_memory_ = false;
 		void set_main_paging() {
+			printf("80store: %d; page2:%d; rdaux: %d; wraux:%d\n", video_->get_80_store(), video_->get_page2(), read_auxiliary_memory_, write_auxiliary_memory_);
+			bool store_80 = video_->get_80_store();
 			for(int target = 0x02; target < 0xc0; ++target) {
-				write_pages_[target] = write_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
-				read_pages_[target] = read_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
+				write_pages_[target] = !store_80 && write_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
+				read_pages_[target] = !store_80 && read_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
 			}
 
-			if(video_->get_80_store()) {
+			if(store_80) {
 				int start_page, end_page;
 				if(video_->get_text()) {
 					start_page = 0x4;
@@ -294,7 +296,7 @@ template <bool is_iie> class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::AppleII::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 		 	m6502_(*this),
-		 	video_bus_handler_(ram_),
+		 	video_bus_handler_(ram_, aux_ram_),
 		 	audio_toggle_(audio_queue_),
 		 	speaker_(audio_toggle_) {
 		 	// The system's master clock rate.
@@ -419,10 +421,6 @@ template <bool is_iie> class ConcreteMachine:
 			if(read_pages_[address >> 8]) {
 				if(isReadOperation(operation)) *value = read_pages_[address >> 8][address & 0xff];
 				else if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
-
-//				if(!isReadOperation(operation) && address >= 0xd000) {
-//					printf("%02x -> %04x (%04x)\n", *value, address, &write_pages_[address >> 8][address & 0xff] - ram_);
-//				}
 
 				if(should_load_quickly_) {
 					// Check for a prima facie entry into RWTS.
@@ -619,7 +617,10 @@ template <bool is_iie> class ConcreteMachine:
 									case 0xc00d:	video_->set_80_columns(!!(address&1));					break;
 
 									case 0xc000:
-									case 0xc001:	video_->set_80_store(!!(address&1));					break;
+									case 0xc001:
+										video_->set_80_store(!!(address&1));
+										set_main_paging();
+									break;
 
 									case 0xc05e:
 									case 0xc05f:	video_->set_double_high_resolution(!(address&1));		break;
@@ -883,4 +884,3 @@ Machine *Machine::AppleII(const Analyser::Static::Target *target, const ROMMachi
 }
 
 Machine::~Machine() {}
-

@@ -295,13 +295,13 @@ template <class BusHandler> class Video: public VideoBase {
 									for(int c = column_; c < pixel_end; ++c) {
 										const uint16_t characters = bus_handler_.perform_aux_read(static_cast<uint16_t>(text_address + c));
 										const std::size_t character_addresses[2] = {
-											static_cast<std::size_t>(((characters & 0x3f) << 3) + pixel_row),
 											static_cast<std::size_t>((((characters >> 8) & 0x3f) << 3) + pixel_row),
+											static_cast<std::size_t>(((characters & 0x3f) << 3) + pixel_row),
 										};
 
 										const uint8_t character_patterns[2] = {
-											static_cast<uint8_t>(character_rom_[character_addresses[0]] ^ inverses[(characters >> 6) & 3]),
-											static_cast<uint8_t>(character_rom_[character_addresses[1]] ^ inverses[(characters >> 14) & 3]),
+											static_cast<uint8_t>(character_rom_[character_addresses[0]] ^ inverses[(characters >> 14) & 3]),
+											static_cast<uint8_t>(character_rom_[character_addresses[1]] ^ inverses[(characters >> 6) & 3]),
 										};
 
 										// The character ROM is output MSB to LSB rather than LSB to MSB.
