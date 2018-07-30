@@ -203,36 +203,46 @@ template <bool is_iie> class ConcreteMachine:
 			for(int c = 0xc1; c < 0xd0; ++c) {
 				read_pages_[c] = internal_CX_rom_ ? &rom_[static_cast<size_t>(c << 8) - 0xc100] : nullptr;
 			}
-			if(slot_C3_rom_) read_pages_[0xc3] = &rom_[0xc300 - 0xc100];
+
+			if(!internal_CX_rom_) {
+				if(!slot_C3_rom_) read_pages_[0xc3] = &rom_[0xc300 - 0xc100];
+			}
 		}
 
 
 		// MARK - The IIe's auxiliary RAM controls.
 		bool alternative_zero_page_ = false;
+		void set_zero_page_paging() {
+			if(alternative_zero_page_) {
+				read_pages_[0] = aux_ram_;
+			} else {
+				read_pages_[0] = ram_;
+			}
+			read_pages_[1] = read_pages_[0] + 256;
+			write_pages_[0] = read_pages_[0];
+			write_pages_[1] = read_pages_[1];
+		}
+
 		bool read_auxiliary_memory_ = false;
 		bool write_auxiliary_memory_ = false;
 		void set_main_paging() {
-			printf("80store: %d; page2:%d; rdaux: %d; wraux:%d\n", video_->get_80_store(), video_->get_page2(), read_auxiliary_memory_, write_auxiliary_memory_);
-			bool store_80 = video_->get_80_store();
 			for(int target = 0x02; target < 0xc0; ++target) {
-				write_pages_[target] = !store_80 && write_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
-				read_pages_[target] = !store_80 && read_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
+				read_pages_[target] = read_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
+				write_pages_[target] = write_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
 			}
 
-			if(store_80) {
-				int start_page, end_page;
-				if(video_->get_text()) {
-					start_page = 0x4;
-					end_page = 0x8;
-				} else {
-					start_page = 0x10;
-					end_page = 0x20;
+			if(video_->get_80_store()) {
+				bool use_aux_ram = video_->get_page2();
+				for(int target = 0x04; target < 0x08; ++target) {
+					read_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
+					write_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
 				}
 
-				bool use_aux_ram = video_->get_page2();
-				for(int target = start_page; target < end_page; ++target) {
-					write_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
-					read_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
+				if(!video_->get_text()) {
+					for(int target = 0x10; target < 0x20; ++target) {
+						read_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
+						write_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
+					}
 				}
 			}
 		}
@@ -630,14 +640,7 @@ template <bool is_iie> class ConcreteMachine:
 										// The alternative zero page setting affects both bank 0 and any RAM
 										// that's paged as though it were on a language card.
 										alternative_zero_page_ = !!(address&1);
-										if(alternative_zero_page_) {
-											read_pages_[0] = aux_ram_;
-										} else {
-											read_pages_[0] = ram_;
-										}
-										read_pages_[1] = read_pages_[0] + 256;
-										write_pages_[0] = read_pages_[0];
-										write_pages_[1] = read_pages_[1];
+										set_zero_page_paging();
 										set_language_card_paging();
 									break;
 								}
@@ -658,8 +661,12 @@ template <bool is_iie> class ConcreteMachine:
 					} break;
 
 					/* Read-write switches. */
-					case 0xc050:	update_video();		video_->set_text(false);			break;
-					case 0xc051:	update_video();		video_->set_text(true);				break;
+					case 0xc050:
+					case 0xc051:
+						update_video();
+						video_->set_text(!!(address&1));
+						set_main_paging();
+					break;
 					case 0xc052:	update_video();		video_->set_mixed(false);			break;
 					case 0xc053:	update_video();		video_->set_mixed(true);			break;
 					case 0xc054:
