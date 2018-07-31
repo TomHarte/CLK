@@ -207,14 +207,16 @@ template <bool is_iie> class ConcreteMachine:
 		// MARK - The IIe's ROM controls.
 		bool internal_CX_rom_ = false;
 		bool slot_C3_rom_ = false;
-//		bool internal_c8_rom_ = false;
+		bool internal_c8_rom_ = false;
 
 		void set_card_paging() {
-			page(0xc1, 0xd0, internal_CX_rom_ ? rom_.data() : nullptr, nullptr);
+			page(0xc1, 0xd8, internal_CX_rom_ ? rom_.data() : nullptr, nullptr);
 
 			if(!internal_CX_rom_) {
 				if(!slot_C3_rom_) read_pages_[0xc3] = &rom_[0xc300 - 0xc100];
 			}
+
+			page(0xc8, 0xd0, (internal_CX_rom_ || internal_c8_rom_) ? &rom_[0xc800 - 0xc100] : nullptr, nullptr);
 		}
 
 		// MARK - The IIe's auxiliary RAM controls.
@@ -429,6 +431,16 @@ template <bool is_iie> class ConcreteMachine:
 			if(read_pages_[address >> 8]) {
 				if(isReadOperation(operation)) *value = read_pages_[address >> 8][address & 0xff];
 				else if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
+
+				if(is_iie && address >= 0xc300 && address < 0xd000) {
+					bool internal_c8_rom = internal_c8_rom_;
+					internal_c8_rom |= ((address >> 8) == 0xc3) && !slot_C3_rom_;
+					internal_c8_rom &= (address != 0xcfff);
+					if(internal_c8_rom != internal_c8_rom_) {
+						internal_c8_rom_ = internal_c8_rom;
+						set_card_paging();
+					}
+				}
 
 				if(should_load_quickly_) {
 					// Check for a prima facie entry into RWTS.
