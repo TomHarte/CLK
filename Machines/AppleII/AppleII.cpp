@@ -173,6 +173,15 @@ template <bool is_iie> class ConcreteMachine:
 		*/
 		uint8_t *read_pages_[256];	// each is a pointer to the 256-block of memory the CPU should read when accessing that page of memory
 		uint8_t *write_pages_[256];	// as per read_pages_, but this is where the CPU should write. If a pointer is nullptr, don't write.
+		void page(int start, int end, uint8_t *read, uint8_t *write) {
+			for(int position = start; position < end; ++position) {
+				read_pages_[position] = read;
+				if(read) read += 256;
+
+				write_pages_[position] = write;
+				if(write) write += 256;
+			}
+		}
 
 		// MARK: - The language card.
 		struct {
@@ -186,12 +195,13 @@ template <bool is_iie> class ConcreteMachine:
 			uint8_t *const ram = alternative_zero_page_ ? aux_ram_ : ram_;
 			uint8_t *const rom = is_iie ? &rom_[3840] : rom_.data();
 
-			for(int target = 0xd0; target < 0x100; ++target) {
-				uint8_t *const ram_page = &ram[(target << 8) - ((target < 0xe0 && language_card_.bank1) ? 0x1000 : 0x0000)];
-				uint8_t *const rom_page = &rom[(target << 8) - 0xd000];
-				write_pages_[target] = has_language_card_ && !language_card_.write ? ram_page : nullptr;
-				read_pages_[target] = has_language_card_ && language_card_.read ? ram_page : rom_page;
-			}
+			page(0xd0, 0xe0,
+				language_card_.read ? &ram[language_card_.bank1 ? 0xd000 : 0xc000] : rom,
+				language_card_.write ? nullptr : &ram[language_card_.bank1 ? 0xd000 : 0xc000]);
+
+			page(0xe0, 0x100,
+				language_card_.read ? &ram[0xe000] : &rom[0x1000],
+				language_card_.write ? nullptr : &ram[0xe000]);
 		}
 
 		// MARK - The IIe's ROM controls.
@@ -200,15 +210,12 @@ template <bool is_iie> class ConcreteMachine:
 //		bool internal_c8_rom_ = false;
 
 		void set_card_paging() {
-			for(int c = 0xc1; c < 0xd0; ++c) {
-				read_pages_[c] = internal_CX_rom_ ? &rom_[static_cast<size_t>(c << 8) - 0xc100] : nullptr;
-			}
+			page(0xc1, 0xd0, internal_CX_rom_ ? rom_.data() : nullptr, nullptr);
 
 			if(!internal_CX_rom_) {
 				if(!slot_C3_rom_) read_pages_[0xc3] = &rom_[0xc300 - 0xc100];
 			}
 		}
-
 
 		// MARK - The IIe's auxiliary RAM controls.
 		bool alternative_zero_page_ = false;
@@ -226,23 +233,20 @@ template <bool is_iie> class ConcreteMachine:
 		bool read_auxiliary_memory_ = false;
 		bool write_auxiliary_memory_ = false;
 		void set_main_paging() {
-			for(int target = 0x02; target < 0xc0; ++target) {
-				read_pages_[target] = read_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
-				write_pages_[target] = write_auxiliary_memory_ ? &aux_ram_[target << 8] : &ram_[target << 8];
-			}
+			page(0x02, 0xc0,
+				read_auxiliary_memory_ ? &aux_ram_[0x0200] : &ram_[0x0200],
+				write_auxiliary_memory_ ? &aux_ram_[0x0200] : &ram_[0x0200]);
 
-			if(video_->get_80_store()) {
+			if(video_ && video_->get_80_store()) {
 				bool use_aux_ram = video_->get_page2();
-				for(int target = 0x04; target < 0x08; ++target) {
-					read_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
-					write_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
-				}
+				page(0x04, 0x08,
+					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400],
+					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400]);
 
 				if(!video_->get_text()) {
-					for(int target = 0x10; target < 0x20; ++target) {
-						read_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
-						write_pages_[target] = use_aux_ram ? &aux_ram_[target << 8] : &ram_[target << 8];
-					}
+					page(0x10, 0x20,
+						use_aux_ram ? &aux_ram_[0x1000] : &ram_[0x1000],
+						use_aux_ram ? &aux_ram_[0x1000] : &ram_[0x1000]);
 				}
 			}
 		}
@@ -347,7 +351,7 @@ template <bool is_iie> class ConcreteMachine:
 				break;
 				case Target::Model::IIe:
 					rom_size += 3840;
-					rom_names.push_back("apple2eu.rom");
+					rom_names.push_back("apple2e.rom");
 				break;
 			}
 			const auto roms = rom_fetcher("AppleII", rom_names);
@@ -368,19 +372,13 @@ template <bool is_iie> class ConcreteMachine:
 				install_card(6, new AppleII::DiskIICard(rom_fetcher, target.disk_controller == Target::DiskController::SixteenSector));
 			}
 
-			// Set up the block that will provide CX ROM access on a IIe.
-//			cx_rom_block_.read_pointer = rom_.data();
-
 			// Set up the default memory blocks. On a II or II+ these values will never change.
 			// On a IIe they'll be affected by selection of auxiliary RAM.
-			for(int c = 0; c < 0xc0; ++c) {
-				read_pages_[c] = write_pages_[c] = &ram_[c << 8];
-			}
+			set_main_paging();
+			set_zero_page_paging();
 
 			// Set the whole card area to initially backed by nothing.
-			for(int c = 0xc0; c < 0xd0; ++c) {
-				read_pages_[c] = write_pages_[c] = nullptr;
-			}
+			page(0xc0, 0xd0, nullptr, nullptr);
 
 			// Set proper values for the language card/ROM area.
 			set_language_card_paging();
