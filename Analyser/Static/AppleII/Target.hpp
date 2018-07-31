@@ -27,7 +27,7 @@ struct Target: public ::Analyser::Static::Target {
 		ThirteenSector
 	};
 
-	Model model = Model::IIplus;
+	Model model = Model::IIe;
 	DiskController disk_controller = DiskController::None;
 };
 
