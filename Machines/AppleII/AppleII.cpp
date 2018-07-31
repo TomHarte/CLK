@@ -351,7 +351,7 @@ template <bool is_iie> class ConcreteMachine:
 				break;
 				case Target::Model::IIe:
 					rom_size += 3840;
-					rom_names.push_back("apple2e.rom");
+					rom_names.push_back("apple2eu.rom");
 				break;
 			}
 			const auto roms = rom_fetcher("AppleII", rom_names);
@@ -532,7 +532,7 @@ template <bool is_iie> class ConcreteMachine:
 							// Read-only switches.
 							switch(address) {
 								default:
-									printf("Unknown (?) read from %04x\n", address);
+//									printf("Unknown (?) read from %04x\n", address);
 								break;
 
 								case 0xc000:
@@ -571,29 +571,30 @@ template <bool is_iie> class ConcreteMachine:
 								} break;
 
 								// The IIe-only state reads follow...
-								case 0xc011:	if(is_iie) *value = (*value & 0x7f) | language_card_.bank1 ? 0x80 : 0x00;						break;
-								case 0xc012:	if(is_iie) *value = (*value & 0x7f) | language_card_.read ? 0x80 : 0x00;						break;
-								case 0xc013:	if(is_iie) *value = (*value & 0x7f) | read_auxiliary_memory_ ? 0x80 : 0x00;						break;
-								case 0xc014:	if(is_iie) *value = (*value & 0x7f) | write_auxiliary_memory_ ? 0x80 : 0x00;					break;
-								case 0xc015:	if(is_iie) *value = (*value & 0x7f) | internal_CX_rom_ ? 0x80 : 0x00;							break;
-								case 0xc016:	if(is_iie) *value = (*value & 0x7f) | alternative_zero_page_ ? 0x80 : 0x00;						break;
-								case 0xc017:	if(is_iie) *value = (*value & 0x7f) | slot_C3_rom_ ? 0x80 : 0x00;								break;
-								case 0xc018:	if(is_iie) *value = (*value & 0x7f) | video_->get_80_store() ? 0x80 : 0x00;						break;
-								case 0xc01a:	if(is_iie) *value = (*value & 0x7f) | video_->get_text() ? 0x80 : 0x00;							break;
-								case 0xc01b:	if(is_iie) *value = (*value & 0x7f) | video_->get_mixed() ? 0x80 : 0x00;						break;
-								case 0xc01c:	if(is_iie) *value = (*value & 0x7f) | video_->get_page2() ? 0x80 : 0x00;						break;
-								case 0xc01d:	if(is_iie) *value = (*value & 0x7f) | video_->get_high_resolution() ? 0x80 : 0x00;				break;
-								case 0xc01e:	if(is_iie) *value = (*value & 0x7f) | video_->get_alternative_character_set() ? 0x80 : 0x00;	break;
-								case 0xc01f:	if(is_iie) *value = (*value & 0x7f) | video_->get_80_columns() ? 0x80 : 0x00;					break;
-								case 0xc07f:	if(is_iie) *value = (*value & 0x7f) | video_->get_double_high_resolution() ? 0x80 : 0x00;		break;
+								case 0xc011:	if(is_iie) *value = (*value & 0x7f) | (language_card_.bank1 ? 0x80 : 0x00);						break;
+								case 0xc012:	if(is_iie) *value = (*value & 0x7f) | (language_card_.read ? 0x80 : 0x00);						break;
+								case 0xc013:	if(is_iie) *value = (*value & 0x7f) | (read_auxiliary_memory_ ? 0x80 : 0x00);					break;
+								case 0xc014:	if(is_iie) *value = (*value & 0x7f) | (write_auxiliary_memory_ ? 0x80 : 0x00);					break;
+								case 0xc015:	if(is_iie) *value = (*value & 0x7f) | (internal_CX_rom_ ? 0x80 : 0x00);							break;
+								case 0xc016:	if(is_iie) *value = (*value & 0x7f) | (alternative_zero_page_ ? 0x80 : 0x00);					break;
+								case 0xc017:	if(is_iie) *value = (*value & 0x7f) | (slot_C3_rom_ ? 0x80 : 0x00);								break;
+								case 0xc018:	if(is_iie) *value = (*value & 0x7f) | (video_->get_80_store() ? 0x80 : 0x00);					break;
+								// TODO: c019 to read vertical blanking
+								case 0xc01a:	if(is_iie) *value = (*value & 0x7f) | (video_->get_text() ? 0x80 : 0x00);						break;
+								case 0xc01b:	if(is_iie) *value = (*value & 0x7f) | (video_->get_mixed() ? 0x80 : 0x00);						break;
+								case 0xc01c:	if(is_iie) *value = (*value & 0x7f) | (video_->get_page2() ? 0x80 : 0x00);						break;
+								case 0xc01d:	if(is_iie) *value = (*value & 0x7f) | (video_->get_high_resolution() ? 0x80 : 0x00);			break;
+								case 0xc01e:	if(is_iie) *value = (*value & 0x7f) | (video_->get_alternative_character_set() ? 0x80 : 0x00);	break;
+								case 0xc01f:	if(is_iie) *value = (*value & 0x7f) | (video_->get_80_columns() ? 0x80 : 0x00);					break;
+								case 0xc07f:	if(is_iie) *value = (*value & 0x7f) | (video_->get_double_high_resolution() ? 0x80 : 0x00);		break;
 							}
 						} else {
 							// Write-only switches. All IIe as currently implemented.
 							if(is_iie) {
-								if(address >= 0xc000 && address < 0xc100) printf("w %04x\n", address);
+//								if(address >= 0xc000 && address < 0xc100) printf("w %04x\n", address);
 								switch(address) {
 									default:
-										printf("Unknown (?) write to %04x\n", address);
+//										printf("Unknown (?) write to %04x\n", address);
 									break;
 
 									case 0xc002:
