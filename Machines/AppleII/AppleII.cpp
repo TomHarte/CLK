@@ -243,10 +243,10 @@ template <bool is_iie> class ConcreteMachine:
 					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400],
 					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400]);
 
-				if(!video_->get_text()) {
-					page(0x10, 0x20,
-						use_aux_ram ? &aux_ram_[0x1000] : &ram_[0x1000],
-						use_aux_ram ? &aux_ram_[0x1000] : &ram_[0x1000]);
+				if(video_->get_high_resolution()) {
+					page(0x20, 0x40,
+						use_aux_ram ? &aux_ram_[0x2000] : &ram_[0x2000],
+						use_aux_ram ? &aux_ram_[0x2000] : &ram_[0x2000]);
 				}
 			}
 		}
@@ -664,7 +664,6 @@ template <bool is_iie> class ConcreteMachine:
 					case 0xc051:
 						update_video();
 						video_->set_text(!!(address&1));
-						set_main_paging();
 					break;
 					case 0xc052:	update_video();		video_->set_mixed(false);			break;
 					case 0xc053:	update_video();		video_->set_mixed(true);			break;
@@ -674,8 +673,12 @@ template <bool is_iie> class ConcreteMachine:
 						video_->set_page2(!!(address&1));
 						set_main_paging();
 					break;
-					case 0xc056:	update_video();		video_->set_high_resolution(false);	break;
-					case 0xc057:	update_video();		video_->set_high_resolution(true);	break;
+					case 0xc056:
+					case 0xc057:
+						update_video();
+						video_->set_high_resolution(!!(address&1));
+						set_main_paging();
+					break;
 
 					case 0xc010:
 						keyboard_input_ &= 0x7f;
