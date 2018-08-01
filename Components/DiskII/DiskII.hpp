@@ -121,6 +121,7 @@ class DiskII:
 		ClockingHint::Preference clocking_preference_ = ClockingHint::Preference::RealTime;
 
 		uint8_t data_input_ = 0;
+		int flux_duration_ = 0;
 };
 
 }

@@ -73,13 +73,18 @@ void DiskII::select_drive(int drive) {
 	drives_[active_drive_].set_motor_on(motor_is_enabled_);
 }
 
+// The read pulse is controlled by a special IC that outputs a 1us pulse for every field reversal on the disk.
+
 void DiskII::run_for(const Cycles cycles) {
 	if(preferred_clocking() == ClockingHint::Preference::None) return;
 
 	int integer_cycles = cycles.as_int();
 	while(integer_cycles--) {
 		const int address = (state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6);
-		inputs_ |= input_flux;
+		if(flux_duration_) {
+			--flux_duration_;
+			if(!flux_duration_) inputs_ |= input_flux;
+		}
 		state_ = state_machine_[static_cast<std::size_t>(address)];
 		switch(state_ & 0xf) {
 			default:	shift_register_ = 0;													break;	// clear
@@ -200,6 +205,7 @@ void DiskII::set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int driv
 void DiskII::process_event(const Storage::Disk::Track::Event &event) {
 	if(event.type == Storage::Disk::Track::Event::FluxTransition) {
 		inputs_ &= ~input_flux;
+		flux_duration_ = 2;	// Upon detection of a flux transition, the flux flag should stay set for 1us. Emulate that as two cycles.
 		decide_clocking_preference();
 	}
 }
