@@ -385,20 +385,20 @@ template <class BusHandler> class Video: public VideoBase {
 									for(int c = column_; c < pixel_end; ++c) {
 										const uint16_t graphic = bus_handler_.perform_aux_read(static_cast<uint16_t>(graphics_address + c));
 
-										pixel_pointer_[0] = (graphic >> 8) & 0x01;
-										pixel_pointer_[1] = (graphic >> 8) & 0x02;
-										pixel_pointer_[2] = (graphic >> 8) & 0x04;
-										pixel_pointer_[3] = (graphic >> 8) & 0x08;
-										pixel_pointer_[4] = (graphic >> 8) & 0x10;
-										pixel_pointer_[5] = (graphic >> 8) & 0x20;
-										pixel_pointer_[6] = (graphic >> 8) & 0x40;
-										pixel_pointer_[7] = graphic & 0x01;
-										pixel_pointer_[8] = graphic & 0x02;
-										pixel_pointer_[9] = graphic & 0x04;
-										pixel_pointer_[10] = graphic & 0x08;
-										pixel_pointer_[11] = graphic & 0x10;
-										pixel_pointer_[12] = graphic & 0x20;
-										pixel_pointer_[13] = graphic & 0x40;
+										pixel_pointer_[0] = graphics_carry_;
+										pixel_pointer_[1] = (graphic >> 8) & 0x01;
+										pixel_pointer_[2] = (graphic >> 8) & 0x02;
+										pixel_pointer_[3] = (graphic >> 8) & 0x04;
+										pixel_pointer_[4] = (graphic >> 8) & 0x08;
+										pixel_pointer_[5] = (graphic >> 8) & 0x10;
+										pixel_pointer_[6] = (graphic >> 8) & 0x20;
+										pixel_pointer_[7] = (graphic >> 8) & 0x40;
+										pixel_pointer_[8] = graphic & 0x01;
+										pixel_pointer_[9] = graphic & 0x02;
+										pixel_pointer_[10] = graphic & 0x04;
+										pixel_pointer_[11] = graphic & 0x08;
+										pixel_pointer_[12] = graphic & 0x10;
+										pixel_pointer_[13] = graphic & 0x20;
 										graphics_carry_ = graphic & 0x40;
 										pixel_pointer_ += 14;
 									}
