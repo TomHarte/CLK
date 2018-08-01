@@ -159,7 +159,7 @@ class VideoBase {
 		// State affecting logical state.
 		int row_ = 0, column_ = 0, flash_ = 0;
 
-		// An
+		// Enumerates all Apple II and IIe display modes.
 		enum class GraphicsMode {
 			LowRes,
 			DoubleLowRes,
@@ -324,7 +324,38 @@ template <class BusHandler> class Video: public VideoBase {
 									}
 								} break;
 
-								case GraphicsMode::DoubleLowRes:
+								case GraphicsMode::DoubleLowRes: {
+									const int row_shift = (row_&4);
+									for(int c = column_; c < pixel_end; ++c) {
+										const uint16_t nibble = (bus_handler_.perform_aux_read(static_cast<uint16_t>(text_address + c)) >> row_shift) & 0xf0f;
+
+										if(c&1) {
+											pixel_pointer_[0] = pixel_pointer_[4] = (nibble >> 8) & 4;
+											pixel_pointer_[1] = pixel_pointer_[5] = (nibble >> 8) & 8;
+											pixel_pointer_[2] = pixel_pointer_[6] = (nibble >> 8) & 1;
+											pixel_pointer_[3] = (nibble >> 8) & 2;
+
+											pixel_pointer_[8] = pixel_pointer_[12] = nibble & 4;
+											pixel_pointer_[9] = pixel_pointer_[13] = nibble & 8;
+											pixel_pointer_[10] = nibble & 1;
+											pixel_pointer_[7] = pixel_pointer_[11] = nibble & 2;
+											graphics_carry_ = nibble & 8;
+										} else {
+											pixel_pointer_[0] = pixel_pointer_[4] = (nibble >> 8) & 1;
+											pixel_pointer_[1] = pixel_pointer_[5] = (nibble >> 8) & 2;
+											pixel_pointer_[2] = pixel_pointer_[6] = (nibble >> 8) & 4;
+											pixel_pointer_[3] = (nibble >> 8) & 8;
+
+											pixel_pointer_[8] = pixel_pointer_[12] = nibble & 1;
+											pixel_pointer_[9] = pixel_pointer_[13] = nibble & 2;
+											pixel_pointer_[10] = nibble & 4;
+											pixel_pointer_[7] = pixel_pointer_[11] = nibble & 8;
+											graphics_carry_ = nibble & 2;
+										}
+										pixel_pointer_ += 14;
+									}
+								} break;
+
 								case GraphicsMode::LowRes: {
 									const int row_shift = (row_&4);
 									// TODO: decompose into two loops, possibly.
