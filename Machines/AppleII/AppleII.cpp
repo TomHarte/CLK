@@ -292,6 +292,10 @@ template <bool is_iie> class ConcreteMachine:
 			return static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1] < analogue_charge_ + analogue_biases_[channel];
 		}
 
+		// The IIe has three keys that are wired directly to the same input as the joystick buttons.
+		bool open_apple_is_pressed_ = false;
+		bool closed_apple_is_pressed_ = false;
+
 	public:
 		ConcreteMachine(const Analyser::Static::AppleII::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 		 	m6502_(*this),
@@ -450,9 +454,7 @@ template <bool is_iie> class ConcreteMachine:
 						if(isReadOperation(operation)) {
 							// Read-only switches.
 							switch(address) {
-								default:
-//									printf("Unknown (?) read from %04x\n", address);
-								break;
+								default: break;
 
 								case 0xc000:
 									if(string_serialiser_) {
@@ -464,12 +466,18 @@ template <bool is_iie> class ConcreteMachine:
 
 								case 0xc061:	// Switch input 0.
 									*value &= 0x7f;
-									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[0] || static_cast<Joystick *>(joysticks_[1].get())->buttons[2])
+									if(
+										static_cast<Joystick *>(joysticks_[0].get())->buttons[0] || static_cast<Joystick *>(joysticks_[1].get())->buttons[2] ||
+										(is_iie && open_apple_is_pressed_)
+									)
 										*value |= 0x80;
 								break;
 								case 0xc062:	// Switch input 1.
 									*value &= 0x7f;
-									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[1] || static_cast<Joystick *>(joysticks_[1].get())->buttons[1])
+									if(
+										static_cast<Joystick *>(joysticks_[0].get())->buttons[1] || static_cast<Joystick *>(joysticks_[1].get())->buttons[1] ||
+										(is_iie && closed_apple_is_pressed_)
+									)
 										*value |= 0x80;
 								break;
 								case 0xc063:	// Switch input 2.
@@ -490,31 +498,28 @@ template <bool is_iie> class ConcreteMachine:
 								} break;
 
 								// The IIe-only state reads follow...
-								case 0xc011:	if(is_iie) *value = (*value & 0x7f) | (language_card_.bank1 ? 0x80 : 0x00);						break;
-								case 0xc012:	if(is_iie) *value = (*value & 0x7f) | (language_card_.read ? 0x80 : 0x00);						break;
-								case 0xc013:	if(is_iie) *value = (*value & 0x7f) | (read_auxiliary_memory_ ? 0x80 : 0x00);					break;
-								case 0xc014:	if(is_iie) *value = (*value & 0x7f) | (write_auxiliary_memory_ ? 0x80 : 0x00);					break;
-								case 0xc015:	if(is_iie) *value = (*value & 0x7f) | (internal_CX_rom_ ? 0x80 : 0x00);							break;
-								case 0xc016:	if(is_iie) *value = (*value & 0x7f) | (alternative_zero_page_ ? 0x80 : 0x00);					break;
-								case 0xc017:	if(is_iie) *value = (*value & 0x7f) | (slot_C3_rom_ ? 0x80 : 0x00);								break;
-								case 0xc018:	if(is_iie) *value = (*value & 0x7f) | (video_->get_80_store() ? 0x80 : 0x00);					break;
-								// TODO: c019 to read vertical blanking
-								case 0xc01a:	if(is_iie) *value = (*value & 0x7f) | (video_->get_text() ? 0x80 : 0x00);						break;
-								case 0xc01b:	if(is_iie) *value = (*value & 0x7f) | (video_->get_mixed() ? 0x80 : 0x00);						break;
-								case 0xc01c:	if(is_iie) *value = (*value & 0x7f) | (video_->get_page2() ? 0x80 : 0x00);						break;
-								case 0xc01d:	if(is_iie) *value = (*value & 0x7f) | (video_->get_high_resolution() ? 0x80 : 0x00);			break;
-								case 0xc01e:	if(is_iie) *value = (*value & 0x7f) | (video_->get_alternative_character_set() ? 0x80 : 0x00);	break;
-								case 0xc01f:	if(is_iie) *value = (*value & 0x7f) | (video_->get_80_columns() ? 0x80 : 0x00);					break;
-								case 0xc07f:	if(is_iie) *value = (*value & 0x7f) | (video_->get_double_high_resolution() ? 0x80 : 0x00);		break;
+								case 0xc011:	if(is_iie) *value = (*value & 0x7f) | (language_card_.bank1 ? 0x80 : 0x00);											break;
+								case 0xc012:	if(is_iie) *value = (*value & 0x7f) | (language_card_.read ? 0x80 : 0x00);											break;
+								case 0xc013:	if(is_iie) *value = (*value & 0x7f) | (read_auxiliary_memory_ ? 0x80 : 0x00);										break;
+								case 0xc014:	if(is_iie) *value = (*value & 0x7f) | (write_auxiliary_memory_ ? 0x80 : 0x00);										break;
+								case 0xc015:	if(is_iie) *value = (*value & 0x7f) | (internal_CX_rom_ ? 0x80 : 0x00);												break;
+								case 0xc016:	if(is_iie) *value = (*value & 0x7f) | (alternative_zero_page_ ? 0x80 : 0x00);										break;
+								case 0xc017:	if(is_iie) *value = (*value & 0x7f) | (slot_C3_rom_ ? 0x80 : 0x00);													break;
+								case 0xc018:	if(is_iie) *value = (*value & 0x7f) | (video_->get_80_store() ? 0x80 : 0x00);										break;
+								case 0xc019:	if(is_iie) *value = (*value & 0x7f) | (video_->get_is_vertical_blank(cycles_since_video_update_) ? 0x80 : 0x00);	break;
+								case 0xc01a:	if(is_iie) *value = (*value & 0x7f) | (video_->get_text() ? 0x80 : 0x00);											break;
+								case 0xc01b:	if(is_iie) *value = (*value & 0x7f) | (video_->get_mixed() ? 0x80 : 0x00);											break;
+								case 0xc01c:	if(is_iie) *value = (*value & 0x7f) | (video_->get_page2() ? 0x80 : 0x00);											break;
+								case 0xc01d:	if(is_iie) *value = (*value & 0x7f) | (video_->get_high_resolution() ? 0x80 : 0x00);								break;
+								case 0xc01e:	if(is_iie) *value = (*value & 0x7f) | (video_->get_alternative_character_set() ? 0x80 : 0x00);						break;
+								case 0xc01f:	if(is_iie) *value = (*value & 0x7f) | (video_->get_80_columns() ? 0x80 : 0x00);										break;
+								case 0xc07f:	if(is_iie) *value = (*value & 0x7f) | (video_->get_double_high_resolution() ? 0x80 : 0x00);							break;
 							}
 						} else {
 							// Write-only switches. All IIe as currently implemented.
 							if(is_iie) {
-//								if(address >= 0xc000 && address < 0xc100) printf("w %04x\n", address);
 								switch(address) {
-									default:
-//										printf("Unknown (?) write to %04x\n", address);
-									break;
+									default: break;
 
 									case 0xc000:
 									case 0xc001:
@@ -722,8 +727,16 @@ template <bool is_iie> class ConcreteMachine:
 		}
 
 		void set_key_pressed(Key key, char value, bool is_pressed) override {
-			if(key == Key::F12) {
-				m6502_.set_reset_line(is_pressed);
+			switch(key) {
+				default: break;
+				case Key::F12:
+					m6502_.set_reset_line(is_pressed);
+				return;
+				case Key::LeftMeta: case Key::LeftOption:
+					open_apple_is_pressed_ = is_pressed;
+				return;
+				case Key::RightMeta: case Key::RightOption:
+					closed_apple_is_pressed_ = is_pressed;
 				return;
 			}
 
@@ -739,7 +752,9 @@ template <bool is_iie> class ConcreteMachine:
 				}
 			}
 
-			value = static_cast<char>(toupper(value));
+			// Prior to the IIe, the keyboard could produce uppercase only.
+			if(!is_iie) value = static_cast<char>(toupper(value));
+
 			if(is_pressed) {
 				keyboard_input_ = static_cast<uint8_t>(value | 0x80);
 				key_is_down_ = true;

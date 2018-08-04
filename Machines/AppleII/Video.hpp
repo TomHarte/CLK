@@ -536,6 +536,23 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			return bus_handler_.perform_read(read_address);
 		}
 
+		/*!
+			@returns @c true if the display will be within vertical blank at now + @c offset; @c false otherwise.
+		*/
+		bool get_is_vertical_blank(Cycles offset) {
+			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
+			// (so what was column 0 is now column 25).
+			int mapped_column = column_ + offset.as_int();
+
+			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
+			// (so what was column 0 is now column 25).
+			mapped_column += 25;
+
+			// Apply carry into the row counter and test it for location.
+			int mapped_row = row_ + (mapped_column / 65);
+			return (mapped_row % 262) >= 192;
+		}
+
 	private:
 		GraphicsMode graphics_mode(int row) {
 			if(text_) return columns_80_ ? GraphicsMode::DoubleText : GraphicsMode::Text;
