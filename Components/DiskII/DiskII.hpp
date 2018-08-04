@@ -109,6 +109,7 @@ class DiskII:
 
 		int stepper_mask_ = 0;
 		int stepper_position_ = 0;
+		int motor_off_time_ = -1;
 
 		bool is_write_protected();
 		std::array<uint8_t, 256> state_machine_;

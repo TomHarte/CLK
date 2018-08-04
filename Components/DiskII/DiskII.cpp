@@ -120,6 +120,15 @@ void DiskII::run_for(const Cycles cycles) {
 		if(!drive_is_sleeping_[1]) drives_[1].run_for(Cycles(1));
 	}
 
+	// Per comp.sys.apple2.programmer there is a delay between the controller
+	// motor switch being flipped and the drive motor actually switching off.
+	// This models that, accepting overrun as a risk.
+	if(motor_off_time_ >= 0) {
+		motor_off_time_ -= cycles.as_int();
+		if(motor_off_time_ < 0) {
+			set_control(Control::Motor, false);
+		}
+	}
 	decide_clocking_preference();
 }
 
@@ -238,9 +247,12 @@ int DiskII::read_address(int address) {
 
 		case 0x8:
 			shift_register_ = 0;
-			set_control(Control::Motor, false);
+			motor_off_time_ = clock_rate_;
 		break;
-		case 0x9:	set_control(Control::Motor, true);	break;
+		case 0x9:
+			set_control(Control::Motor, true);
+			motor_off_time_ = -1;
+		break;
 
 		case 0xa:	select_drive(0);					break;
 		case 0xb:	select_drive(1);					break;
