@@ -117,20 +117,22 @@ bool Drive::get_is_ready() {
 }
 
 void Drive::set_motor_on(bool motor_is_on) {
-	motor_is_on_ = motor_is_on;
+	if(motor_is_on_ != motor_is_on) {
+		motor_is_on_ = motor_is_on;
 
-	if(observer_) {
-		observer_->set_drive_motor_status(drive_name_, motor_is_on_);
-		if(announce_motor_led_) {
-			observer_->set_led_status(drive_name_, motor_is_on_);
+		if(observer_) {
+			observer_->set_drive_motor_status(drive_name_, motor_is_on_);
+			if(announce_motor_led_) {
+				observer_->set_led_status(drive_name_, motor_is_on_);
+			}
 		}
-	}
 
-	if(!motor_is_on) {
-		ready_index_count_ = 0;
-		if(disk_) disk_->flush_tracks();
+		if(!motor_is_on) {
+			ready_index_count_ = 0;
+			if(disk_) disk_->flush_tracks();
+		}
+		update_clocking_observer();
 	}
-	update_clocking_observer();
 }
 
 bool Drive::get_motor_on() {
