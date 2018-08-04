@@ -200,7 +200,7 @@ template <bool is_iie> class ConcreteMachine:
 		bool internal_c8_rom_ = false;
 
 		void set_card_paging() {
-			page(0xc1, 0xd8, internal_CX_rom_ ? rom_.data() : nullptr, nullptr);
+			page(0xc1, 0xc8, internal_CX_rom_ ? rom_.data() : nullptr, nullptr);
 
 			if(!internal_CX_rom_) {
 				if(!slot_C3_rom_) read_pages_[0xc3] = &rom_[0xc300 - 0xc100];
