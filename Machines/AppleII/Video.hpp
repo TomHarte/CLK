@@ -472,7 +472,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 						const int colour_burst_start = std::max(first_sync_column + sync_length + 1, column_);
 						const int colour_burst_end = std::min(first_sync_column + sync_length + 4, ending_column);
 						if(colour_burst_end > colour_burst_start) {
-							crt_->output_default_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 14);
+							crt_->output_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 14, 128);
 						}
 
 						second_blank_start = std::max(first_sync_column + 7, column_);
