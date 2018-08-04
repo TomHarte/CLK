@@ -62,7 +62,7 @@ template <bool is_iie> class ConcreteMachine:
 
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 		VideoBusHandler video_bus_handler_;
-		std::unique_ptr<AppleII::Video::Video<VideoBusHandler>> video_;
+		std::unique_ptr<AppleII::Video::Video<VideoBusHandler, is_iie>> video_;
 		int cycles_into_current_line_ = 0;
 		Cycles cycles_since_video_update_;
 
@@ -329,17 +329,20 @@ template <bool is_iie> class ConcreteMachine:
 
 			// Pick the required ROMs.
 			using Target = Analyser::Static::AppleII::Target;
-			std::vector<std::string> rom_names = {"apple2-character.rom"};
+			std::vector<std::string> rom_names;
 			size_t rom_size = 12*1024;
 			switch(target.model) {
 				default:
+					rom_names.push_back("apple2-character.rom");
 					rom_names.push_back("apple2o.rom");
 				break;
 				case Target::Model::IIplus:
+					rom_names.push_back("apple2-character.rom");
 					rom_names.push_back("apple2.rom");
 				break;
 				case Target::Model::IIe:
 					rom_size += 3840;
+					rom_names.push_back("apple2eu-character.rom");
 					rom_names.push_back("apple2eu.rom");
 				break;
 			}
@@ -380,7 +383,7 @@ template <bool is_iie> class ConcreteMachine:
 		}
 
 		void setup_output(float aspect_ratio) override {
-			video_.reset(new AppleII::Video::Video<VideoBusHandler>(video_bus_handler_));
+			video_.reset(new AppleII::Video::Video<VideoBusHandler, is_iie>(video_bus_handler_));
 			video_->set_character_rom(character_rom_);
 		}
 

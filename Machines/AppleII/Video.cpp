@@ -100,4 +100,18 @@ bool VideoBase::get_double_high_resolution() {
 
 void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
 	character_rom_ = character_rom;
+
+	// Flip all character contents based on the second line of the $ graphic.
+	if(character_rom_[0x121] == 0x3c || character_rom_[0x122] == 0x3c) {
+		for(auto &graphic : character_rom_) {
+			graphic =
+				((graphic & 0x01) ? 0x40 : 0x00) |
+				((graphic & 0x02) ? 0x20 : 0x00) |
+				((graphic & 0x04) ? 0x10 : 0x00) |
+				((graphic & 0x08) ? 0x08 : 0x00) |
+				((graphic & 0x10) ? 0x04 : 0x00) |
+				((graphic & 0x20) ? 0x02 : 0x00) |
+				((graphic & 0x40) ? 0x01 : 0x00);
+		}
+	}
 }

@@ -8,5 +8,6 @@ apple2e.rom — a file at least 15.75kb big, in which the final 12kb is the main
 apple2eu.rom — as per apple2e.rom, but for the Unenhanced Apple II.
 
 apple2-character.rom — a 2kb image of the Apple IIe's character ROM.
+apple2eu-character.rom — a 4kb image of the Unenhanced IIe's character ROM.
 
 Apologies for the wackiness around "at least xkb big", it's to allow for use of files such as those on ftp.apple.asimov.net, which tend to be a bunch of other things, then the system ROM.

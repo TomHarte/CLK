@@ -191,7 +191,7 @@ class VideoBase {
 		std::vector<uint8_t> character_rom_;
 };
 
-template <class BusHandler> class Video: public VideoBase {
+template <class BusHandler, bool is_iie> class Video: public VideoBase {
 	public:
 		/// Constructs an instance of the video feed; a CRT is also created.
 		Video(BusHandler &bus_handler) :
@@ -262,15 +262,19 @@ template <class BusHandler> class Video: public VideoBase {
 								case GraphicsMode::Text: {
 									const uint8_t inverses[] = {
 										0xff,
-										static_cast<uint8_t>((flash_ / flash_length) * 0xff),
+										alternative_character_set_ ? static_cast<uint8_t>(0xff) : static_cast<uint8_t>((flash_ / flash_length) * 0xff),
 										0x00,
 										0x00
 									};
+									const uint8_t masks[] = {
+										alternative_character_set_ ? static_cast<uint8_t>(0x7f) : static_cast<uint8_t>(0x3f),
+										is_iie ? 0x7f : 0x3f,
+									};
 									for(int c = column_; c < pixel_end; ++c) {
 										const uint8_t character = bus_handler_.perform_read(static_cast<uint16_t>(text_address + c));
-										const std::size_t character_address = static_cast<std::size_t>(((character & 0x3f) << 3) + pixel_row);
-
-										const uint8_t character_pattern = character_rom_[character_address] ^ inverses[character >> 6];
+										const uint8_t xor_mask = inverses[character >> 6];
+										const std::size_t character_address = static_cast<std::size_t>(((character & masks[character >> 7]) << 3) + pixel_row);
+										const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
 
 										// The character ROM is output MSB to LSB rather than LSB to MSB.
 										pixel_pointer_[0] = character_pattern & 0x40;
