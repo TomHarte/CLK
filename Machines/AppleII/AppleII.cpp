@@ -289,7 +289,7 @@ template <bool is_iie> class ConcreteMachine:
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 		bool analogue_channel_is_discharged(size_t channel) {
-			return static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1] < analogue_charge_ + analogue_biases_[channel];
+			return (1.0f - static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1]) < analogue_charge_ + analogue_biases_[channel];
 		}
 
 		// The IIe has three keys that are wired directly to the same input as the joystick buttons.
@@ -492,7 +492,7 @@ template <bool is_iie> class ConcreteMachine:
 								case 0xc067: {	// Analogue input 3.
 									const size_t input = address - 0xc064;
 									*value &= 0x7f;
-									if(analogue_channel_is_discharged(input)) {
+									if(!analogue_channel_is_discharged(input)) {
 										*value |= 0x80;
 									}
 								} break;
