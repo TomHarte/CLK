@@ -222,12 +222,16 @@ class MachineDocument:
 	}
 
 	@IBAction final func insertMedia(_ sender: AnyObject!) {
-		let panel = NSOpenPanel()
-		self.openGLView.window!.beginSheet(panel) { (response) in
+		let openPanel = NSOpenPanel()
+		openPanel.beginSheetModal(for: self.windowControllers[0].window!) { (response) in
 			if response == .OK {
-				Swift.print("An animal")
+				for url in openPanel.urls {
+					let mediaSet = CSMediaSet(fileAt: url)
+					if let mediaSet = mediaSet {
+						mediaSet.apply(to: self.machine)
+					}
+				}
 			}
-			Swift.print("\(response)")
 		}
 	}
 
