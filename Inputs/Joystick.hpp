@@ -186,10 +186,10 @@ class ConcreteJoystick: public Joystick {
 			using Type = Joystick::Input::Type;
 			switch(input.type) {
 				default: 			did_set_input(input, is_active ? 1.0f : 0.0f);													break;
-				case Type::Left:	did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? 0.25f : 0.5f);		break;
-				case Type::Right:	did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? 0.75f : 0.5f);		break;
-				case Type::Up:		did_set_input(Input(Type::Vertical, input.info.control.index), is_active ? 0.25f : 0.5f);		break;
-				case Type::Down:	did_set_input(Input(Type::Vertical, input.info.control.index), is_active ? 0.75f : 0.5f);		break;
+				case Type::Left:	did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? 0.1f : 0.5f);		break;
+				case Type::Right:	did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? 0.9f : 0.5f);		break;
+				case Type::Up:		did_set_input(Input(Type::Vertical, input.info.control.index), is_active ? 0.1f : 0.5f);		break;
+				case Type::Down:	did_set_input(Input(Type::Vertical, input.info.control.index), is_active ? 0.9f : 0.5f);		break;
 			}
 		}
 
