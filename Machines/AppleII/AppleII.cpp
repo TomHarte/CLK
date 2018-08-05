@@ -726,16 +726,20 @@ template <bool is_iie> class ConcreteMachine:
 			m6502_.run_for(cycles);
 		}
 
+		void reset_all_keys() override {
+			open_apple_is_pressed_ = closed_apple_is_pressed_ = key_is_down_ = false;
+		}
+
 		void set_key_pressed(Key key, char value, bool is_pressed) override {
 			switch(key) {
 				default: break;
 				case Key::F12:
 					m6502_.set_reset_line(is_pressed);
 				return;
-				case Key::LeftMeta: case Key::LeftOption:
+				case Key::LeftOption:
 					open_apple_is_pressed_ = is_pressed;
 				return;
-				case Key::RightMeta: case Key::RightOption:
+				case Key::RightOption:
 					closed_apple_is_pressed_ = is_pressed;
 				return;
 			}
