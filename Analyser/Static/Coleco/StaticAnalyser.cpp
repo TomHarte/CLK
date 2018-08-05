@@ -17,13 +17,8 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 
 		// only one mapped item is allowed
 		if(segments.size() != 1) continue;
-
-		// which must be 8, 12, 16, 24 or 32 kb in size
 		const Storage::Cartridge::Cartridge::Segment &segment = segments.front();
 		const std::size_t data_size = segment.data.size();
-		const std::size_t overflow = data_size&8191;
-		if(overflow > 8 && overflow != 512 && (data_size != 12*1024)) continue;
-		if(data_size < 8192) continue;
 
 		// the two bytes that will be first must be 0xaa and 0x55, either way around
 		auto *start = &segment.data[0];
@@ -34,19 +29,24 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		if(start[0] == start[1]) continue;
 
 		// probability of a random binary blob that isn't a Coleco ROM proceeding to here is 1 - 1/32768.
-		if(!overflow) {
-			coleco_cartridges.push_back(cartridge);
+
+		// Round up to the next multiple of 8kb if this image is less than 32kb. Otherwise round down if
+		// this image is within a short distance of 32kb.
+		std::vector<Storage::Cartridge::Cartridge::Segment> output_segments;
+
+		size_t target_size;
+		if(data_size >= 32*1024 && data_size < 32*1024 + 512) {
+			target_size = 32 * 1024;
 		} else {
-			// Size down to a multiple of 8kb and apply the start address.
-			std::vector<Storage::Cartridge::Cartridge::Segment> output_segments;
-
-			std::vector<uint8_t> truncated_data;
-			std::vector<uint8_t>::difference_type truncated_size = static_cast<std::vector<uint8_t>::difference_type>(segment.data.size()) & ~8191;
-			truncated_data.insert(truncated_data.begin(), segment.data.begin(), segment.data.begin() + truncated_size);
-			output_segments.emplace_back(0x8000, truncated_data);
-
-			coleco_cartridges.emplace_back(new Storage::Cartridge::Cartridge(output_segments));
+			target_size = data_size + ((8192 - (data_size & 8191)) & 8191);
 		}
+
+		std::vector<uint8_t> truncated_data;
+		truncated_data = segment.data;
+		truncated_data.resize(target_size);
+		output_segments.emplace_back(0x8000, truncated_data);
+
+		coleco_cartridges.emplace_back(new Storage::Cartridge::Cartridge(output_segments));
 	}
 
 	return coleco_cartridges;

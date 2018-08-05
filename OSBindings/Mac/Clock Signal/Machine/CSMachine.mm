@@ -395,7 +395,7 @@ struct ActivityObserver: public Activity::Observer {
 					case VK_ANSI_D:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 2), is_pressed);	break;
 					case VK_ANSI_F:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 3), is_pressed);	break;
 					default:
-						if(characters) {
+						if(characters.length) {
 							joysticks[0]->set_input(Inputs::Joystick::Input([characters characterAtIndex:0]), is_pressed);
 						} else {
 							joysticks[0]->set_input(Inputs::Joystick::Input::Fire, is_pressed);
