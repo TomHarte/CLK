@@ -506,7 +506,7 @@ template <bool is_iie> class ConcreteMachine:
 								case 0xc016:	if(is_iie) *value = (*value & 0x7f) | (alternative_zero_page_ ? 0x80 : 0x00);										break;
 								case 0xc017:	if(is_iie) *value = (*value & 0x7f) | (slot_C3_rom_ ? 0x80 : 0x00);													break;
 								case 0xc018:	if(is_iie) *value = (*value & 0x7f) | (video_->get_80_store() ? 0x80 : 0x00);										break;
-								case 0xc019:	if(is_iie) *value = (*value & 0x7f) | (video_->get_is_vertical_blank(cycles_since_video_update_) ? 0x80 : 0x00);	break;
+								case 0xc019:	if(is_iie) *value = (*value & 0x7f) | (video_->get_is_vertical_blank(cycles_since_video_update_) ? 0x00 : 0x80);	break;
 								case 0xc01a:	if(is_iie) *value = (*value & 0x7f) | (video_->get_text() ? 0x80 : 0x00);											break;
 								case 0xc01b:	if(is_iie) *value = (*value & 0x7f) | (video_->get_mixed() ? 0x80 : 0x00);											break;
 								case 0xc01c:	if(is_iie) *value = (*value & 0x7f) | (video_->get_page2() ? 0x80 : 0x00);											break;
