@@ -1,7 +1,7 @@
 # Clock Signal
 Clock Signal ('CLK') is an emulator for tourists that seeks to be invisible. Users directly launch classic software with no emulator or per-emulated-machine learning curve.
 
-[Releases](https://github.com/TomHarte/CLK/releases) are hosted on Github.
+[Releases](https://github.com/TomHarte/CLK/releases) are hosted on GitHub.
 
 On the Mac it is a native Cocoa application. Under Linux, BSD and other UNIXes and UNIX-alikes it relies upon SDL 2.
 
@@ -54,7 +54,7 @@ If your machine has a 4k monitor and a 96Khz audio output? Then you'll get a 4k 
 |![Amstrad text, with a classic 1:1 pixel emulation](READMEImages/NaiveCPC.png)|![Amstrad text, with correct aspect ratio and subject to a lowpass filter](READMEImages/FilteredCPC.png)|
 |![The Amstrad CPC version of Stormlord, with a classic 1:1 pixel emulation](READMEImages/NaiveCPCStormlord.png)|![The Amstrad CPC version of Stormlord, with correct aspect ratio and subject to a lowpass filter](READMEImages/CPCStormlord.png)|
 
-<img src="READMEImages/ReptonInterlaced.gif" height=600 alt="Repton title screen, interlaced">
+<img src="READMEImages/ReptonInterlaced.gif" height=600 alt="Repton title screen, interlaced"> <img src="READMEImages/AppleIIPrinceOfPersia.png" height=600 alt="Apple IIe Prince of Persia">
 
 ## Low Latency
 
