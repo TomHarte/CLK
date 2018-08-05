@@ -116,6 +116,11 @@
                                     <action selector="saveScreenshot:" target="-1" id="7ky-xD-tip"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Insert..." keyEquivalent="O" id="qQa-kh-4nz">
+                                <connections>
+                                    <action selector="insertMedia:" target="-1" id="9Hs-9J-dlY"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="rXU-KX-GkZ"/>
                             <menuItem title="Page Setup…" enabled="NO" keyEquivalent="P" id="qIS-W8-SiK">
                                 <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
