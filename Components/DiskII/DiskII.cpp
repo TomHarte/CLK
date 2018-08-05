@@ -73,13 +73,18 @@ void DiskII::select_drive(int drive) {
 	drives_[active_drive_].set_motor_on(motor_is_enabled_);
 }
 
+// The read pulse is controlled by a special IC that outputs a 1us pulse for every field reversal on the disk.
+
 void DiskII::run_for(const Cycles cycles) {
 	if(preferred_clocking() == ClockingHint::Preference::None) return;
 
 	int integer_cycles = cycles.as_int();
 	while(integer_cycles--) {
 		const int address = (state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6);
-		inputs_ |= input_flux;
+		if(flux_duration_) {
+			--flux_duration_;
+			if(!flux_duration_) inputs_ |= input_flux;
+		}
 		state_ = state_machine_[static_cast<std::size_t>(address)];
 		switch(state_ & 0xf) {
 			default:	shift_register_ = 0;													break;	// clear
@@ -115,6 +120,15 @@ void DiskII::run_for(const Cycles cycles) {
 		if(!drive_is_sleeping_[1]) drives_[1].run_for(Cycles(1));
 	}
 
+	// Per comp.sys.apple2.programmer there is a delay between the controller
+	// motor switch being flipped and the drive motor actually switching off.
+	// This models that, accepting overrun as a risk.
+	if(motor_off_time_ >= 0) {
+		motor_off_time_ -= cycles.as_int();
+		if(motor_off_time_ < 0) {
+			set_control(Control::Motor, false);
+		}
+	}
 	decide_clocking_preference();
 }
 
@@ -200,6 +214,7 @@ void DiskII::set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int driv
 void DiskII::process_event(const Storage::Disk::Track::Event &event) {
 	if(event.type == Storage::Disk::Track::Event::FluxTransition) {
 		inputs_ &= ~input_flux;
+		flux_duration_ = 2;	// Upon detection of a flux transition, the flux flag should stay set for 1us. Emulate that as two cycles.
 		decide_clocking_preference();
 	}
 }
@@ -232,9 +247,12 @@ int DiskII::read_address(int address) {
 
 		case 0x8:
 			shift_register_ = 0;
-			set_control(Control::Motor, false);
+			motor_off_time_ = clock_rate_;
 		break;
-		case 0x9:	set_control(Control::Motor, true);	break;
+		case 0x9:
+			set_control(Control::Motor, true);
+			motor_off_time_ = -1;
+		break;
 
 		case 0xa:	select_drive(0);					break;
 		case 0xb:	select_drive(1);					break;

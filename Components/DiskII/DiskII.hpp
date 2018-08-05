@@ -109,6 +109,7 @@ class DiskII:
 
 		int stepper_mask_ = 0;
 		int stepper_position_ = 0;
+		int motor_off_time_ = -1;
 
 		bool is_write_protected();
 		std::array<uint8_t, 256> state_machine_;
@@ -121,6 +122,7 @@ class DiskII:
 		ClockingHint::Preference clocking_preference_ = ClockingHint::Preference::RealTime;
 
 		uint8_t data_input_ = 0;
+		int flux_duration_ = 0;
 };
 
 }

@@ -27,27 +27,17 @@
 
 #include "../../Analyser/Static/AppleII/Target.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
-#include "../../Configurable/Configurable.hpp"
-#include "../../Storage/Disk/Track/TrackSerialiser.hpp"
-#include "../../Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
 
 #include <algorithm>
 #include <array>
 #include <memory>
 
-std::vector<std::unique_ptr<Configurable::Option>> AppleII::get_options() {
-	std::vector<std::unique_ptr<Configurable::Option>> options;
-	options.emplace_back(new Configurable::BooleanOption("Accelerate DOS 3.3", "quickload"));
-	return options;
-}
-
 namespace {
 
-class ConcreteMachine:
+template <bool is_iie> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
-	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
 	public AppleII::Machine,
@@ -57,19 +47,22 @@ class ConcreteMachine:
 	private:
 		struct VideoBusHandler : public AppleII::Video::BusHandler {
 			public:
-				VideoBusHandler(uint8_t *ram) : ram_(ram) {}
+				VideoBusHandler(uint8_t *ram, uint8_t *aux_ram) : ram_(ram), aux_ram_(aux_ram) {}
 
 				uint8_t perform_read(uint16_t address) {
 					return ram_[address];
 				}
+				uint16_t perform_aux_read(uint16_t address) {
+					return static_cast<uint16_t>(ram_[address] | (aux_ram_[address] << 8));
+				}
 
 			private:
-				uint8_t *ram_;
+				uint8_t *ram_, *aux_ram_;
 		};
 
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 		VideoBusHandler video_bus_handler_;
-		std::unique_ptr<AppleII::Video::Video<VideoBusHandler>> video_;
+		std::unique_ptr<AppleII::Video::Video<VideoBusHandler, is_iie>> video_;
 		int cycles_into_current_line_ = 0;
 		Cycles cycles_since_video_update_;
 
@@ -92,6 +85,7 @@ class ConcreteMachine:
 		std::vector<uint8_t> rom_;
 		std::vector<uint8_t> character_rom_;
 		uint8_t keyboard_input_ = 0x00;
+		bool key_is_down_ = false;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		Audio::Toggle audio_toggle_;
@@ -136,11 +130,44 @@ class ConcreteMachine:
 			return dynamic_cast<AppleII::DiskIICard *>(cards_[5].get());
 		}
 
-		// MARK: - Memory Map
-		struct MemoryBlock {
-			uint8_t *read_pointer = nullptr;
-			uint8_t *write_pointer = nullptr;
-		} memory_blocks_[4];	// The IO page isn't included.
+		// MARK: - Memory Map.
+
+		/*
+			The Apple II's paging mechanisms are byzantine to say the least. Painful is
+			another appropriate adjective.
+
+			On a II and II+ there are five distinct zones of memory:
+
+			0000 to c000	:	the main block of RAM
+			c000 to d000	:	the IO area, including card ROMs
+			d000 to e000	:	the low ROM area, which can alternatively contain either one of two 4kb blocks of RAM with a language card
+			e000 onward		:	the rest of ROM, also potentially replaced with RAM by a language card
+
+			On a IIe with auxiliary memory the following orthogonal changes also need to be factored in:
+
+			0000 to 0200 	:	can be paged independently of the rest of RAM, other than part of the language card area which pages with it
+			0400 to 0800	:	the text screen, can be configured to write to auxiliary RAM
+			2000 to 4000	:	the graphics screen, which can be configured to write to auxiliary RAM
+			c100 to d000	:	can be used to page an additional 3.75kb of ROM, replacing the IO area
+			c300 to c400	:	can contain the same 256-byte segment of the ROM as if the whole IO area were switched, but while leaving cards visible in the rest
+			c800 to d000	:	can contain ROM separately from the region below c800
+
+			If dealt with as individual blocks in the inner loop, that would therefore imply mapping
+			an address to one of 13 potential pageable zones. So I've gone reductive and surrendered
+			to paging every 6502 page of memory independently. It makes the paging events more expensive,
+			but hopefully more clear.
+		*/
+		uint8_t *read_pages_[256];	// each is a pointer to the 256-block of memory the CPU should read when accessing that page of memory
+		uint8_t *write_pages_[256];	// as per read_pages_, but this is where the CPU should write. If a pointer is nullptr, don't write.
+		void page(int start, int end, uint8_t *read, uint8_t *write) {
+			for(int position = start; position < end; ++position) {
+				read_pages_[position] = read;
+				if(read) read += 256;
+
+				write_pages_[position] = write;
+				if(write) write += 256;
+			}
+		}
 
 		// MARK: - The language card.
 		struct {
@@ -151,27 +178,69 @@ class ConcreteMachine:
 		} language_card_;
 		bool has_language_card_ = true;
 		void set_language_card_paging() {
-			if(has_language_card_ && !language_card_.write) {
-				memory_blocks_[2].write_pointer = &ram_[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
-				memory_blocks_[3].write_pointer = &ram_[56*1024];
-			} else {
-				memory_blocks_[2].write_pointer = memory_blocks_[3].write_pointer = nullptr;
+			uint8_t *const ram = alternative_zero_page_ ? aux_ram_ : ram_;
+			uint8_t *const rom = is_iie ? &rom_[3840] : rom_.data();
+
+			page(0xd0, 0xe0,
+				language_card_.read ? &ram[language_card_.bank1 ? 0xd000 : 0xc000] : rom,
+				language_card_.write ? nullptr : &ram[language_card_.bank1 ? 0xd000 : 0xc000]);
+
+			page(0xe0, 0x100,
+				language_card_.read ? &ram[0xe000] : &rom[0x1000],
+				language_card_.write ? nullptr : &ram[0xe000]);
+		}
+
+		// MARK - The IIe's ROM controls.
+		bool internal_CX_rom_ = false;
+		bool slot_C3_rom_ = false;
+		bool internal_c8_rom_ = false;
+
+		void set_card_paging() {
+			page(0xc1, 0xc8, internal_CX_rom_ ? rom_.data() : nullptr, nullptr);
+
+			if(!internal_CX_rom_) {
+				if(!slot_C3_rom_) read_pages_[0xc3] = &rom_[0xc300 - 0xc100];
 			}
 
-			if(has_language_card_ && language_card_.read) {
-				memory_blocks_[2].read_pointer = &ram_[48*1024 + (language_card_.bank1 ? 0x1000 : 0x0000)];
-				memory_blocks_[3].read_pointer = &ram_[56*1024];
+			page(0xc8, 0xd0, (internal_CX_rom_ || internal_c8_rom_) ? &rom_[0xc800 - 0xc100] : nullptr, nullptr);
+		}
+
+		// MARK - The IIe's auxiliary RAM controls.
+		bool alternative_zero_page_ = false;
+		void set_zero_page_paging() {
+			if(alternative_zero_page_) {
+				read_pages_[0] = aux_ram_;
 			} else {
-				memory_blocks_[2].read_pointer = rom_.data();
-				memory_blocks_[3].read_pointer = rom_.data() + 0x1000;
+				read_pages_[0] = ram_;
+			}
+			read_pages_[1] = read_pages_[0] + 256;
+			write_pages_[0] = read_pages_[0];
+			write_pages_[1] = read_pages_[1];
+		}
+
+		bool read_auxiliary_memory_ = false;
+		bool write_auxiliary_memory_ = false;
+		void set_main_paging() {
+			page(0x02, 0xc0,
+				read_auxiliary_memory_ ? &aux_ram_[0x0200] : &ram_[0x0200],
+				write_auxiliary_memory_ ? &aux_ram_[0x0200] : &ram_[0x0200]);
+
+			if(video_ && video_->get_80_store()) {
+				bool use_aux_ram = video_->get_page2();
+				page(0x04, 0x08,
+					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400],
+					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400]);
+
+				if(video_->get_high_resolution()) {
+					page(0x20, 0x40,
+						use_aux_ram ? &aux_ram_[0x2000] : &ram_[0x2000],
+						use_aux_ram ? &aux_ram_[0x2000] : &ram_[0x2000]);
+				}
 			}
 		}
 
 		// MARK - typing
 		std::unique_ptr<Utility::StringSerialiser> string_serialiser_;
-
-		// MARK - quick loading
-		bool should_load_quickly_ = false;
 
 		// MARK - joysticks
 		class Joystick: public Inputs::ConcreteJoystick {
@@ -223,10 +292,14 @@ class ConcreteMachine:
 			return static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1] < analogue_charge_ + analogue_biases_[channel];
 		}
 
+		// The IIe has three keys that are wired directly to the same input as the joystick buttons.
+		bool open_apple_is_pressed_ = false;
+		bool closed_apple_is_pressed_ = false;
+
 	public:
 		ConcreteMachine(const Analyser::Static::AppleII::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 		 	m6502_(*this),
-		 	video_bus_handler_(ram_),
+		 	video_bus_handler_(ram_, aux_ram_),
 		 	audio_toggle_(audio_queue_),
 		 	speaker_(audio_toggle_) {
 		 	// The system's master clock rate.
@@ -248,6 +321,7 @@ class ConcreteMachine:
 
 			// Also, start with randomised memory contents.
 			Memory::Fuzz(ram_, sizeof(ram_));
+			Memory::Fuzz(aux_ram_, sizeof(aux_ram_));
 
 			// Add a couple of joysticks.
 		 	joysticks_.emplace_back(new Joystick);
@@ -255,13 +329,21 @@ class ConcreteMachine:
 
 			// Pick the required ROMs.
 			using Target = Analyser::Static::AppleII::Target;
-			std::vector<std::string> rom_names = {"apple2-character.rom"};
+			std::vector<std::string> rom_names;
+			size_t rom_size = 12*1024;
 			switch(target.model) {
 				default:
+					rom_names.push_back("apple2-character.rom");
 					rom_names.push_back("apple2o.rom");
 				break;
 				case Target::Model::IIplus:
+					rom_names.push_back("apple2-character.rom");
 					rom_names.push_back("apple2.rom");
+				break;
+				case Target::Model::IIe:
+					rom_size += 3840;
+					rom_names.push_back("apple2eu-character.rom");
+					rom_names.push_back("apple2eu.rom");
 				break;
 			}
 			const auto roms = rom_fetcher("AppleII", rom_names);
@@ -270,20 +352,27 @@ class ConcreteMachine:
 				throw ROMMachine::Error::MissingROMs;
 			}
 
-			character_rom_ = std::move(*roms[0]);
 			rom_ = std::move(*roms[1]);
-			if(rom_.size() > 12*1024) {
-				rom_.erase(rom_.begin(), rom_.begin() + static_cast<off_t>(rom_.size()) - 12*1024);
+			if(rom_.size() > rom_size) {
+				rom_.erase(rom_.begin(), rom_.end() - static_cast<off_t>(rom_size));
 			}
+
+			character_rom_ = std::move(*roms[0]);
 
 			if(target.disk_controller != Target::DiskController::None) {
 				// Apple recommended slot 6 for the (first) Disk II.
 				install_card(6, new AppleII::DiskIICard(rom_fetcher, target.disk_controller == Target::DiskController::SixteenSector));
 			}
 
-			// Set up the default memory blocks.
-			memory_blocks_[0].read_pointer = memory_blocks_[0].write_pointer = ram_;
-			memory_blocks_[1].read_pointer = memory_blocks_[1].write_pointer = &ram_[0x200];
+			// Set up the default memory blocks. On a II or II+ these values will never change.
+			// On a IIe they'll be affected by selection of auxiliary RAM.
+			set_main_paging();
+			set_zero_page_paging();
+
+			// Set the whole card area to initially backed by nothing.
+			page(0xc0, 0xd0, nullptr, nullptr);
+
+			// Set proper values for the language card/ROM area.
 			set_language_card_paging();
 
 			insert_media(target.media);
@@ -294,7 +383,7 @@ class ConcreteMachine:
 		}
 
 		void setup_output(float aspect_ratio) override {
-			video_.reset(new AppleII::Video::Video<VideoBusHandler>(video_bus_handler_));
+			video_.reset(new AppleII::Video::Video<VideoBusHandler, is_iie>(video_bus_handler_));
 			video_->set_character_rom(character_rom_);
 		}
 
@@ -328,108 +417,18 @@ class ConcreteMachine:
 				++ stretched_cycles_since_card_update_;
 			}
 
-			/*
-				There are five distinct zones of memory on an Apple II:
-
-				0000 to 0200	:	the zero and stack pages, which can be paged independently on a IIe
-				0200 to c000	:	the main block of RAM, which can be paged on a IIe
-				c000 to d000	:	the IO area, including card ROMs
-				d000 to e000	:	the low ROM area, which can contain indepdently-paged RAM with a language card
-				e000 onward		:	the rest of ROM, also potentially replaced with RAM by a language card
-			*/
-			uint16_t accessed_address = address;
-			MemoryBlock *block = nullptr;
-			if(address < 0x200) block = &memory_blocks_[0];
-			else if(address < 0xc000) {
-				if(address < 0x6000 && !isReadOperation(operation)) update_video();
-				block = &memory_blocks_[1];
-				accessed_address -= 0x200;
-			}
-			else if(address < 0xd000) block = nullptr;
-			else if(address < 0xe000) {block = &memory_blocks_[2]; accessed_address -= 0xd000; }
-			else { block = &memory_blocks_[3]; accessed_address -= 0xe000; }
-
 			bool has_updated_cards = false;
-			if(block) {
-				if(isReadOperation(operation)) *value = block->read_pointer[accessed_address];
-				else if(block->write_pointer) block->write_pointer[accessed_address] = *value;
+			if(read_pages_[address >> 8]) {
+				if(isReadOperation(operation)) *value = read_pages_[address >> 8][address & 0xff];
+				else if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
 
-				if(should_load_quickly_) {
-					// Check for a prima facie entry into RWTS.
-					if(operation == CPU::MOS6502::BusOperation::ReadOpcode && address == 0xb7b5) {
-						// Grab the IO control block address for inspection.
-						uint16_t io_control_block_address =
-							static_cast<uint16_t>(
-								(m6502_.get_value_of_register(CPU::MOS6502::Register::A) << 8) |
-								m6502_.get_value_of_register(CPU::MOS6502::Register::Y)
-							);
-
-						// Verify that this is table type one, for execution on card six,
-						// against drive 1 or 2, and that the command is either a seek or a sector read.
-						if(
-							ram_[io_control_block_address+0x00] == 0x01 &&
-							ram_[io_control_block_address+0x01] == 0x60 &&
-							ram_[io_control_block_address+0x02] > 0 && ram_[io_control_block_address+0x02] < 3 &&
-							ram_[io_control_block_address+0x0c] < 2
-						) {
-							const uint8_t iob_track = ram_[io_control_block_address+4];
-							const uint8_t iob_sector = ram_[io_control_block_address+5];
-							const uint8_t iob_drive = ram_[io_control_block_address+2] - 1;
-
-							// Get the track identified and store the new head position.
-							auto track = diskii_card()->get_drive(iob_drive).step_to(Storage::Disk::HeadPosition(iob_track));
-
-							// DOS 3.3 keeps the current track (unspecified drive) in 0x478; the current track for drive 1 and drive 2
-							// is also kept in that Disk II card's screen hole.
-							ram_[0x478] = iob_track;
-							if(ram_[io_control_block_address+0x02] == 1) {
-								ram_[0x47e] = iob_track;
-							} else {
-								ram_[0x4fe] = iob_track;
-							}
-
-							// Check whether this is a read, not merely a seek.
-							if(ram_[io_control_block_address+0x0c] == 1) {
-								// Apple the DOS 3.3 formula to map the requested logical sector to a physical sector.
-								const int physical_sector = (iob_sector == 15) ? 15 : ((iob_sector * 13) % 15);
-
-								// Parse the entire track. TODO: cache these.
-								auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
-									Storage::Disk::track_serialisation(*track, Storage::Time(1, 50000)));
-
-								bool found_sector = false;
-								for(const auto &pair: sector_map) {
-									if(pair.second.address.sector == physical_sector) {
-										found_sector = true;
-
-										// Copy the sector contents to their destination.
-										uint16_t target = static_cast<uint16_t>(
-											ram_[io_control_block_address+8] |
-											(ram_[io_control_block_address+9] << 8)
-										);
-
-										for(size_t c = 0; c < 256; ++c) {
-											ram_[target] = pair.second.data[c];
-											++target;
-										}
-
-										// Set no error encountered.
-										ram_[io_control_block_address + 0xd] = 0;
-										break;
-									}
-								}
-
-								if(found_sector) {
-									// Set no error in the flags register too, and RTS.
-									m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, m6502_.get_value_of_register(CPU::MOS6502::Register::Flags) & ~1);
-									*value = 0x60;
-								}
-							} else {
-								// No error encountered; RTS.
-								m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, m6502_.get_value_of_register(CPU::MOS6502::Register::Flags) & ~1);
-								*value = 0x60;
-							}
-						}
+				if(is_iie && address >= 0xc300 && address < 0xd000) {
+					bool internal_c8_rom = internal_c8_rom_;
+					internal_c8_rom |= ((address >> 8) == 0xc3) && !slot_C3_rom_;
+					internal_c8_rom &= (address != 0xcfff);
+					if(internal_c8_rom != internal_c8_rom_) {
+						internal_c8_rom_ = internal_c8_rom;
+						set_card_paging();
 					}
 				}
 			} else {
@@ -467,12 +466,18 @@ class ConcreteMachine:
 
 								case 0xc061:	// Switch input 0.
 									*value &= 0x7f;
-									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[0] || static_cast<Joystick *>(joysticks_[1].get())->buttons[2])
+									if(
+										static_cast<Joystick *>(joysticks_[0].get())->buttons[0] || static_cast<Joystick *>(joysticks_[1].get())->buttons[2] ||
+										(is_iie && open_apple_is_pressed_)
+									)
 										*value |= 0x80;
 								break;
 								case 0xc062:	// Switch input 1.
 									*value &= 0x7f;
-									if(static_cast<Joystick *>(joysticks_[0].get())->buttons[1] || static_cast<Joystick *>(joysticks_[1].get())->buttons[1])
+									if(
+										static_cast<Joystick *>(joysticks_[0].get())->buttons[1] || static_cast<Joystick *>(joysticks_[1].get())->buttons[1] ||
+										(is_iie && closed_apple_is_pressed_)
+									)
 										*value |= 0x80;
 								break;
 								case 0xc063:	// Switch input 2.
@@ -491,9 +496,80 @@ class ConcreteMachine:
 										*value |= 0x80;
 									}
 								} break;
+
+								// The IIe-only state reads follow...
+								case 0xc011:	if(is_iie) *value = (*value & 0x7f) | (language_card_.bank1 ? 0x80 : 0x00);											break;
+								case 0xc012:	if(is_iie) *value = (*value & 0x7f) | (language_card_.read ? 0x80 : 0x00);											break;
+								case 0xc013:	if(is_iie) *value = (*value & 0x7f) | (read_auxiliary_memory_ ? 0x80 : 0x00);										break;
+								case 0xc014:	if(is_iie) *value = (*value & 0x7f) | (write_auxiliary_memory_ ? 0x80 : 0x00);										break;
+								case 0xc015:	if(is_iie) *value = (*value & 0x7f) | (internal_CX_rom_ ? 0x80 : 0x00);												break;
+								case 0xc016:	if(is_iie) *value = (*value & 0x7f) | (alternative_zero_page_ ? 0x80 : 0x00);										break;
+								case 0xc017:	if(is_iie) *value = (*value & 0x7f) | (slot_C3_rom_ ? 0x80 : 0x00);													break;
+								case 0xc018:	if(is_iie) *value = (*value & 0x7f) | (video_->get_80_store() ? 0x80 : 0x00);										break;
+								case 0xc019:	if(is_iie) *value = (*value & 0x7f) | (video_->get_is_vertical_blank(cycles_since_video_update_) ? 0x00 : 0x80);	break;
+								case 0xc01a:	if(is_iie) *value = (*value & 0x7f) | (video_->get_text() ? 0x80 : 0x00);											break;
+								case 0xc01b:	if(is_iie) *value = (*value & 0x7f) | (video_->get_mixed() ? 0x80 : 0x00);											break;
+								case 0xc01c:	if(is_iie) *value = (*value & 0x7f) | (video_->get_page2() ? 0x80 : 0x00);											break;
+								case 0xc01d:	if(is_iie) *value = (*value & 0x7f) | (video_->get_high_resolution() ? 0x80 : 0x00);								break;
+								case 0xc01e:	if(is_iie) *value = (*value & 0x7f) | (video_->get_alternative_character_set() ? 0x80 : 0x00);						break;
+								case 0xc01f:	if(is_iie) *value = (*value & 0x7f) | (video_->get_80_columns() ? 0x80 : 0x00);										break;
+								case 0xc07f:	if(is_iie) *value = (*value & 0x7f) | (video_->get_double_high_resolution() ? 0x80 : 0x00);							break;
 							}
 						} else {
-							// Write-only switches.
+							// Write-only switches. All IIe as currently implemented.
+							if(is_iie) {
+								switch(address) {
+									default: break;
+
+									case 0xc000:
+									case 0xc001:
+										video_->set_80_store(!!(address&1));
+										set_main_paging();
+									break;
+
+									case 0xc002:
+									case 0xc003:
+										read_auxiliary_memory_ = !!(address&1);
+										set_main_paging();
+									break;
+
+									case 0xc004:
+									case 0xc005:
+										write_auxiliary_memory_ = !!(address&1);
+										set_main_paging();
+									break;
+
+									case 0xc006:
+									case 0xc007:
+										internal_CX_rom_ = !!(address&1);
+										set_card_paging();
+									break;
+
+									case 0xc008:
+									case 0xc009:
+										// The alternative zero page setting affects both bank 0 and any RAM
+										// that's paged as though it were on a language card.
+										alternative_zero_page_ = !!(address&1);
+										set_zero_page_paging();
+										set_language_card_paging();
+									break;
+
+									case 0xc00a:
+									case 0xc00b:
+										slot_C3_rom_ = !!(address&1);
+										set_card_paging();
+									break;
+
+									case 0xc00c:
+									case 0xc00d:	video_->set_80_columns(!!(address&1));					break;
+
+									case 0xc00e:
+									case 0xc00f:	video_->set_alternative_character_set(!!(address&1));	break;
+
+									case 0xc05e:
+									case 0xc05f:	video_->set_double_high_resolution(!(address&1));		break;
+								}
+							}
 						}
 					break;
 
@@ -510,20 +586,36 @@ class ConcreteMachine:
 					} break;
 
 					/* Read-write switches. */
-					case 0xc050:	update_video();		video_->set_graphics_mode();	break;
-					case 0xc051:	update_video();		video_->set_text_mode();		break;
-					case 0xc052:	update_video();		video_->set_mixed_mode(false);	break;
-					case 0xc053:	update_video();		video_->set_mixed_mode(true);	break;
-					case 0xc054:	update_video();		video_->set_video_page(0);		break;
-					case 0xc055:	update_video();		video_->set_video_page(1);		break;
-					case 0xc056:	update_video();		video_->set_low_resolution();	break;
-					case 0xc057:	update_video();		video_->set_high_resolution();	break;
+					case 0xc050:
+					case 0xc051:
+						update_video();
+						video_->set_text(!!(address&1));
+					break;
+					case 0xc052:	update_video();		video_->set_mixed(false);			break;
+					case 0xc053:	update_video();		video_->set_mixed(true);			break;
+					case 0xc054:
+					case 0xc055:
+						update_video();
+						video_->set_page2(!!(address&1));
+						set_main_paging();
+					break;
+					case 0xc056:
+					case 0xc057:
+						update_video();
+						video_->set_high_resolution(!!(address&1));
+						set_main_paging();
+					break;
 
 					case 0xc010:
 						keyboard_input_ &= 0x7f;
 						if(string_serialiser_) {
 							if(!string_serialiser_->advance())
 								string_serialiser_.reset();
+						}
+
+						// On the IIe, reading C010 returns additional key info.
+						if(is_iie && isReadOperation(operation)) {
+							*value = (key_is_down_ ? 0x80 : 0x00) | (keyboard_input_ & 0x7f);
 						}
 					break;
 
@@ -556,6 +648,7 @@ class ConcreteMachine:
 						// "The PRE-WRITE flip-flop is set by an odd read access in the $C08X range. It is reset by an even access or a write access."
 						language_card_.pre_write = isReadOperation(operation) ? (address&1) : false;
 
+						// Apply whatever the net effect of all that is to the memory map.
 						set_language_card_paging();
 					break;
 				}
@@ -564,7 +657,7 @@ class ConcreteMachine:
 					Communication with cards follows.
 				*/
 
-				if(address >= 0xc090 && address < 0xc800) {
+				if(!read_pages_[address >> 8] && address >= 0xc090 && address < 0xc800) {
 					// If this is a card access, figure out which card is at play before determining
 					// the totality of who needs messaging.
 					size_t card_number = 0;
@@ -589,7 +682,7 @@ class ConcreteMachine:
 					// If the selected card is a just-in-time card, update the just-in-time cards,
 					// and then message it specifically.
 					const bool is_read = isReadOperation(operation);
-					AppleII::Card *const target = cards_[card_number].get();
+					AppleII::Card *const target = cards_[static_cast<size_t>(card_number)].get();
 					if(target && !is_every_cycle_card(target)) {
 						update_just_in_time_cards();
 						target->perform_bus_operation(select, is_read, address, value);
@@ -633,24 +726,46 @@ class ConcreteMachine:
 			m6502_.run_for(cycles);
 		}
 
+		void reset_all_keys() override {
+			open_apple_is_pressed_ = closed_apple_is_pressed_ = key_is_down_ = false;
+		}
+
 		void set_key_pressed(Key key, char value, bool is_pressed) override {
-			if(key == Key::F12) {
-				m6502_.set_reset_line(is_pressed);
+			switch(key) {
+				default: break;
+				case Key::F12:
+					m6502_.set_reset_line(is_pressed);
+				return;
+				case Key::LeftOption:
+					open_apple_is_pressed_ = is_pressed;
+				return;
+				case Key::RightOption:
+					closed_apple_is_pressed_ = is_pressed;
 				return;
 			}
 
-			if(is_pressed) {
-				// If no ASCII value is supplied, look for a few special cases.
-				if(!value) {
-					switch(key) {
-						case Key::Left:		value = 8;	break;
-						case Key::Right:	value = 21;	break;
-						case Key::Down:		value = 10;	break;
-						default: break;
-					}
+			// If no ASCII value is supplied, look for a few special cases.
+			if(!value) {
+				switch(key) {
+					case Key::Left:			value = 0x08;	break;
+					case Key::Right:		value = 0x15;	break;
+					case Key::Down:			value = 0x0a;	break;
+					case Key::Up:			value = 0x0b;	break;
+					case Key::BackSpace:	value = 0x7f;	break;
+					default: return;
 				}
+			}
 
-				keyboard_input_ = static_cast<uint8_t>(toupper(value) | 0x80);
+			// Prior to the IIe, the keyboard could produce uppercase only.
+			if(!is_iie) value = static_cast<char>(toupper(value));
+
+			if(is_pressed) {
+				keyboard_input_ = static_cast<uint8_t>(value | 0x80);
+				key_is_down_ = true;
+			} else {
+				if((keyboard_input_ & 0x7f) == value) {
+					key_is_down_ = false;
+				}
 			}
 		}
 
@@ -678,30 +793,6 @@ class ConcreteMachine:
 			}
 		}
 
-		// MARK: Options
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			return AppleII::get_options();
-		}
-
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			bool quickload;
-			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				should_load_quickly_ = quickload;
-			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, false);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, true);
-			return selection_set;
-		}
-
 		// MARK: JoystickMachine
 		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
@@ -715,8 +806,11 @@ using namespace AppleII;
 Machine *Machine::AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::AppleII::Target;
 	const Target *const appleii_target = dynamic_cast<const Target *>(target);
-	return new ConcreteMachine(*appleii_target, rom_fetcher);
+	if(appleii_target->model == Target::Model::IIe) {
+		return new ConcreteMachine<true>(*appleii_target, rom_fetcher);
+	} else {
+		return new ConcreteMachine<false>(*appleii_target, rom_fetcher);
+	}
 }
 
 Machine::~Machine() {}
-

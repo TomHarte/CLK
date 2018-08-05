@@ -18,7 +18,8 @@ namespace AppleII {
 struct Target: public ::Analyser::Static::Target {
 	enum class Model {
 		II,
-		IIplus
+		IIplus,
+		IIe
 	};
 	enum class DiskController {
 		None,
@@ -26,7 +27,7 @@ struct Target: public ::Analyser::Static::Target {
 		ThirteenSector
 	};
 
-	Model model = Model::IIplus;
+	Model model = Model::IIe;
 	DiskController disk_controller = DiskController::None;
 };
 
