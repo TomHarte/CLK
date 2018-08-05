@@ -519,10 +519,11 @@ template <bool is_iie> class ConcreteMachine:
 							// Write-only switches. All IIe as currently implemented.
 							if(is_iie) {
 								switch(address) {
-									default: break;
+									default: printf("Write %04x?\n", address); break;
 
 									case 0xc000:
 									case 0xc001:
+										update_video();
 										video_->set_80_store(!!(address&1));
 										set_main_paging();
 									break;
@@ -561,13 +562,16 @@ template <bool is_iie> class ConcreteMachine:
 									break;
 
 									case 0xc00c:
-									case 0xc00d:	video_->set_80_columns(!!(address&1));					break;
+									case 0xc00d:
+										update_video();
+										video_->set_80_columns(!!(address&1));
+									break;
 
 									case 0xc00e:
-									case 0xc00f:	video_->set_alternative_character_set(!!(address&1));	break;
-
-									case 0xc05e:
-									case 0xc05f:	video_->set_double_high_resolution(!(address&1));		break;
+									case 0xc00f:
+										update_video();
+										video_->set_alternative_character_set(!!(address&1));
+									break;
 								}
 							}
 						}
@@ -604,6 +608,14 @@ template <bool is_iie> class ConcreteMachine:
 						update_video();
 						video_->set_high_resolution(!!(address&1));
 						set_main_paging();
+					break;
+
+					case 0xc05e:
+					case 0xc05f:
+						if(is_iie) {
+							update_video();
+							video_->set_double_high_resolution(!(address&1));
+						}
 					break;
 
 					case 0xc010:
