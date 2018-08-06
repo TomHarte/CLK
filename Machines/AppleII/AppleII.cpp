@@ -289,7 +289,7 @@ template <bool is_iie> class ConcreteMachine:
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 		bool analogue_channel_is_discharged(size_t channel) {
-			return static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1] < analogue_charge_ + analogue_biases_[channel];
+			return (1.0f - static_cast<Joystick *>(joysticks_[channel >> 1].get())->axes[channel & 1]) < analogue_charge_ + analogue_biases_[channel];
 		}
 
 		// The IIe has three keys that are wired directly to the same input as the joystick buttons.
@@ -492,7 +492,7 @@ template <bool is_iie> class ConcreteMachine:
 								case 0xc067: {	// Analogue input 3.
 									const size_t input = address - 0xc064;
 									*value &= 0x7f;
-									if(analogue_channel_is_discharged(input)) {
+									if(!analogue_channel_is_discharged(input)) {
 										*value |= 0x80;
 									}
 								} break;
@@ -519,10 +519,11 @@ template <bool is_iie> class ConcreteMachine:
 							// Write-only switches. All IIe as currently implemented.
 							if(is_iie) {
 								switch(address) {
-									default: break;
+									default: printf("Write %04x?\n", address); break;
 
 									case 0xc000:
 									case 0xc001:
+										update_video();
 										video_->set_80_store(!!(address&1));
 										set_main_paging();
 									break;
@@ -561,13 +562,16 @@ template <bool is_iie> class ConcreteMachine:
 									break;
 
 									case 0xc00c:
-									case 0xc00d:	video_->set_80_columns(!!(address&1));					break;
+									case 0xc00d:
+										update_video();
+										video_->set_80_columns(!!(address&1));
+									break;
 
 									case 0xc00e:
-									case 0xc00f:	video_->set_alternative_character_set(!!(address&1));	break;
-
-									case 0xc05e:
-									case 0xc05f:	video_->set_double_high_resolution(!(address&1));		break;
+									case 0xc00f:
+										update_video();
+										video_->set_alternative_character_set(!!(address&1));
+									break;
 								}
 							}
 						}
@@ -604,6 +608,14 @@ template <bool is_iie> class ConcreteMachine:
 						update_video();
 						video_->set_high_resolution(!!(address&1));
 						set_main_paging();
+					break;
+
+					case 0xc05e:
+					case 0xc05f:
+						if(is_iie) {
+							update_video();
+							video_->set_double_high_resolution(!(address&1));
+						}
 					break;
 
 					case 0xc010:
