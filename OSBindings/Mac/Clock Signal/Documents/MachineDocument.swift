@@ -56,7 +56,6 @@ class MachineDocument:
 		super.windowControllerDidLoadNib(aController)
 		aController.window?.contentAspectRatio = self.aspectRatio()
 		setupMachineOutput()
-
 	}
 
 	// Attempting to show a sheet before the window is visible (such as when the NIB is loaded) results in
@@ -281,7 +280,7 @@ class MachineDocument:
 	@IBAction func createMachine(_ sender: NSButton?) {
 		self.configureAs(machinePicker!.selectedMachine())
 		machinePicker = nil
-		sender?.window?.close()
+		self.windowControllers[0].window?.endSheet(self.machinePickerPanel!)
 	}
 
 	@IBAction func cancelCreateMachine(_ sender: NSButton?) {
