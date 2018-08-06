@@ -222,6 +222,7 @@ class MachineDocument:
 
 	@IBAction final func insertMedia(_ sender: AnyObject!) {
 		let openPanel = NSOpenPanel()
+		openPanel.message = "Hint: you can also insert media by dragging and dropping it onto the machine's window."
 		openPanel.beginSheetModal(for: self.windowControllers[0].window!) { (response) in
 			if response == .OK {
 				for url in openPanel.urls {
@@ -301,6 +302,7 @@ class MachineDocument:
 			switch item.action {
 				case #selector(self.useKeyboardAsKeyboard):
 					if machine == nil || !machine.hasKeyboard {
+						menuItem.state = .off
 						return false
 					}
 
@@ -309,6 +311,7 @@ class MachineDocument:
 
 				case #selector(self.useKeyboardAsJoystick):
 					if machine == nil || !machine.hasJoystick {
+						menuItem.state = .off
 						return false
 					}
 
@@ -317,6 +320,9 @@ class MachineDocument:
 
 				case #selector(self.showActivity(_:)):
 					return self.activityPanel != nil
+
+				case #selector(self.insertMedia(_:)):
+					return self.machine != nil && self.machine.canInsertMedia
 
 				default: break
 			}

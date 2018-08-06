@@ -39,6 +39,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 @interface CSMachine : NSObject
 
 - (nonnull instancetype)init NS_UNAVAILABLE;
+
 /*!
 	Initialises an instance of CSMachine.
 
@@ -69,6 +70,8 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 @property (nonatomic, assign) CSMachineVideoSignal videoSignal;
 @property (nonatomic, assign) BOOL useAutomaticTapeMotorControl;
+
+@property (nonatomic, readonly) BOOL canInsertMedia;
 
 - (bool)supportsVideoSignal:(CSMachineVideoSignal)videoSignal;
 
