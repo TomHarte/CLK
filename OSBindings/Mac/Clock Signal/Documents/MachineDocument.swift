@@ -213,10 +213,25 @@ class MachineDocument:
 		}
 	}
 
+	// MARK: Runtime media insertion.
 	final func openGLView(_ view: CSOpenGLView, didReceiveFileAt URL: URL) {
 		let mediaSet = CSMediaSet(fileAt: URL)
 		if let mediaSet = mediaSet {
 			mediaSet.apply(to: self.machine)
+		}
+	}
+
+	@IBAction final func insertMedia(_ sender: AnyObject!) {
+		let openPanel = NSOpenPanel()
+		openPanel.beginSheetModal(for: self.windowControllers[0].window!) { (response) in
+			if response == .OK {
+				for url in openPanel.urls {
+					let mediaSet = CSMediaSet(fileAt: url)
+					if let mediaSet = mediaSet {
+						mediaSet.apply(to: self.machine)
+					}
+				}
+			}
 		}
 	}
 
