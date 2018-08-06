@@ -301,6 +301,7 @@ class MachineDocument:
 			switch item.action {
 				case #selector(self.useKeyboardAsKeyboard):
 					if machine == nil || !machine.hasKeyboard {
+						menuItem.state = .off
 						return false
 					}
 
@@ -309,6 +310,7 @@ class MachineDocument:
 
 				case #selector(self.useKeyboardAsJoystick):
 					if machine == nil || !machine.hasJoystick {
+						menuItem.state = .off
 						return false
 					}
 
@@ -317,6 +319,9 @@ class MachineDocument:
 
 				case #selector(self.showActivity(_:)):
 					return self.activityPanel != nil
+
+				case #selector(self.insertMedia(_:)):
+					return self.machine != nil && self.machine.canInsertMedia
 
 				default: break
 			}

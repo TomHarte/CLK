@@ -516,6 +516,10 @@ struct ActivityObserver: public Activity::Observer {
 	return [[NSString stringWithUTF8String:name.c_str()] lowercaseString];
 }
 
+- (BOOL)canInsertMedia {
+	return !!_machine->media_target();
+}
+
 #pragma mark - Special machines
 
 - (CSAtari2600 *)atari2600 {
