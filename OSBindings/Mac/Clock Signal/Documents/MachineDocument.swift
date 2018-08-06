@@ -222,6 +222,7 @@ class MachineDocument:
 
 	@IBAction final func insertMedia(_ sender: AnyObject!) {
 		let openPanel = NSOpenPanel()
+		openPanel.message = "Hint: you can also insert media by dragging and dropping it onto the machine's window."
 		openPanel.beginSheetModal(for: self.windowControllers[0].window!) { (response) in
 			if response == .OK {
 				for url in openPanel.urls {
