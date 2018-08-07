@@ -69,7 +69,7 @@ using namespace CPU::MOS6502;
 
 #define JAM									{CycleFetchOperand, CycleScheduleJam}
 
-ProcessorStorage::ProcessorStorage(Personality) {
+ProcessorStorage::ProcessorStorage(Personality personality) {
 	// only the interrupt flag is defined upon reset but get_flags isn't going to
 	// mask the other flags so we need to do that, at least
 	carry_flag_ &= Flag::Carry;
@@ -214,7 +214,13 @@ ProcessorStorage::ProcessorStorage(Personality) {
 		/* 0xfe INC abs, x */	AbsoluteXReadModifyWrite(OperationINC),									/* 0xff INS abs, x */	AbsoluteXReadModifyWrite(OperationINS),
 	};
 
+	// Install the basic 6502 table.
 	memcpy(operations_, operations_6502, sizeof(operations_));
+
+	// Patch the table according to the chip's personality.
+	switch(personality) {
+		default: break;
+	}
 }
 
 #undef Program

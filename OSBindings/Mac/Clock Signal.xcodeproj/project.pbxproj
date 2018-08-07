@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4B018B89211930DE002A3937 /* 65C02_extended_opcodes_test.bin in Resources */ = {isa = PBXBuildFile; fileRef = 4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */; };
 		4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */; };
 		4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
 		4B0333B02094081A0050B93D /* AppleDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0333AD2094081A0050B93D /* AppleDSK.cpp */; };
@@ -690,6 +691,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = 65C02_extended_opcodes_test.bin; path = "Klaus Dormann/65C02_extended_opcodes_test.bin"; sourceTree = "<group>"; };
 		4B01A6871F22F0DB001FD6E3 /* Z80MemptrTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MemptrTests.swift; sourceTree = "<group>"; };
 		4B0333AD2094081A0050B93D /* AppleDSK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AppleDSK.cpp; sourceTree = "<group>"; };
 		4B0333AE2094081A0050B93D /* AppleDSK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AppleDSK.hpp; sourceTree = "<group>"; };
@@ -1545,14 +1547,15 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
-				4B98A1CD1FFADEC400ADF63B /* MSX ROMs */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
 				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
+				4B98A1CD1FFADEC400ADF63B /* MSX ROMs */,
+				4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */,
 				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
 				4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */,
-				4BE9A6B21EDE294200CBCB47 /* Zexall */,
 				4BBF49B41ED2881600AB3669 /* FUSE */,
 				4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */,
+				4BE9A6B21EDE294200CBCB47 /* Zexall */,
 			);
 			name = "Test Binaries";
 			sourceTree = "<group>";
@@ -3330,6 +3333,7 @@
 				4BB2998A1B587D8400A49093 /* lseix in Resources */,
 				4BB2994E1B587D8400A49093 /* dexn in Resources */,
 				4BB299971B587D8400A49093 /* nopa in Resources */,
+				4B018B89211930DE002A3937 /* 65C02_extended_opcodes_test.bin in Resources */,
 				4BFCA1291ECBE7A700AC40C1 /* zexall.com in Resources */,
 				4BB299521B587D8400A49093 /* eoray in Resources */,
 				4BB299411B587D8400A49093 /* cpyb in Resources */,
