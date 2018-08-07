@@ -25,13 +25,14 @@ class ProcessorStorage {
 		enum MicroOp {
 			CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
 			CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
-			OperationSetI,
+			CyclePushX,									CyclePushY,							OperationSetI,
 
 			OperationBRKPickVector,						OperationNMIPickVector,				OperationRSTPickVector,
 			CycleReadVectorLow,							CycleReadVectorHigh,
 
 			CycleReadFromS,								CycleReadFromPC,
 			CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
+			CyclePullX,									CyclePullY,
 			CycleNoWritePush,
 			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
 			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
@@ -58,7 +59,7 @@ class ProcessorStorage {
 			OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
 			OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
 			OperationSetOperandFromFlags,
-			OperationSetFlagsFromA,
+			OperationSetFlagsFromA,						OperationSetFlagsFromX,				OperationSetFlagsFromY,
 			CycleScheduleJam
 		};
 

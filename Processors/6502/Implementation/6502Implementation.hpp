@@ -115,6 +115,8 @@ if(number_of_cycles <= Cycles(0)) break;
 					case CyclePushPCL:					push(pc_.bytes.low);											break;
 					case CyclePushOperand:				push(operand_);													break;
 					case CyclePushA:					push(a_);														break;
+					case CyclePushX:					push(x_);														break;
+					case CyclePushY:					push(y_);														break;
 					case CycleNoWritePush: {
 						uint16_t targetAddress = s_ | 0x100; s_--;
 						read_mem(operand_, targetAddress);
@@ -140,11 +142,15 @@ if(number_of_cycles <= Cycles(0)) break;
 					case CyclePullPCL:					s_++; read_mem(pc_.bytes.low, s_ | 0x100);							break;
 					case CyclePullPCH:					s_++; read_mem(pc_.bytes.high, s_ | 0x100);							break;
 					case CyclePullA:					s_++; read_mem(a_, s_ | 0x100);										break;
+					case CyclePullX:					s_++; read_mem(x_, s_ | 0x100);										break;
+					case CyclePullY:					s_++; read_mem(y_, s_ | 0x100);										break;
 					case CyclePullOperand:				s_++; read_mem(operand_, s_ | 0x100);								break;
 					case OperationSetFlagsFromOperand:	set_flags(operand_);												continue;
 					case OperationSetOperandFromFlagsWithBRKSet: operand_ = get_flags() | Flag::Break;						continue;
 					case OperationSetOperandFromFlags:  operand_ = get_flags();												continue;
 					case OperationSetFlagsFromA:		zero_result_ = negative_result_ = a_;								continue;
+					case OperationSetFlagsFromX:		zero_result_ = negative_result_ = x_;								continue;
+					case OperationSetFlagsFromY:		zero_result_ = negative_result_ = y_;								continue;
 
 					case CycleIncrementPCAndReadStack:	pc_.full++; throwaway_read(s_ | 0x100);								break;
 					case CycleReadPCLFromAddress:		read_mem(pc_.bytes.low, address_.full);								break;

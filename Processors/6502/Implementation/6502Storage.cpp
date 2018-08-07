@@ -218,8 +218,17 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 	memcpy(operations_, operations_6502, sizeof(operations_));
 
 	// Patch the table according to the chip's personality.
-	switch(personality) {
-		default: break;
+	if(personality != P6502) {
+		// This is a 65C02 or 65SC02; add P[L/H][X/Y]
+		const ProcessorStorage::MicroOp phx[10] = Program(CyclePushX);
+		const ProcessorStorage::MicroOp phy[10] = Program(CyclePushY);
+		const ProcessorStorage::MicroOp plx[10] = Program(CycleReadFromS, CyclePullX, OperationSetFlagsFromX);
+		const ProcessorStorage::MicroOp ply[10] = Program(CycleReadFromS, CyclePullY, OperationSetFlagsFromY);
+
+		memcpy(&operations_[0x5a], phy, sizeof(phy));
+		memcpy(&operations_[0xda], phx, sizeof(phx));
+		memcpy(&operations_[0x7a], ply, sizeof(ply));
+		memcpy(&operations_[0xfa], plx, sizeof(plx));
 	}
 }
 
