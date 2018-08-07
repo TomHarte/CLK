@@ -76,7 +76,9 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 	decimal_flag_ &= Flag::Decimal;
 	overflow_flag_ &= Flag::Overflow;
 
-	const ProcessorStorage::MicroOp operations_6502[256][10] = {
+	using InstructionList = ProcessorStorage::MicroOp[10];
+
+	const InstructionList operations_6502[256] = {
 		/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetI, CycleReadVectorLow, CycleReadVectorHigh),
 		/* 0x01 ORA x, ind */	IndexedIndirectRead(OperationORA),
 		/* 0x02 JAM */			JAM,																	/* 0x03 ASO x, ind */	IndexedIndirectReadModifyWrite(OperationASO),
@@ -218,18 +220,24 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 	memcpy(operations_, operations_6502, sizeof(operations_));
 
 	// Patch the table according to the chip's personality.
+#define Install(location, code) memcpy(&operations_[location], code, sizeof(InstructionList))
 	if(personality != P6502) {
-		// This is a 65C02 or 65SC02; add P[L/H][X/Y]
-		const ProcessorStorage::MicroOp phx[10] = Program(CyclePushX);
-		const ProcessorStorage::MicroOp phy[10] = Program(CyclePushY);
-		const ProcessorStorage::MicroOp plx[10] = Program(CycleReadFromS, CyclePullX, OperationSetFlagsFromX);
-		const ProcessorStorage::MicroOp ply[10] = Program(CycleReadFromS, CyclePullY, OperationSetFlagsFromY);
+		// Add P[L/H][X/Y].
+		const InstructionList phx = Program(CyclePushX);
+		const InstructionList phy = Program(CyclePushY);
+		const InstructionList plx = Program(CycleReadFromS, CyclePullX, OperationSetFlagsFromX);
+		const InstructionList ply = Program(CycleReadFromS, CyclePullY, OperationSetFlagsFromY);
 
-		memcpy(&operations_[0x5a], phy, sizeof(phy));
-		memcpy(&operations_[0xda], phx, sizeof(phx));
-		memcpy(&operations_[0x7a], ply, sizeof(ply));
-		memcpy(&operations_[0xfa], plx, sizeof(plx));
+		Install(0x5a, phy);
+		Install(0xda, phx);
+		Install(0x7a, ply);
+		Install(0xfa, plx);
+
+		// Add BRA and the various BBS and BBRs.
+		const InstructionList bra = Program(OperationBRA);
+		Install(0x80, bra);
 	}
+#undef Install
 }
 
 #undef Program

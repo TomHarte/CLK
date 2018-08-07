@@ -470,6 +470,7 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationBCS: BRA(carry_flag_);							continue;
 					case OperationBNE: BRA(zero_result_);							continue;
 					case OperationBEQ: BRA(!zero_result_);							continue;
+					case OperationBRA: BRA(true);									continue;
 
 					case CycleAddSignedOperandToPC:
 						nextAddress.full = static_cast<uint16_t>(pc_.full + (int8_t)operand_);

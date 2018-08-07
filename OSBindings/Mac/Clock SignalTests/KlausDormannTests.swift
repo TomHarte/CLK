@@ -72,6 +72,10 @@ class KlausDormannTests: XCTestCase {
 				case 0x0437: return "PLY: stack pointer not incremented"
 				case 0x043c: return "PLY: stack pointer not incremented"
 
+				case 0x066a: return "BRA: branch not taken"
+				case 0x0730: return "BBS: branch not taken"
+				case 0x0733: return "BBR: branch taken"
+
 				case 0: return "Didn't find tests"
 				default: return "Unknown error at \(String(format:"%04x", address))"
 			}
