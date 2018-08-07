@@ -32,7 +32,7 @@ template<class T> class Cartridge:
 
 	public:
 		Cartridge(const std::vector<uint8_t> &rom) :
-			m6502_(*this),
+			m6502_(CPU::MOS6502::Personality::P6502, *this),
 			rom_(rom),
 			bus_extender_(rom_.data(), rom.size()) {
 			// The above works because bus_extender_ is declared after rom_ in the instance storage list;

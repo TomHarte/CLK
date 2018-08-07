@@ -298,7 +298,7 @@ template <bool is_iie> class ConcreteMachine:
 
 	public:
 		ConcreteMachine(const Analyser::Static::AppleII::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
-		 	m6502_(*this),
+		 	m6502_(CPU::MOS6502::Personality::P6502, *this),
 		 	video_bus_handler_(ram_, aux_ram_),
 		 	audio_toggle_(audio_queue_),
 		 	speaker_(audio_toggle_) {

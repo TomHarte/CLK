@@ -180,6 +180,12 @@ class ProcessorBase: public ProcessorStorage {
 		bool is_jammed();
 };
 
+enum Personality {
+	P6502,		// the original 6502, replete with various undocumented instructions
+	P65C02,		// the 65C02; an extended 6502 with a few extra instructions and addressing modes for existing instructions
+	P65SC02,	// like the 65C02, but lacking bit instructions
+};
+
 /*!
 	@abstact Template providing emulation of a 6502 processor.
 
@@ -193,7 +199,7 @@ template <typename T, bool uses_ready_line> class Processor: public ProcessorBas
 		/*!
 			Constructs an instance of the 6502 that will use @c bus_handler for all bus communications.
 		*/
-		Processor(T &bus_handler) : bus_handler_(bus_handler) {}
+		Processor(Personality personality, T &bus_handler) : bus_handler_(bus_handler) {}
 
 		/*!
 			Runs the 6502 for a supplied number of cycles.

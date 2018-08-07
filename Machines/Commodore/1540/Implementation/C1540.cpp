@@ -18,7 +18,7 @@ using namespace Commodore::C1540;
 
 MachineBase::MachineBase(Personality personality, const ROMMachine::ROMFetcher &rom_fetcher) :
 		Storage::Disk::Controller(1000000),
-		m6502_(*this),
+		m6502_(CPU::MOS6502::Personality::P6502, *this),
 		drive_(new Storage::Disk::Drive(1000000, 300, 2)),
 		serial_port_VIA_port_handler_(new SerialPortVIA(serial_port_VIA_)),
 		serial_port_(new SerialPort),
