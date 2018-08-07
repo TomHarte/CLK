@@ -19,7 +19,7 @@ class AllRAMProcessor:
 	public ::CPU::AllRAMProcessor {
 
 	public:
-		static AllRAMProcessor *Processor();
+		static AllRAMProcessor *Processor(Personality personality);
 		virtual ~AllRAMProcessor() {}
 
 		virtual void run_for(const Cycles cycles) = 0;
