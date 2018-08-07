@@ -15,7 +15,7 @@
 */
 class ProcessorStorage {
 	protected:
-		ProcessorStorage();
+		ProcessorStorage(Personality);
 
 		/*
 			This emulation functions by decomposing instructions into micro programs, consisting of the micro operations
@@ -62,7 +62,7 @@ class ProcessorStorage {
 			CycleScheduleJam
 		};
 
-		static const MicroOp operations[256][10];
+		MicroOp operations_[256][10];
 
 		const MicroOp *scheduled_program_counter_ = nullptr;
 

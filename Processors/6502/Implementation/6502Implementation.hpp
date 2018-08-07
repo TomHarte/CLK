@@ -97,7 +97,7 @@ if(number_of_cycles <= Cycles(0)) break;
 					break;
 
 					case OperationDecodeOperation:
-						scheduled_program_counter_ = operations[operation_];
+						scheduled_program_counter_ = operations_[operation_];
 					continue;
 
 					case OperationMoveToNextProgram:
@@ -160,7 +160,7 @@ if(number_of_cycles <= Cycles(0)) break;
 
 					case CycleScheduleJam: {
 						is_jammed_ = true;
-						scheduled_program_counter_ = operations[CPU::MOS6502::JamOpcode];
+						scheduled_program_counter_ = operations_[CPU::MOS6502::JamOpcode];
 					} continue;
 
 // MARK: - Bitwise
