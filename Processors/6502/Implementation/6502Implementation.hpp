@@ -13,7 +13,7 @@
 */
 
 template <typename T, bool uses_ready_line> void Processor<T, uses_ready_line>::run_for(const Cycles cycles) {
-	static const MicroOp doBranch[] = {
+	static const MicroOp do_branch[] = {
 		CycleReadFromPC,
 		CycleAddSignedOperandToPC,
 		OperationMoveToNextProgram
@@ -460,7 +460,7 @@ if(number_of_cycles <= Cycles(0)) break;
 
 // MARK: - Branching
 
-#define BRA(condition)	pc_.full++; if(condition) scheduled_program_counter_ = doBranch
+#define BRA(condition)	pc_.full++; if(condition) scheduled_program_counter_ = do_branch
 
 					case OperationBPL: BRA(!(negative_result_&0x80));				continue;
 					case OperationBMI: BRA(negative_result_&0x80);					continue;
@@ -482,6 +482,39 @@ if(number_of_cycles <= Cycles(0)) break;
 							break;
 						}
 					continue;
+
+					case CycleFetchFromHalfUpdatedPC: {
+						uint16_t halfUpdatedPc = static_cast<uint16_t>(((pc_.bytes.low + (int8_t)operand_) & 0xff) | (pc_.bytes.high << 8));
+						throwaway_read(halfUpdatedPc);
+					} break;
+
+					case OperationAddSignedOperandToPC16:
+						pc_.full = static_cast<uint16_t>(pc_.full + (int8_t)operand_);
+					continue;
+
+					case OperationBBRBBS: {
+						// To reach here, the 6502 has (i) read the operation; (ii) read the first operand;
+						// and (iii) read from the corresponding zero page.
+						const uint8_t mask = static_cast<uint8_t>(1 << ((operation_ >> 4)&7));
+						if((operand_ & mask) == ((operation_ & 0x80) ? mask : 0)) {
+							static const MicroOp do_branch[] = {
+								CycleFetchOperand,			// Fetch offset.
+								OperationIncrementPC,
+								CycleFetchFromHalfUpdatedPC,
+								OperationAddSignedOperandToPC16,
+								OperationMoveToNextProgram
+							};
+							scheduled_program_counter_ = do_branch;
+						} else {
+							static const MicroOp do_not_branch[] = {
+								CycleFetchOperand,
+								OperationIncrementPC,
+								CycleFetchFromHalfUpdatedPC,
+								OperationMoveToNextProgram
+							};
+							scheduled_program_counter_ = do_not_branch;
+						}
+					} break;
 
 #undef BRA
 

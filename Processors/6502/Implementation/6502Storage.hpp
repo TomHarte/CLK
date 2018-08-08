@@ -52,19 +52,28 @@ class ProcessorStorage {
 			OperationCLC,								OperationCLI,						OperationCLV,							OperationCLD,
 			OperationSEC,								OperationSEI,						OperationSED,							OperationINC,
 			OperationDEC,								OperationINX,						OperationDEX,							OperationINY,
-			OperationDEY,								OperationBPL,						OperationBMI,							OperationBVC,
-			OperationBVS,								OperationBCC,						OperationBCS,							OperationBNE,
-			OperationBEQ,								OperationBRA,						OperationTXA,							OperationTYA,
-			OperationTXS,								OperationTAY,						OperationTAX,							OperationTSX,
+			OperationDEY,
+
+			OperationBPL,								OperationBMI,						OperationBVC,							OperationBVS,
+			OperationBCC,								OperationBCS,						OperationBNE,							OperationBEQ,
+			OperationBRA,								OperationBBRBBS,
+
+			OperationTXA,								OperationTYA,						OperationTXS,							OperationTAY,
+			OperationTAX,								OperationTSX,
+
 			OperationARR,								OperationSBX,						OperationLXA,							OperationANE,
 			OperationANC,								OperationLAS,
-			CycleAddSignedOperandToPC,					OperationSetFlagsFromOperand,		OperationSetOperandFromFlagsWithBRKSet,
+
+			CycleFetchFromHalfUpdatedPC,				CycleAddSignedOperandToPC,			OperationAddSignedOperandToPC16,
+
+			OperationSetFlagsFromOperand,				OperationSetOperandFromFlagsWithBRKSet,
 			OperationSetOperandFromFlags,
 			OperationSetFlagsFromA,						OperationSetFlagsFromX,				OperationSetFlagsFromY,
 			CycleScheduleJam
 		};
 
-		MicroOp operations_[256][10];
+		using InstructionList = MicroOp[10];
+		InstructionList operations_[256];
 
 		const MicroOp *scheduled_program_counter_ = nullptr;
 

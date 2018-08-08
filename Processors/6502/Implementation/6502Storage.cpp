@@ -76,8 +76,6 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 	decimal_flag_ &= Flag::Decimal;
 	overflow_flag_ &= Flag::Overflow;
 
-	using InstructionList = ProcessorStorage::MicroOp[10];
-
 	const InstructionList operations_6502[256] = {
 		/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetI, CycleReadVectorLow, CycleReadVectorHigh),
 		/* 0x01 ORA x, ind */	IndexedIndirectRead(OperationORA),
@@ -220,22 +218,30 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 	memcpy(operations_, operations_6502, sizeof(operations_));
 
 	// Patch the table according to the chip's personality.
-#define Install(location, code) memcpy(&operations_[location], code, sizeof(InstructionList))
+#define Install(location, instructions) {\
+		const InstructionList code = instructions;	\
+		memcpy(&operations_[location], code, sizeof(InstructionList));	\
+	}
 	if(personality != P6502) {
 		// Add P[L/H][X/Y].
-		const InstructionList phx = Program(CyclePushX);
-		const InstructionList phy = Program(CyclePushY);
-		const InstructionList plx = Program(CycleReadFromS, CyclePullX, OperationSetFlagsFromX);
-		const InstructionList ply = Program(CycleReadFromS, CyclePullY, OperationSetFlagsFromY);
+		Install(0x5a, Program(CyclePushY));
+		Install(0xda, Program(CyclePushX));
+		Install(0x7a, Program(CycleReadFromS, CyclePullY, OperationSetFlagsFromY));
+		Install(0xfa, Program(CycleReadFromS, CyclePullX, OperationSetFlagsFromX));
 
-		Install(0x5a, phy);
-		Install(0xda, phx);
-		Install(0x7a, ply);
-		Install(0xfa, plx);
+		// Add BRA.
+		Install(0x80, Program(OperationBRA));
 
-		// Add BRA and the various BBS and BBRs.
-		const InstructionList bra = Program(OperationBRA);
-		Install(0x80, bra);
+		// Add BBS and BBR. These take five cycles. My guessed breakdown is:
+		// 1. read opcode
+		// 2. read operand
+		// 3. read zero page
+		// 4. read second operand
+		// 5. read from PC without top byte fixed yet
+		// ... with the caveat that (3) and (4) could be the other way around.
+		for(int location = 0x0f; location <= 0xff; location += 0x10) {
+			Install(location, Program(OperationLoadAddressZeroPage, CycleFetchOperandFromAddress, OperationBBRBBS));
+		}
 	}
 #undef Install
 }
