@@ -242,6 +242,24 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		for(int location = 0x0f; location <= 0xff; location += 0x10) {
 			Install(location, Program(OperationLoadAddressZeroPage, CycleFetchOperandFromAddress, OperationBBRBBS));
 		}
+
+		// Add NOPs.
+
+		// The 1-byte, 1-cycle (!) NOPs.
+		for(int c = 0x03; c <= 0xf3; c += 0x10) {
+			Install(c, ImpliedNop());
+		}
+		for(int c = 0x0b; c <= 0xbb; c += 0x10) {
+			Install(c, ImpliedNop());
+		}
+		for(int c = 0xeb; c <= 0xfb; c += 0x10) {
+			Install(c, ImpliedNop());
+		}
+
+		// The 2-byte, 2-cycle NOPs that the 6502 doesn't have.
+		for(int c = 0x02; c <= 0x62; c += 0x10) {
+			Install(c, ImmediateNop());
+		}
 	}
 #undef Install
 }

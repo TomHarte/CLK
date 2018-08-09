@@ -93,7 +93,16 @@ if(number_of_cycles <= Cycles(0)) break;
 					} break;
 
 					case CycleFetchOperand:
-						read_mem(operand_, pc_.full);
+						if(
+							personality_ == P6502 ||
+							(operation_&7) != 3 ||
+							operation_ == 0xcb ||
+							operation_ == 0xdb
+						) {
+							read_mem(operand_, pc_.full);
+						} else {
+							printf("Skipping %02x\n", operation_);
+						}
 					break;
 
 					case OperationDecodeOperation:

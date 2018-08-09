@@ -204,7 +204,7 @@ template <typename T, bool uses_ready_line> class Processor: public ProcessorBas
 		/*!
 			Constructs an instance of the 6502 that will use @c bus_handler for all bus communications.
 		*/
-		Processor(Personality personality, T &bus_handler) : ProcessorBase(personality), bus_handler_(bus_handler) {}
+		Processor(Personality personality, T &bus_handler) : ProcessorBase(personality), personality_(personality), bus_handler_(bus_handler) {}
 
 		/*!
 			Runs the 6502 for a supplied number of cycles.
@@ -221,6 +221,7 @@ template <typename T, bool uses_ready_line> class Processor: public ProcessorBas
 		void set_ready_line(bool active);
 
 	private:
+		Personality personality_;
 		T &bus_handler_;
 };
 
