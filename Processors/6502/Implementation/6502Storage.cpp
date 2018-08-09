@@ -137,7 +137,7 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		/* 0x66 ROR zpg */		ZeroReadModifyWrite(OperationROR),										/* 0x67 RRA zpg */		ZeroReadModifyWrite(OperationRRA, OperationADC),
 		/* 0x68 PLA */			Program(CycleReadFromS, CyclePullA, OperationSetFlagsFromA),			/* 0x69 ADC # */		Immediate(OperationADC),
 		/* 0x6a ROR A */		Implied(OperationROR),													/* 0x6b ARR # */		Immediate(OperationARR),
-		/* 0x6c JMP (abs) */	Program(CycleReadAddressHLoadAddressL, CycleReadPCLFromAddress, CycleReadPCHFromAddress),
+		/* 0x6c JMP (abs) */	Program(CycleReadAddressHLoadAddressL, CycleReadPCLFromAddress, CycleReadPCHFromAddressLowInc),
 		/* 0x6d ADC abs */		AbsoluteRead(OperationADC),
 		/* 0x6e ROR abs */		AbsoluteReadModifyWrite(OperationROR),									/* 0x6f RRA abs */		AbsoluteReadModifyWrite(OperationRRA, OperationADC),
 		/* 0x70 BVS */			Program(OperationBVS),													/* 0x71 ADC ind, y */	IndirectIndexedRead(OperationADC),
@@ -260,6 +260,15 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		for(int c = 0x02; c <= 0x62; c += 0x10) {
 			Install(c, ImmediateNop());
 		}
+
+		// Correct JMP (abs) and install JMP (abs, x).
+		Install(0x6c, Program(CycleReadAddressHLoadAddressL, CycleReadPCLFromAddress, CycleReadPCHFromAddressLowInc, CycleReadPCHFromAddressFixed));
+		Install(0x7c, Program(
+			CycleReadAddressHLoadAddressL,	// (3) read second byte of (addr)
+			CycleAddXToAddressLowRead,		// (4) calculate addr+x, read from (addr+x) with high byte not yet calculated
+			OperationCorrectAddressHigh, CycleReadPCLFromAddress,	// (5) read from real (addr+x)
+			CycleReadPCHFromAddressInc		// (6) read from addr+x+1
+		));
 	}
 #undef Install
 }

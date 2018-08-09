@@ -77,6 +77,11 @@ class KlausDormannTests: XCTestCase {
 				case 0x0733: return "BBR: branch taken"
 
 				case 0x2884: return "JMP (abs) exhibited 6502 page-crossing bug"
+				case 0x16ca: return "JMP (abs, x) failed"
+
+				case 0x2785: return "BRK didn't clear the decimal mode flag"
+
+				case 0x177b: return "INC A didn't function"
 
 				case 0: return "Didn't find tests"
 				default: return "Unknown error at \(String(format:"%04x", address))"

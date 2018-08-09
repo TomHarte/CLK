@@ -35,7 +35,11 @@ class ProcessorStorage {
 			CyclePullX,									CyclePullY,
 			CycleNoWritePush,
 			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
-			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
+			CycleReadAddressHLoadAddressL,
+
+			CycleReadPCLFromAddress,					CycleReadPCHFromAddressLowInc,		CycleReadPCHFromAddressFixed,			CycleReadPCHFromAddressInc,
+
+			CycleLoadAddressAbsolute,
 			OperationLoadAddressZeroPage,				CycleLoadAddessZeroX,				CycleLoadAddessZeroY,					CycleAddXToAddressLow,
 			CycleAddYToAddressLow,						CycleAddXToAddressLowRead,			OperationCorrectAddressHigh,			CycleAddYToAddressLowRead,
 			OperationMoveToNextProgram,					OperationIncrementPC,

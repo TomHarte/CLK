@@ -93,6 +93,10 @@ if(number_of_cycles <= Cycles(0)) break;
 					} break;
 
 					case CycleFetchOperand:
+						// This is supposed to produce the 65C02's 1-cycle NOPs; they're
+						// treated as a special case because they break the rule that
+						// governs everything else on the 6502: that two bytes will always
+						// be fetched.
 						if(
 							personality_ == P6502 ||
 							(operation_&7) != 3 ||
@@ -100,8 +104,6 @@ if(number_of_cycles <= Cycles(0)) break;
 							operation_ == 0xdb
 						) {
 							read_mem(operand_, pc_.full);
-						} else {
-							printf("Skipping %02x\n", operation_);
 						}
 					break;
 
@@ -146,7 +148,10 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationRSTPickVector:		nextAddress.full = 0xfffc;											continue;
 					case CycleReadVectorLow:			read_mem(pc_.bytes.low, nextAddress.full);							break;
 					case CycleReadVectorHigh:			read_mem(pc_.bytes.high, nextAddress.full+1);						break;
-					case OperationSetI:					inverse_interrupt_flag_ = 0;										continue;
+					case OperationSetI:
+						inverse_interrupt_flag_ = 0;
+						if(personality_ != P6502) decimal_flag_ = false;
+					continue;
 
 					case CyclePullPCL:					s_++; read_mem(pc_.bytes.low, s_ | 0x100);							break;
 					case CyclePullPCH:					s_++; read_mem(pc_.bytes.high, s_ | 0x100);							break;
@@ -161,9 +166,11 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationSetFlagsFromX:		zero_result_ = negative_result_ = x_;								continue;
 					case OperationSetFlagsFromY:		zero_result_ = negative_result_ = y_;								continue;
 
-					case CycleIncrementPCAndReadStack:	pc_.full++; throwaway_read(s_ | 0x100);								break;
-					case CycleReadPCLFromAddress:		read_mem(pc_.bytes.low, address_.full);								break;
-					case CycleReadPCHFromAddress:		address_.bytes.low++; read_mem(pc_.bytes.high, address_.full);		break;
+					case CycleIncrementPCAndReadStack:	pc_.full++; throwaway_read(s_ | 0x100);															break;
+					case CycleReadPCLFromAddress:			read_mem(pc_.bytes.low, address_.full);														break;
+					case CycleReadPCHFromAddressLowInc:		address_.bytes.low++; read_mem(pc_.bytes.high, address_.full);								break;
+					case CycleReadPCHFromAddressFixed:		if(!address_.bytes.low) address_.bytes.high++; read_mem(pc_.bytes.high, address_.full);		break;
+					case CycleReadPCHFromAddressInc:		address_.full++; read_mem(pc_.bytes.high, address_.full);									break;
 
 					case CycleReadAndIncrementPC: {
 						uint16_t oldPC = pc_.full;
