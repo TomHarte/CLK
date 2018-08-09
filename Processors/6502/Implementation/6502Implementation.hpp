@@ -367,6 +367,8 @@ if(number_of_cycles <= Cycles(0)) break;
 
 					case OperationINC: operand_++; negative_result_ = zero_result_ = operand_; continue;
 					case OperationDEC: operand_--; negative_result_ = zero_result_ = operand_; continue;
+					case OperationINA: a_++; negative_result_ = zero_result_ = a_; continue;
+					case OperationDEA: a_--; negative_result_ = zero_result_ = a_; continue;
 					case OperationINX: x_++; negative_result_ = zero_result_ = x_; continue;
 					case OperationDEX: x_--; negative_result_ = zero_result_ = x_; continue;
 					case OperationINY: y_++; negative_result_ = zero_result_ = y_; continue;

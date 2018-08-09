@@ -269,6 +269,10 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 			OperationCorrectAddressHigh, CycleReadPCLFromAddress,	// (5) read from real (addr+x)
 			CycleReadPCHFromAddressInc		// (6) read from addr+x+1
 		));
+
+		// Add INA and DEA.
+		Install(0x1a, Program(OperationINA));
+		Install(0x3a, Program(OperationDEA));
 	}
 #undef Install
 }

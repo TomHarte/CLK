@@ -54,9 +54,10 @@ class ProcessorStorage {
 			OperationASO,								OperationROL,						OperationRLA,							OperationLSR,
 			OperationLSE,								OperationASR,						OperationROR,							OperationRRA,
 			OperationCLC,								OperationCLI,						OperationCLV,							OperationCLD,
-			OperationSEC,								OperationSEI,						OperationSED,							OperationINC,
-			OperationDEC,								OperationINX,						OperationDEX,							OperationINY,
-			OperationDEY,
+			OperationSEC,								OperationSEI,						OperationSED,
+
+			OperationINC,								OperationDEC,						OperationINX,							OperationDEX,
+			OperationINY,								OperationDEY,						OperationINA,							OperationDEA,
 
 			OperationBPL,								OperationBMI,						OperationBVC,							OperationBVS,
 			OperationBCC,								OperationBCS,						OperationBNE,							OperationBEQ,
