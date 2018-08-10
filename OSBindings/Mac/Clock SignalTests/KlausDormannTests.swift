@@ -83,6 +83,10 @@ class KlausDormannTests: XCTestCase {
 
 				case 0x177b: return "INC A didn't function"
 
+				case 0x1834: return "LDA (zp) acted as JAM"
+				case 0x183a: return "STA (zp) acted as JAM"
+				case 0x1849: return "LDA/STA (zp) left flags in incorrect state"
+
 				case 0: return "Didn't find tests"
 				default: return "Unknown error at \(String(format:"%04x", address))"
 			}

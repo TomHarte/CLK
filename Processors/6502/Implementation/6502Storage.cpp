@@ -22,6 +22,7 @@ using namespace CPU::MOS6502;
 #define Zero								OperationLoadAddressZeroPage
 #define ZeroX								CycleLoadAddessZeroX
 #define ZeroY								CycleLoadAddessZeroY
+#define ZeroIndirect						OperationLoadAddressZeroPage,				CycleIncrementPCFetchAddressLowFromOperand,	CycleIncrementOperandFetchAddressHigh
 #define IndexedIndirect						CycleIncrementPCFetchAddressLowFromOperand, CycleAddXToOperandFetchAddressLow,		CycleIncrementOperandFetchAddressHigh
 #define IndirectIndexedr					CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLow,					OperationCorrectAddressHigh
 #define IndirectIndexed						CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLowRead,				OperationCorrectAddressHigh
@@ -36,6 +37,7 @@ using namespace CPU::MOS6502;
 #define ZeroRead(...)						Program(Zero,				Read(__VA_ARGS__))
 #define ZeroXRead(op)						Program(ZeroX,				Read(op))
 #define ZeroYRead(op)						Program(ZeroY,				Read(op))
+#define ZeroIndirectRead(op)				Program(ZeroIndirect,		Read(op))
 #define IndexedIndirectRead(op)				Program(IndexedIndirect,	Read(op))
 #define IndirectIndexedRead(op)				Program(IndirectIndexedr,	Read(op))
 
@@ -45,6 +47,7 @@ using namespace CPU::MOS6502;
 #define ZeroWrite(op)						Program(Zero,				Write(op))
 #define ZeroXWrite(op)						Program(ZeroX,				Write(op))
 #define ZeroYWrite(op)						Program(ZeroY,				Write(op))
+#define ZeroIndirectWrite(op)				Program(ZeroIndirect,		Write(op))
 #define IndexedIndirectWrite(op)			Program(IndexedIndirect,	Write(op))
 #define IndirectIndexedWrite(op)			Program(IndirectIndexed,	Write(op))
 
@@ -273,6 +276,16 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		// Add INA and DEA.
 		Install(0x1a, Program(OperationINA));
 		Install(0x3a, Program(OperationDEA));
+
+		// Add (zp) operations.
+		Install(0x12, ZeroIndirectRead(OperationORA));
+		Install(0x32, ZeroIndirectRead(OperationAND));
+		Install(0x52, ZeroIndirectRead(OperationEOR));
+		Install(0x72, ZeroIndirectRead(OperationADC));
+		Install(0x92, ZeroIndirectRead(OperationSTA));
+		Install(0xb2, ZeroIndirectRead(OperationLDA));
+		Install(0xd2, ZeroIndirectWrite(OperationCMP));
+		Install(0xd2, ZeroIndirectRead(OperationSBC));
 	}
 #undef Install
 }
