@@ -95,6 +95,8 @@ class KlausDormannTests: XCTestCase {
 				case 0x1d88: return "TRB set Z flag incorrectly"
 				case 0x1e7c: return "RMB set flags incorrectly"
 
+				case 0x2245: return "CMP (zero) didn't work"
+
 				case 0: return "Didn't find tests"
 				default: return "Unknown error at \(String(format:"%04x", address))"
 			}

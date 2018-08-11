@@ -53,7 +53,7 @@ class ProcessorStorage {
 			OperationSAX,								OperationSHA,
 			OperationSHX,								OperationSHY,						OperationSHS,							OperationCMP,
 			OperationCPX,								OperationCPY,						OperationBIT,							OperationBITNoNV,
-			OperationASL,
+			OperationASL,								OperationRMB,						OperationSMB,
 			OperationASO,								OperationROL,						OperationRLA,							OperationLSR,
 			OperationLSE,								OperationASR,						OperationROR,							OperationRRA,
 			OperationCLC,								OperationCLI,						OperationCLV,							OperationCLD,

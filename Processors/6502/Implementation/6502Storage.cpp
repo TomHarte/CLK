@@ -285,7 +285,7 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		Install(0x92, ZeroIndirectWrite(OperationSTA));
 		Install(0xb2, ZeroIndirectRead(OperationLDA));
 		Install(0xd2, ZeroIndirectRead(OperationCMP));
-		Install(0xd2, ZeroIndirectRead(OperationSBC));
+		Install(0xf2, ZeroIndirectRead(OperationSBC));
 
 		// Add STZ.
 		Install(0x9c, AbsoluteWrite(OperationSTZ));
@@ -303,6 +303,14 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		Install(0x0c, AbsoluteReadModifyWrite(OperationTSB));
 		Install(0x14, ZeroReadModifyWrite(OperationTRB));
 		Install(0x1c, AbsoluteReadModifyWrite(OperationTRB));
+
+		// Add RMB and SMB.
+		for(int c = 0x07; c <= 0x77; c += 0x10) {
+			Install(c, ZeroReadModifyWrite(OperationRMB));
+		}
+		for(int c = 0x87; c <= 0xf7; c += 0x10) {
+			Install(c, ZeroReadModifyWrite(OperationSMB));
+		}
 	}
 #undef Install
 }

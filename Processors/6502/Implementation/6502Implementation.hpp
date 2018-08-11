@@ -253,6 +253,15 @@ if(number_of_cycles <= Cycles(0)) break;
 						operand_ |= a_;
 					continue;
 
+// MARK: - RMB and SMB
+
+					case OperationRMB:
+						operand_ &= ~(1 << (operation_ >> 4));
+					continue;
+					case OperationSMB:
+						operand_ |= 1 << ((operation_ >> 4)&7);
+					continue;
+
 // MARK: - ADC/SBC (and INS)
 
 					case OperationINS:
