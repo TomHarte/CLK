@@ -25,7 +25,12 @@ class KlausDormannTests: XCTestCase {
 					let newPC = machine.value(for: .lastOperationAddress)
 
 					if newPC == oldPC {
-						return newPC
+						machine.runForNumber(ofCycles: 7)
+
+						let retestPC = machine.value(for: .lastOperationAddress)
+						if retestPC == oldPC {
+							return newPC
+						}
 					}
 				}
 			}
@@ -96,6 +101,7 @@ class KlausDormannTests: XCTestCase {
 				case 0x1e7c: return "RMB set flags incorrectly"
 
 				case 0x2245: return "CMP (zero) didn't work"
+				case 0x2506: return "Decimal ADC set flags incorrectly"
 
 				case 0: return "Didn't find tests"
 				default: return "Unknown error at \(String(format:"%04x", address))"
