@@ -285,6 +285,10 @@ if(number_of_cycles <= Cycles(0)) break;
 
 							carry_flag_ = (temp16 > 0xff) ? 0 : Flag::Carry;
 							a_ = static_cast<uint8_t>(temp16);
+
+							if(personality_ != P6502) {
+								negative_result_ = zero_result_ = a_;
+							}
 							continue;
 						} else {
 							operand_ = ~operand_;
@@ -305,6 +309,10 @@ if(number_of_cycles <= Cycles(0)) break;
 							carry_flag_ = (result >> 8) ? 1 : 0;
 							a_ = static_cast<uint8_t>(result);
 							zero_result_ = static_cast<uint8_t>(decimalResult);
+
+							if(personality_ != P6502) {
+								negative_result_ = zero_result_ = a_;
+							}
 						} else {
 							const uint16_t result = static_cast<uint16_t>(a_) + static_cast<uint16_t>(operand_) + static_cast<uint16_t>(carry_flag_);
 							overflow_flag_ = (( (result^a_)&(result^operand_) )&0x80) >> 1;

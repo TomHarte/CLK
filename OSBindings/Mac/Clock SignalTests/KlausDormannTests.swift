@@ -70,6 +70,8 @@ class KlausDormannTests: XCTestCase {
 	func test65C02() {
 		func errorForTrapAddress(_ address: UInt16) -> String? {
 			switch address {
+				case 0x24f1: return nil // success!
+
 				case 0x0423: return "PHX: value of X not on stack page"
 				case 0x0428: return "PHX: stack pointer not decremented"
 				case 0x042d: return "PLY: didn't acquire value 0xaa from stack"
