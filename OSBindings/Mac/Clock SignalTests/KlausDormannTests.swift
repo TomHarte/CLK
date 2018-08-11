@@ -87,6 +87,10 @@ class KlausDormannTests: XCTestCase {
 				case 0x183a: return "STA (zp) acted as JAM"
 				case 0x1849: return "LDA/STA (zp) left flags in incorrect state"
 
+				case 0x1983: return "STZ didn't store zero"
+
+				case 0x1b03: return "BIT didn't set flags correctly"
+
 				case 0: return "Didn't find tests"
 				default: return "Unknown error at \(String(format:"%04x", address))"
 			}

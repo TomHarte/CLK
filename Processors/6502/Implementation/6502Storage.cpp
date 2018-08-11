@@ -286,6 +286,12 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		Install(0xb2, ZeroIndirectRead(OperationLDA));
 		Install(0xd2, ZeroIndirectRead(OperationCMP));
 		Install(0xd2, ZeroIndirectRead(OperationSBC));
+
+		// Add STZ.
+		Install(0x9c, AbsoluteWrite(OperationSTZ));
+		Install(0x9e, AbsoluteXWrite(OperationSTZ));
+		Install(0x64, ZeroWrite(OperationSTZ));
+		Install(0x74, ZeroXWrite(OperationSTZ));
 	}
 #undef Install
 }

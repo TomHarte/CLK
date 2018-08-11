@@ -201,6 +201,7 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationSTA:	operand_ = a_;											continue;
 					case OperationSTX:	operand_ = x_;											continue;
 					case OperationSTY:	operand_ = y_;											continue;
+					case OperationSTZ:	operand_ = 0;											continue;
 					case OperationSAX:	operand_ = a_ & x_;										continue;
 					case OperationSHA:	operand_ = a_ & x_ & (address_.bytes.high+1);			continue;
 					case OperationSHX:	operand_ = x_ & (address_.bytes.high+1);				continue;
