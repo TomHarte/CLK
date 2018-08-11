@@ -22,14 +22,14 @@ using namespace CPU::MOS6502;
 #define Zero								OperationLoadAddressZeroPage
 #define ZeroX								CycleLoadAddessZeroX
 #define ZeroY								CycleLoadAddessZeroY
-#define ZeroIndirect						OperationLoadAddressZeroPage,				CycleIncrementPCFetchAddressLowFromOperand,	CycleIncrementOperandFetchAddressHigh
+#define ZeroIndirect						OperationLoadAddressZeroPage,				CycleFetchAddressLowFromOperand,		CycleIncrementOperandFetchAddressHigh
 #define IndexedIndirect						CycleIncrementPCFetchAddressLowFromOperand, CycleAddXToOperandFetchAddressLow,		CycleIncrementOperandFetchAddressHigh
 #define IndirectIndexedr					CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLow,					OperationCorrectAddressHigh
 #define IndirectIndexed						CycleIncrementPCFetchAddressLowFromOperand, CycleIncrementOperandFetchAddressHigh,	CycleAddYToAddressLowRead,				OperationCorrectAddressHigh
 
 #define Read(...)							CycleFetchOperandFromAddress,	__VA_ARGS__
 #define Write(...)							__VA_ARGS__,					CycleWriteOperandToAddress
-#define ReadModifyWrite(...)				CycleFetchOperandFromAddress,	CycleWriteOperandToAddress,			__VA_ARGS__,							CycleWriteOperandToAddress
+#define ReadModifyWrite(...)				CycleFetchOperandFromAddress,	(personality	 == P6502) ? CycleWriteOperandToAddress : CycleFetchOperandFromAddress,			__VA_ARGS__,							CycleWriteOperandToAddress
 
 #define AbsoluteRead(op)					Program(Absolute,			Read(op))
 #define AbsoluteXRead(op)					Program(AbsoluteXr,			Read(op))
@@ -282,9 +282,9 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		Install(0x32, ZeroIndirectRead(OperationAND));
 		Install(0x52, ZeroIndirectRead(OperationEOR));
 		Install(0x72, ZeroIndirectRead(OperationADC));
-		Install(0x92, ZeroIndirectRead(OperationSTA));
+		Install(0x92, ZeroIndirectWrite(OperationSTA));
 		Install(0xb2, ZeroIndirectRead(OperationLDA));
-		Install(0xd2, ZeroIndirectWrite(OperationCMP));
+		Install(0xd2, ZeroIndirectRead(OperationCMP));
 		Install(0xd2, ZeroIndirectRead(OperationSBC));
 	}
 #undef Install

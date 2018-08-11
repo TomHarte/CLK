@@ -45,6 +45,7 @@ class ProcessorStorage {
 			OperationMoveToNextProgram,					OperationIncrementPC,
 			CycleFetchOperandFromAddress,				CycleWriteOperandToAddress,			OperationCopyOperandFromA,				OperationCopyOperandToA,
 			CycleIncrementPCFetchAddressLowFromOperand,	CycleAddXToOperandFetchAddressLow,	CycleIncrementOperandFetchAddressHigh,	OperationDecrementOperand,
+			CycleFetchAddressLowFromOperand,
 			OperationIncrementOperand,					OperationORA,						OperationAND,							OperationEOR,
 			OperationINS,								OperationADC,						OperationSBC,							OperationLDA,
 			OperationLDX,								OperationLDY,						OperationLAX,							OperationSTA,

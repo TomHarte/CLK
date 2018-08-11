@@ -429,6 +429,9 @@ if(number_of_cycles <= Cycles(0)) break;
 						operand_ += x_;
 						read_mem(address_.bytes.low, operand_);
 					break;
+					case CycleFetchAddressLowFromOperand:
+						read_mem(address_.bytes.low, operand_);
+					break;
 					case CycleIncrementOperandFetchAddressHigh:
 						operand_++;
 						read_mem(address_.bytes.high, operand_);
