@@ -262,18 +262,20 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 								case GraphicsMode::Text: {
 									const uint8_t inverses[] = {
 										0xff,
-										alternative_character_set_ ? static_cast<uint8_t>(0xff) : static_cast<uint8_t>((flash_ / flash_length) * 0xff),
+										static_cast<uint8_t>((flash_ / flash_length) * 0xff),
 										0x00,
 										0x00
 									};
-									const uint8_t masks[] = {
-										alternative_character_set_ ? static_cast<uint8_t>(0x7f) : static_cast<uint8_t>(0x3f),
-										is_iie ? 0x7f : 0x3f,
-									};
 									for(int c = column_; c < pixel_end; ++c) {
-										const uint8_t character = bus_handler_.perform_read(static_cast<uint16_t>(text_address + c));
-										const uint8_t xor_mask = inverses[character >> 6];
-										const std::size_t character_address = static_cast<std::size_t>(((character & masks[character >> 7]) << 3) + pixel_row);
+										int character = bus_handler_.perform_read(static_cast<uint16_t>(text_address + c));
+										if(is_iie) {
+											character |= alternative_character_set_ ? 0x100 : 0;
+										} else {
+											character &= 0x3f;
+
+										}
+										const uint8_t xor_mask = is_iie ? 0xff : inverses[character >> 6];
+										const std::size_t character_address = static_cast<std::size_t>((character << 3) + pixel_row);
 										const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
 
 										// The character ROM is output MSB to LSB rather than LSB to MSB.
@@ -290,26 +292,21 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 								} break;
 
 								case GraphicsMode::DoubleText: {
-									const uint8_t inverses[] = {
-										0xff,
-										alternative_character_set_ ? static_cast<uint8_t>(0xff) : static_cast<uint8_t>((flash_ / flash_length) * 0xff),
-										0x00,
-										0x00
-									};
-									const uint8_t masks[] = {
-										alternative_character_set_ ? static_cast<uint8_t>(0x7f) : static_cast<uint8_t>(0x3f),
-										is_iie ? 0x7f : 0x3f,
-									};
 									for(int c = column_; c < pixel_end; ++c) {
 										const uint16_t characters = bus_handler_.perform_aux_read(static_cast<uint16_t>(text_address + c));
 										const std::size_t character_addresses[2] = {
-											static_cast<std::size_t>((((characters >> 8) & masks[characters >> 15]) << 3) + pixel_row),
-											static_cast<std::size_t>(((characters & masks[(characters >> 7)&1]) << 3) + pixel_row),
+											static_cast<std::size_t>(
+												(((characters >> 8)) << 3) + pixel_row
+											),
+											static_cast<std::size_t>(
+												(characters << 3) + pixel_row
+											),
 										};
 
+										const size_t pattern_offset = alternative_character_set_ ? (256*8) : 0;
 										const uint8_t character_patterns[2] = {
-											static_cast<uint8_t>(character_rom_[character_addresses[0]] ^ inverses[(characters >> 14) & 3]),
-											static_cast<uint8_t>(character_rom_[character_addresses[1]] ^ inverses[(characters >> 6) & 3]),
+											character_rom_[character_addresses[0] + pattern_offset],
+											character_rom_[character_addresses[1] + pattern_offset],
 										};
 
 										// The character ROM is output MSB to LSB rather than LSB to MSB.

@@ -34,7 +34,9 @@
 
 namespace {
 
-template <bool is_iie> class ConcreteMachine:
+#define is_iie() ((model == Analyser::Static::AppleII::Target::Model::IIe) || (model == Analyser::Static::AppleII::Target::Model::EnhancedIIe))
+
+template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
 	public KeyboardMachine::Machine,
@@ -62,7 +64,7 @@ template <bool is_iie> class ConcreteMachine:
 
 		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
 		VideoBusHandler video_bus_handler_;
-		std::unique_ptr<AppleII::Video::Video<VideoBusHandler, is_iie>> video_;
+		std::unique_ptr<AppleII::Video::Video<VideoBusHandler, is_iie()>> video_;
 		int cycles_into_current_line_ = 0;
 		Cycles cycles_since_video_update_;
 
@@ -179,7 +181,7 @@ template <bool is_iie> class ConcreteMachine:
 		bool has_language_card_ = true;
 		void set_language_card_paging() {
 			uint8_t *const ram = alternative_zero_page_ ? aux_ram_ : ram_;
-			uint8_t *const rom = is_iie ? &rom_[3840] : rom_.data();
+			uint8_t *const rom = is_iie() ? &rom_[3840] : rom_.data();
 
 			page(0xd0, 0xe0,
 				language_card_.read ? &ram[language_card_.bank1 ? 0xd000 : 0xc000] : rom,
@@ -298,7 +300,7 @@ template <bool is_iie> class ConcreteMachine:
 
 	public:
 		ConcreteMachine(const Analyser::Static::AppleII::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
-		 	m6502_(CPU::MOS6502::Personality::P6502, *this),
+			m6502_((model == Analyser::Static::AppleII::Target::Model::EnhancedIIe) ? CPU::MOS6502::Personality::P65C02 : CPU::MOS6502::Personality::P6502, *this),
 		 	video_bus_handler_(ram_, aux_ram_),
 		 	audio_toggle_(audio_queue_),
 		 	speaker_(audio_toggle_) {
@@ -345,6 +347,11 @@ template <bool is_iie> class ConcreteMachine:
 					rom_names.push_back("apple2eu-character.rom");
 					rom_names.push_back("apple2eu.rom");
 				break;
+				case Target::Model::EnhancedIIe:
+					rom_size += 3840;
+					rom_names.push_back("apple2e-character.rom");
+					rom_names.push_back("apple2e.rom");
+				break;
 			}
 			const auto roms = rom_fetcher("AppleII", rom_names);
 
@@ -383,7 +390,7 @@ template <bool is_iie> class ConcreteMachine:
 		}
 
 		void setup_output(float aspect_ratio) override {
-			video_.reset(new AppleII::Video::Video<VideoBusHandler, is_iie>(video_bus_handler_));
+			video_.reset(new AppleII::Video::Video<VideoBusHandler, is_iie()>(video_bus_handler_));
 			video_->set_character_rom(character_rom_);
 		}
 
@@ -422,7 +429,7 @@ template <bool is_iie> class ConcreteMachine:
 				if(isReadOperation(operation)) *value = read_pages_[address >> 8][address & 0xff];
 				else if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
 
-				if(is_iie && address >= 0xc300 && address < 0xd000) {
+				if(is_iie() && address >= 0xc300 && address < 0xd000) {
 					bool internal_c8_rom = internal_c8_rom_;
 					internal_c8_rom |= ((address >> 8) == 0xc3) && !slot_C3_rom_;
 					internal_c8_rom &= (address != 0xcfff);
@@ -468,7 +475,7 @@ template <bool is_iie> class ConcreteMachine:
 									*value &= 0x7f;
 									if(
 										static_cast<Joystick *>(joysticks_[0].get())->buttons[0] || static_cast<Joystick *>(joysticks_[1].get())->buttons[2] ||
-										(is_iie && open_apple_is_pressed_)
+										(is_iie() && open_apple_is_pressed_)
 									)
 										*value |= 0x80;
 								break;
@@ -476,7 +483,7 @@ template <bool is_iie> class ConcreteMachine:
 									*value &= 0x7f;
 									if(
 										static_cast<Joystick *>(joysticks_[0].get())->buttons[1] || static_cast<Joystick *>(joysticks_[1].get())->buttons[1] ||
-										(is_iie && closed_apple_is_pressed_)
+										(is_iie() && closed_apple_is_pressed_)
 									)
 										*value |= 0x80;
 								break;
@@ -498,26 +505,26 @@ template <bool is_iie> class ConcreteMachine:
 								} break;
 
 								// The IIe-only state reads follow...
-								case 0xc011:	if(is_iie) *value = (*value & 0x7f) | (language_card_.bank1 ? 0x80 : 0x00);											break;
-								case 0xc012:	if(is_iie) *value = (*value & 0x7f) | (language_card_.read ? 0x80 : 0x00);											break;
-								case 0xc013:	if(is_iie) *value = (*value & 0x7f) | (read_auxiliary_memory_ ? 0x80 : 0x00);										break;
-								case 0xc014:	if(is_iie) *value = (*value & 0x7f) | (write_auxiliary_memory_ ? 0x80 : 0x00);										break;
-								case 0xc015:	if(is_iie) *value = (*value & 0x7f) | (internal_CX_rom_ ? 0x80 : 0x00);												break;
-								case 0xc016:	if(is_iie) *value = (*value & 0x7f) | (alternative_zero_page_ ? 0x80 : 0x00);										break;
-								case 0xc017:	if(is_iie) *value = (*value & 0x7f) | (slot_C3_rom_ ? 0x80 : 0x00);													break;
-								case 0xc018:	if(is_iie) *value = (*value & 0x7f) | (video_->get_80_store() ? 0x80 : 0x00);										break;
-								case 0xc019:	if(is_iie) *value = (*value & 0x7f) | (video_->get_is_vertical_blank(cycles_since_video_update_) ? 0x00 : 0x80);	break;
-								case 0xc01a:	if(is_iie) *value = (*value & 0x7f) | (video_->get_text() ? 0x80 : 0x00);											break;
-								case 0xc01b:	if(is_iie) *value = (*value & 0x7f) | (video_->get_mixed() ? 0x80 : 0x00);											break;
-								case 0xc01c:	if(is_iie) *value = (*value & 0x7f) | (video_->get_page2() ? 0x80 : 0x00);											break;
-								case 0xc01d:	if(is_iie) *value = (*value & 0x7f) | (video_->get_high_resolution() ? 0x80 : 0x00);								break;
-								case 0xc01e:	if(is_iie) *value = (*value & 0x7f) | (video_->get_alternative_character_set() ? 0x80 : 0x00);						break;
-								case 0xc01f:	if(is_iie) *value = (*value & 0x7f) | (video_->get_80_columns() ? 0x80 : 0x00);										break;
-								case 0xc07f:	if(is_iie) *value = (*value & 0x7f) | (video_->get_double_high_resolution() ? 0x80 : 0x00);							break;
+								case 0xc011:	if(is_iie()) *value = (*value & 0x7f) | (language_card_.bank1 ? 0x80 : 0x00);											break;
+								case 0xc012:	if(is_iie()) *value = (*value & 0x7f) | (language_card_.read ? 0x80 : 0x00);											break;
+								case 0xc013:	if(is_iie()) *value = (*value & 0x7f) | (read_auxiliary_memory_ ? 0x80 : 0x00);										break;
+								case 0xc014:	if(is_iie()) *value = (*value & 0x7f) | (write_auxiliary_memory_ ? 0x80 : 0x00);										break;
+								case 0xc015:	if(is_iie()) *value = (*value & 0x7f) | (internal_CX_rom_ ? 0x80 : 0x00);												break;
+								case 0xc016:	if(is_iie()) *value = (*value & 0x7f) | (alternative_zero_page_ ? 0x80 : 0x00);										break;
+								case 0xc017:	if(is_iie()) *value = (*value & 0x7f) | (slot_C3_rom_ ? 0x80 : 0x00);													break;
+								case 0xc018:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_80_store() ? 0x80 : 0x00);										break;
+								case 0xc019:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_is_vertical_blank(cycles_since_video_update_) ? 0x00 : 0x80);	break;
+								case 0xc01a:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_text() ? 0x80 : 0x00);											break;
+								case 0xc01b:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_mixed() ? 0x80 : 0x00);											break;
+								case 0xc01c:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_page2() ? 0x80 : 0x00);											break;
+								case 0xc01d:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_high_resolution() ? 0x80 : 0x00);								break;
+								case 0xc01e:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_alternative_character_set() ? 0x80 : 0x00);						break;
+								case 0xc01f:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_80_columns() ? 0x80 : 0x00);										break;
+								case 0xc07f:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_double_high_resolution() ? 0x80 : 0x00);							break;
 							}
 						} else {
 							// Write-only switches. All IIe as currently implemented.
-							if(is_iie) {
+							if(is_iie()) {
 								switch(address) {
 									default: printf("Write %04x?\n", address); break;
 
@@ -612,7 +619,7 @@ template <bool is_iie> class ConcreteMachine:
 
 					case 0xc05e:
 					case 0xc05f:
-						if(is_iie) {
+						if(is_iie()) {
 							update_video();
 							video_->set_double_high_resolution(!(address&1));
 						}
@@ -626,7 +633,7 @@ template <bool is_iie> class ConcreteMachine:
 						}
 
 						// On the IIe, reading C010 returns additional key info.
-						if(is_iie && isReadOperation(operation)) {
+						if(is_iie() && isReadOperation(operation)) {
 							*value = (key_is_down_ ? 0x80 : 0x00) | (keyboard_input_ & 0x7f);
 						}
 					break;
@@ -769,7 +776,7 @@ template <bool is_iie> class ConcreteMachine:
 			}
 
 			// Prior to the IIe, the keyboard could produce uppercase only.
-			if(!is_iie) value = static_cast<char>(toupper(value));
+			if(!is_iie()) value = static_cast<char>(toupper(value));
 
 			if(is_pressed) {
 				keyboard_input_ = static_cast<uint8_t>(value | 0x80);
@@ -818,10 +825,12 @@ using namespace AppleII;
 Machine *Machine::AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::AppleII::Target;
 	const Target *const appleii_target = dynamic_cast<const Target *>(target);
-	if(appleii_target->model == Target::Model::IIe) {
-		return new ConcreteMachine<true>(*appleii_target, rom_fetcher);
-	} else {
-		return new ConcreteMachine<false>(*appleii_target, rom_fetcher);
+	switch(appleii_target->model) {
+		default: return nullptr;
+		case Target::Model::II: return new ConcreteMachine<Target::Model::II>(*appleii_target, rom_fetcher);
+		case Target::Model::IIplus: return new ConcreteMachine<Target::Model::IIplus>(*appleii_target, rom_fetcher);
+		case Target::Model::IIe: return new ConcreteMachine<Target::Model::IIe>(*appleii_target, rom_fetcher);
+		case Target::Model::EnhancedIIe: return new ConcreteMachine<Target::Model::EnhancedIIe>(*appleii_target, rom_fetcher);
 	}
 }
 

@@ -19,7 +19,8 @@ struct Target: public ::Analyser::Static::Target {
 	enum class Model {
 		II,
 		IIplus,
-		IIe
+		IIe,
+		EnhancedIIe
 	};
 	enum class DiskController {
 		None,

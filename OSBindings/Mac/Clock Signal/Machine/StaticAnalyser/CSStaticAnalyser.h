@@ -13,7 +13,8 @@
 typedef NS_ENUM(NSInteger, CSMachineAppleIIModel) {
 	CSMachineAppleIIModelAppleII,
 	CSMachineAppleIIModelAppleIIPlus,
-	CSMachineAppleIIModelAppleIIe
+	CSMachineAppleIIModelAppleIIe,
+	CSMachineAppleIIModelAppleEnhancedIIe
 };
 
 typedef NS_ENUM(NSInteger, CSMachineAppleIIDiskController) {
