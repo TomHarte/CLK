@@ -108,9 +108,6 @@ if(number_of_cycles <= Cycles(0)) break;
 					break;
 
 					case OperationDecodeOperation:
-						if(operation_ == 0x89) {
-							printf("");
-						}
 						scheduled_program_counter_ = operations_[operation_];
 					continue;
 
