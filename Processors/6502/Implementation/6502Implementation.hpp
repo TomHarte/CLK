@@ -288,6 +288,8 @@ if(number_of_cycles <= Cycles(0)) break;
 
 							if(personality_ != P6502) {
 								negative_result_ = zero_result_ = a_;
+								read_mem(operand_, address_.full);
+								break;
 							}
 							continue;
 						} else {
@@ -312,6 +314,8 @@ if(number_of_cycles <= Cycles(0)) break;
 
 							if(personality_ != P6502) {
 								negative_result_ = zero_result_ = a_;
+								read_mem(operand_, address_.full);
+								break;
 							}
 						} else {
 							const uint16_t result = static_cast<uint16_t>(a_) + static_cast<uint16_t>(operand_) + static_cast<uint16_t>(carry_flag_);
