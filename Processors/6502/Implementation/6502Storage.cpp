@@ -292,6 +292,17 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		Install(0x9e, AbsoluteXWrite(OperationSTZ));
 		Install(0x64, ZeroWrite(OperationSTZ));
 		Install(0x74, ZeroXWrite(OperationSTZ));
+
+		// Add the extra BITs.
+		Install(0x34, ZeroXRead(OperationBIT));
+		Install(0x3c, AbsoluteXRead(OperationBIT));
+		Install(0x89, Immediate(OperationBITNoNV));
+
+		// Add TRB and TSB.
+		Install(0x04, ZeroReadModifyWrite(OperationTSB));
+		Install(0x0c, AbsoluteReadModifyWrite(OperationTSB));
+		Install(0x14, ZeroReadModifyWrite(OperationTRB));
+		Install(0x1c, AbsoluteReadModifyWrite(OperationTRB));
 	}
 #undef Install
 }

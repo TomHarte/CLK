@@ -108,6 +108,9 @@ if(number_of_cycles <= Cycles(0)) break;
 					break;
 
 					case OperationDecodeOperation:
+						if(operation_ == 0x89) {
+							printf("");
+						}
 						scheduled_program_counter_ = operations_[operation_];
 					continue;
 
@@ -231,12 +234,23 @@ if(number_of_cycles <= Cycles(0)) break;
 						carry_flag_ = ((~temp16) >> 8)&1;
 					} continue;
 
-// MARK: - BIT
+// MARK: - BIT, TSB, TRB
 
 					case OperationBIT:
 						zero_result_ = operand_ & a_;
 						negative_result_ = operand_;
 						overflow_flag_ = operand_&Flag::Overflow;
+					continue;
+					case OperationBITNoNV:
+						zero_result_ = operand_ & a_;
+					continue;
+					case OperationTRB:
+						zero_result_ = operand_ & a_;
+						operand_ &= ~a_;
+					continue;
+					case OperationTSB:
+						zero_result_ = operand_ & a_;
+						operand_ |= a_;
 					continue;
 
 // MARK: - ADC/SBC (and INS)

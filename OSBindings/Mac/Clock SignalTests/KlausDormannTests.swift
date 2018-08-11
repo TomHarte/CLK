@@ -90,6 +90,10 @@ class KlausDormannTests: XCTestCase {
 				case 0x1983: return "STZ didn't store zero"
 
 				case 0x1b03: return "BIT didn't set flags correctly"
+				case 0x1c6c: return "BIT immediate didn't set flags correctly"
+
+				case 0x1d88: return "TRB set Z flag incorrectly"
+				case 0x1e7c: return "RMB set flags incorrectly"
 
 				case 0: return "Didn't find tests"
 				default: return "Unknown error at \(String(format:"%04x", address))"
