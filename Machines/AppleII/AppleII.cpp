@@ -427,7 +427,10 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			bool has_updated_cards = false;
 			if(read_pages_[address >> 8]) {
 				if(isReadOperation(operation)) *value = read_pages_[address >> 8][address & 0xff];
-				else if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
+				else {
+					if(address >= 0x200 && address < 0x6000) update_video();
+					if(write_pages_[address >> 8]) write_pages_[address >> 8][address & 0xff] = *value;
+				}
 
 				if(is_iie() && address >= 0xc300 && address < 0xd000) {
 					bool internal_c8_rom = internal_c8_rom_;
