@@ -131,6 +131,7 @@ class MachinePicker: NSObject {
 				switch appleIIModelButton!.selectedTag() {
 					case 1:		model = .appleIIPlus
 					case 2:		model = .appleIIe
+					case 3:		model = .appleEnhancedIIe
 					case 0:		fallthrough
 					default:	model = .appleII
 				}

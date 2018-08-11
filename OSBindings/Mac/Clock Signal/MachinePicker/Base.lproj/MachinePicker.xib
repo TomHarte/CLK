@@ -84,7 +84,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="jli-ac-Sij">
-                                            <rect key="frame" x="65" y="67" width="91" height="26"/>
+                                            <rect key="frame" x="65" y="67" width="115" height="26"/>
                                             <popUpButtonCell key="cell" type="push" title="Apple II" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="VBQ-JG-AeM" id="U6V-us-O2F">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -93,6 +93,7 @@ Gw
                                                         <menuItem title="Apple II" state="on" id="VBQ-JG-AeM"/>
                                                         <menuItem title="Apple II+" tag="1" id="Yme-Wn-Obh"/>
                                                         <menuItem title="Apple IIe" tag="2" id="AMt-WU-a0H"/>
+                                                        <menuItem title="Enhanced IIe" tag="3" id="kUz-FG-lqW"/>
                                                     </items>
                                                 </menu>
                                             </popUpButtonCell>
