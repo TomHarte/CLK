@@ -11,10 +11,37 @@ import XCTest
 
 class KlausDormannTests: XCTestCase {
 
-	func testKlausDormann() {
+	fileprivate func runTest(resource: String, is65C02: Bool) -> UInt16 {
+		if let filename = Bundle(for: type(of: self)).path(forResource: resource, ofType: "bin") {
+			if let functionalTest = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
+				let machine = CSTestMachine6502(is65C02: is65C02)
 
+				machine.setData(functionalTest, atAddress: 0)
+				machine.setValue(0x400, for: .programCounter)
+
+				while true {
+					let oldPC = machine.value(for: .lastOperationAddress)
+					machine.runForNumber(ofCycles: 1000)
+					let newPC = machine.value(for: .lastOperationAddress)
+
+					if newPC == oldPC {
+						machine.runForNumber(ofCycles: 7)
+
+						let retestPC = machine.value(for: .lastOperationAddress)
+						if retestPC == oldPC {
+							return newPC
+						}
+					}
+				}
+			}
+		}
+
+		return 0
+	}
+
+	/// Runs Klaus Dorman's 6502 tests.
+	func test6502() {
 		func errorForTrapAddress(_ address: UInt16) -> String? {
-			let hexAddress = String(format:"%04x", address)
 			switch address {
 				case 0x3399: return nil // success!
 
@@ -28,29 +55,63 @@ class KlausDormannTests: XCTestCase {
 				case 0x26d2: return "ASL zpg,x produced incorrect flags"
 				case 0x36c6: return "Unexpected RESET"
 
-				default: return "Unknown error at \(hexAddress)"
+				case 0: return "Didn't find tests"
+
+				default: return "Unknown error at \(String(format:"%04x", address))"
 			}
 		}
 
-		if let filename = Bundle(for: type(of: self)).path(forResource: "6502_functional_test", ofType: "bin") {
-			if let functionalTest = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
-				let machine = CSTestMachine6502()
+		let destination = runTest(resource: "6502_functional_test", is65C02: false)
+		let error = errorForTrapAddress(destination)
+		XCTAssert(error == nil, "Failed with error \(error!)")
+	}
 
-				machine.setData(functionalTest, atAddress: 0)
-				machine.setValue(0x400, for: .programCounter)
+	/// Runs Klaus Dorman's 65C02 tests.
+	func test65C02() {
+		func errorForTrapAddress(_ address: UInt16) -> String? {
+			switch address {
+				case 0x24f1: return nil // success!
 
-				while true {
-					let oldPC = machine.value(for: .lastOperationAddress)
-					machine.runForNumber(ofCycles: 1000)
-					let newPC = machine.value(for: .lastOperationAddress)
+				case 0x0423: return "PHX: value of X not on stack page"
+				case 0x0428: return "PHX: stack pointer not decremented"
+				case 0x042d: return "PLY: didn't acquire value 0xaa from stack"
+				case 0x0432: return "PLY: didn't acquire value 0x55 from stack"
+				case 0x0437: return "PLY: stack pointer not incremented"
+				case 0x043c: return "PLY: stack pointer not incremented"
 
-					if newPC == oldPC {
-						let error = errorForTrapAddress(oldPC)
-						XCTAssert(error == nil, "Failed with error \(error!)")
-						return
-					}
-				}
+				case 0x066a: return "BRA: branch not taken"
+				case 0x0730: return "BBS: branch not taken"
+				case 0x0733: return "BBR: branch taken"
+
+				case 0x2884: return "JMP (abs) exhibited 6502 page-crossing bug"
+				case 0x16ca: return "JMP (abs, x) failed"
+
+				case 0x2785: return "BRK didn't clear the decimal mode flag"
+
+				case 0x177b: return "INC A didn't function"
+
+				case 0x1834: return "LDA (zp) acted as JAM"
+				case 0x183a: return "STA (zp) acted as JAM"
+				case 0x1849: return "LDA/STA (zp) left flags in incorrect state"
+
+				case 0x1983: return "STZ didn't store zero"
+
+				case 0x1b03: return "BIT didn't set flags correctly"
+				case 0x1c6c: return "BIT immediate didn't set flags correctly"
+
+				case 0x1d88: return "TRB set Z flag incorrectly"
+				case 0x1e7c: return "RMB set flags incorrectly"
+
+				case 0x2245: return "CMP (zero) didn't work"
+				case 0x2506: return "Decimal ADC set flags incorrectly"
+
+				case 0: return "Didn't find tests"
+				default: return "Unknown error at \(String(format:"%04x", address))"
 			}
 		}
+
+		let destination = runTest(resource: "65C02_extended_opcodes_test", is65C02: true)
+		let error = errorForTrapAddress(destination)
+		XCTAssert(error == nil, "Failed with error \(error!)")
 	}
 }

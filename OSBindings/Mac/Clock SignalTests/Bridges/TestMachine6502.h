@@ -23,7 +23,11 @@ extern const uint8_t CSTestMachine6502JamOpcode;
 
 @interface CSTestMachine6502 : CSTestMachine
 
-- (void)setData:(NSData *)data atAddress:(uint16_t)startAddress;
+- (nonnull instancetype)init NS_UNAVAILABLE;
+
+- (nonnull instancetype)initIs65C02:(BOOL)is65C02;
+
+- (void)setData:(nonnull NSData *)data atAddress:(uint16_t)startAddress;
 - (void)runForNumberOfCycles:(int)cycles;
 
 - (void)setValue:(uint8_t)value forAddress:(uint16_t)address;

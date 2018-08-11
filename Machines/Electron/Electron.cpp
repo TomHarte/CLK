@@ -50,7 +50,7 @@ class ConcreteMachine:
 	public Activity::Source {
 	public:
 		ConcreteMachine(const Analyser::Static::Acorn::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-				m6502_(*this),
+				m6502_(CPU::MOS6502::Personality::P6502, *this),
 				sound_generator_(audio_queue_),
 				speaker_(sound_generator_) {
 			memset(key_states_, 0, sizeof(key_states_));

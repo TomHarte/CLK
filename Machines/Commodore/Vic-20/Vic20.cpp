@@ -293,7 +293,7 @@ class ConcreteMachine:
 	public Activity::Source {
 	public:
 		ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-				m6502_(*this),
+				m6502_(CPU::MOS6502::Personality::P6502, *this),
 				user_port_via_port_handler_(new UserPortVIA),
 				keyboard_via_port_handler_(new KeyboardVIA),
 				serial_port_(new SerialPort),

@@ -17,8 +17,8 @@ namespace {
 
 class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 	public:
-		ConcreteAllRAMProcessor() :
-			mos6502_(*this) {
+		ConcreteAllRAMProcessor(Personality personality) :
+			mos6502_(personality, *this) {
 			mos6502_.set_power_on(false);
 		}
 
@@ -68,6 +68,6 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 
 }
 
-AllRAMProcessor *AllRAMProcessor::Processor() {
-	return new ConcreteAllRAMProcessor;
+AllRAMProcessor *AllRAMProcessor::Processor(Personality personality) {
+	return new ConcreteAllRAMProcessor(personality);
 }

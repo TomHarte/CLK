@@ -15,7 +15,7 @@
 */
 class ProcessorStorage {
 	protected:
-		ProcessorStorage();
+		ProcessorStorage(Personality);
 
 		/*
 			This emulation functions by decomposing instructions into micro programs, consisting of the micro operations
@@ -25,44 +25,64 @@ class ProcessorStorage {
 		enum MicroOp {
 			CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
 			CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
-			OperationSetI,
+			CyclePushX,									CyclePushY,							OperationSetI,
 
 			OperationBRKPickVector,						OperationNMIPickVector,				OperationRSTPickVector,
 			CycleReadVectorLow,							CycleReadVectorHigh,
 
 			CycleReadFromS,								CycleReadFromPC,
 			CyclePullOperand,							CyclePullPCL,						CyclePullPCH,							CyclePullA,
+			CyclePullX,									CyclePullY,
 			CycleNoWritePush,
 			CycleReadAndIncrementPC,					CycleIncrementPCAndReadStack,		CycleIncrementPCReadPCHLoadPCL,			CycleReadPCHLoadPCL,
-			CycleReadAddressHLoadAddressL,				CycleReadPCLFromAddress,			CycleReadPCHFromAddress,				CycleLoadAddressAbsolute,
+			CycleReadAddressHLoadAddressL,
+
+			CycleReadPCLFromAddress,					CycleReadPCHFromAddressLowInc,		CycleReadPCHFromAddressFixed,			CycleReadPCHFromAddressInc,
+
+			CycleLoadAddressAbsolute,
 			OperationLoadAddressZeroPage,				CycleLoadAddessZeroX,				CycleLoadAddessZeroY,					CycleAddXToAddressLow,
 			CycleAddYToAddressLow,						CycleAddXToAddressLowRead,			OperationCorrectAddressHigh,			CycleAddYToAddressLowRead,
 			OperationMoveToNextProgram,					OperationIncrementPC,
 			CycleFetchOperandFromAddress,				CycleWriteOperandToAddress,			OperationCopyOperandFromA,				OperationCopyOperandToA,
 			CycleIncrementPCFetchAddressLowFromOperand,	CycleAddXToOperandFetchAddressLow,	CycleIncrementOperandFetchAddressHigh,	OperationDecrementOperand,
+			CycleFetchAddressLowFromOperand,
 			OperationIncrementOperand,					OperationORA,						OperationAND,							OperationEOR,
 			OperationINS,								OperationADC,						OperationSBC,							OperationLDA,
 			OperationLDX,								OperationLDY,						OperationLAX,							OperationSTA,
-			OperationSTX,								OperationSTY,						OperationSAX,							OperationSHA,
+			OperationSTX,								OperationSTY,						OperationSTZ,
+			OperationSAX,								OperationSHA,
 			OperationSHX,								OperationSHY,						OperationSHS,							OperationCMP,
-			OperationCPX,								OperationCPY,						OperationBIT,							OperationASL,
+			OperationCPX,								OperationCPY,						OperationBIT,							OperationBITNoNV,
+			OperationASL,								OperationRMB,						OperationSMB,
 			OperationASO,								OperationROL,						OperationRLA,							OperationLSR,
 			OperationLSE,								OperationASR,						OperationROR,							OperationRRA,
 			OperationCLC,								OperationCLI,						OperationCLV,							OperationCLD,
-			OperationSEC,								OperationSEI,						OperationSED,							OperationINC,
-			OperationDEC,								OperationINX,						OperationDEX,							OperationINY,
-			OperationDEY,								OperationBPL,						OperationBMI,							OperationBVC,
-			OperationBVS,								OperationBCC,						OperationBCS,							OperationBNE,
-			OperationBEQ,								OperationTXA,						OperationTYA,							OperationTXS,
-			OperationTAY,								OperationTAX,						OperationTSX,							OperationARR,
-			OperationSBX,								OperationLXA,						OperationANE,							OperationANC,
-			OperationLAS,								CycleAddSignedOperandToPC,			OperationSetFlagsFromOperand,			OperationSetOperandFromFlagsWithBRKSet,
+			OperationSEC,								OperationSEI,						OperationSED,
+			OperationTRB,								OperationTSB,
+
+			OperationINC,								OperationDEC,						OperationINX,							OperationDEX,
+			OperationINY,								OperationDEY,						OperationINA,							OperationDEA,
+
+			OperationBPL,								OperationBMI,						OperationBVC,							OperationBVS,
+			OperationBCC,								OperationBCS,						OperationBNE,							OperationBEQ,
+			OperationBRA,								OperationBBRBBS,
+
+			OperationTXA,								OperationTYA,						OperationTXS,							OperationTAY,
+			OperationTAX,								OperationTSX,
+
+			OperationARR,								OperationSBX,						OperationLXA,							OperationANE,
+			OperationANC,								OperationLAS,
+
+			CycleFetchFromHalfUpdatedPC,				CycleAddSignedOperandToPC,			OperationAddSignedOperandToPC16,
+
+			OperationSetFlagsFromOperand,				OperationSetOperandFromFlagsWithBRKSet,
 			OperationSetOperandFromFlags,
-			OperationSetFlagsFromA,
+			OperationSetFlagsFromA,						OperationSetFlagsFromX,				OperationSetFlagsFromY,
 			CycleScheduleJam
 		};
 
-		static const MicroOp operations[256][10];
+		using InstructionList = MicroOp[10];
+		InstructionList operations_[256];
 
 		const MicroOp *scheduled_program_counter_ = nullptr;
 

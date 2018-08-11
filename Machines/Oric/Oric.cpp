@@ -207,7 +207,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 	public:
 		ConcreteMachine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-				m6502_(*this),
+				m6502_(CPU::MOS6502::Personality::P6502, *this),
 				ay8910_(audio_queue_),
 				speaker_(ay8910_),
 				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),

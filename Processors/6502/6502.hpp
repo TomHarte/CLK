@@ -34,6 +34,15 @@ enum Register {
 };
 
 /*
+	The list of 6502 variants supported by this implementation.
+*/
+enum Personality {
+	P6502,		// the original 6502, replete with various undocumented instructions
+	P65C02,		// the 65C02; an extended 6502 with a few extra instructions and addressing modes for existing instructions
+	P65SC02,	// like the 65C02, but lacking bit instructions
+};
+
+/*
 	Flags as defined on the 6502; can be used to decode the result of @c get_value_of_register(Flags) or to form a value for
 	the corresponding set.
 */
@@ -110,6 +119,8 @@ class BusHandler {
 */
 class ProcessorBase: public ProcessorStorage {
 	public:
+		ProcessorBase(Personality personality) : ProcessorStorage(personality) {}
+
 		/*!
 			Gets the value of a register.
 
@@ -193,7 +204,7 @@ template <typename T, bool uses_ready_line> class Processor: public ProcessorBas
 		/*!
 			Constructs an instance of the 6502 that will use @c bus_handler for all bus communications.
 		*/
-		Processor(T &bus_handler) : bus_handler_(bus_handler) {}
+		Processor(Personality personality, T &bus_handler) : ProcessorBase(personality), personality_(personality), bus_handler_(bus_handler) {}
 
 		/*!
 			Runs the 6502 for a supplied number of cycles.
@@ -210,6 +221,7 @@ template <typename T, bool uses_ready_line> class Processor: public ProcessorBas
 		void set_ready_line(bool active);
 
 	private:
+		Personality personality_;
 		T &bus_handler_;
 };
 

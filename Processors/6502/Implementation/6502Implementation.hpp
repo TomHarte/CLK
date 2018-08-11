@@ -13,7 +13,7 @@
 */
 
 template <typename T, bool uses_ready_line> void Processor<T, uses_ready_line>::run_for(const Cycles cycles) {
-	static const MicroOp doBranch[] = {
+	static const MicroOp do_branch[] = {
 		CycleReadFromPC,
 		CycleAddSignedOperandToPC,
 		OperationMoveToNextProgram
@@ -93,11 +93,25 @@ if(number_of_cycles <= Cycles(0)) break;
 					} break;
 
 					case CycleFetchOperand:
-						read_mem(operand_, pc_.full);
+						// This is supposed to produce the 65C02's 1-cycle NOPs; they're
+						// treated as a special case because they break the rule that
+						// governs everything else on the 6502: that two bytes will always
+						// be fetched.
+						if(
+							personality_ == P6502 ||
+							(operation_&7) != 3 ||
+							operation_ == 0xcb ||
+							operation_ == 0xdb
+						) {
+							read_mem(operand_, pc_.full);
+						}
 					break;
 
 					case OperationDecodeOperation:
-						scheduled_program_counter_ = operations[operation_];
+						if(operation_ == 0x89) {
+							printf("");
+						}
+						scheduled_program_counter_ = operations_[operation_];
 					continue;
 
 					case OperationMoveToNextProgram:
@@ -115,6 +129,8 @@ if(number_of_cycles <= Cycles(0)) break;
 					case CyclePushPCL:					push(pc_.bytes.low);											break;
 					case CyclePushOperand:				push(operand_);													break;
 					case CyclePushA:					push(a_);														break;
+					case CyclePushX:					push(x_);														break;
+					case CyclePushY:					push(y_);														break;
 					case CycleNoWritePush: {
 						uint16_t targetAddress = s_ | 0x100; s_--;
 						read_mem(operand_, targetAddress);
@@ -135,20 +151,29 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationRSTPickVector:		nextAddress.full = 0xfffc;											continue;
 					case CycleReadVectorLow:			read_mem(pc_.bytes.low, nextAddress.full);							break;
 					case CycleReadVectorHigh:			read_mem(pc_.bytes.high, nextAddress.full+1);						break;
-					case OperationSetI:					inverse_interrupt_flag_ = 0;										continue;
+					case OperationSetI:
+						inverse_interrupt_flag_ = 0;
+						if(personality_ != P6502) decimal_flag_ = false;
+					continue;
 
 					case CyclePullPCL:					s_++; read_mem(pc_.bytes.low, s_ | 0x100);							break;
 					case CyclePullPCH:					s_++; read_mem(pc_.bytes.high, s_ | 0x100);							break;
 					case CyclePullA:					s_++; read_mem(a_, s_ | 0x100);										break;
+					case CyclePullX:					s_++; read_mem(x_, s_ | 0x100);										break;
+					case CyclePullY:					s_++; read_mem(y_, s_ | 0x100);										break;
 					case CyclePullOperand:				s_++; read_mem(operand_, s_ | 0x100);								break;
 					case OperationSetFlagsFromOperand:	set_flags(operand_);												continue;
 					case OperationSetOperandFromFlagsWithBRKSet: operand_ = get_flags() | Flag::Break;						continue;
 					case OperationSetOperandFromFlags:  operand_ = get_flags();												continue;
 					case OperationSetFlagsFromA:		zero_result_ = negative_result_ = a_;								continue;
+					case OperationSetFlagsFromX:		zero_result_ = negative_result_ = x_;								continue;
+					case OperationSetFlagsFromY:		zero_result_ = negative_result_ = y_;								continue;
 
-					case CycleIncrementPCAndReadStack:	pc_.full++; throwaway_read(s_ | 0x100);								break;
-					case CycleReadPCLFromAddress:		read_mem(pc_.bytes.low, address_.full);								break;
-					case CycleReadPCHFromAddress:		address_.bytes.low++; read_mem(pc_.bytes.high, address_.full);		break;
+					case CycleIncrementPCAndReadStack:	pc_.full++; throwaway_read(s_ | 0x100);															break;
+					case CycleReadPCLFromAddress:			read_mem(pc_.bytes.low, address_.full);														break;
+					case CycleReadPCHFromAddressLowInc:		address_.bytes.low++; read_mem(pc_.bytes.high, address_.full);								break;
+					case CycleReadPCHFromAddressFixed:		if(!address_.bytes.low) address_.bytes.high++; read_mem(pc_.bytes.high, address_.full);		break;
+					case CycleReadPCHFromAddressInc:		address_.full++; read_mem(pc_.bytes.high, address_.full);									break;
 
 					case CycleReadAndIncrementPC: {
 						uint16_t oldPC = pc_.full;
@@ -160,7 +185,7 @@ if(number_of_cycles <= Cycles(0)) break;
 
 					case CycleScheduleJam: {
 						is_jammed_ = true;
-						scheduled_program_counter_ = operations[CPU::MOS6502::JamOpcode];
+						scheduled_program_counter_ = operations_[CPU::MOS6502::JamOpcode];
 					} continue;
 
 // MARK: - Bitwise
@@ -179,6 +204,7 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationSTA:	operand_ = a_;											continue;
 					case OperationSTX:	operand_ = x_;											continue;
 					case OperationSTY:	operand_ = y_;											continue;
+					case OperationSTZ:	operand_ = 0;											continue;
 					case OperationSAX:	operand_ = a_ & x_;										continue;
 					case OperationSHA:	operand_ = a_ & x_ & (address_.bytes.high+1);			continue;
 					case OperationSHX:	operand_ = x_ & (address_.bytes.high+1);				continue;
@@ -208,12 +234,32 @@ if(number_of_cycles <= Cycles(0)) break;
 						carry_flag_ = ((~temp16) >> 8)&1;
 					} continue;
 
-// MARK: - BIT
+// MARK: - BIT, TSB, TRB
 
 					case OperationBIT:
 						zero_result_ = operand_ & a_;
 						negative_result_ = operand_;
 						overflow_flag_ = operand_&Flag::Overflow;
+					continue;
+					case OperationBITNoNV:
+						zero_result_ = operand_ & a_;
+					continue;
+					case OperationTRB:
+						zero_result_ = operand_ & a_;
+						operand_ &= ~a_;
+					continue;
+					case OperationTSB:
+						zero_result_ = operand_ & a_;
+						operand_ |= a_;
+					continue;
+
+// MARK: - RMB and SMB
+
+					case OperationRMB:
+						operand_ &= ~(1 << (operation_ >> 4));
+					continue;
+					case OperationSMB:
+						operand_ |= 1 << ((operation_ >> 4)&7);
 					continue;
 
 // MARK: - ADC/SBC (and INS)
@@ -239,6 +285,12 @@ if(number_of_cycles <= Cycles(0)) break;
 
 							carry_flag_ = (temp16 > 0xff) ? 0 : Flag::Carry;
 							a_ = static_cast<uint8_t>(temp16);
+
+							if(personality_ != P6502) {
+								negative_result_ = zero_result_ = a_;
+								read_mem(operand_, address_.full);
+								break;
+							}
 							continue;
 						} else {
 							operand_ = ~operand_;
@@ -259,6 +311,12 @@ if(number_of_cycles <= Cycles(0)) break;
 							carry_flag_ = (result >> 8) ? 1 : 0;
 							a_ = static_cast<uint8_t>(result);
 							zero_result_ = static_cast<uint8_t>(decimalResult);
+
+							if(personality_ != P6502) {
+								negative_result_ = zero_result_ = a_;
+								read_mem(operand_, address_.full);
+								break;
+							}
 						} else {
 							const uint16_t result = static_cast<uint16_t>(a_) + static_cast<uint16_t>(operand_) + static_cast<uint16_t>(carry_flag_);
 							overflow_flag_ = (( (result^a_)&(result^operand_) )&0x80) >> 1;
@@ -345,6 +403,8 @@ if(number_of_cycles <= Cycles(0)) break;
 
 					case OperationINC: operand_++; negative_result_ = zero_result_ = operand_; continue;
 					case OperationDEC: operand_--; negative_result_ = zero_result_ = operand_; continue;
+					case OperationINA: a_++; negative_result_ = zero_result_ = a_; continue;
+					case OperationDEA: a_--; negative_result_ = zero_result_ = a_; continue;
 					case OperationINX: x_++; negative_result_ = zero_result_ = x_; continue;
 					case OperationDEX: x_--; negative_result_ = zero_result_ = x_; continue;
 					case OperationINY: y_++; negative_result_ = zero_result_ = y_; continue;
@@ -405,6 +465,9 @@ if(number_of_cycles <= Cycles(0)) break;
 						operand_ += x_;
 						read_mem(address_.bytes.low, operand_);
 					break;
+					case CycleFetchAddressLowFromOperand:
+						read_mem(address_.bytes.low, operand_);
+					break;
 					case CycleIncrementOperandFetchAddressHigh:
 						operand_++;
 						read_mem(address_.bytes.high, operand_);
@@ -454,7 +517,7 @@ if(number_of_cycles <= Cycles(0)) break;
 
 // MARK: - Branching
 
-#define BRA(condition)	pc_.full++; if(condition) scheduled_program_counter_ = doBranch
+#define BRA(condition)	pc_.full++; if(condition) scheduled_program_counter_ = do_branch
 
 					case OperationBPL: BRA(!(negative_result_&0x80));				continue;
 					case OperationBMI: BRA(negative_result_&0x80);					continue;
@@ -464,6 +527,7 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationBCS: BRA(carry_flag_);							continue;
 					case OperationBNE: BRA(zero_result_);							continue;
 					case OperationBEQ: BRA(!zero_result_);							continue;
+					case OperationBRA: BRA(true);									continue;
 
 					case CycleAddSignedOperandToPC:
 						nextAddress.full = static_cast<uint16_t>(pc_.full + (int8_t)operand_);
@@ -475,6 +539,39 @@ if(number_of_cycles <= Cycles(0)) break;
 							break;
 						}
 					continue;
+
+					case CycleFetchFromHalfUpdatedPC: {
+						uint16_t halfUpdatedPc = static_cast<uint16_t>(((pc_.bytes.low + (int8_t)operand_) & 0xff) | (pc_.bytes.high << 8));
+						throwaway_read(halfUpdatedPc);
+					} break;
+
+					case OperationAddSignedOperandToPC16:
+						pc_.full = static_cast<uint16_t>(pc_.full + (int8_t)operand_);
+					continue;
+
+					case OperationBBRBBS: {
+						// To reach here, the 6502 has (i) read the operation; (ii) read the first operand;
+						// and (iii) read from the corresponding zero page.
+						const uint8_t mask = static_cast<uint8_t>(1 << ((operation_ >> 4)&7));
+						if((operand_ & mask) == ((operation_ & 0x80) ? mask : 0)) {
+							static const MicroOp do_branch[] = {
+								CycleFetchOperand,			// Fetch offset.
+								OperationIncrementPC,
+								CycleFetchFromHalfUpdatedPC,
+								OperationAddSignedOperandToPC16,
+								OperationMoveToNextProgram
+							};
+							scheduled_program_counter_ = do_branch;
+						} else {
+							static const MicroOp do_not_branch[] = {
+								CycleFetchOperand,
+								OperationIncrementPC,
+								CycleFetchFromHalfUpdatedPC,
+								OperationMoveToNextProgram
+							};
+							scheduled_program_counter_ = do_not_branch;
+						}
+					} break;
 
 #undef BRA
 
