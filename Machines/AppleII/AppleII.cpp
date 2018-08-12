@@ -20,6 +20,7 @@
 #include "../../Components/AudioToggle/AudioToggle.hpp"
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Outputs/Log.hpp"
 
 #include "Card.hpp"
 #include "DiskIICard.hpp"
@@ -529,7 +530,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 							// Write-only switches. All IIe as currently implemented.
 							if(is_iie()) {
 								switch(address) {
-									default: printf("Write %04x?\n", address); break;
+									default: break;
 
 									case 0xc000:
 									case 0xc001:
