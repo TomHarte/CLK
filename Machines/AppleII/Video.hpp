@@ -332,13 +332,13 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 								case GraphicsMode::DoubleLowRes: {
 									const int row_shift = (row_&4);
 									for(int c = column_; c < pixel_end; ++c) {
-										const uint16_t nibble = (bus_handler_.perform_aux_read(static_cast<uint16_t>(text_address + c)) >> row_shift) & 0xf0f;
+										const uint16_t nibble = bus_handler_.perform_aux_read(static_cast<uint16_t>(text_address + c)) >> row_shift;
 
 										if(c&1) {
-											pixel_pointer_[0] = pixel_pointer_[4] = (nibble >> 8) & 4;
-											pixel_pointer_[1] = pixel_pointer_[5] = (nibble >> 8) & 8;
-											pixel_pointer_[2] = pixel_pointer_[6] = (nibble >> 8) & 1;
-											pixel_pointer_[3] = (nibble >> 8) & 2;
+											pixel_pointer_[0] = pixel_pointer_[4] = (nibble >> 8) & 2;
+											pixel_pointer_[1] = pixel_pointer_[5] = (nibble >> 8) & 4;
+											pixel_pointer_[2] = pixel_pointer_[6] = (nibble >> 8) & 8;
+											pixel_pointer_[3] = (nibble >> 8) & 1;
 
 											pixel_pointer_[8] = pixel_pointer_[12] = nibble & 4;
 											pixel_pointer_[9] = pixel_pointer_[13] = nibble & 8;
@@ -346,10 +346,10 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 											pixel_pointer_[7] = pixel_pointer_[11] = nibble & 2;
 											graphics_carry_ = nibble & 8;
 										} else {
-											pixel_pointer_[0] = pixel_pointer_[4] = (nibble >> 8) & 1;
-											pixel_pointer_[1] = pixel_pointer_[5] = (nibble >> 8) & 2;
-											pixel_pointer_[2] = pixel_pointer_[6] = (nibble >> 8) & 4;
-											pixel_pointer_[3] = (nibble >> 8) & 8;
+											pixel_pointer_[0] = pixel_pointer_[4] = (nibble >> 8) & 8;
+											pixel_pointer_[1] = pixel_pointer_[5] = (nibble >> 8) & 1;
+											pixel_pointer_[2] = pixel_pointer_[6] = (nibble >> 8) & 2;
+											pixel_pointer_[3] = (nibble >> 8) & 4;
 
 											pixel_pointer_[8] = pixel_pointer_[12] = nibble & 1;
 											pixel_pointer_[9] = pixel_pointer_[13] = nibble & 2;
