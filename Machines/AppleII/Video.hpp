@@ -12,6 +12,7 @@
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
+#include <array>
 #include <vector>
 
 namespace AppleII {
@@ -20,19 +21,13 @@ namespace Video {
 class BusHandler {
 	public:
 		/*!
-			Reads an 8-bit value from the ordinary II/II+ memory pool.
-		*/
-		uint8_t perform_read(uint16_t address) {
-			return 0xff;
-		}
+			Requests fetching of the @c count bytes starting from @c address.
 
-		/*!
-			Reads two 8-bit values, from the same address — one from
-			main RAM, one from auxiliary. Should return as
-			(main) | (aux << 8).
+			The handler should write the values from base memory to @c base_target, and those
+			from auxiliary memory to @c auxiliary_target. If the machine has no axiliary memory,
+			it needn't write anything to auxiliary_target.
 		*/
-		uint16_t perform_aux_read(uint16_t address) {
-			return 0xffff;
+		void perform_read(uint16_t address, size_t count, uint8_t *base_target, uint8_t *auxiliary_target) {
 		}
 };
 
@@ -189,6 +184,12 @@ class VideoBase {
 		// set is assumed to be in the first 64*8 bytes; the alternative
 		// is in the 128*8 bytes after that.
 		std::vector<uint8_t> character_rom_;
+
+		// Memory is fetched ahead of time into this array;
+		// this permits the correct delay between fetching
+		// without having to worry about a rolling buffer.
+		std::array<uint8_t, 40> base_stream_;
+		std::array<uint8_t, 40> auxiliary_stream_;
 };
 
 template <class BusHandler, bool is_iie> class Video: public VideoBase {
@@ -258,6 +259,22 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							const uint16_t row_address = static_cast<uint16_t>((character_row >> 3) * 40 + ((character_row&7) << 7));
 							const uint16_t text_address = static_cast<uint16_t>(((video_page()+1) * 0x400) + row_address);
 
+							// Grab the memory contents that'll be needed momentarily.
+							switch(line_mode) {
+								case GraphicsMode::Text:
+								case GraphicsMode::DoubleText:
+								case GraphicsMode::LowRes:
+								case GraphicsMode::DoubleLowRes:
+									bus_handler_.perform_read(text_address + column_, pixel_end - column_, &base_stream_[column_], &auxiliary_stream_[column_]);
+									// TODO: should character modes be mapped to character pixel outputs here?
+								break;
+
+								case GraphicsMode::HighRes:
+								case GraphicsMode::DoubleHighRes:
+									bus_handler_.perform_read(static_cast<uint16_t>(((video_page()+1) * 0x2000) + row_address + ((pixel_row&7) << 10)) + column_, pixel_end - column_, &base_stream_[column_], &auxiliary_stream_[column_]);
+								break;
+							}
+
 							switch(line_mode) {
 								case GraphicsMode::Text: {
 									const uint8_t inverses[] = {
@@ -266,13 +283,12 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 										0x00,
 										0x00
 									};
-									for(int c = column_; c < pixel_end; ++c) {
-										int character = bus_handler_.perform_read(static_cast<uint16_t>(text_address + c));
+									for(size_t c = column_; c < pixel_end; ++c) {
+										int character = base_stream_[c];
 										if(is_iie) {
 											character |= alternative_character_set_ ? 0x100 : 0;
 										} else {
 											character &= 0x3f;
-
 										}
 										const uint8_t xor_mask = is_iie ? 0xff : inverses[character >> 6];
 										const std::size_t character_address = static_cast<std::size_t>((character << 3) + pixel_row);
@@ -292,14 +308,13 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 								} break;
 
 								case GraphicsMode::DoubleText: {
-									for(int c = column_; c < pixel_end; ++c) {
-										const uint16_t characters = bus_handler_.perform_aux_read(static_cast<uint16_t>(text_address + c));
+									for(size_t c = column_; c < pixel_end; ++c) {
 										const std::size_t character_addresses[2] = {
 											static_cast<std::size_t>(
-												(((characters >> 8)) << 3) + pixel_row
+												(auxiliary_stream_[c] << 3) + pixel_row
 											),
 											static_cast<std::size_t>(
-												(characters << 3) + pixel_row
+												(base_stream_[c] << 3) + pixel_row
 											),
 										};
 
@@ -331,31 +346,29 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 								case GraphicsMode::DoubleLowRes: {
 									const int row_shift = (row_&4);
-									for(int c = column_; c < pixel_end; ++c) {
-										const uint16_t nibble = bus_handler_.perform_aux_read(static_cast<uint16_t>(text_address + c)) >> row_shift;
-
+									for(size_t c = column_; c < pixel_end; ++c) {
 										if(c&1) {
-											pixel_pointer_[0] = pixel_pointer_[4] = (nibble >> 8) & 2;
-											pixel_pointer_[1] = pixel_pointer_[5] = (nibble >> 8) & 4;
-											pixel_pointer_[2] = pixel_pointer_[6] = (nibble >> 8) & 8;
-											pixel_pointer_[3] = (nibble >> 8) & 1;
+											pixel_pointer_[0] = pixel_pointer_[4] = (auxiliary_stream_[c] >> row_shift) & 2;
+											pixel_pointer_[1] = pixel_pointer_[5] = (auxiliary_stream_[c] >> row_shift) & 4;
+											pixel_pointer_[2] = pixel_pointer_[6] = (auxiliary_stream_[c] >> row_shift) & 8;
+											pixel_pointer_[3] = (auxiliary_stream_[c] >> row_shift) & 1;
 
-											pixel_pointer_[8] = pixel_pointer_[12] = nibble & 4;
-											pixel_pointer_[9] = pixel_pointer_[13] = nibble & 8;
-											pixel_pointer_[10] = nibble & 1;
-											pixel_pointer_[7] = pixel_pointer_[11] = nibble & 2;
-											graphics_carry_ = nibble & 8;
+											pixel_pointer_[8] = pixel_pointer_[12] = (base_stream_[c] >> row_shift) & 4;
+											pixel_pointer_[9] = pixel_pointer_[13] = (base_stream_[c] >> row_shift) & 8;
+											pixel_pointer_[10] = (base_stream_[c] >> row_shift) & 1;
+											pixel_pointer_[7] = pixel_pointer_[11] = (base_stream_[c] >> row_shift) & 2;
+											graphics_carry_ = (base_stream_[c] >> row_shift) & 8;
 										} else {
-											pixel_pointer_[0] = pixel_pointer_[4] = (nibble >> 8) & 8;
-											pixel_pointer_[1] = pixel_pointer_[5] = (nibble >> 8) & 1;
-											pixel_pointer_[2] = pixel_pointer_[6] = (nibble >> 8) & 2;
-											pixel_pointer_[3] = (nibble >> 8) & 4;
+											pixel_pointer_[0] = pixel_pointer_[4] = (auxiliary_stream_[c] >> row_shift) & 8;
+											pixel_pointer_[1] = pixel_pointer_[5] = (auxiliary_stream_[c] >> row_shift) & 1;
+											pixel_pointer_[2] = pixel_pointer_[6] = (auxiliary_stream_[c] >> row_shift) & 2;
+											pixel_pointer_[3] = (auxiliary_stream_[c] >> row_shift) & 4;
 
-											pixel_pointer_[8] = pixel_pointer_[12] = nibble & 1;
-											pixel_pointer_[9] = pixel_pointer_[13] = nibble & 2;
-											pixel_pointer_[10] = nibble & 4;
-											pixel_pointer_[7] = pixel_pointer_[11] = nibble & 8;
-											graphics_carry_ = nibble & 2;
+											pixel_pointer_[8] = pixel_pointer_[12] = (base_stream_[c] >> row_shift) & 1;
+											pixel_pointer_[9] = pixel_pointer_[13] = (base_stream_[c] >> row_shift) & 2;
+											pixel_pointer_[10] = (base_stream_[c] >> row_shift) & 4;
+											pixel_pointer_[7] = pixel_pointer_[11] = (base_stream_[c] >> row_shift) & 8;
+											graphics_carry_ = (base_stream_[c] >> row_shift) & 2;
 										}
 										pixel_pointer_ += 14;
 									}
@@ -363,79 +376,70 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 								case GraphicsMode::LowRes: {
 									const int row_shift = (row_&4);
-									// TODO: decompose into two loops, possibly.
-									for(int c = column_; c < pixel_end; ++c) {
-										const uint8_t nibble = (bus_handler_.perform_read(static_cast<uint16_t>(text_address + c)) >> row_shift) & 0x0f;
-
+									for(size_t c = column_; c < pixel_end; ++c) {
 										// Low-resolution graphics mode shifts the colour code on a loop, but has to account for whether this
 										// 14-sample output window is starting at the beginning of a colour cycle or halfway through.
 										if(c&1) {
-											pixel_pointer_[0] = pixel_pointer_[4] = pixel_pointer_[8] = pixel_pointer_[12] = nibble & 4;
-											pixel_pointer_[1] = pixel_pointer_[5] = pixel_pointer_[9] = pixel_pointer_[13] = nibble & 8;
-											pixel_pointer_[2] = pixel_pointer_[6] = pixel_pointer_[10] = nibble & 1;
-											pixel_pointer_[3] = pixel_pointer_[7] = pixel_pointer_[11] = nibble & 2;
-											graphics_carry_ = nibble & 8;
+											pixel_pointer_[0] = pixel_pointer_[4] = pixel_pointer_[8] = pixel_pointer_[12] = (base_stream_[c] >> row_shift) & 4;
+											pixel_pointer_[1] = pixel_pointer_[5] = pixel_pointer_[9] = pixel_pointer_[13] = (base_stream_[c] >> row_shift) & 8;
+											pixel_pointer_[2] = pixel_pointer_[6] = pixel_pointer_[10] = (base_stream_[c] >> row_shift) & 1;
+											pixel_pointer_[3] = pixel_pointer_[7] = pixel_pointer_[11] = (base_stream_[c] >> row_shift) & 2;
+											graphics_carry_ = (base_stream_[c] >> row_shift) & 8;
 										} else {
-											pixel_pointer_[0] = pixel_pointer_[4] = pixel_pointer_[8] = pixel_pointer_[12] = nibble & 1;
-											pixel_pointer_[1] = pixel_pointer_[5] = pixel_pointer_[9] = pixel_pointer_[13] = nibble & 2;
-											pixel_pointer_[2] = pixel_pointer_[6] = pixel_pointer_[10] = nibble & 4;
-											pixel_pointer_[3] = pixel_pointer_[7] = pixel_pointer_[11] = nibble & 8;
-											graphics_carry_ = nibble & 2;
+											pixel_pointer_[0] = pixel_pointer_[4] = pixel_pointer_[8] = pixel_pointer_[12] = (base_stream_[c] >> row_shift) & 1;
+											pixel_pointer_[1] = pixel_pointer_[5] = pixel_pointer_[9] = pixel_pointer_[13] = (base_stream_[c] >> row_shift) & 2;
+											pixel_pointer_[2] = pixel_pointer_[6] = pixel_pointer_[10] = (base_stream_[c] >> row_shift) & 4;
+											pixel_pointer_[3] = pixel_pointer_[7] = pixel_pointer_[11] = (base_stream_[c] >> row_shift) & 8;
+											graphics_carry_ = (base_stream_[c] >> row_shift) & 2;
 										}
 										pixel_pointer_ += 14;
 									}
 								} break;
 
 								case GraphicsMode::HighRes: {
-									const uint16_t graphics_address = static_cast<uint16_t>(((video_page()+1) * 0x2000) + row_address + ((pixel_row&7) << 10));
-									for(int c = column_; c < pixel_end; ++c) {
-										const uint8_t graphic = bus_handler_.perform_read(static_cast<uint16_t>(graphics_address + c));
-
+									for(size_t c = column_; c < pixel_end; ++c) {
 										// High resolution graphics shift out LSB to MSB, optionally with a delay of half a pixel.
 										// If there is a delay, the previous output level is held to bridge the gap.
-										if(graphic & 0x80) {
+										if(base_stream_[c] & 0x80) {
 											pixel_pointer_[0] = graphics_carry_;
-											pixel_pointer_[1] = pixel_pointer_[2] = graphic & 0x01;
-											pixel_pointer_[3] = pixel_pointer_[4] = graphic & 0x02;
-											pixel_pointer_[5] = pixel_pointer_[6] = graphic & 0x04;
-											pixel_pointer_[7] = pixel_pointer_[8] = graphic & 0x08;
-											pixel_pointer_[9] = pixel_pointer_[10] = graphic & 0x10;
-											pixel_pointer_[11] = pixel_pointer_[12] = graphic & 0x20;
-											pixel_pointer_[13] = graphic & 0x40;
+											pixel_pointer_[1] = pixel_pointer_[2] = base_stream_[c] & 0x01;
+											pixel_pointer_[3] = pixel_pointer_[4] = base_stream_[c] & 0x02;
+											pixel_pointer_[5] = pixel_pointer_[6] = base_stream_[c] & 0x04;
+											pixel_pointer_[7] = pixel_pointer_[8] = base_stream_[c] & 0x08;
+											pixel_pointer_[9] = pixel_pointer_[10] = base_stream_[c] & 0x10;
+											pixel_pointer_[11] = pixel_pointer_[12] = base_stream_[c] & 0x20;
+											pixel_pointer_[13] = base_stream_[c] & 0x40;
 										} else {
-											pixel_pointer_[0] = pixel_pointer_[1] = graphic & 0x01;
-											pixel_pointer_[2] = pixel_pointer_[3] = graphic & 0x02;
-											pixel_pointer_[4] = pixel_pointer_[5] = graphic & 0x04;
-											pixel_pointer_[6] = pixel_pointer_[7] = graphic & 0x08;
-											pixel_pointer_[8] = pixel_pointer_[9] = graphic & 0x10;
-											pixel_pointer_[10] = pixel_pointer_[11] = graphic & 0x20;
-											pixel_pointer_[12] = pixel_pointer_[13] = graphic & 0x40;
+											pixel_pointer_[0] = pixel_pointer_[1] = base_stream_[c] & 0x01;
+											pixel_pointer_[2] = pixel_pointer_[3] = base_stream_[c] & 0x02;
+											pixel_pointer_[4] = pixel_pointer_[5] = base_stream_[c] & 0x04;
+											pixel_pointer_[6] = pixel_pointer_[7] = base_stream_[c] & 0x08;
+											pixel_pointer_[8] = pixel_pointer_[9] = base_stream_[c] & 0x10;
+											pixel_pointer_[10] = pixel_pointer_[11] = base_stream_[c] & 0x20;
+											pixel_pointer_[12] = pixel_pointer_[13] = base_stream_[c] & 0x40;
 										}
-										graphics_carry_ = graphic & 0x40;
+										graphics_carry_ = base_stream_[c] & 0x40;
 										pixel_pointer_ += 14;
 									}
 								} break;
 
 								case GraphicsMode::DoubleHighRes: {
-									const uint16_t graphics_address = static_cast<uint16_t>(((video_page()+1) * 0x2000) + row_address + ((pixel_row&7) << 10));
-									for(int c = column_; c < pixel_end; ++c) {
-										const uint16_t graphic = bus_handler_.perform_aux_read(static_cast<uint16_t>(graphics_address + c));
-
+									for(size_t c = column_; c < pixel_end; ++c) {
 										pixel_pointer_[0] = graphics_carry_;
-										pixel_pointer_[1] = (graphic >> 8) & 0x01;
-										pixel_pointer_[2] = (graphic >> 8) & 0x02;
-										pixel_pointer_[3] = (graphic >> 8) & 0x04;
-										pixel_pointer_[4] = (graphic >> 8) & 0x08;
-										pixel_pointer_[5] = (graphic >> 8) & 0x10;
-										pixel_pointer_[6] = (graphic >> 8) & 0x20;
-										pixel_pointer_[7] = (graphic >> 8) & 0x40;
-										pixel_pointer_[8] = graphic & 0x01;
-										pixel_pointer_[9] = graphic & 0x02;
-										pixel_pointer_[10] = graphic & 0x04;
-										pixel_pointer_[11] = graphic & 0x08;
-										pixel_pointer_[12] = graphic & 0x10;
-										pixel_pointer_[13] = graphic & 0x20;
-										graphics_carry_ = graphic & 0x40;
+										pixel_pointer_[1] = auxiliary_stream_[c] & 0x01;
+										pixel_pointer_[2] = auxiliary_stream_[c] & 0x02;
+										pixel_pointer_[3] = auxiliary_stream_[c] & 0x04;
+										pixel_pointer_[4] = auxiliary_stream_[c] & 0x08;
+										pixel_pointer_[5] = auxiliary_stream_[c] & 0x10;
+										pixel_pointer_[6] = auxiliary_stream_[c] & 0x20;
+										pixel_pointer_[7] = auxiliary_stream_[c] & 0x40;
+										pixel_pointer_[8] = base_stream_[c] & 0x01;
+										pixel_pointer_[9] = base_stream_[c] & 0x02;
+										pixel_pointer_[10] = base_stream_[c] & 0x04;
+										pixel_pointer_[11] = base_stream_[c] & 0x08;
+										pixel_pointer_[12] = base_stream_[c] & 0x10;
+										pixel_pointer_[13] = base_stream_[c] & 0x20;
+										graphics_carry_ = base_stream_[c] & 0x40;
 										pixel_pointer_ += 14;
 									}
 								} break;
@@ -534,7 +538,9 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 			// Calculate the address and return the value.
 			uint16_t read_address = static_cast<uint16_t>(get_row_address(mapped_row) + mapped_column - 25);
-			return bus_handler_.perform_read(read_address);
+			uint8_t value, aux_value;
+			bus_handler_.perform_read(read_address, 1, &value, &aux_value);
+			return value;
 		}
 
 		/*!
