@@ -152,8 +152,11 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationRSTPickVector:		nextAddress.full = 0xfffc;											continue;
 					case CycleReadVectorLow:			read_mem(pc_.bytes.low, nextAddress.full);							break;
 					case CycleReadVectorHigh:			read_mem(pc_.bytes.high, nextAddress.full+1);						break;
-					case OperationSetI:
+					case OperationSetIRQFlags:
 						inverse_interrupt_flag_ = 0;
+						if(is_65c02(personality)) decimal_flag_ = false;
+					continue;
+					case OperationSetNMIRSTFlags:
 						if(is_65c02(personality)) decimal_flag_ = false;
 					continue;
 
@@ -681,6 +684,7 @@ inline const ProcessorStorage::MicroOp *ProcessorStorage::get_reset_program() {
 		CycleNoWritePush,
 		OperationRSTPickVector,
 		CycleNoWritePush,
+		OperationSetNMIRSTFlags,
 		CycleReadVectorLow,
 		CycleReadVectorHigh,
 		OperationMoveToNextProgram
@@ -697,7 +701,7 @@ inline const ProcessorStorage::MicroOp *ProcessorStorage::get_irq_program() {
 		OperationBRKPickVector,
 		OperationSetOperandFromFlags,
 		CyclePushOperand,
-		OperationSetI,
+		OperationSetIRQFlags,
 		CycleReadVectorLow,
 		CycleReadVectorHigh,
 		OperationMoveToNextProgram
@@ -714,6 +718,7 @@ inline const ProcessorStorage::MicroOp *ProcessorStorage::get_nmi_program() {
 		OperationNMIPickVector,
 		OperationSetOperandFromFlags,
 		CyclePushOperand,
+		OperationSetNMIRSTFlags,
 		CycleReadVectorLow,
 		CycleReadVectorHigh,
 		OperationMoveToNextProgram

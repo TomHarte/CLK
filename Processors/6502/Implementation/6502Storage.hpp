@@ -25,7 +25,7 @@ class ProcessorStorage {
 		enum MicroOp {
 			CycleFetchOperation,						CycleFetchOperand,					OperationDecodeOperation,				CycleIncPCPushPCH,
 			CyclePushPCH,								CyclePushPCL,						CyclePushA,								CyclePushOperand,
-			CyclePushX,									CyclePushY,							OperationSetI,
+			CyclePushX,									CyclePushY,							OperationSetIRQFlags,					OperationSetNMIRSTFlags,
 
 			OperationBRKPickVector,						OperationNMIPickVector,				OperationRSTPickVector,
 			CycleReadVectorLow,							CycleReadVectorHigh,
