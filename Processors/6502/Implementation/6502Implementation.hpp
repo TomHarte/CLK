@@ -12,7 +12,7 @@
 	6502.hpp, but it's implementation stuff.
 */
 
-template <typename T, bool uses_ready_line> void Processor<T, uses_ready_line>::run_for(const Cycles cycles) {
+template <Personality personality, typename T, bool uses_ready_line> void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
 	static const MicroOp do_branch[] = {
 		CycleReadFromPC,
 		CycleAddSignedOperandToPC,
@@ -98,7 +98,7 @@ if(number_of_cycles <= Cycles(0)) break;
 						// governs everything else on the 6502: that two bytes will always
 						// be fetched.
 						if(
-							personality_ == P6502 ||
+							is_65c02(personality) ||
 							(operation_&7) != 3 ||
 							operation_ == 0xcb ||
 							operation_ == 0xdb
@@ -150,7 +150,7 @@ if(number_of_cycles <= Cycles(0)) break;
 					case CycleReadVectorHigh:			read_mem(pc_.bytes.high, nextAddress.full+1);						break;
 					case OperationSetI:
 						inverse_interrupt_flag_ = 0;
-						if(personality_ != P6502) decimal_flag_ = false;
+						if(is_65c02(personality)) decimal_flag_ = false;
 					continue;
 
 					case CyclePullPCL:					s_++; read_mem(pc_.bytes.low, s_ | 0x100);							break;
@@ -264,7 +264,7 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationINS:
 						operand_++;			// deliberate fallthrough
 					case OperationSBC:
-						if(decimal_flag_) {
+						if(decimal_flag_ && has_decimal_mode(personality)) {
 							const uint16_t notCarry = carry_flag_ ^ 0x1;
 							const uint16_t decimalResult = static_cast<uint16_t>(a_) - static_cast<uint16_t>(operand_) - notCarry;
 							uint16_t temp16;
@@ -283,7 +283,7 @@ if(number_of_cycles <= Cycles(0)) break;
 							carry_flag_ = (temp16 > 0xff) ? 0 : Flag::Carry;
 							a_ = static_cast<uint8_t>(temp16);
 
-							if(personality_ != P6502) {
+							if(is_65c02(personality)) {
 								negative_result_ = zero_result_ = a_;
 								read_mem(operand_, address_.full);
 								break;
@@ -295,7 +295,7 @@ if(number_of_cycles <= Cycles(0)) break;
 
 					// deliberate fallthrough
 					case OperationADC:
-						if(decimal_flag_) {
+						if(decimal_flag_ && has_decimal_mode(personality)) {
 							const uint16_t decimalResult = static_cast<uint16_t>(a_) + static_cast<uint16_t>(operand_) + static_cast<uint16_t>(carry_flag_);
 
 							uint8_t low_nibble = (a_ & 0xf) + (operand_ & 0xf) + carry_flag_;
@@ -309,7 +309,7 @@ if(number_of_cycles <= Cycles(0)) break;
 							a_ = static_cast<uint8_t>(result);
 							zero_result_ = static_cast<uint8_t>(decimalResult);
 
-							if(personality_ != P6502) {
+							if(is_65c02(personality)) {
 								negative_result_ = zero_result_ = a_;
 								read_mem(operand_, address_.full);
 								break;
@@ -611,7 +611,7 @@ if(number_of_cycles <= Cycles(0)) break;
 					continue;
 				}
 
-				if(uses_ready_line && ready_line_is_enabled_ && isReadOperation(nextBusOperation)) {
+				if(uses_ready_line && ready_line_is_enabled_ && (is_65c02(personality) || isReadOperation(nextBusOperation))) {
 					ready_is_active_ = true;
 					break;
 				}
@@ -629,7 +629,7 @@ if(number_of_cycles <= Cycles(0)) break;
 	bus_handler_.flush();
 }
 
-template <typename T, bool uses_ready_line> void Processor<T, uses_ready_line>::set_ready_line(bool active) {
+template <Personality personality, typename T, bool uses_ready_line> void Processor<personality, T, uses_ready_line>::set_ready_line(bool active) {
 	assert(uses_ready_line);
 	if(active) {
 		ready_line_is_enabled_ = true;

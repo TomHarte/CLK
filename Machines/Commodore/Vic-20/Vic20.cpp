@@ -293,7 +293,7 @@ class ConcreteMachine:
 	public Activity::Source {
 	public:
 		ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-				m6502_(CPU::MOS6502::Personality::P6502, *this),
+				m6502_(*this),
 				user_port_via_port_handler_(new UserPortVIA),
 				keyboard_via_port_handler_(new KeyboardVIA),
 				serial_port_(new SerialPort),
@@ -703,7 +703,7 @@ class ConcreteMachine:
 		void update_video() {
 			mos6560_->run_for(cycles_since_mos6560_update_.flush());
 		}
-		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
+		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 
 		std::vector<uint8_t>  character_rom_;
 		std::vector<uint8_t>  basic_rom_;

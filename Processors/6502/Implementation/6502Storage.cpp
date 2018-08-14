@@ -29,7 +29,7 @@ using namespace CPU::MOS6502;
 
 #define Read(...)							CycleFetchOperandFromAddress,	__VA_ARGS__
 #define Write(...)							__VA_ARGS__,					CycleWriteOperandToAddress
-#define ReadModifyWrite(...)				CycleFetchOperandFromAddress,	(personality	 == P6502) ? CycleWriteOperandToAddress : CycleFetchOperandFromAddress,			__VA_ARGS__,							CycleWriteOperandToAddress
+#define ReadModifyWrite(...)				CycleFetchOperandFromAddress,	is_65c02(personality) ? CycleFetchOperandFromAddress : CycleWriteOperandToAddress,			__VA_ARGS__,							CycleWriteOperandToAddress
 
 #define AbsoluteRead(op)					Program(Absolute,			Read(op))
 #define AbsoluteXRead(op)					Program(AbsoluteXr,			Read(op))
@@ -225,7 +225,7 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		const InstructionList code = instructions;	\
 		memcpy(&operations_[location], code, sizeof(InstructionList));	\
 	}
-	if(personality != P6502) {
+	if(is_65c02(personality)) {
 		// Add P[L/H][X/Y].
 		Install(0x5a, Program(CyclePushY));
 		Install(0xda, Program(CyclePushX));
@@ -234,17 +234,6 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 
 		// Add BRA.
 		Install(0x80, Program(OperationBRA));
-
-		// Add BBS and BBR. These take five cycles. My guessed breakdown is:
-		// 1. read opcode
-		// 2. read operand
-		// 3. read zero page
-		// 4. read second operand
-		// 5. read from PC without top byte fixed yet
-		// ... with the caveat that (3) and (4) could be the other way around.
-		for(int location = 0x0f; location <= 0xff; location += 0x10) {
-			Install(location, Program(OperationLoadAddressZeroPage, CycleFetchOperandFromAddress, OperationBBRBBS));
-		}
 
 		// Add NOPs.
 
@@ -304,12 +293,33 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		Install(0x14, ZeroReadModifyWrite(OperationTRB));
 		Install(0x1c, AbsoluteReadModifyWrite(OperationTRB));
 
-		// Add RMB and SMB.
-		for(int c = 0x07; c <= 0x77; c += 0x10) {
-			Install(c, ZeroReadModifyWrite(OperationRMB));
+		if(has_bbrbbsrmbsmb(personality)) {
+			// Add BBS and BBR. These take five cycles. My guessed breakdown is:
+			// 1. read opcode
+			// 2. read operand
+			// 3. read zero page
+			// 4. read second operand
+			// 5. read from PC without top byte fixed yet
+			// ... with the caveat that (3) and (4) could be the other way around.
+			for(int location = 0x0f; location <= 0xff; location += 0x10) {
+				Install(location, Program(OperationLoadAddressZeroPage, CycleFetchOperandFromAddress, OperationBBRBBS));
+			}
+
+			// Add RMB and SMB.
+			for(int c = 0x07; c <= 0x77; c += 0x10) {
+				Install(c, ZeroReadModifyWrite(OperationRMB));
+			}
+			for(int c = 0x87; c <= 0xf7; c += 0x10) {
+				Install(c, ZeroReadModifyWrite(OperationSMB));
+			}
+		} else {
+			// TODO
 		}
-		for(int c = 0x87; c <= 0xf7; c += 0x10) {
-			Install(c, ZeroReadModifyWrite(OperationSMB));
+
+		if(has_stpwai(personality)) {
+
+		} else {
+			// TODO
 		}
 	}
 #undef Install

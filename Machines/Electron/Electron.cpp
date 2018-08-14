@@ -50,7 +50,7 @@ class ConcreteMachine:
 	public Activity::Source {
 	public:
 		ConcreteMachine(const Analyser::Static::Acorn::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-				m6502_(CPU::MOS6502::Personality::P6502, *this),
+				m6502_(*this),
 				sound_generator_(audio_queue_),
 				speaker_(sound_generator_) {
 			memset(key_states_, 0, sizeof(key_states_));
@@ -541,7 +541,7 @@ class ConcreteMachine:
 			m6502_.set_irq_line(interrupt_status_ & 1);
 		}
 
-		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
+		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 
 		// Things that directly constitute the memory map.
 		uint8_t roms_[16][16384];
