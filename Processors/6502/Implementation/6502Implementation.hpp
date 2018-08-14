@@ -140,9 +140,13 @@ if(number_of_cycles <= Cycles(0)) break;
 					case CycleReadFromPC:				throwaway_read(pc_.full);										break;
 
 					case OperationBRKPickVector:
-						// NMI can usurp BRK-vector operations
-						nextAddress.full = (interrupt_requests_ & InterruptRequestFlags::NMI) ? 0xfffa : 0xfffe;
-						interrupt_requests_ &= ~InterruptRequestFlags::NMI;	// TODO: this probably doesn't happen now?
+						if(is_65c02(personality)) {
+							nextAddress.full = 0xfffe;
+						} else {
+							// NMI can usurp BRK-vector operations on the pre-C 6502s.
+							nextAddress.full = (interrupt_requests_ & InterruptRequestFlags::NMI) ? 0xfffa : 0xfffe;
+							interrupt_requests_ &= ~InterruptRequestFlags::NMI;
+						}
 					continue;
 					case OperationNMIPickVector:		nextAddress.full = 0xfffa;											continue;
 					case OperationRSTPickVector:		nextAddress.full = 0xfffc;											continue;
