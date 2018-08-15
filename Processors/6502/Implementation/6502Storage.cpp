@@ -61,7 +61,7 @@ using namespace CPU::MOS6502;
 #define IndirectIndexedReadModifyWrite(...)	Program(IndirectIndexed,	ReadModifyWrite(__VA_ARGS__))
 
 #define Immediate(op)						Program(OperationIncrementPC,		op)
-#define Implied(op)							Program(OperationCopyOperandFromA,	op,	OperationCopyOperandToA)
+#define Implied(op)							Program(OperationSTA,				op,	OperationCopyOperandToA)
 
 #define ZeroNop()							Program(Zero, CycleFetchOperandFromAddress)
 #define ZeroXNop()							Program(ZeroX, CycleFetchOperandFromAddress)

@@ -104,6 +104,9 @@ if(number_of_cycles <= Cycles(0)) break;
 							operation_ == 0xdb
 						) {
 							read_mem(operand_, pc_.full);
+							break;
+						} else {
+							continue;
 						}
 					break;
 
@@ -173,11 +176,11 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationSetFlagsFromX:		zero_result_ = negative_result_ = x_;								continue;
 					case OperationSetFlagsFromY:		zero_result_ = negative_result_ = y_;								continue;
 
-					case CycleIncrementPCAndReadStack:	pc_.full++; throwaway_read(s_ | 0x100);															break;
-					case CycleReadPCLFromAddress:			read_mem(pc_.bytes.low, address_.full);														break;
-					case CycleReadPCHFromAddressLowInc:		address_.bytes.low++; read_mem(pc_.bytes.high, address_.full);								break;
-					case CycleReadPCHFromAddressFixed:		if(!address_.bytes.low) address_.bytes.high++; read_mem(pc_.bytes.high, address_.full);		break;
-					case CycleReadPCHFromAddressInc:		address_.full++; read_mem(pc_.bytes.high, address_.full);									break;
+					case CycleIncrementPCAndReadStack:	pc_.full++; throwaway_read(s_ | 0x100);													break;
+					case CycleReadPCLFromAddress:		read_mem(pc_.bytes.low, address_.full);													break;
+					case CycleReadPCHFromAddressLowInc:	address_.bytes.low++; read_mem(pc_.bytes.high, address_.full);							break;
+					case CycleReadPCHFromAddressFixed:	if(!address_.bytes.low) address_.bytes.high++; read_mem(pc_.bytes.high, address_.full);	break;
+					case CycleReadPCHFromAddressInc:	address_.full++; read_mem(pc_.bytes.high, address_.full);								break;
 
 					case CycleReadAndIncrementPC: {
 						uint16_t oldPC = pc_.full;
@@ -204,6 +207,7 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationLDX:	x_ = negative_result_ = zero_result_ = operand_;			continue;
 					case OperationLDY:	y_ = negative_result_ = zero_result_ = operand_;			continue;
 					case OperationLAX:	a_ = x_ = negative_result_ = zero_result_ = operand_;		continue;
+					case OperationCopyOperandToA:		a_ = operand_;								continue;
 
 					case OperationSTA:	operand_ = a_;											continue;
 					case OperationSTX:	operand_ = x_;											continue;
@@ -516,8 +520,6 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationIncrementPC:			pc_.full++;						continue;
 					case CycleFetchOperandFromAddress:	read_mem(operand_, address_.full);	break;
 					case CycleWriteOperandToAddress:	write_mem(operand_, address_.full);	break;
-					case OperationCopyOperandFromA:		operand_ = a_;					continue;
-					case OperationCopyOperandToA:		a_ = operand_;					continue;
 
 // MARK: - Branching
 
