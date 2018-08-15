@@ -436,32 +436,42 @@ if(number_of_cycles <= Cycles(0)) break;
 
 // MARK: - Addressing Mode Work
 
+#define page_crossing_stall_read()	\
+	if(is_65c02(personality)) {	\
+		throwaway_read(pc_.full - 1);	\
+	} else {	\
+		throwaway_read(address_.full);	\
+	}
+
 					case CycleAddXToAddressLow:
 						nextAddress.full = address_.full + x_;
 						address_.bytes.low = nextAddress.bytes.low;
-						if(address_.bytes.high != nextAddress.bytes.high) {
-							throwaway_read(address_.full);
+						if(address_.bytes.high != nextAddress.bytes.high) {		
+							page_crossing_stall_read();
 							break;
 						}
 					continue;
 					case CycleAddXToAddressLowRead:
 						nextAddress.full = address_.full + x_;
 						address_.bytes.low = nextAddress.bytes.low;
-						throwaway_read(address_.full);
+						page_crossing_stall_read();
 					break;
 					case CycleAddYToAddressLow:
 						nextAddress.full = address_.full + y_;
 						address_.bytes.low = nextAddress.bytes.low;
 						if(address_.bytes.high != nextAddress.bytes.high) {
-							throwaway_read(address_.full);
+							page_crossing_stall_read();
 							break;
 						}
 					continue;
 					case CycleAddYToAddressLowRead:
 						nextAddress.full = address_.full + y_;
 						address_.bytes.low = nextAddress.bytes.low;
-						throwaway_read(address_.full);
+						page_crossing_stall_read();
 					break;
+
+#undef page_crossing_stall_read
+
 					case OperationCorrectAddressHigh:
 						address_.full = nextAddress.full;
 					continue;

@@ -17,10 +17,12 @@ class ProcessorStorage {
 	protected:
 		ProcessorStorage(Personality);
 
-		/*
+		/*!
 			This emulation functions by decomposing instructions into micro programs, consisting of the micro operations
-			as per the enum below. Each micro op takes at most one cycle. By convention, those called CycleX take a cycle
+			defined by MicroOp. Each micro op takes at most one cycle. By convention, those called CycleX take a cycle
 			to perform whereas those called OperationX occur for free (so, in effect, their cost is loaded onto the next cycle).
+
+			This micro-instruction set was put together in a fairly ad hoc fashion, I'm afraid, so is unlikely to be optimal.
 		*/
 		enum MicroOp {
 			CycleFetchOperation,		// fetches (PC) to operation_, storing PC to last_operation_pc_ before incrementing it
@@ -72,10 +74,10 @@ class ProcessorStorage {
 			CycleLoadAddessZeroX,			// copies (operand_+x)&0xff to address_, increments the PC, and reads from operand_, throwing away the result
 			CycleLoadAddessZeroY,			// copies (operand_+y)&0xff to address_, increments the PC, and reads from operand_, throwing away the result
 
-			CycleAddXToAddressLow,			// calculates address_ + x and stores it to next_address_; copies next_address_.l back to address_.l; if address_ now does not equal next_address_, schedules a throwaway read from address_
-			CycleAddYToAddressLow,			// calculates address_ + y and stores it to next_address_; copies next_address_.l back to address_.l; if address_ now does not equal next_address_, schedules a throwaway read from address_
-			CycleAddXToAddressLowRead,		// calculates address_ + x and stores it to next_address; copies next_address.l back to address_.l; schedules a throwaway read from address_
-			CycleAddYToAddressLowRead,		// calculates address_ + y and stores it to next_address; copies next_address.l back to address_.l; schedules a throwaway read from address_
+			CycleAddXToAddressLow,			// calculates address_ + x and stores it to next_address_; copies next_address_.l back to address_.l; 6502: if address_ now does not equal next_address_, schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
+			CycleAddYToAddressLow,			// calculates address_ + y and stores it to next_address_; copies next_address_.l back to address_.l; 6502: if address_ now does not equal next_address_, schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
+			CycleAddXToAddressLowRead,		// calculates address_ + x and stores it to next_address; copies next_address.l back to address_.l; 6502: schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
+			CycleAddYToAddressLowRead,		// calculates address_ + y and stores it to next_address; copies next_address.l back to address_.l; 6502: schedules a throwaway read from address_; 65C02: schedules a throaway read from PC-1
 			OperationCorrectAddressHigh,	// copies next_address_ to address_
 
 			OperationIncrementPC,			// increments the PC
