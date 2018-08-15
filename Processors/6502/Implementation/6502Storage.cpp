@@ -60,6 +60,9 @@ using namespace CPU::MOS6502;
 #define IndexedIndirectReadModifyWrite(...)	Program(IndexedIndirect,	ReadModifyWrite(__VA_ARGS__))
 #define IndirectIndexedReadModifyWrite(...)	Program(IndirectIndexed,	ReadModifyWrite(__VA_ARGS__))
 
+#define FastAbsoluteXReadModifyWrite(...)		Program(AbsoluteXr,			ReadModifyWrite(__VA_ARGS__))
+#define FastAbsoluteYReadModifyWrite(...)		Program(AbsoluteYr,			ReadModifyWrite(__VA_ARGS__))
+
 #define Immediate(op)						Program(OperationIncrementPC,		op)
 #define Implied(op)							Program(OperationSTA,				op,	OperationCopyOperandToA)
 
@@ -235,8 +238,6 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		// Add BRA.
 		Install(0x80, Program(OperationBRA));
 
-		// Add NOPs.
-
 		// The 1-byte, 1-cycle (!) NOPs.
 		for(int c = 0x03; c <= 0xf3; c += 0x10) {
 			Install(c, ImpliedNop());
@@ -292,6 +293,16 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		Install(0x0c, AbsoluteReadModifyWrite(OperationTSB));
 		Install(0x14, ZeroReadModifyWrite(OperationTRB));
 		Install(0x1c, AbsoluteReadModifyWrite(OperationTRB));
+
+		// Install faster ASL, LSR, ROL, ROR abs,[x/y]. Note: INC, DEC deliberately not improved.
+		Install(0x1e, FastAbsoluteXReadModifyWrite(OperationASL));
+		Install(0x1f, FastAbsoluteXReadModifyWrite(OperationASO));
+		Install(0x3e, FastAbsoluteXReadModifyWrite(OperationROL));
+		Install(0x3f, FastAbsoluteXReadModifyWrite(OperationRLA));
+		Install(0x5e, FastAbsoluteXReadModifyWrite(OperationLSR));
+		Install(0x5f, FastAbsoluteXReadModifyWrite(OperationLSE));
+		Install(0x7e, FastAbsoluteXReadModifyWrite(OperationROR));
+		Install(0x7f, FastAbsoluteXReadModifyWrite(OperationRRA, OperationADC));
 
 		if(has_bbrbbsrmbsmb(personality)) {
 			// Add BBS and BBR. These take five cycles. My guessed breakdown is:
