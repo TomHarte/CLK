@@ -98,7 +98,7 @@ if(number_of_cycles <= Cycles(0)) break;
 						// governs everything else on the 6502: that two bytes will always
 						// be fetched.
 						if(
-							is_65c02(personality) ||
+							!is_65c02(personality) ||
 							(operation_&7) != 3 ||
 							operation_ == 0xcb ||
 							operation_ == 0xdb
