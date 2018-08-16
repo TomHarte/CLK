@@ -160,8 +160,11 @@ class ProcessorStorage {
 			OperationBCC,	// schedules the branch program if the carry flag is clear
 			OperationBCS,	// schedules the branch program if the carry flag is set
 			OperationBNE,	// schedules the branch program if the zero flag is clear
-			OperationBEQ,	// schedules the branch program if the zero flag is set
+			OperationBEQ,	// schedules the branch program if the zero flag is set; 65C02: otherwise jumps straight into a fetch-decode-execute without considering whether to take an interrupt
 			OperationBRA,	// schedules the branch program
+			// 65C02 modification to all branches: if the branch isn't taken, the next fetch-decode-execute
+			// sequence is scheduled immediately, without any possibility of responding to an interrupt.
+			// Cf. http://forum.6502.org/viewtopic.php?f=4&t=1634
 
 			OperationBBRBBS,	// inspecting the operation_, if the appropriate bit of operand_ is set or clear schedules a program to read and act upon the second operand; otherwise schedule a program to read and discard it
 

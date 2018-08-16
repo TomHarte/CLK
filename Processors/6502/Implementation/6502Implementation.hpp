@@ -533,7 +533,13 @@ if(number_of_cycles <= Cycles(0)) break;
 
 // MARK: - Branching
 
-#define BRA(condition)	pc_.full++; if(condition) scheduled_program_counter_ = do_branch
+#define BRA(condition)	\
+	pc_.full++; \
+	if(condition) {	\
+		scheduled_program_counter_ = do_branch;	\
+	} else if(is_65c02(personality)) {	\
+		scheduled_program_counter_ = fetch_decode_execute;	\
+	}
 
 					case OperationBPL: BRA(!(negative_result_&0x80));				continue;
 					case OperationBMI: BRA(negative_result_&0x80);					continue;
