@@ -537,8 +537,6 @@ if(number_of_cycles <= Cycles(0)) break;
 	pc_.full++; \
 	if(condition) {	\
 		scheduled_program_counter_ = do_branch;	\
-	} else if(is_65c02(personality)) {	\
-		scheduled_program_counter_ = fetch_decode_execute;	\
 	}
 
 					case OperationBPL: BRA(!(negative_result_&0x80));				continue;
@@ -551,6 +549,8 @@ if(number_of_cycles <= Cycles(0)) break;
 					case OperationBEQ: BRA(!zero_result_);							continue;
 					case OperationBRA: BRA(true);									continue;
 
+#undef BRA
+
 					case CycleAddSignedOperandToPC:
 						nextAddress.full = static_cast<uint16_t>(pc_.full + (int8_t)operand_);
 						pc_.bytes.low = nextAddress.bytes.low;
@@ -559,6 +559,11 @@ if(number_of_cycles <= Cycles(0)) break;
 							pc_.full = nextAddress.full;
 							throwaway_read(halfUpdatedPc);
 							break;
+						} else if(is_65c02(personality)) {
+							// 65C02 modification to all branches: a branch that is taken but requires only a single cycle
+							// to target its destination skips any pending interrupts.
+							// Cf. http://forum.6502.org/viewtopic.php?f=4&t=1634
+							scheduled_program_counter_ = fetch_decode_execute;
 						}
 					continue;
 
@@ -594,8 +599,6 @@ if(number_of_cycles <= Cycles(0)) break;
 							scheduled_program_counter_ = do_not_branch;
 						}
 					} break;
-
-#undef BRA
 
 // MARK: - Transfers
 
