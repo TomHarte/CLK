@@ -143,7 +143,7 @@ class MachineBase:
 		void set_activity_observer(Activity::Observer *observer);
 
 	protected:
-		CPU::MOS6502::Processor<MachineBase, false> m6502_;
+		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, MachineBase, false> m6502_;
 		std::shared_ptr<Storage::Disk::Drive> drive_;
 
 		uint8_t ram_[0x800];

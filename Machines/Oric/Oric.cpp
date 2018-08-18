@@ -207,7 +207,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 	public:
 		ConcreteMachine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-				m6502_(CPU::MOS6502::Personality::P6502, *this),
+				m6502_(*this),
 				ay8910_(audio_queue_),
 				speaker_(ay8910_),
 				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),
@@ -575,7 +575,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		const uint16_t basic_invisible_ram_top_ = 0xffff;
 		const uint16_t basic_visible_ram_top_ = 0xbfff;
 
-		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
+		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 
 		// RAM and ROM
 		std::vector<uint8_t> rom_, microdisc_rom_, colour_rom_;
