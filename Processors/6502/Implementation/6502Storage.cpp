@@ -73,7 +73,7 @@ using namespace CPU::MOS6502;
 #define ImpliedNop()						{OperationMoveToNextProgram}
 #define ImmediateNop()						Program(OperationIncrementPC)
 
-#define JAM									{CycleFetchOperand, CycleScheduleJam}
+#define JAM									{CycleFetchOperand, OperationScheduleJam}
 
 ProcessorStorage::ProcessorStorage(Personality personality) {
 	// only the interrupt flag is defined upon reset but get_flags isn't going to
@@ -224,6 +224,32 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 	memcpy(operations_, operations_6502, sizeof(operations_));
 
 	// Patch the table according to the chip's personality.
+	//
+	// The 6502 and NES 6502 both have the same mapping of operation codes to actions
+	// (respect for the decimal mode flag aside); included in that are 'unofficial'
+	// operations — spots that are not formally defined to do anything but which the
+	// processor makes no particular effort to react to in a well-defined way.
+	//
+	// The 65C02s add some official instructions but also ensure that all of the
+	// undefined ones act as no-ops of various addressing modes.
+	//
+	// So the branch below has to add a bunch of new actions but also removes various
+	// others by dint of replacing them with NOPs.
+	//
+	// Those 6502 opcodes that need redefining, one way or the other, are:
+	//
+	// 0x02, 0x03, 0x04, 0x07, 0x0b, 0x0c, 0x0f, 0x12, 0x13, 0x14, 0x17, 0x1a, 0x1b, 0x1c, 0x1f,
+	// 0x22, 0x23, 0x27, 0x2b, 0x2f, 0x32, 0x33, 0x34, 0x37, 0x3a, 0x3b, 0x3c, 0x3f,
+	// 0x42, 0x43, 0x47, 0x4b, 0x4f, 0x52, 0x53, 0x57, 0x5a, 0x5b, 0x5f,
+	// 0x62, 0x63, 0x64, 0x67, 0x6b, 0x6f, 0x72, 0x73, 0x74, 0x77, 0x7b, 0x7a, 0x7c, 0x7f,
+	// 0x80, 0x82, 0x83, 0x87, 0x89, 0x8b, 0x8f, 0x92, 0x93, 0x97, 0x9b, 0x9e, 0x9c, 0x9f,
+	// 0xa3, 0xa7, 0xab, 0xaf, 0xb2, 0xb3, 0xb7, 0xbb, 0xbf,
+	// 0xc3, 0xc7, 0xcb, 0xcf, 0xd2, 0xd3, 0xd7, 0xda, 0xdb, 0xdf,
+	// 0xe3, 0xe7, 0xeb, 0xef, 0xf2, 0xf3, 0xf7, 0xfa, 0xfb, 0xff
+	//
+	// ... not including those that aren't defined on the 6502 but perform NOPs exactly like they
+	// would on a 65C02.
+
 #define Install(location, instructions) {\
 		const InstructionList code = instructions;	\
 		memcpy(&operations_[location], code, sizeof(InstructionList));	\
@@ -304,6 +330,15 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		Install(0x7e, FastAbsoluteXReadModifyWrite(OperationROR));
 		Install(0x7f, FastAbsoluteXReadModifyWrite(OperationRRA, OperationADC));
 
+		// Outstanding:
+		// 0x07, 0x0f, 0x17, 0x1f,
+		// 0x27, 0x2f, 0x37, 0x3f,
+		// 0x47, 0x4f, 0x57, 0x5f,
+		// 0x67, 0x6f, 0x77, 0x7f,
+		// 0x87, 0x8f, 0x97, 0x9f,
+		// 0xa7, 0xaf, 0xb7, 0xbf,
+		// 0xc7, 0xcb, 0xcf, 0xd7, 0xdb, 0xdf,
+		// 0xe7, 0xef, 0xf7, 0xff
 		if(has_bbrbbsrmbsmb(personality)) {
 			// Add BBS and BBR. These take five cycles. My guessed breakdown is:
 			// 1. read opcode
@@ -324,13 +359,28 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 				Install(c, ZeroReadModifyWrite(OperationSMB));
 			}
 		} else {
-			// TODO
+			for(int location = 0x0f; location <= 0xef; location += 0x20) {
+				Install(location, AbsoluteNop());
+			}
+			for(int location = 0x1f; location <= 0xff; location += 0x20) {
+				Install(location, AbsoluteXNop());
+			}
+			for(int c = 0x07; c <= 0xe7; c += 0x20) {
+				Install(c, ZeroNop());
+			}
+			for(int c = 0x17; c <= 0xf7; c += 0x20) {
+				Install(c, ZeroXNop());
+			}
 		}
 
+		// Outstanding:
+		// 0xcb, 0xdb,
 		if(has_stpwai(personality)) {
-
+			Install(0xcb, Program(OperationScheduleWait));
+			Install(0xdb, Program(OperationScheduleStop));
 		} else {
-			// TODO
+			Install(0xcb, ImpliedNop());
+			Install(0xdb, ZeroXNop());
 		}
 	}
 #undef Install

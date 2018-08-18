@@ -191,7 +191,10 @@ class ProcessorStorage {
 			OperationSetFlagsFromA,		// sets the zero and negative flags based on the value of a
 			OperationSetFlagsFromX,		// sets the zero and negative flags based on the value of x
 			OperationSetFlagsFromY,		// sets the zero and negative flags based on the value of y
-			CycleScheduleJam			// schedules the program for operation F2
+
+			OperationScheduleJam,		// schedules the program for operation F2
+			OperationScheduleWait,		// puts the processor into WAI mode (i.e. it'll do nothing until an interrupt is received)
+			OperationScheduleStop,		// puts the processor into STP mode (i.e. it'll do nothing until a reset is received)
 		};
 
 		using InstructionList = MicroOp[10];
@@ -252,6 +255,8 @@ class ProcessorStorage {
 
 		bool ready_is_active_ = false;
 		bool ready_line_is_enabled_ = false;
+		bool stop_is_active_ = false;
+		bool wait_is_active_ = false;
 
 		uint8_t irq_line_ = 0, irq_request_history_ = 0;
 		bool nmi_line_is_enabled_ = false, set_overflow_line_is_enabled_ = false;

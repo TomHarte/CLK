@@ -34,40 +34,62 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 	uint8_t *busValue = bus_value_;
 
 #define checkSchedule(op) \
-if(!scheduled_program_counter_) {\
-if(interrupt_requests_) {\
-	if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
-		interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
-		scheduled_program_counter_ = get_reset_program();\
-	} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {\
-		interrupt_requests_ &= ~InterruptRequestFlags::NMI;\
-		scheduled_program_counter_ = get_nmi_program();\
-	} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {\
-		scheduled_program_counter_ = get_irq_program();\
-	} \
-} else {\
-	scheduled_program_counter_ = fetch_decode_execute;\
-}\
-op;\
-}
+	if(!scheduled_program_counter_) {\
+	if(interrupt_requests_) {\
+		if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
+			interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
+			scheduled_program_counter_ = get_reset_program();\
+		} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {\
+			interrupt_requests_ &= ~InterruptRequestFlags::NMI;\
+			scheduled_program_counter_ = get_nmi_program();\
+		} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {\
+			scheduled_program_counter_ = get_irq_program();\
+		} \
+	} else {\
+		scheduled_program_counter_ = fetch_decode_execute;\
+	}\
+		op;\
+	}
 
 #define bus_access() \
-interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;	\
-irq_request_history_ = irq_line_ & inverse_interrupt_flag_;	\
-number_of_cycles -= bus_handler_.perform_bus_operation(nextBusOperation, busAddress, busValue);	\
-nextBusOperation = BusOperation::None;	\
-if(number_of_cycles <= Cycles(0)) break;
+	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;	\
+	irq_request_history_ = irq_line_ & inverse_interrupt_flag_;	\
+	number_of_cycles -= bus_handler_.perform_bus_operation(nextBusOperation, busAddress, busValue);	\
+	nextBusOperation = BusOperation::None;	\
+	if(number_of_cycles <= Cycles(0)) break;
 
 	checkSchedule();
 	Cycles number_of_cycles = cycles + cycles_left_to_run_;
 
 	while(number_of_cycles > Cycles(0)) {
 
+		// Deal with a potential RDY state, if this 6502 has anything connected to ready.
 		while(uses_ready_line && ready_is_active_ && number_of_cycles > Cycles(0)) {
 			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
 		}
 
-		if(!uses_ready_line || !ready_is_active_) {
+		// Deal with a potential STP state, if this 6502 implements STP.
+		while(has_stpwai(personality) && stop_is_active_ && number_of_cycles > Cycles(0)) {
+			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
+			if(interrupt_requests_ & InterruptRequestFlags::Reset) {
+				stop_is_active_ = false;
+				checkSchedule();
+				break;
+			}
+		}
+
+		// Deal with a potential WAI state, if this 6502 implements WAI.
+		while(has_stpwai(personality) && wait_is_active_ && number_of_cycles > Cycles(0)) {
+			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
+			interrupt_requests_ |= (irq_line_ & inverse_interrupt_flag_);
+			if(interrupt_requests_ & InterruptRequestFlags::NMI || irq_line_) {
+				wait_is_active_ = false;
+				checkSchedule();
+				break;
+			}
+		}
+
+		if((!uses_ready_line || !ready_is_active_) && (!has_stpwai(personality) || (!wait_is_active_ && !stop_is_active_))) {
 			if(nextBusOperation != BusOperation::None) {
 				bus_access();
 			}
@@ -188,12 +210,20 @@ if(number_of_cycles <= Cycles(0)) break;
 						throwaway_read(oldPC);
 					} break;
 
-// MARK: - JAM
+// MARK: - JAM, WAI, STP
 
-					case CycleScheduleJam: {
+					case OperationScheduleJam: {
 						is_jammed_ = true;
 						scheduled_program_counter_ = operations_[CPU::MOS6502::JamOpcode];
 					} continue;
+
+					case OperationScheduleStop:
+						stop_is_active_ = true;
+					break;
+
+					case OperationScheduleWait:
+						wait_is_active_ = true;
+					break;
 
 // MARK: - Bitwise
 
@@ -639,6 +669,9 @@ if(number_of_cycles <= Cycles(0)) break;
 					continue;
 				}
 
+				if(has_stpwai(personality) && (stop_is_active_ || wait_is_active_)) {
+					break;
+				}
 				if(uses_ready_line && ready_line_is_enabled_ && (is_65c02(personality) || isReadOperation(nextBusOperation))) {
 					ready_is_active_ = true;
 					break;
