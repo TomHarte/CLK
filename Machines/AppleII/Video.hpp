@@ -33,7 +33,7 @@ class BusHandler {
 
 class VideoBase {
 	public:
-		VideoBase();
+		VideoBase(bool is_iie);
 
 		/// @returns The CRT this video feed is feeding.
 		Outputs::CRT::CRT *get_crt();
@@ -190,13 +190,52 @@ class VideoBase {
 		// without having to worry about a rolling buffer.
 		std::array<uint8_t, 40> base_stream_;
 		std::array<uint8_t, 40> auxiliary_stream_;
+
+		bool is_iie_ = false;
+		static const int flash_length = 8406;
+
+		/*!
+			Outputs 40-column text to @c target, using @c length bytes from @c source.
+			@return One byte after the final value written to @c target.
+		*/
+		uint8_t *output_text(uint8_t *target, uint8_t *source, size_t length, size_t pixel_row);
+
+		/*!
+			Outputs 80-column text to @c target, drawing @c length columns from @c source and @c auxiliary_source.
+			@return One byte after the final value written to @c target.
+		*/
+		uint8_t *output_double_text(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, size_t pixel_row);
+
+		/*!
+			Outputs 40-column low-resolution graphics to @c target, drawing @c length columns from @c source.
+			@return One byte after the final value written to @c target.
+		*/
+		uint8_t *output_low_resolution(uint8_t *target, uint8_t *source, size_t length, int row);
+
+		/*!
+			Outputs 80-column low-resolution graphics to @c target, drawing @c length columns from @c source and @c auxiliary_source.
+			@return One byte after the final value written to @c target.
+		*/
+		uint8_t *output_double_low_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, int row);
+
+		/*!
+			Outputs 40-column high-resolution graphics to @c target, drawing @c length columns from @c source.
+			@return One byte after the final value written to @c target.
+		*/
+		uint8_t *output_high_resolution(uint8_t *target, uint8_t *source, size_t length);
+
+		/*!
+			Outputs 80-column double-high-resolution graphics to @c target, drawing @c length columns from @c source.
+			@return One byte after the final value written to @c target.
+		*/
+		uint8_t *output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length);
 };
 
 template <class BusHandler, bool is_iie> class Video: public VideoBase {
 	public:
 		/// Constructs an instance of the video feed; a CRT is also created.
 		Video(BusHandler &bus_handler) :
-			VideoBase(),
+			VideoBase(is_iie),
 			bus_handler_(bus_handler) {}
 
 		/*!
@@ -276,173 +315,54 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							}
 
 							switch(line_mode) {
-								case GraphicsMode::Text: {
-									const uint8_t inverses[] = {
-										0xff,
-										static_cast<uint8_t>((flash_ / flash_length) * 0xff),
-										0x00,
-										0x00
-									};
-									for(size_t c = column_; c < pixel_end; ++c) {
-										int character = base_stream_[c];
-										if(is_iie) {
-											character |= alternative_character_set_ ? 0x100 : 0;
-										} else {
-											character &= 0x3f;
-										}
-										const uint8_t xor_mask = is_iie ? 0xff : inverses[character >> 6];
-										const std::size_t character_address = static_cast<std::size_t>((character << 3) + pixel_row);
-										const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
+								case GraphicsMode::Text:
+									pixel_pointer_ = output_text(
+										pixel_pointer_,
+										&base_stream_[static_cast<size_t>(column_)],
+										static_cast<size_t>(pixel_end - column_),
+										static_cast<size_t>(pixel_row));
+								break;
 
-										// The character ROM is output MSB to LSB rather than LSB to MSB.
-										pixel_pointer_[0] = character_pattern & 0x40;
-										pixel_pointer_[1] = character_pattern & 0x20;
-										pixel_pointer_[2] = character_pattern & 0x10;
-										pixel_pointer_[3] = character_pattern & 0x08;
-										pixel_pointer_[4] = character_pattern & 0x04;
-										pixel_pointer_[5] = character_pattern & 0x02;
-										pixel_pointer_[6] = character_pattern & 0x01;
-										graphics_carry_ = character_pattern & 0x01;
-										pixel_pointer_ += 7;
-									}
-								} break;
+								case GraphicsMode::DoubleText:
+									pixel_pointer_ = output_double_text(
+										pixel_pointer_,
+										&base_stream_[static_cast<size_t>(column_)],
+										&auxiliary_stream_[static_cast<size_t>(column_)],
+										static_cast<size_t>(pixel_end - column_),
+										static_cast<size_t>(pixel_row));
+								break;
 
-								case GraphicsMode::DoubleText: {
-									for(size_t c = column_; c < pixel_end; ++c) {
-										const std::size_t character_addresses[2] = {
-											static_cast<std::size_t>(
-												(auxiliary_stream_[c] << 3) + pixel_row
-											),
-											static_cast<std::size_t>(
-												(base_stream_[c] << 3) + pixel_row
-											),
-										};
+								case GraphicsMode::LowRes:
+									pixel_pointer_ = output_low_resolution(
+										pixel_pointer_,
+										&base_stream_[static_cast<size_t>(column_)],
+										static_cast<size_t>(pixel_end - column_),
+										pixel_row);
+								break;
 
-										const size_t pattern_offset = alternative_character_set_ ? (256*8) : 0;
-										const uint8_t character_patterns[2] = {
-											character_rom_[character_addresses[0] + pattern_offset],
-											character_rom_[character_addresses[1] + pattern_offset],
-										};
+								case GraphicsMode::DoubleLowRes:
+									pixel_pointer_ = output_double_low_resolution(
+										pixel_pointer_,
+										&base_stream_[static_cast<size_t>(column_)],
+										&auxiliary_stream_[static_cast<size_t>(column_)],
+										static_cast<size_t>(pixel_end - column_),
+										pixel_row);
+								break;
 
-										// The character ROM is output MSB to LSB rather than LSB to MSB.
-										pixel_pointer_[0] = character_patterns[0] & 0x40;
-										pixel_pointer_[1] = character_patterns[0] & 0x20;
-										pixel_pointer_[2] = character_patterns[0] & 0x10;
-										pixel_pointer_[3] = character_patterns[0] & 0x08;
-										pixel_pointer_[4] = character_patterns[0] & 0x04;
-										pixel_pointer_[5] = character_patterns[0] & 0x02;
-										pixel_pointer_[6] = character_patterns[0] & 0x01;
-										pixel_pointer_[7] = character_patterns[1] & 0x40;
-										pixel_pointer_[8] = character_patterns[1] & 0x20;
-										pixel_pointer_[9] = character_patterns[1] & 0x10;
-										pixel_pointer_[10] = character_patterns[1] & 0x08;
-										pixel_pointer_[11] = character_patterns[1] & 0x04;
-										pixel_pointer_[12] = character_patterns[1] & 0x02;
-										pixel_pointer_[13] = character_patterns[1] & 0x01;
-										graphics_carry_ = character_patterns[1] & 0x01;
-										pixel_pointer_ += 14;
-									}
-								} break;
+								case GraphicsMode::HighRes:
+									pixel_pointer_ = output_high_resolution(
+										pixel_pointer_,
+										&base_stream_[static_cast<size_t>(column_)],
+										static_cast<size_t>(pixel_end - column_));
+								break;
 
-								case GraphicsMode::DoubleLowRes: {
-									const int row_shift = (row_&4);
-									for(size_t c = column_; c < pixel_end; ++c) {
-										if(c&1) {
-											pixel_pointer_[0] = pixel_pointer_[4] = (auxiliary_stream_[c] >> row_shift) & 2;
-											pixel_pointer_[1] = pixel_pointer_[5] = (auxiliary_stream_[c] >> row_shift) & 4;
-											pixel_pointer_[2] = pixel_pointer_[6] = (auxiliary_stream_[c] >> row_shift) & 8;
-											pixel_pointer_[3] = (auxiliary_stream_[c] >> row_shift) & 1;
-
-											pixel_pointer_[8] = pixel_pointer_[12] = (base_stream_[c] >> row_shift) & 4;
-											pixel_pointer_[9] = pixel_pointer_[13] = (base_stream_[c] >> row_shift) & 8;
-											pixel_pointer_[10] = (base_stream_[c] >> row_shift) & 1;
-											pixel_pointer_[7] = pixel_pointer_[11] = (base_stream_[c] >> row_shift) & 2;
-											graphics_carry_ = (base_stream_[c] >> row_shift) & 8;
-										} else {
-											pixel_pointer_[0] = pixel_pointer_[4] = (auxiliary_stream_[c] >> row_shift) & 8;
-											pixel_pointer_[1] = pixel_pointer_[5] = (auxiliary_stream_[c] >> row_shift) & 1;
-											pixel_pointer_[2] = pixel_pointer_[6] = (auxiliary_stream_[c] >> row_shift) & 2;
-											pixel_pointer_[3] = (auxiliary_stream_[c] >> row_shift) & 4;
-
-											pixel_pointer_[8] = pixel_pointer_[12] = (base_stream_[c] >> row_shift) & 1;
-											pixel_pointer_[9] = pixel_pointer_[13] = (base_stream_[c] >> row_shift) & 2;
-											pixel_pointer_[10] = (base_stream_[c] >> row_shift) & 4;
-											pixel_pointer_[7] = pixel_pointer_[11] = (base_stream_[c] >> row_shift) & 8;
-											graphics_carry_ = (base_stream_[c] >> row_shift) & 2;
-										}
-										pixel_pointer_ += 14;
-									}
-								} break;
-
-								case GraphicsMode::LowRes: {
-									const int row_shift = (row_&4);
-									for(size_t c = column_; c < pixel_end; ++c) {
-										// Low-resolution graphics mode shifts the colour code on a loop, but has to account for whether this
-										// 14-sample output window is starting at the beginning of a colour cycle or halfway through.
-										if(c&1) {
-											pixel_pointer_[0] = pixel_pointer_[4] = pixel_pointer_[8] = pixel_pointer_[12] = (base_stream_[c] >> row_shift) & 4;
-											pixel_pointer_[1] = pixel_pointer_[5] = pixel_pointer_[9] = pixel_pointer_[13] = (base_stream_[c] >> row_shift) & 8;
-											pixel_pointer_[2] = pixel_pointer_[6] = pixel_pointer_[10] = (base_stream_[c] >> row_shift) & 1;
-											pixel_pointer_[3] = pixel_pointer_[7] = pixel_pointer_[11] = (base_stream_[c] >> row_shift) & 2;
-											graphics_carry_ = (base_stream_[c] >> row_shift) & 8;
-										} else {
-											pixel_pointer_[0] = pixel_pointer_[4] = pixel_pointer_[8] = pixel_pointer_[12] = (base_stream_[c] >> row_shift) & 1;
-											pixel_pointer_[1] = pixel_pointer_[5] = pixel_pointer_[9] = pixel_pointer_[13] = (base_stream_[c] >> row_shift) & 2;
-											pixel_pointer_[2] = pixel_pointer_[6] = pixel_pointer_[10] = (base_stream_[c] >> row_shift) & 4;
-											pixel_pointer_[3] = pixel_pointer_[7] = pixel_pointer_[11] = (base_stream_[c] >> row_shift) & 8;
-											graphics_carry_ = (base_stream_[c] >> row_shift) & 2;
-										}
-										pixel_pointer_ += 14;
-									}
-								} break;
-
-								case GraphicsMode::HighRes: {
-									for(size_t c = column_; c < pixel_end; ++c) {
-										// High resolution graphics shift out LSB to MSB, optionally with a delay of half a pixel.
-										// If there is a delay, the previous output level is held to bridge the gap.
-										if(base_stream_[c] & 0x80) {
-											pixel_pointer_[0] = graphics_carry_;
-											pixel_pointer_[1] = pixel_pointer_[2] = base_stream_[c] & 0x01;
-											pixel_pointer_[3] = pixel_pointer_[4] = base_stream_[c] & 0x02;
-											pixel_pointer_[5] = pixel_pointer_[6] = base_stream_[c] & 0x04;
-											pixel_pointer_[7] = pixel_pointer_[8] = base_stream_[c] & 0x08;
-											pixel_pointer_[9] = pixel_pointer_[10] = base_stream_[c] & 0x10;
-											pixel_pointer_[11] = pixel_pointer_[12] = base_stream_[c] & 0x20;
-											pixel_pointer_[13] = base_stream_[c] & 0x40;
-										} else {
-											pixel_pointer_[0] = pixel_pointer_[1] = base_stream_[c] & 0x01;
-											pixel_pointer_[2] = pixel_pointer_[3] = base_stream_[c] & 0x02;
-											pixel_pointer_[4] = pixel_pointer_[5] = base_stream_[c] & 0x04;
-											pixel_pointer_[6] = pixel_pointer_[7] = base_stream_[c] & 0x08;
-											pixel_pointer_[8] = pixel_pointer_[9] = base_stream_[c] & 0x10;
-											pixel_pointer_[10] = pixel_pointer_[11] = base_stream_[c] & 0x20;
-											pixel_pointer_[12] = pixel_pointer_[13] = base_stream_[c] & 0x40;
-										}
-										graphics_carry_ = base_stream_[c] & 0x40;
-										pixel_pointer_ += 14;
-									}
-								} break;
-
-								case GraphicsMode::DoubleHighRes: {
-									for(size_t c = column_; c < pixel_end; ++c) {
-										pixel_pointer_[0] = graphics_carry_;
-										pixel_pointer_[1] = auxiliary_stream_[c] & 0x01;
-										pixel_pointer_[2] = auxiliary_stream_[c] & 0x02;
-										pixel_pointer_[3] = auxiliary_stream_[c] & 0x04;
-										pixel_pointer_[4] = auxiliary_stream_[c] & 0x08;
-										pixel_pointer_[5] = auxiliary_stream_[c] & 0x10;
-										pixel_pointer_[6] = auxiliary_stream_[c] & 0x20;
-										pixel_pointer_[7] = auxiliary_stream_[c] & 0x40;
-										pixel_pointer_[8] = base_stream_[c] & 0x01;
-										pixel_pointer_[9] = base_stream_[c] & 0x02;
-										pixel_pointer_[10] = base_stream_[c] & 0x04;
-										pixel_pointer_[11] = base_stream_[c] & 0x08;
-										pixel_pointer_[12] = base_stream_[c] & 0x10;
-										pixel_pointer_[13] = base_stream_[c] & 0x20;
-										graphics_carry_ = base_stream_[c] & 0x40;
-										pixel_pointer_ += 14;
-									}
-								} break;
+								case GraphicsMode::DoubleHighRes:
+									pixel_pointer_ = output_double_high_resolution(
+										pixel_pointer_,
+										&base_stream_[static_cast<size_t>(column_)],
+										&auxiliary_stream_[static_cast<size_t>(column_)],
+										static_cast<size_t>(pixel_end - column_));
+								break;
 							}
 
 							if(ending_column >= 40) {
@@ -588,7 +508,6 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 				static_cast<uint16_t>(((video_page()+1) * 0x400) + row_address);
 		}
 
-		static const int flash_length = 8406;
 		BusHandler &bus_handler_;
 		void output_data_to_column(int column) {
 			int length = column - pixel_pointer_column_;
