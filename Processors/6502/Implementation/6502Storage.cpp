@@ -29,7 +29,7 @@ using namespace CPU::MOS6502;
 
 #define Read(...)							CycleFetchOperandFromAddress,	__VA_ARGS__
 #define Write(...)							__VA_ARGS__,					CycleWriteOperandToAddress
-#define ReadModifyWrite(...)				CycleFetchOperandFromAddress,	(personality	 == P6502) ? CycleWriteOperandToAddress : CycleFetchOperandFromAddress,			__VA_ARGS__,							CycleWriteOperandToAddress
+#define ReadModifyWrite(...)				CycleFetchOperandFromAddress,	is_65c02(personality) ? CycleFetchOperandFromAddress : CycleWriteOperandToAddress,			__VA_ARGS__,							CycleWriteOperandToAddress
 
 #define AbsoluteRead(op)					Program(Absolute,			Read(op))
 #define AbsoluteXRead(op)					Program(AbsoluteXr,			Read(op))
@@ -60,8 +60,11 @@ using namespace CPU::MOS6502;
 #define IndexedIndirectReadModifyWrite(...)	Program(IndexedIndirect,	ReadModifyWrite(__VA_ARGS__))
 #define IndirectIndexedReadModifyWrite(...)	Program(IndirectIndexed,	ReadModifyWrite(__VA_ARGS__))
 
+#define FastAbsoluteXReadModifyWrite(...)		Program(AbsoluteXr,			ReadModifyWrite(__VA_ARGS__))
+#define FastAbsoluteYReadModifyWrite(...)		Program(AbsoluteYr,			ReadModifyWrite(__VA_ARGS__))
+
 #define Immediate(op)						Program(OperationIncrementPC,		op)
-#define Implied(op)							Program(OperationCopyOperandFromA,	op,	OperationCopyOperandToA)
+#define Implied(op)							Program(OperationSTA,				op,	OperationCopyOperandToA)
 
 #define ZeroNop()							Program(Zero, CycleFetchOperandFromAddress)
 #define ZeroXNop()							Program(ZeroX, CycleFetchOperandFromAddress)
@@ -70,7 +73,7 @@ using namespace CPU::MOS6502;
 #define ImpliedNop()						{OperationMoveToNextProgram}
 #define ImmediateNop()						Program(OperationIncrementPC)
 
-#define JAM									{CycleFetchOperand, CycleScheduleJam}
+#define JAM									{CycleFetchOperand, OperationScheduleJam}
 
 ProcessorStorage::ProcessorStorage(Personality personality) {
 	// only the interrupt flag is defined upon reset but get_flags isn't going to
@@ -80,7 +83,7 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 	overflow_flag_ &= Flag::Overflow;
 
 	const InstructionList operations_6502[256] = {
-		/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetI, CycleReadVectorLow, CycleReadVectorHigh),
+		/* 0x00 BRK */			Program(CycleIncPCPushPCH, CyclePushPCL, OperationBRKPickVector, OperationSetOperandFromFlagsWithBRKSet, CyclePushOperand, OperationSetIRQFlags, CycleReadVectorLow, CycleReadVectorHigh),
 		/* 0x01 ORA x, ind */	IndexedIndirectRead(OperationORA),
 		/* 0x02 JAM */			JAM,																	/* 0x03 ASO x, ind */	IndexedIndirectReadModifyWrite(OperationASO),
 		/* 0x04 NOP zpg */		ZeroNop(),																/* 0x05 ORA zpg */		ZeroRead(OperationORA),
@@ -221,11 +224,37 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 	memcpy(operations_, operations_6502, sizeof(operations_));
 
 	// Patch the table according to the chip's personality.
+	//
+	// The 6502 and NES 6502 both have the same mapping of operation codes to actions
+	// (respect for the decimal mode flag aside); included in that are 'unofficial'
+	// operations — spots that are not formally defined to do anything but which the
+	// processor makes no particular effort to react to in a well-defined way.
+	//
+	// The 65C02s add some official instructions but also ensure that all of the
+	// undefined ones act as no-ops of various addressing modes.
+	//
+	// So the branch below has to add a bunch of new actions but also removes various
+	// others by dint of replacing them with NOPs.
+	//
+	// Those 6502 opcodes that need redefining, one way or the other, are:
+	//
+	// 0x02, 0x03, 0x04, 0x07, 0x0b, 0x0c, 0x0f, 0x12, 0x13, 0x14, 0x17, 0x1a, 0x1b, 0x1c, 0x1f,
+	// 0x22, 0x23, 0x27, 0x2b, 0x2f, 0x32, 0x33, 0x34, 0x37, 0x3a, 0x3b, 0x3c, 0x3f,
+	// 0x42, 0x43, 0x47, 0x4b, 0x4f, 0x52, 0x53, 0x57, 0x5a, 0x5b, 0x5f,
+	// 0x62, 0x63, 0x64, 0x67, 0x6b, 0x6f, 0x72, 0x73, 0x74, 0x77, 0x7b, 0x7a, 0x7c, 0x7f,
+	// 0x80, 0x82, 0x83, 0x87, 0x89, 0x8b, 0x8f, 0x92, 0x93, 0x97, 0x9b, 0x9e, 0x9c, 0x9f,
+	// 0xa3, 0xa7, 0xab, 0xaf, 0xb2, 0xb3, 0xb7, 0xbb, 0xbf,
+	// 0xc3, 0xc7, 0xcb, 0xcf, 0xd2, 0xd3, 0xd7, 0xda, 0xdb, 0xdf,
+	// 0xe3, 0xe7, 0xeb, 0xef, 0xf2, 0xf3, 0xf7, 0xfa, 0xfb, 0xff
+	//
+	// ... not including those that aren't defined on the 6502 but perform NOPs exactly like they
+	// would on a 65C02.
+
 #define Install(location, instructions) {\
 		const InstructionList code = instructions;	\
 		memcpy(&operations_[location], code, sizeof(InstructionList));	\
 	}
-	if(personality != P6502) {
+	if(is_65c02(personality)) {
 		// Add P[L/H][X/Y].
 		Install(0x5a, Program(CyclePushY));
 		Install(0xda, Program(CyclePushX));
@@ -234,19 +263,6 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 
 		// Add BRA.
 		Install(0x80, Program(OperationBRA));
-
-		// Add BBS and BBR. These take five cycles. My guessed breakdown is:
-		// 1. read opcode
-		// 2. read operand
-		// 3. read zero page
-		// 4. read second operand
-		// 5. read from PC without top byte fixed yet
-		// ... with the caveat that (3) and (4) could be the other way around.
-		for(int location = 0x0f; location <= 0xff; location += 0x10) {
-			Install(location, Program(OperationLoadAddressZeroPage, CycleFetchOperandFromAddress, OperationBBRBBS));
-		}
-
-		// Add NOPs.
 
 		// The 1-byte, 1-cycle (!) NOPs.
 		for(int c = 0x03; c <= 0xf3; c += 0x10) {
@@ -304,52 +320,68 @@ ProcessorStorage::ProcessorStorage(Personality personality) {
 		Install(0x14, ZeroReadModifyWrite(OperationTRB));
 		Install(0x1c, AbsoluteReadModifyWrite(OperationTRB));
 
-		// Add RMB and SMB.
-		for(int c = 0x07; c <= 0x77; c += 0x10) {
-			Install(c, ZeroReadModifyWrite(OperationRMB));
+		// Install faster ASL, LSR, ROL, ROR abs,[x/y]. Note: INC, DEC deliberately not improved.
+		Install(0x1e, FastAbsoluteXReadModifyWrite(OperationASL));
+		Install(0x1f, FastAbsoluteXReadModifyWrite(OperationASO));
+		Install(0x3e, FastAbsoluteXReadModifyWrite(OperationROL));
+		Install(0x3f, FastAbsoluteXReadModifyWrite(OperationRLA));
+		Install(0x5e, FastAbsoluteXReadModifyWrite(OperationLSR));
+		Install(0x5f, FastAbsoluteXReadModifyWrite(OperationLSE));
+		Install(0x7e, FastAbsoluteXReadModifyWrite(OperationROR));
+		Install(0x7f, FastAbsoluteXReadModifyWrite(OperationRRA, OperationADC));
+
+		// Outstanding:
+		// 0x07, 0x0f, 0x17, 0x1f,
+		// 0x27, 0x2f, 0x37, 0x3f,
+		// 0x47, 0x4f, 0x57, 0x5f,
+		// 0x67, 0x6f, 0x77, 0x7f,
+		// 0x87, 0x8f, 0x97, 0x9f,
+		// 0xa7, 0xaf, 0xb7, 0xbf,
+		// 0xc7, 0xcb, 0xcf, 0xd7, 0xdb, 0xdf,
+		// 0xe7, 0xef, 0xf7, 0xff
+		if(has_bbrbbsrmbsmb(personality)) {
+			// Add BBS and BBR. These take five cycles. My guessed breakdown is:
+			// 1. read opcode
+			// 2. read operand
+			// 3. read zero page
+			// 4. read second operand
+			// 5. read from PC without top byte fixed yet
+			// ... with the caveat that (3) and (4) could be the other way around.
+			for(int location = 0x0f; location <= 0xff; location += 0x10) {
+				Install(location, Program(OperationLoadAddressZeroPage, CycleFetchOperandFromAddress, OperationBBRBBS));
+			}
+
+			// Add RMB and SMB.
+			for(int c = 0x07; c <= 0x77; c += 0x10) {
+				Install(c, ZeroReadModifyWrite(OperationRMB));
+			}
+			for(int c = 0x87; c <= 0xf7; c += 0x10) {
+				Install(c, ZeroReadModifyWrite(OperationSMB));
+			}
+		} else {
+			for(int location = 0x0f; location <= 0xef; location += 0x20) {
+				Install(location, AbsoluteNop());
+			}
+			for(int location = 0x1f; location <= 0xff; location += 0x20) {
+				Install(location, AbsoluteXNop());
+			}
+			for(int c = 0x07; c <= 0xe7; c += 0x20) {
+				Install(c, ZeroNop());
+			}
+			for(int c = 0x17; c <= 0xf7; c += 0x20) {
+				Install(c, ZeroXNop());
+			}
 		}
-		for(int c = 0x87; c <= 0xf7; c += 0x10) {
-			Install(c, ZeroReadModifyWrite(OperationSMB));
+
+		// Outstanding:
+		// 0xcb, 0xdb,
+		if(has_stpwai(personality)) {
+			Install(0xcb, Program(OperationScheduleWait));
+			Install(0xdb, Program(OperationScheduleStop));
+		} else {
+			Install(0xcb, ImpliedNop());
+			Install(0xdb, ZeroXNop());
 		}
 	}
 #undef Install
 }
-
-#undef Program
-#undef Absolute
-#undef AbsoluteX
-#undef AbsoluteY
-#undef Zero
-#undef ZeroX
-#undef ZeroY
-#undef IndexedIndirect
-#undef IndirectIndexed
-#undef Read
-#undef Write
-#undef ReadModifyWrite
-#undef AbsoluteRead
-#undef AbsoluteXRead
-#undef AbsoluteYRead
-#undef ZeroRead
-#undef ZeroXRead
-#undef ZeroYRead
-#undef IndexedIndirectRead
-#undef IndirectIndexedRead
-#undef AbsoluteWrite
-#undef AbsoluteXWrite
-#undef AbsoluteYWrite
-#undef ZeroWrite
-#undef ZeroXWrite
-#undef ZeroYWrite
-#undef IndexedIndirectWrite
-#undef IndirectIndexedWrite
-#undef AbsoluteReadModifyWrite
-#undef AbsoluteXReadModifyWrite
-#undef AbsoluteYReadModifyWrite
-#undef ZeroReadModifyWrite
-#undef ZeroXReadModifyWrite
-#undef ZeroYReadModify
-#undef IndexedIndirectReadModify
-#undef IndirectIndexedReadModify
-#undef Immediate
-#undef Implied

@@ -37,10 +37,17 @@ enum Register {
 	The list of 6502 variants supported by this implementation.
 */
 enum Personality {
-	P6502,		// the original 6502, replete with various undocumented instructions
-	P65C02,		// the 65C02; an extended 6502 with a few extra instructions and addressing modes for existing instructions
-	P65SC02,	// like the 65C02, but lacking bit instructions
+	P6502,				// the original [NMOS] 6502, replete with various undocumented instructions
+	PNES6502,			// the NES's 6502, which is like a 6502 but lacks decimal mode (though it retains the decimal flag)
+	PSynertek65C02,		// a 6502 extended with BRA, P[H/L][X/Y], STZ, TRB, TSB and the (zp) addressing mode and a few other additions
+	PWDC65C02,			// like the Synertek, but with BBR, BBS, RMB and SMB
+	PRockwell65C02,		// like the WDC, but with STP and WAI
 };
+
+#define is_65c02(p) 		((p) >= Personality::PSynertek65C02)
+#define has_bbrbbsrmbsmb(p) ((p) >= Personality::PWDC65C02)
+#define has_stpwai(p)		((p) >= Personality::PRockwell65C02)
+#define has_decimal_mode(p) ((p) != Personality::PNES6502)
 
 /*
 	Flags as defined on the 6502; can be used to decode the result of @c get_value_of_register(Flags) or to form a value for
@@ -199,12 +206,12 @@ class ProcessorBase: public ProcessorStorage {
 	can also nominate whether the processor includes support for the ready line. Declining to support the ready line
 	can produce a minor runtime performance improvement.
 */
-template <typename T, bool uses_ready_line> class Processor: public ProcessorBase {
+template <Personality personality, typename T, bool uses_ready_line> class Processor: public ProcessorBase {
 	public:
 		/*!
 			Constructs an instance of the 6502 that will use @c bus_handler for all bus communications.
 		*/
-		Processor(Personality personality, T &bus_handler) : ProcessorBase(personality), personality_(personality), bus_handler_(bus_handler) {}
+		Processor(T &bus_handler) : ProcessorBase(personality), bus_handler_(bus_handler) {}
 
 		/*!
 			Runs the 6502 for a supplied number of cycles.
@@ -221,7 +228,6 @@ template <typename T, bool uses_ready_line> class Processor: public ProcessorBas
 		void set_ready_line(bool active);
 
 	private:
-		Personality personality_;
 		T &bus_handler_;
 };
 

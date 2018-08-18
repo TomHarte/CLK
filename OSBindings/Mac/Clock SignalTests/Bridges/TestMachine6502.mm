@@ -40,7 +40,7 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 
 	if(self) {
 		_processor = CPU::MOS6502::AllRAMProcessor::Processor(
-			is65C02 ? CPU::MOS6502::Personality::P65C02 : CPU::MOS6502::Personality::P6502);
+			is65C02 ? CPU::MOS6502::Personality::PWDC65C02 : CPU::MOS6502::Personality::P6502);
 	}
 
 	return self;

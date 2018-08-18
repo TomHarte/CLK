@@ -61,7 +61,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				uint8_t *ram_, *aux_ram_;
 		};
 
-		CPU::MOS6502::Processor<ConcreteMachine, false> m6502_;
+		CPU::MOS6502::Processor<(model == Analyser::Static::AppleII::Target::Model::EnhancedIIe) ? CPU::MOS6502::Personality::PSynertek65C02 : CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 		VideoBusHandler video_bus_handler_;
 		std::unique_ptr<AppleII::Video::Video<VideoBusHandler, is_iie()>> video_;
 		int cycles_into_current_line_ = 0;
@@ -299,7 +299,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 	public:
 		ConcreteMachine(const Analyser::Static::AppleII::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
-			m6502_((model == Analyser::Static::AppleII::Target::Model::EnhancedIIe) ? CPU::MOS6502::Personality::P65C02 : CPU::MOS6502::Personality::P6502, *this),
+			m6502_(*this),
 		 	video_bus_handler_(ram_, aux_ram_),
 		 	audio_toggle_(audio_queue_),
 		 	speaker_(audio_toggle_) {
