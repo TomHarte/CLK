@@ -117,7 +117,7 @@ void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
 	}
 }
 
-uint8_t *VideoBase::output_text(uint8_t *target, uint8_t *source, size_t length, size_t pixel_row) {
+uint8_t *VideoBase::output_text(uint8_t *target, uint8_t *source, size_t length, size_t pixel_row) const {
 	const uint8_t inverses[] = {
 		0xff,
 		is_iie_ ? static_cast<uint8_t>(0xff) : static_cast<uint8_t>((flash_ / flash_length) * 0xff),
@@ -144,11 +144,10 @@ uint8_t *VideoBase::output_text(uint8_t *target, uint8_t *source, size_t length,
 		graphics_carry_ = character_pattern & 0x01;
 		target += 7;
 	}
-
 	return target;
 }
 
-uint8_t *VideoBase::output_double_text(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, size_t pixel_row) {
+uint8_t *VideoBase::output_double_text(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, size_t pixel_row) const {
 	for(size_t c = 0; c < length; ++c) {
 		const std::size_t character_addresses[2] = {
 			static_cast<std::size_t>(
@@ -183,11 +182,10 @@ uint8_t *VideoBase::output_double_text(uint8_t *target, uint8_t *source, uint8_t
 		graphics_carry_ = character_patterns[1] & 0x01;
 		target += 14;
 	}
-
 	return target;
 }
 
-uint8_t *VideoBase::output_low_resolution(uint8_t *target, uint8_t *source, size_t length, int row) {
+uint8_t *VideoBase::output_low_resolution(uint8_t *target, uint8_t *source, size_t length, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
 		// Low-resolution graphics mode shifts the colour code on a loop, but has to account for whether this
@@ -207,11 +205,10 @@ uint8_t *VideoBase::output_low_resolution(uint8_t *target, uint8_t *source, size
 		}
 		target += 14;
 	}
-
 	return target;
 }
 
-uint8_t *VideoBase::output_double_low_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, int row) {
+uint8_t *VideoBase::output_double_low_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
 		if(c&1) {
@@ -239,11 +236,10 @@ uint8_t *VideoBase::output_double_low_resolution(uint8_t *target, uint8_t *sourc
 		}
 		target += 14;
 	}
-
 	return target;
 }
 
-uint8_t *VideoBase::output_high_resolution(uint8_t *target, uint8_t *source, size_t length) {
+uint8_t *VideoBase::output_high_resolution(uint8_t *target, uint8_t *source, size_t length) const {
 	for(size_t c = 0; c < length; ++c) {
 		// High resolution graphics shift out LSB to MSB, optionally with a delay of half a pixel.
 		// If there is a delay, the previous output level is held to bridge the gap.
@@ -271,7 +267,7 @@ uint8_t *VideoBase::output_high_resolution(uint8_t *target, uint8_t *source, siz
 	return target;
 }
 
-uint8_t *VideoBase::output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length) {
+uint8_t *VideoBase::output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length) const {
 	for(size_t c = 0; c < length; ++c) {
 		target[0] = graphics_carry_;
 		target[1] = auxiliary_source[c] & 0x01;
@@ -288,8 +284,7 @@ uint8_t *VideoBase::output_double_high_resolution(uint8_t *target, uint8_t *sour
 		target[12] = auxiliary_source[c] & 0x10;
 		target[13] = auxiliary_source[c] & 0x20;
 		graphics_carry_ = auxiliary_source[c] & 0x40;
-		pixel_pointer_ += 14;
+		target += 14;
 	}
-
 	return target;
 }

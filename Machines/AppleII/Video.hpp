@@ -178,7 +178,7 @@ class VideoBase {
 		// Graphics carry is the final level output in a fetch window;
 		// it carries on into the next if it's high resolution with
 		// the delay bit set.
-		uint8_t graphics_carry_ = 0;
+		mutable uint8_t graphics_carry_ = 0;
 
 		// This holds a copy of the character ROM. The regular character
 		// set is assumed to be in the first 64*8 bytes; the alternative
@@ -198,37 +198,37 @@ class VideoBase {
 			Outputs 40-column text to @c target, using @c length bytes from @c source.
 			@return One byte after the final value written to @c target.
 		*/
-		uint8_t *output_text(uint8_t *target, uint8_t *source, size_t length, size_t pixel_row);
+		uint8_t *output_text(uint8_t *target, uint8_t *source, size_t length, size_t pixel_row) const;
 
 		/*!
 			Outputs 80-column text to @c target, drawing @c length columns from @c source and @c auxiliary_source.
 			@return One byte after the final value written to @c target.
 		*/
-		uint8_t *output_double_text(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, size_t pixel_row);
+		uint8_t *output_double_text(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, size_t pixel_row) const;
 
 		/*!
 			Outputs 40-column low-resolution graphics to @c target, drawing @c length columns from @c source.
 			@return One byte after the final value written to @c target.
 		*/
-		uint8_t *output_low_resolution(uint8_t *target, uint8_t *source, size_t length, int row);
+		uint8_t *output_low_resolution(uint8_t *target, uint8_t *source, size_t length, int row) const;
 
 		/*!
 			Outputs 80-column low-resolution graphics to @c target, drawing @c length columns from @c source and @c auxiliary_source.
 			@return One byte after the final value written to @c target.
 		*/
-		uint8_t *output_double_low_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, int row);
+		uint8_t *output_double_low_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, int row) const;
 
 		/*!
 			Outputs 40-column high-resolution graphics to @c target, drawing @c length columns from @c source.
 			@return One byte after the final value written to @c target.
 		*/
-		uint8_t *output_high_resolution(uint8_t *target, uint8_t *source, size_t length);
+		uint8_t *output_high_resolution(uint8_t *target, uint8_t *source, size_t length) const;
 
 		/*!
 			Outputs 80-column double-high-resolution graphics to @c target, drawing @c length columns from @c source.
 			@return One byte after the final value written to @c target.
 		*/
-		uint8_t *output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length);
+		uint8_t *output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length) const;
 };
 
 template <class BusHandler, bool is_iie> class Video: public VideoBase {
