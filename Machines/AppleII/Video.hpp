@@ -278,11 +278,46 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 				} else {
 					const GraphicsMode line_mode = graphics_mode(row_);
 
+					// Determine whether there's any fetching to do. Fetching occurs during the first
+					// 40 columns of rows prior to 192.
+					if(row_ < 192 && column_ < 40) {
+						const int character_row = row_ >> 3;
+						const uint16_t row_address = static_cast<uint16_t>((character_row >> 3) * 40 + ((character_row&7) << 7));
+
+						// Grab the memory contents that'll be needed momentarily.
+						const int fetch_end = std::min(40, ending_column);
+						uint16_t fetch_address;
+						switch(line_mode) {
+							case GraphicsMode::Text:
+							case GraphicsMode::DoubleText:
+							case GraphicsMode::LowRes:
+							case GraphicsMode::DoubleLowRes: {
+								const uint16_t text_address = static_cast<uint16_t>(((video_page()+1) * 0x400) + row_address);
+								fetch_address = static_cast<uint16_t>(text_address + column_);
+							} break;
+
+							case GraphicsMode::HighRes:
+							case GraphicsMode::DoubleHighRes:
+								fetch_address = static_cast<uint16_t>(((video_page()+1) * 0x2000) + row_address + ((row_&7) << 10) + column_);
+							break;
+						}
+
+						bus_handler_.perform_read(
+							fetch_address,
+							static_cast<size_t>(fetch_end - column_),
+							&base_stream_[static_cast<size_t>(column_)],
+							&auxiliary_stream_[static_cast<size_t>(column_)]);
+						// TODO: should character modes be mapped to character pixel outputs here?
+					}
+
 					// The first 40 columns are submitted to the CRT only upon completion;
 					// they'll be either graphics or blank, depending on which side we are
 					// of line 192.
 					if(column_ < 40) {
 						if(row_ < 192) {
+							const int pixel_end = std::min(40, ending_column);
+							const int pixel_row = row_ & 7;
+
 							const bool requires_high_density = line_mode != GraphicsMode::Text;
 							if(!column_ || requires_high_density != pixels_are_high_density_) {
 								if(column_) output_data_to_column(column_);
@@ -290,28 +325,6 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 								pixel_pointer_column_ = column_;
 								pixels_are_high_density_ = requires_high_density;
 								graphics_carry_ = 0;
-							}
-
-							const int pixel_end = std::min(40, ending_column);
-							const int character_row = row_ >> 3;
-							const int pixel_row = row_ & 7;
-							const uint16_t row_address = static_cast<uint16_t>((character_row >> 3) * 40 + ((character_row&7) << 7));
-							const uint16_t text_address = static_cast<uint16_t>(((video_page()+1) * 0x400) + row_address);
-
-							// Grab the memory contents that'll be needed momentarily.
-							switch(line_mode) {
-								case GraphicsMode::Text:
-								case GraphicsMode::DoubleText:
-								case GraphicsMode::LowRes:
-								case GraphicsMode::DoubleLowRes:
-									bus_handler_.perform_read(text_address + column_, pixel_end - column_, &base_stream_[column_], &auxiliary_stream_[column_]);
-									// TODO: should character modes be mapped to character pixel outputs here?
-								break;
-
-								case GraphicsMode::HighRes:
-								case GraphicsMode::DoubleHighRes:
-									bus_handler_.perform_read(static_cast<uint16_t>(((video_page()+1) * 0x2000) + row_address + ((pixel_row&7) << 10)) + column_, pixel_end - column_, &base_stream_[column_], &auxiliary_stream_[column_]);
-								break;
 							}
 
 							switch(line_mode) {
