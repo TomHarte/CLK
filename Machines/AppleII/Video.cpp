@@ -24,7 +24,7 @@ VideoBase::VideoBase(bool is_iie) :
 
 	// Show only the centre 75% of the TV frame.
 	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
-	crt_->set_visible_area(Outputs::CRT::Rect(0.115f, 0.122f, 0.77f, 0.77f));
+	crt_->set_visible_area(Outputs::CRT::Rect(0.115f + 0.030769230769231f, 0.122f, 0.77f, 0.77f));
 	crt_->set_immediate_default_phase(0.0f);
 }
 
@@ -117,7 +117,7 @@ void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
 	}
 }
 
-uint8_t *VideoBase::output_text(uint8_t *target, uint8_t *source, size_t length, size_t pixel_row) const {
+void VideoBase::output_text(uint8_t *target, uint8_t *source, size_t length, size_t pixel_row) const {
 	const uint8_t inverses[] = {
 		0xff,
 		is_iie_ ? static_cast<uint8_t>(0xff) : static_cast<uint8_t>((flash_ / flash_length) * 0xff),
@@ -134,20 +134,19 @@ uint8_t *VideoBase::output_text(uint8_t *target, uint8_t *source, size_t length,
 		const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
 
 		// The character ROM is output MSB to LSB rather than LSB to MSB.
-		target[0] = character_pattern & 0x40;
-		target[1] = character_pattern & 0x20;
-		target[2] = character_pattern & 0x10;
-		target[3] = character_pattern & 0x08;
-		target[4] = character_pattern & 0x04;
-		target[5] = character_pattern & 0x02;
-		target[6] = character_pattern & 0x01;
+		target[0] = target[1] = character_pattern & 0x40;
+		target[2] = target[3] = character_pattern & 0x20;
+		target[4] = target[5] = character_pattern & 0x10;
+		target[6] = target[7] = character_pattern & 0x08;
+		target[8] = target[9] = character_pattern & 0x04;
+		target[10] = target[11] = character_pattern & 0x02;
+		target[12] = target[13] = character_pattern & 0x01;
 		graphics_carry_ = character_pattern & 0x01;
-		target += 7;
+		target += 14;
 	}
-	return target;
 }
 
-uint8_t *VideoBase::output_double_text(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, size_t pixel_row) const {
+void VideoBase::output_double_text(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, size_t pixel_row) const {
 	for(size_t c = 0; c < length; ++c) {
 		const std::size_t character_addresses[2] = {
 			static_cast<std::size_t>(
@@ -182,15 +181,14 @@ uint8_t *VideoBase::output_double_text(uint8_t *target, uint8_t *source, uint8_t
 		graphics_carry_ = character_patterns[1] & 0x01;
 		target += 14;
 	}
-	return target;
 }
 
-uint8_t *VideoBase::output_low_resolution(uint8_t *target, uint8_t *source, size_t length, int row) const {
+void VideoBase::output_low_resolution(uint8_t *target, uint8_t *source, size_t length, int column, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
 		// Low-resolution graphics mode shifts the colour code on a loop, but has to account for whether this
 		// 14-sample output window is starting at the beginning of a colour cycle or halfway through.
-		if(c&1) {
+		if((column + static_cast<int>(c))&1) {
 			target[0] = target[4] = target[8] = target[12] = (source[c] >> row_shift) & 4;
 			target[1] = target[5] = target[9] = target[13] = (source[c] >> row_shift) & 8;
 			target[2] = target[6] = target[10] = (source[c] >> row_shift) & 1;
@@ -205,13 +203,12 @@ uint8_t *VideoBase::output_low_resolution(uint8_t *target, uint8_t *source, size
 		}
 		target += 14;
 	}
-	return target;
 }
 
-uint8_t *VideoBase::output_double_low_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, int row) const {
+void VideoBase::output_double_low_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, int column, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
-		if(c&1) {
+		if((column + static_cast<int>(c))&1) {
 			target[0] = target[4] = (auxiliary_source[c] >> row_shift) & 2;
 			target[1] = target[5] = (auxiliary_source[c] >> row_shift) & 4;
 			target[2] = target[6] = (auxiliary_source[c] >> row_shift) & 8;
@@ -236,10 +233,9 @@ uint8_t *VideoBase::output_double_low_resolution(uint8_t *target, uint8_t *sourc
 		}
 		target += 14;
 	}
-	return target;
 }
 
-uint8_t *VideoBase::output_high_resolution(uint8_t *target, uint8_t *source, size_t length) const {
+void VideoBase::output_high_resolution(uint8_t *target, uint8_t *source, size_t length) const {
 	for(size_t c = 0; c < length; ++c) {
 		// High resolution graphics shift out LSB to MSB, optionally with a delay of half a pixel.
 		// If there is a delay, the previous output level is held to bridge the gap.
@@ -264,27 +260,26 @@ uint8_t *VideoBase::output_high_resolution(uint8_t *target, uint8_t *source, siz
 		graphics_carry_ = source[c] & 0x40;
 		target += 14;
 	}
-	return target;
 }
 
-uint8_t *VideoBase::output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length) const {
+void VideoBase::output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length) const {
 	for(size_t c = 0; c < length; ++c) {
-		target[0] = graphics_carry_;
-		target[1] = auxiliary_source[c] & 0x01;
-		target[2] = auxiliary_source[c] & 0x02;
-		target[3] = auxiliary_source[c] & 0x04;
-		target[4] = auxiliary_source[c] & 0x08;
-		target[5] = auxiliary_source[c] & 0x10;
-		target[6] = auxiliary_source[c] & 0x20;
-		target[7] = auxiliary_source[c] & 0x40;
-		target[8] = auxiliary_source[c] & 0x01;
-		target[9] = auxiliary_source[c] & 0x02;
-		target[10] = auxiliary_source[c] & 0x04;
-		target[11] = auxiliary_source[c] & 0x08;
-		target[12] = auxiliary_source[c] & 0x10;
-		target[13] = auxiliary_source[c] & 0x20;
+		target[0] = auxiliary_source[c] & 0x01;
+		target[1] = auxiliary_source[c] & 0x02;
+		target[2] = auxiliary_source[c] & 0x04;
+		target[3] = auxiliary_source[c] & 0x08;
+		target[4] = auxiliary_source[c] & 0x10;
+		target[5] = auxiliary_source[c] & 0x20;
+		target[6] = auxiliary_source[c] & 0x40;
+		target[7] = source[c] & 0x01;
+		target[8] = source[c] & 0x02;
+		target[9] = source[c] & 0x04;
+		target[10] = source[c] & 0x08;
+		target[11] = source[c] & 0x10;
+		target[12] = source[c] & 0x20;
+		target[13] = source[c] & 0x40;
+
 		graphics_carry_ = auxiliary_source[c] & 0x40;
 		target += 14;
 	}
-	return target;
 }
