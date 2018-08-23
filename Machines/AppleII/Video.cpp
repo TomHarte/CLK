@@ -24,7 +24,7 @@ VideoBase::VideoBase(bool is_iie) :
 
 	// Show only the centre 75% of the TV frame.
 	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
-	crt_->set_visible_area(Outputs::CRT::Rect(0.115f + 0.030769230769231f, 0.122f, 0.77f, 0.77f));
+	crt_->set_visible_area(Outputs::CRT::Rect(0.115f, 0.122f, 0.77f, 0.77f));
 	crt_->set_immediate_default_phase(0.0f);
 }
 
@@ -36,67 +36,85 @@ Outputs::CRT::CRT *VideoBase::get_crt() {
 	Rote setters and getters.
 */
 void VideoBase::set_alternative_character_set(bool alternative_character_set) {
-	alternative_character_set_ = alternative_character_set;
+	set_alternative_character_set_ = alternative_character_set;
+	defer(2, [=] {
+		alternative_character_set_ = alternative_character_set;
+	});
 }
 
 bool VideoBase::get_alternative_character_set() {
-	return alternative_character_set_;
+	return set_alternative_character_set_;
 }
 
 void VideoBase::set_80_columns(bool columns_80) {
-	columns_80_ = columns_80;
+	set_columns_80_ = columns_80;
+	defer(2, [=] {
+		columns_80_ = columns_80;
+	});
 }
 
 bool VideoBase::get_80_columns() {
-	return columns_80_;
+	return set_columns_80_;
 }
 
 void VideoBase::set_80_store(bool store_80) {
-	store_80_ = store_80;
+	set_store_80_ = store_80_ = store_80;
 }
 
 bool VideoBase::get_80_store() {
-	return store_80_;
+	return set_store_80_;
 }
 
 void VideoBase::set_page2(bool page2) {
-	page2_ = page2;
+	set_page2_ = page2_ = page2;
 }
 
 bool VideoBase::get_page2() {
-	return page2_;
+	return set_page2_;
 }
 
 void VideoBase::set_text(bool text) {
-	text_ = text;
+	set_text_ = text;
+	defer(2, [=] {
+		text_ = text;
+	});
 }
 
 bool VideoBase::get_text() {
-	return text_;
+	return set_text_;
 }
 
 void VideoBase::set_mixed(bool mixed) {
-	mixed_ = mixed;
+	set_mixed_ = mixed;
+	defer(2, [=] {
+		mixed_ = mixed;
+	});
 }
 
 bool VideoBase::get_mixed() {
-	return mixed_;
+	return set_mixed_;
 }
 
 void VideoBase::set_high_resolution(bool high_resolution) {
-	high_resolution_ = high_resolution;
+	set_high_resolution_ = high_resolution;
+	defer(2, [=] {
+		high_resolution_ = high_resolution;
+	});
 }
 
 bool VideoBase::get_high_resolution() {
-	return high_resolution_;
+	return set_high_resolution_;
 }
 
 void VideoBase::set_double_high_resolution(bool double_high_resolution) {
-	double_high_resolution_ = double_high_resolution;
+	set_double_high_resolution_ = double_high_resolution;
+	defer(2, [=] {
+		double_high_resolution_ = double_high_resolution;
+	});
 }
 
 bool VideoBase::get_double_high_resolution() {
-	return double_high_resolution_;
+	return set_double_high_resolution_;
 }
 
 void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
@@ -282,4 +300,8 @@ void VideoBase::output_double_high_resolution(uint8_t *target, uint8_t *source, 
 		graphics_carry_ = auxiliary_source[c] & 0x40;
 		target += 14;
 	}
+}
+
+void VideoBase::defer(int delay, const std::function<void(void)> &action) {
+	pending_actions_.emplace_back(delay, action);
 }

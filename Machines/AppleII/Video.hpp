@@ -165,14 +165,14 @@ class VideoBase {
 		bool is_double_mode(GraphicsMode m) { return !!(static_cast<int>(m)&1); }
 
 		// Various soft-switch values.
-		bool alternative_character_set_ = false;
-		bool columns_80_ = false;
-		bool store_80_ = false;
-		bool page2_ = false;
-		bool text_ = true;
-		bool mixed_ = false;
-		bool high_resolution_ = false;
-		bool double_high_resolution_ = false;
+		bool alternative_character_set_ = false, set_alternative_character_set_ = false;
+		bool columns_80_ = false, set_columns_80_ = false;
+		bool store_80_ = false, set_store_80_ = false;
+		bool page2_ = false, set_page2_ = false;
+		bool text_ = true, set_text_ = true;
+		bool mixed_ = false, set_mixed_ = false;
+		bool high_resolution_ = false, set_high_resolution_ = false;
+		bool double_high_resolution_ = false, set_double_high_resolution_ = false;
 
 		// Graphics carry is the final level output in a fetch window;
 		// it carries on into the next if it's high resolution with
@@ -223,6 +223,18 @@ class VideoBase {
 			Outputs 80-column double-high-resolution graphics to @c target, drawing @c length columns from @c source.
 		*/
 		void output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length) const;
+
+		/// Schedule @c action to occur in @c delay cycles.
+		void defer(int delay, const std::function<void(void)> &action);
+
+		// The list of deferred actions.
+		struct DeferredAction {
+			int delay;
+			std::function<void(void)> action;
+
+			DeferredAction(int delay, const std::function<void(void)> &action) : delay(delay), action(std::move(action)) {}
+		};
+		std::vector<DeferredAction> pending_actions_;
 };
 
 template <class BusHandler, bool is_iie> class Video: public VideoBase {
@@ -237,7 +249,94 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			Implicitly adds an extra half a colour clock at the end of every
 			line.
 		*/
-		void run_for(const Cycles cycles) {
+		void run_for(Cycles cycles) {
+			// If there are no pending actions, just run for the entire length.
+			// This should be the normal branch.
+			if(pending_actions_.empty()) {
+				advance(cycles.as_int());
+				return;
+			}
+
+			// Divide the time to run according to the pending actions.
+			int cycles_remaining = cycles.as_int();
+			while(cycles_remaining) {
+				int next_period = pending_actions_.empty() ? cycles_remaining : std::min(cycles_remaining, pending_actions_[0].delay);
+				advance(next_period);
+				cycles_remaining -= next_period;
+
+				off_t performances = 0;
+				for(auto &action: pending_actions_) {
+					action.delay -= next_period;
+					if(!action.delay) {
+						action.action();
+						++performances;
+					}
+				}
+				if(performances) {
+					pending_actions_.erase(pending_actions_.begin(), pending_actions_.begin() + performances);
+				}
+			}
+		}
+
+		/*!
+			Obtains the last value the video read prior to time now+offset.
+		*/
+		uint8_t get_last_read_value(Cycles offset) {
+			// Rules of generation:
+			// (1)	a complete sixty-five-cycle scan line consists of sixty-five consecutive bytes of
+			//		display buffer memory that starts twenty-five bytes prior to the actual data to be displayed.
+			// (2)	During VBL the data acts just as if it were starting a whole new frame from the beginning, but
+			//		it never finishes this pseudo-frame. After getting one third of the way through the frame (to
+			//		scan line $3F), it suddenly repeats the previous six scan lines ($3A through $3F) before aborting
+			//		to begin the next true frame.
+			//
+			// Source: Have an Apple Split by Bob Bishop; http://rich12345.tripod.com/aiivideo/softalk.html
+
+			// Determine column at offset.
+			int mapped_column = column_ + offset.as_int();
+
+			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
+			// (so what was column 0 is now column 25).
+			mapped_column += 25;
+
+			// Apply carry into the row counter.
+			int mapped_row = row_ + (mapped_column / 65);
+			mapped_column %= 65;
+			mapped_row %= 262;
+
+			// Apple out-of-bounds row logic.
+			if(mapped_row >= 256) {
+				mapped_row = 0x3a + (mapped_row&255);
+			} else {
+				mapped_row %= 192;
+			}
+
+			// Calculate the address and return the value.
+			uint16_t read_address = static_cast<uint16_t>(get_row_address(mapped_row) + mapped_column - 25);
+			uint8_t value, aux_value;
+			bus_handler_.perform_read(read_address, 1, &value, &aux_value);
+			return value;
+		}
+
+		/*!
+			@returns @c true if the display will be within vertical blank at now + @c offset; @c false otherwise.
+		*/
+		bool get_is_vertical_blank(Cycles offset) {
+			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
+			// (so what was column 0 is now column 25).
+			int mapped_column = column_ + offset.as_int();
+
+			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
+			// (so what was column 0 is now column 25).
+			mapped_column += 25;
+
+			// Apply carry into the row counter and test it for location.
+			int mapped_row = row_ + (mapped_column / 65);
+			return (mapped_row % 262) >= 192;
+		}
+
+	private:
+		void advance(Cycles cycles) {
 			/*
 				Addressing scheme used throughout is that column 0 is the first column with pixels in it;
 				row 0 is the first row with pixels in it.
@@ -305,19 +404,18 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					}
 
 					if(row_ < 192) {
-						// Output an initial 1.5 columns of blank. The pixel area will be the next 40.5
-						// columns; base contents remain where they would naturally be but auxiliary
+						// The pixel area is the first 40.5 columns; base contents
+						// remain where they would naturally be but auxiliary
 						// graphics appear to the left of that.
 						if(!column_) {
-							crt_->output_blank(14 + 7);
 							pixel_pointer_ = crt_->allocate_write_area(568);
 							graphics_carry_ = 0;
 							was_double_ = true;
 						}
 
-						if(column_ < 42 && ending_column > 2) {
-							const int pixel_start = std::max(2, column_) - 2;
-							const int pixel_end = std::min(42, ending_column) - 2;
+						if(column_ < 40) {
+							const int pixel_start = std::max(0, column_);
+							const int pixel_end = std::min(40, ending_column);
 							const int pixel_row = row_ & 7;
 
 							const bool is_double = Video::is_double_mode(line_mode);
@@ -406,8 +504,8 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							}
 						}
 					} else {
-						if(column_ < 42 && ending_column >= 42) {
-							crt_->output_blank(589);
+						if(column_ < 40 && ending_column >= 40) {
+							crt_->output_blank(568);
 						}
 					}
 
@@ -417,7 +515,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					*/
 
 					if(column_ < first_sync_column && ending_column >= first_sync_column) {
-						crt_->output_blank((first_sync_column - 42)*14 - 1);
+						crt_->output_blank((first_sync_column - 41)*14 - 1);
 					}
 
 					if(column_ < (first_sync_column + sync_length) && ending_column >= (first_sync_column + sync_length)) {
@@ -429,7 +527,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 						const int colour_burst_start = std::max(first_sync_column + sync_length + 1, column_);
 						const int colour_burst_end = std::min(first_sync_column + sync_length + 4, ending_column);
 						if(colour_burst_end > colour_burst_start) {
-							crt_->output_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 14, 128);
+							crt_->output_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 14, 192);
 						}
 
 						second_blank_start = std::max(first_sync_column + sync_length + 3, column_);
@@ -455,64 +553,6 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			}
 		}
 
-		/*!
-			Obtains the last value the video read prior to time now+offset.
-		*/
-		uint8_t get_last_read_value(Cycles offset) {
-			// Rules of generation:
-			// (1)	a complete sixty-five-cycle scan line consists of sixty-five consecutive bytes of
-			//		display buffer memory that starts twenty-five bytes prior to the actual data to be displayed.
-			// (2)	During VBL the data acts just as if it were starting a whole new frame from the beginning, but
-			//		it never finishes this pseudo-frame. After getting one third of the way through the frame (to
-			//		scan line $3F), it suddenly repeats the previous six scan lines ($3A through $3F) before aborting
-			//		to begin the next true frame.
-			//
-			// Source: Have an Apple Split by Bob Bishop; http://rich12345.tripod.com/aiivideo/softalk.html
-
-			// Determine column at offset.
-			int mapped_column = column_ + offset.as_int();
-
-			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
-			// (so what was column 0 is now column 25).
-			mapped_column += 25;
-
-			// Apply carry into the row counter.
-			int mapped_row = row_ + (mapped_column / 65);
-			mapped_column %= 65;
-			mapped_row %= 262;
-
-			// Apple out-of-bounds row logic.
-			if(mapped_row >= 256) {
-				mapped_row = 0x3a + (mapped_row&255);
-			} else {
-				mapped_row %= 192;
-			}
-
-			// Calculate the address and return the value.
-			uint16_t read_address = static_cast<uint16_t>(get_row_address(mapped_row) + mapped_column - 25);
-			uint8_t value, aux_value;
-			bus_handler_.perform_read(read_address, 1, &value, &aux_value);
-			return value;
-		}
-
-		/*!
-			@returns @c true if the display will be within vertical blank at now + @c offset; @c false otherwise.
-		*/
-		bool get_is_vertical_blank(Cycles offset) {
-			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
-			// (so what was column 0 is now column 25).
-			int mapped_column = column_ + offset.as_int();
-
-			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
-			// (so what was column 0 is now column 25).
-			mapped_column += 25;
-
-			// Apply carry into the row counter and test it for location.
-			int mapped_row = row_ + (mapped_column / 65);
-			return (mapped_row % 262) >= 192;
-		}
-
-	private:
 		GraphicsMode graphics_mode(int row) {
 			if(text_) return columns_80_ ? GraphicsMode::DoubleText : GraphicsMode::Text;
 			if(mixed_ && row >= 160 && row < 192) {
