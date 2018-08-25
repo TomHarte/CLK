@@ -15,13 +15,10 @@
 	A ClockDeferrer maintains a list of ordered actions and the times at which
 	they should happen, and divides a total execution period up into the portions
 	that occur between those actions, triggering each action when it is reached.
-
-	@c Class should be a class that implements @c advance(TimeUnit), to advance
-	that amount of time.
 */
 template <typename TimeUnit> class ClockDeferrer {
 	public:
-		/// Constructs a ClockDeferrer that will call target.advance in between deferred actions.
+		/// Constructs a ClockDeferrer that will call target(period) in between deferred actions.
 		ClockDeferrer(std::function<void(TimeUnit)> &&target) : target_(std::move(target)) {}
 
 		/*!
@@ -37,7 +34,7 @@ template <typename TimeUnit> class ClockDeferrer {
 		/*!
 			Runs for @c length units of time.
 
-			The target's @c advance will be called with one or more periods that add up to @c length;
+			The constructor-supplied target will be called with one or more periods that add up to @c length;
 			any scheduled actions will be called between periods.
 		*/
 		void run_for(TimeUnit length) {
