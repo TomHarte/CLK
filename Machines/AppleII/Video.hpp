@@ -11,6 +11,7 @@
 
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockDeferrer.hpp"
 
 #include <array>
 #include <vector>
@@ -33,7 +34,7 @@ class BusHandler {
 
 class VideoBase {
 	public:
-		VideoBase(bool is_iie);
+		VideoBase(bool is_iie, std::function<void(Cycles)> &&target);
 
 		/// @returns The CRT this video feed is feeding.
 		Outputs::CRT::CRT *get_crt();
@@ -224,58 +225,22 @@ class VideoBase {
 		*/
 		void output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length) const;
 
-		/// Schedule @c action to occur in @c delay cycles.
-		void defer(int delay, const std::function<void(void)> &action);
-
-		// The list of deferred actions.
-		struct DeferredAction {
-			int delay;
-			std::function<void(void)> action;
-
-			DeferredAction(int delay, const std::function<void(void)> &action) : delay(delay), action(std::move(action)) {}
-		};
-		std::vector<DeferredAction> pending_actions_;
+		// Maintain a ClockDeferrer for delayed mode switches.
+		ClockDeferrer<Cycles> deferrer_;
 };
 
 template <class BusHandler, bool is_iie> class Video: public VideoBase {
 	public:
 		/// Constructs an instance of the video feed; a CRT is also created.
 		Video(BusHandler &bus_handler) :
-			VideoBase(is_iie),
+			VideoBase(is_iie, [=] (Cycles cycles) { advance(cycles); }),
 			bus_handler_(bus_handler) {}
 
 		/*!
-			Advances time by @c cycles; expects to be fed by the CPU clock.
-			Implicitly adds an extra half a colour clock at the end of every
-			line.
+			Runs video for @c cycles.
 		*/
 		void run_for(Cycles cycles) {
-			// If there are no pending actions, just run for the entire length.
-			// This should be the normal branch.
-			if(pending_actions_.empty()) {
-				advance(cycles.as_int());
-				return;
-			}
-
-			// Divide the time to run according to the pending actions.
-			int cycles_remaining = cycles.as_int();
-			while(cycles_remaining) {
-				int next_period = pending_actions_.empty() ? cycles_remaining : std::min(cycles_remaining, pending_actions_[0].delay);
-				advance(next_period);
-				cycles_remaining -= next_period;
-
-				off_t performances = 0;
-				for(auto &action: pending_actions_) {
-					action.delay -= next_period;
-					if(!action.delay) {
-						action.action();
-						++performances;
-					}
-				}
-				if(performances) {
-					pending_actions_.erase(pending_actions_.begin(), pending_actions_.begin() + performances);
-				}
-			}
+			deferrer_.run_for(cycles);
 		}
 
 		/*!
@@ -336,6 +301,11 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 		}
 
 	private:
+		/*!
+			Advances time by @c cycles; expects to be fed by the CPU clock.
+			Implicitly adds an extra half a colour clock at the end of
+			line.
+		*/
 		void advance(Cycles cycles) {
 			/*
 				Addressing scheme used throughout is that column 0 is the first column with pixels in it;

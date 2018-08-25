@@ -10,9 +10,10 @@
 
 using namespace AppleII::Video;
 
-VideoBase::VideoBase(bool is_iie) :
+VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 	crt_(new Outputs::CRT::CRT(910, 1, Outputs::CRT::DisplayType::NTSC60, 1)),
-	is_iie_(is_iie) {
+	is_iie_(is_iie),
+	deferrer_(std::move(target)) {
 
 	// Set a composite sampling function that assumes one byte per pixel input, and
 	// accepts any non-zero value as being fully on, zero being fully off.
@@ -37,7 +38,7 @@ Outputs::CRT::CRT *VideoBase::get_crt() {
 */
 void VideoBase::set_alternative_character_set(bool alternative_character_set) {
 	set_alternative_character_set_ = alternative_character_set;
-	defer(2, [=] {
+	deferrer_.defer(Cycles(2), [=] {
 		alternative_character_set_ = alternative_character_set;
 	});
 }
@@ -48,7 +49,7 @@ bool VideoBase::get_alternative_character_set() {
 
 void VideoBase::set_80_columns(bool columns_80) {
 	set_columns_80_ = columns_80;
-	defer(2, [=] {
+	deferrer_.defer(Cycles(2), [=] {
 		columns_80_ = columns_80;
 	});
 }
@@ -75,7 +76,7 @@ bool VideoBase::get_page2() {
 
 void VideoBase::set_text(bool text) {
 	set_text_ = text;
-	defer(2, [=] {
+	deferrer_.defer(Cycles(2), [=] {
 		text_ = text;
 	});
 }
@@ -86,7 +87,7 @@ bool VideoBase::get_text() {
 
 void VideoBase::set_mixed(bool mixed) {
 	set_mixed_ = mixed;
-	defer(2, [=] {
+	deferrer_.defer(Cycles(2), [=] {
 		mixed_ = mixed;
 	});
 }
@@ -97,7 +98,7 @@ bool VideoBase::get_mixed() {
 
 void VideoBase::set_high_resolution(bool high_resolution) {
 	set_high_resolution_ = high_resolution;
-	defer(2, [=] {
+	deferrer_.defer(Cycles(2), [=] {
 		high_resolution_ = high_resolution;
 	});
 }
@@ -108,7 +109,7 @@ bool VideoBase::get_high_resolution() {
 
 void VideoBase::set_double_high_resolution(bool double_high_resolution) {
 	set_double_high_resolution_ = double_high_resolution;
-	defer(2, [=] {
+	deferrer_.defer(Cycles(2), [=] {
 		double_high_resolution_ = double_high_resolution;
 	});
 }
@@ -300,8 +301,4 @@ void VideoBase::output_double_high_resolution(uint8_t *target, uint8_t *source, 
 		graphics_carry_ = auxiliary_source[c] & 0x40;
 		target += 14;
 	}
-}
-
-void VideoBase::defer(int delay, const std::function<void(void)> &action) {
-	pending_actions_.emplace_back(delay, action);
 }
