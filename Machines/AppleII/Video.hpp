@@ -11,7 +11,9 @@
 
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockDeferrer.hpp"
 
+#include <array>
 #include <vector>
 
 namespace AppleII {
@@ -20,25 +22,19 @@ namespace Video {
 class BusHandler {
 	public:
 		/*!
-			Reads an 8-bit value from the ordinary II/II+ memory pool.
-		*/
-		uint8_t perform_read(uint16_t address) {
-			return 0xff;
-		}
+			Requests fetching of the @c count bytes starting from @c address.
 
-		/*!
-			Reads two 8-bit values, from the same address — one from
-			main RAM, one from auxiliary. Should return as
-			(main) | (aux << 8).
+			The handler should write the values from base memory to @c base_target, and those
+			from auxiliary memory to @c auxiliary_target. If the machine has no axiliary memory,
+			it needn't write anything to auxiliary_target.
 		*/
-		uint16_t perform_aux_read(uint16_t address) {
-			return 0xffff;
+		void perform_read(uint16_t address, size_t count, uint8_t *base_target, uint8_t *auxiliary_target) {
 		}
 };
 
 class VideoBase {
 	public:
-		VideoBase();
+		VideoBase(bool is_iie, std::function<void(Cycles)> &&target);
 
 		/// @returns The CRT this video feed is feeding.
 		Outputs::CRT::CRT *get_crt();
@@ -153,350 +149,98 @@ class VideoBase {
 
 		// State affecting output video stream generation.
 		uint8_t *pixel_pointer_ = nullptr;
-		int pixel_pointer_column_ = 0;
-		bool pixels_are_high_density_ = false;
 
 		// State affecting logical state.
 		int row_ = 0, column_ = 0, flash_ = 0;
 
 		// Enumerates all Apple II and IIe display modes.
 		enum class GraphicsMode {
-			LowRes,
+			LowRes = 0,
 			DoubleLowRes,
 			HighRes,
 			DoubleHighRes,
 			Text,
-			DoubleText
+			DoubleText,
 		};
 		bool is_text_mode(GraphicsMode m) { return m >= GraphicsMode::Text; }
+		bool is_double_mode(GraphicsMode m) { return !!(static_cast<int>(m)&1); }
 
 		// Various soft-switch values.
-		bool alternative_character_set_ = false;
-		bool columns_80_ = false;
-		bool store_80_ = false;
-		bool page2_ = false;
-		bool text_ = true;
-		bool mixed_ = false;
-		bool high_resolution_ = false;
-		bool double_high_resolution_ = false;
+		bool alternative_character_set_ = false, set_alternative_character_set_ = false;
+		bool columns_80_ = false, set_columns_80_ = false;
+		bool store_80_ = false, set_store_80_ = false;
+		bool page2_ = false, set_page2_ = false;
+		bool text_ = true, set_text_ = true;
+		bool mixed_ = false, set_mixed_ = false;
+		bool high_resolution_ = false, set_high_resolution_ = false;
+		bool double_high_resolution_ = false, set_double_high_resolution_ = false;
 
 		// Graphics carry is the final level output in a fetch window;
 		// it carries on into the next if it's high resolution with
 		// the delay bit set.
-		uint8_t graphics_carry_ = 0;
+		mutable uint8_t graphics_carry_ = 0;
+		bool was_double_ = false;
 
 		// This holds a copy of the character ROM. The regular character
 		// set is assumed to be in the first 64*8 bytes; the alternative
 		// is in the 128*8 bytes after that.
 		std::vector<uint8_t> character_rom_;
+
+		// Memory is fetched ahead of time into this array;
+		// this permits the correct delay between fetching
+		// without having to worry about a rolling buffer.
+		std::array<uint8_t, 40> base_stream_;
+		std::array<uint8_t, 40> auxiliary_stream_;
+
+		bool is_iie_ = false;
+		static const int flash_length = 8406;
+
+		/*!
+			Outputs 40-column text to @c target, using @c length bytes from @c source.
+		*/
+		void output_text(uint8_t *target, uint8_t *source, size_t length, size_t pixel_row) const;
+
+		/*!
+			Outputs 80-column text to @c target, drawing @c length columns from @c source and @c auxiliary_source.
+		*/
+		void output_double_text(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, size_t pixel_row) const;
+
+		/*!
+			Outputs 40-column low-resolution graphics to @c target, drawing @c length columns from @c source.
+		*/
+		void output_low_resolution(uint8_t *target, uint8_t *source, size_t length, int column, int row) const;
+
+		/*!
+			Outputs 80-column low-resolution graphics to @c target, drawing @c length columns from @c source and @c auxiliary_source.
+		*/
+		void output_double_low_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, int column, int row) const;
+
+		/*!
+			Outputs 40-column high-resolution graphics to @c target, drawing @c length columns from @c source.
+		*/
+		void output_high_resolution(uint8_t *target, uint8_t *source, size_t length) const;
+
+		/*!
+			Outputs 80-column double-high-resolution graphics to @c target, drawing @c length columns from @c source.
+		*/
+		void output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length) const;
+
+		// Maintain a ClockDeferrer for delayed mode switches.
+		ClockDeferrer<Cycles> deferrer_;
 };
 
 template <class BusHandler, bool is_iie> class Video: public VideoBase {
 	public:
 		/// Constructs an instance of the video feed; a CRT is also created.
 		Video(BusHandler &bus_handler) :
-			VideoBase(),
+			VideoBase(is_iie, [=] (Cycles cycles) { advance(cycles); }),
 			bus_handler_(bus_handler) {}
 
 		/*!
-			Advances time by @c cycles; expects to be fed by the CPU clock.
-			Implicitly adds an extra half a colour clock at the end of every
-			line.
+			Runs video for @c cycles.
 		*/
-		void run_for(const Cycles cycles) {
-			/*
-				Addressing scheme used throughout is that column 0 is the first column with pixels in it;
-				row 0 is the first row with pixels in it.
-
-				A frame is oriented around 65 cycles across, 262 lines down.
-			*/
-			static const int first_sync_line = 220;		// A complete guess. Information needed.
-			static const int first_sync_column = 49;	// Also a guess.
-			static const int sync_length = 4;			// One of the two likely candidates.
-
-			int int_cycles = cycles.as_int();
-			while(int_cycles) {
-				const int cycles_this_line = std::min(65 - column_, int_cycles);
-				const int ending_column = column_ + cycles_this_line;
-
-				if(row_ >= first_sync_line && row_ < first_sync_line + 3) {
-					// In effect apply an XOR to HSYNC and VSYNC flags in order to include equalising
-					// pulses (and hencce keep hsync approximately where it should be during vsync).
-					const int blank_start = std::max(first_sync_column - sync_length, column_);
-					const int blank_end = std::min(first_sync_column, ending_column);
-					if(blank_end > blank_start) {
-						if(blank_start > column_) {
-							crt_->output_sync(static_cast<unsigned int>(blank_start - column_) * 14);
-						}
-						crt_->output_blank(static_cast<unsigned int>(blank_end - blank_start) * 14);
-						if(blank_end < ending_column) {
-							crt_->output_sync(static_cast<unsigned int>(ending_column - blank_end) * 14);
-						}
-					} else {
-						crt_->output_sync(static_cast<unsigned int>(cycles_this_line) * 14);
-					}
-				} else {
-					const GraphicsMode line_mode = graphics_mode(row_);
-
-					// The first 40 columns are submitted to the CRT only upon completion;
-					// they'll be either graphics or blank, depending on which side we are
-					// of line 192.
-					if(column_ < 40) {
-						if(row_ < 192) {
-							const bool requires_high_density = line_mode != GraphicsMode::Text;
-							if(!column_ || requires_high_density != pixels_are_high_density_) {
-								if(column_) output_data_to_column(column_);
-								pixel_pointer_ = crt_->allocate_write_area(561);
-								pixel_pointer_column_ = column_;
-								pixels_are_high_density_ = requires_high_density;
-								graphics_carry_ = 0;
-							}
-
-							const int pixel_end = std::min(40, ending_column);
-							const int character_row = row_ >> 3;
-							const int pixel_row = row_ & 7;
-							const uint16_t row_address = static_cast<uint16_t>((character_row >> 3) * 40 + ((character_row&7) << 7));
-							const uint16_t text_address = static_cast<uint16_t>(((video_page()+1) * 0x400) + row_address);
-
-							switch(line_mode) {
-								case GraphicsMode::Text: {
-									const uint8_t inverses[] = {
-										0xff,
-										static_cast<uint8_t>((flash_ / flash_length) * 0xff),
-										0x00,
-										0x00
-									};
-									for(int c = column_; c < pixel_end; ++c) {
-										int character = bus_handler_.perform_read(static_cast<uint16_t>(text_address + c));
-										if(is_iie) {
-											character |= alternative_character_set_ ? 0x100 : 0;
-										} else {
-											character &= 0x3f;
-
-										}
-										const uint8_t xor_mask = is_iie ? 0xff : inverses[character >> 6];
-										const std::size_t character_address = static_cast<std::size_t>((character << 3) + pixel_row);
-										const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
-
-										// The character ROM is output MSB to LSB rather than LSB to MSB.
-										pixel_pointer_[0] = character_pattern & 0x40;
-										pixel_pointer_[1] = character_pattern & 0x20;
-										pixel_pointer_[2] = character_pattern & 0x10;
-										pixel_pointer_[3] = character_pattern & 0x08;
-										pixel_pointer_[4] = character_pattern & 0x04;
-										pixel_pointer_[5] = character_pattern & 0x02;
-										pixel_pointer_[6] = character_pattern & 0x01;
-										graphics_carry_ = character_pattern & 0x01;
-										pixel_pointer_ += 7;
-									}
-								} break;
-
-								case GraphicsMode::DoubleText: {
-									for(int c = column_; c < pixel_end; ++c) {
-										const uint16_t characters = bus_handler_.perform_aux_read(static_cast<uint16_t>(text_address + c));
-										const std::size_t character_addresses[2] = {
-											static_cast<std::size_t>(
-												(((characters >> 8)) << 3) + pixel_row
-											),
-											static_cast<std::size_t>(
-												(characters << 3) + pixel_row
-											),
-										};
-
-										const size_t pattern_offset = alternative_character_set_ ? (256*8) : 0;
-										const uint8_t character_patterns[2] = {
-											character_rom_[character_addresses[0] + pattern_offset],
-											character_rom_[character_addresses[1] + pattern_offset],
-										};
-
-										// The character ROM is output MSB to LSB rather than LSB to MSB.
-										pixel_pointer_[0] = character_patterns[0] & 0x40;
-										pixel_pointer_[1] = character_patterns[0] & 0x20;
-										pixel_pointer_[2] = character_patterns[0] & 0x10;
-										pixel_pointer_[3] = character_patterns[0] & 0x08;
-										pixel_pointer_[4] = character_patterns[0] & 0x04;
-										pixel_pointer_[5] = character_patterns[0] & 0x02;
-										pixel_pointer_[6] = character_patterns[0] & 0x01;
-										pixel_pointer_[7] = character_patterns[1] & 0x40;
-										pixel_pointer_[8] = character_patterns[1] & 0x20;
-										pixel_pointer_[9] = character_patterns[1] & 0x10;
-										pixel_pointer_[10] = character_patterns[1] & 0x08;
-										pixel_pointer_[11] = character_patterns[1] & 0x04;
-										pixel_pointer_[12] = character_patterns[1] & 0x02;
-										pixel_pointer_[13] = character_patterns[1] & 0x01;
-										graphics_carry_ = character_patterns[1] & 0x01;
-										pixel_pointer_ += 14;
-									}
-								} break;
-
-								case GraphicsMode::DoubleLowRes: {
-									const int row_shift = (row_&4);
-									for(int c = column_; c < pixel_end; ++c) {
-										const uint16_t nibble = bus_handler_.perform_aux_read(static_cast<uint16_t>(text_address + c)) >> row_shift;
-
-										if(c&1) {
-											pixel_pointer_[0] = pixel_pointer_[4] = (nibble >> 8) & 2;
-											pixel_pointer_[1] = pixel_pointer_[5] = (nibble >> 8) & 4;
-											pixel_pointer_[2] = pixel_pointer_[6] = (nibble >> 8) & 8;
-											pixel_pointer_[3] = (nibble >> 8) & 1;
-
-											pixel_pointer_[8] = pixel_pointer_[12] = nibble & 4;
-											pixel_pointer_[9] = pixel_pointer_[13] = nibble & 8;
-											pixel_pointer_[10] = nibble & 1;
-											pixel_pointer_[7] = pixel_pointer_[11] = nibble & 2;
-											graphics_carry_ = nibble & 8;
-										} else {
-											pixel_pointer_[0] = pixel_pointer_[4] = (nibble >> 8) & 8;
-											pixel_pointer_[1] = pixel_pointer_[5] = (nibble >> 8) & 1;
-											pixel_pointer_[2] = pixel_pointer_[6] = (nibble >> 8) & 2;
-											pixel_pointer_[3] = (nibble >> 8) & 4;
-
-											pixel_pointer_[8] = pixel_pointer_[12] = nibble & 1;
-											pixel_pointer_[9] = pixel_pointer_[13] = nibble & 2;
-											pixel_pointer_[10] = nibble & 4;
-											pixel_pointer_[7] = pixel_pointer_[11] = nibble & 8;
-											graphics_carry_ = nibble & 2;
-										}
-										pixel_pointer_ += 14;
-									}
-								} break;
-
-								case GraphicsMode::LowRes: {
-									const int row_shift = (row_&4);
-									// TODO: decompose into two loops, possibly.
-									for(int c = column_; c < pixel_end; ++c) {
-										const uint8_t nibble = (bus_handler_.perform_read(static_cast<uint16_t>(text_address + c)) >> row_shift) & 0x0f;
-
-										// Low-resolution graphics mode shifts the colour code on a loop, but has to account for whether this
-										// 14-sample output window is starting at the beginning of a colour cycle or halfway through.
-										if(c&1) {
-											pixel_pointer_[0] = pixel_pointer_[4] = pixel_pointer_[8] = pixel_pointer_[12] = nibble & 4;
-											pixel_pointer_[1] = pixel_pointer_[5] = pixel_pointer_[9] = pixel_pointer_[13] = nibble & 8;
-											pixel_pointer_[2] = pixel_pointer_[6] = pixel_pointer_[10] = nibble & 1;
-											pixel_pointer_[3] = pixel_pointer_[7] = pixel_pointer_[11] = nibble & 2;
-											graphics_carry_ = nibble & 8;
-										} else {
-											pixel_pointer_[0] = pixel_pointer_[4] = pixel_pointer_[8] = pixel_pointer_[12] = nibble & 1;
-											pixel_pointer_[1] = pixel_pointer_[5] = pixel_pointer_[9] = pixel_pointer_[13] = nibble & 2;
-											pixel_pointer_[2] = pixel_pointer_[6] = pixel_pointer_[10] = nibble & 4;
-											pixel_pointer_[3] = pixel_pointer_[7] = pixel_pointer_[11] = nibble & 8;
-											graphics_carry_ = nibble & 2;
-										}
-										pixel_pointer_ += 14;
-									}
-								} break;
-
-								case GraphicsMode::HighRes: {
-									const uint16_t graphics_address = static_cast<uint16_t>(((video_page()+1) * 0x2000) + row_address + ((pixel_row&7) << 10));
-									for(int c = column_; c < pixel_end; ++c) {
-										const uint8_t graphic = bus_handler_.perform_read(static_cast<uint16_t>(graphics_address + c));
-
-										// High resolution graphics shift out LSB to MSB, optionally with a delay of half a pixel.
-										// If there is a delay, the previous output level is held to bridge the gap.
-										if(graphic & 0x80) {
-											pixel_pointer_[0] = graphics_carry_;
-											pixel_pointer_[1] = pixel_pointer_[2] = graphic & 0x01;
-											pixel_pointer_[3] = pixel_pointer_[4] = graphic & 0x02;
-											pixel_pointer_[5] = pixel_pointer_[6] = graphic & 0x04;
-											pixel_pointer_[7] = pixel_pointer_[8] = graphic & 0x08;
-											pixel_pointer_[9] = pixel_pointer_[10] = graphic & 0x10;
-											pixel_pointer_[11] = pixel_pointer_[12] = graphic & 0x20;
-											pixel_pointer_[13] = graphic & 0x40;
-										} else {
-											pixel_pointer_[0] = pixel_pointer_[1] = graphic & 0x01;
-											pixel_pointer_[2] = pixel_pointer_[3] = graphic & 0x02;
-											pixel_pointer_[4] = pixel_pointer_[5] = graphic & 0x04;
-											pixel_pointer_[6] = pixel_pointer_[7] = graphic & 0x08;
-											pixel_pointer_[8] = pixel_pointer_[9] = graphic & 0x10;
-											pixel_pointer_[10] = pixel_pointer_[11] = graphic & 0x20;
-											pixel_pointer_[12] = pixel_pointer_[13] = graphic & 0x40;
-										}
-										graphics_carry_ = graphic & 0x40;
-										pixel_pointer_ += 14;
-									}
-								} break;
-
-								case GraphicsMode::DoubleHighRes: {
-									const uint16_t graphics_address = static_cast<uint16_t>(((video_page()+1) * 0x2000) + row_address + ((pixel_row&7) << 10));
-									for(int c = column_; c < pixel_end; ++c) {
-										const uint16_t graphic = bus_handler_.perform_aux_read(static_cast<uint16_t>(graphics_address + c));
-
-										pixel_pointer_[0] = graphics_carry_;
-										pixel_pointer_[1] = (graphic >> 8) & 0x01;
-										pixel_pointer_[2] = (graphic >> 8) & 0x02;
-										pixel_pointer_[3] = (graphic >> 8) & 0x04;
-										pixel_pointer_[4] = (graphic >> 8) & 0x08;
-										pixel_pointer_[5] = (graphic >> 8) & 0x10;
-										pixel_pointer_[6] = (graphic >> 8) & 0x20;
-										pixel_pointer_[7] = (graphic >> 8) & 0x40;
-										pixel_pointer_[8] = graphic & 0x01;
-										pixel_pointer_[9] = graphic & 0x02;
-										pixel_pointer_[10] = graphic & 0x04;
-										pixel_pointer_[11] = graphic & 0x08;
-										pixel_pointer_[12] = graphic & 0x10;
-										pixel_pointer_[13] = graphic & 0x20;
-										graphics_carry_ = graphic & 0x40;
-										pixel_pointer_ += 14;
-									}
-								} break;
-							}
-
-							if(ending_column >= 40) {
-								output_data_to_column(40);
-							}
-						} else {
-							if(ending_column >= 40) {
-								crt_->output_blank(560);
-							}
-						}
-					}
-
-					/*
-						The left border, sync, right border pattern doesn't depend on whether
-						there were pixels this row and is output as soon as it is known.
-					*/
-
-					const int first_blank_start = std::max(40, column_);
-					const int first_blank_end = std::min(first_sync_column, ending_column);
-					if(first_blank_end > first_blank_start) {
-						crt_->output_blank(static_cast<unsigned int>(first_blank_end - first_blank_start) * 14);
-					}
-
-					const int sync_start = std::max(first_sync_column, column_);
-					const int sync_end = std::min(first_sync_column + sync_length, ending_column);
-					if(sync_end > sync_start) {
-						crt_->output_sync(static_cast<unsigned int>(sync_end - sync_start) * 14);
-					}
-
-					int second_blank_start;
-					if(!is_text_mode(graphics_mode(row_+1))) {
-						const int colour_burst_start = std::max(first_sync_column + sync_length + 1, column_);
-						const int colour_burst_end = std::min(first_sync_column + sync_length + 4, ending_column);
-						if(colour_burst_end > colour_burst_start) {
-							crt_->output_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 14, 128);
-						}
-
-						second_blank_start = std::max(first_sync_column + 7, column_);
-					} else {
-						second_blank_start = std::max(first_sync_column + 4, column_);
-					}
-
-					if(ending_column > second_blank_start) {
-						crt_->output_blank(static_cast<unsigned int>(ending_column - second_blank_start) * 14);
-					}
-				}
-
-				int_cycles -= cycles_this_line;
-				column_ = (column_ + cycles_this_line) % 65;
-				if(!column_) {
-					row_ = (row_ + 1) % 262;
-					flash_ = (flash_ + 1) % (2 * flash_length);
-
-					// Add an extra half a colour cycle of blank; this isn't counted in the run_for
-					// count explicitly but is promised.
-					crt_->output_blank(2);
-				}
-			}
+		void run_for(Cycles cycles) {
+			deferrer_.run_for(cycles);
 		}
 
 		/*!
@@ -534,7 +278,9 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 			// Calculate the address and return the value.
 			uint16_t read_address = static_cast<uint16_t>(get_row_address(mapped_row) + mapped_column - 25);
-			return bus_handler_.perform_read(read_address);
+			uint8_t value, aux_value;
+			bus_handler_.perform_read(read_address, 1, &value, &aux_value);
+			return value;
 		}
 
 		/*!
@@ -555,6 +301,228 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 		}
 
 	private:
+		/*!
+			Advances time by @c cycles; expects to be fed by the CPU clock.
+			Implicitly adds an extra half a colour clock at the end of
+			line.
+		*/
+		void advance(Cycles cycles) {
+			/*
+				Addressing scheme used throughout is that column 0 is the first column with pixels in it;
+				row 0 is the first row with pixels in it.
+
+				A frame is oriented around 65 cycles across, 262 lines down.
+			*/
+			static const int first_sync_line = 220;		// A complete guess. Information needed.
+			static const int first_sync_column = 49;	// Also a guess.
+			static const int sync_length = 4;			// One of the two likely candidates.
+
+			int int_cycles = cycles.as_int();
+			while(int_cycles) {
+				const int cycles_this_line = std::min(65 - column_, int_cycles);
+				const int ending_column = column_ + cycles_this_line;
+
+				if(row_ >= first_sync_line && row_ < first_sync_line + 3) {
+					// In effect apply an XOR to HSYNC and VSYNC flags in order to include equalising
+					// pulses (and hencce keep hsync approximately where it should be during vsync).
+					const int blank_start = std::max(first_sync_column - sync_length, column_);
+					const int blank_end = std::min(first_sync_column, ending_column);
+					if(blank_end > blank_start) {
+						if(blank_start > column_) {
+							crt_->output_sync(static_cast<unsigned int>(blank_start - column_) * 14);
+						}
+						crt_->output_blank(static_cast<unsigned int>(blank_end - blank_start) * 14);
+						if(blank_end < ending_column) {
+							crt_->output_sync(static_cast<unsigned int>(ending_column - blank_end) * 14);
+						}
+					} else {
+						crt_->output_sync(static_cast<unsigned int>(cycles_this_line) * 14);
+					}
+				} else {
+					const GraphicsMode line_mode = graphics_mode(row_);
+
+					// Determine whether there's any fetching to do. Fetching occurs during the first
+					// 40 columns of rows prior to 192.
+					if(row_ < 192 && column_ < 40) {
+						const int character_row = row_ >> 3;
+						const uint16_t row_address = static_cast<uint16_t>((character_row >> 3) * 40 + ((character_row&7) << 7));
+
+						// Grab the memory contents that'll be needed momentarily.
+						const int fetch_end = std::min(40, ending_column);
+						uint16_t fetch_address;
+						switch(line_mode) {
+							case GraphicsMode::Text:
+							case GraphicsMode::DoubleText:
+							case GraphicsMode::LowRes:
+							case GraphicsMode::DoubleLowRes: {
+								const uint16_t text_address = static_cast<uint16_t>(((video_page()+1) * 0x400) + row_address);
+								fetch_address = static_cast<uint16_t>(text_address + column_);
+							} break;
+
+							case GraphicsMode::HighRes:
+							case GraphicsMode::DoubleHighRes:
+								fetch_address = static_cast<uint16_t>(((video_page()+1) * 0x2000) + row_address + ((row_&7) << 10) + column_);
+							break;
+						}
+
+						bus_handler_.perform_read(
+							fetch_address,
+							static_cast<size_t>(fetch_end - column_),
+							&base_stream_[static_cast<size_t>(column_)],
+							&auxiliary_stream_[static_cast<size_t>(column_)]);
+						// TODO: should character modes be mapped to character pixel outputs here?
+					}
+
+					if(row_ < 192) {
+						// The pixel area is the first 40.5 columns; base contents
+						// remain where they would naturally be but auxiliary
+						// graphics appear to the left of that.
+						if(!column_) {
+							pixel_pointer_ = crt_->allocate_write_area(568);
+							graphics_carry_ = 0;
+							was_double_ = true;
+						}
+
+						if(column_ < 40) {
+							const int pixel_start = std::max(0, column_);
+							const int pixel_end = std::min(40, ending_column);
+							const int pixel_row = row_ & 7;
+
+							const bool is_double = Video::is_double_mode(line_mode);
+							if(!is_double && was_double_) {
+								pixel_pointer_[pixel_start*14 + 0] =
+								pixel_pointer_[pixel_start*14 + 1] =
+								pixel_pointer_[pixel_start*14 + 2] =
+								pixel_pointer_[pixel_start*14 + 3] =
+								pixel_pointer_[pixel_start*14 + 4] =
+								pixel_pointer_[pixel_start*14 + 5] =
+								pixel_pointer_[pixel_start*14 + 6] = 0;
+							}
+							was_double_ = is_double;
+
+							switch(line_mode) {
+								case GraphicsMode::Text:
+									output_text(
+										&pixel_pointer_[pixel_start * 14 + 7],
+										&base_stream_[static_cast<size_t>(pixel_start)],
+										static_cast<size_t>(pixel_end - pixel_start),
+										static_cast<size_t>(pixel_row));
+								break;
+
+								case GraphicsMode::DoubleText:
+									output_double_text(
+										&pixel_pointer_[pixel_start * 14],
+										&base_stream_[static_cast<size_t>(pixel_start)],
+										&auxiliary_stream_[static_cast<size_t>(pixel_start)],
+										static_cast<size_t>(pixel_end - pixel_start),
+										static_cast<size_t>(pixel_row));
+								break;
+
+								case GraphicsMode::LowRes:
+									output_low_resolution(
+										&pixel_pointer_[pixel_start * 14 + 7],
+										&base_stream_[static_cast<size_t>(pixel_start)],
+										static_cast<size_t>(pixel_end - pixel_start),
+										pixel_start,
+										pixel_row);
+								break;
+
+								case GraphicsMode::DoubleLowRes:
+									output_double_low_resolution(
+										&pixel_pointer_[pixel_start * 14],
+										&base_stream_[static_cast<size_t>(pixel_start)],
+										&auxiliary_stream_[static_cast<size_t>(pixel_start)],
+										static_cast<size_t>(pixel_end - pixel_start),
+										pixel_start,
+										pixel_row);
+								break;
+
+								case GraphicsMode::HighRes:
+									output_high_resolution(
+										&pixel_pointer_[pixel_start * 14 + 7],
+										&base_stream_[static_cast<size_t>(pixel_start)],
+										static_cast<size_t>(pixel_end - pixel_start));
+								break;
+
+								case GraphicsMode::DoubleHighRes:
+									output_double_high_resolution(
+										&pixel_pointer_[pixel_start * 14],
+										&base_stream_[static_cast<size_t>(pixel_start)],
+										&auxiliary_stream_[static_cast<size_t>(pixel_start)],
+										static_cast<size_t>(pixel_end - pixel_start));
+								break;
+
+								default: break;
+							}
+
+							if(pixel_end == 40) {
+								if(was_double_) {
+									pixel_pointer_[563] =
+									pixel_pointer_[564] =
+									pixel_pointer_[565] =
+									pixel_pointer_[566] =
+									pixel_pointer_[567] = 0;
+								} else {
+									if(line_mode == GraphicsMode::HighRes && base_stream_[39]&0x80)
+										pixel_pointer_[567] = graphics_carry_;
+									else
+										pixel_pointer_[567] = 0;
+								}
+
+								crt_->output_data(568, 568);
+								pixel_pointer_ = nullptr;
+							}
+						}
+					} else {
+						if(column_ < 40 && ending_column >= 40) {
+							crt_->output_blank(568);
+						}
+					}
+
+					/*
+						The left border, sync, right border pattern doesn't depend on whether
+						there were pixels this row and is output as soon as it is known.
+					*/
+
+					if(column_ < first_sync_column && ending_column >= first_sync_column) {
+						crt_->output_blank((first_sync_column - 41)*14 - 1);
+					}
+
+					if(column_ < (first_sync_column + sync_length) && ending_column >= (first_sync_column + sync_length)) {
+						crt_->output_sync(sync_length*14);
+					}
+
+					int second_blank_start;
+					if(!is_text_mode(graphics_mode(row_+1))) {
+						const int colour_burst_start = std::max(first_sync_column + sync_length + 1, column_);
+						const int colour_burst_end = std::min(first_sync_column + sync_length + 4, ending_column);
+						if(colour_burst_end > colour_burst_start) {
+							crt_->output_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 14, 192);
+						}
+
+						second_blank_start = std::max(first_sync_column + sync_length + 3, column_);
+					} else {
+						second_blank_start = std::max(first_sync_column + sync_length, column_);
+					}
+
+					if(ending_column > second_blank_start) {
+						crt_->output_blank(static_cast<unsigned int>(ending_column - second_blank_start) * 14);
+					}
+				}
+
+				int_cycles -= cycles_this_line;
+				column_ = (column_ + cycles_this_line) % 65;
+				if(!column_) {
+					row_ = (row_ + 1) % 262;
+					flash_ = (flash_ + 1) % (2 * flash_length);
+
+					// Add an extra half a colour cycle of blank; this isn't counted in the run_for
+					// count explicitly but is promised.
+					crt_->output_blank(2);
+				}
+			}
+		}
+
 		GraphicsMode graphics_mode(int row) {
 			if(text_) return columns_80_ ? GraphicsMode::DoubleText : GraphicsMode::Text;
 			if(mixed_ && row >= 160 && row < 192) {
@@ -582,13 +550,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 				static_cast<uint16_t>(((video_page()+1) * 0x400) + row_address);
 		}
 
-		static const int flash_length = 8406;
 		BusHandler &bus_handler_;
-		void output_data_to_column(int column) {
-			int length = column - pixel_pointer_column_;
-			crt_->output_data(static_cast<unsigned int>(length*14), static_cast<unsigned int>(length * (pixels_are_high_density_ ? 14 : 7)));
-			pixel_pointer_ = nullptr;
-		}
 };
 
 }

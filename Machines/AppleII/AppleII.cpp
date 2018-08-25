@@ -52,11 +52,9 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			public:
 				VideoBusHandler(uint8_t *ram, uint8_t *aux_ram) : ram_(ram), aux_ram_(aux_ram) {}
 
-				uint8_t perform_read(uint16_t address) {
-					return ram_[address];
-				}
-				uint16_t perform_aux_read(uint16_t address) {
-					return static_cast<uint16_t>(ram_[address] | (aux_ram_[address] << 8));
+				void perform_read(uint16_t address, size_t count, uint8_t *base_target, uint8_t *auxiliary_target) {
+					memcpy(base_target, &ram_[address], count);
+					memcpy(auxiliary_target, &aux_ram_[address], count);
 				}
 
 			private:
