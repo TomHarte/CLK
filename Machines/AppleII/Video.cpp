@@ -258,7 +258,7 @@ void VideoBase::output_high_resolution(uint8_t *target, uint8_t *source, size_t 
 	for(size_t c = 0; c < length; ++c) {
 		// High resolution graphics shift out LSB to MSB, optionally with a delay of half a pixel.
 		// If there is a delay, the previous output level is held to bridge the gap.
-		if(base_stream_[c] & 0x80) {
+		if(source[c] & 0x80) {
 			target[0] = graphics_carry_;
 			target[1] = target[2] = source[c] & 0x01;
 			target[3] = target[4] = source[c] & 0x02;
