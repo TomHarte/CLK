@@ -351,6 +351,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 						const int fetch_end = std::min(40, ending_column);
 						uint16_t fetch_address;
 						switch(line_mode) {
+							default:
 							case GraphicsMode::Text:
 							case GraphicsMode::DoubleText:
 							case GraphicsMode::LowRes:
