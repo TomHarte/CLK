@@ -148,7 +148,7 @@ void VideoBase::output_text(uint8_t *target, uint8_t *source, size_t length, siz
 
 	for(size_t c = 0; c < length; ++c) {
 		const int character = (source[c] | or_mask) & and_mask;
-		const uint8_t xor_mask = inverses[character >> 6];
+		const uint8_t xor_mask = inverses[(character&0xff) >> 6];
 		const std::size_t character_address = static_cast<std::size_t>(character << 3) + pixel_row;
 		const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
 
