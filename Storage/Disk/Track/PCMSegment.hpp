@@ -106,6 +106,13 @@ struct PCMSegment {
 	}
 
 	/*!
+		Rotates all bits in this segment by @c length bits.
+
+		@c length is signed; to rotate left provide a negative number.
+	*/
+	void rotate_right(size_t length);
+
+	/*!
 		Produces a byte buffer where the contents of @c data are serialised into bytes
 
 		If @c msb_first is @c true then each byte is expected to be deserialised from

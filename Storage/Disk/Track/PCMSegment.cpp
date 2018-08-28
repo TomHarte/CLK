@@ -50,6 +50,25 @@ PCMSegment &PCMSegment::operator +=(const PCMSegment &rhs) {
 	return *this;
 }
 
+void PCMSegment::rotate_right(size_t length) {
+	length %= data.size();
+	if(!length) return;
+
+	// To rotate to the right, front-insert the proper number
+	// of bits from the end and then resize. To rotate to
+	// the left, do the opposite.
+	std::vector<uint8_t> data_copy;
+	if(length > 0) {
+		data_copy.insert(data_copy.end(), data.end() - static_cast<off_t>(length), data.end());
+		data.erase(data.end() - static_cast<off_t>(length), data.end());
+		data.insert(data.begin(), data_copy.begin(), data_copy.end());
+	} else {
+		data_copy.insert(data_copy.end(), data.begin(), data.begin() - static_cast<off_t>(length));
+		data.erase(data.begin(), data.begin() - static_cast<off_t>(length));
+		data.insert(data.end(), data_copy.begin(), data_copy.end());
+	}
+}
+
 Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event() {
 	// track the initial bit pointer for potentially considering whether this was an
 	// initial index hole or a subsequent one later on
