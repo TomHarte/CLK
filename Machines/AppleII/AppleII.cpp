@@ -472,6 +472,15 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 										*value = keyboard_input_;
 									}
 								break;
+								case 0xc001: case 0xc002: case 0xc003: case 0xc004: case 0xc005: case 0xc006: case 0xc007:
+								case 0xc008: case 0xc009: case 0xc00a: case 0xc00b: case 0xc00c: case 0xc00d: case 0xc00e: case 0xc00f:
+									*value &= 0x7f;
+									if(string_serialiser_) {
+										*value = string_serialiser_->head() & 0x7f;
+									} else {
+										*value |= keyboard_input_ & 0x7f;
+									}
+								break;
 
 								case 0xc061:	// Switch input 0.
 									*value &= 0x7f;
@@ -627,7 +636,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						}
 					break;
 
-					case 0xc010:
+					case 0xc010: case 0xc011: case 0xc012: case 0xc013: case 0xc014: case 0xc015: case 0xc016: case 0xc017:
+					case 0xc018: case 0xc019: case 0xc01a: case 0xc01b: case 0xc01c: case 0xc01d: case 0xc01e: case 0xc01f:
 						keyboard_input_ &= 0x7f;
 						if(string_serialiser_) {
 							if(!string_serialiser_->advance())
@@ -640,7 +650,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						}
 					break;
 
-					case 0xc030:
+					case 0xc030: case 0xc031: case 0xc032: case 0xc033: case 0xc034: case 0xc035: case 0xc036: case 0xc037:
+					case 0xc038: case 0xc039: case 0xc03a: case 0xc03b: case 0xc03c: case 0xc03d: case 0xc03e: case 0xc03f:
 						update_audio();
 						audio_toggle_.set_output(!audio_toggle_.get_output());
 					break;
