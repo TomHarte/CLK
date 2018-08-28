@@ -75,18 +75,23 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 	// In either case below, the code aims for exactly 50,000 bits per track.
 	if(sectors_per_track_ == 16) {
 		// Write gap 1.
-		segment += Encodings::AppleGCR::six_and_two_sync(16);
+		segment += Encodings::AppleGCR::six_and_two_sync(24);
 
 		// Write the sectors.
 		for(uint8_t c = 0; c < 16; ++c) {
-			segment += Encodings::AppleGCR::header(254, track, c);
+			segment += Encodings::AppleGCR::header(is_prodos_ ? 0x01 : 0xfe, track, c);	// Volume number is 0xfe for DOS 3.3, 0x01 for Pro-DOS.
 			segment += Encodings::AppleGCR::six_and_two_sync(7);	// Gap 2: 7 sync words.
 			segment += Encodings::AppleGCR::six_and_two_data(&track_data[logical_sector_for_physical_sector(c) * 256]);
-			segment += Encodings::AppleGCR::six_and_two_sync(16);	// Gap 3: 16 sync words.
+			segment += Encodings::AppleGCR::six_and_two_sync(20);	// Gap 3: 20 sync words.
 		}
 	} else {
 		// TODO: 5 and 3, 13-sector format. If DSK actually supports it?
 	}
+
+	// Apply inter-track skew; skew is about 40ms between each track; assuming 300RPM that's
+	// 1/5th of a revolution.
+	const size_t offset_in_fifths = address.position.as_int() % 5;
+	segment.rotate_right(offset_in_fifths * segment.data.size() / 5);
 
 	return std::make_shared<PCMTrack>(segment);
 }
