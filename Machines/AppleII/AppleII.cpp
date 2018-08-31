@@ -88,6 +88,14 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		uint8_t keyboard_input_ = 0x00;
 		bool key_is_down_ = false;
 
+		uint8_t get_keyboard_input() {
+			if(string_serialiser_) {
+				return string_serialiser_->head() | 0x80;
+			} else {
+				return keyboard_input_;
+			}
+		}
+
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		Audio::Toggle audio_toggle_;
 		Outputs::Speaker::LowpassSpeaker<Audio::Toggle> speaker_;
@@ -466,11 +474,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								default: break;
 
 								case 0xc000:
-									if(string_serialiser_) {
-										*value = string_serialiser_->head() | 0x80;
-									} else {
-										*value = keyboard_input_;
-									}
+									*value = get_keyboard_input();
+								break;
+								case 0xc001: case 0xc002: case 0xc003: case 0xc004: case 0xc005: case 0xc006: case 0xc007:
+								case 0xc008: case 0xc009: case 0xc00a: case 0xc00b: case 0xc00c: case 0xc00d: case 0xc00e: case 0xc00f:
+									*value = (*value & 0x80) | (get_keyboard_input() & 0x7f);
 								break;
 
 								case 0xc061:	// Switch input 0.
@@ -507,22 +515,27 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								} break;
 
 								// The IIe-only state reads follow...
-								case 0xc011:	if(is_iie()) *value = (*value & 0x7f) | (language_card_.bank1 ? 0x80 : 0x00);											break;
-								case 0xc012:	if(is_iie()) *value = (*value & 0x7f) | (language_card_.read ? 0x80 : 0x00);											break;
-								case 0xc013:	if(is_iie()) *value = (*value & 0x7f) | (read_auxiliary_memory_ ? 0x80 : 0x00);										break;
-								case 0xc014:	if(is_iie()) *value = (*value & 0x7f) | (write_auxiliary_memory_ ? 0x80 : 0x00);										break;
-								case 0xc015:	if(is_iie()) *value = (*value & 0x7f) | (internal_CX_rom_ ? 0x80 : 0x00);												break;
-								case 0xc016:	if(is_iie()) *value = (*value & 0x7f) | (alternative_zero_page_ ? 0x80 : 0x00);										break;
-								case 0xc017:	if(is_iie()) *value = (*value & 0x7f) | (slot_C3_rom_ ? 0x80 : 0x00);													break;
-								case 0xc018:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_80_store() ? 0x80 : 0x00);										break;
-								case 0xc019:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_is_vertical_blank(cycles_since_video_update_) ? 0x00 : 0x80);	break;
-								case 0xc01a:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_text() ? 0x80 : 0x00);											break;
-								case 0xc01b:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_mixed() ? 0x80 : 0x00);											break;
-								case 0xc01c:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_page2() ? 0x80 : 0x00);											break;
-								case 0xc01d:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_high_resolution() ? 0x80 : 0x00);								break;
-								case 0xc01e:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_alternative_character_set() ? 0x80 : 0x00);						break;
-								case 0xc01f:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_80_columns() ? 0x80 : 0x00);										break;
-								case 0xc07f:	if(is_iie()) *value = (*value & 0x7f) | (video_->get_double_high_resolution() ? 0x80 : 0x00);							break;
+#define IIeSwitchRead(s)	*value = get_keyboard_input(); if(is_iie()) *value = (*value & 0x7f) | (s ? 0x80 : 0x00);
+								case 0xc011:	IIeSwitchRead(language_card_.bank1);										break;
+								case 0xc012:	IIeSwitchRead(language_card_.read);											break;
+								case 0xc013:	IIeSwitchRead(read_auxiliary_memory_);										break;
+								case 0xc014:	IIeSwitchRead(write_auxiliary_memory_);										break;
+								case 0xc015:	IIeSwitchRead(internal_CX_rom_);											break;
+								case 0xc016:	IIeSwitchRead(alternative_zero_page_);										break;
+								case 0xc017:	IIeSwitchRead(slot_C3_rom_);												break;
+								case 0xc018:	IIeSwitchRead(video_->get_80_store());										break;
+								case 0xc019:	IIeSwitchRead(video_->get_is_vertical_blank(cycles_since_video_update_));	break;
+								case 0xc01a:	IIeSwitchRead(video_->get_text());											break;
+								case 0xc01b:	IIeSwitchRead(video_->get_mixed());											break;
+								case 0xc01c:	IIeSwitchRead(video_->get_page2());											break;
+								case 0xc01d:	IIeSwitchRead(video_->get_high_resolution());								break;
+								case 0xc01e:	IIeSwitchRead(video_->get_alternative_character_set());						break;
+								case 0xc01f:	IIeSwitchRead(video_->get_80_columns());									break;
+#undef IIeSwitchRead
+
+								case 0xc07f:
+									if(is_iie()) *value = (*value & 0x7f) | (video_->get_double_high_resolution() ? 0x80 : 0x00);
+								break;
 							}
 						} else {
 							// Write-only switches. All IIe as currently implemented.
@@ -640,7 +653,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						}
 					break;
 
-					case 0xc030:
+					case 0xc030: case 0xc031: case 0xc032: case 0xc033: case 0xc034: case 0xc035: case 0xc036: case 0xc037:
+					case 0xc038: case 0xc039: case 0xc03a: case 0xc03b: case 0xc03c: case 0xc03d: case 0xc03e: case 0xc03f:
 						update_audio();
 						audio_toggle_.set_output(!audio_toggle_.get_output());
 					break;
