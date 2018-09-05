@@ -209,32 +209,32 @@ class VideoBase {
 		/*!
 			Outputs 40-column text to @c target, using @c length bytes from @c source.
 		*/
-		void output_text(uint8_t *target, uint8_t *source, size_t length, size_t pixel_row) const;
+		void output_text(uint8_t *target, const uint8_t *source, size_t length, size_t pixel_row) const;
 
 		/*!
 			Outputs 80-column text to @c target, drawing @c length columns from @c source and @c auxiliary_source.
 		*/
-		void output_double_text(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, size_t pixel_row) const;
+		void output_double_text(uint8_t *target, const uint8_t *source, const uint8_t *auxiliary_source, size_t length, size_t pixel_row) const;
 
 		/*!
 			Outputs 40-column low-resolution graphics to @c target, drawing @c length columns from @c source.
 		*/
-		void output_low_resolution(uint8_t *target, uint8_t *source, size_t length, int column, int row) const;
+		void output_low_resolution(uint8_t *target, const uint8_t *source, size_t length, int column, int row) const;
 
 		/*!
 			Outputs 80-column low-resolution graphics to @c target, drawing @c length columns from @c source and @c auxiliary_source.
 		*/
-		void output_double_low_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, int column, int row) const;
+		void output_double_low_resolution(uint8_t *target, const uint8_t *source, const uint8_t *auxiliary_source, size_t length, int column, int row) const;
 
 		/*!
 			Outputs 40-column high-resolution graphics to @c target, drawing @c length columns from @c source.
 		*/
-		void output_high_resolution(uint8_t *target, uint8_t *source, size_t length) const;
+		void output_high_resolution(uint8_t *target, const uint8_t *source, size_t length) const;
 
 		/*!
 			Outputs 80-column double-high-resolution graphics to @c target, drawing @c length columns from @c source.
 		*/
-		void output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length) const;
+		void output_double_high_resolution(uint8_t *target, const uint8_t *source, const uint8_t *auxiliary_source, size_t length) const;
 
 		// Maintain a ClockDeferrer for delayed mode switches.
 		ClockDeferrer<Cycles> deferrer_;

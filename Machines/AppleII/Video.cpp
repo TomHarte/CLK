@@ -160,7 +160,7 @@ void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
 	}
 }
 
-void VideoBase::output_text(uint8_t *target, uint8_t *source, size_t length, size_t pixel_row) const {
+void VideoBase::output_text(uint8_t *target, const uint8_t *const source, size_t length, size_t pixel_row) const {
 	for(size_t c = 0; c < length; ++c) {
 		const int character = source[c] & character_zones[source[c] >> 6].address_mask;
 		const uint8_t xor_mask = character_zones[source[c] >> 6].xor_mask;
@@ -180,7 +180,7 @@ void VideoBase::output_text(uint8_t *target, uint8_t *source, size_t length, siz
 	}
 }
 
-void VideoBase::output_double_text(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, size_t pixel_row) const {
+void VideoBase::output_double_text(uint8_t *target, const uint8_t *const source, const uint8_t *const auxiliary_source, size_t length, size_t pixel_row) const {
 	for(size_t c = 0; c < length; ++c) {
 		const std::size_t character_addresses[2] = {
 			static_cast<std::size_t>(
@@ -220,7 +220,7 @@ void VideoBase::output_double_text(uint8_t *target, uint8_t *source, uint8_t *au
 	}
 }
 
-void VideoBase::output_low_resolution(uint8_t *target, uint8_t *source, size_t length, int column, int row) const {
+void VideoBase::output_low_resolution(uint8_t *target, const uint8_t *const source, size_t length, int column, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
 		// Low-resolution graphics mode shifts the colour code on a loop, but has to account for whether this
@@ -242,7 +242,7 @@ void VideoBase::output_low_resolution(uint8_t *target, uint8_t *source, size_t l
 	}
 }
 
-void VideoBase::output_double_low_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length, int column, int row) const {
+void VideoBase::output_double_low_resolution(uint8_t *target, const uint8_t *const source, const uint8_t *const auxiliary_source, size_t length, int column, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
 		if((column + static_cast<int>(c))&1) {
@@ -272,7 +272,7 @@ void VideoBase::output_double_low_resolution(uint8_t *target, uint8_t *source, u
 	}
 }
 
-void VideoBase::output_high_resolution(uint8_t *target, uint8_t *source, size_t length) const {
+void VideoBase::output_high_resolution(uint8_t *target, const uint8_t *const source, size_t length) const {
 	for(size_t c = 0; c < length; ++c) {
 		// High resolution graphics shift out LSB to MSB, optionally with a delay of half a pixel.
 		// If there is a delay, the previous output level is held to bridge the gap.
@@ -299,7 +299,7 @@ void VideoBase::output_high_resolution(uint8_t *target, uint8_t *source, size_t 
 	}
 }
 
-void VideoBase::output_double_high_resolution(uint8_t *target, uint8_t *source, uint8_t *auxiliary_source, size_t length) const {
+void VideoBase::output_double_high_resolution(uint8_t *target, const uint8_t *const source, const uint8_t *const auxiliary_source, size_t length) const {
 	for(size_t c = 0; c < length; ++c) {
 		target[0] = auxiliary_source[c] & 0x01;
 		target[1] = auxiliary_source[c] & 0x02;
