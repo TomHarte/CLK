@@ -152,6 +152,9 @@ class VideoBase {
 
 		// State affecting logical state.
 		int row_ = 0, column_ = 0, flash_ = 0;
+		uint8_t flash_mask() {
+			return static_cast<uint8_t>((flash_ / flash_length) * 0xff);
+		}
 
 		// Enumerates all Apple II and IIe display modes.
 		enum class GraphicsMode {
@@ -194,6 +197,14 @@ class VideoBase {
 
 		bool is_iie_ = false;
 		static const int flash_length = 8406;
+
+		// Describes the current text mode mapping from in-memory character index
+		// to output character.
+		struct CharacterMapping {
+			uint8_t address_mask;
+			uint8_t xor_mask;
+		};
+		CharacterMapping character_zones[4];
 
 		/*!
 			Outputs 40-column text to @c target, using @c length bytes from @c source.
@@ -516,6 +527,9 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 				if(!column_) {
 					row_ = (row_ + 1) % 262;
 					flash_ = (flash_ + 1) % (2 * flash_length);
+					if(!alternative_character_set_) {
+						character_zones[1].xor_mask = flash_mask();
+					}
 
 					// Add an extra half a colour cycle of blank; this isn't counted in the run_for
 					// count explicitly but is promised.
