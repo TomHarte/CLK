@@ -27,6 +27,23 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 	crt_->set_visible_area(Outputs::CRT::Rect(0.118f, 0.122f, 0.77f, 0.77f));
 	crt_->set_immediate_default_phase(0.0f);
+
+	character_zones[0].xor_mask = 0;
+	character_zones[0].address_mask = 0x3f;
+	character_zones[1].xor_mask = 0;
+	character_zones[1].address_mask = 0x3f;
+	character_zones[2].xor_mask = 0;
+	character_zones[2].address_mask = 0x3f;
+	character_zones[3].xor_mask = 0;
+	character_zones[3].address_mask = 0x3f;
+
+	if(is_iie) {
+		character_zones[0].xor_mask =
+		character_zones[2].xor_mask =
+		character_zones[3].xor_mask = 0xff;
+		character_zones[2].address_mask =
+		character_zones[3].address_mask = 0xff;
+	}
 }
 
 Outputs::CRT::CRT *VideoBase::get_crt() {
@@ -40,6 +57,13 @@ void VideoBase::set_alternative_character_set(bool alternative_character_set) {
 	set_alternative_character_set_ = alternative_character_set;
 	deferrer_.defer(Cycles(2), [=] {
 		alternative_character_set_ = alternative_character_set;
+		if(alternative_character_set) {
+			character_zones[1].address_mask = 0xff;
+			character_zones[1].xor_mask = 0;
+		} else {
+			character_zones[1].address_mask = 0x3f;
+			character_zones[1].xor_mask = flash_mask();
+		}
 	});
 }
 
@@ -137,18 +161,9 @@ void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
 }
 
 void VideoBase::output_text(uint8_t *target, uint8_t *source, size_t length, size_t pixel_row) const {
-	const uint8_t inverses[] = {
-		0xff,
-		is_iie_ ? static_cast<uint8_t>(0xff) : static_cast<uint8_t>((flash_ / flash_length) * 0xff),
-		is_iie_ ? static_cast<uint8_t>(0xff) : static_cast<uint8_t>(0x00),
-		is_iie_ ? static_cast<uint8_t>(0xff) : static_cast<uint8_t>(0x00)
-	};
-	const int or_mask = alternative_character_set_ ? 0x100 : 0x000;
-	const int and_mask = is_iie_ ? ~0 : 0x3f;
-
 	for(size_t c = 0; c < length; ++c) {
-		const int character = (source[c] | or_mask) & and_mask;
-		const uint8_t xor_mask = inverses[character >> 6];
+		const int character = source[c] & character_zones[source[c] >> 6].address_mask;
+		const uint8_t xor_mask = character_zones[source[c] >> 6].xor_mask;
 		const std::size_t character_address = static_cast<std::size_t>(character << 3) + pixel_row;
 		const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
 
@@ -169,17 +184,20 @@ void VideoBase::output_double_text(uint8_t *target, uint8_t *source, uint8_t *au
 	for(size_t c = 0; c < length; ++c) {
 		const std::size_t character_addresses[2] = {
 			static_cast<std::size_t>(
-				auxiliary_source[c] << 3
+				(auxiliary_source[c] & character_zones[auxiliary_source[c] >> 6].address_mask) << 3
 			) + pixel_row,
 			static_cast<std::size_t>(
-				source[c] << 3
-			) + pixel_row,
+				(source[c] & character_zones[source[c] >> 6].address_mask) << 3
+			) + pixel_row
 		};
 
-		const size_t pattern_offset = alternative_character_set_ ? (256*8) : 0;
 		const uint8_t character_patterns[2] = {
-			character_rom_[character_addresses[0] + pattern_offset],
-			character_rom_[character_addresses[1] + pattern_offset],
+			static_cast<uint8_t>(
+				character_rom_[character_addresses[0]] ^ character_zones[auxiliary_source[c] >> 6].xor_mask
+			),
+			static_cast<uint8_t>(
+				character_rom_[character_addresses[1]] ^ character_zones[source[c] >> 6].xor_mask
+			)
 		};
 
 		// The character ROM is output MSB to LSB rather than LSB to MSB.
