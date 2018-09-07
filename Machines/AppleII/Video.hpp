@@ -128,18 +128,19 @@ class VideoBase {
 		bool get_high_resolution();
 
 		/*!
-			Setter for DHIRES ($C05E/$C05F; triggers on write only).
+			Setter for annunciator 3.
 
-			* On: turn on double-high resolution.
-			* Off: turn off double-high resolution.
+			* On: turn on annunciator 3.
+			* Off: turn off annunciator 3.
 
-			DHIRES doesn't exist on a II/II+. On the IIe there is another
-			register usually grouped with the graphics setters called IOUDIS
-			that affects visibility of this switch. But it has no effect on
-			video, so it's not modelled by this class.
+			This exists on both the II/II+ and the IIe, but has no effect on
+			video on the older machines. It's intended to be used on the IIe
+			to confirm double-high resolution mode but has side effects in
+			selecting mixed mode output and discarding high-resolution
+			delay bits.
 		*/
-		void set_double_high_resolution(bool);
-		bool get_double_high_resolution();
+		void set_annunciator_3(bool);
+		bool get_annunciator_3();
 
 		// Setup for text mode.
 		void set_character_rom(const std::vector<uint8_t> &);
@@ -176,13 +177,14 @@ class VideoBase {
 		bool text_ = true, set_text_ = true;
 		bool mixed_ = false, set_mixed_ = false;
 		bool high_resolution_ = false, set_high_resolution_ = false;
-		bool double_high_resolution_ = false, set_double_high_resolution_ = false;
+		bool annunciator_3_ = false, set_annunciator_3_ = false;
 
 		// Graphics carry is the final level output in a fetch window;
 		// it carries on into the next if it's high resolution with
 		// the delay bit set.
 		mutable uint8_t graphics_carry_ = 0;
 		bool was_double_ = false;
+		uint8_t high_resolution_mask_ = 0xff;
 
 		// This holds a copy of the character ROM. The regular character
 		// set is assumed to be in the first 64*8 bytes; the alternative
@@ -539,14 +541,14 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 		}
 
 		GraphicsMode graphics_mode(int row) {
-			if(text_) return columns_80_ ? GraphicsMode::DoubleText : GraphicsMode::Text;
-			if(mixed_ && row >= 160 && row < 192) {
-				return (columns_80_ || double_high_resolution_) ? GraphicsMode::DoubleText : GraphicsMode::Text;
-			}
+			if(
+				text_ ||
+				(mixed_ && row >= 160 && row < 192)
+			) return columns_80_ ? GraphicsMode::DoubleText : GraphicsMode::Text;
 			if(high_resolution_) {
-				return double_high_resolution_ ? GraphicsMode::DoubleHighRes : GraphicsMode::HighRes;
+				return (annunciator_3_ && columns_80_) ? GraphicsMode::DoubleHighRes : GraphicsMode::HighRes;
 			} else {
-				return double_high_resolution_ ? GraphicsMode::DoubleLowRes : GraphicsMode::LowRes;
+				return annunciator_3_ ? GraphicsMode::DoubleLowRes : GraphicsMode::LowRes;
 			}
 		}
 

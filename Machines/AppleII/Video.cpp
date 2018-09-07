@@ -131,15 +131,16 @@ bool VideoBase::get_high_resolution() {
 	return set_high_resolution_;
 }
 
-void VideoBase::set_double_high_resolution(bool double_high_resolution) {
-	set_double_high_resolution_ = double_high_resolution;
+void VideoBase::set_annunciator_3(bool annunciator_3) {
+	set_annunciator_3_ = annunciator_3;
 	deferrer_.defer(Cycles(2), [=] {
-		double_high_resolution_ = double_high_resolution;
+		annunciator_3_ = annunciator_3;
+		high_resolution_mask_ = annunciator_3_ ? 0x7f : 0xff;
 	});
 }
 
-bool VideoBase::get_double_high_resolution() {
-	return set_double_high_resolution_;
+bool VideoBase::get_annunciator_3() {
+	return set_annunciator_3_;
 }
 
 void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
@@ -276,7 +277,9 @@ void VideoBase::output_high_resolution(uint8_t *target, const uint8_t *const sou
 	for(size_t c = 0; c < length; ++c) {
 		// High resolution graphics shift out LSB to MSB, optionally with a delay of half a pixel.
 		// If there is a delay, the previous output level is held to bridge the gap.
-		if(source[c] & 0x80) {
+		// Delays may be ignored on a IIe if Annunciator 3 is set; that's the state that
+		// high_resolution_mask_ models.
+		if(source[c] & high_resolution_mask_ & 0x80) {
 			target[0] = graphics_carry_;
 			target[1] = target[2] = source[c] & 0x01;
 			target[3] = target[4] = source[c] & 0x02;
