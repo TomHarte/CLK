@@ -19,11 +19,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -39,11 +37,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -60,11 +56,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -80,11 +74,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -100,11 +92,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -120,11 +110,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -140,11 +128,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -164,11 +150,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -184,11 +168,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -205,11 +187,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -227,11 +207,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -247,11 +225,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -267,11 +243,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -287,11 +261,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -307,11 +279,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -327,11 +297,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -347,11 +315,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -365,11 +331,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -385,11 +349,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -408,11 +370,9 @@
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSItemContentTypes</key>
-			<array>
-				<string>public.item</string>
-			</array>
+			<array/>
 			<key>LSTypeIsPackage</key>
-			<integer>0</integer>
+			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
@@ -436,7 +396,7 @@
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>LSApplicationCategoryType</key>
-	<string></string>
+	<string>public.app-category.entertainment</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>
