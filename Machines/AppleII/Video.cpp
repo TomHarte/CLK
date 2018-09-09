@@ -246,21 +246,13 @@ void VideoBase::output_low_resolution(uint8_t *target, const uint8_t *const sour
 void VideoBase::output_fat_low_resolution(uint8_t *target, const uint8_t *const source, size_t length, int column, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
-		// Low-resolution graphics mode shifts the colour code on a loop, but has to account for whether this
-		// 14-sample output window is starting at the beginning of a colour cycle or halfway through.
-		if((column + static_cast<int>(c))&1) {
-			target[0] = target[1] = target[8] = target[9] = (source[c] >> row_shift) & 4;
-			target[2] = target[3] = target[10] = target[11] = (source[c] >> row_shift) & 8;
-			target[4] = target[5] = target[12] = target[13] = (source[c] >> row_shift) & 1;
-			target[6] = target[7] = (source[c] >> row_shift) & 2;
-			graphics_carry_ = (source[c] >> row_shift) & 8;
-		} else {
-			target[0] = target[1] = target[8] = target[9] = (source[c] >> row_shift) & 1;
-			target[2] = target[3] = target[10] = target[11] = (source[c] >> row_shift) & 2;
-			target[4] = target[5] = target[12] = target[13] = (source[c] >> row_shift) & 4;
-			target[6] = target[7] = (source[c] >> row_shift) & 8;
-			graphics_carry_ = (source[c] >> row_shift) & 2;
-		}
+		// Fat low-resolution mode appears not to do anything to try to make odd and
+		// even columns compatible.
+		target[0] = target[1] = target[8] = target[9] = (source[c] >> row_shift) & 1;
+		target[2] = target[3] = target[10] = target[11] = (source[c] >> row_shift) & 2;
+		target[4] = target[5] = target[12] = target[13] = (source[c] >> row_shift) & 4;
+		target[6] = target[7] = (source[c] >> row_shift) & 8;
+		graphics_carry_ = (source[c] >> row_shift) & 4;
 		target += 14;
 	}
 }
