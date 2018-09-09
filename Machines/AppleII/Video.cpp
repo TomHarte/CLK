@@ -131,15 +131,16 @@ bool VideoBase::get_high_resolution() {
 	return set_high_resolution_;
 }
 
-void VideoBase::set_double_high_resolution(bool double_high_resolution) {
-	set_double_high_resolution_ = double_high_resolution;
+void VideoBase::set_annunciator_3(bool annunciator_3) {
+	set_annunciator_3_ = annunciator_3;
 	deferrer_.defer(Cycles(2), [=] {
-		double_high_resolution_ = double_high_resolution;
+		annunciator_3_ = annunciator_3;
+		high_resolution_mask_ = annunciator_3_ ? 0x7f : 0xff;
 	});
 }
 
-bool VideoBase::get_double_high_resolution() {
-	return set_double_high_resolution_;
+bool VideoBase::get_annunciator_3() {
+	return set_annunciator_3_;
 }
 
 void VideoBase::set_character_rom(const std::vector<uint8_t> &character_rom) {
@@ -242,6 +243,20 @@ void VideoBase::output_low_resolution(uint8_t *target, const uint8_t *const sour
 	}
 }
 
+void VideoBase::output_fat_low_resolution(uint8_t *target, const uint8_t *const source, size_t length, int column, int row) const {
+	const int row_shift = row&4;
+	for(size_t c = 0; c < length; ++c) {
+		// Fat low-resolution mode appears not to do anything to try to make odd and
+		// even columns compatible.
+		target[0] = target[1] = target[8] = target[9] = (source[c] >> row_shift) & 1;
+		target[2] = target[3] = target[10] = target[11] = (source[c] >> row_shift) & 2;
+		target[4] = target[5] = target[12] = target[13] = (source[c] >> row_shift) & 4;
+		target[6] = target[7] = (source[c] >> row_shift) & 8;
+		graphics_carry_ = (source[c] >> row_shift) & 4;
+		target += 14;
+	}
+}
+
 void VideoBase::output_double_low_resolution(uint8_t *target, const uint8_t *const source, const uint8_t *const auxiliary_source, size_t length, int column, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
@@ -276,7 +291,9 @@ void VideoBase::output_high_resolution(uint8_t *target, const uint8_t *const sou
 	for(size_t c = 0; c < length; ++c) {
 		// High resolution graphics shift out LSB to MSB, optionally with a delay of half a pixel.
 		// If there is a delay, the previous output level is held to bridge the gap.
-		if(source[c] & 0x80) {
+		// Delays may be ignored on a IIe if Annunciator 3 is set; that's the state that
+		// high_resolution_mask_ models.
+		if(source[c] & high_resolution_mask_ & 0x80) {
 			target[0] = graphics_carry_;
 			target[1] = target[2] = source[c] & 0x01;
 			target[3] = target[4] = source[c] & 0x02;

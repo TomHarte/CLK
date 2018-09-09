@@ -128,18 +128,19 @@ class VideoBase {
 		bool get_high_resolution();
 
 		/*!
-			Setter for DHIRES ($C05E/$C05F; triggers on write only).
+			Setter for annunciator 3.
 
-			* On: turn on double-high resolution.
-			* Off: turn off double-high resolution.
+			* On: turn on annunciator 3.
+			* Off: turn off annunciator 3.
 
-			DHIRES doesn't exist on a II/II+. On the IIe there is another
-			register usually grouped with the graphics setters called IOUDIS
-			that affects visibility of this switch. But it has no effect on
-			video, so it's not modelled by this class.
+			This exists on both the II/II+ and the IIe, but has no effect on
+			video on the older machines. It's intended to be used on the IIe
+			to confirm double-high resolution mode but has side effects in
+			selecting mixed mode output and discarding high-resolution
+			delay bits.
 		*/
-		void set_double_high_resolution(bool);
-		bool get_double_high_resolution();
+		void set_annunciator_3(bool);
+		bool get_annunciator_3();
 
 		// Setup for text mode.
 		void set_character_rom(const std::vector<uint8_t> &);
@@ -158,14 +159,15 @@ class VideoBase {
 
 		// Enumerates all Apple II and IIe display modes.
 		enum class GraphicsMode {
-			LowRes = 0,
-			DoubleLowRes,
+			Text = 0,
+			DoubleText,
 			HighRes,
 			DoubleHighRes,
-			Text,
-			DoubleText,
+			LowRes,
+			DoubleLowRes,
+			FatLowRes
 		};
-		bool is_text_mode(GraphicsMode m) { return m >= GraphicsMode::Text; }
+		bool is_text_mode(GraphicsMode m) { return m <= GraphicsMode::DoubleText; }
 		bool is_double_mode(GraphicsMode m) { return !!(static_cast<int>(m)&1); }
 
 		// Various soft-switch values.
@@ -176,13 +178,14 @@ class VideoBase {
 		bool text_ = true, set_text_ = true;
 		bool mixed_ = false, set_mixed_ = false;
 		bool high_resolution_ = false, set_high_resolution_ = false;
-		bool double_high_resolution_ = false, set_double_high_resolution_ = false;
+		bool annunciator_3_ = false, set_annunciator_3_ = false;
 
 		// Graphics carry is the final level output in a fetch window;
 		// it carries on into the next if it's high resolution with
 		// the delay bit set.
 		mutable uint8_t graphics_carry_ = 0;
 		bool was_double_ = false;
+		uint8_t high_resolution_mask_ = 0xff;
 
 		// This holds a copy of the character ROM. The regular character
 		// set is assumed to be in the first 64*8 bytes; the alternative
@@ -235,6 +238,14 @@ class VideoBase {
 			Outputs 80-column double-high-resolution graphics to @c target, drawing @c length columns from @c source.
 		*/
 		void output_double_high_resolution(uint8_t *target, const uint8_t *source, const uint8_t *auxiliary_source, size_t length) const;
+
+		/*!
+			Outputs 40-column "fat low resolution" graphics to @c target, drawing @c length columns from @c source.
+
+			Fat low-resolution mode is like regular low-resolution mode except that data is shifted out on the 7M
+			clock rather than the 14M.
+		*/
+		void output_fat_low_resolution(uint8_t *target, const uint8_t *source, size_t length, int column, int row) const;
 
 		// Maintain a ClockDeferrer for delayed mode switches.
 		ClockDeferrer<Cycles> deferrer_;
@@ -366,6 +377,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							case GraphicsMode::Text:
 							case GraphicsMode::DoubleText:
 							case GraphicsMode::LowRes:
+							case GraphicsMode::FatLowRes:
 							case GraphicsMode::DoubleLowRes: {
 								const uint16_t text_address = static_cast<uint16_t>(((video_page()+1) * 0x400) + row_address);
 								fetch_address = static_cast<uint16_t>(text_address + column_);
@@ -432,6 +444,15 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 								case GraphicsMode::LowRes:
 									output_low_resolution(
+										&pixel_pointer_[pixel_start * 14 + 7],
+										&base_stream_[static_cast<size_t>(pixel_start)],
+										static_cast<size_t>(pixel_end - pixel_start),
+										pixel_start,
+										pixel_row);
+								break;
+
+								case GraphicsMode::FatLowRes:
+									output_fat_low_resolution(
 										&pixel_pointer_[pixel_start * 14 + 7],
 										&base_stream_[static_cast<size_t>(pixel_start)],
 										static_cast<size_t>(pixel_end - pixel_start),
@@ -539,14 +560,16 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 		}
 
 		GraphicsMode graphics_mode(int row) {
-			if(text_) return columns_80_ ? GraphicsMode::DoubleText : GraphicsMode::Text;
-			if(mixed_ && row >= 160 && row < 192) {
-				return (columns_80_ || double_high_resolution_) ? GraphicsMode::DoubleText : GraphicsMode::Text;
-			}
+			if(
+				text_ ||
+				(mixed_ && row >= 160 && row < 192)
+			) return columns_80_ ? GraphicsMode::DoubleText : GraphicsMode::Text;
 			if(high_resolution_) {
-				return double_high_resolution_ ? GraphicsMode::DoubleHighRes : GraphicsMode::HighRes;
+				return (annunciator_3_ && columns_80_) ? GraphicsMode::DoubleHighRes : GraphicsMode::HighRes;
 			} else {
-				return double_high_resolution_ ? GraphicsMode::DoubleLowRes : GraphicsMode::LowRes;
+				if(columns_80_) return GraphicsMode::DoubleLowRes;
+				if(annunciator_3_) return GraphicsMode::FatLowRes;
+				return GraphicsMode::LowRes;
 			}
 		}
 

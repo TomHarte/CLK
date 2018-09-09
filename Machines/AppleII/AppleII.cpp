@@ -534,7 +534,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 #undef IIeSwitchRead
 
 								case 0xc07f:
-									if(is_iie()) *value = (*value & 0x7f) | (video_->get_double_high_resolution() ? 0x80 : 0x00);
+									if(is_iie()) *value = (*value & 0x7f) | (video_->get_annunciator_3() ? 0x80 : 0x00);
 								break;
 							}
 						} else {
@@ -611,7 +611,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						analogue_charge_ = 0.0f;
 					} break;
 
-					/* Read-write switches. */
+					/* Switches triggered by reading or writing. */
 					case 0xc050:
 					case 0xc051:
 						update_video();
@@ -636,7 +636,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case 0xc05f:
 						if(is_iie()) {
 							update_video();
-							video_->set_double_high_resolution(!(address&1));
+							video_->set_annunciator_3(!(address&1));
 						}
 					break;
 
