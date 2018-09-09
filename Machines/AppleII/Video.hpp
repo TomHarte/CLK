@@ -159,14 +159,15 @@ class VideoBase {
 
 		// Enumerates all Apple II and IIe display modes.
 		enum class GraphicsMode {
-			LowRes = 0,
-			DoubleLowRes,
+			Text = 0,
+			DoubleText,
 			HighRes,
 			DoubleHighRes,
-			Text,
-			DoubleText,
+			LowRes,
+			DoubleLowRes,
+			FatLowRes
 		};
-		bool is_text_mode(GraphicsMode m) { return m >= GraphicsMode::Text; }
+		bool is_text_mode(GraphicsMode m) { return m <= GraphicsMode::DoubleText; }
 		bool is_double_mode(GraphicsMode m) { return !!(static_cast<int>(m)&1); }
 
 		// Various soft-switch values.
@@ -237,6 +238,14 @@ class VideoBase {
 			Outputs 80-column double-high-resolution graphics to @c target, drawing @c length columns from @c source.
 		*/
 		void output_double_high_resolution(uint8_t *target, const uint8_t *source, const uint8_t *auxiliary_source, size_t length) const;
+
+		/*!
+			Outputs 40-column "fat low resolution" graphics to @c target, drawing @c length columns from @c source.
+
+			Fat low-resolution mode is like regular low-resolution mode except that data is shifted out on the 7M
+			clock rather than the 14M.
+		*/
+		void output_fat_low_resolution(uint8_t *target, const uint8_t *source, size_t length, int column, int row) const;
 
 		// Maintain a ClockDeferrer for delayed mode switches.
 		ClockDeferrer<Cycles> deferrer_;
@@ -368,6 +377,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							case GraphicsMode::Text:
 							case GraphicsMode::DoubleText:
 							case GraphicsMode::LowRes:
+							case GraphicsMode::FatLowRes:
 							case GraphicsMode::DoubleLowRes: {
 								const uint16_t text_address = static_cast<uint16_t>(((video_page()+1) * 0x400) + row_address);
 								fetch_address = static_cast<uint16_t>(text_address + column_);
@@ -434,6 +444,15 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 								case GraphicsMode::LowRes:
 									output_low_resolution(
+										&pixel_pointer_[pixel_start * 14 + 7],
+										&base_stream_[static_cast<size_t>(pixel_start)],
+										static_cast<size_t>(pixel_end - pixel_start),
+										pixel_start,
+										pixel_row);
+								break;
+
+								case GraphicsMode::FatLowRes:
+									output_fat_low_resolution(
 										&pixel_pointer_[pixel_start * 14 + 7],
 										&base_stream_[static_cast<size_t>(pixel_start)],
 										static_cast<size_t>(pixel_end - pixel_start),
@@ -548,7 +567,9 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			if(high_resolution_) {
 				return (annunciator_3_ && columns_80_) ? GraphicsMode::DoubleHighRes : GraphicsMode::HighRes;
 			} else {
-				return annunciator_3_ ? GraphicsMode::DoubleLowRes : GraphicsMode::LowRes;
+				if(columns_80_) return GraphicsMode::DoubleLowRes;
+				if(annunciator_3_) return GraphicsMode::FatLowRes;
+				return GraphicsMode::LowRes;
 			}
 		}
 
