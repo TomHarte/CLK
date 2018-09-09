@@ -240,10 +240,14 @@ std::unique_ptr<IntermediateShader> IntermediateShader::make_chroma_luma_separat
 				"texture(texID, inputPositionsVarying[5]).r,"
 				"texture(texID, inputPositionsVarying[6]).r"
 			");"
+			// calculate luminance as either the straight average of the samples, if a colour subcarrier
+			// was present, or else a weighted sample around the third sample if not.
 			"float luminance = mix(dot(samples, vec4(0.25)), dot(samples, vec4(0.0, 0.16, 0.66, 0.16)), step(phaseAndAmplitudeVarying.z, 0.0));"
 
 			// define chroma to be whatever was here, minus luma
 			"float chrominance = 0.5 * (samples.z - luminance) * phaseAndAmplitudeVarying.z;"
+
+			// scale luminance up to the range [0, 1)
 			"luminance /= (1.0 - abs(phaseAndAmplitudeVarying.y));"
 
 			// split choma colours here, as the most direct place, writing out
