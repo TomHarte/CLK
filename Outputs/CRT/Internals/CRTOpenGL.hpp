@@ -118,6 +118,7 @@ class OpenGLOutputBuilder {
 		// The fix: just always treat that area as invisible. This is acceptable thanks to
 		// the concept of overscan. One is allowed not to display extreme ends of the image.
 		std::unique_ptr<OpenGL::Rectangle> right_overlay_;
+		std::unique_ptr<OpenGL::Rectangle> left_overlay_;
 
 	public:
 		// These two are protected by output_mutex_.
