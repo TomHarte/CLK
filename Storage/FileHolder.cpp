@@ -42,55 +42,55 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 }
 
 uint32_t FileHolder::get32le() {
-    uint32_t result = static_cast<uint32_t>(std::fgetc(file_));
-    result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
-    result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
-    result |= static_cast<uint32_t>(std::fgetc(file_)) << 24;
+	uint32_t result = static_cast<uint32_t>(std::fgetc(file_));
+	result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
+	result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
+	result |= static_cast<uint32_t>(std::fgetc(file_)) << 24;
 
-    return result;
+	return result;
 }
 
 uint32_t FileHolder::get32be() {
-    uint32_t result = static_cast<uint32_t>(std::fgetc(file_)) << 24;
-    result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
-    result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
-    result |= static_cast<uint32_t>(std::fgetc(file_));
+	uint32_t result = static_cast<uint32_t>(std::fgetc(file_)) << 24;
+	result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
+	result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
+	result |= static_cast<uint32_t>(std::fgetc(file_));
 
-    return result;
+	return result;
 }
 
 uint32_t FileHolder::get24le() {
-    uint32_t result = static_cast<uint32_t>(std::fgetc(file_));
-    result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
-    result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
+	uint32_t result = static_cast<uint32_t>(std::fgetc(file_));
+	result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
+	result |= static_cast<uint32_t>(std::fgetc(file_)) << 16;
 
-    return result;
+	return result;
 }
 
 uint32_t FileHolder::get24be() {
-    uint32_t result = static_cast<uint32_t>(std::fgetc(file_)) << 16;
-    result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
-    result |= static_cast<uint32_t>(std::fgetc(file_));
+	uint32_t result = static_cast<uint32_t>(std::fgetc(file_)) << 16;
+	result |= static_cast<uint32_t>(std::fgetc(file_)) << 8;
+	result |= static_cast<uint32_t>(std::fgetc(file_));
 
-    return result;
+	return result;
 }
 
 uint16_t FileHolder::get16le() {
-    uint16_t result = static_cast<uint16_t>(std::fgetc(file_));
-    result |= static_cast<uint16_t>(static_cast<uint16_t>(std::fgetc(file_)) << 8);
+	uint16_t result = static_cast<uint16_t>(std::fgetc(file_));
+	result |= static_cast<uint16_t>(static_cast<uint16_t>(std::fgetc(file_)) << 8);
 
-    return result;
+	return result;
 }
 
 uint16_t FileHolder::get16be() {
-    uint16_t result = static_cast<uint16_t>(static_cast<uint16_t>(std::fgetc(file_)) << 8);
-    result |= static_cast<uint16_t>(std::fgetc(file_));
+	uint16_t result = static_cast<uint16_t>(static_cast<uint16_t>(std::fgetc(file_)) << 8);
+	result |= static_cast<uint16_t>(std::fgetc(file_));
 
-    return result;
+	return result;
 }
 
 uint8_t FileHolder::get8() {
-    return static_cast<uint8_t>(std::fgetc(file_));
+	return static_cast<uint8_t>(std::fgetc(file_));
 }
 
 void FileHolder::put16be(uint16_t value) {
@@ -118,7 +118,7 @@ std::vector<uint8_t> FileHolder::read(std::size_t size) {
 }
 
 std::size_t FileHolder::read(uint8_t *buffer, std::size_t size) {
-    return std::fread(buffer, 1, size, file_);
+	return std::fread(buffer, 1, size, file_);
 }
 
 std::size_t FileHolder::write(const std::vector<uint8_t> &buffer) {
@@ -126,7 +126,7 @@ std::size_t FileHolder::write(const std::vector<uint8_t> &buffer) {
 }
 
 std::size_t FileHolder::write(const uint8_t *buffer, std::size_t size) {
-    return std::fwrite(buffer, 1, size, file_);
+	return std::fwrite(buffer, 1, size, file_);
 }
 
 void FileHolder::seek(long offset, int whence) {
@@ -160,22 +160,22 @@ bool FileHolder::check_signature(const char *signature, std::size_t length) {
 }
 
 std::string FileHolder::extension() {
-    std::size_t pointer = name_.size() - 1;
-    while(pointer > 0 && name_[pointer] != '.') pointer--;
-    if(name_[pointer] == '.') pointer++;
+	std::size_t pointer = name_.size() - 1;
+	while(pointer > 0 && name_[pointer] != '.') pointer--;
+	if(name_[pointer] == '.') pointer++;
 
-    std::string extension = name_.substr(pointer);
-    std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-    return extension;
+	std::string extension = name_.substr(pointer);
+	std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+	return extension;
 }
 
 void FileHolder::ensure_is_at_least_length(long length) {
-    std::fseek(file_, 0, SEEK_END);
-    long bytes_to_write = length - ftell(file_);
-    if(bytes_to_write > 0) {
-    	std::vector<uint8_t> empty(static_cast<std::size_t>(bytes_to_write), 0);
-        std::fwrite(empty.data(), sizeof(uint8_t), static_cast<std::size_t>(bytes_to_write), file_);
-    }
+	std::fseek(file_, 0, SEEK_END);
+	long bytes_to_write = length - ftell(file_);
+	if(bytes_to_write > 0) {
+		std::vector<uint8_t> empty(static_cast<std::size_t>(bytes_to_write), 0);
+		std::fwrite(empty.data(), sizeof(uint8_t), static_cast<std::size_t>(bytes_to_write), file_);
+	}
 }
 
 bool FileHolder::get_is_known_read_only() {
