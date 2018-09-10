@@ -31,7 +31,7 @@ class MOS6502InterruptTests: XCTestCase {
 		machine.setValue(0x4000, for: CSTestMachine6502Register.programCounter)
 	}
 
-    func testIRQLine() {
+	func testIRQLine() {
 		// run for six cycles; check that no interrupt has occurred
 		machine.runForNumber(ofCycles: 6)
 		XCTAssert(machine.value(for: .programCounter) == 0x4003, "No interrupt should have occurred with line low")
@@ -46,9 +46,9 @@ class MOS6502InterruptTests: XCTestCase {
 		XCTAssert(machine.value(for: .programCounter) != 0x1234, "Interrupt routine should not yet have begun")
 		machine.runForNumber(ofCycles: 1)
 		XCTAssert(machine.value(for: .programCounter) == 0x1234, "Interrupt routine should just have begun")
-    }
+	}
 
-    func testIFlagSet() {
+	func testIFlagSet() {
 		// enable the interrupt line, run for eleven cycles to get past the CLIP and the following NOP and into the interrupt routine
 		machine.irqLine = true
 		machine.runForNumber(ofCycles: 11)
@@ -57,7 +57,7 @@ class MOS6502InterruptTests: XCTestCase {
 		XCTAssert(machine.value(for: .flags) & 0x04 == 0x04, "Interrupt status flag should be set")
 	}
 
-    func testCLISEIFlagClear() {
+	func testCLISEIFlagClear() {
 		// set up an SEI as the second instruction, enable the IRQ line
 		machine.setValue(0x78, forAddress: 0x4001)
 		machine.irqLine = true

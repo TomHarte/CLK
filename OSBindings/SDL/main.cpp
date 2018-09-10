@@ -287,16 +287,16 @@ std::string final_path_component(const std::string &path) {
 	Executes @c command and returns its STDOUT.
 */
 std::string system_get(const char *command) {
-    std::unique_ptr<FILE, decltype((pclose))> pipe(popen(command, "r"), pclose);
-    if(!pipe) return "";
+	std::unique_ptr<FILE, decltype((pclose))> pipe(popen(command, "r"), pclose);
+	if(!pipe) return "";
 
 	std::string result;
-    while(!feof(pipe.get())) {
+	while(!feof(pipe.get())) {
 		std::array<char, 256> buffer;
-        if (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
-            result += buffer.data();
-    }
-    return result;
+		if(fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr)
+			result += buffer.data();
+	}
+	return result;
 }
 
 }
