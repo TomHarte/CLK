@@ -89,11 +89,17 @@ public:
 	void set_input_width_scaler(float input_scaler);
 
 	/*!
+		@returns The location, in eye coordinates, of the left edge of the output area.
+	*/
+	float get_left_extent();
+
+	/*!
 		@returns The location, in eye coordinates, of the right edge of the output area.
 	*/
 	float get_right_extent();
 
 private:
+	float left_extent_ = 0.0f;
 	float right_extent_ = 0.0f;
 };
 
