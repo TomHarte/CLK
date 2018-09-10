@@ -173,10 +173,8 @@ void FileHolder::ensure_is_at_least_length(long length) {
     std::fseek(file_, 0, SEEK_END);
     long bytes_to_write = length - ftell(file_);
     if(bytes_to_write > 0) {
-        uint8_t *empty = new uint8_t[static_cast<std::size_t>(bytes_to_write)];
-        std::memset(empty, 0, static_cast<std::size_t>(bytes_to_write));
-        std::fwrite(empty, sizeof(uint8_t), static_cast<std::size_t>(bytes_to_write), file_);
-        delete[] empty;
+    	std::vector<uint8_t> empty(static_cast<std::size_t>(bytes_to_write), 0);
+        std::fwrite(empty.data(), sizeof(uint8_t), static_cast<std::size_t>(bytes_to_write), file_);
     }
 }
 

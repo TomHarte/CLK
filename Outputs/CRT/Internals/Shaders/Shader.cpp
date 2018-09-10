@@ -239,17 +239,16 @@ void Shader::set_uniform_matrix(const std::string &name, GLint size, bool transp
 
 void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values) {
 	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size) * static_cast<std::size_t>(size);
-	GLfloat *values_copy = new GLfloat[number_of_values];
-	std::memcpy(values_copy, values, sizeof(*values) * number_of_values);
+	std::vector<GLfloat> values_copy(number_of_values);
+	std::memcpy(values_copy.data(), values, sizeof(*values) * number_of_values);
 
 	enqueue_function([name, size, count, transpose, values_copy, this] {
 		GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
 		switch(size) {
-			case 2: glUniformMatrix2fv(location(), count, glTranspose, values_copy);	break;
-			case 3: glUniformMatrix3fv(location(), count, glTranspose, values_copy);	break;
-			case 4: glUniformMatrix4fv(location(), count, glTranspose, values_copy);	break;
+			case 2: glUniformMatrix2fv(location(), count, glTranspose, values_copy.data());	break;
+			case 3: glUniformMatrix3fv(location(), count, glTranspose, values_copy.data());	break;
+			case 4: glUniformMatrix4fv(location(), count, glTranspose, values_copy.data());	break;
 		}
-		delete[] values_copy;
 	});
 }
 
