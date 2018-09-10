@@ -141,22 +141,22 @@ void WD1770::run_for(const Cycles cycles) {
 		WAIT_FOR_EVENT(Event1770::IndexHoleTarget);	\
 		status_.spin_up = true;
 
-//     +--------+----------+-------------------------+
-//     !	    !	       !          BITS           !
-//     ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
-//     +--------+----------+-------------------------+
-//     !	 1  ! Restore  !  0  0	0  0  h  v r1 r0 !
-//     !	 1  ! Seek     !  0  0	0  1  h  v r1 r0 !
-//     !	 1  ! Step     !  0  0	1  u  h  v r1 r0 !
-//     !	 1  ! Step-in  !  0  1	0  u  h  v r1 r0 !
-//     !	 1  ! Step-out !  0  1	1  u  h  v r1 r0 !
-//     !	 2  ! Rd sectr !  1  0	0  m  h  E  0  0 !
-//     !	 2  ! Wt sectr !  1  0	1  m  h  E  P a0 !
-//     !	 3  ! Rd addr  !  1  1	0  0  h  E  0  0 !
-//     !	 3  ! Rd track !  1  1	1  0  h  E  0  0 !
-//     !	 3  ! Wt track !  1  1	1  1  h  E  P  0 !
-//     !	 4  ! Forc int !  1  1	0  1 i3 i2 i1 i0 !
-//     +--------+----------+-------------------------+
+// +--------+----------+-------------------------+
+// !	    !	       !          BITS           !
+// ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
+// +--------+----------+-------------------------+
+// !	 1  ! Restore  !  0  0	0  0  h  v r1 r0 !
+// !	 1  ! Seek     !  0  0	0  1  h  v r1 r0 !
+// !	 1  ! Step     !  0  0	1  u  h  v r1 r0 !
+// !	 1  ! Step-in  !  0  1	0  u  h  v r1 r0 !
+// !	 1  ! Step-out !  0  1	1  u  h  v r1 r0 !
+// !	 2  ! Rd sectr !  1  0	0  m  h  E  0  0 !
+// !	 2  ! Wt sectr !  1  0	1  m  h  E  P a0 !
+// !	 3  ! Rd addr  !  1  1	0  0  h  E  0  0 !
+// !	 3  ! Rd track !  1  1	1  0  h  E  0  0 !
+// !	 3  ! Wt track !  1  1	1  1  h  E  P  0 !
+// !	 4  ! Forc int !  1  1	0  1 i3 i2 i1 i0 !
+// +--------+----------+-------------------------+
 
 void WD1770::posit_event(int new_event_type) {
 	if(new_event_type == static_cast<int>(Event::IndexHole)) {
@@ -221,16 +221,16 @@ void WD1770::posit_event(int new_event_type) {
 	/*
 		Type 1 entry point.
 	*/
-//     +--------+----------+-------------------------+
-//     !	    !	       !          BITS           !
-//     ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
-//     +--------+----------+-------------------------+
-//     !	 1  ! Restore  !  0  0	0  0  h  v r1 r0 !
-//     !	 1  ! Seek     !  0  0	0  1  h  v r1 r0 !
-//     !	 1  ! Step     !  0  0	1  u  h  v r1 r0 !
-//     !	 1  ! Step-in  !  0  1	0  u  h  v r1 r0 !
-//     !	 1  ! Step-out !  0  1	1  u  h  v r1 r0 !
-//     +--------+----------+-------------------------+
+	// +--------+----------+-------------------------+
+	// !	    !	       !          BITS           !
+	// ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
+	// +--------+----------+-------------------------+
+	// !	 1  ! Restore  !  0  0	0  0  h  v r1 r0 !
+	// !	 1  ! Seek     !  0  0	0  1  h  v r1 r0 !
+	// !	 1  ! Step     !  0  0	1  u  h  v r1 r0 !
+	// !	 1  ! Step-in  !  0  1	0  u  h  v r1 r0 !
+	// !	 1  ! Step-out !  0  1	1  u  h  v r1 r0 !
+	// +--------+----------+-------------------------+
 
 	begin_type_1:
 		// Set initial flags, skip spin-up if possible.
@@ -344,13 +344,13 @@ void WD1770::posit_event(int new_event_type) {
 	/*
 		Type 2 entry point.
 	*/
-//     +--------+----------+-------------------------+
-//     !	    !	       !          BITS           !
-//     ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
-//     +--------+----------+-------------------------+
-//     !	 2  ! Rd sectr !  1  0	0  m  h  E  0  0 !
-//     !	 2  ! Wt sectr !  1  0	1  m  h  E  P a0 !
-//     +--------+----------+-------------------------+
+	// +--------+----------+-------------------------+
+	// !	    !	       !          BITS           !
+	// ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
+	// +--------+----------+-------------------------+
+	// !	 2  ! Rd sectr !  1  0	0  m  h  E  0  0 !
+	// !	 2  ! Wt sectr !  1  0	1  m  h  E  P a0 !
+	// +--------+----------+-------------------------+
 
 	begin_type_2:
 		update_status([] (Status &status) {
@@ -567,14 +567,14 @@ void WD1770::posit_event(int new_event_type) {
 	/*
 		Type 3 entry point.
 	*/
-//     +--------+----------+-------------------------+
-//     !	    !	       !          BITS           !
-//     ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
-//     +--------+----------+-------------------------+
-//     !	 3  ! Rd addr  !  1  1	0  0  h  E  0  0 !
-//     !	 3  ! Rd track !  1  1	1  0  h  E  0  0 !
-//     !	 3  ! Wt track !  1  1	1  1  h  E  P  0 !
-//     +--------+----------+-------------------------+
+	// +--------+----------+-------------------------+
+	// !	    !	       !          BITS           !
+	// ! TYPE   ! COMMAND  !  7  6	5  4  3  2  1  0 !
+	// +--------+----------+-------------------------+
+	// !	 3  ! Rd addr  !  1  1	0  0  h  E  0  0 !
+	// !	 3  ! Rd track !  1  1	1  0  h  E  0  0 !
+	// !	 3  ! Wt track !  1  1	1  1  h  E  P  0 !
+	// +--------+----------+-------------------------+
 	begin_type_3:
 		update_status([] (Status &status) {
 			status.type = Status::Three;
