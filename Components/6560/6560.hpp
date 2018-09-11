@@ -451,12 +451,12 @@ template <class BusHandler> class MOS6560 {
 
 		// register state
 		struct {
-			bool interlaced, tall_characters;
+			bool interlaced = false, tall_characters = false;
 			uint8_t first_column_location, first_row_location;
 			uint8_t number_of_columns, number_of_rows;
 			uint16_t character_cell_start_address, video_matrix_start_address;
 			uint16_t backgroundColour, borderColour, auxiliary_colour;
-			bool invertedCells;
+			bool invertedCells = false;
 
 			uint8_t direct_values[16];
 		} registers_;
@@ -493,7 +493,7 @@ template <class BusHandler> class MOS6560 {
 		}
 
 		// latches dictating start and length of drawing
-		bool vertical_drawing_latch_, horizontal_drawing_latch_;
+		bool vertical_drawing_latch_ = false, horizontal_drawing_latch_ = false;
 		int rows_this_field_, columns_this_line_;
 
 		// current drawing position counter
