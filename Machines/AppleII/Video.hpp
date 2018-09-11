@@ -490,11 +490,8 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 							if(pixel_end == 40) {
 								if(was_double_) {
-									pixel_pointer_[563] =
-									pixel_pointer_[564] =
-									pixel_pointer_[565] =
-									pixel_pointer_[566] =
-									pixel_pointer_[567] = 0;
+									pixel_pointer_[560] = pixel_pointer_[561] = pixel_pointer_[562] = pixel_pointer_[563] =
+									pixel_pointer_[564] = pixel_pointer_[565] = pixel_pointer_[566] = pixel_pointer_[567] = 0;
 								} else {
 									if(line_mode == GraphicsMode::HighRes && base_stream_[39]&0x80)
 										pixel_pointer_[567] = graphics_carry_;
