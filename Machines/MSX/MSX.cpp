@@ -8,6 +8,8 @@
 
 #include "MSX.hpp"
 
+#include <algorithm>
+
 #include "DiskROM.hpp"
 #include "Keyboard.hpp"
 #include "ROMSlotHandler.hpp"
