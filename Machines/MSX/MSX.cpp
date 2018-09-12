@@ -298,7 +298,12 @@ class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) override final {
-			input_text_ += string;
+			std::transform(
+				string.begin(),
+				string.end(),
+				std::back_inserter(input_text_),
+				[](unsigned char c) -> unsigned char { return (c == '\n') ? '\r' : c; }
+			);
 		}
 
 		// MARK: MSX::MemoryMap
@@ -500,26 +505,31 @@ class ConcreteMachine:
 
 					// Take this as a convenient moment to jump into the keyboard buffer, if desired.
 					if(!input_text_.empty()) {
-						// TODO: is it safe to assume these addresses?
+						// The following are KEYBUF per the Red Book; its address and its definition as DEFS 40.
 						const int buffer_start = 0xfbf0;
-						const int buffer_end = 0xfb18;
+						const int buffer_size = 40;
 
+						// Also from the Red Book: GETPNT is at F3FAH and PUTPNT is at F3F8H.
 						int read_address = ram_[0xf3fa] | (ram_[0xf3fb] << 8);
 						int write_address = ram_[0xf3f8] | (ram_[0xf3f9] << 8);
 
-						const int buffer_size = buffer_end - buffer_start;
-						int available_space = write_address + buffer_size - read_address - 1;
-
-						const std::size_t characters_to_write = std::min(static_cast<std::size_t>(available_space), input_text_.size());
+						// Write until either the string is exhausted or the write_pointer is immediately
+						// behind the read pointer; temporarily map write_address and read_address into
+						// buffer-relative values.
+						std::size_t characters_written = 0;
 						write_address -= buffer_start;
-						for(std::size_t c = 0; c < characters_to_write; ++c) {
-							char character = input_text_[c];
-							ram_[write_address + buffer_start] = static_cast<uint8_t>(character);
-							write_address = (write_address + 1) % buffer_size;
+						read_address -= buffer_start;
+						while(characters_written < input_text_.size()) {
+							const int next_write_address = (write_address + 1) % buffer_size;
+							if(next_write_address == read_address) break;
+							ram_[write_address + buffer_start] = static_cast<uint8_t>(input_text_[characters_written]);
+							++characters_written;
+							write_address = next_write_address;
 						}
-						write_address += buffer_start;
-						input_text_.erase(input_text_.begin(), input_text_.begin() + static_cast<std::string::difference_type>(characters_to_write));
+						input_text_.erase(input_text_.begin(), input_text_.begin() + static_cast<std::string::difference_type>(characters_written));
 
+						// Map the write address back into absolute terms and write it out again as PUTPNT.
+						write_address += buffer_start;
 						ram_[0xf3f8] = static_cast<uint8_t>(write_address);
 						ram_[0xf3f9] = static_cast<uint8_t>(write_address >> 8);
 					}
