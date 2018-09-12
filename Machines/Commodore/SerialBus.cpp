@@ -45,7 +45,7 @@ void Bus::set_line_output_did_change(Line line) {
 	for(std::weak_ptr<Port> port : ports_) {
 		std::shared_ptr<Port> locked_port = port.lock();
 		if(locked_port) {
-			new_line_level = (LineLevel)((bool)new_line_level & (bool)locked_port->get_output(line));
+			new_line_level = (LineLevel)(static_cast<bool>(new_line_level) & static_cast<bool>(locked_port->get_output(line)));
 		}
 	}
 
