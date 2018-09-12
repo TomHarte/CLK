@@ -214,7 +214,7 @@ class SerialPort : public ::Commodore::Serial::Port {
 		/// Receives an input change from the base serial port class, and communicates it to the user-port VIA.
 		void set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
 			std::shared_ptr<UserPortVIA> userPortVIA = user_port_via_.lock();
-			if(userPortVIA) userPortVIA->set_serial_line_state(line, (bool)level);
+			if(userPortVIA) userPortVIA->set_serial_line_state(line, static_cast<bool>(level));
 		}
 
 		/// Sets the user-port VIA with which this serial port communicates.

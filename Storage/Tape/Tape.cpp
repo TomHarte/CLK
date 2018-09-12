@@ -81,7 +81,7 @@ std::shared_ptr<Storage::Tape::Tape> TapePlayer::get_tape() {
 }
 
 bool TapePlayer::has_tape() {
-	return (bool)tape_;
+	return static_cast<bool>(tape_);
 }
 
 void TapePlayer::get_next_pulse() {

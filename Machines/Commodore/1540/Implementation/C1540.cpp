@@ -278,7 +278,7 @@ void DriveVIA::set_activity_observer(Activity::Observer *observer) {
 
 void SerialPort::set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
 	std::shared_ptr<SerialPortVIA> serialPortVIA = serial_port_VIA_.lock();
-	if(serialPortVIA) serialPortVIA->set_serial_line_state(line, (bool)level);
+	if(serialPortVIA) serialPortVIA->set_serial_line_state(line, static_cast<bool>(level));
 }
 
 void SerialPort::set_serial_port_via(const std::shared_ptr<SerialPortVIA> &serialPortVIA) {
