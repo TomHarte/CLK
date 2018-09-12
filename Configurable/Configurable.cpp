@@ -19,7 +19,7 @@ ListSelection *ListSelection::list_selection() {
 }
 
 BooleanSelection *ListSelection::boolean_selection() {
-	return new BooleanSelection(value != "no" && value != "n");
+	return new BooleanSelection(value != "no" && value != "n" && value != "false" && value != "f");
 }
 
 BooleanSelection *BooleanSelection::boolean_selection() {
