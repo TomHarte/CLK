@@ -52,13 +52,11 @@ VideoOutput::VideoOutput(uint8_t *memory) : ram_(memory) {
 
 	crt_.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
 	crt_->set_rgb_sampling_function(
-		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
+		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
-			"texValue >>= 4 - (int(icoordinate.x) & 4);"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 		"}");
-	crt_->set_integer_coordinate_multiplier(8.0f);
 	std::unique_ptr<Outputs::CRT::TextureBuilder::Bookender> bookender(new FourBPPBookender);
 	crt_->set_bookender(std::move(bookender));
 	// TODO: as implied below, I've introduced a clock's latency into the graphics pipeline somehow. Investigate.

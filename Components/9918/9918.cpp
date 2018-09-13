@@ -92,7 +92,7 @@ TMS9918::TMS9918(Personality p) {
 	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
 	// into whether there's a more natural form.
 	crt_->set_rgb_sampling_function(
-		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
+		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
 		"{"
 			"return texture(sampler, coordinate).rgb / vec3(255.0);"
 		"}");

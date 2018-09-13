@@ -105,8 +105,6 @@ class OpenGLOutputBuilder {
 		float get_composite_output_width() const;
 		void set_output_shader_width();
 
-		float integer_coordinate_multiplier_ = 1.0f;
-
 		// Maintain a couple of rectangles for masking off the extreme edge of the display;
 		// this is a bit of a cheat: there's some tolerance in when a sync pulse will be
 		// generated. So it might be slightly later than expected. Which might cause a scan
@@ -174,7 +172,6 @@ class OpenGLOutputBuilder {
 		void set_rgb_sampling_function(const std::string &);
 		void set_video_signal(VideoSignal);
 		void set_timing(unsigned int input_frequency, unsigned int cycles_per_line, unsigned int height_of_display, unsigned int horizontal_scan_period, unsigned int vertical_scan_period, unsigned int vertical_period_divider);
-		void set_integer_coordinate_multiplier(float multiplier);
 };
 
 }

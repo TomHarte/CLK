@@ -524,12 +524,4 @@ void OpenGLOutputBuilder::set_timing_uniforms() {
 	if(rgb_input_shader_program_) {
 		rgb_input_shader_program_->set_width_scalers(1.0f, 1.0f);
 	}
-	set_integer_coordinate_multiplier(integer_coordinate_multiplier_);
-}
-
-void OpenGLOutputBuilder::set_integer_coordinate_multiplier(float multiplier) {
-	integer_coordinate_multiplier_ = multiplier;
-	if(composite_input_shader_program_) composite_input_shader_program_->set_integer_coordinate_multiplier(multiplier);
-	if(svideo_input_shader_program_) svideo_input_shader_program_->set_integer_coordinate_multiplier(multiplier);
-	if(rgb_input_shader_program_) rgb_input_shader_program_->set_integer_coordinate_multiplier(multiplier);
 }

@@ -280,29 +280,13 @@ class CRT {
 		/*!	Sets a function that will map from whatever data the machine provided to a composite signal.
 
 			@param shader A GLSL fragment including a function with the signature
-			`float composite_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)`
+			`float composite_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)`
 			that evaluates to the composite signal level as a function of a source buffer, sampling location, colour
 			carrier phase and amplitude.
 		*/
 		inline void set_composite_sampling_function(const std::string &shader) {
 			enqueue_openGL_function([shader, this] {
 				openGL_output_builder_.set_composite_sampling_function(shader);
-			});
-		}
-
-		/*!
-			Sets a multiplier applied to iCoordinate values prior to their passing to the various sampling functions.
-			This multiplier is applied outside of the interpolation loop, making for a more precise interpolation
-			than if it were applied within the sampling function.
-
-			Idiomatically, this is likely to be the number of output pixels packed into each input sample where
-			packing is in use.
-
-			The default value is 1.0.
-		*/
-		inline void set_integer_coordinate_multiplier(float multiplier) {
-			enqueue_openGL_function([=] {
-				openGL_output_builder_.set_integer_coordinate_multiplier(multiplier);
 			});
 		}
 
