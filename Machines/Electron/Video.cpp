@@ -34,13 +34,6 @@ namespace {
 	static const int real_time_clock_interrupt_2 = 56704;
 	static const int display_end_interrupt_1 = (first_graphics_line + display_end_interrupt_line)*cycles_per_line;
 	static const int display_end_interrupt_2 = (first_graphics_line + field_divider_line + display_end_interrupt_line)*cycles_per_line;
-
-	struct FourBPPBookender: public Outputs::CRT::TextureBuilder::Bookender {
-		void add_bookends(uint8_t *const left_value, uint8_t *const right_value, uint8_t *left_bookend, uint8_t *right_bookend) {
-			*left_bookend = static_cast<uint8_t>(((*left_value) & 0x0f) | (((*left_value) & 0x0f) << 4));
-			*right_bookend = static_cast<uint8_t>(((*right_value) & 0xf0) | (((*right_value) & 0xf0) >> 4));
-		}
-	};
 }
 
 // MARK: - Lifecycle
@@ -57,8 +50,6 @@ VideoOutput::VideoOutput(uint8_t *memory) : ram_(memory) {
 			"uint texValue = texture(sampler, coordinate).r;"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 		"}");
-	std::unique_ptr<Outputs::CRT::TextureBuilder::Bookender> bookender(new FourBPPBookender);
-	crt_->set_bookender(std::move(bookender));
 	// TODO: as implied below, I've introduced a clock's latency into the graphics pipeline somehow. Investigate.
 	crt_->set_visible_area(crt_->get_rect_for_area(first_graphics_line - 1, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
 }

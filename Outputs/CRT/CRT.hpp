@@ -346,10 +346,6 @@ class CRT {
 			});
 		}
 
-		inline void set_bookender(std::unique_ptr<TextureBuilder::Bookender> bookender) {
-			openGL_output_builder_.texture_builder.set_bookender(std::move(bookender));
-		}
-
 		inline void set_video_signal(VideoSignal video_signal) {
 			enqueue_openGL_function([video_signal, this] {
 				openGL_output_builder_.set_video_signal(video_signal);
