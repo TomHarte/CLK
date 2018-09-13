@@ -316,7 +316,7 @@ class CRT {
 			output mode will be applied.
 
 			@param shader A GLSL fragment including a function with the signature
-			`vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)`
+			`vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)`
 			that evaluates to the s-video signal level, luminance as the first component and chrominance
 			as the second, as a function of a source buffer, sampling location and colour
 			carrier phase; amplitude is supplied for its sign.
@@ -333,12 +333,11 @@ class CRT {
 			output mode will be applied.
 
 			@param shader A GLSL fragent including a function with the signature
-			`vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 iCoordinate)` that evaluates to an RGB colour
+			`vec3 rgb_sample(usampler2D sampler, vec2 coordinate)` that evaluates to an RGB colour
 			as a function of:
 
-			* `usampler2D sampler` representing the source buffer;
-			* `vec2 coordinate` representing the source buffer location to sample from in the range [0, 1); and
-			* `vec2 iCoordinate` representing the source buffer location to sample from as a pixel count, for easier multiple-pixels-per-byte unpacking.
+			* `usampler2D sampler` representing the source buffer; and
+			* `vec2 coordinate` representing the source buffer location to sample from in the range [0, 1).
 		*/
 		inline void set_rgb_sampling_function(const std::string &shader) {
 			enqueue_openGL_function([shader, this] {
