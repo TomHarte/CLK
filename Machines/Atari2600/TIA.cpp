@@ -124,7 +124,7 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
 
 	if(output_mode == OutputMode::NTSC) {
 		crt_->set_svideo_sampling_function(
-			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)"
 			"{"
 				"uint c = texture(texID, coordinate).r;"
 				"uint y = c & 14u;"
@@ -136,7 +136,7 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
 		display_type = Outputs::CRT::DisplayType::NTSC60;
 	} else {
 		crt_->set_svideo_sampling_function(
-			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)"
 			"{"
 				"uint c = texture(texID, coordinate).r;"
 				"uint y = c & 14u;"

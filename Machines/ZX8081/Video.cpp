@@ -26,7 +26,7 @@ Video::Video() :
 	// Set a composite sampling function that assumes two-level input; either a byte is 0, which is black,
 	// or it is non-zero, which is white.
 	crt_->set_composite_sampling_function(
-		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
+		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
 		"{"
 			"return texture(sampler, coordinate).r;"
 		"}");

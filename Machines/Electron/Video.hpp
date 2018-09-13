@@ -90,11 +90,11 @@ class VideoOutput {
 
 		uint8_t *ram_;
 		struct {
-			uint16_t forty1bpp[256];
-			uint8_t forty2bpp[256];
-			uint32_t eighty1bpp[256];
-			uint16_t eighty2bpp[256];
-			uint8_t eighty4bpp[256];
+			uint32_t forty1bpp[256];
+			uint16_t forty2bpp[256];
+			uint64_t eighty1bpp[256];
+			uint32_t eighty2bpp[256];
+			uint16_t eighty4bpp[256];
 		} palette_tables_;
 
 		// Display generation.

@@ -36,19 +36,6 @@ const GLenum formatForDepth(std::size_t depth) {
 	}
 }
 
-struct DefaultBookender: public TextureBuilder::Bookender {
-	public:
-		DefaultBookender(std::size_t bytes_per_pixel) : bytes_per_pixel_(bytes_per_pixel) {}
-
-		void add_bookends(uint8_t *const left_value, uint8_t *const right_value, uint8_t *left_bookend, uint8_t *right_bookend) {
-			std::memcpy(left_bookend, left_value, bytes_per_pixel_);
-			std::memcpy(right_bookend, right_value, bytes_per_pixel_);
-		}
-
-	private:
-		std::size_t bytes_per_pixel_;
-};
-
 }
 
 TextureBuilder::TextureBuilder(std::size_t bytes_per_pixel, GLenum texture_unit) :
@@ -58,8 +45,6 @@ TextureBuilder::TextureBuilder(std::size_t bytes_per_pixel, GLenum texture_unit)
 
 	bind();
 	glTexImage2D(GL_TEXTURE_2D, 0, internalFormatForDepth(bytes_per_pixel), InputBufferBuilderWidth, InputBufferBuilderHeight, 0, formatForDepth(bytes_per_pixel), GL_UNSIGNED_BYTE, nullptr);
-
-	set_bookender(nullptr);
 }
 
 TextureBuilder::~TextureBuilder() {
@@ -119,17 +104,9 @@ void TextureBuilder::reduce_previous_allocation_to(std::size_t actual_length) {
 
 	// Bookend the allocation with duplicates of the first and last pixel, to protect
 	// against rounding errors when this run is drawn.
-	// TODO: allow somebody else to specify the rule for generating a left-padding value and
-	// a right-padding value.
 	uint8_t *start_pointer = pointer_to_location(write_area_.x, write_area_.y) - bytes_per_pixel_;
-	bookender_->add_bookends(&start_pointer[bytes_per_pixel_], &start_pointer[actual_length * bytes_per_pixel_], start_pointer, &start_pointer[(actual_length + 1) * bytes_per_pixel_]);
-}
-
-void TextureBuilder::set_bookender(std::unique_ptr<TextureBuilder::Bookender> bookender) {
-	bookender_ = std::move(bookender);
-	if(!bookender_) {
-		bookender_.reset(new DefaultBookender(bytes_per_pixel_));
-	}
+	std::memcpy(start_pointer, &start_pointer[bytes_per_pixel_], bytes_per_pixel_);
+	std::memcpy(&start_pointer[(actual_length + 1) * bytes_per_pixel_],  &start_pointer[actual_length * bytes_per_pixel_], bytes_per_pixel_);
 }
 
 bool TextureBuilder::retain_latest() {

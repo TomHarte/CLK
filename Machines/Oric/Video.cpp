@@ -25,13 +25,13 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 		v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
 		counter_period_(PAL50Period) {
 	crt_->set_rgb_sampling_function(
-		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate)"
+		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
 		"{"
 			"uint texValue = texture(sampler, coordinate).r;"
 			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 		"}");
 	crt_->set_composite_sampling_function(
-		"float composite_sample(usampler2D sampler, vec2 coordinate, vec2 icoordinate, float phase, float amplitude)"
+		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
 		"{"
 			"uint texValue = uint(dot(texture(sampler, coordinate).rg, uvec2(1, 256)));"
 			"uint iPhase = uint((phase + 3.141592654 + 0.39269908175) * 2.0 / 3.141592654) & 3u;"

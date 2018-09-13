@@ -69,7 +69,7 @@ template <class BusHandler> class MOS6560 {
 				speaker_(audio_generator_)
 		{
 			crt_->set_svideo_sampling_function(
-				"vec2 svideo_sample(usampler2D texID, vec2 coordinate, vec2 iCoordinate, float phase, float amplitude)"
+				"vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)"
 				"{"
 					"vec2 yc = texture(texID, coordinate).rg / vec2(255.0);"
 
