@@ -102,9 +102,9 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 	} else {
 		unsigned int divider = 1;
 		switch(screen_mode_) {
-			case 0: case 3: divider = 2; break;
-			case 1: case 4: case 6: divider = 4; break;
-			case 2: case 5: divider = 8; break;
+			case 0: case 3: divider = 1; break;
+			case 1: case 4: case 6: divider = 2; break;
+			case 2: case 5: divider = 4; break;
 		}
 
 		if(!initial_output_target_ || divider != current_output_divider_) {
@@ -128,8 +128,8 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 				if(initial_output_target_) {
 					while(number_of_cycles--) {
 						get_pixel();
-						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.eighty1bpp[last_pixel_byte_];
-						current_output_target_ += 4;
+						*reinterpret_cast<uint64_t *>(current_output_target_) = palette_tables_.eighty1bpp[last_pixel_byte_];
+						current_output_target_ += 8;
 						current_pixel_column_++;
 					}
 				} else current_output_target_ += 4*number_of_cycles;
@@ -139,8 +139,8 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 				if(initial_output_target_) {
 					while(number_of_cycles--) {
 						get_pixel();
-						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.eighty2bpp[last_pixel_byte_];
-						current_output_target_ += 2;
+						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.eighty2bpp[last_pixel_byte_];
+						current_output_target_ += 4;
 						current_pixel_column_++;
 					}
 				} else current_output_target_ += 2*number_of_cycles;
@@ -150,8 +150,8 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 				if(initial_output_target_) {
 					while(number_of_cycles--) {
 						get_pixel();
-						*current_output_target_ = palette_tables_.eighty4bpp[last_pixel_byte_];
-						current_output_target_ += 1;
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.eighty4bpp[last_pixel_byte_];
+						current_output_target_ += 2;
 						current_pixel_column_++;
 					}
 				} else current_output_target_ += number_of_cycles;
@@ -161,28 +161,28 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 				if(initial_output_target_) {
 					if(current_pixel_column_&1) {
 						last_pixel_byte_ <<= 4;
-						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
-						current_output_target_ += 2;
+						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
+						current_output_target_ += 4;
 
 						number_of_cycles--;
 						current_pixel_column_++;
 					}
 					while(number_of_cycles > 1) {
 						get_pixel();
-						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
-						current_output_target_ += 2;
+						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
+						current_output_target_ += 4;
 
 						last_pixel_byte_ <<= 4;
-						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
-						current_output_target_ += 2;
+						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
+						current_output_target_ += 4;
 
 						number_of_cycles -= 2;
 						current_pixel_column_+=2;
 					}
 					if(number_of_cycles) {
 						get_pixel();
-						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
-						current_output_target_ += 2;
+						*reinterpret_cast<uint32_t *>(current_output_target_) = palette_tables_.forty1bpp[last_pixel_byte_];
+						current_output_target_ += 4;
 						current_pixel_column_++;
 					}
 				} else current_output_target_ += 2 * number_of_cycles;
@@ -192,28 +192,28 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 				if(initial_output_target_) {
 					if(current_pixel_column_&1) {
 						last_pixel_byte_ <<= 2;
-						*current_output_target_ = palette_tables_.forty2bpp[last_pixel_byte_];
-						current_output_target_ += 1;
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty2bpp[last_pixel_byte_];
+						current_output_target_ += 2;
 
 						number_of_cycles--;
 						current_pixel_column_++;
 					}
 					while(number_of_cycles > 1) {
 						get_pixel();
-						*current_output_target_ = palette_tables_.forty2bpp[last_pixel_byte_];
-						current_output_target_ += 1;
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty2bpp[last_pixel_byte_];
+						current_output_target_ += 2;
 
 						last_pixel_byte_ <<= 2;
-						*current_output_target_ = palette_tables_.forty2bpp[last_pixel_byte_];
-						current_output_target_ += 1;
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty2bpp[last_pixel_byte_];
+						current_output_target_ += 2;
 
 						number_of_cycles -= 2;
 						current_pixel_column_+=2;
 					}
 					if(number_of_cycles) {
 						get_pixel();
-						*current_output_target_ = palette_tables_.forty2bpp[last_pixel_byte_];
-						current_output_target_ += 1;
+						*reinterpret_cast<uint16_t *>(current_output_target_) = palette_tables_.forty2bpp[last_pixel_byte_];
+						current_output_target_ += 2;
 						current_pixel_column_++;
 					}
 				} else current_output_target_ += number_of_cycles;
@@ -299,27 +299,37 @@ void VideoOutput::set_register(int address, uint8_t value) {
 			}
 
 			// regenerate all palette tables for now
-#define pack(a, b) static_cast<uint8_t>((a << 4) | (b))
 			for(int byte = 0; byte < 256; byte++) {
 				uint8_t *target = reinterpret_cast<uint8_t *>(&palette_tables_.forty1bpp[byte]);
-				target[0] = pack(palette_[(byte&0x80) >> 4], palette_[(byte&0x40) >> 3]);
-				target[1] = pack(palette_[(byte&0x20) >> 2], palette_[(byte&0x10) >> 1]);
+				target[0] = palette_[(byte&0x80) >> 4];
+				target[1] = palette_[(byte&0x40) >> 3];
+				target[2] = palette_[(byte&0x20) >> 2];
+				target[3] = palette_[(byte&0x10) >> 1];
 
 				target = reinterpret_cast<uint8_t *>(&palette_tables_.eighty2bpp[byte]);
-				target[0] = pack(palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
-				target[1] = pack(palette_[((byte&0x20) >> 2) | ((byte&0x02) >> 0)], palette_[((byte&0x10) >> 1) | ((byte&0x01) << 1)]);
+				target[0] = palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)];
+				target[1] = palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)];
+				target[2] = palette_[((byte&0x20) >> 2) | ((byte&0x02) >> 0)];
+				target[3] = palette_[((byte&0x10) >> 1) | ((byte&0x01) << 1)];
 
 				target = reinterpret_cast<uint8_t *>(&palette_tables_.eighty1bpp[byte]);
-				target[0] = pack(palette_[(byte&0x80) >> 4], palette_[(byte&0x40) >> 3]);
-				target[1] = pack(palette_[(byte&0x20) >> 2], palette_[(byte&0x10) >> 1]);
-				target[2] = pack(palette_[(byte&0x08) >> 0], palette_[(byte&0x04) << 1]);
-				target[3] = pack(palette_[(byte&0x02) << 2], palette_[(byte&0x01) << 3]);
+				target[0] = palette_[(byte&0x80) >> 4];
+				target[1] = palette_[(byte&0x40) >> 3];
+				target[2] = palette_[(byte&0x20) >> 2];
+				target[3] = palette_[(byte&0x10) >> 1];
+				target[4] = palette_[(byte&0x08) >> 0];
+				target[5] = palette_[(byte&0x04) << 1];
+				target[6] = palette_[(byte&0x02) << 2];
+				target[7] = palette_[(byte&0x01) << 3];
 
-				palette_tables_.forty2bpp[byte] = pack(		palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)], palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)]);
-				palette_tables_.eighty4bpp[byte] = pack(	palette_[((byte&0x80) >> 4) | ((byte&0x20) >> 3) | ((byte&0x08) >> 2) | ((byte&0x02) >> 1)],
-															palette_[((byte&0x40) >> 3) | ((byte&0x10) >> 2) | ((byte&0x04) >> 1) | ((byte&0x01) >> 0)]);
+				target = reinterpret_cast<uint8_t *>(&palette_tables_.forty2bpp[byte]);
+				target[0] = palette_[((byte&0x80) >> 4) | ((byte&0x08) >> 2)];
+				target[1] = palette_[((byte&0x40) >> 3) | ((byte&0x04) >> 1)];
+
+				target = reinterpret_cast<uint8_t *>(&palette_tables_.eighty4bpp[byte]);
+				target[0] = palette_[((byte&0x80) >> 4) | ((byte&0x20) >> 3) | ((byte&0x08) >> 2) | ((byte&0x02) >> 1)];
+				target[1] = palette_[((byte&0x40) >> 3) | ((byte&0x10) >> 2) | ((byte&0x04) >> 1) | ((byte&0x01) >> 0)];
 			}
-#undef pack
 		}
 		break;
 	}
