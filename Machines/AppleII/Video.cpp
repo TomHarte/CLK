@@ -20,7 +20,7 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 	crt_->set_composite_sampling_function(
 		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
 		"{"
-			"return clamp(texture(sampler, coordinate).r, 0.0, 1.0);"
+			"return clamp(texture(sampler, coordinate).r, 0.0, 0.66);"
 		"}");
 
 	// Show only the centre 75% of the TV frame.
