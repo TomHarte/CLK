@@ -161,7 +161,7 @@ class ConcreteMachine:
 		}
 
 		void setup_output(float aspect_ratio) override {
-			vdp_.reset(new TI::TMS9918(TI::TMS9918::TMS9918A));
+			vdp_.reset(new TI::TMS::TMS9918(TI::TMS::TMS9918A));
 			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 		}
 
@@ -358,7 +358,7 @@ class ConcreteMachine:
 		}
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		std::unique_ptr<TI::TMS9918> vdp_;
+		std::unique_ptr<TI::TMS::TMS9918> vdp_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;

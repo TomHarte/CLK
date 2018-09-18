@@ -16,14 +16,23 @@
 #include <memory>
 
 namespace TI {
+namespace TMS {
 
-class TMS9918Base {
+enum Personality {
+	TMS9918A,	// includes the 9928 and 9929; set TV standard and output device as desired.
+	V9938,
+	V9958,
+	SMSVDP,
+	GGVDP,
+};
+
+class Base {
 	protected:
-		TMS9918Base();
+		Base(Personality p);
 
 		std::unique_ptr<Outputs::CRT::CRT> crt_;
 
-		uint8_t ram_[16384];
+		std::vector<uint8_t> ram_;
 
 		uint16_t ram_pointer_ = 0;
 		uint8_t read_ahead_buffer_ = 0;
@@ -94,8 +103,115 @@ class TMS9918Base {
 
 		inline void test_sprite(int sprite_number, int screen_row);
 		inline void get_sprite_contents(int start, int cycles, int screen_row);
+
+		// Contains tables describing the memory access patterns and, implicitly,
+		// the timing of video generation.
+		enum Operation {
+			HSyncOn,
+			HSyncOff,
+			ColourBurstOn,
+			ColourBurstOff,
+
+			/// A memory access slot that is available for an external read or write.
+			External,
+
+			/// A refresh cycle; neither used for video fetching nor available for external use.
+			Refresh,
+
+			/*!
+				Column N Name Table Read
+					[= 1 slot]
+			*/
+			NameTableRead,
+
+			/*!
+				Column N Pattern Table Read
+					[= 1 slot]
+			*/
+			PatternTableRead,
+
+			/*!
+				Y0, X0, N0, C0, Pattern 0 (1), Pattern 0 (2),
+				Y1, X1, N1, C1, Pattern 1 (1), Pattern 1 (2),
+				Y2, X2
+					[= 14 slots]
+			*/
+			TMSSpriteFetch1,
+
+			/*!
+				N2, C2, Pattern 2 (1), Pattern 2 (2),
+				Y3, X3, N3, C3, Pattern 3 (1), Pattern 3 (2),
+					[= 10 slots]
+			*/
+			TMSSpriteFetch2,
+
+			/*!
+				Sprite N fetch, Sprite N+1 fetch [...]
+			*/
+			TMSSpriteYFetch,
+
+			/*!
+				Colour N, Pattern N,
+				Name N+1,
+				Sprite N,
+
+				Colour N+1, Pattern N+1,
+				Name N+2,
+				Sprite N+1,
+
+				Colour N+2, Pattern N+2,
+				Name N+3,
+				Sprite N+2,
+
+				Colour N+3, Pattern N+3,
+				Name N+4,
+					[= 15 slots]
+			*/
+			TMSBackgroundRenderBlock,
+
+			/*!
+				Pattern N,
+				Name N+1
+			*/
+			TMSPatternNameFetch,
+
+			/*!
+				Sprite N X/Name Read
+				Sprite N+1 X/Name Read
+				Sprite N Tile read (1st word)
+				Sprite N Tile read (2nd word)
+				Sprite N+1 Tile Read (1st word)
+				Sprite N+1 Tile Read (2nd word)
+					[= 6 slots]
+			*/
+			SMSSpriteRenderBlock,
+
+			/*!
+				Column N Tile Read (1st word)
+				Column N Tile Read (2nd word)
+				Column N+1 Name Table Read
+				Sprite (16+N*1.5) Y Read (Reads Y of 2 sprites)
+				Column N+1 Tile Read (1st word)
+				Column N+1 Tile Read (2nd word)
+				Column N+2 Name Table Read
+				Sprite (16+N*1.5+2) Y Read (Reads Y of 2 sprites)
+				Column N+2 Tile Read (1st word)
+				Column N+2 Tile Read (2nd word)
+				Column N+3 Name Table Read
+				Sprite (16+N*1.5+4) Y Read (Reads Y of 2 sprites)
+				Column N+3 Tile Read (1st word)
+				Column N+3 Tile Read (2nd word)
+					[= 14 slots]
+			*/
+			SMSBackgroundRenderBlock,
+		};
+		struct Period {
+			Operation operation;
+			int duration;
+		};
 };
 
+}
 }
 
 #endif /* TMS9918Base_hpp */

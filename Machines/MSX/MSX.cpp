@@ -219,7 +219,7 @@ class ConcreteMachine:
 		}
 
 		void setup_output(float aspect_ratio) override {
-			vdp_.reset(new TI::TMS9918(TI::TMS9918::TMS9918A));
+			vdp_.reset(new TI::TMS::TMS9918(TI::TMS::TMS9918A));
 		}
 
 		void close_output() override {
@@ -683,7 +683,7 @@ class ConcreteMachine:
 		};
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		std::unique_ptr<TI::TMS9918> vdp_;
+		std::unique_ptr<TI::TMS::TMS9918> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;

@@ -11,7 +11,7 @@
 #include <cassert>
 #include <cstring>
 
-using namespace TI;
+using namespace TI::TMS;
 
 namespace {
 
@@ -83,12 +83,28 @@ enum ScreenMode {
 
 }
 
-TMS9918Base::TMS9918Base() :
+Base::Base(Personality p) :
 	// 342 internal cycles are 228/227.5ths of a line, so 341.25 cycles should be a whole
 	// line. Therefore multiply everything by four, but set line length to 1365 rather than 342*4 = 1368.
-	crt_(new Outputs::CRT::CRT(1365, 4, Outputs::CRT::DisplayType::NTSC60, 4)) {}
+	crt_(new Outputs::CRT::CRT(1365, 4, Outputs::CRT::DisplayType::NTSC60, 4)) {
 
-TMS9918::TMS9918(Personality p) {
+	switch(p) {
+		case TI::TMS::TMS9918A:
+		case TI::TMS::SMSVDP:
+		case TI::TMS::GGVDP:
+			ram_.resize(16 * 1024);
+		break;
+		case TI::TMS::V9938:
+			ram_.resize(128 * 1024);
+		break;
+		case TI::TMS::V9958:
+			ram_.resize(192 * 1024);
+		break;
+	}
+}
+
+TMS9918::TMS9918(Personality p):
+ 	Base(p) {
 	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
 	// into whether there's a more natural form.
 	crt_->set_rgb_sampling_function(
@@ -111,7 +127,7 @@ Outputs::CRT::CRT *TMS9918::get_crt() {
 	return crt_.get();
 }
 
-void TMS9918Base::test_sprite(int sprite_number, int screen_row) {
+void Base::test_sprite(int sprite_number, int screen_row) {
 	if(!(status_ & StatusFifthSprite)) {
 		status_ = static_cast<uint8_t>((status_ & ~31) | sprite_number);
 	}
@@ -140,7 +156,7 @@ void TMS9918Base::test_sprite(int sprite_number, int screen_row) {
 	sprite_sets_[active_sprite_set_].active_sprite_slot++;
 }
 
-void TMS9918Base::get_sprite_contents(int field, int cycles_left, int screen_row) {
+void Base::get_sprite_contents(int field, int cycles_left, int screen_row) {
 	int sprite_id = field / 6;
 	field %= 6;
 
@@ -617,7 +633,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	}
 }
 
-void TMS9918Base::output_border(int cycles) {
+void Base::output_border(int cycles) {
 	pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
 	if(pixel_target_) *pixel_target_ = palette[background_colour_];
 	crt_->output_level(static_cast<unsigned int>(cycles) * 4);
