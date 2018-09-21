@@ -434,6 +434,28 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
+				<string>sms</string>
+			</array>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>cartridge.png</string>
+			<key>CFBundleTypeName</key>
+			<string>Master System Cartridge</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
 				<string>nib</string>
 				<string>woz</string>
 				<string>do</string>
