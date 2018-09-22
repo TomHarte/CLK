@@ -197,131 +197,134 @@ class ConcreteMachine:
 			time_since_vdp_update_ += length;
 			time_since_sn76489_update_ += length;
 
-			uint16_t address = cycle.address ? *cycle.address : 0x0000;
-			switch(cycle.operation) {
-				case CPU::Z80::PartialMachineCycle::ReadOpcode:
-					if(!address) pc_zero_accesses_++;
-				case CPU::Z80::PartialMachineCycle::Read:
-					if(address < 0x2000) {
-						if(super_game_module_.replace_bios) {
+			// Act only if necessary.
+			if(cycle.is_terminal()) {
+				uint16_t address = cycle.address ? *cycle.address : 0x0000;
+				switch(cycle.operation) {
+					case CPU::Z80::PartialMachineCycle::ReadOpcode:
+						if(!address) pc_zero_accesses_++;
+					case CPU::Z80::PartialMachineCycle::Read:
+						if(address < 0x2000) {
+							if(super_game_module_.replace_bios) {
+								*cycle.value = super_game_module_.ram[address];
+							} else {
+								*cycle.value = bios_[address];
+							}
+						} else if(super_game_module_.replace_ram && address < 0x8000) {
 							*cycle.value = super_game_module_.ram[address];
+						} else if(address >= 0x6000 && address < 0x8000) {
+							*cycle.value = ram_[address & 1023];
+						} else if(address >= 0x8000 && address <= cartridge_address_limit_) {
+							if(is_megacart_ && address >= 0xffc0) {
+								page_megacart(address);
+							}
+							*cycle.value = cartridge_pages_[(address >> 14)&1][address&0x3fff];
 						} else {
-							*cycle.value = bios_[address];
+							*cycle.value = 0xff;
 						}
-					} else if(super_game_module_.replace_ram && address < 0x8000) {
-						*cycle.value = super_game_module_.ram[address];
-					} else if(address >= 0x6000 && address < 0x8000) {
-						*cycle.value = ram_[address & 1023];
-					} else if(address >= 0x8000 && address <= cartridge_address_limit_) {
-						if(is_megacart_ && address >= 0xffc0) {
+					break;
+
+					case CPU::Z80::PartialMachineCycle::Write:
+						if(super_game_module_.replace_bios && address < 0x2000) {
+							super_game_module_.ram[address] = *cycle.value;
+						} else if(super_game_module_.replace_ram && address >= 0x2000 && address < 0x8000) {
+							super_game_module_.ram[address] = *cycle.value;
+						} else if(address >= 0x6000 && address < 0x8000) {
+							ram_[address & 1023] = *cycle.value;
+						} else if(is_megacart_ && address >= 0xffc0) {
 							page_megacart(address);
 						}
-						*cycle.value = cartridge_pages_[(address >> 14)&1][address&0x3fff];
-					} else {
-						*cycle.value = 0xff;
-					}
-				break;
+					break;
 
-				case CPU::Z80::PartialMachineCycle::Write:
-					if(super_game_module_.replace_bios && address < 0x2000) {
-						super_game_module_.ram[address] = *cycle.value;
-					} else if(super_game_module_.replace_ram && address >= 0x2000 && address < 0x8000) {
-						super_game_module_.ram[address] = *cycle.value;
-					} else if(address >= 0x6000 && address < 0x8000) {
-						ram_[address & 1023] = *cycle.value;
-					} else if(is_megacart_ && address >= 0xffc0) {
-						page_megacart(address);
-					}
-				break;
+					case CPU::Z80::PartialMachineCycle::Input:
+						switch((address >> 5) & 7) {
+							case 5:
+								update_video();
+								*cycle.value = vdp_->get_register(address);
+								z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
+							break;
 
-				case CPU::Z80::PartialMachineCycle::Input:
-					switch((address >> 5) & 7) {
-						case 5:
-							update_video();
-							*cycle.value = vdp_->get_register(address);
-							z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
-							time_until_interrupt_ = vdp_->get_time_until_interrupt();
-						break;
+							case 7: {
+								const std::size_t joystick_id = (address&2) >> 1;
+								Joystick *joystick = static_cast<Joystick *>(joysticks_[joystick_id].get());
+								if(joysticks_in_keypad_mode_) {
+									*cycle.value = joystick->get_keypad_input();
+								} else {
+									*cycle.value = joystick->get_direction_input();
+								}
 
-						case 7: {
-							const std::size_t joystick_id = (address&2) >> 1;
-							Joystick *joystick = static_cast<Joystick *>(joysticks_[joystick_id].get());
-							if(joysticks_in_keypad_mode_) {
-								*cycle.value = joystick->get_keypad_input();
-							} else {
-								*cycle.value = joystick->get_direction_input();
-							}
+								// Hitting exactly the recommended joypad input port is an indicator that
+								// this really is a ColecoVision game. The BIOS won't do this when just waiting
+								// to start a game (unlike accessing the VDP and SN).
+								if((address&0xfc) == 0xfc) confidence_counter_.add_hit();
+							} break;
 
-							// Hitting exactly the recommended joypad input port is an indicator that
-							// this really is a ColecoVision game. The BIOS won't do this when just waiting
-							// to start a game (unlike accessing the VDP and SN).
-							if((address&0xfc) == 0xfc) confidence_counter_.add_hit();
-						} break;
+							default:
+								switch(address&0xff) {
+									default: *cycle.value = 0xff; break;
+									case 0x52:
+										// Read AY data.
+										update_audio();
+										ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
+										*cycle.value = ay_.get_data_output();
+										ay_.set_control_lines(GI::AY38910::ControlLines(0));
+									break;
+								}
+							break;
+						}
+					break;
 
-						default:
-							switch(address&0xff) {
-								default: *cycle.value = 0xff; break;
-								case 0x52:
-									// Read AY data.
-									update_audio();
-									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
-									*cycle.value = ay_.get_data_output();
-									ay_.set_control_lines(GI::AY38910::ControlLines(0));
-								break;
-							}
-						break;
-					}
-				break;
+					case CPU::Z80::PartialMachineCycle::Output: {
+						const int eighth = (address >> 5) & 7;
+						switch(eighth) {
+							case 4: case 6:
+								joysticks_in_keypad_mode_ = eighth == 4;
+							break;
 
-				case CPU::Z80::PartialMachineCycle::Output: {
-					const int eighth = (address >> 5) & 7;
-					switch(eighth) {
-						case 4: case 6:
-							joysticks_in_keypad_mode_ = eighth == 4;
-						break;
+							case 5:
+								update_video();
+								vdp_->set_register(address, *cycle.value);
+								z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
+							break;
 
-						case 5:
-							update_video();
-							vdp_->set_register(address, *cycle.value);
-							z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
-							time_until_interrupt_ = vdp_->get_time_until_interrupt();
-						break;
+							case 7:
+								update_audio();
+								sn76489_.set_register(*cycle.value);
+							break;
 
-						case 7:
-							update_audio();
-							sn76489_.set_register(*cycle.value);
-						break;
+							default:
+								// Catch Super Game Module accesses; it decodes more thoroughly.
+								switch(address&0xff) {
+									default: break;
+									case 0x7f:
+										super_game_module_.replace_bios = !((*cycle.value)&0x2);
+									break;
+									case 0x50:
+										// Set AY address.
+										update_audio();
+										ay_.set_control_lines(GI::AY38910::BC1);
+										ay_.set_data_input(*cycle.value);
+										ay_.set_control_lines(GI::AY38910::ControlLines(0));
+									break;
+									case 0x51:
+										// Set AY data.
+										update_audio();
+										ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
+										ay_.set_data_input(*cycle.value);
+										ay_.set_control_lines(GI::AY38910::ControlLines(0));
+									break;
+									case 0x53:
+										super_game_module_.replace_ram = !!((*cycle.value)&0x1);
+									break;
+								}
+							break;
+						}
+					} break;
 
-						default:
-							// Catch Super Game Module accesses; it decodes more thoroughly.
-							switch(address&0xff) {
-								default: break;
-								case 0x7f:
-									super_game_module_.replace_bios = !((*cycle.value)&0x2);
-								break;
-								case 0x50:
-									// Set AY address.
-									update_audio();
-									ay_.set_control_lines(GI::AY38910::BC1);
-									ay_.set_data_input(*cycle.value);
-									ay_.set_control_lines(GI::AY38910::ControlLines(0));
-								break;
-								case 0x51:
-									// Set AY data.
-									update_audio();
-									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
-									ay_.set_data_input(*cycle.value);
-									ay_.set_control_lines(GI::AY38910::ControlLines(0));
-								break;
-								case 0x53:
-									super_game_module_.replace_ram = !!((*cycle.value)&0x1);
-								break;
-							}
-						break;
-					}
-				} break;
-
-				default: break;
+					default: break;
+				}
 			}
 
 			if(time_until_interrupt_ > 0) {
