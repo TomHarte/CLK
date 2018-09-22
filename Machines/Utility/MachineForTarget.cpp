@@ -14,6 +14,7 @@
 #include "../ColecoVision/ColecoVision.hpp"
 #include "../Commodore/Vic-20/Vic20.hpp"
 #include "../Electron/Electron.hpp"
+#include "../MasterSystem/MasterSystem.hpp"
 #include "../MSX/MSX.hpp"
 #include "../Oric/Oric.hpp"
 #include "../ZX8081/ZX8081.hpp"
@@ -36,6 +37,7 @@ namespace {
 			Bind(Atari2600)
 			BindD(Coleco::Vision, ColecoVision)
 			Bind(Electron)
+			BindD(Sega::MasterSystem, MasterSystem)
 			Bind(MSX)
 			Bind(Oric)
 			BindD(Commodore::Vic20, Vic20)

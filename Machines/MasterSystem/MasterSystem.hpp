@@ -9,6 +9,19 @@
 #ifndef MasterSystem_hpp
 #define MasterSystem_hpp
 
-#include <stdio.h>
+#include "../../Analyser/Static/StaticAnalyser.hpp"
+#include "../ROMMachine.hpp"
+
+namespace Sega {
+namespace MasterSystem {
+
+class Machine {
+	public:
+		virtual ~Machine();
+		static Machine *MasterSystem(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+};
+
+}
+}
 
 #endif /* MasterSystem_hpp */
