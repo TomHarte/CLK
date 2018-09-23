@@ -105,6 +105,34 @@ class ConcreteMachine:
 
 					case CPU::Z80::PartialMachineCycle::Input:
 						printf("Input %04x\n", address);
+						*cycle.value = 0xff;
+						switch(address & 0xc1) {
+							case 0x00:
+								printf("TODO: memory control\n");
+							break;
+							case 0x01:
+								printf("TODO: I/O port control\n");
+							break;
+							case 0x40: case 0x41:
+								printf("TODO: get current line\n");
+							break;
+							case 0x80: case 0x81:
+								update_video();
+								*cycle.value = vdp_->get_register(address);
+								z80_.set_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
+							break;
+							case 0xc0:
+								printf("TODO: I/O port A/N\n");
+							break;
+							case 0xc1:
+								printf("TODO: I/O port B/misc\n");
+							break;
+
+							default:
+								printf("Clearly some sort of typo\n");
+							break;
+						}
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Output:
