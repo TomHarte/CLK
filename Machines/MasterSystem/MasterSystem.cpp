@@ -42,13 +42,29 @@ class ConcreteMachine:
 			speaker_.set_input_rate(3579545.0f / static_cast<float>(sn76489_divider));
 			set_clock_rate(3579545);
 
-			const auto roms = rom_fetcher("MasterSystem", {"bios.sms"});
-			if(!roms[0]) {
-				throw ROMMachine::Error::MissingROMs;
+			for(auto &pointer: read_pointers_) {
+				pointer = nullptr;
+			}
+			for(auto &pointer: write_pointers_) {
+				pointer = nullptr;
 			}
 
-			roms[0]->resize(8*1024);
-			memcpy(&bios_, roms[0]->data(), roms[0]->size());
+			if(target.model == Analyser::Static::Sega::Target::Model::MasterSystem) {
+				const auto roms = rom_fetcher("MasterSystem", {"bios.sms"});
+				if(!roms[0]) {
+					throw ROMMachine::Error::MissingROMs;
+				}
+
+				roms[0]->resize(8*1024);
+				memcpy(&bios_, roms[0]->data(), roms[0]->size());
+				map(read_pointers_, bios_, 8*1024, 0);
+
+				map(read_pointers_, ram_, 8*1024, 0xc000, 0x10000);
+				map(write_pointers_, ram_, 8*1024, 0xc000, 0x10000);
+			} else {
+				map(read_pointers_, ram_, 1024, 0xc000, 0x10000);
+				map(write_pointers_, ram_, 1024, 0xc000, 0x10000);
+			}
 		}
 
 		~ConcreteMachine() {
@@ -84,25 +100,12 @@ class ConcreteMachine:
 				uint16_t address = cycle.address ? *cycle.address : 0x0000;
 				switch(cycle.operation) {
 					case CPU::Z80::PartialMachineCycle::ReadOpcode:
-//						printf("%04x\n", address);
 					case CPU::Z80::PartialMachineCycle::Read:
-						if(address < 0x2000) {
-							*cycle.value = bios_[address];
-						} else if(address >= 0xc000) {
-							*cycle.value = ram_[address & 8191];
-						} else {
-//							printf("lr %04x\n", address);
-							*cycle.value = 0xff;
-						}
+						*cycle.value = read_pointers_[address >> 10] ? read_pointers_[address >> 10][address & 1023] : 0xff;
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Write:
-						if(address >= 0xc000) {
-							ram_[address & 8191] = *cycle.value;
-//							printf("w %04x\n", address);
-						} else {
-//							printf("mw %04x\n", address);
-						}
+						if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Input:
@@ -216,6 +219,17 @@ class ConcreteMachine:
 
 		uint8_t ram_[8*1024];
 		uint8_t bios_[8*1024];
+		std::vector<uint8_t> cartridge_;
+
+		// The memory map has a 1kb granularity; this is determined by the SG1000's 1kb of RAM.
+		const uint8_t *read_pointers_[64];
+		uint8_t *write_pointers_[64];
+		template <typename T> void map(T **target, uint8_t *source, int size, int start_address, int end_address = -1) {
+			if(end_address == -1) end_address = start_address + size;
+			for(int address = start_address; address < end_address; address += 1024) {
+				target[address >> 10] = &source[(address - start_address) & (size - 1)];
+			}
+		}
 };
 
 }
