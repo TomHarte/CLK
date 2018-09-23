@@ -82,13 +82,14 @@ class ConcreteMachine:
 				uint16_t address = cycle.address ? *cycle.address : 0x0000;
 				switch(cycle.operation) {
 					case CPU::Z80::PartialMachineCycle::ReadOpcode:
-//						printf("%04x [%02x]\n", address, bios_[address]);
+//						printf("%04x\n", address);
 					case CPU::Z80::PartialMachineCycle::Read:
 						if(address < 0x2000) {
 							*cycle.value = bios_[address];
 						} else if(address >= 0xc000) {
 							*cycle.value = ram_[address & 8191];
 						} else {
+//							printf("lr %04x\n", address);
 							*cycle.value = 0xff;
 						}
 					break;
@@ -121,6 +122,8 @@ class ConcreteMachine:
 							case 0x80: case 0x81:
 								update_video();
 								vdp_->set_register(address, *cycle.value);
+								z80_.set_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc0:
 								printf("TODO: I/O port A/N\n");
@@ -129,7 +132,9 @@ class ConcreteMachine:
 								printf("TODO: I/O port B/misc\n");
 							break;
 
-							default: break;
+							default:
+								printf("Clearly some sort of typo\n");
+							break;
 						}
 					break;
 
@@ -144,7 +149,7 @@ class ConcreteMachine:
 			if(time_until_interrupt_ > 0) {
 				time_until_interrupt_ -= cycle.length;
 				if(time_until_interrupt_ <= HalfCycles(0)) {
-					z80_.set_non_maskable_interrupt_line(true, time_until_interrupt_);
+					z80_.set_interrupt_line(true, time_until_interrupt_);
 				}
 			}
 
