@@ -49,6 +49,11 @@ class ConcreteMachine:
 				pointer = nullptr;
 			}
 
+			// Take a copy of the cartridge and place it into memory.
+			cartridge_ = target.media.cartridges[0]->get_segments()[0].data;
+			map(read_pointers_, cartridge_.data(), static_cast<int>(cartridge_.size()), 0x0000, 0xc000);
+
+			// Establish the BIOS (if relevant) and RAM.
 			if(target.model == Analyser::Static::Sega::Target::Model::MasterSystem) {
 				const auto roms = rom_fetcher("MasterSystem", {"bios.sms"});
 				if(!roms[0]) {
