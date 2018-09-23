@@ -30,6 +30,7 @@ class Base {
 	protected:
 		Base(Personality p);
 
+		Personality personality_;
 		std::unique_ptr<Outputs::CRT::CRT> crt_;
 
 		std::vector<uint8_t> ram_;
@@ -93,7 +94,7 @@ class Base {
 				uint8_t image[2];
 
 				int shift_position = 0;
-			} active_sprites[4];
+			} active_sprites[8];
 			int active_sprite_slot = 0;
 		} sprite_sets_[2];
 		int active_sprite_set_ = 0;
@@ -104,111 +105,121 @@ class Base {
 		inline void test_sprite(int sprite_number, int screen_row);
 		inline void get_sprite_contents(int start, int cycles, int screen_row);
 
-		// Contains tables describing the memory access patterns and, implicitly,
-		// the timing of video generation.
-		enum Operation {
-			HSyncOn,
-			HSyncOff,
-			ColourBurstOn,
-			ColourBurstOff,
+/*
+#define slot(n)	\
+		if(use_end && end+1 == n) return;\
+		case n
 
-			/// A memory access slot that is available for an external read or write.
-			External,
+		template<bool use_end> void fetch_sms(int start, int end) {
+#define sprite_render_block(location, sprite)	\
+	slot(location):	\
+		sprite_sets_[active_sprite_set_].info[0] =
+			switch(start) {
+				default:
+//				slot(1):
 
-			/// A refresh cycle; neither used for video fetching nor available for external use.
-			Refresh,
+				return;
+			}
+		}
 
-			/*!
-				Column N Name Table Read
-					[= 1 slot]
-			*/
-			NameTableRead,
+#undef slot
+*/
 
-			/*!
-				Column N Pattern Table Read
-					[= 1 slot]
-			*/
-			PatternTableRead,
-
-			/*!
-				Y0, X0, N0, C0, Pattern 0 (1), Pattern 0 (2),
-				Y1, X1, N1, C1, Pattern 1 (1), Pattern 1 (2),
-				Y2, X2
-					[= 14 slots]
-			*/
-			TMSSpriteFetch1,
-
-			/*!
-				N2, C2, Pattern 2 (1), Pattern 2 (2),
-				Y3, X3, N3, C3, Pattern 3 (1), Pattern 3 (2),
-					[= 10 slots]
-			*/
-			TMSSpriteFetch2,
-
-			/*!
-				Sprite N fetch, Sprite N+1 fetch [...]
-			*/
-			TMSSpriteYFetch,
-
-			/*!
-				Colour N, Pattern N,
-				Name N+1,
-				Sprite N,
-
-				Colour N+1, Pattern N+1,
-				Name N+2,
-				Sprite N+1,
-
-				Colour N+2, Pattern N+2,
-				Name N+3,
-				Sprite N+2,
-
-				Colour N+3, Pattern N+3,
-				Name N+4,
-					[= 15 slots]
-			*/
-			TMSBackgroundRenderBlock,
-
-			/*!
-				Pattern N,
-				Name N+1
-			*/
-			TMSPatternNameFetch,
-
-			/*!
-				Sprite N X/Name Read
-				Sprite N+1 X/Name Read
-				Sprite N Tile read (1st word)
-				Sprite N Tile read (2nd word)
-				Sprite N+1 Tile Read (1st word)
-				Sprite N+1 Tile Read (2nd word)
-					[= 6 slots]
-			*/
-			SMSSpriteRenderBlock,
-
-			/*!
-				Column N Tile Read (1st word)
-				Column N Tile Read (2nd word)
-				Column N+1 Name Table Read
-				Sprite (16+N*1.5) Y Read (Reads Y of 2 sprites)
-				Column N+1 Tile Read (1st word)
-				Column N+1 Tile Read (2nd word)
-				Column N+2 Name Table Read
-				Sprite (16+N*1.5+2) Y Read (Reads Y of 2 sprites)
-				Column N+2 Tile Read (1st word)
-				Column N+2 Tile Read (2nd word)
-				Column N+3 Name Table Read
-				Sprite (16+N*1.5+4) Y Read (Reads Y of 2 sprites)
-				Column N+3 Tile Read (1st word)
-				Column N+3 Tile Read (2nd word)
-					[= 14 slots]
-			*/
-			SMSBackgroundRenderBlock,
-		};
-		struct Period {
-			Operation operation;
-			int duration;
-		};
+//		// Contains tables describing the memory access patterns and, implicitly,
+//		// the timing of video generation.
+//		enum Operation {
+//			HSyncOn,
+//			HSyncOff,
+//			ColourBurstOn,
+//			ColourBurstOff,
+//
+//			/// A memory access slot that is available for an external read or write.
+//			External,
+//
+//			/// A refresh cycle; neither used for video fetching nor available for external use.
+//			Refresh,
+//
+//			/// A slot that reads the next sprite location for
+//			ReadSpriteY,
+//
+//			/*!
+//				Column N Name Table Read
+//					[= 1 slot]
+//			*/
+//			NameTableRead,
+//
+//			/*!
+//				Column N Pattern Table Read
+//					[= 1 slot]
+//			*/
+//			PatternTableRead,
+//
+//			/*!
+//				Y0, X0, N0, C0, Pattern 0 (1), Pattern 0 (2),
+//				Y1, X1, N1, C1, Pattern 1 (1), Pattern 1 (2),
+//				Y2, X2
+//					[= 14 slots]
+//			*/
+//			TMSSpriteFetch1,
+//
+//			/*!
+//				N2, C2, Pattern 2 (1), Pattern 2 (2),
+//				Y3, X3, N3, C3, Pattern 3 (1), Pattern 3 (2),
+//					[= 10 slots]
+//			*/
+//			TMSSpriteFetch2,
+//
+//			/*!
+//				Sprite N fetch, Sprite N+1 fetch [...]
+//			*/
+//			TMSSpriteYFetch,
+//
+//			/*!
+//				Colour N, Pattern N,
+//				Name N+1,
+//					[= 3 slots]
+//			*/
+//			TMSBackgroundRenderBlock,
+//
+//			/*!
+//				Colour N, Pattern N,
+//			*/
+//			TMSColourPatternFetch,
+//
+//			/*!
+//				Sprite N X/Name Read
+//				Sprite N+1 X/Name Read
+//				Sprite N Tile read (1st word)
+//				Sprite N Tile read (2nd word)
+//				Sprite N+1 Tile Read (1st word)
+//				Sprite N+1 Tile Read (2nd word)
+//					[= 6 slots]
+//			*/
+//			SMSSpriteRenderBlock,
+//
+//			/*!
+//				Column N Tile Read (1st word)
+//				Column N Tile Read (2nd word)
+//				Column N+1 Name Table Read
+//				Sprite (16+N*1.5) Y Read (Reads Y of 2 sprites)
+//				Column N+1 Tile Read (1st word)
+//				Column N+1 Tile Read (2nd word)
+//				Column N+2 Name Table Read
+//				Sprite (16+N*1.5+2) Y Read (Reads Y of 2 sprites)
+//				Column N+2 Tile Read (1st word)
+//				Column N+2 Tile Read (2nd word)
+//				Column N+3 Name Table Read
+//				Sprite (16+N*1.5+4) Y Read (Reads Y of 2 sprites)
+//				Column N+3 Tile Read (1st word)
+//				Column N+3 Tile Read (2nd word)
+//					[= 14 slots]
+//			*/
+//			SMSBackgroundRenderBlock,
+//		};
+//		struct Period {
+//			Operation operation;
+//			int duration;
+//		};
 };
 
 }

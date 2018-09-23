@@ -84,6 +84,7 @@ enum ScreenMode {
 }
 
 Base::Base(Personality p) :
+	personality_(p),
 	// 342 internal cycles are 228/227.5ths of a line, so 341.25 cycles should be a whole
 	// line. Therefore multiply everything by four, but set line length to 1365 rather than 342*4 = 1368.
 	crt_(new Outputs::CRT::CRT(1365, 4, Outputs::CRT::DisplayType::NTSC60, 4)) {
@@ -662,8 +663,19 @@ void TMS9918::set_register(int address, uint8_t value) {
 
 	write_phase_ = false;
 	if(value & 0x80) {
+		switch(personality_) {
+			default:
+				value &= 7;
+			break;
+			case TI::TMS::SMSVDP:
+				value &= 0x7f;
+			break;
+		}
+
+//		printf("%02x to %d\n", low_write_, value);
+
 		// This is a write to a register.
-		switch(value & 7) {
+		switch(value) {
 			case 0:
 				next_screen_mode_ = (next_screen_mode_ & 6) | ((low_write_ & 2) >> 1);
 			break;

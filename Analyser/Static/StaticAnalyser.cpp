@@ -130,6 +130,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			result.cartridges,
 			Cartridge::BinaryDump,
 			TargetPlatform::AcornElectron | TargetPlatform::ColecoVision | TargetPlatform::MSX)				// ROM
+	Format("sg", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)							// SG
 	Format("sms", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)							// SMS
 	Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// SSD
 	Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)								// TAP (Commodore)
