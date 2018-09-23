@@ -20,6 +20,8 @@
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
+#include "../../Analyser/Static/Sega/Target.hpp"
+
 namespace {
 const int sn76489_divider = 2;
 }
@@ -33,7 +35,7 @@ class ConcreteMachine:
 	public CRTMachine::Machine {
 
 	public:
-		ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+		ConcreteMachine(const Analyser::Static::Sega::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			z80_(*this),
 			sn76489_(TI::SN76489::Personality::SMS, audio_queue_, sn76489_divider),
 			speaker_(sn76489_) {
@@ -104,17 +106,18 @@ class ConcreteMachine:
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Input:
-						printf("Input %04x\n", address);
-						*cycle.value = 0xff;
 						switch(address & 0xc1) {
 							case 0x00:
 								printf("TODO: memory control\n");
+								*cycle.value = 0xff;
 							break;
 							case 0x01:
 								printf("TODO: I/O port control\n");
+								*cycle.value = 0xff;
 							break;
 							case 0x40: case 0x41:
 								printf("TODO: get current line\n");
+								*cycle.value = 0xff;
 							break;
 							case 0x80: case 0x81:
 								update_video();
@@ -124,9 +127,11 @@ class ConcreteMachine:
 							break;
 							case 0xc0:
 								printf("TODO: I/O port A/N\n");
+								*cycle.value = 0;
 							break;
 							case 0xc1:
 								printf("TODO: I/O port B/misc\n");
+								*cycle.value = 0;
 							break;
 
 							default:
@@ -219,7 +224,9 @@ class ConcreteMachine:
 using namespace Sega::MasterSystem;
 
 Machine *Machine::MasterSystem(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	return new ConcreteMachine(*target, rom_fetcher);
+	using Target = Analyser::Static::Sega::Target;
+	const Target *const sega_target = dynamic_cast<const Target *>(target);
+	return new ConcreteMachine(*sega_target, rom_fetcher);
 }
 
 Machine::~Machine() {}
