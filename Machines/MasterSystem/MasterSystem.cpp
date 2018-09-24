@@ -76,8 +76,12 @@ class ConcreteMachine:
 
 	public:
 		ConcreteMachine(const Analyser::Static::Sega::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+			model_(target.model),
 			z80_(*this),
-			sn76489_(TI::SN76489::Personality::SMS, audio_queue_, sn76489_divider),
+			sn76489_(
+				(target.model == Analyser::Static::Sega::Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
+				audio_queue_,
+				sn76489_divider),
 			speaker_(sn76489_) {
 			speaker_.set_input_rate(3579545.0f / static_cast<float>(sn76489_divider));
 			set_clock_rate(3579545);
@@ -122,7 +126,7 @@ class ConcreteMachine:
 		}
 
 		void setup_output(float aspect_ratio) override {
-			vdp_.reset(new TI::TMS::TMS9918(TI::TMS::SMSVDP));
+			vdp_.reset(new TI::TMS::TMS9918(model_ == Analyser::Static::Sega::Target::Model::SG1000 ? TI::TMS::TMS9918A : TI::TMS::SMSVDP));
 			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 		}
 
@@ -261,6 +265,7 @@ class ConcreteMachine:
 			vdp_->run_for(time_since_vdp_update_.flush());
 		}
 
+		Analyser::Static::Sega::Target::Model model_;
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		std::unique_ptr<TI::TMS::TMS9918> vdp_;
 
