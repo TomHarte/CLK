@@ -29,10 +29,50 @@ const int sn76489_divider = 2;
 namespace Sega {
 namespace MasterSystem {
 
+class Joystick: public Inputs::ConcreteJoystick {
+	public:
+		Joystick() :
+			ConcreteJoystick({
+				Input(Input::Up),
+				Input(Input::Down),
+				Input(Input::Left),
+				Input(Input::Right),
+
+				Input(Input::Fire, 0),
+				Input(Input::Fire, 1)
+			}) {}
+
+		void did_set_input(const Input &digital_input, bool is_active) override {
+			switch(digital_input.type) {
+				default: return;
+
+				case Input::Up: 	if(is_active) state_ &= ~0x01; else state_ |= 0x01;	break;
+				case Input::Down:	if(is_active) state_ &= ~0x02; else state_ |= 0x02;	break;
+				case Input::Left:	if(is_active) state_ &= ~0x04; else state_ |= 0x04;	break;
+				case Input::Right:	if(is_active) state_ &= ~0x08; else state_ |= 0x08;	break;
+				case Input::Fire:
+					switch(digital_input.info.control.index) {
+						default: break;
+						case 0:	if(is_active) state_ &= ~0x10; else state_ |= 0x10;		break;
+						case 1:	if(is_active) state_ &= ~0x20; else state_ |= 0x20;		break;
+					}
+				break;
+			}
+		}
+
+		uint8_t get_state() {
+			return state_;
+		}
+
+	private:
+		uint8_t state_ = 0xff;
+};
+
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
-	public CRTMachine::Machine {
+	public CRTMachine::Machine,
+	public JoystickMachine::Machine {
 
 	public:
 		ConcreteMachine(const Analyser::Static::Sega::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -42,6 +82,11 @@ class ConcreteMachine:
 			speaker_.set_input_rate(3579545.0f / static_cast<float>(sn76489_divider));
 			set_clock_rate(3579545);
 
+			// Instantiate the joysticks.
+			joysticks_.emplace_back(new Joystick);
+			joysticks_.emplace_back(new Joystick);
+
+			// Clear the memory map.
 			for(auto &pointer: read_pointers_) {
 				pointer = nullptr;
 			}
@@ -116,15 +161,15 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch(address & 0xc1) {
 							case 0x00:
-								printf("TODO: memory control\n");
+								printf("TODO: [input] memory control\n");
 								*cycle.value = 0xff;
 							break;
 							case 0x01:
-								printf("TODO: I/O port control\n");
+								printf("TODO: [input] I/O port control\n");
 								*cycle.value = 0xff;
 							break;
 							case 0x40: case 0x41:
-								printf("TODO: get current line\n");
+								printf("TODO: [input] get current line\n");
 								*cycle.value = 0xff;
 							break;
 							case 0x80: case 0x81:
@@ -133,17 +178,18 @@ class ConcreteMachine:
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
-							case 0xc0:
-								printf("TODO: I/O port A/N\n");
-								*cycle.value = 0;
-							break;
-							case 0xc1:
-								printf("TODO: I/O port B/misc\n");
-								*cycle.value = 0;
-							break;
+							case 0xc0: {
+								Joystick *const joypad1 = static_cast<Joystick *>(joysticks_[0].get());
+								Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
+								*cycle.value = static_cast<uint8_t>(joypad1->get_state() | (joypad2->get_state() << 6));
+							} break;
+							case 0xc1: {
+								Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
+								*cycle.value = (joypad2->get_state() >> 2) | 0xf;
+							} break;
 
 							default:
-								printf("Clearly some sort of typo\n");
+								printf("[input] Clearly some sort of typo\n");
 							break;
 						}
 					break;
@@ -151,10 +197,10 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Output:
 						switch(address & 0xc1) {
 							case 0x00:
-								printf("TODO: memory control\n");
+								printf("TODO: [output] memory control\n");
 							break;
 							case 0x01:
-								printf("TODO: I/O port control\n");
+								printf("TODO: [output] I/O port control\n");
 							break;
 							case 0x40: case 0x41:
 								update_audio();
@@ -167,14 +213,14 @@ class ConcreteMachine:
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc0:
-								printf("TODO: I/O port A/N\n");
+//								printf("TODO: [output] I/O port A/N [%02x]\n", *cycle.value);
 							break;
 							case 0xc1:
-								printf("TODO: I/O port B/misc\n");
+								printf("TODO: [output] I/O port B/misc\n");
 							break;
 
 							default:
-								printf("Clearly some sort of typo\n");
+								printf("[output] Clearly some sort of typo\n");
 							break;
 						}
 					break;
@@ -203,6 +249,10 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
+		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+			return joysticks_;
+		}
+
 	private:
 		inline void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
@@ -217,6 +267,8 @@ class ConcreteMachine:
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;
 		Outputs::Speaker::LowpassSpeaker<TI::SN76489> speaker_;
+
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 
 		HalfCycles time_since_vdp_update_;
 		HalfCycles time_since_sn76489_update_;
