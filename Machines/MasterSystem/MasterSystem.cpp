@@ -22,6 +22,8 @@
 
 #include "../../Analyser/Static/Sega/Target.hpp"
 
+#include <algorithm>
+
 namespace {
 const int sn76489_divider = 2;
 }
@@ -91,16 +93,17 @@ class ConcreteMachine:
 			joysticks_.emplace_back(new Joystick);
 
 			// Clear the memory map.
-			for(auto &pointer: read_pointers_) {
-				pointer = nullptr;
-			}
-			for(auto &pointer: write_pointers_) {
-				pointer = nullptr;
-			}
+			map(read_pointers_, nullptr, 0x10000, 0);
+			map(write_pointers_, nullptr, 0x10000, 0);
 
 			// Take a copy of the cartridge and place it into memory.
 			cartridge_ = target.media.cartridges[0]->get_segments()[0].data;
-			map(read_pointers_, cartridge_.data(), static_cast<int>(cartridge_.size()), 0x0000, 0xc000);
+			if(cartridge_.size() < 48*1024) {
+				std::size_t new_space = 48*1024 - cartridge_.size();
+				cartridge_.resize(48*1024);
+				memset(&cartridge_[48*1024 - new_space], 0xff, new_space);
+			}
+			page_cartridge();
 
 			// Establish the BIOS (if relevant) and RAM.
 			if(target.model == Analyser::Static::Sega::Target::Model::MasterSystem) {
@@ -159,7 +162,11 @@ class ConcreteMachine:
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Write:
-						if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
+						if(address >= 0xfffd && cartridge_.size() > 48*1024) {
+							paging_registers_[address - 0xfffd] = *cycle.value;
+							page_cartridge();
+						}
+						else if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Input:
@@ -201,7 +208,21 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Output:
 						switch(address & 0xc1) {
 							case 0x00:
-								printf("TODO: [output] memory control\n");
+								if(model_ == Analyser::Static::Sega::Target::Model::MasterSystem) {
+									// TODO: Obey the RAM enable.
+
+									// Either install the cartridge or don't.
+									if(!((*cycle.value) & 0x40)) {
+										page_cartridge();
+									} else {
+										map(read_pointers_, nullptr, 0xc000, 0x0000);
+									}
+
+									// Throw the BIOS on top if it isn't disabled.
+									if(!((*cycle.value) & 0x08)) {
+										map(read_pointers_, bios_, 8*1024, 0);
+									}
+								}
 							break;
 							case 0x01:
 								printf("TODO: [output] I/O port control\n");
@@ -286,10 +307,22 @@ class ConcreteMachine:
 		// The memory map has a 1kb granularity; this is determined by the SG1000's 1kb of RAM.
 		const uint8_t *read_pointers_[64];
 		uint8_t *write_pointers_[64];
-		template <typename T> void map(T **target, uint8_t *source, int size, int start_address, int end_address = -1) {
-			if(end_address == -1) end_address = start_address + size;
-			for(int address = start_address; address < end_address; address += 1024) {
-				target[address >> 10] = &source[(address - start_address) & (size - 1)];
+		template <typename T> void map(T **target, uint8_t *source, size_t size, size_t start_address, size_t end_address = 0) {
+			if(!end_address) end_address = start_address + size;
+			for(auto address = start_address; address < end_address; address += 1024) {
+				target[address >> 10] = source ? &source[(address - start_address) & (size - 1)] : nullptr;
+			}
+		}
+
+		uint8_t paging_registers_[3] = {0, 1, 2};
+		void page_cartridge() {
+			for(size_t c = 0; c < 3; ++c) {
+				const size_t start_addr = (paging_registers_[c] * 0x4000) % cartridge_.size();
+				map(
+					read_pointers_,
+					cartridge_.data() + start_addr,
+					std::min(static_cast<size_t>(0x4000), cartridge_.size() - start_addr),
+					c * 0x4000);
 			}
 		}
 };
