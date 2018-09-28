@@ -26,6 +26,8 @@ enum Personality {
 	GGVDP,
 };
 
+#define is_sega_vdp(x) x >= SMSVDP
+
 class Base {
 	protected:
 		Base(Personality p);
@@ -47,17 +49,19 @@ class Base {
 		uint8_t low_write_ = 0;
 
 		// The various register flags.
-		int next_screen_mode_ = 0, screen_mode_ = 0;
-		bool next_blank_screen_ = true, blank_screen_ = true;
+		bool mode1_enable_ = false;
+		bool mode2_enable_ = false;
+		bool mode3_enable_ = false;
+		bool blank_display_ = false;
 		bool sprites_16x16_ = false;
 		bool sprites_magnified_ = false;
 		bool generate_interrupts_ = false;
 		int sprite_height_ = 8;
-		uint16_t pattern_name_address_ = 0;
-		uint16_t colour_table_address_ = 0;
-		uint16_t pattern_generator_table_address_ = 0;
-		uint16_t sprite_attribute_table_address_ = 0;
-		uint16_t sprite_generator_table_address_ = 0;
+		size_t pattern_name_address_ = 0;
+		size_t colour_table_address_ = 0;
+		size_t pattern_generator_table_address_ = 0;
+		size_t sprite_attribute_table_address_ = 0;
+		size_t sprite_generator_table_address_ = 0;
 
 		uint8_t text_colour_ = 0;
 		uint8_t background_colour_ = 0;
@@ -104,6 +108,62 @@ class Base {
 
 		inline void test_sprite(int sprite_number, int screen_row);
 		inline void get_sprite_contents(int start, int cycles, int screen_row);
+
+		struct {
+			bool vertical_scroll_lock = false;
+			bool horizontal_scroll_lock = false;
+			bool hide_left_column = false;
+			bool enable_line_interrupts = false;
+			bool shift_sprites_8px_left = false;
+			bool mode4_enable = false;
+		} master_system_;
+
+		enum class ScreenMode {
+			Blank,
+			Text,
+			MultiColour,
+			ColouredText,
+			Graphics,
+			SMSMode4
+		} current_mode_;
+		int height_ = 192;
+		void set_current_mode() {
+			if(blank_display_) {
+				current_mode_ = ScreenMode::Blank;
+				return;
+			}
+
+			if(is_sega_vdp(personality_) && master_system_.mode4_enable) {
+				current_mode_ = ScreenMode::SMSMode4;
+				height_ = 192;
+				if(mode2_enable_ && mode1_enable_) height_ = 224;
+				if(mode2_enable_ && mode3_enable_) height_ = 240;
+				return;
+			}
+
+			if(!mode1_enable_ && !mode2_enable_ && !mode3_enable_) {
+				current_mode_ = ScreenMode::ColouredText;
+				return;
+			}
+
+			if(mode1_enable_ && !mode2_enable_ && !mode3_enable_) {
+				current_mode_ = ScreenMode::Text;
+				return;
+			}
+
+			if(!mode1_enable_ && mode2_enable_ && !mode3_enable_) {
+				current_mode_ = ScreenMode::Graphics;
+				return;
+			}
+
+			if(!mode1_enable_ && !mode2_enable_ && mode3_enable_) {
+				current_mode_ = ScreenMode::MultiColour;
+				return;
+			}
+
+			// TODO: undocumented TMS modes.
+			current_mode_ = ScreenMode::Blank;
+		}
 
 /*
 #define slot(n)	\

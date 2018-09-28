@@ -72,15 +72,6 @@ struct ReverseTable {
 	}
 } reverse_table;
 
-// Bits are reversed in the internal mode value; they're stored
-// in the order M1 M2 M3. Hence the definitions below.
-enum ScreenMode {
-	Text = 4,
-	MultiColour = 2,
-	ColouredText = 0,
-	Graphics = 1
-};
-
 }
 
 Base::Base(Personality p) :
@@ -135,7 +126,7 @@ void Base::test_sprite(int sprite_number, int screen_row) {
 	if(sprites_stopped_)
 		return;
 
-	const int sprite_position = ram_[sprite_attribute_table_address_ + (sprite_number << 2)];
+	const int sprite_position = ram_[sprite_attribute_table_address_ + static_cast<size_t>(sprite_number << 2)];
 	// A sprite Y of 208 means "don't scan the list any further".
 	if(sprite_position == 208) {
 		sprites_stopped_ = true;
@@ -172,15 +163,15 @@ void Base::get_sprite_contents(int field, int cycles_left, int screen_row) {
 		if(field < 4) {
 			std::memcpy(
 				&sprite.info[field],
-				&ram_[sprite_attribute_table_address_ + (sprite.index << 2) + field],
+				&ram_[sprite_attribute_table_address_ + static_cast<size_t>((sprite.index << 2) + field)],
 				static_cast<size_t>(std::min(4, final_field) - field));
 		}
 
 		field = std::min(4, final_field);
 		const int sprite_offset = sprite.info[2] & ~(sprites_16x16_ ? 3 : 0);
-		const int sprite_address = sprite_generator_table_address_ + (sprite_offset << 3) + sprite.row; // TODO: recalclate sprite.row from screen_row (?)
+		const size_t sprite_address = sprite_generator_table_address_ + static_cast<size_t>(sprite_offset << 3) + sprite.row; // TODO: recalclate sprite.row from screen_row (?)
 		while(field < final_field) {
-			sprite.image[field - 4] = ram_[sprite_address + ((field - 4) << 4)];
+			sprite.image[field - 4] = ram_[sprite_address + static_cast<size_t>(((field - 4) << 4))];
 			field++;
 		}
 
@@ -262,7 +253,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		// ------------------------------
 		// Perform video memory accesses.
 		// ------------------------------
-		if(((row_ < 192) || (row_ == frame_lines_-1)) && !blank_screen_) {
+		if(((row_ < 192) || (row_ == frame_lines_-1)) && (current_mode_ != ScreenMode::Blank)) {
 			const int sprite_row = (row_ < 192) ? row_ : -1;
 			const int access_slot = column_ >> 1;	// There are only 171 available memory accesses per line.
 			switch(line_mode_) {
@@ -271,7 +262,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				case LineMode::Text:
 					access_pointer_ = std::min(30, access_slot);
 					if(access_pointer_ >= 30 && access_pointer_ < 150) {
-						const int row_base = pattern_name_address_ + (row_ >> 3) * 40;
+						const int row_base = pattern_name_address_ + static_cast<size_t>(row_ >> 3) * 40;
 						const int end = std::min(150, access_slot);
 
 						// Pattern names are collected every third window starting from window 30.
@@ -322,10 +313,10 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					if(access_pointer_ >= 27 && access_pointer_ < 155) {
 						int end = std::min(155, access_slot);
 
-						int row_base = pattern_name_address_;
-						int pattern_base = pattern_generator_table_address_;
-						int colour_base = colour_table_address_;
-						if(screen_mode_ == ScreenMode::Graphics) {
+						size_t row_base = pattern_name_address_;
+						size_t pattern_base = pattern_generator_table_address_;
+						size_t colour_base = colour_table_address_;
+						if(current_mode_ == ScreenMode::Graphics) {
 							// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
 							pattern_base &= 0x2000 | ((row_ & 0xc0) << 5);
 							colour_base &= 0x2000 | ((row_ & 0xc0) << 5);
@@ -340,7 +331,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						// Colours are collected every fourth window starting from window 29.
 						const int colours_start = (access_pointer_ - 29 + 3) >> 2;
 						const int colours_end = (end - 29 + 3) >> 2;
-						if(screen_mode_ != 1) {
+						if(current_mode_ != ScreenMode::Graphics) {
 							for(int column = colours_start; column < colours_end; ++column) {
 								colour_buffer_[column] = ram_[colour_base + (pattern_names_[column] >> 3)];
 							}
@@ -354,8 +345,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						const int pattern_buffer_start = (access_pointer_ - 30 + 3) >> 2;
 						const int pattern_buffer_end = (end - 30 + 3) >> 2;
 
-						// Multicolour mode uss a different function of row to pick bytes
-						const int row = (screen_mode_ != 2) ? (row_ & 7) : ((row_ >> 2) & 7);
+						// Multicolour mode uses a different function of row to pick bytes.
+						const int row = (current_mode_ != ScreenMode::MultiColour) ? (row_ & 7) : ((row_ >> 2) & 7);
 						for(int column = pattern_buffer_start; column < pattern_buffer_end; ++column) {
 							pattern_buffer_[column] = ram_[pattern_base + (pattern_names_[column] << 3) + row];
 						}
@@ -394,7 +385,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		// --------------------
 		// Output video stream.
 		// --------------------
-		if(row_	< 192 && !blank_screen_) {
+		if(row_	< 192 && current_mode_ != ScreenMode::Blank) {
 			// ----------------------
 			// Output horizontal sync
 			// ----------------------
@@ -431,25 +422,27 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						default: break;
 
 						case LineMode::Text: {
-							const uint32_t colours[2] = { palette[background_colour_], palette[text_colour_] };
+							if(pixel_target_) {
+								const uint32_t colours[2] = { palette[background_colour_], palette[text_colour_] };
 
-							const int shift = (output_column_ - first_pixel_column_) % 6;
-							int byte_column = (output_column_ - first_pixel_column_) / 6;
-							int pattern = reverse_table.map[pattern_buffer_[byte_column]] >> shift;
-							int pixels_left = pixels_end - output_column_;
-							int length = std::min(pixels_left, 6 - shift);
-							while(true) {
-								pixels_left -= length;
-								for(int c = 0; c < length; ++c) {
-									pixel_target_[c] = colours[pattern&0x01];
-									pattern >>= 1;
+								const int shift = (output_column_ - first_pixel_column_) % 6;
+								int byte_column = (output_column_ - first_pixel_column_) / 6;
+								int pattern = reverse_table.map[pattern_buffer_[byte_column]] >> shift;
+								int pixels_left = pixels_end - output_column_;
+								int length = std::min(pixels_left, 6 - shift);
+								while(true) {
+									pixels_left -= length;
+									for(int c = 0; c < length; ++c) {
+										pixel_target_[c] = colours[pattern&0x01];
+										pattern >>= 1;
+									}
+									pixel_target_ += length;
+
+									if(!pixels_left) break;
+									length = std::min(6, pixels_left);
+									byte_column++;
+									pattern = reverse_table.map[pattern_buffer_[byte_column]];
 								}
-								pixel_target_ += length;
-
-								if(!pixels_left) break;
-								length = std::min(6, pixels_left);
-								byte_column++;
-								pattern = reverse_table.map[pattern_buffer_[byte_column]];
 							}
 							output_column_ = pixels_end;
 						} break;
@@ -472,7 +465,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 							// Paint the background tiles.
 							const int pixels_left = pixels_end - output_column_;
-							if(screen_mode_ == ScreenMode::MultiColour) {
+							if(current_mode_ == ScreenMode::MultiColour) {
 								int pixel_location = output_column_ - first_pixel_column_;
 								for(int c = 0; c < pixels_left; ++c) {
 									pixel_target_[c] = palette[
@@ -615,9 +608,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			row_ = (row_ + 1) % frame_lines_;
 			if(row_ == 192) status_ |= StatusInterrupt;
 
-			screen_mode_ = next_screen_mode_;
-			blank_screen_ = next_blank_screen_;
-			switch(screen_mode_) {
+			// Establish the output mode for the next line.
+			set_current_mode();
+
+			// Based on the output mode, pick a line mode.
+			switch(current_mode_) {
 				case ScreenMode::Text:
 					line_mode_ = LineMode::Text;
 					first_pixel_column_ = 69;
@@ -629,7 +624,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					first_right_border_column_ = 319;
 				break;
 			}
-			if(blank_screen_ || (row_ >= 192 && row_ != frame_lines_-1)) line_mode_ = LineMode::Refresh;
+			if((current_mode_ == ScreenMode::Blank) || (row_ >= 192 && row_ != frame_lines_-1)) line_mode_ = LineMode::Refresh;
 		}
 	}
 }
@@ -677,13 +672,22 @@ void TMS9918::set_register(int address, uint8_t value) {
 		// This is a write to a register.
 		switch(value) {
 			case 0:
-				next_screen_mode_ = (next_screen_mode_ & 6) | ((low_write_ & 2) >> 1);
+				if(is_sega_vdp(personality_)) {
+					master_system_.vertical_scroll_lock = !!(low_write_ & 0x80);
+					master_system_.horizontal_scroll_lock = !!(low_write_ & 0x40);
+					master_system_.hide_left_column = !!(low_write_ & 0x20);
+					master_system_.enable_line_interrupts = !!(low_write_ & 0x10);
+					master_system_.shift_sprites_8px_left = !!(low_write_ & 0x08);
+					master_system_.mode4_enable = !!(low_write_ & 0x04);
+				}
+				mode2_enable_ = !!(low_write_ & 0x02);
 			break;
 
 			case 1:
-				next_blank_screen_ = !(low_write_ & 0x40);
+				blank_display_ = !(low_write_ & 0x40);
 				generate_interrupts_ = !!(low_write_ & 0x20);
-				next_screen_mode_ = (next_screen_mode_ & 1) | ((low_write_ & 0x18) >> 2);
+				mode1_enable_ = !!(low_write_ & 0x10);
+				mode3_enable_ = !!(low_write_ & 0x08);
 				sprites_16x16_ = !!(low_write_ & 0x02);
 				sprites_magnified_ = !!(low_write_ & 0x01);
 
