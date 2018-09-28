@@ -37,17 +37,17 @@ enum Register {
 	The list of 6502 variants supported by this implementation.
 */
 enum Personality {
-	P6502,				// the original [NMOS] 6502, replete with various undocumented instructions
 	PNES6502,			// the NES's 6502, which is like a 6502 but lacks decimal mode (though it retains the decimal flag)
+	P6502,				// the original [NMOS] 6502, replete with various undocumented instructions
 	PSynertek65C02,		// a 6502 extended with BRA, P[H/L][X/Y], STZ, TRB, TSB and the (zp) addressing mode and a few other additions
-	PWDC65C02,			// like the Synertek, but with BBR, BBS, RMB and SMB
-	PRockwell65C02,		// like the WDC, but with STP and WAI
+	PRockwell65C02,		// like the Synertek, but with BBR, BBS, RMB and SMB
+	PWDC65C02,			// like the Rockwell, but with STP and WAI
 };
 
+#define has_decimal_mode(p)	((p) >= Personality::P6502)
 #define is_65c02(p) 		((p) >= Personality::PSynertek65C02)
-#define has_bbrbbsrmbsmb(p) ((p) >= Personality::PWDC65C02)
-#define has_stpwai(p)		((p) >= Personality::PRockwell65C02)
-#define has_decimal_mode(p) ((p) != Personality::PNES6502)
+#define has_bbrbbsrmbsmb(p)	((p) >= Personality::PRockwell65C02)
+#define has_stpwai(p)		((p) >= Personality::PWDC65C02)
 
 /*
 	Flags as defined on the 6502; can be used to decode the result of @c get_value_of_register(Flags) or to form a value for
