@@ -79,9 +79,10 @@ class Base {
 
 		// Horizontal selections.
 		enum class LineMode {
-			Text = 0,
-			Character = 1,
-			Refresh = 2
+			Text,
+			Character,
+			Refresh,
+			SMS
 		} line_mode_ = LineMode::Text;
 		int first_pixel_column_, first_right_border_column_;
 
@@ -116,6 +117,8 @@ class Base {
 			bool enable_line_interrupts = false;
 			bool shift_sprites_8px_left = false;
 			bool mode4_enable = false;
+
+			uint8_t colour_ram_[32];
 		} master_system_;
 
 		enum class ScreenMode {
@@ -165,121 +168,129 @@ class Base {
 			current_mode_ = ScreenMode::Blank;
 		}
 
-/*
+
+		void external_slot() {
+			// TODO: write or read a value if one is queued and ready to read/write.
+			// (and, later: update the command engine, if this is an MSX2).
+		}
+
 #define slot(n)	\
 		if(use_end && end+1 == n) return;\
 		case n
 
+#define external_slot(n)	\
+	slot(n): external_slot()
+
 		template<bool use_end> void fetch_sms(int start, int end) {
 #define sprite_render_block(location, sprite)	\
-	slot(location):	\
-		sprite_sets_[active_sprite_set_].info[0] =
+	slot(location):		\
+	slot(location+1):	\
+	slot(location+2):	\
+	slot(location+3):	\
+	slot(location+4):	\
+	slot(location+5):
+
+/*
+	TODO: sprite_render_block should fetch:
+		- sprite n, x position and name
+		- sprite n+1, x position and name
+		- sprite n, tile graphic first word
+		- sprite n, tile graphic second word
+		- sprite n+1, tile graphic first word
+		- sprite n+1, tile graphic second word
+*/
+
+#define sprite_y_read(location)	\
+	slot(location):
+
+/*
+	TODO: sprite_y_read should fetch:
+		- sprite n and n+1, y position
+*/
+
+#define background_render_block(location)	\
+	slot(location):		\
+	external_slot(location+1);	\
+	slot(location+2):	\
+	slot(location+3):	\
+	slot(location+4):	\
+	sprite_y_read(location+5);	\
+	slot(location+6):	\
+	slot(location+7):	\
+	slot(location+8):	\
+	sprite_y_read(location+9);	\
+	slot(location+10):	\
+	slot(location+11):	\
+	slot(location+12):	\
+	sprite_y_read(location+13);	\
+	slot(location+14):	\
+	slot(location+15):
+
+/*
+	TODO: background_render_block should fetch:
+		- column n, name
+		(external slot)
+		- column n, tile graphic first word
+		- column n, tile graphic second word
+		- column n+1, name
+		(sprite y fetch)
+		- column n+1, tile graphic first word
+		- column n+1, tile graphic second word
+		- column n+2, name
+		(sprite y fetch)
+		- column n+2, tile graphic first word
+		- column n+2, tile graphic second word
+		- column n+3, name
+		(sprite y fetch)
+		- column n+3, tile graphic first word
+		- column n+3, tile graphic second word
+*/
+
 			switch(start) {
 				default:
-//				slot(1):
+				sprite_render_block(0, 0);
+				sprite_render_block(6, 2);
+				external_slot(12);
+				external_slot(13);
+				external_slot(14);
+				external_slot(15);
+				external_slot(16);
+				sprite_render_block(17, 4);
+				sprite_render_block(23, 6);
+				external_slot(29);
+				external_slot(30);
+				sprite_y_read(31);
+				sprite_y_read(32);
+				sprite_y_read(33);
+				sprite_y_read(34);
+				sprite_y_read(35);
+				sprite_y_read(36);
+				sprite_y_read(37);
+				sprite_y_read(38);
+				background_render_block(39);
+				background_render_block(55);
+				background_render_block(71);
+				background_render_block(87);
+				background_render_block(103);
+				background_render_block(119);
+				background_render_block(135);
+				background_render_block(151);
+				external_slot(167);
+				external_slot(168);
+				external_slot(169);
+				external_slot(170);
 
 				return;
 			}
+
+#undef background_render_block
+#undef sprite_y_read
+#undef sprite_render_block
 		}
 
+#undef external_slot
 #undef slot
-*/
 
-//		// Contains tables describing the memory access patterns and, implicitly,
-//		// the timing of video generation.
-//		enum Operation {
-//			HSyncOn,
-//			HSyncOff,
-//			ColourBurstOn,
-//			ColourBurstOff,
-//
-//			/// A memory access slot that is available for an external read or write.
-//			External,
-//
-//			/// A refresh cycle; neither used for video fetching nor available for external use.
-//			Refresh,
-//
-//			/// A slot that reads the next sprite location for
-//			ReadSpriteY,
-//
-//			/*!
-//				Column N Name Table Read
-//					[= 1 slot]
-//			*/
-//			NameTableRead,
-//
-//			/*!
-//				Column N Pattern Table Read
-//					[= 1 slot]
-//			*/
-//			PatternTableRead,
-//
-//			/*!
-//				Y0, X0, N0, C0, Pattern 0 (1), Pattern 0 (2),
-//				Y1, X1, N1, C1, Pattern 1 (1), Pattern 1 (2),
-//				Y2, X2
-//					[= 14 slots]
-//			*/
-//			TMSSpriteFetch1,
-//
-//			/*!
-//				N2, C2, Pattern 2 (1), Pattern 2 (2),
-//				Y3, X3, N3, C3, Pattern 3 (1), Pattern 3 (2),
-//					[= 10 slots]
-//			*/
-//			TMSSpriteFetch2,
-//
-//			/*!
-//				Sprite N fetch, Sprite N+1 fetch [...]
-//			*/
-//			TMSSpriteYFetch,
-//
-//			/*!
-//				Colour N, Pattern N,
-//				Name N+1,
-//					[= 3 slots]
-//			*/
-//			TMSBackgroundRenderBlock,
-//
-//			/*!
-//				Colour N, Pattern N,
-//			*/
-//			TMSColourPatternFetch,
-//
-//			/*!
-//				Sprite N X/Name Read
-//				Sprite N+1 X/Name Read
-//				Sprite N Tile read (1st word)
-//				Sprite N Tile read (2nd word)
-//				Sprite N+1 Tile Read (1st word)
-//				Sprite N+1 Tile Read (2nd word)
-//					[= 6 slots]
-//			*/
-//			SMSSpriteRenderBlock,
-//
-//			/*!
-//				Column N Tile Read (1st word)
-//				Column N Tile Read (2nd word)
-//				Column N+1 Name Table Read
-//				Sprite (16+N*1.5) Y Read (Reads Y of 2 sprites)
-//				Column N+1 Tile Read (1st word)
-//				Column N+1 Tile Read (2nd word)
-//				Column N+2 Name Table Read
-//				Sprite (16+N*1.5+2) Y Read (Reads Y of 2 sprites)
-//				Column N+2 Tile Read (1st word)
-//				Column N+2 Tile Read (2nd word)
-//				Column N+3 Name Table Read
-//				Sprite (16+N*1.5+4) Y Read (Reads Y of 2 sprites)
-//				Column N+3 Tile Read (1st word)
-//				Column N+3 Tile Read (2nd word)
-//					[= 14 slots]
-//			*/
-//			SMSBackgroundRenderBlock,
-//		};
-//		struct Period {
-//			Operation operation;
-//			int duration;
-//		};
 };
 
 }

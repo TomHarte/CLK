@@ -259,6 +259,15 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			switch(line_mode_) {
 				default: break;
 
+				case LineMode::SMS:
+					if(access_slot < 171) {
+						fetch_sms<true>(access_pointer_ >> 1, access_slot);
+					} else {
+						fetch_sms<false>(access_pointer_ >> 1, access_slot);
+					}
+					access_pointer_ = column_;
+				break;
+
 				case LineMode::Text:
 					access_pointer_ = std::min(30, access_slot);
 					if(access_pointer_ >= 30 && access_pointer_ < 150) {
@@ -617,6 +626,9 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					line_mode_ = LineMode::Text;
 					first_pixel_column_ = 69;
 					first_right_border_column_ = 309;
+				break;
+				case ScreenMode::SMSMode4:
+					line_mode_ = LineMode::SMS;
 				break;
 				default:
 					line_mode_ = LineMode::Character;
