@@ -436,9 +436,19 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						case LineMode::SMS: {
 							if(pixel_target_) {
 								const int pixels_left = pixels_end - output_column_;
-								int pixel_location = output_column_ - first_pixel_column_;
+								const int pixel_location = output_column_ - first_pixel_column_;
 								for(int c = 0; c < pixels_left; ++c) {
-									pixel_target_[c] = *(uint32_t *)master_system_.tile_graphics[pixel_location >> 8];
+									const int column = (pixel_location + c) >> 3;
+									const int shift = 4 + ((pixel_location + c) & 7);
+									int value =
+									((
+										((master_system_.tile_graphics[column][0] << shift) & 0x800) |
+										((master_system_.tile_graphics[column][1] << (shift - 1)) & 0x400) |
+										((master_system_.tile_graphics[column][2] << (shift - 2)) & 0x200) |
+										(master_system_.tile_graphics[column][3] << (shift - 3))
+									) >> 8) << 4;
+
+									pixel_target_[c] = (value << 24) | (value << 16) | (value << 8) | value;
 								}
 								pixel_target_ += pixels_left;
 							}
