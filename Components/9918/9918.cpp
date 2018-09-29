@@ -211,6 +211,9 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		if(queued_access_ != MemoryAccess::None) {
 			int time_until_access_slot = 0;
 			switch(line_mode_) {
+				case LineMode::SMS:
+					time_until_access_slot = 0;	// TODO.
+				break;
 				case LineMode::Refresh:
 					if(column_ < 53 || column_ >= 307) time_until_access_slot = column_&1;
 					else time_until_access_slot = 3 - ((column_ - 53)&3);
@@ -271,7 +274,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				case LineMode::Text:
 					access_pointer_ = std::min(30, access_slot);
 					if(access_pointer_ >= 30 && access_pointer_ < 150) {
-						const int row_base = pattern_name_address_ + static_cast<size_t>(row_ >> 3) * 40;
+						const size_t row_base = pattern_name_address_ + static_cast<size_t>(row_ >> 3) * 40;
 						const int end = std::min(150, access_slot);
 
 						// Pattern names are collected every third window starting from window 30.
@@ -429,6 +432,20 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				if(output_column_ < pixels_end) {
 					switch(line_mode_) {
 						default: break;
+
+						case LineMode::SMS: {
+							if(pixel_target_) {
+								const int pixels_left = pixels_end - output_column_;
+								int pixel_location = output_column_ - first_pixel_column_;
+								for(int c = 0; c < pixels_left; ++c) {
+									pixel_target_[c] = *(uint32_t *)master_system_.tile_graphics[pixel_location >> 8];
+								}
+								pixel_target_ += pixels_left;
+							}
+
+							output_column_ = pixels_end;
+						}
+						break;
 
 						case LineMode::Text: {
 							if(pixel_target_) {
@@ -629,6 +646,9 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				break;
 				case ScreenMode::SMSMode4:
 					line_mode_ = LineMode::SMS;
+					master_system_.next_column = 0;
+					first_pixel_column_ = 63;
+					first_right_border_column_ = 319;
 				break;
 				default:
 					line_mode_ = LineMode::Character;
@@ -672,10 +692,14 @@ void TMS9918::set_register(int address, uint8_t value) {
 	if(value & 0x80) {
 		switch(personality_) {
 			default:
-				value &= 7;
+				value &= 0x7;
 			break;
 			case TI::TMS::SMSVDP:
-				value &= 0x7f;
+				if(value & 0x40) {
+					// TODO: CRAM.
+					return;
+				}
+				value &= 0xf;
 			break;
 		}
 

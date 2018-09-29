@@ -118,7 +118,14 @@ class Base {
 			bool shift_sprites_8px_left = false;
 			bool mode4_enable = false;
 
-			uint8_t colour_ram_[32];
+			uint8_t colour_ram[32];
+
+			struct {
+				size_t offset;
+				uint8_t flags;
+			} names[32];
+			uint8_t tile_graphics[32][4];
+			size_t next_column = 0;
 		} master_system_;
 
 		enum class ScreenMode {
@@ -208,23 +215,36 @@ class Base {
 		- sprite n and n+1, y position
 */
 
-#define background_render_block(location)	\
-	slot(location):		\
+#define fetch_tile_name(column)	{\
+		size_t address = pattern_address_base + ((column) << 1);	\
+		master_system_.names[column].flags = ram_[address+1];	\
+		master_system_.names[column].offset = static_cast<size_t>((master_system_.names[column].flags&1 | ram_[address]) << 5) + sub_row;	\
+	}
+
+#define fetch_tile(column)	{\
+		master_system_.tile_graphics[column][0] = ram_[master_system_.names[column].offset];	\
+		master_system_.tile_graphics[column][1] = ram_[master_system_.names[column].offset+1];	\
+		master_system_.tile_graphics[column][2] = ram_[master_system_.names[column].offset+2];	\
+		master_system_.tile_graphics[column][3] = ram_[master_system_.names[column].offset+3];	\
+	}
+
+#define background_render_block(location, column)	\
+	slot(location):	fetch_tile_name(column)		\
 	external_slot(location+1);	\
 	slot(location+2):	\
-	slot(location+3):	\
-	slot(location+4):	\
+	slot(location+3): fetch_tile(column)	\
+	slot(location+4): fetch_tile_name(column+1)	\
 	sprite_y_read(location+5);	\
 	slot(location+6):	\
-	slot(location+7):	\
-	slot(location+8):	\
+	slot(location+7): fetch_tile(column+1)	\
+	slot(location+8): fetch_tile_name(column+2)	\
 	sprite_y_read(location+9);	\
 	slot(location+10):	\
-	slot(location+11):	\
-	slot(location+12):	\
+	slot(location+11): fetch_tile(column+2)	\
+	slot(location+12): fetch_tile_name(column+3)	\
 	sprite_y_read(location+13);	\
 	slot(location+14):	\
-	slot(location+15):
+	slot(location+15): fetch_tile(column+3)
 
 /*
 	TODO: background_render_block should fetch:
@@ -245,6 +265,8 @@ class Base {
 		- column n+3, tile graphic first word
 		- column n+3, tile graphic second word
 */
+			const size_t pattern_address_base = (pattern_name_address_ | size_t(0x3ff)) & static_cast<size_t>(((row_ & ~7) << 6) | 0x3800);
+			const size_t sub_row = static_cast<size_t>((row_ & 7) << 2);
 
 			switch(start) {
 				default:
@@ -267,14 +289,14 @@ class Base {
 				sprite_y_read(36);
 				sprite_y_read(37);
 				sprite_y_read(38);
-				background_render_block(39);
-				background_render_block(55);
-				background_render_block(71);
-				background_render_block(87);
-				background_render_block(103);
-				background_render_block(119);
-				background_render_block(135);
-				background_render_block(151);
+				background_render_block(39, 0);
+				background_render_block(55, 4);
+				background_render_block(71, 8);
+				background_render_block(87, 12);
+				background_render_block(103, 16);
+				background_render_block(119, 20);
+				background_render_block(135, 24);
+				background_render_block(151, 28);
 				external_slot(167);
 				external_slot(168);
 				external_slot(169);
