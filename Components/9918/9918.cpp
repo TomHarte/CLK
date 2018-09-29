@@ -442,14 +442,16 @@ void TMS9918::run_for(const HalfCycles cycles) {
 									const int column = (pixel_location + c) >> 3;
 									const int shift = 4 + (((pixel_location + c) & 7) ^ reverses[(master_system_.names[column].flags&2) >> 1]);
 									int value =
-									((
-										((master_system_.tile_graphics[column][0] << shift) & 0x800) |
-										((master_system_.tile_graphics[column][1] << (shift - 1)) & 0x400) |
-										((master_system_.tile_graphics[column][2] << (shift - 2)) & 0x200) |
-										((master_system_.tile_graphics[column][3] << (shift - 3)) & 0x100)
-									) >> 8) << 4;
+									(
+										(
+											((master_system_.tile_graphics[column][3] << shift) & 0x800) |
+											((master_system_.tile_graphics[column][2] << (shift - 1)) & 0x400) |
+											((master_system_.tile_graphics[column][1] << (shift - 2)) & 0x200) |
+											((master_system_.tile_graphics[column][0] << (shift - 3)) & 0x100)
+										) >> 8
+									) | ((master_system_.names[column].flags&0x08) << 1);
 
-									pixel_target_[c] = static_cast<uint32_t>((value << 24) | (value << 16) | (value << 8) | value);
+									pixel_target_[c] = master_system_.colour_ram[value];
 								}
 								pixel_target_ += pixels_left;
 							}
@@ -684,9 +686,18 @@ void TMS9918::set_register(int address, uint8_t value) {
 	if(!(address & 1)) {
 		write_phase_ = false;
 
-		// Enqueue the write to occur at the next available slot.
-		read_ahead_buffer_ = value;
-		queued_access_ = MemoryAccess::Write;
+		if(master_system_.cram_is_selected) {
+			master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
+				static_cast<uint8_t>((value & 0x03) << 6),
+				static_cast<uint8_t>((value & 0x0c) << 4),
+				static_cast<uint8_t>((value & 0x30) << 2));
+			++ram_pointer_;
+			// TODO: insert a CRAM dot here.
+		} else {
+			// Enqueue the write to occur at the next available slot.
+			read_ahead_buffer_ = value;
+			queued_access_ = MemoryAccess::Write;
+		}
 
 		return;
 	}
@@ -707,7 +718,9 @@ void TMS9918::set_register(int address, uint8_t value) {
 			break;
 			case TI::TMS::SMSVDP:
 				if(value & 0x40) {
-					// TODO: CRAM.
+					ram_pointer_ = static_cast<uint16_t>(low_write_ | (value << 8));
+					master_system_.cram_is_selected = true;
+					queued_access_ = MemoryAccess::None;
 					return;
 				}
 				value &= 0xf;
@@ -787,6 +800,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 			// Officially a 'read' set, so perform lookahead.
 			queued_access_ = MemoryAccess::Read;
 		}
+		master_system_.cram_is_selected = false;
 	}
 }
 

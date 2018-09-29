@@ -118,7 +118,7 @@ class Base {
 			bool shift_sprites_8px_left = false;
 			bool mode4_enable = false;
 
-			uint8_t colour_ram[32];
+			uint32_t colour_ram[32];
 
 			struct {
 				size_t offset;
@@ -129,6 +129,7 @@ class Base {
 
 			uint8_t horizontal_scroll = 0;
 			uint8_t vertical_scroll = 0;
+			bool cram_is_selected = false;
 		} master_system_;
 
 		enum class ScreenMode {
