@@ -126,6 +126,9 @@ class Base {
 			} names[32];
 			uint8_t tile_graphics[32][4];
 			size_t next_column = 0;
+
+			uint8_t horizontal_scroll = 0;
+			uint8_t vertical_scroll = 0;
 		} master_system_;
 
 		enum class ScreenMode {
@@ -218,7 +221,7 @@ class Base {
 #define fetch_tile_name(column)	{\
 		size_t address = pattern_address_base + ((column) << 1);	\
 		master_system_.names[column].flags = ram_[address+1];	\
-		master_system_.names[column].offset = static_cast<size_t>((((master_system_.names[column].flags&1) << 8) | ram_[address]) << 5) + sub_row;	\
+		master_system_.names[column].offset = static_cast<size_t>((((master_system_.names[column].flags&1) << 8) | ram_[address]) << 5) + sub_row[(master_system_.names[column].flags&4) >> 2];	\
 	}
 
 #define fetch_tile(column)	{\
@@ -265,8 +268,10 @@ class Base {
 		- column n+3, tile graphic first word
 		- column n+3, tile graphic second word
 */
-			const size_t pattern_address_base = (pattern_name_address_ | size_t(0x3ff)) & static_cast<size_t>(((row_ & ~7) << 3) | 0x3800);
-			const size_t sub_row = static_cast<size_t>((row_ & 7) << 2);
+
+			const int scrolled_row = (row_ + master_system_.vertical_scroll) % 224;
+			const size_t pattern_address_base = (pattern_name_address_ | size_t(0x3ff)) & static_cast<size_t>(((scrolled_row & ~7) << 3) | 0x3800);
+			const size_t sub_row[2] = {static_cast<size_t>((scrolled_row & 7) << 2), 28 ^ static_cast<size_t>((scrolled_row & 7) << 2)};
 
 			switch(start) {
 				default:

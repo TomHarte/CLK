@@ -437,18 +437,19 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							if(pixel_target_) {
 								const int pixels_left = pixels_end - output_column_;
 								const int pixel_location = output_column_ - first_pixel_column_;
+								const int reverses[2] = {0, 7};
 								for(int c = 0; c < pixels_left; ++c) {
 									const int column = (pixel_location + c) >> 3;
-									const int shift = 4 + ((pixel_location + c) & 7);
+									const int shift = 4 + (((pixel_location + c) & 7) ^ reverses[(master_system_.names[column].flags&2) >> 1]);
 									int value =
 									((
 										((master_system_.tile_graphics[column][0] << shift) & 0x800) |
 										((master_system_.tile_graphics[column][1] << (shift - 1)) & 0x400) |
 										((master_system_.tile_graphics[column][2] << (shift - 2)) & 0x200) |
-										(master_system_.tile_graphics[column][3] << (shift - 3))
+										((master_system_.tile_graphics[column][3] << (shift - 3)) & 0x100)
 									) >> 8) << 4;
 
-									pixel_target_[c] = (value << 24) | (value << 16) | (value << 8) | value;
+									pixel_target_[c] = static_cast<uint32_t>((value << 24) | (value << 16) | (value << 8) | value);
 								}
 								pixel_target_ += pixels_left;
 							}
@@ -765,6 +766,18 @@ void TMS9918::set_register(int address, uint8_t value) {
 			case 7:
 				text_colour_ = low_write_ >> 4;
 				background_colour_ = low_write_ & 0xf;
+			break;
+
+			case 8:
+				if(is_sega_vdp(personality_)) {
+					master_system_.horizontal_scroll = low_write_;
+				}
+			break;
+
+			case 9:
+				if(is_sega_vdp(personality_)) {
+					master_system_.vertical_scroll = low_write_;
+				}
 			break;
 		}
 	} else {
