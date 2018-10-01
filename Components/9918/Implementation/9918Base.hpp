@@ -222,7 +222,9 @@ class Base {
 #define fetch_tile_name(column)	{\
 		size_t address = pattern_address_base + ((column) << 1);	\
 		master_system_.names[column].flags = ram_[address+1];	\
-		master_system_.names[column].offset = static_cast<size_t>((((master_system_.names[column].flags&1) << 8) | ram_[address]) << 5) + sub_row[(master_system_.names[column].flags&4) >> 2];	\
+		master_system_.names[column].offset = static_cast<size_t>(	\
+			(((master_system_.names[column].flags&1) << 8) | ram_[address]) << 5	\
+		) + sub_row[(master_system_.names[column].flags&4) >> 2];	\
 	}
 
 #define fetch_tile(column)	{\
@@ -274,6 +276,13 @@ class Base {
 			const size_t pattern_address_base = (pattern_name_address_ | size_t(0x3ff)) & static_cast<size_t>(((scrolled_row & ~7) << 3) | 0x3800);
 			const size_t sub_row[2] = {static_cast<size_t>((scrolled_row & 7) << 2), 28 ^ static_cast<size_t>((scrolled_row & 7) << 2)};
 
+			/*
+				To add, relative to the times below:
+
+					hsync active at cycle 14;
+					hsync inactive at cycle 27;
+			*/
+
 			switch(start) {
 				default:
 				sprite_render_block(0, 0);
@@ -318,6 +327,9 @@ class Base {
 
 #undef external_slot
 #undef slot
+
+		void draw_sms(int start, int end) {
+		}
 
 };
 

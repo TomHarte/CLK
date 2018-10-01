@@ -688,9 +688,10 @@ void TMS9918::set_register(int address, uint8_t value) {
 
 		if(master_system_.cram_is_selected) {
 			master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
-				static_cast<uint8_t>((value & 0x03) << 6),
-				static_cast<uint8_t>((value & 0x0c) << 4),
-				static_cast<uint8_t>((value & 0x30) << 2));
+				static_cast<uint8_t>(((value >> 0) & 3) * 255 / 3),
+				static_cast<uint8_t>(((value >> 2) & 3) * 255 / 3),
+				static_cast<uint8_t>(((value >> 4) & 3) * 255 / 3)
+			);
 			++ram_pointer_;
 			// TODO: insert a CRAM dot here.
 		} else {
