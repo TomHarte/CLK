@@ -15,38 +15,6 @@ using namespace TI::TMS;
 
 namespace {
 
-const uint32_t palette_pack(uint8_t r, uint8_t g, uint8_t b) {
-	uint32_t result = 0;
-	uint8_t *const result_ptr = reinterpret_cast<uint8_t *>(&result);
-	result_ptr[0] = r;
-	result_ptr[1] = g;
-	result_ptr[2] = b;
-	result_ptr[3] = 0;
-	return result;
-}
-
-const uint32_t palette[16] = {
-	palette_pack(0, 0, 0),
-	palette_pack(0, 0, 0),
-	palette_pack(33, 200, 66),
-	palette_pack(94, 220, 120),
-
-	palette_pack(84, 85, 237),
-	palette_pack(125, 118, 252),
-	palette_pack(212, 82, 77),
-	palette_pack(66, 235, 245),
-
-	palette_pack(252, 85, 84),
-	palette_pack(255, 121, 120),
-	palette_pack(212, 193, 84),
-	palette_pack(230, 206, 128),
-
-	palette_pack(33, 176, 59),
-	palette_pack(201, 91, 186),
-	palette_pack(204, 204, 204),
-	palette_pack(255, 255, 255)
-};
-
 const uint8_t StatusInterrupt = 0x80;
 const uint8_t StatusFifthSprite = 0x40;
 
@@ -120,7 +88,7 @@ Outputs::CRT::CRT *TMS9918::get_crt() {
 }
 
 void Base::test_sprite(int sprite_number, int screen_row) {
-	if(!(status_ & StatusFifthSprite)) {
+/*	if(!(status_ & StatusFifthSprite)) {
 		status_ = static_cast<uint8_t>((status_ & ~31) | sprite_number);
 	}
 	if(sprites_stopped_)
@@ -145,11 +113,11 @@ void Base::test_sprite(int sprite_number, int screen_row) {
 	SpriteSet::ActiveSprite &sprite = sprite_sets_[active_sprite_set_].active_sprites[active_sprite_slot];
 	sprite.index = sprite_number;
 	sprite.row = sprite_row >> (sprites_magnified_ ? 1 : 0);
-	sprite_sets_[active_sprite_set_].active_sprite_slot++;
+	sprite_sets_[active_sprite_set_].active_sprite_slot++;*/
 }
 
 void Base::get_sprite_contents(int field, int cycles_left, int screen_row) {
-	int sprite_id = field / 6;
+/*	int sprite_id = field / 6;
 	field %= 6;
 
 	while(true) {
@@ -178,7 +146,7 @@ void Base::get_sprite_contents(int field, int cycles_left, int screen_row) {
 		if(!cycles_left) return;
 		field = 0;
 		sprite_id++;
-	}
+	}*/
 }
 
 void TMS9918::run_for(const HalfCycles cycles) {
@@ -189,7 +157,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 	// Keep a count of cycles separate from internal counts to avoid
 	// potential errors mapping back and forth.
-	half_cycles_into_frame_ = (half_cycles_into_frame_ + cycles) % HalfCycles(frame_lines_ * 228 * 2);
+	half_cycles_into_frame_ = (half_cycles_into_frame_ + cycles) % HalfCycles(mode_timing_.total_lines * 228 * 2);
 
 	// Convert 456 clocked half cycles per line to 342 internal cycles per line;
 	// the internal clock is 1.5 times the nominal 3.579545 Mhz that I've advertised
@@ -201,203 +169,114 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 	while(int_cycles) {
 		// Determine how much time has passed in the remainder of this line, and proceed.
-		int cycles_left = std::min(342 - column_, int_cycles);
+		const int cycles_left = std::min(342 - column_, int_cycles);
+		const int end_column = column_ + cycles_left;
 
 
+		// ------------------------
+		// Perform memory accesses.
+		// ------------------------
+#define fetch(function)	\
+	if(end_column < 171) {	\
+		function<true>(column_, end_column);\
+	} else {\
+		function<false>(column_, end_column);\
+	}
 
-		// ------------------------------------
-		// Potentially perform a memory access.
-		// ------------------------------------
-		if(queued_access_ != MemoryAccess::None) {
-			int time_until_access_slot = 0;
-			switch(line_mode_) {
-				case LineMode::SMS:
-					time_until_access_slot = 0;	// TODO.
-				break;
-				case LineMode::Refresh:
-					if(column_ < 53 || column_ >= 307) time_until_access_slot = column_&1;
-					else time_until_access_slot = 3 - ((column_ - 53)&3);
-					// i.e. 53 -> 3, 52 -> 2, 51 -> 1, 50 -> 0, etc
-				break;
-				case LineMode::Text:
-					if(column_ < 59 || column_ >= 299) time_until_access_slot = column_&1;
-					else time_until_access_slot = 5 - ((column_ + 3)%6);
-					// i.e. 59 -> 3, 60 -> 2, 61 -> 1, etc
-				break;
-				case LineMode::Character:
-					if(column_ < 9) time_until_access_slot = column_&1;
-					else if(column_ < 30) time_until_access_slot = 30 - column_;
-					else if(column_ < 37) time_until_access_slot = column_&1;
-					else if(column_ < 311) time_until_access_slot = 31 - ((column_ + 7)&31);
-					// i.e. 53 -> 3, 54 -> 2, 55 -> 1, 56 -> 0, 57 -> 31, etc
-					else if(column_ < 313) time_until_access_slot = column_&1;
-					else time_until_access_slot = 342 - column_;
-				break;
-			}
-
-			if(cycles_left >= time_until_access_slot) {
-				if(queued_access_ == MemoryAccess::Write) {
-					ram_[ram_pointer_ & 16383] = read_ahead_buffer_;
-				} else {
-					read_ahead_buffer_ = ram_[ram_pointer_ & 16383];
-				}
-				ram_pointer_++;
-				queued_access_ = MemoryAccess::None;
-			}
+		// TODO: column_ and end_column are in 342-per-line cycles;
+		// adjust them to a count of windows.
+		switch(line_mode_) {
+			case LineMode::Text:		fetch(fetch_tms_text);		break;
+			case LineMode::Character:	fetch(fetch_tms_character);	break;
+			case LineMode::SMS:			fetch(fetch_sms);			break;
+			case LineMode::Refresh:		fetch(fetch_tms_refresh);	break;
 		}
 
-
-
-		column_ += cycles_left;		// column_ is now the column that has been reached in this line.
-		int_cycles -= cycles_left;	// Count down duration to run for.
-
-
-
-		// ------------------------------
-		// Perform video memory accesses.
-		// ------------------------------
-		if(((row_ < 192) || (row_ == frame_lines_-1)) && (current_mode_ != ScreenMode::Blank)) {
-			const int sprite_row = (row_ < 192) ? row_ : -1;
-			const int access_slot = column_ >> 1;	// There are only 171 available memory accesses per line.
-			switch(line_mode_) {
-				default: break;
-
-				case LineMode::SMS:
-					if(access_slot < 171) {
-						fetch_sms<true>(access_pointer_ >> 1, access_slot);
-					} else {
-						fetch_sms<false>(access_pointer_ >> 1, access_slot);
-					}
-					access_pointer_ = column_;
-				break;
-
-				case LineMode::Text:
-					access_pointer_ = std::min(30, access_slot);
-					if(access_pointer_ >= 30 && access_pointer_ < 150) {
-						const size_t row_base = pattern_name_address_ + static_cast<size_t>(row_ >> 3) * 40;
-						const int end = std::min(150, access_slot);
-
-						// Pattern names are collected every third window starting from window 30.
-						const int pattern_names_start = (access_pointer_ - 30 + 2) / 3;
-						const int pattern_names_end = (end - 30 + 2) / 3;
-						std::memcpy(&pattern_names_[pattern_names_start], &ram_[row_base + pattern_names_start], static_cast<size_t>(pattern_names_end - pattern_names_start));
-
-						// Patterns are collected every third window starting from window 32.
-						const int pattern_buffer_start = (access_pointer_ - 32 + 2) / 3;
-						const int pattern_buffer_end = (end - 32 + 2) / 3;
-						for(int column = pattern_buffer_start; column < pattern_buffer_end; ++column) {
-							pattern_buffer_[column] = ram_[pattern_generator_table_address_ + (pattern_names_[column] << 3) + (row_ & 7)];
-						}
-					}
-				break;
-
-				case LineMode::Character:
-					// Four access windows: no collection.
-					if(access_pointer_ < 5)
-						access_pointer_ = std::min(5, access_slot);
-
-					// Then ten access windows are filled with collection of sprite 3 and 4 details.
-					if(access_pointer_ >= 5 && access_pointer_ < 15) {
-						int end = std::min(15, access_slot);
-						get_sprite_contents(access_pointer_ - 5 + 14, end - access_pointer_, sprite_row - 1);
-						access_pointer_ = std::min(15, access_slot);
-					}
-
-					// Four more access windows: no collection.
-					if(access_pointer_ >= 15 && access_pointer_ < 19) {
-						access_pointer_ = std::min(19, access_slot);
-
-						// Start new sprite set if this is location 19.
-						if(access_pointer_ == 19) {
-							active_sprite_set_ ^= 1;
-							sprite_sets_[active_sprite_set_].active_sprite_slot = 0;
-							sprites_stopped_ = false;
-						}
-					}
-
-					// Then eight access windows fetch the y position for the first eight sprites.
-					while(access_pointer_ < 27 && access_pointer_ < access_slot) {
-						test_sprite(access_pointer_ - 19, sprite_row);
-						access_pointer_++;
-					}
-
-					// The next 128 access slots are video and sprite collection interleaved.
-					if(access_pointer_ >= 27 && access_pointer_ < 155) {
-						int end = std::min(155, access_slot);
-
-						size_t row_base = pattern_name_address_;
-						size_t pattern_base = pattern_generator_table_address_;
-						size_t colour_base = colour_table_address_;
-						if(current_mode_ == ScreenMode::Graphics) {
-							// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
-							pattern_base &= 0x2000 | ((row_ & 0xc0) << 5);
-							colour_base &= 0x2000 | ((row_ & 0xc0) << 5);
-						}
-						row_base += (row_ << 2)&~31;
-
-						// Pattern names are collected every fourth window starting from window 27.
-						const int pattern_names_start = (access_pointer_ - 27 + 3) >> 2;
-						const int pattern_names_end = (end - 27 + 3) >> 2;
-						std::memcpy(&pattern_names_[pattern_names_start], &ram_[row_base + pattern_names_start], static_cast<size_t>(pattern_names_end - pattern_names_start));
-
-						// Colours are collected every fourth window starting from window 29.
-						const int colours_start = (access_pointer_ - 29 + 3) >> 2;
-						const int colours_end = (end - 29 + 3) >> 2;
-						if(current_mode_ != ScreenMode::Graphics) {
-							for(int column = colours_start; column < colours_end; ++column) {
-								colour_buffer_[column] = ram_[colour_base + (pattern_names_[column] >> 3)];
-							}
-						} else {
-							for(int column = colours_start; column < colours_end; ++column) {
-								colour_buffer_[column] = ram_[colour_base + (pattern_names_[column] << 3) + (row_ & 7)];
-							}
-						}
-
-						// Patterns are collected ever fourth window starting from window 30.
-						const int pattern_buffer_start = (access_pointer_ - 30 + 3) >> 2;
-						const int pattern_buffer_end = (end - 30 + 3) >> 2;
-
-						// Multicolour mode uses a different function of row to pick bytes.
-						const int row = (current_mode_ != ScreenMode::MultiColour) ? (row_ & 7) : ((row_ >> 2) & 7);
-						for(int column = pattern_buffer_start; column < pattern_buffer_end; ++column) {
-							pattern_buffer_[column] = ram_[pattern_base + (pattern_names_[column] << 3) + row];
-						}
-
-						// Sprite slots occur in three quarters of ever fourth window starting from window 28.
-						const int sprite_start = (access_pointer_ - 28 + 3) >> 2;
-						const int sprite_end = (end - 28 + 3) >> 2;
-						for(int column = sprite_start; column < sprite_end; ++column) {
-							if(column&3) {
-								test_sprite(7 + column - (column >> 2), sprite_row);
-							}
-						}
-
-						access_pointer_ = std::min(155, access_slot);
-					}
-
-					// Two access windows: no collection.
-					if(access_pointer_ < 157)
-						access_pointer_ = std::min(157, access_slot);
-
-					// Fourteen access windows: collect initial sprite information.
-					if(access_pointer_ >= 157 && access_pointer_ < 171) {
-						int end = std::min(171, access_slot);
-						get_sprite_contents(access_pointer_ - 157, end - access_pointer_, sprite_row);
-						access_pointer_ = std::min(171, access_slot);
-					}
-				break;
-			}
-		}
-		// --------------------------
-		// End video memory accesses.
-		// --------------------------
-
+#undef fetch
 
 
 		// --------------------
 		// Output video stream.
 		// --------------------
-		if(row_	< 192 && current_mode_ != ScreenMode::Blank) {
+
+		if(line_mode_ == LineMode::Refresh) {
+			if(row_ >= mode_timing_.first_vsync_line && row_ < mode_timing_.first_vsync_line+3) {
+				// Vertical sync.
+				if(column_ == 342) {
+					crt_->output_sync(342 * 4);
+				}
+			} else {
+				// Right border.
+				if(column_ < 15 && end_column >= 15) {
+					output_border(15);
+				}
+
+				// Blanking region.
+				if(column_ < 73 && end_column >= 73) {
+					crt_->output_blank(8*4);
+					crt_->output_sync(26*4);
+					crt_->output_blank(2*4);
+					crt_->output_default_colour_burst(14*4);
+					crt_->output_blank(8*4);
+				}
+
+				// Most of line.
+				if(end_column == 342) {
+					output_border(342 - 73);
+				}
+			}
+		} else {
+			// Right border.
+			if(column_ < 15 && end_column >= 15) {
+				output_border(15);
+			}
+
+			// Blanking region.
+			if(column_ < 73 && end_column >= 73) {
+				crt_->output_blank(8*4);
+				crt_->output_sync(26*4);
+				crt_->output_blank(2*4);
+				crt_->output_default_colour_burst(14*4);
+				crt_->output_blank(8*4);
+			}
+
+			// Left border.
+			if(column_ < mode_timing_.first_pixel_output_column && end_column >= mode_timing_.first_pixel_output_column) {
+				output_border(mode_timing_.first_pixel_output_column - 73);
+			}
+
+			// In pixel area:
+			const int pixel_start = std::max(column_, mode_timing_.first_pixel_output_column);
+			const int pixel_end = std::min(end_column, mode_timing_.next_border_column);
+			if(pixel_end > pixel_start) {
+				output_border(pixel_end - pixel_start);
+//				switch(screen_mode_) {
+//					case ScreenMode::Text:
+//					break;
+//
+//					case ScreenMode::ColouredText:
+//					case ScreenMode::Graphics:
+//					break;
+//
+//					case ScreenMode::SMSMode4:
+//					break;
+//
+//					default: break;
+//				}
+			}
+
+			// Additional right border, if called for.
+			if(mode_timing_.next_border_column != 342 && column_ == 342) {
+				output_border(342 - mode_timing_.next_border_column);
+			}
+		}
+
+
+		column_ = end_column;		// column_ is now the column that has been reached in this line.
+		int_cycles -= cycles_left;	// Count down duration to run for.
+
+
+/*		if(row_	< 192 && current_mode_ != ScreenMode::Blank) {
 			// ----------------------
 			// Output horizontal sync
 			// ----------------------
@@ -616,23 +495,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				output_border(column_ - output_column_);
 				output_column_ = column_;
 			}
-		} else if(row_ >= first_vsync_line_ && row_ < first_vsync_line_+3) {
-			// Vertical sync.
-			if(column_ == 342) {
-				crt_->output_sync(342 * 4);
-			}
-		} else {
-			// Blank.
-			if(!output_column_ && column_ >= 26) {
-				crt_->output_sync(13 * 4);
-				crt_->output_default_colour_burst(13 * 4);
-				output_column_ = 26;
-			}
-			if(output_column_ >= 26) {
-				output_border(column_ - output_column_);
-				output_column_ = column_;
-			}
-		}
+		} 		}*/
 		// -----------------
 		// End video stream.
 		// -----------------
@@ -643,40 +506,46 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		// Prepare for next line, potentially.
 		// -----------------------------------
 		if(column_ == 342) {
-			access_pointer_ = column_ = output_column_ = 0;
-			row_ = (row_ + 1) % frame_lines_;
-			if(row_ == 192) status_ |= StatusInterrupt;
+			column_ = 0;
+			row_ = (row_ + 1) % mode_timing_.total_lines;
+			if(row_ == mode_timing_.pixel_lines) status_ |= StatusInterrupt;
 
 			// Establish the output mode for the next line.
 			set_current_mode();
 
 			// Based on the output mode, pick a line mode.
-			switch(current_mode_) {
+			mode_timing_.first_pixel_output_column = 88;
+			mode_timing_.next_border_column = 344;
+			mode_timing_.maximum_visible_sprites = 4;
+			switch(screen_mode_) {
 				case ScreenMode::Text:
 					line_mode_ = LineMode::Text;
-					first_pixel_column_ = 69;
-					first_right_border_column_ = 309;
+					mode_timing_.first_pixel_output_column = 48;
+					mode_timing_.next_border_column = 168;
+					mode_timing_.maximum_visible_sprites = 8;
 				break;
 				case ScreenMode::SMSMode4:
 					line_mode_ = LineMode::SMS;
-					master_system_.next_column = 0;
-					first_pixel_column_ = 63;
-					first_right_border_column_ = 319;
 				break;
 				default:
 					line_mode_ = LineMode::Character;
-					first_pixel_column_ = 63;
-					first_right_border_column_ = 319;
 				break;
 			}
-			if((current_mode_ == ScreenMode::Blank) || (row_ >= 192 && row_ != frame_lines_-1)) line_mode_ = LineMode::Refresh;
+
+			if((screen_mode_ == ScreenMode::Blank) || (row_ >= mode_timing_.pixel_lines && row_ != mode_timing_.total_lines-1)) line_mode_ = LineMode::Refresh;
 		}
 	}
 }
 
 void Base::output_border(int cycles) {
 	pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
-	if(pixel_target_) *pixel_target_ = palette[background_colour_];
+	if(pixel_target_) {
+		if(is_sega_vdp(personality_)) {
+			*pixel_target_ = master_system_.colour_ram[16 + background_colour_];
+		} else {
+			*pixel_target_ = palette[background_colour_];
+		}
+	}
 	crt_->output_level(static_cast<unsigned int>(cycles) * 4);
 }
 
@@ -686,19 +555,9 @@ void TMS9918::set_register(int address, uint8_t value) {
 	if(!(address & 1)) {
 		write_phase_ = false;
 
-		if(master_system_.cram_is_selected) {
-			master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
-				static_cast<uint8_t>(((value >> 0) & 3) * 255 / 3),
-				static_cast<uint8_t>(((value >> 2) & 3) * 255 / 3),
-				static_cast<uint8_t>(((value >> 4) & 3) * 255 / 3)
-			);
-			++ram_pointer_;
-			// TODO: insert a CRAM dot here.
-		} else {
-			// Enqueue the write to occur at the next available slot.
-			read_ahead_buffer_ = value;
-			queued_access_ = MemoryAccess::Write;
-		}
+		// Enqueue the write to occur at the next available slot.
+		read_ahead_buffer_ = value;
+		queued_access_ = MemoryAccess::Write;
 
 		return;
 	}
@@ -720,15 +579,13 @@ void TMS9918::set_register(int address, uint8_t value) {
 			case TI::TMS::SMSVDP:
 				if(value & 0x40) {
 					ram_pointer_ = static_cast<uint16_t>(low_write_ | (value << 8));
+					queued_access_ = MemoryAccess::Write;
 					master_system_.cram_is_selected = true;
-					queued_access_ = MemoryAccess::None;
 					return;
 				}
 				value &= 0xf;
 			break;
 		}
-
-//		printf("%02x to %d\n", low_write_, value);
 
 		// This is a write to a register.
 		switch(value) {
@@ -823,10 +680,11 @@ uint8_t TMS9918::get_register(int address) {
 }
 
  HalfCycles TMS9918::get_time_until_interrupt() {
+ 	// TODO: line interrupts.
 	if(!generate_interrupts_) return HalfCycles(-1);
 	if(get_interrupt_line()) return HalfCycles(0);
 
-	const int half_cycles_per_frame = frame_lines_ * 228 * 2;
+	const int half_cycles_per_frame = mode_timing_.total_lines * 228 * 2;
 	int half_cycles_remaining = (192 * 228 * 2 + half_cycles_per_frame - half_cycles_into_frame_.as_int()) % half_cycles_per_frame;
 	return HalfCycles(half_cycles_remaining ? half_cycles_remaining : half_cycles_per_frame);
 }
