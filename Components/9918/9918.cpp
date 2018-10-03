@@ -212,7 +212,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		}\
 	}
 
-		if(line_mode_ == LineMode::Refresh) {
+		if(line_mode_ == LineMode::Refresh || row_ > mode_timing_.pixel_lines) {
 			if(row_ >= mode_timing_.first_vsync_line && row_ < mode_timing_.first_vsync_line+4) {
 				// Vertical sync.
 				if(end_column == 342) {
@@ -276,6 +276,12 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					const unsigned int length = static_cast<unsigned int>(mode_timing_.next_border_column - mode_timing_.first_pixel_output_column);
 					crt_->output_data(length * 4, length);
 					pixel_target_ = nullptr;
+
+#ifdef DEBUG
+					memset(pattern_names_, sizeof(pattern_names_), 0xff);
+					memset(pattern_buffer_, sizeof(pattern_buffer_), 0xff);
+					memset(colour_buffer_, sizeof(colour_buffer_), 0xff);
+#endif
 				}
 			);
 
