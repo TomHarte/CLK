@@ -506,10 +506,10 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					line_mode_ = LineMode::Text;
 					mode_timing_.first_pixel_output_column = 94;
 					mode_timing_.next_border_column = 334;
-					mode_timing_.maximum_visible_sprites = 8;
 				break;
 				case ScreenMode::SMSMode4:
 					line_mode_ = LineMode::SMS;
+					mode_timing_.maximum_visible_sprites = 8;
 				break;
 				default:
 					line_mode_ = LineMode::Character;
@@ -680,9 +680,15 @@ bool TMS9918::get_interrupt_line() {
 // MARK: -
 
 void Base::draw_tms_character(int start, int end) {
+	for(int c = start; c < end; ++c) {
+		pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
+	}
 }
 
 void Base::draw_tms_text(int start, int end) {
+	for(int c = start; c < end; ++c) {
+		pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
+	}
 }
 
 void Base::draw_sms(int start, int end) {
