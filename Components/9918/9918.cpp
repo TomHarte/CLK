@@ -204,6 +204,15 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		// Output video stream.
 		// --------------------
 
+#define intersect(left, right, code)	\
+	{	\
+		const int start = std::max(column_, left);	\
+		const int end = std::min(end_column, right);	\
+		if(end > start) {\
+			code;\
+		}\
+	}
+
 		if(line_mode_ == LineMode::Refresh) {
 			if(row_ >= mode_timing_.first_vsync_line && row_ < mode_timing_.first_vsync_line+4) {
 				// Vertical sync.
@@ -212,9 +221,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				}
 			} else {
 				// Right border.
-				if(column_ < 15 && end_column >= 15) {
-					output_border(15);
-				}
+				intersect(0, 15, output_border(end - start));
 
 				// Blanking region.
 				if(column_ < 73 && end_column >= 73) {
@@ -226,15 +233,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				}
 
 				// Most of line.
-				if(end_column == 342) {
-					output_border(342 - 73);
-				}
+				intersect(73, 342, output_border(end - start));
 			}
 		} else {
 			// Right border.
-			if(column_ < 15 && end_column >= 15) {
-				output_border(15);
-			}
+			intersect(0, 15, output_border(end - start));
 
 			// Blanking region.
 			if(column_ < 73 && end_column >= 73) {
@@ -246,16 +249,16 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			}
 
 			// Left border.
-			if(column_ < mode_timing_.first_pixel_output_column && end_column >= mode_timing_.first_pixel_output_column) {
-				output_border(mode_timing_.first_pixel_output_column - 73);
-			}
+			intersect(73, mode_timing_.first_pixel_output_column, output_border(end - start));
 
 			// In pixel area:
-			const int pixel_start = std::max(column_, mode_timing_.first_pixel_output_column);
-			const int pixel_end = std::min(end_column, mode_timing_.next_border_column);
-//			if(end_column == 342) {
-				if(pixel_end > pixel_start) {
-					crt_->output_blank((pixel_end - pixel_start)*4);
+			intersect(mode_timing_.first_pixel_output_column, mode_timing_.next_border_column,
+				crt_->output_blank((end - start)*4);
+			);
+//			const int pixel_start = std::max(column_, mode_timing_.first_pixel_output_column);
+//			const int pixel_end = std::min(end_column, mode_timing_.next_border_column);
+//				if(pixel_end > pixel_start) {
+//					crt_->output_blank((pixel_end - pixel_start)*4);
 //					switch(screen_mode_) {
 //						case ScreenMode::Text:
 //							draw_tms_text();
@@ -272,15 +275,15 @@ void TMS9918::run_for(const HalfCycles cycles) {
 //
 //						default: break;
 //					}
-				}
+//				}
 
-				// Additional right border, if called for.
-				if(mode_timing_.next_border_column != 342 && end_column == 342) {
-					output_border(342 - mode_timing_.next_border_column);
-				}
-//			}
+			// Additional right border, if called for.
+			if(mode_timing_.next_border_column != 342) {
+				intersect(mode_timing_.next_border_column, 342, output_border(end - start));
+			}
 		}
 
+#undef intersect
 
 		column_ = end_column;		// column_ is now the column that has been reached in this line.
 		int_cycles -= cycles_left;	// Count down duration to run for.
