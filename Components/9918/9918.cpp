@@ -330,32 +330,6 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						}
 						break;
 
-						case LineMode::Text: {
-							if(pixel_target_) {
-								const uint32_t colours[2] = { palette[background_colour_], palette[text_colour_] };
-
-								const int shift = (output_column_ - first_pixel_column_) % 6;
-								int byte_column = (output_column_ - first_pixel_column_) / 6;
-								int pattern = reverse_table.map[pattern_buffer_[byte_column]] >> shift;
-								int pixels_left = pixels_end - output_column_;
-								int length = std::min(pixels_left, 6 - shift);
-								while(true) {
-									pixels_left -= length;
-									for(int c = 0; c < length; ++c) {
-										pixel_target_[c] = colours[pattern&0x01];
-										pattern >>= 1;
-									}
-									pixel_target_ += length;
-
-									if(!pixels_left) break;
-									length = std::min(6, pixels_left);
-									byte_column++;
-									pattern = reverse_table.map[pattern_buffer_[byte_column]];
-								}
-							}
-							output_column_ = pixels_end;
-						} break;
-
 						case LineMode::Character: {
 							// If this is the start of the visible area, seed sprite shifter positions.
 							SpriteSet &sprite_set = sprite_sets_[active_sprite_set_ ^ 1];
@@ -686,8 +660,25 @@ void Base::draw_tms_character(int start, int end) {
 }
 
 void Base::draw_tms_text(int start, int end) {
-	for(int c = start; c < end; ++c) {
-		pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
+	const uint32_t colours[2] = { palette[background_colour_], palette[text_colour_] };
+
+	const int shift = start % 6;
+	int byte_column = start / 6;
+	int pattern = reverse_table.map[pattern_buffer_[byte_column]] >> shift;
+	int pixels_left = end - start;
+	int length = std::min(pixels_left, 6 - shift);
+	while(true) {
+		pixels_left -= length;
+		for(int c = 0; c < length; ++c) {
+			pixel_target_[c] = colours[pattern&0x01];
+			pattern >>= 1;
+		}
+		pixel_target_ += length;
+
+		if(!pixels_left) break;
+		length = std::min(6, pixels_left);
+		byte_column++;
+		pattern = reverse_table.map[pattern_buffer_[byte_column]];
 	}
 }
 
