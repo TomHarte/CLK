@@ -178,18 +178,23 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		// ------------------------
 #define fetch(function)	\
 	if(end_column < 171) {	\
-		function<true>(column_, end_column);\
+		function<true>(first_window, final_window);\
 	} else {\
-		function<false>(column_, end_column);\
+		function<false>(first_window, final_window);\
 	}
 
 		// TODO: column_ and end_column are in 342-per-line cycles;
 		// adjust them to a count of windows.
-		switch(line_mode_) {
-			case LineMode::Text:		fetch(fetch_tms_text);		break;
-			case LineMode::Character:	fetch(fetch_tms_character);	break;
-			case LineMode::SMS:			fetch(fetch_sms);			break;
-			case LineMode::Refresh:		fetch(fetch_tms_refresh);	break;
+		int first_window = column_ >> 1;
+		int final_window = end_column >> 1;
+
+		if(first_window != final_window) {
+			switch(line_mode_) {
+				case LineMode::Text:		fetch(fetch_tms_text);		break;
+				case LineMode::Character:	fetch(fetch_tms_character);	break;
+				case LineMode::SMS:			fetch(fetch_sms);			break;
+				case LineMode::Refresh:		fetch(fetch_tms_refresh);	break;
+			}
 		}
 
 #undef fetch
@@ -200,9 +205,9 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		// --------------------
 
 		if(line_mode_ == LineMode::Refresh) {
-			if(row_ >= mode_timing_.first_vsync_line && row_ < mode_timing_.first_vsync_line+3) {
+			if(row_ >= mode_timing_.first_vsync_line && row_ < mode_timing_.first_vsync_line+4) {
 				// Vertical sync.
-				if(column_ == 342) {
+				if(end_column == 342) {
 					crt_->output_sync(342 * 4);
 				}
 			} else {
@@ -248,27 +253,32 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			// In pixel area:
 			const int pixel_start = std::max(column_, mode_timing_.first_pixel_output_column);
 			const int pixel_end = std::min(end_column, mode_timing_.next_border_column);
-			if(pixel_end > pixel_start) {
-				output_border(pixel_end - pixel_start);
-//				switch(screen_mode_) {
-//					case ScreenMode::Text:
-//					break;
+//			if(end_column == 342) {
+				if(pixel_end > pixel_start) {
+					crt_->output_blank((pixel_end - pixel_start)*4);
+//					switch(screen_mode_) {
+//						case ScreenMode::Text:
+//							draw_tms_text();
+//						break;
 //
-//					case ScreenMode::ColouredText:
-//					case ScreenMode::Graphics:
-//					break;
+//						case ScreenMode::ColouredText:
+//						case ScreenMode::Graphics:
+//							draw_tms_graphics();
+//						break;
 //
-//					case ScreenMode::SMSMode4:
-//					break;
+//						case ScreenMode::SMSMode4:
+//							draw_sms();
+//						break;
 //
-//					default: break;
-//				}
-			}
+//						default: break;
+//					}
+				}
 
-			// Additional right border, if called for.
-			if(mode_timing_.next_border_column != 342 && column_ == 342) {
-				output_border(342 - mode_timing_.next_border_column);
-			}
+				// Additional right border, if called for.
+				if(mode_timing_.next_border_column != 342 && end_column == 342) {
+					output_border(342 - mode_timing_.next_border_column);
+				}
+//			}
 		}
 
 
@@ -514,14 +524,14 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			set_current_mode();
 
 			// Based on the output mode, pick a line mode.
-			mode_timing_.first_pixel_output_column = 88;
-			mode_timing_.next_border_column = 344;
+			mode_timing_.first_pixel_output_column = 86;
+			mode_timing_.next_border_column = 342;
 			mode_timing_.maximum_visible_sprites = 4;
 			switch(screen_mode_) {
 				case ScreenMode::Text:
 					line_mode_ = LineMode::Text;
-					mode_timing_.first_pixel_output_column = 48;
-					mode_timing_.next_border_column = 168;
+					mode_timing_.first_pixel_output_column = 94;
+					mode_timing_.next_border_column = 334;
 					mode_timing_.maximum_visible_sprites = 8;
 				break;
 				case ScreenMode::SMSMode4:
@@ -538,12 +548,12 @@ void TMS9918::run_for(const HalfCycles cycles) {
 }
 
 void Base::output_border(int cycles) {
-	pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
-	if(pixel_target_) {
+	uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
+	if(pixel_target) {
 		if(is_sega_vdp(personality_)) {
-			*pixel_target_ = master_system_.colour_ram[16 + background_colour_];
+			*pixel_target = master_system_.colour_ram[16 + background_colour_];
 		} else {
-			*pixel_target_ = palette[background_colour_];
+			*pixel_target = palette[background_colour_];
 		}
 	}
 	crt_->output_level(static_cast<unsigned int>(cycles) * 4);
@@ -692,3 +702,27 @@ uint8_t TMS9918::get_register(int address) {
 bool TMS9918::get_interrupt_line() {
 	return (status_ & StatusInterrupt) && generate_interrupts_;
 }
+
+// MARK: -
+
+void Base::draw_tms_graphics() {
+
+}
+
+void Base::draw_tms_text() {
+
+}
+
+void Base::draw_sms() {
+	uint32_t *const pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(256));
+
+	if(pixel_target_) {
+		for(int c = 0; c < 256; ++c)
+			pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
+	}
+
+	crt_->output_data(256 * 4, 256);
+}
+
+//				output_border(pixel_end - pixel_start);
+

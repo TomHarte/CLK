@@ -111,9 +111,6 @@ class Base {
 		int cycles_error_ = 0;
 		int access_pointer_ = 0;
 
-		// Internal storage for the pixel part of line serialisation.
-		uint32_t *pixel_target_ = nullptr, *pixel_base_ = nullptr;
-
 		// A helper function to output the current border colour for
 		// the number of cycles supplied.
 		void output_border(int cycles);
@@ -690,8 +687,9 @@ class Base {
 #undef external_slot
 #undef slot
 
-		void draw_sms(int start, int end) {
-		}
+		void draw_tms_graphics();
+		void draw_tms_text();
+		void draw_sms();
 
 };
 
