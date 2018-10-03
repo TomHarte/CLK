@@ -183,11 +183,10 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		function<false>(first_window, final_window);\
 	}
 
-		// TODO: column_ and end_column are in 342-per-line cycles;
+		// column_ and end_column are in 342-per-line cycles;
 		// adjust them to a count of windows.
-		int first_window = column_ >> 1;
-		int final_window = end_column >> 1;
-
+		const int first_window = column_ >> 1;
+		const int final_window = end_column >> 1;
 		if(first_window != final_window) {
 			switch(line_mode_) {
 				case LineMode::Text:		fetch(fetch_tms_text);		break;
@@ -252,30 +251,33 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			intersect(73, mode_timing_.first_pixel_output_column, output_border(end - start));
 
 			// In pixel area:
-			intersect(mode_timing_.first_pixel_output_column, mode_timing_.next_border_column,
-				crt_->output_blank((end - start)*4);
+			intersect(
+				mode_timing_.first_pixel_output_column,
+				mode_timing_.next_border_column,
+				if(start == mode_timing_.first_pixel_output_column) {
+					pixel_target_ = reinterpret_cast<uint32_t *>(
+						crt_->allocate_write_area(static_cast<unsigned int>(mode_timing_.next_border_column - mode_timing_.first_pixel_output_column))
+					);
+				}
+
+				if(pixel_target_) {
+					const int relative_start = start - mode_timing_.first_pixel_output_column;
+					const int relative_end = end - mode_timing_.first_pixel_output_column;
+					switch(line_mode_) {
+						case LineMode::SMS:			draw_sms(relative_start, relative_end);					break;
+						case LineMode::Character:	draw_tms_character(relative_start, relative_end);		break;
+						case LineMode::Text:		draw_tms_text(relative_start, relative_end);			break;
+
+						case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
+					}
+				}
+
+				if(end == mode_timing_.next_border_column) {
+					const unsigned int length = static_cast<unsigned int>(mode_timing_.next_border_column - mode_timing_.first_pixel_output_column);
+					crt_->output_data(length * 4, length);
+					pixel_target_ = nullptr;
+				}
 			);
-//			const int pixel_start = std::max(column_, mode_timing_.first_pixel_output_column);
-//			const int pixel_end = std::min(end_column, mode_timing_.next_border_column);
-//				if(pixel_end > pixel_start) {
-//					crt_->output_blank((pixel_end - pixel_start)*4);
-//					switch(screen_mode_) {
-//						case ScreenMode::Text:
-//							draw_tms_text();
-//						break;
-//
-//						case ScreenMode::ColouredText:
-//						case ScreenMode::Graphics:
-//							draw_tms_graphics();
-//						break;
-//
-//						case ScreenMode::SMSMode4:
-//							draw_sms();
-//						break;
-//
-//						default: break;
-//					}
-//				}
 
 			// Additional right border, if called for.
 			if(mode_timing_.next_border_column != 342) {
@@ -290,30 +292,6 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 
 /*		if(row_	< 192 && current_mode_ != ScreenMode::Blank) {
-			// ----------------------
-			// Output horizontal sync
-			// ----------------------
-			if(!output_column_ && column_ >= 26) {
-				crt_->output_sync(13 * 4);
-				crt_->output_default_colour_burst(13 * 4);
-				output_column_ = 26;
-			}
-
-			// -------------------
-			// Output left border.
-			// -------------------
-			if(output_column_ >= 26) {
-				int pixels_end = std::min(first_pixel_column_, column_);
-				if(output_column_ < pixels_end) {
-					output_border(pixels_end - output_column_);
-					output_column_ = pixels_end;
-
-					// Grab a pointer for drawing pixels to, if the moment has arrived.
-					if(pixels_end == first_pixel_column_) {
-						pixel_base_ = pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_)));
-					}
-				}
-			}
 
 			// --------------
 			// Output pixels.
@@ -501,14 +479,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				}
 			}
 
-			// --------------------
-			// Output right border.
-			// --------------------
-			if(output_column_ >= first_right_border_column_) {
-				output_border(column_ - output_column_);
-				output_column_ = column_;
-			}
-		} 		}*/
+ 		}*/
 		// -----------------
 		// End video stream.
 		// -----------------
@@ -708,24 +679,14 @@ bool TMS9918::get_interrupt_line() {
 
 // MARK: -
 
-void Base::draw_tms_graphics() {
-
+void Base::draw_tms_character(int start, int end) {
 }
 
-void Base::draw_tms_text() {
-
+void Base::draw_tms_text(int start, int end) {
 }
 
-void Base::draw_sms() {
-	uint32_t *const pixel_target_ = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(256));
-
-	if(pixel_target_) {
-		for(int c = 0; c < 256; ++c)
-			pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
+void Base::draw_sms(int start, int end) {
+	for(int c = start; c < end; ++c) {
+		pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
 	}
-
-	crt_->output_data(256 * 4, 256);
 }
-
-//				output_border(pixel_end - pixel_start);
-

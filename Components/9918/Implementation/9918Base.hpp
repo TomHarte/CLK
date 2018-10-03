@@ -687,9 +687,10 @@ class Base {
 #undef external_slot
 #undef slot
 
-		void draw_tms_graphics();
-		void draw_tms_text();
-		void draw_sms();
+		uint32_t *pixel_target_ = nullptr;
+		void draw_tms_character(int start, int end);
+		void draw_tms_text(int start, int end);
+		void draw_sms(int start, int end);
 
 };
 
