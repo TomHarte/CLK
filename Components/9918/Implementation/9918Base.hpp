@@ -597,7 +597,7 @@ class Base {
 */
 
 #define fetch_tile_name(column)	{\
-		const size_t scrolled_column = (column - (master_system_.horizontal_scroll >> 3)) & 0x1f;\
+		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
 		const size_t address = pattern_address_base + (scrolled_column << 1);	\
 		master_system_.names[column].flags = ram_[address+1];	\
 		master_system_.names[column].offset = static_cast<size_t>(	\
@@ -634,6 +634,7 @@ class Base {
 			const int scrolled_row = (row_ + master_system_.vertical_scroll) % 224;
 			const size_t pattern_address_base = (pattern_name_address_ | size_t(0x3ff)) & static_cast<size_t>(((scrolled_row & ~7) << 3) | 0x3800);
 			const size_t sub_row[2] = {static_cast<size_t>((scrolled_row & 7) << 2), 28 ^ static_cast<size_t>((scrolled_row & 7) << 2)};
+			const int horizontal_offset = (row_ >= 16 || !master_system_.horizontal_scroll_lock) ? (master_system_.horizontal_scroll >> 3) : 0;
 
 			/*
 				To add, relative to the times below:

@@ -647,7 +647,7 @@ void Base::draw_tms_text(int start, int end) {
 }
 
 void Base::draw_sms(int start, int end) {
-	if(!start) {
+	if(!start && (row_ >= 16 || !master_system_.horizontal_scroll_lock)) {
 		pixel_target_ += master_system_.horizontal_scroll & 7;
 	}
 
@@ -655,7 +655,9 @@ void Base::draw_sms(int start, int end) {
 	int byte_column = start >> 3;
 	int pixels_left = end - start;
 	int length = std::min(pixels_left, 8 - shift);
+
 	uint32_t pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
+	uint8_t *const pattern_index = reinterpret_cast<uint8_t *>(&pattern);
 
 	if(master_system_.names[byte_column].flags&2)
 		pattern >>= shift;
@@ -664,25 +666,25 @@ void Base::draw_sms(int start, int end) {
 
 	while(true) {
 		pixels_left -= length;
-		const uint32_t palette_offset = static_cast<uint32_t>((master_system_.names[byte_column].flags&0x08) << 1);
+		const int palette_offset = (master_system_.names[byte_column].flags&0x08) << 1;
 		if(master_system_.names[byte_column].flags&2) {
 			for(int c = 0; c < length; ++c) {
-				const uint32_t value =
-					((pattern & 0x00000001) >> 0) |
-					((pattern & 0x00000100) >> 6) |
-					((pattern & 0x00010000) >> 15) |
-					((pattern & 0x01000000) >> 24) |
+				const int value =
+					((pattern_index[3] & 0x01) << 3) |
+					((pattern_index[2] & 0x01) << 2) |
+					((pattern_index[1] & 0x01) << 1) |
+					((pattern_index[0] & 0x01) << 0) |
 					palette_offset;
 				pixel_target_[c] = master_system_.colour_ram[value];
 				pattern >>= 1;
 			}
 		} else {
 			for(int c = 0; c < length; ++c) {
-				const uint32_t value =
-					((pattern & 0x00000080) >> 7) |
-					((pattern & 0x00008000) >> 14) |
-					((pattern & 0x00800000) >> 21) |
-					((pattern & 0x80000000) >> 28) |
+				const int value =
+					((pattern_index[3] & 0x80) >> 4) |
+					((pattern_index[2] & 0x80) >> 5) |
+					((pattern_index[1] & 0x80) >> 6) |
+					((pattern_index[0] & 0x80) >> 7) |
 					palette_offset;
 				pixel_target_[c] = master_system_.colour_ram[value];
 				pattern <<= 1;
