@@ -650,15 +650,17 @@ void Base::draw_sms(int start, int end) {
 
 	// Shift the output window by the fine scroll amount, and fill in
 	// any border pixels that leaves on the left-hand side.
-	start -= master_system_.horizontal_scroll & 7;
-	end -= master_system_.horizontal_scroll & 7;
-	if(start < 0) {
-		while(start < end && start < 0) {
-			*pixel_target_ = master_system_.colour_ram[16 + background_colour_];
-			++pixel_target_;
-			++start;
+	if(row_ >= 16 || !master_system_.horizontal_scroll_lock) {
+		start -= master_system_.horizontal_scroll & 7;
+		end -= master_system_.horizontal_scroll & 7;
+		if(start < 0) {
+			while(start < end && start < 0) {
+				*pixel_target_ = master_system_.colour_ram[16 + background_colour_];
+				++pixel_target_;
+				++start;
+			}
+			if(start == end) return;
 		}
-		if(start == end) return;
 	}
 
 	const int shift = start & 7;
