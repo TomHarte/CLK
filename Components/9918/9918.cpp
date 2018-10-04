@@ -499,7 +499,6 @@ void TMS9918::set_register(int address, uint8_t value) {
 			case TI::TMS::SMSVDP:
 				if(value & 0x40) {
 					ram_pointer_ = static_cast<uint16_t>(low_write_ | (value << 8));
-					queued_access_ = MemoryAccess::Write;
 					master_system_.cram_is_selected = true;
 					return;
 				}
@@ -709,6 +708,8 @@ void Base::draw_sms(int start, int end) {
 		pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
 	}
 
+	// If the VDP is set to hide the left column and this is the final call that'll come
+	// this line, hide it.
 	if(is_end && master_system_.hide_left_column) {
 		pixel_origin_[0] = pixel_origin_[1] = pixel_origin_[2] = pixel_origin_[3] =
 		pixel_origin_[4] = pixel_origin_[5] = pixel_origin_[6] = pixel_origin_[7] =
@@ -731,9 +732,5 @@ void Base::draw_sms(int start, int end) {
 //		) | ((master_system_.names[column].flags&0x08) << 1);
 //
 //		pixel_target_[c] = master_system_.colour_ram[value];
-//	}
-
-//	for(int c = start; c < end; ++c) {
-//		pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
 //	}
 }
