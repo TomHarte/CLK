@@ -256,7 +256,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				mode_timing_.next_border_column,
 				if(start == mode_timing_.first_pixel_output_column) {
 					pixel_target_ = reinterpret_cast<uint32_t *>(
-						crt_->allocate_write_area(static_cast<unsigned int>(mode_timing_.next_border_column - mode_timing_.first_pixel_output_column))
+						crt_->allocate_write_area(static_cast<unsigned int>(mode_timing_.next_border_column - mode_timing_.first_pixel_output_column) + 8)	// TODO: the +8 is really for the SMS only; make it optional.
 					);
 				}
 
@@ -276,12 +276,6 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					const unsigned int length = static_cast<unsigned int>(mode_timing_.next_border_column - mode_timing_.first_pixel_output_column);
 					crt_->output_data(length * 4, length);
 					pixel_target_ = nullptr;
-
-#ifdef DEBUG
-					memset(pattern_names_, sizeof(pattern_names_), 0xff);
-					memset(pattern_buffer_, sizeof(pattern_buffer_), 0xff);
-					memset(colour_buffer_, sizeof(colour_buffer_), 0xff);
-#endif
 				}
 			);
 
@@ -293,48 +287,20 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 #undef intersect
 
+		// -----------------
+		// End video stream.
+		// -----------------
+
+
 		column_ = end_column;		// column_ is now the column that has been reached in this line.
 		int_cycles -= cycles_left;	// Count down duration to run for.
 
-
-/*		if(row_	< 192 && current_mode_ != ScreenMode::Blank) {
+/*
 
 			// --------------
 			// Output pixels.
 			// --------------
-			if(output_column_ >= first_pixel_column_) {
-				int pixels_end = std::min(first_right_border_column_, column_);
 
-				if(output_column_ < pixels_end) {
-					switch(line_mode_) {
-						default: break;
-
-						case LineMode::SMS: {
-							if(pixel_target_) {
-								const int pixels_left = pixels_end - output_column_;
-								const int pixel_location = output_column_ - first_pixel_column_;
-								const int reverses[2] = {0, 7};
-								for(int c = 0; c < pixels_left; ++c) {
-									const int column = (pixel_location + c) >> 3;
-									const int shift = 4 + (((pixel_location + c) & 7) ^ reverses[(master_system_.names[column].flags&2) >> 1]);
-									int value =
-									(
-										(
-											((master_system_.tile_graphics[column][3] << shift) & 0x800) |
-											((master_system_.tile_graphics[column][2] << (shift - 1)) & 0x400) |
-											((master_system_.tile_graphics[column][1] << (shift - 2)) & 0x200) |
-											((master_system_.tile_graphics[column][0] << (shift - 3)) & 0x100)
-										) >> 8
-									) | ((master_system_.names[column].flags&0x08) << 1);
-
-									pixel_target_[c] = master_system_.colour_ram[value];
-								}
-								pixel_target_ += pixels_left;
-							}
-
-							output_column_ = pixels_end;
-						}
-						break;
 
 						case LineMode::Character: {
 							// If this is the start of the visible area, seed sprite shifter positions.
@@ -451,18 +417,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						} break;
 					}
 
-					if(output_column_ == first_right_border_column_) {
-						const unsigned int data_length = static_cast<unsigned int>(first_right_border_column_ - first_pixel_column_);
-						crt_->output_data(data_length * 4, data_length);
-						pixel_target_ = nullptr;
-					}
-				}
-			}
 
  		}*/
-		// -----------------
-		// End video stream.
-		// -----------------
 
 
 
@@ -660,9 +616,11 @@ bool TMS9918::get_interrupt_line() {
 // MARK: -
 
 void Base::draw_tms_character(int start, int end) {
-	for(int c = start; c < end; ++c) {
-		pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
-	}
+//	if(!start) printf("\n");
+//	printf("%d to %d | ", start, end);
+//	for(int c = start; c < end; ++c) {
+//		pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
+//	}
 }
 
 void Base::draw_tms_text(int start, int end) {
@@ -689,7 +647,75 @@ void Base::draw_tms_text(int start, int end) {
 }
 
 void Base::draw_sms(int start, int end) {
-	for(int c = start; c < end; ++c) {
-		pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
+	if(!start) {
+		pixel_target_ += master_system_.horizontal_scroll & 7;
 	}
+
+	const int shift = start & 7;
+	int byte_column = start >> 3;
+	int pixels_left = end - start;
+	int length = std::min(pixels_left, 8 - shift);
+	uint32_t pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
+
+	if(master_system_.names[byte_column].flags&2)
+		pattern >>= shift;
+	else
+		pattern <<= shift;
+
+	while(true) {
+		pixels_left -= length;
+		const uint32_t palette_offset = static_cast<uint32_t>((master_system_.names[byte_column].flags&0x08) << 1);
+		if(master_system_.names[byte_column].flags&2) {
+			for(int c = 0; c < length; ++c) {
+				const uint32_t value =
+					((pattern & 0x00000001) >> 0) |
+					((pattern & 0x00000100) >> 6) |
+					((pattern & 0x00010000) >> 15) |
+					((pattern & 0x01000000) >> 24) |
+					palette_offset;
+				pixel_target_[c] = master_system_.colour_ram[value];
+				pattern >>= 1;
+			}
+		} else {
+			for(int c = 0; c < length; ++c) {
+				const uint32_t value =
+					((pattern & 0x00000080) >> 7) |
+					((pattern & 0x00008000) >> 14) |
+					((pattern & 0x00800000) >> 21) |
+					((pattern & 0x80000000) >> 28) |
+					palette_offset;
+				pixel_target_[c] = master_system_.colour_ram[value];
+				pattern <<= 1;
+			}
+		}
+		pixel_target_ += length;
+
+		if(!pixels_left) break;
+		length = std::min(8, pixels_left);
+		byte_column++;
+		pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
+	}
+
+//	const int pixels_left = pixels_end - output_column_;
+//	const int pixel_location = output_column_ - first_pixel_column_;
+//	const int reverses[2] = {0, 7};
+//	for(int c = 0; c < pixels_left; ++c) {
+//		const int column = (pixel_location + c) >> 3;
+//		const int shift = 4 + (((pixel_location + c) & 7) ^ reverses[(master_system_.names[column].flags&2) >> 1]);
+//		int value =
+//		(
+//			(
+//				((master_system_.tile_graphics[column][3] << shift) & 0x800) |
+//				((master_system_.tile_graphics[column][2] << (shift - 1)) & 0x400) |
+//				((master_system_.tile_graphics[column][1] << (shift - 2)) & 0x200) |
+//				((master_system_.tile_graphics[column][0] << (shift - 3)) & 0x100)
+//			) >> 8
+//		) | ((master_system_.names[column].flags&0x08) << 1);
+//
+//		pixel_target_[c] = master_system_.colour_ram[value];
+//	}
+
+//	for(int c = start; c < end; ++c) {
+//		pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
+//	}
 }

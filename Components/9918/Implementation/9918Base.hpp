@@ -239,7 +239,7 @@ class Base {
 				return;
 			}
 
-			mode_timing_.maximum_visible_sprites = 8;
+			mode_timing_.maximum_visible_sprites = 4;
 			if(!mode1_enable_ && !mode2_enable_ && !mode3_enable_) {
 				screen_mode_ = ScreenMode::ColouredText;
 				return;
@@ -268,7 +268,6 @@ class Base {
 		void external_slot() {
 			// TODO: write or read a value if one is queued and ready to read/write.
 			// (and, later: update the command engine, if this is an MSX2).
-
 			switch(queued_access_) {
 				default: return;
 
@@ -473,11 +472,11 @@ class Base {
 #define sprite_y_read(location, sprite)	\
 	slot(location):
 
-#define fetch_tile_name(column) pattern_names_[column] = ram_[row_base + column];
+#define fetch_tile_name(column) pattern_names_[column] = ram_[(row_base + column) & 0x3fff];
 
 #define fetch_tile(column)	{\
-		colour_buffer_[column] = ram_[colour_base + static_cast<size_t>((pattern_names_[column] << 3) >> colour_name_shift)];		\
-		pattern_buffer_[column] = ram_[pattern_base + static_cast<size_t>(pattern_names_[column] << 3)];	\
+		colour_buffer_[column] = ram_[(colour_base + static_cast<size_t>((pattern_names_[column] << 3) >> colour_name_shift)) & 0x3fff];		\
+		pattern_buffer_[column] = ram_[(pattern_base + static_cast<size_t>(pattern_names_[column] << 3)) & 0x3fff];	\
 	}
 
 #define background_fetch_block(location, column)	\
