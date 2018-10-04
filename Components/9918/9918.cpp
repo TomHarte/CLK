@@ -255,7 +255,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				mode_timing_.first_pixel_output_column,
 				mode_timing_.next_border_column,
 				if(start == mode_timing_.first_pixel_output_column) {
-					pixel_target_ = reinterpret_cast<uint32_t *>(
+					pixel_origin_ = pixel_target_ = reinterpret_cast<uint32_t *>(
 						crt_->allocate_write_area(static_cast<unsigned int>(mode_timing_.next_border_column - mode_timing_.first_pixel_output_column) + 8)	// TODO: the +8 is really for the SMS only; make it optional.
 					);
 				}
@@ -275,7 +275,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				if(end == mode_timing_.next_border_column) {
 					const unsigned int length = static_cast<unsigned int>(mode_timing_.next_border_column - mode_timing_.first_pixel_output_column);
 					crt_->output_data(length * 4, length);
-					pixel_target_ = nullptr;
+					pixel_origin_ = pixel_target_ = nullptr;
 				}
 			);
 
@@ -647,6 +647,8 @@ void Base::draw_tms_text(int start, int end) {
 }
 
 void Base::draw_sms(int start, int end) {
+	const bool is_end = end == 256;
+
 	// Shift the output window by the fine scroll amount, and fill in
 	// any border pixels that leaves on the left-hand side.
 	start -= master_system_.horizontal_scroll & 7;
@@ -707,6 +709,11 @@ void Base::draw_sms(int start, int end) {
 		pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
 	}
 
+	if(is_end && master_system_.hide_left_column) {
+		pixel_origin_[0] = pixel_origin_[1] = pixel_origin_[2] = pixel_origin_[3] =
+		pixel_origin_[4] = pixel_origin_[5] = pixel_origin_[6] = pixel_origin_[7] =
+			master_system_.colour_ram[16 + background_colour_];
+	}
 //	const int pixels_left = pixels_end - output_column_;
 //	const int pixel_location = output_column_ - first_pixel_column_;
 //	const int reverses[2] = {0, 7};
