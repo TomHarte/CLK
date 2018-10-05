@@ -61,6 +61,10 @@ Base::Base(Personality p) :
 			ram_.resize(192 * 1024);
 		break;
 	}
+
+	if(is_sega_vdp(personality_)) {
+		mode_timing_.line_interrupt_position = 15;
+	}
 }
 
 TMS9918::TMS9918(Personality p):
@@ -292,9 +296,6 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		// -----------------
 
 
-		column_ = end_column;		// column_ is now the column that has been reached in this line.
-		int_cycles -= cycles_left;	// Count down duration to run for.
-
 /*
 
 			// --------------
@@ -421,6 +422,26 @@ void TMS9918::run_for(const HalfCycles cycles) {
  		}*/
 
 
+		if(column_ < mode_timing_.line_interrupt_position && end_column >= mode_timing_.line_interrupt_position) {
+			if(row_ <= mode_timing_.pixel_lines) {
+				--line_interrupt_counter;
+				if(line_interrupt_counter == 0xff) {
+//					line_interrupt_pending_ = true;
+					line_interrupt_counter = line_interrupt_target;
+				}
+			} else {
+				line_interrupt_counter = line_interrupt_target;
+			}
+		}
+
+
+		// -------------
+		// Advance time.
+		// -------------
+		column_ = end_column;		// column_ is now the column that has been reached in this line.
+		int_cycles -= cycles_left;	// Count down duration to run for.
+
+
 
 		// -----------------------------------
 		// Prepare for next line, potentially.
@@ -513,7 +534,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 					master_system_.vertical_scroll_lock = !!(low_write_ & 0x80);
 					master_system_.horizontal_scroll_lock = !!(low_write_ & 0x40);
 					master_system_.hide_left_column = !!(low_write_ & 0x20);
-					master_system_.enable_line_interrupts = !!(low_write_ & 0x10);
+					enable_line_interrupts_ = !!(low_write_ & 0x10);
 					master_system_.shift_sprites_8px_left = !!(low_write_ & 0x08);
 					master_system_.mode4_enable = !!(low_write_ & 0x04);
 				}
@@ -569,6 +590,16 @@ void TMS9918::set_register(int address, uint8_t value) {
 					master_system_.vertical_scroll = low_write_;
 				}
 			break;
+
+			case 10:
+				if(is_sega_vdp(personality_)) {
+					line_interrupt_target = value;
+				}
+			break;
+
+			default:
+				printf("%d to %d\n", low_write_, value);
+			break;
 		}
 	} else {
 		// This is a write to the RAM pointer.
@@ -579,6 +610,10 @@ void TMS9918::set_register(int address, uint8_t value) {
 		}
 		master_system_.cram_is_selected = false;
 	}
+}
+
+uint8_t TMS9918::get_current_line() {
+	return static_cast<uint8_t>(row_);
 }
 
 uint8_t TMS9918::get_register(int address) {
@@ -595,21 +630,44 @@ uint8_t TMS9918::get_register(int address) {
 	// Reads from address 1 get the status register.
 	uint8_t result = status_;
 	status_ &= ~(StatusInterrupt | StatusFifthSprite | StatusSpriteCollision);
+	line_interrupt_pending_ = false;
 	return result;
 }
 
  HalfCycles TMS9918::get_time_until_interrupt() {
- 	// TODO: line interrupts.
-	if(!generate_interrupts_) return HalfCycles(-1);
+	if(!generate_interrupts_ && !enable_line_interrupts_) return HalfCycles(-1);
 	if(get_interrupt_line()) return HalfCycles(0);
 
+	// Calculate the amount of time until the next end-of-frame interrupt.
 	const int half_cycles_per_frame = mode_timing_.total_lines * 228 * 2;
-	int half_cycles_remaining = (192 * 228 * 2 + half_cycles_per_frame - half_cycles_into_frame_.as_int()) % half_cycles_per_frame;
-	return HalfCycles(half_cycles_remaining ? half_cycles_remaining : half_cycles_per_frame);
+	const int half_cycles_remaining = (192 * 228 * 2 + half_cycles_per_frame - half_cycles_into_frame_.as_int()) % half_cycles_per_frame;
+	const auto time_until_frame_interrupt = HalfCycles(half_cycles_remaining ? half_cycles_remaining : half_cycles_per_frame);
+
+	// Calculate the number of times the line interrupt position will be decremented this frame.
+//	return HalfCycles(20);
+/*	auto time_until_line_count = mode_timing_.line_interrupt_position - row_;
+	auto decrements_left_this_frame = mode_timing_.pixel_lines - row_;
+	if(time_until_line_count > 0) {
+		++decrements_left_this_frame;
+	}
+
+	// If that's enough to underflow the line counter, there's the next interupt.
+	HalfCycles time_until_line_interrupt;
+	if(decrements_left_this_frame >= line_interrupt_counter+1) {
+		time_until_line_interrupt = HalfCycles
+	}
+
+	if(!enable_line_interrupts_) {
+		return time_until_frame_interrupt;
+	} else if(!generate_interrupts_) {
+
+	}*/
+
+	return time_until_frame_interrupt;
 }
 
 bool TMS9918::get_interrupt_line() {
-	return (status_ & StatusInterrupt) && generate_interrupts_;
+	return ((status_ & StatusInterrupt) && generate_interrupts_) || (enable_line_interrupts_ && line_interrupt_pending_);
 }
 
 // MARK: -

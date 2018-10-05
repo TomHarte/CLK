@@ -163,8 +163,10 @@ class ConcreteMachine:
 
 					case CPU::Z80::PartialMachineCycle::Write:
 						if(address >= 0xfffd && cartridge_.size() > 48*1024) {
-							paging_registers_[address - 0xfffd] = *cycle.value;
-							page_cartridge();
+							if(paging_registers_[address - 0xfffd] != *cycle.value) {
+								paging_registers_[address - 0xfffd] = *cycle.value;
+								page_cartridge();
+							}
 						}
 						else if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
 					break;
@@ -180,8 +182,8 @@ class ConcreteMachine:
 								*cycle.value = 0xff;
 							break;
 							case 0x40: case 0x41:
-								printf("TODO: [input] get current line\n");
-								*cycle.value = 0xff;
+								update_video();
+								*cycle.value = vdp_->get_current_line();
 							break;
 							case 0x80: case 0x81:
 								update_video();

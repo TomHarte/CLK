@@ -153,7 +153,16 @@ class Base {
 			// if sprites beyond this number should be visible
 			// then the appropriate status information will be set.
 			int maximum_visible_sprites = 4;
+
+			//
+			int end_of_frame_interrupt_position = 342;
+			int line_interrupt_position = -1;
 		} mode_timing_;
+
+		uint8_t line_interrupt_target = 0;
+		uint8_t line_interrupt_counter = 0;
+		bool enable_line_interrupts_ = false;
+		bool line_interrupt_pending_ = false;
 
 		// The line mode describes the proper timing diagram for the current line.
 		enum class LineMode {
@@ -174,7 +183,6 @@ class Base {
 			bool vertical_scroll_lock = false;
 			bool horizontal_scroll_lock = false;
 			bool hide_left_column = false;
-			bool enable_line_interrupts = false;
 			bool shift_sprites_8px_left = false;
 			bool mode4_enable = false;
 			uint8_t horizontal_scroll = 0;
@@ -673,7 +681,7 @@ class Base {
 				background_render_block(91, 12);
 				background_render_block(107, 16);
 				background_render_block(123, 20);
-				background_render_block(139, 24);
+				background_render_block(139, 24);	// TODO: this and the next one should ignore master_system_.vertical_scroll.
 				background_render_block(156, 28);
 
 				return;
