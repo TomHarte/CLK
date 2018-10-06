@@ -168,7 +168,8 @@ class ConcreteMachine:
 								page_cartridge();
 							}
 						}
-						else if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
+
+						if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Input:
@@ -212,18 +213,8 @@ class ConcreteMachine:
 							case 0x00:
 								if(model_ == Analyser::Static::Sega::Target::Model::MasterSystem) {
 									// TODO: Obey the RAM enable.
-
-									// Either install the cartridge or don't.
-									if(!((*cycle.value) & 0x40)) {
-										page_cartridge();
-									} else {
-										map(read_pointers_, nullptr, 0xc000, 0x0000);
-									}
-
-									// Throw the BIOS on top if it isn't disabled.
-									if(!((*cycle.value) & 0x08)) {
-										map(read_pointers_, bios_, 8*1024, 0);
-									}
+									memory_control_ = *cycle.value;
+									page_cartridge();
 								}
 							break;
 							case 0x01:
@@ -317,14 +308,28 @@ class ConcreteMachine:
 		}
 
 		uint8_t paging_registers_[3] = {0, 1, 2};
+		uint8_t memory_control_ = 0;
 		void page_cartridge() {
-			for(size_t c = 0; c < 3; ++c) {
-				const size_t start_addr = (paging_registers_[c] * 0x4000) % cartridge_.size();
-				map(
-					read_pointers_,
-					cartridge_.data() + start_addr,
-					std::min(static_cast<size_t>(0x4000), cartridge_.size() - start_addr),
-					c * 0x4000);
+			// Either install the cartridge or don't.
+			if(!(memory_control_ & 0x40)) {
+				for(size_t c = 0; c < 3; ++c) {
+					const size_t start_addr = (paging_registers_[c] * 0x4000) % cartridge_.size();
+					map(
+						read_pointers_,
+						cartridge_.data() + start_addr,
+						std::min(static_cast<size_t>(0x4000), cartridge_.size() - start_addr),
+						c * 0x4000);
+				}
+
+				// The first 1kb doesn't page though.
+				map(read_pointers_, cartridge_.data(), 0x400, 0x0000);
+			} else {
+				map(read_pointers_, nullptr, 0xc000, 0x0000);
+			}
+
+			// Throw the BIOS on top if it isn't disabled.
+			if(!(memory_control_ & 0x08)) {
+				map(read_pointers_, bios_, 8*1024, 0);
 			}
 		}
 };
