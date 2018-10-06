@@ -157,6 +157,8 @@ class Base {
 			//
 			int end_of_frame_interrupt_position = 342;
 			int line_interrupt_position = -1;
+
+			bool allow_sprite_terminator = true;
 		} mode_timing_;
 
 		uint8_t line_interrupt_target = 0;
@@ -218,10 +220,12 @@ class Base {
 			} active_sprites[8];
 
 			int active_sprite_slot = 0;
-			bool sprites_stopped_ = false;
+			int fetched_sprite_slot = 0;
+			bool sprites_stopped = false;
 		} sprite_set_;
 
-		inline void test_sprite(int sprite_number, int screen_row);
+		inline void reset_sprite_collection();
+		inline void posit_sprite(int sprite_number, int sprite_y, int screen_row);
 		inline void get_sprite_contents(int start, int cycles, int screen_row);
 
 		enum class ScreenMode {
@@ -273,7 +277,7 @@ class Base {
 		}
 
 
-		void external_slot() {
+		void do_external_slot() {
 			// TODO: write or read a value if one is queued and ready to read/write.
 			// (and, later: update the command engine, if this is an MSX2).
 			switch(queued_access_) {
@@ -303,7 +307,7 @@ class Base {
 		case n
 
 #define external_slot(n)	\
-	slot(n): external_slot();
+	slot(n): do_external_slot();
 
 #define external_slots_2(n)	\
 	external_slot(n);	\
@@ -596,13 +600,10 @@ class Base {
 		- sprite n+1, tile graphic second word
 */
 
-#define sprite_y_read(location)	\
-	slot(location):
-
-/*
-	TODO: sprite_y_read should fetch:
-		- sprite n and n+1, y position
-*/
+#define sprite_y_read(location, sprite)	\
+	slot(location):	\
+		posit_sprite(sprite, ram_[sprite_attribute_table_address_ + sprite], row_);	\
+		posit_sprite(sprite, ram_[sprite_attribute_table_address_ + sprite + 1], row_);	\
 
 #define fetch_tile_name(column)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
@@ -620,21 +621,21 @@ class Base {
 		master_system_.tile_graphics[column][3] = ram_[master_system_.names[column].offset+3];	\
 	}
 
-#define background_render_block(location, column)	\
+#define background_render_block(location, column, sprite)	\
 	slot(location):	fetch_tile_name(column)		\
 	external_slot(location+1);	\
 	slot(location+2):	\
 	slot(location+3): fetch_tile(column)	\
 	slot(location+4): fetch_tile_name(column+1)	\
-	sprite_y_read(location+5);	\
+	sprite_y_read(location+5, sprite);	\
 	slot(location+6):	\
 	slot(location+7): fetch_tile(column+1)	\
 	slot(location+8): fetch_tile_name(column+2)	\
-	sprite_y_read(location+9);	\
+	sprite_y_read(location+9, sprite+2);	\
 	slot(location+10):	\
 	slot(location+11): fetch_tile(column+2)	\
 	slot(location+12): fetch_tile_name(column+3)	\
-	sprite_y_read(location+13);	\
+	sprite_y_read(location+13, sprite+4);	\
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
 
@@ -664,25 +665,28 @@ class Base {
 				sprite_fetch_block(21, 4);
 				sprite_fetch_block(27, 6);
 
-				external_slots_2(33);
+				slot(33):
+					reset_sprite_collection();
+					do_external_slot();
+				external_slot(34);
 
-				sprite_y_read(35);
-				sprite_y_read(36);
-				sprite_y_read(37);
-				sprite_y_read(38);
-				sprite_y_read(39);
-				sprite_y_read(40);
-				sprite_y_read(41);
-				sprite_y_read(42);
+				sprite_y_read(35, 0);
+				sprite_y_read(36, 2);
+				sprite_y_read(37, 4);
+				sprite_y_read(38, 6);
+				sprite_y_read(39, 8);
+				sprite_y_read(40, 10);
+				sprite_y_read(41, 12);
+				sprite_y_read(42, 14);
 
-				background_render_block(43, 0);
-				background_render_block(59, 4);
-				background_render_block(75, 8);
-				background_render_block(91, 12);
-				background_render_block(107, 16);
-				background_render_block(123, 20);
-				background_render_block(139, 24);	// TODO: this and the next one should ignore master_system_.vertical_scroll.
-				background_render_block(156, 28);
+				background_render_block(43, 0, 16);
+				background_render_block(59, 4, 22);
+				background_render_block(75, 8, 28);
+				background_render_block(91, 12, 34);
+				background_render_block(107, 16, 40);
+				background_render_block(123, 20, 46);
+				background_render_block(139, 24, 52);	// TODO: this and the next one should ignore master_system_.vertical_scroll.
+				background_render_block(156, 28, 58);
 
 				return;
 			}

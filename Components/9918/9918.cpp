@@ -16,7 +16,7 @@ using namespace TI::TMS;
 namespace {
 
 const uint8_t StatusInterrupt = 0x80;
-const uint8_t StatusFifthSprite = 0x40;
+const uint8_t StatusSpriteOverflow = 0x40;
 
 const int StatusSpriteCollisionShift = 5;
 const uint8_t StatusSpriteCollision = 0x20;
@@ -91,33 +91,38 @@ Outputs::CRT::CRT *TMS9918::get_crt() {
 	return crt_.get();
 }
 
-void Base::test_sprite(int sprite_number, int screen_row) {
-/*	if(!(status_ & StatusFifthSprite)) {
+void Base::reset_sprite_collection() {
+	sprite_set_.sprites_stopped = false;
+	sprite_set_.fetched_sprite_slot = sprite_set_.active_sprite_slot;
+	sprite_set_.active_sprite_slot = 0;
+}
+
+void Base::posit_sprite(int sprite_number, int sprite_position, int screen_row) {
+	if(!(status_ & StatusSpriteOverflow)) {
 		status_ = static_cast<uint8_t>((status_ & ~31) | sprite_number);
 	}
-	if(sprites_stopped_)
+	if(sprite_set_.sprites_stopped)
 		return;
 
-	const int sprite_position = ram_[sprite_attribute_table_address_ + static_cast<size_t>(sprite_number << 2)];
+//	const int sprite_position = ram_[sprite_attribute_table_address_ + static_cast<size_t>(sprite_number << 2)];
 	// A sprite Y of 208 means "don't scan the list any further".
-	if(sprite_position == 208) {
-		sprites_stopped_ = true;
+	if(mode_timing_.allow_sprite_terminator && sprite_position == 208) {
+		sprite_set_.sprites_stopped = true;
 		return;
 	}
 
 	const int sprite_row = (screen_row - sprite_position)&255;
 	if(sprite_row < 0 || sprite_row >= sprite_height_) return;
 
-	const int active_sprite_slot = sprite_sets_[active_sprite_set_].active_sprite_slot;
-	if(active_sprite_slot == 4) {
-		status_ |= StatusFifthSprite;
+	if(sprite_set_.active_sprite_slot == mode_timing_.maximum_visible_sprites) {
+		status_ |= StatusSpriteOverflow;
 		return;
 	}
 
-	SpriteSet::ActiveSprite &sprite = sprite_sets_[active_sprite_set_].active_sprites[active_sprite_slot];
+	SpriteSet::ActiveSprite &sprite = sprite_set_.active_sprites[sprite_set_.active_sprite_slot];
 	sprite.index = sprite_number;
 	sprite.row = sprite_row >> (sprites_magnified_ ? 1 : 0);
-	sprite_sets_[active_sprite_set_].active_sprite_slot++;*/
+	++sprite_set_.active_sprite_slot;
 }
 
 void Base::get_sprite_contents(int field, int cycles_left, int screen_row) {
@@ -254,7 +259,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			// Left border.
 			intersect(73, mode_timing_.first_pixel_output_column, output_border(end - start));
 
-			// In pixel area:
+			// Pixel region.
 			intersect(
 				mode_timing_.first_pixel_output_column,
 				mode_timing_.next_border_column,
@@ -629,7 +634,7 @@ uint8_t TMS9918::get_register(int address) {
 
 	// Reads from address 1 get the status register.
 	uint8_t result = status_;
-	status_ &= ~(StatusInterrupt | StatusFifthSprite | StatusSpriteCollision);
+	status_ &= ~(StatusInterrupt | StatusSpriteOverflow | StatusSpriteCollision);
 	line_interrupt_pending_ = false;
 	return result;
 }
