@@ -783,27 +783,20 @@ void Base::draw_sms(int start, int end) {
 		// EXPERIMENTAL: chuck sprite outlines on as a post-fix.
 		for(int c = 0; c < sprite_set_.fetched_sprite_slot; ++c) {
 			int x = -sprite_set_.active_sprites[c].shift_position;
+			pattern = *reinterpret_cast<uint32_t *>(sprite_set_.active_sprites[c].image);
 			for(int ox = x; ox < x+8; ox++) {
-				if(ox >= 0 && ox < 256) pixel_origin_[ox] = 0xffffffff;
+				if(ox >= 0 && ox < 256) {
+					pixel_origin_[ox] =
+						master_system_.colour_ram[
+							((pattern_index[3] & 0x80) >> 4) |
+							((pattern_index[2] & 0x80) >> 5) |
+							((pattern_index[1] & 0x80) >> 6) |
+							((pattern_index[0] & 0x80) >> 7) |
+							0x10
+						];
+				}
+				pattern <<= 1;
 			}
 		}
 	}
-//	const int pixels_left = pixels_end - output_column_;
-//	const int pixel_location = output_column_ - first_pixel_column_;
-//	const int reverses[2] = {0, 7};
-//	for(int c = 0; c < pixels_left; ++c) {
-//		const int column = (pixel_location + c) >> 3;
-//		const int shift = 4 + (((pixel_location + c) & 7) ^ reverses[(master_system_.names[column].flags&2) >> 1]);
-//		int value =
-//		(
-//			(
-//				((master_system_.tile_graphics[column][3] << shift) & 0x800) |
-//				((master_system_.tile_graphics[column][2] << (shift - 1)) & 0x400) |
-//				((master_system_.tile_graphics[column][1] << (shift - 2)) & 0x200) |
-//				((master_system_.tile_graphics[column][0] << (shift - 3)) & 0x100)
-//			) >> 8
-//		) | ((master_system_.names[column].flags&0x08) << 1);
-//
-//		pixel_target_[c] = master_system_.colour_ram[value];
-//	}
 }

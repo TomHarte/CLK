@@ -585,13 +585,13 @@ class Base {
 			-ram_[\
 				(sprite_attribute_table_address_ | 0x7f) & (0x3f80 | (sprite_set_.active_sprites[sprite].index << 1))\
 			] + (master_system_.shift_sprites_8px_left ? 8 : 0);	\
-		sprite_set_.active_sprites[sprite].image[0] =	\
-		sprite_set_.active_sprites[sprite].image[1] =	\
-		sprite_set_.active_sprites[sprite].image[2] =	\
-		sprite_set_.active_sprites[sprite].image[3] = 0xff;	\
+		size_t graphic_location = (sprite_generator_table_address_ | 0xfff) & (0x2000 | (sprite_set_.active_sprites[sprite].index << 5) | (sprite_set_.active_sprites[sprite].row << 2));	\
+		sprite_set_.active_sprites[sprite].image[0] = ram_[graphic_location];	\
+		sprite_set_.active_sprites[sprite].image[1] = ram_[graphic_location+1];	\
+		sprite_set_.active_sprites[sprite].image[2] = ram_[graphic_location+2];	\
+		sprite_set_.active_sprites[sprite].image[3] = ram_[graphic_location+3];	\
 	}
 
-//		size_t graphic_location = sprite_generator_table_address_;	\
 
 #define sprite_fetch_block(location, sprite)	\
 	slot(location):		\
