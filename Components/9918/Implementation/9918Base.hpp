@@ -581,7 +581,10 @@ class Base {
 
 		template<bool use_end> void fetch_sms(int start, int end) {
 #define sprite_fetch(sprite)	{\
-		sprite_set_.active_sprites[sprite].shift_position = -ram_[sprite_attribute_table_address_ + 128 + (sprite_set_.active_sprites[sprite].index << 1)] + (master_system_.shift_sprites_8px_left ? 8 : 0);	\
+		sprite_set_.active_sprites[sprite].shift_position = \
+			-ram_[\
+				(sprite_attribute_table_address_ | 0x7f) & (0x3f80 | (sprite_set_.active_sprites[sprite].index << 1))\
+			] + (master_system_.shift_sprites_8px_left ? 8 : 0);	\
 		sprite_set_.active_sprites[sprite].image[0] =	\
 		sprite_set_.active_sprites[sprite].image[1] =	\
 		sprite_set_.active_sprites[sprite].image[2] =	\
@@ -612,8 +615,8 @@ class Base {
 
 #define sprite_y_read(location, sprite)	\
 	slot(location):	\
-		posit_sprite(sprite, ram_[sprite_attribute_table_address_ + sprite], row_);	\
-		posit_sprite(sprite, ram_[sprite_attribute_table_address_ + sprite + 1], row_);	\
+		posit_sprite(sprite, ram_[(sprite_attribute_table_address_ | 0x7f) & (sprite | 0x3f00)], row_);	\
+		posit_sprite(sprite, ram_[(sprite_attribute_table_address_ | 0x7f) & ((sprite + 1) | 0x3f00)], row_);	\
 
 #define fetch_tile_name(column)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
