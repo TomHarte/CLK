@@ -122,6 +122,8 @@ class ConcreteMachine:
 				map(read_pointers_, ram_, 1024, 0xc000, 0x10000);
 				map(write_pointers_, ram_, 1024, 0xc000, 0x10000);
 			}
+
+			speaker_.set_high_frequency_cutoff(8000);
 		}
 
 		~ConcreteMachine() {
@@ -130,7 +132,7 @@ class ConcreteMachine:
 
 		void setup_output(float aspect_ratio) override {
 			vdp_.reset(new TI::TMS::TMS9918(model_ == Analyser::Static::Sega::Target::Model::SG1000 ? TI::TMS::TMS9918A : TI::TMS::SMSVDP));
-//			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
+			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 		}
 
 		void close_output() override {
