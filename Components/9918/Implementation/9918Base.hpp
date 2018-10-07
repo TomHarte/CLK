@@ -583,15 +583,17 @@ class Base {
 #define sprite_fetch(sprite)	{\
 		sprite_set_.active_sprites[sprite].shift_position = \
 			-ram_[\
-				(sprite_attribute_table_address_ | 0x7f) & (0x3f80 | (sprite_set_.active_sprites[sprite].index << 1))\
-			] + (master_system_.shift_sprites_8px_left ? 8 : 0);	\
-		size_t graphic_location = (sprite_generator_table_address_ | 0xfff) & (0x2000 | (sprite_set_.active_sprites[sprite].index << 5) | (sprite_set_.active_sprites[sprite].row << 2));	\
+				sprite_attribute_table_address_ & size_t(0x3f80 | (sprite_set_.active_sprites[sprite].index << 1))\
+			] + (master_system_.shift_sprites_8px_left ? size_t(8) : size_t(0));	\
+		const uint8_t name = ram_[\
+				sprite_attribute_table_address_ & size_t(0x3f81 | (sprite_set_.active_sprites[sprite].index << 1))\
+			];\
+		const size_t graphic_location = sprite_generator_table_address_ & size_t(0x2000 | (name << 5) | (sprite_set_.active_sprites[sprite].row << 2));	\
 		sprite_set_.active_sprites[sprite].image[0] = ram_[graphic_location];	\
 		sprite_set_.active_sprites[sprite].image[1] = ram_[graphic_location+1];	\
 		sprite_set_.active_sprites[sprite].image[2] = ram_[graphic_location+2];	\
 		sprite_set_.active_sprites[sprite].image[3] = ram_[graphic_location+3];	\
 	}
-
 
 #define sprite_fetch_block(location, sprite)	\
 	slot(location):		\
@@ -603,20 +605,10 @@ class Base {
 		sprite_fetch(sprite);\
 		sprite_fetch(sprite+1);
 
-/*
-	TODO: sprite_render_block should fetch:
-		- sprite n, x position and name
-		- sprite n+1, x position and name
-		- sprite n, tile graphic first word
-		- sprite n, tile graphic second word
-		- sprite n+1, tile graphic first word
-		- sprite n+1, tile graphic second word
-*/
-
 #define sprite_y_read(location, sprite)	\
 	slot(location):	\
-		posit_sprite(sprite, ram_[(sprite_attribute_table_address_ | 0x7f) & (sprite | 0x3f00)], row_);	\
-		posit_sprite(sprite+1, ram_[(sprite_attribute_table_address_ | 0x7f) & ((sprite + 1) | 0x3f00)], row_);	\
+		posit_sprite(sprite, ram_[sprite_attribute_table_address_ & (sprite | 0x3f00)], row_);	\
+		posit_sprite(sprite+1, ram_[sprite_attribute_table_address_ & ((sprite + 1) | 0x3f00)], row_);	\
 
 #define fetch_tile_name(column)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
@@ -633,7 +625,7 @@ class Base {
 	master_system_.tile_graphics[column][2] = ram_[master_system_.names[column].offset+2];	\
 	master_system_.tile_graphics[column][3] = ram_[master_system_.names[column].offset+3];
 
-#define background_render_block(location, column, sprite)	\
+#define background_fetch_block(location, column, sprite)	\
 	slot(location):	fetch_tile_name(column)		\
 	external_slot(location+1);					\
 	slot(location+2):	\
@@ -658,16 +650,10 @@ class Base {
 	slot(location+15): fetch_tile(column+3)
 
 			const int scrolled_row = (row_ + master_system_.vertical_scroll) % 224;
+
 			const size_t pattern_address_base = (pattern_name_address_ | size_t(0x3ff)) & static_cast<size_t>(((scrolled_row & ~7) << 3) | 0x3800);
 			const size_t sub_row[2] = {static_cast<size_t>((scrolled_row & 7) << 2), 28 ^ static_cast<size_t>((scrolled_row & 7) << 2)};
 			const int horizontal_offset = (row_ >= 16 || !master_system_.horizontal_scroll_lock) ? (master_system_.horizontal_scroll >> 3) : 0;
-
-			/*
-				To add, relative to the times below:
-
-					hsync active at cycle 14;
-					hsync inactive at cycle 27;
-			*/
 
 			switch(start) {
 				default:
@@ -696,21 +682,24 @@ class Base {
 				sprite_y_read(41, 12);
 				sprite_y_read(42, 14);
 
-				background_render_block(43, 0, 16);
-				background_render_block(59, 4, 22);
-				background_render_block(75, 8, 28);
-				background_render_block(91, 12, 34);
-				background_render_block(107, 16, 40);
-				background_render_block(123, 20, 46);
-				background_render_block(139, 24, 52);	// TODO: this and the next one should ignore master_system_.vertical_scroll.
-				background_render_block(156, 28, 58);
+				background_fetch_block(43, 0, 16);
+				background_fetch_block(59, 4, 22);
+				background_fetch_block(75, 8, 28);
+				background_fetch_block(91, 12, 34);
+				background_fetch_block(107, 16, 40);
+				background_fetch_block(123, 20, 46);
+				background_fetch_block(139, 24, 52);	// TODO: this and the next one should ignore master_system_.vertical_scroll.
+				background_fetch_block(156, 28, 58);
 
 				return;
 			}
 
-#undef background_render_block
+#undef background_fetch_block
+#undef fetch_tile
+#undef fetch_tile_name
 #undef sprite_y_read
-#undef sprite_render_block
+#undef sprite_fetch_block
+#undef sprite_fetch
 		}
 
 #undef external_slot

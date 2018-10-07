@@ -573,10 +573,12 @@ void TMS9918::set_register(int address, uint8_t value) {
 
 			case 5:
 				sprite_attribute_table_address_ = static_cast<uint16_t>((low_write_ & 0x7f) << 7);
+				if(is_sega_vdp(personality_)) sprite_attribute_table_address_ |= 0x7f;
 			break;
 
 			case 6:
 				sprite_generator_table_address_ = static_cast<uint16_t>((low_write_ & 0x07) << 11);
+				if(is_sega_vdp(personality_)) sprite_generator_table_address_ |= 0x7ff;
 			break;
 
 			case 7:
