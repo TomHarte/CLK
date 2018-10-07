@@ -560,25 +560,23 @@ void TMS9918::set_register(int address, uint8_t value) {
 			break;
 
 			case 2:
-				pattern_name_address_ = static_cast<uint16_t>((low_write_ & 0xf) << 10);
+				pattern_name_address_ = size_t((low_write_ & 0xf) << 10) | 0x3ff;
 			break;
 
 			case 3:
-				colour_table_address_ = static_cast<uint16_t>(low_write_ << 6);
+				colour_table_address_ = size_t(low_write_ << 6) | 0x1f;
 			break;
 
 			case 4:
-				pattern_generator_table_address_ = static_cast<uint16_t>((low_write_ & 0x07) << 11);
+				pattern_generator_table_address_ = size_t((low_write_ & 0x07) << 11) | 0x7ff;
 			break;
 
 			case 5:
-				sprite_attribute_table_address_ = static_cast<uint16_t>((low_write_ & 0x7f) << 7);
-				if(is_sega_vdp(personality_)) sprite_attribute_table_address_ |= 0x7f;
+				sprite_attribute_table_address_ = size_t((low_write_ & 0x7f) << 7) | 0x7f;
 			break;
 
 			case 6:
-				sprite_generator_table_address_ = static_cast<uint16_t>((low_write_ & 0x07) << 11);
-				if(is_sega_vdp(personality_)) sprite_generator_table_address_ |= 0x7ff;
+				sprite_generator_table_address_ = size_t((low_write_ & 0x07) << 11) | 0x7ff;
 			break;
 
 			case 7:
@@ -605,14 +603,15 @@ void TMS9918::set_register(int address, uint8_t value) {
 			break;
 
 			default:
-				printf("%d to %d\n", low_write_, value);
+				printf("Unknown TMS write: %d to %d\n", low_write_, value);
 			break;
 		}
 	} else {
-		// This is a write to the RAM pointer.
+		// This is an access via the RAM pointer.
 		ram_pointer_ = static_cast<uint16_t>(low_write_ | (value << 8));
 		if(!(value & 0x40)) {
-			// Officially a 'read' set, so perform lookahead.
+			// A read request is enqueued upon setting the address; conversely a write
+			// won't be enqueued unless and until some actual data is supplied.
 			queued_access_ = MemoryAccess::Read;
 		}
 		master_system_.cram_is_selected = false;
@@ -788,14 +787,21 @@ void Base::draw_sms(int start, int end) {
 			pattern = *reinterpret_cast<uint32_t *>(sprite_set_.active_sprites[c].image);
 			for(int ox = x; ox < x+8; ox++) {
 				if(ox >= 0 && ox < 256) {
-					pixel_origin_[ox] =
-						master_system_.colour_ram[
+					if(
 							((pattern_index[3] & 0x80) >> 4) |
 							((pattern_index[2] & 0x80) >> 5) |
 							((pattern_index[1] & 0x80) >> 6) |
-							((pattern_index[0] & 0x80) >> 7) |
-							0x10
-						];
+							((pattern_index[0] & 0x80) >> 7)
+					) {
+						pixel_origin_[ox] =
+							master_system_.colour_ram[
+								((pattern_index[3] & 0x80) >> 4) |
+								((pattern_index[2] & 0x80) >> 5) |
+								((pattern_index[1] & 0x80) >> 6) |
+								((pattern_index[0] & 0x80) >> 7) |
+								0x10
+							];
+					}
 				}
 				pattern <<= 1;
 			}

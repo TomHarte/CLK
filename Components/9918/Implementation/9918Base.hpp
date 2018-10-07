@@ -276,8 +276,6 @@ class Base {
 
 
 		void do_external_slot() {
-			// TODO: write or read a value if one is queued and ready to read/write.
-			// (and, later: update the command engine, if this is an MSX2).
 			switch(queued_access_) {
 				default: return;
 
@@ -427,8 +425,8 @@ class Base {
 	fetch_columns_4(location, column);	\
 	fetch_columns_4(location+12, column+4);
 
-			const size_t row_base = pattern_name_address_ + static_cast<size_t>(row_ >> 3) * 40;
-			const size_t row_offset = pattern_generator_table_address_ + (row_ & 7);
+			const size_t row_base = pattern_name_address_ & static_cast<size_t>(row_ >> 3) * 40;
+			const size_t row_offset = pattern_generator_table_address_ & (row_ & 7);
 
 			switch(start) {
 				default:
@@ -610,13 +608,13 @@ class Base {
 		posit_sprite(sprite, ram_[sprite_attribute_table_address_ & (sprite | 0x3f00)], row_);	\
 		posit_sprite(sprite+1, ram_[sprite_attribute_table_address_ & ((sprite + 1) | 0x3f00)], row_);	\
 
-#define fetch_tile_name(column)	{\
+#define fetch_tile_name(column, row_info)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
-		const size_t address = pattern_address_base + (scrolled_column << 1);	\
+		const size_t address = row_info.pattern_address_base + (scrolled_column << 1);	\
 		master_system_.names[column].flags = ram_[address+1];	\
 		master_system_.names[column].offset = static_cast<size_t>(	\
 			(((master_system_.names[column].flags&1) << 8) | ram_[address]) << 5	\
-		) + sub_row[(master_system_.names[column].flags&4) >> 2];	\
+		) + row_info.sub_row[(master_system_.names[column].flags&4) >> 2];	\
 	}
 
 #define fetch_tile(column)	\
@@ -625,36 +623,52 @@ class Base {
 	master_system_.tile_graphics[column][2] = ram_[master_system_.names[column].offset+2];	\
 	master_system_.tile_graphics[column][3] = ram_[master_system_.names[column].offset+3];
 
-#define background_fetch_block(location, column, sprite)	\
-	slot(location):	fetch_tile_name(column)		\
+#define background_fetch_block(location, column, sprite, row_info)	\
+	slot(location):	fetch_tile_name(column, row_info)		\
 	external_slot(location+1);					\
 	slot(location+2):	\
 	slot(location+3):	\
 	slot(location+4):	\
 		fetch_tile(column)					\
-		fetch_tile_name(column+1)			\
+		fetch_tile_name(column+1, row_info)			\
 		sprite_y_read(location+5, sprite);	\
 	slot(location+6):	\
 	slot(location+7): 	\
 	slot(location+8):	\
 		fetch_tile(column+1)					\
-		fetch_tile_name(column+2)				\
+		fetch_tile_name(column+2, row_info)				\
 		sprite_y_read(location+9, sprite+2);	\
 	slot(location+10):	\
 	slot(location+11):	\
 	slot(location+12): 	\
 		fetch_tile(column+2)					\
-		fetch_tile_name(column+3)				\
+		fetch_tile_name(column+3, row_info)				\
 		sprite_y_read(location+13, sprite+4);	\
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
 
-			const int scrolled_row = (row_ + master_system_.vertical_scroll) % 224;
-
-			const size_t pattern_address_base = (pattern_name_address_ | size_t(0x3ff)) & static_cast<size_t>(((scrolled_row & ~7) << 3) | 0x3800);
-			const size_t sub_row[2] = {static_cast<size_t>((scrolled_row & 7) << 2), 28 ^ static_cast<size_t>((scrolled_row & 7) << 2)};
+			// Determine the coarse horizontal scrolling offset; this isn't applied on the first two lines if the programmer has requested it.
 			const int horizontal_offset = (row_ >= 16 || !master_system_.horizontal_scroll_lock) ? (master_system_.horizontal_scroll >> 3) : 0;
 
+			// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
+			// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
+			const int scrolled_row = (row_ + master_system_.vertical_scroll) % 224;
+			struct RowInfo {
+				size_t pattern_address_base;
+				size_t sub_row[2];
+			};
+			const RowInfo scrolled_row_info = {
+				pattern_name_address_ & static_cast<size_t>(((scrolled_row & ~7) << 3) | 0x3800),
+				{static_cast<size_t>((scrolled_row & 7) << 2), 28 ^ static_cast<size_t>((scrolled_row & 7) << 2)}
+			};
+			RowInfo row_info;
+			if(master_system_.vertical_scroll_lock) {
+				row_info.pattern_address_base = pattern_name_address_ & static_cast<size_t>(((row_ & ~7) << 3) | 0x3800);
+				row_info.sub_row[0] = size_t((row_ & 7) << 2);
+				row_info.sub_row[1] = 28 ^ size_t((row_ & 7) << 2);
+			} else row_info = scrolled_row_info;
+
+			// ... and do the actual fetching, which follows this routine:
 			switch(start) {
 				default:
 				external_slots_4(0);
@@ -682,14 +696,14 @@ class Base {
 				sprite_y_read(41, 12);
 				sprite_y_read(42, 14);
 
-				background_fetch_block(43, 0, 16);
-				background_fetch_block(59, 4, 22);
-				background_fetch_block(75, 8, 28);
-				background_fetch_block(91, 12, 34);
-				background_fetch_block(107, 16, 40);
-				background_fetch_block(123, 20, 46);
-				background_fetch_block(139, 24, 52);	// TODO: this and the next one should ignore master_system_.vertical_scroll.
-				background_fetch_block(156, 28, 58);
+				background_fetch_block(43, 0, 16, scrolled_row_info);
+				background_fetch_block(59, 4, 22, scrolled_row_info);
+				background_fetch_block(75, 8, 28, scrolled_row_info);
+				background_fetch_block(91, 12, 34, scrolled_row_info);
+				background_fetch_block(107, 16, 40, scrolled_row_info);
+				background_fetch_block(123, 20, 46, scrolled_row_info);
+				background_fetch_block(139, 24, 52, row_info);
+				background_fetch_block(156, 28, 58, row_info);
 
 				return;
 			}
