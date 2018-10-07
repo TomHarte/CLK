@@ -616,7 +616,7 @@ class Base {
 #define sprite_y_read(location, sprite)	\
 	slot(location):	\
 		posit_sprite(sprite, ram_[(sprite_attribute_table_address_ | 0x7f) & (sprite | 0x3f00)], row_);	\
-		posit_sprite(sprite, ram_[(sprite_attribute_table_address_ | 0x7f) & ((sprite + 1) | 0x3f00)], row_);	\
+		posit_sprite(sprite+1, ram_[(sprite_attribute_table_address_ | 0x7f) & ((sprite + 1) | 0x3f00)], row_);	\
 
 #define fetch_tile_name(column)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
