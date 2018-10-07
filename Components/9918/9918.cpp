@@ -782,7 +782,7 @@ void Base::draw_sms(int start, int end) {
 			master_system_.colour_ram[16 + background_colour_];
 
 		// EXPERIMENTAL: chuck sprite outlines on as a post-fix.
-		for(int c = 0; c < sprite_set_.fetched_sprite_slot; ++c) {
+		for(int c = sprite_set_.fetched_sprite_slot - 1; c >= 0; --c) {
 			int x = -sprite_set_.active_sprites[c].shift_position;
 			pattern = *reinterpret_cast<uint32_t *>(sprite_set_.active_sprites[c].image);
 			for(int ox = x; ox < x+8; ox++) {
