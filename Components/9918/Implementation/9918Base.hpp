@@ -213,9 +213,7 @@ class Base {
 				int index = 0;
 				int row = 0;
 
-				uint8_t info[4];
-				uint8_t image[2];
-
+				uint8_t image[4];
 				int shift_position = 0;
 			} active_sprites[8];
 
@@ -582,13 +580,25 @@ class Base {
 ************************************************/
 
 		template<bool use_end> void fetch_sms(int start, int end) {
+#define sprite_fetch(sprite)	{\
+		sprite_set_.active_sprites[sprite].shift_position = -ram_[sprite_attribute_table_address_ + 128 + (sprite_set_.active_sprites[sprite].index << 1)] + (master_system_.shift_sprites_8px_left ? 8 : 0);	\
+		sprite_set_.active_sprites[sprite].image[0] =	\
+		sprite_set_.active_sprites[sprite].image[1] =	\
+		sprite_set_.active_sprites[sprite].image[2] =	\
+		sprite_set_.active_sprites[sprite].image[3] = 0xff;	\
+	}
+
+//		size_t graphic_location = sprite_generator_table_address_;	\
+
 #define sprite_fetch_block(location, sprite)	\
 	slot(location):		\
 	slot(location+1):	\
 	slot(location+2):	\
 	slot(location+3):	\
 	slot(location+4):	\
-	slot(location+5):
+	slot(location+5):	\
+		sprite_fetch(sprite);\
+		sprite_fetch(sprite+1);
 
 /*
 	TODO: sprite_render_block should fetch:
@@ -614,31 +624,35 @@ class Base {
 		) + sub_row[(master_system_.names[column].flags&4) >> 2];	\
 	}
 
-#define fetch_tile(column)	{\
-		master_system_.tile_graphics[column][0] = ram_[master_system_.names[column].offset];	\
-		master_system_.tile_graphics[column][1] = ram_[master_system_.names[column].offset+1];	\
-		master_system_.tile_graphics[column][2] = ram_[master_system_.names[column].offset+2];	\
-		master_system_.tile_graphics[column][3] = ram_[master_system_.names[column].offset+3];	\
-	}
+#define fetch_tile(column)	\
+	master_system_.tile_graphics[column][0] = ram_[master_system_.names[column].offset];	\
+	master_system_.tile_graphics[column][1] = ram_[master_system_.names[column].offset+1];	\
+	master_system_.tile_graphics[column][2] = ram_[master_system_.names[column].offset+2];	\
+	master_system_.tile_graphics[column][3] = ram_[master_system_.names[column].offset+3];
 
 #define background_render_block(location, column, sprite)	\
 	slot(location):	fetch_tile_name(column)		\
-	external_slot(location+1);	\
+	external_slot(location+1);					\
 	slot(location+2):	\
-	slot(location+3): fetch_tile(column)	\
-	slot(location+4): fetch_tile_name(column+1)	\
-	sprite_y_read(location+5, sprite);	\
+	slot(location+3):	\
+	slot(location+4):	\
+		fetch_tile(column)					\
+		fetch_tile_name(column+1)			\
+		sprite_y_read(location+5, sprite);	\
 	slot(location+6):	\
-	slot(location+7): fetch_tile(column+1)	\
-	slot(location+8): fetch_tile_name(column+2)	\
-	sprite_y_read(location+9, sprite+2);	\
+	slot(location+7): 	\
+	slot(location+8):	\
+		fetch_tile(column+1)					\
+		fetch_tile_name(column+2)				\
+		sprite_y_read(location+9, sprite+2);	\
 	slot(location+10):	\
-	slot(location+11): fetch_tile(column+2)	\
-	slot(location+12): fetch_tile_name(column+3)	\
-	sprite_y_read(location+13, sprite+4);	\
+	slot(location+11):	\
+	slot(location+12): 	\
+		fetch_tile(column+2)					\
+		fetch_tile_name(column+3)				\
+		sprite_y_read(location+13, sprite+4);	\
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
-
 
 			const int scrolled_row = (row_ + master_system_.vertical_scroll) % 224;
 			const size_t pattern_address_base = (pattern_name_address_ | size_t(0x3ff)) & static_cast<size_t>(((scrolled_row & ~7) << 3) | 0x3800);

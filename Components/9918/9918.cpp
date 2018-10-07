@@ -779,6 +779,14 @@ void Base::draw_sms(int start, int end) {
 		pixel_origin_[0] = pixel_origin_[1] = pixel_origin_[2] = pixel_origin_[3] =
 		pixel_origin_[4] = pixel_origin_[5] = pixel_origin_[6] = pixel_origin_[7] =
 			master_system_.colour_ram[16 + background_colour_];
+
+		// EXPERIMENTAL: chuck sprite outlines on as a post-fix.
+		for(int c = 0; c < sprite_set_.fetched_sprite_slot; ++c) {
+			int x = -sprite_set_.active_sprites[c].shift_position;
+			for(int ox = x; ox < x+8; ox++) {
+				if(ox >= 0 && ox < 256) pixel_origin_[ox] = 0xffffffff;
+			}
+		}
 	}
 //	const int pixels_left = pixels_end - output_column_;
 //	const int pixel_location = output_column_ - first_pixel_column_;
