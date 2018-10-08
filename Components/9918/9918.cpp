@@ -712,6 +712,13 @@ void Base::draw_tms_text(int start, int end) {
 void Base::draw_sms(int start, int end) {
 	const bool is_end = end == 256;
 
+	// If this is the very start of the line, clear the background
+	// priority mask — it will be a bitfield in which 1s indicate locations
+	// where the background should take priority over the sprites.
+	if(!start) {
+		memset(master_system_.background_priority_mask, 0, sizeof(master_system_.background_priority_mask));
+	}
+
 	// Shift the output window by the fine scroll amount, and fill in
 	// any border pixels that leaves on the left-hand side.
 	if(row_ >= 16 || !master_system_.horizontal_scroll_lock) {

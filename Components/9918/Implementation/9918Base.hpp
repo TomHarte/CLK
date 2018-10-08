@@ -154,10 +154,13 @@ class Base {
 			// then the appropriate status information will be set.
 			int maximum_visible_sprites = 4;
 
-			//
+			// Set the position, in cycles, of the two interrupts,
+			// within a line.
 			int end_of_frame_interrupt_position = 342;
 			int line_interrupt_position = -1;
 
+			// Enables or disabled the recognition of 0xd0 as a sprite
+			// list terminator.
 			bool allow_sprite_terminator = true;
 		} mode_timing_;
 
@@ -201,6 +204,7 @@ class Base {
 			} names[32];
 			uint8_t tile_graphics[32][4];
 			size_t next_column = 0;
+			uint32_t background_priority_mask[9];
 		} master_system_;
 
 		// Holds results of sprite data fetches that occur on this
@@ -406,7 +410,7 @@ class Base {
 
 		template<bool use_end> void fetch_tms_text(int start, int end) {
 #define fetch_tile_name(location, column)		slot(location): pattern_names_[column] = ram_[row_base + column];
-#define fetch_tile_pattern(location, column)	slot(location): pattern_buffer_[column] = ram_[row_offset + static_cast<size_t>(pattern_names_[column] << 3)];
+#define fetch_tile_pattern(location, column)	slot(location): pattern_buffer_[column] = ram_[row_offset + size_t(pattern_names_[column] << 3)];
 
 #define fetch_column(location, column)	\
 	fetch_tile_name(location, column);	\
@@ -425,8 +429,8 @@ class Base {
 	fetch_columns_4(location, column);	\
 	fetch_columns_4(location+12, column+4);
 
-			const size_t row_base = pattern_name_address_ & static_cast<size_t>(row_ >> 3) * 40;
-			const size_t row_offset = pattern_generator_table_address_ & (row_ & 7);
+			const size_t row_base = pattern_name_address_ & (0x3c00 | static_cast<size_t>(row_ >> 3) * 40);
+			const size_t row_offset = pattern_generator_table_address_ & (0x3800 | (row_ & 7));
 
 			switch(start) {
 				default:
