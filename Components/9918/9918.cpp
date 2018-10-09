@@ -724,12 +724,12 @@ void Base::draw_sms(int start, int end) {
 	if(row_ >= 16 || !master_system_.horizontal_scroll_lock) {
 		for(int c = start; c < (master_system_.horizontal_scroll & 7); ++c) {
 			colour_buffer[c] = 16 + background_colour_;
+			++tile_offset;
 		}
 
 		// Remove the border area from that to which tiles will be drawn.
 		tile_start = std::max(start - (master_system_.horizontal_scroll & 7), 0);
 		tile_end = std::max(end - (master_system_.horizontal_scroll & 7), 0);
-		tile_offset += master_system_.horizontal_scroll & 7;
 	}
 
 
@@ -754,7 +754,6 @@ void Base::draw_sms(int start, int end) {
 			pattern <<= shift;
 
 		while(true) {
-			pixels_left -= length;
 			const int palette_offset = (master_system_.names[byte_column].flags&0x18) << 1;
 			if(master_system_.names[byte_column].flags&2) {
 				for(int c = 0; c < length; ++c) {
@@ -780,7 +779,9 @@ void Base::draw_sms(int start, int end) {
 				}
 			}
 
+			pixels_left -= length;
 			if(!pixels_left) break;
+
 			length = std::min(8, pixels_left);
 			byte_column++;
 			pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
