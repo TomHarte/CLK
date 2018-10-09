@@ -204,7 +204,6 @@ class Base {
 			} names[32];
 			uint8_t tile_graphics[32][4];
 			size_t next_column = 0;
-			uint32_t background_priority_mask[9];
 		} master_system_;
 
 		// Holds results of sprite data fetches that occur on this
@@ -218,6 +217,7 @@ class Base {
 				int row = 0;
 
 				uint8_t image[4];
+				int x = 0;
 				int shift_position = 0;
 			} active_sprites[8];
 
@@ -459,6 +459,7 @@ class Base {
 #undef fetch_columns_4
 #undef fetch_columns_2
 #undef fetch_column
+#undef fetch_tile_pattern
 #undef fetch_tile_name
 		}
 
@@ -583,10 +584,10 @@ class Base {
 
 		template<bool use_end> void fetch_sms(int start, int end) {
 #define sprite_fetch(sprite)	{\
-		sprite_set_.active_sprites[sprite].shift_position = \
-			-ram_[\
+		sprite_set_.active_sprites[sprite].x = \
+			ram_[\
 				sprite_attribute_table_address_ & size_t(0x3f80 | (sprite_set_.active_sprites[sprite].index << 1))\
-			] + (master_system_.shift_sprites_8px_left ? size_t(8) : size_t(0));	\
+			] - (master_system_.shift_sprites_8px_left ? size_t(8) : size_t(0));	\
 		const uint8_t name = ram_[\
 				sprite_attribute_table_address_ & size_t(0x3f81 | (sprite_set_.active_sprites[sprite].index << 1))\
 			];\

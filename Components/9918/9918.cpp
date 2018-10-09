@@ -95,6 +95,10 @@ void Base::reset_sprite_collection() {
 	sprite_set_.sprites_stopped = false;
 	sprite_set_.fetched_sprite_slot = sprite_set_.active_sprite_slot;
 	sprite_set_.active_sprite_slot = 0;
+
+	for(int c = 0; c < sprite_set_.fetched_sprite_slot; ++c) {
+		sprite_set_.active_sprites[c].shift_position = 0;
+	}
 }
 
 void Base::posit_sprite(int sprite_number, int sprite_position, int screen_row) {
@@ -710,108 +714,135 @@ void Base::draw_tms_text(int start, int end) {
 }
 
 void Base::draw_sms(int start, int end) {
+	int colour_buffer[256];
 	const bool is_end = end == 256;
 
-	// If this is the very start of the line, clear the background
-	// priority mask — it will be a bitfield in which 1s indicate locations
-	// where the background should take priority over the sprites.
-	if(!start) {
-		memset(master_system_.background_priority_mask, 0, sizeof(master_system_.background_priority_mask));
-	}
-
-	// Shift the output window by the fine scroll amount, and fill in
-	// any border pixels that leaves on the left-hand side.
+	/*
+		Add extra border for any pixels that fall before the fine scroll.
+	*/
+	int tile_start = start, tile_end = end;
 	if(row_ >= 16 || !master_system_.horizontal_scroll_lock) {
-		start -= master_system_.horizontal_scroll & 7;
-		end -= master_system_.horizontal_scroll & 7;
-		if(start < 0) {
-			while(start < end && start < 0) {
-				*pixel_target_ = master_system_.colour_ram[16 + background_colour_];
-				++pixel_target_;
-				++start;
-			}
-			if(start == end) return;
+		for(int c = start; c < (master_system_.horizontal_scroll & 7); ++c) {
+			colour_buffer[c] = 16 + background_colour_;
 		}
+		tile_start -= master_system_.horizontal_scroll & 7;
+		tile_end -= master_system_.horizontal_scroll & 7;
 	}
 
-	const int shift = start & 7;
-	int byte_column = start >> 3;
-	int pixels_left = end - start;
-	int length = std::min(pixels_left, 8 - shift);
 
-	uint32_t pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
+	uint32_t pattern;
 	uint8_t *const pattern_index = reinterpret_cast<uint8_t *>(&pattern);
 
-	if(master_system_.names[byte_column].flags&2)
-		pattern >>= shift;
-	else
-		pattern <<= shift;
+	/*
+		Add background tiles; these will fill the colour_buffer with values in which
+		the low five bits are a palette index, and bit six is set if this tile has
+		priority over sprites.
+	*/
+	if(tile_start < end) {
+		int offset = (master_system_.horizontal_scroll & 7) + tile_start;
+		const int shift = tile_start & 7;
+		int byte_column = tile_start >> 3;
+		int pixels_left = tile_end - tile_start;
+		int length = std::min(pixels_left, 8 - shift);
 
-	while(true) {
-		pixels_left -= length;
-		const int palette_offset = (master_system_.names[byte_column].flags&0x08) << 1;
-		if(master_system_.names[byte_column].flags&2) {
-			for(int c = 0; c < length; ++c) {
-				const int value =
-					((pattern_index[3] & 0x01) << 3) |
-					((pattern_index[2] & 0x01) << 2) |
-					((pattern_index[1] & 0x01) << 1) |
-					((pattern_index[0] & 0x01) << 0) |
-					palette_offset;
-				pixel_target_[c] = master_system_.colour_ram[value];
-				pattern >>= 1;
+		pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
+		if(master_system_.names[byte_column].flags&2)
+			pattern >>= shift;
+		else
+			pattern <<= shift;
+
+		while(true) {
+			pixels_left -= length;
+			const int palette_offset = (master_system_.names[byte_column].flags&0x18) << 1;
+			if(master_system_.names[byte_column].flags&2) {
+				for(int c = 0; c < length; ++c) {
+					colour_buffer[offset] =
+						((pattern_index[3] & 0x01) << 3) |
+						((pattern_index[2] & 0x01) << 2) |
+						((pattern_index[1] & 0x01) << 1) |
+						((pattern_index[0] & 0x01) << 0) |
+						palette_offset;
+					++offset;
+					pattern >>= 1;
+				}
+			} else {
+				for(int c = 0; c < length; ++c) {
+					colour_buffer[offset] =
+						((pattern_index[3] & 0x80) >> 4) |
+						((pattern_index[2] & 0x80) >> 5) |
+						((pattern_index[1] & 0x80) >> 6) |
+						((pattern_index[0] & 0x80) >> 7) |
+						palette_offset;
+					++offset;
+					pattern <<= 1;
+				}
 			}
-		} else {
-			for(int c = 0; c < length; ++c) {
-				const int value =
-					((pattern_index[3] & 0x80) >> 4) |
-					((pattern_index[2] & 0x80) >> 5) |
-					((pattern_index[1] & 0x80) >> 6) |
-					((pattern_index[0] & 0x80) >> 7) |
-					palette_offset;
-				pixel_target_[c] = master_system_.colour_ram[value];
-				pattern <<= 1;
+
+			if(!pixels_left) break;
+			length = std::min(8, pixels_left);
+			byte_column++;
+			pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
+		}
+	}
+
+	/*
+		Apply sprites (if any).
+	*/
+	if(sprite_set_.fetched_sprite_slot) {
+		int sprite_buffer[256];
+		int sprite_collision = 0;
+		memset(&sprite_buffer[start], 0, size_t(end - start)*sizeof(int));
+
+		// Draw all sprites into the sprite buffer.
+		for(int index = sprite_set_.fetched_sprite_slot - 1; index >= 0; --index) {
+			SpriteSet::ActiveSprite &sprite = sprite_set_.active_sprites[index];
+			if(sprite.shift_position < 16) {
+				int pixel_start = std::max(start, sprite.x);
+
+				// TODO: it feels like the work below should be simplifiable;
+				// the double shift in particular, and hopefully the variable shift.
+				for(int c = pixel_start; c < end && sprite.shift_position < 16; ++c) {
+					const int shift = (sprite.shift_position >> 1);
+					const int sprite_colour =
+						(((sprite.image[3] << shift) & 0x80) >> 4) |
+						(((sprite.image[2] << shift) & 0x80) >> 5) |
+						(((sprite.image[1] << shift) & 0x80) >> 6) |
+						(((sprite.image[0] << shift) & 0x80) >> 7);
+
+					if(sprite_colour) {
+						sprite_collision |= sprite_buffer[c];
+						sprite_buffer[c] = sprite_colour | 0x10;
+					}
+
+					sprite.shift_position += sprites_magnified_ ? 1 : 2;
+				}
 			}
 		}
-		pixel_target_ += length;
 
-		if(!pixels_left) break;
-		length = std::min(8, pixels_left);
-		byte_column++;
-		pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
+		// Draw the sprite buffer onto the colour buffer, wherever the tile map doesn't have
+		// priority (or is transparent).
+		for(int c = start; c < end; ++c) {
+			if(
+				sprite_buffer[c] &&
+				(!(colour_buffer[c]&0x20) || !(colour_buffer[c]&0xf))
+			) colour_buffer[c] = sprite_buffer[c];
+		}
+
+		if(sprite_collision) status_ |= StatusSpriteCollision;
+	}
+
+	// Map from the 32-colour buffer to real output pixels.
+	for(int c = start; c < end; ++c) {
+		pixel_target_[c] = master_system_.colour_ram[colour_buffer[c] & 0x1f];
 	}
 
 	// If the VDP is set to hide the left column and this is the final call that'll come
 	// this line, hide it.
-	if(is_end && master_system_.hide_left_column) {
-		pixel_origin_[0] = pixel_origin_[1] = pixel_origin_[2] = pixel_origin_[3] =
-		pixel_origin_[4] = pixel_origin_[5] = pixel_origin_[6] = pixel_origin_[7] =
-			master_system_.colour_ram[16 + background_colour_];
-
-		// EXPERIMENTAL: chuck sprite outlines on as a post-fix.
-		for(int c = sprite_set_.fetched_sprite_slot - 1; c >= 0; --c) {
-			int x = -sprite_set_.active_sprites[c].shift_position;
-			pattern = *reinterpret_cast<uint32_t *>(sprite_set_.active_sprites[c].image);
-			for(int ox = x; ox < x+8; ox++) {
-				if(ox >= 0 && ox < 256) {
-					if(
-							((pattern_index[3] & 0x80) >> 4) |
-							((pattern_index[2] & 0x80) >> 5) |
-							((pattern_index[1] & 0x80) >> 6) |
-							((pattern_index[0] & 0x80) >> 7)
-					) {
-						pixel_origin_[ox] =
-							master_system_.colour_ram[
-								((pattern_index[3] & 0x80) >> 4) |
-								((pattern_index[2] & 0x80) >> 5) |
-								((pattern_index[1] & 0x80) >> 6) |
-								((pattern_index[0] & 0x80) >> 7) |
-								0x10
-							];
-					}
-				}
-				pattern <<= 1;
-			}
+	if(is_end) {
+		if(master_system_.hide_left_column) {
+			pixel_origin_[0] = pixel_origin_[1] = pixel_origin_[2] = pixel_origin_[3] =
+			pixel_origin_[4] = pixel_origin_[5] = pixel_origin_[6] = pixel_origin_[7] =
+				master_system_.colour_ram[16 + background_colour_];
 		}
 	}
 }
