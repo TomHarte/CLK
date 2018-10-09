@@ -720,6 +720,7 @@ void Base::draw_sms(int start, int end) {
 		Add extra border for any pixels that fall before the fine scroll.
 	*/
 	int tile_start = start, tile_end = end;
+	int tile_offset = start;
 	if(row_ >= 16 || !master_system_.horizontal_scroll_lock) {
 		for(int c = start; c < (master_system_.horizontal_scroll & 7); ++c) {
 			colour_buffer[c] = 16 + background_colour_;
@@ -728,6 +729,7 @@ void Base::draw_sms(int start, int end) {
 		// Remove the border area from that to which tiles will be drawn.
 		tile_start = std::max(start - (master_system_.horizontal_scroll & 7), 0);
 		tile_end = std::max(end - (master_system_.horizontal_scroll & 7), 0);
+		tile_offset += master_system_.horizontal_scroll & 7;
 	}
 
 
@@ -740,7 +742,6 @@ void Base::draw_sms(int start, int end) {
 		priority over sprites.
 	*/
 	if(tile_start < end) {
-		int offset = (master_system_.horizontal_scroll & 7) + tile_start;
 		const int shift = tile_start & 7;
 		int byte_column = tile_start >> 3;
 		int pixels_left = tile_end - tile_start;
@@ -757,24 +758,24 @@ void Base::draw_sms(int start, int end) {
 			const int palette_offset = (master_system_.names[byte_column].flags&0x18) << 1;
 			if(master_system_.names[byte_column].flags&2) {
 				for(int c = 0; c < length; ++c) {
-					colour_buffer[offset] =
+					colour_buffer[tile_offset] =
 						((pattern_index[3] & 0x01) << 3) |
 						((pattern_index[2] & 0x01) << 2) |
 						((pattern_index[1] & 0x01) << 1) |
 						((pattern_index[0] & 0x01) << 0) |
 						palette_offset;
-					++offset;
+					++tile_offset;
 					pattern >>= 1;
 				}
 			} else {
 				for(int c = 0; c < length; ++c) {
-					colour_buffer[offset] =
+					colour_buffer[tile_offset] =
 						((pattern_index[3] & 0x80) >> 4) |
 						((pattern_index[2] & 0x80) >> 5) |
 						((pattern_index[1] & 0x80) >> 6) |
 						((pattern_index[0] & 0x80) >> 7) |
 						palette_offset;
-					++offset;
+					++tile_offset;
 					pattern <<= 1;
 				}
 			}
