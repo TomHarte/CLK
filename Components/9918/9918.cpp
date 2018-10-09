@@ -715,7 +715,6 @@ void Base::draw_tms_text(int start, int end) {
 
 void Base::draw_sms(int start, int end) {
 	int colour_buffer[256];
-	const bool is_end = end == 256;
 
 	/*
 		Add extra border for any pixels that fall before the fine scroll.
@@ -725,8 +724,10 @@ void Base::draw_sms(int start, int end) {
 		for(int c = start; c < (master_system_.horizontal_scroll & 7); ++c) {
 			colour_buffer[c] = 16 + background_colour_;
 		}
-		tile_start -= master_system_.horizontal_scroll & 7;
-		tile_end -= master_system_.horizontal_scroll & 7;
+
+		// Remove the border area from that to which tiles will be drawn.
+		tile_start = std::max(start - (master_system_.horizontal_scroll & 7), 0);
+		tile_end = std::max(end - (master_system_.horizontal_scroll & 7), 0);
 	}
 
 
@@ -838,7 +839,7 @@ void Base::draw_sms(int start, int end) {
 
 	// If the VDP is set to hide the left column and this is the final call that'll come
 	// this line, hide it.
-	if(is_end) {
+	if(end == 256) {
 		if(master_system_.hide_left_column) {
 			pixel_origin_[0] = pixel_origin_[1] = pixel_origin_[2] = pixel_origin_[3] =
 			pixel_origin_[4] = pixel_origin_[5] = pixel_origin_[6] = pixel_origin_[7] =
