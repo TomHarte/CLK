@@ -560,10 +560,14 @@ uint8_t TMS9918::get_register(int address) {
 	}
 
 	// Figure out the number of internal cycles until the next line interrupt.
-	const int local_cycles_until_line_interrupt = ((mode_timing_.line_interrupt_position - column_ + 342) % 342) + (next_line_interrupt_row - row_) * 342;
+	int local_cycles_until_line_interrupt = ((mode_timing_.line_interrupt_position - column_ + 342) % 342) + (next_line_interrupt_row - row_) * 342;
+	local_cycles_until_line_interrupt <<= 2;
+	local_cycles_until_line_interrupt -= cycles_error_;
 
-	// Map that to input cycles by multiplying by 2/3 (and incrementing on any carry).
-	auto time_until_line_interrupt = HalfCycles( (local_cycles_until_line_interrupt * 6 + 7) / 4);
+	// Map that to input cycles by multiplying by 2/3 (and incrementing on any carry, TODO: allowing for current error).
+	auto time_until_line_interrupt = HalfCycles(local_cycles_until_line_interrupt / 3);
+
+	if(!generate_interrupts_) return time_until_line_interrupt;
 
 	// Return whichever interrupt is closer.
 	return std::min(time_until_frame_interrupt, time_until_line_interrupt);
