@@ -486,7 +486,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 
 			case 10:
 				if(is_sega_vdp(personality_)) {
-					line_interrupt_target = value;
+					line_interrupt_target = low_write_;
 				}
 			break;
 
@@ -559,8 +559,12 @@ uint8_t TMS9918::get_register(int address) {
 		return generate_interrupts_ ? time_until_frame_interrupt : HalfCycles(-1);
 	}
 
-	// Figure out the number of internal cycles until the next line interrupt.
-	int local_cycles_until_line_interrupt = ((mode_timing_.line_interrupt_position - column_ + 342) % 342) + (next_line_interrupt_row - row_) * 342;
+	// Figure out the number of internal cycles until the next line interrupt, which is the amount
+	// of time to the next tick over and then next_line_interrupt_row - row_ lines further.
+	int local_cycles_until_next_tick = (mode_timing_.line_interrupt_position - column_ + 342) % 342;
+	if(!local_cycles_until_next_tick) local_cycles_until_next_tick += 342;
+
+	int local_cycles_until_line_interrupt = local_cycles_until_next_tick + (next_line_interrupt_row - row_) * 342;
 	local_cycles_until_line_interrupt <<= 2;
 	local_cycles_until_line_interrupt -= cycles_error_;
 

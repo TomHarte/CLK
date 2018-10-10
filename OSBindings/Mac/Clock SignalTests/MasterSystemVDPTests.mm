@@ -59,11 +59,24 @@
 
 	// Check interrupt flag isn't set prior to the reported time.
 	vdp.run_for(HalfCycles(time_until_interrupt));
-	NSAssert(!vdp.get_interrupt_line(), @"Interrupt line went active early");
+	NSAssert(!vdp.get_interrupt_line(), @"Interrupt line went active early [1]");
 
 	// Check interrupt flag is set at the reported time.
 	vdp.run_for(HalfCycles(1));
-	NSAssert(vdp.get_interrupt_line(), @"Interrupt line wasn't set when promised");
+	NSAssert(vdp.get_interrupt_line(), @"Interrupt line wasn't set when promised [1]");
+
+	// Read the status register to clear interrupt status.
+	vdp.get_register(1);
+	NSAssert(!vdp.get_interrupt_line(), @"Interrupt wasn't reset by status read");
+
+	// Check interrupt flag isn't set prior to the reported time.
+	time_until_interrupt = vdp.get_time_until_interrupt().as_int() - 1;
+	vdp.run_for(HalfCycles(time_until_interrupt));
+	NSAssert(!vdp.get_interrupt_line(), @"Interrupt line went active early [2]");
+
+	// Check interrupt flag is set at the reported time.
+	vdp.run_for(HalfCycles(1));
+	NSAssert(vdp.get_interrupt_line(), @"Interrupt line wasn't set when promised [2]");
 }
 
 @end
