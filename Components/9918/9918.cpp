@@ -305,142 +305,26 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		// -----------------
 
 
-/*
-
-			// --------------
-			// Output pixels.
-			// --------------
-
-
-						case LineMode::Character: {
-							// If this is the start of the visible area, seed sprite shifter positions.
-							SpriteSet &sprite_set = sprite_sets_[active_sprite_set_ ^ 1];
-							if(output_column_ == first_pixel_column_) {
-								int c = sprite_set.active_sprite_slot;
-								while(c--) {
-									SpriteSet::ActiveSprite &sprite = sprite_set.active_sprites[c];
-									sprite.shift_position = -sprite.info[1];
-									if(sprite.info[3] & 0x80) {
-										sprite.shift_position += 32;
-										if(sprite.shift_position > 0 && !sprites_magnified_)
-											sprite.shift_position *= 2;
-									}
-								}
-							}
-
-							// Paint the background tiles.
-							const int pixels_left = pixels_end - output_column_;
-							if(current_mode_ == ScreenMode::MultiColour) {
-								int pixel_location = output_column_ - first_pixel_column_;
-								for(int c = 0; c < pixels_left; ++c) {
-									pixel_target_[c] = palette[
-										(pattern_buffer_[(pixel_location + c) >> 3] >> (((pixel_location + c) & 4)^4)) & 15
-									];
-								}
-								pixel_target_ += pixels_left;
-							} else {
-								const int shift = (output_column_ - first_pixel_column_) & 7;
-								int byte_column = (output_column_ - first_pixel_column_) >> 3;
-
-								int length = std::min(pixels_left, 8 - shift);
-
-								int pattern = reverse_table.map[pattern_buffer_[byte_column]] >> shift;
-								uint8_t colour = colour_buffer_[byte_column];
-								uint32_t colours[2] = {
-									palette[(colour & 15) ? (colour & 15) : background_colour_],
-									palette[(colour >> 4) ? (colour >> 4) : background_colour_]
-								};
-
-								int background_pixels_left = pixels_left;
-								while(true) {
-									background_pixels_left -= length;
-									for(int c = 0; c < length; ++c) {
-										pixel_target_[c] = colours[pattern&0x01];
-										pattern >>= 1;
-									}
-									pixel_target_ += length;
-
-									if(!background_pixels_left) break;
-									length = std::min(8, background_pixels_left);
-									byte_column++;
-
-									pattern = reverse_table.map[pattern_buffer_[byte_column]];
-									colour = colour_buffer_[byte_column];
-									colours[0] = palette[(colour & 15) ? (colour & 15) : background_colour_];
-									colours[1] = palette[(colour >> 4) ? (colour >> 4) : background_colour_];
-								}
-							}
-
-							// Paint sprites and check for collisions, but only if at least one sprite is active
-							// on this line.
-							if(sprite_set.active_sprite_slot) {
-								int sprite_pixels_left = pixels_left;
-								const int shift_advance = sprites_magnified_ ? 1 : 2;
-
-								static const uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
-								static const int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
-
-								while(sprite_pixels_left--) {
-									// sprite_colour is the colour that's going to reach the display after sprite logic has been
-									// applied; by default assume that nothing is going to be drawn.
-									uint32_t sprite_colour = pixel_base_[output_column_ - first_pixel_column_];
-
-									// The sprite_mask is used to keep track of whether two sprites have both sought to output
-									// a pixel at the same location, and to feed that into the status register's sprite
-									// collision bit.
-									int sprite_mask = 0;
-
-									int c = sprite_set.active_sprite_slot;
-									while(c--) {
-										SpriteSet::ActiveSprite &sprite = sprite_set.active_sprites[c];
-
-										if(sprite.shift_position < 0) {
-											sprite.shift_position++;
-											continue;
-										} else if(sprite.shift_position < 32) {
-											int mask = sprite.image[sprite.shift_position >> 4] << ((sprite.shift_position&15) >> 1);
-											mask = (mask >> 7) & 1;
-
-											// Ignore the right half of whatever was collected if sprites are not in 16x16 mode.
-											if(sprite.shift_position < (sprites_16x16_ ? 32 : 16)) {
-												// If any previous sprite has been painted in this column and this sprite
-												// has this pixel set, set the sprite collision status bit.
-												status_ |= (mask & sprite_mask) << StatusSpriteCollisionShift;
-												sprite_mask |= mask;
-
-												// Check that the sprite colour is not transparent
-												mask &= colour_masks[sprite.info[3]&15];
-												sprite_colour = (sprite_colour & sprite_colour_selection_masks[mask^1]) | (palette[sprite.info[3]&15] & sprite_colour_selection_masks[mask]);
-											}
-
-											sprite.shift_position += shift_advance;
-										}
-									}
-
-									// Output whichever sprite colour was on top.
-									pixel_base_[output_column_ - first_pixel_column_] = sprite_colour;
-									output_column_++;
-								}
-							}
-
-							output_column_ = pixels_end;
-						} break;
-					}
-
-
- 		}*/
 
 
 		if(column_ < mode_timing_.line_interrupt_position && end_column >= mode_timing_.line_interrupt_position) {
-			if(row_ <= mode_timing_.pixel_lines) {
-				--line_interrupt_counter;
-				if(line_interrupt_counter == 0xff) {
-//					line_interrupt_pending_ = true;
+			// The Sega VDP offers a decrementing counter for triggering line interrupts;
+			// it is reloaded either when it overflows or upon every non-pixel line after the first.
+			// It is otherwise decremented.
+			if(is_sega_vdp(personality_)) {
+				if(row_ <= mode_timing_.pixel_lines) {
+					--line_interrupt_counter;
+					if(line_interrupt_counter == 0xff) {
+						line_interrupt_pending_ = true;
+						line_interrupt_counter = line_interrupt_target;
+					}
+				} else {
 					line_interrupt_counter = line_interrupt_target;
 				}
-			} else {
-				line_interrupt_counter = line_interrupt_target;
 			}
+
+			// TODO: the V9938 provides line interrupts from direct specification of the target line.
+			// So life is easy.
 		}
 
 
@@ -652,28 +536,37 @@ uint8_t TMS9918::get_register(int address) {
 	const int half_cycles_per_frame = mode_timing_.total_lines * 228 * 2;
 	const int half_cycles_remaining = (192 * 228 * 2 + half_cycles_per_frame - half_cycles_into_frame_.as_int()) % half_cycles_per_frame;
 	const auto time_until_frame_interrupt = HalfCycles(half_cycles_remaining ? half_cycles_remaining : half_cycles_per_frame);
+	if(!enable_line_interrupts_) return time_until_frame_interrupt;
 
-	// Calculate the number of times the line interrupt position will be decremented this frame.
-//	return HalfCycles(20);
-/*	auto time_until_line_count = mode_timing_.line_interrupt_position - row_;
-	auto decrements_left_this_frame = mode_timing_.pixel_lines - row_;
-	if(time_until_line_count > 0) {
-		++decrements_left_this_frame;
+	// Calculate the row upon which the next line interrupt will occur;
+	int next_line_interrupt_row = -1;
+
+	if(is_sega_vdp(personality_)) {
+		// If there is still time for a line interrupt this frame, that'll be it;
+		// otherwise it'll be on the next frame, supposing there's ever time for
+		// it at all.
+		if(row_+line_interrupt_counter <= mode_timing_.pixel_lines) {
+			next_line_interrupt_row = row_+line_interrupt_counter;
+		} else {
+			if(line_interrupt_target <= mode_timing_.pixel_lines)
+				next_line_interrupt_row = mode_timing_.total_lines + line_interrupt_target;
+		}
 	}
 
-	// If that's enough to underflow the line counter, there's the next interupt.
-	HalfCycles time_until_line_interrupt;
-	if(decrements_left_this_frame >= line_interrupt_counter+1) {
-		time_until_line_interrupt = HalfCycles
+	// If there's actually no interrupt upcoming, despite being enabled, either return
+	// the frame end interrupt or no interrupt pending as appropriate.
+	if(next_line_interrupt_row == -1) {
+		return generate_interrupts_ ? time_until_frame_interrupt : HalfCycles(-1);
 	}
 
-	if(!enable_line_interrupts_) {
-		return time_until_frame_interrupt;
-	} else if(!generate_interrupts_) {
+	// Figure out the number of internal cycles until the next line interrupt.
+	const int local_cycles_until_line_interrupt = ((mode_timing_.line_interrupt_position - column_ + 342) % 342) + (next_line_interrupt_row - row_) * 342;
 
-	}*/
+	// Map that to input cycles by multiplying by 2/3 (and incrementing on any carry).
+	auto time_until_line_interrupt = HalfCycles( (local_cycles_until_line_interrupt * 6 + 7) / 4);
 
-	return time_until_frame_interrupt;
+	// Return whichever interrupt is closer.
+	return std::min(time_until_frame_interrupt, time_until_line_interrupt);
 }
 
 bool TMS9918::get_interrupt_line() {
@@ -688,6 +581,130 @@ void Base::draw_tms_character(int start, int end) {
 //	for(int c = start; c < end; ++c) {
 //		pixel_target_[c] = static_cast<uint32_t>(c * 0x01010101);
 //	}
+/*
+
+			// --------------
+			// Output pixels.
+			// --------------
+
+
+						case LineMode::Character: {
+							// If this is the start of the visible area, seed sprite shifter positions.
+							SpriteSet &sprite_set = sprite_sets_[active_sprite_set_ ^ 1];
+							if(output_column_ == first_pixel_column_) {
+								int c = sprite_set.active_sprite_slot;
+								while(c--) {
+									SpriteSet::ActiveSprite &sprite = sprite_set.active_sprites[c];
+									sprite.shift_position = -sprite.info[1];
+									if(sprite.info[3] & 0x80) {
+										sprite.shift_position += 32;
+										if(sprite.shift_position > 0 && !sprites_magnified_)
+											sprite.shift_position *= 2;
+									}
+								}
+							}
+
+							// Paint the background tiles.
+							const int pixels_left = pixels_end - output_column_;
+							if(current_mode_ == ScreenMode::MultiColour) {
+								int pixel_location = output_column_ - first_pixel_column_;
+								for(int c = 0; c < pixels_left; ++c) {
+									pixel_target_[c] = palette[
+										(pattern_buffer_[(pixel_location + c) >> 3] >> (((pixel_location + c) & 4)^4)) & 15
+									];
+								}
+								pixel_target_ += pixels_left;
+							} else {
+								const int shift = (output_column_ - first_pixel_column_) & 7;
+								int byte_column = (output_column_ - first_pixel_column_) >> 3;
+
+								int length = std::min(pixels_left, 8 - shift);
+
+								int pattern = reverse_table.map[pattern_buffer_[byte_column]] >> shift;
+								uint8_t colour = colour_buffer_[byte_column];
+								uint32_t colours[2] = {
+									palette[(colour & 15) ? (colour & 15) : background_colour_],
+									palette[(colour >> 4) ? (colour >> 4) : background_colour_]
+								};
+
+								int background_pixels_left = pixels_left;
+								while(true) {
+									background_pixels_left -= length;
+									for(int c = 0; c < length; ++c) {
+										pixel_target_[c] = colours[pattern&0x01];
+										pattern >>= 1;
+									}
+									pixel_target_ += length;
+
+									if(!background_pixels_left) break;
+									length = std::min(8, background_pixels_left);
+									byte_column++;
+
+									pattern = reverse_table.map[pattern_buffer_[byte_column]];
+									colour = colour_buffer_[byte_column];
+									colours[0] = palette[(colour & 15) ? (colour & 15) : background_colour_];
+									colours[1] = palette[(colour >> 4) ? (colour >> 4) : background_colour_];
+								}
+							}
+
+							// Paint sprites and check for collisions, but only if at least one sprite is active
+							// on this line.
+							if(sprite_set.active_sprite_slot) {
+								int sprite_pixels_left = pixels_left;
+								const int shift_advance = sprites_magnified_ ? 1 : 2;
+
+								static const uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
+								static const int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+
+								while(sprite_pixels_left--) {
+									// sprite_colour is the colour that's going to reach the display after sprite logic has been
+									// applied; by default assume that nothing is going to be drawn.
+									uint32_t sprite_colour = pixel_base_[output_column_ - first_pixel_column_];
+
+									// The sprite_mask is used to keep track of whether two sprites have both sought to output
+									// a pixel at the same location, and to feed that into the status register's sprite
+									// collision bit.
+									int sprite_mask = 0;
+
+									int c = sprite_set.active_sprite_slot;
+									while(c--) {
+										SpriteSet::ActiveSprite &sprite = sprite_set.active_sprites[c];
+
+										if(sprite.shift_position < 0) {
+											sprite.shift_position++;
+											continue;
+										} else if(sprite.shift_position < 32) {
+											int mask = sprite.image[sprite.shift_position >> 4] << ((sprite.shift_position&15) >> 1);
+											mask = (mask >> 7) & 1;
+
+											// Ignore the right half of whatever was collected if sprites are not in 16x16 mode.
+											if(sprite.shift_position < (sprites_16x16_ ? 32 : 16)) {
+												// If any previous sprite has been painted in this column and this sprite
+												// has this pixel set, set the sprite collision status bit.
+												status_ |= (mask & sprite_mask) << StatusSpriteCollisionShift;
+												sprite_mask |= mask;
+
+												// Check that the sprite colour is not transparent
+												mask &= colour_masks[sprite.info[3]&15];
+												sprite_colour = (sprite_colour & sprite_colour_selection_masks[mask^1]) | (palette[sprite.info[3]&15] & sprite_colour_selection_masks[mask]);
+											}
+
+											sprite.shift_position += shift_advance;
+										}
+									}
+
+									// Output whichever sprite colour was on top.
+									pixel_base_[output_column_ - first_pixel_column_] = sprite_colour;
+									output_column_++;
+								}
+							}
+
+							output_column_ = pixels_end;
+						} break;
+					}
+
+
+ 		}*/
 }
 
 void Base::draw_tms_text(int start, int end) {
