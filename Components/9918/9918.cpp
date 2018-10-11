@@ -64,6 +64,9 @@ Base::Base(Personality p) :
 
 	if(is_sega_vdp(personality_)) {
 		mode_timing_.line_interrupt_position = 4;
+
+		mode_timing_.end_of_frame_interrupt_position.column = 296;
+		mode_timing_.end_of_frame_interrupt_position.row = 191;
 	}
 }
 
@@ -548,7 +551,7 @@ HalfCycles TMS9918::get_time_until_interrupt() {
 	if(get_interrupt_line()) return HalfCycles(0);
 
 	// Calculate the amount of time until the next end-of-frame interrupt.
-	const int frame_length = 342 * mode_timing_.pixel_lines;
+	const int frame_length = 342 * mode_timing_.total_lines;
 	const int time_until_frame_interrupt =
 		(
 			((mode_timing_.end_of_frame_interrupt_position.row * 342) + mode_timing_.end_of_frame_interrupt_position.column + frame_length) -
@@ -762,14 +765,14 @@ void Base::draw_sms(int start, int end) {
 	int tile_start = start, tile_end = end;
 	int tile_offset = start;
 	if(row_ >= 16 || !master_system_.horizontal_scroll_lock) {
-		for(int c = start; c < (master_system_.horizontal_scroll & 7); ++c) {
+		for(int c = start; c < (master_system_.latched_horizontal_scroll & 7); ++c) {
 			colour_buffer[c] = 16 + background_colour_;
 			++tile_offset;
 		}
 
 		// Remove the border area from that to which tiles will be drawn.
-		tile_start = std::max(start - (master_system_.horizontal_scroll & 7), 0);
-		tile_end = std::max(end - (master_system_.horizontal_scroll & 7), 0);
+		tile_start = std::max(start - (master_system_.latched_horizontal_scroll & 7), 0);
+		tile_end = std::max(end - (master_system_.latched_horizontal_scroll & 7), 0);
 	}
 
 

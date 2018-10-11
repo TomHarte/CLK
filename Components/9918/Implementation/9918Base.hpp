@@ -199,13 +199,15 @@ class Base {
 			uint32_t colour_ram[32];
 			bool cram_is_selected = false;
 
-			// Temporary buffers for a line of Master System graphics.
+			// Temporary buffers for a line of Master System graphics,
+			// and latched scrolling offsets.
 			struct {
 				size_t offset;
 				uint8_t flags;
 			} names[32];
 			uint8_t tile_graphics[32][4];
-			size_t next_column = 0;
+			uint8_t latched_vertical_scroll = 0;
+			uint8_t latched_horizontal_scroll = 0;
 		} master_system_;
 
 		// Holds results of sprite data fetches that occur on this
@@ -654,12 +656,21 @@ class Base {
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
 
+			// Latch scrolling position at slot 33 for now; unless or until
+			// a more accurate number becomes apparent.
+			if(start < 33 && end >= 33) {
+				if(!row_) {
+					master_system_.latched_vertical_scroll = master_system_.vertical_scroll;
+				}
+				master_system_.latched_horizontal_scroll = master_system_.horizontal_scroll;
+			}
+
 			// Determine the coarse horizontal scrolling offset; this isn't applied on the first two lines if the programmer has requested it.
-			const int horizontal_offset = (row_ >= 16 || !master_system_.horizontal_scroll_lock) ? (master_system_.horizontal_scroll >> 3) : 0;
+			const int horizontal_offset = (row_ >= 16 || !master_system_.horizontal_scroll_lock) ? (master_system_.latched_horizontal_scroll >> 3) : 0;
 
 			// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
 			// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
-			const int scrolled_row = (row_ + master_system_.vertical_scroll) % 224;
+			const int scrolled_row = (row_ + master_system_.latched_vertical_scroll) % 224;
 			struct RowInfo {
 				size_t pattern_address_base;
 				size_t sub_row[2];
