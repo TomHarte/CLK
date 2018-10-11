@@ -412,12 +412,15 @@ void TMS9918::set_register(int address, uint8_t value) {
 	if(!write_phase_) {
 		low_write_ = value;
 		write_phase_ = true;
+
+		// The initial write should half update the access pointer.
+		ram_pointer_ = (ram_pointer_ & 0xff00) | low_write_;
 		return;
 	}
 
 	// The RAM pointer is always set on a second write, regardless of
 	// whether the caller is intending to enqueue a VDP operation.
-	ram_pointer_ = static_cast<uint16_t>(low_write_ | (value << 8));
+	ram_pointer_ = (ram_pointer_ & 0x00ff) | static_cast<uint16_t>(value << 8);
 
 	write_phase_ = false;
 	if(value & 0x80) {
