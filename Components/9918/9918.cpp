@@ -415,6 +415,10 @@ void TMS9918::set_register(int address, uint8_t value) {
 		return;
 	}
 
+	// The RAM pointer is always set on a second write, regardless of
+	// whether the caller is intending to enqueue a VDP operation.
+	ram_pointer_ = static_cast<uint16_t>(low_write_ | (value << 8));
+
 	write_phase_ = false;
 	if(value & 0x80) {
 		switch(personality_) {
@@ -423,7 +427,6 @@ void TMS9918::set_register(int address, uint8_t value) {
 			break;
 			case TI::TMS::SMSVDP:
 				if(value & 0x40) {
-					ram_pointer_ = static_cast<uint16_t>(low_write_ | (value << 8));
 					master_system_.cram_is_selected = true;
 					return;
 				}
@@ -507,7 +510,6 @@ void TMS9918::set_register(int address, uint8_t value) {
 		}
 	} else {
 		// This is an access via the RAM pointer.
-		ram_pointer_ = static_cast<uint16_t>(low_write_ | (value << 8));
 		if(!(value & 0x40)) {
 			// A read request is enqueued upon setting the address; conversely a write
 			// won't be enqueued unless and until some actual data is supplied.
@@ -518,8 +520,9 @@ void TMS9918::set_register(int address, uint8_t value) {
 }
 
 uint8_t TMS9918::get_current_line() {
-	const int source_row = (column_ < mode_timing_.line_interrupt_position) ? (row_ + mode_timing_.pixel_lines - 1)%mode_timing_.pixel_lines : row_;
-
+	int source_row = (column_ < mode_timing_.line_interrupt_position) ? (row_ + mode_timing_.pixel_lines - 1)%mode_timing_.pixel_lines : row_;
+	// This assumes NTSC 192-line. TODO: other modes.
+	if(source_row >= 0xdb) source_row -= 5;
 	return static_cast<uint8_t>(source_row);
 }
 
