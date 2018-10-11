@@ -164,7 +164,7 @@ class Base {
 			bool allow_sprite_terminator = true;
 		} mode_timing_;
 
-		uint8_t line_interrupt_target = 0;
+		uint8_t line_interrupt_target = 0xff;
 		uint8_t line_interrupt_counter = 0;
 		bool enable_line_interrupts_ = false;
 		bool line_interrupt_pending_ = false;
@@ -590,7 +590,7 @@ class Base {
 			] - (master_system_.shift_sprites_8px_left ? size_t(8) : size_t(0));	\
 		const uint8_t name = ram_[\
 				sprite_attribute_table_address_ & size_t(0x3f81 | (sprite_set_.active_sprites[sprite].index << 1))\
-			];\
+			] & (sprites_16x16_ ? ~1 : ~0);\
 		const size_t graphic_location = sprite_generator_table_address_ & size_t(0x2000 | (name << 5) | (sprite_set_.active_sprites[sprite].row << 2));	\
 		sprite_set_.active_sprites[sprite].image[0] = ram_[graphic_location];	\
 		sprite_set_.active_sprites[sprite].image[1] = ram_[graphic_location+1];	\

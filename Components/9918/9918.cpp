@@ -63,7 +63,7 @@ Base::Base(Personality p) :
 	}
 
 	if(is_sega_vdp(personality_)) {
-		mode_timing_.line_interrupt_position = 15;
+		mode_timing_.line_interrupt_position = 4;
 	}
 }
 
@@ -507,7 +507,9 @@ void TMS9918::set_register(int address, uint8_t value) {
 }
 
 uint8_t TMS9918::get_current_line() {
-	return static_cast<uint8_t>(row_);
+	const int source_row = (column_ < mode_timing_.line_interrupt_position) ? (row_ + mode_timing_.pixel_lines - 1)%mode_timing_.pixel_lines : row_;
+
+	return static_cast<uint8_t>(source_row);
 }
 
 uint8_t TMS9918::get_register(int address) {
