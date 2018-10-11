@@ -526,8 +526,9 @@ uint8_t TMS9918::get_current_line() {
 	int source_row = (column_ < mode_timing_.line_interrupt_position) ? (row_ + mode_timing_.total_lines - 1)%mode_timing_.total_lines : row_;
 	// This assumes NTSC 192-line. TODO: other modes.
 	if(source_row >= 0xdb) source_row -= 6;
+
+//	printf("Current row: %d -> %d\n", row_, source_row);
 	return static_cast<uint8_t>(source_row);
-}
 
 /*
 	TODO: Full proper sequence of current lines:
@@ -539,6 +540,21 @@ uint8_t TMS9918::get_current_line() {
 	PAL 256x224	00-FF, 00-02, CA-FF
 	PAL 256x240	00-FF, 00-0A, D2-FF
 */
+}
+
+uint8_t TMS9918::get_latched_horizontal_counter() {
+	// Translate from internal numbering, which puts pixel output
+	// in the final 256 pixels of 342, to the public numbering,
+	// which makes the 256 pixels the first 256 spots, but starts
+	// counting at -48, and returns only the top 8 bits of the number.
+	int public_counter = latched_column_ - 86;
+	if(public_counter < -48) public_counter += 342;
+	return uint8_t(public_counter >> 1);
+}
+
+void TMS9918::latch_horizontal_counter() {
+	latched_column_ = column_;
+}
 
 uint8_t TMS9918::get_register(int address) {
 	write_phase_ = false;

@@ -66,6 +66,10 @@ class TMS9918: public Base {
 		/*! Gets the current scan line; provided by the Master System only. */
 		uint8_t get_current_line();
 
+		uint8_t get_latched_horizontal_counter();
+
+		void latch_horizontal_counter();
+
 		/*!
 			Returns the amount of time until get_interrupt_line would next return true if
 			there are no interceding calls to set_register or get_register.

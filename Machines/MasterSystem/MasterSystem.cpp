@@ -184,9 +184,12 @@ class ConcreteMachine:
 								printf("TODO: [input] I/O port control\n");
 								*cycle.value = 0xff;
 							break;
-							case 0x40: case 0x41:
+							case 0x40:
 								update_video();
 								*cycle.value = vdp_->get_current_line();
+							break;
+							case 0x41:
+								*cycle.value = vdp_->get_latched_horizontal_counter();
 							break;
 							case 0x80: case 0x81:
 								update_video();
@@ -201,7 +204,11 @@ class ConcreteMachine:
 							} break;
 							case 0xc1: {
 								Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
-								*cycle.value = (joypad2->get_state() >> 2) | 0xf;
+
+								*cycle.value =
+									(joypad2->get_state() >> 2) |
+									0x30 |
+									get_th_values();
 							} break;
 
 							default:
@@ -219,9 +226,20 @@ class ConcreteMachine:
 									page_cartridge();
 								}
 							break;
-							case 0x01:
-								printf("TODO: [output] I/O port control\n");
-							break;
+							case 0x01: {
+								// A programmer can force the TH lines to 0 here,
+								// causing a phoney lightgun latch, so check for any
+								// discontinuity in TH inputs.
+								const auto previous_ths = get_th_values();
+								io_port_control_ = *cycle.value;
+								const auto new_ths = get_th_values();
+
+								// Latch if either TH has newly gone to 1.
+								if((new_ths^previous_ths)&new_ths) {
+									update_video();
+									vdp_->latch_horizontal_counter();
+								}
+							} break;
 							case 0x40: case 0x41:
 								update_audio();
 								sn76489_.set_register(*cycle.value);
@@ -233,7 +251,7 @@ class ConcreteMachine:
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc0:
-//								printf("TODO: [output] I/O port A/N [%02x]\n", *cycle.value);
+								printf("TODO: [output] I/O port A/N [%02x]\n", *cycle.value);
 							break;
 							case 0xc1:
 								printf("TODO: [output] I/O port B/misc\n");
@@ -274,6 +292,17 @@ class ConcreteMachine:
 		}
 
 	private:
+		inline uint8_t get_th_values() {
+			// Quick not on TH inputs here: if either is setup as an output, then the
+			// currently output level is returned. Otherwise they're fixed at 1.
+			return
+				static_cast<uint8_t>(
+					((io_port_control_ & 0x02) << 5) | ((io_port_control_&0x20) << 1) |
+					((io_port_control_ & 0x08) << 4) | (io_port_control_&0x80)
+				);
+
+		}
+
 		inline void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
 		}
@@ -298,6 +327,8 @@ class ConcreteMachine:
 		uint8_t ram_[8*1024];
 		uint8_t bios_[8*1024];
 		std::vector<uint8_t> cartridge_;
+
+		uint8_t io_port_control_ = 0x0f;
 
 		// The memory map has a 1kb granularity; this is determined by the SG1000's 1kb of RAM.
 		const uint8_t *read_pointers_[64];
