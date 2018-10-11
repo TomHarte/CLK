@@ -529,6 +529,17 @@ uint8_t TMS9918::get_current_line() {
 	return static_cast<uint8_t>(source_row);
 }
 
+/*
+	TODO: Full proper sequence of current lines:
+
+	NTSC 256x192	00-DA, D5-FF
+	NTSC 256x224	00-EA, E5-FF
+	NTSC 256x240	00-FF, 00-06
+	PAL 256x192	00-F2, BA-FF
+	PAL 256x224	00-FF, 00-02, CA-FF
+	PAL 256x240	00-FF, 00-0A, D2-FF
+*/
+
 uint8_t TMS9918::get_register(int address) {
 	write_phase_ = false;
 
