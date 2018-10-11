@@ -168,10 +168,6 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	// PAL output is 313 lines total. NTSC output is 262 lines total.
 	// Interrupt is signalled upon entering the lower border.
 
-	// Keep a count of cycles separate from internal counts to avoid
-	// potential errors mapping back and forth.
-	half_cycles_into_frame_ = (half_cycles_into_frame_ + cycles) % HalfCycles(mode_timing_.total_lines * 228 * 2);
-
 	// Convert 456 clocked half cycles per line to 342 internal cycles per line;
 	// the internal clock is 1.5 times the nominal 3.579545 Mhz that I've advertised
 	// for this part. So multiply by three quarters.
@@ -306,6 +302,9 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 
 
+		// -------------------------------
+		// Check for interrupt conditions.
+		// -------------------------------
 
 		if(column_ < mode_timing_.line_interrupt_position && end_column >= mode_timing_.line_interrupt_position) {
 			// The Sega VDP offers a decrementing counter for triggering line interrupts;
@@ -327,10 +326,20 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			// So life is easy.
 		}
 
+		if(
+			row_ == mode_timing_.end_of_frame_interrupt_position.row &&
+			column_ < mode_timing_.end_of_frame_interrupt_position.column &&
+			end_column >= mode_timing_.end_of_frame_interrupt_position.column
+		) {
+			status_ |= StatusInterrupt;
+		}
+
+
 
 		// -------------
 		// Advance time.
 		// -------------
+
 		column_ = end_column;		// column_ is now the column that has been reached in this line.
 		int_cycles -= cycles_left;	// Count down duration to run for.
 
@@ -342,7 +351,6 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		if(column_ == 342) {
 			column_ = 0;
 			row_ = (row_ + 1) % mode_timing_.total_lines;
-			if(row_ == mode_timing_.pixel_lines) status_ |= StatusInterrupt;
 
 			// Establish the output mode for the next line.
 			set_current_mode();
@@ -530,15 +538,24 @@ uint8_t TMS9918::get_register(int address) {
 	return result;
 }
 
- HalfCycles TMS9918::get_time_until_interrupt() {
+HalfCycles Base::half_cycles_before_internal_cycles(int internal_cycles) {
+	return HalfCycles(((internal_cycles << 2) - cycles_error_) / 3);
+}
+
+
+HalfCycles TMS9918::get_time_until_interrupt() {
 	if(!generate_interrupts_ && !enable_line_interrupts_) return HalfCycles(-1);
 	if(get_interrupt_line()) return HalfCycles(0);
 
 	// Calculate the amount of time until the next end-of-frame interrupt.
-	const int half_cycles_per_frame = mode_timing_.total_lines * 228 * 2;
-	const int half_cycles_remaining = (192 * 228 * 2 + half_cycles_per_frame - half_cycles_into_frame_.as_int()) % half_cycles_per_frame;
-	const auto time_until_frame_interrupt = HalfCycles(half_cycles_remaining ? half_cycles_remaining : half_cycles_per_frame);
-	if(!enable_line_interrupts_) return time_until_frame_interrupt;
+	const int frame_length = 342 * mode_timing_.pixel_lines;
+	const int time_until_frame_interrupt =
+		(
+			((mode_timing_.end_of_frame_interrupt_position.row * 342) + mode_timing_.end_of_frame_interrupt_position.column + frame_length) -
+			((row_ * 342) + column_)
+		) % frame_length;
+
+	if(!enable_line_interrupts_) return half_cycles_before_internal_cycles(time_until_frame_interrupt);
 
 	// Calculate the row upon which the next line interrupt will occur;
 	int next_line_interrupt_row = -1;
@@ -558,25 +575,21 @@ uint8_t TMS9918::get_register(int address) {
 	// If there's actually no interrupt upcoming, despite being enabled, either return
 	// the frame end interrupt or no interrupt pending as appropriate.
 	if(next_line_interrupt_row == -1) {
-		return generate_interrupts_ ? time_until_frame_interrupt : HalfCycles(-1);
+		return generate_interrupts_ ?
+			half_cycles_before_internal_cycles(time_until_frame_interrupt) :
+			HalfCycles(-1);
 	}
 
 	// Figure out the number of internal cycles until the next line interrupt, which is the amount
 	// of time to the next tick over and then next_line_interrupt_row - row_ lines further.
 	int local_cycles_until_next_tick = (mode_timing_.line_interrupt_position - column_ + 342) % 342;
 	if(!local_cycles_until_next_tick) local_cycles_until_next_tick += 342;
+	const int local_cycles_until_line_interrupt = local_cycles_until_next_tick + (next_line_interrupt_row - row_) * 342;
 
-	int local_cycles_until_line_interrupt = local_cycles_until_next_tick + (next_line_interrupt_row - row_) * 342;
-	local_cycles_until_line_interrupt <<= 2;
-	local_cycles_until_line_interrupt -= cycles_error_;
-
-	// Map that to input cycles by multiplying by 2/3 (and incrementing on any carry, TODO: allowing for current error).
-	auto time_until_line_interrupt = HalfCycles(local_cycles_until_line_interrupt / 3);
-
-	if(!generate_interrupts_) return time_until_line_interrupt;
+	if(!generate_interrupts_) return half_cycles_before_internal_cycles(time_until_frame_interrupt);
 
 	// Return whichever interrupt is closer.
-	return std::min(time_until_frame_interrupt, time_until_line_interrupt);
+	return half_cycles_before_internal_cycles(std::min(local_cycles_until_line_interrupt, time_until_frame_interrupt));
 }
 
 bool TMS9918::get_interrupt_line() {

@@ -106,10 +106,9 @@ class Base {
 		uint8_t background_colour_ = 0;
 
 		// Internal mechanisms for position tracking.
-		HalfCycles half_cycles_into_frame_;
-		int column_ = 0, row_ = 0, output_column_ = 0;
+		int column_ = 0, row_ = 0;
 		int cycles_error_ = 0;
-		int access_pointer_ = 0;
+		HalfCycles half_cycles_before_internal_cycles(int internal_cycles);
 
 		// A helper function to output the current border colour for
 		// the number of cycles supplied.
@@ -156,7 +155,10 @@ class Base {
 
 			// Set the position, in cycles, of the two interrupts,
 			// within a line.
-			int end_of_frame_interrupt_position = 342;
+			struct {
+				int column = 342;
+				int row = 191;
+			} end_of_frame_interrupt_position;
 			int line_interrupt_position = -1;
 
 			// Enables or disabled the recognition of 0xd0 as a sprite
