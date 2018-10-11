@@ -523,9 +523,9 @@ void TMS9918::set_register(int address, uint8_t value) {
 }
 
 uint8_t TMS9918::get_current_line() {
-	int source_row = (column_ < mode_timing_.line_interrupt_position) ? (row_ + mode_timing_.pixel_lines - 1)%mode_timing_.pixel_lines : row_;
+	int source_row = (column_ < mode_timing_.line_interrupt_position) ? (row_ + mode_timing_.total_lines - 1)%mode_timing_.total_lines : row_;
 	// This assumes NTSC 192-line. TODO: other modes.
-	if(source_row >= 0xdb) source_row -= 5;
+	if(source_row >= 0xdb) source_row -= 6;
 	return static_cast<uint8_t>(source_row);
 }
 
