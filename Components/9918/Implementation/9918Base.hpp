@@ -12,6 +12,7 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <memory>
 
@@ -593,7 +594,7 @@ class Base {
 		sprite_set_.active_sprites[sprite].x = \
 			ram_[\
 				sprite_attribute_table_address_ & size_t(0x3f80 | (sprite_set_.active_sprites[sprite].index << 1))\
-			] - (master_system_.shift_sprites_8px_left ? size_t(8) : size_t(0));	\
+			] - (master_system_.shift_sprites_8px_left ? 8 : 0);	\
 		const uint8_t name = ram_[\
 				sprite_attribute_table_address_ & size_t(0x3f81 | (sprite_set_.active_sprites[sprite].index << 1))\
 			] & (sprites_16x16_ ? ~1 : ~0);\
@@ -682,6 +683,8 @@ class Base {
 			// ... and do the actual fetching, which follows this routine:
 			switch(start) {
 				default:
+					assert(false);
+
 				sprite_fetch_block(0, 0);
 				sprite_fetch_block(6, 2);
 
@@ -712,9 +715,9 @@ class Base {
 				background_fetch_block(103, 16, 40, scrolled_row_info);
 				background_fetch_block(119, 20, 46, scrolled_row_info);
 				background_fetch_block(135, 24, 52, row_info);
-				background_fetch_block(152, 28, 58, row_info);
+				background_fetch_block(151, 28, 58, row_info);
 
-				external_slots_4(168);
+				external_slots_4(167);
 
 				return;
 			}

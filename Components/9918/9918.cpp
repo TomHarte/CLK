@@ -106,7 +106,7 @@ void Base::reset_sprite_collection() {
 
 void Base::posit_sprite(int sprite_number, int sprite_position, int screen_row) {
 	if(!(status_ & StatusSpriteOverflow)) {
-		status_ = static_cast<uint8_t>((status_ & ~31) | sprite_number);
+		status_ = static_cast<uint8_t>((status_ & ~0x1f) | (sprite_number & 0x1f));
 	}
 	if(sprite_set_.sprites_stopped)
 		return;
@@ -891,7 +891,7 @@ void Base::draw_sms(int start, int end) {
 		for(int index = sprite_set_.fetched_sprite_slot - 1; index >= 0; --index) {
 			SpriteSet::ActiveSprite &sprite = sprite_set_.active_sprites[index];
 			if(sprite.shift_position < 16) {
-				int pixel_start = std::max(start, sprite.x);
+				const int pixel_start = std::max(start, sprite.x);
 
 				// TODO: it feels like the work below should be simplifiable;
 				// the double shift in particular, and hopefully the variable shift.
@@ -922,7 +922,8 @@ void Base::draw_sms(int start, int end) {
 			) colour_buffer[c] = sprite_buffer[c];
 		}
 
-		if(sprite_collision) status_ |= StatusSpriteCollision;
+		if(sprite_collision)
+			status_ |= StatusSpriteCollision;
 	}
 
 	// Map from the 32-colour buffer to real output pixels.
