@@ -548,7 +548,7 @@ uint8_t TMS9918::get_latched_horizontal_counter() {
 	// which makes the 256 pixels the first 256 spots, but starts
 	// counting at -48, and returns only the top 8 bits of the number.
 	int public_counter = latched_column_ - 86;
-	if(public_counter < -48) public_counter += 342;
+	if(public_counter < -46) public_counter += 342;
 	return uint8_t(public_counter >> 1);
 }
 
