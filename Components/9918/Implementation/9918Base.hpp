@@ -334,6 +334,8 @@ class Base {
 	external_slots_16(n+16);
 
 /*
+	TODO: explain offset by four windows in data gathering.
+
 	Fetching routines follow below; they obey the following rules:
 
 		1) 	input is a start position and an end position; they should perform the proper
@@ -656,15 +658,6 @@ class Base {
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
 
-			// Latch scrolling position at slot 33 for now; unless or until
-			// a more accurate number becomes apparent.
-			if(start < 33 && end >= 33) {
-				if(!row_) {
-					master_system_.latched_vertical_scroll = master_system_.vertical_scroll;
-				}
-				master_system_.latched_horizontal_scroll = master_system_.horizontal_scroll;
-			}
-
 			// Determine the coarse horizontal scrolling offset; this isn't applied on the first two lines if the programmer has requested it.
 			const int horizontal_offset = (row_ >= 16 || !master_system_.horizontal_scroll_lock) ? (master_system_.latched_horizontal_scroll >> 3) : 0;
 
@@ -689,39 +682,39 @@ class Base {
 			// ... and do the actual fetching, which follows this routine:
 			switch(start) {
 				default:
-				external_slots_4(0);
+				sprite_fetch_block(0, 0);
+				sprite_fetch_block(6, 2);
 
-				sprite_fetch_block(4, 0);
-				sprite_fetch_block(10, 2);
+				external_slots_4(12);
+				external_slot(16);
 
-				external_slots_4(16);
-				external_slot(20);
+				sprite_fetch_block(17, 4);
+				sprite_fetch_block(23, 6);
 
-				sprite_fetch_block(21, 4);
-				sprite_fetch_block(27, 6);
-
-				slot(33):
+				slot(29):
 					reset_sprite_collection();
 					do_external_slot();
-				external_slot(34);
+				external_slot(30);
 
-				sprite_y_read(35, 0);
-				sprite_y_read(36, 2);
-				sprite_y_read(37, 4);
-				sprite_y_read(38, 6);
-				sprite_y_read(39, 8);
-				sprite_y_read(40, 10);
-				sprite_y_read(41, 12);
-				sprite_y_read(42, 14);
+				sprite_y_read(31, 0);
+				sprite_y_read(32, 2);
+				sprite_y_read(33, 4);
+				sprite_y_read(34, 6);
+				sprite_y_read(35, 8);
+				sprite_y_read(36, 10);
+				sprite_y_read(37, 12);
+				sprite_y_read(38, 14);
 
-				background_fetch_block(43, 0, 16, scrolled_row_info);
-				background_fetch_block(59, 4, 22, scrolled_row_info);
-				background_fetch_block(75, 8, 28, scrolled_row_info);
-				background_fetch_block(91, 12, 34, scrolled_row_info);
-				background_fetch_block(107, 16, 40, scrolled_row_info);
-				background_fetch_block(123, 20, 46, scrolled_row_info);
-				background_fetch_block(139, 24, 52, row_info);
-				background_fetch_block(156, 28, 58, row_info);
+				background_fetch_block(39, 0, 16, scrolled_row_info);
+				background_fetch_block(55, 4, 22, scrolled_row_info);
+				background_fetch_block(71, 8, 28, scrolled_row_info);
+				background_fetch_block(87, 12, 34, scrolled_row_info);
+				background_fetch_block(103, 16, 40, scrolled_row_info);
+				background_fetch_block(119, 20, 46, scrolled_row_info);
+				background_fetch_block(135, 24, 52, row_info);
+				background_fetch_block(152, 28, 58, row_info);
+
+				external_slots_4(168);
 
 				return;
 			}
@@ -741,7 +734,6 @@ class Base {
 		void draw_tms_character(int start, int end);
 		void draw_tms_text(int start, int end);
 		void draw_sms(int start, int end);
-
 };
 
 }

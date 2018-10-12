@@ -184,6 +184,17 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		const int end_column = column_ + cycles_left;
 
 
+		// ---------------------------------------
+		// Latch scrolling position, if necessary.
+		// ---------------------------------------
+		if(column_ < 61 && end_column >= 61) {
+			if(!row_) {
+				master_system_.latched_vertical_scroll = master_system_.vertical_scroll;
+			}
+			master_system_.latched_horizontal_scroll = master_system_.horizontal_scroll;
+		}
+
+
 		// ------------------------
 		// Perform memory accesses.
 		// ------------------------
@@ -313,7 +324,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			// it is reloaded either when it overflows or upon every non-pixel line after the first.
 			// It is otherwise decremented.
 			if(is_sega_vdp(personality_)) {
-				if(row_ > 0 && row_ <= mode_timing_.pixel_lines+1) {
+				if(row_ >= mode_timing_.total_lines-1 && row_ <= mode_timing_.pixel_lines) {
 					--line_interrupt_counter;
 					if(line_interrupt_counter == 0xff) {
 						line_interrupt_pending_ = true;
@@ -491,6 +502,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 			case 8:
 				if(is_sega_vdp(personality_)) {
 					master_system_.horizontal_scroll = low_write_;
+//					printf("Set to %d at %d, %d\n", low_write_, row_, column_);
 				}
 			break;
 
