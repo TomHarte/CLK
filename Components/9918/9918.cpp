@@ -63,10 +63,9 @@ Base::Base(Personality p) :
 	}
 
 	if(is_sega_vdp(personality_)) {
-		mode_timing_.line_interrupt_position = 4;
-
-		mode_timing_.end_of_frame_interrupt_position.column = 296;
-		mode_timing_.end_of_frame_interrupt_position.row = 191;
+		mode_timing_.line_interrupt_position = 65;
+		mode_timing_.end_of_frame_interrupt_position.column = 63;
+		mode_timing_.end_of_frame_interrupt_position.row = 193;
 	}
 }
 
@@ -314,7 +313,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			// it is reloaded either when it overflows or upon every non-pixel line after the first.
 			// It is otherwise decremented.
 			if(is_sega_vdp(personality_)) {
-				if(row_ <= mode_timing_.pixel_lines) {
+				if(row_ > 0 && row_ <= mode_timing_.pixel_lines+1) {
 					--line_interrupt_counter;
 					if(line_interrupt_counter == 0xff) {
 						line_interrupt_pending_ = true;
@@ -508,7 +507,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 			break;
 
 			default:
-				printf("Unknown TMS write: %d to %d\n", low_write_, value);
+//				printf("Unknown TMS write: %d to %d\n", low_write_, value);
 			break;
 		}
 	} else {
@@ -523,11 +522,14 @@ void TMS9918::set_register(int address, uint8_t value) {
 }
 
 uint8_t TMS9918::get_current_line() {
-	int source_row = (column_ < mode_timing_.line_interrupt_position) ? (row_ + mode_timing_.total_lines - 1)%mode_timing_.total_lines : row_;
+	// Determine the row to return.
+	static const int row_change_position = 62;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
+	int source_row = (column_ < row_change_position) ? (row_ + mode_timing_.total_lines - 1)%mode_timing_.total_lines : row_;
+
 	// This assumes NTSC 192-line. TODO: other modes.
 	if(source_row >= 0xdb) source_row -= 6;
-
 //	printf("Current row: %d -> %d\n", row_, source_row);
+
 	return static_cast<uint8_t>(source_row);
 
 /*
