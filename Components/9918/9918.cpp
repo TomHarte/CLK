@@ -64,6 +64,7 @@ Base::Base(Personality p) :
 
 	if(is_sega_vdp(personality_)) {
 		mode_timing_.line_interrupt_position = 65;
+
 		mode_timing_.end_of_frame_interrupt_position.column = 63;
 		mode_timing_.end_of_frame_interrupt_position.row = 193;
 	}
@@ -324,7 +325,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			// it is reloaded either when it overflows or upon every non-pixel line after the first.
 			// It is otherwise decremented.
 			if(is_sega_vdp(personality_)) {
-				if(row_ >= mode_timing_.total_lines-1 && row_ <= mode_timing_.pixel_lines) {
+				if(row_ >= 0 && row_ <= mode_timing_.pixel_lines) {
 					--line_interrupt_counter;
 					if(line_interrupt_counter == 0xff) {
 						line_interrupt_pending_ = true;
