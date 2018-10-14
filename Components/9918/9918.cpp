@@ -68,6 +68,14 @@ Base::Base(Personality p) :
 		mode_timing_.end_of_frame_interrupt_position.column = 63;
 		mode_timing_.end_of_frame_interrupt_position.row = 193;
 	}
+
+	// Establish that output is 10 cycles after values have been read.
+	// This is definitely correct for the TMS; more research may be
+	// necessary for the other implemented VDPs.
+	read_pointer_.row = 0;
+	read_pointer_.column = 0;
+	write_pointer_.row = 0;
+	write_pointer_.column = 10;	// i.e. 10 cycles ahead of the read pointer.
 }
 
 TMS9918::TMS9918(Personality p):
@@ -94,45 +102,44 @@ Outputs::CRT::CRT *TMS9918::get_crt() {
 	return crt_.get();
 }
 
-void Base::reset_sprite_collection() {
-	sprite_set_.sprites_stopped = false;
-	sprite_set_.fetched_sprite_slot = sprite_set_.active_sprite_slot;
-	sprite_set_.active_sprite_slot = 0;
+void Base::LineBuffer::reset_sprite_collection() {
+	sprites_stopped = false;
+	active_sprite_slot = 0;
 
-	for(int c = 0; c < sprite_set_.fetched_sprite_slot; ++c) {
-		sprite_set_.active_sprites[c].shift_position = 0;
+	for(int c = 0; c < 8; ++c) {
+		active_sprites[c].shift_position = 0;
 	}
 }
 
-void Base::posit_sprite(int sprite_number, int sprite_position, int screen_row) {
+void Base::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_position, int screen_row) {
 	if(!(status_ & StatusSpriteOverflow)) {
 		status_ = static_cast<uint8_t>((status_ & ~0x1f) | (sprite_number & 0x1f));
 	}
-	if(sprite_set_.sprites_stopped)
+	if(buffer.sprites_stopped)
 		return;
 
 //	const int sprite_position = ram_[sprite_attribute_table_address_ + static_cast<size_t>(sprite_number << 2)];
 	// A sprite Y of 208 means "don't scan the list any further".
 	if(mode_timing_.allow_sprite_terminator && sprite_position == 208) {
-		sprite_set_.sprites_stopped = true;
+		buffer.sprites_stopped = true;
 		return;
 	}
 
 	const int sprite_row = (screen_row - sprite_position)&255;
 	if(sprite_row < 0 || sprite_row >= sprite_height_) return;
 
-	if(sprite_set_.active_sprite_slot == mode_timing_.maximum_visible_sprites) {
+	if(buffer.active_sprite_slot == mode_timing_.maximum_visible_sprites) {
 		status_ |= StatusSpriteOverflow;
 		return;
 	}
 
-	SpriteSet::ActiveSprite &sprite = sprite_set_.active_sprites[sprite_set_.active_sprite_slot];
+	LineBuffer::ActiveSprite &sprite = buffer.active_sprites[buffer.active_sprite_slot];
 	sprite.index = sprite_number;
 	sprite.row = sprite_row >> (sprites_magnified_ ? 1 : 0);
-	++sprite_set_.active_sprite_slot;
+	++buffer.active_sprite_slot;
 }
 
-void Base::get_sprite_contents(int field, int cycles_left, int screen_row) {
+//void Base::get_sprite_contents(int field, int cycles_left, int screen_row) {
 /*	int sprite_id = field / 6;
 	field %= 6;
 
@@ -163,7 +170,7 @@ void Base::get_sprite_contents(int field, int cycles_left, int screen_row) {
 		field = 0;
 		sprite_id++;
 	}*/
-}
+//}
 
 void TMS9918::run_for(const HalfCycles cycles) {
 	// As specific as I've been able to get:
@@ -179,74 +186,185 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	int_cycles >>= 2;
 	if(!int_cycles) return;
 
-	while(int_cycles) {
-		// Determine how much time has passed in the remainder of this line, and proceed.
-		const int cycles_left = std::min(342 - column_, int_cycles);
-		const int end_column = column_ + cycles_left;
+	// There are two intertwined processes here, 'writing' (which means writing to the
+	// line buffers, i.e. it's everything to do with collecting a line) and 'reading'
+	// (which means reading from the line buffers and generating video).
+	int write_cycles_pool = int_cycles;
+	int read_cycles_pool = int_cycles;
+
+	while(write_cycles_pool || read_cycles_pool) {
+		if(write_cycles_pool) {
+			// Determine how much writing to do.
+			const int write_cycles = std::min(342 - write_pointer_.column, write_cycles_pool);
+			const int end_column = write_pointer_.column + write_cycles;
+			LineBuffer &line_buffer = line_buffers_[0];//write_pointer_.row & 1];
 
 
-		// ---------------------------------------
-		// Latch scrolling position, if necessary.
-		// ---------------------------------------
-		if(column_ < 61 && end_column >= 61) {
-			if(!row_) {
-				master_system_.latched_vertical_scroll = master_system_.vertical_scroll;
+
+			// ---------------------------------------
+			// Latch scrolling position, if necessary.
+			// ---------------------------------------
+			if(write_pointer_.column < 61 && end_column >= 61) {
+				if(!write_pointer_.row) {
+					master_system_.latched_vertical_scroll = master_system_.vertical_scroll;
+				}
+				line_buffer.latched_horizontal_scroll = master_system_.horizontal_scroll;
 			}
-			master_system_.latched_horizontal_scroll = master_system_.horizontal_scroll;
-		}
 
 
-		// ------------------------
-		// Perform memory accesses.
-		// ------------------------
+
+			// ------------------------
+			// Perform memory accesses.
+			// ------------------------
 #define fetch(function)	\
-	if(end_column < 171) {	\
+	if(final_window < 171) {	\
 		function<true>(first_window, final_window);\
 	} else {\
 		function<false>(first_window, final_window);\
 	}
 
-		// column_ and end_column are in 342-per-line cycles;
-		// adjust them to a count of windows.
-		const int first_window = column_ >> 1;
-		const int final_window = end_column >> 1;
-		if(first_window != final_window) {
-			switch(line_mode_) {
-				case LineMode::Text:		fetch(fetch_tms_text);		break;
-				case LineMode::Character:	fetch(fetch_tms_character);	break;
-				case LineMode::SMS:			fetch(fetch_sms);			break;
-				case LineMode::Refresh:		fetch(fetch_tms_refresh);	break;
+			// column_ and end_column are in 342-per-line cycles;
+			// adjust them to a count of windows.
+			const int first_window = write_pointer_.column >> 1;
+			const int final_window = end_column >> 1;
+			if(first_window != final_window) {
+				switch(line_buffer.line_mode) {
+					case LineMode::Text:		fetch(fetch_tms_text);		break;
+					case LineMode::Character:	fetch(fetch_tms_character);	break;
+					case LineMode::SMS:			fetch(fetch_sms);			break;
+					case LineMode::Refresh:		fetch(fetch_tms_refresh);	break;
+				}
 			}
-		}
 
 #undef fetch
 
 
-		// --------------------
-		// Output video stream.
-		// --------------------
+
+			// -------------------------------
+			// Check for interrupt conditions.
+			// -------------------------------
+			if(write_pointer_.column < mode_timing_.line_interrupt_position && end_column >= mode_timing_.line_interrupt_position) {
+				// The Sega VDP offers a decrementing counter for triggering line interrupts;
+				// it is reloaded either when it overflows or upon every non-pixel line after the first.
+				// It is otherwise decremented.
+				if(is_sega_vdp(personality_)) {
+					if(write_pointer_.row >= 0 && write_pointer_.row <= mode_timing_.pixel_lines) {
+						--line_interrupt_counter;
+						if(line_interrupt_counter == 0xff) {
+							line_interrupt_pending_ = true;
+							line_interrupt_counter = line_interrupt_target;
+						}
+					} else {
+						line_interrupt_counter = line_interrupt_target;
+					}
+				}
+
+				// TODO: the V9938 provides line interrupts from direct specification of the target line.
+				// So life is easy.
+			}
+
+			if(
+				write_pointer_.row == mode_timing_.end_of_frame_interrupt_position.row &&
+				write_pointer_.column < mode_timing_.end_of_frame_interrupt_position.column &&
+				end_column >= mode_timing_.end_of_frame_interrupt_position.column
+			) {
+				status_ |= StatusInterrupt;
+			}
+
+
+
+			// -------------
+			// Advance time.
+			// -------------
+			write_pointer_.column = end_column;
+			write_cycles_pool -= write_cycles;
+
+			if(write_pointer_.column == 342) {
+				write_pointer_.column = 0;
+				write_pointer_.row = (write_pointer_.row + 1) % mode_timing_.total_lines;
+				line_buffer = line_buffers_[0];//write_pointer_.row & 1];
+
+				// Establish the output mode for the next line.
+				set_current_screen_mode();
+
+				// Based on the output mode, pick a line mode.
+				line_buffer.first_pixel_output_column = 86;
+				line_buffer.next_border_column = 342;
+				mode_timing_.maximum_visible_sprites = 4;
+				switch(screen_mode_) {
+					case ScreenMode::Text:
+						line_buffer.line_mode = LineMode::Text;
+						line_buffer.first_pixel_output_column = 94;
+						line_buffer.next_border_column = 334;
+					break;
+					case ScreenMode::SMSMode4:
+						line_buffer.line_mode = LineMode::SMS;
+						mode_timing_.maximum_visible_sprites = 8;
+					break;
+					default:
+						line_buffer.line_mode = LineMode::Character;
+					break;
+				}
+
+				if(
+					(screen_mode_ == ScreenMode::Blank) ||
+					(write_pointer_.row >= mode_timing_.pixel_lines && write_pointer_.row != mode_timing_.total_lines-1))
+						line_buffer.line_mode = LineMode::Refresh;
+			}
+		}
+
+
+		if(read_cycles_pool) {
+			// Determine how much time has passed in the remainder of this line, and proceed.
+			const int read_cycles = std::min(342 - read_pointer_.column, read_cycles_pool);
+			const int end_column = read_pointer_.column + read_cycles;
+			LineBuffer &line_buffer = line_buffers_[0];//read_pointer_.row & 1];
+
+
+
+			// --------------------
+			// Output video stream.
+			// --------------------
 
 #define intersect(left, right, code)	\
 	{	\
-		const int start = std::max(column_, left);	\
+		const int start = std::max(read_pointer_.column, left);	\
 		const int end = std::min(end_column, right);	\
 		if(end > start) {\
 			code;\
 		}\
 	}
 
-		if(line_mode_ == LineMode::Refresh || row_ > mode_timing_.pixel_lines) {
-			if(row_ >= mode_timing_.first_vsync_line && row_ < mode_timing_.first_vsync_line+4) {
-				// Vertical sync.
-				if(end_column == 342) {
-					crt_->output_sync(342 * 4);
+			if(line_buffer.line_mode == LineMode::Refresh) {
+				if(read_pointer_.row >= mode_timing_.first_vsync_line && read_pointer_.row < mode_timing_.first_vsync_line+4) {
+					// Vertical sync.
+					if(end_column == 342) {
+						crt_->output_sync(342 * 4);
+					}
+				} else {
+					// Right border.
+					intersect(0, 15, output_border(end - start));
+
+					// Blanking region; total length is 58 cycles,
+					// and 58+15 = 73. So output the lot when the
+					// cursor passes 73.
+					if(read_pointer_.column < 73 && end_column >= 73) {
+						crt_->output_blank(8*4);
+						crt_->output_sync(26*4);
+						crt_->output_blank(2*4);
+						crt_->output_default_colour_burst(14*4);
+						crt_->output_blank(8*4);
+					}
+
+					// Border colour for the rest of the line.
+					intersect(73, 342, output_border(end - start));
 				}
 			} else {
 				// Right border.
 				intersect(0, 15, output_border(end - start));
 
 				// Blanking region.
-				if(column_ < 73 && end_column >= 73) {
+				if(read_pointer_.column < 73 && end_column >= 73) {
 					crt_->output_blank(8*4);
 					crt_->output_sync(26*4);
 					crt_->output_blank(2*4);
@@ -254,141 +372,58 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					crt_->output_blank(8*4);
 				}
 
-				// Most of line.
-				intersect(73, 342, output_border(end - start));
-			}
-		} else {
-			// Right border.
-			intersect(0, 15, output_border(end - start));
+				// Left border.
+				intersect(73, line_buffer.first_pixel_output_column, output_border(end - start));
 
-			// Blanking region.
-			if(column_ < 73 && end_column >= 73) {
-				crt_->output_blank(8*4);
-				crt_->output_sync(26*4);
-				crt_->output_blank(2*4);
-				crt_->output_default_colour_burst(14*4);
-				crt_->output_blank(8*4);
-			}
-
-			// Left border.
-			intersect(73, mode_timing_.first_pixel_output_column, output_border(end - start));
-
-			// Pixel region.
-			intersect(
-				mode_timing_.first_pixel_output_column,
-				mode_timing_.next_border_column,
-				if(start == mode_timing_.first_pixel_output_column) {
-					pixel_origin_ = pixel_target_ = reinterpret_cast<uint32_t *>(
-						crt_->allocate_write_area(static_cast<unsigned int>(mode_timing_.next_border_column - mode_timing_.first_pixel_output_column) + 8)	// TODO: the +8 is really for the SMS only; make it optional.
-					);
-				}
-
-				if(pixel_target_) {
-					const int relative_start = start - mode_timing_.first_pixel_output_column;
-					const int relative_end = end - mode_timing_.first_pixel_output_column;
-					switch(line_mode_) {
-						case LineMode::SMS:			draw_sms(relative_start, relative_end);					break;
-						case LineMode::Character:	draw_tms_character(relative_start, relative_end);		break;
-						case LineMode::Text:		draw_tms_text(relative_start, relative_end);			break;
-
-						case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
+				// Pixel region.
+				intersect(
+					line_buffer.first_pixel_output_column,
+					line_buffer.next_border_column,
+					if(start == line_buffer.first_pixel_output_column) {
+						pixel_origin_ = pixel_target_ = reinterpret_cast<uint32_t *>(
+							crt_->allocate_write_area(static_cast<unsigned int>(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
+						);
 					}
-				}
 
-				if(end == mode_timing_.next_border_column) {
-					const unsigned int length = static_cast<unsigned int>(mode_timing_.next_border_column - mode_timing_.first_pixel_output_column);
-					crt_->output_data(length * 4, length);
-					pixel_origin_ = pixel_target_ = nullptr;
-				}
-			);
+					if(pixel_target_) {
+						const int relative_start = start - line_buffer.first_pixel_output_column;
+						const int relative_end = end - line_buffer.first_pixel_output_column;
+						switch(line_buffer.line_mode) {
+							case LineMode::SMS:			draw_sms(relative_start, relative_end);					break;
+							case LineMode::Character:	draw_tms_character(relative_start, relative_end);		break;
+							case LineMode::Text:		draw_tms_text(relative_start, relative_end);			break;
 
-			// Additional right border, if called for.
-			if(mode_timing_.next_border_column != 342) {
-				intersect(mode_timing_.next_border_column, 342, output_border(end - start));
-			}
-		}
-
-#undef intersect
-
-		// -----------------
-		// End video stream.
-		// -----------------
-
-
-
-		// -------------------------------
-		// Check for interrupt conditions.
-		// -------------------------------
-
-		if(column_ < mode_timing_.line_interrupt_position && end_column >= mode_timing_.line_interrupt_position) {
-			// The Sega VDP offers a decrementing counter for triggering line interrupts;
-			// it is reloaded either when it overflows or upon every non-pixel line after the first.
-			// It is otherwise decremented.
-			if(is_sega_vdp(personality_)) {
-				if(row_ >= 0 && row_ <= mode_timing_.pixel_lines) {
-					--line_interrupt_counter;
-					if(line_interrupt_counter == 0xff) {
-						line_interrupt_pending_ = true;
-						line_interrupt_counter = line_interrupt_target;
+							case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
+						}
 					}
-				} else {
-					line_interrupt_counter = line_interrupt_target;
+
+					if(end == line_buffer.next_border_column) {
+						const unsigned int length = static_cast<unsigned int>(line_buffer.next_border_column - line_buffer.first_pixel_output_column);
+						crt_->output_data(length * 4, length);
+						pixel_origin_ = pixel_target_ = nullptr;
+					}
+				);
+
+				// Additional right border, if called for.
+				if(line_buffer.next_border_column != 342) {
+					intersect(line_buffer.next_border_column, 342, output_border(end - start));
 				}
 			}
 
-			// TODO: the V9938 provides line interrupts from direct specification of the target line.
-			// So life is easy.
-		}
-
-		if(
-			row_ == mode_timing_.end_of_frame_interrupt_position.row &&
-			column_ < mode_timing_.end_of_frame_interrupt_position.column &&
-			end_column >= mode_timing_.end_of_frame_interrupt_position.column
-		) {
-			status_ |= StatusInterrupt;
-		}
+	#undef intersect
 
 
 
-		// -------------
-		// Advance time.
-		// -------------
+			// -------------
+			// Advance time.
+			// -------------
+			read_pointer_.column = end_column;
+			read_cycles_pool -= read_cycles;
 
-		column_ = end_column;		// column_ is now the column that has been reached in this line.
-		int_cycles -= cycles_left;	// Count down duration to run for.
-
-
-
-		// -----------------------------------
-		// Prepare for next line, potentially.
-		// -----------------------------------
-		if(column_ == 342) {
-			column_ = 0;
-			row_ = (row_ + 1) % mode_timing_.total_lines;
-
-			// Establish the output mode for the next line.
-			set_current_mode();
-
-			// Based on the output mode, pick a line mode.
-			mode_timing_.first_pixel_output_column = 86;
-			mode_timing_.next_border_column = 342;
-			mode_timing_.maximum_visible_sprites = 4;
-			switch(screen_mode_) {
-				case ScreenMode::Text:
-					line_mode_ = LineMode::Text;
-					mode_timing_.first_pixel_output_column = 94;
-					mode_timing_.next_border_column = 334;
-				break;
-				case ScreenMode::SMSMode4:
-					line_mode_ = LineMode::SMS;
-					mode_timing_.maximum_visible_sprites = 8;
-				break;
-				default:
-					line_mode_ = LineMode::Character;
-				break;
+			if(read_pointer_.column == 342) {
+				read_pointer_.column = 0;
+				read_pointer_.row = (read_pointer_.row + 1) % mode_timing_.total_lines;
 			}
-
-			if((screen_mode_ == ScreenMode::Blank) || (row_ >= mode_timing_.pixel_lines && row_ != mode_timing_.total_lines-1)) line_mode_ = LineMode::Refresh;
 		}
 	}
 }
@@ -537,7 +572,10 @@ void TMS9918::set_register(int address, uint8_t value) {
 uint8_t TMS9918::get_current_line() {
 	// Determine the row to return.
 	static const int row_change_position = 62;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
-	int source_row = (column_ < row_change_position) ? (row_ + mode_timing_.total_lines - 1)%mode_timing_.total_lines : row_;
+	int source_row =
+		(write_pointer_.column < row_change_position)
+			? (write_pointer_.row + mode_timing_.total_lines - 1)%mode_timing_.total_lines
+			: write_pointer_.row;
 
 	// This assumes NTSC 192-line. TODO: other modes.
 	if(source_row >= 0xdb) source_row -= 6;
@@ -568,7 +606,7 @@ uint8_t TMS9918::get_latched_horizontal_counter() {
 }
 
 void TMS9918::latch_horizontal_counter() {
-	latched_column_ = column_;
+	latched_column_ = write_pointer_.column;
 }
 
 uint8_t TMS9918::get_register(int address) {
@@ -603,7 +641,7 @@ HalfCycles TMS9918::get_time_until_interrupt() {
 	const int time_until_frame_interrupt =
 		(
 			((mode_timing_.end_of_frame_interrupt_position.row * 342) + mode_timing_.end_of_frame_interrupt_position.column + frame_length) -
-			((row_ * 342) + column_)
+			((write_pointer_.row * 342) + write_pointer_.column)
 		) % frame_length;
 
 	if(!enable_line_interrupts_) return half_cycles_before_internal_cycles(time_until_frame_interrupt);
@@ -615,8 +653,8 @@ HalfCycles TMS9918::get_time_until_interrupt() {
 		// If there is still time for a line interrupt this frame, that'll be it;
 		// otherwise it'll be on the next frame, supposing there's ever time for
 		// it at all.
-		if(row_+line_interrupt_counter <= mode_timing_.pixel_lines) {
-			next_line_interrupt_row = row_+line_interrupt_counter;
+		if(write_pointer_.row+line_interrupt_counter <= mode_timing_.pixel_lines) {
+			next_line_interrupt_row = write_pointer_.row+line_interrupt_counter;
 		} else {
 			if(line_interrupt_target <= mode_timing_.pixel_lines)
 				next_line_interrupt_row = mode_timing_.total_lines + line_interrupt_target;
@@ -633,9 +671,9 @@ HalfCycles TMS9918::get_time_until_interrupt() {
 
 	// Figure out the number of internal cycles until the next line interrupt, which is the amount
 	// of time to the next tick over and then next_line_interrupt_row - row_ lines further.
-	int local_cycles_until_next_tick = (mode_timing_.line_interrupt_position - column_ + 342) % 342;
+	int local_cycles_until_next_tick = (mode_timing_.line_interrupt_position - write_pointer_.column + 342) % 342;
 	if(!local_cycles_until_next_tick) local_cycles_until_next_tick += 342;
-	const int local_cycles_until_line_interrupt = local_cycles_until_next_tick + (next_line_interrupt_row - row_) * 342;
+	const int local_cycles_until_line_interrupt = local_cycles_until_next_tick + (next_line_interrupt_row - write_pointer_.row) * 342;
 
 	if(!generate_interrupts_) return half_cycles_before_internal_cycles(time_until_frame_interrupt);
 
@@ -782,11 +820,12 @@ void Base::draw_tms_character(int start, int end) {
 }
 
 void Base::draw_tms_text(int start, int end) {
+	LineBuffer &line_buffer = line_buffers_[0];//read_pointer_.row & 1];
 	const uint32_t colours[2] = { palette[background_colour_], palette[text_colour_] };
 
 	const int shift = start % 6;
 	int byte_column = start / 6;
-	int pattern = reverse_table.map[pattern_buffer_[byte_column]] >> shift;
+	int pattern = reverse_table.map[line_buffer.patterns[byte_column][0]] >> shift;
 	int pixels_left = end - start;
 	int length = std::min(pixels_left, 6 - shift);
 	while(true) {
@@ -800,11 +839,12 @@ void Base::draw_tms_text(int start, int end) {
 		if(!pixels_left) break;
 		length = std::min(6, pixels_left);
 		byte_column++;
-		pattern = reverse_table.map[pattern_buffer_[byte_column]];
+		pattern = reverse_table.map[line_buffer.patterns[byte_column][0]];
 	}
 }
 
 void Base::draw_sms(int start, int end) {
+	LineBuffer &line_buffer = line_buffers_[0];//read_pointer_.row & 1];
 	int colour_buffer[256];
 
 	/*
@@ -812,15 +852,15 @@ void Base::draw_sms(int start, int end) {
 	*/
 	int tile_start = start, tile_end = end;
 	int tile_offset = start;
-	if(row_ >= 16 || !master_system_.horizontal_scroll_lock) {
-		for(int c = start; c < (master_system_.latched_horizontal_scroll & 7); ++c) {
+	if(read_pointer_.row >= 16 || !master_system_.horizontal_scroll_lock) {
+		for(int c = start; c < (line_buffer.latched_horizontal_scroll & 7); ++c) {
 			colour_buffer[c] = 16 + background_colour_;
 			++tile_offset;
 		}
 
 		// Remove the border area from that to which tiles will be drawn.
-		tile_start = std::max(start - (master_system_.latched_horizontal_scroll & 7), 0);
-		tile_end = std::max(end - (master_system_.latched_horizontal_scroll & 7), 0);
+		tile_start = std::max(start - (line_buffer.latched_horizontal_scroll & 7), 0);
+		tile_end = std::max(end - (line_buffer.latched_horizontal_scroll & 7), 0);
 	}
 
 
@@ -838,15 +878,15 @@ void Base::draw_sms(int start, int end) {
 		int pixels_left = tile_end - tile_start;
 		int length = std::min(pixels_left, 8 - shift);
 
-		pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
-		if(master_system_.names[byte_column].flags&2)
+		pattern = *reinterpret_cast<const uint32_t *>(line_buffer.patterns[byte_column]);
+		if(line_buffer.names[byte_column].flags&2)
 			pattern >>= shift;
 		else
 			pattern <<= shift;
 
 		while(true) {
-			const int palette_offset = (master_system_.names[byte_column].flags&0x18) << 1;
-			if(master_system_.names[byte_column].flags&2) {
+			const int palette_offset = (line_buffer.names[byte_column].flags&0x18) << 1;
+			if(line_buffer.names[byte_column].flags&2) {
 				for(int c = 0; c < length; ++c) {
 					colour_buffer[tile_offset] =
 						((pattern_index[3] & 0x01) << 3) |
@@ -875,21 +915,21 @@ void Base::draw_sms(int start, int end) {
 
 			length = std::min(8, pixels_left);
 			byte_column++;
-			pattern = *reinterpret_cast<uint32_t *>(master_system_.tile_graphics[byte_column]);
+			pattern = *reinterpret_cast<const uint32_t *>(line_buffer.patterns[byte_column]);
 		}
 	}
 
 	/*
 		Apply sprites (if any).
 	*/
-	if(sprite_set_.fetched_sprite_slot) {
+	if(line_buffer.active_sprite_slot) {
 		int sprite_buffer[256];
 		int sprite_collision = 0;
 		memset(&sprite_buffer[start], 0, size_t(end - start)*sizeof(int));
 
 		// Draw all sprites into the sprite buffer.
-		for(int index = sprite_set_.fetched_sprite_slot - 1; index >= 0; --index) {
-			SpriteSet::ActiveSprite &sprite = sprite_set_.active_sprites[index];
+		for(int index = line_buffer.active_sprite_slot - 1; index >= 0; --index) {
+			LineBuffer::ActiveSprite &sprite = line_buffer.active_sprites[index];
 			if(sprite.shift_position < 16) {
 				const int pixel_start = std::max(start, sprite.x);
 

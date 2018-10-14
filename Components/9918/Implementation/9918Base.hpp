@@ -97,19 +97,23 @@ class Base {
 		bool generate_interrupts_ = false;
 		int sprite_height_ = 8;
 
-		size_t pattern_name_address_ = 0;
-		size_t colour_table_address_ = 0;
-		size_t pattern_generator_table_address_ = 0;
-		size_t sprite_attribute_table_address_ = 0;
-		size_t sprite_generator_table_address_ = 0;
+		size_t pattern_name_address_ = 0;				// i.e. address of the tile map.
+		size_t colour_table_address_ = 0;				// address of the colour map (if applicable).
+		size_t pattern_generator_table_address_ = 0;	// address of the tile contents.
+		size_t sprite_attribute_table_address_ = 0;		// address of the sprite list.
+		size_t sprite_generator_table_address_ = 0;		// address of the sprite contents.
 
 		uint8_t text_colour_ = 0;
 		uint8_t background_colour_ = 0;
 
-		// Internal mechanisms for position tracking.
-		int column_ = 0, row_ = 0, latched_column_ = 0;
+		// This implementation of this chip officially accepts a 3.58Mhz clock, but runs
+		// internally at 5.37Mhz. The following two help to maintain a lossless conversion
+		// from the one to the other.
 		int cycles_error_ = 0;
 		HalfCycles half_cycles_before_internal_cycles(int internal_cycles);
+
+		// Internal mechanisms for position tracking.
+		int latched_column_ = 0;
 
 		// A helper function to output the current border colour for
 		// the number of cycles supplied.
@@ -129,25 +133,6 @@ class Base {
 			int total_lines = 262;
 			int pixel_lines = 192;
 			int first_vsync_line = 227;
-
-			/*
-				Horizontal layout (on a 342-cycle clock):
-
-					15 cycles right border
-					58 cycles blanking & sync
-					13 cycles left border
-
-					... i.e. to cycle 86, then:
-
-					border up to first_pixel_output_column;
-					pixels up to next_border_column;
-					border up to the end.
-
-				e.g. standard 256-pixel modes will want to set
-				first_pixel_output_column = 86, next_border_column = 342.
-			*/
-			int first_pixel_output_column;
-			int next_border_column;
 
 			// Maximum number of sprite slots to populate;
 			// if sprites beyond this number should be visible
@@ -172,18 +157,91 @@ class Base {
 		bool enable_line_interrupts_ = false;
 		bool line_interrupt_pending_ = false;
 
-		// The line mode describes the proper timing diagram for the current line.
+		// The screen mode is a necessary predecessor to picking the line mode,
+		// which is the thing latched per line.
+		enum class ScreenMode {
+			Blank,
+			Text,
+			MultiColour,
+			ColouredText,
+			Graphics,
+			SMSMode4
+		} screen_mode_;
+
 		enum class LineMode {
 			Text,
 			Character,
 			Refresh,
 			SMS
-		} line_mode_ = LineMode::Text;
+		};
 
 		// Temporary buffers collect a representation of this line prior to pixel serialisation.
-		uint8_t pattern_names_[40];
-		uint8_t pattern_buffer_[40];
-		uint8_t colour_buffer_[40];
+		struct LineBuffer {
+			// The line mode describes the proper timing diagram for this line.
+			LineMode line_mode = LineMode::Text;
+
+			// Holds the horizontal scroll position to apply to this line;
+			// of those VDPs currently implemented, affects the Master System only.
+			uint8_t latched_horizontal_scroll = 0;
+
+			// The names array holds pattern names, as an offset into memory, and
+			// potentially flags also.
+			struct {
+				size_t offset;
+				uint8_t flags;
+			} names[40];
+
+			// The patterns array holds tile patterns, corresponding 1:1 with names.
+			// Four bytes per pattern is the maximum required by any
+			// currently-implemented VDP.
+			uint8_t patterns[40][4];
+
+			/*
+				Horizontal layout (on a 342-cycle clock):
+
+					15 cycles right border
+					58 cycles blanking & sync
+					13 cycles left border
+
+					... i.e. to cycle 86, then:
+
+					border up to first_pixel_output_column;
+					pixels up to next_border_column;
+					border up to the end.
+
+				e.g. standard 256-pixel modes will want to set
+				first_pixel_output_column = 86, next_border_column = 342.
+			*/
+			int first_pixel_output_column;
+			int next_border_column;
+
+			// An active sprite is one that has been selected for composition onto
+			// this line.
+			struct ActiveSprite {
+				int index = 0;		// The original in-table index of this sprite.
+				int row = 0;		// The row of the sprite that should be drawn.
+				int x = 0;			// The sprite's x position on screen.
+
+				uint8_t image[4];		// Up to four bytes of image information.
+				int shift_position = 0;	// An offset representing how much of the image information has already been drawn.
+			} active_sprites[8];
+
+			int active_sprite_slot = 0;		// A pointer to the slot into which a new active sprite will be deposited, if required.
+			bool sprites_stopped = false;	// A special TMS feature is that a sentinel value can be used to prevent any further sprites
+											// being evaluated for display. This flag determines whether the sentinel has yet been reached.
+
+			void reset_sprite_collection();
+		} line_buffers_[2];
+		void posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_y, int screen_row);
+
+		// There is a delay between reading into the line buffer and outputting from there to the screen. That delay
+		// is observeable because reading time affects availability of memory accesses and therefore time in which
+		// to update sprites and tiles, but writing time affects when the palette is used and when the collision flag
+		// may end up being set. So the two processes are slightly decoupled. The end of reading one line may overlap
+		// with the beginning of writing the next, hence the two separate line buffers.
+		struct LineBufferPointer {
+			int row, column;
+		} read_pointer_, write_pointer_;
 
 		// Extra information that affects the Master System output mode.
 		struct {
@@ -200,50 +258,12 @@ class Base {
 			uint32_t colour_ram[32];
 			bool cram_is_selected = false;
 
-			// Temporary buffers for a line of Master System graphics,
-			// and latched scrolling offsets.
-			struct {
-				size_t offset;
-				uint8_t flags;
-			} names[32];
-			uint8_t tile_graphics[32][4];
+			// Holds the vertical scroll position for this frame; this is latched
+			// once and cannot dynamically be changed until the next frame.
 			uint8_t latched_vertical_scroll = 0;
-			uint8_t latched_horizontal_scroll = 0;
 		} master_system_;
 
-		// Holds results of sprite data fetches that occur on this
-		// line. Therefore has to contain: up to four or eight sets
-		// of sprite data for this line, and its horizontal position,
-		// plus a growing list of which sprites are selected for
-		// the next line.
-		struct SpriteSet {
-			struct ActiveSprite {
-				int index = 0;
-				int row = 0;
-
-				uint8_t image[4];
-				int x = 0;
-				int shift_position = 0;
-			} active_sprites[8];
-
-			int active_sprite_slot = 0;
-			int fetched_sprite_slot = 0;
-			bool sprites_stopped = false;
-		} sprite_set_;
-
-		inline void reset_sprite_collection();
-		inline void posit_sprite(int sprite_number, int sprite_y, int screen_row);
-		inline void get_sprite_contents(int start, int cycles, int screen_row);
-
-		enum class ScreenMode {
-			Blank,
-			Text,
-			MultiColour,
-			ColouredText,
-			Graphics,
-			SMSMode4
-		} screen_mode_;
-		void set_current_mode() {
+		void set_current_screen_mode() {
 			if(blank_display_) {
 				screen_mode_ = ScreenMode::Blank;
 				return;
@@ -283,7 +303,6 @@ class Base {
 			screen_mode_ = ScreenMode::Blank;
 		}
 
-
 		void do_external_slot() {
 			switch(queued_access_) {
 				default: return;
@@ -307,36 +326,7 @@ class Base {
 			queued_access_ = MemoryAccess::None;
 		}
 
-#define slot(n)	\
-		if(use_end && end+1 == n) return;\
-		case n
-
-#define external_slot(n)	\
-	slot(n): do_external_slot();
-
-#define external_slots_2(n)	\
-	external_slot(n);	\
-	external_slot(n+1);
-
-#define external_slots_4(n)	\
-	external_slots_2(n);	\
-	external_slots_2(n+2);
-
-#define external_slots_8(n)	\
-	external_slots_4(n);	\
-	external_slots_4(n+4);
-
-#define external_slots_16(n)	\
-	external_slots_8(n);	\
-	external_slots_8(n+8);
-
-#define external_slots_32(n)	\
-	external_slots_16(n);	\
-	external_slots_16(n+16);
-
 /*
-	TODO: explain offset by four windows in data gathering.
-
 	Fetching routines follow below; they obey the following rules:
 
 		1) 	input is a start position and an end position; they should perform the proper
@@ -368,30 +358,59 @@ class Base {
 	for the exceptions.
 */
 
+#define slot(n)	\
+		if(use_end && end+1 == n) return;\
+		case n
+
+#define external_slot(n)	\
+	slot(n): do_external_slot();
+
+#define external_slots_2(n)	\
+	external_slot(n);		\
+	external_slot(n+1);
+
+#define external_slots_4(n)	\
+	external_slots_2(n);	\
+	external_slots_2(n+2);
+
+#define external_slots_8(n)	\
+	external_slots_4(n);	\
+	external_slots_4(n+4);
+
+#define external_slots_16(n)	\
+	external_slots_8(n);		\
+	external_slots_8(n+8);
+
+#define external_slots_32(n)	\
+	external_slots_16(n);		\
+	external_slots_16(n+16);
+
 
 /***********************************************
              TMS9918 Fetching Code
 ************************************************/
 
 		template<bool use_end> void fetch_tms_refresh(int start, int end) {
-#define refresh(location)	external_slot(location+1)
+#define refresh(location)		\
+	slot(location):				\
+	external_slot(location+1);
 
 #define refreshes_2(location)	\
-	refresh(location);	\
+	refresh(location);			\
 	refresh(location+2);
 
 #define refreshes_4(location)	\
-	refreshes_2(location);	\
+	refreshes_2(location);		\
 	refreshes_2(location+4);
 
 #define refreshes_8(location)	\
-	refreshes_4(location);	\
+	refreshes_4(location);		\
 	refreshes_4(location+8);
 
 			switch(start) {
-				default:
+				default: assert(false);
 
-				/* 44 external slots (= 44 windows) */
+				/* 44 external slots */
 				external_slots_32(0)
 				external_slots_8(32)
 				external_slots_4(40)
@@ -416,8 +435,8 @@ class Base {
 		}
 
 		template<bool use_end> void fetch_tms_text(int start, int end) {
-#define fetch_tile_name(location, column)		slot(location): pattern_names_[column] = ram_[row_base + column];
-#define fetch_tile_pattern(location, column)	slot(location): pattern_buffer_[column] = ram_[row_offset + size_t(pattern_names_[column] << 3)];
+#define fetch_tile_name(location, column)		slot(location): line_buffer.names[column].offset = ram_[row_base + column];
+#define fetch_tile_pattern(location, column)	slot(location): line_buffer.patterns[column][0] = ram_[row_offset + size_t(line_buffer.names[column].offset << 3)];
 
 #define fetch_column(location, column)	\
 	fetch_tile_name(location, column);	\
@@ -436,11 +455,12 @@ class Base {
 	fetch_columns_4(location, column);	\
 	fetch_columns_4(location+12, column+4);
 
-			const size_t row_base = pattern_name_address_ & (0x3c00 | static_cast<size_t>(row_ >> 3) * 40);
-			const size_t row_offset = pattern_generator_table_address_ & (0x3800 | (row_ & 7));
+			LineBuffer &line_buffer = line_buffers_[0];//write_pointer_.row & 1];
+			const size_t row_base = pattern_name_address_ & (0x3c00 | static_cast<size_t>(write_pointer_.row >> 3) * 40);
+			const size_t row_offset = pattern_generator_table_address_ & (0x3800 | (write_pointer_.row & 7));
 
 			switch(start) {
-				default:
+				default: assert(false);
 
 					/* 47 external slots (= 47 windows) */
 					external_slots_32(0)
@@ -456,8 +476,9 @@ class Base {
 					fetch_columns_8(119, 24);
 					fetch_columns_8(143, 32);
 
-					/* 4 more external slots */
+					/* 5 more external slots */
 					external_slots_4(167);
+					external_slot(171);
 
 				return;
 			}
@@ -492,11 +513,11 @@ class Base {
 #define sprite_y_read(location, sprite)	\
 	slot(location):
 
-#define fetch_tile_name(column) pattern_names_[column] = ram_[(row_base + column) & 0x3fff];
+#define fetch_tile_name(column) line_buffer.names[column].offset = ram_[(row_base + column) & 0x3fff];
 
 #define fetch_tile(column)	{\
-		colour_buffer_[column] = ram_[(colour_base + static_cast<size_t>((pattern_names_[column] << 3) >> colour_name_shift)) & 0x3fff];		\
-		pattern_buffer_[column] = ram_[(pattern_base + static_cast<size_t>(pattern_names_[column] << 3)) & 0x3fff];	\
+		line_buffer.patterns[column][0] = ram_[(colour_base + static_cast<size_t>((line_buffer.names[column].offset << 3) >> colour_name_shift)) & 0x3fff];		\
+		line_buffer.patterns[column][1] = ram_[(pattern_base + static_cast<size_t>(line_buffer.names[column].offset << 3)) & 0x3fff];	\
 	}
 
 #define background_fetch_block(location, column)	\
@@ -517,7 +538,8 @@ class Base {
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
 
-			const size_t row_base = pattern_name_address_ + static_cast<size_t>((row_ << 2)&~31);
+			LineBuffer &line_buffer = line_buffers_[0];//write_pointer_.row & 1];
+			const size_t row_base = pattern_name_address_ + static_cast<size_t>((write_pointer_.row << 2)&~31);
 
 			size_t pattern_base = pattern_generator_table_address_;
 			size_t colour_base = colour_table_address_;
@@ -525,21 +547,22 @@ class Base {
 
 			if(screen_mode_ == ScreenMode::Graphics) {
 				// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
-				pattern_base &= static_cast<size_t>(0x2000 | ((row_ & 0xc0) << 5));
-				colour_base &= static_cast<size_t>(0x2000 | ((row_ & 0xc0) << 5));
+				pattern_base &= static_cast<size_t>(0x2000 | ((write_pointer_.row & 0xc0) << 5));
+				colour_base &= static_cast<size_t>(0x2000 | ((write_pointer_.row & 0xc0) << 5));
 
-				colour_base += static_cast<size_t>(row_ & 7);
+				colour_base += static_cast<size_t>(write_pointer_.row & 7);
 				colour_name_shift = 0;
 			}
 
 			if(screen_mode_ == ScreenMode::MultiColour) {
-				pattern_base += static_cast<size_t>((row_ >> 2) & 7);
+				pattern_base += static_cast<size_t>((write_pointer_.row >> 2) & 7);
 			} else {
-				pattern_base += static_cast<size_t>(row_ & 7);
+				pattern_base += static_cast<size_t>(write_pointer_.row & 7);
 			}
 
 			switch(start) {
-				default:
+				default: assert(false);
+
 				external_slots_2(0);
 
 				sprite_fetch_block(2, 0);
@@ -591,18 +614,18 @@ class Base {
 
 		template<bool use_end> void fetch_sms(int start, int end) {
 #define sprite_fetch(sprite)	{\
-		sprite_set_.active_sprites[sprite].x = \
+		line_buffer.active_sprites[sprite].x = \
 			ram_[\
-				sprite_attribute_table_address_ & size_t(0x3f80 | (sprite_set_.active_sprites[sprite].index << 1))\
+				sprite_attribute_table_address_ & size_t(0x3f80 | (line_buffer.active_sprites[sprite].index << 1))\
 			] - (master_system_.shift_sprites_8px_left ? 8 : 0);	\
 		const uint8_t name = ram_[\
-				sprite_attribute_table_address_ & size_t(0x3f81 | (sprite_set_.active_sprites[sprite].index << 1))\
+				sprite_attribute_table_address_ & size_t(0x3f81 | (line_buffer.active_sprites[sprite].index << 1))\
 			] & (sprites_16x16_ ? ~1 : ~0);\
-		const size_t graphic_location = sprite_generator_table_address_ & size_t(0x2000 | (name << 5) | (sprite_set_.active_sprites[sprite].row << 2));	\
-		sprite_set_.active_sprites[sprite].image[0] = ram_[graphic_location];	\
-		sprite_set_.active_sprites[sprite].image[1] = ram_[graphic_location+1];	\
-		sprite_set_.active_sprites[sprite].image[2] = ram_[graphic_location+2];	\
-		sprite_set_.active_sprites[sprite].image[3] = ram_[graphic_location+3];	\
+		const size_t graphic_location = sprite_generator_table_address_ & size_t(0x2000 | (name << 5) | (line_buffer.active_sprites[sprite].row << 2));	\
+		line_buffer.active_sprites[sprite].image[0] = ram_[graphic_location];	\
+		line_buffer.active_sprites[sprite].image[1] = ram_[graphic_location+1];	\
+		line_buffer.active_sprites[sprite].image[2] = ram_[graphic_location+2];	\
+		line_buffer.active_sprites[sprite].image[3] = ram_[graphic_location+3];	\
 	}
 
 #define sprite_fetch_block(location, sprite)	\
@@ -617,23 +640,23 @@ class Base {
 
 #define sprite_y_read(location, sprite)	\
 	slot(location):	\
-		posit_sprite(sprite, ram_[sprite_attribute_table_address_ & (sprite | 0x3f00)], row_);	\
-		posit_sprite(sprite+1, ram_[sprite_attribute_table_address_ & ((sprite + 1) | 0x3f00)], row_);	\
+		posit_sprite(line_buffer, sprite, ram_[sprite_attribute_table_address_ & (sprite | 0x3f00)], write_pointer_.row);	\
+		posit_sprite(line_buffer, sprite+1, ram_[sprite_attribute_table_address_ & ((sprite + 1) | 0x3f00)], write_pointer_.row);	\
 
 #define fetch_tile_name(column, row_info)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
 		const size_t address = row_info.pattern_address_base + (scrolled_column << 1);	\
-		master_system_.names[column].flags = ram_[address+1];	\
-		master_system_.names[column].offset = static_cast<size_t>(	\
-			(((master_system_.names[column].flags&1) << 8) | ram_[address]) << 5	\
-		) + row_info.sub_row[(master_system_.names[column].flags&4) >> 2];	\
+		line_buffer.names[column].flags = ram_[address+1];	\
+		line_buffer.names[column].offset = static_cast<size_t>(	\
+			(((line_buffer.names[column].flags&1) << 8) | ram_[address]) << 5	\
+		) + row_info.sub_row[(line_buffer.names[column].flags&4) >> 2];	\
 	}
 
 #define fetch_tile(column)	\
-	master_system_.tile_graphics[column][0] = ram_[master_system_.names[column].offset];	\
-	master_system_.tile_graphics[column][1] = ram_[master_system_.names[column].offset+1];	\
-	master_system_.tile_graphics[column][2] = ram_[master_system_.names[column].offset+2];	\
-	master_system_.tile_graphics[column][3] = ram_[master_system_.names[column].offset+3];
+	line_buffer.patterns[column][0] = ram_[line_buffer.names[column].offset];	\
+	line_buffer.patterns[column][1] = ram_[line_buffer.names[column].offset+1];	\
+	line_buffer.patterns[column][2] = ram_[line_buffer.names[column].offset+2];	\
+	line_buffer.patterns[column][3] = ram_[line_buffer.names[column].offset+3];
 
 #define background_fetch_block(location, column, sprite, row_info)	\
 	slot(location):	fetch_tile_name(column, row_info)		\
@@ -660,11 +683,12 @@ class Base {
 	slot(location+15): fetch_tile(column+3)
 
 			// Determine the coarse horizontal scrolling offset; this isn't applied on the first two lines if the programmer has requested it.
-			const int horizontal_offset = (row_ >= 16 || !master_system_.horizontal_scroll_lock) ? (master_system_.latched_horizontal_scroll >> 3) : 0;
+			LineBuffer &line_buffer = line_buffers_[0];//write_pointer_	.row & 1];
+			const int horizontal_offset = (write_pointer_.row >= 16 || !master_system_.horizontal_scroll_lock) ? (line_buffer.latched_horizontal_scroll >> 3) : 0;
 
 			// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
 			// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.
-			const int scrolled_row = (row_ + master_system_.latched_vertical_scroll) % 224;
+			const int scrolled_row = (write_pointer_.row + master_system_.latched_vertical_scroll) % 224;
 			struct RowInfo {
 				size_t pattern_address_base;
 				size_t sub_row[2];
@@ -675,15 +699,14 @@ class Base {
 			};
 			RowInfo row_info;
 			if(master_system_.vertical_scroll_lock) {
-				row_info.pattern_address_base = pattern_name_address_ & static_cast<size_t>(((row_ & ~7) << 3) | 0x3800);
-				row_info.sub_row[0] = size_t((row_ & 7) << 2);
-				row_info.sub_row[1] = 28 ^ size_t((row_ & 7) << 2);
+				row_info.pattern_address_base = pattern_name_address_ & static_cast<size_t>(((write_pointer_.row & ~7) << 3) | 0x3800);
+				row_info.sub_row[0] = size_t((write_pointer_.row & 7) << 2);
+				row_info.sub_row[1] = 28 ^ size_t((write_pointer_.row & 7) << 2);
 			} else row_info = scrolled_row_info;
 
 			// ... and do the actual fetching, which follows this routine:
 			switch(start) {
-				default:
-					assert(false);
+				default: assert(false);
 
 				sprite_fetch_block(0, 0);
 				sprite_fetch_block(6, 2);
@@ -695,7 +718,7 @@ class Base {
 				sprite_fetch_block(23, 6);
 
 				slot(29):
-					reset_sprite_collection();
+					line_buffer.reset_sprite_collection();
 					do_external_slot();
 				external_slot(30);
 
