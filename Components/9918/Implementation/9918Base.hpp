@@ -640,8 +640,8 @@ class Base {
 
 #define sprite_y_read(location, sprite)	\
 	slot(location):	\
-		posit_sprite(line_buffer, sprite, ram_[sprite_attribute_table_address_ & (sprite | 0x3f00)], write_pointer_.row);	\
-		posit_sprite(line_buffer, sprite+1, ram_[sprite_attribute_table_address_ & ((sprite + 1) | 0x3f00)], write_pointer_.row);	\
+		posit_sprite(sprite_selection_buffer, sprite, ram_[sprite_attribute_table_address_ & (sprite | 0x3f00)], write_pointer_.row);	\
+		posit_sprite(sprite_selection_buffer, sprite+1, ram_[sprite_attribute_table_address_ & ((sprite + 1) | 0x3f00)], write_pointer_.row);	\
 
 #define fetch_tile_name(column, row_info)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
@@ -684,6 +684,7 @@ class Base {
 
 			// Determine the coarse horizontal scrolling offset; this isn't applied on the first two lines if the programmer has requested it.
 			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
+			LineBuffer &sprite_selection_buffer = line_buffers_[(write_pointer_.row + 1) % mode_timing_.total_lines];
 			const int horizontal_offset = (write_pointer_.row >= 16 || !master_system_.horizontal_scroll_lock) ? (line_buffer.latched_horizontal_scroll >> 3) : 0;
 
 			// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
@@ -718,7 +719,7 @@ class Base {
 				sprite_fetch_block(23, 6);
 
 				slot(29):
-					line_buffer.reset_sprite_collection();
+					sprite_selection_buffer.reset_sprite_collection();
 					do_external_slot();
 				external_slot(30);
 
