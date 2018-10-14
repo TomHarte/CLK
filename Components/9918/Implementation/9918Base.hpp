@@ -212,8 +212,8 @@ class Base {
 				e.g. standard 256-pixel modes will want to set
 				first_pixel_output_column = 86, next_border_column = 342.
 			*/
-			int first_pixel_output_column;
-			int next_border_column;
+			int first_pixel_output_column = 94;
+			int next_border_column = 334;
 
 			// An active sprite is one that has been selected for composition onto
 			// this line.
@@ -231,7 +231,7 @@ class Base {
 											// being evaluated for display. This flag determines whether the sentinel has yet been reached.
 
 			void reset_sprite_collection();
-		} line_buffers_[2];
+		} line_buffers_[313];
 		void posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_y, int screen_row);
 
 		// There is a delay between reading into the line buffer and outputting from there to the screen. That delay
@@ -455,7 +455,7 @@ class Base {
 	fetch_columns_4(location, column);	\
 	fetch_columns_4(location+12, column+4);
 
-			LineBuffer &line_buffer = line_buffers_[0];//write_pointer_.row & 1];
+			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
 			const size_t row_base = pattern_name_address_ & (0x3c00 | static_cast<size_t>(write_pointer_.row >> 3) * 40);
 			const size_t row_offset = pattern_generator_table_address_ & (0x3800 | (write_pointer_.row & 7));
 
@@ -538,7 +538,7 @@ class Base {
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
 
-			LineBuffer &line_buffer = line_buffers_[0];//write_pointer_.row & 1];
+			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
 			const size_t row_base = pattern_name_address_ + static_cast<size_t>((write_pointer_.row << 2)&~31);
 
 			size_t pattern_base = pattern_generator_table_address_;
@@ -683,7 +683,7 @@ class Base {
 	slot(location+15): fetch_tile(column+3)
 
 			// Determine the coarse horizontal scrolling offset; this isn't applied on the first two lines if the programmer has requested it.
-			LineBuffer &line_buffer = line_buffers_[0];//write_pointer_	.row & 1];
+			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
 			const int horizontal_offset = (write_pointer_.row >= 16 || !master_system_.horizontal_scroll_lock) ? (line_buffer.latched_horizontal_scroll >> 3) : 0;
 
 			// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.

@@ -193,11 +193,13 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	int read_cycles_pool = int_cycles;
 
 	while(write_cycles_pool || read_cycles_pool) {
+		LineBufferPointer backup = read_pointer_;
+
 		if(write_cycles_pool) {
 			// Determine how much writing to do.
 			const int write_cycles = std::min(342 - write_pointer_.column, write_cycles_pool);
 			const int end_column = write_pointer_.column + write_cycles;
-			LineBuffer &line_buffer = line_buffers_[0];//write_pointer_.row & 1];
+			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
 
 
 
@@ -217,7 +219,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			// Perform memory accesses.
 			// ------------------------
 #define fetch(function)	\
-	if(final_window < 171) {	\
+	if(final_window != 171) {	\
 		function<true>(first_window, final_window);\
 	} else {\
 		function<false>(first_window, final_window);\
@@ -282,43 +284,47 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			if(write_pointer_.column == 342) {
 				write_pointer_.column = 0;
 				write_pointer_.row = (write_pointer_.row + 1) % mode_timing_.total_lines;
-				line_buffer = line_buffers_[0];//write_pointer_.row & 1];
+				LineBuffer &next_line_buffer = line_buffers_[write_pointer_.row];
 
 				// Establish the output mode for the next line.
 				set_current_screen_mode();
 
 				// Based on the output mode, pick a line mode.
-				line_buffer.first_pixel_output_column = 86;
-				line_buffer.next_border_column = 342;
+				next_line_buffer.first_pixel_output_column = 86;
+				next_line_buffer.next_border_column = 342;
 				mode_timing_.maximum_visible_sprites = 4;
 				switch(screen_mode_) {
 					case ScreenMode::Text:
-						line_buffer.line_mode = LineMode::Text;
-						line_buffer.first_pixel_output_column = 94;
-						line_buffer.next_border_column = 334;
+						next_line_buffer.line_mode = LineMode::Text;
+						next_line_buffer.first_pixel_output_column = 94;
+						next_line_buffer.next_border_column = 334;
 					break;
 					case ScreenMode::SMSMode4:
-						line_buffer.line_mode = LineMode::SMS;
+						next_line_buffer.line_mode = LineMode::SMS;
 						mode_timing_.maximum_visible_sprites = 8;
 					break;
 					default:
-						line_buffer.line_mode = LineMode::Character;
+						next_line_buffer.line_mode = LineMode::Character;
 					break;
 				}
 
 				if(
 					(screen_mode_ == ScreenMode::Blank) ||
 					(write_pointer_.row >= mode_timing_.pixel_lines && write_pointer_.row != mode_timing_.total_lines-1))
-						line_buffer.line_mode = LineMode::Refresh;
+						next_line_buffer.line_mode = LineMode::Refresh;
 			}
 		}
+
+
+		assert(backup.row == read_pointer_.row && backup.column == read_pointer_.column);
+		backup = write_pointer_;
 
 
 		if(read_cycles_pool) {
 			// Determine how much time has passed in the remainder of this line, and proceed.
 			const int read_cycles = std::min(342 - read_pointer_.column, read_cycles_pool);
 			const int end_column = read_pointer_.column + read_cycles;
-			LineBuffer &line_buffer = line_buffers_[0];//read_pointer_.row & 1];
+			LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
 
 
 
@@ -425,6 +431,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				read_pointer_.row = (read_pointer_.row + 1) % mode_timing_.total_lines;
 			}
 		}
+
+		assert(backup.row == write_pointer_.row && backup.column == write_pointer_.column);
 	}
 }
 
@@ -820,7 +828,7 @@ void Base::draw_tms_character(int start, int end) {
 }
 
 void Base::draw_tms_text(int start, int end) {
-	LineBuffer &line_buffer = line_buffers_[0];//read_pointer_.row & 1];
+	LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
 	const uint32_t colours[2] = { palette[background_colour_], palette[text_colour_] };
 
 	const int shift = start % 6;
@@ -844,7 +852,7 @@ void Base::draw_tms_text(int start, int end) {
 }
 
 void Base::draw_sms(int start, int end) {
-	LineBuffer &line_buffer = line_buffers_[0];//read_pointer_.row & 1];
+	LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
 	int colour_buffer[256];
 
 	/*
@@ -925,7 +933,7 @@ void Base::draw_sms(int start, int end) {
 	if(line_buffer.active_sprite_slot) {
 		int sprite_buffer[256];
 		int sprite_collision = 0;
-		memset(&sprite_buffer[start], 0, size_t(end - start)*sizeof(int));
+		memset(&sprite_buffer[start], 0, size_t(end - start)*sizeof(sprite_buffer[0]));
 
 		// Draw all sprites into the sprite buffer.
 		for(int index = line_buffer.active_sprite_slot - 1; index >= 0; --index) {
