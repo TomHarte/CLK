@@ -495,6 +495,12 @@ class Base {
 #define sprite_fetch_coordinates(location, sprite)	\
 	slot(location):		\
 	slot(location+1):	\
+		line_buffer.active_sprites[sprite].x = \
+			ram_[\
+				sprite_attribute_table_address_ & size_t(0x3f81 | (line_buffer.active_sprites[sprite].index << 2))\
+			];
+
+//- ( ? 8 : 0)
 
 #define sprite_fetch_graphics(location, sprite)	\
 	slot(location):		\
@@ -503,21 +509,17 @@ class Base {
 	slot(location+3):	\
 
 #define sprite_fetch_block(location, sprite)	\
-	slot(location):		\
-	slot(location+1):	\
-	slot(location+2):	\
-	slot(location+3):	\
-	slot(location+4):	\
-	slot(location+5):
+	sprite_fetch_coordinates(location, sprite)	\
+	sprite_fetch_graphics(location+2, sprite)
 
 #define sprite_y_read(location, sprite)	\
-	slot(location):
+	slot(location): posit_sprite(sprite_selection_buffer, sprite, ram_[sprite_attribute_table_address_ & (((sprite) << 2) | 0x3f80)], write_pointer_.row);
 
 #define fetch_tile_name(column) line_buffer.names[column].offset = ram_[(row_base + column) & 0x3fff];
 
 #define fetch_tile(column)	{\
-		line_buffer.patterns[column][0] = ram_[(colour_base + static_cast<size_t>((line_buffer.names[column].offset << 3) >> colour_name_shift)) & 0x3fff];		\
-		line_buffer.patterns[column][1] = ram_[(pattern_base + static_cast<size_t>(line_buffer.names[column].offset << 3)) & 0x3fff];	\
+		line_buffer.patterns[column][1] = ram_[(colour_base + static_cast<size_t>((line_buffer.names[column].offset << 3) >> colour_name_shift)) & 0x3fff];		\
+		line_buffer.patterns[column][0] = ram_[(pattern_base + static_cast<size_t>(line_buffer.names[column].offset << 3)) & 0x3fff];	\
 	}
 
 #define background_fetch_block(location, column)	\
@@ -539,7 +541,8 @@ class Base {
 	slot(location+15): fetch_tile(column+3)
 
 			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
-			const size_t row_base = pattern_name_address_ + static_cast<size_t>((write_pointer_.row << 2)&~31);
+			LineBuffer &sprite_selection_buffer = line_buffers_[(write_pointer_.row + 1) % mode_timing_.total_lines];
+			const size_t row_base = pattern_name_address_ & (static_cast<size_t>((write_pointer_.row << 2)&~31) | 0x3c00);
 
 			size_t pattern_base = pattern_generator_table_address_;
 			size_t colour_base = colour_table_address_;
@@ -575,7 +578,11 @@ class Base {
 				sprite_fetch_graphics(21, 2);
 				sprite_fetch_block(25, 3);
 
-				external_slots_4(31);
+				slot(31):
+					sprite_selection_buffer.reset_sprite_collection();
+					do_external_slot();
+				external_slots_2(32);
+				external_slot(34);
 
 				sprite_y_read(35, 0);
 				sprite_y_read(36, 1);
