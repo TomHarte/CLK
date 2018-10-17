@@ -307,7 +307,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		}\
 	}
 
-			if(line_buffer.line_mode == LineMode::Refresh) {
+			if(line_buffer.line_mode == LineMode::Refresh || read_pointer_.row > mode_timing_.pixel_lines) {
 				if(read_pointer_.row >= mode_timing_.first_vsync_line && read_pointer_.row < mode_timing_.first_vsync_line+4) {
 					// Vertical sync.
 					if(end_column == 342) {
