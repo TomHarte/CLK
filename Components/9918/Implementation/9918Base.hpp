@@ -359,7 +359,7 @@ class Base {
 */
 
 #define slot(n)	\
-		if(use_end && end+1 == n) return;\
+		if(use_end && end == n) return;\
 		case n
 
 #define external_slot(n)	\
@@ -534,21 +534,21 @@ class Base {
 		line_buffer.patterns[column][0] = ram_[(pattern_base + static_cast<size_t>(line_buffer.names[column].offset << 3)) & 0x3fff];	\
 	}
 
-#define background_fetch_block(location, column)	\
+#define background_fetch_block(location, column, sprite)	\
 	slot(location):	fetch_tile_name(column)		\
 	external_slot(location+1);	\
 	slot(location+2):	\
 	slot(location+3): fetch_tile(column)	\
 	slot(location+4): fetch_tile_name(column+1)	\
-	sprite_y_read(location+5, column+8);	\
+	sprite_y_read(location+5, sprite);	\
 	slot(location+6):	\
 	slot(location+7): fetch_tile(column+1)	\
 	slot(location+8): fetch_tile_name(column+2)	\
-	sprite_y_read(location+9, column+9);	\
+	sprite_y_read(location+9, sprite+1);	\
 	slot(location+10):	\
 	slot(location+11): fetch_tile(column+2)	\
 	slot(location+12): fetch_tile_name(column+3)	\
-	sprite_y_read(location+13, column+10);	\
+	sprite_y_read(location+13, sprite+2);	\
 	slot(location+14):	\
 	slot(location+15): fetch_tile(column+3)
 
@@ -605,14 +605,14 @@ class Base {
 				sprite_y_read(41, 6);
 				sprite_y_read(42, 7);
 
-				background_fetch_block(43, 0);
-				background_fetch_block(59, 4);
-				background_fetch_block(75, 8);
-				background_fetch_block(91, 12);
-				background_fetch_block(107, 16);
-				background_fetch_block(123, 20);
-				background_fetch_block(139, 24);
-				background_fetch_block(155, 28);
+				background_fetch_block(43, 0, 8);
+				background_fetch_block(59, 4, 11);
+				background_fetch_block(75, 8, 14);
+				background_fetch_block(91, 12, 17);
+				background_fetch_block(107, 16, 20);
+				background_fetch_block(123, 20, 23);
+				background_fetch_block(139, 24, 26);
+				background_fetch_block(155, 28, 29);
 
 				return;
 			}
