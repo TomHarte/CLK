@@ -124,7 +124,7 @@ void Base::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_positi
 		return;
 	}
 
-	const int sprite_row = (screen_row - sprite_position)&255;
+	const int sprite_row = ((screen_row + 1) % mode_timing_.total_lines) - ((sprite_position + 1) & 255);
 	if(sprite_row < 0 || sprite_row >= sprite_height_) return;
 
 	if(buffer.active_sprite_slot == mode_timing_.maximum_visible_sprites) {
