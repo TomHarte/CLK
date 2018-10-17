@@ -118,7 +118,6 @@ void Base::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_positi
 	if(buffer.sprites_stopped)
 		return;
 
-//	const int sprite_position = ram_[sprite_attribute_table_address_ + static_cast<size_t>(sprite_number << 2)];
 	// A sprite Y of 208 means "don't scan the list any further".
 	if(mode_timing_.allow_sprite_terminator && sprite_position == 208) {
 		buffer.sprites_stopped = true;
@@ -138,39 +137,6 @@ void Base::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_positi
 	sprite.row = sprite_row >> (sprites_magnified_ ? 1 : 0);
 	++buffer.active_sprite_slot;
 }
-
-//void Base::get_sprite_contents(int field, int cycles_left, int screen_row) {
-/*	int sprite_id = field / 6;
-	field %= 6;
-
-	while(true) {
-		const int cycles_in_sprite = std::min(cycles_left, 6 - field);
-		cycles_left -= cycles_in_sprite;
-		const int final_field = cycles_in_sprite + field;
-
-		assert(sprite_id < 4);
-		SpriteSet::ActiveSprite &sprite = sprite_sets_[active_sprite_set_].active_sprites[sprite_id];
-
-		if(field < 4) {
-			std::memcpy(
-				&sprite.info[field],
-				&ram_[sprite_attribute_table_address_ + static_cast<size_t>((sprite.index << 2) + field)],
-				static_cast<size_t>(std::min(4, final_field) - field));
-		}
-
-		field = std::min(4, final_field);
-		const int sprite_offset = sprite.info[2] & ~(sprites_16x16_ ? 3 : 0);
-		const size_t sprite_address = sprite_generator_table_address_ + static_cast<size_t>(sprite_offset << 3) + sprite.row; // TODO: recalclate sprite.row from screen_row (?)
-		while(field < final_field) {
-			sprite.image[field - 4] = ram_[sprite_address + static_cast<size_t>(((field - 4) << 4))];
-			field++;
-		}
-
-		if(!cycles_left) return;
-		field = 0;
-		sprite_id++;
-	}*/
-//}
 
 void TMS9918::run_for(const HalfCycles cycles) {
 	// As specific as I've been able to get:
@@ -767,9 +733,9 @@ void Base::draw_tms_character(int start, int end) {
 					sprite_collision |= sprite_buffer[c] & sprite_colour;
 					sprite_buffer[c] |= sprite_colour;
 
-					sprite_colour &= colour_masks[sprite.image[3]&15];
+					sprite_colour &= colour_masks[sprite.image[2]&15];
 					pixel_origin_[c] =
-						(pixel_origin_[c] & sprite_colour_selection_masks[sprite_colour^1]) | (palette[sprite.image[3]&15] & sprite_colour_selection_masks[sprite_colour]);
+						(pixel_origin_[c] & sprite_colour_selection_masks[sprite_colour^1]) | (palette[sprite.image[2]&15] & sprite_colour_selection_masks[sprite_colour]);
 
 					sprite.shift_position += shift_advance;
 				}

@@ -510,14 +510,14 @@ class Base {
 	slot(location+3):	{\
 		const uint8_t name = ram_[\
 				sprite_attribute_table_address_ & size_t(0x3f82 | (line_buffer.active_sprites[sprite].index << 2))\
-			] & (sprites_16x16_ ? ~1 : ~0);\
+			] & (sprites_16x16_ ? ~3 : ~0);\
 		line_buffer.active_sprites[sprite].image[2] = ram_[\
 				sprite_attribute_table_address_ & size_t(0x3f83 | (line_buffer.active_sprites[sprite].index << 2))\
 			];\
 		line_buffer.active_sprites[sprite].x -= (line_buffer.active_sprites[sprite].image[2] & 0x80) >> 2;\
-		const size_t graphic_location = sprite_generator_table_address_ & size_t(0x2000 | (name << 3) | (line_buffer.active_sprites[sprite].row << 1));	\
+		const size_t graphic_location = sprite_generator_table_address_ & size_t(0x3800 | (name << 3) | line_buffer.active_sprites[sprite].row);	\
 		line_buffer.active_sprites[sprite].image[0] = ram_[graphic_location];\
-		line_buffer.active_sprites[sprite].image[1] = ram_[graphic_location+1];\
+		line_buffer.active_sprites[sprite].image[1] = ram_[graphic_location+16];\
 	}
 
 #define sprite_fetch_block(location, sprite)	\
