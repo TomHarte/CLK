@@ -500,13 +500,25 @@ class Base {
 				sprite_attribute_table_address_ & size_t(0x3f81 | (line_buffer.active_sprites[sprite].index << 2))\
 			];
 
-//- ( ? 8 : 0)
+		// This implementation doesn't refetch Y; it's unclear to me
+		// whether it's refetched.
 
 #define sprite_fetch_graphics(location, sprite)	\
 	slot(location):		\
 	slot(location+1):	\
 	slot(location+2):	\
-	slot(location+3):	\
+	slot(location+3):	{\
+		const uint8_t name = ram_[\
+				sprite_attribute_table_address_ & size_t(0x3f82 | (line_buffer.active_sprites[sprite].index << 2))\
+			] & (sprites_16x16_ ? ~1 : ~0);\
+		line_buffer.active_sprites[sprite].image[2] = ram_[\
+				sprite_attribute_table_address_ & size_t(0x3f83 | (line_buffer.active_sprites[sprite].index << 2))\
+			];\
+		line_buffer.active_sprites[sprite].x -= (line_buffer.active_sprites[sprite].image[2] & 0x80) >> 2;\
+		const size_t graphic_location = sprite_generator_table_address_ & size_t(0x2000 | (name << 3) | (line_buffer.active_sprites[sprite].row << 1));	\
+		line_buffer.active_sprites[sprite].image[0] = ram_[graphic_location];\
+		line_buffer.active_sprites[sprite].image[1] = ram_[graphic_location+1];\
+	}
 
 #define sprite_fetch_block(location, sprite)	\
 	sprite_fetch_coordinates(location, sprite)	\
