@@ -723,9 +723,9 @@ void Base::draw_tms_character(int start, int end) {
 		const int shift_advance = sprites_magnified_ ? 1 : 2;
 		for(int index = line_buffer.active_sprite_slot - 1; index >= 0; --index) {
 			LineBuffer::ActiveSprite &sprite = line_buffer.active_sprites[index];
-			if(sprite.shift_position < 16) {
+			const int shifter_target = sprites_16x16_ ? 32 : 16;
+			if(sprite.shift_position < shifter_target) {
 				const int pixel_start = std::max(start, sprite.x);
-				const int shifter_target = sprites_16x16_ ? 32 : 16;
 				for(int c = pixel_start; c < end && sprite.shift_position < shifter_target; ++c) {
 					const int shift = (sprite.shift_position >> 1) ^ 7;
 					int sprite_colour = (sprite.image[shift >> 3] >> (shift & 7)) & 1;
