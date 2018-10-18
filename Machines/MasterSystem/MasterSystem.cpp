@@ -360,8 +360,8 @@ class ConcreteMachine:
 				map(read_pointers_, nullptr, 0xc000, 0x0000);
 			}
 
-			// Throw the BIOS on top if it isn't disabled.
-			if(!(memory_control_ & 0x08)) {
+			// Throw the BIOS on top if this machine has one and it isn't disabled.
+			if(model_ == Analyser::Static::Sega::Target::Model::MasterSystem && !(memory_control_ & 0x08)) {
 				map(read_pointers_, bios_, 8*1024, 0);
 			}
 		}
