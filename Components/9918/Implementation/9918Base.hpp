@@ -530,8 +530,8 @@ class Base {
 #define fetch_tile_name(column) line_buffer.names[column].offset = ram_[(row_base + column) & 0x3fff];
 
 #define fetch_tile(column)	{\
-		line_buffer.patterns[column][1] = ram_[(colour_base + static_cast<size_t>((line_buffer.names[column].offset << 3) >> colour_name_shift)) & 0x3fff];		\
-		line_buffer.patterns[column][0] = ram_[(pattern_base + static_cast<size_t>(line_buffer.names[column].offset << 3)) & 0x3fff];	\
+		line_buffer.patterns[column][1] = ram_[(colour_base + size_t((line_buffer.names[column].offset << 3) >> colour_name_shift)) & 0x3fff];		\
+		line_buffer.patterns[column][0] = ram_[(pattern_base + size_t(line_buffer.names[column].offset << 3)) & 0x3fff];	\
 	}
 
 #define background_fetch_block(location, column, sprite)	\
@@ -568,7 +568,7 @@ class Base {
 				colour_base += size_t(write_pointer_.row & 7);
 				colour_name_shift = 0;
 			} else {
-				colour_base &= size_t(0xffc0 | (write_pointer_.row & 7));
+				colour_base &= size_t(0xffc0);
 				pattern_base &= size_t(0x3800);
 			}
 

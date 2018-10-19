@@ -489,7 +489,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 			break;
 
 			case 3:
-				colour_table_address_ = size_t(low_write_ << 6) | 0x1f;
+				colour_table_address_ = size_t(low_write_ << 6) | 0x3f;
 			break;
 
 			case 4:
