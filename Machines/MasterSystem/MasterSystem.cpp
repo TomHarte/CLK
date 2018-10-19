@@ -19,6 +19,7 @@
 #include "../../ClockReceiver/ForceInline.hpp"
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Outputs/Log.hpp"
 
 #include "../../Analyser/Static/Sega/Target.hpp"
 
@@ -177,11 +178,11 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch(address & 0xc1) {
 							case 0x00:
-								printf("TODO: [input] memory control\n");
+								LOG("TODO: [input] memory control");
 								*cycle.value = 0xff;
 							break;
 							case 0x01:
-								printf("TODO: [input] I/O port control\n");
+								LOG("TODO: [input] I/O port control");
 								*cycle.value = 0xff;
 							break;
 							case 0x40:
@@ -212,7 +213,7 @@ class ConcreteMachine:
 							} break;
 
 							default:
-								printf("[input] Clearly some sort of typo\n");
+								ERROR("[input] Clearly some sort of typo");
 							break;
 						}
 					break;
@@ -251,14 +252,14 @@ class ConcreteMachine:
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc0:
-								printf("TODO: [output] I/O port A/N [%02x]\n", *cycle.value);
+								LOG("TODO: [output] I/O port A/N; " << *cycle.value);
 							break;
 							case 0xc1:
-								printf("TODO: [output] I/O port B/misc\n");
+								LOG("TODO: [output] I/O port B/misc");
 							break;
 
 							default:
-								printf("[output] Clearly some sort of typo\n");
+								ERROR("[output] Clearly some sort of typo");
 							break;
 						}
 					break;
