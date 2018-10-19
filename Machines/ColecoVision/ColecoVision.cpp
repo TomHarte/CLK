@@ -100,7 +100,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 
 	private:
 		uint8_t direction_ = 0xff;
-		uint8_t keypad_ = 0xff;
+		uint8_t keypad_ = 0x7f;
 };
 
 class ConcreteMachine:
@@ -145,6 +145,7 @@ class ConcreteMachine:
 					cartridge_pages_[1] = cartridge_.data();
 					is_megacart_ = true;
 				} else {
+					cartridge_.resize(32768);
 					cartridge_pages_[0] = cartridge_.data();
 					cartridge_pages_[1] = cartridge_.data() + 16384;
 					is_megacart_ = false;
