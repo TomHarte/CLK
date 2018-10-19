@@ -554,7 +554,7 @@ class Base {
 
 			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
 			LineBuffer &sprite_selection_buffer = line_buffers_[(write_pointer_.row + 1) % mode_timing_.total_lines];
-			const size_t row_base = pattern_name_address_ & (static_cast<size_t>((write_pointer_.row << 2)&~31) | 0x3c00);
+			const size_t row_base = pattern_name_address_ & (size_t((write_pointer_.row << 2)&~31) | 0x3c00);
 
 			size_t pattern_base = pattern_generator_table_address_;
 			size_t colour_base = colour_table_address_;
@@ -562,17 +562,20 @@ class Base {
 
 			if(screen_mode_ == ScreenMode::Graphics) {
 				// If this is high resolution mode, allow the row number to affect the pattern and colour addresses.
-				pattern_base &= static_cast<size_t>(0x2000 | ((write_pointer_.row & 0xc0) << 5));
-				colour_base &= static_cast<size_t>(0x2000 | ((write_pointer_.row & 0xc0) << 5));
+				pattern_base &= size_t(0x2000 | ((write_pointer_.row & 0xc0) << 5));
+				colour_base &= size_t(0x2000 | ((write_pointer_.row & 0xc0) << 5));
 
-				colour_base += static_cast<size_t>(write_pointer_.row & 7);
+				colour_base += size_t(write_pointer_.row & 7);
 				colour_name_shift = 0;
+			} else {
+				colour_base &= size_t(0xffc0 | (write_pointer_.row & 7));
+				pattern_base &= size_t(0x3800);
 			}
 
 			if(screen_mode_ == ScreenMode::MultiColour) {
-				pattern_base += static_cast<size_t>((write_pointer_.row >> 2) & 7);
+				pattern_base += size_t((write_pointer_.row >> 2) & 7);
 			} else {
-				pattern_base += static_cast<size_t>(write_pointer_.row & 7);
+				pattern_base += size_t(write_pointer_.row & 7);
 			}
 
 			switch(start) {

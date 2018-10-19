@@ -605,7 +605,6 @@ HalfCycles Base::half_cycles_before_internal_cycles(int internal_cycles) {
 	return HalfCycles(((internal_cycles << 2) - cycles_error_) / 3);
 }
 
-
 HalfCycles TMS9918::get_time_until_interrupt() {
 	if(!generate_interrupts_ && !enable_line_interrupts_) return HalfCycles(-1);
 	if(get_interrupt_line()) return HalfCycles(0);
