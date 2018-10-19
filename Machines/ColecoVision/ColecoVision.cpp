@@ -141,11 +141,19 @@ class ConcreteMachine:
 					cartridge_address_limit_ = static_cast<uint16_t>(0x8000 + cartridge_.size() - 1);
 
 				if(cartridge_.size() > 32768) {
+					// Ensure the cartrige is a multiple of 16kb in size, as that won't
+					// be checked when paging.
+					const size_t extension = (16384 - cartridge_.size() & 16383) % 16384;
+					cartridge_.resize(cartridge_.size() + extension);
+
 					cartridge_pages_[0] = &cartridge_[cartridge_.size() - 16384];
 					cartridge_pages_[1] = cartridge_.data();
 					is_megacart_ = true;
 				} else {
+					// Ensure at least 32kb is allocated to the cartrige so that
+					// reads are never out of bounds.
 					cartridge_.resize(32768);
+
 					cartridge_pages_[0] = cartridge_.data();
 					cartridge_pages_[1] = cartridge_.data() + 16384;
 					is_megacart_ = false;
