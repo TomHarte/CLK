@@ -143,7 +143,7 @@ class ConcreteMachine:
 				if(cartridge_.size() > 32768) {
 					// Ensure the cartrige is a multiple of 16kb in size, as that won't
 					// be checked when paging.
-					const size_t extension = (16384 - cartridge_.size() & 16383) % 16384;
+					const size_t extension = (16384 - (cartridge_.size() & 16383)) % 16384;
 					cartridge_.resize(cartridge_.size() + extension);
 
 					cartridge_pages_[0] = &cartridge_[cartridge_.size() - 16384];
