@@ -219,7 +219,7 @@ class ConcreteMachine:
 		}
 
 		void setup_output(float aspect_ratio) override {
-			vdp_.reset(new TI::TMS9918(TI::TMS9918::TMS9918A));
+			vdp_.reset(new TI::TMS::TMS9918(TI::TMS::TMS9918A));
 		}
 
 		void close_output() override {
@@ -361,183 +361,185 @@ class ConcreteMachine:
 			memory_slots_[2].cycles_since_update += total_length;
 			memory_slots_[3].cycles_since_update += total_length;
 
-			uint16_t address = cycle.address ? *cycle.address : 0x0000;
-			switch(cycle.operation) {
-				case CPU::Z80::PartialMachineCycle::ReadOpcode:
-					if(use_fast_tape_) {
-						if(address == 0x1a63) {
-							// TAPION
+			if(cycle.is_terminal()) {
+				uint16_t address = cycle.address ? *cycle.address : 0x0000;
+				switch(cycle.operation) {
+					case CPU::Z80::PartialMachineCycle::ReadOpcode:
+						if(use_fast_tape_) {
+							if(address == 0x1a63) {
+								// TAPION
 
-							// Enable the tape motor.
-							i8255_.set_register(0xab, 0x8);
+								// Enable the tape motor.
+								i8255_.set_register(0xab, 0x8);
 
-							// Disable interrupts.
-							z80_.set_value_of_register(CPU::Z80::Register::IFF1, 0);
-							z80_.set_value_of_register(CPU::Z80::Register::IFF2, 0);
+								// Disable interrupts.
+								z80_.set_value_of_register(CPU::Z80::Register::IFF1, 0);
+								z80_.set_value_of_register(CPU::Z80::Register::IFF2, 0);
 
-							// Use the parser to find a header, and if one is found then populate
-							// LOWLIM and WINWID, and reset carry. Otherwise set carry.
-							using Parser = Storage::Tape::MSX::Parser;
-							std::unique_ptr<Parser::FileSpeed> new_speed = Parser::find_header(tape_player_);
-							if(new_speed) {
-								ram_[0xfca4] = new_speed->minimum_start_bit_duration;
-								ram_[0xfca5] = new_speed->low_high_disrimination_duration;
-								z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
-							} else {
-								z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
+								// Use the parser to find a header, and if one is found then populate
+								// LOWLIM and WINWID, and reset carry. Otherwise set carry.
+								using Parser = Storage::Tape::MSX::Parser;
+								std::unique_ptr<Parser::FileSpeed> new_speed = Parser::find_header(tape_player_);
+								if(new_speed) {
+									ram_[0xfca4] = new_speed->minimum_start_bit_duration;
+									ram_[0xfca5] = new_speed->low_high_disrimination_duration;
+									z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
+								} else {
+									z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
+								}
+
+								// RET.
+								*cycle.value = 0xc9;
+								break;
 							}
 
-							// RET.
-							*cycle.value = 0xc9;
-							break;
-						}
+							if(address == 0x1abc) {
+								// TAPIN
 
-						if(address == 0x1abc) {
-							// TAPIN
+								// Grab the current values of LOWLIM and WINWID.
+								using Parser = Storage::Tape::MSX::Parser;
+								Parser::FileSpeed tape_speed;
+								tape_speed.minimum_start_bit_duration = ram_[0xfca4];
+								tape_speed.low_high_disrimination_duration = ram_[0xfca5];
 
-							// Grab the current values of LOWLIM and WINWID.
-							using Parser = Storage::Tape::MSX::Parser;
-							Parser::FileSpeed tape_speed;
-							tape_speed.minimum_start_bit_duration = ram_[0xfca4];
-							tape_speed.low_high_disrimination_duration = ram_[0xfca5];
+								// Ask the tape parser to grab a byte.
+								int next_byte = Parser::get_byte(tape_speed, tape_player_);
 
-							// Ask the tape parser to grab a byte.
-							int next_byte = Parser::get_byte(tape_speed, tape_player_);
+								// If a byte was found, return it with carry unset. Otherwise set carry to
+								// indicate error.
+								if(next_byte >= 0) {
+									z80_.set_value_of_register(CPU::Z80::Register::A, static_cast<uint16_t>(next_byte));
+									z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
+								} else {
+									z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
+								}
 
-							// If a byte was found, return it with carry unset. Otherwise set carry to
-							// indicate error.
-							if(next_byte >= 0) {
-								z80_.set_value_of_register(CPU::Z80::Register::A, static_cast<uint16_t>(next_byte));
-								z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
-							} else {
-								z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
+								// RET.
+								*cycle.value = 0xc9;
+								break;
 							}
-
-							// RET.
-							*cycle.value = 0xc9;
-							break;
 						}
-					}
 
-					if(!address) {
-						pc_zero_accesses_++;
-					}
-					if(read_pointers_[address >> 13] == unpopulated_) {
-						performed_unmapped_access_ = true;
-					}
-					pc_address_ = address;	// This is retained so as to be able to name the source of an access to cartridge handlers.
-				case CPU::Z80::PartialMachineCycle::Read:
-					if(read_pointers_[address >> 13]) {
-						*cycle.value = read_pointers_[address >> 13][address & 8191];
-					} else {
+						if(!address) {
+							pc_zero_accesses_++;
+						}
+						if(read_pointers_[address >> 13] == unpopulated_) {
+							performed_unmapped_access_ = true;
+						}
+						pc_address_ = address;	// This is retained so as to be able to name the source of an access to cartridge handlers.
+					case CPU::Z80::PartialMachineCycle::Read:
+						if(read_pointers_[address >> 13]) {
+							*cycle.value = read_pointers_[address >> 13][address & 8191];
+						} else {
+							int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
+							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
+							*cycle.value = memory_slots_[slot_hit].handler->read(address);
+						}
+					break;
+
+					case CPU::Z80::PartialMachineCycle::Write: {
+						write_pointers_[address >> 13][address & 8191] = *cycle.value;
+
 						int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
-						memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
-						*cycle.value = memory_slots_[slot_hit].handler->read(address);
-					}
-				break;
-
-				case CPU::Z80::PartialMachineCycle::Write: {
-					write_pointers_[address >> 13][address & 8191] = *cycle.value;
-
-					int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
-					if(memory_slots_[slot_hit].handler) {
-						update_audio();
-						memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
-						memory_slots_[slot_hit].handler->write(address, *cycle.value, read_pointers_[pc_address_ >> 13] != memory_slots_[0].read_pointers[pc_address_ >> 13]);
-					}
-				} break;
-
-				case CPU::Z80::PartialMachineCycle::Input:
-					switch(address & 0xff) {
-						case 0x98:	case 0x99:
-							vdp_->run_for(time_since_vdp_update_.flush());
-							*cycle.value = vdp_->get_register(address);
-							z80_.set_interrupt_line(vdp_->get_interrupt_line());
-							time_until_interrupt_ = vdp_->get_time_until_interrupt();
-						break;
-
-						case 0xa2:
+						if(memory_slots_[slot_hit].handler) {
 							update_audio();
-							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BC2 | GI::AY38910::BC1));
-							*cycle.value = ay_.get_data_output();
-							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
-						break;
-
-						case 0xa8:	case 0xa9:
-						case 0xaa:	case 0xab:
-							*cycle.value = i8255_.get_register(address);
-						break;
-
-						default:
-							*cycle.value = 0xff;
-						break;
-					}
-				break;
-
-				case CPU::Z80::PartialMachineCycle::Output: {
-					const int port = address & 0xff;
-					switch(port) {
-						case 0x98:	case 0x99:
-							vdp_->run_for(time_since_vdp_update_.flush());
-							vdp_->set_register(address, *cycle.value);
-							z80_.set_interrupt_line(vdp_->get_interrupt_line());
-							time_until_interrupt_ = vdp_->get_time_until_interrupt();
-						break;
-
-						case 0xa0:	case 0xa1:
-							update_audio();
-							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | ((port == 0xa0) ? GI::AY38910::BC1 : 0)));
-							ay_.set_data_input(*cycle.value);
-							ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
-						break;
-
-						case 0xa8:	case 0xa9:
-						case 0xaa:	case 0xab:
-							i8255_.set_register(address, *cycle.value);
-						break;
-
-						case 0xfc: case 0xfd: case 0xfe: case 0xff:
-//							printf("RAM banking %02x: %02x\n", port, *cycle.value);
-						break;
-					}
-				} break;
-
-				case CPU::Z80::PartialMachineCycle::Interrupt:
-					*cycle.value = 0xff;
-
-					// Take this as a convenient moment to jump into the keyboard buffer, if desired.
-					if(!input_text_.empty()) {
-						// The following are KEYBUF per the Red Book; its address and its definition as DEFS 40.
-						const int buffer_start = 0xfbf0;
-						const int buffer_size = 40;
-
-						// Also from the Red Book: GETPNT is at F3FAH and PUTPNT is at F3F8H.
-						int read_address = ram_[0xf3fa] | (ram_[0xf3fb] << 8);
-						int write_address = ram_[0xf3f8] | (ram_[0xf3f9] << 8);
-
-						// Write until either the string is exhausted or the write_pointer is immediately
-						// behind the read pointer; temporarily map write_address and read_address into
-						// buffer-relative values.
-						std::size_t characters_written = 0;
-						write_address -= buffer_start;
-						read_address -= buffer_start;
-						while(characters_written < input_text_.size()) {
-							const int next_write_address = (write_address + 1) % buffer_size;
-							if(next_write_address == read_address) break;
-							ram_[write_address + buffer_start] = static_cast<uint8_t>(input_text_[characters_written]);
-							++characters_written;
-							write_address = next_write_address;
+							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
+							memory_slots_[slot_hit].handler->write(address, *cycle.value, read_pointers_[pc_address_ >> 13] != memory_slots_[0].read_pointers[pc_address_ >> 13]);
 						}
-						input_text_.erase(input_text_.begin(), input_text_.begin() + static_cast<std::string::difference_type>(characters_written));
+					} break;
 
-						// Map the write address back into absolute terms and write it out again as PUTPNT.
-						write_address += buffer_start;
-						ram_[0xf3f8] = static_cast<uint8_t>(write_address);
-						ram_[0xf3f9] = static_cast<uint8_t>(write_address >> 8);
-					}
-				break;
+					case CPU::Z80::PartialMachineCycle::Input:
+						switch(address & 0xff) {
+							case 0x98:	case 0x99:
+								vdp_->run_for(time_since_vdp_update_.flush());
+								*cycle.value = vdp_->get_register(address);
+								z80_.set_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
+							break;
 
-				default: break;
+							case 0xa2:
+								update_audio();
+								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BC2 | GI::AY38910::BC1));
+								*cycle.value = ay_.get_data_output();
+								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
+							break;
+
+							case 0xa8:	case 0xa9:
+							case 0xaa:	case 0xab:
+								*cycle.value = i8255_.get_register(address);
+							break;
+
+							default:
+								*cycle.value = 0xff;
+							break;
+						}
+					break;
+
+					case CPU::Z80::PartialMachineCycle::Output: {
+						const int port = address & 0xff;
+						switch(port) {
+							case 0x98:	case 0x99:
+								vdp_->run_for(time_since_vdp_update_.flush());
+								vdp_->set_register(address, *cycle.value);
+								z80_.set_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
+							break;
+
+							case 0xa0:	case 0xa1:
+								update_audio();
+								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | ((port == 0xa0) ? GI::AY38910::BC1 : 0)));
+								ay_.set_data_input(*cycle.value);
+								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
+							break;
+
+							case 0xa8:	case 0xa9:
+							case 0xaa:	case 0xab:
+								i8255_.set_register(address, *cycle.value);
+							break;
+
+							case 0xfc: case 0xfd: case 0xfe: case 0xff:
+	//							printf("RAM banking %02x: %02x\n", port, *cycle.value);
+							break;
+						}
+					} break;
+
+					case CPU::Z80::PartialMachineCycle::Interrupt:
+						*cycle.value = 0xff;
+
+						// Take this as a convenient moment to jump into the keyboard buffer, if desired.
+						if(!input_text_.empty()) {
+							// The following are KEYBUF per the Red Book; its address and its definition as DEFS 40.
+							const int buffer_start = 0xfbf0;
+							const int buffer_size = 40;
+
+							// Also from the Red Book: GETPNT is at F3FAH and PUTPNT is at F3F8H.
+							int read_address = ram_[0xf3fa] | (ram_[0xf3fb] << 8);
+							int write_address = ram_[0xf3f8] | (ram_[0xf3f9] << 8);
+
+							// Write until either the string is exhausted or the write_pointer is immediately
+							// behind the read pointer; temporarily map write_address and read_address into
+							// buffer-relative values.
+							std::size_t characters_written = 0;
+							write_address -= buffer_start;
+							read_address -= buffer_start;
+							while(characters_written < input_text_.size()) {
+								const int next_write_address = (write_address + 1) % buffer_size;
+								if(next_write_address == read_address) break;
+								ram_[write_address + buffer_start] = static_cast<uint8_t>(input_text_[characters_written]);
+								++characters_written;
+								write_address = next_write_address;
+							}
+							input_text_.erase(input_text_.begin(), input_text_.begin() + static_cast<std::string::difference_type>(characters_written));
+
+							// Map the write address back into absolute terms and write it out again as PUTPNT.
+							write_address += buffer_start;
+							ram_[0xf3f8] = static_cast<uint8_t>(write_address);
+							ram_[0xf3f9] = static_cast<uint8_t>(write_address >> 8);
+						}
+					break;
+
+					default: break;
+				}
 			}
 
 			if(!tape_player_is_sleeping_)
@@ -683,7 +685,7 @@ class ConcreteMachine:
 		};
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		std::unique_ptr<TI::TMS9918> vdp_;
+		std::unique_ptr<TI::TMS::TMS9918> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;

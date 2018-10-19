@@ -17,6 +17,7 @@
 #include <cstdint>
 
 namespace TI {
+namespace TMS {
 
 /*!
 	Provides emulation of the TMS9918a, TMS9928 and TMS9929. Likely in the future to be the
@@ -29,12 +30,8 @@ namespace TI {
 	These chips have only one non-on-demand interaction with the outside world: an interrupt line.
 	See get_time_until_interrupt and get_interrupt_line for asynchronous operation options.
 */
-class TMS9918: public TMS9918Base {
+class TMS9918: public Base {
 	public:
-		enum Personality {
-			TMS9918A,	// includes the 9928 and 9929; set TV standard and output device as desired.
-		};
-
 		/*!
 			Constructs an instance of the drive controller that behaves according to personality @c p.
 			@param p The type of controller to emulate.
@@ -66,6 +63,13 @@ class TMS9918: public TMS9918Base {
 		/*! Gets a register value. */
 		uint8_t get_register(int address);
 
+		/*! Gets the current scan line; provided by the Master System only. */
+		uint8_t get_current_line();
+
+		uint8_t get_latched_horizontal_counter();
+
+		void latch_horizontal_counter();
+
 		/*!
 			Returns the amount of time until get_interrupt_line would next return true if
 			there are no interceding calls to set_register or get_register.
@@ -81,6 +85,7 @@ class TMS9918: public TMS9918Base {
 		bool get_interrupt_line();
 };
 
-};
+}
+}
 
 #endif /* TMS9918_hpp */

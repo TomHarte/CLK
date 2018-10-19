@@ -23,6 +23,7 @@
 #include "DiskII/StaticAnalyser.hpp"
 #include "MSX/StaticAnalyser.hpp"
 #include "Oric/StaticAnalyser.hpp"
+#include "Sega/StaticAnalyser.hpp"
 #include "ZX8081/StaticAnalyser.hpp"
 
 // Cartridges
@@ -129,6 +130,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			result.cartridges,
 			Cartridge::BinaryDump,
 			TargetPlatform::AcornElectron | TargetPlatform::ColecoVision | TargetPlatform::MSX)				// ROM
+	Format("sg", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)							// SG
+	Format("sms", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)							// SMS
 	Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// SSD
 	Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)								// TAP (Commodore)
 	Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)										// TAP (Oric)
@@ -170,6 +173,7 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	if(potential_platforms & TargetPlatform::ColecoVision)	Append(Coleco);
 	if(potential_platforms & TargetPlatform::Commodore)		Append(Commodore);
 	if(potential_platforms & TargetPlatform::DiskII)		Append(DiskII);
+	if(potential_platforms & TargetPlatform::Sega)			Append(Sega);
 	if(potential_platforms & TargetPlatform::MSX)			Append(MSX);
 	if(potential_platforms & TargetPlatform::Oric)			Append(Oric);
 	if(potential_platforms & TargetPlatform::ZX8081)		Append(ZX8081);
