@@ -711,6 +711,15 @@ void Base::draw_tms_character(int start, int end) {
 	// Paint sprites and check for collisions, but only if at least one sprite is active
 	// on this line.
 	if(line_buffer.active_sprite_slot) {
+		const int shift_advance = sprites_magnified_ ? 1 : 2;
+		// If this is the start of the line clip any part of any sprites that is off to the left.
+		if(!start) {
+			for(int index = 0; index < line_buffer.active_sprite_slot; ++index) {
+				LineBuffer::ActiveSprite &sprite = line_buffer.active_sprites[index];
+				if(sprite.x < 0) sprite.shift_position -= shift_advance * sprite.x;
+			}
+		}
+
 		int sprite_buffer[256];
 		int sprite_collision = 0;
 		memset(&sprite_buffer[start], 0, size_t(end - start)*sizeof(sprite_buffer[0]));
@@ -719,7 +728,6 @@ void Base::draw_tms_character(int start, int end) {
 		static const int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 		// Draw all sprites into the sprite buffer.
-		const int shift_advance = sprites_magnified_ ? 1 : 2;
 		const int shifter_target = sprites_16x16_ ? 32 : 16;
 		for(int index = line_buffer.active_sprite_slot - 1; index >= 0; --index) {
 			LineBuffer::ActiveSprite &sprite = line_buffer.active_sprites[index];
@@ -852,6 +860,16 @@ void Base::draw_sms(int start, int end) {
 		Apply sprites (if any).
 	*/
 	if(line_buffer.active_sprite_slot) {
+		const int shift_advance = sprites_magnified_ ? 1 : 2;
+
+		// If this is the start of the line clip any part of any sprites that is off to the left.
+		if(!start) {
+			for(int index = 0; index < line_buffer.active_sprite_slot; ++index) {
+				LineBuffer::ActiveSprite &sprite = line_buffer.active_sprites[index];
+				if(sprite.x < 0) sprite.shift_position -= shift_advance * sprite.x;
+			}
+		}
+
 		int sprite_buffer[256];
 		int sprite_collision = 0;
 		memset(&sprite_buffer[start], 0, size_t(end - start)*sizeof(sprite_buffer[0]));
@@ -877,7 +895,7 @@ void Base::draw_sms(int start, int end) {
 						sprite_buffer[c] = sprite_colour | 0x10;
 					}
 
-					sprite.shift_position += sprites_magnified_ ? 1 : 2;
+					sprite.shift_position += shift_advance;
 				}
 			}
 		}
