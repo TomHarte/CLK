@@ -662,7 +662,7 @@ class Base {
 
 #define sprite_y_read(location, sprite)	\
 	slot(location):	\
-		posit_sprite(sprite_selection_buffer, sprite, ram_[sprite_attribute_table_address_ & (sprite | 0x3f00)], write_pointer_.row);	\
+		posit_sprite(sprite_selection_buffer, sprite, ram_[sprite_attribute_table_address_ & ((sprite) | 0x3f00)], write_pointer_.row);	\
 		posit_sprite(sprite_selection_buffer, sprite+1, ram_[sprite_attribute_table_address_ & ((sprite + 1) | 0x3f00)], write_pointer_.row);	\
 
 #define fetch_tile_name(column, row_info)	{\
