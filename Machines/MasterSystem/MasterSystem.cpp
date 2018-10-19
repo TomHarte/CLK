@@ -173,6 +173,7 @@ class ConcreteMachine:
 						}
 
 						if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
+						else LOG("Ignored write to ROM");
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Input:
