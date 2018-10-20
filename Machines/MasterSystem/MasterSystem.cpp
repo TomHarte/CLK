@@ -108,6 +108,13 @@ class ConcreteMachine:
 				cartridge_.resize(48*1024);
 				memset(&cartridge_[48*1024 - new_space], 0xff, new_space);
 			}
+
+			if(paging_scheme_ == Target::PagingScheme::Codemasters) {
+				// The Codemasters cartridges start with pages 0, 1 and 0 again initially visible.
+				paging_registers_[0] = 0;
+				paging_registers_[1] = 1;
+				paging_registers_[2] = 0;
+			}
 			page_cartridge();
 
 			// Load the BIOS if relevant.
@@ -175,10 +182,20 @@ class ConcreteMachine:
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Write:
-						if(address >= 0xfffd && cartridge_.size() > 48*1024) {
-							if(paging_registers_[address - 0xfffd] != *cycle.value) {
-								paging_registers_[address - 0xfffd] = *cycle.value;
-								page_cartridge();
+						if(paging_scheme_ == Target::PagingScheme::Sega) {
+							if(address >= 0xfffd && cartridge_.size() > 48*1024) {
+								if(paging_registers_[address - 0xfffd] != *cycle.value) {
+									paging_registers_[address - 0xfffd] = *cycle.value;
+									page_cartridge();
+								}
+							}
+						} else {
+							// i.e. this is the Codemasters paging scheme.
+							if(!(address&0x3fff) && address < 0xc000) {
+								if(paging_registers_[address >> 14] != *cycle.value) {
+									paging_registers_[address >> 14] = *cycle.value;
+									page_cartridge();
+								}
 							}
 						}
 
@@ -370,8 +387,10 @@ class ConcreteMachine:
 						c * 0x4000);
 				}
 
-				// The first 1kb doesn't page though.
-				map(read_pointers_, cartridge_.data(), 0x400, 0x0000);
+				// The first 1kb doesn't page though, if this is the Sega paging scheme.
+				if(paging_scheme_ == Target::PagingScheme::Sega) {
+					map(read_pointers_, cartridge_.data(), 0x400, 0x0000);
+				}
 			} else {
 				map(read_pointers_, nullptr, 0xc000, 0x0000);
 			}
