@@ -19,7 +19,20 @@ struct Target: public ::Analyser::Static::Target {
 		SG1000
 	};
 
+	enum class Region {
+		Japan,
+		USA,
+		Europe
+	};
+
+	enum class PagingScheme {
+		Sega,
+		Codemasters
+	};
+
 	Model model = Model::MasterSystem;
+	Region region = Region::Japan;
+	PagingScheme paging_scheme = PagingScheme::Sega;
 };
 
 }
