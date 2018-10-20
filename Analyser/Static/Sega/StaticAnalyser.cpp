@@ -10,6 +10,9 @@
 
 #include "Target.hpp"
 
+#include <algorithm>
+#include <cstring>
+
 Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
 	if(media.cartridges.empty())
 		return {};
