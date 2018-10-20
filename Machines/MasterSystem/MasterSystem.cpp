@@ -149,7 +149,7 @@ class ConcreteMachine:
 			vdp_.reset(new TI::TMS::TMS9918(model_ == Target::Model::SG1000 ? TI::TMS::TMS9918A : TI::TMS::SMSVDP));
 			vdp_->set_tv_standard(
 				(region_ == Target::Region::Europe) ?
-					TI::TMS::TMS9918::TVStandard::PAL : TI::TMS::TMS9918::TVStandard::NTSC);
+					TI::TMS::TVStandard::PAL : TI::TMS::TVStandard::NTSC);
 			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 		}
 

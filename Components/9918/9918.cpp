@@ -76,9 +76,9 @@ Base::Base(Personality p) :
 	// This is definitely correct for the TMS; more research may be
 	// necessary for the other implemented VDPs.
 	read_pointer_.row = 0;
-	read_pointer_.column = 0;
-	write_pointer_.row = 0;
-	write_pointer_.column = 10;	// i.e. 10 cycles ahead of the read pointer.
+	read_pointer_.column = 342 - 10;		// i.e. 10 cycles behind the write pointer.
+	write_pointer_.row = 1;
+	write_pointer_.column = 0;
 }
 
 TMS9918::TMS9918(Personality p):
@@ -102,6 +102,7 @@ TMS9918::TMS9918(Personality p):
 }
 
 void TMS9918::set_tv_standard(TVStandard standard) {
+	tv_standard_ = standard;
 	switch(standard) {
 		case TVStandard::PAL:
 			mode_timing_.total_lines = 313;
@@ -569,22 +570,30 @@ uint8_t TMS9918::get_current_line() {
 			? (write_pointer_.row + mode_timing_.total_lines - 1)%mode_timing_.total_lines
 			: write_pointer_.row;
 
-	// This assumes NTSC 192-line. TODO: other modes.
-	if(source_row >= 0xdb) source_row -= 6;
-//	printf("Current row: %d -> %d\n", row_, source_row);
+	if(tv_standard_ == TVStandard::NTSC) {
+		if(mode_timing_.pixel_lines == 240) {
+			// NTSC 256x240:	00-FF, 00-06
+		} else if(mode_timing_.pixel_lines == 224) {
+			// NTSC 256x224:	00-EA, E5-FF
+			if(source_row >= 0xeb) source_row -= 6;
+		} else {
+			// NTSC 256x192:	00-DA, D5-FF
+			if(source_row >= 0xdb) source_row -= 6;
+		}
+	} else {
+		if(mode_timing_.pixel_lines == 240) {
+			// PAL 256x240:		00-FF, 00-0A, D2-FF
+			if(source_row >= 267) source_row -= 0x39;
+		} else if(mode_timing_.pixel_lines == 224) {
+			// PAL 256x224:		00-FF, 00-02, CA-FF
+			if(source_row >= 259) source_row -= 0x39;
+		} else {
+			// PAL 256x192:		00-F2, BA-FF
+			if(source_row >= 0xf3) source_row -= 0x39;
+		}
+	}
 
 	return static_cast<uint8_t>(source_row);
-
-/*
-	TODO: Full proper sequence of current lines:
-
-	NTSC 256x192	00-DA, D5-FF
-	NTSC 256x224	00-EA, E5-FF
-	NTSC 256x240	00-FF, 00-06
-	PAL 256x192	00-F2, BA-FF
-	PAL 256x224	00-FF, 00-02, CA-FF
-	PAL 256x240	00-FF, 00-0A, D2-FF
-*/
 }
 
 uint8_t TMS9918::get_latched_horizontal_counter() {
@@ -620,7 +629,7 @@ uint8_t TMS9918::get_register(int address) {
 }
 
 HalfCycles Base::half_cycles_before_internal_cycles(int internal_cycles) {
-	return HalfCycles(((internal_cycles << 2) - cycles_error_) / 3);
+	return HalfCycles(((internal_cycles << 2) + (2 - cycles_error_)) / 3);
 }
 
 HalfCycles TMS9918::get_time_until_interrupt() {
@@ -637,7 +646,7 @@ HalfCycles TMS9918::get_time_until_interrupt() {
 
 	if(!enable_line_interrupts_) return half_cycles_before_internal_cycles(time_until_frame_interrupt);
 
-	// Calculate the row upon which the next line interrupt will occur;
+	// Calculate the row upon which the next line interrupt will occur.
 	int next_line_interrupt_row = -1;
 
 	if(is_sega_vdp(personality_)) {
@@ -666,7 +675,7 @@ HalfCycles TMS9918::get_time_until_interrupt() {
 	if(!local_cycles_until_next_tick) local_cycles_until_next_tick += 342;
 	const int local_cycles_until_line_interrupt = local_cycles_until_next_tick + (next_line_interrupt_row - write_pointer_.row) * 342;
 
-	if(!generate_interrupts_) return half_cycles_before_internal_cycles(time_until_frame_interrupt);
+	if(!generate_interrupts_) return half_cycles_before_internal_cycles(local_cycles_until_line_interrupt);
 
 	// Return whichever interrupt is closer.
 	return half_cycles_before_internal_cycles(std::min(local_cycles_until_line_interrupt, time_until_frame_interrupt));
