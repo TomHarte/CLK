@@ -21,6 +21,11 @@ const uint8_t StatusSpriteOverflow = 0x40;
 const int StatusSpriteCollisionShift = 5;
 const uint8_t StatusSpriteCollision = 0x20;
 
+// 342 internal cycles are 228/227.5ths of a line, so 341.25 cycles should be a whole
+// line. Therefore multiply everything by four, but set line length to 1365 rather than 342*4 = 1368.
+const unsigned int CRTCyclesPerLine = 1365;
+const unsigned int CRTCyclesDivider = 4;
+
 struct ReverseTable {
 	std::uint8_t map[256];
 
@@ -44,9 +49,7 @@ struct ReverseTable {
 
 Base::Base(Personality p) :
 	personality_(p),
-	// 342 internal cycles are 228/227.5ths of a line, so 341.25 cycles should be a whole
-	// line. Therefore multiply everything by four, but set line length to 1365 rather than 342*4 = 1368.
-	crt_(new Outputs::CRT::CRT(1365, 4, Outputs::CRT::DisplayType::NTSC60, 4)) {
+	crt_(new Outputs::CRT::CRT(CRTCyclesPerLine, CRTCyclesDivider, Outputs::CRT::DisplayType::NTSC60, 4)) {
 
 	switch(p) {
 		case TI::TMS::TMS9918A:
@@ -96,6 +99,21 @@ TMS9918::TMS9918(Personality p):
 	// the colour clock. It was eyeballed rather than derived from any knowledge of the TMS
 	// colour burst generator because I've yet to find any.
 	crt_->set_immediate_default_phase(0.85f);
+}
+
+void TMS9918::set_tv_standard(TVStandard standard) {
+	switch(standard) {
+		case TVStandard::PAL:
+			mode_timing_.total_lines = 313;
+			mode_timing_.first_vsync_line = 253;
+			crt_->set_new_display_type(CRTCyclesPerLine, Outputs::CRT::DisplayType::PAL50);
+		break;
+		default:
+			mode_timing_.total_lines = 262;
+			mode_timing_.first_vsync_line = 227;
+			crt_->set_new_display_type(CRTCyclesPerLine, Outputs::CRT::DisplayType::NTSC60);
+		break;
+	}
 }
 
 Outputs::CRT::CRT *TMS9918::get_crt() {
