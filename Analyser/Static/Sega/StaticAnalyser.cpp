@@ -50,7 +50,7 @@ Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(const Media &med
 				case 4: {
 					std::string lowercase_name = file_name;
 					std::transform(lowercase_name.begin(), lowercase_name.end(), lowercase_name.begin(), ::tolower);
-					if(lowercase_name.find("(jp)") != std::string::npos) {
+					if(lowercase_name.find("(jp)") == std::string::npos) {
 						target->region =
 							(lowercase_name.find("(us)") == std::string::npos &&
 							lowercase_name.find("(ntsc)") == std::string::npos) ? Target::Region::Europe : Target::Region::USA;
