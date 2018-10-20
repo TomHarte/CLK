@@ -66,8 +66,10 @@ class TMS9918: public Base {
 		/*! Gets the current scan line; provided by the Master System only. */
 		uint8_t get_current_line();
 
+		/*! Gets the current latched horizontal counter; provided by the Master System only. */
 		uint8_t get_latched_horizontal_counter();
 
+		/*! Latches the current horizontal counter. */
 		void latch_horizontal_counter();
 
 		/*!
