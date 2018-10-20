@@ -80,14 +80,18 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Sega::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			model_(target.model),
+			region_(target.region),
+			paging_scheme_(target.paging_scheme),
 			z80_(*this),
 			sn76489_(
-				(target.model == Analyser::Static::Sega::Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
+				(target.model == Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
 				audio_queue_,
 				sn76489_divider),
 			speaker_(sn76489_) {
-			speaker_.set_input_rate(3579545.0f / static_cast<float>(sn76489_divider));
-			set_clock_rate(3579545);
+			// Pick the clock rate based on the region.
+			const double clock_rate = target.region == Target::Region::Europe ? 3546893.0 : 3579540.0;
+			speaker_.set_input_rate(static_cast<float>(clock_rate / sn76489_divider));
+			set_clock_rate(clock_rate);
 
 			// Instantiate the joysticks.
 			joysticks_.emplace_back(new Joystick);
@@ -106,8 +110,8 @@ class ConcreteMachine:
 			}
 			page_cartridge();
 
-			// Establish the BIOS (if relevant) and RAM.
-			if(target.model == Analyser::Static::Sega::Target::Model::MasterSystem) {
+			// Load the BIOS if relevant.
+			if(has_bios()) {
 				const auto roms = rom_fetcher("MasterSystem", {"bios.sms"});
 				if(!roms[0]) {
 					throw ROMMachine::Error::MissingROMs;
@@ -115,8 +119,10 @@ class ConcreteMachine:
 
 				roms[0]->resize(8*1024);
 				memcpy(&bios_, roms[0]->data(), roms[0]->size());
-				map(read_pointers_, bios_, 8*1024, 0);
+			}
 
+			// Map RAM.
+			if(model_ == Target::Model::MasterSystem) {
 				map(read_pointers_, ram_, 8*1024, 0xc000, 0x10000);
 				map(write_pointers_, ram_, 8*1024, 0xc000, 0x10000);
 			} else {
@@ -124,6 +130,7 @@ class ConcreteMachine:
 				map(write_pointers_, ram_, 1024, 0xc000, 0x10000);
 			}
 
+			// Apple a relatively low low-pass filter. More guidance needed here.
 			speaker_.set_high_frequency_cutoff(8000);
 		}
 
@@ -132,7 +139,10 @@ class ConcreteMachine:
 		}
 
 		void setup_output(float aspect_ratio) override {
-			vdp_.reset(new TI::TMS::TMS9918(model_ == Analyser::Static::Sega::Target::Model::SG1000 ? TI::TMS::TMS9918A : TI::TMS::SMSVDP));
+			vdp_.reset(new TI::TMS::TMS9918(model_ == Target::Model::SG1000 ? TI::TMS::TMS9918A : TI::TMS::SMSVDP));
+			vdp_->set_tv_standard(
+				(region_ == Target::Region::Europe) ?
+					TI::TMS::TMS9918::TVStandard::PAL : TI::TMS::TMS9918::TVStandard::NTSC);
 			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 		}
 
@@ -222,7 +232,7 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Output:
 						switch(address & 0xc1) {
 							case 0x00:
-								if(model_ == Analyser::Static::Sega::Target::Model::MasterSystem) {
+								if(model_ == Target::Model::MasterSystem) {
 									// TODO: Obey the RAM enable.
 									memory_control_ = *cycle.value;
 									page_cartridge();
@@ -253,7 +263,7 @@ class ConcreteMachine:
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc0:
-								LOG("TODO: [output] I/O port A/N; " << *cycle.value);
+								LOG("TODO: [output] I/O port A/N; " << int(*cycle.value));
 							break;
 							case 0xc1:
 								LOG("TODO: [output] I/O port B/misc");
@@ -312,7 +322,10 @@ class ConcreteMachine:
 			vdp_->run_for(time_since_vdp_update_.flush());
 		}
 
-		Analyser::Static::Sega::Target::Model model_;
+		using Target = Analyser::Static::Sega::Target;
+		Target::Model model_;
+		Target::Region region_;
+		Target::PagingScheme paging_scheme_;
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		std::unique_ptr<TI::TMS::TMS9918> vdp_;
 
@@ -345,8 +358,9 @@ class ConcreteMachine:
 		uint8_t paging_registers_[3] = {0, 1, 2};
 		uint8_t memory_control_ = 0;
 		void page_cartridge() {
-			// Either install the cartridge or don't.
-			if(!(memory_control_ & 0x40)) {
+			// Either install the cartridge or don't; Japanese machines can't see
+			// anything but the cartridge.
+			if(!(memory_control_ & 0x40) || region_ == Target::Region::Japan) {
 				for(size_t c = 0; c < 3; ++c) {
 					const size_t start_addr = (paging_registers_[c] * 0x4000) % cartridge_.size();
 					map(
@@ -363,9 +377,12 @@ class ConcreteMachine:
 			}
 
 			// Throw the BIOS on top if this machine has one and it isn't disabled.
-			if(model_ == Analyser::Static::Sega::Target::Model::MasterSystem && !(memory_control_ & 0x08)) {
+			if(has_bios() && !(memory_control_ & 0x08)) {
 				map(read_pointers_, bios_, 8*1024, 0);
 			}
+		}
+		bool has_bios() {
+			return model_ == Target::Model::MasterSystem && region_ != Target::Region::Japan;
 		}
 };
 
