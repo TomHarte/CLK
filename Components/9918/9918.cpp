@@ -629,7 +629,7 @@ uint8_t TMS9918::get_register(int address) {
 }
 
 HalfCycles Base::half_cycles_before_internal_cycles(int internal_cycles) {
-	return HalfCycles(((internal_cycles << 2) - cycles_error_) / 3);
+	return HalfCycles(((internal_cycles << 2) + (2 - cycles_error_)) / 3);
 }
 
 HalfCycles TMS9918::get_time_until_interrupt() {
@@ -646,7 +646,7 @@ HalfCycles TMS9918::get_time_until_interrupt() {
 
 	if(!enable_line_interrupts_) return half_cycles_before_internal_cycles(time_until_frame_interrupt);
 
-	// Calculate the row upon which the next line interrupt will occur;
+	// Calculate the row upon which the next line interrupt will occur.
 	int next_line_interrupt_row = -1;
 
 	if(is_sega_vdp(personality_)) {
@@ -675,7 +675,7 @@ HalfCycles TMS9918::get_time_until_interrupt() {
 	if(!local_cycles_until_next_tick) local_cycles_until_next_tick += 342;
 	const int local_cycles_until_line_interrupt = local_cycles_until_next_tick + (next_line_interrupt_row - write_pointer_.row) * 342;
 
-	if(!generate_interrupts_) return half_cycles_before_internal_cycles(time_until_frame_interrupt);
+	if(!generate_interrupts_) return half_cycles_before_internal_cycles(local_cycles_until_line_interrupt);
 
 	// Return whichever interrupt is closer.
 	return half_cycles_before_internal_cycles(std::min(local_cycles_until_line_interrupt, time_until_frame_interrupt));
