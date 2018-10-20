@@ -76,9 +76,9 @@ Base::Base(Personality p) :
 	// This is definitely correct for the TMS; more research may be
 	// necessary for the other implemented VDPs.
 	read_pointer_.row = 0;
-	read_pointer_.column = 0;
-	write_pointer_.row = 0;
-	write_pointer_.column = 10;	// i.e. 10 cycles ahead of the read pointer.
+	read_pointer_.column = 342 - 10;		// i.e. 10 cycles behind the write pointer.
+	write_pointer_.row = 1;
+	write_pointer_.column = 0;
 }
 
 TMS9918::TMS9918(Personality p):
