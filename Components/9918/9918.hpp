@@ -38,13 +38,6 @@ class TMS9918: public Base {
 		*/
 		TMS9918(Personality p);
 
-		enum TVStandard {
-			/*! i.e. 50Hz output at around 312.5 lines/field */
-			PAL,
-			/*! i.e. 60Hz output at around 262.5 lines/field */
-			NTSC
-		};
-
 		/*! Sets the TV standard for this TMS, if that is hard-coded in hardware. */
 		void set_tv_standard(TVStandard standard);
 

@@ -27,6 +27,13 @@ enum Personality {
 	GGVDP,
 };
 
+enum class TVStandard {
+	/*! i.e. 50Hz output at around 312.5 lines/field */
+	PAL,
+	/*! i.e. 60Hz output at around 262.5 lines/field */
+	NTSC
+};
+
 #define is_sega_vdp(x) x >= SMSVDP
 
 class Base {
@@ -69,6 +76,7 @@ class Base {
 
 		Personality personality_;
 		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		TVStandard tv_standard_ = TVStandard::NTSC;
 
 		// Holds the contents of this VDP's connected DRAM.
 		std::vector<uint8_t> ram_;
