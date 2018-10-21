@@ -138,18 +138,18 @@
 			int last_time_until_interrupt = vdp.get_time_until_interrupt().as_int();
 			while(half_cycles--) {
 				// Validate that an interrupt happened if one was expected, and clear anything that's present.
-				NSAssert(vdp.get_interrupt_line() == (last_time_until_interrupt == 0), @"Unexpected interrupt state change");
+				NSAssert(vdp.get_interrupt_line() == (last_time_until_interrupt == 0), @"Unexpected interrupt state change; position %d %d @ %d", c, with_eof, half_cycles);
 				vdp.get_register(1);
 
 				vdp.run_for(HalfCycles(1));
 
 				// Get the time until interrupt.
 				int time_until_interrupt = vdp.get_time_until_interrupt().as_int();
-				NSAssert(time_until_interrupt != -1, @"No interrupt scheduled");
-				NSAssert(time_until_interrupt >= 0, @"Interrupt is scheduled in the past");
+				NSAssert(time_until_interrupt != -1, @"No interrupt scheduled; position %d %d @ %d", c, with_eof, half_cycles);
+				NSAssert(time_until_interrupt >= 0, @"Interrupt is scheduled in the past; position %d %d @ %d", c, with_eof, half_cycles);
 
 				if(last_time_until_interrupt) {
-					NSAssert(time_until_interrupt == (last_time_until_interrupt - 1), @"Discontinuity found in interrupt prediction; from %d to %d for %d %d @ %d", last_time_until_interrupt, time_until_interrupt, c, with_eof, half_cycles);
+					NSAssert(time_until_interrupt == (last_time_until_interrupt - 1), @"Discontinuity found in interrupt prediction; from %d to %d; position %d %d @ %d", last_time_until_interrupt, time_until_interrupt, c, with_eof, half_cycles);
 				}
 				last_time_until_interrupt = time_until_interrupt;
 			}
