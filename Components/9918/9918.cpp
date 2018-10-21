@@ -638,23 +638,31 @@ HalfCycles TMS9918::get_time_until_interrupt() {
 
 	// Calculate the amount of time until the next end-of-frame interrupt.
 	const int frame_length = 342 * mode_timing_.total_lines;
-	const int time_until_frame_interrupt =
+	int time_until_frame_interrupt =
 		(
 			((mode_timing_.end_of_frame_interrupt_position.row * 342) + mode_timing_.end_of_frame_interrupt_position.column + frame_length) -
 			((write_pointer_.row * 342) + write_pointer_.column)
 		) % frame_length;
+	if(!time_until_frame_interrupt) time_until_frame_interrupt = frame_length;
 
 	if(!enable_line_interrupts_) return half_cycles_before_internal_cycles(time_until_frame_interrupt);
 
-	// Calculate the row upon which the next line interrupt will occur.
+	// Calculate when the next line interrupt will occur.
 	int next_line_interrupt_row = -1;
+
+	int cycles_to_next_interrupt_threshold = mode_timing_.line_interrupt_position - write_pointer_.column;
+	int line_of_next_interrupt_threshold = write_pointer_.row;
+	if(cycles_to_next_interrupt_threshold <= 0) {
+		cycles_to_next_interrupt_threshold += 342;
+		++line_of_next_interrupt_threshold;
+	}
 
 	if(is_sega_vdp(personality_)) {
 		// If there is still time for a line interrupt this frame, that'll be it;
 		// otherwise it'll be on the next frame, supposing there's ever time for
 		// it at all.
-		if(write_pointer_.row+line_interrupt_counter <= mode_timing_.pixel_lines) {
-			next_line_interrupt_row = write_pointer_.row+line_interrupt_counter;
+		if(line_of_next_interrupt_threshold + line_interrupt_counter <= mode_timing_.pixel_lines) {
+			next_line_interrupt_row = line_of_next_interrupt_threshold + line_interrupt_counter;
 		} else {
 			if(line_interrupt_target <= mode_timing_.pixel_lines)
 				next_line_interrupt_row = mode_timing_.total_lines + line_interrupt_target;
@@ -671,10 +679,7 @@ HalfCycles TMS9918::get_time_until_interrupt() {
 
 	// Figure out the number of internal cycles until the next line interrupt, which is the amount
 	// of time to the next tick over and then next_line_interrupt_row - row_ lines further.
-	int local_cycles_until_next_tick = (mode_timing_.line_interrupt_position - write_pointer_.column + 342) % 342;
-	if(!local_cycles_until_next_tick) local_cycles_until_next_tick += 342;
-	const int local_cycles_until_line_interrupt = local_cycles_until_next_tick + (next_line_interrupt_row - write_pointer_.row) * 342;
-
+	const int local_cycles_until_line_interrupt = cycles_to_next_interrupt_threshold + (next_line_interrupt_row - line_of_next_interrupt_threshold) * 342;
 	if(!generate_interrupts_) return half_cycles_before_internal_cycles(local_cycles_until_line_interrupt);
 
 	// Return whichever interrupt is closer.
@@ -686,9 +691,6 @@ bool TMS9918::get_interrupt_line() {
 }
 
 // MARK: -
-
-//										if(sprite.shift_position > 0 && !sprites_magnified_)
-//											sprite.shift_position *= 2;
 
 void Base::draw_tms_character(int start, int end) {
 	LineBuffer &line_buffer = line_buffers_[read_pointer_.row];

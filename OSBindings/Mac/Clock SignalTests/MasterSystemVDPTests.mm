@@ -120,7 +120,7 @@
 	TI::TMS::TMS9918 vdp(TI::TMS::Personality::SMSVDP);
 
 	for(int c = 0; c < 256; ++c) {
-		for(int with_eof = 0; with_eof < 2; ++with_eof) {
+		for(int with_eof = (c < 192) ? 0 : 1; with_eof < 2; ++with_eof) {
 			// Enable or disable end-of-frame interrupts as required.
 			vdp.set_register(1, with_eof ? 0x20 : 0x00);
 			vdp.set_register(1, 0x81);
@@ -138,7 +138,7 @@
 			int last_time_until_interrupt = vdp.get_time_until_interrupt().as_int();
 			while(half_cycles--) {
 				// Validate that an interrupt happened if one was expected, and clear anything that's present.
-				NSAssert(vdp.get_interrupt_line() == (last_time_until_interrupt == 0), @"Unexpected interrupt state change; position %d %d @ %d", c, with_eof, half_cycles);
+				NSAssert(vdp.get_interrupt_line() == (last_time_until_interrupt == 0), @"Unexpected interrupt state change; expected %d but got %d; position %d %d @ %d", (last_time_until_interrupt == 0), vdp.get_interrupt_line(), c, with_eof, half_cycles);
 				vdp.get_register(1);
 
 				vdp.run_for(HalfCycles(1));
