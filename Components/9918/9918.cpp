@@ -99,6 +99,9 @@ TMS9918::TMS9918(Personality p):
 	// the colour clock. It was eyeballed rather than derived from any knowledge of the TMS
 	// colour burst generator because I've yet to find any.
 	crt_->set_immediate_default_phase(0.85f);
+
+	// Default to NTSC
+	set_tv_standard(TVStandard::NTSC);
 }
 
 void TMS9918::set_tv_standard(TVStandard standard) {
