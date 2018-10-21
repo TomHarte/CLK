@@ -66,7 +66,7 @@ Base::Base(Personality p) :
 	}
 
 	if(is_sega_vdp(personality_)) {
-		mode_timing_.line_interrupt_position = 65;
+		mode_timing_.line_interrupt_position = 64;
 
 		mode_timing_.end_of_frame_interrupt_position.column = 63;
 		mode_timing_.end_of_frame_interrupt_position.row = 193;
@@ -564,7 +564,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 
 uint8_t TMS9918::get_current_line() {
 	// Determine the row to return.
-	static const int row_change_position = 62;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
+	static const int row_change_position = 63;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
 	int source_row =
 		(write_pointer_.column < row_change_position)
 			? (write_pointer_.row + mode_timing_.total_lines - 1)%mode_timing_.total_lines
