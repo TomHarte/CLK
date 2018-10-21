@@ -116,4 +116,45 @@
 	NSAssert(vdp.get_interrupt_line(), @"Interrupt line wasn't set when promised");
 }
 
+- (void)testPrediction {
+	TI::TMS::TMS9918 vdp(TI::TMS::Personality::SMSVDP);
+
+	for(int c = 0; c < 256; ++c) {
+		for(int with_eof = (c < 192) ? 0 : 1; with_eof < 2; ++with_eof) {
+			// Enable or disable end-of-frame interrupts as required.
+			vdp.set_register(1, with_eof ? 0x20 : 0x00);
+			vdp.set_register(1, 0x81);
+
+			// Enable line interrupts.
+			vdp.set_register(1, 0x10);
+			vdp.set_register(1, 0x80);
+
+			// Set the line interrupt timing as desired.
+			vdp.set_register(1, c);
+			vdp.set_register(1, 0x8a);
+
+			// Now run through an entire frame...
+			int half_cycles = 262*224*2;
+			int last_time_until_interrupt = vdp.get_time_until_interrupt().as_int();
+			while(half_cycles--) {
+				// Validate that an interrupt happened if one was expected, and clear anything that's present.
+				NSAssert(vdp.get_interrupt_line() == (last_time_until_interrupt == 0), @"Unexpected interrupt state change; expected %d but got %d; position %d %d @ %d", (last_time_until_interrupt == 0), vdp.get_interrupt_line(), c, with_eof, half_cycles);
+				vdp.get_register(1);
+
+				vdp.run_for(HalfCycles(1));
+
+				// Get the time until interrupt.
+				int time_until_interrupt = vdp.get_time_until_interrupt().as_int();
+				NSAssert(time_until_interrupt != -1, @"No interrupt scheduled; position %d %d @ %d", c, with_eof, half_cycles);
+				NSAssert(time_until_interrupt >= 0, @"Interrupt is scheduled in the past; position %d %d @ %d", c, with_eof, half_cycles);
+
+				if(last_time_until_interrupt) {
+					NSAssert(time_until_interrupt == (last_time_until_interrupt - 1), @"Discontinuity found in interrupt prediction; from %d to %d; position %d %d @ %d", last_time_until_interrupt, time_until_interrupt, c, with_eof, half_cycles);
+				}
+				last_time_until_interrupt = time_until_interrupt;
+			}
+		}
+	}
+}
+
 @end
