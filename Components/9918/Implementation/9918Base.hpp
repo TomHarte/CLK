@@ -788,6 +788,7 @@ class Base {
 #undef slot
 
 		uint32_t *pixel_target_ = nullptr, *pixel_origin_ = nullptr;
+		bool asked_for_write_area_ = false;
 		void draw_tms_character(int start, int end);
 		void draw_tms_text(int start, int end);
 		void draw_sms(int start, int end);

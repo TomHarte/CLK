@@ -370,7 +370,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				intersect(
 					line_buffer.first_pixel_output_column,
 					line_buffer.next_border_column,
-					if(start == line_buffer.first_pixel_output_column) {
+					if(!asked_for_write_area_) {
+						asked_for_write_area_ = true;
 						pixel_origin_ = pixel_target_ = reinterpret_cast<uint32_t *>(
 							crt_->allocate_write_area(static_cast<unsigned int>(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
 						);
@@ -392,6 +393,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						const unsigned int length = static_cast<unsigned int>(line_buffer.next_border_column - line_buffer.first_pixel_output_column);
 						crt_->output_data(length * 4, length);
 						pixel_origin_ = pixel_target_ = nullptr;
+						asked_for_write_area_ = false;
 					}
 				);
 
