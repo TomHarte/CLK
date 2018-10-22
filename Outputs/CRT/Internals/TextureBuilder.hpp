@@ -91,7 +91,7 @@ class TextureBuilder {
 		void submit();
 
 		struct WriteArea {
-			uint16_t x, y, length;
+			uint16_t x = 0, y = 0, length = 0;
 		};
 		/// Finalises all write areas allocated since the last call to @c flush. Only finalised areas will be
 		/// submitted upon the next @c submit. The supplied function will be called with a list of write areas
