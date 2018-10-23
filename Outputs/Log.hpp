@@ -11,11 +11,11 @@
 
 #ifdef NDEBUG
 
-#define LOG(x)
-#define LOGNBR(x)
+#define LOG(x)		while(false) {}
+#define LOGNBR(x)	while(false) {}
 
-#define ERROR(x)
-#define ERRORNBR(x)
+#define ERROR(x)	while(false) {}
+#define ERRORNBR(x)	while(false) {}
 
 #else
 
