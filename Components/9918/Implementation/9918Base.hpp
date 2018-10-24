@@ -155,9 +155,10 @@ class Base {
 			} end_of_frame_interrupt_position;
 			int line_interrupt_position = -1;
 
-			// Enables or disabled the recognition of 0xd0 as a sprite
-			// list terminator.
+			// Enables or disabled the recognition of the sprite
+			// list terminator, and sets the terminator value.
 			bool allow_sprite_terminator = true;
+			uint8_t sprite_terminator = 0xd0;
 		} mode_timing_;
 
 		uint8_t line_interrupt_target = 0xff;

@@ -138,7 +138,7 @@ void Base::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_positi
 		return;
 
 	// A sprite Y of 208 means "don't scan the list any further".
-	if(mode_timing_.allow_sprite_terminator && sprite_position == 208) {
+	if(mode_timing_.allow_sprite_terminator && sprite_position == mode_timing_.sprite_terminator) {
 		buffer.sprites_stopped = true;
 		return;
 	}
