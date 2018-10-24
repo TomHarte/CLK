@@ -138,7 +138,7 @@ void Base::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_positi
 		return;
 
 	// A sprite Y of 208 means "don't scan the list any further".
-	if(mode_timing_.allow_sprite_terminator && sprite_position == 208) {
+	if(mode_timing_.allow_sprite_terminator && sprite_position == mode_timing_.sprite_terminator) {
 		buffer.sprites_stopped = true;
 		return;
 	}
@@ -191,11 +191,27 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			// ---------------------------------------
 			// Latch scrolling position, if necessary.
 			// ---------------------------------------
-			if(write_pointer_.column < 61 && end_column >= 61) {
-				if(!write_pointer_.row) {
-					master_system_.latched_vertical_scroll = master_system_.vertical_scroll;
+			if(is_sega_vdp(personality_)) {
+				if(write_pointer_.column < 61 && end_column >= 61) {
+					if(!write_pointer_.row) {
+						master_system_.latched_vertical_scroll = master_system_.vertical_scroll;
+
+						if(master_system_.mode4_enable) {
+							mode_timing_.pixel_lines = 192;
+							if(mode2_enable_ && mode1_enable_) mode_timing_.pixel_lines = 224;
+							if(mode2_enable_ && mode3_enable_) mode_timing_.pixel_lines = 240;
+
+							mode_timing_.sprite_terminator = 0xd0;
+							if(mode_timing_.pixel_lines != 192) {
+								mode_timing_.sprite_terminator = 0xf0;
+							}
+							mode_timing_.first_vsync_line = (mode_timing_.total_lines + mode_timing_.pixel_lines) >> 1;
+
+							mode_timing_.end_of_frame_interrupt_position.row = mode_timing_.pixel_lines + 1;
+						}
+					}
+					line_buffer.latched_horizontal_scroll = master_system_.horizontal_scroll;
 				}
-				line_buffer.latched_horizontal_scroll = master_system_.horizontal_scroll;
 			}
 
 
