@@ -280,9 +280,6 @@ class Base {
 
 			if(is_sega_vdp(personality_) && master_system_.mode4_enable) {
 				screen_mode_ = ScreenMode::SMSMode4;
-				mode_timing_.pixel_lines = 192;
-				if(mode2_enable_ && mode1_enable_) mode_timing_.pixel_lines = 224;
-				if(mode2_enable_ && mode3_enable_) mode_timing_.pixel_lines = 240;
 				mode_timing_.maximum_visible_sprites = 8;
 				return;
 			}
