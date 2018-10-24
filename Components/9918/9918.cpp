@@ -202,10 +202,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 							if(mode2_enable_ && mode1_enable_) mode_timing_.pixel_lines = 224;
 							if(mode2_enable_ && mode3_enable_) mode_timing_.pixel_lines = 240;
 
-							mode_timing_.sprite_terminator = 0xd0;
-							if(mode_timing_.pixel_lines != 192) {
-								mode_timing_.sprite_terminator = 0xf0;
-							}
+							mode_timing_.allow_sprite_terminator = mode_timing_.pixel_lines == 192;
 							mode_timing_.first_vsync_line = (mode_timing_.total_lines + mode_timing_.pixel_lines) >> 1;
 
 							mode_timing_.end_of_frame_interrupt_position.row = mode_timing_.pixel_lines + 1;
