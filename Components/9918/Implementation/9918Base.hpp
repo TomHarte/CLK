@@ -24,6 +24,7 @@ enum Personality {
 	V9938,
 	V9958,
 	SMSVDP,
+	SMS2VDP,
 	GGVDP,
 };
 
@@ -270,6 +271,10 @@ class Base {
 			// Holds the vertical scroll position for this frame; this is latched
 			// once and cannot dynamically be changed until the next frame.
 			uint8_t latched_vertical_scroll = 0;
+
+			size_t pattern_name_address;
+			size_t sprite_attribute_table_address;
+			size_t sprite_generator_table_address;
 		} master_system_;
 
 		void set_current_screen_mode() {
@@ -644,12 +649,12 @@ class Base {
 #define sprite_fetch(sprite)	{\
 		line_buffer.active_sprites[sprite].x = \
 			ram_[\
-				sprite_attribute_table_address & size_t(0x3f80 | (line_buffer.active_sprites[sprite].index << 1))\
+				master_system_.sprite_attribute_table_address & size_t(0x3f80 | (line_buffer.active_sprites[sprite].index << 1))\
 			] - (master_system_.shift_sprites_8px_left ? 8 : 0);	\
 		const uint8_t name = ram_[\
-				sprite_attribute_table_address & size_t(0x3f81 | (line_buffer.active_sprites[sprite].index << 1))\
+				master_system_.sprite_attribute_table_address & size_t(0x3f81 | (line_buffer.active_sprites[sprite].index << 1))\
 			] & (sprites_16x16_ ? ~1 : ~0);\
-		const size_t graphic_location = sprite_generator_table_address & size_t(0x2000 | (name << 5) | (line_buffer.active_sprites[sprite].row << 2));	\
+		const size_t graphic_location = master_system_.sprite_generator_table_address & size_t(0x2000 | (name << 5) | (line_buffer.active_sprites[sprite].row << 2));	\
 		line_buffer.active_sprites[sprite].image[0] = ram_[graphic_location];	\
 		line_buffer.active_sprites[sprite].image[1] = ram_[graphic_location+1];	\
 		line_buffer.active_sprites[sprite].image[2] = ram_[graphic_location+2];	\
@@ -668,8 +673,8 @@ class Base {
 
 #define sprite_y_read(location, sprite)	\
 	slot(location):	\
-		posit_sprite(sprite_selection_buffer, sprite, ram_[sprite_attribute_table_address & ((sprite) | 0x3f00)], write_pointer_.row);	\
-		posit_sprite(sprite_selection_buffer, sprite+1, ram_[sprite_attribute_table_address & ((sprite + 1) | 0x3f00)], write_pointer_.row);	\
+		posit_sprite(sprite_selection_buffer, sprite, ram_[master_system_.sprite_attribute_table_address & ((sprite) | 0x3f00)], write_pointer_.row);	\
+		posit_sprite(sprite_selection_buffer, sprite+1, ram_[master_system_.sprite_attribute_table_address & ((sprite + 1) | 0x3f00)], write_pointer_.row);	\
 
 #define fetch_tile_name(column, row_info)	{\
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
@@ -717,10 +722,8 @@ class Base {
 
 			// Limit address bits in use if this is a SMS2 mode.
 			const bool is_tall_mode = mode_timing_.pixel_lines != 192;
-			const size_t pattern_name_address = pattern_name_address_ | (is_tall_mode ? 0xc00 : 0);
+			const size_t pattern_name_address = master_system_.pattern_name_address | (is_tall_mode ? 0x800 : 0);
 			const size_t pattern_name_offset = is_tall_mode ? 0x100 : 0;
-			const size_t sprite_attribute_table_address = sprite_attribute_table_address_ | (is_tall_mode ? 0x80 : 0);
-			const size_t sprite_generator_table_address = sprite_generator_table_address_ | (is_tall_mode ? 0x1800 : 0);
 
 			// Determine row info for the screen both (i) if vertical scrolling is applied; and (ii) if it isn't.
 			// The programmer can opt out of applying vertical scrolling to the right-hand portion of the display.

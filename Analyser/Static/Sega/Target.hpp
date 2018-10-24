@@ -15,14 +15,16 @@ namespace Sega {
 
 struct Target: public ::Analyser::Static::Target {
 	enum class Model {
+		SG1000,
 		MasterSystem,
-		SG1000
+		MasterSystem2,
 	};
 
 	enum class Region {
 		Japan,
 		USA,
-		Europe
+		Europe,
+		Brazil
 	};
 
 	enum class PagingScheme {
@@ -34,6 +36,8 @@ struct Target: public ::Analyser::Static::Target {
 	Region region = Region::Japan;
 	PagingScheme paging_scheme = PagingScheme::Sega;
 };
+
+#define is_master_system(v) v >= Analyser::Static::Sega::Target::Model::MasterSystem
 
 }
 }

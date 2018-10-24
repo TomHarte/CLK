@@ -71,6 +71,7 @@ Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(const Media &med
 				!data[0x7fea] && !data[0x7feb] && !data[0x7fec] && !data[0x7fed] && !data[0x7fee] && !data[0x7fef]
 			) {
 				target->paging_scheme = Target::PagingScheme::Codemasters;
+				target->model = Target::Model::MasterSystem2;
 			}
 		}
 	}
