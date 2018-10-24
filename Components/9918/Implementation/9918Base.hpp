@@ -733,12 +733,12 @@ class Base {
 				size_t sub_row[2];
 			};
 			const RowInfo scrolled_row_info = {
-				pattern_name_address & size_t(((scrolled_row & ~7) << 3) | 0x3800) - pattern_name_offset,
+				(pattern_name_address & size_t(((scrolled_row & ~7) << 3) | 0x3800)) - pattern_name_offset,
 				{static_cast<size_t>((scrolled_row & 7) << 2), 28 ^ static_cast<size_t>((scrolled_row & 7) << 2)}
 			};
 			RowInfo row_info;
 			if(master_system_.vertical_scroll_lock) {
-				row_info.pattern_address_base = pattern_name_address & size_t(((write_pointer_.row & ~7) << 3) | 0x3800) - pattern_name_offset;
+				(row_info.pattern_address_base = pattern_name_address & size_t(((write_pointer_.row & ~7) << 3) | 0x3800)) - pattern_name_offset;
 				row_info.sub_row[0] = size_t((write_pointer_.row & 7) << 2);
 				row_info.sub_row[1] = 28 ^ size_t((write_pointer_.row & 7) << 2);
 			} else row_info = scrolled_row_info;
