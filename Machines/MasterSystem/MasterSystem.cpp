@@ -32,6 +32,12 @@ const int sn76489_divider = 2;
 namespace Sega {
 namespace MasterSystem {
 
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayComposite)
+	);
+}
+
 class Joystick: public Inputs::ConcreteJoystick {
 	public:
 		Joystick() :
@@ -75,6 +81,7 @@ class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
+	public Configurable::Device,
 	public JoystickMachine::Machine {
 
 	public:
@@ -324,6 +331,30 @@ class ConcreteMachine:
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
+		}
+
+		// MARK: - Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			return Sega::MasterSystem::get_options();
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			Configurable::Display display;
+			if(Configurable::get_display(selections_by_option, display)) {
+				set_video_signal_configurable(display);
+			}
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_display_selection(selection_set, Configurable::Display::Composite);
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
+			return selection_set;
 		}
 
 	private:
