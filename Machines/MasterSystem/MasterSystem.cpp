@@ -129,7 +129,7 @@ class ConcreteMachine:
 			}
 
 			// Map RAM.
-			if(model_ == Target::Model::MasterSystem) {
+			if(is_master_system(model_)) {
 				map(read_pointers_, ram_, 8*1024, 0xc000, 0x10000);
 				map(write_pointers_, ram_, 8*1024, 0xc000, 0x10000);
 			} else {
@@ -146,7 +146,13 @@ class ConcreteMachine:
 		}
 
 		void setup_output(float aspect_ratio) override {
-			vdp_.reset(new TI::TMS::TMS9918(model_ == Target::Model::SG1000 ? TI::TMS::TMS9918A : TI::TMS::SMSVDP));
+			TI::TMS::Personality personality = TI::TMS::TMS9918A;
+			switch(model_) {
+				case Target::Model::SG1000: personality = TI::TMS::TMS9918A; 		break;
+				case Target::Model::MasterSystem: personality = TI::TMS::SMSVDP;	break;
+				case Target::Model::MasterSystem2: personality = TI::TMS::SMS2VDP;	break;
+			}
+			vdp_.reset(new TI::TMS::TMS9918(personality));
 			vdp_->set_tv_standard(
 				(region_ == Target::Region::Europe) ?
 					TI::TMS::TVStandard::PAL : TI::TMS::TVStandard::NTSC);
@@ -249,7 +255,7 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Output:
 						switch(address & 0xc1) {
 							case 0x00:
-								if(model_ == Target::Model::MasterSystem) {
+								if(is_master_system(model_)) {
 									// TODO: Obey the RAM enable.
 									memory_control_ = *cycle.value;
 									page_cartridge();
@@ -401,7 +407,7 @@ class ConcreteMachine:
 			}
 		}
 		bool has_bios() {
-			return model_ == Target::Model::MasterSystem && region_ != Target::Region::Japan;
+			return is_master_system(model_) && region_ != Target::Region::Japan;
 		}
 };
 

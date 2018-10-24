@@ -54,6 +54,7 @@ Base::Base(Personality p) :
 	switch(p) {
 		case TI::TMS::TMS9918A:
 		case TI::TMS::SMSVDP:
+		case TI::TMS::SMS2VDP:
 		case TI::TMS::GGVDP:
 			ram_.resize(16 * 1024);
 		break;
@@ -481,17 +482,14 @@ void TMS9918::set_register(int address, uint8_t value) {
 
 	write_phase_ = false;
 	if(value & 0x80) {
-		switch(personality_) {
-			default:
-				value &= 0x7;
-			break;
-			case TI::TMS::SMSVDP:
+		if(is_sega_vdp(personality_)) {
 				if(value & 0x40) {
 					master_system_.cram_is_selected = true;
 					return;
 				}
 				value &= 0xf;
-			break;
+		} else {
+			value &= 0x7;
 		}
 
 		// This is a write to a register.
@@ -523,6 +521,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 
 			case 2:
 				pattern_name_address_ = size_t((low_write_ & 0xf) << 10) | 0x3ff;
+				master_system_.pattern_name_address = pattern_name_address_ | ((personality_ == TMS::SMSVDP) ? 0x000 : 0x400);
 			break;
 
 			case 3:
@@ -535,10 +534,12 @@ void TMS9918::set_register(int address, uint8_t value) {
 
 			case 5:
 				sprite_attribute_table_address_ = size_t((low_write_ & 0x7f) << 7) | 0x7f;
+				master_system_.sprite_attribute_table_address = sprite_attribute_table_address_ | ((personality_ == TMS::SMSVDP) ? 0x00 : 0x80);
 			break;
 
 			case 6:
 				sprite_generator_table_address_ = size_t((low_write_ & 0x07) << 11) | 0x7ff;
+				master_system_.sprite_generator_table_address = sprite_generator_table_address_ | ((personality_ == TMS::SMSVDP) ? 0x0000 : 0x1800);
 			break;
 
 			case 7:
