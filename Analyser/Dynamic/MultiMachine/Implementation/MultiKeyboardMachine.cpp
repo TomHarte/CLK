@@ -10,7 +10,8 @@
 
 using namespace Analyser::Dynamic;
 
-MultiKeyboardMachine::MultiKeyboardMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) {
+MultiKeyboardMachine::MultiKeyboardMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) :
+ 	keyboard_(machines_) {
 	for(const auto &machine: machines) {
 		KeyboardMachine::Machine *keyboard_machine = machine->keyboard_machine();
 		if(keyboard_machine) machines_.push_back(keyboard_machine);
@@ -35,9 +36,34 @@ void MultiKeyboardMachine::type_string(const std::string &string) {
 	}
 }
 
-void MultiKeyboardMachine::keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) {
+Inputs::Keyboard &MultiKeyboardMachine::get_keyboard() {
+	return keyboard_;
+}
+
+MultiKeyboardMachine::MultiKeyboard::MultiKeyboard(const std::vector<::KeyboardMachine::Machine *> &machines)
+	: machines_(machines) {
 	for(const auto &machine: machines_) {
-		uint16_t mapped_key = machine->get_keyboard_mapper()->mapped_key_for_key(key);
-		if(mapped_key != KeyNotMapped) machine->set_key_state(mapped_key, is_pressed);
+		observed_keys_.insert(machine->get_keyboard().observed_keys().begin(), machine->get_keyboard().observed_keys().end());
+		is_exclusive_ |= machine->get_keyboard().is_exclusive();
 	}
+}
+
+void MultiKeyboardMachine::MultiKeyboard::set_key_pressed(Key key, char value, bool is_pressed) {
+	for(const auto &machine: machines_) {
+		machine->get_keyboard().set_key_pressed(key, value, is_pressed);
+	}
+}
+
+void MultiKeyboardMachine::MultiKeyboard::reset_all_keys() {
+	for(const auto &machine: machines_) {
+		machine->get_keyboard().reset_all_keys();
+	}
+}
+
+const std::set<Inputs::Keyboard::Key> &MultiKeyboardMachine::MultiKeyboard::observed_keys() {
+	return observed_keys_;
+}
+
+bool MultiKeyboardMachine::MultiKeyboard::is_exclusive() {
+	return is_exclusive_;
 }

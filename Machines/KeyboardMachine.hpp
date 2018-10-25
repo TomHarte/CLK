@@ -33,13 +33,10 @@ struct KeyActions {
 };
 
 /*!
-	Describes the full functionality of being an emulated machine with a keyboard: not just being
-	able to receive key actions, but being able to vend a generic keyboard and a keyboard mapper.
+	Describes an emulated machine which exposes a keyboard and accepts a typed string.
 */
-class Machine: public Inputs::Keyboard::Delegate, public KeyActions {
+class Machine: public KeyActions {
 	public:
-		Machine();
-
 		/*!
 			Causes the machine to attempt to type the supplied string.
 
@@ -50,7 +47,16 @@ class Machine: public Inputs::Keyboard::Delegate, public KeyActions {
 		/*!
 			Provides a destination for keyboard input.
 		*/
-		virtual Inputs::Keyboard &get_keyboard();
+		virtual Inputs::Keyboard &get_keyboard() = 0;
+};
+
+/*!
+	Provides a base class for machines that want to provide a keyboard mapper,
+	allowing automatic mapping from keyboard inputs to KeyActions.
+*/
+class MappedMachine: public Inputs::Keyboard::Delegate, public Machine {
+	public:
+		MappedMachine();
 
 		/*!
 			A keyboard mapper attempts to provide a physical mapping between host keys and emulated keys.
@@ -75,6 +81,12 @@ class Machine: public Inputs::Keyboard::Delegate, public KeyActions {
 			as per Inputs::Keyboard and their native scheme.
 		*/
 		virtual KeyboardMapper *get_keyboard_mapper();
+
+		/*!
+			Provides a keyboard that obtains this machine's keyboard mapper, maps
+			the key and supplies it via the KeyActions.
+		*/
+		virtual Inputs::Keyboard &get_keyboard() override;
 
 	private:
 		void keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) override;

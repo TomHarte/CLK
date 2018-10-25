@@ -10,7 +10,13 @@
 
 using namespace Inputs;
 
-Keyboard::Keyboard() {}
+Keyboard::Keyboard() {
+	for(int k = 0; k < int(Key::Help); ++k) {
+		observed_keys_.insert(Key(k));
+	}
+}
+
+Keyboard::Keyboard(const std::set<Key> &observed_keys) : observed_keys_(observed_keys), is_exclusive_(false) {}
 
 void Keyboard::set_key_pressed(Key key, char value, bool is_pressed) {
 	std::size_t key_offset = static_cast<std::size_t>(key);
@@ -35,4 +41,12 @@ bool Keyboard::get_key_state(Key key) {
 	std::size_t key_offset = static_cast<std::size_t>(key);
 	if(key_offset >= key_states_.size()) return false;
 	return key_states_[key_offset];
+}
+
+const std::set<Keyboard::Key> &Keyboard::observed_keys() {
+	return observed_keys_;
+}
+
+bool Keyboard::is_exclusive() {
+	return is_exclusive_;
 }

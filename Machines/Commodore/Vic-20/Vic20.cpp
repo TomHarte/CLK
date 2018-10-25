@@ -281,7 +281,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 class ConcreteMachine:
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
-	public KeyboardMachine::Machine,
+	public KeyboardMachine::MappedMachine,
 	public JoystickMachine::Machine,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,

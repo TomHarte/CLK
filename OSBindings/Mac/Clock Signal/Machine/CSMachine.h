@@ -76,7 +76,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 - (bool)supportsVideoSignal:(CSMachineVideoSignal)videoSignal;
 
 // Input control.
-@property (nonatomic, readonly) BOOL hasKeyboard;
+@property (nonatomic, readonly) BOOL hasExclusiveKeyboard;
 @property (nonatomic, readonly) BOOL hasJoystick;
 @property (nonatomic, assign) CSMachineKeyboardInputMode inputMode;
 @property (nonatomic, nullable) CSJoystickManager *joystickManager;

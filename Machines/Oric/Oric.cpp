@@ -194,7 +194,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
-	public KeyboardMachine::Machine,
+	public KeyboardMachine::MappedMachine,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,

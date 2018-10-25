@@ -757,7 +757,7 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 template <bool has_fdc> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
-	public KeyboardMachine::Machine,
+	public KeyboardMachine::MappedMachine,
 	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,
 	public ClockingHint::Observer,

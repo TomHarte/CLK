@@ -43,14 +43,14 @@ void Typer::run_for(const HalfCycles duration) {
 bool Typer::try_type_next_character() {
 	uint16_t *sequence = character_mapper_->sequence_for_character(string_[string_pointer_]);
 
-	if(!sequence || sequence[0] == KeyboardMachine::Machine::KeyNotMapped) {
+	if(!sequence || sequence[0] == KeyboardMachine::MappedMachine::KeyNotMapped) {
 		return false;
 	}
 
 	if(!phase_) delegate_->clear_all_keys();
 	else {
 		delegate_->set_key_state(sequence[phase_ - 1], true);
-		return sequence[phase_] != KeyboardMachine::Machine::KeyEndSequence;
+		return sequence[phase_] != KeyboardMachine::MappedMachine::KeyEndSequence;
 	}
 
 	return true;
@@ -75,6 +75,6 @@ bool Typer::type_next_character() {
 uint16_t *CharacterMapper::table_lookup_sequence_for_character(KeySequence *sequences, std::size_t length, char character) {
 	std::size_t ucharacter = static_cast<std::size_t>((unsigned char)character);
 	if(ucharacter > (length / sizeof(KeySequence))) return nullptr;
-	if(sequences[ucharacter][0] == KeyboardMachine::Machine::KeyNotMapped) return nullptr;
+	if(sequences[ucharacter][0] == KeyboardMachine::MappedMachine::KeyNotMapped) return nullptr;
 	return sequences[ucharacter];
 }

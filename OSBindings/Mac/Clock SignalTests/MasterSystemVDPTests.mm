@@ -116,7 +116,7 @@
 	NSAssert(vdp.get_interrupt_line(), @"Interrupt line wasn't set when promised");
 }
 
-- (void)testPrediction {
+- (void)testInterruptPrediction {
 	TI::TMS::TMS9918 vdp(TI::TMS::Personality::SMSVDP);
 
 	for(int c = 0; c < 256; ++c) {
@@ -134,7 +134,7 @@
 			vdp.set_register(1, 0x8a);
 
 			// Now run through an entire frame...
-			int half_cycles = 262*224*2;
+			int half_cycles = 262*228*2;
 			int last_time_until_interrupt = vdp.get_time_until_interrupt().as_int();
 			while(half_cycles--) {
 				// Validate that an interrupt happened if one was expected, and clear anything that's present.
@@ -154,6 +154,22 @@
 				last_time_until_interrupt = time_until_interrupt;
 			}
 		}
+	}
+}
+
+- (void)testTimeUntilLine {
+	TI::TMS::TMS9918 vdp(TI::TMS::Personality::SMSVDP);
+
+	int time_until_line = vdp.get_time_until_line(-1).as_int();
+	for(int c = 0; c < 262*228*5; ++c) {
+		vdp.run_for(HalfCycles(1));
+
+		const int time_remaining_until_line = vdp.get_time_until_line(-1).as_int();
+		--time_until_line;
+		if(time_until_line) {
+			NSAssert(time_remaining_until_line == time_until_line, @"Discontinuity found in distance-to-line prediction; expected %d but got %d", time_until_line, time_remaining_until_line);
+		}
+		time_until_line = time_remaining_until_line;
 	}
 }
 

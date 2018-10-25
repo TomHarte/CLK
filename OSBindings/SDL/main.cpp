@@ -610,7 +610,7 @@ int main(int argc, char *argv[]) {
 				case SDL_KEYDOWN:
 					// Syphon off the key-press if it's control+shift+V (paste).
 					if(event.key.keysym.sym == SDLK_v && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
-						KeyboardMachine::Machine *keyboard_machine = machine->keyboard_machine();
+						const auto keyboard_machine = machine->keyboard_machine();
 						if(keyboard_machine) {
 							keyboard_machine->type_string(SDL_GetClipboardText());
 							break;
@@ -686,7 +686,7 @@ int main(int argc, char *argv[]) {
 						SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
 
 						// Announce a potential discontinuity in keyboard input.
-						auto keyboard_machine = machine->keyboard_machine();
+						const auto keyboard_machine = machine->keyboard_machine();
 						if(keyboard_machine) {
 							keyboard_machine->get_keyboard().reset_all_keys();
 						}
@@ -695,17 +695,19 @@ int main(int argc, char *argv[]) {
 
 					const bool is_pressed = event.type == SDL_KEYDOWN;
 
-					KeyboardMachine::Machine *const keyboard_machine = machine->keyboard_machine();
+					const auto keyboard_machine = machine->keyboard_machine();
 					if(keyboard_machine) {
 						Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
 						if(!KeyboardKeyForSDLScancode(event.key.keysym.scancode, key)) break;
 
-						char key_value = '\0';
-						const char *key_name = SDL_GetKeyName(event.key.keysym.sym);
-						if(key_name[0] >= 0) key_value = key_name[0];
+						if(keyboard_machine->get_keyboard().observed_keys().find(key) != keyboard_machine->get_keyboard().observed_keys().end()) {
+							char key_value = '\0';
+							const char *key_name = SDL_GetKeyName(event.key.keysym.sym);
+							if(key_name[0] >= 0) key_value = key_name[0];
 
-						keyboard_machine->get_keyboard().set_key_pressed(key, key_value, is_pressed);
-						break;
+							keyboard_machine->get_keyboard().set_key_pressed(key, key_value, is_pressed);
+							break;
+						}
 					}
 
 					JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();

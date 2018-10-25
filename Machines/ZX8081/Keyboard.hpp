@@ -25,7 +25,7 @@ enum Key: uint16_t {
 	KeySpace	= 0x0700 | 0x01,	KeyDot	= 0x0700 | 0x02,	KeyM = 0x0700 | 0x04,	KeyN = 0x0700 | 0x08,	KeyB = 0x0700 | 0x10,
 };
 
-struct KeyboardMapper: public KeyboardMachine::Machine::KeyboardMapper {
+struct KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key);
 };
 

@@ -702,6 +702,23 @@ HalfCycles TMS9918::get_time_until_interrupt() {
 	return half_cycles_before_internal_cycles(std::min(local_cycles_until_line_interrupt, time_until_frame_interrupt));
 }
 
+HalfCycles TMS9918::get_time_until_line(int line) {
+	if(line < 0) line += mode_timing_.total_lines;
+
+	int cycles_to_next_interrupt_threshold = mode_timing_.line_interrupt_position - write_pointer_.column;
+	int line_of_next_interrupt_threshold = write_pointer_.row;
+	if(cycles_to_next_interrupt_threshold <= 0) {
+		cycles_to_next_interrupt_threshold += 342;
+		++line_of_next_interrupt_threshold;
+	}
+
+	if(line_of_next_interrupt_threshold > line) {
+		line += mode_timing_.total_lines;
+	}
+
+	return half_cycles_before_internal_cycles(cycles_to_next_interrupt_threshold + (line - line_of_next_interrupt_threshold)*342);
+}
+
 bool TMS9918::get_interrupt_line() {
 	return ((status_ & StatusInterrupt) && generate_interrupts_) || (enable_line_interrupts_ && line_interrupt_pending_);
 }
