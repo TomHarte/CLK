@@ -736,7 +736,6 @@ void Base::draw_tms_character(int start, int end) {
 				(line_buffer.patterns[c >> 3][0] >> (((c & 4)^4))) & 15
 			];
 		}
-		pixel_target_ += pixels_left;
 	} else {
 		const int shift = start & 7;
 		int byte_column = start >> 3;
