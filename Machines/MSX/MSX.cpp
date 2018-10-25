@@ -139,7 +139,7 @@ class ConcreteMachine:
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
-	public KeyboardMachine::Machine,
+	public KeyboardMachine::MappedMachine,
 	public Configurable::Device,
 	public JoystickMachine::Machine,
 	public MemoryMap,

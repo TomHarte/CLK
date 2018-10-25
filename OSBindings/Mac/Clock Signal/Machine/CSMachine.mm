@@ -91,7 +91,9 @@ struct ActivityObserver: public Activity::Observer {
 		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(), error));
 		if(!_machine) return nil;
 
-		_inputMode = _machine->keyboard_machine() ? CSMachineKeyboardInputModeKeyboard : CSMachineKeyboardInputModeJoystick;
+		_inputMode =
+			(_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive())
+				? CSMachineKeyboardInputModeKeyboard : CSMachineKeyboardInputModeJoystick;
 
 		_leds = [[NSMutableArray alloc] init];
 		Activity::Source *const activity_source = _machine->activity_source();
@@ -301,80 +303,85 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed {
 	auto keyboard_machine = _machine->keyboard_machine();
-	if(self.inputMode == CSMachineKeyboardInputModeKeyboard && keyboard_machine) {
-		// Don't pass anything on if this is not new information.
-		if(_depressedKeys[key] == !!isPressed) return;
-		_depressedKeys[key] = !!isPressed;
+	if(keyboard_machine && (self.inputMode == CSMachineKeyboardInputModeKeyboard || !keyboard_machine->get_keyboard().is_exclusive())) {
+		Inputs::Keyboard::Key mapped_key = Inputs::Keyboard::Key::Help;	// Make an innocuous default guess.
+#define BIND(source, dest) case source: mapped_key = Inputs::Keyboard::Key::dest; break;
+		// Connect the Carbon-era Mac keyboard scancodes to Clock Signal's 'universal' enumeration in order
+		// to pass into the platform-neutral realm.
+		switch(key) {
+			BIND(VK_ANSI_0, k0);	BIND(VK_ANSI_1, k1);	BIND(VK_ANSI_2, k2);	BIND(VK_ANSI_3, k3);	BIND(VK_ANSI_4, k4);
+			BIND(VK_ANSI_5, k5);	BIND(VK_ANSI_6, k6);	BIND(VK_ANSI_7, k7);	BIND(VK_ANSI_8, k8);	BIND(VK_ANSI_9, k9);
 
-		// Pick an ASCII code, if any.
-		char pressedKey = '\0';
-		if(characters.length) {
-			unichar firstCharacter = [characters characterAtIndex:0];
-			if(firstCharacter < 128) {
-				pressedKey = (char)firstCharacter;
-			}
+			BIND(VK_ANSI_Q, Q);		BIND(VK_ANSI_W, W);		BIND(VK_ANSI_E, E);		BIND(VK_ANSI_R, R);		BIND(VK_ANSI_T, T);
+			BIND(VK_ANSI_Y, Y);		BIND(VK_ANSI_U, U);		BIND(VK_ANSI_I, I);		BIND(VK_ANSI_O, O);		BIND(VK_ANSI_P, P);
+
+			BIND(VK_ANSI_A, A);		BIND(VK_ANSI_S, S);		BIND(VK_ANSI_D, D);		BIND(VK_ANSI_F, F);		BIND(VK_ANSI_G, G);
+			BIND(VK_ANSI_H, H);		BIND(VK_ANSI_J, J);		BIND(VK_ANSI_K, K);		BIND(VK_ANSI_L, L);
+
+			BIND(VK_ANSI_Z, Z);		BIND(VK_ANSI_X, X);		BIND(VK_ANSI_C, C);		BIND(VK_ANSI_V, V);
+			BIND(VK_ANSI_B, B);		BIND(VK_ANSI_N, N);		BIND(VK_ANSI_M, M);
+
+			BIND(VK_F1, F1);		BIND(VK_F2, F2);		BIND(VK_F3, F3);		BIND(VK_F4, F4);
+			BIND(VK_F5, F5);		BIND(VK_F6, F6);		BIND(VK_F7, F7);		BIND(VK_F8, F8);
+			BIND(VK_F9, F9);		BIND(VK_F10, F10);		BIND(VK_F11, F11);		BIND(VK_F12, F12);
+
+			BIND(VK_ANSI_Keypad0, KeyPad0);		BIND(VK_ANSI_Keypad1, KeyPad1);		BIND(VK_ANSI_Keypad2, KeyPad2);
+			BIND(VK_ANSI_Keypad3, KeyPad3);		BIND(VK_ANSI_Keypad4, KeyPad4);		BIND(VK_ANSI_Keypad5, KeyPad5);
+			BIND(VK_ANSI_Keypad6, KeyPad6);		BIND(VK_ANSI_Keypad7, KeyPad7);		BIND(VK_ANSI_Keypad8, KeyPad8);
+			BIND(VK_ANSI_Keypad9, KeyPad9);
+
+			BIND(VK_ANSI_Equal, Equals);						BIND(VK_ANSI_Minus, Hyphen);
+			BIND(VK_ANSI_RightBracket, CloseSquareBracket);		BIND(VK_ANSI_LeftBracket, OpenSquareBracket);
+			BIND(VK_ANSI_Quote, Quote);							BIND(VK_ANSI_Grave, BackTick);
+
+			BIND(VK_ANSI_Semicolon, Semicolon);
+			BIND(VK_ANSI_Backslash, BackSlash);					BIND(VK_ANSI_Slash, ForwardSlash);
+			BIND(VK_ANSI_Comma, Comma);							BIND(VK_ANSI_Period, FullStop);
+
+			BIND(VK_ANSI_KeypadDecimal, KeyPadDecimalPoint);	BIND(VK_ANSI_KeypadEquals, KeyPadEquals);
+			BIND(VK_ANSI_KeypadMultiply, KeyPadAsterisk);		BIND(VK_ANSI_KeypadDivide, KeyPadSlash);
+			BIND(VK_ANSI_KeypadPlus, KeyPadPlus);				BIND(VK_ANSI_KeypadMinus, KeyPadMinus);
+			BIND(VK_ANSI_KeypadClear, KeyPadDelete);			BIND(VK_ANSI_KeypadEnter, KeyPadEnter);
+
+			BIND(VK_Return, Enter);					BIND(VK_Tab, Tab);
+			BIND(VK_Space, Space);					BIND(VK_Delete, BackSpace);
+			BIND(VK_Control, LeftControl);			BIND(VK_Option, LeftOption);
+			BIND(VK_Command, LeftMeta);				BIND(VK_Shift, LeftShift);
+			BIND(VK_RightControl, RightControl);	BIND(VK_RightOption, RightOption);
+			BIND(VK_Escape, Escape);				BIND(VK_CapsLock, CapsLock);
+			BIND(VK_Home, Home);					BIND(VK_End, End);
+			BIND(VK_PageUp, PageUp);				BIND(VK_PageDown, PageDown);
+
+			BIND(VK_RightShift, RightShift);
+			BIND(VK_Help, Help);
+			BIND(VK_ForwardDelete, Delete);
+
+			BIND(VK_LeftArrow, Left);		BIND(VK_RightArrow, Right);
+			BIND(VK_DownArrow, Down); 		BIND(VK_UpArrow, Up);
 		}
-
-		@synchronized(self) {
-			Inputs::Keyboard &keyboard = keyboard_machine->get_keyboard();
-
-			// Connect the Carbon-era Mac keyboard scancodes to Clock Signal's 'universal' enumeration in order
-			// to pass into the platform-neutral realm.
-#define BIND(source, dest) case source: keyboard.set_key_pressed(Inputs::Keyboard::Key::dest, pressedKey, isPressed);	break
-			switch(key) {
-				BIND(VK_ANSI_0, k0);	BIND(VK_ANSI_1, k1);	BIND(VK_ANSI_2, k2);	BIND(VK_ANSI_3, k3);	BIND(VK_ANSI_4, k4);
-				BIND(VK_ANSI_5, k5);	BIND(VK_ANSI_6, k6);	BIND(VK_ANSI_7, k7);	BIND(VK_ANSI_8, k8);	BIND(VK_ANSI_9, k9);
-
-				BIND(VK_ANSI_Q, Q);		BIND(VK_ANSI_W, W);		BIND(VK_ANSI_E, E);		BIND(VK_ANSI_R, R);		BIND(VK_ANSI_T, T);
-				BIND(VK_ANSI_Y, Y);		BIND(VK_ANSI_U, U);		BIND(VK_ANSI_I, I);		BIND(VK_ANSI_O, O);		BIND(VK_ANSI_P, P);
-
-				BIND(VK_ANSI_A, A);		BIND(VK_ANSI_S, S);		BIND(VK_ANSI_D, D);		BIND(VK_ANSI_F, F);		BIND(VK_ANSI_G, G);
-				BIND(VK_ANSI_H, H);		BIND(VK_ANSI_J, J);		BIND(VK_ANSI_K, K);		BIND(VK_ANSI_L, L);
-
-				BIND(VK_ANSI_Z, Z);		BIND(VK_ANSI_X, X);		BIND(VK_ANSI_C, C);		BIND(VK_ANSI_V, V);
-				BIND(VK_ANSI_B, B);		BIND(VK_ANSI_N, N);		BIND(VK_ANSI_M, M);
-
-				BIND(VK_F1, F1);		BIND(VK_F2, F2);		BIND(VK_F3, F3);		BIND(VK_F4, F4);
-				BIND(VK_F5, F5);		BIND(VK_F6, F6);		BIND(VK_F7, F7);		BIND(VK_F8, F8);
-				BIND(VK_F9, F9);		BIND(VK_F10, F10);		BIND(VK_F11, F11);		BIND(VK_F12, F12);
-
-				BIND(VK_ANSI_Keypad0, KeyPad0);		BIND(VK_ANSI_Keypad1, KeyPad1);		BIND(VK_ANSI_Keypad2, KeyPad2);
-				BIND(VK_ANSI_Keypad3, KeyPad3);		BIND(VK_ANSI_Keypad4, KeyPad4);		BIND(VK_ANSI_Keypad5, KeyPad5);
-				BIND(VK_ANSI_Keypad6, KeyPad6);		BIND(VK_ANSI_Keypad7, KeyPad7);		BIND(VK_ANSI_Keypad8, KeyPad8);
-				BIND(VK_ANSI_Keypad9, KeyPad9);
-
-				BIND(VK_ANSI_Equal, Equals);						BIND(VK_ANSI_Minus, Hyphen);
-				BIND(VK_ANSI_RightBracket, CloseSquareBracket);		BIND(VK_ANSI_LeftBracket, OpenSquareBracket);
-				BIND(VK_ANSI_Quote, Quote);							BIND(VK_ANSI_Grave, BackTick);
-
-				BIND(VK_ANSI_Semicolon, Semicolon);
-				BIND(VK_ANSI_Backslash, BackSlash);					BIND(VK_ANSI_Slash, ForwardSlash);
-				BIND(VK_ANSI_Comma, Comma);							BIND(VK_ANSI_Period, FullStop);
-
-				BIND(VK_ANSI_KeypadDecimal, KeyPadDecimalPoint);	BIND(VK_ANSI_KeypadEquals, KeyPadEquals);
-				BIND(VK_ANSI_KeypadMultiply, KeyPadAsterisk);		BIND(VK_ANSI_KeypadDivide, KeyPadSlash);
-				BIND(VK_ANSI_KeypadPlus, KeyPadPlus);				BIND(VK_ANSI_KeypadMinus, KeyPadMinus);
-				BIND(VK_ANSI_KeypadClear, KeyPadDelete);			BIND(VK_ANSI_KeypadEnter, KeyPadEnter);
-
-				BIND(VK_Return, Enter);					BIND(VK_Tab, Tab);
-				BIND(VK_Space, Space);					BIND(VK_Delete, BackSpace);
-				BIND(VK_Control, LeftControl);			BIND(VK_Option, LeftOption);
-				BIND(VK_Command, LeftMeta);				BIND(VK_Shift, LeftShift);
-				BIND(VK_RightControl, RightControl);	BIND(VK_RightOption, RightOption);
-				BIND(VK_Escape, Escape);				BIND(VK_CapsLock, CapsLock);
-				BIND(VK_Home, Home);					BIND(VK_End, End);
-				BIND(VK_PageUp, PageUp);				BIND(VK_PageDown, PageDown);
-
-				BIND(VK_RightShift, RightShift);
-				BIND(VK_Help, Help);
-				BIND(VK_ForwardDelete, Delete);
-
-				BIND(VK_LeftArrow, Left);		BIND(VK_RightArrow, Right);
-				BIND(VK_DownArrow, Down); 		BIND(VK_UpArrow, Up);
-			}
 #undef BIND
+
+		Inputs::Keyboard &keyboard = keyboard_machine->get_keyboard();
+
+		if(keyboard.observed_keys().find(mapped_key) != keyboard.observed_keys().end()) {
+			// Don't pass anything on if this is not new information.
+			if(_depressedKeys[key] == !!isPressed) return;
+			_depressedKeys[key] = !!isPressed;
+
+			// Pick an ASCII code, if any.
+			char pressedKey = '\0';
+			if(characters.length) {
+				unichar firstCharacter = [characters characterAtIndex:0];
+				if(firstCharacter < 128) {
+					pressedKey = (char)firstCharacter;
+				}
+			}
+
+			@synchronized(self) {
+				keyboard.set_key_pressed(mapped_key, pressedKey, isPressed);
+			}
+			return;
 		}
-		return;
 	}
 
 	auto joystick_machine = _machine->joystick_machine();
@@ -536,8 +543,8 @@ struct ActivityObserver: public Activity::Observer {
 	return !!_machine->joystick_machine();
 }
 
-- (BOOL)hasKeyboard {
-	return !!_machine->keyboard_machine();
+- (BOOL)hasExclusiveKeyboard {
+	return !!_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive();
 }
 
 #pragma mark - Activity observation

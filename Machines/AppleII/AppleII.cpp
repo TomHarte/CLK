@@ -40,7 +40,7 @@ namespace {
 template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
-	public KeyboardMachine::Machine,
+	public KeyboardMachine::MappedMachine,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
 	public AppleII::Machine,

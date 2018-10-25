@@ -10,6 +10,7 @@
 #define Keyboard_hpp
 
 #include <vector>
+#include <set>
 
 namespace Inputs {
 
@@ -20,8 +21,6 @@ namespace Inputs {
 */
 class Keyboard {
 	public:
-		Keyboard();
-
 		enum class Key {
 			Escape, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12, PrintScreen, ScrollLock, Pause,
 			BackTick, k1, k2, k3, k4, k5, k6, k7, k8, k9, k0, Hyphen, Equals, BackSpace,
@@ -39,9 +38,25 @@ class Keyboard {
 			Help
 		};
 
+		/// Constructs a Keyboard that declares itself to observe all keys.
+		Keyboard();
+
+		/// Constructs a Keyboard that declares itself to observe only members of @c observed_keys.
+		Keyboard(const std::set<Key> &observed_keys);
+
 		// Host interface.
 		virtual void set_key_pressed(Key key, char value, bool is_pressed);
 		virtual void reset_all_keys();
+
+		/// @returns a set of all Keys that this keyboard responds to.
+		virtual const std::set<Key> &observed_keys();
+
+		/*
+			@returns @c true if this keyboard, on its original machine, looked
+			like a complete keyboard — i.e. if a user would expect this keyboard
+			to be the only thing a real keyboard maps to.
+		*/
+		virtual bool is_exclusive();
 
 		// Delegate interface.
 		struct Delegate {
@@ -52,8 +67,10 @@ class Keyboard {
 		bool get_key_state(Key key);
 
 	private:
+		std::set<Key> observed_keys_;
 		std::vector<bool> key_states_;
 		Delegate *delegate_ = nullptr;
+		bool is_exclusive_ = true;
 };
 
 }

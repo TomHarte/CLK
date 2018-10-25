@@ -60,7 +60,7 @@ std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 template<bool is_zx81> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
-	public KeyboardMachine::Machine,
+	public KeyboardMachine::MappedMachine,
 	public Configurable::Device,
 	public Utility::TypeRecipient,
 	public CPU::Z80::BusHandler,

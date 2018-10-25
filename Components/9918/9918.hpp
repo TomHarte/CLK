@@ -75,6 +75,16 @@ class TMS9918: public Base {
 		HalfCycles get_time_until_interrupt();
 
 		/*!
+			Returns the amount of time until the nominated line interrupt position is
+			reached on line @c line. If no line interrupt position is defined for
+			this VDP, returns the time until the 'beginning' of that line, whatever
+			that may mean.
+
+			@line is relative to the first pixel line of the display and may be negative.
+		*/
+		HalfCycles get_time_until_line(int line);
+
+		/*!
 			@returns @c true if the interrupt line is currently active; @c false otherwise.
 		*/
 		bool get_interrupt_line();

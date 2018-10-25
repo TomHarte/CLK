@@ -301,7 +301,7 @@ class MachineDocument:
 		if let menuItem = item as? NSMenuItem {
 			switch item.action {
 				case #selector(self.useKeyboardAsKeyboard):
-					if machine == nil || !machine.hasKeyboard {
+					if machine == nil || !machine.hasExclusiveKeyboard {
 						menuItem.state = .off
 						return false
 					}

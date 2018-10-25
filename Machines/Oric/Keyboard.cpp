@@ -48,13 +48,13 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 	}
 #undef BIND
 
-	return KeyboardMachine::Machine::KeyNotMapped;
+	return KeyboardMachine::MappedMachine::KeyNotMapped;
 }
 
 uint16_t *CharacterMapper::sequence_for_character(char character) {
-#define KEYS(...)	{__VA_ARGS__, KeyboardMachine::Machine::KeyEndSequence}
-#define SHIFT(...)	{KeyLeftShift, __VA_ARGS__, KeyboardMachine::Machine::KeyEndSequence}
-#define X			{KeyboardMachine::Machine::KeyNotMapped}
+#define KEYS(...)	{__VA_ARGS__, KeyboardMachine::MappedMachine::KeyEndSequence}
+#define SHIFT(...)	{KeyLeftShift, __VA_ARGS__, KeyboardMachine::MappedMachine::KeyEndSequence}
+#define X			{KeyboardMachine::MappedMachine::KeyNotMapped}
 	static KeySequence key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,

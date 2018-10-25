@@ -10,27 +10,27 @@
 
 using namespace KeyboardMachine;
 
-Machine::Machine() {
+MappedMachine::MappedMachine() {
 	keyboard_.set_delegate(this);
 }
 
-void Machine::keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) {
+void MappedMachine::keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) {
 	uint16_t mapped_key = get_keyboard_mapper()->mapped_key_for_key(key);
 	if(mapped_key != KeyNotMapped) set_key_state(mapped_key, is_pressed);
 }
 
-void Machine::reset_all_keys(Inputs::Keyboard *keyboard) {
+void MappedMachine::reset_all_keys(Inputs::Keyboard *keyboard) {
 	// TODO: unify naming.
 	clear_all_keys();
 }
 
-Inputs::Keyboard &Machine::get_keyboard() {
+Inputs::Keyboard &MappedMachine::get_keyboard() {
 	return keyboard_;
 }
 
 void Machine::type_string(const std::string &) {
 }
 
-Machine::KeyboardMapper *Machine::get_keyboard_mapper() {
+MappedMachine::KeyboardMapper *MappedMachine::get_keyboard_mapper() {
 	return nullptr;
 }

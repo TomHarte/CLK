@@ -15,6 +15,7 @@
 
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
+#include "../KeyboardMachine.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
 
@@ -81,6 +82,8 @@ class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
+	public KeyboardMachine::Machine,
+	public Inputs::Keyboard::Delegate,
 	public Configurable::Device,
 	public JoystickMachine::Machine {
 
@@ -94,7 +97,8 @@ class ConcreteMachine:
 				(target.model == Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
 				audio_queue_,
 				sn76489_divider),
-			speaker_(sn76489_) {
+			speaker_(sn76489_),
+			keyboard_({Inputs::Keyboard::Key::Enter, Inputs::Keyboard::Key::Escape}) {
 			// Pick the clock rate based on the region.
 			const double clock_rate = target.region == Target::Region::Europe ? 3546893.0 : 3579540.0;
 			speaker_.set_input_rate(static_cast<float>(clock_rate / sn76489_divider));
@@ -146,6 +150,8 @@ class ConcreteMachine:
 
 			// Apple a relatively low low-pass filter. More guidance needed here.
 			speaker_.set_high_frequency_cutoff(8000);
+
+			keyboard_.set_delegate(this);
 		}
 
 		~ConcreteMachine() {
@@ -164,6 +170,8 @@ class ConcreteMachine:
 				(region_ == Target::Region::Europe) ?
 					TI::TMS::TVStandard::PAL : TI::TMS::TVStandard::NTSC);
 			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
+
+			time_until_debounce_ = vdp_->get_time_until_line(-1);
 		}
 
 		void close_output() override {
@@ -213,7 +221,7 @@ class ConcreteMachine:
 						}
 
 						if(write_pointers_[address >> 10]) write_pointers_[address >> 10][address & 1023] = *cycle.value;
-						else LOG("Ignored write to ROM");
+//						else LOG("Ignored write to ROM");
 					break;
 
 					case CPU::Z80::PartialMachineCycle::Input:
@@ -320,6 +328,15 @@ class ConcreteMachine:
 				}
 			}
 
+			// The pause button is debounced and takes effect only one line before pixels
+			// begin; time_until_debounce_ keeps track of the time until then.
+			time_until_debounce_ -= cycle.length;
+			if(time_until_debounce_ <= HalfCycles(0)) {
+				z80_.set_non_maskable_interrupt_line(pause_is_pressed_);
+				update_video();
+				time_until_debounce_ = vdp_->get_time_until_line(-1);
+			}
+
 			return HalfCycles(0);
 		}
 
@@ -331,6 +348,23 @@ class ConcreteMachine:
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
+		}
+
+		// MARK: - Keyboard (i.e. the pause and reset buttons).
+		Inputs::Keyboard &get_keyboard() override {
+			return keyboard_;
+		}
+
+		void keyboard_did_change_key(Inputs::Keyboard *, Inputs::Keyboard::Key key, bool is_pressed) override {
+			if(key == Inputs::Keyboard::Key::Enter) {
+				pause_is_pressed_ = is_pressed;
+			} else if(key == Inputs::Keyboard::Key::Escape) {
+				reset_is_pressed_ = is_pressed;
+			}
+		}
+
+
+		void reset_all_keys(Inputs::Keyboard *) override {
 		}
 
 		// MARK: - Configuration options.
@@ -388,10 +422,13 @@ class ConcreteMachine:
 		Outputs::Speaker::LowpassSpeaker<TI::SN76489> speaker_;
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
+		Inputs::Keyboard keyboard_;
+		bool reset_is_pressed_ = false, pause_is_pressed_ = false;
 
 		HalfCycles time_since_vdp_update_;
 		HalfCycles time_since_sn76489_update_;
 		HalfCycles time_until_interrupt_;
+		HalfCycles time_until_debounce_;
 
 		uint8_t ram_[8*1024];
 		uint8_t bios_[8*1024];

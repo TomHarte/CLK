@@ -32,10 +32,11 @@ class MultiKeyboardMachine: public KeyboardMachine::Machine {
 		void clear_all_keys() override;
 		void set_key_state(uint16_t key, bool is_pressed) override;
 		void type_string(const std::string &) override;
-		void keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) override;
+		Inputs::Keyboard &get_keyboard() override;
 
 	private:
 		std::vector<::KeyboardMachine::Machine *> machines_;
+		Inputs::Keyboard keyboard_;
 };
 
 }
