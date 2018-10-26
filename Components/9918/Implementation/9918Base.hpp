@@ -342,7 +342,7 @@ class Base {
 
 						// Schedule a CRAM dot.
 						upcoming_cram_dots_.emplace_back();
-						auto dot = upcoming_cram_dots_.back();
+						CRAMDot &dot = upcoming_cram_dots_.back();
 						dot.location.row = write_pointer_.row;
 						dot.location.column = access_column;
 						dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
