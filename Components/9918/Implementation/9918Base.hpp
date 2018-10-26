@@ -15,6 +15,7 @@
 #include <cassert>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 namespace TI {
 namespace TMS {
