@@ -93,7 +93,6 @@ TMS9918::TMS9918(Personality p):
 		"}");
 	crt_->set_video_signal(Outputs::CRT::VideoSignal::RGB);
 	crt_->set_visible_area(Outputs::CRT::Rect(0.055f, 0.025f, 0.9f, 0.9f));
-	crt_->set_input_gamma(2.8f);
 
 	// The TMS remains in-phase with the NTSC colour clock; this is an empirical measurement
 	// intended to produce the correct relationship between the hard edges between pixels and
@@ -321,19 +320,34 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 		if(read_cycles_pool) {
 			// Determine how much time has passed in the remainder of this line, and proceed.
-			const int read_cycles = std::min(342 - read_pointer_.column, read_cycles_pool);
-			const int end_column = read_pointer_.column + read_cycles;
-			LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
+			const int target_read_cycles = std::min(342 - read_pointer_.column, read_cycles_pool);
+			int read_cycles_performed = 0;
+			uint32_t next_cram_value = 0;
+
+			while(read_cycles_performed < target_read_cycles) {
+				const uint32_t cram_value = next_cram_value;
+				next_cram_value = 0;
+				int read_cycles = target_read_cycles - read_cycles_performed;
+				if(!upcoming_cram_dots_.empty() && upcoming_cram_dots_.front().location.row == read_pointer_.row) {
+					int time_until_dot = upcoming_cram_dots_.front().location.column - read_pointer_.column;
+
+					if(time_until_dot < read_cycles) {
+						read_cycles = time_until_dot;
+						next_cram_value = upcoming_cram_dots_.front().value;
+						upcoming_cram_dots_.erase(upcoming_cram_dots_.begin());
+					}
+				}
+
+				if(!read_cycles) continue;
+				read_cycles_performed += read_cycles;
+
+				const int end_column = read_pointer_.column + read_cycles;
+				LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
 
 
-			// TODO: actually perform these dots, at least in part by further subdividing
-			// the period to run for.
-			upcoming_cram_dots_.clear();
-
-
-			// --------------------
-			// Output video stream.
-			// --------------------
+				// --------------------
+				// Output video stream.
+				// --------------------
 
 #define intersect(left, right, code)	\
 	{	\
@@ -344,21 +358,37 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		}\
 	}
 
-#define border(left, right)	intersect(left, right, output_border(end - start))
+#define border(left, right)	intersect(left, right, output_border(end - start, cram_value))
 
-			if(line_buffer.line_mode == LineMode::Refresh || read_pointer_.row > mode_timing_.pixel_lines) {
-				if(read_pointer_.row >= mode_timing_.first_vsync_line && read_pointer_.row < mode_timing_.first_vsync_line+4) {
-					// Vertical sync.
-					if(end_column == 342) {
-						crt_->output_sync(342 * 4);
+				if(line_buffer.line_mode == LineMode::Refresh || read_pointer_.row > mode_timing_.pixel_lines) {
+					if(read_pointer_.row >= mode_timing_.first_vsync_line && read_pointer_.row < mode_timing_.first_vsync_line+4) {
+						// Vertical sync.
+						if(end_column == 342) {
+							crt_->output_sync(342 * 4);
+						}
+					} else {
+						// Right border.
+						border(0, 15);
+
+						// Blanking region; total length is 58 cycles,
+						// and 58+15 = 73. So output the lot when the
+						// cursor passes 73.
+						if(read_pointer_.column < 73 && end_column >= 73) {
+							crt_->output_blank(8*4);
+							crt_->output_sync(26*4);
+							crt_->output_blank(2*4);
+							crt_->output_default_colour_burst(14*4);
+							crt_->output_blank(8*4);
+						}
+
+						// Border colour for the rest of the line.
+						border(73, 342);
 					}
 				} else {
 					// Right border.
 					border(0, 15);
 
-					// Blanking region; total length is 58 cycles,
-					// and 58+15 = 73. So output the lot when the
-					// cursor passes 73.
+					// Blanking region.
 					if(read_pointer_.column < 73 && end_column >= 73) {
 						crt_->output_blank(8*4);
 						crt_->output_sync(26*4);
@@ -367,73 +397,58 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						crt_->output_blank(8*4);
 					}
 
-					// Border colour for the rest of the line.
-					border(73, 342);
-				}
-			} else {
-				// Right border.
-				border(0, 15);
+					// Left border.
+					border(73, line_buffer.first_pixel_output_column);
 
-				// Blanking region.
-				if(read_pointer_.column < 73 && end_column >= 73) {
-					crt_->output_blank(8*4);
-					crt_->output_sync(26*4);
-					crt_->output_blank(2*4);
-					crt_->output_default_colour_burst(14*4);
-					crt_->output_blank(8*4);
-				}
-
-				// Left border.
-				border(73, line_buffer.first_pixel_output_column);
-
-				// Pixel region.
-				intersect(
-					line_buffer.first_pixel_output_column,
-					line_buffer.next_border_column,
-					if(!asked_for_write_area_) {
-						asked_for_write_area_ = true;
-						pixel_origin_ = pixel_target_ = reinterpret_cast<uint32_t *>(
-							crt_->allocate_write_area(static_cast<unsigned int>(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
-						);
-					}
-
-					if(pixel_target_) {
-						const int relative_start = start - line_buffer.first_pixel_output_column;
-						const int relative_end = end - line_buffer.first_pixel_output_column;
-						switch(line_buffer.line_mode) {
-							case LineMode::SMS:			draw_sms(relative_start, relative_end, 0);				break;
-							case LineMode::Character:	draw_tms_character(relative_start, relative_end);		break;
-							case LineMode::Text:		draw_tms_text(relative_start, relative_end);			break;
-
-							case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
+					// Pixel region.
+					intersect(
+						line_buffer.first_pixel_output_column,
+						line_buffer.next_border_column,
+						if(!asked_for_write_area_) {
+							asked_for_write_area_ = true;
+							pixel_origin_ = pixel_target_ = reinterpret_cast<uint32_t *>(
+								crt_->allocate_write_area(static_cast<unsigned int>(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
+							);
 						}
-					}
 
-					if(end == line_buffer.next_border_column) {
-						const unsigned int length = static_cast<unsigned int>(line_buffer.next_border_column - line_buffer.first_pixel_output_column);
-						crt_->output_data(length * 4, length);
-						pixel_origin_ = pixel_target_ = nullptr;
-						asked_for_write_area_ = false;
-					}
-				);
+						if(pixel_target_) {
+							const int relative_start = start - line_buffer.first_pixel_output_column;
+							const int relative_end = end - line_buffer.first_pixel_output_column;
+							switch(line_buffer.line_mode) {
+								case LineMode::SMS:			draw_sms(relative_start, relative_end, cram_value);		break;
+								case LineMode::Character:	draw_tms_character(relative_start, relative_end);		break;
+								case LineMode::Text:		draw_tms_text(relative_start, relative_end);			break;
 
-				// Additional right border, if called for.
-				if(line_buffer.next_border_column != 342) {
-					border(line_buffer.next_border_column, 342);
+								case LineMode::Refresh:		break;	/* Dealt with elsewhere. */
+							}
+						}
+
+						if(end == line_buffer.next_border_column) {
+							const unsigned int length = static_cast<unsigned int>(line_buffer.next_border_column - line_buffer.first_pixel_output_column);
+							crt_->output_data(length * 4, length);
+							pixel_origin_ = pixel_target_ = nullptr;
+							asked_for_write_area_ = false;
+						}
+					);
+
+					// Additional right border, if called for.
+					if(line_buffer.next_border_column != 342) {
+						border(line_buffer.next_border_column, 342);
+					}
 				}
-			}
 
 #undef border
 #undef intersect
 
 
 
-			// -------------
-			// Advance time.
-			// -------------
-			read_pointer_.column = end_column;
-			read_cycles_pool -= read_cycles;
+				// -------------
+				// Advance time.
+				// -------------
+				read_pointer_.column = end_column;
+			}
 
+			read_cycles_pool -= target_read_cycles;
 			if(read_pointer_.column == 342) {
 				read_pointer_.column = 0;
 				read_pointer_.row = (read_pointer_.row + 1) % mode_timing_.total_lines;
@@ -444,16 +459,25 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	}
 }
 
-void Base::output_border(int cycles) {
-	uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
-	if(pixel_target) {
-		if(is_sega_vdp(personality_)) {
-			*pixel_target = master_system_.colour_ram[16 + background_colour_];
-		} else {
-			*pixel_target = palette[background_colour_];
-		}
+void Base::output_border(int cycles, uint32_t cram_dot) {
+	cycles *= 4;
+	uint32_t border_colour =
+		is_sega_vdp(personality_) ?
+			master_system_.colour_ram[16 + background_colour_] :
+			palette[background_colour_];
+
+	if(cram_dot) {
+		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
+		*pixel_target = border_colour | cram_dot;
+		crt_->output_level(4);
+		cycles -= 4;
 	}
-	crt_->output_level(static_cast<unsigned int>(cycles) * 4);
+
+	if(cycles) {
+		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
+		*pixel_target = border_colour;
+		crt_->output_level(static_cast<unsigned int>(cycles));
+	}
 }
 
 void TMS9918::set_register(int address, uint8_t value) {

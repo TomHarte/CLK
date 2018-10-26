@@ -127,7 +127,7 @@ class Base {
 
 		// A helper function to output the current border colour for
 		// the number of cycles supplied.
-		void output_border(int cycles);
+		void output_border(int cycles, uint32_t cram_dot);
 
 		// A struct to contain timing information for the current mode.
 		struct {
@@ -343,9 +343,13 @@ class Base {
 						// Schedule a CRAM dot.
 						upcoming_cram_dots_.emplace_back();
 						CRAMDot &dot = upcoming_cram_dots_.back();
-						dot.location.row = write_pointer_.row;
-						dot.location.column = access_column;
+						dot.location.row = write_pointer_.row + (access_column / 342);
+						dot.location.column = access_column % 342;
 						dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
+
+						// TODO: the location should actually be slightly in the past, as
+						// output trails memory reading; expose the length of that gap
+						// somewhere that makes it visible to here and adjust.
 					} else {
 						ram_[ram_pointer_ & 16383] = read_ahead_buffer_;
 					}
