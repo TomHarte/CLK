@@ -253,6 +253,16 @@ class Base {
 			int row, column;
 		} read_pointer_, write_pointer_;
 
+		// The SMS VDP has a programmer-set colour palette, with a dedicated patch of RAM. But the RAM is only exactly
+		// fast enough for the pixel clock. So when the programmer writes to it, that causes a one-pixel glitch; there
+		// isn't the bandwidth for the read both write to occur simultaneously. The following buffer therefore keeps
+		// track of pending collisions, for visual reproduction.
+		struct CRAMDot {
+			LineBufferPointer location;
+			uint32_t value;
+		};
+		std::vector<CRAMDot> upcoming_cram_dots_;
+
 		// Extra information that affects the Master System output mode.
 		struct {
 			// Programmer-set flags.
@@ -314,17 +324,27 @@ class Base {
 			screen_mode_ = ScreenMode::Blank;
 		}
 
-		void do_external_slot() {
+		void do_external_slot(int access_column) {
+			// TODO: is queued access ready yet?
+
 			switch(queued_access_) {
 				default: return;
 
 				case MemoryAccess::Write:
 					if(master_system_.cram_is_selected) {
+						// Adjust the palette.
 						master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
 							static_cast<uint8_t>(((read_ahead_buffer_ >> 0) & 3) * 255 / 3),
 							static_cast<uint8_t>(((read_ahead_buffer_ >> 2) & 3) * 255 / 3),
 							static_cast<uint8_t>(((read_ahead_buffer_ >> 4) & 3) * 255 / 3)
 						);
+
+						// Schedule a CRAM dot.
+						upcoming_cram_dots_.emplace_back();
+						auto dot = upcoming_cram_dots_.back();
+						dot.location.row = write_pointer_.row;
+						dot.location.column = access_column;
+						dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
 					} else {
 						ram_[ram_pointer_ & 16383] = read_ahead_buffer_;
 					}
@@ -374,7 +394,7 @@ class Base {
 		case n
 
 #define external_slot(n)	\
-	slot(n): do_external_slot();
+	slot(n): do_external_slot((n)*2);
 
 #define external_slots_2(n)	\
 	external_slot(n);		\
@@ -606,7 +626,7 @@ class Base {
 
 				slot(31):
 					sprite_selection_buffer.reset_sprite_collection();
-					do_external_slot();
+					do_external_slot(31*2);
 				external_slots_2(32);
 				external_slot(34);
 
@@ -758,7 +778,7 @@ class Base {
 
 				slot(29):
 					sprite_selection_buffer.reset_sprite_collection();
-					do_external_slot();
+					do_external_slot(29*2);
 				external_slot(30);
 
 				sprite_y_read(31, 0);
@@ -799,7 +819,7 @@ class Base {
 		bool asked_for_write_area_ = false;
 		void draw_tms_character(int start, int end);
 		void draw_tms_text(int start, int end);
-		void draw_sms(int start, int end);
+		void draw_sms(int start, int end, uint32_t cram_dot);
 };
 
 }

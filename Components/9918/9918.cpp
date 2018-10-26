@@ -326,6 +326,10 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
 
 
+			// TODO: actually perform these dots, at least in part by further subdividing
+			// the period to run for.
+			upcoming_cram_dots_.clear();
+
 
 			// --------------------
 			// Output video stream.
@@ -340,6 +344,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 		}\
 	}
 
+#define border(left, right)	intersect(left, right, output_border(end - start))
+
 			if(line_buffer.line_mode == LineMode::Refresh || read_pointer_.row > mode_timing_.pixel_lines) {
 				if(read_pointer_.row >= mode_timing_.first_vsync_line && read_pointer_.row < mode_timing_.first_vsync_line+4) {
 					// Vertical sync.
@@ -348,7 +354,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					}
 				} else {
 					// Right border.
-					intersect(0, 15, output_border(end - start));
+					border(0, 15);
 
 					// Blanking region; total length is 58 cycles,
 					// and 58+15 = 73. So output the lot when the
@@ -362,11 +368,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					}
 
 					// Border colour for the rest of the line.
-					intersect(73, 342, output_border(end - start));
+					border(73, 342);
 				}
 			} else {
 				// Right border.
-				intersect(0, 15, output_border(end - start));
+				border(0, 15);
 
 				// Blanking region.
 				if(read_pointer_.column < 73 && end_column >= 73) {
@@ -378,7 +384,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				}
 
 				// Left border.
-				intersect(73, line_buffer.first_pixel_output_column, output_border(end - start));
+				border(73, line_buffer.first_pixel_output_column);
 
 				// Pixel region.
 				intersect(
@@ -395,7 +401,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						const int relative_start = start - line_buffer.first_pixel_output_column;
 						const int relative_end = end - line_buffer.first_pixel_output_column;
 						switch(line_buffer.line_mode) {
-							case LineMode::SMS:			draw_sms(relative_start, relative_end);					break;
+							case LineMode::SMS:			draw_sms(relative_start, relative_end, 0);				break;
 							case LineMode::Character:	draw_tms_character(relative_start, relative_end);		break;
 							case LineMode::Text:		draw_tms_text(relative_start, relative_end);			break;
 
@@ -413,11 +419,12 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 				// Additional right border, if called for.
 				if(line_buffer.next_border_column != 342) {
-					intersect(line_buffer.next_border_column, 342, output_border(end - start));
+					border(line_buffer.next_border_column, 342);
 				}
 			}
 
-	#undef intersect
+#undef border
+#undef intersect
 
 
 
@@ -841,7 +848,7 @@ void Base::draw_tms_text(int start, int end) {
 	}
 }
 
-void Base::draw_sms(int start, int end) {
+void Base::draw_sms(int start, int end, uint32_t cram_dot) {
 	LineBuffer &line_buffer = line_buffers_[read_pointer_.row];
 	int colour_buffer[256];
 
@@ -974,8 +981,9 @@ void Base::draw_sms(int start, int end) {
 			status_ |= StatusSpriteCollision;
 	}
 
-	// Map from the 32-colour buffer to real output pixels.
-	for(int c = start; c < end; ++c) {
+	// Map from the 32-colour buffer to real output pixels, applying the specific CRAM dot if any.
+	pixel_target_[start] = master_system_.colour_ram[colour_buffer[start] & 0x1f] | cram_dot;
+	for(int c = start+1; c < end; ++c) {
 		pixel_target_[c] = master_system_.colour_ram[colour_buffer[c] & 0x1f];
 	}
 
