@@ -51,6 +51,8 @@ class Base {
 		}
 
 	protected:
+		const static int output_lag = 11;	// i.e. pixel output will occur 11 cycles after corresponding data read.
+
 		// The default TMS palette.
 		const uint32_t palette[16] = {
 			palette_pack(0, 0, 0),
@@ -340,16 +342,25 @@ class Base {
 							static_cast<uint8_t>(((read_ahead_buffer_ >> 4) & 3) * 255 / 3)
 						);
 
-						// Schedule a CRAM dot.
+						// Schedule a CRAM dot; this is scheduled for wherever it should appear
+						// on screen. So it's wherever the output stream would be now. Which
+						// is output_lag cycles ago from the point of view of the input stream.
 						upcoming_cram_dots_.emplace_back();
 						CRAMDot &dot = upcoming_cram_dots_.back();
-						dot.location.row = write_pointer_.row + (access_column / 342);
-						dot.location.column = access_column % 342;
-						dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
 
-						// TODO: the location should actually be slightly in the past, as
-						// output trails memory reading; expose the length of that gap
-						// somewhere that makes it visible to here and adjust.
+						dot.location.column = write_pointer_.column - output_lag;
+						dot.location.row = write_pointer_.row;
+
+						// Handle before this row conditionally; then handle after (or, more realistically,
+						// exactly at the end of) naturally.
+						if(dot.location.column < 0) {
+							--dot.location.row;
+							dot.location.column += 342;
+						}
+						dot.location.row += dot.location.column / 342;
+						dot.location.column %= 342;
+
+						dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
 					} else {
 						ram_[ram_pointer_ & 16383] = read_ahead_buffer_;
 					}

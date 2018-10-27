@@ -73,11 +73,9 @@ Base::Base(Personality p) :
 		mode_timing_.end_of_frame_interrupt_position.row = 193;
 	}
 
-	// Establish that output is 10 cycles after values have been read.
-	// This is definitely correct for the TMS; more research may be
-	// necessary for the other implemented VDPs.
+	// Establish that output is delayed after reading by `output_lag` cycles.
 	read_pointer_.row = 0;
-	read_pointer_.column = 342 - 11;	// i.e. 11 cycles behind the write pointer.
+	read_pointer_.column = 342 - output_lag;
 	write_pointer_.row = 1;
 	write_pointer_.column = 0;
 }
