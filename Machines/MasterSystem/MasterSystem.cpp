@@ -25,6 +25,7 @@
 #include "../../Analyser/Static/Sega/Target.hpp"
 
 #include <algorithm>
+#include <iostream>
 
 namespace {
 const int sn76489_divider = 2;
@@ -132,11 +133,13 @@ class ConcreteMachine:
 			if(has_bios()) {
 				const auto roms = rom_fetcher("MasterSystem", {"bios.sms"});
 				if(!roms[0]) {
-					throw ROMMachine::Error::MissingROMs;
+					// No BIOS found; attempt to boot as though it has already disabled itself.
+					memory_control_ |= 0x08;
+					std::cerr << "No BIOS found; attempting to start cartridge directly" << std::endl;
+				} else {
+					roms[0]->resize(8*1024);
+					memcpy(&bios_, roms[0]->data(), roms[0]->size());
 				}
-
-				roms[0]->resize(8*1024);
-				memcpy(&bios_, roms[0]->data(), roms[0]->size());
 			}
 
 			// Map RAM.
