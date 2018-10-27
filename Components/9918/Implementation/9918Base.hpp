@@ -94,10 +94,13 @@ class Base {
 		int cycles_until_access_ = 0;
 		int minimum_access_column_ = 0;
 		int vram_access_delay() {
-			// The Sega VDP seems to allow slightly quicker access;
-			// Sega types generally claim 26 Z80 cycles are sufficient.
-			// The received wisdom in MSX land is that it's 27.
-			return is_sega_vdp(personality_) ? 7 : 8;
+			// This seems to be correct for all currently-modelled VDPs;
+			// it's the delay between an external device scheduling a
+			// read or write and the very first time that can occur
+			// (though, in practice, it won't happen until the next
+			// external slot after this number of cycles after the
+			// device has requested the read or write).
+			return 7;
 		}
 
 		// Holds the main status register.
