@@ -36,7 +36,7 @@ enum class TVStandard {
 	NTSC
 };
 
-#define is_sega_vdp(x) x >= SMSVDP
+#define is_sega_vdp(x) ((x) >= SMSVDP)
 
 class Base {
 	public:
@@ -91,6 +91,14 @@ class Base {
 		enum class MemoryAccess {
 			Read, Write, None
 		} queued_access_ = MemoryAccess::None;
+		int cycles_until_access_ = 0;
+		int minimum_access_column_ = 0;
+		int vram_access_delay() {
+			// The Sega VDP seems to allow slightly quicker access;
+			// Sega types generally claim 26 Z80 cycles are sufficient.
+			// The received wisdom in MSX land is that it's 27.
+			return is_sega_vdp(personality_) ? 7 : 8;
+		}
 
 		// Holds the main status register.
 		uint8_t status_ = 0;
@@ -328,7 +336,11 @@ class Base {
 		}
 
 		void do_external_slot(int access_column) {
-			// TODO: is queued access ready yet?
+			// Don't do anything if the required time for the access to become executable
+			// has yet to pass.
+			if(access_column < minimum_access_column_) {
+				return;
+			}
 
 			switch(queued_access_) {
 				default: return;

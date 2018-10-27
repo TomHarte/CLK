@@ -184,6 +184,9 @@ void TMS9918::run_for(const HalfCycles cycles) {
 			const int end_column = write_pointer_.column + write_cycles;
 			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
 
+			// Determine what this does to any enqueued VRAM access.
+			minimum_access_column_ = write_pointer_.column + cycles_until_access_;
+			cycles_until_access_ -= write_cycles;
 
 
 			// ---------------------------------------
@@ -487,6 +490,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 		// Enqueue the write to occur at the next available slot.
 		read_ahead_buffer_ = value;
 		queued_access_ = MemoryAccess::Write;
+		cycles_until_access_ = vram_access_delay();
 
 		return;
 	}
@@ -509,11 +513,11 @@ void TMS9918::set_register(int address, uint8_t value) {
 	write_phase_ = false;
 	if(value & 0x80) {
 		if(is_sega_vdp(personality_)) {
-				if(value & 0x40) {
-					master_system_.cram_is_selected = true;
-					return;
-				}
-				value &= 0xf;
+			if(value & 0x40) {
+				master_system_.cram_is_selected = true;
+				return;
+			}
+			value &= 0xf;
 		} else {
 			value &= 0x7;
 		}
@@ -602,6 +606,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 			// A read request is enqueued upon setting the address; conversely a write
 			// won't be enqueued unless and until some actual data is supplied.
 			queued_access_ = MemoryAccess::Read;
+			cycles_until_access_ = vram_access_delay();
 		}
 		master_system_.cram_is_selected = false;
 	}
