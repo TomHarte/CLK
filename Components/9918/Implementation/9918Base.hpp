@@ -36,7 +36,7 @@ enum class TVStandard {
 	NTSC
 };
 
-#define is_sega_vdp(x) x >= SMSVDP
+#define is_sega_vdp(x) ((x) >= SMSVDP)
 
 class Base {
 	public:
@@ -51,6 +51,8 @@ class Base {
 		}
 
 	protected:
+		const static int output_lag = 11;	// i.e. pixel output will occur 11 cycles after corresponding data read.
+
 		// The default TMS palette.
 		const uint32_t palette[16] = {
 			palette_pack(0, 0, 0),
@@ -89,6 +91,14 @@ class Base {
 		enum class MemoryAccess {
 			Read, Write, None
 		} queued_access_ = MemoryAccess::None;
+		int cycles_until_access_ = 0;
+		int minimum_access_column_ = 0;
+		int vram_access_delay() {
+			// The Sega VDP seems to allow slightly quicker access;
+			// Sega types generally claim 26 Z80 cycles are sufficient.
+			// The received wisdom in MSX land is that it's 27.
+			return is_sega_vdp(personality_) ? 7 : 8;
+		}
 
 		// Holds the main status register.
 		uint8_t status_ = 0;
@@ -127,7 +137,7 @@ class Base {
 
 		// A helper function to output the current border colour for
 		// the number of cycles supplied.
-		void output_border(int cycles);
+		void output_border(int cycles, uint32_t cram_dot);
 
 		// A struct to contain timing information for the current mode.
 		struct {
@@ -326,7 +336,11 @@ class Base {
 		}
 
 		void do_external_slot(int access_column) {
-			// TODO: is queued access ready yet?
+			// Don't do anything if the required time for the access to become executable
+			// has yet to pass.
+			if(access_column < minimum_access_column_) {
+				return;
+			}
 
 			switch(queued_access_) {
 				default: return;
@@ -340,11 +354,24 @@ class Base {
 							static_cast<uint8_t>(((read_ahead_buffer_ >> 4) & 3) * 255 / 3)
 						);
 
-						// Schedule a CRAM dot.
+						// Schedule a CRAM dot; this is scheduled for wherever it should appear
+						// on screen. So it's wherever the output stream would be now. Which
+						// is output_lag cycles ago from the point of view of the input stream.
 						upcoming_cram_dots_.emplace_back();
 						CRAMDot &dot = upcoming_cram_dots_.back();
+
+						dot.location.column = write_pointer_.column - output_lag;
 						dot.location.row = write_pointer_.row;
-						dot.location.column = access_column;
+
+						// Handle before this row conditionally; then handle after (or, more realistically,
+						// exactly at the end of) naturally.
+						if(dot.location.column < 0) {
+							--dot.location.row;
+							dot.location.column += 342;
+						}
+						dot.location.row += dot.location.column / 342;
+						dot.location.column %= 342;
+
 						dot.value = master_system_.colour_ram[ram_pointer_ & 0x1f];
 					} else {
 						ram_[ram_pointer_ & 16383] = read_ahead_buffer_;
