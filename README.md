@@ -19,11 +19,9 @@ It currently contains emulations of the:
 * ColecoVision;
 * Commodore Vic-20 (and Commodore 1540/1);
 * MSX 1;
-* Oric 1/Atmos; and
+* Oric 1/Atmos;
+* Sega Master System; and
 * Sinclair ZX80/81.
-
-Incomplete but also present is the:
-* Master System.
 
 ## Single-click Loading
 
@@ -75,6 +73,7 @@ Cycle-accurate emulation for the supported target machines is fairly trite; this
 Self-ratings:
 * the Electron, Oric and Vic-20 are pretty much perfect;
 * the ZX80, ZX81, ColecoVision, MSX 1 and Apple IIs are very strong;
+* the Master System is almost perfect, access windows and CRAM dots and all the rest, but further work is required on some small aspects of behaviour;
 * the Amstrad CPC has known accuracy deficiencies in its 8272 and 6845;
 * the Atari 2600 has some known accuracy deficiencies in its TIA;
 * the C-1540(/1) is locked in reading mode and doesn't yet support writing.
