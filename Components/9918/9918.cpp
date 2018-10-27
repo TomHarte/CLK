@@ -10,6 +10,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <cstdlib>
 
 using namespace TI::TMS;
 
@@ -73,11 +74,12 @@ Base::Base(Personality p) :
 		mode_timing_.end_of_frame_interrupt_position.row = 193;
 	}
 
-	// Establish that output is delayed after reading by `output_lag` cycles.
-	read_pointer_.row = 0;
-	read_pointer_.column = 342 - output_lag;
-	write_pointer_.row = 1;
-	write_pointer_.column = 0;
+	// Establish that output is delayed after reading by `output_lag` cycles; start
+	// at a random position.
+	read_pointer_.row = rand() % 262;
+	read_pointer_.column = rand() % (342 - output_lag);
+	write_pointer_.row = read_pointer_.row;
+	write_pointer_.column = read_pointer_.column + output_lag;
 }
 
 TMS9918::TMS9918(Personality p):
