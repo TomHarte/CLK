@@ -211,8 +211,8 @@ class Base {
 			// The names array holds pattern names, as an offset into memory, and
 			// potentially flags also.
 			struct {
-				size_t offset;
-				uint8_t flags;
+				size_t offset = 0;
+				uint8_t flags = 0;
 			} names[40];
 
 			// The patterns array holds tile patterns, corresponding 1:1 with names.
