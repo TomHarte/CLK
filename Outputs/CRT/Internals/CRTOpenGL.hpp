@@ -22,6 +22,8 @@
 #include "Shaders/IntermediateShader.hpp"
 #include "Rectangle.hpp"
 
+#include "../ScanTarget.hpp"
+
 #include <mutex>
 #include <vector>
 

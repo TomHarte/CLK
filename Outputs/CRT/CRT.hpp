@@ -17,6 +17,8 @@
 #include "Internals/ArrayBuilder.hpp"
 #include "Internals/TextureBuilder.hpp"
 
+#include "ScanTarget.hpp"
+
 namespace Outputs {
 namespace CRT {
 
@@ -25,52 +27,6 @@ class CRT;
 class Delegate {
 	public:
 		virtual void crt_did_end_batch_of_frames(CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs) = 0;
-};
-
-struct ScanTarget {
-	struct Modals {
-		enum class DataType {
-			Luminance1,				// 1 byte/pixel; any bit set => white; no bits set => black.
-			Luminance8,				// 1 byte/pixel; linear scale.
-
-			Phase4Luminance4,		// 1 byte/pixel; top nibble is a phase offset, bottom nibble is luminance.
-			Phase8Luminance8,		// 1 bytes/pixel; first is phase, second is luminance.
-
-			Red1Green1Blue1,		// 1 byte/pixel; bit 0 is blue on or off, bit 1 is green, bit 2 is red.
-			Red2Green2Blue2,		// 1 byte/pixel; bits 0 and 1 are blue, bits 2 and 3 are green, bits 4 and 5 are blue.
-			Red4Green4Blue4,		// 2 bytes/pixel; first nibble is red, second is green, third is blue.
-			Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
-		} source_data_type;
-		ColourSpace colour_space;
-	};
-	virtual void set_modals(Modals);
-
-	struct EndPoint {
-		uint32_t data_offset;
-		uint16_t x, y;
-		uint16_t phase;
-		uint8_t amplitude;
-	};
-	EndPoint *get_endpoint_pair();
-
-	/// Finds the first available space of at least @c required_length pixels in size which is suitably aligned
-	/// for writing of @c required_alignment number of pixels at a time.
-	/// Calls must be paired off with calls to @c reduce_previous_allocation_to.
-	/// @returns a pointer to the allocated space if any was available; @c nullptr otherwise.
-	virtual uint8_t *allocate_write_area(std::size_t required_length, std::size_t required_alignment = 1) = 0;
-
-	/// Announces that the owner is finished with the region created by the most recent @c allocate_write_area
-	/// and indicates that its actual final size was @c actual_length.
-	virtual void reduce_previous_allocation_to(std::size_t actual_length) = 0;
-
-	virtual void submit() = 0;
-	virtual void reset() = 0;
-
-	enum class Event {
-		HorizontalSync,
-		VerticalSync
-	};
-	virtual void announce(Event event) = 0;
 };
 
 class CRT {

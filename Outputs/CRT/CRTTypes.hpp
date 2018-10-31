@@ -31,11 +31,6 @@ enum class DisplayType {
 	NTSC60
 };
 
-enum class ColourSpace {
-	YIQ,
-	YUV
-};
-
 enum class VideoSignal {
 	RGB,
 	SVideo,
