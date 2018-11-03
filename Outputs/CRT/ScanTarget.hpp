@@ -12,6 +12,20 @@
 namespace Outputs {
 namespace CRT {
 
+struct Rect {
+	struct Point {
+		float x, y;
+	} origin;
+
+	struct {
+		float width, height;
+	} size;
+
+	Rect() {}
+	Rect(float x, float y, float width, float height) :
+		origin({x, y}), size({width, height}) {}
+};
+
 enum class ColourSpace {
 	/// YIQ is the NTSC colour space.
 	YIQ,
@@ -54,8 +68,10 @@ struct ScanTarget {
 				// of a colour subcarrier. So they can be used to generate a luminance signal,
 				// or an s-video pipeline.
 
-				Phase4Luminance4,		// 1 byte/pixel; top nibble is a phase offset, bottom nibble is luminance.
-				Phase8Luminance8,		// 1 bytes/pixel; first is phase, second is luminance.
+				Phase8Luminance8,		// 2 bytes/pixel; first is phase, second is luminance.
+										// Phase is encoded on a 192-unit circle; anything
+										// greater than 192 implies that the colour part of
+										// the signal should be omitted.
 
 				// The RGB types can directly feed an RGB pipeline, naturally, or can be mapped
 				// to phase+luminance, or just to luminance.
@@ -66,12 +82,28 @@ struct ScanTarget {
 				Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
 			} source_data_type;
 
-			// If being fed composite data, this defines the colour space in use.
+			/// If being fed composite data, this defines the colour space in use.
 			ColourSpace composite_colour_space;
+
+			/// Nominates a least common multiple of the potential input pixel clocks;
+			/// if this isn't a crazy number then it'll be used potentially to optimise
+			/// the composite encoding and decoding process.
+			int pixel_clock_least_common_multiple;
+
+			/// Provides a pre-estimate of the likely number of left-to-right scans per frame.
+			/// This isn't a guarantee, but it should provide a decent-enough estimate.
+			int expected_vertical_lines;
+
+			/// Provides an additional restriction on the section of the display that is expected
+			/// to contain interesting content.
+			Rect visible_area;
+
+			/// Describes the 
+			float intended_gamma;
 		};
 
 		/// Sets the total format of input data.
-		virtual void set_modals(Modals);
+		virtual void set_modals(Modals) = 0;
 
 
 	/*
@@ -114,14 +146,14 @@ struct ScanTarget {
 			} end_points[2];
 
 			/// For composite video, dictates the amplitude of the colour subcarrier as a proportion of
-			/// the whole, as determined from the colour burst.
+			/// the whole, as determined from the colour burst. Will be 0 if there was no colour burst.
 			uint8_t composite_amplitude;
 		};
 
 		/// Requests a new scan to populate.
 		///
 		/// @return A valid pointer, or @c nullptr if insufficient further storage is available.
-		Scan *get_scan();
+		virtual Scan *get_scan() = 0;
 
 		/// Finds the first available space of at least @c required_length pixels in size which is suitably aligned
 		/// for writing of @c required_alignment number of pixels at a time.
@@ -140,7 +172,7 @@ struct ScanTarget {
 		///
 		/// The ScanTarget isn't bound to take any drawing action immediately; it may sit on submitted data for
 		/// as long as it feels is appropriate subject to an @c flush.
-		virtual void submit() = 0;
+		virtual void submit(bool only_if_no_allocation_failures = true) = 0;
 
 		/// Discards all data and endpoints supplied since the last @c submit. This is generally used when
 		/// failures in either get_endpoing_pair of allocate_write_area mean that proceeding would produce
@@ -164,7 +196,7 @@ struct ScanTarget {
 		};
 
 		/// Provides a hint that the named event has occurred.
-		virtual void announce(Event event) = 0;
+		virtual void announce(Event event) {}
 };
 
 }

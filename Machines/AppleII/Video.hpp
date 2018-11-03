@@ -351,14 +351,14 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					const int blank_end = std::min(first_sync_column, ending_column);
 					if(blank_end > blank_start) {
 						if(blank_start > column_) {
-							crt_->output_sync(static_cast<unsigned int>(blank_start - column_) * 14);
+							crt_->output_sync((blank_start - column_) * 14);
 						}
-						crt_->output_blank(static_cast<unsigned int>(blank_end - blank_start) * 14);
+						crt_->output_blank((blank_end - blank_start) * 14);
 						if(blank_end < ending_column) {
-							crt_->output_sync(static_cast<unsigned int>(ending_column - blank_end) * 14);
+							crt_->output_sync((ending_column - blank_end) * 14);
 						}
 					} else {
-						crt_->output_sync(static_cast<unsigned int>(cycles_this_line) * 14);
+						crt_->output_sync((cycles_this_line) * 14);
 					}
 				} else {
 					const GraphicsMode line_mode = graphics_mode(row_);
@@ -527,7 +527,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 						const int colour_burst_start = std::max(first_sync_column + sync_length + 1, column_);
 						const int colour_burst_end = std::min(first_sync_column + sync_length + 4, ending_column);
 						if(colour_burst_end > colour_burst_start) {
-							crt_->output_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 14, 192);
+							crt_->output_colour_burst((colour_burst_end - colour_burst_start) * 14, 192);
 						}
 
 						second_blank_start = std::max(first_sync_column + sync_length + 3, column_);
@@ -536,7 +536,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					}
 
 					if(ending_column > second_blank_start) {
-						crt_->output_blank(static_cast<unsigned int>(ending_column - second_blank_start) * 14);
+						crt_->output_blank((ending_column - second_blank_start) * 14);
 					}
 				}
 

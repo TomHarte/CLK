@@ -12,20 +12,6 @@
 namespace Outputs {
 namespace CRT {
 
-struct Rect {
-	struct {
-		float x, y;
-	} origin;
-
-	struct {
-		float width, height;
-	} size;
-
-	Rect() {}
-	Rect(float x, float y, float width, float height) :
-		origin({x, y}), size({width, height}) {}
-};
-
 enum class DisplayType {
 	PAL50,
 	NTSC60

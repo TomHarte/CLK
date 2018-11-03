@@ -92,7 +92,7 @@ class Machine {
 			Forwards the video signal to the CRT returned by get_crt().
 		*/
 		virtual void set_video_signal(Outputs::CRT::VideoSignal video_signal) {
-			get_crt()->set_video_signal(video_signal);
+//			get_crt()->set_video_signal(video_signal);
 		}
 
 	private:

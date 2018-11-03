@@ -11,6 +11,7 @@
 
 #include "Shader.hpp"
 #include "../../CRTTypes.hpp"
+#include "../../ScanTarget.hpp"
 #include <memory>
 
 namespace OpenGL {

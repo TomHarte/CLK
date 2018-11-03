@@ -25,14 +25,14 @@ Video::Video() :
 
 	// Set a composite sampling function that assumes two-level input; either a byte is 0, which is black,
 	// or it is non-zero, which is white.
-	crt_->set_composite_sampling_function(
-		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
-		"{"
-			"return texture(sampler, coordinate).r;"
-		"}");
+//	crt_->set_composite_sampling_function(
+//		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
+//		"{"
+//			"return texture(sampler, coordinate).r;"
+//		"}");
 
 	// Show only the centre 80% of the TV frame.
-	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
+//	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 	crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 }
 
@@ -48,7 +48,7 @@ void Video::flush() {
 void Video::flush(bool next_sync) {
 	if(sync_) {
 		// If in sync, that takes priority. Output the proper amount of sync.
-		crt_->output_sync(static_cast<unsigned int>(time_since_update_.as_int()));
+		crt_->output_sync(time_since_update_.as_int());
 	} else {
 		// If not presently in sync, then...
 
@@ -58,7 +58,7 @@ void Video::flush(bool next_sync) {
 			int data_length = static_cast<int>(line_data_pointer_ - line_data_);
 			if(data_length < time_since_update_.as_int() || next_sync) {
 				auto output_length = std::min(data_length, time_since_update_.as_int());
-				crt_->output_data(static_cast<unsigned int>(output_length), static_cast<unsigned int>(output_length));
+				crt_->output_data(output_length);
 				line_data_pointer_ = line_data_ = nullptr;
 				time_since_update_ -= HalfCycles(output_length);
 			} else return;
@@ -67,7 +67,7 @@ void Video::flush(bool next_sync) {
 		// Any pending pixels being dealt with, pad with the white level.
 		uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->allocate_write_area(1));
 		if(colour_pointer) *colour_pointer = 0xff;
-		crt_->output_level(static_cast<unsigned int>(time_since_update_.as_int()));
+		crt_->output_level(time_since_update_.as_int());
 	}
 
 	time_since_update_ = 0;

@@ -86,12 +86,12 @@ TMS9918::TMS9918(Personality p):
  	Base(p) {
 	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
 	// into whether there's a more natural form.
-	crt_->set_rgb_sampling_function(
-		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
-		"{"
-			"return texture(sampler, coordinate).rgb / vec3(255.0);"
-		"}");
-	crt_->set_video_signal(Outputs::CRT::VideoSignal::RGB);
+//	crt_->set_rgb_sampling_function(
+//		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
+//		"{"
+//			"return texture(sampler, coordinate).rgb / vec3(255.0);"
+//		"}");
+//	crt_->set_video_signal(Outputs::CRT::VideoSignal::RGB);
 	crt_->set_visible_area(Outputs::CRT::Rect(0.055f, 0.025f, 0.9f, 0.9f));
 
 	// The TMS remains in-phase with the NTSC colour clock; this is an empirical measurement
@@ -410,7 +410,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						if(!asked_for_write_area_) {
 							asked_for_write_area_ = true;
 							pixel_origin_ = pixel_target_ = reinterpret_cast<uint32_t *>(
-								crt_->allocate_write_area(static_cast<unsigned int>(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
+								crt_->allocate_write_area(size_t(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
 							);
 						}
 
@@ -427,8 +427,8 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						}
 
 						if(end == line_buffer.next_border_column) {
-							const unsigned int length = static_cast<unsigned int>(line_buffer.next_border_column - line_buffer.first_pixel_output_column);
-							crt_->output_data(length * 4, length);
+							const int length = line_buffer.next_border_column - line_buffer.first_pixel_output_column;
+							crt_->output_data(length * 4, size_t(length));
 							pixel_origin_ = pixel_target_ = nullptr;
 							asked_for_write_area_ = false;
 						}
@@ -479,7 +479,7 @@ void Base::output_border(int cycles, uint32_t cram_dot) {
 	if(cycles) {
 		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
 		*pixel_target = border_colour;
-		crt_->output_level(static_cast<unsigned int>(cycles));
+		crt_->output_level(cycles);
 	}
 }
 

@@ -231,12 +231,12 @@ struct ActivityObserver: public Activity::Observer {
 	_machine->crt_machine()->setup_output(aspectRatio);
 
 	// Since OS X v10.6, Macs have had a gamma of 2.2.
-	_machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
-	_machine->crt_machine()->get_crt()->set_target_framebuffer(0);
+//	_machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
+//	_machine->crt_machine()->get_crt()->set_target_framebuffer(0);
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
-	_machine->crt_machine()->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
+//	_machine->crt_machine()->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
 }
 
 - (void)paste:(NSString *)paste {

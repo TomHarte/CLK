@@ -77,7 +77,7 @@ class VideoOutput {
 	private:
 		inline void start_pixel_line();
 		inline void end_pixel_line();
-		inline void output_pixels(unsigned int number_of_cycles);
+		inline void output_pixels(int number_of_cycles);
 		inline void setup_base_address();
 
 		int output_position_ = 0;
@@ -109,7 +109,7 @@ class VideoOutput {
 		// CRT output
 		uint8_t *current_output_target_ = nullptr;
 		uint8_t *initial_output_target_ = nullptr;
-		unsigned int current_output_divider_ = 1;
+		int current_output_divider_ = 1;
 
 		std::unique_ptr<Outputs::CRT::CRT> crt_;
 

@@ -24,21 +24,21 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 		crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 2)),
 		v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
 		counter_period_(PAL50Period) {
-	crt_->set_rgb_sampling_function(
-		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
-		"{"
-			"uint texValue = texture(sampler, coordinate).r;"
-			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
-		"}");
-	crt_->set_composite_sampling_function(
-		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
-		"{"
-			"uint texValue = uint(dot(texture(sampler, coordinate).rg, uvec2(1, 256)));"
-			"uint iPhase = uint((phase + 3.141592654 + 0.39269908175) * 2.0 / 3.141592654) & 3u;"
-			"texValue = (texValue >> (4u*(3u - iPhase))) & 15u;"
-			"return (float(texValue) - 4.0) / 20.0;"
-		"}"
-	);
+//	crt_->set_rgb_sampling_function(
+//		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
+//		"{"
+//			"uint texValue = texture(sampler, coordinate).r;"
+//			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
+//		"}");
+//	crt_->set_composite_sampling_function(
+//		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
+//		"{"
+//			"uint texValue = uint(dot(texture(sampler, coordinate).rg, uvec2(1, 256)));"
+//			"uint iPhase = uint((phase + 3.141592654 + 0.39269908175) * 2.0 / 3.141592654) & 3u;"
+//			"texValue = (texValue >> (4u*(3u - iPhase))) & 15u;"
+//			"return (float(texValue) - 4.0) / 20.0;"
+//		"}"
+//	);
 	crt_->set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 0.0f);
 
 	set_video_signal(Outputs::CRT::VideoSignal::Composite);
@@ -47,7 +47,7 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 
 void VideoOutput::set_video_signal(Outputs::CRT::VideoSignal video_signal) {
 	video_signal_ = video_signal;
-	crt_->set_video_signal(video_signal);
+//	crt_->set_video_signal(video_signal);
 }
 
 void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
@@ -86,7 +86,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 		if(counter_ >= v_sync_start_position_ && counter_ < v_sync_end_position_) {
 			// this is a sync line
 			cycles_run_for = v_sync_end_position_ - counter_;
-			clamp(crt_->output_sync(static_cast<unsigned int>(v_sync_end_position_ - v_sync_start_position_) * 6));
+			clamp(crt_->output_sync((v_sync_end_position_ - v_sync_start_position_) * 6));
 		} else if(counter_ < 224*64 && h_counter < 40) {
 			// this is a pixel line
 			if(!h_counter) {
@@ -199,7 +199,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 				cycles_run_for = 48 - h_counter;
 				clamp(
 					int period = (counter_ < 224*64) ? 8 : 48;
-					crt_->output_blank(static_cast<unsigned int>(period) * 6);
+					crt_->output_blank(period * 6);
 				);
 			} else if(h_counter < 54) {
 				cycles_run_for = 54 - h_counter;

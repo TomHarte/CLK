@@ -718,6 +718,7 @@
 		4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTConstants.hpp; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
+		4B0CD7252189117C00665042 /* ScanTarget.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScanTarget.hpp; sourceTree = "<group>"; };
 		4B0E04E81FC9E5DA00F43484 /* CAS.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CAS.cpp; sourceTree = "<group>"; };
 		4B0E04E91FC9E5DA00F43484 /* CAS.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CAS.hpp; sourceTree = "<group>"; };
 		4B0E04F81FC9FA3000F43484 /* 9918.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = 9918.hpp; path = 9918/9918.hpp; sourceTree = "<group>"; };
@@ -1527,6 +1528,7 @@
 		4B0CCC411C62D0B3001CAC5F /* CRT */ = {
 			isa = PBXGroup;
 			children = (
+				4B0CD7252189117C00665042 /* ScanTarget.hpp */,
 				4B0CCC421C62D0B3001CAC5F /* CRT.cpp */,
 				4B0CCC431C62D0B3001CAC5F /* CRT.hpp */,
 				4BBF99191C8FC2750075DAFB /* CRTTypes.hpp */,

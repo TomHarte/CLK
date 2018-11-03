@@ -181,15 +181,15 @@ class ConcreteMachine:
 		}
 
 		// to satisfy Outputs::CRT::Delegate
-		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs) override {
+		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) override {
 			const std::size_t number_of_frame_records = sizeof(frame_records_) / sizeof(frame_records_[0]);
 			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_frames = number_of_frames;
 			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
 			frame_record_pointer_ ++;
 
 			if(frame_record_pointer_ >= 6) {
-				unsigned int total_number_of_frames = 0;
-				unsigned int total_number_of_unexpected_vertical_syncs = 0;
+				int total_number_of_frames = 0;
+				int total_number_of_unexpected_vertical_syncs = 0;
 				for(std::size_t c = 0; c < number_of_frame_records; c++) {
 					total_number_of_frames += frame_records_[c].number_of_frames;
 					total_number_of_unexpected_vertical_syncs += frame_records_[c].number_of_unexpected_vertical_syncs;
@@ -228,10 +228,8 @@ class ConcreteMachine:
 
 		// output frame rate tracker
 		struct FrameRecord {
-			unsigned int number_of_frames;
-			unsigned int number_of_unexpected_vertical_syncs;
-
-			FrameRecord() : number_of_frames(0), number_of_unexpected_vertical_syncs(0) {}
+			int number_of_frames = 0;
+			int number_of_unexpected_vertical_syncs = 0;
 		} frame_records_[4];
 		unsigned int frame_record_pointer_ = 0;
 		bool is_ntsc_ = true;

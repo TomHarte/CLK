@@ -222,7 +222,7 @@ class CRTCBusHandler {
 						case OutputMode::Border:		output_border(cycles_);								break;
 						case OutputMode::ColourBurst:	crt_->output_default_colour_burst(cycles_ * 16);	break;
 						case OutputMode::Pixels:
-							crt_->output_data(cycles_ * 16, cycles_ * 16 / pixel_divider_);
+							crt_->output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
 							pixel_pointer_ = pixel_data_ = nullptr;
 						break;
 					}
@@ -283,7 +283,7 @@ class CRTCBusHandler {
 					// widths so it's not necessarily possible to predict the correct number in advance
 					// and using the upper bound could lead to inefficient behaviour
 					if(pixel_pointer_ == pixel_data_ + 320) {
-						crt_->output_data(cycles_ * 16, cycles_ * 16 / pixel_divider_);
+						crt_->output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
 						pixel_pointer_ = pixel_data_ = nullptr;
 						cycles_ = 0;
 					}
@@ -326,14 +326,14 @@ class CRTCBusHandler {
 		/// Constructs an appropriate CRT for video output.
 		void setup_output(float aspect_ratio) {
 			crt_.reset(new Outputs::CRT::CRT(1024, 16, Outputs::CRT::DisplayType::PAL50, 1));
-			crt_->set_rgb_sampling_function(
-				"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
-				"{"
-					"uint sample = texture(texID, coordinate).r;"
-					"return vec3(float((sample >> 4) & 3u), float((sample >> 2) & 3u), float(sample & 3u)) / 2.0;"
-				"}");
+//			crt_->set_rgb_sampling_function(
+//				"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
+//				"{"
+//					"uint sample = texture(texID, coordinate).r;"
+//					"return vec3(float((sample >> 4) & 3u), float((sample >> 2) & 3u), float(sample & 3u)) / 2.0;"
+//				"}");
 			crt_->set_visible_area(Outputs::CRT::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
-			crt_->set_video_signal(Outputs::CRT::VideoSignal::RGB);
+//			crt_->set_video_signal(Outputs::CRT::VideoSignal::RGB);
 		}
 
 		/// Destructs the CRT.
@@ -376,7 +376,7 @@ class CRTCBusHandler {
 		}
 
 	private:
-		void output_border(unsigned int length) {
+		void output_border(int length) {
 			uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->allocate_write_area(1));
 			if(colour_pointer) *colour_pointer = border_;
 			crt_->output_level(length * 16);
@@ -528,7 +528,7 @@ class CRTCBusHandler {
 			Border,
 			Pixels
 		} previous_output_mode_ = OutputMode::Sync;
-		unsigned int cycles_ = 0;
+		int cycles_ = 0;
 
 		bool was_hsync_ = false, was_vsync_ = false;
 		int cycles_into_hsync_ = 0;
@@ -540,7 +540,7 @@ class CRTCBusHandler {
 
 		int next_mode_ = 2, mode_ = 2;
 
-		unsigned int pixel_divider_ = 1;
+		int pixel_divider_ = 1;
 		uint16_t mode0_output_[256];
 		uint32_t mode1_output_[256];
 		uint64_t mode2_output_[256];

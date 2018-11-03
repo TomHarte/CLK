@@ -68,19 +68,19 @@ template <class BusHandler> class MOS6560 {
 				audio_generator_(audio_queue_),
 				speaker_(audio_generator_)
 		{
-			crt_->set_svideo_sampling_function(
-				"vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)"
-				"{"
-					"vec2 yc = texture(texID, coordinate).rg / vec2(255.0);"
-
-					"float phaseOffset = 6.283185308 * 2.0 * yc.y;"
-					"float chroma = step(yc.y, 0.75) * cos(phase + phaseOffset);"
-
-					"return vec2(yc.x, chroma);"
-				"}");
+//			crt_->set_svideo_sampling_function(
+//				"vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)"
+//				"{"
+//					"vec2 yc = texture(texID, coordinate).rg / vec2(255.0);"
+//
+//					"float phaseOffset = 6.283185308 * 2.0 * yc.y;"
+//					"float chroma = step(yc.y, 0.75) * cos(phase + phaseOffset);"
+//
+//					"return vec2(yc.x, chroma);"
+//				"}");
 
 			// default to s-video output
-			crt_->set_video_signal(Outputs::CRT::VideoSignal::SVideo);
+//			crt_->set_video_signal(Outputs::CRT::VideoSignal::SVideo);
 
 			// default to NTSC
 			set_output_mode(OutputMode::NTSC);
@@ -155,7 +155,7 @@ template <class BusHandler> class MOS6560 {
 				break;
 			}
 
-			crt_->set_new_display_type(static_cast<unsigned int>(timing_.cycles_per_line*4), display_type);
+			crt_->set_new_display_type(timing_.cycles_per_line*4, display_type);
 
 			switch(output_mode) {
 				case OutputMode::PAL:
@@ -465,7 +465,7 @@ template <class BusHandler> class MOS6560 {
 		enum State {
 			Sync, ColourBurst, Border, Pixels
 		} this_state_, output_state_;
-		unsigned int cycles_in_state_;
+		int cycles_in_state_;
 
 		// counters that cover an entire field
 		int horizontal_counter_ = 0, vertical_counter_ = 0;
@@ -511,7 +511,7 @@ template <class BusHandler> class MOS6560 {
 		uint16_t colours_[16];
 
 		uint16_t *pixel_pointer;
-		void output_border(unsigned int number_of_cycles) {
+		void output_border(int number_of_cycles) {
 			uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(1));
 			if(colour_pointer) *colour_pointer = registers_.borderColour;
 			crt_->output_level(number_of_cycles);

@@ -172,7 +172,7 @@ class ConcreteMachine:
 			vdp_->set_tv_standard(
 				(region_ == Target::Region::Europe) ?
 					TI::TMS::TVStandard::PAL : TI::TMS::TVStandard::NTSC);
-			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
+//			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
 
 			time_until_debounce_ = vdp_->get_time_until_line(-1);
 		}
