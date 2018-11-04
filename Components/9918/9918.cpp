@@ -49,8 +49,9 @@ struct ReverseTable {
 }
 
 Base::Base(Personality p) :
-	personality_(p),
-	crt_(new Outputs::CRT::CRT(CRTCyclesPerLine, CRTCyclesDivider, Outputs::Display::Type::NTSC60, 4)) {
+	personality_(p)//,
+//	crt_(new Outputs::CRT::CRT(CRTCyclesPerLine, CRTCyclesDivider, Outputs::Display::Type::NTSC60, 4))
+	{
 
 	switch(p) {
 		case TI::TMS::TMS9918A:

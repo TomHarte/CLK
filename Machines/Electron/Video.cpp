@@ -38,12 +38,18 @@ namespace {
 
 // MARK: - Lifecycle
 
-VideoOutput::VideoOutput(uint8_t *memory) : ram_(memory) {
+VideoOutput::VideoOutput(uint8_t *memory, Outputs::Display::ScanTarget *scan_target) : ram_(memory) {
 	memset(palette_, 0xf, sizeof(palette_));
 	setup_screen_map();
 	setup_base_address();
 
-	crt_.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::Display::Type::PAL50, 1));
+	crt_.reset(new Outputs::CRT::CRT(
+		crt_cycles_per_line,
+		1024,
+		Outputs::Display::Type::PAL50,
+		Outputs::Display::ScanTarget::Modals::DataType::Red1Green1Blue1,
+		scan_target));
+
 //	crt_->set_rgb_sampling_function(
 //		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
 //		"{"

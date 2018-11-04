@@ -23,7 +23,7 @@ namespace {
 
 VideoOutput::VideoOutput(uint8_t *memory) :
 		ram_(memory),
-		crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::Display::Type::PAL50, 2)),
+//		crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::Display::Type::PAL50, 2)),
 		v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
 		counter_period_(PAL50Period) {
 //	crt_->set_rgb_sampling_function(

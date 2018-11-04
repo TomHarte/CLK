@@ -27,12 +27,9 @@ class Delegate {
 
 class CRT {
 	private:
-		CRT(int common_output_divisor, int buffer_depth);
-
 		// the incoming clock lengths will be multiplied by something to give at least 1000
 		// sample points per line
 		int time_multiplier_ = 1;
-		const int common_output_divisor_ = 1;
 
 		// the two flywheels regulating scanning
 		std::unique_ptr<Flywheel> horizontal_flywheel_, vertical_flywheel_;
@@ -82,6 +79,7 @@ class CRT {
 		int cycles_per_line_ = 1;
 
 		Outputs::Display::ScanTarget *scan_target_ = nullptr;
+		Outputs::Display::ScanTarget::Modals scan_target_modals_;
 
 	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
@@ -91,10 +89,7 @@ class CRT {
 			@param cycles_per_line The clock rate at which this CRT will be driven, specified as the number
 			of cycles expected to take up one whole scanline of the display.
 
-			@param common_output_divisor The greatest a priori common divisor of all cycle counts that will be
-			supplied to @c output_sync, @c output_data, etc; supply 1 if no greater divisor is known. For many
-			machines output will run at a fixed multiple of the clock rate; knowing this divisor can improve
-			internal precision.
+			@param pixel_clock_least_common_multiple TODO.
 
 			@param height_of_display The number of lines that nominally form one field of the display, rounded
 			up to the next whole integer.
@@ -107,22 +102,22 @@ class CRT {
 			@param vertical_sync_half_lines The expected length of vertical synchronisation (equalisation pulses aside),
 			in multiples of half a line.
 
-			@param buffer_depth The depth per pixel of source data buffers to create for this machine. Machines
-			may provide per-clock-cycle data in the depth that they consider convenient, supplying a sampling
-			function to convert between their data format and either a composite or RGB signal, allowing that
-			work to be offloaded onto the GPU and allowing the output signal to be sampled at a rate appropriate
-			to the display size.
+			@param data_type TODO.
+
+			@param scan_target TODO.
 
 			@see @c set_rgb_sampling_function , @c set_composite_sampling_function
 		*/
 		CRT(int cycles_per_line,
-			int common_output_divisor,
+			int pixel_clock_least_common_multiple,
 			int height_of_display,
 			Outputs::Display::ColourSpace colour_space,
-			int colour_cycle_numerator, int colour_cycle_denominator,
+			int colour_cycle_numerator,
+			int colour_cycle_denominator,
 			int vertical_sync_half_lines,
 			bool should_alternate,
-			int buffer_depth);
+			Outputs::Display::ScanTarget::Modals::DataType data_type,
+			Outputs::Display::ScanTarget *scan_target);
 
 		/*!	Constructs the CRT with the specified clock rate, with the display height and colour
 			subcarrier frequency dictated by a standard display type and with the requested number of
@@ -132,9 +127,10 @@ class CRT {
 			looked up by display type.
 		*/
 		CRT(int cycles_per_line,
-			int common_output_divisor,
+			int pixel_clock_least_common_multiple,
 			Outputs::Display::Type display_type,
-			int buffer_depth);
+			Outputs::Display::ScanTarget::Modals::DataType data_type,
+			Outputs::Display::ScanTarget *scan_target);
 
 		/*!	Resets the CRT with new timing information. The CRT then continues as though the new timing had
 			been provided at construction. */
@@ -149,7 +145,12 @@ class CRT {
 
 		/*!	Resets the CRT with new timing information derived from a new display type. The CRT then continues
 			as though the new timing had been provided at construction. */
-		void set_new_display_type(int cycles_per_line, Outputs::Display::Type display_type);
+		void set_new_display_type(
+			int cycles_per_line,
+			Outputs::Display::Type display_type);
+
+		// TODO.
+		void set_new_data_type(Outputs::Display::ScanTarget::Modals::DataType data_type);
 
 		/*!	Output at the sync level.
 

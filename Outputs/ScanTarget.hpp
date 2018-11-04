@@ -34,7 +34,7 @@ struct Rect {
 		float width, height;
 	} size;
 
-	Rect() {}
+	Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
 	Rect(float x, float y, float width, float height) :
 		origin({x, y}), size({width, height}) {}
 };
@@ -178,7 +178,7 @@ struct ScanTarget {
 
 		/// Announces that the owner is finished with the region created by the most recent @c allocate_write_area
 		/// and indicates that its actual final size was @c actual_length.
-		virtual void reduce_previous_allocation_to(size_t actual_length) = 0;
+		virtual void reduce_previous_allocation_to(size_t actual_length) {};
 
 		/// Announces that all endpoint pairs and write areas obtained since the last @c submit have now been
 		/// populated with appropriate data.
@@ -187,15 +187,10 @@ struct ScanTarget {
 		/// as long as it feels is appropriate subject to an @c flush.
 		virtual void submit(bool only_if_no_allocation_failures = true) = 0;
 
-		/// Discards all data and endpoints supplied since the last @c submit. This is generally used when
-		/// failures in either get_endpoing_pair of allocate_write_area mean that proceeding would produce
-		/// a faulty total output.
-		virtual void reset() = 0;
-
 		/// Announces that any submitted data not yet output should be output now, but needn't block while
 		/// doing so. This generally communicates that processing is now otherwise 'up to date', so no
 		/// further delay should be allowed.
-		virtual void flush() = 0;
+//		virtual void flush() = 0;
 
 
 	/*

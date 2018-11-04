@@ -27,10 +27,12 @@ namespace Electron {
 class VideoOutput {
 	public:
 		/*!
-			Instantiates a VideoOutput that will read its pixels from @c memory. The pointer supplied
-			should be to address 0 in the unexpanded Electron's memory map.
+			Instantiates a VideoOutput that will read its pixels from @c memory and output video
+			to @c scan_target.
+
+			The pointer supplied should be to address 0 in the unexpanded Electron's memory map.
 		*/
-		VideoOutput(uint8_t *memory);
+		VideoOutput(uint8_t *memory, Outputs::Display::ScanTarget *scan_target);
 
 		/// @returns the CRT to which output is being painted.
 		Outputs::CRT::CRT *get_crt();

@@ -29,6 +29,8 @@
 #import <OpenGL/OpenGL.h>
 #include <OpenGL/gl3.h>
 
+#include "ScanTarget.hpp"
+
 @interface CSMachine() <CSFastLoading>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
@@ -71,6 +73,27 @@ struct ActivityObserver: public Activity::Observer {
 	__unsafe_unretained CSMachine *machine;
 };
 
+class ScanTarget: public Outputs::Display::ScanTarget {
+	public:
+		void set_modals(Modals) {}
+
+		Scan *get_scan() {
+			return &scan_;
+		}
+
+		uint8_t *allocate_write_area(size_t required_length, size_t required_alignment) {
+			write_area_.resize(required_length);
+			return write_area_.data();
+		}
+
+		void submit(bool only_if_no_allocation_failures) {
+		}
+
+	private:
+		Scan scan_;
+		std::vector<uint8_t> write_area_;
+};
+
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
 	ActivityObserver _activityObserver;
@@ -83,6 +106,8 @@ struct ActivityObserver: public Activity::Observer {
 	CSJoystickManager *_joystickManager;
 	std::bitset<65536> _depressedKeys;
 	NSMutableArray<NSString *> *_leds;
+
+	ScanTarget _scanTarget;
 }
 
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result {
@@ -231,7 +256,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
-//	_machine->crt_machine()->setup_output(aspectRatio);
+	_machine->crt_machine()->setup_output(&_scanTarget);
 
 	// Since OS X v10.6, Macs have had a gamma of 2.2.
 //	_machine->crt_machine()->get_crt()->set_output_gamma(2.2f);

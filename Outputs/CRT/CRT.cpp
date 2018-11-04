@@ -56,12 +56,14 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	vertical_flywheel_.reset(new Flywheel(multiplied_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * multiplied_cycles_per_line, (multiplied_cycles_per_line * height_of_display) >> 3));
 
 	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
-	const int real_clock_scan_period = (multiplied_cycles_per_line * height_of_display) / (time_multiplier_ * common_output_divisor_);
-	vertical_flywheel_output_divider_ = static_cast<uint16_t>(ceilf(real_clock_scan_period / 65536.0f) * (time_multiplier_ * common_output_divisor_));
+//	const int real_clock_scan_period = (multiplied_cycles_per_line * height_of_display) / (time_multiplier_);
+//	vertical_flywheel_output_divider_ = static_cast<uint16_t>(ceilf(real_clock_scan_period / 65536.0f) * (time_multiplier_));
 
 //	openGL_output_builder_.set_timing(cycles_per_line, multiplied_cycles_per_line, height_of_display, horizontal_flywheel_->get_scan_period(), vertical_flywheel_->get_scan_period(), vertical_flywheel_output_divider_);
 
-	// TODO: set scan_target modals.
+	scan_target_modals_.expected_vertical_lines = height_of_display;
+	scan_target_modals_.composite_colour_space = colour_space;
+	scan_target_->set_modals(scan_target_modals_);
 }
 
 void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displayType) {
@@ -91,24 +93,30 @@ void CRT::set_input_gamma(float gamma) {
 //	update_gamma();
 }
 
-CRT::CRT(int common_output_divisor, int buffer_depth) :
-	common_output_divisor_(common_output_divisor) {}
-
 CRT::CRT(	int cycles_per_line,
-			int common_output_divisor,
+			int pixel_clock_least_common_multiple,
 			int height_of_display,
 			Outputs::Display::ColourSpace colour_space,
 			int colour_cycle_numerator, int colour_cycle_denominator,
 			int vertical_sync_half_lines,
 			bool should_alternate,
-			int buffer_depth) :
-		CRT(common_output_divisor, buffer_depth) {
+			Outputs::Display::ScanTarget::Modals::DataType data_type,
+			Outputs::Display::ScanTarget *scan_target) {
+	scan_target_ = scan_target;
+	scan_target_modals_.source_data_type = data_type;
+	scan_target_modals_.pixel_clock_least_common_multiple = pixel_clock_least_common_multiple;
 	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator, vertical_sync_half_lines, should_alternate);
 }
 
-CRT::CRT(int cycles_per_line, int common_output_divisor, Outputs::Display::Type displayType, int buffer_depth) :
-		CRT(common_output_divisor, buffer_depth) {
-	set_new_display_type(cycles_per_line, displayType);
+CRT::CRT(	int cycles_per_line,
+			int pixel_clock_least_common_multiple,
+			Outputs::Display::Type display_type,
+			Outputs::Display::ScanTarget::Modals::DataType data_type,
+			Outputs::Display::ScanTarget *scan_target) {
+	scan_target_ = scan_target;
+	scan_target_modals_.source_data_type = data_type;
+	scan_target_modals_.pixel_clock_least_common_multiple = pixel_clock_least_common_multiple;
+	set_new_display_type(cycles_per_line, display_type);
 }
 
 // MARK: - Sync loop
@@ -193,6 +201,8 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 			}
 		}
 	}
+
+	scan_target_->submit();
 }
 
 // MARK: - stream feeding methods

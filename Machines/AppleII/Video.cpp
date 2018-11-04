@@ -11,7 +11,7 @@
 using namespace AppleII::Video;
 
 VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
-	crt_(new Outputs::CRT::CRT(910, 1, Outputs::Display::Type::NTSC60, 1)),
+//	crt_(new Outputs::CRT::CRT(910, 1, Outputs::Display::Type::NTSC60, 1)),
 	is_iie_(is_iie),
 	deferrer_(std::move(target)) {
 

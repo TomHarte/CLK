@@ -27,7 +27,7 @@ namespace ZX8081 {
 class Video {
 	public:
 		/// Constructs an instance of the video feed; a CRT is also created.
-		Video();
+		Video(Outputs::Display::ScanTarget *scan_target);
 		/// @returns The CRT this video feed is feeding.
 		Outputs::CRT::CRT *get_crt();
 

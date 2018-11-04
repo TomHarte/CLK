@@ -311,7 +311,7 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		void setup_output(Outputs::Display::ScanTarget *scan_target) override final {
-			video_.reset(new Video);
+			video_.reset(new Video(scan_target));
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override final {
