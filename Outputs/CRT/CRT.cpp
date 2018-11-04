@@ -133,15 +133,15 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 	number_of_cycles *= time_multiplier_;
 
 	const bool is_output_run = ((type == Scan::Type::Level) || (type == Scan::Type::Data));
-	const auto total_cycles = number_of_cycles * time_multiplier_;
+	const auto total_cycles = number_of_cycles;
 	bool did_output = false;
 
 	while(number_of_cycles) {
 
 		// Get time until next horizontal and vertical sync generator events.
 		int time_until_vertical_sync_event, time_until_horizontal_sync_event;
-		Flywheel::SyncEvent next_vertical_sync_event = get_next_vertical_sync_event(vsync_requested, number_of_cycles, &time_until_vertical_sync_event);
-		Flywheel::SyncEvent next_horizontal_sync_event = get_next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
+		const Flywheel::SyncEvent next_vertical_sync_event = get_next_vertical_sync_event(vsync_requested, number_of_cycles, &time_until_vertical_sync_event);
+		const Flywheel::SyncEvent next_horizontal_sync_event = get_next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
 
 		// Whichever event is scheduled to happen first is the one to advance to.
 		const int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
