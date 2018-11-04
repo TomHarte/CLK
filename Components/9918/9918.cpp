@@ -50,7 +50,7 @@ struct ReverseTable {
 
 Base::Base(Personality p) :
 	personality_(p),
-	crt_(new Outputs::CRT::CRT(CRTCyclesPerLine, CRTCyclesDivider, Outputs::CRT::DisplayType::NTSC60, 4)) {
+	crt_(new Outputs::CRT::CRT(CRTCyclesPerLine, CRTCyclesDivider, Outputs::Display::Type::NTSC60, 4)) {
 
 	switch(p) {
 		case TI::TMS::TMS9918A:
@@ -91,8 +91,8 @@ TMS9918::TMS9918(Personality p):
 //		"{"
 //			"return texture(sampler, coordinate).rgb / vec3(255.0);"
 //		"}");
-//	crt_->set_video_signal(Outputs::CRT::VideoSignal::RGB);
-	crt_->set_visible_area(Outputs::CRT::Rect(0.055f, 0.025f, 0.9f, 0.9f));
+//	crt_->set_video_signal(Outputs::Display::VideoSignal::RGB);
+	crt_->set_visible_area(Outputs::Display::Rect(0.055f, 0.025f, 0.9f, 0.9f));
 
 	// The TMS remains in-phase with the NTSC colour clock; this is an empirical measurement
 	// intended to produce the correct relationship between the hard edges between pixels and
@@ -107,12 +107,12 @@ void TMS9918::set_tv_standard(TVStandard standard) {
 		case TVStandard::PAL:
 			mode_timing_.total_lines = 313;
 			mode_timing_.first_vsync_line = 253;
-			crt_->set_new_display_type(CRTCyclesPerLine, Outputs::CRT::DisplayType::PAL50);
+			crt_->set_new_display_type(CRTCyclesPerLine, Outputs::Display::Type::PAL50);
 		break;
 		default:
 			mode_timing_.total_lines = 262;
 			mode_timing_.first_vsync_line = 227;
-			crt_->set_new_display_type(CRTCyclesPerLine, Outputs::CRT::DisplayType::NTSC60);
+			crt_->set_new_display_type(CRTCyclesPerLine, Outputs::Display::Type::NTSC60);
 		break;
 	}
 }

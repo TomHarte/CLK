@@ -9,7 +9,7 @@
 #ifndef CRTMachine_hpp
 #define CRTMachine_hpp
 
-#include "../Outputs/CRT/CRT.hpp"
+#include "../Outputs/ScanTarget.hpp"
 #include "../Outputs/Speaker/Speaker.hpp"
 #include "../ClockReceiver/ClockReceiver.hpp"
 #include "../ClockReceiver/TimeTypes.hpp"
@@ -19,6 +19,7 @@
 
 #include <cmath>
 
+// TODO: rename.
 namespace CRTMachine {
 
 /*!
@@ -29,19 +30,12 @@ namespace CRTMachine {
 class Machine {
 	public:
 		/*!
-			Causes the machine to set up its CRT and, if it has one, speaker. The caller guarantees
-			that an OpenGL context is bound.
-		*/
-		virtual void setup_output(float aspect_ratio) = 0;
+			Causes the machine to set up its display and, if it has one, speaker.
 
-		/*!
-			Gives the machine a chance to release all owned resources. The caller guarantees that the
-			OpenGL context is bound.
+			The @c scan_target will receive all video output; the caller guarantees
+			that it is non-null.
 		*/
-		virtual void close_output() = 0;
-
-		/// @returns The CRT this machine is drawing to. Should not be @c nullptr.
-		virtual Outputs::CRT::CRT *get_crt() = 0;
+		virtual void setup_output(Outputs::Display::ScanTarget *scan_target) = 0;
 
 		/// @returns The speaker that receives this machine's output, or @c nullptr if this machine is mute.
 		virtual Outputs::Speaker::Speaker *get_speaker() = 0;
@@ -68,21 +62,21 @@ class Machine {
 		}
 
 		/*!
-			Maps from Configurable::Display to Outputs::CRT::VideoSignal and calls
+			Maps from Configurable::Display to Outputs::Display::VideoSignal and calls
 			@c set_video_signal with the result.
 		*/
 		void set_video_signal_configurable(Configurable::Display type) {
-			Outputs::CRT::VideoSignal signal;
+			Outputs::Display::VideoSignal signal;
 			switch(type) {
 				default:
 				case Configurable::Display::RGB:
-					signal = Outputs::CRT::VideoSignal::RGB;
+					signal = Outputs::Display::VideoSignal::RGB;
 				break;
 				case Configurable::Display::SVideo:
-					signal = Outputs::CRT::VideoSignal::SVideo;
+					signal = Outputs::Display::VideoSignal::SVideo;
 				break;
 				case Configurable::Display::Composite:
-					signal = Outputs::CRT::VideoSignal::Composite;
+					signal = Outputs::Display::VideoSignal::Composite;
 				break;
 			}
 			set_video_signal(signal);
@@ -91,7 +85,7 @@ class Machine {
 		/*!
 			Forwards the video signal to the CRT returned by get_crt().
 		*/
-		virtual void set_video_signal(Outputs::CRT::VideoSignal video_signal) {
+		virtual void set_video_signal(Outputs::Display::VideoSignal video_signal) {
 //			get_crt()->set_video_signal(video_signal);
 		}
 

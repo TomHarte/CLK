@@ -10,7 +10,6 @@
 #define OutputShader_hpp
 
 #include "Shader.hpp"
-#include "../../CRTTypes.hpp"
 #include "../../ScanTarget.hpp"
 #include <memory>
 
@@ -64,7 +63,7 @@ public:
 		the largest possible drawing size that allows everything within `visible_area` to be visible, to
 		occur upon the next `bind`.
 	*/
-	void set_output_size(unsigned int output_width, unsigned int output_height, Outputs::CRT::Rect visible_area);
+	void set_output_size(unsigned int output_width, unsigned int output_height, Outputs::Display::Rect visible_area);
 
 	/*!
 		Queues setting of the texture unit (as an enum, e.g. `GL_TEXTURE0`) for source data upon the next `bind`.

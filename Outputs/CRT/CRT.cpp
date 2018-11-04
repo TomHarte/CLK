@@ -7,7 +7,7 @@
 //
 
 #include "CRT.hpp"
-#include "Internals/CRTOpenGL.hpp"
+
 #include <cstdarg>
 #include <cmath>
 #include <algorithm>
@@ -15,7 +15,7 @@
 
 using namespace Outputs::CRT;
 
-void CRT::set_new_timing(int cycles_per_line, int height_of_display, ColourSpace colour_space, int colour_cycle_numerator, int colour_cycle_denominator, int vertical_sync_half_lines, bool should_alternate) {
+void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Display::ColourSpace colour_space, int colour_cycle_numerator, int colour_cycle_denominator, int vertical_sync_half_lines, bool should_alternate) {
 //	openGL_output_builder_.set_colour_format(colour_space, colour_cycle_numerator, colour_cycle_denominator);
 
 	const int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
@@ -28,7 +28,8 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, ColourSpace
 														//	7 microseconds for horizontal retrace and 500 to 750 microseconds for vertical retrace
 														//  in NTSC and PAL TV."
 
-	time_multiplier_ = IntermediateBufferWidth / cycles_per_line;
+//	time_multiplier_ = IntermediateBufferWidth / cycles_per_line;
+	time_multiplier_ = 2048 / cycles_per_line;	// TODO
 	phase_denominator_ = cycles_per_line * colour_cycle_denominator * time_multiplier_;
 	phase_numerator_ = 0;
 	colour_cycle_numerator_ = colour_cycle_numerator;
@@ -63,15 +64,15 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, ColourSpace
 	// TODO: set scan_target modals.
 }
 
-void CRT::set_new_display_type(int cycles_per_line, DisplayType displayType) {
+void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displayType) {
 	switch(displayType) {
-		case DisplayType::PAL50:
-			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516; 2.5 lines = vertical sync
+		case Outputs::Display::Type::PAL50:
+			set_new_timing(cycles_per_line, 312, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516; 2.5 lines = vertical sync
 			set_input_gamma(2.8f);
 		break;
 
-		case DisplayType::NTSC60:
-			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 455, 2, 6, false);	// i.e. 227.5, 3 lines = vertical sync
+		case Outputs::Display::Type::NTSC60:
+			set_new_timing(cycles_per_line, 262, Outputs::Display::ColourSpace::YIQ, 455, 2, 6, false);	// i.e. 227.5, 3 lines = vertical sync
 			set_input_gamma(2.2f);
 		break;
 	}
@@ -96,7 +97,7 @@ CRT::CRT(int common_output_divisor, int buffer_depth) :
 CRT::CRT(	int cycles_per_line,
 			int common_output_divisor,
 			int height_of_display,
-			ColourSpace colour_space,
+			Outputs::Display::ColourSpace colour_space,
 			int colour_cycle_numerator, int colour_cycle_denominator,
 			int vertical_sync_half_lines,
 			bool should_alternate,
@@ -105,7 +106,7 @@ CRT::CRT(	int cycles_per_line,
 	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator, vertical_sync_half_lines, should_alternate);
 }
 
-CRT::CRT(int cycles_per_line, int common_output_divisor, DisplayType displayType, int buffer_depth) :
+CRT::CRT(int cycles_per_line, int common_output_divisor, Outputs::Display::Type displayType, int buffer_depth) :
 		CRT(common_output_divisor, buffer_depth) {
 	set_new_display_type(cycles_per_line, displayType);
 }
@@ -141,7 +142,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 		// Determine whether to output any data for this portion of the output; if so then grab somewhere to put it.
 		bool is_output_segment = ((is_output_run && next_run_length) && !horizontal_flywheel_->is_in_retrace() && !vertical_flywheel_->is_in_retrace());
-		ScanTarget::Scan *const next_scan = is_output_segment ? scan_target_->get_scan() : nullptr;
+		Outputs::Display::ScanTarget::Scan *const next_scan = is_output_segment ? scan_target_->get_scan() : nullptr;
 
 		// If outputting, store the start location and
 		if(next_scan) {
@@ -171,14 +172,14 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 		// If this is horizontal retrace then announce as such, and prepare for the next line.
 		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
-			scan_target_->announce(Outputs::CRT::ScanTarget::Event::HorizontalRetrace);
+			scan_target_->announce(Outputs::Display::ScanTarget::Event::HorizontalRetrace);
 			is_alernate_line_ ^= phase_alternates_;
 			colour_burst_amplitude_ = 0;
 		}
 
 		// Also announce if this is vertical retrace.
 		if(next_run_length == time_until_vertical_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
-			scan_target_->announce(Outputs::CRT::ScanTarget::Event::VerticalRetrace);
+			scan_target_->announce(Outputs::Display::ScanTarget::Event::VerticalRetrace);
 		}
 
 		// if this is vertical retrace then adcance a field
@@ -314,7 +315,7 @@ void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
 	output_scan(&scan);
 }
 
-Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio) {
+Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio) {
 	first_cycle_after_sync *= time_multiplier_;
 	number_of_cycles *= time_multiplier_;
 
@@ -359,5 +360,5 @@ Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_
 		height = ideal_height;
 	}
 
-	return Rect(start_x, start_y, width, height);
+	return Outputs::Display::Rect(start_x, start_y, width, height);
 }

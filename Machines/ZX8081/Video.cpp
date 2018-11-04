@@ -8,6 +8,8 @@
 
 #include "Video.hpp"
 
+#include <algorithm>
+
 using namespace ZX8081;
 
 namespace {
@@ -21,7 +23,7 @@ const std::size_t StandardAllocationSize = 320;
 }
 
 Video::Video() :
-	crt_(new Outputs::CRT::CRT(207 * 2, 1, Outputs::CRT::DisplayType::PAL50, 1)) {
+	crt_(new Outputs::CRT::CRT(207 * 2, 1, Outputs::Display::Type::PAL50, 1)) {
 
 	// Set a composite sampling function that assumes two-level input; either a byte is 0, which is black,
 	// or it is non-zero, which is white.
@@ -32,8 +34,8 @@ Video::Video() :
 //		"}");
 
 	// Show only the centre 80% of the TV frame.
-//	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
-	crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.1f, 0.8f, 0.8f));
+//	crt_->set_video_signal(Outputs::Display::VideoSignal::Composite);
+	crt_->set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 }
 
 void Video::run_for(const HalfCycles half_cycles) {

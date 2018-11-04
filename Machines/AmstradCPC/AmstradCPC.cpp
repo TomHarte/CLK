@@ -30,6 +30,7 @@
 
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Outputs/CRT/CRT.hpp"
 
 #include "../../Analyser/Static/AmstradCPC/Target.hpp"
 
@@ -324,27 +325,27 @@ class CRTCBusHandler {
 		}
 
 		/// Constructs an appropriate CRT for video output.
-		void setup_output(float aspect_ratio) {
-			crt_.reset(new Outputs::CRT::CRT(1024, 16, Outputs::CRT::DisplayType::PAL50, 1));
+		void setup_output(Outputs::Display::ScanTarget *scan_target) {
+			crt_.reset(new Outputs::CRT::CRT(1024, 16, Outputs::Display::Type::PAL50, 1));
 //			crt_->set_rgb_sampling_function(
 //				"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
 //				"{"
 //					"uint sample = texture(texID, coordinate).r;"
 //					"return vec3(float((sample >> 4) & 3u), float((sample >> 2) & 3u), float(sample & 3u)) / 2.0;"
 //				"}");
-			crt_->set_visible_area(Outputs::CRT::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
-//			crt_->set_video_signal(Outputs::CRT::VideoSignal::RGB);
+			crt_->set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
+//			crt_->set_video_signal(Outputs::Display::VideoSignal::RGB);
 		}
 
 		/// Destructs the CRT.
-		void close_output() {
-			crt_.reset();
-		}
+//		void close_output() {
+//			crt_.reset();
+//		}
 
 		/// @returns the CRT.
-		Outputs::CRT::CRT *get_crt() {
-			return crt_.get();
-		}
+//		Outputs::CRT::CRT *get_crt() {
+//			return crt_.get();
+//		}
 
 		/*!
 			Sets the next video mode. Per the documentation, mode changes take effect only at the end of line,
@@ -982,19 +983,19 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		/// A CRTMachine function; indicates that outputs should be created now.
-		void setup_output(float aspect_ratio) override final {
-			crtc_bus_handler_.setup_output(aspect_ratio);
+		void setup_output(Outputs::Display::ScanTarget *scan_target) override final {
+			crtc_bus_handler_.setup_output(scan_target);
 		}
 
 		/// A CRTMachine function; indicates that outputs should be destroyed now.
-		void close_output() override final {
-			crtc_bus_handler_.close_output();
-		}
+//		void close_output() override final {
+//			crtc_bus_handler_.close_output();
+//		}
 
 		/// @returns the CRT in use.
-		Outputs::CRT::CRT *get_crt() override final {
-			return crtc_bus_handler_.get_crt();
-		}
+//		Outputs::CRT::CRT *get_crt() override final {
+//			return crtc_bus_handler_.get_crt();
+//		}
 
 		/// @returns the speaker in use.
 		Outputs::Speaker::Speaker *get_speaker() override final {

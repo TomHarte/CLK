@@ -26,6 +26,9 @@
 
 #include <bitset>
 
+#import <OpenGL/OpenGL.h>
+#include <OpenGL/gl3.h>
+
 @interface CSMachine() <CSFastLoading>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
@@ -131,11 +134,11 @@ struct ActivityObserver: public Activity::Observer {
 	_speakerDelegate.machine = nil;
 	[_delegateMachineAccessLock unlock];
 
-	[_view performWithGLContext:^{
-		@synchronized(self) {
-			self->_machine->crt_machine()->close_output();
-		}
-	}];
+//	[_view performWithGLContext:^{
+//		@synchronized(self) {
+//			self->_machine->crt_machine()->close_output();
+//		}
+//	}];
 }
 
 - (float)idealSamplingRateFromRange:(NSRange)range {
@@ -228,7 +231,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
-	_machine->crt_machine()->setup_output(aspectRatio);
+//	_machine->crt_machine()->setup_output(aspectRatio);
 
 	// Since OS X v10.6, Macs have had a gamma of 2.2.
 //	_machine->crt_machine()->get_crt()->set_output_gamma(2.2f);

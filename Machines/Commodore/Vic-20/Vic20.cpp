@@ -620,20 +620,20 @@ class ConcreteMachine:
 			m6502_.run_for(cycles);
 		}
 
-		void setup_output(float aspect_ratio) override final {
+		void setup_output(Outputs::Display::ScanTarget *scan_target) override final {
 			mos6560_.reset(new MOS::MOS6560::MOS6560<Vic6560BusHandler>(mos6560_bus_handler_));
 			mos6560_->set_high_frequency_cutoff(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
 			mos6560_->set_output_mode(output_mode_);
 			mos6560_->set_clock_rate(get_clock_rate());
 		}
 
-		void close_output() override final {
-			mos6560_ = nullptr;
-		}
-
-		Outputs::CRT::CRT *get_crt() override final {
-			return mos6560_->get_crt();
-		}
+//		void close_output() override final {
+//			mos6560_ = nullptr;
+//		}
+//
+//		Outputs::CRT::CRT *get_crt() override final {
+//			return mos6560_->get_crt();
+//		}
 
 		Outputs::Speaker::Speaker *get_speaker() override final {
 			return mos6560_->get_speaker();

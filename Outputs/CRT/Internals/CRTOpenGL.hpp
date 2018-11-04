@@ -9,7 +9,6 @@
 #ifndef CRTOpenGL_h
 #define CRTOpenGL_h
 
-#include "../CRTTypes.hpp"
 #include "CRTConstants.hpp"
 #include "OpenGL.hpp"
 #include "TextureTarget.hpp"

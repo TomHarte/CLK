@@ -169,18 +169,18 @@ class ConcreteMachine:
 			return joysticks_;
 		}
 
-		void setup_output(float aspect_ratio) override {
+		void setup_output(Outputs::Display::ScanTarget *scan_target) override {
 			vdp_.reset(new TI::TMS::TMS9918(TI::TMS::TMS9918A));
-//			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
+//			get_crt()->set_video_signal(Outputs::Display::VideoSignal::Composite);
 		}
 
-		void close_output() override {
-			vdp_.reset();
-		}
-
-		Outputs::CRT::CRT *get_crt() override {
-			return vdp_->get_crt();
-		}
+//		void close_output() override {
+//			vdp_.reset();
+//		}
+//
+//		Outputs::CRT::CRT *get_crt() override {
+//			return vdp_->get_crt();
+//		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
 			return &speaker_;

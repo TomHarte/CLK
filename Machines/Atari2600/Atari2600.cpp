@@ -123,7 +123,7 @@ class ConcreteMachine:
 		}
 
 		~ConcreteMachine() {
-			close_output();
+//			close_output();
 		}
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
@@ -157,19 +157,19 @@ class ConcreteMachine:
 		}
 
 		// to satisfy CRTMachine::Machine
-		void setup_output(float aspect_ratio) override {
+		void setup_output(Outputs::Display::ScanTarget *scan_target) override {
 			bus_->tia_.reset(new TIA);
 			bus_->speaker_.set_input_rate(static_cast<float>(get_clock_rate() / static_cast<double>(CPUTicksPerAudioTick)));
 			bus_->tia_->get_crt()->set_delegate(this);
 		}
 
-		void close_output() override {
-			bus_.reset();
-		}
-
-		Outputs::CRT::CRT *get_crt() override {
-			return bus_->tia_->get_crt();
-		}
+//		void close_output() override {
+//			bus_.reset();
+//		}
+//
+//		Outputs::CRT::CRT *get_crt() override {
+//			return bus_->tia_->get_crt();
+//		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
 			return &bus_->speaker_;

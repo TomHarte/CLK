@@ -6,11 +6,24 @@
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Outputs_CRT_ScanTarget_h
-#define Outputs_CRT_ScanTarget_h
+#ifndef Outputs_Display_ScanTarget_h
+#define Outputs_Display_ScanTarget_h
+
+#include <cstddef>
 
 namespace Outputs {
-namespace CRT {
+namespace Display {
+
+enum class Type {
+	PAL50,
+	NTSC60
+};
+
+enum class VideoSignal {
+	RGB,
+	SVideo,
+	Composite
+};
 
 struct Rect {
 	struct Point {
@@ -161,11 +174,11 @@ struct ScanTarget {
 		/// Calls will be paired off with calls to @c reduce_previous_allocation_to.
 		///
 		/// @returns a pointer to the allocated space if any was available; @c nullptr otherwise.
-		virtual uint8_t *allocate_write_area(std::size_t required_length, std::size_t required_alignment = 1) = 0;
+		virtual uint8_t *allocate_write_area(size_t required_length, size_t required_alignment = 1) = 0;
 
 		/// Announces that the owner is finished with the region created by the most recent @c allocate_write_area
 		/// and indicates that its actual final size was @c actual_length.
-		virtual void reduce_previous_allocation_to(std::size_t actual_length) = 0;
+		virtual void reduce_previous_allocation_to(size_t actual_length) = 0;
 
 		/// Announces that all endpoint pairs and write areas obtained since the last @c submit have now been
 		/// populated with appropriate data.
@@ -202,4 +215,4 @@ struct ScanTarget {
 }
 }
 
-#endif /* Outputs_CRT_ScanTarget_h */
+#endif /* Outputs_Display_ScanTarget_h */

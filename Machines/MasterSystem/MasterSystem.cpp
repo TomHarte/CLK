@@ -161,7 +161,7 @@ class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void setup_output(float aspect_ratio) override {
+		void setup_output(Outputs::Display::ScanTarget *scan_target) override {
 			TI::TMS::Personality personality = TI::TMS::TMS9918A;
 			switch(model_) {
 				case Target::Model::SG1000: personality = TI::TMS::TMS9918A; 		break;
@@ -172,18 +172,18 @@ class ConcreteMachine:
 			vdp_->set_tv_standard(
 				(region_ == Target::Region::Europe) ?
 					TI::TMS::TVStandard::PAL : TI::TMS::TVStandard::NTSC);
-//			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
+//			get_crt()->set_video_signal(Outputs::Display::VideoSignal::Composite);
 
 			time_until_debounce_ = vdp_->get_time_until_line(-1);
 		}
 
-		void close_output() override {
-			vdp_.reset();
-		}
-
-		Outputs::CRT::CRT *get_crt() override {
-			return vdp_->get_crt();
-		}
+//		void close_output() override {
+//			vdp_.reset();
+//		}
+//
+//		Outputs::CRT::CRT *get_crt() override {
+//			return vdp_->get_crt();
+//		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
 			return &speaker_;

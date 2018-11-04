@@ -53,22 +53,11 @@ void MultiCRTMachine::perform_serial(const std::function<void (::CRTMachine::Mac
 	}
 }
 
-void MultiCRTMachine::setup_output(float aspect_ratio) {
+void MultiCRTMachine::setup_output(Outputs::Display::ScanTarget *scan_target) {
 	perform_serial([=](::CRTMachine::Machine *machine) {
-		machine->setup_output(aspect_ratio);
+		// TODO.
+//		machine->setup_output(aspect_ratio);
 	});
-}
-
-void MultiCRTMachine::close_output() {
-	perform_serial([=](::CRTMachine::Machine *machine) {
-		machine->close_output();
-	});
-}
-
-Outputs::CRT::CRT *MultiCRTMachine::get_crt() {
-	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
-	CRTMachine::Machine *crt_machine = machines_.front()->crt_machine();
-	return crt_machine ? crt_machine->get_crt() : nullptr;
 }
 
 Outputs::Speaker::Speaker *MultiCRTMachine::get_speaker() {

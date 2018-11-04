@@ -373,17 +373,17 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		void setup_output(float aspect_ratio) override final {
+		void setup_output(Outputs::Display::ScanTarget *scan_target) override final {
 			video_output_.reset(new VideoOutput(ram_));
 		}
 
-		void close_output() override final {
-			video_output_.reset();
-		}
-
-		Outputs::CRT::CRT *get_crt() override final {
-			return video_output_->get_crt();
-		}
+//		void close_output() override final {
+//			video_output_.reset();
+//		}
+//
+//		Outputs::CRT::CRT *get_crt() override final {
+//			return video_output_->get_crt();
+//		}
 
 		Outputs::Speaker::Speaker *get_speaker() override final {
 			return &speaker_;

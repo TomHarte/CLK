@@ -53,9 +53,7 @@ class MultiCRTMachine: public CRTMachine::Machine {
 		}
 
 		// Below is the standard CRTMachine::Machine interface; see there for documentation.
-		void setup_output(float aspect_ratio) override;
-		void close_output() override;
-		Outputs::CRT::CRT *get_crt() override;
+		void setup_output(Outputs::Display::ScanTarget *scan_target) override;
 		Outputs::Speaker::Speaker *get_speaker() override;
 		void run_for(Time::Seconds duration) override;
 

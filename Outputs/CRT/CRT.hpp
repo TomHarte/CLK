@@ -10,14 +10,10 @@
 #define CRT_hpp
 
 #include <cstdint>
+#include <memory>
 
-#include "CRTTypes.hpp"
+#include "../ScanTarget.hpp"
 #include "Internals/Flywheel.hpp"
-#include "Internals/CRTOpenGL.hpp"
-#include "Internals/ArrayBuilder.hpp"
-#include "Internals/TextureBuilder.hpp"
-
-#include "ScanTarget.hpp"
 
 namespace Outputs {
 namespace CRT {
@@ -85,7 +81,7 @@ class CRT {
 
 		int cycles_per_line_ = 1;
 
-		ScanTarget *scan_target_ = nullptr;
+		Outputs::Display::ScanTarget *scan_target_ = nullptr;
 
 	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
@@ -122,7 +118,7 @@ class CRT {
 		CRT(int cycles_per_line,
 			int common_output_divisor,
 			int height_of_display,
-			ColourSpace colour_space,
+			Outputs::Display::ColourSpace colour_space,
 			int colour_cycle_numerator, int colour_cycle_denominator,
 			int vertical_sync_half_lines,
 			bool should_alternate,
@@ -137,16 +133,23 @@ class CRT {
 		*/
 		CRT(int cycles_per_line,
 			int common_output_divisor,
-			DisplayType displayType,
+			Outputs::Display::Type display_type,
 			int buffer_depth);
 
 		/*!	Resets the CRT with new timing information. The CRT then continues as though the new timing had
 			been provided at construction. */
-		void set_new_timing(int cycles_per_line, int height_of_display, ColourSpace colour_space, int colour_cycle_numerator, int colour_cycle_denominator, int vertical_sync_half_lines, bool should_alternate);
+		void set_new_timing(
+			int cycles_per_line,
+			int height_of_display,
+			Outputs::Display::ColourSpace colour_space,
+			int colour_cycle_numerator,
+			int colour_cycle_denominator,
+			int vertical_sync_half_lines,
+			bool should_alternate);
 
 		/*!	Resets the CRT with new timing information derived from a new display type. The CRT then continues
 			as though the new timing had been provided at construction. */
-		void set_new_display_type(int cycles_per_line, DisplayType displayType);
+		void set_new_display_type(int cycles_per_line, Outputs::Display::Type display_type);
 
 		/*!	Output at the sync level.
 
@@ -246,10 +249,15 @@ class CRT {
 		*/
 		void set_composite_function_type(CompositeSourceType type, float offset_of_first_sample = 0.0f);
 
-		inline void set_visible_area(Rect visible_area) {
+		inline void set_visible_area(Outputs::Display::Rect visible_area) {
 		}
 
-		Rect get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio);
+		Outputs::Display::Rect get_rect_for_area(
+			int first_line_after_sync,
+			int number_of_lines,
+			int first_cycle_after_sync,
+			int number_of_cycles,
+			float aspect_ratio);
 
 		inline void set_delegate(Delegate *delegate) {
 			delegate_ = delegate;

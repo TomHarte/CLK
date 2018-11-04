@@ -310,16 +310,8 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 		}
 
-		void setup_output(float aspect_ratio) override final {
+		void setup_output(Outputs::Display::ScanTarget *scan_target) override final {
 			video_.reset(new Video);
-		}
-
-		void close_output() override final {
-			video_.reset();
-		}
-
-		Outputs::CRT::CRT *get_crt() override final {
-			return video_->get_crt();
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override final {

@@ -8,6 +8,8 @@
 
 #include "Video.hpp"
 
+#include <algorithm>
+
 using namespace Oric;
 
 namespace {
@@ -21,7 +23,7 @@ namespace {
 
 VideoOutput::VideoOutput(uint8_t *memory) :
 		ram_(memory),
-		crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::CRT::DisplayType::PAL50, 2)),
+		crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::Display::Type::PAL50, 2)),
 		v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
 		counter_period_(PAL50Period) {
 //	crt_->set_rgb_sampling_function(
@@ -41,11 +43,11 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 //	);
 	crt_->set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 0.0f);
 
-	set_video_signal(Outputs::CRT::VideoSignal::Composite);
+	set_video_signal(Outputs::Display::VideoSignal::Composite);
 	crt_->set_visible_area(crt_->get_rect_for_area(54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 }
 
-void VideoOutput::set_video_signal(Outputs::CRT::VideoSignal video_signal) {
+void VideoOutput::set_video_signal(Outputs::Display::VideoSignal video_signal) {
 	video_signal_ = video_signal;
 //	crt_->set_video_signal(video_signal);
 }
@@ -129,7 +131,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 				if(control_byte & 0x60) {
 					if(pixel_target_) {
 						uint16_t colours[2];
-						if(video_signal_ == Outputs::CRT::VideoSignal::RGB) {
+						if(video_signal_ == Outputs::Display::VideoSignal::RGB) {
 							colours[0] = static_cast<uint8_t>(paper_ ^ inverse_mask);
 							colours[1] = static_cast<uint8_t>(ink_ ^ inverse_mask);
 						} else {
@@ -183,7 +185,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 						pixel_target_[0] = pixel_target_[1] =
 						pixel_target_[2] = pixel_target_[3] =
 						pixel_target_[4] = pixel_target_[5] =
-							(video_signal_ == Outputs::CRT::VideoSignal::RGB) ? paper_ ^ inverse_mask : colour_forms_[paper_ ^ inverse_mask];
+							(video_signal_ == Outputs::Display::VideoSignal::RGB) ? paper_ ^ inverse_mask : colour_forms_[paper_ ^ inverse_mask];
 					}
 				}
 				if(pixel_target_) pixel_target_ += 6;

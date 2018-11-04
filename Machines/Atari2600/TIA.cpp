@@ -24,8 +24,8 @@ namespace {
 
 TIA::TIA(bool create_crt) {
 	if(create_crt) {
-		crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 - 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
-//		crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
+		crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 - 1, 1, Outputs::Display::Type::NTSC60, 1));
+//		crt_->set_video_signal(Outputs::Display::VideoSignal::Composite);
 		set_output_mode(OutputMode::NTSC);
 	}
 
@@ -120,7 +120,7 @@ TIA::TIA(std::function<void(uint8_t *output_buffer)> line_end_function) : TIA(fa
 }
 
 void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
-	Outputs::CRT::DisplayType display_type;
+	Outputs::Display::Type display_type;
 
 	if(output_mode == OutputMode::NTSC) {
 //		crt_->set_svideo_sampling_function(
@@ -133,7 +133,7 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
 //				"float phaseOffset = 6.283185308 * float(iPhase) / 13.0 + 5.074880441076923;"
 //				"return vec2(float(y) / 14.0, step(1, iPhase) * cos(phase - phaseOffset));"
 //			"}");
-		display_type = Outputs::CRT::DisplayType::NTSC60;
+		display_type = Outputs::Display::Type::NTSC60;
 	} else {
 //		crt_->set_svideo_sampling_function(
 //			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)"
@@ -147,9 +147,9 @@ void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
 //				"phaseOffset *= 6.283185308 / 12.0;"
 //				"return vec2(float(y) / 14.0, step(4, (iPhase + 2u) & 15u) * cos(phase + phaseOffset));"
 //			"}");
-		display_type = Outputs::CRT::DisplayType::PAL50;
+		display_type = Outputs::Display::Type::PAL50;
 	}
-//	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
+//	crt_->set_video_signal(Outputs::Display::VideoSignal::Composite);
 
 	// line number of cycles in a line of video is one less than twice the number of clock cycles per line; the Atari
 	// outputs 228 colour cycles of material per line when an NTSC line 227.5. Since all clock numbers will be doubled

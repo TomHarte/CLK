@@ -13,6 +13,8 @@
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "Interrupts.hpp"
 
+#include <vector>
+
 namespace Electron {
 
 /*!

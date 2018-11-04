@@ -64,7 +64,7 @@ template <class BusHandler> class MOS6560 {
 	public:
 		MOS6560(BusHandler &bus_handler) :
 				bus_handler_(bus_handler),
-				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::DisplayType::NTSC60, 2)),
+				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::Display::Type::NTSC60, 2)),
 				audio_generator_(audio_queue_),
 				speaker_(audio_generator_)
 		{
@@ -80,7 +80,7 @@ template <class BusHandler> class MOS6560 {
 //				"}");
 
 			// default to s-video output
-//			crt_->set_video_signal(Outputs::CRT::VideoSignal::SVideo);
+//			crt_->set_video_signal(Outputs::Display::VideoSignal::SVideo);
 
 			// default to NTSC
 			set_output_mode(OutputMode::NTSC);
@@ -131,12 +131,12 @@ template <class BusHandler> class MOS6560 {
 				103,	42,		80,		16,
 			};
 			const uint8_t *chrominances;
-			Outputs::CRT::DisplayType display_type;
+			Outputs::Display::Type display_type;
 
 			switch(output_mode) {
 				default:
 					chrominances = pal_chrominances;
-					display_type = Outputs::CRT::DisplayType::PAL50;
+					display_type = Outputs::Display::Type::PAL50;
 					timing_.cycles_per_line = 71;
 					timing_.line_counter_increment_offset = 4;
 					timing_.final_line_increment_position = timing_.cycles_per_line - timing_.line_counter_increment_offset;
@@ -146,7 +146,7 @@ template <class BusHandler> class MOS6560 {
 
 				case OutputMode::NTSC:
 					chrominances = ntsc_chrominances;
-					display_type = Outputs::CRT::DisplayType::NTSC60;
+					display_type = Outputs::Display::Type::NTSC60;
 					timing_.cycles_per_line = 65;
 					timing_.line_counter_increment_offset = 40;
 					timing_.final_line_increment_position = 58;
@@ -159,10 +159,10 @@ template <class BusHandler> class MOS6560 {
 
 			switch(output_mode) {
 				case OutputMode::PAL:
-					crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.07f, 0.9f, 0.9f));
+					crt_->set_visible_area(Outputs::Display::Rect(0.1f, 0.07f, 0.9f, 0.9f));
 				break;
 				case OutputMode::NTSC:
-					crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
+					crt_->set_visible_area(Outputs::Display::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 				break;
 			}
 

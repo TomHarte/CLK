@@ -92,7 +92,7 @@ std::unique_ptr<OutputShader> OutputShader::make_shader(const char *fragment_met
 	}));
 }
 
-void OutputShader::set_output_size(unsigned int output_width, unsigned int output_height, Outputs::CRT::Rect visible_area) {
+void OutputShader::set_output_size(unsigned int output_width, unsigned int output_height, Outputs::Display::Rect visible_area) {
 	GLfloat outputAspectRatioMultiplier = (static_cast<float>(output_width) / static_cast<float>(output_height)) / (4.0f / 3.0f);
 	GLfloat bonusWidth = (outputAspectRatioMultiplier - 1.0f) * visible_area.size.width;
 

@@ -43,7 +43,7 @@ VideoOutput::VideoOutput(uint8_t *memory) : ram_(memory) {
 	setup_screen_map();
 	setup_base_address();
 
-	crt_.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
+	crt_.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::Display::Type::PAL50, 1));
 //	crt_->set_rgb_sampling_function(
 //		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
 //		"{"

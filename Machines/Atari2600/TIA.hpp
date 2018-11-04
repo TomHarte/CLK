@@ -9,9 +9,12 @@
 #ifndef TIA_hpp
 #define TIA_hpp
 
+#include <algorithm>
 #include <cstdint>
+#include <functional>
 
-#include "../CRTMachine.hpp"
+#include "../../Outputs/CRT/CRT.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Atari2600 {
 
