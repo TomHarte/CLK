@@ -134,6 +134,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 	const bool is_output_run = ((type == Scan::Type::Level) || (type == Scan::Type::Data));
 	const auto total_cycles = number_of_cycles * time_multiplier_;
+	bool did_output = false;
 
 	while(number_of_cycles) {
 
@@ -143,14 +144,15 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 		Flywheel::SyncEvent next_horizontal_sync_event = get_next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
 
 		// Whichever event is scheduled to happen first is the one to advance to.
-		int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
+		const int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
 
 		hsync_requested = false;
 		vsync_requested = false;
 
 		// Determine whether to output any data for this portion of the output; if so then grab somewhere to put it.
-		bool is_output_segment = ((is_output_run && next_run_length) && !horizontal_flywheel_->is_in_retrace() && !vertical_flywheel_->is_in_retrace());
+		const bool is_output_segment = ((is_output_run && next_run_length) && !horizontal_flywheel_->is_in_retrace() && !vertical_flywheel_->is_in_retrace());
 		Outputs::Display::ScanTarget::Scan *const next_scan = is_output_segment ? scan_target_->get_scan() : nullptr;
+		did_output |= is_output_segment;
 
 		// If outputting, store the start location and
 		if(next_scan) {
@@ -202,7 +204,9 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 		}
 	}
 
-	scan_target_->submit();
+	if(did_output) {
+		scan_target_->submit();
+	}
 }
 
 // MARK: - stream feeding methods

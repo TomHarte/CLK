@@ -78,7 +78,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void set_modals(Modals) {}
 
 		Scan *get_scan() {
-			return &scan_;
+			scans_.emplace_back();
+			return &scans_.back();
 		}
 
 		uint8_t *allocate_write_area(size_t required_length, size_t required_alignment) {
@@ -87,10 +88,11 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		}
 
 		void submit(bool only_if_no_allocation_failures) {
+			scans_.clear();
 		}
 
 	private:
-		Scan scan_;
+		std::vector<Scan> scans_;
 		std::vector<uint8_t> write_area_;
 };
 
