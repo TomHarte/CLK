@@ -16,10 +16,9 @@
 using namespace Outputs::CRT;
 
 void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Display::ColourSpace colour_space, int colour_cycle_numerator, int colour_cycle_denominator, int vertical_sync_half_lines, bool should_alternate) {
-//	openGL_output_builder_.set_colour_format(colour_space, colour_cycle_numerator, colour_cycle_denominator);
 
-	const int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
-	const int scanlinesVerticalRetraceTime = 8;			// source: ibid
+	const int millisecondsHorizontalRetraceTime = 7;	// Source: Dictionary of Video and Television Technology, p. 234.
+	const int scanlinesVerticalRetraceTime = 8;			// Source: ibid.
 
 														// To quote:
 														//
@@ -37,9 +36,9 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	cycles_per_line_ = cycles_per_line;
 	const int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
 
-	// allow sync to be detected (and acted upon) a line earlier than the specified requirement,
+	// Allow sync to be detected (and acted upon) a line earlier than the specified requirement,
 	// as a simple way of avoiding not-quite-exact comparison issues while still being true enough to
-	// the gist for simple debugging
+	// the gist for simple debugging.
 	sync_capacitor_charge_threshold_ = ((vertical_sync_half_lines - 2) * cycles_per_line) >> 1;
 
 	// Create the two flywheels:
@@ -54,10 +53,11 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	horizontal_flywheel_.reset(new Flywheel(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 5));
 	vertical_flywheel_.reset(new Flywheel(multiplied_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * multiplied_cycles_per_line, (multiplied_cycles_per_line * height_of_display) >> 3));
 
-	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
+	// Figure out the divisor necessary to get the horizontal flywheel into a 16-bit range.
 	const int real_clock_scan_period = multiplied_cycles_per_line * height_of_display;
 	vertical_flywheel_output_divider_ = (real_clock_scan_period + 65534) / 65535;
 
+	// Communicate relevant fields to the scan target.
 	scan_target_modals_.output_scale.x = uint16_t(time_multiplier_ * cycles_per_line);
 	scan_target_modals_.output_scale.y = uint16_t((multiplied_cycles_per_line * height_of_display) / vertical_flywheel_output_divider_);
 	scan_target_modals_.expected_vertical_lines = height_of_display;
@@ -65,16 +65,26 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	scan_target_->set_modals(scan_target_modals_);
 }
 
+void CRT::set_new_data_type(Outputs::Display::ScanTarget::Modals::DataType data_type) {
+	scan_target_modals_.source_data_type = data_type;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
+void CRT::set_visible_area(Outputs::Display::Rect visible_area) {
+	scan_target_modals_.visible_area = visible_area;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
 void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displayType) {
 	switch(displayType) {
 		case Outputs::Display::Type::PAL50:
 			scan_target_modals_.intended_gamma = 2.8f;
-			set_new_timing(cycles_per_line, 312, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516; 2.5 lines = vertical sync
+			set_new_timing(cycles_per_line, 312, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516 colour cycles per line; 2.5 lines = vertical sync.
 		break;
 
 		case Outputs::Display::Type::NTSC60:
 			scan_target_modals_.intended_gamma = 2.2f;
-			set_new_timing(cycles_per_line, 262, Outputs::Display::ColourSpace::YIQ, 455, 2, 6, false);	// i.e. 227.5, 3 lines = vertical sync
+			set_new_timing(cycles_per_line, 262, Outputs::Display::ColourSpace::YIQ, 455, 2, 6, false);			// i.e. 227.5 colour cycles per line, 3 lines = vertical sync.
 		break;
 	}
 }
@@ -155,7 +165,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 		Outputs::Display::ScanTarget::Scan *const next_scan = is_output_segment ? scan_target_->get_scan() : nullptr;
 		did_output |= is_output_segment;
 
-		// If outputting, store the start location and
+		// If outputting, store the start location and scan constants.
 		if(next_scan) {
 			next_scan->end_points[0].x = uint16_t(horizontal_flywheel_->get_current_output_position());
 			next_scan->end_points[0].y = uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
@@ -212,7 +222,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 // MARK: - stream feeding methods
 
 void CRT::output_scan(const Scan *const scan) {
-	// simplified colour burst logic: if it's within the back porch we'll take it
+	// Simplified colour burst logic: if it's within the back porch we'll take it.
 	if(scan->type == Scan::Type::ColourBurst) {
 		if(!colour_burst_amplitude_ && horizontal_flywheel_->get_current_time() < (horizontal_flywheel_->get_standard_period() * 12) >> 6) {
 			// Load phase_numerator_ as a fixed-point quantity in the range [0, 255].
@@ -235,18 +245,18 @@ void CRT::output_scan(const Scan *const scan) {
 	const bool is_leading_edge = (!is_receiving_sync_ && this_is_sync);
 	is_receiving_sync_ = this_is_sync;
 
-	// horizontal sync is recognised on any leading edge that is not 'near' the expected vertical sync;
+	// Horizontal sync is recognised on any leading edge that is not 'near' the expected vertical sync;
 	// the second limb is to avoid slightly horizontal sync shifting from the common pattern of
-	// equalisation pulses as the inverse of ordinary horizontal sync
+	// equalisation pulses as the inverse of ordinary horizontal sync.
 	bool hsync_requested = is_leading_edge && !vertical_flywheel_->is_near_expected_sync();
 
 	if(this_is_sync) {
-		// if this is sync then either begin or continue a sync accumulation phase
+		// If this is sync then either begin or continue a sync accumulation phase.
 		is_accumulating_sync_ = true;
 		cycles_since_sync_ = 0;
 	} else {
-		// if this is not sync then check how long it has been since sync. If it's more than
-		// half a line then end sync accumulation and zero out the accumulating count
+		// If this is not sync then check how long it has been since sync. If it's more than
+		// half a line then end sync accumulation and zero out the accumulating count.
 		cycles_since_sync_ += scan->number_of_cycles;
 		if(cycles_since_sync_ > (cycles_per_line_ >> 2)) {
 			cycles_of_sync_ = 0;
@@ -258,13 +268,13 @@ void CRT::output_scan(const Scan *const scan) {
 	int number_of_cycles = scan->number_of_cycles;
 	bool vsync_requested = false;
 
-	// if sync is being accumulated then accumulate it; if it crosses the vertical sync threshold then
-	// divide this line at the crossing point and indicate vertical sync there
+	// If sync is being accumulated then accumulate it; if it crosses the vertical sync threshold then
+	// divide this line at the crossing point and indicate vertical sync there.
 	if(is_accumulating_sync_ && !is_refusing_sync_) {
 		cycles_of_sync_ += scan->number_of_cycles;
 
 		if(this_is_sync && cycles_of_sync_ >= sync_capacitor_charge_threshold_) {
-			int overshoot = std::min(cycles_of_sync_ - sync_capacitor_charge_threshold_, number_of_cycles);
+			const int overshoot = std::min(cycles_of_sync_ - sync_capacitor_charge_threshold_, number_of_cycles);
 			if(overshoot) {
 				number_of_cycles -= overshoot;
 				advance_cycles(number_of_cycles, hsync_requested, false, scan->type, 0);
@@ -342,9 +352,9 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 	number_of_lines += 4;
 
 	// determine prima facie x extent
-	int horizontal_period = horizontal_flywheel_->get_standard_period();
-	int horizontal_scan_period = horizontal_flywheel_->get_scan_period();
-	int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
+	const int horizontal_period = horizontal_flywheel_->get_standard_period();
+	const int horizontal_scan_period = horizontal_flywheel_->get_scan_period();
+	const int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
 
 	// make sure that the requested range is visible
 	if(static_cast<int>(first_cycle_after_sync) < horizontal_retrace_period) first_cycle_after_sync = static_cast<int>(horizontal_retrace_period);
@@ -354,9 +364,9 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 	float width = static_cast<float>(number_of_cycles) / static_cast<float>(horizontal_scan_period);
 
 	// determine prima facie y extent
-	int vertical_period = vertical_flywheel_->get_standard_period();
-	int vertical_scan_period = vertical_flywheel_->get_scan_period();
-	int vertical_retrace_period = vertical_period - vertical_scan_period;
+	const int vertical_period = vertical_flywheel_->get_standard_period();
+	const int vertical_scan_period = vertical_flywheel_->get_scan_period();
+	const int vertical_retrace_period = vertical_period - vertical_scan_period;
 
 	// make sure that the requested range is visible
 //	if(static_cast<int>(first_line_after_sync) * horizontal_period < vertical_retrace_period)
@@ -368,8 +378,8 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 	float height = static_cast<float>(static_cast<int>(number_of_lines) * horizontal_period) / vertical_scan_period;
 
 	// adjust to ensure aspect ratio is correct
-	float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);
-	float ideal_width = height * adjusted_aspect_ratio;
+	const float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);
+	const float ideal_width = height * adjusted_aspect_ratio;
 	if(ideal_width > width) {
 		start_x -= (ideal_width - width) * 0.5f;
 		width = ideal_width;

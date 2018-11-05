@@ -25,13 +25,20 @@ class Delegate {
 		virtual void crt_did_end_batch_of_frames(CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) = 0;
 };
 
+/*!	Models a class 2d analogue output device, accepting a serial stream of data including syncs
+	and generating the proper set of output spans. Attempts to act and react exactly as a real
+	TV would have to things like irregular or off-spec sync, and includes logic properly to track
+	colour phase for colour composite video.
+*/
 class CRT {
 	private:
-		// the incoming clock lengths will be multiplied by something to give at least 1000
-		// sample points per line
+		// The incoming clock lengths will be multiplied by @c time_multiplier_; this increases
+		// precision across the line.
 		int time_multiplier_ = 1;
 
-		// the two flywheels regulating scanning
+		// Two flywheels regulate scanning; the vertical will have a range much greater than the horizontal;
+		// the output divider is what that'll need to be divided by to reduce it into a 16-bit range as
+		// posted on to the scan target.
 		std::unique_ptr<Flywheel> horizontal_flywheel_, vertical_flywheel_;
 		int vertical_flywheel_output_divider_ = 1;
 
@@ -58,25 +65,19 @@ class CRT {
 		int64_t colour_cycle_numerator_ = 1;
 		bool is_alernate_line_ = false, phase_alternates_ = false;
 
-		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
 		void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type, int number_of_samples);
-
-		// the inner entry point that determines whether and when the next sync event will occur within
-		// the current output window
 		Flywheel::SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
 		Flywheel::SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
 
-		// the delegate
 		Delegate *delegate_ = nullptr;
 		int frames_since_last_delegate_call_ = 0;
 
-		// sync counter, for determining vertical sync
-		bool is_receiving_sync_ = false;					// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
-		bool is_accumulating_sync_ = false;					// true if a sync level has triggered the suspicion that a vertical sync might be in progress
-		bool is_refusing_sync_ = false;						// true once a vertical sync has been detected, until a prolonged period of non-sync has ended suspicion of an ongoing vertical sync
-		int sync_capacitor_charge_threshold_ = 0;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		int cycles_of_sync_ = 0;					// the number of cycles since the potential vertical sync began
-		int cycles_since_sync_ = 0;				// the number of cycles since last in sync, for defeating the possibility of this being a vertical sync
+		bool is_receiving_sync_ = false;			// @c true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync); @c false otherwise.
+		bool is_accumulating_sync_ = false;			// @c true if a sync level has triggered the suspicion that a vertical sync might be in progress; @c false otherwise.
+		bool is_refusing_sync_ = false;				// @c true once a vertical sync has been detected, until a prolonged period of non-sync has ended suspicion of an ongoing vertical sync.
+		int sync_capacitor_charge_threshold_ = 0;	// Charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync.
+		int cycles_of_sync_ = 0;					// The number of cycles since the potential vertical sync began.
+		int cycles_since_sync_ = 0;					// The number of cycles since last in sync, for defeating the possibility of this being a vertical sync.
 
 		int cycles_per_line_ = 1;
 
@@ -91,7 +92,8 @@ class CRT {
 			@param cycles_per_line The clock rate at which this CRT will be driven, specified as the number
 			of cycles expected to take up one whole scanline of the display.
 
-			@param minimum_cycles_per_pixel TODO.
+			@param clocks_per_pixel_greatest_common_divisor The GCD of all potential lengths of a pixel
+			in terms of the clock rate given as @c cycles_per_line.
 
 			@param height_of_display The number of lines that nominally form one field of the display, rounded
 			up to the next whole integer.
@@ -104,14 +106,12 @@ class CRT {
 			@param vertical_sync_half_lines The expected length of vertical synchronisation (equalisation pulses aside),
 			in multiples of half a line.
 
-			@param data_type TODO.
+			@param data_type The format that the caller will use for input data.
 
-			@param scan_target TODO.
-
-			@see @c set_rgb_sampling_function , @c set_composite_sampling_function
+			@param scan_target The destination for generated scans.
 		*/
 		CRT(int cycles_per_line,
-			int minimum_cycles_per_pixel,
+			int clocks_per_pixel_greatest_common_divisor,
 			int height_of_display,
 			Outputs::Display::ColourSpace colour_space,
 			int colour_cycle_numerator,
@@ -121,11 +121,7 @@ class CRT {
 			Outputs::Display::ScanTarget::Modals::DataType data_type,
 			Outputs::Display::ScanTarget *scan_target);
 
-		/*!	Constructs the CRT with the specified clock rate, with the display height and colour
-			subcarrier frequency dictated by a standard display type and with the requested number of
-			buffers, each with the requested number of bytes per pixel.
-
-			Exactly identical to calling the designated constructor with colour subcarrier information
+		/*!	Exactly identical to calling the designated constructor with colour subcarrier information
 			looked up by display type.
 		*/
 		CRT(int cycles_per_line,
@@ -151,7 +147,8 @@ class CRT {
 			int cycles_per_line,
 			Outputs::Display::Type display_type);
 
-		// TODO.
+		/*!	Changes the type of data being supplied as input.
+		*/
 		void set_new_data_type(Outputs::Display::ScanTarget::Modals::DataType data_type);
 
 		/*!	Output at the sync level.
@@ -252,9 +249,10 @@ class CRT {
 		*/
 		void set_composite_function_type(CompositeSourceType type, float offset_of_first_sample = 0.0f);
 
-		inline void set_visible_area(Outputs::Display::Rect visible_area) {
-		}
+		/*!	Nominates a section of the display to crop to for output. */
+		void set_visible_area(Outputs::Display::Rect visible_area);
 
+		/*!	@returns The rectangle describing a subset of the display, allowing for sync periods. */
 		Outputs::Display::Rect get_rect_for_area(
 			int first_line_after_sync,
 			int number_of_lines,
@@ -262,6 +260,7 @@ class CRT {
 			int number_of_cycles,
 			float aspect_ratio);
 
+		/*!	Sets the CRT delegate; set to @c nullptr if no delegate is desired. */
 		inline void set_delegate(Delegate *delegate) {
 			delegate_ = delegate;
 		}
