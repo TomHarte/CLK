@@ -53,7 +53,9 @@ class CRT {
 		int colour_burst_phase_adjustment_ = 0;
 		bool is_writing_composite_run_ = false;
 
-		int phase_denominator_ = 1, phase_numerator_ = 1, colour_cycle_numerator_ = 1;
+		int64_t phase_denominator_ = 1;
+		int64_t phase_numerator_ = 0;
+		int64_t colour_cycle_numerator_ = 1;
 		bool is_alernate_line_ = false, phase_alternates_ = false;
 
 		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data

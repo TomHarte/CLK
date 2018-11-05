@@ -29,9 +29,9 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 														//  in NTSC and PAL TV."
 
 	time_multiplier_ = 65535 / cycles_per_line;
-	phase_denominator_ = cycles_per_line * colour_cycle_denominator * time_multiplier_;
+	phase_denominator_ = int64_t(cycles_per_line) * int64_t(colour_cycle_denominator) * int64_t(time_multiplier_);
 	phase_numerator_ = 0;
-	colour_cycle_numerator_ = colour_cycle_numerator;
+	colour_cycle_numerator_ = int64_t(colour_cycle_numerator);
 	phase_alternates_ = should_alternate;
 	is_alernate_line_ &= phase_alternates_;
 	cycles_per_line_ = cycles_per_line;
@@ -157,16 +157,15 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 		// If outputting, store the start location and
 		if(next_scan) {
-			next_scan->end_points[0].x = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
-			next_scan->end_points[0].y = static_cast<uint16_t>(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
-			next_scan->end_points[0].composite_angle = colour_burst_angle_;	// TODO.
-			next_scan->end_points[0].data_offset = static_cast<uint16_t>((total_cycles - number_of_cycles) * number_of_samples / total_cycles);
+			next_scan->end_points[0].x = uint16_t(horizontal_flywheel_->get_current_output_position());
+			next_scan->end_points[0].y = uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
+			next_scan->end_points[0].composite_angle = int16_t((phase_numerator_ << 6) / phase_denominator_) * (is_alernate_line_ ? -1 : 1);
+			next_scan->end_points[0].data_offset = uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles);
 			next_scan->composite_amplitude = colour_burst_amplitude_;
 		}
 
 		// Advance time: that'll affect both the colour subcarrier position and the number of cycles left to run.
 		phase_numerator_ += next_run_length * colour_cycle_numerator_;
-		phase_numerator_ %= phase_denominator_;
 		number_of_cycles -= next_run_length;
 
 		// React to the incoming event.
@@ -175,10 +174,10 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 		// Store an endpoint if necessary.
 		if(next_scan) {
-			next_scan->end_points[1].x = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
-			next_scan->end_points[1].y = static_cast<uint16_t>(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
-			next_scan->end_points[1].composite_angle = colour_burst_angle_;	// TODO.
-			next_scan->end_points[1].data_offset = static_cast<uint16_t>((total_cycles - number_of_cycles) * number_of_samples / total_cycles);
+			next_scan->end_points[1].x = uint16_t(horizontal_flywheel_->get_current_output_position());
+			next_scan->end_points[1].y = uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
+			next_scan->end_points[1].composite_angle = int16_t((phase_numerator_ << 6) / phase_denominator_) * (is_alernate_line_ ? -1 : 1);
+			next_scan->end_points[1].data_offset = uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles);
 		}
 
 		// If this is horizontal retrace then announce as such, and prepare for the next line.
@@ -186,6 +185,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 			scan_target_->announce(Outputs::Display::ScanTarget::Event::HorizontalRetrace);
 			is_alernate_line_ ^= phase_alternates_;
 			colour_burst_amplitude_ = 0;
+			phase_numerator_ = 0;
 		}
 
 		// Also announce if this is vertical retrace.
