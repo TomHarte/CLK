@@ -185,7 +185,6 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 			scan_target_->announce(Outputs::Display::ScanTarget::Event::HorizontalRetrace);
 			is_alernate_line_ ^= phase_alternates_;
 			colour_burst_amplitude_ = 0;
-			phase_numerator_ = 0;
 		}
 
 		// Also announce if this is vertical retrace.
@@ -216,12 +215,16 @@ void CRT::output_scan(const Scan *const scan) {
 	// simplified colour burst logic: if it's within the back porch we'll take it
 	if(scan->type == Scan::Type::ColourBurst) {
 		if(!colour_burst_amplitude_ && horizontal_flywheel_->get_current_time() < (horizontal_flywheel_->get_standard_period() * 12) >> 6) {
-//			int position_phase = (horizontal_flywheel_->get_current_time() * colour_cycle_numerator_ * 256) / phase_denominator_;
-//			colour_burst_phase_ = (position_phase + scan->phase) & 255;
-			colour_burst_amplitude_ = scan->amplitude;
+			// Load phase_numerator_ as a fixed-point quantity in the range [0, 255].
+			phase_numerator_ = scan->phase;
+			if(colour_burst_phase_adjustment_ != 0xff)
+				phase_numerator_ = (phase_numerator_ & ~63) + colour_burst_phase_adjustment_;
 
-//			if(colour_burst_phase_adjustment_ != 0xff)
-//				colour_burst_phase_ = (colour_burst_phase_ & ~63) + colour_burst_phase_adjustment_;
+			// Multiply the phase_numerator_ up to be to the proper scale.
+			phase_numerator_ = (phase_numerator_ * phase_denominator_) >> 8;
+
+			// Crib the colour burst amplitude.
+			colour_burst_amplitude_ = scan->amplitude;
 		}
 	}
 	// TODO: inspect raw data for potential colour burst if required; the DPLL and some zero crossing logic
@@ -313,6 +316,7 @@ void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, uint8_t ampli
 }
 
 void CRT::output_default_colour_burst(int number_of_cycles) {
+	// TODO: avoid applying a rounding error here?
 	output_colour_burst(number_of_cycles, static_cast<uint8_t>((phase_numerator_ * 256) / phase_denominator_));
 }
 
