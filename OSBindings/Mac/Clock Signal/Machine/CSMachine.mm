@@ -75,7 +75,9 @@ struct ActivityObserver: public Activity::Observer {
 
 class ScanTarget: public Outputs::Display::ScanTarget {
 	public:
-		void set_modals(Modals) {}
+		void set_modals(Modals m) {
+			modals_ = m;
+		}
 
 		Scan *get_scan() {
 			scans_.emplace_back();
@@ -94,6 +96,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 	private:
 		std::vector<Scan> scans_;
 		std::vector<uint8_t> write_area_;
+		Modals modals_;
 };
 
 @implementation CSMachine {

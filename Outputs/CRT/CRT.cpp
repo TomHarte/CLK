@@ -28,8 +28,7 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 														//	7 microseconds for horizontal retrace and 500 to 750 microseconds for vertical retrace
 														//  in NTSC and PAL TV."
 
-//	time_multiplier_ = IntermediateBufferWidth / cycles_per_line;
-	time_multiplier_ = 2048 / cycles_per_line;	// TODO
+	time_multiplier_ = 65535 / cycles_per_line;
 	phase_denominator_ = cycles_per_line * colour_cycle_denominator * time_multiplier_;
 	phase_numerator_ = 0;
 	colour_cycle_numerator_ = colour_cycle_numerator;
@@ -56,11 +55,11 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	vertical_flywheel_.reset(new Flywheel(multiplied_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * multiplied_cycles_per_line, (multiplied_cycles_per_line * height_of_display) >> 3));
 
 	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
-//	const int real_clock_scan_period = (multiplied_cycles_per_line * height_of_display) / (time_multiplier_);
-//	vertical_flywheel_output_divider_ = static_cast<uint16_t>(ceilf(real_clock_scan_period / 65536.0f) * (time_multiplier_));
+	const int real_clock_scan_period = multiplied_cycles_per_line * height_of_display;
+	vertical_flywheel_output_divider_ = (real_clock_scan_period + 65534) / 65535;
 
-//	openGL_output_builder_.set_timing(cycles_per_line, multiplied_cycles_per_line, height_of_display, horizontal_flywheel_->get_scan_period(), vertical_flywheel_->get_scan_period(), vertical_flywheel_output_divider_);
-
+	scan_target_modals_.output_scale.x = uint16_t(time_multiplier_ * cycles_per_line);
+	scan_target_modals_.output_scale.y = uint16_t((multiplied_cycles_per_line * height_of_display) / vertical_flywheel_output_divider_);
 	scan_target_modals_.expected_vertical_lines = height_of_display;
 	scan_target_modals_.composite_colour_space = colour_space;
 	scan_target_->set_modals(scan_target_modals_);
@@ -69,13 +68,13 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displayType) {
 	switch(displayType) {
 		case Outputs::Display::Type::PAL50:
+			scan_target_modals_.intended_gamma = 2.8f;
 			set_new_timing(cycles_per_line, 312, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516; 2.5 lines = vertical sync
-			set_input_gamma(2.8f);
 		break;
 
 		case Outputs::Display::Type::NTSC60:
+			scan_target_modals_.intended_gamma = 2.2f;
 			set_new_timing(cycles_per_line, 262, Outputs::Display::ColourSpace::YIQ, 455, 2, 6, false);	// i.e. 227.5, 3 lines = vertical sync
-			set_input_gamma(2.2f);
 		break;
 	}
 }
@@ -89,12 +88,12 @@ void CRT::set_composite_function_type(CompositeSourceType type, float offset_of_
 }
 
 void CRT::set_input_gamma(float gamma) {
-//	input_gamma_ = gamma;
-//	update_gamma();
+	scan_target_modals_.intended_gamma = gamma;
+	scan_target_->set_modals(scan_target_modals_);
 }
 
 CRT::CRT(	int cycles_per_line,
-			int pixel_clock_least_common_multiple,
+			int clocks_per_pixel_greatest_common_divisor,
 			int height_of_display,
 			Outputs::Display::ColourSpace colour_space,
 			int colour_cycle_numerator, int colour_cycle_denominator,
@@ -104,18 +103,20 @@ CRT::CRT(	int cycles_per_line,
 			Outputs::Display::ScanTarget *scan_target) {
 	scan_target_ = scan_target;
 	scan_target_modals_.source_data_type = data_type;
-	scan_target_modals_.pixel_clock_least_common_multiple = pixel_clock_least_common_multiple;
+	scan_target_modals_.cycles_per_line = cycles_per_line;
+	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator, vertical_sync_half_lines, should_alternate);
 }
 
 CRT::CRT(	int cycles_per_line,
-			int pixel_clock_least_common_multiple,
+			int clocks_per_pixel_greatest_common_divisor,
 			Outputs::Display::Type display_type,
 			Outputs::Display::ScanTarget::Modals::DataType data_type,
 			Outputs::Display::ScanTarget *scan_target) {
 	scan_target_ = scan_target;
 	scan_target_modals_.source_data_type = data_type;
-	scan_target_modals_.pixel_clock_least_common_multiple = pixel_clock_least_common_multiple;
+	scan_target_modals_.cycles_per_line = cycles_per_line;
+	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_display_type(cycles_per_line, display_type);
 }
 
@@ -157,7 +158,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 		// If outputting, store the start location and
 		if(next_scan) {
 			next_scan->end_points[0].x = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
-			next_scan->end_points[0].y = static_cast<uint16_t>(vertical_flywheel_->get_current_output_position());
+			next_scan->end_points[0].y = static_cast<uint16_t>(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
 			next_scan->end_points[0].composite_angle = colour_burst_angle_;	// TODO.
 			next_scan->end_points[0].data_offset = static_cast<uint16_t>((total_cycles - number_of_cycles) * number_of_samples / total_cycles);
 			next_scan->composite_amplitude = colour_burst_amplitude_;
@@ -175,7 +176,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 		// Store an endpoint if necessary.
 		if(next_scan) {
 			next_scan->end_points[1].x = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
-			next_scan->end_points[1].y = static_cast<uint16_t>(vertical_flywheel_->get_current_output_position());
+			next_scan->end_points[1].y = static_cast<uint16_t>(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
 			next_scan->end_points[1].composite_angle = colour_burst_angle_;	// TODO.
 			next_scan->end_points[1].data_offset = static_cast<uint16_t>((total_cycles - number_of_cycles) * number_of_samples / total_cycles);
 		}

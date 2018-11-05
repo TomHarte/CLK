@@ -98,10 +98,15 @@ struct ScanTarget {
 			/// If being fed composite data, this defines the colour space in use.
 			ColourSpace composite_colour_space;
 
-			/// Nominates a least common multiple of the potential input pixel clocks;
-			/// if this isn't a crazy number then it'll be used potentially to optimise
-			/// the composite encoding and decoding process.
-			int pixel_clock_least_common_multiple;
+			/// Provides an integral clock rate for the duration of "a single line", specifically
+			/// for an idealised line. So e.g. in NTSC this will be for the duration of 227.5
+			/// colour clocks, regardless of whether the source actually stretches lines to
+			/// 228 colour cycles, abbreviates them to 227 colour cycles, etc.
+			int cycles_per_line;
+
+			/// Sets a GCD for the durations of pixels coming out of this device. This with
+			/// the @c cycles_per_line are offered for sizing of intermediary buffers.
+			int clocks_per_pixel_greatest_common_divisor;
 
 			/// Provides a pre-estimate of the likely number of left-to-right scans per frame.
 			/// This isn't a guarantee, but it should provide a decent-enough estimate.
@@ -111,8 +116,13 @@ struct ScanTarget {
 			/// to contain interesting content.
 			Rect visible_area;
 
-			/// Describes the 
+			/// Describes the usual gamma of the output device these scans would appear on.
 			float intended_gamma;
+
+			/// Specifies the range of values that will be output for x and y coordinates.
+			struct {
+				uint16_t x, y;
+			} output_scale;
 		};
 
 		/// Sets the total format of input data.
@@ -130,8 +140,7 @@ struct ScanTarget {
 		struct Scan {
 			struct EndPoint {
 				/// Provide the coordinate of this endpoint. These are fixed point, purely fractional
-				/// numbers: 0 is the extreme left or top of the scanned rectangle, and 65535 is the
-				/// extreme right or bottom.
+				/// numbers, relative to the scale provided in the Modals.
 				uint16_t x, y;
 
 				/// Provides the offset, in samples, into the most recently allocated write area, of data

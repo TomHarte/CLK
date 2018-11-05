@@ -33,7 +33,7 @@ class CRT {
 
 		// the two flywheels regulating scanning
 		std::unique_ptr<Flywheel> horizontal_flywheel_, vertical_flywheel_;
-		uint16_t vertical_flywheel_output_divider_ = 1;
+		int vertical_flywheel_output_divider_ = 1;
 
 		struct Scan {
 			enum Type {
@@ -89,7 +89,7 @@ class CRT {
 			@param cycles_per_line The clock rate at which this CRT will be driven, specified as the number
 			of cycles expected to take up one whole scanline of the display.
 
-			@param pixel_clock_least_common_multiple TODO.
+			@param minimum_cycles_per_pixel TODO.
 
 			@param height_of_display The number of lines that nominally form one field of the display, rounded
 			up to the next whole integer.
@@ -109,7 +109,7 @@ class CRT {
 			@see @c set_rgb_sampling_function , @c set_composite_sampling_function
 		*/
 		CRT(int cycles_per_line,
-			int pixel_clock_least_common_multiple,
+			int minimum_cycles_per_pixel,
 			int height_of_display,
 			Outputs::Display::ColourSpace colour_space,
 			int colour_cycle_numerator,
@@ -127,7 +127,7 @@ class CRT {
 			looked up by display type.
 		*/
 		CRT(int cycles_per_line,
-			int pixel_clock_least_common_multiple,
+			int minimum_cycles_per_pixel,
 			Outputs::Display::Type display_type,
 			Outputs::Display::ScanTarget::Modals::DataType data_type,
 			Outputs::Display::ScanTarget *scan_target);
