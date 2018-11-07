@@ -10,6 +10,7 @@
 #define Outputs_Display_ScanTarget_h
 
 #include <cstddef>
+#include <cstdint>
 
 namespace Outputs {
 namespace Display {
@@ -48,6 +49,52 @@ enum class ColourSpace {
 };
 
 /*!
+	Enumerates the potential formats of input data.
+*/
+enum class InputDataType {
+
+	// The luminance types can be used to feed only two video pipelines:
+	// black and white video, or composite colour.
+
+	Luminance1,				// 1 byte/pixel; any bit set => white; no bits set => black.
+	Luminance8,				// 1 byte/pixel; linear scale.
+
+	// The luminance plus phase types describe a luminance and the phase offset
+	// of a colour subcarrier. So they can be used to generate a luminance signal,
+	// or an s-video pipeline.
+
+	Phase8Luminance8,		// 2 bytes/pixel; first is phase, second is luminance.
+							// Phase is encoded on a 192-unit circle; anything
+							// greater than 192 implies that the colour part of
+							// the signal should be omitted.
+
+	// The RGB types can directly feed an RGB pipeline, naturally, or can be mapped
+	// to phase+luminance, or just to luminance.
+
+	Red1Green1Blue1,		// 1 byte/pixel; bit 0 is blue on or off, bit 1 is green, bit 2 is red.
+	Red2Green2Blue2,		// 1 byte/pixel; bits 0 and 1 are blue, bits 2 and 3 are green, bits 4 and 5 are blue.
+	Red4Green4Blue4,		// 2 bytes/pixel; first nibble is red, second is green, third is blue.
+	Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
+};
+
+inline size_t size_for_data_type(InputDataType data_type) {
+	switch(data_type) {
+		case InputDataType::Luminance1:
+		case InputDataType::Luminance8:
+		case InputDataType::Red1Green1Blue1:
+		case InputDataType::Red2Green2Blue2:
+			return 1;
+
+		case InputDataType::Phase8Luminance8:
+		case InputDataType::Red4Green4Blue4:
+			return 2;
+
+		case InputDataType::Red8Green8Blue8:
+			return 4;
+	}
+}
+
+/*!
 	Provides an abstract target for 'scans' i.e. continuous sweeps of output data,
 	which are identified by 2d start and end coordinates, and the PCM-sampled data
 	that is output during the sweep.
@@ -66,34 +113,8 @@ struct ScanTarget {
 	*/
 
 		struct Modals {
-			/*!
-				Enumerates the potential formats of input data.
-			*/
-			enum class DataType {
-
-				// The luminance types can be used to feed only two video pipelines:
-				// black and white video, or composite colour.
-
-				Luminance1,				// 1 byte/pixel; any bit set => white; no bits set => black.
-				Luminance8,				// 1 byte/pixel; linear scale.
-
-				// The luminance plus phase types describe a luminance and the phase offset
-				// of a colour subcarrier. So they can be used to generate a luminance signal,
-				// or an s-video pipeline.
-
-				Phase8Luminance8,		// 2 bytes/pixel; first is phase, second is luminance.
-										// Phase is encoded on a 192-unit circle; anything
-										// greater than 192 implies that the colour part of
-										// the signal should be omitted.
-
-				// The RGB types can directly feed an RGB pipeline, naturally, or can be mapped
-				// to phase+luminance, or just to luminance.
-
-				Red1Green1Blue1,		// 1 byte/pixel; bit 0 is blue on or off, bit 1 is green, bit 2 is red.
-				Red2Green2Blue2,		// 1 byte/pixel; bits 0 and 1 are blue, bits 2 and 3 are green, bits 4 and 5 are blue.
-				Red4Green4Blue4,		// 2 bytes/pixel; first nibble is red, second is green, third is blue.
-				Red8Green8Blue8,		// 4 bytes/pixel; first is red, second is green, third is blue, fourth is vacant.
-			} source_data_type;
+			/// Describes the format of input data.
+			InputDataType input_data_type;
 
 			/// If being fed composite data, this defines the colour space in use.
 			ColourSpace composite_colour_space;
@@ -187,19 +208,22 @@ struct ScanTarget {
 
 		/// Announces that the owner is finished with the region created by the most recent @c allocate_write_area
 		/// and indicates that its actual final size was @c actual_length.
-		virtual void reduce_previous_allocation_to(size_t actual_length) {};
+		///
+		/// It is required that every call to allocate_write_area be paired with a call to reduce_previous_allocation_to.
+		virtual void reduce_previous_allocation_to(size_t actual_length) {}
 
-		/// Announces that all endpoint pairs and write areas obtained since the last @c submit have now been
-		/// populated with appropriate data.
+		/// Marks the end of an atomic set of data. Drawing is best effort, so the scan target should either:
+		///
+		///		(i)	output everything received since the previous submit; or
+		///		(ii) output nothing.
+		///
+		/// If there were any allocation failures — i.e. any null responses to allocate_write_area or
+		/// get_scan — then (ii) is a required response. But a scan target may also need to opt for (ii)
+		/// for any other reason.
 		///
 		/// The ScanTarget isn't bound to take any drawing action immediately; it may sit on submitted data for
 		/// as long as it feels is appropriate subject to an @c flush.
-		virtual void submit(bool only_if_no_allocation_failures = true) = 0;
-
-		/// Announces that any submitted data not yet output should be output now, but needn't block while
-		/// doing so. This generally communicates that processing is now otherwise 'up to date', so no
-		/// further delay should be allowed.
-//		virtual void flush() = 0;
+		virtual void submit() = 0;
 
 
 	/*

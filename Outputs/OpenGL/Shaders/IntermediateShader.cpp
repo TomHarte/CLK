@@ -12,7 +12,7 @@
 #include <cstring>
 #include <sstream>
 
-#include "../../../../SignalProcessing/FIRFilter.hpp"
+#include "../../../SignalProcessing/FIRFilter.hpp"
 
 using namespace OpenGL;
 

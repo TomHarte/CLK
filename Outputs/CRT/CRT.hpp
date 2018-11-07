@@ -118,7 +118,7 @@ class CRT {
 			int colour_cycle_denominator,
 			int vertical_sync_half_lines,
 			bool should_alternate,
-			Outputs::Display::ScanTarget::Modals::DataType data_type,
+			Outputs::Display::InputDataType data_type,
 			Outputs::Display::ScanTarget *scan_target);
 
 		/*!	Exactly identical to calling the designated constructor with colour subcarrier information
@@ -127,7 +127,7 @@ class CRT {
 		CRT(int cycles_per_line,
 			int minimum_cycles_per_pixel,
 			Outputs::Display::Type display_type,
-			Outputs::Display::ScanTarget::Modals::DataType data_type,
+			Outputs::Display::InputDataType data_type,
 			Outputs::Display::ScanTarget *scan_target);
 
 		/*!	Resets the CRT with new timing information. The CRT then continues as though the new timing had
@@ -149,7 +149,7 @@ class CRT {
 
 		/*!	Changes the type of data being supplied as input.
 		*/
-		void set_new_data_type(Outputs::Display::ScanTarget::Modals::DataType data_type);
+		void set_new_data_type(Outputs::Display::InputDataType data_type);
 
 		/*!	Output at the sync level.
 

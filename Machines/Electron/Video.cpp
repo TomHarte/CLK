@@ -47,7 +47,7 @@ VideoOutput::VideoOutput(uint8_t *memory, Outputs::Display::ScanTarget *scan_tar
 		crt_cycles_per_line,
 		1,
 		Outputs::Display::Type::PAL50,
-		Outputs::Display::ScanTarget::Modals::DataType::Red1Green1Blue1,
+		Outputs::Display::InputDataType::Red1Green1Blue1,
 		scan_target));
 
 //	crt_->set_rgb_sampling_function(

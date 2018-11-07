@@ -23,7 +23,7 @@ const std::size_t StandardAllocationSize = 320;
 }
 
 Video::Video(Outputs::Display::ScanTarget *scan_target) :
-	crt_(new Outputs::CRT::CRT(207 * 2, 1, Outputs::Display::Type::PAL50, Outputs::Display::ScanTarget::Modals::DataType::Luminance1, scan_target))
+	crt_(new Outputs::CRT::CRT(207 * 2, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Luminance1, scan_target))
 	{
 
 	// Set a composite sampling function that assumes two-level input; either a byte is 0, which is black,

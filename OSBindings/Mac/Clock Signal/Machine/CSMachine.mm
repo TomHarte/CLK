@@ -29,7 +29,7 @@
 #import <OpenGL/OpenGL.h>
 #include <OpenGL/gl3.h>
 
-#include "ScanTarget.hpp"
+#include "../../../../Outputs/OpenGL/ScanTarget.hpp"
 
 @interface CSMachine() <CSFastLoading>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
@@ -73,31 +73,43 @@ struct ActivityObserver: public Activity::Observer {
 	__unsafe_unretained CSMachine *machine;
 };
 
-class ScanTarget: public Outputs::Display::ScanTarget {
-	public:
-		void set_modals(Modals m) {
-			modals_ = m;
-		}
-
-		Scan *get_scan() {
-			scans_.emplace_back();
-			return &scans_.back();
-		}
-
-		uint8_t *allocate_write_area(size_t required_length, size_t required_alignment) {
-			write_area_.resize(required_length);
-			return write_area_.data();
-		}
-
-		void submit(bool only_if_no_allocation_failures) {
-			scans_.clear();
-		}
-
-	private:
-		std::vector<Scan> scans_;
-		std::vector<uint8_t> write_area_;
-		Modals modals_;
-};
+//class ScanTarget: public Outputs::Display::ScanTarget {
+//	public:
+//		void set_modals(Modals m) {
+//			modals_ = m;
+//		}
+//
+//		Scan *get_scan() {
+//			scans_.emplace_back();
+//			return &scans_.back();
+//		}
+//
+//		uint8_t *allocate_write_area(size_t required_length, size_t required_alignment) {
+//			write_area_.resize(required_length);
+//			return write_area_.data();
+//		}
+//
+//		void submit(bool only_if_no_allocation_failures) {
+//			for(const auto &scan: scans_) {
+//				printf("%0.2f %0.2f [%0.2f] -> %0.2f %0.2f [%0.2f] => %0.2f\n",
+//					float(scan.end_points[0].x) / float(modals_.output_scale.x),
+//					float(scan.end_points[0].y) / float(modals_.output_scale.y),
+//					float(scan.end_points[0].composite_angle) / 64.0f,
+//					float(scan.end_points[1].x) / float(modals_.output_scale.x),
+//					float(scan.end_points[1].y) / float(modals_.output_scale.y),
+//					float(scan.end_points[1].composite_angle) / 64.0f,
+//					(float(scan.end_points[1].composite_angle - scan.end_points[0].composite_angle) / 64.0f) / (float(scan.end_points[1].x - scan.end_points[0].x) / float(modals_.output_scale.x))
+//				);
+//			}
+//
+//			scans_.clear();
+//		}
+//
+//	private:
+//		std::vector<Scan> scans_;
+//		std::vector<uint8_t> write_area_;
+//		Modals modals_;
+//};
 
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
@@ -112,7 +124,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 	std::bitset<65536> _depressedKeys;
 	NSMutableArray<NSString *> *_leds;
 
-	ScanTarget _scanTarget;
+	Outputs::Display::OpenGL::ScanTarget _scanTarget;
 }
 
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result {
