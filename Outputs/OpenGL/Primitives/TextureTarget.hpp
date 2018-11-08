@@ -10,7 +10,7 @@
 #define TextureTarget_hpp
 
 #include "OpenGL.hpp"
-#include "Shaders/Shader.hpp"
+#include "Shader.hpp"
 #include <memory>
 
 namespace OpenGL {
