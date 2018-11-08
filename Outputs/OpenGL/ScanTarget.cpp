@@ -7,6 +7,7 @@
 //
 
 #include "ScanTarget.hpp"
+#include "Primitives/Rectangle.hpp"
 
 using namespace Outputs::Display::OpenGL;
 
@@ -15,6 +16,19 @@ namespace {
 const int WriteAreaWidth = 2048;
 const int WriteAreaHeight = 2048;
 
+}
+
+ScanTarget::ScanTarget() {
+	// Allocate space for the spans.
+	glGenBuffers(1, &scan_buffer_name_);
+	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+	const auto buffer_size = scan_buffer_.size() * sizeof(Scan);
+	glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(buffer_size), NULL, GL_STREAM_DRAW);
+}
+
+ScanTarget::~ScanTarget() {
+	// Release span space.
+	glDeleteBuffers(1, &scan_buffer_name_);
 }
 
 void ScanTarget::set_modals(Modals modals) {
@@ -89,5 +103,25 @@ void ScanTarget::reduce_previous_allocation_to(size_t actual_length) {
 }
 
 void ScanTarget::submit() {
-	// TODO.
+	if(allocation_has_failed_) {
+		// Reset all pointers to where they were.
+		scan_buffer_pointers_.write_pointer = scan_buffer_pointers_.submit_pointer;
+	} else {
+		// Advance submit pointer.
+		scan_buffer_pointers_.submit_pointer = scan_buffer_pointers_.write_pointer;
+	}
+
+	allocation_has_failed_ = false;
+}
+
+void ScanTarget::draw() {
+	// Submit spans.
+	if(scan_buffer_pointers_.submit_pointer != scan_buffer_pointers_.read_pointer) {
+		// TODO: submit all scans from scan_buffer_pointers_.read_pointer to scan_buffer_pointers_.submit_pointer.
+		scan_buffer_pointers_.read_pointer = scan_buffer_pointers_.submit_pointer;
+	}
+
+	glClear(GL_COLOR_BUFFER_BIT);
+	::OpenGL::Rectangle rect(-0.8f, -0.8f, 1.6f, 1.6f);
+	rect.draw(1, 1, 0);
 }

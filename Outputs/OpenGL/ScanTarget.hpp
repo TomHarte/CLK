@@ -10,6 +10,7 @@
 #define ScanTarget_hpp
 
 #include "../ScanTarget.hpp"
+#include "OpenGL.hpp"
 
 #include <array>
 #include <atomic>
@@ -22,6 +23,11 @@ namespace OpenGL {
 
 class ScanTarget: public Outputs::Display::ScanTarget {
 	public:
+		ScanTarget();
+		~ScanTarget();
+		void draw();
+
+		// Outputs::Display::ScanTarget overrides.
 		void set_modals(Modals) override;
 		Scan *get_scan() override;
 		uint8_t *allocate_write_area(size_t required_length, size_t required_alignment) override;
@@ -39,10 +45,10 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		};
 
 		template <typename T> struct PointerSet {
-			/// A pointer to the final thing currently cleared for submission.
-			T submit_pointer;
 			/// A pointer to the next thing that should be provided to the caller for data.
 			T write_pointer;
+			/// A pointer to the final thing currently cleared for submission.
+			T submit_pointer;
 			/// A pointer to the first thing not yet submitted for display.
 			std::atomic<T> read_pointer;
 		};
@@ -50,6 +56,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// Maintains a buffer of the most recent 3072 scans.
 		std::array<Scan, 3072> scan_buffer_;
 		PointerSet<size_t> scan_buffer_pointers_;
+		GLuint scan_buffer_name_ = 0;
 
 		// Uses a texture to vend write areas.
 		std::vector<uint8_t> write_area_texture_;

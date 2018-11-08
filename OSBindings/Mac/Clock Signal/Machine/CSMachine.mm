@@ -73,44 +73,6 @@ struct ActivityObserver: public Activity::Observer {
 	__unsafe_unretained CSMachine *machine;
 };
 
-//class ScanTarget: public Outputs::Display::ScanTarget {
-//	public:
-//		void set_modals(Modals m) {
-//			modals_ = m;
-//		}
-//
-//		Scan *get_scan() {
-//			scans_.emplace_back();
-//			return &scans_.back();
-//		}
-//
-//		uint8_t *allocate_write_area(size_t required_length, size_t required_alignment) {
-//			write_area_.resize(required_length);
-//			return write_area_.data();
-//		}
-//
-//		void submit(bool only_if_no_allocation_failures) {
-//			for(const auto &scan: scans_) {
-//				printf("%0.2f %0.2f [%0.2f] -> %0.2f %0.2f [%0.2f] => %0.2f\n",
-//					float(scan.end_points[0].x) / float(modals_.output_scale.x),
-//					float(scan.end_points[0].y) / float(modals_.output_scale.y),
-//					float(scan.end_points[0].composite_angle) / 64.0f,
-//					float(scan.end_points[1].x) / float(modals_.output_scale.x),
-//					float(scan.end_points[1].y) / float(modals_.output_scale.y),
-//					float(scan.end_points[1].composite_angle) / 64.0f,
-//					(float(scan.end_points[1].composite_angle - scan.end_points[0].composite_angle) / 64.0f) / (float(scan.end_points[1].x - scan.end_points[0].x) / float(modals_.output_scale.x))
-//				);
-//			}
-//
-//			scans_.clear();
-//		}
-//
-//	private:
-//		std::vector<Scan> scans_;
-//		std::vector<uint8_t> write_area_;
-//		Modals modals_;
-//};
-
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
 	ActivityObserver _activityObserver;
@@ -124,7 +86,7 @@ struct ActivityObserver: public Activity::Observer {
 	std::bitset<65536> _depressedKeys;
 	NSMutableArray<NSString *> *_leds;
 
-	Outputs::Display::OpenGL::ScanTarget _scanTarget;
+	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
 }
 
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result {
@@ -273,7 +235,8 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
-	_machine->crt_machine()->setup_output(&_scanTarget);
+	_scanTarget.reset(new Outputs::Display::OpenGL::ScanTarget);
+	_machine->crt_machine()->setup_output(_scanTarget.get());
 
 	// Since OS X v10.6, Macs have had a gamma of 2.2.
 //	_machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
@@ -281,6 +244,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
+	_scanTarget->draw();
 //	_machine->crt_machine()->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
 }
 
