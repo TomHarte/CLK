@@ -24,15 +24,20 @@ constexpr int WriteAreaHeight = 2048;
 }
 
 ScanTarget::ScanTarget() {
-	// Allocate space for the spans.
+	// Allocate space for the scans.
 	glGenBuffers(1, &scan_buffer_name_);
 	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+
 	const auto buffer_size = scan_buffer_.size() * sizeof(Scan);
 	glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(buffer_size), NULL, GL_STREAM_DRAW);
+
+	// TODO: if this is OpenGL 4.4 or newer, use glBufferStorage rather than glBufferData
+	// and specify GL_MAP_PERSISTENT_BIT. Then map the buffer now, and let the client
+	// write straight into it.
 }
 
 ScanTarget::~ScanTarget() {
-	// Release span space.
+	// Release scan space.
 	glDeleteBuffers(1, &scan_buffer_name_);
 }
 
@@ -115,8 +120,8 @@ uint8_t *ScanTarget::allocate_write_area(size_t required_length, size_t required
 void ScanTarget::reduce_previous_allocation_to(size_t actual_length) {
 	if(allocation_has_failed_) return;
 
-	// The span was allocated in the knowledge that there's sufficient distance
-	// left on the current line, so there's no need to worry about carry.
+	// The write area was allocated in the knowledge that there's sufficient
+	// distance left on the current line, so there's no need to worry about carry.
 	write_pointers_.write_area += actual_length + 1;
 }
 
@@ -137,16 +142,42 @@ void ScanTarget::draw() {
 	const auto submit_pointers = submit_pointers_.load();
 	const auto read_pointers = read_pointers_.load();
 
-	// Submit spans.
+	// Submit scans.
 	if(submit_pointers.scan_buffer != read_pointers.scan_buffer) {
 
-//		uint8_t *destination = static_cast<uint8_t *>(glMapBufferRange(GL_ARRAY_BUFFER, 0, (GLsizeiptr)length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT));
-//		if(!glGetError() && destination) {
-//		}
+		const auto buffer_size = scan_buffer_.size() * sizeof(Scan);
+		uint8_t *destination = static_cast<uint8_t *>(
+			glMapBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT)
+		);
 
-		// TODO: submit all scans from scan_buffer_pointers_.read_pointer to scan_buffer_pointers_.submit_pointer.
-//		read_pointers_.scan_buffer = submit_pointers.scan_buffer;
+		if(submit_pointers.scan_buffer > read_pointers.scan_buffer) {
+			// Submit the direct region from the submit pointer to the read pointer.
+			const size_t offset = read_pointers.scan_buffer * sizeof(Scan);
+			const size_t length = (submit_pointers.scan_buffer - read_pointers.scan_buffer) * sizeof(Scan);
+			memcpy(&destination[offset], &scan_buffer_[read_pointers.scan_buffer], length);
+
+			glFlushMappedBufferRange(GL_ARRAY_BUFFER, GLintptr(offset), GLsizeiptr(length));
+		} else {
+			// The circular buffer wrapped around; submit the data from the read pointer to the end of
+			// the buffer and from the start of the buffer to the submit pointer.
+			const size_t offset = read_pointers.scan_buffer * sizeof(Scan);
+			const size_t end_length = (scan_buffer_.size() - read_pointers.scan_buffer)  * sizeof(Scan);
+			const size_t start_length = submit_pointers.scan_buffer * sizeof(Scan);
+
+			memcpy(&destination[offset], &scan_buffer_[read_pointers.scan_buffer], end_length);
+			memcpy(&destination[0], &scan_buffer_[0], start_length);
+
+			glFlushMappedBufferRange(GL_ARRAY_BUFFER, GLintptr(offset), GLsizeiptr(end_length));
+			glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(start_length));
+		}
+
+		glUnmapBuffer(GL_ARRAY_BUFFER);
 	}
+
+	// TODO: submit texture.
+	// TODO: clear composite buffer (if needed).
+	// TODO: drawing (!)
+
 
 	// All data now having been spooled to the GPU, update the read pointers to
 	// the submit pointer location.
