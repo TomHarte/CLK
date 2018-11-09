@@ -48,9 +48,9 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			// The sizes below might be less hassle as something more natural like ints,
 			// but squeezing this struct into 64 bits makes the std::atomics more likely
 			// to be lock free; they are under LLVM x86-64.
-			int write_area;
-			uint16_t scan_buffer;
-			uint16_t composite_y;
+			int write_area = 0;
+			uint16_t scan_buffer = 0;
+			uint16_t composite_y = 0;
 		};
 
 		/// A pointer to the next thing that should be provided to the caller for data.
@@ -69,7 +69,9 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// Uses a texture to vend write areas.
 		std::vector<uint8_t> write_area_texture_;
 		size_t data_type_size_ = 0;
-		uint16_t last_supplied_x_ = 0;
+
+		GLuint write_area_texture_name_ = 0;
+		bool texture_exists_ = false;
 
 		// Track allocation failures.
 		bool allocation_has_failed_ = false;

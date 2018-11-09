@@ -16,10 +16,30 @@ namespace {
 constexpr int WriteAreaWidth = 2048;
 constexpr int WriteAreaHeight = 2048;
 
-#define TextureAddress(x, y) (((x) << 11) | (y))
-#define TextureAddressGetX(v) ((v) >> 11)
-#define TextureAddressGetY(v) ((v) & 0x7ff)
-#define TextureSub(x, y) (((x) - (y)) & 0x7ff)
+#define TextureAddress(x, y)	(((y) << 11) | (x))
+#define TextureAddressGetY(v)	uint16_t((v) >> 11)
+#define TextureAddressGetX(v)	uint16_t((v) & 0x7ff)
+#define TextureSub(a, b)		(((a) - (b)) & 0x3fffff)
+
+const GLint internalFormatForDepth(std::size_t depth) {
+	switch(depth) {
+		default: return GL_FALSE;
+		case 1: return GL_R8UI;
+		case 2: return GL_RG8UI;
+		case 3: return GL_RGB8UI;
+		case 4: return GL_RGBA8UI;
+	}
+}
+
+const GLenum formatForDepth(std::size_t depth) {
+	switch(depth) {
+		default: return GL_FALSE;
+		case 1: return GL_RED_INTEGER;
+		case 2: return GL_RG_INTEGER;
+		case 3: return GL_RGB_INTEGER;
+		case 4: return GL_RGBA_INTEGER;
+	}
+}
 
 }
 
@@ -34,11 +54,14 @@ ScanTarget::ScanTarget() {
 	// TODO: if this is OpenGL 4.4 or newer, use glBufferStorage rather than glBufferData
 	// and specify GL_MAP_PERSISTENT_BIT. Then map the buffer now, and let the client
 	// write straight into it.
+
+	glGenTextures(1, &write_area_texture_name_);
 }
 
 ScanTarget::~ScanTarget() {
 	// Release scan space.
 	glDeleteBuffers(1, &scan_buffer_name_);
+	glDeleteTextures(1, &write_area_texture_name_);
 }
 
 void ScanTarget::set_modals(Modals modals) {
@@ -99,22 +122,25 @@ uint8_t *ScanTarget::allocate_write_area(size_t required_length, size_t required
 	}
 
 	// Check whether that steps over the read pointer.
-	const auto new_address = TextureAddress(end_x, output_y);
+	const auto end_address = TextureAddress(end_x, output_y);
 	const auto read_pointers = read_pointers_.load();
 
-	const auto new_distance = TextureSub(read_pointers.write_area, new_address);
-	const auto previous_distance = TextureSub(read_pointers.write_area, write_pointers_.write_area);
+	const auto end_distance = TextureSub(end_address, read_pointers.write_area);
+	const auto previous_distance = TextureSub(write_pointers_.write_area, read_pointers.write_area);
 
-	// If allocating this would somehow make the write pointer further away from the read pointer,
+	// If allocating this would somehow make the write pointer back away from the read pointer,
 	// there must not be enough space left.
-	if(new_distance > previous_distance) {
+	if(end_distance < previous_distance) {
 		allocation_has_failed_ = true;
 		return nullptr;
 	}
 
 	// Everything checks out, return the pointer.
-	last_supplied_x_ = aligned_start_x;
-	return &write_area_texture_[size_t(new_address) * data_type_size_];
+	write_pointers_.write_area = TextureAddress(aligned_start_x, output_y);
+	return &write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_];
+
+	// Note state at exit:
+	//		write_pointers_.write_area points to the first pixel the client is expected to draw to.
 }
 
 void ScanTarget::reduce_previous_allocation_to(size_t actual_length) {
@@ -174,7 +200,57 @@ void ScanTarget::draw() {
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 	}
 
-	// TODO: submit texture.
+	// Submit texture.
+	if(submit_pointers.write_area != read_pointers.write_area) {
+		glBindTexture(GL_TEXTURE_2D, write_area_texture_name_);
+
+		// Create storage for the texture if it doesn't yet exist; this was deferred until here
+		// because the pixel format wasn't initially known.
+		if(!texture_exists_) {
+			glTexImage2D(
+				GL_TEXTURE_2D,
+				0,
+				internalFormatForDepth(data_type_size_),
+				WriteAreaWidth,
+				WriteAreaHeight,
+				0,
+				formatForDepth(data_type_size_),
+				GL_UNSIGNED_BYTE,
+				nullptr);
+			texture_exists_ = true;
+		}
+
+		const auto start_y = TextureAddressGetY(read_pointers.write_area);
+		const auto end_y = TextureAddressGetY(submit_pointers.write_area);
+		if(end_y >= start_y) {
+			// Submit the direct region from the submit pointer to the read pointer.
+			glTexSubImage2D(	GL_TEXTURE_2D, 0,
+								0, start_y,
+								WriteAreaWidth,
+								1 + end_y - start_y,
+								formatForDepth(data_type_size_),
+								GL_UNSIGNED_BYTE,
+								&write_area_texture_[size_t(TextureAddress(0, start_y))]);
+		} else {
+			// The circular buffer wrapped around; submit the data from the read pointer to the end of
+			// the buffer and from the start of the buffer to the submit pointer.
+			glTexSubImage2D(	GL_TEXTURE_2D, 0,
+								0, 0,
+								WriteAreaWidth,
+								1 + end_y,
+								formatForDepth(data_type_size_),
+								GL_UNSIGNED_BYTE,
+								&write_area_texture_[0]);
+			glTexSubImage2D(	GL_TEXTURE_2D, 0,
+								0, start_y,
+								WriteAreaWidth,
+								WriteAreaHeight - start_y,
+								formatForDepth(data_type_size_),
+								GL_UNSIGNED_BYTE,
+								&write_area_texture_[size_t(TextureAddress(0, start_y))]);
+		}
+	}
+
 	// TODO: clear composite buffer (if needed).
 	// TODO: drawing (!)
 
