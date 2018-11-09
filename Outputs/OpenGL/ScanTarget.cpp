@@ -13,8 +13,13 @@ using namespace Outputs::Display::OpenGL;
 
 namespace {
 
-const int WriteAreaWidth = 2048;
-const int WriteAreaHeight = 2048;
+constexpr int WriteAreaWidth = 2048;
+constexpr int WriteAreaHeight = 2048;
+
+#define TextureAddress(x, y) (((x) << 11) | (y))
+#define TextureAddressGetX(v) ((v) >> 11)
+#define TextureAddressGetY(v) ((v) & 0x7ff)
+#define TextureSub(x, y) (((x) - (y)) & 0x7ff)
 
 }
 
@@ -42,28 +47,30 @@ void ScanTarget::set_modals(Modals modals) {
 
 		data_type_size_ = data_type_size;
 		write_area_texture_.resize(2048*2048*data_type_size_);
-		write_area_x_ = 0;
-		write_area_pointers_.write_pointer = 0;
+
+		write_pointers_.scan_buffer = 0;
+		write_pointers_.write_area = 0;
 	}
 }
 
 Outputs::Display::ScanTarget::Scan *ScanTarget::get_scan() {
 	if(allocation_has_failed_) return nullptr;
 
-	const auto result = &scan_buffer_[scan_buffer_pointers_.write_pointer];
+	const auto result = &scan_buffer_[write_pointers_.scan_buffer];
+	const auto read_pointers = read_pointers_.load();
 
 	// Advance the pointer.
-	const auto next_write_pointer = (scan_buffer_pointers_.write_pointer + 1) % scan_buffer_.size();
+	const auto next_write_pointer = decltype(write_pointers_.scan_buffer)((write_pointers_.scan_buffer + 1) % scan_buffer_.size());
 
 	// Check whether that's too many.
-	if(next_write_pointer == scan_buffer_pointers_.read_pointer) {
+	if(next_write_pointer == read_pointers.scan_buffer) {
 		allocation_has_failed_ = true;
 		return nullptr;
 	}
-	scan_buffer_pointers_.write_pointer = next_write_pointer;
+	write_pointers_.scan_buffer = next_write_pointer;
 
 	// Fill in extra OpenGL-specific details.
-	result->data_y = write_area_pointers_.write_pointer;
+//	result->data_y = write_pointers_.write_area;
 	result->composite_y = 0;
 
 	return static_cast<Outputs::Display::ScanTarget::Scan *>(result);
@@ -72,56 +79,80 @@ Outputs::Display::ScanTarget::Scan *ScanTarget::get_scan() {
 uint8_t *ScanTarget::allocate_write_area(size_t required_length, size_t required_alignment) {
 	if(allocation_has_failed_) return nullptr;
 
-	// Will this fit on the current line? If so, job done.
-	uint16_t aligned_start = write_area_x_ + 1;
-	aligned_start += uint16_t((required_alignment - aligned_start%required_alignment)%required_alignment);
-	const uint16_t end =
-		aligned_start
-		+ uint16_t(2 + required_length);
-	if(end <= WriteAreaWidth) {
-		last_supplied_x_ = aligned_start;
-		return &write_area_texture_[write_area_pointers_.write_pointer*WriteAreaHeight + aligned_start];
+	// Determine where the proposed write area would start and end.
+	uint16_t output_y = TextureAddressGetY(write_pointers_.write_area);
+
+	uint16_t aligned_start_x = TextureAddressGetX(write_pointers_.write_area & 0xffff) + 1;
+	aligned_start_x += uint16_t((required_alignment - aligned_start_x%required_alignment)%required_alignment);
+
+	uint16_t end_x = aligned_start_x + uint16_t(1 + required_length);
+
+	if(end_x > WriteAreaWidth) {
+		output_y = (output_y + 1) % WriteAreaHeight;
+		aligned_start_x = uint16_t(required_alignment);
+		end_x = aligned_start_x + uint16_t(1 + required_length);
 	}
 
-	// Otherwise, look for the next line. But if that's where the read pointer is, don't proceed.
-	const uint16_t next_y = (write_area_pointers_.write_pointer + 1) % WriteAreaHeight;
-	if(next_y == write_area_pointers_.read_pointer) {
+	// Check whether that steps over the read pointer.
+	const auto new_address = TextureAddress(end_x, output_y);
+	const auto read_pointers = read_pointers_.load();
+
+	const auto new_distance = TextureSub(read_pointers.write_area, new_address);
+	const auto previous_distance = TextureSub(read_pointers.write_area, write_pointers_.write_area);
+
+	// If allocating this would somehow make the write pointer further away from the read pointer,
+	// there must not be enough space left.
+	if(new_distance > previous_distance) {
 		allocation_has_failed_ = true;
 		return nullptr;
 	}
 
-	// Advance then.
-	last_supplied_x_ = uint16_t(required_alignment);
-	write_area_pointers_.write_pointer = next_y;
-	return &write_area_texture_[write_area_pointers_.write_pointer*WriteAreaHeight + last_supplied_x_];
+	// Everything checks out, return the pointer.
+	last_supplied_x_ = aligned_start_x;
+	return &write_area_texture_[size_t(new_address) * data_type_size_];
 }
 
 void ScanTarget::reduce_previous_allocation_to(size_t actual_length) {
 	if(allocation_has_failed_) return;
 
-	write_area_x_ = 2 + uint16_t(actual_length) + last_supplied_x_;
+	// The span was allocated in the knowledge that there's sufficient distance
+	// left on the current line, so there's no need to worry about carry.
+	write_pointers_.write_area += actual_length + 1;
 }
 
 void ScanTarget::submit() {
 	if(allocation_has_failed_) {
 		// Reset all pointers to where they were.
-		scan_buffer_pointers_.write_pointer = scan_buffer_pointers_.submit_pointer;
+		write_pointers_ = submit_pointers_.load();
 	} else {
 		// Advance submit pointer.
-		scan_buffer_pointers_.submit_pointer = scan_buffer_pointers_.write_pointer;
+		submit_pointers_.store(write_pointers_);
 	}
 
 	allocation_has_failed_ = false;
 }
 
 void ScanTarget::draw() {
+	// Grab the current read and submit pointers.
+	const auto submit_pointers = submit_pointers_.load();
+	const auto read_pointers = read_pointers_.load();
+
 	// Submit spans.
-	if(scan_buffer_pointers_.submit_pointer != scan_buffer_pointers_.read_pointer) {
+	if(submit_pointers.scan_buffer != read_pointers.scan_buffer) {
+
+//		uint8_t *destination = static_cast<uint8_t *>(glMapBufferRange(GL_ARRAY_BUFFER, 0, (GLsizeiptr)length, GL_MAP_WRITE_BIT | GL_MAP_UNSYNCHRONIZED_BIT | GL_MAP_FLUSH_EXPLICIT_BIT));
+//		if(!glGetError() && destination) {
+//		}
+
 		// TODO: submit all scans from scan_buffer_pointers_.read_pointer to scan_buffer_pointers_.submit_pointer.
-		scan_buffer_pointers_.read_pointer = scan_buffer_pointers_.submit_pointer;
+//		read_pointers_.scan_buffer = submit_pointers.scan_buffer;
 	}
 
+	// All data now having been spooled to the GPU, update the read pointers to
+	// the submit pointer location.
+	read_pointers_.store(submit_pointers);
+
 	glClear(GL_COLOR_BUFFER_BIT);
-	::OpenGL::Rectangle rect(-0.8f, -0.8f, 1.6f, 1.6f);
-	rect.draw(1, 1, 0);
+//	::OpenGL::Rectangle rect(-0.8f, -0.8f, 1.6f, 1.6f);
+//	rect.draw(1, 1, 0);
 }

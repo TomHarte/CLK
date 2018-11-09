@@ -44,25 +44,32 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			uint16_t composite_y;
 		};
 
-		template <typename T> struct PointerSet {
-			/// A pointer to the next thing that should be provided to the caller for data.
-			T write_pointer;
-			/// A pointer to the final thing currently cleared for submission.
-			T submit_pointer;
-			/// A pointer to the first thing not yet submitted for display.
-			std::atomic<T> read_pointer;
+		struct PointerSet {
+			// The sizes below might be less hassle as something more natural like ints,
+			// but squeezing this struct into 64 bits makes the std::atomics more likely
+			// to be lock free; they are under LLVM x86-64.
+			int write_area;
+			uint16_t scan_buffer;
+			uint16_t composite_y;
 		};
+
+		/// A pointer to the next thing that should be provided to the caller for data.
+		PointerSet write_pointers_;
+
+		/// A pointer to the final thing currently cleared for submission.
+		std::atomic<PointerSet> submit_pointers_;
+
+		/// A pointer to the first thing not yet submitted for display.
+		std::atomic<PointerSet> read_pointers_;
 
 		// Maintains a buffer of the most recent 3072 scans.
 		std::array<Scan, 3072> scan_buffer_;
-		PointerSet<size_t> scan_buffer_pointers_;
 		GLuint scan_buffer_name_ = 0;
 
 		// Uses a texture to vend write areas.
 		std::vector<uint8_t> write_area_texture_;
 		size_t data_type_size_ = 0;
-		uint16_t write_area_x_ = 0, last_supplied_x_ = 0;
-		PointerSet<uint16_t> write_area_pointers_;
+		uint16_t last_supplied_x_ = 0;
 
 		// Track allocation failures.
 		bool allocation_has_failed_ = false;
