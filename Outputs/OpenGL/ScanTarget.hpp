@@ -80,6 +80,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		std::array<CompositeLine, 2048> composite_line_buffer_;
 		TextureTarget composite_line_texture_;
 		GLuint composite_line_vertex_array_ = 0;
+		CompositeLine *active_composite_line_ = nullptr;
 
 		// Uses a texture to vend write areas.
 		std::vector<uint8_t> write_area_texture_;

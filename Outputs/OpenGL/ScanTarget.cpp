@@ -105,7 +105,7 @@ Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 	write_pointers_.scan_buffer = next_write_pointer;
 
 	// Fill in extra OpenGL-specific details.
-	result->composite_y = 0;	// TODO.
+	result->composite_y = write_pointers_.composite_y;
 
 	vended_scan_ = result;
 	return static_cast<Outputs::Display::ScanTarget::Scan *>(result);
@@ -180,6 +180,33 @@ void ScanTarget::submit() {
 }
 
 void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
+	switch(event) {
+		default: break;
+		case ScanTarget::Event::BeginHorizontalRetrace:
+			if(active_composite_line_) {
+				active_composite_line_->end_points[1].x = x;
+				active_composite_line_->end_points[1].y = y;
+				active_composite_line_ = nullptr;
+			}
+		break;
+		case ScanTarget::Event::EndHorizontalRetrace: {
+			const auto read_pointers = read_pointers_.load();
+
+			// Attempt to allocate a new line; note allocation failure if necessary.
+			const auto next_composite_y = uint16_t((write_pointers_.composite_y + 1) % CompositeLineBufferHeight);
+
+			// Check whether that's too many.
+			if(next_composite_y == read_pointers.composite_y) {
+				allocation_has_failed_ = true;
+			} else {
+				write_pointers_.composite_y = next_composite_y;
+				active_composite_line_ = &composite_line_buffer_[size_t(write_pointers_.composite_y)];
+				active_composite_line_->end_points[0].x = x;
+				active_composite_line_->end_points[0].y = y;
+				active_composite_line_->composite_y = write_pointers_.composite_y;
+			}
+		} break;
+	}
 }
 
 void ScanTarget::draw() {
