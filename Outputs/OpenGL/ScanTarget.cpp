@@ -18,7 +18,26 @@ constexpr int WriteAreaHeight = 2048;
 
 constexpr int CompositeLineBufferWidth = 2048;
 constexpr int CompositeLineBufferHeight = 2048;
-constexpr int CompositeLineBufferTextureUnit = 0;
+
+/// The texture unit from which to source 1bpp input data.
+constexpr GLenum SourceData1BppTextureUnit = GL_TEXTURE0;
+/// The texture unit from which to source 2bpp input data.
+constexpr GLenum SourceData2BppTextureUnit = GL_TEXTURE1;
+/// The texture unit from which to source 4bpp input data.
+constexpr GLenum SourceData4BppTextureUnit = GL_TEXTURE2;
+
+/// The texture unit which contains raw line-by-line composite or RGB data.
+constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE3;
+/// The texture unit which contains line-by-line records of luminance and amplitude-modulated chrominance.
+constexpr GLenum CompositeSeparatedTextureUnit = GL_TEXTURE4;
+/// The texture unit which contains line-by-line records of luminance and demodulated chrominance.
+constexpr GLenum DemodulatedCompositeTextureUnit = GL_TEXTURE5;
+
+/// The texture unit which contains line-by-line RGB.
+constexpr GLenum LineBufferTextureUnit = GL_TEXTURE6;
+
+/// The texture unit that contains the current display.
+constexpr GLenum AccumulationTextureUnit = GL_TEXTURE7;
 
 #define TextureAddress(x, y)	(((y) << 11) | (x))
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
@@ -48,13 +67,12 @@ const GLenum formatForDepth(std::size_t depth) {
 }
 
 ScanTarget::ScanTarget() :
- 	composite_line_texture_(CompositeLineBufferWidth, CompositeLineBufferHeight, CompositeLineBufferTextureUnit, GL_LINEAR) {
+ 	unprocessed_line_texture_(CompositeLineBufferWidth, CompositeLineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR) {
 
 	// Allocate space for the scans.
+	const auto buffer_size = scan_buffer_.size() * sizeof(Scan);
 	glGenBuffers(1, &scan_buffer_name_);
 	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
-
-	const auto buffer_size = scan_buffer_.size() * sizeof(Scan);
 	glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(buffer_size), NULL, GL_STREAM_DRAW);
 
 	// TODO: if this is OpenGL 4.4 or newer, use glBufferStorage rather than glBufferData

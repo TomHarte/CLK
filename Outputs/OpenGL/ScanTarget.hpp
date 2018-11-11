@@ -78,7 +78,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			uint16_t composite_y;
 		};
 		std::array<CompositeLine, 2048> composite_line_buffer_;
-		TextureTarget composite_line_texture_;
+		TextureTarget unprocessed_line_texture_;
 		GLuint composite_line_vertex_array_ = 0;
 		CompositeLine *active_composite_line_ = nullptr;
 
