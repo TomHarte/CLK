@@ -449,7 +449,7 @@ void TIA::output_for_cycles(int number_of_cycles) {
 	} else {
 		if(!pixels_start_location_ && crt_) {
 			pixels_start_location_ = output_cursor;
-			pixel_target_ = crt_->allocate_write_area(160);
+			pixel_target_ = crt_->begin_data(160);
 		}
 
 		// convert that into pixels

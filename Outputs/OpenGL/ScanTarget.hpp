@@ -29,9 +29,9 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		// Outputs::Display::ScanTarget overrides.
 		void set_modals(Modals) override;
-		Scan *get_scan() override;
-		uint8_t *allocate_write_area(size_t required_length, size_t required_alignment) override;
-		void reduce_previous_allocation_to(size_t actual_length) override;
+		Scan *begin_scan() override;
+		uint8_t *begin_data(size_t required_length, size_t required_alignment) override;
+		void end_data(size_t actual_length) override;
 		void submit() override;
 
 	private:
@@ -65,6 +65,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// Maintains a buffer of the most recent 3072 scans.
 		std::array<Scan, 3072> scan_buffer_;
 		GLuint scan_buffer_name_ = 0;
+		GLuint vertex_array_;
 
 		// Uses a texture to vend write areas.
 		std::vector<uint8_t> write_area_texture_;

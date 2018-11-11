@@ -239,7 +239,7 @@ class CRTCBusHandler {
 			// collect some more pixels if output is ongoing
 			if(previous_output_mode_ == OutputMode::Pixels) {
 				if(!pixel_data_) {
-					pixel_pointer_ = pixel_data_ = crt_->allocate_write_area(320, 8);
+					pixel_pointer_ = pixel_data_ = crt_->begin_data(320, 8);
 				}
 				if(pixel_pointer_) {
 					// the CPC shuffles output lines as:
@@ -378,7 +378,7 @@ class CRTCBusHandler {
 
 	private:
 		void output_border(int length) {
-			uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->allocate_write_area(1));
+			uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->begin_data(1));
 			if(colour_pointer) *colour_pointer = border_;
 			crt_->output_level(length * 16);
 		}

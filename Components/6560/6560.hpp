@@ -294,7 +294,7 @@ template <class BusHandler> class MOS6560 {
 
 					pixel_pointer = nullptr;
 					if(output_state_ == State::Pixels) {
-						pixel_pointer = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(260));
+						pixel_pointer = reinterpret_cast<uint16_t *>(crt_->begin_data(260));
 					}
 				}
 				cycles_in_state_++;
@@ -512,7 +512,7 @@ template <class BusHandler> class MOS6560 {
 
 		uint16_t *pixel_pointer;
 		void output_border(int number_of_cycles) {
-			uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(1));
+			uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_->begin_data(1));
 			if(colour_pointer) *colour_pointer = registers_.borderColour;
 			crt_->output_level(number_of_cycles);
 		}

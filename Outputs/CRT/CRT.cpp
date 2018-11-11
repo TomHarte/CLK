@@ -162,7 +162,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 		// Determine whether to output any data for this portion of the output; if so then grab somewhere to put it.
 		const bool is_output_segment = ((is_output_run && next_run_length) && !horizontal_flywheel_->is_in_retrace() && !vertical_flywheel_->is_in_retrace());
-		Outputs::Display::ScanTarget::Scan *const next_scan = is_output_segment ? scan_target_->get_scan() : nullptr;
+		Outputs::Display::ScanTarget::Scan *const next_scan = is_output_segment ? scan_target_->begin_scan() : nullptr;
 		did_output |= is_output_segment;
 
 		// If outputting, store the start location and scan constants.
@@ -182,24 +182,41 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 		horizontal_flywheel_->apply_event(next_run_length, (next_run_length == time_until_horizontal_sync_event) ? next_horizontal_sync_event : Flywheel::SyncEvent::None);
 		vertical_flywheel_->apply_event(next_run_length, (next_run_length == time_until_vertical_sync_event) ? next_vertical_sync_event : Flywheel::SyncEvent::None);
 
-		// Store an endpoint if necessary.
+		// End the scan if necessary.
 		if(next_scan) {
 			next_scan->end_points[1].x = uint16_t(horizontal_flywheel_->get_current_output_position());
 			next_scan->end_points[1].y = uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
 			next_scan->end_points[1].composite_angle = int16_t((phase_numerator_ << 6) / phase_denominator_) * (is_alernate_line_ ? -1 : 1);
 			next_scan->end_points[1].data_offset = uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles);
+			scan_target_->end_scan();
 		}
 
-		// If this is horizontal retrace then announce as such, and prepare for the next line.
-		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
-			scan_target_->announce(Outputs::Display::ScanTarget::Event::HorizontalRetrace);
-			is_alernate_line_ ^= phase_alternates_;
-			colour_burst_amplitude_ = 0;
+		// Announce horizontal retrace events.
+		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event != Flywheel::SyncEvent::None) {
+			const auto event =
+				(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
+					? Outputs::Display::ScanTarget::Event::BeginHorizontalRetrace : Outputs::Display::ScanTarget::Event::EndHorizontalRetrace;
+			scan_target_->announce(
+				event,
+				uint16_t(horizontal_flywheel_->get_current_output_position()),
+				uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_));
+
+			// Prepare for the next line.
+			if(next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace) {
+				is_alernate_line_ ^= phase_alternates_;
+				colour_burst_amplitude_ = 0;
+			}
 		}
 
-		// Also announce if this is vertical retrace.
-		if(next_run_length == time_until_vertical_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
-			scan_target_->announce(Outputs::Display::ScanTarget::Event::VerticalRetrace);
+		// Also announce vertical retrace events.
+		if(next_run_length == time_until_vertical_sync_event && next_horizontal_sync_event != Flywheel::SyncEvent::None) {
+			const auto event =
+				(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
+					? Outputs::Display::ScanTarget::Event::BeginVerticalRetrace : Outputs::Display::ScanTarget::Event::EndVerticalRetrace;
+			scan_target_->announce(
+				event,
+				uint16_t(horizontal_flywheel_->get_current_output_position()),
+				uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_));
 		}
 
 		// if this is vertical retrace then adcance a field
@@ -308,7 +325,7 @@ void CRT::output_blank(int number_of_cycles) {
 }
 
 void CRT::output_level(int number_of_cycles) {
-	scan_target_->reduce_previous_allocation_to(1);
+	scan_target_->end_data(1);
 	Scan scan;
 	scan.type = Scan::Type::Level;
 	scan.number_of_cycles = number_of_cycles;
@@ -336,7 +353,7 @@ void CRT::set_immediate_default_phase(float phase) {
 }
 
 void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
-	scan_target_->reduce_previous_allocation_to(number_of_samples);
+	scan_target_->end_data(number_of_samples);
 	Scan scan;
 	scan.type = Scan::Type::Data;
 	scan.number_of_cycles = number_of_cycles;

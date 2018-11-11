@@ -411,7 +411,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						if(!asked_for_write_area_) {
 							asked_for_write_area_ = true;
 							pixel_origin_ = pixel_target_ = reinterpret_cast<uint32_t *>(
-								crt_->allocate_write_area(size_t(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
+								crt_->begin_data(size_t(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
 							);
 						}
 
@@ -471,14 +471,14 @@ void Base::output_border(int cycles, uint32_t cram_dot) {
 			palette[background_colour_];
 
 	if(cram_dot) {
-		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
+		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_->begin_data(1));
 		*pixel_target = border_colour | cram_dot;
 		crt_->output_level(4);
 		cycles -= 4;
 	}
 
 	if(cycles) {
-		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_->allocate_write_area(1));
+		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_->begin_data(1));
 		*pixel_target = border_colour;
 		crt_->output_level(cycles);
 	}

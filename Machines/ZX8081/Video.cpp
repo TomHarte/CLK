@@ -68,7 +68,7 @@ void Video::flush(bool next_sync) {
 		}
 
 		// Any pending pixels being dealt with, pad with the white level.
-		uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->allocate_write_area(1));
+		uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->begin_data(1));
 		if(colour_pointer) *colour_pointer = 0xff;
 		crt_->output_level(time_since_update_.as_int());
 	}
@@ -92,7 +92,7 @@ void Video::output_byte(uint8_t byte) {
 
 	// Grab a buffer if one isn't already available.
 	if(!line_data_) {
-		line_data_pointer_ = line_data_ = crt_->allocate_write_area(StandardAllocationSize);
+		line_data_pointer_ = line_data_ = crt_->begin_data(StandardAllocationSize);
 	}
 
 	// If a buffer was obtained, serialise the new pixels.
@@ -101,7 +101,7 @@ void Video::output_byte(uint8_t byte) {
 		if(line_data_pointer_ - line_data_ == StandardAllocationSize) {
 			crt_->output_data(StandardAllocationSize, StandardAllocationSize);
 			time_since_update_ -= StandardAllocationSize;
-			line_data_pointer_ = line_data_ = crt_->allocate_write_area(StandardAllocationSize);
+			line_data_pointer_ = line_data_ = crt_->begin_data(StandardAllocationSize);
 			if(!line_data_) return;
 		}
 

@@ -56,12 +56,14 @@ ScanTarget::ScanTarget() {
 	// write straight into it.
 
 	glGenTextures(1, &write_area_texture_name_);
+	glGenVertexArrays(1, &vertex_array_);
 }
 
 ScanTarget::~ScanTarget() {
 	// Release scan space.
 	glDeleteBuffers(1, &scan_buffer_name_);
 	glDeleteTextures(1, &write_area_texture_name_);
+	glDeleteVertexArrays(1, &vertex_array_);
 }
 
 void ScanTarget::set_modals(Modals modals) {
@@ -81,7 +83,7 @@ void ScanTarget::set_modals(Modals modals) {
 	}
 }
 
-Outputs::Display::ScanTarget::Scan *ScanTarget::get_scan() {
+Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 	if(allocation_has_failed_) return nullptr;
 
 	const auto result = &scan_buffer_[write_pointers_.scan_buffer];
@@ -104,7 +106,7 @@ Outputs::Display::ScanTarget::Scan *ScanTarget::get_scan() {
 	return static_cast<Outputs::Display::ScanTarget::Scan *>(result);
 }
 
-uint8_t *ScanTarget::allocate_write_area(size_t required_length, size_t required_alignment) {
+uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignment) {
 	if(allocation_has_failed_) return nullptr;
 
 	// Determine where the proposed write area would start and end.
@@ -143,7 +145,7 @@ uint8_t *ScanTarget::allocate_write_area(size_t required_length, size_t required
 	//		write_pointers_.write_area points to the first pixel the client is expected to draw to.
 }
 
-void ScanTarget::reduce_previous_allocation_to(size_t actual_length) {
+void ScanTarget::end_data(size_t actual_length) {
 	if(allocation_has_failed_) return;
 
 	// The write area was allocated in the knowledge that there's sufficient

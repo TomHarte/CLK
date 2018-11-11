@@ -196,29 +196,32 @@ struct ScanTarget {
 		/// Requests a new scan to populate.
 		///
 		/// @return A valid pointer, or @c nullptr if insufficient further storage is available.
-		virtual Scan *get_scan() = 0;
+		virtual Scan *begin_scan() = 0;
 
-		/// Finds the first available space of at least @c required_length pixels in size which is suitably aligned
-		/// for writing of @c required_alignment number of pixels at a time.
+		/// Requests a new scan to populate.
+		virtual void end_scan() {}
+
+		/// Finds the first available storage of at least @c required_length pixels in size which is
+		/// suitably aligned for writing of @c required_alignment number of samples at a time.
 		///
-		/// Calls will be paired off with calls to @c reduce_previous_allocation_to.
+		/// Calls will be paired off with calls to @c end_data.
 		///
 		/// @returns a pointer to the allocated space if any was available; @c nullptr otherwise.
-		virtual uint8_t *allocate_write_area(size_t required_length, size_t required_alignment = 1) = 0;
+		virtual uint8_t *begin_data(size_t required_length, size_t required_alignment = 1) = 0;
 
-		/// Announces that the owner is finished with the region created by the most recent @c allocate_write_area
+		/// Announces that the owner is finished with the region created by the most recent @c begin_data
 		/// and indicates that its actual final size was @c actual_length.
 		///
-		/// It is required that every call to allocate_write_area be paired with a call to reduce_previous_allocation_to.
-		virtual void reduce_previous_allocation_to(size_t actual_length) {}
+		/// It is required that every call to begin_data be paired with a call to end_data.
+		virtual void end_data(size_t actual_length) {}
 
 		/// Marks the end of an atomic set of data. Drawing is best effort, so the scan target should either:
 		///
 		///		(i)	output everything received since the previous submit; or
 		///		(ii) output nothing.
 		///
-		/// If there were any allocation failures — i.e. any null responses to allocate_write_area or
-		/// get_scan — then (ii) is a required response. But a scan target may also need to opt for (ii)
+		/// If there were any allocation failures — i.e. any nullptr responses to begin_data or
+		/// begin_scan — then (ii) is a required response. But a scan target may also need to opt for (ii)
 		/// for any other reason.
 		///
 		/// The ScanTarget isn't bound to take any drawing action immediately; it may sit on submitted data for
@@ -232,12 +235,15 @@ struct ScanTarget {
 	*/
 
 		enum class Event {
-			HorizontalRetrace,
-			VerticalRetrace
+			BeginHorizontalRetrace,
+			EndHorizontalRetrace,
+
+			BeginVerticalRetrace,
+			EndVerticalRetrace,
 		};
 
 		/// Provides a hint that the named event has occurred.
-		virtual void announce(Event event) {}
+		virtual void announce(Event event, uint16_t x, uint16_t y) {}
 };
 
 }

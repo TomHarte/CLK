@@ -169,15 +169,14 @@ class CRT {
 		*/
 		void output_level(int number_of_cycles);
 
-		/*!	Declares that the caller has created a run of data via @c allocate_write_area and @c get_write_target_for_buffer
-			that is at least @c number_of_samples long, and that the first @c number_of_samples should be spread
-			over @c number_of_cycles.
+		/*!	Declares that the caller has created a run of data via @c begin_data that is at least @c number_of_samples
+			long, and that the first @c number_of_samples should be spread over @c number_of_cycles.
 
 			@param number_of_cycles The amount of data to output.
 
 			@param number_of_samples The number of samples of input data to output.
 
-			@see @c allocate_write_area , @c get_write_target_for_buffer
+			@see @c begin_data
 		*/
 		void output_data(int number_of_cycles, size_t number_of_samples);
 
@@ -222,8 +221,8 @@ class CRT {
 			@param required_length The number of samples to allocate.
 			@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 		*/
-		inline uint8_t *allocate_write_area(std::size_t required_length, std::size_t required_alignment = 1) {
-			return scan_target_->allocate_write_area(required_length, required_alignment);
+		inline uint8_t *begin_data(std::size_t required_length, std::size_t required_alignment = 1) {
+			return scan_target_->begin_data(required_length, required_alignment);
 		}
 
 		/*!	Sets the gamma exponent for the simulated screen. */

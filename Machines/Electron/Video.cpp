@@ -119,7 +119,7 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 				crt_->output_data(data_length * current_output_divider_, size_t(data_length));
 			}
 			current_output_divider_ = divider;
-			initial_output_target_ = current_output_target_ = crt_->allocate_write_area(size_t(640 / current_output_divider_), size_t(8 / divider));
+			initial_output_target_ = current_output_target_ = crt_->begin_data(size_t(640 / current_output_divider_), size_t(8 / divider));
 		}
 
 #define get_pixel()	\

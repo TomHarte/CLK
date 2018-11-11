@@ -402,7 +402,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 						// remain where they would naturally be but auxiliary
 						// graphics appear to the left of that.
 						if(!column_) {
-							pixel_pointer_ = crt_->allocate_write_area(568);
+							pixel_pointer_ = crt_->begin_data(568);
 							graphics_carry_ = 0;
 							was_double_ = true;
 						}
