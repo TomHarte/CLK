@@ -13,6 +13,8 @@
 #include "Shader.hpp"
 #include <memory>
 
+namespace Outputs {
+namespace Display {
 namespace OpenGL {
 
 /*!
@@ -36,6 +38,8 @@ class Rectangle {
 		GLint colour_uniform_;
 };
 
+}
+}
 }
 
 #endif /* Rectangle_hpp */

@@ -13,6 +13,8 @@
 #include "Shader.hpp"
 #include <memory>
 
+namespace Outputs {
+namespace Display {
 namespace OpenGL {
 
 /*!
@@ -87,6 +89,8 @@ class TextureTarget {
 		GLint threshold_uniform_;
 };
 
+}
+}
 }
 
 #endif /* TextureTarget_hpp */

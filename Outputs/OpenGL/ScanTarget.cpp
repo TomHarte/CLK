@@ -16,6 +16,10 @@ namespace {
 constexpr int WriteAreaWidth = 2048;
 constexpr int WriteAreaHeight = 2048;
 
+constexpr int CompositeLineBufferWidth = 2048;
+constexpr int CompositeLineBufferHeight = 2048;
+constexpr int CompositeLineBufferTextureUnit = 0;
+
 #define TextureAddress(x, y)	(((y) << 11) | (x))
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
 #define TextureAddressGetX(v)	uint16_t((v) & 0x7ff)
@@ -43,7 +47,9 @@ const GLenum formatForDepth(std::size_t depth) {
 
 }
 
-ScanTarget::ScanTarget() {
+ScanTarget::ScanTarget() :
+ 	composite_line_texture_(CompositeLineBufferWidth, CompositeLineBufferHeight, CompositeLineBufferTextureUnit, GL_LINEAR) {
+
 	// Allocate space for the scans.
 	glGenBuffers(1, &scan_buffer_name_);
 	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
@@ -56,14 +62,13 @@ ScanTarget::ScanTarget() {
 	// write straight into it.
 
 	glGenTextures(1, &write_area_texture_name_);
-	glGenVertexArrays(1, &vertex_array_);
+	glGenVertexArrays(1, &scan_vertex_array_);
 }
 
 ScanTarget::~ScanTarget() {
-	// Release scan space.
 	glDeleteBuffers(1, &scan_buffer_name_);
 	glDeleteTextures(1, &write_area_texture_name_);
-	glDeleteVertexArrays(1, &vertex_array_);
+	glDeleteVertexArrays(1, &scan_vertex_array_);
 }
 
 void ScanTarget::set_modals(Modals modals) {
@@ -172,6 +177,9 @@ void ScanTarget::submit() {
 	}
 
 	allocation_has_failed_ = false;
+}
+
+void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 }
 
 void ScanTarget::draw() {

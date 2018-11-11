@@ -8,7 +8,7 @@
 
 #include "Rectangle.hpp"
 
-using namespace OpenGL;
+using namespace Outputs::Display::OpenGL;
 
 Rectangle::Rectangle(float x, float y, float width, float height):
  	pixel_shader_(

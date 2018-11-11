@@ -209,9 +209,9 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 		}
 
 		// Also announce vertical retrace events.
-		if(next_run_length == time_until_vertical_sync_event && next_horizontal_sync_event != Flywheel::SyncEvent::None) {
+		if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event != Flywheel::SyncEvent::None) {
 			const auto event =
-				(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
+				(next_vertical_sync_event == Flywheel::SyncEvent::StartRetrace)
 					? Outputs::Display::ScanTarget::Event::BeginVerticalRetrace : Outputs::Display::ScanTarget::Event::EndVerticalRetrace;
 			scan_target_->announce(
 				event,

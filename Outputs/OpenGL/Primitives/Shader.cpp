@@ -11,7 +11,7 @@
 #include <cstdio>
 #include <cstring>
 
-using namespace OpenGL;
+using namespace Outputs::Display::OpenGL;
 
 namespace {
 	// The below is disabled because it isn't context/thread-specific. Which makes it

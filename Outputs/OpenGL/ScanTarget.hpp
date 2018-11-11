@@ -11,6 +11,7 @@
 
 #include "../ScanTarget.hpp"
 #include "OpenGL.hpp"
+#include "Primitives/TextureTarget.hpp"
 
 #include <array>
 #include <atomic>
@@ -27,6 +28,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		~ScanTarget();
 		void draw();
 
+	private:
 		// Outputs::Display::ScanTarget overrides.
 		void set_modals(Modals) override;
 		Scan *begin_scan() override;
@@ -34,8 +36,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		uint8_t *begin_data(size_t required_length, size_t required_alignment) override;
 		void end_data(size_t actual_length) override;
 		void submit() override;
+		void announce(Event event, uint16_t x, uint16_t y) override;
 
-	private:
 		// Extends the definition of a Scan to include two extra fields,
 		// relevant to the way that this scan target processes video.
 		struct Scan: public Outputs::Display::ScanTarget::Scan {
@@ -66,7 +68,18 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// Maintains a buffer of the most recent 3072 scans.
 		std::array<Scan, 3072> scan_buffer_;
 		GLuint scan_buffer_name_ = 0;
-		GLuint vertex_array_;
+		GLuint scan_vertex_array_ = 0;
+
+		// Maintains a list of composite scan buffer coordinates.
+		struct CompositeLine {
+			struct EndPoint {
+				uint16_t x, y;
+			} end_points[2];
+			uint16_t composite_y;
+		};
+		std::array<CompositeLine, 2048> composite_line_buffer_;
+		TextureTarget composite_line_texture_;
+		GLuint composite_line_vertex_array_ = 0;
 
 		// Uses a texture to vend write areas.
 		std::vector<uint8_t> write_area_texture_;

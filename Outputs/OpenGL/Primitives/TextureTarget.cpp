@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <vector>
 
-using namespace OpenGL;
+using namespace Outputs::Display::OpenGL;
 
 TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter) :
 		width_(width),

@@ -16,6 +16,8 @@
 #include <string>
 #include <vector>
 
+namespace Outputs {
+namespace Display {
 namespace OpenGL {
 
 /*!
@@ -118,6 +120,8 @@ protected:
 	void enqueue_function(std::function<void(void)> function);
 };
 
+}
+}
 }
 
 #endif /* Shader_hpp */
