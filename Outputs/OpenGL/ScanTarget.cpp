@@ -100,10 +100,19 @@ Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 	write_pointers_.scan_buffer = next_write_pointer;
 
 	// Fill in extra OpenGL-specific details.
-//	result->data_y = write_pointers_.write_area;
-	result->composite_y = 0;
+	result->composite_y = 0;	// TODO.
 
+	vended_scan_ = result;
 	return static_cast<Outputs::Display::ScanTarget::Scan *>(result);
+}
+
+void ScanTarget::end_scan() {
+	if(vended_scan_) {
+		vended_scan_->data_y = TextureAddressGetY(vended_write_area_pointer_);
+		vended_scan_->end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
+		vended_scan_->end_points[1].data_offset += TextureAddressGetX(vended_write_area_pointer_);
+    }
+    vended_scan_ = nullptr;
 }
 
 uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignment) {
@@ -138,7 +147,7 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 	}
 
 	// Everything checks out, return the pointer.
-	write_pointers_.write_area = TextureAddress(aligned_start_x, output_y);
+	vended_write_area_pointer_ = write_pointers_.write_area = TextureAddress(aligned_start_x, output_y);
 	return &write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_];
 
 	// Note state at exit:

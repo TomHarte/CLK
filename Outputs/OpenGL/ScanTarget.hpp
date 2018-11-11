@@ -30,6 +30,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// Outputs::Display::ScanTarget overrides.
 		void set_modals(Modals) override;
 		Scan *begin_scan() override;
+		void end_scan() override;
 		uint8_t *begin_data(size_t required_length, size_t required_alignment) override;
 		void end_data(size_t actual_length) override;
 		void submit() override;
@@ -73,6 +74,10 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		GLuint write_area_texture_name_ = 0;
 		bool texture_exists_ = false;
+
+		// Ephemeral information for the begin/end functions.
+		Scan *vended_scan_ = nullptr;
+		int vended_write_area_pointer_ = 0;
 
 		// Track allocation failures.
 		bool allocation_has_failed_ = false;
