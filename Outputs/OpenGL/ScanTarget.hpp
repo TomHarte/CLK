@@ -70,8 +70,6 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		// Maintains a buffer of the most recent 3072 scans.
 		std::array<Scan, 3072> scan_buffer_;
-		GLuint scan_buffer_name_ = 0;
-		GLuint scan_vertex_array_ = 0;
 
 		// Maintains a list of composite scan buffer coordinates.
 		struct Line {
@@ -82,8 +80,14 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		};
 		std::array<Line, 2048> line_buffer_;
 		TextureTarget unprocessed_line_texture_;
-		GLuint line_vertex_array_ = 0;
 		Line *active_line_ = nullptr;
+
+		// OpenGL storage handles for buffer data.
+		GLuint scan_buffer_name_ = 0, scan_vertex_array_ = 0;
+		GLuint line_buffer_name_ = 0, line_vertex_array_ = 0;
+
+		template <typename T> void allocate_buffer(const T &array, GLuint &buffer_name);
+		template <typename T> void submit_buffer(const T &array, GLuint target, uint16_t submit_pointer, uint16_t read_pointer);
 
 		// Uses a texture to vend write areas.
 		std::vector<uint8_t> write_area_texture_;
