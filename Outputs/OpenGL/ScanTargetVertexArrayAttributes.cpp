@@ -14,6 +14,8 @@ std::string ScanTarget::globals(ShaderType type) {
 	switch(type) {
 		case ShaderType::Scan:
 		return
+			"#version 150\n"
+
 			"uniform vec2 scale;"
 			"uniform float rowHeight;"
 			"uniform mat3 lumaChromaToRGB;"
@@ -28,10 +30,23 @@ std::string ScanTarget::globals(ShaderType type) {
 			"in float endCompositeAngle;"
 
 			"in float dataY;"
-			"in float lineY;";
+			"in float lineY;"
+
+			"void main(void) {"
+				"float lateral = float(gl_VertexID & 1);"
+				"float longitudinal = float((gl_VertexID & 2) >> 1);"
+
+				"vec2 vPosition = vec2("
+					"mix(startPoint.x, endPoint.x, lateral),"
+					"mix(startPoint.y, endPoint.y, longitudinal)"
+				") / scale;"
+				"gl_Position = vec4(vPosition, 0.0, 1.0);"
+			"}";
 
 		case ShaderType::Line:
 		return
+			"#version 150\n"
+
 			"in vec2 startPoint;"
 			"in vec2 endPoint;";
 	}

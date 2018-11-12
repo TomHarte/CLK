@@ -81,6 +81,18 @@ ScanTarget::ScanTarget() :
 
 	glGenTextures(1, &write_area_texture_name_);
 	glGenVertexArrays(1, &scan_vertex_array_);
+
+	glBindVertexArray(scan_vertex_array_);
+	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+	test_shader_.reset(new Shader(
+		globals(ShaderType::Scan),
+		"#version 150\n"
+		"out vec4 fragColour;"
+		"void main(void) {"
+			"fragColour = vec4(1.0);"
+		"}"
+	));
+	enable_vertex_attributes(ShaderType::Scan, *test_shader_);
 }
 
 ScanTarget::~ScanTarget() {
@@ -104,6 +116,10 @@ void ScanTarget::set_modals(Modals modals) {
 		write_pointers_.scan_buffer = 0;
 		write_pointers_.write_area = 0;
 	}
+
+	// TODO: this, but not to the test shader.
+	test_shader_->set_uniform("scale", GLfloat(modals.output_scale.x), GLfloat(modals.output_scale.y));
+	test_shader_->set_uniform("rowHeight", GLfloat(1.0f / modals.expected_vertical_lines));
 }
 
 Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
@@ -228,17 +244,19 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 }
 
 void ScanTarget::draw() {
+	glClear(GL_COLOR_BUFFER_BIT);
+
 	// Grab the current read and submit pointers.
 	const auto submit_pointers = submit_pointers_.load();
 	const auto read_pointers = read_pointers_.load();
 
 	// Submit scans.
 	if(submit_pointers.scan_buffer != read_pointers.scan_buffer) {
-
 		const auto buffer_size = scan_buffer_.size() * sizeof(Scan);
 		uint8_t *destination = static_cast<uint8_t *>(
 			glMapBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT)
 		);
+		assert(destination);
 
 		if(submit_pointers.scan_buffer > read_pointers.scan_buffer) {
 			// Submit the direct region from the submit pointer to the read pointer.
@@ -323,7 +341,11 @@ void ScanTarget::draw() {
 	// the submit pointer location.
 	read_pointers_.store(submit_pointers);
 
-	glClear(GL_COLOR_BUFFER_BIT);
-//	::OpenGL::Rectangle rect(-0.8f, -0.8f, 1.6f, 1.6f);
+	// TEST: draw all scans.
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glBindVertexArray(scan_vertex_array_);
+	test_shader_->bind();
+	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(scan_buffer_.size()));
+//	Rectangle rect(-0.8f, -0.8f, 1.6f, 1.6f);
 //	rect.draw(1, 1, 0);
 }

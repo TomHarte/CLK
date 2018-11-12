@@ -110,7 +110,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		/*!
 			@returns A string containing GLSL code describing the standard set of
 				@c in and @c uniform variables to bind to the relevant struct
-				from [...]OpenGL::ScanTarget.
+				from [...]OpenGL::ScanTarget and a vertex function to provide
+				the standard varyings.
 		*/
 		std::string globals(ShaderType type);
 
@@ -119,6 +120,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			globals for shaders of @c type to @c target.
 		*/
 		void enable_vertex_attributes(ShaderType type, Shader &target);
+
+		std::unique_ptr<Shader> test_shader_;
 };
 
 }
