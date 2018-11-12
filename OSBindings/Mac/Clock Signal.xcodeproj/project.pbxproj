@@ -624,8 +624,8 @@
 		4BD424E82193B5830097291A /* Rectangle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD424E22193B5820097291A /* Rectangle.cpp */; };
 		4BD468F71D8DF41D0084958B /* 1770.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD468F51D8DF41D0084958B /* 1770.cpp */; };
 		4BD4A8D01E077FD20020D856 /* PCMTrackTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */; };
-		4BD5D2682199148100DDF17D /* ScanTargetVertexArrayAttributes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5D2672199148100DDF17D /* ScanTargetVertexArrayAttributes.cpp */; };
-		4BD5D2692199148100DDF17D /* ScanTargetVertexArrayAttributes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5D2672199148100DDF17D /* ScanTargetVertexArrayAttributes.cpp */; };
+		4BD5D2682199148100DDF17D /* ScanTargetGLSLFragments.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5D2672199148100DDF17D /* ScanTargetGLSLFragments.cpp */; };
+		4BD5D2692199148100DDF17D /* ScanTargetGLSLFragments.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5D2672199148100DDF17D /* ScanTargetGLSLFragments.cpp */; };
 		4BD5F1951D13528900631CD1 /* CSBestEffortUpdater.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.mm */; };
 		4BD61664206B2AC800236112 /* QuickLoadOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BD61662206B2AC700236112 /* QuickLoadOptions.xib */; };
 		4BD67DCB209BE4D700AB2146 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD67DCA209BE4D600AB2146 /* StaticAnalyser.cpp */; };
@@ -1387,7 +1387,7 @@
 		4BD468F51D8DF41D0084958B /* 1770.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = 1770.cpp; path = 1770/1770.cpp; sourceTree = "<group>"; };
 		4BD468F61D8DF41D0084958B /* 1770.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = 1770.hpp; path = 1770/1770.hpp; sourceTree = "<group>"; };
 		4BD4A8CF1E077FD20020D856 /* PCMTrackTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PCMTrackTests.mm; sourceTree = "<group>"; };
-		4BD5D2672199148100DDF17D /* ScanTargetVertexArrayAttributes.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScanTargetVertexArrayAttributes.cpp; sourceTree = "<group>"; };
+		4BD5D2672199148100DDF17D /* ScanTargetGLSLFragments.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScanTargetGLSLFragments.cpp; sourceTree = "<group>"; };
 		4BD5F1931D13528900631CD1 /* CSBestEffortUpdater.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSBestEffortUpdater.h; path = Updater/CSBestEffortUpdater.h; sourceTree = "<group>"; };
 		4BD5F1941D13528900631CD1 /* CSBestEffortUpdater.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CSBestEffortUpdater.mm; path = Updater/CSBestEffortUpdater.mm; sourceTree = "<group>"; };
 		4BD601A920D89F2A00CBCE57 /* Log.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Log.hpp; path = ../../Outputs/Log.hpp; sourceTree = "<group>"; };
@@ -3027,7 +3027,7 @@
 			children = (
 				4BD191DC219113B80042E144 /* CRTOpenGL.cpp */,
 				4BD191F22191180E0042E144 /* ScanTarget.cpp */,
-				4BD5D2672199148100DDF17D /* ScanTargetVertexArrayAttributes.cpp */,
+				4BD5D2672199148100DDF17D /* ScanTargetGLSLFragments.cpp */,
 				4BD191D8219113B80042E144 /* TextureBuilder.cpp */,
 				4BD191D9219113B80042E144 /* OpenGL.hpp */,
 				4BD191F32191180E0042E144 /* ScanTarget.hpp */,
@@ -3672,7 +3672,7 @@
 				4B894521201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B7F188F2154825E00388727 /* MasterSystem.cpp in Sources */,
 				4B055AA51FAE85EF0060FFFF /* Encoder.cpp in Sources */,
-				4BD5D2692199148100DDF17D /* ScanTargetVertexArrayAttributes.cpp in Sources */,
+				4BD5D2692199148100DDF17D /* ScanTargetGLSLFragments.cpp in Sources */,
 				4B894529201967B4007DE474 /* Disk.cpp in Sources */,
 				4B055AEA1FAE9B990060FFFF /* 6502Storage.cpp in Sources */,
 				4B055AA71FAE85EF0060FFFF /* SegmentParser.cpp in Sources */,
@@ -3862,7 +3862,7 @@
 				4B0333AF2094081A0050B93D /* AppleDSK.cpp in Sources */,
 				4B894518201967B4007DE474 /* ConfidenceCounter.cpp in Sources */,
 				4B89452E201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
-				4BD5D2682199148100DDF17D /* ScanTargetVertexArrayAttributes.cpp in Sources */,
+				4BD5D2682199148100DDF17D /* ScanTargetGLSLFragments.cpp in Sources */,
 				4B38F3481F2EC11D00D9235D /* AmstradCPC.cpp in Sources */,
 				4B8FE2221DA19FB20090D3CE /* MachinePanel.swift in Sources */,
 				4B4518A41F75FD1C00926311 /* OricMFMDSK.cpp in Sources */,
