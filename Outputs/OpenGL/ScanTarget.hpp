@@ -16,6 +16,7 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace Outputs {
@@ -40,11 +41,13 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		// Extends the definition of a Scan to include two extra fields,
 		// relevant to the way that this scan target processes video.
-		struct Scan: public Outputs::Display::ScanTarget::Scan {
+		struct Scan {
+			Outputs::Display::ScanTarget::Scan scan;
+
 			/// Stores the y coordinate that this scan's data is at, within the write area texture.
 			uint16_t data_y;
-			/// Stores the y coordinate of this continuous composite segment within the conversion buffer.
-			uint16_t composite_y;
+			/// Stores the y coordinate of this scan within the line buffer.
+			uint16_t line;
 		};
 
 		struct PointerSet {
@@ -53,7 +56,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			// to be lock free; they are under LLVM x86-64.
 			int write_area = 0;
 			uint16_t scan_buffer = 0;
-			uint16_t composite_y = 0;
+			uint16_t line = 0;
 		};
 
 		/// A pointer to the next thing that should be provided to the caller for data.
@@ -71,16 +74,16 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		GLuint scan_vertex_array_ = 0;
 
 		// Maintains a list of composite scan buffer coordinates.
-		struct CompositeLine {
+		struct Line {
 			struct EndPoint {
 				uint16_t x, y;
 			} end_points[2];
-			uint16_t composite_y;
+			uint16_t line;
 		};
-		std::array<CompositeLine, 2048> composite_line_buffer_;
+		std::array<Line, 2048> line_buffer_;
 		TextureTarget unprocessed_line_texture_;
-		GLuint composite_line_vertex_array_ = 0;
-		CompositeLine *active_composite_line_ = nullptr;
+		GLuint line_vertex_array_ = 0;
+		Line *active_line_ = nullptr;
 
 		// Uses a texture to vend write areas.
 		std::vector<uint8_t> write_area_texture_;
@@ -98,6 +101,24 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		// Receives scan target modals.
 		Modals modals_;
+
+		enum class ShaderType {
+			Scan,
+			Line
+		};
+
+		/*!
+			@returns A string containing GLSL code describing the standard set of
+				@c in and @c uniform variables to bind to the relevant struct
+				from [...]OpenGL::ScanTarget.
+		*/
+		std::string globals(ShaderType type);
+
+		/*!
+			Calls @c taret.enable_vertex_attribute_with_pointer to attach all
+			globals for shaders of @c type to @c target.
+		*/
+		void enable_vertex_attributes(ShaderType type, Shader &target);
 };
 
 }

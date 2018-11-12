@@ -16,8 +16,8 @@ namespace {
 constexpr int WriteAreaWidth = 2048;
 constexpr int WriteAreaHeight = 2048;
 
-constexpr int CompositeLineBufferWidth = 2048;
-constexpr int CompositeLineBufferHeight = 2048;
+constexpr int LineBufferWidth = 2048;
+constexpr int LineBufferHeight = 2048;
 
 /// The texture unit from which to source 1bpp input data.
 constexpr GLenum SourceData1BppTextureUnit = GL_TEXTURE0;
@@ -67,7 +67,7 @@ const GLenum formatForDepth(std::size_t depth) {
 }
 
 ScanTarget::ScanTarget() :
- 	unprocessed_line_texture_(CompositeLineBufferWidth, CompositeLineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR) {
+ 	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR) {
 
 	// Allocate space for the scans.
 	const auto buffer_size = scan_buffer_.size() * sizeof(Scan);
@@ -123,17 +123,17 @@ Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 	write_pointers_.scan_buffer = next_write_pointer;
 
 	// Fill in extra OpenGL-specific details.
-	result->composite_y = write_pointers_.composite_y;
+	result->line = write_pointers_.line;
 
 	vended_scan_ = result;
-	return static_cast<Outputs::Display::ScanTarget::Scan *>(result);
+	return &result->scan;
 }
 
 void ScanTarget::end_scan() {
 	if(vended_scan_) {
 		vended_scan_->data_y = TextureAddressGetY(vended_write_area_pointer_);
-		vended_scan_->end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
-		vended_scan_->end_points[1].data_offset += TextureAddressGetX(vended_write_area_pointer_);
+		vended_scan_->scan.end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
+		vended_scan_->scan.end_points[1].data_offset += TextureAddressGetX(vended_write_area_pointer_);
     }
     vended_scan_ = nullptr;
 }
@@ -201,27 +201,27 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 	switch(event) {
 		default: break;
 		case ScanTarget::Event::BeginHorizontalRetrace:
-			if(active_composite_line_) {
-				active_composite_line_->end_points[1].x = x;
-				active_composite_line_->end_points[1].y = y;
-				active_composite_line_ = nullptr;
+			if(active_line_) {
+				active_line_->end_points[1].x = x;
+				active_line_->end_points[1].y = y;
+				active_line_ = nullptr;
 			}
 		break;
 		case ScanTarget::Event::EndHorizontalRetrace: {
 			const auto read_pointers = read_pointers_.load();
 
 			// Attempt to allocate a new line; note allocation failure if necessary.
-			const auto next_composite_y = uint16_t((write_pointers_.composite_y + 1) % CompositeLineBufferHeight);
+			const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
 
 			// Check whether that's too many.
-			if(next_composite_y == read_pointers.composite_y) {
+			if(next_line == read_pointers.line) {
 				allocation_has_failed_ = true;
 			} else {
-				write_pointers_.composite_y = next_composite_y;
-				active_composite_line_ = &composite_line_buffer_[size_t(write_pointers_.composite_y)];
-				active_composite_line_->end_points[0].x = x;
-				active_composite_line_->end_points[0].y = y;
-				active_composite_line_->composite_y = write_pointers_.composite_y;
+				write_pointers_.line = next_line;
+				active_line_ = &line_buffer_[size_t(write_pointers_.line)];
+				active_line_->end_points[0].x = x;
+				active_line_->end_points[0].y = y;
+				active_line_->line = write_pointers_.line;
 			}
 		} break;
 	}
