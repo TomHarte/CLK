@@ -10,7 +10,7 @@
 
 using namespace Outputs::Display::OpenGL;
 
-std::string ScanTarget::globals(ShaderType type) {
+std::string ScanTarget::glsl_globals(ShaderType type) {
 	switch(type) {
 		case ShaderType::Scan:
 		return
@@ -30,8 +30,24 @@ std::string ScanTarget::globals(ShaderType type) {
 			"in float endCompositeAngle;"
 
 			"in float dataY;"
-			"in float lineY;"
+			"in float lineY;";
 
+		case ShaderType::Line:
+		return
+			"#version 150\n"
+
+			"uniform vec2 scale;"
+			"uniform float rowHeight;"
+
+			"in vec2 startPoint;"
+			"in vec2 endPoint;";
+	}
+}
+
+std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
+	switch(type) {
+		case ShaderType::Scan:
+		return
 			"void main(void) {"
 				"float lateral = float(gl_VertexID & 1);"
 				"float longitudinal = float((gl_VertexID & 2) >> 1);"
@@ -43,11 +59,7 @@ std::string ScanTarget::globals(ShaderType type) {
 			"}";
 
 		case ShaderType::Line:
-		return
-			"#version 150\n"
-
-			"in vec2 startPoint;"
-			"in vec2 endPoint;";
+		return "";
 	}
 }
 

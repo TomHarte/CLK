@@ -117,7 +117,11 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 				from [...]OpenGL::ScanTarget and a vertex function to provide
 				the standard varyings.
 		*/
-		std::string globals(ShaderType type);
+		std::string glsl_globals(ShaderType type);
+
+		/*!
+		*/
+		std::string glsl_default_vertex_shader(ShaderType type);
 
 		/*!
 			Calls @c taret.enable_vertex_attribute_with_pointer to attach all

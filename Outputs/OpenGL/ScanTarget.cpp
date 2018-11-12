@@ -90,7 +90,7 @@ ScanTarget::ScanTarget() :
 	glBindVertexArray(scan_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
 	test_shader_.reset(new Shader(
-		globals(ShaderType::Scan),
+		glsl_globals(ShaderType::Scan) + glsl_default_vertex_shader(ShaderType::Scan),
 		"#version 150\n"
 		"out vec4 fragColour;"
 		"void main(void) {"
@@ -356,9 +356,8 @@ void ScanTarget::draw() {
 
 	// TEST: draw all scans.
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	glBindVertexArray(scan_vertex_array_);
 	test_shader_->bind();
 	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(scan_buffer_.size()));
-//	Rectangle rect(-0.8f, -0.8f, 1.6f, 1.6f);
-//	rect.draw(1, 1, 0);
 }
