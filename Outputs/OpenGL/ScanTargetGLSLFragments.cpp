@@ -38,7 +38,8 @@ std::string ScanTarget::globals(ShaderType type) {
 
 				"vec2 centrePoint = mix(startPoint, endPoint, lateral) / scale;"
 				"vec2 height = normalize(endPoint - startPoint).yx * (longitudinal - 0.5) * rowHeight;"
-				"gl_Position = vec4(centrePoint + height, 0.0, 1.0);"
+				"vec2 eyePosition = vec2(1.0) - 2.0 * (centrePoint + height);"
+				"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 			"}";
 
 		case ShaderType::Line:
