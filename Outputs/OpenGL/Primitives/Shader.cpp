@@ -104,9 +104,11 @@ GLint Shader::get_uniform_location(const std::string &name) {
 
 void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor) {
 	GLint location = get_attrib_location(name);
-	glEnableVertexAttribArray((GLuint)location);
-	glVertexAttribPointer((GLuint)location, size, type, normalised, stride, pointer);
-	glVertexAttribDivisor((GLuint)location, divisor);
+	if(location >= 0) {
+		glEnableVertexAttribArray((GLuint)location);
+		glVertexAttribPointer((GLuint)location, size, type, normalised, stride, pointer);
+		glVertexAttribDivisor((GLuint)location, divisor);
+	}
 }
 
 // The various set_uniforms...
