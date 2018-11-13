@@ -62,6 +62,8 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	scan_target_modals_.output_scale.y = uint16_t(real_clock_scan_period / vertical_flywheel_output_divider_);
 	scan_target_modals_.expected_vertical_lines = height_of_display;
 	scan_target_modals_.composite_colour_space = colour_space;
+	scan_target_modals_.colour_cycle_numerator = colour_cycle_numerator;
+	scan_target_modals_.colour_cycle_denominator = colour_cycle_denominator;
 	scan_target_->set_modals(scan_target_modals_);
 }
 

@@ -129,6 +129,9 @@ struct ScanTarget {
 			/// the @c cycles_per_line are offered for sizing of intermediary buffers.
 			int clocks_per_pixel_greatest_common_divisor;
 
+			/// Provides the number of colour cycles in a line, as a quotient.
+			int colour_cycle_numerator, colour_cycle_denominator;
+
 			/// Provides a pre-estimate of the likely number of left-to-right scans per frame.
 			/// This isn't a guarantee, but it should provide a decent-enough estimate.
 			int expected_vertical_lines;

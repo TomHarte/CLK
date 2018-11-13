@@ -131,6 +131,15 @@ void ScanTarget::set_modals(Modals modals) {
 		write_pointers_.write_area = 0;
 	}
 
+	// Pick a processing width; this will be at least four times the
+	// colour subcarrier, and an integer multiple of the pixel clock and
+	// at most 2048.
+	const int colour_cycle_width = (modals.colour_cycle_numerator * 4 + modals.colour_cycle_denominator - 1) / modals.colour_cycle_denominator;
+	const int dot_clock = modals.cycles_per_line / modals.clocks_per_pixel_greatest_common_divisor;
+	const int overflow = colour_cycle_width % dot_clock;
+	processing_width_ = colour_cycle_width + (overflow ? dot_clock - overflow : 0);
+	processing_width_ = std::min(processing_width_, 2048);
+
 	// TODO: this, but not to the test shader.
 	test_shader_->set_uniform("scale", GLfloat(modals.output_scale.x), GLfloat(modals.output_scale.y));
 	test_shader_->set_uniform("rowHeight", GLfloat(1.0f / modals.expected_vertical_lines));

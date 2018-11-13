@@ -129,9 +129,11 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		*/
 		void enable_vertex_attributes(ShaderType type, Shader &target);
 
-		std::unique_ptr<Shader> test_shader_;
 		GLsync fence_ = nullptr;
 		std::atomic_flag is_drawing_;
+
+		int processing_width_ = 0;
+		std::unique_ptr<Shader> test_shader_;
 };
 
 }
