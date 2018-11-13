@@ -286,8 +286,14 @@ template <typename T> void ScanTarget::submit_buffer(const T &array, GLuint targ
 	}
 }
 
-void ScanTarget::draw() {
-	glClear(GL_COLOR_BUFFER_BIT);
+void ScanTarget::draw(bool synchronous) {
+	if(fence_ != nullptr) {
+		// if the GPU is still busy, don't wait; we'll catch it next time
+		if(glClientWaitSync(fence_, GL_SYNC_FLUSH_COMMANDS_BIT, synchronous ? GL_TIMEOUT_IGNORED : 0) == GL_TIMEOUT_EXPIRED) {
+			return;
+		}
+		fence_ = nullptr;
+	}
 
 	// Grab the current read and submit pointers.
 	const auto submit_pointers = submit_pointers_.load();
@@ -358,8 +364,11 @@ void ScanTarget::draw() {
 
 	// TEST: draw all lines.
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	glBindVertexArray(line_vertex_array_);
 	test_shader_->bind();
 	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(scan_buffer_.size()));
+
+	fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }

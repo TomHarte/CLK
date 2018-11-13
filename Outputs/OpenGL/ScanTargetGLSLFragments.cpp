@@ -45,8 +45,11 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 }
 
 std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
-//	switch(type) {
-//		case ShaderType::Scan:
+	switch(type) {
+		case ShaderType::Scan:
+		return "";
+
+		case ShaderType::Line:
 		return
 			"void main(void) {"
 				"float lateral = float(gl_VertexID & 1);"
@@ -57,10 +60,7 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 				"vec2 eyePosition = vec2(-0.9, 0.9) + vec2(1.8, -1.8) * (centrePoint + height);"
 				"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 			"}";
-
-//		case ShaderType::Line:
-//		return "";
-//	}
+	}
 }
 
 void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {

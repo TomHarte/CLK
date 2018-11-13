@@ -27,7 +27,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 	public:
 		ScanTarget();
 		~ScanTarget();
-		void draw();
+		void draw(bool synchronous);
 
 	private:
 		// Outputs::Display::ScanTarget overrides.
@@ -130,6 +130,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void enable_vertex_attributes(ShaderType type, Shader &target);
 
 		std::unique_ptr<Shader> test_shader_;
+		GLsync fence_ = nullptr;
 };
 
 }
