@@ -66,38 +66,40 @@ const GLenum formatForDepth(std::size_t depth) {
 
 }
 
-template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &buffer_name) {
+template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &buffer_name, GLuint &vertex_array_name) {
 	const auto buffer_size = array.size() * sizeof(array[0]);
 	glGenBuffers(1, &buffer_name);
 	glBindBuffer(GL_ARRAY_BUFFER, buffer_name);
 	glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(buffer_size), NULL, GL_STREAM_DRAW);
+
+	glGenVertexArrays(1, &vertex_array_name);
+	glBindVertexArray(vertex_array_name);
+	glBindBuffer(GL_ARRAY_BUFFER, buffer_name);
 }
 
 ScanTarget::ScanTarget() :
  	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR) {
 
 	// Allocate space for the scans and lines.
-	allocate_buffer(scan_buffer_, scan_buffer_name_);
-	allocate_buffer(line_buffer_, line_buffer_name_);
+	allocate_buffer(scan_buffer_, scan_buffer_name_, scan_vertex_array_);
+	allocate_buffer(line_buffer_, line_buffer_name_, line_vertex_array_);
 
 	// TODO: if this is OpenGL 4.4 or newer, use glBufferStorage rather than glBufferData
 	// and specify GL_MAP_PERSISTENT_BIT. Then map the buffer now, and let the client
 	// write straight into it.
 
 	glGenTextures(1, &write_area_texture_name_);
-	glGenVertexArrays(1, &scan_vertex_array_);
 
-	glBindVertexArray(scan_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
 	test_shader_.reset(new Shader(
-		glsl_globals(ShaderType::Scan) + glsl_default_vertex_shader(ShaderType::Scan),
+		glsl_globals(ShaderType::Line) + glsl_default_vertex_shader(ShaderType::Line),
 		"#version 150\n"
 		"out vec4 fragColour;"
 		"void main(void) {"
 			"fragColour = vec4(1.0);"
 		"}"
 	));
-	enable_vertex_attributes(ShaderType::Scan, *test_shader_);
+	glBindVertexArray(line_vertex_array_);
+	enable_vertex_attributes(ShaderType::Line, *test_shader_);
 }
 
 ScanTarget::~ScanTarget() {
@@ -354,10 +356,10 @@ void ScanTarget::draw() {
 	// the submit pointer location.
 	read_pointers_.store(submit_pointers);
 
-	// TEST: draw all scans.
+	// TEST: draw all lines.
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-	glBindVertexArray(scan_vertex_array_);
+	glBindVertexArray(line_vertex_array_);
 	test_shader_->bind();
 	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(scan_buffer_.size()));
 }

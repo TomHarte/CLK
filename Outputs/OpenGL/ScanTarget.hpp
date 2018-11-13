@@ -86,7 +86,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		GLuint scan_buffer_name_ = 0, scan_vertex_array_ = 0;
 		GLuint line_buffer_name_ = 0, line_vertex_array_ = 0;
 
-		template <typename T> void allocate_buffer(const T &array, GLuint &buffer_name);
+		template <typename T> void allocate_buffer(const T &array, GLuint &buffer_name, GLuint &vertex_array_name);
 		template <typename T> void submit_buffer(const T &array, GLuint target, uint16_t submit_pointer, uint16_t read_pointer);
 
 		// Uses a texture to vend write areas.
