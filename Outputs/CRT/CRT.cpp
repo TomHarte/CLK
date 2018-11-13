@@ -54,12 +54,12 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	vertical_flywheel_.reset(new Flywheel(multiplied_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * multiplied_cycles_per_line, (multiplied_cycles_per_line * height_of_display) >> 3));
 
 	// Figure out the divisor necessary to get the horizontal flywheel into a 16-bit range.
-	const int real_clock_scan_period = multiplied_cycles_per_line * height_of_display;
+	const int real_clock_scan_period = vertical_flywheel_->get_scan_period();
 	vertical_flywheel_output_divider_ = (real_clock_scan_period + 65534) / 65535;
 
 	// Communicate relevant fields to the scan target.
-	scan_target_modals_.output_scale.x = uint16_t(time_multiplier_ * cycles_per_line);
-	scan_target_modals_.output_scale.y = uint16_t((multiplied_cycles_per_line * height_of_display) / vertical_flywheel_output_divider_);
+	scan_target_modals_.output_scale.x = uint16_t(horizontal_flywheel_->get_scan_period());
+	scan_target_modals_.output_scale.y = uint16_t(real_clock_scan_period / vertical_flywheel_output_divider_);
 	scan_target_modals_.expected_vertical_lines = height_of_display;
 	scan_target_modals_.composite_colour_space = colour_space;
 	scan_target_->set_modals(scan_target_modals_);
