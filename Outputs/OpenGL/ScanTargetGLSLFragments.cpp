@@ -47,7 +47,19 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 	switch(type) {
 		case ShaderType::Scan:
-		return "";
+		return
+			"out vec2 textureCoordinate;"
+			"uniform usampler2D textureName;"
+
+			"void main(void) {"
+				"float lateral = float(gl_VertexID & 1);"
+				"float longitudinal = float((gl_VertexID & 2) >> 1);"
+
+				"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY) / textureSize(textureName, 0);"
+
+				"vec2 eyePosition = vec2(mix(startPoint.x, endPoint.x, lateral), lineY + longitudinal) / vec2(scale.x, 2048.0);"
+				"gl_Position = vec4(eyePosition*2 - vec2(1.0), 0.0, 1.0);"
+			"}";
 
 		case ShaderType::Line:
 		return

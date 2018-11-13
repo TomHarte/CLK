@@ -91,18 +91,25 @@ ScanTarget::ScanTarget() :
 	glGenTextures(1, &write_area_texture_name_);
 
 	test_shader_.reset(new Shader(
-		glsl_globals(ShaderType::Line) + glsl_default_vertex_shader(ShaderType::Line),
+		glsl_globals(ShaderType::Scan) + glsl_default_vertex_shader(ShaderType::Scan),
 		"#version 150\n"
+
 		"out vec4 fragColour;"
+		"in vec2 textureCoordinate;"
+
+		"uniform usampler2D textureName;"
+
 		"void main(void) {"
-			"fragColour = vec4(1.0);"
+			"fragColour = vec4(float(texture(textureName, textureCoordinate).r), 0.0, 0.0, 1.0);"
 		"}"
 	));
-	glBindVertexArray(line_vertex_array_);
-	enable_vertex_attributes(ShaderType::Line, *test_shader_);
+	glBindVertexArray(scan_vertex_array_);
+	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+	enable_vertex_attributes(ShaderType::Scan, *test_shader_);
 }
 
 ScanTarget::~ScanTarget() {
+	while(is_drawing_.test_and_set()) {}
 	glDeleteBuffers(1, &scan_buffer_name_);
 	glDeleteTextures(1, &write_area_texture_name_);
 	glDeleteVertexArrays(1, &scan_vertex_array_);
@@ -127,6 +134,7 @@ void ScanTarget::set_modals(Modals modals) {
 	// TODO: this, but not to the test shader.
 	test_shader_->set_uniform("scale", GLfloat(modals.output_scale.x), GLfloat(modals.output_scale.y));
 	test_shader_->set_uniform("rowHeight", GLfloat(1.0f / modals.expected_vertical_lines));
+	test_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
 }
 
 Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
@@ -155,6 +163,7 @@ Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 void ScanTarget::end_scan() {
 	if(vended_scan_) {
 		vended_scan_->data_y = TextureAddressGetY(vended_write_area_pointer_);
+		vended_scan_->line = write_pointers_.line;
 		vended_scan_->scan.end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
 		vended_scan_->scan.end_points[1].data_offset += TextureAddressGetX(vended_write_area_pointer_);
     }
@@ -203,6 +212,8 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 void ScanTarget::end_data(size_t actual_length) {
 	if(allocation_has_failed_) return;
 
+//	memset(&write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_], 0xff, actual_length * data_type_size_);
+
 	// The write area was allocated in the knowledge that there's sufficient
 	// distance left on the current line, so there's no need to worry about carry.
 	write_pointers_.write_area += actual_length + 1;
@@ -248,6 +259,9 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 			}
 		} break;
 	}
+
+	// TODO: any lines that include any portion of vertical sync should be hidden.
+	// (maybe set a flag and zero out the line coordinates?)
 }
 
 template <typename T> void ScanTarget::submit_buffer(const T &array, GLuint target, uint16_t submit_pointer, uint16_t read_pointer) {
@@ -295,6 +309,8 @@ void ScanTarget::draw(bool synchronous) {
 		fence_ = nullptr;
 	}
 
+	if(is_drawing_.test_and_set()) return;
+
 	// Grab the current read and submit pointers.
 	const auto submit_pointers = submit_pointers_.load();
 	const auto read_pointers = read_pointers_.load();
@@ -305,11 +321,16 @@ void ScanTarget::draw(bool synchronous) {
 
 	// Submit texture.
 	if(submit_pointers.write_area != read_pointers.write_area) {
+		glActiveTexture(SourceData1BppTextureUnit);
 		glBindTexture(GL_TEXTURE_2D, write_area_texture_name_);
 
 		// Create storage for the texture if it doesn't yet exist; this was deferred until here
 		// because the pixel format wasn't initially known.
 		if(!texture_exists_) {
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexImage2D(
 				GL_TEXTURE_2D,
 				0,
@@ -366,9 +387,10 @@ void ScanTarget::draw(bool synchronous) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glBindVertexArray(line_vertex_array_);
+	glBindVertexArray(scan_vertex_array_);
 	test_shader_->bind();
 	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(scan_buffer_.size()));
 
 	fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+	is_drawing_.clear();
 }

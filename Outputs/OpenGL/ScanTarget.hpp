@@ -131,6 +131,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		std::unique_ptr<Shader> test_shader_;
 		GLsync fence_ = nullptr;
+		std::atomic_flag is_drawing_;
 };
 
 }
