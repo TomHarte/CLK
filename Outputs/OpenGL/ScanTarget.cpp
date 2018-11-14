@@ -13,11 +13,6 @@ using namespace Outputs::Display::OpenGL;
 
 namespace {
 
-constexpr int WriteAreaWidth = 2048;
-constexpr int WriteAreaHeight = 2048;
-
-constexpr int LineBufferWidth = 2048;
-constexpr int LineBufferHeight = 2048;
 
 /// The texture unit from which to source 1bpp input data.
 constexpr GLenum SourceData1BppTextureUnit = GL_TEXTURE0;

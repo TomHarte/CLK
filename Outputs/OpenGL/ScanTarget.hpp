@@ -30,6 +30,12 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void draw(bool synchronous, int output_width, int output_height);
 
 	private:
+		static constexpr int WriteAreaWidth = 2048;
+		static constexpr int WriteAreaHeight = 2048;
+
+		static constexpr int LineBufferWidth = 2048;
+		static constexpr int LineBufferHeight = 2048;
+
 		// Outputs::Display::ScanTarget overrides.
 		void set_modals(Modals) override;
 		Scan *begin_scan() override;
@@ -78,7 +84,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			} end_points[2];
 			uint16_t line;
 		};
-		std::array<Line, 2048> line_buffer_;
+		std::array<Line, LineBufferHeight> line_buffer_;
 		TextureTarget unprocessed_line_texture_;
 		Line *active_line_ = nullptr;
 
