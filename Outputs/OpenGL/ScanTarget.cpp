@@ -90,7 +90,7 @@ ScanTarget::ScanTarget() :
 
 	glGenTextures(1, &write_area_texture_name_);
 
-	test_shader_.reset(new Shader(
+	input_shader_.reset(new Shader(
 		glsl_globals(ShaderType::Scan) + glsl_default_vertex_shader(ShaderType::Scan),
 		"#version 150\n"
 
@@ -103,9 +103,28 @@ ScanTarget::ScanTarget() :
 			"fragColour = vec4(float(texture(textureName, textureCoordinate).r), 0.0, 0.0, 1.0);"
 		"}"
 	));
+
 	glBindVertexArray(scan_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
-	enable_vertex_attributes(ShaderType::Scan, *test_shader_);
+	enable_vertex_attributes(ShaderType::Scan, *input_shader_);
+
+	output_shader_.reset(new Shader(
+		glsl_globals(ShaderType::Line) + glsl_default_vertex_shader(ShaderType::Line),
+		"#version 150\n"
+
+		"out vec4 fragColour;"
+		"in vec2 textureCoordinate;"
+
+		"uniform sampler2D textureName;"
+
+		"void main(void) {"
+			"fragColour = texture(textureName, textureCoordinate);"
+		"}"
+	));
+
+	glBindVertexArray(line_vertex_array_);
+	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
+	enable_vertex_attributes(ShaderType::Line, *output_shader_);
 }
 
 ScanTarget::~ScanTarget() {
@@ -140,10 +159,17 @@ void ScanTarget::set_modals(Modals modals) {
 	processing_width_ = colour_cycle_width + (overflow ? dot_clock - overflow : 0);
 	processing_width_ = std::min(processing_width_, 2048);
 
-	// TODO: this, but not to the test shader.
-	test_shader_->set_uniform("scale", GLfloat(modals.output_scale.x), GLfloat(modals.output_scale.y));
-	test_shader_->set_uniform("rowHeight", GLfloat(1.0f / modals.expected_vertical_lines));
-	test_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
+	set_uniforms(Outputs::Display::OpenGL::ScanTarget::ShaderType::Scan, *output_shader_);
+	set_uniforms(Outputs::Display::OpenGL::ScanTarget::ShaderType::Line, *input_shader_);
+
+	input_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
+	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
+}
+
+void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) {
+	target.set_uniform("scale", GLfloat(modals_.output_scale.x), GLfloat(modals_.output_scale.y));
+	target.set_uniform("rowHeight", GLfloat(1.0f / modals_.expected_vertical_lines));
+	target.set_uniform("processingWidth", GLfloat(processing_width_) / 2048.0f);
 }
 
 Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
@@ -273,7 +299,7 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 	// (maybe set a flag and zero out the line coordinates?)
 }
 
-template <typename T> void ScanTarget::submit_buffer(const T &array, GLuint target, uint16_t submit_pointer, uint16_t read_pointer) {
+template <typename T> void ScanTarget::patch_buffer(const T &array, GLuint target, uint16_t submit_pointer, uint16_t read_pointer) {
 	if(submit_pointer != read_pointer) {
 		// Bind the buffer and map it into CPU space.
 		glBindBuffer(GL_ARRAY_BUFFER, target);
@@ -283,7 +309,7 @@ template <typename T> void ScanTarget::submit_buffer(const T &array, GLuint targ
 		);
 		assert(destination);
 
-		if(submit_pointer > read_pointer) {
+		if(read_pointer < submit_pointer) {
 			// Submit the direct region from the submit pointer to the read pointer.
 			const size_t offset = read_pointer * sizeof(array[0]);
 			const size_t length = (submit_pointer - read_pointer) * sizeof(array[0]);
@@ -309,7 +335,7 @@ template <typename T> void ScanTarget::submit_buffer(const T &array, GLuint targ
 	}
 }
 
-void ScanTarget::draw(bool synchronous) {
+void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	if(fence_ != nullptr) {
 		// if the GPU is still busy, don't wait; we'll catch it next time
 		if(glClientWaitSync(fence_, GL_SYNC_FLUSH_COMMANDS_BIT, synchronous ? GL_TIMEOUT_IGNORED : 0) == GL_TIMEOUT_EXPIRED) {
@@ -324,9 +350,31 @@ void ScanTarget::draw(bool synchronous) {
 	const auto submit_pointers = submit_pointers_.load();
 	const auto read_pointers = read_pointers_.load();
 
-	// Submit scans and lines.
-	submit_buffer(scan_buffer_, scan_buffer_name_, submit_pointers.scan_buffer, read_pointers.scan_buffer);
-	submit_buffer(line_buffer_, line_buffer_name_, submit_pointers.line, read_pointers.line);
+	// Submit scans and lines; TODO: for lines, rotate in.
+	patch_buffer(line_buffer_, line_buffer_name_, submit_pointers.line, read_pointers.line);
+
+	size_t new_scans = (submit_pointers.scan_buffer + scan_buffer_.size() - read_pointers.scan_buffer) % scan_buffer_.size();
+	if(new_scans) {
+		glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+
+		// Map only the required portion of the buffer.
+		const size_t new_scans_size = new_scans * sizeof(Scan);
+		uint8_t *const destination = static_cast<uint8_t *>(
+			glMapBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(new_scans_size), GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT)
+		);
+
+		if(read_pointers.scan_buffer < submit_pointers.scan_buffer) {
+			memcpy(destination, &scan_buffer_[read_pointers.scan_buffer], new_scans_size);
+		} else {
+			const size_t first_portion_length = (scan_buffer_.size() - read_pointers.scan_buffer) * sizeof(Scan);
+			memcpy(destination, &scan_buffer_[read_pointers.scan_buffer], first_portion_length);
+			memcpy(&destination[first_portion_length], &scan_buffer_[0], new_scans_size - first_portion_length);
+		}
+
+		// Unmap the buffer.
+		glUnmapBuffer(GL_ARRAY_BUFFER);
+	}
+//	patch_buffer(scan_buffer_, scan_buffer_name_, submit_pointers.scan_buffer, read_pointers.scan_buffer);
 
 	// Submit texture.
 	if(submit_pointers.write_area != read_pointers.write_area) {
@@ -384,22 +432,32 @@ void ScanTarget::draw(bool synchronous) {
 		}
 	}
 
-	// TODO: clear composite buffer (if needed).
-	// TODO: drawing (!)
+	// Push new input to the unprocessed line buffer.
+	if(new_scans) {
+		unprocessed_line_texture_.bind_framebuffer();
+		glBindVertexArray(scan_vertex_array_);
+		input_shader_->bind();
+		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
+	}
 
+	// Clear the target framebuffer (TODO: don't assume 0).
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
+	glClear(GL_COLOR_BUFFER_BIT);
+
+//	unprocessed_line_texture_.draw(1.0f);
+
+	// Output all lines.
+	glBindVertexArray(line_vertex_array_);
+	output_shader_->bind();
+	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(line_buffer_.size()));
 
 	// All data now having been spooled to the GPU, update the read pointers to
 	// the submit pointer location.
 	read_pointers_.store(submit_pointers);
 
-	// TEST: draw all lines.
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glBindVertexArray(scan_vertex_array_);
-	test_shader_->bind();
-	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(scan_buffer_.size()));
-
+	// Grab a fence sync object to avoid busy waiting upon the next extry into this
+	// function, and reset the is_drawing_ flag.
 	fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 	is_drawing_.clear();
 }

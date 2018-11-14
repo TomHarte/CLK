@@ -27,7 +27,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 	public:
 		ScanTarget();
 		~ScanTarget();
-		void draw(bool synchronous);
+		void draw(bool synchronous, int output_width, int output_height);
 
 	private:
 		// Outputs::Display::ScanTarget overrides.
@@ -87,7 +87,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		GLuint line_buffer_name_ = 0, line_vertex_array_ = 0;
 
 		template <typename T> void allocate_buffer(const T &array, GLuint &buffer_name, GLuint &vertex_array_name);
-		template <typename T> void submit_buffer(const T &array, GLuint target, uint16_t submit_pointer, uint16_t read_pointer);
+		template <typename T> void patch_buffer(const T &array, GLuint target, uint16_t submit_pointer, uint16_t read_pointer);
 
 		// Uses a texture to vend write areas.
 		std::vector<uint8_t> write_area_texture_;
@@ -128,12 +128,14 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			globals for shaders of @c type to @c target.
 		*/
 		void enable_vertex_attributes(ShaderType type, Shader &target);
+		void set_uniforms(ShaderType type, Shader &target);
 
 		GLsync fence_ = nullptr;
 		std::atomic_flag is_drawing_;
 
 		int processing_width_ = 0;
-		std::unique_ptr<Shader> test_shader_;
+		std::unique_ptr<Shader> input_shader_;
+		std::unique_ptr<Shader> output_shader_;
 };
 
 }

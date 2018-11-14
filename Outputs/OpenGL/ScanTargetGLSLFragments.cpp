@@ -20,6 +20,7 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 			"uniform float rowHeight;"
 			"uniform mat3 lumaChromaToRGB;"
 			"uniform mat3 rgbToLumaChroma;"
+			"uniform float processingWidth;"
 
 			"in vec2 startPoint;"
 			"in float startDataX;"
@@ -38,9 +39,12 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 
 			"uniform vec2 scale;"
 			"uniform float rowHeight;"
+			"uniform float processingWidth;"
 
 			"in vec2 startPoint;"
-			"in vec2 endPoint;";
+			"in vec2 endPoint;"
+
+			"in float lineY;";
 	}
 }
 
@@ -57,15 +61,20 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 
 				"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY) / textureSize(textureName, 0);"
 
-				"vec2 eyePosition = vec2(mix(startPoint.x, endPoint.x, lateral), lineY + longitudinal) / vec2(scale.x, 2048.0);"
+				"vec2 eyePosition = vec2(mix(startPoint.x, endPoint.x, lateral) * processingWidth, lineY + longitudinal) / vec2(scale.x, 2048.0);"
 				"gl_Position = vec4(eyePosition*2 - vec2(1.0), 0.0, 1.0);"
 			"}";
 
 		case ShaderType::Line:
 		return
+			"out vec2 textureCoordinate;"
+			"uniform sampler2D textureName;"
+
 			"void main(void) {"
 				"float lateral = float(gl_VertexID & 1);"
 				"float longitudinal = float((gl_VertexID & 2) >> 1);"
+
+				"textureCoordinate = vec2(lateral * processingWidth, lineY) / vec2(1.0, textureSize(textureName, 0).y);"
 
 				"vec2 centrePoint = mix(startPoint, endPoint, lateral) / scale;"
 				"vec2 height = normalize(endPoint - startPoint).yx * (longitudinal - 0.5) * rowHeight;"
@@ -126,6 +135,13 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 					reinterpret_cast<void *>(offsetof(Line, end_points[c].x)),
 					1);
 			}
+
+			target.enable_vertex_attribute_with_pointer(
+				"lineY",
+				1, GL_UNSIGNED_SHORT, GL_FALSE,
+				sizeof(Line),
+				reinterpret_cast<void *>(offsetof(Line, line)),
+				1);
 		break;
 	}
 }
