@@ -329,28 +329,7 @@ template <typename T> void ScanTarget::patch_buffer(const T &array, GLuint targe
 		memcpy(&destination[0], &array[submit_pointer+1], end_length);
 		memcpy(&destination[end_length], &array[0], buffer_length - end_length);
 
-/*		if(read_pointer < submit_pointer) {
-			// Submit the direct region from the submit pointer to the read pointer.
-			const size_t offset = read_pointer * sizeof(array[0]);
-			const size_t length = (submit_pointer - read_pointer) * sizeof(array[0]);
-			glBufferSubData(GL_ARRAY_BUFFER, GLintptr(offset), GLsizeiptr(length), &array[read_pointer]);
-		} else {
-			// The circular buffer wrapped around; submit the data from the read pointer to the end of
-			// the buffer and from the start of the buffer to the submit pointer.
-			const size_t offset = read_pointer * sizeof(array[0]);
-			const size_t end_length = (array.size() - read_pointer)  * sizeof(array[0]);
-			const size_t start_length = submit_pointer * sizeof(array[0]);
-
-			memcpy(&destination[offset], &array[read_pointer], end_length);
-			memcpy(&destination[0], &array[0], start_length);
-
-			glFlushMappedBufferRange(GL_ARRAY_BUFFER, GLintptr(offset), GLsizeiptr(end_length));
-			glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(start_length));*/
-
-//		}
-
-		// Unmap the buffer.
-//		glBufferSubData(GL_ARRAY_BUFFER, GLintptr(offset), GLsizeiptr(length), &array[read_pointer]);
+		// Flush and unmap the buffer.
 		glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size));
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 	}
@@ -457,6 +436,27 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	// Push new input to the unprocessed line buffer.
 	if(new_scans) {
 		unprocessed_line_texture_.bind_framebuffer();
+
+		// Clear newly-touched lines; that is everything from (read+1) to submit.
+		const uint16_t first_line_to_clear = (read_pointers.line+1)%line_buffer_.size();
+		const uint16_t final_line_to_clear = submit_pointers.line;
+		if(first_line_to_clear != final_line_to_clear) {
+			glEnable(GL_SCISSOR_TEST);
+
+			if(first_line_to_clear < final_line_to_clear) {
+				glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), final_line_to_clear - first_line_to_clear);
+				glClear(GL_COLOR_BUFFER_BIT);
+			} else {
+				glScissor(0, 0, unprocessed_line_texture_.get_width(), final_line_to_clear);
+				glClear(GL_COLOR_BUFFER_BIT);
+				glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), 2048 - first_line_to_clear);
+				glClear(GL_COLOR_BUFFER_BIT);
+			}
+
+			glDisable(GL_SCISSOR_TEST);
+		}
+
+		// Apply new spans.
 		glBindVertexArray(scan_vertex_array_);
 		input_shader_->bind();
 		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
@@ -466,8 +466,6 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 	glClear(GL_COLOR_BUFFER_BIT);
-
-//	unprocessed_line_texture_.draw(1.0f);
 
 	// Output all lines except the one currently being worked on.
 	glBindVertexArray(line_vertex_array_);
