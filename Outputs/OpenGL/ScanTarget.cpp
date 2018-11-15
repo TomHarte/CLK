@@ -75,6 +75,10 @@ template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &b
 ScanTarget::ScanTarget() :
  	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR) {
 
+	// Ensure proper initialisation of the two atomic pointer sets.
+	read_pointers_.store(write_pointers_);
+	submit_pointers_.store(write_pointers_);
+
 	// Allocate space for the scans and lines.
 	allocate_buffer(scan_buffer_, scan_buffer_name_, scan_vertex_array_);
 	allocate_buffer(line_buffer_, line_buffer_name_, line_vertex_array_);
@@ -244,11 +248,21 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 void ScanTarget::end_data(size_t actual_length) {
 	if(allocation_has_failed_) return;
 
-//	memset(&write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_], 0xff, actual_length * data_type_size_);
+	// Bookend the start of the new data, to safeguard for precision errors in sampling.
+	memcpy(
+		&write_area_texture_[size_t(write_pointers_.write_area - 1) * data_type_size_],
+		&write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_],
+		data_type_size_);
 
 	// The write area was allocated in the knowledge that there's sufficient
 	// distance left on the current line, so there's no need to worry about carry.
 	write_pointers_.write_area += actual_length + 1;
+
+	// Also bookend the end.
+	memcpy(
+		&write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_],
+		&write_area_texture_[size_t(write_pointers_.write_area - 1) * data_type_size_],
+		data_type_size_);
 }
 
 void ScanTarget::submit() {
