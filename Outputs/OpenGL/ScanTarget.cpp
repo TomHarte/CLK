@@ -120,6 +120,8 @@ ScanTarget::ScanTarget() :
 	glBindVertexArray(line_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 	enable_vertex_attributes(ShaderType::Line, *output_shader_);
+
+	is_drawing_.clear();
 }
 
 ScanTarget::~ScanTarget() {
@@ -298,19 +300,26 @@ template <typename T> void ScanTarget::patch_buffer(const T &array, GLuint targe
 	if(submit_pointer != read_pointer) {
 		// Bind the buffer and map it into CPU space.
 		glBindBuffer(GL_ARRAY_BUFFER, target);
+
 		const auto buffer_size = array.size() * sizeof(array[0]);
 		uint8_t *destination = static_cast<uint8_t *>(
 			glMapBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT)
 		);
 		assert(destination);
 
-		if(read_pointer < submit_pointer) {
+		// Populate it with the oldest scans first; the oldest are those from 1 beyond the submit pointer.
+		const size_t buffer_length = array.size() * sizeof(array[0]);
+		const size_t splice_point = (submit_pointer + 1) * sizeof(array[0]);
+		const size_t end_length = buffer_length - splice_point;
+
+		memcpy(&destination[0], &array[submit_pointer+1], end_length);
+		memcpy(&destination[end_length], &array[0], buffer_length - end_length);
+
+/*		if(read_pointer < submit_pointer) {
 			// Submit the direct region from the submit pointer to the read pointer.
 			const size_t offset = read_pointer * sizeof(array[0]);
 			const size_t length = (submit_pointer - read_pointer) * sizeof(array[0]);
-			memcpy(&destination[offset], &array[read_pointer], length);
-
-			glFlushMappedBufferRange(GL_ARRAY_BUFFER, GLintptr(offset), GLsizeiptr(length));
+			glBufferSubData(GL_ARRAY_BUFFER, GLintptr(offset), GLsizeiptr(length), &array[read_pointer]);
 		} else {
 			// The circular buffer wrapped around; submit the data from the read pointer to the end of
 			// the buffer and from the start of the buffer to the submit pointer.
@@ -322,10 +331,13 @@ template <typename T> void ScanTarget::patch_buffer(const T &array, GLuint targe
 			memcpy(&destination[0], &array[0], start_length);
 
 			glFlushMappedBufferRange(GL_ARRAY_BUFFER, GLintptr(offset), GLsizeiptr(end_length));
-			glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(start_length));
-		}
+			glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(start_length));*/
+
+//		}
 
 		// Unmap the buffer.
+//		glBufferSubData(GL_ARRAY_BUFFER, GLintptr(offset), GLsizeiptr(length), &array[read_pointer]);
+		glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size));
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 	}
 }
@@ -348,6 +360,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	// Submit scans and lines; TODO: for lines, rotate in.
 	patch_buffer(line_buffer_, line_buffer_name_, submit_pointers.line, read_pointers.line);
 
+	// Submit scans; only the new ones need to be communicated.
 	size_t new_scans = (submit_pointers.scan_buffer + scan_buffer_.size() - read_pointers.scan_buffer) % scan_buffer_.size();
 	if(new_scans) {
 		glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
@@ -366,10 +379,10 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			memcpy(&destination[first_portion_length], &scan_buffer_[0], new_scans_size - first_portion_length);
 		}
 
-		// Unmap the buffer.
+		// Flush and unmap the buffer.
+		glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(new_scans_size));
 		glUnmapBuffer(GL_ARRAY_BUFFER);
 	}
-//	patch_buffer(scan_buffer_, scan_buffer_name_, submit_pointers.scan_buffer, read_pointers.scan_buffer);
 
 	// Submit texture.
 	if(submit_pointers.write_area != read_pointers.write_area) {
@@ -442,10 +455,10 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 //	unprocessed_line_texture_.draw(1.0f);
 
-	// Output all lines.
+	// Output all lines except the one currently being worked on.
 	glBindVertexArray(line_vertex_array_);
 	output_shader_->bind();
-	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(line_buffer_.size()));
+	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(line_buffer_.size() - 1));
 
 	// All data now having been spooled to the GPU, update the read pointers to
 	// the submit pointer location.

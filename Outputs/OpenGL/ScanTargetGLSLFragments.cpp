@@ -78,7 +78,7 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 
 				"vec2 centrePoint = mix(startPoint, endPoint, lateral) / scale;"
 				"vec2 height = normalize(endPoint - startPoint).yx * (longitudinal - 0.5) * rowHeight;"
-				"vec2 eyePosition = vec2(-0.9, 0.9) + vec2(1.8, -1.8) * (centrePoint + height);"
+				"vec2 eyePosition = vec2(-1.0, 1.0) + vec2(2.0, -2.0) * (centrePoint + height);"
 				"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 			"}";
 	}
