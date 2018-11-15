@@ -78,8 +78,8 @@ class Base {
 
 		Base(Personality p);
 
-		Personality personality_;
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		const Personality personality_;
+		Outputs::CRT::CRT crt_;
 		TVStandard tv_standard_ = TVStandard::NTSC;
 
 		// Holds the contents of this VDP's connected DRAM.

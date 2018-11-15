@@ -49,9 +49,8 @@ struct ReverseTable {
 }
 
 Base::Base(Personality p) :
-	personality_(p)//,
-//	crt_(new Outputs::CRT::CRT(CRTCyclesPerLine, CRTCyclesDivider, Outputs::Display::Type::NTSC60, 4))
-	{
+	personality_(p),
+	crt_(CRTCyclesPerLine, CRTCyclesDivider, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red8Green8Blue8) {
 
 	switch(p) {
 		case TI::TMS::TMS9918A:
@@ -87,19 +86,19 @@ TMS9918::TMS9918(Personality p):
  	Base(p) {
 	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
 	// into whether there's a more natural form.
-//	crt_->set_rgb_sampling_function(
+//	crt_.set_rgb_sampling_function(
 //		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
 //		"{"
 //			"return texture(sampler, coordinate).rgb / vec3(255.0);"
 //		"}");
 //	crt_->set_video_signal(Outputs::Display::VideoSignal::RGB);
-	crt_->set_visible_area(Outputs::Display::Rect(0.055f, 0.025f, 0.9f, 0.9f));
+	crt_.set_visible_area(Outputs::Display::Rect(0.055f, 0.025f, 0.9f, 0.9f));
 
 	// The TMS remains in-phase with the NTSC colour clock; this is an empirical measurement
 	// intended to produce the correct relationship between the hard edges between pixels and
 	// the colour clock. It was eyeballed rather than derived from any knowledge of the TMS
 	// colour burst generator because I've yet to find any.
-	crt_->set_immediate_default_phase(0.85f);
+	crt_.set_immediate_default_phase(0.85f);
 }
 
 void TMS9918::set_tv_standard(TVStandard standard) {
@@ -108,18 +107,18 @@ void TMS9918::set_tv_standard(TVStandard standard) {
 		case TVStandard::PAL:
 			mode_timing_.total_lines = 313;
 			mode_timing_.first_vsync_line = 253;
-			crt_->set_new_display_type(CRTCyclesPerLine, Outputs::Display::Type::PAL50);
+			crt_.set_new_display_type(CRTCyclesPerLine, Outputs::Display::Type::PAL50);
 		break;
 		default:
 			mode_timing_.total_lines = 262;
 			mode_timing_.first_vsync_line = 227;
-			crt_->set_new_display_type(CRTCyclesPerLine, Outputs::Display::Type::NTSC60);
+			crt_.set_new_display_type(CRTCyclesPerLine, Outputs::Display::Type::NTSC60);
 		break;
 	}
 }
 
-Outputs::CRT::CRT *TMS9918::get_crt() {
-	return crt_.get();
+void TMS9918::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	crt_.set_scan_target(scan_target);
 }
 
 void Base::LineBuffer::reset_sprite_collection() {
@@ -368,7 +367,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 					if(read_pointer_.row >= mode_timing_.first_vsync_line && read_pointer_.row < mode_timing_.first_vsync_line+4) {
 						// Vertical sync.
 						if(end_column == 342) {
-							crt_->output_sync(342 * 4);
+							crt_.output_sync(342 * 4);
 						}
 					} else {
 						// Right border.
@@ -378,11 +377,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						// and 58+15 = 73. So output the lot when the
 						// cursor passes 73.
 						if(read_pointer_.column < 73 && end_column >= 73) {
-							crt_->output_blank(8*4);
-							crt_->output_sync(26*4);
-							crt_->output_blank(2*4);
-							crt_->output_default_colour_burst(14*4);
-							crt_->output_blank(8*4);
+							crt_.output_blank(8*4);
+							crt_.output_sync(26*4);
+							crt_.output_blank(2*4);
+							crt_.output_default_colour_burst(14*4);
+							crt_.output_blank(8*4);
 						}
 
 						// Border colour for the rest of the line.
@@ -394,11 +393,11 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 					// Blanking region.
 					if(read_pointer_.column < 73 && end_column >= 73) {
-						crt_->output_blank(8*4);
-						crt_->output_sync(26*4);
-						crt_->output_blank(2*4);
-						crt_->output_default_colour_burst(14*4);
-						crt_->output_blank(8*4);
+						crt_.output_blank(8*4);
+						crt_.output_sync(26*4);
+						crt_.output_blank(2*4);
+						crt_.output_default_colour_burst(14*4);
+						crt_.output_blank(8*4);
 					}
 
 					// Left border.
@@ -411,7 +410,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 						if(!asked_for_write_area_) {
 							asked_for_write_area_ = true;
 							pixel_origin_ = pixel_target_ = reinterpret_cast<uint32_t *>(
-								crt_->begin_data(size_t(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
+								crt_.begin_data(size_t(line_buffer.next_border_column - line_buffer.first_pixel_output_column))
 							);
 						}
 
@@ -429,7 +428,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 
 						if(end == line_buffer.next_border_column) {
 							const int length = line_buffer.next_border_column - line_buffer.first_pixel_output_column;
-							crt_->output_data(length * 4, size_t(length));
+							crt_.output_data(length * 4, size_t(length));
 							pixel_origin_ = pixel_target_ = nullptr;
 							asked_for_write_area_ = false;
 						}
@@ -471,16 +470,16 @@ void Base::output_border(int cycles, uint32_t cram_dot) {
 			palette[background_colour_];
 
 	if(cram_dot) {
-		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_->begin_data(1));
+		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_.begin_data(1));
 		*pixel_target = border_colour | cram_dot;
-		crt_->output_level(4);
+		crt_.output_level(4);
 		cycles -= 4;
 	}
 
 	if(cycles) {
-		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_->begin_data(1));
+		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_.begin_data(1));
 		*pixel_target = border_colour;
-		crt_->output_level(cycles);
+		crt_.output_level(cycles);
 	}
 }
 
