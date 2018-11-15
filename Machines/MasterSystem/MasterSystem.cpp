@@ -163,17 +163,9 @@ class ConcreteMachine:
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
-//			TI::TMS::Personality personality = TI::TMS::TMS9918A;
-//			switch(model_) {
-//				case Target::Model::SG1000: personality = TI::TMS::TMS9918A; 		break;
-//				case Target::Model::MasterSystem: personality = TI::TMS::SMSVDP;	break;
-//				case Target::Model::MasterSystem2: personality = TI::TMS::SMS2VDP;	break;
-//			}
-//			vdp_.reset(new TI::TMS::TMS9918(personality));
 			vdp_.set_tv_standard(
 				(region_ == Target::Region::Europe) ?
 					TI::TMS::TVStandard::PAL : TI::TMS::TVStandard::NTSC);
-//			get_crt()->set_video_signal(Outputs::Display::VideoSignal::Composite);
 
 			time_until_debounce_ = vdp_.get_time_until_line(-1);
 		}
