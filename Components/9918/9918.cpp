@@ -471,14 +471,18 @@ void Base::output_border(int cycles, uint32_t cram_dot) {
 
 	if(cram_dot) {
 		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_.begin_data(1));
-		*pixel_target = border_colour | cram_dot;
+		if(pixel_target) {
+			*pixel_target = border_colour | cram_dot;
+		}
 		crt_.output_level(4);
 		cycles -= 4;
 	}
 
 	if(cycles) {
 		uint32_t *const pixel_target = reinterpret_cast<uint32_t *>(crt_.begin_data(1));
-		*pixel_target = border_colour;
+		if(pixel_target) {
+			*pixel_target = border_colour;
+		}
 		crt_.output_level(cycles);
 	}
 }
