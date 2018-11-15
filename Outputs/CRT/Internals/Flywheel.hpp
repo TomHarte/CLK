@@ -10,6 +10,7 @@
 #define Flywheel_hpp
 
 #include <cstdlib>
+#include <cstdint>
 
 namespace Outputs {
 namespace CRT {
@@ -33,10 +34,8 @@ struct Flywheel {
 		standard_period_(standard_period),
 		retrace_time_(retrace_time),
 		sync_error_window_(sync_error_window),
-		counter_(0),
 		counter_before_retrace_(standard_period - retrace_time),
-		expected_next_sync_(standard_period),
-		number_of_surprises_(0) {}
+		expected_next_sync_(standard_period) {}
 
 	enum SyncEvent {
 		/// Indicates that no synchronisation events will occur in the queried window.
@@ -64,10 +63,10 @@ struct Flywheel {
 		// do we recognise this hsync, thereby adjusting future time expectations?
 		if(sync_is_requested) {
 			if(counter_ < sync_error_window_ || counter_ > expected_next_sync_ - sync_error_window_) {
-				int time_now = (counter_ < sync_error_window_) ? expected_next_sync_ + counter_ : counter_;
+				const int time_now = (counter_ < sync_error_window_) ? expected_next_sync_ + counter_ : counter_;
 				expected_next_sync_ = (3*expected_next_sync_ + time_now) >> 2;
 			} else {
-				number_of_surprises_++;
+				++number_of_surprises_;
 
 				if(counter_ < retrace_time_ + (expected_next_sync_ >> 1)) {
 					expected_next_sync_ = (3*expected_next_sync_ + standard_period_ + sync_error_window_) >> 2;
@@ -124,7 +123,7 @@ struct Flywheel {
 	*/
 	inline int get_current_output_position() {
 		if(counter_ < retrace_time_) {
-			int retrace_distance = (counter_ * standard_period_) / retrace_time_;
+			const int retrace_distance = int((int64_t(counter_) * int64_t(standard_period_)) / int64_t(retrace_time_));
 			if(retrace_distance > counter_before_retrace_) return 0;
 			return counter_before_retrace_ - retrace_distance;
 		}
@@ -182,11 +181,11 @@ struct Flywheel {
 		const int retrace_time_;		// a constant indicating the amount of time it takes to perform a retrace
 		const int sync_error_window_;	// a constant indicating the window either side of the next expected sync in which we'll accept other syncs
 
-		int counter_;					// time since the _start_ of the last sync
+		int counter_ = 0;				// time since the _start_ of the last sync
 		int counter_before_retrace_;	// the value of _counter immediately before retrace began
 		int expected_next_sync_;		// our current expection of when the next sync will be encountered (which implies velocity)
 
-		int number_of_surprises_;		// a count of the surprising syncs
+		int number_of_surprises_ = 0;	// a count of the surprising syncs
 
 		/*
 			Implementation notes:
