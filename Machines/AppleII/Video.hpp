@@ -36,8 +36,8 @@ class VideoBase {
 	public:
 		VideoBase(bool is_iie, std::function<void(Cycles)> &&target);
 
-		/// @returns The CRT this video feed is feeding.
-		Outputs::CRT::CRT *get_crt();
+		/// Sets the scan target.
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 
 		/*
 			Descriptions for the setters below are taken verbatim from
@@ -146,7 +146,7 @@ class VideoBase {
 		void set_character_rom(const std::vector<uint8_t> &);
 
 	protected:
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		Outputs::CRT::CRT crt_;
 
 		// State affecting output video stream generation.
 		uint8_t *pixel_pointer_ = nullptr;
@@ -351,14 +351,14 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					const int blank_end = std::min(first_sync_column, ending_column);
 					if(blank_end > blank_start) {
 						if(blank_start > column_) {
-							crt_->output_sync((blank_start - column_) * 14);
+							crt_.output_sync((blank_start - column_) * 14);
 						}
-						crt_->output_blank((blank_end - blank_start) * 14);
+						crt_.output_blank((blank_end - blank_start) * 14);
 						if(blank_end < ending_column) {
-							crt_->output_sync((ending_column - blank_end) * 14);
+							crt_.output_sync((ending_column - blank_end) * 14);
 						}
 					} else {
-						crt_->output_sync((cycles_this_line) * 14);
+						crt_.output_sync((cycles_this_line) * 14);
 					}
 				} else {
 					const GraphicsMode line_mode = graphics_mode(row_);
@@ -402,7 +402,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 						// remain where they would naturally be but auxiliary
 						// graphics appear to the left of that.
 						if(!column_) {
-							pixel_pointer_ = crt_->begin_data(568);
+							pixel_pointer_ = crt_.begin_data(568);
 							graphics_carry_ = 0;
 							was_double_ = true;
 						}
@@ -499,13 +499,13 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 										pixel_pointer_[567] = 0;
 								}
 
-								crt_->output_data(568, 568);
+								crt_.output_data(568, 568);
 								pixel_pointer_ = nullptr;
 							}
 						}
 					} else {
 						if(column_ < 40 && ending_column >= 40) {
-							crt_->output_blank(568);
+							crt_.output_blank(568);
 						}
 					}
 
@@ -515,11 +515,11 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					*/
 
 					if(column_ < first_sync_column && ending_column >= first_sync_column) {
-						crt_->output_blank((first_sync_column - 41)*14 - 1);
+						crt_.output_blank((first_sync_column - 41)*14 - 1);
 					}
 
 					if(column_ < (first_sync_column + sync_length) && ending_column >= (first_sync_column + sync_length)) {
-						crt_->output_sync(sync_length*14);
+						crt_.output_sync(sync_length*14);
 					}
 
 					int second_blank_start;
@@ -527,7 +527,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 						const int colour_burst_start = std::max(first_sync_column + sync_length + 1, column_);
 						const int colour_burst_end = std::min(first_sync_column + sync_length + 4, ending_column);
 						if(colour_burst_end > colour_burst_start) {
-							crt_->output_colour_burst((colour_burst_end - colour_burst_start) * 14, 192);
+							crt_.output_colour_burst((colour_burst_end - colour_burst_start) * 14, 192);
 						}
 
 						second_blank_start = std::max(first_sync_column + sync_length + 3, column_);
@@ -536,7 +536,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					}
 
 					if(ending_column > second_blank_start) {
-						crt_->output_blank((ending_column - second_blank_start) * 14);
+						crt_.output_blank((ending_column - second_blank_start) * 14);
 					}
 				}
 
@@ -551,7 +551,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 					// Add an extra half a colour cycle of blank; this isn't counted in the run_for
 					// count explicitly but is promised.
-					crt_->output_blank(2);
+					crt_.output_blank(2);
 				}
 			}
 		}
