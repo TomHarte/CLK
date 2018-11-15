@@ -67,6 +67,12 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	scan_target_->set_modals(scan_target_modals_);
 }
 
+void CRT::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	scan_target_ = scan_target;
+	if(!scan_target_) scan_target_ = &Outputs::Display::NullScanTarget::singleton;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
 void CRT::set_new_data_type(Outputs::Display::InputDataType data_type) {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_->set_modals(scan_target_modals_);
@@ -111,9 +117,7 @@ CRT::CRT(	int cycles_per_line,
 			int colour_cycle_numerator, int colour_cycle_denominator,
 			int vertical_sync_half_lines,
 			bool should_alternate,
-			Outputs::Display::InputDataType data_type,
-			Outputs::Display::ScanTarget *scan_target) {
-	scan_target_ = scan_target;
+			Outputs::Display::InputDataType data_type) {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_modals_.cycles_per_line = cycles_per_line;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
@@ -123,9 +127,7 @@ CRT::CRT(	int cycles_per_line,
 CRT::CRT(	int cycles_per_line,
 			int clocks_per_pixel_greatest_common_divisor,
 			Outputs::Display::Type display_type,
-			Outputs::Display::InputDataType data_type,
-			Outputs::Display::ScanTarget *scan_target) {
-	scan_target_ = scan_target;
+			Outputs::Display::InputDataType data_type) {
 	scan_target_modals_.input_data_type = data_type;
 	scan_target_modals_.cycles_per_line = cycles_per_line;
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;

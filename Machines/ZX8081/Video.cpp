@@ -22,21 +22,20 @@ const std::size_t StandardAllocationSize = 320;
 
 }
 
-Video::Video(Outputs::Display::ScanTarget *scan_target) :
-	crt_(new Outputs::CRT::CRT(207 * 2, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Luminance1, scan_target))
-	{
+Video::Video() :
+	crt_(207 * 2, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Luminance1) {
 
 	// Set a composite sampling function that assumes two-level input; either a byte is 0, which is black,
 	// or it is non-zero, which is white.
-//	crt_->set_composite_sampling_function(
+//	crt_.set_composite_sampling_function(
 //		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
 //		"{"
 //			"return texture(sampler, coordinate).r;"
 //		"}");
 
 	// Show only the centre 80% of the TV frame.
-//	crt_->set_video_signal(Outputs::Display::VideoSignal::Composite);
-	crt_->set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
+//	crt_.set_video_signal(Outputs::Display::VideoSignal::Composite);
+	crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 }
 
 void Video::run_for(const HalfCycles half_cycles) {
@@ -51,7 +50,7 @@ void Video::flush() {
 void Video::flush(bool next_sync) {
 	if(sync_) {
 		// If in sync, that takes priority. Output the proper amount of sync.
-		crt_->output_sync(time_since_update_.as_int());
+		crt_.output_sync(time_since_update_.as_int());
 	} else {
 		// If not presently in sync, then...
 
@@ -61,16 +60,16 @@ void Video::flush(bool next_sync) {
 			int data_length = static_cast<int>(line_data_pointer_ - line_data_);
 			if(data_length < time_since_update_.as_int() || next_sync) {
 				auto output_length = std::min(data_length, time_since_update_.as_int());
-				crt_->output_data(output_length);
+				crt_.output_data(output_length);
 				line_data_pointer_ = line_data_ = nullptr;
 				time_since_update_ -= HalfCycles(output_length);
 			} else return;
 		}
 
 		// Any pending pixels being dealt with, pad with the white level.
-		uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->begin_data(1));
+		uint8_t *colour_pointer = static_cast<uint8_t *>(crt_.begin_data(1));
 		if(colour_pointer) *colour_pointer = 0xff;
-		crt_->output_level(time_since_update_.as_int());
+		crt_.output_level(time_since_update_.as_int());
 	}
 
 	time_since_update_ = 0;
@@ -92,16 +91,16 @@ void Video::output_byte(uint8_t byte) {
 
 	// Grab a buffer if one isn't already available.
 	if(!line_data_) {
-		line_data_pointer_ = line_data_ = crt_->begin_data(StandardAllocationSize);
+		line_data_pointer_ = line_data_ = crt_.begin_data(StandardAllocationSize);
 	}
 
 	// If a buffer was obtained, serialise the new pixels.
 	if(line_data_) {
 		// If the buffer is full, output it now and obtain a new one
 		if(line_data_pointer_ - line_data_ == StandardAllocationSize) {
-			crt_->output_data(StandardAllocationSize, StandardAllocationSize);
+			crt_.output_data(StandardAllocationSize, StandardAllocationSize);
 			time_since_update_ -= StandardAllocationSize;
-			line_data_pointer_ = line_data_ = crt_->begin_data(StandardAllocationSize);
+			line_data_pointer_ = line_data_ = crt_.begin_data(StandardAllocationSize);
 			if(!line_data_) return;
 		}
 
@@ -115,6 +114,6 @@ void Video::output_byte(uint8_t byte) {
 	}
 }
 
-Outputs::CRT::CRT *Video::get_crt() {
-	return crt_.get();
+void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	crt_.set_scan_target(scan_target);
 }

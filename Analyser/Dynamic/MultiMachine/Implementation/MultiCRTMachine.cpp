@@ -53,7 +53,7 @@ void MultiCRTMachine::perform_serial(const std::function<void (::CRTMachine::Mac
 	}
 }
 
-void MultiCRTMachine::setup_output(Outputs::Display::ScanTarget *scan_target) {
+void MultiCRTMachine::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	perform_serial([=](::CRTMachine::Machine *machine) {
 		// TODO.
 //		machine->setup_output(aspect_ratio);

@@ -456,7 +456,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// to satisfy CRTMachine::Machine
-		void setup_output(Outputs::Display::ScanTarget *scan_target) override final {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
 			speaker_.set_input_rate(1000000.0f);
 
 			video_output_.reset(new VideoOutput(ram_));

@@ -51,6 +51,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Acorn::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 				m6502_(*this),
+				video_output_(ram_),
 				sound_generator_(audio_queue_),
 				speaker_(sound_generator_) {
 			memset(key_states_, 0, sizeof(key_states_));
@@ -160,7 +161,7 @@ class ConcreteMachine:
 
 				// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
 				// it's also accessible only outside of the pixel regions
-				cycles += video_output_->get_cycles_until_next_ram_availability(cycles_since_display_update_.as_int() + 1);
+				cycles += video_output_.get_cycles_until_next_ram_availability(cycles_since_display_update_.as_int() + 1);
 			} else {
 				switch(address & 0xff0f) {
 					case 0xfe00:
@@ -198,8 +199,8 @@ class ConcreteMachine:
 					case 0xfe0c: case 0xfe0d: case 0xfe0e: case 0xfe0f:
 						if(!isReadOperation(operation)) {
 							update_display();
-							video_output_->set_register(address, *value);
-							video_access_range_ = video_output_->get_memory_access_range();
+							video_output_.set_register(address, *value);
+							video_access_range_ = video_output_.get_memory_access_range();
 							queue_next_display_interrupt();
 						}
 					break;
@@ -373,8 +374,8 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		void setup_output(Outputs::Display::ScanTarget *scan_target) override final {
-			video_output_.reset(new VideoOutput(ram_, scan_target));
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+			video_output_.set_scan_target(scan_target);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override final {
@@ -500,12 +501,12 @@ class ConcreteMachine:
 		// MARK: - Work deferral updates.
 		inline void update_display() {
 			if(cycles_since_display_update_ > 0) {
-				video_output_->run_for(cycles_since_display_update_.flush());
+				video_output_.run_for(cycles_since_display_update_.flush());
 			}
 		}
 
 		inline void queue_next_display_interrupt() {
-			VideoOutput::Interrupt next_interrupt = video_output_->get_next_interrupt();
+			VideoOutput::Interrupt next_interrupt = video_output_.get_next_interrupt();
 			cycles_until_display_interrupt_ = next_interrupt.cycles;
 			next_display_interrupt_ = next_interrupt.interrupt;
 		}
@@ -575,7 +576,7 @@ class ConcreteMachine:
 		int shift_restart_counter_ = 0;
 
 		// Outputs
-		std::unique_ptr<VideoOutput> video_output_;
+		VideoOutput video_output_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		SoundGenerator sound_generator_;

@@ -396,7 +396,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void setup_output(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			video_.reset(new AppleII::Video::Video<VideoBusHandler, is_iie()>(video_bus_handler_));
 			video_->set_character_rom(character_rom_);
 		}

@@ -325,7 +325,7 @@ class CRTCBusHandler {
 		}
 
 		/// Constructs an appropriate CRT for video output.
-		void setup_output(Outputs::Display::ScanTarget *scan_target) {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 //			crt_.reset(new Outputs::CRT::CRT(1024, 16, Outputs::Display::Type::PAL50, 1));
 //			crt_->set_rgb_sampling_function(
 //				"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
@@ -983,8 +983,8 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		/// A CRTMachine function; indicates that outputs should be created now.
-		void setup_output(Outputs::Display::ScanTarget *scan_target) override final {
-			crtc_bus_handler_.setup_output(scan_target);
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+			crtc_bus_handler_.set_scan_target(scan_target);
 		}
 
 		/// A CRTMachine function; indicates that outputs should be destroyed now.

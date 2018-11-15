@@ -81,7 +81,7 @@ class CRT {
 
 		int cycles_per_line_ = 1;
 
-		Outputs::Display::ScanTarget *scan_target_ = nullptr;
+		Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
 		Outputs::Display::ScanTarget::Modals scan_target_modals_;
 
 	public:
@@ -118,8 +118,7 @@ class CRT {
 			int colour_cycle_denominator,
 			int vertical_sync_half_lines,
 			bool should_alternate,
-			Outputs::Display::InputDataType data_type,
-			Outputs::Display::ScanTarget *scan_target);
+			Outputs::Display::InputDataType data_type);
 
 		/*!	Exactly identical to calling the designated constructor with colour subcarrier information
 			looked up by display type.
@@ -127,8 +126,7 @@ class CRT {
 		CRT(int cycles_per_line,
 			int minimum_cycles_per_pixel,
 			Outputs::Display::Type display_type,
-			Outputs::Display::InputDataType data_type,
-			Outputs::Display::ScanTarget *scan_target);
+			Outputs::Display::InputDataType data_type);
 
 		/*!	Resets the CRT with new timing information. The CRT then continues as though the new timing had
 			been provided at construction. */
@@ -263,6 +261,9 @@ class CRT {
 		inline void set_delegate(Delegate *delegate) {
 			delegate_ = delegate;
 		}
+
+		/*! Sets the scan target for CRT output. */
+		void set_scan_target(Outputs::Display::ScanTarget *);
 };
 
 }

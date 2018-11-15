@@ -161,7 +161,7 @@ class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void setup_output(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			TI::TMS::Personality personality = TI::TMS::TMS9918A;
 			switch(model_) {
 				case Target::Model::SG1000: personality = TI::TMS::TMS9918A; 		break;

@@ -218,7 +218,7 @@ class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void setup_output(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			vdp_.reset(new TI::TMS::TMS9918(TI::TMS::TMS9918A));
 		}
 

@@ -38,17 +38,15 @@ namespace {
 
 // MARK: - Lifecycle
 
-VideoOutput::VideoOutput(uint8_t *memory, Outputs::Display::ScanTarget *scan_target) : ram_(memory) {
+VideoOutput::VideoOutput(uint8_t *memory) :
+	ram_(memory),
+	crt_(crt_cycles_per_line,
+		1,
+		Outputs::Display::Type::PAL50,
+		Outputs::Display::InputDataType::Red1Green1Blue1) {
 	memset(palette_, 0xf, sizeof(palette_));
 	setup_screen_map();
 	setup_base_address();
-
-	crt_.reset(new Outputs::CRT::CRT(
-		crt_cycles_per_line,
-		1,
-		Outputs::Display::Type::PAL50,
-		Outputs::Display::InputDataType::Red1Green1Blue1,
-		scan_target));
 
 //	crt_->set_rgb_sampling_function(
 //		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
@@ -57,13 +55,11 @@ VideoOutput::VideoOutput(uint8_t *memory, Outputs::Display::ScanTarget *scan_tar
 //			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
 //		"}");
 	// TODO: as implied below, I've introduced a clock's latency into the graphics pipeline somehow. Investigate.
-	crt_->set_visible_area(crt_->get_rect_for_area(first_graphics_line - 1, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(first_graphics_line - 1, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
 }
 
-// MARK: - CRT getter
-
-Outputs::CRT::CRT *VideoOutput::get_crt() {
-	return crt_.get();
+void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	crt_.set_scan_target(scan_target);
 }
 
 // MARK: - Display update methods
@@ -95,7 +91,7 @@ void VideoOutput::start_pixel_line() {
 void VideoOutput::end_pixel_line() {
 	if(current_output_target_) {
 		const int data_length = int(current_output_target_ - initial_output_target_);
-		crt_->output_data(data_length * current_output_divider_, size_t(data_length));
+		crt_.output_data(data_length * current_output_divider_, size_t(data_length));
 	}
 	current_character_row_++;
 }
@@ -104,7 +100,7 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 	if(!number_of_cycles) return;
 
 	if(is_blank_line_) {
-		crt_->output_blank(number_of_cycles * crt_cycles_multiplier);
+		crt_.output_blank(number_of_cycles * crt_cycles_multiplier);
 	} else {
 		int divider = 1;
 		switch(screen_mode_) {
@@ -116,10 +112,10 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 		if(!initial_output_target_ || divider != current_output_divider_) {
 			if(current_output_target_) {
 				const int data_length = int(current_output_target_ - initial_output_target_);
-				crt_->output_data(data_length * current_output_divider_, size_t(data_length));
+				crt_.output_data(data_length * current_output_divider_, size_t(data_length));
 			}
 			current_output_divider_ = divider;
-			initial_output_target_ = current_output_target_ = crt_->begin_data(size_t(640 / current_output_divider_), size_t(8 / divider));
+			initial_output_target_ = current_output_target_ = crt_.begin_data(size_t(640 / current_output_divider_), size_t(8 / divider));
 		}
 
 #define get_pixel()	\
@@ -242,9 +238,9 @@ void VideoOutput::run_for(const Cycles cycles) {
 		cycles_into_draw_action_ += time_left_in_action;
 		if(cycles_into_draw_action_ == draw_action_length) {
 			switch(screen_map_[screen_map_pointer_].type) {
-				case DrawAction::Sync:			crt_->output_sync(draw_action_length * crt_cycles_multiplier);					break;
-				case DrawAction::ColourBurst:	crt_->output_default_colour_burst(draw_action_length * crt_cycles_multiplier);	break;
-				case DrawAction::Blank:			crt_->output_blank(draw_action_length * crt_cycles_multiplier);					break;
+				case DrawAction::Sync:			crt_.output_sync(draw_action_length * crt_cycles_multiplier);					break;
+				case DrawAction::ColourBurst:	crt_.output_default_colour_burst(draw_action_length * crt_cycles_multiplier);	break;
+				case DrawAction::Blank:			crt_.output_blank(draw_action_length * crt_cycles_multiplier);					break;
 				case DrawAction::Pixels:		end_pixel_line();																break;
 			}
 			screen_map_pointer_ = (screen_map_pointer_ + 1) % screen_map_.size();

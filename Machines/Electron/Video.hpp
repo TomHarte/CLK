@@ -27,18 +27,17 @@ namespace Electron {
 class VideoOutput {
 	public:
 		/*!
-			Instantiates a VideoOutput that will read its pixels from @c memory and output video
-			to @c scan_target.
+			Instantiates a VideoOutput that will read its pixels from @c memory.
 
 			The pointer supplied should be to address 0 in the unexpanded Electron's memory map.
 		*/
-		VideoOutput(uint8_t *memory, Outputs::Display::ScanTarget *scan_target);
-
-		/// @returns the CRT to which output is being painted.
-		Outputs::CRT::CRT *get_crt();
+		VideoOutput(uint8_t *memory);
 
 		/// Produces the next @c cycles of video output.
 		void run_for(const Cycles cycles);
+
+		/// Sets the destination for output.
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 
 		/*!
 			Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
@@ -114,8 +113,7 @@ class VideoOutput {
 		uint8_t *current_output_target_ = nullptr;
 		uint8_t *initial_output_target_ = nullptr;
 		int current_output_divider_ = 1;
-
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		Outputs::CRT::CRT crt_;
 
 		struct DrawAction {
 			enum Type {

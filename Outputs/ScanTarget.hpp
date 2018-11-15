@@ -249,6 +249,18 @@ struct ScanTarget {
 		virtual void announce(Event event, uint16_t x, uint16_t y) {}
 };
 
+/*!
+	Provides a null target for scans.
+*/
+struct NullScanTarget: public ScanTarget {
+	void set_modals(Modals) {}
+	Scan *begin_scan() { return nullptr; }
+	uint8_t *begin_data(size_t required_length, size_t required_alignment = 1) { return nullptr; }
+	void submit() {}
+
+	static NullScanTarget singleton;
+};
+
 }
 }
 

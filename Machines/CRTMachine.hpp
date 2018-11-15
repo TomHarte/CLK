@@ -35,7 +35,7 @@ class Machine {
 			The @c scan_target will receive all video output; the caller guarantees
 			that it is non-null.
 		*/
-		virtual void setup_output(Outputs::Display::ScanTarget *scan_target) = 0;
+		virtual void set_scan_target(Outputs::Display::ScanTarget *scan_target) = 0;
 
 		/// @returns The speaker that receives this machine's output, or @c nullptr if this machine is mute.
 		virtual Outputs::Speaker::Speaker *get_speaker() = 0;

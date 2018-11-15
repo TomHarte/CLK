@@ -169,7 +169,7 @@ class ConcreteMachine:
 			return joysticks_;
 		}
 
-		void setup_output(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			vdp_.reset(new TI::TMS::TMS9918(TI::TMS::TMS9918A));
 //			get_crt()->set_video_signal(Outputs::Display::VideoSignal::Composite);
 		}

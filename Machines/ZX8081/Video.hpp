@@ -26,10 +26,8 @@ namespace ZX8081 {
 */
 class Video {
 	public:
-		/// Constructs an instance of the video feed; a CRT is also created.
-		Video(Outputs::Display::ScanTarget *scan_target);
-		/// @returns The CRT this video feed is feeding.
-		Outputs::CRT::CRT *get_crt();
+		/// Constructs an instance of the video feed.
+		Video();
 
 		/// Advances time by @c half-cycles.
 		void run_for(const HalfCycles);
@@ -41,12 +39,15 @@ class Video {
 		/// Causes @c byte to be serialised into pixels and output over the next four cycles.
 		void output_byte(uint8_t byte);
 
+		/// Sets the scan target.
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+
 	private:
 		bool sync_ = false;
 		uint8_t *line_data_ = nullptr;
 		uint8_t *line_data_pointer_ = nullptr;
 		HalfCycles time_since_update_ = 0;
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		Outputs::CRT::CRT crt_;
 
 		void flush(bool next_sync);
 };

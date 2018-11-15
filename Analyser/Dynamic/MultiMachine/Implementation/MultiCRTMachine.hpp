@@ -53,7 +53,7 @@ class MultiCRTMachine: public CRTMachine::Machine {
 		}
 
 		// Below is the standard CRTMachine::Machine interface; see there for documentation.
-		void setup_output(Outputs::Display::ScanTarget *scan_target) override;
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override;
 		Outputs::Speaker::Speaker *get_speaker() override;
 		void run_for(Time::Seconds duration) override;
 

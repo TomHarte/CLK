@@ -157,7 +157,7 @@ class ConcreteMachine:
 		}
 
 		// to satisfy CRTMachine::Machine
-		void setup_output(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			bus_->tia_.reset(new TIA);
 			bus_->speaker_.set_input_rate(static_cast<float>(get_clock_rate() / static_cast<double>(CPUTicksPerAudioTick)));
 			bus_->tia_->get_crt()->set_delegate(this);

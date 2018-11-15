@@ -236,7 +236,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
 	_scanTarget.reset(new Outputs::Display::OpenGL::ScanTarget);
-	_machine->crt_machine()->setup_output(_scanTarget.get());
+	_machine->crt_machine()->set_scan_target(_scanTarget.get());
 
 	// Since OS X v10.6, Macs have had a gamma of 2.2.
 //	_machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
