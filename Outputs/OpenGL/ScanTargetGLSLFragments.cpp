@@ -48,13 +48,12 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 	}
 }
 
-std::string ScanTarget::glsl_default_vertex_shader(ShaderType type, bool unsigned_sampler) {
-	const std::string prefix = unsigned_sampler ? "uniform usampler2D textureName;" : "uniform sampler2D textureName;";
+std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 	switch(type) {
 		case ShaderType::Scan:
 		return
-			prefix +
 			"out vec2 textureCoordinate;"
+			"uniform usampler2D textureName;"
 
 			"void main(void) {"
 				"float lateral = float(gl_VertexID & 1);"
@@ -68,8 +67,8 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type, bool unsigne
 
 		case ShaderType::Line:
 		return
-			prefix +
 			"out vec2 textureCoordinate;"
+			"uniform sampler2D textureName;"
 
 			"void main(void) {"
 				"float lateral = float(gl_VertexID & 1);"
@@ -148,7 +147,6 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 }
 
 std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, OutputType output_type) {
-	bool unsigned_sampler = false;
 	std::string fragment_shader =
 		"#version 150\n"
 
@@ -157,13 +155,8 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 
 	switch(input_data_type) {
 		case InputDataType::Luminance1:
-			unsigned_sampler = true;
-		case InputDataType::Luminance8:
 			fragment_shader +=
-				unsigned_sampler ? "uniform usampler2D" : "uniform sampler2D";
-
-			fragment_shader +=
-				" textureName;"
+				"uniform usampler2D textureName;"
 				"void main(void) {";
 
 			switch(output_type) {
@@ -176,6 +169,9 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 			}
 
 			fragment_shader += "}";
+		break;
+
+		case InputDataType::Luminance8:
 		break;
 
 //	SVideo,
@@ -202,7 +198,6 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 
 		case InputDataType::Red1Green1Blue1:
 			// TODO: write encoding functions for RGB -> composite/s-video.
-			unsigned_sampler = true;
 			fragment_shader +=
 				"uniform usampler2D textureName;"
 				"void main(void) {"
@@ -219,15 +214,15 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 
 		case InputDataType::Red8Green8Blue8:
 			fragment_shader +=
-				"uniform sampler2D textureName;"
+				"uniform usampler2D textureName;"
 				"void main(void) {"
-					"fragColour = vec4(texture(textureName, textureCoordinate).rgb, 1.0);"
+					"fragColour = vec4(texture(textureName, textureCoordinate).rgb / vec3(255.0), 1.0);"
 				"}";
 		break;
 	}
 
 	return std::unique_ptr<Shader>(new Shader(
-		glsl_globals(ShaderType::Scan) + glsl_default_vertex_shader(ShaderType::Scan, unsigned_sampler),
+		glsl_globals(ShaderType::Scan) + glsl_default_vertex_shader(ShaderType::Scan),
 		fragment_shader
 	));
 }

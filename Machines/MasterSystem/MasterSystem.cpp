@@ -166,8 +166,9 @@ class ConcreteMachine:
 			vdp_.set_tv_standard(
 				(region_ == Target::Region::Europe) ?
 					TI::TMS::TVStandard::PAL : TI::TMS::TVStandard::NTSC);
-
 			time_until_debounce_ = vdp_.get_time_until_line(-1);
+
+			vdp_.set_scan_target(scan_target);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
