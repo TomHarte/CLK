@@ -107,8 +107,6 @@ class CRT {
 			in multiples of half a line.
 
 			@param data_type The format that the caller will use for input data.
-
-			@param scan_target The destination for generated scans.
 		*/
 		CRT(int cycles_per_line,
 			int clocks_per_pixel_greatest_common_divisor,

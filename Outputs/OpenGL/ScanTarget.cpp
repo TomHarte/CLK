@@ -89,24 +89,6 @@ ScanTarget::ScanTarget() :
 
 	glGenTextures(1, &write_area_texture_name_);
 
-	input_shader_.reset(new Shader(
-		glsl_globals(ShaderType::Scan) + glsl_default_vertex_shader(ShaderType::Scan),
-		"#version 150\n"
-
-		"out vec4 fragColour;"
-		"in vec2 textureCoordinate;"
-
-		"uniform usampler2D textureName;"
-
-		"void main(void) {"
-			"fragColour = vec4(float(texture(textureName, textureCoordinate).r), 0.0, 0.0, 1.0);"
-		"}"
-	));
-
-	glBindVertexArray(scan_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
-	enable_vertex_attributes(ShaderType::Scan, *input_shader_);
-
 	output_shader_.reset(new Shader(
 		glsl_globals(ShaderType::Line) + glsl_default_vertex_shader(ShaderType::Line),
 		"#version 150\n"
@@ -159,6 +141,26 @@ void ScanTarget::set_modals(Modals modals) {
 	const int overflow = colour_cycle_width % dot_clock;
 	processing_width_ = colour_cycle_width + (overflow ? dot_clock - overflow : 0);
 	processing_width_ = std::min(processing_width_, 2048);
+
+	// Establish an input shader.
+	input_shader_ = input_shader(modals_.input_data_type, OutputType::RGB);
+//	input_shader_ = reset(new Shader(
+//		glsl_globals(ShaderType::Scan) + glsl_default_vertex_shader(ShaderType::Scan),
+//		"#version 150\n"
+//
+//		"out vec4 fragColour;"
+//		"in vec2 textureCoordinate;"
+//
+//		"uniform usampler2D textureName;"
+//
+//		"void main(void) {"
+//			"fragColour = vec4(vec3(texture(textureName, textureCoordinate).rgb), 1.0);"
+//		"}"
+//	));
+
+	glBindVertexArray(scan_vertex_array_);
+	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+	enable_vertex_attributes(ShaderType::Scan, *input_shader_);
 
 	set_uniforms(Outputs::Display::OpenGL::ScanTarget::ShaderType::Scan, *output_shader_);
 	set_uniforms(Outputs::Display::OpenGL::ScanTarget::ShaderType::Line, *input_shader_);
@@ -412,7 +414,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 								1 + end_y - start_y,
 								formatForDepth(data_type_size_),
 								GL_UNSIGNED_BYTE,
-								&write_area_texture_[size_t(TextureAddress(0, start_y))]);
+								&write_area_texture_[size_t(TextureAddress(0, start_y)) * data_type_size_]);
 		} else {
 			// The circular buffer wrapped around; submit the data from the read pointer to the end of
 			// the buffer and from the start of the buffer to the submit pointer.
@@ -429,7 +431,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 								WriteAreaHeight - start_y,
 								formatForDepth(data_type_size_),
 								GL_UNSIGNED_BYTE,
-								&write_area_texture_[size_t(TextureAddress(0, start_y))]);
+								&write_area_texture_[size_t(TextureAddress(0, start_y)) * data_type_size_]);
 		}
 	}
 

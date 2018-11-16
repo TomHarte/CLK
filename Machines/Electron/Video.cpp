@@ -48,12 +48,6 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 	setup_screen_map();
 	setup_base_address();
 
-//	crt_->set_rgb_sampling_function(
-//		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
-//		"{"
-//			"uint texValue = texture(sampler, coordinate).r;"
-//			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
-//		"}");
 	// TODO: as implied below, I've introduced a clock's latency into the graphics pipeline somehow. Investigate.
 	crt_.set_visible_area(crt_.get_rect_for_area(first_graphics_line - 1, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
 }

@@ -48,6 +48,13 @@ enum class ColourSpace {
 	YUV
 };
 
+enum class OutputType {
+	RGB,
+	SVideo,
+	CompositeColour,
+	CompositeMonochrome
+};
+
 /*!
 	Enumerates the potential formats of input data.
 */
