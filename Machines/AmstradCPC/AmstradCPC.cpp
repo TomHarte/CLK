@@ -172,10 +172,12 @@ class AYDeferrer {
 class CRTCBusHandler {
 	public:
 		CRTCBusHandler(uint8_t *ram, InterruptTimer &interrupt_timer) :
+			crt_(1024, 16, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2),
 			ram_(ram),
 			interrupt_timer_(interrupt_timer) {
 				establish_palette_hits();
 				build_mode_table();
+				crt_.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
 			}
 
 		/*!
@@ -218,12 +220,12 @@ class CRTCBusHandler {
 				if(cycles_) {
 					switch(previous_output_mode_) {
 						default:
-						case OutputMode::Blank:			crt_->output_blank(cycles_ * 16);					break;
-						case OutputMode::Sync:			crt_->output_sync(cycles_ * 16);					break;
+						case OutputMode::Blank:			crt_.output_blank(cycles_ * 16);					break;
+						case OutputMode::Sync:			crt_.output_sync(cycles_ * 16);					break;
 						case OutputMode::Border:		output_border(cycles_);								break;
-						case OutputMode::ColourBurst:	crt_->output_default_colour_burst(cycles_ * 16);	break;
+						case OutputMode::ColourBurst:	crt_.output_default_colour_burst(cycles_ * 16);	break;
 						case OutputMode::Pixels:
-							crt_->output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
+							crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
 							pixel_pointer_ = pixel_data_ = nullptr;
 						break;
 					}
@@ -239,7 +241,7 @@ class CRTCBusHandler {
 			// collect some more pixels if output is ongoing
 			if(previous_output_mode_ == OutputMode::Pixels) {
 				if(!pixel_data_) {
-					pixel_pointer_ = pixel_data_ = crt_->begin_data(320, 8);
+					pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
 				}
 				if(pixel_pointer_) {
 					// the CPC shuffles output lines as:
@@ -284,7 +286,7 @@ class CRTCBusHandler {
 					// widths so it's not necessarily possible to predict the correct number in advance
 					// and using the upper bound could lead to inefficient behaviour
 					if(pixel_pointer_ == pixel_data_ + 320) {
-						crt_->output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
+						crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
 						pixel_pointer_ = pixel_data_ = nullptr;
 						cycles_ = 0;
 					}
@@ -326,26 +328,8 @@ class CRTCBusHandler {
 
 		/// Constructs an appropriate CRT for video output.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
-//			crt_.reset(new Outputs::CRT::CRT(1024, 16, Outputs::Display::Type::PAL50, 1));
-//			crt_->set_rgb_sampling_function(
-//				"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
-//				"{"
-//					"uint sample = texture(texID, coordinate).r;"
-//					"return vec3(float((sample >> 4) & 3u), float((sample >> 2) & 3u), float(sample & 3u)) / 2.0;"
-//				"}");
-			crt_->set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
-//			crt_->set_video_signal(Outputs::Display::VideoSignal::RGB);
+			crt_.set_scan_target(scan_target);
 		}
-
-		/// Destructs the CRT.
-//		void close_output() {
-//			crt_.reset();
-//		}
-
-		/// @returns the CRT.
-//		Outputs::CRT::CRT *get_crt() {
-//			return crt_.get();
-//		}
 
 		/*!
 			Sets the next video mode. Per the documentation, mode changes take effect only at the end of line,
@@ -378,9 +362,9 @@ class CRTCBusHandler {
 
 	private:
 		void output_border(int length) {
-			uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->begin_data(1));
+			uint8_t *colour_pointer = static_cast<uint8_t *>(crt_.begin_data(1));
 			if(colour_pointer) *colour_pointer = border_;
-			crt_->output_level(length * 16);
+			crt_.output_level(length * 16);
 		}
 
 #define Mode0Colour0(c) ((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2)
@@ -534,7 +518,7 @@ class CRTCBusHandler {
 		bool was_hsync_ = false, was_vsync_ = false;
 		int cycles_into_hsync_ = 0;
 
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		Outputs::CRT::CRT crt_;
 		uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
 
 		uint8_t *ram_ = nullptr;
@@ -986,16 +970,6 @@ template <bool has_fdc> class ConcreteMachine:
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
 			crtc_bus_handler_.set_scan_target(scan_target);
 		}
-
-		/// A CRTMachine function; indicates that outputs should be destroyed now.
-//		void close_output() override final {
-//			crtc_bus_handler_.close_output();
-//		}
-
-		/// @returns the CRT in use.
-//		Outputs::CRT::CRT *get_crt() override final {
-//			return crtc_bus_handler_.get_crt();
-//		}
 
 		/// @returns the speaker in use.
 		Outputs::Speaker::Speaker *get_speaker() override final {

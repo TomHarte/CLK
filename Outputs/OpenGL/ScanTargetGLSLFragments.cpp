@@ -196,8 +196,9 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 //			fragment_shader += "}";
 //		break;
 
+		// TODO: write encoding functions for RGB -> composite/s-video for the RGB inputs.
+
 		case InputDataType::Red1Green1Blue1:
-			// TODO: write encoding functions for RGB -> composite/s-video.
 			fragment_shader +=
 				"uniform usampler2D textureName;"
 				"void main(void) {"
@@ -207,6 +208,12 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 		break;
 
 		case InputDataType::Red2Green2Blue2:
+			fragment_shader +=
+				"uniform usampler2D textureName;"
+				"void main(void) {"
+					"uint textureValue = texture(textureName, textureCoordinate).r;"
+					"fragColour = vec4(vec3(float((textureValue >> 4) & 3u), float((textureValue >> 2) & 3u), float(textureValue & 3u)) / 3.0, 1.0);"
+				"}";
 		break;
 
 		case InputDataType::Red4Green4Blue4:
