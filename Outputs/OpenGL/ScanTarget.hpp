@@ -87,6 +87,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		std::array<Line, LineBufferHeight> line_buffer_;
 		TextureTarget unprocessed_line_texture_;
 		Line *active_line_ = nullptr;
+		int provided_scans_ = 0;
 
 		// OpenGL storage handles for buffer data.
 		GLuint scan_buffer_name_ = 0, scan_vertex_array_ = 0;

@@ -99,13 +99,16 @@ ScanTarget::ScanTarget() :
 		"uniform sampler2D textureName;"
 
 		"void main(void) {"
-			"fragColour = texture(textureName, textureCoordinate);"
+			"fragColour = vec4(texture(textureName, textureCoordinate).rgb, 0.64);"
 		"}"
 	));
 
 	glBindVertexArray(line_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 	enable_vertex_attributes(ShaderType::Line, *output_shader_);
+
+	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
+	glBlendColor(0.4f, 0.4f, 0.4f, 1.0f);
 
 	is_drawing_.clear();
 }
@@ -190,6 +193,7 @@ Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 		return nullptr;
 	}
 	write_pointers_.scan_buffer = next_write_pointer;
+	++provided_scans_;
 
 	// Fill in extra OpenGL-specific details.
 	result->line = write_pointers_.line;
@@ -286,21 +290,29 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 			if(active_line_) {
 				active_line_->end_points[1].x = x;
 				active_line_->end_points[1].y = y;
-				active_line_ = nullptr;
 			}
 		break;
 		case ScanTarget::Event::EndHorizontalRetrace: {
-			const auto read_pointers = read_pointers_.load();
+			// Commit the most recent line only if any scans fell on it.
+			// Otherwise there's no point outputting it, it'll contribute nothing.
+			if(provided_scans_) {
+				const auto read_pointers = read_pointers_.load();
 
-			// Attempt to allocate a new line; note allocation failure if necessary.
-			const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
+				// Attempt to allocate a new line; note allocation failure if necessary.
+				const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
 
-			// Check whether that's too many.
-			if(next_line == read_pointers.line) {
-				allocation_has_failed_ = true;
-			} else {
-				write_pointers_.line = next_line;
-				active_line_ = &line_buffer_[size_t(write_pointers_.line)];
+				// Check whether that's too many.
+				if(next_line == read_pointers.line) {
+					allocation_has_failed_ = true;
+					active_line_ = nullptr;
+				} else {
+					write_pointers_.line = next_line;
+					active_line_ = &line_buffer_[size_t(write_pointers_.line)];
+				}
+				provided_scans_ = 0;
+			}
+
+			if(active_line_) {
 				active_line_->end_points[0].x = x;
 				active_line_->end_points[0].y = y;
 				active_line_->line = write_pointers_.line;
@@ -437,6 +449,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 	// Push new input to the unprocessed line buffer.
 	if(new_scans) {
+		glDisable(GL_BLEND);
 		unprocessed_line_texture_.bind_framebuffer();
 
 		// Clear newly-touched lines; that is everything from (read+1) to submit.
@@ -472,6 +485,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	// Output all lines except the one currently being worked on.
 	glBindVertexArray(line_vertex_array_);
 	output_shader_->bind();
+	glEnable(GL_BLEND);
 	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(line_buffer_.size() - 1));
 
 	// All data now having been spooled to the GPU, update the read pointers to
