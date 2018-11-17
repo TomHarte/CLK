@@ -266,8 +266,8 @@ void ScanTarget::end_data(size_t actual_length) {
 
 	// Also bookend the end.
 	memcpy(
-		&write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_],
 		&write_area_texture_[size_t(write_pointers_.write_area - 1) * data_type_size_],
+		&write_area_texture_[size_t(write_pointers_.write_area - 2) * data_type_size_],
 		data_type_size_);
 }
 
