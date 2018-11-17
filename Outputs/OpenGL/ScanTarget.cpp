@@ -73,7 +73,7 @@ template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &b
 }
 
 ScanTarget::ScanTarget() :
- 	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR) {
+ 	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR, false) {
 
 	// Ensure proper initialisation of the two atomic pointer sets.
 	read_pointers_.store(write_pointers_);

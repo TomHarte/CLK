@@ -13,28 +13,39 @@
 
 using namespace Outputs::Display::OpenGL;
 
-TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter) :
+TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter, bool has_stencil_buffer) :
 		width_(width),
 		height_(height),
 		texture_unit_(texture_unit) {
+	// Generate and bind a frame buffer.
 	glGenFramebuffers(1, &framebuffer_);
 	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
 
+	// Round the width and height up to the next power of two.
 	expanded_width_ = 1;
 	while(expanded_width_ < width)		expanded_width_ <<= 1;
 	expanded_height_ = 1;
 	while(expanded_height_ < height)	expanded_height_ <<= 1;
 
+	// Generate a texture and bind it to the nominated texture unit.
 	glGenTextures(1, &texture_);
 	bind_texture();
 
+	// Upload a blank initial texture and set the user-supplied magnification filter.
 	std::vector<uint8_t> blank_buffer(static_cast<size_t>(expanded_width_ * expanded_height_ * 4), 0);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, static_cast<GLsizei>(expanded_width_), static_cast<GLsizei>(expanded_height_), 0, GL_RGBA, GL_UNSIGNED_BYTE, blank_buffer.data());
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
+	// Set the texture as colour attachment 0 on the frame buffer.
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_, 0);
 
+	// Also add a stencil buffer if requested.
+	if(has_stencil_buffer) {
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX1, expanded_width_, expanded_height_);
+	}
+
+	// Check for successful construction.
 	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
 		throw ErrorFramebufferIncomplete;
 }

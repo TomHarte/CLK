@@ -31,8 +31,9 @@ class TextureTarget {
 			@param width The width of target to create.
 			@param height The height of target to create.
 			@param texture_unit A texture unit on which to bind the texture.
+			@param has_stencil_buffer A 1-bit stencil buffer is attached if this is @c true; no stencil buffer is attached otherwise.
 		*/
-		TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter);
+		TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter, bool has_stencil_buffer);
 		~TextureTarget();
 
 		/*!
