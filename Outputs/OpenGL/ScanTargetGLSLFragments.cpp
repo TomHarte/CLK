@@ -74,7 +74,7 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 				"float lateral = float(gl_VertexID & 1);"
 				"float longitudinal = float((gl_VertexID & 2) >> 1);"
 
-				"textureCoordinate = vec2(lateral * processingWidth, lineY) / vec2(1.0, textureSize(textureName, 0).y);"
+				"textureCoordinate = vec2(lateral * processingWidth, lineY + 0.5) / vec2(1.0, textureSize(textureName, 0).y);"
 
 				"vec2 centrePoint = mix(startPoint, endPoint, lateral) / scale;"
 				"vec2 height = normalize(endPoint - startPoint).yx * (longitudinal - 0.5) * rowHeight;"
