@@ -300,8 +300,6 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 
 				// Attempt to allocate a new line; note allocation failure if necessary.
 				const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
-
-				// Check whether that's too many.
 				if(next_line == read_pointers.line) {
 					allocation_has_failed_ = true;
 					active_line_ = nullptr;
@@ -335,12 +333,14 @@ template <typename T> void ScanTarget::patch_buffer(const T &array, GLuint targe
 		);
 		assert(destination);
 
-		// Populate it with the oldest scans first; the oldest are those from 1 beyond the submit pointer.
+		// Populate it with the oldest data first; the oldest are those from two beyond the submit pointer;
+		// one beyond is the one that may currently be mutating.
+		const uint16_t oldest_record = (submit_pointer + 2) % array.size();
 		const size_t buffer_length = array.size() * sizeof(array[0]);
-		const size_t splice_point = (submit_pointer + 1) * sizeof(array[0]);
+		const size_t splice_point = oldest_record * sizeof(array[0]);
 		const size_t end_length = buffer_length - splice_point;
 
-		memcpy(&destination[0], &array[submit_pointer+1], end_length);
+		memcpy(&destination[0], &array[oldest_record], end_length);
 		memcpy(&destination[end_length], &array[0], buffer_length - end_length);
 
 		// Flush and unmap the buffer.
@@ -486,7 +486,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	glBindVertexArray(line_vertex_array_);
 	output_shader_->bind();
 	glEnable(GL_BLEND);
-	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(line_buffer_.size() - 1));
+	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(line_buffer_.size() - 2));
 
 	// All data now having been spooled to the GPU, update the read pointers to
 	// the submit pointer location.
