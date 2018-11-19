@@ -488,10 +488,11 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	}
 
 	// Ensure the accumulation buffer is properly sized.
-	if(!accumulation_texture_ || (!synchronous && (accumulation_texture_->get_width() != output_width || accumulation_texture_->get_height() != output_height))) {
+	const int proportional_width = (output_height * 4) / 3;
+	if(!accumulation_texture_ || (!synchronous && (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != output_height))) {
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(
 			new TextureTarget(
-				GLsizei(output_width),
+				GLsizei(proportional_width),
 				GLsizei(output_height),
 				AccumulationTextureUnit,
 				GL_LINEAR,
@@ -511,12 +512,22 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 	// Bind the accumulation texture.
 	accumulation_texture_->bind_framebuffer();
+	glClear(GL_STENCIL_BUFFER_BIT);
+
+	// Enable stenciling and ensure spans increment the stencil buffer.
+	glEnable(GL_STENCIL_TEST);
+	glStencilFunc(GL_EQUAL, 0, GLuint(-1));
+	glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
 
 	// Output all lines except the one currently being worked on.
 	glBindVertexArray(line_vertex_array_);
 	output_shader_->bind();
 	glEnable(GL_BLEND);
 	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(line_buffer_.size() - 2));
+
+	// Clear untouched parts of the display. (TODO: at vertical sync, probably)
+	full_display_rectangle_.draw(0.0, 0.0, 0.0);
+	glDisable(GL_STENCIL_TEST);
 
 	// Copy the accumulatiion texture to the target (TODO: don't assume framebuffer 0).
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);

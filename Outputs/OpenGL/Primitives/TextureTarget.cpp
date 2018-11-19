@@ -41,7 +41,10 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 
 	// Also add a stencil buffer if requested.
 	if(has_stencil_buffer) {
+		glGenRenderbuffers(1, &renderbuffer_);
+		glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer_);
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX1, expanded_width_, expanded_height_);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderbuffer_);
 	}
 
 	// Check for successful construction.
@@ -52,6 +55,7 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 TextureTarget::~TextureTarget() {
 	glDeleteFramebuffers(1, &framebuffer_);
 	glDeleteTextures(1, &texture_);
+	if(renderbuffer_) glDeleteRenderbuffers(1, &renderbuffer_);
 	if(drawing_vertex_array_) glDeleteVertexArrays(1, &drawing_vertex_array_);
 	if(drawing_array_buffer_) glDeleteBuffers(1, &drawing_array_buffer_);
 }

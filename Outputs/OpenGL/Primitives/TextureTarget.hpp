@@ -78,7 +78,7 @@ class TextureTarget {
 		};
 
 	private:
-		GLuint framebuffer_ = 0, texture_ = 0;
+		GLuint framebuffer_ = 0, texture_ = 0, renderbuffer_ = 0;
 		GLsizei width_ = 0, height_ = 0;
 		GLsizei expanded_width_ = 0, expanded_height_ = 0;
 		GLenum texture_unit_ = 0;
