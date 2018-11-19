@@ -24,7 +24,7 @@ namespace OpenGL {
 class TextureTarget {
 	public:
 		/*!
-			Creates a new texture target.
+			Creates a new texture target. Contents are initially undefined.
 
 			Throws ErrorFramebufferIncomplete if creation fails. Leaves both the generated texture and framebuffer bound.
 

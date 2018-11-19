@@ -12,6 +12,7 @@
 #include "../ScanTarget.hpp"
 #include "OpenGL.hpp"
 #include "Primitives/TextureTarget.hpp"
+#include "Primitives/Rectangle.hpp"
 
 #include <array>
 #include <atomic>
@@ -77,17 +78,35 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// Maintains a buffer of the most recent 3072 scans.
 		std::array<Scan, 3072> scan_buffer_;
 
-		// Maintains a list of composite scan buffer coordinates.
+		// Maintains a list of composite scan buffer coordinates; the Line struct
+		// is transported to the GPU in its entirety; the LineMetadatas live in CPU
+		// space only.
 		struct Line {
 			struct EndPoint {
 				uint16_t x, y;
 			} end_points[2];
 			uint16_t line;
 		};
+		struct LineMetadata {
+			bool is_first_in_frame;
+		};
 		std::array<Line, LineBufferHeight> line_buffer_;
+		std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
+
+		// Contains the first composition of scans into lines;
+		// they're accumulated prior to output to allow for continuous
+		// application of any necessary conversions — e.g. composite processing.
 		TextureTarget unprocessed_line_texture_;
+
+		// Scans are accumulated to the accumulation texture; the full-display
+		// rectangle is used to ensure untouched pixels properly decay.
+		std::unique_ptr<TextureTarget> accumulation_texture_;
+		Rectangle full_display_rectangle_;
+
+		// Ephemeral state that helps in line composition.
 		Line *active_line_ = nullptr;
 		int provided_scans_ = 0;
+		bool is_first_in_frame_ = true;
 
 		// OpenGL storage handles for buffer data.
 		GLuint scan_buffer_name_ = 0, scan_vertex_array_ = 0;

@@ -73,7 +73,8 @@ template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &b
 }
 
 ScanTarget::ScanTarget() :
- 	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR, false) {
+ 	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR, false),
+ 	full_display_rectangle_(-1.0f, -1.0f, 2.0f, 2.0f) {
 
 	// Ensure proper initialisation of the two atomic pointer sets.
 	read_pointers_.store(write_pointers_);
@@ -296,6 +297,12 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 			// Commit the most recent line only if any scans fell on it.
 			// Otherwise there's no point outputting it, it'll contribute nothing.
 			if(provided_scans_) {
+				// Store metadata if concluding a previous line.
+				if(active_line_) {
+					line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
+					is_first_in_frame_ = false;
+				}
+
 				const auto read_pointers = read_pointers_.load();
 
 				// Attempt to allocate a new line; note allocation failure if necessary.
@@ -316,6 +323,9 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 				active_line_->line = write_pointers_.line;
 			}
 		} break;
+		case ScanTarget::Event::EndVerticalRetrace:
+			is_first_in_frame_ = true;
+		break;
 	}
 
 	// TODO: any lines that include any portion of vertical sync should be hidden.
@@ -477,16 +487,45 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
 	}
 
-	// Clear the target framebuffer (TODO: don't assume 0).
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
-	glClear(GL_COLOR_BUFFER_BIT);
+	// Ensure the accumulation buffer is properly sized.
+	if(!accumulation_texture_ || (!synchronous && (accumulation_texture_->get_width() != output_width || accumulation_texture_->get_height() != output_height))) {
+		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(
+			new TextureTarget(
+				GLsizei(output_width),
+				GLsizei(output_height),
+				AccumulationTextureUnit,
+				GL_LINEAR,
+				true));
+		if(accumulation_texture_) {
+			new_framebuffer->bind_framebuffer();
+			glClear(GL_COLOR_BUFFER_BIT);
+
+			glActiveTexture(AccumulationTextureUnit);
+			accumulation_texture_->bind_texture();
+			accumulation_texture_->draw(float(output_width) / float(output_height));
+
+			new_framebuffer->bind_texture();
+		}
+		accumulation_texture_ = std::move(new_framebuffer);
+	}
+
+	// Bind the accumulation texture.
+	accumulation_texture_->bind_framebuffer();
 
 	// Output all lines except the one currently being worked on.
 	glBindVertexArray(line_vertex_array_);
 	output_shader_->bind();
 	glEnable(GL_BLEND);
 	glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(line_buffer_.size() - 2));
+
+	// Copy the accumulatiion texture to the target (TODO: don't assume framebuffer 0).
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
+
+	glDisable(GL_BLEND);
+	glClear(GL_COLOR_BUFFER_BIT);
+	accumulation_texture_->bind_texture();
+	accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
 
 	// All data now having been spooled to the GPU, update the read pointers to
 	// the submit pointer location.
