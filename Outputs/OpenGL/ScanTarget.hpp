@@ -24,6 +24,11 @@ namespace Outputs {
 namespace Display {
 namespace OpenGL {
 
+/*!
+	Provides a ScanTarget that uses OpenGL to render its output;
+	this uses various internal buffers so that the only geometry
+	drawn to the target framebuffer is a quad.
+*/
 class ScanTarget: public Outputs::Display::ScanTarget {
 	public:
 		ScanTarget();
