@@ -336,33 +336,6 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 	// (maybe set a flag and zero out the line coordinates?)
 }
 
-/*template <typename T> void ScanTarget::patch_buffer(const T &array, GLuint target, uint16_t submit_pointer, uint16_t read_pointer) {
-	if(submit_pointer != read_pointer) {
-		// Bind the buffer and map it into CPU space.
-		glBindBuffer(GL_ARRAY_BUFFER, target);
-
-		const auto buffer_size = array.size() * sizeof(array[0]);
-		uint8_t *destination = static_cast<uint8_t *>(
-			glMapBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT)
-		);
-		assert(destination);
-
-		// Populate it with the oldest data first; the oldest are those from two beyond the submit pointer;
-		// one beyond is the one that may currently be mutating.
-		const uint16_t oldest_record = (submit_pointer + 2) % array.size();
-		const size_t buffer_length = array.size() * sizeof(array[0]);
-		const size_t splice_point = oldest_record * sizeof(array[0]);
-		const size_t end_length = buffer_length - splice_point;
-
-		memcpy(&destination[0], &array[oldest_record], end_length);
-		memcpy(&destination[end_length], &array[0], buffer_length - end_length);
-
-		// Flush and unmap the buffer.
-		glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size));
-		glUnmapBuffer(GL_ARRAY_BUFFER);
-	}
-}*/
-
 void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	if(fence_ != nullptr) {
 		// if the GPU is still busy, don't wait; we'll catch it next time
@@ -375,7 +348,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	if(is_drawing_.test_and_set()) return;
 
 	// Grab the current read and submit pointers.
-	auto submit_pointers = submit_pointers_.load();
+	const auto submit_pointers = submit_pointers_.load();
 	const auto read_pointers = read_pointers_.load();
 
 	// Submit scans; only the new ones need to be communicated.
@@ -513,9 +486,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 	// Figure out how many new spans are ostensible ready; use two less than that.
 	uint16_t new_spans = (submit_pointers.line + LineBufferHeight - read_pointers.line) % LineBufferHeight;
-	if(new_spans > 2) {
-		new_spans -= 2;
-
+	if(new_spans) {
 		// Bind the accumulation framebuffer.
 		accumulation_texture_->bind_framebuffer();
 
@@ -534,7 +505,6 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 		// Divide spans by which frame they're in.
 		uint16_t start_line = read_pointers.line;
-		submit_pointers.line = (read_pointers.line + new_spans) % LineBufferHeight;
 		while(new_spans) {
 			uint16_t end_line = start_line+1;
 
@@ -580,7 +550,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			new_spans -= spans;
 		}
 
-		// Clear untouched parts of the display. (TODO: at vertical sync, probably)
+		// Disable blending and the stencil test again.
 		glDisable(GL_STENCIL_TEST);
 		glDisable(GL_BLEND);
 	}
