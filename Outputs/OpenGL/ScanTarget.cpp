@@ -345,7 +345,9 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		fence_ = nullptr;
 	}
 
-	if(is_drawing_.test_and_set()) return;
+	// Spin until the is-drawing flag is reset; the wait sync above will deal
+	// with instances where waiting is inappropriate.
+	while(is_drawing_.test_and_set());
 
 	// Grab the current read and submit pointers.
 	const auto submit_pointers = submit_pointers_.load();
@@ -473,15 +475,22 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 				true));
 		if(accumulation_texture_) {
 			new_framebuffer->bind_framebuffer();
-			glClear(GL_COLOR_BUFFER_BIT);
+			glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 			glActiveTexture(AccumulationTextureUnit);
 			accumulation_texture_->bind_texture();
 			accumulation_texture_->draw(float(output_width) / float(output_height));
 
+			glClear(GL_STENCIL_BUFFER_BIT);
+
 			new_framebuffer->bind_texture();
 		}
 		accumulation_texture_ = std::move(new_framebuffer);
+
+		// In the absence of a way to resize a stencil buffer, just mark
+		// what's currently present as invalid to avoid an improper clear
+		// for this frame.
+		stencil_is_valid_ = false;
 	}
 
 	// Figure out how many new spans are ostensible ready; use two less than that.
@@ -538,7 +547,10 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 			// If this is end-of-frame, clear any untouched pixels and flush the stencil buffer
 			if(line_metadata_buffer_[end_line].is_first_in_frame) {
-				full_display_rectangle_.draw(0.0, 0.0, 0.0);
+				if(stencil_is_valid_) {
+					full_display_rectangle_.draw(0.0, 0.0, 0.0);
+				}
+				stencil_is_valid_ = true;
 				glClear(GL_STENCIL_BUFFER_BIT);
 
 				// Rebind the program for span output.

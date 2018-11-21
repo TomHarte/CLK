@@ -107,6 +107,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// rectangle is used to ensure untouched pixels properly decay.
 		std::unique_ptr<TextureTarget> accumulation_texture_;
 		Rectangle full_display_rectangle_;
+		bool stencil_is_valid_ = false;
 
 		// Ephemeral state that helps in line composition.
 		Line *active_line_ = nullptr;
