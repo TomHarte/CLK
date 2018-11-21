@@ -450,7 +450,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			} else {
 				glScissor(0, 0, unprocessed_line_texture_.get_width(), final_line_to_clear);
 				glClear(GL_COLOR_BUFFER_BIT);
-				glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), 2048 - first_line_to_clear);
+				glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), unprocessed_line_texture_.get_height() - first_line_to_clear);
 				glClear(GL_COLOR_BUFFER_BIT);
 			}
 
@@ -465,7 +465,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 	// Ensure the accumulation buffer is properly sized.
 	const int proportional_width = (output_height * 4) / 3;
-	if(!accumulation_texture_ || (!synchronous && (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != output_height))) {
+	if(!accumulation_texture_ || (	/* !synchronous && */ (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != output_height))) {
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(
 			new TextureTarget(
 				GLsizei(proportional_width),
@@ -524,6 +524,19 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 				++spans;
 			}
 
+			// If this is start-of-frame, clear any untouched pixels and flush the stencil buffer
+			if(line_metadata_buffer_[start_line].is_first_in_frame) {
+				if(stencil_is_valid_) {
+					full_display_rectangle_.draw(0.0, 0.0, 0.0);
+				}
+				stencil_is_valid_ = true;
+				glClear(GL_STENCIL_BUFFER_BIT);
+
+				// Rebind the program for span output.
+				glBindVertexArray(line_vertex_array_);
+				output_shader_->bind();
+			}
+
 			// Upload and draw.
 			const auto buffer_size = spans * sizeof(Line);
 			if(!end_line || end_line > start_line) {
@@ -544,19 +557,6 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			}
 
 			glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(spans));
-
-			// If this is end-of-frame, clear any untouched pixels and flush the stencil buffer
-			if(line_metadata_buffer_[end_line].is_first_in_frame) {
-				if(stencil_is_valid_) {
-					full_display_rectangle_.draw(0.0, 0.0, 0.0);
-				}
-				stencil_is_valid_ = true;
-				glClear(GL_STENCIL_BUFFER_BIT);
-
-				// Rebind the program for span output.
-				glBindVertexArray(line_vertex_array_);
-				output_shader_->bind();
-			}
 
 			start_line = end_line;
 			new_spans -= spans;
