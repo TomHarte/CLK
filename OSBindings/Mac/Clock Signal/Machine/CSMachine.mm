@@ -244,7 +244,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
-	_scanTarget->draw(onlyIfDirty ? false : true, (int)pixelSize.width, (int)pixelSize.height);
+	_scanTarget->draw(true, (int)pixelSize.width, (int)pixelSize.height);
 //	_machine->crt_machine()->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
 }
 
