@@ -234,7 +234,7 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 
 		// If the output type isn't SVideo, add an SVideo to composite step.
 		if(computed_display_type != DisplayType::SVideo) {
-			fragment_shader += "fragColour = vec4(vec3(mix(fragColour.r,fragColour.g, compositeAmplitudeOut)), 1.0);";
+			fragment_shader += "fragColour = vec4(vec3(mix(fragColour.r, 2.0*(fragColour.g - 0.5), compositeAmplitudeOut)), 1.0);";
 		}
 	}
 
