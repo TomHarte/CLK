@@ -157,6 +157,21 @@ void ScanTarget::set_modals(Modals modals) {
 	set_uniforms(Outputs::Display::OpenGL::ScanTarget::ShaderType::Line, *input_shader_);
 
 	input_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
+	switch(modals.composite_colour_space) {
+		case ColourSpace::YIQ: {
+			const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
+			const GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
+			input_shader_->set_uniform_matrix("lumaChromaToRGB", 3, false, yiqToRGB);
+			input_shader_->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYIQ);
+		} break;
+
+		case ColourSpace::YUV: {
+			const GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
+			const GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
+			input_shader_->set_uniform_matrix("lumaChromaToRGB", 3, false, yuvToRGB);
+			input_shader_->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYUV);
+		} break;
+	}
 
 	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
 	output_shader_->set_uniform("origin", modals.visible_area.origin.x, modals.visible_area.origin.y);
@@ -521,7 +536,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			// If this is start-of-frame, clear any untouched pixels and flush the stencil buffer
 			if(line_metadata_buffer_[start_line].is_first_in_frame) {
 				if(stencil_is_valid_ && line_metadata_buffer_[start_line].previous_frame_was_complete) {
-					full_display_rectangle_.draw(1.0, 0.0, 0.0f);
+					full_display_rectangle_.draw(0.0f, 0.0f, 0.0f);
 				}
 				stencil_is_valid_ = true;
 				glClear(GL_STENCIL_BUFFER_BIT);

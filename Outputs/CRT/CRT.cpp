@@ -206,7 +206,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 				uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_));
 
 			// Prepare for the next line.
-			if(next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace) {
+			if(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
 				is_alernate_line_ ^= phase_alternates_;
 				colour_burst_amplitude_ = 0;
 			}
