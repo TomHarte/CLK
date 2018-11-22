@@ -148,19 +148,6 @@ void ScanTarget::set_modals(Modals modals) {
 
 	// Establish an input shader.
 	input_shader_ = input_shader(modals_.input_data_type, OutputType::RGB);
-//	input_shader_ = reset(new Shader(
-//		glsl_globals(ShaderType::Scan) + glsl_default_vertex_shader(ShaderType::Scan),
-//		"#version 150\n"
-//
-//		"out vec4 fragColour;"
-//		"in vec2 textureCoordinate;"
-//
-//		"uniform usampler2D textureName;"
-//
-//		"void main(void) {"
-//			"fragColour = vec4(vec3(texture(textureName, textureCoordinate).rgb), 1.0);"
-//		"}"
-//	));
 
 	glBindVertexArray(scan_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
@@ -170,7 +157,10 @@ void ScanTarget::set_modals(Modals modals) {
 	set_uniforms(Outputs::Display::OpenGL::ScanTarget::ShaderType::Line, *input_shader_);
 
 	input_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
+
 	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
+	output_shader_->set_uniform("origin", modals.visible_area.origin.x, modals.visible_area.origin.y);
+	output_shader_->set_uniform("size", modals.visible_area.size.width, modals.visible_area.size.height);
 }
 
 void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) {
@@ -278,8 +268,10 @@ void ScanTarget::end_data(size_t actual_length) {
 
 void ScanTarget::submit() {
 	if(allocation_has_failed_) {
-		// Reset all pointers to where they were.
+		// Reset all pointers to where they were; this also means
+		// the stencil won't be properly populated.
 		write_pointers_ = submit_pointers_.load();
+		frame_was_complete_ = false;
 	} else {
 		// Advance submit pointer.
 		submit_pointers_.store(write_pointers_);
@@ -304,6 +296,7 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 				// Store metadata if concluding a previous line.
 				if(active_line_) {
 					line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
+					line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = frame_was_complete_;
 					is_first_in_frame_ = false;
 				}
 
@@ -329,6 +322,7 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 		} break;
 		case ScanTarget::Event::EndVerticalRetrace:
 			is_first_in_frame_ = true;
+			frame_was_complete_ = true;
 		break;
 	}
 
@@ -526,8 +520,8 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 			// If this is start-of-frame, clear any untouched pixels and flush the stencil buffer
 			if(line_metadata_buffer_[start_line].is_first_in_frame) {
-				if(stencil_is_valid_) {
-					full_display_rectangle_.draw(0.0, 0.0, 0.0);
+				if(stencil_is_valid_ && line_metadata_buffer_[start_line].previous_frame_was_complete) {
+					full_display_rectangle_.draw(1.0, 0.0, 0.0f);
 				}
 				stencil_is_valid_ = true;
 				glClear(GL_STENCIL_BUFFER_BIT);

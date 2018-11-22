@@ -94,6 +94,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		};
 		struct LineMetadata {
 			bool is_first_in_frame;
+			bool previous_frame_was_complete;
 		};
 		std::array<Line, LineBufferHeight> line_buffer_;
 		std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
@@ -113,6 +114,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		Line *active_line_ = nullptr;
 		int provided_scans_ = 0;
 		bool is_first_in_frame_ = true;
+		bool frame_was_complete_ = true;
 
 		// OpenGL storage handles for buffer data.
 		GLuint scan_buffer_name_ = 0, scan_vertex_array_ = 0;

@@ -31,7 +31,9 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 			"in float endCompositeAngle;"
 
 			"in float dataY;"
-			"in float lineY;";
+			"in float lineY;"
+
+			"uniform usampler2D textureName;";
 
 		case ShaderType::Line:
 		return
@@ -44,7 +46,11 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 			"in vec2 startPoint;"
 			"in vec2 endPoint;"
 
-			"in float lineY;";
+			"in float lineY;"
+
+			"uniform sampler2D textureName;"
+			"uniform vec2 origin;"
+			"uniform vec2 size;";
 	}
 }
 
@@ -53,7 +59,6 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 		case ShaderType::Scan:
 		return
 			"out vec2 textureCoordinate;"
-			"uniform usampler2D textureName;"
 
 			"void main(void) {"
 				"float lateral = float(gl_VertexID & 1);"
@@ -68,7 +73,6 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 		case ShaderType::Line:
 		return
 			"out vec2 textureCoordinate;"
-			"uniform sampler2D textureName;"
 
 			"void main(void) {"
 				"float lateral = float(gl_VertexID & 1);"
@@ -78,7 +82,7 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 
 				"vec2 centrePoint = mix(startPoint, endPoint, lateral) / scale;"
 				"vec2 height = normalize(endPoint - startPoint).yx * (longitudinal - 0.5) * rowHeight;"
-				"vec2 eyePosition = vec2(-1.0, 1.0) + vec2(2.0, -2.0) * (centrePoint + height);"
+				"vec2 eyePosition = vec2(-1.0, 1.0) + vec2(2.0, -2.0) * (((centrePoint + height) - origin) / size);"
 				"gl_Position = vec4(eyePosition, 0.0, 1.0);"
 			"}";
 	}
