@@ -150,7 +150,7 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 	}
 }
 
-std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, OutputType output_type) {
+std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, DisplayType display_type) {
 	std::string fragment_shader =
 		"#version 150\n"
 
@@ -163,8 +163,8 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 				"uniform usampler2D textureName;"
 				"void main(void) {";
 
-			switch(output_type) {
-				case OutputType::RGB:
+			switch(display_type) {
+				case DisplayType::RGB:
 					fragment_shader += "fragColour = vec4(texture(textureName, textureCoordinate).rrr, 1.0);";
 				break;
 				default:
@@ -188,7 +188,7 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 //				"uniform sampler2D textureName;"
 //				"void main(void) {";
 //
-//			switch(output_type) {
+//			switch(display_type) {
 //				default: return nullptr;
 //
 //				case OutputType::SVideo:

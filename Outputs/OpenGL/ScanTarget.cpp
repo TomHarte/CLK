@@ -147,7 +147,7 @@ void ScanTarget::set_modals(Modals modals) {
 	processing_width_ = std::min(processing_width_, 2048);
 
 	// Establish an input shader.
-	input_shader_ = input_shader(modals_.input_data_type, OutputType::RGB);
+	input_shader_ = input_shader(modals_.input_data_type, modals_.display_type);
 
 	glBindVertexArray(scan_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);

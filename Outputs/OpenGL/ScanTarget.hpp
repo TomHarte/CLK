@@ -171,7 +171,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		std::unique_ptr<Shader> input_shader_;
 		std::unique_ptr<Shader> output_shader_;
 
-		static std::unique_ptr<Shader> input_shader(InputDataType input_data_type, OutputType output_type);
+		static std::unique_ptr<Shader> input_shader(InputDataType input_data_type, DisplayType display_type);
 };
 
 }

@@ -48,7 +48,7 @@ enum class ColourSpace {
 	YUV
 };
 
-enum class OutputType {
+enum class DisplayType {
 	RGB,
 	SVideo,
 	CompositeColour,
@@ -123,6 +123,9 @@ struct ScanTarget {
 			/// Describes the format of input data.
 			InputDataType input_data_type;
 
+			/// Describes the type of display that the data is being shown on.
+			DisplayType display_type = DisplayType::RGB;
+
 			/// If being fed composite data, this defines the colour space in use.
 			ColourSpace composite_colour_space;
 
@@ -148,7 +151,7 @@ struct ScanTarget {
 			Rect visible_area;
 
 			/// Describes the usual gamma of the output device these scans would appear on.
-			float intended_gamma;
+			float intended_gamma = 2.2f;
 
 			/// Specifies the range of values that will be output for x and y coordinates.
 			struct {
