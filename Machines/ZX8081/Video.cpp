@@ -25,14 +25,6 @@ const std::size_t StandardAllocationSize = 320;
 Video::Video() :
 	crt_(207 * 2, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Luminance1) {
 
-	// Set a composite sampling function that assumes two-level input; either a byte is 0, which is black,
-	// or it is non-zero, which is white.
-//	crt_.set_composite_sampling_function(
-//		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
-//		"{"
-//			"return texture(sampler, coordinate).r;"
-//		"}");
-
 	// Show only the centre 80% of the TV frame.
 //	crt_.set_video_signal(Outputs::Display::VideoSignal::Composite);
 	crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));

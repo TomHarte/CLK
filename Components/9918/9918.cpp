@@ -51,6 +51,8 @@ struct ReverseTable {
 Base::Base(Personality p) :
 	personality_(p),
 	crt_(CRTCyclesPerLine, CRTCyclesDivider, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Red8Green8Blue8) {
+	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
+	// into whether there's a more natural form. It feels unlikely given the diversity of chips modelled.
 
 	switch(p) {
 		case TI::TMS::TMS9918A:
@@ -84,13 +86,6 @@ Base::Base(Personality p) :
 
 TMS9918::TMS9918(Personality p):
  	Base(p) {
-	// Unimaginatively, this class just passes RGB through to the shader. Investigation is needed
-	// into whether there's a more natural form.
-//	crt_.set_rgb_sampling_function(
-//		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
-//		"{"
-//			"return texture(sampler, coordinate).rgb / vec3(255.0);"
-//		"}");
 //	crt_->set_video_signal(Outputs::Display::VideoSignal::RGB);
 	crt_.set_visible_area(Outputs::Display::Rect(0.055f, 0.025f, 0.9f, 0.9f));
 

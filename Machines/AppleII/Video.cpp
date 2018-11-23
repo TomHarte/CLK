@@ -15,14 +15,6 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 	is_iie_(is_iie),
 	deferrer_(std::move(target)) {
 
-	// Set a composite sampling function that assumes one byte per pixel input, and
-	// accepts any non-zero value as being fully on, zero being fully off.
-//	crt_->set_composite_sampling_function(
-//		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
-//		"{"
-//			"return clamp(texture(sampler, coordinate).r, 0.0, 0.66);"
-//		"}");
-
 	// Show only the centre 75% of the TV frame.
 //	crt_->set_video_signal(Outputs::Display::VideoSignal::Composite);
 	crt_.set_visible_area(Outputs::Display::Rect(0.118f, 0.122f, 0.77f, 0.77f));
