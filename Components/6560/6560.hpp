@@ -64,23 +64,12 @@ template <class BusHandler> class MOS6560 {
 	public:
 		MOS6560(BusHandler &bus_handler) :
 				bus_handler_(bus_handler),
-//				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::Display::Type::NTSC60, 2)),
+				crt_(65*4, 4, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance8Phase8),
 				audio_generator_(audio_queue_),
 				speaker_(audio_generator_)
 		{
-//			crt_->set_svideo_sampling_function(
-//				"vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)"
-//				"{"
-//					"vec2 yc = texture(texID, coordinate).rg / vec2(255.0);"
-//
-//					"float phaseOffset = 6.283185308 * 2.0 * yc.y;"
-//					"float chroma = step(yc.y, 0.75) * cos(phase + phaseOffset);"
-//
-//					"return vec2(yc.x, chroma);"
-//				"}");
-
 			// default to s-video output
-//			crt_->set_video_signal(Outputs::Display::VideoSignal::SVideo);
+//			crt_.set_video_signal(Outputs::Display::VideoSignal::SVideo);
 
 			// default to NTSC
 			set_output_mode(OutputMode::NTSC);
@@ -94,7 +83,7 @@ template <class BusHandler> class MOS6560 {
 			speaker_.set_input_rate(static_cast<float>(clock_rate / 4.0));
 		}
 
-		Outputs::CRT::CRT *get_crt() { return crt_.get(); }
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) { crt_.set_scan_target(scan_target); }
 		Outputs::Speaker::Speaker *get_speaker() { return &speaker_; }
 
 		void set_high_frequency_cutoff(float cutoff) {
@@ -155,14 +144,14 @@ template <class BusHandler> class MOS6560 {
 				break;
 			}
 
-			crt_->set_new_display_type(timing_.cycles_per_line*4, display_type);
+			crt_.set_new_display_type(timing_.cycles_per_line*4, display_type);
 
 			switch(output_mode) {
 				case OutputMode::PAL:
-					crt_->set_visible_area(Outputs::Display::Rect(0.1f, 0.07f, 0.9f, 0.9f));
+					crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.07f, 0.9f, 0.9f));
 				break;
 				case OutputMode::NTSC:
-					crt_->set_visible_area(Outputs::Display::Rect(0.05f, 0.05f, 0.9f, 0.9f));
+					crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 				break;
 			}
 
@@ -284,17 +273,17 @@ template <class BusHandler> class MOS6560 {
 				// update the CRT
 				if(this_state_ != output_state_) {
 					switch(output_state_) {
-						case State::Sync:			crt_->output_sync(cycles_in_state_ * 4);														break;
-						case State::ColourBurst:	crt_->output_colour_burst(cycles_in_state_ * 4, (is_odd_frame_ || is_odd_line_) ? 128 : 0);		break;
-						case State::Border:			output_border(cycles_in_state_ * 4);															break;
-						case State::Pixels:			crt_->output_data(cycles_in_state_ * 4);														break;
+						case State::Sync:			crt_.output_sync(cycles_in_state_ * 4);														break;
+						case State::ColourBurst:	crt_.output_colour_burst(cycles_in_state_ * 4, (is_odd_frame_ || is_odd_line_) ? 128 : 0);	break;
+						case State::Border:			output_border(cycles_in_state_ * 4);														break;
+						case State::Pixels:			crt_.output_data(cycles_in_state_ * 4);														break;
 					}
 					output_state_ = this_state_;
 					cycles_in_state_ = 0;
 
 					pixel_pointer = nullptr;
 					if(output_state_ == State::Pixels) {
-						pixel_pointer = reinterpret_cast<uint16_t *>(crt_->begin_data(260));
+						pixel_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(260));
 					}
 				}
 				cycles_in_state_++;
@@ -438,7 +427,7 @@ template <class BusHandler> class MOS6560 {
 
 	private:
 		BusHandler &bus_handler_;
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		Outputs::CRT::CRT crt_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		AudioGenerator audio_generator_;
@@ -512,9 +501,9 @@ template <class BusHandler> class MOS6560 {
 
 		uint16_t *pixel_pointer;
 		void output_border(int number_of_cycles) {
-			uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_->begin_data(1));
+			uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
 			if(colour_pointer) *colour_pointer = registers_.borderColour;
-			crt_->output_level(number_of_cycles);
+			crt_.output_level(number_of_cycles);
 		}
 
 		struct {

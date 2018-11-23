@@ -190,9 +190,14 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 			fragment_shader += "fragColour = vec4(vec3(texture(textureName, textureCoordinate).r / 255.0), 1.0);";
 		break;
 
-		case InputDataType::Phase8Luminance8:
+		case InputDataType::Luminance8Phase8:
 			computed_display_type = DisplayType::SVideo;
-			fragment_shader += "fragColour = vec4(texture(textureName, textureCoordinate).rg / vec2(255.0), 0.0, 1.0);";
+			fragment_shader +=
+				"vec2 yc = texture(textureName, textureCoordinate).rg / vec2(255.0);"
+
+				"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
+				"float chroma = step(yc.y, 0.75) * cos(compositeAngle + phaseOffset);"
+				"fragColour = vec4(yc.x, chroma, 0.0, 1.0);";
 		break;
 
 		case InputDataType::Red1Green1Blue1:
@@ -233,7 +238,7 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 		}
 
 		// If the output type isn't SVideo, add an SVideo to composite step.
-		if(computed_display_type != DisplayType::SVideo) {
+		if(display_type != DisplayType::SVideo) {
 			fragment_shader += "fragColour = vec4(vec3(mix(fragColour.r, 2.0*(fragColour.g - 0.5), compositeAmplitudeOut)), 1.0);";
 		}
 	}

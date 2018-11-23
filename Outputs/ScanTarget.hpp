@@ -70,7 +70,7 @@ enum class InputDataType {
 	// of a colour subcarrier. So they can be used to generate a luminance signal,
 	// or an s-video pipeline.
 
-	Phase8Luminance8,		// 2 bytes/pixel; first is phase, second is luminance.
+	Luminance8Phase8,		// 2 bytes/pixel; first is luminance, second is phase.
 							// Phase is encoded on a 192-unit circle; anything
 							// greater than 192 implies that the colour part of
 							// the signal should be omitted.
@@ -92,7 +92,7 @@ inline size_t size_for_data_type(InputDataType data_type) {
 		case InputDataType::Red2Green2Blue2:
 			return 1;
 
-		case InputDataType::Phase8Luminance8:
+		case InputDataType::Luminance8Phase8:
 		case InputDataType::Red4Green4Blue4:
 			return 2;
 
