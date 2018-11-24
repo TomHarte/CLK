@@ -54,7 +54,7 @@ public:
 
 		Subsequently performs all work queued up for the next bind irrespective of whether a @c glUseProgram call occurred.
 	*/
-	void bind();
+	void bind() const;
 
 	/*!
 		Unbinds the current instance of Shader, if one is bound.
@@ -66,14 +66,14 @@ public:
 		@param name The name of the attribute to locate.
 		@returns The location of the requested attribute.
 	*/
-	GLint get_attrib_location(const std::string &name);
+	GLint get_attrib_location(const std::string &name) const;
 
 	/*!
 		Performs a @c glGetUniformLocation call.
 		@param name The name of the uniform to locate.
 		@returns The location of the requested uniform.
 	*/
-	GLint get_uniform_location(const std::string &name);
+	GLint get_uniform_location(const std::string &name) const;
 
 	/*!
 		Shorthand for an appropriate sequence of:
@@ -112,9 +112,9 @@ private:
 	GLuint compile_shader(const std::string &source, GLenum type);
 	GLuint shader_program_;
 
-	void flush_functions();
-	std::vector<std::function<void(void)>> enqueued_functions_;
-	std::mutex function_mutex_;
+	void flush_functions() const;
+	mutable std::vector<std::function<void(void)>> enqueued_functions_;
+	mutable std::mutex function_mutex_;
 
 protected:
 	void enqueue_function(std::function<void(void)> function);

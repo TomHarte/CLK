@@ -65,12 +65,12 @@ void TextureTarget::bind_framebuffer() {
 	glViewport(0, 0, width_, height_);
 }
 
-void TextureTarget::bind_texture() {
+void TextureTarget::bind_texture() const {
 	glActiveTexture(texture_unit_);
 	glBindTexture(GL_TEXTURE_2D, texture_);
 }
 
-void TextureTarget::draw(float aspect_ratio, float colour_threshold) {
+void TextureTarget::draw(float aspect_ratio, float colour_threshold) const {
 	if(!pixel_shader_) {
 		const char *vertex_shader =
 			"#version 150\n"
@@ -108,8 +108,8 @@ void TextureTarget::draw(float aspect_ratio, float colour_threshold) {
 		glBindVertexArray(drawing_vertex_array_);
 		glBindBuffer(GL_ARRAY_BUFFER, drawing_array_buffer_);
 
-		GLint position_attribute	= pixel_shader_->get_attrib_location("position");
-		GLint tex_coord_attribute	= pixel_shader_->get_attrib_location("texCoord");
+		const GLint position_attribute	= pixel_shader_->get_attrib_location("position");
+		const GLint tex_coord_attribute	= pixel_shader_->get_attrib_location("texCoord");
 
 		glEnableVertexAttribArray(static_cast<GLuint>(position_attribute));
 		glEnableVertexAttribArray(static_cast<GLuint>(tex_coord_attribute));
@@ -118,7 +118,7 @@ void TextureTarget::draw(float aspect_ratio, float colour_threshold) {
 		glVertexAttribPointer((GLuint)position_attribute,	2, GL_FLOAT,	GL_FALSE,	vertex_stride,	(void *)0);
 		glVertexAttribPointer((GLuint)tex_coord_attribute,	2, GL_FLOAT,	GL_FALSE,	vertex_stride,	(void *)(2 * sizeof(GLfloat)));
 
-		GLint texIDUniform = pixel_shader_->get_uniform_location("texID");
+		const GLint texIDUniform = pixel_shader_->get_uniform_location("texID");
 		glUniform1i(texIDUniform, static_cast<GLint>(texture_unit_ - GL_TEXTURE0));
 
 		threshold_uniform_ = pixel_shader_->get_uniform_location("threshold");

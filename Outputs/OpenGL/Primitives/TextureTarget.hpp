@@ -44,19 +44,19 @@ class TextureTarget {
 		/*!
 			Binds this target as a texture.
 		*/
-		void bind_texture();
+		void bind_texture() const;
 
 		/*!
 			@returns the width of the texture target.
 		*/
-		GLsizei get_width() {
+		GLsizei get_width() const {
 			return width_;
 		}
 
 		/*!
 			@returns the height of the texture target.
 		*/
-		GLsizei get_height() {
+		GLsizei get_height() const {
 			return height_;
 		}
 
@@ -71,7 +71,7 @@ class TextureTarget {
 			0.5f being substituted elsewhere. This provides a way to ensure that the sort of
 			persistent low-value errors that can result from an IIR are hidden.
 		*/
-		void draw(float aspect_ratio, float colour_threshold = 0.0f);
+		void draw(float aspect_ratio, float colour_threshold = 0.0f) const;
 
 		enum {
 			ErrorFramebufferIncomplete
@@ -83,11 +83,11 @@ class TextureTarget {
 		GLsizei expanded_width_ = 0, expanded_height_ = 0;
 		GLenum texture_unit_ = 0;
 
-		std::unique_ptr<Shader> pixel_shader_;
-		GLuint drawing_vertex_array_ = 0, drawing_array_buffer_ = 0;
-		float set_aspect_ratio_ = 0.0f;
+		mutable std::unique_ptr<Shader> pixel_shader_;
+		mutable GLuint drawing_vertex_array_ = 0, drawing_array_buffer_ = 0;
+		mutable float set_aspect_ratio_ = 0.0f;
 
-		GLint threshold_uniform_;
+		mutable GLint threshold_uniform_;
 };
 
 }

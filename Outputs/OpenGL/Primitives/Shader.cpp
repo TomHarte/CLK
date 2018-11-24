@@ -81,7 +81,7 @@ Shader::~Shader() {
 	glDeleteProgram(shader_program_);
 }
 
-void Shader::bind() {
+void Shader::bind() const {
 //	if(bound_shader != this) {
 		glUseProgram(shader_program_);
 //		bound_shader = this;
@@ -94,11 +94,11 @@ void Shader::unbind() {
 	glUseProgram(0);
 }
 
-GLint Shader::get_attrib_location(const std::string &name) {
+GLint Shader::get_attrib_location(const std::string &name) const {
 	return glGetAttribLocation(shader_program_, name.c_str());
 }
 
-GLint Shader::get_uniform_location(const std::string &name) {
+GLint Shader::get_uniform_location(const std::string &name) const {
 	return glGetUniformLocation(shader_program_, name.c_str());
 }
 
@@ -259,7 +259,7 @@ void Shader::enqueue_function(std::function<void(void)> function) {
 	enqueued_functions_.push_back(function);
 }
 
-void Shader::flush_functions() {
+void Shader::flush_functions() const {
 	std::lock_guard<std::mutex> function_guard(function_mutex_);
 	for(std::function<void(void)> function : enqueued_functions_) {
 		function();
