@@ -89,7 +89,7 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 					"vec2 eyePosition = vec2(mix(startPoint.x, endPoint.x, lateral) * processingWidth, lineY + longitudinal) / vec2(scale.x, 2048.0);";
 			} else {
 				result +=
-					"vec2 eyePosition = vec2(mix(startDataX, endDataX, lateral) - 10.0 + lateral*20.0, dataY);"
+					"vec2 eyePosition = vec2(mix(startDataX, endDataX, lateral) - 10.0 + lateral*20.0, dataY + longitudinal);"
 
 					"textureCoordinates[0] = (eyePosition - vec2(5.0, 0.0)) / textureSize(textureName, 0);"
 					"textureCoordinates[1] = (eyePosition - vec2(4.0, 0.0)) / textureSize(textureName, 0);"
@@ -284,7 +284,7 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 	));
 }
 
-std::unique_ptr<Shader> ScanTarget::composite_to_svideo_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width) {
+std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width) {
 	/*
 		Composite to S-Video conversion is achieved by filtering the input signal to obtain luminance, and then subtracting that
 		from the original to get chrominance.
@@ -312,7 +312,7 @@ std::unique_ptr<Shader> ScanTarget::composite_to_svideo_shader(int colour_cycle_
 	return shader;
 }
 
-std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width) {
+std::unique_ptr<Shader> ScanTarget::composite_to_svideo_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width) {
 	const float cycles_per_expanded_line = (float(colour_cycle_numerator) / float(colour_cycle_denominator)) / (float(processing_width) / float(LineBufferWidth));
 	const SignalProcessing::FIRFilter filter(11, float(LineBufferWidth), 0.0f, cycles_per_expanded_line * 0.5f);
 	const auto coefficients = filter.get_coefficients();

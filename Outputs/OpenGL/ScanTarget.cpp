@@ -28,11 +28,8 @@ constexpr GLenum SVideoLineBufferTextureUnit = GL_TEXTURE4;
 /// The texture unit which contains line-by-line records of luminance and separated, demodulated chrominance.
 constexpr GLenum RGBLineBufferTextureUnit = GL_TEXTURE5;
 
-/// The texture unit which contains line-by-line RGB.
-constexpr GLenum LineBufferTextureUnit = GL_TEXTURE6;
-
 /// The texture unit that contains the current display.
-constexpr GLenum AccumulationTextureUnit = GL_TEXTURE7;
+constexpr GLenum AccumulationTextureUnit = GL_TEXTURE6;
 
 #define TextureAddress(x, y)	(((y) << 11) | (x))
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
@@ -148,20 +145,9 @@ void ScanTarget::set_modals(Modals modals) {
 	glBindVertexArray(line_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 	enable_vertex_attributes(ShaderType::Line, *output_shader_);
-
 	set_uniforms(ShaderType::Line, *output_shader_);
 	output_shader_->set_uniform("origin", modals.visible_area.origin.x, modals.visible_area.origin.y);
 	output_shader_->set_uniform("size", modals.visible_area.size.width, modals.visible_area.size.height);
-
-	// Establish an input shader.
-	input_shader_ = input_shader(modals_.input_data_type, modals_.display_type);
-
-	glBindVertexArray(scan_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
-	enable_vertex_attributes(ShaderType::InputScan, *input_shader_);
-
-	set_uniforms(ShaderType::InputScan, *input_shader_);
-	input_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
 
 	// Establish such intermediary shaders as are required.
 	pipeline_stages_.clear();
@@ -173,16 +159,28 @@ void ScanTarget::set_modals(Modals modals) {
 	if(modals_.display_type == DisplayType::SVideo || modals_.display_type == DisplayType::CompositeColour) {
 		pipeline_stages_.emplace_back(
 			svideo_to_rgb_shader(modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_).release(),
-			RGBLineBufferTextureUnit);
+			(modals_.display_type == DisplayType::CompositeColour) ? RGBLineBufferTextureUnit : SVideoLineBufferTextureUnit);
 	}
+
+	// Establish an input shader.
+	input_shader_ = input_shader(modals_.input_data_type, modals_.display_type);
+
+	glBindVertexArray(scan_vertex_array_);
+	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+	enable_vertex_attributes(ShaderType::InputScan, *input_shader_);
+	set_uniforms(ShaderType::InputScan, *input_shader_);
+	input_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
 
 	// Cascade the texture units in use as per the pipeline stages.
 	std::vector<Shader *> input_shaders = {input_shader_.get()};
 	GLint texture_unit = GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0);
 	for(const auto &stage: pipeline_stages_) {
 		input_shaders.push_back(stage.shader.get());
+
 		stage.shader->set_uniform("textureName", texture_unit);
 		set_uniforms(ShaderType::ProcessedScan, *stage.shader);
+		enable_vertex_attributes(ShaderType::ProcessedScan, *stage.shader);
+
 		++texture_unit;
 	}
 	output_shader_->set_uniform("textureName", texture_unit);

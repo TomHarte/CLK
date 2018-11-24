@@ -141,7 +141,7 @@ struct ScanTarget {
 			InputDataType input_data_type;
 
 			/// Describes the type of display that the data is being shown on.
-			DisplayType display_type = DisplayType::RGB;
+			DisplayType display_type = DisplayType::SVideo;
 
 			/// If being fed composite data, this defines the colour space in use.
 			ColourSpace composite_colour_space;
