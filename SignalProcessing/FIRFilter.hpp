@@ -29,6 +29,8 @@ class FIRFilter {
 		static constexpr int FixedShift = 15;
 
 	public:
+		/*! A suggested default attenuation value. */
+		constexpr static float DefaultAttenuation = 60.0f;
 		/*!
 			Creates an instance of @c FIRFilter.
 
@@ -38,11 +40,8 @@ class FIRFilter {
 			@param high_frequency The highest frequency of signal to retain in the output.
 			@param attenuation The attenuation of the discarded frequencies.
 		*/
-		FIRFilter(std::size_t number_of_taps, float input_sample_rate, float low_frequency, float high_frequency, float attenuation);
+		FIRFilter(std::size_t number_of_taps, float input_sample_rate, float low_frequency, float high_frequency, float attenuation = DefaultAttenuation);
 		FIRFilter(const std::vector<float> &coefficients);
-
-		/*! A suggested default attenuation value. */
-		constexpr static float DefaultAttenuation = 60.0f;
 
 		/*!
 			Applies the filter to one batch of input samples, returning the net result.
