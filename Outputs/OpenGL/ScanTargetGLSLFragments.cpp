@@ -110,23 +110,25 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 
 			if(type == ShaderType::InputScan) {
 				result +=
-					"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY) / textureSize(textureName, 0);"	// TODO: dataY + 0.5
+					"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / textureSize(textureName, 0);"
 					"vec2 eyePosition = vec2(mix(startPoint.x, endPoint.x, lateral) * processingWidth, lineY + longitudinal) / vec2(scale.x, 2048.0);";
 			} else {
 				result +=
-					"vec2 eyePosition = vec2(mix(startPoint.x, endPoint.x, lateral) * processingWidth, lineY + longitudinal) / vec2(scale.x, 2048.0);"
+					"vec2 sourcePosition = vec2(mix(startPoint.x, endPoint.x, lateral) * processingWidth, lineY + 0.5);"
+					"vec2 eyePosition = (sourcePosition + vec2(0.0, longitudinal - 0.5)) / vec2(scale.x, 2048.0);"
+					"sourcePosition /= vec2(scale.x, 2048.0);"
 
-					"textureCoordinates[0] = eyePosition + vec2(-5.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[1] = eyePosition + vec2(-4.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[2] = eyePosition + vec2(-3.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[3] = eyePosition + vec2(-2.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[4] = eyePosition + vec2(-1.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[5] = eyePosition;"
-					"textureCoordinates[6] = eyePosition + vec2(1.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[7] = eyePosition + vec2(2.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[8] = eyePosition + vec2(3.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[9] = eyePosition + vec2(4.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[10] = eyePosition + vec2(5.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[0] = sourcePosition + vec2(-5.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[1] = sourcePosition + vec2(-4.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[2] = sourcePosition + vec2(-3.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[3] = sourcePosition + vec2(-2.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[4] = sourcePosition + vec2(-1.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[5] = sourcePosition;"
+					"textureCoordinates[6] = sourcePosition + vec2(1.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[7] = sourcePosition + vec2(2.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[8] = sourcePosition + vec2(3.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[9] = sourcePosition + vec2(4.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[10] = sourcePosition + vec2(5.0, 0.0) / textureSize(textureName, 0);"
 
 					"eyePosition = eyePosition;";
 			}
@@ -155,7 +157,6 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 }
 
 void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
-	target.bind();
 	switch(type) {
 		case ShaderType::InputScan:
 		case ShaderType::ProcessedScan:
@@ -228,7 +229,7 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 	std::string fragment_shader =
 		"#version 150\n"
 
-		"out vec4 fragColour;"
+		"out vec3 fragColour;"
 		"in vec2 textureCoordinate;"
 		"in float compositeAngle;"
 		"in float compositeAmplitudeOut;"
@@ -243,12 +244,12 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 	switch(input_data_type) {
 		case InputDataType::Luminance1:
 			computed_display_type = DisplayType::CompositeMonochrome;
-			fragment_shader += "fragColour = vec4(vec3(texture(textureName, textureCoordinate).r), 1.0);";
+			fragment_shader += "fragColour = texture(textureName, textureCoordinate).rrr;";
 		break;
 
 		case InputDataType::Luminance8:
 			computed_display_type = DisplayType::CompositeMonochrome;
-			fragment_shader += "fragColour = vec4(vec3(texture(textureName, textureCoordinate).r / 255.0), 1.0);";
+			fragment_shader += "fragColour = vec3(texture(textureName, textureCoordinate).r / 255.0);";
 		break;
 
 		case InputDataType::Luminance8Phase8:
@@ -258,33 +259,33 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 
 				"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
 				"float chroma = step(yc.y, 0.75) * cos(compositeAngle + phaseOffset);"
-				"fragColour = vec4(yc.x, chroma, 0.0, 1.0);";
+				"fragColour = vec3(yc.x, chroma, 0.0);";
 		break;
 
 		case InputDataType::Red1Green1Blue1:
 			computed_display_type = DisplayType::RGB;
 			fragment_shader +=
 				"uint textureValue = texture(textureName, textureCoordinate).r;"
-				"fragColour = vec4(uvec3(textureValue) & uvec3(4u, 2u, 1u), 1.0);";
+				"fragColour = uvec3(textureValue) & uvec3(4u, 2u, 1u);";
 		break;
 
 		case InputDataType::Red2Green2Blue2:
 			computed_display_type = DisplayType::RGB;
 			fragment_shader +=
 				"uint textureValue = texture(textureName, textureCoordinate).r;"
-				"fragColour = vec4(vec3(float((textureValue >> 4) & 3u), float((textureValue >> 2) & 3u), float(textureValue & 3u)) / 3.0, 1.0);";
+				"fragColour = vec3(float((textureValue >> 4) & 3u), float((textureValue >> 2) & 3u), float(textureValue & 3u)) / 3.0;";
 		break;
 
 		case InputDataType::Red4Green4Blue4:
 			computed_display_type = DisplayType::RGB;
 			fragment_shader +=
 				"uvec2 textureValue = texture(textureName, textureCoordinate).rg;"
-				"fragColour = vec4(float(textureValue.r) / 15.0, float(textureValue.g & 240u) / 240.0, float(textureValue.g & 15u) / 15.0, 1.0);";
+				"fragColour = vec3(float(textureValue.r) / 15.0, float(textureValue.g & 240u) / 240.0, float(textureValue.g & 15u) / 15.0);";
 		break;
 
 		case InputDataType::Red8Green8Blue8:
 			computed_display_type = DisplayType::RGB;
-			fragment_shader += "fragColour = vec4(texture(textureName, textureCoordinate).rgb / vec3(255.0), 1.0);";
+			fragment_shader += "fragColour = texture(textureName, textureCoordinate).rgb / vec3(255.0);";
 		break;
 	}
 
@@ -293,14 +294,14 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 		// there'll definitely be an RGB to SVideo step.
 		if(computed_display_type == DisplayType::RGB) {
 			fragment_shader +=
-				"vec3 composite_colour = rgbToLumaChroma * vec3(fragColour);"
+				"vec3 composite_colour = rgbToLumaChroma * fragColour;"
 				"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));"
-				"fragColour = vec4(composite_colour.r, 0.5 + dot(quadrature, composite_colour.gb)*0.5, 0.0, 1.0);";
+				"fragColour = vec3(composite_colour.r, 0.5 + dot(quadrature, composite_colour.gb)*0.5, 0.0);";
 		}
 
 		// If the output type isn't SVideo, add an SVideo to composite step.
 		if(display_type != DisplayType::SVideo) {
-			fragment_shader += "fragColour = vec4(vec3(mix(fragColour.r, 2.0*(fragColour.g - 0.5), compositeAmplitudeOut)), 1.0);";
+			fragment_shader += "fragColour = vec3(mix(fragColour.r, 2.0*(fragColour.g - 0.5), compositeAmplitudeOut));";
 		}
 	}
 
@@ -331,9 +332,10 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 		"uniform float textureWeights[11];"
 		"uniform usampler2D textureName;"
 
-		"out vec4 fragColour;"
+		"out vec3 fragColour;"
 		"void main(void) {"
-			"fragColour = texture(textureName, textureCoordinates[5]);"
+			"vec3 textureSample = vec3(texture(textureName, textureCoordinates[5]).rgb) / vec3(65536.0 * 16384.0);"
+			"fragColour = textureSample;"
 		"}",
 		attribute_bindings(ShaderType::ProcessedScan)
 	));

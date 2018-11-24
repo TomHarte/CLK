@@ -13,7 +13,6 @@ using namespace Outputs::Display::OpenGL;
 
 namespace {
 
-
 /// The texture unit from which to source 1bpp input data.
 constexpr GLenum SourceData1BppTextureUnit = GL_TEXTURE0;
 /// The texture unit from which to source 2bpp input data.
@@ -175,6 +174,7 @@ void ScanTarget::set_modals(Modals modals) {
 	// Cascade the texture units in use as per the pipeline stages.
 	std::vector<Shader *> input_shaders = {input_shader_.get()};
 	GLint texture_unit = GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0);
+//	output_shader_->set_uniform("textureName", texture_unit);
 	for(const auto &stage: pipeline_stages_) {
 		input_shaders.push_back(stage.shader.get());
 
@@ -185,8 +185,6 @@ void ScanTarget::set_modals(Modals modals) {
 		++texture_unit;
 	}
 	output_shader_->set_uniform("textureName", texture_unit);
-
-//	enable_vertex_attributes(ShaderType::InputScan, *input_shader_);
 
 	// Ensure that all shaders involved in the input pipeline have the proper colour space knowledged.
 	for(auto shader: input_shaders) {
