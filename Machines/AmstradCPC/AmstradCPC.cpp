@@ -172,7 +172,7 @@ class AYDeferrer {
 class CRTCBusHandler {
 	public:
 		CRTCBusHandler(uint8_t *ram, InterruptTimer &interrupt_timer) :
-			crt_(1024, 16, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2),
+			crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2),
 			ram_(ram),
 			interrupt_timer_(interrupt_timer) {
 				establish_palette_hits();
