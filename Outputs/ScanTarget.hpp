@@ -101,6 +101,23 @@ inline size_t size_for_data_type(InputDataType data_type) {
 	}
 }
 
+inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
+	switch(data_type) {
+		case InputDataType::Luminance1:
+		case InputDataType::Luminance8:
+			return DisplayType::CompositeColour;
+
+		case InputDataType::Red1Green1Blue1:
+		case InputDataType::Red2Green2Blue2:
+		case InputDataType::Red4Green4Blue4:
+		case InputDataType::Red8Green8Blue8:
+			return DisplayType::RGB;
+
+		case InputDataType::Luminance8Phase8:
+			return DisplayType::SVideo;
+	}
+}
+
 /*!
 	Provides an abstract target for 'scans' i.e. continuous sweeps of output data,
 	which are identified by 2d start and end coordinates, and the PCM-sampled data
@@ -124,7 +141,7 @@ struct ScanTarget {
 			InputDataType input_data_type;
 
 			/// Describes the type of display that the data is being shown on.
-			DisplayType display_type = DisplayType::CompositeMonochrome;
+			DisplayType display_type = DisplayType::RGB;
 
 			/// If being fed composite data, this defines the colour space in use.
 			ColourSpace composite_colour_space;

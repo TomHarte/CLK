@@ -21,12 +21,12 @@ constexpr GLenum SourceData2BppTextureUnit = GL_TEXTURE1;
 /// The texture unit from which to source 4bpp input data.
 constexpr GLenum SourceData4BppTextureUnit = GL_TEXTURE2;
 
-/// The texture unit which contains raw line-by-line composite or RGB data.
+/// The texture unit which contains raw line-by-line composite, S-Video or RGB data.
 constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE3;
-/// The texture unit which contains line-by-line records of luminance and amplitude-modulated chrominance.
-constexpr GLenum CompositeSeparatedTextureUnit = GL_TEXTURE4;
-/// The texture unit which contains line-by-line records of luminance and demodulated chrominance.
-constexpr GLenum DemodulatedCompositeTextureUnit = GL_TEXTURE5;
+/// The texture unit which contains line-by-line records of luminance and amplitude-modulated chrominance, exactly as if it were S-Video.
+constexpr GLenum SVideoLineBufferTextureUnit = GL_TEXTURE4;
+/// The texture unit which contains line-by-line records of luminance and separated, demodulated chrominance.
+constexpr GLenum RGBLineBufferTextureUnit = GL_TEXTURE5;
 
 /// The texture unit which contains line-by-line RGB.
 constexpr GLenum LineBufferTextureUnit = GL_TEXTURE6;
@@ -73,8 +73,10 @@ template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &b
 }
 
 ScanTarget::ScanTarget() :
- 	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR, false),
- 	full_display_rectangle_(-1.0f, -1.0f, 2.0f, 2.0f) {
+	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR, false),
+//	svideo_texture_(LineBufferWidth, LineBufferHeight, SVideoLineBufferTextureUnit, GL_LINEAR, false),
+//	rgb_texture_(LineBufferWidth, LineBufferHeight, RGBLineBufferTextureUnit, GL_LINEAR, false),
+	full_display_rectangle_(-1.0f, -1.0f, 2.0f, 2.0f) {
 
 	// Ensure proper initialisation of the two atomic pointer sets.
 	read_pointers_.store(write_pointers_);
@@ -89,24 +91,6 @@ ScanTarget::ScanTarget() :
 	// write straight into it.
 
 	glGenTextures(1, &write_area_texture_name_);
-
-	output_shader_.reset(new Shader(
-		glsl_globals(ShaderType::Line) + glsl_default_vertex_shader(ShaderType::Line),
-		"#version 150\n"
-
-		"out vec4 fragColour;"
-		"in vec2 textureCoordinate;"
-
-		"uniform sampler2D textureName;"
-
-		"void main(void) {"
-			"fragColour = vec4(texture(textureName, textureCoordinate).rgb, 0.64);"
-		"}"
-	));
-
-	glBindVertexArray(line_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
-	enable_vertex_attributes(ShaderType::Line, *output_shader_);
 
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	glBlendColor(0.4f, 0.4f, 0.4f, 1.0f);
@@ -146,36 +130,81 @@ void ScanTarget::set_modals(Modals modals) {
 	processing_width_ = colour_cycle_width + (overflow ? dot_clock - overflow : 0);
 	processing_width_ = std::min(processing_width_, 2048);
 
+	// Establish an output shader. TODO: add gamma correction here.
+	output_shader_.reset(new Shader(
+		glsl_globals(ShaderType::Line) + glsl_default_vertex_shader(ShaderType::Line),
+		"#version 150\n"
+
+		"out vec4 fragColour;"
+		"in vec2 textureCoordinate;"
+
+		"uniform sampler2D textureName;"
+
+		"void main(void) {"
+			"fragColour = vec4(texture(textureName, textureCoordinate).rgb, 0.64);"
+		"}"
+	));
+
+	glBindVertexArray(line_vertex_array_);
+	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
+	enable_vertex_attributes(ShaderType::Line, *output_shader_);
+
+	set_uniforms(ShaderType::Line, *output_shader_);
+	output_shader_->set_uniform("origin", modals.visible_area.origin.x, modals.visible_area.origin.y);
+	output_shader_->set_uniform("size", modals.visible_area.size.width, modals.visible_area.size.height);
+
 	// Establish an input shader.
 	input_shader_ = input_shader(modals_.input_data_type, modals_.display_type);
 
 	glBindVertexArray(scan_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
-	enable_vertex_attributes(ShaderType::Scan, *input_shader_);
+	enable_vertex_attributes(ShaderType::InputScan, *input_shader_);
 
-	set_uniforms(Outputs::Display::OpenGL::ScanTarget::ShaderType::Scan, *output_shader_);
-	set_uniforms(Outputs::Display::OpenGL::ScanTarget::ShaderType::Line, *input_shader_);
-
+	set_uniforms(ShaderType::InputScan, *input_shader_);
 	input_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
-	switch(modals.composite_colour_space) {
-		case ColourSpace::YIQ: {
-			const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
-			const GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
-			input_shader_->set_uniform_matrix("lumaChromaToRGB", 3, false, yiqToRGB);
-			input_shader_->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYIQ);
-		} break;
 
-		case ColourSpace::YUV: {
-			const GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
-			const GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
-			input_shader_->set_uniform_matrix("lumaChromaToRGB", 3, false, yuvToRGB);
-			input_shader_->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYUV);
-		} break;
+	// Establish such intermediary shaders as are required.
+	pipeline_stages_.clear();
+	if(modals_.display_type == DisplayType::CompositeColour) {
+		pipeline_stages_.emplace_back(
+			composite_to_svideo_shader(modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_).release(),
+			SVideoLineBufferTextureUnit);
+	}
+	if(modals_.display_type == DisplayType::SVideo || modals_.display_type == DisplayType::CompositeColour) {
+		pipeline_stages_.emplace_back(
+			svideo_to_rgb_shader(modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_).release(),
+			RGBLineBufferTextureUnit);
 	}
 
-	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
-	output_shader_->set_uniform("origin", modals.visible_area.origin.x, modals.visible_area.origin.y);
-	output_shader_->set_uniform("size", modals.visible_area.size.width, modals.visible_area.size.height);
+	// Cascade the texture units in use as per the pipeline stages.
+	std::vector<Shader *> input_shaders = {input_shader_.get()};
+	GLint texture_unit = GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0);
+	for(const auto &stage: pipeline_stages_) {
+		input_shaders.push_back(stage.shader.get());
+		stage.shader->set_uniform("textureName", texture_unit);
+		set_uniforms(ShaderType::ProcessedScan, *stage.shader);
+		++texture_unit;
+	}
+	output_shader_->set_uniform("textureName", texture_unit);
+
+	// Ensure that all shaders involved in the input pipeline have the proper colour space knowledged.
+	for(auto shader: input_shaders) {
+		switch(modals.composite_colour_space) {
+			case ColourSpace::YIQ: {
+				const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
+				const GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
+				shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yiqToRGB);
+				shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYIQ);
+			} break;
+
+			case ColourSpace::YUV: {
+				const GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
+				const GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
+				shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yuvToRGB);
+				shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYUV);
+			} break;
+		}
+	}
 }
 
 void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) {
@@ -466,10 +495,17 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			glDisable(GL_SCISSOR_TEST);
 		}
 
-		// Apply new spans.
+		// Apply new spans. They definitely always go to the first buffer.
 		glBindVertexArray(scan_vertex_array_);
 		input_shader_->bind();
 		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
+
+		// If there are any further pipeline stages, apply them.
+		for(auto &stage: pipeline_stages_) {
+			stage.target.bind_framebuffer();
+			stage.shader->bind();
+			glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
+		}
 	}
 
 	// Ensure the accumulation buffer is properly sized.
