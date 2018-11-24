@@ -60,6 +60,31 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 	}
 }
 
+std::vector<Shader::AttributeBinding> ScanTarget::attribute_bindings(ShaderType type) {
+	switch(type) {
+		case ShaderType::InputScan:
+		case ShaderType::ProcessedScan:
+		return {
+			{"startPoint", 0},
+			{"startDataX", 1},
+			{"startCompositeAngle", 2},
+			{"endPoint", 3},
+			{"endDataX", 4},
+			{"endCompositeAngle", 5},
+			{"dataY", 6},
+			{"lineY", 7},
+			{"compositeAmplitude", 8},
+		};
+
+		case ShaderType::Line:
+		return {
+			{"startPoint", 0},
+			{"endPoint", 1},
+			{"lineY", 2},
+		};
+	}
+}
+
 std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 	switch(type) {
 		case ShaderType::InputScan:
@@ -85,25 +110,25 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 
 			if(type == ShaderType::InputScan) {
 				result +=
-					"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY) / textureSize(textureName, 0);"
+					"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY) / textureSize(textureName, 0);"	// TODO: dataY + 0.5
 					"vec2 eyePosition = vec2(mix(startPoint.x, endPoint.x, lateral) * processingWidth, lineY + longitudinal) / vec2(scale.x, 2048.0);";
 			} else {
 				result +=
-					"vec2 eyePosition = vec2(mix(startDataX, endDataX, lateral) - 10.0 + lateral*20.0, dataY + longitudinal);"
+					"vec2 eyePosition = vec2(mix(startPoint.x, endPoint.x, lateral) * processingWidth, lineY + longitudinal) / vec2(scale.x, 2048.0);"
 
-					"textureCoordinates[0] = (eyePosition - vec2(5.0, 0.0)) / textureSize(textureName, 0);"
-					"textureCoordinates[1] = (eyePosition - vec2(4.0, 0.0)) / textureSize(textureName, 0);"
-					"textureCoordinates[2] = (eyePosition - vec2(3.0, 0.0)) / textureSize(textureName, 0);"
-					"textureCoordinates[3] = (eyePosition - vec2(2.0, 0.0)) / textureSize(textureName, 0);"
-					"textureCoordinates[4] = (eyePosition - vec2(1.0, 0.0)) / textureSize(textureName, 0);"
-					"textureCoordinates[5] = eyePosition / textureSize(textureName, 0);"
-					"textureCoordinates[6] = (eyePosition + vec2(1.0, 0.0)) / textureSize(textureName, 0);"
-					"textureCoordinates[7] = (eyePosition + vec2(2.0, 0.0)) / textureSize(textureName, 0);"
-					"textureCoordinates[8] = (eyePosition + vec2(3.0, 0.0)) / textureSize(textureName, 0);"
-					"textureCoordinates[9] = (eyePosition + vec2(4.0, 0.0)) / textureSize(textureName, 0);"
-					"textureCoordinates[10] = (eyePosition + vec2(5.0, 0.0)) / textureSize(textureName, 0);"
+					"textureCoordinates[0] = eyePosition + vec2(-5.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[1] = eyePosition + vec2(-4.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[2] = eyePosition + vec2(-3.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[3] = eyePosition + vec2(-2.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[4] = eyePosition + vec2(-1.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[5] = eyePosition;"
+					"textureCoordinates[6] = eyePosition + vec2(1.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[7] = eyePosition + vec2(2.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[8] = eyePosition + vec2(3.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[9] = eyePosition + vec2(4.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[10] = eyePosition + vec2(5.0, 0.0) / textureSize(textureName, 0);"
 
-					"eyePosition = eyePosition / textureSize(textureName, 0);";
+					"eyePosition = eyePosition;";
 			}
 
 			return result +
@@ -130,6 +155,7 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 }
 
 void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
+	target.bind();
 	switch(type) {
 		case ShaderType::InputScan:
 		case ShaderType::ProcessedScan:
@@ -280,7 +306,8 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 
 	return std::unique_ptr<Shader>(new Shader(
 		glsl_globals(ShaderType::InputScan) + glsl_default_vertex_shader(ShaderType::InputScan),
-		fragment_shader + "}"
+		fragment_shader + "}",
+		attribute_bindings(ShaderType::InputScan)
 	));
 }
 
@@ -302,11 +329,13 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 
 		"in vec2 textureCoordinates[11];"
 		"uniform float textureWeights[11];"
+		"uniform usampler2D textureName;"
 
 		"out vec4 fragColour;"
 		"void main(void) {"
-			"fragColour = vec4(1.0);"
-		"}"
+			"fragColour = texture(textureName, textureCoordinates[5]);"
+		"}",
+		attribute_bindings(ShaderType::ProcessedScan)
 	));
 	shader->set_uniform("textureWeights", GLint(sizeof(GLfloat)), GLsizei(coefficients.size()), coefficients.data());
 	return shader;

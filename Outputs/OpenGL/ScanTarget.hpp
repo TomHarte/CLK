@@ -165,7 +165,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			Calls @c taret.enable_vertex_attribute_with_pointer to attach all
 			globals for shaders of @c type to @c target.
 		*/
-		void enable_vertex_attributes(ShaderType type, Shader &target);
+		static void enable_vertex_attributes(ShaderType type, Shader &target);
+		static std::vector<Shader::AttributeBinding> attribute_bindings(ShaderType type);
 		void set_uniforms(ShaderType type, Shader &target);
 
 		GLsync fence_ = nullptr;

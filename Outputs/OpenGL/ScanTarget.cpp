@@ -103,8 +103,8 @@ ScanTarget::~ScanTarget() {
 }
 
 void ScanTarget::set_modals(Modals modals) {
-	// TODO: consider resizing the write_area_texture_, and setting
-	// write_area_texture_line_length_ appropriately.
+	modals.display_type = DisplayType::SVideo;
+
 	modals_ = modals;
 
 	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
@@ -139,7 +139,8 @@ void ScanTarget::set_modals(Modals modals) {
 
 		"void main(void) {"
 			"fragColour = vec4(texture(textureName, textureCoordinate).rgb, 0.64);"
-		"}"
+		"}",
+		attribute_bindings(ShaderType::Line)
 	));
 
 	glBindVertexArray(line_vertex_array_);
@@ -162,11 +163,11 @@ void ScanTarget::set_modals(Modals modals) {
 			(modals_.display_type == DisplayType::CompositeColour) ? RGBLineBufferTextureUnit : SVideoLineBufferTextureUnit);
 	}
 
-	// Establish an input shader.
-	input_shader_ = input_shader(modals_.input_data_type, modals_.display_type);
-
 	glBindVertexArray(scan_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+
+	// Establish an input shader.
+	input_shader_ = input_shader(modals_.input_data_type, modals_.display_type);
 	enable_vertex_attributes(ShaderType::InputScan, *input_shader_);
 	set_uniforms(ShaderType::InputScan, *input_shader_);
 	input_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
@@ -184,6 +185,8 @@ void ScanTarget::set_modals(Modals modals) {
 		++texture_unit;
 	}
 	output_shader_->set_uniform("textureName", texture_unit);
+
+//	enable_vertex_attributes(ShaderType::InputScan, *input_shader_);
 
 	// Ensure that all shaders involved in the input pipeline have the proper colour space knowledged.
 	for(auto shader: input_shaders) {
@@ -615,6 +618,12 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 
 	glClear(GL_COLOR_BUFFER_BIT);
+//	unprocessed_line_texture_.bind_texture();
+//	unprocessed_line_texture_.draw(float(output_width) / float(output_height), 4.0f / 255.0f);
+
+//	pipeline_stages_.front().target.bind_texture();
+//	pipeline_stages_.front().target.draw(float(output_width) / float(output_height), 4.0f / 255.0f);
+
 	accumulation_texture_->bind_texture();
 	accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
 
