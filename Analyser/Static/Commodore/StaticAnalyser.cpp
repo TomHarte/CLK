@@ -80,7 +80,7 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media
 		target->memory_model = Target::MemoryModel::Unexpanded;
 		std::ostringstream string_stream;
 		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device << ",";
-  		if(files.front().is_basic()) {
+		if(files.front().is_basic()) {
 			string_stream << "0";
 		} else {
 			string_stream << "1";

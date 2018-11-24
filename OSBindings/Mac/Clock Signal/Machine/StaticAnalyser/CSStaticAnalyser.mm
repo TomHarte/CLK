@@ -169,7 +169,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 		std::unique_ptr<Target> target(new Target);
 		target->machine = Analyser::Machine::AppleII;
 		switch(model) {
-			default: 									target->model = Target::Model::II; 				break;
+			default:									target->model = Target::Model::II;				break;
 			case CSMachineAppleIIModelAppleIIPlus:		target->model = Target::Model::IIplus;			break;
 			case CSMachineAppleIIModelAppleIIe:			target->model = Target::Model::IIe;				break;
 			case CSMachineAppleIIModelAppleEnhancedIIe:	target->model = Target::Model::EnhancedIIe;		break;

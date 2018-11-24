@@ -36,8 +36,8 @@ std::vector<std::unique_ptr<Configurable::Option>> Configurable::standard_option
 	if(mask & (DisplayRGB | DisplayComposite | DisplaySVideo)) {
 		std::vector<std::string> display_options;
 		if(mask & DisplayComposite)	display_options.emplace_back("composite");
-		if(mask & DisplaySVideo) 	display_options.emplace_back("svideo");
-		if(mask & DisplayRGB) 		display_options.emplace_back("rgb");
+		if(mask & DisplaySVideo)	display_options.emplace_back("svideo");
+		if(mask & DisplayRGB)		display_options.emplace_back("rgb");
 		options.emplace_back(new Configurable::ListOption("Display", "display", display_options));
 	}
 	if(mask & AutomaticTapeMotorControl)	options.emplace_back(new Configurable::BooleanOption("Automatic Tape Motor Control", "autotapemotor"));

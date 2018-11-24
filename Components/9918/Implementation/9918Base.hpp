@@ -391,7 +391,7 @@ class Base {
 /*
 	Fetching routines follow below; they obey the following rules:
 
-		1) 	input is a start position and an end position; they should perform the proper
+		1)	input is a start position and an end position; they should perform the proper
 			operations for the period: start <= time < end.
 		2)	times are measured relative to a 172-cycles-per-line clock (so: they directly
 			count access windows on the TMS and Master System).
@@ -411,7 +411,7 @@ class Base {
 
 	Provided for the benefit of the methods below:
 
-		* 	the function external_slot(), which will perform any pending VRAM read/write.
+		*	the function external_slot(), which will perform any pending VRAM read/write.
 		*	the macros slot(n) and external_slot(n) which can be used to schedule those things inside a
 			switch(start)-based implementation.
 
@@ -752,14 +752,14 @@ class Base {
 		fetch_tile_name(column+1, row_info)			\
 		sprite_y_read(location+5, sprite);	\
 	slot(location+6):	\
-	slot(location+7): 	\
+	slot(location+7):	\
 	slot(location+8):	\
 		fetch_tile(column+1)					\
 		fetch_tile_name(column+2, row_info)				\
 		sprite_y_read(location+9, sprite+2);	\
 	slot(location+10):	\
 	slot(location+11):	\
-	slot(location+12): 	\
+	slot(location+12):	\
 		fetch_tile(column+2)					\
 		fetch_tile_name(column+3, row_info)				\
 		sprite_y_read(location+13, sprite+4);	\

@@ -57,7 +57,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 			switch(digital_input.type) {
 				default: return;
 
-				case Input::Up: 	if(is_active) state_ &= ~0x01; else state_ |= 0x01;	break;
+				case Input::Up:		if(is_active) state_ &= ~0x01; else state_ |= 0x01;	break;
 				case Input::Down:	if(is_active) state_ &= ~0x02; else state_ |= 0x02;	break;
 				case Input::Left:	if(is_active) state_ &= ~0x04; else state_ |= 0x04;	break;
 				case Input::Right:	if(is_active) state_ &= ~0x08; else state_ |= 0x08;	break;
@@ -383,9 +383,9 @@ class ConcreteMachine:
 	private:
 		static TI::TMS::Personality tms_personality_for_model(Analyser::Static::Sega::Target::Model model) {
 			switch(model) {
-				case Target::Model::SG1000: 		return TI::TMS::TMS9918A;
+				case Target::Model::SG1000:			return TI::TMS::TMS9918A;
 				case Target::Model::MasterSystem:	return TI::TMS::SMSVDP;
-				case Target::Model::MasterSystem2: 	return TI::TMS::SMSVDP;
+				case Target::Model::MasterSystem2:	return TI::TMS::SMSVDP;
 			}
 		}
 

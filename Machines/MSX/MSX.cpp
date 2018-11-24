@@ -645,7 +645,7 @@ class ConcreteMachine:
 						case 2: {
 							// TODO:
 							//	b6	caps lock LED
-							//	b5 	audio output
+							//	b5	audio output
 
 							//	b4: cassette motor relay
 							tape_player_.set_motor_control(!(value & 0x10));

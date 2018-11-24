@@ -185,7 +185,7 @@ class ConcreteJoystick: public Joystick {
 			// convenient hard-coded values. TODO: make these a function of time.
 			using Type = Joystick::Input::Type;
 			switch(input.type) {
-				default: 			did_set_input(input, is_active ? 1.0f : 0.0f);													break;
+				default:			did_set_input(input, is_active ? 1.0f : 0.0f);													break;
 				case Type::Left:	did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? 0.1f : 0.5f);		break;
 				case Type::Right:	did_set_input(Input(Type::Horizontal, input.info.control.index), is_active ? 0.9f : 0.5f);		break;
 				case Type::Up:		did_set_input(Input(Type::Vertical, input.info.control.index), is_active ? 0.1f : 0.5f);		break;
@@ -203,7 +203,7 @@ class ConcreteJoystick: public Joystick {
 			// Otherwise apply a threshold test to convert to digital, with remapping from axes to digital inputs.
 			using Type = Joystick::Input::Type;
 			switch(input.type) {
-				default: 			did_set_input(input, value > 0.5f);											break;
+				default:			did_set_input(input, value > 0.5f);											break;
 				case Type::Horizontal:
 					did_set_input(Input(Type::Left, input.info.control.index), value <= 0.25f);
 					did_set_input(Input(Type::Right, input.info.control.index), value >= 0.75f);

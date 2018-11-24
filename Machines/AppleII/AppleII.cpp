@@ -123,7 +123,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		void pick_card_messaging_group(AppleII::Card *card) {
 			const bool is_every_cycle = is_every_cycle_card(card);
 			std::vector<AppleII::Card *> &intended = is_every_cycle ? every_cycle_cards_ : just_in_time_cards_;
-		 	std::vector<AppleII::Card *> &undesired = is_every_cycle ? just_in_time_cards_ : every_cycle_cards_;
+			std::vector<AppleII::Card *> &undesired = is_every_cycle ? just_in_time_cards_ : every_cycle_cards_;
 
 			if(std::find(intended.begin(), intended.end(), card) != intended.end()) return;
 			auto old_membership = std::find(undesired.begin(), undesired.end(), card);
@@ -154,7 +154,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			On a IIe with auxiliary memory the following orthogonal changes also need to be factored in:
 
-			0000 to 0200 	:	can be paged independently of the rest of RAM, other than part of the language card area which pages with it
+			0000 to 0200	:	can be paged independently of the rest of RAM, other than part of the language card area which pages with it
 			0400 to 0800	:	the text screen, can be configured to write to auxiliary RAM
 			2000 to 4000	:	the graphics screen, which can be configured to write to auxiliary RAM
 			c100 to d000	:	can be used to page an additional 3.75kb of ROM, replacing the IO area
@@ -308,16 +308,16 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::AppleII::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			m6502_(*this),
-		 	video_bus_handler_(ram_, aux_ram_),
-		 	video_(video_bus_handler_),
-		 	audio_toggle_(audio_queue_),
-		 	speaker_(audio_toggle_) {
-		 	// The system's master clock rate.
-		 	const float master_clock = 14318180.0;
+			video_bus_handler_(ram_, aux_ram_),
+			video_(video_bus_handler_),
+			audio_toggle_(audio_queue_),
+			speaker_(audio_toggle_) {
+			// The system's master clock rate.
+			const float master_clock = 14318180.0;
 
-		 	// This is where things get slightly convoluted: establish the machine as having a clock rate
-		 	// equal to the number of cycles of work the 6502 will actually achieve. Which is less than
-		 	// the master clock rate divided by 14 because every 65th cycle is extended by one seventh.
+			// This is where things get slightly convoluted: establish the machine as having a clock rate
+			// equal to the number of cycles of work the 6502 will actually achieve. Which is less than
+			// the master clock rate divided by 14 because every 65th cycle is extended by one seventh.
 			set_clock_rate((master_clock / 14.0) * 65.0 / (65.0 + 1.0 / 7.0));
 
 			// The speaker, however, should think it is clocked at half the master clock, per a general
@@ -334,8 +334,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			Memory::Fuzz(aux_ram_, sizeof(aux_ram_));
 
 			// Add a couple of joysticks.
-		 	joysticks_.emplace_back(new Joystick);
-		 	joysticks_.emplace_back(new Joystick);
+			joysticks_.emplace_back(new Joystick);
+			joysticks_.emplace_back(new Joystick);
 
 			// Pick the required ROMs.
 			using Target = Analyser::Static::AppleII::Target;

@@ -366,7 +366,7 @@ struct ActivityObserver: public Activity::Observer {
 			BIND(VK_ForwardDelete, Delete);
 
 			BIND(VK_LeftArrow, Left);		BIND(VK_RightArrow, Right);
-			BIND(VK_DownArrow, Down); 		BIND(VK_UpArrow, Up);
+			BIND(VK_DownArrow, Down);		BIND(VK_UpArrow, Up);
 		}
 #undef BIND
 

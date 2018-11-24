@@ -54,7 +54,7 @@ class DiskII:
 		void run_for(const Cycles cycles);
 
 		/*!
-		 	Supplies the image of the state machine (i.e. P6) ROM,
+			Supplies the image of the state machine (i.e. P6) ROM,
 			which dictates how the Disk II will respond to input.
 
 			To reduce processing costs, some assumptions are made by

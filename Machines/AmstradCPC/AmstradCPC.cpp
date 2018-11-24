@@ -1167,7 +1167,7 @@ Machine *Machine::AmstradCPC(const Analyser::Static::Target *target, const ROMMa
 	using Target = Analyser::Static::AmstradCPC::Target;
 	const Target *const cpc_target = dynamic_cast<const Target *>(target);
 	switch(cpc_target->model) {
-		default: 					return new AmstradCPC::ConcreteMachine<true>(*cpc_target, rom_fetcher);
+		default:					return new AmstradCPC::ConcreteMachine<true>(*cpc_target, rom_fetcher);
 		case Target::Model::CPC464:	return new AmstradCPC::ConcreteMachine<false>(*cpc_target, rom_fetcher);
 	}
 }

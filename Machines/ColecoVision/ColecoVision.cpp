@@ -76,7 +76,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 					}
 				break;
 
-				case Input::Up: 	if(is_active) direction_ &= ~0x01; else direction_ |= 0x01;	break;
+				case Input::Up:		if(is_active) direction_ &= ~0x01; else direction_ |= 0x01;	break;
 				case Input::Right:	if(is_active) direction_ &= ~0x02; else direction_ |= 0x02;	break;
 				case Input::Down:	if(is_active) direction_ &= ~0x04; else direction_ |= 0x04;	break;
 				case Input::Left:	if(is_active) direction_ &= ~0x08; else direction_ |= 0x08;	break;

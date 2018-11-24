@@ -67,7 +67,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 		of a 0 start bit. The HI cycle length is placed in WINWID and will be used to discriminate
 		between LO and HI cycles."
 	*/
-	total_length = total_length / 256.0f;	 		// To get the average, in microseconds.
+	total_length = total_length / 256.0f;			// To get the average, in microseconds.
 	// To convert to the loop count format used by the MSX BIOS.
 	uint8_t int_result = static_cast<uint8_t>(total_length / (0.00001145f * 0.75f));
 

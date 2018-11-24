@@ -49,7 +49,7 @@ class CAS: public Tape {
 		// each chunk is preceded by a header which may be long, and is optionally
 		// also preceded by a gap.
 		struct Chunk {
-  			bool has_gap;
+			bool has_gap;
 			bool long_header;
 			std::vector<std::uint8_t> data;
 		};

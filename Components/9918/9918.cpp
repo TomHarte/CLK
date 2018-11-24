@@ -85,7 +85,7 @@ Base::Base(Personality p) :
 }
 
 TMS9918::TMS9918(Personality p):
- 	Base(p) {
+	Base(p) {
 //	crt_->set_video_signal(Outputs::Display::VideoSignal::RGB);
 	crt_.set_visible_area(Outputs::Display::Rect(0.055f, 0.025f, 0.9f, 0.9f));
 

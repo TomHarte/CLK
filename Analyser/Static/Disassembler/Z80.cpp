@@ -63,9 +63,9 @@ class Accessor {
 #define z(v) (v & 7)
 
 Instruction::Condition condition_table[] = {
-	Instruction::Condition::NZ, 	Instruction::Condition::Z,
-	Instruction::Condition::NC, 	Instruction::Condition::C,
-	Instruction::Condition::PO, 	Instruction::Condition::PE,
+	Instruction::Condition::NZ,		Instruction::Condition::Z,
+	Instruction::Condition::NC,		Instruction::Condition::C,
+	Instruction::Condition::PO,		Instruction::Condition::PE,
 	Instruction::Condition::P,		Instruction::Condition::M
 };
 
