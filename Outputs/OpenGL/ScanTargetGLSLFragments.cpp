@@ -37,9 +37,7 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 
 			"in float dataY;"
 			"in float lineY;"
-			"in float compositeAmplitude;"
-
-			"uniform usampler2D textureName;";
+			"in float compositeAmplitude;";
 
 		case ShaderType::Line:
 		return
@@ -92,9 +90,13 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 			std::string result;
 
 			if(type == ShaderType::InputScan) {
-				result += "out vec2 textureCoordinate;";
+				result +=
+					"out vec2 textureCoordinate;"
+					"uniform usampler2D textureName;";
 			} else {
-				result += "out vec2 textureCoordinates[11];";
+				result +=
+					"out vec2 textureCoordinates[11];"
+					"uniform sampler2D textureName;";
 			}
 
 			result +=
@@ -330,11 +332,11 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 
 		"in vec2 textureCoordinates[11];"
 		"uniform float textureWeights[11];"
-		"uniform usampler2D textureName;"
+		"uniform sampler2D textureName;"
 
 		"out vec3 fragColour;"
 		"void main(void) {"
-			"vec3 textureSample = vec3(texture(textureName, textureCoordinates[5]).rgb) / vec3(65536.0 * 16384.0);"
+			"vec3 textureSample = texture(textureName, textureCoordinates[5]).rgb;"
 			"fragColour = textureSample;"
 		"}",
 		attribute_bindings(ShaderType::ProcessedScan)
