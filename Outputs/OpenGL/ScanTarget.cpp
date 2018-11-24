@@ -22,9 +22,9 @@ constexpr GLenum SourceData4BppTextureUnit = GL_TEXTURE2;
 
 /// The texture unit which contains raw line-by-line composite, S-Video or RGB data.
 constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE3;
-/// The texture unit which contains line-by-line records of luminance and amplitude-modulated chrominance, exactly as if it were S-Video.
+/// The texture unit which contains line-by-line records of luminance and two channels of chrominance, straight after multiplication by the quadrature vector, not yet filtered.
 constexpr GLenum SVideoLineBufferTextureUnit = GL_TEXTURE4;
-/// The texture unit which contains line-by-line records of luminance and separated, demodulated chrominance.
+/// The texture unit which contains line-by-line records of RGB.
 constexpr GLenum RGBLineBufferTextureUnit = GL_TEXTURE5;
 
 /// The texture unit that contains the current display.

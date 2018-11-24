@@ -261,7 +261,7 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 
 				"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
 				"float chroma = step(yc.y, 0.75) * cos(compositeAngle + phaseOffset);"
-				"fragColour = vec3(yc.x, chroma, 0.0);";
+				"fragColour = vec3(yc.x, 0.5 + chroma*0.5, 0.0);";
 		break;
 
 		case InputDataType::Red1Green1Blue1:
@@ -301,9 +301,17 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 				"fragColour = vec3(composite_colour.r, 0.5 + dot(quadrature, composite_colour.gb)*0.5, 0.0);";
 		}
 
-		// If the output type isn't SVideo, add an SVideo to composite step.
-		if(display_type != DisplayType::SVideo) {
-			fragment_shader += "fragColour = vec3(mix(fragColour.r, 2.0*(fragColour.g - 0.5), compositeAmplitudeOut));";
+		// If the output type is SVideo, throw in an attempt to separate the two chrominance
+		// channels here; otherwise add an SVideo to composite step.
+		if(display_type == DisplayType::SVideo) {
+			if(computed_display_type != DisplayType::RGB) {
+				fragment_shader +=
+					"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));";
+			}
+			fragment_shader +=
+				"fragColour = vec3(fragColour.x, ((fragColour.y - 0.5)*2.0) * quadrature);";
+		} else {
+			fragment_shader += "fragColour = vec3(fragColour.r, 2.0*(fragColour.g - 0.5) * quadrature);";
 		}
 	}
 
@@ -333,11 +341,41 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 		"in vec2 textureCoordinates[11];"
 		"uniform float textureWeights[11];"
 		"uniform sampler2D textureName;"
+		"uniform mat3 lumaChromaToRGB;"
 
 		"out vec3 fragColour;"
-		"void main(void) {"
-			"vec3 textureSample = texture(textureName, textureCoordinates[5]).rgb;"
-			"fragColour = textureSample;"
+		"void main() {"
+			"vec4 weights[3] = vec4[3]("
+				"vec4(textureWeights[0], textureWeights[1], textureWeights[2], textureWeights[3]),"
+				"vec4(textureWeights[4], textureWeights[5], textureWeights[6], textureWeights[7]),"
+				"vec4(textureWeights[8], textureWeights[9], textureWeights[10], 0.0)"
+			");"
+			"vec3 samples[11] = vec3[11]("
+				"texture(textureName, textureCoordinates[0]).rgb,"
+				"texture(textureName, textureCoordinates[1]).rgb,"
+				"texture(textureName, textureCoordinates[2]).rgb,"
+				"texture(textureName, textureCoordinates[3]).rgb,"
+				"texture(textureName, textureCoordinates[4]).rgb,"
+				"texture(textureName, textureCoordinates[5]).rgb,"
+				"texture(textureName, textureCoordinates[6]).rgb,"
+				"texture(textureName, textureCoordinates[7]).rgb,"
+				"texture(textureName, textureCoordinates[8]).rgb,"
+				"texture(textureName, textureCoordinates[9]).rgb,"
+				"texture(textureName, textureCoordinates[10]).rgb"
+			");"
+			"vec4 samples1[3] = vec4[3]("
+				"vec4(samples[0].g, samples[1].g, samples[2].g, samples[3].g),"
+				"vec4(samples[4].g, samples[5].g, samples[6].g, samples[7].g),"
+				"vec4(samples[8].g, samples[9].g, samples[10].g, 0.0)"
+			");"
+			"vec4 samples2[3] = vec4[3]("
+				"vec4(samples[0].b, samples[1].b, samples[2].b, samples[3].b),"
+				"vec4(samples[4].b, samples[5].b, samples[6].b, samples[7].b),"
+				"vec4(samples[8].b, samples[9].b, samples[10].b, 0.0)"
+			");"
+			"float channel1 = dot(weights[0], samples1[0]) + dot(weights[1], samples1[1]) + dot(weights[2], samples1[2]);"
+			"float channel2 = dot(weights[0], samples2[0]) + dot(weights[1], samples2[1]) + dot(weights[2], samples2[2]);"
+			"fragColour = lumaChromaToRGB * vec3(samples[5].x, channel1, samples[5].z);"
 		"}",
 		attribute_bindings(ShaderType::ProcessedScan)
 	));
