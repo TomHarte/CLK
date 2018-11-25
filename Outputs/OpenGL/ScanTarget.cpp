@@ -70,8 +70,6 @@ template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &b
 
 ScanTarget::ScanTarget() :
 	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR, false),
-//	svideo_texture_(LineBufferWidth, LineBufferHeight, SVideoLineBufferTextureUnit, GL_LINEAR, false),
-//	rgb_texture_(LineBufferWidth, LineBufferHeight, RGBLineBufferTextureUnit, GL_LINEAR, false),
 	full_display_rectangle_(-1.0f, -1.0f, 2.0f, 2.0f) {
 
 	// Ensure proper initialisation of the two atomic pointer sets.
@@ -483,11 +481,26 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			if(first_line_to_clear < final_line_to_clear) {
 				glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), final_line_to_clear - first_line_to_clear);
 				glClear(GL_COLOR_BUFFER_BIT);
+
+				if(pipeline_stages_.size()) {
+					pipeline_stages_.back().target.bind_framebuffer();
+					glClear(GL_COLOR_BUFFER_BIT);
+					unprocessed_line_texture_.bind_framebuffer();
+				}
 			} else {
 				glScissor(0, 0, unprocessed_line_texture_.get_width(), final_line_to_clear);
 				glClear(GL_COLOR_BUFFER_BIT);
 				glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), unprocessed_line_texture_.get_height() - first_line_to_clear);
 				glClear(GL_COLOR_BUFFER_BIT);
+
+				if(pipeline_stages_.size()) {
+					pipeline_stages_.back().target.bind_framebuffer();
+					glScissor(0, 0, unprocessed_line_texture_.get_width(), final_line_to_clear);
+					glClear(GL_COLOR_BUFFER_BIT);
+					glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), unprocessed_line_texture_.get_height() - first_line_to_clear);
+					glClear(GL_COLOR_BUFFER_BIT);
+					unprocessed_line_texture_.bind_framebuffer();
+				}
 			}
 
 			glDisable(GL_SCISSOR_TEST);
