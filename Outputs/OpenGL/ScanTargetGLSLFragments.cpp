@@ -264,8 +264,8 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 				"vec2 yc = texture(textureName, textureCoordinate).rg / vec2(255.0);"
 
 				"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
-				"float chroma = step(yc.y, 0.75) * cos(compositeAngle + phaseOffset);"
-				"fragColour = vec3(yc.x, 0.5 + chroma*0.5, 0.0);";
+				"float rawChroma = step(yc.y, 0.75) * cos(compositeAngle + phaseOffset);"
+				"fragColour = vec3(yc.x, 0.5 + rawChroma*0.5, 0.0);";
 		break;
 
 		case InputDataType::Red1Green1Blue1:
@@ -299,29 +299,32 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 		break;
 	}
 
-	if(computed_display_type != display_type) {
-		// If the input type is RGB but the output type isn't then
-		// there'll definitely be an RGB to SVideo step.
-		if(computed_display_type == DisplayType::RGB) {
-			fragment_shader +=
-				"vec3 composite_colour = rgbToLumaChroma * fragColour;"
-				"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));"
-				"fragColour = vec3(composite_colour.r, 0.5 + dot(quadrature, composite_colour.gb)*0.5, 0.0);";
-		}
+	// If the input type is RGB but the output type isn't then
+	// there'll definitely be an RGB to SVideo step.
+	if(computed_display_type == DisplayType::RGB && display_type != DisplayType::RGB) {
+		fragment_shader +=
+			"vec3 composite_colour = rgbToLumaChroma * fragColour;"
+			"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));"
+			"fragColour = vec3(composite_colour.r, 0.5 + dot(quadrature, composite_colour.gb)*0.5, 0.0);";
+	}
 
-		// If the output type is SVideo, throw in an attempt to separate the two chrominance
-		// channels here; otherwise add an SVideo to composite step.
-		if(display_type == DisplayType::SVideo) {
-			if(computed_display_type != DisplayType::RGB) {
-				fragment_shader +=
-					"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));";
-			}
+	// If the output type is SVideo, throw in an attempt to separate the two chrominance
+	// channels here; otherwise add an SVideo to composite step.
+	if(display_type == DisplayType::SVideo) {
+		if(computed_display_type != DisplayType::RGB) {
 			fragment_shader +=
-				"vec2 chroma = (((fragColour.y - 0.5)*2.0) * quadrature)*0.5 + vec2(0.5);"
-				"fragColour = vec3(fragColour.x, chroma);";
-		} else {
-			fragment_shader += "fragColour = vec3(fragColour.r, 2.0*(fragColour.g - 0.5) * quadrature);";
+				"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));";
 		}
+		fragment_shader +=
+			"vec2 chroma = (((fragColour.y - 0.5)*2.0) * quadrature)*0.5 + vec2(0.5);"
+			"fragColour = vec3(fragColour.x, chroma);";
+	}
+
+	if(
+		(display_type == DisplayType::CompositeMonochrome || display_type == DisplayType::CompositeColour) &&
+		computed_display_type != DisplayType::CompositeMonochrome
+	) {
+		fragment_shader += "fragColour = vec3(fragColour.r, 2.0*(fragColour.g - 0.5) * quadrature);";
 	}
 
 	return std::unique_ptr<Shader>(new Shader(
