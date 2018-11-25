@@ -309,7 +309,7 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 	}
 
 	// If the output type is SVideo, throw in an attempt to separate the two chrominance
-	// channels here; otherwise add an SVideo to composite step.
+	// channels here.
 	if(display_type == DisplayType::SVideo) {
 		if(computed_display_type != DisplayType::RGB) {
 			fragment_shader +=
@@ -320,11 +320,12 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 			"fragColour = vec3(fragColour.x, chroma);";
 	}
 
+	// Add an SVideo to composite step if necessary.
 	if(
 		(display_type == DisplayType::CompositeMonochrome || display_type == DisplayType::CompositeColour) &&
 		computed_display_type != DisplayType::CompositeMonochrome
 	) {
-		fragment_shader += "fragColour = vec3(fragColour.r, 2.0*(fragColour.g - 0.5) * quadrature);";
+		fragment_shader += "fragColour = vec3(mix(fragColour.r, 2.0*(fragColour.g - 0.5), compositeAmplitudeOut));";
 	}
 
 	return std::unique_ptr<Shader>(new Shader(

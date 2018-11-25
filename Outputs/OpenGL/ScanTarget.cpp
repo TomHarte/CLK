@@ -102,7 +102,7 @@ ScanTarget::~ScanTarget() {
 }
 
 void ScanTarget::set_modals(Modals modals) {
-	modals.display_type = DisplayType::SVideo;
+	modals.display_type = DisplayType::CompositeMonochrome;
 
 	modals_ = modals;
 
