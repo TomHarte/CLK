@@ -247,6 +247,10 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 		case InputDataType::Luminance1:
 			computed_display_type = DisplayType::CompositeMonochrome;
 			fragment_shader += "fragColour = texture(textureName, textureCoordinate).rrr;";
+
+			if(computed_display_type != display_type) {
+				fragment_shader += "fragColour = clamp(fragColour, 0.0, 1.0);";
+			}
 		break;
 
 		case InputDataType::Luminance8:
@@ -269,6 +273,10 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 			fragment_shader +=
 				"uint textureValue = texture(textureName, textureCoordinate).r;"
 				"fragColour = uvec3(textureValue) & uvec3(4u, 2u, 1u);";
+
+			if(computed_display_type != display_type) {
+				fragment_shader += "fragColour = clamp(fragColour, 0.0, 1.0);";
+			}
 		break;
 
 		case InputDataType::Red2Green2Blue2:
@@ -309,7 +317,8 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 					"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));";
 			}
 			fragment_shader +=
-				"fragColour = vec3(fragColour.x, ((fragColour.y - 0.5)*2.0) * quadrature);";
+				"vec2 chroma = (((fragColour.y - 0.5)*2.0) * quadrature)*0.5 + vec2(0.5);"
+				"fragColour = vec3(fragColour.x, chroma);";
 		} else {
 			fragment_shader += "fragColour = vec3(fragColour.r, 2.0*(fragColour.g - 0.5) * quadrature);";
 		}
@@ -331,25 +340,20 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 		there'll be at least four samples per colour clock and in practice at most just a shade more than 9.
 	*/
 	const float cycles_per_expanded_line = (float(colour_cycle_numerator) / float(colour_cycle_denominator)) / (float(processing_width) / float(LineBufferWidth));
-	const SignalProcessing::FIRFilter filter(11, float(LineBufferWidth), 0.0f, cycles_per_expanded_line);
-	const auto coefficients = filter.get_coefficients();
+	const SignalProcessing::FIRFilter filter(11, float(LineBufferWidth), 0.0f, cycles_per_expanded_line * 0.5f);
+	auto coefficients = filter.get_coefficients();
 
 	auto shader = std::unique_ptr<Shader>(new Shader(
 		glsl_globals(ShaderType::ProcessedScan) + glsl_default_vertex_shader(ShaderType::ProcessedScan),
 		"#version 150\n"
 
 		"in vec2 textureCoordinates[11];"
-		"uniform float textureWeights[11];"
+		"uniform vec4 textureWeights[3];"
 		"uniform sampler2D textureName;"
 		"uniform mat3 lumaChromaToRGB;"
 
 		"out vec3 fragColour;"
 		"void main() {"
-			"vec4 weights[3] = vec4[3]("
-				"vec4(textureWeights[0], textureWeights[1], textureWeights[2], textureWeights[3]),"
-				"vec4(textureWeights[4], textureWeights[5], textureWeights[6], textureWeights[7]),"
-				"vec4(textureWeights[8], textureWeights[9], textureWeights[10], 0.0)"
-			");"
 			"vec3 samples[11] = vec3[11]("
 				"texture(textureName, textureCoordinates[0]).rgb,"
 				"texture(textureName, textureCoordinates[1]).rgb,"
@@ -373,13 +377,17 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 				"vec4(samples[4].b, samples[5].b, samples[6].b, samples[7].b),"
 				"vec4(samples[8].b, samples[9].b, samples[10].b, 0.0)"
 			");"
-			"float channel1 = dot(weights[0], samples1[0]) + dot(weights[1], samples1[1]) + dot(weights[2], samples1[2]);"
-			"float channel2 = dot(weights[0], samples2[0]) + dot(weights[1], samples2[1]) + dot(weights[2], samples2[2]);"
-			"fragColour = lumaChromaToRGB * vec3(samples[5].x, channel1, samples[5].z);"
+			"float channel1 = dot(textureWeights[0], samples1[0]) + dot(textureWeights[1], samples1[1]) + dot(textureWeights[2], samples1[2]);"
+			"float channel2 = dot(textureWeights[0], samples2[0]) + dot(textureWeights[1], samples2[1]) + dot(textureWeights[2], samples2[2]);"
+			"vec2 chroma = vec2(channel1, channel2)*2.0 - vec2(1.0);"
+			"fragColour = lumaChromaToRGB * vec3(samples[5].x, chroma);"
 		"}",
 		attribute_bindings(ShaderType::ProcessedScan)
 	));
-	shader->set_uniform("textureWeights", GLint(sizeof(GLfloat)), GLsizei(coefficients.size()), coefficients.data());
+
+	coefficients.push_back(0.0f);
+	shader->set_uniform("textureWeights", 4, 3, coefficients.data());
+
 	return shader;
 }
 
