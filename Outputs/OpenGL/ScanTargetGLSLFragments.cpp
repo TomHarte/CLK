@@ -101,14 +101,14 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 
 			result +=
 				"out float compositeAngle;"
-				"out float compositeAmplitudeOut;"
+				"out float oneOverCompositeAmplitude;"
 
 				"void main(void) {"
 					"float lateral = float(gl_VertexID & 1);"
 					"float longitudinal = float((gl_VertexID & 2) >> 1);"
 
 					"compositeAngle = (mix(startCompositeAngle, endCompositeAngle, lateral) / 32.0) * 3.141592654;"
-					"compositeAmplitudeOut = compositeAmplitude / 255.0;";
+					"oneOverCompositeAmplitude = mix(0.0, 255.0 / compositeAmplitude, step(0.01, compositeAmplitude));";
 
 			if(type == ShaderType::InputScan) {
 				result +=
@@ -234,7 +234,7 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 		"out vec3 fragColour;"
 		"in vec2 textureCoordinate;"
 		"in float compositeAngle;"
-		"in float compositeAmplitudeOut;"
+		"in float oneOverCompositeAmplitude;"
 
 		"uniform mat3 lumaChromaToRGB;"
 		"uniform mat3 rgbToLumaChroma;"
@@ -325,7 +325,7 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 		(display_type == DisplayType::CompositeMonochrome || display_type == DisplayType::CompositeColour) &&
 		computed_display_type != DisplayType::CompositeMonochrome
 	) {
-		fragment_shader += "fragColour = vec3(mix(fragColour.r, 2.0*(fragColour.g - 0.5), compositeAmplitudeOut));";
+		fragment_shader += "fragColour = vec3(mix(fragColour.r, 2.0*(fragColour.g - 0.5), 1.0 / oneOverCompositeAmplitude));";
 	}
 
 	return std::unique_ptr<Shader>(new Shader(
@@ -333,6 +333,12 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 		fragment_shader + "}",
 		attribute_bindings(ShaderType::InputScan)
 	));
+}
+
+std::vector<float> ScanTarget::coefficients_for_filter(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width, float multiple_of_colour_clock) {
+	const float cycles_per_expanded_line = (float(colour_cycle_numerator) / float(colour_cycle_denominator)) / (float(processing_width) / float(LineBufferWidth));
+	const SignalProcessing::FIRFilter filter(11, float(LineBufferWidth), 0.0f, cycles_per_expanded_line * multiple_of_colour_clock);
+	return filter.get_coefficients();
 }
 
 std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width) {
@@ -343,10 +349,7 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 		(Colour cycle numerator)/(Colour cycle denominator) gives the number of colour cycles in (processing_width / LineBufferWidth),
 		there'll be at least four samples per colour clock and in practice at most just a shade more than 9.
 	*/
-	const float cycles_per_expanded_line = (float(colour_cycle_numerator) / float(colour_cycle_denominator)) / (float(processing_width) / float(LineBufferWidth));
-	const SignalProcessing::FIRFilter filter(11, float(LineBufferWidth), 0.0f, cycles_per_expanded_line * 0.5f);
-	auto coefficients = filter.get_coefficients();
-
+	auto coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.5f);
 	auto shader = std::unique_ptr<Shader>(new Shader(
 		glsl_globals(ShaderType::ProcessedScan) + glsl_default_vertex_shader(ShaderType::ProcessedScan),
 		"#version 150\n"
@@ -396,8 +399,35 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 }
 
 std::unique_ptr<Shader> ScanTarget::composite_to_svideo_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width) {
-	const float cycles_per_expanded_line = (float(colour_cycle_numerator) / float(colour_cycle_denominator)) / (float(processing_width) / float(LineBufferWidth));
-	const SignalProcessing::FIRFilter filter(11, float(LineBufferWidth), 0.0f, cycles_per_expanded_line * 0.5f);
-	const auto coefficients = filter.get_coefficients();
-	return nullptr;
+	auto coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.75f);
+	auto shader = std::unique_ptr<Shader>(new Shader(
+		glsl_globals(ShaderType::ProcessedScan) + glsl_default_vertex_shader(ShaderType::ProcessedScan),
+		"#version 150\n"
+
+		"in vec2 textureCoordinates[11];"
+		"in float compositeAngle;"
+		"in float oneOverCompositeAmplitude;"
+
+		"uniform vec4 textureWeights[3];"
+		"uniform sampler2D textureName;"
+
+		"out vec3 fragColour;"
+		"void main() {"
+			"vec4 samples[3] = vec4[3]("
+				"vec4(texture(textureName, textureCoordinates[0]).r, texture(textureName, textureCoordinates[1]).r, texture(textureName, textureCoordinates[2]).r, texture(textureName, textureCoordinates[3]).r),"
+				"vec4(texture(textureName, textureCoordinates[4]).r, texture(textureName, textureCoordinates[5]).r, texture(textureName, textureCoordinates[6]).r, texture(textureName, textureCoordinates[7]).r),"
+				"vec4(texture(textureName, textureCoordinates[8]).r, texture(textureName, textureCoordinates[9]).r, texture(textureName, textureCoordinates[10]).r, 0.0)"
+			");"
+			"float luma = dot(textureWeights[0], samples[0]) + dot(textureWeights[1], samples[1]) + dot(textureWeights[2], samples[2]);"
+			"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));"
+			"vec2 chroma = ((samples[1].y - luma) * oneOverCompositeAmplitude)*quadrature;"
+			"fragColour = vec3(luma, chroma*0.5 + vec2(0.5));"
+		"}",
+		attribute_bindings(ShaderType::ProcessedScan)
+	));
+
+	coefficients.push_back(0.0f);
+	shader->set_uniform("textureWeights", 4, 3, coefficients.data());
+
+	return shader;
 }

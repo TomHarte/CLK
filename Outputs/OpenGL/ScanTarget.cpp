@@ -102,7 +102,7 @@ ScanTarget::~ScanTarget() {
 }
 
 void ScanTarget::set_modals(Modals modals) {
-	modals.display_type = DisplayType::CompositeMonochrome;
+	modals.display_type = DisplayType::CompositeColour;
 
 	modals_ = modals;
 

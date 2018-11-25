@@ -179,6 +179,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		static std::unique_ptr<Shader> input_shader(InputDataType input_data_type, DisplayType display_type);
 		static std::unique_ptr<Shader> composite_to_svideo_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width);
 		static std::unique_ptr<Shader> svideo_to_rgb_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width);
+		static std::vector<float> coefficients_for_filter(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width, float multiple_of_colour_clock);
 
 		struct PipelineStage {
 			PipelineStage(Shader *shader, GLenum texture_unit) :
