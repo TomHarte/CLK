@@ -349,7 +349,7 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 		(Colour cycle numerator)/(Colour cycle denominator) gives the number of colour cycles in (processing_width / LineBufferWidth),
 		there'll be at least four samples per colour clock and in practice at most just a shade more than 9.
 	*/
-	auto coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.5f);
+	auto coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.25f);
 	auto shader = std::unique_ptr<Shader>(new Shader(
 		glsl_globals(ShaderType::ProcessedScan) + glsl_default_vertex_shader(ShaderType::ProcessedScan),
 		"#version 150\n"
@@ -399,7 +399,7 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 }
 
 std::unique_ptr<Shader> ScanTarget::composite_to_svideo_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width) {
-	auto coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.75f);
+	auto coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.5f);
 	auto shader = std::unique_ptr<Shader>(new Shader(
 		glsl_globals(ShaderType::ProcessedScan) + glsl_default_vertex_shader(ShaderType::ProcessedScan),
 		"#version 150\n"

@@ -174,7 +174,6 @@ void ScanTarget::set_modals(Modals modals) {
 	// Cascade the texture units in use as per the pipeline stages.
 	std::vector<Shader *> input_shaders = {input_shader_.get()};
 	GLint texture_unit = GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0);
-//	output_shader_->set_uniform("textureName", texture_unit);
 	for(const auto &stage: pipeline_stages_) {
 		input_shaders.push_back(stage.shader.get());
 
@@ -616,12 +615,6 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 
 	glClear(GL_COLOR_BUFFER_BIT);
-//	unprocessed_line_texture_.bind_texture();
-//	unprocessed_line_texture_.draw(float(output_width) / float(output_height), 4.0f / 255.0f);
-
-//	pipeline_stages_.front().target.bind_texture();
-//	pipeline_stages_.front().target.draw(float(output_width) / float(output_height), 4.0f / 255.0f);
-
 	accumulation_texture_->bind_texture();
 	accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
 
