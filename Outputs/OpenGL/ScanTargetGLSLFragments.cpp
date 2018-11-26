@@ -96,7 +96,9 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 			} else {
 				result +=
 					"out vec2 textureCoordinates[11];"
-					"uniform sampler2D textureName;";
+					"out vec2 combCoordinates[2];"
+					"uniform sampler2D textureName;"
+					"uniform float combOffset;";
 			}
 
 			result +=
@@ -131,6 +133,9 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 					"textureCoordinates[8] = sourcePosition + vec2(3.0, 0.0) / textureSize(textureName, 0);"
 					"textureCoordinates[9] = sourcePosition + vec2(4.0, 0.0) / textureSize(textureName, 0);"
 					"textureCoordinates[10] = sourcePosition + vec2(5.0, 0.0) / textureSize(textureName, 0);"
+
+					"combCoordinates[0] = sourcePosition - vec2(combOffset, 0.0);"
+					"combCoordinates[1] = sourcePosition + vec2(combOffset, 0.0);"
 
 					"eyePosition = eyePosition;";
 			}
@@ -349,13 +354,13 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 		(Colour cycle numerator)/(Colour cycle denominator) gives the number of colour cycles in (processing_width / LineBufferWidth),
 		there'll be at least four samples per colour clock and in practice at most just a shade more than 9.
 	*/
-	auto coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.25f);
 	auto shader = std::unique_ptr<Shader>(new Shader(
 		glsl_globals(ShaderType::ProcessedScan) + glsl_default_vertex_shader(ShaderType::ProcessedScan),
 		"#version 150\n"
 
 		"in vec2 textureCoordinates[11];"
-		"uniform vec4 textureWeights[3];"
+		"uniform vec4 chromaWeights[3];"
+		"uniform vec4 lumaWeights[3];"
 		"uniform sampler2D textureName;"
 		"uniform mat3 lumaChromaToRGB;"
 
@@ -374,6 +379,11 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 				"texture(textureName, textureCoordinates[9]).rgb,"
 				"texture(textureName, textureCoordinates[10]).rgb"
 			");"
+			"vec4 samples0[3] = vec4[3]("
+				"vec4(samples[0].r, samples[1].r, samples[2].r, samples[3].r),"
+				"vec4(samples[4].r, samples[5].r, samples[6].r, samples[7].r),"
+				"vec4(samples[8].r, samples[9].r, samples[10].r, 0.0)"
+			");"
 			"vec4 samples1[3] = vec4[3]("
 				"vec4(samples[0].g, samples[1].g, samples[2].g, samples[3].g),"
 				"vec4(samples[4].g, samples[5].g, samples[6].g, samples[7].g),"
@@ -384,27 +394,33 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 				"vec4(samples[4].b, samples[5].b, samples[6].b, samples[7].b),"
 				"vec4(samples[8].b, samples[9].b, samples[10].b, 0.0)"
 			");"
-			"float channel1 = dot(textureWeights[0], samples1[0]) + dot(textureWeights[1], samples1[1]) + dot(textureWeights[2], samples1[2]);"
-			"float channel2 = dot(textureWeights[0], samples2[0]) + dot(textureWeights[1], samples2[1]) + dot(textureWeights[2], samples2[2]);"
+			"float channel0 = dot(lumaWeights[0], samples0[0]) + dot(lumaWeights[1], samples0[1]) + dot(lumaWeights[2], samples0[2]);"
+			"float channel1 = dot(chromaWeights[0], samples1[0]) + dot(chromaWeights[1], samples1[1]) + dot(chromaWeights[2], samples1[2]);"
+			"float channel2 = dot(chromaWeights[0], samples2[0]) + dot(chromaWeights[1], samples2[1]) + dot(chromaWeights[2], samples2[2]);"
 			"vec2 chroma = vec2(channel1, channel2)*2.0 - vec2(1.0);"
-			"fragColour = lumaChromaToRGB * vec3(samples[5].x, chroma);"
+			"fragColour = lumaChromaToRGB * vec3(channel0, chroma);"
 		"}",
 		attribute_bindings(ShaderType::ProcessedScan)
 	));
 
-	coefficients.push_back(0.0f);
-	shader->set_uniform("textureWeights", 4, 3, coefficients.data());
+	auto chroma_coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.25f);
+	chroma_coefficients.push_back(0.0f);
+	shader->set_uniform("chromaWeights", 4, 3, chroma_coefficients.data());
+
+	auto luma_coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.5f);
+	luma_coefficients.push_back(0.0f);
+	shader->set_uniform("lumaWeights", 4, 3, luma_coefficients.data());
 
 	return shader;
 }
 
 std::unique_ptr<Shader> ScanTarget::composite_to_svideo_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width) {
-	auto coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.5f);
 	auto shader = std::unique_ptr<Shader>(new Shader(
 		glsl_globals(ShaderType::ProcessedScan) + glsl_default_vertex_shader(ShaderType::ProcessedScan),
 		"#version 150\n"
 
 		"in vec2 textureCoordinates[11];"
+		"in vec2 combCoordinates[2];"
 		"in float compositeAngle;"
 		"in float oneOverCompositeAmplitude;"
 
@@ -413,21 +429,18 @@ std::unique_ptr<Shader> ScanTarget::composite_to_svideo_shader(int colour_cycle_
 
 		"out vec3 fragColour;"
 		"void main() {"
-			"vec4 samples[3] = vec4[3]("
-				"vec4(texture(textureName, textureCoordinates[0]).r, texture(textureName, textureCoordinates[1]).r, texture(textureName, textureCoordinates[2]).r, texture(textureName, textureCoordinates[3]).r),"
-				"vec4(texture(textureName, textureCoordinates[4]).r, texture(textureName, textureCoordinates[5]).r, texture(textureName, textureCoordinates[6]).r, texture(textureName, textureCoordinates[7]).r),"
-				"vec4(texture(textureName, textureCoordinates[8]).r, texture(textureName, textureCoordinates[9]).r, texture(textureName, textureCoordinates[10]).r, 0.0)"
-			");"
-			"float luma = dot(textureWeights[0], samples[0]) + dot(textureWeights[1], samples[1]) + dot(textureWeights[2], samples[2]);"
+			"float luma = mix(texture(textureName, combCoordinates[0]).r, texture(textureName, combCoordinates[1]).r, 0.5);"
+			"float centre = texture(textureName, textureCoordinates[5]).r;"
 			"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));"
-			"vec2 chroma = ((samples[1].y - luma) * oneOverCompositeAmplitude)*quadrature;"
+			"vec2 chroma = ((centre - luma) * oneOverCompositeAmplitude)*quadrature;"
 			"fragColour = vec3(luma, chroma*0.5 + vec2(0.5));"
 		"}",
 		attribute_bindings(ShaderType::ProcessedScan)
 	));
 
-	coefficients.push_back(0.0f);
-	shader->set_uniform("textureWeights", 4, 3, coefficients.data());
+	const float cycles_per_expanded_line = (float(colour_cycle_numerator) / float(colour_cycle_denominator)) / (float(processing_width) / float(LineBufferWidth));
+	float quarter_distancce = 0.25f / cycles_per_expanded_line;
+	shader->set_uniform("combOffset", quarter_distancce);
 
 	return shader;
 }
