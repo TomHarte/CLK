@@ -83,10 +83,8 @@ void VideoOutput::start_pixel_line() {
 }
 
 void VideoOutput::end_pixel_line() {
-	if(current_output_target_) {
-		const int data_length = int(current_output_target_ - initial_output_target_);
-		crt_.output_data(data_length * current_output_divider_, size_t(data_length));
-	}
+	const int data_length = int(current_output_target_ - initial_output_target_);
+	crt_.output_data(data_length * current_output_divider_, size_t(data_length));
 	current_character_row_++;
 }
 
@@ -104,10 +102,8 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 		}
 
 		if(!initial_output_target_ || divider != current_output_divider_) {
-			if(current_output_target_) {
-				const int data_length = int(current_output_target_ - initial_output_target_);
-				crt_.output_data(data_length * current_output_divider_, size_t(data_length));
-			}
+			const int data_length = int(current_output_target_ - initial_output_target_);
+			crt_.output_data(data_length * current_output_divider_, size_t(data_length));
 			current_output_divider_ = divider;
 			initial_output_target_ = current_output_target_ = crt_.begin_data(size_t(640 / current_output_divider_), size_t(8 / divider));
 		}
