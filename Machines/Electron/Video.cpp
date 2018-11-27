@@ -84,7 +84,9 @@ void VideoOutput::start_pixel_line() {
 
 void VideoOutput::end_pixel_line() {
 	const int data_length = int(current_output_target_ - initial_output_target_);
-	crt_.output_data(data_length * current_output_divider_, size_t(data_length));
+	if(data_length) {
+		crt_.output_data(data_length * current_output_divider_, size_t(data_length));
+	}
 	current_character_row_++;
 }
 
@@ -103,7 +105,9 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 
 		if(!initial_output_target_ || divider != current_output_divider_) {
 			const int data_length = int(current_output_target_ - initial_output_target_);
-			crt_.output_data(data_length * current_output_divider_, size_t(data_length));
+			if(data_length) {
+				crt_.output_data(data_length * current_output_divider_, size_t(data_length));
+			}
 			current_output_divider_ = divider;
 			initial_output_target_ = current_output_target_ = crt_.begin_data(size_t(640 / current_output_divider_), size_t(8 / divider));
 		}
@@ -124,7 +128,7 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 						current_output_target_ += 8;
 						current_pixel_column_++;
 					}
-				} else current_output_target_ += 4*number_of_cycles;
+				} else current_output_target_ += 8*number_of_cycles;
 			break;
 
 			case 1:
@@ -135,7 +139,7 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 						current_output_target_ += 4;
 						current_pixel_column_++;
 					}
-				} else current_output_target_ += 2*number_of_cycles;
+				} else current_output_target_ += 4*number_of_cycles;
 			break;
 
 			case 2:
@@ -146,7 +150,7 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 						current_output_target_ += 2;
 						current_pixel_column_++;
 					}
-				} else current_output_target_ += number_of_cycles;
+				} else current_output_target_ += 2*number_of_cycles;
 			break;
 
 			case 4: case 6:
@@ -177,7 +181,7 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 						current_output_target_ += 4;
 						current_pixel_column_++;
 					}
-				} else current_output_target_ += 2 * number_of_cycles;
+				} else current_output_target_ += 4 * number_of_cycles;
 			break;
 
 			case 5:
@@ -208,7 +212,7 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 						current_output_target_ += 2;
 						current_pixel_column_++;
 					}
-				} else current_output_target_ += number_of_cycles;
+				} else current_output_target_ += 2*number_of_cycles;
 			break;
 		}
 
