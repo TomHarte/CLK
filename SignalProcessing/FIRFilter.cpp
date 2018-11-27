@@ -114,6 +114,9 @@ FIRFilter::FIRFilter(std::size_t number_of_taps, float input_sample_rate, float 
 	std::size_t Np = (number_of_taps - 1) / 2;
 	float two_over_sample_rate = 2.0f / input_sample_rate;
 
+	// Clamp the high cutoff frequency.
+	high_frequency = std::min(high_frequency, input_sample_rate * 0.5f);
+
 	std::vector<float> A(Np+1);
 	A[0] = 2.0f * (high_frequency - low_frequency) / input_sample_rate;
 	for(unsigned int i = 1; i <= Np; ++i) {
@@ -144,6 +147,16 @@ FIRFilter FIRFilter::operator+(const FIRFilter &rhs) const {
 	}
 
 	return FIRFilter(sum);
+}
+
+FIRFilter FIRFilter::operator-() const {
+	std::vector<float> negative_coefficients;
+
+	for(const auto coefficient: get_coefficients()) {
+		negative_coefficients.push_back(1.0f - coefficient);
+	}
+
+	return FIRFilter(negative_coefficients);
 }
 
 FIRFilter FIRFilter::operator*(const FIRFilter &rhs) const {

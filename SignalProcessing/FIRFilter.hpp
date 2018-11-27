@@ -83,6 +83,11 @@ class FIRFilter {
 		*/
 		FIRFilter operator*(const FIRFilter &) const;
 
+		/*!
+			@returns A filter that would have the opposite effect of this filter.
+		*/
+		FIRFilter operator-() const;
+
 	private:
 		std::vector<short> filter_coefficients_;
 
