@@ -14,6 +14,8 @@
 #include "Primitives/TextureTarget.hpp"
 #include "Primitives/Rectangle.hpp"
 
+#include "../../SignalProcessing/FIRFilter.hpp"
+
 #include <array>
 #include <atomic>
 #include <cstdint>
@@ -179,12 +181,12 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		static std::unique_ptr<Shader> input_shader(InputDataType input_data_type, DisplayType display_type);
 		static std::unique_ptr<Shader> composite_to_svideo_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width);
 		static std::unique_ptr<Shader> svideo_to_rgb_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width);
-		static std::vector<float> coefficients_for_filter(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width, float multiple_of_colour_clock);
+		static SignalProcessing::FIRFilter colour_filter(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width, float low_cutoff, float high_cutoff);
 
 		struct PipelineStage {
-			PipelineStage(Shader *shader, GLenum texture_unit) :
+			PipelineStage(Shader *shader, GLenum texture_unit, GLint magnification_filter) :
 				shader(shader),
-				target(LineBufferWidth, LineBufferHeight, texture_unit, GL_LINEAR, false) {}
+				target(LineBufferWidth, LineBufferHeight, texture_unit, magnification_filter, false) {}
 
 			std::unique_ptr<Shader> shader;
 			TextureTarget target;

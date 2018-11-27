@@ -8,8 +8,6 @@
 
 #include "ScanTarget.hpp"
 
-#include "../../SignalProcessing/FIRFilter.hpp"
-
 using namespace Outputs::Display::OpenGL;
 
 std::string ScanTarget::glsl_globals(ShaderType type) {
@@ -95,10 +93,10 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 					"uniform usampler2D textureName;";
 			} else {
 				result +=
-					"out vec2 textureCoordinates[11];"
-					"out vec2 combCoordinates[2];"
+					"out vec2 textureCoordinates[15];"
+
 					"uniform sampler2D textureName;"
-					"uniform float combOffset;";
+					"uniform float edgeExpansion;";
 			}
 
 			result +=
@@ -122,20 +120,25 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 					"vec2 eyePosition = (sourcePosition + vec2(0.0, longitudinal - 0.5)) / vec2(scale.x, 2048.0);"
 					"sourcePosition /= vec2(scale.x, 2048.0);"
 
-					"textureCoordinates[0] = sourcePosition + vec2(-5.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[1] = sourcePosition + vec2(-4.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[2] = sourcePosition + vec2(-3.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[3] = sourcePosition + vec2(-2.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[4] = sourcePosition + vec2(-1.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[5] = sourcePosition;"
-					"textureCoordinates[6] = sourcePosition + vec2(1.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[7] = sourcePosition + vec2(2.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[8] = sourcePosition + vec2(3.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[9] = sourcePosition + vec2(4.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[10] = sourcePosition + vec2(5.0, 0.0) / textureSize(textureName, 0);"
+					"vec2 expansion = vec2(2.0*lateral*edgeExpansion - edgeExpansion, 0.0) / textureSize(textureName, 0);"
+					"eyePosition = eyePosition + expansion;"
+					"sourcePosition = sourcePosition + expansion;"
 
-					"combCoordinates[0] = sourcePosition - vec2(combOffset, 0.0);"
-					"combCoordinates[1] = sourcePosition + vec2(combOffset, 0.0);"
+					"textureCoordinates[0] = sourcePosition + vec2(-7.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[1] = sourcePosition + vec2(-6.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[2] = sourcePosition + vec2(-5.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[3] = sourcePosition + vec2(-4.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[4] = sourcePosition + vec2(-3.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[5] = sourcePosition + vec2(-2.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[6] = sourcePosition + vec2(-1.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[7] = sourcePosition;"
+					"textureCoordinates[8] = sourcePosition + vec2(1.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[9] = sourcePosition + vec2(2.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[10] = sourcePosition + vec2(3.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[11] = sourcePosition + vec2(4.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[12] = sourcePosition + vec2(5.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[13] = sourcePosition + vec2(6.0, 0.0) / textureSize(textureName, 0);"
+					"textureCoordinates[14] = sourcePosition + vec2(7.0, 0.0) / textureSize(textureName, 0);"
 
 					"eyePosition = eyePosition;";
 			}
@@ -340,10 +343,9 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 	));
 }
 
-std::vector<float> ScanTarget::coefficients_for_filter(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width, float multiple_of_colour_clock) {
+SignalProcessing::FIRFilter ScanTarget::colour_filter(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width, float low_cutoff, float high_cutoff) {
 	const float cycles_per_expanded_line = (float(colour_cycle_numerator) / float(colour_cycle_denominator)) / (float(processing_width) / float(LineBufferWidth));
-	const SignalProcessing::FIRFilter filter(11, float(LineBufferWidth), 0.0f, cycles_per_expanded_line * multiple_of_colour_clock);
-	return filter.get_coefficients();
+	return  SignalProcessing::FIRFilter(15, float(LineBufferWidth), cycles_per_expanded_line * low_cutoff, cycles_per_expanded_line * high_cutoff);
 }
 
 std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width) {
@@ -358,15 +360,15 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 		glsl_globals(ShaderType::ProcessedScan) + glsl_default_vertex_shader(ShaderType::ProcessedScan),
 		"#version 150\n"
 
-		"in vec2 textureCoordinates[11];"
-		"uniform vec4 chromaWeights[3];"
-		"uniform vec4 lumaWeights[3];"
+		"in vec2 textureCoordinates[15];"
+		"uniform vec4 chromaWeights[4];"
+		"uniform vec4 lumaWeights[4];"
 		"uniform sampler2D textureName;"
 		"uniform mat3 lumaChromaToRGB;"
 
 		"out vec3 fragColour;"
 		"void main() {"
-			"vec3 samples[11] = vec3[11]("
+			"vec3 samples[15] = vec3[15]("
 				"texture(textureName, textureCoordinates[0]).rgb,"
 				"texture(textureName, textureCoordinates[1]).rgb,"
 				"texture(textureName, textureCoordinates[2]).rgb,"
@@ -377,39 +379,48 @@ std::unique_ptr<Shader> ScanTarget::svideo_to_rgb_shader(int colour_cycle_numera
 				"texture(textureName, textureCoordinates[7]).rgb,"
 				"texture(textureName, textureCoordinates[8]).rgb,"
 				"texture(textureName, textureCoordinates[9]).rgb,"
-				"texture(textureName, textureCoordinates[10]).rgb"
+				"texture(textureName, textureCoordinates[10]).rgb,"
+				"texture(textureName, textureCoordinates[11]).rgb,"
+				"texture(textureName, textureCoordinates[12]).rgb,"
+				"texture(textureName, textureCoordinates[13]).rgb,"
+				"texture(textureName, textureCoordinates[14]).rgb"
 			");"
-			"vec4 samples0[3] = vec4[3]("
+			"vec4 samples0[4] = vec4[4]("
 				"vec4(samples[0].r, samples[1].r, samples[2].r, samples[3].r),"
 				"vec4(samples[4].r, samples[5].r, samples[6].r, samples[7].r),"
-				"vec4(samples[8].r, samples[9].r, samples[10].r, 0.0)"
+				"vec4(samples[8].r, samples[9].r, samples[10].r, samples[11].r),"
+				"vec4(samples[12].r, samples[13].r, samples[14].r, 0.0)"
 			");"
-			"vec4 samples1[3] = vec4[3]("
+			"vec4 samples1[4] = vec4[4]("
 				"vec4(samples[0].g, samples[1].g, samples[2].g, samples[3].g),"
 				"vec4(samples[4].g, samples[5].g, samples[6].g, samples[7].g),"
-				"vec4(samples[8].g, samples[9].g, samples[10].g, 0.0)"
+				"vec4(samples[8].g, samples[9].g, samples[10].g, samples[11].g),"
+				"vec4(samples[12].g, samples[13].g, samples[14].g, 0.0)"
 			");"
-			"vec4 samples2[3] = vec4[3]("
+			"vec4 samples2[4] = vec4[4]("
 				"vec4(samples[0].b, samples[1].b, samples[2].b, samples[3].b),"
 				"vec4(samples[4].b, samples[5].b, samples[6].b, samples[7].b),"
-				"vec4(samples[8].b, samples[9].b, samples[10].b, 0.0)"
+				"vec4(samples[8].b, samples[9].b, samples[10].b, samples[11].b),"
+				"vec4(samples[12].b, samples[13].b, samples[14].b, 0.0)"
 			");"
-			"float channel0 = dot(lumaWeights[0], samples0[0]) + dot(lumaWeights[1], samples0[1]) + dot(lumaWeights[2], samples0[2]);"
-			"float channel1 = dot(chromaWeights[0], samples1[0]) + dot(chromaWeights[1], samples1[1]) + dot(chromaWeights[2], samples1[2]);"
-			"float channel2 = dot(chromaWeights[0], samples2[0]) + dot(chromaWeights[1], samples2[1]) + dot(chromaWeights[2], samples2[2]);"
+			"float channel0 = dot(lumaWeights[0], samples0[0]) + dot(lumaWeights[1], samples0[1]) + dot(lumaWeights[2], samples0[2]) + dot(lumaWeights[3], samples0[3]);"
+			"float channel1 = dot(chromaWeights[0], samples1[0]) + dot(chromaWeights[1], samples1[1]) + dot(chromaWeights[2], samples1[2]) + dot(chromaWeights[3], samples1[3]);"
+			"float channel2 = dot(chromaWeights[0], samples2[0]) + dot(chromaWeights[1], samples2[1]) + dot(chromaWeights[2], samples2[2]) + dot(chromaWeights[3], samples2[3]);"
 			"vec2 chroma = vec2(channel1, channel2)*2.0 - vec2(1.0);"
 			"fragColour = lumaChromaToRGB * vec3(channel0, chroma);"
 		"}",
 		attribute_bindings(ShaderType::ProcessedScan)
 	));
 
-	auto chroma_coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.25f);
+	auto chroma_coefficients = colour_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.0f, 0.25f).get_coefficients();
 	chroma_coefficients.push_back(0.0f);
-	shader->set_uniform("chromaWeights", 4, 3, chroma_coefficients.data());
+	shader->set_uniform("chromaWeights", 4, 4, chroma_coefficients.data());
 
-	auto luma_coefficients = coefficients_for_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.5f);
+	auto luma_coefficients = colour_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.0f, 0.15f).get_coefficients();
 	luma_coefficients.push_back(0.0f);
-	shader->set_uniform("lumaWeights", 4, 3, luma_coefficients.data());
+	shader->set_uniform("lumaWeights", 4, 4, luma_coefficients.data());
+
+	shader->set_uniform("edgeExpansion", 0);
 
 	return shader;
 }
@@ -419,28 +430,36 @@ std::unique_ptr<Shader> ScanTarget::composite_to_svideo_shader(int colour_cycle_
 		glsl_globals(ShaderType::ProcessedScan) + glsl_default_vertex_shader(ShaderType::ProcessedScan),
 		"#version 150\n"
 
-		"in vec2 textureCoordinates[11];"
-		"in vec2 combCoordinates[2];"
+		"in vec2 textureCoordinates[15];"
 		"in float compositeAngle;"
 		"in float oneOverCompositeAmplitude;"
 
-		"uniform vec4 textureWeights[3];"
+		"uniform vec4 lumaWeights[4];"
 		"uniform sampler2D textureName;"
 
 		"out vec3 fragColour;"
 		"void main() {"
-			"float luma = mix(texture(textureName, combCoordinates[0]).r, texture(textureName, combCoordinates[1]).r, 0.5);"
-			"float centre = texture(textureName, textureCoordinates[5]).r;"
+			"vec4 samples[4] = vec4[4]("
+				"vec4(texture(textureName, textureCoordinates[0]).r, texture(textureName, textureCoordinates[1]).r, texture(textureName, textureCoordinates[2]).r, texture(textureName, textureCoordinates[3]).r),"
+				"vec4(texture(textureName, textureCoordinates[4]).r, texture(textureName, textureCoordinates[5]).r, texture(textureName, textureCoordinates[6]).r, texture(textureName, textureCoordinates[7]).r),"
+				"vec4(texture(textureName, textureCoordinates[8]).r, texture(textureName, textureCoordinates[9]).r, texture(textureName, textureCoordinates[10]).r, texture(textureName, textureCoordinates[11]).r),"
+				"vec4(texture(textureName, textureCoordinates[12]).r, texture(textureName, textureCoordinates[13]).r, texture(textureName, textureCoordinates[14]).r, 0.0)"
+			");"
+			"float luma = dot(lumaWeights[0], samples[0]) + dot(lumaWeights[1], samples[1]) + dot(lumaWeights[2], samples[2]) + dot(lumaWeights[3], samples[3]);"
 			"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));"
-			"vec2 chroma = ((centre - luma) * oneOverCompositeAmplitude)*quadrature;"
-			"fragColour = vec3(luma, chroma*0.5 + vec2(0.5));"
+			"vec2 chroma = ((samples[1].a - luma) * oneOverCompositeAmplitude)*quadrature;"
+			"fragColour = vec3(samples[1].a, chroma*0.5 + vec2(0.5));"
 		"}",
 		attribute_bindings(ShaderType::ProcessedScan)
 	));
 
-	const float cycles_per_expanded_line = (float(colour_cycle_numerator) / float(colour_cycle_denominator)) / (float(processing_width) / float(LineBufferWidth));
-	float quarter_distancce = 0.25f / cycles_per_expanded_line;
-	shader->set_uniform("combOffset", quarter_distancce);
+	auto luma_low = colour_filter(colour_cycle_numerator, colour_cycle_denominator, processing_width, 0.0f, 0.9f);
+	auto luma_coefficients = luma_low.get_coefficients();
+	luma_coefficients.push_back(0.0f);
+	shader->set_uniform("lumaWeights", 4, 4, luma_coefficients.data());
+
+	shader->set_uniform("edgeExpansion", 0);
 
 	return shader;
 }
+

@@ -69,7 +69,7 @@ template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &b
 }
 
 ScanTarget::ScanTarget() :
-	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_LINEAR, false),
+	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_NEAREST, false),
 	full_display_rectangle_(-1.0f, -1.0f, 2.0f, 2.0f) {
 
 	// Ensure proper initialisation of the two atomic pointer sets.
@@ -152,12 +152,14 @@ void ScanTarget::set_modals(Modals modals) {
 	if(modals_.display_type == DisplayType::CompositeColour) {
 		pipeline_stages_.emplace_back(
 			composite_to_svideo_shader(modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_).release(),
-			SVideoLineBufferTextureUnit);
+			SVideoLineBufferTextureUnit,
+			GL_NEAREST);
 	}
 	if(modals_.display_type == DisplayType::SVideo || modals_.display_type == DisplayType::CompositeColour) {
 		pipeline_stages_.emplace_back(
 			svideo_to_rgb_shader(modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_).release(),
-			(modals_.display_type == DisplayType::CompositeColour) ? RGBLineBufferTextureUnit : SVideoLineBufferTextureUnit);
+			(modals_.display_type == DisplayType::CompositeColour) ? RGBLineBufferTextureUnit : SVideoLineBufferTextureUnit,
+			GL_NEAREST);
 	}
 
 	glBindVertexArray(scan_vertex_array_);
