@@ -45,7 +45,7 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 		counter_period_(PAL50Period) {
 //	crt_->set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 0.0f);
 
-	set_display_type(Outputs::Display::DisplayType::CompositeColour);
+	set_display_type(Outputs::Display::DisplayType::RGB);
 	crt_.set_visible_area(crt_.get_rect_for_area(54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 }
 
@@ -98,7 +98,9 @@ void VideoOutput::run_for(const Cycles cycles) {
 				paper_ = 0x0;
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
-				pixel_target_ = reinterpret_cast<uint16_t *>(crt_.begin_data(240));
+
+				if(display_type_ == Outputs::Display::DisplayType::RGB) rgb_pixel_target_ = reinterpret_cast<uint8_t *>(crt_.begin_data(240));
+				else composite_pixel_target_ = reinterpret_cast<uint32_t *>(crt_.begin_data(240));
 
 				if(!counter_) {
 					frame_counter_++;
@@ -131,21 +133,28 @@ void VideoOutput::run_for(const Cycles cycles) {
 				pixels &= blink_mask;
 
 				if(control_byte & 0x60) {
-					if(pixel_target_) {
-						uint16_t colours[2];
-//						if(video_signal_ == Outputs::Display::VideoSignal::RGB) {
-//							colours[0] = static_cast<uint8_t>(paper_ ^ inverse_mask);
-//							colours[1] = static_cast<uint8_t>(ink_ ^ inverse_mask);
-//						} else {
-//							colours[0] = colour_forms_[paper_ ^ inverse_mask];
-//							colours[1] = colour_forms_[ink_ ^ inverse_mask];
-//						}
-						pixel_target_[0] = colours[(pixels >> 5)&1];
-						pixel_target_[1] = colours[(pixels >> 4)&1];
-						pixel_target_[2] = colours[(pixels >> 3)&1];
-						pixel_target_[3] = colours[(pixels >> 2)&1];
-						pixel_target_[4] = colours[(pixels >> 1)&1];
-						pixel_target_[5] = colours[(pixels >> 0)&1];
+					if(display_type_ == Outputs::Display::DisplayType::RGB && rgb_pixel_target_) {
+						const uint8_t colours[2] = {
+							uint8_t(paper_ ^ inverse_mask),
+							uint8_t(ink_ ^ inverse_mask)
+						};
+						rgb_pixel_target_[0] = colours[(pixels >> 5)&1];
+						rgb_pixel_target_[1] = colours[(pixels >> 4)&1];
+						rgb_pixel_target_[2] = colours[(pixels >> 3)&1];
+						rgb_pixel_target_[3] = colours[(pixels >> 2)&1];
+						rgb_pixel_target_[4] = colours[(pixels >> 1)&1];
+						rgb_pixel_target_[5] = colours[(pixels >> 0)&1];
+					} else if(display_type_ == Outputs::Display::DisplayType::CompositeColour && composite_pixel_target_) {
+						const uint32_t colours[2] = {
+							colour_forms_[paper_ ^ inverse_mask],
+							colour_forms_[ink_ ^ inverse_mask]
+						};
+						composite_pixel_target_[0] = colours[(pixels >> 5)&1];
+						composite_pixel_target_[1] = colours[(pixels >> 4)&1];
+						composite_pixel_target_[2] = colours[(pixels >> 3)&1];
+						composite_pixel_target_[3] = colours[(pixels >> 2)&1];
+						composite_pixel_target_[4] = colours[(pixels >> 1)&1];
+						composite_pixel_target_[5] = colours[(pixels >> 0)&1];
 					}
 				} else {
 					switch(control_byte & 0x1f) {
@@ -183,19 +192,26 @@ void VideoOutput::run_for(const Cycles cycles) {
 
 						default: break;
 					}
-//					if(pixel_target_) {
-//						pixel_target_[0] = pixel_target_[1] =
-//						pixel_target_[2] = pixel_target_[3] =
-//						pixel_target_[4] = pixel_target_[5] =
-//							(video_signal_ == Outputs::Display::VideoSignal::RGB) ? paper_ ^ inverse_mask : colour_forms_[paper_ ^ inverse_mask];
-//					}
+
+					if(display_type_ == Outputs::Display::DisplayType::RGB && rgb_pixel_target_) {
+						rgb_pixel_target_[0] = rgb_pixel_target_[1] =
+						rgb_pixel_target_[2] = rgb_pixel_target_[3] =
+						rgb_pixel_target_[4] = rgb_pixel_target_[5] = paper_ ^ inverse_mask;
+					} else if(display_type_ == Outputs::Display::DisplayType::CompositeColour && composite_pixel_target_) {
+						composite_pixel_target_[0] = composite_pixel_target_[1] =
+						composite_pixel_target_[2] = composite_pixel_target_[3] =
+						composite_pixel_target_[4] = composite_pixel_target_[5] = colour_forms_[paper_ ^ inverse_mask];
+					}
 				}
-				if(pixel_target_) pixel_target_ += 6;
+				if(rgb_pixel_target_) rgb_pixel_target_ += 6;
+				if(composite_pixel_target_) composite_pixel_target_ += 6;
 				h_counter++;
 			}
 
 			if(h_counter == 40) {
 				crt_.output_data(40 * 6);
+				rgb_pixel_target_ = nullptr;
+				composite_pixel_target_ = nullptr;
 			}
 		} else {
 			// this is a blank line (or the equivalent part of a pixel line)
