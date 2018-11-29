@@ -40,12 +40,12 @@ namespace {
 
 VideoOutput::VideoOutput(uint8_t *memory) :
 		ram_(memory),
-		crt_(64*6, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red1Green1Blue1),
+		crt_(64*6, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::PhaseLinkedLuminance8),
 		v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
 		counter_period_(PAL50Period) {
-//	crt_->set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 0.0f);
+	crt_.set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 1.0f / 8.0f);
 
-	set_display_type(Outputs::Display::DisplayType::RGB);
+	set_display_type(Outputs::Display::DisplayType::CompositeColour);
 	crt_.set_visible_area(crt_.get_rect_for_area(54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 }
 
@@ -60,18 +60,32 @@ void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 
 void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 	for(std::size_t c = 0; c < 8; c++) {
-		std::size_t index = (c << 2);
-		uint16_t rom_value = static_cast<uint16_t>((static_cast<uint16_t>(rom[index]) << 8) | static_cast<uint16_t>(rom[index+1]));
-		rom_value = (rom_value & 0xff00) | ((rom_value >> 4)&0x000f) | ((rom_value << 4)&0x00f0);
-		colour_forms_[c] = rom_value;
+		colour_forms_[c] = 0;
+
+		uint8_t *const colour = reinterpret_cast<uint8_t *>(&colour_forms_[c]);
+		const std::size_t index = (c << 2);
+
+		// Values in the ROM are encoded for indexing by two square waves
+		// in quadrature, which means that they're indexed in the order
+		// 0, 1, 3, 2.
+		colour[1] = uint8_t(rom[index] & 0xf0);
+		colour[0] = uint8_t((rom[index] & 0x0f) << 4);
+		colour[3] = uint8_t((rom[index+1] & 0x0f) << 4);
+		colour[2] = uint8_t(rom[index+1] & 0xf0);
+
+		// Extracting just the visible part of the stored range of values
+		// means etracting the range 0x40 to 0xe0.
+		for(int sub = 0; sub < 4; ++sub) {
+			colour[sub] = ((colour[sub] - 0x40) * 255) / 0xa0;
+		}
 	}
 
-	// check for big endianness and byte swap if required
-	uint16_t test_value = 0x0001;
+	// Check for big endianness and byte swap if required.
+	uint32_t test_value = 0x0001;
 	if(*reinterpret_cast<uint8_t *>(&test_value) != 0x01) {
-		for(std::size_t c = 0; c < 8; c++) {
-			colour_forms_[c] = static_cast<uint16_t>((colour_forms_[c] >> 8) | (colour_forms_[c] << 8));
-		}
+//		for(std::size_t c = 0; c < 8; c++) {
+//			colour_forms_[c] = static_cast<uint16_t>((colour_forms_[c] >> 8) | (colour_forms_[c] << 8));
+//		}
 	}
 }
 

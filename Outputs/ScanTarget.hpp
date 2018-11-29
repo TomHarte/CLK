@@ -60,6 +60,12 @@ enum class InputDataType {
 	Luminance1,				// 1 byte/pixel; any bit set => white; no bits set => black.
 	Luminance8,				// 1 byte/pixel; linear scale.
 
+	PhaseLinkedLuminance8,	// 4 bytes/pixel; each byte is an individual 8-bit luminance
+							// value and which value is output is a function of
+							// colour subcarrier phase — byte 0 defines the first quarter
+							// of each colour cycle, byte 1 the next quarter, etc. This
+							// format is intended to permit replay of sampled original data.
+
 	// The luminance plus phase types describe a luminance and the phase offset
 	// of a colour subcarrier. So they can be used to generate a luminance signal,
 	// or an s-video pipeline.
@@ -91,6 +97,7 @@ inline size_t size_for_data_type(InputDataType data_type) {
 			return 2;
 
 		case InputDataType::Red8Green8Blue8:
+		case InputDataType::PhaseLinkedLuminance8:
 			return 4;
 	}
 }
@@ -99,6 +106,7 @@ inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
 	switch(data_type) {
 		case InputDataType::Luminance1:
 		case InputDataType::Luminance8:
+		case InputDataType::PhaseLinkedLuminance8:
 			return DisplayType::CompositeColour;
 
 		case InputDataType::Red1Green1Blue1:

@@ -266,6 +266,13 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 			fragment_shader += "fragColour = vec3(texture(textureName, textureCoordinate).r / 255.0);";
 		break;
 
+		case InputDataType::PhaseLinkedLuminance8:
+			computed_display_type = DisplayType::CompositeMonochrome;
+			fragment_shader +=
+				"uint iPhase = uint(compositeAngle * 2.0 / 3.141592654) & 3u;"
+				"fragColour = vec3(texture(textureName, textureCoordinate)[iPhase] / 255.0);";
+		break;
+
 		case InputDataType::Luminance8Phase8:
 			computed_display_type = DisplayType::SVideo;
 			fragment_shader +=
