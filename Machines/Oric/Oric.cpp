@@ -212,6 +212,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 	public:
 		ConcreteMachine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 				m6502_(*this),
+				video_output_(ram_),
 				ay8910_(audio_queue_),
 				speaker_(ay8910_),
 				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),
@@ -246,7 +247,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				}
 			}
 
-			colour_rom_ = std::move(*roms[0]);
+			video_output_.set_colour_rom(*roms[0]);
 			rom_ = std::move(*roms[1]);
 
 			switch(disk_interface) {
@@ -267,7 +268,6 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				} break;
 			}
 
-			colour_rom_.resize(128);
 			rom_.resize(16384);
 			paged_rom_ = rom_.data();
 
@@ -461,11 +461,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 		// to satisfy CRTMachine::Machine
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
-			speaker_.set_input_rate(1000000.0f);
-
-			video_output_.reset(new VideoOutput(ram_));
-			if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);
-			set_display_type(Outputs::Display::DisplayType::RGB);
+			video_output_.set_scan_target(scan_target);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override final {
@@ -534,7 +530,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		void set_display_type(Outputs::Display::DisplayType display_type) override {
-//			video_output_->set_video_signal(video_signal);
+			video_output_.set_display_type(display_type);
 		}
 
 		Configurable::SelectionSet get_accurate_selections() override {
@@ -574,11 +570,11 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 
 		// RAM and ROM
-		std::vector<uint8_t> rom_, microdisc_rom_, colour_rom_;
+		std::vector<uint8_t> rom_, microdisc_rom_;
 		uint8_t ram_[65536];
 		Cycles cycles_since_video_update_;
 		inline void update_video() {
-			video_output_->run_for(cycles_since_video_update_.flush());
+			video_output_.run_for(cycles_since_video_update_.flush());
 		}
 
 		// ROM bookkeeping
@@ -586,7 +582,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		int keyboard_read_count_ = 0;
 
 		// Outputs
-		std::unique_ptr<VideoOutput> video_output_;
+		VideoOutput video_output_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910 ay8910_;

@@ -21,11 +21,7 @@ namespace {
 	const unsigned int PAL60Period = 262*64;
 }
 
-VideoOutput::VideoOutput(uint8_t *memory) :
-		ram_(memory),
-//		crt_(new Outputs::CRT::CRT(64*6, 6, Outputs::Display::Type::PAL50, 2)),
-		v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
-		counter_period_(PAL50Period) {
+
 //	crt_->set_rgb_sampling_function(
 //		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
 //		"{"
@@ -41,15 +37,25 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 //			"return (float(texValue) - 4.0) / 20.0;"
 //		"}"
 //	);
-	crt_->set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 0.0f);
+
+VideoOutput::VideoOutput(uint8_t *memory) :
+		ram_(memory),
+		crt_(64*6, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red1Green1Blue1),
+		v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
+		counter_period_(PAL50Period) {
+//	crt_->set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 0.0f);
 
 	set_display_type(Outputs::Display::DisplayType::CompositeColour);
-	crt_->set_visible_area(crt_->get_rect_for_area(54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 }
 
 void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
-//	video_signal_ = video_signal;
-//	crt_->set_video_signal(video_signal);
+	display_type_ = display_type;
+	crt_.set_display_type(display_type);
+}
+
+void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	crt_.set_scan_target(scan_target);
 }
 
 void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
@@ -69,10 +75,6 @@ void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 	}
 }
 
-Outputs::CRT::CRT *VideoOutput::get_crt() {
-	return crt_.get();
-}
-
 void VideoOutput::run_for(const Cycles cycles) {
 	// Vertical: 0-39: pixels; otherwise blank; 48-53 sync, 54-56 colour burst
 	// Horizontal: 0-223: pixels; otherwise blank; 256-259 sync
@@ -88,7 +90,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 		if(counter_ >= v_sync_start_position_ && counter_ < v_sync_end_position_) {
 			// this is a sync line
 			cycles_run_for = v_sync_end_position_ - counter_;
-			clamp(crt_->output_sync((v_sync_end_position_ - v_sync_start_position_) * 6));
+			clamp(crt_.output_sync((v_sync_end_position_ - v_sync_start_position_) * 6));
 		} else if(counter_ < 224*64 && h_counter < 40) {
 			// this is a pixel line
 			if(!h_counter) {
@@ -96,7 +98,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 				paper_ = 0x0;
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
-				pixel_target_ = reinterpret_cast<uint16_t *>(crt_->begin_data(240));
+				pixel_target_ = reinterpret_cast<uint16_t *>(crt_.begin_data(240));
 
 				if(!counter_) {
 					frame_counter_++;
@@ -193,7 +195,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 			}
 
 			if(h_counter == 40) {
-				crt_->output_data(40 * 6);
+				crt_.output_data(40 * 6);
 			}
 		} else {
 			// this is a blank line (or the equivalent part of a pixel line)
@@ -201,17 +203,17 @@ void VideoOutput::run_for(const Cycles cycles) {
 				cycles_run_for = 48 - h_counter;
 				clamp(
 					int period = (counter_ < 224*64) ? 8 : 48;
-					crt_->output_blank(period * 6);
+					crt_.output_blank(period * 6);
 				);
 			} else if(h_counter < 54) {
 				cycles_run_for = 54 - h_counter;
-				clamp(crt_->output_sync(6 * 6));
+				clamp(crt_.output_sync(6 * 6));
 			} else if(h_counter < 56) {
 				cycles_run_for = 56 - h_counter;
-				clamp(crt_->output_default_colour_burst(2 * 6));
+				clamp(crt_.output_default_colour_burst(2 * 6));
 			} else {
 				cycles_run_for = 64 - h_counter;
-				clamp(crt_->output_blank(8 * 6));
+				clamp(crt_.output_blank(8 * 6));
 			}
 		}
 
