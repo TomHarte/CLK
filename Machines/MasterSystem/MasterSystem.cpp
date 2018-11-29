@@ -36,7 +36,7 @@ namespace MasterSystem {
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayComposite)
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayCompositeColour)
 	);
 }
 
@@ -370,7 +370,7 @@ class ConcreteMachine:
 
 		Configurable::SelectionSet get_accurate_selections() override {
 			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::Composite);
+			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
 			return selection_set;
 		}
 

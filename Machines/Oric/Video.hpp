@@ -24,7 +24,7 @@ class VideoOutput {
 		Outputs::CRT::CRT *get_crt();
 		void run_for(const Cycles cycles);
 		void set_colour_rom(const std::vector<uint8_t> &rom);
-		void set_video_signal(Outputs::Display::VideoSignal output_device);
+		void set_display_type(Outputs::Display::DisplayType display_type);
 
 	private:
 		uint8_t *ram_;
@@ -37,7 +37,7 @@ class VideoOutput {
 		// Output target and device
 		uint16_t *pixel_target_;
 		uint16_t colour_forms_[8];
-		Outputs::Display::VideoSignal video_signal_;
+		Outputs::Display::DisplayType display_type_;
 
 		// Registers
 		uint8_t ink_, paper_;

@@ -83,6 +83,11 @@ void CRT::set_visible_area(Outputs::Display::Rect visible_area) {
 	scan_target_->set_modals(scan_target_modals_);
 }
 
+void CRT::set_display_type(Outputs::Display::DisplayType display_type) {
+	scan_target_modals_.display_type = display_type;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
 void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displayType) {
 	switch(displayType) {
 		case Outputs::Display::Type::PAL50:

@@ -43,12 +43,12 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 //	);
 	crt_->set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 0.0f);
 
-	set_video_signal(Outputs::Display::VideoSignal::Composite);
+	set_display_type(Outputs::Display::DisplayType::CompositeColour);
 	crt_->set_visible_area(crt_->get_rect_for_area(54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 }
 
-void VideoOutput::set_video_signal(Outputs::Display::VideoSignal video_signal) {
-	video_signal_ = video_signal;
+void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
+//	video_signal_ = video_signal;
 //	crt_->set_video_signal(video_signal);
 }
 
@@ -131,13 +131,13 @@ void VideoOutput::run_for(const Cycles cycles) {
 				if(control_byte & 0x60) {
 					if(pixel_target_) {
 						uint16_t colours[2];
-						if(video_signal_ == Outputs::Display::VideoSignal::RGB) {
-							colours[0] = static_cast<uint8_t>(paper_ ^ inverse_mask);
-							colours[1] = static_cast<uint8_t>(ink_ ^ inverse_mask);
-						} else {
-							colours[0] = colour_forms_[paper_ ^ inverse_mask];
-							colours[1] = colour_forms_[ink_ ^ inverse_mask];
-						}
+//						if(video_signal_ == Outputs::Display::VideoSignal::RGB) {
+//							colours[0] = static_cast<uint8_t>(paper_ ^ inverse_mask);
+//							colours[1] = static_cast<uint8_t>(ink_ ^ inverse_mask);
+//						} else {
+//							colours[0] = colour_forms_[paper_ ^ inverse_mask];
+//							colours[1] = colour_forms_[ink_ ^ inverse_mask];
+//						}
 						pixel_target_[0] = colours[(pixels >> 5)&1];
 						pixel_target_[1] = colours[(pixels >> 4)&1];
 						pixel_target_[2] = colours[(pixels >> 3)&1];
@@ -181,12 +181,12 @@ void VideoOutput::run_for(const Cycles cycles) {
 
 						default: break;
 					}
-					if(pixel_target_) {
-						pixel_target_[0] = pixel_target_[1] =
-						pixel_target_[2] = pixel_target_[3] =
-						pixel_target_[4] = pixel_target_[5] =
-							(video_signal_ == Outputs::Display::VideoSignal::RGB) ? paper_ ^ inverse_mask : colour_forms_[paper_ ^ inverse_mask];
-					}
+//					if(pixel_target_) {
+//						pixel_target_[0] = pixel_target_[1] =
+//						pixel_target_[2] = pixel_target_[3] =
+//						pixel_target_[4] = pixel_target_[5] =
+//							(video_signal_ == Outputs::Display::VideoSignal::RGB) ? paper_ ^ inverse_mask : colour_forms_[paper_ ^ inverse_mask];
+//					}
 				}
 				if(pixel_target_) pixel_target_ += 6;
 				h_counter++;

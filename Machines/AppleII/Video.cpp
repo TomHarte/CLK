@@ -16,7 +16,7 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 	deferrer_(std::move(target)) {
 
 	// Show only the centre 75% of the TV frame.
-//	crt_->set_video_signal(Outputs::Display::VideoSignal::Composite);
+	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 	crt_.set_visible_area(Outputs::Display::Rect(0.118f, 0.122f, 0.77f, 0.77f));
 	crt_.set_immediate_default_phase(0.0f);
 

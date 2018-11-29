@@ -46,7 +46,11 @@ enum ROM {
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayComposite | Configurable::QuickLoadTape)
+		static_cast<Configurable::StandardOptions>(
+			Configurable::DisplayRGB |
+			Configurable::DisplayCompositeColour |
+			Configurable::DisplayCompositeMonochrome |
+			Configurable::QuickLoadTape)
 	);
 }
 
@@ -461,16 +465,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 			video_output_.reset(new VideoOutput(ram_));
 			if(!colour_rom_.empty()) video_output_->set_colour_rom(colour_rom_);
-			set_video_signal(Outputs::Display::VideoSignal::RGB);
+			set_display_type(Outputs::Display::DisplayType::RGB);
 		}
-
-//		void close_output() override final {
-//			video_output_.reset();
-//		}
-//
-//		Outputs::CRT::CRT *get_crt() override final {
-//			return video_output_->get_crt();
-//		}
 
 		Outputs::Speaker::Speaker *get_speaker() override final {
 			return &speaker_;
@@ -537,14 +533,14 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 		}
 
-		void set_video_signal(Outputs::Display::VideoSignal video_signal) override {
-			video_output_->set_video_signal(video_signal);
+		void set_display_type(Outputs::Display::DisplayType display_type) override {
+//			video_output_->set_video_signal(video_signal);
 		}
 
 		Configurable::SelectionSet get_accurate_selections() override {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_display_selection(selection_set, Configurable::Display::Composite);
+			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
 			return selection_set;
 		}
 

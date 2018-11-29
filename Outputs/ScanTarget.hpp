@@ -20,12 +20,6 @@ enum class Type {
 	NTSC60
 };
 
-enum class VideoSignal {
-	RGB,
-	SVideo,
-	Composite
-};
-
 struct Rect {
 	struct Point {
 		float x, y;

@@ -262,6 +262,9 @@ class CRT {
 
 		/*! Sets the scan target for CRT output. */
 		void set_scan_target(Outputs::Display::ScanTarget *);
+
+		/*! Sets the display type that will be nominated to the scan target. */
+		void set_display_type(Outputs::Display::DisplayType);
 };
 
 }

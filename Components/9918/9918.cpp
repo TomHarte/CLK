@@ -86,8 +86,8 @@ Base::Base(Personality p) :
 
 TMS9918::TMS9918(Personality p):
 	Base(p) {
-//	crt_->set_video_signal(Outputs::Display::VideoSignal::RGB);
-	crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));	// 0.055f, 0.025f
+	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
+	crt_.set_visible_area(Outputs::Display::Rect(0.07f, 0.0375f, 0.875f, 0.875f));
 
 	// The TMS remains in-phase with the NTSC colour clock; this is an empirical measurement
 	// intended to produce the correct relationship between the hard edges between pixels and

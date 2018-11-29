@@ -69,7 +69,7 @@ template <class BusHandler> class MOS6560 {
 				speaker_(audio_generator_)
 		{
 			// default to s-video output
-//			crt_.set_video_signal(Outputs::Display::VideoSignal::SVideo);
+			crt_.set_display_type(Outputs::Display::DisplayType::SVideo);
 
 			// default to NTSC
 			set_output_mode(OutputMode::NTSC);
