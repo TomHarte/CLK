@@ -41,8 +41,11 @@ class TMS9918: public Base {
 		/*! Sets the TV standard for this TMS, if that is hard-coded in hardware. */
 		void set_tv_standard(TVStandard standard);
 
-		/*! Provides the CRT this TMS is connected to. */
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+		/*! Sets the scan target this TMS will post content to. */
+		void set_scan_target(Outputs::Display::ScanTarget *);
+
+		/*! Sets the type of display the CRT will request. */
+		void set_display_type(Outputs::Display::DisplayType);
 
 		/*!
 			Runs the VCP for the number of cycles indicate; it is an implicit assumption of the code

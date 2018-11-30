@@ -326,9 +326,14 @@ class CRTCBusHandler {
 			was_hsync_ = state.hsync;
 		}
 
-		/// Constructs an appropriate CRT for video output.
+		/// Sets the destination for output.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 			crt_.set_scan_target(scan_target);
+		}
+
+		/// Sets the type of display.
+		void set_display_type(Outputs::Display::DisplayType display_type) {
+			crt_.set_display_type(display_type);
 		}
 
 		/*!
@@ -966,9 +971,14 @@ template <bool has_fdc> class ConcreteMachine:
 			flush_fdc();
 		}
 
-		/// A CRTMachine function; indicates that outputs should be created now.
+		/// A CRTMachine function; sets the destination for video.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
 			crtc_bus_handler_.set_scan_target(scan_target);
+		}
+
+		/// A CRTMachine function; sets the output display type.
+		void set_display_type(Outputs::Display::DisplayType display_type) override final {
+			crtc_bus_handler_.set_display_type(display_type);
 		}
 
 		/// @returns the speaker in use.

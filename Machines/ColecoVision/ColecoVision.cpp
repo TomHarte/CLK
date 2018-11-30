@@ -174,6 +174,10 @@ class ConcreteMachine:
 			vdp_.set_scan_target(scan_target);
 		}
 
+		void set_display_type(Outputs::Display::DisplayType display_type) override {
+			vdp_.set_display_type(display_type);
+		}
+
 		Outputs::Speaker::Speaker *get_speaker() override {
 			return &speaker_;
 		}

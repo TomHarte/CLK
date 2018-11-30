@@ -628,6 +628,10 @@ class ConcreteMachine:
 			mos6560_.set_scan_target(scan_target);
 		}
 
+		void set_display_type(Outputs::Display::DisplayType display_type) override final {
+			mos6560_.set_display_type(display_type);
+		}
+
 		Outputs::Speaker::Speaker *get_speaker() override final {
 			return mos6560_.get_speaker();
 		}

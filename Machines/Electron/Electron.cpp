@@ -378,6 +378,10 @@ class ConcreteMachine:
 			video_output_.set_scan_target(scan_target);
 		}
 
+		void set_display_type(Outputs::Display::DisplayType display_type) override {
+			video_output_.set_display_type(display_type);
+		}
+
 		Outputs::Speaker::Speaker *get_speaker() override final {
 			return &speaker_;
 		}

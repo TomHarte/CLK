@@ -116,6 +116,10 @@ void TMS9918::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
+void TMS9918::set_display_type(Outputs::Display::DisplayType display_type) {
+	crt_.set_display_type(display_type);
+}
+
 void Base::LineBuffer::reset_sprite_collection() {
 	sprites_stopped = false;
 	active_sprite_slot = 0;
