@@ -100,8 +100,6 @@ ScanTarget::~ScanTarget() {
 }
 
 void ScanTarget::set_modals(Modals modals) {
-	modals.display_type = DisplayType::CompositeColour;
-
 	modals_ = modals;
 
 	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
@@ -213,6 +211,7 @@ void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader 
 	target.set_uniform("rowHeight", GLfloat(1.05f / modals_.expected_vertical_lines));
 	target.set_uniform("scale", GLfloat(modals_.output_scale.x), GLfloat(modals_.output_scale.y));
 	target.set_uniform("processingWidth", GLfloat(processing_width_) / 2048.0f);
+	target.set_uniform("phaseOffset", GLfloat(modals_.input_data_tweaks.phase_linked_luminance_offset));
 }
 
 Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {

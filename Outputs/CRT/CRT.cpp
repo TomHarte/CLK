@@ -88,6 +88,16 @@ void CRT::set_display_type(Outputs::Display::DisplayType display_type) {
 	scan_target_->set_modals(scan_target_modals_);
 }
 
+void CRT::set_phase_linked_luminance_offset(float offset) {
+	scan_target_modals_.input_data_tweaks.phase_linked_luminance_offset = offset;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
+void CRT::set_input_data_type(Outputs::Display::InputDataType input_data_type) {
+	scan_target_modals_.input_data_type = input_data_type;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
 void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displayType) {
 	switch(displayType) {
 		case Outputs::Display::Type::PAL50:

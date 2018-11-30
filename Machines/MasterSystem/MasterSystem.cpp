@@ -352,7 +352,6 @@ class ConcreteMachine:
 			}
 		}
 
-
 		void reset_all_keys(Inputs::Keyboard *) override {
 		}
 

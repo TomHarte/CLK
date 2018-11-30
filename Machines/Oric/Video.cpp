@@ -21,37 +21,26 @@ namespace {
 	const unsigned int PAL60Period = 262*64;
 }
 
-
-//	crt_->set_rgb_sampling_function(
-//		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
-//		"{"
-//			"uint texValue = texture(sampler, coordinate).r;"
-//			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
-//		"}");
-//	crt_->set_composite_sampling_function(
-//		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
-//		"{"
-//			"uint texValue = uint(dot(texture(sampler, coordinate).rg, uvec2(1, 256)));"
-//			"uint iPhase = uint((phase + 3.141592654 + 0.39269908175) * 2.0 / 3.141592654) & 3u;"
-//			"texValue = (texValue >> (4u*(3u - iPhase))) & 15u;"
-//			"return (float(texValue) - 4.0) / 20.0;"
-//		"}"
-//	);
-
 VideoOutput::VideoOutput(uint8_t *memory) :
 		ram_(memory),
-		crt_(64*6, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::PhaseLinkedLuminance8),
+		crt_(64*6, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red1Green1Blue1),
 		v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
 		counter_period_(PAL50Period) {
-	crt_.set_composite_function_type(Outputs::CRT::CRT::CompositeSourceType::DiscreteFourSamplesPerCycle, 1.0f / 8.0f);
-
-	set_display_type(Outputs::Display::DisplayType::CompositeColour);
 	crt_.set_visible_area(crt_.get_rect_for_area(54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
+	crt_.set_phase_linked_luminance_offset(-1.0f / 8.0f);
+	display_type_ = Outputs::Display::DisplayType::RGB;
 }
 
 void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
-	display_type_ = display_type;
-	crt_.set_display_type(display_type);
+	if(display_type_ != display_type) {
+		display_type_ = display_type;
+		crt_.set_display_type(display_type);
+		crt_.set_input_data_type(
+			(display_type == Outputs::Display::DisplayType::RGB) ?
+				Outputs::Display::InputDataType::Red1Green1Blue1 :
+				Outputs::Display::InputDataType::PhaseLinkedLuminance8
+		);
+	}
 }
 
 void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {

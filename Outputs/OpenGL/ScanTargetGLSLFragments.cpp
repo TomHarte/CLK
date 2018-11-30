@@ -247,6 +247,7 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 		"uniform mat3 lumaChromaToRGB;"
 		"uniform mat3 rgbToLumaChroma;"
 		"uniform usampler2D textureName;"
+		"uniform float phaseOffset;"
 
 		"void main(void) {";
 
@@ -269,7 +270,7 @@ std::unique_ptr<Shader> ScanTarget::input_shader(InputDataType input_data_type, 
 		case InputDataType::PhaseLinkedLuminance8:
 			computed_display_type = DisplayType::CompositeMonochrome;
 			fragment_shader +=
-				"uint iPhase = uint(compositeAngle * 2.0 / 3.141592654) & 3u;"
+				"uint iPhase = uint((compositeAngle * 2.0 / 3.141592654) + phaseOffset*4.0) & 3u;"
 				"fragColour = vec3(texture(textureName, textureCoordinate)[iPhase] / 255.0);";
 		break;
 

@@ -142,6 +142,13 @@ struct ScanTarget {
 			/// Describes the format of input data.
 			InputDataType input_data_type;
 
+			struct InputDataTweaks {
+				/// If using the PhaseLinkedLuminance8 data type, this value provides an offset
+				/// to add to phase before indexing the supplied luminances.
+				float phase_linked_luminance_offset = 0.0f;
+
+			} input_data_tweaks;
+
 			/// Describes the type of display that the data is being shown on.
 			DisplayType display_type = DisplayType::SVideo;
 
@@ -171,6 +178,9 @@ struct ScanTarget {
 
 			/// Describes the usual gamma of the output device these scans would appear on.
 			float intended_gamma = 2.2f;
+
+			/// Provides a brightness multiplier for the display output.
+			float brightness = 1.0f;
 
 			/// Specifies the range of values that will be output for x and y coordinates.
 			struct {

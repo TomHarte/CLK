@@ -530,7 +530,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		void set_display_type(Outputs::Display::DisplayType display_type) override {
-//			video_output_.set_display_type(display_type);
+			video_output_.set_display_type(display_type);
 		}
 
 		Configurable::SelectionSet get_accurate_selections() override {

@@ -265,6 +265,12 @@ class CRT {
 
 		/*! Sets the display type that will be nominated to the scan target. */
 		void set_display_type(Outputs::Display::DisplayType);
+
+		/*! Sets the offset to apply to phase when using the PhaseLinkedLuminance8 input data type. */
+		void set_phase_linked_luminance_offset(float);
+
+		/*! Sets the input data type. */
+		void set_input_data_type(Outputs::Display::InputDataType);
 };
 
 }
