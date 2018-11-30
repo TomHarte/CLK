@@ -196,29 +196,16 @@ void TIA::set_colour_palette_entry(size_t index, uint8_t colour) {
 			phase &= 127;
 		}
 	} else {
-		// TODO: PAL colours.
-//		crt_.set_svideo_sampling_function(
-//			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)"
-//			"{"
-//				"uint c = texture(texID, coordinate).r;"
-//				"uint y = c & 14u;"
-//				"uint iPhase = (c >> 4);"
-//
-//				"uint direction = iPhase & 1u;"
-//				"float phaseOffset = float(7u - direction) + (float(direction) - 0.5) * 2.0 * float(iPhase >> 1);"
-//				"phaseOffset *= 6.283185308 / 12.0;"
-//				"return vec2(float(y) / 14.0, step(4, (iPhase + 2u) & 15u) * cos(phase + phaseOffset));"
-//			"}");
 		if(phase < 2 || phase > 13) {
 			phase = 255;
 		} else {
 			const auto direction = phase & 1;
 
 			phase >>= 1;
-			if(!direction) phase ^= 0xf;
-			phase += 7 - direction;
+			if(direction) phase ^= 0xf;
+			phase = (phase + 6 + direction) & 0xf;
 
-			phase = (((phase - 3) & 0xf) * 127) / 12;
+			phase = (phase * 127) / 12;
 			phase &= 127;
 		}
 	}
