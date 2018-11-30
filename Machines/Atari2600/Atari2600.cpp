@@ -122,10 +122,6 @@ class ConcreteMachine:
 			joysticks_.emplace_back(new Joystick(bus_.get(), 4, 1));
 		}
 
-		~ConcreteMachine() {
-//			close_output();
-		}
-
 		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
 		}
@@ -158,18 +154,10 @@ class ConcreteMachine:
 
 		// to satisfy CRTMachine::Machine
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
-			bus_->tia_.reset(new TIA);
 			bus_->speaker_.set_input_rate(static_cast<float>(get_clock_rate() / static_cast<double>(CPUTicksPerAudioTick)));
-			bus_->tia_->get_crt()->set_delegate(this);
+			bus_->tia_.set_crt_delegate(this);
+			bus_->tia_.set_scan_target(scan_target);
 		}
-
-//		void close_output() override {
-//			bus_.reset();
-//		}
-//
-//		Outputs::CRT::CRT *get_crt() override {
-//			return bus_->tia_->get_crt();
-//		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
 			return &bus_->speaker_;
@@ -205,10 +193,10 @@ class ConcreteMachine:
 					double clock_rate;
 					if(is_ntsc_) {
 						clock_rate = NTSC_clock_rate;
-						bus_->tia_->set_output_mode(TIA::OutputMode::NTSC);
+						bus_->tia_.set_output_mode(TIA::OutputMode::NTSC);
 					} else {
 						clock_rate = PAL_clock_rate;
-						bus_->tia_->set_output_mode(TIA::OutputMode::PAL);
+						bus_->tia_.set_output_mode(TIA::OutputMode::PAL);
 					}
 
 					bus_->speaker_.set_input_rate(static_cast<float>(clock_rate / static_cast<double>(CPUTicksPerAudioTick)));

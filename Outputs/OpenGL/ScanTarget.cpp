@@ -16,9 +16,9 @@ namespace {
 /// The texture unit from which to source 1bpp input data.
 constexpr GLenum SourceData1BppTextureUnit = GL_TEXTURE0;
 /// The texture unit from which to source 2bpp input data.
-constexpr GLenum SourceData2BppTextureUnit = GL_TEXTURE1;
+//constexpr GLenum SourceData2BppTextureUnit = GL_TEXTURE1;
 /// The texture unit from which to source 4bpp input data.
-constexpr GLenum SourceData4BppTextureUnit = GL_TEXTURE2;
+//constexpr GLenum SourceData4BppTextureUnit = GL_TEXTURE2;
 
 /// The texture unit which contains raw line-by-line composite, S-Video or RGB data.
 constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE3;
@@ -101,6 +101,9 @@ ScanTarget::~ScanTarget() {
 
 void ScanTarget::set_modals(Modals modals) {
 	modals_ = modals;
+
+	// TODO: almost none of the below can occur here, as this is not necessarily an OpenGL thread.
+	// Whoops!
 
 	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
 	if(data_type_size != data_type_size_) {
