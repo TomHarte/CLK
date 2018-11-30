@@ -144,6 +144,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		// Receives scan target modals.
 		Modals modals_;
+		bool modals_are_dirty_ = false;
+		void setup_pipeline();
 
 		enum class ShaderType {
 			InputScan,

@@ -93,117 +93,19 @@ ScanTarget::ScanTarget() :
 }
 
 ScanTarget::~ScanTarget() {
-	while(is_drawing_.test_and_set()) {}
+	while(is_drawing_.test_and_set());
 	glDeleteBuffers(1, &scan_buffer_name_);
 	glDeleteTextures(1, &write_area_texture_name_);
 	glDeleteVertexArrays(1, &scan_vertex_array_);
 }
 
 void ScanTarget::set_modals(Modals modals) {
+	// Don't change the modals while drawing is ongoing; a previous set might be
+	// in the process of being established.
+	while(is_drawing_.test_and_set());
 	modals_ = modals;
-
-	// TODO: almost none of the below can occur here, as this is not necessarily an OpenGL thread.
-	// Whoops!
-
-	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
-	if(data_type_size != data_type_size_) {
-		// TODO: flush output.
-
-		data_type_size_ = data_type_size;
-		write_area_texture_.resize(2048*2048*data_type_size_);
-
-		write_pointers_.scan_buffer = 0;
-		write_pointers_.write_area = 0;
-	}
-
-	// Pick a processing width; this will be at least four times the
-	// colour subcarrier, and an integer multiple of the pixel clock and
-	// at most 2048.
-	const int colour_cycle_width = (modals.colour_cycle_numerator * 4 + modals.colour_cycle_denominator - 1) / modals.colour_cycle_denominator;
-	const int dot_clock = modals.cycles_per_line / modals.clocks_per_pixel_greatest_common_divisor;
-	const int overflow = colour_cycle_width % dot_clock;
-	processing_width_ = colour_cycle_width + (overflow ? dot_clock - overflow : 0);
-	processing_width_ = std::min(processing_width_, 2048);
-
-	// Establish an output shader. TODO: add gamma correction here.
-	output_shader_.reset(new Shader(
-		glsl_globals(ShaderType::Line) + glsl_default_vertex_shader(ShaderType::Line),
-		"#version 150\n"
-
-		"out vec4 fragColour;"
-		"in vec2 textureCoordinate;"
-
-		"uniform sampler2D textureName;"
-
-		"void main(void) {"
-			"fragColour = vec4(texture(textureName, textureCoordinate).rgb, 0.64);"
-		"}",
-		attribute_bindings(ShaderType::Line)
-	));
-
-	glBindVertexArray(line_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
-	enable_vertex_attributes(ShaderType::Line, *output_shader_);
-	set_uniforms(ShaderType::Line, *output_shader_);
-	output_shader_->set_uniform("origin", modals.visible_area.origin.x, modals.visible_area.origin.y);
-	output_shader_->set_uniform("size", modals.visible_area.size.width, modals.visible_area.size.height);
-
-	// Establish such intermediary shaders as are required.
-	pipeline_stages_.clear();
-	if(modals_.display_type == DisplayType::CompositeColour) {
-		pipeline_stages_.emplace_back(
-			composite_to_svideo_shader(modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_).release(),
-			SVideoLineBufferTextureUnit,
-			GL_NEAREST);
-	}
-	if(modals_.display_type == DisplayType::SVideo || modals_.display_type == DisplayType::CompositeColour) {
-		pipeline_stages_.emplace_back(
-			svideo_to_rgb_shader(modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_).release(),
-			(modals_.display_type == DisplayType::CompositeColour) ? RGBLineBufferTextureUnit : SVideoLineBufferTextureUnit,
-			GL_NEAREST);
-	}
-
-	glBindVertexArray(scan_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
-
-	// Establish an input shader.
-	input_shader_ = input_shader(modals_.input_data_type, modals_.display_type);
-	enable_vertex_attributes(ShaderType::InputScan, *input_shader_);
-	set_uniforms(ShaderType::InputScan, *input_shader_);
-	input_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
-
-	// Cascade the texture units in use as per the pipeline stages.
-	std::vector<Shader *> input_shaders = {input_shader_.get()};
-	GLint texture_unit = GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0);
-	for(const auto &stage: pipeline_stages_) {
-		input_shaders.push_back(stage.shader.get());
-
-		stage.shader->set_uniform("textureName", texture_unit);
-		set_uniforms(ShaderType::ProcessedScan, *stage.shader);
-		enable_vertex_attributes(ShaderType::ProcessedScan, *stage.shader);
-
-		++texture_unit;
-	}
-	output_shader_->set_uniform("textureName", texture_unit);
-
-	// Ensure that all shaders involved in the input pipeline have the proper colour space knowledged.
-	for(auto shader: input_shaders) {
-		switch(modals.composite_colour_space) {
-			case ColourSpace::YIQ: {
-				const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
-				const GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
-				shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yiqToRGB);
-				shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYIQ);
-			} break;
-
-			case ColourSpace::YUV: {
-				const GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
-				const GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
-				shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yuvToRGB);
-				shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYUV);
-			} break;
-		}
-	}
+	modals_are_dirty_ = true;
+	is_drawing_.clear();
 }
 
 void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) {
@@ -253,6 +155,10 @@ void ScanTarget::end_scan() {
 
 uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignment) {
 	if(allocation_has_failed_) return nullptr;
+	if(!write_area_texture_.size()) {
+		allocation_has_failed_ = true;
+		return nullptr;
+	}
 
 	// Determine where the proposed write area would start and end.
 	uint16_t output_y = TextureAddressGetY(write_pointers_.write_area);
@@ -374,6 +280,108 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 	// (maybe set a flag and zero out the line coordinates?)
 }
 
+void ScanTarget::setup_pipeline() {
+	const auto data_type_size = Outputs::Display::size_for_data_type(modals_.input_data_type);
+	if(data_type_size != data_type_size_) {
+		// TODO: flush output.
+
+		data_type_size_ = data_type_size;
+		write_area_texture_.resize(2048*2048*data_type_size_);
+
+		write_pointers_.scan_buffer = 0;
+		write_pointers_.write_area = 0;
+	}
+
+	// Pick a processing width; this will be at least four times the
+	// colour subcarrier, and an integer multiple of the pixel clock and
+	// at most 2048.
+	const int colour_cycle_width = (modals_.colour_cycle_numerator * 4 + modals_.colour_cycle_denominator - 1) / modals_.colour_cycle_denominator;
+	const int dot_clock = modals_.cycles_per_line / modals_.clocks_per_pixel_greatest_common_divisor;
+	const int overflow = colour_cycle_width % dot_clock;
+	processing_width_ = colour_cycle_width + (overflow ? dot_clock - overflow : 0);
+	processing_width_ = std::min(processing_width_, 2048);
+
+	// Establish an output shader. TODO: add gamma correction here.
+	output_shader_.reset(new Shader(
+		glsl_globals(ShaderType::Line) + glsl_default_vertex_shader(ShaderType::Line),
+		"#version 150\n"
+
+		"out vec4 fragColour;"
+		"in vec2 textureCoordinate;"
+
+		"uniform sampler2D textureName;"
+
+		"void main(void) {"
+			"fragColour = vec4(texture(textureName, textureCoordinate).rgb, 0.64);"
+		"}",
+		attribute_bindings(ShaderType::Line)
+	));
+
+	glBindVertexArray(line_vertex_array_);
+	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
+	enable_vertex_attributes(ShaderType::Line, *output_shader_);
+	set_uniforms(ShaderType::Line, *output_shader_);
+	output_shader_->set_uniform("origin", modals_.visible_area.origin.x, modals_.visible_area.origin.y);
+	output_shader_->set_uniform("size", modals_.visible_area.size.width, modals_.visible_area.size.height);
+
+	// Establish such intermediary shaders as are required.
+	pipeline_stages_.clear();
+	if(modals_.display_type == DisplayType::CompositeColour) {
+		pipeline_stages_.emplace_back(
+			composite_to_svideo_shader(modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_).release(),
+			SVideoLineBufferTextureUnit,
+			GL_NEAREST);
+	}
+	if(modals_.display_type == DisplayType::SVideo || modals_.display_type == DisplayType::CompositeColour) {
+		pipeline_stages_.emplace_back(
+			svideo_to_rgb_shader(modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_).release(),
+			(modals_.display_type == DisplayType::CompositeColour) ? RGBLineBufferTextureUnit : SVideoLineBufferTextureUnit,
+			GL_NEAREST);
+	}
+
+	glBindVertexArray(scan_vertex_array_);
+	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+
+	// Establish an input shader.
+	input_shader_ = input_shader(modals_.input_data_type, modals_.display_type);
+	enable_vertex_attributes(ShaderType::InputScan, *input_shader_);
+	set_uniforms(ShaderType::InputScan, *input_shader_);
+	input_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
+
+	// Cascade the texture units in use as per the pipeline stages.
+	std::vector<Shader *> input_shaders = {input_shader_.get()};
+	GLint texture_unit = GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0);
+	for(const auto &stage: pipeline_stages_) {
+		input_shaders.push_back(stage.shader.get());
+
+		stage.shader->set_uniform("textureName", texture_unit);
+		set_uniforms(ShaderType::ProcessedScan, *stage.shader);
+		enable_vertex_attributes(ShaderType::ProcessedScan, *stage.shader);
+
+		++texture_unit;
+	}
+	output_shader_->set_uniform("textureName", texture_unit);
+
+	// Ensure that all shaders involved in the input pipeline have the proper colour space knowledged.
+	for(auto shader: input_shaders) {
+		switch(modals_.composite_colour_space) {
+			case ColourSpace::YIQ: {
+				const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
+				const GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
+				shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yiqToRGB);
+				shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYIQ);
+			} break;
+
+			case ColourSpace::YUV: {
+				const GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
+				const GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
+				shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yuvToRGB);
+				shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYUV);
+			} break;
+		}
+	}
+}
+
 void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	if(fence_ != nullptr) {
 		// if the GPU is still busy, don't wait; we'll catch it next time
@@ -386,6 +394,12 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	// Spin until the is-drawing flag is reset; the wait sync above will deal
 	// with instances where waiting is inappropriate.
 	while(is_drawing_.test_and_set());
+
+	// Establish the pipeline if necessary.
+	if(modals_are_dirty_) {
+		setup_pipeline();
+		modals_are_dirty_ = false;
+	}
 
 	// Grab the current read and submit pointers.
 	const auto submit_pointers = submit_pointers_.load();
