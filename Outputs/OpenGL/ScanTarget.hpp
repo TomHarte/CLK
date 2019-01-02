@@ -105,8 +105,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		// Contains the first composition of scans into lines;
 		// they're accumulated prior to output to allow for continuous
-		// application of any necessary conversions — e.g. composite processing —
-		// which happen progressively from here to the RGB texture.
+		// application of any necessary conversions — e.g. composite processing.
 		TextureTarget unprocessed_line_texture_;
 
 		// Scans are accumulated to the accumulation texture; the full-display
@@ -180,22 +179,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		std::unique_ptr<Shader> input_shader_;
 		std::unique_ptr<Shader> output_shader_;
 
-		static std::unique_ptr<Shader> input_shader(InputDataType input_data_type, DisplayType display_type);
-		static std::unique_ptr<Shader> composite_to_svideo_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width);
-		static std::unique_ptr<Shader> svideo_to_rgb_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width);
-		static SignalProcessing::FIRFilter colour_filter(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width, float low_cutoff, float high_cutoff);
-
-		struct PipelineStage {
-			PipelineStage(Shader *shader, GLenum texture_unit, GLint magnification_filter) :
-				shader(shader),
-				target(LineBufferWidth, LineBufferHeight, texture_unit, magnification_filter, false) {}
-
-			std::unique_ptr<Shader> shader;
-			TextureTarget target;
-		};
-
-		// A list is used here to avoid requiring a copy constructor on PipelineStage.
-		std::list<PipelineStage> pipeline_stages_;
+		static std::unique_ptr<Shader> composition_shader();
+		static std::unique_ptr<Shader> conversion_shader(InputDataType input_data_type, DisplayType display_type, int colour_cycle_numerator, int colour_cycle_denominator, int processing_width);
 };
 
 }
