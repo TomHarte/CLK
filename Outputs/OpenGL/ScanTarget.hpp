@@ -179,7 +179,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		std::unique_ptr<Shader> input_shader_;
 		std::unique_ptr<Shader> output_shader_;
 
-		static std::unique_ptr<Shader> composition_shader();
+		static std::unique_ptr<Shader> composition_shader(InputDataType input_data_type);
 		static std::unique_ptr<Shader> conversion_shader(InputDataType input_data_type, DisplayType display_type, int colour_cycle_numerator, int colour_cycle_denominator, int processing_width);
 };
 

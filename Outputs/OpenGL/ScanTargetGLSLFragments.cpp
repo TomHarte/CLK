@@ -90,7 +90,7 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 			if(type == ShaderType::InputScan) {
 				result +=
 					"out vec2 textureCoordinate;"
-					"uniform sampler2D textureName;";
+					"uniform usampler2D textureName;";
 			} else {
 				result +=
 					"out vec2 textureCoordinates[15];"
@@ -240,7 +240,7 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 	}
 }
 
-std::unique_ptr<Shader> ScanTarget::composition_shader() {
+std::unique_ptr<Shader> ScanTarget::composition_shader(InputDataType input_data_type) {
 /*	std::string fragment_shader =
 		"#version 150\n"
 
@@ -350,21 +350,50 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() {
 //	}
 
 
-	const std::string fragment_shader =
+	std::string fragment_shader =
 		"#version 150\n"
 
-		"in vec2 textureCoordinate;"
 		"out vec4 fragColour;"
+		"in vec2 textureCoordinate;"
 
-		"uniform sampler2D textureName;"
+		"uniform usampler2D textureName;"
 
-		"void main(void) {"
-			"fragColour = vec4(1.0) - texture(textureName, textureCoordinate);"
-		"}";
+		"void main(void) {";
+
+	switch(input_data_type) {
+		case InputDataType::Luminance1:
+			fragment_shader += "fragColour = texture(textureName, textureCoordinate).rrrr;";
+		break;
+		case InputDataType::Luminance8:
+			fragment_shader += "fragColour = texture(textureName, textureCoordinate).rrrr / vec4(255.0);";
+		break;
+
+		case InputDataType::PhaseLinkedLuminance8:
+		case InputDataType::Luminance8Phase8:
+		case InputDataType::Red8Green8Blue8:
+			fragment_shader += "fragColour = texture(textureName, textureCoordinate) / vec4(255.0);";
+		break;
+
+		case InputDataType::Red1Green1Blue1:
+			fragment_shader += "fragColour = vec4(texture(textureName, textureCoordinate).rrr & uvec3(4u, 2u, 1u), 1.0);";
+		break;
+
+		case InputDataType::Red2Green2Blue2:
+			fragment_shader +=
+				"uint textureValue = texture(textureName, textureCoordinate).r;"
+				"fragColour = vec4(float((textureValue >> 4) & 3u), float((textureValue >> 2) & 3u), float(textureValue & 3u), 3.0) / 3.0;";
+		break;
+
+		case InputDataType::Red4Green4Blue4:
+			fragment_shader +=
+				"uvec2 textureValue = texture(textureName, textureCoordinate).rg;"
+				"fragColour = vec4(float(textureValue.r) / 15.0, float(textureValue.g & 240u) / 240.0, float(textureValue.g & 15u) / 15.0, 1.0);";
+		break;
+	}
 
 	return std::unique_ptr<Shader>(new Shader(
 		glsl_globals(ShaderType::InputScan) + glsl_default_vertex_shader(ShaderType::InputScan),
-		fragment_shader,
+		fragment_shader + "}",
 		attribute_bindings(ShaderType::InputScan)
 	));
 }
