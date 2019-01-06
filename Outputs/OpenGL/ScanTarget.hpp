@@ -55,6 +55,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void submit() override;
 		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location) override;
 
+		bool output_is_visible_ = false;
+
 		// Extends the definition of a Scan to include two extra fields,
 		// relevant to the way that this scan target processes video.
 		struct Scan {

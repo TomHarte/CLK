@@ -223,53 +223,49 @@ void ScanTarget::submit() {
 }
 
 void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location) {
-	switch(event) {
-		default: break;
-		case ScanTarget::Event::BeginHorizontalRetrace:
-			if(active_line_) {
-				active_line_->end_points[1].x = location.x;
-				active_line_->end_points[1].y = location.y;
-			}
-		break;
-		case ScanTarget::Event::EndHorizontalRetrace: {
-			// Commit the most recent line only if any scans fell on it.
-			// Otherwise there's no point outputting it, it'll contribute nothing.
-			if(provided_scans_) {
-				// Store metadata if concluding a previous line.
-				if(active_line_) {
-					line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
-					line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = frame_was_complete_;
-					is_first_in_frame_ = false;
-				}
-
-				const auto read_pointers = read_pointers_.load();
-
-				// Attempt to allocate a new line; note allocation failure if necessary.
-				const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
-				if(next_line == read_pointers.line) {
-					allocation_has_failed_ = true;
-					active_line_ = nullptr;
-				} else {
-					write_pointers_.line = next_line;
-					active_line_ = &line_buffer_[size_t(write_pointers_.line)];
-				}
-				provided_scans_ = 0;
-			}
-
-			if(active_line_) {
-				active_line_->end_points[0].x = location.x;
-				active_line_->end_points[0].y = location.y;
-				active_line_->line = write_pointers_.line;
-			}
-		} break;
-		case ScanTarget::Event::EndVerticalRetrace:
-			is_first_in_frame_ = true;
-			frame_was_complete_ = true;
-		break;
+	if(event == ScanTarget::Event::EndVerticalRetrace) {
+		is_first_in_frame_ = true;
+		frame_was_complete_ = true;
 	}
 
-	// TODO: any lines that include any portion of vertical sync should be hidden.
-	// (maybe set a flag and zero out the line coordinates?)
+	if(output_is_visible_ == is_visible) return;
+	if(is_visible) {
+		// Commit the most recent line only if any scans fell on it.
+		// Otherwise there's no point outputting it, it'll contribute nothing.
+		if(provided_scans_) {
+			// Store metadata if concluding a previous line.
+			if(active_line_) {
+				line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
+				line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = frame_was_complete_;
+				is_first_in_frame_ = false;
+			}
+
+			const auto read_pointers = read_pointers_.load();
+
+			// Attempt to allocate a new line; note allocation failure if necessary.
+			const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
+			if(next_line == read_pointers.line) {
+				allocation_has_failed_ = true;
+				active_line_ = nullptr;
+			} else {
+				write_pointers_.line = next_line;
+				active_line_ = &line_buffer_[size_t(write_pointers_.line)];
+			}
+			provided_scans_ = 0;
+		}
+
+		if(active_line_) {
+			active_line_->end_points[0].x = location.x;
+			active_line_->end_points[0].y = location.y;
+			active_line_->line = write_pointers_.line;
+		}
+	} else {
+		if(active_line_) {
+			active_line_->end_points[1].x = location.x;
+			active_line_->end_points[1].y = location.y;
+		}
+	}
+	output_is_visible_ = is_visible;
 }
 
 void ScanTarget::setup_pipeline() {
