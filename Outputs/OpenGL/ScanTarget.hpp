@@ -53,7 +53,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		uint8_t *begin_data(size_t required_length, size_t required_alignment) override;
 		void end_data(size_t actual_length) override;
 		void submit() override;
-		void announce(Event event, uint16_t x, uint16_t y) override;
+		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location) override;
 
 		// Extends the definition of a Scan to include two extra fields,
 		// relevant to the way that this scan target processes video.

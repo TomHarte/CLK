@@ -222,13 +222,13 @@ void ScanTarget::submit() {
 	allocation_has_failed_ = false;
 }
 
-void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
+void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location) {
 	switch(event) {
 		default: break;
 		case ScanTarget::Event::BeginHorizontalRetrace:
 			if(active_line_) {
-				active_line_->end_points[1].x = x;
-				active_line_->end_points[1].y = y;
+				active_line_->end_points[1].x = location.x;
+				active_line_->end_points[1].y = location.y;
 			}
 		break;
 		case ScanTarget::Event::EndHorizontalRetrace: {
@@ -257,8 +257,8 @@ void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
 			}
 
 			if(active_line_) {
-				active_line_->end_points[0].x = x;
-				active_line_->end_points[0].y = y;
+				active_line_->end_points[0].x = location.x;
+				active_line_->end_points[0].y = location.y;
 				active_line_->line = write_pointers_.line;
 			}
 		} break;
