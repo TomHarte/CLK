@@ -64,7 +64,7 @@ template <class BusHandler> class MOS6560 {
 	public:
 		MOS6560(BusHandler &bus_handler) :
 				bus_handler_(bus_handler),
-				crt_(65*4, 4, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance8Phase8),
+				crt_(65*4, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance8Phase8),
 				audio_generator_(audio_queue_),
 				speaker_(audio_generator_)
 		{
