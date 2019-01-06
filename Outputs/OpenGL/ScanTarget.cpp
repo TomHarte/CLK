@@ -257,12 +257,14 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 		if(active_line_) {
 			active_line_->end_points[0].x = location.x;
 			active_line_->end_points[0].y = location.y;
+			active_line_->end_points[0].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
 			active_line_->line = write_pointers_.line;
 		}
 	} else {
 		if(active_line_) {
 			active_line_->end_points[1].x = location.x;
 			active_line_->end_points[1].y = location.y;
+			active_line_->end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
 		}
 	}
 	output_is_visible_ = is_visible;

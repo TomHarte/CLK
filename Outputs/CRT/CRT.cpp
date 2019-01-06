@@ -219,14 +219,6 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 		// Announce horizontal retrace events.
 		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event != Flywheel::SyncEvent::None) {
-			const auto event =
-				(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
-					? Outputs::Display::ScanTarget::Event::BeginHorizontalRetrace : Outputs::Display::ScanTarget::Event::EndHorizontalRetrace;
-			scan_target_->announce(
-				event,
-				!(horizontal_flywheel_->is_in_retrace() || vertical_flywheel_->is_in_retrace()),
-				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)));
-
 			// Prepare for the next line.
 			if(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
 				is_alernate_line_ ^= phase_alternates_;
@@ -234,6 +226,15 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 			} else {
 				cycles_since_horizontal_sync_ = 0;
 			}
+
+			// Announce event.
+			const auto event =
+				(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
+					? Outputs::Display::ScanTarget::Event::BeginHorizontalRetrace : Outputs::Display::ScanTarget::Event::EndHorizontalRetrace;
+			scan_target_->announce(
+				event,
+				!(horizontal_flywheel_->is_in_retrace() || vertical_flywheel_->is_in_retrace()),
+				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)));
 		}
 
 		// Also announce vertical retrace events.

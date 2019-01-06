@@ -95,6 +95,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		struct Line {
 			struct EndPoint {
 				uint16_t x, y;
+				uint16_t cycles_since_end_of_horizontal_retrace;
 			} end_points[2];
 			uint16_t line;
 		};

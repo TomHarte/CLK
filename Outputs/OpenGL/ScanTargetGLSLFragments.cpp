@@ -28,10 +28,12 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 			"in vec2 startPoint;"
 			"in float startDataX;"
 			"in float startCompositeAngle;"
+			"in float startClock;"
 
 			"in vec2 endPoint;"
 			"in float endDataX;"
 			"in float endCompositeAngle;"
+			"in float endClock;"
 
 			"in float dataY;"
 			"in float lineY;"
@@ -47,6 +49,9 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 
 			"in vec2 startPoint;"
 			"in vec2 endPoint;"
+
+			"in float startClock;"
+			"in float endClock;"
 
 			"in float lineY;"
 
@@ -64,19 +69,23 @@ std::vector<Shader::AttributeBinding> ScanTarget::attribute_bindings(ShaderType 
 			{"startPoint", 0},
 			{"startDataX", 1},
 			{"startCompositeAngle", 2},
-			{"endPoint", 3},
-			{"endDataX", 4},
-			{"endCompositeAngle", 5},
-			{"dataY", 6},
-			{"lineY", 7},
-			{"compositeAmplitude", 8},
+			{"startClock", 3},
+			{"endPoint", 4},
+			{"endDataX", 5},
+			{"endCompositeAngle", 6},
+			{"endClock", 7},
+			{"dataY", 8},
+			{"lineY", 9},
+			{"compositeAmplitude", 10},
 		};
 
 		case ShaderType::Line:
 		return {
 			{"startPoint", 0},
 			{"endPoint", 1},
-			{"lineY", 2},
+			{"startClock", 2},
+			{"endClock", 3},
+			{"lineY", 4},
 		};
 	}
 }
@@ -115,7 +124,7 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 			if(type == ShaderType::InputScan) {
 				result +=
 					"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / textureSize(textureName, 0);"
-					"vec2 eyePosition = vec2(mix(startPoint.x, endPoint.x, lateral) * processingWidth, lineY + longitudinal) / vec2(scale.x, 2048.0);";
+					"vec2 eyePosition = vec2(mix(startClock, endClock, lateral), lineY + longitudinal) / vec2(2048.0, 2048.0);";
 			} else {
 				result +=
 					"vec2 sourcePosition = vec2(mix(startPoint.x, endPoint.x, lateral) * processingWidth, lineY + 0.5);"
@@ -161,7 +170,7 @@ std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
 				"float lateral = float(gl_VertexID & 1);"
 				"float longitudinal = float((gl_VertexID & 2) >> 1);"
 
-				"textureCoordinate = vec2(lateral * processingWidth, lineY + 0.5) / vec2(1.0, textureSize(textureName, 0).y);"
+				"textureCoordinate = vec2(mix(startClock, endClock, lateral), lineY + 0.5) / textureSize(textureName, 0);"
 
 				"vec2 centrePoint = mix(startPoint, endPoint, lateral) / scale;"
 				"vec2 height = normalize(endPoint - startPoint).yx * (longitudinal - 0.5) * rowHeight;"
@@ -196,6 +205,12 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 					sizeof(Scan),
 					reinterpret_cast<void *>(offsetof(Scan, scan.end_points[c].composite_angle)),
 					1);
+				target.enable_vertex_attribute_with_pointer(
+					prefix + "Clock",
+					1, GL_UNSIGNED_SHORT, GL_FALSE,
+					sizeof(Scan),
+					reinterpret_cast<void *>(offsetof(Scan, scan.end_points[c].cycles_since_end_of_horizontal_retrace)),
+					1);
 			}
 
 			target.enable_vertex_attribute_with_pointer(
@@ -227,6 +242,13 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 					2, GL_UNSIGNED_SHORT, GL_FALSE,
 					sizeof(Line),
 					reinterpret_cast<void *>(offsetof(Line, end_points[c].x)),
+					1);
+
+				target.enable_vertex_attribute_with_pointer(
+					prefix + "Clock",
+					1, GL_UNSIGNED_SHORT, GL_FALSE,
+					sizeof(Line),
+					reinterpret_cast<void *>(offsetof(Line, end_points[c].cycles_since_end_of_horizontal_retrace)),
 					1);
 			}
 
