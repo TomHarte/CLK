@@ -287,21 +287,7 @@ void ScanTarget::setup_pipeline() {
 	processing_width_ = modals_.cycles_per_line / modals_.clocks_per_pixel_greatest_common_divisor;
 
 	// Establish an output shader. TODO: add proper decoding and gamma correction here.
-	output_shader_.reset(new Shader(
-		glsl_globals(ShaderType::Line) + glsl_default_vertex_shader(ShaderType::Line),
-		"#version 150\n"
-
-		"out vec4 fragColour;"
-		"in vec2 textureCoordinate;"
-
-		"uniform sampler2D textureName;"
-
-		"void main(void) {"
-			"fragColour = vec4(texture(textureName, textureCoordinate).rgb, 0.64);"
-		"}",
-		attribute_bindings(ShaderType::Line)
-	));
-
+	output_shader_ = conversion_shader(modals_.input_data_type, modals_.display_type, modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_);
 	glBindVertexArray(line_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 	enable_vertex_attributes(ShaderType::Line, *output_shader_);
@@ -309,22 +295,6 @@ void ScanTarget::setup_pipeline() {
 	output_shader_->set_uniform("origin", modals_.visible_area.origin.x, modals_.visible_area.origin.y);
 	output_shader_->set_uniform("size", modals_.visible_area.size.width, modals_.visible_area.size.height);
 	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
-
-//	switch(modals_.composite_colour_space) {
-//		case ColourSpace::YIQ: {
-//			const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
-//			const GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
-//			shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yiqToRGB);
-//			shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYIQ);
-//		} break;
-//
-//		case ColourSpace::YUV: {
-//			const GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
-//			const GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
-//			shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yuvToRGB);
-//			shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYUV);
-//		} break;
-//	}
 
 	// Establish an input shader.
 	input_shader_ = composition_shader(modals_.input_data_type);
