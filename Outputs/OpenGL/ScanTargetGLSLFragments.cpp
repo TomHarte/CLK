@@ -428,7 +428,7 @@ std::unique_ptr<Shader> ScanTarget::composition_shader(InputDataType input_data_
 }
 
 std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_type, DisplayType display_type, ColourSpace colour_space) {
-	display_type = DisplayType::CompositeMonochrome;	// Just a test.
+	display_type = DisplayType::CompositeColour;	// Just a test.
 
 	// Compose a vertex shader. If the display type is RGB, generate just the proper
 	// geometry position, plus a solitary textureCoordinate.
@@ -526,7 +526,13 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 		break;
 
 		case DisplayType::CompositeColour:
-			// TODO
+			vertex_shader +=
+				"float centreCoordinate = mix(startClock, endClock, lateral);"
+				"float samplesPerAngle = (endClock - startClock) / (abs(endCompositeAngle - startCompositeAngle) / 32.0);"
+				"textureCoordinates[0] = vec2(centreCoordinate - 0.375*samplesPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[1] = vec2(centreCoordinate - 0.125*samplesPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[2] = vec2(centreCoordinate + 0.125*samplesPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[3] = vec2(centreCoordinate + 0.375*samplesPerAngle, lineY + 0.5) / textureSize(textureName, 0);";
 		break;
 
 		case DisplayType::SVideo:
@@ -546,13 +552,52 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 			"uniform mat3 rgbToLumaChroma;";
 	}
 
+	if(display_type == DisplayType::CompositeMonochrome || display_type == DisplayType::CompositeColour) {
+		fragment_shader +=
+			"float composite_sample(vec2 coordinate, float angle) {";
+
+		switch(input_data_type) {
+			case InputDataType::Luminance1:
+			case InputDataType::Luminance8:
+				// Easy, just copy across.
+				fragment_shader += "return texture(textureName, coordinate).r;";
+			break;
+
+			case InputDataType::PhaseLinkedLuminance8:
+				fragment_shader +=
+					"uint iPhase = uint((angle * 2.0 / 3.141592654) ) & 3u;"	// + phaseOffset*4.0
+					"return texture(textureName, coordinate)[iPhase];";
+			break;
+
+			case InputDataType::Luminance8Phase8:
+				fragment_shader +=
+					"vec2 yc = texture(textureName, coordinate).rg;"
+
+					"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
+					"float rawChroma = step(yc.y, 0.75) * cos(angle + phaseOffset);"
+					"return mix(yc.x, yc.y * rawChroma, compositeAmplitude);";
+			break;
+
+			case InputDataType::Red1Green1Blue1:
+			case InputDataType::Red2Green2Blue2:
+			case InputDataType::Red4Green4Blue4:
+			case InputDataType::Red8Green8Blue8:
+				fragment_shader +=
+					"vec3 colour = rgbToLumaChroma * texture(textureName, coordinate).rgb;"
+					"vec2 quadrature = vec2(cos(angle), sin(angle));"
+					"return mix(colour.r, dot(quadrature, colour.gb), compositeAmplitude);";
+			break;
+		}
+
+		fragment_shader += "}";
+	}
+
 	fragment_shader +=
 		"void main(void) {"
 			"vec3 fragColour3;";
 
 	switch(display_type) {
 		case DisplayType::RGB:
-			// Easy, just copy across.
 			fragment_shader += "fragColour3 = texture(textureName, textureCoordinate).rgb;";
 		break;
 
@@ -561,52 +606,47 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 		break;
 
 		case DisplayType::CompositeColour:
-			// TODO
+			fragment_shader +=
+				// Figure out the four composite angles. TODO: make these an input?
+				"vec4 angles = vec4("
+					"compositeAngle - 2.356194490192345,"
+					"compositeAngle - 0.785398163397448,"
+					"compositeAngle + 0.785398163397448,"
+					"compositeAngle + 2.356194490192345"
+				");"
+
+				// Sample four times over, at proper angle offsets.
+				"vec4 samples = vec4("
+					"composite_sample(textureCoordinates[0], angles[0]),"
+					"composite_sample(textureCoordinates[1], angles[1]),"
+					"composite_sample(textureCoordinates[2], angles[2]),"
+					"composite_sample(textureCoordinates[3], angles[3])"
+				");"
+
+				// Take the average to calculate luminance, then subtract that from all four samples to
+				// give chrominance.
+				"float luminance = dot(samples, vec4(0.25));"
+				"samples -= vec4(luminance);"
+
+				// Split and average chrominance.
+				"vec2 channels = vec2("
+					"dot(cos(angles), samples),"
+					"dot(sin(angles), samples)"
+				") / vec2(2.0);"
+
+				// Apply a colour space conversion to get RGB.
+				"fragColour3 = lumaChromaToRGB * vec3(luminance, channels);";
 		break;
 
-		case DisplayType::CompositeMonochrome: {
-			switch(input_data_type) {
-				case InputDataType::Luminance1:
-				case InputDataType::Luminance8:
-					// Easy, just copy across.
-					fragment_shader += "fragColour3 = texture(textureName, textureCoordinate).rgb;";
-				break;
-
-				case InputDataType::PhaseLinkedLuminance8:
-					fragment_shader +=
-						"uint iPhase = uint((compositeAngle * 2.0 / 3.141592654) ) & 3u;"	// + phaseOffset*4.0
-						"fragColour3 = vec3(texture(textureName, textureCoordinate)[iPhase]);";
-				break;
-
-				case InputDataType::Luminance8Phase8:
-					fragment_shader +=
-						"vec2 yc = texture(textureName, textureCoordinate).rg;"
-
-						"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
-						"float rawChroma = step(yc.y, 0.75) * cos(compositeAngle + phaseOffset);"
-						"float level = mix(yc.x, yc.y * rawChroma, compositeAmplitude);"
-						"fragColour3 = vec3(level);";
-				break;
-
-				case InputDataType::Red1Green1Blue1:
-				case InputDataType::Red2Green2Blue2:
-				case InputDataType::Red4Green4Blue4:
-				case InputDataType::Red8Green8Blue8:
-					fragment_shader +=
-						"vec3 colour = rgbToLumaChroma * texture(textureName, textureCoordinate).rgb;"
-						"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));"
-						"float level = mix(colour.r, dot(quadrature, colour.gb), compositeAmplitude);"
-						"fragColour3 = vec3(level);";
-				break;
-			}
-		} break;
+		case DisplayType::CompositeMonochrome:
+			fragment_shader += "fragColour3 = vec3(composite_sample(textureCoordinate, compositeAngle));";
+		break;
 	}
 
+	// TODO gamma and range corrections.
 	fragment_shader +=
 			"fragColour = vec4(fragColour3, 0.64);"
 		"}";
-
-	// TODO gamma and range corrections.
 
 	const auto shader = new Shader(
 		vertex_shader,
