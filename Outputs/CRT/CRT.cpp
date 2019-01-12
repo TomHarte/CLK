@@ -219,11 +219,8 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 		// Announce horizontal retrace events.
 		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event != Flywheel::SyncEvent::None) {
-			// Prepare for the next line.
-			if(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
-				is_alernate_line_ ^= phase_alternates_;
-				colour_burst_amplitude_ = 0;
-			} else {
+			// Reset the cycles-since-sync counter if this is the end of retrace.
+			if(next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace) {
 				cycles_since_horizontal_sync_ = 0;
 			}
 
@@ -234,7 +231,14 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 			scan_target_->announce(
 				event,
 				!(horizontal_flywheel_->is_in_retrace() || vertical_flywheel_->is_in_retrace()),
-				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)));
+				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)),
+				colour_burst_amplitude_);
+
+			// If retrace is starting, update phase if required and mark no colour burst spotted yet.
+			if(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
+				is_alernate_line_ ^= phase_alternates_;
+				colour_burst_amplitude_ = 0;
+			}
 		}
 
 		// Also announce vertical retrace events.
@@ -245,7 +249,8 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 			scan_target_->announce(
 				event,
 				!(horizontal_flywheel_->is_in_retrace() || vertical_flywheel_->is_in_retrace()),
-				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)));
+				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)),
+				colour_burst_amplitude_);
 		}
 
 		// if this is vertical retrace then adcance a field

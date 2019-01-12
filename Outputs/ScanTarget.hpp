@@ -293,8 +293,9 @@ struct ScanTarget {
 			@param event The event.
 			@param is_visible @c true if the output stream is visible immediately after this event; @c false otherwise.
 			@param location The location of the event.
+			@param composite_amplitude The amplitude of the colour burst on this line (0, if no colour burst was found).
 		*/
-		virtual void announce(Event event, bool is_visible, const Scan::EndPoint &location) {}
+		virtual void announce(Event event, bool is_visible, const Scan::EndPoint &location, uint8_t composite_amplitude) {}
 };
 
 /*!

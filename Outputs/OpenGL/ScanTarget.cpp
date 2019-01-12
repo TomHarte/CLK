@@ -222,7 +222,7 @@ void ScanTarget::submit() {
 	allocation_has_failed_ = false;
 }
 
-void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location) {
+void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
 	if(event == ScanTarget::Event::EndVerticalRetrace) {
 		is_first_in_frame_ = true;
 		frame_was_complete_ = true;
@@ -258,13 +258,16 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 			active_line_->end_points[0].x = location.x;
 			active_line_->end_points[0].y = location.y;
 			active_line_->end_points[0].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
+			active_line_->end_points[0].composite_angle = location.composite_angle;
 			active_line_->line = write_pointers_.line;
+			active_line_->composite_amplitude = composite_amplitude;
 		}
 	} else {
 		if(active_line_) {
 			active_line_->end_points[1].x = location.x;
 			active_line_->end_points[1].y = location.y;
 			active_line_->end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
+			active_line_->end_points[1].composite_angle = location.composite_angle;
 		}
 	}
 	output_is_visible_ = is_visible;
@@ -287,7 +290,7 @@ void ScanTarget::setup_pipeline() {
 	processing_width_ = modals_.cycles_per_line / modals_.clocks_per_pixel_greatest_common_divisor;
 
 	// Establish an output shader. TODO: add proper decoding and gamma correction here.
-	output_shader_ = conversion_shader(modals_.input_data_type, modals_.display_type, modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_);
+	output_shader_ = conversion_shader(modals_.input_data_type, modals_.display_type, modals_.composite_colour_space);
 	glBindVertexArray(line_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 	enable_vertex_attributes(ShaderType::Line, *output_shader_);

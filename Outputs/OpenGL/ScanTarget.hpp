@@ -53,7 +53,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		uint8_t *begin_data(size_t required_length, size_t required_alignment) override;
 		void end_data(size_t actual_length) override;
 		void submit() override;
-		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location) override;
+		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) override;
 
 		bool output_is_visible_ = false;
 
@@ -96,8 +96,10 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			struct EndPoint {
 				uint16_t x, y;
 				uint16_t cycles_since_end_of_horizontal_retrace;
+				int16_t composite_angle;
 			} end_points[2];
 			uint16_t line;
+			uint8_t composite_amplitude;
 		};
 		struct LineMetadata {
 			bool is_first_in_frame;
@@ -183,7 +185,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		std::unique_ptr<Shader> output_shader_;
 
 		static std::unique_ptr<Shader> composition_shader(InputDataType input_data_type);
-		static std::unique_ptr<Shader> conversion_shader(InputDataType input_data_type, DisplayType display_type, int colour_cycle_numerator, int colour_cycle_denominator, int processing_width);
+		static std::unique_ptr<Shader> conversion_shader(InputDataType input_data_type, DisplayType display_type, ColourSpace colour_space);
 };
 
 }
