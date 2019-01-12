@@ -40,27 +40,7 @@ std::string ScanTarget::glsl_globals(ShaderType type) {
 			"in float compositeAmplitude;";
 
 		case ShaderType::Line:
-		return
-			"#version 150\n"
-
-			"uniform vec2 scale;"
-			"uniform float rowHeight;"
-			"uniform float processingWidth;"
-
-			"in vec2 startPoint;"
-			"in vec2 endPoint;"
-
-			"in float startClock;"
-			"in float startCompositeAngle;"
-			"in float endClock;"
-			"in float endCompositeAngle;"
-
-			"in float lineY;"
-			"in float compositeAmplitude;"
-
-			"uniform sampler2D textureName;"
-			"uniform vec2 origin;"
-			"uniform vec2 size;";
+		return "";
 	}
 }
 
@@ -89,7 +69,7 @@ std::vector<Shader::AttributeBinding> ScanTarget::attribute_bindings(ShaderType 
 			{"startClock", 2},
 			{"endClock", 3},
 			{"lineY", 4},
-			{"compositeAmplitude", 5},
+			{"lineCompositeAmplitude", 5},
 			{"startCompositeAngle", 6},
 			{"endCompositeAngle", 7},
 		};
@@ -279,7 +259,7 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 				1);
 
 			target.enable_vertex_attribute_with_pointer(
-				"compositeAmplitude",
+				"lineCompositeAmplitude",
 				1, GL_UNSIGNED_BYTE, GL_FALSE,
 				sizeof(Line),
 				reinterpret_cast<void *>(offsetof(Line, composite_amplitude)),
@@ -412,6 +392,7 @@ std::unique_ptr<Shader> ScanTarget::composition_shader(InputDataType input_data_
 		case InputDataType::Luminance1:
 			fragment_shader += "fragColour = texture(textureName, textureCoordinate).rrrr;";
 		break;
+
 		case InputDataType::Luminance8:
 			fragment_shader += "fragColour = texture(textureName, textureCoordinate).rrrr / vec4(255.0);";
 		break;
@@ -460,7 +441,28 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 	//
 	// If the display type is S-Video, generate three textureCoordinates, at
 	// -45, 0, +45.
-	std::string vertex_shader = glsl_globals(ShaderType::Line);
+	std::string vertex_shader =
+		"#version 150\n"
+
+		"uniform vec2 scale;"
+		"uniform float rowHeight;"
+		"uniform float processingWidth;"
+
+		"in vec2 startPoint;"
+		"in vec2 endPoint;"
+
+		"in float startClock;"
+		"in float startCompositeAngle;"
+		"in float endClock;"
+		"in float endCompositeAngle;"
+
+		"in float lineY;"
+		"in float lineCompositeAmplitude;"
+
+		"uniform sampler2D textureName;"
+		"uniform vec2 origin;"
+		"uniform vec2 size;";
+
 	std::string fragment_shader =
 		"#version 150\n"
 
@@ -470,9 +472,11 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 	if(display_type != DisplayType::RGB) {
 		vertex_shader +=
 			"out float compositeAngle;"
+			"out float compositeAmplitude;"
 			"out float oneOverCompositeAmplitude;";
 		fragment_shader +=
 			"in float compositeAngle;"
+			"in float compositeAmplitude;"
 			"in float oneOverCompositeAmplitude;";
 	}
 
@@ -508,7 +512,8 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 	if(display_type != DisplayType::RGB) {
 		vertex_shader +=
 				"compositeAngle = (mix(startCompositeAngle, endCompositeAngle, lateral) / 32.0) * 3.141592654;"
-				"oneOverCompositeAmplitude = mix(0.0, 255.0 / compositeAmplitude, step(0.01, compositeAmplitude));";
+				"compositeAmplitude = lineCompositeAmplitude / 255.0;"
+				"oneOverCompositeAmplitude = mix(0.0, 255.0 / lineCompositeAmplitude, step(0.01, lineCompositeAmplitude));";
 	}
 
 	// For RGB and monochrome composite, generate the single texture coordinate; otherwise generate either three
@@ -570,18 +575,17 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 				case InputDataType::PhaseLinkedLuminance8:
 					fragment_shader +=
 						"uint iPhase = uint((compositeAngle * 2.0 / 3.141592654) ) & 3u;"	// + phaseOffset*4.0
-						"fragColour3 = vec3(texture(textureName, textureCoordinate)[iPhase] / 255.0);";
+						"fragColour3 = vec3(texture(textureName, textureCoordinate)[iPhase]);";
 				break;
 
 				case InputDataType::Luminance8Phase8:
 					fragment_shader +=
-						"vec2 yc = texture(textureName, textureCoordinate).rg / vec2(255.0);"
+						"vec2 yc = texture(textureName, textureCoordinate).rg;"
 
 						"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
 						"float rawChroma = step(yc.y, 0.75) * cos(compositeAngle + phaseOffset);"
-						"float level = mix(yc.x, yc.y * rawChroma, 1.0 / oneOverCompositeAmplitude);"	 // TODO: no divide by zero.
+						"float level = mix(yc.x, yc.y * rawChroma, compositeAmplitude);"
 						"fragColour3 = vec3(level);";
-//						"fragColour3 = vec3(yc.x, 0.5 + rawChroma*0.5, 0.0);";
 				break;
 
 				case InputDataType::Red1Green1Blue1:
@@ -591,13 +595,10 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 					fragment_shader +=
 						"vec3 colour = rgbToLumaChroma * texture(textureName, textureCoordinate).rgb;"
 						"vec2 quadrature = vec2(cos(compositeAngle), sin(compositeAngle));"
-						"float level = mix(colour.r, dot(quadrature, colour.gb), 1.0 / oneOverCompositeAmplitude);"	 // TODO: no divide by zero.
+						"float level = mix(colour.r, dot(quadrature, colour.gb), compositeAmplitude);"
 						"fragColour3 = vec3(level);";
 				break;
-
-				default: break;
 			}
-			// TODO
 		} break;
 	}
 
