@@ -516,14 +516,14 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 
 				// Take the average to calculate luminance, then subtract that from all four samples to
 				// give chrominance.
-				"float luminance = dot(samples, vec4(0.25));"
+				"float luminance = dot(samples, vec4(0.25 / (1.0 - compositeAmplitude)));"
 				"samples -= vec4(luminance);"
 
 				// Split and average chrominance.
 				"vec2 channels = vec2("
 					"dot(cos(angles), samples),"
 					"dot(sin(angles), samples)"
-				") * vec2(0.25);"
+				") * vec2(0.125 * oneOverCompositeAmplitude);"
 
 				// Apply a colour space conversion to get RGB.
 				"fragColour3 = lumaChromaToRGB * vec3(luminance, channels);";
