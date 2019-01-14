@@ -152,9 +152,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void setup_pipeline();
 
 		enum class ShaderType {
-			InputScan,
-			ProcessedScan,
-			Line
+			Composition,
+			Conversion
 		};
 
 		/*!

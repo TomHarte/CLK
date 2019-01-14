@@ -22,8 +22,7 @@ void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader 
 
 void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 	switch(type) {
-		case ShaderType::InputScan:
-		case ShaderType::ProcessedScan:
+		case ShaderType::Composition:
 			for(int c = 0; c < 2; ++c) {
 				const std::string prefix = c ? "end" : "start";
 
@@ -57,7 +56,7 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 				1);
 		break;
 
-		case ShaderType::Line:
+		case ShaderType::Conversion:
 			for(int c = 0; c < 2; ++c) {
 				const std::string prefix = c ? "end" : "start";
 
