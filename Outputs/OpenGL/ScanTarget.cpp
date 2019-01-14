@@ -282,8 +282,8 @@ void ScanTarget::setup_pipeline() {
 	output_shader_ = conversion_shader(modals_.input_data_type, modals_.display_type, modals_.composite_colour_space);
 	glBindVertexArray(line_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
-	enable_vertex_attributes(ShaderType::Line, *output_shader_);
-	set_uniforms(ShaderType::Line, *output_shader_);
+	enable_vertex_attributes(ShaderType::Conversion, *output_shader_);
+	set_uniforms(ShaderType::Conversion, *output_shader_);
 	output_shader_->set_uniform("origin", modals_.visible_area.origin.x, modals_.visible_area.origin.y);
 	output_shader_->set_uniform("size", modals_.visible_area.size.width, modals_.visible_area.size.height);
 	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
@@ -292,8 +292,8 @@ void ScanTarget::setup_pipeline() {
 	input_shader_ = composition_shader(modals_.input_data_type);
 	glBindVertexArray(scan_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
-	enable_vertex_attributes(ShaderType::InputScan, *input_shader_);
-	set_uniforms(ShaderType::InputScan, *input_shader_);
+	enable_vertex_attributes(ShaderType::Composition, *input_shader_);
+	set_uniforms(ShaderType::Composition, *input_shader_);
 	input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
 }
 
