@@ -189,7 +189,6 @@ void WD1770::posit_event(int new_event_type) {
 		interesting_event_mask_ &= ~new_event_type;
 	}
 
-	Status new_status;
 	BEGIN_SECTION()
 
 	// Wait for a new command, branch to the appropriate handler.

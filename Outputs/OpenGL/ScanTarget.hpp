@@ -53,7 +53,9 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		uint8_t *begin_data(size_t required_length, size_t required_alignment) override;
 		void end_data(size_t actual_length) override;
 		void submit() override;
-		void announce(Event event, uint16_t x, uint16_t y) override;
+		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) override;
+
+		bool output_is_visible_ = false;
 
 		// Extends the definition of a Scan to include two extra fields,
 		// relevant to the way that this scan target processes video.
@@ -93,8 +95,11 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		struct Line {
 			struct EndPoint {
 				uint16_t x, y;
+				uint16_t cycles_since_end_of_horizontal_retrace;
+				int16_t composite_angle;
 			} end_points[2];
 			uint16_t line;
+			uint8_t composite_amplitude;
 		};
 		struct LineMetadata {
 			bool is_first_in_frame;
@@ -105,8 +110,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		// Contains the first composition of scans into lines;
 		// they're accumulated prior to output to allow for continuous
-		// application of any necessary conversions — e.g. composite processing —
-		// which happen progressively from here to the RGB texture.
+		// application of any necessary conversions — e.g. composite processing.
 		TextureTarget unprocessed_line_texture_;
 
 		// Scans are accumulated to the accumulation texture; the full-display
@@ -154,23 +158,10 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		};
 
 		/*!
-			@returns A string containing GLSL code describing the standard set of
-				@c in and @c uniform variables to bind to the relevant struct
-				from [...]OpenGL::ScanTarget and a vertex function to provide
-				the standard varyings.
-		*/
-		static std::string glsl_globals(ShaderType type);
-
-		/*!
-		*/
-		static std::string glsl_default_vertex_shader(ShaderType type);
-
-		/*!
 			Calls @c taret.enable_vertex_attribute_with_pointer to attach all
 			globals for shaders of @c type to @c target.
 		*/
 		static void enable_vertex_attributes(ShaderType type, Shader &target);
-		static std::vector<Shader::AttributeBinding> attribute_bindings(ShaderType type);
 		void set_uniforms(ShaderType type, Shader &target);
 
 		GLsync fence_ = nullptr;
@@ -180,22 +171,17 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		std::unique_ptr<Shader> input_shader_;
 		std::unique_ptr<Shader> output_shader_;
 
-		static std::unique_ptr<Shader> input_shader(InputDataType input_data_type, DisplayType display_type);
-		static std::unique_ptr<Shader> composite_to_svideo_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width);
-		static std::unique_ptr<Shader> svideo_to_rgb_shader(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width);
-		static SignalProcessing::FIRFilter colour_filter(int colour_cycle_numerator, int colour_cycle_denominator, int processing_width, float low_cutoff, float high_cutoff);
-
-		struct PipelineStage {
-			PipelineStage(Shader *shader, GLenum texture_unit, GLint magnification_filter) :
-				shader(shader),
-				target(LineBufferWidth, LineBufferHeight, texture_unit, magnification_filter, false) {}
-
-			std::unique_ptr<Shader> shader;
-			TextureTarget target;
-		};
-
-		// A list is used here to avoid requiring a copy constructor on PipelineStage.
-		std::list<PipelineStage> pipeline_stages_;
+		/*!
+			Produces a shader that composes fragment of the input stream to a single buffer,
+			normalising the data into one of four forms: RGB, 8-bit luminance,
+			phase-linked luminance or luminance+phase offset.
+		*/
+		static std::unique_ptr<Shader> composition_shader(InputDataType input_data_type);
+		/*!
+			Produces a shader that reads from a composition buffer and converts to host
+			output RGB, decoding composite or S-Video as necessary.
+		*/
+		static std::unique_ptr<Shader> conversion_shader(InputDataType input_data_type, DisplayType display_type, ColourSpace colour_space);
 };
 
 }

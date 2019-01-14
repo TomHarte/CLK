@@ -47,8 +47,8 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 
 Shader::Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<AttributeBinding> &attribute_bindings) {
 	shader_program_ = glCreateProgram();
-	GLuint vertex = compile_shader(vertex_shader, GL_VERTEX_SHADER);
-	GLuint fragment = compile_shader(fragment_shader, GL_FRAGMENT_SHADER);
+	const GLuint vertex = compile_shader(vertex_shader, GL_VERTEX_SHADER);
+	const GLuint fragment = compile_shader(fragment_shader, GL_FRAGMENT_SHADER);
 
 	glAttachShader(shader_program_, vertex);
 	glAttachShader(shader_program_, fragment);
@@ -60,17 +60,18 @@ Shader::Shader(const std::string &vertex_shader, const std::string &fragment_sha
 	glLinkProgram(shader_program_);
 
 #ifdef DEBUG
+	GLint logLength;
+	glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &logLength);
+	if(logLength > 0) {
+		GLchar *log = new GLchar[static_cast<std::size_t>(logLength)];
+		glGetProgramInfoLog(shader_program_, logLength, &logLength, log);
+		printf("Link log:\n%s\n", log);
+		delete[] log;
+	}
+
 	GLint didLink = 0;
 	glGetProgramiv(shader_program_, GL_LINK_STATUS, &didLink);
 	if(didLink == GL_FALSE) {
-		GLint logLength;
-		glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &logLength);
-		if(logLength > 0) {
-			GLchar *log = new GLchar[static_cast<std::size_t>(logLength)];
-			glGetProgramInfoLog(shader_program_, logLength, &logLength, log);
-			printf("Link log:\n%s\n", log);
-			delete[] log;
-		}
 		throw ProgramLinkageError;
 	}
 #endif

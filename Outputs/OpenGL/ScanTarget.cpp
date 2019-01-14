@@ -13,22 +13,14 @@ using namespace Outputs::Display::OpenGL;
 
 namespace {
 
-/// The texture unit from which to source 1bpp input data.
-constexpr GLenum SourceData1BppTextureUnit = GL_TEXTURE0;
-/// The texture unit from which to source 2bpp input data.
-//constexpr GLenum SourceData2BppTextureUnit = GL_TEXTURE1;
-/// The texture unit from which to source 4bpp input data.
-//constexpr GLenum SourceData4BppTextureUnit = GL_TEXTURE2;
+/// The texture unit from which to source input data.
+constexpr GLenum SourceDataTextureUnit = GL_TEXTURE1;
 
 /// The texture unit which contains raw line-by-line composite, S-Video or RGB data.
 constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE3;
-/// The texture unit which contains line-by-line records of luminance and two channels of chrominance, straight after multiplication by the quadrature vector, not yet filtered.
-constexpr GLenum SVideoLineBufferTextureUnit = GL_TEXTURE4;
-/// The texture unit which contains line-by-line records of RGB.
-constexpr GLenum RGBLineBufferTextureUnit = GL_TEXTURE5;
 
 /// The texture unit that contains the current display.
-constexpr GLenum AccumulationTextureUnit = GL_TEXTURE6;
+constexpr GLenum AccumulationTextureUnit = GL_TEXTURE2;
 
 #define TextureAddress(x, y)	(((y) << 11) | (x))
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
@@ -106,17 +98,6 @@ void ScanTarget::set_modals(Modals modals) {
 	modals_ = modals;
 	modals_are_dirty_ = true;
 	is_drawing_.clear();
-}
-
-void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) {
-	// Slightly over-amping rowHeight here is a cheap way to make sure that lines
-	// converge even allowing for the fact that they may not be spaced by exactly
-	// the expected distance. Cf. the stencil-powered logic for making sure all
-	// pixels are painted only exactly once per field.
-	target.set_uniform("rowHeight", GLfloat(1.05f / modals_.expected_vertical_lines));
-	target.set_uniform("scale", GLfloat(modals_.output_scale.x), GLfloat(modals_.output_scale.y));
-	target.set_uniform("processingWidth", GLfloat(processing_width_) / 2048.0f);
-	target.set_uniform("phaseOffset", GLfloat(modals_.input_data_tweaks.phase_linked_luminance_offset));
 }
 
 Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
@@ -230,54 +211,55 @@ void ScanTarget::submit() {
 	allocation_has_failed_ = false;
 }
 
-void ScanTarget::announce(Event event, uint16_t x, uint16_t y) {
-	switch(event) {
-		default: break;
-		case ScanTarget::Event::BeginHorizontalRetrace:
-			if(active_line_) {
-				active_line_->end_points[1].x = x;
-				active_line_->end_points[1].y = y;
-			}
-		break;
-		case ScanTarget::Event::EndHorizontalRetrace: {
-			// Commit the most recent line only if any scans fell on it.
-			// Otherwise there's no point outputting it, it'll contribute nothing.
-			if(provided_scans_) {
-				// Store metadata if concluding a previous line.
-				if(active_line_) {
-					line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
-					line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = frame_was_complete_;
-					is_first_in_frame_ = false;
-				}
-
-				const auto read_pointers = read_pointers_.load();
-
-				// Attempt to allocate a new line; note allocation failure if necessary.
-				const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
-				if(next_line == read_pointers.line) {
-					allocation_has_failed_ = true;
-					active_line_ = nullptr;
-				} else {
-					write_pointers_.line = next_line;
-					active_line_ = &line_buffer_[size_t(write_pointers_.line)];
-				}
-				provided_scans_ = 0;
-			}
-
-			if(active_line_) {
-				active_line_->end_points[0].x = x;
-				active_line_->end_points[0].y = y;
-				active_line_->line = write_pointers_.line;
-			}
-		} break;
-		case ScanTarget::Event::EndVerticalRetrace:
-			is_first_in_frame_ = true;
-			frame_was_complete_ = true;
-		break;
+void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
+	if(event == ScanTarget::Event::EndVerticalRetrace) {
+		is_first_in_frame_ = true;
+		frame_was_complete_ = true;
 	}
 
-	// TODO: any lines that include any portion of vertical sync should be hidden.
-	// (maybe set a flag and zero out the line coordinates?)
+	if(output_is_visible_ == is_visible) return;
+	if(is_visible) {
+		// Commit the most recent line only if any scans fell on it.
+		// Otherwise there's no point outputting it, it'll contribute nothing.
+		if(provided_scans_) {
+			// Store metadata if concluding a previous line.
+			if(active_line_) {
+				line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
+				line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = frame_was_complete_;
+				is_first_in_frame_ = false;
+			}
+
+			const auto read_pointers = read_pointers_.load();
+
+			// Attempt to allocate a new line; note allocation failure if necessary.
+			const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
+			if(next_line == read_pointers.line) {
+				allocation_has_failed_ = true;
+				active_line_ = nullptr;
+			} else {
+				write_pointers_.line = next_line;
+				active_line_ = &line_buffer_[size_t(write_pointers_.line)];
+			}
+			provided_scans_ = 0;
+		}
+
+		if(active_line_) {
+			active_line_->end_points[0].x = location.x;
+			active_line_->end_points[0].y = location.y;
+			active_line_->end_points[0].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
+			active_line_->end_points[0].composite_angle = location.composite_angle;
+			active_line_->line = write_pointers_.line;
+			active_line_->composite_amplitude = composite_amplitude;
+		}
+	} else {
+		if(active_line_) {
+			active_line_->end_points[1].x = location.x;
+			active_line_->end_points[1].y = location.y;
+			active_line_->end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
+			active_line_->end_points[1].composite_angle = location.composite_angle;
+		}
+	}
+	output_is_visible_ = is_visible;
 }
 
 void ScanTarget::setup_pipeline() {
@@ -292,94 +274,27 @@ void ScanTarget::setup_pipeline() {
 		write_pointers_.write_area = 0;
 	}
 
-	// Pick a processing width; this will be at least four times the
-	// colour subcarrier, and an integer multiple of the pixel clock and
-	// at most 2048.
-	const int colour_cycle_width = (modals_.colour_cycle_numerator * 4 + modals_.colour_cycle_denominator - 1) / modals_.colour_cycle_denominator;
-	const int dot_clock = modals_.cycles_per_line / modals_.clocks_per_pixel_greatest_common_divisor;
-	const int overflow = colour_cycle_width % dot_clock;
-	processing_width_ = colour_cycle_width + (overflow ? dot_clock - overflow : 0);
-	processing_width_ = std::min(processing_width_, 2048);
+	// Pick a processing width; this will be the minimum necessary not to
+	// lose any detail when combining the input.
+	processing_width_ = modals_.cycles_per_line / modals_.clocks_per_pixel_greatest_common_divisor;
 
-	// Establish an output shader. TODO: add gamma correction here.
-	output_shader_.reset(new Shader(
-		glsl_globals(ShaderType::Line) + glsl_default_vertex_shader(ShaderType::Line),
-		"#version 150\n"
-
-		"out vec4 fragColour;"
-		"in vec2 textureCoordinate;"
-
-		"uniform sampler2D textureName;"
-
-		"void main(void) {"
-			"fragColour = vec4(texture(textureName, textureCoordinate).rgb, 0.64);"
-		"}",
-		attribute_bindings(ShaderType::Line)
-	));
-
+	// Establish an output shader. TODO: add proper decoding and gamma correction here.
+	output_shader_ = conversion_shader(modals_.input_data_type, modals_.display_type, modals_.composite_colour_space);
 	glBindVertexArray(line_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 	enable_vertex_attributes(ShaderType::Line, *output_shader_);
 	set_uniforms(ShaderType::Line, *output_shader_);
 	output_shader_->set_uniform("origin", modals_.visible_area.origin.x, modals_.visible_area.origin.y);
 	output_shader_->set_uniform("size", modals_.visible_area.size.width, modals_.visible_area.size.height);
-
-	// Establish such intermediary shaders as are required.
-	pipeline_stages_.clear();
-	if(modals_.display_type == DisplayType::CompositeColour) {
-		pipeline_stages_.emplace_back(
-			composite_to_svideo_shader(modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_).release(),
-			SVideoLineBufferTextureUnit,
-			GL_NEAREST);
-	}
-	if(modals_.display_type == DisplayType::SVideo || modals_.display_type == DisplayType::CompositeColour) {
-		pipeline_stages_.emplace_back(
-			svideo_to_rgb_shader(modals_.colour_cycle_numerator, modals_.colour_cycle_denominator, processing_width_).release(),
-			(modals_.display_type == DisplayType::CompositeColour) ? RGBLineBufferTextureUnit : SVideoLineBufferTextureUnit,
-			GL_NEAREST);
-	}
-
-	glBindVertexArray(scan_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
 
 	// Establish an input shader.
-	input_shader_ = input_shader(modals_.input_data_type, modals_.display_type);
+	input_shader_ = composition_shader(modals_.input_data_type);
+	glBindVertexArray(scan_vertex_array_);
+	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
 	enable_vertex_attributes(ShaderType::InputScan, *input_shader_);
 	set_uniforms(ShaderType::InputScan, *input_shader_);
-	input_shader_->set_uniform("textureName", GLint(SourceData1BppTextureUnit - GL_TEXTURE0));
-
-	// Cascade the texture units in use as per the pipeline stages.
-	std::vector<Shader *> input_shaders = {input_shader_.get()};
-	GLint texture_unit = GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0);
-	for(const auto &stage: pipeline_stages_) {
-		input_shaders.push_back(stage.shader.get());
-
-		stage.shader->set_uniform("textureName", texture_unit);
-		set_uniforms(ShaderType::ProcessedScan, *stage.shader);
-		enable_vertex_attributes(ShaderType::ProcessedScan, *stage.shader);
-
-		++texture_unit;
-	}
-	output_shader_->set_uniform("textureName", texture_unit);
-
-	// Ensure that all shaders involved in the input pipeline have the proper colour space knowledged.
-	for(auto shader: input_shaders) {
-		switch(modals_.composite_colour_space) {
-			case ColourSpace::YIQ: {
-				const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
-				const GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
-				shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yiqToRGB);
-				shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYIQ);
-			} break;
-
-			case ColourSpace::YUV: {
-				const GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
-				const GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
-				shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yuvToRGB);
-				shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYUV);
-			} break;
-		}
-	}
+	input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
 }
 
 void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
@@ -431,7 +346,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 	// Submit texture.
 	if(submit_pointers.write_area != read_pointers.write_area) {
-		glActiveTexture(SourceData1BppTextureUnit);
+		glActiveTexture(SourceDataTextureUnit);
 		glBindTexture(GL_TEXTURE_2D, write_area_texture_name_);
 
 		// Create storage for the texture if it doesn't yet exist; this was deferred until here
@@ -487,7 +402,6 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 	// Push new input to the unprocessed line buffer.
 	if(new_scans) {
-		glDisable(GL_BLEND);
 		unprocessed_line_texture_.bind_framebuffer();
 
 		// Clear newly-touched lines; that is everything from (read+1) to submit.
@@ -499,26 +413,11 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			if(first_line_to_clear < final_line_to_clear) {
 				glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), final_line_to_clear - first_line_to_clear);
 				glClear(GL_COLOR_BUFFER_BIT);
-
-				if(pipeline_stages_.size()) {
-					pipeline_stages_.back().target.bind_framebuffer();
-					glClear(GL_COLOR_BUFFER_BIT);
-					unprocessed_line_texture_.bind_framebuffer();
-				}
 			} else {
 				glScissor(0, 0, unprocessed_line_texture_.get_width(), final_line_to_clear);
 				glClear(GL_COLOR_BUFFER_BIT);
 				glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), unprocessed_line_texture_.get_height() - first_line_to_clear);
 				glClear(GL_COLOR_BUFFER_BIT);
-
-				if(pipeline_stages_.size()) {
-					pipeline_stages_.back().target.bind_framebuffer();
-					glScissor(0, 0, unprocessed_line_texture_.get_width(), final_line_to_clear);
-					glClear(GL_COLOR_BUFFER_BIT);
-					glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), unprocessed_line_texture_.get_height() - first_line_to_clear);
-					glClear(GL_COLOR_BUFFER_BIT);
-					unprocessed_line_texture_.bind_framebuffer();
-				}
 			}
 
 			glDisable(GL_SCISSOR_TEST);
@@ -528,13 +427,6 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		glBindVertexArray(scan_vertex_array_);
 		input_shader_->bind();
 		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
-
-		// If there are any further pipeline stages, apply them.
-		for(auto &stage: pipeline_stages_) {
-			stage.target.bind_framebuffer();
-			stage.shader->bind();
-			glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
-		}
 	}
 
 	// Ensure the accumulation buffer is properly sized.
@@ -545,7 +437,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 				GLsizei(proportional_width),
 				GLsizei(output_height),
 				AccumulationTextureUnit,
-				GL_LINEAR,
+				GL_NEAREST,
 				true));
 		if(accumulation_texture_) {
 			new_framebuffer->bind_framebuffer();
@@ -576,7 +468,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		// Enable blending and stenciling, and ensure spans increment the stencil buffer.
 		glEnable(GL_BLEND);
 		glEnable(GL_STENCIL_TEST);
-		glStencilFunc(GL_EQUAL, 0, GLuint(-1));
+		glStencilFunc(GL_EQUAL, 0, GLuint(~0));
 		glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
 
 		// Prepare to output lines.

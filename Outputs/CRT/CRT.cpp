@@ -159,6 +159,18 @@ Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested,
 	return horizontal_flywheel_->get_next_event_in_period(hsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
+Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(uint16_t data_offset) {
+	Display::ScanTarget::Scan::EndPoint end_point;
+
+	end_point.x = uint16_t(horizontal_flywheel_->get_current_output_position());
+	end_point.y = uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
+	end_point.composite_angle = int16_t((phase_numerator_ << 6) / phase_denominator_) * (is_alernate_line_ ? -1 : 1);
+	end_point.data_offset = data_offset;
+	end_point.cycles_since_end_of_horizontal_retrace = uint16_t(cycles_since_horizontal_sync_ / time_multiplier_);
+
+	return end_point;
+}
+
 void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type, int number_of_samples) {
 	number_of_cycles *= time_multiplier_;
 
@@ -186,16 +198,14 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 		// If outputting, store the start location and scan constants.
 		if(next_scan) {
-			next_scan->end_points[0].x = uint16_t(horizontal_flywheel_->get_current_output_position());
-			next_scan->end_points[0].y = uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
-			next_scan->end_points[0].composite_angle = int16_t((phase_numerator_ << 6) / phase_denominator_) * (is_alernate_line_ ? -1 : 1);
-			next_scan->end_points[0].data_offset = uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles);
+			next_scan->end_points[0] = end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles));
 			next_scan->composite_amplitude = colour_burst_amplitude_;
 		}
 
 		// Advance time: that'll affect both the colour subcarrier position and the number of cycles left to run.
 		phase_numerator_ += next_run_length * colour_cycle_numerator_;
 		number_of_cycles -= next_run_length;
+		cycles_since_horizontal_sync_ += next_run_length;
 
 		// React to the incoming event.
 		horizontal_flywheel_->apply_event(next_run_length, (next_run_length == time_until_horizontal_sync_event) ? next_horizontal_sync_event : Flywheel::SyncEvent::None);
@@ -203,24 +213,28 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 
 		// End the scan if necessary.
 		if(next_scan) {
-			next_scan->end_points[1].x = uint16_t(horizontal_flywheel_->get_current_output_position());
-			next_scan->end_points[1].y = uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
-			next_scan->end_points[1].composite_angle = int16_t((phase_numerator_ << 6) / phase_denominator_) * (is_alernate_line_ ? -1 : 1);
-			next_scan->end_points[1].data_offset = uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles);
+			next_scan->end_points[1] = end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles));
 			scan_target_->end_scan();
 		}
 
 		// Announce horizontal retrace events.
 		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event != Flywheel::SyncEvent::None) {
+			// Reset the cycles-since-sync counter if this is the end of retrace.
+			if(next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace) {
+				cycles_since_horizontal_sync_ = 0;
+			}
+
+			// Announce event.
 			const auto event =
 				(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
 					? Outputs::Display::ScanTarget::Event::BeginHorizontalRetrace : Outputs::Display::ScanTarget::Event::EndHorizontalRetrace;
 			scan_target_->announce(
 				event,
-				uint16_t(horizontal_flywheel_->get_current_output_position()),
-				uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_));
+				!(horizontal_flywheel_->is_in_retrace() || vertical_flywheel_->is_in_retrace()),
+				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)),
+				colour_burst_amplitude_);
 
-			// Prepare for the next line.
+			// If retrace is starting, update phase if required and mark no colour burst spotted yet.
 			if(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
 				is_alernate_line_ ^= phase_alternates_;
 				colour_burst_amplitude_ = 0;
@@ -234,8 +248,9 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 					? Outputs::Display::ScanTarget::Event::BeginVerticalRetrace : Outputs::Display::ScanTarget::Event::EndVerticalRetrace;
 			scan_target_->announce(
 				event,
-				uint16_t(horizontal_flywheel_->get_current_output_position()),
-				uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_));
+				!(horizontal_flywheel_->is_in_retrace() || vertical_flywheel_->is_in_retrace()),
+				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)),
+				colour_burst_amplitude_);
 		}
 
 		// if this is vertical retrace then adcance a field

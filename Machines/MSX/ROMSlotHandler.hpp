@@ -43,6 +43,8 @@ class MemoryMap {
 
 class ROMSlotHandler {
 	public:
+		virtual ~ROMSlotHandler() {}
+
 		/*! Advances time by @c half_cycles. */
 		virtual void run_for(HalfCycles half_cycles) {}
 

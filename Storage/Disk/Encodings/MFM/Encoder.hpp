@@ -45,6 +45,7 @@ std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<co
 class Encoder {
 	public:
 		Encoder(std::vector<bool> &target);
+		virtual ~Encoder() {}
 		virtual void add_byte(uint8_t input) = 0;
 		virtual void add_index_address_mark() = 0;
 		virtual void add_ID_address_mark() = 0;

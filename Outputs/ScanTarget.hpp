@@ -228,6 +228,9 @@ struct ScanTarget {
 				///
 				/// It will produce undefined behaviour if signs differ on a single scan.
 				int16_t composite_angle;
+
+				/// Gives the number of cycles since the most recent horizontal retrace ended.
+				uint16_t cycles_since_end_of_horizontal_retrace;
 			} end_points[2];
 
 			/// For composite video, dictates the amplitude of the colour subcarrier as a proportion of
@@ -284,8 +287,15 @@ struct ScanTarget {
 			EndVerticalRetrace,
 		};
 
-		/// Provides a hint that the named event has occurred.
-		virtual void announce(Event event, uint16_t x, uint16_t y) {}
+		/*!
+			Provides a hint that the named event has occurred.
+
+			@param event The event.
+			@param is_visible @c true if the output stream is visible immediately after this event; @c false otherwise.
+			@param location The location of the event.
+			@param composite_amplitude The amplitude of the colour burst on this line (0, if no colour burst was found).
+		*/
+		virtual void announce(Event event, bool is_visible, const Scan::EndPoint &location, uint8_t composite_amplitude) {}
 };
 
 /*!

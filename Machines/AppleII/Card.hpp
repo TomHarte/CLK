@@ -39,6 +39,7 @@ namespace AppleII {
 */
 class Card {
 	public:
+		virtual ~Card() {}
 		enum Select: int {
 			None	= 0,		// No select line is active
 			IO		= 1 << 0,	// IO select is active

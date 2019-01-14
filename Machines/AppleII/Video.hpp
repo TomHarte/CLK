@@ -394,7 +394,6 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							static_cast<size_t>(fetch_end - column_),
 							&base_stream_[static_cast<size_t>(column_)],
 							&auxiliary_stream_[static_cast<size_t>(column_)]);
-						// TODO: should character modes be mapped to character pixel outputs here?
 					}
 
 					if(row_ < 192) {
@@ -413,7 +412,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							const int pixel_row = row_ & 7;
 
 							const bool is_double = Video::is_double_mode(line_mode);
-							if(!is_double && was_double_) {
+							if(!is_double && was_double_ && pixel_pointer_) {
 								pixel_pointer_[pixel_start*14 + 0] =
 								pixel_pointer_[pixel_start*14 + 1] =
 								pixel_pointer_[pixel_start*14 + 2] =
@@ -424,79 +423,83 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							}
 							was_double_ = is_double;
 
-							switch(line_mode) {
-								case GraphicsMode::Text:
-									output_text(
-										&pixel_pointer_[pixel_start * 14 + 7],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start),
-										static_cast<size_t>(pixel_row));
-								break;
+							if(pixel_pointer_) {
+								switch(line_mode) {
+									case GraphicsMode::Text:
+										output_text(
+											&pixel_pointer_[pixel_start * 14 + 7],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start),
+											static_cast<size_t>(pixel_row));
+									break;
 
-								case GraphicsMode::DoubleText:
-									output_double_text(
-										&pixel_pointer_[pixel_start * 14],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										&auxiliary_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start),
-										static_cast<size_t>(pixel_row));
-								break;
+									case GraphicsMode::DoubleText:
+										output_double_text(
+											&pixel_pointer_[pixel_start * 14],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											&auxiliary_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start),
+											static_cast<size_t>(pixel_row));
+									break;
 
-								case GraphicsMode::LowRes:
-									output_low_resolution(
-										&pixel_pointer_[pixel_start * 14 + 7],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start),
-										pixel_start,
-										pixel_row);
-								break;
+									case GraphicsMode::LowRes:
+										output_low_resolution(
+											&pixel_pointer_[pixel_start * 14 + 7],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start),
+											pixel_start,
+											pixel_row);
+									break;
 
-								case GraphicsMode::FatLowRes:
-									output_fat_low_resolution(
-										&pixel_pointer_[pixel_start * 14 + 7],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start),
-										pixel_start,
-										pixel_row);
-								break;
+									case GraphicsMode::FatLowRes:
+										output_fat_low_resolution(
+											&pixel_pointer_[pixel_start * 14 + 7],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start),
+											pixel_start,
+											pixel_row);
+									break;
 
-								case GraphicsMode::DoubleLowRes:
-									output_double_low_resolution(
-										&pixel_pointer_[pixel_start * 14],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										&auxiliary_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start),
-										pixel_start,
-										pixel_row);
-								break;
+									case GraphicsMode::DoubleLowRes:
+										output_double_low_resolution(
+											&pixel_pointer_[pixel_start * 14],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											&auxiliary_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start),
+											pixel_start,
+											pixel_row);
+									break;
 
-								case GraphicsMode::HighRes:
-									output_high_resolution(
-										&pixel_pointer_[pixel_start * 14 + 7],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start));
-								break;
+									case GraphicsMode::HighRes:
+										output_high_resolution(
+											&pixel_pointer_[pixel_start * 14 + 7],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start));
+									break;
 
-								case GraphicsMode::DoubleHighRes:
-									output_double_high_resolution(
-										&pixel_pointer_[pixel_start * 14],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										&auxiliary_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start));
-								break;
+									case GraphicsMode::DoubleHighRes:
+										output_double_high_resolution(
+											&pixel_pointer_[pixel_start * 14],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											&auxiliary_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start));
+									break;
 
-								default: break;
+									default: break;
+								}
 							}
 
 							if(pixel_end == 40) {
-								if(was_double_) {
-									pixel_pointer_[560] = pixel_pointer_[561] = pixel_pointer_[562] = pixel_pointer_[563] =
-									pixel_pointer_[564] = pixel_pointer_[565] = pixel_pointer_[566] = pixel_pointer_[567] = 0;
-								} else {
-									if(line_mode == GraphicsMode::HighRes && base_stream_[39]&0x80)
-										pixel_pointer_[567] = graphics_carry_;
-									else
-										pixel_pointer_[567] = 0;
+								if(pixel_pointer_) {
+									if(was_double_) {
+										pixel_pointer_[560] = pixel_pointer_[561] = pixel_pointer_[562] = pixel_pointer_[563] =
+										pixel_pointer_[564] = pixel_pointer_[565] = pixel_pointer_[566] = pixel_pointer_[567] = 0;
+									} else {
+										if(line_mode == GraphicsMode::HighRes && base_stream_[39]&0x80)
+											pixel_pointer_[567] = graphics_carry_;
+										else
+											pixel_pointer_[567] = 0;
+									}
 								}
 
 								crt_.output_data(568, 568);

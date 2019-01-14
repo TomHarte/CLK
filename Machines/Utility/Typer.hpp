@@ -23,6 +23,8 @@ namespace Utility {
 */
 class CharacterMapper {
 	public:
+		virtual ~CharacterMapper() {}
+
 		/// @returns The EndSequence-terminated sequence of keys that would cause @c character to be typed.
 		virtual uint16_t *sequence_for_character(char character) = 0;
 
