@@ -100,17 +100,6 @@ void ScanTarget::set_modals(Modals modals) {
 	is_drawing_.clear();
 }
 
-void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) {
-	// Slightly over-amping rowHeight here is a cheap way to make sure that lines
-	// converge even allowing for the fact that they may not be spaced by exactly
-	// the expected distance. Cf. the stencil-powered logic for making sure all
-	// pixels are painted only exactly once per field.
-	target.set_uniform("rowHeight", GLfloat(1.05f / modals_.expected_vertical_lines));
-	target.set_uniform("scale", GLfloat(modals_.output_scale.x), GLfloat(modals_.output_scale.y));
-	target.set_uniform("processingWidth", GLfloat(processing_width_) / 2048.0f);
-	target.set_uniform("phaseOffset", GLfloat(modals_.input_data_tweaks.phase_linked_luminance_offset));
-}
-
 Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 	if(allocation_has_failed_) return nullptr;
 

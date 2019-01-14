@@ -158,23 +158,10 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		};
 
 		/*!
-			@returns A string containing GLSL code describing the standard set of
-				@c in and @c uniform variables to bind to the relevant struct
-				from [...]OpenGL::ScanTarget and a vertex function to provide
-				the standard varyings.
-		*/
-		static std::string glsl_globals(ShaderType type);
-
-		/*!
-		*/
-		static std::string glsl_default_vertex_shader(ShaderType type);
-
-		/*!
 			Calls @c taret.enable_vertex_attribute_with_pointer to attach all
 			globals for shaders of @c type to @c target.
 		*/
 		static void enable_vertex_attributes(ShaderType type, Shader &target);
-		static std::vector<Shader::AttributeBinding> attribute_bindings(ShaderType type);
 		void set_uniforms(ShaderType type, Shader &target);
 
 		GLsync fence_ = nullptr;
@@ -184,7 +171,16 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		std::unique_ptr<Shader> input_shader_;
 		std::unique_ptr<Shader> output_shader_;
 
+		/*!
+			Produces a shader that composes fragment of the input stream to a single buffer,
+			normalising the data into one of four forms: RGB, 8-bit luminance,
+			phase-linked luminance or luminance+phase offset.
+		*/
 		static std::unique_ptr<Shader> composition_shader(InputDataType input_data_type);
+		/*!
+			Produces a shader that reads from a composition buffer and converts to host
+			output RGB, decoding composite or S-Video as necessary.
+		*/
 		static std::unique_ptr<Shader> conversion_shader(InputDataType input_data_type, DisplayType display_type, ColourSpace colour_space);
 };
 

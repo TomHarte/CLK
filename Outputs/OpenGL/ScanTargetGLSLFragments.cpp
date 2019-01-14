@@ -10,166 +10,14 @@
 
 using namespace Outputs::Display::OpenGL;
 
-std::string ScanTarget::glsl_globals(ShaderType type) {
-	switch(type) {
-		case ShaderType::InputScan:
-		case ShaderType::ProcessedScan:
-		return
-			"#version 150\n"
-
-			"uniform vec2 scale;"
-
-			"uniform mat3 lumaChromaToRGB;"
-			"uniform mat3 rgbToLumaChroma;"
-
-			"uniform float rowHeight;"
-			"uniform float processingWidth;"
-
-			"in vec2 startPoint;"
-			"in float startDataX;"
-			"in float startCompositeAngle;"
-			"in float startClock;"
-
-			"in vec2 endPoint;"
-			"in float endDataX;"
-			"in float endCompositeAngle;"
-			"in float endClock;"
-
-			"in float dataY;"
-			"in float lineY;"
-			"in float compositeAmplitude;";
-
-		case ShaderType::Line:
-		return "";
-	}
-}
-
-std::vector<Shader::AttributeBinding> ScanTarget::attribute_bindings(ShaderType type) {
-	switch(type) {
-		case ShaderType::InputScan:
-		case ShaderType::ProcessedScan:
-		return {
-			{"startPoint", 0},
-			{"startDataX", 1},
-			{"startCompositeAngle", 2},
-			{"startClock", 3},
-			{"endPoint", 4},
-			{"endDataX", 5},
-			{"endCompositeAngle", 6},
-			{"endClock", 7},
-			{"dataY", 8},
-			{"lineY", 9},
-			{"compositeAmplitude", 10},
-		};
-
-		case ShaderType::Line:
-		return {
-			{"startPoint", 0},
-			{"endPoint", 1},
-			{"startClock", 2},
-			{"endClock", 3},
-			{"lineY", 4},
-			{"lineCompositeAmplitude", 5},
-			{"startCompositeAngle", 6},
-			{"endCompositeAngle", 7},
-		};
-	}
-}
-
-std::string ScanTarget::glsl_default_vertex_shader(ShaderType type) {
-	switch(type) {
-		case ShaderType::InputScan:
-		case ShaderType::ProcessedScan: {
-			std::string result;
-
-			if(type == ShaderType::InputScan) {
-				result +=
-					"out vec2 textureCoordinate;"
-					"uniform usampler2D textureName;";
-			} else {
-				result +=
-					"out vec2 textureCoordinates[15];"
-					"out vec2 chromaCoordinates[2];"
-
-					"uniform sampler2D textureName;"
-					"uniform float chromaOffset;"
-					"uniform float edgeExpansion;";
-			}
-
-			result +=
-				"out float compositeAngle;"
-				"out float oneOverCompositeAmplitude;"
-
-				"void main(void) {"
-					"float lateral = float(gl_VertexID & 1);"
-					"float longitudinal = float((gl_VertexID & 2) >> 1);"
-
-					"compositeAngle = (mix(startCompositeAngle, endCompositeAngle, lateral) / 32.0) * 3.141592654;"
-					"oneOverCompositeAmplitude = mix(0.0, 255.0 / compositeAmplitude, step(0.01, compositeAmplitude));";
-
-			if(type == ShaderType::InputScan) {
-				result +=
-					"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / textureSize(textureName, 0);"
-					"vec2 eyePosition = vec2(mix(startClock, endClock, lateral), lineY + longitudinal) / vec2(2048.0, 2048.0);";
-			} else {
-				result +=
-					"vec2 sourcePosition = vec2(mix(startPoint.x, endPoint.x, lateral) * processingWidth, lineY + 0.5);"
-					"vec2 eyePosition = (sourcePosition + vec2(0.0, longitudinal - 0.5)) / vec2(scale.x, 2048.0);"
-					"sourcePosition /= vec2(scale.x, 2048.0);"
-
-//					"vec2 expansion = vec2(edgeExpansion, 0.0) / textureSize(textureName, 0);"
-//					"eyePosition = eyePosition + expansion;"
-//					"sourcePosition = sourcePosition + expansion;"
-
-					"textureCoordinates[0] = sourcePosition + vec2(-7.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[1] = sourcePosition + vec2(-6.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[2] = sourcePosition + vec2(-5.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[3] = sourcePosition + vec2(-4.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[4] = sourcePosition + vec2(-3.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[5] = sourcePosition + vec2(-2.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[6] = sourcePosition + vec2(-1.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[7] = sourcePosition;"
-					"textureCoordinates[8] = sourcePosition + vec2(1.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[9] = sourcePosition + vec2(2.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[10] = sourcePosition + vec2(3.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[11] = sourcePosition + vec2(4.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[12] = sourcePosition + vec2(5.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[13] = sourcePosition + vec2(6.0, 0.0) / textureSize(textureName, 0);"
-					"textureCoordinates[14] = sourcePosition + vec2(7.0, 0.0) / textureSize(textureName, 0);"
-
-					"chromaCoordinates[0] = sourcePosition + vec2(chromaOffset, 0.0);"
-					"chromaCoordinates[1] = sourcePosition - vec2(chromaOffset, 0.0);"
-
-					"eyePosition = eyePosition;";
-			}
-
-			return result +
-					"gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);"
-				"}";
-		}
-
-		case ShaderType::Line:
-		return
-			"out vec2 textureCoordinates[4];"
-
-			"out float compositeAngle;"
-			"out float oneOverCompositeAmplitude;"
-
-			"void main(void) {"
-				"float lateral = float(gl_VertexID & 1);"
-				"float longitudinal = float((gl_VertexID & 2) >> 1);"
-
-				"textureCoordinates[0] = vec2(mix(startClock, endClock, lateral), lineY + 0.5) / textureSize(textureName, 0);"
-
-				"compositeAngle = (mix(startCompositeAngle, endCompositeAngle, lateral) / 32.0) * 3.141592654;"
-				"oneOverCompositeAmplitude = mix(0.0, 255.0 / compositeAmplitude, step(0.01, compositeAmplitude));"
-
-				"vec2 centrePoint = mix(startPoint, endPoint, lateral) / scale;"
-				"vec2 height = normalize(endPoint - startPoint).yx * (longitudinal - 0.5) * rowHeight;"
-				"vec2 eyePosition = vec2(-1.0, 1.0) + vec2(2.0, -2.0) * (((centrePoint + height) - origin) / size);"
-				"gl_Position = vec4(eyePosition, 0.0, 1.0);"
-			"}";
-	}
+void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) {
+	// Slightly over-amping rowHeight here is a cheap way to make sure that lines
+	// converge even allowing for the fact that they may not be spaced by exactly
+	// the expected distance. Cf. the stencil-powered logic for making sure all
+	// pixels are painted only exactly once per field.
+	target.set_uniform("rowHeight", GLfloat(1.05f / modals_.expected_vertical_lines));
+	target.set_uniform("scale", GLfloat(modals_.output_scale.x), GLfloat(modals_.output_scale.y));
+	target.set_uniform("phaseOffset", GLfloat(modals_.input_data_tweaks.phase_linked_luminance_offset));
 }
 
 void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
@@ -180,23 +28,12 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 				const std::string prefix = c ? "end" : "start";
 
 				target.enable_vertex_attribute_with_pointer(
-					prefix + "Point",
-					2, GL_UNSIGNED_SHORT, GL_FALSE,
-					sizeof(Scan),
-					reinterpret_cast<void *>(offsetof(Scan, scan.end_points[c].x)),
-					1);
-				target.enable_vertex_attribute_with_pointer(
 					prefix + "DataX",
 					1, GL_UNSIGNED_SHORT, GL_FALSE,
 					sizeof(Scan),
 					reinterpret_cast<void *>(offsetof(Scan, scan.end_points[c].data_offset)),
 					1);
-				target.enable_vertex_attribute_with_pointer(
-					prefix + "CompositeAngle",
-					1, GL_UNSIGNED_SHORT, GL_FALSE,
-					sizeof(Scan),
-					reinterpret_cast<void *>(offsetof(Scan, scan.end_points[c].composite_angle)),
-					1);
+
 				target.enable_vertex_attribute_with_pointer(
 					prefix + "Clock",
 					1, GL_UNSIGNED_SHORT, GL_FALSE,
@@ -211,17 +48,12 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 				sizeof(Scan),
 				reinterpret_cast<void *>(offsetof(Scan, data_y)),
 				1);
+
 			target.enable_vertex_attribute_with_pointer(
 				"lineY",
 				1, GL_UNSIGNED_SHORT, GL_FALSE,
 				sizeof(Scan),
 				reinterpret_cast<void *>(offsetof(Scan, line)),
-				1);
-			target.enable_vertex_attribute_with_pointer(
-				"compositeAmplitude",
-				1, GL_UNSIGNED_BYTE, GL_FALSE,
-				sizeof(Scan),
-				reinterpret_cast<void *>(offsetof(Scan, scan.composite_amplitude)),
 				1);
 		break;
 
@@ -269,6 +101,30 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 }
 
 std::unique_ptr<Shader> ScanTarget::composition_shader(InputDataType input_data_type) {
+	const std::string vertex_shader =
+		"#version 150\n"
+
+		"in float startDataX;"
+		"in float startClock;"
+
+		"in float endDataX;"
+		"in float endClock;"
+
+		"in float dataY;"
+		"in float lineY;"
+
+		"out vec2 textureCoordinate;"
+		"uniform usampler2D textureName;"
+
+		"void main(void) {"
+			"float lateral = float(gl_VertexID & 1);"
+			"float longitudinal = float((gl_VertexID & 2) >> 1);"
+
+			"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / textureSize(textureName, 0);"
+			"vec2 eyePosition = vec2(mix(startClock, endClock, lateral), lineY + longitudinal) / vec2(2048.0, 2048.0);"
+			"gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);"
+		"}";
+
 	std::string fragment_shader =
 		"#version 150\n"
 
@@ -312,15 +168,20 @@ std::unique_ptr<Shader> ScanTarget::composition_shader(InputDataType input_data_
 	}
 
 	return std::unique_ptr<Shader>(new Shader(
-		glsl_globals(ShaderType::InputScan) + glsl_default_vertex_shader(ShaderType::InputScan),
+		vertex_shader,
 		fragment_shader + "}",
-		attribute_bindings(ShaderType::InputScan)
+		{
+			{"startDataX", 0},
+			{"startClock", 1},
+			{"endDataX", 2},
+			{"endClock", 3},
+			{"dataY", 4},
+			{"lineY", 5},
+		}
 	));
 }
 
 std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_type, DisplayType display_type, ColourSpace colour_space) {
-	display_type = DisplayType::CompositeColour;	// Just a test.
-
 	// Compose a vertex shader. If the display type is RGB, generate just the proper
 	// geometry position, plus a solitary textureCoordinate.
 	//
@@ -337,7 +198,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 
 		"uniform vec2 scale;"
 		"uniform float rowHeight;"
-		"uniform float processingWidth;"
 
 		"in vec2 startPoint;"
 		"in vec2 endPoint;"
@@ -379,13 +239,9 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 		break;
 
 		case DisplayType::CompositeColour:
+		case DisplayType::SVideo:
 			vertex_shader += "out vec2 textureCoordinates[4];";
 			fragment_shader += "in vec2 textureCoordinates[4];";
-		break;
-
-		case DisplayType::SVideo:
-			vertex_shader += "out vec2 textureCoordinates[3];";
-			fragment_shader += "in vec2 textureCoordinates[3];";
 		break;
 	}
 
@@ -417,6 +273,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 		break;
 
 		case DisplayType::CompositeColour:
+		case DisplayType::SVideo:
 			vertex_shader +=
 				"float centreClock = mix(startClock, endClock, lateral);"
 				"float clocksPerAngle = (endClock - startClock) / (abs(endCompositeAngle - startCompositeAngle) / 64.0);"
@@ -424,10 +281,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 				"textureCoordinates[1] = vec2(centreClock - 0.125*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
 				"textureCoordinates[2] = vec2(centreClock + 0.125*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
 				"textureCoordinates[3] = vec2(centreClock + 0.375*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);";
-		break;
-
-		case DisplayType::SVideo:
-			// TODO
 		break;
 	}
 
@@ -441,6 +294,46 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 		fragment_shader +=
 			"uniform mat3 lumaChromaToRGB;"
 			"uniform mat3 rgbToLumaChroma;";
+	}
+
+	if(display_type == DisplayType::SVideo) {
+		fragment_shader +=
+			"vec2 svideo_sample(vec2 coordinate, float angle) {";
+
+		switch(input_data_type) {
+			case InputDataType::Luminance1:
+			case InputDataType::Luminance8:
+				// Easy, just copy across.
+				fragment_shader += "return vec2(texture(textureName, coordinate).r, 0.0);";
+			break;
+
+			case InputDataType::PhaseLinkedLuminance8:
+				fragment_shader +=
+					"uint iPhase = uint((angle * 2.0 / 3.141592654) ) & 3u;"	// + phaseOffset*4.0
+					"return vec2(texture(textureName, coordinate)[iPhase], 0.0);";
+			break;
+
+			case InputDataType::Luminance8Phase8:
+				fragment_shader +=
+					"vec2 yc = texture(textureName, coordinate).rg;"
+
+					"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
+					"float rawChroma = step(yc.y, 0.75) * cos(angle + phaseOffset);"
+					"return vec2(yc.x, rawChroma);";
+			break;
+
+			case InputDataType::Red1Green1Blue1:
+			case InputDataType::Red2Green2Blue2:
+			case InputDataType::Red4Green4Blue4:
+			case InputDataType::Red8Green8Blue8:
+				fragment_shader +=
+					"vec3 colour = rgbToLumaChroma * texture(textureName, coordinate).rgb;"
+					"vec2 quadrature = vec2(cos(angle), sin(angle));"
+					"return vec2(colour.r, dot(quadrature, colour.gb));";
+			break;
+		}
+
+		fragment_shader += "}";
 	}
 
 	if(display_type == DisplayType::CompositeMonochrome || display_type == DisplayType::CompositeColour) {
@@ -466,7 +359,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 
 					"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
 					"float rawChroma = step(yc.y, 0.75) * cos(angle + phaseOffset);"
-					"return mix(yc.x, yc.y * rawChroma, compositeAmplitude);";
+					"return mix(yc.x, rawChroma, compositeAmplitude);";
 			break;
 
 			case InputDataType::Red1Green1Blue1:
@@ -487,25 +380,50 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 		"void main(void) {"
 			"vec3 fragColour3;";
 
+	if(display_type == DisplayType::CompositeColour || display_type == DisplayType::SVideo) {
+			fragment_shader +=
+				// Figure out the four composite angles.
+				"vec4 angles = vec4("
+					"compositeAngle - 2.356194490192345,"
+					"compositeAngle - 0.785398163397448,"
+					"compositeAngle + 0.785398163397448,"
+					"compositeAngle + 2.356194490192345"
+				");";
+	}
+
 	switch(display_type) {
 		case DisplayType::RGB:
 			fragment_shader += "fragColour3 = texture(textureName, textureCoordinate).rgb;";
 		break;
 
 		case DisplayType::SVideo:
-			// TODO
+			fragment_shader +=
+				// Sample four times over, at proper angle offsets.
+				"vec2 samples[4] = vec2[4]("
+					"svideo_sample(textureCoordinates[0], angles[0]),"
+					"svideo_sample(textureCoordinates[1], angles[1]),"
+					"svideo_sample(textureCoordinates[2], angles[2]),"
+					"svideo_sample(textureCoordinates[3], angles[3])"
+				");"
+				"vec4 chrominances = vec4("
+					"samples[0].y,"
+					"samples[1].y,"
+					"samples[2].y,"
+					"samples[3].y"
+				");"
+
+				// Split and average chrominance.
+				"vec2 channels = vec2("
+					"dot(cos(angles), chrominances),"
+					"dot(sin(angles), chrominances)"
+				") * vec2(0.25);"
+
+				// Apply a colour space conversion to get RGB.
+				"fragColour3 = lumaChromaToRGB * vec3(samples[1].x, channels);";
 		break;
 
 		case DisplayType::CompositeColour:
 			fragment_shader +=
-				// Figure out the four composite angles. TODO: make these an input?
-				"vec4 angles = vec4("
-					"compositeAngle - 2.356194490192345,"
-					"compositeAngle - 0.785398163397448,"
-					"compositeAngle + 0.785398163397448,"
-					"compositeAngle + 2.356194490192345"
-				");"
-
 				// Sample four times over, at proper angle offsets.
 				"vec4 samples = vec4("
 					"composite_sample(textureCoordinates[0], angles[0]),"
@@ -542,7 +460,16 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 	const auto shader = new Shader(
 		vertex_shader,
 		fragment_shader,
-		attribute_bindings(ShaderType::Line)
+		{
+			{"startPoint", 0},
+			{"endPoint", 1},
+			{"startClock", 2},
+			{"endClock", 3},
+			{"lineY", 4},
+			{"lineCompositeAmplitude", 5},
+			{"startCompositeAngle", 6},
+			{"endCompositeAngle", 7},
+		}
 	);
 
 	// If this isn't an RGB or composite colour shader, set the proper colour space.
