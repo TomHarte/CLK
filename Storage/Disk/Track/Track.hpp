@@ -70,6 +70,8 @@ class HeadPosition {
 */
 class Track {
 	public:
+		virtual ~Track() {}
+
 		/*!
 			Describes the location of a track, implementing < to allow for use as a set key.
 		*/

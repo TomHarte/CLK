@@ -26,6 +26,8 @@ class CharacterMapper {
 		/// @returns The EndSequence-terminated sequence of keys that would cause @c character to be typed.
 		virtual uint16_t *sequence_for_character(char character) = 0;
 
+		virtual CharacterMaper() {}
+
 	protected:
 		typedef uint16_t KeySequence[16];
 
