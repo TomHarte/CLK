@@ -178,6 +178,8 @@ class CRTCBusHandler {
 				establish_palette_hits();
 				build_mode_table();
 				crt_.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
+				crt_.set_brightness(3.0f / 2.0f);	// As only the values 0, 1 and 2 will be used in each channel,
+													// whereas Red2Green2Blue2 defines a range of 0-3.
 			}
 
 		/*!

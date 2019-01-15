@@ -285,8 +285,8 @@ void ScanTarget::setup_pipeline() {
 	// lose any detail when combining the input.
 	processing_width_ = modals_.cycles_per_line / modals_.clocks_per_pixel_greatest_common_divisor;
 
-	// Establish an output shader. TODO: add proper decoding and gamma correction here.
-	output_shader_ = conversion_shader(modals_.input_data_type, modals_.display_type, modals_.composite_colour_space);
+	// Establish an output shader. TODO: don't hard-code gamma.
+	output_shader_ = conversion_shader(modals_.input_data_type, modals_.display_type, modals_.composite_colour_space, 2.2f / modals_.intended_gamma, modals_.brightness);
 	glBindVertexArray(line_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 	enable_vertex_attributes(ShaderType::Conversion, *output_shader_);

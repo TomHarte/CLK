@@ -181,7 +181,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			Produces a shader that reads from a composition buffer and converts to host
 			output RGB, decoding composite or S-Video as necessary.
 		*/
-		static std::unique_ptr<Shader> conversion_shader(InputDataType input_data_type, DisplayType display_type, ColourSpace colour_space);
+		static std::unique_ptr<Shader> conversion_shader(InputDataType input_data_type, DisplayType display_type, ColourSpace colour_space, float gamma_ratio, float brightness);
 };
 
 }

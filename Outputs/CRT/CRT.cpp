@@ -98,6 +98,11 @@ void CRT::set_input_data_type(Outputs::Display::InputDataType input_data_type) {
 	scan_target_->set_modals(scan_target_modals_);
 }
 
+void CRT::set_brightness(float brightness) {
+	scan_target_modals_.brightness = brightness;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
 void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displayType) {
 	switch(displayType) {
 		case Outputs::Display::Type::PAL50:

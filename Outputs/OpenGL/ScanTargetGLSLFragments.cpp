@@ -180,7 +180,7 @@ std::unique_ptr<Shader> ScanTarget::composition_shader(InputDataType input_data_
 	));
 }
 
-std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_type, DisplayType display_type, ColourSpace colour_space) {
+std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_type, DisplayType display_type, ColourSpace colour_space, float gamma_ratio, float brightness) {
 	// Compose a vertex shader. If the display type is RGB, generate just the proper
 	// geometry position, plus a solitary textureCoordinate.
 	//
@@ -451,7 +451,16 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 		break;
 	}
 
-	// TODO gamma and range corrections.
+	// Apply a brightness adjustment if requested.
+	if(fabs(brightness - 1.0f) > 0.05f) {
+		fragment_shader += "fragColour3 = fragColour3 * " + std::to_string(brightness) + ";";
+	}
+
+	// Apply a gamma correction if required.
+	if(fabs(gamma_ratio - 1.0f) > 0.05f) {
+		fragment_shader += "fragColour3 = pow(fragColour3, vec3(" + std::to_string(gamma_ratio) + "));";
+	}
+
 	fragment_shader +=
 			"fragColour = vec4(fragColour3, 0.64);"
 		"}";

@@ -273,6 +273,9 @@ class CRT {
 
 		/*! Sets the input data type. */
 		void set_input_data_type(Outputs::Display::InputDataType);
+
+		/*! Sets the output brightness. */
+		void set_brightness(float);
 };
 
 }
