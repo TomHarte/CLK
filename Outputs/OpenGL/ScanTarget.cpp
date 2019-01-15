@@ -202,7 +202,7 @@ void ScanTarget::submit() {
 		// Reset all pointers to where they were; this also means
 		// the stencil won't be properly populated.
 		write_pointers_ = submit_pointers_.load();
-		frame_was_complete_ = false;
+		frame_is_complete_ = false;
 	} else {
 		// Advance submit pointer.
 		submit_pointers_.store(write_pointers_);
@@ -213,8 +213,15 @@ void ScanTarget::submit() {
 
 void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
 	if(event == ScanTarget::Event::EndVerticalRetrace) {
+		// The previous-frame-is-complete flag is subject to a two-slot queue because
+		// measurement for *this* frame needs to begin now, meaning that the previous
+		// result needs to be put somewhere. Setting frame_is_complete_ back to true
+		// only after it has been put somewhere also doesn't work, since if the first
+		// few lines of a frame are skipped for any reason, there'll be nowhere to
+		// put it.
 		is_first_in_frame_ = true;
-		frame_was_complete_ = true;
+		previous_frame_was_complete_ = frame_is_complete_;
+		frame_is_complete_ = true;
 	}
 
 	if(output_is_visible_ == is_visible) return;
@@ -225,7 +232,7 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 			// Store metadata if concluding a previous line.
 			if(active_line_) {
 				line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
-				line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = frame_was_complete_;
+				line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = previous_frame_was_complete_;
 				is_first_in_frame_ = false;
 			}
 
