@@ -35,7 +35,7 @@ namespace OpenGL {
 */
 class ScanTarget: public Outputs::Display::ScanTarget {
 	public:
-		ScanTarget();
+		ScanTarget(GLuint target_framebuffer = 0, float output_gamma = 2.2f);
 		~ScanTarget();
 		void draw(bool synchronous, int output_width, int output_height);
 
@@ -45,6 +45,9 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		static constexpr int LineBufferWidth = 2048;
 		static constexpr int LineBufferHeight = 2048;
+
+		const GLuint target_framebuffer_;
+		const float output_gamma_;
 
 		// Outputs::Display::ScanTarget overrides.
 		void set_modals(Modals) override;

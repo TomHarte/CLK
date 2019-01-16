@@ -60,7 +60,9 @@ template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &b
 	glBindBuffer(GL_ARRAY_BUFFER, buffer_name);
 }
 
-ScanTarget::ScanTarget() :
+ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
+	target_framebuffer_(target_framebuffer),
+	output_gamma_(output_gamma),
 	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_NEAREST, false),
 	full_display_rectangle_(-1.0f, -1.0f, 2.0f, 2.0f) {
 
@@ -285,8 +287,8 @@ void ScanTarget::setup_pipeline() {
 	// lose any detail when combining the input.
 	processing_width_ = modals_.cycles_per_line / modals_.clocks_per_pixel_greatest_common_divisor;
 
-	// Establish an output shader. TODO: don't hard-code gamma.
-	output_shader_ = conversion_shader(modals_.input_data_type, modals_.display_type, modals_.composite_colour_space, 2.2f / modals_.intended_gamma, modals_.brightness);
+	// Establish an output shader.
+	output_shader_ = conversion_shader(modals_.input_data_type, modals_.display_type, modals_.composite_colour_space, output_gamma_ / modals_.intended_gamma, modals_.brightness);
 	glBindVertexArray(line_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 	enable_vertex_attributes(ShaderType::Conversion, *output_shader_);
@@ -540,8 +542,8 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		glDisable(GL_BLEND);
 	}
 
-	// Copy the accumulatiion texture to the target (TODO: don't assume framebuffer 0).
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	// Copy the accumulatiion texture to the target.
+	glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_);
 	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
 
 	glClear(GL_COLOR_BUFFER_BIT);
