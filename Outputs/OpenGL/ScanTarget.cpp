@@ -14,10 +14,10 @@ using namespace Outputs::Display::OpenGL;
 namespace {
 
 /// The texture unit from which to source input data.
-constexpr GLenum SourceDataTextureUnit = GL_TEXTURE1;
+constexpr GLenum SourceDataTextureUnit = GL_TEXTURE0;
 
 /// The texture unit which contains raw line-by-line composite, S-Video or RGB data.
-constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE3;
+constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE1;
 
 /// The texture unit that contains the current display.
 constexpr GLenum AccumulationTextureUnit = GL_TEXTURE2;

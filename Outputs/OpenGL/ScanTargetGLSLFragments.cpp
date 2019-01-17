@@ -431,6 +431,10 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 					"composite_sample(textureCoordinates[3], angles[3])"
 				");"
 
+				// Compute a luminance for use if there's no colour information, now, before
+				// modifying samples.
+				"float mono_luminance = dot(samples.yz, vec2(0.5));"
+
 				// Take the average to calculate luminance, then subtract that from all four samples to
 				// give chrominance.
 				"float luminance = dot(samples, vec4(0.25 / (1.0 - compositeAmplitude)));"
@@ -443,7 +447,11 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 				") * vec2(0.125 * oneOverCompositeAmplitude);"
 
 				// Apply a colour space conversion to get RGB.
-				"fragColour3 = lumaChromaToRGB * vec3(luminance, channels);";
+				"fragColour3 = mix("
+					"lumaChromaToRGB * vec3(luminance, channels),"
+					"vec3(mono_luminance),"
+					"step(oneOverCompositeAmplitude, 0.01)"
+				");";
 		break;
 
 		case DisplayType::CompositeMonochrome:
