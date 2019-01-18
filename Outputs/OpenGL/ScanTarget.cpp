@@ -93,6 +93,12 @@ ScanTarget::~ScanTarget() {
 	glDeleteVertexArrays(1, &scan_vertex_array_);
 }
 
+void ScanTarget::set_target_framebuffer(GLuint target_framebuffer) {
+	while(is_drawing_.test_and_set());
+	target_framebuffer_ = target_framebuffer;
+	is_drawing_.clear();
+}
+
 void ScanTarget::set_modals(Modals modals) {
 	// Don't change the modals while drawing is ongoing; a previous set might be
 	// in the process of being established.

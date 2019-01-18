@@ -26,7 +26,8 @@
 #include "../../Concurrency/BestEffortUpdater.hpp"
 
 #include "../../Activity/Observer.hpp"
-#include "../../Outputs/CRT/Internals/Rectangle.hpp"
+#include "../../Outputs/OpenGL/Primitives/Rectangle.hpp"
+#include "../../Outputs/OpenGL/ScanTarget.hpp"
 
 namespace {
 
@@ -109,7 +110,7 @@ class ActivityObserver: public Activity::Observer {
 			float y = 1.0f - 2.0f * height;
 			for(const auto &drive: drives_) {
 				// TODO: use std::make_unique as below, if/when formally embracing C++14.
-				lights_.emplace(std::make_pair(drive, std::unique_ptr<OpenGL::Rectangle>(new OpenGL::Rectangle(right_x, y, width, height))));
+				lights_.emplace(std::make_pair(drive, std::unique_ptr<Outputs::Display::OpenGL::Rectangle>(new Outputs::Display::OpenGL::Rectangle(right_x, y, width, height))));
 				y -= height * 2.0f;
 			}
 
@@ -154,7 +155,7 @@ class ActivityObserver: public Activity::Observer {
 			blinking_leds_.insert(name);
 		}
 
-		std::map<std::string, std::unique_ptr<OpenGL::Rectangle>> lights_;
+		std::map<std::string, std::unique_ptr<Outputs::Display::OpenGL::Rectangle>> lights_;
 		std::set<std::string> lit_leds_;
 		std::set<std::string> blinking_leds_;
 };
@@ -467,9 +468,8 @@ int main(int argc, char *argv[]) {
 	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
 
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
-	machine->crt_machine()->setup_output(4.0 / 3.0);
-	machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
-	machine->crt_machine()->get_crt()->set_target_framebuffer(target_framebuffer);
+	Outputs::Display::OpenGL::ScanTarget scan_target(target_framebuffer);
+	machine->crt_machine()->set_scan_target(&scan_target);
 
 	// For now, lie about audio output intentions.
 	auto speaker = machine->crt_machine()->get_speaker();
@@ -593,7 +593,7 @@ int main(int argc, char *argv[]) {
 						case SDL_WINDOWEVENT_RESIZED: {
 							GLint target_framebuffer = 0;
 							glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
-							machine->crt_machine()->get_crt()->set_target_framebuffer(target_framebuffer);
+							scan_target.set_target_framebuffer(target_framebuffer);
 							SDL_GetWindowSize(window, &window_width, &window_height);
 							if(activity_observer) activity_observer->set_aspect_ratio(static_cast<float>(window_width) / static_cast<float>(window_height));
 						} break;
@@ -785,7 +785,7 @@ int main(int argc, char *argv[]) {
 
 		// Display a new frame and wait for vsync.
 		updater.update();
-		machine->crt_machine()->get_crt()->draw_frame(static_cast<unsigned int>(window_width), static_cast<unsigned int>(window_height), false);
+		scan_target.draw(true, int(window_width), int(window_height));
 		if(activity_observer) activity_observer->draw();
 		SDL_GL_SwapWindow(window);
 	}
