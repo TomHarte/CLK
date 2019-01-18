@@ -85,6 +85,7 @@ class CRT {
 
 		Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
 		Outputs::Display::ScanTarget::Modals scan_target_modals_;
+		static const uint8_t DefaultAmplitude = 80;
 
 	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
@@ -190,16 +191,16 @@ class CRT {
 			@param phase The initial phase of the colour burst in a measuring system with 256 units
 			per circle, e.g. 0 = 0 degrees, 128 = 180 degrees, 256 = 360 degree.
 
-			@param amplitude The amplitude of the colour burst in 1/256ths of the amplitude of the
+			@param amplitude The amplitude of the colour burst in 1/255ths of the amplitude of the
 			positive portion of the wave.
 		*/
-		void output_colour_burst(int number_of_cycles, uint8_t phase, uint8_t amplitude = 102);
+		void output_colour_burst(int number_of_cycles, uint8_t phase, uint8_t amplitude = DefaultAmplitude);
 
 		/*! Outputs a colour burst exactly in phase with CRT expectations using the idiomatic amplitude.
 
 			@param number_of_cycles The length of the colour burst;
 		*/
-		void output_default_colour_burst(int number_of_cycles);
+		void output_default_colour_burst(int number_of_cycles, uint8_t amplitude = DefaultAmplitude);
 
 		/*! Sets the current phase of the colour subcarrier used by output_default_colour_burst.
 

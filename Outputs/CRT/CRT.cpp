@@ -381,9 +381,9 @@ void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, uint8_t ampli
 	output_scan(&scan);
 }
 
-void CRT::output_default_colour_burst(int number_of_cycles) {
+void CRT::output_default_colour_burst(int number_of_cycles, uint8_t amplitude) {
 	// TODO: avoid applying a rounding error here?
-	output_colour_burst(number_of_cycles, static_cast<uint8_t>((phase_numerator_ * 256) / phase_denominator_));
+	output_colour_burst(number_of_cycles, static_cast<uint8_t>((phase_numerator_ * 256) / phase_denominator_), amplitude);
 }
 
 void CRT::set_immediate_default_phase(float phase) {
