@@ -138,11 +138,11 @@ struct ActivityObserver: public Activity::Observer {
 	_speakerDelegate.machine = nil;
 	[_delegateMachineAccessLock unlock];
 
-//	[_view performWithGLContext:^{
-//		@synchronized(self) {
-//			self->_machine->crt_machine()->close_output();
-//		}
-//	}];
+	[_view performWithGLContext:^{
+		@synchronized(self) {
+			self->_scanTarget.reset();
+		}
+	}];
 }
 
 - (float)idealSamplingRateFromRange:(NSRange)range {
@@ -185,7 +185,7 @@ struct ActivityObserver: public Activity::Observer {
 			std::vector<std::unique_ptr<Inputs::Joystick>> &machine_joysticks = _joystickMachine->get_joysticks();
 			for(CSJoystick *joystick in _joystickManager.joysticks) {
 				size_t target = c % machine_joysticks.size();
-				++++c;
+				++c;
 
 				// Post the first two analogue axes presented by the controller as horizontal and vertical inputs,
 				// unless the user seems to be using a hat.
@@ -237,15 +237,10 @@ struct ActivityObserver: public Activity::Observer {
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
 	_scanTarget.reset(new Outputs::Display::OpenGL::ScanTarget);
 	_machine->crt_machine()->set_scan_target(_scanTarget.get());
-
-	// Since OS X v10.6, Macs have had a gamma of 2.2.
-//	_machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
-//	_machine->crt_machine()->get_crt()->set_target_framebuffer(0);
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
 	_scanTarget->draw(true, (int)pixelSize.width, (int)pixelSize.height);
-//	_machine->crt_machine()->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
 }
 
 - (void)paste:(NSString *)paste {
