@@ -437,8 +437,9 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 
 				// Take the average to calculate luminance, then subtract that from all four samples to
 				// give chrominance.
-				"float luminance = dot(samples, vec4(0.25 / (1.0 - compositeAmplitude)));"
+				"float luminance = dot(samples, vec4(0.25));"
 				"samples -= vec4(luminance);"
+				"luminance /= (1.0 - compositeAmplitude);"
 
 				// Split and average chrominance.
 				"vec2 channels = vec2("
