@@ -76,7 +76,7 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 
 				target.enable_vertex_attribute_with_pointer(
 					prefix + "CompositeAngle",
-					1, GL_UNSIGNED_SHORT, GL_FALSE,
+					1, GL_SHORT, GL_FALSE,
 					sizeof(Line),
 					reinterpret_cast<void *>(offsetof(Line, end_points[c].composite_angle)),
 					1);
@@ -99,7 +99,7 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 	}
 }
 
-std::unique_ptr<Shader> ScanTarget::composition_shader(InputDataType input_data_type) {
+std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 	const std::string vertex_shader =
 		"#version 150\n"
 
@@ -134,7 +134,7 @@ std::unique_ptr<Shader> ScanTarget::composition_shader(InputDataType input_data_
 
 		"void main(void) {";
 
-	switch(input_data_type) {
+	switch(modals_.input_data_type) {
 		case InputDataType::Luminance1:
 			fragment_shader += "fragColour = texture(textureName, textureCoordinate).rrrr;";
 		break;
@@ -180,7 +180,7 @@ std::unique_ptr<Shader> ScanTarget::composition_shader(InputDataType input_data_
 	));
 }
 
-std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_type, DisplayType display_type, ColourSpace colour_space, float gamma_ratio, float brightness) {
+std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 	// Compose a vertex shader. If the display type is RGB, generate just the proper
 	// geometry position, plus a solitary textureCoordinate.
 	//
@@ -219,7 +219,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 		"uniform sampler2D textureName;"
 		"out vec4 fragColour;";
 
-	if(display_type != DisplayType::RGB) {
+	if(modals_.display_type != DisplayType::RGB) {
 		vertex_shader +=
 			"out float compositeAngle;"
 			"out float compositeAmplitude;"
@@ -230,7 +230,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 			"in float oneOverCompositeAmplitude;";
 	}
 
-	switch(display_type){
+	switch(modals_.display_type){
 		case DisplayType::RGB:
 		case DisplayType::CompositeMonochrome:
 			vertex_shader += "out vec2 textureCoordinate;";
@@ -239,8 +239,12 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 
 		case DisplayType::CompositeColour:
 		case DisplayType::SVideo:
-			vertex_shader += "out vec2 textureCoordinates[4];";
-			fragment_shader += "in vec2 textureCoordinates[4];";
+			vertex_shader +=
+				"out vec2 textureCoordinates[4];"
+				"out vec4 angles;";
+			fragment_shader +=
+				"in vec2 textureCoordinates[4];"
+				"in vec4 angles;";
 		break;
 	}
 
@@ -249,13 +253,13 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 		"void main(void) {"
 			"float lateral = float(gl_VertexID & 1);"
 			"float longitudinal = float((gl_VertexID & 2) >> 1);"
-			"vec2 centrePoint = mix(startPoint, endPoint, lateral) / scale;"
-			"vec2 height = normalize(endPoint - startPoint).yx * (longitudinal - 0.5) * rowHeight;"
+			"vec2 centrePoint = mix(startPoint, vec2(endPoint.x, startPoint.y), lateral) / scale;"
+			"vec2 height = normalize(vec2(endPoint.x, startPoint.y) - startPoint).yx * (longitudinal - 0.5) * rowHeight;"
 			"vec2 eyePosition = vec2(-1.0, 1.0) + vec2(2.0, -2.0) * (((centrePoint + height) - origin) / size);"
 			"gl_Position = vec4(eyePosition, 0.0, 1.0);";
 
 	// For everything other than RGB, calculate the two composite outputs.
-	if(display_type != DisplayType::RGB) {
+	if(modals_.display_type != DisplayType::RGB) {
 		vertex_shader +=
 			"compositeAngle = (mix(startCompositeAngle, endCompositeAngle, lateral) / 32.0) * 3.141592654;"
 			"compositeAmplitude = lineCompositeAmplitude / 255.0;"
@@ -264,7 +268,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 
 	// For RGB and monochrome composite, generate the single texture coordinate; otherwise generate either three
 	// or four depending on the type of decoding to apply.
-	switch(display_type){
+	switch(modals_.display_type){
 		case DisplayType::RGB:
 		case DisplayType::CompositeMonochrome:
 			vertex_shader +=
@@ -279,7 +283,13 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 				"textureCoordinates[0] = vec2(centreClock - 0.375*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
 				"textureCoordinates[1] = vec2(centreClock - 0.125*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
 				"textureCoordinates[2] = vec2(centreClock + 0.125*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
-				"textureCoordinates[3] = vec2(centreClock + 0.375*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);";
+				"textureCoordinates[3] = vec2(centreClock + 0.375*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
+				"angles = vec4("
+					"compositeAngle - 2.356194490192345,"
+					"compositeAngle - 0.785398163397448,"
+					"compositeAngle + 0.785398163397448,"
+					"compositeAngle + 2.356194490192345"
+				");";
 		break;
 	}
 
@@ -289,17 +299,17 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 	//
 	// For an RGB display ... [TODO]
 
-	if(display_type != DisplayType::RGB) {
+	if(modals_.display_type != DisplayType::RGB) {
 		fragment_shader +=
 			"uniform mat3 lumaChromaToRGB;"
 			"uniform mat3 rgbToLumaChroma;";
 	}
 
-	if(display_type == DisplayType::SVideo) {
+	if(modals_.display_type == DisplayType::SVideo) {
 		fragment_shader +=
 			"vec2 svideo_sample(vec2 coordinate, float angle) {";
 
-		switch(input_data_type) {
+		switch(modals_.input_data_type) {
 			case InputDataType::Luminance1:
 			case InputDataType::Luminance8:
 				// Easy, just copy across.
@@ -335,11 +345,11 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 		fragment_shader += "}";
 	}
 
-	if(display_type == DisplayType::CompositeMonochrome || display_type == DisplayType::CompositeColour) {
+	if(modals_.display_type == DisplayType::CompositeMonochrome || modals_.display_type == DisplayType::CompositeColour) {
 		fragment_shader +=
 			"float composite_sample(vec2 coordinate, float angle) {";
 
-		switch(input_data_type) {
+		switch(modals_.input_data_type) {
 			case InputDataType::Luminance1:
 			case InputDataType::Luminance8:
 				// Easy, just copy across.
@@ -379,18 +389,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 		"void main(void) {"
 			"vec3 fragColour3;";
 
-	if(display_type == DisplayType::CompositeColour || display_type == DisplayType::SVideo) {
-			fragment_shader +=
-				// Figure out the four composite angles.
-				"vec4 angles = vec4("
-					"compositeAngle - 2.356194490192345,"
-					"compositeAngle - 0.785398163397448,"
-					"compositeAngle + 0.785398163397448,"
-					"compositeAngle + 2.356194490192345"
-				");";
-	}
-
-	switch(display_type) {
+	switch(modals_.display_type) {
 		case DisplayType::RGB:
 			fragment_shader += "fragColour3 = texture(textureName, textureCoordinate).rgb;";
 		break;
@@ -461,12 +460,13 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 	}
 
 	// Apply a brightness adjustment if requested.
-	if(fabs(brightness - 1.0f) > 0.05f) {
-		fragment_shader += "fragColour3 = fragColour3 * " + std::to_string(brightness) + ";";
+	if(fabs(modals_.brightness - 1.0f) > 0.05f) {
+		fragment_shader += "fragColour3 = fragColour3 * " + std::to_string(modals_.brightness) + ";";
 	}
 
 	// Apply a gamma correction if required.
-	if(fabs(gamma_ratio - 1.0f) > 0.05f) {
+	if(fabs(output_gamma_ - modals_.intended_gamma) > 0.05f) {
+		const float gamma_ratio = output_gamma_ / modals_.intended_gamma;
 		fragment_shader += "fragColour3 = pow(fragColour3, vec3(" + std::to_string(gamma_ratio) + "));";
 	}
 
@@ -490,8 +490,8 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader(InputDataType input_data_t
 	);
 
 	// If this isn't an RGB or composite colour shader, set the proper colour space.
-	if(display_type != DisplayType::RGB) {
-		switch(colour_space) {
+	if(modals_.display_type != DisplayType::RGB) {
+		switch(modals_.composite_colour_space) {
 			case ColourSpace::YIQ: {
 				const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
 				const GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};

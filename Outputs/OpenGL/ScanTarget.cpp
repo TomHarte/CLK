@@ -294,7 +294,7 @@ void ScanTarget::setup_pipeline() {
 	processing_width_ = modals_.cycles_per_line / modals_.clocks_per_pixel_greatest_common_divisor;
 
 	// Establish an output shader.
-	output_shader_ = conversion_shader(modals_.input_data_type, modals_.display_type, modals_.composite_colour_space, output_gamma_ / modals_.intended_gamma, modals_.brightness);
+	output_shader_ = conversion_shader();
 	glBindVertexArray(line_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 	enable_vertex_attributes(ShaderType::Conversion, *output_shader_);
@@ -304,7 +304,7 @@ void ScanTarget::setup_pipeline() {
 	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
 
 	// Establish an input shader.
-	input_shader_ = composition_shader(modals_.input_data_type);
+	input_shader_ = composition_shader();
 	glBindVertexArray(scan_vertex_array_);
 	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
 	enable_vertex_attributes(ShaderType::Composition, *input_shader_);

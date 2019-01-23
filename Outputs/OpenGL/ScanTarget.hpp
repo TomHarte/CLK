@@ -182,12 +182,12 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			normalising the data into one of four forms: RGB, 8-bit luminance,
 			phase-linked luminance or luminance+phase offset.
 		*/
-		static std::unique_ptr<Shader> composition_shader(InputDataType input_data_type);
+		std::unique_ptr<Shader> composition_shader() const;
 		/*!
 			Produces a shader that reads from a composition buffer and converts to host
 			output RGB, decoding composite or S-Video as necessary.
 		*/
-		static std::unique_ptr<Shader> conversion_shader(InputDataType input_data_type, DisplayType display_type, ColourSpace colour_space, float gamma_ratio, float brightness);
+		std::unique_ptr<Shader> conversion_shader() const;
 };
 
 }
