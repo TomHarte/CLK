@@ -136,32 +136,32 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 
 	switch(modals_.input_data_type) {
 		case InputDataType::Luminance1:
-			fragment_shader += "fragColour = texture(textureName, textureCoordinate).rrrr;";
+			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0).rrrr;";
 		break;
 
 		case InputDataType::Luminance8:
-			fragment_shader += "fragColour = texture(textureName, textureCoordinate).rrrr / vec4(255.0);";
+			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0).rrrr / vec4(255.0);";
 		break;
 
 		case InputDataType::PhaseLinkedLuminance8:
 		case InputDataType::Luminance8Phase8:
 		case InputDataType::Red8Green8Blue8:
-			fragment_shader += "fragColour = texture(textureName, textureCoordinate) / vec4(255.0);";
+			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0) / vec4(255.0);";
 		break;
 
 		case InputDataType::Red1Green1Blue1:
-			fragment_shader += "fragColour = vec4(texture(textureName, textureCoordinate).rrr & uvec3(4u, 2u, 1u), 1.0);";
+			fragment_shader += "fragColour = vec4(textureLod(textureName, textureCoordinate, 0).rrr & uvec3(4u, 2u, 1u), 1.0);";
 		break;
 
 		case InputDataType::Red2Green2Blue2:
 			fragment_shader +=
-				"uint textureValue = texture(textureName, textureCoordinate).r;"
+				"uint textureValue = textureLod(textureName, textureCoordinate, 0).r;"
 				"fragColour = vec4(float((textureValue >> 4) & 3u), float((textureValue >> 2) & 3u), float(textureValue & 3u), 3.0) / 3.0;";
 		break;
 
 		case InputDataType::Red4Green4Blue4:
 			fragment_shader +=
-				"uvec2 textureValue = texture(textureName, textureCoordinate).rg;"
+				"uvec2 textureValue = textureLod(textureName, textureCoordinate, 0).rg;"
 				"fragColour = vec4(float(textureValue.r) / 15.0, float(textureValue.g & 240u) / 240.0, float(textureValue.g & 15u) / 15.0, 1.0);";
 		break;
 	}
@@ -217,13 +217,18 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		"#version 150\n"
 
 		"uniform sampler2D textureName;"
+
 		"out vec4 fragColour;";
 
 	if(modals_.display_type != DisplayType::RGB) {
 		vertex_shader +=
 			"out float compositeAngle;"
 			"out float compositeAmplitude;"
-			"out float oneOverCompositeAmplitude;";
+			"out float oneOverCompositeAmplitude;"
+		
+			"uniform vec4 textureCoordinateOffsets;"
+			"uniform float angleOffsets[4];"
+		;
 		fragment_shader +=
 			"in float compositeAngle;"
 			"in float compositeAmplitude;"
@@ -279,11 +284,10 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		case DisplayType::SVideo:
 			vertex_shader +=
 				"float centreClock = mix(startClock, endClock, lateral);"
-				"float clocksPerAngle = (endClock - startClock) / (abs(endCompositeAngle - startCompositeAngle) / 64.0);"
-				"textureCoordinates[0] = vec2(centreClock - 0.375*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
-				"textureCoordinates[1] = vec2(centreClock - 0.125*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
-				"textureCoordinates[2] = vec2(centreClock + 0.125*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
-				"textureCoordinates[3] = vec2(centreClock + 0.375*clocksPerAngle, lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / textureSize(textureName, 0);"
 				"angles = vec4("
 					"compositeAngle - 2.356194490192345,"
 					"compositeAngle - 0.785398163397448,"
@@ -491,6 +495,13 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 	// If this isn't an RGB or composite colour shader, set the proper colour space.
 	if(modals_.display_type != DisplayType::RGB) {
+		float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
+		shader->set_uniform("textureCoordinateOffsets",
+							-0.375f * clocks_per_angle,
+							-0.125f * clocks_per_angle,
+							+0.125f * clocks_per_angle,
+							+0.375f * clocks_per_angle);
+
 		switch(modals_.composite_colour_space) {
 			case ColourSpace::YIQ: {
 				const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
