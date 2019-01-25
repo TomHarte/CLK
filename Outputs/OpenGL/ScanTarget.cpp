@@ -138,8 +138,8 @@ void ScanTarget::end_scan() {
 		vended_scan_->line = write_pointers_.line;
 		vended_scan_->scan.end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
 		vended_scan_->scan.end_points[1].data_offset += TextureAddressGetX(vended_write_area_pointer_);
-    }
-    vended_scan_ = nullptr;
+	}
+	vended_scan_ = nullptr;
 }
 
 uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignment) {
