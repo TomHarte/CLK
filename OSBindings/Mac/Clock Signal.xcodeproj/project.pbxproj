@@ -712,7 +712,6 @@
 		4B08A2771EE39306008B7065 /* TestMachine.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachine.mm; sourceTree = "<group>"; };
 		4B08A2791EE3957B008B7065 /* TestMachine+ForSubclassEyesOnly.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "TestMachine+ForSubclassEyesOnly.h"; sourceTree = "<group>"; };
 		4B08A56820D72BEF0016CE5A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Activity.xib"; sourceTree = SOURCE_ROOT; };
-		4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CRTConstants.hpp; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
 		4B0E04E81FC9E5DA00F43484 /* CAS.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CAS.cpp; sourceTree = "<group>"; };
@@ -2931,7 +2930,6 @@
 		4BBF99071C8FBA6F0075DAFB /* Internals */ = {
 			isa = PBXGroup;
 			children = (
-				4B0B6E121C9DBD5D00FFB60D /* CRTConstants.hpp */,
 				4BBF990E1C8FBA6F0075DAFB /* Flywheel.hpp */,
 			);
 			path = Internals;
