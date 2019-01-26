@@ -8,6 +8,8 @@
 
 #include "ScanTarget.hpp"
 
+#include <cmath>
+
 using namespace Outputs::Display::OpenGL;
 
 void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) {
@@ -21,6 +23,12 @@ void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader 
 }
 
 void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
+#define rt_offset_of(field, source) (reinterpret_cast<uint8_t *>(&source.field) - reinterpret_cast<uint8_t *>(&source))
+	// test_scan and test_line are here so that the byte offsets that need to be
+	// calculated inside a loop can be done so validly; offsetof requires constant arguments.
+	Scan test_scan;
+	Line test_line;
+
 	switch(type) {
 		case ShaderType::Composition:
 			for(int c = 0; c < 2; ++c) {
@@ -30,14 +38,14 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 					prefix + "DataX",
 					1, GL_UNSIGNED_SHORT, GL_FALSE,
 					sizeof(Scan),
-					reinterpret_cast<void *>(offsetof(Scan, scan.end_points[c].data_offset)),
+					reinterpret_cast<void *>(rt_offset_of(scan.end_points[c].data_offset, test_scan)),
 					1);
 
 				target.enable_vertex_attribute_with_pointer(
 					prefix + "Clock",
 					1, GL_UNSIGNED_SHORT, GL_FALSE,
 					sizeof(Scan),
-					reinterpret_cast<void *>(offsetof(Scan, scan.end_points[c].cycles_since_end_of_horizontal_retrace)),
+					reinterpret_cast<void *>(rt_offset_of(scan.end_points[c].cycles_since_end_of_horizontal_retrace, test_scan)),
 					1);
 			}
 
@@ -64,21 +72,21 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 					prefix + "Point",
 					2, GL_UNSIGNED_SHORT, GL_FALSE,
 					sizeof(Line),
-					reinterpret_cast<void *>(offsetof(Line, end_points[c].x)),
+					reinterpret_cast<void *>(rt_offset_of(end_points[c].x, test_line)),
 					1);
 
 				target.enable_vertex_attribute_with_pointer(
 					prefix + "Clock",
 					1, GL_UNSIGNED_SHORT, GL_FALSE,
 					sizeof(Line),
-					reinterpret_cast<void *>(offsetof(Line, end_points[c].cycles_since_end_of_horizontal_retrace)),
+					reinterpret_cast<void *>(rt_offset_of(end_points[c].cycles_since_end_of_horizontal_retrace, test_line)),
 					1);
 
 				target.enable_vertex_attribute_with_pointer(
 					prefix + "CompositeAngle",
 					1, GL_SHORT, GL_FALSE,
 					sizeof(Line),
-					reinterpret_cast<void *>(offsetof(Line, end_points[c].composite_angle)),
+					reinterpret_cast<void *>(rt_offset_of(end_points[c].composite_angle, test_line)),
 					1);
 			}
 
@@ -97,6 +105,7 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 				1);
 		break;
 	}
+#undef rt_offset_of
 }
 
 std::unique_ptr<Shader> ScanTarget::composition_shader() const {
