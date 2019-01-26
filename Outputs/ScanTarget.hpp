@@ -99,11 +99,15 @@ inline size_t size_for_data_type(InputDataType data_type) {
 		case InputDataType::Red8Green8Blue8:
 		case InputDataType::PhaseLinkedLuminance8:
 			return 4;
+
+		default:
+			return 0;
 	}
 }
 
 inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
 	switch(data_type) {
+		default:
 		case InputDataType::Luminance1:
 		case InputDataType::Luminance8:
 		case InputDataType::PhaseLinkedLuminance8:
