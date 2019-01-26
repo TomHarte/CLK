@@ -309,8 +309,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 	vertex_shader += "}";
 
 	// Compose a fragment shader.
-	//
-	// For an RGB display ... [TODO]
 
 	if(modals_.display_type != DisplayType::RGB) {
 		fragment_shader +=
