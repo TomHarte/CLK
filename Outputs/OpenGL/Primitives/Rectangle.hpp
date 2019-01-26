@@ -9,7 +9,7 @@
 #ifndef Rectangle_hpp
 #define Rectangle_hpp
 
-#include "OpenGL.hpp"
+#include "../OpenGL.hpp"
 #include "Shader.hpp"
 #include <memory>
 
