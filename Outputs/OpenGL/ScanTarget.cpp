@@ -7,7 +7,11 @@
 //
 
 #include "ScanTarget.hpp"
+
 #include "Primitives/Rectangle.hpp"
+
+#include <cassert>
+#include <cstring>
 
 using namespace Outputs::Display::OpenGL;
 
