@@ -386,6 +386,7 @@ class ConcreteMachine:
 	private:
 		static TI::TMS::Personality tms_personality_for_model(Analyser::Static::Sega::Target::Model model) {
 			switch(model) {
+				default:
 				case Target::Model::SG1000:			return TI::TMS::TMS9918A;
 				case Target::Model::MasterSystem:	return TI::TMS::SMSVDP;
 				case Target::Model::MasterSystem2:	return TI::TMS::SMS2VDP;
