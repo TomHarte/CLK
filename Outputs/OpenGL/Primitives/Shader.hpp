@@ -34,6 +34,7 @@ public:
 	};
 
 	struct AttributeBinding {
+		AttributeBinding(const std::string &name, GLuint index) : name(name), index(index) {}
 		const std::string name;
 		const GLuint index;
 	};
@@ -45,6 +46,13 @@ public:
 		@param attribute_bindings A vector of attribute bindings.
 	*/
 	Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<AttributeBinding> &attribute_bindings = {});
+	/*!
+		Attempts to compile a shader, throwing @c VertexShaderCompilationError, @c FragmentShaderCompilationError or @c ProgramLinkageError upon failure.
+		@param vertex_shader The vertex shader source code.
+		@param fragment_shader The fragment shader source code.
+		@param binding_names A list of attributes to generate bindings for; these will be given indices 0...n-1.
+	*/
+	Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<std::string> &binding_names);
 	~Shader();
 
 	/*!
@@ -109,6 +117,8 @@ public:
 	void set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values);
 
 private:
+	void init(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<AttributeBinding> &attribute_bindings);
+
 	GLuint compile_shader(const std::string &source, GLenum type);
 	GLuint shader_program_;
 

@@ -179,12 +179,12 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 		vertex_shader,
 		fragment_shader + "}",
 		{
-			{"startDataX", 0},
-			{"startClock", 1},
-			{"endDataX", 2},
-			{"endClock", 3},
-			{"dataY", 4},
-			{"lineY", 5},
+			"startDataX",
+			"startClock",
+			"endDataX",
+			"endClock",
+			"dataY",
+			"lineY",
 		}
 	));
 }
@@ -491,14 +491,14 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		vertex_shader,
 		fragment_shader,
 		{
-			{"startPoint", 0},
-			{"endPoint", 1},
-			{"startClock", 2},
-			{"endClock", 3},
-			{"lineY", 4},
-			{"lineCompositeAmplitude", 5},
-			{"startCompositeAngle", 6},
-			{"endCompositeAngle", 7},
+			"startPoint",
+			"endPoint",
+			"startClock",
+			"endClock",
+			"lineY",
+			"lineCompositeAmplitude",
+			"startCompositeAngle",
+			"endCompositeAngle"
 		}
 	);
 

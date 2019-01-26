@@ -46,6 +46,20 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 }
 
 Shader::Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<AttributeBinding> &attribute_bindings) {
+	init(vertex_shader, fragment_shader, attribute_bindings);
+}
+
+Shader::Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<std::string> &binding_names) {
+	std::vector<AttributeBinding> bindings;
+	GLuint index = 0;
+	for(const auto &name: binding_names) {
+		bindings.emplace_back(name, index);
+		++index;
+	}
+	init(vertex_shader, fragment_shader, bindings);
+}
+
+void Shader::init(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<AttributeBinding> &attribute_bindings) {
 	shader_program_ = glCreateProgram();
 	const GLuint vertex = compile_shader(vertex_shader, GL_VERTEX_SHADER);
 	const GLuint fragment = compile_shader(fragment_shader, GL_FRAGMENT_SHADER);
