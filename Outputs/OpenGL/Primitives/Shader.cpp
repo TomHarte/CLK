@@ -8,8 +8,8 @@
 
 #include "Shader.hpp"
 
-#include <cstdio>
 #include <cstring>
+#include "../../Log.hpp"
 
 using namespace Outputs::Display::OpenGL;
 
@@ -25,7 +25,7 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 	glShaderSource(shader, 1, &c_str, NULL);
 	glCompileShader(shader);
 
-#ifdef DEBUG
+#ifndef NDEBUG
 	GLint isCompiled = 0;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
 	if(isCompiled == GL_FALSE) {
@@ -34,7 +34,7 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 		if(logLength > 0) {
 			GLchar *log = new GLchar[static_cast<std::size_t>(logLength)];
 			glGetShaderInfoLog(shader, logLength, &logLength, log);
-			printf("Compile log:\n%s\n", log);
+			LOG("Compile log:\n" << log);
 			delete[] log;
 		}
 
@@ -73,13 +73,13 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 
 	glLinkProgram(shader_program_);
 
-#ifdef DEBUG
+#ifndef NDEBUG
 	GLint logLength;
 	glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &logLength);
 	if(logLength > 0) {
 		GLchar *log = new GLchar[static_cast<std::size_t>(logLength)];
 		glGetProgramInfoLog(shader_program_, logLength, &logLength, log);
-		printf("Link log:\n%s\n", log);
+		LOG("Link log:\n" << log);
 		delete[] log;
 	}
 
@@ -123,6 +123,8 @@ void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint
 		glEnableVertexAttribArray((GLuint)location);
 		glVertexAttribPointer((GLuint)location, size, type, normalised, stride, pointer);
 		glVertexAttribDivisor((GLuint)location, divisor);
+	} else {
+		LOG("Couldn't enable vertex attribute " << name);
 	}
 }
 
