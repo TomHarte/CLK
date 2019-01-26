@@ -8,7 +8,6 @@
 
 #include "Shader.hpp"
 
-#include <cstring>
 #include "../../Log.hpp"
 
 using namespace Outputs::Display::OpenGL;
@@ -206,49 +205,43 @@ void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, 
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *values) {
 	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size);
-	GLint *values_copy = new GLint[number_of_values];
-	std::memcpy(values_copy, values, sizeof(*values) * static_cast<std::size_t>(number_of_values));
+	std::vector<GLint> values_copy(values, values + number_of_values);
 
 	enqueue_function([name, size, count, values_copy, this] {
 		switch(size) {
-			case 1: glUniform1iv(location(), count, values_copy);	break;
-			case 2: glUniform2iv(location(), count, values_copy);	break;
-			case 3: glUniform3iv(location(), count, values_copy);	break;
-			case 4: glUniform4iv(location(), count, values_copy);	break;
+			case 1: glUniform1iv(location(), count, values_copy.data());	break;
+			case 2: glUniform2iv(location(), count, values_copy.data());	break;
+			case 3: glUniform3iv(location(), count, values_copy.data());	break;
+			case 4: glUniform4iv(location(), count, values_copy.data());	break;
 		}
-		delete[] values_copy;
 	});
 }
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *values) {
 	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size);
-	GLfloat *values_copy = new GLfloat[number_of_values];
-	std::memcpy(values_copy, values, sizeof(*values) * static_cast<std::size_t>(number_of_values));
+	std::vector<GLfloat> values_copy(values, values + number_of_values);
 
 	enqueue_function([name, size, count, values_copy, this] {
 		switch(size) {
-			case 1: glUniform1fv(location(), count, values_copy);	break;
-			case 2: glUniform2fv(location(), count, values_copy);	break;
-			case 3: glUniform3fv(location(), count, values_copy);	break;
-			case 4: glUniform4fv(location(), count, values_copy);	break;
+			case 1: glUniform1fv(location(), count, values_copy.data());	break;
+			case 2: glUniform2fv(location(), count, values_copy.data());	break;
+			case 3: glUniform3fv(location(), count, values_copy.data());	break;
+			case 4: glUniform4fv(location(), count, values_copy.data());	break;
 		}
-		delete[] values_copy;
 	});
 }
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *values) {
 	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size);
-	GLuint *values_copy = new GLuint[number_of_values];
-	std::memcpy(values_copy, values, sizeof(*values) * static_cast<std::size_t>(number_of_values));
+	std::vector<GLuint> values_copy(values, values + number_of_values);
 
 	enqueue_function([name, size, count, values_copy, this] {
 		switch(size) {
-			case 1: glUniform1uiv(location(), count, values_copy);	break;
-			case 2: glUniform2uiv(location(), count, values_copy);	break;
-			case 3: glUniform3uiv(location(), count, values_copy);	break;
-			case 4: glUniform4uiv(location(), count, values_copy);	break;
+			case 1: glUniform1uiv(location(), count, values_copy.data());	break;
+			case 2: glUniform2uiv(location(), count, values_copy.data());	break;
+			case 3: glUniform3uiv(location(), count, values_copy.data());	break;
+			case 4: glUniform4uiv(location(), count, values_copy.data());	break;
 		}
-		delete[] values_copy;
 	});
 }
 
@@ -258,8 +251,7 @@ void Shader::set_uniform_matrix(const std::string &name, GLint size, bool transp
 
 void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values) {
 	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size) * static_cast<std::size_t>(size);
-	std::vector<GLfloat> values_copy(number_of_values);
-	std::memcpy(values_copy.data(), values, sizeof(*values) * number_of_values);
+	std::vector<GLfloat> values_copy(values, values + number_of_values);
 
 	enqueue_function([name, size, count, transpose, values_copy, this] {
 		GLboolean glTranspose = transpose ? GL_TRUE : GL_FALSE;
