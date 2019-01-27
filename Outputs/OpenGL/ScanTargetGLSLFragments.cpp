@@ -324,18 +324,18 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			case InputDataType::Luminance1:
 			case InputDataType::Luminance8:
 				// Easy, just copy across.
-				fragment_shader += "return vec2(texture(textureName, coordinate).r, 0.0);";
+				fragment_shader += "return vec2(textureLod(textureName, coordinate, 0).r, 0.0);";
 			break;
 
 			case InputDataType::PhaseLinkedLuminance8:
 				fragment_shader +=
 					"uint iPhase = uint((angle * 2.0 / 3.141592654) ) & 3u;"	// + phaseOffset*4.0
-					"return vec2(texture(textureName, coordinate)[iPhase], 0.0);";
+					"return vec2(textureLod(textureName, coordinate, 0)[iPhase], 0.0);";
 			break;
 
 			case InputDataType::Luminance8Phase8:
 				fragment_shader +=
-					"vec2 yc = texture(textureName, coordinate).rg;"
+					"vec2 yc = textureLod(textureName, coordinate, 0).rg;"
 
 					"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
 					"float rawChroma = step(yc.y, 0.75) * cos(angle + phaseOffset);"
@@ -347,7 +347,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			case InputDataType::Red4Green4Blue4:
 			case InputDataType::Red8Green8Blue8:
 				fragment_shader +=
-					"vec3 colour = rgbToLumaChroma * texture(textureName, coordinate).rgb;"
+					"vec3 colour = rgbToLumaChroma * textureLod(textureName, coordinate, 0).rgb;"
 					"vec2 quadrature = vec2(cos(angle), sin(angle));"
 					"return vec2(colour.r, dot(quadrature, colour.gb));";
 			break;
@@ -364,18 +364,18 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			case InputDataType::Luminance1:
 			case InputDataType::Luminance8:
 				// Easy, just copy across.
-				fragment_shader += "return texture(textureName, coordinate).r;";
+				fragment_shader += "return textureLod(textureName, coordinate, 0).r;";
 			break;
 
 			case InputDataType::PhaseLinkedLuminance8:
 				fragment_shader +=
 					"uint iPhase = uint((angle * 2.0 / 3.141592654) ) & 3u;"	// + phaseOffset*4.0
-					"return texture(textureName, coordinate)[iPhase];";
+					"return textureLod(textureName, coordinate, 0)[iPhase];";
 			break;
 
 			case InputDataType::Luminance8Phase8:
 				fragment_shader +=
-					"vec2 yc = texture(textureName, coordinate).rg;"
+					"vec2 yc = textureLod(textureName, coordinate, 0).rg;"
 
 					"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
 					"float rawChroma = step(yc.y, 0.75) * cos(angle + phaseOffset);"
@@ -387,7 +387,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			case InputDataType::Red4Green4Blue4:
 			case InputDataType::Red8Green8Blue8:
 				fragment_shader +=
-					"vec3 colour = rgbToLumaChroma * texture(textureName, coordinate).rgb;"
+					"vec3 colour = rgbToLumaChroma * textureLod(textureName, coordinate, 0).rgb;"
 					"vec2 quadrature = vec2(cos(angle), sin(angle));"
 					"return mix(colour.r, dot(quadrature, colour.gb), compositeAmplitude);";
 			break;
@@ -402,7 +402,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 	switch(modals_.display_type) {
 		case DisplayType::RGB:
-			fragment_shader += "fragColour3 = texture(textureName, textureCoordinate).rgb;";
+			fragment_shader += "fragColour3 = textureLod(textureName, textureCoordinate, 0).rgb;";
 		break;
 
 		case DisplayType::SVideo:
