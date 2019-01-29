@@ -8,6 +8,7 @@
 
 #include "ScanTarget.hpp"
 
+#include "../../SignalProcessing/FIRFilter.hpp"
 #include <cmath>
 
 using namespace Outputs::Display::OpenGL;
@@ -235,13 +236,14 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"out float compositeAmplitude;"
 			"out float oneOverCompositeAmplitude;"
 		
-			"uniform vec4 textureCoordinateOffsets;"
-			"uniform float angleOffsets[4];"
-		;
+			"uniform float textureCoordinateOffsets[15];";
 		fragment_shader +=
 			"in float compositeAngle;"
 			"in float compositeAmplitude;"
-			"in float oneOverCompositeAmplitude;";
+			"in float oneOverCompositeAmplitude;"
+
+			"uniform float textureWeights[15];";
+
 	}
 
 	switch(modals_.display_type){
@@ -254,10 +256,10 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		case DisplayType::CompositeColour:
 		case DisplayType::SVideo:
 			vertex_shader +=
-				"out vec2 textureCoordinates[4];"
+				"out vec2 textureCoordinates[15];"
 				"out vec4 angles;";
 			fragment_shader +=
-				"in vec2 textureCoordinates[4];"
+				"in vec2 textureCoordinates[15];"
 				"in vec4 angles;";
 		break;
 	}
@@ -297,6 +299,17 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 				"textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / textureSize(textureName, 0);"
 				"textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / textureSize(textureName, 0);"
 				"textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[4] = vec2(centreClock + textureCoordinateOffsets[4], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[5] = vec2(centreClock + textureCoordinateOffsets[5], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[6] = vec2(centreClock + textureCoordinateOffsets[6], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[7] = vec2(centreClock + textureCoordinateOffsets[7], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[8] = vec2(centreClock + textureCoordinateOffsets[8], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[9] = vec2(centreClock + textureCoordinateOffsets[9], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[10] = vec2(centreClock + textureCoordinateOffsets[10], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[11] = vec2(centreClock + textureCoordinateOffsets[11], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[12] = vec2(centreClock + textureCoordinateOffsets[12], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[13] = vec2(centreClock + textureCoordinateOffsets[13], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[14] = vec2(centreClock + textureCoordinateOffsets[14], lineY + 0.5) / textureSize(textureName, 0);"
 				"angles = vec4("
 					"compositeAngle - 2.356194490192345,"
 					"compositeAngle - 0.785398163397448,"
@@ -434,33 +447,60 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		case DisplayType::CompositeColour:
 			fragment_shader +=
 				// Sample four times over, at proper angle offsets.
-				"vec4 samples = vec4("
-					"composite_sample(textureCoordinates[0], angles[0]),"
-					"composite_sample(textureCoordinates[1], angles[1]),"
-					"composite_sample(textureCoordinates[2], angles[2]),"
-					"composite_sample(textureCoordinates[3], angles[3])"
+				"vec4 samples[4] = vec4[4]("
+					"vec4("
+						"composite_sample(textureCoordinates[0], angles[0]),"
+						"composite_sample(textureCoordinates[1], angles[1]),"
+						"composite_sample(textureCoordinates[2], angles[2]),"
+						"composite_sample(textureCoordinates[3], angles[3])"
+					"),"
+					"vec4("
+						"composite_sample(textureCoordinates[4], angles[0]),"
+						"composite_sample(textureCoordinates[5], angles[1]),"
+						"composite_sample(textureCoordinates[6], angles[2]),"
+						"composite_sample(textureCoordinates[7], angles[3])"
+					"),"
+					"vec4("
+						"composite_sample(textureCoordinates[8], angles[0]),"
+						"composite_sample(textureCoordinates[9], angles[1]),"
+						"composite_sample(textureCoordinates[10], angles[2]),"
+						"composite_sample(textureCoordinates[11], angles[3])"
+					"),"
+					"vec4("
+						"composite_sample(textureCoordinates[12], angles[0]),"
+						"composite_sample(textureCoordinates[13], angles[1]),"
+						"composite_sample(textureCoordinates[14], angles[2]),"
+						"0.0"
+					")"
 				");"
 
 				// Compute a luminance for use if there's no colour information, now, before
 				// modifying samples.
-				"float mono_luminance = dot(samples.yz, vec2(0.5));"
+				"float mono_luminance = dot(samples[0].yz, vec2(0.5));"
 
 				// Take the average to calculate luminance, then subtract that from all four samples to
 				// give chrominance.
-				"float luminance = dot(samples, vec4(0.25));"
-				"samples -= vec4(luminance);"
+				"float luminance = dot("
+					"vec4("
+						"dot(samples[0], vec4(textureWeights[0], textureWeights[1], textureWeights[2], textureWeights[3])),"
+						"dot(samples[1], vec4(textureWeights[4], textureWeights[5], textureWeights[6], textureWeights[7])),"
+						"dot(samples[2], vec4(textureWeights[8], textureWeights[9], textureWeights[10], textureWeights[11])),"
+						"dot(samples[3], vec4(textureWeights[12], textureWeights[13], textureWeights[14], 0.0))"
+					"), vec4(1.0));"
+//				"samples -= vec4(luminance);"
 				"luminance /= (1.0 - compositeAmplitude);"
 
 				// Split and average chrominance.
-				"vec2 channels = vec2("
-					"dot(cos(angles), samples),"
-					"dot(sin(angles), samples)"
-				") * vec2(0.125 * oneOverCompositeAmplitude);"
+//				"vec2 channels = vec2("
+//					"dot(cos(angles), samples),"
+//					"dot(sin(angles), samples)"
+//				") * vec2(0.125 * oneOverCompositeAmplitude);"
+				"vec2 channels = vec2(0.0);"
 
 				// Apply a colour space conversion to get RGB.
 				"fragColour3 = mix("
 					"lumaChromaToRGB * vec3(luminance, channels),"
-					"vec3(mono_luminance),"
+					"vec3(luminance),"
 					"step(oneOverCompositeAmplitude, 0.01)"
 				");";
 		break;
@@ -502,12 +542,18 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 	// If this isn't an RGB or composite colour shader, set the proper colour space.
 	if(modals_.display_type != DisplayType::RGB) {
+		// Establish 15 samples, spaced out evenly across an input space of 16 clocks per colour cycle.
 		float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
-		shader->set_uniform("textureCoordinateOffsets",
-							-0.375f * clocks_per_angle,
-							-0.125f * clocks_per_angle,
-							+0.125f * clocks_per_angle,
-							+0.375f * clocks_per_angle);
+		GLfloat offsets[15];
+		for(int c = 0; c < 15; ++c) {
+			offsets[c] = (float(c - 7) / 4.0f) * clocks_per_angle;
+		}
+		shader->set_uniform("textureCoordinateOffsets", 1, 15, offsets);
+
+		// Grab the coefficients necessary to lowpass filter only things at or below the colour clock.
+		SignalProcessing::FIRFilter filter(15, 8.0f, 0.0f, 1.0f);
+		auto coefficients = filter.get_coefficients();
+		shader->set_uniform("textureWeights", 1, 15, coefficients.data());
 
 		switch(modals_.composite_colour_space) {
 			case ColourSpace::YIQ: {
