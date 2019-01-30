@@ -53,7 +53,7 @@ Shader::Shader(const std::string &vertex_shader, const std::string &fragment_sha
 	GLuint index = 0;
 	for(const auto &name: binding_names) {
 		bindings.emplace_back(name, index);
-		++index;
+		index += 4;
 	}
 	init(vertex_shader, fragment_shader, bindings);
 }

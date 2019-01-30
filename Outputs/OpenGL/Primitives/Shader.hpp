@@ -50,7 +50,7 @@ public:
 		Attempts to compile a shader, throwing @c VertexShaderCompilationError, @c FragmentShaderCompilationError or @c ProgramLinkageError upon failure.
 		@param vertex_shader The vertex shader source code.
 		@param fragment_shader The fragment shader source code.
-		@param binding_names A list of attributes to generate bindings for; these will be given indices 0...n-1.
+		@param binding_names A list of attributes to generate bindings for; these will be given indices 0, 4, 8 ... 4(n-1).
 	*/
 	Shader(const std::string &vertex_shader, const std::string &fragment_shader, const std::vector<std::string> &binding_names);
 	~Shader();
