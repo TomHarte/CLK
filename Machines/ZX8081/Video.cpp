@@ -26,7 +26,7 @@ Video::Video() :
 	crt_(207 * 2, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Luminance1) {
 
 	// Show only the centre 80% of the TV frame.
-	crt_.set_display_type(Outputs::Display::DisplayType::CompositeMonochrome);
+	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 	crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.1f, 0.8f, 0.8f));
 }
 

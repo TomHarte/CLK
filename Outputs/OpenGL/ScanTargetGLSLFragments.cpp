@@ -242,7 +242,9 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"in float compositeAmplitude;"
 			"in float oneOverCompositeAmplitude;"
 
-			"uniform float textureWeights[15];";
+			"uniform vec4 lumaWeights[4];"
+			"uniform vec4 monoWeights[2];"
+			;
 
 	}
 
@@ -476,18 +478,25 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 				// Compute a luminance for use if there's no colour information, now, before
 				// modifying samples.
-				"float mono_luminance = dot(samples[0].yz, vec2(0.5));"
+				"float mono_luminance = dot("
+					"vec2("
+						"dot(samples[1], monoWeights[0]),"
+						"dot(samples[2], monoWeights[1])"
+					"), vec2(1.0)) / (1.0 - compositeAmplitude);"
 
 				// Take the average to calculate luminance, then subtract that from all four samples to
 				// give chrominance.
 				"float luminance = dot("
 					"vec4("
-						"dot(samples[0], vec4(textureWeights[0], textureWeights[1], textureWeights[2], textureWeights[3])),"
-						"dot(samples[1], vec4(textureWeights[4], textureWeights[5], textureWeights[6], textureWeights[7])),"
-						"dot(samples[2], vec4(textureWeights[8], textureWeights[9], textureWeights[10], textureWeights[11])),"
-						"dot(samples[3], vec4(textureWeights[12], textureWeights[13], textureWeights[14], 0.0))"
+						"dot(samples[0], lumaWeights[0]),"
+						"dot(samples[1], lumaWeights[1]),"
+						"dot(samples[2], lumaWeights[2]),"
+						"dot(samples[3], lumaWeights[3])"
 					"), vec4(1.0));"
-//				"samples -= vec4(luminance);"
+				"samples[0] -= vec4(luminance);"
+				"samples[1] -= vec4(luminance);"
+				"samples[2] -= vec4(luminance);"
+				"samples[3] -= vec4(luminance);"
 				"luminance /= (1.0 - compositeAmplitude);"
 
 				// Split and average chrominance.
@@ -500,7 +509,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 				// Apply a colour space conversion to get RGB.
 				"fragColour3 = mix("
 					"lumaChromaToRGB * vec3(luminance, channels),"
-					"vec3(luminance),"
+					"vec3(mono_luminance),"
 					"step(oneOverCompositeAmplitude, 0.01)"
 				");";
 		break;
@@ -550,10 +559,18 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		}
 		shader->set_uniform("textureCoordinateOffsets", 1, 15, offsets);
 
-		// Grab the coefficients necessary to lowpass filter only things at or below the colour clock.
-		SignalProcessing::FIRFilter filter(15, 8.0f, 0.0f, 1.0f);
-		auto coefficients = filter.get_coefficients();
-		shader->set_uniform("textureWeights", 1, 15, coefficients.data());
+		// Grab the coefficients necessary to lowpass filter only things suitable far below the colour clock.
+		SignalProcessing::FIRFilter luma_filter(15, 4.0f, 0.0f, 0.5f);
+		auto luma_coefficients = luma_filter.get_coefficients();
+		luma_coefficients.push_back(0.0f);
+		shader->set_uniform("lumaWeights", 4, 4, luma_coefficients.data());
+
+		// Pick coefficients for monochrome filtering. This is more to do with providing realistically-limited bandwidth
+		// than any act of separation.
+		SignalProcessing::FIRFilter mono_filter(7, 4.0f, 0.0f, 3.5f);
+		auto mono_coefficients = mono_filter.get_coefficients();
+		mono_coefficients.push_back(0.0f);
+		shader->set_uniform("monoWeights", 4, 2, luma_coefficients.data());
 
 		switch(modals_.composite_colour_space) {
 			case ColourSpace::YIQ: {
