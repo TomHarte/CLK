@@ -244,6 +244,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 			"uniform vec4 lumaWeights[4];"
 			"uniform vec4 monoWeights[2];"
+			"uniform vec4 compositeAngleOffsets[4];"
 			;
 
 	}
@@ -258,11 +259,9 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		case DisplayType::CompositeColour:
 		case DisplayType::SVideo:
 			vertex_shader +=
-				"out vec2 textureCoordinates[15];"
-				"out vec4 angles;";
+				"out vec2 textureCoordinates[15];";
 			fragment_shader +=
-				"in vec2 textureCoordinates[15];"
-				"in vec4 angles;";
+				"in vec2 textureCoordinates[15];";
 		break;
 	}
 
@@ -311,13 +310,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 				"textureCoordinates[11] = vec2(centreClock + textureCoordinateOffsets[11], lineY + 0.5) / textureSize(textureName, 0);"
 				"textureCoordinates[12] = vec2(centreClock + textureCoordinateOffsets[12], lineY + 0.5) / textureSize(textureName, 0);"
 				"textureCoordinates[13] = vec2(centreClock + textureCoordinateOffsets[13], lineY + 0.5) / textureSize(textureName, 0);"
-				"textureCoordinates[14] = vec2(centreClock + textureCoordinateOffsets[14], lineY + 0.5) / textureSize(textureName, 0);"
-				"angles = vec4("
-					"compositeAngle - 2.356194490192345,"
-					"compositeAngle - 0.785398163397448,"
-					"compositeAngle + 0.785398163397448,"
-					"compositeAngle + 2.356194490192345"
-				");";
+				"textureCoordinates[14] = vec2(centreClock + textureCoordinateOffsets[14], lineY + 0.5) / textureSize(textureName, 0);";
 		break;
 	}
 
@@ -448,30 +441,38 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 		case DisplayType::CompositeColour:
 			fragment_shader +=
+				// Calculate the angles at which the samples sit.
+				"vec4 angles[4] = vec4[4]("
+					"vec4(compositeAngle) + compositeAngleOffsets[0],"
+					"vec4(compositeAngle) + compositeAngleOffsets[1],"
+					"vec4(compositeAngle) + compositeAngleOffsets[2],"
+					"vec4(compositeAngle) + compositeAngleOffsets[3]"
+				");"
+
 				// Sample four times over, at proper angle offsets.
 				"vec4 samples[4] = vec4[4]("
 					"vec4("
-						"composite_sample(textureCoordinates[0], angles[0]),"
-						"composite_sample(textureCoordinates[1], angles[1]),"
-						"composite_sample(textureCoordinates[2], angles[2]),"
-						"composite_sample(textureCoordinates[3], angles[3])"
+						"composite_sample(textureCoordinates[0], angles[0].x),"
+						"composite_sample(textureCoordinates[1], angles[0].y),"
+						"composite_sample(textureCoordinates[2], angles[0].z),"
+						"composite_sample(textureCoordinates[3], angles[0].w)"
 					"),"
 					"vec4("
-						"composite_sample(textureCoordinates[4], angles[0]),"
-						"composite_sample(textureCoordinates[5], angles[1]),"
-						"composite_sample(textureCoordinates[6], angles[2]),"
-						"composite_sample(textureCoordinates[7], angles[3])"
+						"composite_sample(textureCoordinates[4], angles[1].x),"
+						"composite_sample(textureCoordinates[5], angles[1].y),"
+						"composite_sample(textureCoordinates[6], angles[1].z),"
+						"composite_sample(textureCoordinates[7], angles[1].w)"
 					"),"
 					"vec4("
-						"composite_sample(textureCoordinates[8], angles[0]),"
-						"composite_sample(textureCoordinates[9], angles[1]),"
-						"composite_sample(textureCoordinates[10], angles[2]),"
-						"composite_sample(textureCoordinates[11], angles[3])"
+						"composite_sample(textureCoordinates[8], angles[2].x),"
+						"composite_sample(textureCoordinates[9], angles[2].y),"
+						"composite_sample(textureCoordinates[10], angles[2].z),"
+						"composite_sample(textureCoordinates[11], angles[2].w)"
 					"),"
 					"vec4("
-						"composite_sample(textureCoordinates[12], angles[0]),"
-						"composite_sample(textureCoordinates[13], angles[1]),"
-						"composite_sample(textureCoordinates[14], angles[2]),"
+						"composite_sample(textureCoordinates[12], angles[3].x),"
+						"composite_sample(textureCoordinates[13], angles[3].y),"
+						"composite_sample(textureCoordinates[14], angles[3].z),"
 						"0.0"
 					")"
 				");"
@@ -499,12 +500,21 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 				"samples[3] -= vec4(luminance);"
 				"luminance /= (1.0 - compositeAmplitude);"
 
-				// Split and average chrominance.
-//				"vec2 channels = vec2("
-//					"dot(cos(angles), samples),"
-//					"dot(sin(angles), samples)"
-//				") * vec2(0.125 * oneOverCompositeAmplitude);"
-				"vec2 channels = vec2(0.0);"
+				// Split and filter chrominance.
+				"vec2 channels = vec2("
+					"dot(vec4("
+						"dot(cos(angles[0])*samples[0], lumaWeights[0]),"
+						"dot(cos(angles[1])*samples[1], lumaWeights[1]),"
+						"dot(cos(angles[2])*samples[2], lumaWeights[2]),"
+						"dot(cos(angles[3])*samples[3], lumaWeights[3])"
+					"), vec4(1.0)),"
+					"dot(vec4("
+						"dot(sin(angles[0])*samples[0], lumaWeights[0]),"
+						"dot(sin(angles[1])*samples[1], lumaWeights[1]),"
+						"dot(sin(angles[2])*samples[2], lumaWeights[2]),"
+						"dot(sin(angles[3])*samples[3], lumaWeights[3])"
+					"), vec4(1.0))"
+				") * vec2(oneOverCompositeAmplitude);"
 
 				// Apply a colour space conversion to get RGB.
 				"fragColour3 = mix("
@@ -553,11 +563,15 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 	if(modals_.display_type != DisplayType::RGB) {
 		// Establish 15 samples, spaced out evenly across an input space of 16 clocks per colour cycle.
 		float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
-		GLfloat offsets[15];
+		GLfloat texture_offsets[15];
+		GLfloat angles[16];
 		for(int c = 0; c < 15; ++c) {
-			offsets[c] = (float(c - 7) / 4.0f) * clocks_per_angle;
+			float angle = float(c - 7) / 4.0f;
+			texture_offsets[c] = angle * clocks_per_angle;
+			angles[c] = GLfloat(angle * 2.0f * M_PI);
 		}
-		shader->set_uniform("textureCoordinateOffsets", 1, 15, offsets);
+		shader->set_uniform("textureCoordinateOffsets", 1, 15, texture_offsets);
+		shader->set_uniform("compositeAngleOffsets", 4, 4, angles);
 
 		// Grab the coefficients necessary to lowpass filter only things suitable far below the colour clock.
 		SignalProcessing::FIRFilter luma_filter(15, 4.0f, 0.0f, 0.5f);
