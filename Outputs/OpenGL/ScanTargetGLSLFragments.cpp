@@ -17,9 +17,14 @@ void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader 
 	// converge even allowing for the fact that they may not be spaced by exactly
 	// the expected distance. Cf. the stencil-powered logic for making sure all
 	// pixels are painted only exactly once per field.
-	target.set_uniform("rowHeight", GLfloat(1.05f / modals_.expected_vertical_lines));
-	target.set_uniform("scale", GLfloat(modals_.output_scale.x), GLfloat(modals_.output_scale.y));
-	target.set_uniform("phaseOffset", GLfloat(modals_.input_data_tweaks.phase_linked_luminance_offset));
+	switch(type) {
+		default: break;
+		case ShaderType::Conversion:
+			target.set_uniform("rowHeight", GLfloat(1.05f / modals_.expected_vertical_lines));
+			target.set_uniform("scale", GLfloat(modals_.output_scale.x), GLfloat(modals_.output_scale.y));
+			target.set_uniform("phaseOffset", GLfloat(modals_.input_data_tweaks.phase_linked_luminance_offset));
+		break;
+	}
 }
 
 void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
@@ -235,13 +240,14 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"out float compositeAmplitude;"
 			"out float oneOverCompositeAmplitude;"
 		
-			"uniform vec4 textureCoordinateOffsets;"
-			"uniform float angleOffsets[4];"
-		;
+			"uniform float textureCoordinateOffsets[7];"
+			"uniform float angleOffsets[4];";
 		fragment_shader +=
 			"in float compositeAngle;"
 			"in float compositeAmplitude;"
-			"in float oneOverCompositeAmplitude;";
+			"in float oneOverCompositeAmplitude;"
+
+			"uniform vec4 compositeAngleOffsets[2];";
 	}
 
 	switch(modals_.display_type){
@@ -254,11 +260,9 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		case DisplayType::CompositeColour:
 		case DisplayType::SVideo:
 			vertex_shader +=
-				"out vec2 textureCoordinates[4];"
-				"out vec4 angles;";
+				"out vec2 textureCoordinates[7];";
 			fragment_shader +=
-				"in vec2 textureCoordinates[4];"
-				"in vec4 angles;";
+				"in vec2 textureCoordinates[7];";
 		break;
 	}
 
@@ -297,12 +301,9 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 				"textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / textureSize(textureName, 0);"
 				"textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / textureSize(textureName, 0);"
 				"textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / textureSize(textureName, 0);"
-				"angles = vec4("
-					"compositeAngle - 2.356194490192345,"
-					"compositeAngle - 0.785398163397448,"
-					"compositeAngle + 0.785398163397448,"
-					"compositeAngle + 2.356194490192345"
-				");";
+				"textureCoordinates[4] = vec2(centreClock + textureCoordinateOffsets[4], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[5] = vec2(centreClock + textureCoordinateOffsets[5], lineY + 0.5) / textureSize(textureName, 0);"
+				"textureCoordinates[6] = vec2(centreClock + textureCoordinateOffsets[6], lineY + 0.5) / textureSize(textureName, 0);";
 		break;
 	}
 
@@ -433,33 +434,53 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 		case DisplayType::CompositeColour:
 			fragment_shader +=
-				// Sample four times over, at proper angle offsets.
-				"vec4 samples = vec4("
-					"composite_sample(textureCoordinates[0], angles[0]),"
-					"composite_sample(textureCoordinates[1], angles[1]),"
-					"composite_sample(textureCoordinates[2], angles[2]),"
-					"composite_sample(textureCoordinates[3], angles[3])"
+				"vec4 angles[2] = vec4[2]("
+					"vec4(compositeAngle) + compositeAngleOffsets[0],"
+					"vec4(compositeAngle) + compositeAngleOffsets[1]"
 				");"
+
+				// Sample four times over, at proper angle offsets.
+				"vec4 samples[2] = vec4[2](vec4("
+					"composite_sample(textureCoordinates[0], angles[0].x),"
+					"composite_sample(textureCoordinates[1], angles[0].y),"
+					"composite_sample(textureCoordinates[2], angles[0].z),"
+					"composite_sample(textureCoordinates[3], angles[0].w)"
+				"), vec4("
+					"composite_sample(textureCoordinates[4], angles[1].x),"
+					"composite_sample(textureCoordinates[5], angles[1].y),"
+					"composite_sample(textureCoordinates[6], angles[1].z),"
+					"0.0"
+				"));"
 
 				// Compute a luminance for use if there's no colour information, now, before
 				// modifying samples.
-				"float mono_luminance = dot(samples.yz, vec2(0.5));"
+				"float mono_luminance = dot(vec3(samples[0].zw, samples[1].x), vec3(0.15, 0.7, 0.15));"
 
 				// Take the average to calculate luminance, then subtract that from all four samples to
 				// give chrominance.
-				"float luminance = dot(samples, vec4(0.25));"
-				"samples -= vec4(luminance);"
-				"luminance /= (1.0 - compositeAmplitude);"
+				"float luminances[4] = float[4]("
+					"dot(samples[0], vec4(0.25)),"
+					"dot(vec4(samples[0].yzw, samples[1].x), vec4(0.25)),"
+					"dot(vec4(samples[0].zw, samples[1].xy), vec4(0.25)),"
+					"dot(vec4(samples[0].w, samples[1].xyz), vec4(0.25))"
+				");"
 
 				// Split and average chrominance.
+				"vec4 chrominances = vec4("
+					"samples[0].y - luminances[0],"
+					"samples[0].z - luminances[1],"
+					"samples[0].w - luminances[2],"
+					"samples[1].x - luminances[3]"
+				");"
+				"vec4 chrominance_angles = vec4(angles[0].yzw, angles[1].x);"
 				"vec2 channels = vec2("
-					"dot(cos(angles), samples),"
-					"dot(sin(angles), samples)"
+					"dot(cos(chrominance_angles), chrominances),"
+					"dot(sin(chrominance_angles), chrominances)"
 				") * vec2(0.125 * oneOverCompositeAmplitude);"
 
 				// Apply a colour space conversion to get RGB.
 				"fragColour3 = mix("
-					"lumaChromaToRGB * vec3(luminance, channels),"
+					"lumaChromaToRGB * vec3(luminances[2] / (1.0 - compositeAmplitude), channels),"
 					"vec3(mono_luminance),"
 					"step(oneOverCompositeAmplitude, 0.01)"
 				");";
@@ -502,12 +523,16 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 	// If this isn't an RGB or composite colour shader, set the proper colour space.
 	if(modals_.display_type != DisplayType::RGB) {
-		float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
-		shader->set_uniform("textureCoordinateOffsets",
-							-0.375f * clocks_per_angle,
-							-0.125f * clocks_per_angle,
-							+0.125f * clocks_per_angle,
-							+0.375f * clocks_per_angle);
+		const float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
+		GLfloat texture_offsets[7];
+		GLfloat angles[8];
+		for(int c = 0; c < 7; ++c) {
+			GLfloat angle = (GLfloat(c) - 3.5f) / 4.0f;
+			texture_offsets[c] = angle * clocks_per_angle;
+			angles[c] = GLfloat(angle * 2.0f * M_PI);
+		}
+		shader->set_uniform("textureCoordinateOffsets", 1, 7, texture_offsets);
+		shader->set_uniform("compositeAngleOffsets", 4, 2, angles);
 
 		switch(modals_.composite_colour_space) {
 			case ColourSpace::YIQ: {
