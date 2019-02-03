@@ -60,6 +60,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void end_data(size_t actual_length) override;
 		void submit() override;
 		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) override;
+		void will_change_owner() override;
 
 		bool output_is_visible_ = false;
 

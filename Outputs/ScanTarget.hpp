@@ -264,6 +264,10 @@ struct ScanTarget {
 		/// It is required that every call to begin_data be paired with a call to end_data.
 		virtual void end_data(size_t actual_length) {}
 
+		/// Tells the scan target that its owner is about to change; this is a hint that existing
+		/// data and scan allocations should be invalidated.
+		virtual void will_change_owner() {}
+
 		/// Marks the end of an atomic set of data. Drawing is best effort, so the scan target should either:
 		///
 		///		(i)	output everything received since the previous submit; or

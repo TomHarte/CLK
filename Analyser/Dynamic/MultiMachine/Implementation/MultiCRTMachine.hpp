@@ -64,6 +64,7 @@ class MultiCRTMachine: public CRTMachine::Machine {
 		std::vector<Concurrency::AsyncTaskQueue> queues_;
 		MultiSpeaker *speaker_ = nullptr;
 		Delegate *delegate_ = nullptr;
+		Outputs::Display::ScanTarget *scan_target_ = nullptr;
 
 		/*!
 			Performs a parallel for operation across all machines, performing the supplied

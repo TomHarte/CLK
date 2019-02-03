@@ -209,6 +209,11 @@ void ScanTarget::end_data(size_t actual_length) {
 		data_type_size_);
 }
 
+void ScanTarget::will_change_owner() {
+	allocation_has_failed_ = true;
+	vended_scan_ = nullptr;
+}
+
 void ScanTarget::submit() {
 	if(allocation_has_failed_) {
 		// Reset all pointers to where they were; this also means
