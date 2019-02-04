@@ -83,6 +83,7 @@ ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
 	// write straight into it.
 
 	glGenTextures(1, &write_area_texture_name_);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	glBlendColor(0.4f, 0.4f, 0.4f, 1.0f);
