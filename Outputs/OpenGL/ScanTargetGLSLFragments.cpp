@@ -315,63 +315,34 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		fragment_shader +=
 			"uniform mat3 lumaChromaToRGB;"
 			"uniform mat3 rgbToLumaChroma;";
-	}
 
-	if(modals_.display_type == DisplayType::SVideo) {
-		fragment_shader +=
-			"vec2 svideo_sample(vec2 coordinate, float angle) {";
-
-		switch(modals_.input_data_type) {
-			case InputDataType::Luminance1:
-			case InputDataType::Luminance8:
-				// Easy, just copy across.
-				fragment_shader += "return vec2(textureLod(textureName, coordinate, 0).r, 0.0);";
-			break;
-
-			case InputDataType::PhaseLinkedLuminance8:
-				fragment_shader +=
-					"uint iPhase = uint((angle * 2.0 / 3.141592654) ) & 3u;"	// + phaseOffset*4.0
-					"return vec2(textureLod(textureName, coordinate, 0)[iPhase], 0.0);";
-			break;
-
-			case InputDataType::Luminance8Phase8:
-				fragment_shader +=
-					"vec2 yc = textureLod(textureName, coordinate, 0).rg;"
-
-					"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
-					"float rawChroma = step(yc.y, 0.75) * cos(angle + phaseOffset);"
-					"return vec2(yc.x, rawChroma);";
-			break;
-
-			case InputDataType::Red1Green1Blue1:
-			case InputDataType::Red2Green2Blue2:
-			case InputDataType::Red4Green4Blue4:
-			case InputDataType::Red8Green8Blue8:
-				fragment_shader +=
-					"vec3 colour = rgbToLumaChroma * textureLod(textureName, coordinate, 0).rgb;"
-					"vec2 quadrature = vec2(cos(angle), sin(angle));"
-					"return vec2(colour.r, dot(quadrature, colour.gb));";
-			break;
+		if(modals_.display_type == DisplayType::SVideo) {
+			fragment_shader +=
+				"vec2 svideo_sample(vec2 coordinate, float angle) {";
+		} else {
+			fragment_shader +=
+				"float composite_sample(vec2 coordinate, float angle) {";
 		}
 
-		fragment_shader += "}";
-	}
-
-	if(modals_.display_type == DisplayType::CompositeMonochrome || modals_.display_type == DisplayType::CompositeColour) {
-		fragment_shader +=
-			"float composite_sample(vec2 coordinate, float angle) {";
-
+		const bool is_svideo = modals_.display_type == DisplayType::SVideo;
 		switch(modals_.input_data_type) {
 			case InputDataType::Luminance1:
 			case InputDataType::Luminance8:
 				// Easy, just copy across.
-				fragment_shader += "return textureLod(textureName, coordinate, 0).r;";
+				fragment_shader +=
+					is_svideo ?
+						"return vec2(textureLod(textureName, coordinate, 0).r, 0.0);" :
+						"return textureLod(textureName, coordinate, 0).r;";
 			break;
 
 			case InputDataType::PhaseLinkedLuminance8:
 				fragment_shader +=
-					"uint iPhase = uint((angle * 2.0 / 3.141592654) ) & 3u;"	// + phaseOffset*4.0
-					"return textureLod(textureName, coordinate, 0)[iPhase];";
+					"uint iPhase = uint((angle * 2.0 / 3.141592654) ) & 3u;";
+
+				fragment_shader +=
+					is_svideo ?
+						"return vec2(textureLod(textureName, coordinate, 0)[iPhase], 0.0);" :
+						"return textureLod(textureName, coordinate, 0)[iPhase];";
 			break;
 
 			case InputDataType::Luminance8Phase8:
@@ -379,8 +350,12 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 					"vec2 yc = textureLod(textureName, coordinate, 0).rg;"
 
 					"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
-					"float rawChroma = step(yc.y, 0.75) * cos(angle + phaseOffset);"
-					"return mix(yc.x, rawChroma, compositeAmplitude);";
+					"float rawChroma = step(yc.y, 0.75) * cos(angle + phaseOffset);";
+
+				fragment_shader +=
+					is_svideo ?
+						"return vec2(yc.x, rawChroma);" :
+						"return mix(yc.x, rawChroma, compositeAmplitude);";
 			break;
 
 			case InputDataType::Red1Green1Blue1:
@@ -389,8 +364,12 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			case InputDataType::Red8Green8Blue8:
 				fragment_shader +=
 					"vec3 colour = rgbToLumaChroma * textureLod(textureName, coordinate, 0).rgb;"
-					"vec2 quadrature = vec2(cos(angle), sin(angle));"
-					"return mix(colour.r, dot(quadrature, colour.gb), compositeAmplitude);";
+					"vec2 quadrature = vec2(cos(angle), sin(angle));";
+
+				fragment_shader +=
+					is_svideo ?
+						"return vec2(colour.r, dot(quadrature, colour.gb));" :
+						"return mix(colour.r, dot(quadrature, colour.gb), compositeAmplitude);";
 			break;
 		}
 
