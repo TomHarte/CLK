@@ -219,6 +219,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				via_(via_port_handler_),
 				diskii_(2000000) {
 			set_clock_rate(1000000);
+			speaker_.set_input_rate(1000000.0f);
 			via_port_handler_.set_interrupt_delegate(this);
 			tape_player_.set_delegate(this);
 			Memory::Fuzz(ram_, sizeof(ram_));
