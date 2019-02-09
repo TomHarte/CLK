@@ -320,27 +320,13 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		case DisplayType::SVideo:
 			fragment_shader +=
 				// Sample four times over, at proper angle offsets.
-				"vec2 samples[4] = vec2[4]("
-					"svideo_sample(textureCoordinates[0], angles[0]),"
-					"svideo_sample(textureCoordinates[1], angles[1]),"
-					"svideo_sample(textureCoordinates[2], angles[2]),"
-					"svideo_sample(textureCoordinates[3], angles[3])"
-				");"
-				"vec4 chrominances = vec4("
-					"samples[0].y,"
-					"samples[1].y,"
-					"samples[2].y,"
-					"samples[3].y"
-				");"
+				"vec2 sample = svideo_sample(textureCoordinates[1], compositeAngle);"
 
 				// Split and average chrominance.
-				"vec2 channels = vec2("
-					"dot(cos(angles), chrominances),"
-					"dot(sin(angles), chrominances)"
-				") * vec2(0.25);"
+				"vec2 channels = vec2(0.0, 0.0);"
 
 				// Apply a colour space conversion to get RGB.
-				"fragColour3 = lumaChromaToRGB * vec3(samples[1].x, channels);";
+				"fragColour3 = lumaChromaToRGB * vec3(sample.r, channels);";
 		break;
 
 		case DisplayType::CompositeColour:
@@ -593,7 +579,7 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 
 	if(is_svideo) {
 		vertex_shader +=
-			"textureCoordinate = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / textureSize(textureName, 0)";
+			"textureCoordinate = vec2(centreClock, lineY + 0.5) / textureSize(textureName, 0);";
 	} else {
 		vertex_shader +=
 			"textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / textureSize(textureName, 0);"
