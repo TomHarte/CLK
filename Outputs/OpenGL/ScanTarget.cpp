@@ -308,20 +308,20 @@ void ScanTarget::setup_pipeline() {
 
 	// Destroy or create a QAM buffer and shader, if appropriate.
 	const bool needs_qam_buffer = (modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::SVideo);
-	if(needs_qam_buffer && !qam_chroma_texture_) {
-		qam_chroma_texture_.reset(new TextureTarget(LineBufferWidth, LineBufferHeight, QAMChromaTextureUnit, GL_NEAREST, false));
-	} else {
-		qam_chroma_texture_.reset();
-		qam_separation_shader_.reset();
-	}
-
 	if(needs_qam_buffer) {
+		if(!qam_chroma_texture_) {
+			qam_chroma_texture_.reset(new TextureTarget(LineBufferWidth, LineBufferHeight, QAMChromaTextureUnit, GL_NEAREST, false));
+		}
+
 		qam_separation_shader_ = qam_separation_shader();
 		glBindVertexArray(line_vertex_array_);
 		glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 		enable_vertex_attributes(ShaderType::QAMSeparation, *qam_separation_shader_);
 		set_uniforms(ShaderType::QAMSeparation, *qam_separation_shader_);
 		qam_separation_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
+	} else {
+		qam_chroma_texture_.reset();
+		qam_separation_shader_.reset();
 	}
 
 	// Establish an output shader.
