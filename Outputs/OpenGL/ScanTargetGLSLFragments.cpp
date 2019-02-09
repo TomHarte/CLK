@@ -20,11 +20,38 @@ void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader 
 	// the expected distance. Cf. the stencil-powered logic for making sure all
 	// pixels are painted only exactly once per field.
 	switch(type) {
-		default: break;
-		case ShaderType::Conversion:
+		case ShaderType::Composition: break;
+		default:
 			target.set_uniform("rowHeight", GLfloat(1.05f / modals_.expected_vertical_lines));
 			target.set_uniform("scale", GLfloat(modals_.output_scale.x), GLfloat(modals_.output_scale.y));
 			target.set_uniform("phaseOffset", GLfloat(modals_.input_data_tweaks.phase_linked_luminance_offset));
+
+			const float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
+			GLfloat texture_offsets[4];
+			GLfloat angles[4];
+			for(int c = 0; c < 4; ++c) {
+				GLfloat angle = (GLfloat(c) - 1.5f) / 4.0f;
+				texture_offsets[c] = angle * clocks_per_angle;
+				angles[c] = GLfloat(angle * 2.0f * M_PI);
+			}
+			target.set_uniform("textureCoordinateOffsets", 1, 4, texture_offsets);
+			target.set_uniform("compositeAngleOffsets", 4, 1, angles);
+
+			switch(modals_.composite_colour_space) {
+				case ColourSpace::YIQ: {
+					const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
+					const GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
+					target.set_uniform_matrix("lumaChromaToRGB", 3, false, yiqToRGB);
+					target.set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYIQ);
+				} break;
+
+				case ColourSpace::YUV: {
+					const GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
+					const GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
+					target.set_uniform_matrix("lumaChromaToRGB", 3, false, yuvToRGB);
+					target.set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYUV);
+				} break;
+			}
 		break;
 	}
 }
@@ -391,7 +418,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"fragColour = vec4(fragColour3, 0.64);"
 		"}";
 
-	const auto shader = new Shader(
+	return std::unique_ptr<Shader>(new Shader(
 		vertex_shader,
 		fragment_shader,
 		{
@@ -404,39 +431,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"startCompositeAngle",
 			"endCompositeAngle"
 		}
-	);
-
-	// If this isn't an RGB or composite colour shader, set the proper colour space.
-	if(modals_.display_type != DisplayType::RGB) {
-		const float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
-		GLfloat texture_offsets[4];
-		GLfloat angles[4];
-		for(int c = 0; c < 4; ++c) {
-			GLfloat angle = (GLfloat(c) - 1.5f) / 4.0f;
-			texture_offsets[c] = angle * clocks_per_angle;
-			angles[c] = GLfloat(angle * 2.0f * M_PI);
-		}
-		shader->set_uniform("textureCoordinateOffsets", 1, 4, texture_offsets);
-		shader->set_uniform("compositeAngleOffsets", 4, 1, angles);
-
-		switch(modals_.composite_colour_space) {
-			case ColourSpace::YIQ: {
-				const GLfloat rgbToYIQ[] = {0.299f, 0.596f, 0.211f, 0.587f, -0.274f, -0.523f, 0.114f, -0.322f, 0.312f};
-				const GLfloat yiqToRGB[] = {1.0f, 1.0f, 1.0f, 0.956f, -0.272f, -1.106f, 0.621f, -0.647f, 1.703f};
-				shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yiqToRGB);
-				shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYIQ);
-			} break;
-
-			case ColourSpace::YUV: {
-				const GLfloat rgbToYUV[] = {0.299f, -0.14713f, 0.615f, 0.587f, -0.28886f, -0.51499f, 0.114f, 0.436f, -0.10001f};
-				const GLfloat yuvToRGB[] = {1.0f, 1.0f, 1.0f, 0.0f, -0.39465f, 2.03211f, 1.13983f, -0.58060f, 0.0f};
-				shader->set_uniform_matrix("lumaChromaToRGB", 3, false, yuvToRGB);
-				shader->set_uniform_matrix("rgbToLumaChroma", 3, false, rgbToYUV);
-			} break;
-		}
-	}
-
-	return std::unique_ptr<Shader>(shader);
+	));
 }
 
 std::unique_ptr<Shader> ScanTarget::composition_shader() const {
@@ -547,6 +542,7 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 		"#version 150\n"
 
 		"uniform sampler2D textureName;"
+		"uniform mat3 rgbToLumaChroma;"
 
 		"in float compositeAngle;"
 		"in float compositeAmplitude;"
@@ -557,10 +553,10 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 
 	if(is_svideo) {
 		vertex_shader += "out vec2 textureCoordinate;";
-		fragment_shader += "out vec2 textureCoordinate;";
+		fragment_shader += "in vec2 textureCoordinate;";
 	} else {
 		vertex_shader += "out vec2 textureCoordinates[4];";
-		fragment_shader += "out vec2 textureCoordinates[4];";
+		fragment_shader += "in vec2 textureCoordinates[4];";
 	}
 
 	vertex_shader +=
@@ -590,12 +586,9 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 
 	vertex_shader += "}";
 
-
 	fragment_shader +=
 		sampling_function() +
 		"void main(void) {";
-
-	// TODO: properly map range of composite value.
 
 	if(modals_.display_type == DisplayType::SVideo) {
 		fragment_shader +=
@@ -623,7 +616,9 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 				"fragColour = vec4(luminance, channels, 1.0);";
 	};
 
-	fragment_shader += "}";
+	fragment_shader +=
+			"fragColour = fragColour*vec4(0.5) + vec4(0.5);"
+		"}";
 
 	return std::unique_ptr<Shader>(new Shader(
 		vertex_shader,
