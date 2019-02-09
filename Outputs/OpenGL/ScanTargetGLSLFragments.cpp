@@ -12,6 +12,8 @@
 
 using namespace Outputs::Display::OpenGL;
 
+// MARK: - State setup for compiled shaders.
+
 void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) {
 	// Slightly over-amping rowHeight here is a cheap way to make sure that lines
 	// converge even allowing for the fact that they may not be spaced by exactly
@@ -69,16 +71,18 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 				1);
 		break;
 
-		case ShaderType::Conversion:
+		default:
 			for(int c = 0; c < 2; ++c) {
 				const std::string prefix = c ? "end" : "start";
 
-				target.enable_vertex_attribute_with_pointer(
-					prefix + "Point",
-					2, GL_UNSIGNED_SHORT, GL_FALSE,
-					sizeof(Line),
-					reinterpret_cast<void *>(rt_offset_of(end_points[c].x, test_line)),
-					1);
+				if(type == ShaderType::Conversion) {
+					target.enable_vertex_attribute_with_pointer(
+						prefix + "Point",
+						2, GL_UNSIGNED_SHORT, GL_FALSE,
+						sizeof(Line),
+						reinterpret_cast<void *>(rt_offset_of(end_points[c].x, test_line)),
+						1);
+				}
 
 				target.enable_vertex_attribute_with_pointer(
 					prefix + "Clock",
@@ -113,85 +117,71 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 #undef rt_offset_of
 }
 
-std::unique_ptr<Shader> ScanTarget::composition_shader() const {
-	const std::string vertex_shader =
-		"#version 150\n"
+// MARK: - Shader code.
 
-		"in float startDataX;"
-		"in float startClock;"
+std::string ScanTarget::sampling_function() const {
+	std::string fragment_shader;
 
-		"in float endDataX;"
-		"in float endClock;"
+	if(modals_.display_type == DisplayType::SVideo) {
+		fragment_shader +=
+			"vec2 svideo_sample(vec2 coordinate, float angle) {";
+	} else {
+		fragment_shader +=
+			"float composite_sample(vec2 coordinate, float angle) {";
+	}
 
-		"in float dataY;"
-		"in float lineY;"
-
-		"out vec2 textureCoordinate;"
-		"uniform usampler2D textureName;"
-
-		"void main(void) {"
-			"float lateral = float(gl_VertexID & 1);"
-			"float longitudinal = float((gl_VertexID & 2) >> 1);"
-
-			"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / textureSize(textureName, 0);"
-			"vec2 eyePosition = vec2(mix(startClock, endClock, lateral), lineY + longitudinal) / vec2(2048.0, 2048.0);"
-			"gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);"
-		"}";
-
-	std::string fragment_shader =
-		"#version 150\n"
-
-		"out vec4 fragColour;"
-		"in vec2 textureCoordinate;"
-
-		"uniform usampler2D textureName;"
-
-		"void main(void) {";
-
+	const bool is_svideo = modals_.display_type == DisplayType::SVideo;
 	switch(modals_.input_data_type) {
 		case InputDataType::Luminance1:
-			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0).rrrr;";
-		break;
-
 		case InputDataType::Luminance8:
-			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0).rrrr / vec4(255.0);";
+			// Easy, just copy across.
+			fragment_shader +=
+				is_svideo ?
+					"return vec2(textureLod(textureName, coordinate, 0).r, 0.0);" :
+					"return textureLod(textureName, coordinate, 0).r;";
 		break;
 
 		case InputDataType::PhaseLinkedLuminance8:
+			fragment_shader +=
+				"uint iPhase = uint((angle * 2.0 / 3.141592654) ) & 3u;";
+
+			fragment_shader +=
+				is_svideo ?
+					"return vec2(textureLod(textureName, coordinate, 0)[iPhase], 0.0);" :
+					"return textureLod(textureName, coordinate, 0)[iPhase];";
+		break;
+
 		case InputDataType::Luminance8Phase8:
-		case InputDataType::Red8Green8Blue8:
-			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0) / vec4(255.0);";
+			fragment_shader +=
+				"vec2 yc = textureLod(textureName, coordinate, 0).rg;"
+
+				"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
+				"float rawChroma = step(yc.y, 0.75) * cos(angle + phaseOffset);";
+
+			fragment_shader +=
+				is_svideo ?
+					"return vec2(yc.x, rawChroma);" :
+					"return mix(yc.x, rawChroma, compositeAmplitude);";
 		break;
 
 		case InputDataType::Red1Green1Blue1:
-			fragment_shader += "fragColour = vec4(textureLod(textureName, textureCoordinate, 0).rrr & uvec3(4u, 2u, 1u), 1.0);";
-		break;
-
 		case InputDataType::Red2Green2Blue2:
-			fragment_shader +=
-				"uint textureValue = textureLod(textureName, textureCoordinate, 0).r;"
-				"fragColour = vec4(float((textureValue >> 4) & 3u), float((textureValue >> 2) & 3u), float(textureValue & 3u), 3.0) / 3.0;";
-		break;
-
 		case InputDataType::Red4Green4Blue4:
+		case InputDataType::Red8Green8Blue8:
 			fragment_shader +=
-				"uvec2 textureValue = textureLod(textureName, textureCoordinate, 0).rg;"
-				"fragColour = vec4(float(textureValue.r) / 15.0, float(textureValue.g & 240u) / 240.0, float(textureValue.g & 15u) / 15.0, 1.0);";
+				"vec3 colour = rgbToLumaChroma * textureLod(textureName, coordinate, 0).rgb;"
+				"vec2 quadrature = vec2(cos(angle), sin(angle));";
+
+			fragment_shader +=
+				is_svideo ?
+					"return vec2(colour.r, dot(quadrature, colour.gb));" :
+					"return mix(colour.r, dot(quadrature, colour.gb), compositeAmplitude);";
 		break;
 	}
 
-	return std::unique_ptr<Shader>(new Shader(
-		vertex_shader,
-		fragment_shader + "}",
-		{
-			"startDataX",
-			"startClock",
-			"endDataX",
-			"endClock",
-			"dataY",
-			"lineY",
-		}
-	));
+	fragment_shader += "}";
+
+	return fragment_shader;
 }
 
 std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
@@ -224,6 +214,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		"in float lineCompositeAmplitude;"
 
 		"uniform sampler2D textureName;"
+		"uniform sampler2D qamTextureName;"
 		"uniform vec2 origin;"
 		"uniform vec2 size;";
 
@@ -231,6 +222,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		"#version 150\n"
 
 		"uniform sampler2D textureName;"
+		"uniform sampler2D qamTextureName;"
 
 		"out vec4 fragColour;";
 
@@ -313,64 +305,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"uniform mat3 lumaChromaToRGB;"
 			"uniform mat3 rgbToLumaChroma;";
 
-		if(modals_.display_type == DisplayType::SVideo) {
-			fragment_shader +=
-				"vec2 svideo_sample(vec2 coordinate, float angle) {";
-		} else {
-			fragment_shader +=
-				"float composite_sample(vec2 coordinate, float angle) {";
-		}
-
-		const bool is_svideo = modals_.display_type == DisplayType::SVideo;
-		switch(modals_.input_data_type) {
-			case InputDataType::Luminance1:
-			case InputDataType::Luminance8:
-				// Easy, just copy across.
-				fragment_shader +=
-					is_svideo ?
-						"return vec2(textureLod(textureName, coordinate, 0).r, 0.0);" :
-						"return textureLod(textureName, coordinate, 0).r;";
-			break;
-
-			case InputDataType::PhaseLinkedLuminance8:
-				fragment_shader +=
-					"uint iPhase = uint((angle * 2.0 / 3.141592654) ) & 3u;";
-
-				fragment_shader +=
-					is_svideo ?
-						"return vec2(textureLod(textureName, coordinate, 0)[iPhase], 0.0);" :
-						"return textureLod(textureName, coordinate, 0)[iPhase];";
-			break;
-
-			case InputDataType::Luminance8Phase8:
-				fragment_shader +=
-					"vec2 yc = textureLod(textureName, coordinate, 0).rg;"
-
-					"float phaseOffset = 3.141592654 * 2.0 * 2.0 * yc.y;"
-					"float rawChroma = step(yc.y, 0.75) * cos(angle + phaseOffset);";
-
-				fragment_shader +=
-					is_svideo ?
-						"return vec2(yc.x, rawChroma);" :
-						"return mix(yc.x, rawChroma, compositeAmplitude);";
-			break;
-
-			case InputDataType::Red1Green1Blue1:
-			case InputDataType::Red2Green2Blue2:
-			case InputDataType::Red4Green4Blue4:
-			case InputDataType::Red8Green8Blue8:
-				fragment_shader +=
-					"vec3 colour = rgbToLumaChroma * textureLod(textureName, coordinate, 0).rgb;"
-					"vec2 quadrature = vec2(cos(angle), sin(angle));";
-
-				fragment_shader +=
-					is_svideo ?
-						"return vec2(colour.r, dot(quadrature, colour.gb));" :
-						"return mix(colour.r, dot(quadrature, colour.gb), compositeAmplitude);";
-			break;
-		}
-
-		fragment_shader += "}";
+		fragment_shader += sampling_function();
 	}
 
 	fragment_shader +=
@@ -516,4 +451,205 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 	}
 
 	return std::unique_ptr<Shader>(shader);
+}
+
+std::unique_ptr<Shader> ScanTarget::composition_shader() const {
+	const std::string vertex_shader =
+		"#version 150\n"
+
+		"in float startDataX;"
+		"in float startClock;"
+
+		"in float endDataX;"
+		"in float endClock;"
+
+		"in float dataY;"
+		"in float lineY;"
+
+		"out vec2 textureCoordinate;"
+		"uniform usampler2D textureName;"
+
+		"void main(void) {"
+			"float lateral = float(gl_VertexID & 1);"
+			"float longitudinal = float((gl_VertexID & 2) >> 1);"
+
+			"textureCoordinate = vec2(mix(startDataX, endDataX, lateral), dataY + 0.5) / textureSize(textureName, 0);"
+			"vec2 eyePosition = vec2(mix(startClock, endClock, lateral), lineY + longitudinal) / vec2(2048.0, 2048.0);"
+			"gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);"
+		"}";
+
+	std::string fragment_shader =
+		"#version 150\n"
+
+		"out vec4 fragColour;"
+		"in vec2 textureCoordinate;"
+
+		"uniform usampler2D textureName;"
+
+		"void main(void) {";
+
+	switch(modals_.input_data_type) {
+		case InputDataType::Luminance1:
+			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0).rrrr;";
+		break;
+
+		case InputDataType::Luminance8:
+			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0).rrrr / vec4(255.0);";
+		break;
+
+		case InputDataType::PhaseLinkedLuminance8:
+		case InputDataType::Luminance8Phase8:
+		case InputDataType::Red8Green8Blue8:
+			fragment_shader += "fragColour = textureLod(textureName, textureCoordinate, 0) / vec4(255.0);";
+		break;
+
+		case InputDataType::Red1Green1Blue1:
+			fragment_shader += "fragColour = vec4(textureLod(textureName, textureCoordinate, 0).rrr & uvec3(4u, 2u, 1u), 1.0);";
+		break;
+
+		case InputDataType::Red2Green2Blue2:
+			fragment_shader +=
+				"uint textureValue = textureLod(textureName, textureCoordinate, 0).r;"
+				"fragColour = vec4(float((textureValue >> 4) & 3u), float((textureValue >> 2) & 3u), float(textureValue & 3u), 3.0) / 3.0;";
+		break;
+
+		case InputDataType::Red4Green4Blue4:
+			fragment_shader +=
+				"uvec2 textureValue = textureLod(textureName, textureCoordinate, 0).rg;"
+				"fragColour = vec4(float(textureValue.r) / 15.0, float(textureValue.g & 240u) / 240.0, float(textureValue.g & 15u) / 15.0, 1.0);";
+		break;
+	}
+
+	return std::unique_ptr<Shader>(new Shader(
+		vertex_shader,
+		fragment_shader + "}",
+		{
+			"startDataX",
+			"startClock",
+			"endDataX",
+			"endClock",
+			"dataY",
+			"lineY",
+		}
+	));
+}
+
+std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
+	const bool is_svideo = modals_.display_type == DisplayType::SVideo;
+
+	// Sets up texture coordinates to run between startClock and endClock, mapping to
+	// coordinates that correlate with four times the absolute value of the composite angle.
+	std::string vertex_shader =
+		"#version 150\n"
+
+		"in float startClock;"
+		"in float startCompositeAngle;"
+		"in float endClock;"
+		"in float endCompositeAngle;"
+
+		"in float lineY;"
+		"in float lineCompositeAmplitude;"
+
+		"uniform sampler2D textureName;"
+		"uniform float textureCoordinateOffsets[4];"
+
+		"out float compositeAngle;"
+		"out float compositeAmplitude;"
+		"out float oneOverCompositeAmplitude;";
+
+	std::string fragment_shader =
+		"#version 150\n"
+
+		"uniform sampler2D textureName;"
+
+		"in float compositeAngle;"
+		"in float compositeAmplitude;"
+		"in float oneOverCompositeAmplitude;"
+
+		"out vec4 fragColour;"
+		"uniform vec4 compositeAngleOffsets;";
+
+	if(is_svideo) {
+		vertex_shader += "out vec2 textureCoordinate;";
+		fragment_shader += "out vec2 textureCoordinate;";
+	} else {
+		vertex_shader += "out vec2 textureCoordinates[4];";
+		fragment_shader += "out vec2 textureCoordinates[4];";
+	}
+
+	vertex_shader +=
+		"void main(void) {"
+			"float lateral = float(gl_VertexID & 1);"
+			"float longitudinal = float((gl_VertexID & 2) >> 1);"
+
+			"vec2 eyePosition = vec2(abs(mix(startCompositeAngle, endCompositeAngle, lateral) * 4.0), lineY + longitudinal) / vec2(2048.0, 2048.0);"
+			"gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);"
+
+			"compositeAngle = (mix(startCompositeAngle, endCompositeAngle, lateral) / 32.0) * 3.141592654;"
+			"compositeAmplitude = lineCompositeAmplitude / 255.0;"
+			"oneOverCompositeAmplitude = mix(0.0, 255.0 / lineCompositeAmplitude, step(0.01, lineCompositeAmplitude));"
+
+			"float centreClock = mix(startClock, endClock, lateral);";
+
+	if(is_svideo) {
+		vertex_shader +=
+			"textureCoordinate = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / textureSize(textureName, 0)";
+	} else {
+		vertex_shader +=
+			"textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / textureSize(textureName, 0);"
+			"textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / textureSize(textureName, 0);"
+			"textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / textureSize(textureName, 0);"
+			"textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / textureSize(textureName, 0);";
+	}
+
+	vertex_shader += "}";
+
+
+	fragment_shader +=
+		sampling_function() +
+		"void main(void) {";
+
+	// TODO: properly map range of composite value.
+
+	if(modals_.display_type == DisplayType::SVideo) {
+		fragment_shader +=
+			"fragColour = vec4(svideo_sample(textureCoordinate, compositeAngle).rgg * vec3(1.0, cos(compositeAngle), sin(compositeAngle)), 1.0);";
+	} else {
+			fragment_shader +=
+				"vec4 angles = compositeAngle + compositeAngleOffsets;"
+
+				// Sample four times over, at proper angle offsets.
+				"vec4 samples = vec4("
+					"composite_sample(textureCoordinates[0], angles.x),"
+					"composite_sample(textureCoordinates[1], angles.y),"
+					"composite_sample(textureCoordinates[2], angles.z),"
+					"composite_sample(textureCoordinates[3], angles.w)"
+				");"
+
+				// Take the average to calculate luminance, then subtract that from all four samples to
+				// give chrominance.
+				"float luminance = dot(samples, vec4(0.25));"
+				"float chrominance = (samples.y - luminance) * oneOverCompositeAmplitude;"
+
+				"vec2 channels = vec2(cos(compositeAngle), sin(compositeAngle)) * chrominance;"
+
+				// Apply a colour space conversion to get RGB.
+				"fragColour = vec4(luminance, channels, 1.0);";
+	};
+
+	fragment_shader += "}";
+
+	return std::unique_ptr<Shader>(new Shader(
+		vertex_shader,
+		fragment_shader,
+		{
+			"startClock",
+			"startCompositeAngle",
+			"endClock",
+			"endCompositeAngle",
+
+			"lineY",
+			"lineCompositeAmplitude"
+		}
+	));
 }

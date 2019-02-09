@@ -124,6 +124,10 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// application of any necessary conversions — e.g. composite processing.
 		TextureTarget unprocessed_line_texture_;
 
+		// Contains pre-lowpass-filtered chrominance information that is
+		// part-QAM-demoduled, if dealing with a QAM data source.
+		std::unique_ptr<TextureTarget> qam_chroma_texture_;
+
 		// Scans are accumulated to the accumulation texture; the full-display
 		// rectangle is used to ensure untouched pixels properly decay.
 		std::unique_ptr<TextureTarget> accumulation_texture_;
@@ -165,7 +169,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		enum class ShaderType {
 			Composition,
-			Conversion
+			Conversion,
+			QAMSeparation
 		};
 
 		/*!
@@ -178,9 +183,10 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		GLsync fence_ = nullptr;
 		std::atomic_flag is_drawing_;
 
-		int processing_width_ = 0;
 		std::unique_ptr<Shader> input_shader_;
 		std::unique_ptr<Shader> output_shader_;
+		std::unique_ptr<Shader> qam_separation_shader_;
+
 
 		/*!
 			Produces a shader that composes fragment of the input stream to a single buffer,
@@ -193,6 +199,14 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			output RGB, decoding composite or S-Video as necessary.
 		*/
 		std::unique_ptr<Shader> conversion_shader() const;
+		/*!
+			Produces a shader that writes separated but not-yet filtered QAM components
+			from the unprocessed line texture to the QAM chroma texture, at a fixed
+			size of four samples per colour clock, point sampled.
+		*/
+		std::unique_ptr<Shader> qam_separation_shader() const;
+
+		std::string sampling_function() const;
 };
 
 }

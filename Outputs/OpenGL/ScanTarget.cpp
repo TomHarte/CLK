@@ -24,7 +24,14 @@ constexpr GLenum SourceDataTextureUnit = GL_TEXTURE0;
 constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE1;
 
 /// The texture unit that contains the current display.
-constexpr GLenum AccumulationTextureUnit = GL_TEXTURE2;
+constexpr GLenum AccumulationTextureUnit = GL_TEXTURE3;
+
+/// The texture unit that contains a pre-lowpass-filtered but fixed-resolution version of the chroma signal;
+/// this is used when processing composite video only, and for chroma information only. Luminance is calculated
+/// at the fidelity permitted by the output target, but my efforts to separate, demodulate and filter
+/// chrominance during output without either massively sampling or else incurring significant high-frequency
+/// noise that sampling reduces into a Moire, have proven to be unsuccessful for the time being.
+constexpr GLenum QAMChromaTextureUnit = GL_TEXTURE2;
 
 #define TextureAddress(x, y)	(((y) << 11) | (x))
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
@@ -299,9 +306,23 @@ void ScanTarget::setup_pipeline() {
 		write_pointers_.write_area = 0;
 	}
 
-	// Pick a processing width; this will be the minimum necessary not to
-	// lose any detail when combining the input.
-	processing_width_ = modals_.cycles_per_line / modals_.clocks_per_pixel_greatest_common_divisor;
+	// Destroy or create a QAM buffer and shader, if appropriate.
+	const bool needs_qam_buffer = (modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::SVideo);
+	if(needs_qam_buffer && !qam_chroma_texture_) {
+		qam_chroma_texture_.reset(new TextureTarget(LineBufferWidth, LineBufferHeight, QAMChromaTextureUnit, GL_NEAREST, false));
+	} else {
+		qam_chroma_texture_.reset();
+		qam_separation_shader_.reset();
+	}
+
+	if(needs_qam_buffer) {
+		qam_separation_shader_ = qam_separation_shader();
+		glBindVertexArray(line_vertex_array_);
+		glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
+		enable_vertex_attributes(ShaderType::QAMSeparation, *qam_separation_shader_);
+		set_uniforms(ShaderType::QAMSeparation, *qam_separation_shader_);
+		qam_separation_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
+	}
 
 	// Establish an output shader.
 	output_shader_ = conversion_shader();
@@ -312,6 +333,7 @@ void ScanTarget::setup_pipeline() {
 	output_shader_->set_uniform("origin", modals_.visible_area.origin.x, modals_.visible_area.origin.y);
 	output_shader_->set_uniform("size", modals_.visible_area.size.width, modals_.visible_area.size.height);
 	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
+	output_shader_->set_uniform("qamTextureName", GLint(QAMChromaTextureUnit - GL_TEXTURE0));
 
 	// Establish an input shader.
 	input_shader_ = composition_shader();
@@ -487,8 +509,10 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	// Figure out how many new spans are ostensible ready; use two less than that.
 	uint16_t new_spans = (submit_pointers.line + LineBufferHeight - read_pointers.line) % LineBufferHeight;
 	if(new_spans) {
-		// Bind the accumulation framebuffer.
-		accumulation_texture_->bind_framebuffer();
+		// Bind the accumulation framebuffer, unless there's going to be QAM work.
+		if(!qam_separation_shader_) {
+			accumulation_texture_->bind_framebuffer();
+		}
 
 		// Enable blending and stenciling, and ensure spans increment the stencil buffer.
 		glEnable(GL_BLEND);
@@ -525,10 +549,12 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 				// Rebind the program for span output.
 				glBindVertexArray(line_vertex_array_);
-				output_shader_->bind();
+				if(!qam_separation_shader_) {
+					output_shader_->bind();
+				}
 			}
 
-			// Upload and draw.
+			// Upload.
 			const auto buffer_size = spans * sizeof(Line);
 			if(!end_line || end_line > start_line) {
 				glBufferSubData(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), &line_buffer_[start_line]);
@@ -547,6 +573,18 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 				glUnmapBuffer(GL_ARRAY_BUFFER);
 			}
 
+			// Produce colour information, if required.
+			if(qam_separation_shader_) {
+				qam_chroma_texture_->bind_framebuffer();
+				qam_separation_shader_->bind();
+
+				glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(spans));
+
+				accumulation_texture_->bind_framebuffer();
+				output_shader_->bind();
+			}
+
+			// Render to the output.
 			glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(spans));
 
 			start_line = end_line;
