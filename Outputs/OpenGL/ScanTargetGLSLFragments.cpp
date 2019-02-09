@@ -564,7 +564,7 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 			"float lateral = float(gl_VertexID & 1);"
 			"float longitudinal = float((gl_VertexID & 2) >> 1);"
 
-			"vec2 eyePosition = vec2(abs(mix(startCompositeAngle, endCompositeAngle, lateral) * 4.0), lineY + longitudinal) / vec2(2048.0, 2048.0);"
+			"vec2 eyePosition = vec2(abs(mix(startCompositeAngle, endCompositeAngle, lateral) * 4.0/64.0), lineY + longitudinal) / vec2(2048.0, 2048.0);"
 			"gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);"
 
 			"compositeAngle = (mix(startCompositeAngle, endCompositeAngle, lateral) / 32.0) * 3.141592654;"
