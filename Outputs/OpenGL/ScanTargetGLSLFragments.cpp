@@ -563,15 +563,16 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 		"void main(void) {"
 			"float lateral = float(gl_VertexID & 1);"
 			"float longitudinal = float((gl_VertexID & 2) >> 1);"
+			"float centreClock = mix(startClock, endClock, lateral);"
 
-			"vec2 eyePosition = vec2(abs(mix(startCompositeAngle, endCompositeAngle, lateral) * 4.0/64.0), lineY + longitudinal) / vec2(2048.0, 2048.0);"
+			"compositeAngle = mix(startCompositeAngle, endCompositeAngle, lateral) / 64.0;"
+
+			"vec2 eyePosition = vec2(abs(compositeAngle) * 4.0, lineY + longitudinal) / vec2(2048.0, 2048.0);"
 			"gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);"
 
-			"compositeAngle = (mix(startCompositeAngle, endCompositeAngle, lateral) / 32.0) * 3.141592654;"
+			"compositeAngle = compositeAngle * 2.0 * 3.141592654;"
 			"compositeAmplitude = lineCompositeAmplitude / 255.0;"
-			"oneOverCompositeAmplitude = mix(0.0, 255.0 / lineCompositeAmplitude, step(0.01, lineCompositeAmplitude));"
-
-			"float centreClock = mix(startClock, endClock, lateral);";
+			"oneOverCompositeAmplitude = mix(0.0, 255.0 / lineCompositeAmplitude, step(0.01, lineCompositeAmplitude));";
 
 	if(is_svideo) {
 		vertex_shader +=
@@ -617,7 +618,7 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 	};
 
 	fragment_shader +=
-			"fragColour = fragColour*vec4(0.5) + vec4(0.5);"
+			"fragColour = fragColour*0.5 + vec4(0.5);"
 		"}";
 
 	return std::unique_ptr<Shader>(new Shader(

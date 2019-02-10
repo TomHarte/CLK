@@ -23,15 +23,15 @@ constexpr GLenum SourceDataTextureUnit = GL_TEXTURE0;
 /// The texture unit which contains raw line-by-line composite, S-Video or RGB data.
 constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE1;
 
-/// The texture unit that contains the current display.
-constexpr GLenum AccumulationTextureUnit = GL_TEXTURE3;
-
 /// The texture unit that contains a pre-lowpass-filtered but fixed-resolution version of the chroma signal;
 /// this is used when processing composite video only, and for chroma information only. Luminance is calculated
 /// at the fidelity permitted by the output target, but my efforts to separate, demodulate and filter
 /// chrominance during output without either massively sampling or else incurring significant high-frequency
 /// noise that sampling reduces into a Moire, have proven to be unsuccessful for the time being.
 constexpr GLenum QAMChromaTextureUnit = GL_TEXTURE2;
+
+/// The texture unit that contains the current display.
+constexpr GLenum AccumulationTextureUnit = GL_TEXTURE3;
 
 #define TextureAddress(x, y)	(((y) << 11) | (x))
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
@@ -506,37 +506,37 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		stencil_is_valid_ = false;
 	}
 
-	// Figure out how many new spans are ostensible ready; use two less than that.
-	uint16_t new_spans = (submit_pointers.line + LineBufferHeight - read_pointers.line) % LineBufferHeight;
-	if(new_spans) {
+	// Figure out how many new lines are ready.
+	uint16_t new_lines = (submit_pointers.line + LineBufferHeight - read_pointers.line) % LineBufferHeight;
+	if(new_lines) {
+		// Prepare to output lines.
+		glBindVertexArray(line_vertex_array_);
+
 		// Bind the accumulation framebuffer, unless there's going to be QAM work.
 		if(!qam_separation_shader_) {
 			accumulation_texture_->bind_framebuffer();
-		}
+			output_shader_->bind();
 
-		// Enable blending and stenciling, and ensure spans increment the stencil buffer.
-		glEnable(GL_BLEND);
-		glEnable(GL_STENCIL_TEST);
+			// Enable blending and stenciling, and ensure spans increment the stencil buffer.
+			glEnable(GL_BLEND);
+			glEnable(GL_STENCIL_TEST);
+		}
 		glStencilFunc(GL_EQUAL, 0, GLuint(~0));
 		glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
-
-		// Prepare to output lines.
-		glBindVertexArray(line_vertex_array_);
-		output_shader_->bind();
 
 		// Prepare to upload data that will consitute lines.
 		glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 
 		// Divide spans by which frame they're in.
 		uint16_t start_line = read_pointers.line;
-		while(new_spans) {
+		while(new_lines) {
 			uint16_t end_line = start_line+1;
 
 			// Find the limit of spans to draw in this cycle.
-			size_t spans = 1;
+			size_t lines = 1;
 			while(end_line != submit_pointers.line && !line_metadata_buffer_[end_line].is_first_in_frame) {
 				end_line = (end_line + 1) % LineBufferHeight;
-				++spans;
+				++lines;
 			}
 
 			// If this is start-of-frame, clear any untouched pixels and flush the stencil buffer
@@ -555,7 +555,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			}
 
 			// Upload.
-			const auto buffer_size = spans * sizeof(Line);
+			const auto buffer_size = lines * sizeof(Line);
 			if(!end_line || end_line > start_line) {
 				glBufferSubData(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), &line_buffer_[start_line]);
 			} else {
@@ -575,20 +575,25 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 			// Produce colour information, if required.
 			if(qam_separation_shader_) {
-				qam_chroma_texture_->bind_framebuffer();
 				qam_separation_shader_->bind();
+				qam_chroma_texture_->bind_framebuffer();
+//				glClear(GL_COLOR_BUFFER_BIT);
 
-				glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(spans));
+				glDisable(GL_BLEND);
+				glDisable(GL_STENCIL_TEST);
+				glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(lines));
 
 				accumulation_texture_->bind_framebuffer();
 				output_shader_->bind();
+				glEnable(GL_BLEND);
+				glEnable(GL_STENCIL_TEST);
 			}
 
 			// Render to the output.
-			glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(spans));
+			glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(lines));
 
 			start_line = end_line;
-			new_spans -= spans;
+			new_lines -= lines;
 		}
 
 		// Disable blending and the stencil test again.
@@ -603,6 +608,8 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	glClear(GL_COLOR_BUFFER_BIT);
 	accumulation_texture_->bind_texture();
 	accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
+//	qam_chroma_texture_->bind_texture();
+//	qam_chroma_texture_->draw(float(output_width) / float(output_height));
 
 	// All data now having been spooled to the GPU, update the read pointers to
 	// the submit pointer location.
