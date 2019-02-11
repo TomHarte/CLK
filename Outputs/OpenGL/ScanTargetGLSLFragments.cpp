@@ -14,7 +14,7 @@ using namespace Outputs::Display::OpenGL;
 
 // MARK: - State setup for compiled shaders.
 
-void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) {
+void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 	// Slightly over-amping rowHeight here is a cheap way to make sure that lines
 	// converge even allowing for the fact that they may not be spaced by exactly
 	// the expected distance. Cf. the stencil-powered logic for making sure all
@@ -142,6 +142,30 @@ void ScanTarget::enable_vertex_attributes(ShaderType type, Shader &target) {
 		break;
 	}
 #undef rt_offset_of
+}
+
+std::vector<std::string> ScanTarget::bindings(ShaderType type) const {
+	switch(type) {
+		case ShaderType::Composition: return {
+			"startDataX",
+			"startClock",
+			"endDataX",
+			"endClock",
+			"dataY",
+			"lineY"
+		};
+
+		default: return {
+			"startPoint",
+			"endPoint",
+			"startClock",
+			"endClock",
+			"lineY",
+			"lineCompositeAmplitude",
+			"startCompositeAngle",
+			"endCompositeAngle"
+		};
+	}
 }
 
 // MARK: - Shader code.
@@ -421,16 +445,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 	return std::unique_ptr<Shader>(new Shader(
 		vertex_shader,
 		fragment_shader,
-		{
-			"startPoint",
-			"endPoint",
-			"startClock",
-			"endClock",
-			"lineY",
-			"lineCompositeAmplitude",
-			"startCompositeAngle",
-			"endCompositeAngle"
-		}
+		bindings(ShaderType::Conversion)
 	));
 }
 
@@ -504,14 +519,7 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 	return std::unique_ptr<Shader>(new Shader(
 		vertex_shader,
 		fragment_shader + "}",
-		{
-			"startDataX",
-			"startClock",
-			"endDataX",
-			"endClock",
-			"dataY",
-			"lineY",
-		}
+		bindings(ShaderType::Composition)
 	));
 }
 
@@ -624,14 +632,6 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 	return std::unique_ptr<Shader>(new Shader(
 		vertex_shader,
 		fragment_shader,
-		{
-			"startClock",
-			"startCompositeAngle",
-			"endClock",
-			"endCompositeAngle",
-
-			"lineY",
-			"lineCompositeAmplitude"
-		}
+		bindings(ShaderType::QAMSeparation)
 	));
 }

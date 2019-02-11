@@ -178,7 +178,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			globals for shaders of @c type to @c target.
 		*/
 		static void enable_vertex_attributes(ShaderType type, Shader &target);
-		void set_uniforms(ShaderType type, Shader &target);
+		void set_uniforms(ShaderType type, Shader &target) const;
+		std::vector<std::string> bindings(ShaderType type) const;
 
 		GLsync fence_ = nullptr;
 		std::atomic_flag is_drawing_;

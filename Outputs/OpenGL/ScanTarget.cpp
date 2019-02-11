@@ -306,6 +306,10 @@ void ScanTarget::setup_pipeline() {
 		write_pointers_.write_area = 0;
 	}
 
+	// Prepare to bind line shaders.
+	glBindVertexArray(line_vertex_array_);
+	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
+
 	// Destroy or create a QAM buffer and shader, if appropriate.
 	const bool needs_qam_buffer = (modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::SVideo);
 	if(needs_qam_buffer) {
@@ -314,8 +318,6 @@ void ScanTarget::setup_pipeline() {
 		}
 
 		qam_separation_shader_ = qam_separation_shader();
-		glBindVertexArray(line_vertex_array_);
-		glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 		enable_vertex_attributes(ShaderType::QAMSeparation, *qam_separation_shader_);
 		set_uniforms(ShaderType::QAMSeparation, *qam_separation_shader_);
 		qam_separation_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
@@ -326,8 +328,6 @@ void ScanTarget::setup_pipeline() {
 
 	// Establish an output shader.
 	output_shader_ = conversion_shader();
-	glBindVertexArray(line_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 	enable_vertex_attributes(ShaderType::Conversion, *output_shader_);
 	set_uniforms(ShaderType::Conversion, *output_shader_);
 	output_shader_->set_uniform("origin", modals_.visible_area.origin.x, modals_.visible_area.origin.y);
@@ -577,7 +577,8 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			if(qam_separation_shader_) {
 				qam_separation_shader_->bind();
 				qam_chroma_texture_->bind_framebuffer();
-//				glClear(GL_COLOR_BUFFER_BIT);
+				glClear(GL_COLOR_BUFFER_BIT);	// TODO: this is here as a hint that the old framebuffer doesn't need reloading;
+												// test whether that's a valid optimisation on desktop OpenGL.
 
 				glDisable(GL_BLEND);
 				glDisable(GL_STENCIL_TEST);
@@ -608,8 +609,6 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	glClear(GL_COLOR_BUFFER_BIT);
 	accumulation_texture_->bind_texture();
 	accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
-//	qam_chroma_texture_->bind_texture();
-//	qam_chroma_texture_->draw(float(output_width) / float(output_height));
 
 	// All data now having been spooled to the GPU, update the read pointers to
 	// the submit pointer location.
