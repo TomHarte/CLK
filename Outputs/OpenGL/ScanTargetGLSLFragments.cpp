@@ -421,15 +421,12 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 				// Split and average chrominance.
 				"vec2 chrominances[4] = vec2[4]("
-					"textureLod(textureName, qamTextureCoordinates[0], 0).gb,"
-					"textureLod(textureName, qamTextureCoordinates[1], 0).gb,"
-					"textureLod(textureName, qamTextureCoordinates[2], 0).gb,"
-					"textureLod(textureName, qamTextureCoordinates[3], 0).gb"
+					"textureLod(qamTextureName, qamTextureCoordinates[0], 0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[1], 0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[2], 0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[3], 0).gb"
 				");"
-				"vec2 channels = vec2("
-					"dot(vec4(chrominances[0].x, chrominances[1].x, chrominances[2].x, chrominances[3].x), vec4(0.25))*2.0 - 1.0,"
-					"dot(vec4(chrominances[0].y, chrominances[1].y, chrominances[2].y, chrominances[3].y), vec4(0.25))*2.0 - 1.0"
-				");"
+				"vec2 channels = (chrominances[0] + chrominances[1] + chrominances[2] + chrominances[3])*0.5 - vec2(1.0);"
 
 				// Apply a colour space conversion to get RGB.
 				"fragColour3 = mix("
