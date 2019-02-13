@@ -346,8 +346,9 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			while(int_cycles) {
 				const int cycles_this_line = std::min(65 - column_, int_cycles);
 				const int ending_column = column_ + cycles_this_line;
+				const bool is_vertical_sync_line = (row_ >= first_sync_line && row_ < first_sync_line + 3);
 
-				if(row_ >= first_sync_line && row_ < first_sync_line + 3) {
+				if(is_vertical_sync_line) {
 					// In effect apply an XOR to HSYNC and VSYNC flags in order to include equalising
 					// pulses (and hencce keep hsync approximately where it should be during vsync).
 					const int blank_start = std::max(first_sync_column - sync_length, column_);
@@ -361,7 +362,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							crt_.output_sync((ending_column - blank_end) * 14);
 						}
 					} else {
-						crt_.output_sync((cycles_this_line) * 14);
+						crt_.output_sync(cycles_this_line * 14);
 					}
 				} else {
 					const GraphicsMode line_mode = graphics_mode(row_);
@@ -521,7 +522,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					*/
 
 					if(column_ < first_sync_column && ending_column >= first_sync_column) {
-						crt_.output_blank((first_sync_column - 41)*14 - 1);
+						crt_.output_blank(first_sync_column*14 - 568);
 					}
 
 					if(column_ < (first_sync_column + sync_length) && ending_column >= (first_sync_column + sync_length)) {
@@ -556,8 +557,13 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					}
 
 					// Add an extra half a colour cycle of blank; this isn't counted in the run_for
-					// count explicitly but is promised.
-					crt_.output_blank(2);
+					// count explicitly but is promised. If this is a vertical sync line, output sync
+					// instead of blank, taking that to be the default level.
+					if(is_vertical_sync_line) {
+						crt_.output_sync(2);
+					} else {
+						crt_.output_blank(2);
+					}
 				}
 			}
 		}
