@@ -53,7 +53,7 @@ Shader::Shader(const std::string &vertex_shader, const std::string &fragment_sha
 	GLuint index = 0;
 	for(const auto &name: binding_names) {
 		bindings.emplace_back(name, index);
-		index += 4;
+		++index;
 	}
 	init(vertex_shader, fragment_shader, bindings);
 }
@@ -68,6 +68,21 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 
 	for(const auto &binding : attribute_bindings) {
 		glBindAttribLocation(shader_program_, binding.index, binding.name.c_str());
+#ifndef NDEBUG
+		const auto error = glGetError();
+		switch(error) {
+			case 0: break;
+			case GL_INVALID_VALUE:
+				LOG("GL_INVALID_VALUE when attempting to bind " << binding.name << " to index " << binding.index << " (i.e. index is greater than or equal to GL_MAX_VERTEX_ATTRIBS)");
+			break;
+			case GL_INVALID_OPERATION:
+				LOG("GL_INVALID_OPERATION when attempting to bind " << binding.name << " to index " << binding.index << " (i.e. name begins with gl_)");
+			break;
+			default:
+				LOG("Error " << error << " when attempting to bind " << binding.name << " to index " << binding.index);
+			break;
+		}
+#endif
 	}
 
 	glLinkProgram(shader_program_);

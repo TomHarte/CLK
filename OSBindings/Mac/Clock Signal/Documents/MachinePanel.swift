@@ -32,6 +32,7 @@ class MachinePanel: NSPanel {
 		switch tag {
 			case 1: return .composite
 			case 2: return .sVideo
+			case 3: return .monochromeComposite
 			default: break
 		}
 		return .RGB

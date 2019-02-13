@@ -23,8 +23,15 @@ constexpr GLenum SourceDataTextureUnit = GL_TEXTURE0;
 /// The texture unit which contains raw line-by-line composite, S-Video or RGB data.
 constexpr GLenum UnprocessedLineBufferTextureUnit = GL_TEXTURE1;
 
+/// The texture unit that contains a pre-lowpass-filtered but fixed-resolution version of the chroma signal;
+/// this is used when processing composite video only, and for chroma information only. Luminance is calculated
+/// at the fidelity permitted by the output target, but my efforts to separate, demodulate and filter
+/// chrominance during output without either massively sampling or else incurring significant high-frequency
+/// noise that sampling reduces into a Moire, have proven to be unsuccessful for the time being.
+constexpr GLenum QAMChromaTextureUnit = GL_TEXTURE2;
+
 /// The texture unit that contains the current display.
-constexpr GLenum AccumulationTextureUnit = GL_TEXTURE2;
+constexpr GLenum AccumulationTextureUnit = GL_TEXTURE3;
 
 #define TextureAddress(x, y)	(((y) << 11) | (x))
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
@@ -299,19 +306,34 @@ void ScanTarget::setup_pipeline() {
 		write_pointers_.write_area = 0;
 	}
 
-	// Pick a processing width; this will be the minimum necessary not to
-	// lose any detail when combining the input.
-	processing_width_ = modals_.cycles_per_line / modals_.clocks_per_pixel_greatest_common_divisor;
+	// Prepare to bind line shaders.
+	glBindVertexArray(line_vertex_array_);
+	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
+
+	// Destroy or create a QAM buffer and shader, if appropriate.
+	const bool needs_qam_buffer = (modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::SVideo);
+	if(needs_qam_buffer) {
+		if(!qam_chroma_texture_) {
+			qam_chroma_texture_.reset(new TextureTarget(LineBufferWidth, LineBufferHeight, QAMChromaTextureUnit, GL_NEAREST, false));
+		}
+
+		qam_separation_shader_ = qam_separation_shader();
+		enable_vertex_attributes(ShaderType::QAMSeparation, *qam_separation_shader_);
+		set_uniforms(ShaderType::QAMSeparation, *qam_separation_shader_);
+		qam_separation_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
+	} else {
+		qam_chroma_texture_.reset();
+		qam_separation_shader_.reset();
+	}
 
 	// Establish an output shader.
 	output_shader_ = conversion_shader();
-	glBindVertexArray(line_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 	enable_vertex_attributes(ShaderType::Conversion, *output_shader_);
 	set_uniforms(ShaderType::Conversion, *output_shader_);
 	output_shader_->set_uniform("origin", modals_.visible_area.origin.x, modals_.visible_area.origin.y);
 	output_shader_->set_uniform("size", modals_.visible_area.size.width, modals_.visible_area.size.height);
 	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
+	output_shader_->set_uniform("qamTextureName", GLint(QAMChromaTextureUnit - GL_TEXTURE0));
 
 	// Establish an input shader.
 	input_shader_ = composition_shader();
@@ -484,35 +506,37 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		stencil_is_valid_ = false;
 	}
 
-	// Figure out how many new spans are ostensible ready; use two less than that.
-	uint16_t new_spans = (submit_pointers.line + LineBufferHeight - read_pointers.line) % LineBufferHeight;
-	if(new_spans) {
-		// Bind the accumulation framebuffer.
-		accumulation_texture_->bind_framebuffer();
-
-		// Enable blending and stenciling, and ensure spans increment the stencil buffer.
-		glEnable(GL_BLEND);
-		glEnable(GL_STENCIL_TEST);
-		glStencilFunc(GL_EQUAL, 0, GLuint(~0));
-		glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
-
+	// Figure out how many new lines are ready.
+	uint16_t new_lines = (submit_pointers.line + LineBufferHeight - read_pointers.line) % LineBufferHeight;
+	if(new_lines) {
 		// Prepare to output lines.
 		glBindVertexArray(line_vertex_array_);
-		output_shader_->bind();
+
+		// Bind the accumulation framebuffer, unless there's going to be QAM work.
+		if(!qam_separation_shader_) {
+			accumulation_texture_->bind_framebuffer();
+			output_shader_->bind();
+
+			// Enable blending and stenciling, and ensure spans increment the stencil buffer.
+			glEnable(GL_BLEND);
+			glEnable(GL_STENCIL_TEST);
+		}
+		glStencilFunc(GL_EQUAL, 0, GLuint(~0));
+		glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
 
 		// Prepare to upload data that will consitute lines.
 		glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
 
 		// Divide spans by which frame they're in.
 		uint16_t start_line = read_pointers.line;
-		while(new_spans) {
+		while(new_lines) {
 			uint16_t end_line = start_line+1;
 
 			// Find the limit of spans to draw in this cycle.
-			size_t spans = 1;
+			size_t lines = 1;
 			while(end_line != submit_pointers.line && !line_metadata_buffer_[end_line].is_first_in_frame) {
 				end_line = (end_line + 1) % LineBufferHeight;
-				++spans;
+				++lines;
 			}
 
 			// If this is start-of-frame, clear any untouched pixels and flush the stencil buffer
@@ -525,11 +549,13 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 
 				// Rebind the program for span output.
 				glBindVertexArray(line_vertex_array_);
-				output_shader_->bind();
+				if(!qam_separation_shader_) {
+					output_shader_->bind();
+				}
 			}
 
-			// Upload and draw.
-			const auto buffer_size = spans * sizeof(Line);
+			// Upload.
+			const auto buffer_size = lines * sizeof(Line);
 			if(!end_line || end_line > start_line) {
 				glBufferSubData(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), &line_buffer_[start_line]);
 			} else {
@@ -547,10 +573,28 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 				glUnmapBuffer(GL_ARRAY_BUFFER);
 			}
 
-			glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(spans));
+			// Produce colour information, if required.
+			if(qam_separation_shader_) {
+				qam_separation_shader_->bind();
+				qam_chroma_texture_->bind_framebuffer();
+				glClear(GL_COLOR_BUFFER_BIT);	// TODO: this is here as a hint that the old framebuffer doesn't need reloading;
+												// test whether that's a valid optimisation on desktop OpenGL.
+
+				glDisable(GL_BLEND);
+				glDisable(GL_STENCIL_TEST);
+				glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(lines));
+
+				accumulation_texture_->bind_framebuffer();
+				output_shader_->bind();
+				glEnable(GL_BLEND);
+				glEnable(GL_STENCIL_TEST);
+			}
+
+			// Render to the output.
+			glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(lines));
 
 			start_line = end_line;
-			new_spans -= spans;
+			new_lines -= lines;
 		}
 
 		// Disable blending and the stencil test again.

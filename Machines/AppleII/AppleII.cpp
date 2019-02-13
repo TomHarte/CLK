@@ -28,12 +28,19 @@
 
 #include "../../Analyser/Static/AppleII/Target.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
+#include "../../Configurable/StandardOptions.hpp"
 
 #include <algorithm>
 #include <array>
 #include <memory>
 
-namespace {
+namespace AppleII {
+
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayCompositeMonochrome | Configurable::DisplayCompositeColour)
+	);
+}
 
 #define is_iie() ((model == Analyser::Static::AppleII::Target::Model::IIe) || (model == Analyser::Static::AppleII::Target::Model::EnhancedIIe))
 
@@ -43,6 +50,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 	public KeyboardMachine::MappedMachine,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
+	public Configurable::Device,
 	public AppleII::Machine,
 	public Activity::Source,
 	public JoystickMachine::Machine,
@@ -84,7 +92,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		uint8_t ram_[65536], aux_ram_[65536];
 		std::vector<uint8_t> rom_;
-//		std::vector<uint8_t> character_rom_;
 		uint8_t keyboard_input_ = 0x00;
 		bool key_is_down_ = false;
 
@@ -399,6 +406,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			video_.set_scan_target(scan_target);
+		}
+
+		/// Sets the type of display.
+		void set_display_type(Outputs::Display::DisplayType display_type) override {
+			video_.set_display_type(display_type);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
@@ -802,6 +814,28 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		void type_string(const std::string &string) override {
 			string_serialiser_.reset(new Utility::StringSerialiser(string, true));
+		}
+
+		// MARK:: Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			return AppleII::get_options();
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			Configurable::Display display;
+			if(Configurable::get_display(selections_by_option, display)) {
+				set_video_signal_configurable(display);
+			}
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			return get_accurate_selections();
 		}
 
 		// MARK: MediaTarget
