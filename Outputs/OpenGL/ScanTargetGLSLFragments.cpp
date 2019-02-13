@@ -389,11 +389,17 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 		case DisplayType::SVideo:
 			fragment_shader +=
-				// Sample four times over, at proper angle offsets.
-				"vec2 sample = svideo_sample(textureCoordinates[1], compositeAngle);"
+				// Sample the S-Video stream once, to obtain luminance.
+				"vec2 sample = svideo_sample(textureCoordinate, compositeAngle);"
 
 				// Split and average chrominance.
-				"vec2 channels = vec2(0.0, 0.0);"
+				"vec2 chrominances[4] = vec2[4]("
+					"textureLod(qamTextureName, qamTextureCoordinates[0], 0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[1], 0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[2], 0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[3], 0).gb"
+				");"
+				"vec2 channels = (chrominances[0] + chrominances[1] + chrominances[2] + chrominances[3])*0.5 - vec2(1.0);"
 
 				// Apply a colour space conversion to get RGB.
 				"fragColour3 = lumaChromaToRGB * vec3(sample.r, channels);";
