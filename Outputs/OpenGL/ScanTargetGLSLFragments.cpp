@@ -631,12 +631,10 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 				// Take the average to calculate luminance, then subtract that from all four samples to
 				// give chrominance.
 				"float luminance = dot(samples, vec4(0.25));"
-				"float chrominance = (samples.y - luminance) * oneOverCompositeAmplitude;"
+				"float chrominance = (dot(samples.yz, vec2(0.5)) - luminance) * oneOverCompositeAmplitude;"
 
-				"vec2 channels = vec2(cos(compositeAngle), sin(compositeAngle)) * chrominance;"
-
-				// Apply a colour space conversion to get RGB.
-				"fragColour = vec4(luminance, channels, 1.0);";
+				// Pack that all up and send it on its way.
+				"fragColour = vec4(luminance, vec2(cos(compositeAngle), sin(compositeAngle)) * chrominance, 1.0);";
 	};
 
 	fragment_shader +=
