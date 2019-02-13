@@ -79,13 +79,13 @@ struct Flywheel {
 		SyncEvent proposed_event = SyncEvent::None;
 		int proposed_sync_time = cycles_to_run_for;
 
-		// will we end an ongoing retrace?
+		// End an ongoing retrace?
 		if(counter_ < retrace_time_ && counter_ + proposed_sync_time >= retrace_time_) {
 			proposed_sync_time = retrace_time_ - counter_;
 			proposed_event = SyncEvent::EndRetrace;
 		}
 
-		// will we start a retrace?
+		// Start a retrace?
 		if(counter_ + proposed_sync_time >= expected_next_sync_) {
 			proposed_sync_time = expected_next_sync_ - counter_;
 			proposed_event = SyncEvent::StartRetrace;
@@ -104,7 +104,14 @@ struct Flywheel {
 		@param event The synchronisation event to apply after that period.
 	*/
 	inline void apply_event(int cycles_advanced, SyncEvent event) {
+		// In debug builds, perform a sanity check for counter overflow.
+#ifndef NDEBUG
+		const int old_counter = counter_;
+#endif
 		counter_ += cycles_advanced;
+#ifndef NDEBUG
+		assert(old_counter <= counter_);
+#endif
 
 		switch(event) {
 			default: return;
@@ -170,10 +177,12 @@ struct Flywheel {
 	}
 
 	/*!
-		@returns `true` if a sync is expected soon or the time at which it was expected was recent.
+		@returns `true` if a sync is expected soon or if the time at which it was expected (or received) was recent.
 	*/
 	inline bool is_near_expected_sync() {
-		return abs(counter_ - expected_next_sync_) < standard_period_ / 50;
+		return
+			(counter_ < (standard_period_ / 100)) ||
+			(counter_ >= expected_next_sync_ - (standard_period_ / 100));
 	}
 
 	private:
