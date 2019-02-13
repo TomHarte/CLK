@@ -189,7 +189,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 - (NSString *)optionsPanelNibName {
 	switch(_targets.front()->machine) {
 		case Analyser::Machine::AmstradCPC:		return @"CompositeOptions";
-//		case Analyser::Machine::AppleII:		return @"AppleIIOptions";
+		case Analyser::Machine::AppleII:		return @"AppleIIOptions";
 		case Analyser::Machine::Atari2600:		return @"Atari2600Options";
 		case Analyser::Machine::Electron:		return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::MasterSystem:	return @"CompositeOptions";

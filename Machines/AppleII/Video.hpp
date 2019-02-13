@@ -39,6 +39,9 @@ class VideoBase {
 		/// Sets the scan target.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 
+		/// Sets the type of output.
+		void set_display_type(Outputs::Display::DisplayType);
+
 		/*
 			Descriptions for the setters below are taken verbatim from
 			the Apple IIe Technical Reference. Addresses are the conventional

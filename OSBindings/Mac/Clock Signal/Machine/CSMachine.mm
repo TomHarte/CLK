@@ -461,9 +461,10 @@ struct ActivityObserver: public Activity::Observer {
 		Configurable::SelectionSet selection_set;
 		Configurable::Display display;
 		switch(videoSignal) {
-			case CSMachineVideoSignalRGB:		display = Configurable::Display::RGB;				break;
-			case CSMachineVideoSignalSVideo:	display = Configurable::Display::SVideo;			break;
-			case CSMachineVideoSignalComposite:	display = Configurable::Display::CompositeColour;	break;
+			case CSMachineVideoSignalRGB:					display = Configurable::Display::RGB;					break;
+			case CSMachineVideoSignalSVideo:				display = Configurable::Display::SVideo;				break;
+			case CSMachineVideoSignalComposite:				display = Configurable::Display::CompositeColour;		break;
+			case CSMachineVideoSignalMonochromeComposite:	display = Configurable::Display::CompositeMonochrome;	break;
 		}
 		append_display_selection(selection_set, display);
 		configurable_device->set_selections(selection_set);
@@ -483,9 +484,10 @@ struct ActivityObserver: public Activity::Observer {
 	// Get the standard option for this video signal.
 	Configurable::StandardOptions option;
 	switch(videoSignal) {
-		case CSMachineVideoSignalRGB:		option = Configurable::DisplayRGB;				break;
-		case CSMachineVideoSignalSVideo:	option = Configurable::DisplaySVideo;			break;
-		case CSMachineVideoSignalComposite:	option = Configurable::DisplayCompositeColour;	break;
+		case CSMachineVideoSignalRGB:					option = Configurable::DisplayRGB;					break;
+		case CSMachineVideoSignalSVideo:				option = Configurable::DisplaySVideo;				break;
+		case CSMachineVideoSignalComposite:				option = Configurable::DisplayCompositeColour;		break;
+		case CSMachineVideoSignalMonochromeComposite:	option = Configurable::DisplayCompositeMonochrome;	break;
 	}
 	std::unique_ptr<Configurable::Option> display_option = std::move(standard_options(option).front());
 	Configurable::ListOption *display_list_option = dynamic_cast<Configurable::ListOption *>(display_option.get());

@@ -24,7 +24,8 @@
 typedef NS_ENUM(NSInteger, CSMachineVideoSignal) {
 	CSMachineVideoSignalComposite,
 	CSMachineVideoSignalSVideo,
-	CSMachineVideoSignalRGB
+	CSMachineVideoSignalRGB,
+	CSMachineVideoSignalMonochromeComposite
 };
 
 typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {

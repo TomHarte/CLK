@@ -18,6 +18,9 @@
 
 namespace AppleII {
 
+/// @returns The options available for an Apple II.
+std::vector<std::unique_ptr<Configurable::Option>> get_options();
+
 class Machine {
 	public:
 		virtual ~Machine();
