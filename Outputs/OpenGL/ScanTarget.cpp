@@ -512,15 +512,17 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		// Prepare to output lines.
 		glBindVertexArray(line_vertex_array_);
 
-		// Bind the accumulation framebuffer, unless there's going to be QAM work.
-		if(!qam_separation_shader_) {
+		// Bind the accumulation framebuffer, unless there's going to be QAM work first.
+		if(!qam_separation_shader_ || line_metadata_buffer_[read_pointers.line].is_first_in_frame) {
 			accumulation_texture_->bind_framebuffer();
 			output_shader_->bind();
 
-			// Enable blending and stenciling, and ensure spans increment the stencil buffer.
+			// Enable blending and stenciling.
 			glEnable(GL_BLEND);
 			glEnable(GL_STENCIL_TEST);
 		}
+
+		// Set the proper stencil function regardless.
 		glStencilFunc(GL_EQUAL, 0, GLuint(~0));
 		glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
 
