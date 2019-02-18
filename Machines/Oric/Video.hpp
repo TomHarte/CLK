@@ -40,7 +40,7 @@ class VideoOutput {
 		uint8_t *rgb_pixel_target_;
 		uint32_t *composite_pixel_target_;
 		uint32_t colour_forms_[8];
-		Outputs::Display::DisplayType display_type_;
+		Outputs::Display::InputDataType data_type_;
 
 		// Registers
 		uint8_t ink_, paper_;

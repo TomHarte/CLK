@@ -28,18 +28,18 @@ VideoOutput::VideoOutput(uint8_t *memory) :
 		counter_period_(PAL50Period) {
 	crt_.set_visible_area(crt_.get_rect_for_area(54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 	crt_.set_phase_linked_luminance_offset(-1.0f / 8.0f);
-	display_type_ = Outputs::Display::DisplayType::RGB;
+	data_type_ = Outputs::Display::InputDataType::Red1Green1Blue1;
 }
 
 void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
-	if(display_type_ != display_type) {
-		display_type_ = display_type;
+	const auto data_type =
+		(display_type == Outputs::Display::DisplayType::RGB) ?
+			Outputs::Display::InputDataType::Red1Green1Blue1 :
+			Outputs::Display::InputDataType::PhaseLinkedLuminance8;
+	if(data_type_ != data_type) {
+		data_type_ = data_type;
 		crt_.set_display_type(display_type);
-		crt_.set_input_data_type(
-			(display_type == Outputs::Display::DisplayType::RGB) ?
-				Outputs::Display::InputDataType::Red1Green1Blue1 :
-				Outputs::Display::InputDataType::PhaseLinkedLuminance8
-		);
+		crt_.set_input_data_type(data_type_);
 	}
 }
 
@@ -102,8 +102,11 @@ void VideoOutput::run_for(const Cycles cycles) {
 				use_alternative_character_set_ = use_double_height_characters_ = blink_text_ = false;
 				set_character_set_base_address();
 
-				if(display_type_ == Outputs::Display::DisplayType::RGB) rgb_pixel_target_ = reinterpret_cast<uint8_t *>(crt_.begin_data(240));
-				else composite_pixel_target_ = reinterpret_cast<uint32_t *>(crt_.begin_data(240));
+				if(data_type_ == Outputs::Display::InputDataType::Red1Green1Blue1) {
+					rgb_pixel_target_ = reinterpret_cast<uint8_t *>(crt_.begin_data(240));
+				} else {
+					composite_pixel_target_ = reinterpret_cast<uint32_t *>(crt_.begin_data(240));
+				}
 
 				if(!counter_) {
 					frame_counter_++;
@@ -136,7 +139,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 				pixels &= blink_mask;
 
 				if(control_byte & 0x60) {
-					if(display_type_ == Outputs::Display::DisplayType::RGB && rgb_pixel_target_) {
+					if(data_type_ == Outputs::Display::InputDataType::Red1Green1Blue1 && rgb_pixel_target_) {
 						const uint8_t colours[2] = {
 							uint8_t(paper_ ^ inverse_mask),
 							uint8_t(ink_ ^ inverse_mask)
@@ -147,7 +150,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 						rgb_pixel_target_[3] = colours[(pixels >> 2)&1];
 						rgb_pixel_target_[4] = colours[(pixels >> 1)&1];
 						rgb_pixel_target_[5] = colours[(pixels >> 0)&1];
-					} else if(display_type_ == Outputs::Display::DisplayType::CompositeColour && composite_pixel_target_) {
+					} else if(composite_pixel_target_) {
 						const uint32_t colours[2] = {
 							colour_forms_[paper_ ^ inverse_mask],
 							colour_forms_[ink_ ^ inverse_mask]
@@ -196,11 +199,11 @@ void VideoOutput::run_for(const Cycles cycles) {
 						default: break;
 					}
 
-					if(display_type_ == Outputs::Display::DisplayType::RGB && rgb_pixel_target_) {
+					if(data_type_ == Outputs::Display::InputDataType::Red1Green1Blue1 && rgb_pixel_target_) {
 						rgb_pixel_target_[0] = rgb_pixel_target_[1] =
 						rgb_pixel_target_[2] = rgb_pixel_target_[3] =
 						rgb_pixel_target_[4] = rgb_pixel_target_[5] = paper_ ^ inverse_mask;
-					} else if(display_type_ == Outputs::Display::DisplayType::CompositeColour && composite_pixel_target_) {
+					} else if(composite_pixel_target_) {
 						composite_pixel_target_[0] = composite_pixel_target_[1] =
 						composite_pixel_target_[2] = composite_pixel_target_[3] =
 						composite_pixel_target_[4] = composite_pixel_target_[5] = colour_forms_[paper_ ^ inverse_mask];
