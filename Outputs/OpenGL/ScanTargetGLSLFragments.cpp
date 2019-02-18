@@ -194,7 +194,7 @@ std::string ScanTarget::sampling_function() const {
 
 		case InputDataType::PhaseLinkedLuminance8:
 			fragment_shader +=
-				"uint iPhase = uint((angle * 2.0 / 3.141592654) ) & 3u;";
+				"uint iPhase = uint(step(sign(angle), 0.0) * 3) ^ uint(abs(angle * 2.0 / 3.141592654) ) & 3u;";
 
 			fragment_shader +=
 				is_svideo ?
