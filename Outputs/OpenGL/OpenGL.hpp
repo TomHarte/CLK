@@ -22,4 +22,22 @@
 #include <GL/gl.h>
 #endif
 
+// To consider: might it be smarter to switch and log on error,
+// rather than raising an exception? They're conventionally
+// something you're permitted to ignore.
+//
+// (and, from that indecision, hence the pointless decision
+// on whether to use an assert based on NDEBUG)
+#ifndef NDEBUG
+#define test_gl_error() assert(!glGetError());
+#else
+#define test_gl_error() while(false) {}
+#endif
+
+#ifndef NDEBUG
+#define test_gl(command, ...) do { command(__VA_ARGS__); test_gl_error(); } while(false);
+#else
+#define test_gl(command, ...) command(__VA_ARGS__)
+#endif
+
 #endif /* OpenGL_h */

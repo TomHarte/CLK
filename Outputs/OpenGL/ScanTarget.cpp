@@ -8,6 +8,7 @@
 
 #include "ScanTarget.hpp"
 
+#include "OpenGL.hpp"
 #include "Primitives/Rectangle.hpp"
 
 #include <cassert>
@@ -62,13 +63,13 @@ const GLenum formatForDepth(std::size_t depth) {
 
 template <typename T> void ScanTarget::allocate_buffer(const T &array, GLuint &buffer_name, GLuint &vertex_array_name) {
 	const auto buffer_size = array.size() * sizeof(array[0]);
-	glGenBuffers(1, &buffer_name);
-	glBindBuffer(GL_ARRAY_BUFFER, buffer_name);
-	glBufferData(GL_ARRAY_BUFFER, GLsizeiptr(buffer_size), NULL, GL_STREAM_DRAW);
+	test_gl(glGenBuffers, 1, &buffer_name);
+	test_gl(glBindBuffer, GL_ARRAY_BUFFER, buffer_name);
+	test_gl(glBufferData, GL_ARRAY_BUFFER, GLsizeiptr(buffer_size), NULL, GL_STREAM_DRAW);
 
-	glGenVertexArrays(1, &vertex_array_name);
-	glBindVertexArray(vertex_array_name);
-	glBindBuffer(GL_ARRAY_BUFFER, buffer_name);
+	test_gl(glGenVertexArrays, 1, &vertex_array_name);
+	test_gl(glBindVertexArray, vertex_array_name);
+	test_gl(glBindBuffer, GL_ARRAY_BUFFER, buffer_name);
 }
 
 ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
@@ -89,11 +90,11 @@ ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
 	// and specify GL_MAP_PERSISTENT_BIT. Then map the buffer now, and let the client
 	// write straight into it.
 
-	glGenTextures(1, &write_area_texture_name_);
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	test_gl(glGenTextures, 1, &write_area_texture_name_);
+	test_gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
 
-	glBlendFunc(GL_SRC_ALPHA, GL_CONSTANT_COLOR);
-	glBlendColor(0.4f, 0.4f, 0.4f, 1.0f);
+	test_gl(glBlendFunc, GL_SRC_ALPHA, GL_CONSTANT_COLOR);
+	test_gl(glBlendColor, 0.4f, 0.4f, 0.4f, 1.0f);
 
 	is_drawing_.clear();
 }
@@ -307,8 +308,8 @@ void ScanTarget::setup_pipeline() {
 	}
 
 	// Prepare to bind line shaders.
-	glBindVertexArray(line_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
+	test_gl(glBindVertexArray, line_vertex_array_);
+	test_gl(glBindBuffer, GL_ARRAY_BUFFER, line_buffer_name_);
 
 	// Destroy or create a QAM buffer and shader, if appropriate.
 	const bool needs_qam_buffer = (modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::SVideo);
@@ -337,8 +338,8 @@ void ScanTarget::setup_pipeline() {
 
 	// Establish an input shader.
 	input_shader_ = composition_shader();
-	glBindVertexArray(scan_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+	test_gl(glBindVertexArray, scan_vertex_array_);
+	test_gl(glBindBuffer, GL_ARRAY_BUFFER, scan_buffer_name_);
 	enable_vertex_attributes(ShaderType::Composition, *input_shader_);
 	set_uniforms(ShaderType::Composition, *input_shader_);
 	input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
@@ -370,13 +371,14 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	// Submit scans; only the new ones need to be communicated.
 	size_t new_scans = (submit_pointers.scan_buffer + scan_buffer_.size() - read_pointers.scan_buffer) % scan_buffer_.size();
 	if(new_scans) {
-		glBindBuffer(GL_ARRAY_BUFFER, scan_buffer_name_);
+		test_gl(glBindBuffer, GL_ARRAY_BUFFER, scan_buffer_name_);
 
 		// Map only the required portion of the buffer.
 		const size_t new_scans_size = new_scans * sizeof(Scan);
 		uint8_t *const destination = static_cast<uint8_t *>(
 			glMapBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(new_scans_size), GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT)
 		);
+		test_gl_error();
 
 		if(read_pointers.scan_buffer < submit_pointers.scan_buffer) {
 			memcpy(destination, &scan_buffer_[read_pointers.scan_buffer], new_scans_size);
@@ -387,23 +389,23 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		}
 
 		// Flush and unmap the buffer.
-		glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(new_scans_size));
-		glUnmapBuffer(GL_ARRAY_BUFFER);
+		test_gl(glFlushMappedBufferRange, GL_ARRAY_BUFFER, 0, GLsizeiptr(new_scans_size));
+		test_gl(glUnmapBuffer, GL_ARRAY_BUFFER);
 	}
 
 	// Submit texture.
 	if(submit_pointers.write_area != read_pointers.write_area) {
-		glActiveTexture(SourceDataTextureUnit);
-		glBindTexture(GL_TEXTURE_2D, write_area_texture_name_);
+		test_gl(glActiveTexture, SourceDataTextureUnit);
+		test_gl(glBindTexture, GL_TEXTURE_2D, write_area_texture_name_);
 
 		// Create storage for the texture if it doesn't yet exist; this was deferred until here
 		// because the pixel format wasn't initially known.
 		if(!texture_exists_) {
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-			glTexImage2D(
+			test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			test_gl(glTexImage2D,
 				GL_TEXTURE_2D,
 				0,
 				internalFormatForDepth(data_type_size_),
@@ -420,30 +422,33 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		const auto end_y = TextureAddressGetY(submit_pointers.write_area);
 		if(end_y >= start_y) {
 			// Submit the direct region from the submit pointer to the read pointer.
-			glTexSubImage2D(	GL_TEXTURE_2D, 0,
-								0, start_y,
-								WriteAreaWidth,
-								1 + end_y - start_y,
-								formatForDepth(data_type_size_),
-								GL_UNSIGNED_BYTE,
-								&write_area_texture_[size_t(TextureAddress(0, start_y)) * data_type_size_]);
+			test_gl(glTexSubImage2D,
+				GL_TEXTURE_2D, 0,
+				0, start_y,
+				WriteAreaWidth,
+				1 + end_y - start_y,
+				formatForDepth(data_type_size_),
+				GL_UNSIGNED_BYTE,
+				&write_area_texture_[size_t(TextureAddress(0, start_y)) * data_type_size_]);
 		} else {
 			// The circular buffer wrapped around; submit the data from the read pointer to the end of
 			// the buffer and from the start of the buffer to the submit pointer.
-			glTexSubImage2D(	GL_TEXTURE_2D, 0,
-								0, 0,
-								WriteAreaWidth,
-								1 + end_y,
-								formatForDepth(data_type_size_),
-								GL_UNSIGNED_BYTE,
-								&write_area_texture_[0]);
-			glTexSubImage2D(	GL_TEXTURE_2D, 0,
-								0, start_y,
-								WriteAreaWidth,
-								WriteAreaHeight - start_y,
-								formatForDepth(data_type_size_),
-								GL_UNSIGNED_BYTE,
-								&write_area_texture_[size_t(TextureAddress(0, start_y)) * data_type_size_]);
+			test_gl(glTexSubImage2D,
+				GL_TEXTURE_2D, 0,
+				0, 0,
+				WriteAreaWidth,
+				1 + end_y,
+				formatForDepth(data_type_size_),
+				GL_UNSIGNED_BYTE,
+				&write_area_texture_[0]);
+			test_gl(glTexSubImage2D,
+				GL_TEXTURE_2D, 0,
+				0, start_y,
+				WriteAreaWidth,
+				WriteAreaHeight - start_y,
+				formatForDepth(data_type_size_),
+				GL_UNSIGNED_BYTE,
+				&write_area_texture_[size_t(TextureAddress(0, start_y)) * data_type_size_]);
 		}
 	}
 
@@ -455,25 +460,25 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		const uint16_t first_line_to_clear = (read_pointers.line+1)%line_buffer_.size();
 		const uint16_t final_line_to_clear = submit_pointers.line;
 		if(first_line_to_clear != final_line_to_clear) {
-			glEnable(GL_SCISSOR_TEST);
+			test_gl(glEnable, GL_SCISSOR_TEST);
 
 			if(first_line_to_clear < final_line_to_clear) {
-				glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), final_line_to_clear - first_line_to_clear);
-				glClear(GL_COLOR_BUFFER_BIT);
+				test_gl(glScissor, 0, first_line_to_clear, unprocessed_line_texture_.get_width(), final_line_to_clear - first_line_to_clear);
+				test_gl(glClear, GL_COLOR_BUFFER_BIT);
 			} else {
-				glScissor(0, 0, unprocessed_line_texture_.get_width(), final_line_to_clear);
-				glClear(GL_COLOR_BUFFER_BIT);
-				glScissor(0, first_line_to_clear, unprocessed_line_texture_.get_width(), unprocessed_line_texture_.get_height() - first_line_to_clear);
-				glClear(GL_COLOR_BUFFER_BIT);
+				test_gl(glScissor, 0, 0, unprocessed_line_texture_.get_width(), final_line_to_clear);
+				test_gl(glClear, GL_COLOR_BUFFER_BIT);
+				test_gl(glScissor, 0, first_line_to_clear, unprocessed_line_texture_.get_width(), unprocessed_line_texture_.get_height() - first_line_to_clear);
+				test_gl(glClear, GL_COLOR_BUFFER_BIT);
 			}
 
-			glDisable(GL_SCISSOR_TEST);
+			test_gl(glDisable, GL_SCISSOR_TEST);
 		}
 
 		// Apply new spans. They definitely always go to the first buffer.
-		glBindVertexArray(scan_vertex_array_);
+		test_gl(glBindVertexArray, scan_vertex_array_);
 		input_shader_->bind();
-		glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
+		test_gl(glDrawArraysInstanced, GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
 	}
 
 	// Ensure the accumulation buffer is properly sized.
@@ -488,13 +493,13 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 				true));
 		if(accumulation_texture_) {
 			new_framebuffer->bind_framebuffer();
-			glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+			test_gl(glClear, GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-			glActiveTexture(AccumulationTextureUnit);
+			test_gl(glActiveTexture, AccumulationTextureUnit);
 			accumulation_texture_->bind_texture();
 			accumulation_texture_->draw(float(output_width) / float(output_height));
 
-			glClear(GL_STENCIL_BUFFER_BIT);
+			test_gl(glClear, GL_STENCIL_BUFFER_BIT);
 
 			new_framebuffer->bind_texture();
 		}
@@ -510,7 +515,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	uint16_t new_lines = (submit_pointers.line + LineBufferHeight - read_pointers.line) % LineBufferHeight;
 	if(new_lines) {
 		// Prepare to output lines.
-		glBindVertexArray(line_vertex_array_);
+		test_gl(glBindVertexArray, line_vertex_array_);
 
 		// Bind the accumulation framebuffer, unless there's going to be QAM work first.
 		if(!qam_separation_shader_ || line_metadata_buffer_[read_pointers.line].is_first_in_frame) {
@@ -518,16 +523,16 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			output_shader_->bind();
 
 			// Enable blending and stenciling.
-			glEnable(GL_BLEND);
-			glEnable(GL_STENCIL_TEST);
+			test_gl(glEnable, GL_BLEND);
+			test_gl(glEnable, GL_STENCIL_TEST);
 		}
 
 		// Set the proper stencil function regardless.
-		glStencilFunc(GL_EQUAL, 0, GLuint(~0));
-		glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
+		test_gl(glStencilFunc, GL_EQUAL, 0, GLuint(~0));
+		test_gl(glStencilOp, GL_KEEP, GL_KEEP, GL_INCR);
 
 		// Prepare to upload data that will consitute lines.
-		glBindBuffer(GL_ARRAY_BUFFER, line_buffer_name_);
+		test_gl(glBindBuffer, GL_ARRAY_BUFFER, line_buffer_name_);
 
 		// Divide spans by which frame they're in.
 		uint16_t start_line = read_pointers.line;
@@ -547,10 +552,10 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 					full_display_rectangle_.draw(0.0f, 0.0f, 0.0f);
 				}
 				stencil_is_valid_ = true;
-				glClear(GL_STENCIL_BUFFER_BIT);
+				test_gl(glClear, GL_STENCIL_BUFFER_BIT);
 
 				// Rebind the program for span output.
-				glBindVertexArray(line_vertex_array_);
+				test_gl(glBindVertexArray, line_vertex_array_);
 				if(!qam_separation_shader_) {
 					output_shader_->bind();
 				}
@@ -559,56 +564,57 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			// Upload.
 			const auto buffer_size = lines * sizeof(Line);
 			if(!end_line || end_line > start_line) {
-				glBufferSubData(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), &line_buffer_[start_line]);
+				test_gl(glBufferSubData, GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), &line_buffer_[start_line]);
 			} else {
 				uint8_t *destination = static_cast<uint8_t *>(
 					glMapBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size), GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT)
 				);
 				assert(destination);
+				test_gl_error();
 
 				const size_t buffer_length = line_buffer_.size() * sizeof(Line);
 				const size_t start_position = start_line * sizeof(Line);
 				memcpy(&destination[0], &line_buffer_[start_line], buffer_length - start_position);
 				memcpy(&destination[buffer_length - start_position], &line_buffer_[0], end_line * sizeof(Line));
 
-				glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size));
-				glUnmapBuffer(GL_ARRAY_BUFFER);
+				test_gl(glFlushMappedBufferRange, GL_ARRAY_BUFFER, 0, GLsizeiptr(buffer_size));
+				test_gl(glUnmapBuffer, GL_ARRAY_BUFFER);
 			}
 
 			// Produce colour information, if required.
 			if(qam_separation_shader_) {
 				qam_separation_shader_->bind();
 				qam_chroma_texture_->bind_framebuffer();
-				glClear(GL_COLOR_BUFFER_BIT);	// TODO: this is here as a hint that the old framebuffer doesn't need reloading;
-												// test whether that's a valid optimisation on desktop OpenGL.
+				test_gl(glClear, GL_COLOR_BUFFER_BIT);	// TODO: this is here as a hint that the old framebuffer doesn't need reloading;
+														// test whether that's a valid optimisation on desktop OpenGL.
 
-				glDisable(GL_BLEND);
-				glDisable(GL_STENCIL_TEST);
-				glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(lines));
+				test_gl(glDisable, GL_BLEND);
+				test_gl(glDisable, GL_STENCIL_TEST);
+				test_gl(glDrawArraysInstanced, GL_TRIANGLE_STRIP, 0, 4, GLsizei(lines));
 
 				accumulation_texture_->bind_framebuffer();
 				output_shader_->bind();
-				glEnable(GL_BLEND);
-				glEnable(GL_STENCIL_TEST);
+				test_gl(glEnable, GL_BLEND);
+				test_gl(glEnable, GL_STENCIL_TEST);
 			}
 
 			// Render to the output.
-			glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, GLsizei(lines));
+			test_gl(glDrawArraysInstanced, GL_TRIANGLE_STRIP, 0, 4, GLsizei(lines));
 
 			start_line = end_line;
 			new_lines -= lines;
 		}
 
 		// Disable blending and the stencil test again.
-		glDisable(GL_STENCIL_TEST);
-		glDisable(GL_BLEND);
+		test_gl(glDisable, GL_STENCIL_TEST);
+		test_gl(glDisable, GL_BLEND);
 	}
 
 	// Copy the accumulatiion texture to the target.
-	glBindFramebuffer(GL_FRAMEBUFFER, target_framebuffer_);
-	glViewport(0, 0, (GLsizei)output_width, (GLsizei)output_height);
+	test_gl(glBindFramebuffer, GL_FRAMEBUFFER, target_framebuffer_);
+	test_gl(glViewport, 0, 0, (GLsizei)output_width, (GLsizei)output_height);
 
-	glClear(GL_COLOR_BUFFER_BIT);
+	test_gl(glClear, GL_COLOR_BUFFER_BIT);
 	accumulation_texture_->bind_texture();
 	accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
 

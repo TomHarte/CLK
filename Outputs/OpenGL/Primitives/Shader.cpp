@@ -21,18 +21,18 @@ namespace {
 GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 	GLuint shader = glCreateShader(type);
 	const char *c_str = source.c_str();
-	glShaderSource(shader, 1, &c_str, NULL);
-	glCompileShader(shader);
+	test_gl(glShaderSource, shader, 1, &c_str, NULL);
+	test_gl(glCompileShader, shader);
 
 #ifndef NDEBUG
 	GLint isCompiled = 0;
-	glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
+	test_gl(glGetShaderiv, shader, GL_COMPILE_STATUS, &isCompiled);
 	if(isCompiled == GL_FALSE) {
 		GLint logLength;
-		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
+		test_gl(glGetShaderiv, shader, GL_INFO_LOG_LENGTH, &logLength);
 		if(logLength > 0) {
-			GLchar *log = new GLchar[static_cast<std::size_t>(logLength)];
-			glGetShaderInfoLog(shader, logLength, &logLength, log);
+			GLchar *log = new GLchar[std::size_t(logLength)];
+			test_gl(glGetShaderInfoLog, shader, logLength, &logLength, log);
 			LOG("Compile log:\n" << log);
 			delete[] log;
 		}
@@ -63,11 +63,11 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 	const GLuint vertex = compile_shader(vertex_shader, GL_VERTEX_SHADER);
 	const GLuint fragment = compile_shader(fragment_shader, GL_FRAGMENT_SHADER);
 
-	glAttachShader(shader_program_, vertex);
-	glAttachShader(shader_program_, fragment);
+	test_gl(glAttachShader, shader_program_, vertex);
+	test_gl(glAttachShader, shader_program_, fragment);
 
 	for(const auto &binding : attribute_bindings) {
-		glBindAttribLocation(shader_program_, binding.index, binding.name.c_str());
+		test_gl(glBindAttribLocation, shader_program_, binding.index, binding.name.c_str());
 #ifndef NDEBUG
 		const auto error = glGetError();
 		switch(error) {
@@ -85,20 +85,20 @@ void Shader::init(const std::string &vertex_shader, const std::string &fragment_
 #endif
 	}
 
-	glLinkProgram(shader_program_);
+	test_gl(glLinkProgram, shader_program_);
 
 #ifndef NDEBUG
 	GLint logLength;
-	glGetProgramiv(shader_program_, GL_INFO_LOG_LENGTH, &logLength);
+	test_gl(glGetProgramiv, shader_program_, GL_INFO_LOG_LENGTH, &logLength);
 	if(logLength > 0) {
-		GLchar *log = new GLchar[static_cast<std::size_t>(logLength)];
-		glGetProgramInfoLog(shader_program_, logLength, &logLength, log);
+		GLchar *log = new GLchar[std::size_t(logLength)];
+		test_gl(glGetProgramInfoLog, shader_program_, logLength, &logLength, log);
 		LOG("Link log:\n" << log);
 		delete[] log;
 	}
 
 	GLint didLink = 0;
-	glGetProgramiv(shader_program_, GL_LINK_STATUS, &didLink);
+	test_gl(glGetProgramiv, shader_program_, GL_LINK_STATUS, &didLink);
 	if(didLink == GL_FALSE) {
 		throw ProgramLinkageError;
 	}
@@ -112,7 +112,7 @@ Shader::~Shader() {
 
 void Shader::bind() const {
 //	if(bound_shader != this) {
-		glUseProgram(shader_program_);
+		test_gl(glUseProgram, shader_program_);
 //		bound_shader = this;
 //	}
 	flush_functions();
@@ -120,7 +120,7 @@ void Shader::bind() const {
 
 void Shader::unbind() {
 //	bound_shader = nullptr;
-	glUseProgram(0);
+	test_gl(glUseProgram, 0);
 }
 
 GLint Shader::get_attrib_location(const std::string &name) const {
@@ -134,9 +134,9 @@ GLint Shader::get_uniform_location(const std::string &name) const {
 void Shader::enable_vertex_attribute_with_pointer(const std::string &name, GLint size, GLenum type, GLboolean normalised, GLsizei stride, const GLvoid *pointer, GLuint divisor) {
 	GLint location = get_attrib_location(name);
 	if(location >= 0) {
-		glEnableVertexAttribArray((GLuint)location);
-		glVertexAttribPointer((GLuint)location, size, type, normalised, stride, pointer);
-		glVertexAttribDivisor((GLuint)location, divisor);
+		test_gl(glEnableVertexAttribArray, GLuint(location));
+		test_gl(glVertexAttribPointer, GLuint(location), size, type, normalised, stride, pointer);
+		test_gl(glVertexAttribDivisor, GLuint(location), divisor);
 	} else {
 		LOG("Couldn't enable vertex attribute " << name);
 	}
@@ -227,7 +227,7 @@ void Shader::set_uniform(const std::string &name, GLuint value1, GLuint value2, 
 }
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLint *values) {
-	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size);
+	std::size_t number_of_values = std::size_t(count) * std::size_t(size);
 	std::vector<GLint> values_copy(values, values + number_of_values);
 
 	enqueue_function([name, size, count, values_copy, this] {
@@ -241,7 +241,7 @@ void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, con
 }
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLfloat *values) {
-	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size);
+	std::size_t number_of_values = std::size_t(count) * std::size_t(size);
 	std::vector<GLfloat> values_copy(values, values + number_of_values);
 
 	enqueue_function([name, size, count, values_copy, this] {
@@ -255,7 +255,7 @@ void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, con
 }
 
 void Shader::set_uniform(const std::string &name, GLint size, GLsizei count, const GLuint *values) {
-	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size);
+	std::size_t number_of_values = std::size_t(count) * std::size_t(size);
 	std::vector<GLuint> values_copy(values, values + number_of_values);
 
 	enqueue_function([name, size, count, values_copy, this] {
@@ -273,7 +273,7 @@ void Shader::set_uniform_matrix(const std::string &name, GLint size, bool transp
 }
 
 void Shader::set_uniform_matrix(const std::string &name, GLint size, GLsizei count, bool transpose, const GLfloat *values) {
-	std::size_t number_of_values = static_cast<std::size_t>(count) * static_cast<std::size_t>(size) * static_cast<std::size_t>(size);
+	std::size_t number_of_values = std::size_t(count) * std::size_t(size) * std::size_t(size);
 	std::vector<GLfloat> values_copy(values, values + number_of_values);
 
 	enqueue_function([name, size, count, transpose, values_copy, this] {

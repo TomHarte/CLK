@@ -18,8 +18,8 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 		height_(height),
 		texture_unit_(texture_unit) {
 	// Generate and bind a frame buffer.
-	glGenFramebuffers(1, &framebuffer_);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
+	test_gl(glGenFramebuffers, 1, &framebuffer_);
+	test_gl(glBindFramebuffer, GL_FRAMEBUFFER, framebuffer_);
 
 	// Round the width and height up to the next power of two.
 	expanded_width_ = 1;
@@ -28,23 +28,23 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 	while(expanded_height_ < height)	expanded_height_ <<= 1;
 
 	// Generate a texture and bind it to the nominated texture unit.
-	glGenTextures(1, &texture_);
+	test_gl(glGenTextures, 1, &texture_);
 	bind_texture();
 
 	// Set dimensions and set the user-supplied magnification filter.
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, static_cast<GLsizei>(expanded_width_), static_cast<GLsizei>(expanded_height_), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	test_gl(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, GLsizei(expanded_width_), GLsizei(expanded_height_), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
+	test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	// Set the texture as colour attachment 0 on the frame buffer.
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_, 0);
+	test_gl(glFramebufferTexture2D, GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_, 0);
 
 	// Also add a stencil buffer if requested.
 	if(has_stencil_buffer) {
-		glGenRenderbuffers(1, &renderbuffer_);
-		glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer_);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_STENCIL_INDEX1, expanded_width_, expanded_height_);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderbuffer_);
+		test_gl(glGenRenderbuffers, 1, &renderbuffer_);
+		test_gl(glBindRenderbuffer, GL_RENDERBUFFER, renderbuffer_);
+		test_gl(glRenderbufferStorage, GL_RENDERBUFFER, GL_STENCIL_INDEX1, expanded_width_, expanded_height_);
+		test_gl(glFramebufferRenderbuffer, GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderbuffer_);
 	}
 
 	// Check for successful construction.
@@ -61,13 +61,13 @@ TextureTarget::~TextureTarget() {
 }
 
 void TextureTarget::bind_framebuffer() {
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer_);
-	glViewport(0, 0, width_, height_);
+	test_gl(glBindFramebuffer, GL_FRAMEBUFFER, framebuffer_);
+	test_gl(glViewport, 0, 0, width_, height_);
 }
 
 void TextureTarget::bind_texture() const {
-	glActiveTexture(texture_unit_);
-	glBindTexture(GL_TEXTURE_2D, texture_);
+	test_gl(glActiveTexture, texture_unit_);
+	test_gl(glBindTexture, GL_TEXTURE_2D, texture_);
 }
 
 void TextureTarget::draw(float aspect_ratio, float colour_threshold) const {
@@ -102,24 +102,24 @@ void TextureTarget::draw(float aspect_ratio, float colour_threshold) const {
 		pixel_shader_.reset(new Shader(vertex_shader, fragment_shader));
 		pixel_shader_->bind();
 
-		glGenVertexArrays(1, &drawing_vertex_array_);
-		glGenBuffers(1, &drawing_array_buffer_);
+		test_gl(glGenVertexArrays, 1, &drawing_vertex_array_);
+		test_gl(glGenBuffers, 1, &drawing_array_buffer_);
 
-		glBindVertexArray(drawing_vertex_array_);
-		glBindBuffer(GL_ARRAY_BUFFER, drawing_array_buffer_);
+		test_gl(glBindVertexArray, drawing_vertex_array_);
+		test_gl(glBindBuffer, GL_ARRAY_BUFFER, drawing_array_buffer_);
 
 		const GLint position_attribute	= pixel_shader_->get_attrib_location("position");
 		const GLint tex_coord_attribute	= pixel_shader_->get_attrib_location("texCoord");
 
-		glEnableVertexAttribArray(static_cast<GLuint>(position_attribute));
-		glEnableVertexAttribArray(static_cast<GLuint>(tex_coord_attribute));
+		test_gl(glEnableVertexAttribArray, GLuint(position_attribute));
+		test_gl(glEnableVertexAttribArray, GLuint(tex_coord_attribute));
 
 		const GLsizei vertex_stride = 4 * sizeof(GLfloat);
-		glVertexAttribPointer((GLuint)position_attribute,	2, GL_FLOAT,	GL_FALSE,	vertex_stride,	(void *)0);
-		glVertexAttribPointer((GLuint)tex_coord_attribute,	2, GL_FLOAT,	GL_FALSE,	vertex_stride,	(void *)(2 * sizeof(GLfloat)));
+		test_gl(glVertexAttribPointer, GLuint(position_attribute),	2, GL_FLOAT,	GL_FALSE,	vertex_stride,	(void *)0);
+		test_gl(glVertexAttribPointer, GLuint(tex_coord_attribute),	2, GL_FLOAT,	GL_FALSE,	vertex_stride,	(void *)(2 * sizeof(GLfloat)));
 
 		const GLint texIDUniform = pixel_shader_->get_uniform_location("texID");
-		glUniform1i(texIDUniform, static_cast<GLint>(texture_unit_ - GL_TEXTURE0));
+		test_gl(glUniform1i, texIDUniform, GLint(texture_unit_ - GL_TEXTURE0));
 
 		threshold_uniform_ = pixel_shader_->get_uniform_location("threshold");
 	}
@@ -132,14 +132,14 @@ void TextureTarget::draw(float aspect_ratio, float colour_threshold) const {
 		buffer[2] = 0.0f;
 		buffer[3] = 0.0f;
 		buffer[6] = 0.0f;
-		buffer[7] = static_cast<float>(height_) / static_cast<float>(expanded_height_);
-		buffer[10] = static_cast<float>(width_) / static_cast<float>(expanded_width_);
+		buffer[7] = float(height_) / float(expanded_height_);
+		buffer[10] = float(width_) / float(expanded_width_);
 		buffer[11] = 0.0f;
 		buffer[14] = buffer[10];
 		buffer[15] = buffer[7];
 
 		// determine positions; rule is to keep the same height and centre
-		float internal_aspect_ratio = static_cast<float>(width_) / static_cast<float>(height_);
+		float internal_aspect_ratio = float(width_) / float(height_);
 		float aspect_ratio_ratio = internal_aspect_ratio / aspect_ratio;
 
 		buffer[0] = -aspect_ratio_ratio;	buffer[1] = -1.0f;
@@ -148,13 +148,13 @@ void TextureTarget::draw(float aspect_ratio, float colour_threshold) const {
 		buffer[12] = aspect_ratio_ratio;	buffer[13] = 1.0f;
 
 		// upload buffer
-		glBindBuffer(GL_ARRAY_BUFFER, drawing_array_buffer_);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW);
+		test_gl(glBindBuffer, GL_ARRAY_BUFFER, drawing_array_buffer_);
+		test_gl(glBufferData, GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW);
 	}
 
 	pixel_shader_->bind();
-	glUniform1f(threshold_uniform_, colour_threshold);
+	test_gl(glUniform1f, threshold_uniform_, colour_threshold);
 
-	glBindVertexArray(drawing_vertex_array_);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	test_gl(glBindVertexArray, drawing_vertex_array_);
+	test_gl(glDrawArrays, GL_TRIANGLE_STRIP, 0, 4);
 }
