@@ -9,6 +9,7 @@
 #ifndef Flywheel_hpp
 #define Flywheel_hpp
 
+#include <cassert>
 #include <cstdlib>
 #include <cstdint>
 
@@ -109,9 +110,7 @@ struct Flywheel {
 		const int old_counter = counter_;
 #endif
 		counter_ += cycles_advanced;
-#ifndef NDEBUG
 		assert(old_counter <= counter_);
-#endif
 
 		switch(event) {
 			default: return;

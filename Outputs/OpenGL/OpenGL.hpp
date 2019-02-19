@@ -9,6 +9,7 @@
 #ifndef OpenGL_h
 #define OpenGL_h
 
+#include <cassert>
 #include <iostream>
 
 // TODO: figure out correct include paths for other platforms.
