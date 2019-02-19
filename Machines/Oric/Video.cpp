@@ -66,10 +66,10 @@ void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 		// Values in the ROM are encoded for indexing by two square waves
 		// in quadrature, which means that they're indexed in the order
 		// 0, 1, 3, 2.
-		colour[1] = uint8_t(rom[index] & 0xf0);
 		colour[0] = uint8_t((rom[index] & 0x0f) << 4);
-		colour[3] = uint8_t((rom[index+1] & 0x0f) << 4);
+		colour[1] = uint8_t(rom[index] & 0xf0);
 		colour[2] = uint8_t(rom[index+1] & 0xf0);
+		colour[3] = uint8_t((rom[index+1] & 0x0f) << 4);
 
 		// Extracting just the visible part of the stored range of values
 		// means etracting the range 0x40 to 0xe0.
@@ -79,12 +79,12 @@ void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 	}
 
 	// Check for big endianness and byte swap if required.
-	uint32_t test_value = 0x0001;
-	if(*reinterpret_cast<uint8_t *>(&test_value) != 0x01) {
+//	uint32_t test_value = 0x0001;
+//	if(*reinterpret_cast<uint8_t *>(&test_value) != 0x01) {
 //		for(std::size_t c = 0; c < 8; c++) {
 //			colour_forms_[c] = static_cast<uint16_t>((colour_forms_[c] >> 8) | (colour_forms_[c] << 8));
 //		}
-	}
+//	}
 }
 
 void VideoOutput::run_for(const Cycles cycles) {
@@ -130,7 +130,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 			int columns = cycles_run_for;
 			int pixel_base_address = 0xa000 + (counter_ >> 6) * 40;
 			int character_base_address = 0xbb80 + (counter_ >> 9) * 40;
-			uint8_t blink_mask = (blink_text_ && (frame_counter_&32)) ? 0x00 : 0xff;
+			const uint8_t blink_mask = (blink_text_ && (frame_counter_&32)) ? 0x00 : 0xff;
 
 			while(columns--) {
 				uint8_t pixels, control_byte;
@@ -140,11 +140,11 @@ void VideoOutput::run_for(const Cycles cycles) {
 				} else {
 					int address = character_base_address + h_counter;
 					control_byte = ram_[address];
-					int line = use_double_height_characters_ ? ((counter_ >> 7) & 7) : ((counter_ >> 6) & 7);
+					const int line = use_double_height_characters_ ? ((counter_ >> 7) & 7) : ((counter_ >> 6) & 7);
 					pixels = ram_[character_set_base_address_ + (control_byte&127) * 8 + line];
 				}
 
-				uint8_t inverse_mask = (control_byte & 0x80) ? 0x7 : 0x0;
+				const uint8_t inverse_mask = (control_byte & 0x80) ? 0x7 : 0x0;
 				pixels &= blink_mask;
 
 				if(control_byte & 0x60) {
