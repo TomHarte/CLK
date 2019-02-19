@@ -26,7 +26,9 @@ class TextureTarget {
 		/*!
 			Creates a new texture target. Contents are initially undefined.
 
-			Throws ErrorFramebufferIncomplete if creation fails. Leaves both the generated texture and framebuffer bound.
+			Leaves both the generated texture and framebuffer bound.
+
+			@throws std::runtime_error if creation fails.
 
 			@param width The width of target to create.
 			@param height The height of target to create.
@@ -72,10 +74,6 @@ class TextureTarget {
 			persistent low-value errors that can result from an IIR are hidden.
 		*/
 		void draw(float aspect_ratio, float colour_threshold = 0.0f) const;
-
-		enum {
-			ErrorFramebufferIncomplete
-		};
 
 	private:
 		GLuint framebuffer_ = 0, texture_ = 0, renderbuffer_ = 0;

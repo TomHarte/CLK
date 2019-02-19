@@ -10,6 +10,7 @@
 
 #include <cstdlib>
 #include <vector>
+#include <stdexcept>
 
 using namespace Outputs::Display::OpenGL;
 
@@ -48,8 +49,23 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 	}
 
 	// Check for successful construction.
-	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-		throw ErrorFramebufferIncomplete;
+	const auto framebuffer_status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if(framebuffer_status != GL_FRAMEBUFFER_COMPLETE) {
+		switch(framebuffer_status) {
+			case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+				throw std::runtime_error("GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT");
+			case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+				throw std::runtime_error("GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER");
+			case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+				throw std::runtime_error("GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER");
+			case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+				throw std::runtime_error("GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT");
+			case GL_FRAMEBUFFER_UNSUPPORTED:
+				throw std::runtime_error("GL_FRAMEBUFFER_UNSUPPORTED");
+			default:
+				throw std::runtime_error("Framebuffer status incomplete; " + std::to_string(framebuffer_status));
+		}
+	}
 }
 
 TextureTarget::~TextureTarget() {
