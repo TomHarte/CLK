@@ -210,7 +210,7 @@ void WD1770::posit_event(int new_event_type) {
 			status.interrupt_request = false;
 		});
 
-		LOG("Starting " << std::hex << command_ << std::endl);
+		LOG("Starting " << PADHEX(2) << int(command_));
 
 		if(!(command_ & 0x80)) goto begin_type_1;
 		if(!(command_ & 0x40)) goto begin_type_2;
@@ -328,7 +328,7 @@ void WD1770::posit_event(int new_event_type) {
 			}
 
 			if(header_[0] == track_) {
-				LOG("Reached track " << std::dec << track_);
+				LOG("Reached track " << std::dec << int(track_));
 				update_status([] (Status &status) {
 					status.crc_error = false;
 				});
@@ -397,18 +397,18 @@ void WD1770::posit_event(int new_event_type) {
 		READ_ID();
 
 		if(index_hole_count_ == 5) {
-			LOG("Failed to find sector " << std::dec << sector_);
+			LOG("Failed to find sector " << std::dec << int(sector_));
 			update_status([] (Status &status) {
 				status.record_not_found = true;
 			});
 			goto wait_for_command;
 		}
 		if(distance_into_section_ == 7) {
-			LOG("Considering " << std::dec << header_[0] << "/" << header_[2]);
+			LOG("Considering " << std::dec << int(header_[0]) << "/" << int(header_[2]));
 			set_data_mode(DataMode::Scanning);
 			if(		header_[0] == track_ && header_[2] == sector_ &&
 					(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1])) {
-				LOG("Found " << std::dec << header_[0] << "/" << header_[2]);
+				LOG("Found " << std::dec << int(header_[0]) << "/" << int(header_[2]));
 				if(get_crc_generator().get_value()) {
 					LOG("CRC error; back to searching");
 					update_status([] (Status &status) {
@@ -477,7 +477,7 @@ void WD1770::posit_event(int new_event_type) {
 				sector_++;
 				goto test_type2_write_protection;
 			}
-			LOG("Finished reading sector " << std::dec << sector_);
+			LOG("Finished reading sector " << std::dec << int(sector_));
 			goto wait_for_command;
 		}
 		goto type2_check_crc;
@@ -559,7 +559,7 @@ void WD1770::posit_event(int new_event_type) {
 			sector_++;
 			goto test_type2_write_protection;
 		}
-		LOG("Wrote sector " << std::dec << sector_);
+		LOG("Wrote sector " << std::dec << int(sector_));
 		goto wait_for_command;
 
 
