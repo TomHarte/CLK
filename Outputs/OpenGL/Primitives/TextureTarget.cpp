@@ -63,7 +63,11 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 			case GL_FRAMEBUFFER_UNSUPPORTED:
 				throw std::runtime_error("GL_FRAMEBUFFER_UNSUPPORTED");
 			default:
-				throw std::runtime_error("Framebuffer status incomplete; " + std::to_string(framebuffer_status));
+				throw std::runtime_error("Framebuffer status incomplete: " + std::to_string(framebuffer_status));
+
+			case 0:
+				test_gl_error();
+			break;
 		}
 	}
 }
