@@ -10,7 +10,7 @@
 
 #include <algorithm>
 
-#define SUPPLY_COMPOSITE
+//#define SUPPLY_COMPOSITE
 
 using namespace Oric;
 
@@ -72,7 +72,7 @@ void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 		colour[3] = uint8_t((rom[index+1] & 0x0f) << 4);
 
 		// Extracting just the visible part of the stored range of values
-		// means etracting the range 0x40 to 0xe0.
+		// means extracting the range 0x40 to 0xe0.
 		for(int sub = 0; sub < 4; ++sub) {
 			colour[sub] = ((colour[sub] - 0x40) * 255) / 0xa0;
 		}
