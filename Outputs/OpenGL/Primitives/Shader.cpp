@@ -9,6 +9,7 @@
 #include "Shader.hpp"
 
 #include "../../Log.hpp"
+#include <vector>
 
 using namespace Outputs::Display::OpenGL;
 
@@ -31,10 +32,10 @@ GLuint Shader::compile_shader(const std::string &source, GLenum type) {
 		GLint logLength;
 		test_gl(glGetShaderiv, shader, GL_INFO_LOG_LENGTH, &logLength);
 		if(logLength > 0) {
-			GLchar *log = new GLchar[std::size_t(logLength)];
-			test_gl(glGetShaderInfoLog, shader, logLength, &logLength, log);
-			LOG("Compile log:\n" << log);
-			delete[] log;
+			const auto length = std::vector<GLchar>::size_type(logLength);
+			std::vector<GLchar> log(length);
+			test_gl(glGetShaderInfoLog, shader, logLength, &logLength, log.data());
+			LOG("Compile log:\n" << log.data());
 		}
 
 		throw (type == GL_VERTEX_SHADER) ? VertexShaderCompilationError : FragmentShaderCompilationError;
