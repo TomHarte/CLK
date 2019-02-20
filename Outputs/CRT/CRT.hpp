@@ -47,13 +47,9 @@ class CRT {
 		struct Scan {
 			enum Type {
 				Sync, Level, Data, Blank, ColourBurst
-			} type;
-			int number_of_cycles, number_of_samples;
-			union {
-				struct {
-					uint8_t phase, amplitude;
-				};
-			};
+			} type = Scan::Blank;
+			int number_of_cycles = 0, number_of_samples = 0;
+			uint8_t phase = 0, amplitude = 0;
 		};
 		void output_scan(const Scan *scan);
 
