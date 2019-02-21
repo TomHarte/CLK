@@ -455,13 +455,13 @@ int main(int argc, char *argv[]) {
 								400, 300,
 								SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
-	if(!window)
+	SDL_GLContext gl_context = SDL_GL_CreateContext(window);
+	if(!window || !gl_context)
 	{
-		std::cerr << "Could not create window" << std::endl;
+		std::cerr << "Could not create window; error: " << SDL_GetError() << std::endl;
 		return -1;
 	}
 
-	SDL_GLContext gl_context = SDL_GL_CreateContext(window);
 	SDL_GL_MakeCurrent(window, gl_context);
 
 	GLint target_framebuffer = 0;
