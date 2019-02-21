@@ -10,7 +10,6 @@
 
 #include "OpenGL.hpp"
 #include "Primitives/Rectangle.hpp"
-#include "../Log.hpp"
 
 #include <cassert>
 #include <cstring>
@@ -78,9 +77,6 @@ ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
 	output_gamma_(output_gamma),
 	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_NEAREST, false),
 	full_display_rectangle_(-1.0f, -1.0f, 2.0f, 2.0f) {
-
-	// Note the OpenGL version.
-	LOG("Constructing scan target with OpenGL " << glGetString(GL_VERSION) << "; shading language version " << glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 	// Ensure proper initialisation of the two atomic pointer sets.
 	read_pointers_.store(write_pointers_);

@@ -10,6 +10,8 @@
 #define ScanTarget_hpp
 
 #include "../ScanTarget.hpp"
+#include "../Log.hpp"
+
 #include "OpenGL.hpp"
 #include "Primitives/TextureTarget.hpp"
 #include "Primitives/Rectangle.hpp"
@@ -43,6 +45,15 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void draw(bool synchronous, int output_width, int output_height);
 
 	private:
+#ifndef NDEBUG
+		struct OpenGLVersionDumper {
+			OpenGLVersionDumper() {
+				// Note the OpenGL version, as the first thing this class does prior to construction.
+				LOG("Constructing scan target with OpenGL " << glGetString(GL_VERSION) << "; shading language version " << glGetString(GL_SHADING_LANGUAGE_VERSION));
+			}
+		} dumper_;
+#endif
+
 		static constexpr int WriteAreaWidth = 2048;
 		static constexpr int WriteAreaHeight = 2048;
 
