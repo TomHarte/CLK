@@ -234,7 +234,8 @@ void ScanTarget::submit() {
 		submit_pointers_.store(write_pointers_);
 	}
 
-	allocation_has_failed_ = false;
+	// Continue defaulting to a failed allocation for as long as there isn't a line available.
+	allocation_has_failed_ = line_allocation_has_failed_;
 }
 
 void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
@@ -267,9 +268,10 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 			// Attempt to allocate a new line; note allocation failure if necessary.
 			const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
 			if(next_line == read_pointers.line) {
-				allocation_has_failed_ = true;
+				line_allocation_has_failed_ = allocation_has_failed_ = true;
 				active_line_ = nullptr;
 			} else {
+				line_allocation_has_failed_ = false;
 				write_pointers_.line = next_line;
 				active_line_ = &line_buffer_[size_t(write_pointers_.line)];
 			}

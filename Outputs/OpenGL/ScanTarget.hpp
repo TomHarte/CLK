@@ -172,6 +172,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		// Track allocation failures.
 		bool allocation_has_failed_ = false;
+		bool line_allocation_has_failed_ = false;
 
 		// Receives scan target modals.
 		Modals modals_;
