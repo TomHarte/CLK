@@ -253,6 +253,8 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 
 	if(output_is_visible_ == is_visible) return;
 	if(is_visible) {
+		const auto read_pointers = read_pointers_.load();
+
 		// Commit the most recent line only if any scans fell on it.
 		// Otherwise there's no point outputting it, it'll contribute nothing.
 		if(provided_scans_) {
@@ -262,8 +264,6 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 				line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = previous_frame_was_complete_;
 				is_first_in_frame_ = false;
 			}
-
-			const auto read_pointers = read_pointers_.load();
 
 			// Attempt to allocate a new line; note allocation failure if necessary.
 			const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
@@ -276,6 +276,16 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 				active_line_ = &line_buffer_[size_t(write_pointers_.line)];
 			}
 			provided_scans_ = 0;
+		} else {
+			// Just check whether a new line is available now, if waiting.
+			if(line_allocation_has_failed_) {
+				const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
+				if(next_line != read_pointers.line) {
+					line_allocation_has_failed_ = false;
+					write_pointers_.line = next_line;
+					active_line_ = &line_buffer_[size_t(write_pointers_.line)];
+				}
+			}
 		}
 
 		if(active_line_) {
@@ -551,7 +561,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			// If this is start-of-frame, clear any untouched pixels and flush the stencil buffer
 			if(line_metadata_buffer_[start_line].is_first_in_frame) {
 				if(stencil_is_valid_ && line_metadata_buffer_[start_line].previous_frame_was_complete) {
-					full_display_rectangle_.draw(0.0f, 0.0f, 0.0f);
+					full_display_rectangle_.draw(1.0f, 0.0f, 0.0f);
 				}
 				stencil_is_valid_ = true;
 				test_gl(glClear, GL_STENCIL_BUFFER_BIT);
