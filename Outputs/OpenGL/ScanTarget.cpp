@@ -16,6 +16,11 @@
 
 using namespace Outputs::Display::OpenGL;
 
+#ifndef NDEBUG
+//#define LOG_LINES
+//#define LOG_SCANS
+#endif
+
 namespace {
 
 /// The texture unit from which to source input data.
@@ -151,6 +156,17 @@ void ScanTarget::end_scan() {
 		vended_scan_->line = write_pointers_.line;
 		vended_scan_->scan.end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
 		vended_scan_->scan.end_points[1].data_offset += TextureAddressGetX(vended_write_area_pointer_);
+
+#ifdef LOG_SCANS
+		if(vended_scan_->scan.composite_amplitude) {
+			std::cout << "S: ";
+			std::cout << vended_scan_->scan.end_points[0].composite_angle << "/" << vended_scan_->scan.end_points[0].data_offset << "/" << vended_scan_->scan.end_points[0].cycles_since_end_of_horizontal_retrace << " -> ";
+			std::cout << vended_scan_->scan.end_points[1].composite_angle << "/" << vended_scan_->scan.end_points[1].data_offset << "/" << vended_scan_->scan.end_points[1].cycles_since_end_of_horizontal_retrace << " => ";
+			std::cout << double(vended_scan_->scan.end_points[1].composite_angle - vended_scan_->scan.end_points[0].composite_angle) / (double(vended_scan_->scan.end_points[1].data_offset - vended_scan_->scan.end_points[0].data_offset) * 64.0f) << "/";
+			std::cout << double(vended_scan_->scan.end_points[1].composite_angle - vended_scan_->scan.end_points[0].composite_angle) / (double(vended_scan_->scan.end_points[1].cycles_since_end_of_horizontal_retrace - vended_scan_->scan.end_points[0].cycles_since_end_of_horizontal_retrace) * 64.0f);
+			std::cout << std::endl;
+		}
+#endif
 	}
 	vended_scan_ = nullptr;
 }
@@ -302,6 +318,17 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 			active_line_->end_points[1].y = location.y;
 			active_line_->end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
 			active_line_->end_points[1].composite_angle = location.composite_angle;
+
+#ifdef LOG_LINES
+			if(active_line_->composite_amplitude) {
+				std::cout << "L: ";
+				std::cout << active_line_->end_points[0].composite_angle << "/" << active_line_->end_points[0].cycles_since_end_of_horizontal_retrace << " -> ";
+				std::cout << active_line_->end_points[1].composite_angle << "/" << active_line_->end_points[1].cycles_since_end_of_horizontal_retrace << " => ";
+				std::cout << (active_line_->end_points[1].composite_angle - active_line_->end_points[0].composite_angle) << "/" << (active_line_->end_points[1].cycles_since_end_of_horizontal_retrace - active_line_->end_points[0].cycles_since_end_of_horizontal_retrace) << " => ";
+				std::cout << double(active_line_->end_points[1].composite_angle - active_line_->end_points[0].composite_angle) / (double(active_line_->end_points[1].cycles_since_end_of_horizontal_retrace - active_line_->end_points[0].cycles_since_end_of_horizontal_retrace) * 64.0f);
+				std::cout << std::endl;
+			}
+#endif
 		}
 	}
 	output_is_visible_ = is_visible;
