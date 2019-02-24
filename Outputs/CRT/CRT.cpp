@@ -169,8 +169,12 @@ Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(uint16_t data_offset
 
 	end_point.x = uint16_t(horizontal_flywheel_->get_current_output_position());
 	end_point.y = uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
-	end_point.composite_angle = int16_t((phase_numerator_ << 6) / phase_denominator_) * (is_alernate_line_ ? -1 : 1);
 	end_point.data_offset = data_offset;
+
+	// TODO: this is a workaround for the limited precision that can be posted onwards;
+	// it'd be better to make time_multiplier_ an explicit modal and just not divide by it.
+	const auto lost_precision = cycles_since_horizontal_sync_ % time_multiplier_;
+	end_point.composite_angle = int16_t(((phase_numerator_ - lost_precision * colour_cycle_numerator_) << 6) / phase_denominator_) * (is_alernate_line_ ? -1 : 1);
 	end_point.cycles_since_end_of_horizontal_retrace = uint16_t(cycles_since_horizontal_sync_ / time_multiplier_);
 
 	return end_point;
@@ -227,6 +231,10 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 			// Reset the cycles-since-sync counter if this is the end of retrace.
 			if(next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace) {
 				cycles_since_horizontal_sync_ = 0;
+
+				// This is unnecessary, strictly speaking, but seeks to help ScanTargets fit as
+				// much as possible into a fixed range.
+				phase_numerator_ %= phase_denominator_;
 			}
 
 			// Announce event.
