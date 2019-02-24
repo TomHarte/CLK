@@ -588,7 +588,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 			// If this is start-of-frame, clear any untouched pixels and flush the stencil buffer
 			if(line_metadata_buffer_[start_line].is_first_in_frame) {
 				if(stencil_is_valid_ && line_metadata_buffer_[start_line].previous_frame_was_complete) {
-					full_display_rectangle_.draw(1.0f, 0.0f, 0.0f);
+					full_display_rectangle_.draw(0.0f, 0.0f, 0.0f);
 				}
 				stencil_is_valid_ = true;
 				test_gl(glClear, GL_STENCIL_BUFFER_BIT);
