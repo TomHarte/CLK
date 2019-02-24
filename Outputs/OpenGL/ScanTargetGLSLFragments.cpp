@@ -360,6 +360,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 	if((modals_.display_type == DisplayType::SVideo) || (modals_.display_type == DisplayType::CompositeColour)) {
 		vertex_shader +=
 			"float centreCompositeAngle = abs(mix(startCompositeAngle, endCompositeAngle, lateral)) * 4.0 / 64.0;"
+			"centreCompositeAngle = floor(centreCompositeAngle);"
 			"qamTextureCoordinates[0] = vec2(centreCompositeAngle - 1.5, lineY + 0.5) / textureSize(textureName, 0);"
 			"qamTextureCoordinates[1] = vec2(centreCompositeAngle - 0.5, lineY + 0.5) / textureSize(textureName, 0);"
 			"qamTextureCoordinates[2] = vec2(centreCompositeAngle + 0.5, lineY + 0.5) / textureSize(textureName, 0);"
@@ -595,7 +596,8 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 
 			"compositeAngle = mix(startCompositeAngle, endCompositeAngle, lateral) / 64.0;"
 
-			"vec2 eyePosition = vec2(abs(compositeAngle) * 4.0, lineY + longitudinal) / vec2(2048.0, 2048.0);"
+			"float snappedCompositeAngle = floor(abs(compositeAngle) * 4.0);"
+			"vec2 eyePosition = vec2(snappedCompositeAngle, lineY + longitudinal) / vec2(2048.0, 2048.0);"
 			"gl_Position = vec4(eyePosition*2.0 - vec2(1.0), 0.0, 1.0);"
 
 			"compositeAngle = compositeAngle * 2.0 * 3.141592654;"
