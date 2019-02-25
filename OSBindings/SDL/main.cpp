@@ -455,9 +455,13 @@ int main(int argc, char *argv[]) {
 								400, 300,
 								SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
-	SDL_GLContext gl_context = SDL_GL_CreateContext(window);
+	SDL_GLContext gl_context;
+	if(window) {
+		gl_context = SDL_GL_CreateContext(window);
+	}
 	if(!window || !gl_context) {
-		std::cerr << "Could not create window; reported error: \"" << SDL_GetError() << "\"" << std::endl;
+		std::cerr << "Could not create " << (window ? "OpenGL context" : "window");
+		std::cerr << "; reported error: \"" << SDL_GetError() << "\"" << std::endl;
 		return -1;
 	}
 
