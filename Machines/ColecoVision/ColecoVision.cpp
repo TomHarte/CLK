@@ -160,6 +160,9 @@ class ConcreteMachine:
 					is_megacart_ = false;
 				}
 			}
+
+			// ColecoVisions have composite output only.
+			vdp_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 		}
 
 		~ConcreteMachine() {
