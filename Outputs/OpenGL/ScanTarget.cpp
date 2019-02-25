@@ -576,7 +576,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		// Divide spans by which frame they're in.
 		uint16_t start_line = read_pointers.line;
 		while(new_lines) {
-			uint16_t end_line = start_line+1;
+			uint16_t end_line = (start_line + 1) % LineBufferHeight;
 
 			// Find the limit of spans to draw in this cycle.
 			size_t lines = 1;
