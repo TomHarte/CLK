@@ -107,12 +107,12 @@ template <class BusHandler> class MOS6560 {
 
 			// Chrominances are encoded such that 0-128 is a complete revolution of phase;
 			// anything above 191 disables the colour subcarrier. Phase is relative to the
-			// colour burst, so 0 is green.
+			// colour burst, so 0 is green (NTSC) or blue/violet (PAL).
 			const uint8_t pal_chrominances[16] = {
-				255,	255,	37,		101,
-				19,		86,		123,	59,
-				46,		53,		37,		101,
-				19,		86,		123,	59,
+				255,	255,	90,		20,
+				96,		42,		8,		72,
+				84,		90,		90,		20,
+				96,		42,		8,		72,
 			};
 			const uint8_t ntsc_chrominances[16] = {
 				255,	255,	121,	57,
