@@ -381,15 +381,6 @@ void ScanTarget::setup_pipeline() {
 	enable_vertex_attributes(ShaderType::Composition, *input_shader_);
 	set_uniforms(ShaderType::Composition, *input_shader_);
 	input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
-
-	// Determine the proper clear colour — this needs to be anything that describes black
-	// in the input colour encoding at use.
-	if(modals_.input_data_type == InputDataType::Luminance8Phase8) {
-		// Supply both a zero luminance and a colour-subcarrier-disengaging phase.
-		test_gl(glClearColor, 0.0f, 1.0f, 0.0f, 0.0f);
-	} else {
-		test_gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
-	}
 }
 
 void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
@@ -509,6 +500,15 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		if(first_line_to_clear != final_line_to_clear) {
 			test_gl(glEnable, GL_SCISSOR_TEST);
 
+			// Determine the proper clear colour — this needs to be anything that describes black
+			// in the input colour encoding at use.
+			if(modals_.input_data_type == InputDataType::Luminance8Phase8) {
+				// Supply both a zero luminance and a colour-subcarrier-disengaging phase.
+				test_gl(glClearColor, 0.0f, 1.0f, 0.0f, 0.0f);
+			} else {
+				test_gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
+			}
+
 			if(first_line_to_clear < final_line_to_clear) {
 				test_gl(glScissor, 0, first_line_to_clear, unprocessed_line_texture_.get_width(), final_line_to_clear - first_line_to_clear);
 				test_gl(glClear, GL_COLOR_BUFFER_BIT);
@@ -529,12 +529,16 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	}
 
 	// Ensure the accumulation buffer is properly sized.
-	const int proportional_width = (output_height * 4) / 3;
-	if(!accumulation_texture_ || (	/* !synchronous && */ (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != output_height))) {
+	// At present a hard maximum framebuffer size of 1440x1080 is applied; this is because the code is currently
+	// constrained to horizontal scans elsewhere, so higher resolutions increase costs for a negligible increase
+	// in fidelity. TODO: make this decision a function of computer speed.
+	const int framebuffer_height = std::min(output_height, 1080);
+	const int proportional_width = (framebuffer_height * 4) / 3;
+	if(!accumulation_texture_ || (	/* !synchronous && */ (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != framebuffer_height))) {
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(
 			new TextureTarget(
 				GLsizei(proportional_width),
-				GLsizei(output_height),
+				GLsizei(framebuffer_height),
 				AccumulationTextureUnit,
 				GL_NEAREST,
 				true));
@@ -661,6 +665,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	test_gl(glBindFramebuffer, GL_FRAMEBUFFER, target_framebuffer_);
 	test_gl(glViewport, 0, 0, (GLsizei)output_width, (GLsizei)output_height);
 
+	test_gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
 	test_gl(glClear, GL_COLOR_BUFFER_BIT);
 	accumulation_texture_->bind_texture();
 	accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
