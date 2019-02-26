@@ -70,6 +70,9 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 			break;
 		}
 	}
+
+	// Clear the framebuffer.
+	test_gl(glClear, GL_COLOR_BUFFER_BIT);
 }
 
 TextureTarget::~TextureTarget() {
