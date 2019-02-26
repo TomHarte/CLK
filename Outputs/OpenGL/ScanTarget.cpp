@@ -96,7 +96,6 @@ ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
 	// write straight into it.
 
 	test_gl(glGenTextures, 1, &write_area_texture_name_);
-	test_gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
 
 	test_gl(glBlendFunc, GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	test_gl(glBlendColor, 0.4f, 0.4f, 0.4f, 1.0f);
@@ -382,6 +381,15 @@ void ScanTarget::setup_pipeline() {
 	enable_vertex_attributes(ShaderType::Composition, *input_shader_);
 	set_uniforms(ShaderType::Composition, *input_shader_);
 	input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
+
+	// Determine the proper clear colour — this needs to be anything that describes black
+	// in the input colour encoding at use.
+	if(modals_.input_data_type == InputDataType::Luminance8Phase8) {
+		// Supply both a zero luminance and a colour-subcarrier-disengaging phase.
+		test_gl(glClearColor, 0.0f, 1.0f, 0.0f, 0.0f);
+	} else {
+		test_gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
+	}
 }
 
 void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
