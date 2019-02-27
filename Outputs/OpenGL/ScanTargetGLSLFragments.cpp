@@ -57,7 +57,7 @@ void ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 }
 
 void ScanTarget::set_sampling_window(int output_width, int output_height, Shader &target) {
-	if(modals_.display_type != DisplayType::CompositeColour && modals_.display_type != DisplayType::SVideo) {
+	if(modals_.display_type != DisplayType::CompositeColour) {
 		const float one_pixel_width = float(output_width) * modals_.visible_area.size.width / float(modals_.cycles_per_line);
 		const float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
 		GLfloat texture_offsets[4];
@@ -284,13 +284,16 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		"uniform vec2 origin;"
 		"uniform vec2 size;"
 
-		"uniform float textureCoordinateOffsets[4];";
+		"uniform float textureCoordinateOffsets[4];"
+		"out vec2 textureCoordinates[4];";
 
 	std::string fragment_shader =
 		"#version 150\n"
 
 		"uniform sampler2D textureName;"
 		"uniform sampler2D qamTextureName;"
+
+		"in vec2 textureCoordinates[4];"
 
 		"out vec4 fragColour;";
 
@@ -309,30 +312,9 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"uniform vec4 compositeAngleOffsets;";
 	}
 
-	switch(modals_.display_type) {
-		case DisplayType::RGB:
-		case DisplayType::CompositeMonochrome:
-			vertex_shader += "out vec2 textureCoordinates[4];";
-			fragment_shader += "in vec2 textureCoordinates[4];";
-		break;
-
-		case DisplayType::SVideo:
-			vertex_shader +=
-				"out vec2 textureCoordinate;"
-				"out vec2 qamTextureCoordinates[4];";
-			fragment_shader +=
-				"in vec2 textureCoordinate;"
-				"in vec2 qamTextureCoordinates[4];";
-		break;
-
-		case DisplayType::CompositeColour:
-			vertex_shader +=
-				"out vec2 textureCoordinates[4];"
-				"out vec2 qamTextureCoordinates[4];";
-			fragment_shader +=
-				"in vec2 textureCoordinates[4];"
-				"in vec2 qamTextureCoordinates[4];";
-		break;
+	if(modals_.display_type == DisplayType::SVideo || modals_.display_type == DisplayType::CompositeColour) {
+		vertex_shader += "out vec2 qamTextureCoordinates[4];";
+		fragment_shader += "in vec2 qamTextureCoordinates[4];";
 	}
 
 	// Add the code to generate a proper output position; this applies to all display types.
@@ -353,23 +335,12 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"oneOverCompositeAmplitude = mix(0.0, 255.0 / lineCompositeAmplitude, step(0.01, lineCompositeAmplitude));";
 	}
 
-	switch(modals_.display_type) {
-		case DisplayType::SVideo:
-			vertex_shader +=
-				"textureCoordinate = vec2(mix(startClock, endClock, lateral), lineY + 0.5) / textureSize(textureName, 0);";
-		break;
-
-		case DisplayType::RGB:
-		case DisplayType::CompositeMonochrome:
-		case DisplayType::CompositeColour:
-			vertex_shader +=
-				"float centreClock = mix(startClock, endClock, lateral);"
-				"textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / textureSize(textureName, 0);"
-				"textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / textureSize(textureName, 0);"
-				"textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / textureSize(textureName, 0);"
-				"textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / textureSize(textureName, 0);";
-		break;
-	}
+	vertex_shader +=
+		"float centreClock = mix(startClock, endClock, lateral);"
+		"textureCoordinates[0] = vec2(centreClock + textureCoordinateOffsets[0], lineY + 0.5) / textureSize(textureName, 0);"
+		"textureCoordinates[1] = vec2(centreClock + textureCoordinateOffsets[1], lineY + 0.5) / textureSize(textureName, 0);"
+		"textureCoordinates[2] = vec2(centreClock + textureCoordinateOffsets[2], lineY + 0.5) / textureSize(textureName, 0);"
+		"textureCoordinates[3] = vec2(centreClock + textureCoordinateOffsets[3], lineY + 0.5) / textureSize(textureName, 0);";
 
 	if((modals_.display_type == DisplayType::SVideo) || (modals_.display_type == DisplayType::CompositeColour)) {
 		vertex_shader +=
@@ -398,24 +369,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"vec3 fragColour3;";
 
 	switch(modals_.display_type) {
-		case DisplayType::SVideo:
-			fragment_shader +=
-				// Sample the S-Video stream once, to obtain luminance.
-				"vec2 sample = svideo_sample(textureCoordinate, compositeAngle);"
-
-				// Split and average chrominance.
-				"vec2 chrominances[4] = vec2[4]("
-					"textureLod(qamTextureName, qamTextureCoordinates[0], 0).gb,"
-					"textureLod(qamTextureName, qamTextureCoordinates[1], 0).gb,"
-					"textureLod(qamTextureName, qamTextureCoordinates[2], 0).gb,"
-					"textureLod(qamTextureName, qamTextureCoordinates[3], 0).gb"
-				");"
-				"vec2 channels = (chrominances[0] + chrominances[1] + chrominances[2] + chrominances[3])*0.5 - vec2(1.0);"
-
-				// Apply a colour space conversion to get RGB.
-				"fragColour3 = lumaChromaToRGB * vec3(sample.r, channels);";
-		break;
-
 		case DisplayType::CompositeColour:
 			fragment_shader +=
 				"vec4 angles = compositeAngle + compositeAngleOffsets;"
@@ -474,6 +427,31 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 					"textureLod(textureName, textureCoordinates[3], 0).rgb"
 				");"
 				"fragColour3 = samples[0]*0.15 + samples[1]*0.35 + samples[2]*0.35 + samples[2]*0.15;";
+		break;
+
+		case DisplayType::SVideo:
+			fragment_shader +=
+				// Sample the S-Video stream to obtain luminance.
+				"vec4 angles = compositeAngle + compositeAngleOffsets;"
+				"vec4 samples = vec4("
+					"svideo_sample(textureCoordinates[0], angles.x).x,"
+					"svideo_sample(textureCoordinates[1], angles.y).x,"
+					"svideo_sample(textureCoordinates[2], angles.z).x,"
+					"svideo_sample(textureCoordinates[3], angles.w).x"
+				");"
+				"float luminance = dot(samples, vec4(0.15, 0.35, 0.35, 0.25));"
+
+				// Split and average chrominaxnce.
+				"vec2 chrominances[4] = vec2[4]("
+					"textureLod(qamTextureName, qamTextureCoordinates[0], 0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[1], 0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[2], 0).gb,"
+					"textureLod(qamTextureName, qamTextureCoordinates[3], 0).gb"
+				");"
+				"vec2 channels = (chrominances[0] + chrominances[1] + chrominances[2] + chrominances[3])*0.5 - vec2(1.0);"
+
+				// Apply a colour space conversion to get RGB.
+				"fragColour3 = lumaChromaToRGB * vec3(luminance, channels);";
 		break;
 	}
 
