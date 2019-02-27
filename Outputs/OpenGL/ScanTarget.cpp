@@ -535,6 +535,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	const int framebuffer_height = std::min(output_height, 1080);
 	const int proportional_width = (framebuffer_height * 4) / 3;
 	if(!accumulation_texture_ || (	/* !synchronous && */ (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != framebuffer_height))) {
+		set_sampling_window(proportional_width, framebuffer_height, *output_shader_);
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(
 			new TextureTarget(
 				GLsizei(proportional_width),

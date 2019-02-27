@@ -219,6 +219,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		*/
 		std::unique_ptr<Shader> qam_separation_shader() const;
 
+		void set_sampling_window(int output_Width, int output_height, Shader &target);
+
 		std::string sampling_function() const;
 };
 

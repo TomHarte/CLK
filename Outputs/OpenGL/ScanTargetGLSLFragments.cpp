@@ -14,7 +14,7 @@ using namespace Outputs::Display::OpenGL;
 
 // MARK: - State setup for compiled shaders.
 
-void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
+void ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 	// Slightly over-amping rowHeight here is a cheap way to make sure that lines
 	// converge even allowing for the fact that they may not be spaced by exactly
 	// the expected distance. Cf. the stencil-powered logic for making sure all
@@ -53,6 +53,21 @@ void Outputs::Display::OpenGL::ScanTarget::set_uniforms(ShaderType type, Shader 
 				} break;
 			}
 		break;
+	}
+}
+
+void ScanTarget::set_sampling_window(int output_width, int output_height, Shader &target) {
+	if(modals_.display_type != DisplayType::CompositeColour && modals_.display_type != DisplayType::SVideo) {
+		const float one_pixel_width = float(output_width) * modals_.visible_area.size.width / float(modals_.cycles_per_line);
+		const float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
+		GLfloat texture_offsets[4];
+		GLfloat angles[4];
+		for(int c = 0; c < 4; ++c) {
+			texture_offsets[c] = ((one_pixel_width * float(c)) / 3.0f) - (one_pixel_width * 0.5f);
+			angles[c] = GLfloat((texture_offsets[c] / clocks_per_angle) * 2.0f * M_PI);
+		}
+		target.set_uniform("textureCoordinateOffsets", 1, 4, texture_offsets);
+		target.set_uniform("compositeAngleOffsets", 4, 1, angles);
 	}
 }
 
@@ -267,7 +282,9 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		"uniform sampler2D textureName;"
 		"uniform sampler2D qamTextureName;"
 		"uniform vec2 origin;"
-		"uniform vec2 size;";
+		"uniform vec2 size;"
+
+		"uniform float textureCoordinateOffsets[4];";
 
 	std::string fragment_shader =
 		"#version 150\n"
@@ -283,7 +300,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"out float compositeAmplitude;"
 			"out float oneOverCompositeAmplitude;"
 		
-			"uniform float textureCoordinateOffsets[4];"
 			"uniform float angleOffsets[4];";
 		fragment_shader +=
 			"in float compositeAngle;"
@@ -293,11 +309,11 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"uniform vec4 compositeAngleOffsets;";
 	}
 
-	switch(modals_.display_type){
+	switch(modals_.display_type) {
 		case DisplayType::RGB:
 		case DisplayType::CompositeMonochrome:
-			vertex_shader += "out vec2 textureCoordinate;";
-			fragment_shader += "in vec2 textureCoordinate;";
+			vertex_shader += "out vec2 textureCoordinates[4];";
+			fragment_shader += "in vec2 textureCoordinates[4];";
 		break;
 
 		case DisplayType::SVideo:
@@ -337,16 +353,14 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"oneOverCompositeAmplitude = mix(0.0, 255.0 / lineCompositeAmplitude, step(0.01, lineCompositeAmplitude));";
 	}
 
-	// For RGB and monochrome composite, generate the single texture coordinate; otherwise generate either three
-	// or four depending on the type of decoding to apply.
 	switch(modals_.display_type) {
-		case DisplayType::RGB:
-		case DisplayType::CompositeMonochrome:
 		case DisplayType::SVideo:
 			vertex_shader +=
 				"textureCoordinate = vec2(mix(startClock, endClock, lateral), lineY + 0.5) / textureSize(textureName, 0);";
 		break;
 
+		case DisplayType::RGB:
+		case DisplayType::CompositeMonochrome:
 		case DisplayType::CompositeColour:
 			vertex_shader +=
 				"float centreClock = mix(startClock, endClock, lateral);"
@@ -384,10 +398,6 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"vec3 fragColour3;";
 
 	switch(modals_.display_type) {
-		case DisplayType::RGB:
-			fragment_shader += "fragColour3 = textureLod(textureName, textureCoordinate, 0).rgb;";
-		break;
-
 		case DisplayType::SVideo:
 			fragment_shader +=
 				// Sample the S-Video stream once, to obtain luminance.
@@ -420,7 +430,7 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 
 				// Compute a luminance for use if there's no colour information, now, before
 				// modifying samples.
-				"float mono_luminance = dot(samples, vec4(0.15, 0.35, 0.35, 0.15));" // TODO: figure out proper coefficients.
+				"float mono_luminance = dot(samples, vec4(0.15, 0.35, 0.35, 0.15));"
 
 				// Take the average to calculate luminance, then subtract that from all four samples to
 				// give chrominance.
@@ -444,7 +454,26 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 		break;
 
 		case DisplayType::CompositeMonochrome:
-			fragment_shader += "fragColour3 = vec3(composite_sample(textureCoordinate, compositeAngle));";
+			fragment_shader +=
+				"vec4 angles = compositeAngle + compositeAngleOffsets;"
+				"vec4 samples = vec4("
+					"composite_sample(textureCoordinates[0], angles.x),"
+					"composite_sample(textureCoordinates[1], angles.y),"
+					"composite_sample(textureCoordinates[2], angles.z),"
+					"composite_sample(textureCoordinates[3], angles.w)"
+				");"
+				"fragColour3 = vec3(dot(samples, vec4(0.15, 0.35, 0.35, 0.25)));";
+		break;
+
+		case DisplayType::RGB:
+			fragment_shader +=
+				"vec3 samples[4] = vec3[4]("
+					"textureLod(textureName, textureCoordinates[0], 0).rgb,"
+					"textureLod(textureName, textureCoordinates[1], 0).rgb,"
+					"textureLod(textureName, textureCoordinates[2], 0).rgb,"
+					"textureLod(textureName, textureCoordinates[3], 0).rgb"
+				");"
+				"fragColour3 = samples[0]*0.15 + samples[1]*0.35 + samples[2]*0.35 + samples[2]*0.15;";
 		break;
 	}
 
