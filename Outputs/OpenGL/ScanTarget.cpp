@@ -530,10 +530,9 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	}
 
 	// Ensure the accumulation buffer is properly sized.
-	// At present a hard maximum framebuffer size of 1440x1080 is applied; this is because the code is currently
-	// constrained to horizontal scans elsewhere, so higher resolutions increase costs for a negligible increase
-	// in fidelity. TODO: make this decision a function of computer speed.
-	const int framebuffer_height = std::min(output_height, 1080);
+	// TODO: based on a decision about host speed, potentially switch to the std::min fragment as shown below,
+	// which would limit total output buffer size to 1440x1080.
+	const int framebuffer_height = output_height;//std::min(output_height, 1080);
 	const int proportional_width = (framebuffer_height * 4) / 3;
 	const bool did_create_accumulation_texture = !accumulation_texture_ || (	/* !synchronous && */ (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != framebuffer_height));
 	if(did_create_accumulation_texture) {
