@@ -235,6 +235,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 				// This is unnecessary, strictly speaking, but seeks to help ScanTargets fit as
 				// much as possible into a fixed range.
 				phase_numerator_ %= phase_denominator_;
+				if(!phase_numerator_) phase_numerator_ += phase_denominator_;
 			}
 
 			// Announce event.
