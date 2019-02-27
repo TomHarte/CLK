@@ -397,6 +397,7 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	while(is_drawing_.test_and_set());
 
 	// Establish the pipeline if necessary.
+	const bool did_setup_pipeline = modals_are_dirty_;
 	if(modals_are_dirty_) {
 		setup_pipeline();
 		modals_are_dirty_ = false;
@@ -534,8 +535,8 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	// in fidelity. TODO: make this decision a function of computer speed.
 	const int framebuffer_height = std::min(output_height, 1080);
 	const int proportional_width = (framebuffer_height * 4) / 3;
-	if(!accumulation_texture_ || (	/* !synchronous && */ (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != framebuffer_height))) {
-		set_sampling_window(proportional_width, framebuffer_height, *output_shader_);
+	const bool did_create_accumulation_texture = !accumulation_texture_ || (	/* !synchronous && */ (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != framebuffer_height));
+	if(did_create_accumulation_texture) {
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(
 			new TextureTarget(
 				GLsizei(proportional_width),
@@ -561,6 +562,10 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		// what's currently present as invalid to avoid an improper clear
 		// for this frame.
 		stencil_is_valid_ = false;
+	}
+
+	if(did_setup_pipeline || did_create_accumulation_texture) {
+		set_sampling_window(proportional_width, framebuffer_height, *output_shader_);
 	}
 
 	// Figure out how many new lines are ready.

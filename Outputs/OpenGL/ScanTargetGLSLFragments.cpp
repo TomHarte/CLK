@@ -58,12 +58,12 @@ void ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 
 void ScanTarget::set_sampling_window(int output_width, int output_height, Shader &target) {
 	if(modals_.display_type != DisplayType::CompositeColour) {
-		const float one_pixel_width = float(output_width) * modals_.visible_area.size.width / float(modals_.cycles_per_line);
+		const float one_pixel_width = float(modals_.cycles_per_line) * modals_.visible_area.size.width / float(output_width);
 		const float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
 		GLfloat texture_offsets[4];
 		GLfloat angles[4];
 		for(int c = 0; c < 4; ++c) {
-			texture_offsets[c] = ((one_pixel_width * float(c)) / 3.0f) - (one_pixel_width * 0.5f);
+			texture_offsets[c] = 1.5f * (((one_pixel_width * float(c)) / 3.0f) - (one_pixel_width * 0.5f));
 			angles[c] = GLfloat((texture_offsets[c] / clocks_per_angle) * 2.0f * M_PI);
 		}
 		target.set_uniform("textureCoordinateOffsets", 1, 4, texture_offsets);
