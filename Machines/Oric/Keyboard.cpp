@@ -29,10 +29,10 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(Hyphen, KeyMinus);		BIND(Equals, KeyEquals);		BIND(BackSlash, KeyBackSlash);
 		BIND(OpenSquareBracket, KeyOpenSquare);	BIND(CloseSquareBracket, KeyCloseSquare);
 
-		BIND(BackSpace, KeyDelete); 	BIND(Delete, KeyDelete);
+		BIND(BackSpace, KeyDelete);	BIND(Delete, KeyDelete);
 
 		BIND(Semicolon, KeySemiColon);	BIND(Quote, KeyQuote);
-		BIND(Comma, KeyComma); 		BIND(FullStop, KeyFullStop); 	BIND(ForwardSlash, KeyForwardSlash);
+		BIND(Comma, KeyComma);			BIND(FullStop, KeyFullStop);	BIND(ForwardSlash, KeyForwardSlash);
 
 		BIND(Escape, KeyEscape);	BIND(Tab, KeyEscape);
 		BIND(CapsLock, KeyControl);	BIND(LeftControl, KeyControl);	BIND(RightControl, KeyControl);

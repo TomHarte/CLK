@@ -12,6 +12,8 @@
 #include <cstdlib>
 #include <cmath>
 
+#include "../../../Outputs/Log.hpp"
+
 // MARK: - ZLib extensions
 
 static float gzgetfloat(gzFile file) {
@@ -153,7 +155,7 @@ void UEF::get_next_pulses() {
 			break;
 
 			default:
-				printf("!!! Skipping %04x\n", next_chunk.id);
+				LOG("!!! Skipping " << std::hex << next_chunk.id << std::endl);
 			break;
 		}
 

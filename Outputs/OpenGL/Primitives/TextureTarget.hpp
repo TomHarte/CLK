@@ -9,10 +9,12 @@
 #ifndef TextureTarget_hpp
 #define TextureTarget_hpp
 
-#include "OpenGL.hpp"
-#include "Shaders/Shader.hpp"
+#include "../OpenGL.hpp"
+#include "Shader.hpp"
 #include <memory>
 
+namespace Outputs {
+namespace Display {
 namespace OpenGL {
 
 /*!
@@ -22,15 +24,18 @@ namespace OpenGL {
 class TextureTarget {
 	public:
 		/*!
-			Creates a new texture target.
+			Creates a new texture target. Contents are initially undefined.
 
-			Throws ErrorFramebufferIncomplete if creation fails. Leaves both the generated texture and framebuffer bound.
+			Leaves both the generated texture and framebuffer bound.
+
+			@throws std::runtime_error if creation fails.
 
 			@param width The width of target to create.
 			@param height The height of target to create.
 			@param texture_unit A texture unit on which to bind the texture.
+			@param has_stencil_buffer A 1-bit stencil buffer is attached if this is @c true; no stencil buffer is attached otherwise.
 		*/
-		TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter);
+		TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit, GLint mag_filter, bool has_stencil_buffer);
 		~TextureTarget();
 
 		/*!
@@ -41,19 +46,19 @@ class TextureTarget {
 		/*!
 			Binds this target as a texture.
 		*/
-		void bind_texture();
+		void bind_texture() const;
 
 		/*!
 			@returns the width of the texture target.
 		*/
-		GLsizei get_width() {
+		GLsizei get_width() const {
 			return width_;
 		}
 
 		/*!
 			@returns the height of the texture target.
 		*/
-		GLsizei get_height() {
+		GLsizei get_height() const {
 			return height_;
 		}
 
@@ -68,25 +73,23 @@ class TextureTarget {
 			0.5f being substituted elsewhere. This provides a way to ensure that the sort of
 			persistent low-value errors that can result from an IIR are hidden.
 		*/
-		void draw(float aspect_ratio, float colour_threshold = 0.0f);
-
-		enum {
-			ErrorFramebufferIncomplete
-		};
+		void draw(float aspect_ratio, float colour_threshold = 0.0f) const;
 
 	private:
-		GLuint framebuffer_ = 0, texture_ = 0;
-		GLsizei width_ = 0, height_ = 0;
+		GLuint framebuffer_ = 0, texture_ = 0, renderbuffer_ = 0;
+		const GLsizei width_ = 0, height_ = 0;
 		GLsizei expanded_width_ = 0, expanded_height_ = 0;
-		GLenum texture_unit_ = 0;
+		const GLenum texture_unit_ = 0;
 
-		std::unique_ptr<Shader> pixel_shader_;
-		GLuint drawing_vertex_array_ = 0, drawing_array_buffer_ = 0;
-		float set_aspect_ratio_ = 0.0f;
+		mutable std::unique_ptr<Shader> pixel_shader_;
+		mutable GLuint drawing_vertex_array_ = 0, drawing_array_buffer_ = 0;
+		mutable float set_aspect_ratio_ = 0.0f;
 
-		GLint threshold_uniform_;
+		mutable GLint threshold_uniform_;
 };
 
+}
+}
 }
 
 #endif /* TextureTarget_hpp */

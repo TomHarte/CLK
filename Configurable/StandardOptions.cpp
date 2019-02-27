@@ -33,11 +33,12 @@ bool get_bool(const Configurable::SelectionSet &selections_by_option, const std:
 std::vector<std::unique_ptr<Configurable::Option>> Configurable::standard_options(Configurable::StandardOptions mask) {
 	std::vector<std::unique_ptr<Configurable::Option>> options;
 	if(mask & QuickLoadTape)				options.emplace_back(new Configurable::BooleanOption("Load Tapes Quickly", "quickload"));
-	if(mask & (DisplayRGB | DisplayComposite | DisplaySVideo)) {
+	if(mask & (DisplayRGB | DisplayCompositeColour | DisplayCompositeMonochrome | DisplaySVideo)) {
 		std::vector<std::string> display_options;
-		if(mask & DisplayComposite)	display_options.emplace_back("composite");
-		if(mask & DisplaySVideo) 	display_options.emplace_back("svideo");
-		if(mask & DisplayRGB) 		display_options.emplace_back("rgb");
+		if(mask & DisplayCompositeColour)		display_options.emplace_back("composite");
+		if(mask & DisplayCompositeMonochrome)	display_options.emplace_back("composite-mono");
+		if(mask & DisplaySVideo)				display_options.emplace_back("svideo");
+		if(mask & DisplayRGB)					display_options.emplace_back("rgb");
 		options.emplace_back(new Configurable::ListOption("Display", "display", display_options));
 	}
 	if(mask & AutomaticTapeMotorControl)	options.emplace_back(new Configurable::BooleanOption("Automatic Tape Motor Control", "autotapemotor"));
@@ -57,9 +58,10 @@ void Configurable::append_display_selection(Configurable::SelectionSet &selectio
 	std::string string_selection;
 	switch(selection) {
 		default:
-		case Display::RGB:			string_selection = "rgb";		break;
-		case Display::SVideo:		string_selection = "svideo";	break;
-		case Display::Composite:	string_selection = "composite";	break;
+		case Display::RGB:					string_selection = "rgb";				break;
+		case Display::SVideo:				string_selection = "svideo";			break;
+		case Display::CompositeMonochrome:	string_selection = "composite-mono";	break;
+		case Display::CompositeColour:		string_selection = "composite";			break;
 	}
 	selection_set["display"] = std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection(string_selection));
 }
@@ -85,7 +87,11 @@ bool Configurable::get_display(const Configurable::SelectionSet &selections_by_o
 			return true;
 		}
 		if(display->value == "composite") {
-			result = Configurable::Display::Composite;
+			result = Configurable::Display::CompositeColour;
+			return true;
+		}
+		if(display->value == "composite-mono") {
+			result = Configurable::Display::CompositeMonochrome;
 			return true;
 		}
 	}

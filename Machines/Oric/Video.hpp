@@ -12,28 +12,35 @@
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 
+#include <cstdint>
+#include <memory>
+#include <vector>
+
 namespace Oric {
 
 class VideoOutput {
 	public:
 		VideoOutput(uint8_t *memory);
-		Outputs::CRT::CRT *get_crt();
+		void set_colour_rom(const std::vector<uint8_t> &colour_rom);
+
 		void run_for(const Cycles cycles);
-		void set_colour_rom(const std::vector<uint8_t> &rom);
-		void set_video_signal(Outputs::CRT::VideoSignal output_device);
+
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+		void set_display_type(Outputs::Display::DisplayType display_type);
 
 	private:
 		uint8_t *ram_;
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		Outputs::CRT::CRT crt_;
 
 		// Counters and limits
 		int counter_ = 0, frame_counter_ = 0;
 		int v_sync_start_position_, v_sync_end_position_, counter_period_;
 
 		// Output target and device
-		uint16_t *pixel_target_;
-		uint16_t colour_forms_[8];
-		Outputs::CRT::VideoSignal video_signal_;
+		uint8_t *rgb_pixel_target_;
+		uint32_t *composite_pixel_target_;
+		uint32_t colour_forms_[8];
+		Outputs::Display::InputDataType data_type_;
 
 		// Registers
 		uint8_t ink_, paper_;

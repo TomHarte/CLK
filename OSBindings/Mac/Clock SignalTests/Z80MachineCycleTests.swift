@@ -303,7 +303,7 @@ class Z80MachineCycleTests: XCTestCase {
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .read, length: 3),
- 				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
 				MachineCycle(operation: .read, length: 3),
 				MachineCycle(operation: .read, length: 3),
 			]
@@ -318,7 +318,7 @@ class Z80MachineCycleTests: XCTestCase {
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .read, length: 3),
- 				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
 				MachineCycle(operation: .write, length: 3),
 				MachineCycle(operation: .write, length: 3),
 			]
@@ -333,7 +333,7 @@ class Z80MachineCycleTests: XCTestCase {
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .read, length: 3),
- 				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
 				MachineCycle(operation: .read, length: 3),
 				MachineCycle(operation: .read, length: 3),
 			]
@@ -348,7 +348,7 @@ class Z80MachineCycleTests: XCTestCase {
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .readOpcode, length: 4),
 				MachineCycle(operation: .read, length: 3),
- 				MachineCycle(operation: .read, length: 3),
+				MachineCycle(operation: .read, length: 3),
 				MachineCycle(operation: .write, length: 3),
 				MachineCycle(operation: .write, length: 3),
 			]

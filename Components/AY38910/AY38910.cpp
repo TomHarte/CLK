@@ -253,7 +253,7 @@ uint8_t AY38910::get_data_output() {
 		const uint8_t mask = port_handler_ ? port_handler_->get_port_input(selected_register_ == 15) : 0xff;
 
 		switch(selected_register_) {
-			default: 	break;
+			default:	break;
 			case 14:	return mask & ((registers_[0x7] & 0x40) ? registers_[14] : 0xff);
 			case 15:	return mask & ((registers_[0x7] & 0x80) ? registers_[15] : 0xff);
 		}
@@ -280,7 +280,7 @@ void AY38910::update_bus() {
 	// Assume no output, unless this turns out to be a read.
 	data_output_ = 0xff;
 	switch(control_state_) {
-		default: 			break;
+		default:			break;
 		case LatchAddress:	select_register(data_input_);			break;
 		case Write:			set_register_value(data_input_);		break;
 		case Read:			data_output_ = get_register_value();	break;

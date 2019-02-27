@@ -22,12 +22,10 @@ namespace {
 	uint8_t reverse_table[256];
 }
 
-TIA::TIA(bool create_crt) {
-	if(create_crt) {
-		crt_.reset(new Outputs::CRT::CRT(cycles_per_line * 2 - 1, 1, Outputs::CRT::DisplayType::NTSC60, 1));
-		crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
-		set_output_mode(OutputMode::NTSC);
-	}
+TIA::TIA():
+ 	crt_(cycles_per_line * 2 - 1, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance8Phase8) {
+
+	set_output_mode(OutputMode::NTSC);
 
 	for(int c = 0; c < 256; c++) {
 		reverse_table[c] = static_cast<uint8_t>(
@@ -113,51 +111,35 @@ TIA::TIA(bool create_crt) {
 	}
 }
 
-TIA::TIA() : TIA(true) {}
-
-TIA::TIA(std::function<void(uint8_t *output_buffer)> line_end_function) : TIA(false) {
-	line_end_function_ = line_end_function;
-}
-
 void TIA::set_output_mode(Atari2600::TIA::OutputMode output_mode) {
-	Outputs::CRT::DisplayType display_type;
+	Outputs::Display::Type display_type;
+	tv_standard_ = output_mode;
 
 	if(output_mode == OutputMode::NTSC) {
-		crt_->set_svideo_sampling_function(
-			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)"
-			"{"
-				"uint c = texture(texID, coordinate).r;"
-				"uint y = c & 14u;"
-				"uint iPhase = (c >> 4);"
-
-				"float phaseOffset = 6.283185308 * float(iPhase) / 13.0 + 5.074880441076923;"
-				"return vec2(float(y) / 14.0, step(1, iPhase) * cos(phase - phaseOffset));"
-			"}");
-		display_type = Outputs::CRT::DisplayType::NTSC60;
+		display_type = Outputs::Display::Type::NTSC60;
 	} else {
-		crt_->set_svideo_sampling_function(
-			"vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)"
-			"{"
-				"uint c = texture(texID, coordinate).r;"
-				"uint y = c & 14u;"
-				"uint iPhase = (c >> 4);"
-
-				"uint direction = iPhase & 1u;"
-				"float phaseOffset = float(7u - direction) + (float(direction) - 0.5) * 2.0 * float(iPhase >> 1);"
-				"phaseOffset *= 6.283185308 / 12.0;"
-				"return vec2(float(y) / 14.0, step(4, (iPhase + 2u) & 15u) * cos(phase + phaseOffset));"
-			"}");
-		display_type = Outputs::CRT::DisplayType::PAL50;
+		display_type = Outputs::Display::Type::PAL50;
 	}
-	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
+	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 
 	// line number of cycles in a line of video is one less than twice the number of clock cycles per line; the Atari
 	// outputs 228 colour cycles of material per line when an NTSC line 227.5. Since all clock numbers will be doubled
 	// later, cycles_per_line * 2 - 1 is therefore the real length of an NTSC line, even though we're going to supply
 	// cycles_per_line * 2 cycles of information from one sync edge to the next
-	crt_->set_new_display_type(cycles_per_line * 2 - 1, display_type);
+	crt_.set_new_display_type(cycles_per_line * 2 - 1, display_type);
 
-/*	speaker_->set_input_rate(static_cast<float>(get_clock_rate() / 38.0));*/
+	// Update the luminance/phase mappings of the current palette.
+	for(size_t c = 0; c < colour_palette_.size(); ++c) {
+		set_colour_palette_entry(c, colour_palette_[c].original);
+	}
+}
+
+void TIA::set_crt_delegate(Outputs::CRT::Delegate *delegate) {
+	crt_.set_delegate(delegate);
+}
+
+void TIA::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	crt_.set_scan_target(scan_target);
 }
 
 void TIA::run_for(const Cycles cycles) {
@@ -198,7 +180,40 @@ int TIA::get_cycles_until_horizontal_blank(const Cycles from_offset) {
 }
 
 void TIA::set_background_colour(uint8_t colour) {
-	colour_palette_[static_cast<int>(ColourIndex::Background)] = colour;
+	set_colour_palette_entry(size_t(ColourIndex::Background), colour);
+}
+
+void TIA::set_colour_palette_entry(size_t index, uint8_t colour) {
+	const uint8_t luminance = ((colour & 14) * 255) / 14;
+
+	uint8_t phase = colour >> 4;
+
+	if(tv_standard_ == OutputMode::NTSC) {
+		if(!phase) phase = 255;
+		else {
+			phase = -(phase * 127) / 13;
+			phase -= 102;
+			phase &= 127;
+		}
+	} else {
+		if(phase < 2 || phase > 13) {
+			phase = 255;
+		} else {
+			const auto direction = phase & 1;
+
+			phase >>= 1;
+			if(direction) phase ^= 0xf;
+			phase = (phase + 6 + direction) & 0xf;
+
+			phase = (phase * 127) / 12;
+			phase &= 127;
+		}
+	}
+
+	colour_palette_[index].original = colour;
+	uint8_t *target = reinterpret_cast<uint8_t *>(&colour_palette_[index].luminance_phase);
+	target[0] = luminance;
+	target[1] = phase;
 }
 
 void TIA::set_playfield(uint16_t offset, uint8_t value) {
@@ -238,7 +253,7 @@ void TIA::set_playfield_control_and_ball_size(uint8_t value) {
 }
 
 void TIA::set_playfield_ball_colour(uint8_t colour) {
-	colour_palette_[static_cast<int>(ColourIndex::PlayfieldBall)] = colour;
+	set_colour_palette_entry(size_t(ColourIndex::PlayfieldBall), colour);
 }
 
 void TIA::set_player_number_and_size(int player, uint8_t value) {
@@ -300,7 +315,7 @@ void TIA::set_player_motion(int player, uint8_t motion) {
 
 void TIA::set_player_missile_colour(int player, uint8_t colour) {
 	assert(player >= 0 && player < 2);
-	colour_palette_[static_cast<int>(ColourIndex::PlayerMissile0) + player] = colour;
+	set_colour_palette_entry(size_t(ColourIndex::PlayerMissile0) + size_t(player), colour);
 }
 
 void TIA::set_missile_enable(int missile, bool enabled) {
@@ -382,7 +397,6 @@ void TIA::output_for_cycles(int number_of_cycles) {
 	bool is_reset = output_cursor < 224 && horizontal_counter_ >= 224;
 
 	if(!output_cursor) {
-		if(line_end_function_) line_end_function_(collision_buffer_);
 		std::memset(collision_buffer_, 0, sizeof(collision_buffer_));
 
 		ball_.motion_time %= 228;
@@ -407,11 +421,11 @@ void TIA::output_for_cycles(int number_of_cycles) {
 #define Period(function, target)	\
 	if(output_cursor < target) { \
 		if(horizontal_counter_ <= target) { \
-			if(crt_) crt_->function(static_cast<unsigned int>((horizontal_counter_ - output_cursor) * 2)); \
+			crt_.function((horizontal_counter_ - output_cursor) * 2); \
 			horizontal_counter_ %= cycles_per_line; \
 			return; \
 		} else { \
-			if(crt_) crt_->function(static_cast<unsigned int>((target - output_cursor) * 2)); \
+			crt_.function((target - output_cursor) * 2); \
 			output_cursor = target; \
 		} \
 	}
@@ -437,19 +451,17 @@ void TIA::output_for_cycles(int number_of_cycles) {
 	if(output_mode_ & blank_flag) {
 		if(pixel_target_) {
 			output_pixels(pixels_start_location_, output_cursor);
-			if(crt_) {
-				const unsigned int data_length = static_cast<unsigned int>(output_cursor - pixels_start_location_);
-				crt_->output_data(data_length * 2, data_length);
-			}
+			const int data_length = int(output_cursor - pixels_start_location_);
+			crt_.output_data(data_length * 2, size_t(data_length));
 			pixel_target_ = nullptr;
 			pixels_start_location_ = 0;
 		}
 		int duration = std::min(228, horizontal_counter_) - output_cursor;
-		if(crt_) crt_->output_blank(static_cast<unsigned int>(duration * 2));
+		crt_.output_blank(duration * 2);
 	} else {
-		if(!pixels_start_location_ && crt_) {
+		if(!pixels_start_location_) {
 			pixels_start_location_ = output_cursor;
-			pixel_target_ = crt_->allocate_write_area(160);
+			pixel_target_ = reinterpret_cast<uint16_t *>(crt_.begin_data(160));
 		}
 
 		// convert that into pixels
@@ -461,9 +473,9 @@ void TIA::output_for_cycles(int number_of_cycles) {
 			output_cursor++;
 		}
 
-		if(horizontal_counter_ == cycles_per_line && crt_) {
-			const unsigned int data_length = static_cast<unsigned int>(output_cursor - pixels_start_location_);
-			crt_->output_data(data_length * 2, data_length);
+		if(horizontal_counter_ == cycles_per_line) {
+			const int data_length = int(output_cursor - pixels_start_location_);
+			crt_.output_data(data_length * 2, size_t(data_length));
 			pixel_target_ = nullptr;
 			pixels_start_location_ = 0;
 		}
@@ -480,7 +492,7 @@ void TIA::output_pixels(int start, int end) {
 
 	if(start < first_pixel_cycle+8 && horizontal_blank_extend_) {
 		while(start < end && start < first_pixel_cycle+8) {
-			pixel_target_[target_position] = 0;
+			pixel_target_[target_position] = 0xff00;	// TODO: this assumes little endianness.
 			start++;
 			target_position++;
 		}
@@ -489,13 +501,13 @@ void TIA::output_pixels(int start, int end) {
 	if(playfield_priority_ == PlayfieldPriority::Score) {
 		while(start < end && start < first_pixel_cycle + 80) {
 			uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
-			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreLeft)][buffer_value]];
+			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreLeft)][buffer_value]].luminance_phase;
 			start++;
 			target_position++;
 		}
 		while(start < end) {
 			uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
-			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreRight)][buffer_value]];
+			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[static_cast<int>(ColourMode::ScoreRight)][buffer_value]].luminance_phase;
 			start++;
 			target_position++;
 		}
@@ -503,7 +515,7 @@ void TIA::output_pixels(int start, int end) {
 		int table_index = static_cast<int>((playfield_priority_ == PlayfieldPriority::Standard) ? ColourMode::Standard : ColourMode::OnTop);
 		while(start < end) {
 			uint8_t buffer_value = collision_buffer_[start - first_pixel_cycle];
-			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[table_index][buffer_value]];
+			pixel_target_[target_position] = colour_palette_[colour_mask_by_mode_collision_flags_[table_index][buffer_value]].luminance_phase;
 			start++;
 			target_position++;
 		}
@@ -518,20 +530,16 @@ void TIA::output_line() {
 		break;
 		case sync_flag:
 		case sync_flag | blank_flag:
-			if(crt_) {
-				crt_->output_sync(32);
-				crt_->output_blank(32);
-				crt_->output_sync(392);
-			}
+			crt_.output_sync(32);
+			crt_.output_blank(32);
+			crt_.output_sync(392);
 			horizontal_blank_extend_ = false;
 		break;
 		case blank_flag:
-			if(crt_) {
-				crt_->output_blank(32);
-				crt_->output_sync(32);
-				crt_->output_default_colour_burst(32);
-				crt_->output_blank(360);
-			}
+			crt_.output_blank(32);
+			crt_.output_sync(32);
+			crt_.output_default_colour_burst(32);
+			crt_.output_blank(360);
 			horizontal_blank_extend_ = false;
 		break;
 	}

@@ -141,7 +141,7 @@ class MachinePicker: NSObject {
 					case 13:	diskController = .thirteenSector
 					case 16:	diskController = .sixteenSector
 					case 0:		fallthrough
-					default: 	diskController = .none
+					default:	diskController = .none
 				}
 
 				return CSStaticAnalyser(appleIIModel: model, diskController: diskController)
@@ -162,7 +162,7 @@ class MachinePicker: NSObject {
 				switch oricDiskInterfaceButton!.selectedTag() {
 					case 1:		diskInterface = .microdisc
 					case 2:		diskInterface = .pravetz
-					default: 	break;
+					default:	break;
 
 				}
 				var model: CSMachineOricModel = .oric1

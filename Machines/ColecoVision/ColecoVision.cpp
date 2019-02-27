@@ -76,7 +76,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 					}
 				break;
 
-				case Input::Up: 	if(is_active) direction_ &= ~0x01; else direction_ |= 0x01;	break;
+				case Input::Up:		if(is_active) direction_ &= ~0x01; else direction_ |= 0x01;	break;
 				case Input::Right:	if(is_active) direction_ &= ~0x02; else direction_ |= 0x02;	break;
 				case Input::Down:	if(is_active) direction_ &= ~0x04; else direction_ |= 0x04;	break;
 				case Input::Left:	if(is_active) direction_ &= ~0x08; else direction_ |= 0x08;	break;
@@ -112,6 +112,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			z80_(*this),
+			vdp_(TI::TMS::TMS9918A),
 			sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, sn76489_divider),
 			ay_(audio_queue_),
 			mixer_(sn76489_, ay_),
@@ -159,6 +160,9 @@ class ConcreteMachine:
 					is_megacart_ = false;
 				}
 			}
+
+			// ColecoVisions have composite output only.
+			vdp_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
 		}
 
 		~ConcreteMachine() {
@@ -169,17 +173,12 @@ class ConcreteMachine:
 			return joysticks_;
 		}
 
-		void setup_output(float aspect_ratio) override {
-			vdp_.reset(new TI::TMS::TMS9918(TI::TMS::TMS9918A));
-			get_crt()->set_video_signal(Outputs::CRT::VideoSignal::Composite);
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+			vdp_.set_scan_target(scan_target);
 		}
 
-		void close_output() override {
-			vdp_.reset();
-		}
-
-		Outputs::CRT::CRT *get_crt() override {
-			return vdp_->get_crt();
+		void set_display_type(Outputs::Display::DisplayType display_type) override {
+			vdp_.set_display_type(display_type);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
@@ -249,9 +248,9 @@ class ConcreteMachine:
 						switch((address >> 5) & 7) {
 							case 5:
 								update_video();
-								*cycle.value = vdp_->get_register(address);
-								z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
-								time_until_interrupt_ = vdp_->get_time_until_interrupt();
+								*cycle.value = vdp_.get_register(address);
+								z80_.set_non_maskable_interrupt_line(vdp_.get_interrupt_line());
+								time_until_interrupt_ = vdp_.get_time_until_interrupt();
 							break;
 
 							case 7: {
@@ -293,9 +292,9 @@ class ConcreteMachine:
 
 							case 5:
 								update_video();
-								vdp_->set_register(address, *cycle.value);
-								z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
-								time_until_interrupt_ = vdp_->get_time_until_interrupt();
+								vdp_.set_register(address, *cycle.value);
+								z80_.set_non_maskable_interrupt_line(vdp_.get_interrupt_line());
+								time_until_interrupt_ = vdp_.get_time_until_interrupt();
 							break;
 
 							case 7:
@@ -366,11 +365,11 @@ class ConcreteMachine:
 			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
 		}
 		inline void update_video() {
-			vdp_->run_for(time_since_vdp_update_.flush());
+			vdp_.run_for(time_since_vdp_update_.flush());
 		}
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		std::unique_ptr<TI::TMS::TMS9918> vdp_;
+		TI::TMS::TMS9918 vdp_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;

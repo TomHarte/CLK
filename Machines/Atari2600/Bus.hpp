@@ -36,7 +36,7 @@ class Bus {
 
 		// the RIOT, TIA and speaker
 		PIA mos6532_;
-		std::shared_ptr<TIA> tia_;
+		TIA tia_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TIASound tia_sound_;
@@ -55,7 +55,7 @@ class Bus {
 		// video backlog accumulation counter
 		Cycles cycles_since_video_update_;
 		inline void update_video() {
-			tia_->run_for(cycles_since_video_update_.flush());
+			tia_.run_for(cycles_since_video_update_.flush());
 		}
 
 		// RIOT backlog accumulation counter

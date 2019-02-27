@@ -9,10 +9,12 @@
 #ifndef Rectangle_hpp
 #define Rectangle_hpp
 
-#include "OpenGL.hpp"
-#include "Shaders/Shader.hpp"
+#include "../OpenGL.hpp"
+#include "Shader.hpp"
 #include <memory>
 
+namespace Outputs {
+namespace Display {
 namespace OpenGL {
 
 /*!
@@ -36,6 +38,8 @@ class Rectangle {
 		GLint colour_uniform_;
 };
 
+}
+}
 }
 
 #endif /* Rectangle_hpp */

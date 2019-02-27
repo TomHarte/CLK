@@ -9,19 +9,19 @@
 #ifndef TIA_hpp
 #define TIA_hpp
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
+#include <functional>
 
-#include "../CRTMachine.hpp"
+#include "../../Outputs/CRT/CRT.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Atari2600 {
 
 class TIA {
 	public:
 		TIA();
-		// The supplied hook is for unit testing only; if instantiated with a line_end_function then it will
-		// be called with the latest collision buffer upon the conclusion of each line. What's a collision
-		// buffer? It's an implementation detail. If you're not writing a unit test, leave it alone.
-		TIA(std::function<void(uint8_t *output_buffer)> line_end_function);
 
 		enum class OutputMode {
 			NTSC, PAL
@@ -35,7 +35,7 @@ class TIA {
 
 		void set_sync(bool sync);
 		void set_blank(bool blank);
-		void reset_horizontal_counter(); 						// Reset is delayed by four cycles.
+		void reset_horizontal_counter();						// Reset is delayed by four cycles.
 
 		/*!
 			@returns the number of cycles between (current TIA time) + from_offset to the current or
@@ -73,12 +73,11 @@ class TIA {
 		uint8_t get_collision_flags(int offset);
 		void clear_collision_flags();
 
-		Outputs::CRT::CRT *get_crt() { return crt_.get(); }
+		void set_crt_delegate(Outputs::CRT::Delegate *);
+		void set_scan_target(Outputs::Display::ScanTarget *);
 
 	private:
-		TIA(bool create_crt);
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
-		std::function<void(uint8_t *output_buffer)> line_end_function_;
+		Outputs::CRT::CRT crt_;
 
 		// the master counter; counts from 0 to 228 with all visible pixels being in the final 160
 		int horizontal_counter_ = 0;
@@ -107,7 +106,7 @@ class TIA {
 			ScoreRight,
 			OnTop
 		};
-		uint8_t colour_mask_by_mode_collision_flags_[4][64];	// maps from [ColourMode][CollisionMark] to colour_pallete_ entry
+		uint8_t colour_mask_by_mode_collision_flags_[4][64];	// maps from [ColourMode][CollisionMark] to colour_palette_ entry
 
 		enum class ColourIndex {
 			Background = 0,
@@ -115,7 +114,13 @@ class TIA {
 			PlayerMissile0,
 			PlayerMissile1
 		};
-		uint8_t colour_palette_[4];
+		struct Colour {
+			uint16_t luminance_phase;
+			uint8_t original;
+		};
+		std::array<Colour, 4> colour_palette_;
+		void set_colour_palette_entry(size_t index, uint8_t colour);
+		OutputMode tv_standard_;
 
 		// playfield state
 		int background_half_mask_ = 0;
@@ -302,7 +307,7 @@ class TIA {
 		inline void output_line();
 
 		int pixels_start_location_ = 0;
-		uint8_t *pixel_target_ = nullptr;
+		uint16_t *pixel_target_ = nullptr;
 		inline void output_pixels(int start, int end);
 };
 

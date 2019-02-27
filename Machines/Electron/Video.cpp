@@ -38,26 +38,26 @@ namespace {
 
 // MARK: - Lifecycle
 
-VideoOutput::VideoOutput(uint8_t *memory) : ram_(memory) {
+VideoOutput::VideoOutput(uint8_t *memory) :
+	ram_(memory),
+	crt_(crt_cycles_per_line,
+		1,
+		Outputs::Display::Type::PAL50,
+		Outputs::Display::InputDataType::Red1Green1Blue1) {
 	memset(palette_, 0xf, sizeof(palette_));
 	setup_screen_map();
 	setup_base_address();
 
-	crt_.reset(new Outputs::CRT::CRT(crt_cycles_per_line, 8, Outputs::CRT::DisplayType::PAL50, 1));
-	crt_->set_rgb_sampling_function(
-		"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
-		"{"
-			"uint texValue = texture(sampler, coordinate).r;"
-			"return vec3( uvec3(texValue) & uvec3(4u, 2u, 1u));"
-		"}");
 	// TODO: as implied below, I've introduced a clock's latency into the graphics pipeline somehow. Investigate.
-	crt_->set_visible_area(crt_->get_rect_for_area(first_graphics_line - 1, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(first_graphics_line - 1, 256, (first_graphics_cycle+1) * crt_cycles_multiplier, 80 * crt_cycles_multiplier, 4.0f / 3.0f));
 }
 
-// MARK: - CRT getter
+void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	crt_.set_scan_target(scan_target);
+}
 
-Outputs::CRT::CRT *VideoOutput::get_crt() {
-	return crt_.get();
+void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
+	crt_.set_display_type(display_type);
 }
 
 // MARK: - Display update methods
@@ -87,20 +87,20 @@ void VideoOutput::start_pixel_line() {
 }
 
 void VideoOutput::end_pixel_line() {
-	if(current_output_target_) {
-		const unsigned int data_length = static_cast<unsigned int>(current_output_target_ - initial_output_target_);
-		crt_->output_data(data_length * current_output_divider_, data_length);
+	const int data_length = int(current_output_target_ - initial_output_target_);
+	if(data_length) {
+		crt_.output_data(data_length * current_output_divider_, size_t(data_length));
 	}
 	current_character_row_++;
 }
 
-void VideoOutput::output_pixels(unsigned int number_of_cycles) {
+void VideoOutput::output_pixels(int number_of_cycles) {
 	if(!number_of_cycles) return;
 
 	if(is_blank_line_) {
-		crt_->output_blank(number_of_cycles * crt_cycles_multiplier);
+		crt_.output_blank(number_of_cycles * crt_cycles_multiplier);
 	} else {
-		unsigned int divider = 1;
+		int divider = 1;
 		switch(screen_mode_) {
 			case 0: case 3: divider = 1; break;
 			case 1: case 4: case 6: divider = 2; break;
@@ -108,12 +108,12 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 		}
 
 		if(!initial_output_target_ || divider != current_output_divider_) {
-			if(current_output_target_) {
-				const unsigned int data_length = static_cast<unsigned int>(current_output_target_ - initial_output_target_);
-				crt_->output_data(data_length * current_output_divider_, data_length);
+			const int data_length = int(current_output_target_ - initial_output_target_);
+			if(data_length) {
+				crt_.output_data(data_length * current_output_divider_, size_t(data_length));
 			}
 			current_output_divider_ = divider;
-			initial_output_target_ = current_output_target_ = crt_->allocate_write_area(640 / current_output_divider_, 8 / divider);
+			initial_output_target_ = current_output_target_ = crt_.begin_data(size_t(640 / current_output_divider_), size_t(8 / divider));
 		}
 
 #define get_pixel()	\
@@ -132,7 +132,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 						current_output_target_ += 8;
 						current_pixel_column_++;
 					}
-				} else current_output_target_ += 4*number_of_cycles;
+				} else current_output_target_ += 8*number_of_cycles;
 			break;
 
 			case 1:
@@ -143,7 +143,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 						current_output_target_ += 4;
 						current_pixel_column_++;
 					}
-				} else current_output_target_ += 2*number_of_cycles;
+				} else current_output_target_ += 4*number_of_cycles;
 			break;
 
 			case 2:
@@ -154,7 +154,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 						current_output_target_ += 2;
 						current_pixel_column_++;
 					}
-				} else current_output_target_ += number_of_cycles;
+				} else current_output_target_ += 2*number_of_cycles;
 			break;
 
 			case 4: case 6:
@@ -185,7 +185,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 						current_output_target_ += 4;
 						current_pixel_column_++;
 					}
-				} else current_output_target_ += 2 * number_of_cycles;
+				} else current_output_target_ += 4 * number_of_cycles;
 			break;
 
 			case 5:
@@ -216,7 +216,7 @@ void VideoOutput::output_pixels(unsigned int number_of_cycles) {
 						current_output_target_ += 2;
 						current_pixel_column_++;
 					}
-				} else current_output_target_ += number_of_cycles;
+				} else current_output_target_ += 2*number_of_cycles;
 			break;
 		}
 
@@ -230,16 +230,16 @@ void VideoOutput::run_for(const Cycles cycles) {
 	while(number_of_cycles) {
 		int draw_action_length = screen_map_[screen_map_pointer_].length;
 		int time_left_in_action = std::min(number_of_cycles, draw_action_length - cycles_into_draw_action_);
-		if(screen_map_[screen_map_pointer_].type == DrawAction::Pixels) output_pixels(static_cast<unsigned int>(time_left_in_action));
+		if(screen_map_[screen_map_pointer_].type == DrawAction::Pixels) output_pixels(time_left_in_action);
 
 		number_of_cycles -= time_left_in_action;
 		cycles_into_draw_action_ += time_left_in_action;
 		if(cycles_into_draw_action_ == draw_action_length) {
 			switch(screen_map_[screen_map_pointer_].type) {
-				case DrawAction::Sync:			crt_->output_sync(static_cast<unsigned int>(draw_action_length * crt_cycles_multiplier));					break;
-				case DrawAction::ColourBurst:	crt_->output_default_colour_burst(static_cast<unsigned int>(draw_action_length * crt_cycles_multiplier));	break;
-				case DrawAction::Blank:			crt_->output_blank(static_cast<unsigned int>(draw_action_length * crt_cycles_multiplier));					break;
-				case DrawAction::Pixels:		end_pixel_line();																							break;
+				case DrawAction::Sync:			crt_.output_sync(draw_action_length * crt_cycles_multiplier);					break;
+				case DrawAction::ColourBurst:	crt_.output_default_colour_burst(draw_action_length * crt_cycles_multiplier);	break;
+				case DrawAction::Blank:			crt_.output_blank(draw_action_length * crt_cycles_multiplier);					break;
+				case DrawAction::Pixels:		end_pixel_line();																break;
 			}
 			screen_map_pointer_ = (screen_map_pointer_ + 1) % screen_map_.size();
 			cycles_into_draw_action_ = 0;

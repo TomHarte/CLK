@@ -9,6 +9,7 @@
 #ifndef ClockDeferrer_h
 #define ClockDeferrer_h
 
+#include <functional>
 #include <vector>
 
 /*!

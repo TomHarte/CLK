@@ -11,7 +11,7 @@
 using namespace Analyser::Dynamic;
 
 MultiKeyboardMachine::MultiKeyboardMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) :
- 	keyboard_(machines_) {
+	keyboard_(machines_) {
 	for(const auto &machine: machines) {
 		KeyboardMachine::Machine *keyboard_machine = machine->keyboard_machine();
 		if(keyboard_machine) machines_.push_back(keyboard_machine);

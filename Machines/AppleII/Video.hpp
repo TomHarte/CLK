@@ -36,8 +36,11 @@ class VideoBase {
 	public:
 		VideoBase(bool is_iie, std::function<void(Cycles)> &&target);
 
-		/// @returns The CRT this video feed is feeding.
-		Outputs::CRT::CRT *get_crt();
+		/// Sets the scan target.
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+
+		/// Sets the type of output.
+		void set_display_type(Outputs::Display::DisplayType);
 
 		/*
 			Descriptions for the setters below are taken verbatim from
@@ -146,7 +149,7 @@ class VideoBase {
 		void set_character_rom(const std::vector<uint8_t> &);
 
 	protected:
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		Outputs::CRT::CRT crt_;
 
 		// State affecting output video stream generation.
 		uint8_t *pixel_pointer_ = nullptr;
@@ -343,22 +346,23 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			while(int_cycles) {
 				const int cycles_this_line = std::min(65 - column_, int_cycles);
 				const int ending_column = column_ + cycles_this_line;
+				const bool is_vertical_sync_line = (row_ >= first_sync_line && row_ < first_sync_line + 3);
 
-				if(row_ >= first_sync_line && row_ < first_sync_line + 3) {
+				if(is_vertical_sync_line) {
 					// In effect apply an XOR to HSYNC and VSYNC flags in order to include equalising
 					// pulses (and hencce keep hsync approximately where it should be during vsync).
 					const int blank_start = std::max(first_sync_column - sync_length, column_);
 					const int blank_end = std::min(first_sync_column, ending_column);
 					if(blank_end > blank_start) {
 						if(blank_start > column_) {
-							crt_->output_sync(static_cast<unsigned int>(blank_start - column_) * 14);
+							crt_.output_sync((blank_start - column_) * 14);
 						}
-						crt_->output_blank(static_cast<unsigned int>(blank_end - blank_start) * 14);
+						crt_.output_blank((blank_end - blank_start) * 14);
 						if(blank_end < ending_column) {
-							crt_->output_sync(static_cast<unsigned int>(ending_column - blank_end) * 14);
+							crt_.output_sync((ending_column - blank_end) * 14);
 						}
 					} else {
-						crt_->output_sync(static_cast<unsigned int>(cycles_this_line) * 14);
+						crt_.output_sync(cycles_this_line * 14);
 					}
 				} else {
 					const GraphicsMode line_mode = graphics_mode(row_);
@@ -394,7 +398,6 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							static_cast<size_t>(fetch_end - column_),
 							&base_stream_[static_cast<size_t>(column_)],
 							&auxiliary_stream_[static_cast<size_t>(column_)]);
-						// TODO: should character modes be mapped to character pixel outputs here?
 					}
 
 					if(row_ < 192) {
@@ -402,7 +405,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 						// remain where they would naturally be but auxiliary
 						// graphics appear to the left of that.
 						if(!column_) {
-							pixel_pointer_ = crt_->allocate_write_area(568);
+							pixel_pointer_ = crt_.begin_data(568);
 							graphics_carry_ = 0;
 							was_double_ = true;
 						}
@@ -413,7 +416,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							const int pixel_row = row_ & 7;
 
 							const bool is_double = Video::is_double_mode(line_mode);
-							if(!is_double && was_double_) {
+							if(!is_double && was_double_ && pixel_pointer_) {
 								pixel_pointer_[pixel_start*14 + 0] =
 								pixel_pointer_[pixel_start*14 + 1] =
 								pixel_pointer_[pixel_start*14 + 2] =
@@ -424,88 +427,92 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							}
 							was_double_ = is_double;
 
-							switch(line_mode) {
-								case GraphicsMode::Text:
-									output_text(
-										&pixel_pointer_[pixel_start * 14 + 7],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start),
-										static_cast<size_t>(pixel_row));
-								break;
+							if(pixel_pointer_) {
+								switch(line_mode) {
+									case GraphicsMode::Text:
+										output_text(
+											&pixel_pointer_[pixel_start * 14 + 7],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start),
+											static_cast<size_t>(pixel_row));
+									break;
 
-								case GraphicsMode::DoubleText:
-									output_double_text(
-										&pixel_pointer_[pixel_start * 14],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										&auxiliary_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start),
-										static_cast<size_t>(pixel_row));
-								break;
+									case GraphicsMode::DoubleText:
+										output_double_text(
+											&pixel_pointer_[pixel_start * 14],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											&auxiliary_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start),
+											static_cast<size_t>(pixel_row));
+									break;
 
-								case GraphicsMode::LowRes:
-									output_low_resolution(
-										&pixel_pointer_[pixel_start * 14 + 7],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start),
-										pixel_start,
-										pixel_row);
-								break;
+									case GraphicsMode::LowRes:
+										output_low_resolution(
+											&pixel_pointer_[pixel_start * 14 + 7],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start),
+											pixel_start,
+											pixel_row);
+									break;
 
-								case GraphicsMode::FatLowRes:
-									output_fat_low_resolution(
-										&pixel_pointer_[pixel_start * 14 + 7],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start),
-										pixel_start,
-										pixel_row);
-								break;
+									case GraphicsMode::FatLowRes:
+										output_fat_low_resolution(
+											&pixel_pointer_[pixel_start * 14 + 7],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start),
+											pixel_start,
+											pixel_row);
+									break;
 
-								case GraphicsMode::DoubleLowRes:
-									output_double_low_resolution(
-										&pixel_pointer_[pixel_start * 14],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										&auxiliary_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start),
-										pixel_start,
-										pixel_row);
-								break;
+									case GraphicsMode::DoubleLowRes:
+										output_double_low_resolution(
+											&pixel_pointer_[pixel_start * 14],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											&auxiliary_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start),
+											pixel_start,
+											pixel_row);
+									break;
 
-								case GraphicsMode::HighRes:
-									output_high_resolution(
-										&pixel_pointer_[pixel_start * 14 + 7],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start));
-								break;
+									case GraphicsMode::HighRes:
+										output_high_resolution(
+											&pixel_pointer_[pixel_start * 14 + 7],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start));
+									break;
 
-								case GraphicsMode::DoubleHighRes:
-									output_double_high_resolution(
-										&pixel_pointer_[pixel_start * 14],
-										&base_stream_[static_cast<size_t>(pixel_start)],
-										&auxiliary_stream_[static_cast<size_t>(pixel_start)],
-										static_cast<size_t>(pixel_end - pixel_start));
-								break;
+									case GraphicsMode::DoubleHighRes:
+										output_double_high_resolution(
+											&pixel_pointer_[pixel_start * 14],
+											&base_stream_[static_cast<size_t>(pixel_start)],
+											&auxiliary_stream_[static_cast<size_t>(pixel_start)],
+											static_cast<size_t>(pixel_end - pixel_start));
+									break;
 
-								default: break;
+									default: break;
+								}
 							}
 
 							if(pixel_end == 40) {
-								if(was_double_) {
-									pixel_pointer_[560] = pixel_pointer_[561] = pixel_pointer_[562] = pixel_pointer_[563] =
-									pixel_pointer_[564] = pixel_pointer_[565] = pixel_pointer_[566] = pixel_pointer_[567] = 0;
-								} else {
-									if(line_mode == GraphicsMode::HighRes && base_stream_[39]&0x80)
-										pixel_pointer_[567] = graphics_carry_;
-									else
-										pixel_pointer_[567] = 0;
+								if(pixel_pointer_) {
+									if(was_double_) {
+										pixel_pointer_[560] = pixel_pointer_[561] = pixel_pointer_[562] = pixel_pointer_[563] =
+										pixel_pointer_[564] = pixel_pointer_[565] = pixel_pointer_[566] = pixel_pointer_[567] = 0;
+									} else {
+										if(line_mode == GraphicsMode::HighRes && base_stream_[39]&0x80)
+											pixel_pointer_[567] = graphics_carry_;
+										else
+											pixel_pointer_[567] = 0;
+									}
 								}
 
-								crt_->output_data(568, 568);
+								crt_.output_data(568, 568);
 								pixel_pointer_ = nullptr;
 							}
 						}
 					} else {
 						if(column_ < 40 && ending_column >= 40) {
-							crt_->output_blank(568);
+							crt_.output_blank(568);
 						}
 					}
 
@@ -515,11 +522,11 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					*/
 
 					if(column_ < first_sync_column && ending_column >= first_sync_column) {
-						crt_->output_blank((first_sync_column - 41)*14 - 1);
+						crt_.output_blank(first_sync_column*14 - 568);
 					}
 
 					if(column_ < (first_sync_column + sync_length) && ending_column >= (first_sync_column + sync_length)) {
-						crt_->output_sync(sync_length*14);
+						crt_.output_sync(sync_length*14);
 					}
 
 					int second_blank_start;
@@ -527,7 +534,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 						const int colour_burst_start = std::max(first_sync_column + sync_length + 1, column_);
 						const int colour_burst_end = std::min(first_sync_column + sync_length + 4, ending_column);
 						if(colour_burst_end > colour_burst_start) {
-							crt_->output_colour_burst(static_cast<unsigned int>(colour_burst_end - colour_burst_start) * 14, 192);
+							crt_.output_colour_burst((colour_burst_end - colour_burst_start) * 14, 0);
 						}
 
 						second_blank_start = std::max(first_sync_column + sync_length + 3, column_);
@@ -536,7 +543,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					}
 
 					if(ending_column > second_blank_start) {
-						crt_->output_blank(static_cast<unsigned int>(ending_column - second_blank_start) * 14);
+						crt_.output_blank((ending_column - second_blank_start) * 14);
 					}
 				}
 
@@ -550,8 +557,13 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					}
 
 					// Add an extra half a colour cycle of blank; this isn't counted in the run_for
-					// count explicitly but is promised.
-					crt_->output_blank(2);
+					// count explicitly but is promised. If this is a vertical sync line, output sync
+					// instead of blank, taking that to be the default level.
+					if(is_vertical_sync_line) {
+						crt_.output_sync(2);
+					} else {
+						crt_.output_blank(2);
+					}
 				}
 			}
 		}

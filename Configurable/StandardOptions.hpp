@@ -16,15 +16,17 @@ namespace Configurable {
 enum StandardOptions {
 	DisplayRGB					= (1 << 0),
 	DisplaySVideo				= (1 << 1),
-	DisplayComposite			= (1 << 2),
-	QuickLoadTape				= (1 << 3),
-	AutomaticTapeMotorControl	= (1 << 4)
+	DisplayCompositeColour		= (1 << 2),
+	DisplayCompositeMonochrome	= (1 << 3),
+	QuickLoadTape				= (1 << 4),
+	AutomaticTapeMotorControl	= (1 << 5)
 };
 
 enum class Display {
 	RGB,
 	SVideo,
-	Composite
+	CompositeColour,
+	CompositeMonochrome
 };
 
 /*!

@@ -50,7 +50,7 @@ enum ROMSlot {
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplaySVideo | Configurable::DisplayComposite | Configurable::QuickLoadTape)
+		static_cast<Configurable::StandardOptions>(Configurable::DisplaySVideo | Configurable::DisplayCompositeColour | Configurable::QuickLoadTape)
 	);
 }
 
@@ -294,6 +294,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::Commodore::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 				m6502_(*this),
+				mos6560_(mos6560_bus_handler_),
 				user_port_via_port_handler_(new UserPortVIA),
 				keyboard_via_port_handler_(new KeyboardVIA),
 				serial_port_(new SerialPort),
@@ -377,12 +378,15 @@ class ConcreteMachine:
 			if(target.region == Analyser::Static::Commodore::Target::Region::American || target.region == Analyser::Static::Commodore::Target::Region::Japanese) {
 				// NTSC
 				set_clock_rate(1022727);
-				output_mode_ = MOS::MOS6560::OutputMode::NTSC;
+				mos6560_.set_output_mode(MOS::MOS6560::OutputMode::NTSC);
 			} else {
 				// PAL
 				set_clock_rate(1108404);
-				output_mode_ = MOS::MOS6560::OutputMode::PAL;
+				mos6560_.set_output_mode(MOS::MOS6560::OutputMode::PAL);
 			}
+
+			mos6560_.set_high_frequency_cutoff(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
+			mos6560_.set_clock_rate(get_clock_rate());
 
 			// Initialise the memory maps as all pointing to nothing
 			memset(processor_read_memory_map_, 0, sizeof(processor_read_memory_map_));
@@ -501,7 +505,7 @@ class ConcreteMachine:
 				if((address&0xfc00) == 0x9000) {
 					if(!(address&0x100)) {
 						update_video();
-						result &= mos6560_->get_register(address);
+						result &= mos6560_.get_register(address);
 					}
 					if(address & 0x10) result &= user_port_via_.get_register(address);
 					if(address & 0x20) result &= keyboard_via_.get_register(address);
@@ -588,7 +592,7 @@ class ConcreteMachine:
 					// The VIC is selected by bit 8 = 0
 					if(!(address&0x100)) {
 						update_video();
-						mos6560_->set_register(address, *value);
+						mos6560_.set_register(address, *value);
 					}
 					// The first VIA is selected by bit 4 = 1.
 					if(address & 0x10) user_port_via_.set_register(address, *value);
@@ -613,30 +617,23 @@ class ConcreteMachine:
 
 		void flush() {
 			update_video();
-			mos6560_->flush();
+			mos6560_.flush();
 		}
 
 		void run_for(const Cycles cycles) override final {
 			m6502_.run_for(cycles);
 		}
 
-		void setup_output(float aspect_ratio) override final {
-			mos6560_.reset(new MOS::MOS6560::MOS6560<Vic6560BusHandler>(mos6560_bus_handler_));
-			mos6560_->set_high_frequency_cutoff(1600);	// There is a 1.6Khz low-pass filter in the Vic-20.
-			mos6560_->set_output_mode(output_mode_);
-			mos6560_->set_clock_rate(get_clock_rate());
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+			mos6560_.set_scan_target(scan_target);
 		}
 
-		void close_output() override final {
-			mos6560_ = nullptr;
-		}
-
-		Outputs::CRT::CRT *get_crt() override final {
-			return mos6560_->get_crt();
+		void set_display_type(Outputs::Display::DisplayType display_type) override final {
+			mos6560_.set_display_type(display_type);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override final {
-			return mos6560_->get_speaker();
+			return mos6560_.get_speaker();
 		}
 
 		void mos6522_did_change_interrupt_status(void *mos6522) override final {
@@ -678,7 +675,7 @@ class ConcreteMachine:
 		Configurable::SelectionSet get_accurate_selections() override {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_display_selection(selection_set, Configurable::Display::Composite);
+			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
 			return selection_set;
 		}
 
@@ -701,7 +698,7 @@ class ConcreteMachine:
 
 	private:
 		void update_video() {
-			mos6560_->run_for(cycles_since_mos6560_update_.flush());
+			mos6560_.run_for(cycles_since_mos6560_update_.flush());
 		}
 		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 
@@ -731,8 +728,7 @@ class ConcreteMachine:
 
 		Cycles cycles_since_mos6560_update_;
 		Vic6560BusHandler mos6560_bus_handler_;
-		MOS::MOS6560::OutputMode output_mode_;
-		std::unique_ptr<MOS::MOS6560::MOS6560<Vic6560BusHandler>> mos6560_;
+		MOS::MOS6560::MOS6560<Vic6560BusHandler> mos6560_;
 		std::shared_ptr<UserPortVIA> user_port_via_port_handler_;
 		std::shared_ptr<KeyboardVIA> keyboard_via_port_handler_;
 		std::shared_ptr<SerialPort> serial_port_;

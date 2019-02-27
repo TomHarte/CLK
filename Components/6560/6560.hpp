@@ -34,7 +34,7 @@ class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 	private:
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
 
-		unsigned int counters_[4] = {2, 1, 0, 0}; 	// create a slight phase offset for the three channels
+		unsigned int counters_[4] = {2, 1, 0, 0};	// create a slight phase offset for the three channels
 		unsigned int shift_registers_[4] = {0, 0, 0, 0};
 		uint8_t control_registers_[4] = {0, 0, 0, 0};
 		int16_t volume_ = 0;
@@ -64,23 +64,12 @@ template <class BusHandler> class MOS6560 {
 	public:
 		MOS6560(BusHandler &bus_handler) :
 				bus_handler_(bus_handler),
-				crt_(new Outputs::CRT::CRT(65*4, 4, Outputs::CRT::DisplayType::NTSC60, 2)),
+				crt_(65*4, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance8Phase8),
 				audio_generator_(audio_queue_),
 				speaker_(audio_generator_)
 		{
-			crt_->set_svideo_sampling_function(
-				"vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)"
-				"{"
-					"vec2 yc = texture(texID, coordinate).rg / vec2(255.0);"
-
-					"float phaseOffset = 6.283185308 * 2.0 * yc.y;"
-					"float chroma = step(yc.y, 0.75) * cos(phase + phaseOffset);"
-
-					"return vec2(yc.x, chroma);"
-				"}");
-
 			// default to s-video output
-			crt_->set_video_signal(Outputs::CRT::VideoSignal::SVideo);
+			crt_.set_display_type(Outputs::Display::DisplayType::SVideo);
 
 			// default to NTSC
 			set_output_mode(OutputMode::NTSC);
@@ -94,7 +83,8 @@ template <class BusHandler> class MOS6560 {
 			speaker_.set_input_rate(static_cast<float>(clock_rate / 4.0));
 		}
 
-		Outputs::CRT::CRT *get_crt() { return crt_.get(); }
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target)		{ crt_.set_scan_target(scan_target); 	}
+		void set_display_type(Outputs::Display::DisplayType display_type)	{ crt_.set_display_type(display_type); 	}
 		Outputs::Speaker::Speaker *get_speaker() { return &speaker_; }
 
 		void set_high_frequency_cutoff(float cutoff) {
@@ -117,12 +107,12 @@ template <class BusHandler> class MOS6560 {
 
 			// Chrominances are encoded such that 0-128 is a complete revolution of phase;
 			// anything above 191 disables the colour subcarrier. Phase is relative to the
-			// colour burst, so 0 is green.
+			// colour burst, so 0 is green (NTSC) or blue/violet (PAL).
 			const uint8_t pal_chrominances[16] = {
-				255,	255,	37,		101,
-				19,		86,		123,	59,
-				46,		53,		37,		101,
-				19,		86,		123,	59,
+				255,	255,	90,		20,
+				96,		42,		8,		72,
+				84,		90,		90,		20,
+				96,		42,		8,		72,
 			};
 			const uint8_t ntsc_chrominances[16] = {
 				255,	255,	121,	57,
@@ -131,12 +121,12 @@ template <class BusHandler> class MOS6560 {
 				103,	42,		80,		16,
 			};
 			const uint8_t *chrominances;
-			Outputs::CRT::DisplayType display_type;
+			Outputs::Display::Type display_type;
 
 			switch(output_mode) {
 				default:
 					chrominances = pal_chrominances;
-					display_type = Outputs::CRT::DisplayType::PAL50;
+					display_type = Outputs::Display::Type::PAL50;
 					timing_.cycles_per_line = 71;
 					timing_.line_counter_increment_offset = 4;
 					timing_.final_line_increment_position = timing_.cycles_per_line - timing_.line_counter_increment_offset;
@@ -146,7 +136,7 @@ template <class BusHandler> class MOS6560 {
 
 				case OutputMode::NTSC:
 					chrominances = ntsc_chrominances;
-					display_type = Outputs::CRT::DisplayType::NTSC60;
+					display_type = Outputs::Display::Type::NTSC60;
 					timing_.cycles_per_line = 65;
 					timing_.line_counter_increment_offset = 40;
 					timing_.final_line_increment_position = 58;
@@ -155,14 +145,14 @@ template <class BusHandler> class MOS6560 {
 				break;
 			}
 
-			crt_->set_new_display_type(static_cast<unsigned int>(timing_.cycles_per_line*4), display_type);
+			crt_.set_new_display_type(timing_.cycles_per_line*4, display_type);
 
 			switch(output_mode) {
 				case OutputMode::PAL:
-					crt_->set_visible_area(Outputs::CRT::Rect(0.1f, 0.07f, 0.9f, 0.9f));
+					crt_.set_visible_area(Outputs::Display::Rect(0.1f, 0.07f, 0.9f, 0.9f));
 				break;
 				case OutputMode::NTSC:
-					crt_->set_visible_area(Outputs::CRT::Rect(0.05f, 0.05f, 0.9f, 0.9f));
+					crt_.set_visible_area(Outputs::Display::Rect(0.05f, 0.05f, 0.9f, 0.9f));
 				break;
 			}
 
@@ -284,17 +274,17 @@ template <class BusHandler> class MOS6560 {
 				// update the CRT
 				if(this_state_ != output_state_) {
 					switch(output_state_) {
-						case State::Sync:			crt_->output_sync(cycles_in_state_ * 4);														break;
-						case State::ColourBurst:	crt_->output_colour_burst(cycles_in_state_ * 4, (is_odd_frame_ || is_odd_line_) ? 128 : 0);		break;
-						case State::Border:			output_border(cycles_in_state_ * 4);															break;
-						case State::Pixels:			crt_->output_data(cycles_in_state_ * 4);														break;
+						case State::Sync:			crt_.output_sync(cycles_in_state_ * 4);														break;
+						case State::ColourBurst:	crt_.output_colour_burst(cycles_in_state_ * 4, (is_odd_frame_ || is_odd_line_) ? 128 : 0);	break;
+						case State::Border:			output_border(cycles_in_state_ * 4);														break;
+						case State::Pixels:			crt_.output_data(cycles_in_state_ * 4);														break;
 					}
 					output_state_ = this_state_;
 					cycles_in_state_ = 0;
 
 					pixel_pointer = nullptr;
 					if(output_state_ == State::Pixels) {
-						pixel_pointer = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(260));
+						pixel_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(260));
 					}
 				}
 				cycles_in_state_++;
@@ -438,7 +428,7 @@ template <class BusHandler> class MOS6560 {
 
 	private:
 		BusHandler &bus_handler_;
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		Outputs::CRT::CRT crt_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		AudioGenerator audio_generator_;
@@ -465,7 +455,7 @@ template <class BusHandler> class MOS6560 {
 		enum State {
 			Sync, ColourBurst, Border, Pixels
 		} this_state_, output_state_;
-		unsigned int cycles_in_state_;
+		int cycles_in_state_;
 
 		// counters that cover an entire field
 		int horizontal_counter_ = 0, vertical_counter_ = 0;
@@ -511,10 +501,10 @@ template <class BusHandler> class MOS6560 {
 		uint16_t colours_[16];
 
 		uint16_t *pixel_pointer;
-		void output_border(unsigned int number_of_cycles) {
-			uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_->allocate_write_area(1));
+		void output_border(int number_of_cycles) {
+			uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
 			if(colour_pointer) *colour_pointer = registers_.borderColour;
-			crt_->output_level(number_of_cycles);
+			crt_.output_level(number_of_cycles);
 		}
 
 		struct {

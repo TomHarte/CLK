@@ -11,22 +11,19 @@
 using namespace AppleII::Video;
 
 VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
-	crt_(new Outputs::CRT::CRT(910, 1, Outputs::CRT::DisplayType::NTSC60, 1)),
+	crt_(910, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance1),
 	is_iie_(is_iie),
 	deferrer_(std::move(target)) {
 
-	// Set a composite sampling function that assumes one byte per pixel input, and
-	// accepts any non-zero value as being fully on, zero being fully off.
-	crt_->set_composite_sampling_function(
-		"float composite_sample(usampler2D sampler, vec2 coordinate, float phase, float amplitude)"
-		"{"
-			"return clamp(texture(sampler, coordinate).r, 0.0, 0.66);"
-		"}");
-
 	// Show only the centre 75% of the TV frame.
-	crt_->set_video_signal(Outputs::CRT::VideoSignal::Composite);
-	crt_->set_visible_area(Outputs::CRT::Rect(0.118f, 0.122f, 0.77f, 0.77f));
-	crt_->set_immediate_default_phase(0.0f);
+	crt_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
+	crt_.set_visible_area(Outputs::Display::Rect(0.118f, 0.122f, 0.77f, 0.77f));
+
+	// TODO: there seems to be some sort of bug whereby switching modes can cause
+	// a signal discontinuity that knocks phase out of whack. So it isn't safe to
+	// use default_colour_bursts elsewhere, though it otherwise should be. If/when
+	// it is, start doing so and return to setting the immediate phase up here.
+//	crt_.set_immediate_default_phase(0.5f);
 
 	character_zones[0].xor_mask = 0;
 	character_zones[0].address_mask = 0x3f;
@@ -46,8 +43,12 @@ VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 	}
 }
 
-Outputs::CRT::CRT *VideoBase::get_crt() {
-	return crt_.get();
+void VideoBase::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	crt_.set_scan_target(scan_target);
+}
+
+void VideoBase::set_display_type(Outputs::Display::DisplayType display_type) {
+	crt_.set_display_type(display_type);
 }
 
 /*

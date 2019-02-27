@@ -68,7 +68,7 @@ template<class T> class Cartridge:
 			// effect until the next read; therefore it isn't safe to assume that signalling ready immediately
 			// skips to the end of the line.
 			if(operation == CPU::MOS6502::BusOperation::Ready)
-				cycles_run_for = tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_);
+				cycles_run_for = tia_.get_cycles_until_horizontal_blank(cycles_since_video_update_);
 
 			cycles_since_speaker_update_ += Cycles(cycles_run_for);
 			cycles_since_video_update_ += Cycles(cycles_run_for);
@@ -101,7 +101,7 @@ template<class T> class Cartridge:
 							case 0x05:		// missile 1 / playfield / ball collisions
 							case 0x06:		// ball / playfield collisions
 							case 0x07:		// player / player, missile / missile collisions
-								returnValue &= tia_->get_collision_flags(decodedAddress);
+								returnValue &= tia_.get_collision_flags(decodedAddress);
 							break;
 
 							case 0x08:
@@ -120,52 +120,52 @@ template<class T> class Cartridge:
 					} else {
 						const uint16_t decodedAddress = address & 0x3f;
 						switch(decodedAddress) {
-							case 0x00:	update_video(); tia_->set_sync(*value & 0x02);		break;
-							case 0x01:	update_video();	tia_->set_blank(*value & 0x02);		break;
+							case 0x00:	update_video(); tia_.set_sync(*value & 0x02);		break;
+							case 0x01:	update_video();	tia_.set_blank(*value & 0x02);		break;
 
 							case 0x02:	m6502_.set_ready_line(true);						break;
 							case 0x03:
 								update_video();
-								tia_->reset_horizontal_counter();
+								tia_.reset_horizontal_counter();
 								horizontal_counter_resets_++;
 							break;
 								// TODO: audio will now be out of synchronisation. Fix.
 
 							case 0x04:
-							case 0x05:	update_video();	tia_->set_player_number_and_size(decodedAddress - 0x04, *value);	break;
+							case 0x05:	update_video();	tia_.set_player_number_and_size(decodedAddress - 0x04, *value);	break;
 							case 0x06:
-							case 0x07:	update_video();	tia_->set_player_missile_colour(decodedAddress - 0x06, *value);		break;
-							case 0x08:	update_video();	tia_->set_playfield_ball_colour(*value);							break;
-							case 0x09:	update_video();	tia_->set_background_colour(*value);								break;
-							case 0x0a:	update_video();	tia_->set_playfield_control_and_ball_size(*value);					break;
+							case 0x07:	update_video();	tia_.set_player_missile_colour(decodedAddress - 0x06, *value);		break;
+							case 0x08:	update_video();	tia_.set_playfield_ball_colour(*value);								break;
+							case 0x09:	update_video();	tia_.set_background_colour(*value);									break;
+							case 0x0a:	update_video();	tia_.set_playfield_control_and_ball_size(*value);					break;
 							case 0x0b:
-							case 0x0c:	update_video();	tia_->set_player_reflected(decodedAddress - 0x0b, !((*value)&8));	break;
+							case 0x0c:	update_video();	tia_.set_player_reflected(decodedAddress - 0x0b, !((*value)&8));	break;
 							case 0x0d:
 							case 0x0e:
-							case 0x0f:	update_video();	tia_->set_playfield(decodedAddress - 0x0d, *value);					break;
+							case 0x0f:	update_video();	tia_.set_playfield(decodedAddress - 0x0d, *value);					break;
 							case 0x10:
-							case 0x11:	update_video(); tia_->set_player_position(decodedAddress - 0x10);					break;
+							case 0x11:	update_video(); tia_.set_player_position(decodedAddress - 0x10);					break;
 							case 0x12:
-							case 0x13:	update_video(); tia_->set_missile_position(decodedAddress - 0x12);					break;
-							case 0x14:	update_video();	tia_->set_ball_position();											break;
+							case 0x13:	update_video(); tia_.set_missile_position(decodedAddress - 0x12);					break;
+							case 0x14:	update_video();	tia_.set_ball_position();											break;
 							case 0x1b:
-							case 0x1c:	update_video(); tia_->set_player_graphic(decodedAddress - 0x1b, *value);			break;
+							case 0x1c:	update_video(); tia_.set_player_graphic(decodedAddress - 0x1b, *value);				break;
 							case 0x1d:
-							case 0x1e:	update_video(); tia_->set_missile_enable(decodedAddress - 0x1d, (*value)&2);		break;
-							case 0x1f:	update_video(); tia_->set_ball_enable((*value)&2);									break;
+							case 0x1e:	update_video(); tia_.set_missile_enable(decodedAddress - 0x1d, (*value)&2);			break;
+							case 0x1f:	update_video(); tia_.set_ball_enable((*value)&2);									break;
 							case 0x20:
-							case 0x21:	update_video(); tia_->set_player_motion(decodedAddress - 0x20, *value);				break;
+							case 0x21:	update_video(); tia_.set_player_motion(decodedAddress - 0x20, *value);				break;
 							case 0x22:
-							case 0x23:	update_video(); tia_->set_missile_motion(decodedAddress - 0x22, *value);			break;
-							case 0x24:	update_video(); tia_->set_ball_motion(*value);										break;
+							case 0x23:	update_video(); tia_.set_missile_motion(decodedAddress - 0x22, *value);				break;
+							case 0x24:	update_video(); tia_.set_ball_motion(*value);										break;
 							case 0x25:
-							case 0x26:	tia_->set_player_delay(decodedAddress - 0x25, (*value)&1);							break;
-							case 0x27:	tia_->set_ball_delay((*value)&1);													break;
+							case 0x26:	tia_.set_player_delay(decodedAddress - 0x25, (*value)&1);							break;
+							case 0x27:	tia_.set_ball_delay((*value)&1);													break;
 							case 0x28:
-							case 0x29:	update_video(); tia_->set_missile_position_to_player(decodedAddress - 0x28, (*value)&2);		break;
-							case 0x2a:	update_video(); tia_->move();														break;
-							case 0x2b:	update_video(); tia_->clear_motion();												break;
-							case 0x2c:	update_video(); tia_->clear_collision_flags();										break;
+							case 0x29:	update_video(); tia_.set_missile_position_to_player(decodedAddress - 0x28, (*value)&2);		break;
+							case 0x2a:	update_video(); tia_.move();														break;
+							case 0x2b:	update_video(); tia_.clear_motion();												break;
+							case 0x2c:	update_video(); tia_.clear_collision_flags();										break;
 
 							case 0x15:
 							case 0x16:	update_audio(); tia_sound_.set_control(decodedAddress - 0x15, *value);				break;
@@ -192,7 +192,7 @@ template<class T> class Cartridge:
 				}
 			}
 
-			if(!tia_->get_cycles_until_horizontal_blank(cycles_since_video_update_)) m6502_.set_ready_line(false);
+			if(!tia_.get_cycles_until_horizontal_blank(cycles_since_video_update_)) m6502_.set_ready_line(false);
 
 			return Cycles(cycles_run_for / 3);
 		}

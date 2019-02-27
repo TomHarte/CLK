@@ -51,7 +51,7 @@ namespace MSX {
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplaySVideo | Configurable::DisplayComposite | Configurable::QuickLoadTape)
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplaySVideo | Configurable::DisplayCompositeColour | Configurable::QuickLoadTape)
 	);
 }
 
@@ -148,6 +148,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::MSX::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			z80_(*this),
+			vdp_(TI::TMS::TMS9918A),
 			i8255_(i8255_port_handler_),
 			ay_(audio_queue_),
 			audio_toggle_(audio_queue_),
@@ -218,16 +219,12 @@ class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void setup_output(float aspect_ratio) override {
-			vdp_.reset(new TI::TMS::TMS9918(TI::TMS::TMS9918A));
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+			vdp_.set_scan_target(scan_target);
 		}
 
-		void close_output() override {
-			vdp_.reset();
-		}
-
-		Outputs::CRT::CRT *get_crt() override {
-			return vdp_->get_crt();
+		void set_display_type(Outputs::Display::DisplayType display_type) override {
+			vdp_.set_display_type(display_type);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
@@ -451,10 +448,10 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch(address & 0xff) {
 							case 0x98:	case 0x99:
-								vdp_->run_for(time_since_vdp_update_.flush());
-								*cycle.value = vdp_->get_register(address);
-								z80_.set_interrupt_line(vdp_->get_interrupt_line());
-								time_until_interrupt_ = vdp_->get_time_until_interrupt();
+								vdp_.run_for(time_since_vdp_update_.flush());
+								*cycle.value = vdp_.get_register(address);
+								z80_.set_interrupt_line(vdp_.get_interrupt_line());
+								time_until_interrupt_ = vdp_.get_time_until_interrupt();
 							break;
 
 							case 0xa2:
@@ -479,10 +476,10 @@ class ConcreteMachine:
 						const int port = address & 0xff;
 						switch(port) {
 							case 0x98:	case 0x99:
-								vdp_->run_for(time_since_vdp_update_.flush());
-								vdp_->set_register(address, *cycle.value);
-								z80_.set_interrupt_line(vdp_->get_interrupt_line());
-								time_until_interrupt_ = vdp_->get_time_until_interrupt();
+								vdp_.run_for(time_since_vdp_update_.flush());
+								vdp_.set_register(address, *cycle.value);
+								z80_.set_interrupt_line(vdp_.get_interrupt_line());
+								time_until_interrupt_ = vdp_.get_time_until_interrupt();
 							break;
 
 							case 0xa0:	case 0xa1:
@@ -555,7 +552,7 @@ class ConcreteMachine:
 		}
 
 		void flush() {
-			vdp_->run_for(time_since_vdp_update_.flush());
+			vdp_.run_for(time_since_vdp_update_.flush());
 			update_audio();
 			audio_queue_.perform();
 		}
@@ -603,7 +600,7 @@ class ConcreteMachine:
 		Configurable::SelectionSet get_accurate_selections() override {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_display_selection(selection_set, Configurable::Display::Composite);
+			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
 			return selection_set;
 		}
 
@@ -652,7 +649,7 @@ class ConcreteMachine:
 						case 2: {
 							// TODO:
 							//	b6	caps lock LED
-							//	b5 	audio output
+							//	b5	audio output
 
 							//	b4: cassette motor relay
 							tape_player_.set_motor_control(!(value & 0x10));
@@ -685,7 +682,7 @@ class ConcreteMachine:
 		};
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		std::unique_ptr<TI::TMS::TMS9918> vdp_;
+		TI::TMS::TMS9918 vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;

@@ -19,6 +19,7 @@ using namespace Storage::Encodings::MFM;
 class MFMEncoder: public Encoder {
 	public:
 		MFMEncoder(std::vector<bool> &target) : Encoder(target) {}
+		virtual ~MFMEncoder() {}
 
 		void add_byte(uint8_t input) {
 			crc_generator_.add(input);

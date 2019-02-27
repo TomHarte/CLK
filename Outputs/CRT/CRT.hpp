@@ -10,12 +10,10 @@
 #define CRT_hpp
 
 #include <cstdint>
+#include <memory>
 
-#include "CRTTypes.hpp"
+#include "../ScanTarget.hpp"
 #include "Internals/Flywheel.hpp"
-#include "Internals/CRTOpenGL.hpp"
-#include "Internals/ArrayBuilder.hpp"
-#include "Internals/TextureBuilder.hpp"
 
 namespace Outputs {
 namespace CRT {
@@ -24,81 +22,66 @@ class CRT;
 
 class Delegate {
 	public:
-		virtual void crt_did_end_batch_of_frames(CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs) = 0;
+		virtual void crt_did_end_batch_of_frames(CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) = 0;
 };
 
+/*!	Models a class 2d analogue output device, accepting a serial stream of data including syncs
+	and generating the proper set of output spans. Attempts to act and react exactly as a real
+	TV would have to things like irregular or off-spec sync, and includes logic properly to track
+	colour phase for colour composite video.
+*/
 class CRT {
 	private:
-		CRT(unsigned int common_output_divisor, unsigned int buffer_depth);
+		// The incoming clock lengths will be multiplied by @c time_multiplier_; this increases
+		// precision across the line.
+		int time_multiplier_ = 1;
 
-		// the incoming clock lengths will be multiplied by something to give at least 1000
-		// sample points per line
-		unsigned int time_multiplier_ = 1;
-		const unsigned int common_output_divisor_ = 1;
-
-		// the two flywheels regulating scanning
+		// Two flywheels regulate scanning; the vertical will have a range much greater than the horizontal;
+		// the output divider is what that'll need to be divided by to reduce it into a 16-bit range as
+		// posted on to the scan target.
 		std::unique_ptr<Flywheel> horizontal_flywheel_, vertical_flywheel_;
-		uint16_t vertical_flywheel_output_divider_ = 1;
+		int vertical_flywheel_output_divider_ = 1;
+		int cycles_since_horizontal_sync_ = 0;
+		Display::ScanTarget::Scan::EndPoint end_point(uint16_t data_offset);
 
 		struct Scan {
 			enum Type {
 				Sync, Level, Data, Blank, ColourBurst
-			} type;
-			unsigned int number_of_cycles;
-			union {
-				struct {
-					uint8_t phase, amplitude;
-				};
-			};
+			} type = Scan::Blank;
+			int number_of_cycles = 0, number_of_samples = 0;
+			uint8_t phase = 0, amplitude = 0;
 		};
 		void output_scan(const Scan *scan);
 
-		uint8_t colour_burst_phase_ = 0, colour_burst_amplitude_ = 30, colour_burst_phase_adjustment_ = 0;
+		int16_t colour_burst_angle_ = 0;
+		uint8_t colour_burst_amplitude_ = 30;
+		int colour_burst_phase_adjustment_ = 0xff;
 		bool is_writing_composite_run_ = false;
 
-		unsigned int phase_denominator_ = 1, phase_numerator_ = 1, colour_cycle_numerator_ = 1;
+		int64_t phase_denominator_ = 1;
+		int64_t phase_numerator_ = 0;
+		int64_t colour_cycle_numerator_ = 1;
 		bool is_alernate_line_ = false, phase_alternates_ = false;
 
-		// the outer entry point for dispatching output_sync, output_blank, output_level and output_data
-		void advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type);
+		void advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type, int number_of_samples);
+		Flywheel::SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
+		Flywheel::SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced);
 
-		// the inner entry point that determines whether and when the next sync event will occur within
-		// the current output window
-		Flywheel::SyncEvent get_next_vertical_sync_event(bool vsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
-		Flywheel::SyncEvent get_next_horizontal_sync_event(bool hsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced);
-
-		// OpenGL state
-		OpenGLOutputBuilder openGL_output_builder_;
-
-		// temporary storage used during the construction of output runs
-		struct {
-			uint16_t x1, y;
-		} output_run_;
-
-		// the delegate
 		Delegate *delegate_ = nullptr;
-		unsigned int frames_since_last_delegate_call_ = 0;
+		int frames_since_last_delegate_call_ = 0;
 
-		// queued tasks for the OpenGL queue; performed before the next draw
-		std::mutex function_mutex_;
-		std::vector<std::function<void(void)>> enqueued_openGL_functions_;
-		inline void enqueue_openGL_function(const std::function<void(void)> &function) {
-			std::lock_guard<std::mutex> function_guard(function_mutex_);
-			enqueued_openGL_functions_.push_back(function);
-		}
+		bool is_receiving_sync_ = false;			// @c true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync); @c false otherwise.
+		bool is_accumulating_sync_ = false;			// @c true if a sync level has triggered the suspicion that a vertical sync might be in progress; @c false otherwise.
+		bool is_refusing_sync_ = false;				// @c true once a vertical sync has been detected, until a prolonged period of non-sync has ended suspicion of an ongoing vertical sync.
+		int sync_capacitor_charge_threshold_ = 0;	// Charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync.
+		int cycles_of_sync_ = 0;					// The number of cycles since the potential vertical sync began.
+		int cycles_since_sync_ = 0;					// The number of cycles since last in sync, for defeating the possibility of this being a vertical sync.
 
-		// sync counter, for determining vertical sync
-		bool is_receiving_sync_ = false;					// true if the CRT is currently receiving sync (i.e. this is for edge triggering of horizontal sync)
-		bool is_accumulating_sync_ = false;					// true if a sync level has triggered the suspicion that a vertical sync might be in progress
-		bool is_refusing_sync_ = false;						// true once a vertical sync has been detected, until a prolonged period of non-sync has ended suspicion of an ongoing vertical sync
-		unsigned int sync_capacitor_charge_threshold_ = 0;	// this charges up during times of sync and depletes otherwise; needs to hit a required threshold to trigger a vertical sync
-		unsigned int cycles_of_sync_ = 0;					// the number of cycles since the potential vertical sync began
-		unsigned int cycles_since_sync_ = 0;				// the number of cycles since last in sync, for defeating the possibility of this being a vertical sync
+		int cycles_per_line_ = 1;
 
-		unsigned int cycles_per_line_ = 1;
-
-		float input_gamma_ = 1.0f, output_gamma_ = 1.0f;
-		void update_gamma();
+		Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
+		Outputs::Display::ScanTarget::Modals scan_target_modals_;
+		static const uint8_t DefaultAmplitude = 80;
 
 	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
@@ -108,10 +91,8 @@ class CRT {
 			@param cycles_per_line The clock rate at which this CRT will be driven, specified as the number
 			of cycles expected to take up one whole scanline of the display.
 
-			@param common_output_divisor The greatest a priori common divisor of all cycle counts that will be
-			supplied to @c output_sync, @c output_data, etc; supply 1 if no greater divisor is known. For many
-			machines output will run at a fixed multiple of the clock rate; knowing this divisor can improve
-			internal precision.
+			@param clocks_per_pixel_greatest_common_divisor The GCD of all potential lengths of a pixel
+			in terms of the clock rate given as @c cycles_per_line.
 
 			@param height_of_display The number of lines that nominally form one field of the display, rounded
 			up to the next whole integer.
@@ -124,76 +105,79 @@ class CRT {
 			@param vertical_sync_half_lines The expected length of vertical synchronisation (equalisation pulses aside),
 			in multiples of half a line.
 
-			@param buffer_depth The depth per pixel of source data buffers to create for this machine. Machines
-			may provide per-clock-cycle data in the depth that they consider convenient, supplying a sampling
-			function to convert between their data format and either a composite or RGB signal, allowing that
-			work to be offloaded onto the GPU and allowing the output signal to be sampled at a rate appropriate
-			to the display size.
-
-			@see @c set_rgb_sampling_function , @c set_composite_sampling_function
+			@param data_type The format that the caller will use for input data.
 		*/
-		CRT(unsigned int cycles_per_line,
-			unsigned int common_output_divisor,
-			unsigned int height_of_display,
-			ColourSpace colour_space,
-			unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator,
-			unsigned int vertical_sync_half_lines,
+		CRT(int cycles_per_line,
+			int clocks_per_pixel_greatest_common_divisor,
+			int height_of_display,
+			Outputs::Display::ColourSpace colour_space,
+			int colour_cycle_numerator,
+			int colour_cycle_denominator,
+			int vertical_sync_half_lines,
 			bool should_alternate,
-			unsigned int buffer_depth);
+			Outputs::Display::InputDataType data_type);
 
-		/*!	Constructs the CRT with the specified clock rate, with the display height and colour
-			subcarrier frequency dictated by a standard display type and with the requested number of
-			buffers, each with the requested number of bytes per pixel.
-
-			Exactly identical to calling the designated constructor with colour subcarrier information
+		/*!	Exactly identical to calling the designated constructor with colour subcarrier information
 			looked up by display type.
 		*/
-		CRT(unsigned int cycles_per_line,
-			unsigned int common_output_divisor,
-			DisplayType displayType,
-			unsigned int buffer_depth);
+		CRT(int cycles_per_line,
+			int minimum_cycles_per_pixel,
+			Outputs::Display::Type display_type,
+			Outputs::Display::InputDataType data_type);
 
 		/*!	Resets the CRT with new timing information. The CRT then continues as though the new timing had
 			been provided at construction. */
-		void set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int vertical_sync_half_lines, bool should_alternate);
+		void set_new_timing(
+			int cycles_per_line,
+			int height_of_display,
+			Outputs::Display::ColourSpace colour_space,
+			int colour_cycle_numerator,
+			int colour_cycle_denominator,
+			int vertical_sync_half_lines,
+			bool should_alternate);
 
 		/*!	Resets the CRT with new timing information derived from a new display type. The CRT then continues
 			as though the new timing had been provided at construction. */
-		void set_new_display_type(unsigned int cycles_per_line, DisplayType displayType);
+		void set_new_display_type(
+			int cycles_per_line,
+			Outputs::Display::Type display_type);
+
+		/*!	Changes the type of data being supplied as input.
+		*/
+		void set_new_data_type(Outputs::Display::InputDataType data_type);
 
 		/*!	Output at the sync level.
 
 			@param number_of_cycles The amount of time to putput sync for.
 		*/
-		void output_sync(unsigned int number_of_cycles);
+		void output_sync(int number_of_cycles);
 
 		/*!	Output at the blanking level.
 
 			@param number_of_cycles The amount of time to putput the blanking level for.
 		*/
-		void output_blank(unsigned int number_of_cycles);
+		void output_blank(int number_of_cycles);
 
 		/*!	Outputs the first written to the most-recently created run of data repeatedly for a prolonged period.
 
 			@param number_of_cycles The number of cycles to repeat the output for.
 		*/
-		void output_level(unsigned int number_of_cycles);
+		void output_level(int number_of_cycles);
 
-		/*!	Declares that the caller has created a run of data via @c allocate_write_area and @c get_write_target_for_buffer
-			that is at least @c number_of_samples long, and that the first @c number_of_samples should be spread
-			over @c number_of_cycles.
+		/*!	Declares that the caller has created a run of data via @c begin_data that is at least @c number_of_samples
+			long, and that the first @c number_of_samples should be spread over @c number_of_cycles.
 
 			@param number_of_cycles The amount of data to output.
 
 			@param number_of_samples The number of samples of input data to output.
 
-			@see @c allocate_write_area , @c get_write_target_for_buffer
+			@see @c begin_data
 		*/
-		void output_data(unsigned int number_of_cycles, unsigned int number_of_samples);
+		void output_data(int number_of_cycles, size_t number_of_samples);
 
 		/*! A shorthand form for output_data that assumes the number of cycles to output for is the same as the number of samples. */
-		void output_data(unsigned int number_of_cycles) {
-			output_data(number_of_cycles, number_of_cycles);
+		void output_data(int number_of_cycles) {
+			output_data(number_of_cycles, size_t(number_of_cycles));
 		}
 
 		/*!	Outputs a colour burst.
@@ -203,16 +187,16 @@ class CRT {
 			@param phase The initial phase of the colour burst in a measuring system with 256 units
 			per circle, e.g. 0 = 0 degrees, 128 = 180 degrees, 256 = 360 degree.
 
-			@param amplitude The amplitude of the colour burst in 1/256ths of the amplitude of the
+			@param amplitude The amplitude of the colour burst in 1/255ths of the amplitude of the
 			positive portion of the wave.
 		*/
-		void output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude = 102);
+		void output_colour_burst(int number_of_cycles, uint8_t phase, uint8_t amplitude = DefaultAmplitude);
 
 		/*! Outputs a colour burst exactly in phase with CRT expectations using the idiomatic amplitude.
 
 			@param number_of_cycles The length of the colour burst;
 		*/
-		void output_default_colour_burst(unsigned int number_of_cycles);
+		void output_default_colour_burst(int number_of_cycles, uint8_t amplitude = DefaultAmplitude);
 
 		/*! Sets the current phase of the colour subcarrier used by output_default_colour_burst.
 
@@ -232,63 +216,12 @@ class CRT {
 			@param required_length The number of samples to allocate.
 			@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 		*/
-		inline uint8_t *allocate_write_area(std::size_t required_length, std::size_t required_alignment = 1) {
-			std::unique_lock<std::mutex> output_lock = openGL_output_builder_.get_output_lock();
-			return openGL_output_builder_.texture_builder.allocate_write_area(required_length, required_alignment);
-		}
-
-		/*!	Causes appropriate OpenGL or OpenGL ES calls to be issued in order to draw the current CRT state.
-			The caller is responsible for ensuring that a valid OpenGL context exists for the duration of this call.
-		*/
-		inline void draw_frame(unsigned int output_width, unsigned int output_height, bool only_if_dirty) {
-			{
-				std::lock_guard<std::mutex> function_guard(function_mutex_);
-				for(std::function<void(void)> function : enqueued_openGL_functions_) {
-					function();
-				}
-				enqueued_openGL_functions_.clear();
-			}
-			openGL_output_builder_.draw_frame(output_width, output_height, only_if_dirty);
-		}
-
-		/*! Sets the OpenGL framebuffer to which output is drawn. */
-		inline void set_target_framebuffer(GLint framebuffer) {
-			enqueue_openGL_function( [framebuffer, this] {
-				openGL_output_builder_.set_target_framebuffer(framebuffer);
-			});
+		inline uint8_t *begin_data(std::size_t required_length, std::size_t required_alignment = 1) {
+			return scan_target_->begin_data(required_length, required_alignment);
 		}
 
 		/*!	Sets the gamma exponent for the simulated screen. */
 		void set_input_gamma(float gamma);
-
-		/*!	Sets the gamma exponent for the real, tangible screen on which content will be drawn. */
-		void set_output_gamma(float gamma);
-
-		/*!	Tells the CRT that the next call to draw_frame will occur on a different OpenGL context than
-			the previous.
-
-			@param should_delete_resources If @c true then all resources, textures, vertex arrays, etc,
-			currently held by the CRT will be deleted now via calls to glDeleteTexture and equivalent. If
-			@c false then the references are simply marked as invalid.
-		*/
-		inline void set_openGL_context_will_change(bool should_delete_resources) {
-			enqueue_openGL_function([should_delete_resources, this] {
-				openGL_output_builder_.set_openGL_context_will_change(should_delete_resources);
-			});
-		}
-
-		/*!	Sets a function that will map from whatever data the machine provided to a composite signal.
-
-			@param shader A GLSL fragment including a function with the signature
-			`float composite_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)`
-			that evaluates to the composite signal level as a function of a source buffer, sampling location, colour
-			carrier phase and amplitude.
-		*/
-		inline void set_composite_sampling_function(const std::string &shader) {
-			enqueue_openGL_function([shader, this] {
-				openGL_output_builder_.set_composite_sampling_function(shader);
-			});
-		}
 
 		enum CompositeSourceType {
 			/// The composite function provides continuous output.
@@ -310,58 +243,36 @@ class CRT {
 		*/
 		void set_composite_function_type(CompositeSourceType type, float offset_of_first_sample = 0.0f);
 
-		/*!	Sets a function that will map from whatever data the machine provided to an s-video signal.
+		/*!	Nominates a section of the display to crop to for output. */
+		void set_visible_area(Outputs::Display::Rect visible_area);
 
-			If the output mode is composite then a default mapping from RGB to the display's
-			output mode will be applied.
+		/*!	@returns The rectangle describing a subset of the display, allowing for sync periods. */
+		Outputs::Display::Rect get_rect_for_area(
+			int first_line_after_sync,
+			int number_of_lines,
+			int first_cycle_after_sync,
+			int number_of_cycles,
+			float aspect_ratio);
 
-			@param shader A GLSL fragment including a function with the signature
-			`vec2 svideo_sample(usampler2D texID, vec2 coordinate, float phase, float amplitude)`
-			that evaluates to the s-video signal level, luminance as the first component and chrominance
-			as the second, as a function of a source buffer, sampling location and colour
-			carrier phase; amplitude is supplied for its sign.
-		*/
-		inline void set_svideo_sampling_function(const std::string &shader) {
-			enqueue_openGL_function([shader, this] {
-				openGL_output_builder_.set_svideo_sampling_function(shader);
-			});
-		}
-
-		/*!	Sets a function that will map from whatever data the machine provided to an RGB signal.
-
-			If the output mode is composite or svideo then a default mapping from RGB to the display's
-			output mode will be applied.
-
-			@param shader A GLSL fragent including a function with the signature
-			`vec3 rgb_sample(usampler2D sampler, vec2 coordinate)` that evaluates to an RGB colour
-			as a function of:
-
-			* `usampler2D sampler` representing the source buffer; and
-			* `vec2 coordinate` representing the source buffer location to sample from in the range [0, 1).
-		*/
-		inline void set_rgb_sampling_function(const std::string &shader) {
-			enqueue_openGL_function([shader, this] {
-				openGL_output_builder_.set_rgb_sampling_function(shader);
-			});
-		}
-
-		inline void set_video_signal(VideoSignal video_signal) {
-			enqueue_openGL_function([video_signal, this] {
-				openGL_output_builder_.set_video_signal(video_signal);
-			});
-		}
-
-		inline void set_visible_area(Rect visible_area) {
-			enqueue_openGL_function([visible_area, this] {
-				openGL_output_builder_.set_visible_area(visible_area);
-			});
-		}
-
-		Rect get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio);
-
+		/*!	Sets the CRT delegate; set to @c nullptr if no delegate is desired. */
 		inline void set_delegate(Delegate *delegate) {
 			delegate_ = delegate;
 		}
+
+		/*! Sets the scan target for CRT output. */
+		void set_scan_target(Outputs::Display::ScanTarget *);
+
+		/*! Sets the display type that will be nominated to the scan target. */
+		void set_display_type(Outputs::Display::DisplayType);
+
+		/*! Sets the offset to apply to phase when using the PhaseLinkedLuminance8 input data type. */
+		void set_phase_linked_luminance_offset(float);
+
+		/*! Sets the input data type. */
+		void set_input_data_type(Outputs::Display::InputDataType);
+
+		/*! Sets the output brightness. */
+		void set_brightness(float);
 };
 
 }

@@ -53,9 +53,7 @@ class MultiCRTMachine: public CRTMachine::Machine {
 		}
 
 		// Below is the standard CRTMachine::Machine interface; see there for documentation.
-		void setup_output(float aspect_ratio) override;
-		void close_output() override;
-		Outputs::CRT::CRT *get_crt() override;
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override;
 		Outputs::Speaker::Speaker *get_speaker() override;
 		void run_for(Time::Seconds duration) override;
 
@@ -66,6 +64,7 @@ class MultiCRTMachine: public CRTMachine::Machine {
 		std::vector<Concurrency::AsyncTaskQueue> queues_;
 		MultiSpeaker *speaker_ = nullptr;
 		Delegate *delegate_ = nullptr;
+		Outputs::Display::ScanTarget *scan_target_ = nullptr;
 
 		/*!
 			Performs a parallel for operation across all machines, performing the supplied

@@ -13,6 +13,8 @@
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "Interrupts.hpp"
 
+#include <vector>
+
 namespace Electron {
 
 /*!
@@ -25,16 +27,20 @@ namespace Electron {
 class VideoOutput {
 	public:
 		/*!
-			Instantiates a VideoOutput that will read its pixels from @c memory. The pointer supplied
-			should be to address 0 in the unexpanded Electron's memory map.
+			Instantiates a VideoOutput that will read its pixels from @c memory.
+
+			The pointer supplied should be to address 0 in the unexpanded Electron's memory map.
 		*/
 		VideoOutput(uint8_t *memory);
 
-		/// @returns the CRT to which output is being painted.
-		Outputs::CRT::CRT *get_crt();
-
 		/// Produces the next @c cycles of video output.
 		void run_for(const Cycles cycles);
+
+		/// Sets the destination for output.
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+
+		/// Sets the type of output.
+		void set_display_type(Outputs::Display::DisplayType);
 
 		/*!
 			Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
@@ -77,7 +83,7 @@ class VideoOutput {
 	private:
 		inline void start_pixel_line();
 		inline void end_pixel_line();
-		inline void output_pixels(unsigned int number_of_cycles);
+		inline void output_pixels(int number_of_cycles);
 		inline void setup_base_address();
 
 		int output_position_ = 0;
@@ -109,9 +115,8 @@ class VideoOutput {
 		// CRT output
 		uint8_t *current_output_target_ = nullptr;
 		uint8_t *initial_output_target_ = nullptr;
-		unsigned int current_output_divider_ = 1;
-
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		int current_output_divider_ = 1;
+		Outputs::CRT::CRT crt_;
 
 		struct DrawAction {
 			enum Type {

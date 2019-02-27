@@ -45,7 +45,7 @@ enum Personality {
 };
 
 #define has_decimal_mode(p)	((p) >= Personality::P6502)
-#define is_65c02(p) 		((p) >= Personality::PSynertek65C02)
+#define is_65c02(p)			((p) >= Personality::PSynertek65C02)
 #define has_bbrbbsrmbsmb(p)	((p) >= Personality::PRockwell65C02)
 #define has_stpwai(p)		((p) >= Personality::PWDC65C02)
 

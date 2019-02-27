@@ -8,10 +8,10 @@
 
 #include "Rectangle.hpp"
 
-using namespace OpenGL;
+using namespace Outputs::Display::OpenGL;
 
 Rectangle::Rectangle(float x, float y, float width, float height):
- 	pixel_shader_(
+	pixel_shader_(
 		"#version 150\n"
 
 		"in vec2 position;"
@@ -33,16 +33,16 @@ Rectangle::Rectangle(float x, float y, float width, float height):
 	){
 	pixel_shader_.bind();
 
-	glGenVertexArrays(1, &drawing_vertex_array_);
-	glGenBuffers(1, &drawing_array_buffer_);
+	test_gl(glGenVertexArrays, 1, &drawing_vertex_array_);
+	test_gl(glGenBuffers, 1, &drawing_array_buffer_);
 
-	glBindVertexArray(drawing_vertex_array_);
-	glBindBuffer(GL_ARRAY_BUFFER, drawing_array_buffer_);
+	test_gl(glBindVertexArray, drawing_vertex_array_);
+	test_gl(glBindBuffer, GL_ARRAY_BUFFER, drawing_array_buffer_);
 
 	GLint position_attribute = pixel_shader_.get_attrib_location("position");
-	glEnableVertexAttribArray(static_cast<GLuint>(position_attribute));
+	test_gl(glEnableVertexAttribArray, GLuint(position_attribute));
 
-	glVertexAttribPointer(
+	test_gl(glVertexAttribPointer,
 		(GLuint)position_attribute,
 		2,
 		GL_FLOAT,
@@ -61,14 +61,14 @@ Rectangle::Rectangle(float x, float y, float width, float height):
 	buffer[6] = x + width;	buffer[7] = y + height;
 
 	// Upload buffer.
-	glBindBuffer(GL_ARRAY_BUFFER, drawing_array_buffer_);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW);
+	test_gl(glBindBuffer, GL_ARRAY_BUFFER, drawing_array_buffer_);
+	test_gl(glBufferData, GL_ARRAY_BUFFER, sizeof(buffer), buffer, GL_STATIC_DRAW);
 }
 
 void Rectangle::draw(float red, float green, float blue) {
 	pixel_shader_.bind();
-	glUniform4f(colour_uniform_, red, green, blue, 1.0);
+	test_gl(glUniform4f, colour_uniform_, red, green, blue, 1.0);
 
-	glBindVertexArray(drawing_vertex_array_);
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+	test_gl(glBindVertexArray, drawing_vertex_array_);
+	test_gl(glDrawArrays, GL_TRIANGLE_STRIP, 0, 4);
 }

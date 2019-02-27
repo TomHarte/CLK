@@ -155,7 +155,7 @@ bool FileHolder::check_signature(const char *signature, std::size_t length) {
 	// read and check the file signature
 	std::vector<uint8_t> stored_signature = read(length);
 	if(stored_signature.size() != length)							return false;
-	if(std::memcmp(stored_signature.data(), signature, length)) 	return false;
+	if(std::memcmp(stored_signature.data(), signature, length))		return false;
 	return true;
 }
 

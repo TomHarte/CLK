@@ -26,6 +26,11 @@
 
 #include <bitset>
 
+#import <OpenGL/OpenGL.h>
+#include <OpenGL/gl3.h>
+
+#include "../../../../Outputs/OpenGL/ScanTarget.hpp"
+
 @interface CSMachine() <CSFastLoading>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
@@ -80,6 +85,8 @@ struct ActivityObserver: public Activity::Observer {
 	CSJoystickManager *_joystickManager;
 	std::bitset<65536> _depressedKeys;
 	NSMutableArray<NSString *> *_leds;
+
+	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
 }
 
 - (instancetype)initWithAnalyser:(CSStaticAnalyser *)result {
@@ -133,7 +140,7 @@ struct ActivityObserver: public Activity::Observer {
 
 	[_view performWithGLContext:^{
 		@synchronized(self) {
-			self->_machine->crt_machine()->close_output();
+			self->_scanTarget.reset();
 		}
 	}];
 }
@@ -178,7 +185,7 @@ struct ActivityObserver: public Activity::Observer {
 			std::vector<std::unique_ptr<Inputs::Joystick>> &machine_joysticks = _joystickMachine->get_joysticks();
 			for(CSJoystick *joystick in _joystickManager.joysticks) {
 				size_t target = c % machine_joysticks.size();
-				++++c;
+				++c;
 
 				// Post the first two analogue axes presented by the controller as horizontal and vertical inputs,
 				// unless the user seems to be using a hat.
@@ -228,15 +235,12 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
-	_machine->crt_machine()->setup_output(aspectRatio);
-
-	// Since OS X v10.6, Macs have had a gamma of 2.2.
-	_machine->crt_machine()->get_crt()->set_output_gamma(2.2f);
-	_machine->crt_machine()->get_crt()->set_target_framebuffer(0);
+	_scanTarget.reset(new Outputs::Display::OpenGL::ScanTarget);
+	_machine->crt_machine()->set_scan_target(_scanTarget.get());
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
-	_machine->crt_machine()->get_crt()->draw_frame((unsigned int)pixelSize.width, (unsigned int)pixelSize.height, onlyIfDirty ? true : false);
+	_scanTarget->draw(true, (int)pixelSize.width, (int)pixelSize.height);
 }
 
 - (void)paste:(NSString *)paste {
@@ -357,7 +361,7 @@ struct ActivityObserver: public Activity::Observer {
 			BIND(VK_ForwardDelete, Delete);
 
 			BIND(VK_LeftArrow, Left);		BIND(VK_RightArrow, Right);
-			BIND(VK_DownArrow, Down); 		BIND(VK_UpArrow, Up);
+			BIND(VK_DownArrow, Down);		BIND(VK_UpArrow, Up);
 		}
 #undef BIND
 
@@ -457,9 +461,10 @@ struct ActivityObserver: public Activity::Observer {
 		Configurable::SelectionSet selection_set;
 		Configurable::Display display;
 		switch(videoSignal) {
-			case CSMachineVideoSignalRGB:		display = Configurable::Display::RGB;		break;
-			case CSMachineVideoSignalSVideo:	display = Configurable::Display::SVideo;	break;
-			case CSMachineVideoSignalComposite:	display = Configurable::Display::Composite;	break;
+			case CSMachineVideoSignalRGB:					display = Configurable::Display::RGB;					break;
+			case CSMachineVideoSignalSVideo:				display = Configurable::Display::SVideo;				break;
+			case CSMachineVideoSignalComposite:				display = Configurable::Display::CompositeColour;		break;
+			case CSMachineVideoSignalMonochromeComposite:	display = Configurable::Display::CompositeMonochrome;	break;
 		}
 		append_display_selection(selection_set, display);
 		configurable_device->set_selections(selection_set);
@@ -479,9 +484,10 @@ struct ActivityObserver: public Activity::Observer {
 	// Get the standard option for this video signal.
 	Configurable::StandardOptions option;
 	switch(videoSignal) {
-		case CSMachineVideoSignalRGB:		option = Configurable::DisplayRGB;			break;
-		case CSMachineVideoSignalSVideo:	option = Configurable::DisplaySVideo;		break;
-		case CSMachineVideoSignalComposite:	option = Configurable::DisplayComposite;	break;
+		case CSMachineVideoSignalRGB:					option = Configurable::DisplayRGB;					break;
+		case CSMachineVideoSignalSVideo:				option = Configurable::DisplaySVideo;				break;
+		case CSMachineVideoSignalComposite:				option = Configurable::DisplayCompositeColour;		break;
+		case CSMachineVideoSignalMonochromeComposite:	option = Configurable::DisplayCompositeMonochrome;	break;
 	}
 	std::unique_ptr<Configurable::Option> display_option = std::move(standard_options(option).front());
 	Configurable::ListOption *display_list_option = dynamic_cast<Configurable::ListOption *>(display_option.get());

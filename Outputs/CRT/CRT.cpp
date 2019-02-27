@@ -7,7 +7,7 @@
 //
 
 #include "CRT.hpp"
-#include "Internals/CRTOpenGL.hpp"
+
 #include <cstdarg>
 #include <cmath>
 #include <algorithm>
@@ -15,31 +15,30 @@
 
 using namespace Outputs::CRT;
 
-void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_display, ColourSpace colour_space, unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator, unsigned int vertical_sync_half_lines, bool should_alternate) {
-	openGL_output_builder_.set_colour_format(colour_space, colour_cycle_numerator, colour_cycle_denominator);
+void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Display::ColourSpace colour_space, int colour_cycle_numerator, int colour_cycle_denominator, int vertical_sync_half_lines, bool should_alternate) {
 
-	const unsigned int millisecondsHorizontalRetraceTime = 7;	// source: Dictionary of Video and Television Technology, p. 234
-	const unsigned int scanlinesVerticalRetraceTime = 8;		// source: ibid
+	const int millisecondsHorizontalRetraceTime = 7;	// Source: Dictionary of Video and Television Technology, p. 234.
+	const int scanlinesVerticalRetraceTime = 8;			// Source: ibid.
 
-																// To quote:
-																//
-																//	"retrace interval; The interval of time for the return of the blanked scanning beam of
-																//	a TV picture tube or camera tube to the starting point of a line or field. It is about
-																//	7 microseconds for horizontal retrace and 500 to 750 microseconds for vertical retrace
-																//  in NTSC and PAL TV."
+														// To quote:
+														//
+														//	"retrace interval; The interval of time for the return of the blanked scanning beam of
+														//	a TV picture tube or camera tube to the starting point of a line or field. It is about
+														//	7 microseconds for horizontal retrace and 500 to 750 microseconds for vertical retrace
+														//  in NTSC and PAL TV."
 
-	time_multiplier_ = IntermediateBufferWidth / cycles_per_line;
-	phase_denominator_ = cycles_per_line * colour_cycle_denominator * time_multiplier_;
+	time_multiplier_ = 65535 / cycles_per_line;
+	phase_denominator_ = int64_t(cycles_per_line) * int64_t(colour_cycle_denominator) * int64_t(time_multiplier_);
 	phase_numerator_ = 0;
-	colour_cycle_numerator_ = colour_cycle_numerator;
+	colour_cycle_numerator_ = int64_t(colour_cycle_numerator);
 	phase_alternates_ = should_alternate;
 	is_alernate_line_ &= phase_alternates_;
 	cycles_per_line_ = cycles_per_line;
-	unsigned int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
+	const int multiplied_cycles_per_line = cycles_per_line * time_multiplier_;
 
-	// allow sync to be detected (and acted upon) a line earlier than the specified requirement,
+	// Allow sync to be detected (and acted upon) a line earlier than the specified requirement,
 	// as a simple way of avoiding not-quite-exact comparison issues while still being true enough to
-	// the gist for simple debugging
+	// the gist for simple debugging.
 	sync_capacitor_charge_threshold_ = ((vertical_sync_half_lines - 2) * cycles_per_line) >> 1;
 
 	// Create the two flywheels:
@@ -54,23 +53,66 @@ void CRT::set_new_timing(unsigned int cycles_per_line, unsigned int height_of_di
 	horizontal_flywheel_.reset(new Flywheel(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 5));
 	vertical_flywheel_.reset(new Flywheel(multiplied_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * multiplied_cycles_per_line, (multiplied_cycles_per_line * height_of_display) >> 3));
 
-	// figure out the divisor necessary to get the horizontal flywheel into a 16-bit range
-	unsigned int real_clock_scan_period = (multiplied_cycles_per_line * height_of_display) / (time_multiplier_ * common_output_divisor_);
-	vertical_flywheel_output_divider_ = static_cast<uint16_t>(ceilf(real_clock_scan_period / 65536.0f) * (time_multiplier_ * common_output_divisor_));
+	// Figure out the divisor necessary to get the horizontal flywheel into a 16-bit range.
+	const int real_clock_scan_period = vertical_flywheel_->get_scan_period();
+	vertical_flywheel_output_divider_ = (real_clock_scan_period + 65534) / 65535;
 
-	openGL_output_builder_.set_timing(cycles_per_line, multiplied_cycles_per_line, height_of_display, horizontal_flywheel_->get_scan_period(), vertical_flywheel_->get_scan_period(), vertical_flywheel_output_divider_);
+	// Communicate relevant fields to the scan target.
+	scan_target_modals_.output_scale.x = uint16_t(horizontal_flywheel_->get_scan_period());
+	scan_target_modals_.output_scale.y = uint16_t(real_clock_scan_period / vertical_flywheel_output_divider_);
+	scan_target_modals_.expected_vertical_lines = height_of_display;
+	scan_target_modals_.composite_colour_space = colour_space;
+	scan_target_modals_.colour_cycle_numerator = colour_cycle_numerator;
+	scan_target_modals_.colour_cycle_denominator = colour_cycle_denominator;
+	scan_target_->set_modals(scan_target_modals_);
 }
 
-void CRT::set_new_display_type(unsigned int cycles_per_line, DisplayType displayType) {
+void CRT::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+	scan_target_ = scan_target;
+	if(!scan_target_) scan_target_ = &Outputs::Display::NullScanTarget::singleton;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
+void CRT::set_new_data_type(Outputs::Display::InputDataType data_type) {
+	scan_target_modals_.input_data_type = data_type;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
+void CRT::set_visible_area(Outputs::Display::Rect visible_area) {
+	scan_target_modals_.visible_area = visible_area;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
+void CRT::set_display_type(Outputs::Display::DisplayType display_type) {
+	scan_target_modals_.display_type = display_type;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
+void CRT::set_phase_linked_luminance_offset(float offset) {
+	scan_target_modals_.input_data_tweaks.phase_linked_luminance_offset = offset;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
+void CRT::set_input_data_type(Outputs::Display::InputDataType input_data_type) {
+	scan_target_modals_.input_data_type = input_data_type;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
+void CRT::set_brightness(float brightness) {
+	scan_target_modals_.brightness = brightness;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
+void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displayType) {
 	switch(displayType) {
-		case DisplayType::PAL50:
-			set_new_timing(cycles_per_line, 312, ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516; 2.5 lines = vertical sync
-			set_input_gamma(2.8f);
+		case Outputs::Display::Type::PAL50:
+			scan_target_modals_.intended_gamma = 2.8f;
+			set_new_timing(cycles_per_line, 312, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516 colour cycles per line; 2.5 lines = vertical sync.
 		break;
 
-		case DisplayType::NTSC60:
-			set_new_timing(cycles_per_line, 262, ColourSpace::YIQ, 455, 2, 6, false);	// i.e. 227.5, 3 lines = vertical sync
-			set_input_gamma(2.2f);
+		case Outputs::Display::Type::NTSC60:
+			scan_target_modals_.intended_gamma = 2.2f;
+			set_new_timing(cycles_per_line, 262, Outputs::Display::ColourSpace::YIQ, 455, 2, 6, false);			// i.e. 227.5 colour cycles per line, 3 lines = vertical sync.
 		break;
 	}
 }
@@ -84,175 +126,145 @@ void CRT::set_composite_function_type(CompositeSourceType type, float offset_of_
 }
 
 void CRT::set_input_gamma(float gamma) {
-	input_gamma_ = gamma;
-	update_gamma();
+	scan_target_modals_.intended_gamma = gamma;
+	scan_target_->set_modals(scan_target_modals_);
 }
 
-void CRT::set_output_gamma(float gamma) {
-	output_gamma_ = gamma;
-	update_gamma();
-}
-
-void CRT::update_gamma() {
-	float gamma_ratio = input_gamma_ / output_gamma_;
-	openGL_output_builder_.set_gamma(gamma_ratio);
-}
-
-CRT::CRT(unsigned int common_output_divisor, unsigned int buffer_depth) :
-	common_output_divisor_(common_output_divisor),
-	openGL_output_builder_(buffer_depth) {}
-
-CRT::CRT(	unsigned int cycles_per_line,
-			unsigned int common_output_divisor,
-			unsigned int height_of_display,
-			ColourSpace colour_space,
-			unsigned int colour_cycle_numerator, unsigned int colour_cycle_denominator,
-			unsigned int vertical_sync_half_lines,
+CRT::CRT(	int cycles_per_line,
+			int clocks_per_pixel_greatest_common_divisor,
+			int height_of_display,
+			Outputs::Display::ColourSpace colour_space,
+			int colour_cycle_numerator, int colour_cycle_denominator,
+			int vertical_sync_half_lines,
 			bool should_alternate,
-			unsigned int buffer_depth) :
-		CRT(common_output_divisor, buffer_depth) {
+			Outputs::Display::InputDataType data_type) {
+	scan_target_modals_.input_data_type = data_type;
+	scan_target_modals_.cycles_per_line = cycles_per_line;
+	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_timing(cycles_per_line, height_of_display, colour_space, colour_cycle_numerator, colour_cycle_denominator, vertical_sync_half_lines, should_alternate);
 }
 
-CRT::CRT(unsigned int cycles_per_line, unsigned int common_output_divisor, DisplayType displayType, unsigned int buffer_depth) :
-		CRT(common_output_divisor, buffer_depth) {
-	set_new_display_type(cycles_per_line, displayType);
+CRT::CRT(	int cycles_per_line,
+			int clocks_per_pixel_greatest_common_divisor,
+			Outputs::Display::Type display_type,
+			Outputs::Display::InputDataType data_type) {
+	scan_target_modals_.input_data_type = data_type;
+	scan_target_modals_.cycles_per_line = cycles_per_line;
+	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
+	set_new_display_type(cycles_per_line, display_type);
 }
 
 // MARK: - Sync loop
 
-Flywheel::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced) {
+Flywheel::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced) {
 	return vertical_flywheel_->get_next_event_in_period(vsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
-Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested, unsigned int cycles_to_run_for, unsigned int *cycles_advanced) {
+Flywheel::SyncEvent CRT::get_next_horizontal_sync_event(bool hsync_is_requested, int cycles_to_run_for, int *cycles_advanced) {
 	return horizontal_flywheel_->get_next_event_in_period(hsync_is_requested, cycles_to_run_for, cycles_advanced);
 }
 
-#define output_x1()			(*reinterpret_cast<uint16_t *>(&next_output_run[OutputVertexOffsetOfHorizontal + 0]))
-#define output_x2()			(*reinterpret_cast<uint16_t *>(&next_output_run[OutputVertexOffsetOfHorizontal + 2]))
-#define output_position_y()	(*reinterpret_cast<uint16_t *>(&next_output_run[OutputVertexOffsetOfVertical + 0]))
-#define output_tex_y()		(*reinterpret_cast<uint16_t *>(&next_output_run[OutputVertexOffsetOfVertical + 2]))
+Outputs::Display::ScanTarget::Scan::EndPoint CRT::end_point(uint16_t data_offset) {
+	Display::ScanTarget::Scan::EndPoint end_point;
 
-#define source_input_position_y()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfInputStart + 2]))
-#define source_output_position_x1()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfOutputStart + 0]))
-#define source_output_position_x2()	(*reinterpret_cast<uint16_t *>(&next_run[SourceVertexOffsetOfEnds + 2]))
-#define source_phase()				next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 0]
-#define source_amplitude()			next_run[SourceVertexOffsetOfPhaseTimeAndAmplitude + 1]
+	end_point.x = uint16_t(horizontal_flywheel_->get_current_output_position());
+	end_point.y = uint16_t(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
+	end_point.data_offset = data_offset;
 
-void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type) {
-	std::unique_lock<std::mutex> output_lock = openGL_output_builder_.get_output_lock();
+	// TODO: this is a workaround for the limited precision that can be posted onwards;
+	// it'd be better to make time_multiplier_ an explicit modal and just not divide by it.
+	const auto lost_precision = cycles_since_horizontal_sync_ % time_multiplier_;
+	end_point.composite_angle = int16_t(((phase_numerator_ - lost_precision * colour_cycle_numerator_) << 6) / phase_denominator_) * (is_alernate_line_ ? -1 : 1);
+	end_point.cycles_since_end_of_horizontal_retrace = uint16_t(cycles_since_horizontal_sync_ / time_multiplier_);
+
+	return end_point;
+}
+
+void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_requested, const Scan::Type type, int number_of_samples) {
 	number_of_cycles *= time_multiplier_;
 
-	bool is_output_run = ((type == Scan::Type::Level) || (type == Scan::Type::Data));
+	const bool is_output_run = ((type == Scan::Type::Level) || (type == Scan::Type::Data));
+	const auto total_cycles = number_of_cycles;
+	bool did_output = false;
 
 	while(number_of_cycles) {
 
-		unsigned int time_until_vertical_sync_event, time_until_horizontal_sync_event;
-		Flywheel::SyncEvent next_vertical_sync_event = get_next_vertical_sync_event(vsync_requested, number_of_cycles, &time_until_vertical_sync_event);
-		Flywheel::SyncEvent next_horizontal_sync_event = get_next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
+		// Get time until next horizontal and vertical sync generator events.
+		int time_until_vertical_sync_event, time_until_horizontal_sync_event;
+		const Flywheel::SyncEvent next_vertical_sync_event = get_next_vertical_sync_event(vsync_requested, number_of_cycles, &time_until_vertical_sync_event);
+		const Flywheel::SyncEvent next_horizontal_sync_event = get_next_horizontal_sync_event(hsync_requested, time_until_vertical_sync_event, &time_until_horizontal_sync_event);
 
-		// get the next sync event and its timing; hsync request is instantaneous (being edge triggered) so
-		// set it to false for the next run through this loop (if any)
-		unsigned int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
-		phase_numerator_ += next_run_length * colour_cycle_numerator_;
-		phase_numerator_ %= phase_denominator_;
+		// Whichever event is scheduled to happen first is the one to advance to.
+		const int next_run_length = std::min(time_until_vertical_sync_event, time_until_horizontal_sync_event);
 
 		hsync_requested = false;
 		vsync_requested = false;
 
-		bool is_output_segment = ((is_output_run && next_run_length) && !horizontal_flywheel_->is_in_retrace() && !vertical_flywheel_->is_in_retrace());
-		uint8_t *next_run = nullptr;
-		if(is_output_segment && !openGL_output_builder_.composite_output_buffer_is_full()) {
-			bool did_retain_source_data = openGL_output_builder_.texture_builder.retain_latest();
-			if(did_retain_source_data) {
-				next_run = openGL_output_builder_.array_builder.get_input_storage(SourceVertexSize);
-				if(!next_run) {
-					openGL_output_builder_.texture_builder.discard_latest();
-				}
-			}
+		// Determine whether to output any data for this portion of the output; if so then grab somewhere to put it.
+		const bool is_output_segment = ((is_output_run && next_run_length) && !horizontal_flywheel_->is_in_retrace() && !vertical_flywheel_->is_in_retrace());
+		Outputs::Display::ScanTarget::Scan *const next_scan = is_output_segment ? scan_target_->begin_scan() : nullptr;
+		did_output |= is_output_segment;
+
+		// If outputting, store the start location and scan constants.
+		if(next_scan) {
+			next_scan->end_points[0] = end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles));
+			next_scan->composite_amplitude = colour_burst_amplitude_;
 		}
 
-		if(next_run) {
-			// output_y and texture locations will be written later; we won't necessarily know what they are
-			// outside of the locked region
-			source_output_position_x1() = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
-			source_phase() = colour_burst_phase_;
-
-			// TODO: determine what the PAL phase-shift machines actually do re: the swinging burst.
-			source_amplitude() = phase_alternates_ ? 128 - colour_burst_amplitude_ : 128 + colour_burst_amplitude_;
-		}
-
-		// decrement the number of cycles left to run for and increment the
-		// horizontal counter appropriately
+		// Advance time: that'll affect both the colour subcarrier position and the number of cycles left to run.
+		phase_numerator_ += next_run_length * colour_cycle_numerator_;
 		number_of_cycles -= next_run_length;
+		cycles_since_horizontal_sync_ += next_run_length;
 
-		// react to the incoming event...
+		// React to the incoming event.
 		horizontal_flywheel_->apply_event(next_run_length, (next_run_length == time_until_horizontal_sync_event) ? next_horizontal_sync_event : Flywheel::SyncEvent::None);
 		vertical_flywheel_->apply_event(next_run_length, (next_run_length == time_until_vertical_sync_event) ? next_vertical_sync_event : Flywheel::SyncEvent::None);
 
-		if(next_run) {
-			source_output_position_x2() = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
+		// End the scan if necessary.
+		if(next_scan) {
+			next_scan->end_points[1] = end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles));
+			scan_target_->end_scan();
 		}
 
-		// if this is horizontal retrace then advance the output line counter and bookend an output run
-		Flywheel::SyncEvent honoured_event = Flywheel::SyncEvent::None;
-		if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event != Flywheel::SyncEvent::None) honoured_event = next_vertical_sync_event;
-		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event != Flywheel::SyncEvent::None) honoured_event = next_horizontal_sync_event;
-		bool needs_endpoint =
-			(honoured_event == Flywheel::SyncEvent::StartRetrace && is_writing_composite_run_) ||
-			(honoured_event == Flywheel::SyncEvent::EndRetrace && !horizontal_flywheel_->is_in_retrace() && !vertical_flywheel_->is_in_retrace());
+		// Announce horizontal retrace events.
+		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event != Flywheel::SyncEvent::None) {
+			// Reset the cycles-since-sync counter if this is the end of retrace.
+			if(next_horizontal_sync_event == Flywheel::SyncEvent::EndRetrace) {
+				cycles_since_horizontal_sync_ = 0;
 
-		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) is_alernate_line_ ^= phase_alternates_;
+				// This is unnecessary, strictly speaking, but seeks to help ScanTargets fit as
+				// much as possible into a fixed range.
+				phase_numerator_ %= phase_denominator_;
+				if(!phase_numerator_) phase_numerator_ += phase_denominator_;
+			}
 
-		if(needs_endpoint) {
-			if(
-				!openGL_output_builder_.array_builder.is_full() &&
-				!openGL_output_builder_.composite_output_buffer_is_full()) {
+			// Announce event.
+			const auto event =
+				(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace)
+					? Outputs::Display::ScanTarget::Event::BeginHorizontalRetrace : Outputs::Display::ScanTarget::Event::EndHorizontalRetrace;
+			scan_target_->announce(
+				event,
+				!(horizontal_flywheel_->is_in_retrace() || vertical_flywheel_->is_in_retrace()),
+				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)),
+				colour_burst_amplitude_);
 
-				if(!is_writing_composite_run_) {
-					output_run_.x1 = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
-					output_run_.y = static_cast<uint16_t>(vertical_flywheel_->get_current_output_position() / vertical_flywheel_output_divider_);
-				} else {
-					// Get and write all those previously unwritten output ys
-					const uint16_t output_y = openGL_output_builder_.get_composite_output_y();
-
-					// Construct the output run
-					uint8_t *next_output_run = openGL_output_builder_.array_builder.get_output_storage(OutputVertexSize);
-					if(next_output_run) {
-						output_x1() = output_run_.x1;
-						output_position_y() = output_run_.y;
-						output_tex_y() = output_y;
-						output_x2() = static_cast<uint16_t>(horizontal_flywheel_->get_current_output_position());
-					}
-
-					// TODO: below I've assumed a one-to-one correspondance with output runs and input data; that's
-					// obviously not completely sustainable. It's a latent bug.
-					openGL_output_builder_.array_builder.flush(
-						[=] (uint8_t *input_buffer, std::size_t input_size, uint8_t *output_buffer, std::size_t output_size) {
-							openGL_output_builder_.texture_builder.flush(
-								[=] (const std::vector<TextureBuilder::WriteArea> &write_areas, std::size_t number_of_write_areas) {
-//									assert(number_of_write_areas * SourceVertexSize == input_size);
-									if(number_of_write_areas * SourceVertexSize == input_size) {
-										for(std::size_t run = 0; run < number_of_write_areas; run++) {
-											*reinterpret_cast<uint16_t *>(&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 0]) = write_areas[run].x;
-											*reinterpret_cast<uint16_t *>(&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfInputStart + 2]) = write_areas[run].y;
-											*reinterpret_cast<uint16_t *>(&input_buffer[run * SourceVertexSize + SourceVertexOffsetOfEnds + 0]) = write_areas[run].x + write_areas[run].length;
-										}
-									}
-								});
-							for(std::size_t position = 0; position < input_size; position += SourceVertexSize) {
-								(*reinterpret_cast<uint16_t *>(&input_buffer[position + SourceVertexOffsetOfOutputStart + 2])) = output_y;
-							}
-						});
-					colour_burst_amplitude_ = 0;
-				}
-				is_writing_composite_run_ ^= true;
+			// If retrace is starting, update phase if required and mark no colour burst spotted yet.
+			if(next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
+				is_alernate_line_ ^= phase_alternates_;
+				colour_burst_amplitude_ = 0;
 			}
 		}
 
-		if(next_run_length == time_until_horizontal_sync_event && next_horizontal_sync_event == Flywheel::SyncEvent::StartRetrace) {
-			openGL_output_builder_.increment_composite_output_y();
+		// Also announce vertical retrace events.
+		if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event != Flywheel::SyncEvent::None) {
+			const auto event =
+				(next_vertical_sync_event == Flywheel::SyncEvent::StartRetrace)
+					? Outputs::Display::ScanTarget::Event::BeginVerticalRetrace : Outputs::Display::ScanTarget::Event::EndVerticalRetrace;
+			scan_target_->announce(
+				event,
+				!(horizontal_flywheel_->is_in_retrace() || vertical_flywheel_->is_in_retrace()),
+				end_point(uint16_t((total_cycles - number_of_cycles) * number_of_samples / total_cycles)),
+				colour_burst_amplitude_);
 		}
 
 		// if this is vertical retrace then adcance a field
@@ -260,39 +272,34 @@ void CRT::advance_cycles(unsigned int number_of_cycles, bool hsync_requested, bo
 			if(delegate_) {
 				frames_since_last_delegate_call_++;
 				if(frames_since_last_delegate_call_ == 20) {
-					output_lock.unlock();
 					delegate_->crt_did_end_batch_of_frames(this, frames_since_last_delegate_call_, vertical_flywheel_->get_and_reset_number_of_surprises());
-					output_lock.lock();
 					frames_since_last_delegate_call_ = 0;
 				}
 			}
 		}
 	}
+
+	if(did_output) {
+		scan_target_->submit();
+	}
 }
-
-#undef output_x1
-#undef output_x2
-#undef output_position_y
-#undef output_tex_y
-
-#undef source_input_position_y
-#undef source_output_position_x1
-#undef source_output_position_x2
-#undef source_phase
-#undef source_amplitude
 
 // MARK: - stream feeding methods
 
 void CRT::output_scan(const Scan *const scan) {
-	// simplified colour burst logic: if it's within the back porch we'll take it
+	// Simplified colour burst logic: if it's within the back porch we'll take it.
 	if(scan->type == Scan::Type::ColourBurst) {
 		if(!colour_burst_amplitude_ && horizontal_flywheel_->get_current_time() < (horizontal_flywheel_->get_standard_period() * 12) >> 6) {
-			unsigned int position_phase = (horizontal_flywheel_->get_current_time() * colour_cycle_numerator_ * 256) / phase_denominator_;
-			colour_burst_phase_ = (position_phase + scan->phase) & 255;
-			colour_burst_amplitude_ = scan->amplitude;
-
+			// Load phase_numerator_ as a fixed-point quantity in the range [0, 255].
+			phase_numerator_ = scan->phase;
 			if(colour_burst_phase_adjustment_ != 0xff)
-				colour_burst_phase_ = (colour_burst_phase_ & ~63) + colour_burst_phase_adjustment_;
+				phase_numerator_ = (phase_numerator_ & ~63) + colour_burst_phase_adjustment_;
+
+			// Multiply the phase_numerator_ up to be to the proper scale.
+			phase_numerator_ = (phase_numerator_ * phase_denominator_) >> 8;
+
+			// Crib the colour burst amplitude.
+			colour_burst_amplitude_ = scan->amplitude;
 		}
 	}
 	// TODO: inspect raw data for potential colour burst if required; the DPLL and some zero crossing logic
@@ -303,18 +310,18 @@ void CRT::output_scan(const Scan *const scan) {
 	const bool is_leading_edge = (!is_receiving_sync_ && this_is_sync);
 	is_receiving_sync_ = this_is_sync;
 
-	// horizontal sync is recognised on any leading edge that is not 'near' the expected vertical sync;
+	// Horizontal sync is recognised on any leading edge that is not 'near' the expected vertical sync;
 	// the second limb is to avoid slightly horizontal sync shifting from the common pattern of
-	// equalisation pulses as the inverse of ordinary horizontal sync
+	// equalisation pulses as the inverse of ordinary horizontal sync.
 	bool hsync_requested = is_leading_edge && !vertical_flywheel_->is_near_expected_sync();
 
 	if(this_is_sync) {
-		// if this is sync then either begin or continue a sync accumulation phase
+		// If this is sync then either begin or continue a sync accumulation phase.
 		is_accumulating_sync_ = true;
 		cycles_since_sync_ = 0;
 	} else {
-		// if this is not sync then check how long it has been since sync. If it's more than
-		// half a line then end sync accumulation and zero out the accumulating count
+		// If this is not sync then check how long it has been since sync. If it's more than
+		// half a line then end sync accumulation and zero out the accumulating count.
 		cycles_since_sync_ += scan->number_of_cycles;
 		if(cycles_since_sync_ > (cycles_per_line_ >> 2)) {
 			cycles_of_sync_ = 0;
@@ -323,19 +330,19 @@ void CRT::output_scan(const Scan *const scan) {
 		}
 	}
 
-	unsigned int number_of_cycles = scan->number_of_cycles;
+	int number_of_cycles = scan->number_of_cycles;
 	bool vsync_requested = false;
 
-	// if sync is being accumulated then accumulate it; if it crosses the vertical sync threshold then
-	// divide this line at the crossing point and indicate vertical sync there
+	// If sync is being accumulated then accumulate it; if it crosses the vertical sync threshold then
+	// divide this line at the crossing point and indicate vertical sync there.
 	if(is_accumulating_sync_ && !is_refusing_sync_) {
 		cycles_of_sync_ += scan->number_of_cycles;
 
 		if(this_is_sync && cycles_of_sync_ >= sync_capacitor_charge_threshold_) {
-			unsigned int overshoot = std::min(cycles_of_sync_ - sync_capacitor_charge_threshold_, number_of_cycles);
+			const int overshoot = std::min(cycles_of_sync_ - sync_capacitor_charge_threshold_, number_of_cycles);
 			if(overshoot) {
 				number_of_cycles -= overshoot;
-				advance_cycles(number_of_cycles, hsync_requested, false, scan->type);
+				advance_cycles(number_of_cycles, hsync_requested, false, scan->type, 0);
 				hsync_requested = false;
 				number_of_cycles = overshoot;
 			}
@@ -345,35 +352,36 @@ void CRT::output_scan(const Scan *const scan) {
 		}
 	}
 
-	advance_cycles(number_of_cycles, hsync_requested, vsync_requested, scan->type);
+	advance_cycles(number_of_cycles, hsync_requested, vsync_requested, scan->type, scan->number_of_samples);
 }
 
 /*
 	These all merely channel into advance_cycles, supplying appropriate arguments
 */
-void CRT::output_sync(unsigned int number_of_cycles) {
+void CRT::output_sync(int number_of_cycles) {
 	Scan scan;
 	scan.type = Scan::Type::Sync;
 	scan.number_of_cycles = number_of_cycles;
 	output_scan(&scan);
 }
 
-void CRT::output_blank(unsigned int number_of_cycles) {
+void CRT::output_blank(int number_of_cycles) {
 	Scan scan;
 	scan.type = Scan::Type::Blank;
 	scan.number_of_cycles = number_of_cycles;
 	output_scan(&scan);
 }
 
-void CRT::output_level(unsigned int number_of_cycles) {
-	openGL_output_builder_.texture_builder.reduce_previous_allocation_to(1);
+void CRT::output_level(int number_of_cycles) {
+	scan_target_->end_data(1);
 	Scan scan;
 	scan.type = Scan::Type::Level;
 	scan.number_of_cycles = number_of_cycles;
+	scan.number_of_samples = 1;
 	output_scan(&scan);
 }
 
-void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint8_t amplitude) {
+void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, uint8_t amplitude) {
 	Scan scan;
 	scan.type = Scan::Type::ColourBurst;
 	scan.number_of_cycles = number_of_cycles;
@@ -382,24 +390,26 @@ void CRT::output_colour_burst(unsigned int number_of_cycles, uint8_t phase, uint
 	output_scan(&scan);
 }
 
-void CRT::output_default_colour_burst(unsigned int number_of_cycles) {
-	output_colour_burst(number_of_cycles, static_cast<uint8_t>((phase_numerator_ * 256) / phase_denominator_));
+void CRT::output_default_colour_burst(int number_of_cycles, uint8_t amplitude) {
+	// TODO: avoid applying a rounding error here?
+	output_colour_burst(number_of_cycles, static_cast<uint8_t>((phase_numerator_ * 256) / phase_denominator_), amplitude);
 }
 
 void CRT::set_immediate_default_phase(float phase) {
 	phase = fmodf(phase, 1.0f);
-	phase_numerator_ = static_cast<unsigned int>(phase * static_cast<float>(phase_denominator_));
+	phase_numerator_ = static_cast<int>(phase * static_cast<float>(phase_denominator_));
 }
 
-void CRT::output_data(unsigned int number_of_cycles, unsigned int number_of_samples) {
-	openGL_output_builder_.texture_builder.reduce_previous_allocation_to(number_of_samples);
+void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
+	scan_target_->end_data(number_of_samples);
 	Scan scan;
 	scan.type = Scan::Type::Data;
 	scan.number_of_cycles = number_of_cycles;
+	scan.number_of_samples = int(number_of_samples);
 	output_scan(&scan);
 }
 
-Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio) {
+Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio) {
 	first_cycle_after_sync *= time_multiplier_;
 	number_of_cycles *= time_multiplier_;
 
@@ -407,34 +417,34 @@ Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_
 	number_of_lines += 4;
 
 	// determine prima facie x extent
-	unsigned int horizontal_period = horizontal_flywheel_->get_standard_period();
-	unsigned int horizontal_scan_period = horizontal_flywheel_->get_scan_period();
-	unsigned int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
+	const int horizontal_period = horizontal_flywheel_->get_standard_period();
+	const int horizontal_scan_period = horizontal_flywheel_->get_scan_period();
+	const int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
 
 	// make sure that the requested range is visible
-	if(static_cast<unsigned int>(first_cycle_after_sync) < horizontal_retrace_period) first_cycle_after_sync = static_cast<int>(horizontal_retrace_period);
-	if(static_cast<unsigned int>(first_cycle_after_sync + number_of_cycles) > horizontal_scan_period) number_of_cycles = static_cast<int>(horizontal_scan_period - static_cast<unsigned int>(first_cycle_after_sync));
+	if(static_cast<int>(first_cycle_after_sync) < horizontal_retrace_period) first_cycle_after_sync = static_cast<int>(horizontal_retrace_period);
+	if(static_cast<int>(first_cycle_after_sync + number_of_cycles) > horizontal_scan_period) number_of_cycles = static_cast<int>(horizontal_scan_period - static_cast<int>(first_cycle_after_sync));
 
-	float start_x = static_cast<float>(static_cast<unsigned int>(first_cycle_after_sync) - horizontal_retrace_period) / static_cast<float>(horizontal_scan_period);
+	float start_x = static_cast<float>(static_cast<int>(first_cycle_after_sync) - horizontal_retrace_period) / static_cast<float>(horizontal_scan_period);
 	float width = static_cast<float>(number_of_cycles) / static_cast<float>(horizontal_scan_period);
 
 	// determine prima facie y extent
-	unsigned int vertical_period = vertical_flywheel_->get_standard_period();
-	unsigned int vertical_scan_period = vertical_flywheel_->get_scan_period();
-	unsigned int vertical_retrace_period = vertical_period - vertical_scan_period;
+	const int vertical_period = vertical_flywheel_->get_standard_period();
+	const int vertical_scan_period = vertical_flywheel_->get_scan_period();
+	const int vertical_retrace_period = vertical_period - vertical_scan_period;
 
 	// make sure that the requested range is visible
-//	if(static_cast<unsigned int>(first_line_after_sync) * horizontal_period < vertical_retrace_period)
+//	if(static_cast<int>(first_line_after_sync) * horizontal_period < vertical_retrace_period)
 //		first_line_after_sync = (vertical_retrace_period + horizontal_period - 1) / horizontal_period;
 //	if((first_line_after_sync + number_of_lines) * horizontal_period > vertical_scan_period)
-//		number_of_lines = static_cast<int>(horizontal_scan_period - static_cast<unsigned int>(first_cycle_after_sync));
+//		number_of_lines = static_cast<int>(horizontal_scan_period - static_cast<int>(first_cycle_after_sync));
 
-	float start_y = static_cast<float>((static_cast<unsigned int>(first_line_after_sync) * horizontal_period) - vertical_retrace_period) / static_cast<float>(vertical_scan_period);
-	float height = static_cast<float>(static_cast<unsigned int>(number_of_lines) * horizontal_period) / vertical_scan_period;
+	float start_y = static_cast<float>((static_cast<int>(first_line_after_sync) * horizontal_period) - vertical_retrace_period) / static_cast<float>(vertical_scan_period);
+	float height = static_cast<float>(static_cast<int>(number_of_lines) * horizontal_period) / vertical_scan_period;
 
 	// adjust to ensure aspect ratio is correct
-	float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);
-	float ideal_width = height * adjusted_aspect_ratio;
+	const float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);
+	const float ideal_width = height * adjusted_aspect_ratio;
 	if(ideal_width > width) {
 		start_x -= (ideal_width - width) * 0.5f;
 		width = ideal_width;
@@ -444,5 +454,5 @@ Outputs::CRT::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_
 		height = ideal_height;
 	}
 
-	return Rect(start_x, start_y, width, height);
+	return Outputs::Display::Rect(start_x, start_y, width, height);
 }

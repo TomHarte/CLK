@@ -135,23 +135,23 @@ template<bool is_zx81> class ConcreteMachine:
 			time_since_ay_update_ += cycle.length;
 
 			if(previous_counter < vsync_start_ && horizontal_counter_ >= vsync_start_) {
-				video_->run_for(vsync_start_ - previous_counter);
+				video_.run_for(vsync_start_ - previous_counter);
 				set_hsync(true);
 				line_counter_ = (line_counter_ + 1) & 7;
 				if(nmi_is_enabled_) {
 					z80_.set_non_maskable_interrupt_line(true);
 				}
-				video_->run_for(horizontal_counter_ - vsync_start_);
+				video_.run_for(horizontal_counter_ - vsync_start_);
 			} else if(previous_counter < vsync_end_ && horizontal_counter_ >= vsync_end_) {
-				video_->run_for(vsync_end_ - previous_counter);
+				video_.run_for(vsync_end_ - previous_counter);
 				set_hsync(false);
 				if(nmi_is_enabled_) {
 					z80_.set_non_maskable_interrupt_line(false);
 					z80_.set_wait_line(false);
 				}
-				video_->run_for(horizontal_counter_ - vsync_end_);
+				video_.run_for(horizontal_counter_ - vsync_end_);
 			} else {
-				video_->run_for(cycle.length);
+				video_.run_for(cycle.length);
 			}
 
 			if(is_zx81) horizontal_counter_ %= HalfCycles(Cycles(207));
@@ -240,7 +240,7 @@ template<bool is_zx81> class ConcreteMachine:
 							latched_video_byte_ = ram_[address & ram_mask_] ^ mask;
 						}
 
-						video_->output_byte(latched_video_byte_);
+						video_.output_byte(latched_video_byte_);
 						has_latched_video_byte_ = false;
 					}
 				break;
@@ -303,23 +303,15 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		forceinline void flush() {
-			video_->flush();
+			video_.flush();
 			if(is_zx81) {
 				update_audio();
 				audio_queue_.perform();
 			}
 		}
 
-		void setup_output(float aspect_ratio) override final {
-			video_.reset(new Video);
-		}
-
-		void close_output() override final {
-			video_.reset();
-		}
-
-		Outputs::CRT::CRT *get_crt() override final {
-			return video_->get_crt();
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+			video_.set_scan_target(scan_target);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override final {
@@ -415,8 +407,7 @@ template<bool is_zx81> class ConcreteMachine:
 
 	private:
 		CPU::Z80::Processor<ConcreteMachine, false, is_zx81> z80_;
-
-		std::unique_ptr<Video> video_;
+		Video video_;
 
 		uint16_t tape_trap_address_, tape_return_address_;
 		uint16_t automatic_tape_motor_start_address_, automatic_tape_motor_end_address_;
@@ -464,7 +455,7 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		inline void update_sync() {
-			video_->set_sync(vsync_ || hsync_);
+			video_.set_sync(vsync_ || hsync_);
 		}
 
 		// MARK: - Audio

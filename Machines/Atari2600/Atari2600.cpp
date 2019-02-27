@@ -122,10 +122,6 @@ class ConcreteMachine:
 			joysticks_.emplace_back(new Joystick(bus_.get(), 4, 1));
 		}
 
-		~ConcreteMachine() {
-			close_output();
-		}
-
 		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
 		}
@@ -157,18 +153,10 @@ class ConcreteMachine:
 		}
 
 		// to satisfy CRTMachine::Machine
-		void setup_output(float aspect_ratio) override {
-			bus_->tia_.reset(new TIA);
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			bus_->speaker_.set_input_rate(static_cast<float>(get_clock_rate() / static_cast<double>(CPUTicksPerAudioTick)));
-			bus_->tia_->get_crt()->set_delegate(this);
-		}
-
-		void close_output() override {
-			bus_.reset();
-		}
-
-		Outputs::CRT::CRT *get_crt() override {
-			return bus_->tia_->get_crt();
+			bus_->tia_.set_crt_delegate(this);
+			bus_->tia_.set_scan_target(scan_target);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
@@ -181,15 +169,15 @@ class ConcreteMachine:
 		}
 
 		// to satisfy Outputs::CRT::Delegate
-		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, unsigned int number_of_frames, unsigned int number_of_unexpected_vertical_syncs) override {
+		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) override {
 			const std::size_t number_of_frame_records = sizeof(frame_records_) / sizeof(frame_records_[0]);
 			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_frames = number_of_frames;
 			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
 			frame_record_pointer_ ++;
 
 			if(frame_record_pointer_ >= 6) {
-				unsigned int total_number_of_frames = 0;
-				unsigned int total_number_of_unexpected_vertical_syncs = 0;
+				int total_number_of_frames = 0;
+				int total_number_of_unexpected_vertical_syncs = 0;
 				for(std::size_t c = 0; c < number_of_frame_records; c++) {
 					total_number_of_frames += frame_records_[c].number_of_frames;
 					total_number_of_unexpected_vertical_syncs += frame_records_[c].number_of_unexpected_vertical_syncs;
@@ -205,10 +193,10 @@ class ConcreteMachine:
 					double clock_rate;
 					if(is_ntsc_) {
 						clock_rate = NTSC_clock_rate;
-						bus_->tia_->set_output_mode(TIA::OutputMode::NTSC);
+						bus_->tia_.set_output_mode(TIA::OutputMode::NTSC);
 					} else {
 						clock_rate = PAL_clock_rate;
-						bus_->tia_->set_output_mode(TIA::OutputMode::PAL);
+						bus_->tia_.set_output_mode(TIA::OutputMode::PAL);
 					}
 
 					bus_->speaker_.set_input_rate(static_cast<float>(clock_rate / static_cast<double>(CPUTicksPerAudioTick)));
@@ -228,10 +216,8 @@ class ConcreteMachine:
 
 		// output frame rate tracker
 		struct FrameRecord {
-			unsigned int number_of_frames;
-			unsigned int number_of_unexpected_vertical_syncs;
-
-			FrameRecord() : number_of_frames(0), number_of_unexpected_vertical_syncs(0) {}
+			int number_of_frames = 0;
+			int number_of_unexpected_vertical_syncs = 0;
 		} frame_records_[4];
 		unsigned int frame_record_pointer_ = 0;
 		bool is_ntsc_ = true;

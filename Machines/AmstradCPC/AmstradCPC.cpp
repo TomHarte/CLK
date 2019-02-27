@@ -30,6 +30,7 @@
 
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Outputs/CRT/CRT.hpp"
 
 #include "../../Analyser/Static/AmstradCPC/Target.hpp"
 
@@ -40,7 +41,7 @@ namespace AmstradCPC {
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayComposite)
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayCompositeColour)
 	);
 }
 
@@ -171,10 +172,14 @@ class AYDeferrer {
 class CRTCBusHandler {
 	public:
 		CRTCBusHandler(uint8_t *ram, InterruptTimer &interrupt_timer) :
+			crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2),
 			ram_(ram),
 			interrupt_timer_(interrupt_timer) {
 				establish_palette_hits();
 				build_mode_table();
+				crt_.set_visible_area(Outputs::Display::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
+				crt_.set_brightness(3.0f / 2.0f);	// As only the values 0, 1 and 2 will be used in each channel,
+													// whereas Red2Green2Blue2 defines a range of 0-3.
 			}
 
 		/*!
@@ -217,12 +222,12 @@ class CRTCBusHandler {
 				if(cycles_) {
 					switch(previous_output_mode_) {
 						default:
-						case OutputMode::Blank:			crt_->output_blank(cycles_ * 16);					break;
-						case OutputMode::Sync:			crt_->output_sync(cycles_ * 16);					break;
+						case OutputMode::Blank:			crt_.output_blank(cycles_ * 16);					break;
+						case OutputMode::Sync:			crt_.output_sync(cycles_ * 16);					break;
 						case OutputMode::Border:		output_border(cycles_);								break;
-						case OutputMode::ColourBurst:	crt_->output_default_colour_burst(cycles_ * 16);	break;
+						case OutputMode::ColourBurst:	crt_.output_default_colour_burst(cycles_ * 16);	break;
 						case OutputMode::Pixels:
-							crt_->output_data(cycles_ * 16, cycles_ * 16 / pixel_divider_);
+							crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
 							pixel_pointer_ = pixel_data_ = nullptr;
 						break;
 					}
@@ -238,7 +243,7 @@ class CRTCBusHandler {
 			// collect some more pixels if output is ongoing
 			if(previous_output_mode_ == OutputMode::Pixels) {
 				if(!pixel_data_) {
-					pixel_pointer_ = pixel_data_ = crt_->allocate_write_area(320, 8);
+					pixel_pointer_ = pixel_data_ = crt_.begin_data(320, 8);
 				}
 				if(pixel_pointer_) {
 					// the CPC shuffles output lines as:
@@ -283,7 +288,7 @@ class CRTCBusHandler {
 					// widths so it's not necessarily possible to predict the correct number in advance
 					// and using the upper bound could lead to inefficient behaviour
 					if(pixel_pointer_ == pixel_data_ + 320) {
-						crt_->output_data(cycles_ * 16, cycles_ * 16 / pixel_divider_);
+						crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
 						pixel_pointer_ = pixel_data_ = nullptr;
 						cycles_ = 0;
 					}
@@ -323,27 +328,14 @@ class CRTCBusHandler {
 			was_hsync_ = state.hsync;
 		}
 
-		/// Constructs an appropriate CRT for video output.
-		void setup_output(float aspect_ratio) {
-			crt_.reset(new Outputs::CRT::CRT(1024, 16, Outputs::CRT::DisplayType::PAL50, 1));
-			crt_->set_rgb_sampling_function(
-				"vec3 rgb_sample(usampler2D sampler, vec2 coordinate)"
-				"{"
-					"uint sample = texture(texID, coordinate).r;"
-					"return vec3(float((sample >> 4) & 3u), float((sample >> 2) & 3u), float(sample & 3u)) / 2.0;"
-				"}");
-			crt_->set_visible_area(Outputs::CRT::Rect(0.1072f, 0.1f, 0.842105263157895f, 0.842105263157895f));
-			crt_->set_video_signal(Outputs::CRT::VideoSignal::RGB);
+		/// Sets the destination for output.
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) {
+			crt_.set_scan_target(scan_target);
 		}
 
-		/// Destructs the CRT.
-		void close_output() {
-			crt_.reset();
-		}
-
-		/// @returns the CRT.
-		Outputs::CRT::CRT *get_crt() {
-			return crt_.get();
+		/// Sets the type of display.
+		void set_display_type(Outputs::Display::DisplayType display_type) {
+			crt_.set_display_type(display_type);
 		}
 
 		/*!
@@ -376,10 +368,10 @@ class CRTCBusHandler {
 		}
 
 	private:
-		void output_border(unsigned int length) {
-			uint8_t *colour_pointer = static_cast<uint8_t *>(crt_->allocate_write_area(1));
+		void output_border(int length) {
+			uint8_t *colour_pointer = static_cast<uint8_t *>(crt_.begin_data(1));
 			if(colour_pointer) *colour_pointer = border_;
-			crt_->output_level(length * 16);
+			crt_.output_level(length * 16);
 		}
 
 #define Mode0Colour0(c) ((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2)
@@ -528,19 +520,19 @@ class CRTCBusHandler {
 			Border,
 			Pixels
 		} previous_output_mode_ = OutputMode::Sync;
-		unsigned int cycles_ = 0;
+		int cycles_ = 0;
 
 		bool was_hsync_ = false, was_vsync_ = false;
 		int cycles_into_hsync_ = 0;
 
-		std::unique_ptr<Outputs::CRT::CRT> crt_;
+		Outputs::CRT::CRT crt_;
 		uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
 
 		uint8_t *ram_ = nullptr;
 
 		int next_mode_ = 2, mode_ = 2;
 
-		unsigned int pixel_divider_ = 1;
+		int pixel_divider_ = 1;
 		uint16_t mode0_output_[256];
 		uint32_t mode1_output_[256];
 		uint64_t mode2_output_[256];
@@ -981,19 +973,14 @@ template <bool has_fdc> class ConcreteMachine:
 			flush_fdc();
 		}
 
-		/// A CRTMachine function; indicates that outputs should be created now.
-		void setup_output(float aspect_ratio) override final {
-			crtc_bus_handler_.setup_output(aspect_ratio);
+		/// A CRTMachine function; sets the destination for video.
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+			crtc_bus_handler_.set_scan_target(scan_target);
 		}
 
-		/// A CRTMachine function; indicates that outputs should be destroyed now.
-		void close_output() override final {
-			crtc_bus_handler_.close_output();
-		}
-
-		/// @returns the CRT in use.
-		Outputs::CRT::CRT *get_crt() override final {
-			return crtc_bus_handler_.get_crt();
+		/// A CRTMachine function; sets the output display type.
+		void set_display_type(Outputs::Display::DisplayType display_type) override final {
+			crtc_bus_handler_.set_display_type(display_type);
 		}
 
 		/// @returns the speaker in use.
@@ -1192,7 +1179,7 @@ Machine *Machine::AmstradCPC(const Analyser::Static::Target *target, const ROMMa
 	using Target = Analyser::Static::AmstradCPC::Target;
 	const Target *const cpc_target = dynamic_cast<const Target *>(target);
 	switch(cpc_target->model) {
-		default: 					return new AmstradCPC::ConcreteMachine<true>(*cpc_target, rom_fetcher);
+		default:					return new AmstradCPC::ConcreteMachine<true>(*cpc_target, rom_fetcher);
 		case Target::Model::CPC464:	return new AmstradCPC::ConcreteMachine<false>(*cpc_target, rom_fetcher);
 	}
 }

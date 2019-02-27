@@ -28,12 +28,19 @@
 
 #include "../../Analyser/Static/AppleII/Target.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
+#include "../../Configurable/StandardOptions.hpp"
 
 #include <algorithm>
 #include <array>
 #include <memory>
 
-namespace {
+namespace AppleII {
+
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayCompositeMonochrome | Configurable::DisplayCompositeColour)
+	);
+}
 
 #define is_iie() ((model == Analyser::Static::AppleII::Target::Model::IIe) || (model == Analyser::Static::AppleII::Target::Model::EnhancedIIe))
 
@@ -43,6 +50,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 	public KeyboardMachine::MappedMachine,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
+	public Configurable::Device,
 	public AppleII::Machine,
 	public Activity::Source,
 	public JoystickMachine::Machine,
@@ -63,12 +71,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		CPU::MOS6502::Processor<(model == Analyser::Static::AppleII::Target::Model::EnhancedIIe) ? CPU::MOS6502::Personality::PSynertek65C02 : CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 		VideoBusHandler video_bus_handler_;
-		std::unique_ptr<AppleII::Video::Video<VideoBusHandler, is_iie()>> video_;
+		AppleII::Video::Video<VideoBusHandler, is_iie()> video_;
 		int cycles_into_current_line_ = 0;
 		Cycles cycles_since_video_update_;
 
 		void update_video() {
-			video_->run_for(cycles_since_video_update_.flush());
+			video_.run_for(cycles_since_video_update_.flush());
 		}
 		static const int audio_divider = 8;
 		void update_audio() {
@@ -84,7 +92,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		uint8_t ram_[65536], aux_ram_[65536];
 		std::vector<uint8_t> rom_;
-		std::vector<uint8_t> character_rom_;
 		uint8_t keyboard_input_ = 0x00;
 		bool key_is_down_ = false;
 
@@ -123,7 +130,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		void pick_card_messaging_group(AppleII::Card *card) {
 			const bool is_every_cycle = is_every_cycle_card(card);
 			std::vector<AppleII::Card *> &intended = is_every_cycle ? every_cycle_cards_ : just_in_time_cards_;
-		 	std::vector<AppleII::Card *> &undesired = is_every_cycle ? just_in_time_cards_ : every_cycle_cards_;
+			std::vector<AppleII::Card *> &undesired = is_every_cycle ? just_in_time_cards_ : every_cycle_cards_;
 
 			if(std::find(intended.begin(), intended.end(), card) != intended.end()) return;
 			auto old_membership = std::find(undesired.begin(), undesired.end(), card);
@@ -154,7 +161,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			On a IIe with auxiliary memory the following orthogonal changes also need to be factored in:
 
-			0000 to 0200 	:	can be paged independently of the rest of RAM, other than part of the language card area which pages with it
+			0000 to 0200	:	can be paged independently of the rest of RAM, other than part of the language card area which pages with it
 			0400 to 0800	:	the text screen, can be configured to write to auxiliary RAM
 			2000 to 4000	:	the graphics screen, which can be configured to write to auxiliary RAM
 			c100 to d000	:	can be used to page an additional 3.75kb of ROM, replacing the IO area
@@ -234,13 +241,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				read_auxiliary_memory_ ? &aux_ram_[0x0200] : &ram_[0x0200],
 				write_auxiliary_memory_ ? &aux_ram_[0x0200] : &ram_[0x0200]);
 
-			if(video_ && video_->get_80_store()) {
-				bool use_aux_ram = video_->get_page2();
+			if(video_.get_80_store()) {
+				bool use_aux_ram = video_.get_page2();
 				page(0x04, 0x08,
 					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400],
 					use_aux_ram ? &aux_ram_[0x0400] : &ram_[0x0400]);
 
-				if(video_->get_high_resolution()) {
+				if(video_.get_high_resolution()) {
 					page(0x20, 0x40,
 						use_aux_ram ? &aux_ram_[0x2000] : &ram_[0x2000],
 						use_aux_ram ? &aux_ram_[0x2000] : &ram_[0x2000]);
@@ -308,15 +315,16 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 	public:
 		ConcreteMachine(const Analyser::Static::AppleII::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			m6502_(*this),
-		 	video_bus_handler_(ram_, aux_ram_),
-		 	audio_toggle_(audio_queue_),
-		 	speaker_(audio_toggle_) {
-		 	// The system's master clock rate.
-		 	const float master_clock = 14318180.0;
+			video_bus_handler_(ram_, aux_ram_),
+			video_(video_bus_handler_),
+			audio_toggle_(audio_queue_),
+			speaker_(audio_toggle_) {
+			// The system's master clock rate.
+			const float master_clock = 14318180.0;
 
-		 	// This is where things get slightly convoluted: establish the machine as having a clock rate
-		 	// equal to the number of cycles of work the 6502 will actually achieve. Which is less than
-		 	// the master clock rate divided by 14 because every 65th cycle is extended by one seventh.
+			// This is where things get slightly convoluted: establish the machine as having a clock rate
+			// equal to the number of cycles of work the 6502 will actually achieve. Which is less than
+			// the master clock rate divided by 14 because every 65th cycle is extended by one seventh.
 			set_clock_rate((master_clock / 14.0) * 65.0 / (65.0 + 1.0 / 7.0));
 
 			// The speaker, however, should think it is clocked at half the master clock, per a general
@@ -333,8 +341,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			Memory::Fuzz(aux_ram_, sizeof(aux_ram_));
 
 			// Add a couple of joysticks.
-		 	joysticks_.emplace_back(new Joystick);
-		 	joysticks_.emplace_back(new Joystick);
+			joysticks_.emplace_back(new Joystick);
+			joysticks_.emplace_back(new Joystick);
 
 			// Pick the required ROMs.
 			using Target = Analyser::Static::AppleII::Target;
@@ -371,7 +379,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				rom_.erase(rom_.begin(), rom_.end() - static_cast<off_t>(rom_size));
 			}
 
-			character_rom_ = std::move(*roms[0]);
+			video_.set_character_rom(*roms[0]);
 
 			if(target.disk_controller != Target::DiskController::None) {
 				// Apple recommended slot 6 for the (first) Disk II.
@@ -396,17 +404,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void setup_output(float aspect_ratio) override {
-			video_.reset(new AppleII::Video::Video<VideoBusHandler, is_iie()>(video_bus_handler_));
-			video_->set_character_rom(character_rom_);
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+			video_.set_scan_target(scan_target);
 		}
 
-		void close_output() override {
-			video_.reset();
-		}
-
-		Outputs::CRT::CRT *get_crt() override {
-			return video_->get_crt();
+		/// Sets the type of display.
+		void set_display_type(Outputs::Display::DisplayType display_type) override {
+			video_.set_display_type(display_type);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
@@ -463,7 +467,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				// actor, but this will actually be the result most of the time so it's not
 				// too terrible.
 				if(isReadOperation(operation) && address != 0xc000) {
-					*value = video_->get_last_read_value(cycles_since_video_update_);
+					*value = video_.get_last_read_value(cycles_since_video_update_);
 				}
 
 				switch(address) {
@@ -523,18 +527,18 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								case 0xc015:	IIeSwitchRead(internal_CX_rom_);											break;
 								case 0xc016:	IIeSwitchRead(alternative_zero_page_);										break;
 								case 0xc017:	IIeSwitchRead(slot_C3_rom_);												break;
-								case 0xc018:	IIeSwitchRead(video_->get_80_store());										break;
-								case 0xc019:	IIeSwitchRead(video_->get_is_vertical_blank(cycles_since_video_update_));	break;
-								case 0xc01a:	IIeSwitchRead(video_->get_text());											break;
-								case 0xc01b:	IIeSwitchRead(video_->get_mixed());											break;
-								case 0xc01c:	IIeSwitchRead(video_->get_page2());											break;
-								case 0xc01d:	IIeSwitchRead(video_->get_high_resolution());								break;
-								case 0xc01e:	IIeSwitchRead(video_->get_alternative_character_set());						break;
-								case 0xc01f:	IIeSwitchRead(video_->get_80_columns());									break;
+								case 0xc018:	IIeSwitchRead(video_.get_80_store());										break;
+								case 0xc019:	IIeSwitchRead(video_.get_is_vertical_blank(cycles_since_video_update_));	break;
+								case 0xc01a:	IIeSwitchRead(video_.get_text());											break;
+								case 0xc01b:	IIeSwitchRead(video_.get_mixed());											break;
+								case 0xc01c:	IIeSwitchRead(video_.get_page2());											break;
+								case 0xc01d:	IIeSwitchRead(video_.get_high_resolution());								break;
+								case 0xc01e:	IIeSwitchRead(video_.get_alternative_character_set());						break;
+								case 0xc01f:	IIeSwitchRead(video_.get_80_columns());										break;
 #undef IIeSwitchRead
 
 								case 0xc07f:
-									if(is_iie()) *value = (*value & 0x7f) | (video_->get_annunciator_3() ? 0x80 : 0x00);
+									if(is_iie()) *value = (*value & 0x7f) | (video_.get_annunciator_3() ? 0x80 : 0x00);
 								break;
 							}
 						} else {
@@ -546,7 +550,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 									case 0xc000:
 									case 0xc001:
 										update_video();
-										video_->set_80_store(!!(address&1));
+										video_.set_80_store(!!(address&1));
 										set_main_paging();
 									break;
 
@@ -586,13 +590,13 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 									case 0xc00c:
 									case 0xc00d:
 										update_video();
-										video_->set_80_columns(!!(address&1));
+										video_.set_80_columns(!!(address&1));
 									break;
 
 									case 0xc00e:
 									case 0xc00f:
 										update_video();
-										video_->set_alternative_character_set(!!(address&1));
+										video_.set_alternative_character_set(!!(address&1));
 									break;
 								}
 							}
@@ -615,20 +619,20 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case 0xc050:
 					case 0xc051:
 						update_video();
-						video_->set_text(!!(address&1));
+						video_.set_text(!!(address&1));
 					break;
-					case 0xc052:	update_video();		video_->set_mixed(false);			break;
-					case 0xc053:	update_video();		video_->set_mixed(true);			break;
+					case 0xc052:	update_video();		video_.set_mixed(false);		break;
+					case 0xc053:	update_video();		video_.set_mixed(true);			break;
 					case 0xc054:
 					case 0xc055:
 						update_video();
-						video_->set_page2(!!(address&1));
+						video_.set_page2(!!(address&1));
 						set_main_paging();
 					break;
 					case 0xc056:
 					case 0xc057:
 						update_video();
-						video_->set_high_resolution(!!(address&1));
+						video_.set_high_resolution(!!(address&1));
 						set_main_paging();
 					break;
 
@@ -636,7 +640,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case 0xc05f:
 						if(is_iie()) {
 							update_video();
-							video_->set_annunciator_3(!(address&1));
+							video_.set_annunciator_3(!(address&1));
 						}
 					break;
 
@@ -810,6 +814,28 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		void type_string(const std::string &string) override {
 			string_serialiser_.reset(new Utility::StringSerialiser(string, true));
+		}
+
+		// MARK:: Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			return AppleII::get_options();
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			Configurable::Display display;
+			if(Configurable::get_display(selections_by_option, display)) {
+				set_video_signal_configurable(display);
+			}
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			return get_accurate_selections();
 		}
 
 		// MARK: MediaTarget

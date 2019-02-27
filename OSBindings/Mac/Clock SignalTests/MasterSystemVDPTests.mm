@@ -19,7 +19,7 @@
 }
 
 - (void)setUp {
-    [super setUp];
+	[super setUp];
 
 	// Create a valid OpenGL context, so that a VDP can be constructed.
 	NSOpenGLPixelFormatAttribute attributes[] =
@@ -34,10 +34,10 @@
 }
 
 - (void)tearDown {
-    // Put teardown code here. This method is called after the invocation of each test method in the class.
-    _openGLContext = nil;
+	// Put teardown code here. This method is called after the invocation of each test method in the class.
+	_openGLContext = nil;
 
-    [super tearDown];
+	[super tearDown];
 }
 
 - (void)testLineInterrupt {
