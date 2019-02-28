@@ -31,7 +31,7 @@ namespace Dynamic {
 */
 class MultiCRTMachine: public CRTMachine::Machine {
 	public:
-		MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines, std::mutex &machines_mutex);
+		MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines, std::recursive_mutex &machines_mutex);
 
 		/*!
 			Informs the MultiCRTMachine that the order of machines has changed; the MultiCRTMachine
@@ -60,7 +60,7 @@ class MultiCRTMachine: public CRTMachine::Machine {
 	private:
 		void run_for(const Cycles cycles) override {}
 		const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines_;
-		std::mutex &machines_mutex_;
+		std::recursive_mutex &machines_mutex_;
 		std::vector<Concurrency::AsyncTaskQueue> queues_;
 		MultiSpeaker *speaker_ = nullptr;
 		Delegate *delegate_ = nullptr;

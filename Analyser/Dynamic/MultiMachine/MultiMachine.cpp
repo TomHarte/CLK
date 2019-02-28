@@ -73,7 +73,7 @@ bool MultiMachine::would_collapse(const std::vector<std::unique_ptr<DynamicMachi
 }
 
 void MultiMachine::multi_crt_did_run_machines() {
-	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
+	std::lock_guard<decltype(machines_mutex_)> machines_lock(machines_mutex_);
 #ifdef DEBUG
 	for(const auto &machine: machines_) {
 		CRTMachine::Machine *crt = machine->crt_machine();

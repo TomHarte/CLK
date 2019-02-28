@@ -13,7 +13,7 @@
 
 using namespace Analyser::Dynamic;
 
-MultiCRTMachine::MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines, std::mutex &machines_mutex) :
+MultiCRTMachine::MultiCRTMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines, std::recursive_mutex &machines_mutex) :
 	machines_(machines), machines_mutex_(machines_mutex), queues_(machines.size()) {
 	speaker_ = MultiSpeaker::create(machines);
 }
@@ -25,7 +25,7 @@ void MultiCRTMachine::perform_parallel(const std::function<void(::CRTMachine::Ma
 	std::condition_variable condition;
 	std::mutex mutex;
 	{
-		std::lock_guard<std::mutex> machines_lock(machines_mutex_);
+		std::lock_guard<decltype(machines_mutex_)> machines_lock(machines_mutex_);
 		std::lock_guard<std::mutex> lock(mutex);
 		outstanding_machines = machines_.size();
 
@@ -46,7 +46,7 @@ void MultiCRTMachine::perform_parallel(const std::function<void(::CRTMachine::Ma
 }
 
 void MultiCRTMachine::perform_serial(const std::function<void (::CRTMachine::Machine *)> &function) {
-	std::lock_guard<std::mutex> machines_lock(machines_mutex_);
+	std::lock_guard<decltype(machines_mutex_)> machines_lock(machines_mutex_);
 	for(const auto &machine: machines_) {
 		CRTMachine::Machine *const crt_machine = machine->crt_machine();
 		if(crt_machine) function(crt_machine);
