@@ -196,7 +196,7 @@ class ConcreteMachine:
 			// This code works out the delay up front in order to simplify execution flow, though
 			// technically this is a little duplicative.
 			HalfCycles penalty(0);
-			if((cycle.operation == CPU::Z80::PartialMachineCycle::Output || cycle.operation == CPU::Z80::PartialMachineCycle::Input) && ((*cycle.address >> 5) & 7) == 7) {
+			if(cycle.operation == CPU::Z80::PartialMachineCycle::Output && ((*cycle.address >> 5) & 7) == 7) {
 				penalty = HalfCycles(62);
 			} else if(cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) {
 				penalty = HalfCycles(2);
