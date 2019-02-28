@@ -28,6 +28,7 @@
 #include "../../Activity/Observer.hpp"
 #include "../../Outputs/OpenGL/Primitives/Rectangle.hpp"
 #include "../../Outputs/OpenGL/ScanTarget.hpp"
+#include "../../Outputs/OpenGL/Screenshot.hpp"
 
 namespace {
 
@@ -622,21 +623,8 @@ int main(int argc, char *argv[]) {
 
 					// Capture ctrl+shift+d as a take-a-screenshot command.
 					if(event.key.keysym.sym == SDLK_d && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
-						// Pick a width to capture that will preserve a 4:3 output aspect ratio.
-						const int proportional_width = (window_height * 4) / 3;
-
 						// Grab the screen buffer.
-						std::vector<uint8_t> pixels(proportional_width * window_height * 4);
-						glReadPixels((window_width - proportional_width) >> 1, 0, proportional_width, window_height, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-
-						// Flip the buffer vertically, because SDL and OpenGL do not agree about
-						// the basis axes.
-						std::vector<uint8_t> swap_buffer(proportional_width*4);
-						for(int y = 0; y < window_height >> 1; ++y) {
-							memcpy(swap_buffer.data(), &pixels[y*proportional_width*4], swap_buffer.size());
-							memcpy(&pixels[y*proportional_width*4], &pixels[(window_height - 1 - y)*proportional_width*4], swap_buffer.size());
-							memcpy(&pixels[(window_height - 1 - y)*proportional_width*4], swap_buffer.data(), swap_buffer.size());
-						}
+						Outputs::Display::OpenGL::Screenshot screenshot(4, 3);
 
 						// Pick the directory for images. Try `xdg-user-dir PICTURES` first.
 						std::string target_directory = system_get("xdg-user-dir PICTURES");
@@ -664,10 +652,10 @@ int main(int argc, char *argv[]) {
 						// Create a suitable SDL surface and save the thing.
 						const bool is_big_endian = SDL_BYTEORDER == SDL_BIG_ENDIAN;
 						SDL_Surface *const surface = SDL_CreateRGBSurfaceFrom(
-							pixels.data(),
-							proportional_width, window_height,
+							screenshot.pixel_data.data(),
+							screenshot.width, screenshot.height,
 							8*4,
-							proportional_width*4,
+							screenshot.width*4,
 							is_big_endian ? 0xff000000 : 0x000000ff,
 							is_big_endian ? 0x00ff0000 : 0x0000ff00,
 							is_big_endian ? 0x0000ff00 : 0x00ff0000,
