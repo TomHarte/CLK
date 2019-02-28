@@ -30,6 +30,7 @@
 #include <OpenGL/gl3.h>
 
 #include "../../../../Outputs/OpenGL/ScanTarget.hpp"
+#include "../../../../Outputs/OpenGL/Screenshot.hpp"
 
 @interface CSMachine() <CSFastLoading>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
@@ -250,38 +251,24 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (NSBitmapImageRep *)imageRepresentation {
-	// Get the current viewport to establish framebuffer size. Then determine how wide the
-	// centre 4/3 of that would be.
-	GLint dimensions[4];
-	glGetIntegerv(GL_VIEWPORT, dimensions);
-	GLint proportionalWidth = (dimensions[3] * 4) / 3;
+	// Grab a screenshot.
+	Outputs::Display::OpenGL::Screenshot screenshot(4, 3);
 
-	// Grab the framebuffer contents.
-	std::vector<uint8_t> temporaryData(static_cast<size_t>(proportionalWidth * dimensions[3] * 3));
-	glReadPixels((dimensions[2] - proportionalWidth) >> 1, 0, proportionalWidth, dimensions[3], GL_RGB, GL_UNSIGNED_BYTE, temporaryData.data());
-
-	// Generate an NSBitmapImageRep and populate it with a vertical flip
-	// of the original data.
+	// Generate an NSBitmapImageRep containing the screenshot's data.
 	NSBitmapImageRep *const result =
 		[[NSBitmapImageRep alloc]
 			initWithBitmapDataPlanes:NULL
-			pixelsWide:proportionalWidth
-			pixelsHigh:dimensions[3]
+			pixelsWide:screenshot.width
+			pixelsHigh:screenshot.height
 			bitsPerSample:8
-			samplesPerPixel:3
-			hasAlpha:NO
+			samplesPerPixel:4
+			hasAlpha:YES
 			isPlanar:NO
 			colorSpaceName:NSDeviceRGBColorSpace
-			bytesPerRow:3 * proportionalWidth
+			bytesPerRow:4 * screenshot.width
 			bitsPerPixel:0];
 
-	const size_t line_size = static_cast<size_t>(proportionalWidth * 3);
-	for(GLint y = 0; y < dimensions[3]; ++y) {
-		memcpy(
-			&result.bitmapData[static_cast<size_t>(y) * line_size],
-			&temporaryData[static_cast<size_t>(dimensions[3] - y - 1) * line_size],
-			line_size);
-	}
+	memcpy(result.bitmapData, screenshot.pixel_data.data(), size_t(screenshot.width*screenshot.height*4));
 
 	return result;
 }
