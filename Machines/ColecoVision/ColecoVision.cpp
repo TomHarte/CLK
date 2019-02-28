@@ -192,14 +192,14 @@ class ConcreteMachine:
 		// MARK: Z80::BusHandler
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
 			// The SN76489 will use its ready line to trigger the Z80's wait for three
-			// cycles when accessed. Everything else runs at full speed. Short-circuit
+			// cycles when accessed. M1 cycles are extended by a single cycle. Short-circuit
 			// that whole piece of communications by just accruing the time here if applicable.
-			const HalfCycles penalty(
-				(
-					cycle.operation == CPU::Z80::PartialMachineCycle::Output &&
-					((*cycle.address >> 5) & 7) == 7
-				) ? 6 : 0
-			);
+			HalfCycles penalty(0);
+			if(cycle.operation == CPU::Z80::PartialMachineCycle::Output && ((*cycle.address >> 5) & 7) == 7) {
+				penalty = HalfCycles(6);
+			} else if(cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) {
+				penalty = HalfCycles(2);
+			}
 			const HalfCycles length = cycle.length + penalty;
 
 			time_since_vdp_update_ += length;
