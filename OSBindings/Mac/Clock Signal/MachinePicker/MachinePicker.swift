@@ -23,6 +23,7 @@ class MachinePicker: NSObject {
 	@IBOutlet var cpcModelTypeButton: NSPopUpButton?
 
 	// MARK: - MSX properties
+	@IBOutlet var msxRegionButton: NSPopUpButton?
 	@IBOutlet var msxHasDiskDriveButton: NSButton?
 
 	// MARK: - Oric properties
@@ -62,6 +63,7 @@ class MachinePicker: NSObject {
 		cpcModelTypeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.cpcModel"))
 
 		// MSX settings
+		msxRegionButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.msxRegion"))
 		msxHasDiskDriveButton?.state = standardUserDefaults.bool(forKey: "new.msxDiskDrive") ? .on : .off
 
 		// Oric settings
@@ -99,6 +101,7 @@ class MachinePicker: NSObject {
 		standardUserDefaults.set(cpcModelTypeButton!.selectedTag(), forKey: "new.cpcModel")
 
 		// MSX settings
+		standardUserDefaults.set(msxRegionButton!.selectedTag(), forKey: "new.msxRegion")
 		standardUserDefaults.set(msxHasDiskDriveButton?.state == .on, forKey: "new.msxDiskDrive")
 
 		// Oric settings
@@ -155,7 +158,16 @@ class MachinePicker: NSObject {
 				}
 
 			case "msx":
-				return CSStaticAnalyser(msxHasDiskDrive: msxHasDiskDriveButton!.state == .on)
+				let hasDiskDrive = msxHasDiskDriveButton!.state == .on
+				switch msxRegionButton!.selectedItem?.tag {
+					case 2:
+						return CSStaticAnalyser(msxRegion: .japanese, hasDiskDrive: hasDiskDrive)
+					case 1:
+						return CSStaticAnalyser(msxRegion: .american, hasDiskDrive: hasDiskDrive)
+					case 0: fallthrough
+					default:
+						return CSStaticAnalyser(msxRegion: .european, hasDiskDrive: hasDiskDrive)
+				}
 
 			case "oric":
 				var diskInterface: CSMachineOricDiskInterface = .none

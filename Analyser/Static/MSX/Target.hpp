@@ -19,6 +19,12 @@ namespace MSX {
 struct Target: public ::Analyser::Static::Target {
 	bool has_disk_drive = false;
 	std::string loading_command;
+
+	enum class Region {
+		Japan,
+		USA,
+		Europe
+	} region = Region::USA;
 };
 
 }

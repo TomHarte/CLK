@@ -285,6 +285,10 @@ Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &medi
 		}
 	}
 
+	// Region selection: for now, this as simple as:
+	// "If a tape is involved, be European. Otherwise be American (i.e. English, but 60Hz)".
+	target->region = target->media.tapes.empty() ? Target::Region::USA : Target::Region::Europe;
+
 	// Blindly accept disks for now.
 	target->media.disks = media.disks;
 	target->has_disk_drive = !media.disks.empty();
