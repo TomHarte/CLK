@@ -49,6 +49,12 @@ typedef NS_ENUM(NSInteger, CSMachineVic20Region) {
 	CSMachineVic20RegionJapanese,
 };
 
+typedef NS_ENUM(NSInteger, CSMachineMSXRegion) {
+	CSMachineMSXRegionAmerican,
+	CSMachineMSXRegionEuropean,
+	CSMachineMSXRegionJapanese,
+};
+
 typedef int Kilobytes;
 
 @interface CSStaticAnalyser : NSObject
@@ -57,7 +63,7 @@ typedef int Kilobytes;
 
 - (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs;
 - (instancetype)initWithAmstradCPCModel:(CSMachineCPCModel)model;
-- (instancetype)initWithMSXHasDiskDrive:(BOOL)hasDiskDrive;
+- (instancetype)initWithMSXRegion:(CSMachineMSXRegion)region hasDiskDrive:(BOOL)hasDiskDrive;
 - (instancetype)initWithOricModel:(CSMachineOricModel)model diskInterface:(CSMachineOricDiskInterface)diskInterface;
 - (instancetype)initWithVic20Region:(CSMachineVic20Region)region memorySize:(Kilobytes)memorySize hasC1540:(BOOL)hasC1540;
 - (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize useZX81ROM:(BOOL)useZX81ROM;

@@ -146,7 +146,9 @@ class ConcreteMachine:
 	public ClockingHint::Observer,
 	public Activity::Source {
 	public:
-		ConcreteMachine(const Analyser::Static::MSX::Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
+		using Target = Analyser::Static::MSX::Target;
+
+		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher):
 			z80_(*this),
 			vdp_(TI::TMS::TMS9918A),
 			i8255_(i8255_port_handler_),
@@ -169,19 +171,69 @@ class ConcreteMachine:
 			// Set the AY to 50% of available volume, the toggle to 10% and leave 40% for an SCC.
 			mixer_.set_relative_volumes({0.5f, 0.1f, 0.4f});
 
-			// Fetch the necessary ROMs.
+			// Install the proper TV standard and select an ideal BIOS name.
 			std::vector<std::string> rom_names = {"msx.rom"};
+
+			bool is_ntsc = true;
+			uint8_t character_generator = 1;	/* 0 = Japan, 1 = USA, etc, 2 = USSR */
+			uint8_t date_format = 1;			/* 0 = Y/M/D, 1 = M/D/Y, 2 = D/M/Y */
+			uint8_t keyboard = 1;				/* 0 = Japan, 1 = USA, 2 = France, 3 = UK, 4 = Germany, 5 = USSR, 6 = Spain */
+
+			switch(target.region) {
+				case Target::Region::Japan:
+					rom_names.push_back("msx-japanese.rom");
+					vdp_.set_tv_standard(TI::TMS::TVStandard::NTSC);
+
+					is_ntsc = true;
+					character_generator = 0;
+					date_format = 0;
+				break;
+				case Target::Region::USA:
+					rom_names.push_back("msx-american.rom");
+					vdp_.set_tv_standard(TI::TMS::TVStandard::NTSC);
+
+					is_ntsc = true;
+					character_generator = 1;
+					date_format = 1;
+				break;
+				case Target::Region::Europe:
+					rom_names.push_back("msx-european.rom");
+					vdp_.set_tv_standard(TI::TMS::TVStandard::PAL);
+
+					is_ntsc = false;
+					character_generator = 1;
+					date_format = 2;
+				break;
+			}
+
+			// Fetch the necessary ROMs; try the region-specific ROM first,
+			// but failing that fall back on patching the main one.
 			if(target.has_disk_drive) {
 				rom_names.push_back("disk.rom");
 			}
 			const auto roms = rom_fetcher("MSX", rom_names);
 
-			if(!roms[0] || (target.has_disk_drive && !roms[1])) {
+			if((!roms[0] && !roms[1]) || (target.has_disk_drive && !roms[2])) {
 				throw ROMMachine::Error::MissingROMs;
 			}
 
-			memory_slots_[0].source = std::move(*roms[0]);
-			memory_slots_[0].source.resize(32768);
+			// Figure out which BIOS to use, either a specific one or the generic
+			// one appropriately patched.
+			if(roms[1]) {
+				memory_slots_[0].source = std::move(*roms[1]);
+				memory_slots_[0].source.resize(32768);
+			} else {
+				memory_slots_[0].source = std::move(*roms[0]);
+				memory_slots_[0].source.resize(32768);
+
+
+				memory_slots_[0].source[0x2b] = uint8_t(
+					(is_ntsc ? 0x00 : 0x80) |
+					(date_format << 4) |
+					character_generator
+				);
+				memory_slots_[0].source[0x2c] = keyboard;
+			}
 
 			for(size_t c = 0; c < 8; ++c) {
 				for(size_t slot = 0; slot < 3; ++slot) {
