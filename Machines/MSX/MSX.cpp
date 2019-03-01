@@ -415,7 +415,7 @@ class ConcreteMachine:
 				switch(cycle.operation) {
 					case CPU::Z80::PartialMachineCycle::ReadOpcode:
 						if(use_fast_tape_) {
-							if(address == 0x1a63) {
+							if(address == 0x1a63 && read_pointers_[0x1a63 >> 13] == &memory_slots_[0].source[0x1a63 >> 13]) {
 								// TAPION
 
 								// Enable the tape motor.
@@ -442,7 +442,7 @@ class ConcreteMachine:
 								break;
 							}
 
-							if(address == 0x1abc) {
+							if(address == 0x1abc && read_pointers_[0x1a63 >> 13] == &memory_slots_[0].source[0x1a63 >> 13]) {
 								// TAPIN
 
 								// Grab the current values of LOWLIM and WINWID.
@@ -675,6 +675,7 @@ class ConcreteMachine:
 			if(disk_rom) {
 				disk_rom->set_activity_observer(observer);
 			}
+			i8255_port_handler_.set_activity_observer(observer);
 		}
 
 		// MARK: - Joysticks
@@ -705,6 +706,7 @@ class ConcreteMachine:
 
 							//	b4: cassette motor relay
 							tape_player_.set_motor_control(!(value & 0x10));
+							activity_observer_->set_led_status("Tape motor", !(value & 0x10));
 
 							//	b7: keyboard click
 							bool new_audio_level = !!(value & 0x80);
@@ -727,10 +729,19 @@ class ConcreteMachine:
 					return 0xff;
 				}
 
+				void set_activity_observer(Activity::Observer *observer) {
+					activity_observer_ = observer;
+					if(activity_observer_) {
+						activity_observer_->register_led("Tape motor");
+						activity_observer_->set_led_status("Tape motor", tape_player_.get_motor_control());
+					}
+				}
+
 			private:
 				ConcreteMachine &machine_;
 				Audio::Toggle &audio_toggle_;
 				Storage::Tape::BinaryTapePlayer &tape_player_;
+				Activity::Observer *activity_observer_ = nullptr;
 		};
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
