@@ -31,7 +31,6 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(Quote, KeyColon);
 
 		BIND(Escape, KeyEscape);
-		BIND(Equals, KeyBreak);
 		BIND(F12, KeyBreak);
 
 		BIND(Left, KeyLeft);	BIND(Right, KeyRight);		BIND(Up, KeyUp);		BIND(Down, KeyDown);
