@@ -75,8 +75,10 @@ CAS::CAS(const std::string &file_name) {
 		const auto signature = file.read(8);
 		if(signature.size() != 8) break;
 		if(std::memcmp(signature.data(), header_signature, 8)) {
+			if(!chunks_.empty()) chunks_.back().data.push_back(signature[0]);
+
 			// Check for other 1fs in this stream, and repeat from there if any.
-			for(size_t c = 0; c < 8; ++c) {
+			for(size_t c = 1; c < 8; ++c) {
 				if(signature[c] == 0x1f) {
 					file.seek(header_position + long(c), SEEK_SET);
 					break;
