@@ -424,7 +424,7 @@ int main(int argc, char *argv[]) {
 			default: break;
 			case ::Machine::Error::MissingROM:
 				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath." << std::endl;
-				std::cerr << "One or more of the following were needed but not found:" << std::endl;
+				std::cerr << "One or more of the following was needed but not found:" << std::endl;
 				for(const auto &name: rom_names) {
 					std::cerr << machine_name << '/' << name << std::endl;
 				}
