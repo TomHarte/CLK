@@ -395,6 +395,7 @@ class ConcreteMachine:
 				write_pointers_[c+1] = memory_slots_[value & 3].write_pointers[c+1];
 				value >>= 2;
 			}
+			set_use_fast_tape();
 		}
 
 		// MARK: Z80::BusHandler
@@ -415,7 +416,7 @@ class ConcreteMachine:
 				switch(cycle.operation) {
 					case CPU::Z80::PartialMachineCycle::ReadOpcode:
 						if(use_fast_tape_) {
-							if(address == 0x1a63 && read_pointers_[0x1a63 >> 13] == &memory_slots_[0].source[0x1a63 >> 13]) {
+							if(address == 0x1a63) {
 								// TAPION
 
 								// Enable the tape motor.
@@ -442,7 +443,7 @@ class ConcreteMachine:
 								break;
 							}
 
-							if(address == 0x1abc && read_pointers_[0x1a63 >> 13] == &memory_slots_[0].source[0x1a63 >> 13]) {
+							if(address == 0x1abc) {
 								// TAPIN
 
 								// Grab the current values of LOWLIM and WINWID.
@@ -760,7 +761,7 @@ class ConcreteMachine:
 		bool allow_fast_tape_ = false;
 		bool use_fast_tape_ = false;
 		void set_use_fast_tape() {
-			use_fast_tape_ = !tape_player_is_sleeping_ && allow_fast_tape_ && tape_player_.has_tape();
+			use_fast_tape_ = !tape_player_is_sleeping_ && allow_fast_tape_ && tape_player_.has_tape() && !(paged_memory_&3);
 		}
 
 		i8255PortHandler i8255_port_handler_;
