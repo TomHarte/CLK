@@ -76,10 +76,16 @@ CAS::CAS(const std::string &file_name) {
 		if(signature.size() != 8) break;
 		if(std::memcmp(signature.data(), header_signature, 8)) {
 			// Check for other 1fs in this stream, and repeat from there if any.
-			for(size_t c = 1; c < 8; ++c) {
+			for(size_t c = 0; c < 8; ++c) {
 				if(signature[c] == 0x1f) {
 					file.seek(header_position + long(c), SEEK_SET);
 					break;
+				} else {
+					// Attach any unexpected bytes to the back of the most recent chunk.
+					// In effect this creates a linear search for the next explicit tone.
+					if(!chunks_.empty()) {
+						chunks_.back().data.push_back(signature[c]);
+					}
 				}
 			}
 			continue;
@@ -149,9 +155,6 @@ CAS::CAS(const std::string &file_name) {
 					file.seek(next_line_address - address - 2, SEEK_CUR);
 					address = next_line_address;
 				}
-
-				// Retain also any padding that follows the BASIC.
-				while(file.get8() != 0x1f);
 				const auto length = (file.tell() - 1) - (header_position + 8);
 
 				// Create the chunk and return to regular parsing.
