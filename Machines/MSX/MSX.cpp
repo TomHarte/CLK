@@ -707,7 +707,7 @@ class ConcreteMachine:
 
 							//	b4: cassette motor relay
 							tape_player_.set_motor_control(!(value & 0x10));
-							activity_observer_->set_led_status("Tape motor", !(value & 0x10));
+							if(activity_observer_) activity_observer_->set_led_status("Tape motor", !(value & 0x10));
 
 							//	b7: keyboard click
 							bool new_audio_level = !!(value & 0x80);
