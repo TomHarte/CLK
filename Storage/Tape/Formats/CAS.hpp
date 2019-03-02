@@ -42,9 +42,6 @@ class CAS: public Tape {
 		void virtual_reset();
 		Pulse virtual_get_next_pulse();
 
-		// Helper for populating the file list, below.
-		void get_next(Storage::FileHolder &file, uint8_t (&buffer)[10], std::size_t quantity);
-
 		// Storage for the array of data blobs to transcribe into audio;
 		// each chunk is preceded by a header which may be long, and is optionally
 		// also preceded by a gap.
@@ -52,6 +49,9 @@ class CAS: public Tape {
 			bool has_gap;
 			bool long_header;
 			std::vector<std::uint8_t> data;
+
+			Chunk(bool has_gap, bool long_header, const std::vector<std::uint8_t> &data) :
+				has_gap(has_gap), long_header(long_header), data(std::move(data)) {}
 		};
 		std::vector<Chunk> chunks_;
 

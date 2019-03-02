@@ -395,6 +395,7 @@ class ConcreteMachine:
 				write_pointers_[c+1] = memory_slots_[value & 3].write_pointers[c+1];
 				value >>= 2;
 			}
+			set_use_fast_tape();
 		}
 
 		// MARK: Z80::BusHandler
@@ -675,6 +676,7 @@ class ConcreteMachine:
 			if(disk_rom) {
 				disk_rom->set_activity_observer(observer);
 			}
+			i8255_port_handler_.set_activity_observer(observer);
 		}
 
 		// MARK: - Joysticks
@@ -705,6 +707,7 @@ class ConcreteMachine:
 
 							//	b4: cassette motor relay
 							tape_player_.set_motor_control(!(value & 0x10));
+							activity_observer_->set_led_status("Tape motor", !(value & 0x10));
 
 							//	b7: keyboard click
 							bool new_audio_level = !!(value & 0x80);
@@ -727,10 +730,19 @@ class ConcreteMachine:
 					return 0xff;
 				}
 
+				void set_activity_observer(Activity::Observer *observer) {
+					activity_observer_ = observer;
+					if(activity_observer_) {
+						activity_observer_->register_led("Tape motor");
+						activity_observer_->set_led_status("Tape motor", tape_player_.get_motor_control());
+					}
+				}
+
 			private:
 				ConcreteMachine &machine_;
 				Audio::Toggle &audio_toggle_;
 				Storage::Tape::BinaryTapePlayer &tape_player_;
+				Activity::Observer *activity_observer_ = nullptr;
 		};
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
@@ -749,7 +761,7 @@ class ConcreteMachine:
 		bool allow_fast_tape_ = false;
 		bool use_fast_tape_ = false;
 		void set_use_fast_tape() {
-			use_fast_tape_ = !tape_player_is_sleeping_ && allow_fast_tape_ && tape_player_.has_tape();
+			use_fast_tape_ = !tape_player_is_sleeping_ && allow_fast_tape_ && tape_player_.has_tape() && !(paged_memory_&3);
 		}
 
 		i8255PortHandler i8255_port_handler_;
