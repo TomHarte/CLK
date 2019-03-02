@@ -114,8 +114,8 @@ CAS::CAS(const std::string &file_name) {
 					file.seek(header_position + 8, SEEK_SET);
 					const uint16_t length = file.get16le();
 
-					file.seek(header_position, SEEK_SET);
-					chunks_.emplace_back(false, false, file.read(size_t(length) + 2 + 8));
+					file.seek(header_position + 8, SEEK_SET);
+					chunks_.emplace_back(false, false, file.read(size_t(length) + 2));
 				}
 			} break;
 
