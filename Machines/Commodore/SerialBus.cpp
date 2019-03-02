@@ -9,6 +9,7 @@
 #include "SerialBus.hpp"
 
 #include <cstdio>
+#include <iostream>
 
 using namespace Commodore::Serial;
 
@@ -49,8 +50,6 @@ void Bus::set_line_output_did_change(Line line) {
 		}
 	}
 
-//	printf("[Bus] %s is %s\n", StringForLine(line), new_line_level ? "high" : "low");
-
 	// post an update only if one occurred
 	if(new_line_level != line_levels_[line]) {
 		line_levels_[line] = new_line_level;
@@ -69,7 +68,7 @@ void Bus::set_line_output_did_change(Line line) {
 void DebugPort::set_input(Line line, LineLevel value) {
 	input_levels_[line] = value;
 
-	printf("[Bus] %s is %s\n", StringForLine(line), value ? "high" : "low");
+	std::cout << "[Bus] " << StringForLine(line) << " is " << (value ? "high" : "low");
 	if(!incoming_count_) {
 		incoming_count_ = (!input_levels_[Line::Clock] && !input_levels_[Line::Data]) ? 8 : 0;
 	} else {
@@ -77,6 +76,6 @@ void DebugPort::set_input(Line line, LineLevel value) {
 			incoming_byte_ = (incoming_byte_ >> 1) | (input_levels_[Line::Data] ? 0x80 : 0x00);
 		}
 		incoming_count_--;
-		if(incoming_count_ == 0) printf("[Bus] Observed %02x\n", incoming_byte_);
+		if(incoming_count_ == 0) std::cout << "[Bus] Observed value " << std::hex << int(incoming_byte_);
 	}
 }

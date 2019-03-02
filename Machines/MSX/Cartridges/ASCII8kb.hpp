@@ -20,7 +20,6 @@ class ASCII8kbROMSlotHandler: public ROMSlotHandler {
 			map_(map), slot_(slot) {}
 
 		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) override {
-//			printf("A8 %04x ", address);
 			switch(address >> 11) {
 				default:
 					if(pc_is_outside_bios) confidence_counter_.add_miss();
@@ -52,8 +51,8 @@ class ASCII8kbROMSlotHandler: public ROMSlotHandler {
 			}
 		}
 
-		virtual void print_type() override {
-			printf("A8");
+		virtual std::string debug_type() override {
+			return "A8";
 		}
 
 	private:

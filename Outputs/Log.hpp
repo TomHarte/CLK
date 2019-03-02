@@ -19,9 +19,9 @@
 
 #else
 
-#include <iomanip>
 #include <iostream>
 #include <ios>
+#include <iomanip>
 
 #define PADHEX(n) std::hex << std::setw(n) << std::right << std::setfill('0')
 #define PADDEC(n) std::dec << std::setw(n) << std::right << std::setfill('0')

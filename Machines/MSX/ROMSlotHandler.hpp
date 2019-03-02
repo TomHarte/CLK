@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 /*
 	Design assumptions:
@@ -71,7 +72,8 @@ class ROMSlotHandler {
 			return confidence_counter_.get_confidence();
 		}
 
-		virtual void print_type() {
+		virtual std::string debug_type() {
+			return "";
 		}
 
 	protected:

@@ -21,7 +21,6 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 			map_(map), slot_(slot), scc_(scc) {}
 
 		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) override {
-//			printf("KSCC %04x ", address);
 			switch(address >> 11) {
 				default:
 					if(pc_is_outside_bios) confidence_counter_.add_miss();
@@ -76,8 +75,8 @@ class KonamiWithSCCROMSlotHandler: public ROMSlotHandler {
 			return 0xff;
 		}
 
-		virtual void print_type() override {
-			printf("KSCC");
+		virtual std::string debug_type() override {
+			return "KSCC";
 		}
 
 	private:

@@ -42,7 +42,7 @@ class Machine {
 
 		/// @returns The confidence that this machine is running content it understands.
 		virtual float get_confidence() { return 0.5f; }
-		virtual void print_type() {}
+		virtual std::string debug_type() { return ""; }
 
 		/// Runs the machine for @c duration seconds.
 		virtual void run_for(Time::Seconds duration) {

@@ -21,6 +21,7 @@
 #include "../../../Components/6522/6522.hpp"
 
 #include "../../../ClockReceiver/ForceInline.hpp"
+#include "../../../Outputs/Log.hpp"
 
 #include "../../../Storage/Tape/Parsers/Commodore.hpp"
 
@@ -526,12 +527,12 @@ class ConcreteMachine:
 							const uint16_t tape_buffer_pointer = static_cast<uint16_t>(ram_[0xb2]) | static_cast<uint16_t>(ram_[0xb3] << 8);
 							header->serialise(&ram_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
 							hold_tape_ = true;
-							printf("Found header\n");
+							LOG("Vic-20: Found header");
 						} else {
 							// no header found, so pretend this hack never interceded
 							tape_->get_tape()->set_offset(tape_position);
 							hold_tape_ = false;
-							printf("Didn't find header\n");
+							LOG("Vic-20: Didn't find header");
 						}
 
 						// clear status and the verify flag
@@ -572,11 +573,11 @@ class ConcreteMachine:
 								m6502_.set_value_of_register(CPU::MOS6502::Register::ProgramCounter, 0xfccf);
 								*value = 0xea;	// i.e. NOP implied
 								hold_tape_ = true;
-								printf("Found data\n");
+								LOG("Vic-20: Found data");
 							} else {
 								tape_->get_tape()->set_offset(tape_position);
 								hold_tape_ = false;
-								printf("Didn't find data\n");
+								LOG("Vic-20: Didn't find data");
 							}
 						}
 					}
