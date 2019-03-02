@@ -9,6 +9,7 @@
 #include "TZX.hpp"
 
 #include "CSW.hpp"
+#include "../../../Outputs/Log.hpp"
 
 using namespace Storage::Tape;
 
@@ -91,7 +92,7 @@ void TZX::get_next_pulses() {
 			default:
 				// In TZX each chunk has a different way of stating or implying its length,
 				// so there is no route past an unimplemented chunk.
-				printf("!!Unknown %02x!!", chunk_id);
+				LOG("Unknown TZX chunk: " << PADHEX(4) << chunk_id);
 				set_is_at_end(true);
 			return;
 		}

@@ -13,6 +13,7 @@
 #include "Tape.hpp"
 #include "Target.hpp"
 #include "../../../Storage/Cartridge/Encodings/CommodoreROM.hpp"
+#include "../../../Outputs/Log.hpp"
 
 #include <algorithm>
 #include <sstream>
@@ -91,7 +92,7 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media
 		// make a first guess based on loading address
 		switch(files.front().starting_address) {
 			default:
-				printf("Starting address %04x?\n", files.front().starting_address);
+				LOG("Unrecognised loading address for Commodore program: " << PADHEX(4) <<  files.front().starting_address);
 			case 0x1001:
 				target->memory_model = Target::MemoryModel::Unexpanded;
 			break;

@@ -11,6 +11,7 @@
 #include <cassert>
 #include <cstring>
 #include <cstdlib>
+#include "../../Outputs/Log.hpp"
 
 using namespace TI::TMS;
 
@@ -591,7 +592,6 @@ void TMS9918::set_register(int address, uint8_t value) {
 			case 8:
 				if(is_sega_vdp(personality_)) {
 					master_system_.horizontal_scroll = low_write_;
-//					printf("Set to %d at %d, %d\n", low_write_, row_, column_);
 				}
 			break;
 
@@ -608,7 +608,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 			break;
 
 			default:
-//				printf("Unknown TMS write: %d to %d\n", low_write_, value);
+				LOG("Unknown TMS write: " << int(low_write_) << " to " << int(value));
 			break;
 		}
 	} else {

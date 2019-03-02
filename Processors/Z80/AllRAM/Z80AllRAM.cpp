@@ -52,7 +52,6 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 				break;
 
 				default:
-					printf("???\n");
 				break;
 			}
 

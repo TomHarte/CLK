@@ -123,9 +123,9 @@ template <class T> class MOS6522: public MOS6522Base {
 		inline void reevaluate_interrupts();
 };
 
-#include "Implementation/6522Implementation.hpp"
+}
+}
 
-}
-}
+#include "Implementation/6522Implementation.hpp"
 
 #endif /* _522_hpp */

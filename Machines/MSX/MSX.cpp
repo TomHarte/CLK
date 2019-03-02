@@ -38,6 +38,7 @@
 #include "../MediaTarget.hpp"
 #include "../KeyboardMachine.hpp"
 
+#include "../../Outputs/Log.hpp"
 #include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
@@ -295,10 +296,11 @@ class ConcreteMachine:
 			return 0.5f;
 		}
 
-		void print_type() override {
+		std::string debug_type() override {
 			if(memory_slots_[1].handler) {
-				memory_slots_[1].handler->print_type();
+				return "MSX:" + memory_slots_[1].handler->debug_type();
 			}
+			return "MSX";
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override {
@@ -719,14 +721,14 @@ class ConcreteMachine:
 							// b0-b3: keyboard line
 							machine_.set_keyboard_line(value & 0xf);
 						} break;
-						default: printf("What what what what?\n"); break;
+						default: LOG("Unrecognised: MSX set 8255 output port " << port << " to value " << PADHEX(2) << value); break;
 					}
 				}
 
 				uint8_t get_value(int port) {
 					if(port == 1) {
 						return machine_.read_keyboard();
-					} else printf("What what?\n");
+					} else LOG("MSX attempted to read from 8255 port " << port);
 					return 0xff;
 				}
 

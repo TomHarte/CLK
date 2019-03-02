@@ -6,6 +6,11 @@
 //  Copyright 2017 Thomas Harte. All rights reserved.
 //
 
+#include "../../../Outputs/Log.hpp"
+
+namespace MOS {
+namespace MOS6522 {
+
 template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) {
 	address &= 0xf;
 	switch(address) {
@@ -61,20 +66,19 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 			registers_.auxiliary_control = value;
 		break;
 		case 0xc:
-//			printf("Peripheral control %02x\n", value);
 			registers_.peripheral_control = value;
 
 			// TODO: simplify below; trying to avoid improper logging of unimplemented warnings in input mode
 			if(value & 0x08) {
 				switch(value & 0x0e) {
-					default: printf("Unimplemented control line mode %d\n", (value >> 1)&7);		break;
+					default: 	LOG("Unimplemented control line mode " << int((value >> 1)&7));		break;
 					case 0x0c:	bus_handler_.set_control_line_output(Port::A, Line::Two, false);	break;
 					case 0x0e:	bus_handler_.set_control_line_output(Port::A, Line::Two, true);		break;
 				}
 			}
 			if(value & 0x80) {
 				switch(value & 0xe0) {
-					default: printf("Unimplemented control line mode %d\n", (value >> 5)&7);		break;
+					default: 	LOG("Unimplemented control line mode " << int((value >> 5)&7));		break;
 					case 0xc0:	bus_handler_.set_control_line_output(Port::B, Line::Two, false);	break;
 					case 0xe0:	bus_handler_.set_control_line_output(Port::B, Line::Two, true);		break;
 				}
@@ -156,4 +160,7 @@ template <typename T> void MOS6522<T>::reevaluate_interrupts() {
 		last_posted_interrupt_status_ = new_interrupt_status;
 		bus_handler_.set_interrupt_status(new_interrupt_status);
 	}
+}
+
+}
 }

@@ -20,7 +20,6 @@ class KonamiROMSlotHandler: public ROMSlotHandler {
 			map_(map), slot_(slot) {}
 
 		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) override {
-//			printf("K %04x[%c]\n", address, pc_is_outside_bios ? '.' : '+');
 			switch(address >> 13) {
 				default:
 					if(pc_is_outside_bios) confidence_counter_.add_miss();
@@ -46,8 +45,8 @@ class KonamiROMSlotHandler: public ROMSlotHandler {
 			}
 		}
 
-		virtual void print_type() override {
-			printf("K");
+		virtual std::string debug_type() override {
+			return "K";
 		}
 	private:
 		MSX::MemoryMap &map_;
