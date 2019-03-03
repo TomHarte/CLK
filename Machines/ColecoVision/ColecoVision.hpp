@@ -9,11 +9,14 @@
 #ifndef ColecoVision_hpp
 #define ColecoVision_hpp
 
+#include "../../Configurable/Configurable.hpp"
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
 
 namespace Coleco {
 namespace Vision {
+
+std::vector<std::unique_ptr<Configurable::Option>> get_options();
 
 class Machine {
 	public:

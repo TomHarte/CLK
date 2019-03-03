@@ -17,6 +17,7 @@
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
 
+#include "../../Configurable/StandardOptions.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
 
 #include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
@@ -30,6 +31,12 @@ const int sn76489_divider = 2;
 
 namespace Coleco {
 namespace Vision {
+
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::DisplaySVideo | Configurable::DisplayCompositeColour)
+	);
+}
 
 class Joystick: public Inputs::ConcreteJoystick {
 	public:
@@ -107,6 +114,7 @@ class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
 	public CRTMachine::Machine,
+	public Configurable::Device,
 	public JoystickMachine::Machine {
 
 	public:
@@ -355,6 +363,30 @@ class ConcreteMachine:
 		float get_confidence() override {
 			if(pc_zero_accesses_ > 1) return 0.0f;
 			return confidence_counter_.get_confidence();
+		}
+
+		// MARK: - Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			return Coleco::Vision::get_options();
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			Configurable::Display display;
+			if(Configurable::get_display(selections_by_option, display)) {
+				set_video_signal_configurable(display);
+			}
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_display_selection(selection_set, Configurable::Display::SVideo);
+			return selection_set;
 		}
 
 	private:
