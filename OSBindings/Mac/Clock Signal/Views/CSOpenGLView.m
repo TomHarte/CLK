@@ -52,16 +52,20 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency
 {
-	// Draw the display now regardless of other activity.
-	[self performWithGLContext:^{
-		[self.delegate openGLViewRedraw:self event:CSOpenGLViewRedrawEventTimer];
-		CGLFlushDrawable([[self openGLContext] CGLContextObj]);
-	}];
+	[self redrawWithEvent:CSOpenGLViewRedrawEventTimer];
 }
 
 - (void)drawRect:(NSRect)dirtyRect
 {
-	[self.delegate openGLViewRedraw:self event:CSOpenGLViewRedrawEventAppKit];
+	[self redrawWithEvent:CSOpenGLViewRedrawEventAppKit];
+}
+
+- (void)redrawWithEvent:(CSOpenGLViewRedrawEvent)event
+{
+	[self performWithGLContext:^{
+		[self.delegate openGLViewRedraw:self event:event];
+		CGLFlushDrawable([[self openGLContext] CGLContextObj]);
+	}];
 }
 
 - (void)invalidate
