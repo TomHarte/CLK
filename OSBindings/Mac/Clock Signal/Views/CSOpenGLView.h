@@ -11,15 +11,24 @@
 
 @class CSOpenGLView;
 
+typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
+	/// Indicates that AppKit requested a redraw for some reason (mostly likely, the window is being resized). So,
+	/// if the delegate doesn't redraw the view, the user is likely to see a graphical flaw.
+	CSOpenGLViewRedrawEventAppKit,
+	/// Indicates that the view's display-linked timer has triggered a redraw request. So, if the delegate doesn't
+	/// redraw the view, the user will just see the previous drawing without interruption.
+	CSOpenGLViewRedrawEventTimer
+};
+
 @protocol CSOpenGLViewDelegate
 /*!
 	Requests that the delegate produce an image of its current output state. May be called on
 	any queue or thread.
 	@param view The view making the request.
-	@param onlyIfDirty If @c YES then the delegate may decline to redraw if its output would be
+	@param redrawEvent If @c YES then the delegate may decline to redraw if its output would be
 	identical to the previous frame. If @c NO then the delegate must draw.
 */
-- (void)openGLView:(nonnull CSOpenGLView *)view drawViewOnlyIfDirty:(BOOL)onlyIfDirty;
+- (void)openGLViewRedraw:(nonnull CSOpenGLView *)view event:(CSOpenGLViewRedrawEvent)redrawEvent;
 
 /*!
 	Announces receipt of a file by drag and drop to the delegate.

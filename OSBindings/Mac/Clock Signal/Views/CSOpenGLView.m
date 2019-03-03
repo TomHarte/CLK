@@ -53,7 +53,15 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 - (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency
 {
 	// Draw the display now regardless of other activity.
-	[self drawViewOnlyIfDirty:YES];
+	[self performWithGLContext:^{
+		[self.delegate openGLViewRedraw:self event:CSOpenGLViewRedrawEventTimer];
+		CGLFlushDrawable([[self openGLContext] CGLContextObj]);
+	}];
+}
+
+- (void)drawRect:(NSRect)dirtyRect
+{
+	[self.delegate openGLViewRedraw:self event:CSOpenGLViewRedrawEventAppKit];
 }
 
 - (void)invalidate
@@ -117,19 +125,6 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 	// Register to receive dragged and dropped file URLs.
 	[self registerForDraggedTypes:@[(__bridge NSString *)kUTTypeFileURL]];
-}
-
-- (void)drawRect:(NSRect)dirtyRect
-{
-	[self drawViewOnlyIfDirty:NO];
-}
-
-- (void)drawViewOnlyIfDirty:(BOOL)onlyIfDirty
-{
-	[self performWithGLContext:^{
-		[self.delegate openGLView:self drawViewOnlyIfDirty:onlyIfDirty];
-		CGLFlushDrawable([[self openGLContext] CGLContextObj]);
-	}];
 }
 
 - (void)performWithGLContext:(dispatch_block_t)action
