@@ -776,7 +776,8 @@ int main(int argc, char *argv[]) {
 
 		// Display a new frame and wait for vsync.
 		updater.update();
-		scan_target.draw(true, int(window_width), int(window_height));
+		scan_target.update(int(window_width), int(window_height));
+		scan_target.draw(int(window_width), int(window_height));
 		if(activity_observer) activity_observer->draw();
 		SDL_GL_SwapWindow(window);
 	}

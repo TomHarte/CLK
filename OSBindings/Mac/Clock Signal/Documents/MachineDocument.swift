@@ -198,17 +198,21 @@ class MachineDocument:
 	}
 
 	// MARK: CSOpenGLViewDelegate
-	final func openGLView(_ view: CSOpenGLView, drawViewOnlyIfDirty onlyIfDirty: Bool) {
-		bestEffortLock.lock()
-		if let bestEffortUpdater = bestEffortUpdater {
-			bestEffortLock.unlock()
-			bestEffortUpdater.update()
-			if drawLock.try() {
-				self.machine.drawView(forPixelSize: view.backingSize, onlyIfDirty: onlyIfDirty)
-				drawLock.unlock()
-			}
-		} else {
-			bestEffortLock.unlock()
+	final func openGLViewRedraw(_ view: CSOpenGLView, event redrawEvent: CSOpenGLViewRedrawEvent) {
+		switch redrawEvent {
+			case .timer:
+				bestEffortLock.lock()
+				if let bestEffortUpdater = bestEffortUpdater {
+					bestEffortLock.unlock()
+					bestEffortUpdater.update()
+				} else {
+					bestEffortLock.unlock()
+				}
+				self.machine.updateView(forPixelSize: view.backingSize)
+				fallthrough
+
+			case .appKit:
+				self.machine.drawView(forPixelSize: view.backingSize)
 		}
 	}
 

@@ -240,8 +240,12 @@ struct ActivityObserver: public Activity::Observer {
 	_machine->crt_machine()->set_scan_target(_scanTarget.get());
 }
 
-- (void)drawViewForPixelSize:(CGSize)pixelSize onlyIfDirty:(BOOL)onlyIfDirty {
-	_scanTarget->draw(true, (int)pixelSize.width, (int)pixelSize.height);
+- (void)updateViewForPixelSize:(CGSize)pixelSize {
+	_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+}
+
+- (void)drawViewForPixelSize:(CGSize)pixelSize {
+	_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
 }
 
 - (void)paste:(NSString *)paste {

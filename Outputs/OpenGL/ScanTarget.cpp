@@ -383,10 +383,10 @@ void ScanTarget::setup_pipeline() {
 	input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
 }
 
-void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
+void ScanTarget::update(int output_width, int output_height) {
 	if(fence_ != nullptr) {
 		// if the GPU is still busy, don't wait; we'll catch it next time
-		if(glClientWaitSync(fence_, GL_SYNC_FLUSH_COMMANDS_BIT, synchronous ? GL_TIMEOUT_IGNORED : 0) == GL_TIMEOUT_EXPIRED) {
+		if(glClientWaitSync(fence_, GL_SYNC_FLUSH_COMMANDS_BIT, 0) == GL_TIMEOUT_EXPIRED) {
 			return;
 		}
 		fence_ = nullptr;
@@ -666,7 +666,20 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 		test_gl(glDisable, GL_BLEND);
 	}
 
-	// Copy the accumulatiion texture to the target.
+	// All data now having been spooled to the GPU, update the read pointers to
+	// the submit pointer location.
+	read_pointers_.store(submit_pointers);
+
+	// Grab a fence sync object to avoid busy waiting upon the next extry into this
+	// function, and reset the is_drawing_ flag.
+	fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+	is_drawing_.clear();
+}
+
+void ScanTarget::draw(int output_width, int output_height) {
+	while(is_drawing_.test_and_set());
+
+	// Copy the accumulation texture to the target.
 	test_gl(glBindFramebuffer, GL_FRAMEBUFFER, target_framebuffer_);
 	test_gl(glViewport, 0, 0, (GLsizei)output_width, (GLsizei)output_height);
 
@@ -675,12 +688,5 @@ void ScanTarget::draw(bool synchronous, int output_width, int output_height) {
 	accumulation_texture_->bind_texture();
 	accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
 
-	// All data now having been spooled to the GPU, update the read pointers to
-	// the submit pointer location.
-	read_pointers_.store(submit_pointers);
-
-	// Grab a fence sync object to avoid busy waiting upon the next extry into this
-	// function, and reset the is_drawing_ flag.
-	fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 	is_drawing_.clear();
 }

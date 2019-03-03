@@ -42,7 +42,10 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 
 		void set_target_framebuffer(GLuint);
 
-		void draw(bool synchronous, int output_width, int output_height);
+		/*! Pushes the current state of output to the target framebuffer. */
+		void draw(int output_width, int output_height);
+		/*! Processes all the latest input, at a resolution suitable for later output to a framebuffer of the specified size. */
+		void update(int output_width, int output_height);
 
 	private:
 #ifndef NDEBUG
