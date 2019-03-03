@@ -199,20 +199,22 @@ class MachineDocument:
 
 	// MARK: CSOpenGLViewDelegate
 	final func openGLViewRedraw(_ view: CSOpenGLView, event redrawEvent: CSOpenGLViewRedrawEvent) {
-		switch redrawEvent {
-			case .timer:
-				bestEffortLock.lock()
-				if let bestEffortUpdater = bestEffortUpdater {
-					bestEffortLock.unlock()
-					bestEffortUpdater.update()
-				} else {
-					bestEffortLock.unlock()
-				}
-				self.machine.updateView(forPixelSize: view.backingSize)
-				fallthrough
+		if let machine = self.machine {
+			switch redrawEvent {
+				case .timer:
+					bestEffortLock.lock()
+					if let bestEffortUpdater = bestEffortUpdater {
+						bestEffortLock.unlock()
+						bestEffortUpdater.update()
+					} else {
+						bestEffortLock.unlock()
+					}
+					machine.updateView(forPixelSize: view.backingSize)
+					fallthrough
 
-			case .appKit:
-				self.machine.drawView(forPixelSize: view.backingSize)
+				case .appKit:
+					machine.drawView(forPixelSize: view.backingSize)
+			}
 		}
 	}
 
