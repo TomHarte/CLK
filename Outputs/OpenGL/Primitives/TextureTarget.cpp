@@ -44,7 +44,7 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 	if(has_stencil_buffer) {
 		test_gl(glGenRenderbuffers, 1, &renderbuffer_);
 		test_gl(glBindRenderbuffer, GL_RENDERBUFFER, renderbuffer_);
-		test_gl(glRenderbufferStorage, GL_RENDERBUFFER, GL_STENCIL_INDEX1, expanded_width_, expanded_height_);
+		test_gl(glRenderbufferStorage, GL_RENDERBUFFER, GL_STENCIL_INDEX8, expanded_width_, expanded_height_);
 		test_gl(glFramebufferRenderbuffer, GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderbuffer_);
 	}
 
