@@ -215,6 +215,7 @@
 		4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
 		4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADB81DE3151600AEC565 /* FileHolder.cpp */; };
 		4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADBE1DE3BF2B00AEC565 /* Microdisc.cpp */; };
+		4B622AE5222E0AD5008B59F2 /* DisplayMetrics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B622AE3222E0AD5008B59F2 /* DisplayMetrics.cpp */; };
 		4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */; };
 		4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F3E1D77B88000D431D6 /* DocumentController.swift */; };
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
@@ -897,6 +898,8 @@
 		4B5FADB91DE3151600AEC565 /* FileHolder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FileHolder.hpp; sourceTree = "<group>"; };
 		4B5FADBE1DE3BF2B00AEC565 /* Microdisc.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Microdisc.cpp; path = Oric/Microdisc.cpp; sourceTree = "<group>"; };
 		4B5FADBF1DE3BF2B00AEC565 /* Microdisc.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Microdisc.hpp; path = Oric/Microdisc.hpp; sourceTree = "<group>"; };
+		4B622AE3222E0AD5008B59F2 /* DisplayMetrics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetrics.cpp; path = ../../Outputs/DisplayMetrics.cpp; sourceTree = "<group>"; };
+		4B622AE4222E0AD5008B59F2 /* DisplayMetrics.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = DisplayMetrics.hpp; path = ../../Outputs/DisplayMetrics.hpp; sourceTree = "<group>"; };
 		4B643F381D77AD1900D431D6 /* CSStaticAnalyser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSStaticAnalyser.h; path = StaticAnalyser/CSStaticAnalyser.h; sourceTree = "<group>"; };
 		4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = CSStaticAnalyser.mm; path = StaticAnalyser/CSStaticAnalyser.mm; sourceTree = "<group>"; };
 		4B643F3C1D77AE5C00D431D6 /* CSMachine+Target.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CSMachine+Target.h"; sourceTree = "<group>"; };
@@ -1780,7 +1783,9 @@
 		4B366DFD1B5C165F0026627B /* Outputs */ = {
 			isa = PBXGroup;
 			children = (
+				4B622AE3222E0AD5008B59F2 /* DisplayMetrics.cpp */,
 				4B05401D219D1618001BF69C /* ScanTarget.cpp */,
+				4B622AE4222E0AD5008B59F2 /* DisplayMetrics.hpp */,
 				4BD601A920D89F2A00CBCE57 /* Log.hpp */,
 				4BF52672218E752E00313227 /* ScanTarget.hpp */,
 				4B0CCC411C62D0B3001CAC5F /* CRT */,
@@ -3025,8 +3030,8 @@
 				4BD5D2672199148100DDF17D /* ScanTargetGLSLFragments.cpp */,
 				4BD191D9219113B80042E144 /* OpenGL.hpp */,
 				4BD191F32191180E0042E144 /* ScanTarget.hpp */,
-				4BD424DC2193B5340097291A /* Primitives */,
 				4B961408222760E0001A7BF2 /* Screenshot.hpp */,
+				4BD424DC2193B5340097291A /* Primitives */,
 			);
 			name = OpenGL;
 			path = ../../Outputs/OpenGL;
@@ -3895,6 +3900,7 @@
 				4BD3A30B1EE755C800B5B501 /* Video.cpp in Sources */,
 				4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */,
 				4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */,
+				4B622AE5222E0AD5008B59F2 /* DisplayMetrics.cpp in Sources */,
 				4B1497881EE4A1DA00CE2596 /* ZX80O81P.cpp in Sources */,
 				4B894520201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B2B3A4B1F9B8FA70062DABF /* Typer.cpp in Sources */,

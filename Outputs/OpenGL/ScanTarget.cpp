@@ -254,6 +254,9 @@ void ScanTarget::submit() {
 }
 
 void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
+	// Forward the event to the display metrics tracker.
+	display_metrics_.announce_event(event);
+
 	if(event == ScanTarget::Event::EndVerticalRetrace) {
 		// The previous-frame-is-complete flag is subject to a two-slot queue because
 		// measurement for *this* frame needs to begin now, meaning that the previous
@@ -383,14 +386,26 @@ void ScanTarget::setup_pipeline() {
 	input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
 }
 
+Outputs::Display::Metrics &ScanTarget::display_metrics() {
+	return display_metrics_;
+}
+
 void ScanTarget::update(int output_width, int output_height) {
 	if(fence_ != nullptr) {
 		// if the GPU is still busy, don't wait; we'll catch it next time
 		if(glClientWaitSync(fence_, GL_SYNC_FLUSH_COMMANDS_BIT, 0) == GL_TIMEOUT_EXPIRED) {
+			display_metrics_.announce_draw_status(
+				lines_submitted_,
+				std::chrono::high_resolution_clock::now() - line_submission_begin_time_,
+				false);
 			return;
 		}
 		fence_ = nullptr;
 	}
+	display_metrics_.announce_draw_status(
+		lines_submitted_,
+		std::chrono::high_resolution_clock::now() - line_submission_begin_time_,
+		true);
 
 	// Spin until the is-drawing flag is reset; the wait sync above will deal
 	// with instances where waiting is inappropriate.
@@ -403,9 +418,15 @@ void ScanTarget::update(int output_width, int output_height) {
 		modals_are_dirty_ = false;
 	}
 
+	// Determine the start time of this submission group.
+	line_submission_begin_time_ = std::chrono::high_resolution_clock::now();
+
 	// Grab the current read and submit pointers.
 	const auto submit_pointers = submit_pointers_.load();
 	const auto read_pointers = read_pointers_.load();
+
+	// Determine how many lines are about to be submitted.
+	lines_submitted_ = (read_pointers.line + line_buffer_.size() - submit_pointers.line) % line_buffer_.size();
 
 	// Submit scans; only the new ones need to be communicated.
 	size_t new_scans = (submit_pointers.scan_buffer + scan_buffer_.size() - read_pointers.scan_buffer) % scan_buffer_.size();
@@ -536,6 +557,7 @@ void ScanTarget::update(int output_width, int output_height) {
 	const int proportional_width = (framebuffer_height * 4) / 3;
 	const bool did_create_accumulation_texture = !accumulation_texture_ || (	/* !synchronous && */ (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != framebuffer_height));
 	if(did_create_accumulation_texture) {
+		display_metrics_.announce_did_resize();
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(
 			new TextureTarget(
 				GLsizei(proportional_width),
