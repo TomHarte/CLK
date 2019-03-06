@@ -26,6 +26,16 @@ class Metrics {
 
 		void announce_did_resize();
 		void announce_draw_status(size_t lines, std::chrono::high_resolution_clock::duration duration, bool complete);
+
+		bool should_lower_resolution();
+		float lines_per_frame_estimate();
+
+	private:
+		int lines_this_frame_ = 0;
+		void add_line_total(int);
+
+		int frames_hit_ = 0;
+		int frames_missed_ = 0;
 };
 
 }

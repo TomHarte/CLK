@@ -84,6 +84,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		bool output_is_visible_ = false;
 
 		Metrics display_metrics_;
+		int resolution_reduction_level_ = 1;
+		int output_height_ = 0;
 
 		size_t lines_submitted_ = 0;
 		std::chrono::high_resolution_clock::time_point line_submission_begin_time_;

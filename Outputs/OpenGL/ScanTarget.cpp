@@ -13,6 +13,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <limits>
 
 using namespace Outputs::Display::OpenGL;
 
@@ -550,13 +551,26 @@ void ScanTarget::update(int output_width, int output_height) {
 		test_gl(glDrawArraysInstanced, GL_TRIANGLE_STRIP, 0, 4, GLsizei(new_scans));
 	}
 
-	// Ensure the accumulation buffer is properly sized.
-	// TODO: based on a decision about host speed, potentially switch to the std::min fragment as shown below,
-	// which would limit total output buffer size to 1440x1080.
-	const int framebuffer_height = output_height;//std::min(output_height, 1080);
+	// Logic for reducing resolution: start doing so if the metrics object reports that
+	// it's a good idea. Go up to a quarter of the requested resolution, subject to
+	// clamping at each stage. If the output resolution changes, or anything else about
+	// the output pipeline, just start trying the highest size again.
+	if(display_metrics_.should_lower_resolution()) {
+		resolution_reduction_level_ = std::min(resolution_reduction_level_+1, 4);
+	}
+	if(output_height_ != output_height || did_setup_pipeline) {
+		resolution_reduction_level_ = 1;
+		output_height_ = output_height;
+	}
+	const int min_framebuffer_height = (resolution_reduction_level_ > 1) ? 2160 / resolution_reduction_level_ : std::numeric_limits<int>::max();
+
+	// Ensure the accumulation buffer is properly sized, allowing for the metrics object's
+	// feelings about whether too high a resolution is being used.
+	int framebuffer_height = std::min(output_height / resolution_reduction_level_, min_framebuffer_height);
 	const int proportional_width = (framebuffer_height * 4) / 3;
-	const bool did_create_accumulation_texture = !accumulation_texture_ || (	/* !synchronous && */ (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != framebuffer_height));
+	const bool did_create_accumulation_texture = !accumulation_texture_ || ( (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != framebuffer_height));
 	if(did_create_accumulation_texture) {
+		LOG("Changed output resolution to " << proportional_width << " by " << framebuffer_height);
 		display_metrics_.announce_did_resize();
 		std::unique_ptr<OpenGL::TextureTarget> new_framebuffer(
 			new TextureTarget(
