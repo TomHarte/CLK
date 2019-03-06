@@ -83,7 +83,7 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 		*/
 		void set_port_handler(PortHandler *);
 
-		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter; not for public consumption
+		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		bool is_zero_level();
 		void set_sample_volume_range(std::int16_t range);
@@ -128,10 +128,11 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 		uint8_t data_input_, data_output_;
 
 		int16_t output_volume_;
-		inline void evaluate_output_volume();
+		void evaluate_output_volume();
 
-		inline void update_bus();
+		void update_bus();
 		PortHandler *port_handler_ = nullptr;
+		void set_port_output(bool port_b);
 };
 
 }
