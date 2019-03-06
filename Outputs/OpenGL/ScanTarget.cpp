@@ -585,7 +585,7 @@ void ScanTarget::update(int output_width, int output_height) {
 
 			test_gl(glActiveTexture, AccumulationTextureUnit);
 			accumulation_texture_->bind_texture();
-			accumulation_texture_->draw(float(output_width) / float(output_height));
+			accumulation_texture_->draw(4.0f / 3.0f);
 
 			test_gl(glClear, GL_STENCIL_BUFFER_BIT);
 
