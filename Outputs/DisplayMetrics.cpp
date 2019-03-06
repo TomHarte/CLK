@@ -8,7 +8,7 @@
 
 #include "DisplayMetrics.hpp"
 
-#include <iostream>
+#include <numeric>
 
 using namespace Outputs::Display;
 
@@ -19,8 +19,10 @@ void Metrics::announce_event(ScanTarget::Event event) {
 		case ScanTarget::Event::EndHorizontalRetrace:
 			++lines_this_frame_;
 		break;
-		case ScanTarget::Event::EndVerticalRetrace:
+		case ScanTarget::Event::BeginVerticalRetrace:
 			add_line_total(lines_this_frame_);
+		break;
+		case ScanTarget::Event::EndVerticalRetrace:
 			lines_this_frame_ = 0;
 		break;
 		default: break;
@@ -28,11 +30,18 @@ void Metrics::announce_event(ScanTarget::Event event) {
 }
 
 void Metrics::add_line_total(int total) {
-//	std::cout << total << '\n';
+	line_total_history_[line_total_history_pointer_] = total;
+	line_total_history_pointer_ = (line_total_history_pointer_ + 1) % line_total_history_.size();
 }
 
-float Metrics::lines_per_frame_estimate() {
-	return 1.0f;	// TODO.
+float Metrics::visible_lines_per_frame_estimate() {
+	// Just average the number of records contained in line_total_history_ to provide this estimate;
+	// that array should be an even number, to allow for potential interlaced sources.
+	return float(std::accumulate(line_total_history_.begin(), line_total_history_.end(), 0)) / float(line_total_history_.size());
+}
+
+int Metrics::current_line() {
+	return lines_this_frame_;
 }
 
 // MARK: GPU processing speed decisions.
