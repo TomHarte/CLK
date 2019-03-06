@@ -173,11 +173,15 @@ void AY38910::select_register(uint8_t r) {
 }
 
 void AY38910::set_register_value(uint8_t value) {
+	// There are only 16 registers.
 	if(selected_register_ > 15) return;
-	registers_[selected_register_] = value;
+
+	// If this is a register that affects audio output, enqueue a mutation onto the
+	// audio generation thread.
 	if(selected_register_ < 14) {
-		int selected_register = selected_register_;
+		const int selected_register = selected_register_;
 		task_queue_.defer([=] () {
+			// Perform any register-specific mutation to output generation.
 			uint8_t masked_value = value;
 			switch(selected_register) {
 				case 0: case 2: case 4:
@@ -208,12 +212,34 @@ void AY38910::set_register_value(uint8_t value) {
 					envelope_position_ = 0;
 				break;
 			}
+
+			// Store a copy of the current register within the storage used by the audio generation
+			// thread, and apply any changes to output volume.
 			output_registers_[selected_register] = masked_value;
 			evaluate_output_volume();
 		});
-	} else {
-		if(port_handler_) port_handler_->set_port_output(selected_register_ == 15, value);
 	}
+
+	// Decide which outputs are going to need updating (if any).
+	bool update_port_a = false;
+	bool update_port_b = true;
+	if(port_handler_) {
+		if(selected_register_ == 7) {
+			const uint8_t io_change = registers_[7] ^ value;
+			update_port_b = !!(io_change&0x80);
+			update_port_a = !!(io_change&0x40);
+		} else {
+			update_port_b = selected_register_ == 15;
+			update_port_a = selected_register_ != 15;
+		}
+	}
+
+	// Keep a copy of the new value that is usable from the emulation thread.
+	registers_[selected_register_] = value;
+
+	// Update ports as required.
+	if(update_port_b) set_port_output(true);
+	if(update_port_a) set_port_output(false);
 }
 
 uint8_t AY38910::get_register_value() {
@@ -238,11 +264,23 @@ uint8_t AY38910::get_port_output(bool port_b) {
 
 void AY38910::set_port_handler(PortHandler *handler) {
 	port_handler_ = handler;
+	set_port_output(true);
+	set_port_output(false);
 }
 
 void AY38910::set_data_input(uint8_t r) {
 	data_input_ = r;
 	update_bus();
+}
+
+void AY38910::set_port_output(bool port_b) {
+	// Per the data sheet: "each [IO] pin is provided with an on-chip pull-up resistor,
+	// so that when in the "input" mode, all pins will read normally high". Therefore,
+	// report programmer selection of input mode as creating an output of 0xff.
+	if(port_handler_) {
+		const bool is_output = !!(registers_[7] & (port_b ? 0x80 : 0x40));
+		port_handler_->set_port_output(port_b, is_output ? registers_[port_b ? 15 : 14] : 0xff);
+	}
 }
 
 uint8_t AY38910::get_data_output() {
