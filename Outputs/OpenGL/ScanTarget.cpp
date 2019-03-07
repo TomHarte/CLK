@@ -562,11 +562,10 @@ void ScanTarget::update(int output_width, int output_height) {
 		resolution_reduction_level_ = 1;
 		output_height_ = output_height;
 	}
-	const int min_framebuffer_height = (resolution_reduction_level_ > 1) ? 2160 / resolution_reduction_level_ : std::numeric_limits<int>::max();
 
 	// Ensure the accumulation buffer is properly sized, allowing for the metrics object's
 	// feelings about whether too high a resolution is being used.
-	int framebuffer_height = std::min(output_height / resolution_reduction_level_, min_framebuffer_height);
+	const int framebuffer_height = std::max(output_height / resolution_reduction_level_, std::min(540, output_height));
 	const int proportional_width = (framebuffer_height * 4) / 3;
 	const bool did_create_accumulation_texture = !accumulation_texture_ || ( (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != framebuffer_height));
 	if(did_create_accumulation_texture) {
