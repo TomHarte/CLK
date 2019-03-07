@@ -16,6 +16,9 @@
 @implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
 	CGSize _backingSize;
+
+	NSTrackingArea *_mouseTrackingArea;
+	NSTimer *_mouseHideTimer;
 }
 
 - (void)prepareOpenGL
@@ -182,6 +185,47 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 {
 	// we'll drag and drop, yeah?
 	return NSDragOperationLink;
+}
+
+#pragma mark - Mouse hiding
+
+- (void)updateTrackingAreas {
+	[super updateTrackingAreas];
+
+	if(_mouseTrackingArea) {
+		[self removeTrackingArea:_mouseTrackingArea];
+	}
+	_mouseTrackingArea =
+		[[NSTrackingArea alloc]
+			initWithRect:self.bounds
+			options:NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved | NSTrackingActiveWhenFirstResponder
+			owner:self
+			userInfo:nil];
+	[self addTrackingArea:_mouseTrackingArea];
+}
+
+- (void)mouseMoved:(NSEvent *)event {
+	[super mouseMoved:event];
+	[self scheduleMouseHide];
+}
+
+- (void)mouseEntered:(NSEvent *)event {
+	[super mouseEntered:event];
+	[self scheduleMouseHide];
+}
+
+- (void)scheduleMouseHide {
+	[_mouseHideTimer invalidate];
+	_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 repeats:NO block:^(NSTimer * _Nonnull timer) {
+        [NSCursor setHiddenUntilMouseMoves:YES];
+	}];
+}
+
+- (void)mouseExited:(NSEvent *)event {
+	[super mouseExited:event];
+
+	[_mouseHideTimer invalidate];
+	_mouseHideTimer = nil;
 }
 
 @end
