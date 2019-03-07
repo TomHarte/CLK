@@ -9,8 +9,9 @@
 #ifndef ScanTarget_hpp
 #define ScanTarget_hpp
 
-#include "../ScanTarget.hpp"
 #include "../Log.hpp"
+#include "../DisplayMetrics.hpp"
+#include "../ScanTarget.hpp"
 
 #include "OpenGL.hpp"
 #include "Primitives/TextureTarget.hpp"
@@ -21,6 +22,7 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <chrono>
 #include <list>
 #include <memory>
 #include <string>
@@ -46,6 +48,9 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void draw(int output_width, int output_height);
 		/*! Processes all the latest input, at a resolution suitable for later output to a framebuffer of the specified size. */
 		void update(int output_width, int output_height);
+
+		/*! @returns The DisplayMetrics object that this ScanTarget has been providing with announcements and draw overages. */
+		Metrics &display_metrics();
 
 	private:
 #ifndef NDEBUG
@@ -77,6 +82,13 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void will_change_owner() override;
 
 		bool output_is_visible_ = false;
+
+		Metrics display_metrics_;
+		int resolution_reduction_level_ = 1;
+		int output_height_ = 0;
+
+		size_t lines_submitted_ = 0;
+		std::chrono::high_resolution_clock::time_point line_submission_begin_time_;
 
 		// Extends the definition of a Scan to include two extra fields,
 		// relevant to the way that this scan target processes video.

@@ -33,7 +33,7 @@ TextureTarget::TextureTarget(GLsizei width, GLsizei height, GLenum texture_unit,
 	bind_texture();
 
 	// Set dimensions and set the user-supplied magnification filter.
-	test_gl(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, GLsizei(expanded_width_), GLsizei(expanded_height_), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	test_gl(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGB, GLsizei(expanded_width_), GLsizei(expanded_height_), 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 	test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter);
 	test_gl(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
