@@ -21,8 +21,7 @@
 	NSTimer *_mouseHideTimer;
 }
 
-- (void)prepareOpenGL
-{
+- (void)prepareOpenGL {
 	// Synchronize buffer swaps with vertical refresh rate
 	GLint swapInt = 1;
 	[[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
@@ -46,51 +45,43 @@
 	CVDisplayLinkStart(_displayLink);
 }
 
-static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext)
-{
+static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext) {
 	CSOpenGLView *const view = (__bridge CSOpenGLView *)displayLinkContext;
 	[view drawAtTime:now frequency:CVDisplayLinkGetActualOutputVideoRefreshPeriod(displayLink)];
 	return kCVReturnSuccess;
 }
 
-- (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency
-{
+- (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency {
 	[self redrawWithEvent:CSOpenGLViewRedrawEventTimer];
 }
 
-- (void)drawRect:(NSRect)dirtyRect
-{
+- (void)drawRect:(NSRect)dirtyRect {
 	[self redrawWithEvent:CSOpenGLViewRedrawEventAppKit];
 }
 
-- (void)redrawWithEvent:(CSOpenGLViewRedrawEvent)event
-{
+- (void)redrawWithEvent:(CSOpenGLViewRedrawEvent)event {
 	[self performWithGLContext:^{
 		[self.delegate openGLViewRedraw:self event:event];
 		CGLFlushDrawable([[self openGLContext] CGLContextObj]);
 	}];
 }
 
-- (void)invalidate
-{
+- (void)invalidate {
 	CVDisplayLinkStop(_displayLink);
 }
 
-- (void)dealloc
-{
+- (void)dealloc {
 	// Release the display link
 	CVDisplayLinkRelease(_displayLink);
 }
 
-- (CGSize)backingSize
-{
+- (CGSize)backingSize {
 	@synchronized(self) {
 		return _backingSize;
 	}
 }
 
-- (void)reshape
-{
+- (void)reshape {
 	[super reshape];
 	@synchronized(self) {
 		_backingSize = [self convertSizeToBacking:self.bounds.size];
@@ -102,10 +93,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	}];
 }
 
-- (void)awakeFromNib
-{
-	NSOpenGLPixelFormatAttribute attributes[] =
-	{
+- (void)awakeFromNib {
+	NSOpenGLPixelFormatAttribute attributes[] = {
 		NSOpenGLPFADoubleBuffer,
 		NSOpenGLPFAOpenGLProfile,	NSOpenGLProfileVersion3_2Core,
 //		NSOpenGLPFAMultisample,
@@ -134,8 +123,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[self registerForDraggedTypes:@[(__bridge NSString *)kUTTypeFileURL]];
 }
 
-- (void)performWithGLContext:(dispatch_block_t)action
-{
+- (void)performWithGLContext:(dispatch_block_t)action {
 	CGLLockContext([[self openGLContext] CGLContextObj]);
 	[self.openGLContext makeCurrentContext];
 	action();
@@ -144,46 +132,37 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 #pragma mark - NSResponder
 
-- (BOOL)acceptsFirstResponder
-{
+- (BOOL)acceptsFirstResponder {
 	return YES;
 }
 
-- (void)keyDown:(NSEvent *)theEvent
-{
+- (void)keyDown:(NSEvent *)theEvent {
 	[self.responderDelegate keyDown:theEvent];
 }
 
-- (void)keyUp:(NSEvent *)theEvent
-{
+- (void)keyUp:(NSEvent *)theEvent {
 	[self.responderDelegate keyUp:theEvent];
 }
 
-- (void)flagsChanged:(NSEvent *)theEvent
-{
+- (void)flagsChanged:(NSEvent *)theEvent {
 	[self.responderDelegate flagsChanged:theEvent];
 }
 
-- (void)paste:(id)sender
-{
+- (void)paste:(id)sender {
 	[self.responderDelegate paste:sender];
 }
 
 #pragma mark - NSDraggingDestination
 
-- (BOOL)performDragOperation:(id <NSDraggingInfo>)sender
-{
-	for(NSPasteboardItem *item in [[sender draggingPasteboard] pasteboardItems])
-	{
+- (BOOL)performDragOperation:(id <NSDraggingInfo>)sender {
+	for(NSPasteboardItem *item in [[sender draggingPasteboard] pasteboardItems]) {
 		NSURL *URL = [NSURL URLWithString:[item stringForType:(__bridge NSString *)kUTTypeFileURL]];
 		[self.delegate openGLView:self didReceiveFileAtURL:URL];
 	}
 	return YES;
 }
 
-- (NSDragOperation)draggingEntered:(id < NSDraggingInfo >)sender
-{
-	// we'll drag and drop, yeah?
+- (NSDragOperation)draggingEntered:(id < NSDraggingInfo >)sender {
 	return NSDragOperationLink;
 }
 
