@@ -101,29 +101,31 @@ ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
 	test_gl(glBlendFunc, GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	test_gl(glBlendColor, 0.4f, 0.4f, 0.4f, 1.0f);
 
-	is_drawing_.clear();
+	// Establish initial state for the two atomic flags.
+	is_updating_.clear();
+	is_drawing_to_accumulation_buffer_.clear();
 }
 
 ScanTarget::~ScanTarget() {
-	while(is_drawing_.test_and_set());
+	while(is_updating_.test_and_set());
 	glDeleteBuffers(1, &scan_buffer_name_);
 	glDeleteTextures(1, &write_area_texture_name_);
 	glDeleteVertexArrays(1, &scan_vertex_array_);
 }
 
 void ScanTarget::set_target_framebuffer(GLuint target_framebuffer) {
-	while(is_drawing_.test_and_set());
+	while(is_updating_.test_and_set());
 	target_framebuffer_ = target_framebuffer;
-	is_drawing_.clear();
+	is_updating_.clear();
 }
 
 void ScanTarget::set_modals(Modals modals) {
 	// Don't change the modals while drawing is ongoing; a previous set might be
 	// in the process of being established.
-	while(is_drawing_.test_and_set());
+	while(is_updating_.test_and_set());
 	modals_ = modals;
 	modals_are_dirty_ = true;
-	is_drawing_.clear();
+	is_updating_.clear();
 }
 
 Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
@@ -410,7 +412,7 @@ void ScanTarget::update(int output_width, int output_height) {
 
 	// Spin until the is-drawing flag is reset; the wait sync above will deal
 	// with instances where waiting is inappropriate.
-	while(is_drawing_.test_and_set());
+	while(is_updating_.test_and_set());
 
 	// Establish the pipeline if necessary.
 	const bool did_setup_pipeline = modals_are_dirty_;
@@ -568,6 +570,9 @@ void ScanTarget::update(int output_width, int output_height) {
 	const int framebuffer_height = std::max(output_height / resolution_reduction_level_, std::min(540, output_height));
 	const int proportional_width = (framebuffer_height * 4) / 3;
 	const bool did_create_accumulation_texture = !accumulation_texture_ || ( (accumulation_texture_->get_width() != proportional_width || accumulation_texture_->get_height() != framebuffer_height));
+
+	// Work with the accumulation_buffer_ potentially starts from here onwards; set its flag.
+	while(is_drawing_to_accumulation_buffer_.test_and_set());
 	if(did_create_accumulation_texture) {
 		LOG("Changed output resolution to " << proportional_width << " by " << framebuffer_height);
 		display_metrics_.announce_did_resize();
@@ -701,18 +706,21 @@ void ScanTarget::update(int output_width, int output_height) {
 		test_gl(glDisable, GL_BLEND);
 	}
 
+	// That's it for operations affecting the accumulation buffer.
+	is_drawing_to_accumulation_buffer_.clear();
+
 	// All data now having been spooled to the GPU, update the read pointers to
 	// the submit pointer location.
 	read_pointers_.store(submit_pointers);
 
 	// Grab a fence sync object to avoid busy waiting upon the next extry into this
-	// function, and reset the is_drawing_ flag.
+	// function, and reset the is_updating_ flag.
 	fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-	is_drawing_.clear();
+	is_updating_.clear();
 }
 
 void ScanTarget::draw(int output_width, int output_height) {
-	while(is_drawing_.test_and_set());
+	while(is_drawing_to_accumulation_buffer_.test_and_set());
 
 	if(accumulation_texture_) {
 		// Copy the accumulation texture to the target.
@@ -725,5 +733,5 @@ void ScanTarget::draw(int output_width, int output_height) {
 		accumulation_texture_->draw(float(output_width) / float(output_height), 4.0f / 255.0f);
 	}
 
-	is_drawing_.clear();
+	is_drawing_to_accumulation_buffer_.clear();
 }

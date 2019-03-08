@@ -209,7 +209,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		std::vector<std::string> bindings(ShaderType type) const;
 
 		GLsync fence_ = nullptr;
-		std::atomic_flag is_drawing_;
+		std::atomic_flag is_updating_;
+		std::atomic_flag is_drawing_to_accumulation_buffer_;
 
 		std::unique_ptr<Shader> input_shader_;
 		std::unique_ptr<Shader> output_shader_;
