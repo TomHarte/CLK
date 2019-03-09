@@ -661,6 +661,8 @@
 		4BFDD78C1F7F2DB4008579B9 /* ImplicitSectors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFDD78B1F7F2DB4008579B9 /* ImplicitSectors.cpp */; };
 		4BFE7B871FC39BF100160B38 /* StandardOptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFE7B851FC39BF100160B38 /* StandardOptions.cpp */; };
 		4BFE7B881FC39D8900160B38 /* StandardOptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFE7B851FC39BF100160B38 /* StandardOptions.cpp */; };
+		4BFF1D3922337B0300838EA1 /* 68000Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */; };
+		4BFF1D3A22337B0300838EA1 /* 68000Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1459,6 +1461,9 @@
 		4BFDD78B1F7F2DB4008579B9 /* ImplicitSectors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImplicitSectors.cpp; sourceTree = "<group>"; };
 		4BFE7B851FC39BF100160B38 /* StandardOptions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StandardOptions.cpp; sourceTree = "<group>"; };
 		4BFE7B861FC39BF100160B38 /* StandardOptions.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = StandardOptions.hpp; sourceTree = "<group>"; };
+		4BFF1D342233778C00838EA1 /* 68000.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000.hpp; sourceTree = "<group>"; };
+		4BFF1D37223379D500838EA1 /* 68000Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Storage.hpp; sourceTree = "<group>"; };
+		4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 68000Storage.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2886,11 +2891,12 @@
 		4BB73EDD1B587CA500552FC2 /* Processors */ = {
 			isa = PBXGroup;
 			children = (
-				4B1414561B58879D00E04248 /* 6502 */,
-				4B77069E1EC9045B0053B588 /* Z80 */,
-				4B2C455C1EC9442600FC74DD /* RegisterSizes.hpp */,
 				4BFCA1211ECBDCAF00AC40C1 /* AllRAMProcessor.cpp */,
 				4BFCA1221ECBDCAF00AC40C1 /* AllRAMProcessor.hpp */,
+				4B2C455C1EC9442600FC74DD /* RegisterSizes.hpp */,
+				4B1414561B58879D00E04248 /* 6502 */,
+				4BFF1D332233778C00838EA1 /* 68000 */,
+				4B77069E1EC9045B0053B588 /* Z80 */,
 			);
 			name = Processors;
 			path = ../../Processors;
@@ -3194,6 +3200,24 @@
 				4BFDD78A1F7F2DB4008579B9 /* ImplicitSectors.hpp */,
 			);
 			path = Utility;
+			sourceTree = "<group>";
+		};
+		4BFF1D332233778C00838EA1 /* 68000 */ = {
+			isa = PBXGroup;
+			children = (
+				4BFF1D342233778C00838EA1 /* 68000.hpp */,
+				4BFF1D36223379D500838EA1 /* Implementation */,
+			);
+			path = 68000;
+			sourceTree = "<group>";
+		};
+		4BFF1D36223379D500838EA1 /* Implementation */ = {
+			isa = PBXGroup;
+			children = (
+				4BFF1D37223379D500838EA1 /* 68000Storage.hpp */,
+				4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */,
+			);
+			path = Implementation;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -3687,6 +3711,7 @@
 				4B05401F219D1618001BF69C /* ScanTarget.cpp in Sources */,
 				4B055AE81FAE9B7B0060FFFF /* FIRFilter.cpp in Sources */,
 				4B055A901FAE85A90060FFFF /* TimedEventLoop.cpp in Sources */,
+				4BFF1D3A22337B0300838EA1 /* 68000Storage.cpp in Sources */,
 				4B055AC71FAE9AEE0060FFFF /* TIA.cpp in Sources */,
 				4B055AD21FAE9B0B0060FFFF /* Keyboard.cpp in Sources */,
 				4B89451B201967B4007DE474 /* ConfidenceSummary.cpp in Sources */,
@@ -3967,6 +3992,7 @@
 				4B8334821F5D9FF70097E338 /* PartialMachineCycle.cpp in Sources */,
 				4BD424E72193B5830097291A /* Rectangle.cpp in Sources */,
 				4B1B88C0202E3DB200B67DFF /* MultiConfigurable.cpp in Sources */,
+				4BFF1D3922337B0300838EA1 /* 68000Storage.cpp in Sources */,
 				4B54C0BC1F8D8E790050900F /* KeyboardMachine.cpp in Sources */,
 				4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */,
 				4B894534201967B4007DE474 /* AddressMapper.cpp in Sources */,
