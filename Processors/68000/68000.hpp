@@ -52,6 +52,9 @@ struct Microcycle {
 	static const int LowerData	= 1 << 2;
 	static const int ReadWrite 	= 1 << 3;	// Set = read; unset = write.
 
+	static const int IsData 	= 1 << 4;	// i.e. this is FC0.
+	static const int IsProgram 	= 1 << 5;	// i.e. this is FC1.
+
 	int operation = 0;
 	HalfCycles length = HalfCycles(2);
 
@@ -72,29 +75,13 @@ struct Microcycle {
 */
 class BusHandler {
 	public:
-		static const int Data 			= 1 << 0;
-		static const int Program		= 1 << 1;
-		static const int Supervisor		= 1 << 2;
-		static const int Interrupt		= Data | Program | Supervisor;
-
 		/*!
-			Provides the bus handler with a single Microcycle to 'perform', along with the
-			contents of the FC0, FC1 and FC2 lines by way of processor_status. The symbols
-			above, Data, Program, Supervisor and Interrupt can be used to help to decode the
-			processor status if desired; in summary:
+			Provides the bus handler with a single Microcycle to 'perform'.
 
-			If all three bits are set, this is an interrupt acknowledgement.
-
-			If the data bit is set, the 68000 is fetching data.
-
-			If the program bit is set, the 68000 is fetching instructions.
-
-			It the supervisor bit is set, the 68000 is currently in supervisor mode.
-
-			Neither program nor data being set has an undefined meaning. As does both program
-			and data being set, but this not being an interrupt.
+			FC0 and FC1 are provided inside the microcycle as the IsData and IsProgram
+			flags; FC2 is provided here as is_supervisor — it'll be either 0 or 1.
 		*/
-		HalfCycles perform_bus_operation(const Microcycle &cycle, int processor_status) {
+		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
 			return HalfCycles(0);
 		}
 
@@ -106,7 +93,7 @@ class BusHandler {
 class ProcessorBase: public ProcessorStorage {
 };
 
-template <class T> class Processor: public ProcessorBase {
+template <class T, bool dtack_is_implicit> class Processor: public ProcessorBase {
 	public:
 		void run_for(const Cycles cycles);
 

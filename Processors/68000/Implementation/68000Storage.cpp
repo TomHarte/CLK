@@ -16,6 +16,7 @@ ProcessorStorage::ProcessorStorage() {
 	// Set initial state. Largely TODO.
 	active_program_ = reset_program_.data();
 	effective_address_ = 0;
+	is_supervisor_ = 1;
 }
 
 // TODO: allow actions to be specified, of course.
@@ -49,7 +50,7 @@ std::vector<ProcessorStorage::Step> ProcessorStorage::assemble_program(const cha
 					case 'F':	// Fetch SSP MSW.
 					case 'f':	// Fetch SSP LSW.
 						step.microcycle.length = HalfCycles(5);
-						step.microcycle.operation = Microcycle::Address | Microcycle::ReadWrite;
+						step.microcycle.operation = Microcycle::Address | Microcycle::ReadWrite | Microcycle::IsProgram;	// IsProgram is a guess.
 						step.microcycle.address = &effective_address_;
 						step.microcycle.value = isupper(access_pattern[1]) ? &stack_pointers_[1].halves.high : &stack_pointers_[1].halves.low;
 						steps.push_back(step);
@@ -65,7 +66,7 @@ std::vector<ProcessorStorage::Step> ProcessorStorage::assemble_program(const cha
 					case 'V':	// Fetch exception vector low.
 					case 'v':	// Fetch exception vector high.
 						step.microcycle.length = HalfCycles(5);
-						step.microcycle.operation = Microcycle::Address | Microcycle::ReadWrite;
+						step.microcycle.operation = Microcycle::Address | Microcycle::ReadWrite | Microcycle::IsProgram;	// IsProgram is a guess.
 						step.microcycle.address = &effective_address_;
 						step.microcycle.value = isupper(access_pattern[1]) ? &program_counter_.halves.high : &program_counter_.halves.low;
 						steps.push_back(step);
@@ -80,7 +81,7 @@ std::vector<ProcessorStorage::Step> ProcessorStorage::assemble_program(const cha
 
 					case 'p':	// Fetch from the program counter into the prefetch queue.
 						step.microcycle.length = HalfCycles(5);
-						step.microcycle.operation = Microcycle::Address | Microcycle::ReadWrite;
+						step.microcycle.operation = Microcycle::Address | Microcycle::ReadWrite | Microcycle::IsProgram;
 						step.microcycle.address = &program_counter_.full;
 						step.microcycle.value = &prefetch_queue_[1];
 						step.action = Step::Action::AdvancePrefetch;

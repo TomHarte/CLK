@@ -20,11 +20,10 @@ class ProcessorStorage {
 		RegisterPair32 program_counter_;
 
 		RegisterPair16 prefetch_queue_[2];
+		bool dtack_ = true;
 
-		enum class State {
-			Reset,
-			Normal
-		};
+		// Various status bits.
+		int is_supervisor_;
 
 		// Generic sources and targets for memory operations.
 		uint32_t effective_address_;
@@ -64,12 +63,6 @@ class ProcessorStorage {
 		Step *active_program_ = nullptr;
 
 	private:
-		enum class DataSize {
-			Byte, Word, LongWord
-		};
-		enum class AddressingMode {
-		};
-
 		/*!
 			Produces a vector of Steps that implement the described program.
 
