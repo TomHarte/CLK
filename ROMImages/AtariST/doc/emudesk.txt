@@ -1,0 +1,295 @@
+A brief user's guide to the newer features of EmuDesk, the EmuTOS desktop
+=========================================================================
+
+The current version of EmuDesk is based on the TOS 1 desktop, but with
+many improvements inspired by the TOS 2/3/4 desktop, including:
+
+1) new menu items
+    . set file mask
+    . install icon
+    . install application
+    . install devices
+    . remove desktop icon
+    . desktop configuration
+    . blitter
+Due to space limitations, the implementation of the above is somewhat
+restricted in the 192K ROMs (see the detailed descriptions below).  If
+you make any changes to the desktop using the above features, you must
+save the desktop to preserve the changes.
+
+2) other new features
+    . user-assignable icons
+    . user-assignable mouse cursors
+    . open disk window via keyboard shortcut
+    . desktop shortcuts
+Due to space limitations, desktop shortcuts are not available in the
+192K ROMs.  Desktop shortcuts are preserved when you save the desktop.
+
+
+Set file mask
+=============
+192K ROMs:
+This is not available.
+
+Other ROMs:
+This is used to change the file mask of the currently-topped window, to
+control which files are displayed within the window.  Note that folders
+are always displayed; the mask affects the display of files only.  The
+default file mask when a window is opened is "*.*"
+
+
+Install icon
+============
+192K ROMs:
+This may be used to associate a specific icon with a desktop item (disk
+or trash).  You may select an existing desktop item and click on "Install
+icon...", or you may click on "Install icon..." with no item selected.
+If you click on a window icon (file or folder), it will be ignored.
+
+Other ROMs:
+This may be used to associate a specific icon with a desktop item (disk
+or trash), or a window item (file or folder).  You may select an existing
+icon and click on "Install icon...", or you may click on "Install icon..."
+with no item selected.  In the latter case, you'll get a dialog requesting
+you to select the type of icon (desktop or window).
+
+. Installing a desktop icon
+  You may select the type (drive or trash), the label (displayed beneath
+  it on the desktop), and the icon shape (use the up & down arrows to
+  scroll through the available shapes).  In addition, for drives you can
+  select the drive letter.
+
+. Installing a window icon
+  If you pre-selected an icon, you may only change the shape of the icon
+  for that specific file or folder.  If you did not pre-select an item,
+  you can select the files that the icon will apply to (standard TOS
+  wildcards may be used), the type of item (file or folder), and the icon
+  shape.  In either case, to change the icon shape, use the up & down
+  arrows to scroll through the available shapes.
+
+
+Install application
+===================
+The basic purpose of "Install application..." is to link an application
+to data files with a specified extension.  After you have done this, when
+you use the desktop to open a file with the specified extension, the
+corresponding application is launched.  For example, you could associate
+all .TXT files with a text editor; then, double-clicking on a .TXT file
+would automatically launch the editor.
+
+In addition, you can assign a function key to an application; pressing
+the function key at the desktop will then launch the application.
+
+Finally, you can set "autoboot" for one application (only): this will
+launch that application during system initialisation, immediately before
+the desktop itself runs.
+
+To use "Install application...", highlight one or more applications and
+click on "Install application...".  In the dialog box, the application
+name of the first application selected will be prefilled.  The following
+fields and buttons specify in detail how the application is run:
+
+. Arguments
+  If you need to pass information (in addition to the name of the data
+  file) to the application when it starts, you may specify it here.  This
+  is typically only relevant to utility programs, and the information
+  needed will be in the application documentation.  In most cases, you
+  should leave this blank.
+
+. Document type
+  This specifies the extension to associate with this application, for
+  example TXT or RSC, and is required.  Wildcards are allowed.
+
+. Install as F__
+  This specifies the function key that will launch the application;
+  values from 1 to 20 are allowed (11-20 are shift-F1 through shift-F10).
+  Leaving this blank is valid, and means that no function key will launch
+  the application.
+
+. Boot status
+  Select "Auto" to autoboot this application (see above).  Since only one
+  autoboot application is allowed, if you set "Auto" for an application,
+  EmuTOS will automatically disable "Auto" for any existing autoboot
+  application.
+
+. Application type
+  Selecting TOS or TTP will launch the program in character mode; GEM or
+  GTP will launch the application in graphics mode.  The appropriate
+  value will be prefilled according to the type of application selected,
+  and should not normally be changed.
+
+. Default dir
+  This specifies the default directory when the application is launched:
+  either the directory of the application itself, or the top window (i.e.
+  the directory of the data file).  The one to choose depends on the
+  specific application.  If the application has supporting files (such as
+  resource or help files), it typically will look for them in the default
+  directory.  For such an application, you will need to specify a default
+  directory of "Application".  Otherwise, specify "Window".
+
+. Parameter
+  When a program is launched due to it being an installed application,
+  the desktop provides the application with the name of the data file
+  that caused the launch: this is known as a parameter.  In most cases,
+  the application expects that the full path of the data file will be
+  provided.  Some (usually older) programs may expect the filename only.
+  Unless the application's documentation indicates otherwise, you should
+  normally try "Full path" first; if that does not work, you can try
+  "File name", although that may require you to modify the "Default dir"
+  specified above.
+
+At the bottom of the dialog box are the following exit buttons:
+
+. Install
+  Installs the application.  You must save the desktop afterwards if you
+  want the change to be saved across boots.
+
+. Remove
+  Removes an existing installed application.  You must save the desktop
+  afterwards if you want the change to be saved across boots.
+
+. Skip
+  Skips installing/removing the current application, and moves on to the
+  next one you specified.  If you only specified one application, this
+  is the same as Cancel.
+
+. Cancel
+  Skip installing/removing all remaining applications.
+
+
+Install devices
+===============
+This automatically installs icons for all devices that are currently
+known to GEMDOS (have an entry in _drvbits) and that do not currently
+have an icon.  If the device is A: or B:, a floppy icon is installed;
+otherwise a hard disk icon is installed.
+
+
+Remove desktop icon
+===================
+This is used to remove a disk or trash icon.  Highlight the icon you
+wish to remove, and click on "Remove desktop icon".
+
+
+Desktop configuration
+=====================
+192K ROMs:
+This is not available.
+
+Other ROMs:
+This is a simplified version of the corresponding Atari TOS menu item.
+It allows you to specify the default directory and input parameter for
+all applications that are not installed applications.  See "Install
+application" above, under 'Default dir' and 'Parameter', for further
+information about these options.
+
+
+Blitter
+=======
+This item allows you to enable or disable the use of the blitter by the
+desktop.  The item is greyed-out if the system does not have a blitter.
+
+
+User-assignable icons
+=====================
+When EmuDesk starts, it looks for a file called EMUICON.RSC in the root
+of the boot drive.  This file should be a standard Atari resource file,
+with at least eight icons.  All icons in the file must be 32x32-pixel
+monochrome icons.  If the file is found, these icons are used for the
+desktop and window displays; if not found, a standard set of eight
+builtin icons is used instead.  The builtin icons (or the first eight
+of the loaded icons, if EMUICON.RSC is in use) have the following usage:
+    0   hard drive
+    1   floppy drive
+    2   folder
+    3   trash
+    4   printer
+    5   removable disk
+    6   generic application icon
+    7   generic document icon
+Icons 8 and above can be used as you wish.
+
+Note that, for historical reasons, these assignments are different from
+those used by Atari TOS, so if you have an equivalent RSC file that works
+with Atari TOS, you will need to move the icons around to get the same
+desktop display.
+
+A default EMUICON.RSC file (currently containing 41 icons) is shipped
+with the release; the first 8 icons are the same as the builtin ones.
+Also shipped is the corresponding EMUICON.DEF file for use by a resource
+editor.  You should be aware that each icon consumes about 300 bytes of
+RAM, so if you are short of memory, avoid putting too many icons in
+EMUICON.RSC.
+
+
+User-assignable mouse cursors
+=============================
+When the AES starts, it looks for a file called EMUCURS.RSC in the root
+of the boot drive.  This file should be a standard Atari resource file,
+containing 8 ICONBLKs; each ICONBLK is a container for a mouse cursor.
+If the file is found, these cursors are used instead of the builtin
+cursors.  The usage is as described for the AES graf_mouse() call:
+    0   arrow
+    1   text cursor / i-beam
+    2   busy bee / hourglass
+    3   pointing hand
+    4   flat hand
+    5   thin cross
+    6   thick cross
+    7   outline cross
+
+A default EMUCURS.RSC file is shipped with the release; the mouse cursors
+in it are the same as the builtin ones.  Also shipped is the corresponding
+EMUCURS.DEF file for use by a resource editor.
+
+NOTE: Because the mouse cursors are not really ICONBLKs (though they are
+stored as such within the resource), editing them with a standard resource
+editor is difficult.  Thorsten Otto's ORCS resource editor has special
+support for mouse cursors and is the recommended tool for modifying them.
+
+
+Open disk window via keyboard shortcut
+======================================
+You may now use a keyboard shortcut to display the root directory of a
+drive in a new window.  To display drive X, hold the Alt key down and
+type X, e.g. Alt-C displays drive C, Alt-D displays drive D, and so on.
+As in TOS2/3/4, these shortcuts are permanently assigned and cannot be
+changed by the user.
+
+NOTE: unlike TOS2/3/4, shortcuts with the Ctrl modifier do NOT update
+the drive assigned to the currently topped window; instead, they are
+assigned to menu item shortcuts.  At the moment, these assignments are
+also permanent.
+
+
+Desktop shortcuts
+=================
+You may now drag a file or folder to the desktop to create a desktop icon
+that is a shortcut to the original file/folder: manipulating the icon
+will have the same effect as manipulating the original file or folder.
+For example, it may be opened, copied, or moved or deleted; it may have
+an "Info/rename" performed on it.  Currently, by design, the shortcut is
+NOT updated automatically if the original file or folder is moved or
+deleted.
+
+The name and shape of the shortcut icon itself may be modified by the
+"Install icon" menu item; this does not change the name of the file or
+folder that the icon points to.  The shortcut icon may be deleted by the
+"Remove icon" menu item.  To preserve shortcut information across boots,
+you must save the desktop.
+
+You may drag a file or folder to a desktop shortcut, with the following
+results:
+. dragging documents to a desktop shortcut for a folder will copy (or
+  move, if the control key is held down) them to the folder
+. dragging documents to a desktop shortcut for a program will launch the
+  program, passing the full pathname of the first document
+. dragging documents to a desktop shortcut for a non-executable file will
+  do nothing
+
+If you open a desktop shortcut that points to a file or folder that no
+longer exists, an alert will be issued, giving you the choice of removing
+the shortcut, locating the desired file or folder, or cancelling the
+action.  If you choose locate, a file selector will be displayed to
+allow you to choose the desired file or folder, and the shortcut will be
+updated with the new information.

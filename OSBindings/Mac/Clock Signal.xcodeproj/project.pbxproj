@@ -661,6 +661,7 @@
 		4BFE7B881FC39D8900160B38 /* StandardOptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFE7B851FC39BF100160B38 /* StandardOptions.cpp */; };
 		4BFF1D3922337B0300838EA1 /* 68000Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */; };
 		4BFF1D3A22337B0300838EA1 /* 68000Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */; };
+		4BFF1D3D2235C3C100838EA1 /* EmuTOSTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BFF1D3C2235C3C100838EA1 /* EmuTOSTests.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1462,6 +1463,7 @@
 		4BFF1D37223379D500838EA1 /* 68000Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Storage.hpp; sourceTree = "<group>"; };
 		4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 68000Storage.cpp; sourceTree = "<group>"; };
 		4BFF1D3B2235714900838EA1 /* 68000Implementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 68000Implementation.hpp; sourceTree = "<group>"; };
+		4BFF1D3C2235C3C100838EA1 /* EmuTOSTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = EmuTOSTests.mm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2822,6 +2824,7 @@
 			children = (
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
+				4BFF1D3C2235C3C100838EA1 /* EmuTOSTests.mm */,
 				4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */,
 				4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */,
 				4B121F9A1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm */,
@@ -4003,6 +4006,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4BFF1D3D2235C3C100838EA1 /* EmuTOSTests.mm in Sources */,
 				4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */,
 				4BDDBA991EF3451200347E61 /* Z80MachineCycleTests.swift in Sources */,
 				4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */,

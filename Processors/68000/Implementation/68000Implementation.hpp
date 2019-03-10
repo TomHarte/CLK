@@ -6,7 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>::run_for(Cycles cycles) {
+template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>::run_for(HalfCycles duration) {
 	// TODO: obey the 'cycles' count.
 	while(true) {
 		// Check whether the program is exhausted.
@@ -44,5 +44,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 				prefetch_queue_[0] = prefetch_queue_[1];
 			break;
 		}
+
+		// Move to the next program step.
+		++active_program_;
 	}
 }

@@ -95,7 +95,9 @@ class ProcessorBase: public ProcessorStorage {
 
 template <class T, bool dtack_is_implicit> class Processor: public ProcessorBase {
 	public:
-		void run_for(const Cycles cycles);
+		Processor(T &bus_handler) : ProcessorBase(), bus_handler_(bus_handler) {}
+
+		void run_for(HalfCycles duration);
 
 	private:
 		T &bus_handler_;

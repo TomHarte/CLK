@@ -1,0 +1,22 @@
+FUNCTION                XHDI VERSION            SUPPORTED BY EMUTOS
+----------------------------------------------------------------------
+XHGETVERSION    0       ALL                     YES
+XHINQTARGET     1       ALL                     YES
+XHRESERVE       2       ALL                     NO
+XHLOCK          3       ALL                     NO
+XHSTOP          4       ALL                     NO
+XHEJECT         5       ALL                     NO
+XHDRVMAP        6       ALL                     YES
+XHINQDEV        7       ALL                     YES
+XHINQDRIVER     8       ALL                     YES
+XHNEWCOOKIE     9       OPTIONAL                YES
+XHREADWRITE     10      ALL                     YES
+XHINQTARGET2    11      >= 1.01                 YES
+XHINQDEV2       12      >= 1.10                 YES
+XHDRIVERSPECIAL 13      OPTIONAL                NO
+XHGETCAPACITY   14      OPTIONAL                YES
+XHMEDIUMCHANGED 15      OPTIONAL                NO
+XHMINTINFO      16      OPTIONAL                NO
+XHDOSLIMITS     17      OPTIONAL                YES
+XHLASTACCESS    18      >= 1.25                 NO
+XHREACCESS      19      >= 1.25                 NO
