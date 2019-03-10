@@ -32,7 +32,7 @@ template <typename Full, typename Half> union RegisterPair {
 };
 
 typedef RegisterPair<uint16_t, uint8_t> RegisterPair16;
-typedef RegisterPair<uint32_t, uint16_t> RegisterPair32;
+typedef RegisterPair<uint32_t, RegisterPair16> RegisterPair32;
 
 }
 

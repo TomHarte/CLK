@@ -1464,6 +1464,7 @@
 		4BFF1D342233778C00838EA1 /* 68000.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000.hpp; sourceTree = "<group>"; };
 		4BFF1D37223379D500838EA1 /* 68000Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Storage.hpp; sourceTree = "<group>"; };
 		4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = 68000Storage.cpp; sourceTree = "<group>"; };
+		4BFF1D3B2235714900838EA1 /* 68000Implementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = 68000Implementation.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -3216,6 +3217,7 @@
 			children = (
 				4BFF1D37223379D500838EA1 /* 68000Storage.hpp */,
 				4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */,
+				4BFF1D3B2235714900838EA1 /* 68000Implementation.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";

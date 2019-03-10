@@ -10,42 +10,95 @@
 #define MC68000_h
 
 #include <cstdint>
+#include <iostream>
 #include <vector>
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../RegisterSizes.hpp"
 
 namespace CPU {
 namespace MC68000 {
 
+/*!
+	A microcycle is an atomic unit of 68000 bus activity — it is a single item large enough
+	fully to specify a sequence of bus events that occur without any possible interruption.
+
+	Concretely, a standard read cycle breaks down into at least two microcycles:
+
+		1) a 5 half-cycle length microcycle in which the address strobe is signalled; and
+		2) a 3 half-cycle length microcycle in which at least one of the data strobes is
+		signalled, and the data bus is sampled.
+
+	That is, assuming DTack were signalled when microcycle (1) ended. If not then additional
+	wait state microcycles would fall between those two parts.
+
+	The 68000 data sheet defines when the address becomes valid during microcycle (1), and
+	when the address strobe is actually asserted. But those timings are fixed. So simply
+	telling you that this was a microcycle during which the address trobe was signalled is
+	sufficient fully to describe the bus activity.
+
+	(Aside: see the 68000 template's definition for options re: implicit DTack; if your
+	68000 owner can always predict exactly how long it will hold DTack following observation
+	of an address-strobing microcycle, it can just supply those periods for accounting and
+	avoid the runtime cost of actual DTack emulation. But such as the bus allows.)
+*/
 struct Microcycle {
-	enum Operation {
-		Read16,
-		Write16,
-		ReadHigh,
-		ReadLow,
-		WriteHigh,
-		WriteLow,
+	/*
+		The operation code is a mask of all the signals that relevantly became active during
+		this microcycle.
+	*/
+	static const int Address	= 1 << 0;
+	static const int UpperData	= 1 << 1;
+	static const int LowerData	= 1 << 2;
+	static const int ReadWrite 	= 1 << 3;	// Set = read; unset = write.
 
-		/// The data bus is not tristated, but no data request is made.
-		Idle,
+	int operation = 0;
+	HalfCycles length = HalfCycles(2);
 
-		/// No data bus interaction at all; bus is tristated.
-		None
-	};
+	/*!
+		For expediency, this provides a full 32-bit byte-resolution address — e.g.
+		if reading indirectly via an address register, this will indicate the full
+		value of the address register.
 
-	Operation operation = Operation::None;
-	Cycles length = Cycles(2);
-	uint32_t *address = nullptr;
-	uint16_t *value = nullptr;
+		The receiver should ignore bits 0 and 24+.
+	*/
+	const uint32_t *address = nullptr;
+	RegisterPair16 *value = nullptr;
 };
 
+/*!
+	This is the prototype for a 68000 bus handler; real bus handlers can descend from this
+	in order to get default implementations of any changes that may occur in the expected interface.
+*/
 class BusHandler {
 	public:
-		Cycles perform_machine_cycle(const Microcycle &cycle) {
-			return Cycles(0);
+		static const int Data 			= 1 << 0;
+		static const int Program		= 1 << 1;
+		static const int Supervisor		= 1 << 2;
+		static const int Interrupt		= Data | Program | Supervisor;
+
+		/*!
+			Provides the bus handler with a single Microcycle to 'perform', along with the
+			contents of the FC0, FC1 and FC2 lines by way of processor_status. The symbols
+			above, Data, Program, Supervisor and Interrupt can be used to help to decode the
+			processor status if desired; in summary:
+
+			If all three bits are set, this is an interrupt acknowledgement.
+
+			If the data bit is set, the 68000 is fetching data.
+
+			If the program bit is set, the 68000 is fetching instructions.
+
+			It the supervisor bit is set, the 68000 is currently in supervisor mode.
+
+			Neither program nor data being set has an undefined meaning. As does both program
+			and data being set, but this not being an interrupt.
+		*/
+		HalfCycles perform_bus_operation(const Microcycle &cycle, int processor_status) {
+			return HalfCycles(0);
 		}
 
-		void flush();
+		void flush() {}
 };
 
 #include "Implementation/68000Storage.hpp"
@@ -60,6 +113,8 @@ template <class T> class Processor: public ProcessorBase {
 	private:
 		T &bus_handler_;
 };
+
+#include "Implementation/68000Implementation.hpp"
 
 }
 }
