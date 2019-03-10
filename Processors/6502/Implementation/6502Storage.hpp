@@ -205,7 +205,7 @@ class ProcessorStorage {
 		/*
 			Storage for the 6502 registers; F is stored as individual flags.
 		*/
-		RegisterPair pc_, last_operation_pc_;
+		RegisterPair16 pc_, last_operation_pc_;
 		uint8_t a_, x_, y_, s_ = 0;
 		uint8_t carry_flag_, negative_result_, zero_result_, decimal_flag_, overflow_flag_, inverse_interrupt_flag_ = 0;
 
@@ -213,7 +213,7 @@ class ProcessorStorage {
 			Temporary state for the micro programs.
 		*/
 		uint8_t operation_, operand_;
-		RegisterPair address_, next_address_;
+		RegisterPair16 address_, next_address_;
 
 		/*
 			Temporary storage allowing a common dispatch point for calling perform_bus_operation;

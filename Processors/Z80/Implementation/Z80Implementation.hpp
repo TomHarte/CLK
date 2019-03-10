@@ -90,7 +90,7 @@ template <	class T,
 				break;
 				case MicroOp::DecodeOperation:
 					refresh_addr_ = ir_;
-					ir_.bytes.low = (ir_.bytes.low & 0x80) | ((ir_.bytes.low + current_instruction_page_->r_step) & 0x7f);
+					ir_.halves.low = (ir_.halves.low & 0x80) | ((ir_.halves.low + current_instruction_page_->r_step) & 0x7f);
 					pc_.full += pc_increment_ & static_cast<uint16_t>(halt_mask_);
 					scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 					flag_adjustment_history_ <<= 1;
@@ -108,13 +108,12 @@ template <	class T,
 				case MicroOp::Move16:				*static_cast<uint16_t *>(operation->destination) = *static_cast<uint16_t *>(operation->source);		break;
 
 				case MicroOp::AssembleAF:
-					temp16_.bytes.high = a_;
-					temp16_.bytes.low = get_flags();
+					temp16_.halves.high = a_;
+					temp16_.halves.low = get_flags();
 				break;
 				case MicroOp::DisassembleAF:
-					a_ = temp16_.bytes.high;
-					set_flags(temp16_.bytes.low);
-					//
+					a_ = temp16_.halves.high;
+					set_flags(temp16_.halves.low);
 				break;
 
 // MARK: - Logical
@@ -179,8 +178,8 @@ template <	class T,
 // MARK: - Flow control
 
 				case MicroOp::DJNZ:
-					bc_.bytes.high--;
-					if(!bc_.bytes.high) {
+					bc_.halves.high--;
+					if(!bc_.halves.high) {
 						advance_operation();
 					}
 				break;
@@ -460,10 +459,10 @@ template <	class T,
 				case MicroOp::ExAFAFDash: {
 					const uint8_t a = a_;
 					const uint8_t f = get_flags();
-					set_flags(afDash_.bytes.low);
-					a_ = afDash_.bytes.high;
-					afDash_.bytes.high = a;
-					afDash_.bytes.low = f;
+					set_flags(afDash_.halves.low);
+					a_ = afDash_.halves.high;
+					afDash_.halves.high = a;
+					afDash_.halves.low = f;
 				} break;
 
 				case MicroOp::EXX: {
@@ -554,13 +553,13 @@ template <	class T,
 #undef CPxR_STEP
 
 #define INxR_STEP(dir)	\
-	bc_.bytes.high--;	\
+	bc_.halves.high--;	\
 	hl_.full += dir;	\
 	\
-	sign_result_ = zero_result_ = bit53_result_ = bc_.bytes.high;	\
+	sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;	\
 	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
 	\
-	const int next_bc = bc_.bytes.low + dir;	\
+	const int next_bc = bc_.halves.low + dir;	\
 	int summation = temp8_ + (next_bc&0xff);	\
 	\
 	if(summation > 0xff) {	\
@@ -571,18 +570,18 @@ template <	class T,
 		half_carry_result_ = 0;	\
 	}	\
 	\
-	summation = (summation&7) ^ bc_.bytes.high;	\
+	summation = (summation&7) ^ bc_.halves.high;	\
 	set_parity(summation);	\
 	set_did_compute_flags();
 
 				case MicroOp::INDR: {
 					INxR_STEP(-1);
-					REPEAT(bc_.bytes.high);
+					REPEAT(bc_.halves.high);
 				} break;
 
 				case MicroOp::INIR: {
 					INxR_STEP(1);
-					REPEAT(bc_.bytes.high);
+					REPEAT(bc_.halves.high);
 				} break;
 
 				case MicroOp::IND: {
@@ -598,13 +597,13 @@ template <	class T,
 #undef INxR_STEP
 
 #define OUTxR_STEP(dir)	\
-	bc_.bytes.high--;	\
+	bc_.halves.high--;	\
 	hl_.full += dir;	\
 	\
-	sign_result_ = zero_result_ = bit53_result_ = bc_.bytes.high;	\
+	sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;	\
 	subtract_flag_ = (temp8_ >> 6) & Flag::Subtract;	\
 	\
-	int summation = temp8_ + hl_.bytes.low;	\
+	int summation = temp8_ + hl_.halves.low;	\
 	if(summation > 0xff) {	\
 		carry_result_ = Flag::Carry;	\
 		half_carry_result_ = Flag::HalfCarry;	\
@@ -612,12 +611,12 @@ template <	class T,
 		carry_result_ = half_carry_result_ = 0;	\
 	}	\
 	\
-	summation = (summation&7) ^ bc_.bytes.high;	\
+	summation = (summation&7) ^ bc_.halves.high;	\
 	set_parity(summation);	\
 	set_did_compute_flags();
 
 				case MicroOp::OUT_R:
-					REPEAT(bc_.bytes.high);
+					REPEAT(bc_.halves.high);
 				break;
 
 				case MicroOp::OUTD: {
@@ -638,7 +637,7 @@ template <	class T,
 					const uint8_t result = *static_cast<uint8_t *>(operation->source) & (1 << ((operation_ >> 3)&7));
 
 					if(current_instruction_page_->is_indexed || ((operation_&0x07) == 6)) {
-						bit53_result_ = memptr_.bytes.high;
+						bit53_result_ = memptr_.halves.high;
 					} else {
 						bit53_result_ = *static_cast<uint8_t *>(operation->source);
 					}

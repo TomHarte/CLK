@@ -28,7 +28,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 	// These plus program below act to give the compiler permission to update these values
 	// without touching the class storage (i.e. it explicitly says they need be completely up
 	// to date in this stack frame only); which saves some complicated addressing
-	RegisterPair nextAddress = next_address_;
+	RegisterPair16 nextAddress = next_address_;
 	BusOperation nextBusOperation = next_bus_operation_;
 	uint16_t busAddress = bus_address_;
 	uint8_t *busValue = bus_value_;
@@ -147,8 +147,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 }
 
 					case CycleIncPCPushPCH:				pc_.full++;														// deliberate fallthrough
-					case CyclePushPCH:					push(pc_.bytes.high);											break;
-					case CyclePushPCL:					push(pc_.bytes.low);											break;
+					case CyclePushPCH:					push(pc_.halves.high);											break;
+					case CyclePushPCL:					push(pc_.halves.low);											break;
 					case CyclePushOperand:				push(operand_);													break;
 					case CyclePushA:					push(a_);														break;
 					case CyclePushX:					push(x_);														break;
@@ -175,8 +175,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					continue;
 					case OperationNMIPickVector:		nextAddress.full = 0xfffa;											continue;
 					case OperationRSTPickVector:		nextAddress.full = 0xfffc;											continue;
-					case CycleReadVectorLow:			read_mem(pc_.bytes.low, nextAddress.full);							break;
-					case CycleReadVectorHigh:			read_mem(pc_.bytes.high, nextAddress.full+1);						break;
+					case CycleReadVectorLow:			read_mem(pc_.halves.low, nextAddress.full);							break;
+					case CycleReadVectorHigh:			read_mem(pc_.halves.high, nextAddress.full+1);						break;
 					case OperationSetIRQFlags:
 						inverse_interrupt_flag_ = 0;
 						if(is_65c02(personality)) decimal_flag_ = false;
@@ -185,8 +185,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						if(is_65c02(personality)) decimal_flag_ = false;
 					continue;
 
-					case CyclePullPCL:					s_++; read_mem(pc_.bytes.low, s_ | 0x100);							break;
-					case CyclePullPCH:					s_++; read_mem(pc_.bytes.high, s_ | 0x100);							break;
+					case CyclePullPCL:					s_++; read_mem(pc_.halves.low, s_ | 0x100);							break;
+					case CyclePullPCH:					s_++; read_mem(pc_.halves.high, s_ | 0x100);						break;
 					case CyclePullA:					s_++; read_mem(a_, s_ | 0x100);										break;
 					case CyclePullX:					s_++; read_mem(x_, s_ | 0x100);										break;
 					case CyclePullY:					s_++; read_mem(y_, s_ | 0x100);										break;
@@ -198,11 +198,11 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case OperationSetFlagsFromX:		zero_result_ = negative_result_ = x_;								continue;
 					case OperationSetFlagsFromY:		zero_result_ = negative_result_ = y_;								continue;
 
-					case CycleIncrementPCAndReadStack:	pc_.full++; throwaway_read(s_ | 0x100);													break;
-					case CycleReadPCLFromAddress:		read_mem(pc_.bytes.low, address_.full);													break;
-					case CycleReadPCHFromAddressLowInc:	address_.bytes.low++; read_mem(pc_.bytes.high, address_.full);							break;
-					case CycleReadPCHFromAddressFixed:	if(!address_.bytes.low) address_.bytes.high++; read_mem(pc_.bytes.high, address_.full);	break;
-					case CycleReadPCHFromAddressInc:	address_.full++; read_mem(pc_.bytes.high, address_.full);								break;
+					case CycleIncrementPCAndReadStack:	pc_.full++; throwaway_read(s_ | 0x100);														break;
+					case CycleReadPCLFromAddress:		read_mem(pc_.halves.low, address_.full);													break;
+					case CycleReadPCHFromAddressLowInc:	address_.halves.low++; read_mem(pc_.halves.high, address_.full);							break;
+					case CycleReadPCHFromAddressFixed:	if(!address_.halves.low) address_.halves.high++; read_mem(pc_.halves.high, address_.full);	break;
+					case CycleReadPCHFromAddressInc:	address_.full++; read_mem(pc_.halves.high, address_.full);									break;
 
 					case CycleReadAndIncrementPC: {
 						uint16_t oldPC = pc_.full;
@@ -244,10 +244,10 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case OperationSTY:	operand_ = y_;											continue;
 					case OperationSTZ:	operand_ = 0;											continue;
 					case OperationSAX:	operand_ = a_ & x_;										continue;
-					case OperationSHA:	operand_ = a_ & x_ & (address_.bytes.high+1);			continue;
-					case OperationSHX:	operand_ = x_ & (address_.bytes.high+1);				continue;
-					case OperationSHY:	operand_ = y_ & (address_.bytes.high+1);				continue;
-					case OperationSHS:	s_ = a_ & x_; operand_ = s_ & (address_.bytes.high+1);	continue;
+					case OperationSHA:	operand_ = a_ & x_ & (address_.halves.high+1);			continue;
+					case OperationSHX:	operand_ = x_ & (address_.halves.high+1);				continue;
+					case OperationSHY:	operand_ = y_ & (address_.halves.high+1);				continue;
+					case OperationSHS:	s_ = a_ & x_; operand_ = s_ & (address_.halves.high+1);	continue;
 
 					case OperationLXA:
 						a_ = x_ = (a_ | 0xee) & operand_;
@@ -475,28 +475,28 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case CycleAddXToAddressLow:
 						nextAddress.full = address_.full + x_;
-						address_.bytes.low = nextAddress.bytes.low;
-						if(address_.bytes.high != nextAddress.bytes.high) {		
+						address_.halves.low = nextAddress.halves.low;
+						if(address_.halves.high != nextAddress.halves.high) {
 							page_crossing_stall_read();
 							break;
 						}
 					continue;
 					case CycleAddXToAddressLowRead:
 						nextAddress.full = address_.full + x_;
-						address_.bytes.low = nextAddress.bytes.low;
+						address_.halves.low = nextAddress.halves.low;
 						page_crossing_stall_read();
 					break;
 					case CycleAddYToAddressLow:
 						nextAddress.full = address_.full + y_;
-						address_.bytes.low = nextAddress.bytes.low;
-						if(address_.bytes.high != nextAddress.bytes.high) {
+						address_.halves.low = nextAddress.halves.low;
+						if(address_.halves.high != nextAddress.halves.high) {
 							page_crossing_stall_read();
 							break;
 						}
 					continue;
 					case CycleAddYToAddressLowRead:
 						nextAddress.full = address_.full + y_;
-						address_.bytes.low = nextAddress.bytes.low;
+						address_.halves.low = nextAddress.halves.low;
 						page_crossing_stall_read();
 					break;
 
@@ -507,37 +507,37 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					continue;
 					case CycleIncrementPCFetchAddressLowFromOperand:
 						pc_.full++;
-						read_mem(address_.bytes.low, operand_);
+						read_mem(address_.halves.low, operand_);
 					break;
 					case CycleAddXToOperandFetchAddressLow:
 						operand_ += x_;
-						read_mem(address_.bytes.low, operand_);
+						read_mem(address_.halves.low, operand_);
 					break;
 					case CycleFetchAddressLowFromOperand:
-						read_mem(address_.bytes.low, operand_);
+						read_mem(address_.halves.low, operand_);
 					break;
 					case CycleIncrementOperandFetchAddressHigh:
 						operand_++;
-						read_mem(address_.bytes.high, operand_);
+						read_mem(address_.halves.high, operand_);
 					break;
 					case CycleIncrementPCReadPCHLoadPCL:	// deliberate fallthrough
 						pc_.full++;
 					case CycleReadPCHLoadPCL: {
 						uint16_t oldPC = pc_.full;
-						pc_.bytes.low = operand_;
-						read_mem(pc_.bytes.high, oldPC);
+						pc_.halves.low = operand_;
+						read_mem(pc_.halves.high, oldPC);
 					} break;
 
 					case CycleReadAddressHLoadAddressL:
-						address_.bytes.low = operand_; pc_.full++;
-						read_mem(address_.bytes.high, pc_.full);
+						address_.halves.low = operand_; pc_.full++;
+						read_mem(address_.halves.high, pc_.full);
 					break;
 
 					case CycleLoadAddressAbsolute: {
 						uint16_t nextPC = pc_.full+1;
 						pc_.full += 2;
-						address_.bytes.low = operand_;
-						read_mem(address_.bytes.high, nextPC);
+						address_.halves.low = operand_;
+						read_mem(address_.halves.high, nextPC);
 					} break;
 
 					case OperationLoadAddressZeroPage:
@@ -583,8 +583,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case CycleAddSignedOperandToPC:
 						nextAddress.full = static_cast<uint16_t>(pc_.full + (int8_t)operand_);
-						pc_.bytes.low = nextAddress.bytes.low;
-						if(nextAddress.bytes.high != pc_.bytes.high) {
+						pc_.halves.low = nextAddress.halves.low;
+						if(nextAddress.halves.high != pc_.halves.high) {
 							uint16_t halfUpdatedPc = pc_.full;
 							pc_.full = nextAddress.full;
 							throwaway_read(halfUpdatedPc);
@@ -598,7 +598,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					continue;
 
 					case CycleFetchFromHalfUpdatedPC: {
-						uint16_t halfUpdatedPc = static_cast<uint16_t>(((pc_.bytes.low + (int8_t)operand_) & 0xff) | (pc_.bytes.high << 8));
+						uint16_t halfUpdatedPc = static_cast<uint16_t>(((pc_.halves.low + (int8_t)operand_) & 0xff) | (pc_.halves.high << 8));
 						throwaway_read(halfUpdatedPc);
 					} break;
 
