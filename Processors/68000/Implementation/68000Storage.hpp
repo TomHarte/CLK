@@ -104,6 +104,12 @@ class ProcessorStorage {
 			data from those.
 		*/
 		std::vector<Step> assemble_program(const char *access_pattern);
+
+		/*!
+			Disassembles the instruction @c instruction and inserts it into the
+			appropriate lookup tables.
+		*/
+		void install_instruction(int instruction);
 };
 
 #endif /* MC68000Storage_h */

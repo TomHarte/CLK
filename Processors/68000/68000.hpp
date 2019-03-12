@@ -10,6 +10,7 @@
 #define MC68000_h
 
 #include <cstdint>
+#include <iomanip>
 #include <iostream>
 #include <vector>
 

@@ -25,6 +25,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 			}
 		}
 
+		// TODO: synchronous bus.
+
 		// Perform the microcycle.
 		bus_handler_.perform_bus_operation(active_program_->microcycle, is_supervisor_);
 
