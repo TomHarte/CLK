@@ -8,7 +8,9 @@
 
 #import <XCTest/XCTest.h>
 
+#include <array>
 #include <cassert>
+
 #include "68000.hpp"
 #include "CSROMFetcher.hpp"
 
@@ -28,16 +30,32 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 		}
 
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
+			uint32_t address = cycle.address ? (*cycle.address) & 0x00fffffe : 0;
+
+			// As much about the Atari ST's memory map as is relevant here: the ROM begins
+			// at 0xfc0000, and the first eight bytes are mirrored to the first four memory
+			// addresses in order for /RESET to work properly. RAM otherwise fills the first
+			// 512kb of the address space. Trying to write to ROM raises a bus error.
+
+			const bool is_rom = address > 0xfc0000 || address < 8;
+			uint16_t *const base = is_rom ? emuTOS_.data() : ram_.data();
+			if(is_rom) {
+				address &= 0x1ffff;
+			} else {
+				address &= 0x7ffff;
+			}
+
+			// TODO: discern reads and writes (!)
 			switch(cycle.operation & (CPU::MC68000::Microcycle::LowerData | CPU::MC68000::Microcycle::UpperData)) {
 				case 0: break;
 				case CPU::MC68000::Microcycle::LowerData:
-					cycle.value->halves.low = emuTOS_[*cycle.address >> 1] >> 8;
+					cycle.value->halves.low = base[address >> 1] >> 8;
 				break;
 				case CPU::MC68000::Microcycle::UpperData:
-					cycle.value->halves.high = emuTOS_[*cycle.address >> 1] & 0xff;
+					cycle.value->halves.high = base[address >> 1] & 0xff;
 				break;
 				case CPU::MC68000::Microcycle::UpperData | CPU::MC68000::Microcycle::LowerData:
-					cycle.value->full = emuTOS_[*cycle.address >> 1];
+					cycle.value->full = base[address >> 1];
 				break;
 			}
 
@@ -48,6 +66,7 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 		CPU::MC68000::Processor<EmuTOS, true> m68000_;
 
 		std::vector<uint16_t> emuTOS_;
+		std::array<uint16_t, 256*1024> ram_;
 };
 
 @interface EmuTOSTests : XCTestCase
