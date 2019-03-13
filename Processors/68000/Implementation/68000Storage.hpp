@@ -29,10 +29,15 @@ class ProcessorStorage {
 		uint32_t effective_address_;
 		RegisterPair32 bus_data_;
 
+		enum class Operation {
+			ABCD,	SBCD,
+			ADD,	AND,	EOR,	OR,		SUB,
+		};
+
 		/*!
-			A step is a microcycle to perform plus an action to occur afterwards, if any.
+			Bus steps are sequences of things to communicate to the bus.
 		*/
-		struct Step {
+		struct BusStep {
 			Microcycle microcycle;
 			enum class Action {
 				None,
@@ -56,15 +61,53 @@ class ProcessorStorage {
 			} action = Action::None;
 		};
 
-		// Special programs.
-		std::vector<Step> reset_program_;
+		/*!
+			A micro-op is: (i) an action to take; and (ii) a sequence of bus operations
+			to perform after taking the action.
 
-		// Current program pointer.
-		Step *active_program_ = nullptr;
+			A nullptr bus_program terminates a sequence of micro operations.
+		*/
+		struct MicroOp {
+			enum class Action {
+				None,
+				PerformOperation
+			} action = Action::None;
+			BusStep *bus_program = nullptr;
+		};
+
+		/*!
+			A program represents the implementation of a particular opcode, as a sequence
+			of micro-ops and, separately, the operation to perform plus whatever other
+			fields the operation requires.
+		*/
+		struct Program {
+			MicroOp *micro_operations = nullptr;
+			Operation operation;
+			RegisterPair32 *source;
+			RegisterPair32 *destination;
+		};
+
+		// Storage for all the sequences of bus steps and micro-ops used throughout
+		// the 68000.
+		std::vector<BusStep> all_bus_steps_;
+		std::vector<MicroOp> all_micro_ops_;
+
+		// A lookup table from instructions to implementations.
+		Program instructions[65536];
+
+		// Special programs, for exception handlers.
+		BusStep *reset_program_;
+
+		// Current bus step pointer, and outer program pointer.
+		Program *active_program_ = nullptr;
+		MicroOp *active_micro_op_ = nullptr;
+		BusStep *active_step_ = nullptr;
 
 	private:
 		/*!
-			Produces a vector of Steps that implement the described program.
+			Installs BusSteps that implement the described program into the relevant
+			instance storage, returning the offset within @c all_bus_steps_ at which
+			the generated steps begin.
 
 			@param access_pattern A string describing the bus activity that occurs
 				during this program. This should follow the same general pattern as
@@ -103,13 +146,19 @@ class ProcessorStorage {
 			The user should fill in the steps necessary to get data into or extract
 			data from those.
 		*/
-		std::vector<Step> assemble_program(const char *access_pattern);
+		size_t assemble_program(const char *access_pattern);
+
+		struct BusStepCollection {
+			size_t six_step_Dn;
+			size_t four_step_Dn;
+		};
+		BusStepCollection assemble_standard_bus_steps();
 
 		/*!
 			Disassembles the instruction @c instruction and inserts it into the
 			appropriate lookup tables.
 		*/
-		void install_instruction(int instruction);
+		void install_instructions(const BusStepCollection &);
 };
 
 #endif /* MC68000Storage_h */
