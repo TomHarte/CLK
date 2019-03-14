@@ -31,8 +31,11 @@ ProcessorStorage::ProcessorStorage() {
 	is_supervisor_ = 1;
 }
 
-size_t ProcessorStorage::assemble_program(const char *access_pattern) {
+size_t ProcessorStorage::assemble_program(const char *access_pattern, const std::vector<uint32_t *> &addresses, int data_mask) {
 	const size_t start = all_bus_steps_.size();
+	auto address_iterator = addresses.begin();
+	RegisterPair32 *scratch_data_read = bus_data_;
+	RegisterPair32 *scratch_data_write = bus_data_;
 
 	// Parse the access pattern to build microcycles.
 	while(*access_pattern) {
@@ -105,6 +108,28 @@ size_t ProcessorStorage::assemble_program(const char *access_pattern) {
 
 						access_pattern += 2;
 					break;
+
+					case 'r':	// Fetch LSW (or only) word (/byte)
+					case 'R':	// Fetch MSW word
+					case 'w':	// Store LSW (or only) word (/byte)
+					case 'W': {	// Store MSW word
+						const bool is_read = tolower(access_pattern[1]) == 'r';
+						RegisterPair32 **scratch_data = is_read ? &scratch_data_read : &scratch_data_write;
+
+						step.microcycle.length = HalfCycles(5);
+						step.microcycle.operation = Microcycle::Address | (is_read ? Microcycle::ReadWrite : 0);
+						step.microcycle.address = *address_iterator;
+						step.microcycle.value = isupper(access_pattern[1]) ? &(*scratch_data)->halves.high : &(*scratch_data)->halves.low;
+						all_bus_steps_.push_back(step);
+
+						step.microcycle.length = HalfCycles(3);
+						step.microcycle.operation |= data_mask;
+						all_bus_steps_.push_back(step);
+
+						++address_iterator;
+						if(!isupper(access_pattern[1])) ++(*scratch_data);
+						access_pattern += 2;
+					} break;
 				}
 			break;
 
@@ -127,6 +152,14 @@ ProcessorStorage::BusStepCollection ProcessorStorage::assemble_standard_bus_step
 
 	collection.four_step_Dn = assemble_program("np");
 	collection.six_step_Dn = assemble_program("np n");
+
+	for(int s = 0; s < 8; ++s) {
+		for(int d = 0; d < 8; ++d) {
+			collection.double_predec_byte[s][d] = assemble_program("n nr nr np nw", { &address_[s].full, &address_[d].full, &address_[d].full }, Microcycle::LowerData);
+			collection.double_predec_word[s][d] = assemble_program("n nr nr np nw", { &address_[s].full, &address_[d].full, &address_[d].full });
+//			collection.double_predec_long[s][d] = assemble_program("n nr nR nr nR nw np nW", { &address_[s].full, &address_[d].full, &address_[d].full });
+		}
+	}
 
 	return collection;
 }
@@ -183,22 +216,45 @@ void ProcessorStorage::install_instructions(const BusStepCollection &bus_step_co
 		{0xff00, 0x0600, Operation::ADD, Decoder::DataSizeModeQuick},	// 4-11 (p115)
 	};
 
+	std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
+
 	// Perform a linear search of the mappings above for this instruction.
-	for(int instruction = 0; instruction < 65536; ++instruction) {
+	for(size_t instruction = 0; instruction < 65536; ++instruction) {
 		for(const auto &mapping: mappings) {
 			if((instruction & mapping.mask) == mapping.value) {
+				// Install the operation and make a note of where micro-ops begin.
+				instructions[instruction].operation = mapping.operation;
+				micro_op_pointers[instruction] = all_micro_ops_.size();
+
 				switch(mapping.decoder) {
 					case Decoder::Decimal: {
 						const int destination = (instruction >> 8) & 7;
 						const int source = instruction & 7;
+
+						all_micro_ops_.emplace_back();
+
 						if(instruction & 8) {
-							std::cout << "Address to address (both predecrement) from " << source << " to " << destination << std::endl;
+							// Install source and destination.
+							instructions[instruction].source = &bus_data_[0];
+							instructions[instruction].destination = &bus_data_[1];
+
+							all_micro_ops_.emplace_back();
+							all_micro_ops_.back().bus_program = &all_bus_steps_[bus_step_collection.double_predec_byte[source][destination]];
+							all_micro_ops_.back().action = MicroOp::Action::PredecrementSourceAndDestination1;
+							all_micro_ops_.emplace_back();
+							all_micro_ops_.back().action = MicroOp::Action::PerformOperation;
+							all_micro_ops_.emplace_back();
 						} else {
-							instructions[instruction].operation = mapping.operation;
+							// Install source and destination.
 							instructions[instruction].source = &data_[source];
 							instructions[instruction].destination = &data_[destination];
-//							instructions[instruction].destination.micro_operations =
-							std::cout << "Data register to data register from " << source << " to " << destination << std::endl;
+
+							// For micro-ops, just schedule the proper bus cycle to get the next thing into the prefetch queue,
+							// then perform the actual operation.
+							all_micro_ops_.emplace_back();
+							all_micro_ops_.back().bus_program = &all_bus_steps_[bus_step_collection.six_step_Dn];
+							all_micro_ops_.back().action = MicroOp::Action::PerformOperation;
+							all_micro_ops_.emplace_back();
 						}
 					} break;
 
@@ -210,8 +266,16 @@ void ProcessorStorage::install_instructions(const BusStepCollection &bus_step_co
 					break;
 				}
 
+				// Don't search further through the list of possibilities.
 				break;
 			}
+		}
+	}
+
+	// Finalise micro-op pointers.
+	for(size_t instruction = 0; instruction < 65536; ++instruction) {
+		if(micro_op_pointers[instruction] != std::numeric_limits<size_t>::max()) {
+			instructions[instruction].micro_operations = &all_micro_ops_[micro_op_pointers[instruction]];
 		}
 	}
 }

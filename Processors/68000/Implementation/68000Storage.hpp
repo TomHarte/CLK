@@ -15,9 +15,11 @@ class ProcessorStorage {
 
 	protected:
 		RegisterPair32 data_[8];
-		RegisterPair32 address_[7];
-		RegisterPair32 stack_pointers_[2];	// [0] = user stack pointer; [1] = supervisor
+		RegisterPair32 address_[8];
 		RegisterPair32 program_counter_;
+
+		RegisterPair32 stack_pointers_[2];	// [0] = user stack pointer; [1] = supervisor; the values from here
+											// are copied into/out of address_[7] upon mode switches.
 
 		RegisterPair16 prefetch_queue_[2];
 		bool dtack_ = true;
@@ -27,7 +29,7 @@ class ProcessorStorage {
 
 		// Generic sources and targets for memory operations.
 		uint32_t effective_address_;
-		RegisterPair32 bus_data_;
+		RegisterPair32 bus_data_[2];
 
 		enum class Operation {
 			ABCD,	SBCD,
@@ -70,7 +72,11 @@ class ProcessorStorage {
 		struct MicroOp {
 			enum class Action {
 				None,
-				PerformOperation
+				PerformOperation,
+
+				PredecrementSourceAndDestination1,
+				PredecrementSourceAndDestination2,
+				PredecrementSourceAndDestination4,
 			} action = Action::None;
 			BusStep *bus_program = nullptr;
 		};
@@ -82,9 +88,9 @@ class ProcessorStorage {
 		*/
 		struct Program {
 			MicroOp *micro_operations = nullptr;
-			Operation operation;
 			RegisterPair32 *source;
 			RegisterPair32 *destination;
+			Operation operation;
 		};
 
 		// Storage for all the sequences of bus steps and micro-ops used throughout
@@ -146,11 +152,16 @@ class ProcessorStorage {
 			The user should fill in the steps necessary to get data into or extract
 			data from those.
 		*/
-		size_t assemble_program(const char *access_pattern);
+		size_t assemble_program(const char *access_pattern, const std::vector<uint32_t *> &addresses = {}, int data_mask = Microcycle::UpperData | Microcycle::LowerData);
 
 		struct BusStepCollection {
 			size_t six_step_Dn;
 			size_t four_step_Dn;
+
+			// The next two are indexed as [source][destination].
+			size_t double_predec_byte[8][8];
+			size_t double_predec_word[8][8];
+			size_t double_predec_long[8][8];
 		};
 		BusStepCollection assemble_standard_bus_steps();
 

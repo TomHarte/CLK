@@ -22,6 +22,21 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 					case MicroOp::Action::PerformOperation:
 						std::cerr << "Should do something with program operation " << int(active_program_->operation) << std::endl;
 					break;
+
+					case MicroOp::Action::PredecrementSourceAndDestination1:
+						-- active_program_->source->full;
+						-- active_program_->destination->full;
+					break;
+
+					case MicroOp::Action::PredecrementSourceAndDestination1:
+						active_program_->source->full -= 2;
+						active_program_->destination->full -= 2;
+					break;
+
+					case MicroOp::Action::PredecrementSourceAndDestination1:
+						active_program_->source->full -= 4;
+						active_program_->destination->full -= 4;
+					break;
 				}
 				active_step_ = active_micro_op_->bus_program;
 			}
