@@ -15,12 +15,36 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 		// for interrupts).
 		if(active_step_->action == BusStep::Action::ScheduleNextProgram) {
 			if(active_micro_op_) {
-				++active_micro_op_;
 				switch(active_micro_op_->action) {
 					case MicroOp::Action::None: break;
 
 					case MicroOp::Action::PerformOperation:
-						std::cerr << "Should do something with program operation " << int(active_program_->operation) << std::endl;
+						switch(active_program_->operation) {
+							case Operation::ABCD: {
+								// Pull out the two halves, for simplicity.
+								const uint8_t source = active_program_->source->halves.low.halves.low;
+								const uint8_t destination = active_program_->destination->halves.low.halves.low;
+
+								// Perform the BCD add by evaluating the two nibbles separately.
+								int result = (source & 0xf) + (destination & 0xf) + (extend_flag_ ? 1 : 0);
+								if(result > 0x9) result += 0x06;
+								result += (source & 0xf0) + (destination & 0xf0);
+								if(result > 0x90) result += 0x60;
+
+								// Set all flags essentially as if this were normal addition.
+								zero_flag_ |= result & 0xff;
+								extend_flag_ = carry_flag_ = result & ~0xff;
+								negative_flag_ = result & 0x80;
+								overflow_flag_ = ~(source ^ destination) & (source ^ result) & 0x80;
+
+								// Store the result.
+								active_program_->destination->halves.low.halves.low = uint8_t(result);
+							} break;
+
+							default:
+								std::cerr << "Should do something with program operation " << int(active_program_->operation) << std::endl;
+							break;
+						}
 					break;
 
 					case MicroOp::Action::PredecrementSourceAndDestination1:
@@ -28,22 +52,33 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						-- active_program_->destination->full;
 					break;
 
-					case MicroOp::Action::PredecrementSourceAndDestination1:
+					case MicroOp::Action::PredecrementSourceAndDestination2:
 						active_program_->source->full -= 2;
 						active_program_->destination->full -= 2;
 					break;
 
-					case MicroOp::Action::PredecrementSourceAndDestination1:
+					case MicroOp::Action::PredecrementSourceAndDestination4:
 						active_program_->source->full -= 4;
 						active_program_->destination->full -= 4;
 					break;
 				}
+			}
+
+			if(active_micro_op_) {
+				++active_micro_op_;
 				active_step_ = active_micro_op_->bus_program;
 			}
 
-			if(!active_step_) {
-				std::cerr << "68000 Abilities exhausted; should schedule an instruction or something?" << std::endl;
-				return;
+			if(!active_step_ || !active_micro_op_) {
+				const uint16_t next_instruction = prefetch_queue_[0].full;
+				if(!instructions[next_instruction].micro_operations) {
+					std::cerr << "68000 Abilities exhausted; should schedule an instruction or something?" << std::endl;
+					return;
+				}
+
+				active_program_ = &instructions[next_instruction];
+				active_micro_op_ = active_program_->micro_operations;
+				active_step_ = active_micro_op_->bus_program;
 			}
 		}
 

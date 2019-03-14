@@ -26,6 +26,11 @@ class ProcessorStorage {
 
 		// Various status bits.
 		int is_supervisor_;
+		int zero_flag_;		// The zero flag is set if this value is zero.
+		int carry_flag_;	// The carry flag is set if this value is non-zero.
+		int extend_flag_;	// The extend flag is set if this value is non-zero.
+		int overflow_flag_;	// The overflow flag is set if this value is non-zero.
+		int negative_flag_;	// The negative flag is set if this value is non-zero.
 
 		// Generic sources and targets for memory operations.
 		uint32_t effective_address_;
@@ -88,8 +93,8 @@ class ProcessorStorage {
 		*/
 		struct Program {
 			MicroOp *micro_operations = nullptr;
-			RegisterPair32 *source;
-			RegisterPair32 *destination;
+			RegisterPair32 *source = nullptr;
+			RegisterPair32 *destination = nullptr;
 			Operation operation;
 		};
 

@@ -219,7 +219,7 @@ void ProcessorStorage::install_instructions(const BusStepCollection &bus_step_co
 	std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
 
 	// Perform a linear search of the mappings above for this instruction.
-	for(size_t instruction = 0; instruction < 65536; ++instruction) {
+	for(size_t instruction = 0; instruction < 65536; ++instruction)	{
 		for(const auto &mapping: mappings) {
 			if((instruction & mapping.mask) == mapping.value) {
 				// Install the operation and make a note of where micro-ops begin.
@@ -228,10 +228,8 @@ void ProcessorStorage::install_instructions(const BusStepCollection &bus_step_co
 
 				switch(mapping.decoder) {
 					case Decoder::Decimal: {
-						const int destination = (instruction >> 8) & 7;
+						const int destination = (instruction >> 9) & 7;
 						const int source = instruction & 7;
-
-						all_micro_ops_.emplace_back();
 
 						if(instruction & 8) {
 							// Install source and destination.

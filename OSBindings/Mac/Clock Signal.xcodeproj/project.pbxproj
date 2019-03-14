@@ -616,6 +616,7 @@
 		4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */; };
 		4BD191F42191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
 		4BD191F52191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
+		4BD388882239E198002D14B5 /* 68000Tests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD388872239E198002D14B5 /* 68000Tests.mm */; };
 		4BD3A30B1EE755C800B5B501 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD3A3091EE755C800B5B501 /* Video.cpp */; };
 		4BD424DF2193B5340097291A /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD424DD2193B5340097291A /* TextureTarget.cpp */; };
 		4BD424E02193B5340097291A /* TextureTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD424DD2193B5340097291A /* TextureTarget.cpp */; };
@@ -1375,6 +1376,7 @@
 		4BD191F22191180E0042E144 /* ScanTarget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScanTarget.cpp; sourceTree = "<group>"; };
 		4BD191F32191180E0042E144 /* ScanTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScanTarget.hpp; sourceTree = "<group>"; };
 		4BD388411FE34E010042B588 /* 9918Base.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = 9918Base.hpp; path = 9918/Implementation/9918Base.hpp; sourceTree = "<group>"; };
+		4BD388872239E198002D14B5 /* 68000Tests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000Tests.mm; sourceTree = "<group>"; };
 		4BD3A3091EE755C800B5B501 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = ZX8081/Video.cpp; sourceTree = "<group>"; };
 		4BD3A30A1EE755C800B5B501 /* Video.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Video.hpp; path = ZX8081/Video.hpp; sourceTree = "<group>"; };
 		4BD424DD2193B5340097291A /* TextureTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TextureTarget.cpp; sourceTree = "<group>"; };
@@ -2822,6 +2824,7 @@
 		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
 			isa = PBXGroup;
 			children = (
+				4BD388872239E198002D14B5 /* 68000Tests.mm */,
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
 				4BFF1D3C2235C3C100838EA1 /* EmuTOSTests.mm */,
@@ -4024,6 +4027,7 @@
 				4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */,
 				4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */,
 				4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */,
+				4BD388882239E198002D14B5 /* 68000Tests.mm in Sources */,
 				4BA91E1D216D85BA00F79557 /* MasterSystemVDPTests.mm in Sources */,
 				4B98A0611FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm in Sources */,
 				4BEF6AAC1D35D1C400E73575 /* DPLLTests.swift in Sources */,
