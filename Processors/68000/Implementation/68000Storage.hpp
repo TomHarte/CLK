@@ -84,6 +84,10 @@ class ProcessorStorage {
 				PredecrementSourceAndDestination4,
 			} action = Action::None;
 			BusStep *bus_program = nullptr;
+
+			MicroOp() {}
+			MicroOp(Action action) : action(action) {}
+			MicroOp(Action action, BusStep *bus_program) : action(action), bus_program(bus_program) {}
 		};
 
 		/*!

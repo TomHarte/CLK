@@ -232,26 +232,21 @@ void ProcessorStorage::install_instructions(const BusStepCollection &bus_step_co
 						const int source = instruction & 7;
 
 						if(instruction & 8) {
-							// Install source and destination.
 							instructions[instruction].source = &bus_data_[0];
 							instructions[instruction].destination = &bus_data_[1];
 
-							all_micro_ops_.emplace_back();
-							all_micro_ops_.back().bus_program = &all_bus_steps_[bus_step_collection.double_predec_byte[source][destination]];
-							all_micro_ops_.back().action = MicroOp::Action::PredecrementSourceAndDestination1;
-							all_micro_ops_.emplace_back();
-							all_micro_ops_.back().action = MicroOp::Action::PerformOperation;
+							all_micro_ops_.emplace_back(
+								MicroOp::Action::PredecrementSourceAndDestination1,
+								&all_bus_steps_[bus_step_collection.double_predec_byte[source][destination]]);
+							all_micro_ops_.emplace_back(MicroOp::Action::PerformOperation);
 							all_micro_ops_.emplace_back();
 						} else {
-							// Install source and destination.
 							instructions[instruction].source = &data_[source];
 							instructions[instruction].destination = &data_[destination];
 
-							// For micro-ops, just schedule the proper bus cycle to get the next thing into the prefetch queue,
-							// then perform the actual operation.
-							all_micro_ops_.emplace_back();
-							all_micro_ops_.back().bus_program = &all_bus_steps_[bus_step_collection.six_step_Dn];
-							all_micro_ops_.back().action = MicroOp::Action::PerformOperation;
+							all_micro_ops_.emplace_back(
+								MicroOp::Action::PerformOperation,
+								&all_bus_steps_[bus_step_collection.six_step_Dn]);
 							all_micro_ops_.emplace_back();
 						}
 					} break;

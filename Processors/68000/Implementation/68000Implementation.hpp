@@ -26,16 +26,37 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								const uint8_t destination = active_program_->destination->halves.low.halves.low;
 
 								// Perform the BCD add by evaluating the two nibbles separately.
-								int result = (source & 0xf) + (destination & 0xf) + (extend_flag_ ? 1 : 0);
+								int result = (destination & 0xf) + (source & 0xf) + (extend_flag_ ? 1 : 0);
 								if(result > 0x9) result += 0x06;
-								result += (source & 0xf0) + (destination & 0xf0);
+								result += (destination & 0xf0) + (source & 0xf0);
 								if(result > 0x90) result += 0x60;
 
 								// Set all flags essentially as if this were normal addition.
 								zero_flag_ |= result & 0xff;
 								extend_flag_ = carry_flag_ = result & ~0xff;
 								negative_flag_ = result & 0x80;
-								overflow_flag_ = ~(source ^ destination) & (source ^ result) & 0x80;
+								overflow_flag_ = ~(source ^ destination) & (destination ^ result) & 0x80;
+
+								// Store the result.
+								active_program_->destination->halves.low.halves.low = uint8_t(result);
+							} break;
+
+							case Operation::SBCD: {
+								// Pull out the two halves, for simplicity.
+								const uint8_t source = active_program_->source->halves.low.halves.low;
+								const uint8_t destination = active_program_->destination->halves.low.halves.low;
+
+								// Perform the BCD add by evaluating the two nibbles separately.
+								int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);
+								if(result > 0x9) result -= 0x06;
+								result += (destination & 0xf0) - (source & 0xf0);
+								if(result > 0x90) result -= 0x60;
+
+								// Set all flags essentially as if this were normal addition.
+								zero_flag_ |= result & 0xff;
+								extend_flag_ = carry_flag_ = result & ~0xff;
+								negative_flag_ = result & 0x80;
+								overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x80;
 
 								// Store the result.
 								active_program_->destination->halves.low.halves.low = uint8_t(result);

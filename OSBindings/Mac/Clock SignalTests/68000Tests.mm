@@ -84,4 +84,11 @@ class RAM68000: public CPU::MC68000::BusHandler {
     _machine->run_for(HalfCycles(400));
 }
 
+- (void)testSBCD {
+	_machine->set_program({
+		0x8100		// SBCD D0, D1
+	});
+    _machine->run_for(HalfCycles(400));
+}
+
 @end
