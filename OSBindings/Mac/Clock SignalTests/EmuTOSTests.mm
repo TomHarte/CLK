@@ -30,33 +30,39 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 		}
 
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
-			uint32_t address = cycle.address ? (*cycle.address) & 0x00fffffe : 0;
+			uint32_t word_address = cycle.word_address();
 
 			// As much about the Atari ST's memory map as is relevant here: the ROM begins
 			// at 0xfc0000, and the first eight bytes are mirrored to the first four memory
 			// addresses in order for /RESET to work properly. RAM otherwise fills the first
 			// 512kb of the address space. Trying to write to ROM raises a bus error.
 
-			const bool is_rom = address > 0xfc0000 || address < 8;
+			const bool is_rom = word_address > (0xfc0000 >> 1) || word_address < 4;
 			uint16_t *const base = is_rom ? emuTOS_.data() : ram_.data();
 			if(is_rom) {
-				address &= 0x1ffff;
+				word_address &= 0xffff;
 			} else {
-				address &= 0x7ffff;
+				word_address &= 0x3ffff;
 			}
 
-			// TODO: discern reads and writes (!)
-			switch(cycle.operation & (CPU::MC68000::Microcycle::LowerData | CPU::MC68000::Microcycle::UpperData)) {
-				case 0: break;
-				case CPU::MC68000::Microcycle::LowerData:
-					cycle.value->halves.low = base[address >> 1] >> 8;
-				break;
-				case CPU::MC68000::Microcycle::UpperData:
-					cycle.value->halves.high = base[address >> 1] & 0xff;
-				break;
-				case CPU::MC68000::Microcycle::UpperData | CPU::MC68000::Microcycle::LowerData:
-					cycle.value->full = base[address >> 1];
-				break;
+			using Microcycle = CPU::MC68000::Microcycle;
+			if(cycle.data_select_active()) {
+				switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+					default: break;
+
+					case Microcycle::SelectWord | Microcycle::Read:
+						cycle.value->full = base[word_address];
+					break;
+					case Microcycle::SelectByte | Microcycle::Read:
+						cycle.value->halves.low = base[word_address] >> cycle.byte_shift();
+					break;
+					case Microcycle::SelectWord:
+						base[word_address] = cycle.value->full;
+					break;
+					case Microcycle::SelectByte:
+						base[word_address] = (cycle.value->full & cycle.byte_mask()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
+					break;
+				}
 			}
 
 			return HalfCycles(0);

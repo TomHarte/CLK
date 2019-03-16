@@ -45,16 +45,39 @@ namespace MC68000 {
 */
 struct Microcycle {
 	/*
-		The operation code is a mask of all the signals that relevantly became active during
-		this microcycle.
+		The operation code is composed of several parts; a compound low part
+		that can be masked off with TypeMask identifies the type of the cycle;
+		some of the other status lines are also present in the top parts of the int.
 	*/
-	static const int Address	= 1 << 0;
-	static const int UpperData	= 1 << 1;
-	static const int LowerData	= 1 << 2;
-	static const int ReadWrite 	= 1 << 3;	// Set = read; unset = write.
+	static const int TypeMask		= 3;
 
-	static const int IsData 	= 1 << 4;	// i.e. this is FC0.
-	static const int IsProgram 	= 1 << 5;	// i.e. this is FC1.
+	/// A NewAddress cycle is one in which the address strobe is initially low but becomes high;
+	/// this correlates to states 0 to 5 of a standard read/write cycle.
+	static const int Idle			= 0;
+
+	/// A NewAddress cycle is one in which the address strobe is initially low but becomes high;
+	/// this correlates to states 0 to 5 of a standard read/write cycle.
+	static const int NewAddress		= 1;
+
+	/// A SameAddress cycle is one in which the address strobe is continuously asserted, but neither
+	/// of the data strobes are.
+	static const int SameAddress	= 2;
+
+	/// Indicates that the address and both data select strobes are active.
+	static const int SelectWord		= 1 << 2;
+
+	/// Indicates that the address strobe and exactly one of the data strobes are active; you can determine
+	/// which by inspecting the low bit of the provided address. The RW line indicates a read.
+	static const int SelectByte		= 1 << 3;
+
+	/// If set, indicates a read. Otherwise, a write.
+	static const int Read 			= 1 << 4;
+
+	/// Contains the value of line FC0.
+	static const int IsData 		= 1 << 5;
+
+	/// Contains the value of line FC1.
+	static const int IsProgram 		= 1 << 6;
 
 	int operation = 0;
 	HalfCycles length = HalfCycles(2);
@@ -68,6 +91,39 @@ struct Microcycle {
 	*/
 	const uint32_t *address = nullptr;
 	RegisterPair16 *value = nullptr;
+
+	// Various inspectors.
+
+	/*! @returns true if any data select line is active; @c false otherwise. */
+	inline bool data_select_active() const {
+		return bool(operation & (SelectWord | SelectByte));
+	}
+
+	/*!
+		@returns 0 if this byte access wants the low part of a 16-bit word; 8 if it wants the high part.
+	*/
+	inline unsigned int byte_shift() const {
+		return (((*address) & 1) << 3) ^ 8;
+	}
+
+	/*!
+		@returns 0x00ff if this byte access wants the low part of a 16-bit word; 0xff00 if it wants the high part.
+	*/
+	inline unsigned int byte_mask() const {
+		return 0xff00 >> (((*address) & 1) << 3);
+	}
+
+	inline int lower_data_select() const {
+		return (operation & SelectByte) & ((*address & 1) << 3);
+	}
+
+	inline int upper_data_select() const {
+		return (operation & SelectByte) & ~((*address & 1) << 3);
+	}
+
+	uint32_t word_address() const {
+		return (address ? (*address) & 0x00fffffe : 0) >> 1;
+	}
 };
 
 /*!

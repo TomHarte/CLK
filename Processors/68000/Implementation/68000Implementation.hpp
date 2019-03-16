@@ -52,7 +52,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								result += (destination & 0xf0) - (source & 0xf0);
 								if(result > 0x90) result -= 0x60;
 
-								// Set all flags essentially as if this were normal addition.
+								// Set all flags essentially as if this were normal subtraction.
 								zero_flag_ |= result & 0xff;
 								extend_flag_ = carry_flag_ = result & ~0xff;
 								negative_flag_ = result & 0x80;
@@ -61,6 +61,21 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								// Store the result.
 								active_program_->destination->halves.low.halves.low = uint8_t(result);
 							} break;
+
+							case Operation::MOVEb:
+								zero_flag_ = active_program_->destination->halves.low.halves.low = active_program_->source->halves.low.halves.low;
+								negative_flag_ = zero_flag_ & 0x80;
+							break;
+
+							case Operation::MOVEw:
+								zero_flag_ = active_program_->destination->halves.low.full = active_program_->source->halves.low.full;
+								negative_flag_ = zero_flag_ & 0x8000;
+							break;
+
+							case Operation::MOVEl:
+								zero_flag_ = active_program_->destination->full = active_program_->source->full;
+								negative_flag_ = zero_flag_ & 0x80000000;
+							break;
 
 							default:
 								std::cerr << "Should do something with program operation " << int(active_program_->operation) << std::endl;
@@ -107,7 +122,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 		// Check for DTack if this isn't being treated implicitly.
 		if(!dtack_is_implicit) {
-			if(active_step_->microcycle.operation & (Microcycle::UpperData | Microcycle::LowerData) && !dtack_) {
+			if(active_step_->microcycle.data_select_active() && !dtack_) {
 				// TODO: perform wait state.
 				continue;
 			}

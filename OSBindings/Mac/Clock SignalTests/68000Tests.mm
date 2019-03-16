@@ -39,19 +39,26 @@ class RAM68000: public CPU::MC68000::BusHandler {
 		}
 
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
-			uint32_t address = cycle.address ? (*cycle.address) & 0x00fffffe : 0;
+			const uint32_t word_address = cycle.word_address();
 
-			switch(cycle.operation & (CPU::MC68000::Microcycle::LowerData | CPU::MC68000::Microcycle::UpperData)) {
-				case 0: break;
-				case CPU::MC68000::Microcycle::LowerData:
-					cycle.value->halves.low = ram_[address >> 1] >> 8;
-				break;
-				case CPU::MC68000::Microcycle::UpperData:
-					cycle.value->halves.high = ram_[address >> 1] & 0xff;
-				break;
-				case CPU::MC68000::Microcycle::UpperData | CPU::MC68000::Microcycle::LowerData:
-					cycle.value->full = ram_[address >> 1];
-				break;
+			using Microcycle = CPU::MC68000::Microcycle;
+			if(cycle.data_select_active()) {
+				switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+					default: break;
+
+					case Microcycle::SelectWord | Microcycle::Read:
+						cycle.value->full = ram_[word_address];
+					break;
+					case Microcycle::SelectByte | Microcycle::Read:
+						cycle.value->halves.low = ram_[word_address] >> cycle.byte_shift();
+					break;
+					case Microcycle::SelectWord:
+						ram_[word_address] = cycle.value->full;
+					break;
+					case Microcycle::SelectByte:
+						ram_[word_address] = (cycle.value->full & cycle.byte_mask()) | (ram_[word_address] & (0xffff ^ cycle.byte_mask()));
+					break;
+				}
 			}
 
 			return HalfCycles(0);

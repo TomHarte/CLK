@@ -26,11 +26,11 @@ class ProcessorStorage {
 
 		// Various status bits.
 		int is_supervisor_;
-		int zero_flag_;		// The zero flag is set if this value is zero.
-		int carry_flag_;	// The carry flag is set if this value is non-zero.
-		int extend_flag_;	// The extend flag is set if this value is non-zero.
-		int overflow_flag_;	// The overflow flag is set if this value is non-zero.
-		int negative_flag_;	// The negative flag is set if this value is non-zero.
+		uint_fast32_t zero_flag_;		// The zero flag is set if this value is zero.
+		uint_fast32_t carry_flag_;		// The carry flag is set if this value is non-zero.
+		uint_fast32_t extend_flag_;		// The extend flag is set if this value is non-zero.
+		uint_fast32_t overflow_flag_;	// The overflow flag is set if this value is non-zero.
+		uint_fast32_t negative_flag_;	// The negative flag is set if this value is non-zero.
 
 		// Generic sources and targets for memory operations.
 		uint32_t effective_address_;
@@ -39,6 +39,8 @@ class ProcessorStorage {
 		enum class Operation {
 			ABCD,	SBCD,
 			ADD,	AND,	EOR,	OR,		SUB,
+
+			MOVEb,	MOVEw,	MOVEl
 		};
 
 		/*!
@@ -161,7 +163,7 @@ class ProcessorStorage {
 			The user should fill in the steps necessary to get data into or extract
 			data from those.
 		*/
-		size_t assemble_program(const char *access_pattern, const std::vector<uint32_t *> &addresses = {}, int data_mask = Microcycle::UpperData | Microcycle::LowerData);
+		size_t assemble_program(const char *access_pattern, const std::vector<uint32_t *> &addresses = {}, bool read_full_words = true);
 
 		struct BusStepCollection {
 			size_t six_step_Dn;

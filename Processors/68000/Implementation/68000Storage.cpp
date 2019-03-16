@@ -31,7 +31,7 @@ ProcessorStorage::ProcessorStorage() {
 	is_supervisor_ = 1;
 }
 
-size_t ProcessorStorage::assemble_program(const char *access_pattern, const std::vector<uint32_t *> &addresses, int data_mask) {
+size_t ProcessorStorage::assemble_program(const char *access_pattern, const std::vector<uint32_t *> &addresses, bool read_full_words) {
 	const size_t start = all_bus_steps_.size();
 	auto address_iterator = addresses.begin();
 	RegisterPair32 *scratch_data_read = bus_data_;
@@ -64,13 +64,13 @@ size_t ProcessorStorage::assemble_program(const char *access_pattern, const std:
 					case 'F':	// Fetch SSP MSW.
 					case 'f':	// Fetch SSP LSW.
 						step.microcycle.length = HalfCycles(5);
-						step.microcycle.operation = Microcycle::Address | Microcycle::ReadWrite | Microcycle::IsProgram;	// IsProgram is a guess.
+						step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
 						step.microcycle.address = &effective_address_;
 						step.microcycle.value = isupper(access_pattern[1]) ? &stack_pointers_[1].halves.high : &stack_pointers_[1].halves.low;
 						all_bus_steps_.push_back(step);
 
 						step.microcycle.length = HalfCycles(3);
-						step.microcycle.operation |= Microcycle::LowerData | Microcycle::UpperData;
+						step.microcycle.operation = Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
 						step.action = BusStep::Action::IncrementEffectiveAddress;
 						all_bus_steps_.push_back(step);
 
@@ -80,13 +80,13 @@ size_t ProcessorStorage::assemble_program(const char *access_pattern, const std:
 					case 'V':	// Fetch exception vector low.
 					case 'v':	// Fetch exception vector high.
 						step.microcycle.length = HalfCycles(5);
-						step.microcycle.operation = Microcycle::Address | Microcycle::ReadWrite | Microcycle::IsProgram;	// IsProgram is a guess.
+						step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
 						step.microcycle.address = &effective_address_;
 						step.microcycle.value = isupper(access_pattern[1]) ? &program_counter_.halves.high : &program_counter_.halves.low;
 						all_bus_steps_.push_back(step);
 
 						step.microcycle.length = HalfCycles(3);
-						step.microcycle.operation |= Microcycle::LowerData | Microcycle::UpperData;
+						step.microcycle.operation |= Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
 						step.action = BusStep::Action::IncrementEffectiveAddress;
 						all_bus_steps_.push_back(step);
 
@@ -95,14 +95,14 @@ size_t ProcessorStorage::assemble_program(const char *access_pattern, const std:
 
 					case 'p':	// Fetch from the program counter into the prefetch queue.
 						step.microcycle.length = HalfCycles(5);
-						step.microcycle.operation = Microcycle::Address | Microcycle::ReadWrite | Microcycle::IsProgram;
+						step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;
 						step.microcycle.address = &program_counter_.full;
 						step.microcycle.value = &prefetch_queue_[1];
 						step.action = BusStep::Action::AdvancePrefetch;
 						all_bus_steps_.push_back(step);
 
 						step.microcycle.length = HalfCycles(3);
-						step.microcycle.operation |= Microcycle::LowerData | Microcycle::UpperData;
+						step.microcycle.operation |= Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
 						step.action = BusStep::Action::IncrementProgramCounter;
 						all_bus_steps_.push_back(step);
 
@@ -117,13 +117,13 @@ size_t ProcessorStorage::assemble_program(const char *access_pattern, const std:
 						RegisterPair32 **scratch_data = is_read ? &scratch_data_read : &scratch_data_write;
 
 						step.microcycle.length = HalfCycles(5);
-						step.microcycle.operation = Microcycle::Address | (is_read ? Microcycle::ReadWrite : 0);
+						step.microcycle.operation = Microcycle::NewAddress | (is_read ? Microcycle::Read : 0);
 						step.microcycle.address = *address_iterator;
 						step.microcycle.value = isupper(access_pattern[1]) ? &(*scratch_data)->halves.high : &(*scratch_data)->halves.low;
 						all_bus_steps_.push_back(step);
 
 						step.microcycle.length = HalfCycles(3);
-						step.microcycle.operation |= data_mask;
+						step.microcycle.operation |= (read_full_words ? Microcycle::SelectWord : Microcycle::SelectByte) | (is_read ? Microcycle::Read : 0);
 						all_bus_steps_.push_back(step);
 
 						++address_iterator;
@@ -155,7 +155,7 @@ ProcessorStorage::BusStepCollection ProcessorStorage::assemble_standard_bus_step
 
 	for(int s = 0; s < 8; ++s) {
 		for(int d = 0; d < 8; ++d) {
-			collection.double_predec_byte[s][d] = assemble_program("n nr nr np nw", { &address_[s].full, &address_[d].full, &address_[d].full }, Microcycle::LowerData);
+			collection.double_predec_byte[s][d] = assemble_program("n nr nr np nw", { &address_[s].full, &address_[d].full, &address_[d].full }, false);
 			collection.double_predec_word[s][d] = assemble_program("n nr nr np nw", { &address_[s].full, &address_[d].full, &address_[d].full });
 //			collection.double_predec_long[s][d] = assemble_program("n nr nR nr nR nw np nW", { &address_[s].full, &address_[d].full, &address_[d].full });
 		}
