@@ -121,66 +121,7 @@ class ProcessorStorage {
 		BusStep *active_step_ = nullptr;
 
 	private:
-		/*!
-			Installs BusSteps that implement the described program into the relevant
-			instance storage, returning the offset within @c all_bus_steps_ at which
-			the generated steps begin.
-
-			@param access_pattern A string describing the bus activity that occurs
-				during this program. This should follow the same general pattern as
-				those in yacht.txt; full description below.
-
-			@discussion
-			The access pattern is defined, as in yacht.txt, to be a string consisting
-			of the following discrete bus actions. Spaces are ignored.
-
-			* n: no operation; data bus is not used;
-			* -: idle state; data bus is not used but is also not available;
-			* p: program fetch; reads from the PC and adds two to it;
-			* W: write MSW of something onto the bus;
-			* w: write LSW of something onto the bus;
-			* R: read MSW of something from the bus;
-			* r: read LSW of soemthing from the bus;
-			* S: push the MSW of something onto the stack;
-			* s: push the LSW of something onto the stack;
-			* U: pop the MSW of something from the stack;
-			* u: pop the LSW of something from the stack;
-			* V: fetch a vector's MSW;
-			* v: fetch a vector's LSW;
-			* i: acquire interrupt vector in an IACK cycle;
-			* F: fetch the SSPs MSW;
-			* f: fetch the SSP's LSW.
-
-			Quite a lot of that is duplicative, implying both something about internal
-			state and something about what's observable on the bus, but it's helpful to
-			stick to that document's coding exactly for easier debugging.
-
-			p fetches will fill the prefetch queue, attaching an action to both the
-			step that precedes them and to themselves. The SSP fetches will go straight
-			to the SSP.
-
-			Other actions will by default act via effective_address_ and bus_data_.
-			The user should fill in the steps necessary to get data into or extract
-			data from those.
-		*/
-		size_t assemble_program(const char *access_pattern, const std::vector<uint32_t *> &addresses = {}, bool read_full_words = true);
-
-		struct BusStepCollection {
-			size_t six_step_Dn;
-			size_t four_step_Dn;
-
-			// The next two are indexed as [source][destination].
-			size_t double_predec_byte[8][8];
-			size_t double_predec_word[8][8];
-			size_t double_predec_long[8][8];
-		};
-		BusStepCollection assemble_standard_bus_steps();
-
-		/*!
-			Disassembles the instruction @c instruction and inserts it into the
-			appropriate lookup tables.
-		*/
-		void install_instructions(const BusStepCollection &);
+		friend class ProcessorStorageConstructor;
 };
 
 #endif /* MC68000Storage_h */
