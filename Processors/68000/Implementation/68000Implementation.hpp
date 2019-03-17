@@ -70,7 +70,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 					const uint16_t next_instruction = prefetch_queue_[0].full;
 					if(!instructions[next_instruction].micro_operations) {
-						std::cerr << "68000 Abilities exhausted; should schedule an instruction or something?" << std::endl;
+						// TODO: once all instructions are implemnted, this should be an instruction error.
+						std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << next_instruction << std::endl;
 						return;
 					}
 
