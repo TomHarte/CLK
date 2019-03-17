@@ -31,14 +31,38 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 		/*
 			PERFORM THE BUS STEP'S ACTION.
 		*/
-			// Consider advancing a micro-operation.
-			if(active_step_->is_terminal()) {
-				// If there are any more micro-operations available, just move onwards.
-				if(active_micro_op_) {
-					++active_micro_op_;
+			if(!active_step_->is_terminal()) {
+				switch(active_step_->action) {
+					default:
+						std::cerr << "Unimplemented 68000 bus step action: " << int(active_step_->action) << std::endl;
+						return;
+					break;
+
+					case BusStep::Action::None: break;
+
+					case BusStep::Action::IncrementEffectiveAddress:	effective_address_ += 2;	break;
+					case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;	break;
+
+					case BusStep::Action::AdvancePrefetch:
+						prefetch_queue_[0] = prefetch_queue_[1];
+					break;
 				}
 
-				if(!active_micro_op_ || active_micro_op_->is_terminal()) {
+				// Move to the next bus step.
+				++ active_step_;
+
+				// Skip the micro-op renavigation below.
+				continue;
+			}
+
+		/*
+			FIND THE NEXT MICRO-OP.
+		*/
+			while(true) {
+				// If there are any more micro-operations available, just move onwards.
+				if(active_micro_op_ && !active_micro_op_->is_terminal()) {
+					++active_micro_op_;
+				} else {
 					// Either the micro-operations for this instruction have been exhausted, or
 					// no instruction was ongoing. Either way, do a standard instruction operation.
 
@@ -54,8 +78,6 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 					active_micro_op_ = active_program_->micro_operations;
 				}
 
-				// There is now a micro operation; cue up the first step and perform the predecessor action.
-				active_step_ = active_micro_op_->bus_program;
 				switch(active_micro_op_->action) {
 					case MicroOp::Action::None: break;
 
@@ -139,25 +161,12 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						active_program_->destination->full -= 4;
 					break;
 				}
-			} else {
-				switch(active_step_->action) {
-					default:
-						std::cerr << "Unimplemented 68000 bus step action: " << int(active_step_->action) << std::endl;
-						return;
-					break;
 
-					case BusStep::Action::None: break;
-
-					case BusStep::Action::IncrementEffectiveAddress:	effective_address_ += 2;	break;
-					case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;	break;
-
-					case BusStep::Action::AdvancePrefetch:
-						prefetch_queue_[0] = prefetch_queue_[1];
+				// If we've got to a micro-op that includes bus steps, break out of this loop.
+				if(!active_micro_op_->is_terminal()) {
+					active_step_ = active_micro_op_->bus_program;
 					break;
 				}
-
-				// Move to the next bus step.
-				++ active_step_;
 			}
 	}
 }
