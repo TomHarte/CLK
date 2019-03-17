@@ -23,6 +23,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 			// TODO: synchronous bus.
 
+			// TODO: check for bus error.
+
 			// Perform the microcycle.
 			bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
 
@@ -32,9 +34,11 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 			// Consider advancing a micro-operation.
 			if(active_step_->is_terminal()) {
 				// If there are any more micro-operations available, just move onwards.
-				if(active_micro_op_ && !active_micro_op_->is_terminal()) {
+				if(active_micro_op_) {
 					++active_micro_op_;
-				} else {
+				}
+
+				if(!active_micro_op_ || active_micro_op_->is_terminal()) {
 					// Either the micro-operations for this instruction have been exhausted, or
 					// no instruction was ongoing. Either way, do a standard instruction operation.
 
@@ -135,7 +139,6 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						active_program_->destination->full -= 4;
 					break;
 				}
-
 			} else {
 				switch(active_step_->action) {
 					default:
