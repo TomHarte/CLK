@@ -260,9 +260,7 @@ struct ProcessorStorageConstructor {
 		for(size_t instruction = 0; instruction < 65536; ++instruction)	{
 			for(const auto &mapping: mappings) {
 				if((instruction & mapping.mask) == mapping.value) {
-					// Install the operation and make a note of where micro-ops begin.
-					storage_.instructions[instruction].operation = mapping.operation;
-					micro_op_pointers[instruction] = storage_.all_micro_ops_.size();
+					const auto micro_op_start = storage_.all_micro_ops_.size();
 
 					switch(mapping.decoder) {
 						case Decoder::Decimal: {
@@ -288,13 +286,14 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
-						case Decoder::RegOpModeReg: {
-						} break;
-
 						default:
 							std::cerr << "Unhandled decoder " << int(mapping.decoder) << std::endl;
-						break;
+						continue;
 					}
+
+					// Install the operation and make a note of where micro-ops begin.
+					storage_.instructions[instruction].operation = mapping.operation;
+					micro_op_pointers[instruction] = micro_op_start;
 
 					// Don't search further through the list of possibilities.
 					break;
@@ -309,7 +308,9 @@ struct ProcessorStorageConstructor {
 
 				auto operation = storage_.instructions[instruction].micro_operations;
 				while(!operation->is_terminal()) {
-					operation->bus_program = storage_.all_bus_steps_.data() + (operation->bus_program - &arbitrary_base);
+					const auto offset = size_t(operation->bus_program - &arbitrary_base);
+					assert(offset >= 0 &&  offset < storage_.all_bus_steps_.size());
+					operation->bus_program = &storage_.all_bus_steps_[offset];
 					++operation;
 				}
 			}

@@ -9,12 +9,49 @@
 template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>::run_for(HalfCycles duration) {
 	// TODO: obey the 'cycles' count.
 	while(true) {
-		// Check whether the current list of bus steps is exhausted; if so then
-		// seek out another one from the current program (if any), and if there
-		// are no more to do, revert to scheduling something else (after checking
-		// for interrupts).
-		if(active_step_->action == BusStep::Action::ScheduleNextProgram) {
-			if(active_micro_op_) {
+
+		/*
+			PERFORM THE CURRENT BUS STEP'S MICROCYCLE.
+		*/
+			// Check for DTack if this isn't being treated implicitly.
+			if(!dtack_is_implicit) {
+				if(active_step_->microcycle.data_select_active() && !dtack_) {
+					// TODO: perform wait state.
+					continue;
+				}
+			}
+
+			// TODO: synchronous bus.
+
+			// Perform the microcycle.
+			bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
+
+		/*
+			PERFORM THE BUS STEP'S ACTION.
+		*/
+			// Consider advancing a micro-operation.
+			if(active_step_->is_terminal()) {
+				// If there are any more micro-operations available, just move onwards.
+				if(active_micro_op_ && !active_micro_op_->is_terminal()) {
+					++active_micro_op_;
+				} else {
+					// Either the micro-operations for this instruction have been exhausted, or
+					// no instruction was ongoing. Either way, do a standard instruction operation.
+
+					// TODO: unless an interrupt is pending, or the trap flag is set.
+
+					const uint16_t next_instruction = prefetch_queue_[0].full;
+					if(!instructions[next_instruction].micro_operations) {
+						std::cerr << "68000 Abilities exhausted; should schedule an instruction or something?" << std::endl;
+						return;
+					}
+
+					active_program_ = &instructions[next_instruction];
+					active_micro_op_ = active_program_->micro_operations;
+				}
+
+				// There is now a micro operation; cue up the first step and perform the predecessor action.
+				active_step_ = active_micro_op_->bus_program;
 				switch(active_micro_op_->action) {
 					case MicroOp::Action::None: break;
 
@@ -98,59 +135,26 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						active_program_->destination->full -= 4;
 					break;
 				}
-			}
 
-			if(active_micro_op_) {
-				++active_micro_op_;
-				active_step_ = active_micro_op_->bus_program;
-			}
+			} else {
+				switch(active_step_->action) {
+					default:
+						std::cerr << "Unimplemented 68000 bus step action: " << int(active_step_->action) << std::endl;
+						return;
+					break;
 
-			if(!active_step_ || !active_micro_op_) {
-				const uint16_t next_instruction = prefetch_queue_[0].full;
-				if(!instructions[next_instruction].micro_operations) {
-					std::cerr << "68000 Abilities exhausted; should schedule an instruction or something?" << std::endl;
-					return;
+					case BusStep::Action::None: break;
+
+					case BusStep::Action::IncrementEffectiveAddress:	effective_address_ += 2;	break;
+					case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;	break;
+
+					case BusStep::Action::AdvancePrefetch:
+						prefetch_queue_[0] = prefetch_queue_[1];
+					break;
 				}
 
-				active_program_ = &instructions[next_instruction];
-				active_micro_op_ = active_program_->micro_operations;
-				active_step_ = active_micro_op_->bus_program;
+				// Move to the next bus step.
+				++ active_step_;
 			}
-		}
-
-		// The bus step list is not exhausted, so perform the microcycle.
-
-		// Check for DTack if this isn't being treated implicitly.
-		if(!dtack_is_implicit) {
-			if(active_step_->microcycle.data_select_active() && !dtack_) {
-				// TODO: perform wait state.
-				continue;
-			}
-		}
-
-		// TODO: synchronous bus.
-
-		// Perform the microcycle.
-		bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
-
-		// Perform the post-hoc action.
-		switch(active_step_->action) {
-			default:
-				std::cerr << "Unimplemented 68000 bus step action: " << int(active_step_->action) << std::endl;
-				return;
-			break;
-
-			case BusStep::Action::None: break;
-
-			case BusStep::Action::IncrementEffectiveAddress:	effective_address_ += 2;	break;
-			case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;	break;
-
-			case BusStep::Action::AdvancePrefetch:
-				prefetch_queue_[0] = prefetch_queue_[1];
-			break;
-		}
-
-		// Move to the next program step.
-		++active_step_;
 	}
 }

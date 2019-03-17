@@ -45,6 +45,7 @@ class ProcessorStorage {
 
 		/*!
 			Bus steps are sequences of things to communicate to the bus.
+			Standard behaviour is: (i) perform microcycle; (ii) perform action.
 		*/
 		struct BusStep {
 			Microcycle microcycle;
@@ -69,9 +70,13 @@ class ProcessorStorage {
 
 			} action = Action::None;
 
-			bool operator ==(const BusStep &rhs) const {
+			inline bool operator ==(const BusStep &rhs) const {
 				if(action != rhs.action) return false;
 				return microcycle == rhs.microcycle;
+			}
+
+			inline bool is_terminal() const {
+				return action == Action::ScheduleNextProgram;
 			}
 		};
 
@@ -79,7 +84,12 @@ class ProcessorStorage {
 			A micro-op is: (i) an action to take; and (ii) a sequence of bus operations
 			to perform after taking the action.
 
-			A nullptr bus_program terminates a sequence of micro operations.
+			NOTE: this therefore has the opposite order of behaviour compared to a BusStep,
+			the action occurs BEFORE the bus operations, not after.
+
+			A nullptr bus_program terminates a sequence of micro operations; the is_terminal
+			test should be used to query for that. The action on the final operation will
+			be performed.
 		*/
 		struct MicroOp {
 			enum class Action {
