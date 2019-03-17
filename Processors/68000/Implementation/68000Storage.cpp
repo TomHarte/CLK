@@ -244,9 +244,9 @@ struct ProcessorStorageConstructor {
 
 			{0xff00, 0x0600, Operation::ADD, Decoder::DataSizeModeQuick},	// 4-11 (p115)
 
-			{0x1000, 0xf000, Operation::MOVEb, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
-			{0x3000, 0xf000, Operation::MOVEw, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
-			{0x2000, 0xf000, Operation::MOVEl, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
+			{0xf000, 0x1000, Operation::MOVEb, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
+			{0xf000, 0x2000, Operation::MOVEl, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
+			{0xf000, 0x3000, Operation::MOVEw, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -263,6 +263,7 @@ struct ProcessorStorageConstructor {
 					const auto micro_op_start = storage_.all_micro_ops_.size();
 
 					switch(mapping.decoder) {
+						// Decodes the format used by ABCD and SBCD.
 						case Decoder::Decimal: {
 							const int destination = (instruction >> 9) & 7;
 							const int source = instruction & 7;
@@ -283,6 +284,31 @@ struct ProcessorStorageConstructor {
 									Action::PerformOperation,
 									&arbitrary_base + assemble_program("np n"));
 								storage_.all_micro_ops_.emplace_back();
+							}
+						} break;
+
+						// Decodes the format used by all the MOVEs.
+						case Decoder::RegisterModeModeRegister: {
+							const int source_register = instruction & 7;
+							const int source_mode = (instruction >> 3) & 7;
+
+							const int destination_mode = (instruction >> 6) & 7;
+							const int destination_register = (instruction >> 9) & 7;
+
+							if(!source_mode) {
+								storage_.instructions[instruction].source = &storage_.data_[source_register];
+							}
+
+							if(!destination_mode) {
+								storage_.instructions[instruction].destination = &storage_.data_[destination_register];
+							}
+
+							// TODO: all other types of mode.
+							if(!destination_mode && !source_mode) {
+								storage_.all_micro_ops_.emplace_back(Action::PerformOperation, &arbitrary_base + assemble_program("np"));
+								storage_.all_micro_ops_.emplace_back();
+							} else {
+								continue;
 							}
 						} break;
 
