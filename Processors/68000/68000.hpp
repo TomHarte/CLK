@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
+#include <tuple>
 #include <vector>
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
@@ -80,7 +81,7 @@ struct Microcycle {
 	static const int IsProgram 		= 1 << 6;
 
 	int operation = 0;
-	HalfCycles length = HalfCycles(2);
+	HalfCycles length = HalfCycles(4);
 
 	/*!
 		For expediency, this provides a full 32-bit byte-resolution address — e.g.
@@ -91,6 +92,12 @@ struct Microcycle {
 	*/
 	const uint32_t *address = nullptr;
 	RegisterPair16 *value = nullptr;
+
+	bool operator ==(const Microcycle &rhs) const {
+		return
+			std::make_tuple(value, address, length, operation, value) ==
+			std::make_tuple(rhs.value, rhs.address, rhs.length, rhs.operation, rhs.value);
+	}
 
 	// Various inspectors.
 

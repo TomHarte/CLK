@@ -8,7 +8,7 @@
 
 #include "../68000.hpp"
 
-#include <array>
+#include <algorithm>
 
 namespace CPU {
 namespace MC68000 {
@@ -61,11 +61,12 @@ struct ProcessorStorageConstructor {
 		data from those.
 	*/
 	size_t assemble_program(const char *access_pattern, const std::vector<uint32_t *> &addresses = {}, bool read_full_words = true) {
-		const size_t start = storage_.all_bus_steps_.size();
 		auto address_iterator = addresses.begin();
 		RegisterPair32 *scratch_data_read = storage_.bus_data_;
 		RegisterPair32 *scratch_data_write = storage_.bus_data_;
 		using Action = BusStep::Action;
+
+		std::vector<BusStep> steps;
 
 		// Parse the access pattern to build microcycles.
 		while(*access_pattern) {
@@ -81,13 +82,13 @@ struct ProcessorStorageConstructor {
 					switch(access_pattern[1]) {
 						default:	// This is probably a pure NOP; if what comes after this 'n' isn't actually
 									// valid, it should be caught in the outer switch the next time around the loop.
-							storage_.all_bus_steps_.push_back(step);
+							steps.push_back(step);
 							++access_pattern;
 						break;
 
 						case '-':	// This is two NOPs in a row.
-							storage_.all_bus_steps_.push_back(step);
-							storage_.all_bus_steps_.push_back(step);
+							steps.push_back(step);
+							steps.push_back(step);
 							access_pattern += 2;
 						break;
 
@@ -97,12 +98,12 @@ struct ProcessorStorageConstructor {
 							step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
 							step.microcycle.address = &storage_.effective_address_;
 							step.microcycle.value = isupper(access_pattern[1]) ? &storage_.stack_pointers_[1].halves.high : &storage_.stack_pointers_[1].halves.low;
-							storage_.all_bus_steps_.push_back(step);
+							steps.push_back(step);
 
 							step.microcycle.length = HalfCycles(3);
 							step.microcycle.operation = Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
 							step.action = Action::IncrementEffectiveAddress;
-							storage_.all_bus_steps_.push_back(step);
+							steps.push_back(step);
 
 							access_pattern += 2;
 						break;
@@ -113,12 +114,12 @@ struct ProcessorStorageConstructor {
 							step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
 							step.microcycle.address = &storage_.effective_address_;
 							step.microcycle.value = isupper(access_pattern[1]) ? &storage_.program_counter_.halves.high : &storage_.program_counter_.halves.low;
-							storage_.all_bus_steps_.push_back(step);
+							steps.push_back(step);
 
 							step.microcycle.length = HalfCycles(3);
 							step.microcycle.operation |= Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
 							step.action = Action::IncrementEffectiveAddress;
-							storage_.all_bus_steps_.push_back(step);
+							steps.push_back(step);
 
 							access_pattern += 2;
 						break;
@@ -129,12 +130,12 @@ struct ProcessorStorageConstructor {
 							step.microcycle.address = &storage_.program_counter_.full;
 							step.microcycle.value = &storage_.prefetch_queue_[1];
 							step.action = Action::AdvancePrefetch;
-							storage_.all_bus_steps_.push_back(step);
+							steps.push_back(step);
 
 							step.microcycle.length = HalfCycles(3);
 							step.microcycle.operation |= Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
 							step.action = Action::IncrementProgramCounter;
-							storage_.all_bus_steps_.push_back(step);
+							steps.push_back(step);
 
 							access_pattern += 2;
 						break;
@@ -150,11 +151,11 @@ struct ProcessorStorageConstructor {
 							step.microcycle.operation = Microcycle::NewAddress | (is_read ? Microcycle::Read : 0);
 							step.microcycle.address = *address_iterator;
 							step.microcycle.value = isupper(access_pattern[1]) ? &(*scratch_data)->halves.high : &(*scratch_data)->halves.low;
-							storage_.all_bus_steps_.push_back(step);
+							steps.push_back(step);
 
 							step.microcycle.length = HalfCycles(3);
 							step.microcycle.operation |= (read_full_words ? Microcycle::SelectWord : Microcycle::SelectByte) | (is_read ? Microcycle::Read : 0);
-							storage_.all_bus_steps_.push_back(step);
+							steps.push_back(step);
 
 							++address_iterator;
 							if(!isupper(access_pattern[1])) ++(*scratch_data);
@@ -172,36 +173,18 @@ struct ProcessorStorageConstructor {
 		// Add a final 'ScheduleNextProgram' sentinel.
 		BusStep end_program;
 		end_program.action = Action::ScheduleNextProgram;
-		storage_.all_bus_steps_.push_back(end_program);
+		steps.push_back(end_program);
 
-		return start;
-	}
-
-	struct BusStepCollection {
-		size_t six_step_Dn;
-		size_t four_step_Dn;
-
-		// The next two are indexed as [source][destination].
-		size_t double_predec_byte[8][8];
-		size_t double_predec_word[8][8];
-		size_t double_predec_long[8][8];
-	};
-	BusStepCollection assemble_standard_bus_steps() {
-		BusStepCollection collection;
-
-		collection.four_step_Dn = assemble_program("np");
-		collection.six_step_Dn = assemble_program("np n");
-
-		for(int s = 0; s < 8; ++s) {
-			for(int d = 0; d < 8; ++d) {
-				collection.double_predec_byte[s][d] = assemble_program("n nr nr np nw", { &storage_.address_[s].full, &storage_.address_[d].full, &storage_.address_[d].full }, false);
-				collection.double_predec_word[s][d] = assemble_program("n nr nr np nw", { &storage_.address_[s].full, &storage_.address_[d].full, &storage_.address_[d].full });
-	//			collection.double_predec_long[s][d] = assemble_program("n nr nR nr nR nw np nW", { &address_[s].full, &address_[d].full, &address_[d].full });
-			}
+		// If the new steps already exist, just return the existing index to them;
+		// otherwise insert them.
+		const auto position = std::search(storage_.all_bus_steps_.begin(), storage_.all_bus_steps_.end(), steps.begin(), steps.end());
+		if(position != storage_.all_bus_steps_.end()) {
+			return size_t(position - storage_.all_bus_steps_.begin());
 		}
 
-		return collection;
-
+		const auto start = storage_.all_bus_steps_.size();
+		std::copy(steps.begin(), steps.end(), std::back_inserter(storage_.all_bus_steps_));
+		return start;
 	}
 
 	/*!
@@ -219,7 +202,7 @@ struct ProcessorStorageConstructor {
 				from known instructions to their disassembly rather than vice versa; especially
 			(iii) given that there are plentiful disassemblers against which to test work in progress.
 	*/
-	void install_instructions(const BusStepCollection &bus_step_collection) {
+	void install_instructions() {
 		enum class Decoder {
 			Decimal,
 			RegOpModeReg,
@@ -268,6 +251,11 @@ struct ProcessorStorageConstructor {
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
 
+		// The arbitrary_base is used so that the offsets returned by assemble_program into
+		// storage_.all_bus_steps_ can be retained and mapped into the final version of
+		// storage_.all_bus_steps_ at the end.
+		BusStep arbitrary_base;
+
 		// Perform a linear search of the mappings above for this instruction.
 		for(size_t instruction = 0; instruction < 65536; ++instruction)	{
 			for(const auto &mapping: mappings) {
@@ -287,16 +275,15 @@ struct ProcessorStorageConstructor {
 
 								storage_.all_micro_ops_.emplace_back(
 									Action::PredecrementSourceAndDestination1,
-									&storage_.all_bus_steps_[bus_step_collection.double_predec_byte[source][destination]]);
+									&arbitrary_base + assemble_program("n nr nr np nw", { &storage_.address_[source].full, &storage_.address_[destination].full, &storage_.address_[destination].full }, false));
 								storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
-								storage_.all_micro_ops_.emplace_back();
 							} else {
 								storage_.instructions[instruction].source = &storage_.data_[source];
 								storage_.instructions[instruction].destination = &storage_.data_[destination];
 
 								storage_.all_micro_ops_.emplace_back(
 									Action::PerformOperation,
-									&storage_.all_bus_steps_[bus_step_collection.six_step_Dn]);
+									&arbitrary_base + assemble_program("np n"));
 								storage_.all_micro_ops_.emplace_back();
 							}
 						} break;
@@ -315,13 +302,18 @@ struct ProcessorStorageConstructor {
 			}
 		}
 
-		// Finalise micro-op pointers.
+		// Finalise micro-op and program pointers.
 		for(size_t instruction = 0; instruction < 65536; ++instruction) {
 			if(micro_op_pointers[instruction] != std::numeric_limits<size_t>::max()) {
 				storage_.instructions[instruction].micro_operations = &storage_.all_micro_ops_[micro_op_pointers[instruction]];
+
+				auto operation = storage_.instructions[instruction].micro_operations;
+				while(!operation->is_terminal()) {
+					operation->bus_program = storage_.all_bus_steps_.data() + (operation->bus_program - &arbitrary_base);
+					++operation;
+				}
 			}
 		}
-
 	}
 
 	private:
@@ -337,11 +329,8 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	// Create the exception programs.
 	const size_t reset_offset = constructor.assemble_program("n- n- n- n- n- nn nF nf nV nv np np");
 
-	// Install all necessary access patterns.
-	const auto bus_steps = constructor.assemble_standard_bus_steps();
-
 	// Install operations.
-	constructor.install_instructions(bus_steps);
+	constructor.install_instructions();
 
 	// Realise the exception programs as direct pointers.
 	reset_program_ = &all_bus_steps_[reset_offset];

@@ -68,6 +68,11 @@ class ProcessorStorage {
 				ScheduleNextProgram
 
 			} action = Action::None;
+
+			bool operator ==(const BusStep &rhs) const {
+				if(action != rhs.action) return false;
+				return microcycle == rhs.microcycle;
+			}
 		};
 
 		/*!
@@ -90,6 +95,10 @@ class ProcessorStorage {
 			MicroOp() {}
 			MicroOp(Action action) : action(action) {}
 			MicroOp(Action action, BusStep *bus_program) : action(action), bus_program(bus_program) {}
+
+			inline bool is_terminal() const {
+				return bus_program == nullptr;
+			}
 		};
 
 		/*!
