@@ -161,6 +161,11 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						active_program_->source->full -= 4;
 						active_program_->destination->full -= 4;
 					break;
+
+					case MicroOp::Action::SignExtendDestinationWord:
+						active_program_->destination->halves.high.full =
+							(active_program_->destination->halves.low.full & 0x8000) ? 0xffff : 0x0000;
+					break;
 				}
 
 				// If we've got to a micro-op that includes bus steps, break out of this loop.

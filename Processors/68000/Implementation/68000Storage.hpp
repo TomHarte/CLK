@@ -99,6 +99,8 @@ class ProcessorStorage {
 				PredecrementSourceAndDestination1,
 				PredecrementSourceAndDestination2,
 				PredecrementSourceAndDestination4,
+
+				SignExtendDestinationWord,
 			} action = Action::None;
 			BusStep *bus_program = nullptr;
 

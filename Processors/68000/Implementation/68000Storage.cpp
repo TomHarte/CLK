@@ -295,19 +295,53 @@ struct ProcessorStorageConstructor {
 							const int destination_mode = (instruction >> 6) & 7;
 							const int destination_register = (instruction >> 9) & 7;
 
-							if(!source_mode) {
-								storage_.instructions[instruction].source = &storage_.data_[source_register];
+							switch(source_mode) {
+								case 0:	// Dn
+									storage_.instructions[instruction].source = &storage_.data_[source_register];
+								break;
+
+								case 1:	// An
+									storage_.instructions[instruction].source = &storage_.address_[source_register];
+								break;
+
+								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L
+									storage_.instructions[instruction].source = &storage_.bus_data_[0];
+								break;
 							}
 
 							if(!destination_mode) {
 								storage_.instructions[instruction].destination = &storage_.data_[destination_register];
 							}
 
-							// TODO: all other types of mode.
-							if(!destination_mode && !source_mode) {
-								storage_.all_micro_ops_.emplace_back(Action::PerformOperation, &arbitrary_base + assemble_program("np"));
-								storage_.all_micro_ops_.emplace_back();
-							} else {
+							const bool is_byte_access = mapping.operation == Operation::MOVEb;
+							const int both_modes = (source_mode << 4) | destination_mode;
+							switch(both_modes) {
+								case 0x00:	// MOVE Ds, Dd
+								case 0x10:	// MOVE As, Dd
+									storage_.all_micro_ops_.emplace_back(Action::PerformOperation, &arbitrary_base + assemble_program("np"));
+									storage_.all_micro_ops_.emplace_back();
+								break;
+
+								case 0x01:	// MOVEA Ds, Ad
+									if(is_byte_access) continue;
+
+									storage_.all_micro_ops_.emplace_back(Action::PerformOperation, &arbitrary_base + assemble_program("np"));
+									storage_.all_micro_ops_.emplace_back(
+										(mapping.operation == Operation::MOVEw) ? Action::SignExtendDestinationWord : Action::None
+									);
+								break;
+
+								case 0x20: // MOVE (As), Dd
+									if(mapping.operation == Operation::MOVEl) {
+										continue;
+									} else {
+										storage_.all_micro_ops_.emplace_back(Action::None, &arbitrary_base + assemble_program("nr np", { &storage_.address_[source_register].full }, !is_byte_access));
+										storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
+									}
+								break;
+
+								default:
+									// TODO: all other types of mode.
 								continue;
 							}
 						} break;
