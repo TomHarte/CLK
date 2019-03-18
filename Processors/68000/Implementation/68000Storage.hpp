@@ -141,6 +141,12 @@ class ProcessorStorage {
 		MicroOp *active_micro_op_ = nullptr;
 		BusStep *active_step_ = nullptr;
 
+		/// Copies address_[7] to the proper stack pointer based on current mode.
+		void write_back_stack_pointer();
+
+		/// Sets or clears the supervisor flag, ensuring the stack pointer is properly updated.
+		void set_is_supervisor(bool);
+
 	private:
 		friend class ProcessorStorageConstructor;
 };

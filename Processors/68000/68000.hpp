@@ -157,11 +157,27 @@ class BusHandler {
 class ProcessorBase: public ProcessorStorage {
 };
 
+struct ProcessorState {
+	uint32_t data[8];
+	uint32_t address[7];
+	uint32_t user_stack_pointer, supervisor_stack_pointer;
+	uint32_t program_counter;
+	uint16_t status;
+
+	// TODO: More state needed to indicate current instruction, the processor's
+	// progress through it, and anything it has fetched so far.
+//			uint16_t current_instruction;
+};
+
 template <class T, bool dtack_is_implicit> class Processor: public ProcessorBase {
 	public:
 		Processor(T &bus_handler) : ProcessorBase(), bus_handler_(bus_handler) {}
 
 		void run_for(HalfCycles duration);
+
+		using State = ProcessorState;
+		State get_state();
+		void set_state(const State &);
 
 	private:
 		T &bus_handler_;

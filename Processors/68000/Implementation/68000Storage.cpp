@@ -388,7 +388,7 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	ProcessorStorageConstructor constructor(*this);
 
 	// Create the exception programs.
-	const size_t reset_offset = constructor.assemble_program("n- n- n- n- n- nn nF nf nV nv np np");
+	const size_t reset_offset = constructor.assemble_program("n n n n n nn nF nf nV nv np np");
 
 	// Install operations.
 	constructor.install_instructions();
@@ -400,4 +400,17 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	active_step_ = reset_program_;
 	effective_address_ = 0;
 	is_supervisor_ = 1;
+}
+
+void CPU::MC68000::ProcessorStorage::write_back_stack_pointer() {
+	stack_pointers_[is_supervisor_] = address_[7];
+}
+
+void CPU::MC68000::ProcessorStorage::set_is_supervisor(bool is_supervisor) {
+	const int new_is_supervisor = is_supervisor ? 1 : 0;
+	if(new_is_supervisor != is_supervisor_) {
+		stack_pointers_[is_supervisor_] = address_[7];
+		is_supervisor_ = new_is_supervisor;
+		address_[7] = stack_pointers_[is_supervisor_];
+	}
 }

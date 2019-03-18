@@ -93,7 +93,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								int result = (destination & 0xf) + (source & 0xf) + (extend_flag_ ? 1 : 0);
 								if(result > 0x9) result += 0x06;
 								result += (destination & 0xf0) + (source & 0xf0);
-								if(result > 0x90) result += 0x60;
+								if((result&0xff0) > 0x90) result += 0x60;
 
 								// Set all flags essentially as if this were normal addition.
 								zero_flag_ |= result & 0xff;
@@ -114,7 +114,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);
 								if(result > 0x9) result -= 0x06;
 								result += (destination & 0xf0) - (source & 0xf0);
-								if(result > 0x90) result -= 0x60;
+								if((result&0xff0) > 0x90) result -= 0x60;
 
 								// Set all flags essentially as if this were normal subtraction.
 								zero_flag_ |= result & 0xff;
@@ -175,4 +175,27 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 				}
 			}
 	}
+}
+
+template <class T, bool dtack_is_implicit> ProcessorState Processor<T, dtack_is_implicit>::get_state() {
+	write_back_stack_pointer();
+
+	State state;
+	memcpy(state.data, data_, sizeof(state.data));
+	memcpy(state.address, address_, sizeof(state.address));
+	state.user_stack_pointer = stack_pointers_[0].full;
+	state.supervisor_stack_pointer = stack_pointers_[1].full;
+
+	// TODO: status word.
+
+	return state;
+}
+
+template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>::set_state(const ProcessorState &state) {
+	memcpy(data_, state.data, sizeof(state.data));
+	memcpy(address_, state.address, sizeof(state.address));
+	stack_pointers_[0].full = state.user_stack_pointer;
+	stack_pointers_[1].full = state.supervisor_stack_pointer;
+
+	// TODO: update address[7], once there's a status word to discern the mode this processor should now be in.
 }

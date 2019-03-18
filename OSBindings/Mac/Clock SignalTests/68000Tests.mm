@@ -64,6 +64,14 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			return HalfCycles(0);
 		}
 
+		CPU::MC68000::Processor<RAM68000, true>::State get_processor_state() {
+			return m68000_.get_state();
+		}
+
+		void set_processor_state(const CPU::MC68000::Processor<RAM68000, true>::State &state) {
+			m68000_.set_state(state);
+		}
+
 	private:
 		CPU::MC68000::Processor<RAM68000, true> m68000_;
 		std::vector<uint16_t> ram_;
@@ -85,10 +93,24 @@ class RAM68000: public CPU::MC68000::BusHandler {
 }
 
 - (void)testABCD {
-	_machine->set_program({
-		0xc100		// ABCD D0, D0
-	});
-    _machine->run_for(HalfCycles(400));
+	for(int d = 0; d < 100; ++d) {
+		_machine.reset(new RAM68000());
+		_machine->set_program({
+			0xc100		// ABCD D0, D0
+		});
+
+		auto state = _machine->get_processor_state();
+		const uint8_t bcd_d = ((d / 10) * 16) + (d % 10);
+		state.data[0] = bcd_d;
+		_machine->set_processor_state(state);
+
+		_machine->run_for(Cycles(40 + 6));
+
+		state = _machine->get_processor_state();
+		const uint8_t double_d = (d * 2) % 100;
+		const uint8_t bcd_double_d = ((double_d / 10) * 16) + (double_d % 10);
+		XCTAssert(state.data[0] == bcd_double_d, "%02x + %02x = %02x; should equal %02x", bcd_d, bcd_d, state.data[0], bcd_double_d);
+	}
 }
 
 - (void)testSBCD {
