@@ -91,9 +91,9 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 								// Perform the BCD add by evaluating the two nibbles separately.
 								int result = (destination & 0xf) + (source & 0xf) + (extend_flag_ ? 1 : 0);
-								if(result > 0x9) result += 0x06;
+								if(result > 0x09) result += 0x06;
 								result += (destination & 0xf0) + (source & 0xf0);
-								if((result&0xff0) > 0x90) result += 0x60;
+								if(result > 0x99) result += 0x60;
 
 								// Set all flags essentially as if this were normal addition.
 								zero_flag_ |= result & 0xff;
@@ -112,9 +112,9 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 								// Perform the BCD add by evaluating the two nibbles separately.
 								int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);
-								if(result > 0x9) result -= 0x06;
+								if(result > 0x09) result -= 0x06;
 								result += (destination & 0xf0) - (source & 0xf0);
-								if((result&0xff0) > 0x90) result -= 0x60;
+								if(result > 0x99) result -= 0x60;
 
 								// Set all flags essentially as if this were normal subtraction.
 								zero_flag_ |= result & 0xff;
