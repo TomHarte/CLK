@@ -310,11 +310,23 @@ struct ProcessorStorageConstructor {
 								break;
 							}
 
-							if(!destination_mode) {
-								storage_.instructions[instruction].destination = &storage_.data_[destination_register];
+							switch(destination_mode) {
+								case 0:	// Dn
+									storage_.instructions[instruction].destination = &storage_.data_[destination_register];
+								break;
+
+								case 1:	// An
+									storage_.instructions[instruction].destination = &storage_.address_[destination_register];
+								break;
+
+								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L
+									storage_.instructions[instruction].destination = &storage_.bus_data_[1];
+								break;
 							}
 
 							const bool is_byte_access = mapping.operation == Operation::MOVEb;
+							const bool is_long_word_access = mapping.operation == Operation::MOVEl;
+
 							const int both_modes = (source_mode << 4) | destination_mode;
 							switch(both_modes) {
 								case 0x00:	// MOVE Ds, Dd
@@ -324,6 +336,7 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case 0x01:	// MOVEA Ds, Ad
+								case 0x11:	// MOVEA As, Ad
 									if(is_byte_access) continue;
 
 									storage_.all_micro_ops_.emplace_back(Action::PerformOperation, &arbitrary_base + assemble_program("np"));
@@ -352,7 +365,7 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case 0x40:	// MOVE -(As), Dd
-									if(mapping.operation == Operation::MOVEl) {
+									if(is_long_word_access) {
 										continue;
 									} else {
 										storage_.all_micro_ops_.emplace_back(int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::SourceMask, &arbitrary_base + assemble_program("n nr np", { &storage_.address_[source_register].full }, !is_byte_access));
@@ -361,7 +374,7 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case 0x50:	// MOVE (d16,As), Dd
-									if(mapping.operation == Operation::MOVEl) {
+									if(is_long_word_access) {
 										continue;
 									} else {
 										storage_.all_micro_ops_.emplace_back(int(Action::CalcD16An) | MicroOp::SourceMask, &arbitrary_base + assemble_program("n np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
@@ -370,11 +383,46 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case 0x60:	// MOVE (d8,As,Xn), Dd
-									if(mapping.operation == Operation::MOVEl) {
+									if(is_long_word_access) {
 										continue;
 									} else {
 										storage_.all_micro_ops_.emplace_back(int(Action::CalcD8AnXn) | MicroOp::SourceMask, &arbitrary_base + assemble_program("n np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
 										storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
+									}
+								break;
+
+								case 0x70:	// ... depends on 'register'
+									switch(source_register) {
+										case 0:	// MOVE (xxx).W, Dd
+										break;
+
+										case 1:	// MOVE (xxx).L, Dd
+										break;
+
+										case 2:	// MOVE (d16,PC), Dd
+											if(is_long_word_access) {
+												continue;
+											} else {
+												storage_.all_micro_ops_.emplace_back(int(Action::CalcD16PC) | MicroOp::SourceMask, &arbitrary_base + assemble_program("n np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
+												storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
+											}
+										break;
+
+										case 3:	// MOVE (d8,As,Xn), Dd
+											if(is_long_word_access) {
+												continue;
+											} else {
+												storage_.all_micro_ops_.emplace_back(int(Action::CalcD8PCXn) | MicroOp::SourceMask, &arbitrary_base + assemble_program("n np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
+												storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
+											}
+										break;
+
+										case 4:	// MOVE #, Dd
+											storage_.all_micro_ops_.emplace_back(int(Action::AssembleWordFromPrefetch) | MicroOp::SourceMask , &arbitrary_base + assemble_program("np np"));
+											storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
+										break;
+
+										default: continue;
 									}
 								break;
 

@@ -140,6 +140,10 @@ class ProcessorStorage {
 
 				/// Sets the high three bytes according to the MSB of the low byte.
 				SignExtendByte,
+
+				/// From the next two words in the prefetch queue assembles a 32-bit long word in either or
+				/// both of bus_data_[0] and bus_data_[1].
+				AssembleWordFromPrefetch,
 			};
 			static const int SourceMask = 1 << 30;
 			static const int DestinationMask = 1 << 29;

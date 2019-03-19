@@ -243,6 +243,14 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 					} break;
 
 #undef CalculateD8AnXn
+
+					case int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask:
+						bus_data_[0] = (prefetch_queue_[0] << 16) | prefetch_queue_[1];
+					break;
+
+					case int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::DestinationMask:
+						bus_data_[1] = (prefetch_queue_[0] << 16) | prefetch_queue_[1];
+					break;
 				}
 
 				// If we've got to a micro-op that includes bus steps, break out of this loop.
