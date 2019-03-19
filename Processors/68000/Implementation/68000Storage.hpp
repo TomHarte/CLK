@@ -32,8 +32,9 @@ class ProcessorStorage {
 		uint_fast32_t overflow_flag_;	// The overflow flag is set if this value is non-zero.
 		uint_fast32_t negative_flag_;	// The negative flag is set if this value is non-zero.
 
-		// Generic sources and targets for memory operations.
-		uint32_t effective_address_;
+		// Generic sources and targets for memory operations;
+		// by convention: [0] = source, [1] = destination.
+		uint32_t effective_address_[2];
 		RegisterPair32 bus_data_[2];
 
 		enum class Operation {
@@ -52,8 +53,11 @@ class ProcessorStorage {
 			enum class Action {
 				None,
 
-				/// Performs effective_address_ += 2.
-				IncrementEffectiveAddress,
+				/// Performs effective_address_[0] += 2.
+				IncrementEffectiveAddress0,
+
+				/// Performs effective_address_[1] += 2.
+				IncrementEffectiveAddress1,
 
 				/// Performs program_counter_ += 2.
 				IncrementProgramCounter,
@@ -92,21 +96,63 @@ class ProcessorStorage {
 			be performed.
 		*/
 		struct MicroOp {
-			enum class Action {
+			enum class Action: int {
 				None,
 				PerformOperation,
 
-				PredecrementSourceAndDestination1,
-				PredecrementSourceAndDestination2,
-				PredecrementSourceAndDestination4,
+				/*
+					All of the below will honour the source and destination masks
+					in deciding where to apply their actions.
+				*/
 
-				SignExtendDestinationWord,
-			} action = Action::None;
+				/// Subtracts 1.
+				Decrement1,
+				/// Subtracts 2.
+				Decrement2,
+				/// Subtracts 4.
+				Decrement4,
+
+				/// Adds 1.
+				Increment1,
+				/// Adds 2.
+				Increment2,
+				/// Adds 4.
+				Increment4,
+
+				/// Peeking into the prefetch queue, calculates the proper target of (d16,An) addressing.
+				CalcD16An,
+
+				/// Peeking into the prefetch queue, calculates the proper target of (d8,An,Xn) addressing.
+				CalcD8AnXn,
+
+				/// Peeking into the prefetch queue, calculates the proper target of (d16,PC) addressing,
+				/// adjusting as though it had been performed after the proper PC fetches. The source
+				/// and destination mask flags affect only the destination of the result.
+				CalcD16PC,
+
+				/// Peeking into the prefetch queue, calculates the proper target of (d8,An,Xn) addressing,
+				/// adjusting as though it had been performed after the proper PC fetches. The source
+				/// and destination mask flags affect only the destination of the result.
+				CalcD8PCXn,
+
+				/// Sets the high word according to the MSB of the low word.
+				SignExtendWord,
+
+				/// Sets the high three bytes according to the MSB of the low byte.
+				SignExtendByte,
+			};
+			static const int SourceMask = 1 << 30;
+			static const int DestinationMask = 1 << 29;
+			int action = int(Action::None);
+
 			BusStep *bus_program = nullptr;
 
 			MicroOp() {}
-			MicroOp(Action action) : action(action) {}
-			MicroOp(Action action, BusStep *bus_program) : action(action), bus_program(bus_program) {}
+			MicroOp(int action) : action(action) {}
+			MicroOp(int action, BusStep *bus_program) : action(action), bus_program(bus_program) {}
+
+			MicroOp(Action action) : MicroOp(int(action)) {}
+			MicroOp(Action action, BusStep *bus_program) : MicroOp(int(action), bus_program) {}
 
 			inline bool is_terminal() const {
 				return bus_program == nullptr;

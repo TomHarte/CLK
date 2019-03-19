@@ -96,13 +96,13 @@ struct ProcessorStorageConstructor {
 						case 'f':	// Fetch SSP LSW.
 							step.microcycle.length = HalfCycles(5);
 							step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
-							step.microcycle.address = &storage_.effective_address_;
+							step.microcycle.address = &storage_.effective_address_[0];
 							step.microcycle.value = isupper(access_pattern[1]) ? &storage_.stack_pointers_[1].halves.high : &storage_.stack_pointers_[1].halves.low;
 							steps.push_back(step);
 
 							step.microcycle.length = HalfCycles(3);
 							step.microcycle.operation = Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
-							step.action = Action::IncrementEffectiveAddress;
+							step.action = Action::IncrementEffectiveAddress0;
 							steps.push_back(step);
 
 							access_pattern += 2;
@@ -112,13 +112,13 @@ struct ProcessorStorageConstructor {
 						case 'v':	// Fetch exception vector high.
 							step.microcycle.length = HalfCycles(5);
 							step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
-							step.microcycle.address = &storage_.effective_address_;
+							step.microcycle.address = &storage_.effective_address_[0];
 							step.microcycle.value = isupper(access_pattern[1]) ? &storage_.program_counter_.halves.high : &storage_.program_counter_.halves.low;
 							steps.push_back(step);
 
 							step.microcycle.length = HalfCycles(3);
 							step.microcycle.operation |= Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
-							step.action = Action::IncrementEffectiveAddress;
+							step.action = Action::IncrementEffectiveAddress0;
 							steps.push_back(step);
 
 							access_pattern += 2;
@@ -213,6 +213,7 @@ struct ProcessorStorageConstructor {
 
 		using Operation = ProcessorStorage::Operation;
 		using Action = ProcessorStorage::MicroOp::Action;
+		using MicroOp = ProcessorBase::MicroOp;
 		struct PatternMapping {
 			uint16_t mask, value;
 			Operation operation;
@@ -273,7 +274,7 @@ struct ProcessorStorageConstructor {
 								storage_.instructions[instruction].destination = &storage_.bus_data_[1];
 
 								storage_.all_micro_ops_.emplace_back(
-									Action::PredecrementSourceAndDestination1,
+									int(Action::Decrement1) | MicroOp::SourceMask | MicroOp::DestinationMask,
 									&arbitrary_base + assemble_program("n nr nr np nw", { &storage_.address_[source].full, &storage_.address_[destination].full, &storage_.address_[destination].full }, false));
 								storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
 							} else {
@@ -327,7 +328,7 @@ struct ProcessorStorageConstructor {
 
 									storage_.all_micro_ops_.emplace_back(Action::PerformOperation, &arbitrary_base + assemble_program("np"));
 									storage_.all_micro_ops_.emplace_back(
-										(mapping.operation == Operation::MOVEw) ? Action::SignExtendDestinationWord : Action::None
+										(mapping.operation == Operation::MOVEw) ? int(Action::SignExtendWord) | MicroOp::DestinationMask : int(Action::None)
 									);
 								break;
 
@@ -336,6 +337,43 @@ struct ProcessorStorageConstructor {
 										continue;
 									} else {
 										storage_.all_micro_ops_.emplace_back(Action::None, &arbitrary_base + assemble_program("nr np", { &storage_.address_[source_register].full }, !is_byte_access));
+										storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
+									}
+								break;
+
+								case 0x30:	// MOVE (As)+, Dd
+									if(mapping.operation == Operation::MOVEl) {
+										continue;
+									} else {
+										storage_.all_micro_ops_.emplace_back(Action::None, &arbitrary_base + assemble_program("nr np", { &storage_.address_[source_register].full }, !is_byte_access));
+										storage_.all_micro_ops_.emplace_back(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::SourceMask);
+										storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
+									}
+								break;
+
+								case 0x40:	// MOVE -(As), Dd
+									if(mapping.operation == Operation::MOVEl) {
+										continue;
+									} else {
+										storage_.all_micro_ops_.emplace_back(int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::SourceMask, &arbitrary_base + assemble_program("n nr np", { &storage_.address_[source_register].full }, !is_byte_access));
+										storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
+									}
+								break;
+
+								case 0x50:	// MOVE (d16,As), Dd
+									if(mapping.operation == Operation::MOVEl) {
+										continue;
+									} else {
+										storage_.all_micro_ops_.emplace_back(int(Action::CalcD16An) | MicroOp::SourceMask, &arbitrary_base + assemble_program("n np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
+										storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
+									}
+								break;
+
+								case 0x60:	// MOVE (d8,As,Xn), Dd
+									if(mapping.operation == Operation::MOVEl) {
+										continue;
+									} else {
+										storage_.all_micro_ops_.emplace_back(int(Action::CalcD8AnXn) | MicroOp::SourceMask, &arbitrary_base + assemble_program("n np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
 										storage_.all_micro_ops_.emplace_back(Action::PerformOperation);
 									}
 								break;
@@ -398,7 +436,7 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 
 	// Set initial state. Largely TODO.
 	active_step_ = reset_program_;
-	effective_address_ = 0;
+	effective_address_[0] = 0;
 	is_supervisor_ = 1;
 }
 

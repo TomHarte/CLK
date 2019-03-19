@@ -40,7 +40,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 					case BusStep::Action::None: break;
 
-					case BusStep::Action::IncrementEffectiveAddress:	effective_address_ += 2;	break;
+					case BusStep::Action::IncrementEffectiveAddress0:	effective_address_[0] += 2;	break;
+					case BusStep::Action::IncrementEffectiveAddress1:	effective_address_[1] += 2;	break;
 					case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;	break;
 
 					case BusStep::Action::AdvancePrefetch:
@@ -80,6 +81,10 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 				}
 
 				switch(active_micro_op_->action) {
+					default:
+						std::cerr << "Unhandled 68000 micro op action " << std::hex << active_micro_op_->action << std::endl;
+					break;
+
 					case MicroOp::Action::None: break;
 
 					case MicroOp::Action::PerformOperation:
@@ -147,25 +152,97 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						}
 					break;
 
-					case MicroOp::Action::PredecrementSourceAndDestination1:
-						-- active_program_->source->full;
-						-- active_program_->destination->full;
+					case MicroOp::Action::Decrement1:
+						if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full -= 1;
+						if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full -= 1;
 					break;
 
-					case MicroOp::Action::PredecrementSourceAndDestination2:
-						active_program_->source->full -= 2;
-						active_program_->destination->full -= 2;
+					case MicroOp::Action::Decrement2:
+						if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full -= 2;
+						if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full -= 2;
 					break;
 
-					case MicroOp::Action::PredecrementSourceAndDestination4:
-						active_program_->source->full -= 4;
-						active_program_->destination->full -= 4;
+					case MicroOp::Action::Decrement4:
+						if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full -= 4;
+						if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full -= 4;
 					break;
 
-					case MicroOp::Action::SignExtendDestinationWord:
-						active_program_->destination->halves.high.full =
-							(active_program_->destination->halves.low.full & 0x8000) ? 0xffff : 0x0000;
+					case MicroOp::Action::Increment1:
+						if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full += 1;
+						if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full += 1;
 					break;
+
+					case MicroOp::Action::Increment2:
+						if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full += 2;
+						if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full += 2;
+					break;
+
+					case MicroOp::Action::Increment4:
+						if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full += 4;
+						if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full += 4;
+					break;
+
+					case MicroOp::Action::SignExtendWord:
+						if(active_micro_op_->action & MicroOp::SourceMask) {
+							active_program_->source->halves.high.full =
+								(active_program_->source->halves.low.full & 0x8000) ? 0xffff : 0x0000;
+						}
+						if(active_micro_op_->action & MicroOp::DestinationMask) {
+							active_program_->destination->halves.high.full =
+								(active_program_->destination->halves.low.full & 0x8000) ? 0xffff : 0x0000;
+						}
+					break;
+
+					case MicroOp::Action::SignExtendByte:
+						if(active_micro_op_->action & MicroOp::SourceMask) {
+							active_program_->source->full = (active_program_->source->full & 0xff) |
+								(active_program_->source->full & 0x80) ? 0xffffff : 0x000000;
+						}
+						if(active_micro_op_->action & MicroOp::DestinationMask) {
+							active_program_->destination->full = (active_program_->destination->full & 0xff) |
+								(active_program_->destination->full & 0x80) ? 0xffffff : 0x000000;
+						}
+					break;
+
+					case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask:
+						effective_address_[0] = int16_t(prefetch_queue_[0].full) + active_program_->source->full;
+					break;
+
+					case int(MicroOp::Action::CalcD16An) | MicroOp::DestinationMask:
+						effective_address_[1] = int16_t(prefetch_queue_[0].full) + active_program_->destination->full;
+					break;
+
+					case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask | MicroOp::DestinationMask:
+						effective_address_[0] = int16_t(prefetch_queue_[0].full) + active_program_->source->full;
+						effective_address_[1] = int16_t(prefetch_queue_[1].full) + active_program_->destination->full;
+					break;
+
+					// TODO: permit as below for DestinationMask and SourceMask|DestinationMask; would prefer to test first.
+#define CalculateD8AnXn(data, source, target)	{\
+	const auto register_index = (data.full >> 12) & 7;	\
+	const RegisterPair32 &displacement = (data.full & 0x8000) ? address_[register_index] : data_[register_index];	\
+	target = int8_t(data.halves.low) + source->full;	\
+\
+	if(data.full & 0x800) {	\
+		effective_address_[0] += displacement.halves.low;	\
+	} else {	\
+		effective_address_[0] += displacement.full;	\
+	}	\
+}
+					case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask: {
+						CalculateD8AnXn(prefetch_queue_[0], active_program_->source, effective_address_[0]);
+					} break;
+
+					case int(MicroOp::Action::CalcD8AnXn) | MicroOp::DestinationMask: {
+						CalculateD8AnXn(prefetch_queue_[0], active_program_->destination, effective_address_[1]);
+					} break;
+
+					case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask | MicroOp::DestinationMask: {
+						CalculateD8AnXn(prefetch_queue_[0], active_program_->source, effective_address_[0]);
+						CalculateD8AnXn(prefetch_queue_[1], active_program_->destination, effective_address_[1]);
+					} break;
+
+#undef CalculateD8AnXn
 				}
 
 				// If we've got to a micro-op that includes bus steps, break out of this loop.
