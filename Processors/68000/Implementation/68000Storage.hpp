@@ -21,7 +21,7 @@ class ProcessorStorage {
 		RegisterPair32 stack_pointers_[2];	// [0] = user stack pointer; [1] = supervisor; the values from here
 											// are copied into/out of address_[7] upon mode switches.
 
-		RegisterPair16 prefetch_queue_[2];
+		RegisterPair32 prefetch_queue_;		// Each word will go into the low part of the word, then proceed upward.
 		bool dtack_ = true;
 
 		// Various status bits.

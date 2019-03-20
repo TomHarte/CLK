@@ -128,7 +128,7 @@ struct ProcessorStorageConstructor {
 							step.microcycle.length = HalfCycles(5);
 							step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;
 							step.microcycle.address = &storage_.program_counter_.full;
-							step.microcycle.value = &storage_.prefetch_queue_[1];
+							step.microcycle.value = &storage_.prefetch_queue_.halves.low;
 							step.action = Action::AdvancePrefetch;
 							steps.push_back(step);
 
