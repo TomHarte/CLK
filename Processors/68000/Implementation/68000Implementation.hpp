@@ -313,7 +313,15 @@ template <class T, bool dtack_is_implicit> ProcessorState Processor<T, dtack_is_
 	state.user_stack_pointer = stack_pointers_[0].full;
 	state.supervisor_stack_pointer = stack_pointers_[1].full;
 
-	// TODO: status word.
+	// TODO: rest of status word: interrupt level, trace flag.
+	state.status =
+		(carry_flag_ 	? 0x0001 : 0x0000) |
+		(overflow_flag_	? 0x0002 : 0x0000) |
+		(zero_flag_		? 0x0000 : 0x0004) |
+		(negative_flag_	? 0x0008 : 0x0000) |
+		(extend_flag_	? 0x0010 : 0x0000) |
+
+		(is_supervisor_ ? 0x2000 : 0x0000);
 
 	return state;
 }
@@ -324,5 +332,14 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 	stack_pointers_[0].full = state.user_stack_pointer;
 	stack_pointers_[1].full = state.supervisor_stack_pointer;
 
-	// TODO: update address[7], once there's a status word to discern the mode this processor should now be in.
+	carry_flag_		= state.status & 0x0001;
+	overflow_flag_	= state.status & 0x0002;
+	zero_flag_		= (state.status & 0x0004) ^ 0x0004;
+	negative_flag_	= state.status & 0x0008;
+	extend_flag_	= state.status & 0x0010;
+
+	is_supervisor_	= (state.status >> 13) & 1;
+	address_[7] = stack_pointers_[is_supervisor_];
+
+	// TODO: rest of status word: interrupt level, trace flag.
 }
