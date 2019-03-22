@@ -120,4 +120,18 @@ class RAM68000: public CPU::MC68000::BusHandler {
     _machine->run_for(HalfCycles(400));
 }
 
+- (void)testMOVE {
+	_machine->set_program({
+		0x303c, 0xfb2e		// MOVE #fb2e, D0
+	});
+
+	_machine->run_for(Cycles(38));
+	auto state = _machine->get_processor_state();
+	XCTAssert(state.data[0] == 0);
+
+	_machine->run_for(Cycles(8));
+	state = _machine->get_processor_state();
+	XCTAssert(state.data[0] == 0xfb2e);
+}
+
 @end

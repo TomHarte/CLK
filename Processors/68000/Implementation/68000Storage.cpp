@@ -327,6 +327,11 @@ struct ProcessorStorageConstructor {
 							const bool is_byte_access = mapping.operation == Operation::MOVEb;
 							const bool is_long_word_access = mapping.operation == Operation::MOVEl;
 
+							// There are no byte moves to address registers.
+							if(is_byte_access && destination_mode == 1) {
+								continue;
+							}
+
 							// Construct a single word to describe the addressing mode:
 							//
 							//	0xssdd, where ss or dd =
@@ -371,21 +376,26 @@ struct ProcessorStorageConstructor {
 									case 0x0001:	// MOVEA Dn, An
 									case 0x0101:	// MOVEA An, An
 										op(Action::PerformOperation, seq("np"));
-										op(
-											int(is_byte_access ? Action::SignExtendByte : Action::SignExtendWord) | MicroOp::DestinationMask
-										);
+										op(int(Action::SignExtendWord) | MicroOp::DestinationMask);
 									break;
 
 									case 0x0002:	// MOVE Dn, (An)
 									case 0x0102:	// MOVE An, (An)
 									case 0x0003:	// MOVE Dn, (An)+
 									case 0x0103:	// MOVE An, (An)+
-										// nw np
+										op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw, seq("nw np", { &storage_.address_[destination_register].full }, !is_byte_access));
+										if(destination_mode == 0x3) {
+											op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::DestinationMask);
+										} else {
+											op();
+										}
 									continue;
 
 									case 0x0004:	// MOVE Dn, -(An)
 									case 0x0104:	// MOVE An, -(An)
-										// np nw
+										op(	int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::DestinationMask,
+											seq("np nw", { &storage_.address_[destination_register].full }, !is_byte_access));
+										op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
 									continue;
 
 									case 0x0005:	// MOVE Dn, (d16, An)
@@ -415,11 +425,8 @@ struct ProcessorStorageConstructor {
 									case 0x0200:	// MOVE (An), Dn
 									case 0x0300:	// MOVE (An)+, Dn
 										op(Action::None, seq("nr np", { &storage_.address_[source_register].full }, !is_byte_access));
-										if(source_mode == 0x3 || destination_mode == 0x3) {
-											op(int(is_byte_access ? Action::Increment1 : Action::Increment2)
-												| (source_mode == 3 ? MicroOp::SourceMask : 0)
-												| (destination_mode == 3 ? MicroOp::DestinationMask : 0)
-											);
+										if(source_mode == 0x3) {
+											op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::SourceMask);
 										}
 										op(Action::PerformOperation);
 									break;
@@ -492,22 +499,58 @@ struct ProcessorStorageConstructor {
 									continue;
 
 								//
-								// Source = (d16, An)
+								// Source = (d16, An) or (d8, An, Xn)
 								//
+
+#define action_calc() int(source_mode == 0x05 ? Action::CalcD16An : Action::CalcD8AnXn)
+#define pseq(x) (source_mode == 0x06 ? "n" x : x)
 
 									case 0x0500:	// MOVE (d16, An), Dn
-										op(int(Action::CalcD16An) | MicroOp::SourceMask, seq("np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
-										op(Action::PerformOperation);
-									break;
-
-								//
-								// Source = (d8, An, Xn)
-								//
-
 									case 0x0600:	// MOVE (d8, An, Xn), Dn
-										op(int(Action::CalcD8AnXn) | MicroOp::SourceMask, seq("n np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
+										op(action_calc() | MicroOp::SourceMask, seq(pseq("np nr np"), { &storage_.effective_address_[0] }, !is_byte_access));
 										op(Action::PerformOperation);
 									break;
+
+									case 0x0502:	// MOVE (d16, An), (An)
+									case 0x0503:	// MOVE (d16, An), (An)+
+									case 0x0602:	// MOVE (d8, An, Xn), (An)
+									case 0x0603:	// MOVE (d8, An, Xn), (An)+
+										// np nr nw np
+										// n np nr nw np
+									continue;
+
+									case 0x0504:	// MOVE (d16, An), -(An)
+									case 0x0604:	// MOVE (d8, An, Xn), -(An)
+										// np nr np nw
+										// n np nr np nw
+									continue;
+
+									case 0x0505:	// MOVE (d16, An), (d16, An)
+									case 0x0605:	// MOVE (d8, An, Xn), (d16, An)
+										// np nr np nw np
+										// n np nr np nw np
+									continue;
+
+									case 0x0506:	// MOVE (d16, An), (d8, An, Xn)
+									case 0x0606:	// MOVE (d8, An, Xn), (d8, An, Xn)
+										// np nr n np nw np
+										// n np nr n np nw np
+									continue;
+
+									case 0x0510:	// MOVE (d16, An), (xxx).W
+									case 0x0610:	// MOVE (d8, An, Xn), (xxx).W
+										// np nr np nw np
+										// n np nr np nw np
+									continue;
+
+									case 0x0511:	// MOVE (d16, An), (xxx).L
+									case 0x0611:	// MOVE (d8, An, Xn), (xxx).L
+										// np nr np nw np np
+										// n np nr np nw np np
+									continue;
+
+#undef action_calc
+#undef prefix
 
 								//
 								// Source = (xxx).W
@@ -515,6 +558,31 @@ struct ProcessorStorageConstructor {
 
 									case 0x1000:	// MOVE (xxx).W, Dn
 										// np nr np
+									continue;
+
+									case 0x1002:	// MOVE (xxx).W, (An)
+									case 0x1003:	// MOVE (xxx).W, (An)+
+										// np nr nw np
+									continue;
+
+									case 0x1004:	// MOVE (xxx).W, -(An)
+										// np nr np nw
+									continue;
+
+									case 0x1005:	// MOVE (xxx).W, (d16, An)
+										// np nr np nw np
+									continue;
+
+									case 0x1006:	// MOVE (xxx).W, (d8, An, Xn)
+										// np nr n np nw np
+									continue;
+
+									case 0x1010:	// MOVE (xxx).W, (xxx).W
+										// np nr np nw np
+									continue;
+
+									case 0x1011:	// MOVE (xxx).W, (xxx).L
+										// np nr np nw np np
 									continue;
 
 								//

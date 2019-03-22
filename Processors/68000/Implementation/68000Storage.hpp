@@ -37,6 +37,8 @@ class ProcessorStorage {
 		uint32_t effective_address_[2];
 		RegisterPair32 bus_data_[2];
 
+		HalfCycles half_cycles_left_to_run_;
+
 		enum class Operation {
 			ABCD,	SBCD,
 			ADD,	AND,	EOR,	OR,		SUB,
@@ -98,7 +100,14 @@ class ProcessorStorage {
 		struct MicroOp {
 			enum class Action: int {
 				None,
+
+				/// Does whatever this instruction says is the main operation.
 				PerformOperation,
+
+				/// Sets the flags as if a MOVE operation had occurred, by inspecting *source.
+				SetMoveFlagsb,
+				SetMoveFlagsw,
+				SetMoveFlagsl,
 
 				/*
 					All of the below will honour the source and destination masks
