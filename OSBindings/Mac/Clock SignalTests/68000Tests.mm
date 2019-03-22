@@ -122,16 +122,30 @@ class RAM68000: public CPU::MC68000::BusHandler {
 
 - (void)testMOVE {
 	_machine->set_program({
-		0x303c, 0xfb2e		// MOVE #fb2e, D0
+		0x303c, 0xfb2e,		// MOVE #fb2e, D0
+		0x3200,				// MOVE D0, D1
+		0x3040,				// MOVE D0, A0
 	});
 
+	// Perform RESET.
 	_machine->run_for(Cycles(38));
 	auto state = _machine->get_processor_state();
 	XCTAssert(state.data[0] == 0);
 
+	// Perform MOVE #fb2e, D0
 	_machine->run_for(Cycles(8));
 	state = _machine->get_processor_state();
 	XCTAssert(state.data[0] == 0xfb2e);
+
+	// Perform MOVE D0, D1
+	_machine->run_for(Cycles(4));
+	state = _machine->get_processor_state();
+	XCTAssert(state.data[1] == 0xfb2e);
+
+	// Perform MOVE D0, A0
+	_machine->run_for(Cycles(4));
+	state = _machine->get_processor_state();
+	XCTAssert(state.address[0] == 0xfffffb2e, "A0 was %08x instead of 0xfffffb2e", state.address[0]);
 }
 
 @end
