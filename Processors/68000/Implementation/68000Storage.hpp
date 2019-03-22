@@ -43,7 +43,8 @@ class ProcessorStorage {
 			ABCD,	SBCD,
 			ADD,	AND,	EOR,	OR,		SUB,
 
-			MOVEb,	MOVEw,	MOVEl
+			MOVEb,	MOVEw,	MOVEl,
+			MOVEAw,	MOVEAl
 		};
 
 		/*!

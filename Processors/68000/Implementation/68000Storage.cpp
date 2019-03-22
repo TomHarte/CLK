@@ -264,6 +264,7 @@ struct ProcessorStorageConstructor {
 		for(size_t instruction = 0; instruction < 65536; ++instruction)	{
 			for(const auto &mapping: mappings) {
 				if((instruction & mapping.mask) == mapping.value) {
+					auto operation = mapping.operation;
 					const auto micro_op_start = storage_.all_micro_ops_.size();
 
 					switch(mapping.decoder) {
@@ -367,16 +368,13 @@ struct ProcessorStorageConstructor {
 								// Source = Dn or An
 								//
 
+									case 0x0001:	// MOVEA Dn, An
+									case 0x0101:	// MOVEA An, An
+										operation = Operation::MOVEAw;				// Substitute MOVEA for MOVE.
 									case 0x0000:	// MOVE Dn, Dn
 									case 0x0100:	// MOVE An, Dn
 										op(Action::PerformOperation, seq("np"));
 										op();
-									break;
-
-									case 0x0001:	// MOVEA Dn, An
-									case 0x0101:	// MOVEA An, An
-										op(Action::PerformOperation, seq("np"));
-										op(int(Action::SignExtendWord) | MicroOp::DestinationMask);
 									break;
 
 									case 0x0002:	// MOVE Dn, (An)
@@ -640,7 +638,7 @@ struct ProcessorStorageConstructor {
 					}
 
 					// Install the operation and make a note of where micro-ops begin.
-					storage_.instructions[instruction].operation = mapping.operation;
+					storage_.instructions[instruction].operation = operation;
 					micro_op_pointers[instruction] = micro_op_start;
 
 					// Don't search further through the list of possibilities.

@@ -85,6 +85,10 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									active_program_->destination->halves.low.halves.low = uint8_t(result);
 								} break;
 
+								/*
+									MOVE.b, MOVE.l and MOVE.w: move the least significant byte or word, or the entire long word,
+									and set negative, zero, overflow and carry as appropriate.
+								*/
 								case Operation::MOVEb:
 									zero_flag_ = active_program_->destination->halves.low.halves.low = active_program_->source->halves.low.halves.low;
 									negative_flag_ = zero_flag_ & 0x80;
@@ -101,6 +105,21 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_flag_ = active_program_->destination->full = active_program_->source->full;
 									negative_flag_ = zero_flag_ & 0x80000000;
 									overflow_flag_ = carry_flag_ = 0;
+								break;
+
+								/*
+									MOVEA.l: move the entire long word;
+									MOVEA.w: move the least significant word and sign extend it.
+									Neither sets any flags.
+								*/
+
+								case Operation::MOVEAw:
+									active_program_->destination->halves.low.full = active_program_->source->halves.low.full;
+									active_program_->destination->halves.high.full = (active_program_->destination->halves.low.full & 0x8000) ? 0xffff : 0;
+								break;
+
+								case Operation::MOVEAl:
+									active_program_->destination->full = active_program_->source->full;
 								break;
 
 								default:
