@@ -199,11 +199,11 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask:
-							effective_address_[0] = int16_t(prefetch_queue_.halves.high.full) + active_program_->source->full;
+							effective_address_[0] = int16_t(prefetch_queue_.halves.low.full) + active_program_->source->full;
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::DestinationMask:
-							effective_address_[1] = int16_t(prefetch_queue_.halves.high.full) + active_program_->destination->full;
+							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + active_program_->destination->full;
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask | MicroOp::DestinationMask:
@@ -224,11 +224,11 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 	}	\
 }
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask: {
-							CalculateD8AnXn(prefetch_queue_.halves.high, active_program_->source, effective_address_[0]);
+							CalculateD8AnXn(prefetch_queue_.halves.low, active_program_->source, effective_address_[0]);
 						} break;
 
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::DestinationMask: {
-							CalculateD8AnXn(prefetch_queue_.halves.high, active_program_->destination, effective_address_[1]);
+							CalculateD8AnXn(prefetch_queue_.halves.low, active_program_->destination, effective_address_[1]);
 						} break;
 
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask | MicroOp::DestinationMask: {
@@ -239,11 +239,19 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 #undef CalculateD8AnXn
 
 						case int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask:
-							bus_data_[0] = prefetch_queue_.full;
+							effective_address_[0] = prefetch_queue_.halves.high.full;
 						break;
 
 						case int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::DestinationMask:
-							bus_data_[1] = prefetch_queue_.full;
+							effective_address_[1] = prefetch_queue_.halves.high.full;
+						break;
+
+						case int(MicroOp::Action::AssembleLongWordFromPrefetch) | MicroOp::SourceMask:
+							effective_address_[0] = prefetch_queue_.full;
+						break;
+
+						case int(MicroOp::Action::AssembleLongWordFromPrefetch) | MicroOp::DestinationMask:
+							effective_address_[1] = prefetch_queue_.full;
 						break;
 					}
 
@@ -321,7 +329,7 @@ template <class T, bool dtack_is_implicit> ProcessorState Processor<T, dtack_is_
 		(negative_flag_	? 0x0008 : 0x0000) |
 		(extend_flag_	? 0x0010 : 0x0000) |
 
-		(is_supervisor_ ? 0x2000 : 0x0000);
+		(is_supervisor_ << 13);
 
 	return state;
 }

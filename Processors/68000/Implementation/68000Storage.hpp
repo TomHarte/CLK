@@ -129,10 +129,10 @@ class ProcessorStorage {
 				/// Adds 4.
 				Increment4,
 
-				/// Peeking into the prefetch queue, calculates the proper target of (d16,An) addressing.
+				/// Peeking into the end of the prefetch queue, calculates the proper target of (d16,An) addressing.
 				CalcD16An,
 
-				/// Peeking into the prefetch queue, calculates the proper target of (d8,An,Xn) addressing.
+				/// Peeking into the end of the prefetch queue, calculates the proper target of (d8,An,Xn) addressing.
 				CalcD8AnXn,
 
 				/// Peeking into the prefetch queue, calculates the proper target of (d16,PC) addressing,
@@ -151,9 +151,12 @@ class ProcessorStorage {
 				/// Sets the high three bytes according to the MSB of the low byte.
 				SignExtendByte,
 
-				/// From the next two words in the prefetch queue assembles a 32-bit long word in either or
-				/// both of bus_data_[0] and bus_data_[1].
+				/// From the next word in the prefetch queue assembles a 0-padded 32-bit long word in either or
+				/// both of effective_address_[0] and effective_address_[1].
 				AssembleWordFromPrefetch,
+
+				/// Copies the next two prefetch words into one of the effective_address_.
+				AssembleLongWordFromPrefetch
 			};
 			static const int SourceMask = 1 << 30;
 			static const int DestinationMask = 1 << 29;

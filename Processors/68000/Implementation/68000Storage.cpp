@@ -420,6 +420,9 @@ struct ProcessorStorageConstructor {
 								// Source = (An) or (An)+
 								//
 
+									case 0x0201:	// MOVEA (An), An
+									case 0x0301:	// MOVEA (An)+, An
+										operation = Operation::MOVEAw;				// Substitute MOVEA for MOVE.
 									case 0x0200:	// MOVE (An), Dn
 									case 0x0300:	// MOVE (An)+, Dn
 										op(Action::None, seq("nr np", { &storage_.address_[source_register].full }, !is_byte_access));
@@ -465,6 +468,8 @@ struct ProcessorStorageConstructor {
 								// Source = -(An)
 								//
 
+									case 0x0401:	// MOVEA -(An), An
+										operation = Operation::MOVEAw;				// Substitute MOVEA for MOVE.
 									case 0x0400:	// MOVE -(An), Dn
 										op(	int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::SourceMask,
 											seq("n nr np", { &storage_.address_[source_register].full }, !is_byte_access));
@@ -503,6 +508,9 @@ struct ProcessorStorageConstructor {
 #define action_calc() int(source_mode == 0x05 ? Action::CalcD16An : Action::CalcD8AnXn)
 #define pseq(x) (source_mode == 0x06 ? "n" x : x)
 
+									case 0x0501:	// MOVE (d16, An), An
+									case 0x0601:	// MOVE (d8, An, Xn), An
+										operation = Operation::MOVEAw;
 									case 0x0500:	// MOVE (d16, An), Dn
 									case 0x0600:	// MOVE (d8, An, Xn), Dn
 										op(action_calc() | MicroOp::SourceMask, seq(pseq("np nr np"), { &storage_.effective_address_[0] }, !is_byte_access));
@@ -554,8 +562,11 @@ struct ProcessorStorageConstructor {
 								// Source = (xxx).W
 								//
 
+									case 0x1001:	// MOVEA (xxx).W, Dn
+										operation = Operation::MOVEAw;
 									case 0x1000:	// MOVE (xxx).W, Dn
-										// np nr np
+										op(int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask, seq("np"));
+										op(Action::PerformOperation, seq("nr np", { &storage_.effective_address_[0] }, !is_byte_access));
 									continue;
 
 									case 0x1002:	// MOVE (xxx).W, (An)
@@ -587,8 +598,11 @@ struct ProcessorStorageConstructor {
 								// Source = (xxx).L
 								//
 
-									case 0x1100:	// MOVE (xxx).L, Dn
-										// np np nr np
+									case 0x1101:	// MOVEA (xxx).W, Dn
+										operation = Operation::MOVEAw;
+									case 0x1100:	// MOVE (xxx).W, Dn
+										op(int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask, seq("np np"));
+										op(Action::PerformOperation, seq("nr np", { &storage_.effective_address_[0] }, !is_byte_access));
 									continue;
 
 								//
@@ -613,6 +627,8 @@ struct ProcessorStorageConstructor {
 								// Source = #
 								//
 
+									case 0x1401:	// MOVE #, Dn
+										operation = Operation::MOVEAw;
 									case 0x1400:	// MOVE #, Dn
 										storage_.instructions[instruction].source = &storage_.prefetch_queue_;
 										op(int(Action::PerformOperation), seq("np np"));
