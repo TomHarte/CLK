@@ -387,14 +387,14 @@ struct ProcessorStorageConstructor {
 										} else {
 											op();
 										}
-									continue;
+									break;
 
 									case 0x0004:	// MOVE Dn, -(An)
 									case 0x0104:	// MOVE An, -(An)
 										op(	int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::DestinationMask,
 											seq("np nw", { &storage_.address_[destination_register].full }, !is_byte_access));
 										op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
-									continue;
+									break;
 
 									case 0x0005:	// MOVE Dn, (d16, An)
 									case 0x0105:	// MOVE An, (d16, An)
@@ -562,12 +562,14 @@ struct ProcessorStorageConstructor {
 								// Source = (xxx).W
 								//
 
-									case 0x1001:	// MOVEA (xxx).W, Dn
+									case 0x1001:	// MOVEA (xxx).W, An
 										operation = Operation::MOVEAw;
 									case 0x1000:	// MOVE (xxx).W, Dn
-										op(int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask, seq("np"));
-										op(Action::PerformOperation, seq("nr np", { &storage_.effective_address_[0] }, !is_byte_access));
-									continue;
+										op(
+											int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask,
+											seq("np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
+										op(Action::PerformOperation);
+									break;
 
 									case 0x1002:	// MOVE (xxx).W, (An)
 									case 0x1003:	// MOVE (xxx).W, (An)+
@@ -603,7 +605,8 @@ struct ProcessorStorageConstructor {
 									case 0x1100:	// MOVE (xxx).W, Dn
 										op(int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask, seq("np np"));
 										op(Action::PerformOperation, seq("nr np", { &storage_.effective_address_[0] }, !is_byte_access));
-									continue;
+										op();
+									break;
 
 								//
 								// Source = (d16, PC)
@@ -640,11 +643,10 @@ struct ProcessorStorageConstructor {
 								//
 
 									default:
-										std::cerr << "Unimplemented MOVE " << std::hex << both_modes << std::endl;
+										std::cerr << "Unimplemented MOVE " << std::hex << both_modes << " " << instruction << std::endl;
 										// TODO: all other types of mode.
 									continue;
 								}
-
 							}
 						} break;
 

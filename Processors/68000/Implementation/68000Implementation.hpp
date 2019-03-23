@@ -239,11 +239,12 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 #undef CalculateD8AnXn
 
 						case int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask:
-							effective_address_[0] = prefetch_queue_.halves.high.full;
+							// Assumption: this will be assembling right at the start of the instruction.
+							effective_address_[0] = prefetch_queue_.halves.low.full;
 						break;
 
 						case int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::DestinationMask:
-							effective_address_[1] = prefetch_queue_.halves.high.full;
+							effective_address_[1] = prefetch_queue_.halves.low.full;
 						break;
 
 						case int(MicroOp::Action::AssembleLongWordFromPrefetch) | MicroOp::SourceMask:

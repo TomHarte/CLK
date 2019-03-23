@@ -124,7 +124,9 @@ class RAM68000: public CPU::MC68000::BusHandler {
 	_machine->set_program({
 		0x303c, 0xfb2e,		// MOVE #fb2e, D0
 		0x3200,				// MOVE D0, D1
-		0x3040,				// MOVE D0, A0
+
+		0x3040,				// MOVEA D0, A0
+		0x3278, 0x0400,		// MOVEA.w (0x0400), A1
 	});
 
 	// Perform RESET.
@@ -142,10 +144,15 @@ class RAM68000: public CPU::MC68000::BusHandler {
 	state = _machine->get_processor_state();
 	XCTAssert(state.data[1] == 0xfb2e);
 
-	// Perform MOVE D0, A0
+	// Perform MOVEA D0, A0
 	_machine->run_for(Cycles(4));
 	state = _machine->get_processor_state();
 	XCTAssert(state.address[0] == 0xfffffb2e, "A0 was %08x instead of 0xfffffb2e", state.address[0]);
+
+	// Perform MOVEA.w (0x1000), A1
+	_machine->run_for(Cycles(13));
+	state = _machine->get_processor_state();
+	XCTAssert(state.address[1] == 0x0000303c, "A1 was %08x instead of 0x0000303c", state.address[1]);
 }
 
 @end
