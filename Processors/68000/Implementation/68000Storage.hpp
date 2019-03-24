@@ -26,11 +26,13 @@ class ProcessorStorage {
 
 		// Various status bits.
 		int is_supervisor_;
-		uint_fast32_t zero_flag_;		// The zero flag is set if this value is zero.
+		int interrupt_level_;
+		uint_fast32_t zero_result_;		// The zero flag is set if this value is zero.
 		uint_fast32_t carry_flag_;		// The carry flag is set if this value is non-zero.
 		uint_fast32_t extend_flag_;		// The extend flag is set if this value is non-zero.
 		uint_fast32_t overflow_flag_;	// The overflow flag is set if this value is non-zero.
 		uint_fast32_t negative_flag_;	// The negative flag is set if this value is non-zero.
+		uint_fast32_t trace_flag_;		// The trace flag is set if this value is non-zero.
 
 		// Generic sources and targets for memory operations;
 		// by convention: [0] = source, [1] = destination.
@@ -44,7 +46,9 @@ class ProcessorStorage {
 			ADD,	AND,	EOR,	OR,		SUB,
 
 			MOVEb,	MOVEw,	MOVEl,
-			MOVEAw,	MOVEAl
+			MOVEAw,	MOVEAl,
+
+			MOVEtoSR, MOVEfromSR
 		};
 
 		/*!
@@ -192,6 +196,7 @@ class ProcessorStorage {
 			RegisterPair32 *source = nullptr;
 			RegisterPair32 *destination = nullptr;
 			Operation operation;
+			bool requires_supervisor = false;
 		};
 
 		// Storage for all the sequences of bus steps and micro-ops used throughout

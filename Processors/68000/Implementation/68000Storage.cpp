@@ -18,6 +18,17 @@ struct ProcessorStorageConstructor {
 
 	using BusStep = ProcessorStorage::BusStep;
 
+	int calc_action_for_mode(int mode) const {
+		using Action = ProcessorBase::MicroOp::Action;
+		switch(mode & 0xff) {
+			default: return 0;
+			case 0x12:	return int(Action::CalcD16PC);		// (d16, PC)
+			case 0x13:	return int(Action::CalcD8PCXn);		// (d8, PC, Xn)
+			case 0x05:	return int(Action::CalcD16An);		// (d16, An)
+			case 0x06:	return int(Action::CalcD8AnXn);		// (d8, An, Xn)
+		}
+	}
+
 	/*!
 		Installs BusSteps that implement the described program into the relevant
 		instance storage, returning the offset within @c all_bus_steps_ at which
@@ -163,8 +174,10 @@ struct ProcessorStorageConstructor {
 							}
 							steps.push_back(step);
 
-							++address_iterator;
-							if(!isupper(access_pattern[1])) ++(*scratch_data);
+							if(!isupper(access_pattern[1])) {
+								++(*scratch_data);
+ 								++address_iterator;
+							}
 							access_pattern += 2;
 						} break;
 					}
@@ -214,7 +227,9 @@ struct ProcessorStorageConstructor {
 			RegOpModeReg,
 			SizeModeRegisterImmediate,
 			DataSizeModeQuick,
-			RegisterModeModeRegister
+			RegisterModeModeRegister,	// i.e. twelve lowest bits are register, mode, mode, register, for destination and source respectively.
+			ModeRegister,				// i.e. six lowest bits are mode, then register.
+			MOVEtoSR
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -254,6 +269,8 @@ struct ProcessorStorageConstructor {
 			{0xf000, 0x1000, Operation::MOVEb, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
 			{0xf000, 0x2000, Operation::MOVEl, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
 			{0xf000, 0x3000, Operation::MOVEw, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
+
+			{0xffc0, 0x46c0, Operation::MOVEtoSR, Decoder::MOVEtoSR},		// 6-19 (p473)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -295,7 +312,82 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
-						// Decodes the format used by all the MOVEs.
+						case Decoder::MOVEtoSR: {
+							const int source_register = instruction & 7;
+							const int source_mode = (instruction >> 3) & 7;
+
+							switch(source_mode) {
+								case 0:	// Dn
+									storage_.instructions[instruction].source = &storage_.data_[source_register];
+								break;
+
+								case 1:	continue; // An
+
+								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L
+									storage_.instructions[instruction].source = &storage_.bus_data_[0];
+									storage_.instructions[instruction].destination = &storage_.bus_data_[1];
+								break;
+							}
+
+							/* DEVIATION FROM YACHT.TXT: it has all of these reading an extra word from the PC;
+							this looks like a mistake so I've padded with nil cycles in the middle. */
+							switch( (source_mode == 7) ? (0x10 | source_register) : source_mode) {
+								case 0x00:	// MOVE Dn, SR
+									op(Action::PerformOperation, seq("nn np"));
+									op();
+								break;
+
+								case 0x02:	// MOVE (An), SR
+								case 0x03:	// MOVE (An)+, SR
+									op(Action::None, seq("nr nn nn np", { &storage_.address_[source_register].full }));
+									if(source_mode == 0x3) {
+										op(int(Action::Increment2) | MicroOp::SourceMask);
+									}
+									op(Action::PerformOperation);
+								break;
+
+								case 0x04:	// MOVE -(An), SR
+									op(Action::Decrement2, seq("n nr nn nn np", { &storage_.address_[source_register].full }));
+									op(Action::PerformOperation);
+								break;
+
+#define pseq(x) ((source_mode == 0x06) || (source_mode == 0x13) ? "n" x : x)
+
+								case 0x12:	// MOVE (d16, PC), SR
+								case 0x13:	// MOVE (d8, PC, Xn), SR
+								case 0x05:	// MOVE (d16, An), SR
+								case 0x06:	// MOVE (d8, An, Xn), SR
+									op(calc_action_for_mode(source_mode) | MicroOp::SourceMask, seq(pseq("np nr nn nn np"), { &storage_.effective_address_[0] }));
+									op(Action::PerformOperation);
+								break;
+
+#undef pseq
+
+								case 0x10:	// MOVE (xxx).W, SR
+									op(
+										int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask,
+										seq("np nr nn nn np", { &storage_.effective_address_[0] }));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x11:	// MOVE (xxx).L, SR
+									op(Action::None, seq("np"));
+									op(int(MicroOp::Action::AssembleLongWordFromPrefetch) | MicroOp::SourceMask, seq("np nr", { &storage_.effective_address_[0] }));
+									op(Action::PerformOperation, seq("nn nn np"));
+									op();
+								break;
+
+								case 0x14:	// MOVE #, SR
+									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
+									op(int(Action::PerformOperation), seq("np nn nn np"));
+									op();
+								break;
+
+								default: continue;
+							}
+						} break;
+
+						// Decodes the format used by most MOVEs and all MOVEAs.
 						case Decoder::RegisterModeModeRegister: {
 							const int source_register = instruction & 7;
 							const int source_mode = (instruction >> 3) & 7;
@@ -445,18 +537,44 @@ struct ProcessorStorageConstructor {
 									operation = Operation::MOVEAl;
 								case 0x10200:	// MOVE.l (An), Dn
 								case 0x10300:	// MOVE.l (An)+, Dn
-									op(Action::CopySourceToEffectiveAddress, seq("nR nr np", {&storage_.effective_address_[0], &storage_.effective_address_[0]}));
+									op(Action::CopySourceToEffectiveAddress, seq("nR nr np", { &storage_.effective_address_[0] }));
 									if(source_mode == 0x3) {
 										op(int(Action::Increment4) | MicroOp::SourceMask);
 									}
 									op(Action::PerformOperation);
 								break;
 
-								case 0x0202:	// MOVE (An), (An)
-								case 0x0302:	// MOVE (An)+, (An)
-								case 0x0203:	// MOVE (An), (An)+
-								case 0x0303:	// MOVE (An)+, (An)+
-									// nr nw np
+								case 0x00202:	// MOVE.bw (An), (An)
+								case 0x00302:	// MOVE.bw (An)+, (An)
+								case 0x00203:	// MOVE.bw (An), (An)+
+								case 0x00303:	// MOVE.bw (An)+, (An)+
+									op(Action::None, seq("nr", { &storage_.address_[source_register].full }));
+									op(Action::PerformOperation, seq("nw np", { &storage_.address_[destination_register].full }));
+									if(source_mode == 0x3 || destination_mode == 0x3) {
+										op(
+											int(is_byte_access ? Action::Increment1 : Action::Increment2) |
+											(source_mode == 0x3 ? MicroOp::SourceMask : 0) |
+											(source_mode == 0x3 ? MicroOp::DestinationMask : 0));
+									} else {
+										op();
+									}
+								continue;
+
+								case 0x10202:	// MOVE.l (An), (An)
+								case 0x10302:	// MOVE.l (An)+, (An)
+								case 0x10203:	// MOVE.l (An), (An)+
+								case 0x10303:	// MOVE.l (An)+, (An)+
+									op(Action::CopyDestinationToEffectiveAddress);
+									op(Action::CopySourceToEffectiveAddress, seq("nR nr", { &storage_.effective_address_[0] }));
+									op(Action::PerformOperation, seq("nW nw np", { &storage_.effective_address_[1] }));
+									if(source_mode == 0x3 || destination_mode == 0x3) {
+										op(
+											int(Action::Increment4) |
+											(source_mode == 0x3 ? MicroOp::SourceMask : 0) |
+											(source_mode == 0x3 ? MicroOp::DestinationMask : 0));
+									} else {
+										op();
+									}
 								continue;
 
 								case 0x0204:	// MOVE (An), -(An)
@@ -620,11 +738,12 @@ struct ProcessorStorageConstructor {
 							// Source = (xxx).L
 							//
 
-								case 0x1101:	// MOVEA (xxx).W, Dn
+								case 0x1101:	// MOVEA (xxx).L, Dn
 									operation = Operation::MOVEAw;
-								case 0x1100:	// MOVE (xxx).W, Dn
-									op(int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask, seq("np np"));
-									op(Action::PerformOperation, seq("nr np", { &storage_.effective_address_[0] }, !is_byte_access));
+								case 0x1100:	// MOVE (xxx).L, Dn
+									op(Action::None, seq("np"));
+									op(int(MicroOp::Action::AssembleLongWordFromPrefetch) | MicroOp::SourceMask, seq("np nr", { &storage_.effective_address_[0] }, !is_byte_access));
+									op(Action::PerformOperation, seq("np"));
 									op();
 								break;
 

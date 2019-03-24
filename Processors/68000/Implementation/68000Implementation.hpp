@@ -6,6 +6,28 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
+#define get_status() \
+	(	\
+		(carry_flag_ 	? 0x0001 : 0x0000) |	\
+		(overflow_flag_	? 0x0002 : 0x0000) |	\
+		(zero_result_	? 0x0000 : 0x0004) |	\
+		(negative_flag_	? 0x0008 : 0x0000) |	\
+		(extend_flag_	? 0x0010 : 0x0000) |	\
+		(interrupt_level_ << 8) |				\
+		(trace_flag_ 	? 0x8000 : 0x0000) |	\
+		(is_supervisor_ << 13)					\
+	)
+
+#define set_status(x) \
+	carry_flag_			= (x) & 0x0001;	\
+	overflow_flag_		= (x) & 0x0002;	\
+	zero_result_		= ((x) & 0x0004) ^ 0x0004;	\
+	negative_flag_		= (x) & 0x0008;	\
+	extend_flag_		= (x) & 0x0010;	\
+	interrupt_level_ 	= ((x) >> 8) & 7;	\
+	trace_flag_			= (x) & 0x8000;	\
+	is_supervisor_		= ((x) >> 13) & 1;
+
 template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>::run_for(HalfCycles duration) {
 	HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
 	while(remaining_duration > HalfCycles(0)) {
@@ -55,7 +77,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									if(result > 0x99) result += 0x60;
 
 									// Set all flags essentially as if this were normal addition.
-									zero_flag_ |= result & 0xff;
+									zero_result_ |= result & 0xff;
 									extend_flag_ = carry_flag_ = result & ~0xff;
 									negative_flag_ = result & 0x80;
 									overflow_flag_ = ~(source ^ destination) & (destination ^ result) & 0x80;
@@ -76,7 +98,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									if(result > 0x99) result -= 0x60;
 
 									// Set all flags essentially as if this were normal subtraction.
-									zero_flag_ |= result & 0xff;
+									zero_result_ |= result & 0xff;
 									extend_flag_ = carry_flag_ = result & ~0xff;
 									negative_flag_ = result & 0x80;
 									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x80;
@@ -90,20 +112,20 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									and set negative, zero, overflow and carry as appropriate.
 								*/
 								case Operation::MOVEb:
-									zero_flag_ = active_program_->destination->halves.low.halves.low = active_program_->source->halves.low.halves.low;
-									negative_flag_ = zero_flag_ & 0x80;
+									zero_result_ = active_program_->destination->halves.low.halves.low = active_program_->source->halves.low.halves.low;
+									negative_flag_ = zero_result_ & 0x80;
 									overflow_flag_ = carry_flag_ = 0;
 								break;
 
 								case Operation::MOVEw:
-									zero_flag_ = active_program_->destination->halves.low.full = active_program_->source->halves.low.full;
-									negative_flag_ = zero_flag_ & 0x8000;
+									zero_result_ = active_program_->destination->halves.low.full = active_program_->source->halves.low.full;
+									negative_flag_ = zero_result_ & 0x8000;
 									overflow_flag_ = carry_flag_ = 0;
 								break;
 
 								case Operation::MOVEl:
-									zero_flag_ = active_program_->destination->full = active_program_->source->full;
-									negative_flag_ = zero_flag_ & 0x80000000;
+									zero_result_ = active_program_->destination->full = active_program_->source->full;
+									negative_flag_ = zero_result_ & 0x80000000;
 									overflow_flag_ = carry_flag_ = 0;
 								break;
 
@@ -122,6 +144,21 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									active_program_->destination->full = active_program_->source->full;
 								break;
 
+								/*
+									Status word moves.
+								*/
+
+								case Operation::MOVEtoSR:
+									set_status(active_program_->source->full);
+								break;
+
+								case Operation::MOVEfromSR:
+									active_program_->source->halves.low.full = get_status();
+								break;
+
+								/*
+									Development period debugging.
+								*/
 								default:
 									std::cerr << "Should do something with program operation " << int(active_program_->operation) << std::endl;
 								break;
@@ -129,20 +166,20 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						break;
 
 						case int(MicroOp::Action::SetMoveFlagsb):
-							zero_flag_ = active_program_->source->halves.low.halves.low;
-							negative_flag_ = zero_flag_ & 0x80;
+							zero_result_ = active_program_->source->halves.low.halves.low;
+							negative_flag_ = zero_result_ & 0x80;
 							overflow_flag_ = carry_flag_ = 0;
 						break;
 
 						case int(MicroOp::Action::SetMoveFlagsw):
-							zero_flag_ = active_program_->source->halves.low.full;
-							negative_flag_ = zero_flag_ & 0x8000;
+							zero_result_ = active_program_->source->halves.low.full;
+							negative_flag_ = zero_result_ & 0x8000;
 							overflow_flag_ = carry_flag_ = 0;
 						break;
 
 						case int(MicroOp::Action::SetMoveFlagsl):
-							zero_flag_ = active_program_->source->full;
-							negative_flag_ = zero_flag_ & 0x80000000;
+							zero_result_ = active_program_->source->full;
+							negative_flag_ = zero_result_ & 0x80000000;
 							overflow_flag_ = carry_flag_ = 0;
 						break;
 
@@ -322,15 +359,7 @@ template <class T, bool dtack_is_implicit> ProcessorState Processor<T, dtack_is_
 	state.user_stack_pointer = stack_pointers_[0].full;
 	state.supervisor_stack_pointer = stack_pointers_[1].full;
 
-	// TODO: rest of status word: interrupt level, trace flag.
-	state.status =
-		(carry_flag_ 	? 0x0001 : 0x0000) |
-		(overflow_flag_	? 0x0002 : 0x0000) |
-		(zero_flag_		? 0x0000 : 0x0004) |
-		(negative_flag_	? 0x0008 : 0x0000) |
-		(extend_flag_	? 0x0010 : 0x0000) |
-
-		(is_supervisor_ << 13);
+	state.status = get_status();
 
 	return state;
 }
@@ -341,14 +370,10 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 	stack_pointers_[0].full = state.user_stack_pointer;
 	stack_pointers_[1].full = state.supervisor_stack_pointer;
 
-	carry_flag_		= state.status & 0x0001;
-	overflow_flag_	= state.status & 0x0002;
-	zero_flag_		= (state.status & 0x0004) ^ 0x0004;
-	negative_flag_	= state.status & 0x0008;
-	extend_flag_	= state.status & 0x0010;
+	set_status(state.status);
 
-	is_supervisor_	= (state.status >> 13) & 1;
 	address_[7] = stack_pointers_[is_supervisor_];
-
-	// TODO: rest of status word: interrupt level, trace flag.
 }
+
+#undef get_status
+#undef set_status
