@@ -445,7 +445,7 @@ struct ProcessorStorageConstructor {
 									operation = Operation::MOVEAl;
 								case 0x10200:	// MOVE.l (An), Dn
 								case 0x10300:	// MOVE.l (An)+, Dn
-									op(Action::CopySourceToEffectiveAddress, seq("nR nr np"));
+									op(Action::CopySourceToEffectiveAddress, seq("nR nr np", {&storage_.effective_address_[0], &storage_.effective_address_[0]}));
 									if(source_mode == 0x3) {
 										op(int(Action::Increment4) | MicroOp::SourceMask);
 									}
