@@ -129,6 +129,12 @@ class ProcessorStorage {
 				/// Adds 4.
 				Increment4,
 
+				/// Copies whatever is this instruction's source to effective_address_[0].
+				CopySourceToEffectiveAddress,
+
+				/// Copies whatever is this instruction's destination to effective_address_[1].
+				CopyDestinationToEffectiveAddress,
+
 				/// Peeking into the end of the prefetch queue, calculates the proper target of (d16,An) addressing.
 				CalcD16An,
 

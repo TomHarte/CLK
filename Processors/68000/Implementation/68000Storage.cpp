@@ -155,6 +155,12 @@ struct ProcessorStorageConstructor {
 
 							step.microcycle.length = HalfCycles(3);
 							step.microcycle.operation |= (read_full_words ? Microcycle::SelectWord : Microcycle::SelectByte) | (is_read ? Microcycle::Read : 0);
+							if(access_pattern[1] == 'R') {
+								step.action = Action::IncrementEffectiveAddress0;
+							}
+							if(access_pattern[1] == 'W') {
+								step.action = Action::IncrementEffectiveAddress1;
+							}
 							steps.push_back(step);
 
 							++address_iterator;
@@ -357,296 +363,309 @@ struct ProcessorStorageConstructor {
 							// ... for no reason other than to make the switch below easy to read.
 							const int both_modes =
 								((source_mode == 7) ? (0x1000 | (source_register << 8)) : (source_mode << 8)) |
-								((destination_mode == 7) ? (0x10 | destination_register) : destination_mode);
+								((destination_mode == 7) ? (0x10 | destination_register) : destination_mode) |
+								(is_long_word_access ? 0x10000 : 0);
 
-							if(is_long_word_access) {
-								continue;
-							} else {
-								switch(both_modes) {
+							switch(both_modes) {
 
-								//
-								// Source = Dn or An
-								//
+							//
+							// Source = Dn or An
+							//
 
-									case 0x0001:	// MOVEA Dn, An
-									case 0x0101:	// MOVEA An, An
-										operation = Operation::MOVEAw;				// Substitute MOVEA for MOVE.
-									case 0x0000:	// MOVE Dn, Dn
-									case 0x0100:	// MOVE An, Dn
-										op(Action::PerformOperation, seq("np"));
+								case 0x10001:	// MOVEA.l Dn, An
+								case 0x10101:	// MOVEA.l An, An
+								case 0x00001:	// MOVEA.w Dn, An
+								case 0x00101:	// MOVEA.w An, An
+									operation = is_long_word_access ? Operation::MOVEAl : Operation::MOVEAw;	// Substitute MOVEA for MOVE.
+								case 0x10000:	// MOVE.l Dn, Dn
+								case 0x10100:	// MOVE.l An, Dn
+								case 0x00000:	// MOVE.bw Dn, Dn
+								case 0x00100:	// MOVE.bw An, Dn
+									op(Action::PerformOperation, seq("np"));
+									op();
+								break;
+
+								case 0x0002:	// MOVE Dn, (An)
+								case 0x0102:	// MOVE An, (An)
+								case 0x0003:	// MOVE Dn, (An)+
+								case 0x0103:	// MOVE An, (An)+
+									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw, seq("nw np", { &storage_.address_[destination_register].full }, !is_byte_access));
+									if(destination_mode == 0x3) {
+										op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::DestinationMask);
+									} else {
 										op();
-									break;
+									}
+								break;
 
-									case 0x0002:	// MOVE Dn, (An)
-									case 0x0102:	// MOVE An, (An)
-									case 0x0003:	// MOVE Dn, (An)+
-									case 0x0103:	// MOVE An, (An)+
-										op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw, seq("nw np", { &storage_.address_[destination_register].full }, !is_byte_access));
-										if(destination_mode == 0x3) {
-											op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::DestinationMask);
-										} else {
-											op();
-										}
-									break;
+								case 0x0004:	// MOVE Dn, -(An)
+								case 0x0104:	// MOVE An, -(An)
+									op(	int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::DestinationMask,
+										seq("np nw", { &storage_.address_[destination_register].full }, !is_byte_access));
+									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
+								break;
 
-									case 0x0004:	// MOVE Dn, -(An)
-									case 0x0104:	// MOVE An, -(An)
-										op(	int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::DestinationMask,
-											seq("np nw", { &storage_.address_[destination_register].full }, !is_byte_access));
-										op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
-									break;
+								case 0x0005:	// MOVE Dn, (d16, An)
+								case 0x0105:	// MOVE An, (d16, An)
+									// np nw np
+								continue;
 
-									case 0x0005:	// MOVE Dn, (d16, An)
-									case 0x0105:	// MOVE An, (d16, An)
-										// np nw np
-									continue;
+								case 0x0006:	// MOVE Dn, (d8, An, Xn)
+								case 0x0106:	// MOVE An, (d8, An, Xn)
+									// n np nw np
+								continue;
 
-									case 0x0006:	// MOVE Dn, (d8, An, Xn)
-									case 0x0106:	// MOVE An, (d8, An, Xn)
-										// n np nw np
-									continue;
+								case 0x0010:	// MOVE Dn, (xxx).W
+								case 0x0110:	// MOVE An, (xxx).W
+									// np nw np
+								continue;
 
-									case 0x0010:	// MOVE Dn, (xxx).W
-									case 0x0110:	// MOVE An, (xxx).W
-										// np nw np
-									continue;
+								case 0x0011:	// MOVE Dn, (xxx).L
+								case 0x0111:	// MOVE An, (xxx).L
+									// np np nw np
+								continue;
 
-									case 0x0011:	// MOVE Dn, (xxx).L
-									case 0x0111:	// MOVE An, (xxx).L
-										// np np nw np
-									continue;
+							//
+							// Source = (An) or (An)+
+							//
 
-								//
-								// Source = (An) or (An)+
-								//
+								case 0x00201:	// MOVEA.w (An), An
+								case 0x00301:	// MOVEA.w (An)+, An
+									operation = Operation::MOVEAw;
+								case 0x00200:	// MOVE.bw (An), Dn
+								case 0x00300:	// MOVE.bw (An)+, Dn
+									op(Action::None, seq("nr np", { &storage_.address_[source_register].full }, !is_byte_access));
+									if(source_mode == 0x3) {
+										op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::SourceMask);
+									}
+									op(Action::PerformOperation);
+								break;
 
-									case 0x0201:	// MOVEA (An), An
-									case 0x0301:	// MOVEA (An)+, An
-										operation = Operation::MOVEAw;				// Substitute MOVEA for MOVE.
-									case 0x0200:	// MOVE (An), Dn
-									case 0x0300:	// MOVE (An)+, Dn
-										op(Action::None, seq("nr np", { &storage_.address_[source_register].full }, !is_byte_access));
-										if(source_mode == 0x3) {
-											op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::SourceMask);
-										}
-										op(Action::PerformOperation);
-									break;
+								case 0x10201:	// MOVEA.l (An), An
+								case 0x10301:	// MOVEA.l (An)+, An
+									operation = Operation::MOVEAl;
+								case 0x10200:	// MOVE.l (An), Dn
+								case 0x10300:	// MOVE.l (An)+, Dn
+									op(Action::CopySourceToEffectiveAddress, seq("nR nr np"));
+									if(source_mode == 0x3) {
+										op(int(Action::Increment4) | MicroOp::SourceMask);
+									}
+									op(Action::PerformOperation);
+								break;
 
-									case 0x0202:	// MOVE (An), (An)
-									case 0x0302:	// MOVE (An)+, (An)
-									case 0x0203:	// MOVE (An), (An)+
-									case 0x0303:	// MOVE (An)+, (An)+
-										// nr nw np
-									continue;
+								case 0x0202:	// MOVE (An), (An)
+								case 0x0302:	// MOVE (An)+, (An)
+								case 0x0203:	// MOVE (An), (An)+
+								case 0x0303:	// MOVE (An)+, (An)+
+									// nr nw np
+								continue;
 
-									case 0x0204:	// MOVE (An), -(An)
-									case 0x0304:	// MOVE (An)+, -(An)
-										// nr np nw
-									continue;
+								case 0x0204:	// MOVE (An), -(An)
+								case 0x0304:	// MOVE (An)+, -(An)
+									// nr np nw
+								continue;
 
-									case 0x0205:	// MOVE (An), (d16, An)
-									case 0x0305:	// MOVE (An)+, (d16, An)
-										// nr np nw np
-									continue;
+								case 0x0205:	// MOVE (An), (d16, An)
+								case 0x0305:	// MOVE (An)+, (d16, An)
+									// nr np nw np
+								continue;
 
-									case 0x0206:	// MOVE (An), (d8, An, Xn)
-									case 0x0306:	// MOVE (An)+, (d8, An, Xn)
-										// nr n np nw np
-									continue;
+								case 0x0206:	// MOVE (An), (d8, An, Xn)
+								case 0x0306:	// MOVE (An)+, (d8, An, Xn)
+									// nr n np nw np
+								continue;
 
-									case 0x0210:	// MOVE (An), (xxx).W
-									case 0x0310:	// MOVE (An)+, (xxx).W
-										// nr np nw np
-									continue;
+								case 0x0210:	// MOVE (An), (xxx).W
+								case 0x0310:	// MOVE (An)+, (xxx).W
+									// nr np nw np
+								continue;
 
-									case 0x0211:	// MOVE (An), (xxx).L
-									case 0x0311:	// MOVE (An)+, (xxx).L
-										// nr np nw np np
-									continue;
+								case 0x0211:	// MOVE (An), (xxx).L
+								case 0x0311:	// MOVE (An)+, (xxx).L
+									// nr np nw np np
+								continue;
 
-								//
-								// Source = -(An)
-								//
+							//
+							// Source = -(An)
+							//
 
-									case 0x0401:	// MOVEA -(An), An
-										operation = Operation::MOVEAw;				// Substitute MOVEA for MOVE.
-									case 0x0400:	// MOVE -(An), Dn
-										op(	int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::SourceMask,
-											seq("n nr np", { &storage_.address_[source_register].full }, !is_byte_access));
-										op(Action::PerformOperation);
-									break;
+								case 0x0401:	// MOVEA -(An), An
+									operation = Operation::MOVEAw;				// Substitute MOVEA for MOVE.
+								case 0x0400:	// MOVE -(An), Dn
+									op(	int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::SourceMask,
+										seq("n nr np", { &storage_.address_[source_register].full }, !is_byte_access));
+									op(Action::PerformOperation);
+								break;
 
-									case 0x0402:	// MOVE -(An), (An)
-									case 0x0403:	// MOVE -(An), (An)+
-										// n nr nw np
-									continue;
+								case 0x0402:	// MOVE -(An), (An)
+								case 0x0403:	// MOVE -(An), (An)+
+									// n nr nw np
+								continue;
 
-									case 0x0404:	// MOVE -(An), -(An)
-										// n nr np nw
-									continue;
+								case 0x0404:	// MOVE -(An), -(An)
+									// n nr np nw
+								continue;
 
-									case 0x0405:	// MOVE -(An), (d16, An)
-										// n nr np nw
-									continue;
+								case 0x0405:	// MOVE -(An), (d16, An)
+									// n nr np nw
+								continue;
 
-									case 0x0406:	// MOVE -(An), (d8, An, Xn)
-										// n nr n np nw np
-									continue;
+								case 0x0406:	// MOVE -(An), (d8, An, Xn)
+									// n nr n np nw np
+								continue;
 
-									case 0x0410:	// MOVE -(An), (xxx).W
-										// n nr np nw np
-									continue;
+								case 0x0410:	// MOVE -(An), (xxx).W
+									// n nr np nw np
+								continue;
 
-									case 0x0411:	// MOVE -(An), (xxx).L
-										// n nr np nw np np
-									continue;
+								case 0x0411:	// MOVE -(An), (xxx).L
+									// n nr np nw np np
+								continue;
 
-								//
-								// Source = (d16, An) or (d8, An, Xn)
-								//
+							//
+							// Source = (d16, An) or (d8, An, Xn)
+							//
 
 #define action_calc() int(source_mode == 0x05 ? Action::CalcD16An : Action::CalcD8AnXn)
 #define pseq(x) (source_mode == 0x06 ? "n" x : x)
 
-									case 0x0501:	// MOVE (d16, An), An
-									case 0x0601:	// MOVE (d8, An, Xn), An
-										operation = Operation::MOVEAw;
-									case 0x0500:	// MOVE (d16, An), Dn
-									case 0x0600:	// MOVE (d8, An, Xn), Dn
-										op(action_calc() | MicroOp::SourceMask, seq(pseq("np nr np"), { &storage_.effective_address_[0] }, !is_byte_access));
-										op(Action::PerformOperation);
-									break;
+								case 0x0501:	// MOVE (d16, An), An
+								case 0x0601:	// MOVE (d8, An, Xn), An
+									operation = Operation::MOVEAw;
+								case 0x0500:	// MOVE (d16, An), Dn
+								case 0x0600:	// MOVE (d8, An, Xn), Dn
+									op(action_calc() | MicroOp::SourceMask, seq(pseq("np nr np"), { &storage_.effective_address_[0] }, !is_byte_access));
+									op(Action::PerformOperation);
+								break;
 
-									case 0x0502:	// MOVE (d16, An), (An)
-									case 0x0503:	// MOVE (d16, An), (An)+
-									case 0x0602:	// MOVE (d8, An, Xn), (An)
-									case 0x0603:	// MOVE (d8, An, Xn), (An)+
-										// np nr nw np
-										// n np nr nw np
-									continue;
+								case 0x0502:	// MOVE (d16, An), (An)
+								case 0x0503:	// MOVE (d16, An), (An)+
+								case 0x0602:	// MOVE (d8, An, Xn), (An)
+								case 0x0603:	// MOVE (d8, An, Xn), (An)+
+									// np nr nw np
+									// n np nr nw np
+								continue;
 
-									case 0x0504:	// MOVE (d16, An), -(An)
-									case 0x0604:	// MOVE (d8, An, Xn), -(An)
-										// np nr np nw
-										// n np nr np nw
-									continue;
+								case 0x0504:	// MOVE (d16, An), -(An)
+								case 0x0604:	// MOVE (d8, An, Xn), -(An)
+									// np nr np nw
+									// n np nr np nw
+								continue;
 
-									case 0x0505:	// MOVE (d16, An), (d16, An)
-									case 0x0605:	// MOVE (d8, An, Xn), (d16, An)
-										// np nr np nw np
-										// n np nr np nw np
-									continue;
+								case 0x0505:	// MOVE (d16, An), (d16, An)
+								case 0x0605:	// MOVE (d8, An, Xn), (d16, An)
+									// np nr np nw np
+									// n np nr np nw np
+								continue;
 
-									case 0x0506:	// MOVE (d16, An), (d8, An, Xn)
-									case 0x0606:	// MOVE (d8, An, Xn), (d8, An, Xn)
-										// np nr n np nw np
-										// n np nr n np nw np
-									continue;
+								case 0x0506:	// MOVE (d16, An), (d8, An, Xn)
+								case 0x0606:	// MOVE (d8, An, Xn), (d8, An, Xn)
+									// np nr n np nw np
+									// n np nr n np nw np
+								continue;
 
-									case 0x0510:	// MOVE (d16, An), (xxx).W
-									case 0x0610:	// MOVE (d8, An, Xn), (xxx).W
-										// np nr np nw np
-										// n np nr np nw np
-									continue;
+								case 0x0510:	// MOVE (d16, An), (xxx).W
+								case 0x0610:	// MOVE (d8, An, Xn), (xxx).W
+									// np nr np nw np
+									// n np nr np nw np
+								continue;
 
-									case 0x0511:	// MOVE (d16, An), (xxx).L
-									case 0x0611:	// MOVE (d8, An, Xn), (xxx).L
-										// np nr np nw np np
-										// n np nr np nw np np
-									continue;
+								case 0x0511:	// MOVE (d16, An), (xxx).L
+								case 0x0611:	// MOVE (d8, An, Xn), (xxx).L
+									// np nr np nw np np
+									// n np nr np nw np np
+								continue;
 
 #undef action_calc
 #undef prefix
 
-								//
-								// Source = (xxx).W
-								//
+							//
+							// Source = (xxx).W
+							//
 
-									case 0x1001:	// MOVEA (xxx).W, An
-										operation = Operation::MOVEAw;
-									case 0x1000:	// MOVE (xxx).W, Dn
-										op(
-											int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask,
-											seq("np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
-										op(Action::PerformOperation);
-									break;
+								case 0x1001:	// MOVEA (xxx).W, An
+									operation = Operation::MOVEAw;
+								case 0x1000:	// MOVE (xxx).W, Dn
+									op(
+										int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask,
+										seq("np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
+									op(Action::PerformOperation);
+								break;
 
-									case 0x1002:	// MOVE (xxx).W, (An)
-									case 0x1003:	// MOVE (xxx).W, (An)+
-										// np nr nw np
-									continue;
+								case 0x1002:	// MOVE (xxx).W, (An)
+								case 0x1003:	// MOVE (xxx).W, (An)+
+									// np nr nw np
+								continue;
 
-									case 0x1004:	// MOVE (xxx).W, -(An)
-										// np nr np nw
-									continue;
+								case 0x1004:	// MOVE (xxx).W, -(An)
+									// np nr np nw
+								continue;
 
-									case 0x1005:	// MOVE (xxx).W, (d16, An)
-										// np nr np nw np
-									continue;
+								case 0x1005:	// MOVE (xxx).W, (d16, An)
+									// np nr np nw np
+								continue;
 
-									case 0x1006:	// MOVE (xxx).W, (d8, An, Xn)
-										// np nr n np nw np
-									continue;
+								case 0x1006:	// MOVE (xxx).W, (d8, An, Xn)
+									// np nr n np nw np
+								continue;
 
-									case 0x1010:	// MOVE (xxx).W, (xxx).W
-										// np nr np nw np
-									continue;
+								case 0x1010:	// MOVE (xxx).W, (xxx).W
+									// np nr np nw np
+								continue;
 
-									case 0x1011:	// MOVE (xxx).W, (xxx).L
-										// np nr np nw np np
-									continue;
+								case 0x1011:	// MOVE (xxx).W, (xxx).L
+									// np nr np nw np np
+								continue;
 
-								//
-								// Source = (xxx).L
-								//
+							//
+							// Source = (xxx).L
+							//
 
-									case 0x1101:	// MOVEA (xxx).W, Dn
-										operation = Operation::MOVEAw;
-									case 0x1100:	// MOVE (xxx).W, Dn
-										op(int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask, seq("np np"));
-										op(Action::PerformOperation, seq("nr np", { &storage_.effective_address_[0] }, !is_byte_access));
-										op();
-									break;
+								case 0x1101:	// MOVEA (xxx).W, Dn
+									operation = Operation::MOVEAw;
+								case 0x1100:	// MOVE (xxx).W, Dn
+									op(int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask, seq("np np"));
+									op(Action::PerformOperation, seq("nr np", { &storage_.effective_address_[0] }, !is_byte_access));
+									op();
+								break;
 
-								//
-								// Source = (d16, PC)
-								//
+							//
+							// Source = (d16, PC)
+							//
 
-									case 0x1200:	// MOVE (d16, PC), Dn
-										op(int(Action::CalcD16PC) | MicroOp::SourceMask, seq("n np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
-										op(Action::PerformOperation);
-									break;
+								case 0x1200:	// MOVE (d16, PC), Dn
+									op(int(Action::CalcD16PC) | MicroOp::SourceMask, seq("n np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
+									op(Action::PerformOperation);
+								break;
 
-								//
-								// Source = (d8, An, Xn)
-								//
+							//
+							// Source = (d8, An, Xn)
+							//
 
-									case 0x1300:	// MOVE (d8, An, Xn), Dn
-										op(int(Action::CalcD8PCXn) | MicroOp::SourceMask, seq("n np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
-										op(Action::PerformOperation);
-									break;
+								case 0x1300:	// MOVE (d8, An, Xn), Dn
+									op(int(Action::CalcD8PCXn) | MicroOp::SourceMask, seq("n np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
+									op(Action::PerformOperation);
+								break;
 
-								//
-								// Source = #
-								//
+							//
+							// Source = #
+							//
 
-									case 0x1401:	// MOVE #, Dn
-										operation = Operation::MOVEAw;
-									case 0x1400:	// MOVE #, Dn
-										storage_.instructions[instruction].source = &storage_.prefetch_queue_;
-										op(int(Action::PerformOperation), seq("np np"));
-										op();
-									break;
+								case 0x1401:	// MOVE #, Dn
+									operation = Operation::MOVEAw;
+								case 0x1400:	// MOVE #, Dn
+									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
+									op(int(Action::PerformOperation), seq("np np"));
+									op();
+								break;
 
-								//
-								// Default
-								//
+							//
+							// Default
+							//
 
-									default:
-										std::cerr << "Unimplemented MOVE " << std::hex << both_modes << " " << instruction << std::endl;
-										// TODO: all other types of mode.
-									continue;
-								}
+								default:
+									std::cerr << "Unimplemented MOVE " << std::hex << both_modes << " " << instruction << std::endl;
+									// TODO: all other types of mode.
+								continue;
 							}
 						} break;
 
