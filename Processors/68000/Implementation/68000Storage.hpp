@@ -48,7 +48,9 @@ class ProcessorStorage {
 			MOVEb,	MOVEw,	MOVEl,
 			MOVEAw,	MOVEAl,
 
-			MOVEtoSR, MOVEfromSR
+			MOVEtoSR, MOVEfromSR,
+
+			CMPb,	CMPw,	CMPl
 		};
 
 		/*!
@@ -163,10 +165,17 @@ class ProcessorStorage {
 
 				/// From the next word in the prefetch queue assembles a 0-padded 32-bit long word in either or
 				/// both of effective_address_[0] and effective_address_[1].
-				AssembleWordFromPrefetch,
+				AssembleWordAddressFromPrefetch,
+
+				/// From the next word in the prefetch queue assembles a 0-padded 32-bit long word in either or
+				/// both of bus_data_[0] and bus_data_[1].
+				AssembleWordDataFromPrefetch,
 
 				/// Copies the next two prefetch words into one of the effective_address_.
-				AssembleLongWordFromPrefetch
+				AssembleLongWordAddressFromPrefetch,
+
+				/// Copies the next two prefetch words into one of the bus_data_.
+				AssembleLongWordDataFromPrefetch
 			};
 			static const int SourceMask = 1 << 30;
 			static const int DestinationMask = 1 << 29;
@@ -197,6 +206,22 @@ class ProcessorStorage {
 			RegisterPair32 *destination = nullptr;
 			Operation operation;
 			bool requires_supervisor = false;
+
+			void set_source(ProcessorStorage &storage, int mode, int reg) {
+				switch(mode) {
+					case 0:		source = &storage.data_[reg];		break;
+					case 1:		source = &storage.address_[reg];	break;
+					default:	source = &storage.bus_data_[0];		break;
+				}
+			}
+
+			void set_destination(ProcessorStorage &storage, int mode, int reg) {
+				switch(mode) {
+					case 0:		destination = &storage.data_[reg];		break;
+					case 1:		destination = &storage.address_[reg];	break;
+					default:	destination = &storage.bus_data_[1];	break;
+				}
+			}
 		};
 
 		// Storage for all the sequences of bus steps and micro-ops used throughout

@@ -18,6 +18,8 @@ struct ProcessorStorageConstructor {
 
 	using BusStep = ProcessorStorage::BusStep;
 
+	/*!
+	*/
 	int calc_action_for_mode(int mode) const {
 		using Action = ProcessorBase::MicroOp::Action;
 		switch(mode & 0xff) {
@@ -27,6 +29,10 @@ struct ProcessorStorageConstructor {
 			case 0x05:	return int(Action::CalcD16An);		// (d16, An)
 			case 0x06:	return int(Action::CalcD8AnXn);		// (d8, An, Xn)
 		}
+	}
+
+	int combined_mode(int mode, int reg) {
+		return (mode == 7) ? (0x10 | reg) : mode;
 	}
 
 	/*!
@@ -227,9 +233,11 @@ struct ProcessorStorageConstructor {
 			RegOpModeReg,
 			SizeModeRegisterImmediate,
 			DataSizeModeQuick,
-			RegisterModeModeRegister,	// i.e. twelve lowest bits are register, mode, mode, register, for destination and source respectively.
-			ModeRegister,				// i.e. six lowest bits are mode, then register.
-			MOVEtoSR
+			RegisterModeModeRegister,	// twelve lowest bits are register, mode, mode, register, for destination and source respectively.
+			ModeRegister,				// six lowest bits are mode, then register.
+
+			MOVEtoSR,					// six lowest bits are [mode, register], decoding to MOVE SR
+			CMPI,						// eight lowest bits are [size, mode, register], decoding to CMPI
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -271,6 +279,10 @@ struct ProcessorStorageConstructor {
 			{0xf000, 0x3000, Operation::MOVEw, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
 
 			{0xffc0, 0x46c0, Operation::MOVEtoSR, Decoder::MOVEtoSR},		// 6-19 (p473)
+
+			{0xffc0, 0x0c00, Operation::CMPb, Decoder::CMPI},
+			{0xffc0, 0x0c40, Operation::CMPw, Decoder::CMPI},
+			{0xffc0, 0x0c80, Operation::CMPl, Decoder::CMPI},
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -289,6 +301,10 @@ struct ProcessorStorageConstructor {
 				if((instruction & mapping.mask) == mapping.value) {
 					auto operation = mapping.operation;
 					const auto micro_op_start = storage_.all_micro_ops_.size();
+
+					// The following fields are used commonly enough to be worht pulling out here.
+					const int source_register = instruction & 7;
+					const int source_mode = (instruction >> 3) & 7;
 
 					switch(mapping.decoder) {
 						// Decodes the format used by ABCD and SBCD.
@@ -312,26 +328,125 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
-						case Decoder::MOVEtoSR: {
-							const int source_register = instruction & 7;
-							const int source_mode = (instruction >> 3) & 7;
+						case Decoder::CMPI: {
+							if(source_mode == 1) continue;
 
-							switch(source_mode) {
-								case 0:	// Dn
-									storage_.instructions[instruction].source = &storage_.data_[source_register];
+							const auto destination_mode = source_mode;
+							const auto destination_register = source_register;
+
+							storage_.instructions[instruction].source = &storage_.prefetch_queue_;
+							storage_.instructions[instruction].set_destination(storage_, destination_mode, destination_register);
+
+							const bool is_byte_access = mapping.operation == Operation::CMPb;
+							const bool is_long_word_access = mapping.operation == Operation::CMPl;
+							const int mode = (is_long_word_access ? 0x100 : 0) | combined_mode(destination_mode, destination_register);
+							switch(mode) {
+								case 0x000:	// CMPI.bw #, Dn
+									op(Action::PerformOperation, seq("np np"));
+									op();
 								break;
 
-								case 1:	continue; // An
-
-								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L
-									storage_.instructions[instruction].source = &storage_.bus_data_[0];
-									storage_.instructions[instruction].destination = &storage_.bus_data_[1];
+								case 0x100:	// CMPI.l #, Dn
+									op(Action::None, seq("np"));
+									op(Action::PerformOperation, seq("np np n"));
+									op();
 								break;
+
+								case 0x002:	// CMPI.bw #, (An)
+								case 0x003:	// CMPI.bw #, (An)+
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nr np", { &storage_.address_[destination_register].full }, !is_byte_access));
+									if(mode == 0x3) {
+										op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::DestinationMask);
+									}
+									op(Action::PerformOperation);
+								break;
+
+								case 0x102:	// CMPI.l #, (An)
+								case 0x103:	// CMPI.l #, (An)+
+									op(Action::CopyDestinationToEffectiveAddress, seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nR nr np", { &storage_.effective_address_[1] }));
+									if(mode == 0x103) {
+										op(int(Action::Increment4) | MicroOp::DestinationMask);
+									}
+									op(Action::PerformOperation);
+								break;
+
+								case 0x004:	// CMPI.bw #, -(An)
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np n"));
+									op(int(is_byte_access ? Action::Decrement1 : Action::Decrement1) | MicroOp::DestinationMask, seq("nr np", { &storage_.address_[destination_register].full }));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x104:	// CMPI.l #, -(An)
+									op(int(Action::Decrement4) | MicroOp::DestinationMask, seq("np"));
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np n"));
+									op(Action::CopyDestinationToEffectiveAddress, seq("nR nr np", { &storage_.effective_address_[1] }));
+									op(Action::PerformOperation);
+								break;
+
+#define pseq(x) ((mode == 0x06) || (mode == 0x13) ? "n" x : x)
+
+								case 0x012:	// CMPI.bw #, (d16, PC)
+								case 0x013:	// CMPI.bw #, (d8, PC, Xn)
+								case 0x005:	// CMPI.bw #, (d16, An)
+								case 0x006:	// CMPI.bw #, (d8, An, Xn)
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(	calc_action_for_mode(destination_mode) | MicroOp::DestinationMask,
+										seq(pseq("nr np"), { &storage_.effective_address_[1] }, !is_byte_access));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x112:	// CMPI.l #, (d16, PC)
+								case 0x113:	// CMPI.l #, (d8, PC, Xn)
+								case 0x105:	// CMPI.l #, (d16, An)
+								case 0x106:	// CMPI.l #, (d8, An, Xn)
+									op(Action::CopyDestinationToEffectiveAddress, seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(	calc_action_for_mode(destination_mode) | MicroOp::DestinationMask,
+										seq(pseq("np nR nr np"), { &storage_.effective_address_[1] }));
+									op(Action::PerformOperation);
+								break;
+
+#undef pseq
+
+								case 0x010:	// CMPI.bw #, (xxx).w
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nr np",  { &storage_.effective_address_[1] }, !is_byte_access));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x110:	// CMPI.l #, (xxx).w
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nR nr np",  { &storage_.effective_address_[1] }));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x011:	// CMPI.bw #, (xxx).l
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nr np",  { &storage_.effective_address_[1] }, !is_byte_access));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x111:	// CMPI.l #, (xxx).l
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nR nr np",  { &storage_.effective_address_[1] }));
+									op(Action::PerformOperation);
+								break;
+
+								default: continue;
 							}
+						} break;
+
+						case Decoder::MOVEtoSR: {
+							if(source_mode == 1) continue;
+							storage_.instructions[instruction].set_source(storage_, source_mode, source_register);
 
 							/* DEVIATION FROM YACHT.TXT: it has all of these reading an extra word from the PC;
 							this looks like a mistake so I've padded with nil cycles in the middle. */
-							switch( (source_mode == 7) ? (0x10 | source_register) : source_mode) {
+							const int mode = combined_mode(source_mode, source_register);
+							switch(mode) {
 								case 0x00:	// MOVE Dn, SR
 									op(Action::PerformOperation, seq("nn np"));
 									op();
@@ -351,7 +466,7 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation);
 								break;
 
-#define pseq(x) ((source_mode == 0x06) || (source_mode == 0x13) ? "n" x : x)
+#define pseq(x) ((mode == 0x06) || (mode == 0x13) ? "n" x : x)
 
 								case 0x12:	// MOVE (d16, PC), SR
 								case 0x13:	// MOVE (d8, PC, Xn), SR
@@ -365,14 +480,14 @@ struct ProcessorStorageConstructor {
 
 								case 0x10:	// MOVE (xxx).W, SR
 									op(
-										int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask,
+										int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask,
 										seq("np nr nn nn np", { &storage_.effective_address_[0] }));
 									op(Action::PerformOperation);
 								break;
 
 								case 0x11:	// MOVE (xxx).L, SR
 									op(Action::None, seq("np"));
-									op(int(MicroOp::Action::AssembleLongWordFromPrefetch) | MicroOp::SourceMask, seq("np nr", { &storage_.effective_address_[0] }));
+									op(int(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr", { &storage_.effective_address_[0] }));
 									op(Action::PerformOperation, seq("nn nn np"));
 									op();
 								break;
@@ -389,9 +504,6 @@ struct ProcessorStorageConstructor {
 
 						// Decodes the format used by most MOVEs and all MOVEAs.
 						case Decoder::RegisterModeModeRegister: {
-							const int source_register = instruction & 7;
-							const int source_mode = (instruction >> 3) & 7;
-
 							const int destination_mode = (instruction >> 6) & 7;
 							const int destination_register = (instruction >> 9) & 7;
 
@@ -454,8 +566,8 @@ struct ProcessorStorageConstructor {
 							//
 							// ... for no reason other than to make the switch below easy to read.
 							const int both_modes =
-								((source_mode == 7) ? (0x1000 | (source_register << 8)) : (source_mode << 8)) |
-								((destination_mode == 7) ? (0x10 | destination_register) : destination_mode) |
+								(combined_mode(source_mode, source_register) << 8) |
+								combined_mode(destination_mode, destination_register) |
 								(is_long_word_access ? 0x10000 : 0);
 
 							switch(both_modes) {
@@ -704,7 +816,7 @@ struct ProcessorStorageConstructor {
 									operation = Operation::MOVEAw;
 								case 0x1000:	// MOVE (xxx).W, Dn
 									op(
-										int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask,
+										int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask,
 										seq("np nr np", { &storage_.effective_address_[0] }, !is_byte_access));
 									op(Action::PerformOperation);
 								break;
@@ -742,7 +854,7 @@ struct ProcessorStorageConstructor {
 									operation = Operation::MOVEAw;
 								case 0x1100:	// MOVE (xxx).L, Dn
 									op(Action::None, seq("np"));
-									op(int(MicroOp::Action::AssembleLongWordFromPrefetch) | MicroOp::SourceMask, seq("np nr", { &storage_.effective_address_[0] }, !is_byte_access));
+									op(int(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr", { &storage_.effective_address_[0] }, !is_byte_access));
 									op(Action::PerformOperation, seq("np"));
 									op();
 								break;

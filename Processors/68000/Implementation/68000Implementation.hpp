@@ -65,6 +65,10 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 						case int(MicroOp::Action::PerformOperation):
 							switch(active_program_->operation) {
+								/*
+									ABCD adds the lowest bytes form the source and destination using BCD arithmetic,
+									obeying the extend flag.
+								*/
 								case Operation::ABCD: {
 									// Pull out the two halves, for simplicity.
 									const uint8_t source = active_program_->source->halves.low.halves.low;
@@ -86,25 +90,41 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									active_program_->destination->halves.low.halves.low = uint8_t(result);
 								} break;
 
-								case Operation::SBCD: {
-									// Pull out the two halves, for simplicity.
+								/*
+									CMP.b, CMP.l and CMP.w: sets the condition flags (other than extend) based on a subtraction
+									of the source from the destination; the result of the subtraction is not stored.
+								*/
+								case Operation::CMPb: {
 									const uint8_t source = active_program_->source->halves.low.halves.low;
 									const uint8_t destination = active_program_->destination->halves.low.halves.low;
+									const int result = destination - source;
 
-									// Perform the BCD add by evaluating the two nibbles separately.
-									int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);
-									if(result > 0x09) result -= 0x06;
-									result += (destination & 0xf0) - (source & 0xf0);
-									if(result > 0x99) result -= 0x60;
-
-									// Set all flags essentially as if this were normal subtraction.
-									zero_result_ |= result & 0xff;
-									extend_flag_ = carry_flag_ = result & ~0xff;
+									zero_result_ = result & 0xff;
+									carry_flag_ = result & ~0xff;
 									negative_flag_ = result & 0x80;
 									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x80;
+								} break;
 
-									// Store the result.
-									active_program_->destination->halves.low.halves.low = uint8_t(result);
+								case Operation::CMPw: {
+									const uint16_t source = active_program_->source->halves.low.full;
+									const uint16_t destination = active_program_->destination->halves.low.full;
+									const int result = destination - source;
+
+									zero_result_ = result & 0xffff;
+									carry_flag_ = result & ~0xffff;
+									negative_flag_ = result & 0x8000;
+									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x8000;
+								} break;
+
+								case Operation::CMPl: {
+									const uint32_t source = active_program_->source->full;
+									const uint32_t destination = active_program_->destination->full;
+									const uint64_t result = destination - source;
+
+									zero_result_ = uint32_t(result);
+									carry_flag_ = result >> 32;
+									negative_flag_ = result & 0x80000000;
+									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x80000000;
 								} break;
 
 								/*
@@ -134,7 +154,6 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									MOVEA.w: move the least significant word and sign extend it.
 									Neither sets any flags.
 								*/
-
 								case Operation::MOVEAw:
 									active_program_->destination->halves.low.full = active_program_->source->halves.low.full;
 									active_program_->destination->halves.high.full = (active_program_->destination->halves.low.full & 0x8000) ? 0xffff : 0;
@@ -155,6 +174,31 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								case Operation::MOVEfromSR:
 									active_program_->source->halves.low.full = get_status();
 								break;
+
+								/*
+									SBCD subtracts the lowest byte of the source from that of the destination using
+									BCD arithmetic, obeying the extend flag.
+								*/
+								case Operation::SBCD: {
+									// Pull out the two halves, for simplicity.
+									const uint8_t source = active_program_->source->halves.low.halves.low;
+									const uint8_t destination = active_program_->destination->halves.low.halves.low;
+
+									// Perform the BCD add by evaluating the two nibbles separately.
+									int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);
+									if(result > 0x09) result -= 0x06;
+									result += (destination & 0xf0) - (source & 0xf0);
+									if(result > 0x99) result -= 0x60;
+
+									// Set all flags essentially as if this were normal subtraction.
+									zero_result_ |= result & 0xff;
+									extend_flag_ = carry_flag_ = result & ~0xff;
+									negative_flag_ = result & 0x80;
+									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x80;
+
+									// Store the result.
+									active_program_->destination->halves.low.halves.low = uint8_t(result);
+								} break;
 
 								/*
 									Development period debugging.
@@ -275,21 +319,38 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 #undef CalculateD8AnXn
 
-						case int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::SourceMask:
+						case int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask:
 							// Assumption: this will be assembling right at the start of the instruction.
 							effective_address_[0] = prefetch_queue_.halves.low.full;
 						break;
 
-						case int(MicroOp::Action::AssembleWordFromPrefetch) | MicroOp::DestinationMask:
+						case int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask:
 							effective_address_[1] = prefetch_queue_.halves.low.full;
 						break;
 
-						case int(MicroOp::Action::AssembleLongWordFromPrefetch) | MicroOp::SourceMask:
+						case int(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask:
 							effective_address_[0] = prefetch_queue_.full;
 						break;
 
-						case int(MicroOp::Action::AssembleLongWordFromPrefetch) | MicroOp::DestinationMask:
+						case int(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask:
 							effective_address_[1] = prefetch_queue_.full;
+						break;
+
+						case int(MicroOp::Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask:
+							// Assumption: this will be assembling right at the start of the instruction.
+							bus_data_[0] = prefetch_queue_.halves.low.full;
+						break;
+
+						case int(MicroOp::Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask:
+							bus_data_[1] = prefetch_queue_.halves.low.full;
+						break;
+
+						case int(MicroOp::Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask:
+							bus_data_[0] = prefetch_queue_.full;
+						break;
+
+						case int(MicroOp::Action::AssembleLongWordDataFromPrefetch) | MicroOp::DestinationMask:
+							 bus_data_[1] = prefetch_queue_.full;
 						break;
 					}
 
