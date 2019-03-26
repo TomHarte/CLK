@@ -50,7 +50,9 @@ class ProcessorStorage {
 
 			MOVEtoSR, MOVEfromSR,
 
-			CMPb,	CMPw,	CMPl
+			CMPb,	CMPw,	CMPl,
+
+			BRA,	Bcc
 		};
 
 		/*!
@@ -232,8 +234,13 @@ class ProcessorStorage {
 		// A lookup table from instructions to implementations.
 		Program instructions[65536];
 
-		// Special programs, for exception handlers.
-		BusStep *reset_program_;
+		// Special steps for exception handlers.
+		BusStep *reset_bus_steps_;
+
+		// Special micro-op sequences for conditionals.
+		BusStep *branch_taken_bus_steps_;
+		BusStep *branch_byte_not_taken_bus_steps_;
+		BusStep *branch_word_not_taken_bus_steps_;
 
 		// Current bus step pointer, and outer program pointer.
 		Program *active_program_ = nullptr;

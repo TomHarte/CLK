@@ -90,6 +90,73 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									active_program_->destination->halves.low.halves.low = uint8_t(result);
 								} break;
 
+								// BRA: alters the program counter, exclusively via the prefetch queue.
+								case Operation::BRA: {
+									const int8_t byte_offset = int8_t(prefetch_queue_.halves.high.halves.low);
+
+									// A non-zero offset byte branches by just that amount; otherwise use the word
+									// after as an offset. In both cases, treat as signed.
+									if(byte_offset) {
+										program_counter_.full = (program_counter_.full + byte_offset) - 2;
+									} else {
+										program_counter_.full += int16_t(prefetch_queue_.halves.low.full);
+									}
+								} break;
+
+								// Bcc: evaluates the relevant condition and displacement size and then:
+								//	if condition is false, schedules bus operations to get past this instruction;
+								//	otherwise applies the offset and schedules bus operations to refill the prefetch queue.
+								case Operation::Bcc: {
+									// Grab the 8-bit offset.
+									const int8_t byte_offset = int8_t(prefetch_queue_.halves.high.halves.low);
+
+									// Test the conditional.
+									bool should_branch;
+									switch(prefetch_queue_.halves.high.halves.high & 0xf) {
+										default:
+										case 0x00:	should_branch = true;							break;		// true
+										case 0x01:	should_branch = false;							break;		// false
+										case 0x02:	should_branch = zero_result_ && !carry_flag_;	break;		// high
+										case 0x03:	should_branch = !zero_result_ || carry_flag_;	break;		// low or same
+										case 0x04:	should_branch = !carry_flag_;					break;		// carry clear
+										case 0x05:	should_branch = carry_flag_;					break;		// carry set
+										case 0x06:	should_branch = zero_result_;					break;		// not equal
+										case 0x07:	should_branch = !zero_result_;					break;		// equal
+										case 0x08:	should_branch = !overflow_flag_;				break;		// overflow clear
+										case 0x09:	should_branch = overflow_flag_;					break;		// overflow set
+										case 0x0a:	should_branch = !negative_flag_;				break;		// positive
+										case 0x0b:	should_branch = negative_flag_;					break;		// negative
+										case 0x0c:
+											should_branch = (negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_);
+										break;		// greater than or equal
+										case 0x0d:
+											should_branch = (negative_flag_ || !overflow_flag_) && (!negative_flag_ || overflow_flag_);
+										break;		// less than
+										case 0x0e:
+											should_branch = zero_result_ && ((negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_));
+										break;		// greater than
+										case 0x0f:
+											should_branch = (!zero_result_ || negative_flag_) && (!overflow_flag_ || !negative_flag_) && overflow_flag_;
+										break;		// less than or equal
+									}
+
+									// Schedule something appropriate, by rewriting the program for this instruction temporarily.
+									if(should_branch) {
+										if(byte_offset) {
+											program_counter_.full = (program_counter_.full + byte_offset) - 2;	// - 2 because this should be calculated from the high word of the prefetch.
+										} else {
+											program_counter_.full += int16_t(prefetch_queue_.halves.low.full);
+										}
+										active_micro_op_->bus_program = branch_taken_bus_steps_;
+									} else {
+										if(byte_offset) {
+											active_micro_op_->bus_program = branch_byte_not_taken_bus_steps_;
+										} else {
+											active_micro_op_->bus_program = branch_word_not_taken_bus_steps_;
+										}
+									}
+								} break;
+
 								/*
 									CMP.b, CMP.l and CMP.w: sets the condition flags (other than extend) based on a subtraction
 									of the source from the destination; the result of the subtraction is not stored.

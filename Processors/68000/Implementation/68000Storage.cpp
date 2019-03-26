@@ -238,6 +238,8 @@ struct ProcessorStorageConstructor {
 
 			MOVEtoSR,					// six lowest bits are [mode, register], decoding to MOVE SR
 			CMPI,						// eight lowest bits are [size, mode, register], decoding to CMPI
+			BRA,						// eight lowest bits are ignored, and an 'n np np' is scheduled
+			Bcc,						// twelve lowest bits are ignored, only a PerformAction is scheduled
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -280,9 +282,12 @@ struct ProcessorStorageConstructor {
 
 			{0xffc0, 0x46c0, Operation::MOVEtoSR, Decoder::MOVEtoSR},		// 6-19 (p473)
 
-			{0xffc0, 0x0c00, Operation::CMPb, Decoder::CMPI},
-			{0xffc0, 0x0c40, Operation::CMPw, Decoder::CMPI},
-			{0xffc0, 0x0c80, Operation::CMPl, Decoder::CMPI},
+			{0xffc0, 0x0c00, Operation::CMPb, Decoder::CMPI},	// 4-79 (p183)
+			{0xffc0, 0x0c40, Operation::CMPw, Decoder::CMPI},	// 4-79 (p183)
+			{0xffc0, 0x0c80, Operation::CMPl, Decoder::CMPI},	// 4-79 (p183)
+
+			{0xff00, 0x6000, Operation::BRA, Decoder::BRA},		// 4-55 (p159)
+			{0xf000, 0x6000, Operation::Bcc, Decoder::Bcc},		// 4-25 (p129)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -307,6 +312,18 @@ struct ProcessorStorageConstructor {
 					const int source_mode = (instruction >> 3) & 7;
 
 					switch(mapping.decoder) {
+						// This decoder actually decodes nothing; it just schedules a PerformOperation followed by an empty step.
+						case Decoder::Bcc: {
+							op(Action::PerformOperation);
+							op();
+						} break;
+
+						// A little artificial, there's nothing really to decode for BRA.
+						case Decoder::BRA: {
+							op(Action::PerformOperation, seq("n np np"));
+							op();
+						} break;
+
 						// Decodes the format used by ABCD and SBCD.
 						case Decoder::Decimal: {
 							const int destination = (instruction >> 9) & 7;
@@ -944,17 +961,23 @@ struct ProcessorStorageConstructor {
 CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	ProcessorStorageConstructor constructor(*this);
 
-	// Create the exception programs.
+	// Create the special programs.
 	const size_t reset_offset = constructor.assemble_program("n n n n n nn nF nf nV nv np np");
+	const size_t branch_taken_offset = constructor.assemble_program("n np np");
+	const size_t branch_byte_not_taken_offset = constructor.assemble_program("nn np");
+	const size_t branch_word_not_taken_offset = constructor.assemble_program("nn np np");
 
 	// Install operations.
 	constructor.install_instructions();
 
-	// Realise the exception programs as direct pointers.
-	reset_program_ = &all_bus_steps_[reset_offset];
+	// Realise the special programs as direct pointers.
+	reset_bus_steps_ = &all_bus_steps_[reset_offset];
+	branch_taken_bus_steps_ = &all_bus_steps_[branch_taken_offset];
+	branch_byte_not_taken_bus_steps_ = &all_bus_steps_[branch_byte_not_taken_offset];
+	branch_word_not_taken_bus_steps_ = &all_bus_steps_[branch_word_not_taken_offset];
 
 	// Set initial state. Largely TODO.
-	active_step_ = reset_program_;
+	active_step_ = reset_bus_steps_;
 	effective_address_[0] = 0;
 	is_supervisor_ = 1;
 }
