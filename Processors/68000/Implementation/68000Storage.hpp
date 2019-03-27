@@ -36,7 +36,7 @@ class ProcessorStorage {
 
 		// Generic sources and targets for memory operations;
 		// by convention: [0] = source, [1] = destination.
-		uint32_t effective_address_[2];
+		RegisterPair32 effective_address_[2];
 		RegisterPair32 bus_data_[2];
 
 		HalfCycles half_cycles_left_to_run_;
@@ -52,7 +52,7 @@ class ProcessorStorage {
 
 			CMPb,	CMPw,	CMPl,
 
-			BRA,	Bcc
+			BRA,	Bcc,
 		};
 
 		/*!

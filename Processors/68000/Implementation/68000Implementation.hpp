@@ -359,16 +359,15 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + active_program_->destination->full;
 						break;
 
-						// TODO: permit as below for DestinationMask and SourceMask|DestinationMask; would prefer to test first.
 #define CalculateD8AnXn(data, source, target)	{\
 	const auto register_index = (data.full >> 12) & 7;	\
 	const RegisterPair32 &displacement = (data.full & 0x8000) ? address_[register_index] : data_[register_index];	\
-	target = int8_t(data.halves.low) + source->full;	\
+	target.full = int8_t(data.halves.low) + source->full;	\
 \
 	if(data.full & 0x800) {	\
-		effective_address_[0] += displacement.halves.low.full;	\
+		target.full += displacement.halves.low.full;	\
 	} else {	\
-		effective_address_[0] += displacement.full;	\
+		target.full += displacement.full;	\
 	}	\
 }
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask: {
@@ -462,9 +461,9 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 				case BusStep::Action::None: break;
 
-				case BusStep::Action::IncrementEffectiveAddress0:	effective_address_[0] += 2;	break;
-				case BusStep::Action::IncrementEffectiveAddress1:	effective_address_[1] += 2;	break;
-				case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;	break;
+				case BusStep::Action::IncrementEffectiveAddress0:	effective_address_[0].full += 2;	break;
+				case BusStep::Action::IncrementEffectiveAddress1:	effective_address_[1].full += 2;	break;
+				case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;			break;
 
 				case BusStep::Action::AdvancePrefetch:
 					prefetch_queue_.halves.high = prefetch_queue_.halves.low;
