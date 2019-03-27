@@ -22,6 +22,8 @@
 }
 
 - (void)prepareOpenGL {
+	[super prepareOpenGL];
+
 	// Synchronize buffer swaps with vertical refresh rate
 	GLint swapInt = 1;
 	[[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
