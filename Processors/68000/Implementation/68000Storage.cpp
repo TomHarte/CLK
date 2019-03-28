@@ -267,15 +267,15 @@ struct ProcessorStorageConstructor {
 			{0xf1f0, 0x8100, Operation::SBCD, Decoder::Decimal},		// 4-171 (p275)
 			{0xf1f0, 0xc100, Operation::ABCD, Decoder::Decimal},		// 4-3 (p107)
 
-			{0xf000, 0x8000, Operation::OR, Decoder::RegOpModeReg},		// 4-150 (p226)
-			{0xf000, 0x9000, Operation::SUB, Decoder::RegOpModeReg},	// 4-174 (p278)
-			{0xf000, 0xb000, Operation::EOR, Decoder::RegOpModeReg},	// 4-100 (p204)
-			{0xf000, 0xc000, Operation::AND, Decoder::RegOpModeReg},	// 4-15 (p119)
-			{0xf000, 0xd000, Operation::ADD, Decoder::RegOpModeReg},	// 4-4 (p108)
+//			{0xf000, 0x8000, Operation::OR, Decoder::RegOpModeReg},		// 4-150 (p226)
+//			{0xf000, 0x9000, Operation::SUB, Decoder::RegOpModeReg},	// 4-174 (p278)
+//			{0xf000, 0xb000, Operation::EOR, Decoder::RegOpModeReg},	// 4-100 (p204)
+//			{0xf000, 0xc000, Operation::AND, Decoder::RegOpModeReg},	// 4-15 (p119)
+//			{0xf000, 0xd000, Operation::ADD, Decoder::RegOpModeReg},	// 4-4 (p108)
 
-			{0xff00, 0x0600, Operation::ADD, Decoder::SizeModeRegisterImmediate},	// 4-9 (p113)
+//			{0xff00, 0x0600, Operation::ADD, Decoder::SizeModeRegisterImmediate},	// 4-9 (p113)
 
-			{0xff00, 0x0600, Operation::ADD, Decoder::DataSizeModeQuick},	// 4-11 (p115)
+//			{0xff00, 0x0600, Operation::ADD, Decoder::DataSizeModeQuick},	// 4-11 (p115)
 
 			{0xf000, 0x1000, Operation::MOVEb, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
 			{0xf000, 0x2000, Operation::MOVEl, Decoder::RegisterModeModeRegister},	// 4-116 (p220)
@@ -677,23 +677,32 @@ struct ProcessorStorageConstructor {
 
 								case 0x0005:	// MOVE Dn, (d16, An)
 								case 0x0105:	// MOVE An, (d16, An)
-									// np nw np
-								continue;
+									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np"));
+									op(Action::PerformOperation, seq("nw np", { &storage_.effective_address_[1].full }));
+									op();
+								break;
 
 								case 0x0006:	// MOVE Dn, (d8, An, Xn)
 								case 0x0106:	// MOVE An, (d8, An, Xn)
-									// n np nw np
-								continue;
+									op(int(Action::CalcD8AnXn) | MicroOp::DestinationMask, seq("n np"));
+									op(Action::PerformOperation, seq("nw np", { &storage_.effective_address_[1].full }));
+									op();
+								break;
 
 								case 0x0010:	// MOVE Dn, (xxx).W
 								case 0x0110:	// MOVE An, (xxx).W
-									// np nw np
-								continue;
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask);
+									op(Action::PerformOperation, seq("np nw np", { &storage_.effective_address_[1].full }));
+									op();
+								break;
 
 								case 0x0011:	// MOVE Dn, (xxx).L
 								case 0x0111:	// MOVE An, (xxx).L
-									// np np nw np
-								continue;
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask);
+									op(Action::PerformOperation, seq("np nw np", { &storage_.effective_address_[1].full }));
+									op();
+								break;
 
 							//
 							// Source = (An) or (An)+
@@ -737,7 +746,7 @@ struct ProcessorStorageConstructor {
 									} else {
 										op();
 									}
-								continue;
+								break;
 
 								case 0x10202:	// MOVE.l (An), (An)
 								case 0x10302:	// MOVE.l (An)+, (An)
@@ -754,7 +763,7 @@ struct ProcessorStorageConstructor {
 									} else {
 										op();
 									}
-								continue;
+								break;
 
 								case 0x0204:	// MOVE (An), -(An)
 								case 0x0304:	// MOVE (An)+, -(An)
@@ -948,12 +957,38 @@ struct ProcessorStorageConstructor {
 							// Source = #
 							//
 
-								case 0x1401:	// MOVE #, Dn
+								case 0x01401:	// MOVE #, Dn
 									operation = Operation::MOVEAw;
-								case 0x1400:	// MOVE #, Dn
+								case 0x01400:	// MOVE #, Dn
 									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
 									op(int(Action::PerformOperation), seq("np np"));
 									op();
+								break;
+
+								case 0x11411:	// MOVE.l #, (xxx).l
+									op(int(Action::None), seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW nw np", { &storage_.effective_address_[1].full }));
+									op(Action::SetMoveFlagsl);
+								break;
+
+								case 0x11410:	// MOVE.l #, (xxx).w
+									op(int(Action::None), seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np"));
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW nw np", { &storage_.effective_address_[1].full }, !is_byte_access));
+									op(Action::SetMoveFlagsl);
+								break;
+
+								case 0x01411:	// MOVE.bw #, (xxx).l
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { &storage_.effective_address_[1].full }));
+									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
+								break;
+
+								case 0x01410:	// MOVE.bw #, (xxx).w
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np"));
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { &storage_.effective_address_[1].full }, !is_byte_access));
+									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
 								break;
 
 							//
