@@ -50,6 +50,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							// TODO: once all instructions are implemnted, this should be an instruction error.
 							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << next_instruction << std::endl;
 							return;
+						} else {
+							std::cout << "Performing " << std::hex << next_instruction << std::endl;
 						}
 
 						active_program_ = &instructions[next_instruction];
@@ -214,6 +216,16 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ = active_program_->destination->full = active_program_->source->full;
 									negative_flag_ = zero_result_ & 0x80000000;
 									overflow_flag_ = carry_flag_ = 0;
+								break;
+
+								/*
+									MOVE.q: a single byte is moved from the current instruction, and sign extended.
+								*/
+								case Operation::MOVEq:
+									zero_result_ = active_program_->destination->full = prefetch_queue_.halves.high.halves.low;
+									negative_flag_ = zero_result_ & 0x80;
+									overflow_flag_ = carry_flag_ = 0;
+									active_program_->destination->full |= negative_flag_ ? 0xffffff00 : 0;
 								break;
 
 								/*

@@ -45,7 +45,7 @@ class ProcessorStorage {
 			ABCD,	SBCD,
 			ADD,	AND,	EOR,	OR,		SUB,
 
-			MOVEb,	MOVEw,	MOVEl,
+			MOVEb,	MOVEw,	MOVEl,	MOVEq,
 			MOVEAw,	MOVEAl,
 
 			MOVEtoSR, MOVEfromSR,
@@ -137,11 +137,8 @@ class ProcessorStorage {
 				/// Adds 4.
 				Increment4,
 
-				/// Copies whatever is this instruction's source to effective_address_[0].
-				CopySourceToEffectiveAddress,
-
-				/// Copies whatever is this instruction's destination to effective_address_[1].
-				CopyDestinationToEffectiveAddress,
+				/// Copies the source and/or destination to effective_address_.
+				CopyToEffectiveAddress,
 
 				/// Peeking into the end of the prefetch queue, calculates the proper target of (d16,An) addressing.
 				CalcD16An,
