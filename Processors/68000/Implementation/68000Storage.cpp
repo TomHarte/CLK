@@ -191,6 +191,13 @@ struct ProcessorStorageConstructor {
 					}
 				break;
 
+				case '_':	// Indicates the reset cycle.
+					step.microcycle.length = HalfCycles(248);
+					step.microcycle.operation = Microcycle::Reset;
+					steps.push_back(step);
+					++access_pattern;
+				break;
+
 				default:
 					std::cerr << "MC68000 program builder; Unknown access type " << *access_pattern << std::endl;
 					assert(false);
@@ -244,6 +251,7 @@ struct ProcessorStorageConstructor {
 			Bcc,						// twelve lowest bits are ignored, only a PerformAction is scheduled
 			LEA,						// decodes register, mode, register
 			MOVEq,						// decodes just a destination register
+			RESET,						// no further decoding applied
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -294,6 +302,8 @@ struct ProcessorStorageConstructor {
 			{0xf000, 0x6000, Operation::Bcc, Decoder::Bcc},		// 4-25 (p129)
 			{0xf1c0, 0x41c0, Operation::MOVEAl, Decoder::LEA},	// 4-110 (p214)
 			{0xf100, 0x7000, Operation::MOVEq, Decoder::MOVEq},	// 4-134 (p238)
+
+			{0xffff, 0x4e70, Operation::None, Decoder::RESET},	// 6-83 (p537)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -321,6 +331,7 @@ struct ProcessorStorageConstructor {
 						// This decoder actually decodes nothing; it just schedules a PerformOperation followed by an empty step.
 						case Decoder::Bcc: {
 							op(Action::PerformOperation);
+							op();	// The above looks terminal, but will be dynamically reprogrammed.
 						} break;
 
 						// A little artificial, there's nothing really to decode for BRA.
@@ -354,7 +365,7 @@ struct ProcessorStorageConstructor {
 							const auto destination_mode = source_mode;
 							const auto destination_register = source_register;
 
-							storage_.instructions[instruction].source = &storage_.prefetch_queue_;
+							storage_.instructions[instruction].source = &storage_.bus_data_[0];
 							storage_.instructions[instruction].set_destination(storage_, destination_mode, destination_register);
 
 							const bool is_byte_access = mapping.operation == Operation::CMPb;
@@ -362,10 +373,12 @@ struct ProcessorStorageConstructor {
 							const int mode = (is_long_word_access ? 0x100 : 0) | combined_mode(destination_mode, destination_register);
 							switch(mode) {
 								case 0x000:	// CMPI.bw #, Dn
+									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
 									op(Action::PerformOperation, seq("np np"));
 								break;
 
 								case 0x100:	// CMPI.l #, Dn
+									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
 									op(Action::None, seq("np"));
 									op(Action::PerformOperation, seq("np np n"));
 								break;
@@ -503,6 +516,7 @@ struct ProcessorStorageConstructor {
 						case Decoder::MOVEtoSR: {
 							if(source_mode == 1) continue;
 							storage_.instructions[instruction].set_source(storage_, source_mode, source_register);
+							storage_.instructions[instruction].requires_supervisor = true;
 
 							/* DEVIATION FROM YACHT.TXT: it has all of these reading an extra word from the PC;
 							this looks like a mistake so I've padded with nil cycles in the middle. */
@@ -1120,6 +1134,10 @@ struct ProcessorStorageConstructor {
 								continue;
 							}
 						} break;
+
+						case Decoder::RESET:
+							op(Action::None, seq("nn _ np"));
+						break;
 
 						default:
 							std::cerr << "Unhandled decoder " << int(mapping.decoder) << std::endl;

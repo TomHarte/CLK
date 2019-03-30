@@ -255,6 +255,12 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								break;
 
 								/*
+									The no-op.
+								*/
+								case Operation::None:
+								break;
+
+								/*
 									SBCD subtracts the lowest byte of the source from that of the destination using
 									BCD arithmetic, obeying the extend flag.
 								*/

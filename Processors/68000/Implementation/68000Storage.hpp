@@ -42,6 +42,7 @@ class ProcessorStorage {
 		HalfCycles half_cycles_left_to_run_;
 
 		enum class Operation {
+			None,
 			ABCD,	SBCD,
 			ADD,	AND,	EOR,	OR,		SUB,
 

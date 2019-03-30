@@ -64,6 +64,9 @@ struct Microcycle {
 	/// of the data strobes are.
 	static const int SameAddress	= 2;
 
+	/// A Reset cycle is one in which the RESET output is asserted.
+	static const int Reset			= 3;
+
 	/// Indicates that the address and both data select strobes are active.
 	static const int SelectWord		= 1 << 2;
 
