@@ -9,6 +9,7 @@
 #include "../68000.hpp"
 
 #include <algorithm>
+#include <sstream>
 
 namespace CPU {
 namespace MC68000 {
@@ -35,7 +36,7 @@ struct ProcessorStorageConstructor {
 		return (mode == 7) ? (0x10 | reg) : mode;
 	}
 
-#define pseq(x, m) ((((m)&0xff) == 0x06) || (((m)&0xff) == 0x13) ? "n" x : x)
+#define pseq(x, m) ((((m)&0xff) == 0x06) || (((m)&0xff) == 0x13) ? "n " x : x)
 
 	/*!
 		Installs BusSteps that implement the described program into the relevant
@@ -79,129 +80,118 @@ struct ProcessorStorageConstructor {
 		The user should fill in the steps necessary to get data into or extract
 		data from those.
 	*/
-	size_t assemble_program(const char *access_pattern, const std::vector<uint32_t *> &addresses = {}, bool read_full_words = true) {
+	size_t assemble_program(std::string access_pattern, const std::vector<uint32_t *> &addresses = {}, bool read_full_words = true) {
 		auto address_iterator = addresses.begin();
 		RegisterPair32 *scratch_data_read = storage_.bus_data_;
 		RegisterPair32 *scratch_data_write = storage_.bus_data_;
 		using Action = BusStep::Action;
 
 		std::vector<BusStep> steps;
+		std::stringstream stream(access_pattern);
 
-		// Parse the access pattern to build microcycles.
-		while(*access_pattern) {
+		// Tokenise the access pattern by splitting on spaces.
+		std::string token;
+		while(stream >> token) {
 			ProcessorBase::BusStep step;
 
-			switch(*access_pattern) {
-				case '\t': case ' ': // White space acts as a no-op; it's for clarity only.
-					++access_pattern;
-				break;
-
-				case 'n':	// This might be a plain NOP cycle, in which some internal calculation occurs,
-							// or it might pair off with something afterwards.
-					switch(access_pattern[1]) {
-						default:	// This is probably a pure NOP; if what comes after this 'n' isn't actually
-									// valid, it should be caught in the outer switch the next time around the loop.
-							steps.push_back(step);
-							++access_pattern;
-						break;
-
-						case '-':	// This is two NOPs in a row.
-							steps.push_back(step);
-							steps.push_back(step);
-							access_pattern += 2;
-						break;
-
-						case 'F':	// Fetch SSP MSW.
-						case 'f':	// Fetch SSP LSW.
-							step.microcycle.length = HalfCycles(5);
-							step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
-							step.microcycle.address = &storage_.effective_address_[0].full;
-							step.microcycle.value = isupper(access_pattern[1]) ? &storage_.stack_pointers_[1].halves.high : &storage_.stack_pointers_[1].halves.low;
-							steps.push_back(step);
-
-							step.microcycle.length = HalfCycles(3);
-							step.microcycle.operation = Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
-							step.action = Action::IncrementEffectiveAddress0;
-							steps.push_back(step);
-
-							access_pattern += 2;
-						break;
-
-						case 'V':	// Fetch exception vector low.
-						case 'v':	// Fetch exception vector high.
-							step.microcycle.length = HalfCycles(5);
-							step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
-							step.microcycle.address = &storage_.effective_address_[0].full;
-							step.microcycle.value = isupper(access_pattern[1]) ? &storage_.program_counter_.halves.high : &storage_.program_counter_.halves.low;
-							steps.push_back(step);
-
-							step.microcycle.length = HalfCycles(3);
-							step.microcycle.operation |= Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
-							step.action = Action::IncrementEffectiveAddress0;
-							steps.push_back(step);
-
-							access_pattern += 2;
-						break;
-
-						case 'p':	// Fetch from the program counter into the prefetch queue.
-							step.microcycle.length = HalfCycles(5);
-							step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;
-							step.microcycle.address = &storage_.program_counter_.full;
-							step.microcycle.value = &storage_.prefetch_queue_.halves.low;
-							step.action = Action::AdvancePrefetch;
-							steps.push_back(step);
-
-							step.microcycle.length = HalfCycles(3);
-							step.microcycle.operation |= Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
-							step.action = Action::IncrementProgramCounter;
-							steps.push_back(step);
-
-							access_pattern += 2;
-						break;
-
-						case 'r':	// Fetch LSW (or only) word (/byte)
-						case 'R':	// Fetch MSW word
-						case 'w':	// Store LSW (or only) word (/byte)
-						case 'W': {	// Store MSW word
-							const bool is_read = tolower(access_pattern[1]) == 'r';
-							RegisterPair32 **scratch_data = is_read ? &scratch_data_read : &scratch_data_write;
-
-							step.microcycle.length = HalfCycles(5);
-							step.microcycle.operation = Microcycle::NewAddress | (is_read ? Microcycle::Read : 0);
-							step.microcycle.address = *address_iterator;
-							step.microcycle.value = isupper(access_pattern[1]) ? &(*scratch_data)->halves.high : &(*scratch_data)->halves.low;
-							steps.push_back(step);
-
-							step.microcycle.length = HalfCycles(3);
-							step.microcycle.operation |= (read_full_words ? Microcycle::SelectWord : Microcycle::SelectByte) | (is_read ? Microcycle::Read : 0);
-							if(access_pattern[1] == 'R') {
-								step.action = Action::IncrementEffectiveAddress0;
-							}
-							if(access_pattern[1] == 'W') {
-								step.action = Action::IncrementEffectiveAddress1;
-							}
-							steps.push_back(step);
-
-							if(!isupper(access_pattern[1])) {
-								++(*scratch_data);
- 								++address_iterator;
-							}
-							access_pattern += 2;
-						} break;
-					}
-				break;
-
-				case '_':	// Indicates the reset cycle.
-					step.microcycle.length = HalfCycles(248);
-					step.microcycle.operation = Microcycle::Reset;
+			// Do nothing (possibly twice).
+			if(token == "n" || token == "nn") {
+				steps.push_back(step);
+				if(token.size() == 2) {
 					steps.push_back(step);
-					++access_pattern;
-				break;
-
-				default:
-					std::cerr << "MC68000 program builder; Unknown access type " << *access_pattern << std::endl;
-					assert(false);
+				}
+				continue;
 			}
+
+			// Fetch SSP.
+			if(token == "nF" || token == "nf") {
+				step.microcycle.length = HalfCycles(5);
+				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
+				step.microcycle.address = &storage_.effective_address_[0].full;
+				step.microcycle.value = isupper(token[1]) ? &storage_.stack_pointers_[1].halves.high : &storage_.stack_pointers_[1].halves.low;
+				steps.push_back(step);
+
+				step.microcycle.length = HalfCycles(3);
+				step.microcycle.operation = Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
+				step.action = Action::IncrementEffectiveAddress0;
+				steps.push_back(step);
+
+				continue;
+			}
+
+			// Fetch exception vector.
+			if(token == "nV" || token == "nv") {
+				step.microcycle.length = HalfCycles(5);
+				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
+				step.microcycle.address = &storage_.effective_address_[0].full;
+				step.microcycle.value = isupper(token[1]) ? &storage_.program_counter_.halves.high : &storage_.program_counter_.halves.low;
+				steps.push_back(step);
+
+				step.microcycle.length = HalfCycles(3);
+				step.microcycle.operation |= Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
+				step.action = Action::IncrementEffectiveAddress0;
+				steps.push_back(step);
+
+				continue;
+			}
+
+			// Fetch from the program counter into the prefetch queue.
+			if(token == "np") {
+				step.microcycle.length = HalfCycles(5);
+				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;
+				step.microcycle.address = &storage_.program_counter_.full;
+				step.microcycle.value = &storage_.prefetch_queue_.halves.low;
+				step.action = Action::AdvancePrefetch;
+				steps.push_back(step);
+
+				step.microcycle.length = HalfCycles(3);
+				step.microcycle.operation |= Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
+				step.action = Action::IncrementProgramCounter;
+				steps.push_back(step);
+
+				continue;
+			}
+
+			// The reset cycle.
+			if(token == "_") {
+				step.microcycle.length = HalfCycles(248);
+				step.microcycle.operation = Microcycle::Reset;
+				steps.push_back(step);
+
+				continue;
+			}
+
+			// A standard read or write.
+			if(token == "nR" || token == "nr" || token == "nW" || token == "nw") {
+				const bool is_read = tolower(access_pattern[1]) == 'r';
+				RegisterPair32 **scratch_data = is_read ? &scratch_data_read : &scratch_data_write;
+
+				step.microcycle.length = HalfCycles(5);
+				step.microcycle.operation = Microcycle::NewAddress | (is_read ? Microcycle::Read : 0);
+				step.microcycle.address = *address_iterator;
+				step.microcycle.value = isupper(token[1]) ? &(*scratch_data)->halves.high : &(*scratch_data)->halves.low;
+				steps.push_back(step);
+
+				step.microcycle.length = HalfCycles(3);
+				step.microcycle.operation |= (read_full_words ? Microcycle::SelectWord : Microcycle::SelectByte) | (is_read ? Microcycle::Read : 0);
+				if(token[1] == 'R') {
+					step.action = Action::IncrementEffectiveAddress0;
+				}
+				if(token[1] == 'W') {
+					step.action = Action::IncrementEffectiveAddress1;
+				}
+				steps.push_back(step);
+
+				if(!isupper(access_pattern[1])) {
+					++(*scratch_data);
+					++address_iterator;
+				}
+
+				continue;
+			}
+
+			std::cerr << "MC68000 program builder; Unknown access token " << token << std::endl;
+			assert(false);
 		}
 
 		// Add a final 'ScheduleNextProgram' sentinel.
