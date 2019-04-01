@@ -48,10 +48,10 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						const uint16_t next_instruction = prefetch_queue_.halves.high.full;
 						if(!instructions[next_instruction].micro_operations) {
 							// TODO: once all instructions are implemnted, this should be an instruction error.
-							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << next_instruction << std::endl;
+							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << next_instruction << " from " << (program_counter_.full - 4) << std::endl;
 							return;
 						} else {
-							std::cout << "Performing " << std::hex << next_instruction << std::endl;
+							std::cout << "Performing " << std::hex << next_instruction << " from " << (program_counter_.full - 4) << std::endl;
 						}
 
 						active_program_ = &instructions[next_instruction];
