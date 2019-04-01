@@ -971,6 +971,32 @@ struct ProcessorStorageConstructor {
 									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
 								break;
 
+								case 0x0204:	// MOVE (An), -(An)
+								case 0x0304:	// MOVE (An)+, -(An)
+									// nr np nw
+								continue;
+
+								case 0x0404:	// MOVE -(An), -(An)
+									// n nr np nw
+								continue;
+
+								case 0x0504:	// MOVE (d16, An), -(An)
+								case 0x0604:	// MOVE (d8, An, Xn), -(An)
+									// np nr np nw
+									// n np nr np nw
+								continue;
+
+								case 0x1004:	// MOVE (xxx).W, -(An)
+									// np nr np nw
+								continue;
+
+							//
+							// MOVE <ea>, (d16, An)
+							// MOVE <ea>, (d8, An, Xn)
+							// MOVE <ea>, (d16, An)
+							// MOVE <ea>, (d16, An)
+							//
+
 								case 0x0005:	// MOVE Dn, (d16, An)
 									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np"));
 									op(Action::PerformOperation, seq("nw np", { &storage_.effective_address_[1].full }));
@@ -980,41 +1006,6 @@ struct ProcessorStorageConstructor {
 									op(int(Action::CalcD8AnXn) | MicroOp::DestinationMask, seq("n np"));
 									op(Action::PerformOperation, seq("nw np", { &storage_.effective_address_[1].full }));
 								break;
-
-								case 0x0010:	// MOVE Dn, (xxx).W
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask);
-									op(Action::PerformOperation, seq("np nw np", { &storage_.effective_address_[1].full }));
-								break;
-
-								case 0x0011:	// MOVE Dn, (xxx).L
-									op(Action::None, seq("np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask);
-									op(Action::PerformOperation, seq("np nw np", { &storage_.effective_address_[1].full }));
-								break;
-
-								case 0x0204:	// MOVE (An), -(An)
-								case 0x0304:	// MOVE (An)+, -(An)
-									// nr np nw
-								continue;
-								case 0x0404:	// MOVE -(An), -(An)
-									// n nr np nw
-								continue;
-								case 0x0504:	// MOVE (d16, An), -(An)
-								case 0x0604:	// MOVE (d8, An, Xn), -(An)
-									// np nr np nw
-									// n np nr np nw
-								continue;
-								case 0x1004:	// MOVE (xxx).W, -(An)
-									// np nr np nw
-								continue;
-
-							//
-							// Source = (An) or (An)+
-							//
-
-
-
-
 
 								case 0x0205:	// MOVE (An), (d16, An)
 								case 0x0305:	// MOVE (An)+, (d16, An)
@@ -1026,23 +1017,6 @@ struct ProcessorStorageConstructor {
 									// nr n np nw np
 								continue;
 
-								case 0x0210:	// MOVE (An), (xxx).W
-								case 0x0310:	// MOVE (An)+, (xxx).W
-									// nr np nw np
-								continue;
-
-								case 0x0211:	// MOVE (An), (xxx).L
-								case 0x0311:	// MOVE (An)+, (xxx).L
-									// nr np nw np np
-								continue;
-
-							//
-							// Source = -(An)
-							//
-
-
-
-
 								case 0x0405:	// MOVE -(An), (d16, An)
 									// n nr np nw
 								continue;
@@ -1050,21 +1024,6 @@ struct ProcessorStorageConstructor {
 								case 0x0406:	// MOVE -(An), (d8, An, Xn)
 									// n nr n np nw np
 								continue;
-
-								case 0x0410:	// MOVE -(An), (xxx).W
-									// n nr np nw np
-								continue;
-
-								case 0x0411:	// MOVE -(An), (xxx).L
-									// n nr np nw np np
-								continue;
-
-							//
-							// Source = (d16, An) or (d8, An, Xn)
-							//
-
-
-
 
 								case 0x0505:	// MOVE (d16, An), (d16, An)
 								case 0x0605:	// MOVE (d8, An, Xn), (d16, An)
@@ -1078,25 +1037,6 @@ struct ProcessorStorageConstructor {
 									// n np nr n np nw np
 								continue;
 
-								case 0x0510:	// MOVE (d16, An), (xxx).W
-								case 0x0610:	// MOVE (d8, An, Xn), (xxx).W
-									// np nr np nw np
-									// n np nr np nw np
-								continue;
-
-								case 0x0511:	// MOVE (d16, An), (xxx).L
-								case 0x0611:	// MOVE (d8, An, Xn), (xxx).L
-									// np nr np nw np np
-									// n np nr np nw np np
-								continue;
-
-							//
-							// Source = (xxx).W
-							//
-
-
-
-
 								case 0x1005:	// MOVE (xxx).W, (d16, An)
 									// np nr np nw np
 								continue;
@@ -1105,40 +1045,29 @@ struct ProcessorStorageConstructor {
 									// np nr n np nw np
 								continue;
 
-								case 0x1010:	// MOVE (xxx).W, (xxx).W
-									// np nr np nw np
-								continue;
-
-								case 0x1011:	// MOVE (xxx).W, (xxx).L
-									// np nr np nw np np
-								continue;
-
 							//
-							// Source = (xxx).L
+							// MOVE <ea>, (xxx).W
 							//
 
-
-							//
-							// Source = (d16, PC)
-							//
-
-
-							//
-							// Source = (d8, An, Xn)
-							//
-
-
-							//
-							// Source = #
-							//
-
-
-								case 0x11411:	// MOVE.l #, (xxx).l
-									op(int(Action::None), seq("np"));
-									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW nw np", { &storage_.effective_address_[1].full }));
-									op(Action::SetMoveFlagsl);
+								case 0x0010:	// MOVE Dn, (xxx).W
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np"));
+									op(Action::PerformOperation, seq("nw np", { &storage_.effective_address_[1].full }));
 								break;
+
+								case 0x0210:	// MOVE (An), (xxx).W
+								case 0x0310:	// MOVE (An)+, (xxx).W
+									// nr np nw np
+								continue;
+
+								case 0x0410:	// MOVE -(An), (xxx).W
+									// n nr np nw np
+								continue;
+
+								case 0x0510:	// MOVE (d16, An), (xxx).W
+								case 0x0610:	// MOVE (d8, An, Xn), (xxx).W
+									// np nr np nw np
+									// n np nr np nw np
+								continue;
 
 								case 0x11410:	// MOVE.l #, (xxx).w
 									op(int(Action::None), seq("np"));
@@ -1147,16 +1076,82 @@ struct ProcessorStorageConstructor {
 									op(Action::SetMoveFlagsl);
 								break;
 
+								case 0x1010:	// MOVE (xxx).W, (xxx).W
+									// np nr np nw np
+								continue;
+
+								case 0x01410:	// MOVE.bw #, (xxx).w
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np"));
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { &storage_.effective_address_[1].full }, !is_byte_access));
+									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
+								break;
+
+							//
+							// MOVE <ea>, (xxx).L
+							//
+
+								case 0x00011:	// MOVE.bw Dn, (xxx).L
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np"));
+									op(Action::PerformOperation, seq("nw np", { &storage_.effective_address_[1].full }, !is_byte_access));
+								break;
+
+								case 0x00211:	// MOVE.bw (An), (xxx).L
+								case 0x00311:	// MOVE.bw (An)+, (xxx).L
+									op(Action::None, seq("nr np", { &storage_.address_[source_register].full }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw np np", { &storage_.prefetch_queue_.full }));
+									if(source_mode == 0x3) {
+										op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::SourceMask);
+									}
+								break;
+
+								case 0x0411:	// MOVE -(An), (xxx).L
+									// n nr np nw np np
+								continue;
+
+								case 0x0511:	// MOVE (d16, An), (xxx).L
+								case 0x0611:	// MOVE (d8, An, Xn), (xxx).L
+									// np nr np nw np np
+									// n np nr np nw np np
+								continue;
+
+								case 0x01011:	// MOVE.bw (xxx).W, (xxx).L
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr", { &storage_.effective_address_[0].full }, !is_byte_access));
+									op(Action::PerformOperation, seq("np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nw np np", { &storage_.effective_address_[1].full }, !is_byte_access));
+								continue;
+
+								case 0x01111:	// MOVE.bw (xxx).l, (xxx).l
+									op(int(Action::None), seq("np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr", { &storage_.effective_address_[0].full }, !is_byte_access));
+									op(Action::PerformOperation, seq("np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nw np np", { &storage_.effective_address_[1].full }, !is_byte_access));
+								break;
+
 								case 0x01411:	// MOVE.bw #, (xxx).l
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np np"));
 									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { &storage_.effective_address_[1].full }));
 									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
 								break;
 
-								case 0x01410:	// MOVE.bw #, (xxx).w
-									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np"));
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { &storage_.effective_address_[1].full }, !is_byte_access));
-									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
+								case 0x11011:	// MOVE.l (xxx).W, (xxx).L
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nR nr", { &storage_.effective_address_[0].full }));
+									op(Action::PerformOperation, seq("np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nW nw np np", { &storage_.effective_address_[1].full }));
+								break;
+
+								case 0x11111:	// MOVE.l (xxx).l, (xxx).l
+									op(int(Action::None), seq("np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nR nr", { &storage_.effective_address_[0].full }));
+									op(Action::PerformOperation, seq("np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nW nw np np", { &storage_.effective_address_[1].full }));
+								break;
+
+								case 0x11411:	// MOVE.l #, (xxx).l
+									op(int(Action::None), seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW nw np", { &storage_.effective_address_[1].full }));
+									op(Action::SetMoveFlagsl);
 								break;
 
 							//
@@ -1183,6 +1178,13 @@ struct ProcessorStorageConstructor {
 					// Add a terminating micro operation if necessary.
 					if(!storage_.all_micro_ops_.back().is_terminal()) {
 						storage_.all_micro_ops_.emplace_back();
+					}
+
+					// Ensure that steps that weren't meant to look terminal aren't terminal.
+					for(auto index = micro_op_start; index < storage_.all_micro_ops_.size() - 1; ++index) {
+						if(storage_.all_micro_ops_[index].is_terminal()) {
+							storage_.all_micro_ops_[index].bus_program = seq("");
+						}
 					}
 
 					// Install the operation and make a note of where micro-ops begin.
@@ -1258,4 +1260,3 @@ void CPU::MC68000::ProcessorStorage::set_is_supervisor(bool is_supervisor) {
 		address_[7] = stack_pointers_[is_supervisor_];
 	}
 }
-
