@@ -37,7 +37,8 @@ class ProcessorStorage {
 		// Generic sources and targets for memory operations;
 		// by convention: [0] = source, [1] = destination.
 		RegisterPair32 effective_address_[2];
-		RegisterPair32 bus_data_[2];
+		RegisterPair32 source_bus_data_[1];
+		RegisterPair32 destination_bus_data_[1];
 
 		HalfCycles half_cycles_left_to_run_;
 
@@ -53,7 +54,7 @@ class ProcessorStorage {
 
 			CMPb,	CMPw,	CMPl,
 
-			BRA,	Bcc,
+			BRA,	Bcc,	JMP
 		};
 
 		/*!
@@ -209,17 +210,17 @@ class ProcessorStorage {
 
 			void set_source(ProcessorStorage &storage, int mode, int reg) {
 				switch(mode) {
-					case 0:		source = &storage.data_[reg];		break;
-					case 1:		source = &storage.address_[reg];	break;
-					default:	source = &storage.bus_data_[0];		break;
+					case 0:		source = &storage.data_[reg];			break;
+					case 1:		source = &storage.address_[reg];		break;
+					default:	source = &storage.source_bus_data_[0];	break;
 				}
 			}
 
 			void set_destination(ProcessorStorage &storage, int mode, int reg) {
 				switch(mode) {
-					case 0:		destination = &storage.data_[reg];		break;
-					case 1:		destination = &storage.address_[reg];	break;
-					default:	destination = &storage.bus_data_[1];	break;
+					case 0:		destination = &storage.data_[reg];					break;
+					case 1:		destination = &storage.address_[reg];				break;
+					default:	destination = &storage.destination_bus_data_[0];	break;
 				}
 			}
 		};

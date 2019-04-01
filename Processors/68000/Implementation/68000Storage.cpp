@@ -47,26 +47,35 @@ struct ProcessorStorageConstructor {
 			during this program. This should follow the same general pattern as
 			those in yacht.txt; full description below.
 
-		@discussion
-		The access pattern is defined, as in yacht.txt, to be a string consisting
-		of the following discrete bus actions. Spaces are ignored.
+		@param addresses A vector of the addresses to place on the bus coincident
+			with those acess steps that require them.
 
-		* n: no operation; data bus is not used;
-		* -: idle state; data bus is not used but is also not available;
-		* p: program fetch; reads from the PC and adds two to it;
-		* W: write MSW of something onto the bus;
-		* w: write LSW of something onto the bus;
-		* R: read MSW of something from the bus;
-		* r: read LSW of soemthing from the bus;
-		* S: push the MSW of something onto the stack;
-		* s: push the LSW of something onto the stack;
-		* U: pop the MSW of something from the stack;
-		* u: pop the LSW of something from the stack;
-		* V: fetch a vector's MSW;
-		* v: fetch a vector's LSW;
+		@param read_full_words @c true to indicate that read and write operations are
+			selecting a full word; @c false to signal byte accesses only.
+
+		@discussion
+		The access pattern is defined to correlate closely to that in yacht.txt; it is
+		a space-separated sequence of the following actions:
+
+		* n: no operation for four cycles; data bus is not used;
+		* nn: no operation for eight cycles; data bus is not used;
+		* np: program fetch; reads from the PC and adds two to it, advancing the prefetch queue;
+		* nW: write MSW of something onto the bus;
+		* nw: write LSW of something onto the bus;
+		* nR: read MSW of something from the bus into the source latch;
+		* nr: read LSW of soemthing from the bus into the source latch;
+		* nRd: read MSW of something from the bus into the destination latch;
+		* nrd: read LSW of soemthing from the bus into the destination latch;
+		* nS: push the MSW of something onto the stack;
+		* ns: push the LSW of something onto the stack;
+		* nU: pop the MSW of something from the stack;
+		* nu: pop the LSW of something from the stack;
+		* nV: fetch a vector's MSW;
+		* nv: fetch a vector's LSW;
 		* i: acquire interrupt vector in an IACK cycle;
-		* F: fetch the SSPs MSW;
-		* f: fetch the SSP's LSW.
+		* nF: fetch the SSPs MSW;
+		* nf: fetch the SSP's LSW;
+		* _: hold the reset line active for the usual period.
 
 		Quite a lot of that is duplicative, implying both something about internal
 		state and something about what's observable on the bus, but it's helpful to
@@ -82,8 +91,6 @@ struct ProcessorStorageConstructor {
 	*/
 	size_t assemble_program(std::string access_pattern, const std::vector<uint32_t *> &addresses = {}, bool read_full_words = true) {
 		auto address_iterator = addresses.begin();
-		RegisterPair32 *scratch_data_read = storage_.bus_data_;
-		RegisterPair32 *scratch_data_write = storage_.bus_data_;
 		using Action = BusStep::Action;
 
 		std::vector<BusStep> steps;
@@ -162,14 +169,15 @@ struct ProcessorStorageConstructor {
 			}
 
 			// A standard read or write.
-			if(token == "nR" || token == "nr" || token == "nW" || token == "nw") {
-				const bool is_read = tolower(access_pattern[1]) == 'r';
-				RegisterPair32 **scratch_data = is_read ? &scratch_data_read : &scratch_data_write;
+			if(token == "nR" || token == "nr" || token == "nW" || token == "nw" || token == "nRd" || token == "nrd") {
+				const bool is_read = tolower(token[1]) == 'r';
+				const bool use_source_storage = is_read && token.size() != 3;
+				RegisterPair32 *scratch_data = use_source_storage ? &storage_.source_bus_data_[0] : &storage_.destination_bus_data_[0];
 
 				step.microcycle.length = HalfCycles(5);
 				step.microcycle.operation = Microcycle::NewAddress | (is_read ? Microcycle::Read : 0);
 				step.microcycle.address = *address_iterator;
-				step.microcycle.value = isupper(token[1]) ? &(*scratch_data)->halves.high : &(*scratch_data)->halves.low;
+				step.microcycle.value = isupper(token[1]) ? &scratch_data->halves.high : &scratch_data->halves.low;
 				steps.push_back(step);
 
 				step.microcycle.length = HalfCycles(3);
@@ -182,8 +190,7 @@ struct ProcessorStorageConstructor {
 				}
 				steps.push_back(step);
 
-				if(!isupper(access_pattern[1])) {
-					++(*scratch_data);
+				if(!isupper(token[1])) {
 					++address_iterator;
 				}
 
@@ -241,7 +248,8 @@ struct ProcessorStorageConstructor {
 			Bcc,						// twelve lowest bits are ignored, only a PerformAction is scheduled
 			LEA,						// decodes register, mode, register
 			MOVEq,						// decodes just a destination register
-			RESET,						// no further decoding applied
+			RESET,						// no further decoding applied, performs reset cycle
+			JMP,						// six lowest bits are [mode, register], decoding to JMP
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -294,6 +302,8 @@ struct ProcessorStorageConstructor {
 			{0xf100, 0x7000, Operation::MOVEq, Decoder::MOVEq},	// 4-134 (p238)
 
 			{0xffff, 0x4e70, Operation::None, Decoder::RESET},	// 6-83 (p537)
+
+			{0xffc0, 0x4ec0, Operation::JMP, Decoder::JMP},		// 4-108 (p212)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -335,8 +345,8 @@ struct ProcessorStorageConstructor {
 							const int source = instruction & 7;
 
 							if(instruction & 8) {
-								storage_.instructions[instruction].source = &storage_.bus_data_[0];
-								storage_.instructions[instruction].destination = &storage_.bus_data_[1];
+								storage_.instructions[instruction].source = &storage_.source_bus_data_[0];
+								storage_.instructions[instruction].destination = &storage_.destination_bus_data_[0];
 
 								op(	int(Action::Decrement1) | MicroOp::SourceMask | MicroOp::DestinationMask,
 									seq("n nr nr np nw", { &storage_.address_[source].full, &storage_.address_[destination].full, &storage_.address_[destination].full }, false));
@@ -355,7 +365,7 @@ struct ProcessorStorageConstructor {
 							const auto destination_mode = source_mode;
 							const auto destination_register = source_register;
 
-							storage_.instructions[instruction].source = &storage_.bus_data_[0];
+							storage_.instructions[instruction].source = &storage_.source_bus_data_[0];
 							storage_.instructions[instruction].set_destination(storage_, destination_mode, destination_register);
 
 							const bool is_byte_access = mapping.operation == Operation::CMPb;
@@ -375,7 +385,7 @@ struct ProcessorStorageConstructor {
 
 								case 0x002:	// CMPI.bw #, (An)
 								case 0x003:	// CMPI.bw #, (An)+
-									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nr np", { &storage_.address_[destination_register].full }, !is_byte_access));
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nrd np", { &storage_.address_[destination_register].full }, !is_byte_access));
 									if(mode == 0x3) {
 										op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::DestinationMask);
 									}
@@ -385,7 +395,7 @@ struct ProcessorStorageConstructor {
 								case 0x102:	// CMPI.l #, (An)
 								case 0x103:	// CMPI.l #, (An)+
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("np"));
-									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nR nr np", { &storage_.effective_address_[1].full }));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nRd nrd np", { &storage_.effective_address_[1].full }));
 									if(mode == 0x103) {
 										op(int(Action::Increment4) | MicroOp::DestinationMask);
 									}
@@ -394,14 +404,14 @@ struct ProcessorStorageConstructor {
 
 								case 0x004:	// CMPI.bw #, -(An)
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np n"));
-									op(int(is_byte_access ? Action::Decrement1 : Action::Decrement1) | MicroOp::DestinationMask, seq("nr np", { &storage_.address_[destination_register].full }));
+									op(int(is_byte_access ? Action::Decrement1 : Action::Decrement1) | MicroOp::DestinationMask, seq("nrd np", { &storage_.address_[destination_register].full }));
 									op(Action::PerformOperation);
 								break;
 
 								case 0x104:	// CMPI.l #, -(An)
 									op(int(Action::Decrement4) | MicroOp::DestinationMask, seq("np"));
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np n"));
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nR nr np", { &storage_.effective_address_[1].full }));
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd nrd np", { &storage_.effective_address_[1].full }));
 									op(Action::PerformOperation);
 								break;
 
@@ -411,7 +421,7 @@ struct ProcessorStorageConstructor {
 								case 0x006:	// CMPI.bw #, (d8, An, Xn)
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
-										seq(pseq("nr np", mode), { &storage_.effective_address_[1].full }, !is_byte_access));
+										seq(pseq("nrd np", mode), { &storage_.effective_address_[1].full }, !is_byte_access));
 									op(Action::PerformOperation);
 								break;
 
@@ -422,37 +432,72 @@ struct ProcessorStorageConstructor {
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("np"));
 									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
-										seq(pseq("np nR nr np", mode), { &storage_.effective_address_[1].full }));
+										seq(pseq("np nRd nrd np", mode), { &storage_.effective_address_[1].full }));
 									op(Action::PerformOperation);
 								break;
 
 								case 0x010:	// CMPI.bw #, (xxx).w
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nr np",  { &storage_.effective_address_[1].full }, !is_byte_access));
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nrd np",  { &storage_.effective_address_[1].full }, !is_byte_access));
 									op(Action::PerformOperation);
 								break;
 
 								case 0x110:	// CMPI.l #, (xxx).w
 									op(Action::None, seq("np"));
 									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nR nr np",  { &storage_.effective_address_[1].full }));
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nRd nrd np",  { &storage_.effective_address_[1].full }));
 									op(Action::PerformOperation);
 								break;
 
 								case 0x011:	// CMPI.bw #, (xxx).l
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nr np",  { &storage_.effective_address_[1].full }, !is_byte_access));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nrd np",  { &storage_.effective_address_[1].full }, !is_byte_access));
 									op(Action::PerformOperation);
 								break;
 
 								case 0x111:	// CMPI.l #, (xxx).l
 									op(Action::None, seq("np"));
 									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nR nr np",  { &storage_.effective_address_[1].full }));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nRd nrd np",  { &storage_.effective_address_[1].full }));
 									op(Action::PerformOperation);
 								break;
 
 								default: continue;
+							}
+						} break;
+
+						case Decoder::JMP: {
+							storage_.instructions[instruction].source = &storage_.effective_address_[0];
+							const int mode = combined_mode(source_mode, source_register);
+							switch(mode) {
+								default: continue;
+								case 0x02:	// JMP (An)
+									storage_.instructions[instruction].source = &storage_.address_[source_register];
+									op(Action::PerformOperation, seq("np np"));
+								break;
+
+								case 0x12:	// JMP (d16, PC)
+								case 0x05:	// JMP (d16, An)
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n np np", { &storage_.effective_address_[0].full }));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x13:	// JMP (d8, PC, Xn)
+								case 0x06:	// JMP (d8, An, Xn)
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n nn np np", { &storage_.effective_address_[0].full }));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x10:	// JMP (xxx).W
+									op(int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask);
+									op(Action::PerformOperation, seq("n np np"));
+								break;
+
+								case 0x11:	// JMP (xxx).L
+									op(Action::None, seq("np"));
+									op(int(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask);
+									op(Action::PerformOperation, seq("np np"));
+								break;
 							}
 						} break;
 
@@ -581,7 +626,7 @@ struct ProcessorStorageConstructor {
 								break;
 
 								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L
-									storage_.instructions[instruction].source = &storage_.bus_data_[0];
+									storage_.instructions[instruction].source = &storage_.source_bus_data_[0];
 								break;
 							}
 
@@ -595,7 +640,7 @@ struct ProcessorStorageConstructor {
 								break;
 
 								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L
-									storage_.instructions[instruction].destination = &storage_.bus_data_[1];
+									storage_.instructions[instruction].destination = &storage_.destination_bus_data_[0];
 								break;
 							}
 
@@ -1126,6 +1171,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::RESET:
+							storage_.instructions[instruction].requires_supervisor = true;
 							op(Action::None, seq("nn _ np"));
 						break;
 

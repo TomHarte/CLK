@@ -196,6 +196,11 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x80000000;
 								} break;
 
+								// JMP: copies the source to the program counter.
+								case Operation::JMP:
+									program_counter_.full = active_program_->source->full;
+								break;
+
 								/*
 									MOVE.b, MOVE.l and MOVE.w: move the least significant byte or word, or the entire long word,
 									and set negative, zero, overflow and carry as appropriate.
@@ -364,6 +369,19 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							}
 						break;
 
+						case int(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask:
+							effective_address_[0] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full;
+						break;
+
+						case int(MicroOp::Action::CalcD16PC) | MicroOp::DestinationMask:
+							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full;
+						break;
+
+						case int(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask | MicroOp::DestinationMask:
+							effective_address_[0] = int16_t(prefetch_queue_.halves.high.full) + program_counter_.full;
+							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full;
+						break;
+
 						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask:
 							effective_address_[0] = int16_t(prefetch_queue_.halves.low.full) + active_program_->source->full;
 						break;
@@ -422,19 +440,32 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 						case int(MicroOp::Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask:
 							// Assumption: this will be assembling right at the start of the instruction.
-							bus_data_[0] = prefetch_queue_.halves.low.full;
+							source_bus_data_[0] = prefetch_queue_.halves.low.full;
 						break;
 
 						case int(MicroOp::Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask:
-							bus_data_[1] = prefetch_queue_.halves.low.full;
+							destination_bus_data_[0] = prefetch_queue_.halves.low.full;
 						break;
 
 						case int(MicroOp::Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask:
-							bus_data_[0] = prefetch_queue_.full;
+							source_bus_data_[0] = prefetch_queue_.full;
 						break;
 
 						case int(MicroOp::Action::AssembleLongWordDataFromPrefetch) | MicroOp::DestinationMask:
-							 bus_data_[1] = prefetch_queue_.full;
+							destination_bus_data_[0] = prefetch_queue_.full;
+						break;
+
+						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::SourceMask:
+							effective_address_[0] = *active_program_->source;
+						break;
+
+						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::DestinationMask:
+							effective_address_[1] = *active_program_->destination;
+						break;
+
+						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::SourceMask | MicroOp::DestinationMask:
+							effective_address_[0] = *active_program_->source;
+							effective_address_[1] = *active_program_->destination;
 						break;
 					}
 
