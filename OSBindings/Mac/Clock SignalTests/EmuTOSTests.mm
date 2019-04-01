@@ -84,7 +84,7 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 
 - (void)setUp {
     // Put setup code here. This method is called before the invocation of each test method in the class.
-    const auto roms = CSROMFetcher()("AtariST", {"etos192uk.img"});
+    const auto roms = CSROMFetcher()("AtariST", {"tos100.img"});
     _machine.reset(new EmuTOS(*roms[0]));
 }
 
@@ -95,7 +95,7 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 - (void)testExample {
     // This is an example of a functional test case.
     // Use XCTAssert and related functions to verify your tests produce the correct results.
-    _machine->run_for(HalfCycles(400));
+    _machine->run_for(HalfCycles(4000));
 }
 
 @end
