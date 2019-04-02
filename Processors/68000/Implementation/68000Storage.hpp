@@ -45,7 +45,11 @@ class ProcessorStorage {
 		enum class Operation {
 			None,
 			ABCD,	SBCD,
-			ADD,	AND,	EOR,	OR,		SUB,
+
+			ADDb,	ADDw,	ADDl,
+			SUBb,	SUBw,	SUBl,
+			ADDAw,	ADDAl,
+			SUBAw,	SUBAl,
 
 			MOVEb,	MOVEw,	MOVEl,	MOVEq,
 			MOVEAw,	MOVEAl,
