@@ -401,33 +401,33 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						break;
 
 						case int(MicroOp::Action::Decrement1):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full -= 1;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full -= 1;
+							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full -= 1;
+							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full -= 1;
 						break;
 
 						case int(MicroOp::Action::Decrement2):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full -= 2;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full -= 2;
+							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full -= 2;
+							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full -= 2;
 						break;
 
 						case int(MicroOp::Action::Decrement4):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full -= 4;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full -= 4;
+							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full -= 4;
+							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full -= 4;
 						break;
 
 						case int(MicroOp::Action::Increment1):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full += 1;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full += 1;
+							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full += 1;
+							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full += 1;
 						break;
 
 						case int(MicroOp::Action::Increment2):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full += 2;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full += 2;
+							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full += 2;
+							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full += 2;
 						break;
 
 						case int(MicroOp::Action::Increment4):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source->full += 4;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination->full += 4;
+							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full += 4;
+							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full += 4;
 						break;
 
 						case int(MicroOp::Action::SignExtendWord):

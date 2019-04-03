@@ -129,18 +129,18 @@ class ProcessorStorage {
 					in deciding where to apply their actions.
 				*/
 
-				/// Subtracts 1.
+				/// Subtracts 1 from the [source/destination]_address.
 				Decrement1,
-				/// Subtracts 2.
+				/// Subtracts 2 from the [source/destination]_address.
 				Decrement2,
-				/// Subtracts 4.
+				/// Subtracts 4 from the [source/destination]_address.
 				Decrement4,
 
-				/// Adds 1.
+				/// Adds 1 from the [source/destination]_address.
 				Increment1,
-				/// Adds 2.
+				/// Adds 2 from the [source/destination]_address.
 				Increment2,
-				/// Adds 4.
+				/// Adds 4 from the [source/destination]_address.
 				Increment4,
 
 				/// Copies the source and/or destination to effective_address_.
@@ -209,10 +209,13 @@ class ProcessorStorage {
 			MicroOp *micro_operations = nullptr;
 			RegisterPair32 *source = nullptr;
 			RegisterPair32 *destination = nullptr;
+			RegisterPair32 *source_address = nullptr;
+			RegisterPair32 *destination_address = nullptr;
 			Operation operation;
 			bool requires_supervisor = false;
 
 			void set_source(ProcessorStorage &storage, int mode, int reg) {
+				source_address = &storage.address_[reg];
 				switch(mode) {
 					case 0:		source = &storage.data_[reg];			break;
 					case 1:		source = &storage.address_[reg];		break;
@@ -221,6 +224,7 @@ class ProcessorStorage {
 			}
 
 			void set_destination(ProcessorStorage &storage, int mode, int reg) {
+				destination_address = &storage.address_[reg];
 				switch(mode) {
 					case 0:		destination = &storage.data_[reg];					break;
 					case 1:		destination = &storage.address_[reg];				break;
