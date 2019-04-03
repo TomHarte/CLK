@@ -502,7 +502,7 @@ struct ProcessorStorageConstructor {
 //										if(mode == 0x03) {
 //											op(int(Action::Increment4) | MicroOp::DestinationMask);
 //										}
-									break;
+									continue;
 
 									case 0x004:	// ADD/SUB.bw Dn, -(An)
 //										op(	int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::SourceMask,
@@ -859,7 +859,7 @@ struct ProcessorStorageConstructor {
 
 								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L
 									storage_.instructions[instruction].source = &storage_.source_bus_data_[0];
-									storage_.instructions[instruction].source_address = &storage_.source_bus_data_[source_register];
+									storage_.instructions[instruction].source_address = &storage_.address_[source_register];
 								break;
 							}
 
@@ -874,7 +874,7 @@ struct ProcessorStorageConstructor {
 
 								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L
 									storage_.instructions[instruction].destination = &storage_.destination_bus_data_[0];
-									storage_.instructions[instruction].destination = &storage_.source_bus_data_[destination_register];
+									storage_.instructions[instruction].destination = &storage_.address_[destination_register];
 								break;
 							}
 
