@@ -595,6 +595,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 				case BusStep::Action::IncrementEffectiveAddress0:	effective_address_[0].full += 2;	break;
 				case BusStep::Action::IncrementEffectiveAddress1:	effective_address_[1].full += 2;	break;
+				case BusStep::Action::DecrementEffectiveAddress0:	effective_address_[0].full -= 2;	break;
+				case BusStep::Action::DecrementEffectiveAddress1:	effective_address_[1].full -= 2;	break;
 				case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;			break;
 
 				case BusStep::Action::AdvancePrefetch:

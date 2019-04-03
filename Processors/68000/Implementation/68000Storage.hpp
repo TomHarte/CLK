@@ -76,6 +76,12 @@ class ProcessorStorage {
 				/// Performs effective_address_[1] += 2.
 				IncrementEffectiveAddress1,
 
+				/// Performs effective_address_[0] -= 2.
+				DecrementEffectiveAddress0,
+
+				/// Performs effective_address_[1] -= 2.
+				DecrementEffectiveAddress1,
+
 				/// Performs program_counter_ += 2.
 				IncrementProgramCounter,
 
