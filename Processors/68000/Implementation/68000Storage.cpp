@@ -265,6 +265,7 @@ struct ProcessorStorageConstructor {
 			RESET,						// no further decoding applied, performs reset cycle
 			JMP,						// six lowest bits are [mode, register], decoding to JMP
 			ADDSUB,
+			ADDASUBA,
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -326,8 +327,10 @@ struct ProcessorStorageConstructor {
 			{0xf0c0, 0xd040, Operation::ADDw, Decoder::ADDSUB},	// 4-4 (p108)
 			{0xf0c0, 0xd080, Operation::ADDl, Decoder::ADDSUB},	// 4-4 (p108)
 
-//			{0xf1c0, 0xd0c0, Operation::ADDAw, Decoder::ADDSUB},	// 4-7 (p111)
-//			{0xf1c0, 0xd1c0, Operation::ADDAl, Decoder::ADDSUB},	// 4-7 (p111)
+			{0xf1c0, 0xd0c0, Operation::ADDAw, Decoder::ADDASUBA},	// 4-7 (p111)
+			{0xf1c0, 0xd1c0, Operation::ADDAl, Decoder::ADDASUBA},	// 4-7 (p111)
+			{0xf1c0, 0x90c0, Operation::SUBAw, Decoder::ADDASUBA},	// 4-177 (p281)
+			{0xf1c0, 0x91c0, Operation::SUBAl, Decoder::ADDASUBA},	// 4-177 (p281)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -396,7 +399,7 @@ struct ProcessorStorageConstructor {
 									case 0x002:	// ADD/SUB.bw (An), Dn
 									case 0x003:	// ADD/SUB.bw (An)+, Dn
 										op(Action::None, seq("nr np", { a(source_register) }, !is_byte_access));
-										if(mode == 0x03) {
+										if(source_mode == 0x03) {
 											op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::SourceMask);
 										}
 										op(Action::PerformOperation);
@@ -406,7 +409,7 @@ struct ProcessorStorageConstructor {
 									case 0x103:	// ADD/SUB.l (An)+, Dn
 										op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask,
 											seq("nR+ nr np n", { ea(0), ea(0) }));
-										if(mode == 0x03) {
+										if(source_mode == 0x03) {
 											op(int(Action::Increment4) | MicroOp::SourceMask);
 										}
 										op(Action::PerformOperation);
@@ -476,7 +479,7 @@ struct ProcessorStorageConstructor {
 
 									case 0x114:	// ADD/SUB.l #, Dn
 										op(Action::None, seq("np"));
-										op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np nn"));
+										op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np nn"));
 										op(Action::PerformOperation);
 									break;
 								}
@@ -495,7 +498,7 @@ struct ProcessorStorageConstructor {
 									case 0x003:	// ADD/SUB.bw Dn, (An)+
 										op(Action::None, seq("nrd np", { a(destination_register) }, !is_byte_access));
 										op(Action::PerformOperation, seq("nw", { a(destination_register) }, !is_byte_access));
-										if(mode == 0x03) {
+										if(source_mode == 0x03) {
 											op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::DestinationMask);
 										}
 									break;
@@ -504,7 +507,7 @@ struct ProcessorStorageConstructor {
 									case 0x103:	// ADD/SUB.l Dn, (An)+
 										op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd np", { ea(1), ea(1) }));
 										op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
-										if(mode == 0x03) {
+										if(source_mode == 0x03) {
 											op(int(Action::Increment4) | MicroOp::DestinationMask);
 										}
 									break;
@@ -521,6 +524,20 @@ struct ProcessorStorageConstructor {
 											seq("n nRd+ nrd np", { ea(1), ea(1) }));
 										op(	Action::PerformOperation,
 											seq("nw- nW", { ea(1), ea(1) }));
+									break;
+
+									case 0x005:	// ADD/SUB.bw (d16, An), Dn
+									case 0x006:	// ADD/SUB.bw (d8, An, Xn), Dn
+										op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
+											seq(pseq("np nrd np", mode), { ea(1) }, !is_byte_access));
+										op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
+									break;
+
+									case 0x105:	// ADD/SUB.l (d16, An), Dn
+									case 0x106:	// ADD/SUB.l (d8, An, Xn), Dn
+										op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
+											seq(pseq("np nRd+ nrd np", mode), { ea(1), ea(1) }));
+										op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
 									break;
 
 									case 0x010:	// ADD/SUB.bw Dn, (xxx).w
@@ -550,21 +567,111 @@ struct ProcessorStorageConstructor {
 										op(	Action::PerformOperation,
 											seq("nw- nW", { ea(1), ea(1) }));
 									break;
-
-									case 0x005:	// ADD/SUB.bw (d16, An), Dn
-									case 0x006:	// ADD/SUB.bw (d8, An, Xn), Dn
-										op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
-											seq(pseq("np nrd np", mode), { ea(1) }, !is_byte_access));
-										op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
-									break;
-
-									case 0x105:	// ADD/SUB.l (d16, An), Dn
-									case 0x106:	// ADD/SUB.l (d8, An, Xn), Dn
-										op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
-											seq(pseq("np nRd+ nrd np", mode), { ea(1), ea(1) }));
-										op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
-									break;
 								}
+							}
+						} break;
+
+						case Decoder::ADDASUBA: {
+							const int destination_register = (instruction >> 9) & 7;
+							storage_.instructions[instruction].set_destination(storage_, 1, destination_register);
+							storage_.instructions[instruction].set_source(storage_, source_mode, source_register);
+
+							const int mode = combined_mode(source_mode, source_register);
+							const bool is_long_word_access = !((instruction >> 8)&1);
+
+							switch(mode | (is_long_word_access ? 0x100 : 0x000)) {
+								default: continue;
+
+								case 0x000:	// ADDA/SUBA.w Dn, An
+								case 0x100:	// ADDA/SUBA.l Dn, An
+									op(Action::PerformOperation, seq("np nn"));
+								break;
+
+								case 0x001:	// ADDA/SUBA.w An, An
+								case 0x101:	// ADDA/SUBA.l An, An
+									op(Action::PerformOperation, seq("np nn"));
+								break;
+
+								case 0x002:	// ADDA/SUBA.w (An), An
+								case 0x003:	// ADDA/SUBA.w (An)+, An
+									op(Action::None, seq("nr np nn", { a(source_register) }));
+									if(source_mode == 0x03) {
+										op(int(Action::Increment2) | MicroOp::SourceMask);
+									}
+									op(Action::PerformOperation);
+								break;
+
+								case 0x102:	// ADDA/SUBA.l (An), An
+								case 0x103:	// ADDA/SUBA.l (An)+, An
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr np n", { ea(0), ea(0) }));
+									if(source_mode == 0x03) {
+										op(int(Action::Increment4) | MicroOp::SourceMask);
+									}
+									op(Action::PerformOperation);
+								break;
+
+								case 0x004:	// ADDA/SUBA.w -(An), An
+									op(int(Action::Decrement2) | MicroOp::SourceMask);
+									op(Action::None, seq("n nr np nn", { a(source_register) }));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x104:	// ADDA/SUBA.l -(An), An
+									op(int(Action::Decrement4) | MicroOp::SourceMask);
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("n nR+ nr np n", { ea(0), ea(0) }));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x005:	// ADDA/SUBA.w (d16, An), An
+								case 0x006:	// ADDA/SUBA.w (d8, An, Xn), An
+									op(	calc_action_for_mode(mode) | MicroOp::SourceMask,
+										seq(pseq("np nr np nn", mode), { ea(1) }));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x105:	// ADDA/SUBA.l (d16, An), An
+								case 0x106:	// ADDA/SUBA.l (d8, An, Xn), An
+									op(	calc_action_for_mode(mode) | MicroOp::SourceMask,
+										seq(pseq("np nR+ nr np n", mode), { ea(1), ea(1) }));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x010:	// ADDA/SUBA.w (xxx).w, An
+									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask,
+										seq("np nr np nn", { ea(1) }));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x110:	// ADDA/SUBA.l (xxx).w, An
+									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask,
+										seq("np nR+ nr np n", { ea(1), ea(1) }));
+									op(	Action::PerformOperation);
+								break;
+
+								case 0x011:	// ADDA/SUBA.w (xxx).l, An
+									op(Action::None, seq("np"));
+									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask,
+										seq("np nr np nn", { ea(1) }));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x111:	// ADDA/SUBA.l (xxx).l, An
+									op(Action::None, seq("np"));
+									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask,
+										seq("np nR+ nr np n", { ea(1), ea(1) }));
+									op(	Action::PerformOperation);
+								break;
+
+								case 0x014:	// ADDA/SUBA.w #, An
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np nn"));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x114:	// ADDA/SUBA.l #, Dn
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np nn"));
+									op(Action::PerformOperation);
+								break;
 							}
 						} break;
 
@@ -651,7 +758,7 @@ struct ProcessorStorageConstructor {
 
 								case 0x104:	// CMPI.l #, -(An)
 									op(int(Action::Decrement4) | MicroOp::DestinationMask, seq("np"));
-									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np n"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np n"));
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd np", { ea(1), ea(1) }));
 									op(Action::PerformOperation);
 								break;
