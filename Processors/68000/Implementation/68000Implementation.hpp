@@ -539,16 +539,16 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						break;
 
 						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::SourceMask:
-							effective_address_[0] = *active_program_->source;
+							effective_address_[0] = *active_program_->source_address;
 						break;
 
 						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::DestinationMask:
-							effective_address_[1] = *active_program_->destination;
+							effective_address_[1] = *active_program_->destination_address;
 						break;
 
 						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::SourceMask | MicroOp::DestinationMask:
-							effective_address_[0] = *active_program_->source;
-							effective_address_[1] = *active_program_->destination;
+							effective_address_[0] = *active_program_->source_address;
+							effective_address_[1] = *active_program_->destination_address;
 						break;
 					}
 
