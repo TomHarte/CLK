@@ -973,7 +973,7 @@ struct ProcessorStorageConstructor {
 									storage_.instructions[instruction].source = &storage_.address_[source_register];
 								break;
 
-								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L
+								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L, #
 									storage_.instructions[instruction].source = &storage_.source_bus_data_[0];
 									storage_.instructions[instruction].source_address = &storage_.address_[source_register];
 								break;
@@ -988,7 +988,7 @@ struct ProcessorStorageConstructor {
 									storage_.instructions[instruction].destination = &storage_.address_[destination_register];
 								break;
 
-								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L
+								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L, #
 									storage_.instructions[instruction].destination = &storage_.destination_bus_data_[0];
 									storage_.instructions[instruction].destination = &storage_.address_[destination_register];
 								break;
@@ -1344,29 +1344,32 @@ struct ProcessorStorageConstructor {
 							//
 							// MOVE <ea>, (d16, An)
 							// MOVE <ea>, (d8, An, Xn)
-							// MOVE <ea>, (d16, An)
-							// MOVE <ea>, (d16, An)
+							// MOVE <ea>, (d16, PC)
+							// MOVE <ea>, (d8, PC, Xn)
 							//
 
-								case 0x0005:	// MOVE Dn, (d16, An)
-									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np"));
+								case 0x0005:	// MOVE.bw Dn, (d16, An)
+								case 0x0006:	// MOVE.bw Dn, (d8, An, Xn)
+								case 0x0012:	// MOVE.bw Dn, (d16, PC)
+								case 0x0013:	// MOVE.bw Dn, (d8, PC, Xn)
+									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq(pseq("np", destination_mode)));
 									op(Action::PerformOperation, seq("nw np", { ea(1) }));
 								break;
 
-								case 0x0006:	// MOVE Dn, (d8, An, Xn)
-									op(int(Action::CalcD8AnXn) | MicroOp::DestinationMask, seq("n np"));
-									op(Action::PerformOperation, seq("nw np", { ea(1) }));
+								case 0x0205:	// MOVE.bw (An), (d16, An)
+								case 0x0305:	// MOVE.bw (An)+, (d16, An)
+								case 0x0206:	// MOVE.bw (An), (d8, An, Xn)
+								case 0x0306:	// MOVE.bw (An)+, (d8, An, Xn)
+								case 0x0212:	// MOVE.bw (An), (d16, PC)
+								case 0x0312:	// MOVE.bw (An)+, (d16, PC)
+								case 0x0213:	// MOVE.bw (An), (d8, PC, Xn)
+								case 0x0313:	// MOVE.bw (An)+, (d8, PC, Xn)
+									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq("nr", { &storage_.address_[source_register].full }, !is_byte_access));
+									op(Action::PerformOperation, seq(pseq("np nw np", destination_mode), { ea(1) }, !is_byte_access));
+									if(source_mode == 0x03) {
+										op(increment_action | MicroOp::SourceMask);
+									}
 								break;
-
-								case 0x0205:	// MOVE (An), (d16, An)
-								case 0x0305:	// MOVE (An)+, (d16, An)
-									// nr np nw np
-								continue;
-
-								case 0x0206:	// MOVE (An), (d8, An, Xn)
-								case 0x0306:	// MOVE (An)+, (d8, An, Xn)
-									// nr n np nw np
-								continue;
 
 								case 0x0405:	// MOVE -(An), (d16, An)
 									// n nr np nw
@@ -1395,6 +1398,15 @@ struct ProcessorStorageConstructor {
 								case 0x1006:	// MOVE (xxx).W, (d8, An, Xn)
 									// np nr n np nw np
 								continue;
+
+								case 0x1405:	// MOVE.bw #, (d16, An)
+								case 0x1406:	// MOVE.bw #, (d8, An, Xn)
+								case 0x1412:	// MOVE.bw #, (d16, PC)
+								case 0x1413:	// MOVE.bw #, (d8, PC, Xn)
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq(pseq("np nw np", destination_mode), { ea(1) }, !is_byte_access ));
+									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsl);
+								break;
 
 							//
 							// MOVE <ea>, (xxx).W
