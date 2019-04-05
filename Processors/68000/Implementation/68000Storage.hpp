@@ -57,8 +57,9 @@ class ProcessorStorage {
 			MOVEtoSR, MOVEfromSR,
 
 			CMPb,	CMPw,	CMPl,
+			BTSTb,	BTSTl,
 
-			BRA,	Bcc,	JMP
+			BRA,	Bcc,	JMP,
 		};
 
 		/*!

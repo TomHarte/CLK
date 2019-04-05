@@ -266,6 +266,8 @@ struct ProcessorStorageConstructor {
 			JMP,						// six lowest bits are [mode, register], decoding to JMP
 			ADDSUB,
 			ADDASUBA,
+			BTST,						// bit 9,10,11 are register, six lowest bits are [mode, register], decoding to BTST
+			BTSTIMM,					// six lowest bits are [mode, register], decoding to BTST #
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -331,6 +333,9 @@ struct ProcessorStorageConstructor {
 			{0xf1c0, 0xd1c0, Operation::ADDAl, Decoder::ADDASUBA},	// 4-7 (p111)
 			{0xf1c0, 0x90c0, Operation::SUBAw, Decoder::ADDASUBA},	// 4-177 (p281)
 			{0xf1c0, 0x91c0, Operation::SUBAl, Decoder::ADDASUBA},	// 4-177 (p281)
+
+			{0xf1c0, 0x0100, Operation::BTSTb, Decoder::BTST},		// 4-62 (p166)
+			{0xffc0, 0x0800, Operation::BTSTb, Decoder::BTSTIMM},	// 4-63 (p167)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -684,6 +689,114 @@ struct ProcessorStorageConstructor {
 						// A little artificial, there's nothing really to decode for BRA.
 						case Decoder::BRA: {
 							op(Action::PerformOperation, seq("n np np"));
+						} break;
+
+						// Decodes a BTST, potential mutating the operation into a BTSTl.
+						case Decoder::BTST: {
+							const int mask_register = (instruction >> 9) & 7;
+							storage_.instructions[instruction].set_source(storage_, 0, mask_register);
+							storage_.instructions[instruction].set_destination(storage_, source_mode, source_register);
+
+							const int mode = combined_mode(source_mode, source_register);
+							switch(mode) {
+								default: continue;
+
+								case 0x00:	// BTST.l Dn, Dn
+									operation = Operation::BTSTl;
+									op(Action::PerformOperation, seq("np n"));
+								break;
+
+								case 0x02:	// BTST.b Dn, (An)
+								case 0x03:	// BTST.b Dn, (An)+
+									op(Action::None, seq("nrd np", { &storage_.data_[source_register].full }, false));
+									op(Action::PerformOperation);
+									if(mode == 0x03) {
+										op(int(Action::Increment1) | MicroOp::DestinationMask);
+									}
+								break;
+
+								case 0x04:	// BTST.b Dn, -(An)
+									op(int(Action::Decrement1) | MicroOp::DestinationMask, seq("n nrd np", { &storage_.data_[source_register].full }, false));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x05:	// BTST.b Dn, (d16, An)
+								case 0x06:	// BTST.b Dn, (d8, An, Xn)
+								case 0x12:	// BTST.b Dn, (d16, PC)
+								case 0x13:	// BTST.b Dn, (d8, PC, Xn)
+									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
+										seq(pseq("np nrd np", mode), { ea(1) }, false));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x10:	// BTST.b Dn, (xxx).w
+									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nrd np", { ea(1) }, false));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x11:	// BTST.b Dn, (xxx).l
+									op(Action::None, seq("np"));
+									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nrd np", { ea(1) }, false));
+									op(Action::PerformOperation);
+								break;
+							}
+						} break;
+
+						case Decoder::BTSTIMM: {
+							storage_.instructions[instruction].source = &storage_.source_bus_data_[0];
+							storage_.instructions[instruction].set_destination(storage_, source_mode, source_register);
+
+							const int mode = combined_mode(source_mode, source_register);
+							switch(mode) {
+								default: continue;
+
+								case 0x00:	// BTST.l #, Dn
+									operation = Operation::BTSTl;
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np n"));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x02:	// BTST.b #, (An)
+								case 0x03:	// BTST.b #, (An)+
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nrd np", { &storage_.data_[source_register].full }, false));
+									op(Action::PerformOperation);
+									if(mode == 0x03) {
+										op(int(Action::Increment1) | MicroOp::DestinationMask);
+									}
+								break;
+
+								case 0x04:	// BTST.b #, -(An)
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(int(Action::Decrement1) | MicroOp::DestinationMask, seq("n nrd np", { &storage_.data_[source_register].full }, false));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x05:	// BTST.b #, (d16, An)
+								case 0x06:	// BTST.b #, (d8, An, Xn)
+								case 0x12:	// BTST.b #, (d16, PC)
+								case 0x13:	// BTST.b #, (d8, PC, Xn)
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
+										seq(pseq("np nrd np", mode), { ea(1) }, false));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x10:	// BTST.b #, (xxx).w
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nrd np", { ea(1) }, false));
+									op(Action::PerformOperation);
+								break;
+
+								case 0x11:	// BTST.b #, (xxx).l
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
+									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nrd np", { ea(1) }, false));
+									op(Action::PerformOperation);
+								break;
+							}
 						} break;
 
 						// Decodes the format used by ABCD and SBCD.

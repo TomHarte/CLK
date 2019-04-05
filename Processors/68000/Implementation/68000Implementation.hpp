@@ -147,6 +147,16 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									}
 								} break;
 
+								// Two BTSTs: set the zero flag according to the value of the destination masked by
+								// the bit named in the source modulo the operation size.
+								case Operation::BTSTb:
+									zero_result_ = active_program_->destination->full & (1 << (active_program_->source->full & 7));
+								break;
+
+								case Operation::BTSTl:
+									zero_result_ = active_program_->destination->full & (1 << (active_program_->source->full & 31));
+								break;
+
 								// Bcc: evaluates the relevant condition and displacement size and then:
 								//	if condition is false, schedules bus operations to get past this instruction;
 								//	otherwise applies the offset and schedules bus operations to refill the prefetch queue.
