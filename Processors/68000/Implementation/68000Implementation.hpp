@@ -141,10 +141,11 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									// A non-zero offset byte branches by just that amount; otherwise use the word
 									// after as an offset. In both cases, treat as signed.
 									if(byte_offset) {
-										program_counter_.full = (program_counter_.full + byte_offset) - 2;
+										program_counter_.full = (program_counter_.full + byte_offset);
 									} else {
 										program_counter_.full += int16_t(prefetch_queue_.halves.low.full);
 									}
+									program_counter_.full -= 2;
 								} break;
 
 								// Two BTSTs: set the zero flag according to the value of the destination masked by
@@ -197,10 +198,11 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									// Schedule something appropriate, by rewriting the program for this instruction temporarily.
 									if(should_branch) {
 										if(byte_offset) {
-											program_counter_.full = (program_counter_.full + byte_offset) - 2;	// - 2 because this should be calculated from the high word of the prefetch.
+											program_counter_.full = (program_counter_.full + byte_offset);
 										} else {
 											program_counter_.full += int16_t(prefetch_queue_.halves.low.full);
 										}
+										program_counter_.full -= 2;
 										active_micro_op_->bus_program = branch_taken_bus_steps_;
 									} else {
 										if(byte_offset) {
@@ -462,17 +464,23 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							}
 						break;
 
+						// 16-bit offset addressing modes.
+
 						case int(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask:
-							effective_address_[0] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full;
+							// The address the low part of the prefetch queue was read from was two bytes ago, hence
+							// the subtraction of 2.
+							effective_address_[0] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
 						case int(MicroOp::Action::CalcD16PC) | MicroOp::DestinationMask:
-							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full;
+							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
 						case int(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask | MicroOp::DestinationMask:
-							effective_address_[0] = int16_t(prefetch_queue_.halves.high.full) + program_counter_.full;
-							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full;
+							// Similar logic applies here to above, but the high part of the prefetch queue was four bytes
+							// ago rather than merely two.
+							effective_address_[0] = int16_t(prefetch_queue_.halves.high.full) + program_counter_.full - 4;
+							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask:
@@ -491,7 +499,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 #define CalculateD8AnXn(data, source, target)	{\
 	const auto register_index = (data.full >> 12) & 7;	\
 	const RegisterPair32 &displacement = (data.full & 0x8000) ? address_[register_index] : data_[register_index];	\
-	target.full = int8_t(data.halves.low) + source->full;	\
+	target.full = int8_t(data.halves.low) + source;	\
 \
 	if(data.full & 0x800) {	\
 		target.full += displacement.halves.low.full;	\
@@ -500,16 +508,29 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 	}	\
 }
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask: {
-							CalculateD8AnXn(prefetch_queue_.halves.low, active_program_->source, effective_address_[0]);
+							CalculateD8AnXn(prefetch_queue_.halves.low, active_program_->source->full, effective_address_[0]);
 						} break;
 
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::DestinationMask: {
-							CalculateD8AnXn(prefetch_queue_.halves.low, active_program_->destination, effective_address_[1]);
+							CalculateD8AnXn(prefetch_queue_.halves.low, active_program_->destination->full, effective_address_[1]);
 						} break;
 
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask | MicroOp::DestinationMask: {
-							CalculateD8AnXn(prefetch_queue_.halves.high, active_program_->source, effective_address_[0]);
-							CalculateD8AnXn(prefetch_queue_.halves.low, active_program_->destination, effective_address_[1]);
+							CalculateD8AnXn(prefetch_queue_.halves.high, active_program_->source->full, effective_address_[0]);
+							CalculateD8AnXn(prefetch_queue_.halves.low, active_program_->destination->full, effective_address_[1]);
+						} break;
+
+						case int(MicroOp::Action::CalcD8PCXn) | MicroOp::SourceMask: {
+							CalculateD8AnXn(prefetch_queue_.halves.low, program_counter_.full - 2, effective_address_[0]);
+						} break;
+
+						case int(MicroOp::Action::CalcD8PCXn) | MicroOp::DestinationMask: {
+							CalculateD8AnXn(prefetch_queue_.halves.low, program_counter_.full - 2, effective_address_[1]);
+						} break;
+
+						case int(MicroOp::Action::CalcD8PCXn) | MicroOp::SourceMask | MicroOp::DestinationMask: {
+							CalculateD8AnXn(prefetch_queue_.halves.high, program_counter_.full - 4, effective_address_[0]);
+							CalculateD8AnXn(prefetch_queue_.halves.low, program_counter_.full - 2, effective_address_[1]);
 						} break;
 
 #undef CalculateD8AnXn
