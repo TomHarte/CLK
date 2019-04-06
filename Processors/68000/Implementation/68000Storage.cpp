@@ -1220,7 +1220,7 @@ struct ProcessorStorageConstructor {
 
 								default: // (An), (An)+, -(An), (d16, An), (d8, An Xn), (xxx).W, (xxx).L, #
 									storage_.instructions[instruction].destination = &storage_.destination_bus_data_[0];
-									storage_.instructions[instruction].destination = &storage_.address_[destination_register];
+									storage_.instructions[instruction].destination_address = &storage_.address_[destination_register];
 								break;
 							}
 
