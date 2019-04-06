@@ -26,7 +26,7 @@
 	extend_flag_		= (x) & 0x0010;	\
 	interrupt_level_ 	= ((x) >> 8) & 7;	\
 	trace_flag_			= (x) & 0x8000;	\
-	is_supervisor_		= ((x) >> 13) & 1;
+	set_is_supervisor(!!(((x) >> 13) & 1));
 
 template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>::run_for(HalfCycles duration) {
 	HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
