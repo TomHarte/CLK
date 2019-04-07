@@ -827,8 +827,8 @@ struct ProcessorStorageConstructor {
 						case Decoder::CMP: {
 							const auto source_register = (instruction >> 9) & 7;
 
-							storage_.instructions[instruction].source = &storage_.data_[source_register];
-							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
+							storage_.instructions[instruction].destination = &storage_.data_[source_register];
+							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 
 							const bool is_long_word_access = mapping.operation == Operation::CMPl;
 							const bool is_byte_access = mapping.operation == Operation::CMPb;
