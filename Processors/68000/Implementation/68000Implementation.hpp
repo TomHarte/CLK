@@ -166,34 +166,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									const int8_t byte_offset = int8_t(prefetch_queue_.halves.high.halves.low);
 
 									// Test the conditional.
-									bool should_branch;
-									switch(prefetch_queue_.halves.high.halves.high & 0xf) {
-										default:
-										case 0x00:	should_branch = true;							break;		// true
-										case 0x01:	should_branch = false;							break;		// false
-										case 0x02:	should_branch = zero_result_ && !carry_flag_;	break;		// high
-										case 0x03:	should_branch = !zero_result_ || carry_flag_;	break;		// low or same
-										case 0x04:	should_branch = !carry_flag_;					break;		// carry clear
-										case 0x05:	should_branch = carry_flag_;					break;		// carry set
-										case 0x06:	should_branch = zero_result_;					break;		// not equal
-										case 0x07:	should_branch = !zero_result_;					break;		// equal
-										case 0x08:	should_branch = !overflow_flag_;				break;		// overflow clear
-										case 0x09:	should_branch = overflow_flag_;					break;		// overflow set
-										case 0x0a:	should_branch = !negative_flag_;				break;		// positive
-										case 0x0b:	should_branch = negative_flag_;					break;		// negative
-										case 0x0c:
-											should_branch = (negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_);
-										break;		// greater than or equal
-										case 0x0d:
-											should_branch = (negative_flag_ || !overflow_flag_) && (!negative_flag_ || overflow_flag_);
-										break;		// less than
-										case 0x0e:
-											should_branch = zero_result_ && ((negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_));
-										break;		// greater than
-										case 0x0f:
-											should_branch = (!zero_result_ || negative_flag_) && (!overflow_flag_ || !negative_flag_) && overflow_flag_;
-										break;		// less than or equal
-									}
+									const bool should_branch = evaluate_condition(prefetch_queue_.halves.high.halves.high);
 
 									// Schedule something appropriate, by rewriting the program for this instruction temporarily.
 									if(should_branch) {
@@ -210,6 +183,30 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 										} else {
 											active_micro_op_->bus_program = branch_word_not_taken_bus_steps_;
 										}
+									}
+								} break;
+
+								case Operation::DBcc: {
+									// Decide what sort of DBcc this is.
+									if(!evaluate_condition(prefetch_queue_.halves.high.halves.high)) {
+										-- active_program_->source->halves.low.full;
+										const auto target_program_counter = program_counter_.full + int16_t(prefetch_queue_.halves.low.full) - 2;
+
+										if(active_program_->source->halves.low.full == 0xffff) {
+											// This DBcc will be ignored as the counter has underflowed.
+											// Schedule n np np np and continue. Assumed: the first np
+											// is from where the branch would have been if taken?
+											active_micro_op_->bus_program = dbcc_condition_false_no_branch_steps_;
+											dbcc_false_address_ = target_program_counter;
+										} else {
+											// Take the branch. Change PC and schedule n np np.
+											active_micro_op_->bus_program = dbcc_condition_false_branch_steps_;
+											program_counter_.full = target_program_counter;
+										}
+									} else {
+										// This DBcc will be ignored as the condition is true;
+										// perform nn np np and continue.
+										active_micro_op_->bus_program = dbcc_condition_true_steps_;
 									}
 								} break;
 
@@ -412,35 +409,23 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							overflow_flag_ = carry_flag_ = 0;
 						break;
 
-						case int(MicroOp::Action::Decrement1):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full -= 1;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full -= 1;
-						break;
+						// Increments and decrements.
+#define Adjust(op, quantity)	\
+	case int(op) | MicroOp::SourceMask:			active_program_->source_address->full += quantity;		break;	\
+	case int(op) | MicroOp::DestinationMask:	active_program_->destination_address->full += quantity;	break;	\
+	case int(op) | MicroOp::SourceMask | MicroOp::DestinationMask:	\
+		active_program_->destination_address->full += quantity;	\
+		active_program_->source_address->full += quantity;	\
+	break;
 
-						case int(MicroOp::Action::Decrement2):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full -= 2;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full -= 2;
-						break;
+						Adjust(MicroOp::Action::Decrement1, -1);
+						Adjust(MicroOp::Action::Decrement2, -2);
+						Adjust(MicroOp::Action::Decrement4, -4);
+						Adjust(MicroOp::Action::Increment1, 1);
+						Adjust(MicroOp::Action::Increment2, 2);
+						Adjust(MicroOp::Action::Increment4, 4);
 
-						case int(MicroOp::Action::Decrement4):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full -= 4;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full -= 4;
-						break;
-
-						case int(MicroOp::Action::Increment1):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full += 1;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full += 1;
-						break;
-
-						case int(MicroOp::Action::Increment2):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full += 2;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full += 2;
-						break;
-
-						case int(MicroOp::Action::Increment4):
-							if(active_micro_op_->action & MicroOp::SourceMask)		active_program_->source_address->full += 4;
-							if(active_micro_op_->action & MicroOp::DestinationMask)	active_program_->destination_address->full += 4;
-						break;
+#undef Adjust
 
 						case int(MicroOp::Action::SignExtendWord):
 							if(active_micro_op_->action & MicroOp::SourceMask) {

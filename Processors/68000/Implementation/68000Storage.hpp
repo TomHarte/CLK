@@ -59,7 +59,9 @@ class ProcessorStorage {
 			CMPb,	CMPw,	CMPl,
 			BTSTb,	BTSTl,
 
-			BRA,	Bcc,	JMP,
+			JMP,
+			BRA,	Bcc,
+			DBcc,
 		};
 
 		/*!
@@ -187,7 +189,7 @@ class ProcessorStorage {
 				AssembleLongWordAddressFromPrefetch,
 
 				/// Copies the next two prefetch words into one of the bus_data_.
-				AssembleLongWordDataFromPrefetch
+				AssembleLongWordDataFromPrefetch,
 			};
 			static const int SourceMask = 1 << 30;
 			static const int DestinationMask = 1 << 29;
@@ -251,10 +253,15 @@ class ProcessorStorage {
 		// Special steps for exception handlers.
 		BusStep *reset_bus_steps_;
 
-		// Special micro-op sequences for conditionals.
+		// Special micro-op sequences and storage for conditionals.
 		BusStep *branch_taken_bus_steps_;
 		BusStep *branch_byte_not_taken_bus_steps_;
 		BusStep *branch_word_not_taken_bus_steps_;
+
+		uint32_t dbcc_false_address_;
+		BusStep *dbcc_condition_true_steps_;
+		BusStep *dbcc_condition_false_no_branch_steps_;
+		BusStep *dbcc_condition_false_branch_steps_;
 
 		// Current bus step pointer, and outer program pointer.
 		Program *active_program_ = nullptr;
@@ -266,6 +273,33 @@ class ProcessorStorage {
 
 		/// Sets or clears the supervisor flag, ensuring the stack pointer is properly updated.
 		void set_is_supervisor(bool);
+
+		inline bool evaluate_condition(uint8_t code) {
+			switch(code & 0xf) {
+				default:
+				case 0x00:	return true;							// true
+				case 0x01:	return false;							// false
+				case 0x02:	return zero_result_ && !carry_flag_;	// high
+				case 0x03:	return !zero_result_ || carry_flag_;	// low or same
+				case 0x04:	return !carry_flag_;					// carry clear
+				case 0x05:	return carry_flag_;						// carry set
+				case 0x06:	return zero_result_;					// not equal
+				case 0x07:	return !zero_result_;					// equal
+				case 0x08:	return !overflow_flag_;					// overflow clear
+				case 0x09:	return overflow_flag_;					// overflow set
+				case 0x0a:	return !negative_flag_;					// positive
+				case 0x0b:	return negative_flag_;					// negative
+				case 0x0c:	// greater than or equal
+					return (negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_);
+				case 0x0d:	// less than
+					return (negative_flag_ || !overflow_flag_) && (!negative_flag_ || overflow_flag_);
+				case 0x0e:	// greater than
+					return zero_result_ && ((negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_));
+				case 0x0f:	// less than or equal
+					return (!zero_result_ || negative_flag_) && (!overflow_flag_ || !negative_flag_) && overflow_flag_;
+			}
+		}
+
 
 	private:
 		friend class ProcessorStorageConstructor;

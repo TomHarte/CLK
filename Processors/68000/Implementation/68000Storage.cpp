@@ -269,6 +269,7 @@ struct ProcessorStorageConstructor {
 			BTST,						// bit 9,10,11 are register, six lowest bits are [mode, register], decoding to BTST
 			BTSTIMM,					// six lowest bits are [mode, register], decoding to BTST #
 			CMP,
+			DBcc,						// the low three bits nominate a register; everything else is decoded in real time
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -340,6 +341,8 @@ struct ProcessorStorageConstructor {
 
 			{0xf1c0, 0x0100, Operation::BTSTb, Decoder::BTST},		// 4-62 (p166)
 			{0xffc0, 0x0800, Operation::BTSTb, Decoder::BTSTIMM},	// 4-63 (p167)
+
+			{0xf0f8, 0x50c8, Operation::DBcc, Decoder::DBcc},		// 4-91 (p195)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -1042,6 +1045,15 @@ struct ProcessorStorageConstructor {
 
 								default: continue;
 							}
+						} break;
+
+						case Decoder::DBcc: {
+							storage_.instructions[instruction].source = &storage_.data_[ea_register];
+
+ 							// Jump straight into deciding what steps to take next,
+ 							// which will be selected dynamically.
+							op(Action::PerformOperation);
+							op();
 						} break;
 
 						case Decoder::JMP: {
@@ -1824,18 +1836,28 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 
 	// Create the special programs.
 	const size_t reset_offset = constructor.assemble_program("n n n n n nn nF nf nV nv np np");
+
 	const size_t branch_taken_offset = constructor.assemble_program("n np np");
 	const size_t branch_byte_not_taken_offset = constructor.assemble_program("nn np");
 	const size_t branch_word_not_taken_offset = constructor.assemble_program("nn np np");
+
+	const size_t dbcc_condition_true_offset = constructor.assemble_program("nn np np");
+	const size_t dbcc_condition_false_no_branch_offset = constructor.assemble_program("n nr np np", { &dbcc_false_address_ });
+	const size_t dbcc_condition_false_branch_offset = constructor.assemble_program("n np np");
 
 	// Install operations.
 	constructor.install_instructions();
 
 	// Realise the special programs as direct pointers.
 	reset_bus_steps_ = &all_bus_steps_[reset_offset];
+
 	branch_taken_bus_steps_ = &all_bus_steps_[branch_taken_offset];
 	branch_byte_not_taken_bus_steps_ = &all_bus_steps_[branch_byte_not_taken_offset];
 	branch_word_not_taken_bus_steps_ = &all_bus_steps_[branch_word_not_taken_offset];
+
+	dbcc_condition_true_steps_ = &all_bus_steps_[dbcc_condition_true_offset];
+	dbcc_condition_false_no_branch_steps_ = &all_bus_steps_[dbcc_condition_false_no_branch_offset];
+	dbcc_condition_false_branch_steps_ = &all_bus_steps_[dbcc_condition_false_branch_offset];
 
 	// Set initial state. Largely TODO.
 	active_step_ = reset_bus_steps_;
