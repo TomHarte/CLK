@@ -30,13 +30,15 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 		}
 
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
-			uint32_t word_address = cycle.word_address();
+			const uint32_t address = cycle.word_address();
+			uint32_t word_address = address;
 
 			// As much about the Atari ST's memory map as is relevant here: the ROM begins
 			// at 0xfc0000, and the first eight bytes are mirrored to the first four memory
 			// addresses in order for /RESET to work properly. RAM otherwise fills the first
 			// 512kb of the address space. Trying to write to ROM raises a bus error.
 
+			const bool is_peripheral = word_address > (0xff0000 >> 1);
 			const bool is_rom = word_address > (0xfc0000 >> 1) || word_address < 4;
 			uint16_t *const base = is_rom ? emuTOS_.data() : ram_.data();
 			if(is_rom) {
@@ -47,14 +49,32 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 
 			using Microcycle = CPU::MC68000::Microcycle;
 			if(cycle.data_select_active()) {
+				uint16_t peripheral_result = 0xffff;
+				if(is_peripheral) {
+					switch(address & 0x7ff) {
+						// A hard-coded value for TIMER B.
+						case (0xa21 >> 1):
+							peripheral_result = 0x00000001;
+						break;
+					}
+					printf("Peripheral: %c %08x", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address);
+					if(!(cycle.operation & Microcycle::Read)) {
+						if(cycle.operation & Microcycle::SelectByte)
+							printf(" %02x", cycle.value->halves.low);
+						else
+							printf(" %04x", cycle.value->full);
+					}
+					printf("\n");
+				}
+
 				switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 					default: break;
 
 					case Microcycle::SelectWord | Microcycle::Read:
-						cycle.value->full = base[word_address];
+						cycle.value->full = is_peripheral ? peripheral_result : base[word_address];
 					break;
 					case Microcycle::SelectByte | Microcycle::Read:
-						cycle.value->halves.low = base[word_address] >> cycle.byte_shift();
+						cycle.value->halves.low = (is_peripheral ? peripheral_result : base[word_address]) >> cycle.byte_shift();
 					break;
 					case Microcycle::SelectWord:
 						base[word_address] = cycle.value->full;
