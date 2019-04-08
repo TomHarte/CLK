@@ -55,6 +55,7 @@ class ProcessorStorage {
 			MOVEAw,	MOVEAl,
 
 			MOVEtoSR, MOVEfromSR,
+			MOVEtoCCR,
 
 			CMPb,	CMPw,	CMPl,
 			BTSTb,	BTSTl,

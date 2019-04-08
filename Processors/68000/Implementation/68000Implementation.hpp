@@ -6,24 +6,32 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#define get_status() \
+#define get_ccr() \
 	(	\
 		(carry_flag_ 	? 0x0001 : 0x0000) |	\
 		(overflow_flag_	? 0x0002 : 0x0000) |	\
 		(zero_result_	? 0x0000 : 0x0004) |	\
 		(negative_flag_	? 0x0008 : 0x0000) |	\
-		(extend_flag_	? 0x0010 : 0x0000) |	\
+		(extend_flag_	? 0x0010 : 0x0000)		\
+	)
+
+#define get_status() \
+	(	\
+		get_ccr() |	\
 		(interrupt_level_ << 8) |				\
 		(trace_flag_ 	? 0x8000 : 0x0000) |	\
 		(is_supervisor_ << 13)					\
 	)
 
-#define set_status(x) \
+#define set_ccr(x) \
 	carry_flag_			= (x) & 0x0001;	\
 	overflow_flag_		= (x) & 0x0002;	\
 	zero_result_		= ((x) & 0x0004) ^ 0x0004;	\
 	negative_flag_		= (x) & 0x0008;	\
-	extend_flag_		= (x) & 0x0010;	\
+	extend_flag_		= (x) & 0x0010;
+
+#define set_status(x) \
+	set_ccr(x)	\
 	interrupt_level_ 	= ((x) >> 8) & 7;	\
 	trace_flag_			= (x) & 0x8000;	\
 	set_is_supervisor(!!(((x) >> 13) & 1));
@@ -58,9 +66,6 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						active_micro_op_ = active_program_->micro_operations;
 					}
 
-#define sub_overflow() (source ^ destination) & (destination ^ result)
-#define add_overflow() ~(source ^ destination) & (destination ^ result)
-
 					switch(active_micro_op_->action) {
 						default:
 							std::cerr << "Unhandled 68000 micro op action " << std::hex << active_micro_op_->action << std::endl;
@@ -69,6 +74,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						case int(MicroOp::Action::None): break;
 
 						case int(MicroOp::Action::PerformOperation):
+#define sub_overflow() (source ^ destination) & (destination ^ result)
+#define add_overflow() ~(source ^ destination) & (destination ^ result)
 							switch(active_program_->operation) {
 								/*
 									ABCD adds the lowest bytes form the source and destination using BCD arithmetic,
@@ -332,6 +339,10 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									active_program_->source->halves.low.full = get_status();
 								break;
 
+								case Operation::MOVEtoCCR:
+									set_ccr(active_program_->source->full);
+								break;
+
 								/*
 									NEGs: negatives the destination, setting the zero,
 									negative, overflow and carry flags appropriate, and extend.
@@ -403,9 +414,9 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									const int source = 0;
 									const int destination = active_program_->destination->full;
 									int64_t result = source - destination - (extend_flag_ ? 1 : 0);
-									active_program_->destination->full = result;
+									active_program_->destination->full = uint32_t(result);
 
-									zero_result_ = result;
+									zero_result_ = uint_fast32_t(result);
 									extend_flag_ = carry_flag_ = result >> 32;
 									negative_flag_ = result & 0x80000000;
 									overflow_flag_ = sub_overflow() & 0x80000000;
@@ -456,7 +467,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ |= result & 0xff;
 									extend_flag_ = carry_flag_ = result & ~0xff;
 									negative_flag_ = result & 0x80;
-									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x80;
+									overflow_flag_ = sub_overflow() & 0x80;
 
 									// Store the result.
 									active_program_->destination->halves.low.halves.low = uint8_t(result);
@@ -470,7 +481,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ = active_program_->destination->halves.low.halves.low = uint8_t(result);
 									extend_flag_ = carry_flag_ = result & ~0xff;
 									negative_flag_ = result & 0x80;
-									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x80;
+									overflow_flag_ = sub_overflow() & 0x80;
 								} break;
 
 								case Operation::SUBw: {
@@ -481,7 +492,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ = active_program_->destination->halves.low.full = uint16_t(result);
 									extend_flag_ = carry_flag_ = result & ~0xffff;
 									negative_flag_ = result & 0x8000;
-									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x8000;
+									overflow_flag_ = sub_overflow() & 0x8000;
 								} break;
 
 								case Operation::SUBl: {
@@ -492,7 +503,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ = active_program_->destination->halves.low.full = uint32_t(result);
 									extend_flag_ = carry_flag_ = result >> 32;
 									negative_flag_ = result & 0x80000000;
-									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x80000000;
+									overflow_flag_ = sub_overflow() & 0x80000000;
 								} break;
 
 								case Operation::SUBAw:
@@ -510,6 +521,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									std::cerr << "Should do something with program operation " << int(active_program_->operation) << std::endl;
 								break;
 							}
+#undef sub_overflow
+#undef add_overflow
 						break;
 
 						case int(MicroOp::Action::SetMoveFlagsb):
@@ -775,3 +788,5 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 #undef get_status
 #undef set_status
+#undef set_ccr
+#undef get_ccr

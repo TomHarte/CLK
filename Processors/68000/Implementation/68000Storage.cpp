@@ -256,7 +256,7 @@ struct ProcessorStorageConstructor {
 		enum class Decoder {
 			Decimal,
 			MOVE,						// twelve lowest bits are register, mode, mode, register, for destination and source respectively.
-			MOVEtoSR,					// six lowest bits are [mode, register], decoding to MOVE SR
+			MOVEtoSRCCR,				// six lowest bits are [mode, register], decoding to MOVE SR/CCR
 			CMPI,						// eight lowest bits are [size, mode, register], decoding to CMPI
 			BRA,						// eight lowest bits are ignored, and an 'n np np' is scheduled
 			Bcc,						// twelve lowest bits are ignored, only a PerformAction is scheduled
@@ -309,7 +309,8 @@ struct ProcessorStorageConstructor {
 			{0xf000, 0x2000, Operation::MOVEl, Decoder::MOVE},	// 4-116 (p220)
 			{0xf000, 0x3000, Operation::MOVEw, Decoder::MOVE},	// 4-116 (p220)
 
-			{0xffc0, 0x46c0, Operation::MOVEtoSR, Decoder::MOVEtoSR},		// 6-19 (p473)
+			{0xffc0, 0x46c0, Operation::MOVEtoSR, Decoder::MOVEtoSRCCR},	// 6-19 (p473)
+			{0xffc0, 0x44c0, Operation::MOVEtoCCR, Decoder::MOVEtoSRCCR},	// 4-123 (p227)
 
 			{0xf1c0, 0xb000, Operation::CMPb, Decoder::CMP},	// 4-75 (p179)
 			{0xf1c0, 0xb040, Operation::CMPw, Decoder::CMP},	// 4-75 (p179)
@@ -1245,10 +1246,10 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
-						case Decoder::MOVEtoSR: {
+						case Decoder::MOVEtoSRCCR: {
 							if(ea_mode == 1) continue;
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
-							storage_.instructions[instruction].requires_supervisor = true;
+							storage_.instructions[instruction].requires_supervisor = (operation == Operation::MOVEtoSR);
 
 							/* DEVIATION FROM YACHT.TXT: it has all of these reading an extra word from the PC;
 							this looks like a mistake so I've padded with nil cycles in the middle. */
