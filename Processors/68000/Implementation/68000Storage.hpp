@@ -62,6 +62,11 @@ class ProcessorStorage {
 			JMP,
 			BRA,	Bcc,
 			DBcc,
+
+			CLRb, CLRw, CLRl,
+			NEGXb, NEGXw, NEGXl,
+			NEGb, NEGw, NEGl,
+			NOTb, NOTw, NOTl,
 		};
 
 		/*!

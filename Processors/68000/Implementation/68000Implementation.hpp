@@ -58,6 +58,9 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						active_micro_op_ = active_program_->micro_operations;
 					}
 
+#define sub_overflow() (source ^ destination) & (destination ^ result)
+#define add_overflow() ~(source ^ destination) & (destination ^ result)
+
 					switch(active_micro_op_->action) {
 						default:
 							std::cerr << "Unhandled 68000 micro op action " << std::hex << active_micro_op_->action << std::endl;
@@ -86,7 +89,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ |= result & 0xff;
 									extend_flag_ = carry_flag_ = result & ~0xff;
 									negative_flag_ = result & 0x80;
-									overflow_flag_ = ~(source ^ destination) & (destination ^ result) & 0x80;
+									overflow_flag_ = add_overflow() & 0x80;
 
 									// Store the result.
 									active_program_->destination->halves.low.halves.low = uint8_t(result);
@@ -101,7 +104,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ = active_program_->destination->halves.low.halves.low = uint8_t(result);
 									extend_flag_ = carry_flag_ = result & ~0xff;
 									negative_flag_ = result & 0x80;
-									overflow_flag_ = ~(source ^ destination) & (destination ^ result) & 0x80;
+									overflow_flag_ = add_overflow() & 0x80;
 								} break;
 
 								case Operation::ADDw: {
@@ -112,7 +115,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ = active_program_->destination->halves.low.full = uint16_t(result);
 									extend_flag_ = carry_flag_ = result & ~0xffff;
 									negative_flag_ = result & 0x8000;
-									overflow_flag_ = ~(source ^ destination) & (destination ^ result) & 0x8000;
+									overflow_flag_ = add_overflow() & 0x8000;
 								} break;
 
 								case Operation::ADDl: {
@@ -123,7 +126,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ = active_program_->destination->halves.low.full = uint32_t(result);
 									extend_flag_ = carry_flag_ = result >> 32;
 									negative_flag_ = result & 0x80000000;
-									overflow_flag_ = ~(source ^ destination) & (destination ^ result) & 0x80000000;
+									overflow_flag_ = add_overflow() & 0x80000000;
 								} break;
 
 								case Operation::ADDAw:
@@ -211,6 +214,25 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								} break;
 
 								/*
+									CLRs: store 0 to the destination, set the zero flag, and clear
+									negative, overflow and carry.
+								*/
+								case Operation::CLRb:
+									active_program_->destination->halves.low.halves.low = 0;
+									negative_flag_ = overflow_flag_ = carry_flag_ = zero_result_ = 0;
+								break;
+
+								case Operation::CLRw:
+									active_program_->destination->halves.low.full = 0;
+									negative_flag_ = overflow_flag_ = carry_flag_ = zero_result_ = 0;
+								break;
+
+								case Operation::CLRl:
+									active_program_->destination->full = 0;
+									negative_flag_ = overflow_flag_ = carry_flag_ = zero_result_ = 0;
+								break;
+
+								/*
 									CMP.b, CMP.l and CMP.w: sets the condition flags (other than extend) based on a subtraction
 									of the source from the destination; the result of the subtraction is not stored.
 								*/
@@ -222,7 +244,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ = result & 0xff;
 									carry_flag_ = result & ~0xff;
 									negative_flag_ = result & 0x80;
-									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x80;
+									overflow_flag_ = sub_overflow() & 0x80;
 								} break;
 
 								case Operation::CMPw: {
@@ -233,7 +255,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ = result & 0xffff;
 									carry_flag_ = result & ~0xffff;
 									negative_flag_ = result & 0x8000;
-									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x8000;
+									overflow_flag_ = sub_overflow() & 0x8000;
 								} break;
 
 								case Operation::CMPl: {
@@ -244,7 +266,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									zero_result_ = uint32_t(result);
 									carry_flag_ = result >> 32;
 									negative_flag_ = result & 0x80000000;
-									overflow_flag_ = (source ^ destination) & (destination ^ result) & 0x80000000;
+									overflow_flag_ = sub_overflow() & 0x80000000;
 								} break;
 
 								// JMP: copies the source to the program counter.
@@ -311,9 +333,108 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								break;
 
 								/*
+									NEGs: negatives the destination, setting the zero,
+									negative, overflow and carry flags appropriate, and extend.
+								*/
+								case Operation::NEGb: {
+									const int source = 0;
+									const int destination = active_program_->destination->halves.low.halves.low;
+									const int result = source - destination;
+									active_program_->destination->halves.low.halves.low = result;
+
+									zero_result_ = result & 0xff;
+									extend_flag_ = carry_flag_ = result & ~0xff;
+									negative_flag_ = result & 0x80;
+									overflow_flag_ = sub_overflow() & 0x80;
+								} break;
+
+								case Operation::NEGw: {
+									const int source = 0;
+									const int destination = active_program_->destination->halves.low.full;
+									const int result = source - destination;
+									active_program_->destination->halves.low.full = result;
+
+									zero_result_ = result & 0xffff;
+									extend_flag_ = carry_flag_ = result & ~0xffff;
+									negative_flag_ = result & 0x8000;
+									overflow_flag_ = sub_overflow() & 0x8000;
+								} break;
+
+								case Operation::NEGl: {
+									const int source = 0;
+									const int destination = active_program_->destination->full;
+									int64_t result = source - destination;
+									active_program_->destination->full = uint32_t(result);
+
+									zero_result_ = uint_fast32_t(result);
+									extend_flag_ = carry_flag_ = result >> 32;
+									negative_flag_ = result & 0x80000000;
+									overflow_flag_ = sub_overflow() & 0x80000000;
+								} break;
+
+								/*
+									NEGXs: NEG, with extend.
+								*/
+								case Operation::NEGXb: {
+									const int source = 0;
+									const int destination = active_program_->destination->halves.low.halves.low;
+									const int result = source - destination - (extend_flag_ ? 1 : 0);
+									active_program_->destination->halves.low.halves.low = result;
+
+									zero_result_ = result & 0xff;
+									extend_flag_ = carry_flag_ = result & ~0xff;
+									negative_flag_ = result & 0x80;
+									overflow_flag_ = sub_overflow() & 0x80;
+								} break;
+
+								case Operation::NEGXw: {
+									const int source = 0;
+									const int destination = active_program_->destination->halves.low.full;
+									const int result = source - destination - (extend_flag_ ? 1 : 0);
+									active_program_->destination->halves.low.full = result;
+
+									zero_result_ = result & 0xffff;
+									extend_flag_ = carry_flag_ = result & ~0xffff;
+									negative_flag_ = result & 0x8000;
+									overflow_flag_ = sub_overflow() & 0x8000;
+								} break;
+
+								case Operation::NEGXl: {
+									const int source = 0;
+									const int destination = active_program_->destination->full;
+									int64_t result = source - destination - (extend_flag_ ? 1 : 0);
+									active_program_->destination->full = result;
+
+									zero_result_ = result;
+									extend_flag_ = carry_flag_ = result >> 32;
+									negative_flag_ = result & 0x80000000;
+									overflow_flag_ = sub_overflow() & 0x80000000;
+								} break;
+
+								/*
 									The no-op.
 								*/
 								case Operation::None:
+								break;
+
+								// NOTs: take the logical inverse, affecting the negative and zero flags.
+
+								case Operation::NOTb:
+									active_program_->destination->halves.low.halves.low ^= 0xff;
+									zero_result_ = active_program_->destination->halves.low.halves.low;
+									negative_flag_ = zero_result_ & 0x80;
+								break;
+
+								case Operation::NOTw:
+									active_program_->destination->halves.low.full ^= 0xffff;
+									zero_result_ = active_program_->destination->halves.low.full;
+									negative_flag_ = zero_result_ & 0x8000;
+								break;
+
+								case Operation::NOTl:
+									active_program_->destination->full ^= 0xffffffff;
+									zero_result_ = active_program_->destination->full;
+									negative_flag_ = zero_result_ & 0x80000000;
 								break;
 
 								/*

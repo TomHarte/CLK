@@ -270,6 +270,7 @@ struct ProcessorStorageConstructor {
 			BTSTIMM,					// six lowest bits are [mode, register], decoding to BTST #
 			CMP,
 			DBcc,						// the low three bits nominate a register; everything else is decoded in real time
+			CLRNEGNEGXNOT,
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -343,6 +344,19 @@ struct ProcessorStorageConstructor {
 			{0xffc0, 0x0800, Operation::BTSTb, Decoder::BTSTIMM},	// 4-63 (p167)
 
 			{0xf0f8, 0x50c8, Operation::DBcc, Decoder::DBcc},		// 4-91 (p195)
+
+			{0xffc0, 0x4200, Operation::CLRb, Decoder::CLRNEGNEGXNOT},	// 4-73 (p177)
+			{0xffc0, 0x4240, Operation::CLRw, Decoder::CLRNEGNEGXNOT},	// 4-73 (p177)
+			{0xffc0, 0x4280, Operation::CLRl, Decoder::CLRNEGNEGXNOT},	// 4-73 (p177)
+			{0xffc0, 0x4400, Operation::NEGb, Decoder::CLRNEGNEGXNOT},	// 4-144 (p248)
+			{0xffc0, 0x4440, Operation::NEGw, Decoder::CLRNEGNEGXNOT},	// 4-144 (p248)
+			{0xffc0, 0x4480, Operation::NEGl, Decoder::CLRNEGNEGXNOT},	// 4-144 (p248)
+			{0xffc0, 0x4000, Operation::NEGXb, Decoder::CLRNEGNEGXNOT},	// 4-146 (p250)
+			{0xffc0, 0x4040, Operation::NEGXw, Decoder::CLRNEGNEGXNOT},	// 4-146 (p250)
+			{0xffc0, 0x4080, Operation::NEGXl, Decoder::CLRNEGNEGXNOT},	// 4-146 (p250)
+			{0xffc0, 0x4600, Operation::NOTb, Decoder::CLRNEGNEGXNOT},	// 4-148 (p250)
+			{0xffc0, 0x4640, Operation::NOTw, Decoder::CLRNEGNEGXNOT},	// 4-148 (p250)
+			{0xffc0, 0x4680, Operation::NOTl, Decoder::CLRNEGNEGXNOT},	// 4-148 (p250)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -824,6 +838,99 @@ struct ProcessorStorageConstructor {
 								storage_.instructions[instruction].destination = &storage_.data_[destination_register];
 
 								op(Action::PerformOperation, seq("np n"));
+							}
+						} break;
+
+						case Decoder::CLRNEGNEGXNOT: {
+							const bool is_byte_access = !!((instruction >> 6)&3);
+							const bool is_long_word_access = ((instruction >> 6)&3) == 2;
+
+							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
+
+							const int mode = combined_mode(ea_mode, ea_register);
+							switch((is_long_word_access ? 0x100 : 0x000) | mode) {
+								default: continue;
+
+								case 0x000: // [CLR/NEG/NEGX/NOT].bw Dn
+								case 0x100: // [CLR/NEG/NEGX/NOT].l Dn
+									op(Action::PerformOperation, seq("np"));
+								break;
+
+								case 0x002:	// [CLR/NEG/NEGX/NOT].bw (An)
+								case 0x003:	// [CLR/NEG/NEGX/NOT].bw (An)+
+									op(Action::None, seq("nrd", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("np nw", { a(ea_register) }, !is_byte_access));
+									if(ea_mode == 0x03) {
+										op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::DestinationMask);
+									}
+								break;
+
+								case 0x102:	// [CLR/NEG/NEGX/NOT].l (An)
+								case 0x103:	// [CLR/NEG/NEGX/NOT].l (An)+
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd", { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("np nw- nW", { ea(1), ea(1) }));
+									if(ea_mode == 0x03) {
+										op(int(Action::Increment4) | MicroOp::DestinationMask);
+									}
+								break;
+
+								case 0x004:	// [CLR/NEG/NEGX/NOT].bw -(An)
+									op(	int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::DestinationMask,
+										seq("nrd", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("np nw", { a(ea_register) }, !is_byte_access));
+								break;
+
+								case 0x104:	// [CLR/NEG/NEGX/NOT].l -(An)
+									op(int(Action::Decrement4) | MicroOp::DestinationMask);
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask,
+										seq("n nRd+ nrd", { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("np nw- nW", { ea(1), ea(1) }));
+								break;
+
+								case 0x005:	// [CLR/NEG/NEGX/NOT].bw (d16, An)
+								case 0x006:	// [CLR/NEG/NEGX/NOT].bw (d8, An, Xn)
+									op(	calc_action_for_mode(ea_mode) | MicroOp::DestinationMask,
+										seq(pseq("np nrd", ea_mode), { ea(1) },
+										!is_byte_access));
+									op(Action::PerformOperation, seq("np nw", { ea(1) }, !is_byte_access));
+								break;
+
+								case 0x105:	// [CLR/NEG/NEGX/NOT].l (d16, An)
+								case 0x106:	// [CLR/NEG/NEGX/NOT].l (d8, An, Xn)
+									op(	calc_action_for_mode(ea_mode) | MicroOp::DestinationMask,
+										seq(pseq("np nRd+ nrd", ea_mode), { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("np nw- nW", { ea(1), ea(1) }));
+								break;
+
+								case 0x010:	// [CLR/NEG/NEGX/NOT].bw (xxx).w
+									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nrd", { ea(1) }, !is_byte_access));
+									op(Action::PerformOperation,
+										seq("np nw", { ea(1) }, !is_byte_access));
+								break;
+
+								case 0x110:	// [CLR/NEG/NEGX/NOT].l (xxx).w
+									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nRd+ nrd", { ea(1), ea(1) }));
+									op(Action::PerformOperation,
+										seq("np nw- nW", { ea(1), ea(1) }));
+								break;
+
+								case 0x011:	// [CLR/NEG/NEGX/NOT].bw (xxx).l
+									op(Action::None, seq("np"));
+									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nrd", { ea(1) }, !is_byte_access));
+									op(Action::PerformOperation,
+										seq("np nw", { ea(1) }, !is_byte_access));
+								break;
+
+								case 0x111:	// [CLR/NEG/NEGX/NOT].l (xxx).l
+									op(Action::None, seq("np"));
+									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nRd+ nrd", { ea(1), ea(1) }));
+									op(Action::PerformOperation,
+										seq("np nw- nW", { ea(1), ea(1) }));
+								break;
 							}
 						} break;
 
