@@ -68,6 +68,15 @@ class ProcessorStorage {
 			NEGXb, NEGXw, NEGXl,
 			NEGb, NEGw, NEGl,
 			NOTb, NOTw, NOTl,
+
+			ASLb, ASLw, ASLl, ASLm,
+			ASRb, ASRw, ASRl, ASRm,
+			LSLb, LSLw, LSLl, LSLm,
+			LSRb, LSRw, LSRl, LSRm,
+			ROLb, ROLw, ROLl, ROLm,
+			RORb, RORw, RORl, RORm,
+			ROXLb, ROXLw, ROXLl, ROXLm,
+			ROXRb, ROXRw, ROXRl, ROXRm,
 		};
 
 		/*!

@@ -283,6 +283,10 @@ struct ProcessorStorageConstructor {
 			MOVEq,						// Maps a destination register to a MOVEQ.
 
 			RESET,						// Maps to a RESET.
+
+			ASLRLSLRROLRROXLRr,			// Maps a destination register to a AS[L/R], LS[L/R], RO[L/R], ROX[L/R]; shift quantities are
+										// decoded at runtime.
+			ASLRLSLRROLRROXLRm,			// Maps a destination mode and register to a memory-based AS[L/R], LS[L/R], RO[L/R], ROX[L/R].
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -339,8 +343,9 @@ struct ProcessorStorageConstructor {
 			{0xf1f8, 0xb148, Operation::CMPw, Decoder::CMPM},	// 4-81 (p185)
 			{0xf1f8, 0xb188, Operation::CMPl, Decoder::CMPM},	// 4-81 (p185)
 
-			{0xff00, 0x6000, Operation::BRA, Decoder::BRA},		// 4-55 (p159)
+//			{0xff00, 0x6000, Operation::BRA, Decoder::BRA},		// 4-55 (p159)	TODO: confirm that this really, really is just a special case of Bcc.
 			{0xf000, 0x6000, Operation::Bcc, Decoder::Bcc},		// 4-25 (p129)
+
 			{0xf1c0, 0x41c0, Operation::MOVEAl, Decoder::LEA},	// 4-110 (p214)
 			{0xf100, 0x7000, Operation::MOVEq, Decoder::MOVEq},	// 4-134 (p238)
 
@@ -378,7 +383,58 @@ struct ProcessorStorageConstructor {
 			{0xffc0, 0x4600, Operation::NOTb, Decoder::CLRNEGNEGXNOT},	// 4-148 (p250)
 			{0xffc0, 0x4640, Operation::NOTw, Decoder::CLRNEGNEGXNOT},	// 4-148 (p250)
 			{0xffc0, 0x4680, Operation::NOTl, Decoder::CLRNEGNEGXNOT},	// 4-148 (p250)
+
+			{0xf1d8, 0xe000, Operation::ASLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe040, Operation::ASLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe080, Operation::ASLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xffc0, 0xe0c0, Operation::ASLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-22 (p126)
+
+			{0xf1d8, 0xe100, Operation::ASRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe140, Operation::ASRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe180, Operation::ASRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xffc0, 0xe1c0, Operation::ASRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-22 (p126)
+
+			{0xf1d8, 0xe008, Operation::LSLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe048, Operation::LSLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe088, Operation::LSLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xffc0, 0xe2c0, Operation::LSLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-113 (p217)
+
+			{0xf1d8, 0xe108, Operation::LSRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe148, Operation::LSRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe188, Operation::LSRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xffc0, 0xe3c0, Operation::LSRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-113 (p217)
+
+			{0xf1d8, 0xe018, Operation::ROLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe058, Operation::ROLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe098, Operation::ROLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xffc0, 0xe6c0, Operation::ROLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-160 (p264)
+
+			{0xf1d8, 0xe118, Operation::RORb, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe158, Operation::RORw, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe198, Operation::RORl, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xffc0, 0xe7c0, Operation::RORm, Decoder::ASLRLSLRROLRROXLRm},	// 4-160 (p264)
+
+			{0xf1d8, 0xe010, Operation::ROXLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe050, Operation::ROXLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe090, Operation::ROXLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xffc0, 0xe4c0, Operation::ROXLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-163 (p267)
+
+			{0xf1d8, 0xe110, Operation::ROXRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe150, Operation::ROXRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe190, Operation::ROXRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xffc0, 0xe5c0, Operation::ROXRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-163 (p267)
 		};
+
+#ifndef NDEBUG
+		// Verify no double mappings.
+		for(int instruction = 0; instruction < 65536; ++instruction) {
+			int hits = 0;
+			for(const auto &mapping: mappings) {
+				if((instruction & mapping.mask) == mapping.value) ++hits;
+			}
+			assert(hits < 2);
+		}
+#endif
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
 
