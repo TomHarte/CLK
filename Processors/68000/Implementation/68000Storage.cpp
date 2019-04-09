@@ -254,26 +254,35 @@ struct ProcessorStorageConstructor {
 	*/
 	void install_instructions() {
 		enum class Decoder {
+			ABCDSBCD,					// Maps source and desintation registers and a register/memory selection bit to an ABCD or SBCD.
+
+			ADDSUB,						// Maps a register and a register and mode to an ADD or SUB.
+			ADDASUBA,					// Maps a destination register and a source mode and register to an ADDA or SUBA.
+
+			BRA,						// Maps to a BRA. All fields are decoded at runtime.
+			Bcc,						// Maps to a Bcc. All fields are decoded at runtime.
+
+			BTST,						// Maps a source register and a destination register and mode to a BTST.
+			BTSTIMM,					// Maps a destination mode and register to a BTST #.
+
+			CLRNEGNEGXNOT,				// Maps a destination mode and register to a CLR, NEG, NEGX or NOT.
+
 			CMP,						// Maps a destination register and a source mode and register to a CMP.
 			CMPI,						// Maps a destination mode and register to a CMPI.
 			CMPA,						// Maps a destination register and a source mode and register to a CMPA.
 			CMPM,						// Maps to a CMPM.
 
-			Decimal,
-			MOVE,						// twelve lowest bits are register, mode, mode, register, for destination and source respectively.
-			MOVEtoSRCCR,				// six lowest bits are [mode, register], decoding to MOVE SR/CCR
-			BRA,						// eight lowest bits are ignored, and an 'n np np' is scheduled
-			Bcc,						// twelve lowest bits are ignored, only a PerformAction is scheduled
-			LEA,						// decodes register, mode, register
-			MOVEq,						// decodes just a destination register
-			RESET,						// no further decoding applied, performs reset cycle
-			JMP,						// six lowest bits are [mode, register], decoding to JMP
-			ADDSUB,
-			ADDASUBA,
-			BTST,						// bit 9,10,11 are register, six lowest bits are [mode, register], decoding to BTST
-			BTSTIMM,					// six lowest bits are [mode, register], decoding to BTST #
-			DBcc,						// the low three bits nominate a register; everything else is decoded in real time
-			CLRNEGNEGXNOT,
+			DBcc,						// Maps a destination register to a DBcc.
+
+			JMP,						// Maps a mode and register to a JMP.
+
+			LEA,						// Maps a destination register and a source mode and register to an LEA.
+
+			MOVE,						// Maps a source mode and register and a destination mode and register to a MOVE.
+			MOVEtoSRCCR,				// Maps a source mode and register to a MOVE SR or MOVE CCR.
+			MOVEq,						// Maps a destination register to a MOVEQ.
+
+			RESET,						// Maps to a RESET.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -297,8 +306,8 @@ struct ProcessorStorageConstructor {
 			NB: a vector is used to allow easy iteration.
 		*/
 		const std::vector<PatternMapping> mappings = {
-			{0xf1f0, 0x8100, Operation::SBCD, Decoder::Decimal},		// 4-171 (p275)
-			{0xf1f0, 0xc100, Operation::ABCD, Decoder::Decimal},		// 4-3 (p107)
+			{0xf1f0, 0xc100, Operation::ABCD, Decoder::ABCDSBCD},		// 4-3 (p107)
+			{0xf1f0, 0x8100, Operation::SBCD, Decoder::ABCDSBCD},		// 4-171 (p275)
 
 //			{0xf000, 0x8000, Operation::OR, Decoder::RegOpModeReg},		// 4-150 (p226)
 //			{0xf000, 0xb000, Operation::EOR, Decoder::RegOpModeReg},	// 4-100 (p204)
@@ -833,7 +842,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						// Decodes the format used by ABCD and SBCD.
-						case Decoder::Decimal: {
+						case Decoder::ABCDSBCD: {
 							const int destination_register = (instruction >> 9) & 7;
 
 							if(instruction & 8) {
