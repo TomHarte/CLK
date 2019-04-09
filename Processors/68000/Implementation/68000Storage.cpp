@@ -254,10 +254,14 @@ struct ProcessorStorageConstructor {
 	*/
 	void install_instructions() {
 		enum class Decoder {
+			CMP,						// Maps a destination register and a source mode and register to a CMP.
+			CMPI,						// Maps a destination mode and register to a CMPI.
+			CMPA,						// Maps a destination register and a source mode and register to a CMPA.
+			CMPM,						// Maps to a CMPM.
+
 			Decimal,
 			MOVE,						// twelve lowest bits are register, mode, mode, register, for destination and source respectively.
 			MOVEtoSRCCR,				// six lowest bits are [mode, register], decoding to MOVE SR/CCR
-			CMPI,						// eight lowest bits are [size, mode, register], decoding to CMPI
 			BRA,						// eight lowest bits are ignored, and an 'n np np' is scheduled
 			Bcc,						// twelve lowest bits are ignored, only a PerformAction is scheduled
 			LEA,						// decodes register, mode, register
@@ -268,7 +272,6 @@ struct ProcessorStorageConstructor {
 			ADDASUBA,
 			BTST,						// bit 9,10,11 are register, six lowest bits are [mode, register], decoding to BTST
 			BTSTIMM,					// six lowest bits are [mode, register], decoding to BTST #
-			CMP,
 			DBcc,						// the low three bits nominate a register; everything else is decoded in real time
 			CLRNEGNEGXNOT,
 		};
@@ -315,9 +318,17 @@ struct ProcessorStorageConstructor {
 			{0xf1c0, 0xb000, Operation::CMPb, Decoder::CMP},	// 4-75 (p179)
 			{0xf1c0, 0xb040, Operation::CMPw, Decoder::CMP},	// 4-75 (p179)
 			{0xf1c0, 0xb080, Operation::CMPl, Decoder::CMP},	// 4-75 (p179)
+
+			{0xf1c0, 0xb0c0, Operation::CMPw, Decoder::CMPA},	// 4-77 (p181)
+			{0xf1c0, 0xb1c0, Operation::CMPl, Decoder::CMPA},	// 4-77 (p181)
+
 			{0xffc0, 0x0c00, Operation::CMPb, Decoder::CMPI},	// 4-79 (p183)
 			{0xffc0, 0x0c40, Operation::CMPw, Decoder::CMPI},	// 4-79 (p183)
 			{0xffc0, 0x0c80, Operation::CMPl, Decoder::CMPI},	// 4-79 (p183)
+
+			{0xf1f8, 0xb108, Operation::CMPb, Decoder::CMPM},	// 4-81 (p185)
+			{0xf1f8, 0xb148, Operation::CMPw, Decoder::CMPM},	// 4-81 (p185)
+			{0xf1f8, 0xb188, Operation::CMPl, Decoder::CMPM},	// 4-81 (p185)
 
 			{0xff00, 0x6000, Operation::BRA, Decoder::BRA},		// 4-55 (p159)
 			{0xf000, 0x6000, Operation::Bcc, Decoder::Bcc},		// 4-25 (p129)
@@ -1048,6 +1059,106 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
+						case Decoder::CMPA: {
+							const int destination_register = (instruction >> 9) & 7;
+
+							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
+							storage_.instructions[instruction].destination = &storage_.address_[destination_register];
+
+							const int mode = combined_mode(ea_mode, ea_register);
+							const bool is_long_word_access = mapping.operation == Operation::CMPl;
+							switch((is_long_word_access ? 0x100 : 0) | mode) {
+								default: continue;
+
+								case 0x000: // CMPA.w Dn, An
+								case 0x001: // CMPA.w An, An
+								case 0x100: // CMPA.l Dn, An
+								case 0x101: // CMPA.l An, An
+									op(Action::PerformOperation, seq("np n"));
+								break;
+
+								case 0x002:	// CMPA.w (An), An
+								case 0x003:	// CMPA.w (An)+, An
+									op(Action::None, seq("nr", { a(ea_register) }));
+									op(Action::PerformOperation, seq("np n"));
+									if(ea_mode == 0x03) {
+										op(int(Action::Increment2) | MicroOp::SourceMask);
+									}
+								break;
+
+								case 0x102:	// CMPA.l (An), An
+								case 0x103:	// CMPA.l (An)+, An
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) }));
+									op(Action::PerformOperation, seq("np n"));
+									if(ea_mode == 0x03) {
+										op(int(Action::Increment4) | MicroOp::SourceMask);
+									}
+								break;
+
+								case 0x004:	// CMPA.w -(An), An
+									op(int(Action::Decrement2) | MicroOp::SourceMask, seq("n nr", { a(ea_register) }));
+									op(Action::PerformOperation, seq("np n"));
+								break;
+
+								case 0x104:	// CMPA.l -(An), An
+									op(int(Action::Decrement4) | MicroOp::SourceMask);
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) }));
+									op(Action::PerformOperation, seq("np n"));
+								break;
+
+								case 0x012:	// CMPA.w (d16, PC), An
+								case 0x013:	// CMPA.w (d8, PC, Xn), An
+								case 0x005:	// CMPA.w (d16, An), An
+								case 0x006:	// CMPA.w (d8, An, Xn), An
+									op(	calc_action_for_mode(mode) | MicroOp::SourceMask,
+										seq(pseq("np nr", ea_mode), { ea(0) }));
+									op(Action::PerformOperation, seq("np n"));
+								break;
+
+								case 0x112:	// CMPA.l (d16, PC), An
+								case 0x113:	// CMPA.l (d8, PC, Xn), An
+								case 0x105:	// CMPA.l (d16, An), An
+								case 0x106:	// CMPA.l (d8, An, Xn), An
+									op(	calc_action_for_mode(mode) | MicroOp::SourceMask,
+										seq(pseq("np nR+ nr", ea_mode), { ea(0), ea(0) }));
+									op(Action::PerformOperation, seq("np n"));
+								break;
+
+								case 0x010:	// CMPA.w (xxx).w, An
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr",  { ea(0) }));
+									op(Action::PerformOperation, seq("np n"));
+								break;
+
+								case 0x110:	// CMPA.l (xxx).w, An
+									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nR+ nr",  { ea(0), ea(0) }));
+									op(Action::PerformOperation, seq("np n"));
+								break;
+
+								case 0x011:	// CMPA.w (xxx).l, An
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr",  { ea(0) }));
+									op(Action::PerformOperation, seq("np n"));
+								break;
+
+								case 0x111:	// CMPA.l (xxx).l, An
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nR+ nr",  { ea(0), ea(0) }));
+									op(Action::PerformOperation, seq("np n"));
+								break;
+
+								case 0x014:	// CMPA.w #, An
+									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
+									op(Action::PerformOperation, seq("np np n"));
+								break;
+
+								case 0x114:	// CMPA.l #, An
+									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
+									op(Action::None, seq("np"));
+									op(Action::PerformOperation, seq("np np n"));
+								break;
+							}
+						} break;
+
 						case Decoder::CMPI: {
 							if(ea_mode == 1) continue;
 
@@ -1152,6 +1263,34 @@ struct ProcessorStorageConstructor {
 								break;
 
 								default: continue;
+							}
+						} break;
+
+						case Decoder::CMPM: {
+							const int source_register = (instruction >> 9)&7;
+							const int destination_register = ea_register;
+
+							storage_.instructions[instruction].set_source(storage_, 1, source_register);
+							storage_.instructions[instruction].set_destination(storage_, 1, destination_register);
+
+							const bool is_byte_operation = operation == Operation::CMPw;
+
+							switch(operation) {
+								default: continue;
+
+								case Operation::CMPb:	// CMPM.b, (An)+, (An)+
+								case Operation::CMPw:	// CMPM.w, (An)+, (An)+
+									op(Action::None, seq("nr nr np", {a(source_register), a(destination_register)}, !is_byte_operation));
+									op(Action::PerformOperation);
+									op(int(is_byte_operation ? Action::Increment1 : Action::Increment2) | MicroOp::SourceMask | MicroOp::DestinationMask);
+								break;
+
+								case Operation::CMPl:
+									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask | MicroOp::DestinationMask,
+										seq("nR+ nr nRd+ nrd np", {ea(0), ea(0), ea(1), ea(1)}));
+									op(Action::PerformOperation);
+									op(int(Action::Increment4) | MicroOp::SourceMask | MicroOp::DestinationMask);
+								break;
 							}
 						} break;
 
