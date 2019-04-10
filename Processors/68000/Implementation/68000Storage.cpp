@@ -921,7 +921,13 @@ struct ProcessorStorageConstructor {
 						case Decoder::ASLRLSLRROLRROXLRr: {
 							storage_.instructions[instruction].set_destination(storage_, 0, ea_register);
 
-							// All decoding occurs at runtime.
+							// All further decoding occurs at runtime; that's also when the proper number of
+							// no-op cycles will be scheduled.
+							if(((instruction >> 6) & 3) == 2) {
+								op(Action::None, seq("np nn"));
+							} else {
+								op(Action::None, seq("np n"));
+							}
 							op(Action::PerformOperation);
 						} break;
 
