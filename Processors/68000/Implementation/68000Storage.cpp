@@ -918,6 +918,55 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
+						case Decoder::ASLRLSLRROLRROXLRr: {
+							storage_.instructions[instruction].set_destination(storage_, 0, ea_register);
+
+							// All decoding occurs at runtime.
+							op(Action::PerformOperation);
+						} break;
+
+						case Decoder::ASLRLSLRROLRROXLRm: {
+							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
+
+							switch(combined_mode(ea_mode, ea_register)) {
+								default: continue;
+
+								case 0x02:	// AS(L/R)/LS(L/R)/RO(L/R)/ROX(L/R).w (An)
+								case 0x03:	// AS(L/R)/LS(L/R)/RO(L/R)/ROX(L/R).w (An)+
+									op(Action::None, seq("nrd np", { a(ea_register) }));
+									op(Action::PerformOperation, seq("nw", { a(ea_register) }));
+									if(ea_mode == 0x03) {
+										op(int(Action::Increment2) | MicroOp::DestinationMask);
+									}
+								break;
+
+								case 0x04:	// AS(L/R)/LS(L/R)/RO(L/R)/ROX(L/R).w -(An)
+									op(int(Action::Decrement2) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }));
+									op(Action::PerformOperation, seq("nw", { a(ea_register) }));
+								break;
+
+								case 0x05:	// AS(L/R)/LS(L/R)/RO(L/R)/ROX(L/R).w (d16, An)
+								case 0x06:	// AS(L/R)/LS(L/R)/RO(L/R)/ROX(L/R).w (d8, An, Xn)
+									op(	calc_action_for_mode(ea_mode) | MicroOp::DestinationMask,
+										seq(pseq("np nrd np", ea_mode), { ea(1) }));
+									op(Action::PerformOperation, seq("nw", { ea(1) }));
+								break;
+
+								case 0x10:	// AS(L/R)/LS(L/R)/RO(L/R)/ROX(L/R).w (xxx).w
+									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nrd np", { ea(1) }));
+									op(Action::PerformOperation, seq("nw", { ea(1) }));
+								break;
+
+								case 0x11:	// AS(L/R)/LS(L/R)/RO(L/R)/ROX(L/R).w (xxx).l
+									op(Action::None, seq("np"));
+									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nrd np", { ea(1) }));
+									op(Action::PerformOperation, seq("nw", { ea(1) }));
+								break;
+							}
+						} break;
+
 						case Decoder::CLRNEGNEGXNOT: {
 							const bool is_byte_access = !!((instruction >> 6)&3);
 							const bool is_long_word_access = ((instruction >> 6)&3) == 2;
