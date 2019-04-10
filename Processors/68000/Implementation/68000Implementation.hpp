@@ -515,6 +515,76 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								break;
 
 								/*
+									Shifts and rotates.
+								*/
+#define set_flags(v, m, t)	\
+	zero_result_ = v;	\
+	negative_flag_ = zero_result_ & m;	\
+	overflow_flag_ = (value ^ zero_result_) & m;	\
+	extend_flag_ = carry_flag_ = value & t;
+
+#define set_flags_b(t) set_flags(active_program_->destination->halves.low.halves.low, 0x80, t)
+#define set_flags_w(t) set_flags(active_program_->destination->halves.low.full, 0x8000, t)
+#define set_flags_l(t) set_flags(active_program_->destination->full, 0x80000000, t)
+
+								case Operation::LSLm:
+								case Operation::ASLm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full <<= 1;
+									set_flags_w(0x8000);
+								} break;
+
+								case Operation::LSRm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full >>= 1;
+									set_flags_w(0x0001);
+								} break;
+
+								case Operation::ASRm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full = (active_program_->destination->halves.low.full >> 1) | (value & 0x8000);
+									set_flags_w(0x0001);
+								} break;
+
+#undef set_flags
+#define set_flags(v, m, t)	\
+	zero_result_ = v;	\
+	negative_flag_ = zero_result_ & m;	\
+	overflow_flag_ = 0;	\
+	carry_flag_ = value & t;
+
+								case Operation::ROLm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full = (active_program_->destination->halves.low.full << 1) | (value >> 15);
+									set_flags_w(0x8000);
+								} break;
+
+								case Operation::RORm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full = (active_program_->destination->halves.low.full >> 1) | (value << 15);
+									set_flags_w(0x0001);
+								} break;
+
+								case Operation::ROXLm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full = (active_program_->destination->halves.low.full << 1) | (extend_flag_ ? 0x0001 : 0x0000);
+									extend_flag_ = value & 0x8000;
+									set_flags_w(0x8000);
+								} break;
+
+								case Operation::ROXRm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full = (active_program_->destination->halves.low.full >> 1) | (extend_flag_ ? 0x8000 : 0x0000);
+									extend_flag_ = value & 0x0001;
+									set_flags_w(0x0001);
+								} break;
+
+#undef set_flags
+#undef set_flags_b
+#undef set_flags_w
+#undef set_flags_l
+
+								/*
 									Development period debugging.
 								*/
 								default:
