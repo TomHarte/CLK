@@ -59,6 +59,9 @@ struct ProcessorStorageConstructor {
 
 		* n: no operation for four cycles; data bus is not used;
 		* nn: no operation for eight cycles; data bus is not used;
+		* r: a 'replaceable'-length no operation; data bus is not used and no guarantees are
+			made about the length of the cycle other than that when it reaches the interpreter,
+			it is safe to alter the length and leave it altered;
 		* np: program fetch; reads from the PC and adds two to it, advancing the prefetch queue;
 		* nW: write MSW of something onto the bus;
 		* nw: write LSW of something onto the bus;
@@ -121,10 +124,17 @@ struct ProcessorStorageConstructor {
 
 			// Do nothing (possibly twice).
 			if(token == "n" || token == "nn") {
-				steps.push_back(step);
 				if(token.size() == 2) {
-					steps.push_back(step);
+					step.microcycle.length = HalfCycles(8);
 				}
+				steps.push_back(step);
+				continue;
+			}
+
+			// Do nothing, but with a length that definitely won't map it to the other do-nothings.
+			if(token == "r"){
+				step.microcycle.length = HalfCycles(0);
+				steps.push_back(step);
 				continue;
 			}
 
@@ -384,45 +394,45 @@ struct ProcessorStorageConstructor {
 			{0xffc0, 0x4640, Operation::NOTw, Decoder::CLRNEGNEGXNOT},	// 4-148 (p250)
 			{0xffc0, 0x4680, Operation::NOTl, Decoder::CLRNEGNEGXNOT},	// 4-148 (p250)
 
-			{0xf1d8, 0xe000, Operation::ASLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xf1d8, 0xe040, Operation::ASLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xf1d8, 0xe080, Operation::ASLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xffc0, 0xe0c0, Operation::ASLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-22 (p126)
+			{0xf1d8, 0xe100, Operation::ASLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe140, Operation::ASLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe180, Operation::ASLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xffc0, 0xe1c0, Operation::ASLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-22 (p126)
 
-			{0xf1d8, 0xe100, Operation::ASRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xf1d8, 0xe140, Operation::ASRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xf1d8, 0xe180, Operation::ASRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xffc0, 0xe1c0, Operation::ASRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-22 (p126)
+			{0xf1d8, 0xe000, Operation::ASRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe040, Operation::ASRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe080, Operation::ASRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
+			{0xffc0, 0xe0c0, Operation::ASRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-22 (p126)
 
-			{0xf1d8, 0xe008, Operation::LSLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xf1d8, 0xe048, Operation::LSLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xf1d8, 0xe088, Operation::LSLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xffc0, 0xe2c0, Operation::LSLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-113 (p217)
+			{0xf1d8, 0xe108, Operation::LSLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe148, Operation::LSLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe188, Operation::LSLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xffc0, 0xe3c0, Operation::LSLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-113 (p217)
 
-			{0xf1d8, 0xe108, Operation::LSRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xf1d8, 0xe148, Operation::LSRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xf1d8, 0xe188, Operation::LSRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xffc0, 0xe3c0, Operation::LSRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-113 (p217)
+			{0xf1d8, 0xe008, Operation::LSRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe048, Operation::LSRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe088, Operation::LSRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
+			{0xffc0, 0xe2c0, Operation::LSRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-113 (p217)
 
-			{0xf1d8, 0xe018, Operation::ROLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xf1d8, 0xe058, Operation::ROLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xf1d8, 0xe098, Operation::ROLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xffc0, 0xe6c0, Operation::ROLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-160 (p264)
+			{0xf1d8, 0xe118, Operation::ROLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe158, Operation::ROLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe198, Operation::ROLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xffc0, 0xe7c0, Operation::ROLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-160 (p264)
 
-			{0xf1d8, 0xe118, Operation::RORb, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xf1d8, 0xe158, Operation::RORw, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xf1d8, 0xe198, Operation::RORl, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xffc0, 0xe7c0, Operation::RORm, Decoder::ASLRLSLRROLRROXLRm},	// 4-160 (p264)
+			{0xf1d8, 0xe018, Operation::RORb, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe058, Operation::RORw, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe098, Operation::RORl, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
+			{0xffc0, 0xe6c0, Operation::RORm, Decoder::ASLRLSLRROLRROXLRm},	// 4-160 (p264)
 
-			{0xf1d8, 0xe010, Operation::ROXLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xf1d8, 0xe050, Operation::ROXLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xf1d8, 0xe090, Operation::ROXLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xffc0, 0xe4c0, Operation::ROXLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-163 (p267)
+			{0xf1d8, 0xe110, Operation::ROXLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe150, Operation::ROXLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe190, Operation::ROXLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xffc0, 0xe5c0, Operation::ROXLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-163 (p267)
 
-			{0xf1d8, 0xe110, Operation::ROXRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xf1d8, 0xe150, Operation::ROXRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xf1d8, 0xe190, Operation::ROXRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xffc0, 0xe5c0, Operation::ROXRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-163 (p267)
+			{0xf1d8, 0xe010, Operation::ROXRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe050, Operation::ROXRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe090, Operation::ROXRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
+			{0xffc0, 0xe4c0, Operation::ROXRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-163 (p267)
 		};
 
 #ifndef NDEBUG
@@ -928,7 +938,9 @@ struct ProcessorStorageConstructor {
 							} else {
 								op(Action::None, seq("np n"));
 							}
-							op(Action::PerformOperation);
+
+							// Use a no-op bus cycle that can have its length filled in later.
+							op(Action::PerformOperation, seq("r"));
 						} break;
 
 						case Decoder::ASLRLSLRROLRROXLRm: {

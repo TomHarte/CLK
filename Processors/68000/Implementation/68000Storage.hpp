@@ -282,6 +282,7 @@ class ProcessorStorage {
 		Program *active_program_ = nullptr;
 		MicroOp *active_micro_op_ = nullptr;
 		BusStep *active_step_ = nullptr;
+		uint16_t decoded_instruction_;
 
 		/// Copies address_[7] to the proper stack pointer based on current mode.
 		void write_back_stack_pointer();

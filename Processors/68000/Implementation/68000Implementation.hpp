@@ -53,16 +53,16 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 						// TODO: unless an interrupt is pending, or the trap flag is set.
 
-						const uint16_t next_instruction = prefetch_queue_.halves.high.full;
-						if(!instructions[next_instruction].micro_operations) {
+						decoded_instruction_ = prefetch_queue_.halves.high.full;
+						if(!instructions[decoded_instruction_].micro_operations) {
 							// TODO: once all instructions are implemnted, this should be an instruction error.
-							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << next_instruction << " from " << (program_counter_.full - 4) << std::endl;
+							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << decoded_instruction_ << " from " << (program_counter_.full - 4) << std::endl;
 							return;
 						} else {
-							std::cout << "Performing " << std::hex << next_instruction << " from " << (program_counter_.full - 4) << std::endl;
+							std::cout << "Performing " << std::hex << decoded_instruction_ << " from " << (program_counter_.full - 4) << std::endl;
 						}
 
-						active_program_ = &instructions[next_instruction];
+						active_program_ = &instructions[decoded_instruction_];
 						active_micro_op_ = active_program_->micro_operations;
 					}
 
@@ -523,28 +523,51 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 	overflow_flag_ = (value ^ zero_result_) & m;	\
 	extend_flag_ = carry_flag_ = value & t;
 
+#define decode_shift_count()	\
+	const int shift_count = (decoded_instruction_ & 32) ? data_[(decoded_instruction_ >> 9) & 7].full&63 : (decoded_instruction_ >> 9) & 7;	\
+	active_step_->microcycle.length = HalfCycles(4 * shift_count);
+
 #define set_flags_b(t) set_flags(active_program_->destination->halves.low.halves.low, 0x80, t)
 #define set_flags_w(t) set_flags(active_program_->destination->halves.low.full, 0x8000, t)
 #define set_flags_l(t) set_flags(active_program_->destination->full, 0x80000000, t)
 
-								case Operation::LSLm:
-								case Operation::ASLm: {
-									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full <<= 1;
-									set_flags_w(0x8000);
-								} break;
+#define shift_op(name, op, mb, mw, ml)	\
+	case Operation::name##b: {	\
+		decode_shift_count();	\
+		const auto value = active_program_->destination->halves.low.halves.low;	\
+		op(active_program_->destination->halves.low.halves.low, shift_count, 0xff, 7);	\
+		set_flags_b(mb);	\
+	} break;	\
+\
+	case Operation::name##w: {	\
+		decode_shift_count();	\
+		const auto value = active_program_->destination->halves.low.full;	\
+		op(active_program_->destination->halves.low.full, shift_count, 0xffff, 15);	\
+		set_flags_w(mw);	\
+	} break;	\
+\
+	case Operation::name##l: {	\
+		decode_shift_count();	\
+		const auto value = active_program_->destination->full;	\
+		op(active_program_->destination->full, shift_count, 0xffffffff, 31);	\
+		set_flags_l(ml);	\
+	} break;	\
+\
+	case Operation::name##m: {	\
+		const auto value = active_program_->destination->halves.low.full;	\
+		op(active_program_->destination->halves.low.full, 1, 0xffff, 15);	\
+		set_flags_w(mw);	\
+	} break;
 
-								case Operation::LSRm: {
-									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full >>= 1;
-									set_flags_w(0x0001);
-								} break;
+#define lsl(x, c, m, d) x <<= c
+#define lsr(x, c, m, d) x >>= c
+#define asl(x, c, m, d) x <<= c
+#define asr(x, c, m, d) x = (x >> c) | (((value >> d) & 1) *  (m ^ (m >> c)))
 
-								case Operation::ASRm: {
-									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (active_program_->destination->halves.low.full >> 1) | (value & 0x8000);
-									set_flags_w(0x0001);
-								} break;
+								shift_op(LSL, lsl, 0x80, 0x8000, 0x80000000);
+								shift_op(ASL, lsl, 0x80, 0x8000, 0x80000000);
+								shift_op(LSR, lsr, 0x01, 0x0001, 0x00000001);
+								shift_op(ASR, asr, 0x01, 0x0001, 0x00000001);
 
 #undef set_flags
 #define set_flags(v, m, t)	\
@@ -580,6 +603,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								} break;
 
 #undef set_flags
+#undef decode_shift_count
 #undef set_flags_b
 #undef set_flags_w
 #undef set_flags_l
