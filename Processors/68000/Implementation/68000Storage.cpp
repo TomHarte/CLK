@@ -1477,18 +1477,19 @@ struct ProcessorStorageConstructor {
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
 								default: continue;
-								case 0x04:
+								case 0x02:
 									storage_.instructions[instruction].source = &storage_.address_[ea_register];
 								break;
 								case 0x05:	case 0x06:	case 0x10:
 								case 0x11:	case 0x12:	case 0x13:
 									storage_.instructions[instruction].source = &storage_.effective_address_[0];
+									storage_.instructions[instruction].source_address = &storage_.address_[ea_register];
 								break;
 							}
 
 							switch(mode) {
 								default: break;
-								case 0x04:	// LEA (An), An		(i.e. MOVEA)
+								case 0x02:	// LEA (An), An		(i.e. MOVEA)
 									op(Action::PerformOperation, seq("np"));
 								break;
 
