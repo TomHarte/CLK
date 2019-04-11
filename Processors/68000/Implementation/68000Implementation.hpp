@@ -799,7 +799,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 					// If we've got to a micro-op that includes bus steps, break out of this loop.
 					if(!active_micro_op_->is_terminal()) {
 						active_step_ = active_micro_op_->bus_program;
-						break;
+						if(!active_step_->is_terminal())
+							break;
 					}
 				}
 			}
