@@ -136,7 +136,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									const uint32_t destination = active_program_->destination->full;
 									const uint64_t result = destination + source;
 
-									zero_result_ = active_program_->destination->halves.low.full = uint32_t(result);
+									zero_result_ = active_program_->destination->full = uint32_t(result);
 									extend_flag_ = carry_flag_ = result >> 32;
 									negative_flag_ = result & 0x80000000;
 									overflow_flag_ = add_overflow() & 0x80000000;
@@ -506,7 +506,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									const uint32_t destination = active_program_->destination->full;
 									const uint64_t result = destination - source;
 
-									zero_result_ = active_program_->destination->halves.low.full = uint32_t(result);
+									zero_result_ = active_program_->destination->full = uint32_t(result);
 									extend_flag_ = carry_flag_ = result >> 32;
 									negative_flag_ = result & 0x80000000;
 									overflow_flag_ = sub_overflow() & 0x80000000;
