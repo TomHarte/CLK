@@ -1546,10 +1546,8 @@ struct ProcessorStorageConstructor {
 								l2(combined_source_mode, combined_destination_mode) :
 								bw2(combined_source_mode, combined_destination_mode);
 
-							// If the move is to an address register, switch the MOVE to a MOVEA and
-							// pretend it's to a data register; if the move is from an address register
-							// then just call it a move from a data register.
-							if(ea_mode == 0x01) {
+							// If the move is to an address register, switch the MOVE to a MOVEA.
+							if(destination_mode == 0x01) {
 								operation = is_long_word_access ? Operation::MOVEAl : Operation::MOVEAw;
 							}
 
