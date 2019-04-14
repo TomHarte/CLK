@@ -72,6 +72,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						active_micro_op_ = active_program_->micro_operations;
 					}
 
+					auto bus_program = active_micro_op_->bus_program;
 					switch(active_micro_op_->action) {
 						default:
 							std::cerr << "Unhandled 68000 micro op action " << std::hex << active_micro_op_->action << std::endl;
@@ -192,12 +193,12 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 											program_counter_.full += int16_t(prefetch_queue_.halves.low.full);
 										}
 										program_counter_.full -= 2;
-										active_micro_op_->bus_program = branch_taken_bus_steps_;
+										bus_program = branch_taken_bus_steps_;
 									} else {
 										if(byte_offset) {
-									 		active_micro_op_->bus_program = branch_byte_not_taken_bus_steps_;
+									 		bus_program = branch_byte_not_taken_bus_steps_;
 										} else {
-											active_micro_op_->bus_program = branch_word_not_taken_bus_steps_;
+											bus_program = branch_word_not_taken_bus_steps_;
 										}
 									}
 								} break;
@@ -212,17 +213,17 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 											// This DBcc will be ignored as the counter has underflowed.
 											// Schedule n np np np and continue. Assumed: the first np
 											// is from where the branch would have been if taken?
-											active_micro_op_->bus_program = dbcc_condition_false_no_branch_steps_;
+											bus_program = dbcc_condition_false_no_branch_steps_;
 											dbcc_false_address_ = target_program_counter;
 										} else {
 											// Take the branch. Change PC and schedule n np np.
-											active_micro_op_->bus_program = dbcc_condition_false_branch_steps_;
+											bus_program = dbcc_condition_false_branch_steps_;
 											program_counter_.full = target_program_counter;
 										}
 									} else {
 										// This DBcc will be ignored as the condition is true;
 										// perform nn np np and continue.
-										active_micro_op_->bus_program = dbcc_condition_true_steps_;
+										bus_program = dbcc_condition_true_steps_;
 									}
 								} break;
 
@@ -804,7 +805,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 					// If we've got to a micro-op that includes bus steps, break out of this loop.
 					if(!active_micro_op_->is_terminal()) {
-						active_step_ = active_micro_op_->bus_program;
+						active_step_ = bus_program;
 						if(!active_step_->is_terminal())
 							break;
 					}

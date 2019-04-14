@@ -323,6 +323,9 @@ struct ProcessorStorageConstructor {
 			ASLRLSLRROLRROXLRr,			// Maps a destination register to a AS[L/R], LS[L/R], RO[L/R], ROX[L/R]; shift quantities are
 										// decoded at runtime.
 			ASLRLSLRROLRROXLRm,			// Maps a destination mode and register to a memory-based AS[L/R], LS[L/R], RO[L/R], ROX[L/R].
+
+			MOVEM,						// Maps a mode and register as they were a 'destination' and sets up bus steps with a suitable
+										// hole for the runtime part to install proper MOVEM activity.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -459,6 +462,11 @@ struct ProcessorStorageConstructor {
 			{0xf1d8, 0xe050, Operation::ROXRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
 			{0xf1d8, 0xe090, Operation::ROXRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
 			{0xffc0, 0xe4c0, Operation::ROXRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-163 (p267)
+
+			{0xffc0, 0x48c0, Operation::MOVEMtoMl, Decoder::MOVEM},				// 4-128 (p232)
+			{0xffc0, 0x4880, Operation::MOVEMtoMw, Decoder::MOVEM},				// 4-128 (p232)
+			{0xffc0, 0x4cc0, Operation::MOVEMtoRl, Decoder::MOVEM},				// 4-128 (p232)
+			{0xffc0, 0x4c80, Operation::MOVEMtoRw, Decoder::MOVEM},				// 4-128 (p232)
 		};
 
 #ifndef NDEBUG
@@ -1519,6 +1527,53 @@ struct ProcessorStorageConstructor {
 							const int destination_register = (instruction >> 9) & 7;
 							storage_.instructions[instruction].destination = &storage_.data_[destination_register];
 							op(Action::PerformOperation, seq("np"));
+						} break;
+
+						case Decoder::MOVEM: {
+							// For the sake of commonality, both to R and to M will evaluate their addresses
+							// as if they were destinations.
+							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
+
+							// Standard prefix: acquire the register selection flags and fetch the next program
+							// word to replace them.
+							op(Action::CopyNextWord, seq("np"));
+
+							// Do whatever is necessary to calculate the proper start address.
+							const int mode = combined_mode(ea_mode, ea_register);
+							const bool is_to_m = (operation == Operation::MOVEMtoMl || operation == Operation::MOVEMtoMw);
+							switch(mode) {
+								default: continue;
+
+								case Ind:
+								case PreDec:
+								case PostInc: {
+									// Deal with the illegal combinations.
+									if(mode == PostInc && is_to_m) continue;
+									if(mode == PreDec && !is_to_m) continue;
+								} break;
+
+								case d16An:
+								case d8AnXn:
+								case d16PC:
+								case d8PCXn:
+									// PC-relative addressing is permitted for moving to registers only.
+									if((mode == d16PC || mode == d8PCXn) && is_to_m) continue;
+									op(calc_action_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np", mode)));
+								break;
+
+								case XXXl:
+									op(Action::None, seq("np"));
+								case XXXw:
+									op(address_assemble_for_mode(mode) | MicroOp::DestinationMask, seq("np"));
+								break;
+							}
+
+							// Standard suffix: perform the MOVEM, which will mean evaluating the
+							// register selection flags and substituting the necessary reads or writes.
+							op(Action::PerformOperation);
+
+							// A final program fetch will cue up the next instruction.
+							op(Action::None, seq("np"));
 						} break;
 
 						// Decodes the format used by most MOVEs and all MOVEAs.

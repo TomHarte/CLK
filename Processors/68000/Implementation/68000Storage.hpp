@@ -77,6 +77,9 @@ class ProcessorStorage {
 			RORb, RORw, RORl, RORm,
 			ROXLb, ROXLw, ROXLl, ROXLm,
 			ROXRb, ROXRw, ROXRl, ROXRm,
+
+			MOVEMtoRl, MOVEMtoRw,
+			MOVEMtoMl, MOVEMtoMw,
 		};
 
 		/*!
@@ -205,6 +208,9 @@ class ProcessorStorage {
 
 				/// Copies the next two prefetch words into one of the bus_data_.
 				AssembleLongWordDataFromPrefetch,
+
+				/// Copies the low part of the prefetch queue into next_word_.
+				CopyNextWord,
 			};
 			static const int SourceMask = 1 << 30;
 			static const int DestinationMask = 1 << 29;
@@ -282,7 +288,8 @@ class ProcessorStorage {
 		Program *active_program_ = nullptr;
 		MicroOp *active_micro_op_ = nullptr;
 		BusStep *active_step_ = nullptr;
-		uint16_t decoded_instruction_;
+		uint16_t decoded_instruction_ = 0;
+		uint16_t next_word_ = 0;
 
 		/// Copies address_[7] to the proper stack pointer based on current mode.
 		void write_back_stack_pointer();
@@ -290,6 +297,14 @@ class ProcessorStorage {
 		/// Sets or clears the supervisor flag, ensuring the stack pointer is properly updated.
 		void set_is_supervisor(bool);
 
+		// Transient storage for MOVEM.
+		uint32_t movem_addresses_[16];
+		RegisterPair32 movem_spare_value_;
+
+		/*!
+			Evaluates the conditional described by @c code and returns @c true or @c false to
+			indicate the result of that evaluation.
+		*/
 		inline bool evaluate_condition(uint8_t code) {
 			switch(code & 0xf) {
 				default:
