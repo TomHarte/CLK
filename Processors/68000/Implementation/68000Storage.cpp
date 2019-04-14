@@ -2206,6 +2206,18 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	const size_t dbcc_condition_false_no_branch_offset = constructor.assemble_program("n nr np np", { &dbcc_false_address_ });
 	const size_t dbcc_condition_false_branch_offset = constructor.assemble_program("n np np");
 
+	// The reads steps needs to be 33 neatly assembled reads; the writes just the 32.
+	// Addresses and data sources/targets will be filled in at runtime, so anything will do here.
+	std::string movem_reads_pattern, movem_writes_pattern;
+	std::vector<uint32_t *> addresses;
+	for(auto c = 0; c < 33; ++c) {
+		movem_reads_pattern += "nr ";
+		if(c != 32) movem_writes_pattern += "nw ";
+		addresses.push_back(nullptr);
+	}
+	const size_t movem_reads_offset = constructor.assemble_program(movem_reads_pattern, addresses);
+	const size_t movem_writes_offset = constructor.assemble_program(movem_writes_pattern, addresses);
+
 	// Install operations.
 	constructor.install_instructions();
 
@@ -2219,6 +2231,9 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	dbcc_condition_true_steps_ = &all_bus_steps_[dbcc_condition_true_offset];
 	dbcc_condition_false_no_branch_steps_ = &all_bus_steps_[dbcc_condition_false_no_branch_offset];
 	dbcc_condition_false_branch_steps_ = &all_bus_steps_[dbcc_condition_false_branch_offset];
+
+	movem_reads_steps_ = &all_bus_steps_[movem_reads_offset];
+	movem_writes_steps_ = &all_bus_steps_[movem_writes_offset];
 
 	// Set initial state. Largely TODO.
 	active_step_ = reset_bus_steps_;

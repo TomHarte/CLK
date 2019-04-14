@@ -284,6 +284,9 @@ class ProcessorStorage {
 		BusStep *dbcc_condition_false_no_branch_steps_;
 		BusStep *dbcc_condition_false_branch_steps_;
 
+		BusStep *movem_reads_steps_;
+		BusStep *movem_writes_steps_;
+
 		// Current bus step pointer, and outer program pointer.
 		Program *active_program_ = nullptr;
 		MicroOp *active_micro_op_ = nullptr;
@@ -298,7 +301,7 @@ class ProcessorStorage {
 		void set_is_supervisor(bool);
 
 		// Transient storage for MOVEM.
-		uint32_t movem_addresses_[16];
+		uint32_t movem_addresses_[33];
 		RegisterPair32 movem_spare_value_;
 
 		/*!
