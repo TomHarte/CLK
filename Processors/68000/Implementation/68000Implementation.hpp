@@ -626,6 +626,10 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 #undef add_overflow
 						break;
 
+						case int(MicroOp::Action::CopyNextWord):
+							next_word_ = prefetch_queue_.halves.low.full;
+						break;
+
 						case int(MicroOp::Action::SetMoveFlagsb):
 							zero_result_ = active_program_->source->halves.low.halves.low;
 							negative_flag_ = zero_result_ & 0x80;
