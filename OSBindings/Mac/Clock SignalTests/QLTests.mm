@@ -33,15 +33,16 @@ class QL: public CPU::MC68000::BusHandler {
 			const uint32_t address = cycle.word_address();
 			uint32_t word_address = address;
 
-			// As much about the Atari ST's memory map as is relevant here: the ROM begins
-			// at 0xfc0000, and the first eight bytes are mirrored to the first four memory
-			// addresses in order for /RESET to work properly. RAM otherwise fills the first
-			// 512kb of the address space. Trying to write to ROM raises a bus error.
-
-			const bool is_peripheral = word_address >= (rom_.size() + ram_.size());
+			// QL memory map: ROM is in the lowest area; RAM is from 0x20000.
 			const bool is_rom = word_address < rom_.size();
+			const bool is_ram = word_address >= 0x10000 && word_address < 0x10000+ram_.size();
+			const bool is_peripheral = !is_ram && !is_rom;
+
 			uint16_t *const base = is_rom ? rom_.data() : ram_.data();
-			if(!is_rom) {
+			if(is_rom) {
+				word_address %= rom_.size();
+			}
+			if(is_ram) {
 				word_address %= ram_.size();
 			}
 
