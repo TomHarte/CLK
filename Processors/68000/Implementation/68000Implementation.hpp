@@ -380,46 +380,48 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 	mask = next_word_;													\
 	int offset = 0;
 
-#define write_address_sequence_long(address_step, offset_step, l, h)							\
-	while(mask) {																				\
-		if(mask&1) {																			\
-			address_storage[0] = start_address;													\
-			address_storage[1] = start_address + address_step;									\
-																								\
-			step[0].microcycle.address = step[1].microcycle.address = address_storage;			\
-			step[2].microcycle.address = step[3].microcycle.address = address_storage + 1;		\
-																								\
-			const auto target = (offset > 7) ? &address_[offset&7] : &data_[offset];			\
-			step[h].microcycle.value = step[h+1].microcycle.value = &target->halves.high;		\
-			step[l].microcycle.value = step[l+1].microcycle.value = &target->halves.low;		\
-																								\
-			start_address += address_step*2;													\
-			address_storage += 2;																\
-			step += 4;																			\
-		}																						\
-		mask >>= 1;																				\
-		offset += offset_step;																	\
+#define inc_action(x, v) x += v
+#define dec_action(x, v) x -= v
+
+#define write_address_sequence_long(action, l)														\
+	while(mask) {																					\
+		if(mask&1) {																				\
+			address_storage[0] = start_address;														\
+			action(start_address, 2);																\
+			address_storage[1] = start_address;														\
+			action(start_address, 2);																\
+																									\
+			step[0].microcycle.address = step[1].microcycle.address = address_storage;				\
+			step[2].microcycle.address = step[3].microcycle.address = address_storage + 1;			\
+																									\
+			const auto target = (offset > 7) ? &address_[offset&7] : &data_[offset];				\
+			step[(l^2)].microcycle.value = step[(l^2)+1].microcycle.value = &target->halves.high;	\
+			step[l].microcycle.value = step[l+1].microcycle.value = &target->halves.low;			\
+																									\
+			address_storage += 2;																	\
+			step += 4;																				\
+		}																							\
+		mask >>= 1;																					\
+		action(offset, 1);																			\
 	}
 
-#define write_address_sequence_word(address_step, offset_step)							\
+#define write_address_sequence_word(action)												\
 	while(mask) {																		\
 		if(mask&1) {																	\
 			address_storage[0] = start_address;											\
+			action(start_address, 2);													\
 																						\
 			step[0].microcycle.address = step[1].microcycle.address = address_storage;	\
 																						\
 			const auto target = (offset > 7) ? &address_[offset&7] : &data_[offset];	\
 			step[0].microcycle.value = step[1].microcycle.value = &target->halves.low;	\
 																						\
-			start_address += address_step;												\
 			++ address_storage;															\
 			step += 2;																	\
 		}																				\
 		mask >>= 1;																		\
-		offset += offset_step;															\
+		action(offset, 1);																\
 	}
-
-
 
 								case Operation::MOVEMtoRl: {
 									setup_movem(2, movem_reads_steps_);
@@ -434,7 +436,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									//
 									// The latter part is dealt with by MicroOp::Action::MOVEMtoRComplete, which also
 									// does any necessary sign extension.
-									write_address_sequence_long(2, 1, 0, 2);
+									write_address_sequence_long(inc_action, 0);
 
 									// MOVEM to R always reads one word too many.
 									address_storage[0] = start_address;
@@ -445,7 +447,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 								case Operation::MOVEMtoRw: {
 									setup_movem(1, movem_reads_steps_);
-									write_address_sequence_word(2, 1);
+									write_address_sequence_word(inc_action);
 
 									// MOVEM to R always reads one word too many.
 									address_storage[0] = start_address;
@@ -470,10 +472,10 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									if(mode == 4) {
 										offset = 15;
 										start_address -= 2;
-										write_address_sequence_long(-2, -1, 2, 0);
+										write_address_sequence_long(dec_action, 2);
 										movem_final_address_ = start_address;
 									} else {
-										write_address_sequence_long(2, 1, 0, 2);
+										write_address_sequence_long(inc_action, 0);
 									}
 								} break;
 
@@ -483,15 +485,17 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									if(mode == 4) {
 										offset = 15;
 										start_address -= 2;
-										write_address_sequence_word(-2, -1);
+										write_address_sequence_word(dec_action);
 									} else {
-										write_address_sequence_word(2, 1);
+										write_address_sequence_word(inc_action);
 									}
 								} break;
 
 #undef setup_movem
 #undef write_address_sequence_long
 #undef write_address_sequence_word
+#undef inc_action
+#undef dec_action
 
 								/*
 									NEGs: negatives the destination, setting the zero,
