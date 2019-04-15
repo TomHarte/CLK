@@ -683,7 +683,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 	extend_flag_ = carry_flag_ = value & t;
 
 #define decode_shift_count()	\
-	const int shift_count = (decoded_instruction_ & 32) ? data_[(decoded_instruction_ >> 9) & 7].full&63 : (decoded_instruction_ >> 9) & 7;	\
+	const int shift_count = (decoded_instruction_ & 32) ? data_[(decoded_instruction_ >> 9) & 7].full&63 : ( ((decoded_instruction_ >> 9)&7) ? ((decoded_instruction_ >> 9)&7) : 8) ;	\
 	active_step_->microcycle.length = HalfCycles(4 * shift_count);
 
 #define set_flags_b(t) set_flags(active_program_->destination->halves.low.halves.low, 0x80, t)
