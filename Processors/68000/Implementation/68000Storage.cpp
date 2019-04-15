@@ -1749,7 +1749,7 @@ struct ProcessorStorageConstructor {
 								case l2(Dn, Ind):			// MOVE.l Dn, (An)
 								case l2(Dn, PostInc):		// MOVE.l Dn, (An)+
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
-									op(Action::SetMoveFlagsl, seq("nW+ nw np", { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
 									if(destination_mode == PostInc) {
 										op(increment_action | MicroOp::DestinationMask);
 									}
