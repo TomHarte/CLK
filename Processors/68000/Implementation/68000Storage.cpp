@@ -337,6 +337,9 @@ struct ProcessorStorageConstructor {
 			BTST,						// Maps a source register and a destination register and mode to a BTST.
 			BTSTIMM,					// Maps a destination mode and register to a BTST #.
 
+			BCLR,						// Maps a source register and a destination register and mode to a BCLR.
+			BCLRIMM,					// Maps a destination mode and register to a BCLR #.
+
 			CLRNEGNEGXNOT,				// Maps a destination mode and register to a CLR, NEG, NEGX or NOT.
 
 			CMP,						// Maps a destination register and a source mode and register to a CMP.
@@ -450,6 +453,9 @@ struct ProcessorStorageConstructor {
 
 			{0xf1c0, 0x0100, Operation::BTSTb, Decoder::BTST},		// 4-62 (p166)
 			{0xffc0, 0x0800, Operation::BTSTb, Decoder::BTSTIMM},	// 4-63 (p167)
+
+			{0xf1c0, 0x0180, Operation::BCLRb, Decoder::BCLR},		// 4-31 (p135)
+			{0xffc0, 0x0880, Operation::BCLRb, Decoder::BCLRIMM},	// 4-32 (p136)
 
 			{0xf0c0, 0x50c0, Operation::Scc, Decoder::SccDBcc},			// Scc: 4-173 (p276); DBcc: 4-91 (p195)
 
@@ -852,8 +858,12 @@ struct ProcessorStorageConstructor {
 							op(Action::PerformOperation, seq("n np np"));
 						} break;
 
-						// Decodes a BTST, potential mutating the operation into a BTSTl.
+						// Decodes a BTST, potential mutating the operation into a BTSTl,
+						// or a BCLR.
+						case Decoder::BCLR:
 						case Decoder::BTST: {
+							const bool is_bclr = mapping.decoder == Decoder::BCLR;
+
 							const int mask_register = (instruction >> 9) & 7;
 							storage_.instructions[instruction].set_source(storage_, 0, mask_register);
 							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
@@ -863,22 +873,28 @@ struct ProcessorStorageConstructor {
 								default: continue;
 
 								case Dn:		// BTST.l Dn, Dn
-									operation = Operation::BTSTl;
-									op(Action::PerformOperation, seq("np n"));
+									if(is_bclr) {
+										operation = Operation::BCLRl;
+										op(Action::None, seq("np"));
+										op(Action::PerformOperation, seq("r"));
+									} else {
+										operation = Operation::BTSTl;
+										op(Action::PerformOperation, seq("np n"));
+									}
 								break;
 
 								case Ind:		// BTST.b Dn, (An)
 								case PostInc:	// BTST.b Dn, (An)+
-									op(Action::None, seq("nrd np", { &storage_.data_[ea_register].full }, false));
-									op(Action::PerformOperation);
+									op(Action::None, seq("nrd np", { a(ea_register) }, false));
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
 									if(mode == PostInc) {
 										op(int(Action::Increment1) | MicroOp::DestinationMask);
 									}
 								break;
 
 								case PreDec:	// BTST.b Dn, -(An)
-									op(int(Action::Decrement1) | MicroOp::DestinationMask, seq("n nrd np", { &storage_.data_[ea_register].full }, false));
-									op(Action::PerformOperation);
+									op(int(Action::Decrement1) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }, false));
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
 								break;
 
 								case d16An:		// BTST.b Dn, (d16, An)
@@ -887,7 +903,7 @@ struct ProcessorStorageConstructor {
 								case d8PCXn:	// BTST.b Dn, (d8, PC, Xn)
 									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
 										seq(pseq("np nrd np", mode), { ea(1) }, false));
-									op(Action::PerformOperation);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
 								break;
 
 								case XXXl:	// BTST.b Dn, (xxx).l
@@ -895,12 +911,15 @@ struct ProcessorStorageConstructor {
 								case XXXw:	// BTST.b Dn, (xxx).w
 									op(	address_assemble_for_mode(mode) | MicroOp::DestinationMask,
 										seq("np nrd np", { ea(1) }, false));
-									op(Action::PerformOperation);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
 								break;
 							}
 						} break;
 
+						case Decoder::BCLRIMM:
 						case Decoder::BTSTIMM: {
+							const bool is_bclr = mapping.decoder == Decoder::BCLRIMM;
+
 							storage_.instructions[instruction].source = &storage_.source_bus_data_[0];
 							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
 
@@ -909,15 +928,21 @@ struct ProcessorStorageConstructor {
 								default: continue;
 
 								case Dn:		// BTST.l #, Dn
-									operation = Operation::BTSTl;
-									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np n"));
-									op(Action::PerformOperation);
+									if(is_bclr) {
+										operation = Operation::BCLRl;
+										op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
+										op(Action::PerformOperation, seq("r"));
+									} else {
+										operation = Operation::BTSTl;
+										op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np n"));
+										op(Action::PerformOperation);
+									}
 								break;
 
 								case Ind:		// BTST.b #, (An)
 								case PostInc:	// BTST.b #, (An)+
-									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nrd np", { &storage_.data_[ea_register].full }, false));
-									op(Action::PerformOperation);
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nrd np", { a(ea_register) }, false));
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
 									if(mode == PostInc) {
 										op(int(Action::Increment1) | MicroOp::DestinationMask);
 									}
@@ -925,8 +950,8 @@ struct ProcessorStorageConstructor {
 
 								case PreDec:	// BTST.b #, -(An)
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
-									op(int(Action::Decrement1) | MicroOp::DestinationMask, seq("n nrd np", { &storage_.data_[ea_register].full }, false));
-									op(Action::PerformOperation);
+									op(int(Action::Decrement1) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }, false));
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
 								break;
 
 								case d16An:		// BTST.b #, (d16, An)
@@ -936,21 +961,21 @@ struct ProcessorStorageConstructor {
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
 										seq(pseq("np nrd np", mode), { ea(1) }, false));
-									op(Action::PerformOperation);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
 								break;
 
 								case XXXw:	// BTST.b #, (xxx).w
 									op(	int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask,
 										seq("np nrd np", { ea(1) }, false));
-									op(Action::PerformOperation);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
 								break;
 
 								case XXXl:	// BTST.b #, (xxx).l
 									op(	int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
 									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
 										seq("np nrd np", { ea(1) }, false));
-									op(Action::PerformOperation);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
 								break;
 							}
 						} break;
