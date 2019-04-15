@@ -678,14 +678,17 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								/*
 									Shifts and rotates.
 								*/
+#define set_neg_zero_overflow(v, m)	\
+	zero_result_ = (v);	\
+	negative_flag_ = zero_result_ & (m);	\
+	overflow_flag_ = (value ^ zero_result_) & (m);
+
 #define set_flags(v, m, t)	\
-	zero_result_ = v;	\
-	negative_flag_ = zero_result_ & m;	\
-	overflow_flag_ = (value ^ zero_result_) & m;	\
-	extend_flag_ = carry_flag_ = value & t;
+	set_neg_zero_overflow(v, m)	\
+	extend_flag_ = carry_flag_ = value & (t);
 
 #define decode_shift_count()	\
-	const int shift_count = (decoded_instruction_ & 32) ? data_[(decoded_instruction_ >> 9) & 7].full&63 : ( ((decoded_instruction_ >> 9)&7) ? ((decoded_instruction_ >> 9)&7) : 8) ;	\
+	int shift_count = (decoded_instruction_ & 32) ? data_[(decoded_instruction_ >> 9) & 7].full&63 : ( ((decoded_instruction_ >> 9)&7) ? ((decoded_instruction_ >> 9)&7) : 8) ;	\
 	active_step_->microcycle.length = HalfCycles(4 * shift_count);
 
 #define set_flags_b(t) set_flags(active_program_->destination->halves.low.halves.low, 0x80, t)
@@ -725,6 +728,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 #define asl(x, c, m, d) x <<= c
 #define asr(x, c, m, d) x = (x >> c) | (((value >> d) & 1) *  (m ^ (m >> c)))
 
+// TODO: carry/extend is incorrect for shifts of greater than one digit.
+
 								shift_op(LSL, lsl, 0x80, 0x8000, 0x80000000);
 								shift_op(ASL, lsl, 0x80, 0x8000, 0x80000000);
 								shift_op(LSR, lsr, 0x01, 0x0001, 0x00000001);
@@ -733,41 +738,134 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 #undef set_flags
 #define set_flags(v, m, t)	\
 	zero_result_ = v;	\
-	negative_flag_ = zero_result_ & m;	\
+	negative_flag_ = zero_result_ & (m);	\
 	overflow_flag_ = 0;	\
-	carry_flag_ = value & t;
+	carry_flag_ = value & (t);
+
+#define rol(destination, size)	{ \
+		decode_shift_count();	\
+		const auto value = destination;	\
+		\
+		if(!shift_count) {	\
+			carry_flag_ = 0;	\
+		} else {	\
+			shift_count &= (size - 1);	\
+			destination =	\
+				(value << shift_count) |	\
+				(value >> (size - shift_count));	\
+			carry_flag_ = destination & 1;	\
+		}	\
+		\
+		set_neg_zero_overflow(destination, 1 << (size - 1));	\
+	}
 
 								case Operation::ROLm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (active_program_->destination->halves.low.full << 1) | (value >> 15);
-									set_flags_w(0x8000);
+									active_program_->destination->halves.low.full = (value << 1) | (value >> 15);
+									carry_flag_ = active_program_->destination->halves.low.full & 1;
+									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
+								case Operation::ROLb: rol(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::ROLw: rol(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::ROLl: rol(active_program_->destination->full, 32); 					break;
+
+#undef rol
+
+#define ror(destination, size)	{ \
+		decode_shift_count();	\
+		const auto value = destination;	\
+		\
+		if(!shift_count) {	\
+			carry_flag_ = 0;	\
+		} else {	\
+			shift_count &= (size - 1);	\
+			destination =	\
+				(value >> shift_count) |	\
+				(value << (size - shift_count));	\
+			carry_flag_ = destination & (1 << (size - 1));	\
+		}	\
+		\
+		set_neg_zero_overflow(destination, 1 << (size - 1));	\
+	}
 
 								case Operation::RORm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (active_program_->destination->halves.low.full >> 1) | (value << 15);
-									set_flags_w(0x0001);
+									active_program_->destination->halves.low.full = (value >> 1) | (value << 15);
+									carry_flag_ = active_program_->destination->halves.low.full & 0x8000;
+									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
+								case Operation::RORb: ror(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::RORw: ror(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::RORl: ror(active_program_->destination->full, 32); 					break;
+
+#undef ror
+
+#define roxl(destination, size)	{ \
+	decode_shift_count();	\
+	const auto value = destination;	\
+\
+	if(!shift_count) {	\
+		carry_flag_ = extend_flag_;	\
+	} else {	\
+		shift_count %= (size + 1);	\
+		destination =	\
+			(value << shift_count) |	\
+			(value >> (size + 1 - shift_count)) |	\
+			((extend_flag_ ? (1 << (size - 1)) : 0) >> (size - shift_count));	\
+		carry_flag_ = extend_flag_ = destination & 1;	\
+	}	\
+	\
+	set_neg_zero_overflow(destination, 1 << (size - 1));	\
+}
 
 								case Operation::ROXLm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (active_program_->destination->halves.low.full << 1) | (extend_flag_ ? 0x0001 : 0x0000);
+									active_program_->destination->halves.low.full = (value << 1) | (extend_flag_ ? 0x0001 : 0x0000);
 									extend_flag_ = value & 0x8000;
 									set_flags_w(0x8000);
 								} break;
+								case Operation::ROXLb: roxl(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::ROXLw: roxl(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::ROXLl: roxl(active_program_->destination->full, 32); 					break;
+
+#undef roxl
+
+#define roxr(destination, size)	{ \
+	decode_shift_count();	\
+	const auto value = destination;	\
+\
+	if(!shift_count) {	\
+		carry_flag_ = extend_flag_;	\
+	} else {	\
+		shift_count %= (size + 1);	\
+		destination =	\
+			(value >> shift_count) |	\
+			(value << (size + 1 - shift_count)) |	\
+			((extend_flag_ ? 1 : 0) << (size - shift_count));	\
+		carry_flag_ = extend_flag_ = destination & 1;	\
+	}	\
+	\
+	set_neg_zero_overflow(destination, 1 << (size - 1));	\
+}
 
 								case Operation::ROXRm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (active_program_->destination->halves.low.full >> 1) | (extend_flag_ ? 0x8000 : 0x0000);
+									active_program_->destination->halves.low.full = (value >> 1) | (extend_flag_ ? 0x8000 : 0x0000);
 									extend_flag_ = value & 0x0001;
 									set_flags_w(0x0001);
 								} break;
+								case Operation::ROXRb: roxr(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::ROXRw: roxr(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::ROXRl: roxr(active_program_->destination->full, 32); 					break;
+
+#undef roxr
 
 #undef set_flags
 #undef decode_shift_count
 #undef set_flags_b
 #undef set_flags_w
 #undef set_flags_l
+#undef set_neg_zero_overflow
 
 								/*
 									TSTs: compare to zero.
