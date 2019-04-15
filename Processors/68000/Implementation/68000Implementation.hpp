@@ -52,12 +52,12 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						// no instruction was ongoing. Either way, do a standard instruction operation.
 
 						// TODO: unless an interrupt is pending, or the trap flag is set.
-/*						std::cout << std::setw(8) << std::right;
+						std::cout << std::setfill('0');
 						std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
 						std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
-						for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << data_[c].full << " ";
-						for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << address_[c].full << " ";
-						std::cout << std::endl;*/
+						for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
+						for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
+						std::cout << '\n';
 
 						decoded_instruction_ = prefetch_queue_.halves.high.full;
 						if(!instructions[decoded_instruction_].micro_operations) {
@@ -65,7 +65,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << decoded_instruction_ << " from " << (program_counter_.full - 4) << std::endl;
 							return;
 						} else {
-							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\n';
+							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
 						}
 
 						active_program_ = &instructions[decoded_instruction_];
