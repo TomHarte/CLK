@@ -221,6 +221,15 @@ class ProcessorStorage {
 
 				/// Performs write-back of pre-decrement address.
 				MOVEMtoMComplete,
+
+				// (i) copies the current program counter to destination_bus_data_;
+				// (ii) copies the stack pointer minus 2 to effective_address_[1];
+				// (iii) decrements the stack pointer by four.
+				PrepareJSR,
+
+				// (i) copies the stack pointer to effective_address_[0];
+				// (ii) increments the stack pointer by four.
+				PrepareRTS,
 			};
 			static const int SourceMask = 1 << 30;
 			static const int DestinationMask = 1 << 29;

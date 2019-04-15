@@ -95,8 +95,8 @@ struct ProcessorStorageConstructor {
 		* nr: read LSW of soemthing from the bus into the source latch;
 		* nRd: read MSW of something from the bus into the destination latch;
 		* nrd: read LSW of soemthing from the bus into the destination latch;
-		* nS: push the MSW of something onto the stack;
-		* ns: push the LSW of something onto the stack;
+		* nS: push the MSW of something onto the stack **and then** decrement the pointer;
+		* ns: push the LSW of something onto the stack **and then** decrement the pointer;
 		* nU: pop the MSW of something from the stack;
 		* nu: pop the LSW of something from the stack;
 		* nV: fetch a vector's MSW;
@@ -226,7 +226,7 @@ struct ProcessorStorageConstructor {
 			if(token == "nR" || token == "nr" || token == "nW" || token == "nw" || token == "nRd" || token == "nrd") {
 				const bool is_read = tolower(token[1]) == 'r';
 				const bool use_source_storage = is_read && token.size() != 3;
-				RegisterPair32 *scratch_data = use_source_storage ? &storage_.source_bus_data_[0] : &storage_.destination_bus_data_[0];
+				RegisterPair32 *const scratch_data = use_source_storage ? &storage_.source_bus_data_[0] : &storage_.destination_bus_data_[0];
 
 				assert(address_iterator != addresses.end());
 
@@ -248,6 +248,42 @@ struct ProcessorStorageConstructor {
 				}
 				steps.push_back(step);
 				++address_iterator;
+
+				continue;
+			}
+
+			// A stack write.
+			if(token == "nS" || token == "ns") {
+				RegisterPair32 *const scratch_data = &storage_.destination_bus_data_[0];
+
+				step.microcycle.length = HalfCycles(5);
+				step.microcycle.operation = Microcycle::NewAddress;
+				step.microcycle.address = &storage_.effective_address_[1].full;
+				step.microcycle.value = isupper(token[1]) ? &scratch_data->halves.high : &scratch_data->halves.low;
+				steps.push_back(step);
+
+				step.microcycle.length = HalfCycles(3);
+				step.microcycle.operation |= Microcycle::SelectWord;
+				step.action = Action::DecrementEffectiveAddress1;
+				steps.push_back(step);
+
+				continue;
+			}
+
+			// A stack read.
+			if(token == "nU" || token == "nu") {
+				RegisterPair32 *const scratch_data = &storage_.source_bus_data_[0];
+
+				step.microcycle.length = HalfCycles(5);
+				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read;
+				step.microcycle.address = &storage_.effective_address_[0].full;
+				step.microcycle.value = isupper(token[1]) ? &scratch_data->halves.high : &scratch_data->halves.low;
+				steps.push_back(step);
+
+				step.microcycle.length = HalfCycles(3);
+				step.microcycle.operation |= Microcycle::SelectWord;
+				step.action = Action::IncrementEffectiveAddress0;
+				steps.push_back(step);
 
 				continue;
 			}
@@ -327,7 +363,10 @@ struct ProcessorStorageConstructor {
 			MOVEM,						// Maps a mode and register as they were a 'destination' and sets up bus steps with a suitable
 										// hole for the runtime part to install proper MOVEM activity.
 
-			TST,						// Mapsa mode and register to a TST.
+			TST,						// Maps a mode and register to a TST.
+
+			JSR,						// Maps a mode and register to a JSR.
+			RTS,						// Maps
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -393,6 +432,8 @@ struct ProcessorStorageConstructor {
 			{0xffff, 0x4e70, Operation::None, Decoder::RESET},	// 6-83 (p537)
 
 			{0xffc0, 0x4ec0, Operation::JMP, Decoder::JMP},		// 4-108 (p212)
+			{0xffc0, 0x4e80, Operation::JMP, Decoder::JSR},		// 4-109 (p213)
+			{0xffff, 0x4e75, Operation::JMP, Decoder::RTS},		// 4-169 (p273)
 
 			{0xf0c0, 0x9000, Operation::SUBb, Decoder::ADDSUB},	// 4-174 (p278)
 			{0xf0c0, 0x9040, Operation::SUBw, Decoder::ADDSUB},	// 4-174 (p278)
@@ -473,6 +514,7 @@ struct ProcessorStorageConstructor {
 			{0xffc0, 0x4a00, Operation::TSTb, Decoder::TST},					// 4-192 (p296)
 			{0xffc0, 0x4a40, Operation::TSTw, Decoder::TST},					// 4-192 (p296)
 			{0xffc0, 0x4a80, Operation::TSTl, Decoder::TST},					// 4-192 (p296)
+
 		};
 
 #ifndef NDEBUG
@@ -1454,6 +1496,52 @@ struct ProcessorStorageConstructor {
 
 						} break;
 
+						case Decoder::JSR: {
+							storage_.instructions[instruction].source = &storage_.effective_address_[0];
+							const int mode = combined_mode(ea_mode, ea_register);
+							switch(mode) {
+								default: continue;
+								case Ind:		// JSR (An)
+									storage_.instructions[instruction].source = &storage_.address_[ea_register];
+									op(Action::PrepareJSR);
+									op(Action::PerformOperation, seq("np nS ns np"));
+								break;
+
+								case d16PC:		// JSR (d16, PC)
+								case d16An:		// JSR (d16, An)
+									op(Action::PrepareJSR);
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n np nS ns np"));
+									op(Action::PerformOperation);
+								break;
+
+								case d8PCXn:	// JSR (d8, PC, Xn)
+								case d8AnXn:	// JSR (d8, An, Xn)
+									op(Action::PrepareJSR);
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n nn np nS ns np"));
+									op(Action::PerformOperation);
+								break;
+
+								case XXXl:		// JMP (xxx).L
+									op(Action::None, seq("np"));
+									op(Action::PrepareJSR);
+									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PerformOperation, seq("n np nS ns np"));
+								break;
+
+								case XXXw:		// JSR (xxx).W
+									op(Action::PrepareJSR);
+									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PerformOperation, seq("n np nS ns np"));
+								break;
+							}
+						} break;
+
+						case Decoder::RTS: {
+							storage_.instructions[instruction].source = &storage_.source_bus_data_[0];
+							op(Action::PrepareRTS, seq("nU nu"));
+							op(Action::PerformOperation, seq("np np"));
+						} break;
+
 						case Decoder::JMP: {
 							storage_.instructions[instruction].source = &storage_.effective_address_[0];
 							const int mode = combined_mode(ea_mode, ea_register);
@@ -1478,6 +1566,10 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:	// JMP (xxx).L
 									op(Action::None, seq("np"));
+									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PerformOperation, seq("np np"));
+								break;
+
 								case XXXw:	// JMP (xxx).W
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
 									op(Action::PerformOperation, seq("n np np"));
