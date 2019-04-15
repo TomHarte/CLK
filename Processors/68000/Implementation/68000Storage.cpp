@@ -2275,15 +2275,15 @@ struct ProcessorStorageConstructor {
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
-								case bw(Dn):
-								case l(Dn):
+								case bw(Dn):		// TST.bw Dn
+								case l(Dn):			// TST.l Dn
 									op(Action::PerformOperation, seq("np"));
 								break;
 
-								case bw(PreDec):
+								case bw(PreDec):	// TST.bw -(An)
 									op(int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::SourceMask, seq("n"));
-								case bw(Ind):
-								case bw(PostInc):
+								case bw(Ind):		// TST.bw (An)
+								case bw(PostInc):	// TST.bw (An)+
 									op(Action::None, seq("nr", { a(ea_register) }, !is_byte_access));
 									op(Action::PerformOperation, seq("np"));
 									if(mode == PostInc) {
@@ -2291,15 +2291,45 @@ struct ProcessorStorageConstructor {
 									}
 								break;
 
-								case l(PreDec):
+								case l(PreDec):		// TST.l -(An)
 									op(int(Action::Decrement4) | MicroOp::SourceMask, seq("n"));
-								case l(Ind):
-								case l(PostInc):
+								case l(Ind):		// TST.l (An)
+								case l(PostInc):	// TST.l (An)+
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) }));
 									op(Action::PerformOperation, seq("np"));
 									if(mode == PostInc) {
 										op(int(Action::Increment4) | MicroOp::SourceMask);
 									}
+								break;
+
+								case bw(d16An):		// TST.bw (d16, An)
+								case bw(d16PC):		// TST.bw (d16, PC)
+								case bw(d8AnXn):	// TST.bw (d8, An, Xn)
+								case bw(d8PCXn):	// TST.bw (d8, PC, Xn)
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nr", mode), { ea(0) }, !is_byte_access));
+									op(Action::PerformOperation, seq("np"));
+								break;
+
+								case l(d16An):		// TST.l (d16, An)
+								case l(d16PC):		// TST.l (d16, PC)
+								case l(d8AnXn):		// TST.l (d8, An, Xn)
+								case l(d8PCXn):		// TST.l (d8, PC, Xn)
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nR+ nr", mode), { ea(0), ea(0) }));
+									op(Action::PerformOperation, seq("np"));
+								break;
+
+								case bw(XXXl):		// TST.bw (xxx).l
+									op(Action::None, seq("np"));
+								case bw(XXXw):		// TST.bw (xxx).w
+									op(address_assemble_for_mode(mode) | MicroOp::SourceMask, seq("np nr", { ea(0) }, !is_byte_access));
+									op(Action::PerformOperation, seq("np"));
+								break;
+
+								case l(XXXl):		// TST.l (xxx).l
+									op(Action::None, seq("np"));
+								case l(XXXw):		// TST.l (xxx).w
+									op(address_assemble_for_mode(mode) | MicroOp::SourceMask, seq("np nR+ nr", { ea(0), ea(0) }));
+									op(Action::PerformOperation, seq("np"));
 								break;
 							}
 						} break;
