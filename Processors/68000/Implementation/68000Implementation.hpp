@@ -227,6 +227,11 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									}
 								} break;
 
+								case Operation::Scc: {
+									active_program_->destination->halves.low.halves.low =
+										evaluate_condition(prefetch_queue_.halves.high.halves.high) ? 0xff : 0x00;
+								} break;
+
 								/*
 									CLRs: store 0 to the destination, set the zero flag, and clear
 									negative, overflow and carry.

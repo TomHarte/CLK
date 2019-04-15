@@ -308,7 +308,7 @@ struct ProcessorStorageConstructor {
 			CMPA,						// Maps a destination register and a source mode and register to a CMPA.
 			CMPM,						// Maps to a CMPM.
 
-			DBcc,						// Maps a destination register to a DBcc.
+			SccDBcc,					// Maps a mode and destination register to either a DBcc or Scc.
 
 			JMP,						// Maps a mode and register to a JMP.
 
@@ -408,7 +408,7 @@ struct ProcessorStorageConstructor {
 			{0xf1c0, 0x0100, Operation::BTSTb, Decoder::BTST},		// 4-62 (p166)
 			{0xffc0, 0x0800, Operation::BTSTb, Decoder::BTSTIMM},	// 4-63 (p167)
 
-			{0xf0f8, 0x50c8, Operation::DBcc, Decoder::DBcc},		// 4-91 (p195)
+			{0xf0c0, 0x50c0, Operation::Scc, Decoder::SccDBcc},			// Scc: 4-173 (p276); DBcc: 4-91 (p195)
 
 			{0xffc0, 0x4200, Operation::CLRb, Decoder::CLRNEGNEGXNOT},	// 4-73 (p177)
 			{0xffc0, 0x4240, Operation::CLRw, Decoder::CLRNEGNEGXNOT},	// 4-73 (p177)
@@ -1392,13 +1392,60 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
-						case Decoder::DBcc: {
-							storage_.instructions[instruction].source = &storage_.data_[ea_register];
+						case Decoder::SccDBcc: {
+							if(ea_mode == 1) {
+								// This is a DBcc. Decode as such.
 
- 							// Jump straight into deciding what steps to take next,
- 							// which will be selected dynamically.
-							op(Action::PerformOperation);
-							op();
+								storage_.instructions[instruction].source = &storage_.data_[ea_register];
+
+								// Jump straight into deciding what steps to take next,
+								// which will be selected dynamically.
+								op(Action::PerformOperation);
+								op();
+							} else {
+								// This is an Scc.
+
+								// Scc is inexplicably a read-modify-write operation.
+								storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
+								storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
+
+								const int mode = combined_mode(ea_mode, ea_register);
+								switch(mode) {
+									default: continue;
+
+									 case Dn:
+										op(Action::PerformOperation, seq("np"));
+										// TODO: if condition true, an extra n.
+									 break;
+
+									 case Ind:
+									 case PostInc:
+										op(Action::PerformOperation, seq("nr np nw", { a(ea_register), a(ea_register) }, false));
+										if(mode == PostInc) {
+											op(int(Action::Increment1) | MicroOp::DestinationMask);
+										}
+									 break;
+
+									 case PreDec:
+										op(int(Action::Decrement1) | MicroOp::DestinationMask);
+										op(Action::PerformOperation, seq("n nr np nw", { a(ea_register), a(ea_register) }, false));
+									 break;
+
+									 case d16An:
+									 case d8AnXn:
+										op(calc_action_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np nrd", mode), { ea(1) } , false));
+										op(Action::PerformOperation, seq("np nw", { ea(1) } , false));
+									 break;
+
+									 case XXXw:
+										op(Action::None, seq("np"));
+									 case XXXl:
+										op(address_assemble_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np nrd", mode), { ea(1) } , false));
+										op(Action::PerformOperation, seq("np nw", { ea(1) } , false));
+									 break;
+								}
+							}
+
 						} break;
 
 						case Decoder::JMP: {
@@ -2108,7 +2155,9 @@ struct ProcessorStorageConstructor {
 							//
 
 								default:
-									std::cerr << "Unimplemented MOVE " << std::hex << combined_source_mode << "," << combined_destination_mode << ": " << instruction << std::endl;
+									if(combined_source_mode <= Imm && combined_destination_mode <= Imm) {
+										std::cerr << "Unimplemented MOVE " << std::hex << combined_source_mode << "," << combined_destination_mode << ": " << instruction << std::endl;
+									}
 									// TODO: all other types of mode.
 								continue;
 							}
