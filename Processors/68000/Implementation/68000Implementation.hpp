@@ -354,34 +354,75 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									MOVEM: multi-word moves.
 								*/
 
-#define setup_movem(words_per_reg)												\
-	/* Count the number of long words to move.	 */								\
-	size_t total_to_move = 0;													\
-	auto mask = next_word_;														\
-	while(mask) {																\
-		total_to_move += mask&1;												\
-		mask >>= 1;																\
-	}																			\
-																				\
-	/* Twice that many words plus one will need to be moved */					\
-	bus_program = movem_reads_steps_ + (64 - total_to_move*words_per_reg)*2;	\
-																				\
-	/* Fill in the proper addresses and targets. */								\
-	const auto mode = (decoded_instruction_ >> 3) & 7;							\
-	uint32_t start_address;														\
-	if(mode <= 4) {																\
-		start_address = active_program_->source_address->full;					\
-	} else {																	\
-		start_address = effective_address_[1].full;								\
-	}																			\
-																				\
-	auto step = bus_program;													\
-	uint32_t *address_storage = movem_addresses_;								\
-	mask = next_word_;															\
+#define setup_movem(words_per_reg, base)								\
+	/* Count the number of long words to move.	 */						\
+	size_t total_to_move = 0;											\
+	auto mask = next_word_;												\
+	while(mask) {														\
+		total_to_move += mask&1;										\
+		mask >>= 1;														\
+	}																	\
+																		\
+	/* Twice that many words plus one will need to be moved */			\
+	bus_program = base + (64 - total_to_move*words_per_reg)*2;			\
+																		\
+	/* Fill in the proper addresses and targets. */						\
+	const auto mode = (decoded_instruction_ >> 3) & 7;					\
+	uint32_t start_address;												\
+	if(mode <= 4) {														\
+		start_address = active_program_->destination_address->full;		\
+	} else {															\
+		start_address = effective_address_[1].full;						\
+	}																	\
+																		\
+	auto step = bus_program;											\
+	uint32_t *address_storage = movem_addresses_;						\
+	mask = next_word_;													\
 	int offset = 0;
 
+#define write_address_sequence_long(address_step, offset_step, l, h)							\
+	while(mask) {																				\
+		if(mask&1) {																			\
+			address_storage[0] = start_address;													\
+			address_storage[1] = start_address + address_step;									\
+																								\
+			step[0].microcycle.address = step[1].microcycle.address = address_storage;			\
+			step[2].microcycle.address = step[3].microcycle.address = address_storage + 1;		\
+																								\
+			const auto target = (offset > 7) ? &address_[offset&7] : &data_[offset];			\
+			step[h].microcycle.value = step[h+1].microcycle.value = &target->halves.high;		\
+			step[l].microcycle.value = step[l+1].microcycle.value = &target->halves.low;		\
+																								\
+			start_address += address_step*2;													\
+			address_storage += 2;																\
+			step += 4;																			\
+		}																						\
+		mask >>= 1;																				\
+		offset += offset_step;																	\
+	}
+
+#define write_address_sequence_word(address_step, offset_step)							\
+	while(mask) {																		\
+		if(mask&1) {																	\
+			address_storage[0] = start_address;											\
+																						\
+			step[0].microcycle.address = step[1].microcycle.address = address_storage;	\
+																						\
+			const auto target = (offset > 7) ? &address_[offset&7] : &data_[offset];	\
+			step[0].microcycle.value = step[1].microcycle.value = &target->halves.low;	\
+																						\
+			start_address += address_step;												\
+			++ address_storage;															\
+			step += 2;																	\
+		}																				\
+		mask >>= 1;																		\
+		offset += offset_step;															\
+	}
+
+
+
 								case Operation::MOVEMtoRl: {
-									setup_movem(2);
+									setup_movem(2, movem_reads_steps_);
 
 									// Everything for move to registers is based on an incrementing
 									// address; per M68000PRM:
@@ -389,26 +430,11 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									// "[If using the postincrement addressing mode then] the incremented address
 									// register contains the address of the last operand loaded plus the operand length.
 									// If the addressing register is also loaded from memory, the memory value is ignored
-									// and the register is written with the postincre- mented effective address."
-									while(mask) {
-										if(mask&1) {
-											address_storage[0] = start_address;
-											address_storage[1] = start_address + 2;
-
-											step[0].microcycle.address = step[1].microcycle.address = address_storage;
-											step[2].microcycle.address = step[3].microcycle.address = address_storage + 1;
-
-											const auto target = (offset > 7) ? &address_[offset&7] : &data_[offset];
-											step[0].microcycle.value = step[1].microcycle.value = &target->halves.high;
-											step[2].microcycle.value = step[3].microcycle.value = &target->halves.low;
-
-											start_address += 4;
-											address_storage += 2;
-											step += 4;
-										}
-										mask >>= 1;
-										++offset;
-									}
+									// and the register is written with the postincremented effective address."
+									//
+									// The latter part is dealt with by MicroOp::Action::MOVEMtoRComplete, which also
+									// does any necessary sign extension.
+									write_address_sequence_long(2, 1, 0, 2);
 
 									// MOVEM to R always reads one word too many.
 									address_storage[0] = start_address;
@@ -418,24 +444,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								} break;
 
 								case Operation::MOVEMtoRw: {
-									setup_movem(1);
-
-									while(mask) {
-										if(mask&1) {
-											address_storage[0] = start_address;
-
-											step[0].microcycle.address = step[1].microcycle.address = address_storage;
-
-											const auto target = (offset > 7) ? &address_[offset&7] : &data_[offset];
-											step[0].microcycle.value = step[1].microcycle.value = &target->halves.low;
-
-											start_address += 2;
-											++ address_storage;
-											step += 2;
-										}
-										mask >>= 1;
-										++offset;
-									}
+									setup_movem(1, movem_reads_steps_);
+									write_address_sequence_word(2, 1);
 
 									// MOVEM to R always reads one word too many.
 									address_storage[0] = start_address;
@@ -445,14 +455,43 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								} break;
 
 								case Operation::MOVEMtoMl: {
-									setup_movem(2);
+									setup_movem(2, movem_writes_steps_);
+
+									// MOVEM to M counts downwards and enumerates the registers in reverse order
+									// if subject to the predecrementing mode; otherwise it counts upwards and
+									// operates exactly as does MOVEM to R.
+									//
+									// Note also: "The MC68000 and MC68010 write the initial register value
+									// (not decremented) [when writing a register that is providing
+									// pre-decrementing addressing]."
+									//
+									// Hence the decrementing register (if any) is updated
+									// by MicroOp::Action::MOVEMtoMComplete.
+									if(mode == 4) {
+										offset = 15;
+										start_address -= 2;
+										write_address_sequence_long(-2, -1, 2, 0);
+										movem_final_address_ = start_address;
+									} else {
+										write_address_sequence_long(2, 1, 0, 2);
+									}
 								} break;
 
 								case Operation::MOVEMtoMw: {
-									setup_movem(1);
+									setup_movem(1, movem_writes_steps_);
+
+									if(mode == 4) {
+										offset = 15;
+										start_address -= 2;
+										write_address_sequence_word(-2, -1);
+									} else {
+										write_address_sequence_word(2, 1);
+									}
 								} break;
 
 #undef setup_movem
+#undef write_address_sequence_long
+#undef write_address_sequence_word
 
 								/*
 									NEGs: negatives the destination, setting the zero,
@@ -748,6 +787,14 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							// If the post-increment mode was used, overwrite the source register.
 							const auto mode = (decoded_instruction_ >> 3) & 7;
 							if(mode == 3) {
+								const auto reg = decoded_instruction_ & 7;
+								address_[reg] = movem_final_address_;
+							}
+						} break;
+
+						case int(MicroOp::Action::MOVEMtoMComplete): {
+							const auto mode = (decoded_instruction_ >> 3) & 7;
+							if(mode == 4) {
 								const auto reg = decoded_instruction_ & 7;
 								address_[reg] = movem_final_address_;
 							}
