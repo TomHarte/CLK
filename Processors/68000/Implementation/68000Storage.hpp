@@ -211,6 +211,12 @@ class ProcessorStorage {
 
 				/// Copies the low part of the prefetch queue into next_word_.
 				CopyNextWord,
+
+				/// Performs write-back of post-increment address and/or sign extensions as necessary.
+				MOVEMtoRComplete,
+
+				/// Performs write-back of pre-decrement address.
+				MOVEMtoMComplete,
 			};
 			static const int SourceMask = 1 << 30;
 			static const int DestinationMask = 1 << 29;
@@ -301,8 +307,9 @@ class ProcessorStorage {
 		void set_is_supervisor(bool);
 
 		// Transient storage for MOVEM.
-		uint32_t movem_addresses_[33];
-		RegisterPair32 movem_spare_value_;
+		uint32_t movem_addresses_[65];
+		RegisterPair16 movem_spare_value_;
+		uint32_t movem_final_address_;
 
 		/*!
 			Evaluates the conditional described by @c code and returns @c true or @c false to

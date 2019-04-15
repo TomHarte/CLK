@@ -1573,7 +1573,7 @@ struct ProcessorStorageConstructor {
 							op(Action::PerformOperation);
 
 							// A final program fetch will cue up the next instruction.
-							op(Action::None, seq("np"));
+							op(is_to_m ? Action::MOVEMtoMComplete : Action::MOVEMtoRComplete, seq("np"));
 						} break;
 
 						// Decodes the format used by most MOVEs and all MOVEAs.
@@ -2206,15 +2206,17 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	const size_t dbcc_condition_false_no_branch_offset = constructor.assemble_program("n nr np np", { &dbcc_false_address_ });
 	const size_t dbcc_condition_false_branch_offset = constructor.assemble_program("n np np");
 
-	// The reads steps needs to be 33 neatly assembled reads; the writes just the 32.
+	// The reads steps needs to be 32 long-word reads plus an overflow word; the writes just the long words.
 	// Addresses and data sources/targets will be filled in at runtime, so anything will do here.
 	std::string movem_reads_pattern, movem_writes_pattern;
 	std::vector<uint32_t *> addresses;
-	for(auto c = 0; c < 33; ++c) {
+	for(auto c = 0; c < 64; ++c) {
 		movem_reads_pattern += "nr ";
-		if(c != 32) movem_writes_pattern += "nw ";
+		movem_writes_pattern += "nw ";
 		addresses.push_back(nullptr);
 	}
+	movem_reads_pattern += "nr";
+	addresses.push_back(nullptr);
 	const size_t movem_reads_offset = constructor.assemble_program(movem_reads_pattern, addresses);
 	const size_t movem_writes_offset = constructor.assemble_program(movem_writes_pattern, addresses);
 
