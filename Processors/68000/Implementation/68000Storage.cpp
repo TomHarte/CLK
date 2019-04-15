@@ -2188,6 +2188,8 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation, seq("np"));
 								break;
 
+								case bw(PreDec):
+									op(int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::SourceMask, seq("n"));
 								case bw(Ind):
 								case bw(PostInc):
 									op(Action::None, seq("nr", { a(ea_register) }, !is_byte_access));
@@ -2197,6 +2199,8 @@ struct ProcessorStorageConstructor {
 									}
 								break;
 
+								case l(PreDec):
+									op(int(Action::Decrement4) | MicroOp::SourceMask, seq("n"));
 								case l(Ind):
 								case l(PostInc):
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) }));

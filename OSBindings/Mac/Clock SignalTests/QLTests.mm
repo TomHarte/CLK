@@ -38,13 +38,11 @@ class QL: public CPU::MC68000::BusHandler {
 			// addresses in order for /RESET to work properly. RAM otherwise fills the first
 			// 512kb of the address space. Trying to write to ROM raises a bus error.
 
-			const bool is_peripheral = false;//word_address > (0xff0000 >> 1);
-			const bool is_rom = word_address < (0xc000 >> 1);
+			const bool is_peripheral = word_address >= (rom_.size() + ram_.size());
+			const bool is_rom = word_address < rom_.size();
 			uint16_t *const base = is_rom ? rom_.data() : ram_.data();
-			if(is_rom) {
-				word_address &= 0xbfff;
-			} else {
-				word_address &= 0x3ffff;
+			if(!is_rom) {
+				word_address %= ram_.size();
 			}
 
 			using Microcycle = CPU::MC68000::Microcycle;
@@ -81,12 +79,12 @@ class QL: public CPU::MC68000::BusHandler {
 					case Microcycle::SelectWord:
 						assert(!(is_rom && !is_peripheral));
 //						printf("[word w %08x <- %04x] ", *cycle.address, cycle.value->full);
-						base[word_address] = cycle.value->full;
+						if(!is_peripheral) base[word_address] = cycle.value->full;
 					break;
 					case Microcycle::SelectByte:
 						assert(!(is_rom && !is_peripheral));
 //						printf("[byte w %08x <- %02x] ", *cycle.address, (cycle.value->full >> cycle.byte_shift()) & 0xff);
-						base[word_address] = (cycle.value->full & cycle.byte_mask()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
+						if(!is_peripheral) base[word_address] = (cycle.value->full & cycle.byte_mask()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
 					break;
 				}
 			}
@@ -98,7 +96,7 @@ class QL: public CPU::MC68000::BusHandler {
 		CPU::MC68000::Processor<QL, true> m68000_;
 
 		std::vector<uint16_t> rom_;
-		std::array<uint16_t, 256*1024> ram_;
+		std::array<uint16_t, 64*1024> ram_;
 };
 
 @interface QLTests : XCTestCase
@@ -116,7 +114,7 @@ class QL: public CPU::MC68000::BusHandler {
 - (void)testStartup {
     // This is an example of a functional test case.
     // Use XCTAssert and related functions to verify your tests produce the correct results.
-    _machine->run_for(HalfCycles(400000));
+    _machine->run_for(HalfCycles(40000000));
 }
 
 @end
