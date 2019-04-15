@@ -768,6 +768,28 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 #undef set_flags_l
 
 								/*
+									TSTs: compare to zero.
+								*/
+
+								case Operation::TSTb:
+									carry_flag_ = overflow_flag_ = 0;
+									zero_result_ = active_program_->source->halves.low.halves.low;
+									negative_flag_ = zero_result_ & 0x80;
+								break;
+
+								case Operation::TSTw:
+									carry_flag_ = overflow_flag_ = 0;
+									zero_result_ = active_program_->source->halves.low.full;
+									negative_flag_ = zero_result_ & 0x8000;
+								break;
+
+								case Operation::TSTl:
+									carry_flag_ = overflow_flag_ = 0;
+									zero_result_ = active_program_->source->full;
+									negative_flag_ = zero_result_ & 0x80000000;
+								break;
+
+								/*
 									Development period debugging.
 								*/
 								default:

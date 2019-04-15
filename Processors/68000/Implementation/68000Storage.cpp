@@ -326,6 +326,8 @@ struct ProcessorStorageConstructor {
 
 			MOVEM,						// Maps a mode and register as they were a 'destination' and sets up bus steps with a suitable
 										// hole for the runtime part to install proper MOVEM activity.
+
+			TST,						// Mapsa mode and register to a TST.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -467,6 +469,10 @@ struct ProcessorStorageConstructor {
 			{0xffc0, 0x4880, Operation::MOVEMtoMw, Decoder::MOVEM},				// 4-128 (p232)
 			{0xffc0, 0x4cc0, Operation::MOVEMtoRl, Decoder::MOVEM},				// 4-128 (p232)
 			{0xffc0, 0x4c80, Operation::MOVEMtoRw, Decoder::MOVEM},				// 4-128 (p232)
+
+			{0xffc0, 0x4a00, Operation::TSTb, Decoder::TST},					// 4-192 (p296)
+			{0xffc0, 0x4a40, Operation::TSTw, Decoder::TST},					// 4-192 (p296)
+			{0xffc0, 0x4a80, Operation::TSTl, Decoder::TST},					// 4-192 (p296)
 		};
 
 #ifndef NDEBUG
@@ -2167,6 +2173,40 @@ struct ProcessorStorageConstructor {
 							storage_.instructions[instruction].requires_supervisor = true;
 							op(Action::None, seq("nn _ np"));
 						break;
+
+						case Decoder::TST: {
+							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
+
+							const int mode = combined_mode(ea_mode, ea_register);
+							const bool is_byte_access = operation == Operation::TSTb;
+							const bool is_long_word_access = operation == Operation::TSTl;
+							switch(is_long_word_access ? l(mode) : bw(mode)) {
+								default: continue;
+
+								case bw(Dn):
+								case l(Dn):
+									op(Action::PerformOperation, seq("np"));
+								break;
+
+								case bw(Ind):
+								case bw(PostInc):
+									op(Action::None, seq("nr", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("np"));
+									if(mode == PostInc) {
+										op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::SourceMask);
+									}
+								break;
+
+								case l(Ind):
+								case l(PostInc):
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) }));
+									op(Action::PerformOperation, seq("np"));
+									if(mode == PostInc) {
+										op(int(Action::Increment4) | MicroOp::SourceMask);
+									}
+								break;
+							}
+						} break;
 
 						default:
 							std::cerr << "Unhandled decoder " << int(mapping.decoder) << std::endl;

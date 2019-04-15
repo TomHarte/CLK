@@ -82,6 +82,8 @@ class ProcessorStorage {
 			MOVEMtoMl, MOVEMtoMw,
 
 			Scc,
+
+			TSTb, TSTw, TSTl,
 		};
 
 		/*!
