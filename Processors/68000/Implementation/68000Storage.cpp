@@ -708,7 +708,7 @@ struct ProcessorStorageConstructor {
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
-							const bool is_long_word_access = !((instruction >> 8)&1);
+							const bool is_long_word_access = !!((instruction >> 8)&1);
 
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
