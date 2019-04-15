@@ -1395,7 +1395,7 @@ struct ProcessorStorageConstructor {
 						case Decoder::SccDBcc: {
 							if(ea_mode == 1) {
 								// This is a DBcc. Decode as such.
-
+								operation = Operation::DBcc;
 								storage_.instructions[instruction].source = &storage_.data_[ea_register];
 
 								// Jump straight into deciding what steps to take next,
