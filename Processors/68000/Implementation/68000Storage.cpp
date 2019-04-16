@@ -1535,18 +1535,18 @@ struct ProcessorStorageConstructor {
 								case d16PC:		// JSR (d16, PC)
 								case d16An:		// JSR (d16, An)
 									op(Action::PrepareJSR);
-									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n np nW+ nw np", { ea(1), ea(1) }));
-									op(Action::PerformOperation);
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PerformOperation, seq("n np nW+ nw np", { ea(1), ea(1) }));
 								break;
 
 								case d8PCXn:	// JSR (d8, PC, Xn)
 								case d8AnXn:	// JSR (d8, An, Xn)
 									op(Action::PrepareJSR);
-									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n nn np nW+ nw np", { ea(1), ea(1) }));
-									op(Action::PerformOperation);
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PerformOperation, seq("n nn np nW+ nw np", { ea(1), ea(1) }));
 								break;
 
-								case XXXl:		// JMP (xxx).L
+								case XXXl:		// JSR (xxx).L
 									op(Action::None, seq("np"));
 									op(Action::PrepareJSR);
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
@@ -1579,14 +1579,14 @@ struct ProcessorStorageConstructor {
 
 								case d16PC:		// JMP (d16, PC)
 								case d16An:		// JMP (d16, An)
-									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n np np"));
-									op(Action::PerformOperation);
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PerformOperation, seq("n np np"));
 								break;
 
 								case d8PCXn:	// JMP (d8, PC, Xn)
 								case d8AnXn:	// JMP (d8, An, Xn)
-									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n nn np np"));
-									op(Action::PerformOperation);
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PerformOperation, seq("n nn np np"));
 								break;
 
 								case XXXl:	// JMP (xxx).L
