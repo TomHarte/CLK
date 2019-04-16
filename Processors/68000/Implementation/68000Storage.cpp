@@ -326,14 +326,16 @@ struct ProcessorStorageConstructor {
 	*/
 	void install_instructions() {
 		enum class Decoder {
-			ABCDSBCD,					// Maps source and desintation registers and a register/memory selection bit to an ABCD or SBCD.
+			EORI_ORI_ANDI_SUBI_ADDI,	// Maps a mode and register to one of EORI, ORI, ANDI, SUBI or ADDI.
 
-			ADDSUB,						// Maps a register and a register and mode to an ADD or SUB.
-			ADDASUBA,					// Maps a destination register and a source mode and register to an ADDA or SUBA.
-			ADDQSUBQ,					// Mags a register and a mode to an ADDQ or SUBQ.
+			ABCD_SBCD,					// Maps source and desintation registers and a register/memory selection bit to an ABCD or SBCD.
+
+			ADD_SUB,					// Maps a register and a register and mode to an ADD or SUB.
+			ADDA_SUBA,					// Maps a destination register and a source mode and register to an ADDA or SUBA.
+			ADDQ_SUBQ,					// Mags a register and a mode to an ADDQ or SUBQ.
 
 			BRA,						// Maps to a BRA. All fields are decoded at runtime.
-			BccBSR,						// Maps to a Bcc or BSR. Other than determining the type of operation, fields are decoded at runtime.
+			Bcc_BSR,					// Maps to a Bcc or BSR. Other than determining the type of operation, fields are decoded at runtime.
 
 			BTST,						// Maps a source register and a destination register and mode to a BTST.
 			BTSTIMM,					// Maps a destination mode and register to a BTST #.
@@ -341,14 +343,14 @@ struct ProcessorStorageConstructor {
 			BCLR,						// Maps a source register and a destination register and mode to a BCLR.
 			BCLRIMM,					// Maps a destination mode and register to a BCLR #.
 
-			CLRNEGNEGXNOT,				// Maps a destination mode and register to a CLR, NEG, NEGX or NOT.
+			CLR_NEG_NEGX_NOT,			// Maps a destination mode and register to a CLR, NEG, NEGX or NOT.
 
 			CMP,						// Maps a destination register and a source mode and register to a CMP.
 			CMPI,						// Maps a destination mode and register to a CMPI.
 			CMPA,						// Maps a destination register and a source mode and register to a CMPA.
 			CMPM,						// Maps to a CMPM.
 
-			SccDBcc,					// Maps a mode and destination register to either a DBcc or Scc.
+			Scc_DBcc,					// Maps a mode and destination register to either a DBcc or Scc.
 
 			JMP,						// Maps a mode and register to a JMP.
 
@@ -360,9 +362,9 @@ struct ProcessorStorageConstructor {
 
 			RESET,						// Maps to a RESET.
 
-			ASLRLSLRROLRROXLRr,			// Maps a destination register to a AS[L/R], LS[L/R], RO[L/R], ROX[L/R]; shift quantities are
+			ASLR_LSLR_ROLR_ROXLRr,		// Maps a destination register to a AS[L/R], LS[L/R], RO[L/R], ROX[L/R]; shift quantities are
 										// decoded at runtime.
-			ASLRLSLRROLRROXLRm,			// Maps a destination mode and register to a memory-based AS[L/R], LS[L/R], RO[L/R], ROX[L/R].
+			ASLR_LSLR_ROLR_ROXLRm,		// Maps a destination mode and register to a memory-based AS[L/R], LS[L/R], RO[L/R], ROX[L/R].
 
 			MOVEM,						// Maps a mode and register as they were a 'destination' and sets up bus steps with a suitable
 										// hole for the runtime part to install proper MOVEM activity.
@@ -394,16 +396,32 @@ struct ProcessorStorageConstructor {
 			NB: a vector is used to allow easy iteration.
 		*/
 		const std::vector<PatternMapping> mappings = {
-			{0xf1f0, 0xc100, Operation::ABCD, Decoder::ABCDSBCD},		// 4-3 (p107)
-			{0xf1f0, 0x8100, Operation::SBCD, Decoder::ABCDSBCD},		// 4-171 (p275)
+			{0xf1f0, 0xc100, Operation::ABCD, Decoder::ABCD_SBCD},		// 4-3 (p107)
+			{0xf1f0, 0x8100, Operation::SBCD, Decoder::ABCD_SBCD},		// 4-171 (p275)
 
 //			{0xf000, 0x8000, Operation::OR, Decoder::RegOpModeReg},		// 4-150 (p226)
 //			{0xf000, 0xb000, Operation::EOR, Decoder::RegOpModeReg},	// 4-100 (p204)
 //			{0xf000, 0xc000, Operation::AND, Decoder::RegOpModeReg},	// 4-15 (p119)
 
-//			{0xff00, 0x0600, Operation::ADD, Decoder::SizeModeRegisterImmediate},	// 4-9 (p113)
+			{0xffc0, 0x0600, Operation::ADDb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
+			{0xffc0, 0x0640, Operation::ADDw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
+			{0xffc0, 0x0680, Operation::ADDl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
 
-//			{0xff00, 0x0600, Operation::ADD, Decoder::DataSizeModeQuick},	// 4-11 (p115)
+			{0xffc0, 0x0200, Operation::ANDb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
+			{0xffc0, 0x0240, Operation::ANDw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
+			{0xffc0, 0x0280, Operation::ANDl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
+
+			{0xffc0, 0x0a00, Operation::ORb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},		// 4-153 (p257)
+			{0xffc0, 0x0a40, Operation::ORw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},		// 4-153 (p257)
+			{0xffc0, 0x0a80, Operation::ORl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},		// 4-153 (p257)
+
+			{0xffc0, 0x0000, Operation::EORb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-102 (p206)
+			{0xffc0, 0x0040, Operation::EORw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-102 (p206)
+			{0xffc0, 0x0080, Operation::EORl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-102 (p206)
+
+			{0xffc0, 0x0400, Operation::SUBb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-179 (p283)
+			{0xffc0, 0x0440, Operation::SUBw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-179 (p283)
+			{0xffc0, 0x0480, Operation::SUBl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-179 (p283)
 
 			{0xf000, 0x1000, Operation::MOVEb, Decoder::MOVE},	// 4-116 (p220)
 			{0xf000, 0x2000, Operation::MOVEl, Decoder::MOVE},	// 4-116 (p220)
@@ -428,7 +446,7 @@ struct ProcessorStorageConstructor {
 			{0xf1f8, 0xb188, Operation::CMPl, Decoder::CMPM},	// 4-81 (p185)
 
 //			{0xff00, 0x6000, Operation::BRA, Decoder::BRA},		// 4-55 (p159)	TODO: confirm that this really, really is just a special case of Bcc.
-			{0xf000, 0x6000, Operation::Bcc, Decoder::BccBSR},	// 4-25 (p129) and 4-59 (p163)
+			{0xf000, 0x6000, Operation::Bcc, Decoder::Bcc_BSR},	// 4-25 (p129) and 4-59 (p163)
 
 			{0xf1c0, 0x41c0, Operation::MOVEAl, Decoder::LEA},	// 4-110 (p214)
 			{0xf100, 0x7000, Operation::MOVEq, Decoder::MOVEq},	// 4-134 (p238)
@@ -439,26 +457,26 @@ struct ProcessorStorageConstructor {
 			{0xffc0, 0x4e80, Operation::JMP, Decoder::JSR},		// 4-109 (p213)
 			{0xffff, 0x4e75, Operation::JMP, Decoder::RTS},		// 4-169 (p273)
 
-			{0xf0c0, 0x9000, Operation::SUBb, Decoder::ADDSUB},	// 4-174 (p278)
-			{0xf0c0, 0x9040, Operation::SUBw, Decoder::ADDSUB},	// 4-174 (p278)
-			{0xf0c0, 0x9080, Operation::SUBl, Decoder::ADDSUB},	// 4-174 (p278)
+			{0xf0c0, 0x9000, Operation::SUBb, Decoder::ADD_SUB},	// 4-174 (p278)
+			{0xf0c0, 0x9040, Operation::SUBw, Decoder::ADD_SUB},	// 4-174 (p278)
+			{0xf0c0, 0x9080, Operation::SUBl, Decoder::ADD_SUB},	// 4-174 (p278)
 
-			{0xf0c0, 0xd000, Operation::ADDb, Decoder::ADDSUB},	// 4-4 (p108)
-			{0xf0c0, 0xd040, Operation::ADDw, Decoder::ADDSUB},	// 4-4 (p108)
-			{0xf0c0, 0xd080, Operation::ADDl, Decoder::ADDSUB},	// 4-4 (p108)
+			{0xf0c0, 0xd000, Operation::ADDb, Decoder::ADD_SUB},	// 4-4 (p108)
+			{0xf0c0, 0xd040, Operation::ADDw, Decoder::ADD_SUB},	// 4-4 (p108)
+			{0xf0c0, 0xd080, Operation::ADDl, Decoder::ADD_SUB},	// 4-4 (p108)
 
-			{0xf1c0, 0xd0c0, Operation::ADDAw, Decoder::ADDASUBA},	// 4-7 (p111)
-			{0xf1c0, 0xd1c0, Operation::ADDAl, Decoder::ADDASUBA},	// 4-7 (p111)
-			{0xf1c0, 0x90c0, Operation::SUBAw, Decoder::ADDASUBA},	// 4-177 (p281)
-			{0xf1c0, 0x91c0, Operation::SUBAl, Decoder::ADDASUBA},	// 4-177 (p281)
+			{0xf1c0, 0xd0c0, Operation::ADDAw, Decoder::ADDA_SUBA},	// 4-7 (p111)
+			{0xf1c0, 0xd1c0, Operation::ADDAl, Decoder::ADDA_SUBA},	// 4-7 (p111)
+			{0xf1c0, 0x90c0, Operation::SUBAw, Decoder::ADDA_SUBA},	// 4-177 (p281)
+			{0xf1c0, 0x91c0, Operation::SUBAl, Decoder::ADDA_SUBA},	// 4-177 (p281)
 
-			{0xf1c0, 0x5000, Operation::ADDQb, Decoder::ADDQSUBQ},	// 4-11 (p115)
-			{0xf1c0, 0x5040, Operation::ADDQw, Decoder::ADDQSUBQ},	// 4-11 (p115)
-			{0xf1c0, 0x5080, Operation::ADDQl, Decoder::ADDQSUBQ},	// 4-11 (p115)
+			{0xf1c0, 0x5000, Operation::ADDQb, Decoder::ADDQ_SUBQ},	// 4-11 (p115)
+			{0xf1c0, 0x5040, Operation::ADDQw, Decoder::ADDQ_SUBQ},	// 4-11 (p115)
+			{0xf1c0, 0x5080, Operation::ADDQl, Decoder::ADDQ_SUBQ},	// 4-11 (p115)
 
-			{0xf1c0, 0x5100, Operation::SUBQb, Decoder::ADDQSUBQ},	// 4-181 (p285)
-			{0xf1c0, 0x5140, Operation::SUBQw, Decoder::ADDQSUBQ},	// 4-181 (p285)
-			{0xf1c0, 0x5180, Operation::SUBQl, Decoder::ADDQSUBQ},	// 4-181 (p285)
+			{0xf1c0, 0x5100, Operation::SUBQb, Decoder::ADDQ_SUBQ},	// 4-181 (p285)
+			{0xf1c0, 0x5140, Operation::SUBQw, Decoder::ADDQ_SUBQ},	// 4-181 (p285)
+			{0xf1c0, 0x5180, Operation::SUBQl, Decoder::ADDQ_SUBQ},	// 4-181 (p285)
 
 			{0xf1c0, 0x0100, Operation::BTSTb, Decoder::BTST},		// 4-62 (p166)
 			{0xffc0, 0x0800, Operation::BTSTb, Decoder::BTSTIMM},	// 4-63 (p167)
@@ -466,60 +484,60 @@ struct ProcessorStorageConstructor {
 			{0xf1c0, 0x0180, Operation::BCLRb, Decoder::BCLR},		// 4-31 (p135)
 			{0xffc0, 0x0880, Operation::BCLRb, Decoder::BCLRIMM},	// 4-32 (p136)
 
-			{0xf0c0, 0x50c0, Operation::Scc, Decoder::SccDBcc},			// Scc: 4-173 (p276); DBcc: 4-91 (p195)
+			{0xf0c0, 0x50c0, Operation::Scc, Decoder::Scc_DBcc},			// Scc: 4-173 (p276); DBcc: 4-91 (p195)
 
-			{0xffc0, 0x4200, Operation::CLRb, Decoder::CLRNEGNEGXNOT},	// 4-73 (p177)
-			{0xffc0, 0x4240, Operation::CLRw, Decoder::CLRNEGNEGXNOT},	// 4-73 (p177)
-			{0xffc0, 0x4280, Operation::CLRl, Decoder::CLRNEGNEGXNOT},	// 4-73 (p177)
-			{0xffc0, 0x4400, Operation::NEGb, Decoder::CLRNEGNEGXNOT},	// 4-144 (p248)
-			{0xffc0, 0x4440, Operation::NEGw, Decoder::CLRNEGNEGXNOT},	// 4-144 (p248)
-			{0xffc0, 0x4480, Operation::NEGl, Decoder::CLRNEGNEGXNOT},	// 4-144 (p248)
-			{0xffc0, 0x4000, Operation::NEGXb, Decoder::CLRNEGNEGXNOT},	// 4-146 (p250)
-			{0xffc0, 0x4040, Operation::NEGXw, Decoder::CLRNEGNEGXNOT},	// 4-146 (p250)
-			{0xffc0, 0x4080, Operation::NEGXl, Decoder::CLRNEGNEGXNOT},	// 4-146 (p250)
-			{0xffc0, 0x4600, Operation::NOTb, Decoder::CLRNEGNEGXNOT},	// 4-148 (p250)
-			{0xffc0, 0x4640, Operation::NOTw, Decoder::CLRNEGNEGXNOT},	// 4-148 (p250)
-			{0xffc0, 0x4680, Operation::NOTl, Decoder::CLRNEGNEGXNOT},	// 4-148 (p250)
+			{0xffc0, 0x4200, Operation::CLRb, Decoder::CLR_NEG_NEGX_NOT},	// 4-73 (p177)
+			{0xffc0, 0x4240, Operation::CLRw, Decoder::CLR_NEG_NEGX_NOT},	// 4-73 (p177)
+			{0xffc0, 0x4280, Operation::CLRl, Decoder::CLR_NEG_NEGX_NOT},	// 4-73 (p177)
+			{0xffc0, 0x4400, Operation::NEGb, Decoder::CLR_NEG_NEGX_NOT},	// 4-144 (p248)
+			{0xffc0, 0x4440, Operation::NEGw, Decoder::CLR_NEG_NEGX_NOT},	// 4-144 (p248)
+			{0xffc0, 0x4480, Operation::NEGl, Decoder::CLR_NEG_NEGX_NOT},	// 4-144 (p248)
+			{0xffc0, 0x4000, Operation::NEGXb, Decoder::CLR_NEG_NEGX_NOT},	// 4-146 (p250)
+			{0xffc0, 0x4040, Operation::NEGXw, Decoder::CLR_NEG_NEGX_NOT},	// 4-146 (p250)
+			{0xffc0, 0x4080, Operation::NEGXl, Decoder::CLR_NEG_NEGX_NOT},	// 4-146 (p250)
+			{0xffc0, 0x4600, Operation::NOTb, Decoder::CLR_NEG_NEGX_NOT},	// 4-148 (p250)
+			{0xffc0, 0x4640, Operation::NOTw, Decoder::CLR_NEG_NEGX_NOT},	// 4-148 (p250)
+			{0xffc0, 0x4680, Operation::NOTl, Decoder::CLR_NEG_NEGX_NOT},	// 4-148 (p250)
 
-			{0xf1d8, 0xe100, Operation::ASLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xf1d8, 0xe140, Operation::ASLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xf1d8, 0xe180, Operation::ASLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xffc0, 0xe1c0, Operation::ASLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-22 (p126)
+			{0xf1d8, 0xe100, Operation::ASLb, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe140, Operation::ASLw, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe180, Operation::ASLl, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-22 (p126)
+			{0xffc0, 0xe1c0, Operation::ASLm, Decoder::ASLR_LSLR_ROLR_ROXLRm},	// 4-22 (p126)
 
-			{0xf1d8, 0xe000, Operation::ASRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xf1d8, 0xe040, Operation::ASRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xf1d8, 0xe080, Operation::ASRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-22 (p126)
-			{0xffc0, 0xe0c0, Operation::ASRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-22 (p126)
+			{0xf1d8, 0xe000, Operation::ASRb, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe040, Operation::ASRw, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-22 (p126)
+			{0xf1d8, 0xe080, Operation::ASRl, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-22 (p126)
+			{0xffc0, 0xe0c0, Operation::ASRm, Decoder::ASLR_LSLR_ROLR_ROXLRm},	// 4-22 (p126)
 
-			{0xf1d8, 0xe108, Operation::LSLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xf1d8, 0xe148, Operation::LSLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xf1d8, 0xe188, Operation::LSLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xffc0, 0xe3c0, Operation::LSLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-113 (p217)
+			{0xf1d8, 0xe108, Operation::LSLb, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe148, Operation::LSLw, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe188, Operation::LSLl, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-113 (p217)
+			{0xffc0, 0xe3c0, Operation::LSLm, Decoder::ASLR_LSLR_ROLR_ROXLRm},	// 4-113 (p217)
 
-			{0xf1d8, 0xe008, Operation::LSRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xf1d8, 0xe048, Operation::LSRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xf1d8, 0xe088, Operation::LSRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-113 (p217)
-			{0xffc0, 0xe2c0, Operation::LSRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-113 (p217)
+			{0xf1d8, 0xe008, Operation::LSRb, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe048, Operation::LSRw, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-113 (p217)
+			{0xf1d8, 0xe088, Operation::LSRl, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-113 (p217)
+			{0xffc0, 0xe2c0, Operation::LSRm, Decoder::ASLR_LSLR_ROLR_ROXLRm},	// 4-113 (p217)
 
-			{0xf1d8, 0xe118, Operation::ROLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xf1d8, 0xe158, Operation::ROLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xf1d8, 0xe198, Operation::ROLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xffc0, 0xe7c0, Operation::ROLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-160 (p264)
+			{0xf1d8, 0xe118, Operation::ROLb, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe158, Operation::ROLw, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe198, Operation::ROLl, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-160 (p264)
+			{0xffc0, 0xe7c0, Operation::ROLm, Decoder::ASLR_LSLR_ROLR_ROXLRm},	// 4-160 (p264)
 
-			{0xf1d8, 0xe018, Operation::RORb, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xf1d8, 0xe058, Operation::RORw, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xf1d8, 0xe098, Operation::RORl, Decoder::ASLRLSLRROLRROXLRr},	// 4-160 (p264)
-			{0xffc0, 0xe6c0, Operation::RORm, Decoder::ASLRLSLRROLRROXLRm},	// 4-160 (p264)
+			{0xf1d8, 0xe018, Operation::RORb, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe058, Operation::RORw, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-160 (p264)
+			{0xf1d8, 0xe098, Operation::RORl, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-160 (p264)
+			{0xffc0, 0xe6c0, Operation::RORm, Decoder::ASLR_LSLR_ROLR_ROXLRm},	// 4-160 (p264)
 
-			{0xf1d8, 0xe110, Operation::ROXLb, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xf1d8, 0xe150, Operation::ROXLw, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xf1d8, 0xe190, Operation::ROXLl, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xffc0, 0xe5c0, Operation::ROXLm, Decoder::ASLRLSLRROLRROXLRm},	// 4-163 (p267)
+			{0xf1d8, 0xe110, Operation::ROXLb, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe150, Operation::ROXLw, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe190, Operation::ROXLl, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-163 (p267)
+			{0xffc0, 0xe5c0, Operation::ROXLm, Decoder::ASLR_LSLR_ROLR_ROXLRm},	// 4-163 (p267)
 
-			{0xf1d8, 0xe010, Operation::ROXRb, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xf1d8, 0xe050, Operation::ROXRw, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xf1d8, 0xe090, Operation::ROXRl, Decoder::ASLRLSLRROLRROXLRr},	// 4-163 (p267)
-			{0xffc0, 0xe4c0, Operation::ROXRm, Decoder::ASLRLSLRROLRROXLRm},	// 4-163 (p267)
+			{0xf1d8, 0xe010, Operation::ROXRb, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe050, Operation::ROXRw, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-163 (p267)
+			{0xf1d8, 0xe090, Operation::ROXRl, Decoder::ASLR_LSLR_ROLR_ROXLRr},	// 4-163 (p267)
+			{0xffc0, 0xe4c0, Operation::ROXRm, Decoder::ASLR_LSLR_ROLR_ROXLRm},	// 4-163 (p267)
 
 			{0xffc0, 0x48c0, Operation::MOVEMtoMl, Decoder::MOVEM},				// 4-128 (p232)
 			{0xffc0, 0x4880, Operation::MOVEMtoMw, Decoder::MOVEM},				// 4-128 (p232)
@@ -572,7 +590,98 @@ struct ProcessorStorageConstructor {
 					const int ea_mode = (instruction >> 3) & 7;
 
 					switch(mapping.decoder) {
-						case Decoder::ADDSUB: {
+						case Decoder::EORI_ORI_ANDI_SUBI_ADDI: {
+							const int mode = combined_mode(ea_mode, ea_register);
+							const bool is_byte_access = !!((instruction >> 6)&3);
+							const bool is_long_word_access = ((instruction >> 6)&3) == 2;
+
+							// Source is always something cribbed from the instruction stream;
+							// destination is going to be in the write address unit.
+							storage_.instructions[instruction].source = &storage_.source_bus_data_[0];
+							if(mode == Dn) {
+								storage_.instructions[instruction].destination = &storage_.data_[ea_register];
+							} else {
+								storage_.instructions[instruction].destination = &storage_.destination_bus_data_[0];
+								storage_.instructions[instruction].destination_address = &storage_.address_[ea_register];
+							}
+
+							switch(is_long_word_access ? l(mode) : bw(mode)) {
+								default: continue;
+
+								case bw(Dn):
+									op(	int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask,
+										seq("np np", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation);
+								break;
+
+								case l(Dn):
+									op(Action::None, seq("np"));
+									op(	int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask,
+										seq("np np nn", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation);
+								break;
+
+								case bw(Ind):
+								case bw(PostInc):
+									op(	int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask,
+										seq("np nrd np", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw", { a(ea_register) }, !is_byte_access));
+									if(mode == PostInc) {
+										op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::DestinationMask);
+									}
+								break;
+
+								case l(Ind):
+								case l(PostInc):
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("np"));
+									op(	int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask,
+										seq("np nRd+ nrd np", { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
+									if(mode == PostInc) {
+										op(int(Action::Increment4) | MicroOp::DestinationMask);
+									}
+								break;
+
+								case bw(PreDec):
+									op(int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::DestinationMask);
+									op(	int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask,
+										seq("np n nrd np", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw", { a(ea_register) }, !is_byte_access));
+								break;
+
+								case l(PreDec):
+									op(int(Action::Decrement4) | MicroOp::DestinationMask);
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("np"));
+									op(	int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask,
+										seq("np n nRd+ nrd np", { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
+								break;
+
+								case bw(d8AnXn):
+								case bw(d16An):
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
+										seq(pseq("np nrd np", mode), { ea(1) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
+								break;
+
+								case bw(XXXw):
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nrd np", { ea(1) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
+								break;
+
+								case bw(XXXl):
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
+									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nrd np", { ea(1) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
+								break;
+							}
+						} break;
+
+						case Decoder::ADD_SUB: {
 							// ADD and SUB definitely always involve a data register and an arbitrary addressing mode;
 							// which direction they operate in depends on bit 8.
 							const bool reverse_source_destination = !(instruction & 256);
@@ -765,7 +874,7 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
-						case Decoder::ADDASUBA: {
+						case Decoder::ADDA_SUBA: {
 							const int destination_register = (instruction >> 9) & 7;
 							storage_.instructions[instruction].set_destination(storage_, 1, destination_register);
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
@@ -856,7 +965,7 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
-						case Decoder::ADDQSUBQ: {
+						case Decoder::ADDQ_SUBQ: {
 							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
 
 							const bool is_long_word_access = ((instruction >> 6)&3) == 2;
@@ -930,13 +1039,13 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						// This decoder actually decodes nothing; it just schedules a PerformOperation followed by an empty step.
-						case Decoder::BccBSR: {
+						case Decoder::Bcc_BSR: {
 							const int condition = (instruction >> 8) & 0xf;
 							if(condition == 1) {
 								// This is BSR, which is unconditional and means pushing a return address to the stack first.
 
 								// Push the return address to the stack.
-								op(Action::PrepareJSR, seq("n nW+ nw", { ea(1), ea(1) }));
+								op(Action::PrepareBSR, seq("n nW+ nw", { ea(1), ea(1) }));
 							}
 
 							// This is Bcc.
@@ -1072,7 +1181,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						// Decodes the format used by ABCD and SBCD.
-						case Decoder::ABCDSBCD: {
+						case Decoder::ABCD_SBCD: {
 							const int destination_register = (instruction >> 9) & 7;
 
 							if(instruction & 8) {
@@ -1092,7 +1201,7 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
-						case Decoder::ASLRLSLRROLRROXLRr: {
+						case Decoder::ASLR_LSLR_ROLR_ROXLRr: {
 							storage_.instructions[instruction].set_destination(storage_, 0, ea_register);
 
 							// All further decoding occurs at runtime; that's also when the proper number of
@@ -1107,7 +1216,7 @@ struct ProcessorStorageConstructor {
 							op(Action::PerformOperation, seq("r"));
 						} break;
 
-						case Decoder::ASLRLSLRROLRROXLRm: {
+						case Decoder::ASLR_LSLR_ROLR_ROXLRm: {
 							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
@@ -1145,7 +1254,7 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
-						case Decoder::CLRNEGNEGXNOT: {
+						case Decoder::CLR_NEG_NEGX_NOT: {
 							const bool is_byte_access = !!((instruction >> 6)&3);
 							const bool is_long_word_access = ((instruction >> 6)&3) == 2;
 
@@ -1556,7 +1665,7 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
-						case Decoder::SccDBcc: {
+						case Decoder::Scc_DBcc: {
 							if(ea_mode == 1) {
 								// This is a DBcc. Decode as such.
 								operation = Operation::DBcc;

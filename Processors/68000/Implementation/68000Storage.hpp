@@ -233,6 +233,11 @@ class ProcessorStorage {
 				// (iii) decrements the stack pointer by four.
 				PrepareJSR,
 
+				// (i) inspects the prefetch queue to determine the length of this BSR and copies the next PC to destination_bus_data_;
+				// (ii) copies the stack pointer minus 4 to effective_address_[1];
+				// (iii) decrements the stack pointer by four.
+				PrepareBSR,
+
 				// (i) copies the stack pointer to effective_address_[0];
 				// (ii) increments the stack pointer by four.
 				PrepareRTS,
