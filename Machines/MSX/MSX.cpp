@@ -209,7 +209,9 @@ class ConcreteMachine:
 
 			// Fetch the necessary ROMs; try the region-specific ROM first,
 			// but failing that fall back on patching the main one.
+			size_t disk_index = 0;
 			if(target.has_disk_drive) {
+				disk_index = rom_names.size();
 				rom_names.push_back("disk.rom");
 			}
 			const auto roms = rom_fetcher("MSX", rom_names);
@@ -226,7 +228,6 @@ class ConcreteMachine:
 			} else {
 				memory_slots_[0].source = std::move(*roms[0]);
 				memory_slots_[0].source.resize(32768);
-
 
 				memory_slots_[0].source[0x2b] = uint8_t(
 					(is_ntsc ? 0x00 : 0x80) |
@@ -252,7 +253,7 @@ class ConcreteMachine:
 			// Add a disk cartridge if any disks were supplied.
 			if(target.has_disk_drive) {
 				memory_slots_[2].set_handler(new DiskROM(memory_slots_[2].source));
-				memory_slots_[2].source = std::move(*roms[1]);
+				memory_slots_[2].source = std::move(*roms[disk_index]);
 				memory_slots_[2].source.resize(16384);
 
 				map(2, 0, 0x4000, 0x2000);
