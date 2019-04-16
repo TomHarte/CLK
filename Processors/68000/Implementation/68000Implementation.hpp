@@ -111,39 +111,132 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									active_program_->destination->halves.low.halves.low = uint8_t(result);
 								} break;
 
-								// ADD and ADDA add two quantities, the latter sign extending and without setting any flags.
-								case Operation::ADDb: {
-									const uint8_t source = active_program_->source->halves.low.halves.low;
-									const uint8_t destination = active_program_->destination->halves.low.halves.low;
-									const int result = destination + source;
+								// ADD and ADDA add two quantities, the latter sign extending and without setting any flags;
+								// ADDQ and SUBQ act as ADD and SUB, but taking the second argument from the instruction code.
+#define addop(a, b) a + b
+#define subop(a, b) a - b
 
-									zero_result_ = active_program_->destination->halves.low.halves.low = uint8_t(result);
-									extend_flag_ = carry_flag_ = result & ~0xff;
-									negative_flag_ = result & 0x80;
-									overflow_flag_ = add_overflow() & 0x80;
+#define addsubb(a, b, dest, op, overflow)	\
+	const auto source = a;	\
+	const auto destination = b;	\
+	const int result = op(destination, source);	\
+\
+	zero_result_ = dest = uint8_t(result);	\
+	extend_flag_ = carry_flag_ = result & ~0xff;	\
+	negative_flag_ = result & 0x80;	\
+	overflow_flag_ = overflow() & 0x80;
+
+#define addsubw(a, b, dest, op, overflow)	\
+	const auto source = a;	\
+	const auto destination = b;	\
+	const int result = op(destination, source);	\
+\
+	zero_result_ = dest = uint16_t(result);	\
+	extend_flag_ = carry_flag_ = result & ~0xffff;	\
+	negative_flag_ = result & 0x8000;	\
+	overflow_flag_ = overflow() & 0x8000;
+
+#define addsubl(a, b, dest, op, overflow)	\
+	const auto source = a;	\
+	const auto destination = b;	\
+	const uint64_t result = op(destination, source);	\
+\
+	zero_result_ = dest = uint32_t(result);	\
+	extend_flag_ = carry_flag_ = result >> 32;	\
+	negative_flag_ = result & 0x80000000;	\
+	overflow_flag_ = overflow() & 0x80000000;
+
+#define addb(a, b, dest) addsubb(a, b, dest, addop, add_overflow)
+#define subb(a, b, dest) addsubb(a, b, dest, subop, sub_overflow)
+#define addw(a, b, dest) addsubw(a, b, dest, addop, add_overflow)
+#define subw(a, b, dest) addsubw(a, b, dest, subop, sub_overflow)
+#define addl(a, b, dest) addsubl(a, b, dest, addop, add_overflow)
+#define subl(a, b, dest) addsubl(a, b, dest, subop, sub_overflow)
+
+#define q() (((decoded_instruction_ >> 9)&7) ? ((decoded_instruction_ >> 9)&7) : 8)
+
+								case Operation::ADDb: {
+									addb(	active_program_->source->halves.low.halves.low,
+											active_program_->destination->halves.low.halves.low,
+											active_program_->destination->halves.low.halves.low);
+								} break;
+
+								case Operation::ADDQb: {
+									addb(	q(),
+											active_program_->destination->halves.low.halves.low,
+											active_program_->destination->halves.low.halves.low);
 								} break;
 
 								case Operation::ADDw: {
-									const uint16_t source = active_program_->source->halves.low.full;
-									const uint16_t destination = active_program_->destination->halves.low.full;
-									const int result = destination + source;
+									addw(	active_program_->source->halves.low.full,
+											active_program_->destination->halves.low.full,
+											active_program_->destination->halves.low.full);
+								} break;
 
-									zero_result_ = active_program_->destination->halves.low.full = uint16_t(result);
-									extend_flag_ = carry_flag_ = result & ~0xffff;
-									negative_flag_ = result & 0x8000;
-									overflow_flag_ = add_overflow() & 0x8000;
+								case Operation::ADDQw: {
+									addw(	q(),
+											active_program_->destination->halves.low.full,
+											active_program_->destination->halves.low.full);
 								} break;
 
 								case Operation::ADDl: {
-									const uint32_t source = active_program_->source->full;
-									const uint32_t destination = active_program_->destination->full;
-									const uint64_t result = destination + source;
-
-									zero_result_ = active_program_->destination->full = uint32_t(result);
-									extend_flag_ = carry_flag_ = result >> 32;
-									negative_flag_ = result & 0x80000000;
-									overflow_flag_ = add_overflow() & 0x80000000;
+									addl(	active_program_->source->full,
+											active_program_->destination->full,
+											active_program_->destination->full);
 								} break;
+
+								case Operation::ADDQl: {
+									addl(	q(),
+											active_program_->destination->full,
+											active_program_->destination->full);
+								} break;
+
+								case Operation::SUBb: {
+									subb(	active_program_->source->halves.low.halves.low,
+											active_program_->destination->halves.low.halves.low,
+											active_program_->destination->halves.low.halves.low);
+								} break;
+
+								case Operation::SUBQb: {
+									subb(	q(),
+											active_program_->destination->halves.low.halves.low,
+											active_program_->destination->halves.low.halves.low);
+								} break;
+
+								case Operation::SUBw: {
+									subw(	active_program_->source->halves.low.full,
+											active_program_->destination->halves.low.full,
+											active_program_->destination->halves.low.full);
+								} break;
+
+								case Operation::SUBQw: {
+									subw(	q(),
+											active_program_->destination->halves.low.full,
+											active_program_->destination->halves.low.full);
+								} break;
+
+								case Operation::SUBl: {
+									subl(	active_program_->source->full,
+											active_program_->destination->full,
+											active_program_->destination->full);
+								} break;
+
+								case Operation::SUBQl: {
+									subl(	q(),
+											active_program_->destination->full,
+											active_program_->destination->full);
+								} break;
+
+#undef addl
+#undef addw
+#undef addb
+#undef subl
+#undef subw
+#undef subb
+#undef addsubl
+#undef addsubw
+#undef addsubb
+#undef q
 
 								case Operation::ADDAw:
 									active_program_->destination->full += int16_t(active_program_->source->halves.low.full);
@@ -151,6 +244,14 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 								case Operation::ADDAl:
 									active_program_->destination->full += active_program_->source->full;
+								break;
+
+								case Operation::SUBAw:
+									active_program_->destination->full -= int16_t(active_program_->source->halves.low.full);
+								break;
+
+								case Operation::SUBAl:
+									active_program_->destination->full -= active_program_->source->full;
 								break;
 
 								// BRA: alters the program counter, exclusively via the prefetch queue.
@@ -652,47 +753,6 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									// Store the result.
 									active_program_->destination->halves.low.halves.low = uint8_t(result);
 								} break;
-
-								case Operation::SUBb: {
-									const uint8_t source = active_program_->source->halves.low.halves.low;
-									const uint8_t destination = active_program_->destination->halves.low.halves.low;
-									const int result = destination - source;
-
-									zero_result_ = active_program_->destination->halves.low.halves.low = uint8_t(result);
-									extend_flag_ = carry_flag_ = result & ~0xff;
-									negative_flag_ = result & 0x80;
-									overflow_flag_ = sub_overflow() & 0x80;
-								} break;
-
-								case Operation::SUBw: {
-									const uint16_t source = active_program_->source->halves.low.full;
-									const uint16_t destination = active_program_->destination->halves.low.full;
-									const int result = destination - source;
-
-									zero_result_ = active_program_->destination->halves.low.full = uint16_t(result);
-									extend_flag_ = carry_flag_ = result & ~0xffff;
-									negative_flag_ = result & 0x8000;
-									overflow_flag_ = sub_overflow() & 0x8000;
-								} break;
-
-								case Operation::SUBl: {
-									const uint32_t source = active_program_->source->full;
-									const uint32_t destination = active_program_->destination->full;
-									const uint64_t result = destination - source;
-
-									zero_result_ = active_program_->destination->full = uint32_t(result);
-									extend_flag_ = carry_flag_ = result >> 32;
-									negative_flag_ = result & 0x80000000;
-									overflow_flag_ = sub_overflow() & 0x80000000;
-								} break;
-
-								case Operation::SUBAw:
-									active_program_->destination->full -= int16_t(active_program_->source->halves.low.full);
-								break;
-
-								case Operation::SUBAl:
-									active_program_->destination->full -= active_program_->source->full;
-								break;
 
 								/*
 									Shifts and rotates.

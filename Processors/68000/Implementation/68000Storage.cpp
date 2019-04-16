@@ -330,6 +330,7 @@ struct ProcessorStorageConstructor {
 
 			ADDSUB,						// Maps a register and a register and mode to an ADD or SUB.
 			ADDASUBA,					// Maps a destination register and a source mode and register to an ADDA or SUBA.
+			ADDQSUBQ,					// Mags a register and a mode to an ADDQ or SUBQ.
 
 			BRA,						// Maps to a BRA. All fields are decoded at runtime.
 			BccBSR,						// Maps to a Bcc or BSR. Other than determining the type of operation, fields are decoded at runtime.
@@ -450,6 +451,14 @@ struct ProcessorStorageConstructor {
 			{0xf1c0, 0xd1c0, Operation::ADDAl, Decoder::ADDASUBA},	// 4-7 (p111)
 			{0xf1c0, 0x90c0, Operation::SUBAw, Decoder::ADDASUBA},	// 4-177 (p281)
 			{0xf1c0, 0x91c0, Operation::SUBAl, Decoder::ADDASUBA},	// 4-177 (p281)
+
+			{0xf1c0, 0x5000, Operation::ADDQb, Decoder::ADDQSUBQ},	// 4-11 (p115)
+			{0xf1c0, 0x5040, Operation::ADDQw, Decoder::ADDQSUBQ},	// 4-11 (p115)
+			{0xf1c0, 0x5080, Operation::ADDQl, Decoder::ADDQSUBQ},	// 4-11 (p115)
+
+			{0xf1c0, 0x5100, Operation::SUBQb, Decoder::ADDQSUBQ},	// 4-181 (p285)
+			{0xf1c0, 0x5140, Operation::SUBQw, Decoder::ADDQSUBQ},	// 4-181 (p285)
+			{0xf1c0, 0x5180, Operation::SUBQl, Decoder::ADDQSUBQ},	// 4-181 (p285)
 
 			{0xf1c0, 0x0100, Operation::BTSTb, Decoder::BTST},		// 4-62 (p166)
 			{0xffc0, 0x0800, Operation::BTSTb, Decoder::BTSTIMM},	// 4-63 (p167)
@@ -843,6 +852,45 @@ struct ProcessorStorageConstructor {
 									op(Action::None, seq("np"));
 									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np nn"));
 									op(Action::PerformOperation);
+								break;
+							}
+						} break;
+
+						case Decoder::ADDQSUBQ: {
+							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
+
+							const bool is_long_word_access = ((instruction >> 6)&3) == 2;
+							const bool is_byte_access = ((instruction >> 6)&3) == 0;
+							const int mode = combined_mode(ea_mode, ea_register);
+							switch(is_long_word_access ? l(mode) : bw(mode)) {
+								default: continue;
+
+								case bw(Dn):
+									op(Action::PerformOperation, seq("np"));
+								break;
+
+								case l(Dn):
+								case l(An):
+								case bw(An):
+									op(Action::PerformOperation, seq("np nn"));
+								break;
+
+								case bw(Ind):
+								case bw(PostInc):
+									op(Action::None, seq("nrd np", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw", { a(ea_register) }, !is_byte_access));
+									if(mode == PostInc) {
+										op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::DestinationMask);
+									}
+								break;
+
+								case l(Ind):
+								case l(PostInc):
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd np", { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
+									if(mode == PostInc) {
+										op(int(Action::Increment4) | MicroOp::DestinationMask);
+									}
 								break;
 							}
 						} break;
