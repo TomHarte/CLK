@@ -865,18 +865,18 @@ struct ProcessorStorageConstructor {
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
-								case bw(Dn):
+								case bw(Dn):		// [ADD/SUB]Q.bw #, Dn
 									op(Action::PerformOperation, seq("np"));
 								break;
 
-								case l(Dn):
-								case l(An):
-								case bw(An):
+								case l(Dn):			// [ADD/SUB]Q.l #, Dn
+								case l(An):			// [ADD/SUB]Q.l #, An
+								case bw(An):		// [ADD/SUB]Q.bw #, An
 									op(Action::PerformOperation, seq("np nn"));
 								break;
 
-								case bw(Ind):
-								case bw(PostInc):
+								case bw(Ind):		// [ADD/SUB]Q.bw #, (An)
+								case bw(PostInc):	// [ADD/SUB]Q.bw #, (An)+
 									op(Action::None, seq("nrd np", { a(ea_register) }, !is_byte_access));
 									op(Action::PerformOperation, seq("nw", { a(ea_register) }, !is_byte_access));
 									if(mode == PostInc) {
@@ -884,13 +884,47 @@ struct ProcessorStorageConstructor {
 									}
 								break;
 
-								case l(Ind):
-								case l(PostInc):
+								case l(PreDec):		// [ADD/SUB]Q.l #, -(An)
+									op(int(Action::Decrement4) | MicroOp::DestinationMask, seq("n"));
+								case l(Ind):		// [ADD/SUB]Q.l #, (An)
+								case l(PostInc):	// [ADD/SUB]Q.l #, (An)+
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd np", { ea(1), ea(1) }));
 									op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
 									if(mode == PostInc) {
 										op(int(Action::Increment4) | MicroOp::DestinationMask);
 									}
+								break;
+
+								case bw(PreDec):	// [ADD/SUB]Q.bw #, -(An)
+									op(	int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::DestinationMask,
+										seq("n nrd np", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw", { a(ea_register) }, !is_byte_access));
+								break;
+
+								case bw(d16An):		// [ADD/SUB]Q.bw #, (d16, An)
+								case bw(d8AnXn):	// [ADD/SUB]Q.bw #, (d8, An, Xn)
+									op(calc_action_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np nrd np", mode), { ea(1) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
+								break;
+
+								case l(d16An):		// [ADD/SUB]Q.l #, (d16, An)
+								case l(d8AnXn):		// [ADD/SUB]Q.l #, (d8, An, Xn)
+									op(calc_action_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np nRd+ nrd np", mode), { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
+								break;
+
+								case bw(XXXl):		// [ADD/SUB]Q.bw #, (xxx).l
+									op(Action::None, seq("np"));
+								case bw(XXXw):		// [ADD/SUB]Q.bw #, (xxx).w
+									op(address_assemble_for_mode(mode) | MicroOp::DestinationMask, seq("np nrd np", { ea(1) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
+								break;
+
+								case l(XXXl):		// [ADD/SUB]Q.l #, (xxx).l
+									op(Action::None, seq("np"));
+								case l(XXXw):		// [ADD/SUB]Q.l #, (xxx).w
+									op(address_assemble_for_mode(mode) | MicroOp::DestinationMask, seq("np nRd+ nrd np", { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
 								break;
 							}
 						} break;
