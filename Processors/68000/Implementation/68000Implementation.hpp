@@ -946,8 +946,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 						case int(MicroOp::Action::PrepareJSR):
 							destination_bus_data_[0] = program_counter_;
-							effective_address_[1].full = address_[7].full - 2;
 							address_[7].full -= 4;
+							effective_address_[1].full = address_[7].full;
 						break;
 
 						case int(MicroOp::Action::PrepareRTS):

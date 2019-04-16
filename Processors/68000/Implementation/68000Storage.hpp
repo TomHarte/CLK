@@ -223,7 +223,7 @@ class ProcessorStorage {
 				MOVEMtoMComplete,
 
 				// (i) copies the current program counter to destination_bus_data_;
-				// (ii) copies the stack pointer minus 2 to effective_address_[1];
+				// (ii) copies the stack pointer minus 4 to effective_address_[1];
 				// (iii) decrements the stack pointer by four.
 				PrepareJSR,
 

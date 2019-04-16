@@ -1529,20 +1529,20 @@ struct ProcessorStorageConstructor {
 								case Ind:		// JSR (An)
 									storage_.instructions[instruction].source = &storage_.address_[ea_register];
 									op(Action::PrepareJSR);
-									op(Action::PerformOperation, seq("np nS ns np"));
+									op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
 								break;
 
 								case d16PC:		// JSR (d16, PC)
 								case d16An:		// JSR (d16, An)
 									op(Action::PrepareJSR);
-									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n np nS ns np"));
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n np nW+ nw np", { ea(1), ea(1) }));
 									op(Action::PerformOperation);
 								break;
 
 								case d8PCXn:	// JSR (d8, PC, Xn)
 								case d8AnXn:	// JSR (d8, An, Xn)
 									op(Action::PrepareJSR);
-									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n nn np nS ns np"));
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq("n nn np nW+ nw np", { ea(1), ea(1) }));
 									op(Action::PerformOperation);
 								break;
 
@@ -1550,13 +1550,13 @@ struct ProcessorStorageConstructor {
 									op(Action::None, seq("np"));
 									op(Action::PrepareJSR);
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
-									op(Action::PerformOperation, seq("n np nS ns np"));
+									op(Action::PerformOperation, seq("n np nW+ nw np", { ea(1), ea(1) }));
 								break;
 
 								case XXXw:		// JSR (xxx).W
 									op(Action::PrepareJSR);
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
-									op(Action::PerformOperation, seq("n np nS ns np"));
+									op(Action::PerformOperation, seq("n np nW+ nw np", { ea(1), ea(1) }));
 								break;
 							}
 						} break;
@@ -2059,7 +2059,15 @@ struct ProcessorStorageConstructor {
 								case bw2(Dn, d16PC):		// MOVE.bw Dn, (d16, PC)
 								case bw2(Dn, d8PCXn):		// MOVE.bw Dn, (d8, PC, Xn)
 									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq(pseq("np", destination_mode)));
-									op(Action::PerformOperation, seq("nw np", { ea(1) }));
+									op(Action::PerformOperation, seq("nw np", { ea(1) }, !is_byte_access));
+								break;
+
+								case l2(Dn, d16An):			// MOVE.l Dn, (d16, An)
+								case l2(Dn, d8AnXn):		// MOVE.l Dn, (d8, An, Xn)
+								case l2(Dn, d16PC):			// MOVE.l Dn, (d16, PC)
+								case l2(Dn, d8PCXn):		// MOVE.l Dn, (d8, PC, Xn)
+									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq(pseq("np", destination_mode)));
+									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
 								break;
 
 								case bw2(Ind, d16An):		// MOVE.bw (An), (d16, An)
@@ -2070,8 +2078,24 @@ struct ProcessorStorageConstructor {
 								case bw2(PostInc, d16PC):	// MOVE.bw (An)+, (d16, PC)
 								case bw2(Ind, d8PCXn):		// MOVE.bw (An), (d8, PC, Xn)
 								case bw2(PostInc, d8PCXn):	// MOVE.bw (An)+, (d8, PC, Xn)
-									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq("nr", { &storage_.address_[ea_register].full }, !is_byte_access));
+									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq("nr", { a(ea_register) }, !is_byte_access));
 									op(Action::PerformOperation, seq(pseq("np nw np", destination_mode), { ea(1) }, !is_byte_access));
+									if(ea_mode == PostInc) {
+										op(increment_action | MicroOp::SourceMask);
+									}
+								break;
+
+								case l2(Ind, d16An):		// MOVE.l (An), (d16, An)
+								case l2(PostInc, d16An):	// MOVE.l (An)+, (d16, An)
+								case l2(Ind, d8AnXn):		// MOVE.l (An), (d8, An, Xn)
+								case l2(PostInc, d8AnXn):	// MOVE.l (An)+, (d8, An, Xn)
+								case l2(Ind, d16PC):		// MOVE.l (An), (d16, PC)
+								case l2(PostInc, d16PC):	// MOVE.l (An)+, (d16, PC)
+								case l2(Ind, d8PCXn):		// MOVE.l (An), (d8, PC, Xn)
+								case l2(PostInc, d8PCXn):	// MOVE.l (An)+, (d8, PC, Xn)
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask);
+									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq("nR+ nr", { ea(0), ea(0) }));
+									op(Action::PerformOperation, seq(pseq("np nW+ nw np", destination_mode), { ea(1), ea(1) }));
 									if(ea_mode == PostInc) {
 										op(increment_action | MicroOp::SourceMask);
 									}
