@@ -332,7 +332,7 @@ struct ProcessorStorageConstructor {
 			ADDASUBA,					// Maps a destination register and a source mode and register to an ADDA or SUBA.
 
 			BRA,						// Maps to a BRA. All fields are decoded at runtime.
-			Bcc,						// Maps to a Bcc. All fields are decoded at runtime.
+			BccBSR,						// Maps to a Bcc or BSR. Other than determining the type of operation, fields are decoded at runtime.
 
 			BTST,						// Maps a source register and a destination register and mode to a BTST.
 			BTSTIMM,					// Maps a destination mode and register to a BTST #.
@@ -427,7 +427,7 @@ struct ProcessorStorageConstructor {
 			{0xf1f8, 0xb188, Operation::CMPl, Decoder::CMPM},	// 4-81 (p185)
 
 //			{0xff00, 0x6000, Operation::BRA, Decoder::BRA},		// 4-55 (p159)	TODO: confirm that this really, really is just a special case of Bcc.
-			{0xf000, 0x6000, Operation::Bcc, Decoder::Bcc},		// 4-25 (p129)
+			{0xf000, 0x6000, Operation::Bcc, Decoder::BccBSR},	// 4-25 (p129) and 4-59 (p163)
 
 			{0xf1c0, 0x41c0, Operation::MOVEAl, Decoder::LEA},	// 4-110 (p214)
 			{0xf100, 0x7000, Operation::MOVEq, Decoder::MOVEq},	// 4-134 (p238)
@@ -848,7 +848,16 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						// This decoder actually decodes nothing; it just schedules a PerformOperation followed by an empty step.
-						case Decoder::Bcc: {
+						case Decoder::BccBSR: {
+							const int condition = (instruction >> 8) & 0xf;
+							if(condition == 1) {
+								// This is BSR, which is unconditional and means pushing a return address to the stack first.
+
+								// Push the return address to the stack.
+								op(Action::PrepareJSR, seq("n nW+ nw", { ea(1), ea(1) }));
+							}
+
+							// This is Bcc.
 							op(Action::PerformOperation);
 							op();	// The above looks terminal, but will be dynamically reprogrammed.
 						} break;
@@ -2511,6 +2520,7 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	const size_t branch_taken_offset = constructor.assemble_program("n np np");
 	const size_t branch_byte_not_taken_offset = constructor.assemble_program("nn np");
 	const size_t branch_word_not_taken_offset = constructor.assemble_program("nn np np");
+	const size_t bsr_offset = constructor.assemble_program("np np");
 
 	const size_t dbcc_condition_true_offset = constructor.assemble_program("nn np np");
 	const size_t dbcc_condition_false_no_branch_offset = constructor.assemble_program("n nr np np", { &dbcc_false_address_ });
@@ -2539,6 +2549,7 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	branch_taken_bus_steps_ = &all_bus_steps_[branch_taken_offset];
 	branch_byte_not_taken_bus_steps_ = &all_bus_steps_[branch_byte_not_taken_offset];
 	branch_word_not_taken_bus_steps_ = &all_bus_steps_[branch_word_not_taken_offset];
+	bsr_bus_steps_ = &all_bus_steps_[bsr_offset];
 
 	dbcc_condition_true_steps_ = &all_bus_steps_[dbcc_condition_true_offset];
 	dbcc_condition_false_no_branch_steps_ = &all_bus_steps_[dbcc_condition_false_no_branch_offset];

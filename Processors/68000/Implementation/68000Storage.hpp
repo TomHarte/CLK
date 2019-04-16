@@ -297,6 +297,7 @@ class ProcessorStorage {
 		BusStep *branch_taken_bus_steps_;
 		BusStep *branch_byte_not_taken_bus_steps_;
 		BusStep *branch_word_not_taken_bus_steps_;
+		BusStep *bsr_bus_steps_;
 
 		uint32_t dbcc_false_address_;
 		BusStep *dbcc_condition_true_steps_;

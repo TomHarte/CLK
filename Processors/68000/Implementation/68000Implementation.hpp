@@ -190,15 +190,21 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									active_step_->microcycle.length = HalfCycles(8 + ((active_program_->source->full & 31) / 16) * 4);
 								break;
 
-								// Bcc: evaluates the relevant condition and displacement size and then:
+								// Bcc: ordinarily evaluates the relevant condition and displacement size and then:
 								//	if condition is false, schedules bus operations to get past this instruction;
 								//	otherwise applies the offset and schedules bus operations to refill the prefetch queue.
+								//
+								// Special case: the condition code is 1, which is ordinarily false. In that case this
+								// is the trailing step of a BSR.
 								case Operation::Bcc: {
 									// Grab the 8-bit offset.
 									const int8_t byte_offset = int8_t(prefetch_queue_.halves.high.halves.low);
 
-									// Test the conditional.
-									const bool should_branch = evaluate_condition(prefetch_queue_.halves.high.halves.high);
+									// Check whether this is secretly BSR.
+									const bool is_bsr = ((decoded_instruction_ >> 8) & 0xf) == 1;
+
+									// Test the conditional, treating 'false' as true.
+									const bool should_branch = is_bsr || evaluate_condition(prefetch_queue_.halves.high.halves.high);
 
 									// Schedule something appropriate, by rewriting the program for this instruction temporarily.
 									if(should_branch) {
@@ -208,7 +214,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 											program_counter_.full += int16_t(prefetch_queue_.halves.low.full);
 										}
 										program_counter_.full -= 2;
-										bus_program = branch_taken_bus_steps_;
+										bus_program = is_bsr ? bsr_bus_steps_ : branch_taken_bus_steps_;
 									} else {
 										if(byte_offset) {
 									 		bus_program = branch_byte_not_taken_bus_steps_;
