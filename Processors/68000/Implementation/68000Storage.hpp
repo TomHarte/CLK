@@ -68,11 +68,11 @@ class ProcessorStorage {
 			JMP,
 			BRA,	Bcc,
 			DBcc,
+			Scc,
 
 			CLRb, CLRw, CLRl,
 			NEGXb, NEGXw, NEGXl,
 			NEGb, NEGw, NEGl,
-			NOTb, NOTw, NOTl,
 
 			ASLb, ASLw, ASLl, ASLm,
 			ASRb, ASRw, ASRl, ASRm,
@@ -86,7 +86,10 @@ class ProcessorStorage {
 			MOVEMtoRl, MOVEMtoRw,
 			MOVEMtoMl, MOVEMtoMw,
 
-			Scc,
+			ANDb,	ANDw,	ANDl,
+			EORb,	EORw,	EORl,
+			NOTb, 	NOTw, 	NOTl,
+			ORb,	ORw,	ORl,
 		};
 
 		/*!

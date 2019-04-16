@@ -709,8 +709,43 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								case Operation::None:
 								break;
 
-								// NOTs: take the logical inverse, affecting the negative and zero flags.
+								/*
+									Bitwise operators: AND, OR and EOR. All three clear the overflow and carry flags,
+									and set zero and negative appropriately.
+								*/
+#define op_and(x, y)	x &= y
+#define op_or(x, y)		x |= y
+#define op_eor(x, y)	x ^= y
 
+#define bitwise(source, dest, sign_mask, operator)	\
+	operator(dest, source);	\
+	overflow_flag_ = carry_flag_ = 0;	\
+	zero_result_ = dest;	\
+	negative_flag_ = dest & sign_mask;
+
+#define andx(source, dest, sign_mask)	bitwise(source, dest, sign_mask, op_and)
+#define eorx(source, dest, sign_mask)	bitwise(source, dest, sign_mask, op_eor)
+#define orx(source, dest, sign_mask)	bitwise(source, dest, sign_mask, op_or)
+
+#define op_bwl(name, op)	\
+	case Operation::name##b: op(active_program_->source->halves.low.halves.low, active_program_->destination->halves.low.halves.low, 0x80);	break;	\
+	case Operation::name##w: op(active_program_->source->halves.low.full, active_program_->destination->halves.low.full, 0x8000);			break;	\
+	case Operation::name##l: op(active_program_->source->full, active_program_->destination->full, 0x80000000);								break;
+
+								op_bwl(AND, andx);
+								op_bwl(EOR, eorx);
+								op_bwl(OR, orx);
+
+#undef op_bwl
+#undef orx
+#undef eorx
+#undef andx
+#undef bitwise
+#undef op_eor
+#undef op_or
+#undef op_and
+
+								// NOTs: take the logical inverse, affecting the negative and zero flags.
 								case Operation::NOTb:
 									active_program_->destination->halves.low.halves.low ^= 0xff;
 									zero_result_ = active_program_->destination->halves.low.halves.low;
