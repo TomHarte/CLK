@@ -478,6 +478,10 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									set_ccr(active_program_->source->full);
 								break;
 
+								/*
+									Multiplications.
+								*/
+
 								case Operation::MULU: {
 									active_program_->destination->full =
 										active_program_->destination->halves.low.full * active_program_->source->halves.low.full;

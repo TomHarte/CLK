@@ -375,6 +375,8 @@ struct ProcessorStorageConstructor {
 			TST,						// Maps a mode and register to a TST.
 
 			RTS,						// Maps to an RST.
+
+			MOVEUSP,					// Maps a direction and register to a MOVE [to/from] USP.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -552,6 +554,8 @@ struct ProcessorStorageConstructor {
 
 			{0xf1c0, 0xc0c0, Operation::MULU, Decoder::MULU_MULS},				// 4-139 (p243)
 			{0xf1c0, 0xc1c0, Operation::MULS, Decoder::MULU_MULS},				// 4-136 (p240)
+
+			{0xfff0, 0x4e60, Operation::MOVEAl, Decoder::MOVEUSP},				// 6-21 (p475)
 
 		};
 
@@ -2025,6 +2029,24 @@ struct ProcessorStorageConstructor {
 
 							// A final program fetch will cue up the next instruction.
 							op(is_to_m ? Action::MOVEMtoMComplete : Action::MOVEMtoRComplete, seq("np"));
+						} break;
+
+						case Decoder::MOVEUSP: {
+							storage_.instructions[instruction].requires_supervisor = true;
+
+							// Observation here: because this is a privileged instruction, the user stack pointer
+							// definitely isn't currently A7.
+							if(instruction & 0x8) {
+								// Transfer FROM the USP.
+								storage_.instructions[instruction].destination = &storage_.stack_pointers_[0];
+								storage_.instructions[instruction].set_source(storage_, An, ea_register);
+							} else {
+								// Transfer TO the USP.
+								storage_.instructions[instruction].source = &storage_.stack_pointers_[0];
+								storage_.instructions[instruction].set_destination(storage_, An, ea_register);
+							}
+
+							op(Action::PerformOperation, seq("np"));
 						} break;
 
 						// Decodes the format used by most MOVEs and all MOVEAs.
