@@ -477,6 +477,46 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									set_ccr(active_program_->source->full);
 								break;
 
+								case Operation::MULU: {
+									active_program_->destination->full =
+										active_program_->destination->halves.low.full * active_program_->source->halves.low.full;
+									carry_flag_ = overflow_flag_ = 0;
+									zero_result_ = active_program_->destination->full;
+									negative_flag_ = zero_result_ & 0x80000000;
+
+									// TODO: optimise the below?
+									int number_of_ones = 0;
+									auto source = active_program_->source->halves.low.full;
+									while(source) {
+										source >>= 1;
+										++number_of_ones;
+									}
+
+									// Time taken = 38 cycles + 2 cycles per 1 in the source.
+									active_step_->microcycle.length = HalfCycles(4 * number_of_ones + 38*2);
+								} break;
+
+								case Operation::MULS: {
+									active_program_->destination->full =
+										int16_t(active_program_->destination->halves.low.full) * int16_t(active_program_->source->halves.low.full);
+									carry_flag_ = overflow_flag_ = 0;
+									zero_result_ = active_program_->destination->full;
+									negative_flag_ = zero_result_ & 0x80000000;
+
+									// TODO: optimise the below?
+									int number_of_pairs = 0;
+									int source = active_program_->source->halves.low.full;
+									int bit = 0;
+									while(source | bit) {
+										number_of_pairs += (bit ^ source) & 1;
+										bit = source & 1;
+										source >>= 1;
+									}
+
+									// Time taken = 38 cycles + 2 cycles per 1 in the source.
+									active_step_->microcycle.length = HalfCycles(4 * number_of_pairs + 38*2);
+								} break;
+
 								/*
 									MOVEM: multi-word moves.
 								*/

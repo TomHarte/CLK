@@ -90,6 +90,8 @@ class ProcessorStorage {
 			EORb,	EORw,	EORl,
 			NOTb, 	NOTw, 	NOTl,
 			ORb,	ORw,	ORl,
+
+			MULU,	MULS,
 		};
 
 		/*!

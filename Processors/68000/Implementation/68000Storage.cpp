@@ -326,10 +326,7 @@ struct ProcessorStorageConstructor {
 	*/
 	void install_instructions() {
 		enum class Decoder {
-			EORI_ORI_ANDI_SUBI_ADDI,	// Maps a mode and register to one of EORI, ORI, ANDI, SUBI or ADDI.
-
 			ABCD_SBCD,					// Maps source and desintation registers and a register/memory selection bit to an ABCD or SBCD.
-
 			ADD_SUB,					// Maps a register and a register and mode to an ADD or SUB.
 			ADDA_SUBA,					// Maps a destination register and a source mode and register to an ADDA or SUBA.
 			ADDQ_SUBQ,					// Mags a register and a mode to an ADDQ or SUBQ.
@@ -350,15 +347,18 @@ struct ProcessorStorageConstructor {
 			CMPA,						// Maps a destination register and a source mode and register to a CMPA.
 			CMPM,						// Maps to a CMPM.
 
-			Scc_DBcc,					// Maps a mode and destination register to either a DBcc or Scc.
+			EORI_ORI_ANDI_SUBI_ADDI,	// Maps a mode and register to one of EORI, ORI, ANDI, SUBI or ADDI.
 
 			JMP,						// Maps a mode and register to a JMP.
+			JSR,						// Maps a mode and register to a JSR.
 
 			LEA,						// Maps a destination register and a source mode and register to an LEA.
 
 			MOVE,						// Maps a source mode and register and a destination mode and register to a MOVE.
 			MOVEtoSRCCR,				// Maps a source mode and register to a MOVE SR or MOVE CCR.
 			MOVEq,						// Maps a destination register to a MOVEQ.
+
+			MULU_MULS,					// Maps a destination register and a source mode and register to a MULU or MULS.
 
 			RESET,						// Maps to a RESET.
 
@@ -369,10 +369,11 @@ struct ProcessorStorageConstructor {
 			MOVEM,						// Maps a mode and register as they were a 'destination' and sets up bus steps with a suitable
 										// hole for the runtime part to install proper MOVEM activity.
 
+			Scc_DBcc,					// Maps a mode and destination register to either a DBcc or Scc.
+
 			TST,						// Maps a mode and register to a TST.
 
-			JSR,						// Maps a mode and register to a JSR.
-			RTS,						// Maps
+			RTS,						// Maps to an RST.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -548,6 +549,9 @@ struct ProcessorStorageConstructor {
 			{0xffc0, 0x4a40, Operation::TSTw, Decoder::TST},					// 4-192 (p296)
 			{0xffc0, 0x4a80, Operation::TSTl, Decoder::TST},					// 4-192 (p296)
 
+			{0xf1c0, 0xc0c0, Operation::MULU, Decoder::MULU_MULS},				// 4-139 (p243)
+			{0xf1c0, 0xc1c0, Operation::MULS, Decoder::MULU_MULS},				// 4-136 (p240)
+
 		};
 
 #ifndef NDEBUG
@@ -590,6 +594,56 @@ struct ProcessorStorageConstructor {
 					const int ea_mode = (instruction >> 3) & 7;
 
 					switch(mapping.decoder) {
+						case Decoder::MULU_MULS: {
+							const int destination_register = (instruction >> 9) & 7;
+							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
+							storage_.instructions[instruction].set_destination(storage_, Dn, destination_register);
+
+							const int mode = combined_mode(ea_mode, ea_register);
+							switch(mode) {
+								default: continue;
+
+								case Dn:
+									op(Action::None, seq("np"));
+									op(Action::PerformOperation, seq("r"));
+								break;
+
+								case Ind:
+								case PostInc:
+									op(Action::None, seq("nr np", { a(ea_register) }));
+									op(Action::PerformOperation, seq("r"));
+									if(mode == PostInc) {
+										op(int(Action::Increment2) | MicroOp::SourceMask);
+									}
+								break;
+
+								case PreDec:
+									op(int(Action::Decrement2) | MicroOp::SourceMask, seq("n nr np", { a(ea_register) }));
+									op(Action::PerformOperation, seq("r"));
+								break;
+
+								case d16An:
+								case d16PC:
+								case d8AnXn:
+								case d8PCXn:
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("n np nr np", mode), { ea(0) }));
+									op(Action::PerformOperation, seq("r"));
+								break;
+
+								case XXXl:
+									op(Action::None, seq("np"));
+								case XXXw:
+									op(address_assemble_for_mode(mode) | MicroOp::SourceMask, seq("np nr np", { ea(0) }));
+									op(Action::PerformOperation, seq("r"));
+								break;
+
+								case Imm:
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np np"));
+									op(Action::PerformOperation, seq("r"));
+								break;
+							}
+						} break;
+
 						case Decoder::EORI_ORI_ANDI_SUBI_ADDI: {
 							const int mode = combined_mode(ea_mode, ea_register);
 							const bool is_byte_access = !!((instruction >> 6)&3);
