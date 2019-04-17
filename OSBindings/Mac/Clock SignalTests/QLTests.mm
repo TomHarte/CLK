@@ -70,21 +70,21 @@ class QL: public CPU::MC68000::BusHandler {
 					default: break;
 
 					case Microcycle::SelectWord | Microcycle::Read:
-//						printf("[word r %08x] ", *cycle.address);
 						cycle.value->full = is_peripheral ? peripheral_result : base[word_address];
+						if(!(cycle.operation & Microcycle::IsProgram)) printf("[word r %08x -> %04x] ", *cycle.address, cycle.value->full);
 					break;
 					case Microcycle::SelectByte | Microcycle::Read:
-//						printf("[byte r %08x] ", *cycle.address);
 						cycle.value->halves.low = (is_peripheral ? peripheral_result : base[word_address]) >> cycle.byte_shift();
+						if(!(cycle.operation & Microcycle::IsProgram)) printf("[byte r %08x -> %02x] ", *cycle.address, cycle.value->halves.low);
 					break;
 					case Microcycle::SelectWord:
 						assert(!(is_rom && !is_peripheral));
-//						printf("[word w %08x <- %04x] ", *cycle.address, cycle.value->full);
+						if(!(cycle.operation & Microcycle::IsProgram)) printf("[word w %08x <- %04x] ", *cycle.address, cycle.value->full);
 						if(!is_peripheral) base[word_address] = cycle.value->full;
 					break;
 					case Microcycle::SelectByte:
 						assert(!(is_rom && !is_peripheral));
-//						printf("[byte w %08x <- %02x] ", *cycle.address, (cycle.value->full >> cycle.byte_shift()) & 0xff);
+						if(!(cycle.operation & Microcycle::IsProgram)) printf("[byte w %08x <- %02x] ", *cycle.address, (cycle.value->full >> cycle.byte_shift()) & 0xff);
 						if(!is_peripheral) base[word_address] = (cycle.value->full & cycle.byte_mask()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
 					break;
 				}
@@ -115,7 +115,7 @@ class QL: public CPU::MC68000::BusHandler {
 - (void)testStartup {
     // This is an example of a functional test case.
     // Use XCTAssert and related functions to verify your tests produce the correct results.
-    _machine->run_for(HalfCycles(40000000));
+    _machine->run_for(HalfCycles(16000000));
 }
 
 @end

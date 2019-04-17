@@ -239,7 +239,8 @@ struct ProcessorStorageConstructor {
 				step.microcycle.length = HalfCycles(3);
 				step.microcycle.operation |= (read_full_words ? Microcycle::SelectWord : Microcycle::SelectByte) | (is_read ? Microcycle::Read : 0);
 				if(post_adjustment) {
-					if(tolower(token[1]) == 'r') {
+					// nr and nR should affect address 0; nw, nW, nrd and nRd should affect address 1.
+					if(tolower(token[1]) == 'r' && token.size() == 2) {
 						step.action = (post_adjustment > 0) ? Action::IncrementEffectiveAddress0 : Action::DecrementEffectiveAddress0;
 					} else {
 						step.action = (post_adjustment > 0) ? Action::IncrementEffectiveAddress1 : Action::DecrementEffectiveAddress1;

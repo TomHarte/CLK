@@ -52,13 +52,13 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						// no instruction was ongoing. Either way, do a standard instruction operation.
 
 						// TODO: unless an interrupt is pending, or the trap flag is set.
-						if(address_[5].full > 0x3fff0 || program_counter_.full < 0x16a) {
-							std::cout << std::setfill('0');
-							std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
-							std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
-							for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
-							for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
-						}
+//						if(program_counter_.full >= 0x25c && program_counter_.full < 0x286) {
+//							std::cout << std::setfill('0');
+//							std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
+//							std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
+//							for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
+//							for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
+//						}
 						std::cout << '\n';
 
 						decoded_instruction_ = prefetch_queue_.halves.high.full;
