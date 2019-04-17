@@ -82,7 +82,7 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 					break;
 					case Microcycle::SelectByte:
 						assert(!(is_rom && !is_peripheral));
-						base[word_address] = (cycle.value->full & cycle.byte_mask()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
+						base[word_address] = (cycle.value->halves.low << cycle.byte_shift()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
 					break;
 				}
 			}

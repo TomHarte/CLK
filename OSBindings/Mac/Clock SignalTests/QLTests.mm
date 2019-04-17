@@ -84,8 +84,8 @@ class QL: public CPU::MC68000::BusHandler {
 					break;
 					case Microcycle::SelectByte:
 						assert(!(is_rom && !is_peripheral));
-						if(!(cycle.operation & Microcycle::IsProgram)) printf("[byte w %02x -> %08x] ", (cycle.value->full >> cycle.byte_shift()) & 0xff, *cycle.address);
-						if(!is_peripheral) base[word_address] = (cycle.value->full & cycle.byte_mask()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
+						if(!(cycle.operation & Microcycle::IsProgram)) printf("[byte w %02x -> %08x] ", cycle.value->halves.low, *cycle.address);
+						if(!is_peripheral) base[word_address] = (cycle.value->halves.low << cycle.byte_shift()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
 					break;
 				}
 			}
