@@ -639,7 +639,8 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case Imm:
-									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np np"));
+									// DEVIATION FROM YACHT.TXT. It has an additional np, which I need to figure out.
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
 									op(Action::PerformOperation, seq("r"));
 								break;
 							}

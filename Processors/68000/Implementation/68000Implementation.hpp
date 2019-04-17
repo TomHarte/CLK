@@ -52,7 +52,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						// no instruction was ongoing. Either way, do a standard instruction operation.
 
 						// TODO: unless an interrupt is pending, or the trap flag is set.
-//						if(program_counter_.full >= 0x25c && program_counter_.full < 0x286) {
+//						if(program_counter_.full >= 0x250 && program_counter_.full <= 0x25e) {
 //							std::cout << std::setfill('0');
 //							std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
 //							std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
@@ -73,9 +73,6 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						active_program_ = &instructions[decoded_instruction_];
 						active_micro_op_ = active_program_->micro_operations;
 
-						if(decoded_instruction_ == 0xd1ae) {
-							printf("");
-						}
 					}
 
 					auto bus_program = active_micro_op_->bus_program;
