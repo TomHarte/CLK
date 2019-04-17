@@ -1045,15 +1045,10 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							}
 						} break;
 
-						case int(MicroOp::Action::PrepareJSR):
-							destination_bus_data_[0] = program_counter_;
-							address_[7].full -= 4;
-							effective_address_[1].full = address_[7].full;
-						break;
-
-						case int(MicroOp::Action::PrepareBSR):
+						case int(MicroOp::Action::PrepareJSRBSR):
 							// If the lowest byte of the instruction is non-zero then there's no 16-bit offset after it, so the
-							// return address should be two less.
+							// return address should be two less. This holds for both a BSR and a JSR as a JSR always has bit
+							// 7 set.
 							destination_bus_data_[0].full = (decoded_instruction_ & 0xff) ? program_counter_.full - 2 : program_counter_.full;
 							address_[7].full -= 4;
 							effective_address_[1].full = address_[7].full;
