@@ -37,7 +37,7 @@ struct ProcessorStorageConstructor {
 	int calc_action_for_mode(int mode) const {
 		using Action = ProcessorBase::MicroOp::Action;
 		switch(mode & 0xff) {
-			default: return 0;
+			default: assert(false);
 			case d16PC:		return int(Action::CalcD16PC);
 			case d8PCXn:	return int(Action::CalcD8PCXn);
 			case d16An:		return int(Action::CalcD16An);
@@ -2339,7 +2339,7 @@ struct ProcessorStorageConstructor {
 								case bw2(Dn, d8AnXn):		// MOVE.bw Dn, (d8, An, Xn)
 								case bw2(Dn, d16PC):		// MOVE.bw Dn, (d16, PC)
 								case bw2(Dn, d8PCXn):		// MOVE.bw Dn, (d8, PC, Xn)
-									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq(pseq("np", destination_mode)));
+									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
 									op(Action::PerformOperation, seq("nw np", { ea(1) }, !is_byte_access));
 								break;
 
@@ -2347,7 +2347,7 @@ struct ProcessorStorageConstructor {
 								case l2(Dn, d8AnXn):		// MOVE.l Dn, (d8, An, Xn)
 								case l2(Dn, d16PC):			// MOVE.l Dn, (d16, PC)
 								case l2(Dn, d8PCXn):		// MOVE.l Dn, (d8, PC, Xn)
-									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq(pseq("np", destination_mode)));
+									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
 									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
 								break;
 
@@ -2359,8 +2359,8 @@ struct ProcessorStorageConstructor {
 								case bw2(PostInc, d16PC):	// MOVE.bw (An)+, (d16, PC)
 								case bw2(Ind, d8PCXn):		// MOVE.bw (An), (d8, PC, Xn)
 								case bw2(PostInc, d8PCXn):	// MOVE.bw (An)+, (d8, PC, Xn)
-									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq("nr", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq(pseq("np nw np", destination_mode), { ea(1) }, !is_byte_access));
+									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("nr", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq(pseq("np nw np", combined_destination_mode), { ea(1) }, !is_byte_access));
 									if(ea_mode == PostInc) {
 										op(increment_action | MicroOp::SourceMask);
 									}
@@ -2375,8 +2375,8 @@ struct ProcessorStorageConstructor {
 								case l2(Ind, d8PCXn):		// MOVE.l (An), (d8, PC, Xn)
 								case l2(PostInc, d8PCXn):	// MOVE.l (An)+, (d8, PC, Xn)
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask);
-									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq("nR+ nr", { ea(0), ea(0) }));
-									op(Action::PerformOperation, seq(pseq("np nW+ nw np", destination_mode), { ea(1), ea(1) }));
+									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("nR+ nr", { ea(0), ea(0) }));
+									op(Action::PerformOperation, seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
 									if(ea_mode == PostInc) {
 										op(increment_action | MicroOp::SourceMask);
 									}
@@ -2416,8 +2416,36 @@ struct ProcessorStorageConstructor {
 								case bw2(Imm, d8PCXn):	// MOVE.bw #, (d8, PC, Xn)
 									storage_.instructions[instruction].source = &storage_.destination_bus_data_[0];
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np"));
-									op(calc_action_for_mode(destination_mode) | MicroOp::DestinationMask, seq(pseq("np nw np", destination_mode), { ea(1) }, !is_byte_access ));
+									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np nw np", combined_destination_mode), { ea(1) }, !is_byte_access ));
 									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsl);
+								break;
+
+								case bw2(XXXl, d16An):	// MOVE.bw (xxx).l, (d16, An)
+								case bw2(XXXl, d8AnXn):	// MOVE.bw (xxx).l, (d8, An, Xn)
+								case bw2(XXXl, d16PC):	// MOVE.bw (xxx).l, (d16, PC)
+								case bw2(XXXl, d8PCXn):	// MOVE.bw (xxx).l, (d16, PC, Xn)
+									op(Action::None, seq("np"));
+								case bw2(XXXw, d16An):	// MOVE.bw (xxx).w, (d16, An)
+								case bw2(XXXw, d8AnXn):	// MOVE.bw (xxx).w, (d8, An, Xn)
+								case bw2(XXXw, d16PC):	// MOVE.bw (xxx).w, (d16, PC)
+								case bw2(XXXw, d8PCXn):	// MOVE.bw (xxx).w, (d16, PC, Xn)
+									op(address_assemble_for_mode(combined_source_mode) | MicroOp::SourceMask, seq("np nr", { ea(0) }, !is_byte_access));
+									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask);
+									op(Action::PerformOperation, seq(pseq("np nw np", combined_destination_mode), { ea(1) }, !is_byte_access));
+								break;
+
+								case l2(XXXl, d16An):	// MOVE.l (xxx).l, (d16, An)
+								case l2(XXXl, d8AnXn):	// MOVE.l (xxx).l, (d8, An, Xn)
+								case l2(XXXl, d16PC):	// MOVE.l (xxx).l, (d16, PC)
+								case l2(XXXl, d8PCXn):	// MOVE.l (xxx).l, (d16, PC, Xn)
+									op(Action::None, seq("np"));
+								case l2(XXXw, d16An):	// MOVE.l (xxx).w, (d16, An)
+								case l2(XXXw, d8AnXn):	// MOVE.l (xxx).w, (d8, An, Xn)
+								case l2(XXXw, d16PC):	// MOVE.l (xxx).w, (d16, PC)
+								case l2(XXXw, d8PCXn):	// MOVE.l (xxx).w, (d16, PC, Xn)
+									op(address_assemble_for_mode(combined_source_mode) | MicroOp::SourceMask, seq("np nR+ nr", { ea(0), ea(0) }));
+									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask);
+									op(Action::PerformOperation, seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
 								break;
 
 							//
@@ -2515,7 +2543,7 @@ struct ProcessorStorageConstructor {
 								case bw2(d16An, XXXw):
 								case bw2(d8PCXn, XXXw):
 								case bw2(d8AnXn, XXXw):
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::SourceMask, seq(pseq("np nr", combined_destination_mode), { ea(0) }, !is_byte_access));
+									op(calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np nr", combined_source_mode), { ea(0) }, !is_byte_access));
 									op(Action::PerformOperation);
 									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { ea(1) }, !is_byte_access));
 								break;
@@ -2524,7 +2552,7 @@ struct ProcessorStorageConstructor {
 								case bw2(d16An, XXXl):
 								case bw2(d8PCXn, XXXl):
 								case bw2(d8AnXn, XXXl):
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::SourceMask, seq(pseq("np np nr", combined_destination_mode), { ea(0) }, !is_byte_access));
+									op(calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np np nr", combined_source_mode), { ea(0) }, !is_byte_access));
 									op(Action::PerformOperation);
 									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { ea(1) }, !is_byte_access));
 								break;
@@ -2533,7 +2561,7 @@ struct ProcessorStorageConstructor {
 								case l2(d16An, XXXw):
 								case l2(d8PCXn, XXXw):
 								case l2(d8AnXn, XXXw):
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::SourceMask, seq(pseq("np nR+ nr", combined_destination_mode), { ea(0), ea(0) }));
+									op(calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np nR+ nr", combined_source_mode), { ea(0), ea(0) }));
 									op(Action::PerformOperation);
 									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }));
 								break;
@@ -2542,7 +2570,7 @@ struct ProcessorStorageConstructor {
 								case l2(d16An, XXXl):
 								case l2(d8PCXn, XXXl):
 								case l2(d8AnXn, XXXl):
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::SourceMask, seq(pseq("np np nR+ nr", combined_destination_mode), { ea(0), ea(0) }));
+									op(calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np np nR+ nr", combined_source_mode), { ea(0), ea(0) }));
 									op(Action::PerformOperation);
 									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }));
 								break;
