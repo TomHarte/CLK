@@ -665,6 +665,15 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
 								break;
 
+								case l(d8AnXn):		// [EORI/ORI/ANDI/SUBI/ADDI].l #, (d8, An, Xn)
+								case l(d16An):		// [EORI/ORI/ANDI/SUBI/ADDI].l #, (d16, An)
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
+										seq(pseq("np nRd+ nrd np", mode), { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
+								break;
+
 								case bw(XXXw):		// [EORI/ORI/ANDI/SUBI/ADDI].bw #, (xxx).w
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask,
@@ -672,11 +681,27 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
 								break;
 
+								case l(XXXw):		// [EORI/ORI/ANDI/SUBI/ADDI].l #, (xxx).w
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(	int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nRd+ nrd np", { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
+								break;
+
 								case bw(XXXl):		// [EORI/ORI/ANDI/SUBI/ADDI].bw #, (xxx).l
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
 									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
 										seq("np nrd np", { ea(1) }, !is_byte_access));
 									op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
+								break;
+
+								case l(XXXl):		// [EORI/ORI/ANDI/SUBI/ADDI].l #, (xxx).l
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
+									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
+										seq("np nRd+ nrd np", { ea(1), ea(1) }));
+									op(Action::PerformOperation, seq("nw- nW", { ea(1), ea(1) }));
 								break;
 							}
 						} break;
