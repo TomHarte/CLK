@@ -2160,7 +2160,7 @@ struct ProcessorStorageConstructor {
 
 								case bw2(Dn, Ind):			// MOVE.bw Dn, (An)
 								case bw2(Dn, PostInc):		// MOVE.bw Dn, (An)+
-									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw, seq("nw np", { a(destination_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw np", { a(destination_register) }, !is_byte_access));
 									if(destination_mode == PostInc) {
 										op(increment_action | MicroOp::DestinationMask);
 									}
