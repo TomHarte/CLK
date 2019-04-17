@@ -72,6 +72,10 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 						active_program_ = &instructions[decoded_instruction_];
 						active_micro_op_ = active_program_->micro_operations;
+
+						if(decoded_instruction_ == 0xd1ae) {
+							printf("");
+						}
 					}
 
 					auto bus_program = active_micro_op_->bus_program;

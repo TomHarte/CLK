@@ -881,7 +881,7 @@ struct ProcessorStorageConstructor {
 								storage_.instructions[instruction].source = &storage_.data_[data_register];
 
 								const auto destination_register = ea_register;
-								storage_.instructions[instruction].destination = &storage_.destination_bus_data_[1];
+								storage_.instructions[instruction].destination = &storage_.destination_bus_data_[0];
 								storage_.instructions[instruction].destination_address = &storage_.address_[destination_register];
 
 								// Perform [ADD/SUB].blw Dn, <ea>
