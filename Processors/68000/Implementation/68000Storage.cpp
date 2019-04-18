@@ -330,7 +330,9 @@ struct ProcessorStorageConstructor {
 			ABCD_SBCD,					// Maps source and desintation registers and a register/memory selection bit to an ABCD or SBCD.
 			ADD_SUB,					// Maps a register and a register and mode to an ADD or SUB.
 			ADDA_SUBA,					// Maps a destination register and a source mode and register to an ADDA or SUBA.
-			ADDQ_SUBQ,					// Mags a register and a mode to an ADDQ or SUBQ.
+			ADDQ_SUBQ,					// Maps a register and a mode to an ADDQ or SUBQ.
+
+			AND_OR_EOR,					// Maps a source register, operation mode and destination register and mode to an AND, OR or EOR.
 
 			BRA,						// Maps to a BRA. All fields are decoded at runtime.
 			Bcc_BSR,					// Maps to a Bcc or BSR. Other than determining the type of operation, fields are decoded at runtime.
@@ -405,9 +407,17 @@ struct ProcessorStorageConstructor {
 			{0xf1f0, 0xc100, Operation::ABCD, Decoder::ABCD_SBCD},		// 4-3 (p107)
 			{0xf1f0, 0x8100, Operation::SBCD, Decoder::ABCD_SBCD},		// 4-171 (p275)
 
-//			{0xf000, 0x8000, Operation::OR, Decoder::RegOpModeReg},		// 4-150 (p226)
-//			{0xf000, 0xb000, Operation::EOR, Decoder::RegOpModeReg},	// 4-100 (p204)
-//			{0xf000, 0xc000, Operation::AND, Decoder::RegOpModeReg},	// 4-15 (p119)
+			{0xf0c0, 0xc000, Operation::ANDb, Decoder::AND_OR_EOR},		// 4-15 (p119)
+			{0xf0c0, 0xc040, Operation::ANDw, Decoder::AND_OR_EOR},		// 4-15 (p119)
+			{0xf0c0, 0xc080, Operation::ANDl, Decoder::AND_OR_EOR},		// 4-15 (p119)
+
+			{0xf0c0, 0x8000, Operation::ORb, Decoder::AND_OR_EOR},		// 4-150 (p254)
+			{0xf0c0, 0x8040, Operation::ORw, Decoder::AND_OR_EOR},		// 4-150 (p254)
+			{0xf0c0, 0x8080, Operation::ORl, Decoder::AND_OR_EOR},		// 4-150 (p254)
+
+			{0xf0c0, 0xb000, Operation::EORb, Decoder::AND_OR_EOR},		// 4-100 (p204)
+			{0xf0c0, 0xb040, Operation::EORw, Decoder::AND_OR_EOR},		// 4-100 (p204)
+			{0xf0c0, 0xb080, Operation::EORl, Decoder::AND_OR_EOR},		// 4-100 (p204)
 
 			{0xffc0, 0x0600, Operation::ADDb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
 			{0xffc0, 0x0640, Operation::ADDw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
@@ -562,17 +572,6 @@ struct ProcessorStorageConstructor {
 			{0xfff0, 0x4e40, Operation::TRAP, Decoder::TRAP},					// 4-188 (p292)
 		};
 
-#ifndef NDEBUG
-		// Verify no double mappings.
-		for(int instruction = 0; instruction < 65536; ++instruction) {
-			int hits = 0;
-			for(const auto &mapping: mappings) {
-				if((instruction & mapping.mask) == mapping.value) ++hits;
-			}
-			assert(hits < 2);
-		}
-#endif
-
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
 
 		// The arbitrary_base is used so that the offsets returned by assemble_program into
@@ -592,6 +591,9 @@ struct ProcessorStorageConstructor {
 
 		// Perform a linear search of the mappings above for this instruction.
 		for(size_t instruction = 0; instruction < 65536; ++instruction)	{
+#ifndef NDEBUG
+			int hits = 0;
+#endif
 			for(const auto &mapping: mappings) {
 				if((instruction & mapping.mask) == mapping.value) {
 					auto operation = mapping.operation;
@@ -602,6 +604,176 @@ struct ProcessorStorageConstructor {
 					const int ea_mode = (instruction >> 3) & 7;
 
 					switch(mapping.decoder) {
+						case Decoder::AND_OR_EOR: {
+							const bool to_ea = !!((instruction >> 8)&1);
+							const bool is_eor = (instruction >> 12) == 0xb;
+
+							const int op_mode = (instruction >> 6)&7;
+							// Weed out illegal operation modes.
+							if(op_mode == 7) continue;
+
+							const bool is_byte_access = !!((instruction >> 6)&3);
+							const bool is_long_word_access = ((instruction >> 6)&3) == 2;
+
+							const int data_register = (instruction >> 9) & 7;
+							const int mode = combined_mode(ea_mode, ea_register);
+
+							if(to_ea) {
+								storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
+								storage_.instructions[instruction].set_source(storage_, Dn, data_register);
+
+								// Only EOR takes Dn as a destination effective address.
+								if(!is_eor && mode == Dn) continue;
+
+								switch(is_long_word_access ? l(mode) : bw(mode)) {
+									default: continue;
+
+									case bw(Dn):		// EOR.bw Dn, Dn
+										op(Action::PerformOperation, seq("np"));
+									break;
+
+									case l(Dn):			// EOR.l Dn, Dn
+										op(Action::PerformOperation, seq("np nn"));
+									break;
+
+									case bw(Ind):		// [AND/OR/EOR].bw Dn, (An)
+									case bw(PostInc):	// [AND/OR/EOR].bw Dn, (An)+
+										op(Action::None, seq("nr", { a(ea_register) }, !is_byte_access));
+										op(Action::PerformOperation, seq("np nw", { a(ea_register) }, !is_byte_access));
+										if(mode == PostInc) {
+											op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::DestinationMask);
+										}
+									break;
+
+									case bw(PreDec):	// [AND/OR/EOR].bw Dn, -(An)
+										op(int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::SourceMask, seq("n nrd", { a(ea_register) }, !is_byte_access));
+										op(Action::PerformOperation, seq("np nw", { a(ea_register) }, !is_byte_access));
+									break;
+
+									case l(PreDec):		// [AND/OR/EOR].l Dn, -(An)
+										op(int(Action::Decrement4) | MicroOp::DestinationMask, seq("n"));
+									case l(Ind):		// [AND/OR/EOR].l Dn, (An)+
+									case l(PostInc):	// [AND/OR/EOR].l Dn, (An)
+										op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd", { ea(1), ea(1) }));
+										op(Action::PerformOperation, seq("np nw- nW", { ea(1), ea(1) }));
+										if(mode == PostInc) {
+											op(int(Action::Increment4) | MicroOp::DestinationMask);
+										}
+									break;
+
+									case bw(d16An):		// [AND/OR/EOR].bw Dn, (d16, An)
+									case bw(d8AnXn):	// [AND/OR/EOR].bw Dn, (d8, An, Xn)
+										op(calc_action_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np nrd", mode), { ea(1) }, !is_byte_access));
+										op(Action::PerformOperation, seq("np nw", { ea(1) }, !is_byte_access));
+									break;
+
+									case l(d16An):		// [AND/OR/EOR].l Dn, (d16, An)
+									case l(d8AnXn):		// [AND/OR/EOR].l Dn, (d8, An, Xn)
+										op(calc_action_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np nRd+ nrd", mode), { ea(1), ea(1) }));
+										op(Action::PerformOperation, seq("np nw- nW", { ea(1), ea(1) }));
+									break;
+
+									case bw(XXXl):		// [AND/OR/EOR].bw Dn, (xxx).l
+										op(Action::None, seq("np"));
+									case bw(XXXw):		// [AND/OR/EOR].bw Dn, (xxx).w
+										op(address_assemble_for_mode(mode) | MicroOp::DestinationMask, seq("np nrd", { ea(1) }, !is_byte_access));
+										op(Action::PerformOperation, seq("np nw", { ea(1) }, !is_byte_access));
+									break;
+
+									case l(XXXl):		// [AND/OR/EOR].l Dn, (xxx).l
+										op(Action::None, seq("np"));
+									case l(XXXw):		// [AND/OR/EOR].l Dn, (xxx).w
+										op(address_assemble_for_mode(mode) | MicroOp::DestinationMask, seq("np nRd+ nrd", { ea(1), ea(1) }));
+										op(Action::PerformOperation, seq("np nw- nW", { ea(1), ea(1) }));
+									break;
+								}
+							} else {
+								// EORs can be to EA only.
+								if(is_eor) continue;
+
+								storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
+								storage_.instructions[instruction].set_destination(storage_, Dn, data_register);
+
+								switch(mode) {
+									default: continue;
+
+									case bw(Dn):		// [AND/OR].bw Dn, Dn
+										op(Action::PerformOperation, seq("np"));
+									break;
+
+									case l(Dn):			// [AND/OR].l Dn, Dn
+										op(Action::PerformOperation, seq("np nn"));
+									break;
+
+									case bw(Ind):		// [AND/OR].bw (An), Dn
+									case bw(PostInc):	// [AND/OR].bw (An)+, Dn
+										op(Action::None, seq("nr", { a(ea_register) }, !is_byte_access));
+										op(Action::PerformOperation, seq("np"));
+										if(mode == PostInc) {
+											op(int(is_byte_access ? Action::Increment1 : Action::Increment2) | MicroOp::SourceMask);
+										}
+									break;
+
+									case bw(PreDec):	// [AND/OR].bw -(An), Dn
+										op(int(is_byte_access ? Action::Decrement1 : Action::Decrement2) | MicroOp::SourceMask, seq("n nr", { a(ea_register) }, !is_byte_access));
+										op(Action::PerformOperation, seq("np"));
+									break;
+
+									case l(PreDec):		// [AND/OR].l -(An), Dn
+										op(int(Action::Decrement4) | MicroOp::SourceMask, seq("n"));
+									case l(Ind):		// [AND/OR].l (An), Dn,
+									case l(PostInc):	// [AND/OR].l (An)+, Dn
+										op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) }));
+										op(Action::PerformOperation, seq("np n"));
+										if(mode == PostInc) {
+											op(int(Action::Increment4) | MicroOp::SourceMask);
+										}
+									break;
+
+									case bw(d16An):		// [AND/OR].bw (d16, An), Dn
+									case bw(d16PC):		// [AND/OR].bw (d16, PC), Dn
+									case bw(d8AnXn):	// [AND/OR].bw (d8, An, Xn), Dn
+									case bw(d8PCXn):	// [AND/OR].bw (d8, PX, Xn), Dn
+										op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nr", mode), { ea(0) }, !is_byte_access));
+										op(Action::PerformOperation, seq("np"));
+									break;
+
+									case l(d16An):		// [AND/OR].l (d16, An), Dn
+									case l(d16PC):		// [AND/OR].l (d16, PC), Dn
+									case l(d8AnXn):		// [AND/OR].l (d8, An, Xn), Dn
+									case l(d8PCXn):		// [AND/OR].l (d8, PX, Xn), Dn
+										op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nR+ nr", mode), { ea(0), ea(0) }));
+										op(Action::PerformOperation, seq("np n"));
+									break;
+
+									case bw(XXXl):		// [AND/OR].bw (xxx).l, Dn
+										op(Action::None, seq("np"));
+									case bw(XXXw):		// [AND/OR].bw (xxx).w, Dn
+										op(address_assemble_for_mode(mode) | MicroOp::SourceMask, seq("np nr", { ea(0) }, !is_byte_access));
+										op(Action::PerformOperation, seq("np"));
+									break;
+
+									case l(XXXl):		// [AND/OR].bw (xxx).l, Dn
+										op(Action::None, seq("np"));
+									case l(XXXw):		// [AND/OR].bw (xxx).w, Dn
+										op(address_assemble_for_mode(mode) | MicroOp::SourceMask, seq("np nR+ nr", { ea(0), ea(0) }));
+										op(Action::PerformOperation, seq("np n"));
+									break;
+
+									case bw(Imm):		// [AND/OR].bw #, Dn
+										op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+										op(Action::PerformOperation, seq("np"));
+									break;
+
+									case l(Imm):		// [AND/OR].l #, Dn
+										op(Action::None, seq("np"));
+										op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+										op(Action::PerformOperation, seq("np nn"));
+									break;
+								}
+							}
+						} break;
+
 						case Decoder::MULU_MULS: {
 							const int destination_register = (instruction >> 9) & 7;
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
@@ -2833,8 +3005,14 @@ struct ProcessorStorageConstructor {
 					storage_.instructions[instruction].operation = operation;
 					micro_op_pointers[instruction] = micro_op_start;
 
-					// Don't search further through the list of possibilities.
+					// Don't search further through the list of possibilities, unless this is a debugging build,
+					// in which case verify there are no double mappings.
+#ifndef NDEBUG
+					++hits;
+					assert(hits == 1);
+#else
 					break;
+#endif
 				}
 			}
 		}
