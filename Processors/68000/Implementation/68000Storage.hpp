@@ -92,6 +92,8 @@ class ProcessorStorage {
 			ORb,	ORw,	ORl,
 
 			MULU,	MULS,
+
+			TRAP,
 		};
 
 		/*!
@@ -313,8 +315,10 @@ class ProcessorStorage {
 		BusStep *dbcc_condition_false_no_branch_steps_;
 		BusStep *dbcc_condition_false_branch_steps_;
 
-		BusStep *movem_reads_steps_;
-		BusStep *movem_writes_steps_;
+		BusStep *movem_read_steps_;
+		BusStep *movem_write_steps_;
+
+		BusStep *trap_steps_;
 
 		// Current bus step pointer, and outer program pointer.
 		Program *active_program_ = nullptr;
@@ -329,9 +333,9 @@ class ProcessorStorage {
 		/// Sets or clears the supervisor flag, ensuring the stack pointer is properly updated.
 		void set_is_supervisor(bool);
 
-		// Transient storage for MOVEM.
-		uint32_t movem_addresses_[65];
-		RegisterPair16 movem_spare_value_;
+		// Transient storage for MOVEM, TRAP and others.
+		uint32_t precomputed_addresses_[65];
+		RegisterPair16 throwaway_value_;
 		uint32_t movem_final_address_;
 
 		/*!

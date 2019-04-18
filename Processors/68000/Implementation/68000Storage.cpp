@@ -377,6 +377,8 @@ struct ProcessorStorageConstructor {
 			RTS,						// Maps to an RST.
 
 			MOVEUSP,					// Maps a direction and register to a MOVE [to/from] USP.
+
+			TRAP,						// Maps to a TRAP.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -557,6 +559,7 @@ struct ProcessorStorageConstructor {
 
 			{0xfff0, 0x4e60, Operation::MOVEAl, Decoder::MOVEUSP},				// 6-21 (p475)
 
+			{0xfff0, 0x4e40, Operation::TRAP, Decoder::TRAP},					// 4-188 (p292)
 		};
 
 #ifndef NDEBUG
@@ -2424,24 +2427,6 @@ struct ProcessorStorageConstructor {
 									// n np nr n np nw np
 //								continue;
 
-//								case 0x1005:	// MOVE (xxx).W, (d16, An)
-									// np nr np nw np
-//								continue;
-
-//								case 0x1006:	// MOVE (xxx).W, (d8, An, Xn)
-									// np nr n np nw np
-//								continue;
-
-								case bw2(Imm, d16An):	// MOVE.bw #, (d16, An)
-								case bw2(Imm, d8AnXn):	// MOVE.bw #, (d8, An, Xn)
-								case bw2(Imm, d16PC):	// MOVE.bw #, (d16, PC)
-								case bw2(Imm, d8PCXn):	// MOVE.bw #, (d8, PC, Xn)
-									storage_.instructions[instruction].source = &storage_.destination_bus_data_[0];
-									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np"));
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np nw np", combined_destination_mode), { ea(1) }, !is_byte_access ));
-									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsl);
-								break;
-
 								case bw2(XXXl, d16An):	// MOVE.bw (xxx).l, (d16, An)
 								case bw2(XXXl, d8AnXn):	// MOVE.bw (xxx).l, (d8, An, Xn)
 								case bw2(XXXl, d16PC):	// MOVE.bw (xxx).l, (d16, PC)
@@ -2468,6 +2453,25 @@ struct ProcessorStorageConstructor {
 									op(address_assemble_for_mode(combined_source_mode) | MicroOp::SourceMask, seq("np nR+ nr", { ea(0), ea(0) }));
 									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask);
 									op(Action::PerformOperation, seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
+								break;
+
+								case bw2(Imm, d16An):	// MOVE.bw #, (d16, An)
+								case bw2(Imm, d16PC):	// MOVE.bw #, (d16, PC)
+								case bw2(Imm, d8PCXn):	// MOVE.bw #, (d8, PC, Xn)
+								case bw2(Imm, d8AnXn):	// MOVE.bw #, (d8, An, Xn)
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
+									op(Action::PerformOperation, seq("nw np", { ea(1) }, !is_byte_access));
+								break;
+
+								case l2(Imm, d16An):	// MOVE.l #, (d16, An)
+								case l2(Imm, d16PC):	// MOVE.l #, (d16, PC)
+								case l2(Imm, d8PCXn):	// MOVE.l #, (d8, PC, Xn)
+								case l2(Imm, d8AnXn):	// MOVE.l #, (d8, An, Xn)
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
+									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
 								break;
 
 							//
@@ -2697,6 +2701,14 @@ struct ProcessorStorageConstructor {
 							op(Action::None, seq("nn _ np"));
 						break;
 
+						case Decoder::TRAP: {
+							// TRAP involves some oddly-sequenced stack writes, so is calculated
+							// at runtime; also the same sequence is used for illegal instructions.
+							// So the entirety is scheduled at runtime.
+							op(Action::PerformOperation);
+							op();
+						} break;
+
 						case Decoder::TST: {
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 
@@ -2864,8 +2876,11 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	}
 	movem_reads_pattern += "nr";
 	addresses.push_back(nullptr);
-	const size_t movem_reads_offset = constructor.assemble_program(movem_reads_pattern, addresses);
-	const size_t movem_writes_offset = constructor.assemble_program(movem_writes_pattern, addresses);
+	const size_t movem_read_offset = constructor.assemble_program(movem_reads_pattern, addresses);
+	const size_t movem_write_offset = constructor.assemble_program(movem_writes_pattern, addresses);
+
+	// Target addresses and values will be filled in by TRAP/illegal too.
+	const size_t trap_offset = constructor.assemble_program("nn nw nw nW nV nv np np", { &precomputed_addresses_[0], &precomputed_addresses_[1], &precomputed_addresses_[2] });
 
 	// Install operations.
 	constructor.install_instructions();
@@ -2882,8 +2897,17 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	dbcc_condition_false_no_branch_steps_ = &all_bus_steps_[dbcc_condition_false_no_branch_offset];
 	dbcc_condition_false_branch_steps_ = &all_bus_steps_[dbcc_condition_false_branch_offset];
 
-	movem_reads_steps_ = &all_bus_steps_[movem_reads_offset];
-	movem_writes_steps_ = &all_bus_steps_[movem_writes_offset];
+	movem_read_steps_ = &all_bus_steps_[movem_read_offset];
+	movem_write_steps_ = &all_bus_steps_[movem_write_offset];
+
+	// Link the trap steps but also fill in the program counter as the source
+	// for its parts, and use the computed addresses.
+	//
+	// Order of output is: PC.l, SR, PC.h.
+	trap_steps_ = &all_bus_steps_[trap_offset];
+	trap_steps_[1].microcycle.value = trap_steps_[2].microcycle.value = &program_counter_.halves.low;
+	trap_steps_[3].microcycle.value = trap_steps_[4].microcycle.value = &destination_bus_data_[0].halves.low;
+	trap_steps_[5].microcycle.value = trap_steps_[6].microcycle.value = &program_counter_.halves.high;
 
 	// Set initial state. Largely TODO.
 	active_step_ = reset_bus_steps_;

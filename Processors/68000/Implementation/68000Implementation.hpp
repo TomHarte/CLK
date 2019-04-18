@@ -548,7 +548,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 	}																	\
 																		\
 	auto step = bus_program;											\
-	uint32_t *address_storage = movem_addresses_;						\
+	uint32_t *address_storage = precomputed_addresses_;					\
 	mask = next_word_;													\
 	int offset = 0;
 
@@ -596,7 +596,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 	}
 
 								case Operation::MOVEMtoRl: {
-									setup_movem(2, movem_reads_steps_);
+									setup_movem(2, movem_read_steps_);
 
 									// Everything for move to registers is based on an incrementing
 									// address; per M68000PRM:
@@ -613,23 +613,23 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									// MOVEM to R always reads one word too many.
 									address_storage[0] = start_address;
 									step[0].microcycle.address = step[1].microcycle.address = address_storage;
-									step[0].microcycle.value = step[1].microcycle.value = &movem_spare_value_;
+									step[0].microcycle.value = step[1].microcycle.value = &throwaway_value_;
 									movem_final_address_ = start_address;
 								} break;
 
 								case Operation::MOVEMtoRw: {
-									setup_movem(1, movem_reads_steps_);
+									setup_movem(1, movem_read_steps_);
 									write_address_sequence_word(inc_action);
 
 									// MOVEM to R always reads one word too many.
 									address_storage[0] = start_address;
 									step[0].microcycle.address = step[1].microcycle.address = address_storage;
-									step[0].microcycle.value = step[1].microcycle.value = &movem_spare_value_;
+									step[0].microcycle.value = step[1].microcycle.value = &throwaway_value_;
 									movem_final_address_ = start_address;
 								} break;
 
 								case Operation::MOVEMtoMl: {
-									setup_movem(2, movem_writes_steps_);
+									setup_movem(2, movem_write_steps_);
 
 									// MOVEM to M counts downwards and enumerates the registers in reverse order
 									// if subject to the predecrementing mode; otherwise it counts upwards and
@@ -652,7 +652,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								} break;
 
 								case Operation::MOVEMtoMw: {
-									setup_movem(1, movem_writes_steps_);
+									setup_movem(1, movem_write_steps_);
 
 									if(mode == 4) {
 										offset = 15;
@@ -668,6 +668,27 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 #undef write_address_sequence_word
 #undef inc_action
 #undef dec_action
+
+								// TRAP, which is a nicer form of ILLEGAL.
+								case Operation::TRAP: {
+									// Select the trap steps as next.
+									bus_program = trap_steps_;
+
+									// Fill in the status word value.
+									destination_bus_data_[0].full = get_status();
+
+									// Switch to supervisor mode.
+									set_is_supervisor(true);
+
+									// Pick a vector.
+									effective_address_[0].full = ((decoded_instruction_ & 15) + 32) << 2;
+
+									// Schedule the proper stack activity.
+									precomputed_addresses_[0] = address_[7].full - 2;
+									precomputed_addresses_[1] = address_[7].full - 6;
+									precomputed_addresses_[2] = address_[7].full - 4;
+									address_[7].full -= 6;
+								} break;
 
 								/*
 									NEGs: negatives the destination, setting the zero,
