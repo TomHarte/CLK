@@ -2341,6 +2341,9 @@ struct ProcessorStorageConstructor {
 									op( int(Action::Decrement2) | MicroOp::DestinationMask );
 								break;
 
+								// TODO: verify when/where the predecrement occurs everywhere below; it may affect
+								// e.g. MOVE.w -(A6), -(A6)
+
 								case bw2(PreDec, PreDec):	// MOVE.bw -(An), -(An)
 									op(decrement_action | MicroOp::SourceMask, seq("n"));
 								case bw2(Ind, PreDec):		// MOVE.bw (An), -(An)
