@@ -2328,30 +2328,18 @@ struct ProcessorStorageConstructor {
 							// MOVE <ea>, -(An)
 							//
 
-								case bw2(Dn, PreDec):	// MOVE Dn, -(An)
+								case bw2(Dn, PreDec):	// MOVE.bw Dn, -(An)
 									op(	decrement_action | MicroOp::DestinationMask,
 										seq("np nw", { a(destination_register) }, !is_byte_access));
 									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
 								break;
 
-//								case 0x0204:	// MOVE (An), -(An)
-//								case 0x0304:	// MOVE (An)+, -(An)
-									// nr np nw
-//								continue;
+								case l2(Dn, PreDec):		// MOVE.l Dn, -(An)
+									op( int(Action::Decrement2) | MicroOp::DestinationMask, seq("np") );
+									op( int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nw- nW", { ea(1), ea(1) } ) );
+									op( int(Action::Decrement2) | MicroOp::DestinationMask );
+								break;
 
-//								case 0x0404:	// MOVE -(An), -(An)
-									// n nr np nw
-//								continue;
-
-//								case 0x0504:	// MOVE (d16, An), -(An)
-//								case 0x0604:	// MOVE (d8, An, Xn), -(An)
-									// np nr np nw
-									// n np nr np nw
-//								continue;
-
-//								case 0x1004:	// MOVE (xxx).W, -(An)
-									// np nr np nw
-//								continue;
 
 							//
 							// MOVE <ea>, (d16, An)
@@ -2406,26 +2394,6 @@ struct ProcessorStorageConstructor {
 										op(increment_action | MicroOp::SourceMask);
 									}
 								break;
-
-//								case 0x0405:	// MOVE -(An), (d16, An)
-									// n nr np nw
-//								continue;
-
-//								case 0x0406:	// MOVE -(An), (d8, An, Xn)
-									// n nr n np nw np
-//								continue;
-
-//								case 0x0505:	// MOVE (d16, An), (d16, An)
-//								case 0x0605:	// MOVE (d8, An, Xn), (d16, An)
-									// np nr np nw np
-									// n np nr np nw np
-//								continue;
-
-//								case 0x0506:	// MOVE (d16, An), (d8, An, Xn)
-//								case 0x0606:	// MOVE (d8, An, Xn), (d8, An, Xn)
-									// np nr n np nw np
-									// n np nr n np nw np
-//								continue;
 
 								case bw2(XXXl, d16An):	// MOVE.bw (xxx).l, (d16, An)
 								case bw2(XXXl, d8AnXn):	// MOVE.bw (xxx).l, (d8, An, Xn)
