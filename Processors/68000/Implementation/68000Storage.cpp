@@ -2328,18 +2328,80 @@ struct ProcessorStorageConstructor {
 							// MOVE <ea>, -(An)
 							//
 
-								case bw2(Dn, PreDec):	// MOVE.bw Dn, -(An)
+								case bw2(Dn, PreDec):		// MOVE.bw Dn, -(An)
+									op(Action::PerformOperation);
 									op(	decrement_action | MicroOp::DestinationMask,
 										seq("np nw", { a(destination_register) }, !is_byte_access));
-									op(is_byte_access ? Action::SetMoveFlagsb : Action::SetMoveFlagsw);
 								break;
 
 								case l2(Dn, PreDec):		// MOVE.l Dn, -(An)
+									op(Action::PerformOperation);
 									op( int(Action::Decrement2) | MicroOp::DestinationMask, seq("np") );
-									op( int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nw- nW", { ea(1), ea(1) } ) );
+									op( int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nw- nW", { ea(1), ea(1) } ));
 									op( int(Action::Decrement2) | MicroOp::DestinationMask );
 								break;
 
+								case bw2(PreDec, PreDec):	// MOVE.bw -(An), -(An)
+									op(decrement_action | MicroOp::SourceMask, seq("n"));
+								case bw2(Ind, PreDec):		// MOVE.bw (An), -(An)
+								case bw2(PostInc, PreDec):	// MOVE.bw (An)+, -(An)
+									op(decrement_action | MicroOp::DestinationMask, seq("nr", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("np nw", { a(destination_register) }, !is_byte_access));
+									if(combined_source_mode == PostInc) {
+										op(increment_action | MicroOp::SourceMask);
+									}
+								break;
+
+								case l2(PreDec, PreDec):	// MOVE.l -(An), -(An)
+									op(decrement_action | MicroOp::SourceMask, seq("n"));
+								case l2(Ind, PreDec):		// MOVE.l (An), -(An)
+								case l2(PostInc, PreDec):	// MOVE.l (An)+, -(An)
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) } ));
+									op(Action::PerformOperation);
+									op(int(Action::Decrement2) | MicroOp::DestinationMask, seq("np") );
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nw- nW", { ea(1), ea(1) } ));
+									op(int(Action::Decrement2) | MicroOp::DestinationMask );
+									if(combined_source_mode == PostInc) {
+										op(increment_action | MicroOp::SourceMask);
+									}
+								break;
+
+								case bw2(d16An, PreDec):
+								case bw2(d8AnXn, PreDec):
+								case bw2(d16PC, PreDec):
+								case bw2(d8PCXn, PreDec):
+									op(	calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
+										seq(pseq("np nr", combined_source_mode), { ea(0) }, !is_byte_access ));
+									op(Action::PerformOperation);
+									op(decrement_action | MicroOp::DestinationMask, seq("np nw", { a(destination_register) }, !is_byte_access));
+								break;
+
+								case l2(d16An, PreDec):
+								case l2(d8AnXn, PreDec):
+								case l2(d16PC, PreDec):
+								case l2(d8PCXn, PreDec):
+									op(	calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
+										seq(pseq("np nR+ nr", combined_source_mode), { ea(0), ea(0) } ));
+									op(Action::PerformOperation);
+									op(int(Action::Decrement2) | MicroOp::DestinationMask, seq("np") );
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nw- nW", { ea(1), ea(1) }));
+									op(int(Action::Decrement2) | MicroOp::DestinationMask);
+								break;
+
+								case bw2(Imm, PreDec):
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(Action::PerformOperation);
+									op(decrement_action | MicroOp::DestinationMask, seq("np nw", { a(destination_register) }, !is_byte_access));
+								break;
+
+								case l2(Imm, PreDec):
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(Action::PerformOperation);
+									op(int(Action::Decrement2) | MicroOp::DestinationMask, seq("np") );
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nw- nW", { ea(1), ea(1) }));
+									op(int(Action::Decrement2) | MicroOp::DestinationMask);
+								break;
 
 							//
 							// MOVE <ea>, (d16, An)
@@ -2394,6 +2456,8 @@ struct ProcessorStorageConstructor {
 										op(increment_action | MicroOp::SourceMask);
 									}
 								break;
+
+								// TODO: PreDec.
 
 								case bw2(XXXl, d16An):	// MOVE.bw (xxx).l, (d16, An)
 								case bw2(XXXl, d8AnXn):	// MOVE.bw (xxx).l, (d8, An, Xn)
