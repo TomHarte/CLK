@@ -93,6 +93,8 @@ class ProcessorStorage {
 
 			MULU,	MULS,
 
+			RTE_RTR,
+
 			TRAP,
 		};
 
@@ -241,6 +243,10 @@ class ProcessorStorage {
 				// (i) copies the stack pointer to effective_address_[0];
 				// (ii) increments the stack pointer by four.
 				PrepareRTS,
+
+				// (i) fills in the proper stack addresses to the bus steps for this micro-op; and
+				// (ii) adjusts the stack pointer appropriately.
+				PrepareRTE_RTR,
 			};
 			static const int SourceMask = 1 << 30;
 			static const int DestinationMask = 1 << 29;

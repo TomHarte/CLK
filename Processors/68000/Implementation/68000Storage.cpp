@@ -372,6 +372,8 @@ struct ProcessorStorageConstructor {
 			MOVEM,						// Maps a mode and register as they were a 'destination' and sets up bus steps with a suitable
 										// hole for the runtime part to install proper MOVEM activity.
 
+			RTE_RTR,					// Maps to an RTE/RTR.
+
 			Scc_DBcc,					// Maps a mode and destination register to either a DBcc or Scc.
 
 			TST,						// Maps a mode and register to a TST.
@@ -570,6 +572,9 @@ struct ProcessorStorageConstructor {
 			{0xfff0, 0x4e60, Operation::MOVEAl, Decoder::MOVEUSP},				// 6-21 (p475)
 
 			{0xfff0, 0x4e40, Operation::TRAP, Decoder::TRAP},					// 4-188 (p292)
+
+			{0xffff, 0x4e77, Operation::RTE_RTR, Decoder::RTE_RTR},				// 4-168 (p272) [RTR]
+			{0xffff, 0x4e73, Operation::RTE_RTR, Decoder::RTE_RTR},				// 6-84 (p538) [RTE]
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -604,6 +609,15 @@ struct ProcessorStorageConstructor {
 					const int ea_mode = (instruction >> 3) & 7;
 
 					switch(mapping.decoder) {
+						case Decoder::RTE_RTR: {
+							storage_.instructions[instruction].requires_supervisor = instruction == 0x4e73;
+
+							// TODO: something explicit to ensure the nR nr nr is exclusively linked.
+							op(Action::PrepareRTE_RTR, seq("nR nr nr", { &storage_.precomputed_addresses_[0], &storage_.precomputed_addresses_[1], &storage_.precomputed_addresses_[2] } ));
+							op(Action::PerformOperation, seq("np np"));
+							op();
+						} break;
+
 						case Decoder::AND_OR_EOR: {
 							const bool to_ea = !!((instruction >> 8)&1);
 							const bool is_eor = (instruction >> 12) == 0xb;
@@ -3121,6 +3135,15 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	trap_steps_[1].microcycle.value = trap_steps_[2].microcycle.value = &program_counter_.halves.low;
 	trap_steps_[3].microcycle.value = trap_steps_[4].microcycle.value = &destination_bus_data_[0].halves.low;
 	trap_steps_[5].microcycle.value = trap_steps_[6].microcycle.value = &program_counter_.halves.high;
+
+	// Also relink the RTE and RTR bus steps to collect the program counter.
+	//
+	// Assumed order of input: PC.h, SR, PC.l (i.e. the opposite of TRAP's output).
+	for(const int instruction: { 0x4e73, 0x4e77 }) {
+		auto steps = instructions[instruction].micro_operations[0].bus_program;
+		steps[0].microcycle.value = steps[1].microcycle.value = &program_counter_.halves.high;
+		steps[4].microcycle.value = steps[5].microcycle.value = &program_counter_.halves.low;
+	}
 
 	// Set initial state. Largely TODO.
 	active_step_ = reset_bus_steps_;

@@ -1046,6 +1046,18 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 #undef set_flags_w
 #undef set_flags_l
 #undef set_neg_zero_overflow
+								/*
+									RTE and RTR share an implementation.
+								*/
+								case Operation::RTE_RTR:
+									// If this is RTR, patch out the is_supervisor bit.
+									if(decoded_instruction_ == 0x4e77) {
+										source_bus_data_[0].full =
+											(source_bus_data_[0].full & ~(1 << 13)) |
+											(is_supervisor_ << 13);
+									}
+									set_status(source_bus_data_[0].full);
+								break;
 
 								/*
 									TSTs: compare to zero.
@@ -1126,6 +1138,13 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						case int(MicroOp::Action::PrepareRTS):
 							effective_address_[0].full = address_[7].full;
 							address_[7].full += 4;
+						break;
+
+						case int(MicroOp::Action::PrepareRTE_RTR):
+							precomputed_addresses_[0] = address_[7].full + 2;
+							precomputed_addresses_[1] = address_[7].full;
+							precomputed_addresses_[2] = address_[7].full + 4;
+							address_[7].full += 6;
 						break;
 
 						case int(MicroOp::Action::CopyNextWord):
