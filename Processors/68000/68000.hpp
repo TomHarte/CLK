@@ -117,20 +117,53 @@ struct Microcycle {
 	}
 
 	/*!
+		Obtains the mask to apply to a word that will leave only the byte this microcycle is selecting.
+
 		@returns 0x00ff if this byte access wants the low part of a 16-bit word; 0xff00 if it wants the high part.
 	*/
-	inline unsigned int byte_mask() const {
-		return 0xff00 >> (((*address) & 1) << 3);
+	inline uint16_t byte_mask() const {
+		return uint16_t(0xff00) >> (((*address) & 1) << 3);
 	}
 
+	/*!
+		Obtains the mask to apply to a word that will leave only the byte this microcycle **isn't** selecting.
+		i.e. this is the part of a word that should be untouched by this microcycle.
+
+		@returns 0xff00 if this byte access wants the low part of a 16-bit word; 0x00ff if it wants the high part.
+	*/
+	inline uint16_t untouched_byte_mask() const {
+		return uint16_t(uint16_t(0xff) << (((*address) & 1) << 3));
+	}
+
+	/*!
+		Assuming this cycle is a byte write, mutates @c destination by writing the byte to the proper upper or
+		lower part, retaining the other half.
+	*/
+	uint16_t write_byte(uint16_t destination) const {
+		return uint16_t((destination & untouched_byte_mask()) | (value->halves.low << byte_shift()));
+	}
+
+	/*!
+		@returns non-zero if this is a byte read and 68000 LDS is asserted.
+	*/
 	inline int lower_data_select() const {
 		return (operation & SelectByte) & ((*address & 1) << 3);
 	}
 
+	/*!
+		@returns non-zero if this is a byte read and 68000 UDS is asserted.
+	*/
 	inline int upper_data_select() const {
 		return (operation & SelectByte) & ~((*address & 1) << 3);
 	}
 
+	/*!
+		@returns the address being accessed at the precision a 68000 supplies it —
+		only 24 address bit precision, with the low bit shifted out. So it's the
+		68000 address at word precision: address 0 is the first word in the address
+		space, address 1 is the second word (i.e. the third and fourth bytes) in
+		the address space, etc.
+	*/
 	uint32_t word_address() const {
 		return (address ? (*address) & 0x00fffffe : 0) >> 1;
 	}

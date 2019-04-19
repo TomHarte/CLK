@@ -121,7 +121,7 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 - (void)testStartup {
     // This is an example of a functional test case.
     // Use XCTAssert and related functions to verify your tests produce the correct results.
-    _machine->run_for(HalfCycles(400000));
+    _machine->run_for(HalfCycles(8000000));
 }
 
 @end
