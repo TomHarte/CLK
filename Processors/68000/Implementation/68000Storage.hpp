@@ -96,6 +96,8 @@ class ProcessorStorage {
 			RTE_RTR,
 
 			TRAP,
+
+			EXG,	SWAP,
 		};
 
 		/*!

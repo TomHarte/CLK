@@ -855,6 +855,23 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									active_program_->destination->halves.low.halves.low = uint8_t(result);
 								} break;
 
+								// EXG and SWAP exchange/swap words or long words.
+
+								case Operation::EXG: {
+									const auto temporary = active_program_->source->full;
+									active_program_->source->full = active_program_->destination->full;
+									active_program_->destination->full = temporary;
+								} break;
+
+								case Operation::SWAP: {
+									const auto temporary = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full = active_program_->destination->halves.high.full;
+									active_program_->destination->halves.high.full = temporary;
+
+									zero_result_ = active_program_->destination->full;
+									negative_flag_ = temporary & 0x8000;
+								} break;
+
 								/*
 									Shifts and rotates.
 								*/

@@ -72,16 +72,20 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 
 					case Microcycle::SelectWord | Microcycle::Read:
 						cycle.value->full = is_peripheral ? peripheral_result : base[word_address];
+						if(!(cycle.operation & Microcycle::IsProgram)) printf("[word r %08x -> %04x] ", *cycle.address, cycle.value->full);
 					break;
 					case Microcycle::SelectByte | Microcycle::Read:
 						cycle.value->halves.low = (is_peripheral ? peripheral_result : base[word_address]) >> cycle.byte_shift();
+						if(!(cycle.operation & Microcycle::IsProgram)) printf("[byte r %08x -> %02x] ", *cycle.address, cycle.value->halves.low);
 					break;
 					case Microcycle::SelectWord:
 						assert(!(is_rom && !is_peripheral));
+						if(!(cycle.operation & Microcycle::IsProgram)) printf("[word w %04x -> %08x] ", cycle.value->full, *cycle.address);
 						base[word_address] = cycle.value->full;
 					break;
 					case Microcycle::SelectByte:
 						assert(!(is_rom && !is_peripheral));
+						if(!(cycle.operation & Microcycle::IsProgram)) printf("[byte w %02x -> %08x] ", cycle.value->halves.low, *cycle.address);
 						base[word_address] = (cycle.value->halves.low << cycle.byte_shift()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
 					break;
 				}

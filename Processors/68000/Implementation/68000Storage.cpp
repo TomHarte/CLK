@@ -400,6 +400,9 @@ struct ProcessorStorageConstructor {
 			TRAP,						// Maps to a TRAP.
 
 			NOP,						// Maps to a NOP.
+
+			EXG,						// Maps source and destination registers and an operation mode to an EXG.
+			SWAP,						// Maps a source register to a SWAP.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -594,6 +597,12 @@ struct ProcessorStorageConstructor {
 			{0xffff, 0x4e73, Operation::RTE_RTR, Decoder::RTE_RTR},				// 6-84 (p538) [RTE]
 
 			{0xffff, 0x4e71, Operation::None, Decoder::NOP},					// 8-13 (p469)
+
+			{0xf1f8, 0xc140, Operation::EXG, Decoder::EXG},						// 4-105 (p209)
+			{0xf1f8, 0xc148, Operation::EXG, Decoder::EXG},						// 4-105 (p209)
+			{0xf1f8, 0xc188, Operation::EXG, Decoder::EXG},						// 4-105 (p209)
+
+			{0xfff8, 0x4840, Operation::SWAP, Decoder::SWAP},					// 4-185 (p289)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -628,6 +637,36 @@ struct ProcessorStorageConstructor {
 					const int ea_mode = (instruction >> 3) & 7;
 
 					switch(mapping.decoder) {
+						case Decoder::SWAP: {
+							storage_.instructions[instruction].set_destination(storage_, Dn, ea_register);
+							op(Action::None, seq("np"));
+						} break;
+
+						case Decoder::EXG: {
+							const int data_register = (instruction >> 9) & 7;
+
+							switch((instruction >> 3)&31) {
+								default: continue;
+
+								case 0x08:
+									storage_.instructions[instruction].set_source(storage_, Dn, data_register);
+									storage_.instructions[instruction].set_destination(storage_, Dn, ea_register);
+								break;
+
+								case 0x09:
+									storage_.instructions[instruction].set_source(storage_, An, data_register);
+									storage_.instructions[instruction].set_destination(storage_, An, ea_register);
+								break;
+
+								case 0x11:
+									storage_.instructions[instruction].set_source(storage_, Dn, data_register);
+									storage_.instructions[instruction].set_destination(storage_, An, ea_register);
+								break;
+							}
+
+							op(Action::None, seq("np"));
+						} break;
+
 						case Decoder::NOP: {
 							op(Action::None, seq("np"));
 						} break;
