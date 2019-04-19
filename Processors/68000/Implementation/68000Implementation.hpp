@@ -1151,24 +1151,6 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							next_word_ = prefetch_queue_.halves.low.full;
 						break;
 
-						case int(MicroOp::Action::SetMoveFlagsb):
-							zero_result_ = active_program_->source->halves.low.halves.low;
-							negative_flag_ = zero_result_ & 0x80;
-							overflow_flag_ = carry_flag_ = 0;
-						break;
-
-						case int(MicroOp::Action::SetMoveFlagsw):
-							zero_result_ = active_program_->source->halves.low.full;
-							negative_flag_ = zero_result_ & 0x8000;
-							overflow_flag_ = carry_flag_ = 0;
-						break;
-
-						case int(MicroOp::Action::SetMoveFlagsl):
-							zero_result_ = active_program_->source->full;
-							negative_flag_ = zero_result_ & 0x80000000;
-							overflow_flag_ = carry_flag_ = 0;
-						break;
-
 						// Increments and decrements.
 #define Adjust(op, quantity)	\
 	case int(op) | MicroOp::SourceMask:			active_program_->source_address->full += quantity;		break;	\

@@ -162,11 +162,6 @@ class ProcessorStorage {
 				/// Does whatever this instruction says is the main operation.
 				PerformOperation,
 
-				/// Sets the flags as if a MOVE operation had occurred, by inspecting *source.
-				SetMoveFlagsb,
-				SetMoveFlagsw,
-				SetMoveFlagsl,
-
 				/*
 					All of the below will honour the source and destination masks
 					in deciding where to apply their actions.
