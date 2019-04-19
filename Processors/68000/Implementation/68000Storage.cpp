@@ -2497,6 +2497,8 @@ struct ProcessorStorageConstructor {
 									op(int(Action::Decrement2) | MicroOp::DestinationMask);
 								break;
 
+								// TODO: (xxx).l, (xxx).w
+
 							//
 							// MOVE <ea>, (d16, An)
 							// MOVE <ea>, (d8, An, Xn)
@@ -2537,7 +2539,8 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation, seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
 								break;
 
-								// TODO: PreDec.
+								// TODO: PreDec, d16An, d8AnXn, s16PC, d8PCXn.
+								// (4, 5, 6, 12, 13)
 
 								case bw2(XXXl, d16An):	// MOVE.bw (xxx).l, (d16, An)
 								case bw2(XXXl, d8AnXn):	// MOVE.bw (xxx).l, (d8, An, Xn)
@@ -2765,15 +2768,10 @@ struct ProcessorStorageConstructor {
 									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }));
 								break;
 
-								case l2(XXXw, XXXl):	// MOVE.l (xxx).w (xxx).l
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nR+ nr", { ea(0), ea(0) }));
-									op(Action::PerformOperation, seq("np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nW+ nw np np", { ea(1), ea(1) }));
-								break;
-
 								case l2(XXXl, XXXl):	// MOVE.l (xxx).l, (xxx).l
 									op(int(Action::None), seq("np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nR+ nr", { ea(0), ea(0) }));
+								case l2(XXXw, XXXl):	// MOVE.l (xxx).w (xxx).l
+									op(address_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq("np nR+ nr", { ea(0), ea(0) }));
 									op(Action::PerformOperation, seq("np"));
 									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nW+ nw np np", { ea(1), ea(1) }));
 								break;
@@ -2782,12 +2780,7 @@ struct ProcessorStorageConstructor {
 							// Default
 							//
 
-								default:
-									if(combined_source_mode <= Imm && combined_destination_mode <= Imm) {
-										std::cerr << "Unimplemented MOVE " << std::hex << combined_source_mode << "," << combined_destination_mode << ": " << instruction << std::endl;
-									}
-									// TODO: all other types of mode.
-								continue;
+								default: continue;
 							}
 
 							// If any post-incrementing was involved, do the post increment(s).
