@@ -2460,21 +2460,27 @@ struct ProcessorStorageConstructor {
 									op(int(Action::Decrement2) | MicroOp::DestinationMask );
 								break;
 
+								case bw2(XXXl, PreDec):
+									op(Action::None, seq("np"));
+								case bw2(XXXw, PreDec):
 								case bw2(d16An, PreDec):
 								case bw2(d8AnXn, PreDec):
 								case bw2(d16PC, PreDec):
 								case bw2(d8PCXn, PreDec):
-									op(	calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
+									op(	address_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
 										seq(pseq("np nr", combined_source_mode), { ea(0) }, !is_byte_access ));
 									op(Action::PerformOperation);
 									op(decrement_action | MicroOp::DestinationMask, seq("np nw", { a(destination_register) }, !is_byte_access));
 								break;
 
+								case l2(XXXl, PreDec):
+									op(Action::None, seq("np"));
+								case l2(XXXw, PreDec):
 								case l2(d16An, PreDec):
 								case l2(d8AnXn, PreDec):
 								case l2(d16PC, PreDec):
 								case l2(d8PCXn, PreDec):
-									op(	calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
+									op(	address_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
 										seq(pseq("np nR+ nr", combined_source_mode), { ea(0), ea(0) } ));
 									op(Action::PerformOperation);
 									op(int(Action::Decrement2) | MicroOp::DestinationMask, seq("np") );
@@ -2496,8 +2502,6 @@ struct ProcessorStorageConstructor {
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nw- nW", { ea(1), ea(1) }));
 									op(int(Action::Decrement2) | MicroOp::DestinationMask);
 								break;
-
-								// TODO: (xxx).l, (xxx).w
 
 							//
 							// MOVE <ea>, (d16, An)
