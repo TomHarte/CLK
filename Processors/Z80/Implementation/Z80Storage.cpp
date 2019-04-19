@@ -102,7 +102,7 @@ ProcessorStorage::ProcessorStorage() {
 #define Pop7(x)					Read3(sp_, x.bytes.low), {MicroOp::Increment16, &sp_.full}, Read4(sp_, x.bytes.high), {MicroOp::Increment16, &sp_.full}
 
 /* The following are actual instructions */
-#define NOP						Sequence(BusOp(Refresh(4)))
+#define NOP						Sequence(BusOp(Refresh(8)))
 
 #define JP(cc)					StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc, nullptr}, {MicroOp::Move16, &temp16_.full, &pc_.full})
 #define CALL(cc)				StdInstr(ReadInc(pc_, temp16_.bytes.low), {MicroOp::cc, conditional_call_untaken_program_.data()}, Read4Inc(pc_, temp16_.bytes.high), Push(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
