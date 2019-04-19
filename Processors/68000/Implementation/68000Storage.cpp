@@ -398,6 +398,8 @@ struct ProcessorStorageConstructor {
 			MOVEUSP,					// Maps a direction and register to a MOVE [to/from] USP.
 
 			TRAP,						// Maps to a TRAP.
+
+			NOP,						// Maps to a NOP.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -590,6 +592,8 @@ struct ProcessorStorageConstructor {
 
 			{0xffff, 0x4e77, Operation::RTE_RTR, Decoder::RTE_RTR},				// 4-168 (p272) [RTR]
 			{0xffff, 0x4e73, Operation::RTE_RTR, Decoder::RTE_RTR},				// 6-84 (p538) [RTE]
+
+			{0xffff, 0x4e71, Operation::None, Decoder::NOP},					// 8-13 (p469)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -624,6 +628,10 @@ struct ProcessorStorageConstructor {
 					const int ea_mode = (instruction >> 3) & 7;
 
 					switch(mapping.decoder) {
+						case Decoder::NOP: {
+							op(Action::None, seq("np"));
+						} break;
+
 						case Decoder::RTE_RTR: {
 							storage_.instructions[instruction].requires_supervisor = instruction == 0x4e73;
 
