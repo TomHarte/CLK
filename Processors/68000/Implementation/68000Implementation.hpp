@@ -59,7 +59,18 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 //							for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
 //							for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
 //						}
-						std::cout << '\n';
+						static bool should_log = false;
+
+						should_log |= program_counter_.full > 0x286;
+						if(should_log) {
+							std::cout << "a7:" << std::setw(8) << std::setfill('0') << address_[7].full << " ";
+							if(is_supervisor_) {
+								std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
+							} else {
+								std::cout << "ssp:" << std::setw(8) << std::setfill('0') << stack_pointers_[1].full << " ";
+							}
+							std::cout << '\n';
+						}
 
 						decoded_instruction_ = prefetch_queue_.halves.high.full;
 						if(!instructions[decoded_instruction_].micro_operations) {
@@ -67,7 +78,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << decoded_instruction_ << " from " << (program_counter_.full - 4) << std::endl;
 							return;
 						} else {
-							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
+							if(should_log) std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
 						}
 
 						active_program_ = &instructions[decoded_instruction_];

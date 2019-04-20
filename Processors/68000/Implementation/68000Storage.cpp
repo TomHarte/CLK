@@ -655,6 +655,10 @@ struct ProcessorStorageConstructor {
 					int dec = decrement_action(is_long_word_access, is_byte_access);
 					int inc = increment_action(is_long_word_access, is_byte_access);
 
+					if(instruction == 0x4eda) {
+						printf("");
+					}
+
 					switch(mapping.decoder) {
 						case Decoder::SWAP: {
 							storage_.instructions[instruction].set_destination(storage_, Dn, ea_register);
@@ -2282,15 +2286,15 @@ struct ProcessorStorageConstructor {
 							storage_.instructions[instruction].requires_supervisor = true;
 
 							// Observation here: because this is a privileged instruction, the user stack pointer
-							// definitely isn't currently A7.
+							// definitely isn't currently [copied into] A7.
 							if(instruction & 0x8) {
 								// Transfer FROM the USP.
-								storage_.instructions[instruction].destination = &storage_.stack_pointers_[0];
-								storage_.instructions[instruction].set_source(storage_, An, ea_register);
-							} else {
-								// Transfer TO the USP.
 								storage_.instructions[instruction].source = &storage_.stack_pointers_[0];
 								storage_.instructions[instruction].set_destination(storage_, An, ea_register);
+							} else {
+								// Transfer TO the USP.
+								storage_.instructions[instruction].set_source(storage_, An, ea_register);
+								storage_.instructions[instruction].destination = &storage_.stack_pointers_[0];
 							}
 
 							op(Action::PerformOperation, seq("np"));
