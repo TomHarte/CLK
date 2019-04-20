@@ -1272,14 +1272,14 @@ struct ProcessorStorageConstructor {
 								case bw(d16An):		// ADDA/SUBA.w (d16, An), An
 								case bw(d8AnXn):	// ADDA/SUBA.w (d8, An, Xn), An
 									op(	calc_action_for_mode(mode) | MicroOp::SourceMask,
-										seq(pseq("np nr np nn", mode), { ea(1) }));
+										seq(pseq("np nr np nn", mode), { ea(0) }));
 									op(Action::PerformOperation);
 								break;
 
 								case l(d16An):		// ADDA/SUBA.l (d16, An), An
 								case l(d8AnXn):		// ADDA/SUBA.l (d8, An, Xn), An
 									op(	calc_action_for_mode(mode) | MicroOp::SourceMask,
-										seq(pseq("np nR+ nr np n", mode), { ea(1), ea(1) }));
+										seq(pseq("np nR+ nr np n", mode), { ea(0), ea(0) }));
 									op(Action::PerformOperation);
 								break;
 
@@ -1287,7 +1287,7 @@ struct ProcessorStorageConstructor {
 									op(Action::None, seq("np"));
 								case bw(XXXw):		// ADDA/SUBA.w (xxx).w, An
 									op(	address_assemble_for_mode(mode) | MicroOp::SourceMask,
-										seq("np nr np nn", { ea(1) }));
+										seq("np nr np nn", { ea(0) }));
 									op(Action::PerformOperation);
 								break;
 
@@ -1295,7 +1295,7 @@ struct ProcessorStorageConstructor {
 									op(Action::None, seq("np"));
 								case l(XXXw):		// ADDA/SUBA.l (xxx).w, An
 									op(	address_assemble_for_mode(mode) | MicroOp::SourceMask,
-										seq("np nR+ nr np n", { ea(1), ea(1) }));
+										seq("np nR+ nr np n", { ea(0), ea(0) }));
 									op(	Action::PerformOperation);
 								break;
 

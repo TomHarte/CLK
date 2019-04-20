@@ -63,6 +63,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 						should_log |= program_counter_.full > 0x286;
 						if(should_log) {
+							std::cout << "a5:" << std::setw(8) << std::setfill('0') << address_[5].full << " ";
+							std::cout << "a6:" << std::setw(8) << std::setfill('0') << address_[6].full << " ";
 							std::cout << "a7:" << std::setw(8) << std::setfill('0') << address_[7].full << " ";
 							if(is_supervisor_) {
 								std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
