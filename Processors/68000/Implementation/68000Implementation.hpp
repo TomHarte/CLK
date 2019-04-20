@@ -701,6 +701,9 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									precomputed_addresses_[1] = address_[7].full - 6;
 									precomputed_addresses_[2] = address_[7].full - 4;
 									address_[7].full -= 6;
+
+									// The program counter to push is actually one slot ago.
+									program_counter_.full -= 2;
 								} break;
 
 								/*
