@@ -580,8 +580,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 			step[2].microcycle.address = step[3].microcycle.address = address_storage + 1;			\
 																									\
 			const auto target = (offset > 7) ? &address_[offset&7] : &data_[offset];				\
-			step[(l^2)].microcycle.value = step[(l^2)+1].microcycle.value = &target->halves.high;	\
-			step[l].microcycle.value = step[l+1].microcycle.value = &target->halves.low;			\
+			step[l].microcycle.value = step[l+1].microcycle.value = &target->halves.high;			\
+			step[(l^2)].microcycle.value = step[(l^2)+1].microcycle.value = &target->halves.low;	\
 																									\
 			address_storage += 2;																	\
 			step += 4;																				\
