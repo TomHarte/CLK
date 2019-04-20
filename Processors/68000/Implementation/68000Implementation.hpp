@@ -61,10 +61,13 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 //						}
 						static bool should_log = false;
 
-						should_log |= program_counter_.full > 0x286;
+						should_log |= program_counter_.full >= 0x4F54;
 						if(should_log) {
-							std::cout << "a5:" << std::setw(8) << std::setfill('0') << address_[5].full << " ";
-							std::cout << "a6:" << std::setw(8) << std::setfill('0') << address_[6].full << " ";
+							std::cout << "d0:" << std::setw(8) << std::setfill('0') << data_[0].full << " ";
+							std::cout << "d1:" << std::setw(8) << std::setfill('0') << data_[1].full << " ";
+							std::cout << "d2:" << std::setw(8) << std::setfill('0') << data_[2].full << " ";
+//							std::cout << "a5:" << std::setw(8) << std::setfill('0') << address_[5].full << " ";
+//							std::cout << "a6:" << std::setw(8) << std::setfill('0') << address_[6].full << " ";
 							std::cout << "a7:" << std::setw(8) << std::setfill('0') << address_[7].full << " ";
 							if(is_supervisor_) {
 								std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
@@ -80,6 +83,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << decoded_instruction_ << " from " << (program_counter_.full - 4) << std::endl;
 							return;
 						} else {
+							if(0x4f7a == program_counter_.full - 4) return;
 							if(should_log) std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
 						}
 
@@ -319,7 +323,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 									const bool is_bsr = ((decoded_instruction_ >> 8) & 0xf) == 1;
 
 									// Test the conditional, treating 'false' as true.
-									const bool should_branch = is_bsr || evaluate_condition(prefetch_queue_.halves.high.halves.high);
+									const bool should_branch = is_bsr || evaluate_condition(decoded_instruction_ >> 8);
 
 									// Schedule something appropriate, by rewriting the program for this instruction temporarily.
 									if(should_branch) {
@@ -341,7 +345,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 								case Operation::DBcc: {
 									// Decide what sort of DBcc this is.
-									if(!evaluate_condition(prefetch_queue_.halves.high.halves.high)) {
+									if(!evaluate_condition(decoded_instruction_ >> 8)) {
 										-- active_program_->source->halves.low.full;
 										const auto target_program_counter = program_counter_.full + int16_t(prefetch_queue_.halves.low.full) - 2;
 
@@ -365,7 +369,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 								case Operation::Scc: {
 									active_program_->destination->halves.low.halves.low =
-										evaluate_condition(prefetch_queue_.halves.high.halves.high) ? 0xff : 0x00;
+										evaluate_condition(decoded_instruction_ >> 8) ? 0xff : 0x00;
 								} break;
 
 								/*
