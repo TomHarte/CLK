@@ -1788,14 +1788,12 @@ struct ProcessorStorageConstructor {
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 							storage_.instructions[instruction].destination = &storage_.address_[destination_register];
 
-							const int mode = combined_mode(ea_mode, ea_register);
+							const int mode = combined_mode(ea_mode, ea_register, true);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
-								case bw(Dn):		// CMPA.w Dn, An
-								case bw(An):		// CMPA.w An, An
-								case l(Dn):			// CMPA.l Dn, An
-								case l(An):			// CMPA.l An, An
+								case bw(Dn):		// CMPA.w [An/Dn], An
+								case l(Dn):			// CMPA.l [An/Dn], An
 									op(Action::PerformOperation, seq("np n"));
 								break;
 
@@ -1803,7 +1801,7 @@ struct ProcessorStorageConstructor {
 								case bw(PostInc):	// CMPA.w (An)+, An
 									op(Action::None, seq("nr", { a(ea_register) }));
 									op(Action::PerformOperation, seq("np n"));
-									if(ea_mode == PostInc) {
+									if(mode == PostInc) {
 										op(int(Action::Increment2) | MicroOp::SourceMask);
 									}
 								break;
@@ -1812,7 +1810,7 @@ struct ProcessorStorageConstructor {
 								case l(PostInc):	// CMPA.l (An)+, An
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) }));
 									op(Action::PerformOperation, seq("np n"));
-									if(ea_mode == PostInc) {
+									if(mode == PostInc) {
 										op(int(Action::Increment4) | MicroOp::SourceMask);
 									}
 								break;
@@ -1828,35 +1826,25 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation, seq("np n"));
 								break;
 
+								case bw(XXXl):		// CMPA.w (xxx).l, An
+									op(Action::None, seq("np"));
+								case bw(XXXw):		// CMPA.w (xxx).w, An
 								case bw(d16PC):		// CMPA.w (d16, PC), An
 								case bw(d8PCXn):	// CMPA.w (d8, PC, Xn), An
 								case bw(d16An):		// CMPA.w (d16, An), An
 								case bw(d8AnXn):	// CMPA.w (d8, An, Xn), An
-									op(	calc_action_for_mode(mode) | MicroOp::SourceMask,
-										seq(pseq("np nr", mode), { ea(0) }));
-									op(Action::PerformOperation, seq("np n"));
-								break;
-
-								case l(d16PC):		// CMPA.l (d16, PC), An
-								case l(d8PCXn):		// CMPA.l (d8, PC, Xn), An
-								case l(d16An):		// CMPA.l (d16, An), An
-								case l(d8AnXn):		// CMPA.l (d8, An, Xn), An
-									op(	calc_action_for_mode(mode) | MicroOp::SourceMask,
-										seq(pseq("np nR+ nr", mode), { ea(0), ea(0) }));
-									op(Action::PerformOperation, seq("np n"));
-								break;
-
-								case bw(XXXl):		// CMPA.w (xxx).l, An
-									op(Action::None, seq("np"));
-								case bw(XXXw):		// CMPA.w (xxx).w, An
-									op(address_assemble_for_mode(mode) | MicroOp::SourceMask, seq("np nr",  { ea(0) }));
+									op(address_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nr", mode), { ea(0) }));
 									op(Action::PerformOperation, seq("np n"));
 								break;
 
 								case l(XXXl):		// CMPA.l (xxx).l, An
 									op(Action::None, seq("np"));
 								case l(XXXw):		// CMPA.l (xxx).w, An
-									op(address_assemble_for_mode(mode) | MicroOp::SourceMask, seq("np nR+ nr",  { ea(0), ea(0) }));
+								case l(d16PC):		// CMPA.l (d16, PC), An
+								case l(d8PCXn):		// CMPA.l (d8, PC, Xn), An
+								case l(d16An):		// CMPA.l (d16, An), An
+								case l(d8AnXn):		// CMPA.l (d8, An, Xn), An
+									op(address_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nR+ nr", mode), { ea(0), ea(0) }));
 									op(Action::PerformOperation, seq("np n"));
 								break;
 
