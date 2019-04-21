@@ -1778,6 +1778,11 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::CMPA: {
+							// Only operation modes 011 and 111 are accepted, and long words are selected
+							// by the top bit.
+							if(((op_mode)&3) != 3) continue;
+							is_long_word_access = op_mode == 7;
+
 							const int destination_register = (instruction >> 9) & 7;
 
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);

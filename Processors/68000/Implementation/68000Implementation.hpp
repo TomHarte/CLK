@@ -61,7 +61,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 //						}
 						static bool should_log = false;
 
-						should_log |= program_counter_.full >= 0x4F54;
+						should_log |= program_counter_.full >= 0x4F54 && program_counter_.full <= 0x4F84;
 						if(should_log) {
 							std::cout << "d0:" << std::setw(8) << std::setfill('0') << data_[0].full << " ";
 							std::cout << "d1:" << std::setw(8) << std::setfill('0') << data_[1].full << " ";
@@ -83,8 +83,8 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << decoded_instruction_ << " from " << (program_counter_.full - 4) << std::endl;
 							return;
 						} else {
-							if(0x4f7a == program_counter_.full - 4) return;
-							if(should_log) std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
+//							if(0x4f7a == program_counter_.full - 4)return;
+							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
 						}
 
 						active_program_ = &instructions[decoded_instruction_];
