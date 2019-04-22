@@ -52,7 +52,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						// no instruction was ongoing. Either way, do a standard instruction operation.
 
 						// TODO: unless an interrupt is pending, or the trap flag is set.
-						static bool should_log = false;
+//						static bool should_log = false;
 
 //						should_log |= program_counter_.full >= 0x4F54 && program_counter_.full <= 0x4F84;
 //						if(should_log) {
@@ -654,7 +654,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 										offset = 15;
 										start_address -= 2;
 										write_address_sequence_long(dec_action, 2);
-										movem_final_address_ = start_address;
+										movem_final_address_ = start_address + 2;
 									} else {
 										write_address_sequence_long(inc_action, 0);
 									}

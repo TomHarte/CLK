@@ -11,6 +11,9 @@
 #include <array>
 #include <cassert>
 
+#include <iostream>
+#include <fstream>
+
 #include "68000.hpp"
 #include "CSROMFetcher.hpp"
 
@@ -106,6 +109,8 @@ class QL: public CPU::MC68000::BusHandler {
 @implementation QLTests {
 	std::unique_ptr<QL> _machine;
 }
+
+std::streambuf *coutbuf;
 
 - (void)setUp {
     const auto roms = CSROMFetcher()("SinclairQL", {"js.rom"});
