@@ -71,20 +71,20 @@ class QL: public CPU::MC68000::BusHandler {
 
 					case Microcycle::SelectWord | Microcycle::Read:
 						cycle.value->full = is_peripheral ? peripheral_result : base[word_address];
-						if(!(cycle.operation & Microcycle::IsProgram)) printf("[%08x -> %04x] ", *cycle.address, cycle.value->full);
+//						if(!(cycle.operation & Microcycle::IsProgram)) printf("[%08x -> %04x] ", *cycle.address, cycle.value->full);
 					break;
 					case Microcycle::SelectByte | Microcycle::Read:
 						cycle.value->halves.low = (is_peripheral ? peripheral_result : base[word_address]) >> cycle.byte_shift();
-						if(!(cycle.operation & Microcycle::IsProgram)) printf("[%08x -> %02x] ", *cycle.address, cycle.value->halves.low);
+//						if(!(cycle.operation & Microcycle::IsProgram)) printf("[%08x -> %02x] ", *cycle.address, cycle.value->halves.low);
 					break;
 					case Microcycle::SelectWord:
 						assert(!(is_rom && !is_peripheral));
-						if(!(cycle.operation & Microcycle::IsProgram)) printf("{%04x -> %08x} ", cycle.value->full, *cycle.address);
+//						if(!(cycle.operation & Microcycle::IsProgram)) printf("{%04x -> %08x} ", cycle.value->full, *cycle.address);
 						if(!is_peripheral) base[word_address] = cycle.value->full;
 					break;
 					case Microcycle::SelectByte:
 						assert(!(is_rom && !is_peripheral));
-						if(!(cycle.operation & Microcycle::IsProgram)) printf("{%02x -> %08x} ", cycle.value->halves.low, *cycle.address);
+//						if(!(cycle.operation & Microcycle::IsProgram)) printf("{%02x -> %08x} ", cycle.value->halves.low, *cycle.address);
 						if(!is_peripheral) base[word_address] = (cycle.value->halves.low << cycle.byte_shift()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
 					break;
 				}

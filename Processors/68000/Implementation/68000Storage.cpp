@@ -3002,6 +3002,7 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	const size_t dbcc_condition_true_offset = constructor.assemble_program("nn np np");
 	const size_t dbcc_condition_false_no_branch_offset = constructor.assemble_program("n nr np np", { &dbcc_false_address_ });
 	const size_t dbcc_condition_false_branch_offset = constructor.assemble_program("n np np");
+	// That nr in dbcc_condition_false_no_branch_offset is to look like an np from the wrong address.
 
 	// The reads steps needs to be 32 long-word reads plus an overflow word; the writes just the long words.
 	// Addresses and data sources/targets will be filled in at runtime, so anything will do here.
@@ -3033,6 +3034,8 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 
 	dbcc_condition_true_steps_ = &all_bus_steps_[dbcc_condition_true_offset];
 	dbcc_condition_false_no_branch_steps_ = &all_bus_steps_[dbcc_condition_false_no_branch_offset];
+	dbcc_condition_false_no_branch_steps_[1].microcycle.operation |= Microcycle::IsProgram;
+	dbcc_condition_false_no_branch_steps_[2].microcycle.operation |= Microcycle::IsProgram;
 	dbcc_condition_false_branch_steps_ = &all_bus_steps_[dbcc_condition_false_branch_offset];
 
 	movem_read_steps_ = &all_bus_steps_[movem_read_offset];
