@@ -52,30 +52,22 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						// no instruction was ongoing. Either way, do a standard instruction operation.
 
 						// TODO: unless an interrupt is pending, or the trap flag is set.
-//						if(program_counter_.full >= 0x250 && program_counter_.full <= 0x25e) {
-//							std::cout << std::setfill('0');
-//							std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
-//							std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
-//							for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
-//							for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
-//						}
 						static bool should_log = false;
 
-						should_log |= program_counter_.full >= 0x4F54 && program_counter_.full <= 0x4F84;
-						if(should_log) {
-							std::cout << "d0:" << std::setw(8) << std::setfill('0') << data_[0].full << " ";
-							std::cout << "d1:" << std::setw(8) << std::setfill('0') << data_[1].full << " ";
-							std::cout << "d2:" << std::setw(8) << std::setfill('0') << data_[2].full << " ";
-//							std::cout << "a5:" << std::setw(8) << std::setfill('0') << address_[5].full << " ";
-//							std::cout << "a6:" << std::setw(8) << std::setfill('0') << address_[6].full << " ";
-							std::cout << "a7:" << std::setw(8) << std::setfill('0') << address_[7].full << " ";
+//						should_log |= program_counter_.full >= 0x4F54 && program_counter_.full <= 0x4F84;
+//						if(should_log) {
+							std::cout << std::setfill('0');
+							std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
+							std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
+							for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
+							for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
 							if(is_supervisor_) {
 								std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
 							} else {
 								std::cout << "ssp:" << std::setw(8) << std::setfill('0') << stack_pointers_[1].full << " ";
 							}
 							std::cout << '\n';
-						}
+//						}
 
 						decoded_instruction_ = prefetch_queue_.halves.high.full;
 						if(!instructions[decoded_instruction_].micro_operations) {
@@ -157,7 +149,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 #define addsubl(a, b, dest, op, overflow)	\
 	const auto source = a;	\
 	const auto destination = b;	\
-	const uint64_t result = op(destination, source);	\
+	const uint64_t result = op(uint64_t(destination), uint64_t(source));	\
 \
 	zero_result_ = dest = uint32_t(result);	\
 	extend_flag_ = carry_flag_ = result >> 32;	\
@@ -420,7 +412,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								case Operation::CMPl: {
 									const uint32_t source = active_program_->source->full;
 									const uint32_t destination = active_program_->destination->full;
-									const uint64_t result = destination - source;
+									const uint64_t result = uint64_t(destination) - uint64_t(source);
 
 									zero_result_ = uint32_t(result);
 									carry_flag_ = result >> 32;

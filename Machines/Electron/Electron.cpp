@@ -62,6 +62,7 @@ class ConcreteMachine:
 			set_clock_rate(2000000);
 
 			speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
+			speaker_.set_high_frequency_cutoff(7000);
 
 			std::vector<std::string> rom_names = {"basic.rom", "os.rom"};
 			if(target.has_adfs) {
