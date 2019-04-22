@@ -2596,7 +2596,7 @@ struct ProcessorStorageConstructor {
 								case bw2d(d8PCXn):			// MOVE.bw (d8, PC, xn), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
 									op(address_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np nr", combined_source_mode), { ea(0) }, !is_byte_access));
 									op(Action::PerformOperation);
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::SourceMask, seq(pseq("np nw np", combined_destination_mode), { ea(1) }, !is_byte_access));
+									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np nw np", combined_destination_mode), { ea(1) }, !is_byte_access));
 								break;
 
 								case l2d(XXXl):				// MOVE.l (xxx).l, (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
@@ -2608,7 +2608,7 @@ struct ProcessorStorageConstructor {
 								case l2d(d8PCXn):			// MOVE.l (d8, PC, xn), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
 									op(address_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np nR+ nr", combined_source_mode), { ea(0), ea(0) }));
 									op(Action::PerformOperation);
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::SourceMask, seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
+									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
 								break;
 
 								case bw2d(Imm):				// MOVE.bw #, (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
