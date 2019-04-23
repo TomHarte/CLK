@@ -1266,7 +1266,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 	target.full = int8_t(data.halves.low) + source;	\
 \
 	if(data.full & 0x800) {	\
-		target.full += displacement.halves.low.full;	\
+		target.full += int16_t(displacement.halves.low.full);	\
 	} else {	\
 		target.full += displacement.full;	\
 	}	\
