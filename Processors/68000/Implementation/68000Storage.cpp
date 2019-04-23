@@ -2748,7 +2748,7 @@ struct ProcessorStorageConstructor {
 									storage_.instructions[instruction].source = &storage_.destination_bus_data_[0];
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np np"));
 									op(Action::PerformOperation);
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { ea(1) }));
+									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { ea(1) }, !is_byte_access));
 								break;
 
 								case l2(Imm, XXXw):			// MOVE.l #, (xxx).w

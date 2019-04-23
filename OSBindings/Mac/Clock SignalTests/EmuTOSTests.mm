@@ -57,14 +57,14 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 							peripheral_result = 0x00000001;
 						break;
 					}
-					printf("Peripheral: %c %08x", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address);
-					if(!(cycle.operation & Microcycle::Read)) {
-						if(cycle.operation & Microcycle::SelectByte)
-							printf(" %02x", cycle.value->halves.low);
-						else
-							printf(" %04x", cycle.value->full);
-					}
-					printf("\n");
+//					printf("Peripheral: %c %08x", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address);
+//					if(!(cycle.operation & Microcycle::Read)) {
+//						if(cycle.operation & Microcycle::SelectByte)
+//							printf(" %02x", cycle.value->halves.low);
+//						else
+//							printf(" %04x", cycle.value->full);
+//					}
+//					printf("\n");
 				}
 
 				switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {

@@ -56,17 +56,17 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 
 //						should_log |= program_counter_.full >= 0x4F54 && program_counter_.full <= 0x4F84;
 //						if(should_log) {
-//							std::cout << std::setfill('0');
-//							std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
-//							std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
-//							for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
-//							for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
-//							if(is_supervisor_) {
-//								std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
-//							} else {
-//								std::cout << "ssp:" << std::setw(8) << std::setfill('0') << stack_pointers_[1].full << " ";
-//							}
-//							std::cout << '\n';
+							std::cout << std::setfill('0');
+							std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
+							std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
+							for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
+							for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
+							if(is_supervisor_) {
+								std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
+							} else {
+								std::cout << "ssp:" << std::setw(8) << std::setfill('0') << stack_pointers_[1].full << " ";
+							}
+							std::cout << '\n';
 //						}
 
 						decoded_instruction_ = prefetch_queue_.halves.high.full;
@@ -76,7 +76,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							return;
 						} else {
 //							if(0x4f7a == program_counter_.full - 4) return;
-//							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
+							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
 						}
 
 						active_program_ = &instructions[decoded_instruction_];
@@ -1376,6 +1376,25 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 			remaining_duration -=
 				active_step_->microcycle.length +
 				bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
+
+			if(!(active_step_->microcycle.operation & Microcycle::IsProgram)) {
+				switch(active_step_->microcycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+					default: break;
+
+					case Microcycle::SelectWord | Microcycle::Read:
+						printf("[%08x -> %04x] ", *active_step_->microcycle.address, active_step_->microcycle.value->full);
+					break;
+					case Microcycle::SelectByte | Microcycle::Read:
+						printf("[%08x -> %02x] ", *active_step_->microcycle.address, active_step_->microcycle.value->halves.low);
+					break;
+					case Microcycle::SelectWord:
+						printf("{%04x -> %08x} ", active_step_->microcycle.value->full, *active_step_->microcycle.address);
+					break;
+					case Microcycle::SelectByte:
+						printf("{%02x -> %08x} ", active_step_->microcycle.value->halves.low, *active_step_->microcycle.address);
+					break;
+				}
+			}
 
 
 		/*
