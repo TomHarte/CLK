@@ -75,7 +75,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << decoded_instruction_ << " from " << (program_counter_.full - 4) << std::endl;
 							return;
 						} else {
-//							if(0x4f7a == program_counter_.full - 4)return;
+//							if(0x4f7a == program_counter_.full - 4) return;
 //							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
 						}
 
@@ -1152,11 +1152,19 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							}
 						} break;
 
-						case int(MicroOp::Action::PrepareJSR):
+						case int(MicroOp::Action::PrepareJSR): {
+							const auto mode = (decoded_instruction_ >> 3) & 7;
+							// Determine the proper resumption address.
+							switch(mode) {
+								case 2: destination_bus_data_[0].full = program_counter_.full - 2; break;	/* (An) */
+								default:
+									destination_bus_data_[0].full = program_counter_.full;	/* Everything other than (An) */
+								break;
+							}
 							destination_bus_data_[0].full = program_counter_.full;
 							address_[7].full -= 4;
 							effective_address_[1].full = address_[7].full;
-						break;
+						} break;
 
 						case int(MicroOp::Action::PrepareBSR):
 							destination_bus_data_[0].full = (decoded_instruction_ & 0xff) ? program_counter_.full - 2 : program_counter_.full;
