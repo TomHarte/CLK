@@ -1483,11 +1483,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> ProcessorSt
 template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::set_state(const ProcessorState &state) {
 	memcpy(data_, state.data, sizeof(state.data));
 	memcpy(address_, state.address, sizeof(state.address));
-	stack_pointers_[0].full = state.user_stack_pointer;
-	stack_pointers_[1].full = state.supervisor_stack_pointer;
 
 	set_status(state.status);
 
+	stack_pointers_[0].full = state.user_stack_pointer;
+	stack_pointers_[1].full = state.supervisor_stack_pointer;
 	address_[7] = stack_pointers_[is_supervisor_];
 }
 
