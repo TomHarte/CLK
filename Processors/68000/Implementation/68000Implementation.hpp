@@ -1277,9 +1277,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	target.full = int8_t(data.halves.low) + source;	\
 \
 	if(data.full & 0x800) {	\
-		target.full += int16_t(displacement.halves.low.full);	\
-	} else {	\
 		target.full += displacement.full;	\
+	} else {	\
+		target.full += int16_t(displacement.halves.low.full);	\
 	}	\
 }
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask: {
