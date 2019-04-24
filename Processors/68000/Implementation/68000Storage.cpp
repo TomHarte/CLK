@@ -686,7 +686,7 @@ struct ProcessorStorageConstructor {
 								break;
 							}
 
-							op(Action::None, seq("np"));
+							op(Action::PerformOperation, seq("np"));
 						} break;
 
 						case Decoder::NOP: {
