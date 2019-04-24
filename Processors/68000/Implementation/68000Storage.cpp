@@ -2843,20 +2843,19 @@ struct ProcessorStorageConstructor {
 
 							// If any post-incrementing was involved, do the post increment(s).
 							if(ea_mode == PostInc || destination_mode == PostInc) {
-								if(ea_mode == destination_mode) {
-									const int ea_inc = inc(ea_mode);
-									const int destination_inc = inc(destination_mode);
-									if(ea_inc == destination_inc) {
-										op(ea_inc | MicroOp::SourceMask | MicroOp::DestinationMask);
-									} else {
-										op(ea_inc | MicroOp::SourceMask);
-										op(destination_inc | MicroOp::DestinationMask);
-									}
+								const int ea_inc = inc(ea_register);
+								const int destination_inc = inc(destination_register);
+
+								// If there are two increments, and both can be done simultaneously, do that.
+								// Otherwise do one or two individually.
+								if(ea_mode == destination_mode && ea_inc == destination_inc) {
+									op(ea_inc | MicroOp::SourceMask | MicroOp::DestinationMask);
 								} else {
 									if(ea_mode == PostInc) {
-										op(inc(ea_mode) | MicroOp::SourceMask);
-									} else {
-										op(inc(destination_mode) | MicroOp::DestinationMask);
+										op(ea_inc | MicroOp::SourceMask);
+									}
+									if(destination_mode == PostInc) {
+										op(destination_inc | MicroOp::DestinationMask);
 									}
 								}
 							}
