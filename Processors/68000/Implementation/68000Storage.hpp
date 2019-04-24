@@ -365,11 +365,11 @@ class ProcessorStorage {
 				case 0x0c:	// greater than or equal
 					return (negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_);
 				case 0x0d:	// less than
-					return (negative_flag_ || !overflow_flag_) && (!negative_flag_ || overflow_flag_);
+					return (negative_flag_ && !overflow_flag_) || (!negative_flag_ && overflow_flag_);
 				case 0x0e:	// greater than
 					return zero_result_ && ((negative_flag_ && overflow_flag_) || (!negative_flag_ && !overflow_flag_));
 				case 0x0f:	// less than or equal
-					return (!zero_result_ || negative_flag_) && (!overflow_flag_ || !negative_flag_) && overflow_flag_;
+					return !zero_result_ || (negative_flag_ && !overflow_flag_) || (!negative_flag_ && overflow_flag_);
 			}
 		}
 
