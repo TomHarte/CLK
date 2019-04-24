@@ -1945,7 +1945,7 @@ struct ProcessorStorageConstructor {
 								case bw(d8AnXn):	// CMPI.bw #, (d8, An, Xn)
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
-										seq(pseq("nrd np", mode), { ea(1) }, !is_byte_access));
+										seq(pseq("np nrd np", mode), { ea(1) }, !is_byte_access));
 									op(Action::PerformOperation);
 								break;
 
