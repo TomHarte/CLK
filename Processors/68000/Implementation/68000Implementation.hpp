@@ -892,6 +892,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 									zero_result_ = active_program_->destination->full;
 									negative_flag_ = temporary & 0x8000;
+									overflow_flag_ = carry_flag_ = 0;
 								} break;
 
 								/*
