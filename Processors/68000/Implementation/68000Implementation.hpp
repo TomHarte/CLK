@@ -1201,7 +1201,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									destination_bus_data_[0].full = program_counter_.full;	/* Everything other than (An) */
 								break;
 							}
-							destination_bus_data_[0].full = program_counter_.full;
 							address_[7].full -= 4;
 							effective_address_[1].full = address_[7].full;
 						} break;
