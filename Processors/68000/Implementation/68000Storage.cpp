@@ -663,7 +663,7 @@ struct ProcessorStorageConstructor {
 					switch(mapping.decoder) {
 						case Decoder::SWAP: {
 							storage_.instructions[instruction].set_destination(storage_, Dn, ea_register);
-							op(Action::None, seq("np"));
+							op(Action::PerformOperation, seq("np"));
 						} break;
 
 						case Decoder::EXG: {
