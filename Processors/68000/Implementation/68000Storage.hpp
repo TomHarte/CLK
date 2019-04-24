@@ -49,10 +49,12 @@ class ProcessorStorage {
 			ADDb,	ADDw,	ADDl,
 			ADDQb,	ADDQw,	ADDQl,
 			ADDAw,	ADDAl,
+			ADDQAw,	ADDQAl,
 
 			SUBb,	SUBw,	SUBl,
 			SUBQb,	SUBQw,	SUBQl,
 			SUBAw,	SUBAl,
+			SUBQAw,	SUBQAl,
 
 			MOVEb,	MOVEw,	MOVEl,	MOVEq,
 			MOVEAw,	MOVEAl,

@@ -186,6 +186,11 @@ class BusHandler {
 		}
 
 		void flush() {}
+
+		/*!
+			Provides information about the path of execution if enabled via the template.
+		*/
+		void will_perform(uint32_t address, uint16_t opcode) {}
 };
 
 #include "Implementation/68000Storage.hpp"
@@ -205,7 +210,7 @@ struct ProcessorState {
 //			uint16_t current_instruction;
 };
 
-template <class T, bool dtack_is_implicit> class Processor: public ProcessorBase {
+template <class T, bool dtack_is_implicit, bool signal_will_perform = false> class Processor: public ProcessorBase {
 	public:
 		Processor(T &bus_handler) : ProcessorBase(), bus_handler_(bus_handler) {}
 

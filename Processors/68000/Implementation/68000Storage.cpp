@@ -1314,6 +1314,20 @@ struct ProcessorStorageConstructor {
 							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
+
+							// If the destination is an address register then byte mode isn't allowed, and
+							// flags shouldn't be affected (so, a different operation is used).
+							if(mode == An) {
+								if(is_byte_access) continue;
+								switch(operation) {
+									default: break;
+									case Operation::ADDQl:	// TODO: should the adds be distinguished? If so, how?
+									case Operation::ADDQw:	operation = Operation::ADDQAl;	break;
+									case Operation::SUBQl:
+									case Operation::SUBQw:	operation = Operation::SUBQAl;	break;
+								}
+							}
+
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
 
@@ -3061,6 +3075,8 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	active_step_ = reset_bus_steps_;
 	effective_address_[0] = 0;
 	is_supervisor_ = 1;
+	interrupt_level_ = 7;
+	address_[7] = 0x00030000;
 }
 
 void CPU::MC68000::ProcessorStorage::write_back_stack_pointer() {

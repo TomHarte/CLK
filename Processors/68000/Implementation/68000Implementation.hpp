@@ -36,7 +36,7 @@
 	trace_flag_			= (x) & 0x8000;	\
 	set_is_supervisor(!!(((x) >> 13) & 1));
 
-template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>::run_for(HalfCycles duration) {
+template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::run_for(HalfCycles duration) {
 	HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
 	while(remaining_duration > HalfCycles(0)) {
 		/*
@@ -52,22 +52,19 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 						// no instruction was ongoing. Either way, do a standard instruction operation.
 
 						// TODO: unless an interrupt is pending, or the trap flag is set.
-//						static bool should_log = false;
-
-//						should_log |= program_counter_.full >= 0x4F54 && program_counter_.full <= 0x4F84;
-//						if(should_log) {
-							std::cout << std::setfill('0');
-							std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
-							std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
-							for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
-							for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
-							if(is_supervisor_) {
-								std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
-							} else {
-								std::cout << "ssp:" << std::setw(8) << std::setfill('0') << stack_pointers_[1].full << " ";
-							}
-							std::cout << '\n';
-//						}
+#ifdef LOG_TRACE
+						std::cout << std::setfill('0');
+						std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
+						std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
+						for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
+						for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
+						if(is_supervisor_) {
+							std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
+						} else {
+							std::cout << "ssp:" << std::setw(8) << std::setfill('0') << stack_pointers_[1].full << " ";
+						}
+						std::cout << '\n';
+#endif
 
 						decoded_instruction_ = prefetch_queue_.halves.high.full;
 						if(!instructions[decoded_instruction_].micro_operations) {
@@ -75,13 +72,17 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << decoded_instruction_ << " from " << (program_counter_.full - 4) << std::endl;
 							return;
 						} else {
-//							if(0x4f7a == program_counter_.full - 4) return;
+#ifdef LOG_TRACE
 							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
+#endif
+						}
+
+						if(signal_will_perform) {
+							bus_handler_.will_perform(program_counter_.full - 4, decoded_instruction_);
 						}
 
 						active_program_ = &instructions[decoded_instruction_];
 						active_micro_op_ = active_program_->micro_operations;
-
 					}
 
 					auto bus_program = active_micro_op_->bus_program;
@@ -237,6 +238,14 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 											active_program_->destination->full);
 								} break;
 
+								case Operation::ADDQAl:
+									active_program_->destination->full += q();
+								break;
+
+								case Operation::SUBQAl:
+									active_program_->destination->full -= q();
+								break;
+
 #undef addl
 #undef addw
 #undef addb
@@ -263,6 +272,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 								case Operation::SUBAl:
 									active_program_->destination->full -= active_program_->source->full;
 								break;
+
 
 								// BRA: alters the program counter, exclusively via the prefetch queue.
 								case Operation::BRA: {
@@ -1377,6 +1387,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 				active_step_->microcycle.length +
 				bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
 
+#ifdef LOG_TRACE
 			if(!(active_step_->microcycle.operation & Microcycle::IsProgram)) {
 				switch(active_step_->microcycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 					default: break;
@@ -1395,7 +1406,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 					break;
 				}
 			}
-
+#endif
 
 		/*
 			PERFORM THE BUS STEP'S ACTION.
@@ -1426,7 +1437,7 @@ template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>:
 	half_cycles_left_to_run_ = remaining_duration;
 }
 
-template <class T, bool dtack_is_implicit> ProcessorState Processor<T, dtack_is_implicit>::get_state() {
+template <class T, bool dtack_is_implicit, bool signal_will_perform> ProcessorState Processor<T, dtack_is_implicit, signal_will_perform>::get_state() {
 	write_back_stack_pointer();
 
 	State state;
@@ -1440,7 +1451,7 @@ template <class T, bool dtack_is_implicit> ProcessorState Processor<T, dtack_is_
 	return state;
 }
 
-template <class T, bool dtack_is_implicit> void Processor<T, dtack_is_implicit>::set_state(const ProcessorState &state) {
+template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::set_state(const ProcessorState &state) {
 	memcpy(data_, state.data, sizeof(state.data));
 	memcpy(address_, state.address, sizeof(state.address));
 	stack_pointers_[0].full = state.user_stack_pointer;
