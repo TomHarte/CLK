@@ -416,6 +416,8 @@ struct ProcessorStorageConstructor {
 
 			EXG,						// Maps source and destination registers and an operation mode to an EXG.
 			SWAP,						// Maps a source register to a SWAP.
+
+			EORI_ORI_ANDI_SR,			// Maps to an EORI, ORI or ANDI to SR/CCR.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -616,6 +618,13 @@ struct ProcessorStorageConstructor {
 			{0xf1f8, 0xc188, Operation::EXG, Decoder::EXG},						// 4-105 (p209)
 
 			{0xfff8, 0x4840, Operation::SWAP, Decoder::SWAP},					// 4-185 (p289)
+
+			{0xffff, 0x027c, Operation::ANDItoSR, Decoder::EORI_ORI_ANDI_SR},
+			{0xffff, 0x023c, Operation::ANDItoCCR, Decoder::EORI_ORI_ANDI_SR},
+			{0xffff, 0x0a7c, Operation::EORItoSR, Decoder::EORI_ORI_ANDI_SR},
+			{0xffff, 0x0a3c, Operation::EORItoCCR, Decoder::EORI_ORI_ANDI_SR},
+			{0xffff, 0x007c, Operation::ORItoSR, Decoder::EORI_ORI_ANDI_SR},
+			{0xffff, 0x003c, Operation::ORItoCCR, Decoder::EORI_ORI_ANDI_SR},
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -661,6 +670,13 @@ struct ProcessorStorageConstructor {
 #define inc(n) increment_action(is_long_word_access, is_byte_access, n)
 
 					switch(mapping.decoder) {
+						case Decoder::EORI_ORI_ANDI_SR: {
+							// The source used here is always the high word of the prefetch queue.
+							storage_.instructions[instruction].requires_supervisor = !(instruction & 0x40);
+							op(Action::None, seq("np nn nn"));
+							op(Action::PerformOperation, seq("np np"));
+						} break;
+
 						case Decoder::SWAP: {
 							storage_.instructions[instruction].set_destination(storage_, Dn, ea_register);
 							op(Action::PerformOperation, seq("np"));

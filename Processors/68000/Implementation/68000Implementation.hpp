@@ -482,7 +482,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								break;
 
 								/*
-									Status word moves.
+									Status word moves and manipulations.
 								*/
 
 								case Operation::MOVEtoSR:
@@ -496,6 +496,35 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::MOVEtoCCR:
 									set_ccr(active_program_->source->full);
 								break;
+
+#define and_op(a, b) a &= b
+#define or_op(a, b) a |= b
+#define eor_op(a, b) a ^= b
+
+#define apply(op, func)	{\
+	auto status = get_status();	\
+	op(status, prefetch_queue_.halves.high.full);	\
+	func(status);	\
+	program_counter_.full -= 2;	\
+}
+
+#define apply_sr(op)	apply(op, set_status)
+#define apply_ccr(op)	apply(op, set_ccr)
+
+								case Operation::ANDItoSR:	apply_sr(and_op);	break;
+								case Operation::EORItoSR:	apply_sr(eor_op);	break;
+								case Operation::ORItoSR:	apply_sr(or_op);	break;
+
+								case Operation::ANDItoCCR:	apply_ccr(and_op);	break;
+								case Operation::EORItoCCR:	apply_ccr(eor_op);	break;
+								case Operation::ORItoCCR:	apply_ccr(or_op);	break;
+
+#undef apply_ccr
+#undef apply_sr
+#undef apply
+#undef eor_op
+#undef or_op
+#undef and_op
 
 								/*
 									Multiplications.

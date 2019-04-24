@@ -62,6 +62,10 @@ class ProcessorStorage {
 			MOVEtoSR, MOVEfromSR,
 			MOVEtoCCR,
 
+			ORItoSR,	ORItoCCR,
+			ANDItoSR,	ANDItoCCR,
+			EORItoSR,	EORItoCCR,
+
 			BTSTb,	BTSTl,
 			BCLRl,	BCLRb,
 			CMPb,	CMPw,	CMPl,
