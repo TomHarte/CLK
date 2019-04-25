@@ -104,6 +104,9 @@ class ProcessorStorage {
 			TRAP,
 
 			EXG,	SWAP,
+
+			BCHGl,	BCHGb,
+			BSETl,	BSETb,
 		};
 
 		/*!

@@ -76,18 +76,30 @@ struct ProcessorStorageConstructor {
 		return int(((mode & 0xff) == XXXw) ? Action::AssembleWordDataFromPrefetch : Action::AssembleLongWordDataFromPrefetch);
 	}
 
+	int byte_inc(int reg) const {
+		using Action = ProcessorBase::MicroOp::Action;
+		// Special case: stack pointer byte accesses adjust by two.
+		return int((reg == 7) ? Action::Increment2 : Action::Increment1);
+	}
+
+	int byte_dec(int reg) const {
+		using Action = ProcessorBase::MicroOp::Action;
+		// Special case: stack pointer byte accesses adjust by two.
+		return int((reg == 7) ? Action::Decrement2 : Action::Decrement1);
+	}
+
 	int increment_action(bool is_long_word_access, bool is_byte_access, int reg) const {
 		using Action = ProcessorBase::MicroOp::Action;
-		// Special case: stack pointer byte accesses adjust by two. Cf. http://www.scarpaz.com/Attic/Didattica/Scarpazza-2005-68k-1-addressing.pdf
-		if(reg == 7 && is_byte_access) return int(Action::Increment2);
-		return int(is_long_word_access ? Action::Increment4 : (is_byte_access ? Action::Increment1 : Action::Increment2));
+		if(is_long_word_access) return int(Action::Increment4);
+		if(is_byte_access) return byte_inc(reg);
+		return int(Action::Increment2);
 	}
 
 	int decrement_action(bool is_long_word_access, bool is_byte_access, int reg) const {
 		using Action = ProcessorBase::MicroOp::Action;
-		// Special case: stack pointer byte accesses adjust by two. Ibid.
-		if(reg == 7 && is_byte_access) return int(Action::Decrement2);
-		return int(is_long_word_access ? Action::Decrement4 : (is_byte_access ? Action::Decrement1 : Action::Decrement2));
+		if(is_long_word_access) return int(Action::Decrement4);
+		if(is_byte_access) return byte_dec(reg);
+		return int(Action::Decrement2);
 	}
 
 #define pseq(x, m) ((((m)&0xff) == 0x06) || (((m)&0xff) == 0x13) ? "n " x : x)
@@ -418,6 +430,8 @@ struct ProcessorStorageConstructor {
 			SWAP,						// Maps a source register to a SWAP.
 
 			EORI_ORI_ANDI_SR,			// Maps to an EORI, ORI or ANDI to SR/CCR.
+
+			BCHG_BSET,					// Maps a mode and register, and possibly a source register, to a BCHG or BSET.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -625,6 +639,11 @@ struct ProcessorStorageConstructor {
 			{0xffff, 0x0a3c, Operation::EORItoCCR, Decoder::EORI_ORI_ANDI_SR},
 			{0xffff, 0x007c, Operation::ORItoSR, Decoder::EORI_ORI_ANDI_SR},
 			{0xffff, 0x003c, Operation::ORItoCCR, Decoder::EORI_ORI_ANDI_SR},
+
+			{0xf1c0, 0x0140, Operation::BCHGb, Decoder::BCHG_BSET},		// 4-28 (p132)
+			{0xffc0, 0x0840, Operation::BCHGb, Decoder::BCHG_BSET},		// 4-29 (p133)
+			{0xf1c0, 0x01c0, Operation::BSETb, Decoder::BCHG_BSET},		// 4-57 (p161)
+			{0xffc0, 0x08c0, Operation::BSETb, Decoder::BCHG_BSET},		// 4-58 (p162)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -670,6 +689,60 @@ struct ProcessorStorageConstructor {
 #define inc(n) increment_action(is_long_word_access, is_byte_access, n)
 
 					switch(mapping.decoder) {
+						case Decoder::BCHG_BSET: {
+							const int mode = combined_mode(ea_mode, ea_register);
+
+							// Operations on a register are .l; all others are the default .b.
+							if(ea_mode == Dn) {
+								operation = (operation == Operation::BSETb) ? Operation::BSETl : Operation::BCHGl;
+							}
+
+							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
+
+							if(instruction & 0x100) {
+								// The bit is nominated by a register.
+								const int source_register = (instruction >> 9)&7;
+								storage_.instructions[instruction].set_source(storage_, Dn, source_register);
+							} else {
+								// The bit is nominated by a constant, that will be obtained right here.
+								storage_.instructions[instruction].set_source(storage_, Imm, 0);
+								op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+							}
+
+							switch(mode) {
+								default: continue;
+
+								case Dn:		// [BCHG/BSET].l Dn, Dn
+									// Execution length depends on the selected bit, so allow flexible time for that.
+									op(Action::None, seq("np"));
+									op(Action::PerformOperation, seq("r"));
+								break;
+
+								case Ind:		// [BCHG/BSET].b Dn, (An)
+								case PostInc:	// [BCHG/BSET].b Dn, (An)+
+									op(Action::None, seq("nrd np", { a(ea_register) }, false));
+									op(Action::PerformOperation, seq("nw", { a(ea_register) }, false));
+									if(mode == PostInc) {
+										op(byte_inc(ea_register) | MicroOp::DestinationMask);
+									}
+								break;
+
+								case PreDec:	// [BCHG/BSET].b Dn, -(An)
+									op(byte_dec(ea_register) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }, false));
+									op(Action::PerformOperation, seq("nw", { a(ea_register) }, false));
+								break;
+
+								case XXXl:		// [BCHG/BSET].b Dn, (xxx).l
+									op(Action::None, seq("np"));
+								case XXXw:		// [BCHG/BSET].b Dn, (xxx).w
+								case d16An:		// [BCHG/BSET].b Dn, (d16, An)
+								case d8AnXn:	// [BCHG/BSET].b Dn, (d8, An, Xn)
+									op(address_action_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np nrd np", mode), { ea(1) }, false));
+									op(Action::PerformOperation, seq("nw", { ea(1) }, false));
+								break;
+							}
+						} break;
+
 						case Decoder::EORI_ORI_ANDI_SR: {
 							// The source used here is always the high word of the prefetch queue.
 							storage_.instructions[instruction].requires_supervisor = !(instruction & 0x40);
@@ -1462,12 +1535,12 @@ struct ProcessorStorageConstructor {
 									op(Action::None, seq("nrd np", { a(ea_register) }, false));
 									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
 									if(mode == PostInc) {
-										op(inc(ea_register) | MicroOp::DestinationMask);
+										op(byte_inc(ea_register) | MicroOp::DestinationMask);
 									}
 								break;
 
 								case PreDec:	// BTST.b Dn, -(An)
-									op(dec(ea_register) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }, false));
+									op(byte_dec(ea_register) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }, false));
 									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
 								break;
 
@@ -1518,13 +1591,13 @@ struct ProcessorStorageConstructor {
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nrd np", { a(ea_register) }, false));
 									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
 									if(mode == PostInc) {
-										op(inc(ea_register) | MicroOp::DestinationMask);
+										op(byte_inc(ea_register) | MicroOp::DestinationMask);
 									}
 								break;
 
 								case PreDec:	// BTST.b #, -(An)
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
-									op(dec(ea_register) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }, false));
+									op(byte_dec(ea_register) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }, false));
 									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
 								break;
 

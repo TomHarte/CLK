@@ -311,6 +311,28 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									active_step_->microcycle.length = HalfCycles(8 + ((active_program_->source->full & 31) / 16) * 4);
 								break;
 
+								case Operation::BCHGl:
+									zero_result_ = active_program_->destination->full & (1 << (active_program_->source->full & 31));
+									active_program_->destination->full ^= 1 << (active_program_->source->full & 31);
+									active_step_->microcycle.length = HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4));
+								break;
+
+								case Operation::BCHGb:
+									zero_result_ = active_program_->destination->halves.low.halves.low & (1 << (active_program_->source->full & 7));
+									active_program_->destination->halves.low.halves.low ^= 1 << (active_program_->source->full & 7);
+								break;
+
+								case Operation::BSETl:
+									zero_result_ = active_program_->destination->full & (1 << (active_program_->source->full & 31));
+									active_program_->destination->full |= 1 << (active_program_->source->full & 31);
+									active_step_->microcycle.length = HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4));
+								break;
+
+								case Operation::BSETb:
+									zero_result_ = active_program_->destination->halves.low.halves.low & (1 << (active_program_->source->full & 7));
+									active_program_->destination->halves.low.halves.low |= 1 << (active_program_->source->full & 7);
+								break;
+
 								// Bcc: ordinarily evaluates the relevant condition and displacement size and then:
 								//	if condition is false, schedules bus operations to get past this instruction;
 								//	otherwise applies the offset and schedules bus operations to refill the prefetch queue.
