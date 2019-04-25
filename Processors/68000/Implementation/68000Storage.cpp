@@ -419,7 +419,8 @@ struct ProcessorStorageConstructor {
 			LEA,						// Maps a destination register and a source mode and register to an LEA.
 
 			MOVE,						// Maps a source mode and register and a destination mode and register to a MOVE.
-			MOVEtoSRCCR,				// Maps a source mode and register to a MOVE SR or MOVE CCR.
+			MOVEtoSRCCR,				// Maps a source mode and register to a MOVE to SR or MOVE to CCR.
+			MOVEfromSR,					// Maps a source mode and register to a MOVE fom SR.
 			MOVEq,						// Maps a destination register to a MOVEQ.
 
 			MULU_MULS,					// Maps a destination register and a source mode and register to a MULU or MULS.
@@ -519,6 +520,7 @@ struct ProcessorStorageConstructor {
 
 			{0xffc0, 0x46c0, Operation::MOVEtoSR, Decoder::MOVEtoSRCCR},	// 6-19 (p473)
 			{0xffc0, 0x44c0, Operation::MOVEtoCCR, Decoder::MOVEtoSRCCR},	// 4-123 (p227)
+			{0xffc0, 0x40c0, Operation::MOVEfromSR, Decoder::MOVEfromSR},	// 6-17 (p471)
 
 			{0xf1c0, 0xb000, Operation::CMPb, Decoder::CMP},	// 4-75 (p179)
 			{0xf1c0, 0xb040, Operation::CMPw, Decoder::CMP},	// 4-75 (p179)
@@ -2336,6 +2338,50 @@ struct ProcessorStorageConstructor {
 								case XXXw:		// LEA (xxx).W, An
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask, seq("np np"));
 									op(Action::PerformOperation);
+								break;
+							}
+						} break;
+
+						case Decoder::MOVEfromSR: {
+							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
+							storage_.instructions[instruction].requires_supervisor = true;
+
+							const int mode = combined_mode(ea_mode, ea_register);
+							switch(mode) {
+								default: continue;
+
+								case Dn:		// MOVE SR, Dn
+									op(Action::PerformOperation, seq("np n"));
+								break;
+
+								// NOTE ON nr BELOW.
+								// It appears the 68000 performs a read-modify-write for this operation even
+								// though it doesn't use the read; therefore where it's easier I've left the
+								// nr within the same set of bus steps, before the PerformOperation, as it's
+								// then a harmless read.
+								//
+								// DO NOT CORRECT TO nrd.
+
+								case Ind:		// MOVE SR, (An)
+								case PostInc:	// MOVE SR, (An)+
+									op(Action::PerformOperation, seq("nr np nw", { a(ea_register), a(ea_register) }));
+									if(mode == PostInc) {
+										op(int(Action::Increment2) | MicroOp::DestinationMask);
+									}
+								break;
+
+								case PreDec:	// MOVE SR, -(An)
+									op(int(Action::Decrement2) | MicroOp::DestinationMask);
+									op(Action::PerformOperation, seq("n nr np nw", { a(ea_register), a(ea_register) }));
+								break;
+
+								case XXXl:		// MOVE SR, (xxx).l
+									op(Action::None, seq("np"));
+								case XXXw:		// MOVE SR, (xxx).w
+								case d16An:		// MOVE SR, (d16, An)
+								case d8AnXn:	// MOVE SR, (d8, An, Xn)
+									op(address_action_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np nr", mode), { ea(1) }));
+									op(Action::PerformOperation, seq("np nw", { ea(1) }));
 								break;
 							}
 						} break;

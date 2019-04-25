@@ -512,7 +512,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								break;
 
 								case Operation::MOVEfromSR:
-									active_program_->source->halves.low.full = get_status();
+									active_program_->destination->halves.low.full = get_status();
 								break;
 
 								case Operation::MOVEtoCCR:
