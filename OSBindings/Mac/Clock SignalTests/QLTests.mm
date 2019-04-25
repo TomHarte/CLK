@@ -14,22 +14,56 @@
 #include <iostream>
 #include <fstream>
 
+#include <zlib.h>
+
 #include "68000.hpp"
 #include "CSROMFetcher.hpp"
 
 class QL: public CPU::MC68000::BusHandler {
 	public:
-		QL(const std::vector<uint8_t> &rom) : m68000_(*this) {
+		QL(const std::vector<uint8_t> &rom, const char *trace_name) : m68000_(*this) {
 			assert(!(rom.size() & 1));
 			rom_.resize(rom.size() / 2);
 
 			for(size_t c = 0; c < rom_.size(); ++c) {
 				rom_[c] = (rom[c << 1] << 8) | rom[(c << 1) + 1];
 			}
+
+			trace = gzopen(trace_name, "rt");
+		}
+
+		~QL() {
+			gzclose(trace);
 		}
 
 		void run_for(HalfCycles cycles) {
 			m68000_.run_for(cycles);
+		}
+
+		void will_perform(uint32_t address, uint16_t opcode) {
+			// Obtain the next line from the trace file.
+			char correct_state[300];
+			gzgets(trace, correct_state, sizeof(correct_state));
+			++line_count;
+
+			// Generate state locally.
+			const auto state = m68000_.get_state();
+			char local_state[300];
+			sprintf(local_state, "%04x: %02x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x \n",
+				address,
+				state.status,
+				state.data[0], state.data[1], state.data[2], state.data[3], state.data[4], state.data[5], state.data[6], state.data[7],
+				state.address[0], state.address[1], state.address[2], state.address[3], state.address[4], state.address[5], state.address[6],
+				(state.status & 0x2000) ? state.supervisor_stack_pointer : state.user_stack_pointer
+				);
+
+			// Check that the two coincide.
+			if(strcmp(correct_state, local_state)) {
+				fprintf(stderr, "Diverges at line %d\n", line_count);
+				fprintf(stderr, "Good: %s", correct_state);
+				fprintf(stderr, "Bad:  %s", local_state);
+				assert(false);
+			}
 		}
 
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
@@ -52,22 +86,6 @@ class QL: public CPU::MC68000::BusHandler {
 			using Microcycle = CPU::MC68000::Microcycle;
 			if(cycle.data_select_active()) {
 				uint16_t peripheral_result = 0xffff;
-/*				if(is_peripheral) {
-					switch(address & 0x7ff) {
-						// A hard-coded value for TIMER B.
-						case (0xa21 >> 1):
-							peripheral_result = 0x00000001;
-						break;
-					}
-					printf("Peripheral: %c %08x", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address);
-					if(!(cycle.operation & Microcycle::Read)) {
-						if(cycle.operation & Microcycle::SelectByte)
-							printf(" %02x", cycle.value->halves.low);
-						else
-							printf(" %04x", cycle.value->full);
-					}
-					printf("\n");
-				}*/
 
 				switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 					default: break;
@@ -93,10 +111,13 @@ class QL: public CPU::MC68000::BusHandler {
 		}
 
 	private:
-		CPU::MC68000::Processor<QL, true> m68000_;
+		CPU::MC68000::Processor<QL, true, true> m68000_;
 
 		std::vector<uint16_t> rom_;
 		std::array<uint16_t, 64*1024> ram_;
+
+		int line_count = 0;
+		gzFile trace;
 };
 
 @interface QLTests : XCTestCase
@@ -106,18 +127,16 @@ class QL: public CPU::MC68000::BusHandler {
 	std::unique_ptr<QL> _machine;
 }
 
-std::streambuf *coutbuf;
-
-- (void)setUp {
-    const auto roms = CSROMFetcher()("SinclairQL", {"js.rom"});
-    _machine.reset(new QL(*roms[0]));
-}
-
+/*!
+	Tests the progression of Clock Signal's 68000 through the Sinclair QL's ROM against a known-good trace.
+*/
 - (void)testStartup {
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct results.
-    _machine->run_for(HalfCycles(40000000));
+	const auto roms = CSROMFetcher()("SinclairQL", {"js.rom"});
+	NSString *const traceLocation = [[NSBundle bundleForClass:[self class]] pathForResource:@"qltrace" ofType:@".txt.gz"];
+	_machine.reset(new QL(*roms[0], traceLocation.UTF8String));
+
+	// This is how many cycles it takes to exhaust the supplied trace file.
+	_machine->run_for(HalfCycles(23923191));
 }
 
 @end
-
