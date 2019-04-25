@@ -728,6 +728,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 										offset = 15;
 										start_address -= 2;
 										write_address_sequence_word(dec_action);
+										movem_final_address_ = start_address + 2;
 									} else {
 										write_address_sequence_word(inc_action);
 									}
