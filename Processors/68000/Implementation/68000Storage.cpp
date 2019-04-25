@@ -894,8 +894,8 @@ struct ProcessorStorageConstructor {
 
 									case l(PreDec):		// [AND/OR/EOR].l Dn, -(An)
 										op(int(Action::Decrement4) | MicroOp::DestinationMask, seq("n"));
-									case l(Ind):		// [AND/OR/EOR].l Dn, (An)+
-									case l(PostInc):	// [AND/OR/EOR].l Dn, (An)
+									case l(Ind):		// [AND/OR/EOR].l Dn, (An)
+									case l(PostInc):	// [AND/OR/EOR].l Dn, (An)+
 										op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd", { ea(1), ea(1) }));
 										op(Action::PerformOperation, seq("np nw- nW", { ea(1), ea(1) }));
 										if(mode == PostInc) {
@@ -936,7 +936,7 @@ struct ProcessorStorageConstructor {
 								storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 								storage_.instructions[instruction].set_destination(storage_, Dn, data_register);
 
-								switch(mode) {
+								switch(is_long_word_access ? l(mode) : bw(mode)) {
 									default: continue;
 
 									case bw(Dn):		// [AND/OR].bw Dn, Dn
