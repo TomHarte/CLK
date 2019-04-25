@@ -932,10 +932,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	negative_flag_ = zero_result_ & (m);	\
 	overflow_flag_ = (value ^ zero_result_) & (m);
 
-#define set_flags(v, m, t)	\
-	set_neg_zero_overflow(v, m)	\
-	extend_flag_ = carry_flag_ = value & (t);
-
 #define decode_shift_count()	\
 	int shift_count = (decoded_instruction_ & 32) ? data_[(decoded_instruction_ >> 9) & 7].full&63 : ( ((decoded_instruction_ >> 9)&7) ? ((decoded_instruction_ >> 9)&7) : 8) ;	\
 	active_step_->microcycle.length = HalfCycles(4 * shift_count);
@@ -944,45 +940,89 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #define set_flags_w(t) set_flags(active_program_->destination->halves.low.full, 0x8000, t)
 #define set_flags_l(t) set_flags(active_program_->destination->full, 0x80000000, t)
 
-#define shift_op(name, op, mb, mw, ml)	\
-	case Operation::name##b: {	\
-		decode_shift_count();	\
-		const auto value = active_program_->destination->halves.low.halves.low;	\
-		op(active_program_->destination->halves.low.halves.low, shift_count, 0xff, 7);	\
-		set_flags_b(mb);	\
-	} break;	\
+#define lsl(destination, size)	{\
+	decode_shift_count();	\
+	const auto value = destination;	\
 \
-	case Operation::name##w: {	\
-		decode_shift_count();	\
-		const auto value = active_program_->destination->halves.low.full;	\
-		op(active_program_->destination->halves.low.full, shift_count, 0xffff, 15);	\
-		set_flags_w(mw);	\
-	} break;	\
+	if(!shift_count) {	\
+		carry_flag_ = 0;	\
+	} else {	\
+		destination = value << shift_count;	\
+		extend_flag_ = carry_flag_ = value & ((1 << (size - 1)) >> (shift_count - 1));	\
+	}	\
 \
-	case Operation::name##l: {	\
-		decode_shift_count();	\
-		const auto value = active_program_->destination->full;	\
-		op(active_program_->destination->full, shift_count, 0xffffffff, 31);	\
-		set_flags_l(ml);	\
-	} break;	\
+	set_neg_zero_overflow(destination, 1 << (size - 1));	\
+}
+
+								case Operation::ASLm:
+								case Operation::LSLm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full = value >> 1;
+									extend_flag_ = carry_flag_ = value & 1;
+									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
+								} break;
+								case Operation::ASLb:
+								case Operation::LSLb: lsl(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::ASLw:
+								case Operation::LSLw: lsl(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::ASLl:
+								case Operation::LSLl: lsl(active_program_->destination->full, 32); 					break;
+
+#undef lsl
+
+#define lsr(destination, size)	{\
+	decode_shift_count();	\
+	const auto value = destination;	\
 \
-	case Operation::name##m: {	\
-		const auto value = active_program_->destination->halves.low.full;	\
-		op(active_program_->destination->halves.low.full, 1, 0xffff, 15);	\
-		set_flags_w(mw);	\
-	} break;
+	if(!shift_count) {	\
+		carry_flag_ = 0;	\
+	} else {	\
+		destination = value >> shift_count;	\
+		extend_flag_ = carry_flag_ = value & (1 << (shift_count - 1));	\
+	}	\
+\
+	set_neg_zero_overflow(destination, 1 << (size - 1));	\
+}
 
-#define lsl(x, c, m, d) x <<= c
-#define lsr(x, c, m, d) x >>= c
-#define asl(x, c, m, d) x <<= c
-#define asr(x, c, m, d) x = (x >> c) | (((value >> d) & 1) *  (m ^ (m >> c)))
+								case Operation::LSRm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full = value >> 1;
+									extend_flag_ = carry_flag_ = value & 1;
+									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
+								} break;
+								case Operation::LSRb: lsr(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::LSRw: lsr(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::LSRl: lsr(active_program_->destination->full, 32); 					break;
 
-// TODO: carry/extend is incorrect for shifts of greater than one digit.
+#undef lsr
 
-								shift_op(LSL, lsl, 0x80, 0x8000, 0x80000000);
-								shift_op(ASL, lsl, 0x80, 0x8000, 0x80000000);
-								shift_op(LSR, lsr, 0x01, 0x0001, 0x00000001);
-								shift_op(ASR, asr, 0x01, 0x0001, 0x00000001);
+#define asr(destination, size)	{\
+	decode_shift_count();	\
+	const auto value = destination;	\
+\
+	if(!shift_count) {	\
+		carry_flag_ = 0;	\
+	} else {	\
+		destination =	\
+			(value >> shift_count) |	\
+			((value & (1 << (size - 1)) ? 0xffffffff : 0x000000000) << (size - shift_count));	\
+		extend_flag_ = carry_flag_ = value & (1 << (shift_count - 1));	\
+	}	\
+\
+	set_neg_zero_overflow(destination, 1 << (size - 1));	\
+}
+
+								case Operation::ASRm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full = (value&0x80) | (value >> 1);
+									extend_flag_ = carry_flag_ = value & 1;
+									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
+								} break;
+								case Operation::ASRb: asr(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::ASRw: asr(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::ASRl: asr(active_program_->destination->full, 32); 					break;
+
+#undef asr
 
 #undef set_flags
 #define set_flags(v, m, t)	\
