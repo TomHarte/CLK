@@ -94,8 +94,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						case int(MicroOp::Action::None): break;
 
 						case int(MicroOp::Action::PerformOperation):
-#define sub_overflow() (source ^ destination) & (destination ^ result)
-#define add_overflow() ~(source ^ destination) & (destination ^ result)
+#define sub_overflow() ((result ^ destination) & (destination ^ source))
+#define add_overflow() ((result ^ destination) & ~(destination ^ source))
 							switch(active_program_->operation) {
 								/*
 									ABCD adds the lowest bytes form the source and destination using BCD arithmetic,
@@ -128,9 +128,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #define subop(a, b) a - b
 
 #define addsubb(a, b, dest, op, overflow)	\
-	const auto source = a;	\
-	const auto destination = b;	\
-	const int result = op(destination, source);	\
+	const int source = a;	\
+	const int destination = b;	\
+	const auto result = op(destination, source);	\
 \
 	zero_result_ = dest = uint8_t(result);	\
 	extend_flag_ = carry_flag_ = result & ~0xff;	\
@@ -138,9 +138,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	overflow_flag_ = overflow() & 0x80;
 
 #define addsubw(a, b, dest, op, overflow)	\
-	const auto source = a;	\
-	const auto destination = b;	\
-	const int result = op(destination, source);	\
+	const int source = a;	\
+	const int destination = b;	\
+	const auto result = op(destination, source);	\
 \
 	zero_result_ = dest = uint16_t(result);	\
 	extend_flag_ = carry_flag_ = result & ~0xffff;	\
@@ -148,9 +148,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	overflow_flag_ = overflow() & 0x8000;
 
 #define addsubl(a, b, dest, op, overflow)	\
-	const auto source = a;	\
-	const auto destination = b;	\
-	const uint64_t result = op(uint64_t(destination), uint64_t(source));	\
+	const uint64_t source = a;	\
+	const uint64_t destination = b;	\
+	const auto result = op(destination, source);	\
 \
 	zero_result_ = dest = uint32_t(result);	\
 	extend_flag_ = carry_flag_ = result >> 32;	\
@@ -767,11 +767,15 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								/*
 									NEGs: negatives the destination, setting the zero,
 									negative, overflow and carry flags appropriate, and extend.
+
+									NB: since the same logic as SUB is used to calculate overflow,
+									and SUB calculates `destination - source`, the NEGs deliberately
+									label 'source' and 'destination' differently from Motorola.
 								*/
 								case Operation::NEGb: {
-									const int source = 0;
-									const int destination = active_program_->destination->halves.low.halves.low;
-									const int result = source - destination;
+									const int destination = 0;
+									const int source = active_program_->destination->halves.low.halves.low;
+									const auto result = destination - source;
 									active_program_->destination->halves.low.halves.low = result;
 
 									zero_result_ = result & 0xff;
@@ -781,9 +785,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} break;
 
 								case Operation::NEGw: {
-									const int source = 0;
-									const int destination = active_program_->destination->halves.low.full;
-									const int result = source - destination;
+									const int destination = 0;
+									const int source = active_program_->destination->halves.low.full;
+									const auto result = destination - source;
 									active_program_->destination->halves.low.full = result;
 
 									zero_result_ = result & 0xffff;
@@ -793,9 +797,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} break;
 
 								case Operation::NEGl: {
-									const int source = 0;
-									const int destination = active_program_->destination->full;
-									int64_t result = source - destination;
+									const uint64_t destination = 0;
+									const uint64_t source = active_program_->destination->full;
+									const auto result = destination - source;
 									active_program_->destination->full = uint32_t(result);
 
 									zero_result_ = uint_fast32_t(result);
@@ -808,9 +812,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									NEGXs: NEG, with extend.
 								*/
 								case Operation::NEGXb: {
-									const int source = 0;
-									const int destination = active_program_->destination->halves.low.halves.low;
-									const int result = source - destination - (extend_flag_ ? 1 : 0);
+									const int source = active_program_->destination->halves.low.halves.low;
+									const int destination = 0;
+									const auto result = destination - source - (extend_flag_ ? 1 : 0);
 									active_program_->destination->halves.low.halves.low = result;
 
 									zero_result_ = result & 0xff;
@@ -820,9 +824,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} break;
 
 								case Operation::NEGXw: {
-									const int source = 0;
-									const int destination = active_program_->destination->halves.low.full;
-									const int result = source - destination - (extend_flag_ ? 1 : 0);
+									const int source = active_program_->destination->halves.low.full;
+									const int destination = 0;
+									const auto result = destination - source - (extend_flag_ ? 1 : 0);
 									active_program_->destination->halves.low.full = result;
 
 									zero_result_ = result & 0xffff;
@@ -832,9 +836,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} break;
 
 								case Operation::NEGXl: {
-									const int source = 0;
-									const int destination = active_program_->destination->full;
-									int64_t result = source - destination - (extend_flag_ ? 1 : 0);
+									const uint64_t source = active_program_->destination->full;
+									const uint64_t destination = 0;
+									const auto result = destination - source - (extend_flag_ ? 1 : 0);
 									active_program_->destination->full = uint32_t(result);
 
 									zero_result_ = uint_fast32_t(result);
