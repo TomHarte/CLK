@@ -993,47 +993,17 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
 }
 
-								case Operation::ASLm:
-								case Operation::LSLm: {
+								case Operation::ASLm: {
 									const auto value = active_program_->destination->halves.low.full;
 									active_program_->destination->halves.low.full = value >> 1;
 									extend_flag_ = carry_flag_ = value & 1;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
-								case Operation::ASLb:
-								case Operation::LSLb: lsl(active_program_->destination->halves.low.halves.low, 8);	break;
-								case Operation::ASLw:
-								case Operation::LSLw: lsl(active_program_->destination->halves.low.full, 16); 		break;
-								case Operation::ASLl:
-								case Operation::LSLl: lsl(active_program_->destination->full, 32); 					break;
+								case Operation::ASLb: lsl(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::ASLw: lsl(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::ASLl: lsl(active_program_->destination->full, 32); 					break;
 
-#undef lsl
 
-#define lsr(destination, size)	{\
-	decode_shift_count();	\
-	const auto value = destination;	\
-\
-	if(!shift_count) {	\
-		carry_flag_ = 0;	\
-	} else {	\
-		destination = value >> shift_count;	\
-		extend_flag_ = carry_flag_ = value & (1 << (shift_count - 1));	\
-	}	\
-\
-	set_neg_zero_overflow(destination, 1 << (size - 1));	\
-}
-
-								case Operation::LSRm: {
-									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = value >> 1;
-									extend_flag_ = carry_flag_ = value & 1;
-									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
-								} break;
-								case Operation::LSRb: lsr(active_program_->destination->halves.low.halves.low, 8);	break;
-								case Operation::LSRw: lsr(active_program_->destination->halves.low.full, 16); 		break;
-								case Operation::LSRl: lsr(active_program_->destination->full, 32); 					break;
-
-#undef lsr
 
 #define asr(destination, size)	{\
 	decode_shift_count();	\
@@ -1061,7 +1031,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::ASRw: asr(active_program_->destination->halves.low.full, 16); 		break;
 								case Operation::ASRl: asr(active_program_->destination->full, 32); 					break;
 
-#undef asr
 
 #undef set_neg_zero_overflow
 #define set_neg_zero_overflow(v, m)	\
@@ -1075,6 +1044,40 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	negative_flag_ = zero_result_ & (m);	\
 	overflow_flag_ = 0;	\
 	carry_flag_ = value & (t);
+
+								case Operation::LSLm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full = value >> 1;
+									extend_flag_ = carry_flag_ = value & 1;
+									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
+								} break;
+								case Operation::LSLb: lsl(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::LSLw: lsl(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::LSLl: lsl(active_program_->destination->full, 32); 					break;
+
+#define lsr(destination, size)	{\
+	decode_shift_count();	\
+	const auto value = destination;	\
+\
+	if(!shift_count) {	\
+		carry_flag_ = 0;	\
+	} else {	\
+		destination = value >> shift_count;	\
+		extend_flag_ = carry_flag_ = value & (1 << (shift_count - 1));	\
+	}	\
+\
+	set_neg_zero_overflow(destination, 1 << (size - 1));	\
+}
+
+								case Operation::LSRm: {
+									const auto value = active_program_->destination->halves.low.full;
+									active_program_->destination->halves.low.full = value >> 1;
+									extend_flag_ = carry_flag_ = value & 1;
+									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
+								} break;
+								case Operation::LSRb: lsr(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::LSRw: lsr(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::LSRl: lsr(active_program_->destination->full, 32); 					break;
 
 #define rol(destination, size)	{ \
 		decode_shift_count();	\
@@ -1103,7 +1106,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::ROLw: rol(active_program_->destination->halves.low.full, 16); 		break;
 								case Operation::ROLl: rol(active_program_->destination->full, 32); 					break;
 
-#undef rol
 
 #define ror(destination, size)	{ \
 		decode_shift_count();	\
@@ -1132,7 +1134,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::RORw: ror(active_program_->destination->halves.low.full, 16); 		break;
 								case Operation::RORl: ror(active_program_->destination->full, 32); 					break;
 
-#undef ror
 
 #define roxl(destination, size)	{ \
 	decode_shift_count();	\
@@ -1162,7 +1163,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::ROXLw: roxl(active_program_->destination->halves.low.full, 16); 		break;
 								case Operation::ROXLl: roxl(active_program_->destination->full, 32); 					break;
 
-#undef roxl
 
 #define roxr(destination, size)	{ \
 	decode_shift_count();	\
@@ -1193,6 +1193,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::ROXRl: roxr(active_program_->destination->full, 32); 					break;
 
 #undef roxr
+#undef roxl
+#undef ror
+#undef rol
+#undef asr
+#undef lsr
+#undef lsl
 
 #undef set_flags
 #undef decode_shift_count
