@@ -145,6 +145,7 @@ struct ProcessorStorageConstructor {
 		* nF: fetch the SSPs MSW;
 		* nf: fetch the SSP's LSW;
 		* _: hold the reset line active for the usual period.
+		* tas: perform the final 6 cycles of a TAS: like an n nw but with the address strobe active for the entire period.
 
 		Quite a lot of that is duplicative, implying both something about internal
 		state and something about what's observable on the bus, but it's helpful to
@@ -213,7 +214,7 @@ struct ProcessorStorageConstructor {
 				steps.push_back(step);
 
 				step.microcycle.length = HalfCycles(3);
-				step.microcycle.operation = Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
+				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
 				step.action = Action::IncrementEffectiveAddress0;
 				steps.push_back(step);
 
@@ -229,7 +230,7 @@ struct ProcessorStorageConstructor {
 				steps.push_back(step);
 
 				step.microcycle.length = HalfCycles(3);
-				step.microcycle.operation |= Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
+				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
 				step.action = Action::IncrementEffectiveAddress0;
 				steps.push_back(step);
 
@@ -246,7 +247,7 @@ struct ProcessorStorageConstructor {
 				steps.push_back(step);
 
 				step.microcycle.length = HalfCycles(3);
-				step.microcycle.operation |= Microcycle::SelectWord | Microcycle::Read | Microcycle::IsProgram;
+				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
 				step.action = Action::IncrementProgramCounter;
 				steps.push_back(step);
 
@@ -277,7 +278,7 @@ struct ProcessorStorageConstructor {
 				steps.push_back(step);
 
 				step.microcycle.length = HalfCycles(3);
-				step.microcycle.operation |= (read_full_words ? Microcycle::SelectWord : Microcycle::SelectByte) | (is_read ? Microcycle::Read : 0);
+				step.microcycle.operation = Microcycle::SameAddress | (is_read ? Microcycle::Read : 0) | (read_full_words ? Microcycle::SelectWord : Microcycle::SelectByte);
 				if(post_adjustment) {
 					// nr and nR should affect address 0; nw, nW, nrd and nRd should affect address 1.
 					if(tolower(token[1]) == 'r' && token.size() == 2) {
@@ -287,6 +288,26 @@ struct ProcessorStorageConstructor {
 
 					}
 				}
+				steps.push_back(step);
+				++address_iterator;
+
+				continue;
+			}
+
+			// The completing part of a TAS.
+			if(token == "tas") {
+				RegisterPair32 *const scratch_data = &storage_.destination_bus_data_[0];
+
+				assert(address_iterator != addresses.end());
+
+				step.microcycle.length = HalfCycles(9);
+				step.microcycle.operation = Microcycle::SameAddress;
+				step.microcycle.address = *address_iterator;
+				step.microcycle.value = &scratch_data->halves.low;
+				steps.push_back(step);
+
+				step.microcycle.length = HalfCycles(3);
+				step.microcycle.operation = Microcycle::SameAddress | Microcycle::SelectByte;
 				steps.push_back(step);
 				++address_iterator;
 
@@ -304,7 +325,7 @@ struct ProcessorStorageConstructor {
 				steps.push_back(step);
 
 				step.microcycle.length = HalfCycles(3);
-				step.microcycle.operation |= Microcycle::SelectWord;
+				step.microcycle.operation = Microcycle::SameAddress | Microcycle::SelectWord;
 				step.action = Action::DecrementEffectiveAddress1;
 				steps.push_back(step);
 
@@ -322,7 +343,7 @@ struct ProcessorStorageConstructor {
 				steps.push_back(step);
 
 				step.microcycle.length = HalfCycles(3);
-				step.microcycle.operation |= Microcycle::SelectWord;
+				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::SelectWord;
 				step.action = Action::IncrementEffectiveAddress0;
 				steps.push_back(step);
 
@@ -432,6 +453,8 @@ struct ProcessorStorageConstructor {
 			EORI_ORI_ANDI_SR,			// Maps to an EORI, ORI or ANDI to SR/CCR.
 
 			BCHG_BSET,					// Maps a mode and register, and possibly a source register, to a BCHG or BSET.
+
+			TAS,						// Maps a mode and register to a TAS.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -644,6 +667,8 @@ struct ProcessorStorageConstructor {
 			{0xffc0, 0x0840, Operation::BCHGb, Decoder::BCHG_BSET},		// 4-29 (p133)
 			{0xf1c0, 0x01c0, Operation::BSETb, Decoder::BCHG_BSET},		// 4-57 (p161)
 			{0xffc0, 0x08c0, Operation::BSETb, Decoder::BCHG_BSET},		// 4-58 (p162)
+
+			{0xffc0, 0x4ac0, Operation::TAS, Decoder::TAS},				// 4-186 (p290)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -689,6 +714,41 @@ struct ProcessorStorageConstructor {
 #define inc(n) increment_action(is_long_word_access, is_byte_access, n)
 
 					switch(mapping.decoder) {
+						case Decoder::TAS: {
+							const int mode = combined_mode(ea_mode, ea_register);
+							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
+							switch(mode) {
+								default: continue;
+
+								case Dn:		// TAS Dn
+									op(Action::PerformOperation, seq("np"));
+								break;
+
+								case Ind:		// TAS (An)
+								case PostInc:	// TAS (An)+
+									op(Action::None, seq("nrd", { a(ea_register) }, false));
+									op(Action::PerformOperation, seq("tas np", { a(ea_register) }, false));
+									if(mode == PostInc) {
+										op(byte_inc(ea_register) | MicroOp::DestinationMask);
+									}
+								break;
+
+								case PreDec:	// TAS -(An)
+									op(byte_dec(ea_register) | MicroOp::DestinationMask, seq("n nrd", { a(ea_register) }, false));
+									op(Action::PerformOperation, seq("tas np", { a(ea_register) }, false));
+								break;
+
+								case XXXl:		// TAS (xxx).l
+									op(Action::None, seq("np"));
+								case XXXw:		// TAS (xxx).w
+								case d16An:		// TAS (d16, An)
+								case d8AnXn:	// TAS (d8, An, Xn)
+									op(address_action_for_mode(mode), seq("np nrd", { ea(1) }, false));
+									op(Action::PerformOperation, seq("tas np", { ea(1) }, false));
+								break;
+							}
+						} break;
+
 						case Decoder::BCHG_BSET: {
 							const int mode = combined_mode(ea_mode, ea_register);
 

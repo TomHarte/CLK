@@ -850,6 +850,18 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								break;
 
 								/*
+									TAS: sets zero and negative depending on the current value of the destination,
+									and sets the high bit.
+								*/
+
+								case Operation::TAS:
+									overflow_flag_ = carry_flag_ = 0;
+									zero_result_ = active_program_->destination->halves.low.halves.low;
+									negative_flag_ = active_program_->destination->halves.low.halves.low & 0x80;
+									active_program_->destination->halves.low.halves.low |= 0x80;
+								break;
+
+								/*
 									Bitwise operators: AND, OR and EOR. All three clear the overflow and carry flags,
 									and set zero and negative appropriately.
 								*/

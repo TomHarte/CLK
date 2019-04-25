@@ -107,6 +107,8 @@ class ProcessorStorage {
 
 			BCHGl,	BCHGb,
 			BSETl,	BSETb,
+
+			TAS,
 		};
 
 		/*!
