@@ -519,6 +519,31 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									set_ccr(active_program_->source->full);
 								break;
 
+								case Operation::EXTbtow:
+									active_program_->destination->halves.low.halves.high =
+										(active_program_->destination->halves.low.halves.low & 0x80) ? 0xff : 0x00;
+									overflow_flag_ = carry_flag_ = 0;
+									zero_result_ = active_program_->destination->halves.low.halves.high;
+									negative_flag_ = zero_result_ & 0x8000;
+								break;
+
+								case Operation::EXTbtol:
+									active_program_->destination->full =
+										active_program_->destination->halves.low.halves.low |
+										((active_program_->destination->halves.low.halves.low & 0x80) ? 0xffffff00 : 0x00000000);
+									overflow_flag_ = carry_flag_ = 0;
+									zero_result_ = active_program_->destination->full;
+									negative_flag_ = zero_result_ & 0x80000000;
+								break;
+
+								case Operation::EXTwtol:
+									active_program_->destination->halves.high.full =
+										(active_program_->destination->halves.low.full & 0x8000) ? 0xffff : 0x0000;
+									overflow_flag_ = carry_flag_ = 0;
+									zero_result_ = active_program_->destination->full;
+									negative_flag_ = zero_result_ & 0x80000000;
+								break;
+
 #define and_op(a, b) a &= b
 #define or_op(a, b) a |= b
 #define eor_op(a, b) a ^= b

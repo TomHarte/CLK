@@ -449,7 +449,7 @@ struct ProcessorStorageConstructor {
 			NOP,						// Maps to a NOP.
 
 			EXG,						// Maps source and destination registers and an operation mode to an EXG.
-			SWAP,						// Maps a source register to a SWAP.
+			EXT_SWAP,					// Maps a source register to a SWAP or EXT.
 
 			EORI_ORI_ANDI_SR,			// Maps to an EORI, ORI or ANDI to SR/CCR.
 
@@ -656,7 +656,7 @@ struct ProcessorStorageConstructor {
 			{0xf1f8, 0xc148, Operation::EXG, Decoder::EXG},						// 4-105 (p209)
 			{0xf1f8, 0xc188, Operation::EXG, Decoder::EXG},						// 4-105 (p209)
 
-			{0xfff8, 0x4840, Operation::SWAP, Decoder::SWAP},					// 4-185 (p289)
+			{0xfff8, 0x4840, Operation::SWAP, Decoder::EXT_SWAP},				// 4-185 (p289)
 
 			{0xffff, 0x027c, Operation::ANDItoSR, Decoder::EORI_ORI_ANDI_SR},
 			{0xffff, 0x023c, Operation::ANDItoCCR, Decoder::EORI_ORI_ANDI_SR},
@@ -671,6 +671,10 @@ struct ProcessorStorageConstructor {
 			{0xffc0, 0x08c0, Operation::BSETb, Decoder::BCHG_BSET},		// 4-58 (p162)
 
 			{0xffc0, 0x4ac0, Operation::TAS, Decoder::TAS},				// 4-186 (p290)
+
+			{0xfff8, 0x4880, Operation::EXTbtow, Decoder::EXT_SWAP},		// 4-106 (p210)
+			{0xfff8, 0x48c0, Operation::EXTwtol, Decoder::EXT_SWAP},		// 4-106 (p210)
+			{0xfff8, 0x49c0, Operation::EXTbtol, Decoder::EXT_SWAP},		// 4-106 (p210)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -812,7 +816,7 @@ struct ProcessorStorageConstructor {
 							op(Action::PerformOperation, seq("np np"));
 						} break;
 
-						case Decoder::SWAP: {
+						case Decoder::EXT_SWAP: {
 							storage_.instructions[instruction].set_destination(storage_, Dn, ea_register);
 							op(Action::PerformOperation, seq("np"));
 						} break;

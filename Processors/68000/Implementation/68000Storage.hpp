@@ -109,6 +109,8 @@ class ProcessorStorage {
 			BSETl,	BSETb,
 
 			TAS,
+
+			EXTbtow,	EXTbtol,	EXTwtol,
 		};
 
 		/*!
