@@ -743,7 +743,7 @@ struct ProcessorStorageConstructor {
 								case XXXw:		// TAS (xxx).w
 								case d16An:		// TAS (d16, An)
 								case d8AnXn:	// TAS (d8, An, Xn)
-									op(address_action_for_mode(mode), seq("np nrd", { ea(1) }, false));
+									op(address_action_for_mode(mode) | MicroOp::DestinationMask, seq("np nrd", { ea(1) }, false));
 									op(Action::PerformOperation, seq("tas np", { ea(1) }, false));
 								break;
 							}

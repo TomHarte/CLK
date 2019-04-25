@@ -88,7 +88,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					auto bus_program = active_micro_op_->bus_program;
 					switch(active_micro_op_->action) {
 						default:
-							std::cerr << "Unhandled 68000 micro op action " << std::hex << active_micro_op_->action << std::endl;
+							std::cerr << "Unhandled 68000 micro op action " << std::hex << active_micro_op_->action << " within instruction " << decoded_instruction_ <<  std::endl;
 						break;
 
 						case int(MicroOp::Action::None): break;
@@ -1058,6 +1058,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::ASRl: asr(active_program_->destination->full, 32); 					break;
 
 #undef asr
+
+#undef set_neg_zero_overflow
+#define set_neg_zero_overflow(v, m)	\
+	zero_result_ = (v);	\
+	negative_flag_ = zero_result_ & (m);	\
+	overflow_flag_ = 0;
 
 #undef set_flags
 #define set_flags(v, m, t)	\
