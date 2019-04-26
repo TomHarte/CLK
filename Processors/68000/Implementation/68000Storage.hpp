@@ -387,6 +387,7 @@ class ProcessorStorage {
 
 	private:
 		friend class ProcessorStorageConstructor;
+		friend class ProcessorStorageTests;
 };
 
 #endif /* MC68000Storage_h */

@@ -10,6 +10,7 @@
 
 #include <array>
 #include <cassert>
+#include <set>
 
 #include "68000.hpp"
 
@@ -72,10 +73,87 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			m68000_.set_state(state);
 		}
 
+		const CPU::MC68000::Processor<RAM68000, true> &processor() {
+			return m68000_;
+		}
+
 	private:
 		CPU::MC68000::Processor<RAM68000, true> m68000_;
 		std::vector<uint16_t> ram_;
 };
+
+class CPU::MC68000::ProcessorStorageTests {
+	public:
+		ProcessorStorageTests(const CPU::MC68000::ProcessorStorage &storage, const char *coverage_file_name) {
+			FILE *source = fopen(coverage_file_name, "rb");
+
+			// The file format here is [2 bytes opcode][2 ASCII characters:VA for valid, IN for invalid]...
+			// The file terminates with four additional bytes that begin with two zero bytes.
+			//
+			// The version of the file I grabbed seems to cover all opcodes, making their enumeration
+			// arguably redundant; the code below nevertheless uses the codes from the file.
+			//
+			// Similarly, I'm testing for exactly the strings VA or IN to ensure no further
+			// types creep into any updated version of the table that I then deal with incorrectly.
+			uint16_t last_observed = 0;
+			while(true) {
+				// Fetch opcode number.
+				uint16_t next_opcode = fgetc(source) << 8;
+				next_opcode |= fgetc(source);
+				if(next_opcode < last_observed) break;
+				last_observed = next_opcode;
+
+				// Determine whether it's meant to be valid.
+				char type[3];
+				type[0] = fgetc(source);
+				type[1] = fgetc(source);
+				type[2] = '\0';
+
+				if(!strcmp(type, "VA")) {
+					// Test for validity.
+					if(!storage.instructions[next_opcode].micro_operations) {
+						false_invalids_.insert(next_opcode);
+					}
+					continue;
+				}
+
+				if(!strcmp(type, "IN")) {
+					// Test for invalidity.
+					if(!storage.instructions[next_opcode].micro_operations) {
+						false_valids_.insert(next_opcode);
+					}
+					continue;
+				}
+
+				assert(false);
+			}
+
+			fclose(source);
+		}
+
+		NSString *false_valids() const {
+			return contents_of(false_valids_);
+		}
+
+		NSString *false_invalids() const {
+			return contents_of(false_invalids_);
+		}
+
+	private:
+		std::set<uint16_t> false_invalids_;
+		std::set<uint16_t> false_valids_;
+
+		static NSString *contents_of(const std::set<uint16_t> &set) {
+			NSMutableString *result = [[NSMutableString alloc] init];
+
+			for(auto value: set) {
+				[result appendFormat:@"%04x ", value];
+			}
+
+			return result;
+		}
+};
+
 
 @interface M68000Tests : XCTestCase
 @end
@@ -162,6 +240,17 @@ class RAM68000: public CPU::MC68000::BusHandler {
 	state = _machine->get_processor_state();
 	XCTAssert(state.address[4] == 0x0400, "A4 was %08x instead of 0x00000400", state.address[4]);
 	XCTAssert(state.data[2] == 0x303cfb2e, "D2 was %08x instead of 0x303cfb2e", state.data[2]);
+}
+
+- (void)testOpcodeCoverage {
+	// Perform an audit of implemented instructions.
+	CPU::MC68000::ProcessorStorageTests storage_tests(
+		_machine->processor(),
+		[[NSBundle bundleForClass:[self class]] pathForResource:@"OPCLOGR2" ofType:@"BIN"].UTF8String
+	);
+
+	XCTAssert(!storage_tests.false_valids().length, "Opcodes should be invalid but aren't: %@", storage_tests.false_valids());
+	XCTAssert(!storage_tests.false_invalids().length, "Opcodes should be valid but aren't: %@", storage_tests.false_invalids());
 }
 
 @end

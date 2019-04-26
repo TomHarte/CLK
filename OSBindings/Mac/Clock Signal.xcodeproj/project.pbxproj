@@ -308,6 +308,7 @@
 		4B9BE401203A0C0600FFAE60 /* MultiSpeaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9BE3FE203A0C0600FFAE60 /* MultiSpeaker.cpp */; };
 		4B9F11C92272375400701480 /* qltrace.txt.gz in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11C82272375400701480 /* qltrace.txt.gz */; };
 		4B9F11CA2272433900701480 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
+		4B9F11CC22729B3600701480 /* OPCLOGR2.BIN in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */; };
 		4BA0F68E1EEA0E8400E9489E /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */; };
 		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BA91E1D216D85BA00F79557 /* MasterSystemVDPTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */; };
@@ -1040,6 +1041,7 @@
 		4B9BE3FE203A0C0600FFAE60 /* MultiSpeaker.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiSpeaker.cpp; sourceTree = "<group>"; };
 		4B9BE3FF203A0C0600FFAE60 /* MultiSpeaker.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiSpeaker.hpp; sourceTree = "<group>"; };
 		4B9F11C82272375400701480 /* qltrace.txt.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = qltrace.txt.gz; sourceTree = "<group>"; };
+		4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = OPCLOGR2.BIN; path = "68000 Coverage/OPCLOGR2.BIN"; sourceTree = "<group>"; };
 		4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZX8081.cpp; path = Data/ZX8081.cpp; sourceTree = "<group>"; };
 		4BA0F68D1EEA0E8400E9489E /* ZX8081.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = ZX8081.hpp; path = Data/ZX8081.hpp; sourceTree = "<group>"; };
 		4BA141C12073100800A31EC9 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
@@ -1570,6 +1572,7 @@
 				4B018B88211930DE002A3937 /* 65C02_extended_opcodes_test.bin */,
 				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
 				4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */,
+				4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */,
 				4BBF49B41ED2881600AB3669 /* FUSE */,
 				4B9F11C72272375400701480 /* QL Startup */,
 				4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */,
@@ -3528,6 +3531,7 @@
 				4BB2997D1B587D8400A49093 /* ldxay in Resources */,
 				4BB299D71B587D8400A49093 /* staax in Resources */,
 				4B98A1CE1FFADEC500ADF63B /* MSX ROMs in Resources */,
+				4B9F11CC22729B3600701480 /* OPCLOGR2.BIN in Resources */,
 				4BB2990C1B587D8400A49093 /* asoax in Resources */,
 				4BB299191B587D8400A49093 /* bita in Resources */,
 				4BB2992A1B587D8400A49093 /* cia2ta in Resources */,
