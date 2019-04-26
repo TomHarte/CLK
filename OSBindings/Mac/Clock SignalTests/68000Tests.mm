@@ -119,7 +119,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 				if(!strcmp(type, "IN")) {
 					// Test for invalidity.
-					if(!storage.instructions[next_opcode].micro_operations) {
+					if(storage.instructions[next_opcode].micro_operations) {
 						false_valids_.insert(next_opcode);
 					}
 					continue;

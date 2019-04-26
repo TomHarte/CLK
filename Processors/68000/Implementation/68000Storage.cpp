@@ -674,7 +674,6 @@ struct ProcessorStorageConstructor {
 
 			{0xfff8, 0x4880, Operation::EXTbtow, Decoder::EXT_SWAP},		// 4-106 (p210)
 			{0xfff8, 0x48c0, Operation::EXTwtol, Decoder::EXT_SWAP},		// 4-106 (p210)
-			{0xfff8, 0x49c0, Operation::EXTbtol, Decoder::EXT_SWAP},		// 4-106 (p210)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -1212,6 +1211,8 @@ struct ProcessorStorageConstructor {
 									break;
 
 									case bw(An):		// ADD/SUB.bw An, Dn
+										// Address registers can't provide single bytes.
+										if(is_byte_access) continue;
 										storage_.instructions[instruction].source = &storage_.address_[ea_register];
 										op(Action::PerformOperation, seq("np"));
 									break;
@@ -1614,6 +1615,9 @@ struct ProcessorStorageConstructor {
 								case d8AnXn:	// BTST.b Dn, (d8, An, Xn)
 								case d16PC:		// BTST.b Dn, (d16, PC)
 								case d8PCXn:	// BTST.b Dn, (d8, PC, Xn)
+									// PC-relative addressing isn't support for BCLR.
+									if((mode == d16PC || mode == d8PCXn) && is_bclr) continue;
+
 									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
 										seq(pseq("np nrd np", mode), { ea(1) }, false));
 									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
@@ -1671,6 +1675,9 @@ struct ProcessorStorageConstructor {
 								case d8AnXn:	// BTST.b #, (d8, An, Xn)
 								case d16PC:		// BTST.b #, (d16, PC)
 								case d8PCXn:	// BTST.b #, (d8, PC, Xn)
+									// PC-relative addressing isn't support for BCLR.
+									if((mode == d16PC || mode == d8PCXn) && is_bclr) continue;
+
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
 										seq(pseq("np nrd np", mode), { ea(1) }, false));
@@ -1861,7 +1868,7 @@ struct ProcessorStorageConstructor {
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 
 							// Byte accesses are not allowed with address registers.
-							if(is_byte_access && ea_mode == 1) {
+							if(is_byte_access && ea_mode == An) {
 								continue;
 							}
 
@@ -2039,7 +2046,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::CMPI: {
-							if(ea_mode == 1) continue;
+							if(ea_mode == An) continue;
 
 							const auto destination_mode = ea_mode;
 							const auto destination_register = ea_register;
@@ -2094,8 +2101,6 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation);
 								break;
 
-								case bw(d16PC):		// CMPI.bw #, (d16, PC)
-								case bw(d8PCXn):	// CMPI.bw #, (d8, PC, Xn)
 								case bw(d16An):		// CMPI.bw #, (d16, An)
 								case bw(d8AnXn):	// CMPI.bw #, (d8, An, Xn)
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
@@ -2104,8 +2109,6 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation);
 								break;
 
-								case l(d16PC):		// CMPI.l #, (d16, PC)
-								case l(d8PCXn):		// CMPI.l #, (d8, PC, Xn)
 								case l(d16An):		// CMPI.l #, (d16, An)
 								case l(d8AnXn):		// CMPI.l #, (d8, An, Xn)
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("np"));
@@ -2391,7 +2394,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::MOVEtoSRCCR: {
-							if(ea_mode == 1) continue;
+							if(ea_mode == An) continue;
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 							storage_.instructions[instruction].requires_supervisor = (operation == Operation::MOVEtoSR);
 
@@ -2540,6 +2543,9 @@ struct ProcessorStorageConstructor {
 								}
 								operation = is_long_word_access ? Operation::MOVEAl : Operation::MOVEAw;
 							}
+
+							// ... there are also no byte moves from address registers.
+							if(ea_mode == An && is_byte_access) continue;
 
 							switch(mode) {
 
@@ -2769,74 +2775,74 @@ struct ProcessorStorageConstructor {
 							// MOVE <ea>, (d8, PC, Xn)
 							//
 
-#define bw2d(s)	bw2(s, d16An): case bw2(s, d8AnXn): case bw2(s, d16PC): case bw2(s, d8PCXn)
-#define l2d(s)	l2(s, d16An): case l2(s, d8AnXn): case l2(s, d16PC): case l2(s, d8PCXn)
+#define bw2d(s)	bw2(s, d16An): case bw2(s, d8AnXn)
+#define l2d(s)	l2(s, d16An): case l2(s, d8AnXn)
 
-								case bw2d(Dn):				// MOVE.bw [An/Dn], (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case bw2d(Dn):				// MOVE.bw [An/Dn], (d16, An)/(d8, An, Xn)
 									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
 									op(Action::PerformOperation, seq("nw np", { ea(1) }, !is_byte_access));
 								break;
 
-								case l2d(Dn):				// MOVE.l [An/Dn], (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case l2d(Dn):				// MOVE.l [An/Dn], (d16, An)/(d8, An, Xn)
 									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
 									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
 								break;
 
-								case bw2d(Ind):				// MOVE.bw (An)[+], (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case bw2d(Ind):				// MOVE.bw (An)[+], (d16, An)/(d8, An, Xn)
 									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("nr", { a(ea_register) }, !is_byte_access));
 									op(Action::PerformOperation, seq(pseq("np nw np", combined_destination_mode), { ea(1) }, !is_byte_access));
 								break;
 
-								case l2d(Ind):				// MOVE.l (An)[+], (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case l2d(Ind):				// MOVE.l (An)[+], (d16, An)/(d8, An, Xn)
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask);
 									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("nR+ nr", { ea(0), ea(0) }));
 									op(Action::PerformOperation, seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
 								break;
 
-								case bw2d(PreDec):			// MOVE.bw -(An), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case bw2d(PreDec):			// MOVE.bw -(An), (d16, An)/(d8, An, Xn)
 									op(dec(ea_register) | MicroOp::SourceMask, seq("n nr", { a(ea_register) }, !is_byte_access));
 									op(Action::PerformOperation);
 									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("np nw np", { ea(1) }, !is_byte_access));
 								break;
 
-								case l2d(PreDec):			// MOVE.l -(An), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case l2d(PreDec):			// MOVE.l -(An), (d16, An)/(d8, An, Xn)
 									op(dec(ea_register) | MicroOp::SourceMask, seq("n"));
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) }));
 									op(Action::PerformOperation);
 									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }));
 								break;
 
-								case bw2d(XXXl):			// MOVE.bw (xxx).l, (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case bw2d(XXXl):			// MOVE.bw (xxx).l, (d16, An)/(d8, An, Xn)
 									op(Action::None, seq("np"));
-								case bw2d(XXXw):			// MOVE.bw (xxx).w, (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
-								case bw2d(d16An):			// MOVE.bw (d16, An), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
-								case bw2d(d8AnXn):			// MOVE.bw (d8, An, Xn), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
-								case bw2d(d16PC):			// MOVE.bw (d16, PC), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
-								case bw2d(d8PCXn):			// MOVE.bw (d8, PC, xn), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case bw2d(XXXw):			// MOVE.bw (xxx).w, (d16, An)/(d8, An, Xn)
+								case bw2d(d16An):			// MOVE.bw (d16, An), (d16, An)/(d8, An, Xn)
+								case bw2d(d8AnXn):			// MOVE.bw (d8, An, Xn), (d16, An)/(d8, An, Xn)
+								case bw2d(d16PC):			// MOVE.bw (d16, PC), (d16, An)/(d8, An, Xn)
+								case bw2d(d8PCXn):			// MOVE.bw (d8, PC, xn), (d16, An)/(d8, An, Xn)
 									op(address_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np nr", combined_source_mode), { ea(0) }, !is_byte_access));
 									op(Action::PerformOperation);
 									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np nw np", combined_destination_mode), { ea(1) }, !is_byte_access));
 								break;
 
-								case l2d(XXXl):				// MOVE.l (xxx).l, (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case l2d(XXXl):				// MOVE.l (xxx).l, (d16, An)/(d8, An, Xn)
 									op(Action::None, seq("np"));
-								case l2d(XXXw):				// MOVE.l (xxx).w, (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
-								case l2d(d16An):			// MOVE.l (d16, An), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
-								case l2d(d8AnXn):			// MOVE.l (d8, An, Xn), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
-								case l2d(d16PC):			// MOVE.l (d16, PC), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
-								case l2d(d8PCXn):			// MOVE.l (d8, PC, xn), (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case l2d(XXXw):				// MOVE.l (xxx).w, (d16, An)/(d8, An, Xn)
+								case l2d(d16An):			// MOVE.l (d16, An), (d16, An)/(d8, An, Xn)
+								case l2d(d8AnXn):			// MOVE.l (d8, An, Xn), (d16, An)/(d8, An, Xn)
+								case l2d(d16PC):			// MOVE.l (d16, PC), (d16, An)/(d8, An, Xn)
+								case l2d(d8PCXn):			// MOVE.l (d8, PC, xn), (d16, An)/(d8, An, Xn)
 									op(address_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np nR+ nr", combined_source_mode), { ea(0), ea(0) }));
 									op(Action::PerformOperation);
 									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
 								break;
 
-								case bw2d(Imm):				// MOVE.bw #, (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case bw2d(Imm):				// MOVE.bw #, (d16, An)/(d8, An, Xn)
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
 									op(Action::PerformOperation, seq("nw np", { ea(1) }, !is_byte_access));
 								break;
 
-								case l2d(Imm):				// MOVE.l #, (d16, An)/(d8, An, Xn)/(d16, PC)/(d8, PC, Xn)
+								case l2d(Imm):				// MOVE.l #, (d16, An)/(d8, An, Xn)
 									op(Action::None, seq("np"));
 									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
@@ -3108,17 +3114,13 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case bw(d16An):		// TST.bw (d16, An)
-								case bw(d16PC):		// TST.bw (d16, PC)
 								case bw(d8AnXn):	// TST.bw (d8, An, Xn)
-								case bw(d8PCXn):	// TST.bw (d8, PC, Xn)
 									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nr", mode), { ea(0) }, !is_byte_access));
 									op(Action::PerformOperation, seq("np"));
 								break;
 
 								case l(d16An):		// TST.l (d16, An)
-								case l(d16PC):		// TST.l (d16, PC)
 								case l(d8AnXn):		// TST.l (d8, An, Xn)
-								case l(d8PCXn):		// TST.l (d8, PC, Xn)
 									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nR+ nr", mode), { ea(0), ea(0) }));
 									op(Action::PerformOperation, seq("np"));
 								break;
