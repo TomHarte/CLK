@@ -456,6 +456,8 @@ struct ProcessorStorageConstructor {
 			BCHG_BSET,					// Maps a mode and register, and possibly a source register, to a BCHG or BSET.
 
 			TAS,						// Maps a mode and register to a TAS.
+
+			PEA,						// Maps a mode and register to a PEA.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -541,6 +543,8 @@ struct ProcessorStorageConstructor {
 			{0xf000, 0x6000, Operation::Bcc, Decoder::Bcc_BSR},	// 4-25 (p129) and 4-59 (p163)
 
 			{0xf1c0, 0x41c0, Operation::MOVEAl, Decoder::LEA},	// 4-110 (p214)
+			{0xffc0, 0x4840, Operation::MOVEAl, Decoder::PEA},	// 4-159 (p263)
+
 			{0xf100, 0x7000, Operation::MOVEq, Decoder::MOVEq},	// 4-134 (p238)
 
 			{0xffff, 0x4e70, Operation::None, Decoder::RESET},	// 6-83 (p537)
@@ -2307,6 +2311,45 @@ struct ProcessorStorageConstructor {
 								case XXXw:	// JMP (xxx).W
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
 									op(Action::PerformOperation, seq("n np np"));
+								break;
+							}
+						} break;
+
+						case Decoder::PEA: {
+							const int mode = combined_mode(ea_mode, ea_register);
+							storage_.instructions[instruction].source =
+								(mode == Ind) ?
+									&storage_.address_[ea_register] :
+									&storage_.effective_address_[0];
+
+							storage_.instructions[instruction].destination = &storage_.destination_bus_data_[0];
+							storage_.instructions[instruction].destination_address = &storage_.address_[7];
+
+							// Common to all modes: decrement A7.
+							op(int(Action::Decrement4) | MicroOp::DestinationMask);
+
+							switch(mode) {
+								default: continue;
+
+								case Ind:		// PEA (An)
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
+									op(Action::PerformOperation, seq("np nW+ nw", { ea(1), ea(1) }));
+								break;
+
+								case XXXl:		// PEA (XXX).l
+								case XXXw:		// PEA (XXX).w
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, (mode == XXXl) ? seq("np") : nullptr);
+									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
+								break;
+
+								case d16An:		// PEA (d16, An)
+								case d16PC:		// PEA (d16, PC)
+								case d8AnXn:	// PEA (d8, An, Xn)
+								case d8PCXn:	// PEA (d8, PC, Xn)
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
+									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np", mode)));
+									op(Action::PerformOperation, seq(pseq("np nW+ nw", mode), { ea(1), ea(1) }));
 								break;
 							}
 						} break;
