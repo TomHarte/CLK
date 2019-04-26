@@ -249,8 +249,10 @@ class CPU::MC68000::ProcessorStorageTests {
 		[[NSBundle bundleForClass:[self class]] pathForResource:@"OPCLOGR2" ofType:@"BIN"].UTF8String
 	);
 
-	XCTAssert(!storage_tests.false_valids().length, "Opcodes should be invalid but aren't: %@", storage_tests.false_valids());
-	XCTAssert(!storage_tests.false_invalids().length, "Opcodes should be valid but aren't: %@", storage_tests.false_invalids());
+	NSString *const falseValids = storage_tests.false_valids();
+	NSString *const falseInvalids = storage_tests.false_invalids();
+	XCTAssert(!falseValids.length, "%@ opcodes should be invalid but aren't: %@", @([falseValids componentsSeparatedByString:@" "].count - 1), falseValids);
+	XCTAssert(!falseInvalids.length, "%@ opcodes should be valid but aren't: %@", @([falseInvalids componentsSeparatedByString:@" "].count - 1), falseInvalids);
 }
 
 @end
