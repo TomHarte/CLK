@@ -102,7 +102,7 @@ struct ProcessorStorageConstructor {
 		return int(Action::Decrement2);
 	}
 
-#define pseq(x, m) ((((m)&0xff) == 0x06) || (((m)&0xff) == 0x13) ? "n " x : x)
+#define pseq(x, m) ((((m)&0xff) == d8AnXn) || (((m)&0xff) == d8PCXn) ? "n " x : x)
 
 	/*!
 		Installs BusSteps that implement the described program into the relevant
@@ -1482,6 +1482,8 @@ struct ProcessorStorageConstructor {
 
 								case bw(d16An):		// ADDA/SUBA.w (d16, An), An
 								case bw(d8AnXn):	// ADDA/SUBA.w (d8, An, Xn), An
+								case bw(d16PC):		// ADDA/SUBA.w (d16, PC), An
+								case bw(d8PCXn):	// ADDA/SUBA.w (d8, PC, Xn), An
 									op(	calc_action_for_mode(mode) | MicroOp::SourceMask,
 										seq(pseq("np nr np nn", mode), { ea(0) }));
 									op(Action::PerformOperation);
@@ -1489,6 +1491,8 @@ struct ProcessorStorageConstructor {
 
 								case l(d16An):		// ADDA/SUBA.l (d16, An), An
 								case l(d8AnXn):		// ADDA/SUBA.l (d8, An, Xn), An
+								case l(d16PC):		// ADDA/SUBA.l (d16, PC), An
+								case l(d8PCXn):		// ADDA/SUBA.l (d8, PC, Xn), An
 									op(	calc_action_for_mode(mode) | MicroOp::SourceMask,
 										seq(pseq("np nR+ nr np n", mode), { ea(0), ea(0) }));
 									op(Action::PerformOperation);
