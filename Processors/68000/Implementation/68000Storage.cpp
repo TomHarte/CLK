@@ -424,6 +424,7 @@ struct ProcessorStorageConstructor {
 			MOVEq,						// Maps a destination register to a MOVEQ.
 
 			MULU_MULS,					// Maps a destination register and a source mode and register to a MULU or MULS.
+			DIVU_DIVS,					// Maps a destination register and a source mode and register to a DIVU or DIVS.
 
 			RESET,						// Maps to a RESET.
 
@@ -646,6 +647,9 @@ struct ProcessorStorageConstructor {
 
 			{0xf1c0, 0xc0c0, Operation::MULU, Decoder::MULU_MULS},				// 4-139 (p243)
 			{0xf1c0, 0xc1c0, Operation::MULS, Decoder::MULU_MULS},				// 4-136 (p240)
+
+			{0xf1c0, 0x80c0, Operation::DIVU, Decoder::DIVU_DIVS},				// 4-97 (p201)
+			{0xf1c0, 0x81c0, Operation::DIVS, Decoder::DIVU_DIVS},				// 4-93 (p197)
 
 			{0xfff0, 0x4e60, Operation::MOVEAl, Decoder::MOVEUSP},				// 6-21 (p475)
 
@@ -1025,6 +1029,53 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
+						case Decoder::DIVU_DIVS: {
+							const int destination_register = (instruction >> 9) & 7;
+							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
+							storage_.instructions[instruction].set_destination(storage_, Dn, destination_register);
+
+							const int mode = combined_mode(ea_mode, ea_register);
+							switch(mode) {
+								default: continue;
+
+								case Dn:		// [DIVU/DIVS] Dn, Dn
+									op(Action::PerformOperation, seq("r"));
+									op(Action::None, seq("np"));
+								break;
+
+								case Ind:		// [DIVU/DIVS] (An), Dn
+								case PostInc:	// [DIVU/DIVS] (An)+, Dn
+									op(Action::None, seq("nr", { a(ea_register) }));
+									op(Action::PerformOperation, seq("r np"));
+									if(mode == PostInc) {
+										op(int(Action::Increment2) | MicroOp::SourceMask);
+									}
+								break;
+
+								case PreDec:	// [DIVU/DIVS] -(An), Dn
+									op(int(Action::Decrement2) | MicroOp::SourceMask, seq("nr", { a(ea_register) }));
+									op(Action::PerformOperation, seq("r np"));
+								break;
+
+								case XXXl:		// [DIVU/DIVS] (XXX).l, Dn
+									op(Action::None, seq("np"));
+								case XXXw:		// [DIVU/DIVS] (XXX).w, Dn
+								case d16An:		// [DIVU/DIVS] (d16, An), Dn
+								case d16PC:		// [DIVU/DIVS] (d16, PC), Dn
+								case d8AnXn:	// [DIVU/DIVS] (d8, An, Xn), Dn
+								case d8PCXn:	// [DIVU/DIVS] (d8, PC, Xn), Dn
+									op(address_action_for_mode(mode) | MicroOp::SourceMask, seq("np nr", { ea(0) }));
+									op(Action::PerformOperation, seq("r np"));
+								break;
+
+								case Imm:		// [DIVU/DIVS] #, Dn
+									// DEVIATION FROM YACHT.TXT. It shows an additional np, which is incorrect.
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+									op(Action::PerformOperation, seq("r np"));
+								break;
+							}
+						} break;
+
 						case Decoder::MULU_MULS: {
 							const int destination_register = (instruction >> 9) & 7;
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
@@ -1034,13 +1085,13 @@ struct ProcessorStorageConstructor {
 							switch(mode) {
 								default: continue;
 
-								case Dn:
+								case Dn:		// [MULU/MULS] Dn, Dn
 									op(Action::None, seq("np"));
 									op(Action::PerformOperation, seq("r"));
 								break;
 
-								case Ind:
-								case PostInc:
+								case Ind:		// [MULU/MULS] (An), Dn
+								case PostInc:	// [MULU/MULS] (An)+, Dn
 									op(Action::None, seq("nr np", { a(ea_register) }));
 									op(Action::PerformOperation, seq("r"));
 									if(mode == PostInc) {
@@ -1048,28 +1099,24 @@ struct ProcessorStorageConstructor {
 									}
 								break;
 
-								case PreDec:
+								case PreDec:	// [MULU/MULS] -(An), Dn
 									op(int(Action::Decrement2) | MicroOp::SourceMask, seq("n nr np", { a(ea_register) }));
 									op(Action::PerformOperation, seq("r"));
 								break;
 
-								case d16An:
-								case d16PC:
-								case d8AnXn:
-								case d8PCXn:
-									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("n np nr np", mode), { ea(0) }));
-									op(Action::PerformOperation, seq("r"));
-								break;
-
-								case XXXl:
+								case XXXl:		// [MULU/MULS] (XXX).l, Dn
 									op(Action::None, seq("np"));
-								case XXXw:
-									op(address_assemble_for_mode(mode) | MicroOp::SourceMask, seq("np nr np", { ea(0) }));
+								case XXXw:		// [MULU/MULS] (XXX).w, Dn
+								case d16An:		// [MULU/MULS] (d16, An), Dn
+								case d16PC:		// [MULU/MULS] (d16, PC), Dn
+								case d8AnXn:	// [MULU/MULS] (d8, An, Xn), Dn
+								case d8PCXn:	// [MULU/MULS] (d8, PX, Xn), Dn
+									op(address_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("n np nr np", mode), { ea(0) }));
 									op(Action::PerformOperation, seq("r"));
 								break;
 
-								case Imm:
-									// DEVIATION FROM YACHT.TXT. It has an additional np, which I need to figure out.
+								case Imm:		// [MULU/MULS] #, Dn
+									// DEVIATION FROM YACHT.TXT. It shows an additional np, which is incorrect.
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
 									op(Action::PerformOperation, seq("r"));
 								break;

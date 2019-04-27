@@ -98,6 +98,7 @@ class ProcessorStorage {
 			ORb,	ORw,	ORl,
 
 			MULU,	MULS,
+			DIVU,	DIVS,
 
 			RTE_RTR,
 

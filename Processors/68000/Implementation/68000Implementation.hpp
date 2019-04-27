@@ -571,7 +571,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::MULU: {
 									active_program_->destination->full =
 										active_program_->destination->halves.low.full * active_program_->source->halves.low.full;
-									carry_flag_ = overflow_flag_ = 0;
+									carry_flag_ = overflow_flag_ = 0;	// TODO: "set if overflow".
 									zero_result_ = active_program_->destination->full;
 									negative_flag_ = zero_result_ & 0x80000000;
 
@@ -590,7 +590,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::MULS: {
 									active_program_->destination->full =
 										int16_t(active_program_->destination->halves.low.full) * int16_t(active_program_->source->halves.low.full);
-									carry_flag_ = overflow_flag_ = 0;
+									carry_flag_ = overflow_flag_ = 0;	// TODO: "set if overflow".
 									zero_result_ = active_program_->destination->full;
 									negative_flag_ = zero_result_ & 0x80000000;
 
@@ -606,6 +606,123 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 									// Time taken = 38 cycles + 2 cycles per 1 in the source.
 									active_step_->microcycle.length = HalfCycles(4 * number_of_pairs + 38*2);
+								} break;
+
+								/*
+									Divisions.
+								*/
+
+								case Operation::DIVU: {
+									// An attempt to divide by zero schedules an exception.
+									if(!active_program_->source->halves.low.full) {
+										// TODO: schedule an exception.
+										assert(false);
+										break;
+									}
+
+									uint32_t dividend = active_program_->destination->full;
+									uint32_t divisor = active_program_->source->halves.low.full;
+									const auto quotient = dividend / divisor;
+
+									carry_flag_ = 0;
+
+									// If overflow would occur, appropriate flags are set and the result is not written back.
+									if(quotient >= 65536) {
+										overflow_flag_ = 1;
+										// TODO: is what should happen to the other flags known?
+										active_step_->microcycle.length = HalfCycles(3*2*2);
+										break;
+									}
+
+									const uint16_t remainder = uint16_t(dividend % divisor);
+									active_program_->destination->halves.high.full = remainder;
+									active_program_->destination->halves.low.full = quotient;
+
+									overflow_flag_ = 0;
+									zero_result_ = quotient;
+									negative_flag_ = zero_result_ & 0x8000;
+
+									// Calculate cost; this is based on the flowchart in yacht.txt.
+									// I could actually calculate the division result here, since this is
+									// a classic divide algorithm, but would rather that errors produce
+									// incorrect timing only, not incorrect timing plus incorrect results.
+									int cycles_expended = 6;	// Covers the nn n to get into the loop.
+
+									divisor <<= 16;
+									for(int c = 0; c < 15; ++c) {
+										if(dividend & 0x80000000) {
+											dividend = (dividend << 1) - divisor;
+											cycles_expended += 4;	// Easy; just the fixed nn iteration cost.
+										} else {
+											dividend <<= 1;
+
+											// Yacht.txt, and indeed a real microprogram, would just subtract here
+											// and test the sign of the result, but this is easier to follow:
+											if (dividend >= divisor) {
+												dividend -= divisor;
+												cycles_expended += 6;	// i.e. the original nn plus one further n before going down the MSB=0 route.
+											} else {
+												cycles_expended += 8;	// The costliest path (since in real life it's a subtraction and then a step
+												 						// back from there) — all costs accrue. So the fixed nn loop plus another n,
+												 						// plus another one.
+											}
+										}
+									}
+									active_step_->microcycle.length = HalfCycles(cycles_expended * 2);
+								} break;
+
+								case Operation::DIVS: {
+									// An attempt to divide by zero schedules an exception.
+									if(!active_program_->source->halves.low.full) {
+										// TODO: schedule an exception.
+										assert(false);
+										break;
+									}
+
+									int32_t dividend = int32_t(active_program_->destination->full);
+									int32_t divisor = int16_t(active_program_->source->halves.low.full);
+									const auto quotient = dividend / divisor;
+
+									int cycles_expended = 12;	// Covers the nn nnn n to get beyond the sign test.
+									if(dividend < 0) {
+										cycles_expended += 2;	// An additional microycle applies if the dividend is negative.
+									}
+
+									// Check for overflow. If it exists, work here is already done.
+									if(quotient > 32767 || quotient < -32768) {
+										overflow_flag_ = 1;
+										active_step_->microcycle.length = HalfCycles(3*2*2);
+										break;
+									}
+
+									overflow_flag_ = 0;
+									zero_result_ = quotient;
+									negative_flag_ = zero_result_ & 0x8000;
+
+									// TODO: check sign rules here; am I necessarily giving the remainder the correct sign?
+									// (and, if not, am I counting it in the correct direction?)
+									const uint16_t remainder = uint16_t(dividend % divisor);
+									active_program_->destination->halves.high.full = remainder;
+									active_program_->destination->halves.low.full = quotient;
+
+									// Algorithm here: there is a fixed three-microcycle cost per bit set
+									// in the unsigned quotient; there is an additional microcycle for
+									// every bit that is set. Also, since the possibility of overflow
+									// was already dealt with, it's now a smaller number.
+									int positive_quotient = abs(quotient);
+									for(int c = 0; c < 15; ++c) {
+										if(positive_quotient & 0x8000) cycles_expended += 2;
+									}
+
+									// There's then no way to terminate the loop that isn't at least six cycles long.
+									cycles_expended += 6;
+
+									if(divisor < 0) {
+										cycles_expended += 2;
+									} else if(dividend < 0) {
+										cycles_expended += 4;
+									}
+									active_step_->microcycle.length = HalfCycles(cycles_expended * 2);
 								} break;
 
 								/*
