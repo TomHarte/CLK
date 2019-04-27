@@ -124,118 +124,180 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								// ADD and ADDA add two quantities, the latter sign extending and without setting any flags;
 								// ADDQ and SUBQ act as ADD and SUB, but taking the second argument from the instruction code.
-#define addop(a, b) a + b
-#define subop(a, b) a - b
+#define addop(a, b, x) 	a + b + (x ? 1 : 0)
+#define subop(a, b, x) 	a - b - (x ? 1 : 0)
+#define z_set(a, b)		a = b
+#define z_or(a, b)		a |= b
 
-#define addsubb(a, b, dest, op, overflow)	\
+#define addsubb(a, b, dest, op, overflow, x, zero_op)	\
 	const int source = a;	\
 	const int destination = b;	\
-	const auto result = op(destination, source);	\
+	const auto result = op(destination, source, x);	\
 \
-	zero_result_ = dest = uint8_t(result);	\
+	dest = uint8_t(result);	\
+	zero_op(zero_result_, dest);	\
 	extend_flag_ = carry_flag_ = result & ~0xff;	\
 	negative_flag_ = result & 0x80;	\
 	overflow_flag_ = overflow() & 0x80;
 
-#define addsubw(a, b, dest, op, overflow)	\
+#define addsubw(a, b, dest, op, overflow, x, zero_op)	\
 	const int source = a;	\
 	const int destination = b;	\
-	const auto result = op(destination, source);	\
+	const auto result = op(destination, source, x);	\
 \
-	zero_result_ = dest = uint16_t(result);	\
+	dest = uint16_t(result);	\
+	zero_op(zero_result_, dest);	\
 	extend_flag_ = carry_flag_ = result & ~0xffff;	\
 	negative_flag_ = result & 0x8000;	\
 	overflow_flag_ = overflow() & 0x8000;
 
-#define addsubl(a, b, dest, op, overflow)	\
+#define addsubl(a, b, dest, op, overflow, x, zero_op)	\
 	const uint64_t source = a;	\
 	const uint64_t destination = b;	\
-	const auto result = op(destination, source);	\
+	const auto result = op(destination, source, x);	\
 \
-	zero_result_ = dest = uint32_t(result);	\
+	dest = uint32_t(result);	\
+	zero_op(zero_result_, dest);	\
 	extend_flag_ = carry_flag_ = result >> 32;	\
 	negative_flag_ = result & 0x80000000;	\
 	overflow_flag_ = overflow() & 0x80000000;
 
-#define addb(a, b, dest) addsubb(a, b, dest, addop, add_overflow)
-#define subb(a, b, dest) addsubb(a, b, dest, subop, sub_overflow)
-#define addw(a, b, dest) addsubw(a, b, dest, addop, add_overflow)
-#define subw(a, b, dest) addsubw(a, b, dest, subop, sub_overflow)
-#define addl(a, b, dest) addsubl(a, b, dest, addop, add_overflow)
-#define subl(a, b, dest) addsubl(a, b, dest, subop, sub_overflow)
+#define addb(a, b, dest, x, z) addsubb(a, b, dest, addop, add_overflow, x, z)
+#define subb(a, b, dest, x, z) addsubb(a, b, dest, subop, sub_overflow, x, z)
+#define addw(a, b, dest, x, z) addsubw(a, b, dest, addop, add_overflow, x, z)
+#define subw(a, b, dest, x, z) addsubw(a, b, dest, subop, sub_overflow, x, z)
+#define addl(a, b, dest, x, z) addsubl(a, b, dest, addop, add_overflow, x, z)
+#define subl(a, b, dest, x, z) addsubl(a, b, dest, subop, sub_overflow, x, z)
+
+#define no_extend(op, a, b, c)	op(a, b, c, 0, z_set)
+#define extend(op, a, b, c)		op(a, b, c, extend_flag_, z_or)
 
 #define q() (((decoded_instruction_ >> 9)&7) ? ((decoded_instruction_ >> 9)&7) : 8)
 
 								case Operation::ADDb: {
-									addb(	active_program_->source->halves.low.halves.low,
-											active_program_->destination->halves.low.halves.low,
-											active_program_->destination->halves.low.halves.low);
+									no_extend(	addb,
+												active_program_->source->halves.low.halves.low,
+												active_program_->destination->halves.low.halves.low,
+												active_program_->destination->halves.low.halves.low);
+								} break;
+
+								case Operation::ADDXb: {
+									extend(		addb,
+												active_program_->source->halves.low.halves.low,
+												active_program_->destination->halves.low.halves.low,
+												active_program_->destination->halves.low.halves.low);
 								} break;
 
 								case Operation::ADDQb: {
-									addb(	q(),
-											active_program_->destination->halves.low.halves.low,
-											active_program_->destination->halves.low.halves.low);
+									no_extend(	addb,
+												q(),
+												active_program_->destination->halves.low.halves.low,
+												active_program_->destination->halves.low.halves.low);
 								} break;
 
 								case Operation::ADDw: {
-									addw(	active_program_->source->halves.low.full,
-											active_program_->destination->halves.low.full,
-											active_program_->destination->halves.low.full);
+									no_extend(	addw,
+												active_program_->source->halves.low.full,
+												active_program_->destination->halves.low.full,
+												active_program_->destination->halves.low.full);
+								} break;
+
+								case Operation::ADDXw: {
+									extend(		addw,
+												active_program_->source->halves.low.full,
+												active_program_->destination->halves.low.full,
+												active_program_->destination->halves.low.full);
 								} break;
 
 								case Operation::ADDQw: {
-									addw(	q(),
-											active_program_->destination->halves.low.full,
-											active_program_->destination->halves.low.full);
+									no_extend(	addw,
+												q(),
+												active_program_->destination->halves.low.full,
+												active_program_->destination->halves.low.full);
 								} break;
 
 								case Operation::ADDl: {
-									addl(	active_program_->source->full,
-											active_program_->destination->full,
-											active_program_->destination->full);
+									no_extend(	addl,
+												active_program_->source->full,
+												active_program_->destination->full,
+												active_program_->destination->full);
+								} break;
+
+								case Operation::ADDXl: {
+									extend(		addl,
+												active_program_->source->full,
+												active_program_->destination->full,
+												active_program_->destination->full);
 								} break;
 
 								case Operation::ADDQl: {
-									addl(	q(),
-											active_program_->destination->full,
-											active_program_->destination->full);
+									no_extend(	addl,
+												q(),
+												active_program_->destination->full,
+												active_program_->destination->full);
 								} break;
 
 								case Operation::SUBb: {
-									subb(	active_program_->source->halves.low.halves.low,
-											active_program_->destination->halves.low.halves.low,
-											active_program_->destination->halves.low.halves.low);
+									no_extend(	subb,
+												active_program_->source->halves.low.halves.low,
+												active_program_->destination->halves.low.halves.low,
+												active_program_->destination->halves.low.halves.low);
+								} break;
+
+								case Operation::SUBXb: {
+									extend(		subb,
+												active_program_->source->halves.low.halves.low,
+												active_program_->destination->halves.low.halves.low,
+												active_program_->destination->halves.low.halves.low);
 								} break;
 
 								case Operation::SUBQb: {
-									subb(	q(),
-											active_program_->destination->halves.low.halves.low,
-											active_program_->destination->halves.low.halves.low);
+									no_extend(	subb,
+												q(),
+												active_program_->destination->halves.low.halves.low,
+												active_program_->destination->halves.low.halves.low);
 								} break;
 
 								case Operation::SUBw: {
-									subw(	active_program_->source->halves.low.full,
-											active_program_->destination->halves.low.full,
-											active_program_->destination->halves.low.full);
+									no_extend(	subw,
+												active_program_->source->halves.low.full,
+												active_program_->destination->halves.low.full,
+												active_program_->destination->halves.low.full);
+								} break;
+
+								case Operation::SUBXw: {
+									extend(		subw,
+												active_program_->source->halves.low.full,
+												active_program_->destination->halves.low.full,
+												active_program_->destination->halves.low.full);
 								} break;
 
 								case Operation::SUBQw: {
-									subw(	q(),
-											active_program_->destination->halves.low.full,
-											active_program_->destination->halves.low.full);
+									no_extend(	subw,
+												q(),
+												active_program_->destination->halves.low.full,
+												active_program_->destination->halves.low.full);
 								} break;
 
 								case Operation::SUBl: {
-									subl(	active_program_->source->full,
-											active_program_->destination->full,
-											active_program_->destination->full);
+									no_extend(	subl,
+												active_program_->source->full,
+												active_program_->destination->full,
+												active_program_->destination->full);
+								} break;
+
+								case Operation::SUBXl: {
+									extend(		subl,
+												active_program_->source->full,
+												active_program_->destination->full,
+												active_program_->destination->full);
 								} break;
 
 								case Operation::SUBQl: {
-									subl(	q(),
-											active_program_->destination->full,
-											active_program_->destination->full);
+									no_extend(	subl,
+												q(),
+												active_program_->destination->full,
+												active_program_->destination->full);
 								} break;
 
 								case Operation::ADDQAl:
@@ -256,6 +318,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef addsubw
 #undef addsubb
 #undef q
+#undef z_set
+#undef z_or
+#undef no_extend
+#undef extend
+#undef addop
+#undef subop
+
 
 								case Operation::ADDAw:
 									active_program_->destination->full += int16_t(active_program_->source->halves.low.full);

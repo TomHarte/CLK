@@ -392,6 +392,7 @@ struct ProcessorStorageConstructor {
 			ADD_SUB,					// Maps a register and a register and mode to an ADD or SUB.
 			ADDA_SUBA,					// Maps a destination register and a source mode and register to an ADDA or SUBA.
 			ADDQ_SUBQ,					// Maps a register and a mode to an ADDQ or SUBQ.
+			ADDX_SUBX,					// Maps source and destination registers, and register/memory mode to an ADDX or SUBX.
 
 			AND_OR_EOR,					// Maps a source register, operation mode and destination register and mode to an AND, OR or EOR.
 
@@ -574,6 +575,14 @@ struct ProcessorStorageConstructor {
 			{0xf1c0, 0x5100, Operation::SUBQb, Decoder::ADDQ_SUBQ},	// 4-181 (p285)
 			{0xf1c0, 0x5140, Operation::SUBQw, Decoder::ADDQ_SUBQ},	// 4-181 (p285)
 			{0xf1c0, 0x5180, Operation::SUBQl, Decoder::ADDQ_SUBQ},	// 4-181 (p285)
+
+			{0xf1f0, 0xd100, Operation::ADDXb, Decoder::ADDX_SUBX},	// 4-14 (p118)
+			{0xf1f0, 0xd140, Operation::ADDXw, Decoder::ADDX_SUBX},	// 4-14 (p118)
+			{0xf1f0, 0xd180, Operation::ADDXl, Decoder::ADDX_SUBX},	// 4-14 (p118)
+
+			{0xf1f0, 0x9100, Operation::SUBXb, Decoder::ADDX_SUBX},	// 4-184 (p288)
+			{0xf1f0, 0x9140, Operation::SUBXw, Decoder::ADDX_SUBX},	// 4-184 (p288)
+			{0xf1f0, 0x9180, Operation::SUBXl, Decoder::ADDX_SUBX},	// 4-184 (p288)
 
 			{0xf1c0, 0x0100, Operation::BTSTb, Decoder::BTST},		// 4-62 (p166)
 			{0xffc0, 0x0800, Operation::BTSTb, Decoder::BTSTIMM},	// 4-63 (p167)
@@ -774,8 +783,7 @@ struct ProcessorStorageConstructor {
 
 							if(instruction & 0x100) {
 								// The bit is nominated by a register.
-								const int source_register = (instruction >> 9)&7;
-								storage_.instructions[instruction].set_source(storage_, Dn, source_register);
+								storage_.instructions[instruction].set_source(storage_, Dn, data_register);
 							} else {
 								// The bit is nominated by a constant, that will be obtained right here.
 								storage_.instructions[instruction].set_source(storage_, Imm, 0);
@@ -1030,9 +1038,8 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::DIVU_DIVS: {
-							const int destination_register = (instruction >> 9) & 7;
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
-							storage_.instructions[instruction].set_destination(storage_, Dn, destination_register);
+							storage_.instructions[instruction].set_destination(storage_, Dn, data_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
@@ -1077,9 +1084,8 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::MULU_MULS: {
-							const int destination_register = (instruction >> 9) & 7;
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
-							storage_.instructions[instruction].set_destination(storage_, Dn, destination_register);
+							storage_.instructions[instruction].set_destination(storage_, Dn, data_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
@@ -1428,8 +1434,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::ADDA_SUBA: {
-							const int destination_register = (instruction >> 9) & 7;
-							storage_.instructions[instruction].set_destination(storage_, 1, destination_register);
+							storage_.instructions[instruction].set_destination(storage_, 1, data_register);
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
@@ -1603,6 +1608,49 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
+						case Decoder::ADDX_SUBX: {
+							if(instruction & 0x8) {
+								// Use predecrementing address registers.
+								storage_.instructions[instruction].set_source(storage_, Ind, ea_register);
+								storage_.instructions[instruction].set_destination(storage_, Ind, data_register);
+
+								if(is_long_word_access) {
+									// Access order is very atypical here: it's lower parts each for both words,
+									// and then also a lower-part-first write.
+									op(int(Action::Decrement2) | MicroOp::SourceMask | MicroOp::DestinationMask);
+									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask | MicroOp::DestinationMask,
+										seq("n nr- nR nrd- nRd+", { ea(0), ea(0), ea(1), ea(1) }));
+									op(int(Action::Decrement2) | MicroOp::SourceMask | MicroOp::DestinationMask);
+									op(Action::PerformOperation, seq("nw- np nW", { ea(1), ea(1) }));
+								} else {
+									const int source_dec = dec(ea_register);
+									const int destination_dec = dec(data_register);
+
+									int first_action;
+									if(source_dec == destination_dec) {
+										first_action = int(Action::Decrement4) | MicroOp::SourceMask | MicroOp::DestinationMask;
+									} else {
+										op(source_dec | MicroOp::SourceMask);
+										first_action = destination_dec | MicroOp::DestinationMask;
+									}
+
+									op(first_action, seq("n nr nrd np", { ea(0), ea(1) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
+								}
+							} else {
+								// Use data registers.
+								storage_.instructions[instruction].set_source(storage_, Dn, ea_register);
+								storage_.instructions[instruction].set_destination(storage_, Dn, data_register);
+
+								if(is_long_word_access) {
+									op(Action::PerformOperation, seq("np nn"));
+								} else {
+									op(Action::PerformOperation, seq("np"));
+								}
+							}
+
+						} break;
+
 						// This decoder actually decodes nothing; it just schedules a PerformOperation followed by an empty step.
 						case Decoder::Bcc_BSR: {
 							const int condition = (instruction >> 8) & 0xf;
@@ -1629,8 +1677,7 @@ struct ProcessorStorageConstructor {
 						case Decoder::BTST: {
 							const bool is_bclr = mapping.decoder == Decoder::BCLR;
 
-							const int mask_register = (instruction >> 9) & 7;
-							storage_.instructions[instruction].set_source(storage_, 0, mask_register);
+							storage_.instructions[instruction].set_source(storage_, 0, data_register);
 							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
@@ -1753,16 +1800,14 @@ struct ProcessorStorageConstructor {
 
 						// Decodes the format used by ABCD and SBCD.
 						case Decoder::ABCD_SBCD: {
-							const int destination_register = (instruction >> 9) & 7;
-
 							if(instruction & 8) {
 								storage_.instructions[instruction].source = &storage_.source_bus_data_[0];
 								storage_.instructions[instruction].destination = &storage_.destination_bus_data_[0];
 								storage_.instructions[instruction].source_address = &storage_.address_[ea_register];
-								storage_.instructions[instruction].destination_address = &storage_.address_[destination_register];
+								storage_.instructions[instruction].destination_address = &storage_.address_[data_register];
 
 								const int source_dec = dec(ea_register);
-								const int destination_dec = dec(destination_register);
+								const int destination_dec = dec(data_register);
 
 								int first_action = source_dec | MicroOp::SourceMask | MicroOp::DestinationMask;
 								if(source_dec != destination_dec) {
@@ -1771,11 +1816,11 @@ struct ProcessorStorageConstructor {
 								}
 
 								op(	first_action,
-									seq("n nr nr np nw", { a(ea_register), a(destination_register), a(destination_register) }, false));
+									seq("n nr nrd np nw", { a(ea_register), a(data_register), a(data_register) }, false));
 								op(Action::PerformOperation);
 							} else {
 								storage_.instructions[instruction].source = &storage_.data_[ea_register];
-								storage_.instructions[instruction].destination = &storage_.data_[destination_register];
+								storage_.instructions[instruction].destination = &storage_.data_[data_register];
 
 								op(Action::PerformOperation, seq("np n"));
 							}
@@ -1913,9 +1958,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::CMP: {
-							const auto source_register = (instruction >> 9) & 7;
-
-							storage_.instructions[instruction].destination = &storage_.data_[source_register];
+							storage_.instructions[instruction].destination = &storage_.data_[data_register];
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 
 							// Byte accesses are not allowed with address registers.
@@ -2018,10 +2061,8 @@ struct ProcessorStorageConstructor {
 							if(((op_mode)&3) != 3) continue;
 							is_long_word_access = op_mode == 7;
 
-							const int destination_register = (instruction >> 9) & 7;
-
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
-							storage_.instructions[instruction].destination = &storage_.address_[destination_register];
+							storage_.instructions[instruction].destination = &storage_.address_[data_register];
 
 							const int mode = combined_mode(ea_mode, ea_register, true);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
@@ -2198,23 +2239,28 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::CMPM: {
-							const int source_register = (instruction >> 9)&7;
-							const int destination_register = ea_register;
+							storage_.instructions[instruction].set_source(storage_, 1, ea_register);
+							storage_.instructions[instruction].set_destination(storage_, 1, data_register);
 
-							storage_.instructions[instruction].set_source(storage_, 1, source_register);
-							storage_.instructions[instruction].set_destination(storage_, 1, destination_register);
-
-							const bool is_byte_operation = operation == Operation::CMPw;
+							const bool is_byte_operation = operation == Operation::CMPb;
 
 							switch(operation) {
 								default: continue;
 
 								case Operation::CMPb:	// CMPM.b, (An)+, (An)+
-								case Operation::CMPw:	// CMPM.w, (An)+, (An)+
-									op(Action::None, seq("nr nr np", {a(source_register), a(destination_register)}, !is_byte_operation));
+								case Operation::CMPw: {	// CMPM.w, (An)+, (An)+
+									op(Action::None, seq("nr nrd np", { a(data_register), a(ea_register) }, !is_byte_operation));
 									op(Action::PerformOperation);
-									op(inc(destination_register) | MicroOp::SourceMask | MicroOp::DestinationMask);
-								break;
+
+									const int source_inc = inc(ea_register);
+									const int destination_inc = inc(data_register);
+									if(destination_inc == source_inc) {
+										op(destination_inc | MicroOp::SourceMask | MicroOp::DestinationMask);
+									} else {
+										op(destination_inc | MicroOp::DestinationMask);
+										op(source_inc | MicroOp::SourceMask);
+									}
+								} break;
 
 								case Operation::CMPl:
 									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask | MicroOp::DestinationMask,
@@ -2402,8 +2448,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::LEA: {
-							const int destination_register = (instruction >> 9) & 7;
-							storage_.instructions[instruction].set_destination(storage_, An, destination_register);
+							storage_.instructions[instruction].set_destination(storage_, An, data_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
 							storage_.instructions[instruction].source_address = &storage_.address_[ea_register];
@@ -2537,8 +2582,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::MOVEq: {
-							const int destination_register = (instruction >> 9) & 7;
-							storage_.instructions[instruction].destination = &storage_.data_[destination_register];
+							storage_.instructions[instruction].destination = &storage_.data_[data_register];
 							op(Action::PerformOperation, seq("np"));
 						} break;
 
@@ -2610,17 +2654,16 @@ struct ProcessorStorageConstructor {
 						// Decodes the format used by most MOVEs and all MOVEAs.
 						case Decoder::MOVE: {
 							const int destination_mode = (instruction >> 6) & 7;
-							const int destination_register = (instruction >> 9) & 7;
 
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
-							storage_.instructions[instruction].set_destination(storage_, destination_mode, destination_register);
+							storage_.instructions[instruction].set_destination(storage_, destination_mode, data_register);
 
 							// These don't come from the usual place.
 							is_byte_access = mapping.operation == Operation::MOVEb;
 							is_long_word_access = mapping.operation == Operation::MOVEl;
 
 							const int combined_source_mode = combined_mode(ea_mode, ea_register, true, true);
-							const int combined_destination_mode = combined_mode(destination_mode, destination_register, true, true);
+							const int combined_destination_mode = combined_mode(destination_mode, data_register, true, true);
 							const int mode = is_long_word_access ?
 								l2(combined_source_mode, combined_destination_mode) :
 								bw2(combined_source_mode, combined_destination_mode);
@@ -2712,7 +2755,7 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case bw2(Dn, Ind):			// MOVE.bw [An/Dn], (An)[+]
-									op(Action::PerformOperation, seq("nw np", { a(destination_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw np", { a(data_register) }, !is_byte_access));
 								break;
 
 								case l2(PreDec, Ind):		// MOVE.l -(An), (An)[+]
@@ -2725,12 +2768,12 @@ struct ProcessorStorageConstructor {
 
 								case bw2(Ind, Ind):			// MOVE.bw (An)[+], (An)[+]
 									op(Action::None, seq("nr", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq("nw np", { a(destination_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw np", { a(data_register) }, !is_byte_access));
 								break;
 
 								case bw2(PreDec, Ind):		// MOVE.bw -(An), (An)[+]
 									op(dec(ea_register) | MicroOp::SourceMask, seq("n nr", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq("nw np", { a(destination_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw np", { a(data_register) }, !is_byte_access));
 								break;
 
 								case l2(d16An, Ind):		// MOVE.bw (d16, An), (An)[+]
@@ -2754,7 +2797,7 @@ struct ProcessorStorageConstructor {
 									op(	address_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
 										seq(pseq("np nr", combined_source_mode), { ea(0) }, !is_byte_access));
 									op(	Action::PerformOperation,
-										seq("nw np", { a(destination_register) }, !is_byte_access));
+										seq("nw np", { a(data_register) }, !is_byte_access));
 								break;
 
 								case l2(XXXl, Ind):			// MOVE.l (xxx).l, (An)[+]
@@ -2775,7 +2818,7 @@ struct ProcessorStorageConstructor {
 
 								case bw2(Imm, Ind):			// MOVE.bw #, (An)[+]
 									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
-									op(Action::PerformOperation, seq("np nw np", { a(destination_register) }, !is_byte_access) );
+									op(Action::PerformOperation, seq("np nw np", { a(data_register) }, !is_byte_access) );
 								break;
 
 							//
@@ -2784,8 +2827,8 @@ struct ProcessorStorageConstructor {
 
 								case bw2(Dn, PreDec):		// MOVE.bw [An/Dn], -(An)
 									op(Action::PerformOperation);
-									op(	dec(destination_register) | MicroOp::DestinationMask,
-										seq("np nw", { a(destination_register) }, !is_byte_access));
+									op(	dec(data_register) | MicroOp::DestinationMask,
+										seq("np nw", { a(data_register) }, !is_byte_access));
 								break;
 
 								case l2(Dn, PreDec):		// MOVE.l [An/Dn], -(An)
@@ -2801,8 +2844,8 @@ struct ProcessorStorageConstructor {
 								case bw2(PreDec, PreDec):	// MOVE.bw -(An), -(An)
 									op(dec(ea_register) | MicroOp::SourceMask, seq("n"));
 								case bw2(Ind, PreDec):		// MOVE.bw (An)[+], -(An)
-									op(dec(destination_register) | MicroOp::DestinationMask, seq("nr", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq("np nw", { a(destination_register) }, !is_byte_access));
+									op(dec(data_register) | MicroOp::DestinationMask, seq("nr", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("np nw", { a(data_register) }, !is_byte_access));
 								break;
 
 								case l2(PreDec, PreDec):	// MOVE.l -(An), -(An)
@@ -2825,7 +2868,7 @@ struct ProcessorStorageConstructor {
 									op(	address_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
 										seq(pseq("np nr", combined_source_mode), { ea(0) }, !is_byte_access ));
 									op(Action::PerformOperation);
-									op(dec(destination_register) | MicroOp::DestinationMask, seq("np nw", { a(destination_register) }, !is_byte_access));
+									op(dec(data_register) | MicroOp::DestinationMask, seq("np nw", { a(data_register) }, !is_byte_access));
 								break;
 
 								case l2(XXXl, PreDec):		// MOVE.l (xxx).w, -(An)
@@ -2846,7 +2889,7 @@ struct ProcessorStorageConstructor {
 								case bw2(Imm, PreDec):		// MOVE.bw #, -(An)
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(Action::PerformOperation);
-									op(dec(destination_register) | MicroOp::DestinationMask, seq("np nw", { a(destination_register) }, !is_byte_access));
+									op(dec(data_register) | MicroOp::DestinationMask, seq("np nw", { a(data_register) }, !is_byte_access));
 								break;
 
 								case l2(Imm, PreDec):		// MOVE.l #, -(An)
@@ -3139,7 +3182,7 @@ struct ProcessorStorageConstructor {
 							// If any post-incrementing was involved, do the post increment(s).
 							if(ea_mode == PostInc || destination_mode == PostInc) {
 								const int ea_inc = inc(ea_register);
-								const int destination_inc = inc(destination_register);
+								const int destination_inc = inc(data_register);
 
 								// If there are two increments, and both can be done simultaneously, do that.
 								// Otherwise do one or two individually.
