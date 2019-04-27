@@ -10,7 +10,6 @@
 
 #include <array>
 #include <cassert>
-#include <set>
 
 #include "68000.hpp"
 
@@ -85,6 +84,9 @@ class RAM68000: public CPU::MC68000::BusHandler {
 class CPU::MC68000::ProcessorStorageTests {
 	public:
 		ProcessorStorageTests(const CPU::MC68000::ProcessorStorage &storage, const char *coverage_file_name) {
+			false_valids_ = [NSMutableSet set];
+			false_invalids_ = [NSMutableSet set];
+
 			FILE *source = fopen(coverage_file_name, "rb");
 
 			// The file format here is [2 bytes opcode][2 ASCII characters:VA for valid, IN for invalid]...
@@ -109,10 +111,14 @@ class CPU::MC68000::ProcessorStorageTests {
 				type[1] = fgetc(source);
 				type[2] = '\0';
 
+				// TEMPORARY: factor out A- and F-line exceptions.
+				if((next_opcode&0xf000) == 0xa000) continue;
+				if((next_opcode&0xf000) == 0xf000) continue;
+
 				if(!strcmp(type, "VA")) {
 					// Test for validity.
 					if(!storage.instructions[next_opcode].micro_operations) {
-						false_invalids_.insert(next_opcode);
+						[false_invalids_ addObject:@(next_opcode)];
 					}
 					continue;
 				}
@@ -120,7 +126,7 @@ class CPU::MC68000::ProcessorStorageTests {
 				if(!strcmp(type, "IN")) {
 					// Test for invalidity.
 					if(storage.instructions[next_opcode].micro_operations) {
-						false_valids_.insert(next_opcode);
+						[false_valids_ addObject:@(next_opcode)];
 					}
 					continue;
 				}
@@ -131,28 +137,38 @@ class CPU::MC68000::ProcessorStorageTests {
 			fclose(source);
 		}
 
-		NSString *false_valids() const {
-			return contents_of(false_valids_);
+		NSSet<NSNumber *> *false_valids() const {
+			return false_valids_;
 		}
 
-		NSString *false_invalids() const {
-			return contents_of(false_invalids_);
+		NSSet<NSNumber *> *false_invalids() const {
+			return false_invalids_;
 		}
 
 	private:
-		std::set<uint16_t> false_invalids_;
-		std::set<uint16_t> false_valids_;
-
-		static NSString *contents_of(const std::set<uint16_t> &set) {
-			NSMutableString *result = [[NSMutableString alloc] init];
-
-			for(auto value: set) {
-				[result appendFormat:@"%04x ", value];
-			}
-
-			return result;
-		}
+		NSMutableSet<NSNumber *> *false_invalids_;
+		NSMutableSet<NSNumber *> *false_valids_;
 };
+
+@interface NSSet (CSHexDump)
+
+- (NSString *)hexDump;
+
+@end
+
+@implementation NSSet (CSHexDump)
+
+- (NSString *)hexDump {
+	NSMutableArray<NSString *> *components = [NSMutableArray array];
+
+	for(NSNumber *number in [[self allObjects] sortedArrayUsingSelector:@selector(compare:)]) {
+		[components addObject:[NSString stringWithFormat:@"%04x", number.intValue]];
+	}
+
+	return [components componentsJoinedByString:@" "];
+}
+
+@end
 
 
 @interface M68000Tests : XCTestCase
@@ -249,10 +265,10 @@ class CPU::MC68000::ProcessorStorageTests {
 		[[NSBundle bundleForClass:[self class]] pathForResource:@"OPCLOGR2" ofType:@"BIN"].UTF8String
 	);
 
-	NSString *const falseValids = storage_tests.false_valids();
-	NSString *const falseInvalids = storage_tests.false_invalids();
-	XCTAssert(!falseValids.length, "%@ opcodes should be invalid but aren't: %@", @([falseValids componentsSeparatedByString:@" "].count - 1), falseValids);
-	XCTAssert(!falseInvalids.length, "%@ opcodes should be valid but aren't: %@", @([falseInvalids componentsSeparatedByString:@" "].count - 1), falseInvalids);
+	NSSet<NSNumber *> *const falseValids = storage_tests.false_valids();
+	NSSet<NSNumber *> *const falseInvalids = storage_tests.false_invalids();
+	XCTAssert(!falseValids.count, "%@ opcodes should be invalid but aren't: %@", @(falseValids.count), falseValids.hexDump);
+	XCTAssert(!falseInvalids.count, "%@ opcodes should be valid but aren't: %@", @(falseInvalids.count), falseInvalids.hexDump);
 }
 
 @end
