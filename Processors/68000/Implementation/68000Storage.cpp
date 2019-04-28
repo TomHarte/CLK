@@ -316,12 +316,10 @@ struct ProcessorStorageConstructor {
 
 			// A stack write.
 			if(token == "nS" || token == "ns") {
-				RegisterPair32 *const scratch_data = &storage_.destination_bus_data_[0];
-
 				step.microcycle.length = HalfCycles(5);
 				step.microcycle.operation = Microcycle::NewAddress;
 				step.microcycle.address = &storage_.effective_address_[1].full;
-				step.microcycle.value = isupper(token[1]) ? &scratch_data->halves.high : &scratch_data->halves.low;
+				step.microcycle.value = isupper(token[1]) ? &storage_.destination_bus_data_[0].halves.high : &storage_.destination_bus_data_[0].halves.low;
 				steps.push_back(step);
 
 				step.microcycle.length = HalfCycles(3);
@@ -462,6 +460,9 @@ struct ProcessorStorageConstructor {
 			TAS,						// Maps a mode and register to a TAS.
 
 			PEA,						// Maps a mode and register to a PEA.
+
+			LINK,						// Maps a register to a LINK.
+			UNLINK,						// Maps a register to an UNLINK.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -696,6 +697,9 @@ struct ProcessorStorageConstructor {
 
 			{0xfff8, 0x4880, Operation::EXTbtow, Decoder::EXT_SWAP},		// 4-106 (p210)
 			{0xfff8, 0x48c0, Operation::EXTwtol, Decoder::EXT_SWAP},		// 4-106 (p210)
+
+			{0xfff8, 0x4e50, Operation::LINK, Decoder::LINK},			// 4-111 (p215)
+			{0xfff8, 0x4e58, Operation::UNLINK, Decoder::UNLINK},		// 4-194 (p298)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -741,6 +745,17 @@ struct ProcessorStorageConstructor {
 #define inc(n) increment_action(is_long_word_access, is_byte_access, n)
 
 					switch(mapping.decoder) {
+						case Decoder::LINK: {
+							storage_.instructions[instruction].set_source(storage_, An, ea_register);
+							op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
+						} break;
+
+						case Decoder::UNLINK: {
+							storage_.instructions[instruction].set_destination(storage_, An, ea_register);
+							op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd np", { ea(1), ea(1) }));
+							op(Action::PerformOperation);
+						} break;
+
 						case Decoder::TAS: {
 							const int mode = combined_mode(ea_mode, ea_register);
 							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);

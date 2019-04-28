@@ -1076,6 +1076,31 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								break;
 
 								/*
+									LINK and UNLINK help with stack frames, allowing a certain
+									amount of stack space to be allocated or deallocated.
+								*/
+
+								case Operation::LINK:
+									// Make space for the new long-word value, and set up
+									// the proper target address for the stack operations to follow.
+									address_[7].full -= 4;
+									effective_address_[1].full = address_[7].full;
+
+									// The current value of the address register will be pushed.
+									destination_bus_data_[0].full = active_program_->source->full;
+
+									// The address register will then contain the bottom of the stack,
+									// and the stack pointer will be offset.
+									active_program_->source->full = address_[7].full;
+									address_[7].full += int16_t(prefetch_queue_.halves.low.full);
+								break;
+
+								case Operation::UNLINK:
+									address_[7].full = effective_address_[1].full;
+									active_program_->destination->full = destination_bus_data_[0].full;
+								break;
+
+								/*
 									TAS: sets zero and negative depending on the current value of the destination,
 									and sets the high bit.
 								*/

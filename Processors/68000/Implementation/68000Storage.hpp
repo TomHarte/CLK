@@ -115,6 +115,8 @@ class ProcessorStorage {
 			TAS,
 
 			EXTbtow,	EXTwtol,
+
+			LINK,	UNLINK,
 		};
 
 		/*!
