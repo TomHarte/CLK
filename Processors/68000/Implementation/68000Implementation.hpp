@@ -944,26 +944,36 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								// TRAP, which is a nicer form of ILLEGAL.
 								case Operation::TRAP: {
-									// Select the trap steps as next.
+									// Select the trap steps as next; the initial microcycle should be 4 cycles long.
 									bus_program = trap_steps_;
-
-									// Fill in the status word value.
-									destination_bus_data_[0].full = get_status();
-
-									// Switch to supervisor mode.
-									set_is_supervisor(true);
-
-									// Pick a vector.
-									effective_address_[0].full = ((decoded_instruction_ & 15) + 32) << 2;
-
-									// Schedule the proper stack activity.
-									precomputed_addresses_[0] = address_[7].full - 2;
-									precomputed_addresses_[1] = address_[7].full - 6;
-									precomputed_addresses_[2] = address_[7].full - 4;
-									address_[7].full -= 6;
+									bus_program->microcycle.length = HalfCycles(8);
+									populate_trap_steps((decoded_instruction_ & 15) + 32, get_status());
 
 									// The program counter to push is actually one slot ago.
 									program_counter_.full -= 2;
+								} break;
+
+								case Operation::CHK: {
+									const bool is_under = int16_t(active_program_->destination->halves.low.full) < 0;
+									const bool is_over = int16_t(active_program_->destination->halves.low.full) > int16_t(active_program_->source->halves.low.full);
+
+									// No exception is the default course of action; deviate only if an
+									// exception is necessary.
+									if(is_under || is_over) {
+										negative_flag_ = is_under ? 1 : 0;
+
+										bus_program = trap_steps_;
+										if(is_under) {
+											bus_program->microcycle.length = HalfCycles(16);
+										} else {
+											bus_program->microcycle.length = HalfCycles(8);
+										}
+										populate_trap_steps(6, get_status());
+
+										// The program counter to push is two slots ago as whatever was the correct prefetch
+										// to continue without an exception has already happened, just in case.
+										program_counter_.full -= 4;
+									}
 								} break;
 
 								/*

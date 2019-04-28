@@ -447,6 +447,7 @@ struct ProcessorStorageConstructor {
 			MOVEUSP,					// Maps a direction and register to a MOVE [to/from] USP.
 
 			TRAP,						// Maps to a TRAP.
+			CHK,						// Maps to a CHK.
 
 			NOP,						// Maps to a NOP.
 
@@ -664,6 +665,7 @@ struct ProcessorStorageConstructor {
 			{0xfff0, 0x4e60, Operation::MOVEAl, Decoder::MOVEUSP},				// 6-21 (p475)
 
 			{0xfff0, 0x4e40, Operation::TRAP, Decoder::TRAP},					// 4-188 (p292)
+			{0xf1c0, 0x4180, Operation::CHK, Decoder::CHK},						// 4-69 (p173)
 
 			{0xffff, 0x4e77, Operation::RTE_RTR, Decoder::RTE_RTR},				// 4-168 (p272) [RTR]
 			{0xffff, 0x4e73, Operation::RTE_RTR, Decoder::RTE_RTR},				// 6-84 (p538) [RTE]
@@ -3211,6 +3213,50 @@ struct ProcessorStorageConstructor {
 							op();
 						} break;
 
+						case Decoder::CHK: {
+							storage_.instructions[instruction].set_destination(storage_, Dn, data_register);
+							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
+
+							const int mode = combined_mode(ea_mode, ea_register);
+							switch(mode) {
+								default: continue;
+
+								case Dn:		// CHK Dn, Dn
+									op(Action::None, seq("np"));
+								break;
+
+								case Ind:		// CHK (An), Dn
+								case PostInc:	// CHK (An)+, Dn
+									op(Action::None, seq("nr np", { a(ea_register) }));
+									if(mode == PostInc) {
+										op(int(Action::Increment2) | MicroOp::SourceMask);
+									}
+								break;
+
+								case PreDec:	// CHK (An)-, Dn
+									op(int(Action::Decrement2) | MicroOp::SourceMask, seq("n nr np", { a(ea_register) }));
+								break;
+
+								case XXXl:		// CHK (xxx).l, Dn
+									op(Action::None, seq("np"));
+								case XXXw:		// CHK (xxx).w, Dn
+								case d16An:		// CHK (d16, An), Dn
+								case d16PC:		// CHK (d16, PC), Dn
+								case d8AnXn:	// CHK (d8, An, Xn), Dn
+								case d8PCXn:	// CHK (d8, PC, Xn), Dn
+									op(address_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nr", mode), { ea(0) }));
+								break;
+
+								case Imm:		// CHK #, Dn
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
+								break;
+							}
+
+							// The nn n here is correct if no exception is issued; otherwise this sequence will
+							// be replaced.
+							op(Action::PerformOperation, seq("nn n"));
+						} break;
+
 						case Decoder::TST: {
 							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 
@@ -3386,7 +3432,7 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	const size_t movem_write_offset = constructor.assemble_program(movem_writes_pattern, addresses);
 
 	// Target addresses and values will be filled in by TRAP/illegal too.
-	const size_t trap_offset = constructor.assemble_program("nn nw nw nW nV nv np np", { &precomputed_addresses_[0], &precomputed_addresses_[1], &precomputed_addresses_[2] });
+	const size_t trap_offset = constructor.assemble_program("r nw nw nW nV nv np np", { &precomputed_addresses_[0], &precomputed_addresses_[1], &precomputed_addresses_[2] });
 
 	// Install operations.
 	constructor.install_instructions();

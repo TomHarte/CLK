@@ -105,6 +105,7 @@ class ProcessorStorage {
 			RTE_RTR,
 
 			TRAP,
+			CHK,
 
 			EXG,	SWAP,
 
@@ -385,6 +386,23 @@ class ProcessorStorage {
 				case 0x0f:	// less than or equal
 					return !zero_result_ || (negative_flag_ && !overflow_flag_) || (!negative_flag_ && overflow_flag_);
 			}
+		}
+
+		inline void populate_trap_steps(uint32_t vector, uint16_t status) {
+			// Fill in the status word value.
+			destination_bus_data_[0].full = status;
+
+			// Switch to supervisor mode.
+			set_is_supervisor(true);
+
+			// Pick a vector.
+			effective_address_[0].full = vector << 2;
+
+			// Schedule the proper stack activity.
+			precomputed_addresses_[0] = address_[7].full - 2;
+			precomputed_addresses_[1] = address_[7].full - 6;
+			precomputed_addresses_[2] = address_[7].full - 4;
+			address_[7].full -= 6;
 		}
 
 
