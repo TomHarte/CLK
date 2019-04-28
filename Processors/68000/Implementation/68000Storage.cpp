@@ -421,7 +421,7 @@ struct ProcessorStorageConstructor {
 
 			MOVE,						// Maps a source mode and register and a destination mode and register to a MOVE.
 			MOVEtoSRCCR,				// Maps a source mode and register to a MOVE to SR or MOVE to CCR.
-			MOVEfromSR,					// Maps a source mode and register to a MOVE fom SR.
+			MOVEfromSR_NBCD,			// Maps a source mode and register to a MOVE fom SR.
 			MOVEq,						// Maps a destination register to a MOVEQ.
 
 			MULU_MULS,					// Maps a destination register and a source mode and register to a MULU or MULS.
@@ -483,8 +483,9 @@ struct ProcessorStorageConstructor {
 			NB: a vector is used to allow easy iteration.
 		*/
 		const std::vector<PatternMapping> mappings = {
-			{0xf1f0, 0xc100, Operation::ABCD, Decoder::ABCD_SBCD},		// 4-3 (p107)
-			{0xf1f0, 0x8100, Operation::SBCD, Decoder::ABCD_SBCD},		// 4-171 (p275)
+			{0xf1f0, 0xc100, Operation::ABCD, Decoder::ABCD_SBCD},			// 4-3 (p107)
+			{0xf1f0, 0x8100, Operation::SBCD, Decoder::ABCD_SBCD},			// 4-171 (p275)
+			{0xffc0, 0x4800, Operation::NBCD, Decoder::MOVEfromSR_NBCD},	// 4-142 (p246)
 
 			{0xf0c0, 0xc000, Operation::ANDb, Decoder::AND_OR_EOR},		// 4-15 (p119)
 			{0xf0c0, 0xc040, Operation::ANDw, Decoder::AND_OR_EOR},		// 4-15 (p119)
@@ -522,9 +523,9 @@ struct ProcessorStorageConstructor {
 			{0xf000, 0x2000, Operation::MOVEl, Decoder::MOVE},	// 4-116 (p220)
 			{0xf000, 0x3000, Operation::MOVEw, Decoder::MOVE},	// 4-116 (p220)
 
-			{0xffc0, 0x46c0, Operation::MOVEtoSR, Decoder::MOVEtoSRCCR},	// 6-19 (p473)
-			{0xffc0, 0x44c0, Operation::MOVEtoCCR, Decoder::MOVEtoSRCCR},	// 4-123 (p227)
-			{0xffc0, 0x40c0, Operation::MOVEfromSR, Decoder::MOVEfromSR},	// 6-17 (p471)
+			{0xffc0, 0x46c0, Operation::MOVEtoSR, Decoder::MOVEtoSRCCR},		// 6-19 (p473)
+			{0xffc0, 0x44c0, Operation::MOVEtoCCR, Decoder::MOVEtoSRCCR},		// 4-123 (p227)
+			{0xffc0, 0x40c0, Operation::MOVEfromSR, Decoder::MOVEfromSR_NBCD},	// 6-17 (p471)
 
 			{0xf1c0, 0xb000, Operation::CMPb, Decoder::CMP},	// 4-75 (p179)
 			{0xf1c0, 0xb040, Operation::CMPw, Decoder::CMP},	// 4-75 (p179)
@@ -2488,9 +2489,10 @@ struct ProcessorStorageConstructor {
 							}
 						} break;
 
-						case Decoder::MOVEfromSR: {
+						case Decoder::MOVEfromSR_NBCD: {
 							storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
-							storage_.instructions[instruction].requires_supervisor = true;
+
+							is_byte_access = operation == Operation::NBCD;
 
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
@@ -2500,25 +2502,18 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation, seq("np n"));
 								break;
 
-								// NOTE ON nr BELOW.
-								// It appears the 68000 performs a read-modify-write for this operation even
-								// though it doesn't use the read; therefore where it's easier I've left the
-								// nr within the same set of bus steps, before the PerformOperation, as it's
-								// then a harmless read.
-								//
-								// DO NOT CORRECT TO nrd.
-
 								case Ind:		// MOVE SR, (An)
 								case PostInc:	// MOVE SR, (An)+
-									op(Action::PerformOperation, seq("nr np nw", { a(ea_register), a(ea_register) }));
+									op(Action::None, seq("nrd", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("np nw", { a(ea_register) }, !is_byte_access));
 									if(mode == PostInc) {
 										op(int(Action::Increment2) | MicroOp::DestinationMask);
 									}
 								break;
 
 								case PreDec:	// MOVE SR, -(An)
-									op(int(Action::Decrement2) | MicroOp::DestinationMask);
-									op(Action::PerformOperation, seq("n nr np nw", { a(ea_register), a(ea_register) }));
+									op(int(Action::Decrement2) | MicroOp::DestinationMask, seq("n nrd", { a(ea_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("np nw", { a(ea_register) }, !is_byte_access));
 								break;
 
 								case XXXl:		// MOVE SR, (xxx).l
@@ -2526,8 +2521,8 @@ struct ProcessorStorageConstructor {
 								case XXXw:		// MOVE SR, (xxx).w
 								case d16An:		// MOVE SR, (d16, An)
 								case d8AnXn:	// MOVE SR, (d8, An, Xn)
-									op(address_action_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np nr", mode), { ea(1) }));
-									op(Action::PerformOperation, seq("np nw", { ea(1) }));
+									op(address_action_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np nrd", mode), { ea(1) }, !is_byte_access));
+									op(Action::PerformOperation, seq("np nw", { ea(1) }, !is_byte_access));
 								break;
 							}
 						} break;

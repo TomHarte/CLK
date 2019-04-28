@@ -44,7 +44,7 @@ class ProcessorStorage {
 
 		enum class Operation {
 			None,
-			ABCD,	SBCD,
+			ABCD,	SBCD,	NBCD,
 
 			ADDb,	ADDw,	ADDl,
 			ADDQb,	ADDQw,	ADDQl,

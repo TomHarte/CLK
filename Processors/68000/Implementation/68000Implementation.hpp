@@ -1122,29 +1122,40 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									negative_flag_ = zero_result_ & 0x80000000;
 								break;
 
+#define sbcd()	\
+	/* Perform the BCD arithmetic by evaluating the two nibbles separately. */	\
+	int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);	\
+	if(result > 0x09) result -= 0x06;	\
+	result += (destination & 0xf0) - (source & 0xf0);	\
+	if(result > 0x99) result -= 0x60;	\
+\
+	/* Set all flags essentially as if this were normal subtraction. */	\
+	zero_result_ |= result & 0xff;	\
+	extend_flag_ = carry_flag_ = result & ~0xff;	\
+	negative_flag_ = result & 0x80;	\
+	overflow_flag_ = sub_overflow() & 0x80;	\
+\
+	/* Store the result. */	\
+	active_program_->destination->halves.low.halves.low = uint8_t(result);
+
 								/*
 									SBCD subtracts the lowest byte of the source from that of the destination using
 									BCD arithmetic, obeying the extend flag.
 								*/
 								case Operation::SBCD: {
-									// Pull out the two halves, for simplicity.
 									const uint8_t source = active_program_->source->halves.low.halves.low;
 									const uint8_t destination = active_program_->destination->halves.low.halves.low;
+									sbcd();
+								} break;
 
-									// Perform the BCD add by evaluating the two nibbles separately.
-									int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);
-									if(result > 0x09) result -= 0x06;
-									result += (destination & 0xf0) - (source & 0xf0);
-									if(result > 0x99) result -= 0x60;
-
-									// Set all flags essentially as if this were normal subtraction.
-									zero_result_ |= result & 0xff;
-									extend_flag_ = carry_flag_ = result & ~0xff;
-									negative_flag_ = result & 0x80;
-									overflow_flag_ = sub_overflow() & 0x80;
-
-									// Store the result.
-									active_program_->destination->halves.low.halves.low = uint8_t(result);
+								/*
+									NBCD is like SBCD except that the result is 0 - destination rather than
+									destination - source.
+								*/
+								case Operation::NBCD: {
+									const uint8_t source = active_program_->destination->halves.low.halves.low;
+									const uint8_t destination = 0;
+									sbcd();
 								} break;
 
 								// EXG and SWAP exchange/swap words or long words.
