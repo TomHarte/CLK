@@ -953,6 +953,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									program_counter_.full -= 2;
 								} break;
 
+								case Operation::TRAPV: {
+									if(overflow_flag_) {
+										// Select the trap steps as next; the initial microcycle should be 4 cycles long.
+										bus_program = trap_steps_;
+										bus_program->microcycle.length = HalfCycles(0);
+										populate_trap_steps(7, get_status());
+										program_counter_.full -= 4;
+									}
+								} break;
+
 								case Operation::CHK: {
 									const bool is_under = int16_t(active_program_->destination->halves.low.full) < 0;
 									const bool is_over = int16_t(active_program_->destination->halves.low.full) > int16_t(active_program_->source->halves.low.full);

@@ -447,6 +447,7 @@ struct ProcessorStorageConstructor {
 			MOVEUSP,					// Maps a direction and register to a MOVE [to/from] USP.
 
 			TRAP,						// Maps to a TRAP.
+			TRAPV,						// Maps to a TRAPV.
 			CHK,						// Maps to a CHK.
 
 			NOP,						// Maps to a NOP.
@@ -665,6 +666,7 @@ struct ProcessorStorageConstructor {
 			{0xfff0, 0x4e60, Operation::MOVEAl, Decoder::MOVEUSP},				// 6-21 (p475)
 
 			{0xfff0, 0x4e40, Operation::TRAP, Decoder::TRAP},					// 4-188 (p292)
+			{0xffff, 0x4e76, Operation::TRAPV, Decoder::TRAPV},					// 4-191 (p295)
 			{0xf1c0, 0x4180, Operation::CHK, Decoder::CHK},						// 4-69 (p173)
 
 			{0xffff, 0x4e77, Operation::RTE_RTR, Decoder::RTE_RTR},				// 4-168 (p272) [RTR]
@@ -3209,6 +3211,12 @@ struct ProcessorStorageConstructor {
 							// TRAP involves some oddly-sequenced stack writes, so is calculated
 							// at runtime; also the same sequence is used for illegal instructions.
 							// So the entirety is scheduled at runtime.
+							op(Action::PerformOperation);
+							op();
+						} break;
+
+						case Decoder::TRAPV: {
+							op(Action::None, seq("np"));
 							op(Action::PerformOperation);
 							op();
 						} break;

@@ -104,7 +104,7 @@ class ProcessorStorage {
 
 			RTE_RTR,
 
-			TRAP,
+			TRAP,	TRAPV,
 			CHK,
 
 			EXG,	SWAP,
