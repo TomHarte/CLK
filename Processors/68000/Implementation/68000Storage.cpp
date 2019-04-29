@@ -507,17 +507,17 @@ struct ProcessorStorageConstructor {
 			{0xffc0, 0x0640, Operation::ADDw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
 			{0xffc0, 0x0680, Operation::ADDl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
 
-			{0xffc0, 0x0200, Operation::ANDb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
-			{0xffc0, 0x0240, Operation::ANDw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
-			{0xffc0, 0x0280, Operation::ANDl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-9 (p113)
+			{0xffc0, 0x0200, Operation::ANDb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-18 (p122)
+			{0xffc0, 0x0240, Operation::ANDw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-18 (p122)
+			{0xffc0, 0x0280, Operation::ANDl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-18 (p122)
 
-			{0xffc0, 0x0a00, Operation::ORb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},		// 4-153 (p257)
-			{0xffc0, 0x0a40, Operation::ORw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},		// 4-153 (p257)
-			{0xffc0, 0x0a80, Operation::ORl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},		// 4-153 (p257)
+			{0xffc0, 0x0000, Operation::ORb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},		// 4-153 (p257)
+			{0xffc0, 0x0040, Operation::ORw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},		// 4-153 (p257)
+			{0xffc0, 0x0080, Operation::ORl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},		// 4-153 (p257)
 
-			{0xffc0, 0x0000, Operation::EORb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-102 (p206)
-			{0xffc0, 0x0040, Operation::EORw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-102 (p206)
-			{0xffc0, 0x0080, Operation::EORl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-102 (p206)
+			{0xffc0, 0x0a00, Operation::EORb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-102 (p206)
+			{0xffc0, 0x0a40, Operation::EORw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-102 (p206)
+			{0xffc0, 0x0a80, Operation::EORl, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-102 (p206)
 
 			{0xffc0, 0x0400, Operation::SUBb, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-179 (p283)
 			{0xffc0, 0x0440, Operation::SUBw, Decoder::EORI_ORI_ANDI_SUBI_ADDI},	// 4-179 (p283)
