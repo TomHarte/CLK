@@ -264,9 +264,9 @@ struct ProcessorStorageConstructor {
 			}
 
 			// A standard read or write.
-			if(token == "nR" || token == "nr" || token == "nW" || token == "nw" || token == "nRd" || token == "nrd") {
+			if(token == "nR" || token == "nr" || token == "nW" || token == "nw" || token == "nRd" || token == "nrd" || token == "nWr" || token == "nwr") {
 				const bool is_read = tolower(token[1]) == 'r';
-				const bool use_source_storage = is_read && token.size() != 3;
+				const bool use_source_storage = (token == "nR" || token == "nr" || token == "nWr" || token == "nwr");
 				RegisterPair32 *const scratch_data = use_source_storage ? &storage_.source_bus_data_[0] : &storage_.destination_bus_data_[0];
 
 				assert(address_iterator != addresses.end());
@@ -431,8 +431,9 @@ struct ProcessorStorageConstructor {
 										// decoded at runtime.
 			ASLR_LSLR_ROLR_ROXLRm,		// Maps a destination mode and register to a memory-based AS[L/R], LS[L/R], RO[L/R], ROX[L/R].
 
-			MOVEM,						// Maps a mode and register as they were a 'destination' and sets up bus steps with a suitable
+			MOVEM,						// Maps a mode and register as if they were a 'destination' and sets up bus steps with a suitable
 										// hole for the runtime part to install proper MOVEM activity.
+			MOVEP,						// Maps a data register, address register and operation mode to a MOVEP.
 
 			RTE_RTR,					// Maps to an RTE/RTR.
 
@@ -653,6 +654,11 @@ struct ProcessorStorageConstructor {
 			{0xffc0, 0x4880, Operation::MOVEMtoMw, Decoder::MOVEM},				// 4-128 (p232)
 			{0xffc0, 0x4cc0, Operation::MOVEMtoRl, Decoder::MOVEM},				// 4-128 (p232)
 			{0xffc0, 0x4c80, Operation::MOVEMtoRw, Decoder::MOVEM},				// 4-128 (p232)
+
+			{0xf1f8, 0x0108, Operation::MOVEPtoRw, Decoder::MOVEP},				// 4-133 (p237)
+			{0xf1f8, 0x0148, Operation::MOVEPtoRl, Decoder::MOVEP},				// 4-133 (p237)
+			{0xf1f8, 0x0188, Operation::MOVEPtoMw, Decoder::MOVEP},				// 4-133 (p237)
+			{0xf1f8, 0x01c8, Operation::MOVEPtoMl, Decoder::MOVEP},				// 4-133 (p237)
 
 			{0xffc0, 0x4a00, Operation::TSTb, Decoder::TST},					// 4-192 (p296)
 			{0xffc0, 0x4a40, Operation::TSTw, Decoder::TST},					// 4-192 (p296)
@@ -2604,6 +2610,37 @@ struct ProcessorStorageConstructor {
 							op(Action::PerformOperation, seq("np"));
 						} break;
 
+						case Decoder::MOVEP: {
+							storage_.instructions[instruction].set_destination(storage_, An, ea_register);
+							storage_.instructions[instruction].set_source(storage_, Dn, data_register);
+
+							switch(operation) {
+								default: continue;
+
+								// Both of the MOVEP to memory instructions perform their operation first — it will
+								// break up the source value into 8-bit chunks for the write section.
+								case Operation::MOVEPtoMw:
+									op(Action::PerformOperation);
+									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }, false));
+								break;
+
+								case Operation::MOVEPtoMl:
+									op(Action::PerformOperation);
+									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np nW+ nWr+ nw+ nwr np", { ea(1), ea(1), ea(1), ea(1) }, false));
+								break;
+
+								case Operation::MOVEPtoRw:
+									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np nRd+ nrd np", { ea(1), ea(1) }, false));
+									op(Action::PerformOperation);
+								break;
+
+								case Operation::MOVEPtoRl:
+									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np nRd+ nR+ nrd+ nr np", { ea(1), ea(1), ea(1), ea(1) }, false));
+									op(Action::PerformOperation);
+								break;
+							}
+						} break;
+
 						case Decoder::MOVEM: {
 							// For the sake of commonality, both to R and to M will evaluate their addresses
 							// as if they were destinations.
@@ -3424,7 +3461,7 @@ struct ProcessorStorageConstructor {
 }
 }
 
-CPU::MC68000::ProcessorStorage::ProcessorStorage() {
+CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	ProcessorStorageConstructor constructor(*this);
 
 	// Create the special programs.

@@ -795,6 +795,38 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} break;
 
 								/*
+									MOVEP: move words and long-words a byte at a time.
+								*/
+
+								case Operation::MOVEPtoMw:
+									// Write pattern is nW+ nw, which should write the low word of the source in big-endian form.
+									destination_bus_data_[0].halves.high.full = active_program_->source->halves.low.halves.high;
+									destination_bus_data_[0].halves.low.full = active_program_->source->halves.low.halves.low;
+								break;
+
+								case Operation::MOVEPtoMl:
+									// Write pattern is nW+ nWr+ nw+ nwr, which should write the source in big-endian form.
+									destination_bus_data_[0].halves.high.full = active_program_->source->halves.high.halves.high;
+									source_bus_data_[0].halves.high.full = active_program_->source->halves.high.halves.low;
+									destination_bus_data_[0].halves.low.full = active_program_->source->halves.low.halves.high;
+									source_bus_data_[0].halves.low.full = active_program_->source->halves.low.halves.low;
+								break;
+
+								case Operation::MOVEPtoRw:
+									// Read pattern is nRd+ nrd.
+									active_program_->source->halves.low.halves.high = destination_bus_data_[0].halves.high.full;
+									active_program_->source->halves.low.halves.low = destination_bus_data_[0].halves.low.full;
+								break;
+
+								case Operation::MOVEPtoRl:
+									// Read pattern is nRd+ nR+ nrd+ nr.
+									active_program_->source->halves.high.halves.high = destination_bus_data_[0].halves.high.full;
+									active_program_->source->halves.high.halves.low = source_bus_data_[0].halves.high.full;
+									active_program_->source->halves.low.halves.high = destination_bus_data_[0].halves.low.full;
+									active_program_->source->halves.low.halves.low = source_bus_data_[0].halves.low.full;
+								break;
+
+								/*
 									MOVEM: multi-word moves.
 								*/
 

@@ -94,6 +94,9 @@ class ProcessorStorage {
 			MOVEMtoRl, MOVEMtoRw,
 			MOVEMtoMl, MOVEMtoMw,
 
+			MOVEPtoRl, MOVEPtoRw,
+			MOVEPtoMl, MOVEPtoMw,
+
 			ANDb,	ANDw,	ANDl,
 			EORb,	EORw,	EORl,
 			NOTb, 	NOTw, 	NOTl,
