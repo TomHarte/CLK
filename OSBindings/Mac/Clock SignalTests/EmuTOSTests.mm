@@ -101,13 +101,20 @@ class EmuTOS: public ComparativeBusHandler {
 	std::unique_ptr<EmuTOS> _machine;
 }
 
-- (void)testEmuTOSStartup {
-    const auto roms = CSROMFetcher()("AtariST", {"etos192uk.img"});
-	NSString *const traceLocation = [[NSBundle bundleForClass:[self class]] pathForResource:@"etos192uk" ofType:@"trace.txt.gz"];
+- (void)testImage:(NSString *)image trace:(NSString *)trace length:(int)length {
+    const auto roms = CSROMFetcher()("AtariST", { image.UTF8String });
+	NSString *const traceLocation = [[NSBundle bundleForClass:[self class]] pathForResource:trace ofType:@"trace.txt.gz"];
     _machine.reset(new EmuTOS(*roms[0], traceLocation.UTF8String));
-    _machine->run_for(HalfCycles(313515));
+    _machine->run_for(HalfCycles(length));
+}
 
+- (void)testEmuTOSStartup {
+	[self testImage:@"etos192uk.img" trace:@"etos192uk" length:313515];
     // TODO: assert that machine is now STOPped.
+}
+
+- (void)testTOSStartup {
+	[self testImage:@"tos100.img" trace:@"tos100" length:54011091];
 }
 
 @end
