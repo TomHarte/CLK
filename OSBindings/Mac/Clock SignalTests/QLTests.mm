@@ -42,7 +42,7 @@ class QL: public CPU::MC68000::BusHandler {
 
 		void will_perform(uint32_t address, uint16_t opcode) {
 			// Obtain the next line from the trace file.
-			char correct_state[300];
+			char correct_state[300] = "\n";
 			gzgets(trace, correct_state, sizeof(correct_state));
 			++line_count;
 
@@ -136,7 +136,9 @@ class QL: public CPU::MC68000::BusHandler {
 	_machine.reset(new QL(*roms[0], traceLocation.UTF8String));
 
 	// This is how many cycles it takes to exhaust the supplied trace file.
-	_machine->run_for(HalfCycles(23923191));
+	_machine->run_for(HalfCycles(23923180));
+
+	_machine.reset();
 }
 
 @end
