@@ -58,6 +58,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 //				}
 			}
 
+			// TODO: obey is_stopped_.
+
 			// Perform the microcycle.
 			remaining_duration -=
 				active_step_->microcycle.length +
@@ -1622,6 +1624,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									carry_flag_ = overflow_flag_ = 0;
 									zero_result_ = active_program_->source->full;
 									negative_flag_ = zero_result_ & 0x80000000;
+								break;
+
+								case Operation::STOP:
+									set_status(prefetch_queue_.halves.low.full);
+									is_stopped_ = true;
 								break;
 
 								/*

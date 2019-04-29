@@ -23,6 +23,8 @@ class ProcessorStorage {
 
 		RegisterPair32 prefetch_queue_;		// Each word will go into the low part of the word, then proceed upward.
 
+		bool is_stopped_ = false;
+
 		// Various status bits.
 		int is_supervisor_;
 		int interrupt_level_;
@@ -127,6 +129,8 @@ class ProcessorStorage {
 			EXTbtow,	EXTwtol,
 
 			LINK,	UNLINK,
+
+			STOP,
 		};
 
 		/*!

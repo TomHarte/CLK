@@ -464,6 +464,8 @@ struct ProcessorStorageConstructor {
 
 			LINK,						// Maps a register to a LINK.
 			UNLINK,						// Maps a register to an UNLINK.
+
+			STOP,						// Maps to a STOP.
 		};
 
 		using Operation = ProcessorStorage::Operation;
@@ -706,6 +708,8 @@ struct ProcessorStorageConstructor {
 
 			{0xfff8, 0x4e50, Operation::LINK, Decoder::LINK},			// 4-111 (p215)
 			{0xfff8, 0x4e58, Operation::UNLINK, Decoder::UNLINK},		// 4-194 (p298)
+
+			{0xffff, 0x4e72, Operation::STOP, Decoder::STOP},			// 6-85 (p539)
 		};
 
 		std::vector<size_t> micro_op_pointers(65536, std::numeric_limits<size_t>::max());
@@ -751,6 +755,12 @@ struct ProcessorStorageConstructor {
 #define inc(n) increment_action(is_long_word_access, is_byte_access, n)
 
 					switch(mapping.decoder) {
+						case Decoder::STOP: {
+							storage_.instructions[instruction].requires_supervisor = true;
+							op(Action::None, seq("n"));
+							op(Action::PerformOperation);
+						} break;
+
 						case Decoder::LINK: {
 							storage_.instructions[instruction].set_source(storage_, An, ea_register);
 							op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
