@@ -3497,6 +3497,11 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	// Target addresses and values will be filled in by TRAP/illegal too.
 	const size_t trap_offset = constructor.assemble_program("r nw nw nW nV nv np np", { &precomputed_addresses_[0], &precomputed_addresses_[1], &precomputed_addresses_[2] });
 
+	// Chuck in the proper micro-ops for handling an exception.
+	const auto exception_offset = all_micro_ops_.size();
+	all_micro_ops_.emplace_back(ProcessorBase::MicroOp::Action::None);
+	all_micro_ops_.emplace_back();
+
 	// Install operations.
 	constructor.install_instructions();
 
@@ -3534,6 +3539,10 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 		steps[0].microcycle.value = steps[1].microcycle.value = &program_counter_.halves.high;
 		steps[4].microcycle.value = steps[5].microcycle.value = &program_counter_.halves.low;
 	}
+
+	// Complete linkage of the exception micro program.
+	exception_micro_ops_ = &all_micro_ops_[exception_offset];
+	exception_micro_ops_->bus_program = trap_steps_;
 
 	// Set initial state.
 	active_step_ = reset_bus_steps_;

@@ -17,53 +17,26 @@
 #include <zlib.h>
 
 #include "68000.hpp"
+#include "Comparative68000.hpp"
 #include "CSROMFetcher.hpp"
 
-class QL: public CPU::MC68000::BusHandler {
+class QL: public ComparativeBusHandler {
 	public:
-		QL(const std::vector<uint8_t> &rom, const char *trace_name) : m68000_(*this) {
+		QL(const std::vector<uint8_t> &rom, const char *trace_name) : ComparativeBusHandler(trace_name), m68000_(*this) {
 			assert(!(rom.size() & 1));
 			rom_.resize(rom.size() / 2);
 
 			for(size_t c = 0; c < rom_.size(); ++c) {
 				rom_[c] = (rom[c << 1] << 8) | rom[(c << 1) + 1];
 			}
-
-			trace = gzopen(trace_name, "rt");
-		}
-
-		~QL() {
-			gzclose(trace);
 		}
 
 		void run_for(HalfCycles cycles) {
 			m68000_.run_for(cycles);
 		}
 
-		void will_perform(uint32_t address, uint16_t opcode) {
-			// Obtain the next line from the trace file.
-			char correct_state[300] = "\n";
-			gzgets(trace, correct_state, sizeof(correct_state));
-			++line_count;
-
-			// Generate state locally.
-			const auto state = m68000_.get_state();
-			char local_state[300];
-			sprintf(local_state, "%04x: %02x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x \n",
-				address,
-				state.status,
-				state.data[0], state.data[1], state.data[2], state.data[3], state.data[4], state.data[5], state.data[6], state.data[7],
-				state.address[0], state.address[1], state.address[2], state.address[3], state.address[4], state.address[5], state.address[6],
-				(state.status & 0x2000) ? state.supervisor_stack_pointer : state.user_stack_pointer
-				);
-
-			// Check that the two coincide.
-			if(strcmp(correct_state, local_state)) {
-				fprintf(stderr, "Diverges at line %d\n", line_count);
-				fprintf(stderr, "Good: %s\n", correct_state);
-				fprintf(stderr, "Bad:  %s\n", local_state);
-				assert(false);
-			}
+		CPU::MC68000::ProcessorState get_state() override {
+			return m68000_.get_state();
 		}
 
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
@@ -115,9 +88,6 @@ class QL: public CPU::MC68000::BusHandler {
 
 		std::vector<uint16_t> rom_;
 		std::array<uint16_t, 64*1024> ram_;
-
-		int line_count = 0;
-		gzFile trace;
 };
 
 @interface QLTests : XCTestCase

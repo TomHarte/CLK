@@ -149,10 +149,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							active_micro_op_ = active_program_->micro_operations;
 						} else {
 							active_program_ = nullptr;
-							active_micro_op_ = exception_micro_ops_;	// TODO.
+							active_micro_op_ = exception_micro_ops_;
 
-							// The vector used dependds on whether this is a vanilla unrecognised instruction, or
-							// one on the A or F lines.
+							// The vector used depends on whether this is a vanilla unrecognised instruction,
+							// or one on the A or F lines.
 							switch(decoded_instruction_ >> 12) {
 								default:	populate_trap_steps(get_status(), 4);	break;
 								case 0xa:	populate_trap_steps(get_status(), 10);	break;
