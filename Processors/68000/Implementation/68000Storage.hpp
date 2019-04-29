@@ -326,8 +326,9 @@ class ProcessorStorage {
 		// A lookup table from instructions to implementations.
 		Program instructions[65536];
 
-		// Special steps for exception handlers.
+		// Special steps and programs for exception handlers.
 		BusStep *reset_bus_steps_;
+		MicroOp *exception_micro_ops_;
 
 		// Special micro-op sequences and storage for conditionals.
 		BusStep *branch_taken_bus_steps_;
@@ -397,8 +398,9 @@ class ProcessorStorage {
 			// Fill in the status word value.
 			destination_bus_data_[0].full = status;
 
-			// Switch to supervisor mode.
+			// Switch to supervisor mode, disable the trace bit.
 			set_is_supervisor(true);
+			trace_flag_ = 0;
 
 			// Pick a vector.
 			effective_address_[0].full = vector << 2;

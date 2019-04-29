@@ -220,6 +220,24 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform = false> cla
 		State get_state();
 		void set_state(const State &);
 
+		/// Sets the DTack line — @c true for active, @c false for inactive.
+		void set_dtack(bool);
+
+		/// Sets the VPA (valid peripheral address) line — @c true for active, @c false for inactive.
+		void set_is_peripheral_address(bool);
+
+		/// Sets the bus error line — @c true for active, @c false for inactive.
+		void set_bus_error(bool);
+
+		/// Sets the interrupt lines, IPL0, IPL1 and IPL2.
+		void set_interrupt_level(int);
+
+		/// Sets the bus request line.
+		void set_bus_request(bool);
+
+		/// Sets the bus acknowledge line.
+		void set_bus_acknowledge(bool);
+
 	private:
 		T &bus_handler_;
 };

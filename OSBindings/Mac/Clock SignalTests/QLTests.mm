@@ -60,8 +60,8 @@ class QL: public CPU::MC68000::BusHandler {
 			// Check that the two coincide.
 			if(strcmp(correct_state, local_state)) {
 				fprintf(stderr, "Diverges at line %d\n", line_count);
-				fprintf(stderr, "Good: %s", correct_state);
-				fprintf(stderr, "Bad:  %s", local_state);
+				fprintf(stderr, "Good: %s\n", correct_state);
+				fprintf(stderr, "Bad:  %s\n", local_state);
 				assert(false);
 			}
 		}

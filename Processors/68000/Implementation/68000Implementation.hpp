@@ -40,6 +40,75 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
 	while(remaining_duration > HalfCycles(0)) {
 		/*
+			PERFORM THE CURRENT BUS STEP'S MICROCYCLE.
+		*/
+			// Check for DTack if this isn't being treated implicitly.
+			if(active_step_->microcycle.data_select_active()) {
+				if(!dtack_is_implicit) {
+					if(active_step_->microcycle.data_select_active() && !dtack_) {
+						// TODO: perform wait state.
+						continue;
+					}
+				}
+
+				// TODO: synchronous bus.
+			} else {
+				// TODO: check for bus error (but here, or when checking for DTACK?)
+//				if(active_step_->microcycle.operation & MicroCycle::NewAddress) {
+//				}
+			}
+
+			// Perform the microcycle.
+			remaining_duration -=
+				active_step_->microcycle.length +
+				bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
+
+#ifdef LOG_TRACE
+			if(!(active_step_->microcycle.operation & Microcycle::IsProgram)) {
+				switch(active_step_->microcycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+					default: break;
+
+					case Microcycle::SelectWord | Microcycle::Read:
+						printf("[%08x -> %04x] ", *active_step_->microcycle.address, active_step_->microcycle.value->full);
+					break;
+					case Microcycle::SelectByte | Microcycle::Read:
+						printf("[%08x -> %02x] ", *active_step_->microcycle.address, active_step_->microcycle.value->halves.low);
+					break;
+					case Microcycle::SelectWord:
+						printf("{%04x -> %08x} ", active_step_->microcycle.value->full, *active_step_->microcycle.address);
+					break;
+					case Microcycle::SelectByte:
+						printf("{%02x -> %08x} ", active_step_->microcycle.value->halves.low, *active_step_->microcycle.address);
+					break;
+				}
+			}
+#endif
+
+		/*
+			PERFORM THE BUS STEP'S ACTION.
+		*/
+			switch(active_step_->action) {
+				default:
+					std::cerr << "Unimplemented 68000 bus step action: " << int(active_step_->action) << std::endl;
+					return;
+				break;
+
+				case BusStep::Action::None: break;
+
+				case BusStep::Action::IncrementEffectiveAddress0:	effective_address_[0].full += 2;	break;
+				case BusStep::Action::IncrementEffectiveAddress1:	effective_address_[1].full += 2;	break;
+				case BusStep::Action::DecrementEffectiveAddress0:	effective_address_[0].full -= 2;	break;
+				case BusStep::Action::DecrementEffectiveAddress1:	effective_address_[1].full -= 2;	break;
+				case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;			break;
+
+				case BusStep::Action::AdvancePrefetch:
+					prefetch_queue_.halves.high = prefetch_queue_.halves.low;
+				break;
+			}
+
+			// Move to the next bus step.
+			++ active_step_;
+		/*
 			FIND THE NEXT MICRO-OP IF UNKNOWN.
 		*/
 			if(active_step_->is_terminal()) {
@@ -67,22 +136,29 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #endif
 
 						decoded_instruction_ = prefetch_queue_.halves.high.full;
-						if(!instructions[decoded_instruction_].micro_operations) {
-							// TODO: once all instructions are implemnted, this should be an instruction error.
-							std::cerr << "68000 Abilities exhausted; can't manage instruction " << std::hex << decoded_instruction_ << " from " << (program_counter_.full - 4) << std::endl;
-							return;
-						} else {
 #ifdef LOG_TRACE
-							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
+						std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
 #endif
-						}
 
 						if(signal_will_perform) {
 							bus_handler_.will_perform(program_counter_.full - 4, decoded_instruction_);
 						}
 
-						active_program_ = &instructions[decoded_instruction_];
-						active_micro_op_ = active_program_->micro_operations;
+						if(instructions[decoded_instruction_].micro_operations) {
+							active_program_ = &instructions[decoded_instruction_];
+							active_micro_op_ = active_program_->micro_operations;
+						} else {
+							active_program_ = nullptr;
+							active_micro_op_ = exception_micro_ops_;	// TODO.
+
+							// The vector used dependds on whether this is a vanilla unrecognised instruction, or
+							// one on the A or F lines.
+							switch(decoded_instruction_ >> 12) {
+								default:	populate_trap_steps(get_status(), 4);	break;
+								case 0xa:	populate_trap_steps(get_status(), 10);	break;
+								case 0xf:	populate_trap_steps(get_status(), 11);	break;
+							}
+						}
 					}
 
 					auto bus_program = active_micro_op_->bus_program;
@@ -1775,73 +1851,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					}
 				}
 			}
-
-
-		/*
-			PERFORM THE CURRENT BUS STEP'S MICROCYCLE.
-		*/
-			// Check for DTack if this isn't being treated implicitly.
-			if(!dtack_is_implicit) {
-				if(active_step_->microcycle.data_select_active() && !dtack_) {
-					// TODO: perform wait state.
-					continue;
-				}
-			}
-
-			// TODO: synchronous bus.
-
-			// TODO: check for bus error.
-
-			// Perform the microcycle.
-			remaining_duration -=
-				active_step_->microcycle.length +
-				bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
-
-#ifdef LOG_TRACE
-			if(!(active_step_->microcycle.operation & Microcycle::IsProgram)) {
-				switch(active_step_->microcycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
-					default: break;
-
-					case Microcycle::SelectWord | Microcycle::Read:
-						printf("[%08x -> %04x] ", *active_step_->microcycle.address, active_step_->microcycle.value->full);
-					break;
-					case Microcycle::SelectByte | Microcycle::Read:
-						printf("[%08x -> %02x] ", *active_step_->microcycle.address, active_step_->microcycle.value->halves.low);
-					break;
-					case Microcycle::SelectWord:
-						printf("{%04x -> %08x} ", active_step_->microcycle.value->full, *active_step_->microcycle.address);
-					break;
-					case Microcycle::SelectByte:
-						printf("{%02x -> %08x} ", active_step_->microcycle.value->halves.low, *active_step_->microcycle.address);
-					break;
-				}
-			}
-#endif
-
-		/*
-			PERFORM THE BUS STEP'S ACTION.
-		*/
-			switch(active_step_->action) {
-				default:
-					std::cerr << "Unimplemented 68000 bus step action: " << int(active_step_->action) << std::endl;
-					return;
-				break;
-
-				case BusStep::Action::None: break;
-
-				case BusStep::Action::IncrementEffectiveAddress0:	effective_address_[0].full += 2;	break;
-				case BusStep::Action::IncrementEffectiveAddress1:	effective_address_[1].full += 2;	break;
-				case BusStep::Action::DecrementEffectiveAddress0:	effective_address_[0].full -= 2;	break;
-				case BusStep::Action::DecrementEffectiveAddress1:	effective_address_[1].full -= 2;	break;
-				case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;			break;
-
-				case BusStep::Action::AdvancePrefetch:
-					prefetch_queue_.halves.high = prefetch_queue_.halves.low;
-				break;
-			}
-
-			// Move to the next bus step.
-			++ active_step_;
 	}
 
 	half_cycles_left_to_run_ = remaining_duration;

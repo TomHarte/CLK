@@ -3535,7 +3535,7 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 		steps[4].microcycle.value = steps[5].microcycle.value = &program_counter_.halves.low;
 	}
 
-	// Set initial state. Largely TODO.
+	// Set initial state.
 	active_step_ = reset_bus_steps_;
 	effective_address_[0] = 0;
 	is_supervisor_ = 1;
