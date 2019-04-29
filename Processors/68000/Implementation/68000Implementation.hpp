@@ -121,7 +121,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						// no instruction was ongoing. Either way, do a standard instruction operation.
 
 						// TODO: is an interrupt pending?
+
 						if(trace_flag_) {
+							// The user has set the trace bit in the status register.
 							active_program_ = nullptr;
 							active_micro_op_ = exception_micro_ops_;
 							populate_trap_steps(9, get_status());
@@ -163,6 +165,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									active_micro_op_ = active_program_->micro_operations;
 								}
 							} else {
+								// The opcode fetched isn't valid.
 								active_program_ = nullptr;
 								active_micro_op_ = exception_micro_ops_;
 
