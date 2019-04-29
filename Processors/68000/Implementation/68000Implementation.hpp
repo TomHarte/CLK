@@ -587,9 +587,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} break;
 
 								case Operation::CMPl: {
-									const uint32_t source = active_program_->source->full;
-									const uint32_t destination = active_program_->destination->full;
-									const uint64_t result = uint64_t(destination) - uint64_t(source);
+									const auto source = uint64_t(active_program_->source->full);
+									const auto destination = uint64_t(active_program_->destination->full);
+									const auto result = destination - source;
 
 									zero_result_ = uint32_t(result);
 									carry_flag_ = result >> 32;
