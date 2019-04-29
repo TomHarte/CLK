@@ -3187,7 +3187,7 @@ struct ProcessorStorageConstructor {
 									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr", { ea(0) }, !is_byte_access));
 									op(Action::PerformOperation, seq("np"));
 									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nw np", { ea(1) }, !is_byte_access));
-								continue;
+								break;
 
 								case bw2(XXXl, XXXw):		// MOVE.bw (xxx).l, (xxx).w
 									op(int(Action::None), seq("np"));
@@ -3200,7 +3200,7 @@ struct ProcessorStorageConstructor {
 									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr", { ea(0) }, !is_byte_access));
 									op(Action::PerformOperation, seq("np"));
 									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nw np np", { ea(1) }, !is_byte_access));
-								continue;
+								break;
 
 								case bw2(XXXl, XXXl):		// MOVE.bw (xxx).l, (xxx).l
 									op(int(Action::None), seq("np"));
