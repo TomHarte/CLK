@@ -107,8 +107,6 @@ class QL: public ComparativeBusHandler {
 
 	// This is how many cycles it takes to exhaust the supplied trace file.
 	_machine->run_for(HalfCycles(23923180));
-
-	_machine.reset();
 }
 
 @end

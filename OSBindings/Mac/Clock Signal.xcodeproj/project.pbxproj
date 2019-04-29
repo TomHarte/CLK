@@ -246,6 +246,7 @@
 		4B83348A1F5DB94B0097E338 /* IRQDelegatePortHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334891F5DB94B0097E338 /* IRQDelegatePortHandler.cpp */; };
 		4B83348C1F5DB99C0097E338 /* 6522Base.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B83348B1F5DB99C0097E338 /* 6522Base.cpp */; };
 		4B8334951F5E25B60097E338 /* C1540.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334941F5E25B60097E338 /* C1540.cpp */; };
+		4B85322D227793CB00F26553 /* etos192uk.trace.txt.gz in Resources */ = {isa = PBXBuildFile; fileRef = 4B85322C227793CA00F26553 /* etos192uk.trace.txt.gz */; };
 		4B86E25B1F8C628F006FAA45 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B86E2591F8C628F006FAA45 /* Keyboard.cpp */; };
 		4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805EE1DCFC99C003085B1 /* Acorn.cpp */; };
 		4B8805F41DCFD22A003085B1 /* Commodore.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8805F21DCFD22A003085B1 /* Commodore.cpp */; };
@@ -964,6 +965,7 @@
 		4B8334911F5E24FF0097E338 /* C1540Base.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = C1540Base.hpp; path = Implementation/C1540Base.hpp; sourceTree = "<group>"; };
 		4B8334941F5E25B60097E338 /* C1540.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = C1540.cpp; path = Implementation/C1540.cpp; sourceTree = "<group>"; };
 		4B85322922778E4200F26553 /* Comparative68000.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Comparative68000.hpp; sourceTree = "<group>"; };
+		4B85322C227793CA00F26553 /* etos192uk.trace.txt.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = etos192uk.trace.txt.gz; sourceTree = "<group>"; };
 		4B86E2591F8C628F006FAA45 /* Keyboard.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B86E25A1F8C628F006FAA45 /* Keyboard.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4B8805EE1DCFC99C003085B1 /* Acorn.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Acorn.cpp; path = Parsers/Acorn.cpp; sourceTree = "<group>"; };
@@ -1567,6 +1569,7 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
+				4B85322B227793CA00F26553 /* TOS Startup */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
 				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
 				4B98A1CD1FFADEC400ADF63B /* MSX ROMs */,
@@ -2254,6 +2257,14 @@
 				4B8334911F5E24FF0097E338 /* C1540Base.hpp */,
 			);
 			name = Implementation;
+			sourceTree = "<group>";
+		};
+		4B85322B227793CA00F26553 /* TOS Startup */ = {
+			isa = PBXGroup;
+			children = (
+				4B85322C227793CA00F26553 /* etos192uk.trace.txt.gz */,
+			);
+			path = "TOS Startup";
 			sourceTree = "<group>";
 		};
 		4B86E2581F8C628F006FAA45 /* Inputs */ = {
@@ -3457,6 +3468,7 @@
 				4BB298FB1B587D8400A49093 /* ancb in Resources */,
 				4BB299431B587D8400A49093 /* dcma in Resources */,
 				4BB298FD1B587D8400A49093 /* andax in Resources */,
+				4B85322D227793CB00F26553 /* etos192uk.trace.txt.gz in Resources */,
 				4BB299401B587D8400A49093 /* cpya in Resources */,
 				4BB299BE1B587D8400A49093 /* rraix in Resources */,
 				4BB299E41B587D8400A49093 /* tayn in Resources */,

@@ -32,7 +32,7 @@ class ComparativeBusHandler: public CPU::MC68000::BusHandler {
 			// Generate state locally.
 			const auto state = get_state();
 			char local_state[300];
-			sprintf(local_state, "%04x: %02x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x \n",
+			sprintf(local_state, "%04x: %02x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n",
 				address,
 				state.status,
 				state.data[0], state.data[1], state.data[2], state.data[3], state.data[4], state.data[5], state.data[6], state.data[7],
@@ -43,8 +43,8 @@ class ComparativeBusHandler: public CPU::MC68000::BusHandler {
 			// Check that the two coincide.
 			if(strcmp(correct_state, local_state)) {
 				fprintf(stderr, "Diverges at line %d\n", line_count);
-				fprintf(stderr, "Good: %s\n", correct_state);
-				fprintf(stderr, "Bad:  %s\n", local_state);
+				fprintf(stderr, "Good: %s", correct_state);
+				fprintf(stderr, "Bad:  %s", local_state);
 				assert(false);
 			}
 		}

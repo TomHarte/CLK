@@ -12,11 +12,12 @@
 #include <cassert>
 
 #include "68000.hpp"
+#include "Comparative68000.hpp"
 #include "CSROMFetcher.hpp"
 
-class EmuTOS: public CPU::MC68000::BusHandler {
+class EmuTOS: public ComparativeBusHandler {
 	public:
-		EmuTOS(const std::vector<uint8_t> &emuTOS) : m68000_(*this) {
+		EmuTOS(const std::vector<uint8_t> &emuTOS, const char *trace_name) : ComparativeBusHandler(trace_name), m68000_(*this) {
 			assert(!(emuTOS.size() & 1));
 			emuTOS_.resize(emuTOS.size() / 2);
 
@@ -29,9 +30,17 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 			m68000_.run_for(cycles);
 		}
 
+		CPU::MC68000::ProcessorState get_state() override {
+			return m68000_.get_state();
+		}
+
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
 			const uint32_t address = cycle.word_address();
 			uint32_t word_address = address;
+
+			if(cycle.address) {
+				printf("%04x\n", *cycle.address);
+			}
 
 			// As much about the Atari ST's memory map as is relevant here: the ROM begins
 			// at 0xfc0000, and the first eight bytes are mirrored to the first four memory
@@ -42,9 +51,9 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 			const bool is_rom = word_address > (0xfc0000 >> 1) || word_address < 4;
 			uint16_t *const base = is_rom ? emuTOS_.data() : ram_.data();
 			if(is_rom) {
-				word_address &= 0xffff;
+				word_address %= emuTOS_.size();
 			} else {
-				word_address &= 0x3ffff;
+				word_address %= ram_.size();
 			}
 
 			using Microcycle = CPU::MC68000::Microcycle;
@@ -72,20 +81,14 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 
 					case Microcycle::SelectWord | Microcycle::Read:
 						cycle.value->full = is_peripheral ? peripheral_result : base[word_address];
-//						if(!(cycle.operation & Microcycle::IsProgram)) printf("[word r %08x -> %04x] ", *cycle.address, cycle.value->full);
 					break;
 					case Microcycle::SelectByte | Microcycle::Read:
 						cycle.value->halves.low = (is_peripheral ? peripheral_result : base[word_address]) >> cycle.byte_shift();
-//						if(!(cycle.operation & Microcycle::IsProgram)) printf("[byte r %08x -> %02x] ", *cycle.address, cycle.value->halves.low);
 					break;
 					case Microcycle::SelectWord:
-						assert(!(is_rom && !is_peripheral));
-//						if(!(cycle.operation & Microcycle::IsProgram)) printf("[word w %04x -> %08x] ", cycle.value->full, *cycle.address);
 						base[word_address] = cycle.value->full;
 					break;
 					case Microcycle::SelectByte:
-						assert(!(is_rom && !is_peripheral));
-//						if(!(cycle.operation & Microcycle::IsProgram)) printf("[byte w %02x -> %08x] ", cycle.value->halves.low, *cycle.address);
 						base[word_address] = (cycle.value->halves.low << cycle.byte_shift()) | (base[word_address] & (0xffff ^ cycle.byte_mask()));
 					break;
 				}
@@ -95,7 +98,7 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 		}
 
 	private:
-		CPU::MC68000::Processor<EmuTOS, true> m68000_;
+		CPU::MC68000::Processor<EmuTOS, true, true> m68000_;
 
 		std::vector<uint16_t> emuTOS_;
 		std::array<uint16_t, 256*1024> ram_;
@@ -108,19 +111,10 @@ class EmuTOS: public CPU::MC68000::BusHandler {
 	std::unique_ptr<EmuTOS> _machine;
 }
 
-- (void)setUp {
-    // Put setup code here. This method is called before the invocation of each test method in the class.
-    const auto roms = CSROMFetcher()("AtariST", {"tos100.img"});
-    _machine.reset(new EmuTOS(*roms[0]));
-}
-
-- (void)tearDown {
-    // Put teardown code here. This method is called after the invocation of each test method in the class.
-}
-
-- (void)testStartup {
-    // This is an example of a functional test case.
-    // Use XCTAssert and related functions to verify your tests produce the correct results.
+- (void)testEmuTOSStartup {
+    const auto roms = CSROMFetcher()("AtariST", {"etos192uk.img"});
+	NSString *const traceLocation = [[NSBundle bundleForClass:[self class]] pathForResource:@"etos192uk" ofType:@"trace.txt.gz"];
+    _machine.reset(new EmuTOS(*roms[0], traceLocation.UTF8String));
     _machine->run_for(HalfCycles(8000000));
 }
 
