@@ -217,26 +217,41 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform = false> cla
 		void run_for(HalfCycles duration);
 
 		using State = ProcessorState;
+		/// @returns The current processor state.
 		State get_state();
+
+		/// Sets the processor to the supplied state.
 		void set_state(const State &);
 
 		/// Sets the DTack line — @c true for active, @c false for inactive.
-		void set_dtack(bool);
+		inline void set_dtack(bool dtack) {
+			dtack_ = dtack;
+		}
 
 		/// Sets the VPA (valid peripheral address) line — @c true for active, @c false for inactive.
-		void set_is_peripheral_address(bool);
+		inline void set_is_peripheral_address(bool is_peripheral_address) {
+			is_peripheral_address_ = is_peripheral_address;
+		}
 
 		/// Sets the bus error line — @c true for active, @c false for inactive.
-		void set_bus_error(bool);
+		void set_bus_error(bool bus_error) {
+			bus_error_ = bus_error;
+		}
 
 		/// Sets the interrupt lines, IPL0, IPL1 and IPL2.
-		void set_interrupt_level(int);
+		void set_interrupt_level(int interrupt_level) {
+			bus_interrupt_level_ = interrupt_level;
+		}
 
 		/// Sets the bus request line.
-		void set_bus_request(bool);
+		void set_bus_request(bool bus_request) {
+			bus_request_ = bus_request;
+		}
 
 		/// Sets the bus acknowledge line.
-		void set_bus_acknowledge(bool);
+		void set_bus_acknowledge(bool bus_acknowledge) {
+			bus_acknowledge_ = bus_acknowledge;
+		}
 
 	private:
 		T &bus_handler_;

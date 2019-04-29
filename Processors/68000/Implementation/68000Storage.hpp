@@ -22,7 +22,6 @@ class ProcessorStorage {
 											// are copied into/out of address_[7] upon mode switches.
 
 		RegisterPair32 prefetch_queue_;		// Each word will go into the low part of the word, then proceed upward.
-		bool dtack_ = true;
 
 		// Various status bits.
 		int is_supervisor_;
@@ -33,6 +32,14 @@ class ProcessorStorage {
 		uint_fast32_t overflow_flag_;	// The overflow flag is set if this value is non-zero.
 		uint_fast32_t negative_flag_;	// The negative flag is set if this value is non-zero.
 		uint_fast32_t trace_flag_;		// The trace flag is set if this value is non-zero.
+
+		// Bus inputs.
+		int bus_interrupt_level_ = 0;
+		bool dtack_ = false;
+		bool is_peripheral_address_ = false;
+		bool bus_error_ = false;
+		bool bus_request_ = false;
+		bool bus_acknowledge_ = false;
 
 		// Generic sources and targets for memory operations;
 		// by convention: [0] = source, [1] = destination.
