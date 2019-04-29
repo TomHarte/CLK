@@ -152,10 +152,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 							if(instructions[decoded_instruction_].micro_operations) {
-								// Check for a privilege violation.
 								if(instructions[decoded_instruction_].requires_supervisor && !is_supervisor_) {
-									// TODO: this isn't the correct set of bus steps; this exception should
-									// push more informatio to the stack.
+									// A privilege violation has been detected.
 									active_program_ = nullptr;
 									active_micro_op_ = exception_micro_ops_;
 									populate_trap_steps(8, get_status());
