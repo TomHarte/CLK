@@ -64,14 +64,6 @@ class EmuTOS: public ComparativeBusHandler {
 							peripheral_result = 0x00000001;
 						break;
 					}
-//					printf("Peripheral: %c %08x", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address);
-//					if(!(cycle.operation & Microcycle::Read)) {
-//						if(cycle.operation & Microcycle::SelectByte)
-//							printf(" %02x", cycle.value->halves.low);
-//						else
-//							printf(" %04x", cycle.value->full);
-//					}
-//					printf("\n");
 				}
 
 				switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
@@ -113,7 +105,9 @@ class EmuTOS: public ComparativeBusHandler {
     const auto roms = CSROMFetcher()("AtariST", {"etos192uk.img"});
 	NSString *const traceLocation = [[NSBundle bundleForClass:[self class]] pathForResource:@"etos192uk" ofType:@"trace.txt.gz"];
     _machine.reset(new EmuTOS(*roms[0], traceLocation.UTF8String));
-    _machine->run_for(HalfCycles(8000000));
+    _machine->run_for(HalfCycles(313515));
+
+    // TODO: assert that machine is now STOPped.
 }
 
 @end
