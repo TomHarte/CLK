@@ -1739,6 +1739,9 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
 								break;
 
+								case XXXl:		// BTST.b Dn, (xxx).l
+									op(Action::None, seq("np"));
+								case XXXw:		// BTST.b Dn, (xxx).w
 								case d16An:		// BTST.b Dn, (d16, An)
 								case d8AnXn:	// BTST.b Dn, (d8, An, Xn)
 								case d16PC:		// BTST.b Dn, (d16, PC)
@@ -1746,17 +1749,17 @@ struct ProcessorStorageConstructor {
 									// PC-relative addressing isn't support for BCLR.
 									if((mode == d16PC || mode == d8PCXn) && is_bclr) continue;
 
-									op(	calc_action_for_mode(mode) | MicroOp::DestinationMask,
+									op(	address_action_for_mode(mode) | MicroOp::DestinationMask,
 										seq(pseq("np nrd np", mode), { ea(1) }, false));
 									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
 								break;
 
-								case XXXl:	// BTST.b Dn, (xxx).l
-									op(Action::None, seq("np"));
-								case XXXw:	// BTST.b Dn, (xxx).w
-									op(	address_assemble_for_mode(mode) | MicroOp::DestinationMask,
-										seq("np nrd np", { ea(1) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
+								case Imm:	// BTST.b Dn, #
+									if(is_bclr) continue;
+
+									/* Yacht.txt doesn't cover this; this is a guess. */
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np"));
+									op(Action::PerformOperation, seq("np"));
 								break;
 							}
 						} break;
