@@ -154,9 +154,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							// The vector used depends on whether this is a vanilla unrecognised instruction,
 							// or one on the A or F lines.
 							switch(decoded_instruction_ >> 12) {
-								default:	populate_trap_steps(get_status(), 4);	break;
-								case 0xa:	populate_trap_steps(get_status(), 10);	break;
-								case 0xf:	populate_trap_steps(get_status(), 11);	break;
+								default:	populate_trap_steps(4, get_status());	break;
+								case 0xa:	populate_trap_steps(10, get_status());	break;
+								case 0xf:	populate_trap_steps(11, get_status());	break;
 							}
 						}
 					}
