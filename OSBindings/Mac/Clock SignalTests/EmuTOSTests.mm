@@ -38,17 +38,15 @@ class EmuTOS: public ComparativeBusHandler {
 			const uint32_t address = cycle.word_address();
 			uint32_t word_address = address;
 
-			if(cycle.address) {
-				printf("%04x\n", *cycle.address);
-			}
-
 			// As much about the Atari ST's memory map as is relevant here: the ROM begins
 			// at 0xfc0000, and the first eight bytes are mirrored to the first four memory
 			// addresses in order for /RESET to work properly. RAM otherwise fills the first
 			// 512kb of the address space. Trying to write to ROM raises a bus error.
 
-			const bool is_peripheral = word_address > (0xff0000 >> 1);
-			const bool is_rom = word_address > (0xfc0000 >> 1) || word_address < 4;
+			const bool is_rom = (word_address >= (0xfc0000 >> 1) && word_address < (0xff0000 >> 1)) || word_address < 4;
+			const bool is_ram = word_address < ram_.size();
+			const bool is_peripheral = !is_rom && !is_ram;
+
 			uint16_t *const base = is_rom ? emuTOS_.data() : ram_.data();
 			if(is_rom) {
 				word_address %= emuTOS_.size();
