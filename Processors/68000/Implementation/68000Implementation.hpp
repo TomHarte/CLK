@@ -668,7 +668,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									active_program_->destination->halves.low.halves.high =
 										(active_program_->destination->halves.low.halves.low & 0x80) ? 0xff : 0x00;
 									overflow_flag_ = carry_flag_ = 0;
-									zero_result_ = active_program_->destination->halves.low.halves.high;
+									zero_result_ = active_program_->destination->halves.low.full;
 									negative_flag_ = zero_result_ & 0x8000;
 								break;
 
