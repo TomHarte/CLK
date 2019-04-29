@@ -120,43 +120,49 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						// Either the micro-operations for this instruction have been exhausted, or
 						// no instruction was ongoing. Either way, do a standard instruction operation.
 
-						// TODO: unless an interrupt is pending, or the trap flag is set.
-#ifdef LOG_TRACE
-						std::cout << std::setfill('0');
-						std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
-						std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
-						for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
-						for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
-						if(is_supervisor_) {
-							std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
-						} else {
-							std::cout << "ssp:" << std::setw(8) << std::setfill('0') << stack_pointers_[1].full << " ";
-						}
-						std::cout << '\n';
-#endif
-
-						decoded_instruction_ = prefetch_queue_.halves.high.full;
-#ifdef LOG_TRACE
-						std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
-#endif
-
-						if(signal_will_perform) {
-							bus_handler_.will_perform(program_counter_.full - 4, decoded_instruction_);
-						}
-
-						if(instructions[decoded_instruction_].micro_operations) {
-							active_program_ = &instructions[decoded_instruction_];
-							active_micro_op_ = active_program_->micro_operations;
-						} else {
+						// TODO: is an interrupt pending?
+						if(trace_flag_) {
 							active_program_ = nullptr;
 							active_micro_op_ = exception_micro_ops_;
+							populate_trap_steps(9, get_status());
+						} else {
+#ifdef LOG_TRACE
+							std::cout << std::setfill('0');
+							std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
+							std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
+							for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
+							for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
+							if(is_supervisor_) {
+								std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
+							} else {
+								std::cout << "ssp:" << std::setw(8) << std::setfill('0') << stack_pointers_[1].full << " ";
+							}
+							std::cout << '\n';
+#endif
 
-							// The vector used depends on whether this is a vanilla unrecognised instruction,
-							// or one on the A or F lines.
-							switch(decoded_instruction_ >> 12) {
-								default:	populate_trap_steps(4, get_status());	break;
-								case 0xa:	populate_trap_steps(10, get_status());	break;
-								case 0xf:	populate_trap_steps(11, get_status());	break;
+							decoded_instruction_ = prefetch_queue_.halves.high.full;
+#ifdef LOG_TRACE
+							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
+#endif
+
+							if(signal_will_perform) {
+								bus_handler_.will_perform(program_counter_.full - 4, decoded_instruction_);
+							}
+
+							if(instructions[decoded_instruction_].micro_operations) {
+								active_program_ = &instructions[decoded_instruction_];
+								active_micro_op_ = active_program_->micro_operations;
+							} else {
+								active_program_ = nullptr;
+								active_micro_op_ = exception_micro_ops_;
+
+								// The vector used depends on whether this is a vanilla unrecognised instruction,
+								// or one on the A or F lines.
+								switch(decoded_instruction_ >> 12) {
+									default:	populate_trap_steps(4, get_status());	break;
+									case 0xa:	populate_trap_steps(10, get_status());	break;
+									case 0xf:	populate_trap_steps(11, get_status());	break;
+								}
 							}
 						}
 					}
