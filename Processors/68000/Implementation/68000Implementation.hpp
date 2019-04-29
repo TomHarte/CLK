@@ -1797,11 +1797,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 						case int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask:
 							// Assumption: this will be assembling right at the start of the instruction.
-							effective_address_[0] = prefetch_queue_.halves.low.full;
+							effective_address_[0] = int16_t(prefetch_queue_.halves.low.full);
 						break;
 
 						case int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask:
-							effective_address_[1] = prefetch_queue_.halves.low.full;
+							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full);
 						break;
 
 						case int(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask:
