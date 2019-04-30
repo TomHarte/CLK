@@ -97,9 +97,11 @@ struct Microcycle {
 	RegisterPair16 *value = nullptr;
 
 	bool operator ==(const Microcycle &rhs) const {
-		return
-			std::make_tuple(value, address, length, operation, value) ==
-			std::make_tuple(rhs.value, rhs.address, rhs.length, rhs.operation, rhs.value);
+		if(value != rhs.value) return false;
+		if(address != rhs.address) return false;
+		if(length != rhs.length) return false;
+		if(operation != rhs.operation) return false;
+		return true;
 	}
 
 	// Various inspectors.
