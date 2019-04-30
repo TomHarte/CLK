@@ -758,7 +758,7 @@ struct ProcessorStorageConstructor {
 #define l2(x, y)	(0x10000 | ((x) << 8) | (y))
 
 		// Perform a linear search of the mappings above for this instruction.
-		for(size_t instruction = 0; instruction < 65536; ++instruction)	{
+		for(ssize_t instruction = 65535; instruction >= 0; --instruction)	{
 #ifndef NDEBUG
 			int hits = 0;
 #endif
