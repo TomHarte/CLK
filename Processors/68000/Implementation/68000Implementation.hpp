@@ -55,7 +55,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 				case ExecutionState::Stopped:
 					// If an interrupt (TODO: or reset) has finally arrived that will be serviced,
 					// exit the STOP.
-					if(bus_interrupt_level_ >= interrupt_level_) {
+					if(bus_interrupt_level_ > interrupt_level_) {
 						execution_state_ = ExecutionState::Executing;
 						break;
 					}
