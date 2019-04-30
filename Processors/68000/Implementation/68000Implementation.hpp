@@ -779,8 +779,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::DIVU: {
 									// An attempt to divide by zero schedules an exception.
 									if(!active_program_->source->halves.low.full) {
-										// TODO: schedule an exception.
-										assert(false);
+										// Schedule a divide-by-zero exception.
+										active_program_ = nullptr;
+										active_micro_op_ = exception_micro_ops_;
+										populate_trap_steps(5, get_status());
 										break;
 									}
 
@@ -838,8 +840,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::DIVS: {
 									// An attempt to divide by zero schedules an exception.
 									if(!active_program_->source->halves.low.full) {
-										// TODO: schedule an exception.
-										assert(false);
+										// Schedule a divide-by-zero exception.
+										active_program_ = nullptr;
+										active_micro_op_ = exception_micro_ops_;
+										populate_trap_steps(5, get_status());
 										break;
 									}
 
@@ -1073,8 +1077,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::TRAP: {
 									// Select the trap steps as next; the initial microcycle should be 4 cycles long.
 									bus_program = trap_steps_;
-									bus_program->microcycle.length = HalfCycles(8);
 									populate_trap_steps((decoded_instruction_ & 15) + 32, get_status());
+									bus_program->microcycle.length = HalfCycles(8);
 
 									// The program counter to push is actually one slot ago.
 									program_counter_.full -= 2;
@@ -1084,8 +1088,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									if(overflow_flag_) {
 										// Select the trap steps as next; the initial microcycle should be 4 cycles long.
 										bus_program = trap_steps_;
-										bus_program->microcycle.length = HalfCycles(0);
 										populate_trap_steps(7, get_status());
+										bus_program->microcycle.length = HalfCycles(0);
 										program_counter_.full -= 4;
 									}
 								} break;
@@ -1100,12 +1104,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 										negative_flag_ = is_under ? 1 : 0;
 
 										bus_program = trap_steps_;
+										populate_trap_steps(6, get_status());
 										if(is_under) {
 											bus_program->microcycle.length = HalfCycles(16);
 										} else {
 											bus_program->microcycle.length = HalfCycles(8);
 										}
-										populate_trap_steps(6, get_status());
 
 										// The program counter to push is two slots ago as whatever was the correct prefetch
 										// to continue without an exception has already happened, just in case.

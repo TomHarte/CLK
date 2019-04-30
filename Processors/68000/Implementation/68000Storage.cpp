@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <map>
 
 namespace CPU {
 namespace MC68000 {
@@ -364,9 +365,33 @@ struct ProcessorStorageConstructor {
 			return size_t(position - storage_.all_bus_steps_.begin());
 		}
 
+/*
+		// If the new steps already exist, just return the existing index to them;
+		// otherwise insert them. A lookup table of steps to start positions within
+		// all_bus_steps_ is maintained to shorten setup time here
+		auto potential_locations = locations_by_bus_step_[steps.front()];
+		for(auto index: potential_locations) {
+			if(index + steps.size() >= storage_.all_bus_steps_.size()) continue;
+
+			if(std::equal(
+					storage_.all_bus_steps_.begin() + ssize_t(index),
+					storage_.all_bus_steps_.begin() + ssize_t(index + steps.size()),
+					steps.begin())) {
+				return index;
+			}
+		}
+
+		// Copy to the end, and update potential_locations.
 		const auto start = storage_.all_bus_steps_.size();
 		std::copy(steps.begin(), steps.end(), std::back_inserter(storage_.all_bus_steps_));
+		auto index = start;
+		for(const auto &step: steps) {
+			locations_by_bus_step_[step].push_back(index);
+			++index;
+		}
+
 		return start;
+*/
 	}
 
 	/*!
@@ -3466,10 +3491,29 @@ struct ProcessorStorageConstructor {
 				}
 			}
 		}
+
+		printf("%lu total steps\n", storage_.all_bus_steps_.size());
 	}
 
 	private:
 		ProcessorStorage &storage_;
+
+/*		struct BusStepOrderer {
+			bool operator()( BusStep const& lhs, BusStep const& rhs ) const {
+				int action_diff = int(lhs.action) - int(rhs.action);
+				if(action_diff < 0) {
+					return true;
+				}
+				if(action_diff > 0) {
+					return false;
+				}
+
+				return
+					std::make_tuple(lhs.microcycle.value, lhs.microcycle.address, lhs.microcycle.length, lhs.microcycle.operation) <
+					std::make_tuple(rhs.microcycle.value, rhs.microcycle.address, rhs.microcycle.length, rhs.microcycle.operation);
+			}
+		};
+		std::map<BusStep, std::vector<size_t>, BusStepOrderer> locations_by_bus_step_;*/
 };
 
 }
@@ -3514,7 +3558,9 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	all_micro_ops_.emplace_back();
 
 	// Install operations.
+	const std::clock_t start = std::clock();
 	constructor.install_instructions();
+	std::cout << "Construction took " << double(std::clock() - start) / double(CLOCKS_PER_SEC / 1000) << "ms" << std::endl;
 
 	// Realise the special programs as direct pointers.
 	reset_bus_steps_ = &all_bus_steps_[reset_offset];

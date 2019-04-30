@@ -421,6 +421,9 @@ class ProcessorStorage {
 			precomputed_addresses_[1] = address_[7].full - 6;
 			precomputed_addresses_[2] = address_[7].full - 4;
 			address_[7].full -= 6;
+
+			// Set the default timing.
+			trap_steps_->microcycle.length = HalfCycles(8);
 		}
 
 
