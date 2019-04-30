@@ -34,6 +34,17 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			memcpy(&ram_[512], program.data(), program.size() * sizeof(uint16_t));
 		}
 
+		void will_perform(uint32_t address, uint16_t opcode) {
+			--instructions_remaining_;
+		}
+
+		void run_for_instructions(int count) {
+			instructions_remaining_ = count + 1;
+			while(instructions_remaining_) {
+				run_for(HalfCycles(2));
+			}
+		}
+
 		void run_for(HalfCycles cycles) {
 			m68000_.run_for(cycles);
 		}
@@ -72,13 +83,14 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			m68000_.set_state(state);
 		}
 
-		const CPU::MC68000::Processor<RAM68000, true> &processor() {
+		const CPU::MC68000::Processor<RAM68000, true, true> &processor() {
 			return m68000_;
 		}
 
 	private:
-		CPU::MC68000::Processor<RAM68000, true> m68000_;
+		CPU::MC68000::Processor<RAM68000, true, true> m68000_;
 		std::vector<uint16_t> ram_;
+		int instructions_remaining_;
 };
 
 class CPU::MC68000::ProcessorStorageTests {
@@ -198,7 +210,7 @@ class CPU::MC68000::ProcessorStorageTests {
 		state.data[0] = bcd_d;
 		_machine->set_processor_state(state);
 
-		_machine->run_for(Cycles(40 + 6));
+		_machine->run_for_instructions(1);
 
 		state = _machine->get_processor_state();
 		const uint8_t double_d = (d * 2) % 100;
@@ -207,11 +219,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	}
 }
 
-- (void)testSBCD {
-	_machine->set_program({
-		0x8100		// SBCD D0, D1
-	});
-    _machine->run_for(HalfCycles(400));
+- (void)testDivideByZero {
 }
 
 - (void)testMOVE {
@@ -226,33 +234,28 @@ class CPU::MC68000::ProcessorStorageTests {
 		0x2414,				// MOVE.l (A4), D2
 	});
 
-	// Perform RESET.
-	_machine->run_for(Cycles(38));
-	auto state = _machine->get_processor_state();
-	XCTAssert(state.data[0] == 0);
-
 	// Perform MOVE #fb2e, D0
-	_machine->run_for(Cycles(8));
-	state = _machine->get_processor_state();
+	_machine->run_for_instructions(1);
+	auto state = _machine->get_processor_state();
 	XCTAssert(state.data[0] == 0xfb2e);
 
 	// Perform MOVE D0, D1
-	_machine->run_for(Cycles(4));
+	_machine->run_for_instructions(1);
 	state = _machine->get_processor_state();
 	XCTAssert(state.data[1] == 0xfb2e);
 
 	// Perform MOVEA D0, A0
-	_machine->run_for(Cycles(4));
+	_machine->run_for_instructions(1);
 	state = _machine->get_processor_state();
 	XCTAssert(state.address[0] == 0xfffffb2e, "A0 was %08x instead of 0xfffffb2e", state.address[0]);
 
 	// Perform MOVEA.w (0x1000), A1
-	_machine->run_for(Cycles(13));
+	_machine->run_for_instructions(1);
 	state = _machine->get_processor_state();
 	XCTAssert(state.address[1] == 0x0000303c, "A1 was %08x instead of 0x0000303c", state.address[1]);
 
 	// Perform MOVE #$400, A4, MOVE.l (A4), D2
-	_machine->run_for(Cycles(20));
+	_machine->run_for_instructions(1);
 	state = _machine->get_processor_state();
 	XCTAssert(state.address[4] == 0x0400, "A4 was %08x instead of 0x00000400", state.address[4]);
 	XCTAssert(state.data[2] == 0x303cfb2e, "D2 was %08x instead of 0x303cfb2e", state.data[2]);

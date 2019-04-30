@@ -109,7 +109,7 @@ class EmuTOS: public ComparativeBusHandler {
 }
 
 - (void)testEmuTOSStartup {
-	[self testImage:@"etos192uk.img" trace:@"etos192uk" length:313515];
+	[self testImage:@"etos192uk.img" trace:@"etos192uk" length:313490];
     // TODO: assert that machine is now STOPped.
 }
 
