@@ -782,7 +782,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 										// Schedule a divide-by-zero exception.
 										active_program_ = nullptr;
 										active_micro_op_ = exception_micro_ops_;
+										bus_program = active_micro_op_->bus_program;
 										populate_trap_steps(5, get_status());
+										program_counter_.full -= 2;
 										break;
 									}
 
@@ -843,7 +845,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 										// Schedule a divide-by-zero exception.
 										active_program_ = nullptr;
 										active_micro_op_ = exception_micro_ops_;
+										bus_program = active_micro_op_->bus_program;
 										populate_trap_steps(5, get_status());
+										program_counter_.full -= 2;
 										break;
 									}
 

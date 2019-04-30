@@ -49,6 +49,10 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			m68000_.run_for(cycles);
 		}
 
+		uint16_t *ram_at(uint32_t address) {
+			return &ram_[address >> 1];
+		}
+
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
 			const uint32_t word_address = cycle.word_address();
 
@@ -64,6 +68,7 @@ class RAM68000: public CPU::MC68000::BusHandler {
 						cycle.value->halves.low = ram_[word_address] >> cycle.byte_shift();
 					break;
 					case Microcycle::SelectWord:
+						printf("w %08x of %02x\n", *cycle.address, cycle.value->full);
 						ram_[word_address] = cycle.value->full;
 					break;
 					case Microcycle::SelectByte:
@@ -220,6 +225,26 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 - (void)testDivideByZero {
+	_machine->set_program({
+		0x7000,		// MOVE #0, D0;		location 0x400
+		0x3200,		// MOVE D0, D1;		location 0x402
+
+		0x82C0,		// DIVU;			location 0x404
+
+		/* Next instruction would be at 0x406 */
+	});
+
+	auto state = _machine->get_processor_state();
+	state.supervisor_stack_pointer = 0x1000;
+	_machine->set_processor_state(state);
+
+	_machine->run_for_instructions(3);
+	state = _machine->get_processor_state();
+
+	XCTAssert(state.supervisor_stack_pointer == 0x1000 - 6, @"Exception information should have been pushed to stack.");
+
+	const uint16_t *stack_top = _machine->ram_at(state.supervisor_stack_pointer);
+	XCTAssert(stack_top[1] == 0x0000 && stack_top[2] == 0x0406, @"Return address should point to instruction after DIVU.");
 }
 
 - (void)testMOVE {
