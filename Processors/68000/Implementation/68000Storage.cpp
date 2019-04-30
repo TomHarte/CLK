@@ -365,6 +365,10 @@ struct ProcessorStorageConstructor {
 			return size_t(position - storage_.all_bus_steps_.begin());
 		}
 
+		const auto start = storage_.all_bus_steps_.size();
+		std::copy(steps.begin(), steps.end(), std::back_inserter(storage_.all_bus_steps_));
+		return start;
+
 /*
 		// If the new steps already exist, just return the existing index to them;
 		// otherwise insert them. A lookup table of steps to start positions within
@@ -390,8 +394,7 @@ struct ProcessorStorageConstructor {
 			++index;
 		}
 
-		return start;
-*/
+		return start;*/
 	}
 
 	/*!
