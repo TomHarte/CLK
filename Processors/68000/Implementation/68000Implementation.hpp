@@ -36,29 +36,79 @@
 	trace_flag_			= (x) & 0x8000;	\
 	set_is_supervisor(!!(((x) >> 13) & 1));
 
+#define get_bus_code()	\
+	((active_step_->microcycle.operation & Microcycle::IsProgram) ? 0x02 : 0x01) |	\
+	(is_supervisor_ << 2) |	\
+	(active_program_ ? 0x08 : 0) |	\
+	((active_step_->microcycle.operation & Microcycle::Read) ? 0x10 : 0)
+
 template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::run_for(HalfCycles duration) {
 	HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
 	while(remaining_duration > HalfCycles(0)) {
 		/*
 			PERFORM THE CURRENT BUS STEP'S MICROCYCLE.
 		*/
-			// Check for DTack if this isn't being treated implicitly.
-			if(active_step_->microcycle.data_select_active()) {
-				if(!dtack_is_implicit) {
-					if(active_step_->microcycle.data_select_active() && !dtack_) {
-						// TODO: perform wait state.
-						continue;
-					}
-				}
+			switch(execution_state_) {
+				default:
+				break;
 
-				// TODO: synchronous bus.
-			} else {
-				// TODO: check for bus error (but here, or when checking for DTACK?)
-//				if(active_step_->microcycle.operation & MicroCycle::NewAddress) {
-//				}
+				case ExecutionState::Stopped:
+					// If an interrupt (TODO: or reset) has finally arrived that will be serviced,
+					// exit the STOP.
+					if(bus_interrupt_level_ >= interrupt_level_) {
+						execution_state_ = ExecutionState::Executing;
+						break;
+					}
+
+					// Otherwise continue being stopped.
+					remaining_duration -=
+						stop_cycle_.length +
+						bus_handler_.perform_bus_operation(stop_cycle_, is_supervisor_);
+				continue;
+
+				case ExecutionState::WaitingForDTack:
+					// If DTack or bus error has been signalled, stop waiting.
+					if(dtack_ || bus_error_) {
+						execution_state_ = ExecutionState::Executing;
+						break;
+					}
+
+					// Otherwise, signal another cycle of wait.
+					remaining_duration -=
+						dtack_cycle_.length +
+						bus_handler_.perform_bus_operation(dtack_cycle_, is_supervisor_);
+				continue;
 			}
 
-			// TODO: obey is_stopped_.
+			if(active_step_->microcycle.data_select_active()) {
+				if(!dtack_is_implicit && !dtack_ && !bus_error_) {
+					execution_state_ = ExecutionState::WaitingForDTack;
+					dtack_cycle_ = active_step_->microcycle;
+					dtack_cycle_.length = HalfCycles(2);
+					dtack_cycle_.operation &= ~(Microcycle::SelectByte | Microcycle::SelectWord);
+					continue;
+				}
+
+				// Check for bus error here.
+				if(bus_error_) {
+					active_program_ = nullptr;
+					active_micro_op_ = long_exception_micro_ops_;
+					active_step_ = active_micro_op_->bus_program;
+					populate_bus_error_steps(2, get_status(), get_bus_code(), *active_step_->microcycle.address);
+				}
+			}
+
+			// Check for an address error. Which I have assumed happens before the microcycle that
+			// would nominate the new address.
+			if(
+				(active_step_[0].microcycle.operation & Microcycle::NewAddress) &&
+				(active_step_[1].microcycle.operation & Microcycle::SelectWord) &&
+				*active_step_->microcycle.address & 1) {
+				active_program_ = nullptr;
+				active_micro_op_ = long_exception_micro_ops_;
+				active_step_ = active_micro_op_->bus_program;
+				populate_bus_error_steps(3, get_status(), get_bus_code(), *active_step_->microcycle.address);
+			}
 
 			// Perform the microcycle.
 			remaining_duration -=
@@ -127,7 +177,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						if(trace_flag_) {
 							// The user has set the trace bit in the status register.
 							active_program_ = nullptr;
-							active_micro_op_ = exception_micro_ops_;
+							active_micro_op_ = short_exception_micro_ops_;
 							populate_trap_steps(9, get_status());
 						} else {
 #ifdef LOG_TRACE
@@ -144,34 +194,34 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							std::cout << '\n';
 #endif
 
-							decoded_instruction_ = prefetch_queue_.halves.high.full;
+							decoded_instruction_.full = prefetch_queue_.halves.high.full;
 #ifdef LOG_TRACE
-							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_ << '\t';
+							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_.full << '\t';
 #endif
 
 							if(signal_will_perform) {
-								bus_handler_.will_perform(program_counter_.full - 4, decoded_instruction_);
+								bus_handler_.will_perform(program_counter_.full - 4, decoded_instruction_.full);
 							}
 
-							if(instructions[decoded_instruction_].micro_operations) {
-								if(instructions[decoded_instruction_].requires_supervisor && !is_supervisor_) {
+							if(instructions[decoded_instruction_.full].micro_operations) {
+								if(instructions[decoded_instruction_.full].requires_supervisor && !is_supervisor_) {
 									// A privilege violation has been detected.
 									active_program_ = nullptr;
-									active_micro_op_ = exception_micro_ops_;
+									active_micro_op_ = short_exception_micro_ops_;
 									populate_trap_steps(8, get_status());
 								} else {
 									// Standard instruction dispatch.
-									active_program_ = &instructions[decoded_instruction_];
+									active_program_ = &instructions[decoded_instruction_.full];
 									active_micro_op_ = active_program_->micro_operations;
 								}
 							} else {
 								// The opcode fetched isn't valid.
 								active_program_ = nullptr;
-								active_micro_op_ = exception_micro_ops_;
+								active_micro_op_ = short_exception_micro_ops_;
 
 								// The vector used depends on whether this is a vanilla unrecognised instruction,
 								// or one on the A or F lines.
-								switch(decoded_instruction_ >> 12) {
+								switch(decoded_instruction_.full >> 12) {
 									default:	populate_trap_steps(4, get_status());	break;
 									case 0xa:	populate_trap_steps(10, get_status());	break;
 									case 0xf:	populate_trap_steps(11, get_status());	break;
@@ -183,7 +233,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					auto bus_program = active_micro_op_->bus_program;
 					switch(active_micro_op_->action) {
 						default:
-							std::cerr << "Unhandled 68000 micro op action " << std::hex << active_micro_op_->action << " within instruction " << decoded_instruction_ <<  std::endl;
+							std::cerr << "Unhandled 68000 micro op action " << std::hex << active_micro_op_->action << " within instruction " << decoded_instruction_.full <<  std::endl;
 						break;
 
 						case int(MicroOp::Action::None): break;
@@ -267,7 +317,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #define no_extend(op, a, b, c)	op(a, b, c, 0, z_set)
 #define extend(op, a, b, c)		op(a, b, c, extend_flag_, z_or)
 
-#define q() (((decoded_instruction_ >> 9)&7) ? ((decoded_instruction_ >> 9)&7) : 8)
+#define q() (((decoded_instruction_.full >> 9)&7) ? ((decoded_instruction_.full >> 9)&7) : 8)
 
 								case Operation::ADDb: {
 									no_extend(	addb,
@@ -508,10 +558,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const int8_t byte_offset = int8_t(prefetch_queue_.halves.high.halves.low);
 
 									// Check whether this is secretly BSR.
-									const bool is_bsr = ((decoded_instruction_ >> 8) & 0xf) == 1;
+									const bool is_bsr = ((decoded_instruction_.full >> 8) & 0xf) == 1;
 
 									// Test the conditional, treating 'false' as true.
-									const bool should_branch = is_bsr || evaluate_condition(decoded_instruction_ >> 8);
+									const bool should_branch = is_bsr || evaluate_condition(decoded_instruction_.full >> 8);
 
 									// Schedule something appropriate, by rewriting the program for this instruction temporarily.
 									if(should_branch) {
@@ -533,7 +583,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::DBcc: {
 									// Decide what sort of DBcc this is.
-									if(!evaluate_condition(decoded_instruction_ >> 8)) {
+									if(!evaluate_condition(decoded_instruction_.full >> 8)) {
 										-- active_program_->source->halves.low.full;
 										const auto target_program_counter = program_counter_.full + int16_t(prefetch_queue_.halves.low.full) - 2;
 
@@ -557,7 +607,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::Scc: {
 									active_program_->destination->halves.low.halves.low =
-										evaluate_condition(decoded_instruction_ >> 8) ? 0xff : 0x00;
+										evaluate_condition(decoded_instruction_.full >> 8) ? 0xff : 0x00;
 								} break;
 
 								/*
@@ -781,7 +831,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									if(!active_program_->source->halves.low.full) {
 										// Schedule a divide-by-zero exception.
 										active_program_ = nullptr;
-										active_micro_op_ = exception_micro_ops_;
+										active_micro_op_ = short_exception_micro_ops_;
 										bus_program = active_micro_op_->bus_program;
 										populate_trap_steps(5, get_status());
 										program_counter_.full -= 2;
@@ -844,7 +894,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									if(!active_program_->source->halves.low.full) {
 										// Schedule a divide-by-zero exception.
 										active_program_ = nullptr;
-										active_micro_op_ = exception_micro_ops_;
+										active_micro_op_ = short_exception_micro_ops_;
 										bus_program = active_micro_op_->bus_program;
 										populate_trap_steps(5, get_status());
 										program_counter_.full -= 2;
@@ -946,7 +996,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	bus_program = base + (64 - total_to_move*words_per_reg)*2;			\
 																		\
 	/* Fill in the proper addresses and targets. */						\
-	const auto mode = (decoded_instruction_ >> 3) & 7;					\
+	const auto mode = (decoded_instruction_.full >> 3) & 7;				\
 	uint32_t start_address;												\
 	if(mode <= 4) {														\
 		start_address = active_program_->destination_address->full;		\
@@ -1081,7 +1131,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::TRAP: {
 									// Select the trap steps as next; the initial microcycle should be 4 cycles long.
 									bus_program = trap_steps_;
-									populate_trap_steps((decoded_instruction_ & 15) + 32, get_status());
+									populate_trap_steps((decoded_instruction_.full & 15) + 32, get_status());
 									bus_program->microcycle.length = HalfCycles(8);
 
 									// The program counter to push is actually one slot ago.
@@ -1365,7 +1415,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	overflow_flag_ = (value ^ zero_result_) & (m);
 
 #define decode_shift_count()	\
-	int shift_count = (decoded_instruction_ & 32) ? data_[(decoded_instruction_ >> 9) & 7].full&63 : ( ((decoded_instruction_ >> 9)&7) ? ((decoded_instruction_ >> 9)&7) : 8) ;	\
+	int shift_count = (decoded_instruction_.full & 32) ? data_[(decoded_instruction_.full >> 9) & 7].full&63 : ( ((decoded_instruction_.full >> 9)&7) ? ((decoded_instruction_.full >> 9)&7) : 8) ;	\
 	active_step_->microcycle.length = HalfCycles(4 * shift_count);
 
 #define set_flags_b(t) set_flags(active_program_->destination->halves.low.halves.low, 0x80, t)
@@ -1604,7 +1654,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								*/
 								case Operation::RTE_RTR:
 									// If this is RTR, patch out the is_supervisor bit.
-									if(decoded_instruction_ == 0x4e77) {
+									if(decoded_instruction_.full == 0x4e77) {
 										source_bus_data_[0].full =
 											(source_bus_data_[0].full & ~(1 << 13)) |
 											(is_supervisor_ << 13);
@@ -1636,7 +1686,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::STOP:
 									set_status(prefetch_queue_.halves.low.full);
-									is_stopped_ = true;
+									execution_state_ = ExecutionState::Stopped;
 								break;
 
 								/*
@@ -1666,23 +1716,23 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 							// If the post-increment mode was used, overwrite the source register.
-							const auto mode = (decoded_instruction_ >> 3) & 7;
+							const auto mode = (decoded_instruction_.full >> 3) & 7;
 							if(mode == 3) {
-								const auto reg = decoded_instruction_ & 7;
+								const auto reg = decoded_instruction_.full & 7;
 								address_[reg] = movem_final_address_;
 							}
 						} break;
 
 						case int(MicroOp::Action::MOVEMtoMComplete): {
-							const auto mode = (decoded_instruction_ >> 3) & 7;
+							const auto mode = (decoded_instruction_.full >> 3) & 7;
 							if(mode == 4) {
-								const auto reg = decoded_instruction_ & 7;
+								const auto reg = decoded_instruction_.full & 7;
 								address_[reg] = movem_final_address_;
 							}
 						} break;
 
 						case int(MicroOp::Action::PrepareJSR): {
-							const auto mode = (decoded_instruction_ >> 3) & 7;
+							const auto mode = (decoded_instruction_.full >> 3) & 7;
 							// Determine the proper resumption address.
 							switch(mode) {
 								case 2: destination_bus_data_[0].full = program_counter_.full - 2; break;	/* (An) */
@@ -1695,7 +1745,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						} break;
 
 						case int(MicroOp::Action::PrepareBSR):
-							destination_bus_data_[0].full = (decoded_instruction_ & 0xff) ? program_counter_.full - 2 : program_counter_.full;
+							destination_bus_data_[0].full = (decoded_instruction_.full & 0xff) ? program_counter_.full - 2 : program_counter_.full;
 							address_[7].full -= 4;
 							effective_address_[1].full = address_[7].full;
 						break;
@@ -1828,7 +1878,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef CalculateD8AnXn
 
 						case int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask:
-							// Assumption: this will be assembling right at the start of the instruction.
 							effective_address_[0] = int16_t(prefetch_queue_.halves.low.full);
 						break;
 
@@ -1845,7 +1894,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						break;
 
 						case int(MicroOp::Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask:
-							// Assumption: this will be assembling right at the start of the instruction.
 							source_bus_data_[0] = prefetch_queue_.halves.low.full;
 						break;
 

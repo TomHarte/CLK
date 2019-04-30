@@ -52,8 +52,6 @@ struct Microcycle {
 	*/
 	static const int TypeMask		= 3;
 
-	/// A NewAddress cycle is one in which the address strobe is initially low but becomes high;
-	/// this correlates to states 0 to 5 of a standard read/write cycle.
 	static const int Idle			= 0;
 
 	/// A NewAddress cycle is one in which the address strobe is initially low but becomes high;

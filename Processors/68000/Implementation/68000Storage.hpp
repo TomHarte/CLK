@@ -23,7 +23,13 @@ class ProcessorStorage {
 
 		RegisterPair32 prefetch_queue_;		// Each word will go into the low part of the word, then proceed upward.
 
-		bool is_stopped_ = false;
+		enum class ExecutionState {
+			Executing,
+			WaitingForDTack,
+			Stopped
+		} execution_state_ = ExecutionState::Executing;
+		Microcycle dtack_cycle_;
+		Microcycle stop_cycle_;
 
 		// Various status bits.
 		int is_supervisor_;
@@ -241,7 +247,7 @@ class ProcessorStorage {
 				/// Sets the high three bytes according to the MSB of the low byte.
 				SignExtendByte,
 
-				/// From the next word in the prefetch queue assembles a 0-padded 32-bit long word in either or
+				/// From the next word in the prefetch queue assembles a sign-extended long word in either or
 				/// both of effective_address_[0] and effective_address_[1].
 				AssembleWordAddressFromPrefetch,
 
@@ -339,7 +345,9 @@ class ProcessorStorage {
 
 		// Special steps and programs for exception handlers.
 		BusStep *reset_bus_steps_;
-		MicroOp *exception_micro_ops_;
+		MicroOp *long_exception_micro_ops_;		// i.e. those that leave 14 bytes on the stack — bus error and address error.
+		MicroOp *short_exception_micro_ops_;	// i.e. those that leave 6 bytes on the stack — everything else (other than interrupts).
+		MicroOp *interrupt_micro_ops_;
 
 		// Special micro-op sequences and storage for conditionals.
 		BusStep *branch_taken_bus_steps_;
@@ -356,12 +364,13 @@ class ProcessorStorage {
 		BusStep *movem_write_steps_;
 
 		BusStep *trap_steps_;
+		BusStep *bus_error_steps_;
 
 		// Current bus step pointer, and outer program pointer.
 		Program *active_program_ = nullptr;
 		MicroOp *active_micro_op_ = nullptr;
 		BusStep *active_step_ = nullptr;
-		uint16_t decoded_instruction_ = 0;
+		RegisterPair16 decoded_instruction_ = 0;
 		uint16_t next_word_ = 0;
 
 		/// Copies address_[7] to the proper stack pointer based on current mode.
@@ -405,6 +414,11 @@ class ProcessorStorage {
 			}
 		}
 
+		/*!
+			Fills in the appropriate addresses and values to complete the TRAP steps — those
+			representing a short-form exception — and mutates the status register as if one
+			were beginning.
+		*/
 		inline void populate_trap_steps(uint32_t vector, uint16_t status) {
 			// Fill in the status word value.
 			destination_bus_data_[0].full = status;
@@ -417,13 +431,37 @@ class ProcessorStorage {
 			effective_address_[0].full = vector << 2;
 
 			// Schedule the proper stack activity.
-			precomputed_addresses_[0] = address_[7].full - 2;
-			precomputed_addresses_[1] = address_[7].full - 6;
-			precomputed_addresses_[2] = address_[7].full - 4;
+			precomputed_addresses_[0] = address_[7].full - 2;	// PC.l
+			precomputed_addresses_[1] = address_[7].full - 6;	// status word (in destination_bus_data_[0])
+			precomputed_addresses_[2] = address_[7].full - 4;	// PC.h
 			address_[7].full -= 6;
 
 			// Set the default timing.
 			trap_steps_->microcycle.length = HalfCycles(8);
+		}
+
+		inline void populate_bus_error_steps(uint32_t vector, uint16_t status, uint16_t bus_status, RegisterPair32 faulting_address) {
+			// Fill in the status word value.
+			destination_bus_data_[0].halves.low.full = status;
+			destination_bus_data_[0].halves.high.full = bus_status;
+			effective_address_[1] = faulting_address;
+
+			// Switch to supervisor mode, disable the trace bit.
+			set_is_supervisor(true);
+			trace_flag_ = 0;
+
+			// Pick a vector.
+			effective_address_[0].full = vector << 2;
+
+			// Schedule the proper stack activity.
+			precomputed_addresses_[0] = address_[7].full - 2;		// PC.l
+			precomputed_addresses_[1] = address_[7].full - 6;		// status word
+			precomputed_addresses_[2] = address_[7].full - 4;		// PC.h
+			precomputed_addresses_[3] = address_[7].full - 8;		// current instruction
+			precomputed_addresses_[4] = address_[7].full - 10;		// fault address.l
+			precomputed_addresses_[5] = address_[7].full - 14;		// bus cycle status word
+			precomputed_addresses_[6] = address_[7].full - 12;		// fault address.h
+			address_[7].full -= 14;
 		}
 
 

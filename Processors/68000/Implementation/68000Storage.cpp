@@ -3407,9 +3407,26 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 
 	// Target addresses and values will be filled in by TRAP/illegal too.
 	const size_t trap_offset = constructor.assemble_program("r nw nw nW nV nv np np", { &precomputed_addresses_[0], &precomputed_addresses_[1], &precomputed_addresses_[2] });
+	const size_t bus_error_offset =
+		constructor.assemble_program(
+			"nn nw nw nW nw nw nw nW nV nv np np",
+			{
+				&precomputed_addresses_[0],
+				&precomputed_addresses_[1],
+				&precomputed_addresses_[2],
+				&precomputed_addresses_[3],
+				&precomputed_addresses_[4],
+				&precomputed_addresses_[5],
+				&precomputed_addresses_[6]
+			}
+	);
 
 	// Chuck in the proper micro-ops for handling an exception.
-	const auto exception_offset = all_micro_ops_.size();
+	const auto short_exception_offset = all_micro_ops_.size();
+	all_micro_ops_.emplace_back(ProcessorBase::MicroOp::Action::None);
+	all_micro_ops_.emplace_back();
+
+	const auto long_exception_offset = all_micro_ops_.size();
 	all_micro_ops_.emplace_back(ProcessorBase::MicroOp::Action::None);
 	all_micro_ops_.emplace_back();
 
@@ -3444,6 +3461,16 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	trap_steps_[3].microcycle.value = trap_steps_[4].microcycle.value = &destination_bus_data_[0].halves.low;
 	trap_steps_[5].microcycle.value = trap_steps_[6].microcycle.value = &program_counter_.halves.high;
 
+	// Link the bus error exception steps and fill in the proper sources.
+	bus_error_steps_ = &all_bus_steps_[bus_error_offset];
+	bus_error_steps_[1].microcycle.value = bus_error_steps_[2].microcycle.value = &program_counter_.halves.low;
+	bus_error_steps_[3].microcycle.value = bus_error_steps_[4].microcycle.value = &destination_bus_data_[0].halves.low;
+	bus_error_steps_[5].microcycle.value = bus_error_steps_[6].microcycle.value = &program_counter_.halves.high;
+	bus_error_steps_[7].microcycle.value = bus_error_steps_[8].microcycle.value = &decoded_instruction_;
+	bus_error_steps_[9].microcycle.value = bus_error_steps_[10].microcycle.value = &effective_address_[0].halves.low;
+	bus_error_steps_[11].microcycle.value = bus_error_steps_[12].microcycle.value = &destination_bus_data_[0].halves.high;
+	bus_error_steps_[13].microcycle.value = bus_error_steps_[14].microcycle.value = &effective_address_[0].halves.high;
+
 	// Also relink the RTE and RTR bus steps to collect the program counter.
 	//
 	// Assumed order of input: PC.h, SR, PC.l (i.e. the opposite of TRAP's output).
@@ -3453,9 +3480,15 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 		steps[4].microcycle.value = steps[5].microcycle.value = &program_counter_.halves.low;
 	}
 
+	// Setup the stop cycle.
+	stop_cycle_.length = HalfCycles(2);
+
 	// Complete linkage of the exception micro program.
-	exception_micro_ops_ = &all_micro_ops_[exception_offset];
-	exception_micro_ops_->bus_program = trap_steps_;
+	short_exception_micro_ops_ = &all_micro_ops_[short_exception_offset];
+	short_exception_micro_ops_->bus_program = trap_steps_;
+
+	long_exception_micro_ops_ = &all_micro_ops_[long_exception_offset];
+	long_exception_micro_ops_->bus_program = bus_error_steps_;
 
 	// Set initial state.
 	active_step_ = reset_bus_steps_;
