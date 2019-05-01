@@ -147,6 +147,7 @@ struct ProcessorStorageConstructor {
 		* nf: fetch the SSP's LSW;
 		* _: hold the reset line active for the usual period.
 		* tas: perform the final 6 cycles of a TAS: like an n nw but with the address strobe active for the entire period.
+		* int: the interrupt acknowledge cycle.
 
 		Quite a lot of that is duplicative, implying both something about internal
 		state and something about what's observable on the bus, but it's helpful to
@@ -332,6 +333,19 @@ struct ProcessorStorageConstructor {
 
 				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::SelectWord;
 				step.action = Action::IncrementEffectiveAddress0;
+				steps.push_back(step);
+
+				continue;
+			}
+
+			// Interrupt acknowledge.
+			if(token == "int") {
+				step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::IsData | Microcycle::IsProgram | Microcycle::NewAddress;
+				step.microcycle.address = &storage_.effective_address_[0].full;		// The selected interrupt should be in bits 1–3; but 0 should be set.
+				step.microcycle.value = &storage_.source_bus_data_[0].halves.low;
+				steps.push_back(step);
+
+				step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::IsData | Microcycle::IsProgram | Microcycle::SameAddress | Microcycle::SelectByte;
 				steps.push_back(step);
 
 				continue;
@@ -3298,6 +3312,12 @@ struct ProcessorStorageConstructor {
 #undef dec
 		}
 
+		// Throw in the interrupt program.
+		const auto interrupt_pointer = storage_.all_micro_ops_.size();
+		op(Action::PrepareINT, seq("int"));	// Perform a cycle that will obtain an interrupt vector, or else dictate an autovector or a spurious interrupt.
+		op(Action::PrepareINTVector);		// The standard trap steps will be appended here, and PrepareINT will set them up according to the vector received.
+		op();
+
 #undef Dn
 #undef An
 #undef Ind
@@ -3321,20 +3341,30 @@ struct ProcessorStorageConstructor {
 #undef op
 #undef pseq
 
+		/*!
+			Iterates through the micro-sequence beginning at @c start, finalising bus_program
+			pointers that have been transiently stored as relative to @c arbitrary_base.
+		*/
+		const auto link_operations = [this](MicroOp *start, BusStep *arbitrary_base) {
+			while(!start->is_terminal()) {
+				const auto offset = size_t(start->bus_program - arbitrary_base);
+				assert(offset >= 0 &&  offset < storage_.all_bus_steps_.size());
+				start->bus_program = &storage_.all_bus_steps_[offset];
+				++start;
+			}
+		};
+
 		// Finalise micro-op and program pointers.
 		for(size_t instruction = 0; instruction < 65536; ++instruction) {
 			if(micro_op_pointers[instruction] != std::numeric_limits<size_t>::max()) {
 				storage_.instructions[instruction].micro_operations = &storage_.all_micro_ops_[micro_op_pointers[instruction]];
-
-				auto operation = storage_.instructions[instruction].micro_operations;
-				while(!operation->is_terminal()) {
-					const auto offset = size_t(operation->bus_program - &arbitrary_base);
-					assert(offset >= 0 &&  offset < storage_.all_bus_steps_.size());
-					operation->bus_program = &storage_.all_bus_steps_[offset];
-					++operation;
-				}
+				link_operations(storage_.instructions[instruction].micro_operations, &arbitrary_base);
 			}
 		}
+
+		// Link up the interrupt micro ops.
+		storage_.interrupt_micro_ops_ = &storage_.all_micro_ops_[interrupt_pointer];
+		link_operations(storage_.interrupt_micro_ops_, &arbitrary_base);
 
 		printf("%lu total steps\n", storage_.all_bus_steps_.size());
 	}
@@ -3477,6 +3507,9 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 
 	long_exception_micro_ops_ = &all_micro_ops_[long_exception_offset];
 	long_exception_micro_ops_->bus_program = bus_error_steps_;
+
+	// Apply the TRAP steps to the interrupt routine.
+	interrupt_micro_ops_[1].bus_program = trap_steps_;
 
 	// Set initial state.
 	active_step_ = reset_bus_steps_;

@@ -1785,6 +1785,28 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							address_[7].full += 6;
 						break;
 
+						case int(MicroOp::Action::PrepareINT):
+							accepted_interrupt_level_ = bus_interrupt_level_;
+							populate_trap_steps(0, get_status());
+						break;
+
+						case int(MicroOp::Action::PrepareINTVector):
+							// Bus error => spurious interrupt.
+							if(bus_error_) {
+								effective_address_[0].full = 24 << 4;
+								break;
+							}
+
+							// Valid peripheral address => autovectored interrupt.
+							if(is_peripheral_address_) {
+								effective_address_[0].full = (24 + accepted_interrupt_level_) << 4;
+								break;
+							}
+
+							// Otherwise, the vector is whatever we were just told it is.
+							effective_address_[0].full = source_bus_data_[0].halves.low.halves.low << 4;
+						break;
+
 						case int(MicroOp::Action::CopyNextWord):
 							next_word_ = prefetch_queue_.halves.low.full;
 						break;

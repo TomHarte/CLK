@@ -65,21 +65,25 @@ struct Microcycle {
 	/// A Reset cycle is one in which the RESET output is asserted.
 	static const int Reset			= 3;
 
+	/// The interrupt acknowledge cycle is that during which the 68000 seeks to obtain the vector for
+	/// an interrupt it plans to observe. Noted on a real 68000 by all FCs being set to 1.
+	static const int InterruptAcknowledge = 4;
+
 	/// Indicates that the address and both data select strobes are active.
-	static const int SelectWord		= 1 << 2;
+	static const int SelectWord		= 1 << 3;
 
 	/// Indicates that the address strobe and exactly one of the data strobes are active; you can determine
 	/// which by inspecting the low bit of the provided address. The RW line indicates a read.
-	static const int SelectByte		= 1 << 3;
+	static const int SelectByte		= 1 << 4;
 
 	/// If set, indicates a read. Otherwise, a write.
-	static const int Read 			= 1 << 4;
+	static const int Read 			= 1 << 5;
 
 	/// Contains the value of line FC0.
-	static const int IsData 		= 1 << 5;
+	static const int IsData 		= 1 << 6;
 
 	/// Contains the value of line FC1.
-	static const int IsProgram 		= 1 << 6;
+	static const int IsProgram 		= 1 << 7;
 
 	int operation = 0;
 	HalfCycles length = HalfCycles(4);

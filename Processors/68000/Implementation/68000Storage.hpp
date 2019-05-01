@@ -59,6 +59,8 @@ class ProcessorStorage {
 		bool bus_acknowledge_ = false;
 		bool halt_ = false;
 
+		int accepted_interrupt_level_ = 0;
+
 		// Generic sources and targets for memory operations;
 		// by convention: [0] = source, [1] = destination.
 		RegisterPair32 effective_address_[2];
@@ -294,6 +296,15 @@ class ProcessorStorage {
 				// (i) fills in the proper stack addresses to the bus steps for this micro-op; and
 				// (ii) adjusts the stack pointer appropriately.
 				PrepareRTE_RTR,
+
+				// Performs the necessary status word substitution for the current interrupt level,
+				// and does the first part of initialising the trap steps.
+				PrepareINT,
+
+				// Observes the bus_error_, valid_peripheral_address_ and/or the value currently in
+				// source_bus_data_ to determine an interrupt vector, and fills in the final trap
+				// steps detail appropriately.
+				PrepareINTVector,
 			};
 			static const int SourceMask = 1 << 30;
 			static const int DestinationMask = 1 << 29;
