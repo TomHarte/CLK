@@ -208,13 +208,11 @@ struct ProcessorStorageConstructor {
 
 			// Fetch SSP.
 			if(token == "nF" || token == "nf") {
-				step.microcycle.length = HalfCycles(5);
 				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
 				step.microcycle.address = &storage_.effective_address_[0].full;
 				step.microcycle.value = isupper(token[1]) ? &storage_.stack_pointers_[1].halves.high : &storage_.stack_pointers_[1].halves.low;
 				steps.push_back(step);
 
-				step.microcycle.length = HalfCycles(3);
 				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
 				step.action = Action::IncrementEffectiveAddress0;
 				steps.push_back(step);
@@ -224,13 +222,11 @@ struct ProcessorStorageConstructor {
 
 			// Fetch exception vector.
 			if(token == "nV" || token == "nv") {
-				step.microcycle.length = HalfCycles(5);
 				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
 				step.microcycle.address = &storage_.effective_address_[0].full;
 				step.microcycle.value = isupper(token[1]) ? &storage_.program_counter_.halves.high : &storage_.program_counter_.halves.low;
 				steps.push_back(step);
 
-				step.microcycle.length = HalfCycles(3);
 				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
 				step.action = Action::IncrementEffectiveAddress0;
 				steps.push_back(step);
@@ -240,14 +236,12 @@ struct ProcessorStorageConstructor {
 
 			// Fetch from the program counter into the prefetch queue.
 			if(token == "np") {
-				step.microcycle.length = HalfCycles(5);
 				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;
 				step.microcycle.address = &storage_.program_counter_.full;
 				step.microcycle.value = &storage_.prefetch_queue_.halves.low;
 				step.action = Action::AdvancePrefetch;
 				steps.push_back(step);
 
-				step.microcycle.length = HalfCycles(3);
 				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
 				step.action = Action::IncrementProgramCounter;
 				steps.push_back(step);
@@ -272,13 +266,11 @@ struct ProcessorStorageConstructor {
 
 				assert(address_iterator != addresses.end());
 
-				step.microcycle.length = HalfCycles(5);
 				step.microcycle.operation = Microcycle::NewAddress | (is_read ? Microcycle::Read : 0);
 				step.microcycle.address = *address_iterator;
 				step.microcycle.value = isupper(token[1]) ? &scratch_data->halves.high : &scratch_data->halves.low;
 				steps.push_back(step);
 
-				step.microcycle.length = HalfCycles(3);
 				step.microcycle.operation = Microcycle::SameAddress | (is_read ? Microcycle::Read : 0) | (read_full_words ? Microcycle::SelectWord : Microcycle::SelectByte);
 				if(post_adjustment) {
 					// nr and nR should affect address 0; nw, nW, nrd and nRd should affect address 1.
@@ -317,13 +309,11 @@ struct ProcessorStorageConstructor {
 
 			// A stack write.
 			if(token == "nS" || token == "ns") {
-				step.microcycle.length = HalfCycles(5);
 				step.microcycle.operation = Microcycle::NewAddress;
 				step.microcycle.address = &storage_.effective_address_[1].full;
 				step.microcycle.value = isupper(token[1]) ? &storage_.destination_bus_data_[0].halves.high : &storage_.destination_bus_data_[0].halves.low;
 				steps.push_back(step);
 
-				step.microcycle.length = HalfCycles(3);
 				step.microcycle.operation = Microcycle::SameAddress | Microcycle::SelectWord;
 				step.action = Action::DecrementEffectiveAddress1;
 				steps.push_back(step);
@@ -335,13 +325,11 @@ struct ProcessorStorageConstructor {
 			if(token == "nU" || token == "nu") {
 				RegisterPair32 *const scratch_data = &storage_.source_bus_data_[0];
 
-				step.microcycle.length = HalfCycles(5);
 				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read;
 				step.microcycle.address = &storage_.effective_address_[0].full;
 				step.microcycle.value = isupper(token[1]) ? &scratch_data->halves.high : &scratch_data->halves.low;
 				steps.push_back(step);
 
-				step.microcycle.length = HalfCycles(3);
 				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::SelectWord;
 				step.action = Action::IncrementEffectiveAddress0;
 				steps.push_back(step);
