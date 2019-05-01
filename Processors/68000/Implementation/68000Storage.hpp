@@ -35,7 +35,10 @@ class ProcessorStorage {
 
 			/// Occurs at the end of the current bus cycle after detection of the HALT input, continuing until
 			/// HALT is no longer signalled.
-			Halted
+			Halted,
+
+			/// Signals a transition from some other straight directly to cueing up an interrupt.
+			BeginInterrupt,
 		} execution_state_ = ExecutionState::Executing;
 		Microcycle dtack_cycle_;
 		Microcycle stop_cycle_;
@@ -60,6 +63,7 @@ class ProcessorStorage {
 		bool halt_ = false;
 
 		int accepted_interrupt_level_ = 0;
+		bool is_starting_interrupt_ = false;
 
 		// Generic sources and targets for memory operations;
 		// by convention: [0] = source, [1] = destination.

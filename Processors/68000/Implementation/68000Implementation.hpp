@@ -54,6 +54,51 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 		*/
 			switch(execution_state_) {
 				default:
+				case ExecutionState::Executing:
+					// Check for entry into the halted state.
+					if(halt_ && active_step_[0].microcycle.operation & Microcycle::NewAddress) {
+						execution_state_ = ExecutionState::Halted;
+						continue;
+					}
+
+					if(active_step_->microcycle.data_select_active()) {
+						// TODO: if valid peripheral address is asserted, substitute a
+						// synhronous bus access.
+
+						// Check whether the processor needs to await DTack.
+						if(!dtack_is_implicit && !dtack_ && !bus_error_) {
+							execution_state_ = ExecutionState::WaitingForDTack;
+							dtack_cycle_ = active_step_->microcycle;
+							dtack_cycle_.length = HalfCycles(2);
+							dtack_cycle_.operation &= ~(Microcycle::SelectByte | Microcycle::SelectWord);
+							continue;
+						}
+
+						// Check for bus error.
+						if(bus_error_ && !is_starting_interrupt_) {
+							active_program_ = nullptr;
+							active_micro_op_ = long_exception_micro_ops_;
+							active_step_ = active_micro_op_->bus_program;
+							populate_bus_error_steps(2, get_status(), get_bus_code(), *active_step_->microcycle.address);
+						}
+					}
+
+					// Check for an address error. Which I have assumed happens before the microcycle that
+					// would nominate the new address.
+					if(
+						(active_step_[0].microcycle.operation & Microcycle::NewAddress) &&
+						(active_step_[1].microcycle.operation & Microcycle::SelectWord) &&
+						*active_step_->microcycle.address & 1) {
+						active_program_ = nullptr;
+						active_micro_op_ = long_exception_micro_ops_;
+						active_step_ = active_micro_op_->bus_program;
+						populate_bus_error_steps(3, get_status(), get_bus_code(), *active_step_->microcycle.address);
+					}
+
+					// Perform the microcycle.
+					cycles_run_for +=
+						active_step_->microcycle.length +
+						bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
 				break;
 
 				case ExecutionState::Stopped:
@@ -61,8 +106,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					// exit the STOP.
 					if(bus_interrupt_level_ > interrupt_level_) {
 						// TODO: schedule interrupt right here.
-						execution_state_ = ExecutionState::Executing;
-						break;
+						execution_state_ = ExecutionState::BeginInterrupt;
+						continue;
 					}
 
 					// Otherwise continue being stopped.
@@ -75,7 +120,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					// If DTack or bus error has been signalled, stop waiting.
 					if(dtack_ || bus_error_) {
 						execution_state_ = ExecutionState::Executing;
-						break;
+						continue;
 					}
 
 					// Otherwise, signal another cycle of wait.
@@ -85,58 +130,24 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 				continue;
 
 				case ExecutionState::Halted:
-					if(!halt_) break;
+					if(!halt_) {
+						execution_state_ = ExecutionState::Executing;
+						continue;
+					}
 
 					cycles_run_for +=
 						stop_cycle_.length +
 						bus_handler_.perform_bus_operation(stop_cycle_, is_supervisor_);
 				continue;
-			}
 
-			// Check for entry into the halted state.
-			if(halt_ && active_step_[0].microcycle.operation & Microcycle::NewAddress) {
-				execution_state_ = ExecutionState::Halted;
-				continue;
-			}
-
-			if(active_step_->microcycle.data_select_active()) {
-				// TODO: if valid peripheral address is asserted, substitute a
-				// synhronous bus access.
-
-				// Check whether the processor needs to await DTack.
-				if(!dtack_is_implicit && !dtack_ && !bus_error_) {
-					execution_state_ = ExecutionState::WaitingForDTack;
-					dtack_cycle_ = active_step_->microcycle;
-					dtack_cycle_.length = HalfCycles(2);
-					dtack_cycle_.operation &= ~(Microcycle::SelectByte | Microcycle::SelectWord);
-					continue;
-				}
-
-				// Check for bus error.
-				if(bus_error_) {
+				case ExecutionState::BeginInterrupt:
 					active_program_ = nullptr;
-					active_micro_op_ = long_exception_micro_ops_;
-					active_step_ = active_micro_op_->bus_program;
-					populate_bus_error_steps(2, get_status(), get_bus_code(), *active_step_->microcycle.address);
-				}
+					active_micro_op_ = interrupt_micro_ops_;
+					execution_state_ = ExecutionState::Executing;
+					is_starting_interrupt_ = true;
+				break;
 			}
 
-			// Check for an address error. Which I have assumed happens before the microcycle that
-			// would nominate the new address.
-			if(
-				(active_step_[0].microcycle.operation & Microcycle::NewAddress) &&
-				(active_step_[1].microcycle.operation & Microcycle::SelectWord) &&
-				*active_step_->microcycle.address & 1) {
-				active_program_ = nullptr;
-				active_micro_op_ = long_exception_micro_ops_;
-				active_step_ = active_micro_op_->bus_program;
-				populate_bus_error_steps(3, get_status(), get_bus_code(), *active_step_->microcycle.address);
-			}
-
-			// Perform the microcycle.
-			cycles_run_for +=
-				active_step_->microcycle.length +
-				bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
 
 #ifdef LOG_TRACE
 			if(!(active_step_->microcycle.operation & Microcycle::IsProgram)) {
@@ -195,7 +206,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						// Either the micro-operations for this instruction have been exhausted, or
 						// no instruction was ongoing. Either way, do a standard instruction operation.
 
-						// TODO: is an interrupt pending?
+						if(bus_interrupt_level_ > interrupt_level_) {
+							execution_state_ = ExecutionState::BeginInterrupt;
+							break;
+						}
 
 						if(trace_flag_) {
 							// The user has set the trace bit in the status register.
@@ -1805,6 +1819,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 							// Otherwise, the vector is whatever we were just told it is.
 							effective_address_[0].full = source_bus_data_[0].halves.low.halves.low << 4;
+
+							// Let bus error go back to causing exceptions.
+							is_starting_interrupt_ = false;
 						break;
 
 						case int(MicroOp::Action::CopyNextWord):
