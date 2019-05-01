@@ -253,6 +253,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform = false> cla
 			bus_acknowledge_ = bus_acknowledge;
 		}
 
+		/// Sets the halt line.
+		void set_halt(bool halt) {
+			halt_ = halt;
+		}
+
 	private:
 		T &bus_handler_;
 };

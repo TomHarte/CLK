@@ -24,9 +24,18 @@ class ProcessorStorage {
 		RegisterPair32 prefetch_queue_;		// Each word will go into the low part of the word, then proceed upward.
 
 		enum class ExecutionState {
+			/// The normal mode, this means the 68000 is expending processing effort.
 			Executing,
+
+			/// The 68000 is in a holding loop, waiting for either DTack or to be notified of a bus error.
 			WaitingForDTack,
-			Stopped
+
+			/// Occurs after executing a STOP instruction; the processor will idle waiting for an interrupt or reset.
+			Stopped,
+
+			/// Occurs at the end of the current bus cycle after detection of the HALT input, continuing until
+			/// HALT is no longer signalled.
+			Halted
 		} execution_state_ = ExecutionState::Executing;
 		Microcycle dtack_cycle_;
 		Microcycle stop_cycle_;
@@ -48,6 +57,7 @@ class ProcessorStorage {
 		bool bus_error_ = false;
 		bool bus_request_ = false;
 		bool bus_acknowledge_ = false;
+		bool halt_ = false;
 
 		// Generic sources and targets for memory operations;
 		// by convention: [0] = source, [1] = destination.
@@ -56,6 +66,7 @@ class ProcessorStorage {
 		RegisterPair32 destination_bus_data_[1];
 
 		HalfCycles half_cycles_left_to_run_;
+		HalfCycles e_clock_phase_;
 
 		enum class Operation {
 			None,

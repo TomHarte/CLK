@@ -43,8 +43,12 @@
 	((active_step_->microcycle.operation & Microcycle::Read) ? 0x10 : 0)
 
 template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::run_for(HalfCycles duration) {
-	HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
-	while(remaining_duration > HalfCycles(0)) {
+	const HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
+
+	// This loop counts upwards rather than downwards because it simplifies calculation of
+	// E as and when required.
+	HalfCycles cycles_run_for;
+	while(cycles_run_for < remaining_duration) {
 		/*
 			PERFORM THE CURRENT BUS STEP'S MICROCYCLE.
 		*/
@@ -56,12 +60,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					// If an interrupt (TODO: or reset) has finally arrived that will be serviced,
 					// exit the STOP.
 					if(bus_interrupt_level_ > interrupt_level_) {
+						// TODO: schedule interrupt right here.
 						execution_state_ = ExecutionState::Executing;
 						break;
 					}
 
 					// Otherwise continue being stopped.
-					remaining_duration -=
+					cycles_run_for +=
 						stop_cycle_.length +
 						bus_handler_.perform_bus_operation(stop_cycle_, is_supervisor_);
 				continue;
@@ -74,13 +79,31 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					}
 
 					// Otherwise, signal another cycle of wait.
-					remaining_duration -=
+					cycles_run_for +=
 						dtack_cycle_.length +
 						bus_handler_.perform_bus_operation(dtack_cycle_, is_supervisor_);
+				continue;
+
+				case ExecutionState::Halted:
+					if(!halt_) break;
+
+					cycles_run_for +=
+						stop_cycle_.length +
+						bus_handler_.perform_bus_operation(stop_cycle_, is_supervisor_);
+				continue;
+			}
+
+			// Check for entry into the halted state.
+			if(halt_ && active_step_[0].microcycle.operation & Microcycle::NewAddress) {
+				execution_state_ = ExecutionState::Halted;
 				continue;
 			}
 
 			if(active_step_->microcycle.data_select_active()) {
+				// TODO: if valid peripheral address is asserted, substitute a
+				// synhronous bus access.
+
+				// Check whether the processor needs to await DTack.
 				if(!dtack_is_implicit && !dtack_ && !bus_error_) {
 					execution_state_ = ExecutionState::WaitingForDTack;
 					dtack_cycle_ = active_step_->microcycle;
@@ -89,7 +112,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					continue;
 				}
 
-				// Check for bus error here.
+				// Check for bus error.
 				if(bus_error_) {
 					active_program_ = nullptr;
 					active_micro_op_ = long_exception_micro_ops_;
@@ -111,7 +134,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			}
 
 			// Perform the microcycle.
-			remaining_duration -=
+			cycles_run_for +=
 				active_step_->microcycle.length +
 				bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
 
@@ -1933,7 +1956,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			}
 	}
 
-	half_cycles_left_to_run_ = remaining_duration;
+	e_clock_phase_ = (e_clock_phase_ + cycles_run_for) % 10;
+	half_cycles_left_to_run_ = remaining_duration - cycles_run_for;
 }
 
 template <class T, bool dtack_is_implicit, bool signal_will_perform> ProcessorState Processor<T, dtack_is_implicit, signal_will_perform>::get_state() {
