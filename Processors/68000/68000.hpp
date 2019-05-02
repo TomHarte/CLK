@@ -45,29 +45,16 @@ namespace MC68000 {
 	avoid the runtime cost of actual DTack emulation. But such as the bus allows.)
 */
 struct Microcycle {
-	/*
-		The operation code is composed of several parts; a compound low part
-		that can be masked off with TypeMask identifies the type of the cycle;
-		some of the other status lines are also present in the top parts of the int.
-	*/
-	static const int TypeMask		= 3;
-
-	static const int Idle			= 0;
-
 	/// A NewAddress cycle is one in which the address strobe is initially low but becomes high;
 	/// this correlates to states 0 to 5 of a standard read/write cycle.
-	static const int NewAddress		= 1;
+	static const int NewAddress		= 1 << 0;
 
 	/// A SameAddress cycle is one in which the address strobe is continuously asserted, but neither
 	/// of the data strobes are.
-	static const int SameAddress	= 2;
+	static const int SameAddress	= 1 << 1;
 
 	/// A Reset cycle is one in which the RESET output is asserted.
-	static const int Reset			= 3;
-
-	/// The interrupt acknowledge cycle is that during which the 68000 seeks to obtain the vector for
-	/// an interrupt it plans to observe. Noted on a real 68000 by all FCs being set to 1.
-	static const int InterruptAcknowledge = 4;
+	static const int Reset			= 1 << 2;
 
 	/// Indicates that the address and both data select strobes are active.
 	static const int SelectWord		= 1 << 3;
@@ -79,11 +66,15 @@ struct Microcycle {
 	/// If set, indicates a read. Otherwise, a write.
 	static const int Read 			= 1 << 5;
 
-	/// Contains the value of line FC0.
+	/// Contains the value of line FC0 if it is not implicit via InterruptAcknowledge.
 	static const int IsData 		= 1 << 6;
 
-	/// Contains the value of line FC1.
+	/// Contains the value of line FC1 if it is not implicit via InterruptAcknowledge.
 	static const int IsProgram 		= 1 << 7;
+
+	/// The interrupt acknowledge cycle is that during which the 68000 seeks to obtain the vector for
+	/// an interrupt it plans to observe. Noted on a real 68000 by all FCs being set to 1.
+	static const int InterruptAcknowledge = 1 << 8;
 
 	int operation = 0;
 	HalfCycles length = HalfCycles(4);

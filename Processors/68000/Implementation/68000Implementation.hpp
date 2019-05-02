@@ -76,10 +76,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 						// Check for bus error.
 						if(bus_error_ && !is_starting_interrupt_) {
+							const auto offending_address = *active_step_->microcycle.address;
 							active_program_ = nullptr;
 							active_micro_op_ = long_exception_micro_ops_;
 							active_step_ = active_micro_op_->bus_program;
-							populate_bus_error_steps(2, get_status(), get_bus_code(), *active_step_->microcycle.address);
+							populate_bus_error_steps(2, get_status(), get_bus_code(), offending_address);
 						}
 					}
 
@@ -89,16 +90,42 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						(active_step_[0].microcycle.operation & Microcycle::NewAddress) &&
 						(active_step_[1].microcycle.operation & Microcycle::SelectWord) &&
 						*active_step_->microcycle.address & 1) {
+						const auto offending_address = *active_step_->microcycle.address;
 						active_program_ = nullptr;
 						active_micro_op_ = long_exception_micro_ops_;
 						active_step_ = active_micro_op_->bus_program;
-						populate_bus_error_steps(3, get_status(), get_bus_code(), *active_step_->microcycle.address);
+						populate_bus_error_steps(3, get_status(), get_bus_code(), offending_address);
 					}
 
 					// Perform the microcycle.
 					cycles_run_for +=
 						active_step_->microcycle.length +
 						bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
+
+					/*
+						PERFORM THE BUS STEP'S ACTION.
+					*/
+						switch(active_step_->action) {
+							default:
+								std::cerr << "Unimplemented 68000 bus step action: " << int(active_step_->action) << std::endl;
+								return;
+							break;
+
+							case BusStep::Action::None: break;
+
+							case BusStep::Action::IncrementEffectiveAddress0:	effective_address_[0].full += 2;	break;
+							case BusStep::Action::IncrementEffectiveAddress1:	effective_address_[1].full += 2;	break;
+							case BusStep::Action::DecrementEffectiveAddress0:	effective_address_[0].full -= 2;	break;
+							case BusStep::Action::DecrementEffectiveAddress1:	effective_address_[1].full -= 2;	break;
+							case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;			break;
+
+							case BusStep::Action::AdvancePrefetch:
+								prefetch_queue_.halves.high = prefetch_queue_.halves.low;
+							break;
+						}
+
+						// Move to the next bus step.
+						++ active_step_;
 				break;
 
 				case ExecutionState::Stopped:
@@ -144,10 +171,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					active_program_ = nullptr;
 					active_micro_op_ = interrupt_micro_ops_;
 					execution_state_ = ExecutionState::Executing;
+					active_step_ = active_micro_op_->bus_program;
 					is_starting_interrupt_ = true;
 				break;
 			}
-
 
 #ifdef LOG_TRACE
 			if(!(active_step_->microcycle.operation & Microcycle::IsProgram)) {
@@ -170,30 +197,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			}
 #endif
 
-		/*
-			PERFORM THE BUS STEP'S ACTION.
-		*/
-			switch(active_step_->action) {
-				default:
-					std::cerr << "Unimplemented 68000 bus step action: " << int(active_step_->action) << std::endl;
-					return;
-				break;
-
-				case BusStep::Action::None: break;
-
-				case BusStep::Action::IncrementEffectiveAddress0:	effective_address_[0].full += 2;	break;
-				case BusStep::Action::IncrementEffectiveAddress1:	effective_address_[1].full += 2;	break;
-				case BusStep::Action::DecrementEffectiveAddress0:	effective_address_[0].full -= 2;	break;
-				case BusStep::Action::DecrementEffectiveAddress1:	effective_address_[1].full -= 2;	break;
-				case BusStep::Action::IncrementProgramCounter:		program_counter_.full += 2;			break;
-
-				case BusStep::Action::AdvancePrefetch:
-					prefetch_queue_.halves.high = prefetch_queue_.halves.low;
-				break;
-			}
-
-			// Move to the next bus step.
-			++ active_step_;
 		/*
 			FIND THE NEXT MICRO-OP IF UNKNOWN.
 		*/
@@ -1800,8 +1803,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						break;
 
 						case int(MicroOp::Action::PrepareINT):
-							accepted_interrupt_level_ = bus_interrupt_level_;
 							populate_trap_steps(0, get_status());
+							accepted_interrupt_level_ = interrupt_level_ =  bus_interrupt_level_;
 						break;
 
 						case int(MicroOp::Action::PrepareINTVector):

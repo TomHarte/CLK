@@ -340,12 +340,12 @@ struct ProcessorStorageConstructor {
 
 			// Interrupt acknowledge.
 			if(token == "int") {
-				step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::IsData | Microcycle::IsProgram | Microcycle::NewAddress;
+				step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::NewAddress;
 				step.microcycle.address = &storage_.effective_address_[0].full;		// The selected interrupt should be in bits 1–3; but 0 should be set.
 				step.microcycle.value = &storage_.source_bus_data_[0].halves.low;
 				steps.push_back(step);
 
-				step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::IsData | Microcycle::IsProgram | Microcycle::SameAddress | Microcycle::SelectByte;
+				step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::SameAddress | Microcycle::SelectByte;
 				steps.push_back(step);
 
 				continue;
@@ -3314,6 +3314,7 @@ struct ProcessorStorageConstructor {
 
 		// Throw in the interrupt program.
 		const auto interrupt_pointer = storage_.all_micro_ops_.size();
+		op(Action::None, seq(""));			// WORKAROUND FOR THE BE68000 MAIN LOOP. Hopefully temporary.
 		op(Action::PrepareINT, seq("int"));	// Perform a cycle that will obtain an interrupt vector, or else dictate an autovector or a spurious interrupt.
 		op(Action::PrepareINTVector);		// The standard trap steps will be appended here, and PrepareINT will set them up according to the vector received.
 		op();
@@ -3509,7 +3510,7 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	long_exception_micro_ops_->bus_program = bus_error_steps_;
 
 	// Apply the TRAP steps to the interrupt routine.
-	interrupt_micro_ops_[1].bus_program = trap_steps_;
+	interrupt_micro_ops_[2].bus_program = trap_steps_;
 
 	// Set initial state.
 	active_step_ = reset_bus_steps_;

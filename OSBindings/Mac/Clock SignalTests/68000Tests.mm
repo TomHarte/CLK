@@ -21,7 +21,7 @@
 class RAM68000: public CPU::MC68000::BusHandler {
 	public:
 		RAM68000() : m68000_(*this) {
-			ram_.resize(32768);
+			ram_.resize(256*1024);
 
 			// Setup the /RESET vector.
 			ram_[0] = 0;
@@ -58,22 +58,26 @@ class RAM68000: public CPU::MC68000::BusHandler {
 
 			using Microcycle = CPU::MC68000::Microcycle;
 			if(cycle.data_select_active()) {
-				switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
-					default: break;
+				if(cycle.operation & Microcycle::InterruptAcknowledge) {
+					cycle.value->halves.low = 10;
+				} else {
+					switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+						default: break;
 
-					case Microcycle::SelectWord | Microcycle::Read:
-						cycle.value->full = ram_[word_address];
-					break;
-					case Microcycle::SelectByte | Microcycle::Read:
-						cycle.value->halves.low = ram_[word_address] >> cycle.byte_shift();
-					break;
-					case Microcycle::SelectWord:
-						printf("w %08x of %02x\n", *cycle.address, cycle.value->full);
-						ram_[word_address] = cycle.value->full;
-					break;
-					case Microcycle::SelectByte:
-						ram_[word_address] = (cycle.value->full & cycle.byte_mask()) | (ram_[word_address] & (0xffff ^ cycle.byte_mask()));
-					break;
+						case Microcycle::SelectWord | Microcycle::Read:
+							cycle.value->full = ram_[word_address];
+						break;
+						case Microcycle::SelectByte | Microcycle::Read:
+							cycle.value->halves.low = ram_[word_address] >> cycle.byte_shift();
+						break;
+						case Microcycle::SelectWord:
+							printf("w %08x of %02x\n", *cycle.address, cycle.value->full);
+							ram_[word_address] = cycle.value->full;
+						break;
+						case Microcycle::SelectByte:
+							ram_[word_address] = (cycle.value->full & cycle.byte_mask()) | (ram_[word_address] & (0xffff ^ cycle.byte_mask()));
+						break;
+					}
 				}
 			}
 
@@ -88,7 +92,7 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			m68000_.set_state(state);
 		}
 
-		const CPU::MC68000::Processor<RAM68000, true, true> &processor() {
+		CPU::MC68000::Processor<RAM68000, true, true> &processor() {
 			return m68000_;
 		}
 
@@ -284,6 +288,17 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssert(state.address[4] == 0x0400, "A4 was %08x instead of 0x00000400", state.address[4]);
 	XCTAssert(state.data[2] == 0x303cfb2e, "D2 was %08x instead of 0x303cfb2e", state.data[2]);
+}
+
+- (void)testVectoredInterrupt {
+	_machine->set_program({
+		0x46f8,	0x2000,		// MOVE $2000, SR
+		0x4e71,				// NOP
+		0x4e71,				// NOP
+	});
+	_machine->run_for_instructions(1);
+	_machine->processor().set_interrupt_level(1);
+	_machine->run_for_instructions(1);
 }
 
 - (void)testOpcodeCoverage {
