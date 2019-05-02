@@ -27,11 +27,11 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			ram_[0] = 0;
 			ram_[1] = 0xffff;
 			ram_[2] = 0;
-			ram_[3] = 0x0400;
+			ram_[3] = 0x1000;
 		}
 
 		void set_program(const std::vector<uint16_t> &program) {
-			memcpy(&ram_[512], program.data(), program.size() * sizeof(uint16_t));
+			memcpy(&ram_[0x1000 >> 1], program.data(), program.size() * sizeof(uint16_t));
 		}
 
 		void will_perform(uint32_t address, uint16_t opcode) {
@@ -39,7 +39,7 @@ class RAM68000: public CPU::MC68000::BusHandler {
 		}
 
 		void run_for_instructions(int count) {
-			instructions_remaining_ = count + 1;
+			instructions_remaining_ = count;
 			while(instructions_remaining_) {
 				run_for(HalfCycles(2));
 			}
@@ -66,12 +66,13 @@ class RAM68000: public CPU::MC68000::BusHandler {
 
 						case Microcycle::SelectWord | Microcycle::Read:
 							cycle.value->full = ram_[word_address];
+							printf("r %04x from %08x \n", cycle.value->full, *cycle.address);
 						break;
 						case Microcycle::SelectByte | Microcycle::Read:
 							cycle.value->halves.low = ram_[word_address] >> cycle.byte_shift();
 						break;
 						case Microcycle::SelectWord:
-							printf("w %08x of %02x\n", *cycle.address, cycle.value->full);
+							printf("w %08x of %04x\n", *cycle.address, cycle.value->full);
 							ram_[word_address] = cycle.value->full;
 						break;
 						case Microcycle::SelectByte:
@@ -292,13 +293,28 @@ class CPU::MC68000::ProcessorStorageTests {
 
 - (void)testVectoredInterrupt {
 	_machine->set_program({
-		0x46f8,	0x2000,		// MOVE $2000, SR
+		0x46fc,	0x2000,		// MOVE.w #$2000, SR
+		0x4e71,				// NOP
+		0x4e71,				// NOP
+		0x4e71,				// NOP
 		0x4e71,				// NOP
 		0x4e71,				// NOP
 	});
-	_machine->run_for_instructions(1);
+
+	// Set the vector that will be supplied back to the start of the
+	// program; this will ensure no further exceptions following
+	// the interrupt.
+	const auto vector = _machine->ram_at(40);
+	vector[0] = 0x0000;
+	vector[1] = 0x1004;
+
+	_machine->run_for_instructions(3);
 	_machine->processor().set_interrupt_level(1);
 	_machine->run_for_instructions(1);
+
+	const auto state = _machine->processor().get_state();
+	XCTAssert(state.program_counter == 0x1008);	// i.e. the interrupt happened, the instruction performed was the one at 1004, and therefore
+												// by the wonders of prefetch the program counter is now at 1008.
 }
 
 - (void)testOpcodeCoverage {

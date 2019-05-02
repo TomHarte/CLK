@@ -1810,18 +1810,18 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						case int(MicroOp::Action::PrepareINTVector):
 							// Bus error => spurious interrupt.
 							if(bus_error_) {
-								effective_address_[0].full = 24 << 4;
+								effective_address_[0].full = 24 << 2;
 								break;
 							}
 
 							// Valid peripheral address => autovectored interrupt.
 							if(is_peripheral_address_) {
-								effective_address_[0].full = (24 + accepted_interrupt_level_) << 4;
+								effective_address_[0].full = (24 + accepted_interrupt_level_) << 2;
 								break;
 							}
 
 							// Otherwise, the vector is whatever we were just told it is.
-							effective_address_[0].full = source_bus_data_[0].halves.low.halves.low << 4;
+							effective_address_[0].full = source_bus_data_[0].halves.low.halves.low << 2;
 
 							// Let bus error go back to causing exceptions.
 							is_starting_interrupt_ = false;
@@ -2010,6 +2010,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> ProcessorSt
 	memcpy(state.address, address_, sizeof(state.address));
 	state.user_stack_pointer = stack_pointers_[0].full;
 	state.supervisor_stack_pointer = stack_pointers_[1].full;
+	state.program_counter = program_counter_.full;
 
 	state.status = get_status();
 
