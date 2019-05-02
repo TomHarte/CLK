@@ -400,6 +400,27 @@ struct ProcessorStorageConstructor {
 	}
 
 	/*!
+		Walks through the sequence of bus steps beginning at @c start, replacing the value supplied for each write
+		encountered with the respective value from @c values.
+	*/
+	void replace_write_values(BusStep *start, const std::vector<RegisterPair16 *> &values) {
+		assert(replace_write_values(start, values.begin()) == values.end());
+	}
+
+	/*!
+		Walks through the sequence of micro-ops beginning at @c start, replacing the value supplied for each write
+		encountered in each micro-op's bus steps with the respective value from @c values.
+	*/
+	void replace_write_values(ProcessorBase::MicroOp *start, const std::vector<RegisterPair16 *> &values) {
+		auto value = values.begin();
+		while(!start->is_terminal()) {
+			value = replace_write_values(start->bus_program, value);
+			++start;
+		}
+		assert(value == values.end());
+	}
+
+	/*!
 		Disassembles the instruction @c instruction and inserts it into the
 		appropriate lookup tables.
 
@@ -3314,9 +3335,17 @@ struct ProcessorStorageConstructor {
 
 		// Throw in the interrupt program.
 		const auto interrupt_pointer = storage_.all_micro_ops_.size();
-		op(Action::None, seq(""));			// WORKAROUND FOR THE BE68000 MAIN LOOP. Hopefully temporary.
-		op(Action::PrepareINT, seq("int"));	// Perform a cycle that will obtain an interrupt vector, or else dictate an autovector or a spurious interrupt.
-		op(Action::PrepareINTVector);		// The standard trap steps will be appended here, and PrepareINT will set them up according to the vector received.
+
+		// WORKAROUND FOR THE BE68000 MAIN LOOP. Hopefully temporary.
+		op(Action::None, seq(""));
+
+		// Perform a single write and then a cycle that will obtain an interrupt vector, or else dictate an autovector or a spurious interrupt.
+		op(Action::PrepareINT, seq("nw int", { &storage_.precomputed_addresses_[0] }));
+
+		// The reset of the standard trap steps occur here; PrepareINT will set them up according to the vector received.
+		op(Action::PrepareINTVector, seq("nw nW nV nv np np", { &storage_.precomputed_addresses_[1], &storage_.precomputed_addresses_[2] }));
+
+		// Terminate the sequence.
 		op();
 
 #undef Dn
@@ -3372,6 +3401,20 @@ struct ProcessorStorageConstructor {
 
 	private:
 		ProcessorStorage &storage_;
+
+		std::vector<RegisterPair16 *>::const_iterator replace_write_values(BusStep *start, std::vector<RegisterPair16 *>::const_iterator value) {
+			while(!start->is_terminal()) {
+				// Look for any bus step that writes. Then replace its value, and that of the cycle before it.
+				if(start->microcycle.data_select_active() && !(start->microcycle.operation & Microcycle::Read) && !(start->microcycle.operation & Microcycle::InterruptAcknowledge)) {
+					start[0].microcycle.value = start[-1].microcycle.value = *value;
+					++value;
+				}
+
+				++start;
+			}
+
+			return value;
+		}
 
 /*		struct BusStepOrderer {
 			bool operator()( BusStep const& lhs, BusStep const& rhs ) const {
@@ -3476,19 +3519,22 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	//
 	// Order of output is: PC.l, SR, PC.h.
 	trap_steps_ = &all_bus_steps_[trap_offset];
-	trap_steps_[1].microcycle.value = trap_steps_[2].microcycle.value = &program_counter_.halves.low;
-	trap_steps_[3].microcycle.value = trap_steps_[4].microcycle.value = &destination_bus_data_[0].halves.low;
-	trap_steps_[5].microcycle.value = trap_steps_[6].microcycle.value = &program_counter_.halves.high;
+	constructor.replace_write_values(trap_steps_, { &program_counter_.halves.low, &destination_bus_data_[0].halves.low, &program_counter_.halves.high });
+
+	// Fill in the same order of writes for the interrupt micro-ops, though it divides the work differently.
+	constructor.replace_write_values(interrupt_micro_ops_, { &program_counter_.halves.low, &destination_bus_data_[0].halves.low, &program_counter_.halves.high });
 
 	// Link the bus error exception steps and fill in the proper sources.
 	bus_error_steps_ = &all_bus_steps_[bus_error_offset];
-	bus_error_steps_[1].microcycle.value = bus_error_steps_[2].microcycle.value = &program_counter_.halves.low;
-	bus_error_steps_[3].microcycle.value = bus_error_steps_[4].microcycle.value = &destination_bus_data_[0].halves.low;
-	bus_error_steps_[5].microcycle.value = bus_error_steps_[6].microcycle.value = &program_counter_.halves.high;
-	bus_error_steps_[7].microcycle.value = bus_error_steps_[8].microcycle.value = &decoded_instruction_;
-	bus_error_steps_[9].microcycle.value = bus_error_steps_[10].microcycle.value = &effective_address_[0].halves.low;
-	bus_error_steps_[11].microcycle.value = bus_error_steps_[12].microcycle.value = &destination_bus_data_[0].halves.high;
-	bus_error_steps_[13].microcycle.value = bus_error_steps_[14].microcycle.value = &effective_address_[0].halves.high;
+	constructor.replace_write_values(bus_error_steps_, {
+		&program_counter_.halves.low,
+		&destination_bus_data_[0].halves.low,
+		&program_counter_.halves.high,
+		&decoded_instruction_,
+		&effective_address_[0].halves.low,
+		&destination_bus_data_[0].halves.high,
+		&effective_address_[0].halves.high
+	});
 
 	// Also relink the RTE and RTR bus steps to collect the program counter.
 	//
@@ -3508,9 +3554,6 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 
 	long_exception_micro_ops_ = &all_micro_ops_[long_exception_offset];
 	long_exception_micro_ops_->bus_program = bus_error_steps_;
-
-	// Apply the TRAP steps to the interrupt routine.
-	interrupt_micro_ops_[2].bus_program = trap_steps_;
 
 	// Set initial state.
 	active_step_ = reset_bus_steps_;
