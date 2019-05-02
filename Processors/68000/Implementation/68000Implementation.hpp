@@ -1803,8 +1803,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						break;
 
 						case int(MicroOp::Action::PrepareINT):
+							// The INT sequence uses the same storage as the TRAP steps, so this'll get
+							// the necessary stack work set up.
 							populate_trap_steps(0, get_status());
+
+							// Mutate neessary internal state — effective_address_[0] is exposed
+							// on the data bus as the accepted interrupt number during the interrupt
+							// acknowledge cycle, with the low bit set since a real 68000 uses the lower
+							// data strobe to collect the corresponding vector byte.
 							accepted_interrupt_level_ = interrupt_level_ =  bus_interrupt_level_;
+							effective_address_[0].full = 1 | (accepted_interrupt_level_ << 1);
 						break;
 
 						case int(MicroOp::Action::PrepareINTVector):
