@@ -7,6 +7,8 @@
 //
 
 #include <cstring>
+#include <iostream>
+#include <ostream>
 
 #define get_ccr() \
 	(	\

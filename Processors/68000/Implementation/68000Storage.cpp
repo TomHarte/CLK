@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <ctime>
 #include <map>
 #include <sstream>
 
@@ -3494,9 +3495,13 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	all_micro_ops_.emplace_back();
 
 	// Install operations.
+#ifndef NDEBUG
 	const std::clock_t start = std::clock();
+#endif
 	constructor.install_instructions();
+#ifndef NDEBUG
 	std::cout << "Construction took " << double(std::clock() - start) / double(CLOCKS_PER_SEC / 1000) << "ms" << std::endl;
+#endif
 
 	// Realise the special programs as direct pointers.
 	reset_bus_steps_ = &all_bus_steps_[reset_offset];
