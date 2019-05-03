@@ -10,10 +10,10 @@
 #define MC68000_h
 
 #include <cstdint>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <tuple>
-#include <vector>
+#include <ostream>
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../RegisterSizes.hpp"
