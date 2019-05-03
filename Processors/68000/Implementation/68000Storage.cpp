@@ -12,6 +12,7 @@
 #include <cassert>
 #include <ctime>
 #include <map>
+#include <vector>
 #include <sstream>
 
 namespace CPU {
