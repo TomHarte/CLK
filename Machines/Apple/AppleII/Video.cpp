@@ -8,7 +8,7 @@
 
 #include "Video.hpp"
 
-using namespace AppleII::Video;
+using namespace Apple::II::Video;
 
 VideoBase::VideoBase(bool is_iie, std::function<void(Cycles)> &&target) :
 	crt_(910, 1, Outputs::Display::Type::NTSC60, Outputs::Display::InputDataType::Luminance1),

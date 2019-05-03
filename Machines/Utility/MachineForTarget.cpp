@@ -9,7 +9,7 @@
 #include "MachineForTarget.hpp"
 
 #include "../AmstradCPC/AmstradCPC.hpp"
-#include "../AppleII/AppleII.hpp"
+#include "../Apple/AppleII/AppleII.hpp"
 #include "../Atari2600/Atari2600.hpp"
 #include "../ColecoVision/ColecoVision.hpp"
 #include "../Commodore/Vic-20/Vic20.hpp"
@@ -33,7 +33,7 @@ namespace {
 #define Bind(m)	BindD(m, m)
 		switch(target->machine) {
 			Bind(AmstradCPC)
-			Bind(AppleII)
+			BindD(Apple::II, AppleII)
 			Bind(Atari2600)
 			BindD(Coleco::Vision, ColecoVision)
 			Bind(Electron)
@@ -132,7 +132,7 @@ std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> Machin
 	std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> options;
 
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::AmstradCPC), AmstradCPC::get_options()));
-	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::AppleII), AppleII::get_options()));
+	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::AppleII), Apple::II::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::ColecoVision), Coleco::Vision::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Electron), Electron::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::MSX), MSX::get_options()));

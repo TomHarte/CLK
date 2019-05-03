@@ -9,11 +9,12 @@
 #ifndef Card_h
 #define Card_h
 
-#include "../../Processors/6502/6502.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../Activity/Observer.hpp"
+#include "../../../Processors/6502/6502.hpp"
+#include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../Activity/Observer.hpp"
 
-namespace AppleII {
+namespace Apple {
+namespace II {
 
 /*!
 	This provides a small subset of the interface offered to cards installed in
@@ -109,6 +110,7 @@ class Card {
 		}
 };
 
+}
 }
 
 #endif /* Card_h */

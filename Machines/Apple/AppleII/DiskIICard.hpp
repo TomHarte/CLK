@@ -10,17 +10,18 @@
 #define DiskIICard_hpp
 
 #include "Card.hpp"
-#include "../ROMMachine.hpp"
+#include "../../ROMMachine.hpp"
 
-#include "../../Components/DiskII/DiskII.hpp"
-#include "../../Storage/Disk/Disk.hpp"
-#include "../../ClockReceiver/ClockingHintSource.hpp"
+#include "../../../Components/DiskII/DiskII.hpp"
+#include "../../../Storage/Disk/Disk.hpp"
+#include "../../../ClockReceiver/ClockingHintSource.hpp"
 
 #include <cstdint>
 #include <memory>
 #include <vector>
 
-namespace AppleII {
+namespace Apple {
+namespace II {
 
 class DiskIICard: public Card, public ClockingHint::Observer {
 	public:
@@ -41,6 +42,7 @@ class DiskIICard: public Card, public ClockingHint::Observer {
 		ClockingHint::Preference diskii_clocking_preference_ = ClockingHint::Preference::RealTime;
 };
 
+}
 }
 
 #endif /* DiskIICard_hpp */

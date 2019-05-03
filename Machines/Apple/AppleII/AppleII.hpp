@@ -9,14 +9,15 @@
 #ifndef AppleII_hpp
 #define AppleII_hpp
 
-#include "../../Configurable/Configurable.hpp"
-#include "../../Analyser/Static/StaticAnalyser.hpp"
-#include "../ROMMachine.hpp"
+#include "../../../Configurable/Configurable.hpp"
+#include "../../../Analyser/Static/StaticAnalyser.hpp"
+#include "../../ROMMachine.hpp"
 
 #include <memory>
 #include <vector>
 
-namespace AppleII {
+namespace Apple {
+namespace II {
 
 /// @returns The options available for an Apple II.
 std::vector<std::unique_ptr<Configurable::Option>> get_options();
@@ -29,6 +30,7 @@ class Machine {
 		static Machine *AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 };
 
-};
+}
+}
 
 #endif /* AppleII_hpp */

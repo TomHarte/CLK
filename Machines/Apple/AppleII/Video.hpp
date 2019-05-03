@@ -9,14 +9,15 @@
 #ifndef Video_hpp
 #define Video_hpp
 
-#include "../../Outputs/CRT/CRT.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../ClockReceiver/ClockDeferrer.hpp"
+#include "../../../Outputs/CRT/CRT.hpp"
+#include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../ClockReceiver/ClockDeferrer.hpp"
 
 #include <array>
 #include <vector>
 
-namespace AppleII {
+namespace Apple {
+namespace II {
 namespace Video {
 
 class BusHandler {
@@ -600,6 +601,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 		BusHandler &bus_handler_;
 };
 
+}
 }
 }
 
