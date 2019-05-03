@@ -6,6 +6,8 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
+#include <cstring>
+
 #define get_ccr() \
 	(	\
 		(carry_flag_ 	? 0x0001 : 0x0000) |	\

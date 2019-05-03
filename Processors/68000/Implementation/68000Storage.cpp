@@ -9,8 +9,9 @@
 #include "../68000.hpp"
 
 #include <algorithm>
-#include <sstream>
+#include <cassert>
 #include <map>
+#include <sstream>
 
 namespace CPU {
 namespace MC68000 {
