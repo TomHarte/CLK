@@ -490,7 +490,6 @@ class ProcessorStorage {
 			address_[7].full -= 14;
 		}
 
-
 	private:
 		friend class ProcessorStorageConstructor;
 		friend class ProcessorStorageTests;

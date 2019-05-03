@@ -14,6 +14,7 @@
 #include <iomanip>
 #include <iostream>
 #include <ostream>
+#include <vector>
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../RegisterSizes.hpp"
