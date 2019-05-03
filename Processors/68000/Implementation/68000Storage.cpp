@@ -3340,10 +3340,10 @@ struct ProcessorStorageConstructor {
 		op(Action::None, seq(""));
 
 		// Perform a single write and then a cycle that will obtain an interrupt vector, or else dictate an autovector or a spurious interrupt.
-		op(Action::PrepareINT, seq("nw int", { &storage_.precomputed_addresses_[0] }));
+		op(Action::PrepareINT, seq("n nn nw int", { &storage_.precomputed_addresses_[0] }));
 
 		// The reset of the standard trap steps occur here; PrepareINT will set them up according to the vector received.
-		op(Action::PrepareINTVector, seq("nw nW nV nv np np", { &storage_.precomputed_addresses_[1], &storage_.precomputed_addresses_[2] }));
+		op(Action::PrepareINTVector, seq("nn n nw nW nV nv np np", { &storage_.precomputed_addresses_[1], &storage_.precomputed_addresses_[2] }));
 
 		// Terminate the sequence.
 		op();

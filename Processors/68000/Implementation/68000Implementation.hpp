@@ -97,10 +97,28 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						populate_bus_error_steps(3, get_status(), get_bus_code(), offending_address);
 					}
 
-					// Perform the microcycle.
-					cycles_run_for +=
-						active_step_->microcycle.length +
-						bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
+					// Perform the microcycle if it is of non-zero length. If this is an operation that
+					// would normally strobe one of the data selects and VPA is active, it will also need
+					// stretching.
+					if(active_step_->microcycle.length != HalfCycles(0)) {
+						if(is_peripheral_address_ && active_step_->microcycle.data_select_active()) {
+							auto cycle_copy = active_step_->microcycle;
+							cycle_copy.operation |= Microcycle::IsPeripheral;
+
+							// Extend length by: (i) distance to next E low, plus (ii) difference between
+							// current length and a whole E cycle.
+							cycle_copy.length = HalfCycles(20);	// i.e. one E cycle in length.
+							cycle_copy.length += (e_clock_phase_ + cycles_run_for) % 10;
+
+							cycles_run_for +=
+								cycle_copy.length +
+								bus_handler_.perform_bus_operation(cycle_copy, is_supervisor_);
+						} else {
+							cycles_run_for +=
+								active_step_->microcycle.length +
+								bus_handler_.perform_bus_operation(active_step_->microcycle, is_supervisor_);
+						}
+					}
 
 					/*
 						PERFORM THE BUS STEP'S ACTION.

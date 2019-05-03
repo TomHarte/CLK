@@ -27,8 +27,8 @@ namespace MC68000 {
 
 	Concretely, a standard read cycle breaks down into at least two microcycles:
 
-		1) a 5 half-cycle length microcycle in which the address strobe is signalled; and
-		2) a 3 half-cycle length microcycle in which at least one of the data strobes is
+		1) a 4 half-cycle length microcycle in which the address strobe is signalled; and
+		2) a 4 half-cycle length microcycle in which at least one of the data strobes is
 		signalled, and the data bus is sampled.
 
 	That is, assuming DTack were signalled when microcycle (1) ended. If not then additional
@@ -47,36 +47,44 @@ namespace MC68000 {
 struct Microcycle {
 	/// A NewAddress cycle is one in which the address strobe is initially low but becomes high;
 	/// this correlates to states 0 to 5 of a standard read/write cycle.
-	static const int NewAddress		= 1 << 0;
+	static const int NewAddress				= 1 << 0;
 
 	/// A SameAddress cycle is one in which the address strobe is continuously asserted, but neither
 	/// of the data strobes are.
-	static const int SameAddress	= 1 << 1;
+	static const int SameAddress			= 1 << 1;
 
 	/// A Reset cycle is one in which the RESET output is asserted.
-	static const int Reset			= 1 << 2;
+	static const int Reset					= 1 << 2;
 
 	/// Indicates that the address and both data select strobes are active.
-	static const int SelectWord		= 1 << 3;
+	static const int SelectWord				= 1 << 3;
 
 	/// Indicates that the address strobe and exactly one of the data strobes are active; you can determine
 	/// which by inspecting the low bit of the provided address. The RW line indicates a read.
-	static const int SelectByte		= 1 << 4;
+	static const int SelectByte				= 1 << 4;
 
 	/// If set, indicates a read. Otherwise, a write.
-	static const int Read 			= 1 << 5;
+	static const int Read 					= 1 << 5;
 
 	/// Contains the value of line FC0 if it is not implicit via InterruptAcknowledge.
-	static const int IsData 		= 1 << 6;
+	static const int IsData 				= 1 << 6;
 
 	/// Contains the value of line FC1 if it is not implicit via InterruptAcknowledge.
-	static const int IsProgram 		= 1 << 7;
+	static const int IsProgram 				= 1 << 7;
 
 	/// The interrupt acknowledge cycle is that during which the 68000 seeks to obtain the vector for
 	/// an interrupt it plans to observe. Noted on a real 68000 by all FCs being set to 1.
-	static const int InterruptAcknowledge = 1 << 8;
+	static const int InterruptAcknowledge	= 1 << 8;
 
+	/// Represents the state of the 68000's valid memory address line — indicating whether this microcycle
+	/// is synchronised with the E clock to satisfy a valid peripheral address request.
+	static const int IsPeripheral 			= 1 << 9;
+
+	/// Contains a valid combination of the various static const int flags, describing the operation
+	/// performed by this Microcycle.
 	int operation = 0;
+
+	/// Describes the duration of this Microcycle.
 	HalfCycles length = HalfCycles(4);
 
 	/*!
@@ -84,11 +92,29 @@ struct Microcycle {
 		if reading indirectly via an address register, this will indicate the full
 		value of the address register.
 
-		The receiver should ignore bits 0 and 24+.
+		The receiver should ignore bits 0 and 24+. Use word_address() automatically
+		to obtain the only the 68000's real address lines, giving a 23-bit address
+		at word resolution.
 	*/
 	const uint32_t *address = nullptr;
+
+	/*!
+		If this is a write cycle, dereference value to get the value loaded onto
+		the data bus.
+
+		If this is a read cycle, write the value on the data bus to it.
+
+		Otherwise, this value is undefined.
+
+		Byte values are provided via @c value.halves.low. @c value.halves.high is undefined.
+		This is true regardless of whether the upper or lower byte of a word is being
+		accessed.
+
+		Word values occupy the entirety of @c value.full.
+	*/
 	RegisterPair16 *value = nullptr;
 
+	/// @returns @c true if two Microcycles are equal; @c false otherwise.
 	bool operator ==(const Microcycle &rhs) const {
 		if(value != rhs.value) return false;
 		if(address != rhs.address) return false;
@@ -101,7 +127,7 @@ struct Microcycle {
 
 	/*! @returns true if any data select line is active; @c false otherwise. */
 	inline bool data_select_active() const {
-		return bool(operation & (SelectWord | SelectByte));
+		return bool(operation & (SelectWord | SelectByte | InterruptAcknowledge));
 	}
 
 	/*!
