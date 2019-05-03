@@ -243,13 +243,13 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.supervisor_stack_pointer = 0x1000;
 	_machine->set_processor_state(state);
 
-	_machine->run_for_instructions(3);
+	_machine->run_for_instructions(4);
 	state = _machine->get_processor_state();
 
 	XCTAssert(state.supervisor_stack_pointer == 0x1000 - 6, @"Exception information should have been pushed to stack.");
 
 	const uint16_t *stack_top = _machine->ram_at(state.supervisor_stack_pointer);
-	XCTAssert(stack_top[1] == 0x0000 && stack_top[2] == 0x0406, @"Return address should point to instruction after DIVU.");
+	XCTAssert(stack_top[1] == 0x0000 && stack_top[2] == 0x1006, @"Return address should point to instruction after DIVU.");
 }
 
 - (void)testMOVE {
@@ -258,11 +258,15 @@ class CPU::MC68000::ProcessorStorageTests {
 		0x3200,				// MOVE D0, D1
 
 		0x3040,				// MOVEA D0, A0
-		0x3278, 0x0400,		// MOVEA.w (0x0400), A1
+		0x3278, 0x1000,		// MOVEA.w (0x1000), A1
 
-		0x387c, 0x0400,		// MOVE #$400, A4
+		0x387c, 0x1000,		// MOVE #$1000, A4
 		0x2414,				// MOVE.l (A4), D2
 	});
+
+	// run_for_instructions technically runs up to the next instruction
+	// fetch; therefore run for '1' to get past the implied RESET.
+	_machine->run_for_instructions(1);
 
 	// Perform MOVE #fb2e, D0
 	_machine->run_for_instructions(1);
@@ -284,10 +288,10 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssert(state.address[1] == 0x0000303c, "A1 was %08x instead of 0x0000303c", state.address[1]);
 
-	// Perform MOVE #$400, A4, MOVE.l (A4), D2
-	_machine->run_for_instructions(1);
+	// Perform MOVE #$400, A4; MOVE.l (A4), D2
+	_machine->run_for_instructions(2);
 	state = _machine->get_processor_state();
-	XCTAssert(state.address[4] == 0x0400, "A4 was %08x instead of 0x00000400", state.address[4]);
+	XCTAssert(state.address[4] == 0x1000, "A4 was %08x instead of 0x00001000", state.address[4]);
 	XCTAssert(state.data[2] == 0x303cfb2e, "D2 was %08x instead of 0x303cfb2e", state.data[2]);
 }
 
