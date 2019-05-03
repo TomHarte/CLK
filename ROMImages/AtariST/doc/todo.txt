@@ -1,0 +1,25 @@
+General
+
+BIOS/XBIOS
+- implement missing XBIOS calls (e.g. Falcon DSP functions)
+- reduce the number of 'extern' in .c files
+- check that RAM disks work
+- misc. TODOs in floppy.c
+- implement full XHDI 1.30
+- let EmuTOS set up correct MMU tree on 68040 (?)
+
+BDOS (GEMDOS)
+- move mem-only routines out of proc.c into umem.c or iumem.c
+
+VDI
+- The linemask for dashed lines is not calculated correct, depending on
+  the internal calculations of increase in x direction, like in original TOS.
+
+AES
+- Implement AES v3.x functions (TOS v3 menu functions and v4 3D look)
+
+DESK
+- Add a dialog for configuring the NVRAM (keyboard, languages, ...)
+- Support for loading DESKTOP.INF (needs remapping of the icon indexes)
+
+CLI

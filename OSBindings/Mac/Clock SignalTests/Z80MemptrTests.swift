@@ -14,7 +14,7 @@ class Z80MemptrTests: XCTestCase {
 	private func test(program : [UInt8], length : Int32, initialValue : UInt16) -> UInt16 {
 		// Create a machine and install the supplied program at address 0, setting the PC to run from there
 		machine.setValue(0x0000, for: .programCounter)
-		machine.setData(Data(bytes: program), atAddress: 0x0000)
+		machine.setData(Data(_: program), atAddress: 0x0000)
 
 		// Set the initial value of memptr, run for the requested number of cycles,
 		// return the new value
@@ -316,7 +316,7 @@ class Z80MemptrTests: XCTestCase {
 		let program: [UInt8] = [
 			0xed, 0xa1
 		]
-		machine.setData(Data(bytes: program), atAddress: 0x0000)
+		machine.setData(Data(_: program), atAddress: 0x0000)
 		machine.setValue(0, for: .memPtr)
 
 		for c in 1 ..< 65536 {
@@ -332,7 +332,7 @@ class Z80MemptrTests: XCTestCase {
 		let program: [UInt8] = [
 			0xed, 0xa9
 		]
-		machine.setData(Data(bytes: program), atAddress: 0x0000)
+		machine.setData(Data(_: program), atAddress: 0x0000)
 		machine.setValue(0, for: .memPtr)
 
 		for c in 1 ..< 65536 {

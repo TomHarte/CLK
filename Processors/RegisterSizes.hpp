@@ -13,15 +13,26 @@
 
 namespace CPU {
 
-union RegisterPair {
-	RegisterPair(uint16_t v) : full(v) {}
+template <typename Full, typename Half> union RegisterPair {
+	RegisterPair(Full v) : full(v) {}
 	RegisterPair() {}
 
-	uint16_t full;
+	Full full;
+#pragma pack(push, 1)
+#if TARGET_RT_BIG_ENDIAN
 	struct {
-		uint8_t low, high;
-	} bytes;
+		Half high, low;
+	} halves;
+#else
+	struct {
+		Half low, high;
+	} halves;
+#endif
+#pragma pack(pop)
 };
+
+typedef RegisterPair<uint16_t, uint8_t> RegisterPair16;
+typedef RegisterPair<uint32_t, RegisterPair16> RegisterPair32;
 
 }
 

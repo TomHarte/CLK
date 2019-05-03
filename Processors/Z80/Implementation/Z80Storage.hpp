@@ -118,10 +118,10 @@ class ProcessorStorage {
 		void install_default_instruction_set();
 
 		uint8_t a_;
-		RegisterPair bc_, de_, hl_;
-		RegisterPair afDash_, bcDash_, deDash_, hlDash_;
-		RegisterPair ix_, iy_, pc_, sp_;
-		RegisterPair ir_, refresh_addr_;
+		RegisterPair16 bc_, de_, hl_;
+		RegisterPair16 afDash_, bcDash_, deDash_, hlDash_;
+		RegisterPair16 ix_, iy_, pc_, sp_;
+		RegisterPair16 ir_, refresh_addr_;
 		bool iff1_ = false, iff2_ = false;
 		int interrupt_mode_ = 0;
 		uint16_t pc_increment_ = 1;
@@ -153,7 +153,7 @@ class ProcessorStorage {
 		bool wait_line_ = false;
 
 		uint8_t operation_;
-		RegisterPair temp16_, memptr_;
+		RegisterPair16 temp16_, memptr_;
 		uint8_t temp8_;
 
 		const MicroOp *scheduled_program_counter_ = nullptr;
@@ -214,7 +214,7 @@ class ProcessorStorage {
 
 		void assemble_fetch_decode_execute(InstructionPage &target, int length);
 		void assemble_ed_page(InstructionPage &target);
-		void assemble_cb_page(InstructionPage &target, RegisterPair &index, bool add_offsets);
-		void assemble_base_page(InstructionPage &target, RegisterPair &index, bool add_offsets, InstructionPage &cb_page);
+		void assemble_cb_page(InstructionPage &target, RegisterPair16 &index, bool add_offsets);
+		void assemble_base_page(InstructionPage &target, RegisterPair16 &index, bool add_offsets, InstructionPage &cb_page);
 
 };

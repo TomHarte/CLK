@@ -1,0 +1,254 @@
+EmuTOS source code consists of several parts, and includes code taken from
+other projects - Many thanks to them and to their authors for releasing the
+code under GPL.
+
+The 'historical' authors - those who wrote the code before the start of the
+EmuTOS project - are mentioned in the individual files they've authored.
+Major 'historical' parts are:
+- BDOS, VDI - both come from the latest known GEMDOS version from
+  Digital Research (later versions seem to have been developed by Atari).
+- AES, desktop - The C source code for GEM comes from the x86 version.
+- Some GEM assembler files come from the AES for the Apple LISA.
+
+All these historical parts were released under the General Public License
+by Caldera, Inc. in mid april 2000 (?)  (For the record, Caldera bought it
+from Novell in 1997 along with DR-DOS; later Caldera disappeared and this
+is the copyright notice that refers to Lineo)
+
+Minor borrowed stuff:
+- the printf and memcpy stuff is inspired by the Minix kernel and library;
+- the processor/FPU detection is taken from the MiNT kernel;
+- "Bug" includes parts of the original gettext source code;
+- some low-level hardware stuff comes from the Linux kernel;
+
+While the main Amiga support was written from scratch by the EmuTOS team,
+some advanced code (FastRAM support for ROM versions) has been borrowed from the
+AROS project. Due to license incompatibilities, that code is shipped in the
+source archive, but not compiled into the official binaries.
+
+The following is a list of 'recent' contributors - individuals involved in the
+EmuTOS project. In this project virtually everybody modifies every file;
+nevertheless here is an attempt at identifying who's guilty of what:
+
+Roger Burrows (RFB) <rfburrows at ymail.com>
+- Current project admin
+- Support for SD/MMC Cards on the FireBee
+- SCSI support
+- Improvements to IDE, CompactFlash, ACSI, and other mass-storage support
+- FAT16 partitions up to 2 GB (inspired by Didier Méquignon's BDOS fork)
+- Full support for Falcon video hardware
+- Real Falcon 030 support (cache, MMU, SCC, HD floppy)
+- Real TT 030 support (video, MFP2)
+- Blitter support for horizontal lines/filled rectangles/raster graphics
+- Desktop and file selector improvements
+- EmuCON2
+- Tools: erd (EmuTOS Resource Decompiler) & draft (deletes items from desktop resource)
+- Various bugfixes and cleanups
+
+Vincent Rivière (VRI) <vincent.riviere at freesbee.fr>
+- Many improvements to the build and configuration process
+- Moved project from CVS to Git, and from SourceForge to GitHub
+- Implemented automatic builds via Travis CI
+- Patches for compiling with GCC 4.x
+- ColdFire CPU and FireBee support
+- Initial IDE driver
+- Big improvements to FastRAM/Alt-RAM handling
+- Amiga support
+- ColdFire Evaluation Boards support
+- Apollo 68080 support
+- Various bug fixes and cleanups
+
+Thomas Huth (THH) <huth at tuxfamily.org>
+- Lots of bugfixes & cleanups all over the place
+- Integration and maintenance of the AES and GEM-Desktop
+- XBIOS DMA sound functions
+
+Petr Stehlik (PES) <pstehlik at sophics.cz>
+- BIOS disk interface, BDOS filesystem
+- Falcon and ARAnyM support
+
+Laurent Vogel (LVL) <lvl at club-internet.fr>
+- Original ST hardware (MFP, ACIA, parport, sound, floppy, ACSI)
+- Makefile tricks and tools
+- NLS support
+
+Martin Doering (MAD) <mdoering at users.sourceforge.net>
+- Original project initiator (but retired many years ago)
+- Memory setup, VT52 console, Line A, mouse
+- Virtually everything not modified later by the others
+
+
+Thanks to all current and previous translators, who have helped us keep
+EmuTOS multi-lingual:
+
+- Czech translation
+    Bohdan Milar <milarb at volny.cz>
+    Petr Stehlik <pstehlik at sophics.cz>
+    Pavel Salač <salac.pavel at gmail.com>
+    Jan Krupka <krupkaj at centrum.cz>
+
+- Finnish translation
+    Eero Tamminen
+
+- French translation
+    Laurent Vogel
+    Vincent Rivière
+
+- German translation
+    Thomas Huth
+
+- Greek translation
+    George Nakos
+    Christos Tziotzis <ctziotzis at gmail.com>
+
+- Italian translation
+    Lodovico Zanier <lvc958 at libero.it>
+
+- Spanish translation
+    Gabriel Huertas
+    David Gálvez <dgalvez75 at gmail.com>
+    Jordi Mestres Ruiz <ataristfan at gmail.com>
+
+- Russian translation
+    Dima Sobolev <avtandil33 at gmail.com>
+
+
+Thanks also to all mailing list contributors for their help, and
+especially:
+
+Stanislav Opichal (SOP) <opichals at seznam.cz>
+- FreeMiNT kernel bootstrap via BOOTSTRAP NatFeat
+
+Frank Naumann
+- FreeMiNT
+
+Ctirad Fertr <phanatic at volny.cz>,
+Milan Jurik <M.Jurik at sh.cvut.cz>
+- The ARanyM team
+
+Johan Klockars <rand at cd.chalmers.se>
+- fVDI
+
+Henk Robbers <h.robbers at chello.nl>
+- XaAES, AHCC
+
+Jacques-Etienne Rahon "Kevin Flynn" <kevin.flynn at wanadoo.fr>
+- Extensive demo testing on STeeM
+
+Patrice Mandin and Markus Oberhumer
+- Hints and patches for compiling EmuTOS with GCC 3.x
+
+Eero Tamminen
+- Many bug reports, extensive testing, testcases supply
+- Many documentation updates
+- Finnish keyboard mapping
+- Hatari debug symbols
+- Static source analysis and cleanup
+- Line-A implementation
+
+Gerhard Stoll
+- Improved our nvmaccess() function
+- TOS hypertext
+
+Roger Crettol
+- Found and fixed a bug in GEMDOS Pterm() function
+- Support for swiss german keyboard
+- Some EmuCON improvements
+
+David Savinkoff
+- Bug fixes for the BIOS parallel port code
+- Improved Isqrt() function
+- Other various bugfixes
+
+Olivier Landemarre <olivier.landemarre at free.fr>
+- Renamed internal VDI functions to avoid name conflicts
+
+Jean-François Del Nero <jeanfrancoisdelnero at free.fr>
+- Improved memory detection on cold boot
+- Tested the EmuTOS ROM on real STe hardware
+- Various bugfixes
+- Invaluable HxC Floppy Emulator for tests on real hardware
+
+David Gálvez <dgalvez75 at gmail.com>
+- XHNewCookie() implementation
+
+Fredi Aschwanden <mcs at kingx.com>
+and all the ACP team
+- Tests on the FireBee hardware
+
+James Boulton <james.boulton at eiconic.com>
+- floprw() fix for reading multiple sectors
+
+Stephen Leary <sleary at vavi.co.uk>
+- Fixed support for IDE slave device
+
+Miro Kropáček <miro.kropacek at gmail.com>
+- Experimental 68040 MMU support
+
+WongCK on Atari-Forum
+- Tests on real Falcon 030
+
+Michaël Gibs on English Amiga Board
+- Tests on Amiga 1200 with Blizzard 1260 accelerator
+
+Amiman99 on English Amiga Board
+- Tests on Amiga 1000
+
+Radoslaw Kujawa
+- Compilation fix on 64-bit build systems
+
+Hampa Hug
+- Fixed ACSI bugs
+
+Markus Fröschle
+- Tests on the FireBee and BaS_gcc support
+- Inspired the support for the blitter
+- Fix various AES & VDI bugs
+
+Christian Zietz <czietz at gmx.net>
+- ROM tests on real ST/STe hardware
+- Fix floppy/ACSI bug
+- Fix memory detection to support STs as well as STes
+- Support for extended MBR partitions
+- Add IDE 'twisted cable' support
+- IDE performance improvements
+- Fix cold boot problems caused by some ST MMUs
+- Fix screen corruption after a reset on some Mega(STe) systems
+- ET4000/Nova support
+- Miscellaneous bug fixes
+
+Jo Even Skarstein <joska at online.no>
+- Support for Norwegian & Swedish keyboards
+- Support for MonSTer add-on board
+
+Thorsten Otto <admin at tho-otto.de>
+- Make EmuTOS more compatible with Atari TOS in several areas
+- Add check_read_byte() workaround for ARAnyM-JIT
+- Fixes to 68040 PMMU setup
+- Inspired the support for window/desktop background configuration
+- Found many bugs in desktop shortcut handling
+- Help with resource manipulation programs
+- Miscellaneous bug fixes
+- Lots of source code cleanup
+
+Apollo Team: Gunnar von Boehn, Philippe Flype, Simo Koivukoski,
+pisklak, guibrush, TuKo, and all other members...
+- Apollo 68080 and Amiga support
+
+Steven Seagal
+- Steem SSE support
+
+Stefan Niestegge
+- ROM tests on real hardware: STe, Falcon and Amiga 600
+
+Ingo Uhlemann
+- ROM tests on real TT hardware
+
+Stefan Haubenthal
+- EmuTOS packaging on Aminet: http://aminet.net/package/misc/emu/emutos
+
+Christian Quante
+- Various desktop bug fixes & improvements
+
+Keli Hlodversson
+- Replaced form_alert() icons with more TOS-like ones

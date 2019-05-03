@@ -1,0 +1,361 @@
+CHANGES BETWEEN RELEASE 0.9.9.1 AND RELEASE 0.9.10
+
+Major changes:
+- AES: Avoid unnecessary redraws by AES window manager
+- AES: Fix shutdown bug in shel_write()
+- BDOS: Improve BDOS write file performance
+- BDOS: Improve BDOS sector caching algorithm
+- BDOS: Avoid unnecessary directory sector writes in BDOS
+- BDOS: Improve Fsnext() performance
+- BIOS: Add SCSI support for TT and Falcon
+- BIOS: Implement support for ET4000 graphics card
+- BIOS: Implement automatic verify for floppy writes
+- BIOS: Improve IDE data transfer speed
+- BIOS: Improve TT RAM size detection for Storm cards
+- BIOS: Fix reboot loop if Ctrl+Alt+Del held down
+- EmuCON: Allow resolution change in EmuCON
+- EmuDesk: Clean up if EmuDesk terminates abnormally
+- EmuDesk: Fix bug in EmuDesk copy function
+- EmuDesk: Fix EmuDesk out-of-sequence redraws
+- EmuDesk: Make EmuDesk menu for icon/text selection like Atari TOS
+- VDI: Improve the appearance of VDI curved lines
+
+Other changes:
+- AES: Do not set the scrap directory in appl_init()
+- AES: Do not validate the path supplied to scrp_write()
+- AES: Fix appl_tplay()
+- AES: Fix appl_trecord()
+- AES: Fix bug in setting application directory
+- AES: Fix file selector bug
+- AES: Handle SHADOWED correctly for form_center()
+- AES: Make form_center() behave like Atari TOS
+- AES: Preserve DTA address across shel_find()
+- BDOS: Increase max length of fully-qualified filename
+- BIOS: Fix bug in VT52 emulation
+- BIOS: Fix bug in rsconf handling for SCC 
+- BIOS: Fix bugs in keyboard mouse emulation
+- BIOS: Fix end-of-partition test in Rwabs()
+- BIOS: Fix screen corruption on some (Mega)STe systems
+- BIOS: Improve FAT12/FAT16/FAT32 detection
+- BIOS: Increase default keyboard auto-repeat speed
+- BIOS: Remove IDE delay on Amiga
+- BIOS: Remove unneeded delay when accessing the FDC
+- EmuDesk: Allow 'Show item' to handle multiple items
+- EmuDesk: Fix bug in EmuDesk change resolution handling
+- EmuDesk: Fix bug in EmuDesk copy process when disk is full
+- EmuDesk: Fix display bug in EmuDesk initialisation
+- EmuDesk: Fix EmuDesk mouse cursor initialisation
+- EmuDesk: Fix label bug when formatting floppy
+- EmuDesk: Fix 'name conflict' bug in copy/move folders
+- LineA: Fix bug that affected Aegis Animator
+- LineA: Implement early abort for lineA seedfill()
+- VDI: Fix bug in v_opnvwk()
+- VDI: Fix contourfill() for 8 planes
+- VDI: Fix design bug in VDI workstation creation
+- XBIOS: Fix crash if Vsetscreen() sets TrueColor mode
+- XBIOS: Improve performance of Flopver()
+- The usual source code cleanup and minor bug fixes
+
+
+CHANGES BETWEEN RELEASE 0.9.9 AND RELEASE 0.9.9.1
+
+There was only one change, to fix a major bug in EmuDesk: if a desktop
+shortcut for a file/folder was dragged to the trash or a disk icon or
+an open window, then all the folders at the same level as the selected
+file/folder were included in the operation, causing unwanted deletes/
+moves/copies.
+
+
+CHANGES BETWEEN RELEASE 0.9.8 AND RELEASE 0.9.9
+
+Major changes:
+- AES: Allow mouse cursors to be loaded at boot time
+- EmuDesk: Add 'Desktop configuration' dialog
+- EmuDesk: Allow configuration of window/desktop backgrounds
+- EmuDesk: Allow desktop window file mask to be specified
+- EmuDesk: Omit unused desktop menu items
+- EmuDesk: Open new window with Alt+doubleclick on folder
+- General: Automatically build snapshot releases when a commit is pushed
+- VDI: Add blitter support for horizontal line drawing
+- VDI: Add blitter support for filled rectangle drawing
+- VDI: Add blitter support for raster graphics
+
+Other changes:
+- AES: Add growbox/shrinkbox effects to form_dial()
+- AES: Allow AES USERDEFs to clobber a2/d2 (improve compatibility)
+- AES: Call dsptch() on every AES call (improve responsiveness)
+- AES: Ensure all DAs see AC_CLOSE before app exits
+- AES: Fix problem with mouse clicks being ignored
+- AES: Improve mouse cursor images
+- AES: Only wait for interrupts when nobody is ready to run
+- AES: Replace icons used in alerts
+- BIOS: Do not use stack until memory is initialized
+- BIOS: Ensure ST MMU register contains valid value
+- BIOS: Ensure GetBPB() returns NULL for non-FAT partitions
+- BIOS: Fix Mega STe boot problem
+- BIOS: Fix XHDrvMap() to return correct value
+- BIOS: Fix bug in memset/bzero clearing only 16MB at most
+- BIOS: Implement XHDOSLimits (read only)
+- BIOS: Amiga/Vampire V2: do not enable Fast IDE by default
+- EmuDesk: Add blitter menu item to desktop
+- EmuDesk: Add support for desktop drag-and-drop in window
+- EmuDesk: Allow any character as date separator
+- EmuDesk: Allow copy/move to desktop shortcut for a folder
+- EmuDesk: Always issue alert if no windows are available
+- EmuDesk: Do not open desktop directory if error occurs
+- EmuDesk: Dragging to desktop shortcut for program now launches it
+- EmuDesk: Fix 'Install application' bug w/ desktop shortcut
+- EmuDesk: Fix alignment of desktop icons on a grid
+- EmuDesk: Fix bug: desktop didn't open window for empty drives
+- EmuDesk: Fix default dir for programs launched from desktop
+- EmuDesk: Fix tail passed by desktop to shel_write()
+- EmuDesk: Highlight file shortcut when dropping file on it
+- EmuDesk: Improve launching of programs via desktop shortcut
+- EmuDesk: Include wildcard spec in desktop window name
+- EmuDesk: Make the desktop shel_write() the full pathname
+- VDI: Add support for lineA TextBlt write modes 4-19
+- VDI: Fix VDI crash when running MiNT + memory protect
+- VDI: Fix crash when font scaling in lineA text_blt()
+- VDI: Handle bad rotation value in gdp_justified()
+- VDI: Translate text_blt() high level code to C
+- XBIOS: Fix EsetColor() when color < 0
+- The usual source code cleanup and minor bug fixes
+
+
+CHANGES BETWEEN RELEASE 0.9.7 AND RELEASE 0.9.8
+
+Major changes:
+- Amiga: New boot floppy target
+- Amiga: Rewrite floppy routines
+- Amiga: Support multiple video modes
+- BIOS: Autodetect IDE interface with twisted cable at run-time
+- EmuDesk: Add support for desktop shortcuts
+- EmuDesk: Add support for formatting floppies
+- EmuDesk: Add support for user-assignable desktop icons
+
+Other changes:
+- AES: Adjust file selector scroll bar width according to resolution
+- AES: Allocate Alt-RAM instead of ST-RAM where possible
+- AES: Do not use shel_find() to find autorun program
+- AES: Fix bug in rsrc_load() that affected PixArt4
+- AES: Fix error message if autorun program is not found
+- AES: Fix possible data corruption when launching accessories
+- AES: Increase min height of slider in file selector
+- Amiga: Add support for IKBD keyboard/mouse/joysticks on RS-232
+- Amiga: Fix interlaced display with fast CPU
+- Amiga: Add target to build ROM optimized for Vampire V2
+- Amiga: Add XBIOS joystick support
+- Amiga: Improve IDE performance on Vampire V2
+- Amiga: Improve IDE support
+- Amiga: Add proper floppy media change support
+- BDOS: Allow environment to be allocated in Alt-RAM
+- BDOS: Fix bug in updating date when month rolls over
+- BDOS: Fix Fsfirst(): wrong name format in DTA for label
+- BDOS: Speed up Dfree() for 16-bit FATs
+- BIOS: Add movep emulation for 68060
+- BIOS: Enable data cache on 68040 & 68060
+- BIOS: Enable instruction & branch caches on 68060
+- BIOS: Fix ACSI bug: non-word-aligned transfers failed
+- BIOS: Fix bug in IDE detection of slower devices
+- BIOS: Fix crash with unaligned IDE R/W buffer on 68000
+- BIOS: Fix floppy bug: non-word-aligned I/Os failed
+- BIOS: Improve IDE performance
+- BIOS: Improve mediachange detection
+- ColdFire: Add RAM TOS target for ColdFire Evaluation Boards
+- EmuDesk: Add documentation for new features
+- EmuDesk: Add read-only indicator for show-as-text display
+- EmuDesk: Allocate Alt-RAM instead of ST-RAM where possible
+- EmuDesk: Fix various bugs in desktop copy/move
+- EmuDesk: Handle desktop move/copy of folder to itself
+- EmuDesk: Holding Control at startup now bypasses all initialisation files
+- EmuDesk: Lookup desktop shortcuts directly in menu
+- EmuDesk: Make alt-X open the root of X in a window
+- EmuDesk: Make desktop keyboard shortcuts use Ctrl modifier
+- EmuDesk: Make desktop shortcut keys work for all keyboards
+- EmuDesk: Split preferences dialog to allow longer text
+- General: Allow EmuTOS static RAM to be allocated in Alt-RAM
+- The usual source code cleanup and minor bug fixes
+
+
+CHANGES BETWEEN RELEASE 0.9.6 AND RELEASE 0.9.7
+
+Major changes:
+- BIOS: add support for extended MBR partitions
+- BIOS: add support for MonSTer board
+- BIOS: configure & size ST-RAM on TT
+- BIOS: add support for Eiffel on CAN bus on ColdFire EVB
+- BIOS: add _5MS cookie to support FreeMiNT on non-Atari hardware
+- BIOS: add support for Apollo Core 68080
+- BDOS: set archive flag when file is created/modified
+- EmuDesk: allow disk delete via desktop File menu item
+- EmuDesk: implement desktop 'Install devices'
+- EmuDesk: implement desktop 'Install icon'
+- EmuDesk: implement desktop 'Remove desktop icon'
+- EmuDesk: rewrite 'Install application'
+- EmuCON2: provide a standalone version of EmuCON2
+
+Other changes:
+- AES: allow autorun program to start in character mode
+- AES: fix bug when File Selector accesses empty drive
+- AES: fix loop in file selector if filemask is too long
+- AES: fix bug: the file selector modified the DTA pointer
+- AES: rewrite wildcmp() to fix bug
+- BDOS: fix GEMDOS standard handle numbers
+- BDOS: rewrite Fsfirst/Fsnext to fix design problem
+- BDOS: use single pool for all internal memory requests
+- BDOS: fix I/O status for redirected character devices
+- BDOS: fix date stamp in . and .. directory entries
+- BDOS: fix return code for Fsfirst()
+- BDOS: make EmuTOS respect user-assigned FRB
+- BDOS: make ctl-C interrupt Cconin
+- BDOS: return EOF indicator on redirected char devices
+- BDOS: validate attribute bits passed to Fattrib()
+- BDOS: validate handles for Fseek()/Fread()/Fwrite()/Fdatime()
+- BIOS: add Norwegian & Swedish keyboard support
+- BIOS: add support for byte-swapped IDE cable (disabled by default)
+- BIOS: allow configuration of max logical sector size
+- BIOS: fix VDI->hardware colour calculation
+- BIOS: fix os_conf value and usage in multilanguage ROMs
+- BIOS: improve performance of Rwabs() on floppy disks
+- BIOS: make Ikbdws()/Midiws() handle 'cnt' like Atari TOS
+- BIOS: set density for read/write/format of HD floppies
+- BIOS: fix boot on Amiga with 68000 CPU
+- BIOS: fix RAM size with BaS_gcc on ColdFire EVB
+- BIOS: fix _FPU cookie for 68060 without FPU
+- BIOS: fix values returned by VgetRGB()/vq_color()
+- EmuDesk: make desktop shift-click behave the same as TOS
+- EmuDesk: prompt if folder name conflict during move/copy
+- EmuDesk: make many desktop and AES dialogs more concise
+- EmuDesk: fix desktop icon drag and drop positioning
+- EmuDesk: allow 'Too many windows' alert to be issued
+- EmuDesk: always issue extra alert if deleting entire disk
+- EmuDesk: always keep part of the mover gadget onscreen
+- EmuDesk: avoid unnecessary window refreshes
+- EmuDesk: handle name conflict during copy like Atari TOS
+- EmuDesk: support additional keys during "Show file"
+- EmuDesk: add copyright year in EmuDesk about dialog
+- General: display total RAM on welcome screen
+- General: fix _drvbits tests for drives > P
+- VDI: fix rectangle drawing errors
+- VDI: fix bug: v_bar() draws perimeter wrongly
+- VDI: fix vq_curaddress(), vs_curaddress()
+- Lots of source code cleanup and minor bug fixes
+
+
+CHANGES BETWEEN RELEASE 0.9.5 AND RELEASE 0.9.6
+
+Major changes:
+- AES: fix pattern problem in window title line
+- AES: prevent crash when NVDI is installed
+- BDOS: fix bug: memory allocated by a TSR could be freed
+- BDOS: implement etv_term()
+- BIOS: clean up pending IRQ from flopunlk(), fixes some ACSI problems
+- BIOS: clear data cache after DMA read, fixes ACSI problem on TT
+- BIOS: do not clear the free ST-RAM on startup
+- BIOS: enable MIDI input
+- BIOS: initialise DMA sound matrix on Falcon
+- BIOS: fix Flopxxx XBIOS calls to work with FastRAM
+- BIOS: fix floppy motor-on problem during initialisation
+- BIOS: fix memory bank detection to work on ST and STe
+- BIOS: prevent reset vector being called on cold reset
+- EmuCON2: add 'mode' command
+- EmuCON2: fix EmuCON crash if system call is intercepted
+- EmuDesk: allow TT desktop to select TT medium res
+- EmuDesk: fix bug: copy/move could target the wrong folder
+- EmuDesk: fix display of numeric values in desktop dialogs
+- EmuDesk: fix rubber-banding for text-mode desktop windows
+- EmuDesk: hide Shutdown if the machine can't shutdown
+- EmuDesk: improve desktop move performance by using rename if possible
+- EmuDesk: change menu bar to be more like Atari TOS
+- General: fix EmuTOS to run on real TT hardware
+- General: merge boot.prg + ramtos.img into emutos.prg
+- VDI: fully implement VDI support for TT video
+
+Other changes:
+- AES: clean up if program fails to issue appl_exit()
+- AES: fix loop when deleting non-existent object
+- AES: fix handling of Delete key by objc_edit()
+- AES: fix value returned by evnt_button()/evnt_multi()
+- AES: reset the default drive on resolution change
+- BDOS: fix volume label handling to conform to TOS standards
+- BIOS: add new cookie _MCF to the cookiejar
+- BIOS: add support for RTC on ICD AdSCSI Plus board
+- BIOS: add support for TT MFP (MFP #2)
+- BIOS: add support to run "reset-resident" code
+- BIOS: allow EmuTOS floppy to boot other floppies
+- BIOS: clear system variables if EmuTOS loads into RAM
+- BIOS: fix console font height with Hatari extended video modes
+- BIOS: fix ide_identify() on Amiga
+- BIOS: fix NVRAM year on TT
+- BIOS: fix return codes for dmasound functions on ST
+- BIOS: fix return codes for TT shifter functions
+- BIOS: fix some NVRAM reset problems
+- BIOS: fix sound volume on TT
+- BIOS: fix _screenpt processing for TT, Falcon
+- BIOS: flush the data cache before a warm or cold reset
+- BIOS: initialize the IKBD clock on first boot only
+- BIOS: rewrite MegaST(e) real time clock handler
+- EmuCON2: fix EmuCON welcome message for ST-Low
+- EmuDesk: add 'No sort' to desktop sort options
+- EmuDesk: add desktop shortcuts for scroll-by-page
+- EmuDesk: ensure desktop menu bar fits within screen
+- EmuDesk: fix display of volume label in disk info dialog
+- EmuDesk: improve EMUDESK.INF error checking
+- EmuDesk: show the emulated machine name on Hatari even with --natfeats yes
+- General: always use STOP instruction in 'wait for interrupt' loops
+- General: create valid filesystem with hidden EmuTOS image on auto-booting floppy
+- General: do not wait for a key at EMUTOS.PRG startup
+- General: pretend to be TOS 1.04 in 192k ROMs
+- General: use country id as part of emutos.prg/emutos.st name
+- VDI: fix v_curtext()
+- VDI: implement vq_curaddress()
+- VDI: improve performance of cursor display routine
+- VDI: rewrite vr_trnfm() to fix bugs and save space
+- Lots of source code cleanup and minor bug fixes
+
+
+CHANGES BETWEEN RELEASE 0.9.4 AND RELEASE 0.9.5
+
+Major changes:
+- AES/BIOS: implement critical error handler
+- BDOS: fix file not found issues with Steem hard disk emulation
+- BDOS: implement Pexec mode 7
+- BIOS: add alt-arrow support (mouse actions via keyboard)
+- BIOS: add dual keyboard support (for Greek/Russian keyboards)
+- BIOS: allow user to specify boot partition at startup
+- BIOS: allow EmuTOS to recover from program exceptions in user programs
+- BIOS: auto-detect multiple IDE interfaces
+- BIOS: fix detection of C: drive with Steem
+- BIOS: fix early stack initialization on Amiga
+- EmuDesk: improve text object alignment for translated strings
+- VDI: add line-A flood fill; all line-A opcodes are now supported
+
+Other changes:
+- AES: increase button spacing in alerts
+- AES: increase AES stack size for ColdFire machines
+- BDOS: evaluate TPAsize flags in Pexec processing
+- BDOS: fix bug in cross-directory rename
+- BIOS: use interrupts for serial console instead of polling
+- BIOS: fix FPU detection: 68881/68882 are now differentiated correctly
+- BIOS: fix delay_loop() timing for M548X machines
+- BIOS: fix key repeat bug when entering values via alt-keypad
+- BIOS: implement XHInqDriver() XHDI function
+- BIOS: fix some XHDI return codes (EDRIVE and EWRPRO)
+- BIOS: add explicit delay for parallel port strobe (fixes printing on fast systems)
+- BIOS: fix nationality code in ROM header
+- EmuCON2: translate text (note: some country codes use English by choice)
+- EmuDesk: allow folders being displayed in an open window to be moved/deleted
+- EmuDesk: allow desktop "rubber-banding" in all directions
+- EmuDesk: display year as 4 digits where possible
+- EmuDesk: use _IDT cookie for EmuDesk date/time formatting
+- EmuDesk: fix bug in "sort by date" for directory display
+- EmuDesk: allocate screen objects dynamically
+- General: convert source code repository to Git
+- General: implement error checking for translated alerts
+- General: replace "make release-version" with "make version"
+- VDI: ignore lineA variable 'multifill' for linea_rect() and linea_polygon()
+- VDI: speed up drawing of horizontal lines by v_pline()
+- VDI: fix lineA rectangle fill bugs
+- VDI: fix gap in circle drawn by v_arc()
+- VDI: fix VDI wideline display in 320x480 resolution
+- Lots of source code cleanup and minor bug fixes

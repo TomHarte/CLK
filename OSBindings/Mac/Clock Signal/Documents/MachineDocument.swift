@@ -49,7 +49,7 @@ class MachineDocument:
 	fileprivate var bestEffortUpdater: CSBestEffortUpdater?
 
 	override var windowNibName: NSNib.Name? {
-		return NSNib.Name(rawValue: "MachineDocument")
+		return "MachineDocument"
 	}
 
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
@@ -64,7 +64,7 @@ class MachineDocument:
 	func windowDidUpdate(_ notification: Notification) {
 		if self.shouldShowNewMachinePanel {
 			self.shouldShowNewMachinePanel = false
-			Bundle.main.loadNibNamed(NSNib.Name(rawValue: "MachinePicker"), owner: self, topLevelObjects: nil)
+			Bundle.main.loadNibNamed("MachinePicker", owner: self, topLevelObjects: nil)
 			self.machinePicker?.establishStoredOptions()
 			self.windowControllers[0].window?.beginSheet(self.machinePickerPanel!, completionHandler: nil)
 		}
@@ -80,7 +80,7 @@ class MachineDocument:
 
 			// attach an options panel if one is available
 			if let optionsPanelNibName = self.optionsPanelNibName {
-				Bundle.main.loadNibNamed(NSNib.Name(rawValue: optionsPanelNibName), owner: self, topLevelObjects: nil)
+				Bundle.main.loadNibNamed(optionsPanelNibName, owner: self, topLevelObjects: nil)
 				self.optionsPanel.machine = machine
 				self.optionsPanel?.establishStoredOptions()
 				showOptions(self)
@@ -372,7 +372,7 @@ class MachineDocument:
 	func setupActivityDisplay() {
 		var leds = machine.leds
 		if leds.count > 0 {
-			Bundle.main.loadNibNamed(NSNib.Name(rawValue: "Activity"), owner: self, topLevelObjects: nil)
+			Bundle.main.loadNibNamed("Activity", owner: self, topLevelObjects: nil)
 			showActivity(nil)
 
 			// Inspect the activity panel for indicators.

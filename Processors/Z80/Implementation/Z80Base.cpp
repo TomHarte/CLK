@@ -23,38 +23,38 @@ uint16_t ProcessorBase::get_value_of_register(Register r) {
 		case Register::A:						return a_;
 		case Register::Flags:					return get_flags();
 		case Register::AF:						return static_cast<uint16_t>((a_ << 8) | get_flags());
-		case Register::B:						return bc_.bytes.high;
-		case Register::C:						return bc_.bytes.low;
+		case Register::B:						return bc_.halves.high;
+		case Register::C:						return bc_.halves.low;
 		case Register::BC:						return bc_.full;
-		case Register::D:						return de_.bytes.high;
-		case Register::E:						return de_.bytes.low;
+		case Register::D:						return de_.halves.high;
+		case Register::E:						return de_.halves.low;
 		case Register::DE:						return de_.full;
-		case Register::H:						return hl_.bytes.high;
-		case Register::L:						return hl_.bytes.low;
+		case Register::H:						return hl_.halves.high;
+		case Register::L:						return hl_.halves.low;
 		case Register::HL:						return hl_.full;
 
-		case Register::ADash:					return afDash_.bytes.high;
-		case Register::FlagsDash:				return afDash_.bytes.low;
+		case Register::ADash:					return afDash_.halves.high;
+		case Register::FlagsDash:				return afDash_.halves.low;
 		case Register::AFDash:					return afDash_.full;
-		case Register::BDash:					return bcDash_.bytes.high;
-		case Register::CDash:					return bcDash_.bytes.low;
+		case Register::BDash:					return bcDash_.halves.high;
+		case Register::CDash:					return bcDash_.halves.low;
 		case Register::BCDash:					return bcDash_.full;
-		case Register::DDash:					return deDash_.bytes.high;
-		case Register::EDash:					return deDash_.bytes.low;
+		case Register::DDash:					return deDash_.halves.high;
+		case Register::EDash:					return deDash_.halves.low;
 		case Register::DEDash:					return deDash_.full;
-		case Register::HDash:					return hlDash_.bytes.high;
-		case Register::LDash:					return hlDash_.bytes.low;
+		case Register::HDash:					return hlDash_.halves.high;
+		case Register::LDash:					return hlDash_.halves.low;
 		case Register::HLDash:					return hlDash_.full;
 
-		case Register::IXh:						return ix_.bytes.high;
-		case Register::IXl:						return ix_.bytes.low;
+		case Register::IXh:						return ix_.halves.high;
+		case Register::IXl:						return ix_.halves.low;
 		case Register::IX:						return ix_.full;
-		case Register::IYh:						return iy_.bytes.high;
-		case Register::IYl:						return iy_.bytes.low;
+		case Register::IYh:						return iy_.halves.high;
+		case Register::IYl:						return iy_.halves.low;
 		case Register::IY:						return iy_.full;
 
-		case Register::R:						return ir_.bytes.low;
-		case Register::I:						return ir_.bytes.high;
+		case Register::R:						return ir_.halves.low;
+		case Register::I:						return ir_.halves.high;
 		case Register::Refresh:					return ir_.full;
 
 		case Register::IFF1:					return iff1_ ? 1 : 0;
@@ -76,38 +76,38 @@ void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 		case Register::AF:				a_ = static_cast<uint8_t>(value >> 8);		// deliberate fallthrough...
 		case Register::Flags:			set_flags(static_cast<uint8_t>(value));		break;
 
-		case Register::B:				bc_.bytes.high = static_cast<uint8_t>(value);	break;
-		case Register::C:				bc_.bytes.low = static_cast<uint8_t>(value);	break;
+		case Register::B:				bc_.halves.high = static_cast<uint8_t>(value);	break;
+		case Register::C:				bc_.halves.low = static_cast<uint8_t>(value);	break;
 		case Register::BC:				bc_.full = value;								break;
-		case Register::D:				de_.bytes.high = static_cast<uint8_t>(value);	break;
-		case Register::E:				de_.bytes.low = static_cast<uint8_t>(value);	break;
+		case Register::D:				de_.halves.high = static_cast<uint8_t>(value);	break;
+		case Register::E:				de_.halves.low = static_cast<uint8_t>(value);	break;
 		case Register::DE:				de_.full = value;								break;
-		case Register::H:				hl_.bytes.high = static_cast<uint8_t>(value);	break;
-		case Register::L:				hl_.bytes.low = static_cast<uint8_t>(value);	break;
+		case Register::H:				hl_.halves.high = static_cast<uint8_t>(value);	break;
+		case Register::L:				hl_.halves.low = static_cast<uint8_t>(value);	break;
 		case Register::HL:				hl_.full = value;								break;
 
-		case Register::ADash:			afDash_.bytes.high = static_cast<uint8_t>(value);	break;
-		case Register::FlagsDash:		afDash_.bytes.low = static_cast<uint8_t>(value);	break;
+		case Register::ADash:			afDash_.halves.high = static_cast<uint8_t>(value);	break;
+		case Register::FlagsDash:		afDash_.halves.low = static_cast<uint8_t>(value);	break;
 		case Register::AFDash:			afDash_.full = value;								break;
-		case Register::BDash:			bcDash_.bytes.high = static_cast<uint8_t>(value);	break;
-		case Register::CDash:			bcDash_.bytes.low = static_cast<uint8_t>(value);	break;
+		case Register::BDash:			bcDash_.halves.high = static_cast<uint8_t>(value);	break;
+		case Register::CDash:			bcDash_.halves.low = static_cast<uint8_t>(value);	break;
 		case Register::BCDash:			bcDash_.full = value;								break;
-		case Register::DDash:			deDash_.bytes.high = static_cast<uint8_t>(value);	break;
-		case Register::EDash:			deDash_.bytes.low = static_cast<uint8_t>(value);	break;
+		case Register::DDash:			deDash_.halves.high = static_cast<uint8_t>(value);	break;
+		case Register::EDash:			deDash_.halves.low = static_cast<uint8_t>(value);	break;
 		case Register::DEDash:			deDash_.full = value;								break;
-		case Register::HDash:			hlDash_.bytes.high = static_cast<uint8_t>(value);	break;
-		case Register::LDash:			hlDash_.bytes.low = static_cast<uint8_t>(value);	break;
+		case Register::HDash:			hlDash_.halves.high = static_cast<uint8_t>(value);	break;
+		case Register::LDash:			hlDash_.halves.low = static_cast<uint8_t>(value);	break;
 		case Register::HLDash:			hlDash_.full = value;								break;
 
-		case Register::IXh:				ix_.bytes.high = static_cast<uint8_t>(value);		break;
-		case Register::IXl:				ix_.bytes.low = static_cast<uint8_t>(value);		break;
+		case Register::IXh:				ix_.halves.high = static_cast<uint8_t>(value);		break;
+		case Register::IXl:				ix_.halves.low = static_cast<uint8_t>(value);		break;
 		case Register::IX:				ix_.full = value;									break;
-		case Register::IYh:				iy_.bytes.high = static_cast<uint8_t>(value);		break;
-		case Register::IYl:				iy_.bytes.low = static_cast<uint8_t>(value);		break;
+		case Register::IYh:				iy_.halves.high = static_cast<uint8_t>(value);		break;
+		case Register::IYl:				iy_.halves.low = static_cast<uint8_t>(value);		break;
 		case Register::IY:				iy_.full = value;									break;
 
-		case Register::R:				ir_.bytes.low = static_cast<uint8_t>(value);		break;
-		case Register::I:				ir_.bytes.high = static_cast<uint8_t>(value);		break;
+		case Register::R:				ir_.halves.low = static_cast<uint8_t>(value);		break;
+		case Register::I:				ir_.halves.high = static_cast<uint8_t>(value);		break;
 		case Register::Refresh:			ir_.full = value;									break;
 
 		case Register::IFF1:			iff1_ = !!value;				break;

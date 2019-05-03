@@ -1,0 +1,583 @@
+This file documents the status of the individual parts of EmuTOS.
+
+Here is a quick list of supported emulators/hardware:
+This table should be updated regularly. When indicating failure,
+if possible add a line telling in which version it did run.
+Unless otherwise specified in 'details', systems were tested using
+a ROM version of EmuTOS.
+
+  system              |  ok?  | who |   date      |  details
+  --------------------+-------+-----+-------------+----------------
+  Emulators           |       |     |             |
+  ARAnyM 1.0.2        |  yes  | VRI | 17 Dec 2018 |
+  Hatari v2.1.0       |  yes  | VRI | 16 Dec 2018 |
+  Pacifist v0.48      |  yes  | LVL | winter 2001 |
+  SainT v2.40         |  yes  | (1) | 10 Dec 2017 | 192k ROM only
+  STeem SSE 3.9.4     |  yes  | VRI | 16 Dec 2018 |
+  STonC v0.8.1        |  yes  | LVL |  9 Feb 2003 |
+  STonX 0.6.7.6       |  yes  | THH | 14 Nov 2008 |
+  TOSBox 1.10a        |   no  |  ?  |  < Sep 2002 |
+  WinSTon V0.1r2      |   no  |  ?  |  < Sep 2002 |
+  WinUAE 4.1.0        |  yes  | VRI | 19 Dec 2018 |
+  --------------------+-------+-----+-------------+----------------
+  Atari & compatibles |       |     |             |
+  STfm                |  yes  | (1) | 23 Nov 2017 |
+  Mega ST             |  yes  | (8) |  7 Dec 2018 | tested with PRG
+  STe                 |  yes  | (1) | 23 Nov 2017 |
+  Mega STe            |  yes  | (2) | 26 Jun 2004 | only RAMTOS tested
+  TT030               |  yes  | RFB | 30 Nov 2018 | tested with PRG
+  Falcon030           |  yes  | (7) | 31 Dec 2016 |
+  Falcon030           |  yes  | RFB | 29 Nov 2018 | tested with PRG
+  Falcon030 + CT60    |  yes  | RFB | 29 Nov 2018 | tested with PRG
+  Suska III-C (2K15B) |  yes  | (5) | 23 Apr 2016 |
+  --------------------+-------+-----+-------------+----------------
+  Other systems       |       |     |             |
+  Amiga Blizzard 1260 |  yes  | (3) |    Aug 2012 | tested with BlizKick
+  Amiga 500 + Vampire |  yes  | VRI | 21 Dec 2018 |
+  Amiga 600 + Vampire |  yes  | (6) |    Mar 2017 |
+  Amiga 1000          |  yes  | (4) |    Jul 2012 |
+  FireBee             |  yes  | VRI | 18 Dec 2018 |
+  M5484LITE           |  yes  | VRI | 18 Dec 2018 |
+
+  (1) reported by Christian Zietz
+  (2) reported to LVL by Frédéric Pécourt
+  (3) reported by Michaël Gibs
+  (4) reported by amiman99
+  (5) reported by Markus Fröschle
+  (6) reported by Flype
+  (7) reported by Stefan Niestegge
+  (8) reported by Claude Labelle
+
+Now let's talk about the different subsystems, and what is implemented.
+NOTE: the information in the following table may be somewhat dated.  For
+example, most GEMDOS/BIOS/XBIOS functions are known to work without
+problems.
+
+
+This is what the first field of the following table means:
+
+? status unknown
+- Not yet implemented
+> Partially implemented
+X Fully implemented and untested
+t Fully implemented and partially tested
+T tested and working on an emulator or real hardware
+
+
+ Hardware initialization
+ ----------------------------------------------------------------------------
+
+ T CPU setting, tested on: 68000 (real & emu), 68030 (real & emu), 68040 (emu),
+   68060 (real), 68080 (real), V4e (real)
+ T FPU
+ T 68030 MMU and cache initialization
+ T Memory controller (both ST and Falcon)
+ T DMA controller
+ T WD 1772 / AJAX Floppy disk controller
+ T MFP, MFP#2
+ T PSG
+ T ST shifter
+ T STe shifter
+ T TT shifter
+ T VIDEL
+ T ACIAs, IKBD protocol
+ t MegaST Real-Time Clock  (set clock not tested)
+ T NVRAM (including RTC)
+ T Blitter
+ T Microwire
+ t DMA sound
+ - DSP
+ T SCC
+ T IDE
+ T ACSI
+ T SCSI
+ T SD/MMC
+ T NatFeats (a framework for native features on emulators)
+
+
+ BOOT sequence
+ ----------------------------------------------------------------------------
+
+ T configure memory
+ T execute reset routine
+ T detect monitor type
+ T detect graphics resolution
+ T detect processor type, FPU type and hardware features
+ T setup a cookie jar with system cookies
+   ...
+ T init floppy drives
+ T boot floppy
+ t boot DMA (note it does not work with e.g. AHDI)
+ T execute reset-resident prgs: undocumented TOS feature, disabled by default
+ T run AUTO prgs
+ T run 'command.prg'
+ T run the default shell, EmuCON
+ T run the GEM desktop
+
+
+ BIOS devices
+ ----------------------------------------------------------------------------
+
+ t 0 PRN: parallel port
+ t 1 AUX: default serial port
+ T 2 CON: console (screen)
+ T 3 MIDI
+ T 4 IKBD
+ T 5 raw screen
+ T 6 ST-compatible serial port
+ T 7 SCC channel B
+ T 8 TT-MFP serial port
+ T 9 SCC channel A
+
+
+ ACIA interrupt handlers
+ ----------------------------------------------------------------------------
+
+ - midierr
+ - ikbderr
+ t midi input
+ T ikbd key events
+ T IKBD clock
+ T mouse
+ t joysticks
+
+
+ BIOS Functions
+ ----------------------------------------------------------------------------
+
+ T 0x00 Getmpb
+ T 0x01 Bconstat
+ T 0x02 Bconin
+ T 0x03 Bconout
+ T 0x04 Rwabs
+ T 0x05 Setexc
+ T 0x06 Tickcal
+ T 0x07 Getbpb
+ T 0x08 Bcostat
+ T 0x09 Mediach
+ T 0x0a Drvmap
+ T 0x0b Kbshift
+
+
+ XBIOS Functions
+ ----------------------------------------------------------------------------
+
+All XBIOS versions:
+ X 0x00 Initmous
+ - 0x01 Ssbrk           (useless - will not be implemented)
+ T 0x02 Physbase
+ T 0x03 Logbase
+ T 0x04 Getrez
+ T 0x05 Setscreen
+ T 0x06 Setpalette
+ T 0x07 Setcolor
+ T 0x08 Floprd
+ T 0x09 Flopwr
+ T 0x0a Flopfmt
+ - 0x0b Dbmsg           (useless - will not be implemented)
+ T 0x0c Midiws
+ X 0x0d Mfpint
+ X 0x0e Iorec
+ T 0x0f Rsconf
+ T 0x10 Keytbl
+ T 0x11 Random
+ T 0x12 Protobt
+ T 0x13 Flopver
+ - 0x14 Scrdmp
+ T 0x15 Cursconf
+ T 0x16 Settime
+ T 0x17 Gettime
+ T 0x18 Bioskeys
+ T 0x19 Ikbdws
+ T 0x1a Jdisint
+ T 0x1b Jenabint
+ T 0x1c Giaccess
+ T 0x1d Offgibit
+ T 0x1e Ongibit
+ T 0x1f Xbtimer
+ T 0x20 Dosound
+ - 0x21 Setprt          (useless - will not be implemented)
+ X 0x22 Kbdvbase
+ T 0x23 Kbrate
+ - 0x24 Prtblk          (useless - will not be implemented)
+ T 0x25 Vsync
+ T 0x26 Supexec
+ - 0x27 Puntaes         (useless - will not be implemented)
+
+TOS v1.02:
+ T 0x29 Floprate
+ T 0x40 Blitmode
+
+TOS v2.0:
+ t 0x2a DMAread
+ t 0x2b DMAwrite
+ t 0x2c Bconmap
+
+TOS v3.00:
+ T 0x2e NVMaccess
+
+ t 0x50 EsetShift       (for TT shifter only)
+ t 0x51 EgetShift       (for TT shifter only)
+ t 0x52 EsetBank        (for TT shifter only)
+ t 0x53 EsetColor       (for TT shifter only)
+ t 0x54 EsetPalette     (for TT shifter only)
+ t 0x55 EgetPalette     (for TT shifter only)
+ t 0x56 EsetGray        (for TT shifter only)
+ t 0x57 EsetSmear       (for TT shifter only)
+
+TOS v4.00:
+ t 0x58 Vsetmode        (for Falcon Videl only)
+ t 0x59 Vmontype        (for Falcon Videl only)
+ t 0x5a VsetSync        (for Falcon Videl only)
+ t 0x5b VgetSize        (for Falcon Videl only)
+
+ t 0x5d VsetRGB         (for Falcon Videl only)
+ t 0x5e VgetRGB         (for Falcon Videl only)
+
+ - 0x96 VsetMask        (for Falcon Videl only)
+
+2nd bit in _SND is set:
+ t 0x80 LockSnd
+ t 0x81 UnlockSnd
+ t 0x82 Soundcmd
+ t 0x83 Setbuffer
+ t 0x84 Setmode
+ t 0x85 Settracks
+ t 0x86 Setmontracks
+ t 0x87 Setinterrupt
+ t 0x8c Sndstatus
+
+3rd bit in _SND is set:
+ t 0x88 Buffoper
+ t 0x8a Gpio
+ t 0x8b Devconnect
+ t 0x8d Buffptr
+
+3&4 bits in _SND are set:
+ t 0x89 Dsptristate
+
+5th bit in _SND is set:
+ - 0x60-0x7F, 32 Dsp_* functions
+
+TOS v4 extended XBIOS functionality:
+ - 16-bit Videl resolution setting
+
+
+ GEMDOS Functions
+ ----------------------------------------------------------------------------
+
+All GEMDOS versions:
+ T 0x00 Pterm0
+ T 0x01 Cconin
+ T 0x02 Cconout
+ T 0x03 Cauxin
+ T 0x04 Cauxout
+ T 0x05 Cprnout
+ T 0x06 Crawio
+ T 0x07 Crawin
+ T 0x08 Cnecin
+ T 0x09 Cconws
+ T 0x0a Cconrs
+ T 0x0b Cconis
+
+ T 0x0e Dsetdrv
+
+ T 0x10 Cconos
+ T 0x11 Cprnos
+ T 0x12 Cauxis
+ T 0x13 Cauxos
+
+ T 0x19 Dgetdrv
+ T 0x1a Fsetdta
+
+ T 0x20 Super
+
+ T 0x2a Tgetdate
+ T 0x2b Tsetdate
+ T 0x2c Tgettime
+ T 0x2d Tsettime
+
+ T 0x2f Fgetdta
+ T 0x30 Sversion
+ T 0x31 Ptermres
+
+ T 0x36 Dfree
+
+ T 0x39 Dcreate
+ T 0x3a Ddelete
+ T 0x3b Dsetpath
+ T 0x3c Fcreate
+ T 0x3d Fopen
+ T 0x3e Fclose
+ T 0x3f Fread
+ T 0x40 Fwrite
+ T 0x41 Fdelete
+ T 0x42 Fseek
+ T 0x43 Fattrib
+
+ T 0x45 Fdup
+ T 0x46 Fforce
+ T 0x47 Dgetpath
+ T 0x48 Malloc
+ T 0x49 Mfree
+ T 0x4a Mshrink
+ T 0x4b Pexec
+ T 0x4c Pterm
+
+ T 0x4e Fsfirst
+ T 0x4f Fsnext
+
+ T 0x56 Frename
+ T 0x57 Fdatime
+
+GEMDOS v0.19 (TOS v2):
+ T 0x14 Maddalt
+ T 0x44 Mxalloc
+ (and Pexec mode 6)
+
+
+ Line-A functions
+ ----------------------------------------------------------------------------
+ T $0 - Initialization
+ t $1 - Put pixel
+ t $2 - Get pixel
+ t $3 - Arbitrary line
+ t $4 - Horizontal line
+ t $5 - Filled rectangle
+ t $6 - Filled polygon (see bugs.txt)
+ t $7 - Bit block transfer (may miss options not needed by VDI)
+ t $8 - Text block transfer
+ T $9 - Show mouse
+ T $A - Hide mouse
+ t $B - Transform mouse
+ t $C - Undraw sprite
+ t $D - Draw sprite
+ t $E - Copy raster form
+ t $F - Seedfill
+
+
+ VDI functions
+ ----------------------------------------------------------------------------
+
+ All TOS 1.0 calls are implemented.
+
+ T      v_opnwk
+ X      v_clswk
+ T      v_opnvwk
+ T      v_clsvwk
+ T      v_clrwk
+ -      v_updwk
+ >      vst_load_fonts      (needs GDOS or equivalent)
+ >      vst_unload_fonts    (needs GDOS or equivalent)
+ t      vs_clip
+ T      v_pline
+ T      v_pmarker
+ T      v_gtext
+ T      v_fillarea
+ -      v_cellarray         (not supported by any current VDI driver)
+ T      v_contourfill
+ T      vr_recfl
+ T      v_bar
+ T      v_arc
+ T      v_pieslice
+ T      v_circle
+ T      v_ellipse
+ T      v_ellarc
+ T      v_ellpie
+ X      v_rbox
+ T      v_rfbox
+ T      v_justified
+ T      vswr_mode
+ >      vs_color
+ T      vsl_type
+ X      vsl_udsty
+ T      vsl_width
+ >      vsl_color
+ T      vsl_ends
+ T      vsm_type
+ T      vsm_height
+ >      vsm_color
+ T      vst_height
+ T      vst_point
+ T      vst_rotation
+ X      vst_font
+ >      vst_color
+ T      vst_effects
+ T      vst_alignment
+ T      vsf_interior
+ T      vsf_style
+ t      vsf_color
+ T      vsf_perimeter
+ X      vsf_udpat
+ t      vro_cpyfm
+ >      vrt_cpyfm
+ T      vr_trnfm
+ >      v_get_pixel
+ X      vsin_mode
+ X      vrq_locator
+ X      vsm_locator
+ -      vrq_valuator
+ -      vsm_valuator
+ X      vrq_choice
+ X      vsm_choice
+ X      vrq_string
+ X      vsm_string
+ X      vsc_form
+ X      vex_timv
+ T      v_show_c
+ T      v_hide_c
+ X      vq_mouse
+ T      vex_butv
+ T      vex_motv
+ T      vex_curv
+ X      vq_key_s
+ t      vq_extnd
+ >      vq_color
+ >      vql_attributes
+ >      vqm_attributes
+ >      vqf_attributes
+ >      vqt_attributes
+ >      vqt_extent
+ X      vqt_width
+ X      vqt_name
+ -      vq_cellarray        (not supported by any current VDI driver)
+ X      vqin_mode
+ X      vqt_fontinfo
+ T      vq_chcells
+ T      v_exit_cur
+ T      v_enter_cur
+ T      v_curup
+ T      v_curdown
+ T      v_curright
+ T      v_curleft
+ T      v_curhome
+ T      v_eeos
+ T      v_eeol
+ T      vs_curaddress
+ T      v_curtext
+ T      v_rvon
+ T      v_rvoff
+ T      vq_curaddress
+ T      vq_tabstatus
+ -      v_hardcopy
+ T      v_dspcur            (Atari docs are incorrect for this call)
+ T      v_rmcur             (Atari docs are incorrect for this call)
+ -      v_form_adv
+ -      v_output_window
+ -      v_clear_disp_list
+ -      v_bit_image
+ -      vs_palette
+ -      vqp_films
+ -      vqp_state
+ -      vsp_state
+ -      vsp_save
+ -      vsp_message
+ -      vqp_error
+ -      v_meta_extents
+ -      v_write_meta
+ -      vm_filename
+
+TOS v4 extended VDI functionality:
+ -      16-bit support for graphics functions (for now, use fVDI)
+
+
+ AES functions
+ ----------------------------------------------------------------------------
+
+All AES versions:
+ t      appl_init
+ X      appl_read
+ X      appl_write
+ t      appl_find
+ t      appl_tplay
+ X      appl_trecord
+ X      appl_yield              (PC-GEM call)
+ t      appl_exit
+ X      evnt_keybd
+ t      evnt_button
+ X      evnt_mouse
+ t      evnt_mesag
+ X      evnt_timer
+ t      evnt_multi
+ X      evnt_dclick
+ t      menu_bar
+ t      menu_icheck
+ X      menu_ienable
+ X      menu_tnormal
+ X      menu_text
+ t      menu_register
+ X      menu_unregister         (PC-GEM call)
+ X      menu_click              (PC-GEM call)
+ X      objc_add
+ X      objc_delete
+ t      objc_draw
+ X      objc_find
+ t      objc_offset
+ X      objc_order
+ X      objc_edit
+ t      objc_change
+ t      form_do
+ t      form_dial
+ t      form_alert
+ X      form_error
+ t      form_center
+ X      form_keybd
+ X      form_button
+ t      graf_rubberbox
+ X      graf_dragbox
+ X      graf_mbox
+ T      graf_growbox
+ T      graf_shrinkbox
+ X      graf_watchbox
+ X      graf_slidebox
+ t      graf_handle
+ t      graf_mouse
+ t      graf_mkstate
+ X      scrp_read
+ X      scrp_write
+ X      scrp_clear              (PC-GEM call)
+ X      fsel_input
+ t      wind_create
+ t      wind_open
+ t      wind_close
+ t      wind_delete
+ t      wind_get
+ X      wind_set
+ X      wind_find
+ t      wind_update
+ t      wind_calc
+ t      rsrc_load
+ t      rsrc_free
+ t      rsrc_gaddr
+ X      rsrc_saddr
+ t      rsrc_obfix
+ X      shel_read
+ X      shel_write
+ X      shel_get
+ X      shel_put
+ T      shel_find
+ X      shel_envrn
+ X      shel_rdef              (PC-GEM call)
+ X      shel_wdef              (PC-GEM call)
+
+AES v1.40 (TOS >= v1.04):
+ T      fsel_exinput
+ t      wind_new
+
+AES v3.30 (TOS > v3.06):
+ -      menu_attach
+ -      menu_istart
+ -      menu_popup
+ -      menu_settings
+
+AES v3.40 (TOS >= v4):
+ -      objc_sysvar            (3D look)
+
+TOS v4 extended AES functionality:
+ -      RSC file color icon support
+
+
+ Misc desktop functions
+ ----------------------------------------------------------------------------
+
+ - Cartridge file system support  (useless - will not be implemented)
