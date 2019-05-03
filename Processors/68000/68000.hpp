@@ -265,11 +265,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform = false> cla
 		}
 
 		/// Sets the bus request line.
+		/// This are of functionality is TODO.
 		void set_bus_request(bool bus_request) {
 			bus_request_ = bus_request;
 		}
 
 		/// Sets the bus acknowledge line.
+		/// This are of functionality is TODO.
 		void set_bus_acknowledge(bool bus_acknowledge) {
 			bus_acknowledge_ = bus_acknowledge;
 		}
