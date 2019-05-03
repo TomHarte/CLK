@@ -884,15 +884,21 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									Divisions.
 								*/
 
+#define announce_divide_by_zero()						\
+	active_program_ = nullptr;							\
+	active_micro_op_ = short_exception_micro_ops_;		\
+	bus_program = active_micro_op_->bus_program;		\
+														\
+	populate_trap_steps(5, get_status());				\
+	bus_program->microcycle.length = HalfCycles(8);		\
+														\
+	program_counter_.full -= 2;
+
 								case Operation::DIVU: {
 									// An attempt to divide by zero schedules an exception.
 									if(!active_program_->source->halves.low.full) {
 										// Schedule a divide-by-zero exception.
-										active_program_ = nullptr;
-										active_micro_op_ = short_exception_micro_ops_;
-										bus_program = active_micro_op_->bus_program;
-										populate_trap_steps(5, get_status());
-										program_counter_.full -= 2;
+										announce_divide_by_zero();
 										break;
 									}
 
@@ -951,11 +957,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// An attempt to divide by zero schedules an exception.
 									if(!active_program_->source->halves.low.full) {
 										// Schedule a divide-by-zero exception.
-										active_program_ = nullptr;
-										active_micro_op_ = short_exception_micro_ops_;
-										bus_program = active_micro_op_->bus_program;
-										populate_trap_steps(5, get_status());
-										program_counter_.full -= 2;
+										announce_divide_by_zero()
 										break;
 									}
 
@@ -1004,6 +1006,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									}
 									active_step_->microcycle.length = HalfCycles(cycles_expended * 2);
 								} break;
+
+#undef announce_divide_by_zero
 
 								/*
 									MOVEP: move words and long-words a byte at a time.
