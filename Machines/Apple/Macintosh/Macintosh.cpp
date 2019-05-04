@@ -8,6 +8,8 @@
 
 #include "Macintosh.hpp"
 
+#include <array>
+
 #include "Video.hpp"
 
 #include "../../CRTMachine.hpp"
@@ -27,7 +29,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const ROMMachine::ROMFetcher &rom_fetcher) :
 		 	mc68000_(*this),
-		 	video_(ram_),
+		 	video_(ram_.data()),
 		 	via_(via_port_handler_) {
 
 			// Grab a copy of the ROM and convert it into big-endian data.
@@ -36,7 +38,7 @@ class ConcreteMachine:
 				throw ROMMachine::Error::MissingROMs;
 			}
 			roms[0]->resize(64*1024);
-			Memory::PackBigEndian16(*roms[0], rom_);
+			Memory::PackBigEndian16(*roms[0], rom_.data());
 
 			// The Mac runs at 7.8336mHz.
 			set_clock_rate(7833600.0);
@@ -54,8 +56,66 @@ class ConcreteMachine:
 			mc68000_.run_for(cycles);
 		}
 
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
-			via_.run_for(cycle.length);
+		using Microcycle = CPU::MC68000::Microcycle;
+
+		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
+			// Assumption here: it's a divide by ten to derive the 6522 clock, i.e.
+			// it runs off the 68000's E clock.
+			via_clock_ += cycle.length;
+			via_.run_for(via_clock_.divide(HalfCycles(10)));
+
+			// SCC is a divide-by-two.
+
+			// A null cycle leaves nothing else to do.
+			if(cycle.operation) {
+				auto word_address = cycle.word_address();
+
+				// Hardware devices begin at 0x800000.
+				mc68000_.set_is_peripheral_address(word_address >= 0x400000);
+				if(word_address >= 0x400000) {
+					printf("IO access to %06x\n", word_address << 1);
+				} else {
+					if(cycle.data_select_active()) {
+						uint16_t *memory_base = nullptr;
+						bool is_read_only = false;
+						if(word_address & 0x200000 || ROM_is_overlay_) {
+							memory_base = rom_.data();
+							word_address %= rom_.size();
+							is_read_only = true;
+						} else {
+							memory_base = ram_.data();
+							word_address %= ram_.size();
+							is_read_only = false;
+						}
+
+						if(!is_read_only || (cycle.operation & Microcycle::Read)) {
+							switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge)) {
+								default: break;
+
+								case Microcycle::SelectWord | Microcycle::Read:
+									cycle.value->full = memory_base[word_address];
+								break;
+								case Microcycle::SelectByte | Microcycle::Read:
+									cycle.value->halves.low = uint8_t(memory_base[word_address] >> cycle.byte_shift());
+								break;
+								case Microcycle::SelectWord:
+									memory_base[word_address] = cycle.value->full;
+								break;
+								case Microcycle::SelectByte:
+									memory_base[word_address] = uint16_t(
+										(cycle.value->halves.low << cycle.byte_shift()) |
+										(memory_base[word_address] & (0xffff ^ cycle.byte_mask()))
+									);
+								break;
+							}
+						}
+					} else {
+						// Add delay if this is a RAM access and video blocks it momentarily.
+					}
+				}
+			}
+
+			// Any access to the
 
 			// TODO: the entirety of dealing with this cycle.
 
@@ -111,14 +171,17 @@ class ConcreteMachine:
 
 		};
 
+		std::array<uint16_t, 32*1024> rom_;
+		std::array<uint16_t, 64*1024> ram_;
+
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 		Video video_;
 
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
  		VIAPortHandler via_port_handler_;
+ 		HalfCycles via_clock_;
 
-		uint16_t rom_[32*1024];
-		uint16_t ram_[64*1024];
+		bool ROM_is_overlay_ = true;
 };
 
 }
