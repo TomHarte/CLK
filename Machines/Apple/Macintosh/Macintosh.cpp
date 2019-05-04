@@ -77,22 +77,24 @@ class ConcreteMachine:
 					if(cycle.data_select_active()) {
 						printf("IO access to %06x: ", word_address << 1);
 
+						const int register_address = word_address >> 8;
+
 						switch(word_address & 0x7ff0ff) {
 							case 0x77f0ff:
 								// VIA accesses are via address 0xefe1fe + register*512,
 								// which at word precision is 0x77f0ff + register*256.
 								printf("VIA");
 								if(cycle.operation & Microcycle::Read) {
-									cycle.value->halves.low = via_.get_register(word_address >> 8);
+									cycle.value->halves.low = via_.get_register(register_address);
 									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 								} else {
-									via_.set_register(word_address >> 8, cycle.value->halves.low);
+									via_.set_register(register_address, cycle.value->halves.low);
 								}
 							break;
 
 							case 0x6ff0ff:
 								// IWM
-								printf("IWM");
+								printf("IWM %d", register_address & 0xf);
 							break;
 						}
 
@@ -181,13 +183,16 @@ class ConcreteMachine:
 			public:
 				VIAPortHandler(ConcreteMachine &machine) : machine_(machine) {}
 
-				void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask) {
+				using Port = MOS::MOS6522::Port;
+				using Line = MOS::MOS6522::Line;
+
+				void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
 					/*
 						Peripheral lines: keyboard data, interrupt configuration.
 						(See p176 [/215])
 					*/
 					switch(port) {
-						case MOS::MOS6522::Port::A:
+						case Port::A:
 							/*
 								Port A:
 									b7:	[input] SCC wait/request (/W/REQA and /W/REQB wired together for a logical OR)
@@ -197,23 +202,42 @@ class ConcreteMachine:
 									b3:	0 = use alternate sound buffer, 1 = use ordinary sound buffer
 									b2–b0:	audio output volume
 							*/
+							printf(" w A: %02x", value);
 							machine_.set_rom_is_overlay(!!(value & 0x10));
 						break;
 
-						case MOS::MOS6522::Port::B:
-						/*
-							Port B:
-								b7:	0 = sound enabled, 1 = sound disabled
-								b6:	[input] 0 = video beam in visible portion of line, 1 = outside
-								b5:	[input] mouse y2
-								b4:	[input] mouse x2
-								b3:	[input] 0 = mouse button down, 1 = up
-								b2:	0 = real-time clock enabled, 1 = disabled
-								b1:	clock's data-clock line
-								b0:	clock's serial data line
-						*/
+						case Port::B:
+							/*
+								Port B:
+									b7:	0 = sound enabled, 1 = sound disabled
+									b6:	[input] 0 = video beam in visible portion of line, 1 = outside
+									b5:	[input] mouse y2
+									b4:	[input] mouse x2
+									b3:	[input] 0 = mouse button down, 1 = up
+									b2:	0 = real-time clock enabled, 1 = disabled
+									b1:	clock's data-clock line
+									b0:	clock's serial data line
+							*/
+							printf(" w B: %02x", value);
 						break;
 					}
+				}
+
+				uint8_t get_port_input(Port port) {
+					switch(port) {
+						case Port::A:
+							printf(" r A");
+						break;
+
+						case Port::B:
+							printf(" r B");
+						break;
+					}
+					return 0xff;
+				}
+
+				void set_control_line_output(Port port, Line line, bool value) {
+					printf(" l %c%d: %c", port ? 'B' : 'A', int(line), value ? 't' : 'f');
 				}
 
 			private:
