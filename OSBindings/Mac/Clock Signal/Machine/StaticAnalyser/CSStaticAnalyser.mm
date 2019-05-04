@@ -188,7 +188,17 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 		_targets.push_back(std::move(target));
 	}
 	return self;
+}
 
+- (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::Target;
+		std::unique_ptr<Target> target(new Target);
+		target->machine = Analyser::Machine::Macintosh;
+		_targets.push_back(std::move(target));
+	}
+	return self;
 }
 
 - (NSString *)optionsPanelNibName {

@@ -29,6 +29,10 @@ typedef NS_ENUM(NSInteger, CSMachineCPCModel) {
 	CSMachineCPCModel6128
 };
 
+typedef NS_ENUM(NSInteger, CSMachineMacintoshModel) {
+	CSMachineMacintoshModel128k
+};
+
 typedef NS_ENUM(NSInteger, CSMachineOricModel) {
 	CSMachineOricModelOric1,
 	CSMachineOricModelOricAtmos,
@@ -69,6 +73,7 @@ typedef int Kilobytes;
 - (instancetype)initWithZX80MemorySize:(Kilobytes)memorySize useZX81ROM:(BOOL)useZX81ROM;
 - (instancetype)initWithZX81MemorySize:(Kilobytes)memorySize;
 - (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController;
+- (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
 
 @property(nonatomic, readonly) NSString *optionsPanelNibName;
 @property(nonatomic, readonly) NSString *displayName;
