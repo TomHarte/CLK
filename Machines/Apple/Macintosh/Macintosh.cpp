@@ -10,6 +10,7 @@
 
 #include "../../../Processors/68000/68000.hpp"
 #include "../../../Components/6522/6522.hpp"
+#include "../../Utility/MemoryPacker.hpp"
 
 namespace Apple {
 namespace Macintosh {
@@ -21,19 +22,19 @@ class ConcreteMachine:
 		ConcreteMachine(const ROMMachine::ROMFetcher &rom_fetcher) :
 		 	mc68000_(*this) {
 
+			// Grab a copy of the ROM and convert it into big-endian data.
 			const auto roms = rom_fetcher("Macintosh", { "mac128k.rom" });
 			if(!roms[0]) {
 				throw ROMMachine::Error::MissingROMs;
 			}
-
 			roms[0]->resize(64*1024);
-			memcpy(rom_, roms[0]->data(), roms[0]->size());
+			Memory::PackBigEndian16(*roms[0], rom_);
 		}
 
 	private:
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
-		uint8_t rom_[64*1024];
-		uint8_t ram_[128*1024];
+		uint16_t rom_[32*1024];
+		uint16_t ram_[64*1024];
 };
 
 }

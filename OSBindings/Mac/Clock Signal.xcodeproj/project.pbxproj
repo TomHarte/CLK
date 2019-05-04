@@ -616,6 +616,7 @@
 		4BCE0052227CE8CA000CA200 /* DiskIICard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE004E227CE8CA000CA200 /* DiskIICard.cpp */; };
 		4BCE0053227CE8CA000CA200 /* AppleII.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE0050227CE8CA000CA200 /* AppleII.cpp */; };
 		4BCE005A227CFFCA000CA200 /* Macintosh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE0058227CFFCA000CA200 /* Macintosh.cpp */; };
+		4BCE005D227D30CC000CA200 /* MemoryPacker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE005B227D30CC000CA200 /* MemoryPacker.cpp */; };
 		4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */; };
 		4BD191F42191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
 		4BD191F52191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
@@ -1380,6 +1381,8 @@
 		4BCE0050227CE8CA000CA200 /* AppleII.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AppleII.cpp; sourceTree = "<group>"; };
 		4BCE0058227CFFCA000CA200 /* Macintosh.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Macintosh.cpp; sourceTree = "<group>"; };
 		4BCE0059227CFFCA000CA200 /* Macintosh.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Macintosh.hpp; sourceTree = "<group>"; };
+		4BCE005B227D30CC000CA200 /* MemoryPacker.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MemoryPacker.cpp; sourceTree = "<group>"; };
+		4BCE005C227D30CC000CA200 /* MemoryPacker.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MemoryPacker.hpp; sourceTree = "<group>"; };
 		4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Oric.cpp; path = Oric/Oric.cpp; sourceTree = "<group>"; };
 		4BCF1FA31DADC3DD0039D2E7 /* Oric.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Oric.hpp; path = Oric/Oric.hpp; sourceTree = "<group>"; };
 		4BD060A51FE49D3C006E14BE /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Speaker.hpp; sourceTree = "<group>"; };
@@ -1697,13 +1700,15 @@
 			children = (
 				4B055ABE1FAE98000060FFFF /* MachineForTarget.cpp */,
 				4B2B3A481F9B8FA70062DABF /* MemoryFuzzer.cpp */,
+				4BCE005B227D30CC000CA200 /* MemoryPacker.cpp */,
+				4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */,
 				4B2B3A471F9B8FA70062DABF /* Typer.cpp */,
 				4B055ABF1FAE98000060FFFF /* MachineForTarget.hpp */,
 				4B2B3A491F9B8FA70062DABF /* MemoryFuzzer.hpp */,
-				4B2B3A4A1F9B8FA70062DABF /* Typer.hpp */,
-				4B79A4FE1FC9082300EEDAD5 /* TypedDynamicMachine.hpp */,
-				4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */,
+				4BCE005C227D30CC000CA200 /* MemoryPacker.hpp */,
 				4B17B58A20A8A9D9007CCA8F /* StringSerialiser.hpp */,
+				4B79A4FE1FC9082300EEDAD5 /* TypedDynamicMachine.hpp */,
+				4B2B3A4A1F9B8FA70062DABF /* Typer.hpp */,
 			);
 			path = Utility;
 			sourceTree = "<group>";
@@ -4017,6 +4022,7 @@
 				4B8805F01DCFC99C003085B1 /* Acorn.cpp in Sources */,
 				4B3051301D98ACC600B4FED8 /* Plus3.cpp in Sources */,
 				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
+				4BCE005D227D30CC000CA200 /* MemoryPacker.cpp in Sources */,
 				4B83348C1F5DB99C0097E338 /* 6522Base.cpp in Sources */,
 				4BCE0051227CE8CA000CA200 /* Video.cpp in Sources */,
 				4B894536201967B4007DE474 /* Z80.cpp in Sources */,
