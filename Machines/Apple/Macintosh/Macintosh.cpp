@@ -59,6 +59,21 @@ class ConcreteMachine:
 
 			// TODO: the entirety of dealing with this cycle.
 
+			/*
+				Normal memory map:
+
+				000000: 	RAM
+				400000: 	ROM
+				9FFFF8+:	SCC read operations
+				BFFFF8+:	SCC write operations
+				DFE1FF+:	IWM
+				EFE1FE+:	VIA
+
+				Overlay mode:
+
+				ROM replaces RAM at 00000, while also being at 400000
+			*/
+
 			return HalfCycles(0);
 		}
 
@@ -69,6 +84,30 @@ class ConcreteMachine:
 
 	private:
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
+			void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask) {
+				/*
+					Port A:
+						b7:	[input] SCC wait/request (/W/REQA and /W/REQB wired together for a logical OR)
+						b6:	0 = alternate screen buffer, 1 = main screen buffer
+						b5:	floppy disk SEL state control (upper/lower head "among other things")
+						b4:	1 = use ROM overlay memory map, 0 = use ordinary memory map
+						b3:	0 = use alternate sound buffer, 1 = use ordinary sound buffer
+						b2–b0:	audio output volume
+
+					Port B:
+						b7:	0 = sound enabled, 1 = sound disabled
+						b6:	[input] 0 = video beam in visible portion of line, 1 = outside
+						b5:	[input] mouse y2
+						b4:	[input] mouse x2
+						b3:	[input] 0 = mouse button down, 1 = up
+						b2:	0 = real-time clock enabled, 1 = disabled
+						b1:	clock's data-clock line
+						b0:	clock's serial data line
+
+					Peripheral lines: keyboard data, interrupt configuration.
+					(See p176 [/215])
+				*/
+			}
 
 		};
 
