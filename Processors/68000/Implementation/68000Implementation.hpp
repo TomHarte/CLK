@@ -16,7 +16,7 @@
 	)
 
 #define get_status() \
-	(	\
+	uint16_t(	\
 		get_ccr() |	\
 		(interrupt_level_ << 8) |				\
 		(trace_flag_ 	? 0x8000 : 0x0000) |	\
@@ -37,10 +37,12 @@
 	set_is_supervisor(!!(((x) >> 13) & 1));
 
 #define get_bus_code()	\
-	((active_step_->microcycle.operation & Microcycle::IsProgram) ? 0x02 : 0x01) |	\
-	(is_supervisor_ << 2) |	\
-	(active_program_ ? 0x08 : 0) |	\
-	((active_step_->microcycle.operation & Microcycle::Read) ? 0x10 : 0)
+	uint16_t(	\
+		((active_step_->microcycle.operation & Microcycle::IsProgram) ? 0x02 : 0x01) |	\
+		(is_supervisor_ << 2) |	\
+		(active_program_ ? 0x08 : 0) |	\
+		((active_step_->microcycle.operation & Microcycle::Read) ? 0x10 : 0)	\
+	)
 
 template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::run_for(HalfCycles duration) {
 	const HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
@@ -317,7 +319,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 									// Set all flags essentially as if this were normal addition.
 									zero_result_ |= result & 0xff;
-									extend_flag_ = carry_flag_ = result & ~0xff;
+									extend_flag_ = carry_flag_ = uint_fast32_t(result & ~0xff);
 									negative_flag_ = result & 0x80;
 									overflow_flag_ = add_overflow() & 0x80;
 
@@ -339,7 +341,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 \
 	dest = uint8_t(result);	\
 	zero_op(zero_result_, dest);	\
-	extend_flag_ = carry_flag_ = result & ~0xff;	\
+	extend_flag_ = carry_flag_ = uint_fast32_t(result & ~0xff);	\
 	negative_flag_ = result & 0x80;	\
 	overflow_flag_ = overflow() & 0x80;
 
@@ -350,7 +352,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 \
 	dest = uint16_t(result);	\
 	zero_op(zero_result_, dest);	\
-	extend_flag_ = carry_flag_ = result & ~0xffff;	\
+	extend_flag_ = carry_flag_ = uint_fast32_t(result & ~0xffff);	\
 	negative_flag_ = result & 0x8000;	\
 	overflow_flag_ = overflow() & 0x8000;
 
@@ -361,7 +363,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 \
 	dest = uint32_t(result);	\
 	zero_op(zero_result_, dest);	\
-	extend_flag_ = carry_flag_ = result >> 32;	\
+	extend_flag_ = carry_flag_ = uint_fast32_t(result >> 32);	\
 	negative_flag_ = result & 0x80000000;	\
 	overflow_flag_ = overflow() & 0x80000000;
 
