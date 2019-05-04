@@ -2030,6 +2030,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			}
 	}
 
+	bus_handler_.flush();
 	e_clock_phase_ = (e_clock_phase_ + cycles_run_for) % 10;
 	half_cycles_left_to_run_ = remaining_duration - cycles_run_for;
 }
