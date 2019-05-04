@@ -27,7 +27,8 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const ROMMachine::ROMFetcher &rom_fetcher) :
 		 	mc68000_(*this),
-		 	video_(ram_) {
+		 	video_(ram_),
+		 	via_(via_port_handler_) {
 
 			// Grab a copy of the ROM and convert it into big-endian data.
 			const auto roms = rom_fetcher("Macintosh", { "mac128k.rom" });
@@ -53,9 +54,30 @@ class ConcreteMachine:
 			mc68000_.run_for(cycles);
 		}
 
+		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
+			via_.run_for(cycle.length);
+
+			// TODO: the entirety of dealing with this cycle.
+
+			return HalfCycles(0);
+		}
+
+		/*
+			Notes to self: accesses to the VIA are via the 68000's
+			synchronous bus.
+		*/
+
 	private:
+		class VIAPortHandler: public MOS::MOS6522::PortHandler {
+
+		};
+
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 		Video video_;
+
+		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
+ 		VIAPortHandler via_port_handler_;
+
 		uint16_t rom_[32*1024];
 		uint16_t ram_[64*1024];
 };
