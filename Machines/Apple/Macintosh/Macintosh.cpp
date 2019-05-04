@@ -98,51 +98,55 @@ class ConcreteMachine:
 							break;
 						}
 
-
 						printf("\n");
 					}
 				} else {
 					if(cycle.data_select_active()) {
 						uint16_t *memory_base = nullptr;
-						bool is_read_only = false;
 
 						// When ROM overlay is enabled, the ROM begins at both $000000 and $400000,
 						// and RAM is available at $600000.
 						//
 						// Otherwise RAM is mapped at $000000 and ROM from $400000.
-						if((ROM_is_overlay_ && word_address < 0x600000) || (!ROM_is_overlay_ && word_address & 0x200000)) {
-							memory_base = rom_.data();
-							word_address %= rom_.size();
-							is_read_only = true;
-						} else {
+						//
+						// Writes to the RAM area, at least, seem to go to RAM regardless of the ROM
+						// overlay setting, so for now I'm gambling below that writes just always go to RAM.
+						if(
+							!(cycle.operation & Microcycle::Read) ||
+							(
+								(ROM_is_overlay_ && word_address >= 0x600000) ||
+								(!ROM_is_overlay_ && !(word_address & 0x200000))
+							)
+						) {
 							memory_base = ram_.data();
 							word_address %= ram_.size();
-							is_read_only = false;
+						} else {
+							memory_base = rom_.data();
+							word_address %= rom_.size();
 						}
 
-						if(!is_read_only || (cycle.operation & Microcycle::Read)) {
-							switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge)) {
-								default: break;
+						switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge)) {
+							default: break;
 
-								case Microcycle::SelectWord | Microcycle::Read:
-									cycle.value->full = memory_base[word_address];
-								break;
-								case Microcycle::SelectByte | Microcycle::Read:
-									cycle.value->halves.low = uint8_t(memory_base[word_address] >> cycle.byte_shift());
-								break;
-								case Microcycle::SelectWord:
-									memory_base[word_address] = cycle.value->full;
-								break;
-								case Microcycle::SelectByte:
-									memory_base[word_address] = uint16_t(
-										(cycle.value->halves.low << cycle.byte_shift()) |
-										(memory_base[word_address] & (0xffff ^ cycle.byte_mask()))
-									);
-								break;
-							}
+							case Microcycle::SelectWord | Microcycle::Read:
+								cycle.value->full = memory_base[word_address];
+							break;
+							case Microcycle::SelectByte | Microcycle::Read:
+								cycle.value->halves.low = uint8_t(memory_base[word_address] >> cycle.byte_shift());
+							break;
+							case Microcycle::SelectWord:
+								memory_base[word_address] = cycle.value->full;
+							break;
+							case Microcycle::SelectByte:
+								memory_base[word_address] = uint16_t(
+									(cycle.value->halves.low << cycle.byte_shift()) |
+									(memory_base[word_address] & (0xffff ^ cycle.byte_mask()))
+								);
+							break;
 						}
 					} else {
-						// Add delay if this is a RAM access and video blocks it momentarily.
+						// TODO: add delay if this is a RAM access and video blocks it momentarily.
+						// "Each [video] fetch took two cycles out of eight"
 					}
 				}
 			}
