@@ -28,3 +28,7 @@ Video::Video(uint16_t *ram) :
 void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
+
+/*
+	Video: $1A700 and the alternate buffer starts at $12700; for a 512K Macintosh, add $60000 to these numbers.
+*/

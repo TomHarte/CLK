@@ -73,12 +73,33 @@ class ConcreteMachine:
 				// Hardware devices begin at 0x800000.
 				mc68000_.set_is_peripheral_address(word_address >= 0x400000);
 				if(word_address >= 0x400000) {
-					printf("IO access to %06x\n", word_address << 1);
+					if(cycle.data_select_active()) {
+						printf("IO access to %06x: ", word_address << 1);
+
+						// VIA accesses are via address 0xefe1fe + register*512,
+						// which at word precision is 0x77f0ff + register*256.
+						if((word_address & 0x77f0ff) == 0x77f0ff) {
+							printf("VIA access ");
+							if(cycle.operation & Microcycle::Read) {
+								cycle.value->halves.low = via_.get_register(word_address >> 8);
+								if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+							} else {
+								via_.set_register(word_address >> 8, cycle.value->halves.low);
+							}
+						}
+
+						printf("\n");
+					}
 				} else {
 					if(cycle.data_select_active()) {
 						uint16_t *memory_base = nullptr;
 						bool is_read_only = false;
-						if(word_address & 0x200000 || ROM_is_overlay_) {
+
+						// When ROM overlay is enabled, the ROM begins at both $000000 and $400000,
+						// and RAM is available at $600000.
+						//
+						// Otherwise RAM is mapped at $000000 and ROM from $400000.
+						if((ROM_is_overlay_ && word_address < 0x600000) || (!ROM_is_overlay_ && word_address & 0x200000)) {
 							memory_base = rom_.data();
 							word_address %= rom_.size();
 							is_read_only = true;
@@ -143,7 +164,7 @@ class ConcreteMachine:
 		*/
 
 	private:
-		class VIAPortHandler: public MOS::MOS6522::PortHandler {
+		struct VIAPortHandler: public MOS::MOS6522::PortHandler {
 			void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask) {
 				/*
 					Port A:
