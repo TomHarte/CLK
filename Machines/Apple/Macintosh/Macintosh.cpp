@@ -30,7 +30,8 @@ class ConcreteMachine:
 		ConcreteMachine(const ROMMachine::ROMFetcher &rom_fetcher) :
 		 	mc68000_(*this),
 		 	video_(ram_.data()),
-		 	via_(via_port_handler_) {
+		 	via_(via_port_handler_),
+		 	via_port_handler_(*this) {
 
 			// Grab a copy of the ROM and convert it into big-endian data.
 			const auto roms = rom_fetcher("Macintosh", { "mac128k.rom" });
@@ -76,17 +77,25 @@ class ConcreteMachine:
 					if(cycle.data_select_active()) {
 						printf("IO access to %06x: ", word_address << 1);
 
-						// VIA accesses are via address 0xefe1fe + register*512,
-						// which at word precision is 0x77f0ff + register*256.
-						if((word_address & 0x77f0ff) == 0x77f0ff) {
-							printf("VIA access ");
-							if(cycle.operation & Microcycle::Read) {
-								cycle.value->halves.low = via_.get_register(word_address >> 8);
-								if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
-							} else {
-								via_.set_register(word_address >> 8, cycle.value->halves.low);
-							}
+						switch(word_address & 0x7ff0ff) {
+							case 0x77f0ff:
+								// VIA accesses are via address 0xefe1fe + register*512,
+								// which at word precision is 0x77f0ff + register*256.
+								printf("VIA");
+								if(cycle.operation & Microcycle::Read) {
+									cycle.value->halves.low = via_.get_register(word_address >> 8);
+									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+								} else {
+									via_.set_register(word_address >> 8, cycle.value->halves.low);
+								}
+							break;
+
+							case 0x6ff0ff:
+								// IWM
+								printf("IWM");
+							break;
 						}
+
 
 						printf("\n");
 					}
@@ -163,32 +172,52 @@ class ConcreteMachine:
 			synchronous bus.
 		*/
 
+		void set_rom_is_overlay(bool rom_is_overlay) {
+			ROM_is_overlay_ = rom_is_overlay;
+		}
+
 	private:
-		struct VIAPortHandler: public MOS::MOS6522::PortHandler {
-			void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask) {
-				/*
-					Port A:
-						b7:	[input] SCC wait/request (/W/REQA and /W/REQB wired together for a logical OR)
-						b6:	0 = alternate screen buffer, 1 = main screen buffer
-						b5:	floppy disk SEL state control (upper/lower head "among other things")
-						b4:	1 = use ROM overlay memory map, 0 = use ordinary memory map
-						b3:	0 = use alternate sound buffer, 1 = use ordinary sound buffer
-						b2–b0:	audio output volume
+		class VIAPortHandler: public MOS::MOS6522::PortHandler {
+			public:
+				VIAPortHandler(ConcreteMachine &machine) : machine_(machine) {}
 
-					Port B:
-						b7:	0 = sound enabled, 1 = sound disabled
-						b6:	[input] 0 = video beam in visible portion of line, 1 = outside
-						b5:	[input] mouse y2
-						b4:	[input] mouse x2
-						b3:	[input] 0 = mouse button down, 1 = up
-						b2:	0 = real-time clock enabled, 1 = disabled
-						b1:	clock's data-clock line
-						b0:	clock's serial data line
+				void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask) {
+					/*
+						Peripheral lines: keyboard data, interrupt configuration.
+						(See p176 [/215])
+					*/
+					switch(port) {
+						case MOS::MOS6522::Port::A:
+							/*
+								Port A:
+									b7:	[input] SCC wait/request (/W/REQA and /W/REQB wired together for a logical OR)
+									b6:	0 = alternate screen buffer, 1 = main screen buffer
+									b5:	floppy disk SEL state control (upper/lower head "among other things")
+									b4:	1 = use ROM overlay memory map, 0 = use ordinary memory map
+									b3:	0 = use alternate sound buffer, 1 = use ordinary sound buffer
+									b2–b0:	audio output volume
+							*/
+							machine_.set_rom_is_overlay(!!(value & 0x10));
+						break;
 
-					Peripheral lines: keyboard data, interrupt configuration.
-					(See p176 [/215])
-				*/
-			}
+						case MOS::MOS6522::Port::B:
+						/*
+							Port B:
+								b7:	0 = sound enabled, 1 = sound disabled
+								b6:	[input] 0 = video beam in visible portion of line, 1 = outside
+								b5:	[input] mouse y2
+								b4:	[input] mouse x2
+								b3:	[input] 0 = mouse button down, 1 = up
+								b2:	0 = real-time clock enabled, 1 = disabled
+								b1:	clock's data-clock line
+								b0:	clock's serial data line
+						*/
+						break;
+					}
+				}
+
+			private:
+				ConcreteMachine &machine_;
 
 		};
 
