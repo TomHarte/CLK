@@ -60,6 +60,8 @@ class ConcreteMachine:
 		using Microcycle = CPU::MC68000::Microcycle;
 
 		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
+			time_since_video_update_ += cycle.length;
+
 			// Assumption here: it's a divide by ten to derive the 6522 clock, i.e.
 			// it runs off the 68000's E clock.
 			via_clock_ += cycle.length;
@@ -71,11 +73,12 @@ class ConcreteMachine:
 			if(cycle.operation) {
 				auto word_address = cycle.word_address();
 
-				// Hardware devices begin at 0x800000.
+				// Hardware devices begin at 0x800000 and accesses to 'them' (i.e. at lest the 6522,
+				// and the other two are a guess) is via the synchronous bus.
 				mc68000_.set_is_peripheral_address(word_address >= 0x400000);
 				if(word_address >= 0x400000) {
 					if(cycle.data_select_active()) {
-						printf("IO access to %06x: ", word_address << 1);
+//						printf("IO access to %06x: ", word_address << 1);
 
 						const int register_address = word_address >> 8;
 
@@ -83,7 +86,7 @@ class ConcreteMachine:
 							case 0x77f0ff:
 								// VIA accesses are via address 0xefe1fe + register*512,
 								// which at word precision is 0x77f0ff + register*256.
-								printf("VIA");
+//								printf("VIA");
 								if(cycle.operation & Microcycle::Read) {
 									cycle.value->halves.low = via_.get_register(register_address);
 									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
@@ -94,11 +97,11 @@ class ConcreteMachine:
 
 							case 0x6ff0ff:
 								// IWM
-								printf("IWM %d", register_address & 0xf);
+//								printf("IWM %d", register_address & 0xf);
 							break;
 						}
 
-						printf("\n");
+//						printf("\n");
 					}
 				} else {
 					if(cycle.data_select_active()) {
@@ -136,6 +139,7 @@ class ConcreteMachine:
 							break;
 							case Microcycle::SelectWord:
 								memory_base[word_address] = cycle.value->full;
+								printf("%04x -> %06x\n", cycle.value->full, word_address << 1);
 							break;
 							case Microcycle::SelectByte:
 								memory_base[word_address] = uint16_t(
@@ -151,10 +155,6 @@ class ConcreteMachine:
 				}
 			}
 
-			// Any access to the
-
-			// TODO: the entirety of dealing with this cycle.
-
 			/*
 				Normal memory map:
 
@@ -164,19 +164,14 @@ class ConcreteMachine:
 				BFFFF8+:	SCC write operations
 				DFE1FF+:	IWM
 				EFE1FE+:	VIA
-
-				Overlay mode:
-
-				ROM replaces RAM at 00000, while also being at 400000
 			*/
 
 			return HalfCycles(0);
 		}
 
-		/*
-			Notes to self: accesses to the VIA are via the 68000's
-			synchronous bus.
-		*/
+		void flush() {
+			video_.run_for(time_since_video_update_.flush());
+		}
 
 		void set_rom_is_overlay(bool rom_is_overlay) {
 			ROM_is_overlay_ = rom_is_overlay;
@@ -258,6 +253,7 @@ class ConcreteMachine:
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
  		VIAPortHandler via_port_handler_;
  		HalfCycles via_clock_;
+ 		HalfCycles time_since_video_update_;
 
 		bool ROM_is_overlay_ = true;
 };

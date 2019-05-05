@@ -8,7 +8,17 @@
 
 #include "Video.hpp"
 
+#include <algorithm>
+
 using namespace Apple::Macintosh;
+
+namespace {
+
+const HalfCycles line_length(704);
+const int number_of_lines = 370;
+const HalfCycles frame_length(line_length * HalfCycles(number_of_lines));
+
+}
 
 // Re: CRT timings, see the Apple Guide to the Macintosh Hardware Family,
 // bottom of page 400:
@@ -22,11 +32,114 @@ using namespace Apple::Macintosh;
 //	During the vertical blanking interval, the turned-off beam ... traces out an additional 28 scan lines,"
 //
 Video::Video(uint16_t *ram) :
- 	crt_(704, 1, 370, Outputs::Display::ColourSpace::YIQ, 1, 1, 6, false, Outputs::Display::InputDataType::Luminance1) {
+ 	crt_(704, 1, 370, Outputs::Display::ColourSpace::YIQ, 1, 1, 6, false, Outputs::Display::InputDataType::Luminance1),
+ 	ram_(ram) {
+
+ 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeMonochrome);
+	crt_.set_visible_area(Outputs::Display::Rect(0.02f, 0.025f, 0.94f, 0.94f));
 }
 
 void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
+}
+
+void Video::run_for(HalfCycles duration) {
+	const int sync_start = 36;
+	const int sync_end = 38;
+
+	// The number of HalfCycles is literally the number of pixel clocks to move through,
+	// since pixel output occurs at twice the processor clock. So divide by 16 to get
+	// the number of fetches.
+	while(duration > HalfCycles(0)) {
+		auto cycles_left_in_line = std::min(line_length - frame_position_%line_length, duration);
+
+		const int line = (frame_position_ / line_length).as_int();
+		const auto pixel_start = frame_position_ % line_length;
+
+		// Line timing, entirely invented as I can find exactly zero words of documentation:
+		//
+		//	First 342 lines:
+		//
+		//	First 32 words = pixels;
+		//	next 5 words = right border;
+		//	next 2 words = sync level;
+		//	final 5 words = left border.
+		//
+		//	Then 12 lines of border, 3 of sync, 11 more of border.
+
+		const int first_word = pixel_start.as_int() >> 4;
+		const int final_word = (pixel_start + cycles_left_in_line).as_int() >> 4;
+
+		if(first_word != final_word) {
+			if(line < 342) {
+				// If there are any pixels left to output, do so.
+				if(first_word < 32) {
+					const int final_pixel_word = std::min(final_word, 32);
+
+					if(!first_word) {
+						pixel_buffer_ = crt_.begin_data(512);
+					}
+
+					if(pixel_buffer_) {
+						for(int c = first_word; c < final_pixel_word; ++c) {
+							uint16_t pixels = ram_[video_address_];
+							++video_address_;
+
+							pixel_buffer_[0] = pixels & 0x01;
+							pixel_buffer_[1] = pixels & 0x02;
+							pixel_buffer_[2] = pixels & 0x04;
+							pixel_buffer_[3] = pixels & 0x08;
+							pixel_buffer_[4] = pixels & 0x10;
+							pixel_buffer_[5] = pixels & 0x20;
+							pixel_buffer_[6] = pixels & 0x40;
+							pixel_buffer_[7] = pixels & 0x80;
+
+							pixels >>= 8;
+							pixel_buffer_[8] = pixels & 0x01;
+							pixel_buffer_[9] = pixels & 0x02;
+							pixel_buffer_[10] = pixels & 0x04;
+							pixel_buffer_[11] = pixels & 0x08;
+							pixel_buffer_[12] = pixels & 0x10;
+							pixel_buffer_[13] = pixels & 0x20;
+							pixel_buffer_[14] = pixels & 0x40;
+							pixel_buffer_[15] = pixels & 0x80;
+
+							pixel_buffer_ += 16;
+						}
+					}
+
+					if(final_pixel_word == 32) {
+						crt_.output_data(512);
+					}
+				}
+
+				if(first_word < sync_start && final_word >= sync_start)	crt_.output_blank((sync_start - 32) * 16);
+				if(first_word < sync_end && final_word >= sync_end)		crt_.output_sync((sync_end - sync_start) * 16);
+				if(final_word == 44)									crt_.output_blank((44 - sync_end) * 16);
+			} else if(line >= 353 && line < 356) {
+				/* Output a sync line. */
+				if(final_word == 44) {
+					crt_.output_sync(sync_start * 16);
+					crt_.output_blank((sync_end - sync_start) * 16);
+					crt_.output_sync((44 - sync_end) * 16);
+				}
+			} else {
+				/* Output a blank line. */
+				if(final_word == 44) {
+					crt_.output_blank(sync_start * 16);
+					crt_.output_sync((sync_end - sync_start) * 16);
+					crt_.output_blank((44 - sync_end) * 16);
+				}
+			}
+		}
+
+		duration -= cycles_left_in_line;
+		frame_position_ = frame_position_ + cycles_left_in_line;
+		if(frame_position_ == frame_length) {
+			frame_position_ = HalfCycles(0);
+			video_address_ = 0x1a700 >> 1;
+		}
+	}
 }
 
 /*
