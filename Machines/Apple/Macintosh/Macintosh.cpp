@@ -16,6 +16,7 @@
 
 #include "../../../Processors/68000/68000.hpp"
 #include "../../../Components/6522/6522.hpp"
+#include "../../../Components/DiskII/DiskII.hpp"
 
 #include "../../Utility/MemoryPacker.hpp"
 
@@ -31,7 +32,8 @@ class ConcreteMachine:
 		 	mc68000_(*this),
 		 	video_(ram_.data()),
 		 	via_(via_port_handler_),
-		 	via_port_handler_(*this) {
+		 	via_port_handler_(*this),
+		 	iwm_(7833600) {
 
 			// Grab a copy of the ROM and convert it into big-endian data.
 			const auto roms = rom_fetcher("Macintosh", { "mac128k.rom" });
@@ -69,6 +71,9 @@ class ConcreteMachine:
 
 			// SCC is a divide-by-two.
 
+			// The IWM runs at the native rate. (TODO: almost everything here).
+			iwm_.run_for(cycle.length.cycles());
+
 			// A null cycle leaves nothing else to do.
 			if(cycle.operation) {
 				auto word_address = cycle.word_address();
@@ -86,7 +91,6 @@ class ConcreteMachine:
 							case 0x77f0ff:
 								// VIA accesses are via address 0xefe1fe + register*512,
 								// which at word precision is 0x77f0ff + register*256.
-//								printf("VIA");
 								if(cycle.operation & Microcycle::Read) {
 									cycle.value->halves.low = via_.get_register(register_address);
 									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
@@ -97,7 +101,12 @@ class ConcreteMachine:
 
 							case 0x6ff0ff:
 								// IWM
-//								printf("IWM %d", register_address & 0xf);
+								if(cycle.operation & Microcycle::Read) {
+									cycle.value->halves.low = iwm_.read_address(register_address);
+									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+								} else {
+									iwm_.set_data_input(cycle.value->halves.low);
+								}
 							break;
 						}
 
@@ -252,6 +261,9 @@ class ConcreteMachine:
 
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
  		VIAPortHandler via_port_handler_;
+
+		Apple::DiskII iwm_;
+
  		HalfCycles via_clock_;
  		HalfCycles time_since_video_update_;
 
