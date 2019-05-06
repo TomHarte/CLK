@@ -76,9 +76,9 @@ class ConcreteMachine:
 			if(cycle.operation) {
 				auto word_address = cycle.word_address();
 
-				// Hardware devices begin at 0x800000 and accesses to 'them' (i.e. at lest the 6522,
-				// and the other two are a guess) is via the synchronous bus.
-				mc68000_.set_is_peripheral_address(word_address >= 0x400000);
+				// The 6522 is accessed via the synchronous bus.
+				mc68000_.set_is_peripheral_address((word_address & 0x7ff0ff) == 0x77f0ff);
+
 				if(word_address >= 0x400000) {
 					if(cycle.data_select_active()) {
 //						printf("IO access to %06x: ", word_address << 1);
