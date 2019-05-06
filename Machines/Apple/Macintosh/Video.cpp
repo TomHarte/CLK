@@ -35,7 +35,7 @@ Video::Video(uint16_t *ram) :
  	crt_(704, 1, 370, Outputs::Display::ColourSpace::YIQ, 1, 1, 6, false, Outputs::Display::InputDataType::Luminance1),
  	ram_(ram) {
 
- 	crt_.set_display_type(Outputs::Display::DisplayType::CompositeMonochrome);
+ 	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	crt_.set_visible_area(Outputs::Display::Rect(0.02f, 0.025f, 0.94f, 0.94f));
 }
 
