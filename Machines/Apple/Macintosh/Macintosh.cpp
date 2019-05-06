@@ -189,6 +189,10 @@ class ConcreteMachine:
 			ROM_is_overlay_ = rom_is_overlay;
 		}
 
+		void set_use_alternate_screen_buffer(bool use_alternate_screen_buffer) {
+			video_.set_use_alternate_screen_buffer(use_alternate_screen_buffer);
+		}
+
 	private:
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:
@@ -213,8 +217,9 @@ class ConcreteMachine:
 									b3:	0 = use alternate sound buffer, 1 = use ordinary sound buffer
 									b2–b0:	audio output volume
 							*/
-							printf(" w A: %02x", value);
+							printf("6522 A: %02x\n", value);
 							machine_.set_rom_is_overlay(!!(value & 0x10));
+							machine_.set_use_alternate_screen_buffer(!(value & 0x40));
 						break;
 
 						case Port::B:
@@ -229,7 +234,7 @@ class ConcreteMachine:
 									b1:	clock's data-clock line
 									b0:	clock's serial data line
 							*/
-							printf(" w B: %02x", value);
+							printf("6522 B: %02x\n", value);
 						break;
 					}
 				}
@@ -237,18 +242,17 @@ class ConcreteMachine:
 				uint8_t get_port_input(Port port) {
 					switch(port) {
 						case Port::A:
-							printf(" r A");
-						break;
+							printf("6522 r A\n");
+						return 0xff;
 
 						case Port::B:
-							printf(" r B");
-						break;
+							printf("6522 r B\n");
+						return 0x00;
 					}
-					return 0xff;
 				}
 
 				void set_control_line_output(Port port, Line line, bool value) {
-					printf(" l %c%d: %c", port ? 'B' : 'A', int(line), value ? 't' : 'f');
+					printf("6522 line %c%d: %c\n", port ? 'B' : 'A', int(line), value ? 't' : 'f');
 				}
 
 			private:

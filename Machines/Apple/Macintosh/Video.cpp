@@ -137,11 +137,14 @@ void Video::run_for(HalfCycles duration) {
 		frame_position_ = frame_position_ + cycles_left_in_line;
 		if(frame_position_ == frame_length) {
 			frame_position_ = HalfCycles(0);
-			video_address_ = 0x1a700 >> 1;
+			/*
+				Video: $1A700 and the alternate buffer starts at $12700; for a 512K Macintosh, add $60000 to these numbers.
+			*/
+			video_address_ = use_alternate_screen_buffer_ ? (0x12700 >> 1) : (0x1a700 >> 1);
 		}
 	}
 }
 
-/*
-	Video: $1A700 and the alternate buffer starts at $12700; for a 512K Macintosh, add $60000 to these numbers.
-*/
+void Video::set_use_alternate_screen_buffer(bool use_alternate_screen_buffer) {
+	use_alternate_screen_buffer_ = use_alternate_screen_buffer;
+}

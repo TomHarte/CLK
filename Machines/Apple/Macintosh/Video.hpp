@@ -20,6 +20,7 @@ class Video {
 		Video(uint16_t *ram);
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		void run_for(HalfCycles duration);
+		void set_use_alternate_screen_buffer(bool use_alternate_screen_buffer);
 
 		// TODO: feedback on blanks and syncs.
 
@@ -30,6 +31,7 @@ class Video {
 		size_t video_address_;
 		uint16_t *ram_;
 		uint8_t *pixel_buffer_;
+		bool use_alternate_screen_buffer_ = false;
 };
 
 }
