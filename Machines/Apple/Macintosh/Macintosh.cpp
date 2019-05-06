@@ -126,7 +126,7 @@ class ConcreteMachine:
 						if(
 							!(cycle.operation & Microcycle::Read) ||
 							(
-								(ROM_is_overlay_ && word_address >= 0x600000) ||
+								(ROM_is_overlay_ && word_address >= 0x300000) ||
 								(!ROM_is_overlay_ && !(word_address & 0x200000))
 							)
 						) {
@@ -142,18 +142,21 @@ class ConcreteMachine:
 
 							case Microcycle::SelectWord | Microcycle::Read:
 								cycle.value->full = memory_base[word_address];
+//								printf("[%06x] -> %04x\n", word_address << 1, cycle.value->full);
 							break;
 							case Microcycle::SelectByte | Microcycle::Read:
 								cycle.value->halves.low = uint8_t(memory_base[word_address] >> cycle.byte_shift());
+//								printf("[%06x] -> %02x\n", (*cycle.address) & 0xffffff, cycle.value->halves.low);
 							break;
 							case Microcycle::SelectWord:
+//								printf("%04x -> [%06x]\n", cycle.value->full, word_address << 1);
 								memory_base[word_address] = cycle.value->full;
-								printf("%04x -> %06x\n", cycle.value->full, word_address << 1);
 							break;
 							case Microcycle::SelectByte:
+//								printf("%02x -> [%06x]\n", cycle.value->halves.low, (*cycle.address) & 0xffffff);
 								memory_base[word_address] = uint16_t(
 									(cycle.value->halves.low << cycle.byte_shift()) |
-									(memory_base[word_address] & (0xffff ^ cycle.byte_mask()))
+									(memory_base[word_address] & cycle.untouched_byte_mask())
 								);
 							break;
 						}
