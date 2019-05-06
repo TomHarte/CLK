@@ -2380,11 +2380,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::PEA: {
-							const int mode = combined_mode(ea_mode, ea_register);
-							storage_.instructions[instruction].source =
-								(mode == Ind) ?
-									&storage_.address_[ea_register] :
-									&storage_.effective_address_[0];
+							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 
 							storage_.instructions[instruction].destination = &storage_.destination_bus_data_[0];
 							storage_.instructions[instruction].destination_address = &storage_.address_[7];
@@ -2392,6 +2388,7 @@ struct ProcessorStorageConstructor {
 							// Common to all modes: decrement A7.
 							op(int(Action::Decrement4) | MicroOp::DestinationMask);
 
+							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
 								default: continue;
 
@@ -3006,9 +3003,9 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
 								break;
 
-								case l2(Ind, XXXl):			// MOVE (An)[+], (xxx).L
+								case l2(Ind, XXXl):			// MOVE.l (An)[+], (xxx).L
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr np", { ea(0), ea(0) }));
-									op(address_assemble_for_mode(combined_destination_mode));
+									op(address_assemble_for_mode(combined_destination_mode) | MicroOp::DestinationMask);
 									op(Action::PerformOperation, seq("nW+ nw np np", { ea(1), ea(1) }));
 								break;
 
@@ -3310,8 +3307,23 @@ struct ProcessorStorageConstructor {
 						storage_.all_micro_ops_.emplace_back();
 					}
 
-					// Ensure that steps that weren't meant to look terminal aren't terminal.
+					// Ensure that steps that weren't meant to look terminal aren't terminal; also check
+					// for improperly encoded address calculation-type actions.
 					for(auto index = micro_op_start; index < storage_.all_micro_ops_.size() - 1; ++index) {
+
+						// All of the actions below must also nominate a source and/or destination.
+						switch(storage_.all_micro_ops_[index].action) {
+							default: break;
+							case int(Action::CalcD16PC):
+							case int(Action::CalcD8PCXn):
+							case int(Action::CalcD16An):
+							case int(Action::CalcD8AnXn):
+							case int(Action::AssembleWordAddressFromPrefetch):
+							case int(Action::AssembleLongWordAddressFromPrefetch):
+							case int(Action::CopyToEffectiveAddress):
+								assert(false);
+						}
+
 						if(storage_.all_micro_ops_[index].is_terminal()) {
 							storage_.all_micro_ops_[index].bus_program = seq("");
 						}
