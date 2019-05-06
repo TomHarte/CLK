@@ -82,27 +82,27 @@ void Video::run_for(HalfCycles duration) {
 
 					if(pixel_buffer_) {
 						for(int c = first_word; c < final_pixel_word; ++c) {
-							uint16_t pixels = ram_[video_address_];
+							uint16_t pixels = ram_[video_address_] ^ 0xffff;
 							++video_address_;
 
-							pixel_buffer_[0] = pixels & 0x01;
-							pixel_buffer_[1] = pixels & 0x02;
-							pixel_buffer_[2] = pixels & 0x04;
-							pixel_buffer_[3] = pixels & 0x08;
-							pixel_buffer_[4] = pixels & 0x10;
-							pixel_buffer_[5] = pixels & 0x20;
-							pixel_buffer_[6] = pixels & 0x40;
-							pixel_buffer_[7] = pixels & 0x80;
+							pixel_buffer_[15] = pixels & 0x01;
+							pixel_buffer_[14] = pixels & 0x02;
+							pixel_buffer_[13] = pixels & 0x04;
+							pixel_buffer_[12] = pixels & 0x08;
+							pixel_buffer_[11] = pixels & 0x10;
+							pixel_buffer_[10] = pixels & 0x20;
+							pixel_buffer_[9] = pixels & 0x40;
+							pixel_buffer_[8] = pixels & 0x80;
 
 							pixels >>= 8;
-							pixel_buffer_[8] = pixels & 0x01;
-							pixel_buffer_[9] = pixels & 0x02;
-							pixel_buffer_[10] = pixels & 0x04;
-							pixel_buffer_[11] = pixels & 0x08;
-							pixel_buffer_[12] = pixels & 0x10;
-							pixel_buffer_[13] = pixels & 0x20;
-							pixel_buffer_[14] = pixels & 0x40;
-							pixel_buffer_[15] = pixels & 0x80;
+							pixel_buffer_[7] = pixels & 0x01;
+							pixel_buffer_[6] = pixels & 0x02;
+							pixel_buffer_[5] = pixels & 0x04;
+							pixel_buffer_[4] = pixels & 0x08;
+							pixel_buffer_[3] = pixels & 0x10;
+							pixel_buffer_[2] = pixels & 0x20;
+							pixel_buffer_[1] = pixels & 0x40;
+							pixel_buffer_[0] = pixels & 0x80;
 
 							pixel_buffer_ += 16;
 						}

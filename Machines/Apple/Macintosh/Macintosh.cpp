@@ -16,7 +16,7 @@
 
 #include "../../../Processors/68000/68000.hpp"
 #include "../../../Components/6522/6522.hpp"
-#include "../../../Components/DiskII/DiskII.hpp"
+#include "../../../Components/DiskII/IWM.hpp"
 
 #include "../../Utility/MemoryPacker.hpp"
 
@@ -63,6 +63,7 @@ class ConcreteMachine:
 
 		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
 			time_since_video_update_ += cycle.length;
+			time_since_iwm_update_ += cycle.length;
 
 			// Assumption here: it's a divide by ten to derive the 6522 clock, i.e.
 			// it runs off the 68000's E clock.
@@ -70,9 +71,6 @@ class ConcreteMachine:
 			via_.run_for(via_clock_.divide(HalfCycles(10)));
 
 			// SCC is a divide-by-two.
-
-			// The IWM runs at the native rate. (TODO: almost everything here).
-			iwm_.run_for(cycle.length.cycles());
 
 			// A null cycle leaves nothing else to do.
 			if(cycle.operation) {
@@ -100,13 +98,15 @@ class ConcreteMachine:
 							break;
 
 							case 0x6ff0ff:
-								// IWM
+								// The IWM; this is a purely polled device, so can be run on demand.
+								iwm_.run_for(time_since_iwm_update_.flush_cycles());
 								if(cycle.operation & Microcycle::Read) {
-									cycle.value->halves.low = iwm_.read_address(register_address);
+									cycle.value->halves.low = iwm_.read(register_address);
 									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 								} else {
-									iwm_.set_data_input(cycle.value->halves.low);
+									iwm_.write(register_address, cycle.value->halves.low);
 								}
+								printf("IWM %d %c [%02x]\n", register_address & 0xf, (cycle.operation & Microcycle::Read) ? 'r' : 'w', cycle.value->halves.low);
 							break;
 						}
 
@@ -262,10 +262,11 @@ class ConcreteMachine:
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
  		VIAPortHandler via_port_handler_;
 
-		Apple::DiskII iwm_;
+		Apple::IWM iwm_;
 
  		HalfCycles via_clock_;
  		HalfCycles time_since_video_update_;
+ 		HalfCycles time_since_iwm_update_;
 
 		bool ROM_is_overlay_ = true;
 };
