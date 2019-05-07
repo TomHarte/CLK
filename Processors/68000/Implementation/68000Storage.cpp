@@ -1798,7 +1798,7 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
 								break;
 
-								case XXXw:	// BTST.b #, (xxx).w
+								case XXXw:		// BTST.b #, (xxx).w
 								case d16An:		// BTST.b #, (d16, An)
 								case d8AnXn:	// BTST.b #, (d8, An, Xn)
 								case d16PC:		// BTST.b #, (d16, PC)

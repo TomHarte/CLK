@@ -1654,7 +1654,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			(value << shift_count) |	\
 			(value >> (size + 1 - shift_count)) |	\
 			((extend_flag_ ? (1 << (size - 1)) : 0) >> (size - shift_count));	\
-		carry_flag_ = extend_flag_ = destination & 1;	\
+		carry_flag_ = extend_flag_ = (value >> (size - shift_count))&1;	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1683,7 +1683,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			(value >> shift_count) |	\
 			(value << (size + 1 - shift_count)) |	\
 			((extend_flag_ ? 1 : 0) << (size - shift_count));	\
-		carry_flag_ = extend_flag_ = destination & 1;	\
+		carry_flag_ = extend_flag_ = value & (1 << shift_count);	\
 	}	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
