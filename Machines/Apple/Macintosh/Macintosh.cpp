@@ -106,11 +106,16 @@ class ConcreteMachine:
 								} else {
 									iwm_.write(register_address, cycle.value->halves.low);
 								}
-								printf("IWM %d %c [%02x]\n", register_address & 0xf, (cycle.operation & Microcycle::Read) ? 'r' : 'w', cycle.value->halves.low);
+//								printf("IWM %d %c [%02x]\n", register_address & 0xf, (cycle.operation & Microcycle::Read) ? 'r' : 'w', cycle.value->halves.low);
+							break;
+
+							default:
+								if(cycle.operation & Microcycle::Read) {
+									cycle.value->halves.low = 0xff;
+									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+								}
 							break;
 						}
-
-//						printf("\n");
 					}
 				} else {
 					if(cycle.data_select_active()) {
@@ -217,7 +222,7 @@ class ConcreteMachine:
 									b3:	0 = use alternate sound buffer, 1 = use ordinary sound buffer
 									b2–b0:	audio output volume
 							*/
-							printf("6522 A: %02x\n", value);
+//							printf("6522 A: %02x\n", value);
 							machine_.set_rom_is_overlay(!!(value & 0x10));
 							machine_.set_use_alternate_screen_buffer(!(value & 0x40));
 						break;
@@ -234,7 +239,7 @@ class ConcreteMachine:
 									b1:	clock's data-clock line
 									b0:	clock's serial data line
 							*/
-							printf("6522 B: %02x\n", value);
+//							printf("6522 B: %02x\n", value);
 						break;
 					}
 				}
@@ -242,17 +247,17 @@ class ConcreteMachine:
 				uint8_t get_port_input(Port port) {
 					switch(port) {
 						case Port::A:
-							printf("6522 r A\n");
+//							printf("6522 r A\n");
 						return 0xff;
 
 						case Port::B:
-							printf("6522 r B\n");
+//							printf("6522 r B\n");
 						return 0x00;
 					}
 				}
 
 				void set_control_line_output(Port port, Line line, bool value) {
-					printf("6522 line %c%d: %c\n", port ? 'B' : 'A', int(line), value ? 't' : 'f');
+//					printf("6522 line %c%d: %c\n", port ? 'B' : 'A', int(line), value ? 't' : 'f');
 				}
 
 			private:
