@@ -85,8 +85,8 @@ class ConcreteMachine:
 
 						const int register_address = word_address >> 8;
 
-						switch(word_address & 0x7ff0ff) {
-							case 0x77f0ff:
+						switch(word_address & 0x78f000) {
+							case 0x70f000:
 								// VIA accesses are via address 0xefe1fe + register*512,
 								// which at word precision is 0x77f0ff + register*256.
 								if(cycle.operation & Microcycle::Read) {
@@ -97,7 +97,7 @@ class ConcreteMachine:
 								}
 							break;
 
-							case 0x6ff0ff:
+							case 0x68f000:
 								// The IWM; this is a purely polled device, so can be run on demand.
 								iwm_.run_for(time_since_iwm_update_.flush_cycles());
 								if(cycle.operation & Microcycle::Read) {
@@ -110,6 +110,7 @@ class ConcreteMachine:
 							break;
 
 							default:
+								printf("Unrecognised %c [%06x]\n", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address & 0xffffff);
 								if(cycle.operation & Microcycle::Read) {
 									cycle.value->halves.low = 0xff;
 									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
