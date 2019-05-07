@@ -8,6 +8,8 @@
 
 #include "IWM.hpp"
 
+#include <cstdio>
+
 using namespace Apple;
 
 IWM::IWM(int clock_rate) {
@@ -17,8 +19,9 @@ IWM::IWM(int clock_rate) {
 uint8_t IWM::read(int address) {
 	access(address);
 
+//	printf("IWM r %d (%02x)\n", address&0xf, q_switches_);
 	switch(q_switches_) {
-		default:	return 0xff;	// Undefined.
+		default:	return 0x00;	// Undefined.
 
 		case 0x20:	return 0x00;	// Data register.
 

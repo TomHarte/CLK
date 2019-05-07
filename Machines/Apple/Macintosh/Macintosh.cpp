@@ -65,23 +65,22 @@ class ConcreteMachine:
 			time_since_video_update_ += cycle.length;
 			time_since_iwm_update_ += cycle.length;
 
-			// Assumption here: it's a divide by ten to derive the 6522 clock, i.e.
-			// it runs off the 68000's E clock.
+			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
+			// See: Guide to the Macintosh Hardware Family p149 (PDF p188).
 			via_clock_ += cycle.length;
 			via_.run_for(via_clock_.divide(HalfCycles(10)));
 
-			// SCC is a divide-by-two.
+			// TODO: SCC is a divide-by-two.
 
 			// A null cycle leaves nothing else to do.
 			if(cycle.operation) {
 				auto word_address = cycle.word_address();
 
-				// The 6522 is accessed via the synchronous bus.
-				mc68000_.set_is_peripheral_address((word_address & 0x7ff0ff) == 0x77f0ff);
+				// Everything above E0 0000 is signalled as being on the peripheral bus.
+				mc68000_.set_is_peripheral_address(word_address >= 0x700000);
 
 				if(word_address >= 0x400000) {
 					if(cycle.data_select_active()) {
-//						printf("IO access to %06x: ", word_address << 1);
 
 						const int register_address = word_address >> 8;
 
@@ -106,11 +105,9 @@ class ConcreteMachine:
 								} else {
 									iwm_.write(register_address, cycle.value->halves.low);
 								}
-//								printf("IWM %d %c [%02x]\n", register_address & 0xf, (cycle.operation & Microcycle::Read) ? 'r' : 'w', cycle.value->halves.low);
 							break;
 
 							default:
-								printf("Unrecognised %c [%06x]\n", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address & 0xffffff);
 								if(cycle.operation & Microcycle::Read) {
 									cycle.value->halves.low = 0xff;
 									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
@@ -121,45 +118,40 @@ class ConcreteMachine:
 				} else {
 					if(cycle.data_select_active()) {
 						uint16_t *memory_base = nullptr;
+						auto operation = cycle.operation;
 
 						// When ROM overlay is enabled, the ROM begins at both $000000 and $400000,
 						// and RAM is available at $600000.
 						//
 						// Otherwise RAM is mapped at $000000 and ROM from $400000.
-						//
-						// Writes to the RAM area, at least, seem to go to RAM regardless of the ROM
-						// overlay setting, so for now I'm gambling below that writes just always go to RAM.
 						if(
-							!(cycle.operation & Microcycle::Read) ||
-							(
-								(ROM_is_overlay_ && word_address >= 0x300000) ||
-								(!ROM_is_overlay_ && !(word_address & 0x200000))
-							)
+							(ROM_is_overlay_ && word_address >= 0x300000) ||
+							(!ROM_is_overlay_ && word_address < 0x200000)
 						) {
 							memory_base = ram_.data();
 							word_address %= ram_.size();
 						} else {
 							memory_base = rom_.data();
 							word_address %= rom_.size();
+
+							// Disallow writes to ROM.
+							if(!(operation & Microcycle::Read)) operation = 0;
 						}
 
-						switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge)) {
-							default: break;
+						switch(operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge)) {
+							default:
+							break;
 
 							case Microcycle::SelectWord | Microcycle::Read:
 								cycle.value->full = memory_base[word_address];
-//								printf("[%06x] -> %04x\n", word_address << 1, cycle.value->full);
 							break;
 							case Microcycle::SelectByte | Microcycle::Read:
 								cycle.value->halves.low = uint8_t(memory_base[word_address] >> cycle.byte_shift());
-//								printf("[%06x] -> %02x\n", (*cycle.address) & 0xffffff, cycle.value->halves.low);
 							break;
 							case Microcycle::SelectWord:
-//								printf("%04x -> [%06x]\n", cycle.value->full, word_address << 1);
 								memory_base[word_address] = cycle.value->full;
 							break;
 							case Microcycle::SelectByte:
-//								printf("%02x -> [%06x]\n", cycle.value->halves.low, (*cycle.address) & 0xffffff);
 								memory_base[word_address] = uint16_t(
 									(cycle.value->halves.low << cycle.byte_shift()) |
 									(memory_base[word_address] & cycle.untouched_byte_mask())
@@ -263,7 +255,6 @@ class ConcreteMachine:
 
 			private:
 				ConcreteMachine &machine_;
-
 		};
 
 		std::array<uint16_t, 32*1024> rom_;
