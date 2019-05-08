@@ -28,9 +28,9 @@ class Video {
 		Outputs::CRT::CRT crt_;
 
 		HalfCycles frame_position_;
-		size_t video_address_;
-		uint16_t *ram_;
-		uint8_t *pixel_buffer_;
+		size_t video_address_ = 0;
+		uint16_t *ram_ = nullptr;
+		uint8_t *pixel_buffer_ = nullptr;
 		bool use_alternate_screen_buffer_ = false;
 };
 
