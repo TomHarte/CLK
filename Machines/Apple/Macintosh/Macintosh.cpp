@@ -11,6 +11,7 @@
 #include <array>
 
 #include "Video.hpp"
+#include "RealTimeClock.hpp"
 
 #include "../../CRTMachine.hpp"
 
@@ -19,6 +20,12 @@
 #include "../../../Components/DiskII/IWM.hpp"
 
 #include "../../Utility/MemoryPacker.hpp"
+
+namespace {
+
+const int CLOCK_RATE = 7833600;
+
+}
 
 namespace Apple {
 namespace Macintosh {
@@ -32,8 +39,8 @@ class ConcreteMachine:
 		 	mc68000_(*this),
 		 	video_(ram_.data()),
 		 	via_(via_port_handler_),
-		 	via_port_handler_(*this),
-		 	iwm_(7833600) {
+		 	via_port_handler_(*this, clock_),
+		 	iwm_(CLOCK_RATE) {
 
 			// Grab a copy of the ROM and convert it into big-endian data.
 			const auto roms = rom_fetcher("Macintosh", { "mac128k.rom" });
@@ -44,7 +51,7 @@ class ConcreteMachine:
 			Memory::PackBigEndian16(*roms[0], rom_.data());
 
 			// The Mac runs at 7.8336mHz.
-			set_clock_rate(7833600.0);
+			set_clock_rate(double(CLOCK_RATE));
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
@@ -71,6 +78,19 @@ class ConcreteMachine:
 			via_.run_for(via_clock_.divide(HalfCycles(10)));
 
 			// TODO: SCC is a divide-by-two.
+
+			// Consider updating the real-time clock.
+			real_time_clock_ += cycle.length;
+			auto ticks = real_time_clock_.divide_cycles(Cycles(CLOCK_RATE)).as_int();
+			while(ticks--) {
+				clock_.update();
+				// TODO: leave a delay between toggling the input rather than using this coupled hack.
+				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, true);
+				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, false);
+			}
+
+			// Update interrupt input. TODO: move this into a VIA/etc delegate callback?
+			mc68000_.set_interrupt_level( (via_.get_interrupt_line() ? 1 : 0) );
 
 			// A null cycle leaves nothing else to do.
 			if(cycle.operation) {
@@ -192,9 +212,13 @@ class ConcreteMachine:
 		}
 
 	private:
+		class Keyboard {
+			public:
+		};
+
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:
-				VIAPortHandler(ConcreteMachine &machine) : machine_(machine) {}
+				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock) : machine_(machine), clock_(clock) {}
 
 				using Port = MOS::MOS6522::Port;
 				using Line = MOS::MOS6522::Line;
@@ -232,7 +256,8 @@ class ConcreteMachine:
 									b1:	clock's data-clock line
 									b0:	clock's serial data line
 							*/
-//							printf("6522 B: %02x\n", value);
+							if(value & 0x4) clock_.abort();
+							else clock_.set_input(!!(value & 0x2), !!(value & 0x1));
 						break;
 					}
 				}
@@ -245,16 +270,24 @@ class ConcreteMachine:
 
 						case Port::B:
 //							printf("6522 r B\n");
-						return 0x00;
+						return (clock_.get_data() ? 0x02 : 0x00);
 					}
 				}
 
 				void set_control_line_output(Port port, Line line, bool value) {
+					/*
+						Keyboard wiring (I believe):
+						CB2 = data
+						CB1 = clock
+
+						CA2 is used for receiving RTC interrupts.
+					*/
 //					printf("6522 line %c%d: %c\n", port ? 'B' : 'A', int(line), value ? 't' : 'f');
 				}
 
 			private:
 				ConcreteMachine &machine_;
+				RealTimeClock &clock_;
 		};
 
 		std::array<uint16_t, 32*1024> rom_;
@@ -262,6 +295,8 @@ class ConcreteMachine:
 
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 		Video video_;
+
+		RealTimeClock clock_;
 
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
  		VIAPortHandler via_port_handler_;
@@ -271,6 +306,7 @@ class ConcreteMachine:
  		HalfCycles via_clock_;
  		HalfCycles time_since_video_update_;
  		HalfCycles time_since_iwm_update_;
+ 		HalfCycles real_time_clock_;
 
 		bool ROM_is_overlay_ = true;
 };
