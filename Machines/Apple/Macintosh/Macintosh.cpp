@@ -10,8 +10,9 @@
 
 #include <array>
 
-#include "Video.hpp"
+#include "Keyboard.hpp"
 #include "RealTimeClock.hpp"
+#include "Video.hpp"
 
 #include "../../CRTMachine.hpp"
 
@@ -39,7 +40,7 @@ class ConcreteMachine:
 		 	mc68000_(*this),
 		 	video_(ram_.data()),
 		 	via_(via_port_handler_),
-		 	via_port_handler_(*this, clock_),
+		 	via_port_handler_(*this, clock_, keyboard_),
 		 	iwm_(CLOCK_RATE) {
 
 			// Grab a copy of the ROM and convert it into big-endian data.
@@ -212,13 +213,10 @@ class ConcreteMachine:
 		}
 
 	private:
-		class Keyboard {
-			public:
-		};
-
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:
-				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock) : machine_(machine), clock_(clock) {}
+				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard) :
+					machine_(machine), clock_(clock), keyboard_(keyboard) {}
 
 				using Port = MOS::MOS6522::Port;
 				using Line = MOS::MOS6522::Line;
@@ -240,8 +238,9 @@ class ConcreteMachine:
 									b2–b0:	audio output volume
 							*/
 //							printf("6522 A: %02x\n", value);
-							machine_.set_rom_is_overlay(!!(value & 0x10));
+
 							machine_.set_use_alternate_screen_buffer(!(value & 0x40));
+							machine_.set_rom_is_overlay(!!(value & 0x10));
 						break;
 
 						case Port::B:
@@ -277,17 +276,20 @@ class ConcreteMachine:
 				void set_control_line_output(Port port, Line line, bool value) {
 					/*
 						Keyboard wiring (I believe):
-						CB2 = data
-						CB1 = clock
+						CB2 = data		(output)
+						CB1 = clock		(input)
 
 						CA2 is used for receiving RTC interrupts.
+						CA1 is used for receiving vsync maybe?
 					*/
+					if(port == Port::B && line == Line::Two) keyboard_.set_input(value);
 //					printf("6522 line %c%d: %c\n", port ? 'B' : 'A', int(line), value ? 't' : 'f');
 				}
 
 			private:
 				ConcreteMachine &machine_;
 				RealTimeClock &clock_;
+				Keyboard &keyboard_;
 		};
 
 		std::array<uint16_t, 32*1024> rom_;
@@ -297,6 +299,7 @@ class ConcreteMachine:
 		Video video_;
 
 		RealTimeClock clock_;
+		Keyboard keyboard_;
 
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
  		VIAPortHandler via_port_handler_;
