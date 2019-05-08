@@ -71,26 +71,6 @@ class IRQDelegatePortHandler: public PortHandler {
 		Delegate *delegate_ = nullptr;
 };
 
-class MOS6522Base: public MOS6522Storage {
-	public:
-		/// Sets the input value of line @c line on port @c port.
-		void set_control_line_input(Port port, Line line, bool value);
-
-		/// Runs for a specified number of half cycles.
-		void run_for(const HalfCycles half_cycles);
-
-		/// Runs for a specified number of cycles.
-		void run_for(const Cycles cycles);
-
-		/// @returns @c true if the IRQ line is currently active; @c false otherwise.
-		bool get_interrupt_line();
-
-	private:
-		inline void do_phase1();
-		inline void do_phase2();
-		virtual void reevaluate_interrupts() = 0;
-};
-
 /*!
 	Implements a template for emulation of the MOS 6522 Versatile Interface Adaptor ('VIA').
 
@@ -102,7 +82,7 @@ class MOS6522Base: public MOS6522Storage {
 	Consumers should derive their own curiously-recurring-template-pattern subclass,
 	implementing bus communications as required.
 */
-template <class T> class MOS6522: public MOS6522Base {
+template <class T> class MOS6522: public MOS6522Storage {
 	public:
 		MOS6522(T &bus_handler) noexcept : bus_handler_(bus_handler) {}
 		MOS6522(const MOS6522 &) = delete;
@@ -116,7 +96,21 @@ template <class T> class MOS6522: public MOS6522Base {
 		/*! @returns the bus handler. */
 		T &bus_handler();
 
+		/// Sets the input value of line @c line on port @c port.
+		void set_control_line_input(Port port, Line line, bool value);
+
+		/// Runs for a specified number of half cycles.
+		void run_for(const HalfCycles half_cycles);
+
+		/// Runs for a specified number of cycles.
+		void run_for(const Cycles cycles);
+
+		/// @returns @c true if the IRQ line is currently active; @c false otherwise.
+		bool get_interrupt_line();
+
 	private:
+		void do_phase1();
+		void do_phase2();
 		T &bus_handler_;
 
 		uint8_t get_port_input(Port port, uint8_t output_mask, uint8_t output);

@@ -21,7 +21,7 @@ class MOS6522Storage {
 
 		// The registers
 		struct Registers {
-			// "A  low  reset  (RES)  input  clears  all  R6522  internal registers to logic 0"
+			// "A low reset (RES) input clears all R6522 internal registers to logic 0"
 			uint8_t output[2] = {0, 0};
 			uint8_t input[2] = {0, 0};
 			uint8_t data_direction[2] = {0, 0};
@@ -42,6 +42,12 @@ class MOS6522Storage {
 			bool line_one = false;
 			bool line_two = false;
 		} control_inputs_[2];
+
+		enum class HandshakeMode {
+			None,
+			Handshake,
+			Pulse
+		} handshake_modes_[2] = { HandshakeMode::None, HandshakeMode::None };
 
 		bool timer_is_running_[2] = {false, false};
 		bool last_posted_interrupt_status_ = false;
