@@ -11,16 +11,33 @@
 namespace MOS {
 namespace MOS6522 {
 
-template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) {
-	address &= 0xf;
+template <typename T> void MOS6522<T>::access(int address) {
 	switch(address) {
-		case 0x0:	// Write Port B.
-			registers_.output[1] = value;
-			bus_handler_.set_port_output(Port::B, value, registers_.data_direction[1]);
-
-			if(handshake_modes_[0] != HandshakeMode::None) {
+		case 0x0:
+			// In both handshake and pulse modes, CB2 goes low on any read or write of Port B.
+			if(handshake_modes_[1] != HandshakeMode::None) {
 				bus_handler_.set_control_line_output(Port::B, Line::Two, false);
 			}
+		break;
+
+		case 0xf:
+		case 0x1:
+			// In both handshake and pulse modes, CA2 goes low on any read or write of Port A.
+			if(handshake_modes_[0] != HandshakeMode::None) {
+				bus_handler_.set_control_line_output(Port::A, Line::Two, false);
+			}
+		break;
+	}
+}
+
+template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) {
+	address &= 0xf;
+	access(address);
+	switch(address) {
+		case 0x0:	// Write Port B.
+			// Store locally and communicate outwards.
+			registers_.output[1] = value;
+			bus_handler_.set_port_output(Port::B, value, registers_.data_direction[1]);
 
 			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | ((registers_.peripheral_control&0x20) ? 0 : InterruptFlag::CB2ActiveEdge));
 			reevaluate_interrupts();
@@ -73,42 +90,40 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 		case 0xb:
 			registers_.auxiliary_control = value;
 		break;
-		case 0xc:
+		case 0xc: {
 			registers_.peripheral_control = value;
 
-			// TODO: simplify below; trying to avoid improper logging of unimplemented warnings in input mode
-			handshake_modes_[0] = HandshakeMode::None;
-			switch(value & 0x0e) {
-				default: 	LOG("Unimplemented control line CA2 mode " << int((value >> 1)&7));	break;
+			for(int port = 0; port < 2; ++port) {
+				handshake_modes_[port] = HandshakeMode::None;
+				switch(value & 0x0e) {
+					default: break;
 
-				case 0x00:	// Negative interrupt input; set CA2 interrupt on negative CA2 transition, clear on access to Port A register.
-				case 0x02:	// Independent negative interrupt input; set CA2 interrupt on negative transition, don't clear automatically.
-				case 0x04:	// Positive interrupt input; set CA2 interrupt on positive CA2 transition, clear on access to Port A register.
-				case 0x06:	// Independent positive interrupt input; set CA2 interrupt on positive transition, don't clear automatically.
-				break;
+					case 0x00:	// Negative interrupt input; set CA2 interrupt on negative CA2 transition, clear on access to Port A register.
+					case 0x02:	// Independent negative interrupt input; set CA2 interrupt on negative transition, don't clear automatically.
+					case 0x04:	// Positive interrupt input; set CA2 interrupt on positive CA2 transition, clear on access to Port A register.
+					case 0x06:	// Independent positive interrupt input; set CA2 interrupt on positive transition, don't clear automatically.
+					break;
 
-				case 0x08:	// Handshake: set CA2 to low on any read or write of Port A; set to high on an active transition of CA1.
-					handshake_modes_[0] = HandshakeMode::Handshake;
-				break;
+					case 0x08:	// Handshake: set CA2 to low on any read or write of Port A; set to high on an active transition of CA1.
+						handshake_modes_[port] = HandshakeMode::Handshake;
+					break;
 
-				case 0x0a:	// Pulse output: CA2 is low for one cycle following a read or write of Port A.
-					handshake_modes_[0] = HandshakeMode::Pulse;
-				break;
+					case 0x0a:	// Pulse output: CA2 is low for one cycle following a read or write of Port A.
+						handshake_modes_[port] = HandshakeMode::Pulse;
+					break;
 
-				case 0x0c:	// Manual output: CA2 low.
-					bus_handler_.set_control_line_output(Port::A, Line::Two, false);
-				break;
+					case 0x0c:	// Manual output: CA2 low.
+						bus_handler_.set_control_line_output(Port(port), Line::Two, false);
+					break;
 
-				case 0x0e:	// Manual output: CA2 high.
-					bus_handler_.set_control_line_output(Port::A, Line::Two, true);
-				break;
+					case 0x0e:	// Manual output: CA2 high.
+						bus_handler_.set_control_line_output(Port(port), Line::Two, true);
+					break;
+				}
+
+				value >>= 4;
 			}
-			switch(value & 0xe0) {
-				default: 	LOG("Unimplemented control line CB2 mode " << int((value >> 5)&7));	break;
-				case 0xc0:	bus_handler_.set_control_line_output(Port::B, Line::Two, false);	break;
-				case 0xe0:	bus_handler_.set_control_line_output(Port::B, Line::Two, true);		break;
-			}
-		break;
+		} break;
 
 		// Interrupt control
 		case 0xd:
@@ -127,6 +142,7 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 
 template <typename T> uint8_t MOS6522<T>::get_register(int address) {
 	address &= 0xf;
+	access(address);
 	switch(address) {
 		case 0x0:
 			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
@@ -193,8 +209,9 @@ template <typename T> void MOS6522<T>::set_control_line_input(Port port, Line li
 			if(	value != control_inputs_[port].line_one &&
 				value == !!(registers_.peripheral_control & (port ? 0x10 : 0x01))
 			) {
+				// In handshake mode, any transition on C[A/B]1 sets output high on C[A/B]2.
 				if(handshake_modes_[port] == HandshakeMode::Handshake) {
-//					bus_handler_
+					bus_handler_.set_control_line_output(port, Line::Two, true);
 				}
 
 				registers_.interrupt_flags |= port ? InterruptFlag::CB1ActiveEdge : InterruptFlag::CA1ActiveEdge;
@@ -236,6 +253,14 @@ template <typename T> void MOS6522<T>::do_phase2() {
 	if(registers_.next_timer[1] >= 0) {
 		registers_.timer[1] = static_cast<uint16_t>(registers_.next_timer[1]);
 		registers_.next_timer[1] = -1;
+	}
+
+	// In pulse modes, CA2 and CB2 go high again on the next clock edge.
+	if(handshake_modes_[1] == HandshakeMode::Pulse) {
+		bus_handler_.set_control_line_output(Port::B, Line::Two, true);
+	}
+	if(handshake_modes_[0] == HandshakeMode::Pulse) {
+		bus_handler_.set_control_line_output(Port::A, Line::Two, true);
 	}
 }
 
