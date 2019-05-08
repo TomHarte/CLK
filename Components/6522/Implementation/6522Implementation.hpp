@@ -286,6 +286,7 @@ template <typename T> void MOS6522<T>::do_phase1() {
 		timer_is_running_[1] = false;
 
 		// If the shift register is shifting according to this timer, do a shift.
+		// TODO: "shift register is driven by only the low order 8 bits of timer 2"?
 		switch((registers_.auxiliary_control >> 2)&7) {
 			default: 							break;
 			case 1:				shift_in();		break;
