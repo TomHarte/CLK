@@ -78,6 +78,16 @@ class ConcreteMachine:
 			via_clock_ += cycle.length;
 			via_.run_for(via_clock_.divide(HalfCycles(10)));
 
+			// The keyboard also has a clock, albeit a very slow one.
+			// Its clock and data lines are connected to the VIA.
+			keyboard_clock_ += cycle.length;
+			auto keyboard_ticks = keyboard_clock_.divide(HalfCycles(CLOCK_RATE / 100000));
+			if(keyboard_ticks > HalfCycles(0)) {
+				keyboard_.run_for(keyboard_ticks);
+				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::Two, keyboard_.get_data());
+				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, keyboard_.get_clock());
+			}
+
 			// TODO: SCC is a divide-by-two.
 
 			// Consider updating the real-time clock.
@@ -307,9 +317,10 @@ class ConcreteMachine:
 		Apple::IWM iwm_;
 
  		HalfCycles via_clock_;
+ 		HalfCycles real_time_clock_;
+ 		HalfCycles keyboard_clock_;
  		HalfCycles time_since_video_update_;
  		HalfCycles time_since_iwm_update_;
- 		HalfCycles real_time_clock_;
 
 		bool ROM_is_overlay_ = true;
 };
