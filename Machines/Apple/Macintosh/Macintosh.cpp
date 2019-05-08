@@ -165,8 +165,8 @@ class ConcreteMachine:
 							memory_base = rom_.data();
 							word_address %= rom_.size();
 
-							// Disallow writes to ROM.
-							if(!(operation & Microcycle::Read)) operation = 0;
+							// Disallow writes to ROM; also it doesn't mirror above 0x60000, ever.
+							if(!(operation & Microcycle::Read) || word_address >= 0x300000) operation = 0;
 						}
 
 						switch(operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge)) {
@@ -286,14 +286,13 @@ class ConcreteMachine:
 				void set_control_line_output(Port port, Line line, bool value) {
 					/*
 						Keyboard wiring (I believe):
-						CB2 = data		(output)
+						CB2 = data		(input/output)
 						CB1 = clock		(input)
 
 						CA2 is used for receiving RTC interrupts.
 						CA1 is used for receiving vsync maybe?
 					*/
 					if(port == Port::B && line == Line::Two) keyboard_.set_input(value);
-//					printf("6522 line %c%d: %c\n", port ? 'B' : 'A', int(line), value ? 't' : 'f');
 				}
 
 			private:
