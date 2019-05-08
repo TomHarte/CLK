@@ -50,6 +50,7 @@ class MOS6522Storage {
 
 		bool timer_is_running_[2] = {false, false};
 		bool last_posted_interrupt_status_ = false;
+		int shift_bits_remaining_ = 8;
 
 		enum InterruptFlag: uint8_t {
 			CA2ActiveEdge	= 1 << 0,

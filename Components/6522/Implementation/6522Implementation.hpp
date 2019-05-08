@@ -84,7 +84,10 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 		break;
 
 		// Shift
-		case 0xa:	registers_.shift = value;				break;
+		case 0xa:
+			registers_.shift = value;
+			shift_bits_remaining_ = 8;
+		break;
 
 		// Control
 		case 0xb:
@@ -175,7 +178,9 @@ template <typename T> uint8_t MOS6522<T>::get_register(int address) {
 		return registers_.timer[1] & 0x00ff;
 		case 0x9:	return registers_.timer[1] >> 8;
 
-		case 0xa:	return registers_.shift;
+		case 0xa:
+			shift_bits_remaining_ = 8;
+		return registers_.shift;
 
 		case 0xb:	return registers_.auxiliary_control;
 		case 0xc:	return registers_.peripheral_control;
@@ -363,11 +368,21 @@ template <typename T> void MOS6522<T>::set_control_line_output(Port port, Line l
 
 template <typename T> void MOS6522<T>::shift_in() {
 	registers_.shift = uint8_t((registers_.shift << 1) | (control_inputs_[1].lines[1] ? 1 : 0));
+	--shift_bits_remaining_;
+	if(!shift_bits_remaining_) {
+		registers_.interrupt_flags |= InterruptFlag::ShiftRegister;
+		reevaluate_interrupts();
+	}
 }
 
 template <typename T> void MOS6522<T>::shift_out() {
 	set_control_line_output(Port::B, Line::Two, registers_.shift & 0x80);
 	registers_.shift <<= 1;
+	--shift_bits_remaining_;
+	if(!shift_bits_remaining_) {
+		registers_.interrupt_flags |= InterruptFlag::ShiftRegister;
+		reevaluate_interrupts();
+	}
 }
 
 }
