@@ -17,6 +17,8 @@ namespace {
 const HalfCycles line_length(704);
 const int number_of_lines = 370;
 const HalfCycles frame_length(line_length * HalfCycles(number_of_lines));
+const int sync_start = 36;
+const int sync_end = 38;
 
 }
 
@@ -44,8 +46,6 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 void Video::run_for(HalfCycles duration) {
-	const int sync_start = 36;
-	const int sync_end = 38;
 
 	// The number of HalfCycles is literally the number of pixel clocks to move through,
 	// since pixel output occurs at twice the processor clock. So divide by 16 to get
@@ -145,6 +145,18 @@ void Video::run_for(HalfCycles duration) {
 	}
 }
 
+bool Video::vsync() {
+	const int line = (frame_position_ / line_length).as_int();
+	return line >= 353 && line < 356;
+}
+
+bool Video::is_outputting() {
+	const int column = (frame_position_ % line_length).as_int() >> 4;
+	const int line = (frame_position_ / line_length).as_int();
+	return line < 342 && column < 32;
+}
+
 void Video::set_use_alternate_screen_buffer(bool use_alternate_screen_buffer) {
 	use_alternate_screen_buffer_ = use_alternate_screen_buffer;
 }
+

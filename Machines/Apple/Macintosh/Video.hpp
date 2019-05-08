@@ -23,6 +23,8 @@ class Video {
 		void set_use_alternate_screen_buffer(bool use_alternate_screen_buffer);
 
 		// TODO: feedback on blanks and syncs.
+		bool vsync();
+		bool is_outputting();
 
 	private:
 		Outputs::CRT::CRT crt_;

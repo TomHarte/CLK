@@ -40,7 +40,7 @@ class ConcreteMachine:
 		 	mc68000_(*this),
 		 	video_(ram_.data()),
 		 	via_(via_port_handler_),
-		 	via_port_handler_(*this, clock_, keyboard_),
+		 	via_port_handler_(*this, clock_, keyboard_, video_),
 		 	iwm_(CLOCK_RATE) {
 
 			// Grab a copy of the ROM and convert it into big-endian data.
@@ -70,7 +70,7 @@ class ConcreteMachine:
 		using Microcycle = CPU::MC68000::Microcycle;
 
 		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
-			time_since_video_update_ += cycle.length;
+//			time_since_video_update_ += cycle.length;
 			time_since_iwm_update_ += cycle.length;
 
 			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
@@ -99,6 +99,10 @@ class ConcreteMachine:
 				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, true);
 				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, false);
 			}
+
+			// Update the video. TODO: only on demand.
+			video_.run_for(cycle.length);
+			via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, video_.vsync());
 
 			// Update interrupt input. TODO: move this into a VIA/etc delegate callback?
 			mc68000_.set_interrupt_level( (via_.get_interrupt_line() ? 1 : 0) );
@@ -140,7 +144,8 @@ class ConcreteMachine:
 
 							default:
 								if(cycle.operation & Microcycle::Read) {
-									cycle.value->halves.low = 0xff;
+									printf("Unrecognised read %06x\n", *cycle.address & 0xffffff);
+									cycle.value->halves.low = 0x00;
 									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 								}
 							break;
@@ -211,7 +216,7 @@ class ConcreteMachine:
 		}
 
 		void flush() {
-			video_.run_for(time_since_video_update_.flush());
+//			video_.run_for(time_since_video_update_.flush());
 		}
 
 		void set_rom_is_overlay(bool rom_is_overlay) {
@@ -225,8 +230,8 @@ class ConcreteMachine:
 	private:
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:
-				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard) :
-					machine_(machine), clock_(clock), keyboard_(keyboard) {}
+				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, Video &video) :
+					machine_(machine), clock_(clock), keyboard_(keyboard), video_(video) {}
 
 				using Port = MOS::MOS6522::Port;
 				using Line = MOS::MOS6522::Line;
@@ -275,11 +280,13 @@ class ConcreteMachine:
 					switch(port) {
 						case Port::A:
 //							printf("6522 r A\n");
-						return 0xff;
+						return 0x00;	// TODO: b7 = SCC wait/request
 
 						case Port::B:
-//							printf("6522 r B\n");
-						return (clock_.get_data() ? 0x02 : 0x00);
+						return
+							(clock_.get_data() ? 0x02 : 0x00) |
+							(video_.is_outputting() ? 0x00 : 0x40);
+							// TODO: mouse button, y2, x2
 					}
 				}
 
@@ -299,6 +306,7 @@ class ConcreteMachine:
 				ConcreteMachine &machine_;
 				RealTimeClock &clock_;
 				Keyboard &keyboard_;
+				Video &video_;
 		};
 
 		std::array<uint16_t, 32*1024> rom_;
@@ -318,7 +326,8 @@ class ConcreteMachine:
  		HalfCycles via_clock_;
  		HalfCycles real_time_clock_;
  		HalfCycles keyboard_clock_;
- 		HalfCycles time_since_video_update_;
+ 		HalfCycles video_clock_;
+// 		HalfCycles time_since_video_update_;
  		HalfCycles time_since_iwm_update_;
 
 		bool ROM_is_overlay_ = true;
