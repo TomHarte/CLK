@@ -111,6 +111,8 @@ template <class T> class MOS6522: public MOS6522Storage {
 	private:
 		void do_phase1();
 		void do_phase2();
+		void shift_in();
+		void shift_out();
 		T &bus_handler_;
 
 		void access(int address);

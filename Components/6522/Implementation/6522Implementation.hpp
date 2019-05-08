@@ -91,7 +91,7 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 			registers_.auxiliary_control = value;
 		break;
 		case 0xc: {
-			const auto old_peripheral_control = registers_.peripheral_control;
+//			const auto old_peripheral_control = registers_.peripheral_control;
 			registers_.peripheral_control = value;
 
 			int shift = 0;
@@ -208,16 +208,26 @@ template <typename T> void MOS6522<T>::reevaluate_interrupts() {
 template <typename T> void MOS6522<T>::set_control_line_input(Port port, Line line, bool value) {
 	switch(line) {
 		case Line::One:
-			if(	value != control_inputs_[port].lines[line] &&
-				value == !!(registers_.peripheral_control & (port ? 0x10 : 0x01))
-			) {
+			if(	value != control_inputs_[port].lines[line]) {
 				// In handshake mode, any transition on C[A/B]1 sets output high on C[A/B]2.
 				if(handshake_modes_[port] == HandshakeMode::Handshake) {
 					set_control_line_output(port, Line::Two, true);
 				}
 
-				registers_.interrupt_flags |= port ? InterruptFlag::CB1ActiveEdge : InterruptFlag::CA1ActiveEdge;
-				reevaluate_interrupts();
+				// Set the proper transition interrupt bit if enabled.
+				if(value == !!(registers_.peripheral_control & (port ? 0x10 : 0x01))) {
+					registers_.interrupt_flags |= port ? InterruptFlag::CB1ActiveEdge : InterruptFlag::CA1ActiveEdge;
+					reevaluate_interrupts();
+				}
+
+				// If this is a low-to-high transition, consider updating the shift register.
+				if(value) {
+					switch((registers_.auxiliary_control >> 2)&7) {
+						default: 					break;
+						case 3:		shift_in();		break;
+						case 7:		shift_out();	break;
+					}
+				}
 			}
 			control_inputs_[port].lines[line] = value;
 		break;
@@ -269,6 +279,15 @@ template <typename T> void MOS6522<T>::do_phase1() {
 	// IRQ is raised on the half cycle after overflow
 	if((registers_.timer[1] == 0xffff) && !registers_.last_timer[1] && timer_is_running_[1]) {
 		timer_is_running_[1] = false;
+
+		// If the shift register is shifting according to this timer, do a shift.
+		switch((registers_.auxiliary_control >> 2)&7) {
+			default: 							break;
+			case 1:				shift_in();		break;
+			case 4: 			shift_out();	break;
+			case 5:				shift_out();	break;	// TODO: present a clock on CB1.
+		}
+
 		registers_.interrupt_flags |= InterruptFlag::Timer2;
 		reevaluate_interrupts();
 	}
@@ -281,6 +300,13 @@ template <typename T> void MOS6522<T>::do_phase1() {
 			registers_.timer_needs_reload = true;
 		else
 			timer_is_running_[0] = false;
+	}
+
+	// If the shift register is shifting according to the input clock, do a shift.
+	switch((registers_.auxiliary_control >> 2)&7) {
+		default: 					break;
+		case 2:		shift_in();		break;
+		case 6:		shift_out();	break;
 	}
 }
 
@@ -333,6 +359,15 @@ template <typename T> void MOS6522<T>::set_control_line_output(Port port, Line l
 	if(registers_.peripheral_control & (0x08 << (port * 4))) {
 		bus_handler_.set_control_line_output(port, line, value);
 	}
+}
+
+template <typename T> void MOS6522<T>::shift_in() {
+	registers_.shift = uint8_t((registers_.shift << 1) | (control_inputs_[1].lines[1] ? 1 : 0));
+}
+
+template <typename T> void MOS6522<T>::shift_out() {
+	set_control_line_output(Port::B, Line::Two, registers_.shift & 0x80);
+	registers_.shift <<= 1;
 }
 
 }
