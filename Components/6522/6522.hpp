@@ -117,6 +117,10 @@ template <class T> class MOS6522: public MOS6522Storage {
 
 		uint8_t get_port_input(Port port, uint8_t output_mask, uint8_t output);
 		inline void reevaluate_interrupts();
+
+		/// Sets the current intended output value for the port and line;
+		/// if this affects the visible output, it will be passed to the handler.
+		void set_control_line_output(Port port, Line line, bool value, bool was_output = true);
 };
 
 }

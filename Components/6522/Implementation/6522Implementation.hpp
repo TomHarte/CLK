@@ -16,7 +16,7 @@ template <typename T> void MOS6522<T>::access(int address) {
 		case 0x0:
 			// In both handshake and pulse modes, CB2 goes low on any read or write of Port B.
 			if(handshake_modes_[1] != HandshakeMode::None) {
-				bus_handler_.set_control_line_output(Port::B, Line::Two, false);
+				set_control_line_output(Port::B, Line::Two, false);
 			}
 		break;
 
@@ -24,7 +24,7 @@ template <typename T> void MOS6522<T>::access(int address) {
 		case 0x1:
 			// In both handshake and pulse modes, CA2 goes low on any read or write of Port A.
 			if(handshake_modes_[0] != HandshakeMode::None) {
-				bus_handler_.set_control_line_output(Port::A, Line::Two, false);
+				set_control_line_output(Port::A, Line::Two, false);
 			}
 		break;
 	}
@@ -48,7 +48,7 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 			bus_handler_.set_port_output(Port::A, value, registers_.data_direction[0]);
 
 			if(handshake_modes_[1] != HandshakeMode::None) {
-				bus_handler_.set_control_line_output(Port::A, Line::Two, false);
+				set_control_line_output(Port::A, Line::Two, false);
 			}
 
 			registers_.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | ((registers_.peripheral_control&0x02) ? 0 : InterruptFlag::CB2ActiveEdge));
@@ -91,11 +91,13 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 			registers_.auxiliary_control = value;
 		break;
 		case 0xc: {
+			const auto old_peripheral_control = registers_.peripheral_control;
 			registers_.peripheral_control = value;
 
+			int shift = 0;
 			for(int port = 0; port < 2; ++port) {
 				handshake_modes_[port] = HandshakeMode::None;
-				switch(value & 0x0e) {
+				switch((value >> shift) & 0x0e) {
 					default: break;
 
 					case 0x00:	// Negative interrupt input; set CA2 interrupt on negative CA2 transition, clear on access to Port A register.
@@ -113,15 +115,15 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 					break;
 
 					case 0x0c:	// Manual output: CA2 low.
-						bus_handler_.set_control_line_output(Port(port), Line::Two, false);
+						set_control_line_output(Port(port), Line::Two, false);
 					break;
 
 					case 0x0e:	// Manual output: CA2 high.
-						bus_handler_.set_control_line_output(Port(port), Line::Two, true);
+						set_control_line_output(Port(port), Line::Two, true);
 					break;
 				}
 
-				value >>= 4;
+				shift += 4;
 			}
 		} break;
 
@@ -148,7 +150,7 @@ template <typename T> uint8_t MOS6522<T>::get_register(int address) {
 			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | InterruptFlag::CB2ActiveEdge);
 			reevaluate_interrupts();
 		return get_port_input(Port::B, registers_.data_direction[1], registers_.output[1]);
-		case 0xf:	// TODO: handshake, latching
+		case 0xf:
 		case 0x1:
 			registers_.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | InterruptFlag::CA2ActiveEdge);
 			reevaluate_interrupts();
@@ -206,30 +208,29 @@ template <typename T> void MOS6522<T>::reevaluate_interrupts() {
 template <typename T> void MOS6522<T>::set_control_line_input(Port port, Line line, bool value) {
 	switch(line) {
 		case Line::One:
-			if(	value != control_inputs_[port].line_one &&
+			if(	value != control_inputs_[port].lines[line] &&
 				value == !!(registers_.peripheral_control & (port ? 0x10 : 0x01))
 			) {
 				// In handshake mode, any transition on C[A/B]1 sets output high on C[A/B]2.
 				if(handshake_modes_[port] == HandshakeMode::Handshake) {
-					bus_handler_.set_control_line_output(port, Line::Two, true);
+					set_control_line_output(port, Line::Two, true);
 				}
 
 				registers_.interrupt_flags |= port ? InterruptFlag::CB1ActiveEdge : InterruptFlag::CA1ActiveEdge;
 				reevaluate_interrupts();
 			}
-			control_inputs_[port].line_one = value;
+			control_inputs_[port].lines[line] = value;
 		break;
 
 		case Line::Two:
-			// TODO: output modes, but probably elsewhere?
-			if(	value != control_inputs_[port].line_two &&							// i.e. value has changed ...
+			if(	value != control_inputs_[port].lines[line] &&						// i.e. value has changed ...
 				!(registers_.peripheral_control & (port ? 0x80 : 0x08)) &&			// ... and line is input ...
 				value == !!(registers_.peripheral_control & (port ? 0x40 : 0x04))	// ... and it's either high or low, as required
 			) {
 				registers_.interrupt_flags |= port ? InterruptFlag::CB2ActiveEdge : InterruptFlag::CA2ActiveEdge;
 				reevaluate_interrupts();
 			}
-			control_inputs_[port].line_two = value;
+			control_inputs_[port].lines[line] = value;
 		break;
 	}
 }
@@ -257,10 +258,10 @@ template <typename T> void MOS6522<T>::do_phase2() {
 
 	// In pulse modes, CA2 and CB2 go high again on the next clock edge.
 	if(handshake_modes_[1] == HandshakeMode::Pulse) {
-		bus_handler_.set_control_line_output(Port::B, Line::Two, true);
+		set_control_line_output(Port::B, Line::Two, true);
 	}
 	if(handshake_modes_[0] == HandshakeMode::Pulse) {
-		bus_handler_.set_control_line_output(Port::A, Line::Two, true);
+		set_control_line_output(Port::A, Line::Two, true);
 	}
 }
 
@@ -319,6 +320,19 @@ template <typename T> void MOS6522<T>::run_for(const Cycles cycles) {
 template <typename T> bool MOS6522<T>::get_interrupt_line() {
 	uint8_t interrupt_status = registers_.interrupt_flags & registers_.interrupt_enable & 0x7f;
 	return !!interrupt_status;
+}
+
+template <typename T> void MOS6522<T>::set_control_line_output(Port port, Line line, bool value, bool was_output) {
+	// Don't announce an unchanged value.
+	if(control_outputs_[port].lines[line] == value && was_output)
+		return;
+
+	// Store the value as the intended output, announce it only if this
+	// control line is actually in output mode.
+	control_outputs_[port].lines[line] = value;
+	if(registers_.peripheral_control & (0x08 << (port * 4))) {
+		bus_handler_.set_control_line_output(port, line, value);
+	}
 }
 
 }

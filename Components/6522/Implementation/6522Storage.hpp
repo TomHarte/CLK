@@ -39,9 +39,8 @@ class MOS6522Storage {
 
 		// control state
 		struct {
-			bool line_one = false;
-			bool line_two = false;
-		} control_inputs_[2];
+			bool lines[2] = {false, false};
+		} control_inputs_[2], control_outputs_[2];
 
 		enum class HandshakeMode {
 			None,
