@@ -2313,11 +2313,17 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::JSR: {
+							// Ensure a proper source register is connected up for (d16, An) and (d8, An, Xn)-type addressing.
+							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
+
+							// ... but otherwise assume that the true source of a destination will be the computed source address.
 							storage_.instructions[instruction].source = &storage_.effective_address_[0];
+
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
 								default: continue;
 								case Ind:		// JSR (An)
+									// There'll be no computed address, just grab the destination directly from an address register.
 									storage_.instructions[instruction].source = &storage_.address_[ea_register];
 									op(Action::PrepareJSR);
 									op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
