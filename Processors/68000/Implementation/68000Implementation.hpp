@@ -122,6 +122,27 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						}
 					}
 
+#ifdef LOG_TRACE
+					if(!(active_step_->microcycle.operation & Microcycle::IsProgram)) {
+						switch(active_step_->microcycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+							default: break;
+
+							case Microcycle::SelectWord | Microcycle::Read:
+								printf("[%08x -> %04x] ", *active_step_->microcycle.address, active_step_->microcycle.value->full);
+							break;
+							case Microcycle::SelectByte | Microcycle::Read:
+								printf("[%08x -> %02x] ", *active_step_->microcycle.address, active_step_->microcycle.value->halves.low);
+							break;
+							case Microcycle::SelectWord:
+								printf("{%04x -> %08x} ", active_step_->microcycle.value->full, *active_step_->microcycle.address);
+							break;
+							case Microcycle::SelectByte:
+								printf("{%02x -> %08x} ", active_step_->microcycle.value->halves.low, *active_step_->microcycle.address);
+							break;
+						}
+					}
+#endif
+
 					/*
 						PERFORM THE BUS STEP'S ACTION.
 					*/
@@ -196,27 +217,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 				break;
 			}
 
-#ifdef LOG_TRACE
-			if(!(active_step_->microcycle.operation & Microcycle::IsProgram)) {
-				switch(active_step_->microcycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
-					default: break;
-
-					case Microcycle::SelectWord | Microcycle::Read:
-						printf("[%08x -> %04x] ", *active_step_->microcycle.address, active_step_->microcycle.value->full);
-					break;
-					case Microcycle::SelectByte | Microcycle::Read:
-						printf("[%08x -> %02x] ", *active_step_->microcycle.address, active_step_->microcycle.value->halves.low);
-					break;
-					case Microcycle::SelectWord:
-						printf("{%04x -> %08x} ", active_step_->microcycle.value->full, *active_step_->microcycle.address);
-					break;
-					case Microcycle::SelectByte:
-						printf("{%02x -> %08x} ", active_step_->microcycle.value->halves.low, *active_step_->microcycle.address);
-					break;
-				}
-			}
-#endif
-
 		/*
 			FIND THE NEXT MICRO-OP IF UNKNOWN.
 		*/
@@ -278,6 +278,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								// The opcode fetched isn't valid.
 								active_program_ = nullptr;
 								active_micro_op_ = short_exception_micro_ops_;
+
+								// The location of the failed instruction is what should end up on the stack.
+								program_counter_.full -= 4;
 
 								// The vector used depends on whether this is a vanilla unrecognised instruction,
 								// or one on the A or F lines.
