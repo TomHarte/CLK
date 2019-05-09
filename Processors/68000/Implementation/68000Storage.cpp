@@ -2299,9 +2299,9 @@ struct ProcessorStorageConstructor {
 										op(Action::PerformOperation, seq("n nr np nw", { a(ea_register), a(ea_register) }, false));
 									 break;
 
-									 case XXXw:
-										op(Action::None, seq("np"));
 									 case XXXl:
+										op(Action::None, seq("np"));
+									 case XXXw:
 									 case d16An:
 									 case d8AnXn:
 										op(address_action_for_mode(mode) | MicroOp::DestinationMask, seq(pseq("np nrd", mode), { ea(1) } , false));
