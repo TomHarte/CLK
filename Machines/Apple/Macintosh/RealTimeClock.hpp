@@ -82,7 +82,7 @@ class RealTimeClock {
 							result_ = seconds_[address];
 						} else if(address >= 0x10) {
 							result_ = data_[address & 0xf];
-						} else if(address >= 0x8 && address < 0xb) {
+						} else if(address >= 0x8 && address <= 0xb) {
 							result_ = data_[0x10 + (address & 0x3)];
 						}
 					}
@@ -110,7 +110,7 @@ class RealTimeClock {
 								seconds_[address] = value;
 							} else if(address >= 0x10) {
 								data_[address & 0xf] = value;
-							} else if(address >= 0x8 && address < 0xb) {
+							} else if(address >= 0x8 && address <= 0xb) {
 								data_[0x10 + (address & 0x3)] = value;
 							}
 						}
