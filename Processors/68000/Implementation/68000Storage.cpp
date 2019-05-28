@@ -779,9 +779,7 @@ struct ProcessorStorageConstructor {
 #define a(n)		&storage_.address_[n].full
 
 #define bw(x)		(x)
-#define bw2(x, y)	(((x) << 8) | (y))
 #define l(x)		(0x10000 | (x))
-#define l2(x, y)	(0x10000 | ((x) << 8) | (y))
 
 		// Perform a linear search of the mappings above for this instruction.
 		for(ssize_t instruction = 65535; instruction >= 0; --instruction)	{
@@ -804,6 +802,10 @@ struct ProcessorStorageConstructor {
 					// by the few deviations.
 					bool is_byte_access = (op_mode&3) == 0;
 					bool is_long_word_access = (op_mode&3) == 2;
+
+//					if(instruction == 0x206f) {
+//						printf("");
+//					}
 
 #define dec(n) decrement_action(is_long_word_access, is_byte_access, n)
 #define inc(n) increment_action(is_long_word_access, is_byte_access, n)
@@ -2648,12 +2650,6 @@ struct ProcessorStorageConstructor {
 							is_byte_access = mapping.operation == Operation::MOVEb;
 							is_long_word_access = mapping.operation == Operation::MOVEl;
 
-							const int combined_source_mode = combined_mode(ea_mode, ea_register, true, true);
-							const int combined_destination_mode = combined_mode(destination_mode, data_register, true, true);
-							const int mode = is_long_word_access ?
-								l2(combined_source_mode, combined_destination_mode) :
-								bw2(combined_source_mode, combined_destination_mode);
-
 							// If the move is to an address register, switch the MOVE to a MOVEA.
 							// Also: there are no byte moves to address registers.
 							if(destination_mode == An) {
@@ -2666,523 +2662,159 @@ struct ProcessorStorageConstructor {
 							// ... there are also no byte moves from address registers.
 							if(ea_mode == An && is_byte_access) continue;
 
-							switch(mode) {
+							// Perform the MOVE[A]'s fetch..
+							const int combined_source_mode = combined_mode(ea_mode, ea_register, true);
+							switch(is_long_word_access ? l(combined_source_mode) : bw(combined_source_mode)) {
+								default: continue;
 
-							//
-							// MOVE <ea>, Dn
-							// MOVEA <ea>, An
-							//
-
-								case l2(Dn, Dn):		// MOVE[A].l [An/Dn], [An/Dn]
-								case bw2(Dn, Dn):		// MOVE[A].bw [An/Dn], [An/Dn]
-									op(Action::PerformOperation, seq("np"));
+								case l(Dn):			// MOVE[A].l [An/Dn], <ea>
+								case bw(Dn):		// MOVE[A].bw [An/Dn], <ea>
 								break;
 
-								case l2(PreDec, Dn):	// MOVE[A].l -(An), [An/Dn]
-									op(dec(ea_register) | MicroOp::SourceMask, seq("n"));
-								case l2(Ind, Dn):		// MOVE[A].l (An)[+], [An/Dn]
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr np", { ea(0), ea(0) }));
-									op(Action::PerformOperation);
-								break;
-
-								case bw2(Ind, Dn):		// MOVE[A].bw (An)[+], [An/Dn]
-									op(Action::None, seq("nr np", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation);
-								break;
-
-								case bw2(PreDec, Dn):	// MOVE[A].bw -(An), [An/Dn]
-									op(dec(ea_register) | MicroOp::SourceMask, seq("n nr np", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation);
-								break;
-
-								case l2(XXXl, Dn):		// MOVE[A].l (xxx).L, [An/Dn]
-									op(Action::None, seq("np"));
-								case l2(XXXw, Dn):		// MOVE[A].l (xxx).W, [An/Dn]
-								case l2(d16An, Dn):		// MOVE[A].l (d16, An), [An/Dn]
-								case l2(d8AnXn, Dn):	// MOVE[A].l (d8, An, Xn), [An/Dn]
-								case l2(d16PC, Dn):		// MOVE[A].l (d16, PC), [An/Dn]
-								case l2(d8PCXn, Dn):	// MOVE[A].l (d8, PC, Xn), [An/Dn]
-									op(	address_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
-										seq(pseq("np nR+ nr np", combined_source_mode), { ea(0), ea(0) }));
-									op(Action::PerformOperation);
-								break;
-
-								case bw2(XXXl, Dn):		// MOVE[A].bw (xxx).L, [An/Dn]
-									op(Action::None, seq("np"));
-								case bw2(XXXw, Dn):		// MOVE[A].bw (xxx).W, [An/Dn]
-								case bw2(d16An, Dn):	// MOVE[A].bw (d16, An), [An/Dn]
-								case bw2(d8AnXn, Dn):	// MOVE[A].bw (d8, An, Xn), [An/Dn]
-								case bw2(d16PC, Dn):	// MOVE[A].bw (d16, PC), [An/Dn]
-								case bw2(d8PCXn, Dn):	// MOVE[A].bw (d8, PC, Xn), [An/Dn]
-									op(	address_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
-										seq(pseq("np nr np", combined_source_mode), { ea(0) },
-										!is_byte_access));
-									op(Action::PerformOperation);
-								break;
-
-								case l2(Imm, Dn):		// MOVE[A].l #, [An/Dn]
-									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
-									op(Action::None, seq("np"));
-									op(int(Action::PerformOperation), seq("np np"));
-								break;
-
-								case bw2(Imm, Dn):		// MOVE[A].bw #, [An/Dn]
-									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
-									op(int(Action::PerformOperation), seq("np np"));
-								break;
-
-							//
-							// MOVE <ea>, (An)[+]
-							//
-
-								case l2(Dn, Ind):			// MOVE.l [An/Dn], (An)[+]
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
-									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case bw2(Dn, Ind):			// MOVE.bw [An/Dn], (An)[+]
-									op(Action::PerformOperation, seq("nw np", { a(data_register) }, !is_byte_access));
-								break;
-
-								case l2(PreDec, Ind):		// MOVE.l -(An), (An)[+]
-									op(dec(ea_register) | MicroOp::SourceMask, seq("n"));
-								case l2(Ind, Ind):			// MOVE.l (An)[+], (An)[+]
-									op(	int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask | MicroOp::SourceMask,
-										seq("nR+ nr", { ea(0), ea(0) }));
-									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case bw2(Ind, Ind):			// MOVE.bw (An)[+], (An)[+]
-									op(Action::None, seq("nr", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq("nw np", { a(data_register) }, !is_byte_access));
-								break;
-
-								case bw2(PreDec, Ind):		// MOVE.bw -(An), (An)[+]
+								case bw(PreDec):	// MOVE[A].bw -(An), <ea>
 									op(dec(ea_register) | MicroOp::SourceMask, seq("n nr", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq("nw np", { a(data_register) }, !is_byte_access));
 								break;
 
-								case l2(d16An, Ind):		// MOVE.bw (d16, An), (An)[+]
-								case l2(d8AnXn, Ind):		// MOVE.bw (d8, An, Xn), (An)[+]
-								case l2(d16PC, Ind):		// MOVE.bw (d16, PC), (An)[+]
-								case l2(d8PCXn, Ind):		// MOVE.bw (d8, PC, Xn), (An)[+]
-									op( int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
-									op(	calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
-										seq(pseq("np nR+ nr", combined_source_mode), { ea(0), ea(0) }));
-									op(	Action::PerformOperation,
-										seq("nW+ nw np", { ea(1), ea(1) }));
+								case bw(Ind):		// MOVE[A].bw (An), <ea>
+								case bw(PostInc):	// MOVE[A].bw (An)+, <ea>
+									op(Action::None, seq("nr", { a(ea_register) }, !is_byte_access));
+									if(combined_source_mode == PostInc) {
+										op(inc(ea_register) | MicroOp::SourceMask);
+									}
 								break;
 
-								case bw2(XXXl, Ind):		// MOVE.bw (xxx).l, (An)[+]
-									op(	Action::None, seq("np"));
-								case bw2(XXXw, Ind):		// MOVE.bw (xxx).W, (An)[+]
-								case bw2(d16An, Ind):		// MOVE.bw (d16, An), (An)[+]
-								case bw2(d8AnXn, Ind):		// MOVE.bw (d8, An, Xn), (An)[+]
-								case bw2(d16PC, Ind):		// MOVE.bw (d16, PC), (An)[+]
-								case bw2(d8PCXn, Ind):		// MOVE.bw (d8, PC, Xn), (An)[+]
+								case l(PreDec):		// MOVE[A].l -(An), <ea>
+									op(dec(ea_register) | MicroOp::SourceMask, seq("n"));
+								case l(Ind):		// MOVE[A].l (An), <ea>
+								case l(PostInc):	// MOVE[A].l (An)+, <ea>
+									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask,
+										seq("nR+ nr", { ea(0), ea(0) }));
+									if(combined_source_mode == PostInc) {
+										op(inc(ea_register) | MicroOp::SourceMask);
+									}
+								break;
+
+								case bw(XXXl):		// MOVE[A].bw (xxx).L, <ea>
+									op(Action::None, seq("np"));
+								case bw(XXXw):		// MOVE[A].bw (xxx).W, <ea>
+								case bw(d16An):		// MOVE[A].bw (d16, An), <ea>
+								case bw(d8AnXn):	// MOVE[A].bw (d8, An, Xn), <ea>
+								case bw(d16PC):		// MOVE[A].bw (d16, PC), <ea>
+								case bw(d8PCXn):	// MOVE[A].bw (d8, PC, Xn), <ea>
 									op(	address_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
-										seq(pseq("np nr", combined_source_mode), { ea(0) }, !is_byte_access));
-									op(	Action::PerformOperation,
-										seq("nw np", { a(data_register) }, !is_byte_access));
+										seq(pseq("np nr", combined_source_mode), { ea(0) },
+										!is_byte_access));
 								break;
 
-								case l2(XXXl, Ind):			// MOVE.l (xxx).l, (An)[+]
-								case l2(XXXw, Ind):			// MOVE.l (xxx).W, (An)[+]
-									op(	int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask,
-									 	(combined_source_mode == XXXl) ? seq("np") : nullptr);
-									op(	address_assemble_for_mode(combined_source_mode) | MicroOp::SourceMask,
-										seq("np nR+ nr", { ea(0), ea(0) }));
-									op(	Action::PerformOperation,
-										seq("nW+ nw np", { ea(1), ea(1) }));
+								case l(XXXl):		// MOVE[A].l (xxx).L, <ea>
+									op(Action::None, seq("np"));
+								case l(XXXw):		// MOVE[A].l (xxx).W, <ea>
+								case l(d16An):		// MOVE[A].l (d16, An), <ea>
+								case l(d8AnXn):		// MOVE[A].l (d8, An, Xn), <ea>
+								case l(d16PC):		// MOVE[A].l (d16, PC), <ea>
+								case l(d8PCXn):		// MOVE[A].l (d8, PC, Xn), <ea>
+									op(	address_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
+										seq(pseq("np nR+ nr", combined_source_mode), { ea(0), ea(0) }));
 								break;
 
-								case l2(Imm, Ind):			// MOVE.l #, (An)[+]
-									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
-									op( int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("np") );
-									op(	Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }) );
+								case l(Imm):			// MOVE[A].l #, <ea>
+									op(Action::None, seq("np"));
+									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 								break;
 
-								case bw2(Imm, Ind):			// MOVE.bw #, (An)[+]
-									storage_.instructions[instruction].source = &storage_.prefetch_queue_;
-									op(Action::PerformOperation, seq("np nw np", { a(data_register) }, !is_byte_access) );
+								case bw(Imm):			// MOVE[A].bw #, <ea>
+									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
+								break;
+							}
+
+							// Perform the MOVE[A].
+							op(Action::PerformOperation);
+
+							// Perform the MOVE[A]'s store.
+							const int combined_destination_mode = combined_mode(destination_mode, data_register, true);
+							switch(is_long_word_access ? l(combined_destination_mode) : bw(combined_destination_mode)) {
+								default: continue;
+
+								case l(Dn):			// MOVE[A].l <ea>, [An/Dn]
+								case bw(Dn):		// MOVE[A].bw <ea>, [An/Dn]
+									op(Action::None, seq("np"));
 								break;
 
-							//
-							// MOVE <ea>, -(An)
-							//
-
-								case bw2(Dn, PreDec):		// MOVE.bw [An/Dn], -(An)
-									op(Action::PerformOperation);
+								case bw(PreDec):	// MOVE[A].bw <ea>, -(An)
 									op(	dec(data_register) | MicroOp::DestinationMask,
 										seq("np nw", { a(data_register) }, !is_byte_access));
 								break;
 
-								case l2(Dn, PreDec):		// MOVE.l [An/Dn], -(An)
-									op(Action::PerformOperation);
-									op( int(Action::Decrement2) | MicroOp::DestinationMask, seq("np") );
-									op( int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nw- nW", { ea(1), ea(1) } ));
-									op( int(Action::Decrement2) | MicroOp::DestinationMask );
+								case bw(Ind):		// MOVE[A].bw <ea>, (An)
+								case bw(PostInc):	// MOVE[A].bw <ea>, (An)+
+									op(Action::None, seq("nw np", { a(data_register) }, !is_byte_access));
+									if(combined_destination_mode == PostInc) {
+										op(inc(data_register) | MicroOp::DestinationMask);
+									}
 								break;
 
-								// TODO: verify when/where the predecrement occurs everywhere below; it may affect
-								// e.g. MOVE.w -(A6), -(A6)
-
-								case bw2(PreDec, PreDec):	// MOVE.bw -(An), -(An)
-									op(dec(ea_register) | MicroOp::SourceMask, seq("n"));
-								case bw2(Ind, PreDec):		// MOVE.bw (An)[+], -(An)
-									op(dec(data_register) | MicroOp::DestinationMask, seq("nr", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq("np nw", { a(data_register) }, !is_byte_access));
-								break;
-
-								case l2(PreDec, PreDec):	// MOVE.l -(An), -(An)
-									op(dec(ea_register) | MicroOp::SourceMask, seq("n"));
-								case l2(Ind, PreDec):		// MOVE.l (An)[+], -(An)
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) } ));
-									op(Action::PerformOperation);
-									op(int(Action::Decrement2) | MicroOp::DestinationMask, seq("np") );
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nw- nW", { ea(1), ea(1) } ));
-									op(int(Action::Decrement2) | MicroOp::DestinationMask );
-								break;
-
-								case bw2(XXXl, PreDec):		// MOVE.bw (xxx).l, -(An)
-									op(Action::None, seq("np"));
-								case bw2(XXXw, PreDec):		// MOVE.bw (xxx).w, -(An)
-								case bw2(d16An, PreDec):	// MOVE.bw (d16, An), -(An)
-								case bw2(d8AnXn, PreDec):	// MOVE.bw (d8, An, Xn), -(An)
-								case bw2(d16PC, PreDec):	// MOVE.bw (d16, PC), -(An)
-								case bw2(d8PCXn, PreDec):	// MOVE.bw (d8, PC, Xn), -(An)
-									op(	address_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
-										seq(pseq("np nr", combined_source_mode), { ea(0) }, !is_byte_access ));
-									op(Action::PerformOperation);
-									op(dec(data_register) | MicroOp::DestinationMask, seq("np nw", { a(data_register) }, !is_byte_access));
-								break;
-
-								case l2(XXXl, PreDec):		// MOVE.l (xxx).w, -(An)
-									op(Action::None, seq("np"));
-								case l2(XXXw, PreDec):		// MOVE.l (xxx).l, -(An)
-								case l2(d16An, PreDec):		// MOVE.l (d16, An), -(An)
-								case l2(d8AnXn, PreDec):	// MOVE.l (d8, An, Xn), -(An)
-								case l2(d16PC, PreDec):		// MOVE.l (d16, PC), -(An)
-								case l2(d8PCXn, PreDec):	// MOVE.l (d8, PC, Xn), -(An)
-									op(	address_action_for_mode(combined_source_mode) | MicroOp::SourceMask,
-										seq(pseq("np nR+ nr", combined_source_mode), { ea(0), ea(0) } ));
-									op(Action::PerformOperation);
-									op(int(Action::Decrement2) | MicroOp::DestinationMask, seq("np") );
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nw- nW", { ea(1), ea(1) }));
+								case l(PreDec):		// MOVE[A].l <ea>, -(An)
+									op(int(Action::Decrement2) | MicroOp::DestinationMask);
+									op(	int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask,
+										seq("np nw- nW", { ea(1), ea(1) }));
 									op(int(Action::Decrement2) | MicroOp::DestinationMask);
 								break;
 
-								case bw2(Imm, PreDec):		// MOVE.bw #, -(An)
-									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
-									op(Action::PerformOperation);
-									op(dec(data_register) | MicroOp::DestinationMask, seq("np nw", { a(data_register) }, !is_byte_access));
-								break;
-
-								case l2(Imm, PreDec):		// MOVE.l #, -(An)
-									op(Action::None, seq("np"));
-									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
-									op(Action::PerformOperation);
-									op(int(Action::Decrement2) | MicroOp::DestinationMask, seq("np") );
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nw- nW", { ea(1), ea(1) }));
-									op(int(Action::Decrement2) | MicroOp::DestinationMask);
-								break;
-
-							//
-							// MOVE <ea>, (d16, An)
-							// MOVE <ea>, (d8, An, Xn)
-							// MOVE <ea>, (d16, PC)
-							// MOVE <ea>, (d8, PC, Xn)
-							//
-
-#define bw2d(s)	bw2(s, d16An): case bw2(s, d8AnXn)
-#define l2d(s)	l2(s, d16An): case l2(s, d8AnXn)
-
-								case bw2d(Dn):				// MOVE.bw [An/Dn], (d16, An)/(d8, An, Xn)
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
-									op(Action::PerformOperation, seq("nw np", { ea(1) }, !is_byte_access));
-								break;
-
-								case l2d(Dn):				// MOVE.l [An/Dn], (d16, An)/(d8, An, Xn)
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
-									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case bw2d(Ind):				// MOVE.bw (An)[+], (d16, An)/(d8, An, Xn)
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("nr", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq(pseq("np nw np", combined_destination_mode), { ea(1) }, !is_byte_access));
-								break;
-
-								case l2d(Ind):				// MOVE.l (An)[+], (d16, An)/(d8, An, Xn)
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask);
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("nR+ nr", { ea(0), ea(0) }));
-									op(Action::PerformOperation, seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
-								break;
-
-								case bw2d(PreDec):			// MOVE.bw -(An), (d16, An)/(d8, An, Xn)
-									op(dec(ea_register) | MicroOp::SourceMask, seq("n nr", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation);
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("np nw np", { ea(1) }, !is_byte_access));
-								break;
-
-								case l2d(PreDec):			// MOVE.l -(An), (d16, An)/(d8, An, Xn)
-									op(dec(ea_register) | MicroOp::SourceMask, seq("n"));
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) }));
-									op(Action::PerformOperation);
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case bw2d(XXXl):			// MOVE.bw (xxx).l, (d16, An)/(d8, An, Xn)
-									op(Action::None, seq("np"));
-								case bw2d(XXXw):			// MOVE.bw (xxx).w, (d16, An)/(d8, An, Xn)
-								case bw2d(d16An):			// MOVE.bw (d16, An), (d16, An)/(d8, An, Xn)
-								case bw2d(d8AnXn):			// MOVE.bw (d8, An, Xn), (d16, An)/(d8, An, Xn)
-								case bw2d(d16PC):			// MOVE.bw (d16, PC), (d16, An)/(d8, An, Xn)
-								case bw2d(d8PCXn):			// MOVE.bw (d8, PC, xn), (d16, An)/(d8, An, Xn)
-									op(address_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np nr", combined_source_mode), { ea(0) }, !is_byte_access));
-									op(Action::PerformOperation);
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np nw np", combined_destination_mode), { ea(1) }, !is_byte_access));
-								break;
-
-								case l2d(XXXl):				// MOVE.l (xxx).l, (d16, An)/(d8, An, Xn)
-									op(Action::None, seq("np"));
-								case l2d(XXXw):				// MOVE.l (xxx).w, (d16, An)/(d8, An, Xn)
-								case l2d(d16An):			// MOVE.l (d16, An), (d16, An)/(d8, An, Xn)
-								case l2d(d8AnXn):			// MOVE.l (d8, An, Xn), (d16, An)/(d8, An, Xn)
-								case l2d(d16PC):			// MOVE.l (d16, PC), (d16, An)/(d8, An, Xn)
-								case l2d(d8PCXn):			// MOVE.l (d8, PC, xn), (d16, An)/(d8, An, Xn)
-									op(address_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np nR+ nr", combined_source_mode), { ea(0), ea(0) }));
-									op(Action::PerformOperation);
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
-								break;
-
-								case bw2d(Imm):				// MOVE.bw #, (d16, An)/(d8, An, Xn)
-									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
-									op(Action::PerformOperation, seq("nw np", { ea(1) }, !is_byte_access));
-								break;
-
-								case l2d(Imm):				// MOVE.l #, (d16, An)/(d8, An, Xn)
-									op(Action::None, seq("np"));
-									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
-									op(calc_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq(pseq("np", combined_destination_mode)));
-									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-#undef bw2d
-#undef l2d
-
-							//
-							// MOVE <ea>, (xxx).W
-							// MOVE <ea>, (xxx).L
-							//
-
-								case bw2(Dn, XXXl):			// MOVE.bw [An/Dn], (xxx).L
-									op(Action::None, seq("np"));
-								case bw2(Dn, XXXw):			// MOVE.bw [An/Dn], (xxx).W
-									op(address_assemble_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("np"));
-									op(Action::PerformOperation, seq("nw np", { ea(1) }, !is_byte_access));
-								break;
-
-								case l2(Dn, XXXl):			// MOVE.l [An/Dn], (xxx).L
-									op(Action::None, seq("np"));
-								case l2(Dn, XXXw):			// MOVE.l [An/Dn], (xxx).W
-									op(address_assemble_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("np"));
-									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case bw2(Ind, XXXw):		// MOVE.bw (An)[+], (xxx).W
-									op(	address_assemble_for_mode(combined_destination_mode) | MicroOp::DestinationMask,
-										seq("nr np", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq("nw np", { ea(1) }));
-								break;
-
-								case bw2(Ind, XXXl):		// MOVE.bw (An)[+], (xxx).L
-									op(Action::None, seq("nr np", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq("nw np np", { &storage_.prefetch_queue_.full }));
-								break;
-
-								case l2(Ind, XXXw):			// MOVE.l (An)[+], (xxx).W
-									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask,
-										seq("nR+ nr", { ea(0), ea(0) }));
-									op(	address_assemble_for_mode(combined_destination_mode) | MicroOp::DestinationMask,
-										seq("np", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq("nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case l2(Ind, XXXl):			// MOVE.l (An)[+], (xxx).L
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr np", { ea(0), ea(0) }));
-									op(address_assemble_for_mode(combined_destination_mode) | MicroOp::DestinationMask);
-									op(Action::PerformOperation, seq("nW+ nw np np", { ea(1), ea(1) }));
-								break;
-
-								case bw2(PreDec, XXXw):		// MOVE.bw -(An), (xxx).W
-									op( dec(ea_register) | MicroOp::SourceMask);
-									op(	address_assemble_for_mode(combined_destination_mode) | MicroOp::DestinationMask,
-										seq("n nr np", { a(ea_register) }, !is_byte_access));
-									op(Action::PerformOperation, seq("nw np", { ea(1) }, !is_byte_access));
-								break;
-
-								case bw2(PreDec, XXXl):		// MOVE.bw -(An), (xxx).L
-									op(dec(ea_register) | MicroOp::SourceMask, seq("n nr np", { a(ea_register) }, !is_byte_access));
-									op(address_assemble_for_mode(combined_destination_mode) | MicroOp::DestinationMask);
-									op(Action::PerformOperation, seq("nw np np", { ea(1) }, !is_byte_access));
-								break;
-
-								case l2(PreDec, XXXw):		// MOVE.l -(An), (xxx).W
-									op(	dec(ea_register) | MicroOp::SourceMask);
-									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask,
-										seq("n nR+ nr", { ea(0), ea(0) } ));
-									op(	address_assemble_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("np"));
-									op( Action::PerformOperation,
-										seq("np nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case l2(PreDec, XXXl):		// MOVE.l -(An), (xxx).L
-									op(	dec(ea_register) | MicroOp::SourceMask);
-									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask,
-										seq("n nR+ nr np", { ea(0), ea(0) } ));
-									op(	address_assemble_for_mode(combined_destination_mode) | MicroOp::DestinationMask, seq("np"));
-									op( Action::PerformOperation,
-										seq("nW+ nw np np", { ea(1), ea(1) }));
-								break;
-
-								case bw2(d16PC, XXXw):		// MOVE.bw (d16, PC), (xxx).w
-								case bw2(d16An, XXXw):		// MOVE.bw (d16, An), (xxx).w
-								case bw2(d8PCXn, XXXw):		// MOVE.bw (d8, PC, Xn), (xxx).w
-								case bw2(d8AnXn, XXXw):		// MOVE.bw (d8, An, Xn), (xxx).w
-									op(calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np nr", combined_source_mode), { ea(0) }, !is_byte_access));
-									op(Action::PerformOperation);
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { ea(1) }, !is_byte_access));
-								break;
-
-								case bw2(d16PC, XXXl):		// MOVE.bw (d16, PC), (xxx).l
-								case bw2(d16An, XXXl):		// MOVE.bw (d16, An), (xxx).l
-								case bw2(d8PCXn, XXXl):		// MOVE.bw (d8, PC, Xn), (xxx).l
-								case bw2(d8AnXn, XXXl):		// MOVE.bw (d8, An, Xn), (xxx).l
-									op(calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np np nr", combined_source_mode), { ea(0) }, !is_byte_access));
-									op(Action::PerformOperation);
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { ea(1) }, !is_byte_access));
-								break;
-
-								case l2(d16PC, XXXw):		// MOVE.l (d16, PC), (xxx).w
-								case l2(d16An, XXXw):		// MOVE.l (d16, An), (xxx).w
-								case l2(d8PCXn, XXXw):		// MOVE.l (d8, PC, Xn), (xxx).w
-								case l2(d8AnXn, XXXw):		// MOVE.l (d8, An, Xn), (xxx).w
-									op(calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np nR+ nr", combined_source_mode), { ea(0), ea(0) }));
-									op(Action::PerformOperation);
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case l2(d16PC, XXXl):		// MOVE.l (d16, PC), (xxx).l
-								case l2(d16An, XXXl):		// MOVE.l (d16, An), (xxx).l
-								case l2(d8PCXn, XXXl):		// MOVE.l (d8, PC, Xn), (xxx).l
-								case l2(d8AnXn, XXXl):		// MOVE.l (d8, An, Xn), (xxx).l
-									op(calc_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq(pseq("np np nR+ nr", combined_source_mode), { ea(0), ea(0) }));
-									op(Action::PerformOperation);
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case bw2(Imm, XXXw):		// MOVE.bw #, (xxx).w
-									storage_.instructions[instruction].source = &storage_.destination_bus_data_[0];
-									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np"));
-									op(Action::PerformOperation);
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { ea(1) }, !is_byte_access));
-								break;
-
-								case bw2(Imm, XXXl):		// MOVE.bw #, (xxx).l
-									storage_.instructions[instruction].source = &storage_.destination_bus_data_[0];
-									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np np"));
-									op(Action::PerformOperation);
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { ea(1) }, !is_byte_access));
-								break;
-
-								case l2(Imm, XXXw):			// MOVE.l #, (xxx).w
-									storage_.instructions[instruction].source = &storage_.destination_bus_data_[0];
-									op(int(Action::None), seq("np"));
-									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np"));
-									op(Action::PerformOperation);
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case l2(Imm, XXXl):			// MOVE.l #, (xxx).l
-									storage_.instructions[instruction].source = &storage_.destination_bus_data_[0];
-									op(int(Action::None), seq("np"));
-									op(int(Action::AssembleLongWordDataFromPrefetch) | MicroOp::DestinationMask, seq("np np"));
-									op(Action::PerformOperation);
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case bw2(XXXw, XXXw):		// MOVE.bw (xxx).w, (xxx).w
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr", { ea(0) }, !is_byte_access));
-									op(Action::PerformOperation, seq("np"));
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nw np", { ea(1) }, !is_byte_access));
-								break;
-
-								case bw2(XXXl, XXXw):		// MOVE.bw (xxx).l, (xxx).w
-									op(int(Action::None), seq("np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr", { ea(0) }, !is_byte_access));
-									op(Action::PerformOperation);
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nw np", { ea(1) }, !is_byte_access));
-								break;
-
-								case bw2(XXXw, XXXl):		// MOVE.bw (xxx).w, (xxx).L
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr", { ea(0) }, !is_byte_access));
-									op(Action::PerformOperation, seq("np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nw np np", { ea(1) }, !is_byte_access));
-								break;
-
-								case bw2(XXXl, XXXl):		// MOVE.bw (xxx).l, (xxx).l
-									op(int(Action::None), seq("np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nr", { ea(0) }, !is_byte_access));
-									op(Action::PerformOperation, seq("np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nw np np", { ea(1) }, !is_byte_access));
-								break;
-
-								case l2(XXXw, XXXw):		// MOVE.l (xxx).w (xxx).w
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nR+ nr", { ea(0), ea(0) }));
-									op(Action::PerformOperation);
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case l2(XXXl, XXXw):		// MOVE.l (xxx).l, (xxx).w
-									op(int(Action::None), seq("np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask, seq("np nR+ nr", { ea(0), ea(0) }));
-									op(Action::PerformOperation);
-									op(int(Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("np nW+ nw np", { ea(1), ea(1) }));
-								break;
-
-								case l2(XXXl, XXXl):		// MOVE.l (xxx).l, (xxx).l
-									op(int(Action::None), seq("np"));
-								case l2(XXXw, XXXl):		// MOVE.l (xxx).w (xxx).l
-									op(address_action_for_mode(combined_source_mode) | MicroOp::SourceMask, seq("np nR+ nr", { ea(0), ea(0) }));
-									op(Action::PerformOperation, seq("np"));
-									op(int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask, seq("nW+ nw np np", { ea(1), ea(1) }));
-								break;
-
-							//
-							// Default
-							//
-
-								default: continue;
-							}
-
-							// If any post-incrementing was involved, do the post increment(s).
-							if(ea_mode == PostInc || destination_mode == PostInc) {
-								const int ea_inc = inc(ea_register);
-								const int destination_inc = inc(data_register);
-
-								// If there are two increments, and both can be done simultaneously, do that.
-								// Otherwise do one or two individually.
-								if(ea_mode == destination_mode && ea_inc == destination_inc) {
-									op(ea_inc | MicroOp::SourceMask | MicroOp::DestinationMask);
-								} else {
-									if(ea_mode == PostInc) {
-										op(ea_inc | MicroOp::SourceMask);
+								case l(Ind):		// MOVE[A].l <ea>, (An)
+								case l(PostInc):	// MOVE[A].l <ea>, (An)+
+									op(	int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask,
+										seq("nW+ nw np", { ea(1), ea(1) }));
+									if(combined_destination_mode == PostInc) {
+										op(inc(data_register) | MicroOp::DestinationMask);
 									}
-									if(destination_mode == PostInc) {
-										op(destination_inc | MicroOp::DestinationMask);
+								break;
+
+								case bw(XXXw):		// MOVE[A].bw <ea>, (xxx).W
+								case bw(d16An):		// MOVE[A].bw <ea>, (d16, An)
+								case bw(d8AnXn):	// MOVE[A].bw <ea>, (d8, An, Xn)
+									op(	address_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask,
+										seq(pseq("np nw np", combined_destination_mode), { ea(1) },
+										!is_byte_access));
+								break;
+
+								case l(XXXw):		// MOVE[A].l <ea>, (xxx).W
+								case l(d16An):		// MOVE[A].l <ea>, (d16, An)
+								case l(d8AnXn):		// MOVE[A].l <ea>, (d8, An, Xn)
+									op(	address_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask,
+										seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
+								break;
+
+								case bw(XXXl):		// MOVE[A].bw <ea>, (xxx).L
+									op(Action::None, seq("np"));
+									switch(combined_source_mode) {	// The pattern here is a function of source and destination.
+										case Dn:
+										case Imm:
+											op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
+												seq("np nw np", { ea(1) }, !is_byte_access));
+										break;
+
+										default:
+											op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
+												seq("nw np np", { ea(1) }, !is_byte_access));
+										break;
 									}
-								}
+								break;
+
+								case l(XXXl):		// MOVE[A].l <ea>, (xxx).L
+									op(Action::None, seq("np"));
+									switch(combined_source_mode) {	// The pattern here is a function of source and destination.
+										case Dn:
+										case Imm:
+											op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
+												seq("np nW+ nw np", { ea(1), ea(1) }));
+										break;
+
+										default:
+											op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
+												seq("nW+ nw np np", { ea(1), ea(1) }));
+										break;
+									}
+								break;
 							}
 						} break;
 

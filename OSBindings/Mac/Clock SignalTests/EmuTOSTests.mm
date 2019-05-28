@@ -11,7 +11,7 @@
 #include <array>
 #include <cassert>
 
-#define LOG_TRACE
+//#define LOG_TRACE
 
 #include "68000.hpp"
 #include "Comparative68000.hpp"

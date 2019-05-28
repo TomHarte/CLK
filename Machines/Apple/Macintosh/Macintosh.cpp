@@ -16,6 +16,8 @@
 
 #include "../../CRTMachine.hpp"
 
+//#define LOG_TRACE
+
 #include "../../../Processors/68000/68000.hpp"
 #include "../../../Components/6522/6522.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
@@ -144,7 +146,7 @@ class ConcreteMachine:
 
 							default:
 								if(cycle.operation & Microcycle::Read) {
-									printf("Unrecognised read %06x\n", *cycle.address & 0xffffff);
+//									printf("Unrecognised read %06x\n", *cycle.address & 0xffffff);
 									cycle.value->halves.low = 0x00;
 									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 								}
