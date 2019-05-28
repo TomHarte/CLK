@@ -48,7 +48,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	const HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
 
 #ifdef LOG_TRACE
-						static bool should_log = true;
+						static bool should_log = false;
 #endif
 
 	// This loop counts upwards rather than downwards because it simplifies calculation of
@@ -272,12 +272,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-//							should_log |= ((program_counter_.full - 4) == 0x405054);
+//							should_log |= ((program_counter_.full - 4) == 0x4058d8);
 #endif
-
-							if(decoded_instruction_.full == 0x206f) {
-								printf("");
-							}
 
 							if(instructions[decoded_instruction_.full].micro_operations) {
 								if(instructions[decoded_instruction_.full].requires_supervisor && !is_supervisor_) {
@@ -1368,7 +1364,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								break;
 
 								case Operation::UNLINK:
-									address_[7].full = effective_address_[1].full;
+									address_[7].full = effective_address_[1].full + 2;
 									active_program_->destination->full = destination_bus_data_[0].full;
 								break;
 
