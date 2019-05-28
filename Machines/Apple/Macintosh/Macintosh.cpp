@@ -176,8 +176,17 @@ class ConcreteMachine:
 							if(!(operation & Microcycle::Read) || word_address >= 0x300000) operation = 0;
 						}
 
-						switch(operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge)) {
+						const auto masked_operation = operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge);
+						switch(masked_operation) {
 							default:
+							break;
+
+							// Catches the deliberation set of operation to 0 above.
+							case 0: break;
+
+							case Microcycle::InterruptAcknowledge | Microcycle::SelectByte:
+								// The Macintosh uses autovectored interrupts.
+								mc68000_.set_is_peripheral_address(true);
 							break;
 
 							case Microcycle::SelectWord | Microcycle::Read:

@@ -272,7 +272,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-//							should_log |= ((program_counter_.full - 4) == 0x4058d8);
+							should_log |= ((program_counter_.full - 4) == 0x4058d8);
 #endif
 
 							if(instructions[decoded_instruction_.full].micro_operations) {
@@ -1859,6 +1859,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						break;
 
 						case int(MicroOp::Action::PrepareINTVector):
+							// Let bus error go back to causing exceptions.
+							is_starting_interrupt_ = false;
+
 							// Bus error => spurious interrupt.
 							if(bus_error_) {
 								effective_address_[0].full = 24 << 2;
@@ -1873,9 +1876,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 							// Otherwise, the vector is whatever we were just told it is.
 							effective_address_[0].full = source_bus_data_[0].halves.low.halves.low << 2;
-
-							// Let bus error go back to causing exceptions.
-							is_starting_interrupt_ = false;
 						break;
 
 						case int(MicroOp::Action::CopyNextWord):
