@@ -272,7 +272,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-							should_log |= ((program_counter_.full - 4) == 0x4058d8);
+							should_log |= ((program_counter_.full - 4) == 0x40103e);
 #endif
 
 							if(instructions[decoded_instruction_.full].micro_operations) {
@@ -1855,7 +1855,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							// acknowledge cycle, with the low bit set since a real 68000 uses the lower
 							// data strobe to collect the corresponding vector byte.
 							accepted_interrupt_level_ = interrupt_level_ =  bus_interrupt_level_;
-							effective_address_[0].full = 1 | (accepted_interrupt_level_ << 1);
+							effective_address_[0].full = 1 | uint32_t(accepted_interrupt_level_ << 1);
 						break;
 
 						case int(MicroOp::Action::PrepareINTVector):
@@ -1870,12 +1870,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 							// Valid peripheral address => autovectored interrupt.
 							if(is_peripheral_address_) {
-								effective_address_[0].full = (24 + accepted_interrupt_level_) << 2;
+								effective_address_[0].full = uint32_t(24 + accepted_interrupt_level_) << 2;
 								break;
 							}
 
 							// Otherwise, the vector is whatever we were just told it is.
-							effective_address_[0].full = source_bus_data_[0].halves.low.halves.low << 2;
+							effective_address_[0].full = uint32_t(source_bus_data_[0].halves.low.halves.low << 2);
 						break;
 
 						case int(MicroOp::Action::CopyNextWord):
