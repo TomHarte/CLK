@@ -606,7 +606,7 @@ struct ProcessorStorageConstructor {
 			{0xf000, 0x6000, Operation::Bcc, Decoder::Bcc_BSR},	// 4-25 (p129) and 4-59 (p163)
 
 			{0xf1c0, 0x41c0, Operation::MOVEAl, Decoder::LEA},	// 4-110 (p214)
-			{0xffc0, 0x4840, Operation::MOVEAl, Decoder::PEA},	// 4-159 (p263)
+			{0xffc0, 0x4840, Operation::PEA, Decoder::PEA},		// 4-159 (p263)
 
 			{0xf100, 0x7000, Operation::MOVEq, Decoder::MOVEq},	// 4-134 (p238)
 
@@ -803,7 +803,7 @@ struct ProcessorStorageConstructor {
 					bool is_byte_access = (op_mode&3) == 0;
 					bool is_long_word_access = (op_mode&3) == 2;
 
-//					if(instruction == 0x206f) {
+//					if(instruction == 0xbd50) {
 //						printf("");
 //					}
 
@@ -993,7 +993,7 @@ struct ProcessorStorageConstructor {
 
 									case bw(Ind):		// [AND/OR/EOR].bw Dn, (An)
 									case bw(PostInc):	// [AND/OR/EOR].bw Dn, (An)+
-										op(Action::None, seq("nr", { a(ea_register) }, !is_byte_access));
+										op(Action::None, seq("nrd", { a(ea_register) }, !is_byte_access));
 										op(Action::PerformOperation, seq("np nw", { a(ea_register) }, !is_byte_access));
 										if(mode == PostInc) {
 											op(inc(ea_register) | MicroOp::DestinationMask);
@@ -2388,8 +2388,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::PEA: {
-							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
-
+							storage_.instructions[instruction].set_source(storage_, An, ea_register);
 							storage_.instructions[instruction].destination = &storage_.destination_bus_data_[0];
 							storage_.instructions[instruction].destination_address = &storage_.address_[7];
 
@@ -2401,13 +2400,13 @@ struct ProcessorStorageConstructor {
 								default: continue;
 
 								case Ind:		// PEA (An)
+									operation = Operation::MOVEAl;
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
 									op(Action::PerformOperation, seq("np nW+ nw", { ea(1), ea(1) }));
 								break;
 
 								case XXXl:		// PEA (XXX).l
 								case XXXw:		// PEA (XXX).w
-									storage_.instructions[instruction].source = &storage_.effective_address_[0];
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, (mode == XXXl) ? seq("np") : nullptr);
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
 									op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
@@ -2417,7 +2416,6 @@ struct ProcessorStorageConstructor {
 								case d16PC:		// PEA (d16, PC)
 								case d8AnXn:	// PEA (d8, An, Xn)
 								case d8PCXn:	// PEA (d8, PC, Xn)
-									storage_.instructions[instruction].source = &storage_.effective_address_[0];
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
 									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np", mode)));
 									op(Action::PerformOperation, seq(pseq("np nW+ nw", mode), { ea(1), ea(1) }));

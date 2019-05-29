@@ -92,6 +92,7 @@ class ProcessorStorage {
 
 			MOVEb,	MOVEw,	MOVEl,	MOVEq,
 			MOVEAw,	MOVEAl,
+			PEA,
 
 			MOVEtoSR, MOVEfromSR,
 			MOVEtoCCR,

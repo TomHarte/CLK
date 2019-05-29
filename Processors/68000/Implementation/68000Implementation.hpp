@@ -279,7 +279,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-							should_log |= ((program_counter_.full - 4) == 0x4058dc);	// 0x40103e
+							should_log |= (program_counter_.full - 4) == 0x405350;
 #endif
 
 							if(instructions[decoded_instruction_.full].micro_operations) {
@@ -801,6 +801,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::MOVEAl:
 									active_program_->destination->full = active_program_->source->full;
+								break;
+
+								case Operation::PEA:
+									destination_bus_data_[0] = effective_address_[0];
 								break;
 
 								/*
