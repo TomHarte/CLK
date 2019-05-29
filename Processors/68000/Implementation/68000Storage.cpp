@@ -407,7 +407,8 @@ struct ProcessorStorageConstructor {
 		encountered with the respective value from @c values.
 	*/
 	void replace_write_values(BusStep *start, const std::vector<RegisterPair16 *> &values) {
-		assert(replace_write_values(start, values.begin()) == values.end());
+		const auto end = replace_write_values(start, values.begin());
+		assert(end == values.end());
 	}
 
 	/*!
@@ -3049,7 +3050,7 @@ struct ProcessorStorageConstructor {
 		storage_.interrupt_micro_ops_ = &storage_.all_micro_ops_[interrupt_pointer];
 		link_operations(storage_.interrupt_micro_ops_, &arbitrary_base);
 
-		printf("%lu total steps\n", storage_.all_bus_steps_.size());
+		std::cout << storage_.all_bus_steps_.size() << " total steps" << std::endl;
 	}
 
 	private:
