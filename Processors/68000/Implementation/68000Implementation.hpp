@@ -261,6 +261,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #endif
 
 							decoded_instruction_.full = prefetch_queue_.halves.high.full;
+
+#ifndef NDEBUG
+							/* Debugging feature: reset the effective addresses and data latches, so that it's
+							more obvious if some of the instructions aren't properly feeding them. */
+							effective_address_[0].full = effective_address_[1].full = source_bus_data_[0].full = destination_bus_data_[0].full = 0x12344321;
+#endif
+
 #ifdef LOG_TRACE
 							if(should_log) {
 								std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_.full << '\t';
@@ -272,7 +279,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-							should_log |= ((program_counter_.full - 4) == 0x40103e);
+							should_log |= ((program_counter_.full - 4) == 0x4058dc);	// 0x40103e
 #endif
 
 							if(instructions[decoded_instruction_.full].micro_operations) {

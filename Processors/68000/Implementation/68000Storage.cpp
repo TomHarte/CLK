@@ -2407,6 +2407,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// PEA (XXX).l
 								case XXXw:		// PEA (XXX).w
+									storage_.instructions[instruction].source = &storage_.effective_address_[0];
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, (mode == XXXl) ? seq("np") : nullptr);
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
 									op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
@@ -2416,6 +2417,7 @@ struct ProcessorStorageConstructor {
 								case d16PC:		// PEA (d16, PC)
 								case d8AnXn:	// PEA (d8, An, Xn)
 								case d8PCXn:	// PEA (d8, PC, Xn)
+									storage_.instructions[instruction].source = &storage_.effective_address_[0];
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
 									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np", mode)));
 									op(Action::PerformOperation, seq(pseq("np nW+ nw", mode), { ea(1), ea(1) }));
