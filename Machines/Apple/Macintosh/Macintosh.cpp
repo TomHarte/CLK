@@ -42,7 +42,7 @@ class ConcreteMachine:
 		 	mc68000_(*this),
 		 	video_(ram_.data()),
 		 	via_(via_port_handler_),
-		 	via_port_handler_(*this, clock_, keyboard_, video_),
+		 	via_port_handler_(*this, clock_, keyboard_, video_, iwm_),
 		 	iwm_(CLOCK_RATE) {
 
 			// Grab a copy of the ROM and convert it into big-endian data.
@@ -73,7 +73,7 @@ class ConcreteMachine:
 
 		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
 //			time_since_video_update_ += cycle.length;
-			time_since_iwm_update_ += cycle.length;
+			iwm_.time_since_update += cycle.length;
 
 			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
 			// See: Guide to the Macintosh Hardware Family p149 (PDF p188).
@@ -135,12 +135,12 @@ class ConcreteMachine:
 
 							case 0x68f000:
 								// The IWM; this is a purely polled device, so can be run on demand.
-								iwm_.run_for(time_since_iwm_update_.flush_cycles());
+								iwm_.flush();
 								if(cycle.operation & Microcycle::Read) {
-									cycle.value->halves.low = iwm_.read(register_address);
+									cycle.value->halves.low = iwm_.iwm.read(register_address);
 									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 								} else {
-									iwm_.write(register_address, cycle.value->halves.low);
+									iwm_.iwm.write(register_address, cycle.value->halves.low);
 								}
 							break;
 
@@ -239,10 +239,21 @@ class ConcreteMachine:
 		}
 
 	private:
+		struct IWM {
+			IWM(int clock_rate) : iwm(clock_rate) {}
+
+			Apple::IWM iwm;
+			HalfCycles time_since_update;
+
+			void flush() {
+				iwm.run_for(time_since_update.flush_cycles());
+			}
+		};
+
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:
-				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, Video &video) :
-					machine_(machine), clock_(clock), keyboard_(keyboard), video_(video) {}
+				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, Video &video, IWM &iwm) :
+					machine_(machine), clock_(clock), keyboard_(keyboard), video_(video), iwm_(iwm) {}
 
 				using Port = MOS::MOS6522::Port;
 				using Line = MOS::MOS6522::Line;
@@ -265,8 +276,13 @@ class ConcreteMachine:
 							*/
 //							printf("6522 A: %02x\n", value);
 
+							iwm_.flush();
+							iwm_.iwm.set_select(!(value & 0x20));
+
 							machine_.set_use_alternate_screen_buffer(!(value & 0x40));
 							machine_.set_rom_is_overlay(!!(value & 0x10));
+
+							// TODO: alternate sound buffer, and audio output volume.
 						break;
 
 						case Port::B:
@@ -283,6 +299,8 @@ class ConcreteMachine:
 							*/
 							if(value & 0x4) clock_.abort();
 							else clock_.set_input(!!(value & 0x2), !!(value & 0x1));
+
+							// TODO: sound enabled/disabled.
 						break;
 					}
 				}
@@ -318,6 +336,7 @@ class ConcreteMachine:
 				RealTimeClock &clock_;
 				Keyboard &keyboard_;
 				Video &video_;
+				IWM &iwm_;
 		};
 
 		std::array<uint16_t, 32*1024> rom_;
@@ -332,7 +351,7 @@ class ConcreteMachine:
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
  		VIAPortHandler via_port_handler_;
 
-		Apple::IWM iwm_;
+		IWM iwm_;
 
  		HalfCycles via_clock_;
  		HalfCycles real_time_clock_;

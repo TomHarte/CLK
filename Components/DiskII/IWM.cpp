@@ -19,7 +19,7 @@ IWM::IWM(int clock_rate) {
 uint8_t IWM::read(int address) {
 	access(address);
 
-//	printf("IWM r %d (%02x)\n", address&0xf, q_switches_);
+	printf("IWM r %d (%02x)\n", address&0xf, q_switches_);
 	switch(q_switches_) {
 		default:	return 0x00;	// Undefined.
 
@@ -38,6 +38,7 @@ uint8_t IWM::read(int address) {
 void IWM::write(int address, uint8_t input) {
 	access(address);
 
+	printf("IWM w %d (%02x)\n", address&0xf);
 	switch(q_switches_) {
 		default:
 		break;
@@ -67,4 +68,8 @@ void IWM::access(int address) {
 }
 
 void IWM::run_for(const Cycles cycles) {
+}
+
+void IWM::set_select(bool enabled) {
+	printf("IWM s %d\n", int(enabled));
 }

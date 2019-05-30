@@ -29,6 +29,11 @@ class IWM {
 		*/
 		uint8_t read(int address);
 
+		/*!
+			Sets the current input of the IWM's SEL line.
+		*/
+		void set_select(bool enabled);
+
 		/// Advances the controller by @c cycles.
 		void run_for(const Cycles cycles);
 
