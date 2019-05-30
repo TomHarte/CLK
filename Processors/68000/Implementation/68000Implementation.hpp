@@ -179,7 +179,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					// If an interrupt (TODO: or reset) has finally arrived that will be serviced,
 					// exit the STOP.
 					if(bus_interrupt_level_ > interrupt_level_) {
-						// TODO: schedule interrupt right here.
 						execution_state_ = ExecutionState::BeginInterrupt;
 						continue;
 					}
@@ -215,6 +214,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 				continue;
 
 				case ExecutionState::BeginInterrupt:
+#ifdef LOG_TRACE
+					should_log = true;
+#endif
 					active_program_ = nullptr;
 					active_micro_op_ = interrupt_micro_ops_;
 					execution_state_ = ExecutionState::Executing;
@@ -281,7 +283,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-							should_log |= (program_counter_.full - 4) == 0x405350;
+							should_log |= (program_counter_.full - 4) == 0x405984;
 #endif
 
 							if(instructions[decoded_instruction_.full].micro_operations) {
@@ -1869,6 +1871,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							// data strobe to collect the corresponding vector byte.
 							accepted_interrupt_level_ = interrupt_level_ =  bus_interrupt_level_;
 							effective_address_[0].full = 1 | uint32_t(accepted_interrupt_level_ << 1);
+
+							// Recede the program counter to where it would have been were there no
+							// prefetch; that's where the reading stream should pick up upon RTE.
+							program_counter_.full -= 4;
 						break;
 
 						case int(MicroOp::Action::PrepareINTVector):
