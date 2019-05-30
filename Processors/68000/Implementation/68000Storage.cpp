@@ -406,7 +406,7 @@ struct ProcessorStorageConstructor {
 		Walks through the sequence of bus steps beginning at @c start, replacing the value supplied for each write
 		encountered with the respective value from @c values.
 	*/
-	void replace_write_values(BusStep *start, const std::vector<RegisterPair16 *> &values) {
+	void replace_write_values(BusStep *start, const std::initializer_list<RegisterPair16 *> &values) {
 		const auto end = replace_write_values(start, values.begin());
 		assert(end == values.end());
 	}
@@ -415,7 +415,7 @@ struct ProcessorStorageConstructor {
 		Walks through the sequence of micro-ops beginning at @c start, replacing the value supplied for each write
 		encountered in each micro-op's bus steps with the respective value from @c values.
 	*/
-	void replace_write_values(ProcessorBase::MicroOp *start, const std::vector<RegisterPair16 *> &values) {
+	void replace_write_values(ProcessorBase::MicroOp *start, const std::initializer_list<RegisterPair16 *> &values) {
 		auto value = values.begin();
 		while(!start->is_terminal()) {
 			value = replace_write_values(start->bus_program, value);
@@ -543,7 +543,7 @@ struct ProcessorStorageConstructor {
 
 			NB: a vector is used to allow easy iteration.
 		*/
-		const std::vector<PatternMapping> mappings = {
+		const std::initializer_list<PatternMapping> mappings = {
 			{0xf1f0, 0xc100, Operation::ABCD, Decoder::ABCD_SBCD},			// 4-3 (p107)
 			{0xf1f0, 0x8100, Operation::SBCD, Decoder::ABCD_SBCD},			// 4-171 (p275)
 			{0xffc0, 0x4800, Operation::NBCD, Decoder::MOVEfromSR_NBCD},	// 4-142 (p246)
@@ -3056,7 +3056,7 @@ struct ProcessorStorageConstructor {
 	private:
 		ProcessorStorage &storage_;
 
-		std::vector<RegisterPair16 *>::const_iterator replace_write_values(BusStep *start, std::vector<RegisterPair16 *>::const_iterator value) {
+		std::initializer_list<RegisterPair16 *>::const_iterator replace_write_values(BusStep *start, std::initializer_list<RegisterPair16 *>::const_iterator value) {
 			while(!start->is_terminal()) {
 				// Look for any bus step that writes. Then replace its value, and that of the cycle before it.
 				if(start->microcycle.data_select_active() && !(start->microcycle.operation & Microcycle::Read) && !(start->microcycle.operation & Microcycle::InterruptAcknowledge)) {
