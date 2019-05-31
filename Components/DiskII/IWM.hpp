@@ -42,7 +42,7 @@ class IWM {
 		bool read_write_ready_ = true;
 		bool write_overran_ = false;
 
-		int q_switches_ = 0;
+		int state_ = 0;
 
 		void access(int address);
 };
