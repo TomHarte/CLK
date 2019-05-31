@@ -1,4 +1,9 @@
 import glob
+import sys
+
+# establish UTF-8 encoding
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 # create build environment
 env = Environment()
