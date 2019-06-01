@@ -11,6 +11,7 @@
 #include <array>
 
 #include "DeferredAudio.hpp"
+#include "DriveSpeedAccumulator.hpp"
 #include "Keyboard.hpp"
 #include "RealTimeClock.hpp"
 #include "Video.hpp"
@@ -41,10 +42,10 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const ROMMachine::ROMFetcher &rom_fetcher) :
 		 	mc68000_(*this),
-		 	video_(ram_.data(), audio_),
+		 	iwm_(CLOCK_RATE),
+		 	video_(ram_.data(), audio_, drive_speed_accumulator_),
 		 	via_(via_port_handler_),
-		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_),
-		 	iwm_(CLOCK_RATE) {
+		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_) {
 
 			// Grab a copy of the ROM and convert it into big-endian data.
 			const auto roms = rom_fetcher("Macintosh", { "mac128k.rom" });
@@ -367,6 +368,9 @@ class ConcreteMachine:
 
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 
+		DriveSpeedAccumulator drive_speed_accumulator_;
+		IWM iwm_;
+
 		DeferredAudio audio_;
 		Video video_;
 
@@ -375,8 +379,6 @@ class ConcreteMachine:
 
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
  		VIAPortHandler via_port_handler_;
-
-		IWM iwm_;
 
  		HalfCycles via_clock_;
  		HalfCycles real_time_clock_;

@@ -12,13 +12,14 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "DeferredAudio.hpp"
+#include "DriveSpeedAccumulator.hpp"
 
 namespace Apple {
 namespace Macintosh {
 
 class Video {
 	public:
-		Video(uint16_t *ram, DeferredAudio &audio);
+		Video(uint16_t *ram, DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulator);
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		void run_for(HalfCycles duration);
 
@@ -30,9 +31,10 @@ class Video {
 
 	private:
 		DeferredAudio &audio_;
-		uint16_t *ram_ = nullptr;
+		DriveSpeedAccumulator &drive_speed_accumulator_;
 
 		Outputs::CRT::CRT crt_;
+		uint16_t *ram_ = nullptr;
 
 		HalfCycles frame_position_;
 
