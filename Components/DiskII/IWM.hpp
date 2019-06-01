@@ -10,6 +10,7 @@
 #define IWM_hpp
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../Storage/Disk/Drive.hpp"
 
 #include <cstdint>
 
@@ -38,11 +39,18 @@ class IWM {
 		void run_for(const Cycles cycles);
 
 	private:
+		const int clock_rate_;
+
 		uint8_t mode_ = 0;
 		bool read_write_ready_ = true;
 		bool write_overran_ = false;
 
 		int state_ = 0;
+
+		int active_drive_ = 0;
+		Storage::Disk::Drive drives_[2];
+
+		Cycles cycles_until_motor_off_;
 
 		void access(int address);
 };

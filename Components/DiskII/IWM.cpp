@@ -24,7 +24,12 @@ namespace  {
 	const int SEL		= 1 << 8;	/* This is an additional input, not available on a Disk II, with a confusingly-similar name to SELECT but a distinct purpose. */
 }
 
-IWM::IWM(int clock_rate) {}
+IWM::IWM(int clock_rate) :
+	clock_rate_(clock_rate),
+ 	drives_{
+ 		{static_cast<unsigned int>(clock_rate), 300, 2},
+ 		{static_cast<unsigned int>(clock_rate), 300, 2}
+	} {}
 
 // MARK: - Bus accessors
 
@@ -59,13 +64,13 @@ uint8_t IWM::read(int address) {
 
 		case ENABLE:				/* Read data register. */
 			printf("Reading data register\n");
-		return 0x00;
+		return 0xff;
 
 		case Q6: case Q6|ENABLE: {
 			/*
 				[If A = 0], Read status register:
 
-				bits 0-3: same as mode register.
+				bits 0-4: same as mode register.
 				bit 5: 1 = either /ENBL1 or /ENBL2 is currently low.
 				bit 6: 1 = MZ (reserved for future compatibility; should always be read as 0).
 				bit 7: 1 = SENSE input high; 0 = SENSE input low.
@@ -73,10 +78,10 @@ uint8_t IWM::read(int address) {
 				(/ENBL1 is low when the first drive's motor is on; /ENBL2 is low when the second drive's motor is on.
 				If the 1-second timer is enabled, motors remain on for one second after being programmatically disabled.)
 			*/
-			printf("Reading status ([%d] including ", (state_&DRIVESEL) ? 2 : 1);
+			printf("Reading status (including ");
 
 			// Determine the SENSE input.
-			uint8_t sense = 0x80;
+			uint8_t sense = 0x00;
 			switch(state_ & (CA2 | CA1 | CA0 | SEL)) {
 				default:
 					printf("unknown)\n");
@@ -88,6 +93,7 @@ uint8_t IWM::read(int address) {
 
 				case SEL:				// Disk in place.
 					printf("disk in place)\n");
+					sense = drives_[active_drive_].has_disk() ? 0x00 : 0x80;
 				break;
 
 				case CA0:				// Disk head stepping.
@@ -100,10 +106,12 @@ uint8_t IWM::read(int address) {
 
 				case CA1:				// Disk motor running.
 					printf("disk motor running)\n");
+					sense = drives_[active_drive_].get_motor_on() ? 0x00 : 0x80;
 				break;
 
 				case CA1|SEL:			// Head at track 0.
 					printf("head at track 0)\n");
+					sense = drives_[active_drive_].get_is_track_zero() ? 0x00 : 0x80;
 				break;
 
 				case CA1|CA0|SEL:		// Tachometer (?)
@@ -127,7 +135,10 @@ uint8_t IWM::read(int address) {
 				break;
 			}
 
-			return (mode_&0x1f) | sense;
+			return
+				(mode_&0x1f) |
+				(drives_[active_drive_].get_motor_on() ? 0x20 : 0x00) |
+				sense;
 		} break;
 
 		case Q7: case Q7|ENABLE:
@@ -188,6 +199,33 @@ void IWM::access(int address) {
 	} else {
 		state_ &= ~mask;
 	}
+
+	// React appropriately to motor requests.
+	switch(address >> 1) {
+		default: break;
+
+		case 4:
+			if(address & 1) {
+				drives_[active_drive_].set_motor_on(true);
+			} else {
+				// If the 1-second delay is enabled, set up a timer for that.
+				if(!(mode_ & 4)) {
+					cycles_until_motor_off_ = Cycles(clock_rate_);
+				} else {
+					drives_[active_drive_].set_motor_on(false);
+				}
+			}
+		break;
+
+		case 5: {
+			const int new_drive = address & 1;
+			if(new_drive != active_drive_) {
+				drives_[new_drive].set_motor_on(drives_[active_drive_].get_motor_on());
+				drives_[active_drive_].set_motor_on(false);
+				active_drive_ = new_drive;
+			}
+		} break;
+	}
 }
 
 void IWM::set_select(bool enabled) {
@@ -201,4 +239,10 @@ void IWM::set_select(bool enabled) {
 // MARK: - Active logic
 
 void IWM::run_for(const Cycles cycles) {
+	if(cycles_until_motor_off_ > Cycles(0)) {
+		cycles_until_motor_off_ -= cycles;
+		if(cycles_until_motor_off_ <= Cycles(0)) {
+			drives_[active_drive_].set_motor_on(false);
+		}
+	}
 }
