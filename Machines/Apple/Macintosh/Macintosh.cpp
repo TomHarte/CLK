@@ -10,7 +10,7 @@
 
 #include <array>
 
-#include "Audio.hpp"
+#include "DeferredAudio.hpp"
 #include "Keyboard.hpp"
 #include "RealTimeClock.hpp"
 #include "Video.hpp"
@@ -21,7 +21,6 @@
 
 #include "../../../Components/6522/6522.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
-#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../../Processors/68000/68000.hpp"
 
 #include "../../Utility/MemoryPacker.hpp"
@@ -42,7 +41,7 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const ROMMachine::ROMFetcher &rom_fetcher) :
 		 	mc68000_(*this),
-		 	video_(ram_.data()),
+		 	video_(ram_.data(), audio_),
 		 	via_(via_port_handler_),
 		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_),
 		 	iwm_(CLOCK_RATE) {
@@ -57,6 +56,7 @@ class ConcreteMachine:
 
 			// The Mac runs at 7.8336mHz.
 			set_clock_rate(double(CLOCK_RATE));
+			audio_.speaker.set_input_rate(float(CLOCK_RATE));
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
@@ -243,8 +243,8 @@ class ConcreteMachine:
 			ROM_is_overlay_ = rom_is_overlay;
 		}
 
-		void set_use_alternate_screen_buffer(bool use_alternate_screen_buffer) {
-			video_.set_use_alternate_screen_buffer(use_alternate_screen_buffer);
+		void set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use_alternate_audio_buffer) {
+			video_.set_use_alternate_buffers(use_alternate_screen_buffer, use_alternate_audio_buffer);
 		}
 
 	private:
@@ -259,22 +259,9 @@ class ConcreteMachine:
 			}
 		};
 
-		struct Audio {
-			Concurrency::DeferringAsyncTaskQueue queue;
-			Apple::Macintosh::Audio audio;
-			Outputs::Speaker::LowpassSpeaker<Apple::Macintosh::Audio> speaker;
-			HalfCycles time_since_update;
-
-			Audio() : audio(queue), speaker(audio) {}
-
-			void flush() {
-				speaker.run_for(queue, time_since_update.flush_cycles());
-			}
-		};
-
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:
-				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, Video &video, Audio &audio, IWM &iwm) :
+				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, Video &video, DeferredAudio &audio, IWM &iwm) :
 					machine_(machine), clock_(clock), keyboard_(keyboard), video_(video), audio_(audio), iwm_(iwm) {}
 
 				using Port = MOS::MOS6522::Port;
@@ -299,13 +286,11 @@ class ConcreteMachine:
 							iwm_.flush();
 							iwm_.iwm.set_select(!(value & 0x20));
 
-							machine_.set_use_alternate_screen_buffer(!(value & 0x40));
+							machine_.set_use_alternate_buffers(!(value & 0x40), !(value&0x08));
 							machine_.set_rom_is_overlay(!!(value & 0x10));
 
 							audio_.flush();
 							audio_.audio.set_volume(value & 7);
-
-							// TODO: alternate sound buffer.
 						break;
 
 						case Port::B:
@@ -360,7 +345,7 @@ class ConcreteMachine:
 				RealTimeClock &clock_;
 				Keyboard &keyboard_;
 				Video &video_;
-				Audio &audio_;
+				DeferredAudio &audio_;
 				IWM &iwm_;
 		};
 
@@ -369,8 +354,8 @@ class ConcreteMachine:
 
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 
+		DeferredAudio audio_;
 		Video video_;
-		Audio audio_;
 
 		RealTimeClock clock_;
 		Keyboard keyboard_;

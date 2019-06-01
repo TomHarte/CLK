@@ -33,7 +33,8 @@ const int sync_end = 38;
 //	"The visible portion of a full-screen display consists of 342 horizontal scan lines...
 //	During the vertical blanking interval, the turned-off beam ... traces out an additional 28 scan lines,"
 //
-Video::Video(uint16_t *ram) :
+Video::Video(uint16_t *ram, DeferredAudio &audio) :
+	audio_(audio),
  	crt_(704, 1, 370, Outputs::Display::ColourSpace::YIQ, 1, 1, 6, false, Outputs::Display::InputDataType::Luminance1),
  	ram_(ram) {
 
@@ -131,6 +132,14 @@ void Video::run_for(HalfCycles duration) {
 					crt_.output_blank((44 - sync_end) * 16);
 				}
 			}
+
+			// Audio and disk fetches occur "just before video data".
+			if(final_word == 44) {
+				const uint16_t audio_word = ram_[audio_address_];
+				++audio_address_;
+				audio_.audio.post_sample(audio_word >> 8);
+				// TODO: post disk byte.
+			}
 		}
 
 		duration -= cycles_left_in_line;
@@ -141,6 +150,12 @@ void Video::run_for(HalfCycles duration) {
 				Video: $1A700 and the alternate buffer starts at $12700; for a 512K Macintosh, add $60000 to these numbers.
 			*/
 			video_address_ = use_alternate_screen_buffer_ ? (0x12700 >> 1) : (0x1a700 >> 1);
+
+			/*
+				"The main sound buffer is at $1FD00 in a 128K Macintosh, and the alternate buffer is at $1A100;
+				for a 512K Macintosh, add $60000 to these values."
+			*/
+			audio_address_ = use_alternate_audio_buffer_ ? (0x1fd00 >> 1) : (0x1a100 >> 1);
 		}
 	}
 }
@@ -156,7 +171,7 @@ bool Video::is_outputting() {
 	return line < 342 && column < 32;
 }
 
-void Video::set_use_alternate_screen_buffer(bool use_alternate_screen_buffer) {
+void Video::set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use_alternate_audio_buffer) {
 	use_alternate_screen_buffer_ = use_alternate_screen_buffer;
+	use_alternate_audio_buffer_ = use_alternate_audio_buffer;
 }
-
