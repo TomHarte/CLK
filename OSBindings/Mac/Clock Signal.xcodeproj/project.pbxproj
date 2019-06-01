@@ -296,6 +296,7 @@
 		4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */; };
 		4B9252CE1E74D28200B76AF1 /* Atari ROMs in Resources */ = {isa = PBXBuildFile; fileRef = 4B9252CD1E74D28200B76AF1 /* Atari ROMs */; };
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
+		4B9378E422A199C600973513 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9378E222A199C600973513 /* Audio.cpp */; };
 		4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
 		4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
 		4B98A0611FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */; };
@@ -1031,6 +1032,8 @@
 		4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AtariStaticAnalyserTests.mm; sourceTree = "<group>"; };
 		4B9252CD1E74D28200B76AF1 /* Atari ROMs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Atari ROMs"; sourceTree = "<group>"; };
 		4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6502TimingTests.swift; sourceTree = "<group>"; };
+		4B9378E222A199C600973513 /* Audio.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Audio.cpp; sourceTree = "<group>"; };
+		4B9378E322A199C600973513 /* Audio.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Audio.hpp; sourceTree = "<group>"; };
 		4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZX8081OptionsPanel.swift; sourceTree = "<group>"; };
 		4B961408222760E0001A7BF2 /* Screenshot.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Screenshot.hpp; sourceTree = "<group>"; };
 		4B98A05C1FFAD3F600ADF63B /* CSROMFetcher.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CSROMFetcher.hpp; sourceTree = "<group>"; };
@@ -3065,12 +3068,14 @@
 		4BCE0057227CFFCA000CA200 /* Macintosh */ = {
 			isa = PBXGroup;
 			children = (
+				4B9378E222A199C600973513 /* Audio.cpp */,
 				4BCE0058227CFFCA000CA200 /* Macintosh.cpp */,
 				4BCE005E227D39AB000CA200 /* Video.cpp */,
+				4B9378E322A199C600973513 /* Audio.hpp */,
+				4BDB3D8522833321002D3CEE /* Keyboard.hpp */,
 				4BCE0059227CFFCA000CA200 /* Macintosh.hpp */,
 				4BD0692B22828A2D00D2A54F /* RealTimeClock.hpp */,
 				4BCE005F227D39AB000CA200 /* Video.hpp */,
-				4BDB3D8522833321002D3CEE /* Keyboard.hpp */,
 			);
 			path = Macintosh;
 			sourceTree = "<group>";
@@ -3254,11 +3259,11 @@
 		4BF660691F281573002CB053 /* ClockReceiver */ = {
 			isa = PBXGroup;
 			children = (
+				4B8A7E85212F988200F2BBC6 /* ClockDeferrer.hpp */,
+				4BB146C61F49D7D700253439 /* ClockingHintSource.hpp */,
 				4BF6606A1F281573002CB053 /* ClockReceiver.hpp */,
 				4BB06B211F316A3F00600C7A /* ForceInline.hpp */,
-				4BB146C61F49D7D700253439 /* ClockingHintSource.hpp */,
 				4B449C942063389900A095C8 /* TimeTypes.hpp */,
-				4B8A7E85212F988200F2BBC6 /* ClockDeferrer.hpp */,
 			);
 			name = ClockReceiver;
 			path = ../../ClockReceiver;
@@ -3905,6 +3910,7 @@
 				4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */,
 				4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */,
 				4B59199C1DAC6C46005BB85C /* OricTAP.cpp in Sources */,
+				4B9378E422A199C600973513 /* Audio.cpp in Sources */,
 				4B89451E201967B4007DE474 /* Tape.cpp in Sources */,
 				4BAF2B4E2004580C00480230 /* DMK.cpp in Sources */,
 				4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */,

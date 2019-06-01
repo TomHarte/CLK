@@ -37,6 +37,8 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 		case 0x0:	// Write Port B.
 			// Store locally and communicate outwards.
 			registers_.output[1] = value;
+
+			bus_handler_.run_for(time_since_bus_handler_call_.flush());
 			bus_handler_.set_port_output(Port::B, value, registers_.data_direction[1]);
 
 			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | ((registers_.peripheral_control&0x20) ? 0 : InterruptFlag::CB2ActiveEdge));
@@ -45,6 +47,8 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 		case 0xf:
 		case 0x1:	// Write Port A.
 			registers_.output[0] = value;
+
+			bus_handler_.run_for(time_since_bus_handler_call_.flush());
 			bus_handler_.set_port_output(Port::A, value, registers_.data_direction[0]);
 
 			if(handshake_modes_[1] != HandshakeMode::None) {
@@ -193,7 +197,8 @@ template <typename T> uint8_t MOS6522<T>::get_register(int address) {
 }
 
 template <typename T> uint8_t MOS6522<T>::get_port_input(Port port, uint8_t output_mask, uint8_t output) {
-	uint8_t input = bus_handler_.get_port_input(port);
+	bus_handler_.run_for(time_since_bus_handler_call_.flush());
+	const uint8_t input = bus_handler_.get_port_input(port);
 	return (input & ~output_mask) | (output & output_mask);
 }
 
@@ -206,6 +211,8 @@ template <typename T> void MOS6522<T>::reevaluate_interrupts() {
 	bool new_interrupt_status = get_interrupt_line();
 	if(new_interrupt_status != last_posted_interrupt_status_) {
 		last_posted_interrupt_status_ = new_interrupt_status;
+
+		bus_handler_.run_for(time_since_bus_handler_call_.flush());
 		bus_handler_.set_interrupt_status(new_interrupt_status);
 	}
 }
@@ -251,6 +258,8 @@ template <typename T> void MOS6522<T>::set_control_line_input(Port port, Line li
 }
 
 template <typename T> void MOS6522<T>::do_phase2() {
+	++ time_since_bus_handler_call_;
+
 	registers_.last_timer[0] = registers_.timer[0];
 	registers_.last_timer[1] = registers_.timer[1];
 
@@ -281,6 +290,8 @@ template <typename T> void MOS6522<T>::do_phase2() {
 }
 
 template <typename T> void MOS6522<T>::do_phase1() {
+	++ time_since_bus_handler_call_;
+
 	// IRQ is raised on the half cycle after overflow
 	if((registers_.timer[1] == 0xffff) && !registers_.last_timer[1] && timer_is_running_[1]) {
 		timer_is_running_[1] = false;
@@ -339,6 +350,11 @@ template <typename T> void MOS6522<T>::run_for(const HalfCycles half_cycles) {
 	}
 }
 
+template <typename T> void MOS6522<T>::flush() {
+	bus_handler_.run_for(time_since_bus_handler_call_.flush());
+	bus_handler_.flush();
+}
+
 /*! Runs for a specified number of cycles. */
 template <typename T> void MOS6522<T>::run_for(const Cycles cycles) {
 	int number_of_cycles = cycles.as_int();
@@ -363,6 +379,7 @@ template <typename T> void MOS6522<T>::set_control_line_output(Port port, Line l
 	// control line is actually in output mode.
 	control_outputs_[port].lines[line] = value;
 	if(registers_.peripheral_control & (0x08 << (port * 4))) {
+		bus_handler_.run_for(time_since_bus_handler_call_.flush());
 		bus_handler_.set_control_line_output(port, line, value);
 	}
 }

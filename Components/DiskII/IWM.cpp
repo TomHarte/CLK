@@ -38,11 +38,14 @@ uint8_t IWM::read(int address) {
 	// you must first turn off Q7 by reading or writing dBase+q7L. Then turn on Q6 by accessing dBase+q6H.
 	// After that, the IWM will be able to pass data from the disk's RD/SENSE line through to you."
 	//
-	// My thoughts: I'm unclear on how passing data from RD/SENSE is conflated with reading "any of the disk
-	// registers", but the text reads as though the access happens internally but isn't passed on in the case
-	// of Q6 and Q7 being in the incorrect state.
+	// My understanding:
+	//
+	//	Q6 = 1, Q7 = 0 reads the status register. The meaning of the top 'SENSE' bit is then determined by
+	//	the CA0,1,2 and SEL switches as described in Inside Macintosh, summarised above as RD/SENSE.
 
-	printf("Read %d: ", address&1);
+	if(address&1) {
+		return 0xff;
+	}
 
 	switch(state_ & (Q6 | Q7 | ENABLE)) {
 		default:
@@ -73,7 +76,7 @@ uint8_t IWM::read(int address) {
 			printf("Reading status ([%d] including ", (state_&DRIVESEL) ? 2 : 1);
 
 			// Determine the SENSE input.
-			uint8_t sense = 0;
+			uint8_t sense = 0x80;
 			switch(state_ & (CA2 | CA1 | CA0 | SEL)) {
 				default:
 					printf("unknown)\n");
@@ -85,7 +88,6 @@ uint8_t IWM::read(int address) {
 
 				case SEL:				// Disk in place.
 					printf("disk in place)\n");
-					sense = 0x80;
 				break;
 
 				case CA0:				// Disk head stepping.

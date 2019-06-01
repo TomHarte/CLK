@@ -47,6 +47,12 @@ class PortHandler {
 
 		/// Sets the current logical value of the interrupt line.
 		void set_interrupt_status(bool status)									{}
+
+		/// Provides a measure of time elapsed between other calls.
+		void run_for(HalfCycles duration)										{}
+
+		/// Receives passed-on flush() calls from the 6522.
+		void flush()															{}
 };
 
 /*!
@@ -108,12 +114,17 @@ template <class T> class MOS6522: public MOS6522Storage {
 		/// @returns @c true if the IRQ line is currently active; @c false otherwise.
 		bool get_interrupt_line();
 
+		/// Updates the port handler to the current time and then requests that it flush.
+		void flush();
+
 	private:
 		void do_phase1();
 		void do_phase2();
 		void shift_in();
 		void shift_out();
+
 		T &bus_handler_;
+		HalfCycles time_since_bus_handler_call_;
 
 		void access(int address);
 
