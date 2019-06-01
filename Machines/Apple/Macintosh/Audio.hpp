@@ -72,7 +72,7 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 
 		std::int16_t volume_multiplier_ = 0;
 
-		HalfCycles subcycle_offset_;
+		std::size_t subcycle_offset_;
 };
 
 }

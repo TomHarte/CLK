@@ -340,6 +340,10 @@ class ConcreteMachine:
 					if(port == Port::B && line == Line::Two) keyboard_.set_input(value);
 				}
 
+				void run_for(HalfCycles duration) {
+					audio_.time_since_update += duration;
+				}
+
 			private:
 				ConcreteMachine &machine_;
 				RealTimeClock &clock_;
