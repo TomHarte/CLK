@@ -59,6 +59,10 @@ class ConcreteMachine:
 			audio_.speaker.set_input_rate(float(CLOCK_RATE));
 		}
 
+		~ConcreteMachine() {
+			audio_.queue.flush();
+		}
+
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			video_.set_scan_target(scan_target);
 		}
@@ -236,6 +240,7 @@ class ConcreteMachine:
 //			video_.run_for(time_since_video_update_.flush());
 
 			// As above: flush audio after video.
+			via_.flush();
 			audio_.queue.perform();
 		}
 
@@ -342,6 +347,10 @@ class ConcreteMachine:
 
 				void run_for(HalfCycles duration) {
 					audio_.time_since_update += duration;
+				}
+
+				void flush() {
+					audio_.flush();
 				}
 
 			private:

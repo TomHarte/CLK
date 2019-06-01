@@ -24,7 +24,9 @@ void Audio::post_sample(uint8_t sample) {
 	const auto write_pointer = sample_queue_.write_pointer.load();
 	const auto read_pointer = sample_queue_.read_pointer.load();
 	const decltype(write_pointer) next_write_pointer = (write_pointer + 1) % sample_queue_.buffer.size();
-	if(next_write_pointer == read_pointer) return;
+	if(next_write_pointer == read_pointer) {
+		return;
+	}
 
 	sample_queue_.buffer[write_pointer] = sample;
 	sample_queue_.write_pointer.store(next_write_pointer);
@@ -64,13 +66,12 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 	// that's something to return to.
 
 	// TODO: temporary implementation. Very inefficient. Replace.
-	while(number_of_samples--) {
-		*target = volume_multiplier_ * int16_t(sample_queue_.buffer[read_pointer] * volume_ * enabled_mask_);
-		++target;
+	for(std::size_t sample = 0; sample < number_of_samples; ++sample) {
+		target[sample] = volume_multiplier_ * int16_t(sample_queue_.buffer[read_pointer]);// * volume_ * enabled_mask_);
 		++subcycle_offset_;
 
 		if(subcycle_offset_ == sample_length) {
-//			printf("%d: %d\n", sample_queue_.buffer[read_pointer], volume_multiplier_ * sample_queue_.buffer[read_pointer] * volume_ * enabled_mask_);
+//			printf("%d: %d\n", sample_queue_.buffer[read_pointer], volume_multiplier_ * int16_t(sample_queue_.buffer[read_pointer]));
 			subcycle_offset_ = 0;
 			const unsigned int next_read_pointer = (read_pointer + 1) % sample_queue_.buffer.size();
 			if(next_read_pointer != write_pointer) {

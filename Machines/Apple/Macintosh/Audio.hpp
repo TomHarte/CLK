@@ -61,7 +61,7 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 		// A queue of fetched samples; read from by one thread,
 		// written to by another.
 		struct {
-			std::array<uint8_t, 2048> buffer;
+			std::array<uint8_t, 4096> buffer;
 			std::atomic<unsigned int> read_pointer, write_pointer;
 		} sample_queue_;
 
@@ -71,8 +71,7 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 		int enabled_mask_ = 0;
 
 		std::int16_t volume_multiplier_ = 0;
-
-		std::size_t subcycle_offset_;
+		std::size_t subcycle_offset_ = 0;
 };
 
 }
