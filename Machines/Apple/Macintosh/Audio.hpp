@@ -9,9 +9,9 @@
 #ifndef Audio_hpp
 #define Audio_hpp
 
-#include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
 
 #include <array>
 #include <atomic>
@@ -51,6 +51,7 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
+		void skip_samples(std::size_t number_of_samples);
 		bool is_zero_level();
 		void set_sample_volume_range(std::int16_t range);
 
@@ -61,15 +62,17 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 		// written to by another.
 		struct {
 			std::array<uint8_t, 2048> buffer;
-			std::atomic<int> read_pointer, write_pointer;
+			std::atomic<unsigned int> read_pointer, write_pointer;
 		} sample_queue_;
 
 		// Stateful variables, modified from the audio generation
 		// thread only.
 		int volume_ = 0;
-		bool is_enabled_ = false;
+		int enabled_mask_ = 0;
 
 		std::int16_t volume_multiplier_ = 0;
+
+		HalfCycles subcycle_offset_;
 };
 
 }

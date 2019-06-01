@@ -236,7 +236,7 @@ class ConcreteMachine:
 //			video_.run_for(time_since_video_update_.flush());
 
 			// As above: flush audio after video.
-			audio_.queue.flush();
+			audio_.queue.perform();
 		}
 
 		void set_rom_is_overlay(bool rom_is_overlay) {
