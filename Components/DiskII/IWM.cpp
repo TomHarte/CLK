@@ -175,7 +175,15 @@ void IWM::write(int address, uint8_t input) {
 				bit 6: 1 = MZ-reset.
 				bit 7: reserved for future expansion.
 			*/
+
 			mode_ = input;
+
+			switch(mode_ & 0x18) {
+				case 0x00:		bit_length_ = Cycles(24);		break;	// slow mode, 7Mhz
+				case 0x08:		bit_length_ = Cycles(12);		break;	// fast mode, 7Mhz
+				case 0x10:		bit_length_ = Cycles(32);		break;	// slow mode, 8Mhz
+				case 0x18:		bit_length_ = Cycles(16);		break;	// fast mode, 8Mhz
+			}
 			printf("IWM mode is now %02x\n", mode_);
 		break;
 

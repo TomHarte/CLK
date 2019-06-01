@@ -53,6 +53,8 @@ class IWM {
 		Cycles cycles_until_motor_off_;
 
 		void access(int address);
+
+		Cycles bit_length_;
 };
 
 
