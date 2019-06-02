@@ -111,7 +111,7 @@ class ConcreteMachine:
 
 			// Update the video. TODO: only on demand.
 			video_.run_for(cycle.length);
-			via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, video_.vsync());
+			via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
 
 			// Update interrupt input. TODO: move this into a VIA/etc delegate callback?
 			mc68000_.set_interrupt_level( (via_.get_interrupt_line() ? 1 : 0) );

@@ -283,7 +283,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-							should_log |= (program_counter_.full - 4) == 0x405984;
+							should_log |= (program_counter_.full - 4) == 0x00400690;
 #endif
 
 							if(instructions[decoded_instruction_.full].micro_operations) {

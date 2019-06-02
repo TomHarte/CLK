@@ -1,0 +1,120 @@
+//
+//  DiskCopy42.cpp
+//  Clock Signal
+//
+//  Created by Thomas Harte on 02/06/2019.
+//  Copyright © 2019 Thomas Harte. All rights reserved.
+//
+
+#include "DiskCopy42.hpp"
+
+/*
+	File format specifications as referenced below are largely
+	sourced from the documentation at
+	https://wiki.68kmla.org/DiskCopy_4.2_format_specification
+*/
+
+using namespace Storage::Disk;
+
+DiskCopy42::DiskCopy42(const std::string &file_name) :
+	file_(file_name) {
+
+	// File format starts with 64 bytes dedicated to the disk name;
+	// this is a Pascal-style string though there is apparently a
+	// bug in one version of Disk Copy that can cause the length to
+	// be one too high.
+	//
+	// Validate the length, then skip the rest of the string.
+	const auto name_length = file_.get8();
+	if(name_length > 64)
+		throw Error::InvalidFormat;
+
+	// Get the length of the data and tag blocks.
+	file_.seek(64, SEEK_SET);
+	const auto data_block_length = file_.get32be();
+	const auto tag_block_length = file_.get32be();
+	const auto data_checksum = file_.get32be();
+	const auto tag_checksum = file_.get32be();
+
+	// Check that this is a comprehensible disk encoding.
+	const auto encoding = file_.get8();
+	switch(encoding) {
+		default: throw Error::InvalidFormat;
+
+		case 0:	encoding_ = Encoding::GCR400;	break;
+		case 1:	encoding_ = Encoding::GCR800;	break;
+		case 2:	encoding_ = Encoding::MFM720;	break;
+		case 3:	encoding_ = Encoding::MFM1440;	break;
+	}
+	format_ = file_.get8();
+
+	// Check the magic number.
+	const auto magic_number = file_.get16be();
+	if(magic_number != 0x0100)
+		throw Error::InvalidFormat;
+
+	// Read the data and tags, and verify that enough data
+	// was present.
+	data_ = file_.read(data_block_length);
+	tags_ = file_.read(tag_block_length);
+
+	if(data_.size() != data_block_length || tags_.size() != tag_block_length)
+		throw Error::InvalidFormat;
+
+	// Verify the two checksums.
+	const auto computed_data_checksum = checksum(data_);
+	const auto computed_tag_checksum = checksum(tags_, 12);
+
+	if(computed_tag_checksum != tag_checksum || computed_data_checksum != data_checksum)
+		throw Error::InvalidFormat;
+}
+
+uint32_t DiskCopy42::checksum(const std::vector<uint8_t> &data, size_t bytes_to_skip) {
+	uint32_t result = 0;
+
+	// Checksum algorith is: take each two bytes as a big-endian word; add that to a
+	// 32-bit accumulator and then rotate the accumulator right one position.
+	for(size_t c = bytes_to_skip; c < data.size(); c += 2) {
+		const uint16_t next_word = uint16_t((data[c] << 8) | data[c+1]);
+		result += next_word;
+		result = (result >> 1) | (result << 31);
+	}
+
+	return result;
+}
+
+HeadPosition DiskCopy42::get_maximum_head_position() {
+	return HeadPosition(80);
+}
+
+int DiskCopy42::get_head_count() {
+	// Bit 5 in the format field indicates whether this disk is double
+	// sided, regardless of whether it is GCR or MFM.
+	return 1 + ((format_ & 0x20) >> 5);
+}
+
+bool DiskCopy42::get_is_read_only() {
+	return true;
+}
+
+std::shared_ptr<::Storage::Disk::Track> DiskCopy42::get_track_at_position(::Storage::Disk::Track::Address address) {
+	/*
+		The format_ byte has the following meanings:
+
+		GCR:
+			This byte appears on disk as the GCR format nibble in every sector tag.
+			The low five bits are an interleave factor, either:
+
+				'2' for 0 8 1 9 2 10 3 11 4 12 5 13 6 14 7 15; or
+				'4' for 0 4 8 12 1 5 9 13 2 6 10 14 3 7 11 15.
+
+			Bit 5 indicates double sided or not.
+
+		MFM:
+			The low five bits provide sector size as a multiple of 256 bytes.
+			Bit 5 indicates double sided or not.
+	*/
+
+	// TODO.
+	return nullptr;
+}

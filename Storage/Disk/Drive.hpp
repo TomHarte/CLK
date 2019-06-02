@@ -25,6 +25,7 @@ namespace Disk {
 class Drive: public ClockingHint::Source, public TimedEventLoop {
 	public:
 		Drive(unsigned int input_clock_rate, int revolutions_per_minute, int number_of_heads);
+		Drive(unsigned int input_clock_rate, int number_of_heads);
 		~Drive();
 
 		/*!
@@ -137,6 +138,8 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 			It's for the benefit of user-optional fast-loading mechanisms **ONLY**.
 		*/
 		std::shared_ptr<Track> step_to(HeadPosition offset);
+
+		void set(Time);
 
 	private:
 		// Drives contain an entire disk; from that a certain track

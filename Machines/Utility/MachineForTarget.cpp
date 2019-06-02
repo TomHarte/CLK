@@ -38,11 +38,11 @@ namespace {
 			BindD(Apple::Macintosh, Macintosh)
 			Bind(Atari2600)
 			BindD(Coleco::Vision, ColecoVision)
+			BindD(Commodore::Vic20, Vic20)
 			Bind(Electron)
-			BindD(Sega::MasterSystem, MasterSystem)
 			Bind(MSX)
 			Bind(Oric)
-			BindD(Commodore::Vic20, Vic20)
+			BindD(Sega::MasterSystem, MasterSystem)
 			Bind(ZX8081)
 
 			default:
