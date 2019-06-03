@@ -7,6 +7,7 @@
 //
 
 #include "StaticAnalyser.hpp"
+#include "Target.hpp"
 
 Analyser::Static::TargetList Analyser::Static::Macintosh::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
 	// This analyser can comprehend disks only.
@@ -15,7 +16,7 @@ Analyser::Static::TargetList Analyser::Static::Macintosh::GetTargets(const Media
 	// If there is at least one disk, wave it through.
 	Analyser::Static::TargetList targets;
 
-	using Target = Analyser::Static::Target;
+	using Target = Analyser::Static::Macintosh::Target;
 	auto *target = new Target;
 	target->machine = Analyser::Machine::Macintosh;
 	target->media = media;

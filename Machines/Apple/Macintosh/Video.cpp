@@ -150,13 +150,13 @@ void Video::run_for(HalfCycles duration) {
 			/*
 				Video: $1A700 and the alternate buffer starts at $12700; for a 512K Macintosh, add $60000 to these numbers.
 			*/
-			video_address_ = use_alternate_screen_buffer_ ? (0x12700 >> 1) : (0x1a700 >> 1);
+			video_address_ = (use_alternate_screen_buffer_ ? (0xffff2700 >> 1) : (0xffffa700 >> 1)) & ram_mask_;
 
 			/*
 				"The main sound buffer is at $1FD00 in a 128K Macintosh, and the alternate buffer is at $1A100;
 				for a 512K Macintosh, add $60000 to these values."
 			*/
-			audio_address_ = use_alternate_audio_buffer_ ? (0x1a100 >> 1) : (0x1fd00 >> 1);
+			audio_address_ = (use_alternate_audio_buffer_ ? (0xffffa100 >> 1) : (0xfffffd00 >> 1)) & ram_mask_;
 		}
 	}
 }
@@ -175,4 +175,8 @@ bool Video::is_outputting() {
 void Video::set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use_alternate_audio_buffer) {
 	use_alternate_screen_buffer_ = use_alternate_screen_buffer;
 	use_alternate_audio_buffer_ = use_alternate_audio_buffer;
+}
+
+void Video::set_ram_mask(uint32_t mask) {
+	ram_mask_ = mask;
 }

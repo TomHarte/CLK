@@ -24,6 +24,8 @@
 #include "../../../Components/DiskII/IWM.hpp"
 #include "../../../Processors/68000/68000.hpp"
 
+#include "../../../Analyser/Static/Macintosh/Target.hpp"
+
 #include "../../Utility/MemoryPacker.hpp"
 
 namespace {
@@ -35,7 +37,7 @@ const int CLOCK_RATE = 7833600;
 namespace Apple {
 namespace Macintosh {
 
-class ConcreteMachine:
+template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachine:
 	public Machine,
 	public CRTMachine::Machine,
 	public CPU::MC68000::BusHandler {
@@ -43,17 +45,45 @@ class ConcreteMachine:
 		ConcreteMachine(const ROMMachine::ROMFetcher &rom_fetcher) :
 		 	mc68000_(*this),
 		 	iwm_(CLOCK_RATE),
-		 	video_(ram_.data(), audio_, drive_speed_accumulator_),
+		 	video_(ram_, audio_, drive_speed_accumulator_),
 		 	via_(via_port_handler_),
 		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_) {
 
+			// Select a ROM name and determine the proper ROM and RAM sizes
+			// based on the machine model.
+			using Model = Analyser::Static::Macintosh::Target::Model;
+			std::string rom_name;
+			uint32_t ram_size, rom_size;
+			switch(model) {
+				default:
+				case Model::Mac128k:
+					ram_size = 128*1024;
+					rom_size = 64*1024;
+					rom_name = "mac128k.rom";
+				break;
+				case Model::Mac512k:
+					ram_size = 512*1024;
+					rom_size = 64*1024;
+					rom_name = "mac512k.rom";
+				break;
+				case Model::Mac512ke:
+				case Model::MacPlus:
+					ram_size = 512*1024;
+					rom_size = 128*1024;
+					rom_name = "macplus.rom";
+				break;
+			}
+			ram_mask_ = (ram_size >> 1) - 1;
+			rom_mask_ = (rom_size >> 1) - 1;
+			video_.set_ram_mask(ram_mask_);
+
 			// Grab a copy of the ROM and convert it into big-endian data.
-			const auto roms = rom_fetcher("Macintosh", { "mac128k.rom" });
+			const auto roms = rom_fetcher("Macintosh", { rom_name });
 			if(!roms[0]) {
 				throw ROMMachine::Error::MissingROMs;
 			}
-			roms[0]->resize(64*1024);
-			Memory::PackBigEndian16(*roms[0], rom_.data());
+			roms[0]->resize(rom_size);
+			Memory::PackBigEndian16(*roms[0], rom_);
 
 			// The Mac runs at 7.8336mHz.
 			set_clock_rate(double(CLOCK_RATE));
@@ -125,7 +155,6 @@ class ConcreteMachine:
 
 				if(word_address >= 0x400000) {
 					if(cycle.data_select_active()) {
-
 						const int register_address = word_address >> 8;
 
 						switch(word_address & 0x78f000) {
@@ -151,11 +180,32 @@ class ConcreteMachine:
 								}
 							break;
 
+							case 0x780000:
+								// Phase read.
+								if(cycle.operation & Microcycle::Read) {
+									cycle.value->halves.low = phase_ & 7;
+									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+								}
+							break;
+
+							case 0x480000: case 0x48f000:
+							case 0x500000: case 0x580000: case 0x58f000:
+								// Any word access here adjusts phase.
+								if(cycle.operation & Microcycle::SelectWord) {
+									++phase_;
+								} else {
+									// TODO: SCC access.
+									printf("SCC access %06x\n", *cycle.address & 0xffffff);
+								}
+							break;
+
 							default:
 								if(cycle.operation & Microcycle::Read) {
-//									printf("Unrecognised read %06x\n", *cycle.address & 0xffffff);
+									printf("Unrecognised read %06x\n", *cycle.address & 0xffffff);
 									cycle.value->halves.low = 0x00;
 									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+								} else {
+									printf("Unrecognised write %06x\n", *cycle.address & 0xffffff);
 								}
 							break;
 						}
@@ -173,11 +223,11 @@ class ConcreteMachine:
 							(ROM_is_overlay_ && word_address >= 0x300000) ||
 							(!ROM_is_overlay_ && word_address < 0x200000)
 						) {
-							memory_base = ram_.data();
-							word_address %= ram_.size();
+							memory_base = ram_;
+							word_address &= ram_mask_;
 						} else {
-							memory_base = rom_.data();
-							word_address %= rom_.size();
+							memory_base = rom_;
+							word_address &= rom_mask_;
 
 							// Disallow writes to ROM; also it doesn't mirror above 0x60000, ever.
 							if(!(operation & Microcycle::Read) || word_address >= 0x300000) operation = 0;
@@ -363,9 +413,6 @@ class ConcreteMachine:
 				IWM &iwm_;
 		};
 
-		std::array<uint16_t, 32*1024> rom_;
-		std::array<uint16_t, 64*1024> ram_;
-
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 
 		DriveSpeedAccumulator drive_speed_accumulator_;
@@ -388,6 +435,12 @@ class ConcreteMachine:
  		HalfCycles time_since_iwm_update_;
 
 		bool ROM_is_overlay_ = true;
+		int phase_ = 1;
+
+		uint32_t ram_mask_ = 0;
+		uint32_t rom_mask_ = 0;
+		uint16_t rom_[64*1024];
+		uint16_t ram_[256*1024];
 };
 
 }
@@ -396,7 +449,16 @@ class ConcreteMachine:
 using namespace Apple::Macintosh;
 
 Machine *Machine::Macintosh(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	return new ConcreteMachine(rom_fetcher);
+	auto *const mac_target = dynamic_cast<const Analyser::Static::Macintosh::Target *>(target);
+
+	using Model = Analyser::Static::Macintosh::Target::Model;
+	switch(mac_target->model) {
+		default:
+		case Model::Mac128k:	return new ConcreteMachine<Model::Mac128k>(rom_fetcher);
+		case Model::Mac512k:	return new ConcreteMachine<Model::Mac512k>(rom_fetcher);
+		case Model::Mac512ke:	return new ConcreteMachine<Model::Mac512ke>(rom_fetcher);
+		case Model::MacPlus:	return new ConcreteMachine<Model::MacPlus>(rom_fetcher);
+	}
 }
 
 Machine::~Machine() {}

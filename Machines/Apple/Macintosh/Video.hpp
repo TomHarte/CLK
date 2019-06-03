@@ -29,12 +29,15 @@ class Video {
 		bool vsync();
 		bool is_outputting();
 
+		void set_ram_mask(uint32_t);
+
 	private:
 		DeferredAudio &audio_;
 		DriveSpeedAccumulator &drive_speed_accumulator_;
 
 		Outputs::CRT::CRT crt_;
 		uint16_t *ram_ = nullptr;
+		uint32_t ram_mask_ = 0;
 
 		HalfCycles frame_position_;
 
