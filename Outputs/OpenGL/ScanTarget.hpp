@@ -238,6 +238,12 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void set_sampling_window(int output_Width, int output_height, Shader &target);
 
 		std::string sampling_function() const;
+
+		/*!
+			@returns true if the current display type is a 'soft' one, i.e. one in which
+			contrast tends to be low, such as a composite colour display.
+		*/
+		bool is_soft_display_type();
 };
 
 }

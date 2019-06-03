@@ -63,7 +63,7 @@ void ScanTarget::set_sampling_window(int output_width, int output_height, Shader
 		GLfloat texture_offsets[4];
 		GLfloat angles[4];
 		for(int c = 0; c < 4; ++c) {
-			texture_offsets[c] = 1.5f * (((one_pixel_width * float(c)) / 3.0f) - (one_pixel_width * 0.5f));
+			texture_offsets[c] = 1.0f * (((one_pixel_width * float(c)) / 3.0f) - (one_pixel_width * 0.5f));
 			angles[c] = GLfloat((texture_offsets[c] / clocks_per_angle) * 2.0f * M_PI);
 		}
 		target.set_uniform("textureCoordinateOffsets", 1, 4, texture_offsets);
