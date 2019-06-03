@@ -313,10 +313,18 @@ template <typename T> void MOS6522<T>::do_phase1() {
 		registers_.interrupt_flags |= InterruptFlag::Timer1;
 		reevaluate_interrupts();
 
+		// Determine whether to reload.
 		if(registers_.auxiliary_control&0x40)
 			registers_.timer_needs_reload = true;
 		else
 			timer_is_running_[0] = false;
+
+		// Determine whether to toggle PB7.
+		if(registers_.auxiliary_control&0x80) {
+			registers_.output[1] ^= 0x80;
+			bus_handler_.run_for(time_since_bus_handler_call_.flush());
+			bus_handler_.set_port_output(Port::B, registers_.output[1], registers_.data_direction[1]);
+		}
 	}
 
 	// If the shift register is shifting according to the input clock, do a shift.
