@@ -393,6 +393,10 @@ Outputs::Display::Metrics &ScanTarget::display_metrics() {
 	return display_metrics_;
 }
 
+bool ScanTarget::is_soft_display_type() {
+	return modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::CompositeMonochrome;
+}
+
 void ScanTarget::update(int output_width, int output_height) {
 	if(fence_ != nullptr) {
 		// if the GPU is still busy, don't wait; we'll catch it next time
@@ -557,7 +561,7 @@ void ScanTarget::update(int output_width, int output_height) {
 	// it's a good idea. Go up to a quarter of the requested resolution, subject to
 	// clamping at each stage. If the output resolution changes, or anything else about
 	// the output pipeline, just start trying the highest size again.
-	if(display_metrics_.should_lower_resolution()) {
+	if(display_metrics_.should_lower_resolution() && is_soft_display_type()) {
 		resolution_reduction_level_ = std::min(resolution_reduction_level_+1, 4);
 	}
 	if(output_height_ != output_height || did_setup_pipeline) {
