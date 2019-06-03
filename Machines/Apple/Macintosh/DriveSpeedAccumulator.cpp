@@ -20,10 +20,9 @@ void DriveSpeedAccumulator::post_sample(uint8_t sample) {
 
 	if(sample_pointer_ == samples_.size()) {
 		sample_pointer_ = 0;
-
-		for(int c = 0; c < 512; c += 32) {
-			printf("%u ", samples_[c]);
-		}
-		printf("\n");
+//		for(int c = 0; c < 512; c += 32) {
+//			printf("%u ", samples_[c]);
+//		}
+//		printf("\n");
 	}
 }
