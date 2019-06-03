@@ -615,7 +615,7 @@ struct ProcessorStorageConstructor {
 
 			{0xffc0, 0x4ec0, Operation::JMP, Decoder::JMP},		// 4-108 (p212)
 			{0xffc0, 0x4e80, Operation::JMP, Decoder::JSR},		// 4-109 (p213)
-			{0xffff, 0x4e75, Operation::JMP, Decoder::RTS},		// 4-169 (p273)
+			{0xffff, 0x4e75, Operation::RTS, Decoder::RTS},		// 4-169 (p273)
 
 			{0xf0c0, 0x9000, Operation::SUBb, Decoder::ADD_SUB},	// 4-174 (p278)
 			{0xf0c0, 0x9040, Operation::SUBw, Decoder::ADD_SUB},	// 4-174 (p278)
@@ -2326,8 +2326,7 @@ struct ProcessorStorageConstructor {
 							switch(mode) {
 								default: continue;
 								case Ind:		// JSR (An)
-									// There'll be no computed address, just grab the destination directly from an address register.
-									storage_.instructions[instruction].source = &storage_.address_[ea_register];
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask);
 									op(Action::PrepareJSR);
 									op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
 								break;
@@ -2352,22 +2351,21 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::RTS: {
-							storage_.instructions[instruction].source = &storage_.source_bus_data_[0];
 							op(Action::PrepareRTS, seq("nU nu"));
 							op(Action::PerformOperation, seq("np np"));
 						} break;
 
 						case Decoder::JMP: {
-							storage_.instructions[instruction].source = &storage_.effective_address_[0];
+							storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
 								default: continue;
 								case Ind:		// JMP (An)
-									storage_.instructions[instruction].source = &storage_.address_[ea_register];
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask);
 									op(Action::PerformOperation, seq("np np"));
 								break;
 
-								case XXXw:	// JMP (xxx).W
+								case XXXw:		// JMP (xxx).W
 								case d16PC:		// JMP (d16, PC)
 								case d16An:		// JMP (d16, An)
 									op(address_action_for_mode(mode) | MicroOp::SourceMask);
@@ -2380,7 +2378,7 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation, seq("n nn np np"));
 								break;
 
-								case XXXl:	// JMP (xxx).L
+								case XXXl:		// JMP (xxx).L
 									op(Action::None, seq("np"));
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
 									op(Action::PerformOperation, seq("np np"));

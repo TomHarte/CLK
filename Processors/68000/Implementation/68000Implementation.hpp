@@ -756,9 +756,14 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									overflow_flag_ = sub_overflow() & 0x80000000;
 								} break;
 
-								// JMP: copies the source to the program counter.
+								// JMP: copies EA(0) to the program counter.
 								case Operation::JMP:
-									program_counter_.full = active_program_->source->full;
+									program_counter_ = effective_address_[0];
+								break;
+
+								// JMP: copies the source bus data to the program counter.
+								case Operation::RTS:
+									program_counter_ = source_bus_data_[0];
 								break;
 
 								/*
