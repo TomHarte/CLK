@@ -78,13 +78,13 @@ uint8_t IWM::read(int address) {
 				(/ENBL1 is low when the first drive's motor is on; /ENBL2 is low when the second drive's motor is on.
 				If the 1-second timer is enabled, motors remain on for one second after being programmatically disabled.)
 			*/
-			printf("Reading status (including ");
+			printf("Reading status (including [%d] ", active_drive_);
 
 			// Determine the SENSE input.
 			uint8_t sense = 0x00;
 			switch(state_ & (CA2 | CA1 | CA0 | SEL)) {
 				default:
-					printf("unknown)\n");
+					printf("unknown [%c%c%c%c])\n", (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 				break;
 
 				case 0:					// Head step direction.
