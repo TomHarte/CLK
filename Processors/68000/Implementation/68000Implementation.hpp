@@ -960,7 +960,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 									const uint16_t remainder = uint16_t(dividend % divisor);
 									active_program_->destination->halves.high.full = remainder;
-									active_program_->destination->halves.low.full = quotient;
+									active_program_->destination->halves.low.full = uint16_t(quotient);
 
 									overflow_flag_ = 0;
 									zero_result_ = quotient;
@@ -1020,14 +1020,14 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									}
 
 									overflow_flag_ = 0;
-									zero_result_ = quotient;
+									zero_result_ = decltype(zero_result_)(quotient);
 									negative_flag_ = zero_result_ & 0x8000;
 
 									// TODO: check sign rules here; am I necessarily giving the remainder the correct sign?
 									// (and, if not, am I counting it in the correct direction?)
 									const uint16_t remainder = uint16_t(dividend % divisor);
 									active_program_->destination->halves.high.full = remainder;
-									active_program_->destination->halves.low.full = quotient;
+									active_program_->destination->halves.low.full = uint16_t(quotient);
 
 									// Algorithm here: there is a fixed three-microcycle cost per bit set
 									// in the unsigned quotient; there is an additional microcycle for
@@ -1287,10 +1287,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const int destination = 0;
 									const int source = active_program_->destination->halves.low.halves.low;
 									const auto result = destination - source;
-									active_program_->destination->halves.low.halves.low = result;
+									active_program_->destination->halves.low.halves.low = uint8_t(result);
 
 									zero_result_ = result & 0xff;
-									extend_flag_ = carry_flag_ = result & ~0xff;
+									extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);
 									negative_flag_ = result & 0x80;
 									overflow_flag_ = sub_overflow() & 0x80;
 								} break;
@@ -1299,10 +1299,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const int destination = 0;
 									const int source = active_program_->destination->halves.low.full;
 									const auto result = destination - source;
-									active_program_->destination->halves.low.full = result;
+									active_program_->destination->halves.low.full = uint16_t(result);
 
 									zero_result_ = result & 0xffff;
-									extend_flag_ = carry_flag_ = result & ~0xffff;
+									extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xffff);
 									negative_flag_ = result & 0x8000;
 									overflow_flag_ = sub_overflow() & 0x8000;
 								} break;
@@ -1326,10 +1326,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const int source = active_program_->destination->halves.low.halves.low;
 									const int destination = 0;
 									const auto result = destination - source - (extend_flag_ ? 1 : 0);
-									active_program_->destination->halves.low.halves.low = result;
+									active_program_->destination->halves.low.halves.low = uint8_t(result);
 
 									zero_result_ = result & 0xff;
-									extend_flag_ = carry_flag_ = result & ~0xff;
+									extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);
 									negative_flag_ = result & 0x80;
 									overflow_flag_ = sub_overflow() & 0x80;
 								} break;
@@ -1338,10 +1338,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const int source = active_program_->destination->halves.low.full;
 									const int destination = 0;
 									const auto result = destination - source - (extend_flag_ ? 1 : 0);
-									active_program_->destination->halves.low.full = result;
+									active_program_->destination->halves.low.full = uint16_t(result);
 
 									zero_result_ = result & 0xffff;
-									extend_flag_ = carry_flag_ = result & ~0xffff;
+									extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xffff);
 									negative_flag_ = result & 0x8000;
 									overflow_flag_ = sub_overflow() & 0x8000;
 								} break;
