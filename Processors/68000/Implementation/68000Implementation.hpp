@@ -1981,7 +1981,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #define CalculateD8AnXn(data, source, target)	{\
 	const auto register_index = (data.full >> 12) & 7;	\
 	const RegisterPair32 &displacement = (data.full & 0x8000) ? address_[register_index] : data_[register_index];	\
-	target.full = int8_t(data.halves.low) + source;	\
+	target.full = uint32_t(int8_t(data.halves.low)) + source;	\
 \
 	if(data.full & 0x800) {	\
 		target.full += displacement.full;	\
