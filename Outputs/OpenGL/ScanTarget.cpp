@@ -208,7 +208,8 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 		return nullptr;
 	}
 
-	// Everything checks out, return the pointer.
+	// Everything checks out, note expectation of a future end_data and return the pointer.
+	data_is_allocated_ = true;
 	vended_write_area_pointer_ = write_pointers_.write_area = TextureAddress(aligned_start_x, output_y);
 	return &write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_];
 
@@ -217,7 +218,7 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 }
 
 void ScanTarget::end_data(size_t actual_length) {
-	if(allocation_has_failed_) return;
+	if(allocation_has_failed_ || !data_is_allocated_) return;
 
 	// Bookend the start of the new data, to safeguard for precision errors in sampling.
 	memcpy(
@@ -234,6 +235,9 @@ void ScanTarget::end_data(size_t actual_length) {
 		&write_area_texture_[size_t(write_pointers_.write_area - 1) * data_type_size_],
 		&write_area_texture_[size_t(write_pointers_.write_area - 2) * data_type_size_],
 		data_type_size_);
+
+	// Record that no further end_data calls are expected.
+	data_is_allocated_ = false;
 }
 
 void ScanTarget::will_change_owner() {

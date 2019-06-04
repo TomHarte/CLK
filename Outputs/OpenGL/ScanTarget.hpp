@@ -186,6 +186,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		int vended_write_area_pointer_ = 0;
 
 		// Track allocation failures.
+		bool data_is_allocated_ = false;
 		bool allocation_has_failed_ = false;
 		bool line_allocation_has_failed_ = false;
 
