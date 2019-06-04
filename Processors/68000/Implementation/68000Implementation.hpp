@@ -1514,9 +1514,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									Shifts and rotates.
 								*/
 #define set_neg_zero_overflow(v, m)	\
-	zero_result_ = (v);	\
-	negative_flag_ = zero_result_ & (m);	\
-	overflow_flag_ = (value ^ zero_result_) & (m);
+	zero_result_ = decltype(zero_result_)(v);	\
+	negative_flag_ = zero_result_ & decltype(zero_result_)(m);	\
+	overflow_flag_ = (value ^ zero_result_) & decltype(zero_result_)(m);
 
 #define decode_shift_count()	\
 	int shift_count = (decoded_instruction_.full & 32) ? data_[(decoded_instruction_.full >> 9) & 7].full&63 : ( ((decoded_instruction_.full >> 9)&7) ? ((decoded_instruction_.full >> 9)&7) : 8) ;	\
@@ -1533,8 +1533,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	if(!shift_count) {	\
 		carry_flag_ = 0;	\
 	} else {	\
-		destination = value << shift_count;	\
-		extend_flag_ = carry_flag_ = value & ((1 << (size - 1)) >> (shift_count - 1));	\
+		destination = decltype(destination)(value << shift_count);	\
+		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value & ((1 << (size - 1)) >> (shift_count - 1)));	\
 	}	\
 \
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1559,10 +1559,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	if(!shift_count) {	\
 		carry_flag_ = 0;	\
 	} else {	\
-		destination =	\
+		destination =	decltype(destination)(\
 			(value >> shift_count) |	\
-			((value & (1 << (size - 1)) ? 0xffffffff : 0x000000000) << (size - shift_count));	\
-		extend_flag_ = carry_flag_ = value & (1 << (shift_count - 1));	\
+			((value & (1 << (size - 1)) ? 0xffffffff : 0x000000000) << (size - shift_count))	\
+		);	\
+		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value & (1 << (shift_count - 1)));	\
 	}	\
 \
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1634,10 +1635,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			carry_flag_ = 0;	\
 		} else {	\
 			shift_count &= (size - 1);	\
-			destination =	\
+			destination = decltype(destination)(	\
 				(value << shift_count) |	\
-				(value >> (size - shift_count));	\
-			carry_flag_ = destination & 1;	\
+				(value >> (size - shift_count))	\
+			);	\
+			carry_flag_ = decltype(carry_flag_)(destination & 1);	\
 		}	\
 		\
 		set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1645,7 +1647,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::ROLm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (value << 1) | (value >> 15);
+									active_program_->destination->halves.low.full = uint16_t((value << 1) | (value >> 15));
 									carry_flag_ = active_program_->destination->halves.low.full & 1;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
@@ -1662,9 +1664,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			carry_flag_ = 0;	\
 		} else {	\
 			shift_count &= (size - 1);	\
-			destination =	\
+			destination =	decltype(destination)(\
 				(value >> shift_count) |	\
-				(value << (size - shift_count));	\
+				(value << (size - shift_count))	\
+			);\
 			carry_flag_ = destination & (1 << (size - 1));	\
 		}	\
 		\
@@ -1673,7 +1676,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::RORm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (value >> 1) | (value << 15);
+									active_program_->destination->halves.low.full = uint16_t((value >> 1) | (value << 15));
 									carry_flag_ = active_program_->destination->halves.low.full & 0x8000;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
@@ -1690,10 +1693,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 		carry_flag_ = extend_flag_;	\
 	} else {	\
 		shift_count %= (size + 1);	\
-		destination =	\
+		destination = decltype(destination)(\
 			(value << shift_count) |	\
 			(value >> (size + 1 - shift_count)) |	\
-			((extend_flag_ ? (1 << (size - 1)) : 0) >> (size - shift_count));	\
+			((extend_flag_ ? (1 << (size - 1)) : 0) >> (size - shift_count))\
+		);	\
 		carry_flag_ = extend_flag_ = (value >> (size - shift_count))&1;	\
 	}	\
 	\
@@ -1702,7 +1706,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::ROXLm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (value << 1) | (extend_flag_ ? 0x0001 : 0x0000);
+									active_program_->destination->halves.low.full = uint16_t((value << 1) | (extend_flag_ ? 0x0001 : 0x0000));
 									extend_flag_ = value & 0x8000;
 									set_flags_w(0x8000);
 								} break;
@@ -1719,10 +1723,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 		carry_flag_ = extend_flag_;	\
 	} else {	\
 		shift_count %= (size + 1);	\
-		destination =	\
+		destination = decltype(destination)(\
 			(value >> shift_count) |	\
 			(value << (size + 1 - shift_count)) |	\
-			((extend_flag_ ? 1 : 0) << (size - shift_count));	\
+			((extend_flag_ ? 1 : 0) << (size - shift_count))	\
+		);	\
 		carry_flag_ = extend_flag_ = value & (1 << shift_count);	\
 	}	\
 	\
