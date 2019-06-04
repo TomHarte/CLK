@@ -120,7 +120,9 @@ Storage::Disk::PCMSegment AppleGCR::five_and_three_data(const uint8_t *source) {
 	return Storage::Disk::PCMSegment(data);
 }
 
-Storage::Disk::PCMSegment AppleGCR::six_and_two_data(const uint8_t *source) {
+// MARK: - Apple II-specific encoding.
+
+Storage::Disk::PCMSegment AppleGCR::AppleII::six_and_two_data(const uint8_t *source) {
 	std::vector<uint8_t> data(349);
 
 	// Add the prologue and epilogue.
@@ -174,4 +176,23 @@ Storage::Disk::PCMSegment AppleGCR::six_and_two_data(const uint8_t *source) {
 	}
 
 	return Storage::Disk::PCMSegment(data);
+}
+
+// MARK: - Macintosh-specific encoding.
+
+AppleGCR::Macintosh::SectorSpan AppleGCR::Macintosh::sectors_in_track(int track) {
+	// A Macintosh disk has 80 tracks, divided into 5 16-track zones. The outermost
+	// zone has 12 sectors/track, the next one in has only 11 sectors/track, and
+	// that arithmetic progression continues.
+	//
+	// (... and therefore the elementary sum of an arithmetic progression formula
+	// is deployed below)
+	const int zone = track >> 4;
+	const int prior_sectors = 16 * zone * (12 + (12 - (zone - 1))) / 2;
+
+	AppleGCR::Macintosh::SectorSpan result;
+	result.length = 12 - zone;
+	result.start = prior_sectors + (track & 15) * result.length;
+
+	return result;
 }

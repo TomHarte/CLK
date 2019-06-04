@@ -81,7 +81,7 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 		for(uint8_t c = 0; c < 16; ++c) {
 			segment += Encodings::AppleGCR::header(is_prodos_ ? 0x01 : 0xfe, track, c);	// Volume number is 0xfe for DOS 3.3, 0x01 for Pro-DOS.
 			segment += Encodings::AppleGCR::six_and_two_sync(7);	// Gap 2: 7 sync words.
-			segment += Encodings::AppleGCR::six_and_two_data(&track_data[logical_sector_for_physical_sector(c) * 256]);
+			segment += Encodings::AppleGCR::AppleII::six_and_two_data(&track_data[logical_sector_for_physical_sector(c) * 256]);
 			segment += Encodings::AppleGCR::six_and_two_sync(20);	// Gap 3: 20 sync words.
 		}
 	} else {

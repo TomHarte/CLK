@@ -29,11 +29,37 @@ const uint8_t epilogue[3] = {0xde, 0xaa, 0xeb};
 */
 Storage::Disk::PCMSegment header(uint8_t volume, uint8_t track, uint8_t sector);
 
+namespace AppleII {
+
 /*!
-	Produces the data section of a six-and-two format sector; the segment returned
-	will be 2,792 bits long, encoding the first 256 bytes from @c source.
+	Produces the data section of an Apple II-style six-and-two format sector;
+	the segment returned will be 2,792 bits long, encoding the first 256 bytes
+	from @c source.
 */
 Storage::Disk::PCMSegment six_and_two_data(const uint8_t *source);
+
+}
+
+namespace Macintosh {
+
+/*!
+	Produces the data section of a Macintosh-style six-and-two format sector;
+	the segment returned will be x bits long, encoding the first 524 bytes
+	from @c source.
+*/
+Storage::Disk::PCMSegment six_and_two_data(const uint8_t *source);
+
+struct SectorSpan {
+	int start, length;
+};
+
+/*!
+	@returns the span of sectors included on track @c track using the Macintosh's
+	ordinary CLV variable-speed mechanish.
+*/
+SectorSpan sectors_in_track(int track);
+
+}
 
 /*!
 	Produces @c length sync six-and-two format sync bytes. The segment returned
