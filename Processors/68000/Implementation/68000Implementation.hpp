@@ -45,6 +45,7 @@
 	)
 
 #define extend16(x)	uint32_t(int16_t(x))
+#define extend8(x)	uint32_t(int8_t(x))
 
 template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::run_for(HalfCycles duration) {
 	const HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
@@ -656,7 +657,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// Schedule something appropriate, by rewriting the program for this instruction temporarily.
 									if(should_branch) {
 										if(byte_offset) {
-											program_counter_.full = (program_counter_.full + byte_offset);
+											program_counter_.full += decltype(program_counter_.full)(byte_offset);
 										} else {
 											program_counter_.full += extend16(prefetch_queue_.halves.low.full);
 										}
@@ -1464,7 +1465,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 \
 	/* Set all flags essentially as if this were normal subtraction. */	\
 	zero_result_ |= result & 0xff;	\
-	extend_flag_ = carry_flag_ = result & ~0xff;	\
+	extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);	\
 	negative_flag_ = result & 0x80;	\
 	overflow_flag_ = sub_overflow() & 0x80;	\
 \
@@ -1981,7 +1982,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #define CalculateD8AnXn(data, source, target)	{\
 	const auto register_index = (data.full >> 12) & 7;	\
 	const RegisterPair32 &displacement = (data.full & 0x8000) ? address_[register_index] : data_[register_index];	\
-	target.full = uint32_t(int8_t(data.halves.low)) + source;	\
+	target.full = extend8(data.halves.low) + source;	\
 \
 	if(data.full & 0x800) {	\
 		target.full += displacement.full;	\
@@ -2109,3 +2110,4 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef set_ccr
 #undef get_ccr
 #undef extend16
+#undef extend8
