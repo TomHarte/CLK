@@ -299,6 +299,7 @@ void Drive::setup_track() {
 }
 
 void Drive::invalidate_track() {
+	random_interval_.set_zero();
 	track_ = nullptr;
 	if(patched_track_) {
 		set_track(patched_track_);
