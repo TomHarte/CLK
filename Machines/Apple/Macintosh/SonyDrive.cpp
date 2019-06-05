@@ -11,7 +11,12 @@
 using namespace Apple::Macintosh;
 
 SonyDrive::SonyDrive(int input_clock_rate, bool is_800k) :
-	Storage::Disk::Drive(static_cast<unsigned int>(input_clock_rate), is_800k ? 2 : 1), is_800k_(is_800k) {}
+	Storage::Disk::Drive(static_cast<unsigned int>(input_clock_rate), is_800k ? 2 : 1), is_800k_(is_800k) {
+	// Start with a valid rotation speed.
+	if(is_800k) {
+		set_rotation_speed(393.3807f);
+	}
+}
 
 void SonyDrive::did_step(Storage::Disk::HeadPosition to_position) {
 	// The 800kb drive automatically selects rotation speed as a function of

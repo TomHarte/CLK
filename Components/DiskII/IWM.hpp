@@ -16,7 +16,8 @@
 
 namespace Apple {
 
-class IWM {
+class IWM:
+	public Storage::Disk::Drive::EventDelegate {
 	public:
 		IWM(int clock_rate);
 
@@ -42,8 +43,12 @@ class IWM {
 		void set_drive(int slot, Storage::Disk::Drive *drive);
 
 	private:
+		// Storage::Disk::Drive::EventDelegate.
+		void process_event(const Storage::Disk::Track::Event &event) override;
+
 		const int clock_rate_;
 
+		uint8_t data_register_ = 0;
 		uint8_t mode_ = 0;
 		bool read_write_ready_ = true;
 		bool write_overran_ = false;
@@ -58,6 +63,9 @@ class IWM {
 
 		void access(int address);
 
+		uint8_t shift_register_ = 0;
+		void propose_shift(uint8_t bit);
+		Cycles cycles_since_shift_;
 		Cycles bit_length_;
 };
 

@@ -18,6 +18,7 @@
 #include "Video.hpp"
 
 #include "../../CRTMachine.hpp"
+#include "../../MediaTarget.hpp"
 
 //#define LOG_TRACE
 
@@ -41,9 +42,12 @@ namespace Macintosh {
 template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachine:
 	public Machine,
 	public CRTMachine::Machine,
+	public MediaTarget::Machine,
 	public CPU::MC68000::BusHandler {
 	public:
-		ConcreteMachine(const ROMMachine::ROMFetcher &rom_fetcher) :
+		using Target = Analyser::Static::Macintosh::Target;
+
+		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		 	mc68000_(*this),
 		 	iwm_(CLOCK_RATE),
 		 	video_(ram_, audio_, drive_speed_accumulator_),
@@ -97,6 +101,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// The Mac runs at 7.8336mHz.
 			set_clock_rate(double(CLOCK_RATE));
 			audio_.speaker.set_input_rate(float(CLOCK_RATE));
+
+			// Insert any supplied media.
+			insert_media(target.media);
 		}
 
 		~ConcreteMachine() {
@@ -312,6 +319,18 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			video_.set_use_alternate_buffers(use_alternate_screen_buffer, use_alternate_audio_buffer);
 		}
 
+		bool insert_media(const Analyser::Static::Media &media) override {
+			if(media.disks.empty())
+				return false;
+
+			// TODO: shouldn't allow disks to be replaced like this, as the Mac
+			// uses software eject. Will need to expand messaging ability of
+			// insert_media.
+			drives_[0].set_disk(media.disks[0]);
+
+			return true;
+		}
+
 	private:
 		struct IWM {
 			IWM(int clock_rate) : iwm(clock_rate) {}
@@ -465,10 +484,10 @@ Machine *Machine::Macintosh(const Analyser::Static::Target *target, const ROMMac
 	using Model = Analyser::Static::Macintosh::Target::Model;
 	switch(mac_target->model) {
 		default:
-		case Model::Mac128k:	return new ConcreteMachine<Model::Mac128k>(rom_fetcher);
-		case Model::Mac512k:	return new ConcreteMachine<Model::Mac512k>(rom_fetcher);
-		case Model::Mac512ke:	return new ConcreteMachine<Model::Mac512ke>(rom_fetcher);
-		case Model::MacPlus:	return new ConcreteMachine<Model::MacPlus>(rom_fetcher);
+		case Model::Mac128k:	return new ConcreteMachine<Model::Mac128k>(*mac_target, rom_fetcher);
+		case Model::Mac512k:	return new ConcreteMachine<Model::Mac512k>(*mac_target, rom_fetcher);
+		case Model::Mac512ke:	return new ConcreteMachine<Model::Mac512ke>(*mac_target, rom_fetcher);
+		case Model::MacPlus:	return new ConcreteMachine<Model::MacPlus>(*mac_target, rom_fetcher);
 	}
 }
 

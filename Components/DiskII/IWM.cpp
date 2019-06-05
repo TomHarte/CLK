@@ -59,8 +59,12 @@ uint8_t IWM::read(int address) {
 		return 0xff;
 
 		case ENABLE:				/* Read data register. */
+			if(data_register_ & 0x80) {
+				printf("[%02x] ", data_register_);
+				data_register_ = 0;
+			}
 			printf("Reading data register\n");
-		return 0x00;
+		return data_register_;
 
 		case Q6: case Q6|ENABLE: {
 			/*
@@ -257,11 +261,49 @@ void IWM::run_for(const Cycles cycles) {
 	}
 
 	// Activity otherwise depends on mode and motor state.
+	const bool run_disk = drive_motor_on_ && drives_[active_drive_];
+	int integer_cycles = cycles.as_int();
 	switch(state_ & (Q6 | Q7 | ENABLE)) {
+		case ENABLE:	// i.e. read mode.
+			while(integer_cycles--) {
+				if(run_disk) {
+					drives_[active_drive_]->run_for(Cycles(1));
+				}
+				++cycles_since_shift_;
+				if(cycles_since_shift_ == bit_length_ + Cycles(2)) {
+					propose_shift(0);
+				}
+			}
+		break;
+
+		default:
+			if(run_disk) drives_[active_drive_]->run_for(cycles);
+		break;
 	}
+}
+
+void IWM::process_event(const Storage::Disk::Track::Event &event) {
+	switch(event.type) {
+		case Storage::Disk::Track::Event::IndexHole: return;
+		case Storage::Disk::Track::Event::FluxTransition:
+			propose_shift(1);
+		break;
+	}
+}
+
+void IWM::propose_shift(uint8_t bit) {
+	// TODO: synchronous mode.
+	shift_register_ = uint8_t((shift_register_ << 1) | bit);
+	if(shift_register_ & 0x80) {
+		printf("%02x -> data\n", shift_register_);
+		data_register_ = shift_register_;
+		shift_register_ = 0;
+	}
+	cycles_since_shift_ = Cycles(0);
 }
 
 void IWM::set_drive(int slot, Storage::Disk::Drive *drive) {
 	drives_[slot] = drive;
+	drive->set_event_delegate(this);
 }
 
