@@ -252,26 +252,40 @@ struct Time {
 		}
 
 		inline void install_float(float value) {
+			// Grab the float's native mantissa and exponent.
 			int exponent;
-			float mantissa = frexpf(value, &exponent);
-			float loaded_mantissa = ldexpf(mantissa, 24);
+			const float mantissa = frexpf(value, &exponent);
 
-			uint64_t result_length;
-			uint64_t result_clock_rate;
-			if(exponent < 0) {
-				int right_shift = -exponent;
-				result_length = (uint64_t)loaded_mantissa >> right_shift;
-				result_clock_rate = 1;
-			} else {
-				if(exponent <= 24) {
-					result_length = (uint64_t)loaded_mantissa;
-					result_clock_rate = 1 << (24 - exponent);
-				} else {
-					result_length = std::numeric_limits<uint64_t>::max();
-					result_clock_rate = 1;
-				}
+			// Turn the mantissa into an int, and adjust the exponent
+			// appropriately.
+			const uint64_t loaded_mantissa = uint64_t(ldexpf(mantissa, 24));
+			const auto relative_exponent = exponent - 24;
+
+			// If the mantissa is negative and its absolute value fits within a 64-bit integer,
+			// just load up.
+			if(relative_exponent <= 0 && relative_exponent > -64) {
+				install_result(loaded_mantissa, uint64_t(1 << -relative_exponent));
+				return;
 			}
-			install_result(result_length, result_clock_rate);
+
+			// If the exponent is positive but doesn't cause loaded_mantissa to overflow,
+			// install with the natural encoding.
+			if(relative_exponent > 0 && relative_exponent < (64 - 24)) {
+				install_result(loaded_mantissa << relative_exponent, 1);
+				return;
+			}
+
+			// Otherwise, if this number is too large to store, store the maximum value.
+			if(relative_exponent > 0) {
+				install_result(std::numeric_limits<uint64_t>::max(), 1);
+				return;
+			}
+
+			// If the number is too small to store accurately, store 0.
+			if(relative_exponent < 0) {
+				install_result(0, 1);
+				return;
+			}
 		}
 };
 
