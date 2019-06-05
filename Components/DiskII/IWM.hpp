@@ -38,6 +38,9 @@ class IWM {
 		/// Advances the controller by @c cycles.
 		void run_for(const Cycles cycles);
 
+		/// Connects a drive to the IWM.
+		void set_drive(int slot, Storage::Disk::Drive *drive);
+
 	private:
 		const int clock_rate_;
 
@@ -48,7 +51,8 @@ class IWM {
 		int state_ = 0;
 
 		int active_drive_ = 0;
-		Storage::Disk::Drive drives_[2];
+		Storage::Disk::Drive *drives_[2] = {nullptr, nullptr};
+		bool drive_motor_on_ = false;
 
 		Cycles cycles_until_motor_off_;
 

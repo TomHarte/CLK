@@ -290,6 +290,7 @@ Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &medi
 	target->region = target->media.tapes.empty() ? Target::Region::USA : Target::Region::Europe;
 
 	// Blindly accept disks for now.
+	// TODO: how to spot an MSX disk?
 	target->media.disks = media.disks;
 	target->has_disk_drive = !media.disks.empty();
 

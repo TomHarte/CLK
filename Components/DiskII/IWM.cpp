@@ -25,11 +25,7 @@ namespace  {
 }
 
 IWM::IWM(int clock_rate) :
-	clock_rate_(clock_rate),
- 	drives_{
- 		{static_cast<unsigned int>(clock_rate), 300, 2},
- 		{static_cast<unsigned int>(clock_rate), 300, 2}
-	} {}
+	clock_rate_(clock_rate) {}
 
 // MARK: - Bus accessors
 
@@ -64,7 +60,7 @@ uint8_t IWM::read(int address) {
 
 		case ENABLE:				/* Read data register. */
 			printf("Reading data register\n");
-		return 0xff;
+		return 0x00;
 
 		case Q6: case Q6|ENABLE: {
 			/*
@@ -93,7 +89,7 @@ uint8_t IWM::read(int address) {
 
 				case SEL:				// Disk in place.
 					printf("disk in place)\n");
-					sense = drives_[active_drive_].has_disk() ? 0x00 : 0x80;
+					sense = drives_[active_drive_] && drives_[active_drive_]->has_disk() ? 0x00 : 0x80;
 				break;
 
 				case CA0:				// Disk head stepping.
@@ -106,12 +102,12 @@ uint8_t IWM::read(int address) {
 
 				case CA1:				// Disk motor running.
 					printf("disk motor running)\n");
-					sense = drives_[active_drive_].get_motor_on() ? 0x00 : 0x80;
+					sense = drives_[active_drive_] && drives_[active_drive_]->get_motor_on() ? 0x00 : 0x80;
 				break;
 
 				case CA1|SEL:			// Head at track 0.
 					printf("head at track 0)\n");
-					sense = drives_[active_drive_].get_is_track_zero() ? 0x00 : 0x80;
+					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_track_zero() ? 0x00 : 0x80;
 				break;
 
 				case CA1|CA0|SEL:		// Tachometer (?)
@@ -132,12 +128,13 @@ uint8_t IWM::read(int address) {
 
 				case CA2|CA1|CA0|SEL:	// Drive installed.
 					printf("drive installed)\n");
+					sense = drives_[active_drive_] ? 0x00 : 0x80;
 				break;
 			}
 
 			return
 				(mode_&0x1f) |
-				(drives_[active_drive_].get_motor_on() ? 0x20 : 0x00) |
+				(drive_motor_on_ ? 0x20 : 0x00) |
 				sense;
 		} break;
 
@@ -214,13 +211,15 @@ void IWM::access(int address) {
 
 		case 4:
 			if(address & 1) {
-				drives_[active_drive_].set_motor_on(true);
+				drive_motor_on_ = true;
+				if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(true);
 			} else {
 				// If the 1-second delay is enabled, set up a timer for that.
 				if(!(mode_ & 4)) {
 					cycles_until_motor_off_ = Cycles(clock_rate_);
 				} else {
-					drives_[active_drive_].set_motor_on(false);
+					drive_motor_on_ = false;
+					if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(false);
 				}
 			}
 		break;
@@ -228,9 +227,9 @@ void IWM::access(int address) {
 		case 5: {
 			const int new_drive = address & 1;
 			if(new_drive != active_drive_) {
-				drives_[new_drive].set_motor_on(drives_[active_drive_].get_motor_on());
-				drives_[active_drive_].set_motor_on(false);
+				if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(false);
 				active_drive_ = new_drive;
+				if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(drive_motor_on_);
 			}
 		} break;
 	}
@@ -247,10 +246,22 @@ void IWM::set_select(bool enabled) {
 // MARK: - Active logic
 
 void IWM::run_for(const Cycles cycles) {
+	// Check for a timeout of the motor-off timer.
 	if(cycles_until_motor_off_ > Cycles(0)) {
 		cycles_until_motor_off_ -= cycles;
 		if(cycles_until_motor_off_ <= Cycles(0)) {
-			drives_[active_drive_].set_motor_on(false);
+			drive_motor_on_ = false;
+			if(drives_[active_drive_])
+				drives_[active_drive_]->set_motor_on(false);
 		}
 	}
+
+	// Activity otherwise depends on mode and motor state.
+	switch(state_ & (Q6 | Q7 | ENABLE)) {
+	}
 }
+
+void IWM::set_drive(int slot, Storage::Disk::Drive *drive) {
+	drives_[slot] = drive;
+}
+

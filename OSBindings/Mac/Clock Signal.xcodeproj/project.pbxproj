@@ -110,6 +110,8 @@
 		4B08A2751EE35D56008B7065 /* Z80InterruptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */; };
 		4B08A2781EE39306008B7065 /* TestMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2771EE39306008B7065 /* TestMachine.mm */; };
 		4B08A56920D72BEF0016CE5A /* Activity.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B08A56720D72BEF0016CE5A /* Activity.xib */; };
+		4B0C956E22A7109A0015A8F6 /* PlusTooBIN.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0C956C22A7109A0015A8F6 /* PlusTooBIN.cpp */; };
+		4B0C957122A74E880015A8F6 /* SonyDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0C956F22A74E880015A8F6 /* SonyDrive.cpp */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B0E04EA1FC9E5DA00F43484 /* CAS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04E81FC9E5DA00F43484 /* CAS.cpp */; };
 		4B0E04EB1FC9E78800F43484 /* CAS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04E81FC9E5DA00F43484 /* CAS.cpp */; };
@@ -726,6 +728,10 @@
 		4B08A2771EE39306008B7065 /* TestMachine.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachine.mm; sourceTree = "<group>"; };
 		4B08A2791EE3957B008B7065 /* TestMachine+ForSubclassEyesOnly.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "TestMachine+ForSubclassEyesOnly.h"; sourceTree = "<group>"; };
 		4B08A56820D72BEF0016CE5A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Activity.xib"; sourceTree = SOURCE_ROOT; };
+		4B0C956C22A7109A0015A8F6 /* PlusTooBIN.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PlusTooBIN.cpp; sourceTree = "<group>"; };
+		4B0C956D22A7109A0015A8F6 /* PlusTooBIN.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PlusTooBIN.hpp; sourceTree = "<group>"; };
+		4B0C956F22A74E880015A8F6 /* SonyDrive.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SonyDrive.cpp; sourceTree = "<group>"; };
+		4B0C957022A74E880015A8F6 /* SonyDrive.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SonyDrive.hpp; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
 		4B0E04E81FC9E5DA00F43484 /* CAS.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CAS.cpp; sourceTree = "<group>"; };
@@ -1945,34 +1951,36 @@
 			isa = PBXGroup;
 			children = (
 				4B45188D1F75FD1B00926311 /* AcornADF.cpp */,
-				4B45188E1F75FD1B00926311 /* AcornADF.hpp */,
 				4B0333AD2094081A0050B93D /* AppleDSK.cpp */,
-				4B0333AE2094081A0050B93D /* AppleDSK.hpp */,
 				4B45188F1F75FD1B00926311 /* CPCDSK.cpp */,
-				4B4518901F75FD1B00926311 /* CPCDSK.hpp */,
 				4B4518911F75FD1B00926311 /* D64.cpp */,
-				4B4518921F75FD1B00926311 /* D64.hpp */,
 				4BB4BFAE22A42F290069048D /* DiskCopy42.cpp */,
-				4BB4BFAF22A42F290069048D /* DiskCopy42.hpp */,
 				4BAF2B4C2004580C00480230 /* DMK.cpp */,
-				4BAF2B4D2004580C00480230 /* DMK.hpp */,
 				4B4518931F75FD1B00926311 /* G64.cpp */,
-				4B4518941F75FD1B00926311 /* G64.hpp */,
 				4B4518951F75FD1B00926311 /* HFE.cpp */,
-				4B4518961F75FD1B00926311 /* HFE.hpp */,
 				4B58601C1F806AB200AEE2E3 /* MFMSectorDump.cpp */,
-				4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */,
 				4BEBFB4B2002C4BF000708CC /* MSXDSK.cpp */,
-				4BEBFB4C2002C4BF000708CC /* MSXDSK.hpp */,
 				4B0F94FC208C1A1600FE41D9 /* NIB.cpp */,
-				4B0F94FD208C1A1600FE41D9 /* NIB.hpp */,
 				4B4518971F75FD1B00926311 /* OricMFMDSK.cpp */,
-				4B4518981F75FD1B00926311 /* OricMFMDSK.hpp */,
+				4B0C956C22A7109A0015A8F6 /* PlusTooBIN.cpp */,
 				4B4518991F75FD1B00926311 /* SSD.cpp */,
-				4B45189A1F75FD1B00926311 /* SSD.hpp */,
-				4BFDD7891F7F2DB4008579B9 /* Utility */,
 				4B6ED2EE208E2F8A0047B343 /* WOZ.cpp */,
+				4B45188E1F75FD1B00926311 /* AcornADF.hpp */,
+				4B0333AE2094081A0050B93D /* AppleDSK.hpp */,
+				4B4518901F75FD1B00926311 /* CPCDSK.hpp */,
+				4B4518921F75FD1B00926311 /* D64.hpp */,
+				4BB4BFAF22A42F290069048D /* DiskCopy42.hpp */,
+				4BAF2B4D2004580C00480230 /* DMK.hpp */,
+				4B4518941F75FD1B00926311 /* G64.hpp */,
+				4B4518961F75FD1B00926311 /* HFE.hpp */,
+				4B58601D1F806AB200AEE2E3 /* MFMSectorDump.hpp */,
+				4BEBFB4C2002C4BF000708CC /* MSXDSK.hpp */,
+				4B0F94FD208C1A1600FE41D9 /* NIB.hpp */,
+				4B4518981F75FD1B00926311 /* OricMFMDSK.hpp */,
+				4B0C956D22A7109A0015A8F6 /* PlusTooBIN.hpp */,
+				4B45189A1F75FD1B00926311 /* SSD.hpp */,
 				4B6ED2EF208E2F8A0047B343 /* WOZ.hpp */,
+				4BFDD7891F7F2DB4008579B9 /* Utility */,
 			);
 			path = Formats;
 			sourceTree = "<group>";
@@ -3104,6 +3112,8 @@
 				4BCE0059227CFFCA000CA200 /* Macintosh.hpp */,
 				4BD0692B22828A2D00D2A54F /* RealTimeClock.hpp */,
 				4BCE005F227D39AB000CA200 /* Video.hpp */,
+				4B0C956F22A74E880015A8F6 /* SonyDrive.cpp */,
+				4B0C957022A74E880015A8F6 /* SonyDrive.hpp */,
 			);
 			path = Macintosh;
 			sourceTree = "<group>";
@@ -4073,6 +4083,7 @@
 				4B30512D1D989E2200B4FED8 /* Drive.cpp in Sources */,
 				4BCE005D227D30CC000CA200 /* MemoryPacker.cpp in Sources */,
 				4BCE0051227CE8CA000CA200 /* Video.cpp in Sources */,
+				4B0C956E22A7109A0015A8F6 /* PlusTooBIN.cpp in Sources */,
 				4B894536201967B4007DE474 /* Z80.cpp in Sources */,
 				4BCA6CC81D9DD9F000C2D7B2 /* CommodoreROM.cpp in Sources */,
 				4BEA52661DF3472B007E74F2 /* TIASound.cpp in Sources */,
@@ -4097,6 +4108,7 @@
 				4B8334861F5DA3780097E338 /* 6502Storage.cpp in Sources */,
 				4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */,
 				4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */,
+				4B0C957122A74E880015A8F6 /* SonyDrive.cpp in Sources */,
 				4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */,
 				4B55DD8320DF06680043F2E5 /* MachinePicker.swift in Sources */,
 				4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */,
