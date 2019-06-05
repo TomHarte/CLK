@@ -14,6 +14,7 @@
 #include "DriveSpeedAccumulator.hpp"
 #include "Keyboard.hpp"
 #include "RealTimeClock.hpp"
+#include "SonyDrive.hpp"
 #include "Video.hpp"
 
 #include "../../CRTMachine.hpp"
@@ -47,7 +48,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		 	iwm_(CLOCK_RATE),
 		 	video_(ram_, audio_, drive_speed_accumulator_),
 		 	via_(via_port_handler_),
-		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_) {
+		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_),
+		 	drives_{
+		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke},
+		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke}
+			} {
 
 			// Select a ROM name and determine the proper ROM and RAM sizes
 			// based on the machine model.
@@ -84,6 +89,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			}
 			roms[0]->resize(rom_size);
 			Memory::PackBigEndian16(*roms[0], rom_);
+
+			// Attach the drives to the IWM.
+			iwm_.iwm.set_drive(0, &drives_[0]);
+			iwm_.iwm.set_drive(1, &drives_[1]);
 
 			// The Mac runs at 7.8336mHz.
 			set_clock_rate(double(CLOCK_RATE));
@@ -436,6 +445,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		bool ROM_is_overlay_ = true;
 		int phase_ = 1;
+
+		SonyDrive drives_[2];
 
 		uint32_t ram_mask_ = 0;
 		uint32_t rom_mask_ = 0;

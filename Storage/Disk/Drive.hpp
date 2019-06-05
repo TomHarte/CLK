@@ -55,6 +55,11 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		void set_head(int head);
 
 		/*!
+			Gets the head count for this disk.
+		*/
+		int get_head_count();
+
+		/*!
 			@returns @c true if the inserted disk is read-only or no disk is inserted; @c false otherwise.
 		*/
 		bool get_is_read_only();
@@ -139,7 +144,13 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		*/
 		std::shared_ptr<Track> step_to(HeadPosition offset);
 
-		void set(Time);
+		/*!
+			Alters the rotational velocity of this drive.
+		*/
+		void set_rotation_speed(float revolutions_per_minute);
+
+	protected:
+		virtual void did_step(HeadPosition to_position) {}
 
 	private:
 		// Drives contain an entire disk; from that a certain track

@@ -36,6 +36,14 @@ Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, int numb
 	}
 }
 
+Drive::Drive(unsigned int input_clock_rate, int number_of_heads) : Drive(input_clock_rate, 300, number_of_heads) {}
+
+void Drive::set_rotation_speed(float revolutions_per_minute) {
+	// TODO: probably I should look into
+	// whether doing all this with quotients is really a good idea.
+	rotational_multiplier_ = Time(60.0f / revolutions_per_minute);
+}
+
 Drive::~Drive() {
 	if(disk_) disk_->flush_tracks();
 }
@@ -75,6 +83,9 @@ void Drive::step(HeadPosition offset) {
 	if(head_position_ != old_head_position) {
 		track_ = nullptr;
 	}
+
+	// Allow a subclass to react, if desired.
+	did_step(head_position_);
 }
 
 std::shared_ptr<Track> Drive::step_to(HeadPosition offset) {
@@ -95,6 +106,10 @@ void Drive::set_head(int head) {
 		head_ = head;
 		track_ = nullptr;
 	}
+}
+
+int Drive::get_head_count() {
+	return available_heads_;
 }
 
 Storage::Time Drive::get_time_into_track() {
