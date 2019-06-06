@@ -149,8 +149,22 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		*/
 		void set_rotation_speed(float revolutions_per_minute);
 
+		/*!
+			@returns the current value of the tachometer pulse offered by some drives.
+		*/
+		bool get_tachometer();
+
 	protected:
+		/*!
+			Announces the result of a step.
+		*/
 		virtual void did_step(HeadPosition to_position) {}
+
+		/*!
+			@returns the current rotation of the disk, a float in the half-open range
+				0.0 (the index hole) to 1.0 (back to the index hole, a whole rotation later).
+		*/
+		float get_rotation();
 
 	private:
 		// Drives contain an entire disk; from that a certain track

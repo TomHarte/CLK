@@ -112,6 +112,15 @@ int Drive::get_head_count() {
 	return available_heads_;
 }
 
+bool Drive::get_tachometer() {
+	// First guess: the tachometer ticks once per rotation.
+	return get_rotation() > 0.5f;
+}
+
+float Drive::get_rotation() {
+	return get_time_into_track().get<float>();
+}
+
 Storage::Time Drive::get_time_into_track() {
 	// `result` will initially be amount of time since the index hole was seen as a
 	// proportion of a second; convert it into proportion of a rotation, simplify and return.

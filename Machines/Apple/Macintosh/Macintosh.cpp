@@ -187,6 +187,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 							case 0x68f000:
 								// The IWM; this is a purely polled device, so can be run on demand.
+//								printf("[%06x]: ", mc68000_.get_state().program_counter);
 								iwm_.flush();
 								if(cycle.operation & Microcycle::Read) {
 									cycle.value->halves.low = iwm_.iwm.read(register_address);
@@ -368,7 +369,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 									b2–b0:	audio output volume
 							*/
 							iwm_.flush();
-							iwm_.iwm.set_select(!(value & 0x20));
+							printf("{SEL: %c} ", (value & 0x20) ? 't' : 'f');
+							iwm_.iwm.set_select(!!(value & 0x20));
 
 							machine_.set_use_alternate_buffers(!(value & 0x40), !(value&0x08));
 							machine_.set_rom_is_overlay(!!(value & 0x10));
@@ -406,6 +408,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 						case Port::B:
 						return
+							0x08 |	// Mouse button not down.
 							(clock_.get_data() ? 0x02 : 0x00) |
 							(video_.is_outputting() ? 0x00 : 0x40);
 							// TODO: mouse button, y2, x2

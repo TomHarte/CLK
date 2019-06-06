@@ -54,10 +54,10 @@ uint8_t IWM::read(int address) {
 		return 0xff;
 
 		// "Read all 1s".
-		case 0:
-			printf("Reading all 1s\n");
-		return 0xff;
+//			printf("Reading all 1s\n");
+//		return 0xff;
 
+		case 0:
 		case ENABLE:				/* Read data register. */
 			if(data_register_ & 0x80) {
 				printf("[%02x] ", data_register_);
@@ -78,30 +78,37 @@ uint8_t IWM::read(int address) {
 				(/ENBL1 is low when the first drive's motor is on; /ENBL2 is low when the second drive's motor is on.
 				If the 1-second timer is enabled, motors remain on for one second after being programmatically disabled.)
 			*/
-			printf("Reading status (including [%d] ", active_drive_);
+			printf("Reading status (including [%d][%c%c%c%c] ", active_drive_, (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 
 			// Determine the SENSE input.
 			uint8_t sense = 0x00;
 			switch(state_ & (CA2 | CA1 | CA0 | SEL)) {
 				default:
-					printf("unknown [%c%c%c%c])\n", (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
+					printf("unknown)\n");
 				break;
 
-				case 0:					// Head step direction.
-					printf("head step direction)\n");
-				break;
+				// 4 = step finished	(0 = done)
+				// B = ready			(0 = ready)
+				// 8 = motor on
+				//
+				// {CA1,CA0,SEL,CA2}
+
+//				case 0:					// Head step direction.
+//					printf("head step direction)\n");
+//				break;
 
 				case SEL:				// Disk in place.
 					printf("disk in place)\n");
 					sense = drives_[active_drive_] && drives_[active_drive_]->has_disk() ? 0x00 : 0x80;
 				break;
 
-				case CA0:				// Disk head stepping.
-					printf("head stepping)\n");
-				break;
-
+//				case CA0:				// Disk head step completed (1 = still stepping?).
+//					printf("head stepping)\n");
+//				break;
+//
 				case CA0|SEL:			// Disk locked (i.e. write-protect tab).
 					printf("disk locked)\n");
+					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 0x00 : 0x80;
 				break;
 
 				case CA1:				// Disk motor running.
@@ -116,21 +123,24 @@ uint8_t IWM::read(int address) {
 
 				case CA1|CA0|SEL:		// Tachometer (?)
 					printf("tachometer)\n");
+					sense = drives_[active_drive_] && drives_[active_drive_]->get_tachometer() ? 0x00 : 0x80;
 				break;
 
-				case CA2:				// Read data, lower head.
-					printf("data, lower head)\n");
-				break;
-
-				case CA2|SEL:			// Read data, upper head.
-					printf("data, upper head)\n");
-				break;
-
+//				case CA2:				// Read data, lower head.
+//					printf("data, lower head)\n");
+//				break;
+//
+//				case CA2|SEL:			// Read data, upper head.
+//					printf("data, upper head)\n");
+//				break;
+//
 				case CA2|CA1:			// Single- or double-sided drive.
 					printf("single- or double-sided drive)\n");
+					sense = drives_[active_drive_] && (drives_[active_drive_]->get_head_count() == 1) ? 0x00 : 0x80;
 				break;
 
-				case CA2|CA1|CA0|SEL:	// Drive installed.
+				case CA2|CA1|CA0:		// Drive installed.		(per the Mac Plus ROM)
+				case CA2|CA1|CA0|SEL:	// Drive installed.		(per Inside Macintosh)
 					printf("drive installed)\n");
 					sense = drives_[active_drive_] ? 0x00 : 0x80;
 				break;
@@ -151,7 +161,7 @@ uint8_t IWM::read(int address) {
 				bit 7: 1 = write data buffer ready for data.
 			*/
 			printf("Reading write handshake\n");
-		return 0x1f;
+		return 0x1f | 0x80 | 0x40;
 	}
 
 	return 0xff;
@@ -203,11 +213,13 @@ void IWM::access(int address) {
 	address &= 0xf;
 	const auto mask = 1 << (address >> 1);
 
+//	printf("[(%02x) %c%c%c%c ", mask, (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 	if(address & 1) {
 		state_ |= mask;
 	} else {
 		state_ &= ~mask;
 	}
+//	printf("-> %c%c%c%c] ", (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 
 	// React appropriately to motor requests.
 	switch(address >> 1) {
@@ -229,7 +241,7 @@ void IWM::access(int address) {
 		break;
 
 		case 5: {
-			const int new_drive = address & 1;
+			const int new_drive = (address & 1)^1;
 			if(new_drive != active_drive_) {
 				if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(false);
 				active_drive_ = new_drive;
@@ -240,11 +252,11 @@ void IWM::access(int address) {
 }
 
 void IWM::set_select(bool enabled) {
-	// Augment switch state with the value of the SEL line;
-	// it's active low, which is implicitly inverted here for
-	// consistency in the meaning of state_ bits.
-	if(!enabled) state_ |= 0x100;
-	else state_ &= ~0x100;
+	// Store SEL as an extra state bit.
+//	printf("[%c%c%c%c ", (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
+	if(enabled) state_ |= SEL;
+	else state_ &= ~SEL;
+//	printf("-> %c%c%c%c] ", (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 }
 
 // MARK: - Active logic
@@ -264,6 +276,7 @@ void IWM::run_for(const Cycles cycles) {
 	const bool run_disk = drive_motor_on_ && drives_[active_drive_];
 	int integer_cycles = cycles.as_int();
 	switch(state_ & (Q6 | Q7 | ENABLE)) {
+		case 0:
 		case ENABLE:	// i.e. read mode.
 			while(integer_cycles--) {
 				if(run_disk) {
@@ -306,4 +319,3 @@ void IWM::set_drive(int slot, Storage::Disk::Drive *drive) {
 	drives_[slot] = drive;
 	drive->set_event_delegate(this);
 }
-

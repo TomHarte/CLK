@@ -216,7 +216,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 				case ExecutionState::BeginInterrupt:
 #ifdef LOG_TRACE
-					should_log = true;
+//					should_log = true;
 #endif
 					active_program_ = nullptr;
 					active_micro_op_ = interrupt_micro_ops_;
@@ -284,7 +284,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-							should_log |= (program_counter_.full - 4) == 0x00400690;
+							should_log |= (program_counter_.full - 4) == 0x004006F4;
+//							should_log = ((program_counter_.full - 4) >= 0x417D9E) && ((program_counter_.full - 4) <= 0x419D96);
 #endif
 
 							if(instructions[decoded_instruction_.full].micro_operations) {

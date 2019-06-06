@@ -92,7 +92,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// 81
 	Format("a26", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)							// A26
 	Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)			// ADF
-	Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::AllCartridge)						// BIN (cartridge dump)
+//	Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::AllCartridge)						// BIN (cartridge dump)
 	Format("bin", result.disks, Disk::DiskImageHolder<Storage::Disk::PlusTooBIN>, TargetPlatform::Macintosh)	// BIN (PlusToo disk image)
 	Format("cas", result.tapes, Tape::CAS, TargetPlatform::MSX)													// CAS
 	Format("cdt", result.tapes, Tape::TZX, TargetPlatform::AmstradCPC)											// CDT
