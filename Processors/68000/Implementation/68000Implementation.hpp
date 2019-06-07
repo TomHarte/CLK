@@ -284,7 +284,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-							should_log |= (program_counter_.full - 4) == 0x004006F4;
+							should_log |= (program_counter_.full - 4) == 0x4181FA;//18A7A;//18AEE;
 //							should_log = ((program_counter_.full - 4) >= 0x417D9E) && ((program_counter_.full - 4) <= 0x419D96);
 #endif
 

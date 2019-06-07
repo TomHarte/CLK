@@ -113,8 +113,11 @@ int Drive::get_head_count() {
 }
 
 bool Drive::get_tachometer() {
-	// First guess: the tachometer ticks once per rotation.
-	return get_rotation() > 0.5f;
+	// I have made a guess here that the tachometer is a symmetric square wave;
+	// if that is correct then around 60 beats per rotation appears to be correct
+	// to proceed beyond the speed checks I've so far uncovered.
+	const float ticks_per_rotation = 60.0f; // 56 was too low; 64 too high.
+	return int(get_rotation() * 2.0f * ticks_per_rotation) & 1;
 }
 
 float Drive::get_rotation() {

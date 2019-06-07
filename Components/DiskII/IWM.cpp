@@ -122,8 +122,8 @@ uint8_t IWM::read(int address) {
 				break;
 
 				case CA1|CA0|SEL:		// Tachometer (?)
-					printf("tachometer)\n");
 					sense = drives_[active_drive_] && drives_[active_drive_]->get_tachometer() ? 0x00 : 0x80;
+					printf("tachometer [%02x])\n", sense);
 				break;
 
 //				case CA2:				// Read data, lower head.
@@ -221,9 +221,33 @@ void IWM::access(int address) {
 	}
 //	printf("-> %c%c%c%c] ", (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 
-	// React appropriately to motor requests.
+	// React appropriately to motor requests and to LSTRB register writes.
 	switch(address >> 1) {
 		default: break;
+
+		case 3:
+			if(address & 1) {
+				switch(state_ & (CA1 | CA0 | SEL)) {
+					default: break;
+
+					case 0:
+						printf("LSTRB Set stepping direction: %d\n", state_ & CA2);
+					break;
+
+					case CA0:
+						printf("LSTRB Step\n");
+					break;
+
+					case CA1:
+						printf("LSTRB Motor on\n");
+					break;
+
+					case CA1|CA0:
+						printf("LSTRB Eject disk\n");
+					break;
+				}
+			}
+		break;
 
 		case 4:
 			if(address & 1) {
@@ -308,7 +332,7 @@ void IWM::propose_shift(uint8_t bit) {
 	// TODO: synchronous mode.
 	shift_register_ = uint8_t((shift_register_ << 1) | bit);
 	if(shift_register_ & 0x80) {
-		printf("%02x -> data\n", shift_register_);
+//		printf("%02x -> data\n", shift_register_);
 		data_register_ = shift_register_;
 		shift_register_ = 0;
 	}
