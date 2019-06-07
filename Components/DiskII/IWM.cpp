@@ -222,10 +222,10 @@ void IWM::access(int address) {
 //	printf("-> %c%c%c%c] ", (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 
 	// React appropriately to motor requests and to LSTRB register writes.
-	switch(address >> 1) {
+	switch(mask) {
 		default: break;
 
-		case 3:
+		case LSTRB:
 			if(address & 1) {
 				switch(state_ & (CA1 | CA0 | SEL)) {
 					default: break;
@@ -249,7 +249,7 @@ void IWM::access(int address) {
 			}
 		break;
 
-		case 4:
+		case ENABLE:
 			if(address & 1) {
 				drive_motor_on_ = true;
 				if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(true);
@@ -264,7 +264,7 @@ void IWM::access(int address) {
 			}
 		break;
 
-		case 5: {
+		case DRIVESEL: {
 			const int new_drive = (address & 1)^1;
 			if(new_drive != active_drive_) {
 				if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(false);
