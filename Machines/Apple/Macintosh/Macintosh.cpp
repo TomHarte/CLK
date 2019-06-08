@@ -20,9 +20,10 @@
 #include "../../CRTMachine.hpp"
 #include "../../MediaTarget.hpp"
 
-//#define LOG_TRACE
+#define LOG_TRACE
 
 #include "../../../Components/6522/6522.hpp"
+#include "../../../Components/8530/z8530.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
 #include "../../../Processors/68000/68000.hpp"
 
@@ -179,7 +180,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 								// which at word precision is 0x77f0ff + register*256.
 								if(cycle.operation & Microcycle::Read) {
 									cycle.value->halves.low = via_.get_register(register_address);
-									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 								} else {
 									via_.set_register(register_address, cycle.value->halves.low);
 								}
@@ -191,7 +191,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 								iwm_.flush();
 								if(cycle.operation & Microcycle::Read) {
 									cycle.value->halves.low = iwm_.iwm.read(register_address);
-									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 								} else {
 									iwm_.iwm.write(register_address, cycle.value->halves.low);
 								}
@@ -201,18 +200,34 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 								// Phase read.
 								if(cycle.operation & Microcycle::Read) {
 									cycle.value->halves.low = phase_ & 7;
-									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 								}
 							break;
 
 							case 0x480000: case 0x48f000:
-							case 0x500000: case 0x580000: case 0x58f000:
+							case 0x580000: case 0x58f000:
 								// Any word access here adjusts phase.
 								if(cycle.operation & Microcycle::SelectWord) {
 									++phase_;
 								} else {
-									// TODO: SCC access.
-									printf("SCC access %06x\n", *cycle.address & 0xffffff);
+									if(word_address < 0x500000) {
+										// A0 = 1 => reset; A0 = 0 => read.
+										if(*cycle.address & 1) {
+											scc_.reset();
+										} else {
+											const auto read = scc_.read(int(word_address));
+											if(cycle.operation & Microcycle::Read) {
+												cycle.value->halves.low = read;
+											}
+										}
+									} else {
+										if(*cycle.address & 1) {
+											if(cycle.operation & Microcycle::Read) {
+												scc_.write(int(word_address), 0xff);
+											} else {
+												scc_.write(int(word_address), cycle.value->halves.low);
+											}
+										}
+									}
 								}
 							break;
 
@@ -220,12 +235,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 								if(cycle.operation & Microcycle::Read) {
 									printf("Unrecognised read %06x\n", *cycle.address & 0xffffff);
 									cycle.value->halves.low = 0x00;
-									if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 								} else {
 									printf("Unrecognised write %06x\n", *cycle.address & 0xffffff);
 								}
 							break;
 						}
+						if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 					}
 				} else {
 					if(cycle.data_select_active()) {
@@ -425,6 +440,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						CA1 is used for receiving vsync maybe?
 					*/
 					if(port == Port::B && line == Line::Two) keyboard_.set_input(value);
+					else printf("Unhandled control line output: %c %d\n", port ? 'B' : 'A', int(line));
 				}
 
 				void run_for(HalfCycles duration) {
@@ -457,6 +473,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		MOS::MOS6522::MOS6522<VIAPortHandler> via_;
  		VIAPortHandler via_port_handler_;
+
+ 		Zilog::SCC::z8530 scc_;
 
  		HalfCycles via_clock_;
  		HalfCycles real_time_clock_;

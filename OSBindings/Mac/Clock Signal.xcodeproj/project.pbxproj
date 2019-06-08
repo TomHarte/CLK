@@ -322,6 +322,8 @@
 		4BB0A65E204500A900FB3688 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7A90EC20410A85008514A2 /* StaticAnalyser.cpp */; };
 		4BB17D4E1ED7909F00ABD1E1 /* tests.expected.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */; };
 		4BB17D4F1ED7909F00ABD1E1 /* tests.in.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4D1ED7909F00ABD1E1 /* tests.in.json */; };
+		4BB244D522AABAF600BE20E5 /* z8530.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB244D322AABAF500BE20E5 /* z8530.cpp */; };
+		4BB244D622AABAF600BE20E5 /* z8530.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB244D322AABAF500BE20E5 /* z8530.cpp */; };
 		4BB298F11B587D8400A49093 /*  start in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E51B587D8300A49093 /*  start */; };
 		4BB298F21B587D8400A49093 /* adca in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E61B587D8300A49093 /* adca */; };
 		4BB298F31B587D8400A49093 /* adcax in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E71B587D8300A49093 /* adcax */; };
@@ -1073,6 +1075,8 @@
 		4BB146C61F49D7D700253439 /* ClockingHintSource.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ClockingHintSource.hpp; sourceTree = "<group>"; };
 		4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = tests.expected.json; path = FUSE/tests.expected.json; sourceTree = "<group>"; };
 		4BB17D4D1ED7909F00ABD1E1 /* tests.in.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; name = tests.in.json; path = FUSE/tests.in.json; sourceTree = "<group>"; };
+		4BB244D322AABAF500BE20E5 /* z8530.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = z8530.cpp; sourceTree = "<group>"; };
+		4BB244D422AABAF500BE20E5 /* z8530.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = z8530.hpp; sourceTree = "<group>"; };
 		4BB297E51B587D8300A49093 /*  start */ = {isa = PBXFileReference; lastKnownFileType = file; path = " start"; sourceTree = "<group>"; };
 		4BB297E61B587D8300A49093 /* adca */ = {isa = PBXFileReference; lastKnownFileType = file; path = adca; sourceTree = "<group>"; };
 		4BB297E71B587D8300A49093 /* adcax */ = {isa = PBXFileReference; lastKnownFileType = file; path = adcax; sourceTree = "<group>"; };
@@ -2523,6 +2527,15 @@
 			path = SN76489;
 			sourceTree = "<group>";
 		};
+		4BB244D222AABAF500BE20E5 /* 8530 */ = {
+			isa = PBXGroup;
+			children = (
+				4BB244D322AABAF500BE20E5 /* z8530.cpp */,
+				4BB244D422AABAF500BE20E5 /* z8530.hpp */,
+			);
+			path = 8530;
+			sourceTree = "<group>";
+		};
 		4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */ = {
 			isa = PBXGroup;
 			children = (
@@ -3030,8 +3043,6 @@
 		4BC9DF4A1D04691600F44158 /* Components */ = {
 			isa = PBXGroup;
 			children = (
-				4B302181208A550100773308 /* DiskII */,
-				4B595FAA2086DFBA0083CAA8 /* AudioToggle */,
 				4BD468F81D8DF4290084958B /* 1770 */,
 				4BC9DF4B1D04691600F44158 /* 6522 */,
 				4B1E85791D174DEC001EF87D /* 6532 */,
@@ -3039,8 +3050,11 @@
 				4BE845221F2FF7F400A5EA22 /* 6845 */,
 				4BD9137C1F3115AC009BCF85 /* 8255 */,
 				4BBC951F1F368D87008F4C34 /* 8272 */,
+				4BB244D222AABAF500BE20E5 /* 8530 */,
 				4B0E04F71FC9F2C800F43484 /* 9918 */,
+				4B595FAA2086DFBA0083CAA8 /* AudioToggle */,
 				4B4A762D1DB1A35C007AAE2E /* AY38910 */,
+				4B302181208A550100773308 /* DiskII */,
 				4B4B1A39200198C900A0F866 /* KonamiSCC */,
 				4BB0A6582044FD3000FB3688 /* SN76489 */,
 			);
@@ -3908,6 +3922,7 @@
 				4B055AB51FAE860F0060FFFF /* TapePRG.cpp in Sources */,
 				4B055AE01FAE9B660060FFFF /* CRT.cpp in Sources */,
 				4B894527201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
+				4BB244D622AABAF600BE20E5 /* z8530.cpp in Sources */,
 				4BAF2B4F2004580C00480230 /* DMK.cpp in Sources */,
 				4B055AD01FAE9B030060FFFF /* Tape.cpp in Sources */,
 				4BD424E82193B5830097291A /* Rectangle.cpp in Sources */,
@@ -4120,6 +4135,7 @@
 				4B1B88C0202E3DB200B67DFF /* MultiConfigurable.cpp in Sources */,
 				4BFF1D3922337B0300838EA1 /* 68000Storage.cpp in Sources */,
 				4B54C0BC1F8D8E790050900F /* KeyboardMachine.cpp in Sources */,
+				4BB244D522AABAF600BE20E5 /* z8530.cpp in Sources */,
 				4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */,
 				4B894534201967B4007DE474 /* AddressMapper.cpp in Sources */,
 				4B1B88C8202E469300B67DFF /* MultiJoystickMachine.cpp in Sources */,
