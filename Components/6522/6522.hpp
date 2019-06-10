@@ -133,7 +133,8 @@ template <class T> class MOS6522: public MOS6522Storage {
 
 		/// Sets the current intended output value for the port and line;
 		/// if this affects the visible output, it will be passed to the handler.
-		void set_control_line_output(Port port, Line line, bool value, bool was_output = true);
+		void set_control_line_output(Port port, Line line, LineState value);
+		void evaluate_cb2_output();
 };
 
 }

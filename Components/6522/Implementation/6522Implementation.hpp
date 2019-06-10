@@ -16,7 +16,7 @@ template <typename T> void MOS6522<T>::access(int address) {
 		case 0x0:
 			// In both handshake and pulse modes, CB2 goes low on any read or write of Port B.
 			if(handshake_modes_[1] != HandshakeMode::None) {
-				set_control_line_output(Port::B, Line::Two, false);
+				set_control_line_output(Port::B, Line::Two, LineState::Off);
 			}
 		break;
 
@@ -24,7 +24,7 @@ template <typename T> void MOS6522<T>::access(int address) {
 		case 0x1:
 			// In both handshake and pulse modes, CA2 goes low on any read or write of Port A.
 			if(handshake_modes_[0] != HandshakeMode::None) {
-				set_control_line_output(Port::A, Line::Two, false);
+				set_control_line_output(Port::A, Line::Two, LineState::Off);
 			}
 		break;
 	}
@@ -52,7 +52,7 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 			bus_handler_.set_port_output(Port::A, value, registers_.data_direction[0]);
 
 			if(handshake_modes_[1] != HandshakeMode::None) {
-				set_control_line_output(Port::A, Line::Two, false);
+				set_control_line_output(Port::A, Line::Two, LineState::Off);
 			}
 
 			registers_.interrupt_flags &= ~(InterruptFlag::CA1ActiveEdge | ((registers_.peripheral_control&0x02) ? 0 : InterruptFlag::CB2ActiveEdge));
@@ -96,12 +96,7 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 		// Control
 		case 0xb: {
 			registers_.auxiliary_control = value;
-
-			// TODO: what happens if the peripheral control register is doing something with CB2 also?
-			if(value & 0x10) {
-				// One of the shift out modes is activated, so set CB2 output appropriately.
-				set_control_line_output(Port::B, Line::Two, !!(registers_.shift & 0x80), false);
-			}
+			evaluate_cb2_output();
 		} break;
 		case 0xc: {
 //			const auto old_peripheral_control = registers_.peripheral_control;
@@ -117,22 +112,25 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 					case 0x02:	// Independent negative interrupt input; set Cx2 interrupt on negative transition, don't clear automatically.
 					case 0x04:	// Positive interrupt input; set Cx2 interrupt on positive Cx2 transition, clear on access to Port x register.
 					case 0x06:	// Independent positive interrupt input; set Cx2 interrupt on positive transition, don't clear automatically.
+						set_control_line_output(Port(port), Line::Two, LineState::Input);
 					break;
 
 					case 0x08:	// Handshake: set Cx2 to low on any read or write of Port x; set to high on an active transition of Cx1.
 						handshake_modes_[port] = HandshakeMode::Handshake;
+						set_control_line_output(Port(port), Line::Two, LineState::Off);	// At a guess.
 					break;
 
 					case 0x0a:	// Pulse output: Cx2 is low for one cycle following a read or write of Port x.
 						handshake_modes_[port] = HandshakeMode::Pulse;
+						set_control_line_output(Port(port), Line::Two, LineState::On);
 					break;
 
 					case 0x0c:	// Manual output: Cx2 low.
-						set_control_line_output(Port(port), Line::Two, false);
+						set_control_line_output(Port(port), Line::Two, LineState::Off);
 					break;
 
 					case 0x0e:	// Manual output: Cx2 high.
-						set_control_line_output(Port(port), Line::Two, true);
+						set_control_line_output(Port(port), Line::Two, LineState::On);
 					break;
 				}
 
@@ -226,10 +224,10 @@ template <typename T> void MOS6522<T>::reevaluate_interrupts() {
 template <typename T> void MOS6522<T>::set_control_line_input(Port port, Line line, bool value) {
 	switch(line) {
 		case Line::One:
-			if(	value != control_inputs_[port].lines[line]) {
+			if(value != control_inputs_[port].lines[line]) {
 				// In handshake mode, any transition on C[A/B]1 sets output high on C[A/B]2.
 				if(handshake_modes_[port] == HandshakeMode::Handshake) {
-					set_control_line_output(port, Line::Two, true);
+					set_control_line_output(port, Line::Two, LineState::On);
 				}
 
 				// Set the proper transition interrupt bit if enabled.
@@ -238,14 +236,13 @@ template <typename T> void MOS6522<T>::set_control_line_input(Port port, Line li
 					reevaluate_interrupts();
 				}
 
-				// If this is a low-to-high transition, consider updating the shift register.
+				// If this is a transition on CB1, consider updating the shift register.
+				// TODO: and at least one full clock since the shift register was written?
 				if(port == Port::B) {
-					if(value) {
-						switch((registers_.auxiliary_control >> 2)&7) {
-							default: 					break;
-							case 3:		shift_in();		break;
-							case 7:		shift_out();	break;
-						}
+					switch((registers_.auxiliary_control >> 2)&7) {
+						default: 								break;
+						case 3:		if(value)	shift_in();		break;	// Shifts in are captured on a low-to-high transition.
+						case 7:		if(!value)	shift_out();	break;	// Shifts out are updated on a high-to-low transition.
 					}
 				}
 			}
@@ -290,10 +287,10 @@ template <typename T> void MOS6522<T>::do_phase2() {
 
 	// In pulse modes, CA2 and CB2 go high again on the next clock edge.
 	if(handshake_modes_[1] == HandshakeMode::Pulse) {
-		set_control_line_output(Port::B, Line::Two, true);
+		set_control_line_output(Port::B, Line::Two, LineState::On);
 	}
 	if(handshake_modes_[0] == HandshakeMode::Pulse) {
-		set_control_line_output(Port::A, Line::Two, true);
+		set_control_line_output(Port::A, Line::Two, LineState::On);
 	}
 }
 
@@ -386,18 +383,41 @@ template <typename T> bool MOS6522<T>::get_interrupt_line() {
 	return !!interrupt_status;
 }
 
-template <typename T> void MOS6522<T>::set_control_line_output(Port port, Line line, bool value, bool was_output) {
-	// Don't announce an unchanged value.
-	if(control_outputs_[port].lines[line] == value && was_output)
-		return;
+template <typename T> void MOS6522<T>::evaluate_cb2_output() {
+	// CB2 is a special case, being both the line the shift register can output to,
+	// and one that can be used as an input or handshaking output according to the
+	// peripheral control register.
 
-	// Store the value as the intended output, announce it only if this
-	// control line is actually in output mode, or if this is CB2 and
-	// the shift register is in output mode.
-	control_outputs_[port].lines[line] = value;
-	if(registers_.peripheral_control & (0x08 << (port * 4)) || (port == Port::B && line == Line::Two && registers_.auxiliary_control&0x10)) {
-		bus_handler_.run_for(time_since_bus_handler_call_.flush());
-		bus_handler_.set_control_line_output(port, line, value);
+	// My guess: other CB2 functions work only if the shift register is disabled (?).
+	if((registers_.auxiliary_control >> 2)&7) {
+		// Shift register is enabled, one way or the other; but announce only output.
+		if(registers_.auxiliary_control & 0x10) {
+			bus_handler_.set_control_line_output(Port::B, Line::Two, !!(registers_.shift & 0x80));
+		} else {
+			bus_handler_.set_control_line_output(Port::B, Line::Two, true);
+		}
+	} else {
+		// Shift register is disabled.
+		bus_handler_.set_control_line_output(Port::B, Line::Two, control_outputs_[1].lines[1] != LineState::Off);
+	}
+}
+
+template <typename T> void MOS6522<T>::set_control_line_output(Port port, Line line, LineState value) {
+	if(port == Port::B && line == Line::Two) {
+		control_outputs_[port].lines[line] = value;
+		evaluate_cb2_output();
+	} else {
+		// Do nothing if unchanged.
+		if(value == control_outputs_[port].lines[line]) {
+			return;
+		}
+
+		control_outputs_[port].lines[line] = value;
+
+		if(value != LineState::Input) {
+			bus_handler_.run_for(time_since_bus_handler_call_.flush());
+			bus_handler_.set_control_line_output(port, line, value != LineState::Off);
+		}
 	}
 }
 
@@ -411,10 +431,10 @@ template <typename T> void MOS6522<T>::shift_in() {
 }
 
 template <typename T> void MOS6522<T>::shift_out() {
-	set_control_line_output(Port::B, Line::Two, registers_.shift & 0x80);
-
 	// When shifting out, the shift register rotates rather than strictly shifts.
+	// TODO: is that true for all modes?
 	registers_.shift = uint8_t((registers_.shift << 1) | (registers_.shift >> 7));
+	evaluate_cb2_output();
 
 	--shift_bits_remaining_;
 	if(!shift_bits_remaining_) {

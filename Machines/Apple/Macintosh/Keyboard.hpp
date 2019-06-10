@@ -87,6 +87,7 @@ class Keyboard {
 					if(phase_ == 8*40) {
 						mode_ = Mode::AwaitingEndOfCommand;
 						phase_ = 0;
+						clock_output_ = false;
 					}
 				} break;
 
@@ -117,6 +118,7 @@ class Keyboard {
 
 					++phase_;
 					if(phase_ == 8*33) {
+						clock_output_ = false;
 						mode_ = Mode::Waiting;
 						phase_ = 0;
 					}

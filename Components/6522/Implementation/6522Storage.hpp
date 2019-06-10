@@ -37,10 +37,17 @@ class MOS6522Storage {
 			bool timer_needs_reload = false;
 		} registers_;
 
-		// control state
+		// Control state.
 		struct {
 			bool lines[2] = {false, false};
-		} control_inputs_[2], control_outputs_[2];
+		} control_inputs_[2];
+
+		enum class LineState {
+			On, Off, Input
+		};
+		struct {
+			LineState lines[2] = {LineState::Input, LineState::Input};
+		} control_outputs_[2];
 
 		enum class HandshakeMode {
 			None,
