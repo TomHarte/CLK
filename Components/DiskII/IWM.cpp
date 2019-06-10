@@ -61,7 +61,7 @@ uint8_t IWM::read(int address) {
 		case ENABLE:				/* Read data register. */
 			if(data_register_ & 0x80) {
 				printf("[%02x] ", data_register_);
-				data_register_ = 0;
+//				data_register_ = 0;
 			}
 			printf("Reading data register\n");
 		return data_register_;
@@ -212,6 +212,7 @@ void IWM::access(int address) {
 	// defined at the top of this file — CA0, CA1, etc.
 	address &= 0xf;
 	const auto mask = 1 << (address >> 1);
+	const auto old_state = state_;
 
 //	printf("[(%02x) %c%c%c%c ", mask, (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 	if(address & 1) {
@@ -222,56 +223,61 @@ void IWM::access(int address) {
 //	printf("-> %c%c%c%c] ", (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 
 	// React appropriately to motor requests and to LSTRB register writes.
-	switch(mask) {
-		default: break;
+	if(old_state != state_) {
+		switch(mask) {
+			default: break;
 
-		case LSTRB:
-			if(address & 1) {
-				switch(state_ & (CA1 | CA0 | SEL)) {
-					default: break;
+			case LSTRB:
+				// Catch high-to-low LSTRB transitions.
+				if(!(address & 1)) {
+					switch(state_ & (CA1 | CA0 | SEL)) {
+						default:
+							printf("Unhandled LSTRB\n");
+						break;
 
-					case 0:
-						printf("LSTRB Set stepping direction: %d\n", state_ & CA2);
-					break;
+						case 0:
+							printf("LSTRB Set stepping direction: %d\n", state_ & CA2);
+						break;
 
-					case CA0:
-						printf("LSTRB Step\n");
-					break;
+						case CA0:
+							printf("LSTRB Step\n");
+						break;
 
-					case CA1:
-						printf("LSTRB Motor on\n");
-					break;
+						case CA1:
+							printf("LSTRB Motor on\n");
+						break;
 
-					case CA1|CA0:
-						printf("LSTRB Eject disk\n");
-					break;
+						case CA1|CA0:
+							printf("LSTRB Eject disk\n");
+						break;
+					}
 				}
-			}
-		break;
+			break;
 
-		case ENABLE:
-			if(address & 1) {
-				drive_motor_on_ = true;
-				if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(true);
-			} else {
-				// If the 1-second delay is enabled, set up a timer for that.
-				if(!(mode_ & 4)) {
-					cycles_until_motor_off_ = Cycles(clock_rate_);
+			case ENABLE:
+				if(address & 1) {
+					drive_motor_on_ = true;
+					if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(true);
 				} else {
-					drive_motor_on_ = false;
-					if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(false);
+					// If the 1-second delay is enabled, set up a timer for that.
+					if(!(mode_ & 4)) {
+						cycles_until_motor_off_ = Cycles(clock_rate_);
+					} else {
+						drive_motor_on_ = false;
+						if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(false);
+					}
 				}
-			}
-		break;
+			break;
 
-		case DRIVESEL: {
-			const int new_drive = (address & 1)^1;
-			if(new_drive != active_drive_) {
-				if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(false);
-				active_drive_ = new_drive;
-				if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(drive_motor_on_);
-			}
-		} break;
+			case DRIVESEL: {
+				const int new_drive = address & 1;
+				if(new_drive != active_drive_) {
+					if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(false);
+					active_drive_ = new_drive;
+					if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(drive_motor_on_);
+				}
+			} break;
+		}
 	}
 }
 
