@@ -52,6 +52,27 @@ class QuadratureMouse: public Mouse {
 		*/
 
 		/*!
+			Removes a single step from the current accumulated mouse movement;
+			the step removed will henceforth be queriable via get_step.
+		*/
+		void prepare_step() {
+			for(int axis = 0; axis < 2; ++axis) {
+				const int axis_value = axes_[axis];
+				if(!axis_value) {
+					step_[axis] = 0;
+				} else {
+					if(axis_value > 0) {
+						-- axes_[axis];
+						step_[axis] = 1;
+					} else {
+						++ axes_[axis];
+						step_[axis] = -1;
+					}
+				}
+			}
+		}
+
+		/*!
 			Gets and removes a single step from the current accumulated mouse
 			movement for @c axis — axis 0 is x, axis 1 is y.
 
@@ -59,15 +80,7 @@ class QuadratureMouse: public Mouse {
 			negative movement, +1 if there is outstanding positive movement.
 		*/
 		int get_step(int axis) {
-			if(!axes_[axis]) return 0;
-
-			if(axes_[axis] > 0) {
-				-- axes_[axis];
-				return 1;
-			} else {
-				++ axes_[axis];
-				return -1;
-			}
+			return step_[axis];
 		}
 
 		/*!
@@ -81,6 +94,7 @@ class QuadratureMouse: public Mouse {
 		int number_of_buttons_ = 0;
 		std::atomic<int> button_flags_;
 		std::atomic<int> axes_[2];
+		int step_[2];
 
 };
 

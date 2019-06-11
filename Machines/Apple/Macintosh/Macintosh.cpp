@@ -57,7 +57,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		 	iwm_(CLOCK_RATE),
 		 	video_(ram_, audio_, drive_speed_accumulator_),
 		 	via_(via_port_handler_),
-		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_),
+		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_, mouse_),
 		 	drives_{
 		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke},
 		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke}
@@ -370,8 +370,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:
-				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, Video &video, DeferredAudio &audio, IWM &iwm) :
-					machine_(machine), clock_(clock), keyboard_(keyboard), video_(video), audio_(audio), iwm_(iwm) {}
+				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, Video &video, DeferredAudio &audio, IWM &iwm, Inputs::QuadratureMouse &mouse) :
+					machine_(machine), clock_(clock), keyboard_(keyboard), video_(video), audio_(audio), iwm_(iwm), mouse_(mouse) {}
 
 				using Port = MOS::MOS6522::Port;
 				using Line = MOS::MOS6522::Line;
@@ -431,10 +431,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 						case Port::B:
 						return
-							0x08 |	// Mouse button not down.
+							(mouse_.get_button_mask() & 1) ? 0x00 : 0x08 |
+							(mouse_.get_step(1) > 0) ? 0x00 : 0x10 |
+							(mouse_.get_step(0) > 0) ? 0x00 : 0x20 |
 							(clock_.get_data() ? 0x02 : 0x00) |
 							(video_.is_outputting() ? 0x00 : 0x40);
-							// TODO: mouse button, y2, x2
 					}
 				}
 
@@ -466,6 +467,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				Video &video_;
 				DeferredAudio &audio_;
 				IWM &iwm_;
+				Inputs::QuadratureMouse &mouse_;
 		};
 
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
