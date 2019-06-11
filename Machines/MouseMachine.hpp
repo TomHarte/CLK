@@ -15,7 +15,7 @@ namespace MouseMachine {
 
 class Machine {
 	public:
-		virtual Mouse *get_mouse() = 0;
+		virtual Inputs::Mouse *get_mouse() = 0;
 };
 
 }

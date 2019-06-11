@@ -11,10 +11,13 @@
 
 #include "../Configurable/Configurable.hpp"
 #include "../Activity/Source.hpp"
-#include "MediaTarget.hpp"
+
 #include "CRTMachine.hpp"
 #include "JoystickMachine.hpp"
 #include "KeyboardMachine.hpp"
+#include "MediaTarget.hpp"
+#include "MouseMachine.hpp"
+
 #include "Utility/Typer.hpp"
 
 namespace Machine {
@@ -31,6 +34,7 @@ struct DynamicMachine {
 	virtual CRTMachine::Machine *crt_machine() = 0;
 	virtual JoystickMachine::Machine *joystick_machine() = 0;
 	virtual KeyboardMachine::Machine *keyboard_machine() = 0;
+	virtual MouseMachine::Machine *mouse_machine() = 0;
 	virtual MediaTarget::Machine *media_target() = 0;
 
 	/*!

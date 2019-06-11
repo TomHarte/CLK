@@ -540,6 +540,10 @@ struct ActivityObserver: public Activity::Observer {
 	return !!_machine->joystick_machine();
 }
 
+- (BOOL)hasMouse {
+	return !!_machine->mouse_machine();
+}
+
 - (BOOL)hasExclusiveKeyboard {
 	return !!_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive();
 }

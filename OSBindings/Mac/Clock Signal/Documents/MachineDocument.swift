@@ -72,13 +72,13 @@ class MachineDocument:
 
 	fileprivate func setupMachineOutput() {
 		if let machine = self.machine, let openGLView = self.openGLView {
-			// establish the output aspect ratio and audio
+			// Establish the output aspect ratio and audio.
 			let aspectRatio = self.aspectRatio()
 			openGLView.perform(glContext: {
 				machine.setView(openGLView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
 			})
 
-			// attach an options panel if one is available
+			// Attach an options panel if one is available.
 			if let optionsPanelNibName = self.optionsPanelNibName {
 				Bundle.main.loadNibNamed(optionsPanelNibName, owner: self, topLevelObjects: nil)
 				self.optionsPanel.machine = machine
@@ -89,19 +89,22 @@ class MachineDocument:
 			machine.delegate = self
 			self.bestEffortUpdater = CSBestEffortUpdater()
 
-			// callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
-			// hence the full setup of the best-effort updater prior to setting self as a delegate
+			// Callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
+			// hence the full setup of the best-effort updater prior to setting self as a delegate.
 			openGLView.delegate = self
 			openGLView.responderDelegate = self
 
+			// If this machine has a mouse, enable mouse capture.
+			openGLView.shouldCaptureMouse = machine.hasMouse
+
 			setupAudioQueueClockRate()
 
-			// bring OpenGL view-holding window on top of the options panel and show the content
+			// Bring OpenGL view-holding window on top of the options panel and show the content.
 			openGLView.isHidden = false
 			openGLView.window!.makeKeyAndOrderFront(self)
 			openGLView.window!.makeFirstResponder(openGLView)
 
-			// start accepting best effort updates
+			// Start accepting best effort updates.
 			self.bestEffortUpdater!.delegate = self
 		}
 	}

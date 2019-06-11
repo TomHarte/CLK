@@ -81,6 +81,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 // Input control.
 @property (nonatomic, readonly) BOOL hasExclusiveKeyboard;
 @property (nonatomic, readonly) BOOL hasJoystick;
+@property (nonatomic, readonly) BOOL hasMouse;
 @property (nonatomic, assign) CSMachineKeyboardInputMode inputMode;
 @property (nonatomic, nullable) CSJoystickManager *joystickManager;
 

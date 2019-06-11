@@ -45,6 +45,10 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 			return get<KeyboardMachine::Machine>();
 		}
 
+		MouseMachine::Machine *mouse_machine() override {
+			return get<MouseMachine::Machine>();
+		}
+
 		Configurable::Device *configurable_device() override {
 			return get<Configurable::Device>();
 		}

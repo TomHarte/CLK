@@ -19,8 +19,11 @@
 
 #include "../../CRTMachine.hpp"
 #include "../../MediaTarget.hpp"
+#include "../../MouseMachine.hpp"
 
-#define LOG_TRACE
+#include "../../../Inputs/QuadratureMouse/QuadratureMouse.hpp"
+
+//#define LOG_TRACE
 
 #include "../../../Components/6522/6522.hpp"
 #include "../../../Components/8530/z8530.hpp"
@@ -44,6 +47,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public Machine,
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
+	public MouseMachine::Machine,
 	public CPU::MC68000::BusHandler {
 	public:
 		using Target = Analyser::Static::Macintosh::Target;
@@ -57,7 +61,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		 	drives_{
 		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke},
 		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke}
-			} {
+			},
+			mouse_(1) {
 
 			// Select a ROM name and determine the proper ROM and RAM sizes
 			// based on the machine model.
@@ -348,6 +353,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 	private:
+		Inputs::Mouse *get_mouse() override {
+			return &mouse_;
+		}
+
 		struct IWM {
 			IWM(int clock_rate) : iwm(clock_rate) {}
 
@@ -384,7 +393,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 									b2–b0:	audio output volume
 							*/
 							iwm_.flush();
-							printf("{SEL: %c} ", (value & 0x20) ? 't' : 'f');
 							iwm_.iwm.set_select(!!(value & 0x20));
 
 							machine_.set_use_alternate_buffers(!(value & 0x40), !(value&0x08));
@@ -487,6 +495,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		int phase_ = 1;
 
 		SonyDrive drives_[2];
+		Inputs::QuadratureMouse mouse_;
 
 		uint32_t ram_mask_ = 0;
 		uint32_t rom_mask_ = 0;
