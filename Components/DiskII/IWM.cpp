@@ -58,13 +58,17 @@ uint8_t IWM::read(int address) {
 //		return 0xff;
 
 		case 0:
-		case ENABLE:				/* Read data register. */
+		case ENABLE: {				/* Read data register. */
+			const auto result = data_register_;
+
 			if(data_register_ & 0x80) {
 				printf("[%02x] ", data_register_);
-//				data_register_ = 0;
+				data_register_ = 0;
 			}
 			printf("Reading data register\n");
-		return data_register_;
+
+			return result;
+		}
 
 		case Q6: case Q6|ENABLE: {
 			/*
@@ -108,7 +112,8 @@ uint8_t IWM::read(int address) {
 //
 				case CA0|SEL:			// Disk locked (i.e. write-protect tab).
 					printf("disk locked)\n");
-					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 0x00 : 0x80;
+//					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 0x00 : 0x80;
+					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 0x80 : 0x00;
 				break;
 
 				case CA1:				// Disk motor running.
