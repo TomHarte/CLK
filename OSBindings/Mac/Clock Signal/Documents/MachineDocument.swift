@@ -252,6 +252,7 @@ class MachineDocument:
 			machine.clearAllKeys()
 			machine.joystickManager = nil
 		}
+		self.openGLView.releaseMouse()
 	}
 
 	func windowDidBecomeKey(_ notification: Notification) {
@@ -279,6 +280,15 @@ class MachineDocument:
 			machine.setKey(VK_Command, characters: nil, isPressed: newModifiers.modifierFlags.contains(.command))
 			machine.setKey(VK_Option, characters: nil, isPressed: newModifiers.modifierFlags.contains(.option))
 		}
+	}
+
+	func mouseMoved(_ event: NSEvent) {
+	}
+
+	func mouseUp(_ event: NSEvent) {
+	}
+
+	func mouseDown(_ event: NSEvent) {
 	}
 
 	// MARK: New machine creation
