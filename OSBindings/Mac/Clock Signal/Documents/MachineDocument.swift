@@ -286,12 +286,21 @@ class MachineDocument:
 	}
 
 	func mouseMoved(_ event: NSEvent) {
+		if let machine = self.machine {
+			machine.addMouseMotionX(event.deltaX, y: event.deltaY)
+		}
 	}
 
 	func mouseUp(_ event: NSEvent) {
+		if let machine = self.machine {
+			machine.setMouseButton(Int32(event.buttonNumber), isPressed: false)
+		}
 	}
 
 	func mouseDown(_ event: NSEvent) {
+		if let machine = self.machine {
+			machine.setMouseButton(Int32(event.buttonNumber), isPressed: true)
+		}
 	}
 
 	// MARK: New machine creation

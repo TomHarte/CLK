@@ -353,8 +353,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 	private:
-		Inputs::Mouse *get_mouse() override {
-			return &mouse_;
+		Inputs::Mouse &get_mouse() override {
+			return mouse_;
 		}
 
 		struct IWM {
