@@ -52,35 +52,33 @@ class QuadratureMouse: public Mouse {
 		*/
 
 		/*!
-			Removes a single step from the current accumulated mouse movement;
-			the step removed will henceforth be queriable via get_step.
+			Applies a single step from the current accumulated mouse movement, which
+			might involve the mouse moving right, or left, or not at all.
 		*/
 		void prepare_step() {
 			for(int axis = 0; axis < 2; ++axis) {
 				const int axis_value = axes_[axis];
-				if(!axis_value) {
-					step_[axis] = 0;
+				if(!axis_value) continue;
+
+				primaries_[axis] ^= 1;
+				secondaries_[axis] = primaries_[axis];
+				if(axis_value > 0) {
+					-- axes_[axis];
 				} else {
-					if(axis_value > 0) {
-						-- axes_[axis];
-						step_[axis] = 1;
-					} else {
-						++ axes_[axis];
-						step_[axis] = -1;
-					}
+					++ axes_[axis];
+					secondaries_[axis] ^= 1;
 				}
 			}
 		}
 
 		/*!
-			Gets and removes a single step from the current accumulated mouse
-			movement for @c axis — axis 0 is x, axis 1 is y.
-
-			@returns 0 if no movement is outstanding, -1 if there is outstanding
-			negative movement, +1 if there is outstanding positive movement.
+			@returns the two quadrature channels — bit 0 is the 'primary' channel
+				(i.e. the one that can be monitored to observe velocity) and
+				bit 1 is the 'secondary' (i.e. that which can be queried to
+				observe direction).
 		*/
-		int get_step(int axis) {
-			return step_[axis];
+		int get_channel(int axis) {
+			return primaries_[axis] | (secondaries_[axis] << 1);
 		}
 
 		/*!
@@ -94,8 +92,9 @@ class QuadratureMouse: public Mouse {
 		int number_of_buttons_ = 0;
 		std::atomic<int> button_flags_;
 		std::atomic<int> axes_[2];
-		int step_[2];
 
+		int primaries_[2] = {0, 0};
+		int secondaries_[2] = {0, 0};
 };
 
 }
