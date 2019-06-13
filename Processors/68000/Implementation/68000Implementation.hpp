@@ -44,8 +44,10 @@
 		((active_step_->microcycle.operation & Microcycle::Read) ? 0x10 : 0)	\
 	)
 
-#define extend16(x)	uint32_t(int16_t(x))
-#define extend8(x)	uint32_t(int8_t(x))
+#define u_extend16(x)	uint32_t(int16_t(x))
+#define u_extend8(x)	uint32_t(int8_t(x))
+#define s_extend16(x)	int32_t(int16_t(x))
+#define s_extend8(x)	int32_t(int8_t(x))
 
 template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::run_for(HalfCycles duration) {
 	const HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
@@ -569,7 +571,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 
 								case Operation::ADDAw:
-									active_program_->destination->full += extend16(active_program_->source->halves.low.full);
+									active_program_->destination->full += u_extend16(active_program_->source->halves.low.full);
 								break;
 
 								case Operation::ADDAl:
@@ -577,7 +579,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								break;
 
 								case Operation::SUBAw:
-									active_program_->destination->full -= extend16(active_program_->source->halves.low.full);
+									active_program_->destination->full -= u_extend16(active_program_->source->halves.low.full);
 								break;
 
 								case Operation::SUBAl:
@@ -594,7 +596,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									if(byte_offset) {
 										program_counter_.full += uint32_t(byte_offset);
 									} else {
-										program_counter_.full += extend16(prefetch_queue_.halves.low.full);
+										program_counter_.full += u_extend16(prefetch_queue_.halves.low.full);
 									}
 									program_counter_.full -= 2;
 								} break;
@@ -665,7 +667,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 										if(byte_offset) {
 											program_counter_.full += decltype(program_counter_.full)(byte_offset);
 										} else {
-											program_counter_.full += extend16(prefetch_queue_.halves.low.full);
+											program_counter_.full += u_extend16(prefetch_queue_.halves.low.full);
 										}
 										program_counter_.full -= 2;
 										bus_program = is_bsr ? bsr_bus_steps_ : branch_taken_bus_steps_;
@@ -682,7 +684,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// Decide what sort of DBcc this is.
 									if(!evaluate_condition(decoded_instruction_.full >> 8)) {
 										-- active_program_->source->halves.low.full;
-										const auto target_program_counter = program_counter_.full + extend16(prefetch_queue_.halves.low.full) - 2;
+										const auto target_program_counter = program_counter_.full + u_extend16(prefetch_queue_.halves.low.full) - 2;
 
 										if(active_program_->source->halves.low.full == 0xffff) {
 											// This DBcc will be ignored as the counter has underflowed.
@@ -909,7 +911,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::MULS: {
 									active_program_->destination->full =
-										extend16(active_program_->destination->halves.low.full) * extend16(active_program_->source->halves.low.full);
+										u_extend16(active_program_->destination->halves.low.full) * u_extend16(active_program_->source->halves.low.full);
 									carry_flag_ = overflow_flag_ = 0;	// TODO: "set if overflow".
 									zero_result_ = active_program_->destination->full;
 									negative_flag_ = zero_result_ & 0x80000000;
@@ -1010,7 +1012,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									}
 
 									int32_t dividend = int32_t(active_program_->destination->full);
-									int32_t divisor = extend16(active_program_->source->halves.low.full);
+									int32_t divisor = s_extend16(active_program_->source->halves.low.full);
 									const auto quotient = dividend / divisor;
 
 									int cycles_expended = 12;	// Covers the nn nnn n to get beyond the sign test.
@@ -1259,8 +1261,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} break;
 
 								case Operation::CHK: {
-									const bool is_under = extend16(active_program_->destination->halves.low.full) < 0;
-									const bool is_over = extend16(active_program_->destination->halves.low.full) > extend16(active_program_->source->halves.low.full);
+									const bool is_under = s_extend16(active_program_->destination->halves.low.full) < 0;
+									const bool is_over = s_extend16(active_program_->destination->halves.low.full) > s_extend16(active_program_->source->halves.low.full);
 
 									// No exception is the default course of action; deviate only if an
 									// exception is necessary.
@@ -1387,7 +1389,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// The address register will then contain the bottom of the stack,
 									// and the stack pointer will be offset.
 									active_program_->source->full = address_[7].full;
-									address_[7].full += extend16(prefetch_queue_.halves.low.full);
+									address_[7].full += u_extend16(prefetch_queue_.halves.low.full);
 								break;
 
 								case Operation::UNLINK:
@@ -1919,22 +1921,26 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						break;
 
 						// Increments and decrements.
-#define Adjust(op, quantity)	\
-	case int(op) | MicroOp::SourceMask:			active_program_->source_address->full += quantity;		break;	\
-	case int(op) | MicroOp::DestinationMask:	active_program_->destination_address->full += quantity;	break;	\
+#define op_add(x, y) x += y
+#define op_sub(x, y) x -= y
+#define Adjust(op, quantity, effect)	\
+	case int(op) | MicroOp::SourceMask:			effect(active_program_->source_address->full, quantity);		break;	\
+	case int(op) | MicroOp::DestinationMask:	effect(active_program_->destination_address->full, quantity);	break;	\
 	case int(op) | MicroOp::SourceMask | MicroOp::DestinationMask:	\
-		active_program_->destination_address->full += quantity;	\
-		active_program_->source_address->full += quantity;	\
+		effect(active_program_->destination_address->full, quantity);	\
+		effect(active_program_->source_address->full, quantity);	\
 	break;
 
-						Adjust(MicroOp::Action::Decrement1, -1);
-						Adjust(MicroOp::Action::Decrement2, -2);
-						Adjust(MicroOp::Action::Decrement4, -4);
-						Adjust(MicroOp::Action::Increment1, 1);
-						Adjust(MicroOp::Action::Increment2, 2);
-						Adjust(MicroOp::Action::Increment4, 4);
+						Adjust(MicroOp::Action::Decrement1, 1, op_sub);
+						Adjust(MicroOp::Action::Decrement2, 2, op_sub);
+						Adjust(MicroOp::Action::Decrement4, 4, op_sub);
+						Adjust(MicroOp::Action::Increment1, 1, op_add);
+						Adjust(MicroOp::Action::Increment2, 2, op_add);
+						Adjust(MicroOp::Action::Increment4, 4, op_add);
 
 #undef Adjust
+#undef op_add
+#undef op_sub
 
 						case int(MicroOp::Action::SignExtendWord):
 							if(active_micro_op_->action & MicroOp::SourceMask) {
@@ -1963,42 +1969,42 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						case int(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask:
 							// The address the low part of the prefetch queue was read from was two bytes ago, hence
 							// the subtraction of 2.
-							effective_address_[0] = extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
 						case int(MicroOp::Action::CalcD16PC) | MicroOp::DestinationMask:
-							effective_address_[1] = extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
 						case int(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask | MicroOp::DestinationMask:
 							// Similar logic applies here to above, but the high part of the prefetch queue was four bytes
 							// ago rather than merely two.
-							effective_address_[0] = extend16(prefetch_queue_.halves.high.full) + program_counter_.full - 4;
-							effective_address_[1] = extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.high.full) + program_counter_.full - 4;
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask:
-							effective_address_[0] = extend16(prefetch_queue_.halves.low.full) + active_program_->source_address->full;
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.low.full) + active_program_->source_address->full;
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::DestinationMask:
-							effective_address_[1] = extend16(prefetch_queue_.halves.low.full) + active_program_->destination_address->full;
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + active_program_->destination_address->full;
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask | MicroOp::DestinationMask:
-							effective_address_[0] = extend16(prefetch_queue_.halves.high.full) + active_program_->source_address->full;
-							effective_address_[1] = extend16(prefetch_queue_.halves.low.full) + active_program_->destination_address->full;
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.high.full) + active_program_->source_address->full;
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + active_program_->destination_address->full;
 						break;
 
 #define CalculateD8AnXn(data, source, target)	{\
 	const auto register_index = (data.full >> 12) & 7;	\
 	const RegisterPair32 &displacement = (data.full & 0x8000) ? address_[register_index] : data_[register_index];	\
-	target.full = extend8(data.halves.low) + source;	\
+	target.full = u_extend8(data.halves.low) + source;	\
 \
 	if(data.full & 0x800) {	\
 		target.full += displacement.full;	\
 	} else {	\
-		target.full += extend16(displacement.halves.low.full);	\
+		target.full += u_extend16(displacement.halves.low.full);	\
 	}	\
 }
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask: {
@@ -2030,11 +2036,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef CalculateD8AnXn
 
 						case int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask:
-							effective_address_[0] = extend16(prefetch_queue_.halves.low.full);
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.low.full);
 						break;
 
 						case int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask:
-							effective_address_[1] = extend16(prefetch_queue_.halves.low.full);
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full);
 						break;
 
 						case int(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask:
@@ -2120,5 +2126,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef set_status
 #undef set_ccr
 #undef get_ccr
-#undef extend16
-#undef extend8
+#undef u_extend16
+#undef u_extend8
+#undef s_extend16
+#undef s_extend8

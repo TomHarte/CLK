@@ -409,6 +409,7 @@ struct ProcessorStorageConstructor {
 	void replace_write_values(BusStep *start, const std::initializer_list<RegisterPair16 *> &values) {
 		const auto end = replace_write_values(start, values.begin());
 		assert(end == values.end());
+		(void)end;
 	}
 
 	/*!
