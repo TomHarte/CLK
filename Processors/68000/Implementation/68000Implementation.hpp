@@ -1773,8 +1773,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// If this is RTR, patch out the is_supervisor bit.
 									if(decoded_instruction_.full == 0x4e77) {
 										source_bus_data_[0].full =
-											(source_bus_data_[0].full & ~(1 << 13)) |
-											(is_supervisor_ << 13);
+											(source_bus_data_[0].full & uint32_t(~(1 << 13))) |
+											uint32_t(is_supervisor_ << 13);
 									}
 									set_status(source_bus_data_[0].full);
 								break;
