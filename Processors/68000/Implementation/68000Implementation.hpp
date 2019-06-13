@@ -1523,8 +1523,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								*/
 #define set_neg_zero_overflow(v, m)	\
 	zero_result_ = decltype(zero_result_)(v);	\
-	negative_flag_ = zero_result_ & decltype(zero_result_)(m);	\
-	overflow_flag_ = (value ^ zero_result_) & decltype(zero_result_)(m);
+	negative_flag_ = zero_result_ & decltype(negative_flag_)(m);	\
+	overflow_flag_ = (decltype(zero_result_)(value) ^ zero_result_) & decltype(overflow_flag_)(m);
 
 #define decode_shift_count()	\
 	int shift_count = (decoded_instruction_.full & 32) ? data_[(decoded_instruction_.full >> 9) & 7].full&63 : ( ((decoded_instruction_.full >> 9)&7) ? ((decoded_instruction_.full >> 9)&7) : 8) ;	\
@@ -1542,7 +1542,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 		carry_flag_ = 0;	\
 	} else {	\
 		destination = decltype(destination)(value << shift_count);	\
-		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value & ((1 << (size - 1)) >> (shift_count - 1)));	\
+		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)( (1 << (size - 1)) >> (shift_count - 1) );	\
 	}	\
 \
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1567,11 +1567,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	if(!shift_count) {	\
 		carry_flag_ = 0;	\
 	} else {	\
-		destination =	decltype(destination)(\
+		destination = decltype(destination)(\
 			(value >> shift_count) |	\
 			((value & (1 << (size - 1)) ? 0xffffffff : 0x000000000) << (size - shift_count))	\
 		);	\
-		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value & (1 << (shift_count - 1)));	\
+		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)(1 << (shift_count - 1));	\
 	}	\
 \
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1590,8 +1590,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 #undef set_neg_zero_overflow
 #define set_neg_zero_overflow(v, m)	\
-	zero_result_ = (v);	\
-	negative_flag_ = zero_result_ & (m);	\
+	zero_result_ = decltype(zero_result_)(v);	\
+	negative_flag_ = zero_result_ & decltype(zero_result_)(m);	\
 	overflow_flag_ = 0;
 
 #undef set_flags
@@ -1619,7 +1619,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 		carry_flag_ = 0;	\
 	} else {	\
 		destination = value >> shift_count;	\
-		extend_flag_ = carry_flag_ = value & (1 << (shift_count - 1));	\
+		extend_flag_ = carry_flag_ = value & decltype(carry_flag_)(1 << (shift_count - 1));	\
 	}	\
 \
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1672,11 +1672,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			carry_flag_ = 0;	\
 		} else {	\
 			shift_count &= (size - 1);	\
-			destination =	decltype(destination)(\
+			destination = decltype(destination)(\
 				(value >> shift_count) |	\
 				(value << (size - shift_count))	\
 			);\
-			carry_flag_ = destination & (1 << (size - 1));	\
+			carry_flag_ = destination & decltype(carry_flag_)(1 << (size - 1));	\
 		}	\
 		\
 		set_neg_zero_overflow(destination, 1 << (size - 1));	\
