@@ -3132,6 +3132,7 @@
 				4B9378E222A199C600973513 /* Audio.cpp */,
 				4BB4BFAC22A33DE50069048D /* DriveSpeedAccumulator.cpp */,
 				4BCE0058227CFFCA000CA200 /* Macintosh.cpp */,
+				4B0C956F22A74E880015A8F6 /* SonyDrive.cpp */,
 				4BCE005E227D39AB000CA200 /* Video.cpp */,
 				4B9378E322A199C600973513 /* Audio.hpp */,
 				4BB4BFAA22A300710069048D /* DeferredAudio.hpp */,
@@ -3139,9 +3140,8 @@
 				4BDB3D8522833321002D3CEE /* Keyboard.hpp */,
 				4BCE0059227CFFCA000CA200 /* Macintosh.hpp */,
 				4BD0692B22828A2D00D2A54F /* RealTimeClock.hpp */,
-				4BCE005F227D39AB000CA200 /* Video.hpp */,
-				4B0C956F22A74E880015A8F6 /* SonyDrive.cpp */,
 				4B0C957022A74E880015A8F6 /* SonyDrive.hpp */,
+				4BCE005F227D39AB000CA200 /* Video.hpp */,
 			);
 			path = Macintosh;
 			sourceTree = "<group>";

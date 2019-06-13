@@ -9,6 +9,8 @@
 #ifndef RealTimeClock_hpp
 #define RealTimeClock_hpp
 
+#include "../../Utility/MemoryFuzzer.hpp"
+
 namespace Apple {
 namespace Macintosh {
 
@@ -21,6 +23,12 @@ namespace Macintosh {
 */
 class RealTimeClock {
 	public:
+		RealTimeClock() {
+			// TODO: this should persist, if possible, rather than
+			// being randomly initialised.
+			Memory::Fuzz(data_, sizeof(data_));
+		}
+
 		/*!
 			Advances the clock by 1 second.
 
