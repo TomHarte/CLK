@@ -1569,7 +1569,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	} else {	\
 		destination = decltype(destination)(\
 			(value >> shift_count) |	\
-			((value & (1 << (size - 1)) ? 0xffffffff : 0x000000000) << (size - shift_count))	\
+			((value & decltype(value)(1 << (size - 1)) ? 0xffffffff : 0x000000000) << (size - shift_count))	\
 		);	\
 		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)(1 << (shift_count - 1));	\
 	}	\
@@ -1704,7 +1704,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 		destination = decltype(destination)(\
 			(value << shift_count) |	\
 			(value >> (size + 1 - shift_count)) |	\
-			((extend_flag_ ? (1 << (size - 1)) : 0) >> (size - shift_count))\
+			((extend_flag_ ? decltype(destination)(1 << (size - 1)) : 0) >> (size - shift_count))\
 		);	\
 		carry_flag_ = extend_flag_ = (value >> (size - shift_count))&1;	\
 	}	\
@@ -1731,11 +1731,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 		carry_flag_ = extend_flag_;	\
 	} else {	\
 		shift_count %= (size + 1);	\
-		destination = decltype(destination)(\
-			(value >> shift_count) |	\
-			(value << (size + 1 - shift_count)) |	\
-			((extend_flag_ ? 1 : 0) << (size - shift_count))	\
-		);	\
+		destination = \
+			decltype(destination)(value >> shift_count) |	\
+			decltype(destination)(value << (size + 1 - shift_count)) |	\
+			decltype(destination)((extend_flag_ ? 1 : 0) << (size - shift_count));	\
 		carry_flag_ = extend_flag_ = value & (1 << shift_count);	\
 	}	\
 	\
