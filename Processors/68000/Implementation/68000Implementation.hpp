@@ -1079,16 +1079,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::MOVEPtoRw:
 									// Read pattern is nRd+ nrd.
-									active_program_->source->halves.low.halves.high = destination_bus_data_[0].halves.high.full;
-									active_program_->source->halves.low.halves.low = destination_bus_data_[0].halves.low.full;
+									active_program_->source->halves.low.halves.high = destination_bus_data_[0].halves.high.halves.low;
+									active_program_->source->halves.low.halves.low = destination_bus_data_[0].halves.low.halves.low;
 								break;
 
 								case Operation::MOVEPtoRl:
 									// Read pattern is nRd+ nR+ nrd+ nr.
-									active_program_->source->halves.high.halves.high = destination_bus_data_[0].halves.high.full;
-									active_program_->source->halves.high.halves.low = source_bus_data_[0].halves.high.full;
-									active_program_->source->halves.low.halves.high = destination_bus_data_[0].halves.low.full;
-									active_program_->source->halves.low.halves.low = source_bus_data_[0].halves.low.full;
+									active_program_->source->halves.high.halves.high = destination_bus_data_[0].halves.high.halves.low;
+									active_program_->source->halves.high.halves.low = source_bus_data_[0].halves.high.halves.low;
+									active_program_->source->halves.low.halves.high = destination_bus_data_[0].halves.low.halves.low;
+									active_program_->source->halves.low.halves.low = source_bus_data_[0].halves.low.halves.low;
 								break;
 
 								/*
