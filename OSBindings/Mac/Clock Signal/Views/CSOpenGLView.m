@@ -219,9 +219,11 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 }
 
 - (void)releaseMouse {
-	_mouseIsCaptured = NO;
-	CGAssociateMouseAndMouseCursorPosition(true);
-	[NSCursor unhide];
+	if(_mouseIsCaptured) {
+		_mouseIsCaptured = NO;
+		CGAssociateMouseAndMouseCursorPosition(true);
+		[NSCursor unhide];
+	}
 }
 
 #pragma mark - Mouse motion
@@ -274,7 +276,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 #pragma mark - Mouse buttons
 
 - (void)applyButtonDown:(NSEvent *)event {
-	if(self.shouldCaptureMouse) {
+	if(self.shouldCaptureMouse && !_mouseIsCaptured) {
 		_mouseIsCaptured = YES;
 		[NSCursor hide];
 		CGAssociateMouseAndMouseCursorPosition(false);
