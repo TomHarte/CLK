@@ -139,7 +139,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			via_clock_ += cycle.length;
 			via_.run_for(via_clock_.divide(HalfCycles(10)));
 
-			// The keyboard also has a clock, albeit a very slow one.
+			// The keyboard also has a clock, albeit a very slow one — 100,000 cycles/second.
 			// Its clock and data lines are connected to the VIA.
 			keyboard_clock_ += cycle.length;
 			const auto keyboard_ticks = keyboard_clock_.divide(HalfCycles(CLOCK_RATE / 100000));
@@ -149,13 +149,13 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, keyboard_.get_clock());
 			}
 
-			// Feed mouse inputs within at most 100 cycles of each other.
+			// Feed mouse inputs within at most 1250 cycles of each other.
 			time_since_mouse_update_ += cycle.length;
-			const auto mouse_ticks = keyboard_clock_.divide(HalfCycles(200));
+			const auto mouse_ticks = time_since_mouse_update_.divide(HalfCycles(2500));
 			if(mouse_ticks > HalfCycles(0)) {
 				mouse_.prepare_step();
-				scc_.set_dcd(0, mouse_.get_channel(0) & 1);
-				scc_.set_dcd(1, mouse_.get_channel(1) & 1);
+				scc_.set_dcd(0, mouse_.get_channel(1) & 1);
+				scc_.set_dcd(1, mouse_.get_channel(0) & 1);
 			}
 
 			// TODO: SCC should be clocked at a divide-by-two, if and when it actually has
@@ -176,11 +176,18 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
 
 			// Update interrupt input. TODO: move this into a VIA/etc delegate callback?
-			mc68000_.set_interrupt_level(
-				(via_.get_interrupt_line() ? 1 : 0) |
-				(scc_.get_interrupt_line() ? 2 : 0)
-				/* TODO: to emulate a programmer's switch: have it set bit 2 when pressed. */
-			);
+			if(scc_.get_interrupt_line()) {
+				mc68000_.set_interrupt_level(2);
+			} else if(via_.get_interrupt_line()) {
+				mc68000_.set_interrupt_level(1);
+			} else {
+				mc68000_.set_interrupt_level(0);
+			}
+//			mc68000_.set_interrupt_level(
+//				(via_.get_interrupt_line() ? 1 : 0) |
+//				(scc_.get_interrupt_line() ? 2 : 0)
+//				/* TODO: to emulate a programmer's switch: have it set bit 2 when pressed. */
+//			);
 
 			// A null cycle leaves nothing else to do.
 			if(cycle.operation) {
@@ -444,12 +451,13 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						return 0x00;	// TODO: b7 = SCC wait/request
 
 						case Port::B:
-						return
+						return uint8_t(
 							(mouse_.get_button_mask() & 1) ? 0x00 : 0x08 |
-							((mouse_.get_channel(1) & 2) << 3) |
-							((mouse_.get_channel(0) & 2) << 4) |
+							((mouse_.get_channel(0) & 2) << 3) |
+							((mouse_.get_channel(1) & 2) << 4) |
 							(clock_.get_data() ? 0x02 : 0x00) |
-							(video_.is_outputting() ? 0x00 : 0x40);
+							(video_.is_outputting() ? 0x00 : 0x40)
+						);
 					}
 				}
 

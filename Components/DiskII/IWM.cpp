@@ -8,7 +8,7 @@
 
 #include "IWM.hpp"
 
-#include <cstdio>
+#include "../../Outputs/Log.hpp"
 
 using namespace Apple;
 
@@ -50,7 +50,7 @@ uint8_t IWM::read(int address) {
 
 	switch(state_ & (Q6 | Q7 | ENABLE)) {
 		default:
-			printf("Invalid read\n");
+			LOG("[IWM] Invalid read\n");
 		return 0xff;
 
 		// "Read all 1s".
@@ -62,10 +62,9 @@ uint8_t IWM::read(int address) {
 			const auto result = data_register_;
 
 			if(data_register_ & 0x80) {
-				printf("[%02x] ", data_register_);
 				data_register_ = 0;
 			}
-			printf("Reading data register\n");
+			LOG("Reading data register: " << PADHEX(2) << int(result));
 
 			return result;
 		}
@@ -82,13 +81,13 @@ uint8_t IWM::read(int address) {
 				(/ENBL1 is low when the first drive's motor is on; /ENBL2 is low when the second drive's motor is on.
 				If the 1-second timer is enabled, motors remain on for one second after being programmatically disabled.)
 			*/
-			printf("Reading status (including [%d][%c%c%c%c] ", active_drive_, (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
+			LOG("Reading status (including [" << active_drive_ << "][" << ((state_ & CA2) ? '2' : '-') << ((state_ & CA1) ? '1' : '-') << ((state_ & CA0) ? '0' : '-') << ((state_ & SEL) ? 'S' : '-') << "]");
 
 			// Determine the SENSE input.
 			uint8_t sense = 0x00;
 			switch(state_ & (CA2 | CA1 | CA0 | SEL)) {
 				default:
-					printf("unknown)\n");
+					LOG("unknown)");
 				break;
 
 				// 4 = step finished	(0 = done)
@@ -102,7 +101,7 @@ uint8_t IWM::read(int address) {
 //				break;
 
 				case SEL:				// Disk in place.
-					printf("disk in place)\n");
+					LOG("disk in place)");
 					sense = drives_[active_drive_] && drives_[active_drive_]->has_disk() ? 0x00 : 0x80;
 				break;
 
@@ -111,24 +110,24 @@ uint8_t IWM::read(int address) {
 //				break;
 //
 				case CA0|SEL:			// Disk locked (i.e. write-protect tab).
-					printf("disk locked)\n");
+					LOG("disk locked)");
 //					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 0x00 : 0x80;
 					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 0x80 : 0x00;
 				break;
 
 				case CA1:				// Disk motor running.
-					printf("disk motor running)\n");
+					LOG("disk motor running)");
 					sense = drives_[active_drive_] && drives_[active_drive_]->get_motor_on() ? 0x00 : 0x80;
 				break;
 
 				case CA1|SEL:			// Head at track 0.
-					printf("head at track 0)\n");
+					LOG("head at track 0)");
 					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_track_zero() ? 0x00 : 0x80;
 				break;
 
 				case CA1|CA0|SEL:		// Tachometer (?)
 					sense = drives_[active_drive_] && drives_[active_drive_]->get_tachometer() ? 0x00 : 0x80;
-					printf("tachometer [%02x])\n", sense);
+					LOG("tachometer " << PADHEX(2) << int(sense) << ")");
 				break;
 
 //				case CA2:				// Read data, lower head.
@@ -140,13 +139,13 @@ uint8_t IWM::read(int address) {
 //				break;
 //
 				case CA2|CA1:			// Single- or double-sided drive.
-					printf("single- or double-sided drive)\n");
+					LOG("single- or double-sided drive)");
 					sense = drives_[active_drive_] && (drives_[active_drive_]->get_head_count() == 1) ? 0x00 : 0x80;
 				break;
 
 				case CA2|CA1|CA0:		// Drive installed.		(per the Mac Plus ROM)
 				case CA2|CA1|CA0|SEL:	// Drive installed.		(per Inside Macintosh)
-					printf("drive installed)\n");
+					LOG("drive installed)");
 					sense = drives_[active_drive_] ? 0x00 : 0x80;
 				break;
 			}
@@ -165,7 +164,7 @@ uint8_t IWM::read(int address) {
 				bit 6: 1 = write state (cleared to 0 if a write underrun occurs).
 				bit 7: 1 = write data buffer ready for data.
 			*/
-			printf("Reading write handshake\n");
+			LOG("Reading write handshake");
 		return 0x1f | 0x80 | 0x40;
 	}
 
@@ -200,11 +199,11 @@ void IWM::write(int address, uint8_t input) {
 				case 0x10:		bit_length_ = Cycles(32);		break;	// slow mode, 8Mhz
 				case 0x18:		bit_length_ = Cycles(16);		break;	// fast mode, 8Mhz
 			}
-			printf("IWM mode is now %02x\n", mode_);
+			LOG("IWM mode is now " << PADHEX(2) << int(mode_));
 		break;
 
 		case Q7|Q6|ENABLE:	// Write data register.
-			printf("Data register write\n");
+			LOG("Data register write\n");
 		break;
 	}
 }
@@ -237,23 +236,23 @@ void IWM::access(int address) {
 				if(!(address & 1)) {
 					switch(state_ & (CA1 | CA0 | SEL)) {
 						default:
-							printf("Unhandled LSTRB\n");
+							LOG("Unhandled LSTRB");
 						break;
 
 						case 0:
-							printf("LSTRB Set stepping direction: %d\n", state_ & CA2);
+							LOG("LSTRB Set stepping direction: " << int(state_ & CA2));
 						break;
 
 						case CA0:
-							printf("LSTRB Step\n");
+							LOG("LSTRB Step");
 						break;
 
 						case CA1:
-							printf("LSTRB Motor on\n");
+							LOG("LSTRB Motor on");
 						break;
 
 						case CA1|CA0:
-							printf("LSTRB Eject disk\n");
+							LOG("LSTRB Eject disk");
 						break;
 					}
 				}

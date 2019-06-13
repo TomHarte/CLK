@@ -17,14 +17,57 @@ void z8530::reset() {
 }
 
 bool z8530::get_interrupt_line() {
-	// TODO.
-	return false;
+	return
+		(master_interrupt_control_ & 0x8) &&
+		(
+			channels_[0].get_interrupt_line() ||
+			channels_[1].get_interrupt_line()
+		);
 }
 
 std::uint8_t z8530::read(int address) {
-	const auto result = channels_[address & 1].read(address & 2, pointer_);
-	pointer_ = 0;
-	return result;
+	if(address & 2) {
+		// Read data register for channel
+		return 0x00;
+	} else {
+		// Read control register for channel.
+		uint8_t result = 0;
+
+		switch(pointer_) {
+			default:
+				result = channels_[address & 1].read(address & 2, pointer_);
+			break;
+
+			case 2:		// Handled non-symmetrically between channels.
+				if(address & 1) {
+					LOG("[SCC] Unimplemented: register 2 status bits");
+				} else {
+					result = interrupt_vector_;
+
+					// Modify the vector if permitted.
+//					if(master_interrupt_control_ & 1) {
+						for(int port = 0; port < 2; ++port) {
+							// TODO: the logic below assumes that DCD is the only implemented interrupt. Fix.
+							if(channels_[port].get_interrupt_line()) {
+								const uint8_t shift = 1 + 3*((master_interrupt_control_ & 0x10) >> 4);
+								const uint8_t mask = uint8_t(~(7 << shift));
+								result = uint8_t(
+									(result & mask) |
+									((1 | ((port == 1) ? 4 : 0)) << shift)
+								);
+								break;
+							}
+						}
+//					}
+				}
+			break;
+		}
+
+		pointer_ = 0;
+		return result;
+	}
+
+	return 0x00;
 }
 
 void z8530::write(int address, std::uint8_t value) {
@@ -47,6 +90,7 @@ void z8530::write(int address, std::uint8_t value) {
 
 			case 9:	// Master interrupt and reset register; also shared between both channels.
 				LOG("[SCC] TODO: master interrupt and reset register " << PADHEX(2) << int(value));
+				master_interrupt_control_ = value;
 			break;
 		}
 
@@ -68,15 +112,31 @@ void z8530::write(int address, std::uint8_t value) {
 	}
 }
 
+void z8530::set_dcd(int port, bool level) {
+	channels_[port].set_dcd(level);
+}
+
+// MARK: - Channel implementations
+
 uint8_t z8530::Channel::read(bool data, uint8_t pointer) {
 	// If this is a data read, just return it.
 	if(data) {
 		return data_;
 	} else {
-		LOG("[SCC] Unrecognised control read from register " << int(pointer));
+		// Otherwise, this is a control read...
+		switch(pointer) {
+			default:
+				LOG("[SCC] Unrecognised control read from register " << int(pointer));
+			return 0x00;
+
+			case 0:
+			return dcd_ ? 0x8 : 0x0;
+
+			case 0xf:
+			return external_interrupt_status_;
+		}
 	}
 
-	// Otherwise, this is a control read...
 	return 0x00;
 }
 
@@ -109,7 +169,9 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 				switch((value >> 3)&7) {
 					default:	/* Do nothing. */		break;
 					case 2:
-						LOG("[SCC] TODO: reset ext/status interrupts.");
+//						LOG("[SCC] reset ext/status interrupts.");
+						external_status_interrupt_ = false;
+						external_interrupt_status_ = 0;
 					break;
 					case 3:
 						LOG("[SCC] TODO: send abort (SDLC).");
@@ -130,7 +192,7 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 			break;
 
 			case 0x1:	// Write register 1 — Transmit/Receive Interrupt and Data Transfer Mode Definition.
-				transfer_interrupt_mask_ = value;
+				interrupt_mask_ = value;
 			break;
 
 			case 0x4:	// Write register 4 — Transmit/Receive Miscellaneous Parameters and Modes.
@@ -172,12 +234,24 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 			break;
 
 			case 0xf:	// Write register 15 — External/Status Interrupt Control.
-				interrupt_mask_ = value;
+				external_interrupt_mask_ = value;
 			break;
 		}
 	}
 }
 
-void z8530::set_dcd(int port, bool level) {
-	// TODO.
+void z8530::Channel::set_dcd(bool level) {
+	if(dcd_ == level) return;
+	dcd_ = level;
+
+	if(external_interrupt_mask_ & 0x8) {
+		external_status_interrupt_ = true;
+		external_interrupt_status_ |= 0x8;
+	}
+}
+
+bool z8530::Channel::get_interrupt_line() {
+	return
+		(interrupt_mask_ & 1) && external_status_interrupt_;
+	// TODO: other potential causes of an interrupt.
 }

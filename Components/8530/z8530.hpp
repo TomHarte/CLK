@@ -45,6 +45,8 @@ class z8530 {
 			public:
 				uint8_t read(bool data, uint8_t pointer);
 				void write(bool data, uint8_t pointer, uint8_t value);
+				void set_dcd(bool level);
+				bool get_interrupt_line();
 
 			private:
 				uint8_t data_ = 0xff;
@@ -63,13 +65,20 @@ class z8530 {
 
 				int clock_rate_multiplier_ = 1;
 
-				uint8_t transfer_interrupt_mask_ = 0;	// i.e. Write Register 0x1.
-				uint8_t interrupt_mask_ = 0;			// i.e. Write Register 0xf.
+				uint8_t interrupt_mask_ = 0;			// i.e. Write Register 0x1.
+
+				uint8_t external_interrupt_mask_ = 0;	// i.e. Write Register 0xf.
+				bool external_status_interrupt_ = false;
+				uint8_t external_interrupt_status_ = 0;
 
 				bool dcd_ = false;
 		} channels_[2];
+
 		uint8_t pointer_ = 0;
+
 		uint8_t interrupt_vector_ = 0;
+
+		uint8_t master_interrupt_control_ = 0;
 };
 
 }

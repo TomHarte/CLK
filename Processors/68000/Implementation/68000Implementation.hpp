@@ -218,7 +218,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #ifdef LOG_TRACE
 //					should_log = true;
 					if(should_log) {
-						printf("\nInterrupt\n");
+						printf("\n\nInterrupt\n\n");
 					}
 #endif
 					active_program_ = nullptr;
@@ -287,8 +287,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
+							should_log |= (program_counter_.full - 4) == 0x401A84;
 	//4176b6
-							should_log |= (program_counter_.full - 4) == 0x418A0A;//0x41806A;//180A2;
+//							should_log |= (program_counter_.full - 4) == 0x418A0A;//0x41806A;//180A2;
 //							should_log = ((program_counter_.full - 4) >= 0x417D9E) && ((program_counter_.full - 4) <= 0x419D96);
 #endif
 
@@ -1885,7 +1886,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							// on the data bus as the accepted interrupt number during the interrupt
 							// acknowledge cycle, with the low bit set since a real 68000 uses the lower
 							// data strobe to collect the corresponding vector byte.
-							accepted_interrupt_level_ = interrupt_level_ =  bus_interrupt_level_;
+							accepted_interrupt_level_ = interrupt_level_ = bus_interrupt_level_;
 							effective_address_[0].full = 1 | uint32_t(accepted_interrupt_level_ << 1);
 
 							// Recede the program counter to where it would have been were there no

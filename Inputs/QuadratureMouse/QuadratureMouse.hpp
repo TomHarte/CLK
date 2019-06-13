@@ -64,9 +64,9 @@ class QuadratureMouse: public Mouse {
 				secondaries_[axis] = primaries_[axis];
 				if(axis_value > 0) {
 					-- axes_[axis];
+					secondaries_[axis] ^= 1;
 				} else {
 					++ axes_[axis];
-					secondaries_[axis] ^= 1;
 				}
 			}
 		}
