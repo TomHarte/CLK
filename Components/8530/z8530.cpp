@@ -89,7 +89,7 @@ void z8530::write(int address, std::uint8_t value) {
 			break;
 
 			case 9:	// Master interrupt and reset register; also shared between both channels.
-				LOG("[SCC] TODO: master interrupt and reset register " << PADHEX(2) << int(value));
+				LOG("[SCC] Master interrupt and reset register: " << PADHEX(2) << int(value));
 				master_interrupt_control_ = value;
 			break;
 		}

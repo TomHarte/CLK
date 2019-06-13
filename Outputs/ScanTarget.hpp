@@ -190,6 +190,9 @@ struct ScanTarget {
 			struct {
 				uint16_t x, y;
 			} output_scale;
+
+			/// Describes the intended display aspect ratio.
+			float aspect_ratio = 4.0f / 3.0f;
 		};
 
 		/// Sets the total format of input data.

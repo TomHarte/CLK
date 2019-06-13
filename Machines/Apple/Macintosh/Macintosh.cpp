@@ -102,7 +102,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			Memory::PackBigEndian16(*roms[0], rom_);
 
 			// Randomise memory contents.
-			Memory::Fuzz(ram_, sizeof(ram_));
+			Memory::Fuzz(ram_, sizeof(ram_) / sizeof(*ram_));
 
 			// Attach the drives to the IWM.
 			iwm_.iwm.set_drive(0, &drives_[0]);

@@ -23,7 +23,7 @@ void ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 		case ShaderType::Composition: break;
 		default:
 			target.set_uniform("rowHeight", GLfloat(1.05f / modals_.expected_vertical_lines));
-			target.set_uniform("scale", GLfloat(modals_.output_scale.x), GLfloat(modals_.output_scale.y));
+			target.set_uniform("scale", GLfloat(modals_.output_scale.x), GLfloat(modals_.output_scale.y) * modals_.aspect_ratio * (3.0f / 4.0f));
 			target.set_uniform("phaseOffset", GLfloat(modals_.input_data_tweaks.phase_linked_luminance_offset));
 
 			const float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);

@@ -78,6 +78,11 @@ void CRT::set_new_data_type(Outputs::Display::InputDataType data_type) {
 	scan_target_->set_modals(scan_target_modals_);
 }
 
+void CRT::set_aspect_ratio(float aspect_ratio) {
+	scan_target_modals_.aspect_ratio = aspect_ratio;
+	scan_target_->set_modals(scan_target_modals_);
+}
+
 void CRT::set_visible_area(Outputs::Display::Rect visible_area) {
 	scan_target_modals_.visible_area = visible_area;
 	scan_target_->set_modals(scan_target_modals_);

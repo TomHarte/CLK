@@ -289,7 +289,15 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-							should_log |= (program_counter_.full - 4) == 0x401A84;
+							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
+
+//1300
+							should_log = (fetched_pc >= 0x400D9A) && (fetched_pc <= 0x400EAA);
+							// == 0x0003ea);
+//							should_log |=
+//								(((program_counter_.full - 4)&0xffffff) == 0x418CDE) ||	// E_Sony_RdData
+//								(((program_counter_.full - 4)&0xffffff) == 0x4182DC) ||	// E_Sony_ReSeek
+//								(((program_counter_.full - 4)&0xffffff) == 0x418C18);	// E_Sony_RdAddr
 	//4176b6
 //							should_log |= (program_counter_.full - 4) == 0x418A0A;//0x41806A;//180A2;
 //							should_log = ((program_counter_.full - 4) >= 0x417D9E) && ((program_counter_.full - 4) <= 0x419D96);

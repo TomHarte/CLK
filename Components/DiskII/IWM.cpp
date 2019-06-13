@@ -140,7 +140,7 @@ uint8_t IWM::read(int address) {
 //
 				case CA2|CA1:			// Single- or double-sided drive.
 					LOG("single- or double-sided drive)");
-					sense = drives_[active_drive_] && (drives_[active_drive_]->get_head_count() == 1) ? 0x00 : 0x80;
+					sense = drives_[active_drive_] && (drives_[active_drive_]->get_head_count() == 1) ? 0x80 : 0x00;
 				break;
 
 				case CA2|CA1|CA0:		// Drive installed.		(per the Mac Plus ROM)

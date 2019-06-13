@@ -146,6 +146,10 @@ class CRT {
 		*/
 		void set_new_data_type(Outputs::Display::InputDataType data_type);
 
+		/*!	Sets the CRT's intended aspect ratio — 4.0/3.0 by default.
+		*/
+		void set_aspect_ratio(float aspect_ratio);
+
 		/*!	Output at the sync level.
 
 			@param number_of_cycles The amount of time to putput sync for.
