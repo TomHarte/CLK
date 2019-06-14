@@ -102,7 +102,7 @@ uint8_t IWM::read(int address) {
 
 				case SEL:				// Disk in place.
 					LOG("disk in place)");
-					sense = drives_[active_drive_] && drives_[active_drive_]->has_disk() ? 0x00 : 0x80;
+					sense = drives_[active_drive_] && drives_[active_drive_]->has_disk() ? 0 : 1;
 				break;
 
 //				case CA0:				// Disk head step completed (1 = still stepping?).
@@ -112,21 +112,21 @@ uint8_t IWM::read(int address) {
 				case CA0|SEL:			// Disk locked (i.e. write-protect tab).
 					LOG("disk locked)");
 //					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 0x00 : 0x80;
-					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 0x80 : 0x00;
+					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 1 : 0;
 				break;
 
 				case CA1:				// Disk motor running.
 					LOG("disk motor running)");
-					sense = drives_[active_drive_] && drives_[active_drive_]->get_motor_on() ? 0x00 : 0x80;
+					sense = drives_[active_drive_] && drives_[active_drive_]->get_motor_on() ? 0 : 1;
 				break;
 
 				case CA1|SEL:			// Head at track 0.
 					LOG("head at track 0)");
-					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_track_zero() ? 0x00 : 0x80;
+					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_track_zero() ? 0 : 1;
 				break;
 
 				case CA1|CA0|SEL:		// Tachometer (?)
-					sense = drives_[active_drive_] && drives_[active_drive_]->get_tachometer() ? 0x00 : 0x80;
+					sense = drives_[active_drive_] && drives_[active_drive_]->get_tachometer() ? 0 : 1;
 					LOG("tachometer " << PADHEX(2) << int(sense) << ")");
 				break;
 
@@ -140,20 +140,25 @@ uint8_t IWM::read(int address) {
 //
 				case CA2|CA1:			// Single- or double-sided drive.
 					LOG("single- or double-sided drive)");
-					sense = drives_[active_drive_] && (drives_[active_drive_]->get_head_count() == 1) ? 0x80 : 0x00;
+					sense = drives_[active_drive_] && (drives_[active_drive_]->get_head_count() == 1) ? 1 : 0;
 				break;
 
-				case CA2|CA1|CA0:		// Drive installed.		(per the Mac Plus ROM)
+				case CA2|CA1|CA0:		// Present/HD.			(per the Mac Plus ROM)
+					LOG("present/HD)");
+					sense = drives_[active_drive_] ? 0 : 1;
+				break;
+
 				case CA2|CA1|CA0|SEL:	// Drive installed.		(per Inside Macintosh)
 					LOG("drive installed)");
-					sense = drives_[active_drive_] ? 0x00 : 0x80;
+					sense = drives_[active_drive_] ? 0 : 1;
 				break;
 			}
 
-			return
+			return uint8_t(
 				(mode_&0x1f) |
 				(drive_motor_on_ ? 0x20 : 0x00) |
-				sense;
+				(sense << 7)
+			);
 		} break;
 
 		case Q7: case Q7|ENABLE:

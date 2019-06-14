@@ -291,8 +291,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #ifdef LOG_TRACE
 							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
 
+							should_log |= fetched_pc >= 0x417E66;
 //1300
-							should_log = (fetched_pc >= 0x400D9A) && (fetched_pc <= 0x400EAA);
+//							should_log = (fetched_pc >= 0x400D9A) && (fetched_pc <= 0x400EAA);
 							// == 0x0003ea);
 //							should_log |=
 //								(((program_counter_.full - 4)&0xffffff) == 0x418CDE) ||	// E_Sony_RdData
