@@ -58,7 +58,7 @@ uint8_t IWM::read(int address) {
 //		return 0xff;
 
 		case 0:
-		case ENABLE: {				/* Read data register. */
+		case ENABLE: {				/* Read data register. Zeroing afterwards is a guess. */
 			const auto result = data_register_;
 
 			if(data_register_ & 0x80) {
@@ -96,36 +96,41 @@ uint8_t IWM::read(int address) {
 				//
 				// {CA1,CA0,SEL,CA2}
 
-//				case 0:					// Head step direction.
+//				case 0:					// Head step direction.				(0 = inward)
 //					printf("head step direction)\n");
 //				break;
 
 				case SEL:				// Disk in place.
+										// (0 = disk present)
 					LOG("disk in place)");
 					sense = drives_[active_drive_] && drives_[active_drive_]->has_disk() ? 0 : 1;
 				break;
 
-//				case CA0:				// Disk head step completed (1 = still stepping?).
+//				case CA0:				// Disk head step completed.
+										// (0 = still stepping)
 //					printf("head stepping)\n");
 //				break;
 //
-				case CA0|SEL:			// Disk locked (i.e. write-protect tab).
+				case CA0|SEL:			// Disk locked.
+										// (0 = write protected)
 					LOG("disk locked)");
-//					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 0x00 : 0x80;
-					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 1 : 0;
+					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 0 : 1;
 				break;
 
 				case CA1:				// Disk motor running.
+										// (0 = motor on)
 					LOG("disk motor running)");
 					sense = drives_[active_drive_] && drives_[active_drive_]->get_motor_on() ? 0 : 1;
 				break;
 
 				case CA1|SEL:			// Head at track 0.
+										// (0 = at track 0)
 					LOG("head at track 0)");
 					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_track_zero() ? 0 : 1;
 				break;
 
-				case CA1|CA0|SEL:		// Tachometer (?)
+				case CA1|CA0|SEL:		// Tachometer.
+										// (arbitrary)
 					sense = drives_[active_drive_] && drives_[active_drive_]->get_tachometer() ? 0 : 1;
 					LOG("tachometer " << PADHEX(2) << int(sense) << ")");
 				break;
@@ -139,16 +144,19 @@ uint8_t IWM::read(int address) {
 //				break;
 //
 				case CA2|CA1:			// Single- or double-sided drive.
+										// (0 = single sided)
 					LOG("single- or double-sided drive)");
-					sense = drives_[active_drive_] && (drives_[active_drive_]->get_head_count() == 1) ? 1 : 0;
+					sense = drives_[active_drive_] && (drives_[active_drive_]->get_head_count() == 1) ? 0 : 1;
 				break;
 
-				case CA2|CA1|CA0:		// Present/HD.			(per the Mac Plus ROM)
+				case CA2|CA1|CA0:		// "Present/HD" (per the Mac Plus ROM)
+										// (0 = ??HD??)
 					LOG("present/HD)");
-					sense = drives_[active_drive_] ? 0 : 1;
+					sense = drives_[active_drive_] ? 1 : 0;
 				break;
 
-				case CA2|CA1|CA0|SEL:	// Drive installed.		(per Inside Macintosh)
+				case CA2|CA1|CA0|SEL:	// Drive installed.
+										// (0 = present, 1 = missing)
 					LOG("drive installed)");
 					sense = drives_[active_drive_] ? 0 : 1;
 				break;
