@@ -217,7 +217,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 							case 0x68f000:
 								// The IWM; this is a purely polled device, so can be run on demand.
-								printf("[%06x]: ", mc68000_.get_state().program_counter);
+#ifndef NDEBUG
+//								printf("[%06x]: ", mc68000_.get_state().program_counter);
+#endif
 								iwm_.flush();
 								if(cycle.operation & Microcycle::Read) {
 									cycle.value->halves.low = iwm_.iwm.read(register_address);
@@ -295,9 +297,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							if(!(operation & Microcycle::Read) || word_address >= 0x300000) operation = 0;
 						}
 
-						if(!(operation & Microcycle::Read) && (word_address == (0x0000182e >> 1))) {
-							printf("Write to 0000182e: %04x from %08x\n", cycle.value->full, mc68000_.get_state().program_counter);
-						}
+//						if(!(operation & Microcycle::Read) && (word_address == (0x0000182e >> 1))) {
+//							printf("Write to 0000182e: %04x from %08x\n", cycle.value->full, mc68000_.get_state().program_counter);
+//						}
 
 						const auto masked_operation = operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge);
 						switch(masked_operation) {

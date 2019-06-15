@@ -247,8 +247,8 @@ void Drive::get_next_event(const Time &duration_already_passed) {
 
 	// divide interval, which is in terms of a single rotation of the disk, by rotation speed to
 	// convert it into revolutions per second; this is achieved by multiplying by rotational_multiplier_
-	assert(current_event_.length <= Time(1) && current_event_.length >= Time(0));
-	assert(current_event_.length > duration_already_passed);
+//	assert(current_event_.length <= Time(1) && current_event_.length >= Time(0));
+//	assert(current_event_.length > duration_already_passed);
 	Time interval = (current_event_.length - duration_already_passed) * rotational_multiplier_;
 
 	// An interval greater than 15ms => adjust gain up the point where noise starts happening.

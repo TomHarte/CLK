@@ -8,6 +8,7 @@
 
 #include "IWM.hpp"
 
+#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 using namespace Apple;
@@ -84,7 +85,7 @@ uint8_t IWM::read(int address) {
 			LOGNBR("Reading status (including [" << active_drive_ << "][" << ((state_ & CA2) ? '2' : '-') << ((state_ & CA1) ? '1' : '-') << ((state_ & CA0) ? '0' : '-') << ((state_ & SEL) ? 'S' : '-') << "] ");
 
 			// Determine the SENSE input.
-			uint8_t sense = 0x00;
+			uint8_t sense = 0;
 			switch(state_ & (CA2 | CA1 | CA0 | SEL)) {
 				default:
 					LOG("unknown)");
@@ -96,7 +97,8 @@ uint8_t IWM::read(int address) {
 				//
 				// {CA1,CA0,SEL,CA2}
 
-//				case 0:					// Head step direction.				(0 = inward)
+//				case 0:					// Head step direction.
+										// (0 = inward)
 //					printf("head step direction)\n");
 //				break;
 
@@ -106,11 +108,12 @@ uint8_t IWM::read(int address) {
 					sense = drives_[active_drive_] && drives_[active_drive_]->has_disk() ? 0 : 1;
 				break;
 
-//				case CA0:				// Disk head step completed.
+				case CA0:				// Disk head step completed.
 										// (0 = still stepping)
-//					printf("head stepping)\n");
-//				break;
-//
+					LOG("head stepping)");
+					sense = 1;
+				break;
+
 				case CA0|SEL:			// Disk locked.
 										// (0 = write protected)
 					LOG("disk locked)");
@@ -135,14 +138,18 @@ uint8_t IWM::read(int address) {
 					LOG("tachometer " << PADHEX(2) << int(sense) << ")");
 				break;
 
-//				case CA2:				// Read data, lower head.
-//					printf("data, lower head)\n");
-//				break;
-//
-//				case CA2|SEL:			// Read data, upper head.
-//					printf("data, upper head)\n");
-//				break;
-//
+				case CA2:				// Read data, lower head.
+					LOG("data, lower head)\n");
+					if(drives_[0]) drives_[0]->set_head(0);
+					if(drives_[1]) drives_[1]->set_head(0);
+				break;
+
+				case CA2|SEL:			// Read data, upper head.
+					LOG("data, upper head)\n");
+					if(drives_[0]) drives_[0]->set_head(1);
+					if(drives_[1]) drives_[1]->set_head(1);
+				break;
+
 				case CA2|CA1:			// Single- or double-sided drive.
 										// (0 = single sided)
 					LOG("single- or double-sided drive)");
@@ -152,13 +159,13 @@ uint8_t IWM::read(int address) {
 				case CA2|CA1|CA0:		// "Present/HD" (per the Mac Plus ROM)
 										// (0 = ??HD??)
 					LOG("present/HD)");
-					sense = drives_[active_drive_] ? 1 : 0;
+					sense = drives_[active_drive_] ? 0 : 1;
 				break;
 
 				case CA2|CA1|CA0|SEL:	// Drive installed.
 										// (0 = present, 1 = missing)
 					LOG("drive installed)");
-					sense = drives_[active_drive_] ? 0 : 1;
+					sense = drives_[active_drive_] ? 1 : 0;
 				break;
 			}
 
@@ -245,8 +252,8 @@ void IWM::access(int address) {
 			default: break;
 
 			case LSTRB:
-				// Catch high-to-low LSTRB transitions.
-				if(!(address & 1)) {
+				// Catch low-to-high LSTRB transitions.
+				if(address & 1) {
 					switch(state_ & (CA1 | CA0 | SEL)) {
 						default:
 							LOG("Unhandled LSTRB");
@@ -254,10 +261,13 @@ void IWM::access(int address) {
 
 						case 0:
 							LOG("LSTRB Set stepping direction: " << int(state_ & CA2));
+							step_direction_ = (state_ & CA2) ? -1 : 1;
 						break;
 
 						case CA0:
 							LOG("LSTRB Step");
+							if(drives_[0]) drives_[0]->step(Storage::Disk::HeadPosition(step_direction_));
+							if(drives_[1]) drives_[1]->step(Storage::Disk::HeadPosition(step_direction_));
 						break;
 
 						case CA1:

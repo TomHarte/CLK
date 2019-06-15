@@ -39,11 +39,20 @@ std::shared_ptr<Track> PlusTooBIN::get_track_at_position(Track::Address address)
 	if(address.head >= get_head_count()) return nullptr;
 
 	const auto start_position = Encodings::AppleGCR::Macintosh::sectors_in_track(address.position.as_int());
-	const long file_offset = long(start_position.start * 2 + address.head * start_position.start) * sector_size;
+	const long file_offset = long(start_position.start * 2 + address.head * start_position.length) * sector_size;
 	file_.seek(file_offset, SEEK_SET);
 
 	const auto track_contents = file_.read(std::size_t(sector_size * start_position.length));
-	const std::size_t number_of_bits = std::size_t(sector_size * start_position.length * 8);
 
-	return std::shared_ptr<PCMTrack>(new PCMTrack(PCMSegment(number_of_bits, track_contents)));
+	// Split up the data that comes out per encoded sector, prefixing proper sync bits.
+	Storage::Disk::PCMSegment segment;
+	for(size_t c = 0; c < size_t(start_position.length); ++c) {
+		segment += Storage::Encodings::AppleGCR::six_and_two_sync(5);
+
+		size_t data_start = 0;
+		while(track_contents[c*1024 + data_start] == 0xff) ++data_start;
+		segment += PCMSegment((1024 - data_start) * 8, &track_contents[c*1024 + data_start]);
+	}
+
+	return std::make_shared<PCMTrack>(segment);
 }

@@ -291,7 +291,15 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #ifdef LOG_TRACE
 							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
 
-							should_log |= fetched_pc >= 0x417E66;
+							should_log |= (fetched_pc == 0x400BF8);
+//							should_log = (fetched_pc >= 0x40A284 && fetched_pc <= 0x40A732);
+//							should_log |= fetched_pc == 0x400A30;
+//							should_log =
+//								(fetched_pc >= 0x402DF8 && fetched_pc <= 0x403412) ||
+//								(fetched_pc >= 0x4077B6 && fetched_pc <= 0x40799A);
+//							should_log = fetched_pc >= 0x418C22 && fetched_pc <= 0x418CD8;
+//							should_log |= fetched_pc == 0x4009ce;	// Here rests a call to _MountVol, which fails.
+//							should_log &= fetched_pc != 0x400b82;
 //1300
 //							should_log = (fetched_pc >= 0x400D9A) && (fetched_pc <= 0x400EAA);
 							// == 0x0003ea);

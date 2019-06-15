@@ -67,6 +67,8 @@ class IWM:
 		void propose_shift(uint8_t bit);
 		Cycles cycles_since_shift_;
 		Cycles bit_length_;
+
+		int step_direction_ = 0;	// TODO: this should live on the drive.
 };
 
 
