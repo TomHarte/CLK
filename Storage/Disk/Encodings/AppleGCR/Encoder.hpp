@@ -23,12 +23,6 @@ const uint8_t data_prologue[3] = {0xd5, 0xaa, 0xad};
 /// Describes the epilogue that ends both data sections and headers.
 const uint8_t epilogue[3] = {0xde, 0xaa, 0xeb};
 
-/*!
-	Produces the Apple-standard four-and-four per-sector header. This is the same
-	for both the 13- and 16-sector formats, and is 112 bits long.
-*/
-Storage::Disk::PCMSegment header(uint8_t volume, uint8_t track, uint8_t sector);
-
 namespace AppleII {
 
 /*!
@@ -37,6 +31,12 @@ namespace AppleII {
 	from @c source.
 */
 Storage::Disk::PCMSegment six_and_two_data(const uint8_t *source);
+
+/*!
+	Produces the Apple II-standard four-and-four per-sector header. This is the same
+	for both the 13- and 16-sector formats, and is 112 bits long.
+*/
+Storage::Disk::PCMSegment header(uint8_t volume, uint8_t track, uint8_t sector);
 
 }
 

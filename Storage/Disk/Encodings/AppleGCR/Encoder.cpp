@@ -64,7 +64,7 @@ Storage::Disk::PCMSegment AppleGCR::five_and_three_sync(int length) {
 	return sync(length, 9);
 }
 
-Storage::Disk::PCMSegment AppleGCR::header(uint8_t volume, uint8_t track, uint8_t sector) {
+Storage::Disk::PCMSegment AppleGCR::AppleII::header(uint8_t volume, uint8_t track, uint8_t sector) {
 	const uint8_t checksum = volume ^ track ^ sector;
 
 	// Apple headers are encoded using an FM-esque scheme rather than 6 and 2, or 5 and 3.
