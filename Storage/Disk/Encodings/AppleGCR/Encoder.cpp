@@ -284,24 +284,24 @@ Storage::Disk::PCMSegment AppleGCR::Macintosh::data(const uint8_t *source) {
 		// Having mutated those three bytes according to the current checksum,
 		// and the checksum according to those bytes, run them through the
 		// GCR conversion table.
-		output[3 + c*4 + 0] = six_and_two_mapping[values[0] & 0x3f];
-		output[3 + c*4 + 1] = six_and_two_mapping[values[1] & 0x3f];
-		output[3 + c*4 + 2] = six_and_two_mapping[values[2] & 0x3f];
-		output[3 + c*4 + 3] = six_and_two_mapping[
+		output[3 + c*4 + 1] = six_and_two_mapping[values[0] & 0x3f];
+		output[3 + c*4 + 2] = six_and_two_mapping[values[1] & 0x3f];
+		output[3 + c*4 + 3] = six_and_two_mapping[values[2] & 0x3f];
+		output[3 + c*4 + 0] = six_and_two_mapping[
 			((values[0] >> 2) & 0x30) |
-			((values[1] >> 2) & 0x0c) |
-			((values[2] >> 2) & 0x03)
+			((values[1] >> 4) & 0x0c) |
+			((values[2] >> 6) & 0x03)
 		];
 	}
 
 	// Also write the checksum.
-	output[703] = six_and_two_mapping[checksum[0] & 0x3f];
-	output[704] = six_and_two_mapping[checksum[1] & 0x3f];
-	output[705] = six_and_two_mapping[checksum[2] & 0x3f];
-	output[706] = six_and_two_mapping[
+	output[704] = six_and_two_mapping[checksum[0] & 0x3f];
+	output[705] = six_and_two_mapping[checksum[1] & 0x3f];
+	output[706] = six_and_two_mapping[checksum[2] & 0x3f];
+	output[703] = six_and_two_mapping[
 		((checksum[0] >> 2) & 0x30) |
-		((checksum[1] >> 2) & 0x0c) |
-		((checksum[2] >> 2) & 0x03)
+		((checksum[1] >> 4) & 0x0c) |
+		((checksum[2] >> 6) & 0x03)
 	];
 
 	// Write epilogue.
