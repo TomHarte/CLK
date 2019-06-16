@@ -232,7 +232,7 @@ Storage::Disk::PCMSegment AppleGCR::Macintosh::header(uint8_t type, uint8_t trac
 	return Storage::Disk::PCMSegment(data);
 }
 
-Storage::Disk::PCMSegment AppleGCR::Macintosh::six_and_two_data(const uint8_t *source) {
+Storage::Disk::PCMSegment AppleGCR::Macintosh::data(const uint8_t *source) {
 	std::vector<uint8_t> output(710);
 	int checksum[3] = {0, 0, 0};
 

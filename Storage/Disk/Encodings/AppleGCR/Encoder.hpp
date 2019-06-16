@@ -42,13 +42,6 @@ Storage::Disk::PCMSegment header(uint8_t volume, uint8_t track, uint8_t sector);
 
 namespace Macintosh {
 
-/*!
-	Produces the data section of a Macintosh-style six-and-two format sector;
-	the segment returned will be 5680 bits long, encoding the first 524 bytes
-	from @c source.
-*/
-Storage::Disk::PCMSegment six_and_two_data(const uint8_t *source);
-
 struct SectorSpan {
 	int start, length;
 };
@@ -58,6 +51,13 @@ struct SectorSpan {
 	ordinary CLV variable-speed mechanish.
 */
 SectorSpan sectors_in_track(int track);
+
+/*!
+	Produces the data section of a Macintosh-format sector;
+	the segment returned will be 5680 bits long, encoding the first 524 bytes
+	from @c source.
+*/
+Storage::Disk::PCMSegment data(const uint8_t *source);
 
 /*!
 	Produces the Mac-standard header. This is the same
