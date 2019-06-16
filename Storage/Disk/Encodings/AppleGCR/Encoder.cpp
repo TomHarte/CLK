@@ -196,3 +196,118 @@ AppleGCR::Macintosh::SectorSpan AppleGCR::Macintosh::sectors_in_track(int track)
 
 	return result;
 }
+
+Storage::Disk::PCMSegment AppleGCR::Macintosh::header(uint8_t type, uint8_t track, uint8_t sector, bool side_two) {
+	std::vector<uint8_t> data(11);
+
+	// The standard prologue.
+	data[0] = header_prologue[0];
+	data[1] = header_prologue[1];
+	data[2] = header_prologue[2];
+
+	// There then follows:
+	//
+	//	1) the low six bits of the track number;
+	//	2) the sector number;
+	//	3) the high five bits of the track number plus a side flag;
+	//	4) the type; and
+	//	5) the XOR of all those fields.
+	//
+	//	(all two-and-six encoded).
+	data[3] = track&0x3f;
+	data[4] = sector;
+	data[5] = (side_two ? 0x20 : 0x00) | ((track >> 6) & 0x1f);
+	data[6] = type;
+	data[7] = data[3] ^ data[4] ^ data[5] ^ data[6];
+
+	for(size_t c = 3; c < 8; ++c) {
+		data[c] = six_and_two_mapping[data[c]];
+	}
+
+	// Then the standard epilogue.
+	data[8] = epilogue[0];
+	data[9] = epilogue[1];
+	data[10] = epilogue[2];
+
+	return Storage::Disk::PCMSegment(data);
+}
+
+Storage::Disk::PCMSegment AppleGCR::Macintosh::six_and_two_data(const uint8_t *source) {
+	std::vector<uint8_t> output(710);
+	int checksum[3] = {0, 0, 0};
+
+	// Write prologue.
+	output[0] = data_prologue[0];
+	output[1] = data_prologue[1];
+	output[2] = data_prologue[2];
+
+	// The Macintosh has a similar checksum-as-it-goes approach to encoding
+	// to the Apple II, but works entirely differently. Each three bytes of
+	// input are individually encoded to four GCR bytes, their output values
+	// being a (mutating) function of the current checksum.
+	//
+	// Address references below, such as 'Cf. 18FA4' are to addresses in the
+	// Macintosh Plus ROM.
+	for(size_t c = 0; c < 175; ++c) {
+		uint8_t values[3];
+
+		// The low byte of the checksum is rotated left one position; Cf. 18FA4.
+		checksum[0] = (checksum[0] << 1) | (checksum[0] >> 7);
+
+		// See 18FBA and 18FBC: an ADDX (with the carry left over from the roll)
+		// and an EOR act to update the checksum and generate the next output.
+		values[0] = uint8_t(*source ^ checksum[0]);
+		checksum[2] += *source + (checksum[0] >> 8);
+		++source;
+
+		// As above, but now 18FD0 and 18FD2.
+		values[1] = uint8_t(*source ^ checksum[2]);
+		checksum[1] += *source + (checksum[2] >> 8);
+		++source;
+
+		// Avoid a potential read overrun, but otherwise continue as before.
+		if(c == 174) {
+			values[2] = 0;
+		} else {
+			values[2] = uint8_t(*source ^ checksum[1]);
+			checksum[0] += *source + (checksum[1] >> 8);
+			++source;
+		}
+
+		// Throw away the top bits of checksum[1] and checksum[2]; the original
+		// routine is byte centric, the longer ints here are just to retain the
+		// carry after each add transientliy.
+		checksum[0] &= 0xff;
+		checksum[1] &= 0xff;
+		checksum[2] &= 0xff;
+
+		// Having mutated those three bytes according to the current checksum,
+		// and the checksum according to those bytes, run them through the
+		// GCR conversion table.
+		output[3 + c*4 + 0] = six_and_two_mapping[values[0] & 0x3f];
+		output[3 + c*4 + 1] = six_and_two_mapping[values[1] & 0x3f];
+		output[3 + c*4 + 2] = six_and_two_mapping[values[2] & 0x3f];
+		output[3 + c*4 + 3] = six_and_two_mapping[
+			((values[0] >> 2) & 0x30) |
+			((values[1] >> 2) & 0x0c) |
+			((values[2] >> 2) & 0x03)
+		];
+	}
+
+	// Also write the checksum.
+	output[703] = six_and_two_mapping[checksum[0] & 0x3f];
+	output[704] = six_and_two_mapping[checksum[1] & 0x3f];
+	output[705] = six_and_two_mapping[checksum[2] & 0x3f];
+	output[706] = six_and_two_mapping[
+		((checksum[0] >> 2) & 0x30) |
+		((checksum[1] >> 2) & 0x0c) |
+		((checksum[2] >> 2) & 0x03)
+	];
+
+	// Write epilogue.
+	output[707] = epilogue[0];
+	output[708] = epilogue[1];
+	output[709] = epilogue[2];
+
+	return Storage::Disk::PCMSegment(output);
+}

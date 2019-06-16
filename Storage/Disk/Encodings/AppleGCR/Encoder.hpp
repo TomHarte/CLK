@@ -44,7 +44,7 @@ namespace Macintosh {
 
 /*!
 	Produces the data section of a Macintosh-style six-and-two format sector;
-	the segment returned will be x bits long, encoding the first 524 bytes
+	the segment returned will be 5680 bits long, encoding the first 524 bytes
 	from @c source.
 */
 Storage::Disk::PCMSegment six_and_two_data(const uint8_t *source);
@@ -58,6 +58,17 @@ struct SectorSpan {
 	ordinary CLV variable-speed mechanish.
 */
 SectorSpan sectors_in_track(int track);
+
+/*!
+	Produces the Mac-standard header. This is the same
+	for both the 13- and 16-sector formats, and is 88 bits long.
+*/
+Storage::Disk::PCMSegment header(uint8_t type, uint8_t track, uint8_t sector, bool side_two);
+
+/// The on-disk type used for a 400kb floppy.
+const uint8_t TypeMac400kb = 0x02;
+/// The on-disk type used for a 800kb floppy.
+const uint8_t TypeMac800kb = 0x22;
 
 }
 
