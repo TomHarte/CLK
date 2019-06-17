@@ -8,6 +8,9 @@
 
 #include "DiskCopy42.hpp"
 
+#include "../../Track/PCMTrack.hpp"
+#include "../../Encodings/AppleGCR/Encoder.hpp"
+
 /*
 	File format specifications as referenced below are largely
 	sourced from the documentation at
@@ -35,6 +38,10 @@ DiskCopy42::DiskCopy42(const std::string &file_name) :
 	const auto tag_block_length = file_.get32be();
 	const auto data_checksum = file_.get32be();
 	const auto tag_checksum = file_.get32be();
+
+	// Don't continue with no data.
+	if(!data_block_length)
+		throw Error::InvalidFormat;
 
 	// Check that this is a comprehensible disk encoding.
 	const auto encoding = file_.get8();
@@ -115,6 +122,51 @@ std::shared_ptr<::Storage::Disk::Track> DiskCopy42::get_track_at_position(::Stor
 			Bit 5 indicates double sided or not.
 	*/
 
-	// TODO.
+	if(encoding_ == Encoding::GCR400 || encoding_ == Encoding::GCR800) {
+		// Perform a GCR encoding.
+		const auto included_sectors = Storage::Encodings::AppleGCR::Macintosh::sectors_in_track(address.position.as_int());
+		const size_t start_sector = size_t(included_sectors.start * get_head_count() + included_sectors.length * address.head);
+
+		if(start_sector*512 >= data_.size()) return nullptr;
+
+		uint8_t *sector = &data_[512 * start_sector];
+		uint8_t *tags = tags_.size() ? nullptr : &tags_[12 * start_sector];
+
+		Storage::Disk::PCMSegment segment;
+		segment += Encodings::AppleGCR::six_and_two_sync(24);
+
+		for(int c = 0; c < included_sectors.length; ++c) {
+			uint8_t sector_plus_tags[524];
+
+			// Copy in the sector body.
+			memcpy(sector_plus_tags, sector, 512);
+			sector += 512;
+
+			// Copy in the tags, if provided; otherwise generate them.
+			if(tags) {
+				memcpy(&sector_plus_tags[512], tags, 12);
+				tags += 12;
+			} else {
+				// TODO: generate tags.
+			}
+
+			// NB: sync lengths below are identical to those for
+			// the Apple II, as I have no idea whatsoever what they
+			// should be.
+
+//			const int interleave_scale = ((format_ & 0x1f) == 4) ? 8 : 4;
+			uint8_t sector_id = uint8_t(c);//uint8_t((c == included_sectors.length - 1) ? c : (c * interleave_scale)%included_sectors.length);
+
+			segment += Encodings::AppleGCR::Macintosh::header(0x22, uint8_t(address.position.as_int()), sector_id, !!address.head);
+			segment += Encodings::AppleGCR::six_and_two_sync(7);
+			segment += Encodings::AppleGCR::Macintosh::data(sector_plus_tags);
+			segment += Encodings::AppleGCR::six_and_two_sync(20);
+		}
+
+		// TODO: is there inter-track skew?
+
+		return std::make_shared<PCMTrack>(segment);
+	}
+
 	return nullptr;
 }
