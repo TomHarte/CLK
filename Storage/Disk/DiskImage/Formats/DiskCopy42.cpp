@@ -138,17 +138,18 @@ std::shared_ptr<::Storage::Disk::Track> DiskCopy42::get_track_at_position(::Stor
 		for(int c = 0; c < included_sectors.length; ++c) {
 			uint8_t sector_plus_tags[524];
 
-			// Copy in the sector body.
-			memcpy(sector_plus_tags, sector, 512);
-			sector += 512;
-
 			// Copy in the tags, if provided; otherwise generate them.
 			if(tags) {
-				memcpy(&sector_plus_tags[512], tags, 12);
+				memcpy(sector_plus_tags, tags, 12);
 				tags += 12;
 			} else {
-				// TODO: generate tags.
+				// TODO: fill in tags properly.
+				memset(sector_plus_tags, 0, 12);
 			}
+
+			// Copy in the sector body.
+			memcpy(&sector_plus_tags[12], sector, 512);
+			sector += 512;
 
 			// NB: sync lengths below are identical to those for
 			// the Apple II, as I have no idea whatsoever what they
