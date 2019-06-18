@@ -158,7 +158,12 @@ std::shared_ptr<::Storage::Disk::Track> DiskCopy42::get_track_at_position(::Stor
 			// the Apple II, as I have no idea whatsoever what they
 			// should be.
 
-			segment += Encodings::AppleGCR::Macintosh::header(0x22, uint8_t(address.position.as_int()), sector_id, !!address.head);
+			segment += Encodings::AppleGCR::Macintosh::header(
+				format_,
+				uint8_t(address.position.as_int()),
+				sector_id,
+				!!address.head
+			);
 			segment += Encodings::AppleGCR::six_and_two_sync(7);
 			segment += Encodings::AppleGCR::Macintosh::data(sector_id, sector_plus_tags);
 			segment += Encodings::AppleGCR::six_and_two_sync(20);

@@ -23,7 +23,7 @@
 
 #include "../../../Inputs/QuadratureMouse/QuadratureMouse.hpp"
 
-#define LOG_TRACE
+//#define LOG_TRACE
 
 #include "../../../Components/6522/6522.hpp"
 #include "../../../Components/8530/z8530.hpp"
