@@ -232,7 +232,7 @@ Storage::Disk::PCMSegment AppleGCR::Macintosh::header(uint8_t type, uint8_t trac
 	return Storage::Disk::PCMSegment(data);
 }
 
-Storage::Disk::PCMSegment AppleGCR::Macintosh::data(const uint8_t *source) {
+Storage::Disk::PCMSegment AppleGCR::Macintosh::data(uint8_t sector, const uint8_t *source) {
 	std::vector<uint8_t> output(710);
 	int checksum[3] = {0, 0, 0};
 
@@ -240,6 +240,9 @@ Storage::Disk::PCMSegment AppleGCR::Macintosh::data(const uint8_t *source) {
 	output[0] = data_prologue[0];
 	output[1] = data_prologue[1];
 	output[2] = data_prologue[2];
+
+	// Add the sector number.
+	output[3] = six_and_two_mapping[sector & 0x3f];
 
 	// The Macintosh has a similar checksum-as-it-goes approach to encoding
 	// to the Apple II, but works entirely differently. Each three bytes of
@@ -284,10 +287,10 @@ Storage::Disk::PCMSegment AppleGCR::Macintosh::data(const uint8_t *source) {
 		// Having mutated those three bytes according to the current checksum,
 		// and the checksum according to those bytes, run them through the
 		// GCR conversion table.
-		output[3 + c*4 + 1] = six_and_two_mapping[values[0] & 0x3f];
-		output[3 + c*4 + 2] = six_and_two_mapping[values[1] & 0x3f];
-		output[3 + c*4 + 3] = six_and_two_mapping[values[2] & 0x3f];
-		output[3 + c*4 + 0] = six_and_two_mapping[
+		output[4 + c*4 + 1] = six_and_two_mapping[values[0] & 0x3f];
+		output[4 + c*4 + 2] = six_and_two_mapping[values[1] & 0x3f];
+		output[4 + c*4 + 3] = six_and_two_mapping[values[2] & 0x3f];
+		output[4 + c*4 + 0] = six_and_two_mapping[
 			((values[0] >> 2) & 0x30) |
 			((values[1] >> 4) & 0x0c) |
 			((values[2] >> 6) & 0x03)
@@ -295,13 +298,18 @@ Storage::Disk::PCMSegment AppleGCR::Macintosh::data(const uint8_t *source) {
 	}
 
 	// Also write the checksum.
-	output[704] = six_and_two_mapping[checksum[0] & 0x3f];
+	//
+	// Caveat: the first byte written here will overwrite the final byte that
+	// was deposited in the loop above. That's deliberate. The final byte from
+	// the loop above doesn't contain any useful content, and isn't actually
+	// included on disk.
+	output[704] = six_and_two_mapping[checksum[2] & 0x3f];
 	output[705] = six_and_two_mapping[checksum[1] & 0x3f];
-	output[706] = six_and_two_mapping[checksum[2] & 0x3f];
+	output[706] = six_and_two_mapping[checksum[0] & 0x3f];
 	output[703] = six_and_two_mapping[
-		((checksum[0] >> 2) & 0x30) |
+		((checksum[2] >> 2) & 0x30) |
 		((checksum[1] >> 4) & 0x0c) |
-		((checksum[2] >> 6) & 0x03)
+		((checksum[0] >> 6) & 0x03)
 	];
 
 	// Write epilogue.

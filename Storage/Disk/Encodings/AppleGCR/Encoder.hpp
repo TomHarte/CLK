@@ -55,9 +55,9 @@ SectorSpan sectors_in_track(int track);
 /*!
 	Produces the data section of a Macintosh-format sector;
 	the segment returned will be 5680 bits long, encoding the first 524 bytes
-	from @c source.
+	from @c source and including a record of the @c sector.
 */
-Storage::Disk::PCMSegment data(const uint8_t *source);
+Storage::Disk::PCMSegment data(uint8_t sector, const uint8_t *source);
 
 /*!
 	Produces the Mac-standard header. This is the same

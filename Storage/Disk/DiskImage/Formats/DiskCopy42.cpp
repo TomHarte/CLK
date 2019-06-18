@@ -136,6 +136,9 @@ std::shared_ptr<::Storage::Disk::Track> DiskCopy42::get_track_at_position(::Stor
 		segment += Encodings::AppleGCR::six_and_two_sync(24);
 
 		for(int c = 0; c < included_sectors.length; ++c) {
+//			const int interleave_scale = ((format_ & 0x1f) == 4) ? 8 : 4;
+			uint8_t sector_id = uint8_t(c);//uint8_t((c == included_sectors.length - 1) ? c : (c * interleave_scale)%included_sectors.length);
+
 			uint8_t sector_plus_tags[524];
 
 			// Copy in the tags, if provided; otherwise generate them.
@@ -155,12 +158,9 @@ std::shared_ptr<::Storage::Disk::Track> DiskCopy42::get_track_at_position(::Stor
 			// the Apple II, as I have no idea whatsoever what they
 			// should be.
 
-//			const int interleave_scale = ((format_ & 0x1f) == 4) ? 8 : 4;
-			uint8_t sector_id = uint8_t(c);//uint8_t((c == included_sectors.length - 1) ? c : (c * interleave_scale)%included_sectors.length);
-
 			segment += Encodings::AppleGCR::Macintosh::header(0x22, uint8_t(address.position.as_int()), sector_id, !!address.head);
 			segment += Encodings::AppleGCR::six_and_two_sync(7);
-			segment += Encodings::AppleGCR::Macintosh::data(sector_plus_tags);
+			segment += Encodings::AppleGCR::Macintosh::data(sector_id, sector_plus_tags);
 			segment += Encodings::AppleGCR::six_and_two_sync(20);
 		}
 
