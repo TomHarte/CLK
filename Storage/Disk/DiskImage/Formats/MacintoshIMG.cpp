@@ -6,7 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#include "DiskCopy42.hpp"
+#include "MacintoshIMG.hpp"
 
 #include "../../Track/PCMTrack.hpp"
 #include "../../Encodings/AppleGCR/Encoder.hpp"
@@ -19,7 +19,7 @@
 
 using namespace Storage::Disk;
 
-DiskCopy42::DiskCopy42(const std::string &file_name) :
+MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	file_(file_name) {
 
 	// Test 1: is this a raw secctor dump? If so it'll start with
@@ -29,13 +29,6 @@ DiskCopy42::DiskCopy42(const std::string &file_name) :
 	//
 	// Luckily, 0x4c is an invalid string length for the proper
 	// DiskCopy 4.2 format, so there's no ambiguity here.
-
-	// File format starts with 64 bytes dedicated to the disk name;
-	// this is a Pascal-style string though there is apparently a
-	// bug in one version of Disk Copy that can cause the length to
-	// be one too high.
-	//
-	// Validate the length, then skip the rest of the string.
 	const auto name_length = file_.get8();
 	if(name_length == 0x4c) {
 		if(file_.stats().st_size != 819200 && file_.stats().st_size != 409600)
@@ -56,6 +49,14 @@ DiskCopy42::DiskCopy42(const std::string &file_name) :
 			data_ = file_.read(409600);
 		}
 	} else {
+		// DiskCopy 4.2 it is then:
+		//
+		// File format starts with 64 bytes dedicated to the disk name;
+		// this is a Pascal-style string though there is apparently a
+		// bug in one version of Disk Copy that can cause the length to
+		// be one too high.
+		//
+		// Validate the length, then skip the rest of the string.
 		if(name_length > 64)
 			throw Error::InvalidFormat;
 
@@ -104,7 +105,7 @@ DiskCopy42::DiskCopy42(const std::string &file_name) :
 	}
 }
 
-uint32_t DiskCopy42::checksum(const std::vector<uint8_t> &data, size_t bytes_to_skip) {
+uint32_t MacintoshIMG::checksum(const std::vector<uint8_t> &data, size_t bytes_to_skip) {
 	uint32_t result = 0;
 
 	// Checksum algorith is: take each two bytes as a big-endian word; add that to a
@@ -118,21 +119,21 @@ uint32_t DiskCopy42::checksum(const std::vector<uint8_t> &data, size_t bytes_to_
 	return result;
 }
 
-HeadPosition DiskCopy42::get_maximum_head_position() {
+HeadPosition MacintoshIMG::get_maximum_head_position() {
 	return HeadPosition(80);
 }
 
-int DiskCopy42::get_head_count() {
+int MacintoshIMG::get_head_count() {
 	// Bit 5 in the format field indicates whether this disk is double
 	// sided, regardless of whether it is GCR or MFM.
 	return 1 + ((format_ & 0x20) >> 5);
 }
 
-bool DiskCopy42::get_is_read_only() {
+bool MacintoshIMG::get_is_read_only() {
 	return true;
 }
 
-std::shared_ptr<::Storage::Disk::Track> DiskCopy42::get_track_at_position(::Storage::Disk::Track::Address address) {
+std::shared_ptr<::Storage::Disk::Track> MacintoshIMG::get_track_at_position(::Storage::Disk::Track::Address address) {
 	/*
 		The format_ byte has the following meanings:
 

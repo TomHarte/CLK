@@ -36,7 +36,7 @@
 #include "../../Storage/Disk/DiskImage/Formats/AppleDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/CPCDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/D64.hpp"
-#include "../../Storage/Disk/DiskImage/Formats/DiskCopy42.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/MacintoshIMG.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/G64.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/DMK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/HFE.hpp"
@@ -112,7 +112,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			Disk::DiskImageHolder<Storage::Disk::HFE>,
 			TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric)
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
-	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::DiskCopy42>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
+	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
 	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)				// NIB
 	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// O
 	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P

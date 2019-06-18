@@ -1,13 +1,13 @@
 //
-//  DiskCopy42.hpp
+//  MacintoshIMG.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 02/06/2019.
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef DiskCopy42_hpp
-#define DiskCopy42_hpp
+#ifndef MacintoshIMG_hpp
+#define MacintoshIMG_hpp
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
@@ -16,17 +16,20 @@ namespace Storage {
 namespace Disk {
 
 /*!
-	Provides a @c DiskImage containing a disk imaged by Apple's Disk Copy 4.2: sector contents
-	(plus tag data) in either an Apple GCR or standard MFM encoding.
+	Provides a @c DiskImage containing either:
+
+		*	a disk imaged by Apple's Disk Copy 4.2: sector contents (optionally plus tag data),
+			in either an Apple GCR or standard MFM encoding; or
+		*	a raw sector dump of a Macintosh GCR disk.
 */
-class DiskCopy42: public DiskImage {
+class MacintoshIMG: public DiskImage {
 	public:
 		/*!
 			Construct a @c DiskCopy42 containing content from the file with name @c file_name.
 
 			@throws Error::InvalidFormat if this file doesn't appear to be in Disk Copy 4.2 format.
 		*/
-		DiskCopy42(const std::string &file_name);
+		MacintoshIMG(const std::string &file_name);
 
 		// implemented to satisfy @c Disk
 		HeadPosition get_maximum_head_position() override;
