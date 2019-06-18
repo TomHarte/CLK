@@ -22,6 +22,14 @@ using namespace Storage::Disk;
 DiskCopy42::DiskCopy42(const std::string &file_name) :
 	file_(file_name) {
 
+	// Test 1: is this a raw secctor dump? If so it'll start with
+	// the magic word 0x4C4B6000 (big endian) and be exactly
+	// 819,200 bytes long if double sided, or 409,600 bytes if
+	// single sided.
+	//
+	// Luckily, 0x4c is an invalid string length for the proper
+	// DiskCopy 4.2 format, so there's no ambiguity here.
+
 	// File format starts with 64 bytes dedicated to the disk name;
 	// this is a Pascal-style string though there is apparently a
 	// bug in one version of Disk Copy that can cause the length to
@@ -29,51 +37,71 @@ DiskCopy42::DiskCopy42(const std::string &file_name) :
 	//
 	// Validate the length, then skip the rest of the string.
 	const auto name_length = file_.get8();
-	if(name_length > 64)
-		throw Error::InvalidFormat;
+	if(name_length == 0x4c) {
+		if(file_.stats().st_size != 819200 && file_.stats().st_size != 409600)
+			throw Error::InvalidFormat;
 
-	// Get the length of the data and tag blocks.
-	file_.seek(64, SEEK_SET);
-	const auto data_block_length = file_.get32be();
-	const auto tag_block_length = file_.get32be();
-	const auto data_checksum = file_.get32be();
-	const auto tag_checksum = file_.get32be();
+		uint32_t magic_word = file_.get24be();
+		if(magic_word != 0x4b6000)
+			throw Error::InvalidFormat;
 
-	// Don't continue with no data.
-	if(!data_block_length)
-		throw Error::InvalidFormat;
+		file_.seek(0, SEEK_SET);
+		if(file_.stats().st_size == 819200) {
+			encoding_ = Encoding::GCR800;
+			format_ = 0x22;
+			data_ = file_.read(819200);
+		} else {
+			encoding_ = Encoding::GCR400;
+			format_ = 0x2;
+			data_ = file_.read(409600);
+		}
+	} else {
+		if(name_length > 64)
+			throw Error::InvalidFormat;
 
-	// Check that this is a comprehensible disk encoding.
-	const auto encoding = file_.get8();
-	switch(encoding) {
-		default: throw Error::InvalidFormat;
+		// Get the length of the data and tag blocks.
+		file_.seek(64, SEEK_SET);
+		const auto data_block_length = file_.get32be();
+		const auto tag_block_length = file_.get32be();
+		const auto data_checksum = file_.get32be();
+		const auto tag_checksum = file_.get32be();
 
-		case 0:	encoding_ = Encoding::GCR400;	break;
-		case 1:	encoding_ = Encoding::GCR800;	break;
-		case 2:	encoding_ = Encoding::MFM720;	break;
-		case 3:	encoding_ = Encoding::MFM1440;	break;
+		// Don't continue with no data.
+		if(!data_block_length)
+			throw Error::InvalidFormat;
+
+		// Check that this is a comprehensible disk encoding.
+		const auto encoding = file_.get8();
+		switch(encoding) {
+			default: throw Error::InvalidFormat;
+
+			case 0:	encoding_ = Encoding::GCR400;	break;
+			case 1:	encoding_ = Encoding::GCR800;	break;
+			case 2:	encoding_ = Encoding::MFM720;	break;
+			case 3:	encoding_ = Encoding::MFM1440;	break;
+		}
+		format_ = file_.get8();
+
+		// Check the magic number.
+		const auto magic_number = file_.get16be();
+		if(magic_number != 0x0100)
+			throw Error::InvalidFormat;
+
+		// Read the data and tags, and verify that enough data
+		// was present.
+		data_ = file_.read(data_block_length);
+		tags_ = file_.read(tag_block_length);
+
+		if(data_.size() != data_block_length || tags_.size() != tag_block_length)
+			throw Error::InvalidFormat;
+
+		// Verify the two checksums.
+		const auto computed_data_checksum = checksum(data_);
+		const auto computed_tag_checksum = checksum(tags_, 12);
+
+		if(computed_tag_checksum != tag_checksum || computed_data_checksum != data_checksum)
+			throw Error::InvalidFormat;
 	}
-	format_ = file_.get8();
-
-	// Check the magic number.
-	const auto magic_number = file_.get16be();
-	if(magic_number != 0x0100)
-		throw Error::InvalidFormat;
-
-	// Read the data and tags, and verify that enough data
-	// was present.
-	data_ = file_.read(data_block_length);
-	tags_ = file_.read(tag_block_length);
-
-	if(data_.size() != data_block_length || tags_.size() != tag_block_length)
-		throw Error::InvalidFormat;
-
-	// Verify the two checksums.
-	const auto computed_data_checksum = checksum(data_);
-	const auto computed_tag_checksum = checksum(tags_, 12);
-
-	if(computed_tag_checksum != tag_checksum || computed_data_checksum != data_checksum)
-		throw Error::InvalidFormat;
 }
 
 uint32_t DiskCopy42::checksum(const std::vector<uint8_t> &data, size_t bytes_to_skip) {
@@ -130,7 +158,7 @@ std::shared_ptr<::Storage::Disk::Track> DiskCopy42::get_track_at_position(::Stor
 		if(start_sector*512 >= data_.size()) return nullptr;
 
 		uint8_t *sector = &data_[512 * start_sector];
-		uint8_t *tags = tags_.size() ? nullptr : &tags_[12 * start_sector];
+		uint8_t *tags = tags_.size() ? &tags_[12 * start_sector] : nullptr;
 
 		Storage::Disk::PCMSegment segment;
 		segment += Encodings::AppleGCR::six_and_two_sync(24);
