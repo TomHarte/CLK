@@ -67,6 +67,7 @@ void Audio::get_samples(std::size_t number_of_samples, int16_t *target) {
 
 	// TODO: temporary implementation. Very inefficient. Replace.
 	for(std::size_t sample = 0; sample < number_of_samples; ++sample) {
+//		if(volume_ && enabled_mask_) printf("%d\n", sample_queue_.buffer[read_pointer]);
 		target[sample] = volume_multiplier_ * int16_t(sample_queue_.buffer[read_pointer] * volume_ * enabled_mask_);
 		++subcycle_offset_;
 

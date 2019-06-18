@@ -23,7 +23,7 @@
 
 #include "../../../Inputs/QuadratureMouse/QuadratureMouse.hpp"
 
-//#define LOG_TRACE
+#define LOG_TRACE
 
 #include "../../../Components/6522/6522.hpp"
 #include "../../../Components/8530/z8530.hpp"
@@ -297,10 +297,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							if(!(operation & Microcycle::Read) || word_address >= 0x300000) operation = 0;
 						}
 
-//						if(!(operation & Microcycle::Read) && (word_address == (0x0000182e >> 1))) {
-//							printf("Write to 0000182e: %04x from %08x\n", cycle.value->full, mc68000_.get_state().program_counter);
-//						}
-
 						const auto masked_operation = operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge);
 						switch(masked_operation) {
 							default:
@@ -330,6 +326,19 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 								);
 							break;
 						}
+
+//						if(!(operation & Microcycle::Read) && (word_address == (0x0000182e >> 1))) {
+//							printf("Write to 0000182e: %04x from %08x\n", cycle.value->full, mc68000_.get_state().program_counter);
+//						}
+//						if(
+//							(
+//									(word_address == (0x00000352 >> 1))
+//								||	(word_address == (0x00000354 >> 1))
+//								||	(word_address == (0x00005d16 >> 1))
+//							)
+//						) {
+//							printf("%s %08x: %04x from around %08x\n", (operation & Microcycle::Read) ? "Read" : "Write", word_address << 1, memory_base[word_address], mc68000_.get_state().program_counter);
+//						}
 					} else {
 						// TODO: add delay if this is a RAM access and video blocks it momentarily.
 						// "Each [video] fetch took two cycles out of eight"
@@ -449,7 +458,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							else clock_.set_input(!!(value & 0x2), !!(value & 0x1));
 
 							audio_.flush();
-							audio_.audio.set_enabled(!!(value & 0x80));
+							audio_.audio.set_enabled(!(value & 0x80));
 						break;
 					}
 				}

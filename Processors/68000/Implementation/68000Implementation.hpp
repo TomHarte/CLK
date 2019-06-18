@@ -291,25 +291,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #ifdef LOG_TRACE
 							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
 
-							should_log |= (fetched_pc == 0x400BF8);
-//							should_log = (fetched_pc >= 0x40A284 && fetched_pc <= 0x40A732);
-//							should_log |= fetched_pc == 0x400A30;
-//							should_log =
-//								(fetched_pc >= 0x402DF8 && fetched_pc <= 0x403412) ||
-//								(fetched_pc >= 0x4077B6 && fetched_pc <= 0x40799A);
-//							should_log = fetched_pc >= 0x418C22 && fetched_pc <= 0x418CD8;
-//							should_log |= fetched_pc == 0x4009ce;	// Here rests a call to _MountVol, which fails.
-//							should_log &= fetched_pc != 0x400b82;
-//1300
-//							should_log = (fetched_pc >= 0x400D9A) && (fetched_pc <= 0x400EAA);
-							// == 0x0003ea);
-//							should_log |=
-//								(((program_counter_.full - 4)&0xffffff) == 0x418CDE) ||	// E_Sony_RdData
-//								(((program_counter_.full - 4)&0xffffff) == 0x4182DC) ||	// E_Sony_ReSeek
-//								(((program_counter_.full - 4)&0xffffff) == 0x418C18);	// E_Sony_RdAddr
-	//4176b6
-//							should_log |= (program_counter_.full - 4) == 0x418A0A;//0x41806A;//180A2;
-//							should_log = ((program_counter_.full - 4) >= 0x417D9E) && ((program_counter_.full - 4) <= 0x419D96);
+//							should_log |= fetched_pc == 0x400BF6;
+//							should_log &= fetched_pc != 0x400BF8;
+
+							should_log = (fetched_pc >= 0x418CE8) && (fetched_pc <= 0x418EC2);
 #endif
 
 							if(instructions[decoded_instruction_.full].micro_operations) {
