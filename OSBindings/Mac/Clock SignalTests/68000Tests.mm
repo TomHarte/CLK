@@ -11,6 +11,7 @@
 #include <array>
 #include <cassert>
 
+#define LOG_TRACE
 #include "68000.hpp"
 
 /*!
@@ -66,17 +67,18 @@ class RAM68000: public CPU::MC68000::BusHandler {
 
 						case Microcycle::SelectWord | Microcycle::Read:
 							cycle.value->full = ram_[word_address];
-							printf("r %04x from %08x \n", cycle.value->full, *cycle.address);
 						break;
 						case Microcycle::SelectByte | Microcycle::Read:
 							cycle.value->halves.low = ram_[word_address] >> cycle.byte_shift();
 						break;
 						case Microcycle::SelectWord:
-							printf("w %08x of %04x\n", *cycle.address, cycle.value->full);
 							ram_[word_address] = cycle.value->full;
 						break;
 						case Microcycle::SelectByte:
-							ram_[word_address] = (cycle.value->full & cycle.byte_mask()) | (ram_[word_address] & (0xffff ^ cycle.byte_mask()));
+							ram_[word_address] = uint16_t(
+								(cycle.value->halves.low << cycle.byte_shift()) |
+								(ram_[word_address] & cycle.untouched_byte_mask())
+							);
 						break;
 					}
 				}
@@ -208,7 +210,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	_machine.reset();
 }
 
-- (void)testABCD {
+- (void)testABCDLong {
 	for(int d = 0; d < 100; ++d) {
 		_machine.reset(new RAM68000());
 		_machine->set_program({
@@ -513,6 +515,136 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssert(!trimmedInvalids.count, "%@ opcodes should be valid but aren't: %@", @(trimmedInvalids.count), trimmedInvalids.hexDump);
 
 //	XCTAssert(!falseInvalids.count, "%@ opcodes should be valid but aren't: %@", @(falseInvalids.count), falseInvalids.hexDump);
+}
+
+// MARK: - Tests below this line were ported from those of the Portable 68k emulator;
+// that emulator does not include a licence. It reports that all tests were verified
+// against an Amiga.
+
+- (void)testABCD {
+	_machine->set_program({
+		0xc302,		// ABCD D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x1234567a;
+	state.data[2] = 0xf745ff78;
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssert(state.status & CPU::MC68000::Flag::Carry);
+	XCTAssertEqual(state.data[1], 0x12345658);
+	XCTAssertEqual(state.data[2], 0xf745ff78);
+}
+
+- (void)testABCDZero {
+	_machine->set_program({
+		0xc302,		// ABCD D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x12345600;
+	state.data[2] = 0x12345600;
+	state.status = CPU::MC68000::Flag::Zero;
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssert(state.status & CPU::MC68000::Flag::Zero);
+	XCTAssertEqual(state.data[1], 0x12345600);
+	XCTAssertEqual(state.data[2], 0x12345600);
+}
+
+- (void)testABCDNegative {
+	_machine->set_program({
+		0xc302,		// ABCD D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x12345645;
+	state.data[2] = 0x12345654;
+	state.status = CPU::MC68000::Flag::Zero;
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssert(state.status & CPU::MC68000::Flag::Negative);
+	XCTAssertEqual(state.data[1], 0x12345699);
+	XCTAssertEqual(state.data[2], 0x12345654);
+}
+
+- (void)testABCDWithX {
+	_machine->set_program({
+		0xc302,		// ABCD D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x12345645;
+	state.data[2] = 0x12345654;
+	state.status = CPU::MC68000::Flag::Extend;
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssert(state.status & CPU::MC68000::Flag::Carry);
+	XCTAssertEqual(state.data[1], 0x12345600);
+	XCTAssertEqual(state.data[2], 0x12345654);
+}
+
+- (void)testABCDOverflow {
+	_machine->set_program({
+		0xc302,		// ABCD D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x1234563e;
+	state.data[2] = 0x1234563e;
+	state.status = CPU::MC68000::Flag::Extend;
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssert(state.status & CPU::MC68000::Flag::Overflow);
+	XCTAssertEqual(state.data[1], 0x12345683);
+	XCTAssertEqual(state.data[2], 0x1234563e);
+}
+
+- (void)testABCDPredecDifferent {
+	_machine->set_program({
+		0xc30a,		// ABCD -(A2), -(A1)
+	});
+	*_machine->ram_at(0x3000) = 0xa200;
+	*_machine->ram_at(0x4000) = 0x1900;
+
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x3001;
+	state.address[2] = 0x4001;
+	state.status = CPU::MC68000::Flag::Extend;
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssert(state.status & CPU::MC68000::Flag::Carry);
+	XCTAssert(state.status & CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.address[1], 0x3000);
+	XCTAssertEqual(state.address[2], 0x4000);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x2200);
+	XCTAssertEqual(*_machine->ram_at(0x4000), 0x1900);
+}
+
+- (void)testABCDPredecSame {
+	_machine->set_program({
+		0xc309,		// ABCD -(A1), -(A1)
+	});
+	*_machine->ram_at(0x3000) = 0x19a2;
+
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x3002;
+	state.status = CPU::MC68000::Flag::Extend;
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssert(state.status & CPU::MC68000::Flag::Carry);
+	XCTAssert(state.status & CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.address[1], 0x3000);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x22a2);
 }
 
 @end

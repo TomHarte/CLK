@@ -808,7 +808,7 @@ struct ProcessorStorageConstructor {
 					// Temporary storage for the Program fields.
 					ProcessorBase::Program program;
 
-//					if(instruction == 0xc302) {
+//					if(instruction == 0xc30a) {
 //						printf("");
 //					}
 
@@ -1831,26 +1831,15 @@ struct ProcessorStorageConstructor {
 						// Decodes the format used by ABCD and SBCD.
 						case Decoder::ABCD_SBCD: {
 							if(instruction & 8) {
-								program.source = &storage_.source_bus_data_[0];
-								program.destination = &storage_.destination_bus_data_[0];
-								program.source_address = &storage_.address_[ea_register];
-								program.destination_address = &storage_.address_[data_register];
+								program.set_source(storage_, Ind, ea_register);
+								program.set_destination(storage_, Ind, data_register);
 
-								const int source_dec = dec(ea_register);
-								const int destination_dec = dec(data_register);
-
-								int first_action = source_dec | MicroOp::SourceMask | MicroOp::DestinationMask;
-								if(source_dec != destination_dec) {
-									first_action = source_dec | MicroOp::SourceMask;
-									op(destination_dec | MicroOp::DestinationMask);
-								}
-
-								op(	first_action,
-									seq("n nr nrd np nw", { a(ea_register), a(data_register), a(data_register) }, false));
-								op(Action::PerformOperation);
+								op(MicroOp::SourceMask | dec(ea_register), seq("n nr", { a(ea_register) }, false ));
+								op(MicroOp::DestinationMask | dec(data_register), seq("nrd np", { a(data_register) }, false ));
+								op(Action::PerformOperation, seq("nw", { a(data_register) }, false));
 							} else {
-								program.source = &storage_.data_[ea_register];
-								program.destination = &storage_.data_[data_register];
+								program.set_source(storage_, Dn, ea_register);
+								program.set_destination(storage_, Dn, data_register);
 
 								op(Action::PerformOperation, seq("np n"));
 							}
