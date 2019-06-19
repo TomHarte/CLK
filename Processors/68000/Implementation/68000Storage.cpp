@@ -2277,9 +2277,13 @@ struct ProcessorStorageConstructor {
 							} else {
 								// This is an Scc.
 
-								// Scc is inexplicably a read-modify-write operation.
+								// Scc is implemented on the 68000 a read-modify-write operation.
 								storage_.instructions[instruction].set_source(storage_, ea_mode, ea_register);
 								storage_.instructions[instruction].set_destination(storage_, ea_mode, ea_register);
+
+								// Scc is always a byte operation.
+								is_byte_access = true;
+								is_long_word_access = false;
 
 								const int mode = combined_mode(ea_mode, ea_register);
 								switch(mode) {
