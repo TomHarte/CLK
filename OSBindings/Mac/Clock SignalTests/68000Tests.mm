@@ -671,7 +671,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 - (void)testAddOverflow {
 	_machine->set_program({
-		0x0602, 0x82		// ADD.B #$82, D2
+		0xd43c, 0x82		// ADD.B #$82, D2
 	});
 	auto state = _machine->get_processor_state();
 	state.data[2] = 0x82;
@@ -770,6 +770,39 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0xfe35aab0);
 	XCTAssertEqual(state.data[2], 0xff5b025c);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Negative);
+}
+
+// MARK: MOVE USP
+
+- (void)testMoveUSP {
+	_machine->set_program({
+		0x4e69		// MOVE USP, A1
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x12348756;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0);
+}
+
+// MARK: SWAP
+
+- (void)testSwap {
+	_machine->set_program({
+		0x4841		// SWAP D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x12348756;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x87561234);
 	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Negative);
 }
 
