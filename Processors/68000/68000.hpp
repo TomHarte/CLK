@@ -236,6 +236,8 @@ enum Flag: uint16_t {
 	Trace		= 0x8000,
 	Supervisor	= 0x2000,
 
+	ConditionCodes	= 0x1f,
+
 	Extend		= 0x0010,
 	Negative	= 0x0008,
 	Zero		= 0x0004,

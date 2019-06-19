@@ -517,9 +517,15 @@ class CPU::MC68000::ProcessorStorageTests {
 //	XCTAssert(!falseInvalids.count, "%@ opcodes should be valid but aren't: %@", @(falseInvalids.count), falseInvalids.hexDump);
 }
 
-// MARK: - Tests below this line were ported from those of the Portable 68k emulator;
-// that emulator does not include a licence. It reports that all tests were verified
-// against an Amiga.
+// MARK: - Portable 68k tests
+
+// Tests below this line were ported from those of the Portable 68k package.
+// That emulator does not include a licence. It reports that all tests were
+// verified against an Amiga.
+//
+// Cf. https://sourceforge.net/projects/portable68000/
+
+// MARK: ABCD
 
 - (void)testABCD {
 	_machine->set_program({
@@ -645,6 +651,126 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssert(state.status & CPU::MC68000::Flag::Extend);
 	XCTAssertEqual(state.address[1], 0x3000);
 	XCTAssertEqual(*_machine->ram_at(0x3000), 0x22a2);
+}
+
+// MARK: ADD
+
+- (void)testAdd {
+	_machine->set_program({
+		0x0602, 0xff		// ADD.B #$ff, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[2] = 0x9ae;
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Carry | CPU::MC68000::Flag::Negative | CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.data[2], 0x9ad);
+}
+
+- (void)testAddOverflow {
+	_machine->set_program({
+		0x0602, 0x82		// ADD.B #$82, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[2] = 0x82;
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Overflow | CPU::MC68000::Flag::Carry | CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.data[2], 0x04);
+}
+
+- (void)testAddBxxx {
+	_machine->set_program({
+		0xd538, 0x3000		// ADD.B D2, ($3000).W
+	});
+	auto state = _machine->get_processor_state();
+	state.data[2] = 0x82;
+	*_machine->ram_at(0x3000) = 0x8200;
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Overflow | CPU::MC68000::Flag::Carry | CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.data[2], 0x82);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x0400);
+}
+
+- (void)testAddWDnDn {
+	_machine->set_program({
+		0xd442		// ADD.W D2, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[2] = 0x3e8;
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0x7D0);
+}
+
+- (void)testAddLDnPostInc {
+	_machine->set_program({
+		0xd59a		// ADD.L D2, (A2)+
+	});
+	auto state = _machine->get_processor_state();
+	state.data[2] = 0xb2d05e00;
+	state.address[2] = 0x2000;
+	*_machine->ram_at(0x2000) = 0x7735;
+	*_machine->ram_at(0x2002) = 0x9400;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0xb2d05e00);
+	XCTAssertEqual(*_machine->ram_at(0x2000), 0x2a05);
+	XCTAssertEqual(*_machine->ram_at(0x2002), 0xf200);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Carry | CPU::MC68000::Flag::Extend);
+}
+
+- (void)testAddWPreDec {
+	_machine->set_program({
+		0xd462		// ADD.W -(A2), D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[2] = 0xFFFF0000;
+	state.address[2] = 0x2002;
+	*_machine->ram_at(0x2000) = 0;
+	*_machine->ram_at(0x2002) = 0xffff;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0xFFFF0000);
+	XCTAssertEqual(state.address[2], 0x2000);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Zero);
+}
+
+/*
+	ADD.B A2, D2 test omitted; no such opcode exists on the 68000.
+	See P4-5 of the 68000PRM: An is defined for word and long only.
+*/
+
+- (void)testAddLDnDn {
+	_machine->set_program({
+		0xd481		// ADD.l D1, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xfe35aab0;
+	state.data[2] = 0x012557ac;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xfe35aab0);
+	XCTAssertEqual(state.data[2], 0xff5b025c);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Negative);
 }
 
 @end
