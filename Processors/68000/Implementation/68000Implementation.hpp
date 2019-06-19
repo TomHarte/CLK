@@ -291,10 +291,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #ifdef LOG_TRACE
 							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
 
-//							should_log |= fetched_pc == 0x400BF6;
-//							should_log &= fetched_pc != 0x400BF8;
+							should_log |= fetched_pc == 0x401142;
+							should_log &= fetched_pc != 0x4011AA;
 
-							should_log = (fetched_pc >= 0x418CE8) && (fetched_pc <= 0x418EC2);
+//							should_log = (fetched_pc >= 0x408D66) && (fetched_pc <= 0x408D84);
 #endif
 
 							if(instructions[decoded_instruction_.full].micro_operations) {
