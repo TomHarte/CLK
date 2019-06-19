@@ -232,6 +232,17 @@ struct ProcessorState {
 //			uint16_t current_instruction;
 };
 
+enum Flag: uint16_t {
+	Trace		= 0x8000,
+	Supervisor	= 0x2000,
+
+	Extend		= 0x0010,
+	Negative	= 0x0008,
+	Zero		= 0x0004,
+	Overflow	= 0x0002,
+	Carry		= 0x0001
+};
+
 template <class T, bool dtack_is_implicit, bool signal_will_perform = false> class Processor: public ProcessorBase {
 	public:
 		Processor(T &bus_handler) : ProcessorBase(), bus_handler_(bus_handler) {}
