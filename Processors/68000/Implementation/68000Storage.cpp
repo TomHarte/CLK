@@ -808,7 +808,7 @@ struct ProcessorStorageConstructor {
 					// Temporary storage for the Program fields.
 					ProcessorBase::Program program;
 
-//					if(instruction == 0xc30a) {
+//					if(instruction == 0x4e41) {
 //						printf("");
 //					}
 

@@ -26,9 +26,9 @@ class RAM68000: public CPU::MC68000::BusHandler {
 
 			// Setup the /RESET vector.
 			ram_[0] = 0;
-			ram_[1] = 0xffff;
+			ram_[1] = 0x206;	// Supervisor stack pointer.
 			ram_[2] = 0;
-			ram_[3] = 0x1000;
+			ram_[3] = 0x1000;	// Initial PC.
 		}
 
 		void set_program(const std::vector<uint16_t> &program) {
@@ -804,6 +804,30 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x87561234);
 	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Negative);
+}
+
+// MARK: TRAP
+
+- (void)testTrap {
+	_machine->set_program({
+		0x4e41		// TRAP #1
+	});
+	auto state = _machine->get_processor_state();
+	state.status = 0x700;
+	state.user_stack_pointer = 0x200;
+	state.supervisor_stack_pointer = 0x206;
+	*_machine->ram_at(0x84) = 0xfffe;
+	*_machine->ram_at(0xfffe) = 0x4e71;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status, 0x2700);
+	XCTAssertEqual(*_machine->ram_at(0x200), 0x700);
+	XCTAssertEqual(*_machine->ram_at(0x202), 0x0000);
+	XCTAssertEqual(*_machine->ram_at(0x204), 0x1002);
+	XCTAssertEqual(state.supervisor_stack_pointer, 0x200);
 }
 
 @end
