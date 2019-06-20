@@ -773,6 +773,91 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Negative);
 }
 
+// MARK: ADDA
+
+- (void)testADDAL {
+	_machine->set_program({
+		0xd5fc, 0x1234, 0x5678		// ADDA.L #$12345678, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xae43ab1d;
+	state.status = CPU::MC68000::Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0xc0780195);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+}
+
+- (void)testADDAWPositive {
+	_machine->set_program({
+		0xd4fc, 0x5678		// ADDA.W #$5678, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xae43ab1d;
+	state.status = CPU::MC68000::Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0xae440195);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+}
+
+- (void)testADDAWNegative {
+	_machine->set_program({
+		0xd4fc, 0xf678		// ADDA.W #$f678, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xae43ab1d;
+	state.status = CPU::MC68000::Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0xae43a195);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+}
+
+- (void)testADDAWNegative_2 {
+	_machine->set_program({
+		0xd4fc, 0xf000		// ADDA.W #$f000, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.status = CPU::MC68000::Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0xfffff000);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+}
+
+- (void)testADDALPreDec {
+	_machine->set_program({
+		0xd5e2				// ADDA.L -(A2), A2
+	});
+	auto state = _machine->get_processor_state();
+	state.status = CPU::MC68000::Flag::ConditionCodes;
+	state.address[2] = 0x2004;
+	*_machine->ram_at(0x2000) = 0x7002;
+	*_machine->ram_at(0x2002) = 0;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0x70022000);
+	XCTAssertEqual(*_machine->ram_at(0x2000), 0x7002);
+	XCTAssertEqual(*_machine->ram_at(0x2002), 0x0000);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+}
+
 // MARK: MOVE USP
 
 - (void)testMoveUSP {
