@@ -874,6 +874,90 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.address[1], 0);
 }
 
+// MARK: Scc
+
+- (void)testSFDn {
+	_machine->set_program({
+		0x51c0		// SF D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12345678;
+	state.status = CPU::MC68000::Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345600);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Extend);
+}
+
+- (void)testSTDn {
+	_machine->set_program({
+		0x50c0		// ST D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12345678;
+	state.status = CPU::MC68000::Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x123456ff);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Extend);
+}
+
+- (void)testSLSDn {
+	_machine->set_program({
+		0x53c0		// SLS D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12345678;
+	state.status = CPU::MC68000::Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x123456ff);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+}
+
+- (void)testSGTAnXTrue {
+	_machine->set_program({
+		0x5ee8, 0x0002		// SGT 2(a0)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[0] = 0x3000;
+	*_machine->ram_at(0x3002) = 0x8800;
+	state.status = CPU::MC68000::Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0xff00);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Extend);
+}
+
+- (void)testSGTAnXFalse {
+	_machine->set_program({
+		0x5ee8, 0x0002		// SGT 2(a0)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[0] = 0x3000;
+	*_machine->ram_at(0x3002) = 0x8800;
+	state.status = CPU::MC68000::Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0x0000);
+	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+}
+
 // MARK: SWAP
 
 - (void)testSwap {
