@@ -365,22 +365,21 @@ struct ProcessorStorageConstructor {
 
 		// If the new steps already exist, just return the existing index to them;
 		// otherwise insert them.
-		const auto position = std::search(storage_.all_bus_steps_.begin(), storage_.all_bus_steps_.end(), steps.begin(), steps.end());
+		/*const auto position = std::search(storage_.all_bus_steps_.begin(), storage_.all_bus_steps_.end(), steps.begin(), steps.end());
 		if(position != storage_.all_bus_steps_.end()) {
 			return size_t(position - storage_.all_bus_steps_.begin());
 		}
 
 		const auto start = storage_.all_bus_steps_.size();
 		std::copy(steps.begin(), steps.end(), std::back_inserter(storage_.all_bus_steps_));
-		return start;
+		return start;*/
 
-/*
 		// If the new steps already exist, just return the existing index to them;
 		// otherwise insert them. A lookup table of steps to start positions within
 		// all_bus_steps_ is maintained to shorten setup time here
 		auto potential_locations = locations_by_bus_step_[steps.front()];
 		for(auto index: potential_locations) {
-			if(index + steps.size() >= storage_.all_bus_steps_.size()) continue;
+			if(index + steps.size() > storage_.all_bus_steps_.size()) continue;
 
 			if(std::equal(
 					storage_.all_bus_steps_.begin() + ssize_t(index),
@@ -399,7 +398,7 @@ struct ProcessorStorageConstructor {
 			++index;
 		}
 
-		return start;*/
+		return start;
 	}
 
 	/*!
@@ -3066,7 +3065,7 @@ struct ProcessorStorageConstructor {
 			return value;
 		}
 
-/*		struct BusStepOrderer {
+		struct BusStepOrderer {
 			bool operator()( BusStep const& lhs, BusStep const& rhs ) const {
 				int action_diff = int(lhs.action) - int(rhs.action);
 				if(action_diff < 0) {
@@ -3081,7 +3080,7 @@ struct ProcessorStorageConstructor {
 					std::make_tuple(rhs.microcycle.value, rhs.microcycle.address, rhs.microcycle.length, rhs.microcycle.operation);
 			}
 		};
-		std::map<BusStep, std::vector<size_t>, BusStepOrderer> locations_by_bus_step_;*/
+		std::map<BusStep, std::vector<size_t>, BusStepOrderer> locations_by_bus_step_;
 };
 
 }
@@ -3143,13 +3142,13 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	all_micro_ops_.emplace_back();
 
 	// Install operations.
-#ifndef NDEBUG
+//#ifndef NDEBUG
 	const std::clock_t start = std::clock();
-#endif
+//#endif
 	constructor.install_instructions();
-#ifndef NDEBUG
+//#ifndef NDEBUG
 	std::cout << "Construction took " << double(std::clock() - start) / double(CLOCKS_PER_SEC / 1000) << "ms" << std::endl;
-#endif
+//#endif
 
 	// Realise the special programs as direct pointers.
 	reset_bus_steps_ = &all_bus_steps_[reset_offset];
