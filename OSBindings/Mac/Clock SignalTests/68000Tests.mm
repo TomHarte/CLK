@@ -862,322 +862,183 @@ class CPU::MC68000::ProcessorStorageTests {
 
 // MARK: DBcc
 
-- (void)testDBT {
+- (void)performDBccTestOpcode:(uint16_t)opcode status:(uint16_t)status d2Outcome:(uint32_t)d2Output {
 	_machine->set_program({
-		0x50ca, 0x0008		// DBT D2, +8
+		opcode, 0x0008		// DBcc D2, +8
 	});
 	auto state = _machine->get_processor_state();
-	state.status = 0;
+	state.status = status;
 	state.data[2] = 1;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 1);
+	XCTAssertEqual(state.data[2], d2Output);
+	XCTAssertEqual(state.status, status);
+}
+
+- (void)testDBT {
+	[self performDBccTestOpcode:0x50ca status:0 d2Outcome:1];
 }
 
 - (void)testDBF {
-	_machine->set_program({
-		0x51ca, 0x0008		// DBF D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = 0;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 0);
+	[self performDBccTestOpcode:0x51ca status:0 d2Outcome:0];
 }
 
 - (void)testDBHI {
-	_machine->set_program({
-		0x52ca, 0x0008		// DBHI D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = 0;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 1);
+	[self performDBccTestOpcode:0x52ca status:0 d2Outcome:1];
 }
 
-- (void)testDBHICarry {
-	_machine->set_program({
-		0x52ca, 0x0008		// DBHI D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = Flag::Carry;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 0);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry);
+- (void)testDBHI_Carry {
+	[self performDBccTestOpcode:0x52ca status:Flag::Carry d2Outcome:0];
 }
 
-- (void)testDBHIZero {
-	_machine->set_program({
-		0x52ca, 0x0008		// DBHI D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = Flag::Zero;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 0);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+- (void)testDBHI_Zero {
+	[self performDBccTestOpcode:0x52ca status:Flag::Zero d2Outcome:0];
 }
 
-- (void)testDBLSCarryOverflow {
-	_machine->set_program({
-		0x53ca, 0x0008		// DBLS D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = Flag::Carry | Flag::Overflow;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 1);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Overflow);
+- (void)testDBLS_CarryOverflow {
+	[self performDBccTestOpcode:0x53ca status:Flag::Carry | Flag::Overflow d2Outcome:1];
 }
 
-- (void)testDBLSCarry {
-	_machine->set_program({
-		0x53ca, 0x0008		// DBLS D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = Flag::Carry;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 1);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry);
+- (void)testDBLS_Carry {
+	[self performDBccTestOpcode:0x53ca status:Flag::Carry d2Outcome:1];
 }
 
-- (void)testDBLSOverflow {
-	_machine->set_program({
-		0x53ca, 0x0008		// DBLS D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = Flag::Overflow;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 0);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow);
+- (void)testDBLS_Overflow {
+	[self performDBccTestOpcode:0x53ca status:Flag::Overflow d2Outcome:0];
 }
 
-- (void)testDBCCCarrySet {
-	_machine->set_program({
-		0x54ca, 0x0008		// DBCC D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = Flag::Carry;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 0);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry);
+- (void)testDBCC_Carry {
+	[self performDBccTestOpcode:0x54ca status:Flag::Carry d2Outcome:0];
 }
 
-- (void)testDBCCCarryClear {
-	_machine->set_program({
-		0x54ca, 0x0008		// DBCC D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = 0;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 1);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+- (void)testDBCC {
+	[self performDBccTestOpcode:0x54ca status:0 d2Outcome:1];
 }
 
-- (void)testDBCSCarryClear {
-	_machine->set_program({
-		0x55ca, 0x0008		// DBCS D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = 0;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 0);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+- (void)testDBCS {
+	[self performDBccTestOpcode:0x55ca status:0 d2Outcome:0];
 }
 
-- (void)testDBCSCarrySet {
-	_machine->set_program({
-		0x55ca, 0x0008		// DBCS D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = Flag::Carry;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 1);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry);
+- (void)testDBCS_Carry {
+	[self performDBccTestOpcode:0x55ca status:Flag::Carry d2Outcome:1];
 }
 
-- (void)testDBNEZeroClear {
-	_machine->set_program({
-		0x56ca, 0x0008		// DBNE D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = 0;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 1);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+- (void)testDBNE {
+	[self performDBccTestOpcode:0x56ca status:0 d2Outcome:1];
 }
 
-- (void)testDBNEZeroSet {
-	_machine->set_program({
-		0x56ca, 0x0008		// DBNE D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = Flag::Zero;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 0);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+- (void)testDBNE_Zero {
+	[self performDBccTestOpcode:0x56ca status:Flag::Zero d2Outcome:0];
 }
 
-- (void)testDBEQZeroClear {
-	_machine->set_program({
-		0x57ca, 0x0008		// DBEQ D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = 0;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 0);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+- (void)testDBEQ {
+	[self performDBccTestOpcode:0x57ca status:0 d2Outcome:0];
 }
 
-- (void)testDBEQZeroSet {
-	_machine->set_program({
-		0x57ca, 0x0008		// DBEQ D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = Flag::Zero;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 1);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+- (void)testDBEQ_Zero {
+	[self performDBccTestOpcode:0x57ca status:Flag::Zero d2Outcome:1];
 }
 
-- (void)testDBVCOverflowClear {
-	_machine->set_program({
-		0x58ca, 0x0008		// DBVC D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = 0;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 1);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+- (void)testDBVC {
+	[self performDBccTestOpcode:0x58ca status:0 d2Outcome:1];
 }
 
-- (void)testDBVCOverflowSet {
-	_machine->set_program({
-		0x58ca, 0x0008		// DBVC D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = Flag::Overflow;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 0);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow);
+- (void)testDBVC_Overflow {
+	[self performDBccTestOpcode:0x58ca status:Flag::Overflow d2Outcome:0];
 }
 
-- (void)testDBVSOverflowClear {
-	_machine->set_program({
-		0x59ca, 0x0008		// DBVS D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = 0;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 0);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+- (void)testDBVS {
+	[self performDBccTestOpcode:0x59ca status:0 d2Outcome:0];
 }
 
-- (void)testDBVSOverflowSet {
-	_machine->set_program({
-		0x59ca, 0x0008		// DBVS D2, +8
-	});
-	auto state = _machine->get_processor_state();
-	state.status = Flag::Overflow;
-	state.data[2] = 1;
-
-	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
-
-	state = _machine->get_processor_state();
-	XCTAssertEqual(state.data[2], 1);
-	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow);
+- (void)testDBVS_Overflow {
+	[self performDBccTestOpcode:0x59ca status:Flag::Overflow d2Outcome:1];
 }
+
+- (void)testDBPL {
+	[self performDBccTestOpcode:0x5aca status:0 d2Outcome:1];
+}
+
+- (void)testDBPL_Negative {
+	[self performDBccTestOpcode:0x5aca status:Flag::Negative d2Outcome:0];
+}
+
+- (void)testDBMI {
+	[self performDBccTestOpcode:0x5bca status:0 d2Outcome:0];
+}
+
+- (void)testDBMI_Negative {
+	[self performDBccTestOpcode:0x5bca status:Flag::Negative d2Outcome:1];
+}
+
+- (void)testDBGE_NegativeOverflow {
+	[self performDBccTestOpcode:0x5cca status:Flag::Negative | Flag::Overflow d2Outcome:1];
+}
+
+- (void)testDBGE {
+	[self performDBccTestOpcode:0x5cca status:0 d2Outcome:1];
+}
+
+- (void)testDBGE_Negative {
+	[self performDBccTestOpcode:0x5cca status:Flag::Negative d2Outcome:0];
+}
+
+- (void)testDBGE_Overflow {
+	[self performDBccTestOpcode:0x5cca status:Flag::Overflow d2Outcome:0];
+}
+
+- (void)testDBLT_NegativeOverflow {
+	[self performDBccTestOpcode:0x5dca status:Flag::Negative | Flag::Overflow d2Outcome:0];
+}
+
+- (void)testDBLT {
+	[self performDBccTestOpcode:0x5dca status:0 d2Outcome:0];
+}
+
+- (void)testDBLT_Negative {
+	[self performDBccTestOpcode:0x5dca status:Flag::Negative d2Outcome:1];
+}
+
+- (void)testDBLT_Overflow {
+	[self performDBccTestOpcode:0x5dca status:Flag::Overflow d2Outcome:1];
+}
+
+- (void)testDBGT {
+	[self performDBccTestOpcode:0x5eca status:0 d2Outcome:1];
+}
+
+- (void)testDBGT_ZeroNegativeOverflow {
+	[self performDBccTestOpcode:0x5eca status:Flag::Zero | Flag::Negative | Flag::Overflow d2Outcome:0];
+}
+
+- (void)testDBGT_NegativeOverflow {
+	[self performDBccTestOpcode:0x5eca status:Flag::Negative | Flag::Overflow d2Outcome:1];
+}
+
+- (void)testDBGT_Zero {
+	[self performDBccTestOpcode:0x5eca status:Flag::Zero d2Outcome:0];
+}
+
+- (void)testDBLE {
+	[self performDBccTestOpcode:0x5fca status:0 d2Outcome:0];
+}
+
+- (void)testDBLE_Zero {
+	[self performDBccTestOpcode:0x5fca status:Flag::Zero d2Outcome:1];
+}
+
+- (void)testDBLE_Negative {
+	[self performDBccTestOpcode:0x5fca status:Flag::Negative d2Outcome:1];
+}
+
+- (void)testDBLE_NegativeOverflow {
+	[self performDBccTestOpcode:0x5fca status:Flag::Negative | Flag::Overflow d2Outcome:0];
+}
+
+/* Further DBF tests omitted. */
 
 // MARK: MOVE USP
 
