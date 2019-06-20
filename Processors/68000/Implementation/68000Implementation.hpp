@@ -1022,16 +1022,21 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 										cycles_expended += 2;	// An additional microycle applies if the dividend is negative.
 									}
 
+									carry_flag_ = 0;
+
+									// These are officially undefined for results that overflow, so the below is a guess.
+									zero_result_ = decltype(zero_result_)(quotient & 0xffff);
+									negative_flag_ = zero_result_ & 0x8000;
+
 									// Check for overflow. If it exists, work here is already done.
 									if(quotient > 32767 || quotient < -32768) {
 										overflow_flag_ = 1;
 										active_step_->microcycle.length = HalfCycles(3*2*2);
+
 										break;
 									}
 
 									overflow_flag_ = 0;
-									zero_result_ = decltype(zero_result_)(quotient);
-									negative_flag_ = zero_result_ & 0x8000;
 
 									// TODO: check sign rules here; am I necessarily giving the remainder the correct sign?
 									// (and, if not, am I counting it in the correct direction?)

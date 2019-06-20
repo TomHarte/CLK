@@ -58,6 +58,7 @@ class RAM68000: public CPU::MC68000::BusHandler {
 
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
 			const uint32_t word_address = cycle.word_address();
+			duration_ += cycle.length;
 
 			using Microcycle = CPU::MC68000::Microcycle;
 			if(cycle.data_select_active()) {
@@ -101,10 +102,15 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			return m68000_;
 		}
 
+		int get_cycle_count() {
+			return 0;
+		}
+
 	private:
 		CPU::MC68000::Processor<RAM68000, true, true> m68000_;
 		std::vector<uint16_t> ram_;
 		int instructions_remaining_;
+		HalfCycles duration_;
 };
 
 class CPU::MC68000::ProcessorStorageTests {
@@ -1038,7 +1044,26 @@ class CPU::MC68000::ProcessorStorageTests {
 	[self performDBccTestOpcode:0x5fca status:Flag::Negative | Flag::Overflow d2Outcome:0];
 }
 
-/* Further DBF tests omitted. */
+/* Further DBF tests omitted; they seemed to be duplicative, assuming I'm not suffering a failure of comprehension. */
+
+// MARK: DIVS
+
+- (void)testDIVSOverflow {
+	_machine->set_program({
+		0x83fc, 0x0001		// DIVS #1, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x4768f231;
+	state.status = Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x4768f231);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative | Flag::Overflow);
+	// Test: 20 cycles passed.
+}
 
 // MARK: MOVE USP
 
