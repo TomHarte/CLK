@@ -14,6 +14,8 @@
 #define LOG_TRACE
 #include "68000.hpp"
 
+using Flag = CPU::MC68000::Flag;
+
 /*!
 	Provides a 68000 with 64kb of RAM in its low address space;
 	/RESET will put the supervisor stack pointer at 0xFFFF and
@@ -538,7 +540,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
-	XCTAssert(state.status & CPU::MC68000::Flag::Carry);
+	XCTAssert(state.status & Flag::Carry);
 	XCTAssertEqual(state.data[1], 0x12345658);
 	XCTAssertEqual(state.data[2], 0xf745ff78);
 }
@@ -550,12 +552,12 @@ class CPU::MC68000::ProcessorStorageTests {
 	auto state = _machine->get_processor_state();
 	state.data[1] = 0x12345600;
 	state.data[2] = 0x12345600;
-	state.status = CPU::MC68000::Flag::Zero;
+	state.status = Flag::Zero;
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
-	XCTAssert(state.status & CPU::MC68000::Flag::Zero);
+	XCTAssert(state.status & Flag::Zero);
 	XCTAssertEqual(state.data[1], 0x12345600);
 	XCTAssertEqual(state.data[2], 0x12345600);
 }
@@ -567,12 +569,12 @@ class CPU::MC68000::ProcessorStorageTests {
 	auto state = _machine->get_processor_state();
 	state.data[1] = 0x12345645;
 	state.data[2] = 0x12345654;
-	state.status = CPU::MC68000::Flag::Zero;
+	state.status = Flag::Zero;
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
-	XCTAssert(state.status & CPU::MC68000::Flag::Negative);
+	XCTAssert(state.status & Flag::Negative);
 	XCTAssertEqual(state.data[1], 0x12345699);
 	XCTAssertEqual(state.data[2], 0x12345654);
 }
@@ -584,12 +586,12 @@ class CPU::MC68000::ProcessorStorageTests {
 	auto state = _machine->get_processor_state();
 	state.data[1] = 0x12345645;
 	state.data[2] = 0x12345654;
-	state.status = CPU::MC68000::Flag::Extend;
+	state.status = Flag::Extend;
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
-	XCTAssert(state.status & CPU::MC68000::Flag::Carry);
+	XCTAssert(state.status & Flag::Carry);
 	XCTAssertEqual(state.data[1], 0x12345600);
 	XCTAssertEqual(state.data[2], 0x12345654);
 }
@@ -601,12 +603,12 @@ class CPU::MC68000::ProcessorStorageTests {
 	auto state = _machine->get_processor_state();
 	state.data[1] = 0x1234563e;
 	state.data[2] = 0x1234563e;
-	state.status = CPU::MC68000::Flag::Extend;
+	state.status = Flag::Extend;
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
-	XCTAssert(state.status & CPU::MC68000::Flag::Overflow);
+	XCTAssert(state.status & Flag::Overflow);
 	XCTAssertEqual(state.data[1], 0x12345683);
 	XCTAssertEqual(state.data[2], 0x1234563e);
 }
@@ -621,13 +623,13 @@ class CPU::MC68000::ProcessorStorageTests {
 	auto state = _machine->get_processor_state();
 	state.address[1] = 0x3001;
 	state.address[2] = 0x4001;
-	state.status = CPU::MC68000::Flag::Extend;
+	state.status = Flag::Extend;
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
-	XCTAssert(state.status & CPU::MC68000::Flag::Carry);
-	XCTAssert(state.status & CPU::MC68000::Flag::Extend);
+	XCTAssert(state.status & Flag::Carry);
+	XCTAssert(state.status & Flag::Extend);
 	XCTAssertEqual(state.address[1], 0x3000);
 	XCTAssertEqual(state.address[2], 0x4000);
 	XCTAssertEqual(*_machine->ram_at(0x3000), 0x2200);
@@ -642,13 +644,13 @@ class CPU::MC68000::ProcessorStorageTests {
 
 	auto state = _machine->get_processor_state();
 	state.address[1] = 0x3002;
-	state.status = CPU::MC68000::Flag::Extend;
+	state.status = Flag::Extend;
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
-	XCTAssert(state.status & CPU::MC68000::Flag::Carry);
-	XCTAssert(state.status & CPU::MC68000::Flag::Extend);
+	XCTAssert(state.status & Flag::Carry);
+	XCTAssert(state.status & Flag::Extend);
 	XCTAssertEqual(state.address[1], 0x3000);
 	XCTAssertEqual(*_machine->ram_at(0x3000), 0x22a2);
 }
@@ -665,7 +667,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Carry | CPU::MC68000::Flag::Negative | CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative | Flag::Extend);
 	XCTAssertEqual(state.data[2], 0x9ad);
 }
 
@@ -679,7 +681,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Overflow | CPU::MC68000::Flag::Carry | CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow | Flag::Carry | Flag::Extend);
 	XCTAssertEqual(state.data[2], 0x04);
 }
 
@@ -694,7 +696,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Overflow | CPU::MC68000::Flag::Carry | CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow | Flag::Carry | Flag::Extend);
 	XCTAssertEqual(state.data[2], 0x82);
 	XCTAssertEqual(*_machine->ram_at(0x3000), 0x0400);
 }
@@ -729,7 +731,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.data[2], 0xb2d05e00);
 	XCTAssertEqual(*_machine->ram_at(0x2000), 0x2a05);
 	XCTAssertEqual(*_machine->ram_at(0x2002), 0xf200);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Carry | CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend);
 }
 
 - (void)testAddWPreDec {
@@ -748,7 +750,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[2], 0xFFFF0000);
 	XCTAssertEqual(state.address[2], 0x2000);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Zero);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
 }
 
 /*
@@ -770,7 +772,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0xfe35aab0);
 	XCTAssertEqual(state.data[2], 0xff5b025c);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Negative);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
 }
 
 // MARK: ADDA
@@ -781,14 +783,14 @@ class CPU::MC68000::ProcessorStorageTests {
 	});
 	auto state = _machine->get_processor_state();
 	state.address[2] = 0xae43ab1d;
-	state.status = CPU::MC68000::Flag::ConditionCodes;
+	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.address[2], 0xc0780195);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 }
 
 - (void)testADDAWPositive {
@@ -797,14 +799,14 @@ class CPU::MC68000::ProcessorStorageTests {
 	});
 	auto state = _machine->get_processor_state();
 	state.address[2] = 0xae43ab1d;
-	state.status = CPU::MC68000::Flag::ConditionCodes;
+	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.address[2], 0xae440195);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 }
 
 - (void)testADDAWNegative {
@@ -813,14 +815,14 @@ class CPU::MC68000::ProcessorStorageTests {
 	});
 	auto state = _machine->get_processor_state();
 	state.address[2] = 0xae43ab1d;
-	state.status = CPU::MC68000::Flag::ConditionCodes;
+	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.address[2], 0xae43a195);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 }
 
 - (void)testADDAWNegative_2 {
@@ -828,14 +830,14 @@ class CPU::MC68000::ProcessorStorageTests {
 		0xd4fc, 0xf000		// ADDA.W #$f000, A2
 	});
 	auto state = _machine->get_processor_state();
-	state.status = CPU::MC68000::Flag::ConditionCodes;
+	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.address[2], 0xfffff000);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 }
 
 - (void)testADDALPreDec {
@@ -843,7 +845,7 @@ class CPU::MC68000::ProcessorStorageTests {
 		0xd5e2				// ADDA.L -(A2), A2
 	});
 	auto state = _machine->get_processor_state();
-	state.status = CPU::MC68000::Flag::ConditionCodes;
+	state.status = Flag::ConditionCodes;
 	state.address[2] = 0x2004;
 	*_machine->ram_at(0x2000) = 0x7002;
 	*_machine->ram_at(0x2002) = 0;
@@ -855,7 +857,326 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.address[2], 0x70022000);
 	XCTAssertEqual(*_machine->ram_at(0x2000), 0x7002);
 	XCTAssertEqual(*_machine->ram_at(0x2002), 0x0000);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
+}
+
+// MARK: DBcc
+
+- (void)testDBT {
+	_machine->set_program({
+		0x50ca, 0x0008		// DBT D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = 0;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 1);
+}
+
+- (void)testDBF {
+	_machine->set_program({
+		0x51ca, 0x0008		// DBF D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = 0;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0);
+}
+
+- (void)testDBHI {
+	_machine->set_program({
+		0x52ca, 0x0008		// DBHI D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = 0;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 1);
+}
+
+- (void)testDBHICarry {
+	_machine->set_program({
+		0x52ca, 0x0008		// DBHI D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = Flag::Carry;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry);
+}
+
+- (void)testDBHIZero {
+	_machine->set_program({
+		0x52ca, 0x0008		// DBHI D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = Flag::Zero;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+}
+
+- (void)testDBLSCarryOverflow {
+	_machine->set_program({
+		0x53ca, 0x0008		// DBLS D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = Flag::Carry | Flag::Overflow;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Overflow);
+}
+
+- (void)testDBLSCarry {
+	_machine->set_program({
+		0x53ca, 0x0008		// DBLS D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = Flag::Carry;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry);
+}
+
+- (void)testDBLSOverflow {
+	_machine->set_program({
+		0x53ca, 0x0008		// DBLS D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = Flag::Overflow;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow);
+}
+
+- (void)testDBCCCarrySet {
+	_machine->set_program({
+		0x54ca, 0x0008		// DBCC D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = Flag::Carry;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry);
+}
+
+- (void)testDBCCCarryClear {
+	_machine->set_program({
+		0x54ca, 0x0008		// DBCC D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = 0;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testDBCSCarryClear {
+	_machine->set_program({
+		0x55ca, 0x0008		// DBCS D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = 0;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testDBCSCarrySet {
+	_machine->set_program({
+		0x55ca, 0x0008		// DBCS D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = Flag::Carry;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry);
+}
+
+- (void)testDBNEZeroClear {
+	_machine->set_program({
+		0x56ca, 0x0008		// DBNE D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = 0;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testDBNEZeroSet {
+	_machine->set_program({
+		0x56ca, 0x0008		// DBNE D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = Flag::Zero;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+}
+
+- (void)testDBEQZeroClear {
+	_machine->set_program({
+		0x57ca, 0x0008		// DBEQ D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = 0;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testDBEQZeroSet {
+	_machine->set_program({
+		0x57ca, 0x0008		// DBEQ D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = Flag::Zero;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+}
+
+- (void)testDBVCOverflowClear {
+	_machine->set_program({
+		0x58ca, 0x0008		// DBVC D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = 0;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testDBVCOverflowSet {
+	_machine->set_program({
+		0x58ca, 0x0008		// DBVC D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = Flag::Overflow;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow);
+}
+
+- (void)testDBVSOverflowClear {
+	_machine->set_program({
+		0x59ca, 0x0008		// DBVS D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = 0;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testDBVSOverflowSet {
+	_machine->set_program({
+		0x59ca, 0x0008		// DBVS D2, +8
+	});
+	auto state = _machine->get_processor_state();
+	state.status = Flag::Overflow;
+	state.data[2] = 1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(2);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow);
 }
 
 // MARK: MOVE USP
@@ -882,14 +1203,14 @@ class CPU::MC68000::ProcessorStorageTests {
 	});
 	auto state = _machine->get_processor_state();
 	state.data[0] = 0x12345678;
-	state.status = CPU::MC68000::Flag::Extend;
+	state.status = Flag::Extend;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[0], 0x12345600);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
 }
 
 - (void)testSTDn {
@@ -898,14 +1219,14 @@ class CPU::MC68000::ProcessorStorageTests {
 	});
 	auto state = _machine->get_processor_state();
 	state.data[0] = 0x12345678;
-	state.status = CPU::MC68000::Flag::Extend;
+	state.status = Flag::Extend;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[0], 0x123456ff);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
 }
 
 - (void)testSLSDn {
@@ -914,14 +1235,14 @@ class CPU::MC68000::ProcessorStorageTests {
 	});
 	auto state = _machine->get_processor_state();
 	state.data[0] = 0x12345678;
-	state.status = CPU::MC68000::Flag::ConditionCodes;
+	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[0], 0x123456ff);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 }
 
 - (void)testSGTAnXTrue {
@@ -931,14 +1252,14 @@ class CPU::MC68000::ProcessorStorageTests {
 	auto state = _machine->get_processor_state();
 	state.address[0] = 0x3000;
 	*_machine->ram_at(0x3002) = 0x8800;
-	state.status = CPU::MC68000::Flag::Extend;
+	state.status = Flag::Extend;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(*_machine->ram_at(0x3002), 0xff00);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Extend);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
 }
 
 - (void)testSGTAnXFalse {
@@ -948,14 +1269,14 @@ class CPU::MC68000::ProcessorStorageTests {
 	auto state = _machine->get_processor_state();
 	state.address[0] = 0x3000;
 	*_machine->ram_at(0x3002) = 0x8800;
-	state.status = CPU::MC68000::Flag::ConditionCodes;
+	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(*_machine->ram_at(0x3002), 0x0000);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::ConditionCodes);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 }
 
 // MARK: SWAP
@@ -972,7 +1293,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x87561234);
-	XCTAssertEqual(state.status & CPU::MC68000::Flag::ConditionCodes, CPU::MC68000::Flag::Negative);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
 }
 
 // MARK: TRAP
