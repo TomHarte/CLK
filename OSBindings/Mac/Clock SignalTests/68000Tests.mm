@@ -12,7 +12,7 @@
 #include <cassert>
 
 #define LOG_TRACE
-#include "68000.hpp"
+#include "../../../Processors/68000/68000.hpp"
 
 using Flag = CPU::MC68000::Flag;
 
@@ -103,7 +103,7 @@ class RAM68000: public CPU::MC68000::BusHandler {
 		}
 
 		int get_cycle_count() {
-			return 0;
+			return (duration_.as_int() >> 1) - 26;	// TODO: 26 doesn't sound right for RESET. Check.
 		}
 
 	private:
@@ -1048,21 +1048,47 @@ class CPU::MC68000::ProcessorStorageTests {
 
 // MARK: DIVS
 
-- (void)testDIVSOverflow {
+- (void)performDivide:(uint16_t)divisor a1:(uint32_t)a1 {
 	_machine->set_program({
-		0x83fc, 0x0001		// DIVS #1, D1
+		0x83fc, divisor		// DIVS #$eef0, D1
 	});
 	auto state = _machine->get_processor_state();
-	state.data[1] = 0x4768f231;
+	state.data[1] = a1;
 	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(2);
+}
 
-	state = _machine->get_processor_state();
+- (void)performDIVSOverflowTestDivisor:(uint16_t)divisor {
+	[self performDivide:divisor a1:0x4768f231];
+
+	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x4768f231);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative | Flag::Overflow);
-	// Test: 20 cycles passed.
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+- (void)testDIVSOverflow {
+	[self performDIVSOverflowTestDivisor:1];
+}
+
+- (void)testDIVSOverflow2 {
+	[self performDIVSOverflowTestDivisor:0x1234];
+}
+
+- (void)testDIVSUnderflow {
+	[self performDIVSOverflowTestDivisor:0xeeff];
+}
+
+- (void)testDIVS {
+	[self performDivide:0xeef0 a1:0x0768f231];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x026190D3);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
+	XCTAssertEqual(138, _machine->get_cycle_count());
+
 }
 
 // MARK: MOVE USP

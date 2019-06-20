@@ -1051,6 +1051,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									int positive_quotient = abs(quotient);
 									for(int c = 0; c < 15; ++c) {
 										if(positive_quotient & 0x8000) cycles_expended += 2;
+										positive_quotient <<= 1;
 									}
 
 									// There's then no way to terminate the loop that isn't at least six cycles long.
