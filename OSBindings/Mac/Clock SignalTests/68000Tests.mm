@@ -24,8 +24,6 @@ using Flag = CPU::MC68000::Flag;
 class RAM68000: public CPU::MC68000::BusHandler {
 	public:
 		RAM68000() : m68000_(*this) {
-			ram_.resize(256*1024);
-
 			// Setup the /RESET vector.
 			ram_[0] = 0;
 			ram_[1] = 0x206;	// Supervisor stack pointer.
@@ -37,23 +35,37 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			memcpy(&ram_[0x1000 >> 1], program.data(), program.size() * sizeof(uint16_t));
 		}
 
+		void set_initial_stack_pointer(uint32_t sp) {
+			ram_[0] = sp >> 16;
+			ram_[1] = sp & 0xffff;
+		}
+
 		void will_perform(uint32_t address, uint16_t opcode) {
 			--instructions_remaining_;
 		}
 
 		void run_for_instructions(int count) {
 			instructions_remaining_ = count;
+			if(!has_run_) ++instructions_remaining_;
 			while(instructions_remaining_) {
 				run_for(HalfCycles(2));
 			}
 		}
 
 		void run_for(HalfCycles cycles) {
+			// If the 68000 hasn't run yet, build in the necessary
+			// cycles to finish the reset program, and set the stored state.
+			if(!has_run_) {
+				has_run_ = true;
+				m68000_.run_for(HalfCycles(76));
+				duration_ -= HalfCycles(76);
+			}
+
 			m68000_.run_for(cycles);
 		}
 
 		uint16_t *ram_at(uint32_t address) {
-			return &ram_[address >> 1];
+			return &ram_[(address >> 1) % ram_.size()];
 		}
 
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
@@ -69,16 +81,16 @@ class RAM68000: public CPU::MC68000::BusHandler {
 						default: break;
 
 						case Microcycle::SelectWord | Microcycle::Read:
-							cycle.value->full = ram_[word_address];
+							cycle.value->full = ram_[word_address % ram_.size()];
 						break;
 						case Microcycle::SelectByte | Microcycle::Read:
-							cycle.value->halves.low = ram_[word_address] >> cycle.byte_shift();
+							cycle.value->halves.low = ram_[word_address % ram_.size()] >> cycle.byte_shift();
 						break;
 						case Microcycle::SelectWord:
-							ram_[word_address] = cycle.value->full;
+							ram_[word_address % ram_.size()] = cycle.value->full;
 						break;
 						case Microcycle::SelectByte:
-							ram_[word_address] = uint16_t(
+							ram_[word_address % ram_.size()] = uint16_t(
 								(cycle.value->halves.low << cycle.byte_shift()) |
 								(ram_[word_address] & cycle.untouched_byte_mask())
 							);
@@ -103,14 +115,15 @@ class RAM68000: public CPU::MC68000::BusHandler {
 		}
 
 		int get_cycle_count() {
-			return (duration_.as_int() >> 1) - 26;	// TODO: 26 doesn't sound right for RESET. Check.
+			return duration_.as_int() >> 1;
 		}
 
 	private:
 		CPU::MC68000::Processor<RAM68000, true, true> m68000_;
-		std::vector<uint16_t> ram_;
+		std::array<uint16_t, 256*1024> ram_;
 		int instructions_remaining_;
 		HalfCycles duration_;
+		bool has_run_ = false;
 };
 
 class CPU::MC68000::ProcessorStorageTests {
@@ -248,17 +261,14 @@ class CPU::MC68000::ProcessorStorageTests {
 
 		/* Next instruction would be at 0x406 */
 	});
-
-	auto state = _machine->get_processor_state();
-	state.supervisor_stack_pointer = 0x1000;
-	_machine->set_processor_state(state);
+	_machine->set_initial_stack_pointer(0x1000);
 
 	_machine->run_for_instructions(4);
-	state = _machine->get_processor_state();
 
+	const auto state = _machine->get_processor_state();
 	XCTAssert(state.supervisor_stack_pointer == 0x1000 - 6, @"Exception information should have been pushed to stack.");
 
-	const uint16_t *stack_top = _machine->ram_at(state.supervisor_stack_pointer);
+	const uint16_t *const stack_top = _machine->ram_at(state.supervisor_stack_pointer);
 	XCTAssert(stack_top[1] == 0x0000 && stack_top[2] == 0x1006, @"Return address should point to instruction after DIVU.");
 }
 
@@ -543,7 +553,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.data[1] = 0x1234567a;
 	state.data[2] = 0xf745ff78;
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssert(state.status & Flag::Carry);
@@ -560,7 +570,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.data[2] = 0x12345600;
 	state.status = Flag::Zero;
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssert(state.status & Flag::Zero);
@@ -577,7 +587,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.data[2] = 0x12345654;
 	state.status = Flag::Zero;
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssert(state.status & Flag::Negative);
@@ -594,7 +604,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.data[2] = 0x12345654;
 	state.status = Flag::Extend;
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssert(state.status & Flag::Carry);
@@ -611,7 +621,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.data[2] = 0x1234563e;
 	state.status = Flag::Extend;
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssert(state.status & Flag::Overflow);
@@ -631,7 +641,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.address[2] = 0x4001;
 	state.status = Flag::Extend;
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssert(state.status & Flag::Carry);
@@ -652,7 +662,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.address[1] = 0x3002;
 	state.status = Flag::Extend;
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssert(state.status & Flag::Carry);
@@ -670,7 +680,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	auto state = _machine->get_processor_state();
 	state.data[2] = 0x9ae;
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative | Flag::Extend);
@@ -684,7 +694,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	auto state = _machine->get_processor_state();
 	state.data[2] = 0x82;
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow | Flag::Carry | Flag::Extend);
@@ -699,7 +709,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.data[2] = 0x82;
 	*_machine->ram_at(0x3000) = 0x8200;
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow | Flag::Carry | Flag::Extend);
@@ -714,7 +724,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	auto state = _machine->get_processor_state();
 	state.data[2] = 0x3e8;
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[2], 0x7D0);
@@ -731,7 +741,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	*_machine->ram_at(0x2002) = 0x9400;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[2], 0xb2d05e00);
@@ -751,7 +761,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	*_machine->ram_at(0x2002) = 0xffff;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[2], 0xFFFF0000);
@@ -773,7 +783,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.data[2] = 0x012557ac;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0xfe35aab0);
@@ -792,7 +802,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.address[2], 0xc0780195);
@@ -808,7 +818,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.address[2], 0xae440195);
@@ -824,7 +834,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.address[2], 0xae43a195);
@@ -839,7 +849,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.address[2], 0xfffff000);
@@ -857,7 +867,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	*_machine->ram_at(0x2002) = 0;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.address[2], 0x70022000);
@@ -877,7 +887,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.data[2] = 1;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[2], d2Output);
@@ -1057,7 +1067,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 }
 
 - (void)performDIVSOverflowTestDivisor:(uint16_t)divisor {
@@ -1188,16 +1198,35 @@ class CPU::MC68000::ProcessorStorageTests {
 
 - (void)testDIVSException {
 	// DIVS.W #0, D1
-	auto state = _machine->get_processor_state();
-	state.supervisor_stack_pointer = 0;
-	_machine->set_processor_state(state);
+	_machine->set_initial_stack_pointer(0);
 	[self performDivide:0x0 a1:0x1fffffff];
 
-	state = _machine->get_processor_state();
+	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x1fffffff);
 	XCTAssertEqual(state.supervisor_stack_pointer, 0xfffffffa);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
 //	XCTAssertEqual(42, _machine->get_cycle_count());
+}
+
+// MARK: LINK
+
+- (void)testLINKA15 {
+	_machine->set_program({
+		0x4e51, 0x0005		// LINK a1, #5
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x11111111;
+	_machine->set_initial_stack_pointer(0x22222222);
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x2222221e);
+	XCTAssertEqual(state.supervisor_stack_pointer, 0x22222223);
+	XCTAssertEqual(*_machine->ram_at(0x2222221e), 0x1111);
+	XCTAssertEqual(*_machine->ram_at(0x22222220), 0x1111);
+	XCTAssertEqual(16, _machine->get_cycle_count());
 }
 
 // MARK: MOVE from SR
@@ -1210,7 +1239,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = 0x271f;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x271f);
@@ -1228,7 +1257,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.address[1] = 0x12348756;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.address[1], 0);
@@ -1246,7 +1275,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = ccr;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 }
 
 - (void)performMULConstant:(uint16_t)constant d2:(uint32_t)d2 {
@@ -1258,7 +1287,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = Flag::Carry | Flag::Extend | Flag::Overflow;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 }
 
 - (void)testMULS {
@@ -1320,7 +1349,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = Flag::Extend;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[0], 0x12345600);
@@ -1336,7 +1365,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = Flag::Extend;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[0], 0x123456ff);
@@ -1352,7 +1381,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[0], 0x123456ff);
@@ -1369,7 +1398,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = Flag::Extend;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(*_machine->ram_at(0x3002), 0xff00);
@@ -1386,7 +1415,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(*_machine->ram_at(0x3002), 0x0000);
@@ -1403,7 +1432,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	state.data[1] = 0x12348756;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x87561234);
@@ -1424,7 +1453,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	*_machine->ram_at(0xfffe) = 0x4e71;
 
 	_machine->set_processor_state(state);
-	_machine->run_for_instructions(2);
+	_machine->run_for_instructions(1);
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.status, 0x2700);
