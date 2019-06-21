@@ -1015,7 +1015,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 									int32_t dividend = int32_t(active_program_->destination->full);
 									int32_t divisor = s_extend16(active_program_->source->halves.low.full);
-									const auto quotient = dividend / divisor;
+									const int64_t quotient = int64_t(dividend) / int64_t(divisor);
 
 									int cycles_expended = 12;	// Covers the nn nnn n to get beyond the sign test.
 									if(dividend < 0) {
@@ -1024,18 +1024,20 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 									carry_flag_ = 0;
 
-									// These are officially undefined for results that overflow, so the below is a guess.
-									zero_result_ = decltype(zero_result_)(quotient & 0xffff);
-									negative_flag_ = zero_result_ & 0x8000;
-
 									// Check for overflow. If it exists, work here is already done.
 									if(quotient > 32767 || quotient < -32768) {
 										overflow_flag_ = 1;
 										active_step_->microcycle.length = HalfCycles(3*2*2);
 
+										// These are officially undefined for results that overflow, so the below is a guess.
+										zero_result_ = decltype(zero_result_)(divisor & 0xffff);
+										negative_flag_ = zero_result_ & 0x8000;
+
 										break;
 									}
 
+									zero_result_ = decltype(zero_result_)(quotient);
+									negative_flag_ = zero_result_ & 0x8000;
 									overflow_flag_ = 0;
 
 									// TODO: check sign rules here; am I necessarily giving the remainder the correct sign?
@@ -1048,7 +1050,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// in the unsigned quotient; there is an additional microcycle for
 									// every bit that is set. Also, since the possibility of overflow
 									// was already dealt with, it's now a smaller number.
-									int positive_quotient = abs(quotient);
+									int positive_quotient = int(abs(quotient));
 									for(int c = 0; c < 15; ++c) {
 										if(positive_quotient & 0x8000) cycles_expended += 2;
 										positive_quotient <<= 1;
