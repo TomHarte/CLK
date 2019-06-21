@@ -146,8 +146,8 @@ struct ProcessorStorageConstructor {
 		* nV: fetch a vector's MSW;
 		* nv: fetch a vector's LSW;
 		* i: acquire interrupt vector in an IACK cycle;
-		* nF: fetch the SSPs MSW;
-		* nf: fetch the SSP's LSW;
+		* nF: fetch the current SPs MSW;
+		* nf: fetch the current SP's LSW;
 		* _: hold the reset line active for the usual period.
 		* tas: perform the final 6 cycles of a TAS: like an n nw but with the address strobe active for the entire period.
 		* int: the interrupt acknowledge cycle.
@@ -157,8 +157,8 @@ struct ProcessorStorageConstructor {
 		stick to that document's coding exactly for easier debugging.
 
 		np fetches will fill the prefetch queue, attaching an action to both the
-		step that precedes them and to themselves. The SSP fetches will go straight
-		to the SSP.
+		step that precedes them and to themselves. The SP fetches will go
+		to address_[7], whichever stack pointer that may currently be.
 
 		Other actions will by default act via effective_address_ and bus_data_.
 		The user should fill in the steps necessary to get data into or extract
@@ -214,7 +214,7 @@ struct ProcessorStorageConstructor {
 			if(token == "nF" || token == "nf") {
 				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
 				step.microcycle.address = &storage_.effective_address_[0].full;
-				step.microcycle.value = isupper(token[1]) ? &storage_.stack_pointers_[1].halves.high : &storage_.stack_pointers_[1].halves.low;
+				step.microcycle.value = isupper(token[1]) ? &storage_.address_[7].halves.high : &storage_.address_[7].halves.low;
 				steps.push_back(step);
 
 				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
