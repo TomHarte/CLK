@@ -1210,7 +1210,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 // MARK: LINK
 
-- (void)testLINKA15 {
+- (void)testLINKA1_5 {
 	_machine->set_program({
 		0x4e51, 0x0005		// LINK a1, #5
 	});
@@ -1224,6 +1224,40 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.address[1], 0x2222221e);
 	XCTAssertEqual(state.supervisor_stack_pointer, 0x22222223);
+	XCTAssertEqual(*_machine->ram_at(0x2222221e), 0x1111);
+	XCTAssertEqual(*_machine->ram_at(0x22222220), 0x1111);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testLINKA7_5 {
+	_machine->set_program({
+		0x4e57, 0x0005		// LINK a7, #5
+	});
+	_machine->set_initial_stack_pointer(0x22222222);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.supervisor_stack_pointer, 0x22222223);
+	XCTAssertEqual(*_machine->ram_at(0x2222221e), 0x2222);
+	XCTAssertEqual(*_machine->ram_at(0x22222220), 0x221e);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testLINKA1_8000 {
+	_machine->set_program({
+		0x4e51, 0x8000		// LINK a1, #$8000
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x11111111;
+	_machine->set_initial_stack_pointer(0x22222222);
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x2222221e);
+	XCTAssertEqual(state.supervisor_stack_pointer, 0x2221a21e);
 	XCTAssertEqual(*_machine->ram_at(0x2222221e), 0x1111);
 	XCTAssertEqual(*_machine->ram_at(0x22222220), 0x1111);
 	XCTAssertEqual(16, _machine->get_cycle_count());
