@@ -1483,6 +1483,16 @@ class CPU::MC68000::ProcessorStorageTests {
 //	XCTAssertEqual(46, _machine->get_cycle_count());
 }
 
+// MARK: NOP
+
+- (void)testNOP {
+	_machine->set_program({
+		0x4e71		// NOP
+	});
+	_machine->run_for_instructions(1);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
 // MARK: Scc
 
 - (void)testSFDn {
@@ -1606,6 +1616,43 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(*_machine->ram_at(0x202), 0x0000);
 	XCTAssertEqual(*_machine->ram_at(0x204), 0x1002);
 	XCTAssertEqual(state.supervisor_stack_pointer, 0x200);
+}
+
+// MARK: UNLINK
+
+- (void)testUNLINK_A6 {
+	_machine->set_program({
+		0x4e5e		// UNLNK A6
+	});
+
+	auto state = _machine->get_processor_state();
+	state.address[6] = 0x3000;
+	*_machine->ram_at(0x3000) = 0x0000;
+	*_machine->ram_at(0x3002) = 0x4000;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[6], 0x4000);
+	XCTAssertEqual(state.supervisor_stack_pointer, 0x3004);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
+- (void)testUNLINK_A7 {
+	_machine->set_program({
+		0x4e5f		// UNLNK A7
+	});
+	_machine->set_initial_stack_pointer(0x3000);
+	*_machine->ram_at(0x3000) = 0x0000;
+	*_machine->ram_at(0x3002) = 0x4000;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.supervisor_stack_pointer, 0x4000);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+
 }
 
 @end
