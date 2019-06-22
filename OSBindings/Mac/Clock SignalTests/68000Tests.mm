@@ -29,6 +29,11 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			ram_[1] = 0x206;	// Supervisor stack pointer.
 			ram_[2] = 0;
 			ram_[3] = 0x1000;	// Initial PC.
+
+			// Ensure the condition codes start unset.
+			auto state = get_processor_state();
+			state.status &= ~Flag::ConditionCodes;
+			set_processor_state(state);
 		}
 
 		void set_program(const std::vector<uint16_t> &program) {
