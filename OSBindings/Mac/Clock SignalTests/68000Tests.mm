@@ -1373,6 +1373,159 @@ class CPU::MC68000::ProcessorStorageTests {
 
 // TODO: port MOVEM.W D4/D0, -(A4), which tests bus error response.
 
+// MARK: MOVE
+
+- (void)testMOVEb_DnDn {
+	_machine->set_program({
+		0x1401		// MOVE.b D1, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x12345678);
+	XCTAssertEqual(state.data[2], 0x00000078);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testMOVEl_ImmDn {
+	_machine->set_program({
+		0x243c, 0x8090, 0xfea1		// MOVE.l #$8090fea1, D2
+	});
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0x8090fea1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
+- (void)testMOVEs_ImmInd {
+	_machine->set_program({
+		0x34bc, 0x0000		// MOVE #$0, (A2)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0x3000;
+	*_machine->ram_at(0x3000) = 0x1234;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0x3000);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
+- (void)testMOVEl_PostIncPostInc {
+	_machine->set_program({
+		0x24da		// MOVE.l (A2)+, (A2)+
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0x3000;
+	state.status = Flag::Negative;
+	*_machine->ram_at(0x3000) = 0xaaaa;
+	*_machine->ram_at(0x3002) = 0xbbbb;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0x3008);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0xaaaa);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0xbbbb);
+	XCTAssertEqual(*_machine->ram_at(0x3004), 0xaaaa);
+	XCTAssertEqual(*_machine->ram_at(0x3006), 0xbbbb);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+- (void)testMOVEl_PostIncPreDec {
+	_machine->set_program({
+		0x251a		// MOVE.l (A2)+, -(A2)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0x3000;
+	state.status = Flag::Negative;
+	*_machine->ram_at(0x3000) = 0xaaaa;
+	*_machine->ram_at(0x3002) = 0xbbbb;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0x3000);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0xaaaa);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0xbbbb);
+	XCTAssertEqual(*_machine->ram_at(0x3004), 0);
+	XCTAssertEqual(*_machine->ram_at(0x3006), 0);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+- (void)testMOVEl_PreDecD16An {
+	_machine->set_program({
+		0x25a2, 0x1004		// MOVE.L -(A2), 4(A2,D1)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0x3004;
+	state.data[1] = 0;
+	state.status = Flag::Negative;
+	*_machine->ram_at(0x3000) = 0xaaaa;
+	*_machine->ram_at(0x3002) = 0xbbbb;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0x3000);
+	XCTAssertEqual(state.data[1], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0xaaaa);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0xbbbb);
+	XCTAssertEqual(*_machine->ram_at(0x3004), 0xaaaa);
+	XCTAssertEqual(*_machine->ram_at(0x3006), 0xbbbb);
+	XCTAssertEqual(28, _machine->get_cycle_count());
+}
+
+- (void)testMOVEl_DnXXXl {
+	_machine->set_program({
+		0x33c1, 0x0000, 0x3000		// MOVE.W D1, ($3000).L
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x5678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x5678);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x5678);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testMOVEl_XXXlXXXl {
+	_machine->set_program({
+		0x23f9, 0x0000, 0x3000, 0x0000, 0x3004		// MOVE.L ($3000).L, ($3004).L
+	});
+	*_machine->ram_at(0x3002) = 0xeeee;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0xeeee);
+	XCTAssertEqual(*_machine->ram_at(0x3006), 0xeeee);
+	XCTAssertEqual(36, _machine->get_cycle_count());
+}
 
 // MARK: MOVE from SR
 
