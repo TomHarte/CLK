@@ -1263,6 +1263,117 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(16, _machine->get_cycle_count());
 }
 
+// MARK: MOVEM
+
+- (void)testMOVEM {
+	_machine->set_program({
+		0x48e1, 0xc000		// MOVEM.L D0-D1, -(A1)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x3000;
+	state.data[0] = 0x12345678;
+	state.data[1] = 0x87654321;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x2ff8);
+	XCTAssertEqual(state.data[0], 0x12345678);
+	XCTAssertEqual(state.data[1], 0x87654321);
+	XCTAssertEqual(*_machine->ram_at(0x2ff8), 0x1234);
+	XCTAssertEqual(*_machine->ram_at(0x2ffa), 0x5678);
+	XCTAssertEqual(*_machine->ram_at(0x2ffc), 0x8765);
+	XCTAssertEqual(*_machine->ram_at(0x2ffe), 0x4321);
+	XCTAssertEqual(24, _machine->get_cycle_count());
+}
+
+- (void)testMOVEM_fromA1 {
+	_machine->set_program({
+		0x48e1, 0xc040		// MOVEM.L D0-D1/A1, -(A1)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x3000;
+	state.data[0] = 0x12345678;
+	state.data[1] = 0x87654321;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x2ff4);
+	XCTAssertEqual(state.data[0], 0x12345678);
+	XCTAssertEqual(state.data[1], 0x87654321);
+	XCTAssertEqual(*_machine->ram_at(0x2ff4), 0x1234);
+	XCTAssertEqual(*_machine->ram_at(0x2ff6), 0x5678);
+	XCTAssertEqual(*_machine->ram_at(0x2ff8), 0x8765);
+	XCTAssertEqual(*_machine->ram_at(0x2ffa), 0x4321);
+	XCTAssertEqual(*_machine->ram_at(0x2ffc), 0x0000);
+	XCTAssertEqual(*_machine->ram_at(0x2ffe), 0x3000);
+	XCTAssertEqual(32, _machine->get_cycle_count());
+}
+
+- (void)testMOVEM_everything {
+	_machine->set_program({
+		0x48e4, 0xffff		// MOVEM.L D0-D7/A0-A7, -(A4)
+	});
+	auto state = _machine->get_processor_state();
+	for(int c = 0; c < 8; ++c)
+		state.data[c] = (c+1) * 0x11111111;
+	for(int c = 0; c < 7; ++c)
+		state.address[c] = ((c < 4) ? (c + 9) : (c + 8)) * 0x11111111;
+	state.address[4] = 0x4000;
+	_machine->set_initial_stack_pointer(0xffffffff);
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[4], 0x3fc0);
+
+	const uint32_t expected_values[] = {
+		0xffffffff, 0xeeeeeeee, 0xdddddddd, 0x00004000,
+		0xcccccccc, 0xbbbbbbbb, 0xaaaaaaaa, 0x99999999,
+		0x88888888, 0x77777777, 0x66666666, 0x55555555,
+		0x44444444, 0x33333333, 0x22222222, 0x11111111,
+	};
+	const uint32_t *expected_value = expected_values;
+	for(uint32_t address = 0x3ffc; address <= 0x3fc0; address += 4) {
+		XCTAssertEqual(*_machine->ram_at(address), (*expected_value >> 16));
+		XCTAssertEqual(*_machine->ram_at(address + 2), (*expected_value & 0xffff));
+		++expected_value;
+	}
+
+	XCTAssertEqual(136, _machine->get_cycle_count());
+}
+
+- (void)testMOVEM_D4A4 {
+	_machine->set_program({
+		0x48a4, 0x0800		// MOVEM.W D4, -(A4)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[4] = 0x4000;
+	state.data[4] = 0x111a1111;
+	state.data[0] = 0xffffffff;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+
+	XCTAssertEqual(state.address[4], 0x3ffe);
+	XCTAssertEqual(state.data[0], 0xffffffff);
+	XCTAssertEqual(state.data[4], 0x111a1111);
+
+	XCTAssertEqual(*_machine->ram_at(0x3ffe), 0x1111);
+	XCTAssertEqual(*_machine->ram_at(0x3ffc), 0x0000);
+
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
+// TODO: port MOVEM.W D4/D0, -(A4), which tests bus error response.
+
+
 // MARK: MOVE from SR
 
 - (void)testMoveFromSR {
