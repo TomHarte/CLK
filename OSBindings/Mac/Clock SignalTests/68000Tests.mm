@@ -1736,6 +1736,109 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(22, _machine->get_cycle_count());
 }
 
+- (void)testROLl_3 {
+	_machine->set_program({
+		0xe798		// ROL.l #3, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd567;
+	state.status = Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x71eeab3e);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
+	XCTAssertEqual(14, _machine->get_cycle_count());
+}
+
+- (void)performROLw_D1D0d1:(uint32_t)d1 {
+	_machine->set_program({
+		0xe378		// ROL.l D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd567;
+	state.data[1] = d1;
+	state.status = Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+}
+
+- (void)testROLw_D1D0_20 {
+	[self performROLw_D1D0d1:20];
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3d567d);
+	XCTAssertEqual(state.data[1], 20);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
+	XCTAssertEqual(46, _machine->get_cycle_count());
+}
+
+- (void)testROLw_D1D0_36 {
+	[self performROLw_D1D0d1:36];
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3d567d);
+	XCTAssertEqual(state.data[1], 36);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
+	XCTAssertEqual(78, _machine->get_cycle_count());
+}
+
+- (void)testROLw_D1D0_0 {
+	[self performROLw_D1D0d1:0];
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3dd567);
+	XCTAssertEqual(state.data[1], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testROLl_D1D0_200 {
+	_machine->set_program({
+		0xe3b8		// ROL.l D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd567;
+	state.data[1] = 200;
+	state.status = Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x3dd567ce);
+	XCTAssertEqual(state.data[1], 200);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
+	XCTAssertEqual(24, _machine->get_cycle_count());
+}
+
+- (void)performROLw_3000:(uint16_t)storedValue {
+	_machine->set_program({
+		0xe7f8, 0x3000		// ROL.w ($3000).w
+	});
+	*_machine->ram_at(0x3000) = storedValue;
+
+	_machine->run_for_instructions(1);
+
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testROLm_d567 {
+	[self performROLw_3000:0xd567];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0xaacf);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Carry);
+}
+
+- (void)testROLm_0 {
+	[self performROLw_3000:0];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+}
+
 // MARK: Scc
 
 - (void)testSFDn {

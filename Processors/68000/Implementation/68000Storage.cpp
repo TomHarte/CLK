@@ -807,9 +807,9 @@ struct ProcessorStorageConstructor {
 					// Temporary storage for the Program fields.
 					ProcessorBase::Program program;
 
-					if(instruction == 0x40c1) {
-						printf("");
-					}
+//					if(instruction == 0xe378) {
+//						printf("");
+//					}
 
 #define dec(n) decrement_action(is_long_word_access, is_byte_access, n)
 #define inc(n) increment_action(is_long_word_access, is_byte_access, n)
@@ -1850,7 +1850,7 @@ struct ProcessorStorageConstructor {
 							// All further decoding occurs at runtime; that's also when the proper number of
 							// no-op cycles will be scheduled.
 							if(((instruction >> 6) & 3) == 2) {
-								op(Action::None, seq("np nn"));
+								op(Action::None, seq("np nn"));	// Long-word rotates take an extra two cycles.
 							} else {
 								op(Action::None, seq("np n"));
 							}
