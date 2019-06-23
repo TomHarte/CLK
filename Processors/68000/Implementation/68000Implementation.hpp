@@ -19,7 +19,7 @@
 	uint16_t(	\
 		get_ccr() |	\
 		(interrupt_level_ << 8) |				\
-		(trace_flag_ 	? 0x8000 : 0x0000) |	\
+		(trace_flag_ ? 0x8000 : 0x0000) |		\
 		(is_supervisor_ << 13)					\
 	)
 

@@ -1839,6 +1839,26 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
 }
 
+// MARK: RTR
+
+- (void)testRTR {
+	_machine->set_program({
+		0x4e77		// RTR
+	});
+	_machine->set_initial_stack_pointer(0x2000);
+	*_machine->ram_at(0x2000) = 0x7fff;
+	*_machine->ram_at(0x2002) = 0;
+	*_machine->ram_at(0x2004) = 0xc;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.stack_pointer(), 0x2006);
+	XCTAssertEqual(state.program_counter, 0x10);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
 // MARK: Scc
 
 - (void)testSFDn {

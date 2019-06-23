@@ -220,18 +220,6 @@ class BusHandler {
 class ProcessorBase: public ProcessorStorage {
 };
 
-struct ProcessorState {
-	uint32_t data[8];
-	uint32_t address[7];
-	uint32_t user_stack_pointer, supervisor_stack_pointer;
-	uint32_t program_counter;
-	uint16_t status;
-
-	// TODO: More state needed to indicate current instruction, the processor's
-	// progress through it, and anything it has fetched so far.
-//			uint16_t current_instruction;
-};
-
 enum Flag: uint16_t {
 	Trace		= 0x8000,
 	Supervisor	= 0x2000,
@@ -243,6 +231,22 @@ enum Flag: uint16_t {
 	Zero		= 0x0004,
 	Overflow	= 0x0002,
 	Carry		= 0x0001
+};
+
+struct ProcessorState {
+	uint32_t data[8];
+	uint32_t address[7];
+	uint32_t user_stack_pointer, supervisor_stack_pointer;
+	uint32_t program_counter;
+	uint16_t status;
+
+	uint32_t stack_pointer() const {
+		return (status & Flag::Supervisor) ? supervisor_stack_pointer : user_stack_pointer;
+	}
+
+	// TODO: More state needed to indicate current instruction, the processor's
+	// progress through it, and anything it has fetched so far.
+//			uint16_t current_instruction;
 };
 
 template <class T, bool dtack_is_implicit, bool signal_will_perform = false> class Processor: public ProcessorBase {
