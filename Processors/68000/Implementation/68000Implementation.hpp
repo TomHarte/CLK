@@ -1538,7 +1538,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 #define decode_shift_count()	\
 	int shift_count = (decoded_instruction_.full & 32) ? data_[(decoded_instruction_.full >> 9) & 7].full&63 : ( ((decoded_instruction_.full >> 9)&7) ? ((decoded_instruction_.full >> 9)&7) : 8) ;	\
-	active_step_->microcycle.length = HalfCycles(4 * shift_count);
+	bus_program->microcycle.length = HalfCycles(4 * shift_count);
 
 #define set_flags_b(t) set_flags(active_program_->destination->halves.low.halves.low, 0x80, t)
 #define set_flags_w(t) set_flags(active_program_->destination->halves.low.full, 0x8000, t)
