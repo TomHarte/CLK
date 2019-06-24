@@ -411,6 +411,11 @@ class ProcessorStorage {
 		RegisterPair16 throwaway_value_;
 		uint32_t movem_final_address_;
 
+		// Sanity checking for the debug build.
+#ifndef NDEBUG
+		const Microcycle *resizeable_microcycle_ = nullptr;
+#endif
+
 		/*!
 			Evaluates the conditional described by @c code and returns @c true or @c false to
 			indicate the result of that evaluation.

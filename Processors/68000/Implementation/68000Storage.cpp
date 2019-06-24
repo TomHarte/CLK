@@ -3045,6 +3045,19 @@ struct ProcessorStorageConstructor {
 		storage_.interrupt_micro_ops_ = &storage_.all_micro_ops_[interrupt_pointer];
 		link_operations(storage_.interrupt_micro_ops_, &arbitrary_base);
 
+		// If this is a debug build, not where the resizeable microcycle is
+		// (and double check that there's only the one).
+#ifndef NDEBUG
+		for(size_t c = 0; c < storage_.all_bus_steps_.size() - 1; ++c) {
+			if(!storage_.all_bus_steps_[c+1].is_terminal()) continue;
+
+			if(storage_.all_bus_steps_[c].microcycle.length == HalfCycles(0)) {
+				assert(!storage_.resizeable_microcycle_);
+				storage_.resizeable_microcycle_ = &storage_.all_bus_steps_[c].microcycle;
+			}
+		}
+#endif
+
 		std::cout << storage_.all_bus_steps_.size() << " total steps" << std::endl;
 	}
 

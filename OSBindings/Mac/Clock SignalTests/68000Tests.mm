@@ -925,6 +925,40 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(_machine->get_cycle_count(), 8);
 }
 
+- (void)performBSETD1Ind:(uint32_t)d1 {
+	_machine->set_program({
+		0x03d0		// BSET D1, (A0)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[0] = 0x3000;
+	state.data[1] = d1;
+	*_machine->ram_at(0x3000) = 0x7800;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], d1);
+	XCTAssertEqual(state.address[0], 0x3000);
+	XCTAssertEqual(_machine->get_cycle_count(), 12);
+}
+
+- (void)testBSET_D1Ind_50 {
+	[self performBSETD1Ind:50];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x7c00);
+}
+
+- (void)testBSET_D1Ind_3 {
+	[self performBSETD1Ind:3];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x7800);
+}
+
 // MARK: DBcc
 
 - (void)performDBccTestOpcode:(uint16_t)opcode status:(uint16_t)status d2Outcome:(uint32_t)d2Output {

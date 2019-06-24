@@ -49,6 +49,12 @@
 #define s_extend16(x)	int32_t(int16_t(x))
 #define s_extend8(x)	int32_t(int8_t(x))
 
+// Sets the length of the next microcycle; if this is a debug build, also confirms
+// that the microcycle being adjusted is the one that it's permissible to adjust.
+#define set_next_microcycle_length(x)	\
+	assert(resizeable_microcycle_ == &bus_program->microcycle);	\
+	bus_program->microcycle.length = x
+
 template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::run_for(HalfCycles duration) {
 	const HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
 
@@ -623,13 +629,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									active_program_->destination->full &= ~(1 << (active_program_->source->full & 31));
 
 									// Clearing in the top word requires an extra four cycles.
-									active_step_->microcycle.length = HalfCycles(8 + ((active_program_->source->full & 31) / 16) * 4);
+									set_next_microcycle_length(HalfCycles(8 + ((active_program_->source->full & 31) / 16) * 4));
 								break;
 
 								case Operation::BCHGl:
 									zero_result_ = active_program_->destination->full & (1 << (active_program_->source->full & 31));
 									active_program_->destination->full ^= 1 << (active_program_->source->full & 31);
-									active_step_->microcycle.length = HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4));
+									set_next_microcycle_length(HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4)));
 								break;
 
 								case Operation::BCHGb:
@@ -640,7 +646,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::BSETl:
 									zero_result_ = active_program_->destination->full & (1 << (active_program_->source->full & 31));
 									active_program_->destination->full |= 1 << (active_program_->source->full & 31);
-									bus_program->microcycle.length = HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4));
+									set_next_microcycle_length(HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4)));
 								break;
 
 								case Operation::BSETb:
@@ -908,7 +914,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									}
 
 									// Time taken = 38 cycles + 2 cycles per 1 in the source.
-									active_step_->microcycle.length = HalfCycles(4 * number_of_ones + 38*2);
+									set_next_microcycle_length(HalfCycles(4 * number_of_ones + 38*2));
 								} break;
 
 								case Operation::MULS: {
@@ -929,7 +935,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									}
 
 									// Time taken = 38 cycles + 2 cycles per 1 in the source.
-									active_step_->microcycle.length = HalfCycles(4 * number_of_pairs + 38*2);
+									set_next_microcycle_length(HalfCycles(4 * number_of_pairs + 38*2));
 								} break;
 
 								/*
@@ -942,7 +948,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	bus_program = active_micro_op_->bus_program;		\
 														\
 	populate_trap_steps(5, get_status());				\
-	bus_program->microcycle.length = HalfCycles(8);		\
+	set_next_microcycle_length(HalfCycles(8));			\
 														\
 	program_counter_.full -= 2;
 
@@ -964,7 +970,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									if(quotient >= 65536) {
 										overflow_flag_ = 1;
 										// TODO: is what should happen to the other flags known?
-										active_step_->microcycle.length = HalfCycles(3*2*2);
+										set_next_microcycle_length(HalfCycles(3*2*2));
 										break;
 									}
 
@@ -1002,7 +1008,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 											}
 										}
 									}
-									active_step_->microcycle.length = HalfCycles(cycles_expended * 2);
+									set_next_microcycle_length(HalfCycles(cycles_expended * 2));
 								} break;
 
 								case Operation::DIVS: {
@@ -1027,7 +1033,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// Check for overflow. If it exists, work here is already done.
 									if(quotient > 32767 || quotient < -32768) {
 										overflow_flag_ = 1;
-										active_step_->microcycle.length = HalfCycles(3*2*2);
+										set_next_microcycle_length(HalfCycles(3*2*2));
 
 										// These are officially undefined for results that overflow, so the below is a guess.
 										zero_result_ = decltype(zero_result_)(divisor & 0xffff);
@@ -1064,7 +1070,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									} else if(dividend < 0) {
 										cycles_expended += 4;
 									}
-									active_step_->microcycle.length = HalfCycles(cycles_expended * 2);
+									set_next_microcycle_length(HalfCycles(cycles_expended * 2));
 								} break;
 
 #undef announce_divide_by_zero
@@ -1254,7 +1260,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// Select the trap steps as next; the initial microcycle should be 4 cycles long.
 									bus_program = trap_steps_;
 									populate_trap_steps((decoded_instruction_.full & 15) + 32, get_status());
-									bus_program->microcycle.length = HalfCycles(8);
+									set_next_microcycle_length(HalfCycles(8));
 
 									// The program counter to push is actually one slot ago.
 									program_counter_.full -= 2;
@@ -1265,7 +1271,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 										// Select the trap steps as next; the initial microcycle should be 4 cycles long.
 										bus_program = trap_steps_;
 										populate_trap_steps(7, get_status());
-										bus_program->microcycle.length = HalfCycles(0);
+										set_next_microcycle_length(HalfCycles(0));
 										program_counter_.full -= 4;
 									}
 								} break;
@@ -1282,9 +1288,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 										bus_program = trap_steps_;
 										populate_trap_steps(6, get_status());
 										if(is_under) {
-											bus_program->microcycle.length = HalfCycles(16);
+											set_next_microcycle_length(HalfCycles(16));
 										} else {
-											bus_program->microcycle.length = HalfCycles(8);
+											set_next_microcycle_length(HalfCycles(8));
 										}
 
 										// The program counter to push is two slots ago as whatever was the correct prefetch
@@ -1538,7 +1544,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 #define decode_shift_count()	\
 	int shift_count = (decoded_instruction_.full & 32) ? data_[(decoded_instruction_.full >> 9) & 7].full&63 : ( ((decoded_instruction_.full >> 9)&7) ? ((decoded_instruction_.full >> 9)&7) : 8) ;	\
-	bus_program->microcycle.length = HalfCycles(4 * shift_count);
+	set_next_microcycle_length(HalfCycles(4 * shift_count));
 
 #define set_flags_b(t) set_flags(active_program_->destination->halves.low.halves.low, 0x80, t)
 #define set_flags_w(t) set_flags(active_program_->destination->halves.low.full, 0x8000, t)
@@ -2139,3 +2145,4 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef u_extend8
 #undef s_extend16
 #undef s_extend8
+#undef set_next_microcycle_length
