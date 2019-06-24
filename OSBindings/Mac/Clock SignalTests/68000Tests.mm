@@ -75,7 +75,7 @@ class RAM68000: public CPU::MC68000::BusHandler {
 
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
 			const uint32_t word_address = cycle.word_address();
-			duration_ += cycle.length;
+			if(instructions_remaining_) duration_ += cycle.length;
 
 			using Microcycle = CPU::MC68000::Microcycle;
 			if(cycle.data_select_active()) {

@@ -204,7 +204,12 @@ struct ProcessorStorageConstructor {
 			}
 
 			// Do nothing, but with a length that definitely won't map it to the other do-nothings.
-			if(token == "r"){
+			if(token == "r") {
+#ifndef NDEBUG
+				// If this is a debug build, not where the resizeable microcycle is
+				// (and double check that there's only the one).
+				step.microcycle.is_resizeable = true;
+#endif
 				step.microcycle.length = HalfCycles(0);
 				steps.push_back(step);
 				continue;
@@ -807,7 +812,7 @@ struct ProcessorStorageConstructor {
 					// Temporary storage for the Program fields.
 					ProcessorBase::Program program;
 
-//					if(instruction == 0xe378) {
+//					if(instruction == 0xe569) {
 //						printf("");
 //					}
 
@@ -3050,14 +3055,6 @@ struct ProcessorStorageConstructor {
 		// Link up the interrupt micro ops.
 		storage_.interrupt_micro_ops_ = &storage_.all_micro_ops_[interrupt_pointer];
 		link_operations(storage_.interrupt_micro_ops_, &arbitrary_base);
-
-		// If this is a debug build, not where the resizeable microcycle is
-		// (and double check that there's only the one).
-#ifndef NDEBUG
-		for(auto &bus_step: storage_.all_bus_steps_) {
-			bus_step.microcycle.is_resizeable = bus_step.microcycle.length == HalfCycles(0);
-		}
-#endif
 
 		std::cout << storage_.all_bus_steps_.size() << " total steps" << std::endl;
 	}
