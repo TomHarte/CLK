@@ -38,6 +38,10 @@ class RAM68000: public CPU::MC68000::BusHandler {
 
 		void set_program(const std::vector<uint16_t> &program) {
 			memcpy(&ram_[0x1000 >> 1], program.data(), program.size() * sizeof(uint16_t));
+
+			// Add a NOP suffix, to avoid corrupting flags should the attempt to
+			// run for a certain number of instructions overrun.
+			ram_[(0x1000 >> 1) + program.size()] = 0x4e71;
 		}
 
 		void set_initial_stack_pointer(uint32_t sp) {
@@ -50,14 +54,20 @@ class RAM68000: public CPU::MC68000::BusHandler {
 		}
 
 		void run_for_instructions(int count) {
-			instructions_remaining_ = count;
-			if(!has_run_) ++instructions_remaining_;
+			instructions_remaining_ = count + (has_run_ ? 0 : 1);
+			finish_reset_if_needed();
+
 			while(instructions_remaining_) {
 				run_for(HalfCycles(2));
 			}
 		}
 
 		void run_for(HalfCycles cycles) {
+			finish_reset_if_needed();
+			m68000_.run_for(cycles);
+		}
+
+		void finish_reset_if_needed() {
 			// If the 68000 hasn't run yet, build in the necessary
 			// cycles to finish the reset program, and set the stored state.
 			if(!has_run_) {
@@ -65,8 +75,6 @@ class RAM68000: public CPU::MC68000::BusHandler {
 				m68000_.run_for(HalfCycles(76));
 				duration_ -= HalfCycles(76);
 			}
-
-			m68000_.run_for(cycles);
 		}
 
 		uint16_t *ram_at(uint32_t address) {
@@ -2137,6 +2145,106 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.data[2], 0xf2005001);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
 //	XCTAssertEqual(46, _machine->get_cycle_count());
+}
+
+// MARK: NEG
+
+- (void)performNEGb:(uint32_t)value {
+	_machine->set_program({
+		0x4400		// NEG.b D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = value;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testNEGb_78 {
+	[self performNEGb:0x12345678];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345688);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend | Flag::Negative);
+}
+
+- (void)testNEGb_00 {
+	[self performNEGb:0x12345600];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345600);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+}
+
+- (void)testNEGb_80 {
+	[self performNEGb:0x12345680];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345680);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Overflow | Flag::Extend | Flag::Carry);
+}
+
+- (void)testNEGw {
+	_machine->set_program({
+		0x4440		// NEG.w D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12348000;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(4, _machine->get_cycle_count());
+	XCTAssertEqual(state.data[0], 0x12348000);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Overflow | Flag::Extend | Flag::Carry);
+}
+
+- (void)performNEGl:(uint32_t)value {
+	_machine->set_program({
+		0x4480		// NEG.l D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = value;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testNEGl_large {
+	[self performNEGl:0x12345678];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xedcba988);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend | Flag::Negative);
+}
+
+- (void)testNEGl_small {
+	[self performNEGl:0xffffffff];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend);
+}
+
+- (void)testNEGl_XXXl {
+	_machine->set_program({
+		0x44b9, 0x0000, 0x3000		// NEG.L ($3000).L
+	});
+	*_machine->ram_at(0x3000) = 0xf001;
+	*_machine->ram_at(0x3002) = 0x2311;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(28, _machine->get_cycle_count());
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x0ffe);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0xdcef);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
 }
 
 // MARK: NOP

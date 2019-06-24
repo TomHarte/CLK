@@ -1905,8 +1905,11 @@ struct ProcessorStorageConstructor {
 								default: continue;
 
 								case bw(Dn):		// [CLR/NEG/NEGX/NOT].bw Dn
-								case l(Dn):			// [CLR/NEG/NEGX/NOT].l Dn
 									op(Action::PerformOperation, seq("np"));
+								break;
+
+								case l(Dn):			// [CLR/NEG/NEGX/NOT].l Dn
+									op(Action::PerformOperation, seq("np n"));
 								break;
 
 								case bw(Ind):		// [CLR/NEG/NEGX/NOT].bw (An)
