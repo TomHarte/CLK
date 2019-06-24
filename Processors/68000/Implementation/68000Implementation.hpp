@@ -640,7 +640,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::BSETl:
 									zero_result_ = active_program_->destination->full & (1 << (active_program_->source->full & 31));
 									active_program_->destination->full |= 1 << (active_program_->source->full & 31);
-									active_step_->microcycle.length = HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4));
+									bus_program->microcycle.length = HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4));
 								break;
 
 								case Operation::BSETb:

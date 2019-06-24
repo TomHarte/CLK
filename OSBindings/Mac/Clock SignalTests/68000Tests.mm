@@ -881,6 +881,50 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 }
 
+// MARK: BSET
+
+- (void)performBSETD0D1:(uint32_t)d1 {
+	_machine->set_program({
+		0x03c0		// BSET D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12345678;
+	state.data[1] = d1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], d1);
+}
+
+- (void)testBSET_D0D1_0 {
+	[self performBSETD0D1:0];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345679);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(_machine->get_cycle_count(), 6);
+}
+
+- (void)testBSET_D0D1_10 {
+	[self performBSETD0D1:10];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345678);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(_machine->get_cycle_count(), 6);
+}
+
+- (void)testBSET_D0D1_49 {
+	[self performBSETD0D1:49];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12365678);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(_machine->get_cycle_count(), 8);
+}
+
 // MARK: DBcc
 
 - (void)performDBccTestOpcode:(uint16_t)opcode status:(uint16_t)status d2Outcome:(uint32_t)d2Output {
