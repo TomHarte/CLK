@@ -1189,7 +1189,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 1);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
-//	XCTAssertEqual(158, _machine->get_cycle_count());
+	XCTAssertEqual(158, _machine->get_cycle_count());
 }
 
 - (void)testDIVS_4 {

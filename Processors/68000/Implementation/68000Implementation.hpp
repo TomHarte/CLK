@@ -52,7 +52,7 @@
 // Sets the length of the next microcycle; if this is a debug build, also confirms
 // that the microcycle being adjusted is the one that it's permissible to adjust.
 #define set_next_microcycle_length(x)	\
-	assert(resizeable_microcycle_ == &bus_program->microcycle);	\
+	assert(bus_program->microcycle.is_resizeable);	\
 	bus_program->microcycle.length = x
 
 template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::run_for(HalfCycles duration) {
@@ -948,7 +948,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	bus_program = active_micro_op_->bus_program;		\
 														\
 	populate_trap_steps(5, get_status());				\
-	set_next_microcycle_length(HalfCycles(8));			\
+	bus_program->microcycle.length =  HalfCycles(8);	\
 														\
 	program_counter_.full -= 2;
 

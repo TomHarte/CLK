@@ -189,6 +189,10 @@ struct Microcycle {
 	uint32_t word_address() const {
 		return (address ? (*address) & 0x00fffffe : 0) >> 1;
 	}
+
+#ifndef NDEBUG
+	bool is_resizeable = false;
+#endif
 };
 
 /*!
