@@ -2329,6 +2329,12 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// JSR (xxx).L
 									op(Action::None, seq("np"));
+									op(Action::PrepareJSR);	// TODO: improve PrepareJSR to be able to compute alternative
+															// offsets from the current PC, and thereby move this one slot earlier.
+									op(address_action_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
+								break;
+
 								case XXXw:		// JSR (xxx).W
 								case d16PC:		// JSR (d16, PC)
 								case d16An:		// JSR (d16, An)

@@ -244,6 +244,10 @@ struct ProcessorState {
 	uint32_t program_counter;
 	uint16_t status;
 
+	/*!
+		@returns the supervisor stack pointer if @c status indicates that
+			the processor is in supervisor mode; the user stack pointer otherwise.
+	*/
 	uint32_t stack_pointer() const {
 		return (status & Flag::Supervisor) ? supervisor_stack_pointer : user_stack_pointer;
 	}

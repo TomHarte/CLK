@@ -1393,6 +1393,71 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(6, _machine->get_cycle_count());
 }
 
+// MARK: JMP
+
+- (void)testJMP_A1 {
+	_machine->set_program({
+		0x4ed1		// JMP (A1)
+	});
+
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x3000;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x3000);
+	XCTAssertEqual(state.program_counter, 0x3000 + 4);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testJMP_PC {
+	_machine->set_program({
+		0x4efa, 0x000a		// JMP PC+a (i.e. to 0x100c)
+	});
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x100c + 4);
+	XCTAssertEqual(10, _machine->get_cycle_count());
+}
+
+// MARK: JSR
+
+- (void)testJSR_PC {
+	_machine->set_program({
+		0x4eba, 0x000a		// JSR (+a)PC		; JSR to $100c
+	});
+	_machine->set_initial_stack_pointer(0x2000);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.stack_pointer(), 0x1ffc);
+	XCTAssertEqual(state.program_counter, 0x100c + 4);
+	XCTAssertEqual(*_machine->ram_at(0x1ffc), 0x0000);
+	XCTAssertEqual(*_machine->ram_at(0x1ffe), 0x1004);
+	XCTAssertEqual(18, _machine->get_cycle_count());
+}
+
+- (void)testJSR_XXXl {
+	_machine->set_program({
+		0x4eb9, 0x0000, 0x1008		// JSR ($1008).l
+	});
+	_machine->set_initial_stack_pointer(0x2000);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.stack_pointer(), 0x1ffc);
+	XCTAssertEqual(state.program_counter, 0x1008 + 4);
+	XCTAssertEqual(*_machine->ram_at(0x1ffc), 0x0000);
+	XCTAssertEqual(*_machine->ram_at(0x1ffe), 0x1006);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
 // MARK: LEA
 
 - (void)testLEA_w {
