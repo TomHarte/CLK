@@ -1213,6 +1213,62 @@ class CPU::MC68000::ProcessorStorageTests {
 //	XCTAssertEqual(42, _machine->get_cycle_count());
 }
 
+// MARK: EXG
+
+- (void)testEXG_D1D2 {
+	_machine->set_program({
+		0xc342		// EXG D1, D2
+	});
+
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x11111111;
+	state.data[2] = 0x22222222;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x22222222);
+	XCTAssertEqual(state.data[2], 0x11111111);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testEXG_A1A2 {
+	_machine->set_program({
+		0xc34a		// EXG A1, A2
+	});
+
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x11111111;
+	state.address[2] = 0x22222222;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x22222222);
+	XCTAssertEqual(state.address[2], 0x11111111);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testEXG_A1D1 {
+	_machine->set_program({
+		0xc389		// EXG A1, D1
+	});
+
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x11111111;
+	state.address[1] = 0x22222222;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x22222222);
+	XCTAssertEqual(state.address[1], 0x11111111);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
 // MARK: LEA
 
 - (void)testLEA_w {
@@ -1780,6 +1836,42 @@ class CPU::MC68000::ProcessorStorageTests {
 	});
 	_machine->run_for_instructions(1);
 	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+// MARK: PEA
+
+- (void)testPEA_A1 {
+	_machine->set_program({
+		0x4851		// PEA (A1)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x3000ffff;
+	_machine->set_initial_stack_pointer(0x1996);
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x3000ffff);
+	XCTAssertEqual(state.stack_pointer(), 0x1992);
+	XCTAssertEqual(*_machine->ram_at(0x1992), 0x3000);
+	XCTAssertEqual(*_machine->ram_at(0x1994), 0xffff);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
+- (void)testPEA_XXXw {
+	_machine->set_program({
+		0x4878, 0x3000		// PEA ($3000).w
+	});
+	_machine->set_initial_stack_pointer(0x1996);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.stack_pointer(), 0x1992);
+	XCTAssertEqual(*_machine->ram_at(0x1992), 0x0000);
+	XCTAssertEqual(*_machine->ram_at(0x1994), 0x3000);
+	XCTAssertEqual(16, _machine->get_cycle_count());
 }
 
 // MARK: ROL
