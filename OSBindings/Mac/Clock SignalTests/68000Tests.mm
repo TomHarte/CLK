@@ -1736,6 +1736,36 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(72, _machine->get_cycle_count());
 }
 
+- (void)testLSLl_Imm {
+	_machine->set_program({
+		0xe189		// LSL.l #8, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x3dd56700);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(24, _machine->get_cycle_count());
+}
+
+- (void)testLSL_XXXw {
+	_machine->set_program({
+		0xe3f8, 0x3000		// LSL.l ($3000).w
+	});
+	*_machine->ram_at(0x3000) = 0x8ccc;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x1998);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
 // MARK: MOVEM
 
 - (void)testMOVEM {

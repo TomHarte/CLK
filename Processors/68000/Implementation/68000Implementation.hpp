@@ -1558,7 +1558,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 		carry_flag_ = 0;	\
 	} else {	\
 		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
-		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)( (1 << (size - 1)) >> (shift_count - 1) );	\
+		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)( (1u << (size - 1)) >> (shift_count - 1) );	\
 	}	\
 \
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1623,8 +1623,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::LSLm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = value >> 1;
-									extend_flag_ = carry_flag_ = value & 1;
+									active_program_->destination->halves.low.full = uint16_t(value << 1);
+									extend_flag_ = carry_flag_ = value & 0x8000;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
 								case Operation::LSLb: lsl(active_program_->destination->halves.low.halves.low, 8);	break;
