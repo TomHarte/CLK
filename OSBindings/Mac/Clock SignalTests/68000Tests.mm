@@ -1213,6 +1213,137 @@ class CPU::MC68000::ProcessorStorageTests {
 //	XCTAssertEqual(42, _machine->get_cycle_count());
 }
 
+// MARK: LEA
+
+- (void)testLEA_w {
+	_machine->set_program({
+		0x41f8, 0x000c		// LEA ($12).w, A0
+	});
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[0], 0xc);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testLEA_l {
+	_machine->set_program({
+		0x41f9, 0x000c, 0x000d		// LEA ($c000d).w, A0
+	});
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[0], 0xc000d);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
+- (void)testLEA_An {
+	_machine->set_program({
+		0x43d2,		// LEA (A2), A1
+	});
+
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xc000d;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0xc000d);
+	XCTAssertEqual(state.address[2], 0xc000d);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testLEA_dAn {
+	_machine->set_program({
+		0x43ea, 0xffff		// LEA (-1,A2), A1
+	});
+
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xc000d;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0xc000c);
+	XCTAssertEqual(state.address[2], 0xc000d);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testLEA_dAnDnw {
+	_machine->set_program({
+		0x43f2, 0x7002		// LEA (2,A2,D7.W), A1
+	});
+
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xc000d;
+	state.data[7] = 0x10000022;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0xc0031);
+	XCTAssertEqual(state.address[2], 0xc000d);
+	XCTAssertEqual(state.data[7], 0x10000022);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
+- (void)testLEA_dAnDnl {
+	_machine->set_program({
+		0x43f2, 0x7802		// LEA (2,A2,D7.l), A1
+	});
+
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xc000d;
+	state.data[7] = 0x10000022;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x100c0031);
+	XCTAssertEqual(state.address[2], 0xc000d);
+	XCTAssertEqual(state.data[7], 0x10000022);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
+- (void)testLEA_dPC {
+	_machine->set_program({
+		0x43fa, 0xeff8		// LEA	(-6,PC), A1
+	});
+
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xc000d;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0xFFFFFFFA);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testLEA_dPCDn {
+	_machine->set_program({
+		0x43fb, 0x30fe		// LEA (-6,PC,D3), A1
+	});
+
+	auto state = _machine->get_processor_state();
+	state.data[3] = 0x2;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x1002);
+	XCTAssertEqual(state.data[3], 0x2);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
 // MARK: LINK
 
 - (void)testLINKA1_5 {
