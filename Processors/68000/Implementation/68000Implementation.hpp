@@ -1568,7 +1568,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::ASLm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = value << 1;
+									active_program_->destination->halves.low.full = uint16_t(value << 1);
 									extend_flag_ = carry_flag_ = value & 0x8000;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
@@ -1601,7 +1601,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::ASRm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (value&0x80) | (value >> 1);
+									active_program_->destination->halves.low.full = (value&0x8000) | (value >> 1);
 									extend_flag_ = carry_flag_ = value & 1;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
