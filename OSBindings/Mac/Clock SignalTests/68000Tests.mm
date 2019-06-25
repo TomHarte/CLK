@@ -2653,7 +2653,26 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x271f);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
-//	XCTAssertEqual(6, _machine->get_cycle_count());
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+// MARK: MOVE to SR
+
+- (void)testMoveToSR {
+	_machine->set_program({
+		0x46fc, 0x0700		// MOVE #$700, SR
+	});
+	auto state = _machine->get_processor_state();
+	state.supervisor_stack_pointer = 0x3000;
+	state.user_stack_pointer = 0;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.stack_pointer(), 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(16, _machine->get_cycle_count());
 }
 
 // MARK: MOVE USP
