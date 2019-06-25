@@ -1401,6 +1401,66 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(6, _machine->get_cycle_count());
 }
 
+// MARK: EXT
+
+- (void)performEXTwd3:(uint32_t)d3 {
+	_machine->set_program({
+		0x4883		// EXT.W D3
+	});
+
+	auto state = _machine->get_processor_state();
+	state.data[3] = d3;
+	state.status = 0x13;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testEXTw_78 {
+	[self performEXTwd3:0x12345678];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x12340078);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
+}
+
+- (void)testEXTw_00 {
+	[self performEXTwd3:0x12345600];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x12340000);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Zero);
+}
+
+- (void)testEXTw_f0 {
+	[self performEXTwd3:0x123456f0];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x1234fff0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
+}
+
+- (void)testEXTl {
+	_machine->set_program({
+		0x48c3		// EXT.L D3
+	});
+
+	auto state = _machine->get_processor_state();
+	state.data[3] = 0x1234f6f0;
+	state.status = 0x13;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	XCTAssertEqual(4, _machine->get_cycle_count());
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0xfffff6f0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
+}
+
 // MARK: JMP
 
 - (void)testJMP_A1 {
