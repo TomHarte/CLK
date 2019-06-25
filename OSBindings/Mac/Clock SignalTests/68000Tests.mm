@@ -2541,6 +2541,151 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
 }
 
+// MARK: ROR
+
+- (void)performRORbIMM:(uint16_t)immediate {
+	if(immediate == 8) immediate = 0;
+	_machine->set_program({
+		uint16_t(0xe018 | (immediate << 9))		// ROR.b #, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd599;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+}
+
+- (void)testRORb_IMM_8 {
+	[self performRORbIMM:8];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3dd599);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative);
+	XCTAssertEqual(22, _machine->get_cycle_count());
+}
+
+- (void)testRORb_IMM_1 {
+	[self performRORbIMM:1];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3dd5cc);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testRORb_IMM_4 {
+	[self performRORbIMM:4];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3dd599);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative);
+	XCTAssertEqual(14, _machine->get_cycle_count());
+}
+
+- (void)testRORb_IMM_7 {
+	[self performRORbIMM:7];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3dd533);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+- (void)testRORw_IMM {
+	_machine->set_program({
+		0xec58		// ROR.w #6, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd599;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3d6756);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(18, _machine->get_cycle_count());
+}
+
+- (void)testRORl_IMM {
+	_machine->set_program({
+		0xea98		// ROR.l #5, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd599;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce71eeac);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative);
+	XCTAssertEqual(18, _machine->get_cycle_count());
+}
+
+- (void)testRORb_Dn {
+	_machine->set_program({
+		0xe238		// ROR.b D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd599;
+	state.data[1] = 20;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3dd599);
+	XCTAssertEqual(state.data[1], 20);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative);
+	XCTAssertEqual(46, _machine->get_cycle_count());
+}
+
+- (void)testRORl_Dn {
+	_machine->set_program({
+		0xe2b8		// ROR.l D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd599;
+	state.data[1] = 26;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x8f756673);
+	XCTAssertEqual(state.data[1], 26);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative);
+	XCTAssertEqual(60, _machine->get_cycle_count());
+}
+
+- (void)performRORw_3000:(uint16_t)storedValue {
+	_machine->set_program({
+		0xe6f8, 0x3000		// ROR.w ($3000).w
+	});
+	*_machine->ram_at(0x3000) = storedValue;
+
+	_machine->run_for_instructions(1);
+
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testRORm_d567 {
+	[self performRORw_3000:0xd567];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0xeab3);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Carry);
+}
+
+- (void)testRORm_d560 {
+	[self performRORw_3000:0xd560];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x6ab0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
 // MARK: RTR
 
 - (void)testRTR {
@@ -2559,6 +2704,25 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.program_counter, 0x10);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+// MARK: RTS
+
+- (void)testRTS {
+	_machine->set_program({
+		0x4e75		// RTS
+	});
+	_machine->set_initial_stack_pointer(0x2000);
+	*_machine->ram_at(0x2000) = 0x0000;
+	*_machine->ram_at(0x2002) = 0x000c;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.stack_pointer(), 0x2004);
+	XCTAssertEqual(state.program_counter, 0x000c + 4);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+
 }
 
 // MARK: Scc
