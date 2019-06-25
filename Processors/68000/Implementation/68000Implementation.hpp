@@ -1268,10 +1268,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::TRAPV: {
 									if(overflow_flag_) {
-										// Select the trap steps as next; the initial microcycle should be 4 cycles long.
+										// Select the trap steps as next; the initial microcycle should be skipped.
 										bus_program = trap_steps_;
 										populate_trap_steps(7, get_status());
 										set_next_microcycle_length(HalfCycles(0));
+
+										// Push the address after the TRAPV.
 										program_counter_.full -= 4;
 									}
 								} break;

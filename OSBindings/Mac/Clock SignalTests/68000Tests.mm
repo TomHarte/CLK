@@ -2626,6 +2626,44 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.supervisor_stack_pointer, 0x200);
 }
 
+// MARK: TRAPV
+
+- (void)testTRAPV_taken {
+	_machine->set_program({
+		0x4e76		// TRAPV
+	});
+	_machine->set_initial_stack_pointer(0x206);
+
+	auto state = _machine->get_processor_state();
+	state.status = 0x702;
+	state.supervisor_stack_pointer = 0x206;
+	*_machine->ram_at(0x1e) = 0xfffe;
+	*_machine->ram_at(0xfffe) = 0x4e71;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status, 0x2702);
+	XCTAssertEqual(state.stack_pointer(), 0x200);
+	XCTAssertEqual(*_machine->ram_at(0x202), 0x0000);
+	XCTAssertEqual(*_machine->ram_at(0x204), 0x1002);
+	XCTAssertEqual(*_machine->ram_at(0x200), 0x702);
+	XCTAssertEqual(34, _machine->get_cycle_count());
+}
+
+- (void)testTRAPV_untaken {
+	_machine->set_program({
+		0x4e76		// TRAPV
+	});
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1002 + 4);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
 // MARK: UNLINK
 
 - (void)testUNLINK_A6 {
