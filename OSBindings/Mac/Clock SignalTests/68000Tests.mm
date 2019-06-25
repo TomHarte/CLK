@@ -1834,6 +1834,128 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(16, _machine->get_cycle_count());
 }
 
+// MARK: LSR
+
+- (void)testLSRb_Dn_2 {
+	_machine->set_program({
+		0xe429		// LSR.b D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+	state.data[2] = 2;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xce3dd519);
+	XCTAssertEqual(state.data[2], 2);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
+	XCTAssertEqual(10, _machine->get_cycle_count());
+}
+
+- (void)testLSRb_Dn_69 {
+	_machine->set_program({
+		0xe429		// LSR.b D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+	state.data[2] = 0x69;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xce3dd500);
+	XCTAssertEqual(state.data[2], 0x69);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(88, _machine->get_cycle_count());
+}
+
+- (void)testLSRw_Dn_0 {
+	_machine->set_program({
+		0xe469		// LSR.w D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+	state.data[2] = 0;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xce3dd567);
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testLSRw_Dn_b {
+	_machine->set_program({
+		0xe469		// LSR.w D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+	state.data[2] = 0xb;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xce3d001a);
+	XCTAssertEqual(state.data[2], 0xb);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
+	XCTAssertEqual(28, _machine->get_cycle_count());
+}
+
+- (void)testLSRl_Dn {
+	_machine->set_program({
+		0xe4a9		// LSR.l D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+	state.data[2] = 0x20;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0);
+	XCTAssertEqual(state.data[2], 0x20);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry | Flag::Zero);
+	XCTAssertEqual(72, _machine->get_cycle_count());
+}
+
+- (void)testLSRl_Imm {
+	_machine->set_program({
+		0xe089		// LSR.L #8, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xce3dd5);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(24, _machine->get_cycle_count());
+}
+
+- (void)testLSR_XXXw {
+	_machine->set_program({
+		0xe2f8, 0x3000		// LSR.l ($3000).w
+	});
+	*_machine->ram_at(0x3000) = 0x8ccc;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x4666);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
 // MARK: MOVEM
 
 - (void)testMOVEM {
