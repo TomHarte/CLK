@@ -2585,6 +2585,113 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 }
 
+// MARK: SUB
+
+- (void)performSUBbIMM:(uint16_t)value d2:(uint32_t)d2 {
+	_machine->set_program({
+		0x0402, value		// SUB.b #value, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[2] = d2;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testSUBb_IMM_ff {
+	[self performSUBbIMM:0xff d2:0x9ae];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0x9af);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative | Flag::Extend);
+}
+
+- (void)testSUBb_IMM_82 {
+	[self performSUBbIMM:0x82 d2:0x0a];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0x88);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative | Flag::Overflow | Flag::Extend);
+}
+
+- (void)testSUBb_IMM_f0 {
+	[self performSUBbIMM:0xf0 d2:0x64];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0x74);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend);
+}
+
+- (void)testSUBb_IMM_28 {
+	[self performSUBbIMM:0x28 d2:0xff96];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0xff6e);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow);
+}
+
+- (void)testSUBb_PreDec {
+	_machine->set_program({
+		0x9427		// SUB.b -(A7), D2
+	});
+	_machine->set_initial_stack_pointer(0x2002);
+	auto state = _machine->get_processor_state();
+	state.data[2] = 0x9c40;
+	*_machine->ram_at(0x2000) = 0x2710;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(10, _machine->get_cycle_count());
+	XCTAssertEqual(state.data[2], 0x9c19);
+	XCTAssertEqual(state.stack_pointer(), 0x2000);
+}
+
+// Omitted: SUB.w -(A6), D2, which is designed to trigger an address error.
+
+- (void)testSUBw_XXXw {
+	_machine->set_program({
+		0x9578, 0x3000		// SUB.w D2, ($3000).w
+	});
+	auto state = _machine->get_processor_state();
+	state.data[2] = 0x2711;
+	*_machine->ram_at(0x3000) = 0x759f;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(16, _machine->get_cycle_count());
+	XCTAssertEqual(state.data[2], 0x2711);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x4e8e);
+}
+
+- (void)testSUBl_dAn {
+	_machine->set_program({
+		0x95ab, 0x0004		// SUB.l D2, 4(A3)
+	});
+	auto state = _machine->get_processor_state();
+	state.data[2] = 0x45fd5ab4;
+	state.address[3] = 0x3000;
+	*_machine->ram_at(0x3004) = 0x327a;
+	*_machine->ram_at(0x3006) = 0x4ef3;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(24, _machine->get_cycle_count());
+	XCTAssertEqual(state.data[2], 0x45fd5ab4);
+	XCTAssertEqual(state.address[3], 0x3000);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend | Flag::Negative);
+	XCTAssertEqual(*_machine->ram_at(0x3004), 0xec7c);
+	XCTAssertEqual(*_machine->ram_at(0x3006), 0xf43f);
+}
+
 // MARK: SWAP
 
 - (void)testSwap {
