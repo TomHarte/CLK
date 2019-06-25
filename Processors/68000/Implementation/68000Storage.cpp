@@ -1705,24 +1705,21 @@ struct ProcessorStorageConstructor {
 								if(is_long_word_access) {
 									// Access order is very atypical here: it's lower parts each for both words,
 									// and then also a lower-part-first write.
-									op(int(Action::Decrement2) | MicroOp::SourceMask | MicroOp::DestinationMask);
-									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask | MicroOp::DestinationMask,
-										seq("n nr- nR nrd- nRd+", { ea(0), ea(0), ea(1), ea(1) }));
-									op(int(Action::Decrement2) | MicroOp::SourceMask | MicroOp::DestinationMask);
+									op(int(Action::Decrement2) | MicroOp::SourceMask);
+									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask,
+										seq("n nr- nR", { ea(0), ea(0) }));
+									op(int(Action::Decrement2) | MicroOp::DestinationMask | MicroOp::SourceMask);
+									op(	int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask,
+										seq("nrd- nRd+", { ea(1), ea(1) }));
 									op(Action::PerformOperation, seq("nw- np nW", { ea(1), ea(1) }));
+									op(int(Action::Decrement2) | MicroOp::DestinationMask);
 								} else {
-									const int source_dec = dec(ea_register);
-									const int destination_dec = dec(data_register);
-
-									int first_action;
-									if(source_dec == destination_dec) {
-										first_action = int(Action::Decrement4) | MicroOp::SourceMask | MicroOp::DestinationMask;
-									} else {
-										op(source_dec | MicroOp::SourceMask);
-										first_action = destination_dec | MicroOp::DestinationMask;
-									}
-
-									op(first_action, seq("n nr nrd np", { ea(0), ea(1) }, !is_byte_access));
+									op(dec(ea_register) | MicroOp::SourceMask);
+									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask,
+										seq("n nr", { ea(0) }, !is_byte_access));
+									op(dec(data_register) | MicroOp::DestinationMask);
+									op(	int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask,
+										seq("nrd np", { ea(1) }, !is_byte_access));
 									op(Action::PerformOperation, seq("nw", { ea(1) }, !is_byte_access));
 								}
 							} else {

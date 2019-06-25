@@ -889,6 +889,89 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 }
 
+// MARL: ADDX
+
+- (void)testADDXl_Dn {
+	_machine->set_program({
+		0xd581		// ADDX.l D1, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x12345678;
+	state.data[2] = 0x12345678;
+	state.status |= Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x12345678);
+	XCTAssertEqual(state.data[2], 0x2468acf1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testADDXb {
+	_machine->set_program({
+		0xd501		// ADDX.b D1, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x80;
+	state.data[2] = 0x8080;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x80);
+	XCTAssertEqual(state.data[2], 0x8000);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Overflow | Flag::Extend);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testADDXw {
+	_machine->set_program({
+		0xd541		// ADDX.w D1, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x1ffff;
+	state.data[2] = 0x18080;
+	state.status |= Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x1ffff);
+	XCTAssertEqual(state.data[2], 0x18080);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative | Flag::Extend);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testADDXl_PreDec {
+	_machine->set_program({
+		0xd389		// ADDX.l -(A1), -(A1)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x3000;
+	state.status |= Flag::ConditionCodes;
+	*_machine->ram_at(0x2ff8) = 0x1000;
+	*_machine->ram_at(0x2ffa) = 0x0000;
+	*_machine->ram_at(0x2ffc) = 0x7000;
+	*_machine->ram_at(0x2ffe) = 0x1ff1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x2ff8);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Overflow);
+	XCTAssertEqual(*_machine->ram_at(0x2ff8), 0x8000);
+	XCTAssertEqual(*_machine->ram_at(0x2ffa), 0x1ff2);
+	XCTAssertEqual(*_machine->ram_at(0x2ffc), 0x7000);
+	XCTAssertEqual(*_machine->ram_at(0x2ffe), 0x1ff1);
+	XCTAssertEqual(30, _machine->get_cycle_count());
+}
+
 // MARK: ASL
 
 - (void)testASLb_Dn_2 {
