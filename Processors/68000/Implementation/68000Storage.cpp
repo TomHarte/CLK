@@ -168,35 +168,66 @@ struct ProcessorStorageConstructor {
 		then the corresponding effective address will be incremented or decremented
 		by two after the cycle has completed.
 	*/
-	size_t assemble_program(std::string access_pattern, const std::vector<uint32_t *> &addresses = {}, bool read_full_words = true) {
+	size_t assemble_program(const char *access_pattern, const std::vector<uint32_t *> &addresses = {}, bool read_full_words = true) {
 		auto address_iterator = addresses.begin();
 		using Action = BusStep::Action;
 
 		std::vector<BusStep> steps;
-		std::stringstream stream(access_pattern);
 
 		// Tokenise the access pattern by splitting on spaces.
-		std::string token;
-		while(stream >> token) {
+		const char *next_access_pattern = access_pattern;
+		while(true) {
+			/*
+				Ugly C-style string parsing here:
+
+					next_access_pattern is the end of the previous access pattern, i.e.
+					it is where parsing should begin to find the next one.
+
+					end_of_pattern will be where the current pattern ends, after any
+					modifier suffixes have been removed.
+
+					access_pattern is the beginning of the current pattern.
+
+				Obiter: this replaces a std::stringstream >> std::string implementation,
+				that was a lot cleaner but implied a lot of std::string constructions
+				that made this section of code measureable slower. Which, inter alia,
+				had a bit impact on the rate at which unit tests would run.
+
+				So this ugliness is a net project improvement, I promise!
+			*/
+			while(*next_access_pattern == ' ') ++next_access_pattern;
+			access_pattern = next_access_pattern;
+			while(*next_access_pattern != ' ' && *next_access_pattern != '\0') ++next_access_pattern;
+			if(next_access_pattern == access_pattern) break;
+			const char *end_of_pattern = next_access_pattern;
+
 			ProcessorBase::BusStep step;
 
 			// Check for a plus-or-minus suffix.
 			int post_adjustment = 0;
-			if(token.back() == '-' || token.back() == '+') {
-				if(token.back() == '-') {
+			if(end_of_pattern[-1] == '-' || end_of_pattern[-1] == '+') {
+				if(end_of_pattern[-1] == '-') {
 					post_adjustment = -1;
 				}
 
-				if(token.back() == '+') {
+				if(end_of_pattern[-1] == '+') {
 					post_adjustment = 1;
 				}
 
-				token.pop_back();
+				--end_of_pattern;
 			}
 
+			const auto token_length = end_of_pattern - access_pattern;
+
 			// Do nothing (possibly twice).
-			if(token == "n" || token == "nn") {
-				if(token.size() == 2) {
+			if(
+				access_pattern[0] == 'n' &&
+				(
+					token_length == 1 ||
+					(token_length == 2 && access_pattern[1] == 'n')
+				)
+			) {
+				if(token_length == 2) {
 					step.microcycle.length = HalfCycles(8);
 				}
 				steps.push_back(step);
@@ -204,7 +235,10 @@ struct ProcessorStorageConstructor {
 			}
 
 			// Do nothing, but with a length that definitely won't map it to the other do-nothings.
-			if(token == "r") {
+			if(
+				access_pattern[0] == 'r' &&
+				token_length == 1
+			) {
 #ifndef NDEBUG
 				// If this is a debug build, not where the resizeable microcycle is
 				// (and double check that there's only the one).
@@ -215,51 +249,86 @@ struct ProcessorStorageConstructor {
 				continue;
 			}
 
-			// Fetch SSP.
-			if(token == "nF" || token == "nf") {
-				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
-				step.microcycle.address = &storage_.effective_address_[0].full;
-				step.microcycle.value = isupper(token[1]) ? &storage_.address_[7].halves.high : &storage_.address_[7].halves.low;
-				steps.push_back(step);
+			if(
+				token_length == 2 &&
+				access_pattern[0] == 'n'
+			) {
+				// Fetch SSP.
+				if(tolower(access_pattern[1]) == 'f') {
+					step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
+					step.microcycle.address = &storage_.effective_address_[0].full;
+					step.microcycle.value = isupper(access_pattern[1]) ? &storage_.address_[7].halves.high : &storage_.address_[7].halves.low;
+					steps.push_back(step);
 
-				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
-				step.action = Action::IncrementEffectiveAddress0;
-				steps.push_back(step);
+					step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
+					step.action = Action::IncrementEffectiveAddress0;
+					steps.push_back(step);
 
-				continue;
-			}
+					continue;
+				}
 
-			// Fetch exception vector.
-			if(token == "nV" || token == "nv") {
-				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
-				step.microcycle.address = &storage_.effective_address_[0].full;
-				step.microcycle.value = isupper(token[1]) ? &storage_.program_counter_.halves.high : &storage_.program_counter_.halves.low;
-				steps.push_back(step);
+				// Fetch exception vector.
+				if(tolower(access_pattern[1]) == 'v') {
+					step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;	// IsProgram is a guess.
+					step.microcycle.address = &storage_.effective_address_[0].full;
+					step.microcycle.value = isupper(access_pattern[1]) ? &storage_.program_counter_.halves.high : &storage_.program_counter_.halves.low;
+					steps.push_back(step);
 
-				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
-				step.action = Action::IncrementEffectiveAddress0;
-				steps.push_back(step);
+					step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
+					step.action = Action::IncrementEffectiveAddress0;
+					steps.push_back(step);
 
-				continue;
-			}
+					continue;
+				}
 
-			// Fetch from the program counter into the prefetch queue.
-			if(token == "np") {
-				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;
-				step.microcycle.address = &storage_.program_counter_.full;
-				step.microcycle.value = &storage_.prefetch_queue_.halves.low;
-				step.action = Action::AdvancePrefetch;
-				steps.push_back(step);
+				// Fetch from the program counter into the prefetch queue.
+				if(access_pattern[1] == 'p') {
+					step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read | Microcycle::IsProgram;
+					step.microcycle.address = &storage_.program_counter_.full;
+					step.microcycle.value = &storage_.prefetch_queue_.halves.low;
+					step.action = Action::AdvancePrefetch;
+					steps.push_back(step);
 
-				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
-				step.action = Action::IncrementProgramCounter;
-				steps.push_back(step);
+					step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::IsProgram | Microcycle::SelectWord;
+					step.action = Action::IncrementProgramCounter;
+					steps.push_back(step);
 
-				continue;
+					continue;
+				}
+
+				// A stack write.
+				if(tolower(access_pattern[1]) == 's') {
+					step.microcycle.operation = Microcycle::NewAddress;
+					step.microcycle.address = &storage_.effective_address_[1].full;
+					step.microcycle.value = isupper(access_pattern[1]) ? &storage_.destination_bus_data_[0].halves.high : &storage_.destination_bus_data_[0].halves.low;
+					steps.push_back(step);
+
+					step.microcycle.operation = Microcycle::SameAddress | Microcycle::SelectWord;
+					step.action = Action::DecrementEffectiveAddress1;
+					steps.push_back(step);
+
+					continue;
+				}
+
+				// A stack read.
+				if(tolower(access_pattern[1]) == 'u') {
+					RegisterPair32 *const scratch_data = &storage_.source_bus_data_[0];
+
+					step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read;
+					step.microcycle.address = &storage_.effective_address_[0].full;
+					step.microcycle.value = isupper(access_pattern[1]) ? &scratch_data->halves.high : &scratch_data->halves.low;
+					steps.push_back(step);
+
+					step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::SelectWord;
+					step.action = Action::IncrementEffectiveAddress0;
+					steps.push_back(step);
+
+					continue;
+				}
 			}
 
 			// The reset cycle.
-			if(token == "_") {
+			if(token_length == 1 && access_pattern[0] == '_') {
 				step.microcycle.length = HalfCycles(248);
 				step.microcycle.operation = Microcycle::Reset;
 				steps.push_back(step);
@@ -268,22 +337,32 @@ struct ProcessorStorageConstructor {
 			}
 
 			// A standard read or write.
-			if(token == "nR" || token == "nr" || token == "nW" || token == "nw" || token == "nRd" || token == "nrd" || token == "nWr" || token == "nwr") {
-				const bool is_read = tolower(token[1]) == 'r';
-				const bool use_source_storage = (token == "nR" || token == "nr" || token == "nWr" || token == "nwr");
+			if(
+				access_pattern[0] == 'n' &&
+				(tolower(access_pattern[1]) == 'r' || tolower(access_pattern[1]) == 'w') &&
+				(
+					token_length == 2 ||
+					(
+						token_length == 3 &&
+						(access_pattern[2] == 'd' || access_pattern[2] == 'r')
+					)
+				)
+			) {
+				const bool is_read = tolower(access_pattern[1]) == 'r';
+				const bool use_source_storage = tolower(end_of_pattern[-1]) == 'r';
 				RegisterPair32 *const scratch_data = use_source_storage ? &storage_.source_bus_data_[0] : &storage_.destination_bus_data_[0];
 
 				assert(address_iterator != addresses.end());
 
 				step.microcycle.operation = Microcycle::NewAddress | (is_read ? Microcycle::Read : 0);
 				step.microcycle.address = *address_iterator;
-				step.microcycle.value = isupper(token[1]) ? &scratch_data->halves.high : &scratch_data->halves.low;
+				step.microcycle.value = isupper(access_pattern[1]) ? &scratch_data->halves.high : &scratch_data->halves.low;
 				steps.push_back(step);
 
 				step.microcycle.operation = Microcycle::SameAddress | (is_read ? Microcycle::Read : 0) | (read_full_words ? Microcycle::SelectWord : Microcycle::SelectByte);
 				if(post_adjustment) {
 					// nr and nR should affect address 0; nw, nW, nrd and nRd should affect address 1.
-					if(tolower(token[1]) == 'r' && token.size() == 2) {
+					if(tolower(access_pattern[1]) == 'r' && token_length == 2) {
 						step.action = (post_adjustment > 0) ? Action::IncrementEffectiveAddress0 : Action::DecrementEffectiveAddress0;
 					} else {
 						step.action = (post_adjustment > 0) ? Action::IncrementEffectiveAddress1 : Action::DecrementEffectiveAddress1;
@@ -296,70 +375,42 @@ struct ProcessorStorageConstructor {
 				continue;
 			}
 
-			// The completing part of a TAS.
-			if(token == "tas") {
-				RegisterPair32 *const scratch_data = &storage_.destination_bus_data_[0];
+			if(token_length == 3) {
+				// The completing part of a TAS.
+				if(access_pattern[0] == 't' && access_pattern[1] == 'a' && access_pattern[2] == 's') {
+					RegisterPair32 *const scratch_data = &storage_.destination_bus_data_[0];
 
-				assert(address_iterator != addresses.end());
+					assert(address_iterator != addresses.end());
 
-				step.microcycle.length = HalfCycles(9);
-				step.microcycle.operation = Microcycle::SameAddress;
-				step.microcycle.address = *address_iterator;
-				step.microcycle.value = &scratch_data->halves.low;
-				steps.push_back(step);
+					step.microcycle.length = HalfCycles(9);
+					step.microcycle.operation = Microcycle::SameAddress;
+					step.microcycle.address = *address_iterator;
+					step.microcycle.value = &scratch_data->halves.low;
+					steps.push_back(step);
 
-				step.microcycle.length = HalfCycles(3);
-				step.microcycle.operation = Microcycle::SameAddress | Microcycle::SelectByte;
-				steps.push_back(step);
-				++address_iterator;
+					step.microcycle.length = HalfCycles(3);
+					step.microcycle.operation = Microcycle::SameAddress | Microcycle::SelectByte;
+					steps.push_back(step);
+					++address_iterator;
 
-				continue;
+					continue;
+				}
+
+				// Interrupt acknowledge.
+				if(access_pattern[0] == 'i' && access_pattern[1] == 'n' && access_pattern[2] == 't') {
+					step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::NewAddress;
+					step.microcycle.address = &storage_.effective_address_[0].full;		// The selected interrupt should be in bits 1–3; but 0 should be set.
+					step.microcycle.value = &storage_.source_bus_data_[0].halves.low;
+					steps.push_back(step);
+
+					step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::SameAddress | Microcycle::SelectByte;
+					steps.push_back(step);
+
+					continue;
+				}
 			}
 
-			// A stack write.
-			if(token == "nS" || token == "ns") {
-				step.microcycle.operation = Microcycle::NewAddress;
-				step.microcycle.address = &storage_.effective_address_[1].full;
-				step.microcycle.value = isupper(token[1]) ? &storage_.destination_bus_data_[0].halves.high : &storage_.destination_bus_data_[0].halves.low;
-				steps.push_back(step);
-
-				step.microcycle.operation = Microcycle::SameAddress | Microcycle::SelectWord;
-				step.action = Action::DecrementEffectiveAddress1;
-				steps.push_back(step);
-
-				continue;
-			}
-
-			// A stack read.
-			if(token == "nU" || token == "nu") {
-				RegisterPair32 *const scratch_data = &storage_.source_bus_data_[0];
-
-				step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read;
-				step.microcycle.address = &storage_.effective_address_[0].full;
-				step.microcycle.value = isupper(token[1]) ? &scratch_data->halves.high : &scratch_data->halves.low;
-				steps.push_back(step);
-
-				step.microcycle.operation = Microcycle::SameAddress | Microcycle::Read | Microcycle::SelectWord;
-				step.action = Action::IncrementEffectiveAddress0;
-				steps.push_back(step);
-
-				continue;
-			}
-
-			// Interrupt acknowledge.
-			if(token == "int") {
-				step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::NewAddress;
-				step.microcycle.address = &storage_.effective_address_[0].full;		// The selected interrupt should be in bits 1–3; but 0 should be set.
-				step.microcycle.value = &storage_.source_bus_data_[0].halves.low;
-				steps.push_back(step);
-
-				step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::SameAddress | Microcycle::SelectByte;
-				steps.push_back(step);
-
-				continue;
-			}
-
-			std::cerr << "MC68000 program builder; Unknown access token " << token << std::endl;
+			std::cerr << "MC68000 program builder; Unknown access token " << std::string(access_pattern, end_of_pattern) << std::endl;
 			assert(false);
 		}
 
@@ -3127,8 +3178,8 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	}
 	movem_reads_pattern += "nr";
 	addresses.push_back(nullptr);
-	const size_t movem_read_offset = constructor.assemble_program(movem_reads_pattern, addresses);
-	const size_t movem_write_offset = constructor.assemble_program(movem_writes_pattern, addresses);
+	const size_t movem_read_offset = constructor.assemble_program(movem_reads_pattern.c_str(), addresses);
+	const size_t movem_write_offset = constructor.assemble_program(movem_writes_pattern.c_str(), addresses);
 
 	// Target addresses and values will be filled in by TRAP/illegal too.
 	const size_t trap_offset = constructor.assemble_program("r nw nw nW nV nv np np", { &precomputed_addresses_[0], &precomputed_addresses_[1], &precomputed_addresses_[2] });
