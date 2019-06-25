@@ -1013,6 +1013,63 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(*_machine->ram_at(0x3000), 0x7800);
 }
 
+// MARK: CHK
+
+- (void)performCHKd1:(uint32_t)d1 d2:(uint32_t)d2 {
+	_machine->set_program({
+		0x4581		// CHK D1, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = d1;
+	state.data[2] = d2;
+	state.status |= Flag::ConditionCodes;
+
+	_machine->set_initial_stack_pointer(0);
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], d1);
+	XCTAssertEqual(state.data[2], d2);
+}
+
+- (void)testCHK_1111v1111 {
+	[self performCHKd1:0x1111 d2:0x1111];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1002 + 4);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
+	XCTAssertEqual(10, _machine->get_cycle_count());
+}
+
+- (void)testCHK_1111v0000 {
+	[self performCHKd1:0x1111 d2:0x0000];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1002 + 4);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Zero);
+	XCTAssertEqual(10, _machine->get_cycle_count());
+}
+
+- (void)testCHK_8000v8001 {
+	[self performCHKd1:0x8000 d2:0x8001];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertNotEqual(state.program_counter, 0x1002 + 4);
+	XCTAssertEqual(state.stack_pointer(), 0xfffffffa);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
+	XCTAssertEqual(42, _machine->get_cycle_count());
+}
+
+- (void)testCHK_8000v8000 {
+	[self performCHKd1:0x8000 d2:0x8000];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertNotEqual(state.program_counter, 0x1002 + 4);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
+	XCTAssertEqual(44, _machine->get_cycle_count());
+}
+
 // MARK: DBcc
 
 - (void)performDBccTestOpcode:(uint16_t)opcode status:(uint16_t)status d2Outcome:(uint32_t)d2Output {
@@ -3151,7 +3208,6 @@ class CPU::MC68000::ProcessorStorageTests {
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.supervisor_stack_pointer, 0x4000);
 	XCTAssertEqual(12, _machine->get_cycle_count());
-
 }
 
 @end
