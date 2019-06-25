@@ -1568,8 +1568,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::ASLm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = value >> 1;
-									extend_flag_ = carry_flag_ = value & 1;
+									active_program_->destination->halves.low.full = value << 1;
+									extend_flag_ = carry_flag_ = value & 0x8000;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
 								case Operation::ASLb: lsl(active_program_->destination->halves.low.halves.low, 8);	break;

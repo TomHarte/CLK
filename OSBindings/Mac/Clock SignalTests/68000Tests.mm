@@ -889,6 +889,145 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 }
 
+// MARK: ASL
+
+- (void)testASLb_Dn_2 {
+	_machine->set_program({
+		0xe521		// ASL.B D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+	state.data[2] = 2;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xce3dd59c);
+	XCTAssertEqual(state.data[2], 2);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative | Flag::Overflow | Flag::Carry);
+	XCTAssertEqual(10, _machine->get_cycle_count());
+}
+
+- (void)testASLb_Dn_105 {
+	_machine->set_program({
+		0xe521		// ASL.B D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+	state.data[2] = 105;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xce3dd500);
+	XCTAssertEqual(state.data[2], 105);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow | Flag::Zero);
+	XCTAssertEqual(88, _machine->get_cycle_count());
+}
+
+- (void)testASLw_Dn_0 {
+	_machine->set_program({
+		0xe561		// ASL.w D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+	state.data[2] = 0;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xce3dd567);
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testASLw_Dn_0b {
+	_machine->set_program({
+		0xe561		// ASL.w D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+	state.data[2] = 0xb;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xce3d3800);
+	XCTAssertEqual(state.data[2], 0xb);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Overflow | Flag::Carry);
+	XCTAssertEqual(28, _machine->get_cycle_count());
+}
+
+- (void)testASLl_Dn {
+	_machine->set_program({
+		0xe5a1		// ASL.l D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+	state.data[2] = 0x20;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0);
+	XCTAssertEqual(state.data[2], 0x20);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Overflow | Flag::Carry | Flag::Zero);
+	XCTAssertEqual(72, _machine->get_cycle_count());
+}
+
+- (void)testASLl_Imm {
+	_machine->set_program({
+		0xe181		// ASL.l #8, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xce3dd567;
+	state.data[2] = 0x20;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x3dd56700);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow);
+	XCTAssertEqual(24, _machine->get_cycle_count());
+}
+
+- (void)testASLw_XXXw_8ccc {
+	_machine->set_program({
+		0xe1f8, 0x3000		// ASL ($3000).w
+	});
+	*_machine->ram_at(0x3000) = 0x8ccc;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x1998);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow | Flag::Extend | Flag::Carry);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testASLw_XXXw_45780782 {
+	_machine->set_program({
+		0xe1f8, 0x3000		// ASL ($3000).w
+	});
+	*_machine->ram_at(0x3000) = 0x4578;
+	*_machine->ram_at(0x3002) = 0x0782;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x8af0);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0x0782);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow | Flag::Negative);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
 // MARK: BSET
 
 - (void)performBSETD0D1:(uint32_t)d1 {
