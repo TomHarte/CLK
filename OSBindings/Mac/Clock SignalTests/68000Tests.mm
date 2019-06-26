@@ -1494,6 +1494,80 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(44, _machine->get_cycle_count());
 }
 
+// MARK: CLR
+
+- (void)testCLRw {
+	_machine->set_program({
+		0x4244		// CLR.w D4
+	});
+	auto state = _machine->get_processor_state();
+	state.data[4] = 0x9853abcd;
+	state.status |= Flag::Extend | Flag::Negative | Flag::Overflow | Flag::Carry;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[4], 0x98530000);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Zero);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testCLRl_Dn {
+	_machine->set_program({
+		0x4284		// CLR.l D4
+	});
+	auto state = _machine->get_processor_state();
+	state.data[4] = 0x9853abcd;
+	state.status |= Flag::Extend | Flag::Negative | Flag::Overflow | Flag::Carry;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[4], 0x0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Zero);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testCLRl_XXXl {
+	_machine->set_program({
+		0x42b9, 0x0001, 0x86a0		// CLR.l ($186a0).l
+	});
+	*_machine->ram_at(0x186a0) = 0x9853;
+	*_machine->ram_at(0x186a2) = 0xabcd;
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::Extend | Flag::Negative | Flag::Overflow | Flag::Carry;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x186a0), 0x0);
+	XCTAssertEqual(*_machine->ram_at(0x186a2), 0x0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Zero);
+	XCTAssertEqual(28, _machine->get_cycle_count());
+}
+
+- (void)testCLRb_XXXl {
+	_machine->set_program({
+		0x4239, 0x0001, 0x86a0		// CLR.b ($186a0).l
+	});
+	*_machine->ram_at(0x186a0) = 0x9853;
+	*_machine->ram_at(0x186a2) = 0xabcd;
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::Extend | Flag::Negative | Flag::Overflow | Flag::Carry;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x186a0), 0x0053);
+	XCTAssertEqual(*_machine->ram_at(0x186a2), 0xabcd);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Zero);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
 // MARK: CMPM
 
 - (void)testCMPMl {
