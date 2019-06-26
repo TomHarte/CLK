@@ -3673,6 +3673,112 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
 }
 
+// MARK: NEGX
+
+- (void)performNEGXb:(uint32_t)value {
+	_machine->set_program({
+		0x4000		// NEGX.b D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = value;
+	state.status |= Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testNEGXb_78 {
+	[self performNEGXb:0x12345678];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345687);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend | Flag::Negative);
+}
+
+- (void)testNEGXb_00 {
+	[self performNEGXb:0x12345600];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x123456ff);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend | Flag::Negative);
+}
+
+- (void)testNEGXb_80 {
+	[self performNEGXb:0x12345680];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x1234567f);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
+}
+
+- (void)testNEGXw {
+	_machine->set_program({
+		0x4040		// NEGX.w D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12348000;
+	state.status |= Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(4, _machine->get_cycle_count());
+	XCTAssertEqual(state.data[0], 0x12347fff);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
+}
+
+- (void)performNEGXl:(uint32_t)value {
+	_machine->set_program({
+		0x4080		// NEGX.l D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = value;
+	state.status |= Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testNEGXl_large {
+	[self performNEGXl:0x12345678];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xedcba987);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend | Flag::Negative);
+}
+
+- (void)testNEGXl_small {
+	[self performNEGXl:0xffffffff];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend);
+}
+
+- (void)testNEGXl_XXXl {
+	_machine->set_program({
+		0x40b9, 0x0000, 0x3000		// NEGX.L ($3000).L
+	});
+	*_machine->ram_at(0x3000) = 0xf001;
+	*_machine->ram_at(0x3002) = 0x2311;
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(28, _machine->get_cycle_count());
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x0ffe);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0xdcee);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
+}
+
 // MARK: NOP
 
 - (void)testNOP {

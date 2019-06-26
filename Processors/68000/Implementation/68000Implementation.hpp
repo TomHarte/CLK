@@ -1354,7 +1354,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const auto result = destination - source - (extend_flag_ ? 1 : 0);
 									active_program_->destination->halves.low.halves.low = uint8_t(result);
 
-									zero_result_ = result & 0xff;
+									zero_result_ |= result & 0xff;
 									extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);
 									negative_flag_ = result & 0x80;
 									overflow_flag_ = sub_overflow() & 0x80;
@@ -1366,7 +1366,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const auto result = destination - source - (extend_flag_ ? 1 : 0);
 									active_program_->destination->halves.low.full = uint16_t(result);
 
-									zero_result_ = result & 0xffff;
+									zero_result_ |= result & 0xffff;
 									extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xffff);
 									negative_flag_ = result & 0x8000;
 									overflow_flag_ = sub_overflow() & 0x8000;
@@ -1378,7 +1378,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const auto result = destination - source - (extend_flag_ ? 1 : 0);
 									active_program_->destination->full = uint32_t(result);
 
-									zero_result_ = uint_fast32_t(result);
+									zero_result_ |= uint_fast32_t(result);
 									extend_flag_ = carry_flag_ = result >> 32;
 									negative_flag_ = result & 0x80000000;
 									overflow_flag_ = sub_overflow() & 0x80000000;

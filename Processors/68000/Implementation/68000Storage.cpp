@@ -2625,6 +2625,7 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case Operation::MOVEPtoRl:
+									// TODO: nR+ increments EA(0), not EA(1). Fix.
 									op(int(Action::CalcD16An) | MicroOp::DestinationMask, seq("np nRd+ nR+ nrd+ nr np", { ea(1), ea(1), ea(1), ea(1) }, false));
 									op(Action::PerformOperation);
 								break;
