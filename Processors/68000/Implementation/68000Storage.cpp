@@ -2279,8 +2279,8 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::CMPM: {
-							program.set_source(storage_, 1, ea_register);
-							program.set_destination(storage_, 1, data_register);
+							program.set_source(storage_, PostInc, ea_register);
+							program.set_destination(storage_, PostInc, data_register);
 
 							const bool is_byte_operation = operation == Operation::CMPb;
 
@@ -2288,15 +2288,15 @@ struct ProcessorStorageConstructor {
 								default: continue;
 
 								case Operation::CMPb:	// CMPM.b, (An)+, (An)+
-								case Operation::CMPw: {	// CMPM.w, (An)+, (An)+
-									op(Action::None, seq("nr", { a(data_register) }, !is_byte_operation));
-									op(	inc(data_register) | MicroOp::SourceMask,
-										seq("nrd np", { a(ea_register) }, !is_byte_operation));
-									op(inc(ea_register) | MicroOp::DestinationMask);
+								case Operation::CMPw:	// CMPM.w, (An)+, (An)+
+									op(Action::None, seq("nr", { a(ea_register) }, !is_byte_operation));
+									op(	inc(ea_register) | MicroOp::SourceMask,
+										seq("nrd np", { a(data_register) }, !is_byte_operation));
+									op(inc(data_register) | MicroOp::DestinationMask);
 									op(Action::PerformOperation);
-								} break;
+								break;
 
-								case Operation::CMPl:
+								case Operation::CMPl:	// CMPM.l, (An)+, (An)+
 									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask,
 										seq("nR+ nr", {ea(0), ea(0)}));
 									op(int(Action::Increment4) | MicroOp::SourceMask);

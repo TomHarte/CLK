@@ -1494,6 +1494,71 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(44, _machine->get_cycle_count());
 }
 
+// MARK: CMPM
+
+- (void)testCMPMl {
+	_machine->set_program({
+		0xb389		// CMPM.L (A1)+, (A1)+
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x3000;
+	state.status |= Flag::ConditionCodes;
+	*_machine->ram_at(0x3000) = 0x7000;
+	*_machine->ram_at(0x3002) = 0x1ff1;
+	*_machine->ram_at(0x3004) = 0x1000;
+	*_machine->ram_at(0x3006) = 0x0000;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x3008);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Extend | Flag::Carry);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+- (void)testCMPMw {
+	_machine->set_program({
+		0xb549		// CMPM.w (A1)+, (A2)+
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x3000;
+	state.address[2] = 0x3002;
+	state.status |= Flag::ConditionCodes;
+	*_machine->ram_at(0x3000) = 0;
+	*_machine->ram_at(0x3002) = 0;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x3002);
+	XCTAssertEqual(state.address[2], 0x3004);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero | Flag::Extend);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
+- (void)testCMPMb {
+	_machine->set_program({
+		0xb509		// CMPM.b (A1)+, (A2)+
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x3000;
+	state.address[2] = 0x3001;
+	state.status |= Flag::ConditionCodes;
+	*_machine->ram_at(0x3000) = 0x807f;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 0x3001);
+	XCTAssertEqual(state.address[2], 0x3002);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Extend | Flag::Carry | Flag::Overflow);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
+
 // MARK: DBcc
 
 - (void)performDBccTestOpcode:(uint16_t)opcode status:(uint16_t)status d2Outcome:(uint32_t)d2Output {
