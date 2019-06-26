@@ -979,6 +979,38 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(30, _machine->get_cycle_count());
 }
 
+// MARK: ADDI
+
+- (void)testADDIl {
+	_machine->set_program({
+		0x0681, 0x1111, 0x1111		// ADDI.l #$11111111, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x300021b3;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x411132C4);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testADDIw {
+	_machine->set_program({
+		0x0678, 0x7aaa, 0x3000		// ADDI.W #$7aaa, ($3000).W
+	});
+	*_machine->ram_at(0x3000) = 0xaaaa;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x2554);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
 // MARK: ADDQ
 
 - (void)testADDQl {
