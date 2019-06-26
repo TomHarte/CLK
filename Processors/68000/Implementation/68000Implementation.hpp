@@ -1468,18 +1468,21 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									active_program_->destination->halves.low.halves.low ^= 0xff;
 									zero_result_ = active_program_->destination->halves.low.halves.low;
 									negative_flag_ = zero_result_ & 0x80;
+									overflow_flag_ = carry_flag_ = 0;
 								break;
 
 								case Operation::NOTw:
 									active_program_->destination->halves.low.full ^= 0xffff;
 									zero_result_ = active_program_->destination->halves.low.full;
 									negative_flag_ = zero_result_ & 0x8000;
+									overflow_flag_ = carry_flag_ = 0;
 								break;
 
 								case Operation::NOTl:
 									active_program_->destination->full ^= 0xffffffff;
 									zero_result_ = active_program_->destination->full;
 									negative_flag_ = zero_result_ & 0x80000000;
+									overflow_flag_ = carry_flag_ = 0;
 								break;
 
 #define sbcd()	\

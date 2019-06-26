@@ -3004,6 +3004,77 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(4, _machine->get_cycle_count());
 }
 
+// MARK: NOT
+
+- (void)testNOTb {
+	_machine->set_program({
+		0x4600		// NOT.B D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345687);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testNOTw {
+	_machine->set_program({
+		0x4640		// NOT.w D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12340000;
+	state.status |= Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x1234ffff);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Extend);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testNOTl_Dn {
+	_machine->set_program({
+		0x4680		// NOT.l D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xffffff00;
+	state.status |= Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x000000ff);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testNOTl_XXXl {
+	_machine->set_program({
+		0x46b9, 0x0000, 0x3000		// NOT.L ($3000).L
+	});
+	*_machine->ram_at(0x3000) = 0xf001;
+	*_machine->ram_at(0x3002) = 0x2311;
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x0ffe);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0xdcee);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
+	XCTAssertEqual(28, _machine->get_cycle_count());
+}
+
 // MARK: PEA
 
 - (void)testPEA_A1 {
