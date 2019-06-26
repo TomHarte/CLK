@@ -3903,6 +3903,75 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(*_machine->ram_at(0x3006), 0xf43f);
 }
 
+// MARK: SUBA
+
+- (void)testSUBAl_Imm {
+	_machine->set_program({
+		0x95fc, 0x1234, 0x5678		// SUBA.l #$12345678, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xae43ab1d;
+	state.status |= Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(16, _machine->get_cycle_count());
+	XCTAssertEqual(state.address[2], 0x9c0f54a5);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
+}
+
+- (void)testSUBAw_ImmPositive {
+	_machine->set_program({
+		0x94fc, 0x5678		// SUBA.w #$5678, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xae43ab1d;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(12, _machine->get_cycle_count());
+	XCTAssertEqual(state.address[2], 0xae4354a5);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testSUBAw_ImmNegative {
+	_machine->set_program({
+		0x94fc, 0xf678		// SUBA.w #$5678, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xae43ab1d;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(12, _machine->get_cycle_count());
+	XCTAssertEqual(state.address[2], 0xae43b4a5);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testSUBAw_PreDec {
+	_machine->set_program({
+		0x95e2		// SUBA.l -(A2), A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0x2004;
+	*_machine->ram_at(0x2000) = 0x7002;
+	*_machine->ram_at(0x2002) = 0x0000;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(16, _machine->get_cycle_count());
+	XCTAssertEqual(state.address[2], 0x8ffe2000);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
 // MARK: SWAP
 
 - (void)testSwap {
