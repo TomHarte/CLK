@@ -686,7 +686,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 // MARK: ADD
 
-- (void)testAdd {
+- (void)testADDb {
 	_machine->set_program({
 		0x0602, 0xff		// ADD.B #$ff, D2
 	});
@@ -698,9 +698,10 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Negative | Flag::Extend);
 	XCTAssertEqual(state.data[2], 0x9ad);
+	XCTAssertEqual(8, _machine->get_cycle_count());
 }
 
-- (void)testAddOverflow {
+- (void)testADDb_Overflow {
 	_machine->set_program({
 		0xd43c, 0x82		// ADD.B #$82, D2
 	});
@@ -712,9 +713,10 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow | Flag::Carry | Flag::Extend);
 	XCTAssertEqual(state.data[2], 0x04);
+	XCTAssertEqual(8, _machine->get_cycle_count());
 }
 
-- (void)testAddBxxx {
+- (void)testADDb_XXXw {
 	_machine->set_program({
 		0xd538, 0x3000		// ADD.B D2, ($3000).W
 	});
@@ -728,9 +730,10 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Overflow | Flag::Carry | Flag::Extend);
 	XCTAssertEqual(state.data[2], 0x82);
 	XCTAssertEqual(*_machine->ram_at(0x3000), 0x0400);
+	XCTAssertEqual(16, _machine->get_cycle_count());
 }
 
-- (void)testAddWDnDn {
+- (void)testADDw_DnDn {
 	_machine->set_program({
 		0xd442		// ADD.W D2, D2
 	});
@@ -741,9 +744,10 @@ class CPU::MC68000::ProcessorStorageTests {
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[2], 0x7D0);
+	XCTAssertEqual(20, _machine->get_cycle_count());
 }
 
-- (void)testAddLDnPostInc {
+- (void)testADDl_DnPostInc {
 	_machine->set_program({
 		0xd59a		// ADD.L D2, (A2)+
 	});
@@ -761,9 +765,10 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(*_machine->ram_at(0x2000), 0x2a05);
 	XCTAssertEqual(*_machine->ram_at(0x2002), 0xf200);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend);
+	XCTAssertEqual(20, _machine->get_cycle_count());
 }
 
-- (void)testAddWPreDec {
+- (void)testADDw_PreDec {
 	_machine->set_program({
 		0xd462		// ADD.W -(A2), D2
 	});
@@ -780,6 +785,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.data[2], 0xFFFF0000);
 	XCTAssertEqual(state.address[2], 0x2000);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(10, _machine->get_cycle_count());
 }
 
 /*
@@ -787,7 +793,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	See P4-5 of the 68000PRM: An is defined for word and long only.
 */
 
-- (void)testAddLDnDn {
+- (void)testADDl_DnDn {
 	_machine->set_program({
 		0xd481		// ADD.l D1, D2
 	});
@@ -802,6 +808,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.data[1], 0xfe35aab0);
 	XCTAssertEqual(state.data[2], 0xff5b025c);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(8, _machine->get_cycle_count());
 }
 
 // MARK: ADDA
@@ -1035,6 +1042,24 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Overflow);
 	XCTAssertEqual(16, _machine->get_cycle_count());
 }
+
+// MARK: ANDI CCR
+
+- (void)testANDICCR {
+	_machine->set_program({
+		0x023c, 0x001b		// ANDI.b #$1b, CCR
+	});
+	auto state = _machine->get_processor_state();
+	state.status |= 0xc;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0xc & 0x1b);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
 // MARK: ASL
 
 - (void)testASLb_Dn_2 {
@@ -2946,6 +2971,23 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.data[1], 0x271f);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::ConditionCodes);
 	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+// MARK: MOVE to CCR
+
+- (void)testMoveToCCR {
+	_machine->set_program({
+		0x44fc, 0x001f		// MOVE #$1f, CCR
+	});
+	auto state = _machine->get_processor_state();
+	state.status = 0;	// i.e. not even supervisor.
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0x1f);
+	XCTAssertEqual(16, _machine->get_cycle_count());
 }
 
 // MARK: MOVE to SR
