@@ -972,6 +972,69 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(30, _machine->get_cycle_count());
 }
 
+// MARK: ADDQ
+
+- (void)testADDQl {
+	_machine->set_program({
+		0x5e81		// ADDQ.l #$7, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xffffffff;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x6);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testADDQw_Dn {
+	_machine->set_program({
+		0x5641		// ADDQ.W #$3, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xfffffffe;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xffff0001);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testADDQw_An {
+	_machine->set_program({
+		0x5649		// ADDQ.W #$3, A1
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0xfffffffe;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[1], 1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testADDQw_XXXw {
+	_machine->set_program({
+		0x5078, 0x3000		// ADDQ.W #$8, ($3000).W
+	});
+	*_machine->ram_at(0x3000) = 0x7ffd;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x8005);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Overflow);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
 // MARK: ASL
 
 - (void)testASLb_Dn_2 {
