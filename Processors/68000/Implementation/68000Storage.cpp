@@ -2289,24 +2289,21 @@ struct ProcessorStorageConstructor {
 
 								case Operation::CMPb:	// CMPM.b, (An)+, (An)+
 								case Operation::CMPw: {	// CMPM.w, (An)+, (An)+
-									op(Action::None, seq("nr nrd np", { a(data_register), a(ea_register) }, !is_byte_operation));
+									op(Action::None, seq("nr", { a(data_register) }, !is_byte_operation));
+									op(	inc(data_register) | MicroOp::SourceMask,
+										seq("nrd np", { a(ea_register) }, !is_byte_operation));
+									op(inc(ea_register) | MicroOp::DestinationMask);
 									op(Action::PerformOperation);
-
-									const int source_inc = inc(ea_register);
-									const int destination_inc = inc(data_register);
-									if(destination_inc == source_inc) {
-										op(destination_inc | MicroOp::SourceMask | MicroOp::DestinationMask);
-									} else {
-										op(destination_inc | MicroOp::DestinationMask);
-										op(source_inc | MicroOp::SourceMask);
-									}
 								} break;
 
 								case Operation::CMPl:
-									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask | MicroOp::DestinationMask,
-										seq("nR+ nr nRd+ nrd np", {ea(0), ea(0), ea(1), ea(1)}));
+									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask,
+										seq("nR+ nr", {ea(0), ea(0)}));
+									op(int(Action::Increment4) | MicroOp::SourceMask);
+									op(	int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask,
+										seq("nRd+ nrd np", {ea(1), ea(1)}));
+									op(int(Action::Increment4) | MicroOp::DestinationMask);
 									op(Action::PerformOperation);
-									op(int(Action::Increment4) | MicroOp::SourceMask | MicroOp::DestinationMask);
 								break;
 							}
 						} break;
