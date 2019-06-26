@@ -2578,7 +2578,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 // MARK: MOVEM
 
-- (void)testMOVEM {
+- (void)testMOVEMl_fromD0D1 {
 	_machine->set_program({
 		0x48e1, 0xc000		// MOVEM.L D0-D1, -(A1)
 	});
@@ -2601,7 +2601,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(24, _machine->get_cycle_count());
 }
 
-- (void)testMOVEM_fromA1 {
+- (void)testMOVEMl_fromD0D1A1 {
 	_machine->set_program({
 		0x48e1, 0xc040		// MOVEM.L D0-D1/A1, -(A1)
 	});
@@ -2626,7 +2626,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(32, _machine->get_cycle_count());
 }
 
-- (void)testMOVEM_everything {
+- (void)testMOVEMl_fromEverything {
 	_machine->set_program({
 		0x48e4, 0xffff		// MOVEM.L D0-D7/A0-A7, -(A4)
 	});
@@ -2660,7 +2660,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(136, _machine->get_cycle_count());
 }
 
-- (void)testMOVEM_D4A4 {
+- (void)testMOVEMw_fromD4 {
 	_machine->set_program({
 		0x48a4, 0x0800		// MOVEM.W D4, -(A4)
 	});
@@ -2685,6 +2685,96 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 // TODO: port MOVEM.W D4/D0, -(A4), which tests bus error response.
+
+- (void)testMOVEMl_toD1D2A1A2 {
+	_machine->set_program({
+		0x4cd9, 0x0606		// MOVEM.l (A1)+, D1-D2/A1-A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x4000;
+	*_machine->ram_at(0x4000) = 0x1111;
+	*_machine->ram_at(0x4002) = 0x1111;
+	*_machine->ram_at(0x4004) = 0x2222;
+	*_machine->ram_at(0x4006) = 0x2222;
+	*_machine->ram_at(0x400c) = 0x3333;
+	*_machine->ram_at(0x400e) = 0x3333;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+
+	XCTAssertEqual(state.data[1], 0x11111111);
+	XCTAssertEqual(state.data[2], 0x22222222);
+	XCTAssertEqual(state.address[1], 0x4010);
+	XCTAssertEqual(state.address[2], 0x33333333);
+
+	XCTAssertEqual(44, _machine->get_cycle_count());
+}
+
+- (void)testMOVEMw_signExtend {
+	_machine->set_program({
+		0x4c99, 0x0002		// MOVEM.w (A1)+, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x4000;
+	*_machine->ram_at(0x4000) = 0x8000;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+
+	XCTAssertEqual(state.data[1], 0xffff8000);
+	XCTAssertEqual(state.address[1], 0x4002);
+
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testMOVEMw_fromIndirect {
+	_machine->set_program({
+		0x4c91, 0x0206		// MOVEM.w (A1), A1/D1-D2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x4000;
+	state.data[2] = 0xffffffff;
+	*_machine->ram_at(0x4000) = 0x8000;
+	*_machine->ram_at(0x4002) = 0x2222;
+	*_machine->ram_at(0x4004) = 0x3333;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+
+	XCTAssertEqual(state.data[1], 0xffff8000);
+	XCTAssertEqual(state.data[2], 0x00002222);
+	XCTAssertEqual(state.address[1], 0x3333);
+
+	XCTAssertEqual(24, _machine->get_cycle_count());
+}
+
+- (void)testMOVEMw_toIndirect {
+	_machine->set_program({
+		0x4891, 0x0206		// MOVEM.w A1/D1-D2, (A1)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x4000;
+	state.data[1] = 0x11111111;
+	state.data[2] = 0x22222222;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+
+	XCTAssertEqual(*_machine->ram_at(0x4000), 0x1111);
+	XCTAssertEqual(*_machine->ram_at(0x4002), 0x2222);
+	XCTAssertEqual(*_machine->ram_at(0x4004), 0x4000);
+	XCTAssertEqual(state.address[1], 0x4000);
+
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
 
 // MARK: MOVE
 
@@ -2834,7 +2924,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->get_processor_state();
-	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);	/* !! 8 !! */
 	XCTAssertEqual(*_machine->ram_at(0x3002), 0xeeee);
 	XCTAssertEqual(*_machine->ram_at(0x3006), 0xeeee);
 	XCTAssertEqual(36, _machine->get_cycle_count());
