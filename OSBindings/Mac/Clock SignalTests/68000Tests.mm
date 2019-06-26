@@ -3343,6 +3343,91 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(36, _machine->get_cycle_count());
 }
 
+// MARK: MOVEP
+
+- (void)testMOVEPw_toDn {
+	_machine->set_program({
+		0x030e, 0x0004		// MOVEP.w 4(A6), D1
+	});
+	auto state = _machine->get_processor_state();
+	state.address[6] = 0x3000;
+	*_machine->ram_at(0x3004) = 0x1200;
+	*_machine->ram_at(0x3006) = 0x3400;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[6], 0x3000);
+	XCTAssertEqual(state.data[1], 0x1234);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testMOVEPl_toDn {
+	_machine->set_program({
+		0x034e, 0x0002		// MOVEP.l 2(A6), D1
+	});
+	auto state = _machine->get_processor_state();
+	state.address[6] = 0x3000;
+	*_machine->ram_at(0x3002) = 0x1200;
+	*_machine->ram_at(0x3004) = 0x3400;
+	*_machine->ram_at(0x3006) = 0x5600;
+	*_machine->ram_at(0x3008) = 0x7800;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[6], 0x3000);
+	XCTAssertEqual(state.data[1], 0x12345678);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(24, _machine->get_cycle_count());
+}
+
+- (void)testMOVEPw_fromDn {
+	_machine->set_program({
+		0x038e, 0x0002		// MOVEP.w D1, 2(A6)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[6] = 0x3000;
+	state.data[1] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[6], 0x3000);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0x5600);
+	XCTAssertEqual(*_machine->ram_at(0x3004), 0x7800);
+
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testMOVEPl_fromDn {
+	_machine->set_program({
+		0x03ce, 0x0002		// MOVEP.l D1, 2(A6)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[6] = 0x3000;
+	state.data[1] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[6], 0x3000);
+
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0x1200);
+	XCTAssertEqual(*_machine->ram_at(0x3004), 0x3400);
+	XCTAssertEqual(*_machine->ram_at(0x3006), 0x5600);
+	XCTAssertEqual(*_machine->ram_at(0x3008), 0x7800);
+
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(24, _machine->get_cycle_count());
+}
+
 // MARK: MOVE from SR
 
 - (void)testMoveFromSR {
