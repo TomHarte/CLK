@@ -1338,6 +1338,127 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(16, _machine->get_cycle_count());
 }
 
+// MARK: BCHG
+
+- (void)performBCHGD0D1:(uint32_t)d1 {
+	_machine->set_program({
+		0x0340		// BCHG D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12345678;
+	state.data[1] = d1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], d1);
+}
+
+- (void)testBCHG_D0D1_0 {
+	[self performBCHGD0D1:0];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345679);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(_machine->get_cycle_count(), 6);
+}
+
+- (void)testBCHG_D0D1_10 {
+	[self performBCHGD0D1:10];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345278);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(_machine->get_cycle_count(), 6);
+}
+
+- (void)testBCHG_D0D1_48 {
+	[self performBCHGD0D1:48];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12355678);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(_machine->get_cycle_count(), 8);
+}
+
+- (void)performBCHGD1Ind:(uint32_t)d1 {
+	_machine->set_program({
+		0x0350		// BCHG D1, (A0)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[0] = 0x3000;
+	state.data[1] = d1;
+	*_machine->ram_at(0x3000) = 0x7800;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], d1);
+	XCTAssertEqual(state.address[0], 0x3000);
+	XCTAssertEqual(_machine->get_cycle_count(), 12);
+}
+
+- (void)testBCHG_D1Ind_48 {
+	[self performBCHGD1Ind:48];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x7900);
+}
+
+- (void)testBCHG_D1Ind_7 {
+	[self performBCHGD1Ind:7];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0xf800);
+}
+
+- (void)performBCHGImm:(uint16_t)immediate {
+	_machine->set_program({
+		0x0840, immediate		// BCHG #, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+}
+
+- (void)testBCHG_Imm_31 {
+	[self performBCHGImm:31];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x92345678);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(_machine->get_cycle_count(), 12);
+}
+
+- (void)testBCHG_Imm_4 {
+	[self performBCHGImm:4];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345668);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(_machine->get_cycle_count(), 10);
+}
+
+- (void)testBCHG_ImmWWWx {
+	_machine->set_program({
+		0x0878, 0x0006, 0x3000		// BCHG #6, ($3000).W
+	});
+	*_machine->ram_at(0x3000) = 0x7800;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(_machine->get_cycle_count(), 20);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x3800);
+}
+
 // MARK: BSET
 
 - (void)performBSETD0D1:(uint32_t)d1 {
@@ -1425,9 +1546,6 @@ class CPU::MC68000::ProcessorStorageTests {
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
-
-//	state = _machine->get_processor_state();
-//	XCTAssertEqual(state.address[0], 0x3000);
 }
 
 - (void)testBSET_Imm_28 {
