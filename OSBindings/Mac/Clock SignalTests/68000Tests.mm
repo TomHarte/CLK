@@ -1981,6 +1981,77 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(20, _machine->get_cycle_count());
 }
 
+// MARK: CMPA
+
+- (void)performCMPAld1:(uint32_t)d1 a2:(uint32_t)a2 {
+	_machine->set_program({
+		0xb5c1		// CMPA.l D1, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = d1;
+	state.address[2] = a2;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], d1);
+	XCTAssertEqual(state.address[2], a2);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testCMPAl_noFlags {
+	[self performCMPAld1:0x1234567f a2:0x12345680];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testCMPAl_carry {
+	[self performCMPAld1:0xfd234577 a2:0x12345680];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry);
+}
+
+- (void)testCMPAl_carryOverflowNegative {
+	[self performCMPAld1:0x85678943 a2:0x22563245];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Overflow | Flag::Negative);
+}
+
+- (void)performCMPAwd1:(uint32_t)d1 a2:(uint32_t)a2 {
+	_machine->set_program({
+		0xb4c1		// CMPA.w D1, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = d1;
+	state.address[2] = a2;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], d1);
+	XCTAssertEqual(state.address[2], a2);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testCMPAw_carry {
+	[self performCMPAwd1:0x85678943 a2:0x22563245];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry);
+}
+
+- (void)testCMPAw_zero {
+	[self performCMPAwd1:0x0000ffff a2:0xffffffff];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+}
+
 // MARK: CMPM
 
 - (void)testCMPMl {

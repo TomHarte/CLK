@@ -762,6 +762,17 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									overflow_flag_ = sub_overflow() & 0x8000;
 								} break;
 
+								case Operation::CMPAw: {
+									const auto source = uint64_t(u_extend16(active_program_->source->halves.low.full));
+									const auto destination = uint64_t(u_extend16(active_program_->destination->halves.low.full));
+									const auto result = destination - source;
+
+									zero_result_ = uint32_t(result);
+									carry_flag_ = result >> 32;
+									negative_flag_ = result & 0x80000000;
+									overflow_flag_ = sub_overflow() & 0x80000000;
+								} break;
+
 								case Operation::CMPl: {
 									const auto source = uint64_t(active_program_->source->full);
 									const auto destination = uint64_t(active_program_->destination->full);

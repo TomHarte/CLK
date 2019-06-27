@@ -648,7 +648,7 @@ struct ProcessorStorageConstructor {
 			{0xf1c0, 0xb040, Operation::CMPw, Decoder::CMP},	// 4-75 (p179)
 			{0xf1c0, 0xb080, Operation::CMPl, Decoder::CMP},	// 4-75 (p179)
 
-			{0xf1c0, 0xb0c0, Operation::CMPw, Decoder::CMPA},	// 4-77 (p181)
+			{0xf1c0, 0xb0c0, Operation::CMPAw, Decoder::CMPA},	// 4-77 (p181)
 			{0xf1c0, 0xb1c0, Operation::CMPl, Decoder::CMPA},	// 4-77 (p181)
 
 			{0xffc0, 0x0c00, Operation::CMPb, Decoder::CMPI},	// 4-79 (p183)

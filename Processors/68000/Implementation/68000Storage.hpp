@@ -104,6 +104,7 @@ class ProcessorStorage {
 			BTSTb,	BTSTl,
 			BCLRl,	BCLRb,
 			CMPb,	CMPw,	CMPl,
+			CMPAw,
 			TSTb,	TSTw,	TSTl,
 
 			JMP,	RTS,
