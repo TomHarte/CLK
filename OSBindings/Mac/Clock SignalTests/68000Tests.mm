@@ -3623,6 +3623,75 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(24, _machine->get_cycle_count());
 }
 
+// MARK: MOVEQ
+
+- (void)testMOVEQ_1 {
+	_machine->set_program({
+		0x7201		// MOVEQ #1, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xffffffff;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testMOVEQ_ff {
+	_machine->set_program({
+		0x72ff		// MOVEQ #-1, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::Extend | Flag::Carry | Flag::Overflow;
+
+	_machine->set_processor_state(state);
+
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xffffffff);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testMOVEQ_80 {
+	_machine->set_program({
+		0x7280		// MOVEQ #$80, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::Extend | Flag::Carry | Flag::Overflow;
+	state.data[1] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xffffff80);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testMOVEQ_00 {
+	_machine->set_program({
+		0x7200		// MOVEQ #00, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::Extend | Flag::Carry | Flag::Overflow;
+	state.data[1] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Zero);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
 // MARK: MOVE from SR
 
 - (void)testMoveFromSR {
