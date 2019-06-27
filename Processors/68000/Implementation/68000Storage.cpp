@@ -2449,23 +2449,22 @@ struct ProcessorStorageConstructor {
 							program.destination = &storage_.destination_bus_data_[0];
 							program.destination_address = &storage_.address_[7];
 
-							// Common to all modes: decrement A7.
-							op(int(Action::Decrement4) | MicroOp::DestinationMask);
-
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
 								default: continue;
 
 								case Ind:		// PEA (An)
 									operation = Operation::MOVEAl;
+									op(int(Action::Decrement4) | MicroOp::DestinationMask);
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
 									op(Action::PerformOperation, seq("np nW+ nw", { ea(1), ea(1) }));
 								break;
 
 								case XXXl:		// PEA (XXX).l
 								case XXXw:		// PEA (XXX).w
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, (mode == XXXl) ? seq("np") : nullptr);
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
+									op(int(Action::Decrement4) | MicroOp::DestinationMask);
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, (mode == XXXl) ? seq("np") : nullptr);
 									op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
 								break;
 
@@ -2473,8 +2472,9 @@ struct ProcessorStorageConstructor {
 								case d16PC:		// PEA (d16, PC)
 								case d8AnXn:	// PEA (d8, An, Xn)
 								case d8PCXn:	// PEA (d8, PC, Xn)
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
 									op(calc_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np", mode)));
+									op(int(Action::Decrement4) | MicroOp::DestinationMask);
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
 									op(Action::PerformOperation, seq(pseq("np nW+ nw", mode), { ea(1), ea(1) }));
 								break;
 							}

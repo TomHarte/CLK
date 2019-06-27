@@ -59,7 +59,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	const HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
 
 #ifdef LOG_TRACE
-						static bool should_log = true;
+						static bool should_log = false;
 #endif
 
 	// This loop counts upwards rather than downwards because it simplifies calculation of
@@ -295,10 +295,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-//							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
+							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
 
-//							should_log |= fetched_pc == 0x401142;
-//							should_log &= fetched_pc != 0x4011AA;
+							should_log |= fetched_pc == 0x4012A2;
+							should_log &= fetched_pc != 0x4012AE;
 
 //							should_log = (fetched_pc >= 0x408D66) && (fetched_pc <= 0x408D84);
 #endif
