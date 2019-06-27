@@ -487,7 +487,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						CB1 = clock		(input)
 
 						CA2 is used for receiving RTC interrupts.
-						CA1 is used for receiving vsync maybe?
+						CA1 is used for receiving vsync.
 					*/
 					if(port == Port::B && line == Line::Two) keyboard_.set_input(value);
 					else printf("Unhandled control line output: %c %d\n", port ? 'B' : 'A', int(line));

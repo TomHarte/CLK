@@ -863,7 +863,7 @@ struct ProcessorStorageConstructor {
 					// Temporary storage for the Program fields.
 					ProcessorBase::Program program;
 
-//					if(instruction == 0xe569) {
+//					if(instruction == 0x4879) {
 //						printf("");
 //					}
 
@@ -2455,16 +2455,16 @@ struct ProcessorStorageConstructor {
 
 								case Ind:		// PEA (An)
 									operation = Operation::MOVEAl;
+									op(Action::PerformOperation);
 									op(int(Action::Decrement4) | MicroOp::DestinationMask);
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
-									op(Action::PerformOperation, seq("np nW+ nw", { ea(1), ea(1) }));
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("np nW+ nw", { ea(1), ea(1) }));
 								break;
 
 								case XXXl:		// PEA (XXX).l
 								case XXXw:		// PEA (XXX).w
+									op(int(Action::Decrement4) | MicroOp::DestinationMask, (mode == XXXl) ? seq("np") : nullptr);
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
-									op(int(Action::Decrement4) | MicroOp::DestinationMask);
-									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, (mode == XXXl) ? seq("np") : nullptr);
+									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
 									op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
 								break;
 
