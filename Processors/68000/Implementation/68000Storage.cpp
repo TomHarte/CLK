@@ -2027,10 +2027,13 @@ struct ProcessorStorageConstructor {
 								default: continue;
 
 								case bw(Dn):		// CMP.bw Dn, Dn
-								case l(Dn):			// CMP.l Dn, Dn
 								case bw(An):		// CMP.w An, Dn
-								case l(An):			// CMP.l An, Dn
 									op(Action::PerformOperation, seq("np"));
+								break;
+
+								case l(Dn):			// CMP.l Dn, Dn
+								case l(An):			// CMP.l An, Dn
+									op(Action::PerformOperation, seq("np n"));
 								break;
 
 								case bw(Ind):		// CMP.bw (An), Dn

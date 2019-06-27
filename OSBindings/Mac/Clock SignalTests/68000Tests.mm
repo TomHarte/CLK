@@ -1981,6 +1981,78 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(20, _machine->get_cycle_count());
 }
 
+// MARK: CMP
+
+- (void)performCMPb:(uint16_t)opcode expectedFlags:(uint16_t)flags {
+	_machine->set_program({
+		opcode
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x1234567f;
+	state.data[2] = 0x12345680;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x1234567f);
+	XCTAssertEqual(state.data[2], 0x12345680);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, flags);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testCMPb_D1D2 {
+	[self performCMPb:0xb401 expectedFlags:Flag::Overflow];	// CMP.b D1, D2
+}
+
+- (void)testCMPb_D2D1 {
+	[self performCMPb:0xb202 expectedFlags:Flag::Overflow | Flag::Negative | Flag::Carry];	// CMP.b D2, D1
+}
+
+- (void)performCMPwd1:(uint32_t)d1 d2:(uint32_t)d2 expectedFlags:(uint16_t)flags {
+	_machine->set_program({
+		0xb242		// CMP.W D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = d1;
+	state.data[2] = d2;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], d1);
+	XCTAssertEqual(state.data[2], d2);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, flags);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testCMPw_8004v7002 {
+	[self performCMPwd1:0x12347002 d2:0x12348004 expectedFlags:Flag::Overflow | Flag::Negative | Flag::Carry];
+}
+
+- (void)testCMPw_6666v5555 {
+	[self performCMPwd1:0x55555555 d2:0x66666666 expectedFlags:Flag::Negative | Flag::Carry];
+}
+
+- (void)testCMPl {
+	_machine->set_program({
+		0xb282		// CMP.l D2, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x12347002;
+	state.data[2] = 0x12348004;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x12347002);
+	XCTAssertEqual(state.data[2], 0x12348004);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Carry);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
 // MARK: CMPA
 
 - (void)performCMPAld1:(uint32_t)d1 a2:(uint32_t)a2 {
