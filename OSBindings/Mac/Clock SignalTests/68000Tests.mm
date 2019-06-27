@@ -2371,12 +2371,12 @@ class CPU::MC68000::ProcessorStorageTests {
 
 // MARK: DIVS
 
-- (void)performDivide:(uint16_t)divisor a1:(uint32_t)a1 {
+- (void)performDIVS:(uint16_t)divisor d1:(uint32_t)d1 {
 	_machine->set_program({
 		0x83fc, divisor		// DIVS #$eef0, D1
 	});
 	auto state = _machine->get_processor_state();
-	state.data[1] = a1;
+	state.data[1] = d1;
 	state.status = Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
@@ -2384,7 +2384,7 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 - (void)performDIVSOverflowTestDivisor:(uint16_t)divisor {
-	[self performDivide:divisor a1:0x4768f231];
+	[self performDIVS:divisor d1:0x4768f231];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x4768f231);
@@ -2405,7 +2405,7 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 - (void)testDIVS_2 {
-	[self performDivide:0xeef0 a1:0x0768f231];
+	[self performDIVS:0xeef0 d1:0x0768f231];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x026190D3);
@@ -2414,7 +2414,7 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 - (void)testDIVS_3 {
-	[self performDivide:0xffff a1:0xffffffff];
+	[self performDIVS:0xffff d1:0xffffffff];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 1);
@@ -2423,7 +2423,7 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 - (void)testDIVS_4 {
-	[self performDivide:0x3333 a1:0xffff0000];
+	[self performDIVS:0x3333 d1:0xffff0000];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0xfffffffb);
@@ -2432,7 +2432,7 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 - (void)testDIVS_5 {
-	[self performDivide:0x23 a1:0x8765];
+	[self performDIVS:0x23 d1:0x8765];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0xb03de);
@@ -2441,7 +2441,7 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 - (void)testDIVS_6 {
-	[self performDivide:0x8765 a1:0x65];
+	[self performDIVS:0x8765 d1:0x65];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x650000);
@@ -2451,7 +2451,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 - (void)testDIVSExpensiveOverflow {
 	// DIVS.W #$ffff, D1 alt
-	[self performDivide:0xffff a1:0x80000000];
+	[self performDIVS:0xffff d1:0x80000000];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x80000000);
@@ -2461,7 +2461,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 - (void)testDIVS_8 {
 	// DIVS.W #$fffd, D1
-	[self performDivide:0xfffd a1:0xfffffffd];
+	[self performDIVS:0xfffd d1:0xfffffffd];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x1);
@@ -2471,7 +2471,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 - (void)testDIVS_9 {
 	// DIVS.W #$7aee, D1
-	[self performDivide:0x7aee a1:0xdaaa00fe];
+	[self performDIVS:0x7aee d1:0xdaaa00fe];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0xc97eb240);
@@ -2481,7 +2481,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 - (void)testDIVS_10 {
 	// DIVS.W #$7fff, D1
-	[self performDivide:0x7fff a1:0x82f9fff];
+	[self performDIVS:0x7fff d1:0x82f9fff];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x305e105f);
@@ -2491,7 +2491,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 - (void)testDIVS_11 {
 	// DIVS.W #$f32, D1
-	[self performDivide:0xf32 a1:0x00e1d44];
+	[self performDIVS:0xf32 d1:0x00e1d44];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x0bfa00ed);
@@ -2501,7 +2501,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 - (void)testDIVS_12 {
 	// DIVS.W #$af32, D1
-	[self performDivide:0xaf32 a1:0xe1d44];
+	[self performDIVS:0xaf32 d1:0xe1d44];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x39dcffd4);
@@ -2512,7 +2512,7 @@ class CPU::MC68000::ProcessorStorageTests {
 - (void)testDIVSException {
 	// DIVS.W #0, D1
 	_machine->set_initial_stack_pointer(0);
-	[self performDivide:0x0 a1:0x1fffffff];
+	[self performDIVS:0x0 d1:0x1fffffff];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x1fffffff);
@@ -2520,6 +2520,58 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
 //	XCTAssertEqual(42, _machine->get_cycle_count());
 }
+
+// MARK: DIVU
+
+- (void)performDIVU:(uint16_t)divisor d1:(uint32_t)d1 {
+	_machine->set_program({
+		0x82fc, divisor		// DIVU #$eef0, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = d1;
+	state.status |= Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+}
+
+- (void)testDIVU_0001 {
+	[self performDIVU:1 d1:0x4768f231];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x4768f231);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative | Flag::Overflow);
+	XCTAssertEqual(14, _machine->get_cycle_count());
+}
+
+- (void)testDIVU_1234 {
+	[self performDIVU:0x1234 d1:0x4768f231];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x4768f231);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative | Flag::Overflow);
+	XCTAssertEqual(14, _machine->get_cycle_count());
+}
+
+- (void)testDIVU_eeff {
+	[self performDIVU:0xeeff d1:0x4768f231];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x8bae4c7d);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
+	XCTAssertEqual(108, _machine->get_cycle_count());
+}
+
+- (void)testDIVU_3333 {
+	[self performDIVU:0x3333 d1:0x1fffffff];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x1fffa000);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
+	XCTAssertEqual(136, _machine->get_cycle_count());
+}
+
+// Omitted: divide by zero test.
 
 // MARK: EXG
 

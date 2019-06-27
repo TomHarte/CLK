@@ -964,6 +964,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	program_counter_.full -= 2;
 
 								case Operation::DIVU: {
+									carry_flag_ = 0;
+
 									// An attempt to divide by zero schedules an exception.
 									if(!active_program_->source->halves.low.full) {
 										// Schedule a divide-by-zero exception.
@@ -974,8 +976,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									uint32_t dividend = active_program_->destination->full;
 									uint32_t divisor = active_program_->source->halves.low.full;
 									const auto quotient = dividend / divisor;
-
-									carry_flag_ = 0;
 
 									// If overflow would occur, appropriate flags are set and the result is not written back.
 									if(quotient >= 65536) {
