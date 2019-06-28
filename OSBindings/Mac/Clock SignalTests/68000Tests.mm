@@ -3626,6 +3626,76 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(36, _machine->get_cycle_count());
 }
 
+// MARK: MOVEA
+
+- (void)testMOVEAl_An {
+	_machine->set_program({
+		0x244a		// MOVEA.l A2, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xffffffff;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0xffffffff);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testMOVEAw_Dn_positive {
+	_machine->set_program({
+		0x3442		// MOVEA.w D2, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xffffffff;
+	state.data[2] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0x00005678);
+	XCTAssertEqual(state.data[2], 0x12345678);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testMOVEAw_Dn_negative {
+	_machine->set_program({
+		0x3442		// MOVEA.w D2, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xffffffff;
+	state.data[2] = 0x12348756;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 0xffff8756);
+	XCTAssertEqual(state.data[2], 0x12348756);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testMOVEAl_Imm {
+	_machine->set_program({
+		0x247c, 0x0000, 0x0001		// MOVEA.L #$1, A2
+	});
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0xffffffff;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.address[2], 1);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
 // MARK: MOVEP
 
 - (void)testMOVEPw_toDn {
