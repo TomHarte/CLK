@@ -2599,6 +2599,50 @@ class CPU::MC68000::ProcessorStorageTests {
 
 // Omitted: divide by zero test.
 
+// MARK: EOR
+
+- (void)testEORw {
+	_machine->set_program({
+		0xb744		// EOR.w D3, D4
+	});
+
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::Extend | Flag::Carry | Flag::Overflow;
+	state.data[3] = 0x54ff0056;
+	state.data[4] = 0x9853abcd;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x54ff0056);
+	XCTAssertEqual(state.data[4], 0x9853ab9b);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testEORl {
+	_machine->set_program({
+		0xb792		// EOR.l D3, (A2)
+	});
+
+	auto state = _machine->get_processor_state();
+	state.address[2] = 0x3000;
+	state.data[3] = 0x54ff0056;
+	*_machine->ram_at(0x3000) = 0x0f0f;
+	*_machine->ram_at(0x3002) = 0x0f11;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x54ff0056);
+	XCTAssertEqual(state.address[2], 0x3000);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x5bf0);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0x0f47);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
 // MARK: EORI to CCR
 
 - (void)testEORICCR {
