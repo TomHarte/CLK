@@ -5129,6 +5129,54 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
 }
 
+// MARK: SUBQ
+
+- (void)testSUBQl {
+	_machine->set_program({
+		0x5f81		// SUBQ.L #$7, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xffffffff;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(8, _machine->get_cycle_count());
+	XCTAssertEqual(state.data[1], 0xfffffff8);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+}
+
+- (void)testSUBQw {
+	_machine->set_program({
+		0x5f49		// SUBQ.W #$7, A1
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0xffff0001;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(8, _machine->get_cycle_count());
+	XCTAssertEqual(state.address[1], 0xfffefffa);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testSUBQb {
+	_machine->set_program({
+		0x5f38, 0x3000		// SUBQ.b #$7, ($3000).w
+	});
+	*_machine->ram_at(0x3000) = 0x0600;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(16, _machine->get_cycle_count());
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0xff00);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative | Flag::Carry);
+}
+
 // MARK: SWAP
 
 - (void)testSwap {
