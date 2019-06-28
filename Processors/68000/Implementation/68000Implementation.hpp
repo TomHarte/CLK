@@ -297,8 +297,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #ifdef LOG_TRACE
 							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
 
-							should_log |= fetched_pc == 0x4012A2;
-							should_log &= fetched_pc != 0x4012AE;
+//							should_log |= fetched_pc == 0x6d9c;
+							should_log = fetched_pc < 0x400000;// || (fetched_pc >= 0x401A42 && fetched_pc <= 0x401A82);
+ //							should_log |= fetched_pc == 0x4012A2;
+//							should_log &= fetched_pc != 0x4012AE;
 
 //							should_log = (fetched_pc >= 0x408D66) && (fetched_pc <= 0x408D84);
 #endif
@@ -329,9 +331,15 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								// The vector used depends on whether this is a vanilla unrecognised instruction,
 								// or one on the A or F lines.
 								switch(decoded_instruction_.full >> 12) {
-									default:	populate_trap_steps(4, get_status());	break;
-									case 0xa:	populate_trap_steps(10, get_status());	break;
-									case 0xf:	populate_trap_steps(11, get_status());	break;
+									default:
+										populate_trap_steps(4, get_status());
+									break;
+									case 0xa:
+										populate_trap_steps(10, get_status());
+									break;
+									case 0xf:
+										populate_trap_steps(11, get_status());
+									break;
 								}
 							}
 						}

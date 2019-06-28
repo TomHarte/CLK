@@ -8,7 +8,7 @@
 
 #include "IWM.hpp"
 
-#define NDEBUG
+//#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 using namespace Apple;
@@ -66,7 +66,7 @@ uint8_t IWM::read(int address) {
 //				printf("\n\nIWM:%02x\n\n", data_register_);
 				data_register_ = 0;
 			}
-			LOG("Reading data register: " << PADHEX(2) << int(result));
+//			LOG("Reading data register: " << PADHEX(2) << int(result));
 
 			return result;
 		}
@@ -92,16 +92,16 @@ uint8_t IWM::read(int address) {
 					LOG("unknown)");
 				break;
 
-				// 4 = step finished	(0 = done)
+				// Possible other meanings:
 				// B = ready			(0 = ready)
-				// 8 = motor on
 				//
 				// {CA1,CA0,SEL,CA2}
 
-//				case 0:					// Head step direction.
+				case 0:					// Head step direction.
 										// (0 = inward)
-//					printf("head step direction)\n");
-//				break;
+					LOG("head step direction)");
+					sense = (step_direction_ > 0) ? 0 : 1;
+				break;
 
 				case SEL:				// Disk in place.
 										// (0 = disk present)
