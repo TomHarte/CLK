@@ -3852,7 +3852,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 // MARK: MULS
 
-- (void)performMULd1:(uint32_t)d1 d2:(uint32_t)d2 ccr:(uint8_t)ccr {
+- (void)performMULSd1:(uint32_t)d1 d2:(uint32_t)d2 ccr:(uint8_t)ccr {
 	_machine->set_program({
 		0xc5c1		// MULS D1, D2
 	});
@@ -3865,7 +3865,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	_machine->run_for_instructions(1);
 }
 
-- (void)performMULConstant:(uint16_t)constant d2:(uint32_t)d2 {
+- (void)performMULSConstant:(uint16_t)constant d2:(uint32_t)d2 {
 	_machine->set_program({
 		0xc5fc, constant		// MULS #constant, D2
 	});
@@ -3878,51 +3878,102 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 - (void)testMULS {
-	[self performMULd1:0x12345678 d2:0x12345678 ccr:0];
+	[self performMULSd1:0x12345678 d2:0x12345678 ccr:0];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x12345678);
 	XCTAssertEqual(state.data[2], 0x1d34d840);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
-//	XCTAssertEqual(54, _machine->get_cycle_count());
+	XCTAssertEqual(54, _machine->get_cycle_count());
 }
 
 - (void)testMULS_2 {
-	[self performMULd1:0x82348678 d2:0x823486ff ccr:0];
+	[self performMULSd1:0x82348678 d2:0x823486ff ccr:0];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x82348678);
 	XCTAssertEqual(state.data[2], 0x3971c188);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
-//	XCTAssertEqual(48, _machine->get_cycle_count());
+	XCTAssertEqual(48, _machine->get_cycle_count());
 }
 
 - (void)testMULSZero {
-	[self performMULd1:1 d2:0 ccr:Flag::Carry | Flag::Overflow | Flag::Extend];
+	[self performMULSd1:1 d2:0 ccr:Flag::Carry | Flag::Overflow | Flag::Extend];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 1);
 	XCTAssertEqual(state.data[2], 0);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Zero);
-//	XCTAssertEqual(42, _machine->get_cycle_count());
+	XCTAssertEqual(42, _machine->get_cycle_count());
 }
 
 - (void)testMULSFFFF {
-	[self performMULConstant:0xffff d2:0xffff];
+	[self performMULSConstant:0xffff d2:0xffff];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[2], 1);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
-//	XCTAssertEqual(44, _machine->get_cycle_count());
+	XCTAssertEqual(44, _machine->get_cycle_count());
 }
 
 - (void)testMULSNegative {
-	[self performMULConstant:0x1fff d2:0x8fff];
+	[self performMULSConstant:0x1fff d2:0x8fff];
 
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[2], 0xf2005001);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
-//	XCTAssertEqual(46, _machine->get_cycle_count());
+	XCTAssertEqual(46, _machine->get_cycle_count());
+}
+
+// MARK: MULU
+
+- (void)performMULUd1:(uint32_t)d1 d2:(uint32_t)d2 ccr:(uint8_t)ccr {
+	_machine->set_program({
+		0xc4c1		// MULU D1, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = d1;
+	state.data[2] = d2;
+	state.status |= ccr;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+}
+
+- (void)testMULU_Dn {
+	[self performMULUd1:0x12345678 d2:0x12345678 ccr:0];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0x1d34d840);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(54, _machine->get_cycle_count());
+}
+
+- (void)testMULU_Dn_Zero {
+	[self performMULUd1:1 d2:0 ccr:Flag::Extend | Flag::Overflow | Flag::Carry];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 1);
+	XCTAssertEqual(state.data[2], 0);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Zero);
+	XCTAssertEqual(40, _machine->get_cycle_count());
+}
+
+- (void)testMULU_Imm {
+	_machine->set_program({
+		0xc4fc, 0xffff		// MULU.W    #$ffff, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[2] = 0xffff;
+	state.status |= Flag::Extend | Flag::Overflow | Flag::Carry;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[2], 0xfffe0001);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
+	XCTAssertEqual(74, _machine->get_cycle_count());
 }
 
 // MARK: NEG
