@@ -5197,6 +5197,70 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative | Flag::Carry);
 }
 
+// MARK: SUBX
+
+- (void)testSUBXl_Dn {
+	_machine->set_program({
+		0x9581		// SUBX.l D1, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x12345678;
+	state.data[2] = 0x12345678;
+	state.status |= Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(8, _machine->get_cycle_count());
+	XCTAssertEqual(state.data[1], 0x12345678);
+	XCTAssertEqual(state.data[2], 0xffffffff);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry | Flag::Negative);
+}
+
+- (void)testSUBXb_Dn {
+	_machine->set_program({
+		0x9501		// SUBX.b D1, D2
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x80;
+	state.data[2] = 0x01;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(4, _machine->get_cycle_count());
+	XCTAssertEqual(state.data[1], 0x80);
+	XCTAssertEqual(state.data[2], 0x81);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry | Flag::Negative | Flag::Overflow);
+}
+
+- (void)testSUBXl_PreDec {
+	_machine->set_program({
+		0x9389		// SUBX.l -(A1), -(A1)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[1] = 0x3000;
+	*_machine->ram_at(0x2ff8) = 0x1000;
+	*_machine->ram_at(0x2ffa) = 0x0000;
+	*_machine->ram_at(0x2ffc) = 0x7000;
+	*_machine->ram_at(0x2ffe) = 0x1ff1;
+	state.status |= Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(30, _machine->get_cycle_count());
+	XCTAssertEqual(state.address[1], 0x2ff8);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry | Flag::Negative );
+	XCTAssertEqual(*_machine->ram_at(0x2ff8), 0x9fff);
+	XCTAssertEqual(*_machine->ram_at(0x2ffa), 0xe00e);
+	XCTAssertEqual(*_machine->ram_at(0x2ffc), 0x7000);
+	XCTAssertEqual(*_machine->ram_at(0x2ffe), 0x1ff1);
+}
+
 // MARK: SWAP
 
 - (void)testSwap {
