@@ -548,10 +548,10 @@ class CPU::MC68000::ProcessorStorageTests {
 //	XCTAssert(!falseInvalids.count, "%@ opcodes should be valid but aren't: %@", @(falseInvalids.count), falseInvalids.hexDump);
 }
 
-// MARK: - Portable 68k tests
+// MARK: - Portable 68k tests (mostly)
 
-// Tests below this line were ported from those of the Portable 68k package.
-// That emulator does not include a licence. It reports that all tests were
+// Tests below this line were overwhelmingly ported from those of the Portable 68k
+// package. That emulator does not include a licence. It reports that all tests were
 // verified against an Amiga.
 //
 // Cf. https://sourceforge.net/projects/portable68000/
@@ -1613,6 +1613,32 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(*_machine->ram_at(0x3000), 0x3800);
 }
 
+// MARK: BRA
+
+- (void)testBRAb {
+	_machine->set_program({
+		0x6004		// BRA.b +4
+	});
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1006 + 4);
+	XCTAssertEqual(_machine->get_cycle_count(), 10);
+}
+
+- (void)testBRAw {
+	_machine->set_program({
+		0x6000, 0x0004		// BRA.b +4
+	});
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1006 + 4);
+	XCTAssertEqual(_machine->get_cycle_count(), 10);
+}
+
 // MARK: BSET
 
 - (void)performBSETD0D1:(uint32_t)d1 {
@@ -2572,6 +2598,24 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 // Omitted: divide by zero test.
+
+// MARK: EORI to CCR
+
+- (void)testEORICCR {
+	_machine->set_program({
+		0x0a3c, 0x001b		// EORI.b #$1b, CCR
+	});
+
+	auto state = _machine->get_processor_state();
+	state.status |= 0xc;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0xc ^ 0x1b);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
 
 // MARK: EXG
 
@@ -4189,6 +4233,24 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(24, _machine->get_cycle_count());
 }
 
+// MARK: ORI to CCR
+
+- (void)testORICCR {
+	_machine->set_program({
+		0x003c, 0x001b		// ORI.b #$1b, CCR
+	});
+
+	auto state = _machine->get_processor_state();
+	state.status |= 0xc;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0xc | 0x1b);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
 // MARK: PEA
 
 - (void)testPEA_A1 {
@@ -4210,6 +4272,36 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(12, _machine->get_cycle_count());
 }
 
+- (void)testPEA_A7 {
+	_machine->set_program({
+		0x4857		// PEA (A7)
+	});
+	_machine->set_initial_stack_pointer(0x1012);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.stack_pointer(), 0x100e);
+	XCTAssertEqual(*_machine->ram_at(0x1010), 0x1012);
+	XCTAssertEqual(*_machine->ram_at(0x1008), 0x0000);
+	XCTAssertEqual(12, _machine->get_cycle_count());
+}
+
+- (void)testPEA_4A7 {
+	_machine->set_program({
+		0x486f, 0x0004		// PEA 4(A7)
+	});
+	_machine->set_initial_stack_pointer(0x1012);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.stack_pointer(), 0x100e);
+	XCTAssertEqual(*_machine->ram_at(0x1010), 0x1016);
+	XCTAssertEqual(*_machine->ram_at(0x1008), 0x0000);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
 - (void)testPEA_XXXw {
 	_machine->set_program({
 		0x4878, 0x3000		// PEA ($3000).w
@@ -4223,6 +4315,21 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(*_machine->ram_at(0x1992), 0x0000);
 	XCTAssertEqual(*_machine->ram_at(0x1994), 0x3000);
 	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testPEA_XXXl {
+	_machine->set_program({
+		0x4879, 0x1234, 0x5678		// PEA ($12345678)
+	});
+	_machine->set_initial_stack_pointer(0x1996);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.stack_pointer(), 0x1992);
+	XCTAssertEqual(*_machine->ram_at(0x1992), 0x1234);
+	XCTAssertEqual(*_machine->ram_at(0x1994), 0x5678);
+	XCTAssertEqual(20, _machine->get_cycle_count());
 }
 
 // MARK: ROL
