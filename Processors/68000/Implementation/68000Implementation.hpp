@@ -1303,11 +1303,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const bool is_under = s_extend16(active_program_->destination->halves.low.full) < 0;
 									const bool is_over = s_extend16(active_program_->destination->halves.low.full) > s_extend16(active_program_->source->halves.low.full);
 
+									overflow_flag_ = carry_flag_ = 0;
+									zero_result_ = active_program_->destination->halves.low.full;
+									negative_flag_ = (is_under && !is_over) ? 1 : 0;
+
 									// No exception is the default course of action; deviate only if an
 									// exception is necessary.
 									if(is_under || is_over) {
-										negative_flag_ = is_under ? 1 : 0;
-
 										bus_program = trap_steps_;
 										populate_trap_steps(6, get_status());
 										if(is_under) {
