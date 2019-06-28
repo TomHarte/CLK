@@ -1092,6 +1092,35 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(20, _machine->get_cycle_count());
 }
 
+// MARK: ANDI SR
+
+- (void)testANDISR_supervisor {
+	_machine->set_program({
+		0x027c, 0x0700		// ANDI.W #$700, SR
+	});
+	_machine->set_initial_stack_pointer(300);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1004 + 4);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+- (void)testANDISR_user {
+	_machine->set_program({
+		0x46fc, 0x0000,		// MOVE 0, SR
+		0x027c, 0x0700		// ANDI.W #$700, SR
+	});
+
+	_machine->run_for_instructions(2);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertNotEqual(state.program_counter, 0x1008 + 4);
+//	XCTAssertEqual(34, _machine->get_cycle_count());
+}
+
+
 // MARK: ASL
 
 - (void)testASLb_Dn_2 {
@@ -2659,6 +2688,34 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.status & Flag::ConditionCodes, 0xc ^ 0x1b);
 	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+// MARK: EORI to SR
+
+- (void)testEORISR_supervisor {
+	_machine->set_program({
+		0x0a7c, 0x0700		// EORI.W #$700, SR
+	});
+	_machine->set_initial_stack_pointer(300);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1004 + 4);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+- (void)testEORISR_user {
+	_machine->set_program({
+		0x46fc, 0x0000,		// MOVE 0, SR
+		0x0a7c, 0x0700		// EORI.W #$700, SR
+	});
+
+	_machine->run_for_instructions(2);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertNotEqual(state.program_counter, 0x1008 + 4);
+//	XCTAssertEqual(34, _machine->get_cycle_count());
 }
 
 // MARK: EXG
@@ -4414,6 +4471,34 @@ class CPU::MC68000::ProcessorStorageTests {
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.status & Flag::ConditionCodes, 0xc | 0x1b);
 	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+// MARK: ORI to SR
+
+- (void)testORISR_supervisor {
+	_machine->set_program({
+		0x007c, 0x0700		// ORI.W #$700, SR
+	});
+	_machine->set_initial_stack_pointer(300);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1004 + 4);
+	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+- (void)testORISR_user {
+	_machine->set_program({
+		0x46fc, 0x0000,		// MOVE 0, SR
+		0x007c, 0x0700		// ORI.W #$700, SR
+	});
+
+	_machine->run_for_instructions(2);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertNotEqual(state.program_counter, 0x1008 + 4);
+//	XCTAssertEqual(34, _machine->get_cycle_count());
 }
 
 // MARK: PEA

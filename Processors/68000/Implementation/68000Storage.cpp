@@ -978,7 +978,7 @@ struct ProcessorStorageConstructor {
 
 						case Decoder::EORI_ORI_ANDI_SR: {
 							// The source used here is always the high word of the prefetch queue.
-							program.requires_supervisor = !(instruction & 0x40);
+							program.requires_supervisor = !!(instruction & 0x40);
 							op(Action::None, seq("np nn nn"));
 							op(Action::PerformOperation, seq("np np"));
 						} break;
