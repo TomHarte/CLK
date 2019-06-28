@@ -5129,6 +5129,26 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
 }
 
+// MARK: SUBI
+
+- (void)testSUBIl {
+	_machine->set_program({
+		0x0481, 0xf111, 0x1111		// SUBI.L #$f1111111, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x300021b3;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(16, _machine->get_cycle_count());
+	XCTAssertEqual(state.data[1], 0x3eef10a2);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend);
+}
+
+// Test of SUBI.W #$7aaa, ($3000).W omitted; that doesn't appear to be a valid instruction?
+
 // MARK: SUBQ
 
 - (void)testSUBQl {
