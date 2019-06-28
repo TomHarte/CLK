@@ -5049,6 +5049,44 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(state.supervisor_stack_pointer, 0x200);
 }
 
+// MARK: TST
+
+- (void)testTSTw_Dn {
+	_machine->set_program({
+		0x4a44		// TST.w D4
+	});
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::Extend | Flag::Carry | Flag::Overflow;
+	state.data[4] = 0xfff1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Extend);
+	XCTAssertEqual(state.data[4], 0xfff1);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testTSTl_Dn {
+	_machine->set_program({
+		0x4a84		// TST.l D4
+	});
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::Extend | Flag::Carry | Flag::Overflow;
+	state.data[4] = 0;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero | Flag::Extend);
+	XCTAssertEqual(state.data[4], 0);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+// Omitted: test that tst.w A0 doesn't decode.
+
 // MARK: TRAPV
 
 - (void)testTRAPV_taken {
