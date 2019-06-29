@@ -390,6 +390,122 @@
 	XCTAssertEqual(*_machine->ram_at(0x3000), 0x7800);
 }
 
+// MARK: BTST
+
+- (void)performBTSTD0D1:(uint32_t)d1 {
+	_machine->set_program({
+		0x0300		// BTST D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12345678;
+	state.data[1] = d1;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345678);
+	XCTAssertEqual(state.data[1], d1);
+	XCTAssertEqual(6, _machine->get_cycle_count());
+}
+
+- (void)testBTST_D0D1_0 {
+	[self performBTSTD0D1:0];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+}
+
+- (void)testBTST_D0D1_10 {
+	[self performBTSTD0D1:10];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testBTST_D0D1_49 {
+	[self performBTSTD0D1:49];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+}
+
+- (void)performBTSTD1Ind:(uint32_t)d1 {
+	_machine->set_program({
+		0x0310		// BTST D1, (A0)
+	});
+	auto state = _machine->get_processor_state();
+	state.address[0] = 0x3000;
+	state.data[1] = d1;
+	*_machine->ram_at(0x3000) = 0x7800;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], d1);
+	XCTAssertEqual(state.address[0], 0x3000);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x7800);
+}
+
+- (void)testBTST_D1Ind_50 {
+	[self performBTSTD1Ind:50];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+}
+
+- (void)testBTST_D1Ind_3 {
+	[self performBTSTD1Ind:3];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)performBTSTImm:(uint16_t)immediate {
+	_machine->set_program({
+		0x0800, immediate		// BTST #, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x12345678);
+	XCTAssertEqual(10, _machine->get_cycle_count());
+}
+
+- (void)testBTST_Imm_28 {
+	[self performBTSTImm:28];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)testBTST_Imm_2 {
+	[self performBTSTImm:2];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+}
+
+- (void)testBTST_ImmWWWx {
+	_machine->set_program({
+		0x0838, 0x0006, 0x3000		// BTST #6, ($3000).W
+	});
+	*_machine->ram_at(0x3000) = 0x7800;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(_machine->get_cycle_count(), 16);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x7800);
+}
+
 // MARK: -
 // MARK: ANDI
 

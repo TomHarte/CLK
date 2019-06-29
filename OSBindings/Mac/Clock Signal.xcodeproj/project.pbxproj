@@ -296,10 +296,12 @@
 		4B8FE2221DA19FB20090D3CE /* MachinePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8FE2211DA19FB20090D3CE /* MachinePanel.swift */; };
 		4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B8FE2261DA1DE2D0090D3CE /* NSBundle+DataResource.m */; };
 		4B90467422C6FADD000E2074 /* 68000BitwiseTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B90467322C6FADD000E2074 /* 68000BitwiseTests.mm */; };
+		4B90467622C6FD6E000E2074 /* 68000ArithmeticTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B90467522C6FD6E000E2074 /* 68000ArithmeticTests.mm */; };
 		4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */; };
 		4B9252CE1E74D28200B76AF1 /* Atari ROMs in Resources */ = {isa = PBXBuildFile; fileRef = 4B9252CD1E74D28200B76AF1 /* Atari ROMs */; };
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
 		4B9378E422A199C600973513 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9378E222A199C600973513 /* Audio.cpp */; };
+		4B97ADC822C6FD9B00A22A41 /* 68000ArithmeticTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B97ADC722C6FD9B00A22A41 /* 68000ArithmeticTests.mm */; };
 		4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
 		4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
 		4B98A0611FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */; };
@@ -1047,6 +1049,7 @@
 		4B8FE2261DA1DE2D0090D3CE /* NSBundle+DataResource.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSBundle+DataResource.m"; sourceTree = "<group>"; };
 		4B90467222C6FA31000E2074 /* TestRunner68000.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TestRunner68000.hpp; sourceTree = "<group>"; };
 		4B90467322C6FADD000E2074 /* 68000BitwiseTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000BitwiseTests.mm; sourceTree = "<group>"; };
+		4B90467522C6FD6E000E2074 /* 68000ArithmeticTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000ArithmeticTests.mm; sourceTree = "<group>"; };
 		4B92294222B04A3D00A1458F /* MouseMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MouseMachine.hpp; sourceTree = "<group>"; };
 		4B92294422B04ACB00A1458F /* Mouse.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Mouse.hpp; sourceTree = "<group>"; };
 		4B92294A22B064FD00A1458F /* QuadratureMouse.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = QuadratureMouse.hpp; sourceTree = "<group>"; };
@@ -1057,6 +1060,7 @@
 		4B9378E322A199C600973513 /* Audio.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Audio.hpp; sourceTree = "<group>"; };
 		4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZX8081OptionsPanel.swift; sourceTree = "<group>"; };
 		4B961408222760E0001A7BF2 /* Screenshot.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Screenshot.hpp; sourceTree = "<group>"; };
+		4B97ADC722C6FD9B00A22A41 /* 68000ArithmeticTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = 68000ArithmeticTests.mm; path = "/Users/thomasharte/Projects/CLK/OSBindings/Mac/Clock SignalTests/68000ArithmeticTests.mm"; sourceTree = "<absolute>"; };
 		4B98A05C1FFAD3F600ADF63B /* CSROMFetcher.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CSROMFetcher.hpp; sourceTree = "<group>"; };
 		4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CSROMFetcher.mm; sourceTree = "<group>"; };
 		4B98A0601FFADCDE00ADF63B /* MSXStaticAnalyserTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MSXStaticAnalyserTests.mm; sourceTree = "<group>"; };
@@ -2924,6 +2928,7 @@
 			children = (
 				4B85322922778E4200F26553 /* Comparative68000.hpp */,
 				4B90467222C6FA31000E2074 /* TestRunner68000.hpp */,
+				4B97ADC722C6FD9B00A22A41 /* 68000ArithmeticTests.mm */,
 				4B90467322C6FADD000E2074 /* 68000BitwiseTests.mm */,
 				4BD388872239E198002D14B5 /* 68000Tests.mm */,
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
@@ -2955,6 +2960,7 @@
 				4BFCA12A1ECBE7C400AC40C1 /* ZexallTests.swift */,
 				4B3BA0C41D318B44005DD7A7 /* Bridges */,
 				4B1414631B588A1100E04248 /* Test Binaries */,
+				4B90467522C6FD6E000E2074 /* 68000ArithmeticTests.mm */,
 			);
 			path = "Clock SignalTests";
 			sourceTree = "<group>";
@@ -4177,6 +4183,7 @@
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,
 				4B90467422C6FADD000E2074 /* 68000BitwiseTests.mm in Sources */,
 				4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */,
+				4B90467622C6FD6E000E2074 /* 68000ArithmeticTests.mm in Sources */,
 				4B7BC7F61F58F7D200D1B1B4 /* 6502Base.cpp in Sources */,
 				4B7BC7F51F58F27800D1B1B4 /* 6502AllRAM.cpp in Sources */,
 				4B08A2751EE35D56008B7065 /* Z80InterruptTests.swift in Sources */,
@@ -4188,6 +4195,7 @@
 				4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */,
 				4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */,
 				4BEE1EC122B5E2FD000A26A6 /* Encoder.cpp in Sources */,
+				4B97ADC822C6FD9B00A22A41 /* 68000ArithmeticTests.mm in Sources */,
 				4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */,
 				4BD388882239E198002D14B5 /* 68000Tests.mm in Sources */,
 				4BA91E1D216D85BA00F79557 /* MasterSystemVDPTests.mm in Sources */,
