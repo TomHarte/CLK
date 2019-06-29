@@ -27,6 +27,56 @@
 	_machine.reset();
 }
 
+// MARK: Bcc
+
+- (void)performBccb:(uint16_t)opcode {
+	_machine->set_program({
+		uint16_t(opcode | 6)	// Bcc.b +6
+	});
+
+	_machine->run_for_instructions(1);
+}
+
+- (void)performBccw:(uint16_t)opcode {
+	_machine->set_program({
+		opcode, 0x0006			// Bcc.w +6
+	});
+
+	_machine->run_for_instructions(1);
+}
+
+- (void)testBHIb {
+	[self performBccb:0x6200];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1008 + 4);
+	XCTAssertEqual(_machine->get_cycle_count(), 10);
+}
+
+- (void)testBLOb {
+	[self performBccb:0x6500];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1002 + 4);
+	XCTAssertEqual(_machine->get_cycle_count(), 8);
+}
+
+- (void)testBHIw {
+	[self performBccw:0x6200];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1008 + 4);
+	XCTAssertEqual(_machine->get_cycle_count(), 10);
+}
+
+- (void)testBLOw {
+	[self performBccw:0x6500];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1004 + 4);
+	XCTAssertEqual(_machine->get_cycle_count(), 12);
+}
+
 // MARK: BRA
 
 - (void)testBRAb {
