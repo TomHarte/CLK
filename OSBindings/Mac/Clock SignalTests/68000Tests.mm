@@ -1075,6 +1075,42 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(16, _machine->get_cycle_count());
 }
 
+// MARK: ANDI
+
+- (void)testANDIb {
+	_machine->set_program({
+		0x0201, 0x0012		// ANDI.B #$12, D1
+	});
+
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x12345610);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testANDIl {
+	_machine->set_program({
+		0x02b8, 0xffff, 0x0000, 0x3000		// ANDI.L #$ffff0000, ($3000).W
+	});
+
+	*_machine->ram_at(0x3000) = 0x0000;
+	*_machine->ram_at(0x3002) = 0xffff;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x0000);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0x0000);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(32, _machine->get_cycle_count());
+}
+
 // MARK: ANDI CCR
 
 - (void)testANDICCR {
@@ -2708,6 +2744,42 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(*_machine->ram_at(0x3002), 0x0f47);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
 	XCTAssertEqual(20, _machine->get_cycle_count());
+}
+
+// MARK: EORI
+
+- (void)testEORIb {
+	_machine->set_program({
+		0x0a01, 0x0012		// EORI.B #$12, D1
+	});
+
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x1234566a);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testEORIl {
+	_machine->set_program({
+		0x0ab8, 0xffff, 0x0000, 0x3000		// EORI.L #$ffff0000, ($3000).W
+	});
+
+	*_machine->ram_at(0x3000) = 0x0000;
+	*_machine->ram_at(0x3002) = 0xffff;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0xffff);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0xffff);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(32, _machine->get_cycle_count());
 }
 
 // MARK: EORI to CCR
@@ -4553,6 +4625,42 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(*_machine->ram_at(0x3002), 0xfb76);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
 	XCTAssertEqual(24, _machine->get_cycle_count());
+}
+
+// MARK: ORI
+
+- (void)testORIb {
+	_machine->set_program({
+		0x0001, 0x0012		// ORI.B #$12, D1
+	});
+
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x12345678;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x1234567a);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testORIl {
+	_machine->set_program({
+		0x00b8, 0xffff, 0x0000, 0x3000		// ORI.L #$ffff0000, ($3000).W
+	});
+
+	*_machine->ram_at(0x3000) = 0x0000;
+	*_machine->ram_at(0x3002) = 0xffff;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0xffff);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0xffff);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(32, _machine->get_cycle_count());
 }
 
 // MARK: ORI to CCR
