@@ -882,5 +882,241 @@
 	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
 }
 
+// MARK: ROXL
+
+- (void)performROXLb_Dnccr:(uint16_t)ccr {
+	_machine->set_program({
+		0xe330		// ROXL.b D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd567;
+	state.data[1] = 9;
+	state.status |= ccr;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(24, _machine->get_cycle_count());
+	XCTAssertEqual(state.data[0], 0xce3dd567);
+	XCTAssertEqual(state.data[1], 9);
+}
+
+- (void)testROXLb_extend {
+	[self performROXLb_Dnccr:Flag::ConditionCodes];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend);
+}
+
+- (void)testROXLb {
+	[self performROXLb_Dnccr:0];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)performROXLw_Dnd1:(uint32_t)d1 ccr:(uint16_t)ccr {
+	_machine->set_program({
+		0xe370		// ROXL.w D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd567;
+	state.data[1] = d1;
+	state.status |= ccr;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], d1);
+}
+
+- (void)testROXLw_17 {
+	[self performROXLw_Dnd1:17 ccr:Flag::Carry];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3dd567);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(40, _machine->get_cycle_count());
+}
+
+- (void)testROXLw_5 {
+	[self performROXLw_Dnd1:5 ccr:Flag::Extend];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3dacfd);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testROXLw_22 {
+	[self performROXLw_Dnd1:22 ccr:Flag::Extend];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3dacfd);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(50, _machine->get_cycle_count());
+}
+
+- (void)testROXLl_Dn {
+	_machine->set_program({
+		0xe3b0		// ROXL.l D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd567;
+	state.data[1] = 33;
+	state.status |= Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3dd567);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Carry | Flag::Extend);
+	XCTAssertEqual(74, _machine->get_cycle_count());
+}
+
+- (void)testROXLw_Imm {
+	_machine->set_program({
+		0xe950		// ROXL.w #4, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3d3600;
+	state.status |= Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3d6009);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Carry);
+	XCTAssertEqual(14, _machine->get_cycle_count());
+}
+
+- (void)testROXLw_XXXw {
+	_machine->set_program({
+		0xe5f8, 0x3000		// ROXL.W ($3000).W
+	});
+	*_machine->ram_at(0x3000) = 0xd567;
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0xaace);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend | Flag::Negative);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+// MARK: ROXR
+
+- (void)performROXRb_Dnccr:(uint16_t)ccr {
+	_machine->set_program({
+		0xe230		// ROXR.b D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd567;
+	state.data[1] = 9;
+	state.status |= ccr;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(24, _machine->get_cycle_count());
+	XCTAssertEqual(state.data[0], 0xce3dd567);
+	XCTAssertEqual(state.data[1], 9);
+}
+
+- (void)testROXRb_extend {
+	[self performROXRb_Dnccr:Flag::ConditionCodes];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend);
+}
+
+- (void)testROXRb {
+	[self performROXRb_Dnccr:0];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+}
+
+- (void)performROXRw_Dnd1:(uint32_t)d1 ccr:(uint16_t)ccr {
+	_machine->set_program({
+		0xe270		// ROXR.w D1, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3dd567;
+	state.data[1] = d1;
+	state.status |= ccr;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], d1);
+}
+
+- (void)testROXRw_17 {
+	[self performROXRw_Dnd1:17 ccr:Flag::Carry];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3dd567);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(40, _machine->get_cycle_count());
+}
+
+- (void)testROXRw_5 {
+	[self performROXRw_Dnd1:5 ccr:Flag::Extend];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3d7eab);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testROXRw_22 {
+	[self performROXRw_Dnd1:22 ccr:Flag::Extend];
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0xce3d7eab);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(50, _machine->get_cycle_count());
+}
+
+- (void)testROXRl {
+	_machine->set_program({
+		0xe890		// ROXR.L #4, D0
+	});
+	auto state = _machine->get_processor_state();
+	state.data[0] = 0xce3d3600;
+	state.status |= Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[0], 0x1ce3d360);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
+
+- (void)testROXRw_XXXw {
+	_machine->set_program({
+		0xe4f8, 0x3000		// ROXR.W ($3000).W
+	});
+	*_machine->ram_at(0x3000) = 0xd567;
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::Extend;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0xeab3);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Carry | Flag::Extend | Flag::Negative);
+	XCTAssertEqual(16, _machine->get_cycle_count());
+}
 
 @end
