@@ -1789,6 +1789,44 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(*_machine->ram_at(0x3000), 0x7800);
 }
 
+// MARK: BSR
+
+- (void)testBSRw {
+	_machine->set_program({
+		0x6100, 0x0006		// BSR.w $1008
+	});
+	_machine->set_initial_stack_pointer(0x3000);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1008 + 4);
+	XCTAssertEqual(state.stack_pointer(), 0x2ffc);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(*_machine->ram_at(0x2ffc), 0);
+	XCTAssertEqual(*_machine->ram_at(0x2ffe), 0x1004);
+
+	XCTAssertEqual(_machine->get_cycle_count(), 18);
+}
+
+- (void)testBSRb {
+	_machine->set_program({
+		0x6106		// BSR.b $1008
+	});
+	_machine->set_initial_stack_pointer(0x3000);
+
+	_machine->run_for_instructions(1);
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.program_counter, 0x1008 + 4);
+	XCTAssertEqual(state.stack_pointer(), 0x2ffc);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(*_machine->ram_at(0x2ffc), 0);
+	XCTAssertEqual(*_machine->ram_at(0x2ffe), 0x1002);
+
+	XCTAssertEqual(_machine->get_cycle_count(), 18);
+}
+
 // MARK: BTST
 
 - (void)performBTSTD0D1:(uint32_t)d1 {
