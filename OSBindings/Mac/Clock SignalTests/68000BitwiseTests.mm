@@ -932,4 +932,48 @@
 //	XCTAssertEqual(34, _machine->get_cycle_count());
 }
 
+// MARK: TAS
+
+- (void)performTASDnd0:(uint32_t)d0 expectedCCR:(uint16_t)ccr {
+	_machine->set_program({
+		0x4ac0		// TAS D0
+	});
+
+	auto state = _machine->get_processor_state();
+	state.data[0] = d0;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, ccr);
+	XCTAssertEqual(4, _machine->get_cycle_count());
+}
+
+- (void)testTAS_Dn_unset {
+	[self performTASDnd0:0x12345678 expectedCCR:0];
+}
+
+- (void)testTAS_Dn_set {
+	[self performTASDnd0:0x123456f0 expectedCCR:Flag::Negative];
+}
+
+- (void)testTAS_XXXl {
+	_machine->set_program({
+		0x4af9, 0x0000, 0x3000		// TAS ($3000).l
+	});
+	*_machine->ram_at(0x3000) = 0x1100;
+
+	auto state = _machine->get_processor_state();
+	state.status |= Flag::ConditionCodes;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x9100);
+	XCTAssertEqual(22, _machine->get_cycle_count());
+}
+
 @end

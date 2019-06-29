@@ -214,7 +214,7 @@
 
 	state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[2], 0x7D0);
-	XCTAssertEqual(20, _machine->get_cycle_count());
+	XCTAssertEqual(4, _machine->get_cycle_count());
 }
 
 - (void)testADDl_DnPostInc {
