@@ -560,6 +560,55 @@
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
 }
 
+// MARK: CMPI
+
+- (void)testCMPIw {
+	_machine->set_program({
+		0x0c41, 0xffff		// CMPI.W #$ffff, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0xfff2ffff;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0xfff2ffff);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
+
+- (void)testCMPIl {
+	_machine->set_program({
+		0x0c81, 0x8000, 0x0000		// CMPI.L #$80000000, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x7fffffff;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x7fffffff);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Overflow | Flag::Carry);
+	XCTAssertEqual(14, _machine->get_cycle_count());
+}
+
+- (void)testCMPIb {
+	_machine->set_program({
+		0x0c01, 0x0090		// CMPI.B #$90, D1
+	});
+	auto state = _machine->get_processor_state();
+	state.data[1] = 0x8f;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[1], 0x8f);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative | Flag::Carry);
+	XCTAssertEqual(8, _machine->get_cycle_count());
+}
 // MARK: CMPM
 
 - (void)testCMPMl {
