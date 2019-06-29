@@ -295,6 +295,7 @@
 		4B8FE21D1DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2171DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib */; };
 		4B8FE2221DA19FB20090D3CE /* MachinePanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8FE2211DA19FB20090D3CE /* MachinePanel.swift */; };
 		4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B8FE2261DA1DE2D0090D3CE /* NSBundle+DataResource.m */; };
+		4B90467422C6FADD000E2074 /* 68000BitwiseTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B90467322C6FADD000E2074 /* 68000BitwiseTests.mm */; };
 		4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */; };
 		4B9252CE1E74D28200B76AF1 /* Atari ROMs in Resources */ = {isa = PBXBuildFile; fileRef = 4B9252CD1E74D28200B76AF1 /* Atari ROMs */; };
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
@@ -1044,6 +1045,8 @@
 		4B8FE2211DA19FB20090D3CE /* MachinePanel.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachinePanel.swift; sourceTree = "<group>"; };
 		4B8FE2251DA1DE2D0090D3CE /* NSBundle+DataResource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSBundle+DataResource.h"; sourceTree = "<group>"; };
 		4B8FE2261DA1DE2D0090D3CE /* NSBundle+DataResource.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSBundle+DataResource.m"; sourceTree = "<group>"; };
+		4B90467222C6FA31000E2074 /* TestRunner68000.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TestRunner68000.hpp; sourceTree = "<group>"; };
+		4B90467322C6FADD000E2074 /* 68000BitwiseTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000BitwiseTests.mm; sourceTree = "<group>"; };
 		4B92294222B04A3D00A1458F /* MouseMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MouseMachine.hpp; sourceTree = "<group>"; };
 		4B92294422B04ACB00A1458F /* Mouse.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Mouse.hpp; sourceTree = "<group>"; };
 		4B92294A22B064FD00A1458F /* QuadratureMouse.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = QuadratureMouse.hpp; sourceTree = "<group>"; };
@@ -2920,6 +2923,8 @@
 			isa = PBXGroup;
 			children = (
 				4B85322922778E4200F26553 /* Comparative68000.hpp */,
+				4B90467222C6FA31000E2074 /* TestRunner68000.hpp */,
+				4B90467322C6FADD000E2074 /* 68000BitwiseTests.mm */,
 				4BD388872239E198002D14B5 /* 68000Tests.mm */,
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
 				4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */,
@@ -4170,6 +4175,7 @@
 				4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */,
 				4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */,
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,
+				4B90467422C6FADD000E2074 /* 68000BitwiseTests.mm in Sources */,
 				4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */,
 				4B7BC7F61F58F7D200D1B1B4 /* 6502Base.cpp in Sources */,
 				4B7BC7F51F58F27800D1B1B4 /* 6502AllRAM.cpp in Sources */,
