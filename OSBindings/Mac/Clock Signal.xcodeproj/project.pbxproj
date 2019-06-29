@@ -308,6 +308,7 @@
 		4B98A1CE1FFADEC500ADF63B /* MSX ROMs in Resources */ = {isa = PBXBuildFile; fileRef = 4B98A1CD1FFADEC400ADF63B /* MSX ROMs */; };
 		4B9BE400203A0C0600FFAE60 /* MultiSpeaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9BE3FE203A0C0600FFAE60 /* MultiSpeaker.cpp */; };
 		4B9BE401203A0C0600FFAE60 /* MultiSpeaker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9BE3FE203A0C0600FFAE60 /* MultiSpeaker.cpp */; };
+		4B9D0C4B22C7D70A00DE1AD3 /* 68000BCDTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B9D0C4A22C7D70900DE1AD3 /* 68000BCDTests.mm */; };
 		4B9F11C92272375400701480 /* qltrace.txt.gz in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11C82272375400701480 /* qltrace.txt.gz */; };
 		4B9F11CA2272433900701480 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 4B69FB451C4D950F00B5F0AA /* libz.tbd */; };
 		4B9F11CC22729B3600701480 /* OPCLOGR2.BIN in Resources */ = {isa = PBXBuildFile; fileRef = 4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */; };
@@ -1067,6 +1068,7 @@
 		4B98A1CD1FFADEC400ADF63B /* MSX ROMs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "MSX ROMs"; sourceTree = "<group>"; };
 		4B9BE3FE203A0C0600FFAE60 /* MultiSpeaker.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiSpeaker.cpp; sourceTree = "<group>"; };
 		4B9BE3FF203A0C0600FFAE60 /* MultiSpeaker.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiSpeaker.hpp; sourceTree = "<group>"; };
+		4B9D0C4A22C7D70900DE1AD3 /* 68000BCDTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000BCDTests.mm; sourceTree = "<group>"; };
 		4B9F11C82272375400701480 /* qltrace.txt.gz */ = {isa = PBXFileReference; lastKnownFileType = archive.gzip; path = qltrace.txt.gz; sourceTree = "<group>"; };
 		4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = OPCLOGR2.BIN; path = "68000 Coverage/OPCLOGR2.BIN"; sourceTree = "<group>"; };
 		4BA0F68C1EEA0E8400E9489E /* ZX8081.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZX8081.cpp; path = Data/ZX8081.cpp; sourceTree = "<group>"; };
@@ -2929,6 +2931,7 @@
 				4B85322922778E4200F26553 /* Comparative68000.hpp */,
 				4B90467222C6FA31000E2074 /* TestRunner68000.hpp */,
 				4B97ADC722C6FD9B00A22A41 /* 68000ArithmeticTests.mm */,
+				4B9D0C4A22C7D70900DE1AD3 /* 68000BCDTests.mm */,
 				4B90467322C6FADD000E2074 /* 68000BitwiseTests.mm */,
 				4BD388872239E198002D14B5 /* 68000Tests.mm */,
 				4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */,
@@ -4207,6 +4210,7 @@
 				4BFCA12B1ECBE7C400AC40C1 /* ZexallTests.swift in Sources */,
 				4BB2A9AF1E13367E001A5C23 /* CRCTests.mm in Sources */,
 				4B3BA0D01D318B44005DD7A7 /* MOS6532Bridge.mm in Sources */,
+				4B9D0C4B22C7D70A00DE1AD3 /* 68000BCDTests.mm in Sources */,
 				4B3BA0C31D318AEC005DD7A7 /* C1540Tests.swift in Sources */,
 				4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */,
 				4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */,
