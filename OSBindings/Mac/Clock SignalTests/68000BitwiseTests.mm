@@ -26,6 +26,174 @@
 	_machine.reset();
 }
 
+// MARK: AND
+
+- (void)testANDb_Dn {
+	_machine->set_program({
+		0xc604		// AND.b D4, D3
+	});
+	auto state = _machine->get_processor_state();
+	state.data[3] = 0x54ff7856;
+	state.data[4] = 0x9853abcd;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x54ff7844);
+	XCTAssertEqual(state.data[4], 0x9853abcd);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(_machine->get_cycle_count(), 4);
+}
+
+- (void)testANDw_Dn {
+	_machine->set_program({
+		0xc644		// AND.w D4, D3
+	});
+	auto state = _machine->get_processor_state();
+	state.data[3] = 0x54fff856;
+	state.data[4] = 0x9853fbcd;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x54fff844);
+	XCTAssertEqual(state.data[4], 0x9853fbcd);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Negative);
+	XCTAssertEqual(_machine->get_cycle_count(), 4);
+}
+
+- (void)testANDl_Dn {
+	_machine->set_program({
+		0xc684		// AND.l D4, D3
+	});
+	auto state = _machine->get_processor_state();
+	state.data[3] = 0x54fff856;
+	state.data[4] = 0x9853fbcd;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x1053f844);
+	XCTAssertEqual(state.data[4], 0x9853fbcd);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(_machine->get_cycle_count(), 8);
+}
+
+- (void)performANDx_Ind:(uint16_t)opcode {
+	_machine->set_program({
+		opcode
+	});
+	auto state = _machine->get_processor_state();
+	state.data[3] = 0x54fff856;
+	state.address[4] = 0x3000;
+	*_machine->ram_at(0x3000) = 0x0053;
+	*_machine->ram_at(0x3002) = 0xfb00;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(*_machine->ram_at(0x3000), 0x0053);
+	XCTAssertEqual(*_machine->ram_at(0x3002), 0xfb00);
+	XCTAssertEqual(state.address[4], 0x3000);
+}
+
+- (void)testANDb_Ind {
+	[self performANDx_Ind:0xc614];	// AND.b (A4), D3
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x54fff800);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(_machine->get_cycle_count(), 8);
+}
+
+- (void)testANDw_Ind {
+	[self performANDx_Ind:0xc654];	// AND.w (A4), D3
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x54ff0052);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(_machine->get_cycle_count(), 8);
+}
+
+- (void)testANDl_Ind {
+	[self performANDx_Ind:0xc694];	// AND.l (A4), D3
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x0053f800);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(_machine->get_cycle_count(), 14);
+}
+
+- (void)performANDx_PostInc:(uint16_t)opcode {
+	_machine->set_program({
+		opcode		// AND.B (A4)+, D3
+	});
+	auto state = _machine->get_processor_state();
+	state.data[3] = 0x54fff856;
+	state.address[4] = 0x3000;
+	*_machine->ram_at(0x3000) = 0x0053;
+	*_machine->ram_at(0x3002) = 0xfb00;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+}
+
+- (void)testANDb_PostInc_A4 {
+	[self performANDx_PostInc:0xc61c]; // AND.B (A4)+, D3
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x54fff800);
+	XCTAssertEqual(state.address[4], 0x3001);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(_machine->get_cycle_count(), 8);
+}
+
+- (void)testANDb_PostInc_A7 {
+	_machine->set_program({
+		0xc61f		// AND.B (A7)+, D3
+	});
+	_machine->set_initial_stack_pointer(0x3000);
+	auto state = _machine->get_processor_state();
+	state.data[3] = 0x54fff856;
+	*_machine->ram_at(0x3000) = 0x0053;
+	*_machine->ram_at(0x3002) = 0xfb00;
+
+	_machine->set_processor_state(state);
+	_machine->run_for_instructions(1);
+
+	state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x54fff800);
+	XCTAssertEqual(state.stack_pointer(), 0x3002);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Zero);
+	XCTAssertEqual(_machine->get_cycle_count(), 8);
+}
+
+- (void)testANDw_PostInc_A4 {
+	[self performANDx_PostInc:0xc65c]; // AND.w (A4)+, D3
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x54ff0052);
+	XCTAssertEqual(state.address[4], 0x3002);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(_machine->get_cycle_count(), 8);
+}
+
+- (void)testANDl_PostInc_A4 {
+	[self performANDx_PostInc:0xc69c]; // AND.l (A4)+, D3
+
+	const auto state = _machine->get_processor_state();
+	XCTAssertEqual(state.data[3], 0x0053f800);
+	XCTAssertEqual(state.address[4], 0x3004);
+	XCTAssertEqual(state.status & Flag::ConditionCodes, 0);
+	XCTAssertEqual(_machine->get_cycle_count(), 14);
+}
+
+// Omitted: address error test.
+
 // MARK: BCHG
 
 - (void)performBCHGD0D1:(uint32_t)d1 {
