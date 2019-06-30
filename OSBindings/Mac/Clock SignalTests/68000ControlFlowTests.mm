@@ -489,12 +489,11 @@
 	XCTAssertEqual(state.stack_pointer(), 0x2004);
 	XCTAssertEqual(state.program_counter, 0x000c + 4);
 	XCTAssertEqual(16, _machine->get_cycle_count());
-
 }
 
 // MARK: TRAP
 
-- (void)testTrap {
+- (void)testTRAP {
 	_machine->set_program({
 		0x4e41		// TRAP #1
 	});
@@ -514,6 +513,7 @@
 	XCTAssertEqual(*_machine->ram_at(0x202), 0x0000);
 	XCTAssertEqual(*_machine->ram_at(0x204), 0x1002);
 	XCTAssertEqual(state.supervisor_stack_pointer, 0x200);
+	XCTAssertEqual(34, _machine->get_cycle_count());
 }
 
 // MARK: TRAPV

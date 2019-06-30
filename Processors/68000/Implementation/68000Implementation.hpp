@@ -1281,7 +1281,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// Select the trap steps as next; the initial microcycle should be 4 cycles long.
 									bus_program = trap_steps_;
 									populate_trap_steps((decoded_instruction_.full & 15) + 32, get_status());
-									set_next_microcycle_length(HalfCycles(8));
+									set_next_microcycle_length(HalfCycles(12));
 
 									// The program counter to push is actually one slot ago.
 									program_counter_.full -= 2;
@@ -1292,7 +1292,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 										// Select the trap steps as next; the initial microcycle should be skipped.
 										bus_program = trap_steps_;
 										populate_trap_steps(7, get_status());
-										set_next_microcycle_length(HalfCycles(0));
+										set_next_microcycle_length(HalfCycles(4));
 
 										// Push the address after the TRAPV.
 										program_counter_.full -= 4;
@@ -1312,10 +1312,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									if(is_under || is_over) {
 										bus_program = trap_steps_;
 										populate_trap_steps(6, get_status());
-										if(is_under) {
-											set_next_microcycle_length(HalfCycles(16));
+										if(is_over) {
+											set_next_microcycle_length(HalfCycles(20));
 										} else {
-											set_next_microcycle_length(HalfCycles(8));
+											set_next_microcycle_length(HalfCycles(24));
 										}
 
 										// The program counter to push is two slots ago as whatever was the correct prefetch
