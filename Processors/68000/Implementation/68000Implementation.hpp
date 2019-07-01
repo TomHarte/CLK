@@ -930,12 +930,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									int number_of_ones = 0;
 									auto source = active_program_->source->halves.low.full;
 									while(source) {
+										number_of_ones += source&1;
 										source >>= 1;
-										++number_of_ones;
 									}
 
 									// Time taken = 38 cycles + 2 cycles per 1 in the source.
-									set_next_microcycle_length(HalfCycles(4 * number_of_ones + 38*2));
+									set_next_microcycle_length(HalfCycles(4 * number_of_ones + 34*2));
 								} break;
 
 								case Operation::MULS: {
@@ -952,7 +952,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									int source = active_program_->source->halves.low.full;
 									source = (source ^ (source << 1)) & 0xffff;
 									while(source) {
-										if(source&1) ++number_of_pairs;
+										number_of_pairs += source&1;
 										source >>= 1;
 									}
 
