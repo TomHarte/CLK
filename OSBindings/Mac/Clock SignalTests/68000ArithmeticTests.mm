@@ -681,7 +681,7 @@
 	});
 	auto state = _machine->get_processor_state();
 	state.data[1] = d1;
-	state.status = Flag::ConditionCodes;
+	state.status |= Flag::ConditionCodes;
 
 	_machine->set_processor_state(state);
 	_machine->run_for_instructions(1);
