@@ -693,7 +693,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x4768f231);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative | Flag::Overflow);
-//	XCTAssertEqual(20, _machine->get_cycle_count());
+	XCTAssertEqual(20, _machine->get_cycle_count());
 }
 
 - (void)testDIVSOverflow {
@@ -714,7 +714,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x026190D3);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
-//	XCTAssertEqual(138, _machine->get_cycle_count());
+	XCTAssertEqual(138, _machine->get_cycle_count());
 }
 
 - (void)testDIVS_3 {
@@ -723,7 +723,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 1);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
-//	XCTAssertEqual(158, _machine->get_cycle_count());
+	XCTAssertEqual(158, _machine->get_cycle_count());
 }
 
 - (void)testDIVS_4 {
@@ -732,7 +732,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0xfffffffb);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
-//	XCTAssertEqual(158, _machine->get_cycle_count());
+	XCTAssertEqual(158, _machine->get_cycle_count());
 }
 
 - (void)testDIVS_5 {
@@ -741,7 +741,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0xb03de);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
-//	XCTAssertEqual(138, _machine->get_cycle_count());
+	XCTAssertEqual(138, _machine->get_cycle_count());
 }
 
 - (void)testDIVS_6 {
@@ -750,7 +750,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x650000);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Zero);
-//	XCTAssertEqual(156, _machine->get_cycle_count());
+	XCTAssertEqual(156, _machine->get_cycle_count());
 }
 
 - (void)testDIVSExpensiveOverflow {
@@ -760,7 +760,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x80000000);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative | Flag::Overflow);
-//	XCTAssertEqual(158, _machine->get_cycle_count());
+	XCTAssertEqual(158, _machine->get_cycle_count());
 }
 
 - (void)testDIVS_8 {
@@ -770,7 +770,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x1);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
-//	XCTAssertEqual(158, _machine->get_cycle_count());
+	XCTAssertEqual(158, _machine->get_cycle_count());
 }
 
 - (void)testDIVS_9 {
@@ -780,7 +780,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0xc97eb240);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
-//	XCTAssertEqual(148, _machine->get_cycle_count());
+	XCTAssertEqual(148, _machine->get_cycle_count());
 }
 
 - (void)testDIVS_10 {
@@ -790,7 +790,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x305e105f);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
-//	XCTAssertEqual(142, _machine->get_cycle_count());
+	XCTAssertEqual(142, _machine->get_cycle_count());
 }
 
 - (void)testDIVS_11 {
@@ -800,7 +800,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x0bfa00ed);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
-//	XCTAssertEqual(144, _machine->get_cycle_count());
+	XCTAssertEqual(144, _machine->get_cycle_count());
 }
 
 - (void)testDIVS_12 {
@@ -810,7 +810,7 @@
 	const auto state = _machine->get_processor_state();
 	XCTAssertEqual(state.data[1], 0x39dcffd4);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend | Flag::Negative);
-//	XCTAssertEqual(150, _machine->get_cycle_count());
+	XCTAssertEqual(150, _machine->get_cycle_count());
 }
 
 - (void)testDIVSException {
@@ -822,7 +822,7 @@
 	XCTAssertEqual(state.data[1], 0x1fffffff);
 	XCTAssertEqual(state.supervisor_stack_pointer, 0xfffffffa);
 	XCTAssertEqual(state.status & Flag::ConditionCodes, Flag::Extend);
-//	XCTAssertEqual(42, _machine->get_cycle_count());
+	XCTAssertEqual(42, _machine->get_cycle_count());
 }
 
 // MARK: DIVU

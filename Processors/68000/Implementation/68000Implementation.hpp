@@ -972,7 +972,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	bus_program = active_micro_op_->bus_program;		\
 														\
 	populate_trap_steps(5, get_status());				\
-	bus_program->microcycle.length =  HalfCycles(8);	\
+	bus_program->microcycle.length = HalfCycles(20);	\
 														\
 	program_counter_.full -= 2;
 
