@@ -1572,9 +1572,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								/*
 									Shifts and rotates.
 								*/
-#define set_neg_zero_overflow(v, m)	\
+#define set_neg_zero(v, m)	\
 	zero_result_ = decltype(zero_result_)(v);	\
-	negative_flag_ = zero_result_ & decltype(negative_flag_)(m);	\
+	negative_flag_ = zero_result_ & decltype(negative_flag_)(m);
+
+#define set_neg_zero_overflow(v, m)	\
+	set_neg_zero(v, m);	\
 	overflow_flag_ = (decltype(zero_result_)(value) ^ zero_result_) & decltype(overflow_flag_)(m);
 
 #define decode_shift_count()	\
@@ -1585,18 +1588,24 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #define set_flags_w(t) set_flags(active_program_->destination->halves.low.full, 0x8000, t)
 #define set_flags_l(t) set_flags(active_program_->destination->full, 0x80000000, t)
 
-#define lsl(destination, size)	{\
+#define asl(destination, size)	{\
 	decode_shift_count();	\
 	const auto value = destination;	\
 \
 	if(!shift_count) {	\
-		carry_flag_ = 0;	\
+		carry_flag_ = overflow_flag_ = 0;	\
 	} else {	\
 		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
 		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)( (1u << (size - 1)) >> (shift_count - 1) );	\
+		\
+		if(shift_count >= size) overflow_flag_ = value && (value != ((1 << size) - 1));	\
+		else {	\
+			const auto mask = decltype(destination)((0xffffffff << (size - shift_count)) & ((1 << size) - 1));	\
+			overflow_flag_ = mask & value && ((mask & value) != mask);	\
+		}	\
 	}	\
 \
-	set_neg_zero_overflow(destination, 1 << (size - 1));	\
+	set_neg_zero(destination, 1 << (size - 1));	\
 }
 
 								case Operation::ASLm: {
@@ -1605,9 +1614,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									extend_flag_ = carry_flag_ = value & 0x8000;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
-								case Operation::ASLb: lsl(active_program_->destination->halves.low.halves.low, 8);	break;
-								case Operation::ASLw: lsl(active_program_->destination->halves.low.full, 16); 		break;
-								case Operation::ASLl: lsl(active_program_->destination->full, 32); 					break;
+								case Operation::ASLb: asl(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::ASLw: asl(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::ASLl: asl(active_program_->destination->full, 32); 					break;
 
 
 
@@ -1645,8 +1654,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 #undef set_neg_zero_overflow
 #define set_neg_zero_overflow(v, m)	\
-	zero_result_ = decltype(zero_result_)(v);	\
-	negative_flag_ = zero_result_ & decltype(zero_result_)(m);	\
+	set_neg_zero(v, m);	\
 	overflow_flag_ = 0;
 
 #undef set_flags
@@ -1655,6 +1663,20 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	negative_flag_ = zero_result_ & (m);	\
 	overflow_flag_ = 0;	\
 	carry_flag_ = value & (t);
+
+#define lsl(destination, size)	{\
+	decode_shift_count();	\
+	const auto value = destination;	\
+\
+	if(!shift_count) {	\
+		carry_flag_ = 0;	\
+	} else {	\
+		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
+		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)( (1u << (size - 1)) >> (shift_count - 1) );	\
+	}	\
+\
+	set_neg_zero_overflow(destination, 1 << (size - 1));	\
+}
 
 								case Operation::LSLm: {
 									const auto value = active_program_->destination->halves.low.full;
@@ -1813,6 +1835,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef asr
 #undef lsr
 #undef lsl
+#undef asl
 
 #undef set_flags
 #undef decode_shift_count
@@ -1820,6 +1843,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef set_flags_w
 #undef set_flags_l
 #undef set_neg_zero_overflow
+#undef set_net_zero
+
 								/*
 									RTE and RTR share an implementation.
 								*/
