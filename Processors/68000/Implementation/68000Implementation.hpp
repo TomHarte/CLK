@@ -945,18 +945,19 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									zero_result_ = active_program_->destination->full;
 									negative_flag_ = zero_result_ & 0x80000000;
 
+									// Find the number of 01 or 10 pairs in the 17-bit number
+									// formed by the source value with a 0 suffix.
 									// TODO: optimise the below?
 									int number_of_pairs = 0;
 									int source = active_program_->source->halves.low.full;
-									int bit = 0;
-									while(source | bit) {
-										number_of_pairs += (bit ^ source) & 1;
-										bit = source & 1;
+									source = (source ^ (source << 1)) & 0xffff;
+									while(source) {
+										if(source&1) ++number_of_pairs;
 										source >>= 1;
 									}
 
 									// Time taken = 38 cycles + 2 cycles per 1 in the source.
-									set_next_microcycle_length(HalfCycles(4 * number_of_pairs + 38*2));
+									set_next_microcycle_length(HalfCycles(4 * number_of_pairs + 34*2));
 								} break;
 
 								/*
