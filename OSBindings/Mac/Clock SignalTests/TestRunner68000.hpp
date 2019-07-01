@@ -11,6 +11,7 @@
 
 #include <array>
 
+#define LOG_TRACE
 #include "../../../Processors/68000/68000.hpp"
 
 using Flag = CPU::MC68000::Flag;
@@ -132,7 +133,7 @@ class RAM68000: public CPU::MC68000::BusHandler {
 
 	private:
 		CPU::MC68000::Processor<RAM68000, true, true> m68000_;
-		std::array<uint16_t, 256*1024> ram_;
+		std::array<uint16_t, 256*1024> ram_{};
 		int instructions_remaining_;
 		HalfCycles duration_;
 		bool has_run_ = false;
