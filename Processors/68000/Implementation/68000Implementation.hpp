@@ -1769,25 +1769,20 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::RORw: ror(active_program_->destination->halves.low.full, 16); 		break;
 								case Operation::RORl: ror(active_program_->destination->full, 32); 					break;
 
-
 #define roxl(destination, size)	{ \
 	decode_shift_count();	\
-	const auto value = destination;	\
 \
-	if(!shift_count) {	\
-		carry_flag_ = extend_flag_;	\
-	} else {	\
-		shift_count %= (size + 1);	\
-		destination = decltype(destination)(\
-			(value << shift_count) |	\
-			(value >> (size + 1 - shift_count)) |	\
-			((extend_flag_ ? decltype(destination)(1 << (size - 1)) : 0) >> (size - shift_count))\
-		);	\
-		carry_flag_ = extend_flag_ = (value >> (size - shift_count))&1;	\
-	}	\
+	shift_count %= (size + 1);	\
+	uint64_t compound = uint64_t(destination) | (extend_flag_ ? (1ull << size) : 0);	\
+	compound = \
+		(compound << shift_count) |	\
+		(compound >> (size + 1 - shift_count));	\
+	carry_flag_ = extend_flag_ = decltype(carry_flag_)((compound >> size) & 1);	\
+	destination = decltype(destination)(compound);	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
 }
+
 
 								case Operation::ROXLm: {
 									const auto value = active_program_->destination->halves.low.full;
@@ -1799,21 +1794,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::ROXLw: roxl(active_program_->destination->halves.low.full, 16); 		break;
 								case Operation::ROXLl: roxl(active_program_->destination->full, 32); 					break;
 
-
 #define roxr(destination, size)	{ \
 	decode_shift_count();	\
-	const auto value = destination;	\
 \
-	if(!shift_count) {	\
-		carry_flag_ = extend_flag_;	\
-	} else {	\
-		shift_count %= (size + 1);	\
-		destination = \
-			decltype(destination)(value >> shift_count) |	\
-			decltype(destination)(value << (size + 1 - shift_count)) |	\
-			decltype(destination)((extend_flag_ ? 1 : 0) << (size - shift_count));	\
-		carry_flag_ = extend_flag_ = value & (1 << shift_count);	\
-	}	\
+	shift_count %= (size + 1);	\
+	uint64_t compound = uint64_t(destination) | (extend_flag_ ? (1ull << size) : 0);	\
+	compound = \
+		(compound >> shift_count) |	\
+		(compound << (size + 1 - shift_count));	\
+	carry_flag_ = extend_flag_ = decltype(carry_flag_)((compound >> size) & 1);	\
+	destination = decltype(destination)(compound);	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
 }
