@@ -106,7 +106,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			// Attach the drives to the IWM.
 			iwm_.iwm.set_drive(0, &drives_[0]);
-//			iwm_.iwm.set_drive(1, &drives_[1]);
+			iwm_.iwm.set_drive(1, &drives_[1]);
 
 			// The Mac runs at 7.8336mHz.
 			set_clock_rate(double(CLOCK_RATE));
@@ -180,6 +180,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
 
 			// Update interrupt input. TODO: move this into a VIA/etc delegate callback?
+			// Double TODO: does this really cascade like this?
 			if(scc_.get_interrupt_line()) {
 				mc68000_.set_interrupt_level(2);
 			} else if(via_.get_interrupt_line()) {
@@ -327,8 +328,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							break;
 						}
 
-//						if(!(operation & Microcycle::Read) && (word_address == (0x0000182e >> 1))) {
-//							printf("Write to 0000182e: %04x from %08x\n", cycle.value->full, mc68000_.get_state().program_counter);
+//						if(!(operation & Microcycle::Read) && (word_address == (0x00000172 >> 1))) {
+//							if(operation & Microcycle::SelectByte)
+//								printf("MBState: %02x\n", cycle.value->halves.low);
+//							else
+//								printf("MBState: %04x\n", cycle.value->full);
 //						}
 //						if(
 //							(

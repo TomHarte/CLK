@@ -8,7 +8,6 @@
 
 #include "IWM.hpp"
 
-//#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 using namespace Apple;
@@ -155,6 +154,11 @@ uint8_t IWM::read(int address) {
 										// (0 = single sided)
 					LOG("single- or double-sided drive)");
 					sense = drives_[active_drive_] && (drives_[active_drive_]->get_head_count() == 1) ? 0 : 1;
+				break;
+
+				case CA1|CA0:
+					LOG("1|0 experimental)");
+					sense = 0;
 				break;
 
 				case CA2|CA1|CA0:		// "Present/HD" (per the Mac Plus ROM)
