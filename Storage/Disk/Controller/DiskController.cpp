@@ -40,7 +40,7 @@ Drive &Controller::get_drive() {
 
 // MARK: - Drive::EventDelegate
 
-void Controller::process_event(const Track::Event &event) {
+void Controller::process_event(const Drive::Event &event) {
 	switch(event.type) {
 		case Track::Event::FluxTransition:	pll_->add_pulse();		break;
 		case Track::Event::IndexHole:		process_index_hole();	break;

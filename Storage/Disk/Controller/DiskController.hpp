@@ -120,7 +120,7 @@ class Controller:
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override;
 
 		// for Drive::EventDelegate
-		void process_event(const Track::Event &event) override;
+		void process_event(const Drive::Event &event) override;
 		void advance(const Cycles cycles) override ;
 
 		// to satisfy DigitalPhaseLockedLoop::Delegate

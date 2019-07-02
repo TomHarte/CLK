@@ -20,9 +20,8 @@ using namespace Storage::Disk;
 
 Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, int number_of_heads):
 	Storage::TimedEventLoop(input_clock_rate),
-	rotational_multiplier_(60, revolutions_per_minute),
+	rotational_multiplier_(60.0f / float(revolutions_per_minute)),
 	available_heads_(number_of_heads) {
-	rotational_multiplier_.simplify();
 
 	const auto seed = static_cast<std::default_random_engine::result_type>(std::chrono::system_clock::now().time_since_epoch().count());
 	std::default_random_engine randomiser(seed);
@@ -41,7 +40,7 @@ Drive::Drive(unsigned int input_clock_rate, int number_of_heads) : Drive(input_c
 void Drive::set_rotation_speed(float revolutions_per_minute) {
 	// TODO: probably I should look into
 	// whether doing all this with quotients is really a good idea.
-	rotational_multiplier_ = Time(60.0f / revolutions_per_minute);
+	rotational_multiplier_ = 60.0f / revolutions_per_minute;
 }
 
 Drive::~Drive() {
@@ -121,17 +120,13 @@ bool Drive::get_tachometer() {
 }
 
 float Drive::get_rotation() {
-	return get_time_into_track().get<float>();
+	return get_time_into_track();
 }
 
-Storage::Time Drive::get_time_into_track() {
-	// `result` will initially be amount of time since the index hole was seen as a
-	// proportion of a second; convert it into proportion of a rotation, simplify and return.
-	Time result(cycles_since_index_hole_, static_cast<int>(get_input_clock_rate()));
-	result /= rotational_multiplier_;
-	result.simplify();
-//	assert(result <= Time(1));
-	return result;
+float Drive::get_time_into_track() {
+	// i.e. amount of time since the index hole was seen, as a proportion of a second,
+	// converted to a proportion of a rotation.
+	return float(cycles_since_index_hole_) / (float(get_input_clock_rate()) * rotational_multiplier_);
 }
 
 bool Drive::get_is_read_only() {
@@ -211,25 +206,24 @@ void Drive::run_for(const Cycles cycles) {
 
 // MARK: - Track timed event loop
 
-void Drive::get_next_event(const Time &duration_already_passed) {
+void Drive::get_next_event(float duration_already_passed) {
 	// Grab a new track if not already in possession of one. This will recursively call get_next_event,
 	// supplying a proper duration_already_passed.
 	if(!track_) {
-		random_interval_.set_zero();
+		random_interval_ = 0.0f;
 		setup_track();
 		return;
 	}
 
 	// If gain has now been turned up so as to generate noise, generate some noise.
-	if(random_interval_ > Time(0)) {
-		current_event_.type = Track::Event::IndexHole;
-		current_event_.length.length = 2 + (random_source_&1);
-		current_event_.length.clock_rate = 1000000;
+	if(random_interval_ > 0.0f) {
+		current_event_.type = Track::Event::FluxTransition;
+		current_event_.length = float(2 + (random_source_&1)) / 1000000.0f;
 		random_source_ = (random_source_ >> 1) | (random_source_ << 63);
 
 		if(random_interval_ < current_event_.length) {
 			current_event_.length = random_interval_;
-			random_interval_.set_zero();
+			random_interval_ = 0.0f;
 		} else {
 			random_interval_ -= current_event_.length;
 		}
@@ -238,22 +232,21 @@ void Drive::get_next_event(const Time &duration_already_passed) {
 	}
 
 	if(track_) {
-		current_event_ = track_->get_next_event();
+		const auto track_event = track_->get_next_event();
+		current_event_.type = track_event.type;
+		current_event_.length = track_event.length.get<float>();
 	} else {
-		current_event_.length.length = 1;
-		current_event_.length.clock_rate = 1;
+		current_event_.length = 1.0f;
 		current_event_.type = Track::Event::IndexHole;
 	}
 
 	// divide interval, which is in terms of a single rotation of the disk, by rotation speed to
 	// convert it into revolutions per second; this is achieved by multiplying by rotational_multiplier_
-//	assert(current_event_.length <= Time(1) && current_event_.length >= Time(0));
-//	assert(current_event_.length > duration_already_passed);
-	Time interval = (current_event_.length - duration_already_passed) * rotational_multiplier_;
+	float interval = std::max((current_event_.length - duration_already_passed) * rotational_multiplier_, 0.0f);
 
 	// An interval greater than 15ms => adjust gain up the point where noise starts happening.
 	// Seed that up and leave a 15ms gap until it starts.
-	const Time safe_gain_period(15, 1000000);
+	const float safe_gain_period = 15.0f / 1000000.0f;
 	if(interval >= safe_gain_period) {
 		random_interval_ = interval - safe_gain_period;
 		interval = safe_gain_period;
@@ -264,7 +257,6 @@ void Drive::get_next_event(const Time &duration_already_passed) {
 
 void Drive::process_next_event() {
 	if(current_event_.type == Track::Event::IndexHole) {
-//		assert(get_time_into_track() == Time(1) || get_time_into_track() == Time(0));
 		if(ready_index_count_ < 2) ready_index_count_++;
 		cycles_since_index_hole_ = 0;
 	}
@@ -274,7 +266,7 @@ void Drive::process_next_event() {
 	){
 		event_delegate_->process_event(current_event_);
 	}
-	get_next_event(Time(0));
+	get_next_event(0.0f);
 }
 
 // MARK: - Track management
@@ -294,24 +286,20 @@ void Drive::setup_track() {
 		track_.reset(new UnformattedTrack);
 	}
 
-	Time offset;
-	Time track_time_now = get_time_into_track();
-	assert(track_time_now >= Time(0) && current_event_.length <= Time(1));
+	float offset = 0.0f;
+	const auto track_time_now = get_time_into_track();
+	const auto time_found = track_->seek_to(Time(track_time_now)).get<float>();
 
-	Time time_found = track_->seek_to(track_time_now);
-
-	// time_found can be greater than track_time_now if limited precision caused rounding
+	// `time_found` can be greater than `track_time_now` if limited precision caused rounding.
 	if(time_found <= track_time_now) {
 		offset = track_time_now - time_found;
-	} else {
-		offset.set_zero();
 	}
 
 	get_next_event(offset);
 }
 
 void Drive::invalidate_track() {
-	random_interval_.set_zero();
+	random_interval_ = 0.0f;
 	track_ = nullptr;
 	if(patched_track_) {
 		set_track(patched_track_);
@@ -328,10 +316,10 @@ void Drive::begin_writing(Time bit_length, bool clamp_to_index_hole) {
 	cycles_per_bit_ = Storage::Time(get_input_clock_rate()) * bit_length;
 	cycles_per_bit_.simplify();
 
-	write_segment_.length_of_a_bit = bit_length / rotational_multiplier_;
+	write_segment_.length_of_a_bit = bit_length / Time(rotational_multiplier_);
 	write_segment_.data.clear();
 
-	write_start_time_ = get_time_into_track();
+	write_start_time_ = Time(get_time_into_track());
 }
 
 void Drive::write_bit(bool value) {

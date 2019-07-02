@@ -105,13 +105,18 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		*/
 		void run_for(const Cycles cycles);
 
+		struct Event {
+			Track::Event::Type type;
+			float length = 0.0f;
+		} current_event_;
+
 		/*!
 			Provides a mechanism to receive track events as they occur, including the synthetic
 			event of "you told me to output the following data, and I've done that now".
 		*/
 		struct EventDelegate {
 			/// Informs the delegate that @c event has been reached.
-			virtual void process_event(const Track::Event &event) = 0;
+			virtual void process_event(const Event &event) = 0;
 
 			/*!
 				If the drive is in write mode, announces that all queued bits have now been written.
@@ -175,7 +180,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		// Contains the multiplier that converts between track-relative lengths
 		// to real-time lengths. So it's the reciprocal of rotation speed.
-		Time rotational_multiplier_;
+		float rotational_multiplier_;
 
 		// A count of time since the index hole was last seen. Which is used to
 		// determine how far the drive is into a full rotation when switching to
@@ -211,12 +216,11 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		// TimedEventLoop call-ins and state.
 		void process_next_event() override;
-		void get_next_event(const Time &duration_already_passed);
+		void get_next_event(float duration_already_passed);
 		void advance(const Cycles cycles) override;
-		Track::Event current_event_;
 
 		// Helper for track changes.
-		Time get_time_into_track();
+		float get_time_into_track();
 
 		// The target (if any) for track events.
 		EventDelegate *event_delegate_ = nullptr;
@@ -241,7 +245,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		// A rotating random data source.
 		uint64_t random_source_;
-		Time random_interval_;
+		float random_interval_;
 };
 
 

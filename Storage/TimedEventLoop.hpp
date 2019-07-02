@@ -64,6 +64,7 @@ namespace Storage {
 				Sets the time interval, as a proportion of a second, until the next event should be triggered.
 			*/
 			void set_next_event_time_interval(Time interval);
+			void set_next_event_time_interval(float interval);
 
 			/*!
 				Communicates that the next event is triggered. A subclass will idiomatically process that event
@@ -102,7 +103,7 @@ namespace Storage {
 		private:
 			unsigned int input_clock_rate_ = 0;
 			int cycles_until_event_ = 0;
-			double subcycles_until_event_ = 0.0;
+			float subcycles_until_event_ = 0.0;
 	};
 
 }

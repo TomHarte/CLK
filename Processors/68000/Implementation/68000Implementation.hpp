@@ -1598,7 +1598,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
 		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)( (1u << (size - 1)) >> (shift_count - 1) );	\
 		\
-		if(shift_count >= size) overflow_flag_ = value && (value != ((1 << size) - 1));	\
+		if(shift_count >= size) overflow_flag_ = value && (value != decltype(value)(-1));	\
 		else {	\
 			const auto mask = decltype(destination)((0xffffffff << (size - shift_count)) & ((1 << size) - 1));	\
 			overflow_flag_ = mask & value && ((mask & value) != mask);	\

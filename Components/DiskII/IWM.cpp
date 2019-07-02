@@ -353,7 +353,7 @@ void IWM::run_for(const Cycles cycles) {
 	}
 }
 
-void IWM::process_event(const Storage::Disk::Track::Event &event) {
+void IWM::process_event(const Storage::Disk::Drive::Event &event) {
 	switch(event.type) {
 		case Storage::Disk::Track::Event::IndexHole: return;
 		case Storage::Disk::Track::Event::FluxTransition:

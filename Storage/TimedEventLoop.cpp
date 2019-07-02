@@ -65,14 +65,18 @@ void TimedEventLoop::jump_to_next_event() {
 }
 
 void TimedEventLoop::set_next_event_time_interval(Time interval) {
+	set_next_event_time_interval(interval.get<float>());
+}
+
+void TimedEventLoop::set_next_event_time_interval(float interval) {
 	// Calculate [interval]*[input clock rate] + [subcycles until this event]
-	double double_interval = interval.get<double>() * static_cast<double>(input_clock_rate_) + subcycles_until_event_;
+	float float_interval = interval * float(input_clock_rate_) + subcycles_until_event_;
 
 	// So this event will fire in the integral number of cycles from now, putting us at the remainder
 	// number of subcycles
-	const int addition = static_cast<int>(double_interval);
+	const int addition = int(float_interval);
 	cycles_until_event_ += addition;
-	subcycles_until_event_ = fmod(double_interval, 1.0);
+	subcycles_until_event_ = fmodf(float_interval, 1.0);
 
 	assert(cycles_until_event_ >= 0);
 	assert(subcycles_until_event_ >= 0.0);

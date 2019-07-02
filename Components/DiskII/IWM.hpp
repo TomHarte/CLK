@@ -44,7 +44,7 @@ class IWM:
 
 	private:
 		// Storage::Disk::Drive::EventDelegate.
-		void process_event(const Storage::Disk::Track::Event &event) override;
+		void process_event(const Storage::Disk::Drive::Event &event) override;
 
 		const int clock_rate_;
 
