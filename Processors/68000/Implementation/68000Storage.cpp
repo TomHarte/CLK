@@ -361,12 +361,11 @@ struct ProcessorStorageConstructor {
 
 				step.microcycle.operation = Microcycle::SameAddress | (is_read ? Microcycle::Read : 0) | (read_full_words ? Microcycle::SelectWord : Microcycle::SelectByte);
 				if(post_adjustment) {
-					// nr and nR should affect address 0; nw, nW, nrd and nRd should affect address 1.
-					if(tolower(access_pattern[1]) == 'r' && token_length == 2) {
+					assert((*address_iterator == &storage_.effective_address_[0].full) || (*address_iterator == &storage_.effective_address_[1].full));
+					if(*address_iterator == &storage_.effective_address_[0].full) {
 						step.action = (post_adjustment > 0) ? Action::IncrementEffectiveAddress0 : Action::DecrementEffectiveAddress0;
 					} else {
 						step.action = (post_adjustment > 0) ? Action::IncrementEffectiveAddress1 : Action::DecrementEffectiveAddress1;
-
 					}
 				}
 				steps.push_back(step);
