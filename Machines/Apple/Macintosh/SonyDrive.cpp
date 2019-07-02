@@ -25,7 +25,7 @@ void SonyDrive::did_step(Storage::Disk::HeadPosition to_position) {
 		/*
 			Numbers below cribbed from the Kryoflux forums.
 		*/
-		printf("Head moved to %d\n", to_position.as_int());
+//		printf("Head moved to %d\n", to_position.as_int());
 		const int zone = to_position.as_int() >> 4;
 		switch(zone) {
 			case 0:		set_rotation_speed(393.3807f);	break;

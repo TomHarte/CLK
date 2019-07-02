@@ -106,7 +106,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			// Attach the drives to the IWM.
 			iwm_.iwm.set_drive(0, &drives_[0]);
-			iwm_.iwm.set_drive(1, &drives_[1]);
+//			iwm_.iwm.set_drive(1, &drives_[1]);
 
 			// The Mac runs at 7.8336mHz.
 			set_clock_rate(double(CLOCK_RATE));
