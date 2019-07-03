@@ -18,6 +18,7 @@
 #include "Video.hpp"
 
 #include "../../CRTMachine.hpp"
+#include "../../KeyboardMachine.hpp"
 #include "../../MediaTarget.hpp"
 #include "../../MouseMachine.hpp"
 
@@ -49,7 +50,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
 	public MouseMachine::Machine,
-	public CPU::MC68000::BusHandler {
+	public CPU::MC68000::BusHandler,
+	public KeyboardMachine::MappedMachine {
 	public:
 		using Target = Analyser::Static::Macintosh::Target;
 
@@ -396,6 +398,18 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			return true;
 		}
 
+		// MARK: Keyboard input.
+
+		KeyboardMapper *get_keyboard_mapper() override {
+			return &keyboard_mapper_;
+		}
+
+		void set_key_state(uint16_t key, bool is_pressed) override {
+			keyboard_.enqueue_key_state(key, is_pressed);
+		}
+
+		// TODO: clear all keys.
+
 	private:
 		Inputs::Mouse &get_mouse() override {
 			return mouse_;
@@ -475,7 +489,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 						case Port::B:
 						return uint8_t(
-							(mouse_.get_button_mask() & 1) ? 0x00 : 0x08 |
+							((mouse_.get_button_mask() & 1) ? 0x00 : 0x08) |
 							((mouse_.get_channel(0) & 2) << 3) |
 							((mouse_.get_channel(1) & 2) << 4) |
 							(clock_.get_data() ? 0x02 : 0x00) |
@@ -544,6 +558,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		SonyDrive drives_[2];
 		Inputs::QuadratureMouse mouse_;
+
+		Apple::Macintosh::KeyboardMapper keyboard_mapper_;
 
 		uint32_t ram_mask_ = 0;
 		uint32_t rom_mask_ = 0;
