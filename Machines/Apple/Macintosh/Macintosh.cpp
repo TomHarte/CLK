@@ -376,6 +376,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// As above: flush audio after video.
 			via_.flush();
 			audio_.queue.perform();
+
+			// Experimental?
+			iwm_.flush();
 		}
 
 		void set_rom_is_overlay(bool rom_is_overlay) {
@@ -507,7 +510,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						CA2 is used for receiving RTC interrupts.
 						CA1 is used for receiving vsync.
 					*/
-					if(port == Port::B && line == Line::Two) keyboard_.set_input(value);
+					if(port == Port::B && line == Line::Two) {
+						printf("Keyboard input: %c\n", value ? 't' : 'f');
+						keyboard_.set_input(value);
+					}
 					else printf("Unhandled control line output: %c %d\n", port ? 'B' : 'A', int(line));
 				}
 
