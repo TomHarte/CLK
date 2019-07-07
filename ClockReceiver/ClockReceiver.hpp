@@ -9,6 +9,8 @@
 #ifndef ClockReceiver_hpp
 #define ClockReceiver_hpp
 
+#include "ForceInline.hpp"
+
 /*
 	Informal pattern for all classes that run from a clock cycle:
 
@@ -55,89 +57,89 @@ template <class T> class WrappedInt {
 		constexpr WrappedInt(int l) : length_(l) {}
 		constexpr WrappedInt() : length_(0) {}
 
-		T &operator =(const T &rhs) {
+		forceinline T &operator =(const T &rhs) {
 			length_ = rhs.length_;
 			return *this;
 		}
 
-		T &operator +=(const T &rhs) {
+		forceinline T &operator +=(const T &rhs) {
 			length_ += rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		T &operator -=(const T &rhs) {
+		forceinline T &operator -=(const T &rhs) {
 			length_ -= rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		T &operator ++() {
+		forceinline T &operator ++() {
 			++ length_;
 			return *static_cast<T *>(this);
 		}
 
-		T &operator ++(int) {
+		forceinline T &operator ++(int) {
 			length_ ++;
 			return *static_cast<T *>(this);
 		}
 
-		T &operator --() {
+		forceinline T &operator --() {
 			-- length_;
 			return *static_cast<T *>(this);
 		}
 
-		T &operator --(int) {
+		forceinline T &operator --(int) {
 			length_ --;
 			return *static_cast<T *>(this);
 		}
 
-		T &operator *=(const T &rhs) {
+		forceinline T &operator *=(const T &rhs) {
 			length_ *= rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		T &operator /=(const T &rhs) {
+		forceinline T &operator /=(const T &rhs) {
 			length_ /= rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		T &operator %=(const T &rhs) {
+		forceinline T &operator %=(const T &rhs) {
 			length_ %= rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		T &operator &=(const T &rhs) {
+		forceinline T &operator &=(const T &rhs) {
 			length_ &= rhs.length_;
 			return *static_cast<T *>(this);
 		}
 
-		constexpr T operator +(const T &rhs) const			{	return T(length_ + rhs.length_);	}
-		constexpr T operator -(const T &rhs) const			{	return T(length_ - rhs.length_);	}
+		forceinline constexpr T operator +(const T &rhs) const			{	return T(length_ + rhs.length_);	}
+		forceinline constexpr T operator -(const T &rhs) const			{	return T(length_ - rhs.length_);	}
 
-		constexpr T operator *(const T &rhs) const			{	return T(length_ * rhs.length_);	}
-		constexpr T operator /(const T &rhs) const			{	return T(length_ / rhs.length_);	}
+		forceinline constexpr T operator *(const T &rhs) const			{	return T(length_ * rhs.length_);	}
+		forceinline constexpr T operator /(const T &rhs) const			{	return T(length_ / rhs.length_);	}
 
-		constexpr T operator %(const T &rhs) const			{	return T(length_ % rhs.length_);	}
-		constexpr T operator &(const T &rhs) const			{	return T(length_ & rhs.length_);	}
+		forceinline constexpr T operator %(const T &rhs) const			{	return T(length_ % rhs.length_);	}
+		forceinline constexpr T operator &(const T &rhs) const			{	return T(length_ & rhs.length_);	}
 
-		constexpr T operator -() const						{	return T(- length_);				}
+		forceinline constexpr T operator -() const						{	return T(- length_);				}
 
-		constexpr bool operator <(const T &rhs) const		{	return length_ < rhs.length_;		}
-		constexpr bool operator >(const T &rhs) const		{	return length_ > rhs.length_;		}
-		constexpr bool operator <=(const T &rhs) const		{	return length_ <= rhs.length_;		}
-		constexpr bool operator >=(const T &rhs) const		{	return length_ >= rhs.length_;		}
-		constexpr bool operator ==(const T &rhs) const		{	return length_ == rhs.length_;		}
-		constexpr bool operator !=(const T &rhs) const		{	return length_ != rhs.length_;		}
+		forceinline constexpr bool operator <(const T &rhs) const		{	return length_ < rhs.length_;		}
+		forceinline constexpr bool operator >(const T &rhs) const		{	return length_ > rhs.length_;		}
+		forceinline constexpr bool operator <=(const T &rhs) const		{	return length_ <= rhs.length_;		}
+		forceinline constexpr bool operator >=(const T &rhs) const		{	return length_ >= rhs.length_;		}
+		forceinline constexpr bool operator ==(const T &rhs) const		{	return length_ == rhs.length_;		}
+		forceinline constexpr bool operator !=(const T &rhs) const		{	return length_ != rhs.length_;		}
 
-		constexpr bool operator !() const					{	return !length_;					}
+		forceinline constexpr bool operator !() const					{	return !length_;					}
 		// bool operator () is not supported because it offers an implicit cast to int, which is prone silently to permit misuse
 
-		constexpr int as_int() const { return length_; }
+		forceinline constexpr int as_int() const { return length_; }
 
 		/*!
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
-		T divide(const T &divisor) {
+		forceinline T divide(const T &divisor) {
 			T result(length_ / divisor.length_);
 			length_ %= divisor.length_;
 			return result;
@@ -147,7 +149,7 @@ template <class T> class WrappedInt {
 			Flushes the value in @c this. The current value is returned, and the internal value
 			is reset to zero.
 		*/
-		T flush() {
+		forceinline T flush() {
 			T result(length_);
 			length_ = 0;
 			return result;
@@ -178,19 +180,19 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		constexpr HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
 
 		/// @returns The number of whole cycles completely covered by this span of half cycles.
-		constexpr Cycles cycles() const {
+		forceinline constexpr Cycles cycles() const {
 			return Cycles(length_ >> 1);
 		}
 
 		/// Flushes the whole cycles in @c this, subtracting that many from the total stored here.
-		Cycles flush_cycles() {
+		forceinline Cycles flush_cycles() {
 			Cycles result(length_ >> 1);
 			length_ &= 1;
 			return result;
 		}
 
 		/// Flushes the half cycles in @c this, returning the number stored and setting this total to zero.
-		HalfCycles flush() {
+		forceinline HalfCycles flush() {
 			HalfCycles result(length_);
 			length_ = 0;
 			return result;
@@ -200,9 +202,9 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
-		Cycles divide_cycles(const Cycles &divisor) {
-			HalfCycles half_divisor = HalfCycles(divisor);
-			Cycles result(length_ / half_divisor.length_);
+		forceinline Cycles divide_cycles(const Cycles &divisor) {
+			const HalfCycles half_divisor = HalfCycles(divisor);
+			const Cycles result(length_ / half_divisor.length_);
 			length_ %= half_divisor.length_;
 			return result;
 		}
@@ -216,7 +218,7 @@ template <class T> class HalfClockReceiver: public T {
 	public:
 		using T::T;
 
-		inline void run_for(const HalfCycles half_cycles) {
+		forceinline void run_for(const HalfCycles half_cycles) {
 			half_cycles_ += half_cycles;
 			T::run_for(half_cycles_.flush_cycles());
 		}
