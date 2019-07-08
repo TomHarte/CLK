@@ -447,7 +447,7 @@ struct ActivityObserver: public Activity::Observer {
 	auto mouse_machine = _machine->mouse_machine();
 	if(mouse_machine) {
 		@synchronized(self) {
-			mouse_machine->get_mouse().move(int(deltaX), -int(deltaY));
+			mouse_machine->get_mouse().move(int(deltaX), int(deltaY));
 		}
 	}
 }
