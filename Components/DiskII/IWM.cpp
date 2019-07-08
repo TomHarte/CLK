@@ -8,6 +8,7 @@
 
 #include "IWM.hpp"
 
+#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 using namespace Apple;
