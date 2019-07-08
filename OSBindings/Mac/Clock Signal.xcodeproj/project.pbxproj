@@ -237,6 +237,19 @@
 		4B7F1897215486A200388727 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F1896215486A100388727 /* StaticAnalyser.cpp */; };
 		4B7F1898215486A200388727 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F1896215486A100388727 /* StaticAnalyser.cpp */; };
 		4B80AD001F85CACA00176895 /* BestEffortUpdater.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B80ACFE1F85CAC900176895 /* BestEffortUpdater.cpp */; };
+		4B8318B022D3E531006DB630 /* AppleII.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE0050227CE8CA000CA200 /* AppleII.cpp */; };
+		4B8318B122D3E53A006DB630 /* DiskIICard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE004E227CE8CA000CA200 /* DiskIICard.cpp */; };
+		4B8318B222D3E53C006DB630 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE004D227CE8CA000CA200 /* Video.cpp */; };
+		4B8318B322D3E540006DB630 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9378E222A199C600973513 /* Audio.cpp */; };
+		4B8318B422D3E546006DB630 /* DriveSpeedAccumulator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4BFAC22A33DE50069048D /* DriveSpeedAccumulator.cpp */; };
+		4B8318B522D3E548006DB630 /* Macintosh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE0058227CFFCA000CA200 /* Macintosh.cpp */; };
+		4B8318B622D3E54B006DB630 /* SonyDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0C956F22A74E880015A8F6 /* SonyDrive.cpp */; };
+		4B8318B722D3E54D006DB630 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE005E227D39AB000CA200 /* Video.cpp */; };
+		4B8318B822D3E566006DB630 /* IWM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE1498227FC0EA00133682 /* IWM.cpp */; };
+		4B8318B922D3E56D006DB630 /* MemoryPacker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE005B227D30CC000CA200 /* MemoryPacker.cpp */; };
+		4B8318BA22D3E579006DB630 /* MacintoshIMG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4BFAE22A42F290069048D /* MacintoshIMG.cpp */; };
+		4B8318BB22D3E57C006DB630 /* PlusTooBIN.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0C956C22A7109A0015A8F6 /* PlusTooBIN.cpp */; };
+		4B8318BC22D3E588006DB630 /* DisplayMetrics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B622AE3222E0AD5008B59F2 /* DisplayMetrics.cpp */; };
 		4B8334821F5D9FF70097E338 /* PartialMachineCycle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334811F5D9FF70097E338 /* PartialMachineCycle.cpp */; };
 		4B8334841F5DA0360097E338 /* Z80Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334831F5DA0360097E338 /* Z80Storage.cpp */; };
 		4B8334861F5DA3780097E338 /* 6502Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334851F5DA3780097E338 /* 6502Storage.cpp */; };
@@ -3851,10 +3864,12 @@
 				4B055A9A1FAE85CB0060FFFF /* MFMDiskController.cpp in Sources */,
 				4B055ACB1FAE9AFB0060FFFF /* SerialBus.cpp in Sources */,
 				4B055AA41FAE85E50060FFFF /* DigitalPhaseLockedLoop.cpp in Sources */,
+				4B8318B122D3E53A006DB630 /* DiskIICard.cpp in Sources */,
 				4B055A9B1FAE85DA0060FFFF /* AcornADF.cpp in Sources */,
 				4B0E04F11FC9EA9500F43484 /* MSX.cpp in Sources */,
 				4B055AD51FAE9B0B0060FFFF /* Video.cpp in Sources */,
 				4B894521201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
+				4B8318B522D3E548006DB630 /* Macintosh.cpp in Sources */,
 				4B7F188F2154825E00388727 /* MasterSystem.cpp in Sources */,
 				4B055AA51FAE85EF0060FFFF /* Encoder.cpp in Sources */,
 				4BD5D2692199148100DDF17D /* ScanTargetGLSLFragments.cpp in Sources */,
@@ -3886,11 +3901,13 @@
 				4B055AE81FAE9B7B0060FFFF /* FIRFilter.cpp in Sources */,
 				4B055A901FAE85A90060FFFF /* TimedEventLoop.cpp in Sources */,
 				4BFF1D3A22337B0300838EA1 /* 68000Storage.cpp in Sources */,
+				4B8318B722D3E54D006DB630 /* Video.cpp in Sources */,
 				4B055AC71FAE9AEE0060FFFF /* TIA.cpp in Sources */,
 				4B055AD21FAE9B0B0060FFFF /* Keyboard.cpp in Sources */,
 				4B89451B201967B4007DE474 /* ConfidenceSummary.cpp in Sources */,
 				4B1B88C1202E3DB200B67DFF /* MultiConfigurable.cpp in Sources */,
 				4B055AA31FAE85DF0060FFFF /* ImplicitSectors.cpp in Sources */,
+				4B8318B322D3E540006DB630 /* Audio.cpp in Sources */,
 				4B055AAE1FAE85FD0060FFFF /* TrackSerialiser.cpp in Sources */,
 				4B89452B201967B4007DE474 /* File.cpp in Sources */,
 				4B055A981FAE85C50060FFFF /* Drive.cpp in Sources */,
@@ -3909,6 +3926,7 @@
 				4B055AEE1FAE9BBF0060FFFF /* Keyboard.cpp in Sources */,
 				4B055AED1FAE9BA20060FFFF /* Z80Storage.cpp in Sources */,
 				4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
+				4B8318BB22D3E57C006DB630 /* PlusTooBIN.cpp in Sources */,
 				4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */,
 				4B055AD11FAE9B030060FFFF /* Video.cpp in Sources */,
 				4BB4BFBA22A4372F0069048D /* StaticAnalyser.cpp in Sources */,
@@ -3917,6 +3935,7 @@
 				4B055ADD1FAE9B460060FFFF /* i8272.cpp in Sources */,
 				4B055AC51FAE9AEE0060FFFF /* Atari2600.cpp in Sources */,
 				4B055A9C1FAE85DA0060FFFF /* CPCDSK.cpp in Sources */,
+				4B8318B922D3E56D006DB630 /* MemoryPacker.cpp in Sources */,
 				4B055ABA1FAE86170060FFFF /* Commodore.cpp in Sources */,
 				4B9BE401203A0C0600FFAE60 /* MultiSpeaker.cpp in Sources */,
 				4B055AA61FAE85EF0060FFFF /* Parser.cpp in Sources */,
@@ -3925,10 +3944,12 @@
 				4B89453F201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B89453D201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B055ACA1FAE9AFB0060FFFF /* Vic20.cpp in Sources */,
+				4B8318B222D3E53C006DB630 /* Video.cpp in Sources */,
 				4B055ABC1FAE86170060FFFF /* ZX8081.cpp in Sources */,
 				4B055AC91FAE9AFB0060FFFF /* Keyboard.cpp in Sources */,
 				4B055A991FAE85CB0060FFFF /* DiskController.cpp in Sources */,
 				4B055ACC1FAE9B030060FFFF /* Electron.cpp in Sources */,
+				4B8318B022D3E531006DB630 /* AppleII.cpp in Sources */,
 				4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */,
 				4BFE7B881FC39D8900160B38 /* StandardOptions.cpp in Sources */,
 				4B894533201967B4007DE474 /* 6502.cpp in Sources */,
@@ -3945,6 +3966,7 @@
 				4B055AC41FAE9AE80060FFFF /* Keyboard.cpp in Sources */,
 				4B055A941FAE85B50060FFFF /* CommodoreROM.cpp in Sources */,
 				4BBB70A5202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
+				4B8318BC22D3E588006DB630 /* DisplayMetrics.cpp in Sources */,
 				4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */,
 				4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */,
 				4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */,
@@ -3952,6 +3974,8 @@
 				4B055AC61FAE9AEE0060FFFF /* TIASound.cpp in Sources */,
 				4B89451F201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055AA81FAE85EF0060FFFF /* Shifter.cpp in Sources */,
+				4B8318B422D3E546006DB630 /* DriveSpeedAccumulator.cpp in Sources */,
+				4B8318B622D3E54B006DB630 /* SonyDrive.cpp in Sources */,
 				4B055AC81FAE9AFB0060FFFF /* C1540.cpp in Sources */,
 				4B055A8F1FAE85A90060FFFF /* FileHolder.cpp in Sources */,
 				4B055A911FAE85B50060FFFF /* Cartridge.cpp in Sources */,
@@ -3968,6 +3992,8 @@
 				4B055AD01FAE9B030060FFFF /* Tape.cpp in Sources */,
 				4BD424E82193B5830097291A /* Rectangle.cpp in Sources */,
 				4B055A961FAE85BB0060FFFF /* Commodore.cpp in Sources */,
+				4B8318BA22D3E579006DB630 /* MacintoshIMG.cpp in Sources */,
+				4B8318B822D3E566006DB630 /* IWM.cpp in Sources */,
 				4B0333B02094081A0050B93D /* AppleDSK.cpp in Sources */,
 				4B894535201967B4007DE474 /* AddressMapper.cpp in Sources */,
 				4B055AD41FAE9B0B0060FFFF /* Oric.cpp in Sources */,
