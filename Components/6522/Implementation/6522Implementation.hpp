@@ -92,6 +92,7 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 			registers_.shift = value;
 			shift_bits_remaining_ = 8;
 			registers_.interrupt_flags &= ~InterruptFlag::ShiftRegister;
+			reevaluate_interrupts();
 		break;
 
 		// Control
@@ -189,6 +190,8 @@ template <typename T> uint8_t MOS6522<T>::get_register(int address) {
 
 		case 0xa:
 			shift_bits_remaining_ = 8;
+			registers_.interrupt_flags &= ~InterruptFlag::ShiftRegister;
+			reevaluate_interrupts();
 		return registers_.shift;
 
 		case 0xb:	return registers_.auxiliary_control;
