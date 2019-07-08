@@ -51,9 +51,14 @@
 
 // Sets the length of the next microcycle; if this is a debug build, also confirms
 // that the microcycle being adjusted is the one that it's permissible to adjust.
+#ifdef NDEBUG
+#define set_next_microcycle_length(x)	\
+	bus_program->microcycle.length = x
+#else
 #define set_next_microcycle_length(x)	\
 	assert(bus_program->microcycle.is_resizeable);	\
 	bus_program->microcycle.length = x
+#endif
 
 template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::run_for(HalfCycles duration) {
 	const HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
