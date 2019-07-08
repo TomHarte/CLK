@@ -499,6 +499,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							(video_.is_outputting() ? 0x00 : 0x40)
 						);
 					}
+
+					// Should be unreachable.
+					return 0xff;
 				}
 
 				void set_control_line_output(Port port, Line line, bool value) {
