@@ -68,6 +68,23 @@ class MOS6522Storage {
 			Timer2			= 1 << 5,
 			Timer1			= 1 << 6,
 		};
+
+		enum class ShiftMode {
+			Disabled = 0,
+			ShiftInUnderT2 = 1,
+			ShiftInUnderPhase2 = 2,
+			ShiftInUnderCB1 = 3,
+			ShiftOutUnderT2FreeRunning = 4,
+			ShiftOutUnderT2 = 5,
+			ShiftOutUnderPhase2 = 6,
+			ShiftOutUnderCB1 = 7
+		};
+		ShiftMode shift_mode() const {
+			return ShiftMode((registers_.auxiliary_control >> 2) & 7);
+		}
+		bool is_shifting_out() const {
+			return registers_.auxiliary_control & 0x10;
+		}
 };
 
 }

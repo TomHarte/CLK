@@ -391,9 +391,11 @@ template <typename T> void MOS6522<T>::evaluate_cb2_output() {
 	// My guess: other CB2 functions work only if the shift register is disabled (?).
 	if((registers_.auxiliary_control >> 2)&7) {
 		// Shift register is enabled, one way or the other; but announce only output.
-		if(registers_.auxiliary_control & 0x10) {
+		if(is_shifting_out()) {
+			// Output mode; set the level according to the current top of the shift register.
 			bus_handler_.set_control_line_output(Port::B, Line::Two, !!(registers_.shift & 0x80));
 		} else {
+			// Input mode.
 			bus_handler_.set_control_line_output(Port::B, Line::Two, true);
 		}
 	} else {
@@ -433,13 +435,15 @@ template <typename T> void MOS6522<T>::shift_in() {
 template <typename T> void MOS6522<T>::shift_out() {
 	// When shifting out, the shift register rotates rather than strictly shifts.
 	// TODO: is that true for all modes?
-	registers_.shift = uint8_t((registers_.shift << 1) | (registers_.shift >> 7));
-	evaluate_cb2_output();
+	if(shift_mode() == ShiftMode::ShiftOutUnderT2FreeRunning || shift_bits_remaining_) {
+		registers_.shift = uint8_t((registers_.shift << 1) | (registers_.shift >> 7));
+		evaluate_cb2_output();
 
-	--shift_bits_remaining_;
-	if(!shift_bits_remaining_) {
-		registers_.interrupt_flags |= InterruptFlag::ShiftRegister;
-		reevaluate_interrupts();
+		--shift_bits_remaining_;
+		if(!shift_bits_remaining_) {
+			registers_.interrupt_flags |= InterruptFlag::ShiftRegister;
+			reevaluate_interrupts();
+		}
 	}
 }
 

@@ -11,119 +11,112 @@ import Foundation
 
 class MOS6522Tests: XCTestCase {
 
-	fileprivate func with6522(_ action: (MOS6522Bridge) -> ()) {
-		let bridge = MOS6522Bridge()
-		action(bridge)
+	private var m6522: MOS6522Bridge!
+
+	override func setUp() {
+		m6522 = MOS6522Bridge()
 	}
 
 	// MARK: Timer tests
 
 	func testTimerCount() {
-		with6522 {
-			// set timer 1 to a value of $000a
-			$0.setValue(10, forRegister: 4)
-			$0.setValue(0, forRegister: 5)
+		// set timer 1 to a value of m652200a
+		m6522.setValue(10, forRegister: 4)
+		m6522.setValue(0, forRegister: 5)
 
-			// complete the setting cycle
-			$0.run(forHalfCycles: 2)
+		// complete the setting cycle
+		m6522.run(forHalfCycles: 2)
 
-			// run for 5 cycles
-			$0.run(forHalfCycles: 10)
+		// run for 5 cycles
+		m6522.run(forHalfCycles: 10)
 
-			// check that the timer has gone down by 5
-			XCTAssert($0.value(forRegister: 4) == 5, "Low order byte should be 5; was \($0.value(forRegister: 4))")
-			XCTAssert($0.value(forRegister: 5) == 0, "High order byte should be 0; was \($0.value(forRegister: 5))")
-		}
+		// check that the timer has gone down by 5
+		XCTAssert(m6522.value(forRegister: 4) == 5, "Low order byte should be 5; was \(m6522.value(forRegister: 4))")
+		XCTAssert(m6522.value(forRegister: 5) == 0, "High order byte should be 0; was \(m6522.value(forRegister: 5))")
 	}
 
 	func testTimerLatches() {
-		with6522 {
-			// set timer 2 to $1020
-			$0.setValue(0x10, forRegister: 8)
-			$0.setValue(0x20, forRegister: 9)
+		// set timer 2 to $1020
+		m6522.setValue(0x10, forRegister: 8)
+		m6522.setValue(0x20, forRegister: 9)
 
-			// change the low-byte latch
-			$0.setValue(0x40, forRegister: 8)
+		// change the low-byte latch
+		m6522.setValue(0x40, forRegister: 8)
 
-			// complete the cycle
-			$0.run(forHalfCycles: 2)
+		// complete the cycle
+		m6522.run(forHalfCycles: 2)
 
-			// chek that the new latched value hasn't been copied
-			XCTAssert($0.value(forRegister: 8) == 0x10, "Low order byte should be 0x10; was \($0.value(forRegister: 8))")
-			XCTAssert($0.value(forRegister: 9) == 0x20, "High order byte should be 0x20; was \($0.value(forRegister: 9))")
+		// chek that the new latched value hasn't been copied
+		XCTAssert(m6522.value(forRegister: 8) == 0x10, "Low order byte should be 0x10; was \(m6522.value(forRegister: 8))")
+		XCTAssert(m6522.value(forRegister: 9) == 0x20, "High order byte should be 0x20; was \(m6522.value(forRegister: 9))")
 
-			// write the low-byte latch
-			$0.setValue(0x50, forRegister: 9)
+		// write the low-byte latch
+		m6522.setValue(0x50, forRegister: 9)
 
-			// complete the cycle
-			$0.run(forHalfCycles: 2)
+		// complete the cycle
+		m6522.run(forHalfCycles: 2)
 
-			// chek that the latched value has been copied
-			XCTAssert($0.value(forRegister: 8) == 0x40, "Low order byte should be 0x50; was \($0.value(forRegister: 8))")
-			XCTAssert($0.value(forRegister: 9) == 0x50, "High order byte should be 0x40; was \($0.value(forRegister: 9))")
-		}
+		// chek that the latched value has been copied
+		XCTAssert(m6522.value(forRegister: 8) == 0x40, "Low order byte should be 0x50; was \(m6522.value(forRegister: 8))")
+		XCTAssert(m6522.value(forRegister: 9) == 0x50, "High order byte should be 0x40; was \(m6522.value(forRegister: 9))")
 	}
 
 	func testTimerReload() {
-		with6522 {
-			// set timer 1 to a value of $0010, enable repeating mode
-			$0.setValue(16, forRegister: 4)
-			$0.setValue(0, forRegister: 5)
-			$0.setValue(0x40, forRegister: 11)
-			$0.setValue(0x40 | 0x80, forRegister: 14)
+		// set timer 1 to a value of m6522010, enable repeating mode
+		m6522.setValue(16, forRegister: 4)
+		m6522.setValue(0, forRegister: 5)
+		m6522.setValue(0x40, forRegister: 11)
+		m6522.setValue(0x40 | 0x80, forRegister: 14)
 
-			// complete the cycle to set initial values
-			$0.run(forHalfCycles: 2)
+		// complete the cycle to set initial values
+		m6522.run(forHalfCycles: 2)
 
-			// run for 16 cycles
-			$0.run(forHalfCycles: 32)
+		// run for 16 cycles
+		m6522.run(forHalfCycles: 32)
 
-			// check that the timer has gone down to 0 but not yet triggered an interrupt
-			XCTAssert($0.value(forRegister: 4) == 0, "Low order byte should be 0; was \($0.value(forRegister: 4))")
-			XCTAssert($0.value(forRegister: 5) == 0, "High order byte should be 0; was \($0.value(forRegister: 5))")
-			XCTAssert(!$0.irqLine, "IRQ should not yet be active")
+		// check that the timer has gone down to 0 but not yet triggered an interrupt
+		XCTAssert(m6522.value(forRegister: 4) == 0, "Low order byte should be 0; was \(m6522.value(forRegister: 4))")
+		XCTAssert(m6522.value(forRegister: 5) == 0, "High order byte should be 0; was \(m6522.value(forRegister: 5))")
+		XCTAssert(!m6522.irqLine, "IRQ should not yet be active")
 
-			// check that two half-cycles later the timer is $ffff but IRQ still hasn't triggered
-			$0.run(forHalfCycles: 2)
-			XCTAssert($0.value(forRegister: 4) == 0xff, "Low order byte should be 0xff; was \($0.value(forRegister: 4))")
-			XCTAssert($0.value(forRegister: 5) == 0xff, "High order byte should be 0xff; was \($0.value(forRegister: 5))")
-			XCTAssert(!$0.irqLine, "IRQ should not yet be active")
+		// check that two half-cycles later the timer is $ffff but IRQ still hasn't triggered
+		m6522.run(forHalfCycles: 2)
+		XCTAssert(m6522.value(forRegister: 4) == 0xff, "Low order byte should be 0xff; was \(m6522.value(forRegister: 4))")
+		XCTAssert(m6522.value(forRegister: 5) == 0xff, "High order byte should be 0xff; was \(m6522.value(forRegister: 5))")
+		XCTAssert(!m6522.irqLine, "IRQ should not yet be active")
 
-			// check that one half-cycle later the timer is still $ffff and IRQ has triggered...
-			$0.run(forHalfCycles: 1)
-			XCTAssert($0.irqLine, "IRQ should be active")
-			XCTAssert($0.value(forRegister: 4) == 0xff, "Low order byte should be 0xff; was \($0.value(forRegister: 4))")
-			XCTAssert($0.value(forRegister: 5) == 0xff, "High order byte should be 0xff; was \($0.value(forRegister: 5))")
+		// check that one half-cycle later the timer is still $ffff and IRQ has triggered...
+		m6522.run(forHalfCycles: 1)
+		XCTAssert(m6522.irqLine, "IRQ should be active")
+		XCTAssert(m6522.value(forRegister: 4) == 0xff, "Low order byte should be 0xff; was \(m6522.value(forRegister: 4))")
+		XCTAssert(m6522.value(forRegister: 5) == 0xff, "High order byte should be 0xff; was \(m6522.value(forRegister: 5))")
 
-			// ... but that reading the timer cleared the interrupt
-			XCTAssert(!$0.irqLine, "IRQ should be active")
+		// ... but that reading the timer cleared the interrupt
+		XCTAssert(!m6522.irqLine, "IRQ should be active")
 
-			// check that one half-cycles later the timer has reloaded
-			$0.run(forHalfCycles: 1)
-			XCTAssert($0.value(forRegister: 4) == 0x10, "Low order byte should be 0x10; was \($0.value(forRegister: 4))")
-			XCTAssert($0.value(forRegister: 5) == 0x00, "High order byte should be 0x00; was \($0.value(forRegister: 5))")
-		}
+		// check that one half-cycles later the timer has reloaded
+		m6522.run(forHalfCycles: 1)
+		XCTAssert(m6522.value(forRegister: 4) == 0x10, "Low order byte should be 0x10; was \(m6522.value(forRegister: 4))")
+		XCTAssert(m6522.value(forRegister: 5) == 0x00, "High order byte should be 0x00; was \(m6522.value(forRegister: 5))")
 	}
 
 
 	// MARK: Data direction tests
 	func testDataDirection() {
-		with6522 {
-			// set low four bits of register B as output, the top four as input
-			$0.setValue(0xf0, forRegister: 2)
+		// set low four bits of register B as output, the top four as input
+		m6522.setValue(0xf0, forRegister: 2)
 
-			// ask to output 0x8c
-			$0.setValue(0x8c, forRegister: 0)
+		// ask to output 0x8c
+		m6522.setValue(0x8c, forRegister: 0)
 
-			// complete the cycle
-			$0.run(forHalfCycles: 2)
+		// complete the cycle
+		m6522.run(forHalfCycles: 2)
 
-			// set current input as 0xda
-			$0.portBInput = 0xda
+		// set current input as 0xda
+		m6522.portBInput = 0xda
 
-			// test that the result of reading register B is therefore 0x8a
-			XCTAssert($0.value(forRegister: 0) == 0x8a, "Data direction register should mix input and output; got \($0.value(forRegister: 0))")
-		}
+		// test that the result of reading register B is therefore 0x8a
+		XCTAssert(m6522.value(forRegister: 0) == 0x8a, "Data direction register should mix input and output; got \(m6522.value(forRegister: 0))")
 	}
 
 	func testShiftDisabled() {
@@ -213,7 +206,37 @@ class MOS6522Tests: XCTestCase {
 	func testShiftOutUnderPhase2() {
 		/*
 			In mode 6, the shift rate is controlled by the 02 system clock (Figure 27).
+
+			(... and I'm assuming the same behaviour as shift out under control of T2
+			otherwise, based on original context)
 		*/
+		// Set the shift register to a non-zero something.
+		m6522.setValue(0xaa, forRegister: 10)
+
+		// Set shift register mode 6.
+		m6522.setValue(6 << 2, forRegister: 11)
+
+		// Make sure the shift register's interrupt bit is set.
+		m6522.run(forHalfCycles: 16)
+		XCTAssertEqual(m6522.value(forRegister: 13) & 0x04, 0x04)
+
+		// Test that output is now inhibited: CB2 should remain unchanged.
+		let initialOutput = m6522.value(forControlLine: .two, port: .B)
+		for _ in 1...8 {
+			m6522.run(forHalfCycles: 2)
+			XCTAssertEqual(m6522.value(forControlLine: .two, port: .B), initialOutput)
+		}
+
+		// Set a new value to the shift register.
+		m6522.setValue(0x16, forRegister: 10)
+
+		// Test that the new value is shifted out.
+		var output = 0
+		for _ in 1..<8 {
+			m6522.run(forHalfCycles: 2)
+			output = (output << 1) | (m6522.value(forControlLine: .two, port: .B) ? 1 : 0)
+		}
+		XCTAssertEqual(output, 0x16)
 	}
 
 	func testShiftOutUnderCB1() {
