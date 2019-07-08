@@ -91,13 +91,14 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 		case 0xa:
 			registers_.shift = value;
 			shift_bits_remaining_ = 8;
+			registers_.interrupt_flags &= ~InterruptFlag::ShiftRegister;
 		break;
 
 		// Control
-		case 0xb: {
+		case 0xb:
 			registers_.auxiliary_control = value;
 			evaluate_cb2_output();
-		} break;
+		break;
 		case 0xc: {
 //			const auto old_peripheral_control = registers_.peripheral_control;
 			registers_.peripheral_control = value;
@@ -239,10 +240,10 @@ template <typename T> void MOS6522<T>::set_control_line_input(Port port, Line li
 				// If this is a transition on CB1, consider updating the shift register.
 				// TODO: and at least one full clock since the shift register was written?
 				if(port == Port::B) {
-					switch((registers_.auxiliary_control >> 2)&7) {
-						default: 								break;
-						case 3:		if(value)	shift_in();		break;	// Shifts in are captured on a low-to-high transition.
-						case 7:		if(!value)	shift_out();	break;	// Shifts out are updated on a high-to-low transition.
+					switch(shift_mode()) {
+						default: 													break;
+						case ShiftMode::InUnderCB1:		if(value)	shift_in();		break;	// Shifts in are captured on a low-to-high transition.
+						case ShiftMode::OutUnderCB1:	if(!value)	shift_out();	break;	// Shifts out are updated on a high-to-low transition.
 					}
 				}
 			}
@@ -292,6 +293,13 @@ template <typename T> void MOS6522<T>::do_phase2() {
 	if(handshake_modes_[0] == HandshakeMode::Pulse) {
 		set_control_line_output(Port::A, Line::Two, LineState::On);
 	}
+
+	// If the shift register is shifting according to the input clock, do a shift.
+	switch(shift_mode()) {
+		default: 											break;
+		case ShiftMode::InUnderPhase2:		shift_in();		break;
+		case ShiftMode::OutUnderPhase2:		shift_out();	break;
+	}
 }
 
 template <typename T> void MOS6522<T>::do_phase1() {
@@ -303,11 +311,11 @@ template <typename T> void MOS6522<T>::do_phase1() {
 
 		// If the shift register is shifting according to this timer, do a shift.
 		// TODO: "shift register is driven by only the low order 8 bits of timer 2"?
-		switch((registers_.auxiliary_control >> 2)&7) {
-			default: 							break;
-			case 1:				shift_in();		break;
-			case 4: 			shift_out();	break;
-			case 5:				shift_out();	break;	// TODO: present a clock on CB1.
+		switch(shift_mode()) {
+			default: 												break;
+			case ShiftMode::InUnderT2:				shift_in();		break;
+			case ShiftMode::OutUnderT2FreeRunning: 	shift_out();	break;
+			case ShiftMode::OutUnderT2:				shift_out();	break;	// TODO: present a clock on CB1.
 		}
 
 		registers_.interrupt_flags |= InterruptFlag::Timer2;
@@ -330,13 +338,6 @@ template <typename T> void MOS6522<T>::do_phase1() {
 			bus_handler_.run_for(time_since_bus_handler_call_.flush());
 			bus_handler_.set_port_output(Port::B, registers_.output[1], registers_.data_direction[1]);
 		}
-	}
-
-	// If the shift register is shifting according to the input clock, do a shift.
-	switch((registers_.auxiliary_control >> 2)&7) {
-		default: 					break;
-		case 2:		shift_in();		break;
-		case 6:		shift_out();	break;
 	}
 }
 
@@ -389,7 +390,7 @@ template <typename T> void MOS6522<T>::evaluate_cb2_output() {
 	// peripheral control register.
 
 	// My guess: other CB2 functions work only if the shift register is disabled (?).
-	if((registers_.auxiliary_control >> 2)&7) {
+	if(shift_mode() != ShiftMode::Disabled) {
 		// Shift register is enabled, one way or the other; but announce only output.
 		if(is_shifting_out()) {
 			// Output mode; set the level according to the current top of the shift register.
@@ -435,7 +436,7 @@ template <typename T> void MOS6522<T>::shift_in() {
 template <typename T> void MOS6522<T>::shift_out() {
 	// When shifting out, the shift register rotates rather than strictly shifts.
 	// TODO: is that true for all modes?
-	if(shift_mode() == ShiftMode::ShiftOutUnderT2FreeRunning || shift_bits_remaining_) {
+	if(shift_mode() == ShiftMode::OutUnderT2FreeRunning || shift_bits_remaining_) {
 		registers_.shift = uint8_t((registers_.shift << 1) | (registers_.shift >> 7));
 		evaluate_cb2_output();
 

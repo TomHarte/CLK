@@ -511,7 +511,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						CA1 is used for receiving vsync.
 					*/
 					if(port == Port::B && line == Line::Two) {
-						printf("Keyboard input: %c\n", value ? 't' : 'f');
 						keyboard_.set_input(value);
 					}
 					else printf("Unhandled control line output: %c %d\n", port ? 'B' : 'A', int(line));

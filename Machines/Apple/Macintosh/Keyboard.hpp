@@ -28,7 +28,6 @@ class Keyboard {
 						computer signals that it is ready to begin communication by pulling the Keyboard Data line low."
 					*/
 					if(!data) {
-//						printf("Accepting new command\n");
 						mode_ = Mode::AcceptingCommand;
 						phase_ = 0;
 						command_ = 0;
@@ -85,7 +84,6 @@ class Keyboard {
 					clock_output_ = offset >= 18;
 
 					if(offset == 26) {
-//						printf("Latched %d\n", (data_input_ ? 1 : 0));
 						command_ = (command_ << 1) | (data_input_ ? 1 : 0);
 					}
 
@@ -99,12 +97,12 @@ class Keyboard {
 
 				case Mode::AwaitingEndOfCommand:
 					// Time out if the end-of-command seems not to be forthcoming.
+					// This is an elaboration on my part; a guess.
 					++phase_;
 					if(phase_ == 1000) {
 						clock_output_ = false;
 						mode_ = Mode::Waiting;
 						phase_ = 0;
-//						printf("Timed out\n");
 					}
 				return;
 
@@ -116,7 +114,6 @@ class Keyboard {
 					if(phase_ == 25000 || command_ != 0x10 || response_ != 0x7b) {
 						mode_ = Mode::SendingResponse;
 						phase_ = 0;
-//						printf("Starting response\n");
 					}
 				} break;
 
@@ -139,7 +136,6 @@ class Keyboard {
 						clock_output_ = false;
 						mode_ = Mode::Waiting;
 						phase_ = 0;
-//						printf("Waiting\n");
 					}
 				} break;
 			}
@@ -154,8 +150,6 @@ class Keyboard {
 	private:
 
 		int perform_command(int command) {
-//			printf("Keyboard: %02x\n", command);
-
 			switch(command) {
 				case 0x10:		// Inquiry.
 				case 0x14: {	// Instant.

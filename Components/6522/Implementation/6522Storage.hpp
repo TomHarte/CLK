@@ -71,13 +71,13 @@ class MOS6522Storage {
 
 		enum class ShiftMode {
 			Disabled = 0,
-			ShiftInUnderT2 = 1,
-			ShiftInUnderPhase2 = 2,
-			ShiftInUnderCB1 = 3,
-			ShiftOutUnderT2FreeRunning = 4,
-			ShiftOutUnderT2 = 5,
-			ShiftOutUnderPhase2 = 6,
-			ShiftOutUnderCB1 = 7
+			InUnderT2 = 1,
+			InUnderPhase2 = 2,
+			InUnderCB1 = 3,
+			OutUnderT2FreeRunning = 4,
+			OutUnderT2 = 5,
+			OutUnderPhase2 = 6,
+			OutUnderCB1 = 7
 		};
 		ShiftMode shift_mode() const {
 			return ShiftMode((registers_.auxiliary_control >> 2) & 7);
