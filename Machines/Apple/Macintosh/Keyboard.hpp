@@ -144,6 +144,12 @@ class Keyboard {
 		void enqueue_key_state(uint16_t key, bool is_pressed) {
 			// Front insert; messages will be pop_back'd.
 			std::lock_guard<decltype(key_queue_mutex_)> lock(key_queue_mutex_);
+
+			// Keys on the keypad are preceded by a $79 keycode; in the internal naming scheme
+			// they are indicated by having bit 8 set. So add the $79 prefix if required.
+			if(key & 0x100) {
+				key_queue_.insert(key_queue_.begin(), 0x79);
+			}
 			key_queue_.insert(key_queue_.begin(), (is_pressed ? 0x00 : 0x80) | uint8_t(key));
 		}
 
@@ -263,10 +269,10 @@ class KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
 			case Key::ForwardSlash:			return 0x59;
 			case Key::RightShift:			return 0x71;
 
-			case Key::Left:					return 0x0d;
-			case Key::Right:				return 0x05;
-			case Key::Up:					return 0x1b;
-			case Key::Down:					return 0x11;
+			case Key::Left:					return 0x100 | 0x0d;
+			case Key::Right:				return 0x100 | 0x05;
+			case Key::Up:					return 0x100 | 0x1b;
+			case Key::Down:					return 0x100 | 0x11;
 
 			case Key::LeftOption:
 			case Key::RightOption:			return 0x75;
