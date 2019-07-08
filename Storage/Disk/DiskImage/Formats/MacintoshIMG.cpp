@@ -8,6 +8,8 @@
 
 #include "MacintoshIMG.hpp"
 
+#include <cstring>
+
 #include "../../Track/PCMTrack.hpp"
 #include "../../Encodings/AppleGCR/Encoder.hpp"
 
