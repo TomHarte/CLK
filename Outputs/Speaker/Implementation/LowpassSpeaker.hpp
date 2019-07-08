@@ -17,6 +17,7 @@
 
 #include <mutex>
 #include <cstring>
+#include <cmath>
 
 namespace Outputs {
 namespace Speaker {
