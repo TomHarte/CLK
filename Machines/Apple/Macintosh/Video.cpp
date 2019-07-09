@@ -167,9 +167,26 @@ bool Video::vsync() {
 	return line >= 353 && line < 356;
 }
 
-bool Video::is_outputting() {
-	const int column = (frame_position_ % line_length).as_int() >> 4;
+HalfCycles Video::get_next_sequence_point() {
 	const int line = (frame_position_ / line_length).as_int();
+	if(line >= 353 && line < 356) {
+		// Currently in vsync, so get time until start of line 357,
+		// when vsync will end.
+		return HalfCycles(357) * line_length - frame_position_;
+	} else {
+		// Not currently in vsync, so get time until start of line 353.
+		const auto start_of_vsync = HalfCycles(353) * line_length;
+		if(frame_position_ < start_of_vsync)
+			return start_of_vsync - frame_position_;
+		else
+			return start_of_vsync + HalfCycles(number_of_lines) * line_length - frame_position_;
+	}
+}
+
+bool Video::is_outputting(HalfCycles offset) {
+	const auto offset_position = frame_position_ + offset % frame_length;
+	const int column = (offset_position % line_length).as_int() >> 4;
+	const int line = (offset_position / line_length).as_int();
 	return line < 342 && column < 32;
 }
 
