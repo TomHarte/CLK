@@ -137,6 +137,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		using Microcycle = CPU::MC68000::Microcycle;
 
 		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
+			// TODO: pick a delay if this is a video-clashing memory fetch.
+			HalfCycles delay(0);
+
 			time_since_video_update_ += cycle.length;
 			iwm_.time_since_update += cycle.length;
 
@@ -209,167 +212,152 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			} else {
 				mc68000_.set_interrupt_level(0);
 			}
-//			mc68000_.set_interrupt_level(
-//				(via_.get_interrupt_line() ? 1 : 0) |
-//				(scc_.get_interrupt_line() ? 2 : 0)
-//				/* TODO: to emulate a programmer's switch: have it set bit 2 when pressed. */
-//			);
 
 			// A null cycle leaves nothing else to do.
-			if(cycle.operation) {
-				auto word_address = cycle.word_address();
+			if(!cycle.operation) return delay;
 
-				// Everything above E0 0000 is signalled as being on the peripheral bus.
-				mc68000_.set_is_peripheral_address(word_address >= 0x700000);
+			auto word_address = cycle.word_address();
 
-				if(word_address >= 0x400000) {
-					if(cycle.data_select_active()) {
-						const int register_address = word_address >> 8;
+			// Everything above E0 0000 is signalled as being on the peripheral bus.
+			mc68000_.set_is_peripheral_address(word_address >= 0x700000);
 
-						switch(word_address & 0x78f000) {
-							case 0x70f000:
-								// VIA accesses are via address 0xefe1fe + register*512,
-								// which at word precision is 0x77f0ff + register*256.
-								if(cycle.operation & Microcycle::Read) {
-									cycle.value->halves.low = via_.get_register(register_address);
+			// All code below deals only with reads and writes — cycles in which a
+			// data select is active. So quit now if this is not the active part of
+			//  a read or write.
+			if(!cycle.data_select_active()) return delay;
+
+			// Check whether this access maps into the IO area; if so then
+			// apply more complicated decoding logic.
+			if(word_address >= 0x400000) {
+				const int register_address = word_address >> 8;
+
+				switch(word_address & 0x78f000) {
+					case 0x70f000:
+						// VIA accesses are via address 0xefe1fe + register*512,
+						// which at word precision is 0x77f0ff + register*256.
+						if(cycle.operation & Microcycle::Read) {
+							cycle.value->halves.low = via_.get_register(register_address);
+						} else {
+							via_.set_register(register_address, cycle.value->halves.low);
+						}
+					break;
+
+					case 0x68f000:
+						// The IWM; this is a purely polled device, so can be run on demand.
+						iwm_.flush();
+						if(cycle.operation & Microcycle::Read) {
+							cycle.value->halves.low = iwm_.iwm.read(register_address);
+						} else {
+							iwm_.iwm.write(register_address, cycle.value->halves.low);
+						}
+					break;
+
+					case 0x780000:
+						// Phase read.
+						if(cycle.operation & Microcycle::Read) {
+							cycle.value->halves.low = phase_ & 7;
+						}
+					break;
+
+					case 0x480000: case 0x48f000:
+					case 0x580000: case 0x58f000:
+						// Any word access here adjusts phase.
+						if(cycle.operation & Microcycle::SelectWord) {
+							++phase_;
+						} else {
+							if(word_address < 0x500000) {
+								// A0 = 1 => reset; A0 = 0 => read.
+								if(*cycle.address & 1) {
+									scc_.reset();
 								} else {
-									via_.set_register(register_address, cycle.value->halves.low);
-								}
-							break;
-
-							case 0x68f000:
-								// The IWM; this is a purely polled device, so can be run on demand.
-#ifndef NDEBUG
-//								printf("[%06x]: ", mc68000_.get_state().program_counter);
-#endif
-								iwm_.flush();
-								if(cycle.operation & Microcycle::Read) {
-									cycle.value->halves.low = iwm_.iwm.read(register_address);
-								} else {
-									iwm_.iwm.write(register_address, cycle.value->halves.low);
-								}
-							break;
-
-							case 0x780000:
-								// Phase read.
-								if(cycle.operation & Microcycle::Read) {
-									cycle.value->halves.low = phase_ & 7;
-								}
-							break;
-
-							case 0x480000: case 0x48f000:
-							case 0x580000: case 0x58f000:
-								// Any word access here adjusts phase.
-								if(cycle.operation & Microcycle::SelectWord) {
-									++phase_;
-								} else {
-									if(word_address < 0x500000) {
-										// A0 = 1 => reset; A0 = 0 => read.
-										if(*cycle.address & 1) {
-											scc_.reset();
-										} else {
-											const auto read = scc_.read(int(word_address));
-											if(cycle.operation & Microcycle::Read) {
-												cycle.value->halves.low = read;
-											}
-										}
-									} else {
-										if(*cycle.address & 1) {
-											if(cycle.operation & Microcycle::Read) {
-												scc_.write(int(word_address), 0xff);
-											} else {
-												scc_.write(int(word_address), cycle.value->halves.low);
-											}
-										}
+									const auto read = scc_.read(int(word_address));
+									if(cycle.operation & Microcycle::Read) {
+										cycle.value->halves.low = read;
 									}
 								}
-							break;
-
-							default:
-								if(cycle.operation & Microcycle::Read) {
-									printf("Unrecognised read %06x\n", *cycle.address & 0xffffff);
-									cycle.value->halves.low = 0x00;
-								} else {
-									printf("Unrecognised write %06x\n", *cycle.address & 0xffffff);
+							} else {
+								if(*cycle.address & 1) {
+									if(cycle.operation & Microcycle::Read) {
+										scc_.write(int(word_address), 0xff);
+									} else {
+										scc_.write(int(word_address), cycle.value->halves.low);
+									}
 								}
-							break;
+							}
 						}
-						if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
-					}
-				} else {
-					if(cycle.data_select_active()) {
-						uint16_t *memory_base = nullptr;
-						auto operation = cycle.operation;
+					break;
 
-						// When ROM overlay is enabled, the ROM begins at both $000000 and $400000,
-						// and RAM is available at $600000.
-						//
-						// Otherwise RAM is mapped at $000000 and ROM from $400000.
-						if(
-							(ROM_is_overlay_ && word_address >= 0x300000) ||
-							(!ROM_is_overlay_ && word_address < 0x200000)
-						) {
-							memory_base = ram_;
-							word_address &= ram_mask_;
-							update_video();
+					default:
+						if(cycle.operation & Microcycle::Read) {
+							printf("Unrecognised read %06x\n", *cycle.address & 0xffffff);
+							cycle.value->halves.low = 0x00;
 						} else {
-							memory_base = rom_;
-							word_address &= rom_mask_;
-
-							// Disallow writes to ROM; also it doesn't mirror above 0x60000, ever.
-							if(!(operation & Microcycle::Read) || word_address >= 0x300000) operation = 0;
+							printf("Unrecognised write %06x\n", *cycle.address & 0xffffff);
 						}
-
-						const auto masked_operation = operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge);
-						switch(masked_operation) {
-							default:
-							break;
-
-							// Catches the deliberation set of operation to 0 above.
-							case 0: break;
-
-							case Microcycle::InterruptAcknowledge | Microcycle::SelectByte:
-								// The Macintosh uses autovectored interrupts.
-								mc68000_.set_is_peripheral_address(true);
-							break;
-
-							case Microcycle::SelectWord | Microcycle::Read:
-								cycle.value->full = memory_base[word_address];
-							break;
-							case Microcycle::SelectByte | Microcycle::Read:
-								cycle.value->halves.low = uint8_t(memory_base[word_address] >> cycle.byte_shift());
-							break;
-							case Microcycle::SelectWord:
-								memory_base[word_address] = cycle.value->full;
-							break;
-							case Microcycle::SelectByte:
-								memory_base[word_address] = uint16_t(
-									(cycle.value->halves.low << cycle.byte_shift()) |
-									(memory_base[word_address] & cycle.untouched_byte_mask())
-								);
-							break;
-						}
-
-//						if(!(operation & Microcycle::Read) && (word_address == (0x00000172 >> 1))) {
-//							if(operation & Microcycle::SelectByte)
-//								printf("MBState: %02x\n", cycle.value->halves.low);
-//							else
-//								printf("MBState: %04x\n", cycle.value->full);
-//						}
-//						if(
-//							(
-//									(word_address == (0x00000352 >> 1))
-//								||	(word_address == (0x00000354 >> 1))
-//								||	(word_address == (0x00005d16 >> 1))
-//							)
-//						) {
-//							printf("%s %08x: %04x from around %08x\n", (operation & Microcycle::Read) ? "Read" : "Write", word_address << 1, memory_base[word_address], mc68000_.get_state().program_counter);
-//						}
-					} else {
-						// TODO: add delay if this is a RAM access and video blocks it momentarily.
-						// "Each [video] fetch took two cycles out of eight"
-					}
+					break;
 				}
+				if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+
+				return delay;
+			}
+
+			// Having reached here, this is a RAM or ROM access.
+
+			// When ROM overlay is enabled, the ROM begins at both $000000 and $400000,
+			// and RAM is available at $600000.
+			//
+			// Otherwise RAM is mapped at $000000 and ROM from $400000.
+			uint16_t *memory_base;
+			if(
+				(!ROM_is_overlay_ && word_address < 0x200000) ||
+				(ROM_is_overlay_ && word_address >= 0x300000)
+			) {
+				memory_base = ram_;
+				word_address &= ram_mask_;
+				update_video();
+			} else {
+				memory_base = rom_;
+				word_address &= rom_mask_;
+
+				// Writes to ROM have no effect, and it doesn't mirror above 0x60000.
+				if(!(cycle.operation & Microcycle::Read)) return delay;
+				if(word_address >= 0x300000) {
+					if(cycle.operation & Microcycle::SelectWord) {
+						cycle.value->full = 0xffff;
+					} else {
+						cycle.value->halves.low = 0xff;
+					}
+					return delay;
+				}
+			}
+
+			switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge)) {
+				default:
+				break;
+
+				// Catches the deliberation set of operation to 0 above.
+				case 0: break;
+
+				case Microcycle::InterruptAcknowledge | Microcycle::SelectByte:
+					// The Macintosh uses autovectored interrupts.
+					mc68000_.set_is_peripheral_address(true);
+				break;
+
+				case Microcycle::SelectWord | Microcycle::Read:
+					cycle.value->full = memory_base[word_address];
+				break;
+				case Microcycle::SelectByte | Microcycle::Read:
+					cycle.value->halves.low = uint8_t(memory_base[word_address] >> cycle.byte_shift());
+				break;
+				case Microcycle::SelectWord:
+					memory_base[word_address] = cycle.value->full;
+				break;
+				case Microcycle::SelectByte:
+					memory_base[word_address] = uint16_t(
+						(cycle.value->halves.low << cycle.byte_shift()) |
+						(memory_base[word_address] & cycle.untouched_byte_mask())
+					);
+				break;
 			}
 
 			/*
@@ -383,7 +371,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				EFE1FE+:	VIA
 			*/
 
-			return HalfCycles(0);
+			return delay;
 		}
 
 		void flush() {
