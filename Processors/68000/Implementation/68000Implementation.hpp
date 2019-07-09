@@ -49,6 +49,12 @@
 #define s_extend16(x)	int32_t(int16_t(x))
 #define s_extend8(x)	int32_t(int8_t(x))
 
+#define convert_to_bit_count_16(x)	\
+	x = ((x & 0xaaaa) >> 1) + (x & 0x5555);	\
+	x = ((x & 0xcccc) >> 2) + (x & 0x3333);	\
+	x = ((x & 0xf0f0) >> 4) + (x & 0x0f0f);	\
+	x = ((x & 0xff00) >> 8) + (x & 0x00ff);
+
 // Sets the length of the next microcycle; if this is a debug build, also confirms
 // that the microcycle being adjusted is the one that it's permissible to adjust.
 #ifdef NDEBUG
@@ -931,13 +937,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									zero_result_ = active_program_->destination->full;
 									negative_flag_ = zero_result_ & 0x80000000;
 
-									// TODO: optimise the below?
-									int number_of_ones = 0;
-									auto source = active_program_->source->halves.low.full;
-									while(source) {
-										number_of_ones += source&1;
-										source >>= 1;
-									}
+									int number_of_ones = active_program_->source->halves.low.full;
+									convert_to_bit_count_16(number_of_ones);
 
 									// Time taken = 38 cycles + 2 cycles per 1 in the source.
 									set_next_microcycle_length(HalfCycles(4 * number_of_ones + 34*2));
@@ -952,14 +953,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 									// Find the number of 01 or 10 pairs in the 17-bit number
 									// formed by the source value with a 0 suffix.
-									// TODO: optimise the below?
-									int number_of_pairs = 0;
-									int source = active_program_->source->halves.low.full;
-									source = (source ^ (source << 1)) & 0xffff;
-									while(source) {
-										number_of_pairs += source&1;
-										source >>= 1;
-									}
+									int number_of_pairs = active_program_->source->halves.low.full;
+									number_of_pairs = (number_of_pairs ^ (number_of_pairs << 1)) & 0xffff;
+									convert_to_bit_count_16(number_of_pairs);
 
 									// Time taken = 38 cycles + 2 cycles per 1 in the source.
 									set_next_microcycle_length(HalfCycles(4 * number_of_pairs + 34*2));
@@ -1088,11 +1084,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// in the unsigned quotient; there is an additional microcycle for
 									// every bit that is set. Also, since the possibility of overflow
 									// was already dealt with, it's now a smaller number.
-									int positive_quotient = int(abs(quotient));
-									for(int c = 0; c < 15; ++c) {
-										if(positive_quotient & 0x8000) cycles_expended += 2;
-										positive_quotient <<= 1;
-									}
+									int positive_quotient_bits = int(abs(quotient)) & 0xfffe;
+									convert_to_bit_count_16(positive_quotient_bits);
+									cycles_expended += 2 * positive_quotient_bits;
 
 									// There's then no way to terminate the loop that isn't at least six cycles long.
 									cycles_expended += 6;
@@ -2205,3 +2199,5 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef s_extend16
 #undef s_extend8
 #undef set_next_microcycle_length
+#undef convert_to_bit_count_16
+
