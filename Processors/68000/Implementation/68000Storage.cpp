@@ -2784,9 +2784,6 @@ struct ProcessorStorageConstructor {
 								break;
 							}
 
-							// Perform the MOVE[A].
-							op(Action::PerformOperation);
-
 							// Perform the MOVE[A]'s store.
 							const int combined_destination_mode = combined_mode(destination_mode, data_register, true);
 							switch(is_long_word_access ? l(combined_destination_mode) : bw(combined_destination_mode)) {
@@ -2794,23 +2791,25 @@ struct ProcessorStorageConstructor {
 
 								case l(Dn):			// MOVE[A].l <ea>, [An/Dn]
 								case bw(Dn):		// MOVE[A].bw <ea>, [An/Dn]
-									op(Action::None, seq("np"));
+									op(Action::PerformOperation, seq("np"));
 								break;
 
 								case bw(PreDec):	// MOVE[A].bw <ea>, -(An)
+									op(Action::PerformOperation);
 									op(	dec(data_register) | MicroOp::DestinationMask,
 										seq("np nw", { a(data_register) }, !is_byte_access));
 								break;
 
 								case bw(Ind):		// MOVE[A].bw <ea>, (An)
 								case bw(PostInc):	// MOVE[A].bw <ea>, (An)+
-									op(Action::None, seq("nw np", { a(data_register) }, !is_byte_access));
+									op(Action::PerformOperation, seq("nw np", { a(data_register) }, !is_byte_access));
 									if(combined_destination_mode == PostInc) {
 										op(inc(data_register) | MicroOp::DestinationMask);
 									}
 								break;
 
 								case l(PreDec):		// MOVE[A].l <ea>, -(An)
+									op(Action::PerformOperation);
 									op(int(Action::Decrement2) | MicroOp::DestinationMask);
 									op(	int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask,
 										seq("np nw- nW", { ea(1), ea(1) }));
@@ -2819,6 +2818,7 @@ struct ProcessorStorageConstructor {
 
 								case l(Ind):		// MOVE[A].l <ea>, (An)
 								case l(PostInc):	// MOVE[A].l <ea>, (An)+
+									op(Action::PerformOperation);
 									op(	int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask,
 										seq("nW+ nw np", { ea(1), ea(1) }));
 									if(combined_destination_mode == PostInc) {
@@ -2829,6 +2829,7 @@ struct ProcessorStorageConstructor {
 								case bw(XXXw):		// MOVE[A].bw <ea>, (xxx).W
 								case bw(d16An):		// MOVE[A].bw <ea>, (d16, An)
 								case bw(d8AnXn):	// MOVE[A].bw <ea>, (d8, An, Xn)
+									op(Action::PerformOperation);
 									op(	address_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask,
 										seq(pseq("np nw np", combined_destination_mode), { ea(1) },
 										!is_byte_access));
@@ -2837,12 +2838,13 @@ struct ProcessorStorageConstructor {
 								case l(XXXw):		// MOVE[A].l <ea>, (xxx).W
 								case l(d16An):		// MOVE[A].l <ea>, (d16, An)
 								case l(d8AnXn):		// MOVE[A].l <ea>, (d8, An, Xn)
+									op(Action::PerformOperation);
 									op(	address_action_for_mode(combined_destination_mode) | MicroOp::DestinationMask,
 										seq(pseq("np nW+ nw np", combined_destination_mode), { ea(1), ea(1) }));
 								break;
 
 								case bw(XXXl):		// MOVE[A].bw <ea>, (xxx).L
-									op(Action::None, seq("np"));
+									op(Action::PerformOperation, seq("np"));
 									switch(combined_source_mode) {	// The pattern here is a function of source and destination.
 										case Dn:
 										case Imm:
@@ -2858,7 +2860,7 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case l(XXXl):		// MOVE[A].l <ea>, (xxx).L
-									op(Action::None, seq("np"));
+									op(Action::PerformOperation, seq("np"));
 									switch(combined_source_mode) {	// The pattern here is a function of source and destination.
 										case Dn:
 										case Imm:
