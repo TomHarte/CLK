@@ -214,9 +214,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			}
 
 			// A null cycle leaves nothing else to do.
-			if(!cycle.operation) return delay;
+			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return delay;
 
-			auto word_address = cycle.word_address();
+			auto word_address = cycle.active_operation_word_address();
 
 			// Everything above E0 0000 is signalled as being on the peripheral bus.
 			mc68000_.set_is_peripheral_address(word_address >= 0x700000);
