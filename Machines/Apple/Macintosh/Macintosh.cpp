@@ -137,13 +137,36 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		using Microcycle = CPU::MC68000::Microcycle;
 
 		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
-//			time_since_video_update_ += cycle.length;
+			time_since_video_update_ += cycle.length;
 			iwm_.time_since_update += cycle.length;
 
 			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
-			// See: Guide to the Macintosh Hardware Family p149 (PDF p188).
-			via_clock_ += cycle.length;
-			via_.run_for(via_clock_.divide(HalfCycles(10)));
+			// See: Guide to the Macintosh Hardware Family p149 (PDF p188). Some extra division
+			// may occur here in order to provide VSYNC at a proper moment.
+			// Possibly route vsync.
+			if(time_until_video_event_ >= cycle.length) {
+				via_clock_ += cycle.length;
+				via_.run_for(via_clock_.divide(HalfCycles(10)));
+				time_until_video_event_ -= cycle.length;
+			} else {
+				auto cycles_to_progress = cycle.length;
+				while(time_until_video_event_ < cycles_to_progress) {
+					cycles_to_progress -= time_until_video_event_;
+
+					via_clock_ += time_until_video_event_;
+					via_.run_for(via_clock_.divide(HalfCycles(10)));
+
+					video_.run_for(time_until_video_event_);
+					time_since_video_update_ -= time_until_video_event_;
+					time_until_video_event_ = video_.get_next_sequence_point();
+
+					via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
+				}
+
+				via_clock_ += cycles_to_progress;
+				via_.run_for(via_clock_.divide(HalfCycles(10)));
+				time_until_video_event_ -= cycles_to_progress;
+			}
 
 			// The keyboard also has a clock, albeit a very slow one — 100,000 cycles/second.
 			// Its clock and data lines are connected to the VIA.
@@ -176,10 +199,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, true);
 				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, false);
 			}
-
-			// Update the video. TODO: only on demand.
-			video_.run_for(cycle.length);
-			via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
 
 			// Update interrupt input. TODO: move this into a VIA/etc delegate callback?
 			// Double TODO: does this really cascade like this?
@@ -292,6 +311,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						) {
 							memory_base = ram_;
 							word_address &= ram_mask_;
+							update_video();
 						} else {
 							memory_base = rom_;
 							word_address &= rom_mask_;
@@ -371,7 +391,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// video is responsible for providing part of the
 			// audio signal, so the two aren't as distinct as in
 			// most machines.
-//			video_.run_for(time_since_video_update_.flush());
+			update_video();
 
 			// As above: flush audio after video.
 			via_.flush();
@@ -383,6 +403,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		void set_rom_is_overlay(bool rom_is_overlay) {
 			ROM_is_overlay_ = rom_is_overlay;
+		}
+
+		bool video_is_outputting() {
+			return video_.is_outputting(time_since_video_update_);
 		}
 
 		void set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use_alternate_audio_buffer) {
@@ -414,6 +438,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		// TODO: clear all keys.
 
 	private:
+		void update_video() {
+			video_.run_for(time_since_video_update_.flush());
+			time_until_video_event_ = video_.get_next_sequence_point();
+		}
+
 		Inputs::Mouse &get_mouse() override {
 			return mouse_;
 		}
@@ -496,7 +525,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							((mouse_.get_channel(0) & 2) << 3) |
 							((mouse_.get_channel(1) & 2) << 4) |
 							(clock_.get_data() ? 0x02 : 0x00) |
-							(video_.is_outputting() ? 0x00 : 0x40)
+							(machine_.video_is_outputting() ? 0x00 : 0x40)
 						);
 					}
 
@@ -556,8 +585,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
  		HalfCycles via_clock_;
  		HalfCycles real_time_clock_;
  		HalfCycles keyboard_clock_;
- 		HalfCycles video_clock_;
-// 		HalfCycles time_since_video_update_;
+ 		HalfCycles time_since_video_update_;
+ 		HalfCycles time_until_video_event_;
  		HalfCycles time_since_iwm_update_;
  		HalfCycles time_since_mouse_update_;
 
