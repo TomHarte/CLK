@@ -744,12 +744,6 @@ int main(int argc, char *argv[]) {
 
 				case SDL_MOUSEMOTION: {
 					if(SDL_GetRelativeMouseMode()) {
-						// This is a workaround; using motion.xrel and motion.yrel from the event doesn't
-						// appear to work consistently.
-						int xrel, yrel;
-						SDL_GetRelativeMouseState(&xrel, &yrel);
-
-						printf("-> %d %d (%d %d / %d %d)\n", event.motion.x, event.motion.y, event.motion.xrel, event.motion.yrel, xrel, yrel);
 						const auto mouse_machine = machine->mouse_machine();
 						if(mouse_machine) {
 							mouse_machine->get_mouse().move(event.motion.xrel, event.motion.yrel);
