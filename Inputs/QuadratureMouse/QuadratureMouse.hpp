@@ -17,6 +17,14 @@ namespace Inputs {
 /*!
 	Provides a simple implementation of a Mouse, designed for simple
 	thread-safe feeding to a machine that accepts quadrature-encoded input.
+
+	TEMPORARY SIMPLIFICATION: it is assumed that the caller will be interested
+	in observing a signal that dictates velocity, sampling the other to
+	obtain direction only on transitions in the velocity signal.
+
+	Or, more concretely, of the two channels per axis, one is accurate only when
+	the other transitions. Hence the discussion of 'primary' and 'secondary'
+	channels below. This is intended to be fixed.
 */
 class QuadratureMouse: public Mouse {
 	public:
@@ -57,14 +65,19 @@ class QuadratureMouse: public Mouse {
 		*/
 		void prepare_step() {
 			for(int axis = 0; axis < 2; ++axis) {
+				// Do nothing if there's no motion to communicate.
 				const int axis_value = axes_[axis];
 				if(!axis_value) continue;
 
+				// Toggle the primary channel and set the secondary for
+				// negative motion. At present the y axis signals the
+				// secondary channel the opposite way around from the
+				// primary.
 				primaries_[axis] ^= 1;
 				secondaries_[axis] = primaries_[axis] ^ axis;
 				if(axis_value > 0) {
 					-- axes_[axis];
-					secondaries_[axis] ^= 1;
+					secondaries_[axis] ^= 1;	// Switch to positive motion.
 				} else {
 					++ axes_[axis];
 				}
