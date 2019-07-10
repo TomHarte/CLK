@@ -64,7 +64,7 @@ class IWM:
 		void run_for(const Cycles cycles);
 
 		/// Connects a drive to the IWM.
-		void set_drive(int slot, Storage::Disk::Drive *drive);
+		void set_drive(int slot, IWMDrive *drive);
 
 	private:
 		// Storage::Disk::Drive::EventDelegate.
@@ -80,7 +80,7 @@ class IWM:
 		int state_ = 0;
 
 		int active_drive_ = 0;
-		Storage::Disk::Drive *drives_[2] = {nullptr, nullptr};
+		IWMDrive *drives_[2] = {nullptr, nullptr};
 		bool drive_motor_on_ = false;
 
 		Cycles cycles_until_motor_off_;

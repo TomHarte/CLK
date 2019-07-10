@@ -378,7 +378,7 @@ void IWM::propose_shift(uint8_t bit) {
 	cycles_since_shift_ = Cycles(0);
 }
 
-void IWM::set_drive(int slot, Storage::Disk::Drive *drive) {
+void IWM::set_drive(int slot, IWMDrive *drive) {
 	drives_[slot] = drive;
 	drive->set_event_delegate(this);
 }

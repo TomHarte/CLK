@@ -29,6 +29,7 @@
 #include "../../../Components/6522/6522.hpp"
 #include "../../../Components/8530/z8530.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
+#include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
 #include "../../../Processors/68000/68000.hpp"
 
 #include "../../../Analyser/Static/Macintosh/Target.hpp"
@@ -584,7 +585,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		bool ROM_is_overlay_ = true;
 		int phase_ = 1;
 
-		SonyDrive drives_[2];
+		DoubleDensityDrive drives_[2];
 		Inputs::QuadratureMouse mouse_;
 
 		Apple::Macintosh::KeyboardMapper keyboard_mapper_;
