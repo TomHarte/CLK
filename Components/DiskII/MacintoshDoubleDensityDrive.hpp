@@ -28,6 +28,8 @@ class DoubleDensityDrive: public IWMDrive {
 		void did_step(Storage::Disk::HeadPosition to_position) override;
 
 		bool is_800k_;
+		int control_state_;
+		int step_direction_;
 };
 
 }
