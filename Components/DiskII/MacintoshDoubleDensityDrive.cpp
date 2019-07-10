@@ -19,6 +19,39 @@ DoubleDensityDrive::DoubleDensityDrive(int input_clock_rate, bool is_800k) :
 	}
 }
 
+// MARK: - Speed Selection
+
+void DoubleDensityDrive::did_step(Storage::Disk::HeadPosition to_position) {
+	// The 800kb drive automatically selects rotation speed as a function of
+	// head position; the 400kb drive doesn't do so.
+	if(is_800k_) {
+		/*
+			Numbers below cribbed from the Kryoflux forums; specifically:
+			https://forum.kryoflux.com/viewtopic.php?t=1090
+
+			They can almost be worked out algorithmically, since the point is to
+			produce an almost-constant value for speed*(number of sectors), and:
+
+			393.3807 * 12 = 4720.5684
+			429.1723 * 11 = 4720.895421
+			472.1435 * 10 = 4721.435
+			524.5672 * 9 = 4721.1048
+			590.1098 * 8 = 4720.8784
+
+			So 4721 / (number of sectors per track in zone) would give essentially
+			the same results.
+		*/
+		const int zone = to_position.as_int() >> 4;
+		switch(zone) {
+			case 0:		set_rotation_speed(393.3807f);	break;
+			case 1:		set_rotation_speed(429.1723f);	break;
+			case 2:		set_rotation_speed(472.1435f);	break;
+			case 3:		set_rotation_speed(524.5672f);	break;
+			default:	set_rotation_speed(590.1098f);	break;
+		}
+	}
+}
+
 // MARK: - Control input/output.
 
 void DoubleDensityDrive::set_enabled(bool) {
@@ -131,24 +164,4 @@ bool DoubleDensityDrive::read() {
 }
 
 void DoubleDensityDrive::write(bool value) {
-}
-
-// MARK: - Speed Selection
-
-void DoubleDensityDrive::did_step(Storage::Disk::HeadPosition to_position) {
-	// The 800kb drive automatically selects rotation speed as a function of
-	// head position; the 400kb drive doesn't do so.
-	if(is_800k_) {
-		/*
-			Numbers below cribbed from the Kryoflux forums.
-		*/
-		const int zone = to_position.as_int() >> 4;
-		switch(zone) {
-			case 0:		set_rotation_speed(393.3807f);	break;
-			case 1:		set_rotation_speed(429.1723f);	break;
-			case 2:		set_rotation_speed(472.1435f);	break;
-			case 3:		set_rotation_speed(524.5672f);	break;
-			default:	set_rotation_speed(590.1098f);	break;
-		}
-	}
 }
