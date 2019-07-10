@@ -101,6 +101,14 @@ class QuadratureMouse: public Mouse {
 			return button_flags_;
 		}
 
+		/*!
+			@returns @c true if any mouse motion is waiting to be communicated;
+				@c false otherwise.
+		*/
+		bool has_steps() {
+			return axes_[0] || axes_[1];
+		}
+
 	private:
 		int number_of_buttons_ = 0;
 		std::atomic<int> button_flags_;

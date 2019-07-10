@@ -147,16 +147,18 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// See: Guide to the Macintosh Hardware Family p149 (PDF p188). Some extra division
 			// may occur here in order to provide VSYNC at a proper moment.
 			// Possibly route vsync.
-			if(time_until_video_event_ >= cycle.length) {
+			if(time_since_video_update_ < time_until_video_event_) {
 				via_clock_ += cycle.length;
 				via_.run_for(via_clock_.divide(HalfCycles(10)));
-				time_until_video_event_ -= cycle.length;
 			} else {
-				auto cycles_to_progress = cycle.length;
-				while(time_until_video_event_ < cycles_to_progress) {
-					cycles_to_progress -= time_until_video_event_;
+				auto via_time_base = time_since_video_update_ - cycle.length;
+				auto via_cycles_outstanding = cycle.length;
+				while(time_until_video_event_ < time_since_video_update_) {
+					const auto via_cycles = time_until_video_event_ - via_time_base;
+					via_time_base = HalfCycles(0);
+					via_cycles_outstanding -= via_cycles;
 
-					via_clock_ += time_until_video_event_;
+					via_clock_ += via_cycles;
 					via_.run_for(via_clock_.divide(HalfCycles(10)));
 
 					video_.run_for(time_until_video_event_);
@@ -166,9 +168,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
 				}
 
-				via_clock_ += cycles_to_progress;
+				via_clock_ += via_cycles_outstanding;
 				via_.run_for(via_clock_.divide(HalfCycles(10)));
-				time_until_video_event_ -= cycles_to_progress;
 			}
 
 			// The keyboard also has a clock, albeit a very slow one — 100,000 cycles/second.
@@ -182,12 +183,14 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			}
 
 			// Feed mouse inputs within at most 1250 cycles of each other.
-			time_since_mouse_update_ += cycle.length;
-			const auto mouse_ticks = time_since_mouse_update_.divide(HalfCycles(2500));
-			if(mouse_ticks > HalfCycles(0)) {
-				mouse_.prepare_step();
-				scc_.set_dcd(0, mouse_.get_channel(1) & 1);
-				scc_.set_dcd(1, mouse_.get_channel(0) & 1);
+			if(mouse_.has_steps()) {
+				time_since_mouse_update_ += cycle.length;
+				const auto mouse_ticks = time_since_mouse_update_.divide(HalfCycles(2500));
+				if(mouse_ticks > HalfCycles(0)) {
+					mouse_.prepare_step();
+					scc_.set_dcd(0, mouse_.get_channel(1) & 1);
+					scc_.set_dcd(1, mouse_.get_channel(0) & 1);
+				}
 			}
 
 			// TODO: SCC should be clocked at a divide-by-two, if and when it actually has
@@ -438,8 +441,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		struct IWM {
 			IWM(int clock_rate) : iwm(clock_rate) {}
 
-			Apple::IWM iwm;
 			HalfCycles time_since_update;
+			Apple::IWM iwm;
 
 			void flush() {
 				iwm.run_for(time_since_update.flush_cycles());

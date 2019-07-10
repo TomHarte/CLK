@@ -54,10 +54,10 @@ void Video::run_for(HalfCycles duration) {
 	// since pixel output occurs at twice the processor clock. So divide by 16 to get
 	// the number of fetches.
 	while(duration > HalfCycles(0)) {
-		auto cycles_left_in_line = std::min(line_length - frame_position_%line_length, duration);
-
-		const int line = (frame_position_ / line_length).as_int();
 		const auto pixel_start = frame_position_ % line_length;
+		const int line = (frame_position_ / line_length).as_int();
+
+		const auto cycles_left_in_line = std::min(line_length - pixel_start, duration);
 
 		// Line timing, entirely invented as I can find exactly zero words of documentation:
 		//
@@ -119,16 +119,14 @@ void Video::run_for(HalfCycles duration) {
 				if(first_word < sync_start && final_word >= sync_start)	crt_.output_blank((sync_start - 32) * 16);
 				if(first_word < sync_end && final_word >= sync_end)		crt_.output_sync((sync_end - sync_start) * 16);
 				if(final_word == 44)									crt_.output_blank((44 - sync_end) * 16);
-			} else if(line >= 353 && line < 356) {
-				/* Output a sync line. */
-				if(final_word == 44) {
+			} else if(final_word == 44) {
+				if(line >= 353 && line < 356) {
+					/* Output a sync line. */
 					crt_.output_sync(sync_start * 16);
 					crt_.output_blank((sync_end - sync_start) * 16);
 					crt_.output_sync((44 - sync_end) * 16);
-				}
-			} else {
-				/* Output a blank line. */
-				if(final_word == 44) {
+				} else {
+					/* Output a blank line. */
 					crt_.output_blank(sync_start * 16);
 					crt_.output_sync((sync_end - sync_start) * 16);
 					crt_.output_blank((44 - sync_end) * 16);
@@ -172,7 +170,7 @@ HalfCycles Video::get_next_sequence_point() {
 	if(line >= 353 && line < 356) {
 		// Currently in vsync, so get time until start of line 357,
 		// when vsync will end.
-		return HalfCycles(357) * line_length - frame_position_;
+		return HalfCycles(356) * line_length - frame_position_;
 	} else {
 		// Not currently in vsync, so get time until start of line 353.
 		const auto start_of_vsync = HalfCycles(353) * line_length;
