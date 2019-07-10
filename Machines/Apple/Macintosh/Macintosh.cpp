@@ -14,7 +14,6 @@
 #include "DriveSpeedAccumulator.hpp"
 #include "Keyboard.hpp"
 #include "RealTimeClock.hpp"
-#include "SonyDrive.hpp"
 #include "Video.hpp"
 
 #include "../../CRTMachine.hpp"

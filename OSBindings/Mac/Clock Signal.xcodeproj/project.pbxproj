@@ -111,7 +111,6 @@
 		4B08A2781EE39306008B7065 /* TestMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2771EE39306008B7065 /* TestMachine.mm */; };
 		4B08A56920D72BEF0016CE5A /* Activity.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B08A56720D72BEF0016CE5A /* Activity.xib */; };
 		4B0C956E22A7109A0015A8F6 /* PlusTooBIN.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0C956C22A7109A0015A8F6 /* PlusTooBIN.cpp */; };
-		4B0C957122A74E880015A8F6 /* SonyDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0C956F22A74E880015A8F6 /* SonyDrive.cpp */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B0E04EA1FC9E5DA00F43484 /* CAS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04E81FC9E5DA00F43484 /* CAS.cpp */; };
 		4B0E04EB1FC9E78800F43484 /* CAS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04E81FC9E5DA00F43484 /* CAS.cpp */; };
@@ -243,7 +242,6 @@
 		4B8318B322D3E540006DB630 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9378E222A199C600973513 /* Audio.cpp */; };
 		4B8318B422D3E546006DB630 /* DriveSpeedAccumulator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4BFAC22A33DE50069048D /* DriveSpeedAccumulator.cpp */; };
 		4B8318B522D3E548006DB630 /* Macintosh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE0058227CFFCA000CA200 /* Macintosh.cpp */; };
-		4B8318B622D3E54B006DB630 /* SonyDrive.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0C956F22A74E880015A8F6 /* SonyDrive.cpp */; };
 		4B8318B722D3E54D006DB630 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE005E227D39AB000CA200 /* Video.cpp */; };
 		4B8318B822D3E566006DB630 /* IWM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BEE1498227FC0EA00133682 /* IWM.cpp */; };
 		4B8318B922D3E56D006DB630 /* MemoryPacker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE005B227D30CC000CA200 /* MemoryPacker.cpp */; };
@@ -757,8 +755,6 @@
 		4B08A56820D72BEF0016CE5A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Activity.xib"; sourceTree = SOURCE_ROOT; };
 		4B0C956C22A7109A0015A8F6 /* PlusTooBIN.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PlusTooBIN.cpp; sourceTree = "<group>"; };
 		4B0C956D22A7109A0015A8F6 /* PlusTooBIN.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PlusTooBIN.hpp; sourceTree = "<group>"; };
-		4B0C956F22A74E880015A8F6 /* SonyDrive.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SonyDrive.cpp; sourceTree = "<group>"; };
-		4B0C957022A74E880015A8F6 /* SonyDrive.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SonyDrive.hpp; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
 		4B0E04E81FC9E5DA00F43484 /* CAS.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CAS.cpp; sourceTree = "<group>"; };
@@ -3181,7 +3177,6 @@
 				4B9378E222A199C600973513 /* Audio.cpp */,
 				4BB4BFAC22A33DE50069048D /* DriveSpeedAccumulator.cpp */,
 				4BCE0058227CFFCA000CA200 /* Macintosh.cpp */,
-				4B0C956F22A74E880015A8F6 /* SonyDrive.cpp */,
 				4BCE005E227D39AB000CA200 /* Video.cpp */,
 				4B9378E322A199C600973513 /* Audio.hpp */,
 				4BB4BFAA22A300710069048D /* DeferredAudio.hpp */,
@@ -3189,7 +3184,6 @@
 				4BDB3D8522833321002D3CEE /* Keyboard.hpp */,
 				4BCE0059227CFFCA000CA200 /* Macintosh.hpp */,
 				4BD0692B22828A2D00D2A54F /* RealTimeClock.hpp */,
-				4B0C957022A74E880015A8F6 /* SonyDrive.hpp */,
 				4BCE005F227D39AB000CA200 /* Video.hpp */,
 			);
 			path = Macintosh;
@@ -3985,7 +3979,6 @@
 				4B89451F201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055AA81FAE85EF0060FFFF /* Shifter.cpp in Sources */,
 				4B8318B422D3E546006DB630 /* DriveSpeedAccumulator.cpp in Sources */,
-				4B8318B622D3E54B006DB630 /* SonyDrive.cpp in Sources */,
 				4B055AC81FAE9AFB0060FFFF /* C1540.cpp in Sources */,
 				4B055A8F1FAE85A90060FFFF /* FileHolder.cpp in Sources */,
 				4B055A911FAE85B50060FFFF /* Cartridge.cpp in Sources */,
@@ -4201,7 +4194,6 @@
 				4B8334861F5DA3780097E338 /* 6502Storage.cpp in Sources */,
 				4B8FE2271DA1DE2D0090D3CE /* NSBundle+DataResource.m in Sources */,
 				4B2A53A01D117D36003C6002 /* CSMachine.mm in Sources */,
-				4B0C957122A74E880015A8F6 /* SonyDrive.cpp in Sources */,
 				4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */,
 				4B55DD8320DF06680043F2E5 /* MachinePicker.swift in Sources */,
 				4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */,
