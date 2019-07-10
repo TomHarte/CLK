@@ -16,6 +16,30 @@
 
 namespace Apple {
 
+/*!
+	Defines the drive interface used by the IWM, derived from the external pinout as
+	per e.g. https://old.pinouts.ru/HD/MacExtDrive_pinout.shtml
+
+	These are subclassed of Storage::Disk::Drive, so accept any disk the emulator supports,
+	and provide the usual read/write interface for on-disk data.
+*/
+struct IWMDrive: public Storage::Disk::Drive {
+	IWMDrive(int input_clock_rate, int number_of_heads) : Storage::Disk::Drive(input_clock_rate, number_of_heads) {}
+
+	enum Line: int {
+		CA0		= 1 << 0,
+		CA1		= 1 << 1,
+		CA2		= 1 << 2,
+		LSTRB	= 1 << 3,
+		SEL		= 1 << 4,
+	};
+
+	virtual void set_enabled(bool) = 0;
+	virtual void set_control_lines(int) = 0;
+	virtual bool read() = 0;
+	virtual void write(bool value) = 0;
+};
+
 class IWM:
 	public Storage::Disk::Drive::EventDelegate {
 	public:

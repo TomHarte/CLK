@@ -24,8 +24,8 @@ namespace Disk {
 
 class Drive: public ClockingHint::Source, public TimedEventLoop {
 	public:
-		Drive(unsigned int input_clock_rate, int revolutions_per_minute, int number_of_heads);
-		Drive(unsigned int input_clock_rate, int number_of_heads);
+		Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads);
+		Drive(int input_clock_rate, int number_of_heads);
 		~Drive();
 
 		/*!

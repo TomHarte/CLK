@@ -13,7 +13,7 @@ using namespace Storage::Tape;
 
 // MARK: - Lifecycle
 
-TapePlayer::TapePlayer(unsigned int input_clock_rate) :
+TapePlayer::TapePlayer(int input_clock_rate) :
 	TimedEventLoop(input_clock_rate)
 {}
 
@@ -115,7 +115,7 @@ void TapePlayer::process_next_event() {
 
 // MARK: - Binary Player
 
-BinaryTapePlayer::BinaryTapePlayer(unsigned int input_clock_rate) :
+BinaryTapePlayer::BinaryTapePlayer(int input_clock_rate) :
 	TapePlayer(input_clock_rate)
 {}
 

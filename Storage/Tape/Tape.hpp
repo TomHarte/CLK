@@ -97,7 +97,7 @@ class Tape {
 */
 class TapePlayer: public TimedEventLoop, public ClockingHint::Source {
 	public:
-		TapePlayer(unsigned int input_clock_rate);
+		TapePlayer(int input_clock_rate);
 
 		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 		bool has_tape();
@@ -130,7 +130,7 @@ class TapePlayer: public TimedEventLoop, public ClockingHint::Source {
 */
 class BinaryTapePlayer: public TapePlayer {
 	public:
-		BinaryTapePlayer(unsigned int input_clock_rate);
+		BinaryTapePlayer(int input_clock_rate);
 		void set_motor_control(bool enabled);
 		bool get_motor_control() const;
 

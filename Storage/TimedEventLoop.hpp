@@ -42,7 +42,7 @@ namespace Storage {
 			/*!
 				Constructs a timed event loop that will be clocked at @c input_clock_rate.
 			*/
-			TimedEventLoop(unsigned int input_clock_rate);
+			TimedEventLoop(int input_clock_rate);
 
 			/*!
 				Advances the event loop by @c number_of_cycles cycles.
@@ -52,12 +52,12 @@ namespace Storage {
 			/*!
 				@returns the number of whole cycles remaining until the next event is triggered.
 			*/
-			unsigned int get_cycles_until_next_event();
+			int get_cycles_until_next_event();
 
 			/*!
 				@returns the input clock rate.
 			*/
-			unsigned int get_input_clock_rate();
+			int get_input_clock_rate();
 
 		protected:
 			/*!
@@ -101,7 +101,7 @@ namespace Storage {
 			Time get_time_into_next_event();
 
 		private:
-			unsigned int input_clock_rate_ = 0;
+			int input_clock_rate_ = 0;
 			int cycles_until_event_ = 0;
 			float subcycles_until_event_ = 0.0;
 	};

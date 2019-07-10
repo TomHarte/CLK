@@ -18,7 +18,7 @@
 
 using namespace Storage::Disk;
 
-Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, int number_of_heads):
+Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads):
 	Storage::TimedEventLoop(input_clock_rate),
 	rotational_multiplier_(60.0f / float(revolutions_per_minute)),
 	available_heads_(number_of_heads) {
@@ -35,7 +35,7 @@ Drive::Drive(unsigned int input_clock_rate, int revolutions_per_minute, int numb
 	}
 }
 
-Drive::Drive(unsigned int input_clock_rate, int number_of_heads) : Drive(input_clock_rate, 300, number_of_heads) {}
+Drive::Drive(int input_clock_rate, int number_of_heads) : Drive(input_clock_rate, 300, number_of_heads) {}
 
 void Drive::set_rotation_speed(float revolutions_per_minute) {
 	// TODO: probably I should look into
@@ -166,7 +166,7 @@ void Drive::set_event_delegate(Storage::Disk::Drive::EventDelegate *delegate) {
 }
 
 void Drive::advance(const Cycles cycles) {
-	cycles_since_index_hole_ += static_cast<unsigned int>(cycles.as_int());
+	cycles_since_index_hole_ += cycles.as_int();
 	if(event_delegate_) event_delegate_->advance(cycles);
 }
 

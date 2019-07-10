@@ -15,7 +15,7 @@
 
 using namespace Storage;
 
-TimedEventLoop::TimedEventLoop(unsigned int input_clock_rate) :
+TimedEventLoop::TimedEventLoop(int input_clock_rate) :
 	input_clock_rate_(input_clock_rate) {}
 
 void TimedEventLoop::run_for(const Cycles cycles) {
@@ -46,11 +46,11 @@ void TimedEventLoop::run_for(const Cycles cycles) {
 	assert(cycles_until_event_ > 0);
 }
 
-unsigned int TimedEventLoop::get_cycles_until_next_event() {
-	return static_cast<unsigned int>(std::max(cycles_until_event_, 0));
+int TimedEventLoop::get_cycles_until_next_event() {
+	return std::max(cycles_until_event_, 0);
 }
 
-unsigned int TimedEventLoop::get_input_clock_rate() {
+int TimedEventLoop::get_input_clock_rate() {
 	return input_clock_rate_;
 }
 
