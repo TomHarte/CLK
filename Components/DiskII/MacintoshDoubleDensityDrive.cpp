@@ -99,6 +99,7 @@ bool DoubleDensityDrive::read() {
 
 		// Possible other meanings:
 		// B = ready			(0 = ready)
+		// C = disk switched?
 		//
 		// {CA1,CA0,SEL,CA2}
 
@@ -115,7 +116,7 @@ bool DoubleDensityDrive::read() {
 		case CA0:				// Disk head step completed.
 								// (0 = still stepping)
 //			LOG("head stepping)");
-		return true;
+		return true;	// TODO: stepping delay. But at the main Drive level.
 
 		case CA0|SEL:			// Disk locked.
 								// (0 = write protected)
@@ -159,7 +160,7 @@ bool DoubleDensityDrive::read() {
 		case CA2|CA1|CA0|SEL:	// Drive installed.
 								// (0 = present, 1 = missing)
 //			LOG("drive installed)");
-		return false;
+		return true;
 	}
 }
 

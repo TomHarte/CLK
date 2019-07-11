@@ -81,7 +81,6 @@ class IWM:
 
 		int active_drive_ = 0;
 		IWMDrive *drives_[2] = {nullptr, nullptr};
-		bool drive_motor_on_ = false;
 
 		Cycles cycles_until_motor_off_;
 
@@ -92,7 +91,7 @@ class IWM:
 		Cycles cycles_since_shift_;
 		Cycles bit_length_;
 
-		int step_direction_ = 0;	// TODO: this should live on the drive.
+		void push_drive_state();
 };
 
 

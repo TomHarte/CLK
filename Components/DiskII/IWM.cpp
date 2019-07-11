@@ -8,7 +8,6 @@
 
 #include "IWM.hpp"
 
-#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 using namespace Apple;
@@ -83,101 +82,16 @@ uint8_t IWM::read(int address) {
 				(/ENBL1 is low when the first drive's motor is on; /ENBL2 is low when the second drive's motor is on.
 				If the 1-second timer is enabled, motors remain on for one second after being programmatically disabled.)
 			*/
-			LOGNBR("Reading status (including [" << active_drive_ << "][" << ((state_ & CA2) ? '2' : '-') << ((state_ & CA1) ? '1' : '-') << ((state_ & CA0) ? '0' : '-') << ((state_ & SEL) ? 'S' : '-') << "] ");
+//			LOGNBR("Reading status (including [" << active_drive_ << "][" << ((state_ & CA2) ? '2' : '-') << ((state_ & CA1) ? '1' : '-') << ((state_ & CA0) ? '0' : '-') << ((state_ & SEL) ? 'S' : '-') << "] ");
 
 			// Determine the SENSE input.
-			uint8_t sense = 0;
-			switch(state_ & (CA2 | CA1 | CA0 | SEL)) {
-				default:
-					LOG("unknown)");
-				break;
-
-				// Possible other meanings:
-				// B = ready			(0 = ready)
-				//
-				// {CA1,CA0,SEL,CA2}
-
-				case 0:					// Head step direction.
-										// (0 = inward)
-					LOG("head step direction)");
-					sense = (step_direction_ > 0) ? 0 : 1;
-				break;
-
-				case SEL:				// Disk in place.
-										// (0 = disk present)
-					LOG("disk in place)");
-					sense = drives_[active_drive_] && drives_[active_drive_]->has_disk() ? 0 : 1;
-				break;
-
-				case CA0:				// Disk head step completed.
-										// (0 = still stepping)
-					LOG("head stepping)");
-					sense = 1;
-				break;
-
-				case CA0|SEL:			// Disk locked.
-										// (0 = write protected)
-					LOG("disk locked)");
-					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_read_only() ? 0 : 1;
-				break;
-
-				case CA1:				// Disk motor running.
-										// (0 = motor on)
-					LOG("disk motor running)");
-					sense = drives_[active_drive_] && drives_[active_drive_]->get_motor_on() ? 0 : 1;
-				break;
-
-				case CA1|SEL:			// Head at track 0.
-										// (0 = at track 0)
-					LOG("head at track 0)");
-					sense = drives_[active_drive_] && drives_[active_drive_]->get_is_track_zero() ? 0 : 1;
-				break;
-
-				case CA1|CA0|SEL:		// Tachometer.
-										// (arbitrary)
-					sense = drives_[active_drive_] && drives_[active_drive_]->get_tachometer() ? 0 : 1;
-					LOG("tachometer " << PADHEX(2) << int(sense) << ")");
-				break;
-
-				case CA2:				// Read data, lower head.
-					LOG("data, lower head)\n");
-					if(drives_[0]) drives_[0]->set_head(0);
-					if(drives_[1]) drives_[1]->set_head(0);
-				break;
-
-				case CA2|SEL:			// Read data, upper head.
-					LOG("data, upper head)\n");
-					if(drives_[0]) drives_[0]->set_head(1);
-					if(drives_[1]) drives_[1]->set_head(1);
-				break;
-
-				case CA2|CA1:			// Single- or double-sided drive.
-										// (0 = single sided)
-					LOG("single- or double-sided drive)");
-					sense = drives_[active_drive_] && (drives_[active_drive_]->get_head_count() == 1) ? 0 : 1;
-				break;
-
-				case CA1|CA0:
-					LOG("1|0 experimental)");
-					sense = 0;
-				break;
-
-				case CA2|CA1|CA0:		// "Present/HD" (per the Mac Plus ROM)
-										// (0 = ??HD??)
-					LOG("present/HD)");
-					sense = drives_[active_drive_] ? 0 : 1;
-				break;
-
-				case CA2|CA1|CA0|SEL:	// Drive installed.
-										// (0 = present, 1 = missing)
-					LOG("drive installed)");
-					sense = drives_[active_drive_] ? 1 : 0;
-				break;
-			}
+			uint8_t sense = 1;
+			if(drives_[active_drive_])
+				sense = drives_[active_drive_]->read() ? 1 : 0;
 
 			return uint8_t(
 				(mode_&0x1f) |
-				(drive_motor_on_ ? 0x20 : 0x00) |
+				((state_ & ENABLE) ? 0x20 : 0x00) |
 				(sense << 7)
 			);
 		} break;
@@ -244,70 +158,42 @@ void IWM::access(int address) {
 	const auto mask = 1 << (address >> 1);
 	const auto old_state = state_;
 
-//	printf("[(%02x) %c%c%c%c ", mask, (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 	if(address & 1) {
 		state_ |= mask;
 	} else {
 		state_ &= ~mask;
 	}
-//	printf("-> %c%c%c%c] ", (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 
 	// React appropriately to motor requests and to LSTRB register writes.
 	if(old_state != state_) {
+		push_drive_state();
+
 		switch(mask) {
 			default: break;
 
-			case LSTRB:
-				// Catch low-to-high LSTRB transitions.
-				if(address & 1) {
-					switch(state_ & (CA1 | CA0 | SEL)) {
-						default:
-							LOG("Unhandled LSTRB");
-						break;
-
-						case 0:
-							LOG("LSTRB Set stepping direction: " << int(state_ & CA2));
-							step_direction_ = (state_ & CA2) ? -1 : 1;
-						break;
-
-						case CA0:
-							LOG("LSTRB Step");
-							if(drives_[0]) drives_[0]->step(Storage::Disk::HeadPosition(step_direction_));
-							if(drives_[1]) drives_[1]->step(Storage::Disk::HeadPosition(step_direction_));
-						break;
-
-						case CA1:
-							LOG("LSTRB Motor on");
-						break;
-
-						case CA1|CA0:
-							LOG("LSTRB Eject disk");
-						break;
-					}
-				}
-			break;
-
 			case ENABLE:
 				if(address & 1) {
-					drive_motor_on_ = true;
-					if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(true);
+					if(drives_[active_drive_]) drives_[active_drive_]->set_enabled(true);
 				} else {
 					// If the 1-second delay is enabled, set up a timer for that.
-					if(!(mode_ & 4)) {
-						cycles_until_motor_off_ = Cycles(clock_rate_);
-					} else {
-						drive_motor_on_ = false;
-						if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(false);
-					}
+//					if(!(mode_ & 4)) {
+//						cycles_until_motor_off_ = Cycles(clock_rate_);
+//					} else {
+//						drive_motor_on_ = false;
+						if(drives_[active_drive_]) drives_[active_drive_]->set_enabled(false);
+//					}
 				}
 			break;
 
 			case DRIVESEL: {
 				const int new_drive = address & 1;
 				if(new_drive != active_drive_) {
-					if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(false);
+					if(drives_[active_drive_]) drives_[active_drive_]->set_enabled(false);
 					active_drive_ = new_drive;
-					if(drives_[active_drive_]) drives_[active_drive_]->set_motor_on(drive_motor_on_);
+					if(drives_[active_drive_]) {
+						drives_[active_drive_]->set_enabled(state_ & ENABLE);
+						push_drive_state();
+					}
 				}
 			} break;
 		}
@@ -316,27 +202,38 @@ void IWM::access(int address) {
 
 void IWM::set_select(bool enabled) {
 	// Store SEL as an extra state bit.
-//	printf("[%c%c%c%c ", (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
 	if(enabled) state_ |= SEL;
 	else state_ &= ~SEL;
-//	printf("-> %c%c%c%c] ", (state_ & CA2) ? '2' : '-', (state_ & CA1) ? '1' : '-', (state_ & CA0) ? '0' : '-', (state_ & SEL) ? 'S' : '-');
+	push_drive_state();
+}
+
+void IWM::push_drive_state() {
+	if(drives_[active_drive_])  {
+		const uint8_t drive_control_lines =
+			((state_ & CA0) ? IWMDrive::CA0 : 0) |
+			((state_ & CA1) ? IWMDrive::CA1 : 0) |
+			((state_ & CA2) ? IWMDrive::CA2 : 0) |
+			((state_ & SEL) ? IWMDrive::SEL : 0) |
+			((state_ & LSTRB) ? IWMDrive::LSTRB : 0);
+		drives_[active_drive_]->set_control_lines(drive_control_lines);
+	}
 }
 
 // MARK: - Active logic
 
 void IWM::run_for(const Cycles cycles) {
 	// Check for a timeout of the motor-off timer.
-	if(cycles_until_motor_off_ > Cycles(0)) {
-		cycles_until_motor_off_ -= cycles;
-		if(cycles_until_motor_off_ <= Cycles(0)) {
-			drive_motor_on_ = false;
-			if(drives_[active_drive_])
-				drives_[active_drive_]->set_motor_on(false);
-		}
-	}
+//	if(cycles_until_motor_off_ > Cycles(0)) {
+//		cycles_until_motor_off_ -= cycles;
+//		if(cycles_until_motor_off_ <= Cycles(0)) {
+//			drive_motor_on_ = false;
+//			if(drives_[active_drive_])
+//				drives_[active_drive_]->set_motor_on(false);
+//		}
+//	}
 
 	// Activity otherwise depends on mode and motor state.
-	const bool run_disk = drive_motor_on_ && drives_[active_drive_];
+	const bool run_disk = drives_[active_drive_];	// drive_motor_on_ &&
 	int integer_cycles = cycles.as_int();
 	switch(state_ & (Q6 | Q7 | ENABLE)) {
 		case 0:
@@ -369,9 +266,9 @@ void IWM::process_event(const Storage::Disk::Drive::Event &event) {
 
 void IWM::propose_shift(uint8_t bit) {
 	// TODO: synchronous mode.
+
 	shift_register_ = uint8_t((shift_register_ << 1) | bit);
 	if(shift_register_ & 0x80) {
-//		printf("%02x -> data\n", shift_register_);
 		data_register_ = shift_register_;
 		shift_register_ = 0;
 	}
