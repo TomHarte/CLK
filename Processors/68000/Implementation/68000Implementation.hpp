@@ -309,7 +309,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
 
 //							should_log |= fetched_pc == 0x6d9c;
-							should_log = fetched_pc < 0x400000;// || (fetched_pc >= 0x401A42 && fetched_pc <= 0x401A82);
+							should_log = (fetched_pc >= 0x4006F4 && fetched_pc <= 0x4007CE);
  //							should_log |= fetched_pc == 0x4012A2;
 //							should_log &= fetched_pc != 0x4012AE;
 
