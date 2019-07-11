@@ -60,8 +60,7 @@ SectorSpan sectors_in_track(int track);
 Storage::Disk::PCMSegment data(uint8_t sector, const uint8_t *source);
 
 /*!
-	Produces the Mac-standard header. This is the same
-	for both the 13- and 16-sector formats, and is 88 bits long.
+	Produces the Mac-standard header. This is 88 bits long.
 */
 Storage::Disk::PCMSegment header(uint8_t type, uint8_t track, uint8_t sector, bool side_two);
 

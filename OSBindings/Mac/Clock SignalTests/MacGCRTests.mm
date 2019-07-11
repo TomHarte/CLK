@@ -10,6 +10,9 @@
 
 #include "../../../Storage/Disk/Encodings/AppleGCR/Encoder.hpp"
 
+#include "../../../Storage/Disk/Track/TrackSerialiser.hpp"
+#include "../../../Storage/Disk/Encodings/AppleGCR/SegmentParser.hpp"
+
 @interface MacGCRTests : XCTestCase
 @end
 
@@ -144,6 +147,44 @@
 	const auto data = Storage::Encodings::AppleGCR::Macintosh::data(0, source_data);
 	const auto expected = Storage::Disk::PCMSegment(expected_data);
 	XCTAssertEqual(data.data, expected.data);
+}
+
+- (void)testDecoding {
+	const uint8_t format = 0x22;
+	const uint8_t track_id = 23;
+	const bool is_side_two = true;
+
+	// Prepare a test track of 8 sectors.
+	Storage::Disk::PCMSegment segment;
+	segment += Storage::Encodings::AppleGCR::six_and_two_sync(24);
+	for(int c = 0; c < 8; ++c) {
+		uint8_t sector_id = uint8_t(c);
+
+		uint8_t sector_plus_tags[524];
+
+		// Provide tags plus a sector body that are just the sector number ad infinitum.
+		memset(sector_plus_tags, sector_id, sizeof(sector_plus_tags));
+
+		// NB: sync lengths below are identical to those for
+		// the Apple II, as I have no idea whatsoever what they
+		// should be.
+
+		segment += Storage::Encodings::AppleGCR::Macintosh::header(
+			format,
+			track_id,
+			sector_id,
+			is_side_two
+		);
+		segment += Storage::Encodings::AppleGCR::six_and_two_sync(7);
+		segment += Storage::Encodings::AppleGCR::Macintosh::data(sector_id, sector_plus_tags);
+		segment += Storage::Encodings::AppleGCR::six_and_two_sync(20);
+	}
+
+	// Parse the prepared track to look for sectors.
+	const auto decoded_sectors = Storage::Encodings::AppleGCR::sectors_from_segment(segment);
+
+	// Assert that all sectors fed in were found and correctly decoded.
+	XCTAssertEqual(decoded_sectors.size(), 8);
 }
 
 @end
