@@ -196,15 +196,67 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 							if(out_of_bounds) continue;
 
 							// Test the checksum.
-							if(decoded_header[4] != (decoded_header[0] ^ decoded_header[1] ^ decoded_header[2] ^ decoded_header[3])) continue;
+							if(decoded_header[4] != (decoded_header[0] ^ decoded_header[1] ^ decoded_header[2] ^ decoded_header[3]))
+								sector->has_header_checksum_error = true;
 
 							// Decode the header.
 							sector->address.track = uint8_t(decoded_header[0] | ((decoded_header[2]&0x1f) << 6));
 							sector->address.sector = decoded_header[1];
-							sector->address.type = decoded_header[3];
+							sector->address.format = decoded_header[3];
 							sector->address.is_side_two = decoded_header[2] & 0x20;
 
-							// TODO: sector contents, naturally.
+							// Reverse the GCR encoding of the sector contents to get back to 6-bit data.
+							for(auto &c: sector->data) {
+								c = unmap_six_and_two(c);
+								if(c == 0xff) {
+									out_of_bounds = true;
+									break;
+								}
+							}
+							if(out_of_bounds) continue;
+
+							// The first byte in the sector is a repeat of the sector number; test it
+							// for correctness.
+							if(sector->data[0] != sector->address.sector) continue;
+
+							// Cf. the corresponding section of Encoder.cpp for logic below.
+							int checksum[3] = {0, 0, 0};
+							for(size_t c = 0; c < 175; ++c) {
+								// Calculate the rolling checcksum in order to decode the bytes.
+								checksum[0] = (checksum[0] << 1) | (checksum[0] >> 7);
+
+								// All offsets are +1 below, to skip the initial sector number duplicate.
+								const uint8_t top_bits = sector->data[1 + c*4];
+
+								// Decode first byte.
+								sector->data[0 + c * 3] = uint8_t((sector->data[2 + c*4] + ((top_bits & 0x30) << 2)) ^ checksum[0]);
+								checksum[2] += sector->data[0 + c * 3] + (checksum[0] >> 8);
+
+								// Decode second byte;
+								sector->data[1 + c * 3] = uint8_t((sector->data[3 + c*4] + ((top_bits & 0x0c) << 4)) ^ checksum[2]);
+								checksum[1] += sector->data[1 + c * 3] + (checksum[2] >> 8);
+
+								// Decode third byte, if there is one.
+								if(c != 174) {
+									sector->data[2 + c * 3] = uint8_t((sector->data[4 + c*4] + ((top_bits & 0x03) << 6)) ^ checksum[1]);
+									checksum[0] += sector->data[2 + c * 3] + (checksum[1] >> 8);
+								}
+
+								// Reset carries.
+								checksum[0] &= 0xff;
+								checksum[1] &= 0xff;
+								checksum[2] &= 0xff;
+							}
+
+							// Test the checksum.
+							if(
+								checksum[0] != uint8_t(sector->data[703] + ((sector->data[700] & 0x03) << 6)) ||
+								checksum[1] != uint8_t(sector->data[702] + ((sector->data[700] & 0x0c) << 4)) ||
+								checksum[2] != uint8_t(sector->data[701] + ((sector->data[700] & 0x30) << 2))
+							) sector->has_data_checksum_error = true;
+
+							// Chop to size, and that's that.
+							sector->data.resize(524);
 
 							// Add this sector to the map.
 							sector->encoding = Sector::Encoding::Macintosh;

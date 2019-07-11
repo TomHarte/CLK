@@ -24,8 +24,8 @@ struct Sector {
 		struct {
 			/// For Apple II-type sectors, provides the volume number.
 			uint_fast8_t volume = 0;
-			/// For Macintosh-type sectors, provides the type from the sector header.
-			uint_fast8_t type = 0;
+			/// For Macintosh-type sectors, provides the format from the sector header.
+			uint_fast8_t format = 0;
 		};
 		uint_fast8_t track = 0;
 		uint_fast8_t sector = 0;

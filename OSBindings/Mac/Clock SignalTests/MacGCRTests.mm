@@ -163,17 +163,19 @@
 		uint8_t sector_plus_tags[524];
 
 		// Provide tags plus a sector body that are just the sector number ad infinitum.
-		memset(sector_plus_tags, sector_id, sizeof(sector_plus_tags));
+		for(size_t c = 0; c < sizeof(sector_plus_tags); ++c) {
+			sector_plus_tags[c] = uint8_t(sector_id + (c * 3));
+		}
 
 		// NB: sync lengths below are identical to those for
 		// the Apple II, as I have no idea whatsoever what they
 		// should be.
 
 		segment += Storage::Encodings::AppleGCR::Macintosh::header(
-			format,
-			track_id,
+			format ^ c,
+			track_id - c,
 			sector_id,
-			is_side_two
+			is_side_two ^ (c & 1)
 		);
 		segment += Storage::Encodings::AppleGCR::six_and_two_sync(7);
 		segment += Storage::Encodings::AppleGCR::Macintosh::data(sector_id, sector_plus_tags);
@@ -183,8 +185,26 @@
 	// Parse the prepared track to look for sectors.
 	const auto decoded_sectors = Storage::Encodings::AppleGCR::sectors_from_segment(segment);
 
-	// Assert that all sectors fed in were found and correctly decoded.
+	// Assert that the proper number of sectors was found.
 	XCTAssertEqual(decoded_sectors.size(), 8);
+
+	// Assert that the sector descriptions and contents are correct.
+	int sector = 0;
+	for(const auto &pair: decoded_sectors) {
+		XCTAssertFalse(pair.second.has_header_checksum_error);
+		XCTAssertFalse(pair.second.has_data_checksum_error);
+
+		XCTAssertEqual(pair.second.address.is_side_two, is_side_two ^ (sector & 1));
+		XCTAssertEqual(pair.second.address.format, format ^ sector);
+		XCTAssertEqual(pair.second.address.track, track_id - sector);
+		XCTAssertEqual(pair.second.address.sector, sector);
+
+		for(size_t c = 0; c < sizeof(pair.second.data.size()); ++c) {
+			XCTAssertEqual(pair.second.data[c], uint8_t(sector + (c * 3)));
+		}
+
+		++sector;
+	}
 }
 
 @end
