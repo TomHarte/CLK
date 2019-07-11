@@ -37,6 +37,7 @@ class MacintoshIMG: public DiskImage {
 		bool get_is_read_only() override;
 
 		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) override;
+		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
 
 	private:
 		Storage::FileHolder file_;
@@ -51,6 +52,8 @@ class MacintoshIMG: public DiskImage {
 
 		std::vector<uint8_t> data_;
 		std::vector<uint8_t> tags_;
+		bool is_diskCopy_file_ = false;
+		std::mutex buffer_mutex_;
 
 		uint32_t checksum(const std::vector<uint8_t> &, size_t bytes_to_skip = 0);
 };

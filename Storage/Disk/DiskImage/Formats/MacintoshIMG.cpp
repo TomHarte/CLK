@@ -11,7 +11,9 @@
 #include <cstring>
 
 #include "../../Track/PCMTrack.hpp"
+#include "../../Track/TrackSerialiser.hpp"
 #include "../../Encodings/AppleGCR/Encoder.hpp"
+#include "../../Encodings/AppleGCR/SegmentParser.hpp"
 
 /*
 	File format specifications as referenced below are largely
@@ -25,7 +27,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	file_(file_name) {
 
 	// Test 1: is this a raw secctor dump? If so it'll start with
-	// the magic word 0x4C4B6000 (big endian) and be exactly
+	// the magic word 0x4C4B (big endian) and be exactly
 	// 819,200 bytes long if double sided, or 409,600 bytes if
 	// single sided.
 	//
@@ -33,11 +35,12 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	// DiskCopy 4.2 format, so there's no ambiguity here.
 	const auto name_length = file_.get8();
 	if(name_length == 0x4c) {
+		is_diskCopy_file_ = false;
 		if(file_.stats().st_size != 819200 && file_.stats().st_size != 409600)
 			throw Error::InvalidFormat;
 
-		uint32_t magic_word = file_.get24be();
-		if(magic_word != 0x4b6000)
+		uint32_t magic_word = file_.get8();
+		if(magic_word != 0x4b)
 			throw Error::InvalidFormat;
 
 		file_.seek(0, SEEK_SET);
@@ -47,7 +50,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 			data_ = file_.read(819200);
 		} else {
 			encoding_ = Encoding::GCR400;
-			format_ = 0x2;
+			format_ = 0x02;
 			data_ = file_.read(409600);
 		}
 	} else {
@@ -59,6 +62,7 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 		// be one too high.
 		//
 		// Validate the length, then skip the rest of the string.
+		is_diskCopy_file_ = true;
 		if(name_length > 64)
 			throw Error::InvalidFormat;
 
@@ -132,7 +136,7 @@ int MacintoshIMG::get_head_count() {
 }
 
 bool MacintoshIMG::get_is_read_only() {
-	return true;
+	return file_.get_is_known_read_only();
 }
 
 std::shared_ptr<::Storage::Disk::Track> MacintoshIMG::get_track_at_position(::Storage::Disk::Track::Address address) {
@@ -153,6 +157,7 @@ std::shared_ptr<::Storage::Disk::Track> MacintoshIMG::get_track_at_position(::St
 			Bit 5 indicates double sided or not.
 	*/
 
+	std::lock_guard<decltype(buffer_mutex_)> buffer_lock(buffer_mutex_);
 	if(encoding_ == Encoding::GCR400 || encoding_ == Encoding::GCR800) {
 		// Perform a GCR encoding.
 		const auto included_sectors = Storage::Encodings::AppleGCR::Macintosh::sectors_in_track(address.position.as_int());
@@ -206,4 +211,74 @@ std::shared_ptr<::Storage::Disk::Track> MacintoshIMG::get_track_at_position(::St
 	}
 
 	return nullptr;
+}
+
+void MacintoshIMG::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+	std::map<Track::Address, std::vector<uint8_t>> tracks_by_address;
+	for(const auto &pair: tracks) {
+		// Determine a data rate for the track.
+		const auto included_sectors = Storage::Encodings::AppleGCR::Macintosh::sectors_in_track(pair.first.position.as_int());
+
+		// Rule of thumb here: there are about 6250 bits per sector.
+		const int data_rate = included_sectors.length * 6250;
+
+		// Decode the track.
+		auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
+			Storage::Disk::track_serialisation(*pair.second, Storage::Time(1, data_rate)));
+
+		// Rearrange sectors into ascending order.
+		std::vector<uint8_t> track_contents(static_cast<size_t>(524 * included_sectors.length));
+		for(const auto &sector_pair: sector_map) {
+			const size_t target_address = sector_pair.second.address.sector * 524;
+			if(target_address >= track_contents.size()) continue;
+			memcpy(&track_contents[target_address*524], sector_pair.second.data.data(), 524);
+		}
+
+		// Store for later.
+		tracks_by_address[pair.first] = std::move(track_contents);
+	}
+
+	// Grab the buffer mutex and update the in-memory buffer.
+	{
+		std::lock_guard<decltype(buffer_mutex_)> buffer_lock(buffer_mutex_);
+		for(const auto &pair: tracks_by_address) {
+			const auto included_sectors = Storage::Encodings::AppleGCR::Macintosh::sectors_in_track(pair.first.position.as_int());
+			size_t start_sector = size_t(included_sectors.start * get_head_count() + included_sectors.length * pair.first.head);
+
+			for(int c = 0; c < included_sectors.length; ++c) {
+				memcpy(&data_[start_sector * 512], &pair.second[start_sector*524 + 12], 512);
+
+				// TODO: the below strongly implies I should keep tags in memory even if I don't write
+				// them out to the file?
+				if(tags_.size()) {
+					memcpy(&data_[start_sector * 12], pair.second.data(), 12);
+				}
+
+				++start_sector;
+			}
+		}
+	}
+
+	// Grab the file lock and write out the new tracks.
+	{
+		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+
+		if(!is_diskCopy_file_) {
+			// Just dump out the new sectors. Grossly lazy, possibly worth improving.
+			file_.seek(0, SEEK_SET);
+			file_.write(data_);
+		} else {
+			// Write out the sectors, and possibly the tags, and update checksums.
+			file_.seek(0x54, SEEK_SET);
+			file_.write(data_);
+			file_.write(tags_);
+
+			const auto data_checksum = checksum(data_);
+			const auto tag_checksum = checksum(tags_, 12);
+
+			file_.seek(0x48, SEEK_SET);
+			file_.put_be(data_checksum);
+			file_.put_be(tag_checksum);
+		}
+	}
 }
