@@ -411,7 +411,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// TODO: shouldn't allow disks to be replaced like this, as the Mac
 			// uses software eject. Will need to expand messaging ability of
 			// insert_media.
-			drives_[0].set_disk(media.disks[0]);
+			if(drives_[0].has_disk())
+				drives_[1].set_disk(media.disks[0]);
+			else
+				drives_[0].set_disk(media.disks[0]);
 
 			return true;
 		}
