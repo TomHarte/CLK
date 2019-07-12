@@ -82,17 +82,11 @@ uint8_t IWM::read(int address) {
 				(/ENBL1 is low when the first drive's motor is on; /ENBL2 is low when the second drive's motor is on.
 				If the 1-second timer is enabled, motors remain on for one second after being programmatically disabled.)
 			*/
-//			LOGNBR("Reading status (including [" << active_drive_ << "][" << ((state_ & CA2) ? '2' : '-') << ((state_ & CA1) ? '1' : '-') << ((state_ & CA0) ? '0' : '-') << ((state_ & SEL) ? 'S' : '-') << "] ");
-
-			// Determine the SENSE input.
-			uint8_t sense = 1;
-			if(drives_[active_drive_])
-				sense = drives_[active_drive_]->read() ? 1 : 0;
 
 			return uint8_t(
 				(mode_&0x1f) |
 				((state_ & ENABLE) ? 0x20 : 0x00) |
-				(sense << 7)
+				(drives_[active_drive_] ? (drives_[active_drive_]->read() ? 0x80 : 0x00) : 0x80)
 			);
 		} break;
 
@@ -176,12 +170,11 @@ void IWM::access(int address) {
 					if(drives_[active_drive_]) drives_[active_drive_]->set_enabled(true);
 				} else {
 					// If the 1-second delay is enabled, set up a timer for that.
-//					if(!(mode_ & 4)) {
-//						cycles_until_motor_off_ = Cycles(clock_rate_);
-//					} else {
-//						drive_motor_on_ = false;
+					if(!(mode_ & 4)) {
+						cycles_until_disable_ = Cycles(clock_rate_);
+					} else {
 						if(drives_[active_drive_]) drives_[active_drive_]->set_enabled(false);
-//					}
+					}
 				}
 			break;
 
@@ -191,7 +184,7 @@ void IWM::access(int address) {
 					if(drives_[active_drive_]) drives_[active_drive_]->set_enabled(false);
 					active_drive_ = new_drive;
 					if(drives_[active_drive_]) {
-						drives_[active_drive_]->set_enabled(state_ & ENABLE);
+						drives_[active_drive_]->set_enabled(state_ & ENABLE || (cycles_until_disable_ > Cycles(0)));
 						push_drive_state();
 					}
 				}
@@ -223,14 +216,14 @@ void IWM::push_drive_state() {
 
 void IWM::run_for(const Cycles cycles) {
 	// Check for a timeout of the motor-off timer.
-//	if(cycles_until_motor_off_ > Cycles(0)) {
-//		cycles_until_motor_off_ -= cycles;
-//		if(cycles_until_motor_off_ <= Cycles(0)) {
-//			drive_motor_on_ = false;
-//			if(drives_[active_drive_])
-//				drives_[active_drive_]->set_motor_on(false);
-//		}
-//	}
+	if(cycles_until_disable_ > Cycles(0)) {
+		cycles_until_disable_ -= cycles;
+		if(cycles_until_disable_ <= Cycles(0)) {
+			cycles_until_disable_ = Cycles(0);
+			if(drives_[active_drive_])
+				drives_[active_drive_]->set_enabled(false);
+		}
+	}
 
 	// Activity otherwise depends on mode and motor state.
 	int integer_cycles = cycles.as_int();

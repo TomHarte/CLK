@@ -86,7 +86,7 @@ class IWM:
 
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override;
 
-		Cycles cycles_until_motor_off_;
+		Cycles cycles_until_disable_;
 		uint8_t write_handshake_ = 0xc0;
 
 		void access(int address);
