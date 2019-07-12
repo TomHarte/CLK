@@ -101,6 +101,12 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		void end_writing();
 
 		/*!
+			@returns @c true if the drive has received a call to begin_writing but not yet a call to
+			end_writing; @c false otherwise.
+		*/
+		bool is_writing();
+
+		/*!
 			Advances the drive by @c number_of_cycles cycles.
 		*/
 		void run_for(const Cycles cycles);

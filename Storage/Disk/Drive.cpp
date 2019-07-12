@@ -311,6 +311,15 @@ void Drive::invalidate_track() {
 // MARK: - Writing
 
 void Drive::begin_writing(Time bit_length, bool clamp_to_index_hole) {
+	// Do nothing if already writing.
+	if(!is_reading_) return;
+
+	// Get a copy of the track if that hasn't happened yet.
+	if(!track_) {
+		setup_track();
+	}
+
+	// Store the relevant parameters, and kick off writing.
 	is_reading_ = false;
 	clamp_writing_to_index_hole_ = clamp_to_index_hole;
 
@@ -348,6 +357,10 @@ void Drive::end_writing() {
 		cycles_since_index_hole_ %= get_input_clock_rate();
 		invalidate_track();
 	}
+}
+
+bool Drive::is_writing() {
+	return !is_reading_;
 }
 
 void Drive::set_activity_observer(Activity::Observer *observer, const std::string &name, bool add_motor_led) {
