@@ -10,6 +10,7 @@
 #define IWM_hpp
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../../Storage/Disk/Drive.hpp"
 
 #include <cstdint>
@@ -37,11 +38,11 @@ struct IWMDrive: public Storage::Disk::Drive {
 	virtual void set_enabled(bool) = 0;
 	virtual void set_control_lines(int) = 0;
 	virtual bool read() = 0;
-	virtual void write(bool value) = 0;
 };
 
 class IWM:
-	public Storage::Disk::Drive::EventDelegate {
+	public Storage::Disk::Drive::EventDelegate,
+	public ClockingHint::Observer {
 	public:
 		IWM(int clock_rate);
 
@@ -81,8 +82,12 @@ class IWM:
 
 		int active_drive_ = 0;
 		IWMDrive *drives_[2] = {nullptr, nullptr};
+		bool drive_is_rotating_[2] = {false, false};
+
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override;
 
 		Cycles cycles_until_motor_off_;
+		uint8_t write_handshake_ = 0xc0;
 
 		void access(int address);
 

@@ -8,6 +8,14 @@
 
 #include "MacintoshDoubleDensityDrive.hpp"
 
+/*
+	Sources used pervasively:
+
+	http://members.iinet.net.au/~kalandi/apple/AUG/1991/11%20NOV.DEC/DISK.STUFF.html
+	Apple Guide to the Macintosh Family Hardware
+	Inside Macintosh III
+*/
+
 using namespace Apple::Macintosh;
 
 DoubleDensityDrive::DoubleDensityDrive(int input_clock_rate, bool is_800k) :
@@ -65,27 +73,27 @@ void DoubleDensityDrive::set_control_lines(int lines) {
 	if((old_state ^ control_state_) & control_state_ & Line::LSTRB) {
 		switch(control_state_ & (Line::CA1 | Line::CA0 | Line::SEL)) {
 			default:
-//				LOG("Unhandled LSTRB");
 			break;
 
-			case 0:
-//				LOG("LSTRB Set stepping direction: " << int(state_ & CA2));
+			case 0:						// Set step direction — CA2 set => step outward.
 				step_direction_ = (control_state_ & Line::CA2) ? -1 : 1;
 			break;
 
-			case Line::CA1:
-//				LOG("LSTRB Motor");
+			case Line::CA1:				// Set drive motor — CA2 set => motor off.
 				set_motor_on(!(control_state_ & Line::CA2));
 			break;
 
-			case Line::CA0:
-//				LOG("LSTRB Step");
-				step(Storage::Disk::HeadPosition(step_direction_));
+			case Line::CA0:				// Initiate a step, if CA2 is clear.
+				if(!(control_state_ & Line::CA2))
+					step(Storage::Disk::HeadPosition(step_direction_));
 			break;
 
-			case Line::CA1 | Line::CA0:
-//				LOG("LSTRB Eject disk");
-				set_disk(nullptr);
+			case Line::SEL:				// Reset has-been-ejected flag (if CA2 is set?)
+			break;
+
+			case Line::CA1 | Line::CA0:	// Eject the disk if CA2 is set.
+				if(control_state_ & Line::CA2)
+					set_disk(nullptr);	// TODO: should probably trigger the disk has been ejected bit?
 			break;
 		}
 	}
@@ -94,75 +102,64 @@ void DoubleDensityDrive::set_control_lines(int lines) {
 bool DoubleDensityDrive::read() {
 	switch(control_state_ & (CA2 | CA1 | CA0 | SEL)) {
 		default:
-//			LOG("unknown)");
 		return false;
-
-		// Possible other meanings:
-		// B = ready			(0 = ready)
-		// C = disk switched?
-		//
-		// {CA1,CA0,SEL,CA2}
 
 		case 0:					// Head step direction.
 								// (0 = inward)
-//			LOG("head step direction)");
 		return step_direction_ <= 0;
 
 		case SEL:				// Disk in place.
 								// (0 = disk present)
-//			LOG("disk in place)");
 		return !has_disk();
 
 		case CA0:				// Disk head step completed.
 								// (0 = still stepping)
-//			LOG("head stepping)");
 		return true;	// TODO: stepping delay. But at the main Drive level.
 
 		case CA0|SEL:			// Disk locked.
 								// (0 = write protected)
-//			LOG("disk locked)");
 		return !get_is_read_only();
 
 		case CA1:				// Disk motor running.
 								// (0 = motor on)
-//			LOG("disk motor running)");
 		return !get_motor_on();
 
 		case CA1|SEL:			// Head at track 0.
 								// (0 = at track 0)
-//			LOG("head at track 0)");
+								// "This bit becomes valid beginning 12 msec after the step that places the head at track 0."
 		return !get_is_track_zero();
+
+		case CA1|CA0:			// Disk has been ejected.
+								// (0 = user has ejected disk)
+		return false;
 
 		case CA1|CA0|SEL:		// Tachometer.
 								// (arbitrary)
 		return get_tachometer();
 
 		case CA2:				// Read data, lower head.
-//			LOG("data, lower head)\n");
 			set_head(0);
-		return false;;
+		return false;
 
 		case CA2|SEL:			// Read data, upper head.
-//			LOG("data, upper head)\n");
 			set_head(1);
 		return false;
 
 		case CA2|CA1:			// Single- or double-sided drive.
 								// (0 = single sided)
-//			LOG("single- or double-sided drive)");
 		return get_head_count() != 1;
 
 		case CA2|CA1|CA0:		// "Present/HD" (per the Mac Plus ROM)
 								// (0 = ??HD??)
-//			LOG("present/HD)");
+								//
+								// Alternative explanation: "Disk ready for reading?"
+								// (0 = ready)
 		return false;
 
 		case CA2|CA1|CA0|SEL:	// Drive installed.
 								// (0 = present, 1 = missing)
-//			LOG("drive installed)");
+								//
+								// TODO: why do I need to return this the wrong way around for the Mac Plus?
 		return true;
 	}
-}
-
-void DoubleDensityDrive::write(bool value) {
 }

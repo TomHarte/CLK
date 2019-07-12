@@ -21,7 +21,6 @@ class DoubleDensityDrive: public IWMDrive {
 		void set_enabled(bool) override;
 		void set_control_lines(int) override;
 		bool read() override;
-		void write(bool value) override;
 
 	private:
 		// To receive the proper notifications from Storage::Disk::Drive.

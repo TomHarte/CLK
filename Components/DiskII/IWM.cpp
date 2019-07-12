@@ -105,7 +105,7 @@ uint8_t IWM::read(int address) {
 				bit 7: 1 = write data buffer ready for data.
 			*/
 			LOG("Reading write handshake");
-		return 0x1f | 0x80 | 0x40;
+		return 0x1f | write_handshake_;
 	}
 
 	return 0xff;
@@ -143,7 +143,7 @@ void IWM::write(int address, uint8_t input) {
 		break;
 
 		case Q7|Q6|ENABLE:	// Write data register.
-			LOG("Data register write\n");
+			LOG("Data register write");
 		break;
 	}
 }
@@ -233,24 +233,34 @@ void IWM::run_for(const Cycles cycles) {
 //	}
 
 	// Activity otherwise depends on mode and motor state.
-	const bool run_disk = drives_[active_drive_];	// drive_motor_on_ &&
 	int integer_cycles = cycles.as_int();
 	switch(state_ & (Q6 | Q7 | ENABLE)) {
 		case 0:
 		case ENABLE:	// i.e. read mode.
-			while(integer_cycles--) {
-				if(run_disk) {
+			if(drive_is_rotating_[active_drive_]) {
+				while(integer_cycles--) {
 					drives_[active_drive_]->run_for(Cycles(1));
+					++cycles_since_shift_;
+					if(cycles_since_shift_ == bit_length_ + Cycles(2)) {
+						propose_shift(0);
+					}
 				}
-				++cycles_since_shift_;
-				if(cycles_since_shift_ == bit_length_ + Cycles(2)) {
+			} else {
+				while(cycles_since_shift_ + integer_cycles >= bit_length_ + Cycles(2)) {
 					propose_shift(0);
+					integer_cycles -= bit_length_.as_int() + 2 - cycles_since_shift_.as_int();
 				}
+				cycles_since_shift_ += Cycles(integer_cycles);
 			}
 		break;
 
+		case Q6|Q7:
+		case Q6|Q7|ENABLE:	// write mode?
+			printf("IWM write mode?\n");
+		break;
+
 		default:
-			if(run_disk) drives_[active_drive_]->run_for(cycles);
+			if(drive_is_rotating_[active_drive_]) drives_[active_drive_]->run_for(cycles);
 		break;
 	}
 }
@@ -278,4 +288,15 @@ void IWM::propose_shift(uint8_t bit) {
 void IWM::set_drive(int slot, IWMDrive *drive) {
 	drives_[slot] = drive;
 	drive->set_event_delegate(this);
+	drive->set_clocking_hint_observer(this);
+}
+
+void IWM::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) {
+	const bool is_rotating = clocking != ClockingHint::Preference::None;
+
+	if(component == static_cast<ClockingHint::Source *>(drives_[0])) {
+		drive_is_rotating_[0] = is_rotating;
+	} else {
+		drive_is_rotating_[1] = is_rotating;
+	}
 }
