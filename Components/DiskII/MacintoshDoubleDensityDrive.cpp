@@ -71,29 +71,30 @@ void DoubleDensityDrive::set_control_lines(int lines) {
 
 	// Catch low-to-high LSTRB transitions.
 	if((old_state ^ control_state_) & control_state_ & Line::LSTRB) {
-		switch(control_state_ & (Line::CA1 | Line::CA0 | Line::SEL)) {
+		switch(control_state_ & (Line::CA2 | Line::CA1 | Line::CA0 | Line::SEL)) {
 			default:
 			break;
 
 			case 0:						// Set step direction — CA2 set => step outward.
+			case Line::CA2:
 				step_direction_ = (control_state_ & Line::CA2) ? -1 : 1;
 			break;
 
 			case Line::CA1:				// Set drive motor — CA2 set => motor off.
+			case Line::CA1|Line::CA2:
 				set_motor_on(!(control_state_ & Line::CA2));
 			break;
 
-			case Line::CA0:				// Initiate a step, if CA2 is clear.
-				if(!(control_state_ & Line::CA2))
-					step(Storage::Disk::HeadPosition(step_direction_));
+			case Line::CA0:				// Initiate a step.
+				step(Storage::Disk::HeadPosition(step_direction_));
 			break;
 
-			case Line::SEL:				// Reset has-been-ejected flag (if CA2 is set?)
+			case Line::SEL|Line::CA2:	// Reset new disk flag.
+				has_new_disk_ = false;
 			break;
 
-			case Line::CA1 | Line::CA0:	// Eject the disk if CA2 is set.
-				if(control_state_ & Line::CA2)
-					set_disk(nullptr);	// TODO: should probably trigger the disk has been ejected bit?
+			case Line::CA2 | Line::CA1 | Line::CA0:	// Eject the disk.
+				set_disk(nullptr);
 			break;
 		}
 	}
@@ -131,7 +132,7 @@ bool DoubleDensityDrive::read() {
 
 		case CA1|CA0:			// Disk has been ejected.
 								// (0 = user has ejected disk)
-		return false;
+		return !has_new_disk_;
 
 		case CA1|CA0|SEL:		// Tachometer.
 								// (arbitrary)
@@ -162,4 +163,8 @@ bool DoubleDensityDrive::read() {
 								// TODO: why do I need to return this the wrong way around for the Mac Plus?
 		return true;
 	}
+}
+
+void DoubleDensityDrive::did_set_disk() {
+	has_new_disk_ = true;
 }

@@ -166,6 +166,11 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		virtual void did_step(HeadPosition to_position) {}
 
 		/*!
+			Announces new media installation.
+		*/
+		virtual void did_set_disk() {}
+
+		/*!
 			@returns the current rotation of the disk, a float in the half-open range
 				0.0 (the index hole) to 1.0 (back to the index hole, a whole rotation later).
 		*/

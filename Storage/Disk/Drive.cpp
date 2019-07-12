@@ -53,6 +53,7 @@ void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
 	has_disk_ = !!disk_;
 
 	invalidate_track();
+	did_set_disk();
 	update_clocking_observer();
 }
 

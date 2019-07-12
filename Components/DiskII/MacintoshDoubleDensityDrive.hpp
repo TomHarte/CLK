@@ -25,10 +25,12 @@ class DoubleDensityDrive: public IWMDrive {
 	private:
 		// To receive the proper notifications from Storage::Disk::Drive.
 		void did_step(Storage::Disk::HeadPosition to_position) override;
+		void did_set_disk() override;
 
-		bool is_800k_;
-		int control_state_;
-		int step_direction_;
+		const bool is_800k_;
+		bool has_new_disk_ = false;
+		int control_state_ = 0;
+		int step_direction_ = 1;
 };
 
 }
