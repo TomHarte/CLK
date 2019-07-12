@@ -281,6 +281,10 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			_mouseIsCaptured = YES;
 			[NSCursor hide];
 			CGAssociateMouseAndMouseCursorPosition(false);
+
+			// Don't report the first click to the delegate; treat that as merely
+			// an invitation to capture the cursor.
+			return;
 		}
 
 		[self.responderDelegate mouseDown:event];
