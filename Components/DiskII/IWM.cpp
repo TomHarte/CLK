@@ -86,7 +86,7 @@ uint8_t IWM::read(int address) {
 			return uint8_t(
 				(mode_&0x1f) |
 				((state_ & ENABLE) ? 0x20 : 0x00) |
-				(drives_[active_drive_] ? (drives_[active_drive_]->read() ? 0x80 : 0x00) : 0x80)
+				sense()
 			);
 		} break;
 
@@ -138,6 +138,14 @@ void IWM::write(int address, uint8_t input) {
 
 		case Q7|Q6|ENABLE:	// Write data register.
 			LOG("Data register write");
+
+//			if(write_handshake_ & 0x80) {
+//				shift_register_ = input;
+//				output_bits_remaining_ = 8;
+//			} else {
+//				next_output_ = input;
+//				write_handshake_ &= ~0x80;
+//			}
 		break;
 	}
 }
@@ -158,7 +166,7 @@ void IWM::access(int address) {
 		state_ &= ~mask;
 	}
 
-	// React appropriately to motor requests and to LSTRB register writes.
+	// React appropriately to ENABLE and DRIVESEL changes, and changes into/out of write mode.
 	if(old_state != state_) {
 		push_drive_state();
 
@@ -186,6 +194,34 @@ void IWM::access(int address) {
 					if(drives_[active_drive_]) {
 						drives_[active_drive_]->set_enabled(state_ & ENABLE || (cycles_until_disable_ > Cycles(0)));
 						push_drive_state();
+					}
+				}
+			} break;
+
+			case Q6:
+			case Q7: {
+				const auto old_shift_mode = shift_mode_;
+
+				switch(state_ & (Q6|Q7)) {
+					default:	shift_mode_ = ShiftMode::CheckingWriteProtect;		break;
+					case 0:		shift_mode_ = ShiftMode::Reading;					break;
+					case Q7:
+						// "The IWM is put into the write state by a transition from the write protect sense state to the
+						// write load state".
+						if(shift_mode_ == ShiftMode::CheckingWriteProtect) shift_mode_ = ShiftMode::Writing;
+					break;
+				}
+
+//				LOG("Shift mode is now " << int(shift_mode_));
+
+				if(drives_[active_drive_]) {
+					if(old_shift_mode == ShiftMode::Writing && shift_mode_ != ShiftMode::Writing) {
+						drives_[active_drive_]->end_writing();
+						write_handshake_ = 0xc0;
+					}
+
+					if(old_shift_mode != ShiftMode::Writing && shift_mode_ == ShiftMode::Writing) {
+						drives_[active_drive_]->begin_writing(Storage::Time(1, clock_rate_), false);
 					}
 				}
 			} break;
@@ -227,9 +263,8 @@ void IWM::run_for(const Cycles cycles) {
 
 	// Activity otherwise depends on mode and motor state.
 	int integer_cycles = cycles.as_int();
-	switch(state_ & (Q6 | Q7 | ENABLE)) {
-		case 0:
-		case ENABLE:	// i.e. read mode.
+	switch(shift_mode_) {
+		case ShiftMode::Reading:
 			if(drive_is_rotating_[active_drive_]) {
 				while(integer_cycles--) {
 					drives_[active_drive_]->run_for(Cycles(1));
@@ -247,15 +282,47 @@ void IWM::run_for(const Cycles cycles) {
 			}
 		break;
 
-		case Q6|Q7:
-		case Q6|Q7|ENABLE:	// write mode?
-			printf("IWM write mode?\n");
-		break;
+/*		case ShiftMode::Writing:
+			while(cycles_since_shift_ + integer_cycles >= bit_length_) {
+				const auto cycles_until_write = cycles_since_shift_ + integer_cycles - bit_length_;
+				drives_[active_drive_]->run_for(cycles_until_write);
+
+				drives_[active_drive_]->write_bit(shift_register_ & 0x80);	// Is this correct?
+				shift_register_ <<= 1;
+				cycles_since_shift_ = Cycles(0);
+
+				integer_cycles -= cycles_until_write.as_int();
+				--output_bits_remaining_;
+
+				if(!output_bits_remaining_) {
+					if(!(write_handshake_ & 0x80)) {
+						write_handshake_ |= 0x80;
+						shift_register_ = next_output_;
+						output_bits_remaining_ = 8;
+					} else {
+						write_handshake_ &= ~0x40;
+						drives_[active_drive_]->end_writing();
+					}
+				}
+			}
+
+			cycles_since_shift_ = integer_cycles;
+		break;*/
+
+//		case ShiftMode::CheckingWriteProtect:
+//			while(--integer_cycles) {
+//				shift_register_ = (shift_register_ >> 1) | sense();
+//			}
+//		break;
 
 		default:
 			if(drive_is_rotating_[active_drive_]) drives_[active_drive_]->run_for(cycles);
 		break;
 	}
+}
+
+uint8_t IWM::sense() {
+	return drives_[active_drive_] ? (drives_[active_drive_]->read() ? 0x80 : 0x00) : 0x80;
 }
 
 void IWM::process_event(const Storage::Disk::Drive::Event &event) {

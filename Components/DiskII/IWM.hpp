@@ -92,11 +92,22 @@ class IWM:
 		void access(int address);
 
 		uint8_t shift_register_ = 0;
+		uint8_t next_output_ = 0;
+		int output_bits_remaining_ = 0;
+
 		void propose_shift(uint8_t bit);
 		Cycles cycles_since_shift_;
 		Cycles bit_length_;
 
 		void push_drive_state();
+
+		enum class ShiftMode {
+			Reading,
+			Writing,
+			CheckingWriteProtect
+		} shift_mode_;
+
+		uint8_t sense();
 };
 
 
