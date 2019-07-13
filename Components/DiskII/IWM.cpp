@@ -139,13 +139,13 @@ void IWM::write(int address, uint8_t input) {
 		case Q7|Q6|ENABLE:	// Write data register.
 			LOG("Data register write");
 
-//			if(write_handshake_ & 0x80) {
-//				shift_register_ = input;
-//				output_bits_remaining_ = 8;
-//			} else {
-//				next_output_ = input;
-//				write_handshake_ &= ~0x80;
-//			}
+			if(write_handshake_ & 0x80) {
+				shift_register_ = input;
+				output_bits_remaining_ = 8;
+			} else {
+				next_output_ = input;
+				write_handshake_ &= ~0x80;
+			}
 		break;
 	}
 }
@@ -282,7 +282,7 @@ void IWM::run_for(const Cycles cycles) {
 			}
 		break;
 
-/*		case ShiftMode::Writing:
+		case ShiftMode::Writing:
 			while(cycles_since_shift_ + integer_cycles >= bit_length_) {
 				const auto cycles_until_write = cycles_since_shift_ + integer_cycles - bit_length_;
 				drives_[active_drive_]->run_for(cycles_until_write);
@@ -307,13 +307,14 @@ void IWM::run_for(const Cycles cycles) {
 			}
 
 			cycles_since_shift_ = integer_cycles;
-		break;*/
+		break;
 
-//		case ShiftMode::CheckingWriteProtect:
-//			while(--integer_cycles) {
-//				shift_register_ = (shift_register_ >> 1) | sense();
-//			}
-//		break;
+		case ShiftMode::CheckingWriteProtect:
+			if(drive_is_rotating_[active_drive_]) drives_[active_drive_]->run_for(cycles);
+			while(--integer_cycles) {
+				shift_register_ = (shift_register_ >> 1) | sense();
+			}
+		break;
 
 		default:
 			if(drive_is_rotating_[active_drive_]) drives_[active_drive_]->run_for(cycles);
@@ -326,6 +327,8 @@ uint8_t IWM::sense() {
 }
 
 void IWM::process_event(const Storage::Disk::Drive::Event &event) {
+	if(shift_mode_ != ShiftMode::Reading) return;
+
 	switch(event.type) {
 		case Storage::Disk::Track::Event::IndexHole: return;
 		case Storage::Disk::Track::Event::FluxTransition:
