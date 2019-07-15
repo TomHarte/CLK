@@ -95,11 +95,11 @@ uint8_t IWM::read(int address) {
 				Read write-handshake register:
 
 				bits 0-5: reserved for future use (currently read as 1).
-				bit 6: 1 = write state (cleared to 0 if a write underrun occurs).
-				bit 7: 1 = write data buffer ready for data.
+				bit 6: 1 = write state (0 = underrun has occurred; 1 = no underrun so far).
+				bit 7: 1 = write data buffer ready for data (1 = ready; 0 = busy).
 			*/
-			LOG("Reading write handshake");
-		return 0x1f | write_handshake_;
+//			LOG("Reading write handshake: " << PADHEX(2) << (0x3f | write_handshake_));
+		return 0x3f | write_handshake_;
 	}
 
 	return 0xff;
@@ -137,15 +137,8 @@ void IWM::write(int address, uint8_t input) {
 		break;
 
 		case Q7|Q6|ENABLE:	// Write data register.
-			LOG("Data register write");
-
-			if(write_handshake_ & 0x80) {
-				shift_register_ = input;
-				output_bits_remaining_ = 8;
-			} else {
-				next_output_ = input;
-				write_handshake_ &= ~0x80;
-			}
+			next_output_ = input;
+			write_handshake_ &= ~0x80;
 		break;
 	}
 }
@@ -199,32 +192,9 @@ void IWM::access(int address) {
 			} break;
 
 			case Q6:
-			case Q7: {
-				const auto old_shift_mode = shift_mode_;
-
-				switch(state_ & (Q6|Q7)) {
-					default:	shift_mode_ = ShiftMode::CheckingWriteProtect;		break;
-					case 0:		shift_mode_ = ShiftMode::Reading;					break;
-					case Q7:
-						// "The IWM is put into the write state by a transition from the write protect sense state to the
-						// write load state".
-						if(shift_mode_ == ShiftMode::CheckingWriteProtect) shift_mode_ = ShiftMode::Writing;
-					break;
-				}
-
-//				LOG("Shift mode is now " << int(shift_mode_));
-
-				if(drives_[active_drive_]) {
-					if(old_shift_mode == ShiftMode::Writing && shift_mode_ != ShiftMode::Writing) {
-						drives_[active_drive_]->end_writing();
-						write_handshake_ = 0xc0;
-					}
-
-					if(old_shift_mode != ShiftMode::Writing && shift_mode_ == ShiftMode::Writing) {
-						drives_[active_drive_]->begin_writing(Storage::Time(1, clock_rate_), false);
-					}
-				}
-			} break;
+			case Q7:
+				select_shift_mode();
+			break;
 		}
 	}
 }
@@ -283,42 +253,79 @@ void IWM::run_for(const Cycles cycles) {
 		break;
 
 		case ShiftMode::Writing:
-			while(cycles_since_shift_ + integer_cycles >= bit_length_) {
-				const auto cycles_until_write = cycles_since_shift_ + integer_cycles - bit_length_;
-				drives_[active_drive_]->run_for(cycles_until_write);
+			if(drives_[active_drive_]->is_writing()) {
+				while(cycles_since_shift_ + integer_cycles >= bit_length_) {
+					const auto cycles_until_write = bit_length_ - cycles_since_shift_;
+					drives_[active_drive_]->run_for(cycles_until_write);
 
-				drives_[active_drive_]->write_bit(shift_register_ & 0x80);	// Is this correct?
-				shift_register_ <<= 1;
-				cycles_since_shift_ = Cycles(0);
+					// Output a flux transition if the top bit is set.
+					drives_[active_drive_]->write_bit(shift_register_ & 0x80);
+					shift_register_ <<= 1;
 
-				integer_cycles -= cycles_until_write.as_int();
-				--output_bits_remaining_;
+					integer_cycles -= cycles_until_write.as_int();
+					cycles_since_shift_ = Cycles(0);
 
-				if(!output_bits_remaining_) {
-					if(!(write_handshake_ & 0x80)) {
-						write_handshake_ |= 0x80;
-						shift_register_ = next_output_;
-						output_bits_remaining_ = 8;
-					} else {
-						write_handshake_ &= ~0x40;
-						drives_[active_drive_]->end_writing();
+					--output_bits_remaining_;
+					if(!output_bits_remaining_) {
+						if(!(write_handshake_ & 0x80)) {
+							write_handshake_ |= 0x80;
+							shift_register_ = next_output_;
+							output_bits_remaining_ = 8;
+//							LOG("Next byte: " << PADHEX(2) << int(shift_register_));
+						} else {
+							write_handshake_ &= ~0x40;
+							drives_[active_drive_]->end_writing();
+							printf("\n");
+							LOG("Overrun; done.");
+							select_shift_mode();
+						}
 					}
 				}
-			}
 
-			cycles_since_shift_ = integer_cycles;
+				cycles_since_shift_ = integer_cycles;
+				if(integer_cycles) {
+					drives_[active_drive_]->run_for(cycles_since_shift_);
+				}
+			} else {
+				drives_[active_drive_]->run_for(cycles);
+			}
 		break;
 
 		case ShiftMode::CheckingWriteProtect:
-			if(drive_is_rotating_[active_drive_]) drives_[active_drive_]->run_for(cycles);
 			while(--integer_cycles) {
 				shift_register_ = (shift_register_ >> 1) | sense();
 			}
-		break;
 
+		/* Deliberate fallthrough. */
 		default:
 			if(drive_is_rotating_[active_drive_]) drives_[active_drive_]->run_for(cycles);
 		break;
+	}
+}
+
+void IWM::select_shift_mode() {
+	// Don't allow an ongoing write to be interrupted.
+	if(shift_mode_ == ShiftMode::Writing && drives_[active_drive_] && drives_[active_drive_]->is_writing()) return;
+
+	const auto old_shift_mode = shift_mode_;
+
+	switch(state_ & (Q6|Q7)) {
+		default:	shift_mode_ = ShiftMode::CheckingWriteProtect;		break;
+		case 0:		shift_mode_ = ShiftMode::Reading;					break;
+		case Q7:
+			// "The IWM is put into the write state by a transition from the write protect sense state to the
+			// write load state".
+			if(shift_mode_ == ShiftMode::CheckingWriteProtect) shift_mode_ = ShiftMode::Writing;
+		break;
+	}
+
+	// If writing mode just began, set the drive into write mode and cue up the first output byte.
+	if(drives_[active_drive_] && old_shift_mode != ShiftMode::Writing && shift_mode_ == ShiftMode::Writing) {
+		drives_[active_drive_]->begin_writing(Storage::Time(1, clock_rate_ / bit_length_.as_int()), false);
+		shift_register_ = next_output_;
+		write_handshake_ |= 0x80 | 0x40;
+		output_bits_remaining_ = 8;
+		LOG("Seeding output with " << PADHEX(2) << shift_register_);
 	}
 }
 
@@ -340,6 +347,7 @@ void IWM::process_event(const Storage::Disk::Drive::Event &event) {
 void IWM::propose_shift(uint8_t bit) {
 	// TODO: synchronous mode.
 
+//	LOG("Shifting input");
 	shift_register_ = uint8_t((shift_register_ << 1) | bit);
 	if(shift_register_ & 0x80) {
 		data_register_ = shift_register_;

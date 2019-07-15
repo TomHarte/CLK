@@ -87,7 +87,7 @@ class IWM:
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override;
 
 		Cycles cycles_until_disable_;
-		uint8_t write_handshake_ = 0xc0;
+		uint8_t write_handshake_ = 0x80;
 
 		void access(int address);
 
@@ -108,6 +108,7 @@ class IWM:
 		} shift_mode_;
 
 		uint8_t sense();
+		void select_shift_mode();
 };
 
 
