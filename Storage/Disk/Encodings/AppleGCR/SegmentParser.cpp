@@ -83,7 +83,7 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 				// one header has been witnessed, start a sector.
 				if(scanner[2] == data_prologue[2]) {
 					new_sector.reset(new Sector);
-					new_sector->data.reserve(412);
+					new_sector->data.reserve(710);
 				} else {
 					sector_location = static_cast<std::size_t>(bit % segment.data.size());
 				}
