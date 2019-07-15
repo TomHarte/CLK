@@ -230,8 +230,8 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::shared_ptr<Tra
 		std::vector<uint8_t> track_contents(static_cast<size_t>(524 * included_sectors.length));
 		for(const auto &sector_pair: sector_map) {
 			const size_t target_address = sector_pair.second.address.sector * 524;
-			if(target_address >= track_contents.size()) continue;
-			memcpy(&track_contents[target_address*524], sector_pair.second.data.data(), 524);
+			if(target_address >= track_contents.size() || sector_pair.second.data.size() != 524) continue;
+			memcpy(&track_contents[target_address], sector_pair.second.data.data(), 524);
 		}
 
 		// Store for later.
@@ -246,7 +246,7 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::shared_ptr<Tra
 			size_t start_sector = size_t(included_sectors.start * get_head_count() + included_sectors.length * pair.first.head);
 
 			for(int c = 0; c < included_sectors.length; ++c) {
-				memcpy(&data_[start_sector * 512], &pair.second[start_sector*524 + 12], 512);
+				memcpy(&data_[start_sector * 512], &pair.second[size_t(c)*524 + 12], 512);
 
 				// TODO: the below strongly implies I should keep tags in memory even if I don't write
 				// them out to the file?
