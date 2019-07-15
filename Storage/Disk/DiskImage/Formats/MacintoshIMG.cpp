@@ -246,12 +246,15 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::shared_ptr<Tra
 			size_t start_sector = size_t(included_sectors.start * get_head_count() + included_sectors.length * pair.first.head);
 
 			for(int c = 0; c < included_sectors.length; ++c) {
-				memcpy(&data_[start_sector * 512], &pair.second[size_t(c)*524 + 12], 512);
+				const auto sector_plus_tags = &pair.second[size_t(c)*524];
 
-				// TODO: the below strongly implies I should keep tags in memory even if I don't write
-				// them out to the file?
+				// Copy the 512 bytes that constitute the sector body.
+				memcpy(&data_[start_sector * 512], &sector_plus_tags[12], 512);
+
+				// Copy the tags if this file can store them.
+				// TODO: add tags to a DiskCopy-format image that doesn't have them, if they contain novel content?
 				if(tags_.size()) {
-					memcpy(&data_[start_sector * 12], pair.second.data(), 12);
+					memcpy(&tags_[start_sector * 12], sector_plus_tags, 12);
 				}
 
 				++start_sector;
