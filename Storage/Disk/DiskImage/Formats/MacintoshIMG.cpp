@@ -27,20 +27,20 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 	file_(file_name) {
 
 	// Test 1: is this a raw secctor dump? If so it'll start with
-	// the magic word 0x4C4B (big endian) and be exactly
-	// 819,200 bytes long if double sided, or 409,600 bytes if
-	// single sided.
+	// either the magic word 0x4C4B (big endian) or with 0x00000
+	// and be exactly 819,200 bytes long if double sided, or
+	// 409,600 bytes if single sided.
 	//
-	// Luckily, 0x4c is an invalid string length for the proper
+	// Luckily, both 0x00 and 0x4c are invalid string length for the proper
 	// DiskCopy 4.2 format, so there's no ambiguity here.
 	const auto name_length = file_.get8();
-	if(name_length == 0x4c) {
+	if(name_length == 0x4c || !name_length) {
 		is_diskCopy_file_ = false;
 		if(file_.stats().st_size != 819200 && file_.stats().st_size != 409600)
 			throw Error::InvalidFormat;
 
 		uint32_t magic_word = file_.get8();
-		if(magic_word != 0x4b)
+		if(!((name_length == 0x4c && magic_word == 0x4b) || (name_length == 0x00 && magic_word == 0x00)))
 			throw Error::InvalidFormat;
 
 		file_.seek(0, SEEK_SET);
@@ -165,30 +165,36 @@ std::shared_ptr<::Storage::Disk::Track> MacintoshIMG::get_track_at_position(::St
 
 		if(start_sector*512 >= data_.size()) return nullptr;
 
-		uint8_t *sector = &data_[512 * start_sector];
-		uint8_t *tags = tags_.size() ? &tags_[12 * start_sector] : nullptr;
+		uint8_t *const sector = &data_[512 * start_sector];
+		uint8_t *const tags = tags_.size() ? &tags_[12 * start_sector] : nullptr;
 
 		Storage::Disk::PCMSegment segment;
 		segment += Encodings::AppleGCR::six_and_two_sync(24);
 
+		// Determine the sector ordering.
+		uint8_t source_sectors[12] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+		int destination = 0;
 		for(int c = 0; c < included_sectors.length; ++c) {
-//			const int interleave_scale = ((format_ & 0x1f) == 4) ? 8 : 4;
-			uint8_t sector_id = uint8_t(c);//uint8_t((c == included_sectors.length - 1) ? c : (c * interleave_scale)%included_sectors.length);
+			// Deal with collisions by finding the next non-colliding spot.
+			while(source_sectors[destination] != 0xff) ++destination;
+			source_sectors[destination] = uint8_t(c);
+			destination = (destination + (format_ & 0x1f)) % included_sectors.length;
+		}
 
+		for(int c = 0; c < included_sectors.length; ++c) {
+			const uint8_t sector_id = source_sectors[c];
 			uint8_t sector_plus_tags[524];
 
 			// Copy in the tags, if provided; otherwise generate them.
 			if(tags) {
-				memcpy(sector_plus_tags, tags, 12);
-				tags += 12;
+				memcpy(sector_plus_tags, &tags[sector_id * 12], 12);
 			} else {
 				// TODO: fill in tags properly.
 				memset(sector_plus_tags, 0, 12);
 			}
 
 			// Copy in the sector body.
-			memcpy(&sector_plus_tags[12], sector, 512);
-			sector += 512;
+			memcpy(&sector_plus_tags[12], &sector[sector_id * 512], 512);
 
 			// NB: sync lengths below are identical to those for
 			// the Apple II, as I have no idea whatsoever what they
@@ -205,8 +211,9 @@ std::shared_ptr<::Storage::Disk::Track> MacintoshIMG::get_track_at_position(::St
 			segment += Encodings::AppleGCR::six_and_two_sync(20);
 		}
 
-		// TODO: is there inter-track skew?
+		// TODO: it seems some tracks are skewed respective to others; investigate further.
 
+//		segment.rotate_right(3000);	// Just a test, yo.
 		return std::make_shared<PCMTrack>(segment);
 	}
 
@@ -223,7 +230,7 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::shared_ptr<Tra
 		const int data_rate = included_sectors.length * 6250;
 
 		// Decode the track.
-		auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
+		const auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
 			Storage::Disk::track_serialisation(*pair.second, Storage::Time(1, data_rate)));
 
 		// Rearrange sectors into ascending order.
