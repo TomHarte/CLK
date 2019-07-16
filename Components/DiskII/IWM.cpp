@@ -86,7 +86,7 @@ uint8_t IWM::read(int address) {
 			return uint8_t(
 				(mode_&0x1f) |
 				((state_ & ENABLE) ? 0x20 : 0x00) |
-				sense()
+				(sense() & 0x80)
 			);
 		} break;
 
@@ -292,8 +292,10 @@ void IWM::run_for(const Cycles cycles) {
 		break;
 
 		case ShiftMode::CheckingWriteProtect:
-			while(--integer_cycles) {
-				shift_register_ = (shift_register_ >> 1) | sense();
+			if(integer_cycles < 8) {
+				shift_register_ = (shift_register_ >> integer_cycles) | (sense() & (0xff << (8 - integer_cycles)));
+			} else {
+				shift_register_ = sense();
 			}
 
 		/* Deliberate fallthrough. */
@@ -330,7 +332,7 @@ void IWM::select_shift_mode() {
 }
 
 uint8_t IWM::sense() {
-	return drives_[active_drive_] ? (drives_[active_drive_]->read() ? 0x80 : 0x00) : 0x80;
+	return drives_[active_drive_] ? (drives_[active_drive_]->read() ? 0xff : 0x00) : 0xff;
 }
 
 void IWM::process_event(const Storage::Disk::Drive::Event &event) {
