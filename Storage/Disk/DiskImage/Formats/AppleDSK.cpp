@@ -100,7 +100,7 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>>
 	std::map<Track::Address, std::vector<uint8_t>> tracks_by_address;
 	for(const auto &pair: tracks) {
 		// Decode the track.
-		auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
+		const auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
 			Storage::Disk::track_serialisation(*pair.second, Storage::Time(1, 50000)));
 
 		// Rearrange sectors into Apple DOS or Pro-DOS order.

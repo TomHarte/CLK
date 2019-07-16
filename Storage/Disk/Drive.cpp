@@ -340,7 +340,7 @@ void Drive::write_bit(bool value) {
 void Drive::end_writing() {
 	// If the user modifies a track, it's scaled up to a "high" resolution and modifications
 	// are plotted on top of that.
-	static const size_t high_resolution_track_rate = 500000;
+	const size_t high_resolution_track_rate = 500000;
 
 	if(!is_reading_) {
 		is_reading_ = true;
@@ -349,7 +349,7 @@ void Drive::end_writing() {
 			// Avoid creating a new patched track if this one is already patched
 			patched_track_ = std::dynamic_pointer_cast<PCMTrack>(track_);
 			if(!patched_track_ || !patched_track_->is_resampled_clone()) {
-				Track *tr = track_.get();
+				Track *const tr = track_.get();
 				patched_track_.reset(PCMTrack::resampled_clone(tr, high_resolution_track_rate));
 			}
 		}
