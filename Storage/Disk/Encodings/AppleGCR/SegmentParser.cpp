@@ -52,14 +52,17 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 	std::array<uint_fast8_t, 8> header{{0, 0, 0, 0, 0, 0, 0, 0}};
 	std::array<uint_fast8_t, 3> scanner{{0, 0, 0}};
 
-	// Scan the track 1 and 1/8th times; that's long enough to make sure that any sector which straddles the
-	// end of the track is caught. Since they're put into a map, it doesn't matter if they're caught twice.
-	const size_t extended_length = segment.data.size() + (segment.data.size() >> 3);
-	for(size_t bit = 0; bit < extended_length; ++bit) {
+	// Scan the track while either all bits haven't been seen yet, or a potential
+	// sector is still being parsed.
+	size_t bit = 0;
+	int header_delay = 0;
+	while(bit < segment.data.size() || pointer != scanning_sentinel || header_delay) {
 		shift_register = static_cast<uint_fast8_t>((shift_register << 1) | (segment.data[bit % segment.data.size()] ? 1 : 0));
+		++bit;
 
 		// Apple GCR parsing: bytes always have the top bit set.
 		if(!(shift_register&0x80)) continue;
+		if(header_delay) --header_delay;
 
 		// Grab the byte.
 		const uint_fast8_t value = shift_register;
@@ -86,6 +89,8 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 					new_sector->data.reserve(710);
 				} else {
 					sector_location = static_cast<std::size_t>(bit % segment.data.size());
+					header_delay = 200;	// Allow up to 200 bytes to find the body, if the
+										// track split comes in between.
 				}
 			}
 		} else {
@@ -193,7 +198,9 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 									break;
 								}
 							}
-							if(out_of_bounds) continue;
+							if(out_of_bounds) {
+								continue;
+							}
 
 							// Test the checksum.
 							if(decoded_header[4] != (decoded_header[0] ^ decoded_header[1] ^ decoded_header[2] ^ decoded_header[3]))
@@ -213,11 +220,15 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 									break;
 								}
 							}
-							if(out_of_bounds) continue;
+							if(out_of_bounds) {
+								continue;
+							}
 
 							// The first byte in the sector is a repeat of the sector number; test it
 							// for correctness.
-							if(sector->data[0] != sector->address.sector) continue;
+							if(sector->data[0] != sector->address.sector) {
+								continue;
+							}
 
 							// Cf. the corresponding section of Encoder.cpp for logic below.
 							int checksum[3] = {0, 0, 0};
