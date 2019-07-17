@@ -505,6 +505,7 @@
 			<array>
 				<string>img</string>
 				<string>hfv</string>
+				<string>image</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy35</string>
