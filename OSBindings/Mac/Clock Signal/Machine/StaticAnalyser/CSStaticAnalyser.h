@@ -30,7 +30,10 @@ typedef NS_ENUM(NSInteger, CSMachineCPCModel) {
 };
 
 typedef NS_ENUM(NSInteger, CSMachineMacintoshModel) {
-	CSMachineMacintoshModel128k
+	CSMachineMacintoshModel128k,
+	CSMachineMacintoshModel512k,
+	CSMachineMacintoshModel512ke,
+	CSMachineMacintoshModelPlus,
 };
 
 typedef NS_ENUM(NSInteger, CSMachineOricModel) {

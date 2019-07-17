@@ -197,6 +197,16 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 		using Target = Analyser::Static::Macintosh::Target;
 		std::unique_ptr<Target> target(new Target);
 		target->machine = Analyser::Machine::Macintosh;
+
+		using Model = Target::Model;
+		switch(model) {
+			default:
+			case CSMachineMacintoshModel128k:	target->model = Model::Mac128k;		break;
+			case CSMachineMacintoshModel512k:	target->model = Model::Mac512k;		break;
+			case CSMachineMacintoshModel512ke:	target->model = Model::Mac512ke;	break;
+			case CSMachineMacintoshModelPlus:	target->model = Model::MacPlus;		break;
+		}
+
 		_targets.push_back(std::move(target));
 	}
 	return self;

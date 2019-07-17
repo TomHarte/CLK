@@ -158,7 +158,7 @@ class MachinePicker: NSObject {
 				}
 
 			case "mac":
-				return CSStaticAnalyser(macintoshModel: .model128k)
+				return CSStaticAnalyser(macintoshModel: .model512ke)
 
 			case "msx":
 				let hasDiskDrive = msxHasDiskDriveButton!.state == .on
