@@ -15,6 +15,7 @@
 
 #include "../RegisterSizes.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/ForceInline.hpp"
 
 namespace CPU {
 namespace Z80 {
@@ -107,20 +108,20 @@ struct PartialMachineCycle {
 		@returns @c true if the processor believes that the bus handler should actually do something with
 		the content of this PartialMachineCycle; @c false otherwise.
 	*/
-	inline bool expects_action() const {
+	forceinline bool expects_action() const {
 		return operation <= Operation::Interrupt;
 	}
 	/*!
 		@returns @c true if this partial machine cycle completes one of the documented full machine cycles;
 		@c false otherwise.
 	*/
-	inline bool is_terminal() const {
+	forceinline bool is_terminal() const {
 		return operation <= Operation::BusAcknowledge;
 	}
 	/*!
 		@returns @c true if this partial machine cycle is a wait cycle; @c false otherwise.
 	*/
-	inline bool is_wait() const {
+	forceinline bool is_wait() const {
 		return operation >= Operation::ReadOpcodeWait && operation <= Operation::InterruptWait;
 	}
 
