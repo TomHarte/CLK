@@ -106,15 +106,27 @@ MacintoshIMG::MacintoshIMG(const std::string &file_name) :
 		const auto computed_data_checksum = checksum(data_);
 		const auto computed_tag_checksum = checksum(tags_, 12);
 
-		if(computed_tag_checksum != tag_checksum || computed_data_checksum != data_checksum)
-			throw Error::InvalidFormat;
+		/*
+			Yuck! It turns out that at least some disk images have incorrect checksums,
+			and other emulators accept them regardless. So this test is disabled, at least
+			for now. It'd probably be smarter to accept the disk image as provisionally
+			incorrect and somehow communicate the issue to the user? Or, much better,
+			verify the filesystem if the checksums don't match.
+		*/
+		(void)data_checksum;
+		(void)computed_data_checksum;
+		(void)tag_checksum;
+		(void)computed_tag_checksum;
+
+//		if(computed_tag_checksum != tag_checksum || computed_data_checksum != data_checksum)
+//			throw Error::InvalidFormat;
 	}
 }
 
 uint32_t MacintoshIMG::checksum(const std::vector<uint8_t> &data, size_t bytes_to_skip) {
 	uint32_t result = 0;
 
-	// Checksum algorith is: take each two bytes as a big-endian word; add that to a
+	// Checksum algorithm is: take each two bytes as a big-endian word; add that to a
 	// 32-bit accumulator and then rotate the accumulator right one position.
 	for(size_t c = bytes_to_skip; c < data.size(); c += 2) {
 		const uint16_t next_word = uint16_t((data[c] << 8) | data[c+1]);
