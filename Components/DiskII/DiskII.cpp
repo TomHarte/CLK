@@ -22,7 +22,7 @@ namespace  {
 DiskII::DiskII(int clock_rate) :
 	clock_rate_(clock_rate),
 	inputs_(input_command),
-	drives_{{static_cast<unsigned int>(clock_rate), 300, 1}, {static_cast<unsigned int>(clock_rate), 300, 1}}
+	drives_{{clock_rate, 300, 1}, {clock_rate, 300, 1}}
 {
 	drives_[0].set_clocking_hint_observer(this);
 	drives_[1].set_clocking_hint_observer(this);
@@ -211,7 +211,7 @@ void DiskII::set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int driv
 	drives_[drive].set_disk(disk);
 }
 
-void DiskII::process_event(const Storage::Disk::Track::Event &event) {
+void DiskII::process_event(const Storage::Disk::Drive::Event &event) {
 	if(event.type == Storage::Disk::Track::Event::FluxTransition) {
 		inputs_ &= ~input_flux;
 		flux_duration_ = 2;	// Upon detection of a flux transition, the flux flag should stay set for 1us. Emulate that as two cycles.

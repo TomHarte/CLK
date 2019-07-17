@@ -16,6 +16,7 @@
 #include <ostream>
 #include <vector>
 
+#include "../../ClockReceiver/ForceInline.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../RegisterSizes.hpp"
 
@@ -127,14 +128,14 @@ struct Microcycle {
 	// Various inspectors.
 
 	/*! @returns true if any data select line is active; @c false otherwise. */
-	inline bool data_select_active() const {
+	forceinline bool data_select_active() const {
 		return bool(operation & (SelectWord | SelectByte | InterruptAcknowledge));
 	}
 
 	/*!
 		@returns 0 if this byte access wants the low part of a 16-bit word; 8 if it wants the high part.
 	*/
-	inline unsigned int byte_shift() const {
+	forceinline unsigned int byte_shift() const {
 		return (((*address) & 1) << 3) ^ 8;
 	}
 
@@ -143,7 +144,7 @@ struct Microcycle {
 
 		@returns 0x00ff if this byte access wants the low part of a 16-bit word; 0xff00 if it wants the high part.
 	*/
-	inline uint16_t byte_mask() const {
+	forceinline uint16_t byte_mask() const {
 		return uint16_t(0xff00) >> (((*address) & 1) << 3);
 	}
 
@@ -153,7 +154,7 @@ struct Microcycle {
 
 		@returns 0xff00 if this byte access wants the low part of a 16-bit word; 0x00ff if it wants the high part.
 	*/
-	inline uint16_t untouched_byte_mask() const {
+	forceinline uint16_t untouched_byte_mask() const {
 		return uint16_t(uint16_t(0xff) << (((*address) & 1) << 3));
 	}
 
@@ -161,21 +162,21 @@ struct Microcycle {
 		Assuming this cycle is a byte write, mutates @c destination by writing the byte to the proper upper or
 		lower part, retaining the other half.
 	*/
-	uint16_t write_byte(uint16_t destination) const {
+	forceinline uint16_t write_byte(uint16_t destination) const {
 		return uint16_t((destination & untouched_byte_mask()) | (value->halves.low << byte_shift()));
 	}
 
 	/*!
 		@returns non-zero if this is a byte read and 68000 LDS is asserted.
 	*/
-	inline int lower_data_select() const {
+	forceinline int lower_data_select() const {
 		return (operation & SelectByte) & ((*address & 1) << 3);
 	}
 
 	/*!
 		@returns non-zero if this is a byte read and 68000 UDS is asserted.
 	*/
-	inline int upper_data_select() const {
+	forceinline int upper_data_select() const {
 		return (operation & SelectByte) & ~((*address & 1) << 3);
 	}
 
@@ -186,9 +187,21 @@ struct Microcycle {
 		space, address 1 is the second word (i.e. the third and fourth bytes) in
 		the address space, etc.
 	*/
-	uint32_t word_address() const {
+	forceinline uint32_t word_address() const {
 		return (address ? (*address) & 0x00fffffe : 0) >> 1;
 	}
+
+	/*!
+		@returns the same value as word_address() for any Microcycle with the NewAddress or
+		SameAddress flags set; undefined behaviour otherwise.
+	*/
+	forceinline uint32_t active_operation_word_address() const {
+		return ((*address) & 0x00fffffe) >> 1;
+	}
+
+#ifndef NDEBUG
+	bool is_resizeable = false;
+#endif
 };
 
 /*!
@@ -220,12 +233,33 @@ class BusHandler {
 class ProcessorBase: public ProcessorStorage {
 };
 
+enum Flag: uint16_t {
+	Trace		= 0x8000,
+	Supervisor	= 0x2000,
+
+	ConditionCodes	= 0x1f,
+
+	Extend		= 0x0010,
+	Negative	= 0x0008,
+	Zero		= 0x0004,
+	Overflow	= 0x0002,
+	Carry		= 0x0001
+};
+
 struct ProcessorState {
 	uint32_t data[8];
 	uint32_t address[7];
 	uint32_t user_stack_pointer, supervisor_stack_pointer;
 	uint32_t program_counter;
 	uint16_t status;
+
+	/*!
+		@returns the supervisor stack pointer if @c status indicates that
+			the processor is in supervisor mode; the user stack pointer otherwise.
+	*/
+	uint32_t stack_pointer() const {
+		return (status & Flag::Supervisor) ? supervisor_stack_pointer : user_stack_pointer;
+	}
 
 	// TODO: More state needed to indicate current instruction, the processor's
 	// progress through it, and anything it has fetched so far.
@@ -256,29 +290,29 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform = false> cla
 		}
 
 		/// Sets the bus error line — @c true for active, @c false for inactive.
-		void set_bus_error(bool bus_error) {
+		inline void set_bus_error(bool bus_error) {
 			bus_error_ = bus_error;
 		}
 
 		/// Sets the interrupt lines, IPL0, IPL1 and IPL2.
-		void set_interrupt_level(int interrupt_level) {
+		inline void set_interrupt_level(int interrupt_level) {
 			bus_interrupt_level_ = interrupt_level;
 		}
 
 		/// Sets the bus request line.
 		/// This are of functionality is TODO.
-		void set_bus_request(bool bus_request) {
+		inline void set_bus_request(bool bus_request) {
 			bus_request_ = bus_request;
 		}
 
 		/// Sets the bus acknowledge line.
 		/// This are of functionality is TODO.
-		void set_bus_acknowledge(bool bus_acknowledge) {
+		inline void set_bus_acknowledge(bool bus_acknowledge) {
 			bus_acknowledge_ = bus_acknowledge;
 		}
 
 		/// Sets the halt line.
-		void set_halt(bool halt) {
+		inline void set_halt(bool halt) {
 			halt_ = halt;
 		}
 

@@ -410,19 +410,44 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)clearAllKeys {
-	auto keyboard_machine = _machine->keyboard_machine();
+	const auto keyboard_machine = _machine->keyboard_machine();
 	if(keyboard_machine) {
 		@synchronized(self) {
 			keyboard_machine->get_keyboard().reset_all_keys();
 		}
 	}
 
-	auto joystick_machine = _machine->joystick_machine();
+	const auto joystick_machine = _machine->joystick_machine();
 	if(joystick_machine) {
 		@synchronized(self) {
 			for(auto &joystick : joystick_machine->get_joysticks()) {
 				joystick->reset_all_inputs();
 			}
+		}
+	}
+
+	const auto mouse_machine = _machine->mouse_machine();
+	if(mouse_machine) {
+		@synchronized(self) {
+			mouse_machine->get_mouse().reset_all_buttons();
+		}
+	}
+}
+
+- (void)setMouseButton:(int)button isPressed:(BOOL)isPressed {
+	auto mouse_machine = _machine->mouse_machine();
+	if(mouse_machine) {
+		@synchronized(self) {
+			mouse_machine->get_mouse().set_button_pressed(button % mouse_machine->get_mouse().get_number_of_buttons(), isPressed);
+		}
+	}
+}
+
+- (void)addMouseMotionX:(CGFloat)deltaX y:(CGFloat)deltaY {
+	auto mouse_machine = _machine->mouse_machine();
+	if(mouse_machine) {
+		@synchronized(self) {
+			mouse_machine->get_mouse().move(int(deltaX), int(deltaY));
 		}
 	}
 }
@@ -538,6 +563,10 @@ struct ActivityObserver: public Activity::Observer {
 
 - (BOOL)hasJoystick {
 	return !!_machine->joystick_machine();
+}
+
+- (BOOL)hasMouse {
+	return !!_machine->mouse_machine();
 }
 
 - (BOOL)hasExclusiveKeyboard {

@@ -8,100 +8,10 @@
 
 #import <XCTest/XCTest.h>
 
-#include <array>
 #include <cassert>
 
-#include "68000.hpp"
-
-/*!
-	Provides a 68000 with 64kb of RAM in its low address space;
-	/RESET will put the supervisor stack pointer at 0xFFFF and
-	begin execution at 0x0400.
-*/
-class RAM68000: public CPU::MC68000::BusHandler {
-	public:
-		RAM68000() : m68000_(*this) {
-			ram_.resize(256*1024);
-
-			// Setup the /RESET vector.
-			ram_[0] = 0;
-			ram_[1] = 0xffff;
-			ram_[2] = 0;
-			ram_[3] = 0x1000;
-		}
-
-		void set_program(const std::vector<uint16_t> &program) {
-			memcpy(&ram_[0x1000 >> 1], program.data(), program.size() * sizeof(uint16_t));
-		}
-
-		void will_perform(uint32_t address, uint16_t opcode) {
-			--instructions_remaining_;
-		}
-
-		void run_for_instructions(int count) {
-			instructions_remaining_ = count;
-			while(instructions_remaining_) {
-				run_for(HalfCycles(2));
-			}
-		}
-
-		void run_for(HalfCycles cycles) {
-			m68000_.run_for(cycles);
-		}
-
-		uint16_t *ram_at(uint32_t address) {
-			return &ram_[address >> 1];
-		}
-
-		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
-			const uint32_t word_address = cycle.word_address();
-
-			using Microcycle = CPU::MC68000::Microcycle;
-			if(cycle.data_select_active()) {
-				if(cycle.operation & Microcycle::InterruptAcknowledge) {
-					cycle.value->halves.low = 10;
-				} else {
-					switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
-						default: break;
-
-						case Microcycle::SelectWord | Microcycle::Read:
-							cycle.value->full = ram_[word_address];
-							printf("r %04x from %08x \n", cycle.value->full, *cycle.address);
-						break;
-						case Microcycle::SelectByte | Microcycle::Read:
-							cycle.value->halves.low = ram_[word_address] >> cycle.byte_shift();
-						break;
-						case Microcycle::SelectWord:
-							printf("w %08x of %04x\n", *cycle.address, cycle.value->full);
-							ram_[word_address] = cycle.value->full;
-						break;
-						case Microcycle::SelectByte:
-							ram_[word_address] = (cycle.value->full & cycle.byte_mask()) | (ram_[word_address] & (0xffff ^ cycle.byte_mask()));
-						break;
-					}
-				}
-			}
-
-			return HalfCycles(0);
-		}
-
-		CPU::MC68000::Processor<RAM68000, true>::State get_processor_state() {
-			return m68000_.get_state();
-		}
-
-		void set_processor_state(const CPU::MC68000::Processor<RAM68000, true>::State &state) {
-			m68000_.set_state(state);
-		}
-
-		CPU::MC68000::Processor<RAM68000, true, true> &processor() {
-			return m68000_;
-		}
-
-	private:
-		CPU::MC68000::Processor<RAM68000, true, true> m68000_;
-		std::vector<uint16_t> ram_;
-		int instructions_remaining_;
-};
+#define LOG_TRACE
+#include "TestRunner68000.hpp"
 
 class CPU::MC68000::ProcessorStorageTests {
 	public:
@@ -208,7 +118,7 @@ class CPU::MC68000::ProcessorStorageTests {
 	_machine.reset();
 }
 
-- (void)testABCD {
+- (void)testABCDLong {
 	for(int d = 0; d < 100; ++d) {
 		_machine.reset(new RAM68000());
 		_machine->set_program({
@@ -238,17 +148,14 @@ class CPU::MC68000::ProcessorStorageTests {
 
 		/* Next instruction would be at 0x406 */
 	});
-
-	auto state = _machine->get_processor_state();
-	state.supervisor_stack_pointer = 0x1000;
-	_machine->set_processor_state(state);
+	_machine->set_initial_stack_pointer(0x1000);
 
 	_machine->run_for_instructions(4);
-	state = _machine->get_processor_state();
 
+	const auto state = _machine->get_processor_state();
 	XCTAssert(state.supervisor_stack_pointer == 0x1000 - 6, @"Exception information should have been pushed to stack.");
 
-	const uint16_t *stack_top = _machine->ram_at(state.supervisor_stack_pointer);
+	const uint16_t *const stack_top = _machine->ram_at(state.supervisor_stack_pointer);
 	XCTAssert(stack_top[1] == 0x0000 && stack_top[2] == 0x1006, @"Return address should point to instruction after DIVU.");
 }
 

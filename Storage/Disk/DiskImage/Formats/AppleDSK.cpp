@@ -79,9 +79,9 @@ std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 
 		// Write the sectors.
 		for(uint8_t c = 0; c < 16; ++c) {
-			segment += Encodings::AppleGCR::header(is_prodos_ ? 0x01 : 0xfe, track, c);	// Volume number is 0xfe for DOS 3.3, 0x01 for Pro-DOS.
+			segment += Encodings::AppleGCR::AppleII::header(is_prodos_ ? 0x01 : 0xfe, track, c);	// Volume number is 0xfe for DOS 3.3, 0x01 for Pro-DOS.
 			segment += Encodings::AppleGCR::six_and_two_sync(7);	// Gap 2: 7 sync words.
-			segment += Encodings::AppleGCR::six_and_two_data(&track_data[logical_sector_for_physical_sector(c) * 256]);
+			segment += Encodings::AppleGCR::AppleII::six_and_two_data(&track_data[logical_sector_for_physical_sector(c) * 256]);
 			segment += Encodings::AppleGCR::six_and_two_sync(20);	// Gap 3: 20 sync words.
 		}
 	} else {
@@ -100,7 +100,7 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>>
 	std::map<Track::Address, std::vector<uint8_t>> tracks_by_address;
 	for(const auto &pair: tracks) {
 		// Decode the track.
-		auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
+		const auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
 			Storage::Disk::track_serialisation(*pair.second, Storage::Time(1, 50000)));
 
 		// Rearrange sectors into Apple DOS or Pro-DOS order.

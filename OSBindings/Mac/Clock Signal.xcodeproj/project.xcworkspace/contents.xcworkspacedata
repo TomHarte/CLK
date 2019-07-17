@@ -2,6 +2,9 @@
 <Workspace
    version = "1.0">
    <FileRef
+      location = "group:/Users/thomasharte/Projects/CLK/OSBindings/Mac/Clock SignalTests/68000ArithmeticTests.mm">
+   </FileRef>
+   <FileRef
       location = "self:Clock Signal.xcodeproj">
    </FileRef>
 </Workspace>

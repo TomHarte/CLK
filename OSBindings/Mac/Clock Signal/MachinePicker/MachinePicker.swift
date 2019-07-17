@@ -157,6 +157,9 @@ class MachinePicker: NSObject {
 					default:	return CSStaticAnalyser(amstradCPCModel: .model6128)
 				}
 
+			case "mac":
+				return CSStaticAnalyser(macintoshModel: .model512ke)
+
 			case "msx":
 				let hasDiskDrive = msxHasDiskDriveButton!.state == .on
 				switch msxRegionButton!.selectedItem?.tag {

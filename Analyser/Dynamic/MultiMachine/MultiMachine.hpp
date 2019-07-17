@@ -54,6 +54,7 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::De
 		Configurable::Device *configurable_device() override;
 		CRTMachine::Machine *crt_machine() override;
 		JoystickMachine::Machine *joystick_machine() override;
+		MouseMachine::Machine *mouse_machine() override;
 		KeyboardMachine::Machine *keyboard_machine() override;
 		MediaTarget::Machine *media_target() override;
 		void *raw_pointer() override;

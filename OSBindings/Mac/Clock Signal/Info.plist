@@ -14,42 +14,42 @@
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cartridge.png</string>
+			<key>CFBundleTypeName</key>
+			<string>Atari 2600 Cartridge</string>
 			<key>CFBundleTypeOSTypes</key>
 			<array>
 				<string>????</string>
 			</array>
-			<key>CFBundleTypeName</key>
-			<string>Atari 2600 Cartridge</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>rom</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>chip.png</string>
 			<key>CFBundleTypeName</key>
 			<string>ROM Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -57,110 +57,110 @@
 				<string>uef</string>
 				<string>uef.gz</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Electron/BBC UEF Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>prg</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy525.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Commodore Program</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>tap</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Tape Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>g64</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy525.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Commodore Disk</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>d64</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy525.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Commodore 1540/1 Disk</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -171,44 +171,44 @@
 				<string>adl</string>
 				<string>adm</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy35.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Electron/BBC Disk Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>dsk</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy35.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Disk Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -216,22 +216,22 @@
 				<string>o</string>
 				<string>80</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette.png</string>
 			<key>CFBundleTypeName</key>
 			<string>ZX80 Tape Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -240,240 +240,240 @@
 				<string>81</string>
 				<string>p81</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette.png</string>
 			<key>CFBundleTypeName</key>
 			<string>ZX81 Tape Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>csw</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Tape Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>tzx</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Tape Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>cdt</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Amstrad CPC Tape Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>hfe</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy35.png</string>
 			<key>CFBundleTypeName</key>
 			<string>HxC Disk Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>cas</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette.png</string>
 			<key>CFBundleTypeName</key>
 			<string>MSX Tape Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>dmk</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy35.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Disk Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
-			<key>LSTypeIsPackage</key>
-			<false/>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
+			<key>LSTypeIsPackage</key>
+			<false/>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>tsx</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cassette.png</string>
 			<key>CFBundleTypeName</key>
 			<string>MSX Tape Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>col</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cartridge.png</string>
 			<key>CFBundleTypeName</key>
 			<string>ColecoVision Cartridge</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>sms</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cartridge.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Master System Cartridge</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>sg</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>cartridge.png</string>
 			<key>CFBundleTypeName</key>
 			<string>SG1000 Cartridge</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -483,22 +483,44 @@
 				<string>do</string>
 				<string>po</string>
 			</array>
-			<key>CFBundleTypeOSTypes</key>
-			<array>
-				<string>????</string>
-			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy525.png</string>
 			<key>CFBundleTypeName</key>
 			<string>Apple II Disk Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
-			<key>LSHandlerRank</key>
-			<string>Owner</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>img</string>
+				<string>hfv</string>
+				<string>image</string>
+			</array>
+			<key>CFBundleTypeIconFile</key>
+			<string>floppy35</string>
+			<key>CFBundleTypeName</key>
+			<string>DiskCopy 4.2 Disk Image</string>
+			<key>CFBundleTypeOSTypes</key>
+			<array>
+				<string>????</string>
+			</array>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSTypeIsPackage</key>
+			<integer>0</integer>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>

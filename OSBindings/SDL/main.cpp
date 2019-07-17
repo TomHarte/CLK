@@ -583,6 +583,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Run the main event loop until the OS tells us to quit.
+	const bool uses_mouse = !!machine->mouse_machine();
 	bool should_quit = false;
 	Uint32 fullscreen_mode = 0;
 	while(!should_quit) {
@@ -619,6 +620,11 @@ int main(int argc, char *argv[]) {
 							keyboard_machine->type_string(SDL_GetClipboardText());
 							break;
 						}
+					}
+
+					// Use ctrl+escape to release the mouse (if captured).
+					if(event.key.keysym.sym == SDLK_ESCAPE && (SDL_GetModState()&KMOD_CTRL)) {
+						SDL_SetRelativeMouseMode(SDL_FALSE);
 					}
 
 					// Capture ctrl+shift+d as a take-a-screenshot command.
@@ -718,6 +724,29 @@ int main(int argc, char *argv[]) {
 									joysticks[0]->set_input(Inputs::Joystick::Input(key_name[0]), is_pressed);
 								} break;
 							}
+						}
+					}
+				} break;
+
+				case SDL_MOUSEBUTTONDOWN:
+					if(uses_mouse && !SDL_GetRelativeMouseMode()) {
+						SDL_SetRelativeMouseMode(SDL_TRUE);
+						break;
+					}
+				case SDL_MOUSEBUTTONUP: {
+					const auto mouse_machine = machine->mouse_machine();
+					if(mouse_machine) {
+						mouse_machine->get_mouse().set_button_pressed(
+							event.button.button % mouse_machine->get_mouse().get_number_of_buttons(),
+							event.type == SDL_MOUSEBUTTONDOWN);
+					}
+				} break;
+
+				case SDL_MOUSEMOTION: {
+					if(SDL_GetRelativeMouseMode()) {
+						const auto mouse_machine = machine->mouse_machine();
+						if(mouse_machine) {
+							mouse_machine->get_mouse().move(event.motion.xrel, event.motion.yrel);
 						}
 					}
 				} break;

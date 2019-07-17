@@ -92,6 +92,7 @@ class ProcessorStorage {
 
 			MOVEb,	MOVEw,	MOVEl,	MOVEq,
 			MOVEAw,	MOVEAl,
+			PEA,
 
 			MOVEtoSR, MOVEfromSR,
 			MOVEtoCCR,
@@ -103,9 +104,10 @@ class ProcessorStorage {
 			BTSTb,	BTSTl,
 			BCLRl,	BCLRb,
 			CMPb,	CMPw,	CMPl,
+			CMPAw,
 			TSTb,	TSTw,	TSTl,
 
-			JMP,
+			JMP,	RTS,
 			BRA,	Bcc,
 			DBcc,
 			Scc,
@@ -192,12 +194,12 @@ class ProcessorStorage {
 
 			} action = Action::None;
 
-			inline bool operator ==(const BusStep &rhs) const {
+			forceinline bool operator ==(const BusStep &rhs) const {
 				if(action != rhs.action) return false;
 				return microcycle == rhs.microcycle;
 			}
 
-			inline bool is_terminal() const {
+			forceinline bool is_terminal() const {
 				return action == Action::ScheduleNextProgram;
 			}
 		};
@@ -323,7 +325,7 @@ class ProcessorStorage {
 			MicroOp(Action action) : MicroOp(int(action)) {}
 			MicroOp(Action action, BusStep *bus_program) : MicroOp(int(action), bus_program) {}
 
-			inline bool is_terminal() const {
+			forceinline bool is_terminal() const {
 				return bus_program == nullptr;
 			}
 		};
@@ -414,7 +416,7 @@ class ProcessorStorage {
 			Evaluates the conditional described by @c code and returns @c true or @c false to
 			indicate the result of that evaluation.
 		*/
-		inline bool evaluate_condition(uint8_t code) {
+		forceinline bool evaluate_condition(uint8_t code) {
 			switch(code & 0xf) {
 				default:
 				case 0x00:	return true;							// true
@@ -445,7 +447,7 @@ class ProcessorStorage {
 			representing a short-form exception — and mutates the status register as if one
 			were beginning.
 		*/
-		inline void populate_trap_steps(uint32_t vector, uint16_t status) {
+		forceinline void populate_trap_steps(uint32_t vector, uint16_t status) {
 			// Fill in the status word value.
 			destination_bus_data_[0].full = status;
 
@@ -466,7 +468,7 @@ class ProcessorStorage {
 			trap_steps_->microcycle.length = HalfCycles(8);
 		}
 
-		inline void populate_bus_error_steps(uint32_t vector, uint16_t status, uint16_t bus_status, RegisterPair32 faulting_address) {
+		forceinline void populate_bus_error_steps(uint32_t vector, uint16_t status, uint16_t bus_status, RegisterPair32 faulting_address) {
 			// Fill in the status word value.
 			destination_bus_data_[0].halves.low.full = status;
 			destination_bus_data_[0].halves.high.full = bus_status;

@@ -21,6 +21,7 @@
 #include "Coleco/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
 #include "DiskII/StaticAnalyser.hpp"
+#include "Macintosh/StaticAnalyser.hpp"
 #include "MSX/StaticAnalyser.hpp"
 #include "Oric/StaticAnalyser.hpp"
 #include "Sega/StaticAnalyser.hpp"
@@ -35,12 +36,14 @@
 #include "../../Storage/Disk/DiskImage/Formats/AppleDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/CPCDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/D64.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/MacintoshIMG.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/G64.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/DMK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/HFE.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/MSXDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/NIB.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/PlusTooBIN.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/SSD.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/WOZ.hpp"
 
@@ -85,34 +88,38 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 		TryInsert(list, class, platforms)	\
 	}
 
-	Format("80", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// 80
-	Format("81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// 81
-	Format("a26", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)						// A26
-	Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)		// ADF
-	Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::AllCartridge)					// BIN
-	Format("cas", result.tapes, Tape::CAS, TargetPlatform::MSX)												// CAS
-	Format("cdt", result.tapes, Tape::TZX, TargetPlatform::AmstradCPC)										// CDT
-	Format("col", result.cartridges, Cartridge::BinaryDump, TargetPlatform::ColecoVision)					// COL
-	Format("csw", result.tapes, Tape::CSW, TargetPlatform::AllTape)											// CSW
-	Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)		// D64
-	Format("dmk", result.disks, Disk::DiskImageHolder<Storage::Disk::DMK>, TargetPlatform::MSX)				// DMK
-	Format("do", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)		// DO
-	Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// DSD
-	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::CPCDSK>, TargetPlatform::AmstradCPC)	// DSK (Amstrad CPC)
-	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)		// DSK (Apple)
-	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MSXDSK>, TargetPlatform::MSX)			// DSK (MSX)
-	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)		// DSK (Oric)
-	Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)		// G64
+	Format("80", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// 80
+	Format("81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// 81
+	Format("a26", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Atari2600)							// A26
+	Format("adf", result.disks, Disk::DiskImageHolder<Storage::Disk::AcornADF>, TargetPlatform::Acorn)			// ADF
+//	Format("bin", result.cartridges, Cartridge::BinaryDump, TargetPlatform::AllCartridge)						// BIN (cartridge dump)
+	Format("bin", result.disks, Disk::DiskImageHolder<Storage::Disk::PlusTooBIN>, TargetPlatform::Macintosh)	// BIN (PlusToo disk image)
+	Format("cas", result.tapes, Tape::CAS, TargetPlatform::MSX)													// CAS
+	Format("cdt", result.tapes, Tape::TZX, TargetPlatform::AmstradCPC)											// CDT
+	Format("col", result.cartridges, Cartridge::BinaryDump, TargetPlatform::ColecoVision)						// COL
+	Format("csw", result.tapes, Tape::CSW, TargetPlatform::AllTape)												// CSW
+	Format("d64", result.disks, Disk::DiskImageHolder<Storage::Disk::D64>, TargetPlatform::Commodore)			// D64
+	Format("dmk", result.disks, Disk::DiskImageHolder<Storage::Disk::DMK>, TargetPlatform::MSX)					// DMK
+	Format("do", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// DO
+	Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)				// DSD
+	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::CPCDSK>, TargetPlatform::AmstradCPC)		// DSK (Amstrad CPC)
+	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// DSK (Apple II)
+	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// DSK (Macintosh)
+	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MSXDSK>, TargetPlatform::MSX)				// DSK (MSX)
+	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)			// DSK (Oric)
+	Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)			// G64
 	Format(	"hfe",
 			result.disks,
 			Disk::DiskImageHolder<Storage::Disk::HFE>,
 			TargetPlatform::Acorn | TargetPlatform::AmstradCPC | TargetPlatform::Commodore | TargetPlatform::Oric)
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
-	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)			// NIB
-	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// O
-	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P
-	Format("po", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)		// PO
-	Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)										// P81
+	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
+	Format("image", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
+	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)				// NIB
+	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// O
+	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P
+	Format("po", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// PO
+	Format("p81", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P81
 
 	// PRG
 	if(extension == "prg") {
@@ -129,16 +136,16 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format(	"rom",
 			result.cartridges,
 			Cartridge::BinaryDump,
-			TargetPlatform::AcornElectron | TargetPlatform::ColecoVision | TargetPlatform::MSX)				// ROM
-	Format("sg", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)							// SG
-	Format("sms", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)							// SMS
-	Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)			// SSD
-	Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)								// TAP (Commodore)
-	Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)										// TAP (Oric)
-	Format("tsx", result.tapes, Tape::TZX, TargetPlatform::MSX)												// TSX
-	Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081)											// TZX
-	Format("uef", result.tapes, Tape::UEF, TargetPlatform::Acorn)											// UEF (tape)
-	Format("woz", result.disks, Disk::DiskImageHolder<Storage::Disk::WOZ>, TargetPlatform::DiskII)			// WOZ
+			TargetPlatform::AcornElectron | TargetPlatform::ColecoVision | TargetPlatform::MSX)					// ROM
+	Format("sg", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)								// SG
+	Format("sms", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)								// SMS
+	Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)				// SSD
+	Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)									// TAP (Commodore)
+	Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)											// TAP (Oric)
+	Format("tsx", result.tapes, Tape::TZX, TargetPlatform::MSX)													// TSX
+	Format("tzx", result.tapes, Tape::TZX, TargetPlatform::ZX8081)												// TZX
+	Format("uef", result.tapes, Tape::UEF, TargetPlatform::Acorn)												// UEF (tape)
+	Format("woz", result.disks, Disk::DiskImageHolder<Storage::Disk::WOZ>, TargetPlatform::DiskII)				// WOZ
 
 #undef Format
 #undef Insert
@@ -173,9 +180,10 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	if(potential_platforms & TargetPlatform::ColecoVision)	Append(Coleco);
 	if(potential_platforms & TargetPlatform::Commodore)		Append(Commodore);
 	if(potential_platforms & TargetPlatform::DiskII)		Append(DiskII);
-	if(potential_platforms & TargetPlatform::Sega)			Append(Sega);
+	if(potential_platforms & TargetPlatform::Macintosh)		Append(Macintosh);
 	if(potential_platforms & TargetPlatform::MSX)			Append(MSX);
 	if(potential_platforms & TargetPlatform::Oric)			Append(Oric);
+	if(potential_platforms & TargetPlatform::Sega)			Append(Sega);
 	if(potential_platforms & TargetPlatform::ZX8081)		Append(ZX8081);
 	#undef Append
 

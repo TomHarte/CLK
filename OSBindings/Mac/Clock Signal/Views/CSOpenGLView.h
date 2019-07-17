@@ -63,6 +63,29 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 */
 - (void)paste:(nonnull id)sender;
 
+@optional
+
+/*!
+	Supplies a mouse moved event to the delegate. This functions only if
+	shouldCaptureMouse is set to YES, in which case the view will ensure it captures
+	the mouse and returns only relative motion
+	(Cf. CGAssociateMouseAndMouseCursorPosition). It will also elide mouseDragged:
+	(and rightMouseDragged:, etc) and mouseMoved: events.
+*/
+- (void)mouseMoved:(nonnull NSEvent *)event;
+
+/*!
+	Supplies a mouse button down event. This elides mouseDown, rightMouseDown and otherMouseDown.
+	@c shouldCaptureMouse must be set to @c YES to receive these events.
+*/
+- (void)mouseDown:(nonnull NSEvent *)event;
+
+/*!
+	Supplies a mouse button up event. This elides mouseUp, rightMouseUp and otherMouseUp.
+	@c shouldCaptureMouse must be set to @c YES to receive these events.
+*/
+- (void)mouseUp:(nonnull NSEvent *)event;
+
 @end
 
 /*!
@@ -73,6 +96,8 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 
 @property (atomic, weak, nullable) id <CSOpenGLViewDelegate> delegate;
 @property (nonatomic, weak, nullable) id <CSOpenGLViewResponderDelegate> responderDelegate;
+
+@property (nonatomic, assign) BOOL shouldCaptureMouse;
 
 /*!
 	Ends the timer tracking time; should be called prior to giving up the last owning reference
@@ -88,5 +113,10 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 	the context. @c action is performed on the calling queue.
 */
 - (void)performWithGLContext:(nonnull dispatch_block_t)action;
+
+/*!
+	Instructs that the mouse cursor, if currently captured, should be released.
+*/
+- (void)releaseMouse;
 
 @end

@@ -15,7 +15,7 @@ using namespace Storage::Disk;
 Controller::Controller(Cycles clock_rate) :
 		clock_rate_multiplier_(128000000 / clock_rate.as_int()),
 		clock_rate_(clock_rate.as_int() * clock_rate_multiplier_),
-		empty_drive_(new Drive(static_cast<unsigned int>(clock_rate.as_int()), 1, 1)) {
+		empty_drive_(new Drive(clock_rate.as_int(), 1, 1)) {
 	// seed this class with a PLL, any PLL, so that it's safe to assume non-nullptr later
 	Time one(1);
 	set_expected_bit_length(one);
@@ -40,7 +40,7 @@ Drive &Controller::get_drive() {
 
 // MARK: - Drive::EventDelegate
 
-void Controller::process_event(const Track::Event &event) {
+void Controller::process_event(const Drive::Event &event) {
 	switch(event.type) {
 		case Track::Event::FluxTransition:	pll_->add_pulse();		break;
 		case Track::Event::IndexHole:		process_index_hole();	break;

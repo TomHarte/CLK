@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14460.31" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14460.31"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14490.70"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -17,14 +17,14 @@
         <window title="Window" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" titleVisibility="hidden" id="QvC-M9-y7g">
             <windowStyleMask key="styleMask" titled="YES" documentModal="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="196" y="240" width="600" height="205"/>
+            <rect key="contentRect" x="196" y="240" width="650" height="205"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
             <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
-                <rect key="frame" x="0.0" y="0.0" width="600" height="205"/>
+                <rect key="frame" x="0.0" y="0.0" width="650" height="205"/>
                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                 <subviews>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hKn-1l-OSN">
-                        <rect key="frame" x="499" y="13" width="87" height="32"/>
+                        <rect key="frame" x="549" y="13" width="87" height="32"/>
                         <buttonCell key="cell" type="push" title="Choose" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="MnM-xo-4Qa">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -37,7 +37,7 @@ DQ
                         </connections>
                     </button>
                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JQy-Cj-AOK">
-                        <rect key="frame" x="418" y="13" width="82" height="32"/>
+                        <rect key="frame" x="468" y="13" width="82" height="32"/>
                         <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="sub-rB-Req">
                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                             <font key="font" metaFont="system"/>
@@ -59,7 +59,7 @@ Gw
                         </textFieldCell>
                     </textField>
                     <tabView translatesAutoresizingMaskIntoConstraints="NO" id="VUb-QG-x7c">
-                        <rect key="frame" x="13" y="51" width="574" height="140"/>
+                        <rect key="frame" x="13" y="51" width="624" height="140"/>
                         <font key="font" metaFont="system"/>
                         <tabViewItems>
                             <tabViewItem label="Apple II" identifier="appleii" id="P59-QG-LOa">
@@ -130,7 +130,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Amstrad CPC" identifier="cpc" id="JmB-OF-xcM">
                                 <view key="view" id="5zS-Nj-Ynx">
-                                    <rect key="frame" x="10" y="33" width="554" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="604" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="00d-sg-Krh">
@@ -168,18 +168,18 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Electron" identifier="electron" id="muc-z9-Vqc">
                                 <view key="view" id="SRc-2D-95G">
-                                    <rect key="frame" x="10" y="33" width="554" height="93"/>
+                                    <rect key="frame" x="10" y="33" width="654" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JqM-IK-FMP">
-                                            <rect key="frame" x="15" y="74" width="164" height="18"/>
+                                            <rect key="frame" x="15" y="75" width="164" height="18"/>
                                             <buttonCell key="cell" type="check" title="With Disk Filing System" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="tpW-5C-xKp">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
                                             </buttonCell>
                                         </button>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="945-wU-JOH">
-                                            <rect key="frame" x="15" y="54" width="228" height="18"/>
+                                            <rect key="frame" x="15" y="55" width="228" height="18"/>
                                             <buttonCell key="cell" type="check" title="With Advanced Disk Filing System" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="S0c-Jg-7Pu">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -197,9 +197,15 @@ Gw
                                     </constraints>
                                 </view>
                             </tabViewItem>
+                            <tabViewItem label="Macintosh" identifier="mac" id="lmR-z3-xSm">
+                                <view key="view" id="7Yf-vi-Q0W">
+                                    <rect key="frame" x="10" y="33" width="654" height="94"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                </view>
+                            </tabViewItem>
                             <tabViewItem label="MSX" identifier="msx" id="6SR-DY-zdI">
                                 <view key="view" id="mWD-An-tR7">
-                                    <rect key="frame" x="10" y="33" width="554" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="654" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8xT-Pr-8SE">
@@ -233,6 +239,7 @@ Gw
                                         </textField>
                                     </subviews>
                                     <constraints>
+                                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="LG6-mP-SeG" secondAttribute="trailing" constant="17" id="0Oc-n7-gaM"/>
                                         <constraint firstItem="8xT-Pr-8SE" firstAttribute="top" secondItem="LG6-mP-SeG" secondAttribute="bottom" constant="6" id="LBt-4m-GDc"/>
                                         <constraint firstItem="LG6-mP-SeG" firstAttribute="top" secondItem="mWD-An-tR7" secondAttribute="top" constant="3" id="bcb-ZZ-VpQ"/>
                                         <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="8xT-Pr-8SE" secondAttribute="trailing" constant="17" id="l8P-UW-8ig"/>
@@ -246,7 +253,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Oric" identifier="oric" id="NSx-DC-p4M">
                                 <view key="view" id="sOR-e0-8iZ">
-                                    <rect key="frame" x="10" y="33" width="554" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="654" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0ct-tf-uRH">
@@ -388,11 +395,11 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="ZX80" identifier="zx80" id="tMH-kF-GUz">
                                 <view key="view" id="8hL-Vn-Hg0">
-                                    <rect key="frame" x="10" y="33" width="554" height="93"/>
+                                    <rect key="frame" x="10" y="33" width="554" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="I1a-Eu-5UB">
-                                            <rect key="frame" x="106" y="66" width="115" height="25"/>
+                                            <rect key="frame" x="106" y="67" width="115" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="4Sa-jR-xOd" id="B8M-do-Yod">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -406,7 +413,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="NCX-4e-lSu">
-                                            <rect key="frame" x="15" y="71" width="87" height="17"/>
+                                            <rect key="frame" x="15" y="72" width="87" height="17"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size:" id="e6x-TE-OC5">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -414,7 +421,7 @@ Gw
                                             </textFieldCell>
                                         </textField>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ReP-bV-Thu">
-                                            <rect key="frame" x="15" y="47" width="114" height="18"/>
+                                            <rect key="frame" x="15" y="48" width="114" height="18"/>
                                             <buttonCell key="cell" type="check" title="Use ZX81 ROM" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="VQH-nv-Pfm">
                                                 <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -436,11 +443,11 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="ZX81" identifier="zx81" id="Wnn-nQ-gZ6">
                                 <view key="view" id="bmd-gL-gzT">
-                                    <rect key="frame" x="10" y="33" width="554" height="93"/>
+                                    <rect key="frame" x="10" y="33" width="554" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="5aO-UX-HnX">
-                                            <rect key="frame" x="106" y="66" width="115" height="25"/>
+                                            <rect key="frame" x="106" y="67" width="115" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="Unexpanded" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="7QC-Ij-hES" id="d3W-Gl-3Mf">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="menu"/>
@@ -454,7 +461,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8tU-73-XEE">
-                                            <rect key="frame" x="15" y="71" width="87" height="17"/>
+                                            <rect key="frame" x="15" y="72" width="87" height="17"/>
                                             <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Memory Size:" id="z4b-oR-Yl2">
                                                 <font key="font" metaFont="system"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>

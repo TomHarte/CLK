@@ -95,7 +95,7 @@ class Track {
 			1/3 away then that means 1/3 of a rotation.
 		*/
 		struct Event {
-			enum {
+			enum Type {
 				IndexHole, FluxTransition
 			} type;
 			Time length;

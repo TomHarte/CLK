@@ -9,7 +9,8 @@
 #include "MachineForTarget.hpp"
 
 #include "../AmstradCPC/AmstradCPC.hpp"
-#include "../AppleII/AppleII.hpp"
+#include "../Apple/AppleII/AppleII.hpp"
+#include "../Apple/Macintosh/Macintosh.hpp"
 #include "../Atari2600/Atari2600.hpp"
 #include "../ColecoVision/ColecoVision.hpp"
 #include "../Commodore/Vic-20/Vic20.hpp"
@@ -33,14 +34,15 @@ namespace {
 #define Bind(m)	BindD(m, m)
 		switch(target->machine) {
 			Bind(AmstradCPC)
-			Bind(AppleII)
+			BindD(Apple::II, AppleII)
+			BindD(Apple::Macintosh, Macintosh)
 			Bind(Atari2600)
 			BindD(Coleco::Vision, ColecoVision)
+			BindD(Commodore::Vic20, Vic20)
 			Bind(Electron)
-			BindD(Sega::MasterSystem, MasterSystem)
 			Bind(MSX)
 			Bind(Oric)
-			BindD(Commodore::Vic20, Vic20)
+			BindD(Sega::MasterSystem, MasterSystem)
 			Bind(ZX8081)
 
 			default:
@@ -103,6 +105,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 		case Analyser::Machine::Atari2600:		return "Atari2600";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Electron";
+		case Analyser::Machine::Macintosh:		return "Macintosh";
 		case Analyser::Machine::MSX:			return "MSX";
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Vic20:			return "Vic20";
@@ -119,6 +122,7 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 		case Analyser::Machine::Atari2600:		return "Atari 2600";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Acorn Electron";
+		case Analyser::Machine::Macintosh:		return "Apple Macintosh";
 		case Analyser::Machine::MSX:			return "MSX";
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Vic20:			return "Vic 20";
@@ -132,7 +136,7 @@ std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> Machin
 	std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> options;
 
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::AmstradCPC), AmstradCPC::get_options()));
-	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::AppleII), AppleII::get_options()));
+	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::AppleII), Apple::II::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::ColecoVision), Coleco::Vision::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Electron), Electron::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::MSX), MSX::get_options()));

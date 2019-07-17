@@ -17,6 +17,7 @@ enum class Machine {
 	Atari2600,
 	ColecoVision,
 	Electron,
+	Macintosh,
 	MasterSystem,
 	MSX,
 	Oric,

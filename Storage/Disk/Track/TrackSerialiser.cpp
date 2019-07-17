@@ -40,12 +40,13 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 	Time time_error = Time(0);
 	while(true) {
 		Track::Event next_event = track_copy->get_next_event();
-		if(next_event.type == Track::Event::IndexHole) break;
 
 		Time extended_length = next_event.length * length_multiplier + time_error;
 		time_error.clock_rate = extended_length.clock_rate;
 		time_error.length = extended_length.length % extended_length.clock_rate;
 		pll.run_for(Cycles(static_cast<int>(extended_length.get<int64_t>())));
+
+		if(next_event.type == Track::Event::IndexHole) break;
 		pll.add_pulse();
 
 		// If the PLL is now sufficiently primed, restart, and start recording bits this time.

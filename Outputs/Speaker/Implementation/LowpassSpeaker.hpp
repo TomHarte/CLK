@@ -17,6 +17,7 @@
 
 #include <mutex>
 #include <cstring>
+#include <cmath>
 
 namespace Outputs {
 namespace Speaker {
@@ -61,7 +62,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
 			filter_parameters_.output_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;
-			output_buffer_.resize(static_cast<std::size_t>(buffer_size));
+			output_buffer_.resize(std::size_t(buffer_size));
 		}
 
 		/*!
@@ -105,7 +106,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		void run_for(const Cycles cycles) {
 			if(!delegate_) return;
 
-			std::size_t cycles_remaining = static_cast<size_t>(cycles.as_int());
+			std::size_t cycles_remaining = size_t(cycles.as_int());
 			if(!cycles_remaining) return;
 
 			FilterParameters filter_parameters;
@@ -125,7 +126,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			if(	filter_parameters.input_cycles_per_second == filter_parameters.output_cycles_per_second &&
 				filter_parameters.high_frequency_cutoff < 0.0) {
 				while(cycles_remaining) {
-					std::size_t cycles_to_read = std::min(output_buffer_.size() - output_buffer_pointer_, cycles_remaining);
+					const auto cycles_to_read = std::min(output_buffer_.size() - output_buffer_pointer_, cycles_remaining);
 
 					sample_source_.get_samples(cycles_to_read, &output_buffer_[output_buffer_pointer_]);
 					output_buffer_pointer_ += cycles_to_read;
@@ -142,11 +143,11 @@ template <typename T> class LowpassSpeaker: public Speaker {
 				return;
 			}
 
-			// if the output rate is less than the input rate, or an additional cut-off has been specified, use the filter.
+			// If the output rate is less than the input rate, or an additional cut-off has been specified, use the filter.
 			if(	filter_parameters.input_cycles_per_second > filter_parameters.output_cycles_per_second ||
 				(filter_parameters.input_cycles_per_second == filter_parameters.output_cycles_per_second && filter_parameters.high_frequency_cutoff >= 0.0)) {
 				while(cycles_remaining) {
-					std::size_t cycles_to_read = std::min(cycles_remaining, input_buffer_.size() - input_buffer_depth_);
+					const auto cycles_to_read = std::min(cycles_remaining, input_buffer_.size() - input_buffer_depth_);
 					sample_source_.get_samples(cycles_to_read, &input_buffer_[input_buffer_depth_]);
 					cycles_remaining -= cycles_to_read;
 					input_buffer_depth_ += cycles_to_read;
@@ -164,9 +165,9 @@ template <typename T> class LowpassSpeaker: public Speaker {
 						// If the next loop around is going to reuse some of the samples just collected, use a memmove to
 						// preserve them in the correct locations (TODO: use a longer buffer to fix that) and don't skip
 						// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
-						uint64_t steps = stepper_->step();
+						const auto steps = stepper_->step();
 						if(steps < input_buffer_.size()) {
-							int16_t *input_buffer = input_buffer_.data();
+							auto *const input_buffer = input_buffer_.data();
 							std::memmove(	input_buffer,
 											&input_buffer[steps],
 											sizeof(int16_t) * (input_buffer_.size() - steps));
@@ -212,15 +213,15 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			}
 
 			// Make a guess at a good number of taps.
-			std::size_t number_of_taps = static_cast<std::size_t>(
+			std::size_t number_of_taps = std::size_t(
 				ceilf((filter_parameters.input_cycles_per_second + high_pass_frequency) / high_pass_frequency)
 			);
 			number_of_taps = (number_of_taps * 2) | 1;
 
 			output_buffer_pointer_ = 0;
 			stepper_.reset(new SignalProcessing::Stepper(
-				static_cast<uint64_t>(filter_parameters.input_cycles_per_second),
-				static_cast<uint64_t>(filter_parameters.output_cycles_per_second)));
+				uint64_t(filter_parameters.input_cycles_per_second),
+				uint64_t(filter_parameters.output_cycles_per_second)));
 
 			filter_.reset(new SignalProcessing::FIRFilter(
 				static_cast<unsigned int>(number_of_taps),
@@ -229,7 +230,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 				high_pass_frequency,
 				SignalProcessing::FIRFilter::DefaultAttenuation));
 
-			input_buffer_.resize(static_cast<std::size_t>(number_of_taps));
+			input_buffer_.resize(std::size_t(number_of_taps));
 			input_buffer_depth_ = 0;
 		}
 };

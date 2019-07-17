@@ -16,10 +16,10 @@
 	)
 
 #define get_status() \
-	(	\
+	uint16_t(	\
 		get_ccr() |	\
 		(interrupt_level_ << 8) |				\
-		(trace_flag_ 	? 0x8000 : 0x0000) |	\
+		(trace_flag_ ? 0x8000 : 0x0000) |		\
 		(is_supervisor_ << 13)					\
 	)
 
@@ -37,13 +37,41 @@
 	set_is_supervisor(!!(((x) >> 13) & 1));
 
 #define get_bus_code()	\
-	((active_step_->microcycle.operation & Microcycle::IsProgram) ? 0x02 : 0x01) |	\
-	(is_supervisor_ << 2) |	\
-	(active_program_ ? 0x08 : 0) |	\
-	((active_step_->microcycle.operation & Microcycle::Read) ? 0x10 : 0)
+	uint16_t(	\
+		((active_step_->microcycle.operation & Microcycle::IsProgram) ? 0x02 : 0x01) |	\
+		(is_supervisor_ << 2) |	\
+		(active_program_ ? 0x08 : 0) |	\
+		((active_step_->microcycle.operation & Microcycle::Read) ? 0x10 : 0)	\
+	)
+
+#define u_extend16(x)	uint32_t(int16_t(x))
+#define u_extend8(x)	uint32_t(int8_t(x))
+#define s_extend16(x)	int32_t(int16_t(x))
+#define s_extend8(x)	int32_t(int8_t(x))
+
+#define convert_to_bit_count_16(x)	\
+	x = ((x & 0xaaaa) >> 1) + (x & 0x5555);	\
+	x = ((x & 0xcccc) >> 2) + (x & 0x3333);	\
+	x = ((x & 0xf0f0) >> 4) + (x & 0x0f0f);	\
+	x = ((x & 0xff00) >> 8) + (x & 0x00ff);
+
+// Sets the length of the next microcycle; if this is a debug build, also confirms
+// that the microcycle being adjusted is the one that it's permissible to adjust.
+#ifdef NDEBUG
+#define set_next_microcycle_length(x)	\
+	bus_program->microcycle.length = x
+#else
+#define set_next_microcycle_length(x)	\
+	assert(bus_program->microcycle.is_resizeable);	\
+	bus_program->microcycle.length = x
+#endif
 
 template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::run_for(HalfCycles duration) {
 	const HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
+
+#ifdef LOG_TRACE
+						static bool should_log = false;
+#endif
 
 	// This loop counts upwards rather than downwards because it simplifies calculation of
 	// E as and when required.
@@ -120,6 +148,27 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						}
 					}
 
+#ifdef LOG_TRACE
+					if(should_log && !(active_step_->microcycle.operation & Microcycle::IsProgram)) {
+						switch(active_step_->microcycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+							default: break;
+
+							case Microcycle::SelectWord | Microcycle::Read:
+								printf("[%08x -> %04x] ", *active_step_->microcycle.address, active_step_->microcycle.value->full);
+							break;
+							case Microcycle::SelectByte | Microcycle::Read:
+								printf("[%08x -> %02x] ", *active_step_->microcycle.address, active_step_->microcycle.value->halves.low);
+							break;
+							case Microcycle::SelectWord:
+								printf("{%04x -> %08x} ", active_step_->microcycle.value->full, *active_step_->microcycle.address);
+							break;
+							case Microcycle::SelectByte:
+								printf("{%02x -> %08x} ", active_step_->microcycle.value->halves.low, *active_step_->microcycle.address);
+							break;
+						}
+					}
+#endif
+
 					/*
 						PERFORM THE BUS STEP'S ACTION.
 					*/
@@ -150,7 +199,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					// If an interrupt (TODO: or reset) has finally arrived that will be serviced,
 					// exit the STOP.
 					if(bus_interrupt_level_ > interrupt_level_) {
-						// TODO: schedule interrupt right here.
 						execution_state_ = ExecutionState::BeginInterrupt;
 						continue;
 					}
@@ -186,6 +234,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 				continue;
 
 				case ExecutionState::BeginInterrupt:
+#ifdef LOG_TRACE
+//					should_log = true;
+					if(should_log) {
+						printf("\n\nInterrupt\n\n");
+					}
+#endif
 					active_program_ = nullptr;
 					active_micro_op_ = interrupt_micro_ops_;
 					execution_state_ = ExecutionState::Executing;
@@ -193,27 +247,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					is_starting_interrupt_ = true;
 				break;
 			}
-
-#ifdef LOG_TRACE
-			if(!(active_step_->microcycle.operation & Microcycle::IsProgram)) {
-				switch(active_step_->microcycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
-					default: break;
-
-					case Microcycle::SelectWord | Microcycle::Read:
-						printf("[%08x -> %04x] ", *active_step_->microcycle.address, active_step_->microcycle.value->full);
-					break;
-					case Microcycle::SelectByte | Microcycle::Read:
-						printf("[%08x -> %02x] ", *active_step_->microcycle.address, active_step_->microcycle.value->halves.low);
-					break;
-					case Microcycle::SelectWord:
-						printf("{%04x -> %08x} ", active_step_->microcycle.value->full, *active_step_->microcycle.address);
-					break;
-					case Microcycle::SelectByte:
-						printf("{%02x -> %08x} ", active_step_->microcycle.value->halves.low, *active_step_->microcycle.address);
-					break;
-				}
-			}
-#endif
 
 		/*
 			FIND THE NEXT MICRO-OP IF UNKNOWN.
@@ -239,27 +272,49 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							populate_trap_steps(9, get_status());
 						} else {
 #ifdef LOG_TRACE
-							std::cout << std::setfill('0');
-							std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
-							std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
-							for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
-							for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
-							if(is_supervisor_) {
-								std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
-							} else {
-								std::cout << "ssp:" << std::setw(8) << std::setfill('0') << stack_pointers_[1].full << " ";
+							if(should_log) {
+								std::cout << std::setfill('0');
+								std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
+								std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
+								for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
+								for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
+								if(is_supervisor_) {
+									std::cout << "usp:" << std::setw(8) << std::setfill('0') << stack_pointers_[0].full << " ";
+								} else {
+									std::cout << "ssp:" << std::setw(8) << std::setfill('0') << stack_pointers_[1].full << " ";
+								}
+								std::cout << '\n';
 							}
-							std::cout << '\n';
 #endif
 
 							decoded_instruction_.full = prefetch_queue_.halves.high.full;
+
+#ifndef NDEBUG
+							/* Debugging feature: reset the effective addresses and data latches, so that it's
+							more obvious if some of the instructions aren't properly feeding them. */
+							effective_address_[0].full = effective_address_[1].full = source_bus_data_[0].full = destination_bus_data_[0].full = 0x12344321;
+#endif
+
 #ifdef LOG_TRACE
-							std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_.full << '\t';
+							if(should_log) {
+								std::cout << std::hex << (program_counter_.full - 4) << ": " << std::setw(4) << decoded_instruction_.full << '\t';
+							}
 #endif
 
 							if(signal_will_perform) {
 								bus_handler_.will_perform(program_counter_.full - 4, decoded_instruction_.full);
 							}
+
+#ifdef LOG_TRACE
+							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
+
+//							should_log |= fetched_pc == 0x6d9c;
+							should_log = (fetched_pc >= 0x41806A && fetched_pc <= 0x418618);
+ //							should_log |= fetched_pc == 0x4012A2;
+//							should_log &= fetched_pc != 0x4012AE;
+
+//							should_log = (fetched_pc >= 0x408D66) && (fetched_pc <= 0x408D84);
+#endif
 
 							if(instructions[decoded_instruction_.full].micro_operations) {
 								if(instructions[decoded_instruction_.full].requires_supervisor && !is_supervisor_) {
@@ -277,12 +332,25 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								active_program_ = nullptr;
 								active_micro_op_ = short_exception_micro_ops_;
 
+								// The location of the failed instruction is what should end up on the stack.
+								program_counter_.full -= 4;
+
+#ifdef LOG_TRACE
+//								should_log = true;
+#endif
+
 								// The vector used depends on whether this is a vanilla unrecognised instruction,
 								// or one on the A or F lines.
 								switch(decoded_instruction_.full >> 12) {
-									default:	populate_trap_steps(4, get_status());	break;
-									case 0xa:	populate_trap_steps(10, get_status());	break;
-									case 0xf:	populate_trap_steps(11, get_status());	break;
+									default:
+										populate_trap_steps(4, get_status());
+									break;
+									case 0xa:
+										populate_trap_steps(10, get_status());
+									break;
+									case 0xf:
+										populate_trap_steps(11, get_status());
+									break;
 								}
 							}
 						}
@@ -317,9 +385,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 									// Set all flags essentially as if this were normal addition.
 									zero_result_ |= result & 0xff;
-									extend_flag_ = carry_flag_ = result & ~0xff;
+									extend_flag_ = carry_flag_ = uint_fast32_t(result & ~0xff);
 									negative_flag_ = result & 0x80;
-									overflow_flag_ = add_overflow() & 0x80;
+
+									const int unadjusted_result = destination + source + (extend_flag_ ? 1 : 0);
+									overflow_flag_ = ~unadjusted_result & result & 0x80;
 
 									// Store the result.
 									active_program_->destination->halves.low.halves.low = uint8_t(result);
@@ -339,7 +409,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 \
 	dest = uint8_t(result);	\
 	zero_op(zero_result_, dest);	\
-	extend_flag_ = carry_flag_ = result & ~0xff;	\
+	extend_flag_ = carry_flag_ = uint_fast32_t(result & ~0xff);	\
 	negative_flag_ = result & 0x80;	\
 	overflow_flag_ = overflow() & 0x80;
 
@@ -350,7 +420,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 \
 	dest = uint16_t(result);	\
 	zero_op(zero_result_, dest);	\
-	extend_flag_ = carry_flag_ = result & ~0xffff;	\
+	extend_flag_ = carry_flag_ = uint_fast32_t(result & ~0xffff);	\
 	negative_flag_ = result & 0x8000;	\
 	overflow_flag_ = overflow() & 0x8000;
 
@@ -361,7 +431,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 \
 	dest = uint32_t(result);	\
 	zero_op(zero_result_, dest);	\
-	extend_flag_ = carry_flag_ = result >> 32;	\
+	extend_flag_ = carry_flag_ = uint_fast32_t(result >> 32);	\
 	negative_flag_ = result & 0x80000000;	\
 	overflow_flag_ = overflow() & 0x80000000;
 
@@ -530,7 +600,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 
 								case Operation::ADDAw:
-									active_program_->destination->full += int16_t(active_program_->source->halves.low.full);
+									active_program_->destination->full += u_extend16(active_program_->source->halves.low.full);
 								break;
 
 								case Operation::ADDAl:
@@ -538,7 +608,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								break;
 
 								case Operation::SUBAw:
-									active_program_->destination->full -= int16_t(active_program_->source->halves.low.full);
+									active_program_->destination->full -= u_extend16(active_program_->source->halves.low.full);
 								break;
 
 								case Operation::SUBAl:
@@ -553,9 +623,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// A non-zero offset byte branches by just that amount; otherwise use the word
 									// after as an offset. In both cases, treat as signed.
 									if(byte_offset) {
-										program_counter_.full = (program_counter_.full + byte_offset);
+										program_counter_.full += uint32_t(byte_offset);
 									} else {
-										program_counter_.full += int16_t(prefetch_queue_.halves.low.full);
+										program_counter_.full += u_extend16(prefetch_queue_.halves.low.full);
 									}
 									program_counter_.full -= 2;
 								} break;
@@ -580,13 +650,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									active_program_->destination->full &= ~(1 << (active_program_->source->full & 31));
 
 									// Clearing in the top word requires an extra four cycles.
-									active_step_->microcycle.length = HalfCycles(8 + ((active_program_->source->full & 31) / 16) * 4);
+									set_next_microcycle_length(HalfCycles(8 + ((active_program_->source->full & 31) / 16) * 4));
 								break;
 
 								case Operation::BCHGl:
 									zero_result_ = active_program_->destination->full & (1 << (active_program_->source->full & 31));
 									active_program_->destination->full ^= 1 << (active_program_->source->full & 31);
-									active_step_->microcycle.length = HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4));
+									set_next_microcycle_length(HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4)));
 								break;
 
 								case Operation::BCHGb:
@@ -597,7 +667,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::BSETl:
 									zero_result_ = active_program_->destination->full & (1 << (active_program_->source->full & 31));
 									active_program_->destination->full |= 1 << (active_program_->source->full & 31);
-									active_step_->microcycle.length = HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4));
+									set_next_microcycle_length(HalfCycles(4 + (((active_program_->source->full & 31) / 16) * 4)));
 								break;
 
 								case Operation::BSETb:
@@ -624,9 +694,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// Schedule something appropriate, by rewriting the program for this instruction temporarily.
 									if(should_branch) {
 										if(byte_offset) {
-											program_counter_.full = (program_counter_.full + byte_offset);
+											program_counter_.full += decltype(program_counter_.full)(byte_offset);
 										} else {
-											program_counter_.full += int16_t(prefetch_queue_.halves.low.full);
+											program_counter_.full += u_extend16(prefetch_queue_.halves.low.full);
 										}
 										program_counter_.full -= 2;
 										bus_program = is_bsr ? bsr_bus_steps_ : branch_taken_bus_steps_;
@@ -643,7 +713,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// Decide what sort of DBcc this is.
 									if(!evaluate_condition(decoded_instruction_.full >> 8)) {
 										-- active_program_->source->halves.low.full;
-										const auto target_program_counter = program_counter_.full + int16_t(prefetch_queue_.halves.low.full) - 2;
+										const auto target_program_counter = program_counter_.full + u_extend16(prefetch_queue_.halves.low.full) - 2;
 
 										if(active_program_->source->halves.low.full == 0xffff) {
 											// This DBcc will be ignored as the counter has underflowed.
@@ -697,7 +767,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const int result = destination - source;
 
 									zero_result_ = result & 0xff;
-									carry_flag_ = result & ~0xff;
+									carry_flag_ = decltype(carry_flag_)(result & ~0xff);
 									negative_flag_ = result & 0x80;
 									overflow_flag_ = sub_overflow() & 0x80;
 								} break;
@@ -708,9 +778,20 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const int result = destination - source;
 
 									zero_result_ = result & 0xffff;
-									carry_flag_ = result & ~0xffff;
+									carry_flag_ = decltype(carry_flag_)(result & ~0xffff);
 									negative_flag_ = result & 0x8000;
 									overflow_flag_ = sub_overflow() & 0x8000;
+								} break;
+
+								case Operation::CMPAw: {
+									const auto source = uint64_t(u_extend16(active_program_->source->halves.low.full));
+									const auto destination = uint64_t(u_extend16(active_program_->destination->halves.low.full));
+									const auto result = destination - source;
+
+									zero_result_ = uint32_t(result);
+									carry_flag_ = result >> 32;
+									negative_flag_ = result & 0x80000000;
+									overflow_flag_ = sub_overflow() & 0x80000000;
 								} break;
 
 								case Operation::CMPl: {
@@ -724,9 +805,14 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									overflow_flag_ = sub_overflow() & 0x80000000;
 								} break;
 
-								// JMP: copies the source to the program counter.
+								// JMP: copies EA(0) to the program counter.
 								case Operation::JMP:
-									program_counter_.full = active_program_->source->full;
+									program_counter_ = effective_address_[0];
+								break;
+
+								// JMP: copies the source bus data to the program counter.
+								case Operation::RTS:
+									program_counter_ = source_bus_data_[0];
 								break;
 
 								/*
@@ -773,6 +859,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::MOVEAl:
 									active_program_->destination->full = active_program_->source->full;
+								break;
+
+								case Operation::PEA:
+									destination_bus_data_[0] = effective_address_[0];
 								break;
 
 								/*
@@ -847,37 +937,28 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									zero_result_ = active_program_->destination->full;
 									negative_flag_ = zero_result_ & 0x80000000;
 
-									// TODO: optimise the below?
-									int number_of_ones = 0;
-									auto source = active_program_->source->halves.low.full;
-									while(source) {
-										source >>= 1;
-										++number_of_ones;
-									}
+									int number_of_ones = active_program_->source->halves.low.full;
+									convert_to_bit_count_16(number_of_ones);
 
 									// Time taken = 38 cycles + 2 cycles per 1 in the source.
-									active_step_->microcycle.length = HalfCycles(4 * number_of_ones + 38*2);
+									set_next_microcycle_length(HalfCycles(4 * number_of_ones + 34*2));
 								} break;
 
 								case Operation::MULS: {
 									active_program_->destination->full =
-										int16_t(active_program_->destination->halves.low.full) * int16_t(active_program_->source->halves.low.full);
+										u_extend16(active_program_->destination->halves.low.full) * u_extend16(active_program_->source->halves.low.full);
 									carry_flag_ = overflow_flag_ = 0;	// TODO: "set if overflow".
 									zero_result_ = active_program_->destination->full;
 									negative_flag_ = zero_result_ & 0x80000000;
 
-									// TODO: optimise the below?
-									int number_of_pairs = 0;
-									int source = active_program_->source->halves.low.full;
-									int bit = 0;
-									while(source | bit) {
-										number_of_pairs += (bit ^ source) & 1;
-										bit = source & 1;
-										source >>= 1;
-									}
+									// Find the number of 01 or 10 pairs in the 17-bit number
+									// formed by the source value with a 0 suffix.
+									int number_of_pairs = active_program_->source->halves.low.full;
+									number_of_pairs = (number_of_pairs ^ (number_of_pairs << 1)) & 0xffff;
+									convert_to_bit_count_16(number_of_pairs);
 
 									// Time taken = 38 cycles + 2 cycles per 1 in the source.
-									active_step_->microcycle.length = HalfCycles(4 * number_of_pairs + 38*2);
+									set_next_microcycle_length(HalfCycles(4 * number_of_pairs + 34*2));
 								} break;
 
 								/*
@@ -885,16 +966,20 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								*/
 
 #define announce_divide_by_zero()						\
+	negative_flag_ = overflow_flag_ = 0;				\
+	zero_result_ = 1;									\
 	active_program_ = nullptr;							\
 	active_micro_op_ = short_exception_micro_ops_;		\
 	bus_program = active_micro_op_->bus_program;		\
 														\
 	populate_trap_steps(5, get_status());				\
-	bus_program->microcycle.length = HalfCycles(8);		\
+	bus_program->microcycle.length = HalfCycles(20);	\
 														\
 	program_counter_.full -= 2;
 
 								case Operation::DIVU: {
+									carry_flag_ = 0;
+
 									// An attempt to divide by zero schedules an exception.
 									if(!active_program_->source->halves.low.full) {
 										// Schedule a divide-by-zero exception.
@@ -906,19 +991,20 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									uint32_t divisor = active_program_->source->halves.low.full;
 									const auto quotient = dividend / divisor;
 
-									carry_flag_ = 0;
-
 									// If overflow would occur, appropriate flags are set and the result is not written back.
 									if(quotient >= 65536) {
-										overflow_flag_ = 1;
-										// TODO: is what should happen to the other flags known?
-										active_step_->microcycle.length = HalfCycles(3*2*2);
+										overflow_flag_ =
+										zero_result_ =
+										negative_flag_ = 1;
+										// TODO: Zero and Negative flags as above are merely sufficient
+										// to satisfy the tests I currentl have. What should they really be?
+										set_next_microcycle_length(HalfCycles(3*2*2));
 										break;
 									}
 
 									const uint16_t remainder = uint16_t(dividend % divisor);
 									active_program_->destination->halves.high.full = remainder;
-									active_program_->destination->halves.low.full = quotient;
+									active_program_->destination->halves.low.full = uint16_t(quotient);
 
 									overflow_flag_ = 0;
 									zero_result_ = quotient;
@@ -928,7 +1014,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// I could actually calculate the division result here, since this is
 									// a classic divide algorithm, but would rather that errors produce
 									// incorrect timing only, not incorrect timing plus incorrect results.
-									int cycles_expended = 6;	// Covers the nn n to get into the loop.
+									int cycles_expended = 12;	// Covers the nn n to get into the loop.
 
 									divisor <<= 16;
 									for(int c = 0; c < 15; ++c) {
@@ -950,10 +1036,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 											}
 										}
 									}
-									active_step_->microcycle.length = HalfCycles(cycles_expended * 2);
+									set_next_microcycle_length(HalfCycles(cycles_expended * 2));
 								} break;
 
 								case Operation::DIVS: {
+									carry_flag_ = 0;
+
 									// An attempt to divide by zero schedules an exception.
 									if(!active_program_->source->halves.low.full) {
 										// Schedule a divide-by-zero exception.
@@ -962,8 +1050,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									}
 
 									int32_t dividend = int32_t(active_program_->destination->full);
-									int32_t divisor = int16_t(active_program_->source->halves.low.full);
-									const auto quotient = dividend / divisor;
+									int32_t divisor = s_extend16(active_program_->source->halves.low.full);
+									const int64_t quotient = int64_t(dividend) / int64_t(divisor);
 
 									int cycles_expended = 12;	// Covers the nn nnn n to get beyond the sign test.
 									if(dividend < 0) {
@@ -973,28 +1061,32 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// Check for overflow. If it exists, work here is already done.
 									if(quotient > 32767 || quotient < -32768) {
 										overflow_flag_ = 1;
-										active_step_->microcycle.length = HalfCycles(3*2*2);
+										set_next_microcycle_length(HalfCycles(3*2*2));
+
+										// These are officially undefined for results that overflow, so the below is a guess.
+										zero_result_ = decltype(zero_result_)(divisor & 0xffff);
+										negative_flag_ = zero_result_ & 0x8000;
+
 										break;
 									}
 
-									overflow_flag_ = 0;
-									zero_result_ = quotient;
+									zero_result_ = decltype(zero_result_)(quotient);
 									negative_flag_ = zero_result_ & 0x8000;
+									overflow_flag_ = 0;
 
 									// TODO: check sign rules here; am I necessarily giving the remainder the correct sign?
 									// (and, if not, am I counting it in the correct direction?)
 									const uint16_t remainder = uint16_t(dividend % divisor);
 									active_program_->destination->halves.high.full = remainder;
-									active_program_->destination->halves.low.full = quotient;
+									active_program_->destination->halves.low.full = uint16_t(quotient);
 
 									// Algorithm here: there is a fixed three-microcycle cost per bit set
 									// in the unsigned quotient; there is an additional microcycle for
 									// every bit that is set. Also, since the possibility of overflow
 									// was already dealt with, it's now a smaller number.
-									int positive_quotient = abs(quotient);
-									for(int c = 0; c < 15; ++c) {
-										if(positive_quotient & 0x8000) cycles_expended += 2;
-									}
+									int positive_quotient_bits = int(abs(quotient)) & 0xfffe;
+									convert_to_bit_count_16(positive_quotient_bits);
+									cycles_expended += 2 * positive_quotient_bits;
 
 									// There's then no way to terminate the loop that isn't at least six cycles long.
 									cycles_expended += 6;
@@ -1004,7 +1096,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									} else if(dividend < 0) {
 										cycles_expended += 4;
 									}
-									active_step_->microcycle.length = HalfCycles(cycles_expended * 2);
+									set_next_microcycle_length(HalfCycles(cycles_expended * 2));
 								} break;
 
 #undef announce_divide_by_zero
@@ -1029,16 +1121,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::MOVEPtoRw:
 									// Read pattern is nRd+ nrd.
-									active_program_->source->halves.low.halves.high = destination_bus_data_[0].halves.high.full;
-									active_program_->source->halves.low.halves.low = destination_bus_data_[0].halves.low.full;
+									active_program_->source->halves.low.halves.high = destination_bus_data_[0].halves.high.halves.low;
+									active_program_->source->halves.low.halves.low = destination_bus_data_[0].halves.low.halves.low;
 								break;
 
 								case Operation::MOVEPtoRl:
 									// Read pattern is nRd+ nR+ nrd+ nr.
-									active_program_->source->halves.high.halves.high = destination_bus_data_[0].halves.high.full;
-									active_program_->source->halves.high.halves.low = source_bus_data_[0].halves.high.full;
-									active_program_->source->halves.low.halves.high = destination_bus_data_[0].halves.low.full;
-									active_program_->source->halves.low.halves.low = source_bus_data_[0].halves.low.full;
+									active_program_->source->halves.high.halves.high = destination_bus_data_[0].halves.high.halves.low;
+									active_program_->source->halves.high.halves.low = source_bus_data_[0].halves.high.halves.low;
+									active_program_->source->halves.low.halves.high = destination_bus_data_[0].halves.low.halves.low;
+									active_program_->source->halves.low.halves.low = source_bus_data_[0].halves.low.halves.low;
 								break;
 
 								/*
@@ -1194,7 +1286,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// Select the trap steps as next; the initial microcycle should be 4 cycles long.
 									bus_program = trap_steps_;
 									populate_trap_steps((decoded_instruction_.full & 15) + 32, get_status());
-									bus_program->microcycle.length = HalfCycles(8);
+									set_next_microcycle_length(HalfCycles(12));
 
 									// The program counter to push is actually one slot ago.
 									program_counter_.full -= 2;
@@ -1202,29 +1294,33 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::TRAPV: {
 									if(overflow_flag_) {
-										// Select the trap steps as next; the initial microcycle should be 4 cycles long.
+										// Select the trap steps as next; the initial microcycle should be skipped.
 										bus_program = trap_steps_;
 										populate_trap_steps(7, get_status());
-										bus_program->microcycle.length = HalfCycles(0);
+										set_next_microcycle_length(HalfCycles(4));
+
+										// Push the address after the TRAPV.
 										program_counter_.full -= 4;
 									}
 								} break;
 
 								case Operation::CHK: {
-									const bool is_under = int16_t(active_program_->destination->halves.low.full) < 0;
-									const bool is_over = int16_t(active_program_->destination->halves.low.full) > int16_t(active_program_->source->halves.low.full);
+									const bool is_under = s_extend16(active_program_->destination->halves.low.full) < 0;
+									const bool is_over = s_extend16(active_program_->destination->halves.low.full) > s_extend16(active_program_->source->halves.low.full);
+
+									overflow_flag_ = carry_flag_ = 0;
+									zero_result_ = active_program_->destination->halves.low.full;
+									negative_flag_ = (is_under && !is_over) ? 1 : 0;
 
 									// No exception is the default course of action; deviate only if an
 									// exception is necessary.
 									if(is_under || is_over) {
-										negative_flag_ = is_under ? 1 : 0;
-
 										bus_program = trap_steps_;
 										populate_trap_steps(6, get_status());
-										if(is_under) {
-											bus_program->microcycle.length = HalfCycles(16);
+										if(is_over) {
+											set_next_microcycle_length(HalfCycles(20));
 										} else {
-											bus_program->microcycle.length = HalfCycles(8);
+											set_next_microcycle_length(HalfCycles(24));
 										}
 
 										// The program counter to push is two slots ago as whatever was the correct prefetch
@@ -1245,10 +1341,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const int destination = 0;
 									const int source = active_program_->destination->halves.low.halves.low;
 									const auto result = destination - source;
-									active_program_->destination->halves.low.halves.low = result;
+									active_program_->destination->halves.low.halves.low = uint8_t(result);
 
 									zero_result_ = result & 0xff;
-									extend_flag_ = carry_flag_ = result & ~0xff;
+									extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);
 									negative_flag_ = result & 0x80;
 									overflow_flag_ = sub_overflow() & 0x80;
 								} break;
@@ -1257,10 +1353,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const int destination = 0;
 									const int source = active_program_->destination->halves.low.full;
 									const auto result = destination - source;
-									active_program_->destination->halves.low.full = result;
+									active_program_->destination->halves.low.full = uint16_t(result);
 
 									zero_result_ = result & 0xffff;
-									extend_flag_ = carry_flag_ = result & ~0xffff;
+									extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xffff);
 									negative_flag_ = result & 0x8000;
 									overflow_flag_ = sub_overflow() & 0x8000;
 								} break;
@@ -1284,10 +1380,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const int source = active_program_->destination->halves.low.halves.low;
 									const int destination = 0;
 									const auto result = destination - source - (extend_flag_ ? 1 : 0);
-									active_program_->destination->halves.low.halves.low = result;
+									active_program_->destination->halves.low.halves.low = uint8_t(result);
 
-									zero_result_ = result & 0xff;
-									extend_flag_ = carry_flag_ = result & ~0xff;
+									zero_result_ |= result & 0xff;
+									extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);
 									negative_flag_ = result & 0x80;
 									overflow_flag_ = sub_overflow() & 0x80;
 								} break;
@@ -1296,10 +1392,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const int source = active_program_->destination->halves.low.full;
 									const int destination = 0;
 									const auto result = destination - source - (extend_flag_ ? 1 : 0);
-									active_program_->destination->halves.low.full = result;
+									active_program_->destination->halves.low.full = uint16_t(result);
 
-									zero_result_ = result & 0xffff;
-									extend_flag_ = carry_flag_ = result & ~0xffff;
+									zero_result_ |= result & 0xffff;
+									extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xffff);
 									negative_flag_ = result & 0x8000;
 									overflow_flag_ = sub_overflow() & 0x8000;
 								} break;
@@ -1310,7 +1406,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const auto result = destination - source - (extend_flag_ ? 1 : 0);
 									active_program_->destination->full = uint32_t(result);
 
-									zero_result_ = uint_fast32_t(result);
+									zero_result_ |= uint_fast32_t(result);
 									extend_flag_ = carry_flag_ = result >> 32;
 									negative_flag_ = result & 0x80000000;
 									overflow_flag_ = sub_overflow() & 0x80000000;
@@ -1339,11 +1435,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// The address register will then contain the bottom of the stack,
 									// and the stack pointer will be offset.
 									active_program_->source->full = address_[7].full;
-									address_[7].full += int16_t(prefetch_queue_.halves.low.full);
+									address_[7].full += u_extend16(prefetch_queue_.halves.low.full);
 								break;
 
 								case Operation::UNLINK:
-									address_[7].full = effective_address_[1].full;
+									address_[7].full = effective_address_[1].full + 2;
 									active_program_->destination->full = destination_bus_data_[0].full;
 								break;
 
@@ -1400,34 +1496,38 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									active_program_->destination->halves.low.halves.low ^= 0xff;
 									zero_result_ = active_program_->destination->halves.low.halves.low;
 									negative_flag_ = zero_result_ & 0x80;
+									overflow_flag_ = carry_flag_ = 0;
 								break;
 
 								case Operation::NOTw:
 									active_program_->destination->halves.low.full ^= 0xffff;
 									zero_result_ = active_program_->destination->halves.low.full;
 									negative_flag_ = zero_result_ & 0x8000;
+									overflow_flag_ = carry_flag_ = 0;
 								break;
 
 								case Operation::NOTl:
 									active_program_->destination->full ^= 0xffffffff;
 									zero_result_ = active_program_->destination->full;
 									negative_flag_ = zero_result_ & 0x80000000;
+									overflow_flag_ = carry_flag_ = 0;
 								break;
 
 #define sbcd()	\
 	/* Perform the BCD arithmetic by evaluating the two nibbles separately. */	\
 	int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);	\
-	if(result > 0x09) result -= 0x06;	\
-	result += (destination & 0xf0) - (source & 0xf0);	\
-	if(result > 0x99) result -= 0x60;	\
-\
-	/* Set all flags essentially as if this were normal subtraction. */	\
-	zero_result_ |= result & 0xff;	\
-	extend_flag_ = carry_flag_ = result & ~0xff;	\
-	negative_flag_ = result & 0x80;	\
-	overflow_flag_ = sub_overflow() & 0x80;	\
-\
-	/* Store the result. */	\
+	if((result & 0x1f) > 0x09) result -= 0x06;									\
+	result += (destination & 0xf0) - (source & 0xf0);							\
+	if((result & 0x1ff) > 0x99) result -= 0x60;									\
+																				\
+	/* Set all flags essentially as if this were normal subtraction. */			\
+	zero_result_ |= result & 0xff;												\
+	extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);			\
+	negative_flag_ = result & 0x80;												\
+	const int unadjusted_result = destination - source - (extend_flag_ ? 1 : 0);	\
+	overflow_flag_ = unadjusted_result &~ result & 0x80;						\
+																				\
+	/* Store the result. */														\
 	active_program_->destination->halves.low.halves.low = uint8_t(result);
 
 								/*
@@ -1471,42 +1571,51 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								/*
 									Shifts and rotates.
 								*/
+#define set_neg_zero(v, m)	\
+	zero_result_ = decltype(zero_result_)(v);	\
+	negative_flag_ = zero_result_ & decltype(negative_flag_)(m);
+
 #define set_neg_zero_overflow(v, m)	\
-	zero_result_ = (v);	\
-	negative_flag_ = zero_result_ & (m);	\
-	overflow_flag_ = (value ^ zero_result_) & (m);
+	set_neg_zero(v, m);	\
+	overflow_flag_ = (decltype(zero_result_)(value) ^ zero_result_) & decltype(overflow_flag_)(m);
 
 #define decode_shift_count()	\
 	int shift_count = (decoded_instruction_.full & 32) ? data_[(decoded_instruction_.full >> 9) & 7].full&63 : ( ((decoded_instruction_.full >> 9)&7) ? ((decoded_instruction_.full >> 9)&7) : 8) ;	\
-	active_step_->microcycle.length = HalfCycles(4 * shift_count);
+	set_next_microcycle_length(HalfCycles(4 * shift_count));
 
 #define set_flags_b(t) set_flags(active_program_->destination->halves.low.halves.low, 0x80, t)
 #define set_flags_w(t) set_flags(active_program_->destination->halves.low.full, 0x8000, t)
 #define set_flags_l(t) set_flags(active_program_->destination->full, 0x80000000, t)
 
-#define lsl(destination, size)	{\
+#define asl(destination, size)	{\
 	decode_shift_count();	\
 	const auto value = destination;	\
 \
 	if(!shift_count) {	\
-		carry_flag_ = 0;	\
+		carry_flag_ = overflow_flag_ = 0;	\
 	} else {	\
-		destination = value << shift_count;	\
-		extend_flag_ = carry_flag_ = value & ((1 << (size - 1)) >> (shift_count - 1));	\
+		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
+		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)( (1u << (size - 1)) >> (shift_count - 1) );	\
+		\
+		if(shift_count >= size) overflow_flag_ = value && (value != decltype(value)(-1));	\
+		else {	\
+			const auto mask = decltype(destination)(0xffffffff << (size - shift_count));	\
+			overflow_flag_ = mask & value && ((mask & value) != mask);	\
+		}	\
 	}	\
 \
-	set_neg_zero_overflow(destination, 1 << (size - 1));	\
+	set_neg_zero(destination, 1 << (size - 1));	\
 }
 
 								case Operation::ASLm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = value >> 1;
-									extend_flag_ = carry_flag_ = value & 1;
+									active_program_->destination->halves.low.full = uint16_t(value << 1);
+									extend_flag_ = carry_flag_ = value & 0x8000;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
-								case Operation::ASLb: lsl(active_program_->destination->halves.low.halves.low, 8);	break;
-								case Operation::ASLw: lsl(active_program_->destination->halves.low.full, 16); 		break;
-								case Operation::ASLl: lsl(active_program_->destination->full, 32); 					break;
+								case Operation::ASLb: asl(active_program_->destination->halves.low.halves.low, 8);	break;
+								case Operation::ASLw: asl(active_program_->destination->halves.low.full, 16); 		break;
+								case Operation::ASLl: asl(active_program_->destination->full, 32); 					break;
 
 
 
@@ -1517,10 +1626,15 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	if(!shift_count) {	\
 		carry_flag_ = 0;	\
 	} else {	\
-		destination =	\
-			(value >> shift_count) |	\
-			((value & (1 << (size - 1)) ? 0xffffffff : 0x000000000) << (size - shift_count));	\
-		extend_flag_ = carry_flag_ = value & (1 << (shift_count - 1));	\
+		destination = (shift_count < size) ?	\
+				decltype(destination)(\
+					(value >> shift_count) |	\
+					((value & decltype(value)(1 << (size - 1)) ? 0xffffffff : 0x000000000) << (size - shift_count))	\
+				) :	\
+				decltype(destination)(	\
+					(value & decltype(value)(1 << (size - 1))) ? 0xffffffff : 0x000000000	\
+				);	\
+		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)(1 << (shift_count - 1));	\
 	}	\
 \
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1528,7 +1642,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::ASRm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (value&0x80) | (value >> 1);
+									active_program_->destination->halves.low.full = (value&0x8000) | (value >> 1);
 									extend_flag_ = carry_flag_ = value & 1;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
@@ -1539,8 +1653,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 #undef set_neg_zero_overflow
 #define set_neg_zero_overflow(v, m)	\
-	zero_result_ = (v);	\
-	negative_flag_ = zero_result_ & (m);	\
+	set_neg_zero(v, m);	\
 	overflow_flag_ = 0;
 
 #undef set_flags
@@ -1550,10 +1663,24 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	overflow_flag_ = 0;	\
 	carry_flag_ = value & (t);
 
+#define lsl(destination, size)	{\
+	decode_shift_count();	\
+	const auto value = destination;	\
+\
+	if(!shift_count) {	\
+		carry_flag_ = 0;	\
+	} else {	\
+		destination = (shift_count < size) ? decltype(destination)(value << shift_count) : 0;	\
+		extend_flag_ = carry_flag_ = decltype(carry_flag_)(value) & decltype(carry_flag_)( (1u << (size - 1)) >> (shift_count - 1) );	\
+	}	\
+\
+	set_neg_zero_overflow(destination, 1 << (size - 1));	\
+}
+
 								case Operation::LSLm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = value >> 1;
-									extend_flag_ = carry_flag_ = value & 1;
+									active_program_->destination->halves.low.full = uint16_t(value << 1);
+									extend_flag_ = carry_flag_ = value & 0x8000;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
 								case Operation::LSLb: lsl(active_program_->destination->halves.low.halves.low, 8);	break;
@@ -1567,8 +1694,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	if(!shift_count) {	\
 		carry_flag_ = 0;	\
 	} else {	\
-		destination = value >> shift_count;	\
-		extend_flag_ = carry_flag_ = value & (1 << (shift_count - 1));	\
+		destination = (shift_count < size) ? (value >> shift_count) : 0;	\
+		extend_flag_ = carry_flag_ = value & decltype(carry_flag_)(1 << (shift_count - 1));	\
 	}	\
 \
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1592,10 +1719,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			carry_flag_ = 0;	\
 		} else {	\
 			shift_count &= (size - 1);	\
-			destination =	\
+			destination = decltype(destination)(	\
 				(value << shift_count) |	\
-				(value >> (size - shift_count));	\
-			carry_flag_ = destination & 1;	\
+				(value >> (size - shift_count))	\
+			);	\
+			carry_flag_ = decltype(carry_flag_)(destination & 1);	\
 		}	\
 		\
 		set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1603,7 +1731,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::ROLm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (value << 1) | (value >> 15);
+									active_program_->destination->halves.low.full = uint16_t((value << 1) | (value >> 15));
 									carry_flag_ = active_program_->destination->halves.low.full & 1;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
@@ -1620,10 +1748,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			carry_flag_ = 0;	\
 		} else {	\
 			shift_count &= (size - 1);	\
-			destination =	\
+			destination = decltype(destination)(\
 				(value >> shift_count) |	\
-				(value << (size - shift_count));	\
-			carry_flag_ = destination & (1 << (size - 1));	\
+				(value << (size - shift_count))	\
+			);\
+			carry_flag_ = destination & decltype(carry_flag_)(1 << (size - 1));	\
 		}	\
 		\
 		set_neg_zero_overflow(destination, 1 << (size - 1));	\
@@ -1631,7 +1760,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::RORm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (value >> 1) | (value << 15);
+									active_program_->destination->halves.low.full = uint16_t((value >> 1) | (value << 15));
 									carry_flag_ = active_program_->destination->halves.low.full & 0x8000;
 									set_neg_zero_overflow(active_program_->destination->halves.low.full, 0x8000);
 								} break;
@@ -1639,28 +1768,24 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::RORw: ror(active_program_->destination->halves.low.full, 16); 		break;
 								case Operation::RORl: ror(active_program_->destination->full, 32); 					break;
 
-
 #define roxl(destination, size)	{ \
 	decode_shift_count();	\
-	const auto value = destination;	\
 \
-	if(!shift_count) {	\
-		carry_flag_ = extend_flag_;	\
-	} else {	\
-		shift_count %= (size + 1);	\
-		destination =	\
-			(value << shift_count) |	\
-			(value >> (size + 1 - shift_count)) |	\
-			((extend_flag_ ? (1 << (size - 1)) : 0) >> (size - shift_count));	\
-		carry_flag_ = extend_flag_ = destination & 1;	\
-	}	\
+	shift_count %= (size + 1);	\
+	uint64_t compound = uint64_t(destination) | (extend_flag_ ? (1ull << size) : 0);	\
+	compound = \
+		(compound << shift_count) |	\
+		(compound >> (size + 1 - shift_count));	\
+	carry_flag_ = extend_flag_ = decltype(carry_flag_)((compound >> size) & 1);	\
+	destination = decltype(destination)(compound);	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
 }
 
+
 								case Operation::ROXLm: {
 									const auto value = active_program_->destination->halves.low.full;
-									active_program_->destination->halves.low.full = (value << 1) | (extend_flag_ ? 0x0001 : 0x0000);
+									active_program_->destination->halves.low.full = uint16_t((value << 1) | (extend_flag_ ? 0x0001 : 0x0000));
 									extend_flag_ = value & 0x8000;
 									set_flags_w(0x8000);
 								} break;
@@ -1668,21 +1793,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::ROXLw: roxl(active_program_->destination->halves.low.full, 16); 		break;
 								case Operation::ROXLl: roxl(active_program_->destination->full, 32); 					break;
 
-
 #define roxr(destination, size)	{ \
 	decode_shift_count();	\
-	const auto value = destination;	\
 \
-	if(!shift_count) {	\
-		carry_flag_ = extend_flag_;	\
-	} else {	\
-		shift_count %= (size + 1);	\
-		destination =	\
-			(value >> shift_count) |	\
-			(value << (size + 1 - shift_count)) |	\
-			((extend_flag_ ? 1 : 0) << (size - shift_count));	\
-		carry_flag_ = extend_flag_ = destination & 1;	\
-	}	\
+	shift_count %= (size + 1);	\
+	uint64_t compound = uint64_t(destination) | (extend_flag_ ? (1ull << size) : 0);	\
+	compound = \
+		(compound >> shift_count) |	\
+		(compound << (size + 1 - shift_count));	\
+	carry_flag_ = extend_flag_ = decltype(carry_flag_)((compound >> size) & 1);	\
+	destination = decltype(destination)(compound);	\
 	\
 	set_neg_zero_overflow(destination, 1 << (size - 1));	\
 }
@@ -1704,6 +1824,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef asr
 #undef lsr
 #undef lsl
+#undef asl
 
 #undef set_flags
 #undef decode_shift_count
@@ -1711,6 +1832,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef set_flags_w
 #undef set_flags_l
 #undef set_neg_zero_overflow
+#undef set_net_zero
+
 								/*
 									RTE and RTR share an implementation.
 								*/
@@ -1718,8 +1841,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// If this is RTR, patch out the is_supervisor bit.
 									if(decoded_instruction_.full == 0x4e77) {
 										source_bus_data_[0].full =
-											(source_bus_data_[0].full & ~(1 << 13)) |
-											(is_supervisor_ << 13);
+											(source_bus_data_[0].full & uint32_t(~(1 << 13))) |
+											uint32_t(is_supervisor_ << 13);
 									}
 									set_status(source_bus_data_[0].full);
 								break;
@@ -1833,11 +1956,18 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							// on the data bus as the accepted interrupt number during the interrupt
 							// acknowledge cycle, with the low bit set since a real 68000 uses the lower
 							// data strobe to collect the corresponding vector byte.
-							accepted_interrupt_level_ = interrupt_level_ =  bus_interrupt_level_;
-							effective_address_[0].full = 1 | (accepted_interrupt_level_ << 1);
+							accepted_interrupt_level_ = interrupt_level_ = bus_interrupt_level_;
+							effective_address_[0].full = 1 | uint32_t(accepted_interrupt_level_ << 1);
+
+							// Recede the program counter to where it would have been were there no
+							// prefetch; that's where the reading stream should pick up upon RTE.
+							program_counter_.full -= 4;
 						break;
 
 						case int(MicroOp::Action::PrepareINTVector):
+							// Let bus error go back to causing exceptions.
+							is_starting_interrupt_ = false;
+
 							// Bus error => spurious interrupt.
 							if(bus_error_) {
 								effective_address_[0].full = 24 << 2;
@@ -1846,15 +1976,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 							// Valid peripheral address => autovectored interrupt.
 							if(is_peripheral_address_) {
-								effective_address_[0].full = (24 + accepted_interrupt_level_) << 2;
+								effective_address_[0].full = uint32_t(24 + accepted_interrupt_level_) << 2;
 								break;
 							}
 
 							// Otherwise, the vector is whatever we were just told it is.
-							effective_address_[0].full = source_bus_data_[0].halves.low.halves.low << 2;
-
-							// Let bus error go back to causing exceptions.
-							is_starting_interrupt_ = false;
+							effective_address_[0].full = uint32_t(source_bus_data_[0].halves.low.halves.low << 2);
 						break;
 
 						case int(MicroOp::Action::CopyNextWord):
@@ -1862,22 +1989,26 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						break;
 
 						// Increments and decrements.
-#define Adjust(op, quantity)	\
-	case int(op) | MicroOp::SourceMask:			active_program_->source_address->full += quantity;		break;	\
-	case int(op) | MicroOp::DestinationMask:	active_program_->destination_address->full += quantity;	break;	\
+#define op_add(x, y) x += y
+#define op_sub(x, y) x -= y
+#define Adjust(op, quantity, effect)	\
+	case int(op) | MicroOp::SourceMask:			effect(active_program_->source_address->full, quantity);		break;	\
+	case int(op) | MicroOp::DestinationMask:	effect(active_program_->destination_address->full, quantity);	break;	\
 	case int(op) | MicroOp::SourceMask | MicroOp::DestinationMask:	\
-		active_program_->destination_address->full += quantity;	\
-		active_program_->source_address->full += quantity;	\
+		effect(active_program_->destination_address->full, quantity);	\
+		effect(active_program_->source_address->full, quantity);	\
 	break;
 
-						Adjust(MicroOp::Action::Decrement1, -1);
-						Adjust(MicroOp::Action::Decrement2, -2);
-						Adjust(MicroOp::Action::Decrement4, -4);
-						Adjust(MicroOp::Action::Increment1, 1);
-						Adjust(MicroOp::Action::Increment2, 2);
-						Adjust(MicroOp::Action::Increment4, 4);
+						Adjust(MicroOp::Action::Decrement1, 1, op_sub);
+						Adjust(MicroOp::Action::Decrement2, 2, op_sub);
+						Adjust(MicroOp::Action::Decrement4, 4, op_sub);
+						Adjust(MicroOp::Action::Increment1, 1, op_add);
+						Adjust(MicroOp::Action::Increment2, 2, op_add);
+						Adjust(MicroOp::Action::Increment4, 4, op_add);
 
 #undef Adjust
+#undef op_add
+#undef op_sub
 
 						case int(MicroOp::Action::SignExtendWord):
 							if(active_micro_op_->action & MicroOp::SourceMask) {
@@ -1906,42 +2037,42 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						case int(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask:
 							// The address the low part of the prefetch queue was read from was two bytes ago, hence
 							// the subtraction of 2.
-							effective_address_[0] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
 						case int(MicroOp::Action::CalcD16PC) | MicroOp::DestinationMask:
-							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
 						case int(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask | MicroOp::DestinationMask:
 							// Similar logic applies here to above, but the high part of the prefetch queue was four bytes
 							// ago rather than merely two.
-							effective_address_[0] = int16_t(prefetch_queue_.halves.high.full) + program_counter_.full - 4;
-							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.high.full) + program_counter_.full - 4;
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask:
-							effective_address_[0] = int16_t(prefetch_queue_.halves.low.full) + active_program_->source_address->full;
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.low.full) + active_program_->source_address->full;
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::DestinationMask:
-							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + active_program_->destination_address->full;
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + active_program_->destination_address->full;
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask | MicroOp::DestinationMask:
-							effective_address_[0] = int16_t(prefetch_queue_.halves.high.full) + active_program_->source_address->full;
-							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full) + active_program_->destination_address->full;
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.high.full) + active_program_->source_address->full;
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + active_program_->destination_address->full;
 						break;
 
 #define CalculateD8AnXn(data, source, target)	{\
 	const auto register_index = (data.full >> 12) & 7;	\
 	const RegisterPair32 &displacement = (data.full & 0x8000) ? address_[register_index] : data_[register_index];	\
-	target.full = int8_t(data.halves.low) + source;	\
+	target.full = u_extend8(data.halves.low) + source;	\
 \
 	if(data.full & 0x800) {	\
 		target.full += displacement.full;	\
 	} else {	\
-		target.full += int16_t(displacement.halves.low.full);	\
+		target.full += u_extend16(displacement.halves.low.full);	\
 	}	\
 }
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask: {
@@ -1973,11 +2104,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef CalculateD8AnXn
 
 						case int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask:
-							effective_address_[0] = int16_t(prefetch_queue_.halves.low.full);
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.low.full);
 						break;
 
 						case int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask:
-							effective_address_[1] = int16_t(prefetch_queue_.halves.low.full);
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full);
 						break;
 
 						case int(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask:
@@ -2028,6 +2159,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 			}
 	}
 
+	bus_handler_.flush();
 	e_clock_phase_ = (e_clock_phase_ + cycles_run_for) % 10;
 	half_cycles_left_to_run_ = remaining_duration - cycles_run_for;
 }
@@ -2062,3 +2194,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef set_status
 #undef set_ccr
 #undef get_ccr
+#undef u_extend16
+#undef u_extend8
+#undef s_extend16
+#undef s_extend8
+#undef set_next_microcycle_length
+#undef convert_to_bit_count_16
+

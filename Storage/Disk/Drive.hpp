@@ -24,7 +24,8 @@ namespace Disk {
 
 class Drive: public ClockingHint::Source, public TimedEventLoop {
 	public:
-		Drive(unsigned int input_clock_rate, int revolutions_per_minute, int number_of_heads);
+		Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads);
+		Drive(int input_clock_rate, int number_of_heads);
 		~Drive();
 
 		/*!
@@ -52,6 +53,11 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 			Sets the current read head.
 		*/
 		void set_head(int head);
+
+		/*!
+			Gets the head count for this disk.
+		*/
+		int get_head_count();
 
 		/*!
 			@returns @c true if the inserted disk is read-only or no disk is inserted; @c false otherwise.
@@ -95,9 +101,20 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		void end_writing();
 
 		/*!
+			@returns @c true if the drive has received a call to begin_writing but not yet a call to
+			end_writing; @c false otherwise.
+		*/
+		bool is_writing();
+
+		/*!
 			Advances the drive by @c number_of_cycles cycles.
 		*/
 		void run_for(const Cycles cycles);
+
+		struct Event {
+			Track::Event::Type type;
+			float length = 0.0f;
+		} current_event_;
 
 		/*!
 			Provides a mechanism to receive track events as they occur, including the synthetic
@@ -105,7 +122,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		*/
 		struct EventDelegate {
 			/// Informs the delegate that @c event has been reached.
-			virtual void process_event(const Track::Event &event) = 0;
+			virtual void process_event(const Event &event) = 0;
 
 			/*!
 				If the drive is in write mode, announces that all queued bits have now been written.
@@ -138,6 +155,33 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		*/
 		std::shared_ptr<Track> step_to(HeadPosition offset);
 
+		/*!
+			Alters the rotational velocity of this drive.
+		*/
+		void set_rotation_speed(float revolutions_per_minute);
+
+		/*!
+			@returns the current value of the tachometer pulse offered by some drives.
+		*/
+		bool get_tachometer();
+
+	protected:
+		/*!
+			Announces the result of a step.
+		*/
+		virtual void did_step(HeadPosition to_position) {}
+
+		/*!
+			Announces new media installation.
+		*/
+		virtual void did_set_disk() {}
+
+		/*!
+			@returns the current rotation of the disk, a float in the half-open range
+				0.0 (the index hole) to 1.0 (back to the index hole, a whole rotation later).
+		*/
+		float get_rotation();
+
 	private:
 		// Drives contain an entire disk; from that a certain track
 		// will be currently under the head.
@@ -147,7 +191,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		// Contains the multiplier that converts between track-relative lengths
 		// to real-time lengths. So it's the reciprocal of rotation speed.
-		Time rotational_multiplier_;
+		float rotational_multiplier_;
 
 		// A count of time since the index hole was last seen. Which is used to
 		// determine how far the drive is into a full rotation when switching to
@@ -183,12 +227,11 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		// TimedEventLoop call-ins and state.
 		void process_next_event() override;
-		void get_next_event(const Time &duration_already_passed);
+		void get_next_event(float duration_already_passed);
 		void advance(const Cycles cycles) override;
-		Track::Event current_event_;
 
 		// Helper for track changes.
-		Time get_time_into_track();
+		float get_time_into_track();
 
 		// The target (if any) for track events.
 		EventDelegate *event_delegate_ = nullptr;
@@ -213,7 +256,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		// A rotating random data source.
 		uint64_t random_source_;
-		Time random_interval_;
+		float random_interval_;
 };
 
 

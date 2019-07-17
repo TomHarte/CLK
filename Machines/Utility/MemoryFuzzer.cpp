@@ -23,6 +23,10 @@ void Memory::Fuzz(uint8_t *buffer, std::size_t size) {
 	}
 }
 
+void Memory::Fuzz(uint16_t *buffer, std::size_t size) {
+	Fuzz(reinterpret_cast<uint8_t *>(buffer), size * sizeof(uint16_t));
+}
+
 void Memory::Fuzz(std::vector<uint8_t> &buffer) {
 	Fuzz(buffer.data(), buffer.size());
 }

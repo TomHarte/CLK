@@ -170,7 +170,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		/*!
 			Advances time. This class manages the AY's concept of time to permit updating-on-demand.
 		*/
-		inline void run_for(const Cycles cycles) {
+		inline void run_for(const HalfCycles cycles) {
 			cycles_since_ay_update_ += cycles;
 		}
 
@@ -182,11 +182,11 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 
 	private:
 		void update_ay() {
-			speaker_.run_for(audio_queue_, cycles_since_ay_update_.flush());
+			speaker_.run_for(audio_queue_, cycles_since_ay_update_.flush_cycles());
 		}
 		bool ay_bdir_ = false;
 		bool ay_bc1_ = false;
-		Cycles cycles_since_ay_update_;
+		HalfCycles cycles_since_ay_update_;
 
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
 		GI::AY38910::AY38910 &ay8910_;
@@ -434,7 +434,6 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 
 			via_.run_for(Cycles(1));
-			via_port_handler_.run_for(Cycles(1));
 			tape_player_.run_for(Cycles(1));
 			switch(disk_interface) {
 				default: break;
@@ -456,7 +455,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 		forceinline void flush() {
 			update_video();
-			via_port_handler_.flush();
+			via_.flush();
 			flush_diskii();
 		}
 

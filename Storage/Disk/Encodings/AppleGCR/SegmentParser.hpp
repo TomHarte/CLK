@@ -21,7 +21,7 @@ namespace AppleGCR {
 	Scans @c segment for all included sectors, returning a set that maps from location within
 	the segment (counted in bits from the beginning) to sector.
 */
-std::map<std::size_t, Sector> sectors_from_segment(const Disk::PCMSegment &&segment);
+std::map<std::size_t, Sector> sectors_from_segment(const Disk::PCMSegment &segment);
 
 }
 }

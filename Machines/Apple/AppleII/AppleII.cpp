@@ -8,33 +8,34 @@
 
 #include "AppleII.hpp"
 
-#include "../../Activity/Source.hpp"
-#include "../MediaTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../JoystickMachine.hpp"
-#include "../KeyboardMachine.hpp"
-#include "../Utility/MemoryFuzzer.hpp"
-#include "../Utility/StringSerialiser.hpp"
+#include "../../../Activity/Source.hpp"
+#include "../../MediaTarget.hpp"
+#include "../../CRTMachine.hpp"
+#include "../../JoystickMachine.hpp"
+#include "../../KeyboardMachine.hpp"
+#include "../../Utility/MemoryFuzzer.hpp"
+#include "../../Utility/StringSerialiser.hpp"
 
-#include "../../Processors/6502/6502.hpp"
-#include "../../Components/AudioToggle/AudioToggle.hpp"
+#include "../../../Processors/6502/6502.hpp"
+#include "../../../Components/AudioToggle/AudioToggle.hpp"
 
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
-#include "../../Outputs/Log.hpp"
+#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../../Outputs/Log.hpp"
 
 #include "Card.hpp"
 #include "DiskIICard.hpp"
 #include "Video.hpp"
 
-#include "../../Analyser/Static/AppleII/Target.hpp"
-#include "../../ClockReceiver/ForceInline.hpp"
-#include "../../Configurable/StandardOptions.hpp"
+#include "../../../Analyser/Static/AppleII/Target.hpp"
+#include "../../../ClockReceiver/ForceInline.hpp"
+#include "../../../Configurable/StandardOptions.hpp"
 
 #include <algorithm>
 #include <array>
 #include <memory>
 
-namespace AppleII {
+namespace Apple {
+namespace II {
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(
@@ -51,12 +52,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
 	public Configurable::Device,
-	public AppleII::Machine,
+	public Apple::II::Machine,
 	public Activity::Source,
 	public JoystickMachine::Machine,
-	public AppleII::Card::Delegate {
+	public Apple::II::Card::Delegate {
 	private:
-		struct VideoBusHandler : public AppleII::Video::BusHandler {
+		struct VideoBusHandler : public Apple::II::Video::BusHandler {
 			public:
 				VideoBusHandler(uint8_t *ram, uint8_t *aux_ram) : ram_(ram), aux_ram_(aux_ram) {}
 
@@ -71,7 +72,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		CPU::MOS6502::Processor<(model == Analyser::Static::AppleII::Target::Model::EnhancedIIe) ? CPU::MOS6502::Personality::PSynertek65C02 : CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 		VideoBusHandler video_bus_handler_;
-		AppleII::Video::Video<VideoBusHandler, is_iie()> video_;
+		Apple::II::Video::Video<VideoBusHandler, is_iie()> video_;
 		int cycles_into_current_line_ = 0;
 		Cycles cycles_since_video_update_;
 
@@ -109,28 +110,28 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		Cycles cycles_since_audio_update_;
 
 		// MARK: - Cards
-		std::array<std::unique_ptr<AppleII::Card>, 7> cards_;
+		std::array<std::unique_ptr<Apple::II::Card>, 7> cards_;
 		Cycles cycles_since_card_update_;
-		std::vector<AppleII::Card *> every_cycle_cards_;
-		std::vector<AppleII::Card *> just_in_time_cards_;
+		std::vector<Apple::II::Card *> every_cycle_cards_;
+		std::vector<Apple::II::Card *> just_in_time_cards_;
 
 		int stretched_cycles_since_card_update_ = 0;
 
-		void install_card(std::size_t slot, AppleII::Card *card) {
+		void install_card(std::size_t slot, Apple::II::Card *card) {
 			assert(slot >= 1 && slot < 8);
 			cards_[slot - 1].reset(card);
 			card->set_delegate(this);
 			pick_card_messaging_group(card);
 		}
 
-		bool is_every_cycle_card(AppleII::Card *card) {
+		bool is_every_cycle_card(Apple::II::Card *card) {
 			return !card->get_select_constraints();
 		}
 
-		void pick_card_messaging_group(AppleII::Card *card) {
+		void pick_card_messaging_group(Apple::II::Card *card) {
 			const bool is_every_cycle = is_every_cycle_card(card);
-			std::vector<AppleII::Card *> &intended = is_every_cycle ? every_cycle_cards_ : just_in_time_cards_;
-			std::vector<AppleII::Card *> &undesired = is_every_cycle ? just_in_time_cards_ : every_cycle_cards_;
+			std::vector<Apple::II::Card *> &intended = is_every_cycle ? every_cycle_cards_ : just_in_time_cards_;
+			std::vector<Apple::II::Card *> &undesired = is_every_cycle ? just_in_time_cards_ : every_cycle_cards_;
 
 			if(std::find(intended.begin(), intended.end(), card) != intended.end()) return;
 			auto old_membership = std::find(undesired.begin(), undesired.end(), card);
@@ -138,12 +139,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			intended.push_back(card);
 		}
 
-		void card_did_change_select_constraints(AppleII::Card *card) override {
+		void card_did_change_select_constraints(Apple::II::Card *card) override {
 			pick_card_messaging_group(card);
 		}
 
-		AppleII::DiskIICard *diskii_card() {
-			return dynamic_cast<AppleII::DiskIICard *>(cards_[5].get());
+		Apple::II::DiskIICard *diskii_card() {
+			return dynamic_cast<Apple::II::DiskIICard *>(cards_[5].get());
 		}
 
 		// MARK: - Memory Map.
@@ -383,7 +384,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			if(target.disk_controller != Target::DiskController::None) {
 				// Apple recommended slot 6 for the (first) Disk II.
-				install_card(6, new AppleII::DiskIICard(rom_fetcher, target.disk_controller == Target::DiskController::SixteenSector));
+				install_card(6, new Apple::II::DiskIICard(rom_fetcher, target.disk_controller == Target::DiskController::SixteenSector));
 			}
 
 			// Set up the default memory blocks. On a II or II+ these values will never change.
@@ -700,7 +701,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					// If this is a card access, figure out which card is at play before determining
 					// the totality of who needs messaging.
 					size_t card_number = 0;
-					AppleII::Card::Select select = AppleII::Card::None;
+					Apple::II::Card::Select select = Apple::II::Card::None;
 
 					if(address >= 0xc100) {
 						/*
@@ -708,20 +709,20 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 								0xCn00 to 0xCnff: card n.
 						*/
 						card_number = (address - 0xc100) >> 8;
-						select = AppleII::Card::Device;
+						select = Apple::II::Card::Device;
 					} else {
 						/*
 							Decode the area conventionally used by cards for registers:
 								C0n0 to C0nF: card n - 8.
 						*/
 						card_number = (address - 0xc090) >> 4;
-						select = AppleII::Card::IO;
+						select = Apple::II::Card::IO;
 					}
 
 					// If the selected card is a just-in-time card, update the just-in-time cards,
 					// and then message it specifically.
 					const bool is_read = isReadOperation(operation);
-					AppleII::Card *const target = cards_[static_cast<size_t>(card_number)].get();
+					Apple::II::Card *const target = cards_[static_cast<size_t>(card_number)].get();
 					if(target && !is_every_cycle_card(target)) {
 						update_just_in_time_cards();
 						target->perform_bus_operation(select, is_read, address, value);
@@ -732,7 +733,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					for(const auto &card: every_cycle_cards_) {
 						card->run_for(Cycles(1), is_stretched_cycle);
 						card->perform_bus_operation(
-							(card == target) ? select : AppleII::Card::None,
+							(card == target) ? select : Apple::II::Card::None,
 							is_read, address, value);
 					}
 					has_updated_cards = true;
@@ -744,7 +745,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				const bool is_read = isReadOperation(operation);
 				for(const auto &card: every_cycle_cards_) {
 					card->run_for(Cycles(1), is_stretched_cycle);
-					card->perform_bus_operation(AppleII::Card::None, is_read, address, value);
+					card->perform_bus_operation(Apple::II::Card::None, is_read, address, value);
 				}
 			}
 
@@ -818,7 +819,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		// MARK:: Configuration options.
 		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			return AppleII::get_options();
+			return Apple::II::get_options();
 		}
 
 		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
@@ -861,8 +862,9 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 };
 
 }
+}
 
-using namespace AppleII;
+using namespace Apple::II;
 
 Machine *Machine::AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
 	using Target = Analyser::Static::AppleII::Target;

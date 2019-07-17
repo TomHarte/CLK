@@ -59,6 +59,11 @@ KeyboardMachine::Machine *MultiMachine::keyboard_machine() {
 	}
 }
 
+MouseMachine::Machine *MultiMachine::mouse_machine() {
+	// TODO.
+	return nullptr;
+}
+
 Configurable::Device *MultiMachine::configurable_device() {
 	if(has_picked_) {
 		return machines_.front()->configurable_device();

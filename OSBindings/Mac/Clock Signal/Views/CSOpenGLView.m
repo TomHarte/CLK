@@ -19,6 +19,7 @@
 
 	NSTrackingArea *_mouseTrackingArea;
 	NSTimer *_mouseHideTimer;
+	BOOL _mouseIsCaptured;
 }
 
 - (void)prepareOpenGL {
@@ -148,6 +149,13 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)flagsChanged:(NSEvent *)theEvent {
 	[self.responderDelegate flagsChanged:theEvent];
+
+	// Release the mouse upon a control + command.
+	if(_mouseIsCaptured &&
+		theEvent.modifierFlags & NSEventModifierFlagControl &&
+		theEvent.modifierFlags & NSEventModifierFlagCommand) {
+		[self releaseMouse];
+	}
 }
 
 - (void)paste:(id)sender {
@@ -170,6 +178,10 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 #pragma mark - Mouse hiding
 
+- (void)setShouldCaptureMouse:(BOOL)shouldCaptureMouse {
+	_shouldCaptureMouse = shouldCaptureMouse;
+}
+
 - (void)updateTrackingAreas {
 	[super updateTrackingAreas];
 
@@ -185,9 +197,14 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[self addTrackingArea:_mouseTrackingArea];
 }
 
-- (void)mouseMoved:(NSEvent *)event {
-	[super mouseMoved:event];
-	[self scheduleMouseHide];
+- (void)scheduleMouseHide {
+	if(!self.shouldCaptureMouse) {
+		[_mouseHideTimer invalidate];
+
+		_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 repeats:NO block:^(NSTimer * _Nonnull timer) {
+			[NSCursor setHiddenUntilMouseMoves:YES];
+		}];
+	}
 }
 
 - (void)mouseEntered:(NSEvent *)event {
@@ -195,18 +212,119 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[self scheduleMouseHide];
 }
 
-- (void)scheduleMouseHide {
-	[_mouseHideTimer invalidate];
-	_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 repeats:NO block:^(NSTimer * _Nonnull timer) {
-        [NSCursor setHiddenUntilMouseMoves:YES];
-	}];
-}
-
 - (void)mouseExited:(NSEvent *)event {
 	[super mouseExited:event];
-
 	[_mouseHideTimer invalidate];
 	_mouseHideTimer = nil;
+}
+
+- (void)releaseMouse {
+	if(_mouseIsCaptured) {
+		_mouseIsCaptured = NO;
+		CGAssociateMouseAndMouseCursorPosition(true);
+		[NSCursor unhide];
+	}
+}
+
+#pragma mark - Mouse motion
+
+- (void)applyMouseMotion:(NSEvent *)event {
+	if(!self.shouldCaptureMouse) {
+		// Mouse capture is off, so don't play games with the cursor, just schedule it to
+		// hide in the near future.
+		[self scheduleMouseHide];
+	} else {
+		if(_mouseIsCaptured) {
+			// Mouse capture is on, so move the cursor back to the middle of the window, and
+			// forward the deltas to the listener.
+			//
+			// TODO: should I really need to invert the y coordinate myself? It suggests I
+			// might have an error in mapping here.
+			const NSPoint windowCentre = [self convertPoint:CGPointMake(self.bounds.size.width * 0.5, self.bounds.size.height * 0.5) toView:nil];
+			const NSPoint screenCentre = [self.window convertPointToScreen:windowCentre];
+			const CGRect screenFrame = self.window.screen.frame;
+			CGWarpMouseCursorPosition(NSMakePoint(
+				screenFrame.origin.x + screenCentre.x,
+				screenFrame.origin.y + screenFrame.size.height - screenCentre.y
+			));
+
+			[self.responderDelegate mouseMoved:event];
+		}
+	}
+}
+
+- (void)mouseDragged:(NSEvent *)event {
+	[self applyMouseMotion:event];
+	[super mouseDragged:event];
+}
+
+- (void)rightMouseDragged:(NSEvent *)event {
+	[self applyMouseMotion:event];
+	[super rightMouseDragged:event];
+}
+
+- (void)otherMouseDragged:(NSEvent *)event {
+	[self applyMouseMotion:event];
+	[super otherMouseDragged:event];
+}
+
+- (void)mouseMoved:(NSEvent *)event {
+	[self applyMouseMotion:event];
+	[super mouseMoved:event];
+}
+
+#pragma mark - Mouse buttons
+
+- (void)applyButtonDown:(NSEvent *)event {
+	if(self.shouldCaptureMouse) {
+		if(!_mouseIsCaptured) {
+			_mouseIsCaptured = YES;
+			[NSCursor hide];
+			CGAssociateMouseAndMouseCursorPosition(false);
+
+			// Don't report the first click to the delegate; treat that as merely
+			// an invitation to capture the cursor.
+			return;
+		}
+
+		[self.responderDelegate mouseDown:event];
+	}
+}
+
+- (void)applyButtonUp:(NSEvent *)event {
+	if(self.shouldCaptureMouse) {
+		[self.responderDelegate mouseUp:event];
+	}
+}
+
+- (void)mouseDown:(NSEvent *)event {
+	[self applyButtonDown:event];
+	[super mouseDown:event];
+}
+
+- (void)rightMouseDown:(NSEvent *)event {
+	[self applyButtonDown:event];
+	[super rightMouseDown:event];
+}
+
+- (void)otherMouseDown:(NSEvent *)event {
+	[self applyButtonDown:event];
+	[super otherMouseDown:event];
+}
+
+- (void)mouseUp:(NSEvent *)event {
+	[self applyButtonUp:event];
+	[super mouseUp:event];
+}
+
+- (void)rightMouseUp:(NSEvent *)event  {
+	[self applyButtonUp:event];
+	[super rightMouseUp:event];
+}
+
+- (void)otherMouseUp:(NSEvent *)event {
+	[self applyButtonUp:event];
+	[super otherMouseUp:event];
 }
 
 @end

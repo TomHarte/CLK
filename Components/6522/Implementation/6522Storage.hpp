@@ -21,7 +21,7 @@ class MOS6522Storage {
 
 		// The registers
 		struct Registers {
-			// "A  low  reset  (RES)  input  clears  all  R6522  internal registers to logic 0"
+			// "A low reset (RES) input clears all R6522 internal registers to logic 0"
 			uint8_t output[2] = {0, 0};
 			uint8_t input[2] = {0, 0};
 			uint8_t data_direction[2] = {0, 0};
@@ -37,14 +37,27 @@ class MOS6522Storage {
 			bool timer_needs_reload = false;
 		} registers_;
 
-		// control state
+		// Control state.
 		struct {
-			bool line_one = false;
-			bool line_two = false;
+			bool lines[2] = {false, false};
 		} control_inputs_[2];
+
+		enum class LineState {
+			On, Off, Input
+		};
+		struct {
+			LineState lines[2] = {LineState::Input, LineState::Input};
+		} control_outputs_[2];
+
+		enum class HandshakeMode {
+			None,
+			Handshake,
+			Pulse
+		} handshake_modes_[2] = { HandshakeMode::None, HandshakeMode::None };
 
 		bool timer_is_running_[2] = {false, false};
 		bool last_posted_interrupt_status_ = false;
+		int shift_bits_remaining_ = 8;
 
 		enum InterruptFlag: uint8_t {
 			CA2ActiveEdge	= 1 << 0,
@@ -55,6 +68,23 @@ class MOS6522Storage {
 			Timer2			= 1 << 5,
 			Timer1			= 1 << 6,
 		};
+
+		enum class ShiftMode {
+			Disabled = 0,
+			InUnderT2 = 1,
+			InUnderPhase2 = 2,
+			InUnderCB1 = 3,
+			OutUnderT2FreeRunning = 4,
+			OutUnderT2 = 5,
+			OutUnderPhase2 = 6,
+			OutUnderCB1 = 7
+		};
+		ShiftMode shift_mode() const {
+			return ShiftMode((registers_.auxiliary_control >> 2) & 7);
+		}
+		bool is_shifting_out() const {
+			return registers_.auxiliary_control & 0x10;
+		}
 };
 
 }
