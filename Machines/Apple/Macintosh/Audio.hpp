@@ -20,8 +20,10 @@ namespace Apple {
 namespace Macintosh {
 
 /*!
-	Implements the Macintosh's audio output hardware, using a
-	combination
+	Implements the Macintosh's audio output hardware.
+
+	Designed to be clocked at half the rate of the real hardware — i.e.
+	a shade less than 4Mhz.
 */
 class Audio: public ::Outputs::Speaker::SampleSource {
 	public:
@@ -51,7 +53,6 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
-		void skip_samples(std::size_t number_of_samples);
 		bool is_zero_level();
 		void set_sample_volume_range(std::int16_t range);
 
@@ -61,9 +62,14 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 		// A queue of fetched samples; read from by one thread,
 		// written to by another.
 		struct {
-			std::array<uint8_t, 4096> buffer;
-			std::atomic<unsigned int> read_pointer, write_pointer;
+			std::array<uint8_t, 740> buffer;
+			size_t read_pointer = 0, write_pointer = 0;
 		} sample_queue_;
+
+		// Emulator-thread stateful variables, to avoid work posting
+		// deferral updates if possible.
+		int posted_volume_ = 0;
+		int posted_enable_mask_ = 0;
 
 		// Stateful variables, modified from the audio generation
 		// thread only.

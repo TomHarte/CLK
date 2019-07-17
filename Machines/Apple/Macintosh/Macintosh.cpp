@@ -112,7 +112,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			// The Mac runs at 7.8336mHz.
 			set_clock_rate(double(CLOCK_RATE));
-			audio_.speaker.set_input_rate(float(CLOCK_RATE));
+			audio_.speaker.set_input_rate(float(CLOCK_RATE) / 2.0f);
 
 			// Insert any supplied media.
 			insert_media(target.media);
@@ -543,7 +543,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				}
 
 				void run_for(HalfCycles duration) {
-					audio_.time_since_update += duration;
+					// The 6522 enjoys a divide-by-ten, so multiply back up here to make the
+					// divided-by-two clock the audio works on.
+					audio_.time_since_update += HalfCycles(duration.as_int() * 5);
 				}
 
 				void flush() {
