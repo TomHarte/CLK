@@ -23,6 +23,8 @@ It currently contains emulations of the:
 * Sega Master System; and
 * Sinclair ZX80/81.
 
+Work is in progress on the Macintosh 512ke; it is presently very experimental.
+
 ## Single-click Loading
 
 Through the combination of static analysis and runtime analysis, CLK seeks to be able automatically to select and configure the appropriate machine to run any provided disk, tape or ROM; to issue any commands necessary to run the software contained on the disk, tape or ROM; and to provide accelerated loading where feasible.
