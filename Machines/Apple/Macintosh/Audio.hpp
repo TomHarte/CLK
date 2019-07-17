@@ -75,9 +75,11 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 		// thread only.
 		int volume_ = 0;
 		int enabled_mask_ = 0;
+		std::int16_t output_volume_ = 0;
 
 		std::int16_t volume_multiplier_ = 0;
 		std::size_t subcycle_offset_ = 0;
+		void set_volume_multiplier();
 };
 
 }
