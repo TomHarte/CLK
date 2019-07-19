@@ -58,7 +58,8 @@ If your machine has a 4k monitor and a 96Khz audio output? Then you'll get a 4k 
 |![Amstrad text, with a classic 1:1 pixel emulation](READMEImages/NaiveCPC.png)|![Amstrad text, with correct aspect ratio and subject to a lowpass filter](READMEImages/FilteredCPC.png)|
 |![The Amstrad CPC version of Stormlord, with a classic 1:1 pixel emulation](READMEImages/NaiveCPCStormlord.png)|![The Amstrad CPC version of Stormlord, with correct aspect ratio and subject to a lowpass filter](READMEImages/CPCStormlord.png)|
 
-<img src="READMEImages/ReptonInterlaced.gif" height=400 alt="Repton title screen, interlaced"> <img src="READMEImages/AppleIIPrinceOfPersia.png" height=400 alt="Apple IIe Prince of Persia">
+<img src="READMEImages/ReptonInterlaced.gif" height=400 alt="Repton title screen, interlaced"><img src="READMEImages/AppleIIPrinceOfPersia.png" height=400 alt="Apple IIe Prince of Persia">
+<img src="READMEImages/MusicWorks.png" height=400 alt="Apple Macintosh MusicWorks">
 
 ## Low Latency
 
