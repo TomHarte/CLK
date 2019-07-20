@@ -132,7 +132,7 @@ class ConcreteMachine:
 
 			const auto roms = rom_fetcher(
 				"ColecoVision",
-				{ ROMMachine::ROM("coleco.rom") });
+				{ ROMMachine::ROM("the ColecoVision BIOS", "coleco.rom", 8*1024, 0x3aa93ef3) });
 
 			if(!roms[0]) {
 				throw ROMMachine::Error::MissingROMs;
