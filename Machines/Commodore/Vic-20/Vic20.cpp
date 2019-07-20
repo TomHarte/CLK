@@ -323,27 +323,27 @@ class ConcreteMachine:
 			// install a joystick
 			joysticks_.emplace_back(new Joystick(*user_port_via_port_handler_, *keyboard_via_port_handler_));
 
-			std::vector<std::string> rom_names = { "basic.bin" };
+			std::vector<ROMMachine::ROM> rom_names = {  ROMMachine::ROM("basic.bin") };
 			switch(target.region) {
 				default:
-					rom_names.push_back("characters-english.bin");
-					rom_names.push_back("kernel-pal.bin");
+					rom_names.emplace_back("characters-english.bin");
+					rom_names.emplace_back("kernel-pal.bin");
 				break;
 				case Analyser::Static::Commodore::Target::Region::American:
-					rom_names.push_back("characters-english.bin");
-					rom_names.push_back("kernel-ntsc.bin");
+					rom_names.emplace_back("characters-english.bin");
+					rom_names.emplace_back("kernel-ntsc.bin");
 				break;
 				case Analyser::Static::Commodore::Target::Region::Danish:
-					rom_names.push_back("characters-danish.bin");
-					rom_names.push_back("kernel-danish.bin");
+					rom_names.emplace_back("characters-danish.bin");
+					rom_names.emplace_back("kernel-danish.bin");
 				break;
 				case Analyser::Static::Commodore::Target::Region::Japanese:
-					rom_names.push_back("characters-japanese.bin");
-					rom_names.push_back("kernel-japanese.bin");
+					rom_names.emplace_back("characters-japanese.bin");
+					rom_names.emplace_back("kernel-japanese.bin");
 				break;
 				case Analyser::Static::Commodore::Target::Region::Swedish:
-					rom_names.push_back("characters-swedish.bin");
-					rom_names.push_back("kernel-japanese.bin");
+					rom_names.emplace_back("characters-swedish.bin");
+					rom_names.emplace_back("kernel-japanese.bin");
 				break;
 			}
 

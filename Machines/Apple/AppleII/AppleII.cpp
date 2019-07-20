@@ -347,26 +347,26 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			// Pick the required ROMs.
 			using Target = Analyser::Static::AppleII::Target;
-			std::vector<std::string> rom_names;
+			std::vector<ROMMachine::ROM> rom_names;
 			size_t rom_size = 12*1024;
 			switch(target.model) {
 				default:
-					rom_names.push_back("apple2-character.rom");
-					rom_names.push_back("apple2o.rom");
+					rom_names.emplace_back("apple2-character.rom");
+					rom_names.emplace_back("apple2o.rom");
 				break;
 				case Target::Model::IIplus:
-					rom_names.push_back("apple2-character.rom");
-					rom_names.push_back("apple2.rom");
+					rom_names.emplace_back("apple2-character.rom");
+					rom_names.emplace_back("apple2.rom");
 				break;
 				case Target::Model::IIe:
 					rom_size += 3840;
-					rom_names.push_back("apple2eu-character.rom");
-					rom_names.push_back("apple2eu.rom");
+					rom_names.emplace_back("apple2eu-character.rom");
+					rom_names.emplace_back("apple2eu.rom");
 				break;
 				case Target::Model::EnhancedIIe:
 					rom_size += 3840;
-					rom_names.push_back("apple2e-character.rom");
-					rom_names.push_back("apple2e.rom");
+					rom_names.emplace_back("apple2e-character.rom");
+					rom_names.emplace_back("apple2e.rom");
 				break;
 			}
 			const auto roms = rom_fetcher("AppleII", rom_names);

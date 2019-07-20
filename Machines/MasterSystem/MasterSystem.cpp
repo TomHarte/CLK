@@ -132,7 +132,7 @@ class ConcreteMachine:
 
 			// Load the BIOS if relevant.
 			if(has_bios()) {
-				const auto roms = rom_fetcher("MasterSystem", {"bios.sms"});
+				const auto roms = rom_fetcher("MasterSystem", { ROMMachine::ROM("bios.sms") });
 				if(!roms[0]) {
 					// No BIOS found; attempt to boot as though it has already disabled itself.
 					memory_control_ |= 0x08;

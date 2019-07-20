@@ -365,11 +365,11 @@ int main(int argc, char *argv[]) {
 	//	/usr/local/share/CLK/[system];
 	//	/usr/share/CLK/[system]; or
 	//	[user-supplied path]/[system]
-	std::vector<std::string> rom_names;
+	std::vector<ROMMachine::ROM> requested_roms;
 	std::string machine_name;
-	ROMMachine::ROMFetcher rom_fetcher = [&rom_names, &machine_name, &arguments]
-		(const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
-			rom_names.insert(rom_names.end(), names.begin(), names.end());
+	ROMMachine::ROMFetcher rom_fetcher = [&requested_roms, &machine_name, &arguments]
+		(const std::string &machine, const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
+			requested_roms.insert(requested_roms.end(), roms.begin(), roms.end());
 			machine_name = machine;
 
 			std::vector<std::string> paths = {
@@ -386,10 +386,10 @@ int main(int argc, char *argv[]) {
 			}
 
 			std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
-			for(const auto &name: names) {
+			for(const auto &rom: roms) {
 				FILE *file = nullptr;
 				for(const auto &path: paths) {
-					std::string local_path = path + machine + "/" + name;
+					std::string local_path = path + machine + "/" + rom.file_name;
 					file = std::fopen(local_path.c_str(), "rb");
 					if(file) break;
 				}
@@ -425,8 +425,8 @@ int main(int argc, char *argv[]) {
 			case ::Machine::Error::MissingROM:
 				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath." << std::endl;
 				std::cerr << "One or more of the following was needed but not found:" << std::endl;
-				for(const auto &name: rom_names) {
-					std::cerr << machine_name << '/' << name << std::endl;
+				for(const auto &rom: requested_roms) {
+					std::cerr << machine_name << '/' << rom.file_name << std::endl;
 				}
 			break;
 		}

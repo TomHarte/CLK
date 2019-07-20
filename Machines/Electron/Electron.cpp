@@ -64,14 +64,14 @@ class ConcreteMachine:
 			speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
 			speaker_.set_high_frequency_cutoff(7000);
 
-			std::vector<std::string> rom_names = {"basic.rom", "os.rom"};
+			std::vector<ROMMachine::ROM> rom_names = { {"basic.rom"}, {"os.rom"} };
 			if(target.has_adfs) {
-				rom_names.push_back("ADFS-E00_1.rom");
-				rom_names.push_back("ADFS-E00_2.rom");
+				rom_names.emplace_back("ADFS-E00_1.rom");
+				rom_names.emplace_back("ADFS-E00_2.rom");
 			}
 			const size_t dfs_rom_position = rom_names.size();
 			if(target.has_dfs) {
-				rom_names.push_back("DFS-1770-2.20.rom");
+				rom_names.emplace_back("DFS-1770-2.20.rom");
 			}
 			const auto roms = rom_fetcher("Electron", rom_names);
 

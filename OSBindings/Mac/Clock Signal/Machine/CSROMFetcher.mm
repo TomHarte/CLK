@@ -15,11 +15,14 @@
 #include <string>
 
 ROMMachine::ROMFetcher CSROMFetcher() {
-	return [] (const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
-		NSString *subDirectory = [@"ROMImages/" stringByAppendingString:[NSString stringWithUTF8String:machine.c_str()]];
+	return [] (const std::string &machine, const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
+		NSString *subdirectory = [@"ROMImages/" stringByAppendingString:[NSString stringWithUTF8String:machine.c_str()]];
 		std::vector<std::unique_ptr<std::vector<std::uint8_t>>> results;
-		for(const auto &name: names) {
-			NSData *fileData = [[NSBundle mainBundle] dataForResource:[NSString stringWithUTF8String:name.c_str()] withExtension:nil subdirectory:subDirectory];
+		for(const auto &rom: roms) {
+			NSData *fileData = [[NSBundle mainBundle]
+				dataForResource:[NSString stringWithUTF8String:rom.file_name.c_str()]
+				withExtension:nil
+				subdirectory:subdirectory];
 
 			if(!fileData)
 				results.emplace_back(nullptr);

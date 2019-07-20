@@ -781,7 +781,7 @@ template <bool has_fdc> class ConcreteMachine:
 			ay_.ay().set_port_handler(&key_state_);
 
 			// construct the list of necessary ROMs
-			std::vector<std::string> required_roms = {"amsdos.rom"};
+			std::vector<ROMMachine::ROM> required_roms = { {"amsdos.rom"} };
 			std::string model_number;
 			switch(target.model) {
 				default:

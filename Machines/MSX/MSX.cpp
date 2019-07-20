@@ -173,7 +173,7 @@ class ConcreteMachine:
 			mixer_.set_relative_volumes({0.5f, 0.1f, 0.4f});
 
 			// Install the proper TV standard and select an ideal BIOS name.
-			std::vector<std::string> rom_names = {"msx.rom"};
+			std::vector<ROMMachine::ROM> rom_names = { {"msx.rom"} };
 
 			bool is_ntsc = true;
 			uint8_t character_generator = 1;	/* 0 = Japan, 1 = USA, etc, 2 = USSR */
@@ -182,7 +182,7 @@ class ConcreteMachine:
 
 			switch(target.region) {
 				case Target::Region::Japan:
-					rom_names.push_back("msx-japanese.rom");
+					rom_names.emplace_back("msx-japanese.rom");
 					vdp_.set_tv_standard(TI::TMS::TVStandard::NTSC);
 
 					is_ntsc = true;
@@ -190,7 +190,7 @@ class ConcreteMachine:
 					date_format = 0;
 				break;
 				case Target::Region::USA:
-					rom_names.push_back("msx-american.rom");
+					rom_names.emplace_back("msx-american.rom");
 					vdp_.set_tv_standard(TI::TMS::TVStandard::NTSC);
 
 					is_ntsc = true;
@@ -198,7 +198,7 @@ class ConcreteMachine:
 					date_format = 1;
 				break;
 				case Target::Region::Europe:
-					rom_names.push_back("msx-european.rom");
+					rom_names.emplace_back("msx-european.rom");
 					vdp_.set_tv_standard(TI::TMS::TVStandard::PAL);
 
 					is_ntsc = false;
@@ -212,7 +212,7 @@ class ConcreteMachine:
 			size_t disk_index = 0;
 			if(target.has_disk_drive) {
 				disk_index = rom_names.size();
-				rom_names.push_back("disk.rom");
+				rom_names.emplace_back("disk.rom");
 			}
 			const auto roms = rom_fetcher("MSX", rom_names);
 

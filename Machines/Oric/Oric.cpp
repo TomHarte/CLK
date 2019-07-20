@@ -228,16 +228,16 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				diskii_.set_clocking_hint_observer(this);
 			}
 
-			std::vector<std::string> rom_names = {"colour.rom"};
+			std::vector<ROMMachine::ROM> rom_names = { {"colour.rom"} };
 			switch(target.rom) {
-				case Analyser::Static::Oric::Target::ROM::BASIC10: rom_names.push_back("basic10.rom");	break;
-				case Analyser::Static::Oric::Target::ROM::BASIC11: rom_names.push_back("basic11.rom");	break;
-				case Analyser::Static::Oric::Target::ROM::Pravetz: rom_names.push_back("pravetz.rom");	break;
+				case Analyser::Static::Oric::Target::ROM::BASIC10: rom_names.emplace_back("basic10.rom");	break;
+				case Analyser::Static::Oric::Target::ROM::BASIC11: rom_names.emplace_back("basic11.rom");	break;
+				case Analyser::Static::Oric::Target::ROM::Pravetz: rom_names.emplace_back("pravetz.rom");	break;
 			}
 			switch(disk_interface) {
 				default: break;
-				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:	rom_names.push_back("microdisc.rom");	break;
-				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:	rom_names.push_back("8dos.rom");		break;
+				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:	rom_names.emplace_back("microdisc.rom");	break;
+				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:	rom_names.emplace_back("8dos.rom");			break;
 			}
 
 			const auto roms = rom_fetcher("Oric", rom_names);
@@ -261,7 +261,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					pravetz_rom_ = std::move(*roms[2]);
 					pravetz_rom_.resize(512);
 
-					auto state_machine_rom = rom_fetcher("DiskII", {"state-machine-16.rom"});
+					auto state_machine_rom = rom_fetcher("DiskII", { ROMMachine::ROM("state-machine-16.rom") });
 					if(!state_machine_rom[0]) {
 						throw ROMMachine::Error::MissingROMs;
 					}
