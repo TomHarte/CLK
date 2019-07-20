@@ -38,8 +38,8 @@ struct ROM {
 
 	ROM(std::string descriptive_name, std::string file_name, size_t size, uint32_t crc32) :
 		descriptive_name(descriptive_name), file_name(file_name), size(size), crc32s({crc32}) {}
-	ROM(std::string descriptive_name, std::string file_name, size_t size, std::vector<uint32_t> &crc32s) :
-		descriptive_name(descriptive_name), file_name(file_name), size(size), crc32s(std::move(crc32s)) {}
+	ROM(std::string descriptive_name, std::string file_name, size_t size, std::initializer_list<uint32_t> crc32s) :
+		descriptive_name(descriptive_name), file_name(file_name), size(size), crc32s(crc32s) {}
 };
 
 /*!
