@@ -39,13 +39,20 @@ MachineBase::MachineBase(Personality personality, const ROMMachine::ROMFetcher &
 	// attach the only drive there is
 	set_drive(drive_);
 
-	std::string rom_name;
+	std::string device_name;
+	uint32_t crc = 0;
 	switch(personality) {
-		case Personality::C1540:	rom_name = "1540.bin";	break;
-		case Personality::C1541:	rom_name = "1541.bin";	break;
+		case Personality::C1540:
+			device_name = "1540";
+			crc = 0x718d42b1;
+		break;
+		case Personality::C1541:
+			device_name = "1541";
+			crc = 0xfb760019;
+		break;
 	}
 
-	auto roms = rom_fetcher("Commodore1540", {rom_name});
+	auto roms = rom_fetcher("Commodore1540", { ROMMachine::ROM("the " + device_name + " ROM", device_name + ".bin", 16*1024, crc) });
 	if(!roms[0]) {
 		throw ROMMachine::Error::MissingROMs;
 	}
