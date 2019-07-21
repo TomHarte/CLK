@@ -8,4 +8,4 @@
 
 #include "ROMMachine.hpp"
 
-ROMMachine::ROMFetcher CSROMFetcher();
+ROMMachine::ROMFetcher CSROMFetcher(std::vector<ROMMachine::ROM> *missing_roms = nullptr);

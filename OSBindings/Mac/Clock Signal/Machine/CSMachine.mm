@@ -96,7 +96,8 @@ struct ActivityObserver: public Activity::Observer {
 		_analyser = result;
 
 		Machine::Error error;
-		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(), error));
+		std::vector<ROMMachine::ROM> missing_roms;
+		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error));
 		if(!_machine) return nil;
 
 		_inputMode =

@@ -14,8 +14,8 @@
 
 #include <string>
 
-ROMMachine::ROMFetcher CSROMFetcher() {
-	return [] (const std::string &machine, const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
+ROMMachine::ROMFetcher CSROMFetcher(std::vector<ROMMachine::ROM> *missing_roms) {
+	return [missing_roms] (const std::string &machine, const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
 		NSString *const subdirectory = [@"ROMImages/" stringByAppendingString:[NSString stringWithUTF8String:machine.c_str()]];
 		NSArray<NSURL *> *const supportURLs = [[NSFileManager defaultManager] URLsForDirectory:NSApplicationSupportDirectory inDomains:NSUserDomainMask];
 
@@ -39,9 +39,14 @@ ROMMachine::ROMFetcher CSROMFetcher() {
 					subdirectory:subdirectory];
 			}
 
-			// Store an appropriate result.
-			if(!fileData)
+			// Store an appropriate result, accumulating a list of the missing if requested.
+			if(!fileData) {
 				results.emplace_back(nullptr);
+
+				if(missing_roms) {
+					missing_roms->push_back(rom);
+				}
+			}
 			else {
 				std::unique_ptr<std::vector<std::uint8_t>> data(new std::vector<std::uint8_t>);
 				*data = fileData.stdVector8;
