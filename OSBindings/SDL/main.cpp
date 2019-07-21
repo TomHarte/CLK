@@ -426,7 +426,11 @@ int main(int argc, char *argv[]) {
 				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath." << std::endl;
 				std::cerr << "One or more of the following was needed but not found:" << std::endl;
 				for(const auto &rom: requested_roms) {
-					std::cerr << machine_name << '/' << rom.file_name << std::endl;
+					std::cerr << machine_name << '/' << rom.file_name;
+					if(!rom.descriptive_name.empty()) {
+						std::cerr << " (" << rom.descriptive_name << ")";
+					}
+					std::cerr << std::endl;
 				}
 			break;
 		}
