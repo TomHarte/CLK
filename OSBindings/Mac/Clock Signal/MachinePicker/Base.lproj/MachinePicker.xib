@@ -60,11 +60,14 @@ Gw
                     </textField>
                     <tabView translatesAutoresizingMaskIntoConstraints="NO" id="VUb-QG-x7c">
                         <rect key="frame" x="13" y="51" width="624" height="140"/>
+                        <constraints>
+                            <constraint firstItem="AsH-RS-nqk" firstAttribute="top" secondItem="VUb-QG-x7c" secondAttribute="top" constant="30" id="6Jy-Gb-MNj"/>
+                        </constraints>
                         <font key="font" metaFont="system"/>
                         <tabViewItems>
                             <tabViewItem label="Apple II" identifier="appleii" id="P59-QG-LOa">
                                 <view key="view" id="dHz-Yv-GNq">
-                                    <rect key="frame" x="10" y="33" width="554" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="604" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="V5Z-dX-Ns4">
@@ -168,7 +171,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Electron" identifier="electron" id="muc-z9-Vqc">
                                 <view key="view" id="SRc-2D-95G">
-                                    <rect key="frame" x="10" y="33" width="654" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="604" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JqM-IK-FMP">
@@ -199,13 +202,29 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Macintosh" identifier="mac" id="lmR-z3-xSm">
                                 <view key="view" id="7Yf-vi-Q0W">
-                                    <rect key="frame" x="10" y="33" width="654" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="604" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <subviews>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="AsH-RS-nqk">
+                                            <rect key="frame" x="15" y="74" width="574" height="17"/>
+                                            <textFieldCell key="cell" lineBreakMode="clipping" title="At present Clock Signal emulates only the Macintosh 512ke." id="04M-jS-b6i">
+                                                <font key="font" usesAppearanceFont="YES"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                    </subviews>
+                                    <constraints>
+                                        <constraint firstItem="AsH-RS-nqk" firstAttribute="top" secondItem="7Yf-vi-Q0W" secondAttribute="top" constant="3" id="3cT-Jt-7pr"/>
+                                        <constraint firstItem="AsH-RS-nqk" firstAttribute="leading" secondItem="7Yf-vi-Q0W" secondAttribute="leading" constant="17" id="LEr-Pk-q2T"/>
+                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="AsH-RS-nqk" secondAttribute="bottom" constant="13" id="bfM-Zq-lud"/>
+                                        <constraint firstAttribute="trailing" secondItem="AsH-RS-nqk" secondAttribute="trailing" constant="17" id="ffk-RP-qLl"/>
+                                    </constraints>
                                 </view>
                             </tabViewItem>
                             <tabViewItem label="MSX" identifier="msx" id="6SR-DY-zdI">
                                 <view key="view" id="mWD-An-tR7">
-                                    <rect key="frame" x="10" y="33" width="654" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="604" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8xT-Pr-8SE">
@@ -253,7 +272,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Oric" identifier="oric" id="NSx-DC-p4M">
                                 <view key="view" id="sOR-e0-8iZ">
-                                    <rect key="frame" x="10" y="33" width="654" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="604" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="0ct-tf-uRH">
@@ -318,7 +337,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Vic-20" identifier="vic20" id="cyO-PU-hSU">
                                 <view key="view" id="fLI-XB-QCr">
-                                    <rect key="frame" x="10" y="33" width="554" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="604" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ueK-gq-gaF">
@@ -497,7 +516,7 @@ Gw
                     <constraint firstItem="VUb-QG-x7c" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" id="zT3-Ea-QQJ"/>
                 </constraints>
             </view>
-            <point key="canvasLocation" x="34" y="89"/>
+            <point key="canvasLocation" x="34" y="88.5"/>
         </window>
         <customObject id="192-Eb-Rpg" customClass="MachinePicker" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
