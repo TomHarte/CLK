@@ -160,7 +160,7 @@ class MachineDocument:
 			setupMachineOutput()
 			setupActivityDisplay()
 		} else {
-			Swift.print(missingROMs)
+			requestRoms(missingROMs: missingROMs)
 		}
 	}
 
@@ -306,16 +306,58 @@ class MachineDocument:
 		}
 	}
 
-	// MARK: New machine creation
+	// MARK: New machine creation.
 	@IBOutlet var machinePicker: MachinePicker?
 	@IBOutlet var machinePickerPanel: NSWindow?
 	@IBAction func createMachine(_ sender: NSButton?) {
-		self.configureAs(machinePicker!.selectedMachine())
-		machinePicker = nil
+		let selectedMachine = machinePicker!.selectedMachine()
 		self.windowControllers[0].window?.endSheet(self.machinePickerPanel!)
+		machinePicker = nil
+		self.configureAs(selectedMachine)
 	}
 
 	@IBAction func cancelCreateMachine(_ sender: NSButton?) {
+		close()
+	}
+
+	// MARK: User ROM provision.
+	@IBOutlet var romRequesterPanel: NSWindow?
+	@IBOutlet var romRequesterText: NSTextField?
+	func requestRoms(missingROMs: NSMutableArray) {
+		// Load the ROM requester dialogue.
+		Bundle.main.loadNibNamed("ROMRequester", owner: self, topLevelObjects: nil)
+
+		// Fill in the missing details; first build a list of all the individual
+		// line items.
+		var requestLines: [String] = []
+		for untypedMissingROM in missingROMs {
+			let missingROM = untypedMissingROM as! CSMissingROM
+			if let descriptiveName = missingROM.descriptiveName {
+				requestLines.append("• " + descriptiveName)
+			} else {
+				requestLines.append("• " + missingROM.fileName)
+			}
+		}
+
+		// Suffix everything up to the penultimate line with a semicolon;
+		// the penultimate line with a semicolon and a conjunctive; the final
+		// line with a full stop.
+		for x in 0 ..< requestLines.count {
+			if x < requestLines.count - 2 {
+				requestLines[x].append(";")
+			} else if x < requestLines.count - 1 {
+				requestLines[x].append("; and")
+			} else {
+				requestLines[x].append(".")
+			}
+		}
+		romRequesterText!.stringValue += requestLines.joined(separator: "\n")
+
+		// Show the thing.
+		self.windowControllers[0].window?.beginSheet(self.romRequesterPanel!, completionHandler: nil)
+	}
+
+	@IBAction func cancelRequestROMs(_ sender: NSButton?) {
 		close()
 	}
 

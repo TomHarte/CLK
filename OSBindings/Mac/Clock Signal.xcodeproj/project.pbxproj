@@ -339,7 +339,6 @@
 		4BB0A65E204500A900FB3688 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7A90EC20410A85008514A2 /* StaticAnalyser.cpp */; };
 		4BB17D4E1ED7909F00ABD1E1 /* tests.expected.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4C1ED7909F00ABD1E1 /* tests.expected.json */; };
 		4BB17D4F1ED7909F00ABD1E1 /* tests.in.json in Resources */ = {isa = PBXBuildFile; fileRef = 4BB17D4D1ED7909F00ABD1E1 /* tests.in.json */; };
-		4BB1CBB522E5215B0030C002 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4BB244D522AABAF600BE20E5 /* z8530.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB244D322AABAF500BE20E5 /* z8530.cpp */; };
 		4BB244D622AABAF600BE20E5 /* z8530.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB244D322AABAF500BE20E5 /* z8530.cpp */; };
 		4BB298F11B587D8400A49093 /*  start in Resources */ = {isa = PBXBuildFile; fileRef = 4BB297E51B587D8300A49093 /*  start */; };
@@ -666,6 +665,9 @@
 		4BD67DCC209BE4D700AB2146 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD67DCA209BE4D600AB2146 /* StaticAnalyser.cpp */; };
 		4BD67DD0209BF27B00AB2146 /* Encoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD67DCE209BF27B00AB2146 /* Encoder.cpp */; };
 		4BD67DD1209BF27B00AB2146 /* Encoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD67DCE209BF27B00AB2146 /* Encoder.cpp */; };
+		4BDA00DA22E60EE300AC3CD0 /* ROMRequester.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BDA00D922E60EE300AC3CD0 /* ROMRequester.xib */; };
+		4BDA00DC22E622BF00AC3CD0 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
+		4BDA00DD22E622C200AC3CD0 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4BDB61EB2032806E0048AF91 /* CSAtari2600.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A539A1D117D36003C6002 /* CSAtari2600.mm */; };
 		4BDB61EC203285AE0048AF91 /* Atari2600OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B8FE21F1DA19D7C0090D3CE /* Atari2600OptionsPanel.swift */; };
 		4BDDBA991EF3451200347E61 /* Z80MachineCycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */; };
@@ -1473,6 +1475,7 @@
 		4BD67DCE209BF27B00AB2146 /* Encoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Encoder.cpp; sourceTree = "<group>"; };
 		4BD67DCF209BF27B00AB2146 /* Encoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Encoder.hpp; sourceTree = "<group>"; };
 		4BD9137D1F311BC5009BCF85 /* i8255.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = i8255.hpp; path = 8255/i8255.hpp; sourceTree = "<group>"; };
+		4BDA00D922E60EE300AC3CD0 /* ROMRequester.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ROMRequester.xib; sourceTree = "<group>"; };
 		4BDB3D8522833321002D3CEE /* Keyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Keyboard.hpp; sourceTree = "<group>"; };
 		4BDCC5F81FB27A5E001220C5 /* ROMMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ROMMachine.hpp; sourceTree = "<group>"; };
 		4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Z80MachineCycleTests.swift; sourceTree = "<group>"; };
@@ -2944,6 +2947,7 @@
 				4BE5F85A1C3E1C2500C43F01 /* Resources */,
 				4BD5F1961D1352A000631CD1 /* Updater */,
 				4B55CE5A1C3B7D6F0093A61B /* Views */,
+				4BDA00DB22E60EE900AC3CD0 /* ROMRequester */,
 			);
 			path = "Clock Signal";
 			sourceTree = "<group>";
@@ -3297,6 +3301,14 @@
 			name = 8255;
 			sourceTree = "<group>";
 		};
+		4BDA00DB22E60EE900AC3CD0 /* ROMRequester */ = {
+			isa = PBXGroup;
+			children = (
+				4BDA00D922E60EE300AC3CD0 /* ROMRequester.xib */,
+			);
+			path = ROMRequester;
+			sourceTree = "<group>";
+		};
 		4BE5F85A1C3E1C2500C43F01 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
@@ -3544,6 +3556,7 @@
 				4BB73EA91B587A5100552FC2 /* Assets.xcassets in Resources */,
 				4B79E4451E3AF38600141F11 /* floppy35.png in Resources */,
 				4B55DD8420DF06680043F2E5 /* MachinePicker.xib in Resources */,
+				4BDA00DA22E60EE300AC3CD0 /* ROMRequester.xib in Resources */,
 				4BC5FC3020CDDDEF00410AA0 /* AppleIIOptions.xib in Resources */,
 				4B1EDB451E39A0AC009D6819 /* chip.png in Resources */,
 				4B2A332D1DB86821002876E3 /* OricOptions.xib in Resources */,
@@ -3554,10 +3567,10 @@
 				4B79E4441E3AF38600141F11 /* cassette.png in Resources */,
 				4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */,
 				4B8FE21D1DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib in Resources */,
+				4BDA00DC22E622BF00AC3CD0 /* ROMImages in Resources */,
 				4B79E4461E3AF38600141F11 /* floppy525.png in Resources */,
 				4BEEE6BD20DC72EB003723BF /* CompositeOptions.xib in Resources */,
 				4B1497981EE4B97F00CE2596 /* ZX8081Options.xib in Resources */,
-				4BB1CBB522E5215B0030C002 /* ROMImages in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3610,6 +3623,7 @@
 				4BB299B91B587D8400A49093 /* rorz in Resources */,
 				4BB299F61B587D8400A49093 /* tsxn in Resources */,
 				4BB298F11B587D8400A49093 /*  start in Resources */,
+				4BDA00DD22E622C200AC3CD0 /* ROMImages in Resources */,
 				4BB299061B587D8400A49093 /* asla in Resources */,
 				4BB299901B587D8400A49093 /* lsrn in Resources */,
 				4BB298FE1B587D8400A49093 /* anday in Resources */,

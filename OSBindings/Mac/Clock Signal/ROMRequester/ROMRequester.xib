@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14490.70"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
+            <connections>
+                <outlet property="romRequesterPanel" destination="QvC-M9-y7g" id="saI-YH-9NP"/>
+                <outlet property="romRequesterText" destination="5qG-I3-Qav" id="J9M-T8-Xyy"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window title="Window" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" titleVisibility="hidden" id="QvC-M9-y7g">
+            <windowStyleMask key="styleMask" titled="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="196" y="240" width="480" height="270"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
+            <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
+                <rect key="frame" x="0.0" y="0.0" width="480" height="270"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="5qG-I3-Qav">
+                        <rect key="frame" x="18" y="148" width="444" height="102"/>
+                        <textFieldCell key="cell" selectable="YES" enabled="NO" id="itJ-2T-0ia">
+                            <font key="font" usesAppearanceFont="YES"/>
+                            <string key="title">Clock Signal requires you to provide images of the system ROMs for this machine. They will be stored permanently; you need do this only once.  Please drag and drop the following over this view:
+
+</string>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="nvl-dm-8bK">
+                        <rect key="frame" x="384" y="13" width="82" height="32"/>
+                        <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="oS1-Pk-LsO">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                            <string key="keyEquivalent" base64-UTF8="YES">
+DQ
+</string>
+                        </buttonCell>
+                        <connections>
+                            <action selector="cancelRequestROMs:" target="-2" id="58q-yi-dlv"/>
+                        </connections>
+                    </button>
+                </subviews>
+                <constraints>
+                    <constraint firstAttribute="trailing" secondItem="5qG-I3-Qav" secondAttribute="trailing" constant="20" id="AwT-WO-Nyf"/>
+                    <constraint firstAttribute="bottom" secondItem="nvl-dm-8bK" secondAttribute="bottom" constant="20" id="BU0-5T-YRH"/>
+                    <constraint firstItem="5qG-I3-Qav" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="bRM-z1-cRf"/>
+                    <constraint firstAttribute="trailing" secondItem="nvl-dm-8bK" secondAttribute="trailing" constant="20" id="eQI-Nj-ane"/>
+                    <constraint firstItem="nvl-dm-8bK" firstAttribute="top" relation="greaterThanOrEqual" secondItem="5qG-I3-Qav" secondAttribute="bottom" constant="17" id="plB-x4-He5"/>
+                    <constraint firstItem="5qG-I3-Qav" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" id="qeC-Rh-hmr"/>
+                </constraints>
+            </view>
+        </window>
+    </objects>
+</document>
