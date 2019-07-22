@@ -153,15 +153,27 @@ class MachineDocument:
 	}
 
 	// MARK: configuring
+	var missingROMs: [CSMissingROM] = []
+	var selectedMachine: CSStaticAnalyser?
+
 	func configureAs(_ analysis: CSStaticAnalyser) {
 		let missingROMs = NSMutableArray()
 		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
+			self.selectedMachine = nil
 			self.machine = machine
 			self.optionsPanelNibName = analysis.optionsPanelNibName
 			setupMachineOutput()
 			setupActivityDisplay()
 		} else {
-			requestRoms(missingROMs: missingROMs)
+			// Store the selected machine and list of missing ROMs, and
+			// show the missing ROMs dialogue.
+			self.missingROMs = []
+			for untypedMissingROM in missingROMs {
+				self.missingROMs.append(untypedMissingROM as! CSMissingROM)
+			}
+
+			self.selectedMachine = analysis
+			requestRoms()
 		}
 	}
 
@@ -325,7 +337,7 @@ class MachineDocument:
 	@IBOutlet var romRequesterPanel: NSWindow?
 	@IBOutlet var romRequesterText: NSTextField?
 	@IBOutlet var romReceiverView: CSROMReceiverView?
-	func requestRoms(missingROMs: NSMutableArray) {
+	func requestRoms() {
 		// Load the ROM requester dialogue.
 		Bundle.main.loadNibNamed("ROMRequester", owner: self, topLevelObjects: nil)
 		self.romReceiverView!.delegate = self
@@ -333,8 +345,7 @@ class MachineDocument:
 		// Fill in the missing details; first build a list of all the individual
 		// line items.
 		var requestLines: [String] = []
-		for untypedMissingROM in missingROMs {
-			let missingROM = untypedMissingROM as! CSMissingROM
+		for missingROM in self.missingROMs {
 			if let descriptiveName = missingROM.descriptiveName {
 				requestLines.append("• " + descriptiveName)
 			} else {
@@ -365,7 +376,42 @@ class MachineDocument:
 	}
 
 	func romReceiverView(_ view: CSROMReceiverView, didReceiveFileAt URL: URL) {
-		Swift.print("Should test " + URL.absoluteString)
+		// Test whether the file identified matches any of the currently missing ROMs.
+		// If so then remove that ROM from the missing list and update the request screen.
+		// If no ROMs are still missing, start the machine.
+		do {
+			let fileData = try Data(contentsOf: URL)
+
+			// Try to match by size first, CRC second. Accept that some ROMs may have
+			// some additional appended data. Arbitrarily allow them to be up to 10kb
+			// too large.
+			var index = 0
+			for missingROM in self.missingROMs {
+				if fileData.count >= missingROM.size && fileData.count < missingROM.size + 10*1024 {
+					// Trim to size.
+					let trimmedData = fileData[0 ..< missingROM.size]
+
+					// Get CRC.
+					if missingROM.crc32s.contains( (trimmedData as NSData).crc32 ) {
+						// This ROM matches; copy it into the application library,
+						// strike it from the missing ROM list and decide how to
+						// proceed.
+						Swift.print("Matches")
+
+						self.missingROMs.remove(at: index)
+						break
+					}
+				}
+
+				index = index + 1
+			}
+
+			if self.missingROMs.count == 0 {
+				Swift.print("Should start")
+			}
+		} catch let error {
+			Swift.print("TODO: couldn't open \(URL.absoluteString); \(error)")
+		}
 	}
 
 	// MARK: Joystick-via-the-keyboard selection

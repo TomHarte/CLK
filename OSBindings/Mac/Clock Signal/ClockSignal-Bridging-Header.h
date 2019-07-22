@@ -17,4 +17,6 @@
 #import "CSBestEffortUpdater.h"
 #import "CSJoystickManager.h"
 
+#import "NSData+CRC32.h"
+
 #include "KeyCodes.h"
