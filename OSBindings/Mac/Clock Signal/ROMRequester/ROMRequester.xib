@@ -8,6 +8,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
+                <outlet property="romReceiverView" destination="EiT-Mj-1SZ" id="Y2M-Qd-i7y"/>
                 <outlet property="romRequesterPanel" destination="QvC-M9-y7g" id="saI-YH-9NP"/>
                 <outlet property="romRequesterText" destination="5qG-I3-Qav" id="J9M-T8-Xyy"/>
             </connections>
@@ -19,13 +20,13 @@
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="196" y="240" width="480" height="270"/>
             <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
-            <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ">
+            <view key="contentView" wantsLayer="YES" id="EiT-Mj-1SZ" customClass="CSROMReceiverView">
                 <rect key="frame" x="0.0" y="0.0" width="480" height="270"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="5qG-I3-Qav">
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5qG-I3-Qav">
                         <rect key="frame" x="18" y="148" width="444" height="102"/>
-                        <textFieldCell key="cell" selectable="YES" enabled="NO" id="itJ-2T-0ia">
+                        <textFieldCell key="cell" enabled="NO" allowsUndo="NO" id="itJ-2T-0ia">
                             <font key="font" usesAppearanceFont="YES"/>
                             <string key="title">Clock Signal requires you to provide images of the system ROMs for this machine. They will be stored permanently; you need do this only once.  Please drag and drop the following over this view:
 

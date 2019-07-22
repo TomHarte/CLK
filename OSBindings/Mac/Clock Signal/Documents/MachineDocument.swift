@@ -16,7 +16,8 @@ class MachineDocument:
 	CSOpenGLViewDelegate,
 	CSOpenGLViewResponderDelegate,
 	CSBestEffortUpdaterDelegate,
-	CSAudioQueueDelegate
+	CSAudioQueueDelegate,
+	CSROMReciverViewDelegate
 {
 	fileprivate let actionLock = NSLock()
 	fileprivate let drawLock = NSLock()
@@ -323,9 +324,11 @@ class MachineDocument:
 	// MARK: User ROM provision.
 	@IBOutlet var romRequesterPanel: NSWindow?
 	@IBOutlet var romRequesterText: NSTextField?
+	@IBOutlet var romReceiverView: CSROMReceiverView?
 	func requestRoms(missingROMs: NSMutableArray) {
 		// Load the ROM requester dialogue.
 		Bundle.main.loadNibNamed("ROMRequester", owner: self, topLevelObjects: nil)
+		self.romReceiverView!.delegate = self
 
 		// Fill in the missing details; first build a list of all the individual
 		// line items.
@@ -359,6 +362,10 @@ class MachineDocument:
 
 	@IBAction func cancelRequestROMs(_ sender: NSButton?) {
 		close()
+	}
+
+	func romReceiverView(_ view: CSROMReceiverView, didReceiveFileAt URL: URL) {
+		Swift.print("Should test " + URL.absoluteString)
 	}
 
 	// MARK: Joystick-via-the-keyboard selection
