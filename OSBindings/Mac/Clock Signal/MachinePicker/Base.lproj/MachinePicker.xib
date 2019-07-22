@@ -60,9 +60,6 @@ Gw
                     </textField>
                     <tabView translatesAutoresizingMaskIntoConstraints="NO" id="VUb-QG-x7c">
                         <rect key="frame" x="13" y="51" width="624" height="140"/>
-                        <constraints>
-                            <constraint firstItem="AsH-RS-nqk" firstAttribute="top" secondItem="VUb-QG-x7c" secondAttribute="top" constant="30" id="6Jy-Gb-MNj"/>
-                        </constraints>
                         <font key="font" metaFont="system"/>
                         <tabViewItems>
                             <tabViewItem label="Apple II" identifier="appleii" id="P59-QG-LOa">
@@ -205,9 +202,9 @@ Gw
                                     <rect key="frame" x="10" y="33" width="604" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
-                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="AsH-RS-nqk">
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="F6e-UC-25u">
                                             <rect key="frame" x="15" y="74" width="574" height="17"/>
-                                            <textFieldCell key="cell" lineBreakMode="clipping" title="At present Clock Signal emulates only the Macintosh 512ke." id="04M-jS-b6i">
+                                            <textFieldCell key="cell" lineBreakMode="clipping" title="At present Clock Signal emulates only the Macintosh 512ke." id="IGV-Yp-6Af">
                                                 <font key="font" usesAppearanceFont="YES"/>
                                                 <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                 <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -215,10 +212,10 @@ Gw
                                         </textField>
                                     </subviews>
                                     <constraints>
-                                        <constraint firstItem="AsH-RS-nqk" firstAttribute="top" secondItem="7Yf-vi-Q0W" secondAttribute="top" constant="3" id="3cT-Jt-7pr"/>
-                                        <constraint firstItem="AsH-RS-nqk" firstAttribute="leading" secondItem="7Yf-vi-Q0W" secondAttribute="leading" constant="17" id="LEr-Pk-q2T"/>
-                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="AsH-RS-nqk" secondAttribute="bottom" constant="13" id="bfM-Zq-lud"/>
-                                        <constraint firstAttribute="trailing" secondItem="AsH-RS-nqk" secondAttribute="trailing" constant="17" id="ffk-RP-qLl"/>
+                                        <constraint firstAttribute="trailing" secondItem="F6e-UC-25u" secondAttribute="trailing" constant="17" id="42z-hS-aPq"/>
+                                        <constraint firstItem="F6e-UC-25u" firstAttribute="leading" secondItem="7Yf-vi-Q0W" secondAttribute="leading" constant="17" id="bIg-C3-xdz"/>
+                                        <constraint firstItem="F6e-UC-25u" firstAttribute="top" secondItem="7Yf-vi-Q0W" secondAttribute="top" constant="3" id="cxs-OP-oH5"/>
+                                        <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="F6e-UC-25u" secondAttribute="bottom" constant="17" id="vpF-ER-pmD"/>
                                     </constraints>
                                 </view>
                             </tabViewItem>
