@@ -33,6 +33,13 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 	CSMachineKeyboardInputModeJoystick
 };
 
+@interface CSMissingROM: NSObject
+@property (nonatomic, readonly, nonnull) NSString *fileName;
+@property (nonatomic, readonly, nullable) NSString *descriptiveName;
+@property (nonatomic, readonly) NSUInteger size;
+@property (nonatomic, readonly, nonnull) NSArray<NSNumber *> *crc32s;
+@end
+
 // Deliberately low; to ensure CSMachine has been declared as an @class already.
 #import "CSAtari2600.h"
 #import "CSZX8081.h"
@@ -45,8 +52,10 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 	Initialises an instance of CSMachine.
 
 	@param result The CSStaticAnalyser result that describes the machine needed.
+	@param missingROMs An array that is filled with a list of ROMs that the machine requested but which
+		were not found; populated only if this `init` has failed.
 */
-- (nullable instancetype)initWithAnalyser:(nonnull CSStaticAnalyser *)result NS_DESIGNATED_INITIALIZER;
+- (nullable instancetype)initWithAnalyser:(nonnull CSStaticAnalyser *)result missingROMs:(nullable inout NSMutableArray<CSMissingROM *> *)missingROMs NS_DESIGNATED_INITIALIZER;
 
 - (void)runForInterval:(NSTimeInterval)interval;
 

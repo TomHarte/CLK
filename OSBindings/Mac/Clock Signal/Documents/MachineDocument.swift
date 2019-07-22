@@ -153,11 +153,14 @@ class MachineDocument:
 
 	// MARK: configuring
 	func configureAs(_ analysis: CSStaticAnalyser) {
-		if let machine = CSMachine(analyser: analysis) {
+		let missingROMs = NSMutableArray()
+		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
 			self.machine = machine
 			self.optionsPanelNibName = analysis.optionsPanelNibName
 			setupMachineOutput()
 			setupActivityDisplay()
+		} else {
+			Swift.print(missingROMs)
 		}
 	}
 
