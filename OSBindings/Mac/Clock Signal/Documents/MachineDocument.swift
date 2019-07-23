@@ -153,8 +153,8 @@ class MachineDocument:
 	}
 
 	// MARK: configuring
-	var missingROMs: [CSMissingROM] = []
-	var selectedMachine: CSStaticAnalyser?
+	fileprivate var missingROMs: [CSMissingROM] = []
+	fileprivate var selectedMachine: CSStaticAnalyser?
 
 	func configureAs(_ analysis: CSStaticAnalyser) {
 		let missingROMs = NSMutableArray()
@@ -337,11 +337,25 @@ class MachineDocument:
 	@IBOutlet var romRequesterPanel: NSWindow?
 	@IBOutlet var romRequesterText: NSTextField?
 	@IBOutlet var romReceiverView: CSROMReceiverView?
+	var romRequestBaseText = ""
 	func requestRoms() {
 		// Load the ROM requester dialogue.
 		Bundle.main.loadNibNamed("ROMRequester", owner: self, topLevelObjects: nil)
 		self.romReceiverView!.delegate = self
+		self.romRequestBaseText = romRequesterText!.stringValue
 
+		// Populate the current absentee list.
+		populateMissingRomList()
+
+		// Show the thing.
+		self.windowControllers[0].window?.beginSheet(self.romRequesterPanel!, completionHandler: nil)
+	}
+
+	@IBAction func cancelRequestROMs(_ sender: NSButton?) {
+		close()
+	}
+
+	func populateMissingRomList() {
 		// Fill in the missing details; first build a list of all the individual
 		// line items.
 		var requestLines: [String] = []
@@ -365,14 +379,7 @@ class MachineDocument:
 				requestLines[x].append(".")
 			}
 		}
-		romRequesterText!.stringValue += requestLines.joined(separator: "\n")
-
-		// Show the thing.
-		self.windowControllers[0].window?.beginSheet(self.romRequesterPanel!, completionHandler: nil)
-	}
-
-	@IBAction func cancelRequestROMs(_ sender: NSButton?) {
-		close()
+		romRequesterText!.stringValue = self.romRequestBaseText + requestLines.joined(separator: "\n")
 	}
 
 	func romReceiverView(_ view: CSROMReceiverView, didReceiveFileAt URL: URL) {
@@ -396,7 +403,19 @@ class MachineDocument:
 						// This ROM matches; copy it into the application library,
 						// strike it from the missing ROM list and decide how to
 						// proceed.
-						Swift.print("Matches")
+						let fileManager = FileManager.default
+						let targetPath = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+							.appendingPathComponent("ROMImages")
+							.appendingPathComponent(missingROM.machineName)
+						let targetFile = targetPath
+							.appendingPathComponent(missingROM.fileName)
+
+						do {
+							try fileManager.createDirectory(atPath: targetPath.path, withIntermediateDirectories: true, attributes: nil)
+							try trimmedData.write(to: targetFile)
+						} catch let error {
+							Swift.print("Some sort of error \(error)")
+						}
 
 						self.missingROMs.remove(at: index)
 						break
@@ -407,7 +426,10 @@ class MachineDocument:
 			}
 
 			if self.missingROMs.count == 0 {
-				Swift.print("Should start")
+				self.windowControllers[0].window?.endSheet(self.romRequesterPanel!)
+				configureAs(self.selectedMachine!)
+			} else {
+				populateMissingRomList()
 			}
 		} catch let error {
 			Swift.print("TODO: couldn't open \(URL.absoluteString); \(error)")
