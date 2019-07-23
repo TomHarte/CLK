@@ -52,7 +52,7 @@ MachineBase::MachineBase(Personality personality, const ROMMachine::ROMFetcher &
 		break;
 	}
 
-	auto roms = rom_fetcher("Commodore1540", { ROMMachine::ROM("the " + device_name + " ROM", device_name + ".bin", 16*1024, crc) });
+	auto roms = rom_fetcher({ {"Commodore1540", "the " + device_name + " ROM", device_name + ".bin", 16*1024, crc} });
 	if(!roms[0]) {
 		throw ROMMachine::Error::MissingROMs;
 	}

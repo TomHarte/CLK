@@ -228,19 +228,20 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				diskii_.set_clocking_hint_observer(this);
 			}
 
-			std::vector<ROMMachine::ROM> rom_names = { {"colour.rom"} };
+			const std::string machine_name = "Oric";
+			std::vector<ROMMachine::ROM> rom_names = { {machine_name, "colour.rom"} };
 			switch(target.rom) {
-				case Analyser::Static::Oric::Target::ROM::BASIC10: rom_names.emplace_back("basic10.rom");	break;
-				case Analyser::Static::Oric::Target::ROM::BASIC11: rom_names.emplace_back("basic11.rom");	break;
-				case Analyser::Static::Oric::Target::ROM::Pravetz: rom_names.emplace_back("pravetz.rom");	break;
+				case Analyser::Static::Oric::Target::ROM::BASIC10: rom_names.emplace_back(machine_name, "basic10.rom");	break;
+				case Analyser::Static::Oric::Target::ROM::BASIC11: rom_names.emplace_back(machine_name, "basic11.rom");	break;
+				case Analyser::Static::Oric::Target::ROM::Pravetz: rom_names.emplace_back(machine_name, "pravetz.rom");	break;
 			}
 			switch(disk_interface) {
 				default: break;
-				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:	rom_names.emplace_back("microdisc.rom");	break;
-				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:	rom_names.emplace_back("8dos.rom");			break;
+				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:	rom_names.emplace_back(machine_name, "microdisc.rom");	break;
+				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:	rom_names.emplace_back(machine_name, "8dos.rom");			break;
 			}
 
-			const auto roms = rom_fetcher("Oric", rom_names);
+			const auto roms = rom_fetcher(rom_names);
 
 			for(std::size_t index = 0; index < roms.size(); ++index) {
 				if(!roms[index]) {
@@ -261,7 +262,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					pravetz_rom_ = std::move(*roms[2]);
 					pravetz_rom_.resize(512);
 
-					auto state_machine_rom = rom_fetcher("DiskII", { ROMMachine::ROM("state-machine-16.rom") });
+					auto state_machine_rom = rom_fetcher({ {"DiskII", "state-machine-16.rom"} });
 					if(!state_machine_rom[0]) {
 						throw ROMMachine::Error::MissingROMs;
 					}

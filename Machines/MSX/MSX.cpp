@@ -173,8 +173,9 @@ class ConcreteMachine:
 			mixer_.set_relative_volumes({0.5f, 0.1f, 0.4f});
 
 			// Install the proper TV standard and select an ideal BIOS name.
+			const std::string machine_name = "MSX";
 			std::vector<ROMMachine::ROM> required_roms = {
-				{"any MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3}
+				{machine_name, "any MSX BIOS", "msx.rom", 32*1024, 0x94ee12f3}
 			};
 
 			bool is_ntsc = true;
@@ -185,7 +186,7 @@ class ConcreteMachine:
 			// TODO: CRCs below are incomplete, at best.
 			switch(target.region) {
 				case Target::Region::Japan:
-					required_roms.emplace_back("a Japanese MSX BIOS", "msx-japanese.rom", 32*1024, 0xee229390);
+					required_roms.emplace_back(machine_name, "a Japanese MSX BIOS", "msx-japanese.rom", 32*1024, 0xee229390);
 					vdp_.set_tv_standard(TI::TMS::TVStandard::NTSC);
 
 					is_ntsc = true;
@@ -193,7 +194,7 @@ class ConcreteMachine:
 					date_format = 0;
 				break;
 				case Target::Region::USA:
-					required_roms.emplace_back("an American MSX BIOS", "msx-american.rom", 32*1024, 0);
+					required_roms.emplace_back(machine_name, "an American MSX BIOS", "msx-american.rom", 32*1024, 0);
 					vdp_.set_tv_standard(TI::TMS::TVStandard::NTSC);
 
 					is_ntsc = true;
@@ -201,7 +202,7 @@ class ConcreteMachine:
 					date_format = 1;
 				break;
 				case Target::Region::Europe:
-					required_roms.emplace_back("a European MSX BIOS", "msx-european.rom", 32*1024, 0);
+					required_roms.emplace_back(machine_name, "a European MSX BIOS", "msx-european.rom", 32*1024, 0);
 					vdp_.set_tv_standard(TI::TMS::TVStandard::PAL);
 
 					is_ntsc = false;
@@ -215,9 +216,9 @@ class ConcreteMachine:
 			size_t disk_index = 0;
 			if(target.has_disk_drive) {
 				disk_index = required_roms.size();
-				required_roms.emplace_back("the MSX-DOS ROM", "disk.rom", 16*1024, 0x721f61df);
+				required_roms.emplace_back(machine_name, "the MSX-DOS ROM", "disk.rom", 16*1024, 0x721f61df);
 			}
-			const auto roms = rom_fetcher("MSX", required_roms);
+			const auto roms = rom_fetcher(required_roms);
 
 			if((!roms[0] && !roms[1]) || (target.has_disk_drive && !roms[2])) {
 				throw ROMMachine::Error::MissingROMs;

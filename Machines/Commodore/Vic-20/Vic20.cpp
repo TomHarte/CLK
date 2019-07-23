@@ -323,31 +323,32 @@ class ConcreteMachine:
 			// install a joystick
 			joysticks_.emplace_back(new Joystick(*user_port_via_port_handler_, *keyboard_via_port_handler_));
 
-			std::vector<ROMMachine::ROM> rom_names = {  ROMMachine::ROM("basic.bin") };
+			const std::string machine_name = "Vic20";
+			std::vector<ROMMachine::ROM> rom_names = {  {machine_name, "basic.bin"} };
 			switch(target.region) {
 				default:
-					rom_names.emplace_back("characters-english.bin");
-					rom_names.emplace_back("kernel-pal.bin");
+					rom_names.emplace_back(machine_name, "characters-english.bin");
+					rom_names.emplace_back(machine_name, "kernel-pal.bin");
 				break;
 				case Analyser::Static::Commodore::Target::Region::American:
-					rom_names.emplace_back("characters-english.bin");
-					rom_names.emplace_back("kernel-ntsc.bin");
+					rom_names.emplace_back(machine_name, "characters-english.bin");
+					rom_names.emplace_back(machine_name, "kernel-ntsc.bin");
 				break;
 				case Analyser::Static::Commodore::Target::Region::Danish:
-					rom_names.emplace_back("characters-danish.bin");
-					rom_names.emplace_back("kernel-danish.bin");
+					rom_names.emplace_back(machine_name, "characters-danish.bin");
+					rom_names.emplace_back(machine_name, "kernel-danish.bin");
 				break;
 				case Analyser::Static::Commodore::Target::Region::Japanese:
-					rom_names.emplace_back("characters-japanese.bin");
-					rom_names.emplace_back("kernel-japanese.bin");
+					rom_names.emplace_back(machine_name, "characters-japanese.bin");
+					rom_names.emplace_back(machine_name, "kernel-japanese.bin");
 				break;
 				case Analyser::Static::Commodore::Target::Region::Swedish:
-					rom_names.emplace_back("characters-swedish.bin");
-					rom_names.emplace_back("kernel-japanese.bin");
+					rom_names.emplace_back(machine_name, "characters-swedish.bin");
+					rom_names.emplace_back(machine_name, "kernel-japanese.bin");
 				break;
 			}
 
-			const auto roms = rom_fetcher("Vic20", rom_names);
+			const auto roms = rom_fetcher(rom_names);
 
 			for(const auto &rom: roms) {
 				if(!rom) {

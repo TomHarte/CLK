@@ -781,8 +781,9 @@ template <bool has_fdc> class ConcreteMachine:
 			ay_.ay().set_port_handler(&key_state_);
 
 			// construct the list of necessary ROMs
+			const std::string machine_name = "AmstradCPC";
 			std::vector<ROMMachine::ROM> required_roms = {
-				ROMMachine::ROM("the Amstrad Disk Operating System", "amsdos.rom", 16*1024, 0x1fe22ecd)
+				ROMMachine::ROM(machine_name, "the Amstrad Disk Operating System", "amsdos.rom", 16*1024, 0x1fe22ecd)
 			};
 			std::string model_number;
 			uint32_t crcs[2];
@@ -806,11 +807,11 @@ template <bool has_fdc> class ConcreteMachine:
 					crcs[1] = 0x32fee492;
 				break;
 			}
-			required_roms.emplace_back("the CPC " + model_number + "firmware", "os" + model_number + ".rom", 16*1024, crcs[0]);
-			required_roms.emplace_back("the CPC " + model_number + "BASIC ROM", "basic" + model_number + ".rom", 16*1024, crcs[1]);
+			required_roms.emplace_back(machine_name, "the CPC " + model_number + "firmware", "os" + model_number + ".rom", 16*1024, crcs[0]);
+			required_roms.emplace_back(machine_name, "the CPC " + model_number + "BASIC ROM", "basic" + model_number + ".rom", 16*1024, crcs[1]);
 
 			// fetch and verify the ROMs
-			const auto roms = rom_fetcher("AmstradCPC", required_roms);
+			const auto roms = rom_fetcher(required_roms);
 
 			for(std::size_t index = 0; index < roms.size(); ++index) {
 				auto &data = roms[index];

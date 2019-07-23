@@ -15,13 +15,13 @@
 #include <string>
 
 ROMMachine::ROMFetcher CSROMFetcher(std::vector<ROMMachine::ROM> *missing_roms) {
-	return [missing_roms] (const std::string &machine, const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
-		NSString *const subdirectory = [@"ROMImages/" stringByAppendingString:[NSString stringWithUTF8String:machine.c_str()]];
+	return [missing_roms] (const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<std::uint8_t>>> {
 		NSArray<NSURL *> *const supportURLs = [[NSFileManager defaultManager] URLsForDirectory:NSApplicationSupportDirectory inDomains:NSUserDomainMask];
 
 		std::vector<std::unique_ptr<std::vector<std::uint8_t>>> results;
 		for(const auto &rom: roms) {
 			NSData *fileData;
+			NSString *const subdirectory = [@"ROMImages/" stringByAppendingString:[NSString stringWithUTF8String:rom.machine_name.c_str()]];
 
 			// Check for this file first within the application support directories.
 			for(NSURL *supportURL in supportURLs) {

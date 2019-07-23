@@ -347,29 +347,30 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			// Pick the required ROMs.
 			using Target = Analyser::Static::AppleII::Target;
+			const std::string machine_name = "AppleII";
 			std::vector<ROMMachine::ROM> rom_descriptions;
 			size_t rom_size = 12*1024;
 			switch(target.model) {
 				default:
-					rom_descriptions.emplace_back("the basic Apple II character ROM", "apple2-character.rom", 2*1024, 0x64f415c6);
-					rom_descriptions.emplace_back("the original Apple II ROM", "apple2o.rom", 12*1024, 0xba210588);
+					rom_descriptions.emplace_back(machine_name, "the basic Apple II character ROM", "apple2-character.rom", 2*1024, 0x64f415c6);
+					rom_descriptions.emplace_back(machine_name, "the original Apple II ROM", "apple2o.rom", 12*1024, 0xba210588);
 				break;
 				case Target::Model::IIplus:
-					rom_descriptions.emplace_back("the basic Apple II character ROM", "apple2-character.rom", 2*1024, 0x64f415c6);
-					rom_descriptions.emplace_back("the Apple II+ ROM", "apple2.rom", 12*1024, 0xf66f9c26);
+					rom_descriptions.emplace_back(machine_name, "the basic Apple II character ROM", "apple2-character.rom", 2*1024, 0x64f415c6);
+					rom_descriptions.emplace_back(machine_name, "the Apple II+ ROM", "apple2.rom", 12*1024, 0xf66f9c26);
 				break;
 				case Target::Model::IIe:
 					rom_size += 3840;
-					rom_descriptions.emplace_back("the Apple IIe character ROM", "apple2eu-character.rom", 4*1024, 0x816a86f1);
-					rom_descriptions.emplace_back("the Apple IIe ROM", "apple2eu.rom", 32*1024, 0xe12be18d);
+					rom_descriptions.emplace_back(machine_name, "the Apple IIe character ROM", "apple2eu-character.rom", 4*1024, 0x816a86f1);
+					rom_descriptions.emplace_back(machine_name, "the Apple IIe ROM", "apple2eu.rom", 32*1024, 0xe12be18d);
 				break;
 				case Target::Model::EnhancedIIe:
 					rom_size += 3840;
-					rom_descriptions.emplace_back("the Enhanced Apple IIe character ROM", "apple2e-character.rom", 4*1024, 0x2651014d);
-					rom_descriptions.emplace_back("the Enhanced Apple IIe ROM", "apple2e.rom", 32*1024, 0x65989942);
+					rom_descriptions.emplace_back(machine_name, "the Enhanced Apple IIe character ROM", "apple2e-character.rom", 4*1024, 0x2651014d);
+					rom_descriptions.emplace_back(machine_name, "the Enhanced Apple IIe ROM", "apple2e.rom", 32*1024, 0x65989942);
 				break;
 			}
-			const auto roms = rom_fetcher("AppleII", rom_descriptions);
+			const auto roms = rom_fetcher(rom_descriptions);
 
 			if(!roms[0] || !roms[1]) {
 				throw ROMMachine::Error::MissingROMs;
