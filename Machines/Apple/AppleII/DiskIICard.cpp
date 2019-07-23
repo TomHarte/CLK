@@ -11,11 +11,18 @@
 using namespace Apple::II;
 
 DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sector) : diskii_(2045454) {
-	const auto roms = rom_fetcher(
-		{
-			{"DiskII", is_16_sector ? "boot-16.rom" : "boot-13.rom"},
-			{"DiskII", is_16_sector ? "state-machine-16.rom" : "state-machine-13.rom"}
+	std::vector<std::unique_ptr<std::vector<uint8_t>>> roms;
+	if(is_16_sector) {
+		roms = rom_fetcher({
+			{"DiskII", "the Disk II 16-sector boot ROM", "boot-16.rom", 256, 0xce7144f6},
+			{"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0xce7144f6, 0xb72a2c70 } }
 		});
+	} else {
+		roms = rom_fetcher({
+			{"DiskII", "the Disk II 13-sector boot ROM", "boot-13.rom", 256, 0xd34eb2ff},
+			{"DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620 }
+		});
+	}
 	boot_ = std::move(*roms[0]);
 	diskii_.set_state_machine(*roms[1]);
 	set_select_constraints(None);

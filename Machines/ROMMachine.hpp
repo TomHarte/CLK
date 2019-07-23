@@ -36,10 +36,6 @@ struct ROM {
 	/// to exclude ROMs where the user's intent is otherwise clear.
 	std::vector<uint32_t> crc32s;
 
-	/// This is a temporary constructor provided for transitional purposes.
-	ROM(std::string machine_name, std::string file_name) :
-		machine_name(machine_name), file_name(file_name) {}
-
 	ROM(std::string machine_name, std::string descriptive_name, std::string file_name, size_t size, uint32_t crc32) :
 		machine_name(machine_name), descriptive_name(descriptive_name), file_name(file_name), size(size), crc32s({crc32}) {}
 	ROM(std::string machine_name, std::string descriptive_name, std::string file_name, size_t size, std::initializer_list<uint32_t> crc32s) :

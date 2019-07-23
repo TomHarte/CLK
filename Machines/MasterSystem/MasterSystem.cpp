@@ -133,8 +133,11 @@ class ConcreteMachine:
 			// Load the BIOS if relevant.
 			if(has_bios()) {
 				// TODO: there's probably a million other versions of the Master System BIOS; try to build a
-				// CRC32 catalogue of those.
-				const auto roms = rom_fetcher({ {"MasterSystem", "the Master System BIOS", "bios.sms", 8*1024, 0x0072ed54} });
+				// CRC32 catalogue of those. So far:
+				//
+				//	0072ed54 = US/European BIOS 1.3
+				//	48d44a13 = Japanese BIOS 2.1
+				const auto roms = rom_fetcher({ {"MasterSystem", "the Master System BIOS", "bios.sms", 8*1024, { 0x0072ed54, 0x48d44a13 } } });
 				if(!roms[0]) {
 					// No BIOS found; attempt to boot as though it has already disabled itself.
 					memory_control_ |= 0x08;

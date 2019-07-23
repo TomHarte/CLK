@@ -229,16 +229,26 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 
 			const std::string machine_name = "Oric";
-			std::vector<ROMMachine::ROM> rom_names = { {machine_name, "colour.rom"} };
+			std::vector<ROMMachine::ROM> rom_names = { {machine_name, "the Oric colour ROM", "colour.rom", 128, 0xd50fca65} };
 			switch(target.rom) {
-				case Analyser::Static::Oric::Target::ROM::BASIC10: rom_names.emplace_back(machine_name, "basic10.rom");	break;
-				case Analyser::Static::Oric::Target::ROM::BASIC11: rom_names.emplace_back(machine_name, "basic11.rom");	break;
-				case Analyser::Static::Oric::Target::ROM::Pravetz: rom_names.emplace_back(machine_name, "pravetz.rom");	break;
+				case Analyser::Static::Oric::Target::ROM::BASIC10:
+					rom_names.emplace_back(machine_name, "Oric BASIC 1.0", "basic10.rom", 16*1024, 0xf18710b4);
+				break;
+				case Analyser::Static::Oric::Target::ROM::BASIC11:
+					rom_names.emplace_back(machine_name, "Oric BASIC 1.1", "basic11.rom", 16*1024, 0xc3a92bef);
+				break;
+				case Analyser::Static::Oric::Target::ROM::Pravetz:
+					rom_names.emplace_back(machine_name, "Pravetz BASIC", "pravetz.rom", 16*1024, 0x58079502);
+				break;
 			}
 			switch(disk_interface) {
 				default: break;
-				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:	rom_names.emplace_back(machine_name, "microdisc.rom");	break;
-				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:	rom_names.emplace_back(machine_name, "8dos.rom");			break;
+				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+					rom_names.emplace_back(machine_name, "the ORIC Microdisc ROM", "microdisc.rom", 8*1024, 0xa9664a9c);
+				break;
+				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
+					rom_names.emplace_back(machine_name, "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06);
+				break;
 			}
 
 			const auto roms = rom_fetcher(rom_names);
@@ -262,7 +272,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					pravetz_rom_ = std::move(*roms[2]);
 					pravetz_rom_.resize(512);
 
-					auto state_machine_rom = rom_fetcher({ {"DiskII", "state-machine-16.rom"} });
+					// This ROM name is coupled with that in the DiskIICard.
+					const auto state_machine_rom = rom_fetcher({ {"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0xce7144f6, 0xb72a2c70 } } });
 					if(!state_machine_rom[0]) {
 						throw ROMMachine::Error::MissingROMs;
 					}
