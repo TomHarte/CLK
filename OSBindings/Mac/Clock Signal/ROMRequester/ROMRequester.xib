@@ -8,6 +8,7 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
+                <outlet property="romReceiverErrorField" destination="Bia-0m-GxK" id="wnH-Kz-uXD"/>
                 <outlet property="romReceiverView" destination="EiT-Mj-1SZ" id="Y2M-Qd-i7y"/>
                 <outlet property="romRequesterPanel" destination="QvC-M9-y7g" id="saI-YH-9NP"/>
                 <outlet property="romRequesterText" destination="5qG-I3-Qav" id="J9M-T8-Xyy"/>
@@ -48,10 +49,21 @@ DQ
                             <action selector="cancelRequestROMs:" target="-2" id="58q-yi-dlv"/>
                         </connections>
                     </button>
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Bia-0m-GxK">
+                        <rect key="frame" x="20" y="61" width="442" height="17"/>
+                        <textFieldCell key="cell" allowsUndo="NO" alignment="center" title="Multiline Label" drawsBackground="YES" id="8jl-xs-LjP">
+                            <font key="font" metaFont="message"/>
+                            <color key="textColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="tertiaryLabelColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
                 </subviews>
                 <constraints>
+                    <constraint firstItem="Bia-0m-GxK" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="9Lj-3p-7Vr"/>
                     <constraint firstAttribute="trailing" secondItem="5qG-I3-Qav" secondAttribute="trailing" constant="20" id="AwT-WO-Nyf"/>
                     <constraint firstAttribute="bottom" secondItem="nvl-dm-8bK" secondAttribute="bottom" constant="20" id="BU0-5T-YRH"/>
+                    <constraint firstAttribute="bottom" secondItem="Bia-0m-GxK" secondAttribute="bottom" constant="61" id="ENn-7a-NGa"/>
+                    <constraint firstAttribute="trailing" secondItem="Bia-0m-GxK" secondAttribute="trailing" constant="18" id="UUy-bf-87w"/>
                     <constraint firstItem="5qG-I3-Qav" firstAttribute="leading" secondItem="EiT-Mj-1SZ" secondAttribute="leading" constant="20" id="bRM-z1-cRf"/>
                     <constraint firstAttribute="trailing" secondItem="nvl-dm-8bK" secondAttribute="trailing" constant="20" id="eQI-Nj-ane"/>
                     <constraint firstItem="nvl-dm-8bK" firstAttribute="top" relation="greaterThanOrEqual" secondItem="5qG-I3-Qav" secondAttribute="bottom" constant="17" id="plB-x4-He5"/>

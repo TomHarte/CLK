@@ -336,13 +336,15 @@ class MachineDocument:
 	// MARK: User ROM provision.
 	@IBOutlet var romRequesterPanel: NSWindow?
 	@IBOutlet var romRequesterText: NSTextField?
+	@IBOutlet var romReceiverErrorField: NSTextField?
 	@IBOutlet var romReceiverView: CSROMReceiverView?
-	var romRequestBaseText = ""
+	private var romRequestBaseText = ""
 	func requestRoms() {
 		// Load the ROM requester dialogue.
 		Bundle.main.loadNibNamed("ROMRequester", owner: self, topLevelObjects: nil)
 		self.romReceiverView!.delegate = self
 		self.romRequestBaseText = romRequesterText!.stringValue
+		romReceiverErrorField?.alphaValue = 0.0
 
 		// Populate the current absentee list.
 		populateMissingRomList()
@@ -388,6 +390,7 @@ class MachineDocument:
 		// If no ROMs are still missing, start the machine.
 		do {
 			let fileData = try Data(contentsOf: URL)
+			var didInstallRom = false
 
 			// Try to match by size first, CRC second. Accept that some ROMs may have
 			// some additional appended data. Arbitrarily allow them to be up to 10kb
@@ -414,10 +417,11 @@ class MachineDocument:
 							try fileManager.createDirectory(atPath: targetPath.path, withIntermediateDirectories: true, attributes: nil)
 							try trimmedData.write(to: targetFile)
 						} catch let error {
-							Swift.print("Some sort of error \(error)")
+							showRomReceiverError(error: "Couldn't write to application support directory: \(error)")
 						}
 
 						self.missingROMs.remove(at: index)
+						didInstallRom = true
 						break
 					}
 				}
@@ -425,14 +429,60 @@ class MachineDocument:
 				index = index + 1
 			}
 
-			if self.missingROMs.count == 0 {
-				self.windowControllers[0].window?.endSheet(self.romRequesterPanel!)
-				configureAs(self.selectedMachine!)
+			if didInstallRom {
+				if self.missingROMs.count == 0 {
+					self.windowControllers[0].window?.endSheet(self.romRequesterPanel!)
+					configureAs(self.selectedMachine!)
+				} else {
+					populateMissingRomList()
+				}
 			} else {
-				populateMissingRomList()
+				showRomReceiverError(error: "Didn't recognise contents of \(URL.lastPathComponent)")
 			}
 		} catch let error {
-			Swift.print("TODO: couldn't open \(URL.absoluteString); \(error)")
+			showRomReceiverError(error: "Couldn't read file at \(URL.absoluteString): \(error)")
+		}
+	}
+
+	// Yucky ugliness follows; my experience as an iOS developer intersects poorly with
+	// NSAnimationContext hence the various stateful diplications below. isShowingError
+	// should be essentially a duplicate of the current alphaValue, and animationCount
+	// is to resolve my inability to figure out how to cancel scheduled animations.
+	private var errorText = ""
+	private var isShowingError = false
+	private var animationCount = 0
+	private func showRomReceiverError(error: String) {
+		// Set or append the new error.
+		if self.errorText.count > 0 {
+			self.errorText = self.errorText + "\n" + error
+		} else {
+			self.errorText = error
+		}
+
+		// Apply the new complete text.
+		romReceiverErrorField!.stringValue = self.errorText
+
+		if !isShowingError {
+			// Schedule the box's appearance.
+			NSAnimationContext.beginGrouping()
+			NSAnimationContext.current.duration = 0.1
+			romReceiverErrorField?.animator().alphaValue = 1.0
+			NSAnimationContext.endGrouping()
+			isShowingError = true
+		}
+
+		// Schedule the box to disappear.
+		self.animationCount = self.animationCount + 1
+		let capturedAnimationCount = animationCount
+		DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + .seconds(2)) {
+			if self.animationCount == capturedAnimationCount {
+				NSAnimationContext.beginGrouping()
+				NSAnimationContext.current.duration = 1.0
+				self.romReceiverErrorField?.animator().alphaValue = 0.0
+				NSAnimationContext.endGrouping()
+				self.isShowingError = false
+				self.errorText = ""
+			}
 		}
 	}
 
