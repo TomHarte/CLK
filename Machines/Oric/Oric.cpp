@@ -241,6 +241,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					rom_names.emplace_back(machine_name, "Pravetz BASIC", "pravetz.rom", 16*1024, 0x58079502);
 				break;
 			}
+			size_t diskii_state_machine_index = 0;
 			switch(disk_interface) {
 				default: break;
 				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
@@ -248,6 +249,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				break;
 				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
 					rom_names.emplace_back(machine_name, "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06);
+					// These ROM details are coupled with those in the DiskIICard.
+					diskii_state_machine_index = rom_names.size();
+					rom_names.push_back({"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0x9796a238, 0xb72a2c70 }});
 				break;
 			}
 
@@ -272,12 +276,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					pravetz_rom_ = std::move(*roms[2]);
 					pravetz_rom_.resize(512);
 
-					// This ROM name is coupled with that in the DiskIICard.
-					const auto state_machine_rom = rom_fetcher({ {"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0xce7144f6, 0xb72a2c70 } } });
-					if(!state_machine_rom[0]) {
-						throw ROMMachine::Error::MissingROMs;
-					}
-					diskii_.set_state_machine(*state_machine_rom[0]);
+					diskii_.set_state_machine(*roms[diskii_state_machine_index]);
 				} break;
 			}
 

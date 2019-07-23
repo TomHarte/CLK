@@ -15,7 +15,7 @@ DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sec
 	if(is_16_sector) {
 		roms = rom_fetcher({
 			{"DiskII", "the Disk II 16-sector boot ROM", "boot-16.rom", 256, 0xce7144f6},
-			{"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0xce7144f6, 0xb72a2c70 } }
+			{"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0x9796a238, 0xb72a2c70 } }
 		});
 	} else {
 		roms = rom_fetcher({
@@ -23,6 +23,10 @@ DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sec
 			{"DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620 }
 		});
 	}
+	if(!roms[0] || !roms[1]) {
+		throw ROMMachine::Error::MissingROMs;
+	}
+
 	boot_ = std::move(*roms[0]);
 	diskii_.set_state_machine(*roms[1]);
 	set_select_constraints(None);

@@ -372,6 +372,14 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 			const auto roms = rom_fetcher(rom_descriptions);
 
+			// Try to install a Disk II card now, before checking the ROM list,
+			// to make sure that Disk II dependencies have been communicated.
+			if(target.disk_controller != Target::DiskController::None) {
+				// Apple recommended slot 6 for the (first) Disk II.
+				install_card(6, new Apple::II::DiskIICard(rom_fetcher, target.disk_controller == Target::DiskController::SixteenSector));
+			}
+
+			// Now, check and move the ROMs.
 			if(!roms[0] || !roms[1]) {
 				throw ROMMachine::Error::MissingROMs;
 			}
@@ -382,11 +390,6 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			video_.set_character_rom(*roms[0]);
-
-			if(target.disk_controller != Target::DiskController::None) {
-				// Apple recommended slot 6 for the (first) Disk II.
-				install_card(6, new Apple::II::DiskIICard(rom_fetcher, target.disk_controller == Target::DiskController::SixteenSector));
-			}
 
 			// Set up the default memory blocks. On a II or II+ these values will never change.
 			// On a IIe they'll be affected by selection of auxiliary RAM.
