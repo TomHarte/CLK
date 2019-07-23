@@ -228,19 +228,34 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				diskii_.set_clocking_hint_observer(this);
 			}
 
-			std::vector<std::string> rom_names = {"colour.rom"};
+			const std::string machine_name = "Oric";
+			std::vector<ROMMachine::ROM> rom_names = { {machine_name, "the Oric colour ROM", "colour.rom", 128, 0xd50fca65} };
 			switch(target.rom) {
-				case Analyser::Static::Oric::Target::ROM::BASIC10: rom_names.push_back("basic10.rom");	break;
-				case Analyser::Static::Oric::Target::ROM::BASIC11: rom_names.push_back("basic11.rom");	break;
-				case Analyser::Static::Oric::Target::ROM::Pravetz: rom_names.push_back("pravetz.rom");	break;
+				case Analyser::Static::Oric::Target::ROM::BASIC10:
+					rom_names.emplace_back(machine_name, "Oric BASIC 1.0", "basic10.rom", 16*1024, 0xf18710b4);
+				break;
+				case Analyser::Static::Oric::Target::ROM::BASIC11:
+					rom_names.emplace_back(machine_name, "Oric BASIC 1.1", "basic11.rom", 16*1024, 0xc3a92bef);
+				break;
+				case Analyser::Static::Oric::Target::ROM::Pravetz:
+					rom_names.emplace_back(machine_name, "Pravetz BASIC", "pravetz.rom", 16*1024, 0x58079502);
+				break;
 			}
+			size_t diskii_state_machine_index = 0;
 			switch(disk_interface) {
 				default: break;
-				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:	rom_names.push_back("microdisc.rom");	break;
-				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:	rom_names.push_back("8dos.rom");		break;
+				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+					rom_names.emplace_back(machine_name, "the ORIC Microdisc ROM", "microdisc.rom", 8*1024, 0xa9664a9c);
+				break;
+				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
+					rom_names.emplace_back(machine_name, "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06);
+					// These ROM details are coupled with those in the DiskIICard.
+					diskii_state_machine_index = rom_names.size();
+					rom_names.push_back({"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0x9796a238, 0xb72a2c70 }});
+				break;
 			}
 
-			const auto roms = rom_fetcher("Oric", rom_names);
+			const auto roms = rom_fetcher(rom_names);
 
 			for(std::size_t index = 0; index < roms.size(); ++index) {
 				if(!roms[index]) {
@@ -261,11 +276,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					pravetz_rom_ = std::move(*roms[2]);
 					pravetz_rom_.resize(512);
 
-					auto state_machine_rom = rom_fetcher("DiskII", {"state-machine-16.rom"});
-					if(!state_machine_rom[0]) {
-						throw ROMMachine::Error::MissingROMs;
-					}
-					diskii_.set_state_machine(*state_machine_rom[0]);
+					diskii_.set_state_machine(*roms[diskii_state_machine_index]);
 				} break;
 			}
 

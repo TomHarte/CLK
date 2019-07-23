@@ -509,6 +509,10 @@
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy35</string>
+			<key>CFBundleTypeMIMETypes</key>
+			<array>
+				<string>application/x-apple-diskimage</string>
+			</array>
 			<key>CFBundleTypeName</key>
 			<string>DiskCopy 4.2 Disk Image</string>
 			<key>CFBundleTypeOSTypes</key>

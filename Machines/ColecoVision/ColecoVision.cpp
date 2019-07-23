@@ -131,8 +131,7 @@ class ConcreteMachine:
 			joysticks_.emplace_back(new Joystick);
 
 			const auto roms = rom_fetcher(
-				"ColecoVision",
-				{ "coleco.rom" });
+				{ {"ColecoVision", "the ColecoVision BIOS", "coleco.rom", 8*1024, 0x3aa93ef3} });
 
 			if(!roms[0]) {
 				throw ROMMachine::Error::MissingROMs;

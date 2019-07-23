@@ -64,16 +64,20 @@ class ConcreteMachine:
 			speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
 			speaker_.set_high_frequency_cutoff(7000);
 
-			std::vector<std::string> rom_names = {"basic.rom", "os.rom"};
+			const std::string machine_name = "Electron";
+			std::vector<ROMMachine::ROM> required_roms = {
+				{machine_name, "the Acorn BASIC II ROM", "basic.rom", 16*1024, 0x79434781},
+				{machine_name, "the Electron MOS ROM", "os.rom", 16*1024, 0xbf63fb1f}
+			};
 			if(target.has_adfs) {
-				rom_names.push_back("ADFS-E00_1.rom");
-				rom_names.push_back("ADFS-E00_2.rom");
+				required_roms.emplace_back(machine_name, "the E00 ADFS ROM, first slot", "ADFS-E00_1.rom", 16*1024, 0x51523993);
+				required_roms.emplace_back(machine_name, "the E00 ADFS ROM, second slot", "ADFS-E00_2.rom", 16*1024, 0x8d17de0e);
 			}
-			const size_t dfs_rom_position = rom_names.size();
+			const size_t dfs_rom_position = required_roms.size();
 			if(target.has_dfs) {
-				rom_names.push_back("DFS-1770-2.20.rom");
+				required_roms.emplace_back(machine_name, "the 1770 DFS ROM", "DFS-1770-2.20.rom", 16*1024, 0xf3dc9bc5);
 			}
-			const auto roms = rom_fetcher("Electron", rom_names);
+			const auto roms = rom_fetcher(required_roms);
 
 			for(const auto &rom: roms) {
 				if(!rom) {

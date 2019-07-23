@@ -70,33 +70,35 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// Select a ROM name and determine the proper ROM and RAM sizes
 			// based on the machine model.
 			using Model = Analyser::Static::Macintosh::Target::Model;
-			std::string rom_name;
+			const std::string machine_name = "Macintosh";
 			uint32_t ram_size, rom_size;
+			std::vector<ROMMachine::ROM> rom_descriptions;
 			switch(model) {
 				default:
 				case Model::Mac128k:
 					ram_size = 128*1024;
 					rom_size = 64*1024;
-					rom_name = "mac128k.rom";
+					rom_descriptions.emplace_back(machine_name, "the Macintosh 128k ROM", "mac128k.rom", 64*1024, 0x6d0c8a28);
 				break;
 				case Model::Mac512k:
 					ram_size = 512*1024;
 					rom_size = 64*1024;
-					rom_name = "mac512k.rom";
+					rom_descriptions.emplace_back(machine_name, "the Macintosh 512k ROM", "mac512k.rom", 64*1024, 0xcf759e0d);
 				break;
 				case Model::Mac512ke:
-				case Model::MacPlus:
+				case Model::MacPlus: {
 					ram_size = 512*1024;
 					rom_size = 128*1024;
-					rom_name = "macplus.rom";
-				break;
+					const std::initializer_list<uint32_t> crc32s = { 0x4fa5b399, 0x7cacd18f, 0xb2102e8e };
+					rom_descriptions.emplace_back(machine_name, "the Macintosh Plus ROM", "macplus.rom", 128*1024, crc32s);
+				} break;
 			}
 			ram_mask_ = (ram_size >> 1) - 1;
 			rom_mask_ = (rom_size >> 1) - 1;
 			video_.set_ram_mask(ram_mask_);
 
 			// Grab a copy of the ROM and convert it into big-endian data.
-			const auto roms = rom_fetcher("Macintosh", { rom_name });
+			const auto roms = rom_fetcher(rom_descriptions);
 			if(!roms[0]) {
 				throw ROMMachine::Error::MissingROMs;
 			}

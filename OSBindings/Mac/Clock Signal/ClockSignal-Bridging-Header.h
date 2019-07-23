@@ -10,10 +10,13 @@
 
 #import "CSStaticAnalyser.h"
 
-#import	"CSOpenGLView.h"
 #import "CSAudioQueue.h"
+#import	"CSOpenGLView.h"
+#import "CSROMReceiverView.h"
 
 #import "CSBestEffortUpdater.h"
 #import "CSJoystickManager.h"
+
+#import "NSData+CRC32.h"
 
 #include "KeyCodes.h"

@@ -16,7 +16,8 @@ class MachineDocument:
 	CSOpenGLViewDelegate,
 	CSOpenGLViewResponderDelegate,
 	CSBestEffortUpdaterDelegate,
-	CSAudioQueueDelegate
+	CSAudioQueueDelegate,
+	CSROMReciverViewDelegate
 {
 	fileprivate let actionLock = NSLock()
 	fileprivate let drawLock = NSLock()
@@ -152,12 +153,27 @@ class MachineDocument:
 	}
 
 	// MARK: configuring
+	fileprivate var missingROMs: [CSMissingROM] = []
+	fileprivate var selectedMachine: CSStaticAnalyser?
+
 	func configureAs(_ analysis: CSStaticAnalyser) {
-		if let machine = CSMachine(analyser: analysis) {
+		let missingROMs = NSMutableArray()
+		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
+			self.selectedMachine = nil
 			self.machine = machine
 			self.optionsPanelNibName = analysis.optionsPanelNibName
 			setupMachineOutput()
 			setupActivityDisplay()
+		} else {
+			// Store the selected machine and list of missing ROMs, and
+			// show the missing ROMs dialogue.
+			self.missingROMs = []
+			for untypedMissingROM in missingROMs {
+				self.missingROMs.append(untypedMissingROM as! CSMissingROM)
+			}
+
+			self.selectedMachine = analysis
+			requestRoms()
 		}
 	}
 
@@ -303,17 +319,171 @@ class MachineDocument:
 		}
 	}
 
-	// MARK: New machine creation
+	// MARK: New machine creation.
 	@IBOutlet var machinePicker: MachinePicker?
 	@IBOutlet var machinePickerPanel: NSWindow?
 	@IBAction func createMachine(_ sender: NSButton?) {
-		self.configureAs(machinePicker!.selectedMachine())
-		machinePicker = nil
+		let selectedMachine = machinePicker!.selectedMachine()
 		self.windowControllers[0].window?.endSheet(self.machinePickerPanel!)
+		machinePicker = nil
+		self.configureAs(selectedMachine)
 	}
 
 	@IBAction func cancelCreateMachine(_ sender: NSButton?) {
 		close()
+	}
+
+	// MARK: User ROM provision.
+	@IBOutlet var romRequesterPanel: NSWindow?
+	@IBOutlet var romRequesterText: NSTextField?
+	@IBOutlet var romReceiverErrorField: NSTextField?
+	@IBOutlet var romReceiverView: CSROMReceiverView?
+	private var romRequestBaseText = ""
+	func requestRoms() {
+		// Load the ROM requester dialogue.
+		Bundle.main.loadNibNamed("ROMRequester", owner: self, topLevelObjects: nil)
+		self.romReceiverView!.delegate = self
+		self.romRequestBaseText = romRequesterText!.stringValue
+		romReceiverErrorField?.alphaValue = 0.0
+
+		// Populate the current absentee list.
+		populateMissingRomList()
+
+		// Show the thing.
+		self.windowControllers[0].window?.beginSheet(self.romRequesterPanel!, completionHandler: nil)
+	}
+
+	@IBAction func cancelRequestROMs(_ sender: NSButton?) {
+		close()
+	}
+
+	func populateMissingRomList() {
+		// Fill in the missing details; first build a list of all the individual
+		// line items.
+		var requestLines: [String] = []
+		for missingROM in self.missingROMs {
+			if let descriptiveName = missingROM.descriptiveName {
+				requestLines.append("• " + descriptiveName)
+			} else {
+				requestLines.append("• " + missingROM.fileName)
+			}
+		}
+
+		// Suffix everything up to the penultimate line with a semicolon;
+		// the penultimate line with a semicolon and a conjunctive; the final
+		// line with a full stop.
+		for x in 0 ..< requestLines.count {
+			if x < requestLines.count - 2 {
+				requestLines[x].append(";")
+			} else if x < requestLines.count - 1 {
+				requestLines[x].append("; and")
+			} else {
+				requestLines[x].append(".")
+			}
+		}
+		romRequesterText!.stringValue = self.romRequestBaseText + requestLines.joined(separator: "\n")
+	}
+
+	func romReceiverView(_ view: CSROMReceiverView, didReceiveFileAt URL: URL) {
+		// Test whether the file identified matches any of the currently missing ROMs.
+		// If so then remove that ROM from the missing list and update the request screen.
+		// If no ROMs are still missing, start the machine.
+		do {
+			let fileData = try Data(contentsOf: URL)
+			var didInstallRom = false
+
+			// Try to match by size first, CRC second. Accept that some ROMs may have
+			// some additional appended data. Arbitrarily allow them to be up to 10kb
+			// too large.
+			var index = 0
+			for missingROM in self.missingROMs {
+				if fileData.count >= missingROM.size && fileData.count < missingROM.size + 10*1024 {
+					// Trim to size.
+					let trimmedData = fileData[0 ..< missingROM.size]
+
+					// Get CRC.
+					if missingROM.crc32s.contains( (trimmedData as NSData).crc32 ) {
+						// This ROM matches; copy it into the application library,
+						// strike it from the missing ROM list and decide how to
+						// proceed.
+						let fileManager = FileManager.default
+						let targetPath = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+							.appendingPathComponent("ROMImages")
+							.appendingPathComponent(missingROM.machineName)
+						let targetFile = targetPath
+							.appendingPathComponent(missingROM.fileName)
+
+						do {
+							try fileManager.createDirectory(atPath: targetPath.path, withIntermediateDirectories: true, attributes: nil)
+							try trimmedData.write(to: targetFile)
+						} catch let error {
+							showRomReceiverError(error: "Couldn't write to application support directory: \(error)")
+						}
+
+						self.missingROMs.remove(at: index)
+						didInstallRom = true
+						break
+					}
+				}
+
+				index = index + 1
+			}
+
+			if didInstallRom {
+				if self.missingROMs.count == 0 {
+					self.windowControllers[0].window?.endSheet(self.romRequesterPanel!)
+					configureAs(self.selectedMachine!)
+				} else {
+					populateMissingRomList()
+				}
+			} else {
+				showRomReceiverError(error: "Didn't recognise contents of \(URL.lastPathComponent)")
+			}
+		} catch let error {
+			showRomReceiverError(error: "Couldn't read file at \(URL.absoluteString): \(error)")
+		}
+	}
+
+	// Yucky ugliness follows; my experience as an iOS developer intersects poorly with
+	// NSAnimationContext hence the various stateful diplications below. isShowingError
+	// should be essentially a duplicate of the current alphaValue, and animationCount
+	// is to resolve my inability to figure out how to cancel scheduled animations.
+	private var errorText = ""
+	private var isShowingError = false
+	private var animationCount = 0
+	private func showRomReceiverError(error: String) {
+		// Set or append the new error.
+		if self.errorText.count > 0 {
+			self.errorText = self.errorText + "\n" + error
+		} else {
+			self.errorText = error
+		}
+
+		// Apply the new complete text.
+		romReceiverErrorField!.stringValue = self.errorText
+
+		if !isShowingError {
+			// Schedule the box's appearance.
+			NSAnimationContext.beginGrouping()
+			NSAnimationContext.current.duration = 0.1
+			romReceiverErrorField?.animator().alphaValue = 1.0
+			NSAnimationContext.endGrouping()
+			isShowingError = true
+		}
+
+		// Schedule the box to disappear.
+		self.animationCount = self.animationCount + 1
+		let capturedAnimationCount = animationCount
+		DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + .seconds(2)) {
+			if self.animationCount == capturedAnimationCount {
+				NSAnimationContext.beginGrouping()
+				NSAnimationContext.current.duration = 1.0
+				self.romReceiverErrorField?.animator().alphaValue = 0.0
+				NSAnimationContext.endGrouping()
+				self.isShowingError = false
+				self.errorText = ""
+			}
+		}
 	}
 
 	// MARK: Joystick-via-the-keyboard selection

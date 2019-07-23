@@ -74,6 +74,68 @@ struct ActivityObserver: public Activity::Observer {
 	__unsafe_unretained CSMachine *machine;
 };
 
+@interface CSMissingROM (Mutability)
+@property (nonatomic, nonnull, copy) NSString *machineName;
+@property (nonatomic, nonnull, copy) NSString *fileName;
+@property (nonatomic, nullable, copy) NSString *descriptiveName;
+@property (nonatomic, readwrite) NSUInteger size;
+@property (nonatomic, copy) NSArray<NSNumber *> *crc32s;
+@end
+
+@implementation CSMissingROM {
+	NSString *_machineName;
+	NSString *_fileName;
+	NSString *_descriptiveName;
+	NSUInteger _size;
+	NSArray<NSNumber *> *_crc32s;
+}
+
+- (NSString *)machineName {
+	return _machineName;
+}
+
+- (void)setMachineName:(NSString *)machineName {
+	_machineName = [machineName copy];
+}
+
+- (NSString *)fileName {
+	return _fileName;
+}
+
+- (void)setFileName:(NSString *)fileName {
+	_fileName = [fileName copy];
+}
+
+- (NSString *)descriptiveName {
+	return _descriptiveName;
+}
+
+- (void)setDescriptiveName:(NSString *)descriptiveName {
+	_descriptiveName = [descriptiveName copy];
+}
+
+- (NSUInteger)size {
+	return _size;
+}
+
+- (void)setSize:(NSUInteger)size {
+	_size = size;
+}
+
+- (NSArray<NSNumber *> *)crc32s {
+	return _crc32s;
+}
+
+- (void)setCrc32s:(NSArray<NSNumber *> *)crc32s {
+	_crc32s = [crc32s copy];
+}
+
+- (NSString *)description {
+	return [NSString stringWithFormat:@"%@/%@, %@ bytes, CRCs: %@", _fileName, _descriptiveName, @(_size), _crc32s];
+}
+
+@end
+
 @implementation CSMachine {
 	SpeakerDelegate _speakerDelegate;
 	ActivityObserver _activityObserver;
@@ -90,14 +152,37 @@ struct ActivityObserver: public Activity::Observer {
 	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
 }
 
-- (instancetype)initWithAnalyser:(CSStaticAnalyser *)result {
+- (instancetype)initWithAnalyser:(CSStaticAnalyser *)result missingROMs:(inout NSMutableArray<CSMissingROM *> *)missingROMs {
 	self = [super init];
 	if(self) {
 		_analyser = result;
 
 		Machine::Error error;
-		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(), error));
-		if(!_machine) return nil;
+		std::vector<ROMMachine::ROM> missing_roms;
+		_machine.reset(Machine::MachineForTargets(_analyser.targets, CSROMFetcher(&missing_roms), error));
+		if(!_machine) {
+			for(const auto &missing_rom : missing_roms) {
+				CSMissingROM *rom = [[CSMissingROM alloc] init];
+
+				// Copy/convert the primitive fields.
+				rom.machineName = [NSString stringWithUTF8String:missing_rom.machine_name.c_str()];
+				rom.fileName = [NSString stringWithUTF8String:missing_rom.file_name.c_str()];
+				rom.descriptiveName = missing_rom.descriptive_name.empty() ? nil : [NSString stringWithUTF8String:missing_rom.descriptive_name.c_str()];
+				rom.size = missing_rom.size;
+
+				// Convert the CRC list.
+				NSMutableArray<NSNumber *> *crc32s = [[NSMutableArray alloc] init];
+				for(const auto &crc : missing_rom.crc32s) {
+					[crc32s addObject:@(crc)];
+				}
+				rom.crc32s = [crc32s copy];
+
+				// Add to the missing list.
+				[missingROMs addObject:rom];
+			}
+
+			return nil;
+		}
 
 		_inputMode =
 			(_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive())

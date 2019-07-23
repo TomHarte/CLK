@@ -76,7 +76,11 @@ template<bool is_zx81> class ConcreteMachine:
 			clear_all_keys();
 
 			const bool use_zx81_rom = target.is_ZX81 || target.ZX80_uses_ZX81_ROM;
-			const auto roms = rom_fetcher("ZX8081", { use_zx81_rom ? "zx81.rom" : "zx80.rom" });
+			const auto roms =
+				use_zx81_rom ?
+					rom_fetcher({ {"ZX8081", "the ZX81 BASIC ROM", "zx81.rom", 8 * 1024, 0x4b1dd6eb} }) :
+					rom_fetcher({ {"ZX8081", "the ZX80 BASIC ROM", "zx80.rom", 4 * 1024, 0x4c7fc597} });
+
 			if(!roms[0]) throw ROMMachine::Error::MissingROMs;
 
 			rom_ = std::move(*roms[0]);

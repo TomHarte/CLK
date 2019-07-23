@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 #include <memory>
@@ -339,21 +340,21 @@ int main(int argc, char *argv[]) {
 			}
 			std::cout << std::endl;
 		}
-		return 0;
+		return EXIT_SUCCESS;
 	}
 
 	// Perform a sanity check on arguments.
 	if(arguments.file_name.empty()) {
 		std::cerr << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
 		std::cerr << "Use --help to learn more about available options." << std::endl;
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	// Determine the machine for the supplied file.
 	Analyser::Static::TargetList targets = Analyser::Static::GetTargets(arguments.file_name);
 	if(targets.empty()) {
 		std::cerr << "Cannot open " << arguments.file_name << "; no target machine found" << std::endl;
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	Concurrency::BestEffortUpdater updater;
@@ -365,12 +366,10 @@ int main(int argc, char *argv[]) {
 	//	/usr/local/share/CLK/[system];
 	//	/usr/share/CLK/[system]; or
 	//	[user-supplied path]/[system]
-	std::vector<std::string> rom_names;
-	std::string machine_name;
-	ROMMachine::ROMFetcher rom_fetcher = [&rom_names, &machine_name, &arguments]
-		(const std::string &machine, const std::vector<std::string> &names) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
-			rom_names.insert(rom_names.end(), names.begin(), names.end());
-			machine_name = machine;
+	std::vector<ROMMachine::ROM> requested_roms;
+	ROMMachine::ROMFetcher rom_fetcher = [&requested_roms, &arguments]
+		(const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
+			requested_roms.insert(requested_roms.end(), roms.begin(), roms.end());
 
 			std::vector<std::string> paths = {
 				"/usr/local/share/CLK/",
@@ -386,10 +385,10 @@ int main(int argc, char *argv[]) {
 			}
 
 			std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
-			for(const auto &name: names) {
+			for(const auto &rom: roms) {
 				FILE *file = nullptr;
 				for(const auto &path: paths) {
-					std::string local_path = path + machine + "/" + name;
+					std::string local_path = path + rom.machine_name + "/" + rom.file_name;
 					file = std::fopen(local_path.c_str(), "rb");
 					if(file) break;
 				}
@@ -425,13 +424,17 @@ int main(int argc, char *argv[]) {
 			case ::Machine::Error::MissingROM:
 				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath." << std::endl;
 				std::cerr << "One or more of the following was needed but not found:" << std::endl;
-				for(const auto &name: rom_names) {
-					std::cerr << machine_name << '/' << name << std::endl;
+				for(const auto &rom: requested_roms) {
+					std::cerr << rom.machine_name << '/' << rom.file_name;
+					if(!rom.descriptive_name.empty()) {
+						std::cerr << " (" << rom.descriptive_name << ")";
+					}
+					std::cerr << std::endl;
 				}
 			break;
 		}
 
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	best_effort_updater_delegate.machine = machine.get();
@@ -441,7 +444,7 @@ int main(int argc, char *argv[]) {
 	// Attempt to set up video and audio.
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 		std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	// Ask for no depth buffer, a core profile and vsync-aligned rendering.
@@ -463,7 +466,7 @@ int main(int argc, char *argv[]) {
 	if(!window || !gl_context) {
 		std::cerr << "Could not create " << (window ? "OpenGL context" : "window");
 		std::cerr << "; reported error: \"" << SDL_GetError() << "\"" << std::endl;
-		return -1;
+		return EXIT_FAILURE;
 	}
 
 	SDL_GL_MakeCurrent(window, gl_context);
@@ -816,5 +819,5 @@ int main(int argc, char *argv[]) {
 	SDL_DestroyWindow( window );
 	SDL_Quit();
 
-	return 0;
+	return EXIT_SUCCESS;
 }
