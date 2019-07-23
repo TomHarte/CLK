@@ -807,8 +807,8 @@ template <bool has_fdc> class ConcreteMachine:
 					crcs[1] = 0x32fee492;
 				break;
 			}
-			required_roms.emplace_back(machine_name, "the CPC " + model_number + "firmware", "os" + model_number + ".rom", 16*1024, crcs[0]);
-			required_roms.emplace_back(machine_name, "the CPC " + model_number + "BASIC ROM", "basic" + model_number + ".rom", 16*1024, crcs[1]);
+			required_roms.emplace_back(machine_name, "the CPC " + model_number + " firmware", "os" + model_number + ".rom", 16*1024, crcs[0]);
+			required_roms.emplace_back(machine_name, "the CPC " + model_number + " BASIC ROM", "basic" + model_number + ".rom", 16*1024, crcs[1]);
 
 			// fetch and verify the ROMs
 			const auto roms = rom_fetcher(required_roms);
