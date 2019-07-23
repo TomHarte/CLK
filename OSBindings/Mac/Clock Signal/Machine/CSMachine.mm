@@ -75,6 +75,7 @@ struct ActivityObserver: public Activity::Observer {
 };
 
 @interface CSMissingROM (Mutability)
+@property (nonatomic, nonnull, copy) NSString *machineName;
 @property (nonatomic, nonnull, copy) NSString *fileName;
 @property (nonatomic, nullable, copy) NSString *descriptiveName;
 @property (nonatomic, readwrite) NSUInteger size;
@@ -82,10 +83,19 @@ struct ActivityObserver: public Activity::Observer {
 @end
 
 @implementation CSMissingROM {
+	NSString *_machineName;
 	NSString *_fileName;
 	NSString *_descriptiveName;
 	NSUInteger _size;
 	NSArray<NSNumber *> *_crc32s;
+}
+
+- (NSString *)machineName {
+	return _machineName;
+}
+
+- (void)setMachineName:(NSString *)machineName {
+	_machineName = [machineName copy];
 }
 
 - (NSString *)fileName {
@@ -155,8 +165,9 @@ struct ActivityObserver: public Activity::Observer {
 				CSMissingROM *rom = [[CSMissingROM alloc] init];
 
 				// Copy/convert the primitive fields.
+				rom.machineName = [NSString stringWithUTF8String:missing_rom.machine_name.c_str()];
 				rom.fileName = [NSString stringWithUTF8String:missing_rom.file_name.c_str()];
-				rom.descriptiveName = [NSString stringWithUTF8String:missing_rom.descriptive_name.c_str()];
+				rom.descriptiveName = missing_rom.descriptive_name.empty() ? nil : [NSString stringWithUTF8String:missing_rom.descriptive_name.c_str()];
 				rom.size = missing_rom.size;
 
 				// Convert the CRC list.

@@ -34,6 +34,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 };
 
 @interface CSMissingROM: NSObject
+@property (nonatomic, readonly, nonnull) NSString *machineName;
 @property (nonatomic, readonly, nonnull) NSString *fileName;
 @property (nonatomic, readonly, nullable) NSString *descriptiveName;
 @property (nonatomic, readonly) NSUInteger size;
