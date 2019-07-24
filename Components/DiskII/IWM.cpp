@@ -275,7 +275,7 @@ void IWM::run_for(const Cycles cycles) {
 						} else {
 							write_handshake_ &= ~0x40;
 							drives_[active_drive_]->end_writing();
-							printf("\n");
+//							printf("\n");
 							LOG("Overrun; done.");
 							select_shift_mode();
 						}
