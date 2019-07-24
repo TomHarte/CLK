@@ -51,7 +51,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public MediaTarget::Machine,
 	public MouseMachine::Machine,
 	public CPU::MC68000::BusHandler,
-	public KeyboardMachine::MappedMachine {
+	public KeyboardMachine::MappedMachine,
+	public Zilog::SCC::z8530::Delegate {
 	public:
 		using Target = Analyser::Static::Macintosh::Target;
 
@@ -111,6 +112,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// Attach the drives to the IWM.
 			iwm_.iwm.set_drive(0, &drives_[0]);
 			iwm_.iwm.set_drive(1, &drives_[1]);
+
+			// Make sure interrupt changes from the SCC are observed.
+			scc_.set_delegate(this);
 
 			// The Mac runs at 7.8336mHz.
 			set_clock_rate(double(CLOCK_RATE));
@@ -206,16 +210,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				// TODO: leave a delay between toggling the input rather than using this coupled hack.
 				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, true);
 				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, false);
-			}
-
-			// Update interrupt input. TODO: move this into a VIA/etc delegate callback?
-			// Double TODO: does this really cascade like this?
-			if(scc_.get_interrupt_line()) {
-				mc68000_.set_interrupt_level(2);
-			} else if(via_.get_interrupt_line()) {
-				mc68000_.set_interrupt_level(1);
-			} else {
-				mc68000_.set_interrupt_level(0);
 			}
 
 			// A null cycle leaves nothing else to do.
@@ -433,6 +427,24 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		// TODO: clear all keys.
 
+		// MARK: Interrupt updates.
+
+		void did_change_interrupt_status(Zilog::SCC::z8530 *sender, bool new_status) override {
+			update_interrupt_input();
+		}
+
+		void update_interrupt_input() {
+			// Update interrupt input.
+			// TODO: does this really cascade like this?
+			if(scc_.get_interrupt_line()) {
+				mc68000_.set_interrupt_level(2);
+			} else if(via_.get_interrupt_line()) {
+				mc68000_.set_interrupt_level(1);
+			} else {
+				mc68000_.set_interrupt_level(0);
+			}
+		}
+
 	private:
 		void update_video() {
 			video_.run_for(time_since_video_update_.flush());
@@ -552,6 +564,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 				void flush() {
 					audio_.flush();
+				}
+
+				void set_interrupt_status(bool status) {
+					machine_.update_interrupt_input();
 				}
 
 			private:

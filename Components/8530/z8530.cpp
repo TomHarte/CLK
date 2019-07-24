@@ -64,6 +64,7 @@ std::uint8_t z8530::read(int address) {
 		}
 
 		pointer_ = 0;
+		update_delegate();
 		return result;
 	}
 
@@ -110,10 +111,12 @@ void z8530::write(int address, std::uint8_t value) {
 			}
 		}
 	}
+	update_delegate();
 }
 
 void z8530::set_dcd(int port, bool level) {
 	channels_[port].set_dcd(level);
+	update_delegate();
 }
 
 // MARK: - Channel implementations
@@ -254,4 +257,12 @@ bool z8530::Channel::get_interrupt_line() {
 	return
 		(interrupt_mask_ & 1) && external_status_interrupt_;
 	// TODO: other potential causes of an interrupt.
+}
+
+void z8530::update_delegate() {
+	const bool interrupt_line = get_interrupt_line();
+	if(interrupt_line != previous_interrupt_line_) {
+		previous_interrupt_line_ = interrupt_line;
+		if(delegate_) delegate_->did_change_interrupt_status(this, interrupt_line);
+	}
 }
