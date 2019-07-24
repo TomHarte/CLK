@@ -365,9 +365,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						case int(MicroOp::Action::None): break;
 
 #define source()				active_program_->source
-#define source_address()		active_program_->source_address
+#define source_address()		address_[active_program_->source_dest >> 4]
 #define destination()			active_program_->destination
-#define destination_address()	active_program_->destination_address
+#define destination_address()	address_[active_program_->source_dest & 0x0f]
 
 						case int(MicroOp::Action::PerformOperation):
 #define sub_overflow() ((result ^ destination) & (destination ^ source))
@@ -1157,7 +1157,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	const auto mode = (decoded_instruction_.full >> 3) & 7;				\
 	uint32_t start_address;												\
 	if(mode <= 4) {														\
-		start_address = destination_address()->full;		\
+		start_address = destination_address().full;						\
 	} else {															\
 		start_address = effective_address_[1].full;						\
 	}																	\
@@ -1996,11 +1996,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #define op_add(x, y) x += y
 #define op_sub(x, y) x -= y
 #define Adjust(op, quantity, effect)	\
-	case int(op) | MicroOp::SourceMask:			effect(source_address()->full, quantity);		break;	\
-	case int(op) | MicroOp::DestinationMask:	effect(destination_address()->full, quantity);	break;	\
+	case int(op) | MicroOp::SourceMask:			effect(source_address().full, quantity);		break;	\
+	case int(op) | MicroOp::DestinationMask:	effect(destination_address().full, quantity);	break;	\
 	case int(op) | MicroOp::SourceMask | MicroOp::DestinationMask:	\
-		effect(destination_address()->full, quantity);	\
-		effect(source_address()->full, quantity);	\
+		effect(destination_address().full, quantity);	\
+		effect(source_address().full, quantity);	\
 	break;
 
 						Adjust(MicroOp::Action::Decrement1, 1, op_sub);
@@ -2056,16 +2056,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask:
-							effective_address_[0] = u_extend16(prefetch_queue_.halves.low.full) + source_address()->full;
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.low.full) + source_address().full;
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::DestinationMask:
-							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + destination_address()->full;
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + destination_address().full;
 						break;
 
 						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask | MicroOp::DestinationMask:
-							effective_address_[0] = u_extend16(prefetch_queue_.halves.high.full) + source_address()->full;
-							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + destination_address()->full;
+							effective_address_[0] = u_extend16(prefetch_queue_.halves.high.full) + source_address().full;
+							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + destination_address().full;
 						break;
 
 #define CalculateD8AnXn(data, source, target)	{\
@@ -2080,16 +2080,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	}	\
 }
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask: {
-							CalculateD8AnXn(prefetch_queue_.halves.low, source_address()->full, effective_address_[0]);
+							CalculateD8AnXn(prefetch_queue_.halves.low, source_address().full, effective_address_[0]);
 						} break;
 
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::DestinationMask: {
-							CalculateD8AnXn(prefetch_queue_.halves.low, destination_address()->full, effective_address_[1]);
+							CalculateD8AnXn(prefetch_queue_.halves.low, destination_address().full, effective_address_[1]);
 						} break;
 
 						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask | MicroOp::DestinationMask: {
-							CalculateD8AnXn(prefetch_queue_.halves.high, source_address()->full, effective_address_[0]);
-							CalculateD8AnXn(prefetch_queue_.halves.low, destination_address()->full, effective_address_[1]);
+							CalculateD8AnXn(prefetch_queue_.halves.high, source_address().full, effective_address_[0]);
+							CalculateD8AnXn(prefetch_queue_.halves.low, destination_address().full, effective_address_[1]);
 						} break;
 
 						case int(MicroOp::Action::CalcD8PCXn) | MicroOp::SourceMask: {
@@ -2140,16 +2140,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						break;
 
 						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::SourceMask:
-							effective_address_[0] = *active_program_->source_address;
+							effective_address_[0] = source_address();
 						break;
 
 						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::DestinationMask:
-							effective_address_[1] = *active_program_->destination_address;
+							effective_address_[1] = destination_address();
 						break;
 
 						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::SourceMask | MicroOp::DestinationMask:
-							effective_address_[0] = *active_program_->source_address;
-							effective_address_[1] = *active_program_->destination_address;
+							effective_address_[0] = source_address();
+							effective_address_[1] = destination_address();
 						break;
 					}
 

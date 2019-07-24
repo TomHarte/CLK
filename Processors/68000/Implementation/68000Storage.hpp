@@ -344,29 +344,44 @@ class ProcessorStorage {
 			non-pointer fields doesn't seem to be helpful immediately.)
 		*/
 		struct Program {
+			Operation operation;
+			uint8_t source_dest = 0;
+			bool requires_supervisor = false;
 			MicroOp *micro_operations = nullptr;
 			RegisterPair32 *source = nullptr;
 			RegisterPair32 *destination = nullptr;
-			RegisterPair32 *source_address = nullptr;
-			RegisterPair32 *destination_address = nullptr;
-			Operation operation;
-			bool requires_supervisor = false;
+
+			void set_source_address(ProcessorStorage &storage, int index) {
+				source_dest = uint8_t((source_dest & 0x0f) | (index << 4));
+			}
+
+			void set_destination_address(ProcessorStorage &storage, int index) {
+				source_dest = uint8_t((source_dest & 0xf0) | index);
+			}
+
+			void set_source(ProcessorStorage &storage, RegisterPair32 *target) {
+				source = target;
+			}
+
+			void set_destination(ProcessorStorage &storage, RegisterPair32 *target) {
+				destination = target;
+			}
 
 			void set_source(ProcessorStorage &storage, int mode, int reg) {
-				source_address = &storage.address_[reg];
+				set_source_address(storage, reg);
 				switch(mode) {
-					case 0:		source = &storage.data_[reg];			break;
-					case 1:		source = &storage.address_[reg];		break;
-					default:	source = &storage.source_bus_data_[0];	break;
+					case 0:		set_source(storage, &storage.data_[reg]);			break;
+					case 1:		set_source(storage, &storage.address_[reg]);		break;
+					default:	set_source(storage, &storage.source_bus_data_[0]);	break;
 				}
 			}
 
 			void set_destination(ProcessorStorage &storage, int mode, int reg) {
-				destination_address = &storage.address_[reg];
+				set_destination_address(storage, reg);
 				switch(mode) {
-					case 0:		destination = &storage.data_[reg];					break;
-					case 1:		destination = &storage.address_[reg];				break;
-					default:	destination = &storage.destination_bus_data_[0];	break;
+					case 0:		set_destination(storage, &storage.data_[reg]);					break;
+					case 1:		set_destination(storage, &storage.address_[reg]);				break;
+					default:	set_destination(storage, &storage.destination_bus_data_[0]);	break;
 				}
 			}
 		};

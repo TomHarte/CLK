@@ -862,10 +862,6 @@ struct ProcessorStorageConstructor {
 					// Temporary storage for the Program fields.
 					ProcessorBase::Program program;
 
-//					if(instruction == 0x4879) {
-//						printf("");
-//					}
-
 #define dec(n) decrement_action(is_long_word_access, is_byte_access, n)
 #define inc(n) increment_action(is_long_word_access, is_byte_access, n)
 
@@ -2478,7 +2474,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, An, data_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
-							program.source_address = &storage_.address_[ea_register];
+							program.set_source_address(storage_, ea_register);
 							program.source =
 								(mode == Ind) ?
 									&storage_.address_[ea_register] :
