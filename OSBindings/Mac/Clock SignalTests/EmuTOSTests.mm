@@ -104,7 +104,8 @@ class EmuTOS: public ComparativeBusHandler {
 }
 
 - (void)testImage:(NSString *)image trace:(NSString *)trace length:(int)length {
-    const auto roms = CSROMFetcher()("AtariST", { image.UTF8String });
+	const std::vector<ROMMachine::ROM> rom_names = {{"AtariST", "", image.UTF8String, 0, 0 }};
+    const auto roms = CSROMFetcher()(rom_names);
 	NSString *const traceLocation = [[NSBundle bundleForClass:[self class]] pathForResource:trace ofType:@"trace.txt.gz"];
     _machine.reset(new EmuTOS(*roms[0], traceLocation.UTF8String));
     _machine->run_for(HalfCycles(length));
