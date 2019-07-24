@@ -334,6 +334,14 @@ class ProcessorStorage {
 			A program represents the implementation of a particular opcode, as a sequence
 			of micro-ops and, separately, the operation to perform plus whatever other
 			fields the operation requires.
+
+			TODO: this struct, as currently formed, is 48 bytes large on my 64-bit Intel
+			machine — 8 bytes for each of the pointers, plus 8 bytes for the non-pointer fields.
+			That means that the Program[65536] table is 3mb large. Far too huge for a cache.
+			So slim this, even if it makes things much more painful to dereference.
+
+			(Aside: the compiler seems to prefer 8-byte alignment so eliminating or slimming the
+			non-pointer fields doesn't seem to be helpful immediately.)
 		*/
 		struct Program {
 			MicroOp *micro_operations = nullptr;
