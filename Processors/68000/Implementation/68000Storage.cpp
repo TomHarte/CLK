@@ -473,7 +473,7 @@ struct ProcessorStorageConstructor {
 	void replace_write_values(ProcessorBase::MicroOp *start, const std::initializer_list<RegisterPair16 *> &values) {
 		auto value = values.begin();
 		while(!start->is_terminal()) {
-			value = replace_write_values(start->bus_program, value);
+			value = replace_write_values(&storage_.all_bus_steps_[start->bus_program], value);
 			++start;
 		}
 		assert(value == values.end());
@@ -827,10 +827,10 @@ struct ProcessorStorageConstructor {
 		// The arbitrary_base is used so that the offsets returned by assemble_program into
 		// storage_.all_bus_steps_ can be retained and mapped into the final version of
 		// storage_.all_bus_steps_ at the end.
-		BusStep arbitrary_base;
+//		BusStep arbitrary_base;
 
 #define op(...) 	storage_.all_micro_ops_.emplace_back(__VA_ARGS__)
-#define seq(...)	&arbitrary_base + assemble_program(__VA_ARGS__)
+#define seq(...)	assemble_program(__VA_ARGS__)
 #define ea(n)		&storage_.effective_address_[n].full
 #define a(n)		&storage_.address_[n].full
 
@@ -1774,7 +1774,7 @@ struct ProcessorStorageConstructor {
 								case Ind:		// BTST.b Dn, (An)
 								case PostInc:	// BTST.b Dn, (An)+
 									op(Action::None, seq("nrd np", { a(ea_register) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : MicroOp::NoBusProgram);
 									if(mode == PostInc) {
 										op(byte_inc(ea_register) | MicroOp::DestinationMask);
 									}
@@ -1782,7 +1782,7 @@ struct ProcessorStorageConstructor {
 
 								case PreDec:	// BTST.b Dn, -(An)
 									op(byte_dec(ea_register) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : MicroOp::NoBusProgram);
 								break;
 
 								case XXXl:		// BTST.b Dn, (xxx).l
@@ -1797,7 +1797,7 @@ struct ProcessorStorageConstructor {
 
 									op(	address_action_for_mode(mode) | MicroOp::DestinationMask,
 										seq(pseq("np nrd np", mode), { ea(1) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : MicroOp::NoBusProgram);
 								break;
 
 								case Imm:	// BTST.b Dn, #
@@ -1836,7 +1836,7 @@ struct ProcessorStorageConstructor {
 								case Ind:		// BTST.b #, (An)
 								case PostInc:	// BTST.b #, (An)+
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nrd np", { a(ea_register) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : MicroOp::NoBusProgram);
 									if(mode == PostInc) {
 										op(byte_inc(ea_register) | MicroOp::DestinationMask);
 									}
@@ -1845,7 +1845,7 @@ struct ProcessorStorageConstructor {
 								case PreDec:	// BTST.b #, -(An)
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(byte_dec(ea_register) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : MicroOp::NoBusProgram);
 								break;
 
 								case XXXw:		// BTST.b #, (xxx).w
@@ -1859,14 +1859,14 @@ struct ProcessorStorageConstructor {
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(	address_action_for_mode(mode) | MicroOp::DestinationMask,
 										seq(pseq("np nrd np", mode), { ea(1) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : MicroOp::NoBusProgram);
 								break;
 
 								case XXXl:	// BTST.b #, (xxx).l
 									op(	int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
 									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
 										seq("np nrd np", { ea(1) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : MicroOp::NoBusProgram);
 								break;
 							}
 						} break;
@@ -2452,7 +2452,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// PEA (XXX).l
 								case XXXw:		// PEA (XXX).w
-									op(int(Action::Decrement4) | MicroOp::DestinationMask, (mode == XXXl) ? seq("np") : nullptr);
+									op(int(Action::Decrement4) | MicroOp::DestinationMask, (mode == XXXl) ? seq("np") : MicroOp::NoBusProgram);
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
 									op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
@@ -3079,26 +3079,26 @@ struct ProcessorStorageConstructor {
 			Iterates through the micro-sequence beginning at @c start, finalising bus_program
 			pointers that have been transiently stored as relative to @c arbitrary_base.
 		*/
-		const auto link_operations = [this](MicroOp *start, BusStep *arbitrary_base) {
-			while(!start->is_terminal()) {
-				const auto offset = size_t(start->bus_program - arbitrary_base);
-				assert(offset >= 0 &&  offset < storage_.all_bus_steps_.size());
-				start->bus_program = &storage_.all_bus_steps_[offset];
-				++start;
-			}
-		};
+//		const auto link_operations = [this](MicroOp *start, BusStep *arbitrary_base) {
+//			while(!start->is_terminal()) {
+//				const auto offset = size_t(start->bus_program - arbitrary_base);
+//				assert(offset >= 0 &&  offset < storage_.all_bus_steps_.size());
+//				start->bus_program = &storage_.all_bus_steps_[offset];
+//				++start;
+//			}
+//		};
 
 		// Finalise micro-op and program pointers.
 		for(size_t instruction = 0; instruction < 65536; ++instruction) {
 			if(micro_op_pointers[instruction] != std::numeric_limits<size_t>::max()) {
 				storage_.instructions[instruction].micro_operations = uint32_t(micro_op_pointers[instruction]);
-				link_operations(&storage_.all_micro_ops_[micro_op_pointers[instruction]], &arbitrary_base);
+//				link_operations(&storage_.all_micro_ops_[micro_op_pointers[instruction]], &arbitrary_base);
 			}
 		}
 
 		// Link up the interrupt micro ops.
 		storage_.interrupt_micro_ops_ = &storage_.all_micro_ops_[interrupt_pointer];
-		link_operations(storage_.interrupt_micro_ops_, &arbitrary_base);
+//		link_operations(storage_.interrupt_micro_ops_, &arbitrary_base);
 
 		std::cout << storage_.all_bus_steps_.size() << " total bus steps" << std::endl;
 		std::cout << storage_.all_micro_ops_.size() << " total micro ops" << std::endl;
@@ -3249,7 +3249,7 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	//
 	// Assumed order of input: PC.h, SR, PC.l (i.e. the opposite of TRAP's output).
 	for(const int instruction: { 0x4e73, 0x4e77 }) {
-		auto steps = all_micro_ops_[instructions[instruction].micro_operations].bus_program;
+		auto steps = &all_bus_steps_[all_micro_ops_[instructions[instruction].micro_operations].bus_program];
 		steps[0].microcycle.value = steps[1].microcycle.value = &program_counter_.halves.high;
 		steps[4].microcycle.value = steps[5].microcycle.value = &program_counter_.halves.low;
 	}
@@ -3259,10 +3259,10 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 
 	// Complete linkage of the exception micro program.
 	short_exception_micro_ops_ = &all_micro_ops_[short_exception_offset];
-	short_exception_micro_ops_->bus_program = trap_steps_;
+	short_exception_micro_ops_->bus_program = trap_offset;
 
 	long_exception_micro_ops_ = &all_micro_ops_[long_exception_offset];
-	long_exception_micro_ops_->bus_program = bus_error_steps_;
+	long_exception_micro_ops_->bus_program = bus_error_offset;
 
 	// Set initial state.
 	active_step_ = reset_bus_steps_;

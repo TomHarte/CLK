@@ -107,7 +107,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							const auto offending_address = *active_step_->microcycle.address;
 							active_program_ = nullptr;
 							active_micro_op_ = long_exception_micro_ops_;
-							active_step_ = active_micro_op_->bus_program;
+							active_step_ = &all_bus_steps_[active_micro_op_->bus_program];
 							populate_bus_error_steps(2, get_status(), get_bus_code(), offending_address);
 						}
 					}
@@ -121,7 +121,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						const auto offending_address = *active_step_->microcycle.address;
 						active_program_ = nullptr;
 						active_micro_op_ = long_exception_micro_ops_;
-						active_step_ = active_micro_op_->bus_program;
+						active_step_ = &all_bus_steps_[active_micro_op_->bus_program];
 						populate_bus_error_steps(3, get_status(), get_bus_code(), offending_address);
 					}
 
@@ -243,7 +243,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					active_program_ = nullptr;
 					active_micro_op_ = interrupt_micro_ops_;
 					execution_state_ = ExecutionState::Executing;
-					active_step_ = active_micro_op_->bus_program;
+					active_step_ = &all_bus_steps_[active_micro_op_->bus_program];
 					is_starting_interrupt_ = true;
 				break;
 			}
@@ -356,13 +356,14 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						}
 					}
 
-					auto bus_program = active_micro_op_->bus_program;
+					auto bus_program = &all_bus_steps_[active_micro_op_->bus_program];
+					using int_type = decltype(active_micro_op_->action);
 					switch(active_micro_op_->action) {
 						default:
 							std::cerr << "Unhandled 68000 micro op action " << std::hex << active_micro_op_->action << " within instruction " << decoded_instruction_.full <<  std::endl;
 						break;
 
-						case int(MicroOp::Action::None): break;
+						case int_type(MicroOp::Action::None): break;
 
 #define offset_pointer(x)		reinterpret_cast<RegisterPair32 *>(&reinterpret_cast<uint8_t *>(static_cast<ProcessorStorage *>(this))[x])
 #define source()				offset_pointer(active_program_->source_offset)
@@ -370,7 +371,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #define destination()			offset_pointer(active_program_->destination_offset)
 #define destination_address()	address_[active_program_->source_dest & 7]
 
-						case int(MicroOp::Action::PerformOperation):
+						case int_type(MicroOp::Action::PerformOperation):
 #define sub_overflow() ((result ^ destination) & (destination ^ source))
 #define add_overflow() ((result ^ destination) & ~(destination ^ source))
 							switch(active_program_->operation) {
@@ -970,16 +971,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									Divisions.
 								*/
 
-#define announce_divide_by_zero()						\
-	negative_flag_ = overflow_flag_ = 0;				\
-	zero_result_ = 1;									\
-	active_program_ = nullptr;							\
-	active_micro_op_ = short_exception_micro_ops_;		\
-	bus_program = active_micro_op_->bus_program;		\
-														\
-	populate_trap_steps(5, get_status());				\
-	bus_program->microcycle.length = HalfCycles(20);	\
-														\
+#define announce_divide_by_zero()									\
+	negative_flag_ = overflow_flag_ = 0;							\
+	zero_result_ = 1;												\
+	active_program_ = nullptr;										\
+	active_micro_op_ = short_exception_micro_ops_;					\
+	bus_program = &all_bus_steps_[active_micro_op_->bus_program];	\
+																	\
+	populate_trap_steps(5, get_status());							\
+	bus_program->microcycle.length = HalfCycles(20);				\
+																	\
 	program_counter_.full -= 2;
 
 								case Operation::DIVU: {
@@ -1890,7 +1891,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef add_overflow
 						break;
 
-						case int(MicroOp::Action::MOVEMtoRComplete): {
+						case int_type(MicroOp::Action::MOVEMtoRComplete): {
 							// If this was a word-sized move, perform sign extension.
 							if(active_program_->operation == Operation::MOVEMtoRw) {
 								auto mask = next_word_;
@@ -1913,7 +1914,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 						} break;
 
-						case int(MicroOp::Action::MOVEMtoMComplete): {
+						case int_type(MicroOp::Action::MOVEMtoMComplete): {
 							const auto mode = (decoded_instruction_.full >> 3) & 7;
 							if(mode == 4) {
 								const auto reg = decoded_instruction_.full & 7;
@@ -1921,7 +1922,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 						} break;
 
-						case int(MicroOp::Action::PrepareJSR): {
+						case int_type(MicroOp::Action::PrepareJSR): {
 							const auto mode = (decoded_instruction_.full >> 3) & 7;
 							// Determine the proper resumption address.
 							switch(mode) {
@@ -1934,25 +1935,25 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							effective_address_[1].full = address_[7].full;
 						} break;
 
-						case int(MicroOp::Action::PrepareBSR):
+						case int_type(MicroOp::Action::PrepareBSR):
 							destination_bus_data_[0].full = (decoded_instruction_.full & 0xff) ? program_counter_.full - 2 : program_counter_.full;
 							address_[7].full -= 4;
 							effective_address_[1].full = address_[7].full;
 						break;
 
-						case int(MicroOp::Action::PrepareRTS):
+						case int_type(MicroOp::Action::PrepareRTS):
 							effective_address_[0].full = address_[7].full;
 							address_[7].full += 4;
 						break;
 
-						case int(MicroOp::Action::PrepareRTE_RTR):
+						case int_type(MicroOp::Action::PrepareRTE_RTR):
 							precomputed_addresses_[0] = address_[7].full + 2;
 							precomputed_addresses_[1] = address_[7].full;
 							precomputed_addresses_[2] = address_[7].full + 4;
 							address_[7].full += 6;
 						break;
 
-						case int(MicroOp::Action::PrepareINT):
+						case int_type(MicroOp::Action::PrepareINT):
 							// The INT sequence uses the same storage as the TRAP steps, so this'll get
 							// the necessary stack work set up.
 							populate_trap_steps(0, get_status());
@@ -1969,7 +1970,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							program_counter_.full -= 4;
 						break;
 
-						case int(MicroOp::Action::PrepareINTVector):
+						case int_type(MicroOp::Action::PrepareINTVector):
 							// Let bus error go back to causing exceptions.
 							is_starting_interrupt_ = false;
 
@@ -1989,7 +1990,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							effective_address_[0].full = uint32_t(source_bus_data_[0].halves.low.halves.low << 2);
 						break;
 
-						case int(MicroOp::Action::CopyNextWord):
+						case int_type(MicroOp::Action::CopyNextWord):
 							next_word_ = prefetch_queue_.halves.low.full;
 						break;
 
@@ -1997,9 +1998,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #define op_add(x, y) x += y
 #define op_sub(x, y) x -= y
 #define Adjust(op, quantity, effect)	\
-	case int(op) | MicroOp::SourceMask:			effect(source_address().full, quantity);		break;	\
-	case int(op) | MicroOp::DestinationMask:	effect(destination_address().full, quantity);	break;	\
-	case int(op) | MicroOp::SourceMask | MicroOp::DestinationMask:	\
+	case int_type(op) | MicroOp::SourceMask:		effect(source_address().full, quantity);		break;	\
+	case int_type(op) | MicroOp::DestinationMask:	effect(destination_address().full, quantity);	break;	\
+	case int_type(op) | MicroOp::SourceMask | MicroOp::DestinationMask:	\
 		effect(destination_address().full, quantity);	\
 		effect(source_address().full, quantity);	\
 	break;
@@ -2015,7 +2016,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #undef op_add
 #undef op_sub
 
-						case int(MicroOp::Action::SignExtendWord):
+						case int_type(MicroOp::Action::SignExtendWord):
 							if(active_micro_op_->action & MicroOp::SourceMask) {
 								source()->halves.high.full =
 									(source()->halves.low.full & 0x8000) ? 0xffff : 0x0000;
@@ -2026,7 +2027,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 						break;
 
-						case int(MicroOp::Action::SignExtendByte):
+						case int_type(MicroOp::Action::SignExtendByte):
 							if(active_micro_op_->action & MicroOp::SourceMask) {
 								source()->full = (source()->full & 0xff) |
 									(source()->full & 0x80) ? 0xffffff : 0x000000;
@@ -2039,32 +2040,32 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 						// 16-bit offset addressing modes.
 
-						case int(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask:
+						case int_type(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask:
 							// The address the low part of the prefetch queue was read from was two bytes ago, hence
 							// the subtraction of 2.
 							effective_address_[0] = u_extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
-						case int(MicroOp::Action::CalcD16PC) | MicroOp::DestinationMask:
+						case int_type(MicroOp::Action::CalcD16PC) | MicroOp::DestinationMask:
 							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
-						case int(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask | MicroOp::DestinationMask:
+						case int_type(MicroOp::Action::CalcD16PC) | MicroOp::SourceMask | MicroOp::DestinationMask:
 							// Similar logic applies here to above, but the high part of the prefetch queue was four bytes
 							// ago rather than merely two.
 							effective_address_[0] = u_extend16(prefetch_queue_.halves.high.full) + program_counter_.full - 4;
 							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + program_counter_.full - 2;
 						break;
 
-						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask:
+						case int_type(MicroOp::Action::CalcD16An) | MicroOp::SourceMask:
 							effective_address_[0] = u_extend16(prefetch_queue_.halves.low.full) + source_address().full;
 						break;
 
-						case int(MicroOp::Action::CalcD16An) | MicroOp::DestinationMask:
+						case int_type(MicroOp::Action::CalcD16An) | MicroOp::DestinationMask:
 							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + destination_address().full;
 						break;
 
-						case int(MicroOp::Action::CalcD16An) | MicroOp::SourceMask | MicroOp::DestinationMask:
+						case int_type(MicroOp::Action::CalcD16An) | MicroOp::SourceMask | MicroOp::DestinationMask:
 							effective_address_[0] = u_extend16(prefetch_queue_.halves.high.full) + source_address().full;
 							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full) + destination_address().full;
 						break;
@@ -2080,75 +2081,75 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 		target.full += u_extend16(displacement.halves.low.full);	\
 	}	\
 }
-						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask: {
+						case int_type(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask: {
 							CalculateD8AnXn(prefetch_queue_.halves.low, source_address().full, effective_address_[0]);
 						} break;
 
-						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::DestinationMask: {
+						case int_type(MicroOp::Action::CalcD8AnXn) | MicroOp::DestinationMask: {
 							CalculateD8AnXn(prefetch_queue_.halves.low, destination_address().full, effective_address_[1]);
 						} break;
 
-						case int(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask | MicroOp::DestinationMask: {
+						case int_type(MicroOp::Action::CalcD8AnXn) | MicroOp::SourceMask | MicroOp::DestinationMask: {
 							CalculateD8AnXn(prefetch_queue_.halves.high, source_address().full, effective_address_[0]);
 							CalculateD8AnXn(prefetch_queue_.halves.low, destination_address().full, effective_address_[1]);
 						} break;
 
-						case int(MicroOp::Action::CalcD8PCXn) | MicroOp::SourceMask: {
+						case int_type(MicroOp::Action::CalcD8PCXn) | MicroOp::SourceMask: {
 							CalculateD8AnXn(prefetch_queue_.halves.low, program_counter_.full - 2, effective_address_[0]);
 						} break;
 
-						case int(MicroOp::Action::CalcD8PCXn) | MicroOp::DestinationMask: {
+						case int_type(MicroOp::Action::CalcD8PCXn) | MicroOp::DestinationMask: {
 							CalculateD8AnXn(prefetch_queue_.halves.low, program_counter_.full - 2, effective_address_[1]);
 						} break;
 
-						case int(MicroOp::Action::CalcD8PCXn) | MicroOp::SourceMask | MicroOp::DestinationMask: {
+						case int_type(MicroOp::Action::CalcD8PCXn) | MicroOp::SourceMask | MicroOp::DestinationMask: {
 							CalculateD8AnXn(prefetch_queue_.halves.high, program_counter_.full - 4, effective_address_[0]);
 							CalculateD8AnXn(prefetch_queue_.halves.low, program_counter_.full - 2, effective_address_[1]);
 						} break;
 
 #undef CalculateD8AnXn
 
-						case int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask:
+						case int_type(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::SourceMask:
 							effective_address_[0] = u_extend16(prefetch_queue_.halves.low.full);
 						break;
 
-						case int(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask:
+						case int_type(MicroOp::Action::AssembleWordAddressFromPrefetch) | MicroOp::DestinationMask:
 							effective_address_[1] = u_extend16(prefetch_queue_.halves.low.full);
 						break;
 
-						case int(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask:
+						case int_type(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::SourceMask:
 							effective_address_[0] = prefetch_queue_.full;
 						break;
 
-						case int(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask:
+						case int_type(MicroOp::Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask:
 							effective_address_[1] = prefetch_queue_.full;
 						break;
 
-						case int(MicroOp::Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask:
+						case int_type(MicroOp::Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask:
 							source_bus_data_[0] = prefetch_queue_.halves.low.full;
 						break;
 
-						case int(MicroOp::Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask:
+						case int_type(MicroOp::Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask:
 							destination_bus_data_[0] = prefetch_queue_.halves.low.full;
 						break;
 
-						case int(MicroOp::Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask:
+						case int_type(MicroOp::Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask:
 							source_bus_data_[0] = prefetch_queue_.full;
 						break;
 
-						case int(MicroOp::Action::AssembleLongWordDataFromPrefetch) | MicroOp::DestinationMask:
+						case int_type(MicroOp::Action::AssembleLongWordDataFromPrefetch) | MicroOp::DestinationMask:
 							destination_bus_data_[0] = prefetch_queue_.full;
 						break;
 
-						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::SourceMask:
+						case int_type(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::SourceMask:
 							effective_address_[0] = source_address();
 						break;
 
-						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::DestinationMask:
+						case int_type(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::DestinationMask:
 							effective_address_[1] = destination_address();
 						break;
 
-						case int(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::SourceMask | MicroOp::DestinationMask:
+						case int_type(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::SourceMask | MicroOp::DestinationMask:
 							effective_address_[0] = source_address();
 							effective_address_[1] = destination_address();
 						break;

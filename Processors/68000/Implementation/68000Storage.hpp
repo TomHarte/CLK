@@ -216,7 +216,7 @@ class ProcessorStorage {
 			be performed.
 		*/
 		struct MicroOp {
-			enum class Action: int {
+			enum class Action: uint8_t {
 				None,
 
 				/// Does whatever this instruction says is the main operation.
@@ -312,21 +312,22 @@ class ProcessorStorage {
 				// steps detail appropriately.
 				PrepareINTVector,
 			};
-			static const int SourceMask = 1 << 30;
-			static const int DestinationMask = 1 << 29;
-			int action = int(Action::None);
+			static const int SourceMask = 1 << 7;
+			static const int DestinationMask = 1 << 6;
+			uint8_t action = uint8_t(Action::None);
 
-			BusStep *bus_program = nullptr;
+			static const uint16_t NoBusProgram = std::numeric_limits<uint16_t>::max();
+			uint16_t bus_program = NoBusProgram;
 
 			MicroOp() {}
-			MicroOp(int action) : action(action) {}
-			MicroOp(int action, BusStep *bus_program) : action(action), bus_program(bus_program) {}
+			MicroOp(uint8_t action) : action(action) {}
+			MicroOp(uint8_t action, uint16_t bus_program) : action(action), bus_program(bus_program) {}
 
-			MicroOp(Action action) : MicroOp(int(action)) {}
-			MicroOp(Action action, BusStep *bus_program) : MicroOp(int(action), bus_program) {}
+			MicroOp(Action action) : MicroOp(uint8_t(action)) {}
+			MicroOp(Action action, uint16_t bus_program) : MicroOp(uint8_t(action), bus_program) {}
 
 			forceinline bool is_terminal() const {
-				return bus_program == nullptr;
+				return bus_program == std::numeric_limits<uint16_t>::max();
 			}
 		};
 
