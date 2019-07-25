@@ -9,6 +9,7 @@
 #ifndef MC68000_h
 #define MC68000_h
 
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
