@@ -344,7 +344,8 @@ class ProcessorStorage {
 			remaining fields, with no additional padding being inserted by the compiler.
 		*/
 		struct Program {
-			/// The offset into the all_micro_ops_ at which micro-ops for this instruction begin.
+			/// The offset into the all_micro_ops_ at which micro-ops for this instruction begin,
+			/// or std::numeric_limits<uint32_t>::max() if this is an invalid Program.
 			uint32_t micro_operations = std::numeric_limits<uint32_t>::max();
 			/// The overarching operation applied by this program when the moment comes.
 			Operation operation;
