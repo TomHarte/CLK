@@ -867,7 +867,7 @@ struct ProcessorStorageConstructor {
 
 					switch(mapping.decoder) {
 						case Decoder::STOP: {
-							program.requires_supervisor = true;
+							program.set_requires_supervisor(true);
 							op(Action::None, seq("n"));
 							op(Action::PerformOperation);
 						} break;
@@ -973,7 +973,7 @@ struct ProcessorStorageConstructor {
 
 						case Decoder::EORI_ORI_ANDI_SR: {
 							// The source used here is always the high word of the prefetch queue.
-							program.requires_supervisor = !!(instruction & 0x40);
+							program.set_requires_supervisor(!!(instruction & 0x40));
 							op(Action::None, seq("np nn nn"));
 							op(Action::PerformOperation, seq("np np"));
 						} break;
@@ -1011,7 +1011,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::RTE_RTR: {
-							program.requires_supervisor = instruction == 0x4e73;
+							program.set_requires_supervisor(instruction == 0x4e73);
 
 							// TODO: something explicit to ensure the nR nr nr is exclusively linked.
 							op(Action::PrepareRTE_RTR, seq("nR nr nr", { &storage_.precomputed_addresses_[0], &storage_.precomputed_addresses_[1], &storage_.precomputed_addresses_[2] } ));
@@ -2082,12 +2082,12 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case bw(Imm):		// CMP.br #, Dn
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::PerformOperation, seq("np np"));
 								break;
 
 								case l(Imm):		// CMP.l #, Dn
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::None, seq("np"));
 									op(Action::PerformOperation, seq("np np n"));
 								break;
@@ -2164,12 +2164,12 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case bw(Imm):		// CMPA.w #, An
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::PerformOperation, seq("np np n"));
 								break;
 
 								case l(Imm):		// CMPA.l #, An
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::None, seq("np"));
 									op(Action::PerformOperation, seq("np np n"));
 								break;
@@ -2190,12 +2190,12 @@ struct ProcessorStorageConstructor {
 								default: continue;
 
 								case bw(Dn):		// CMPI.bw #, Dn
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::PerformOperation, seq("np np"));
 								break;
 
 								case l(Dn):			// CMPI.l #, Dn
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::None, seq("np"));
 									op(Action::PerformOperation, seq("np np n"));
 								break;
@@ -2363,7 +2363,7 @@ struct ProcessorStorageConstructor {
 							program.set_source(storage_, ea_mode, ea_register);
 
 							// ... but otherwise assume that the true source of a destination will be the computed source address.
-							program.source = &storage_.effective_address_[0];
+							program.set_source(storage_, &storage_.effective_address_[0]);
 
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
@@ -2475,10 +2475,10 @@ struct ProcessorStorageConstructor {
 
 							const int mode = combined_mode(ea_mode, ea_register);
 							program.set_source_address(storage_, ea_register);
-							program.source =
+							program.set_source(storage_,
 								(mode == Ind) ?
 									&storage_.address_[ea_register] :
-									&storage_.effective_address_[0];
+									&storage_.effective_address_[0]);
 
 							switch(mode) {
 								default: continue;
@@ -2544,7 +2544,7 @@ struct ProcessorStorageConstructor {
 						case Decoder::MOVEtoSRCCR: {
 							if(ea_mode == An) continue;
 							program.set_source(storage_, ea_mode, ea_register);
-							program.requires_supervisor = (operation == Operation::MOVEtoSR);
+							program.set_requires_supervisor(operation == Operation::MOVEtoSR);
 
 							/* DEVIATION FROM YACHT.TXT: it has all of these reading an extra word from the PC;
 							this looks like a mistake so I've padded with nil cycles in the middle. */
@@ -2582,7 +2582,7 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case Imm:	// MOVE #, SR
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(int(Action::PerformOperation), seq("np nn nn np"));
 								break;
 							}
@@ -2670,18 +2670,18 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::MOVEUSP: {
-							program.requires_supervisor = true;
+							program.set_requires_supervisor(true);
 
 							// Observation here: because this is a privileged instruction, the user stack pointer
 							// definitely isn't currently [copied into] A7.
 							if(instruction & 0x8) {
 								// Transfer FROM the USP.
-								program.source = &storage_.stack_pointers_[0];
+								program.set_source(storage_, &storage_.stack_pointers_[0]);
 								program.set_destination(storage_, An, ea_register);
 							} else {
 								// Transfer TO the USP.
 								program.set_source(storage_, An, ea_register);
-								program.destination = &storage_.stack_pointers_[0];
+								program.set_destination(storage_, &storage_.stack_pointers_[0]);
 							}
 
 							op(Action::PerformOperation, seq("np"));
@@ -2869,7 +2869,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::RESET:
-							program.requires_supervisor = true;
+							program.set_requires_supervisor(true);
 							op(Action::None, seq("nn _ np"));
 						break;
 
@@ -3091,8 +3091,8 @@ struct ProcessorStorageConstructor {
 		// Finalise micro-op and program pointers.
 		for(size_t instruction = 0; instruction < 65536; ++instruction) {
 			if(micro_op_pointers[instruction] != std::numeric_limits<size_t>::max()) {
-				storage_.instructions[instruction].micro_operations = &storage_.all_micro_ops_[micro_op_pointers[instruction]];
-				link_operations(storage_.instructions[instruction].micro_operations, &arbitrary_base);
+				storage_.instructions[instruction].micro_operations = uint32_t(micro_op_pointers[instruction]);
+				link_operations(&storage_.all_micro_ops_[micro_op_pointers[instruction]], &arbitrary_base);
 			}
 		}
 
@@ -3100,7 +3100,8 @@ struct ProcessorStorageConstructor {
 		storage_.interrupt_micro_ops_ = &storage_.all_micro_ops_[interrupt_pointer];
 		link_operations(storage_.interrupt_micro_ops_, &arbitrary_base);
 
-		std::cout << storage_.all_bus_steps_.size() << " total steps" << std::endl;
+		std::cout << storage_.all_bus_steps_.size() << " total bus steps" << std::endl;
+		std::cout << storage_.all_micro_ops_.size() << " total micro ops" << std::endl;
 	}
 
 	private:
@@ -3248,7 +3249,7 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	//
 	// Assumed order of input: PC.h, SR, PC.l (i.e. the opposite of TRAP's output).
 	for(const int instruction: { 0x4e73, 0x4e77 }) {
-		auto steps = instructions[instruction].micro_operations[0].bus_program;
+		auto steps = all_micro_ops_[instructions[instruction].micro_operations].bus_program;
 		steps[0].microcycle.value = steps[1].microcycle.value = &program_counter_.halves.high;
 		steps[4].microcycle.value = steps[5].microcycle.value = &program_counter_.halves.low;
 	}

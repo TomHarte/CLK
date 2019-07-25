@@ -74,7 +74,7 @@ class ProcessorStorage {
 		HalfCycles half_cycles_left_to_run_;
 		HalfCycles e_clock_phase_;
 
-		enum class Operation {
+		enum class Operation: uint8_t {
 			None,
 			ABCD,	SBCD,	NBCD,
 
@@ -335,21 +335,30 @@ class ProcessorStorage {
 			of micro-ops and, separately, the operation to perform plus whatever other
 			fields the operation requires.
 
-			TODO: this struct, as currently formed, is 48 bytes large on my 64-bit Intel
-			machine — 8 bytes for each of the pointers, plus 8 bytes for the non-pointer fields.
-			That means that the Program[65536] table is 3mb large. Far too huge for a cache.
-			So slim this, even if it makes things much more painful to dereference.
+			Some of the fields are slightly convoluted in how they identify the information
+			they reference; this is done to keep this struct as small as possible due to
+			concerns about cache size.
 
-			(Aside: the compiler seems to prefer 8-byte alignment so eliminating or slimming the
-			non-pointer fields doesn't seem to be helpful immediately.)
+			On the 64-bit Intel processor this emulator was developed on, the struct below
+			adds up to 8 bytes; four for the initial uint32_t and then one each for the
+			remaining fields, with no additional padding being inserted by the compiler.
 		*/
 		struct Program {
+			/// The offset into the all_micro_ops_ at which micro-ops for this instruction begin.
+			uint32_t micro_operations = std::numeric_limits<uint32_t>::max();
+			/// The overarching operation applied by this program when the moment comes.
 			Operation operation;
+			/// The number of bytes after the beginning of an instance of ProcessorStorage that the RegisterPair32 containing
+			/// a source value for this operation lies at.
+			uint8_t source_offset = 0;
+			/// The number of bytes after the beginning of an instance of ProcessorStorage that the RegisterPair32 containing
+			/// a destination value for this operation lies at.
+			uint8_t destination_offset = 0;
+			/// A bitfield comprised of:
+			///	b7 = set if this program requires supervisor mode;
+			/// b0–b2 = the source address register (for pre-decrement and post-increment actions); and
+			/// b4-b6 = destination address register.
 			uint8_t source_dest = 0;
-			bool requires_supervisor = false;
-			MicroOp *micro_operations = nullptr;
-			RegisterPair32 *source = nullptr;
-			RegisterPair32 *destination = nullptr;
 
 			void set_source_address(ProcessorStorage &storage, int index) {
 				source_dest = uint8_t((source_dest & 0x0f) | (index << 4));
@@ -359,12 +368,18 @@ class ProcessorStorage {
 				source_dest = uint8_t((source_dest & 0xf0) | index);
 			}
 
+			void set_requires_supervisor(bool requires_supervisor) {
+				source_dest = (source_dest & 0x7f) | (requires_supervisor ? 0x80 : 0x00);
+			}
+
 			void set_source(ProcessorStorage &storage, RegisterPair32 *target) {
-				source = target;
+				source_offset = decltype(source_offset)(reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage));
+				assert(source_offset == (reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage)));
 			}
 
 			void set_destination(ProcessorStorage &storage, RegisterPair32 *target) {
-				destination = target;
+				destination_offset = decltype(destination_offset)(reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage));
+				assert(destination_offset == (reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage)));
 			}
 
 			void set_source(ProcessorStorage &storage, int mode, int reg) {

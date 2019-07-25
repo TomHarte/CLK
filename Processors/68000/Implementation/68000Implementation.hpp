@@ -316,8 +316,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 //							should_log = (fetched_pc >= 0x408D66) && (fetched_pc <= 0x408D84);
 #endif
 
-							if(instructions[decoded_instruction_.full].micro_operations) {
-								if(instructions[decoded_instruction_.full].requires_supervisor && !is_supervisor_) {
+							if(instructions[decoded_instruction_.full].micro_operations != std::numeric_limits<uint32_t>::max()) {
+								if((instructions[decoded_instruction_.full].source_dest & 0x80) && !is_supervisor_) {
 									// A privilege violation has been detected.
 									active_program_ = nullptr;
 									active_micro_op_ = short_exception_micro_ops_;
@@ -325,7 +325,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								} else {
 									// Standard instruction dispatch.
 									active_program_ = &instructions[decoded_instruction_.full];
-									active_micro_op_ = active_program_->micro_operations;
+									active_micro_op_ = &all_micro_ops_[active_program_->micro_operations];
 								}
 							} else {
 								// The opcode fetched isn't valid.
@@ -364,10 +364,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 						case int(MicroOp::Action::None): break;
 
-#define source()				active_program_->source
-#define source_address()		address_[active_program_->source_dest >> 4]
-#define destination()			active_program_->destination
-#define destination_address()	address_[active_program_->source_dest & 0x0f]
+#define offset_pointer(x)		reinterpret_cast<RegisterPair32 *>(&reinterpret_cast<uint8_t *>(static_cast<ProcessorStorage *>(this))[x])
+#define source()				offset_pointer(active_program_->source_offset)
+#define source_address()		address_[(active_program_->source_dest >> 4) & 7]
+#define destination()			offset_pointer(active_program_->destination_offset)
+#define destination_address()	address_[active_program_->source_dest & 7]
 
 						case int(MicroOp::Action::PerformOperation):
 #define sub_overflow() ((result ^ destination) & (destination ^ source))
