@@ -35,6 +35,13 @@ class z8530 {
 		void reset();
 		bool get_interrupt_line();
 
+		struct Delegate {
+			virtual void did_change_interrupt_status(z8530 *, bool new_status) = 0;
+		};
+		void set_delegate(Delegate *delegate) {
+			delegate_ = delegate;
+		}
+
 		/*
 			**Interface for serial port input.**
 		*/
@@ -79,6 +86,10 @@ class z8530 {
 		uint8_t interrupt_vector_ = 0;
 
 		uint8_t master_interrupt_control_ = 0;
+
+		bool previous_interrupt_line_ = false;
+		void update_delegate();
+		Delegate *delegate_ = nullptr;
 };
 
 }

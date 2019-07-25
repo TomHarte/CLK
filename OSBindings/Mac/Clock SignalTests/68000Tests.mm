@@ -49,7 +49,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 				if(!strcmp(type, "VA")) {
 					// Test for validity.
-					if(!storage.instructions[next_opcode].micro_operations) {
+					if(storage.instructions[next_opcode].micro_operations == std::numeric_limits<uint32_t>::max()) {
 						[false_invalids_ addObject:@(next_opcode)];
 					}
 					continue;
@@ -57,7 +57,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 				if(!strcmp(type, "IN")) {
 					// Test for invalidity.
-					if(storage.instructions[next_opcode].micro_operations) {
+					if(storage.instructions[next_opcode].micro_operations != std::numeric_limits<uint32_t>::max()) {
 						[false_valids_ addObject:@(next_opcode)];
 					}
 					continue;

@@ -9,10 +9,12 @@
 #ifndef MC68000_h
 #define MC68000_h
 
+#include <cassert>
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
 #include <iostream>
+#include <limits>
 #include <ostream>
 #include <vector>
 

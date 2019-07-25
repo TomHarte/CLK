@@ -473,7 +473,7 @@ struct ProcessorStorageConstructor {
 	void replace_write_values(ProcessorBase::MicroOp *start, const std::initializer_list<RegisterPair16 *> &values) {
 		auto value = values.begin();
 		while(!start->is_terminal()) {
-			value = replace_write_values(start->bus_program, value);
+			value = replace_write_values(&storage_.all_bus_steps_[start->bus_program], value);
 			++start;
 		}
 		assert(value == values.end());
@@ -827,10 +827,10 @@ struct ProcessorStorageConstructor {
 		// The arbitrary_base is used so that the offsets returned by assemble_program into
 		// storage_.all_bus_steps_ can be retained and mapped into the final version of
 		// storage_.all_bus_steps_ at the end.
-		BusStep arbitrary_base;
+//		BusStep arbitrary_base;
 
 #define op(...) 	storage_.all_micro_ops_.emplace_back(__VA_ARGS__)
-#define seq(...)	&arbitrary_base + assemble_program(__VA_ARGS__)
+#define seq(...)	assemble_program(__VA_ARGS__)
 #define ea(n)		&storage_.effective_address_[n].full
 #define a(n)		&storage_.address_[n].full
 
@@ -862,16 +862,12 @@ struct ProcessorStorageConstructor {
 					// Temporary storage for the Program fields.
 					ProcessorBase::Program program;
 
-//					if(instruction == 0x4879) {
-//						printf("");
-//					}
-
 #define dec(n) decrement_action(is_long_word_access, is_byte_access, n)
 #define inc(n) increment_action(is_long_word_access, is_byte_access, n)
 
 					switch(mapping.decoder) {
 						case Decoder::STOP: {
-							program.requires_supervisor = true;
+							program.set_requires_supervisor(true);
 							op(Action::None, seq("n"));
 							op(Action::PerformOperation);
 						} break;
@@ -977,7 +973,7 @@ struct ProcessorStorageConstructor {
 
 						case Decoder::EORI_ORI_ANDI_SR: {
 							// The source used here is always the high word of the prefetch queue.
-							program.requires_supervisor = !!(instruction & 0x40);
+							program.set_requires_supervisor(!!(instruction & 0x40));
 							op(Action::None, seq("np nn nn"));
 							op(Action::PerformOperation, seq("np np"));
 						} break;
@@ -1015,7 +1011,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::RTE_RTR: {
-							program.requires_supervisor = instruction == 0x4e73;
+							program.set_requires_supervisor(instruction == 0x4e73);
 
 							// TODO: something explicit to ensure the nR nr nr is exclusively linked.
 							op(Action::PrepareRTE_RTR, seq("nR nr nr", { &storage_.precomputed_addresses_[0], &storage_.precomputed_addresses_[1], &storage_.precomputed_addresses_[2] } ));
@@ -1269,13 +1265,8 @@ struct ProcessorStorageConstructor {
 
 							// Source is always something cribbed from the instruction stream;
 							// destination is going to be in the write address unit.
-							program.source = &storage_.source_bus_data_[0];
-							if(mode == Dn) {
-								program.destination = &storage_.data_[ea_register];
-							} else {
-								program.destination = &storage_.destination_bus_data_[0];
-								program.destination_address = &storage_.address_[ea_register];
-							}
+							program.set_source(storage_, Imm, 0);
+							program.set_destination(storage_, mode, ea_register);
 
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
 								default: continue;
@@ -1371,33 +1362,36 @@ struct ProcessorStorageConstructor {
 							const int mode = combined_mode(ea_mode, ea_register);
 
 							if(reverse_source_destination) {
-								program.destination = &storage_.data_[data_register];
-								program.source = &storage_.source_bus_data_[0];
-								program.source_address = &storage_.address_[ea_register];
+								program.set_destination(storage_, Dn, data_register);
+								program.set_source(storage_, Imm, ea_register);
 
 								// Perform [ADD/SUB].blw <ea>, Dn
 								switch(is_long_word_access ? l(mode) : bw(mode)) {
 									default: continue;
 
 									case bw(Dn):		// ADD/SUB.bw Dn, Dn
-										program.source = &storage_.data_[ea_register];
+										program.set_source(storage_, Dn, ea_register);
+//										program.source = &storage_.data_[ea_register];
 										op(Action::PerformOperation, seq("np"));
 									break;
 
 									case l(Dn): 		// ADD/SUB.l Dn, Dn
-										program.source = &storage_.data_[ea_register];
+										program.set_source(storage_, Dn, ea_register);
+//										program.source = &storage_.data_[ea_register];
 										op(Action::PerformOperation, seq("np nn"));
 									break;
 
 									case bw(An):		// ADD/SUB.bw An, Dn
 										// Address registers can't provide single bytes.
 										if(is_byte_access) continue;
-										program.source = &storage_.address_[ea_register];
+										program.set_source(storage_, An, ea_register);
+//										program.source = &storage_.address_[ea_register];
 										op(Action::PerformOperation, seq("np"));
 									break;
 
 									case l(An):			// ADD/SUB.l An, Dn
-										program.source = &storage_.address_[ea_register];
+										program.set_source(storage_, An, ea_register);
+//										program.source = &storage_.address_[ea_register];
 										op(Action::PerformOperation, seq("np nn"));
 									break;
 
@@ -1469,11 +1463,9 @@ struct ProcessorStorageConstructor {
 									break;
 								}
 							} else {
-								program.source = &storage_.data_[data_register];
-
 								const auto destination_register = ea_register;
-								program.destination = &storage_.destination_bus_data_[0];
-								program.destination_address = &storage_.address_[destination_register];
+								program.set_destination(storage_, Ind, destination_register);
+								program.set_source(storage_, Dn, data_register);
 
 								// Perform [ADD/SUB].blw Dn, <ea>
 								switch(is_long_word_access ? l(mode) : bw(mode)) {
@@ -1782,7 +1774,7 @@ struct ProcessorStorageConstructor {
 								case Ind:		// BTST.b Dn, (An)
 								case PostInc:	// BTST.b Dn, (An)+
 									op(Action::None, seq("nrd np", { a(ea_register) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : MicroOp::NoBusProgram);
 									if(mode == PostInc) {
 										op(byte_inc(ea_register) | MicroOp::DestinationMask);
 									}
@@ -1790,7 +1782,7 @@ struct ProcessorStorageConstructor {
 
 								case PreDec:	// BTST.b Dn, -(An)
 									op(byte_dec(ea_register) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : MicroOp::NoBusProgram);
 								break;
 
 								case XXXl:		// BTST.b Dn, (xxx).l
@@ -1805,7 +1797,7 @@ struct ProcessorStorageConstructor {
 
 									op(	address_action_for_mode(mode) | MicroOp::DestinationMask,
 										seq(pseq("np nrd np", mode), { ea(1) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : MicroOp::NoBusProgram);
 								break;
 
 								case Imm:	// BTST.b Dn, #
@@ -1822,7 +1814,7 @@ struct ProcessorStorageConstructor {
 						case Decoder::BTSTIMM: {
 							const bool is_bclr = mapping.decoder == Decoder::BCLRIMM;
 
-							program.source = &storage_.source_bus_data_[0];
+							program.set_source(storage_, Imm, 0);
 							program.set_destination(storage_, ea_mode, ea_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
@@ -1844,7 +1836,7 @@ struct ProcessorStorageConstructor {
 								case Ind:		// BTST.b #, (An)
 								case PostInc:	// BTST.b #, (An)+
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np nrd np", { a(ea_register) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : MicroOp::NoBusProgram);
 									if(mode == PostInc) {
 										op(byte_inc(ea_register) | MicroOp::DestinationMask);
 									}
@@ -1853,7 +1845,7 @@ struct ProcessorStorageConstructor {
 								case PreDec:	// BTST.b #, -(An)
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(byte_dec(ea_register) | MicroOp::DestinationMask, seq("n nrd np", { a(ea_register) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { a(ea_register) }, false) : MicroOp::NoBusProgram);
 								break;
 
 								case XXXw:		// BTST.b #, (xxx).w
@@ -1867,14 +1859,14 @@ struct ProcessorStorageConstructor {
 									op(int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np"));
 									op(	address_action_for_mode(mode) | MicroOp::DestinationMask,
 										seq(pseq("np nrd np", mode), { ea(1) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : MicroOp::NoBusProgram);
 								break;
 
 								case XXXl:	// BTST.b #, (xxx).l
 									op(	int(Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask, seq("np np"));
 									op(	int(Action::AssembleLongWordAddressFromPrefetch) | MicroOp::DestinationMask,
 										seq("np nrd np", { ea(1) }, false));
-									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : nullptr);
+									op(Action::PerformOperation, is_bclr ? seq("nw", { ea(1) }, false) : MicroOp::NoBusProgram);
 								break;
 							}
 						} break;
@@ -2013,7 +2005,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::CMP: {
-							program.destination = &storage_.data_[data_register];
+							program.set_destination(storage_, Dn, data_register);
 							program.set_source(storage_, ea_mode, ea_register);
 
 							// Byte accesses are not allowed with address registers.
@@ -2090,12 +2082,12 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case bw(Imm):		// CMP.br #, Dn
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::PerformOperation, seq("np np"));
 								break;
 
 								case l(Imm):		// CMP.l #, Dn
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::None, seq("np"));
 									op(Action::PerformOperation, seq("np np n"));
 								break;
@@ -2109,7 +2101,7 @@ struct ProcessorStorageConstructor {
 							is_long_word_access = op_mode == 7;
 
 							program.set_source(storage_, ea_mode, ea_register);
-							program.destination = &storage_.address_[data_register];
+							program.set_destination(storage_, An, data_register);
 
 							const int mode = combined_mode(ea_mode, ea_register, true);
 							switch(is_long_word_access ? l(mode) : bw(mode)) {
@@ -2172,12 +2164,12 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case bw(Imm):		// CMPA.w #, An
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::PerformOperation, seq("np np n"));
 								break;
 
 								case l(Imm):		// CMPA.l #, An
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::None, seq("np"));
 									op(Action::PerformOperation, seq("np np n"));
 								break;
@@ -2190,7 +2182,7 @@ struct ProcessorStorageConstructor {
 							const auto destination_mode = ea_mode;
 							const auto destination_register = ea_register;
 
-							program.source = &storage_.source_bus_data_[0];
+							program.set_source(storage_, Imm, 0);	// i.e. from the fetched data latch.
 							program.set_destination(storage_, destination_mode, destination_register);
 
 							const int mode = combined_mode(destination_mode, destination_register);
@@ -2198,12 +2190,12 @@ struct ProcessorStorageConstructor {
 								default: continue;
 
 								case bw(Dn):		// CMPI.bw #, Dn
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::PerformOperation, seq("np np"));
 								break;
 
 								case l(Dn):			// CMPI.l #, Dn
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(Action::None, seq("np"));
 									op(Action::PerformOperation, seq("np np n"));
 								break;
@@ -2314,7 +2306,7 @@ struct ProcessorStorageConstructor {
 							if(ea_mode == 1) {
 								// This is a DBcc. Decode as such.
 								operation = Operation::DBcc;
-								program.source = &storage_.data_[ea_register];
+								program.set_source(storage_, Dn, ea_register);
 
 								// Jump straight into deciding what steps to take next,
 								// which will be selected dynamically.
@@ -2371,7 +2363,7 @@ struct ProcessorStorageConstructor {
 							program.set_source(storage_, ea_mode, ea_register);
 
 							// ... but otherwise assume that the true source of a destination will be the computed source address.
-							program.source = &storage_.effective_address_[0];
+							program.set_source(storage_, &storage_.effective_address_[0]);
 
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
@@ -2445,8 +2437,7 @@ struct ProcessorStorageConstructor {
 
 						case Decoder::PEA: {
 							program.set_source(storage_, An, ea_register);
-							program.destination = &storage_.destination_bus_data_[0];
-							program.destination_address = &storage_.address_[7];
+							program.set_destination(storage_, Imm, 7);	// Immediate destination => store to the destination bus latch.
 
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
@@ -2461,7 +2452,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// PEA (XXX).l
 								case XXXw:		// PEA (XXX).w
-									op(int(Action::Decrement4) | MicroOp::DestinationMask, (mode == XXXl) ? seq("np") : nullptr);
+									op(int(Action::Decrement4) | MicroOp::DestinationMask, (mode == XXXl) ? seq("np") : MicroOp::NoBusProgram);
 									op(address_assemble_for_mode(mode) | MicroOp::SourceMask);
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask);
 									op(Action::PerformOperation, seq("np nW+ nw np", { ea(1), ea(1) }));
@@ -2483,11 +2474,11 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, An, data_register);
 
 							const int mode = combined_mode(ea_mode, ea_register);
-							program.source_address = &storage_.address_[ea_register];
-							program.source =
+							program.set_source_address(storage_, ea_register);
+							program.set_source(storage_,
 								(mode == Ind) ?
 									&storage_.address_[ea_register] :
-									&storage_.effective_address_[0];
+									&storage_.effective_address_[0]);
 
 							switch(mode) {
 								default: continue;
@@ -2553,7 +2544,7 @@ struct ProcessorStorageConstructor {
 						case Decoder::MOVEtoSRCCR: {
 							if(ea_mode == An) continue;
 							program.set_source(storage_, ea_mode, ea_register);
-							program.requires_supervisor = (operation == Operation::MOVEtoSR);
+							program.set_requires_supervisor(operation == Operation::MOVEtoSR);
 
 							/* DEVIATION FROM YACHT.TXT: it has all of these reading an extra word from the PC;
 							this looks like a mistake so I've padded with nil cycles in the middle. */
@@ -2591,14 +2582,14 @@ struct ProcessorStorageConstructor {
 								break;
 
 								case Imm:	// MOVE #, SR
-									program.source = &storage_.prefetch_queue_;
+									program.set_source(storage_, &storage_.prefetch_queue_);
 									op(int(Action::PerformOperation), seq("np nn nn np"));
 								break;
 							}
 						} break;
 
 						case Decoder::MOVEq: {
-							program.destination = &storage_.data_[data_register];
+							program.set_destination(storage_, Dn, data_register);
 							op(Action::PerformOperation, seq("np"));
 						} break;
 
@@ -2679,18 +2670,18 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::MOVEUSP: {
-							program.requires_supervisor = true;
+							program.set_requires_supervisor(true);
 
 							// Observation here: because this is a privileged instruction, the user stack pointer
 							// definitely isn't currently [copied into] A7.
 							if(instruction & 0x8) {
 								// Transfer FROM the USP.
-								program.source = &storage_.stack_pointers_[0];
+								program.set_source(storage_, &storage_.stack_pointers_[0]);
 								program.set_destination(storage_, An, ea_register);
 							} else {
 								// Transfer TO the USP.
 								program.set_source(storage_, An, ea_register);
-								program.destination = &storage_.stack_pointers_[0];
+								program.set_destination(storage_, &storage_.stack_pointers_[0]);
 							}
 
 							op(Action::PerformOperation, seq("np"));
@@ -2878,7 +2869,7 @@ struct ProcessorStorageConstructor {
 						} break;
 
 						case Decoder::RESET:
-							program.requires_supervisor = true;
+							program.set_requires_supervisor(true);
 							op(Action::None, seq("nn _ np"));
 						break;
 
@@ -3088,28 +3079,29 @@ struct ProcessorStorageConstructor {
 			Iterates through the micro-sequence beginning at @c start, finalising bus_program
 			pointers that have been transiently stored as relative to @c arbitrary_base.
 		*/
-		const auto link_operations = [this](MicroOp *start, BusStep *arbitrary_base) {
-			while(!start->is_terminal()) {
-				const auto offset = size_t(start->bus_program - arbitrary_base);
-				assert(offset >= 0 &&  offset < storage_.all_bus_steps_.size());
-				start->bus_program = &storage_.all_bus_steps_[offset];
-				++start;
-			}
-		};
+//		const auto link_operations = [this](MicroOp *start, BusStep *arbitrary_base) {
+//			while(!start->is_terminal()) {
+//				const auto offset = size_t(start->bus_program - arbitrary_base);
+//				assert(offset >= 0 &&  offset < storage_.all_bus_steps_.size());
+//				start->bus_program = &storage_.all_bus_steps_[offset];
+//				++start;
+//			}
+//		};
 
 		// Finalise micro-op and program pointers.
 		for(size_t instruction = 0; instruction < 65536; ++instruction) {
 			if(micro_op_pointers[instruction] != std::numeric_limits<size_t>::max()) {
-				storage_.instructions[instruction].micro_operations = &storage_.all_micro_ops_[micro_op_pointers[instruction]];
-				link_operations(storage_.instructions[instruction].micro_operations, &arbitrary_base);
+				storage_.instructions[instruction].micro_operations = uint32_t(micro_op_pointers[instruction]);
+//				link_operations(&storage_.all_micro_ops_[micro_op_pointers[instruction]], &arbitrary_base);
 			}
 		}
 
 		// Link up the interrupt micro ops.
 		storage_.interrupt_micro_ops_ = &storage_.all_micro_ops_[interrupt_pointer];
-		link_operations(storage_.interrupt_micro_ops_, &arbitrary_base);
+//		link_operations(storage_.interrupt_micro_ops_, &arbitrary_base);
 
-		std::cout << storage_.all_bus_steps_.size() << " total steps" << std::endl;
+		std::cout << storage_.all_bus_steps_.size() << " total bus steps" << std::endl;
+		std::cout << storage_.all_micro_ops_.size() << " total micro ops" << std::endl;
 	}
 
 	private:
@@ -3257,7 +3249,7 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 	//
 	// Assumed order of input: PC.h, SR, PC.l (i.e. the opposite of TRAP's output).
 	for(const int instruction: { 0x4e73, 0x4e77 }) {
-		auto steps = instructions[instruction].micro_operations[0].bus_program;
+		auto steps = &all_bus_steps_[all_micro_ops_[instructions[instruction].micro_operations].bus_program];
 		steps[0].microcycle.value = steps[1].microcycle.value = &program_counter_.halves.high;
 		steps[4].microcycle.value = steps[5].microcycle.value = &program_counter_.halves.low;
 	}
@@ -3267,10 +3259,10 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 
 	// Complete linkage of the exception micro program.
 	short_exception_micro_ops_ = &all_micro_ops_[short_exception_offset];
-	short_exception_micro_ops_->bus_program = trap_steps_;
+	short_exception_micro_ops_->bus_program = trap_offset;
 
 	long_exception_micro_ops_ = &all_micro_ops_[long_exception_offset];
-	long_exception_micro_ops_->bus_program = bus_error_steps_;
+	long_exception_micro_ops_->bus_program = bus_error_offset;
 
 	// Set initial state.
 	active_step_ = reset_bus_steps_;

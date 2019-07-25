@@ -74,7 +74,7 @@ class ProcessorStorage {
 		HalfCycles half_cycles_left_to_run_;
 		HalfCycles e_clock_phase_;
 
-		enum class Operation {
+		enum class Operation: uint8_t {
 			None,
 			ABCD,	SBCD,	NBCD,
 
@@ -216,7 +216,7 @@ class ProcessorStorage {
 			be performed.
 		*/
 		struct MicroOp {
-			enum class Action: int {
+			enum class Action: uint8_t {
 				None,
 
 				/// Does whatever this instruction says is the main operation.
@@ -312,21 +312,22 @@ class ProcessorStorage {
 				// steps detail appropriately.
 				PrepareINTVector,
 			};
-			static const int SourceMask = 1 << 30;
-			static const int DestinationMask = 1 << 29;
-			int action = int(Action::None);
+			static const int SourceMask = 1 << 7;
+			static const int DestinationMask = 1 << 6;
+			uint8_t action = uint8_t(Action::None);
 
-			BusStep *bus_program = nullptr;
+			static const uint16_t NoBusProgram = std::numeric_limits<uint16_t>::max();
+			uint16_t bus_program = NoBusProgram;
 
 			MicroOp() {}
-			MicroOp(int action) : action(action) {}
-			MicroOp(int action, BusStep *bus_program) : action(action), bus_program(bus_program) {}
+			MicroOp(uint8_t action) : action(action) {}
+			MicroOp(uint8_t action, uint16_t bus_program) : action(action), bus_program(bus_program) {}
 
-			MicroOp(Action action) : MicroOp(int(action)) {}
-			MicroOp(Action action, BusStep *bus_program) : MicroOp(int(action), bus_program) {}
+			MicroOp(Action action) : MicroOp(uint8_t(action)) {}
+			MicroOp(Action action, uint16_t bus_program) : MicroOp(uint8_t(action), bus_program) {}
 
 			forceinline bool is_terminal() const {
-				return bus_program == nullptr;
+				return bus_program == std::numeric_limits<uint16_t>::max();
 			}
 		};
 
@@ -334,31 +335,70 @@ class ProcessorStorage {
 			A program represents the implementation of a particular opcode, as a sequence
 			of micro-ops and, separately, the operation to perform plus whatever other
 			fields the operation requires.
+
+			Some of the fields are slightly convoluted in how they identify the information
+			they reference; this is done to keep this struct as small as possible due to
+			concerns about cache size.
+
+			On the 64-bit Intel processor this emulator was developed on, the struct below
+			adds up to 8 bytes; four for the initial uint32_t and then one each for the
+			remaining fields, with no additional padding being inserted by the compiler.
 		*/
 		struct Program {
-			MicroOp *micro_operations = nullptr;
-			RegisterPair32 *source = nullptr;
-			RegisterPair32 *destination = nullptr;
-			RegisterPair32 *source_address = nullptr;
-			RegisterPair32 *destination_address = nullptr;
+			/// The offset into the all_micro_ops_ at which micro-ops for this instruction begin,
+			/// or std::numeric_limits<uint32_t>::max() if this is an invalid Program.
+			uint32_t micro_operations = std::numeric_limits<uint32_t>::max();
+			/// The overarching operation applied by this program when the moment comes.
 			Operation operation;
-			bool requires_supervisor = false;
+			/// The number of bytes after the beginning of an instance of ProcessorStorage that the RegisterPair32 containing
+			/// a source value for this operation lies at.
+			uint8_t source_offset = 0;
+			/// The number of bytes after the beginning of an instance of ProcessorStorage that the RegisterPair32 containing
+			/// a destination value for this operation lies at.
+			uint8_t destination_offset = 0;
+			/// A bitfield comprised of:
+			///	b7 = set if this program requires supervisor mode;
+			/// b0–b2 = the source address register (for pre-decrement and post-increment actions); and
+			/// b4-b6 = destination address register.
+			uint8_t source_dest = 0;
+
+			void set_source_address(ProcessorStorage &storage, int index) {
+				source_dest = uint8_t((source_dest & 0x0f) | (index << 4));
+			}
+
+			void set_destination_address(ProcessorStorage &storage, int index) {
+				source_dest = uint8_t((source_dest & 0xf0) | index);
+			}
+
+			void set_requires_supervisor(bool requires_supervisor) {
+				source_dest = (source_dest & 0x7f) | (requires_supervisor ? 0x80 : 0x00);
+			}
+
+			void set_source(ProcessorStorage &storage, RegisterPair32 *target) {
+				source_offset = decltype(source_offset)(reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage));
+				assert(source_offset == (reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage)));
+			}
+
+			void set_destination(ProcessorStorage &storage, RegisterPair32 *target) {
+				destination_offset = decltype(destination_offset)(reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage));
+				assert(destination_offset == (reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage)));
+			}
 
 			void set_source(ProcessorStorage &storage, int mode, int reg) {
-				source_address = &storage.address_[reg];
+				set_source_address(storage, reg);
 				switch(mode) {
-					case 0:		source = &storage.data_[reg];			break;
-					case 1:		source = &storage.address_[reg];		break;
-					default:	source = &storage.source_bus_data_[0];	break;
+					case 0:		set_source(storage, &storage.data_[reg]);			break;
+					case 1:		set_source(storage, &storage.address_[reg]);		break;
+					default:	set_source(storage, &storage.source_bus_data_[0]);	break;
 				}
 			}
 
 			void set_destination(ProcessorStorage &storage, int mode, int reg) {
-				destination_address = &storage.address_[reg];
+				set_destination_address(storage, reg);
 				switch(mode) {
-					case 0:		destination = &storage.data_[reg];					break;
-					case 1:		destination = &storage.address_[reg];				break;
-					default:	destination = &storage.destination_bus_data_[0];	break;
+					case 0:		set_destination(storage, &storage.data_[reg]);					break;
+					case 1:		set_destination(storage, &storage.address_[reg]);				break;
+					default:	set_destination(storage, &storage.destination_bus_data_[0]);	break;
 				}
 			}
 		};
