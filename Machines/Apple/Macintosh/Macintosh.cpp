@@ -313,7 +313,14 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			) {
 				memory_base = ram_;
 				word_address &= ram_mask_;
-				update_video();
+
+				// This is coupled with the Macintosh implementation of video; the magic
+				// constant should probably be factored into the Video class.
+				// It embodies knowledge of the fact that video (and audio) will always
+				// be fetched from the final $d900 bytes (i.e. $6c80 words) of memory.
+				// (And that ram_mask_ = ram size - 1).
+				if(word_address > ram_mask_ - 0x6c80)
+					update_video();
 			} else {
 				memory_base = rom_;
 				word_address &= rom_mask_;
