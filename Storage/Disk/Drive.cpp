@@ -38,9 +38,10 @@ Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_hea
 Drive::Drive(int input_clock_rate, int number_of_heads) : Drive(input_clock_rate, 300, number_of_heads) {}
 
 void Drive::set_rotation_speed(float revolutions_per_minute) {
-	// TODO: probably I should look into
-	// whether doing all this with quotients is really a good idea.
-	rotational_multiplier_ = 60.0f / revolutions_per_minute;
+	const float new_rotational_multiplier = 60.0f / revolutions_per_minute;
+	cycles_since_index_hole_ *= new_rotational_multiplier / rotational_multiplier_;
+	rotational_multiplier_ = new_rotational_multiplier;
+	cycles_since_index_hole_ %= int(get_input_clock_rate() * rotational_multiplier_);
 }
 
 Drive::~Drive() {
