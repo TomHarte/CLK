@@ -354,7 +354,7 @@ void Drive::end_writing() {
 			}
 		}
 		patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
-		cycles_since_index_hole_ %= get_input_clock_rate();
+		cycles_since_index_hole_ %= int(get_input_clock_rate() * rotational_multiplier_);
 		invalidate_track();
 	}
 }
