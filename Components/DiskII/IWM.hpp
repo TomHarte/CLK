@@ -97,7 +97,7 @@ class IWM:
 
 		void propose_shift(uint8_t bit);
 		Cycles cycles_since_shift_;
-		Cycles bit_length_;
+		Cycles bit_length_ = Cycles(16);
 
 		void push_drive_state();
 
