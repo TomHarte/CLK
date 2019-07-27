@@ -80,6 +80,8 @@ Storage::Disk::PCMSegment six_and_two_sync(int length);
 /*!
 	Produces the data section of a five-and-three format sector; the segment returned
 	will be 3,336 bits long, encoding the first 256 bytes from @c source.
+
+	(TODO).
 */
 Storage::Disk::PCMSegment five_and_three_data(const uint8_t *source);
 

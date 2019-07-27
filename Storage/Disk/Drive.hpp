@@ -198,6 +198,10 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		// a new track.
 		int cycles_since_index_hole_ = 0;
 
+		// The number of cycles that should fall within one revolution at the
+		// current rotation speed.
+		int cycles_per_revolution_ = 1;
+
 		// A record of head position and active head.
 		HeadPosition head_position_;
 		int head_ = 0;

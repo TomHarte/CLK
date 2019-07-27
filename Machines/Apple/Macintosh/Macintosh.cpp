@@ -22,6 +22,7 @@
 #include "../../MouseMachine.hpp"
 
 #include "../../../Inputs/QuadratureMouse/QuadratureMouse.hpp"
+#include "../../../Outputs/Log.hpp"
 
 //#define LOG_TRACE
 
@@ -288,10 +289,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 					default:
 						if(cycle.operation & Microcycle::Read) {
-							printf("Unrecognised read %06x\n", *cycle.address & 0xffffff);
+							LOG("Unrecognised read " << PADHEX(6) << (*cycle.address & 0xffffff));
 							cycle.value->halves.low = 0x00;
 						} else {
-							printf("Unrecognised write %06x\n", *cycle.address & 0xffffff);
+							LOG("Unrecognised write %06x" << PADHEX(6) << (*cycle.address & 0xffffff));
 						}
 					break;
 				}
@@ -560,7 +561,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					if(port == Port::B && line == Line::Two) {
 						keyboard_.set_input(value);
 					}
-					else printf("Unhandled control line output: %c %d\n", port ? 'B' : 'A', int(line));
+					else LOG("Unhandled control line output: " << (port ? 'B' : 'A') << int(line));
 				}
 
 				void run_for(HalfCycles duration) {

@@ -3013,7 +3013,7 @@ struct ProcessorStorageConstructor {
 						}
 
 						if(storage_.all_micro_ops_[index].is_terminal()) {
-							storage_.all_micro_ops_[index].bus_program = seq("");
+							storage_.all_micro_ops_[index].bus_program = uint16_t(seq(""));
 						}
 					}
 
@@ -3259,10 +3259,10 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
 
 	// Complete linkage of the exception micro program.
 	short_exception_micro_ops_ = &all_micro_ops_[short_exception_offset];
-	short_exception_micro_ops_->bus_program = trap_offset;
+	short_exception_micro_ops_->bus_program = uint16_t(trap_offset);
 
 	long_exception_micro_ops_ = &all_micro_ops_[long_exception_offset];
-	long_exception_micro_ops_->bus_program = bus_error_offset;
+	long_exception_micro_ops_->bus_program = uint16_t(bus_error_offset);
 
 	// Set initial state.
 	active_step_ = reset_bus_steps_;

@@ -38,9 +38,15 @@ Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_hea
 Drive::Drive(int input_clock_rate, int number_of_heads) : Drive(input_clock_rate, 300, number_of_heads) {}
 
 void Drive::set_rotation_speed(float revolutions_per_minute) {
-	// TODO: probably I should look into
-	// whether doing all this with quotients is really a good idea.
-	rotational_multiplier_ = 60.0f / revolutions_per_minute;
+	// Rationalise the supplied speed so that cycles_per_revolution_ is exact.
+	cycles_per_revolution_ = int(0.5f + float(get_input_clock_rate()) * 60.0f / revolutions_per_minute);
+
+	// From there derive the appropriate rotational multiplier and possibly update the
+	// count of cycles since the index hole proportionally.
+	const float new_rotational_multiplier = float(cycles_per_revolution_) / float(get_input_clock_rate());
+	cycles_since_index_hole_ *= new_rotational_multiplier / rotational_multiplier_;
+	rotational_multiplier_ = new_rotational_multiplier;
+	cycles_since_index_hole_ %= cycles_per_revolution_;
 }
 
 Drive::~Drive() {
@@ -296,6 +302,10 @@ void Drive::setup_track() {
 		offset = track_time_now - time_found;
 	}
 
+	// Reseed cycles_since_index_hole_; 99.99% of the time it'll still be correct as is,
+	// but if the track has rounded one way or the other it may now be very slightly adrift.
+	cycles_since_index_hole_ = (int((time_found + offset) * cycles_per_revolution_)) % cycles_per_revolution_;
+
 	get_next_event(offset);
 }
 
@@ -340,7 +350,10 @@ void Drive::write_bit(bool value) {
 void Drive::end_writing() {
 	// If the user modifies a track, it's scaled up to a "high" resolution and modifications
 	// are plotted on top of that.
-	const size_t high_resolution_track_rate = 500000;
+	//
+	// "High" is defined as: two samples per clock relative to an idiomatic
+	// 8Mhz disk controller and 300RPM disk speed.
+	const size_t high_resolution_track_rate = 3200000;
 
 	if(!is_reading_) {
 		is_reading_ = true;
@@ -354,7 +367,7 @@ void Drive::end_writing() {
 			}
 		}
 		patched_track_->add_segment(write_start_time_, write_segment_, clamp_writing_to_index_hole_);
-		cycles_since_index_hole_ %= get_input_clock_rate();
+		cycles_since_index_hole_ %= cycles_per_revolution_;
 		invalidate_track();
 	}
 }

@@ -54,8 +54,8 @@
 */
 template <class T> class WrappedInt {
 	public:
-		forceinline constexpr WrappedInt(int l) : length_(l) {}
-		forceinline constexpr WrappedInt() : length_(0) {}
+		forceinline constexpr WrappedInt(int l) noexcept : length_(l) {}
+		forceinline constexpr WrappedInt() noexcept : length_(0) {}
 
 		forceinline T &operator =(const T &rhs) {
 			length_ = rhs.length_;
@@ -165,19 +165,19 @@ template <class T> class WrappedInt {
 /// Describes an integer number of whole cycles: pairs of clock signal transitions.
 class Cycles: public WrappedInt<Cycles> {
 	public:
-		forceinline constexpr Cycles(int l) : WrappedInt<Cycles>(l) {}
-		forceinline constexpr Cycles() : WrappedInt<Cycles>() {}
-		forceinline constexpr Cycles(const Cycles &cycles) : WrappedInt<Cycles>(cycles.length_) {}
+		forceinline constexpr Cycles(int l) noexcept : WrappedInt<Cycles>(l) {}
+		forceinline constexpr Cycles() noexcept : WrappedInt<Cycles>() {}
+		forceinline constexpr Cycles(const Cycles &cycles) noexcept : WrappedInt<Cycles>(cycles.length_) {}
 };
 
 /// Describes an integer number of half cycles: single clock signal transitions.
 class HalfCycles: public WrappedInt<HalfCycles> {
 	public:
-		forceinline constexpr HalfCycles(int l) : WrappedInt<HalfCycles>(l) {}
-		forceinline constexpr HalfCycles() : WrappedInt<HalfCycles>() {}
+		forceinline constexpr HalfCycles(int l) noexcept : WrappedInt<HalfCycles>(l) {}
+		forceinline constexpr HalfCycles() noexcept : WrappedInt<HalfCycles>() {}
 
-		forceinline constexpr HalfCycles(const Cycles cycles) : WrappedInt<HalfCycles>(cycles.as_int() * 2) {}
-		forceinline constexpr HalfCycles(const HalfCycles &half_cycles) : WrappedInt<HalfCycles>(half_cycles.length_) {}
+		forceinline constexpr HalfCycles(const Cycles cycles) noexcept : WrappedInt<HalfCycles>(cycles.as_int() * 2) {}
+		forceinline constexpr HalfCycles(const HalfCycles &half_cycles) noexcept : WrappedInt<HalfCycles>(half_cycles.length_) {}
 
 		/// @returns The number of whole cycles completely covered by this span of half cycles.
 		forceinline constexpr Cycles cycles() const {
