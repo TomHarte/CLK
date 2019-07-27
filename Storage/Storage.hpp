@@ -264,7 +264,7 @@ struct Time {
 			// If the mantissa is negative and its absolute value fits within a 64-bit integer,
 			// just load up.
 			if(relative_exponent <= 0 && relative_exponent > -64) {
-				install_result(loaded_mantissa, uint64_t(1 << -relative_exponent));
+				install_result(loaded_mantissa, uint64_t(1) << -relative_exponent);
 				return;
 			}
 
