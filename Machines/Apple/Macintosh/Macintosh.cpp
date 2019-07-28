@@ -405,6 +405,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 		void set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use_alternate_audio_buffer) {
+			update_video();
 			video_.set_use_alternate_buffers(use_alternate_screen_buffer, use_alternate_audio_buffer);
 		}
 

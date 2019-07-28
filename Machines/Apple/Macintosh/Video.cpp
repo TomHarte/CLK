@@ -49,6 +49,9 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 void Video::run_for(HalfCycles duration) {
+	// Determine the current video and audio bases. These values don't appear to be latched, they apply immediately.
+	const size_t video_base = (use_alternate_screen_buffer_ ? (0xffff2700 >> 1) : (0xffffa700 >> 1)) & ram_mask_;
+	const size_t audio_base = (use_alternate_audio_buffer_ ? (0xffffa100 >> 1) : (0xfffffd00 >> 1)) & ram_mask_;
 
 	// The number of HalfCycles is literally the number of pixel clocks to move through,
 	// since pixel output occurs at twice the processor clock. So divide by 16 to get
@@ -85,7 +88,7 @@ void Video::run_for(HalfCycles duration) {
 
 					if(pixel_buffer_) {
 						for(int c = first_word; c < final_pixel_word; ++c) {
-							uint16_t pixels = ram_[video_address_] ^ 0xffff;
+							uint16_t pixels = ram_[video_base + video_address_] ^ 0xffff;
 							++video_address_;
 
 							pixel_buffer_[15] = pixels & 0x01;
@@ -135,7 +138,7 @@ void Video::run_for(HalfCycles duration) {
 
 			// Audio and disk fetches occur "just before video data".
 			if(final_word == 44) {
-				const uint16_t audio_word = ram_[audio_address_];
+				const uint16_t audio_word = ram_[audio_address_ + audio_base];
 				++audio_address_;
 				audio_.audio.post_sample(audio_word >> 8);
 				drive_speed_accumulator_.post_sample(audio_word & 0xff);
@@ -149,13 +152,13 @@ void Video::run_for(HalfCycles duration) {
 			/*
 				Video: $1A700 and the alternate buffer starts at $12700; for a 512K Macintosh, add $60000 to these numbers.
 			*/
-			video_address_ = (use_alternate_screen_buffer_ ? (0xffff2700 >> 1) : (0xffffa700 >> 1)) & ram_mask_;
+			video_address_ = 0;
 
 			/*
 				"The main sound buffer is at $1FD00 in a 128K Macintosh, and the alternate buffer is at $1A100;
 				for a 512K Macintosh, add $60000 to these values."
 			*/
-			audio_address_ = (use_alternate_audio_buffer_ ? (0xffffa100 >> 1) : (0xfffffd00 >> 1)) & ram_mask_;
+			audio_address_ = 0;
 		}
 	}
 }
