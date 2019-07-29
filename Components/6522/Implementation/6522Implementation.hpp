@@ -38,7 +38,7 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 			// Store locally and communicate outwards.
 			registers_.output[1] = value;
 
-			bus_handler_.run_for(time_since_bus_handler_call_.flush());
+			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 			bus_handler_.set_port_output(Port::B, value, registers_.data_direction[1]);
 
 			registers_.interrupt_flags &= ~(InterruptFlag::CB1ActiveEdge | ((registers_.peripheral_control&0x20) ? 0 : InterruptFlag::CB2ActiveEdge));
@@ -48,7 +48,7 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 		case 0x1:	// Write Port A.
 			registers_.output[0] = value;
 
-			bus_handler_.run_for(time_since_bus_handler_call_.flush());
+			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 			bus_handler_.set_port_output(Port::A, value, registers_.data_direction[0]);
 
 			if(handshake_modes_[1] != HandshakeMode::None) {
@@ -205,7 +205,7 @@ template <typename T> uint8_t MOS6522<T>::get_register(int address) {
 }
 
 template <typename T> uint8_t MOS6522<T>::get_port_input(Port port, uint8_t output_mask, uint8_t output) {
-	bus_handler_.run_for(time_since_bus_handler_call_.flush());
+	bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 	const uint8_t input = bus_handler_.get_port_input(port);
 	return (input & ~output_mask) | (output & output_mask);
 }
@@ -220,7 +220,7 @@ template <typename T> void MOS6522<T>::reevaluate_interrupts() {
 	if(new_interrupt_status != last_posted_interrupt_status_) {
 		last_posted_interrupt_status_ = new_interrupt_status;
 
-		bus_handler_.run_for(time_since_bus_handler_call_.flush());
+		bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 		bus_handler_.set_interrupt_status(new_interrupt_status);
 	}
 }
@@ -338,7 +338,7 @@ template <typename T> void MOS6522<T>::do_phase1() {
 		// Determine whether to toggle PB7.
 		if(registers_.auxiliary_control&0x80) {
 			registers_.output[1] ^= 0x80;
-			bus_handler_.run_for(time_since_bus_handler_call_.flush());
+			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 			bus_handler_.set_port_output(Port::B, registers_.output[1], registers_.data_direction[1]);
 		}
 	}
@@ -369,7 +369,7 @@ template <typename T> void MOS6522<T>::run_for(const HalfCycles half_cycles) {
 }
 
 template <typename T> void MOS6522<T>::flush() {
-	bus_handler_.run_for(time_since_bus_handler_call_.flush());
+	bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 	bus_handler_.flush();
 }
 
@@ -422,7 +422,7 @@ template <typename T> void MOS6522<T>::set_control_line_output(Port port, Line l
 		control_outputs_[port].lines[line] = value;
 
 		if(value != LineState::Input) {
-			bus_handler_.run_for(time_since_bus_handler_call_.flush());
+			bus_handler_.run_for(time_since_bus_handler_call_.flush<HalfCycles>());
 			bus_handler_.set_control_line_output(port, line, value != LineState::Off);
 		}
 	}

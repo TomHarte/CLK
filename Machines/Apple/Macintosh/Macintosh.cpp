@@ -458,7 +458,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 	private:
 		void update_video() {
-			video_.run_for(time_since_video_update_.flush());
+			video_.run_for(time_since_video_update_.flush<HalfCycles>());
 			time_until_video_event_ = video_.get_next_sequence_point();
 		}
 

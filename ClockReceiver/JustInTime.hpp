@@ -27,20 +27,27 @@ template <class T, class LocalTimeScale, class TargetTimeScale = LocalTimeScale>
 		template<typename... Args> JustInTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {}
 
 		/// Adds time to the actor.
-		inline void operator += (const TimeScale &rhs) {
+		inline void operator += (const LocalTimeScale &rhs) {
 			time_since_update_ += rhs;
+			is_flushed_ = false;
 		}
 
 		/// Flushes all accumulated time and returns a pointer to the included object.
 		inline T *operator->() {
-			object_.run_for(time_since_update_.template flush<TargetTimeScale>());
+			flush();
 			return &object_;
+		}
+
+		/// Flushes all accumulated time.
+		inline void flush() {
+			if(!is_flushed_) object_.run_for(time_since_update_.template flush<TargetTimeScale>());
+			is_flushed_ = true;
 		}
 
 	private:
 		T object_;
 		LocalTimeScale time_since_update_;
-
+		bool is_flushed_ = true;
 };
 
 /*!

@@ -397,7 +397,7 @@ class ConcreteMachine:
 			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
 		}
 		inline void update_video() {
-			vdp_.run_for(time_since_vdp_update_.flush());
+			vdp_.run_for(time_since_vdp_update_.flush<HalfCycles>());
 		}
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;

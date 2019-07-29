@@ -150,7 +150,7 @@ template <class T> class WrappedInt {
 			is reset to zero.
 		*/
 		template <typename Target> forceinline Target flush() {
-			const Target result(length_);
+			const Target result = T(length_);
 			length_ = 0;
 			return result;
 		}
@@ -176,7 +176,7 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		forceinline constexpr HalfCycles(int l) noexcept : WrappedInt<HalfCycles>(l) {}
 		forceinline constexpr HalfCycles() noexcept : WrappedInt<HalfCycles>() {}
 
-		forceinline constexpr HalfCycles(const Cycles cycles) noexcept : WrappedInt<HalfCycles>(cycles.as_int() * 2) {}
+		forceinline constexpr HalfCycles(const Cycles &cycles) noexcept : WrappedInt<HalfCycles>(cycles.as_int() * 2) {}
 		forceinline constexpr HalfCycles(const HalfCycles &half_cycles) noexcept : WrappedInt<HalfCycles>(half_cycles.length_) {}
 
 		/// @returns The number of whole cycles completely covered by this span of half cycles.
@@ -184,17 +184,20 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			return Cycles(length_ >> 1);
 		}
 
-		/// Flushes the whole cycles in @c this, subtracting that many from the total stored here.
-		template <typename Cycles> forceinline Cycles flush() {
-			const Cycles result(length_ >> 1);
-			length_ &= 1;
+		/*!
+			Flushes the value in @c this. The current value is returned, and the internal value
+			is reset to zero.
+		*/
+		template <typename Target> forceinline Target flush() {
+			const Target result(length_);
+			length_ = 0;
 			return result;
 		}
 
-		/// Flushes the half cycles in @c this, returning the number stored and setting this total to zero.
-		forceinline HalfCycles flush() {
-			HalfCycles result(length_);
-			length_ = 0;
+		/// Flushes the whole cycles in @c this, subtracting that many from the total stored here.
+		template <> forceinline Cycles flush<Cycles>() {
+			const Cycles result(length_ >> 1);
+			length_ &= 1;
 			return result;
 		}
 

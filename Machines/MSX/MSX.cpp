@@ -489,7 +489,7 @@ class ConcreteMachine:
 							*cycle.value = read_pointers_[address >> 13][address & 8191];
 						} else {
 							int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
-							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
+							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush<HalfCycles>());
 							*cycle.value = memory_slots_[slot_hit].handler->read(address);
 						}
 					break;
@@ -500,7 +500,7 @@ class ConcreteMachine:
 						int slot_hit = (paged_memory_ >> ((address >> 14) * 2)) & 3;
 						if(memory_slots_[slot_hit].handler) {
 							update_audio();
-							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush());
+							memory_slots_[slot_hit].handler->run_for(memory_slots_[slot_hit].cycles_since_update.flush<HalfCycles>());
 							memory_slots_[slot_hit].handler->write(address, *cycle.value, read_pointers_[pc_address_ >> 13] != memory_slots_[0].read_pointers[pc_address_ >> 13]);
 						}
 					} break;
@@ -508,7 +508,7 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch(address & 0xff) {
 							case 0x98:	case 0x99:
-								vdp_.run_for(time_since_vdp_update_.flush());
+								vdp_.run_for(time_since_vdp_update_.flush<HalfCycles>());
 								*cycle.value = vdp_.get_register(address);
 								z80_.set_interrupt_line(vdp_.get_interrupt_line());
 								time_until_interrupt_ = vdp_.get_time_until_interrupt();
@@ -536,7 +536,7 @@ class ConcreteMachine:
 						const int port = address & 0xff;
 						switch(port) {
 							case 0x98:	case 0x99:
-								vdp_.run_for(time_since_vdp_update_.flush());
+								vdp_.run_for(time_since_vdp_update_.flush<HalfCycles>());
 								vdp_.set_register(address, *cycle.value);
 								z80_.set_interrupt_line(vdp_.get_interrupt_line());
 								time_until_interrupt_ = vdp_.get_time_until_interrupt();
@@ -612,7 +612,7 @@ class ConcreteMachine:
 		}
 
 		void flush() {
-			vdp_.run_for(time_since_vdp_update_.flush());
+			vdp_.run_for(time_since_vdp_update_.flush<HalfCycles>());
 			update_audio();
 			audio_queue_.perform();
 		}

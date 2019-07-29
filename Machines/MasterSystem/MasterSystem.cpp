@@ -18,6 +18,7 @@
 #include "../KeyboardMachine.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
+#include "../../ClockReceiver/JustInTime.hpp"
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 #include "../../Outputs/Log.hpp"
@@ -168,16 +169,16 @@ class ConcreteMachine:
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
-			vdp_.set_tv_standard(
+			vdp_->set_tv_standard(
 				(region_ == Target::Region::Europe) ?
 					TI::TMS::TVStandard::PAL : TI::TMS::TVStandard::NTSC);
-			time_until_debounce_ = vdp_.get_time_until_line(-1);
+			time_until_debounce_ = vdp_->get_time_until_line(-1);
 
-			vdp_.set_scan_target(scan_target);
+			vdp_->set_scan_target(scan_target);
 		}
 
 		void set_display_type(Outputs::Display::DisplayType display_type) override {
-			vdp_.set_display_type(display_type);
+			vdp_->set_display_type(display_type);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
@@ -189,7 +190,7 @@ class ConcreteMachine:
 		}
 
 		forceinline HalfCycles perform_machine_cycle(const CPU::Z80::PartialMachineCycle &cycle) {
-			time_since_vdp_update_ += cycle.length;
+			vdp_ += cycle.length;
 			time_since_sn76489_update_ += cycle.length;
 
 			if(cycle.is_terminal()) {
@@ -233,17 +234,15 @@ class ConcreteMachine:
 								*cycle.value = 0xff;
 							break;
 							case 0x40:
-								update_video();
-								*cycle.value = vdp_.get_current_line();
+								*cycle.value = vdp_->get_current_line();
 							break;
 							case 0x41:
-								*cycle.value = vdp_.get_latched_horizontal_counter();
+								*cycle.value = vdp_->get_latched_horizontal_counter();
 							break;
 							case 0x80: case 0x81:
-								update_video();
-								*cycle.value = vdp_.get_register(address);
-								z80_.set_interrupt_line(vdp_.get_interrupt_line());
-								time_until_interrupt_ = vdp_.get_time_until_interrupt();
+								*cycle.value = vdp_->get_register(address);
+								z80_.set_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc0: {
 								Joystick *const joypad1 = static_cast<Joystick *>(joysticks_[0].get());
@@ -284,8 +283,7 @@ class ConcreteMachine:
 
 								// Latch if either TH has newly gone to 1.
 								if((new_ths^previous_ths)&new_ths) {
-									update_video();
-									vdp_.latch_horizontal_counter();
+									vdp_->latch_horizontal_counter();
 								}
 							} break;
 							case 0x40: case 0x41:
@@ -293,10 +291,9 @@ class ConcreteMachine:
 								sn76489_.set_register(*cycle.value);
 							break;
 							case 0x80: case 0x81:
-								update_video();
-								vdp_.set_register(address, *cycle.value);
-								z80_.set_interrupt_line(vdp_.get_interrupt_line());
-								time_until_interrupt_ = vdp_.get_time_until_interrupt();
+								vdp_->set_register(address, *cycle.value);
+								z80_.set_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc0:
 								LOG("TODO: [output] I/O port A/N; " << int(*cycle.value));
@@ -331,15 +328,14 @@ class ConcreteMachine:
 			time_until_debounce_ -= cycle.length;
 			if(time_until_debounce_ <= HalfCycles(0)) {
 				z80_.set_non_maskable_interrupt_line(pause_is_pressed_);
-				update_video();
-				time_until_debounce_ = vdp_.get_time_until_line(-1);
+				time_until_debounce_ = vdp_->get_time_until_line(-1);
 			}
 
 			return HalfCycles(0);
 		}
 
 		void flush() {
-			update_video();
+			vdp_.flush();
 			update_audio();
 			audio_queue_.perform();
 		}
@@ -412,16 +408,13 @@ class ConcreteMachine:
 		inline void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
 		}
-		inline void update_video() {
-			vdp_.run_for(time_since_vdp_update_.flush());
-		}
 
 		using Target = Analyser::Static::Sega::Target;
 		Target::Model model_;
 		Target::Region region_;
 		Target::PagingScheme paging_scheme_;
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		TI::TMS::TMS9918 vdp_;
+		JustInTimeActor<TI::TMS::TMS9918, HalfCycles> vdp_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;
@@ -431,7 +424,6 @@ class ConcreteMachine:
 		Inputs::Keyboard keyboard_;
 		bool reset_is_pressed_ = false, pause_is_pressed_ = false;
 
-		HalfCycles time_since_vdp_update_;
 		HalfCycles time_since_sn76489_update_;
 		HalfCycles time_until_interrupt_;
 		HalfCycles time_until_debounce_;
