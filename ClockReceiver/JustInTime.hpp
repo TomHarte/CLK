@@ -38,6 +38,11 @@ template <class T, class LocalTimeScale, class TargetTimeScale = LocalTimeScale>
 			return &object_;
 		}
 
+		/// Returns a pointer to the included object without flushing time.
+		inline T *last_valid() {
+			return *object_;
+		}
+
 		/// Flushes all accumulated time.
 		inline void flush() {
 			if(!is_flushed_) object_.run_for(time_since_update_.template flush<TargetTimeScale>());
@@ -78,6 +83,11 @@ template <class T, class LocalTimeScale, class TargetTimeScale = LocalTimeScale>
 		inline T *operator->() {
 			flush();
 			return &object_;
+		}
+
+		/// Returns a pointer to the included object without flushing time.
+		inline T *last_valid() {
+			return *object_;
 		}
 
 		/// Flushes all accumulated time.
