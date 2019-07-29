@@ -237,7 +237,7 @@ class ConcreteMachine:
 								*cycle.value = vdp_->get_current_line();
 							break;
 							case 0x41:
-								*cycle.value = vdp_->get_latched_horizontal_counter();
+								*cycle.value = vdp_.last_valid()->get_latched_horizontal_counter();
 							break;
 							case 0x80: case 0x81:
 								*cycle.value = vdp_->get_register(address);
