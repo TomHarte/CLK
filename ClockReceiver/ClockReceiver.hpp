@@ -149,8 +149,8 @@ template <class T> class WrappedInt {
 			Flushes the value in @c this. The current value is returned, and the internal value
 			is reset to zero.
 		*/
-		forceinline T flush() {
-			T result(length_);
+		template <typename Target> forceinline Target flush() {
+			const Target result(length_);
 			length_ = 0;
 			return result;
 		}
@@ -185,8 +185,8 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		}
 
 		/// Flushes the whole cycles in @c this, subtracting that many from the total stored here.
-		forceinline Cycles flush_cycles() {
-			Cycles result(length_ >> 1);
+		template <typename Cycles> forceinline Cycles flush() {
+			const Cycles result(length_ >> 1);
 			length_ &= 1;
 			return result;
 		}
@@ -220,7 +220,7 @@ template <class T> class HalfClockReceiver: public T {
 
 		forceinline void run_for(const HalfCycles half_cycles) {
 			half_cycles_ += half_cycles;
-			T::run_for(half_cycles_.flush_cycles());
+			T::run_for(half_cycles_.flush<Cycles>());
 		}
 
 	private:

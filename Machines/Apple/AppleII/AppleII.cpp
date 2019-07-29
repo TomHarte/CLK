@@ -77,7 +77,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		Cycles cycles_since_video_update_;
 
 		void update_video() {
-			video_.run_for(cycles_since_video_update_.flush());
+			video_.run_for(cycles_since_video_update_.flush<Cycles>());
 		}
 		static const int audio_divider = 8;
 		void update_audio() {

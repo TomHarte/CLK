@@ -702,7 +702,7 @@ class ConcreteMachine:
 
 	private:
 		void update_video() {
-			mos6560_.run_for(cycles_since_mos6560_update_.flush());
+			mos6560_.run_for(cycles_since_mos6560_update_.flush<Cycles>());
 		}
 		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 

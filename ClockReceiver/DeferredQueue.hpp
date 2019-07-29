@@ -1,26 +1,26 @@
 //
-//  ClockDeferrer.hpp
+//  DeferredQueue.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 23/08/2018.
 //  Copyright © 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef ClockDeferrer_h
-#define ClockDeferrer_h
+#ifndef DeferredQueue_h
+#define DeferredQueue_h
 
 #include <functional>
 #include <vector>
 
 /*!
-	A ClockDeferrer maintains a list of ordered actions and the times at which
+	A DeferredQueue maintains a list of ordered actions and the times at which
 	they should happen, and divides a total execution period up into the portions
 	that occur between those actions, triggering each action when it is reached.
 */
-template <typename TimeUnit> class ClockDeferrer {
+template <typename TimeUnit> class DeferredQueue {
 	public:
-		/// Constructs a ClockDeferrer that will call target(period) in between deferred actions.
-		ClockDeferrer(std::function<void(TimeUnit)> &&target) : target_(std::move(target)) {}
+		/// Constructs a DeferredQueue that will call target(period) in between deferred actions.
+		DeferredQueue(std::function<void(TimeUnit)> &&target) : target_(std::move(target)) {}
 
 		/*!
 			Schedules @c action to occur in @c delay units of time.
@@ -79,4 +79,4 @@ template <typename TimeUnit> class ClockDeferrer {
 		std::vector<DeferredAction> pending_actions_;
 };
 
-#endif /* ClockDeferrer_h */
+#endif /* DeferredQueue_h */

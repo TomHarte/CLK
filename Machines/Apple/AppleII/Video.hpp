@@ -11,7 +11,7 @@
 
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
-#include "../../../ClockReceiver/ClockDeferrer.hpp"
+#include "../../../ClockReceiver/DeferredQueue.hpp"
 
 #include <array>
 #include <vector>
@@ -251,8 +251,8 @@ class VideoBase {
 		*/
 		void output_fat_low_resolution(uint8_t *target, const uint8_t *source, size_t length, int column, int row) const;
 
-		// Maintain a ClockDeferrer for delayed mode switches.
-		ClockDeferrer<Cycles> deferrer_;
+		// Maintain a DeferredQueue for delayed mode switches.
+		DeferredQueue<Cycles> deferrer_;
 };
 
 template <class BusHandler, bool is_iie> class Video: public VideoBase {

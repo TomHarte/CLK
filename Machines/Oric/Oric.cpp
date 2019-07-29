@@ -182,7 +182,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 
 	private:
 		void update_ay() {
-			speaker_.run_for(audio_queue_, cycles_since_ay_update_.flush_cycles());
+			speaker_.run_for(audio_queue_, cycles_since_ay_update_.flush<Cycles>());
 		}
 		bool ay_bdir_ = false;
 		bool ay_bc1_ = false;
@@ -585,7 +585,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		uint8_t ram_[65536];
 		Cycles cycles_since_video_update_;
 		inline void update_video() {
-			video_output_.run_for(cycles_since_video_update_.flush());
+			video_output_.run_for(cycles_since_video_update_.flush<Cycles>());
 		}
 
 		// ROM bookkeeping
@@ -617,7 +617,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		Apple::DiskII diskii_;
 		Cycles cycles_since_diskii_update_;
 		void flush_diskii() {
-			diskii_.run_for(cycles_since_diskii_update_.flush());
+			diskii_.run_for(cycles_since_diskii_update_.flush<Cycles>());
 		}
 		std::vector<uint8_t> pravetz_rom_;
 		std::size_t pravetz_rom_base_pointer_ = 0;
