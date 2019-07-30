@@ -48,16 +48,6 @@
 
 */
 
-namespace {
-
-template <typename Source, typename Target> Target flush(int &value) {
-	const Target result = Source(value);
-	value = 0;
-	return result;
-}
-
-}
-
 /*!
 	Provides a class that wraps a plain int, providing most of the basic arithmetic and
 	Boolean operators, but forcing callers and receivers to be explicit as to usage.
@@ -155,14 +145,6 @@ template <class T> class WrappedInt {
 			return result;
 		}
 
-		/*!
-			Flushes the value in @c this. The current value is returned, and the internal value
-			is reset to zero.
-		*/
-		template <typename Target> forceinline Target flush() {
-			return ::flush<T, Target>(length_);
-		}
-
 		// operator int() is deliberately not provided, to avoid accidental subtitution of
 		// classes that use this template.
 
@@ -176,6 +158,16 @@ class Cycles: public WrappedInt<Cycles> {
 		forceinline constexpr Cycles(int l) noexcept : WrappedInt<Cycles>(l) {}
 		forceinline constexpr Cycles() noexcept : WrappedInt<Cycles>() {}
 		forceinline constexpr Cycles(const Cycles &cycles) noexcept : WrappedInt<Cycles>(cycles.length_) {}
+
+		/*!
+			Flushes the value in @c this. The current value is returned, and the internal value
+			is reset to zero.
+		*/
+		template <typename T> T flush() {
+			const T result(*this);
+			length_ = 0;
+			return result;
+		}
 };
 
 /// Describes an integer number of half cycles: single clock signal transitions.
@@ -193,6 +185,22 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		}
 
 		/*!
+			Flushes the value in @c this. The current value is returned, and the internal value
+			is reset to zero.
+		*/
+		template <typename T> T flush() {
+			const T result(*this);
+			length_ = 0;
+			return result;
+		}
+
+		template <> Cycles flush() {
+			const Cycles result(length_ >> 1);
+			length_ &= 1;
+			return result;
+		}
+
+		/*!
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
@@ -203,16 +211,6 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			return result;
 		}
 };
-
-namespace {
-
-template <> Cycles flush<HalfCycles, Cycles>(int &value) {
-	const Cycles result(value >> 1);
-	value &= 1;
-	return result;
-}
-
-}
 
 // Create a specialisation of WrappedInt::flush for converting HalfCycles to Cycles
 // without losing the fractional part.
