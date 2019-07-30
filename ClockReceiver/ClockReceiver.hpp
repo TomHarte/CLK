@@ -48,6 +48,16 @@
 
 */
 
+namespace {
+
+template <typename Source, typename Target> Target flush(int &value) {
+	const Target result = Source(value);
+	value = 0;
+	return result;
+}
+
+}
+
 /*!
 	Provides a class that wraps a plain int, providing most of the basic arithmetic and
 	Boolean operators, but forcing callers and receivers to be explicit as to usage.
@@ -150,9 +160,7 @@ template <class T> class WrappedInt {
 			is reset to zero.
 		*/
 		template <typename Target> forceinline Target flush() {
-			const Target result = T(length_);
-			length_ = 0;
-			return result;
+			return ::flush<T, Target>(length_);
 		}
 
 		// operator int() is deliberately not provided, to avoid accidental subtitution of
@@ -185,23 +193,6 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		}
 
 		/*!
-			Flushes the value in @c this. The current value is returned, and the internal value
-			is reset to zero.
-		*/
-		template <typename Target> forceinline Target flush() {
-			const Target result(length_);
-			length_ = 0;
-			return result;
-		}
-
-		/// Flushes the whole cycles in @c this, subtracting that many from the total stored here.
-		template <> forceinline Cycles flush<Cycles>() {
-			const Cycles result(length_ >> 1);
-			length_ &= 1;
-			return result;
-		}
-
-		/*!
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
@@ -212,6 +203,19 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			return result;
 		}
 };
+
+namespace {
+
+template <> Cycles flush<HalfCycles, Cycles>(int &value) {
+	const Cycles result(value >> 1);
+	value &= 1;
+	return result;
+}
+
+}
+
+// Create a specialisation of WrappedInt::flush for converting HalfCycles to Cycles
+// without losing the fractional part.
 
 /*!
 	If a component implements only run_for(Cycles), an owner can wrap it in HalfClockReceiver
