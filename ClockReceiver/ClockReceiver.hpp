@@ -149,7 +149,7 @@ template <class T> class WrappedInt {
 			Flushes the value in @c this. The current value is returned, and the internal value
 			is reset to zero.
 		*/
-		forceinline template <typename Result> Result flush() {
+		template <typename Result> Result flush() {
 			// Jiggery pokery here; switching to function overloading avoids
 			// the namespace-level requirement for template specialisation.
 			Result r;
