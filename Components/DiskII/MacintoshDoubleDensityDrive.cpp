@@ -30,6 +30,7 @@ DoubleDensityDrive::DoubleDensityDrive(int input_clock_rate, bool is_800k) :
 // MARK: - Speed Selection
 
 void DoubleDensityDrive::did_step(Storage::Disk::HeadPosition to_position) {
+//	printf("At track %d\n", to_position.as_int());
 	// The 800kb drive automatically selects rotation speed as a function of
 	// head position; the 400kb drive doesn't do so.
 	if(is_800k_) {
@@ -144,7 +145,6 @@ bool DoubleDensityDrive::read() {
 
 		case CA1|CA0|SEL:		// Tachometer.
 								// (arbitrary)
-//		printf(".");
 		return get_tachometer();
 
 		case CA2:				// Read data, lower head.

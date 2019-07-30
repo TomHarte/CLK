@@ -23,12 +23,12 @@ void DriveSpeedAccumulator::post_sample(uint8_t sample) {
 	if(sample_pointer_ == samples_.size()) {
 		sample_pointer_ = 0;
 
-		// Treat 35 as a zero point and count zero crossings; then approximate
+		// Treat 33 as a zero point and count zero crossings; then approximate
 		// the RPM from the frequency of those.
 		size_t first_crossing = 0, last_crossing = 0;
 		int number_of_crossings = 0;
 
-		const uint8_t centre = 35;
+		const uint8_t centre = 33;
 		bool was_over = samples_[0] > centre;
 		for(size_t c = 1; c < 512; ++c) {
 			bool is_over = samples_[c] > centre;
@@ -41,13 +41,14 @@ void DriveSpeedAccumulator::post_sample(uint8_t sample) {
 		}
 
 		if(number_of_crossings) {
-			// The 654 multiplier here is a complete guess, based on preliminary
+			// The 1950 multiplier here is a complete guess, based on preliminary
 			// observations of the values supplied and the known RPM selections of
 			// the 800kb drive. Updated values may be needed.
-			const float rotation_speed = 654.0f * float(number_of_crossings) / float(last_crossing - first_crossing);
+			const float rotation_speed = 1950.0f * float(number_of_crossings-1) / float(last_crossing - first_crossing);
 			for(int c = 0; c < number_of_drives_; ++c) {
 				drives_[c]->set_rotation_speed(rotation_speed);
 			}
+//			printf("RPM: %d crossings => %0.2f\n", number_of_crossings, rotation_speed, min, max);
 		}
 	}
 }
