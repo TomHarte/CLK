@@ -145,6 +145,18 @@ template <class T> class WrappedInt {
 			return result;
 		}
 
+		/*!
+			Flushes the value in @c this. The current value is returned, and the internal value
+			is reset to zero.
+		*/
+		forceinline template <typename Result> Result flush() {
+			// Jiggery pokery here; switching to function overloading avoids
+			// the namespace-level requirement for template specialisation.
+			Result r;
+			static_cast<T *>(this)->fill_flush(r);
+			return r;
+		}
+
 		// operator int() is deliberately not provided, to avoid accidental subtitution of
 		// classes that use this template.
 
@@ -159,14 +171,11 @@ class Cycles: public WrappedInt<Cycles> {
 		forceinline constexpr Cycles() noexcept : WrappedInt<Cycles>() {}
 		forceinline constexpr Cycles(const Cycles &cycles) noexcept : WrappedInt<Cycles>(cycles.length_) {}
 
-		/*!
-			Flushes the value in @c this. The current value is returned, and the internal value
-			is reset to zero.
-		*/
-		template <typename T> T flush() {
-			const T result(*this);
+	private:
+		friend WrappedInt;
+		void fill_flush(Cycles &result) {
+			result.length_ = length_;
 			length_ = 0;
-			return result;
 		}
 };
 
@@ -185,22 +194,6 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		}
 
 		/*!
-			Flushes the value in @c this. The current value is returned, and the internal value
-			is reset to zero.
-		*/
-		template <typename T> T flush() {
-			const T result(*this);
-			length_ = 0;
-			return result;
-		}
-
-		template <> Cycles flush() {
-			const Cycles result(length_ >> 1);
-			length_ &= 1;
-			return result;
-		}
-
-		/*!
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
@@ -209,6 +202,18 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			const Cycles result(length_ / half_divisor.length_);
 			length_ %= half_divisor.length_;
 			return result;
+		}
+
+	private:
+		friend WrappedInt;
+		void fill_flush(Cycles &result) {
+			result = Cycles(length_ >> 1);
+			length_ &= 1;
+		}
+
+		void fill_flush(HalfCycles &result) {
+			result.length_ = length_;
+			length_ = 0;
 		}
 };
 
