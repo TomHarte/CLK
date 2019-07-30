@@ -24,7 +24,7 @@ struct DeferredAudio {
 	DeferredAudio() : audio(queue), speaker(audio) {}
 
 	void flush() {
-		speaker.run_for(queue, time_since_update.flush_cycles());
+		speaker.run_for(queue, time_since_update.flush<Cycles>());
 	}
 };
 

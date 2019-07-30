@@ -24,6 +24,8 @@
 #include "../../../Inputs/QuadratureMouse/QuadratureMouse.hpp"
 #include "../../../Outputs/Log.hpp"
 
+#include "../../../ClockReceiver/JustInTime.hpp"
+
 //#define LOG_TRACE
 
 #include "../../../Components/6522/6522.hpp"
@@ -456,7 +458,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 	private:
 		void update_video() {
-			video_.run_for(time_since_video_update_.flush());
+			video_.run_for(time_since_video_update_.flush<HalfCycles>());
 			time_until_video_event_ = video_.get_next_sequence_point();
 		}
 
@@ -471,7 +473,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			Apple::IWM iwm;
 
 			void flush() {
-				iwm.run_for(time_since_update.flush_cycles());
+				iwm.run_for(time_since_update.flush<Cycles>());
 			}
 		};
 
@@ -610,7 +612,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
  		HalfCycles keyboard_clock_;
  		HalfCycles time_since_video_update_;
  		HalfCycles time_until_video_event_;
- 		HalfCycles time_since_iwm_update_;
  		HalfCycles time_since_mouse_update_;
 
 		bool ROM_is_overlay_ = true;

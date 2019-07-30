@@ -55,13 +55,13 @@ class Bus {
 		// video backlog accumulation counter
 		Cycles cycles_since_video_update_;
 		inline void update_video() {
-			tia_.run_for(cycles_since_video_update_.flush());
+			tia_.run_for(cycles_since_video_update_.flush<Cycles>());
 		}
 
 		// RIOT backlog accumulation counter
 		Cycles cycles_since_6532_update_;
 		inline void update_6532() {
-			mos6532_.run_for(cycles_since_6532_update_.flush());
+			mos6532_.run_for(cycles_since_6532_update_.flush<Cycles>());
 		}
 };
 

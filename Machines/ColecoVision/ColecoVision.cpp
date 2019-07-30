@@ -19,6 +19,7 @@
 
 #include "../../Configurable/StandardOptions.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
+#include "../../ClockReceiver/JustInTime.hpp"
 
 #include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
@@ -169,7 +170,7 @@ class ConcreteMachine:
 			}
 
 			// ColecoVisions have composite output only.
-			vdp_.set_display_type(Outputs::Display::DisplayType::CompositeColour);
+			vdp_->set_display_type(Outputs::Display::DisplayType::CompositeColour);
 		}
 
 		~ConcreteMachine() {
@@ -181,11 +182,11 @@ class ConcreteMachine:
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
-			vdp_.set_scan_target(scan_target);
+			vdp_->set_scan_target(scan_target);
 		}
 
 		void set_display_type(Outputs::Display::DisplayType display_type) override {
-			vdp_.set_display_type(display_type);
+			vdp_->set_display_type(display_type);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
@@ -210,7 +211,7 @@ class ConcreteMachine:
 			}
 			const HalfCycles length = cycle.length + penalty;
 
-			time_since_vdp_update_ += length;
+			vdp_ += length;
 			time_since_sn76489_update_ += length;
 
 			// Act only if necessary.
@@ -255,10 +256,9 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch((address >> 5) & 7) {
 							case 5:
-								update_video();
-								*cycle.value = vdp_.get_register(address);
-								z80_.set_non_maskable_interrupt_line(vdp_.get_interrupt_line());
-								time_until_interrupt_ = vdp_.get_time_until_interrupt();
+								*cycle.value = vdp_->get_register(address);
+								z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 
 							case 7: {
@@ -299,10 +299,9 @@ class ConcreteMachine:
 							break;
 
 							case 5:
-								update_video();
-								vdp_.set_register(address, *cycle.value);
-								z80_.set_non_maskable_interrupt_line(vdp_.get_interrupt_line());
-								time_until_interrupt_ = vdp_.get_time_until_interrupt();
+								vdp_->set_register(address, *cycle.value);
+								z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 
 							case 7:
@@ -354,7 +353,7 @@ class ConcreteMachine:
 		}
 
 		void flush() {
-			update_video();
+			vdp_.flush();
 			update_audio();
 			audio_queue_.perform();
 		}
@@ -396,12 +395,9 @@ class ConcreteMachine:
 		inline void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
 		}
-		inline void update_video() {
-			vdp_.run_for(time_since_vdp_update_.flush());
-		}
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		TI::TMS::TMS9918 vdp_;
+		JustInTimeActor<TI::TMS::TMS9918, HalfCycles> vdp_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;
@@ -424,7 +420,6 @@ class ConcreteMachine:
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 		bool joysticks_in_keypad_mode_ = false;
 
-		HalfCycles time_since_vdp_update_;
 		HalfCycles time_since_sn76489_update_;
 		HalfCycles time_until_interrupt_;
 

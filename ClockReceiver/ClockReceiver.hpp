@@ -149,10 +149,12 @@ template <class T> class WrappedInt {
 			Flushes the value in @c this. The current value is returned, and the internal value
 			is reset to zero.
 		*/
-		forceinline T flush() {
-			T result(length_);
-			length_ = 0;
-			return result;
+		template <typename Result> Result flush() {
+			// Jiggery pokery here; switching to function overloading avoids
+			// the namespace-level requirement for template specialisation.
+			Result r;
+			static_cast<T *>(this)->fill(r);
+			return r;
 		}
 
 		// operator int() is deliberately not provided, to avoid accidental subtitution of
@@ -168,6 +170,13 @@ class Cycles: public WrappedInt<Cycles> {
 		forceinline constexpr Cycles(int l) noexcept : WrappedInt<Cycles>(l) {}
 		forceinline constexpr Cycles() noexcept : WrappedInt<Cycles>() {}
 		forceinline constexpr Cycles(const Cycles &cycles) noexcept : WrappedInt<Cycles>(cycles.length_) {}
+
+	private:
+		friend WrappedInt;
+		void fill(Cycles &result) {
+			result.length_ = length_;
+			length_ = 0;
+		}
 };
 
 /// Describes an integer number of half cycles: single clock signal transitions.
@@ -176,26 +185,12 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		forceinline constexpr HalfCycles(int l) noexcept : WrappedInt<HalfCycles>(l) {}
 		forceinline constexpr HalfCycles() noexcept : WrappedInt<HalfCycles>() {}
 
-		forceinline constexpr HalfCycles(const Cycles cycles) noexcept : WrappedInt<HalfCycles>(cycles.as_int() * 2) {}
+		forceinline constexpr HalfCycles(const Cycles &cycles) noexcept : WrappedInt<HalfCycles>(cycles.as_int() * 2) {}
 		forceinline constexpr HalfCycles(const HalfCycles &half_cycles) noexcept : WrappedInt<HalfCycles>(half_cycles.length_) {}
 
 		/// @returns The number of whole cycles completely covered by this span of half cycles.
 		forceinline constexpr Cycles cycles() const {
 			return Cycles(length_ >> 1);
-		}
-
-		/// Flushes the whole cycles in @c this, subtracting that many from the total stored here.
-		forceinline Cycles flush_cycles() {
-			Cycles result(length_ >> 1);
-			length_ &= 1;
-			return result;
-		}
-
-		/// Flushes the half cycles in @c this, returning the number stored and setting this total to zero.
-		forceinline HalfCycles flush() {
-			HalfCycles result(length_);
-			length_ = 0;
-			return result;
 		}
 
 		/*!
@@ -208,7 +203,22 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 			length_ %= half_divisor.length_;
 			return result;
 		}
+
+	private:
+		friend WrappedInt;
+		void fill(Cycles &result) {
+			result = Cycles(length_ >> 1);
+			length_ &= 1;
+		}
+
+		void fill(HalfCycles &result) {
+			result.length_ = length_;
+			length_ = 0;
+		}
 };
+
+// Create a specialisation of WrappedInt::flush for converting HalfCycles to Cycles
+// without losing the fractional part.
 
 /*!
 	If a component implements only run_for(Cycles), an owner can wrap it in HalfClockReceiver
@@ -220,7 +230,7 @@ template <class T> class HalfClockReceiver: public T {
 
 		forceinline void run_for(const HalfCycles half_cycles) {
 			half_cycles_ += half_cycles;
-			T::run_for(half_cycles_.flush_cycles());
+			T::run_for(half_cycles_.flush<Cycles>());
 		}
 
 	private:
