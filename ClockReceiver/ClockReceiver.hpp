@@ -153,7 +153,7 @@ template <class T> class WrappedInt {
 			// Jiggery pokery here; switching to function overloading avoids
 			// the namespace-level requirement for template specialisation.
 			Result r;
-			static_cast<T *>(this)->fill_flush(r);
+			static_cast<T *>(this)->fill(r);
 			return r;
 		}
 
@@ -173,7 +173,7 @@ class Cycles: public WrappedInt<Cycles> {
 
 	private:
 		friend WrappedInt;
-		void fill_flush(Cycles &result) {
+		void fill(Cycles &result) {
 			result.length_ = length_;
 			length_ = 0;
 		}
@@ -206,12 +206,12 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 
 	private:
 		friend WrappedInt;
-		void fill_flush(Cycles &result) {
+		void fill(Cycles &result) {
 			result = Cycles(length_ >> 1);
 			length_ &= 1;
 		}
 
-		void fill_flush(HalfCycles &result) {
+		void fill(HalfCycles &result) {
 			result.length_ = length_;
 			length_ = 0;
 		}
