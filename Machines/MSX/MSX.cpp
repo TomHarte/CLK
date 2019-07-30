@@ -45,6 +45,7 @@
 
 #include "../../Configurable/StandardOptions.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
+#include "../../ClockReceiver/JustInTime.hpp"
 
 #include "../../Analyser/Static/MSX/Target.hpp"
 
@@ -187,7 +188,7 @@ class ConcreteMachine:
 			switch(target.region) {
 				case Target::Region::Japan:
 					required_roms.emplace_back(machine_name, "a Japanese MSX BIOS", "msx-japanese.rom", 32*1024, 0xee229390);
-					vdp_.set_tv_standard(TI::TMS::TVStandard::NTSC);
+					vdp_->set_tv_standard(TI::TMS::TVStandard::NTSC);
 
 					is_ntsc = true;
 					character_generator = 0;
@@ -195,7 +196,7 @@ class ConcreteMachine:
 				break;
 				case Target::Region::USA:
 					required_roms.emplace_back(machine_name, "an American MSX BIOS", "msx-american.rom", 32*1024, 0);
-					vdp_.set_tv_standard(TI::TMS::TVStandard::NTSC);
+					vdp_->set_tv_standard(TI::TMS::TVStandard::NTSC);
 
 					is_ntsc = true;
 					character_generator = 1;
@@ -203,7 +204,7 @@ class ConcreteMachine:
 				break;
 				case Target::Region::Europe:
 					required_roms.emplace_back(machine_name, "a European MSX BIOS", "msx-european.rom", 32*1024, 0);
-					vdp_.set_tv_standard(TI::TMS::TVStandard::PAL);
+					vdp_->set_tv_standard(TI::TMS::TVStandard::PAL);
 
 					is_ntsc = false;
 					character_generator = 1;
@@ -278,11 +279,11 @@ class ConcreteMachine:
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
-			vdp_.set_scan_target(scan_target);
+			vdp_->set_scan_target(scan_target);
 		}
 
 		void set_display_type(Outputs::Display::DisplayType display_type) override {
-			vdp_.set_display_type(display_type);
+			vdp_->set_display_type(display_type);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
@@ -411,7 +412,7 @@ class ConcreteMachine:
 			// but otherwise runs without pause.
 			const HalfCycles addition((cycle.operation == CPU::Z80::PartialMachineCycle::ReadOpcode) ? 2 : 0);
 			const HalfCycles total_length = addition + cycle.length;
-			time_since_vdp_update_ += total_length;
+			vdp_ += total_length;
 			time_since_ay_update_ += total_length;
 			memory_slots_[0].cycles_since_update += total_length;
 			memory_slots_[1].cycles_since_update += total_length;
@@ -508,10 +509,9 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch(address & 0xff) {
 							case 0x98:	case 0x99:
-								vdp_.run_for(time_since_vdp_update_.flush<HalfCycles>());
-								*cycle.value = vdp_.get_register(address);
-								z80_.set_interrupt_line(vdp_.get_interrupt_line());
-								time_until_interrupt_ = vdp_.get_time_until_interrupt();
+								*cycle.value = vdp_->get_register(address);
+								z80_.set_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 
 							case 0xa2:
@@ -536,10 +536,9 @@ class ConcreteMachine:
 						const int port = address & 0xff;
 						switch(port) {
 							case 0x98:	case 0x99:
-								vdp_.run_for(time_since_vdp_update_.flush<HalfCycles>());
-								vdp_.set_register(address, *cycle.value);
-								z80_.set_interrupt_line(vdp_.get_interrupt_line());
-								time_until_interrupt_ = vdp_.get_time_until_interrupt();
+								vdp_->set_register(address, *cycle.value);
+								z80_.set_interrupt_line(vdp_->get_interrupt_line());
+								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 
 							case 0xa0:	case 0xa1:
@@ -612,7 +611,7 @@ class ConcreteMachine:
 		}
 
 		void flush() {
-			vdp_.run_for(time_since_vdp_update_.flush<HalfCycles>());
+			vdp_.flush();
 			update_audio();
 			audio_queue_.perform();
 		}
@@ -753,7 +752,7 @@ class ConcreteMachine:
 		};
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		TI::TMS::TMS9918 vdp_;
+		JustInTimeActor<TI::TMS::TMS9918, HalfCycles> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
@@ -797,7 +796,6 @@ class ConcreteMachine:
 		uint8_t scratch_[8192];
 		uint8_t unpopulated_[8192];
 
-		HalfCycles time_since_vdp_update_;
 		HalfCycles time_since_ay_update_;
 		HalfCycles time_until_interrupt_;
 
