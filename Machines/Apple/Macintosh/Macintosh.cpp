@@ -116,6 +116,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			iwm_.iwm.set_drive(0, &drives_[0]);
 			iwm_.iwm.set_drive(1, &drives_[1]);
 
+			// If they are 400kb drives, also attach them to the drive-speed accumulator.
+			if(!drives_[0].is_800k()) drive_speed_accumulator_.add_drive(&drives_[0]);
+			if(!drives_[1].is_800k()) drive_speed_accumulator_.add_drive(&drives_[1]);
+
 			// Make sure interrupt changes from the SCC are observed.
 			scc_.set_delegate(this);
 

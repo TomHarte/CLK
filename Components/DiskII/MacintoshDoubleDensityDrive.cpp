@@ -23,7 +23,7 @@ DoubleDensityDrive::DoubleDensityDrive(int input_clock_rate, bool is_800k) :
 	is_800k_(is_800k) {
 	// Start with a valid rotation speed.
 	if(is_800k) {
-		set_rotation_speed(393.3807f);
+		Drive::set_rotation_speed(393.3807f);
 	}
 }
 
@@ -51,12 +51,20 @@ void DoubleDensityDrive::did_step(Storage::Disk::HeadPosition to_position) {
 		*/
 		const int zone = to_position.as_int() >> 4;
 		switch(zone) {
-			case 0:		set_rotation_speed(393.3807f);	break;
-			case 1:		set_rotation_speed(429.1723f);	break;
-			case 2:		set_rotation_speed(472.1435f);	break;
-			case 3:		set_rotation_speed(524.5672f);	break;
-			default:	set_rotation_speed(590.1098f);	break;
+			case 0:		Drive::set_rotation_speed(393.3807f);	break;
+			case 1:		Drive::set_rotation_speed(429.1723f);	break;
+			case 2:		Drive::set_rotation_speed(472.1435f);	break;
+			case 3:		Drive::set_rotation_speed(524.5672f);	break;
+			default:	Drive::set_rotation_speed(590.1098f);	break;
 		}
+	}
+}
+
+void DoubleDensityDrive::set_rotation_speed(float revolutions_per_minute) {
+	if(!is_800k_) {
+		// Don't allow drive speeds to drop below 10 RPM, as a temporary sop
+		// to sanity.
+		Drive::set_rotation_speed(std::max(10.0f, revolutions_per_minute));
 	}
 }
 
@@ -136,6 +144,7 @@ bool DoubleDensityDrive::read() {
 
 		case CA1|CA0|SEL:		// Tachometer.
 								// (arbitrary)
+//		printf(".");
 		return get_tachometer();
 
 		case CA2:				// Read data, lower head.

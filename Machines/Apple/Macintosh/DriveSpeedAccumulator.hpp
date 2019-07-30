@@ -13,6 +13,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
+
 namespace Apple {
 namespace Macintosh {
 
@@ -23,9 +25,18 @@ class DriveSpeedAccumulator {
 		*/
 		void post_sample(uint8_t sample);
 
+		/*!
+			Adds a connected drive. Up to two of these
+			can be supplied. Only Macintosh DoubleDensityDrives
+			are supported.
+		*/
+		void add_drive(Apple::Macintosh::DoubleDensityDrive *drive);
+
 	private:
 		std::array<uint8_t, 512> samples_;
 		std::size_t sample_pointer_ = 0;
+		Apple::Macintosh::DoubleDensityDrive *drives_[2] = {nullptr, nullptr};
+		int number_of_drives_ = 0;
 };
 
 }

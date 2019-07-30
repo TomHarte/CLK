@@ -18,6 +18,20 @@ class DoubleDensityDrive: public IWMDrive {
 	public:
 		DoubleDensityDrive(int input_clock_rate, bool is_800k);
 
+		/*!
+			@returns @c true if this is an 800kb drive; @c false otherwise.
+		*/
+		bool is_800k() {
+			return is_800k_;
+		}
+
+		/*!
+			Sets the current rotation speed of this drive only if it is a 400kb drive.
+			800kb drives select their own rotation speed based on head position,
+			and ignore this input.
+		*/
+		void set_rotation_speed(float revolutions_per_minute);
+
 		void set_enabled(bool) override;
 		void set_control_lines(int) override;
 		bool read() override;
