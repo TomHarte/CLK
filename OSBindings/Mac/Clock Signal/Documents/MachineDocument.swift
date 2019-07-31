@@ -56,7 +56,16 @@ class MachineDocument:
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 		aController.window?.contentAspectRatio = self.aspectRatio()
-		setupMachineOutput()
+		if self.machine != nil {
+			setupMachineOutput()
+		} else {
+			// This is somewhat of a desperate workaround; just having loaded the Nib doesn't
+			// mean that the window is visible yet, but presenting the ROM import sheet before
+			// the window is visible will result in it being free floating.
+			DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + .milliseconds(500)) {
+				self.configureAs(self.selectedMachine!)
+			}
+		}
 	}
 
 	// Attempting to show a sheet before the window is visible (such as when the NIB is loaded) results in
@@ -340,6 +349,11 @@ class MachineDocument:
 	@IBOutlet var romReceiverView: CSROMReceiverView?
 	private var romRequestBaseText = ""
 	func requestRoms() {
+		// Don't act yet if there's no window controller yet.
+		if self.windowControllers.count == 0 {
+			return
+		}
+
 		// Load the ROM requester dialogue.
 		Bundle.main.loadNibNamed("ROMRequester", owner: self, topLevelObjects: nil)
 		self.romReceiverView!.delegate = self
