@@ -25,31 +25,23 @@ void DriveSpeedAccumulator::post_sample(uint8_t sample) {
 
 		// Treat 33 as a zero point and count zero crossings; then approximate
 		// the RPM from the frequency of those.
-		size_t first_crossing = 0, last_crossing = 0;
-		int number_of_crossings = 0;
-
+		int samples_over = 0;
 		const uint8_t centre = 33;
-		bool was_over = samples_[0] > centre;
-		for(size_t c = 1; c < 512; ++c) {
-			bool is_over = samples_[c] > centre;
-			if(is_over != was_over) {
-				if(!first_crossing) first_crossing = c;
-				last_crossing = c;
-				++number_of_crossings;
-			}
-			was_over = is_over;
+		for(size_t c = 0; c < 512; ++c) {
+			if(samples_[c] > centre) ++ samples_over;
 		}
 
-		if(number_of_crossings) {
-			// The 1950 multiplier here is a complete guess, based on preliminary
-			// observations of the values supplied and the known RPM selections of
-			// the 800kb drive. Updated values may be needed.
-			const float rotation_speed = 1950.0f * float(number_of_crossings-1) / float(last_crossing - first_crossing);
-			for(int c = 0; c < number_of_drives_; ++c) {
-				drives_[c]->set_rotation_speed(rotation_speed);
-			}
-//			printf("RPM: %d crossings => %0.2f\n", number_of_crossings, rotation_speed, min, max);
+		// TODO: if the above is the correct test, do it on sample receipt rather than
+		// bothering with an intermediate buffer.
+
+		// The below fits for a function like `a + bc`; I'm not sure it's
+		const float duty_cycle = float(samples_over) / float(samples_.size());
+		const float rotation_speed = 392.0f + duty_cycle * 19.95f;
+
+		for(int c = 0; c < number_of_drives_; ++c) {
+			drives_[c]->set_rotation_speed(rotation_speed);
 		}
+//		printf("RPM: %0.2f (%d over)\n", rotation_speed, samples_over);
 	}
 }
 
