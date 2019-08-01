@@ -63,6 +63,7 @@ uint8_t IWM::read(int address) {
 
 			if(data_register_ & 0x80) {
 //				printf("\n\nIWM:%02x\n\n", data_register_);
+//				printf(".");
 				data_register_ = 0;
 			}
 //			LOG("Reading data register: " << PADHEX(2) << int(result));
