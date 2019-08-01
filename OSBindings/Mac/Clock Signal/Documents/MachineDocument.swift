@@ -19,68 +19,168 @@ class MachineDocument:
 	CSAudioQueueDelegate,
 	CSROMReciverViewDelegate
 {
-	fileprivate let actionLock = NSLock()
-	fileprivate let drawLock = NSLock()
-	fileprivate let bestEffortLock = NSLock()
+	// MARK: - Mutual Exclusion.
 
-	var machine: CSMachine!
-	var name: String! {
-		get {
-			return nil
-		}
-	}
-	var optionsPanelNibName: String?
+	/// Ensures exclusive access between calls to self.machine.run and close().
+	private let actionLock = NSLock()
+	/// Ensures exclusive access between calls to machine.updateView and machine.drawView, and close().
+	private let drawLock = NSLock()
+	/// Ensures exclusive access to the best-effort updater.
+	private let bestEffortLock = NSLock()
 
-	func aspectRatio() -> NSSize {
+	// MARK: - Machine details.
+
+	/// A description of the machine this document should represent once fully set up.
+	private var machineDescription: CSStaticAnalyser?
+
+	/// The active machine, following its successful creation.
+	private var machine: CSMachine!
+
+	/// @returns the appropriate window content aspect ratio for this @c self.machine.
+	private func aspectRatio() -> NSSize {
 		return NSSize(width: 4.0, height: 3.0)
 	}
 
+	/// The output audio queue, if any.
+	private var audioQueue: CSAudioQueue!
+
+	/// The best-effort updater.
+	private var bestEffortUpdater: CSBestEffortUpdater?
+
+	// MARK: - Main NIB connections.
+
+	/// The OpenGL view to receive this machine's display.
 	@IBOutlet weak var openGLView: CSOpenGLView!
+
+	/// The options panel, if any.
 	@IBOutlet var optionsPanel: MachinePanel!
+
+	/// An action to display the options panel, if there is one.
 	@IBAction func showOptions(_ sender: AnyObject!) {
 		optionsPanel?.setIsVisible(true)
 	}
 
+	/// The activity panel, if one is deemed appropriate.
 	@IBOutlet var activityPanel: NSPanel!
+
+	/// An action to display the activity panel, if there is one.
 	@IBAction func showActivity(_ sender: AnyObject!) {
 		activityPanel.setIsVisible(true)
 	}
 
-	fileprivate var audioQueue: CSAudioQueue! = nil
-	fileprivate var bestEffortUpdater: CSBestEffortUpdater?
+	// MARK: - NSDocument Overrides and NSWindowDelegate methods.
 
+	/// Links this class to the MachineDocument NIB.
 	override var windowNibName: NSNib.Name? {
 		return "MachineDocument"
+	}
+
+	convenience init(type typeName: String) throws {
+		self.init()
+		self.fileType = typeName
+	}
+
+	override func read(from url: URL, ofType typeName: String) throws {
+		if let analyser = CSStaticAnalyser(fileAt: url) {
+			self.displayName = analyser.displayName
+			self.configureAs(analyser)
+		} else {
+			throw NSError(domain: "MachineDocument", code: -1, userInfo: nil)
+		}
+	}
+
+	override func close() {
+		activityPanel?.setIsVisible(false)
+		activityPanel = nil
+
+		optionsPanel?.setIsVisible(false)
+		optionsPanel = nil
+
+		bestEffortLock.lock()
+		if let bestEffortUpdater = bestEffortUpdater {
+			bestEffortUpdater.delegate = nil
+			bestEffortUpdater.flush()
+			self.bestEffortUpdater = nil
+		}
+		bestEffortLock.unlock()
+
+		actionLock.lock()
+		drawLock.lock()
+		machine = nil
+		openGLView.delegate = nil
+		openGLView.invalidate()
+		actionLock.unlock()
+		drawLock.unlock()
+
+		super.close()
+	}
+
+	override func data(ofType typeName: String) throws -> Data {
+		throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
 	}
 
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 		aController.window?.contentAspectRatio = self.aspectRatio()
-		if self.machine != nil {
+	}
+
+	private var missingROMs: [CSMissingROM] = []
+	func configureAs(_ analysis: CSStaticAnalyser) {
+		self.machineDescription = analysis
+
+		let missingROMs = NSMutableArray()
+		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
+			self.machine = machine
 			setupMachineOutput()
+			setupActivityDisplay()
 		} else {
-			// This is somewhat of a desperate workaround; just having loaded the Nib doesn't
-			// mean that the window is visible yet, but presenting the ROM import sheet before
-			// the window is visible will result in it being free floating.
-			DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + .milliseconds(500)) {
-				self.configureAs(self.selectedMachine!)
+			// Store the selected machine and list of missing ROMs, and
+			// show the missing ROMs dialogue.
+			self.missingROMs = []
+			for untypedMissingROM in missingROMs {
+				self.missingROMs.append(untypedMissingROM as! CSMissingROM)
 			}
+
+			requestRoms()
 		}
 	}
+
+	enum InteractionMode {
+		case notStarted, showingMachinePicker, showingROMRequester, showingMachine
+	}
+	private var interactionMode: InteractionMode = .notStarted
 
 	// Attempting to show a sheet before the window is visible (such as when the NIB is loaded) results in
 	// a sheet mysteriously floating on its own. For now, use windowDidUpdate as a proxy to know that the window
 	// is visible, though it's a little premature.
 	func windowDidUpdate(_ notification: Notification) {
-		if self.shouldShowNewMachinePanel {
-			self.shouldShowNewMachinePanel = false
+		// If an interaction mode is not yet in effect, pick the proper one and display the relevant thing.
+		if self.interactionMode == .notStarted {
+			// If a full machine exists, just continue showing it.
+			if self.machine != nil {
+				self.interactionMode = .showingMachine
+				setupMachineOutput()
+				return
+			}
+
+			// If a machine has been picked but is not showing, there must be ROMs missing.
+			if self.machineDescription != nil {
+				self.interactionMode = .showingROMRequester
+				requestRoms()
+				return
+			}
+
+			// If a machine hasn't even been picked yet, show the machine picker.
+			self.interactionMode = .showingMachinePicker
 			Bundle.main.loadNibNamed("MachinePicker", owner: self, topLevelObjects: nil)
 			self.machinePicker?.establishStoredOptions()
 			self.windowControllers[0].window?.beginSheet(self.machinePickerPanel!, completionHandler: nil)
 		}
 	}
 
-	fileprivate func setupMachineOutput() {
+	// MARK: - Connections Between Machine and the Outside World
+
+	private func setupMachineOutput() {
 		if let machine = self.machine, let openGLView = self.openGLView {
 			// Establish the output aspect ratio and audio.
 			let aspectRatio = self.aspectRatio()
@@ -89,7 +189,7 @@ class MachineDocument:
 			})
 
 			// Attach an options panel if one is available.
-			if let optionsPanelNibName = self.optionsPanelNibName {
+			if let optionsPanelNibName = self.machineDescription?.optionsPanelNibName {
 				Bundle.main.loadNibNamed(optionsPanelNibName, owner: self, topLevelObjects: nil)
 				self.optionsPanel.machine = machine
 				self.optionsPanel?.establishStoredOptions()
@@ -123,7 +223,7 @@ class MachineDocument:
 		setupAudioQueueClockRate()
 	}
 
-	fileprivate func setupAudioQueueClockRate() {
+	private func setupAudioQueueClockRate() {
 		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
 		let selectedSamplingRate = self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
@@ -135,97 +235,15 @@ class MachineDocument:
 		}
 	}
 
-	override func close() {
-		activityPanel?.setIsVisible(false)
-		activityPanel = nil
-
-		optionsPanel?.setIsVisible(false)
-		optionsPanel = nil
-
-		bestEffortLock.lock()
-		if let bestEffortUpdater = bestEffortUpdater {
-			bestEffortUpdater.delegate = nil
-			bestEffortUpdater.flush()
-			self.bestEffortUpdater = nil
-		}
-		bestEffortLock.unlock()
-
-		actionLock.lock()
-		drawLock.lock()
-		machine = nil
-		openGLView.delegate = nil
-		openGLView.invalidate()
-		actionLock.unlock()
-		drawLock.unlock()
-
-		super.close()
-	}
-
-	// MARK: configuring
-	fileprivate var missingROMs: [CSMissingROM] = []
-	fileprivate var selectedMachine: CSStaticAnalyser?
-
-	func configureAs(_ analysis: CSStaticAnalyser) {
-		let missingROMs = NSMutableArray()
-		if let machine = CSMachine(analyser: analysis, missingROMs: missingROMs) {
-			self.selectedMachine = nil
-			self.machine = machine
-			self.optionsPanelNibName = analysis.optionsPanelNibName
-			setupMachineOutput()
-			setupActivityDisplay()
-		} else {
-			// Store the selected machine and list of missing ROMs, and
-			// show the missing ROMs dialogue.
-			self.missingROMs = []
-			for untypedMissingROM in missingROMs {
-				self.missingROMs.append(untypedMissingROM as! CSMissingROM)
-			}
-
-			self.selectedMachine = analysis
-			requestRoms()
-		}
-	}
-
-	fileprivate var shouldShowNewMachinePanel = false
-	override func read(from url: URL, ofType typeName: String) throws {
-		if let analyser = CSStaticAnalyser(fileAt: url) {
-			self.displayName = analyser.displayName
-			self.configureAs(analyser)
-		} else {
-			throw NSError(domain: "MachineDocument", code: -1, userInfo: nil)
-		}
-	}
-
-	convenience init(type typeName: String) throws {
-		self.init()
-		self.fileType = typeName
-		self.shouldShowNewMachinePanel = true
-	}
-
-	// MARK: the pasteboard
-	func paste(_ sender: Any) {
-		let pasteboard = NSPasteboard.general
-		if let string = pasteboard.string(forType: .string) {
-			self.machine.paste(string)
-		}
-	}
-
-	// MARK: CSBestEffortUpdaterDelegate
-	final func bestEffortUpdater(_ bestEffortUpdater: CSBestEffortUpdater!, runForInterval duration: TimeInterval, didSkipPreviousUpdate: Bool) {
-		if actionLock.try() {
-			self.machine.run(forInterval: duration)
-			actionLock.unlock()
-		}
-	}
-
-	// MARK: CSAudioQueueDelegate
+	/// Responds to the CSAudioQueueDelegate dry-queue warning message by requesting a machine update.
 	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
 		bestEffortLock.lock()
 		bestEffortUpdater?.update()
 		bestEffortLock.unlock()
 	}
 
-	// MARK: CSOpenGLViewDelegate
+	/// Responds to the CSOpenGLViewDelegate redraw message by requesting a machine update if this is a timed
+	/// request, and ordering a redraw regardless of the motivation.
 	final func openGLViewRedraw(_ view: CSOpenGLView, event redrawEvent: CSOpenGLViewRedrawEvent) {
 		if redrawEvent == .timer {
 			bestEffortLock.lock()
@@ -246,7 +264,27 @@ class MachineDocument:
 		}
 	}
 
-	// MARK: Runtime media insertion.
+	/// Responds to CSBestEffortUpdaterDelegate update message by running the machine.
+	final func bestEffortUpdater(_ bestEffortUpdater: CSBestEffortUpdater!, runForInterval duration: TimeInterval, didSkipPreviousUpdate: Bool) {
+		if let machine = self.machine, actionLock.try() {
+			machine.run(forInterval: duration)
+			actionLock.unlock()
+		}
+	}
+
+	// MARK: - Pasteboard Forwarding.
+
+	/// Forwards any text currently on the pasteboard into the active machine.
+	func paste(_ sender: Any) {
+		let pasteboard = NSPasteboard.general
+		if let string = pasteboard.string(forType: .string), let machine = self.machine {
+			machine.paste(string)
+		}
+	}
+
+	// MARK: - Runtime Media Insertion.
+
+	/// Delegate message to receive drag and drop files.
 	final func openGLView(_ view: CSOpenGLView, didReceiveFileAt URL: URL) {
 		let mediaSet = CSMediaSet(fileAt: URL)
 		if let mediaSet = mediaSet {
@@ -254,6 +292,8 @@ class MachineDocument:
 		}
 	}
 
+	/// Action for the insert menu command; displays an NSOpenPanel and then segues into the same process
+	/// as if a file had been received via drag and drop.
 	@IBAction final func insertMedia(_ sender: AnyObject!) {
 		let openPanel = NSOpenPanel()
 		openPanel.message = "Hint: you can also insert media by dragging and dropping it onto the machine's window."
@@ -269,12 +309,10 @@ class MachineDocument:
 		}
 	}
 
-	// MARK: NSDocument overrides
-	override func data(ofType typeName: String) throws -> Data {
-		throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
-	}
+	// MARK: - Input Management.
 
-	// MARK: Input management
+	/// Upon a resign key, immediately releases all ongoing input mechanisms — any currently pressed keys,
+	/// and joystick and mouse inputs.
 	func windowDidResignKey(_ notification: Notification) {
 		if let machine = self.machine {
 			machine.clearAllKeys()
@@ -283,24 +321,28 @@ class MachineDocument:
 		self.openGLView.releaseMouse()
 	}
 
+	/// Upon becoming key, attaches joystick input to the machine.
 	func windowDidBecomeKey(_ notification: Notification) {
 		if let machine = self.machine {
 			machine.joystickManager = (DocumentController.shared as! DocumentController).joystickManager
 		}
 	}
 
+	/// Forwards key down events directly to the machine.
 	func keyDown(_ event: NSEvent) {
 		if let machine = self.machine {
 			machine.setKey(event.keyCode, characters: event.characters, isPressed: true)
 		}
 	}
 
+	/// Forwards key up events directly to the machine.
 	func keyUp(_ event: NSEvent) {
 		if let machine = self.machine {
 			machine.setKey(event.keyCode, characters: event.characters, isPressed: false)
 		}
 	}
 
+	/// Synthesies appropriate key up and key down events upon any change in modifiers.
 	func flagsChanged(_ newModifiers: NSEvent) {
 		if let machine = self.machine {
 			machine.setKey(VK_Shift, characters: nil, isPressed: newModifiers.modifierFlags.contains(.shift))
@@ -310,31 +352,34 @@ class MachineDocument:
 		}
 	}
 
+	/// Forwards mouse movement events to the mouse.
 	func mouseMoved(_ event: NSEvent) {
 		if let machine = self.machine {
 			machine.addMouseMotionX(event.deltaX, y: event.deltaY)
 		}
 	}
 
+	/// Forwards mouse button down events to the mouse.
 	func mouseUp(_ event: NSEvent) {
 		if let machine = self.machine {
 			machine.setMouseButton(Int32(event.buttonNumber), isPressed: false)
 		}
 	}
 
+	/// Forwards mouse button up events to the mouse.
 	func mouseDown(_ event: NSEvent) {
 		if let machine = self.machine {
 			machine.setMouseButton(Int32(event.buttonNumber), isPressed: true)
 		}
 	}
 
-	// MARK: New machine creation.
+	// MARK: - MachinePicker Outlets and Actions
 	@IBOutlet var machinePicker: MachinePicker?
 	@IBOutlet var machinePickerPanel: NSWindow?
 	@IBAction func createMachine(_ sender: NSButton?) {
 		let selectedMachine = machinePicker!.selectedMachine()
 		self.windowControllers[0].window?.endSheet(self.machinePickerPanel!)
-		machinePicker = nil
+		self.machinePicker = nil
 		self.configureAs(selectedMachine)
 	}
 
@@ -342,7 +387,7 @@ class MachineDocument:
 		close()
 	}
 
-	// MARK: User ROM provision.
+	// MARK: - ROMRequester Outlets and Actions
 	@IBOutlet var romRequesterPanel: NSWindow?
 	@IBOutlet var romRequesterText: NSTextField?
 	@IBOutlet var romReceiverErrorField: NSTextField?
@@ -446,7 +491,7 @@ class MachineDocument:
 			if didInstallRom {
 				if self.missingROMs.count == 0 {
 					self.windowControllers[0].window?.endSheet(self.romRequesterPanel!)
-					configureAs(self.selectedMachine!)
+					configureAs(self.machineDescription!)
 				} else {
 					populateMissingRomList()
 				}
@@ -509,6 +554,9 @@ class MachineDocument:
 		machine.inputMode = .joystick
 	}
 
+	/// Determines which of the menu items to enable and disable based on the ability of the
+	/// current machine to handle keyboard and joystick input, accept new media and whether
+	/// it has an associted activity window.
 	override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
 		if let menuItem = item as? NSMenuItem {
 			switch item.action {
@@ -542,7 +590,7 @@ class MachineDocument:
 		return super.validateUserInterfaceItem(item)
 	}
 
-	// Screenshot capture.
+	/// Saves a screenshot of the
 	@IBAction func saveScreenshot(_ sender: AnyObject!) {
 		// Grab a date formatter and form a file name.
 		let dateFormatter = DateFormatter()
@@ -566,7 +614,8 @@ class MachineDocument:
 	}
 
 	// MARK: Activity display.
-	class LED {
+
+	private class LED {
 		let levelIndicator: NSLevelIndicator
 		init(levelIndicator: NSLevelIndicator) {
 			self.levelIndicator = levelIndicator
@@ -574,7 +623,8 @@ class MachineDocument:
 		var isLit = false
 		var isBlinking = false
 	}
-	fileprivate var leds: [String: LED] = [:]
+	private var leds: [String: LED] = [:]
+
 	func setupActivityDisplay() {
 		var leds = machine.leds
 		if leds.count > 0 {
