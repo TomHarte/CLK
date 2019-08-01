@@ -23,26 +23,37 @@ void DriveSpeedAccumulator::post_sample(uint8_t sample) {
 	if(sample_pointer_ == samples_.size()) {
 		sample_pointer_ = 0;
 
-		// Treat 33 as a zero point and count zero crossings; then approximate
-		// the RPM from the frequency of those.
-		int samples_over = 0;
-		int sum = 0;
-		const uint8_t centre = 33;
-		for(size_t c = 0; c < 512; ++c) {
-			if(samples_[c] > centre) ++ samples_over;
-			sum += samples_[c];
-		}
+		// The below fits for a function like `a + bc`; it encapsultes the following
+		// beliefs:
+		//
+		//	(i) motor speed is proportional to voltage supplied;
+		//	(ii) with pulse-width modulation it's therefore proportional to the duty cycle;
+		//	(iii) the Mac pulse-width modulates whatever it reads from the disk speed buffer;
+		//	(iv) ... subject to software pulse-width modulation of that pulse-width modulation.
+		//
+		// So, I believe current motor speed is proportional to a low-pass filtering of
+		// the speed buffer. Which I've implemented very coarsely via 'large' bucketed-averages,
+		// noting also that exact disk motor speed is always a little approximate.
 
+		// Sum all samples.
 		// TODO: if the above is the correct test, do it on sample receipt rather than
 		// bothering with an intermediate buffer.
+		int sum = 0;
+		for(auto s: samples_) {
+			sum += s;
+		}
 
-		// The below fits for a function like `a + bc`.
-		const float rotation_speed = (float(sum) * 0.052896440564137f) - 259.0f;
+		// The formula below was derived from observing values the Mac wrote into its
+		// disk-speed buffer. Given that it runs a calibration loop before doing so,
+		// I cannot guarantee the accuracy of these numbers beyond being within the
+		// range that the computer would accept.
+		const float normalised_sum = float(sum) / float(samples_.size());
+		const float rotation_speed = (normalised_sum * 27.08f) - 259.0f;
 
 		for(int c = 0; c < number_of_drives_; ++c) {
 			drives_[c]->set_rotation_speed(rotation_speed);
 		}
-//		printf("RPM: %0.2f (%d over; %d sum)\n", rotation_speed, samples_over, sum);
+//		printf("RPM: %0.2f (%d sum)\n", rotation_speed, sum);
 	}
 }
 

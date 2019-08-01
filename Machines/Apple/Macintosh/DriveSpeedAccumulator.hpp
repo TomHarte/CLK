@@ -33,7 +33,7 @@ class DriveSpeedAccumulator {
 		void add_drive(Apple::Macintosh::DoubleDensityDrive *drive);
 
 	private:
-		std::array<uint8_t, 512> samples_;
+		std::array<uint8_t, 20> samples_;
 		std::size_t sample_pointer_ = 0;
 		Apple::Macintosh::DoubleDensityDrive *drives_[2] = {nullptr, nullptr};
 		int number_of_drives_ = 0;
