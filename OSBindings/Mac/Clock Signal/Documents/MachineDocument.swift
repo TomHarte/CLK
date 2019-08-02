@@ -154,6 +154,11 @@ class MachineDocument:
 	// a sheet mysteriously floating on its own. For now, use windowDidUpdate as a proxy to know that the window
 	// is visible, though it's a little premature.
 	func windowDidUpdate(_ notification: Notification) {
+		// Grab the regular window title, if it's not already stored.
+		if self.unadornedWindowTitle.count == 0 {
+			self.unadornedWindowTitle = self.windowControllers[0].window!.title
+		}
+
 		// If an interaction mode is not yet in effect, pick the proper one and display the relevant thing.
 		if self.interactionMode == .notStarted {
 			// If a full machine exists, just continue showing it.
@@ -613,7 +618,17 @@ class MachineDocument:
 		try! pngData?.write(to: url)
 	}
 
-	// MARK: Activity display.
+	// MARK: - Window Title Updates.
+	private var unadornedWindowTitle = ""
+	func openGLViewDidCaptureMouse(_ view: CSOpenGLView) {
+		self.windowControllers[0].window?.title = self.unadornedWindowTitle + " (press ⌘+command to release mouse)"
+	}
+
+	func openGLViewDidReleaseMouse(_ view: CSOpenGLView) {
+		self.windowControllers[0].window?.title = self.unadornedWindowTitle
+	}
+
+	// MARK: - Activity Display.
 
 	private class LED {
 		let levelIndicator: NSLevelIndicator

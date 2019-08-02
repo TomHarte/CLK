@@ -223,6 +223,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		_mouseIsCaptured = NO;
 		CGAssociateMouseAndMouseCursorPosition(true);
 		[NSCursor unhide];
+		[self.delegate openGLViewDidReleaseMouse:self];
 	}
 }
 
@@ -281,6 +282,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			_mouseIsCaptured = YES;
 			[NSCursor hide];
 			CGAssociateMouseAndMouseCursorPosition(false);
+			[self.delegate openGLViewDidCaptureMouse:self];
 
 			// Don't report the first click to the delegate; treat that as merely
 			// an invitation to capture the cursor.
