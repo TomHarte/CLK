@@ -155,75 +155,13 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// TODO: pick a delay if this is a video-clashing memory fetch.
 			HalfCycles delay(0);
 
-			time_since_video_update_ += cycle.length;
-			iwm_.time_since_update += cycle.length;
-
-			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
-			// See: Guide to the Macintosh Hardware Family p149 (PDF p188). Some extra division
-			// may occur here in order to provide VSYNC at a proper moment.
-			// Possibly route vsync.
-			if(time_since_video_update_ < time_until_video_event_) {
-				via_clock_ += cycle.length;
-				via_.run_for(via_clock_.divide(HalfCycles(10)));
-			} else {
-				auto via_time_base = time_since_video_update_ - cycle.length;
-				auto via_cycles_outstanding = cycle.length;
-				while(time_until_video_event_ < time_since_video_update_) {
-					const auto via_cycles = time_until_video_event_ - via_time_base;
-					via_time_base = HalfCycles(0);
-					via_cycles_outstanding -= via_cycles;
-
-					via_clock_ += via_cycles;
-					via_.run_for(via_clock_.divide(HalfCycles(10)));
-
-					video_.run_for(time_until_video_event_);
-					time_since_video_update_ -= time_until_video_event_;
-					time_until_video_event_ = video_.get_next_sequence_point();
-
-					via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
-				}
-
-				via_clock_ += via_cycles_outstanding;
-				via_.run_for(via_clock_.divide(HalfCycles(10)));
-			}
-
-			// The keyboard also has a clock, albeit a very slow one — 100,000 cycles/second.
-			// Its clock and data lines are connected to the VIA.
-			keyboard_clock_ += cycle.length;
-			const auto keyboard_ticks = keyboard_clock_.divide(HalfCycles(CLOCK_RATE / 100000));
-			if(keyboard_ticks > HalfCycles(0)) {
-				keyboard_.run_for(keyboard_ticks);
-				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::Two, keyboard_.get_data());
-				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, keyboard_.get_clock());
-			}
-
-			// Feed mouse inputs within at most 1250 cycles of each other.
-			if(mouse_.has_steps()) {
-				time_since_mouse_update_ += cycle.length;
-				const auto mouse_ticks = time_since_mouse_update_.divide(HalfCycles(2500));
-				if(mouse_ticks > HalfCycles(0)) {
-					mouse_.prepare_step();
-					scc_.set_dcd(0, mouse_.get_channel(1) & 1);
-					scc_.set_dcd(1, mouse_.get_channel(0) & 1);
-				}
-			}
-
-			// TODO: SCC should be clocked at a divide-by-two, if and when it actually has
-			// anything connected.
-
-			// Consider updating the real-time clock.
-			real_time_clock_ += cycle.length;
-			auto ticks = real_time_clock_.divide_cycles(Cycles(CLOCK_RATE)).as_int();
-			while(ticks--) {
-				clock_.update();
-				// TODO: leave a delay between toggling the input rather than using this coupled hack.
-				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, true);
-				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, false);
-			}
+			// Advance tie.
+			run_for(cycle.length + delay);
 
 			// A null cycle leaves nothing else to do.
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return delay;
 
+			// Grab the word-precision address being accessed.
 			auto word_address = cycle.active_operation_word_address();
 
 			// Everything above E0 0000 is signalled as being on the peripheral bus.
@@ -231,7 +169,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			// All code below deals only with reads and writes — cycles in which a
 			// data select is active. So quit now if this is not the active part of
-			//  a read or write.
+			// a read or write.
 			if(!cycle.data_select_active()) return delay;
 
 			// Check whether this access maps into the IO area; if so then
@@ -328,7 +266,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				// It embodies knowledge of the fact that video (and audio) will always
 				// be fetched from the final $d900 bytes (i.e. $6c80 words) of memory.
 				// (And that ram_mask_ = ram size - 1).
-//				if(word_address > ram_mask_ - 0x6c80)
+				if(word_address > ram_mask_ - 0x6c80)
 					update_video();
 			} else {
 				memory_base = rom_;
@@ -468,7 +406,76 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 	private:
-		void update_video() {
+		/// Advances all non-CPU components by @c duration half cycles.
+		forceinline void run_for(HalfCycles duration) {
+			time_since_video_update_ += duration;
+			iwm_.time_since_update += duration;
+
+			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
+			// See: Guide to the Macintosh Hardware Family p149 (PDF p188). Some extra division
+			// may occur here in order to provide VSYNC at a proper moment.
+			// Possibly route vsync.
+			if(time_since_video_update_ < time_until_video_event_) {
+				via_clock_ += duration;
+				via_.run_for(via_clock_.divide(HalfCycles(10)));
+			} else {
+				auto via_time_base = time_since_video_update_ - duration;
+				auto via_cycles_outstanding = duration;
+				while(time_until_video_event_ < time_since_video_update_) {
+					const auto via_cycles = time_until_video_event_ - via_time_base;
+					via_time_base = HalfCycles(0);
+					via_cycles_outstanding -= via_cycles;
+
+					via_clock_ += via_cycles;
+					via_.run_for(via_clock_.divide(HalfCycles(10)));
+
+					video_.run_for(time_until_video_event_);
+					time_since_video_update_ -= time_until_video_event_;
+					time_until_video_event_ = video_.get_next_sequence_point();
+
+					via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
+				}
+
+				via_clock_ += via_cycles_outstanding;
+				via_.run_for(via_clock_.divide(HalfCycles(10)));
+			}
+
+			// The keyboard also has a clock, albeit a very slow one — 100,000 cycles/second.
+			// Its clock and data lines are connected to the VIA.
+			keyboard_clock_ += duration;
+			const auto keyboard_ticks = keyboard_clock_.divide(HalfCycles(CLOCK_RATE / 100000));
+			if(keyboard_ticks > HalfCycles(0)) {
+				keyboard_.run_for(keyboard_ticks);
+				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::Two, keyboard_.get_data());
+				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, keyboard_.get_clock());
+			}
+
+			// Feed mouse inputs within at most 1250 cycles of each other.
+			if(mouse_.has_steps()) {
+				time_since_mouse_update_ += duration;
+				const auto mouse_ticks = time_since_mouse_update_.divide(HalfCycles(2500));
+				if(mouse_ticks > HalfCycles(0)) {
+					mouse_.prepare_step();
+					scc_.set_dcd(0, mouse_.get_channel(1) & 1);
+					scc_.set_dcd(1, mouse_.get_channel(0) & 1);
+				}
+			}
+
+			// TODO: SCC should be clocked at a divide-by-two, if and when it actually has
+			// anything connected.
+
+			// Consider updating the real-time clock.
+			real_time_clock_ += duration;
+			auto ticks = real_time_clock_.divide_cycles(Cycles(CLOCK_RATE)).as_int();
+			while(ticks--) {
+				clock_.update();
+				// TODO: leave a delay between toggling the input rather than using this coupled hack.
+				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, true);
+				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, false);
+			}
+		}
+
+		forceinline void update_video() {
 			video_.run_for(time_since_video_update_.flush<HalfCycles>());
 			time_until_video_event_ = video_.get_next_sequence_point();
 		}
