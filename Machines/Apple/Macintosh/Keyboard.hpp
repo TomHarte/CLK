@@ -10,12 +10,79 @@
 #define Apple_Macintosh_Keyboard_hpp
 
 #include "../../KeyboardMachine.hpp"
+#include "../../../ClockReceiver/ClockReceiver.hpp"
 
 #include <mutex>
 #include <vector>
 
 namespace Apple {
 namespace Macintosh {
+
+static const uint16_t KeypadMask = 0x100;
+
+/*!
+	Defines the keycodes that could be passed directly to a Macintosh via set_key_pressed.
+*/
+enum class Key: uint16_t {
+	/*
+		See p284 of the Apple Guide to the Macintosh Family Hardware
+		for documentation of the mapping below.
+	*/
+	BackTick = 0x65,
+	k1 = 0x25,	k2 = 0x27,	k3 = 0x29,	k4 = 0x2b,	k5 = 0x2f,
+	k6 = 0x2d,	k7 = 0x35,	k8 = 0x39,	k9 = 0x33,	k0 = 0x3b,
+
+	Hyphen = 0x37,
+	Equals = 0x31,
+	Backspace = 0x67,
+	Tab = 0x61,
+
+	Q = 0x19, W = 0x1b, E = 0x1d, R = 0x1f, T = 0x23, Y = 0x21, U = 0x41, I = 0x45, O = 0x3f, P = 0x47,
+	A = 0x01, S = 0x03, D = 0x05, F = 0x07, G = 0x0b, H = 0x09, J = 0x4d, K = 0x51, L = 0x4b,
+	Z = 0x0d, X = 0x0f, C = 0x11, V = 0x13, B = 0x17, N = 0x5b, M = 0x5d,
+
+	OpenSquareBracket = 0x43,
+	CloseSquareBracket = 0x3d,
+	Semicolon = 0x53,
+	Quote = 0x4f,
+	Comma = 0x57,
+	FullStop = 0x5f,
+	ForwardSlash = 0x59,
+
+	CapsLock = 0x73,
+	Shift = 0x71,
+	Option = 0x75,
+	Command = 0x6f,
+
+	Space = 0x63,
+	Backslash = 0x55,
+	Return = 0x49,
+
+	Left = KeypadMask | 0x0d,
+	Right = KeypadMask | 0x05,
+	Up = KeypadMask | 0x1b,
+	Down = KeypadMask | 0x11,
+
+	KeyPadDelete = KeypadMask | 0x0f,
+	KeyPadEquals = KeypadMask | 0x11,
+	KeyPadSlash = KeypadMask | 0x1b,
+	KeyPadAsterisk = KeypadMask | 0x05,
+	KeyPadMinus = KeypadMask | 0x1d,
+	KeyPadPlus = KeypadMask | 0x0d,
+	KeyPadEnter = KeypadMask | 0x19,
+	KeyPadDecimalPoint = KeypadMask | 0x03,
+
+	KeyPad9 = KeypadMask | 0x39,
+	KeyPad8 = KeypadMask | 0x37,
+	KeyPad7 = KeypadMask | 0x33,
+	KeyPad6 = KeypadMask | 0x31,
+	KeyPad5 = KeypadMask | 0x2f,
+	KeyPad4 = KeypadMask | 0x2d,
+	KeyPad3 = KeypadMask | 0x2b,
+	KeyPad2 = KeypadMask | 0x29,
+	KeyPad1 = KeypadMask | 0x27,
+	KeyPad0 = KeypadMask | 0x25
+};
 
 class Keyboard {
 	public:
@@ -147,14 +214,16 @@ class Keyboard {
 
 			// Keys on the keypad are preceded by a $79 keycode; in the internal naming scheme
 			// they are indicated by having bit 8 set. So add the $79 prefix if required.
-			if(key & 0x100) {
+			if(key & KeypadMask) {
 				key_queue_.insert(key_queue_.begin(), 0x79);
 			}
 			key_queue_.insert(key_queue_.begin(), (is_pressed ? 0x00 : 0x80) | uint8_t(key));
 		}
 
 	private:
-
+		/// Performs the pre-ADB Apple keyboard protocol command @c command, returning
+		/// the proper result if the command were to terminate now. So, it treats inquiry
+		/// and instant as the same command.
 		int perform_command(int command) {
 			switch(command) {
 				case 0x10:		// Inquiry.
@@ -180,22 +249,41 @@ class Keyboard {
 			return 0x7b;	// No key transition.
 		}
 
+		/// Maintains the current operating mode — a record of what the
+		/// keyboard is doing now.
 		enum class Mode {
+			/// The keyboard is waiting to begin a transaction.
 			Waiting,
+			/// The keyboard is currently clocking in a new command.
 			AcceptingCommand,
+			/// The keyboard is waiting for the computer to indicate that it is ready for a response.
 			AwaitingEndOfCommand,
+			/// The keyboard is in the process of performing the command it most-recently received.
+			/// If the command was an 'inquiry', this state may persist for a non-neglibible period of time.
+			PerformingCommand,
+			/// The keyboard is currently shifting a response back to the computer.
 			SendingResponse,
-			PerformingCommand
 		} mode_ = Mode::Waiting;
+
+		/// Holds a count of progress through the current @c Mode. Exact meaning depends on mode.
 		int phase_ = 0;
+		/// Holds the most-recently-received command; the command is shifted into here as it is received
+		/// so this may not be valid prior to Mode::PerformingCommand.
 		int command_ = 0;
+		/// Populated during PerformingCommand as the response to the most-recently-received command, this
+		/// is then shifted out to teh host computer. So it is guaranteed valid at the beginning of Mode::SendingResponse,
+		/// but not afterwards.
 		int response_ = 0;
 
+		/// The current state of the serial connection's data input.
 		bool data_input_ = false;
+		/// The current clock output from this keyboard.
 		bool clock_output_ = false;
 
-		// TODO: improve this very, very simple implementation.
+		/// Guards multithread access to key_queue_.
 		std::mutex key_queue_mutex_;
+		/// A FIFO queue for key events, in the form they'd be communicated to the Macintosh,
+		/// with the newest events towards the front.
 		std::vector<uint8_t> key_queue_;
 };
 
@@ -203,89 +291,7 @@ class Keyboard {
 	Provides a mapping from idiomatic PC keys to Macintosh keys.
 */
 class KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
-	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) override {
-		using Key = Inputs::Keyboard::Key;
-		switch(key) {
-			default: return KeyboardMachine::MappedMachine::KeyNotMapped;
-
-			/*
-				See p284 of the Apple Guide to the Macintosh Family Hardware
-				for documentation of the mapping below.
-			*/
-
-			case Key::BackTick:				return 0x65;
-			case Key::k1:					return 0x25;
-			case Key::k2:					return 0x27;
-			case Key::k3:					return 0x29;
-			case Key::k4:					return 0x2b;
-			case Key::k5:					return 0x2f;
-			case Key::k6:					return 0x2d;
-			case Key::k7:					return 0x35;
-			case Key::k8:					return 0x39;
-			case Key::k9:					return 0x33;
-			case Key::k0:					return 0x3b;
-			case Key::Hyphen:				return 0x37;
-			case Key::Equals:				return 0x31;
-			case Key::BackSpace:			return 0x67;
-
-			case Key::Tab:					return 0x61;
-			case Key::Q:					return 0x19;
-			case Key::W:					return 0x1b;
-			case Key::E:					return 0x1d;
-			case Key::R:					return 0x1f;
-			case Key::T:					return 0x23;
-			case Key::Y:					return 0x21;
-			case Key::U:					return 0x41;
-			case Key::I:					return 0x45;
-			case Key::O:					return 0x3f;
-			case Key::P:					return 0x47;
-			case Key::OpenSquareBracket:	return 0x43;
-			case Key::CloseSquareBracket:	return 0x3d;
-
-			case Key::CapsLock:				return 0x73;
-			case Key::A:					return 0x01;
-			case Key::S:					return 0x03;
-			case Key::D:					return 0x05;
-			case Key::F:					return 0x07;
-			case Key::G:					return 0x0b;
-			case Key::H:					return 0x09;
-			case Key::J:					return 0x4d;
-			case Key::K:					return 0x51;
-			case Key::L:					return 0x4b;
-			case Key::Semicolon:			return 0x53;
-			case Key::Quote:				return 0x4f;
-			case Key::Enter:				return 0x49;
-
-			case Key::LeftShift:			return 0x71;
-			case Key::Z:					return 0x0d;
-			case Key::X:					return 0x0f;
-			case Key::C:					return 0x11;
-			case Key::V:					return 0x13;
-			case Key::B:					return 0x17;
-			case Key::N:					return 0x5b;
-			case Key::M:					return 0x5d;
-			case Key::Comma:				return 0x57;
-			case Key::FullStop:				return 0x5f;
-			case Key::ForwardSlash:			return 0x59;
-			case Key::RightShift:			return 0x71;
-
-			case Key::Left:					return 0x100 | 0x0d;
-			case Key::Right:				return 0x100 | 0x05;
-			case Key::Up:					return 0x100 | 0x1b;
-			case Key::Down:					return 0x100 | 0x11;
-
-			case Key::LeftOption:
-			case Key::RightOption:			return 0x75;
-			case Key::LeftMeta:
-			case Key::RightMeta:			return 0x6f;
-
-			case Key::Space:				return 0x63;
-			case Key::BackSlash:			return 0x55;
-
-			/* TODO: the numeric keypad. */
-		}
-	}
-
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) override;
 };
 
 }

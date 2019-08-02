@@ -795,7 +795,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case Key::Right:		value = 0x15;	break;
 					case Key::Down:			value = 0x0a;	break;
 					case Key::Up:			value = 0x0b;	break;
-					case Key::BackSpace:	value = 0x7f;	break;
+					case Key::Backspace:	value = 0x7f;	break;
 					default: return;
 				}
 			}

@@ -189,11 +189,11 @@ bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key)
 
 		BIND(PRINTSCREEN, PrintScreen)	BIND(SCROLLLOCK, ScrollLock)	BIND(PAUSE, Pause)
 
-		BIND(GRAVE, BackTick)		BIND(MINUS, Hyphen)		BIND(EQUALS, Equals)	BIND(BACKSPACE, BackSpace)
+		BIND(GRAVE, BackTick)		BIND(MINUS, Hyphen)		BIND(EQUALS, Equals)	BIND(BACKSPACE, Backspace)
 
 		BIND(TAB, Tab)
 		BIND(LEFTBRACKET, OpenSquareBracket)	BIND(RIGHTBRACKET, CloseSquareBracket)
-		BIND(BACKSLASH, BackSlash)
+		BIND(BACKSLASH, Backslash)
 
 		BIND(CAPSLOCK, CapsLock)	BIND(SEMICOLON, Semicolon)
 		BIND(APOSTROPHE, Quote)		BIND(RETURN, Enter)

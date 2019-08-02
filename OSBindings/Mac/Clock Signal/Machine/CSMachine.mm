@@ -415,7 +415,7 @@ struct ActivityObserver: public Activity::Observer {
 			BIND(VK_ANSI_Quote, Quote);							BIND(VK_ANSI_Grave, BackTick);
 
 			BIND(VK_ANSI_Semicolon, Semicolon);
-			BIND(VK_ANSI_Backslash, BackSlash);					BIND(VK_ANSI_Slash, ForwardSlash);
+			BIND(VK_ANSI_Backslash, Backslash);					BIND(VK_ANSI_Slash, ForwardSlash);
 			BIND(VK_ANSI_Comma, Comma);							BIND(VK_ANSI_Period, FullStop);
 
 			BIND(VK_ANSI_KeypadDecimal, KeyPadDecimalPoint);	BIND(VK_ANSI_KeypadEquals, KeyPadEquals);
@@ -424,7 +424,7 @@ struct ActivityObserver: public Activity::Observer {
 			BIND(VK_ANSI_KeypadClear, KeyPadDelete);			BIND(VK_ANSI_KeypadEnter, KeyPadEnter);
 
 			BIND(VK_Return, Enter);					BIND(VK_Tab, Tab);
-			BIND(VK_Space, Space);					BIND(VK_Delete, BackSpace);
+			BIND(VK_Space, Space);					BIND(VK_Delete, Backspace);
 			BIND(VK_Control, LeftControl);			BIND(VK_Option, LeftOption);
 			BIND(VK_Command, LeftMeta);				BIND(VK_Shift, LeftShift);
 			BIND(VK_RightControl, RightControl);	BIND(VK_RightOption, RightOption);

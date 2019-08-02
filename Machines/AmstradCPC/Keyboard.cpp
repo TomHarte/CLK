@@ -31,12 +31,12 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(F11, KeyRightSquareBracket);
 		BIND(F12, KeyClear);
 
-		BIND(Hyphen, KeyMinus);		BIND(Equals, KeyCaret);		BIND(BackSpace, KeyDelete);
+		BIND(Hyphen, KeyMinus);		BIND(Equals, KeyCaret);		BIND(Backspace, KeyDelete);
 		BIND(Tab, KeyTab);
 
 		BIND(OpenSquareBracket, KeyAt);
 		BIND(CloseSquareBracket, KeyLeftSquareBracket);
-		BIND(BackSlash, KeyBackSlash);
+		BIND(Backslash, KeyBackSlash);
 
 		BIND(CapsLock, KeyCapsLock);
 		BIND(Semicolon, KeyColon);

@@ -34,7 +34,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(OpenSquareBracket, KeyAt);
 		BIND(CloseSquareBracket, KeyAsterisk);
 
-		BIND(BackSlash, KeyRestore);
+		BIND(Backslash, KeyRestore);
 		BIND(Hash, KeyUp);
 		BIND(F10, KeyUp);
 
@@ -59,7 +59,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 
 		BIND(Enter, KeyReturn);
 		BIND(Space, KeySpace);
-		BIND(BackSpace, KeyDelete);
+		BIND(Backspace, KeyDelete);
 
 		BIND(Escape, KeyRunStop);
 		BIND(F1, KeyF1);
