@@ -302,6 +302,32 @@ std::string system_get(const char *command) {
 	return result;
 }
 
+/*!
+	Maintains a communicative window title.
+*/
+class DynamicWindowTitler {
+	public:
+		DynamicWindowTitler(SDL_Window *window) : window_(window), file_name_(SDL_GetWindowTitle(window)) {}
+
+		std::string window_title() {
+			if(!mouse_is_captured_) return file_name_;
+			return file_name_ + " (press control+escape to release mouse)";
+		}
+
+		void set_mouse_is_captured(bool is_captured) {
+			mouse_is_captured_ = is_captured;
+			update_window_title();
+		}
+
+	private:
+		void update_window_title() {
+			SDL_SetWindowTitle(window_, window_title().c_str());
+		}
+		bool mouse_is_captured_ = false;
+		SDL_Window *window_ = nullptr;
+		const std::string file_name_;
+};
+
 }
 
 int main(int argc, char *argv[]) {
@@ -351,7 +377,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Determine the machine for the supplied file.
-	Analyser::Static::TargetList targets = Analyser::Static::GetTargets(arguments.file_name);
+	const auto targets = Analyser::Static::GetTargets(arguments.file_name);
 	if(targets.empty()) {
 		std::cerr << "Cannot open " << arguments.file_name << "; no target machine found" << std::endl;
 		return EXIT_FAILURE;
@@ -458,6 +484,8 @@ int main(int argc, char *argv[]) {
 								SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 								400, 300,
 								SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
+
+	DynamicWindowTitler window_titler(window);
 
 	SDL_GLContext gl_context = nullptr;
 	if(window) {
@@ -628,6 +656,7 @@ int main(int argc, char *argv[]) {
 					// Use ctrl+escape to release the mouse (if captured).
 					if(event.key.keysym.sym == SDLK_ESCAPE && (SDL_GetModState()&KMOD_CTRL)) {
 						SDL_SetRelativeMouseMode(SDL_FALSE);
+						window_titler.set_mouse_is_captured(false);
 					}
 
 					// Capture ctrl+shift+d as a take-a-screenshot command.
@@ -734,6 +763,7 @@ int main(int argc, char *argv[]) {
 				case SDL_MOUSEBUTTONDOWN:
 					if(uses_mouse && !SDL_GetRelativeMouseMode()) {
 						SDL_SetRelativeMouseMode(SDL_TRUE);
+						window_titler.set_mouse_is_captured(true);
 						break;
 					}
 				case SDL_MOUSEBUTTONUP: {
