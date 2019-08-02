@@ -399,3 +399,8 @@ void IWM::set_component_prefers_clocking(ClockingHint::Source *component, Clocki
 		drive_is_rotating_[1] = is_rotating;
 	}
 }
+
+void IWM::set_activity_observer(Activity::Observer *observer) {
+	if(drives_[0]) drives_[0]->set_activity_observer(observer, "Internal Drive", true);
+	if(drives_[1]) drives_[1]->set_activity_observer(observer, "External Drive", true);
+}

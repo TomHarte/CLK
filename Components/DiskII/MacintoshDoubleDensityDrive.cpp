@@ -71,7 +71,9 @@ void DoubleDensityDrive::set_rotation_speed(float revolutions_per_minute) {
 
 // MARK: - Control input/output.
 
-void DoubleDensityDrive::set_enabled(bool) {
+void DoubleDensityDrive::set_enabled(bool enabled) {
+	// Disabling a drive also stops its motor.
+	if(!enabled) set_motor_on(false);
 }
 
 void DoubleDensityDrive::set_control_lines(int lines) {

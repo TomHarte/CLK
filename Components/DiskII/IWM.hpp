@@ -9,8 +9,11 @@
 #ifndef IWM_hpp
 #define IWM_hpp
 
+#include "../../Activity/Observer.hpp"
+
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
+
 #include "../../Storage/Disk/Drive.hpp"
 
 #include <cstdint>
@@ -66,6 +69,10 @@ class IWM:
 
 		/// Connects a drive to the IWM.
 		void set_drive(int slot, IWMDrive *drive);
+
+		/// Registers the currently-connected drives as @c Activity::Sources ;
+		/// the first will be declared 'Internal', the second 'External'.
+		void set_activity_observer(Activity::Observer *observer);
 
 	private:
 		// Storage::Disk::Drive::EventDelegate.
