@@ -235,23 +235,32 @@ void IWM::run_for(const Cycles cycles) {
 	// Activity otherwise depends on mode and motor state.
 	int integer_cycles = cycles.as_int();
 	switch(shift_mode_) {
-		case ShiftMode::Reading:
+		case ShiftMode::Reading: {
+			// Per the IWM patent, column 7, around line 35 onwards: "The expected time
+			// is widened by approximately one-half an interval before and after the
+			// expected time since the data is not precisely spaced when read due to
+			// variations in drive speed and other external factors". The error_margin
+			// here implements the 'after' part of that contract.
+			const auto error_margin = Cycles(bit_length_.as_int() >> 1);
+
 			if(drive_is_rotating_[active_drive_]) {
 				while(integer_cycles--) {
 					drives_[active_drive_]->run_for(Cycles(1));
 					++cycles_since_shift_;
-					if(cycles_since_shift_ == bit_length_ + Cycles(2)) {
+					if(cycles_since_shift_ == bit_length_ + error_margin) {
 						propose_shift(0);
 					}
 				}
 			} else {
-				while(cycles_since_shift_ + integer_cycles >= bit_length_ + Cycles(2)) {
+				while(cycles_since_shift_ + integer_cycles >= bit_length_ + error_margin) {
+					const auto run_length = bit_length_ + error_margin - cycles_since_shift_;
+					integer_cycles -= run_length.as_int();
+					cycles_since_shift_ += run_length;
 					propose_shift(0);
-					integer_cycles -= bit_length_.as_int() + 2 - cycles_since_shift_.as_int();
 				}
 				cycles_since_shift_ += Cycles(integer_cycles);
 			}
-		break;
+		} break;
 
 		case ShiftMode::Writing:
 			if(drives_[active_drive_]->is_writing()) {
@@ -351,12 +360,28 @@ void IWM::propose_shift(uint8_t bit) {
 	// TODO: synchronous mode.
 
 //	LOG("Shifting input");
+
+	// See above for text from the IWM patent, column 7, around line 35 onwards.
+	// The error_margin here implements the 'before' part of that contract.
+	//
+	// Basic effective logic: if at least 1 is fozund in the bit_length_ cycles centred
+	// on the current expected bit delivery time as implied by cycles_since_shift_,
+	// shift in a 1 and start a new window wherever the first found 1 was.
+	//
+	// If no 1s are found, shift in a 0 and don't alter expectations as to window placement.
+	const auto error_margin = Cycles(bit_length_.as_int() >> 1);
+	if(bit && cycles_since_shift_ < error_margin) return;
+
 	shift_register_ = uint8_t((shift_register_ << 1) | bit);
 	if(shift_register_ & 0x80) {
 		data_register_ = shift_register_;
 		shift_register_ = 0;
 	}
-	cycles_since_shift_ = Cycles(0);
+
+	if(bit)
+		cycles_since_shift_ = Cycles(0);
+	else
+		cycles_since_shift_ -= bit_length_;
 }
 
 void IWM::set_drive(int slot, IWMDrive *drive) {
