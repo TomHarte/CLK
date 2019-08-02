@@ -16,6 +16,7 @@
 #include "RealTimeClock.hpp"
 #include "Video.hpp"
 
+#include "../../../Activity/Source.hpp"
 #include "../../CRTMachine.hpp"
 #include "../../KeyboardMachine.hpp"
 #include "../../MediaTarget.hpp"
@@ -55,7 +56,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public MouseMachine::Machine,
 	public CPU::MC68000::BusHandler,
 	public KeyboardMachine::MappedMachine,
-	public Zilog::SCC::z8530::Delegate {
+	public Zilog::SCC::z8530::Delegate,
+	public Activity::Source {
 	public:
 		using Target = Analyser::Static::Macintosh::Target;
 
@@ -458,6 +460,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			} else {
 				mc68000_.set_interrupt_level(0);
 			}
+		}
+
+		// MARK: - Activity Source
+		void set_activity_observer(Activity::Observer *observer) override {
+			iwm_.iwm.set_activity_observer(observer);
 		}
 
 	private:

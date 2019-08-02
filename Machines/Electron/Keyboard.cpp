@@ -41,7 +41,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(LeftShift, KeyShift);		BIND(RightShift, KeyShift);
 
 		BIND(Hyphen, KeyMinus);
-		BIND(Delete, KeyDelete);		BIND(BackSpace, KeyDelete);
+		BIND(Delete, KeyDelete);		BIND(Backspace, KeyDelete);
 		BIND(Enter, KeyReturn);			BIND(KeyPadEnter, KeyReturn);
 
 		BIND(KeyPad0, Key0);		BIND(KeyPad1, Key1);		BIND(KeyPad2, Key2);		BIND(KeyPad3, Key3);		BIND(KeyPad4, Key4);

@@ -47,12 +47,12 @@ uint16_t MSX::KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(FullStop, KeyFullStop);
 		BIND(Comma, KeyComma);
 		BIND(ForwardSlash, KeyForwardSlash);
-		BIND(BackSlash, KeyBackSlash);
+		BIND(Backslash, KeyBackSlash);
 		BIND(BackTick, KeyGrave);
 
 		BIND(Enter, KeyEnter);
 		BIND(Space, KeySpace);
-		BIND(BackSpace, KeyBackspace);
+		BIND(Backspace, KeyBackspace);
 
 		default: break;
 	}

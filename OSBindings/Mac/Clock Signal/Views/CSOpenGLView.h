@@ -37,6 +37,19 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 */
 - (void)openGLView:(nonnull CSOpenGLView *)view didReceiveFileAtURL:(nonnull NSURL *)URL;
 
+/*!
+	Announces 'capture' of the mouse — i.e. that the view is now preventing the mouse from exiting
+	the window, in order to forward continuous mouse motion.
+	@param view The view making the announcement.
+*/
+- (void)openGLViewDidCaptureMouse:(nonnull CSOpenGLView *)view;
+
+/*!
+	Announces that the mouse is no longer captured.
+	@param view The view making the announcement.
+*/
+- (void)openGLViewDidReleaseMouse:(nonnull CSOpenGLView *)view;
+
 @end
 
 @protocol CSOpenGLViewResponderDelegate <NSObject>
