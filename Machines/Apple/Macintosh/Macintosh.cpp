@@ -180,7 +180,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// All code below deals only with reads and writes — cycles in which a
 			// data select is active. So quit now if this is not the active part of
 			// a read or write.
-			if(!cycle.data_select_active()) return delay;
+			//
+			// The 68000 uses 6800-style autovectored interrupts, so the mere act of
+			// having set VPA above deals with those given that the generated address
+			// for interrupt acknowledge cycles always has all bits set except the
+			// lowest explicit address lines.
+			if(!cycle.data_select_active() || (cycle.operation & Microcycle::InterruptAcknowledge)) return delay;
 
 			uint16_t *memory_base = nullptr;
 			switch(memory_map_[word_address >> 18]) {
@@ -294,15 +299,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			}
 
 			// If control has fallen through to here, the access is either a read from ROM, or a read or write to RAM.
-			// TODO: interrupt acknowledge cycles also end up here, which may suggest the 68000 is loading the address bus
-			// incorrectly during interrupt acknowledgment cycles. Check.
-			switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge)) {
+			switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
 				default:
-				break;
-
-				case Microcycle::InterruptAcknowledge | Microcycle::SelectByte:
-					// The Macintosh uses autovectored interrupts.
-					mc68000_.set_is_peripheral_address(true);
 				break;
 
 				case Microcycle::SelectWord | Microcycle::Read:

@@ -234,12 +234,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 				continue;
 
 				case ExecutionState::BeginInterrupt:
-#ifdef LOG_TRACE
-//					should_log = true;
-					if(should_log) {
-						printf("\n\nInterrupt\n\n");
-					}
-#endif
 					active_program_ = nullptr;
 					active_micro_op_ = interrupt_micro_ops_;
 					execution_state_ = ExecutionState::Executing;
@@ -1960,10 +1954,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 							// Mutate neessary internal state — effective_address_[0] is exposed
 							// on the data bus as the accepted interrupt number during the interrupt
-							// acknowledge cycle, with the low bit set since a real 68000 uses the lower
-							// data strobe to collect the corresponding vector byte.
+							// acknowledge cycle, with all other bits set, including the low bit as
+							// a real 68000 uses the lower data strobe to collect the corresponding vector byte.
+							//
+							// Cf. M68000 8-/16-/32-BIT MICROPROCESSORS USER'S MANUAL 5.1.4.
 							accepted_interrupt_level_ = interrupt_level_ = bus_interrupt_level_;
-							effective_address_[0].full = 1 | uint32_t(accepted_interrupt_level_ << 1);
+							effective_address_[0].full = 0xfffffff1 | uint32_t(accepted_interrupt_level_ << 1);
 
 							// Recede the program counter to where it would have been were there no
 							// prefetch; that's where the reading stream should pick up upon RTE.
