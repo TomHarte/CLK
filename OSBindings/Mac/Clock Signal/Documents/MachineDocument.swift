@@ -621,7 +621,7 @@ class MachineDocument:
 	// MARK: - Window Title Updates.
 	private var unadornedWindowTitle = ""
 	func openGLViewDidCaptureMouse(_ view: CSOpenGLView) {
-		self.windowControllers[0].window?.title = self.unadornedWindowTitle + " (press ⌘+command to release mouse)"
+		self.windowControllers[0].window?.title = self.unadornedWindowTitle + " (press ⌘+control to release mouse)"
 	}
 
 	func openGLViewDidReleaseMouse(_ view: CSOpenGLView) {
