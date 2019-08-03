@@ -131,6 +131,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			// Insert any supplied media.
 			insert_media(target.media);
+
+			// Set the immutables of the memory map.
+			setup_memory_map();
 		}
 
 		~ConcreteMachine() {
@@ -152,95 +155,47 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		using Microcycle = CPU::MC68000::Microcycle;
 
 		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
-			// TODO: pick a delay if this is a video-clashing memory fetch.
 			HalfCycles delay(0);
 
-			time_since_video_update_ += cycle.length;
-			iwm_.time_since_update += cycle.length;
+			// Grab the word-precision address being accessed.
+			uint32_t word_address = 0;
 
-			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
-			// See: Guide to the Macintosh Hardware Family p149 (PDF p188). Some extra division
-			// may occur here in order to provide VSYNC at a proper moment.
-			// Possibly route vsync.
-			if(time_since_video_update_ < time_until_video_event_) {
-				via_clock_ += cycle.length;
-				via_.run_for(via_clock_.divide(HalfCycles(10)));
-			} else {
-				auto via_time_base = time_since_video_update_ - cycle.length;
-				auto via_cycles_outstanding = cycle.length;
-				while(time_until_video_event_ < time_since_video_update_) {
-					const auto via_cycles = time_until_video_event_ - via_time_base;
-					via_time_base = HalfCycles(0);
-					via_cycles_outstanding -= via_cycles;
-
-					via_clock_ += via_cycles;
-					via_.run_for(via_clock_.divide(HalfCycles(10)));
-
-					video_.run_for(time_until_video_event_);
-					time_since_video_update_ -= time_until_video_event_;
-					time_until_video_event_ = video_.get_next_sequence_point();
-
-					via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
-				}
-
-				via_clock_ += via_cycles_outstanding;
-				via_.run_for(via_clock_.divide(HalfCycles(10)));
-			}
-
-			// The keyboard also has a clock, albeit a very slow one — 100,000 cycles/second.
-			// Its clock and data lines are connected to the VIA.
-			keyboard_clock_ += cycle.length;
-			const auto keyboard_ticks = keyboard_clock_.divide(HalfCycles(CLOCK_RATE / 100000));
-			if(keyboard_ticks > HalfCycles(0)) {
-				keyboard_.run_for(keyboard_ticks);
-				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::Two, keyboard_.get_data());
-				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, keyboard_.get_clock());
-			}
-
-			// Feed mouse inputs within at most 1250 cycles of each other.
-			if(mouse_.has_steps()) {
-				time_since_mouse_update_ += cycle.length;
-				const auto mouse_ticks = time_since_mouse_update_.divide(HalfCycles(2500));
-				if(mouse_ticks > HalfCycles(0)) {
-					mouse_.prepare_step();
-					scc_.set_dcd(0, mouse_.get_channel(1) & 1);
-					scc_.set_dcd(1, mouse_.get_channel(0) & 1);
+			// Take a sneak peak and add a delay if this is a RAM access that would overlap with video.
+			if(cycle.data_select_active()) {
+				word_address = cycle.active_operation_word_address();
+				if(memory_map_[word_address >> 18] == BusDevice::RAM && ram_subcycle_ < 4) {
+					delay = HalfCycles(4 - ram_subcycle_);
 				}
 			}
 
-			// TODO: SCC should be clocked at a divide-by-two, if and when it actually has
-			// anything connected.
-
-			// Consider updating the real-time clock.
-			real_time_clock_ += cycle.length;
-			auto ticks = real_time_clock_.divide_cycles(Cycles(CLOCK_RATE)).as_int();
-			while(ticks--) {
-				clock_.update();
-				// TODO: leave a delay between toggling the input rather than using this coupled hack.
-				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, true);
-				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, false);
-			}
+			// Advance time.
+			advance_time(cycle.length + delay);
 
 			// A null cycle leaves nothing else to do.
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return delay;
-
-			auto word_address = cycle.active_operation_word_address();
 
 			// Everything above E0 0000 is signalled as being on the peripheral bus.
 			mc68000_.set_is_peripheral_address(word_address >= 0x700000);
 
 			// All code below deals only with reads and writes — cycles in which a
 			// data select is active. So quit now if this is not the active part of
-			//  a read or write.
+			// a read or write.
 			if(!cycle.data_select_active()) return delay;
 
-			// Check whether this access maps into the IO area; if so then
-			// apply more complicated decoding logic.
-			if(word_address >= 0x400000) {
-				const int register_address = word_address >> 8;
+			uint16_t *memory_base = nullptr;
+			switch(memory_map_[word_address >> 18]) {
+				default: assert(false);
 
-				switch(word_address & 0x78f000) {
-					case 0x70f000:
+				case BusDevice::Unassigned:
+					fill_unmapped(cycle);
+				return delay;
+
+				case BusDevice::VIA: {
+					if(*cycle.address & 1) {
+						fill_unmapped(cycle);
+					} else {
+						const int register_address = word_address >> 8;
+
 						// VIA accesses are via address 0xefe1fe + register*512,
 						// which at word precision is 0x77f0ff + register*256.
 						if(cycle.operation & Microcycle::Read) {
@@ -248,9 +203,23 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						} else {
 							via_.set_register(register_address, cycle.value->halves.low);
 						}
-					break;
 
-					case 0x68f000:
+						if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+					}
+				} return delay;
+
+				case BusDevice::PhaseRead: {
+					if(cycle.operation & Microcycle::Read) {
+						cycle.value->halves.low = phase_ & 7;
+					}
+
+					if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+				} return delay;
+
+				case BusDevice::IWM: {
+					if(*cycle.address & 1) {
+						const int register_address = word_address >> 8;
+
 						// The IWM; this is a purely polled device, so can be run on demand.
 						iwm_.flush();
 						if(cycle.operation & Microcycle::Read) {
@@ -258,100 +227,78 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						} else {
 							iwm_.iwm.write(register_address, cycle.value->halves.low);
 						}
-					break;
 
-					case 0x780000:
-						// Phase read.
-						if(cycle.operation & Microcycle::Read) {
-							cycle.value->halves.low = phase_ & 7;
-						}
-					break;
+						if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
+					} else {
+						fill_unmapped(cycle);
+					}
+				} return delay;
 
-					case 0x480000: case 0x48f000:
-					case 0x580000: case 0x58f000:
-						// Any word access here adjusts phase.
-						if(cycle.operation & Microcycle::SelectWord) {
-							++phase_;
+				case BusDevice::SCCReadResetPhase: {
+					// Any word access here adjusts phase.
+					if(cycle.operation & Microcycle::SelectWord) {
+						adjust_phase();
+					} else {
+						// A0 = 1 => reset; A0 = 0 => read.
+						if(*cycle.address & 1) {
+							scc_.reset();
+
+							if(cycle.operation & Microcycle::Read) {
+								cycle.value->halves.low = 0xff;
+							}
 						} else {
-							if(word_address < 0x500000) {
-								// A0 = 1 => reset; A0 = 0 => read.
-								if(*cycle.address & 1) {
-									scc_.reset();
-								} else {
-									const auto read = scc_.read(int(word_address));
-									if(cycle.operation & Microcycle::Read) {
-										cycle.value->halves.low = read;
-									}
-								}
-							} else {
-								if(*cycle.address & 1) {
-									if(cycle.operation & Microcycle::Read) {
-										scc_.write(int(word_address), 0xff);
-									} else {
-										scc_.write(int(word_address), cycle.value->halves.low);
-									}
-								}
+							const auto read = scc_.read(int(word_address));
+							if(cycle.operation & Microcycle::Read) {
+								cycle.value->halves.low = read;
 							}
 						}
-					break;
-
-					default:
-						if(cycle.operation & Microcycle::Read) {
-							LOG("Unrecognised read " << PADHEX(6) << (*cycle.address & 0xffffff));
-							cycle.value->halves.low = 0x00;
-						} else {
-							LOG("Unrecognised write %06x" << PADHEX(6) << (*cycle.address & 0xffffff));
-						}
-					break;
-				}
-				if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
-
-				return delay;
-			}
-
-			// Having reached here, this is a RAM or ROM access.
-
-			// When ROM overlay is enabled, the ROM begins at both $000000 and $400000,
-			// and RAM is available at $600000.
-			//
-			// Otherwise RAM is mapped at $000000 and ROM from $400000.
-			uint16_t *memory_base;
-			if(
-				(!ROM_is_overlay_ && word_address < 0x200000) ||
-				(ROM_is_overlay_ && word_address >= 0x300000)
-			) {
-				memory_base = ram_;
-				word_address &= ram_mask_;
-
-				// This is coupled with the Macintosh implementation of video; the magic
-				// constant should probably be factored into the Video class.
-				// It embodies knowledge of the fact that video (and audio) will always
-				// be fetched from the final $d900 bytes (i.e. $6c80 words) of memory.
-				// (And that ram_mask_ = ram size - 1).
-//				if(word_address > ram_mask_ - 0x6c80)
-					update_video();
-			} else {
-				memory_base = rom_;
-				word_address &= rom_mask_;
-
-				// Writes to ROM have no effect, and it doesn't mirror above 0x60000.
-				if(!(cycle.operation & Microcycle::Read)) return delay;
-				if(word_address >= 0x300000) {
-					if(cycle.operation & Microcycle::SelectWord) {
-						cycle.value->full = 0xffff;
-					} else {
-						cycle.value->halves.low = 0xff;
 					}
-					return delay;
-				}
+				} return delay;
+
+				case BusDevice::SCCWrite: {
+					// Any word access here adjusts phase.
+					if(cycle.operation & Microcycle::SelectWord) {
+						adjust_phase();
+					} else {
+						if(*cycle.address & 1) {
+							if(cycle.operation & Microcycle::Read) {
+								scc_.write(int(word_address), 0xff);
+								cycle.value->halves.low = 0xff;
+							} else {
+								scc_.write(int(word_address), cycle.value->halves.low);
+							}
+						} else {
+							fill_unmapped(cycle);
+						}
+					}
+				} return delay;
+
+				case BusDevice::RAM: {
+					// This is coupled with the Macintosh implementation of video; the magic
+					// constant should probably be factored into the Video class.
+					// It embodies knowledge of the fact that video (and audio) will always
+					// be fetched from the final $d900 bytes (i.e. $6c80 words) of memory.
+					// (And that ram_mask_ = ram size - 1).
+					if(word_address > ram_mask_ - 0x6c80)
+						update_video();
+
+					memory_base = ram_;
+					word_address &= ram_mask_;
+				} break;
+
+				case BusDevice::ROM: {
+					if(!(cycle.operation & Microcycle::Read)) return delay;
+					memory_base = rom_;
+					word_address &= rom_mask_;
+				} break;
 			}
 
+			// If control has fallen through to here, the access is either a read from ROM, or a read or write to RAM.
+			// TODO: interrupt acknowledge cycles also end up here, which may suggest the 68000 is loading the address bus
+			// incorrectly during interrupt acknowledgment cycles. Check.
 			switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read | Microcycle::InterruptAcknowledge)) {
 				default:
 				break;
-
-				// Catches the deliberation set of operation to 0 above.
-				case 0: break;
 
 				case Microcycle::InterruptAcknowledge | Microcycle::SelectByte:
 					// The Macintosh uses autovectored interrupts.
@@ -375,17 +322,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				break;
 			}
 
-			/*
-				Normal memory map:
-
-				000000: 	RAM
-				400000: 	ROM
-				9FFFF8+:	SCC read operations
-				BFFFF8+:	SCC write operations
-				DFE1FF+:	IWM
-				EFE1FE+:	VIA
-			*/
-
 			return delay;
 		}
 
@@ -406,6 +342,48 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		void set_rom_is_overlay(bool rom_is_overlay) {
 			ROM_is_overlay_ = rom_is_overlay;
+
+			using Model = Analyser::Static::Macintosh::Target::Model;
+			switch(model) {
+				case Model::Mac128k:
+				case Model::Mac512k:
+				case Model::Mac512ke:
+					populate_memory_map([rom_is_overlay] (std::function<void(int target, BusDevice device)> map_to) {
+						// Addresses up to $80 0000 aren't affected by this bit.
+						if(rom_is_overlay) {
+							// Up to $60 0000 mirrors of the ROM alternate with unassigned areas every $10 0000 byes.
+							for(int c = 0; c <= 0x600000; c += 0x100000) {
+								map_to(c, ((c >> 20)&1) ? BusDevice::ROM : BusDevice::Unassigned);
+							}
+							map_to(0x800000, BusDevice::RAM);
+						} else {
+							map_to(0x400000, BusDevice::RAM);
+							map_to(0x500000, BusDevice::ROM);
+							map_to(0x800000, BusDevice::Unassigned);
+						}
+					});
+				break;
+
+				case Model::MacPlus:
+					populate_memory_map([rom_is_overlay] (std::function<void(int target, BusDevice device)> map_to) {
+						// Addresses up to $80 0000 aren't affected by this bit.
+						if(rom_is_overlay) {
+							map_to(0x100000, BusDevice::ROM);
+							map_to(0x400000, BusDevice::Unassigned);
+							map_to(0x500000, BusDevice::ROM);
+							map_to(0x580000, BusDevice::Unassigned);
+							map_to(0x600000, BusDevice::SCSI);
+							map_to(0x800000, BusDevice::RAM);
+						} else {
+							map_to(0x400000, BusDevice::RAM);
+							map_to(0x500000, BusDevice::ROM);
+							map_to(0x580000, BusDevice::Unassigned);
+							map_to(0x600000, BusDevice::SCSI);
+							map_to(0x800000, BusDevice::Unassigned);
+						}
+					});
+				break;
+			}
 		}
 
 		bool video_is_outputting() {
@@ -468,7 +446,90 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 	private:
-		void update_video() {
+		forceinline void adjust_phase() {
+			++phase_;
+		}
+
+		forceinline void fill_unmapped(const Microcycle &cycle) {
+			if(!(cycle.operation & Microcycle::Read)) return;
+			if(cycle.operation & Microcycle::SelectWord) {
+				cycle.value->full = 0xffff;
+			} else {
+				cycle.value->halves.low = 0xff;
+			}
+		}
+
+		/// Advances all non-CPU components by @c duration half cycles.
+		forceinline void advance_time(HalfCycles duration) {
+			time_since_video_update_ += duration;
+			iwm_.time_since_update += duration;
+			ram_subcycle_ = (ram_subcycle_ + duration.as_int()) & 15;
+
+			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
+			// See: Guide to the Macintosh Hardware Family p149 (PDF p188). Some extra division
+			// may occur here in order to provide VSYNC at a proper moment.
+			// Possibly route vsync.
+			if(time_since_video_update_ < time_until_video_event_) {
+				via_clock_ += duration;
+				via_.run_for(via_clock_.divide(HalfCycles(10)));
+			} else {
+				auto via_time_base = time_since_video_update_ - duration;
+				auto via_cycles_outstanding = duration;
+				while(time_until_video_event_ < time_since_video_update_) {
+					const auto via_cycles = time_until_video_event_ - via_time_base;
+					via_time_base = HalfCycles(0);
+					via_cycles_outstanding -= via_cycles;
+
+					via_clock_ += via_cycles;
+					via_.run_for(via_clock_.divide(HalfCycles(10)));
+
+					video_.run_for(time_until_video_event_);
+					time_since_video_update_ -= time_until_video_event_;
+					time_until_video_event_ = video_.get_next_sequence_point();
+
+					via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !video_.vsync());
+				}
+
+				via_clock_ += via_cycles_outstanding;
+				via_.run_for(via_clock_.divide(HalfCycles(10)));
+			}
+
+			// The keyboard also has a clock, albeit a very slow one — 100,000 cycles/second.
+			// Its clock and data lines are connected to the VIA.
+			keyboard_clock_ += duration;
+			const auto keyboard_ticks = keyboard_clock_.divide(HalfCycles(CLOCK_RATE / 100000));
+			if(keyboard_ticks > HalfCycles(0)) {
+				keyboard_.run_for(keyboard_ticks);
+				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::Two, keyboard_.get_data());
+				via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, keyboard_.get_clock());
+			}
+
+			// Feed mouse inputs within at most 1250 cycles of each other.
+			if(mouse_.has_steps()) {
+				time_since_mouse_update_ += duration;
+				const auto mouse_ticks = time_since_mouse_update_.divide(HalfCycles(2500));
+				if(mouse_ticks > HalfCycles(0)) {
+					mouse_.prepare_step();
+					scc_.set_dcd(0, mouse_.get_channel(1) & 1);
+					scc_.set_dcd(1, mouse_.get_channel(0) & 1);
+				}
+			}
+
+			// TODO: SCC should be clocked at a divide-by-two, if and when it actually has
+			// anything connected.
+
+			// Consider updating the real-time clock.
+			real_time_clock_ += duration;
+			auto ticks = real_time_clock_.divide_cycles(Cycles(CLOCK_RATE)).as_int();
+			while(ticks--) {
+				clock_.update();
+				// TODO: leave a delay between toggling the input rather than using this coupled hack.
+				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, true);
+				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, false);
+			}
+		}
+
+		forceinline void update_video() {
 			video_.run_for(time_since_video_update_.flush<HalfCycles>());
 			time_until_video_event_ = video_.get_next_sequence_point();
 		}
@@ -627,11 +688,89 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		bool ROM_is_overlay_ = true;
 		int phase_ = 1;
+		int ram_subcycle_ = 0;
 
 		DoubleDensityDrive drives_[2];
 		Inputs::QuadratureMouse mouse_;
 
 		Apple::Macintosh::KeyboardMapper keyboard_mapper_;
+
+		enum class BusDevice {
+			RAM, ROM, VIA, IWM, SCCWrite, SCCReadResetPhase, SCSI, PhaseRead, Unassigned
+		};
+
+		/// Divides the 24-bit address space up into $80000 (i.e. 512kb) segments, recording
+		/// which device is current mapped in each area. Keeping it in a table is a bit faster
+		/// than the multi-level address inspection that is otherwise required, as well as
+		/// simplifying slightly the handling of different models.
+		///
+		/// So: index with the top 5 bits of the 24-bit address.
+		BusDevice memory_map_[32];
+
+		void setup_memory_map() {
+			// Apply the power-up memory map, i.e. assume that ROM_is_overlay_ = true.
+
+			using Model = Analyser::Static::Macintosh::Target::Model;
+			switch(model) {
+				default: assert(false);
+
+				case Model::Mac128k:
+				case Model::Mac512k:
+				case Model::Mac512ke:
+					populate_memory_map([] (std::function<void(int target, BusDevice device)> map_to) {
+						// Up to $60 0000 mirrors of the ROM alternate with unassigned areas every $10 0000 byes.
+						for(int c = 0; c <= 0x600000; c += 0x100000) {
+							map_to(c, ((c >> 20)&1) ? BusDevice::ROM : BusDevice::Unassigned);
+						}
+						map_to(0x800000, BusDevice::RAM);
+						map_to(0x900000, BusDevice::Unassigned);
+						map_to(0xa00000, BusDevice::SCCReadResetPhase);
+						map_to(0xb00000, BusDevice::Unassigned);
+						map_to(0xc00000, BusDevice::SCCWrite);
+						map_to(0xd00000, BusDevice::Unassigned);
+						map_to(0xe00000, BusDevice::IWM);
+						map_to(0xe80000, BusDevice::Unassigned);
+						map_to(0xf00000, BusDevice::VIA);
+						map_to(0xf80000, BusDevice::PhaseRead);
+						map_to(0x1000000, BusDevice::Unassigned);
+					});
+				break;
+
+				case Model::MacPlus:
+					populate_memory_map([] (std::function<void(int target, BusDevice device)> map_to) {
+						map_to(0x100000, BusDevice::ROM);
+						map_to(0x400000, BusDevice::Unassigned);
+						map_to(0x500000, BusDevice::ROM);
+						map_to(0x580000, BusDevice::Unassigned);
+						map_to(0x600000, BusDevice::SCSI);
+						map_to(0x800000, BusDevice::RAM);
+						map_to(0x900000, BusDevice::Unassigned);
+						map_to(0xa00000, BusDevice::SCCReadResetPhase);
+						map_to(0xb00000, BusDevice::Unassigned);
+						map_to(0xc00000, BusDevice::SCCWrite);
+						map_to(0xd00000, BusDevice::Unassigned);
+						map_to(0xe00000, BusDevice::IWM);
+						map_to(0xe80000, BusDevice::Unassigned);
+						map_to(0xf00000, BusDevice::VIA);
+						map_to(0xf80000, BusDevice::PhaseRead);
+						map_to(0x1000000, BusDevice::Unassigned);
+					});
+				break;
+			}
+		}
+
+		void populate_memory_map(std::function<void(std::function<void(int, BusDevice)>)> populator) {
+			// Define semantics for below; map_to will write from the current cursor position
+			// to the supplied 24-bit address, setting a particular mapped device.
+			int segment = 0;
+			auto map_to = [&segment, this](int address, BusDevice device) {
+				for(; segment < address >> 19; ++segment) {
+					this->memory_map_[segment] = device;
+				}
+			};
+
+			populator(map_to);
+		}
 
 		uint32_t ram_mask_ = 0;
 		uint32_t rom_mask_ = 0;
