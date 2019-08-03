@@ -343,20 +343,47 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		void set_rom_is_overlay(bool rom_is_overlay) {
 			ROM_is_overlay_ = rom_is_overlay;
 
-			populate_memory_map([rom_is_overlay] (std::function<void(int target, BusDevice device)> map_to) {
-				// Addresses up to $80 0000 aren't affected by this bit.
-				if(rom_is_overlay) {
-					// Up to $60 0000 mirrors of the ROM alternate with unassigned areas every $10 0000 byes.
-					for(int c = 0; c <= 0x600000; c += 0x100000) {
-						map_to(c, ((c >> 20)&1) ? BusDevice::ROM : BusDevice::Unassigned);
-					}
-					map_to(0x800000, BusDevice::RAM);
-				} else {
-					map_to(0x400000, BusDevice::RAM);
-					map_to(0x500000, BusDevice::ROM);
-					map_to(0x800000, BusDevice::Unassigned);
-				}
-			});
+			using Model = Analyser::Static::Macintosh::Target::Model;
+			switch(model) {
+				case Model::Mac128k:
+				case Model::Mac512k:
+				case Model::Mac512ke:
+					populate_memory_map([rom_is_overlay] (std::function<void(int target, BusDevice device)> map_to) {
+						// Addresses up to $80 0000 aren't affected by this bit.
+						if(rom_is_overlay) {
+							// Up to $60 0000 mirrors of the ROM alternate with unassigned areas every $10 0000 byes.
+							for(int c = 0; c <= 0x600000; c += 0x100000) {
+								map_to(c, ((c >> 20)&1) ? BusDevice::ROM : BusDevice::Unassigned);
+							}
+							map_to(0x800000, BusDevice::RAM);
+						} else {
+							map_to(0x400000, BusDevice::RAM);
+							map_to(0x500000, BusDevice::ROM);
+							map_to(0x800000, BusDevice::Unassigned);
+						}
+					});
+				break;
+
+				case Model::MacPlus:
+					populate_memory_map([rom_is_overlay] (std::function<void(int target, BusDevice device)> map_to) {
+						// Addresses up to $80 0000 aren't affected by this bit.
+						if(rom_is_overlay) {
+							map_to(0x100000, BusDevice::ROM);
+							map_to(0x400000, BusDevice::Unassigned);
+							map_to(0x500000, BusDevice::ROM);
+							map_to(0x580000, BusDevice::Unassigned);
+							map_to(0x600000, BusDevice::SCSI);
+							map_to(0x800000, BusDevice::RAM);
+						} else {
+							map_to(0x400000, BusDevice::RAM);
+							map_to(0x500000, BusDevice::ROM);
+							map_to(0x580000, BusDevice::Unassigned);
+							map_to(0x600000, BusDevice::SCSI);
+							map_to(0x800000, BusDevice::Unassigned);
+						}
+					});
+				break;
+			}
 		}
 
 		bool video_is_outputting() {
@@ -709,9 +736,26 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					});
 				break;
 
-//				case Model::MacPlus: {
-//					int segment = 0;
-//				} break;
+				case Model::MacPlus:
+					populate_memory_map([] (std::function<void(int target, BusDevice device)> map_to) {
+						map_to(0x100000, BusDevice::ROM);
+						map_to(0x400000, BusDevice::Unassigned);
+						map_to(0x500000, BusDevice::ROM);
+						map_to(0x580000, BusDevice::Unassigned);
+						map_to(0x600000, BusDevice::SCSI);
+						map_to(0x800000, BusDevice::RAM);
+						map_to(0x900000, BusDevice::Unassigned);
+						map_to(0xa00000, BusDevice::SCCReadResetPhase);
+						map_to(0xb00000, BusDevice::Unassigned);
+						map_to(0xc00000, BusDevice::SCCWrite);
+						map_to(0xd00000, BusDevice::Unassigned);
+						map_to(0xe00000, BusDevice::IWM);
+						map_to(0xe80000, BusDevice::Unassigned);
+						map_to(0xf00000, BusDevice::VIA);
+						map_to(0xf80000, BusDevice::PhaseRead);
+						map_to(0x1000000, BusDevice::Unassigned);
+					});
+				break;
 			}
 		}
 
