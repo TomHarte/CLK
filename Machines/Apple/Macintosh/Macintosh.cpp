@@ -155,17 +155,24 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		using Microcycle = CPU::MC68000::Microcycle;
 
 		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
-			// TODO: pick a delay if this is a video-clashing memory fetch.
 			HalfCycles delay(0);
 
-			// Advance tie.
-			run_for(cycle.length + delay);
+			// Grab the word-precision address being accessed.
+			uint32_t word_address = 0;
+
+			// Take a sneak peak and add a delay if this is a RAM access that would overlap with video.
+			if(cycle.data_select_active()) {
+				word_address = cycle.active_operation_word_address();
+				if(memory_map_[word_address >> 18] == BusDevice::RAM && ram_subcycle_ < 4) {
+					delay = HalfCycles(4 - ram_subcycle_);
+				}
+			}
+
+			// Advance time.
+			advance_time(cycle.length + delay);
 
 			// A null cycle leaves nothing else to do.
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return delay;
-
-			// Grab the word-precision address being accessed.
-			auto word_address = cycle.active_operation_word_address();
 
 			// Everything above E0 0000 is signalled as being on the peripheral bus.
 			mc68000_.set_is_peripheral_address(word_address >= 0x700000);
@@ -177,7 +184,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			uint16_t *memory_base = nullptr;
 			switch(memory_map_[word_address >> 18]) {
-				default: break;
+				default: assert(false);
 
 				case BusDevice::Unassigned:
 					fill_unmapped(cycle);
@@ -426,9 +433,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 		/// Advances all non-CPU components by @c duration half cycles.
-		forceinline void run_for(HalfCycles duration) {
+		forceinline void advance_time(HalfCycles duration) {
 			time_since_video_update_ += duration;
 			iwm_.time_since_update += duration;
+			ram_subcycle_ = (ram_subcycle_ + duration.as_int()) & 15;
 
 			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
 			// See: Guide to the Macintosh Hardware Family p149 (PDF p188). Some extra division
@@ -653,6 +661,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		bool ROM_is_overlay_ = true;
 		int phase_ = 1;
+		int ram_subcycle_ = 0;
 
 		DoubleDensityDrive drives_[2];
 		Inputs::QuadratureMouse mouse_;
