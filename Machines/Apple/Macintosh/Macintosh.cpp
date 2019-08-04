@@ -154,25 +154,15 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		using Microcycle = CPU::MC68000::Microcycle;
 
-		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
-			HalfCycles delay(0);
-
-			// Grab the word-precision address being accessed.
-			uint32_t word_address = 0;
-
-			// Take a sneak peak and add a delay if this is a RAM access that would overlap with video.
-			if(cycle.data_select_active()) {
-				word_address = cycle.active_operation_word_address();
-				if(memory_map_[word_address >> 18] == BusDevice::RAM && ram_subcycle_ < 4) {
-					delay = HalfCycles(4 - ram_subcycle_);
-				}
-			}
-
+		forceinline HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
 			// Advance time.
-			advance_time(cycle.length + delay);
+			advance_time(cycle.length);
 
 			// A null cycle leaves nothing else to do.
-			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return delay;
+			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
+
+			// Grab the value on the address bus, at word precision.
+			uint32_t word_address = cycle.active_operation_word_address();
 
 			// Everything above E0 0000 is signalled as being on the peripheral bus.
 			mc68000_.set_is_peripheral_address(word_address >= 0x700000);
@@ -185,9 +175,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// having set VPA above deals with those given that the generated address
 			// for interrupt acknowledge cycles always has all bits set except the
 			// lowest explicit address lines.
-			if(!cycle.data_select_active() || (cycle.operation & Microcycle::InterruptAcknowledge)) return delay;
+			if(!cycle.data_select_active() || (cycle.operation & Microcycle::InterruptAcknowledge)) return HalfCycles(0);
 
+			// Grab the word-precision address being accessed.
 			uint16_t *memory_base = nullptr;
+			HalfCycles delay;
 			switch(memory_map_[word_address >> 18]) {
 				default: assert(false);
 
@@ -289,6 +281,15 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 					memory_base = ram_;
 					word_address &= ram_mask_;
+
+					// Apply a delay due to video contention if applicable; technically this is
+					// incorrectly placed — strictly speaking here I'm extending the part of the
+					// bus cycle after DTACK rather than delaying DTACK. But it adds up to the
+					// same thing.
+					if(ram_subcycle_ < 4) {
+						delay = HalfCycles(4 - ram_subcycle_);
+						advance_time(delay);
+					}
 				} break;
 
 				case BusDevice::ROM: {
