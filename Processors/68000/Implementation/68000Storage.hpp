@@ -62,6 +62,11 @@ class ProcessorStorage {
 		bool bus_acknowledge_ = false;
 		bool halt_ = false;
 
+		// Holds the interrupt level that should be serviced at the next instruction
+		// dispatch, if any.
+		int pending_interrupt_level_ = 0;
+		// Holds the interrupt level that is currently being serviced.
+		// TODO: surely this doesn't need to be distinct from the pending_interrupt_level_?
 		int accepted_interrupt_level_ = 0;
 		bool is_starting_interrupt_ = false;
 
