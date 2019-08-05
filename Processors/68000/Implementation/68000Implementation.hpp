@@ -1049,22 +1049,28 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 										break;
 									}
 
-									int32_t dividend = int32_t(destination()->full);
-									int32_t divisor = s_extend16(source()->halves.low.full);
-									const int64_t quotient = int64_t(dividend) / int64_t(divisor);
+									const int32_t signed_dividend = int32_t(destination()->full);
+									const int32_t signed_divisor = s_extend16(source()->halves.low.full);
+									const auto result_sign =
+										( (0 <= signed_dividend) - (signed_dividend < 0) ) *
+										( (0 <= signed_divisor) - (signed_divisor < 0) );
+
+									const uint32_t dividend = uint32_t(abs(signed_dividend));
+									const uint32_t divisor = uint32_t(abs(signed_divisor));
 
 									int cycles_expended = 12;	// Covers the nn nnn n to get beyond the sign test.
-									if(dividend < 0) {
+									if(signed_dividend < 0) {
 										cycles_expended += 2;	// An additional microycle applies if the dividend is negative.
 									}
 
 									// Check for overflow. If it exists, work here is already done.
-									if(quotient > 32767 || quotient < -32768) {
+									const auto quotient = dividend / divisor;
+									if(quotient > 32767) {
 										overflow_flag_ = 1;
-										set_next_microcycle_length(HalfCycles(3*2*2));
+										set_next_microcycle_length(HalfCycles(6*2*2));
 
 										// These are officially undefined for results that overflow, so the below is a guess.
-										zero_result_ = decltype(zero_result_)(divisor & 0xffff);
+										zero_result_ = decltype(zero_result_)(dividend);
 										negative_flag_ = zero_result_ & 0x8000;
 
 										break;
@@ -1074,26 +1080,25 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									negative_flag_ = zero_result_ & 0x8000;
 									overflow_flag_ = 0;
 
-									// TODO: check sign rules here; am I necessarily giving the remainder the correct sign?
-									// (and, if not, am I counting it in the correct direction?)
-									const uint16_t remainder = uint16_t(dividend % divisor);
+									const uint16_t remainder = uint16_t(signed_dividend % signed_divisor);
+									const int signed_quotient = result_sign*int(quotient);
 									destination()->halves.high.full = remainder;
-									destination()->halves.low.full = uint16_t(quotient);
+									destination()->halves.low.full = uint16_t(signed_quotient);
 
-									// Algorithm here: there is a fixed three-microcycle cost per bit set
-									// in the unsigned quotient; there is an additional microcycle for
-									// every bit that is set. Also, since the possibility of overflow
-									// was already dealt with, it's now a smaller number.
-									int positive_quotient_bits = int(abs(quotient)) & 0xfffe;
+									// Algorithm here: there is a fixed cost per unset bit
+									// in the first 15 bits of the unsigned quotient.
+									auto positive_quotient_bits = ~quotient & 0xfffe;
 									convert_to_bit_count_16(positive_quotient_bits);
 									cycles_expended += 2 * positive_quotient_bits;
 
-									// There's then no way to terminate the loop that isn't at least six cycles long.
-									cycles_expended += 6;
+									// There's then no way to terminate the loop that isn't at least ten cycles long;
+									// there's also a fixed overhead per bit. The two together add up to the 104 below.
+									cycles_expended += 104;
 
-									if(divisor < 0) {
+									// This picks up at 'No more bits' in yacht.txt's diagram.
+									if(signed_divisor < 0) {
 										cycles_expended += 2;
-									} else if(dividend < 0) {
+									} else if(signed_dividend < 0) {
 										cycles_expended += 4;
 									}
 									set_next_microcycle_length(HalfCycles(cycles_expended * 2));
