@@ -742,7 +742,7 @@
 
 - (void)performDIVS:(uint16_t)divisor d1:(uint32_t)d1 {
 	self.machine->set_program({
-		0x83fc, divisor		// DIVS #$eef0, D1
+		0x83fc, divisor		// DIVS #divisor, D1
 	});
 	auto state = self.machine->get_processor_state();
 	state.data[1] = d1;
