@@ -188,6 +188,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 							case BusStep::Action::AdvancePrefetch:
 								prefetch_queue_.halves.high = prefetch_queue_.halves.low;
+
+								// During prefetch advance seems to be the only time the interrupt inputs are sampled;
+								// TODO: determine whether this really happens on *every* advance.
+								if(bus_interrupt_level_ > interrupt_level_) {
+									pending_interrupt_level_ = bus_interrupt_level_;
+								}
 							break;
 						}
 
@@ -199,6 +205,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					// If an interrupt (TODO: or reset) has finally arrived that will be serviced,
 					// exit the STOP.
 					if(bus_interrupt_level_ > interrupt_level_) {
+						pending_interrupt_level_ = bus_interrupt_level_;
 						execution_state_ = ExecutionState::BeginInterrupt;
 						continue;
 					}
@@ -254,7 +261,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						// Either the micro-operations for this instruction have been exhausted, or
 						// no instruction was ongoing. Either way, do a standard instruction operation.
 
-						if(bus_interrupt_level_ > interrupt_level_) {
+						if(pending_interrupt_level_) {
 							execution_state_ = ExecutionState::BeginInterrupt;
 							break;
 						}
@@ -1963,7 +1970,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							// a real 68000 uses the lower data strobe to collect the corresponding vector byte.
 							//
 							// Cf. M68000 8-/16-/32-BIT MICROPROCESSORS USER'S MANUAL 5.1.4.
-							accepted_interrupt_level_ = interrupt_level_ = bus_interrupt_level_;
+							accepted_interrupt_level_ = interrupt_level_ = pending_interrupt_level_;
+							pending_interrupt_level_ = 0;
 							effective_address_[0].full = 0xfffffff1 | uint32_t(accepted_interrupt_level_ << 1);
 
 							// Recede the program counter to where it would have been were there no
