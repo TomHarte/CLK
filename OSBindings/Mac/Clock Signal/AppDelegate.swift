@@ -12,15 +12,21 @@ import Cocoa
 class AppDelegate: NSObject, NSApplicationDelegate {
 
 	func applicationDidFinishLaunching(_ aNotification: Notification) {
-		// Insert code here to initialize your application
+		// Insert code here to initialize your application.
 	}
 
 	func applicationWillTerminate(_ aNotification: Notification) {
-		// Insert code here to tear down your application
+		// Insert code here to tear down your application.
 	}
 
-	// decline to open a new file unless the user explicitly requests it
 	func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
+		// Decline to show the 'New...' selector by default, preferring to offer
+		// an 'Open...' dialogue.
+		//
+		// Obiter: I dislike it when other applications do this for me, but it
+		// seems to be the new norm, and I've had user feedback that showing
+		// nothing is confusing. So here it is.
+		NSDocumentController.shared.openDocument(self)
 		return false
 	}
 }
