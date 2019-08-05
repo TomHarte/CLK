@@ -1076,14 +1076,14 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 										break;
 									}
 
-									zero_result_ = decltype(zero_result_)(quotient);
-									negative_flag_ = zero_result_ & 0x8000;
-									overflow_flag_ = 0;
-
 									const uint16_t remainder = uint16_t(signed_dividend % signed_divisor);
 									const int signed_quotient = result_sign*int(quotient);
 									destination()->halves.high.full = remainder;
 									destination()->halves.low.full = uint16_t(signed_quotient);
+
+									zero_result_ = decltype(zero_result_)(signed_quotient);
+									negative_flag_ = zero_result_ & 0x8000;
+									overflow_flag_ = 0;
 
 									// Algorithm here: there is a fixed cost per unset bit
 									// in the first 15 bits of the unsigned quotient.
