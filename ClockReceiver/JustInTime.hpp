@@ -21,7 +21,7 @@
 	Machines that accumulate HalfCycle time but supply to a Cycle-counted device may supply a
 	separate @c TargetTimeScale at template declaration.
 */
-template <class T, class LocalTimeScale, class TargetTimeScale = LocalTimeScale> class JustInTimeActor {
+template <class T, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class JustInTimeActor {
 	public:
 		/// Constructs a new JustInTimeActor using the same construction arguments as the included object.
 		template<typename... Args> JustInTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {}
@@ -60,7 +60,7 @@ template <class T, class LocalTimeScale, class TargetTimeScale = LocalTimeScale>
 	Any time the amount of accumulated time crosses a threshold provided at construction time,
 	the object will be updated on the AsyncTaskQueue.
 */
-template <class T, class LocalTimeScale, class TargetTimeScale = LocalTimeScale> class AsyncJustInTimeActor {
+template <class T, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class AsyncJustInTimeActor {
 	public:
 		/// Constructs a new AsyncJustInTimeActor using the same construction arguments as the included object.
 		template<typename... Args> AsyncJustInTimeActor(TargetTimeScale threshold, Args&&... args) :
