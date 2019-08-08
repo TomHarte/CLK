@@ -57,7 +57,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public CPU::MC68000::BusHandler,
 	public KeyboardMachine::MappedMachine,
 	public Zilog::SCC::z8530::Delegate,
-	public Activity::Source {
+	public Activity::Source,
+	public DriveSpeedAccumulator::Delegate {
 	public:
 		using Target = Analyser::Static::Macintosh::Target;
 
@@ -119,8 +120,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			iwm_->set_drive(1, &drives_[1]);
 
 			// If they are 400kb drives, also attach them to the drive-speed accumulator.
-			if(!drives_[0].is_800k()) drive_speed_accumulator_.add_drive(&drives_[0]);
-			if(!drives_[1].is_800k()) drive_speed_accumulator_.add_drive(&drives_[1]);
+			if(!drives_[0].is_800k() || !drives_[1].is_800k()) {
+				drive_speed_accumulator_.set_delegate(this);
+			}
 
 			// Make sure interrupt changes from the SCC are observed.
 			scc_.set_delegate(this);
@@ -444,6 +446,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 	private:
+		void drive_speed_accumulator_set_drive_speed(DriveSpeedAccumulator *, float speed) override {
+			iwm_.flush();
+			drives_[0].set_rotation_speed(speed);
+			drives_[1].set_rotation_speed(speed);
+		}
+
 		forceinline void adjust_phase() {
 			++phase_;
 		}

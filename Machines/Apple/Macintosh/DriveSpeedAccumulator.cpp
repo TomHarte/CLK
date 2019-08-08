@@ -11,7 +11,7 @@
 using namespace Apple::Macintosh;
 
 void DriveSpeedAccumulator::post_sample(uint8_t sample) {
-	if(!number_of_drives_) return;
+	if(!delegate_) return;
 
 	// An Euler-esque approximation is used here: just collect all
 	// the samples until there is a certain small quantity of them,
@@ -50,14 +50,7 @@ void DriveSpeedAccumulator::post_sample(uint8_t sample) {
 		const float normalised_sum = float(sum) / float(samples_.size());
 		const float rotation_speed = (normalised_sum * 27.08f) - 259.0f;
 
-		for(int c = 0; c < number_of_drives_; ++c) {
-			drives_[c]->set_rotation_speed(rotation_speed);
-		}
-//		printf("RPM: %0.2f (%d sum)\n", rotation_speed, sum);
+		delegate_->drive_speed_accumulator_set_drive_speed(this, rotation_speed);
 	}
 }
 
-void DriveSpeedAccumulator::add_drive(Apple::Macintosh::DoubleDensityDrive *drive) {
-	drives_[number_of_drives_] = drive;
-	++number_of_drives_;
-}

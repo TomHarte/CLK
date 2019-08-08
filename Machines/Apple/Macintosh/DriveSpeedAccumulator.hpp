@@ -13,8 +13,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
-
 namespace Apple {
 namespace Macintosh {
 
@@ -25,18 +23,20 @@ class DriveSpeedAccumulator {
 		*/
 		void post_sample(uint8_t sample);
 
+		struct Delegate {
+			virtual void drive_speed_accumulator_set_drive_speed(DriveSpeedAccumulator *, float speed) = 0;
+		};
 		/*!
-			Adds a connected drive. Up to two of these
-			can be supplied. Only Macintosh DoubleDensityDrives
-			are supported.
+			Sets the delegate to receive drive speed changes.
 		*/
-		void add_drive(Apple::Macintosh::DoubleDensityDrive *drive);
+		void set_delegate(Delegate *delegate) {
+			delegate_ = delegate;;
+		}
 
 	private:
 		std::array<uint8_t, 20> samples_;
 		std::size_t sample_pointer_ = 0;
-		Apple::Macintosh::DoubleDensityDrive *drives_[2] = {nullptr, nullptr};
-		int number_of_drives_ = 0;
+		Delegate *delegate_ = nullptr;
 };
 
 }
