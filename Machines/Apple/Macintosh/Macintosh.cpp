@@ -57,7 +57,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public CPU::MC68000::BusHandler,
 	public KeyboardMachine::MappedMachine,
 	public Zilog::SCC::z8530::Delegate,
-	public Activity::Source {
+	public Activity::Source,
+	public DriveSpeedAccumulator::Delegate {
 	public:
 		using Target = Analyser::Static::Macintosh::Target;
 
@@ -115,12 +116,13 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			Memory::Fuzz(ram_, sizeof(ram_) / sizeof(*ram_));
 
 			// Attach the drives to the IWM.
-			iwm_.iwm.set_drive(0, &drives_[0]);
-			iwm_.iwm.set_drive(1, &drives_[1]);
+			iwm_->set_drive(0, &drives_[0]);
+			iwm_->set_drive(1, &drives_[1]);
 
 			// If they are 400kb drives, also attach them to the drive-speed accumulator.
-			if(!drives_[0].is_800k()) drive_speed_accumulator_.add_drive(&drives_[0]);
-			if(!drives_[1].is_800k()) drive_speed_accumulator_.add_drive(&drives_[1]);
+			if(!drives_[0].is_800k() || !drives_[1].is_800k()) {
+				drive_speed_accumulator_.set_delegate(this);
+			}
 
 			// Make sure interrupt changes from the SCC are observed.
 			scc_.set_delegate(this);
@@ -218,11 +220,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						const int register_address = word_address >> 8;
 
 						// The IWM; this is a purely polled device, so can be run on demand.
-						iwm_.flush();
 						if(cycle.operation & Microcycle::Read) {
-							cycle.value->halves.low = iwm_.iwm.read(register_address);
+							cycle.value->halves.low = iwm_->read(register_address);
 						} else {
-							iwm_.iwm.write(register_address, cycle.value->halves.low);
+							iwm_->write(register_address, cycle.value->halves.low);
 						}
 
 						if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
@@ -441,10 +442,16 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		// MARK: - Activity Source
 		void set_activity_observer(Activity::Observer *observer) override {
-			iwm_.iwm.set_activity_observer(observer);
+			iwm_->set_activity_observer(observer);
 		}
 
 	private:
+		void drive_speed_accumulator_set_drive_speed(DriveSpeedAccumulator *, float speed) override {
+			iwm_.flush();
+			drives_[0].set_rotation_speed(speed);
+			drives_[1].set_rotation_speed(speed);
+		}
+
 		forceinline void adjust_phase() {
 			++phase_;
 		}
@@ -461,7 +468,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		/// Advances all non-CPU components by @c duration half cycles.
 		forceinline void advance_time(HalfCycles duration) {
 			time_since_video_update_ += duration;
-			iwm_.time_since_update += duration;
+			iwm_ += duration;
 			ram_subcycle_ = (ram_subcycle_ + duration.as_int()) & 15;
 
 			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
@@ -537,20 +544,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			return mouse_;
 		}
 
-		struct IWM {
-			IWM(int clock_rate) : iwm(clock_rate) {}
-
-			HalfCycles time_since_update;
-			Apple::IWM iwm;
-
-			void flush() {
-				iwm.run_for(time_since_update.flush<Cycles>());
-			}
-		};
-
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:
-				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, Video &video, DeferredAudio &audio, IWM &iwm, Inputs::QuadratureMouse &mouse) :
+				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, Video &video, DeferredAudio &audio, JustInTimeActor<IWM, HalfCycles, Cycles> &iwm, Inputs::QuadratureMouse &mouse) :
 					machine_(machine), clock_(clock), keyboard_(keyboard), video_(video), audio_(audio), iwm_(iwm), mouse_(mouse) {}
 
 				using Port = MOS::MOS6522::Port;
@@ -572,8 +568,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 									b3:	0 = use alternate sound buffer, 1 = use ordinary sound buffer
 									b2–b0:	audio output volume
 							*/
-							iwm_.flush();
-							iwm_.iwm.set_select(!!(value & 0x20));
+							iwm_->set_select(!!(value & 0x20));
 
 							machine_.set_use_alternate_buffers(!(value & 0x40), !(value&0x08));
 							machine_.set_rom_is_overlay(!!(value & 0x10));
@@ -658,14 +653,14 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				Keyboard &keyboard_;
 				Video &video_;
 				DeferredAudio &audio_;
-				IWM &iwm_;
+				JustInTimeActor<IWM, HalfCycles, Cycles> &iwm_;
 				Inputs::QuadratureMouse &mouse_;
 		};
 
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 
 		DriveSpeedAccumulator drive_speed_accumulator_;
-		IWM iwm_;
+		JustInTimeActor<IWM, HalfCycles, Cycles> iwm_;
 
 		DeferredAudio audio_;
 		Video video_;
