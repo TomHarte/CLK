@@ -131,7 +131,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (NSString *)description {
-	return [NSString stringWithFormat:@"%@/%@, %@ bytes, CRCs: %@", _fileName, _descriptiveName, @(_size), _crc32s];
+	return [NSString stringWithFormat:@"%@/%@, %lu bytes, CRCs: %@", _fileName, _descriptiveName, (unsigned long)_size, _crc32s];
 }
 
 @end
