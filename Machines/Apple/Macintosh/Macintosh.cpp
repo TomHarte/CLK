@@ -182,7 +182,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// Grab the word-precision address being accessed.
 			uint16_t *memory_base = nullptr;
 			HalfCycles delay;
-			switch(memory_map_[word_address >> 18]) {
+			switch(memory_map_[word_address >> 16]) {
+				case BusDevice::SCSI:
+					printf("SCSI\n");
 				default: assert(false);
 
 				case BusDevice::Unassigned:
@@ -352,8 +354,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						// Addresses up to $80 0000 aren't affected by this bit.
 						if(rom_is_overlay) {
 							// Up to $60 0000 mirrors of the ROM alternate with unassigned areas every $10 0000 byes.
-							for(int c = 0; c <= 0x600000; c += 0x100000) {
-								map_to(c, ((c >> 20)&1) ? BusDevice::ROM : BusDevice::Unassigned);
+							for(int c = 0; c < 0x600000; c += 0x100000) {
+								map_to(c + 0x100000, (c & 0x100000) ? BusDevice::Unassigned : BusDevice::ROM);
 							}
 							map_to(0x800000, BusDevice::RAM);
 						} else {
@@ -368,16 +370,16 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					populate_memory_map([rom_is_overlay] (std::function<void(int target, BusDevice device)> map_to) {
 						// Addresses up to $80 0000 aren't affected by this bit.
 						if(rom_is_overlay) {
-							map_to(0x100000, BusDevice::ROM);
-							map_to(0x400000, BusDevice::Unassigned);
-							map_to(0x500000, BusDevice::ROM);
-							map_to(0x580000, BusDevice::Unassigned);
+							for(int c = 0; c < 0x580000; c += 0x20000) {
+								map_to(c + 0x20000, ((c & 0x100000) || (c & 0x20000)) ? BusDevice::Unassigned : BusDevice::ROM);
+							}
 							map_to(0x600000, BusDevice::SCSI);
 							map_to(0x800000, BusDevice::RAM);
 						} else {
 							map_to(0x400000, BusDevice::RAM);
-							map_to(0x500000, BusDevice::ROM);
-							map_to(0x580000, BusDevice::Unassigned);
+							for(int c = 0x400000; c < 0x580000; c += 0x20000) {
+								map_to(c + 0x20000, ((c & 0x100000) || (c & 0x20000)) ? BusDevice::Unassigned : BusDevice::ROM);
+							}
 							map_to(0x600000, BusDevice::SCSI);
 							map_to(0x800000, BusDevice::Unassigned);
 						}
@@ -693,13 +695,13 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			RAM, ROM, VIA, IWM, SCCWrite, SCCReadResetPhase, SCSI, PhaseRead, Unassigned
 		};
 
-		/// Divides the 24-bit address space up into $80000 (i.e. 512kb) segments, recording
+		/// Divides the 24-bit address space up into $20000 (i.e. 128kb) segments, recording
 		/// which device is current mapped in each area. Keeping it in a table is a bit faster
 		/// than the multi-level address inspection that is otherwise required, as well as
 		/// simplifying slightly the handling of different models.
 		///
-		/// So: index with the top 5 bits of the 24-bit address.
-		BusDevice memory_map_[32];
+		/// So: index with the top 7 bits of the 24-bit address.
+		BusDevice memory_map_[128];
 
 		void setup_memory_map() {
 			// Apply the power-up memory map, i.e. assume that ROM_is_overlay_ = true.
@@ -713,8 +715,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				case Model::Mac512ke:
 					populate_memory_map([] (std::function<void(int target, BusDevice device)> map_to) {
 						// Up to $60 0000 mirrors of the ROM alternate with unassigned areas every $10 0000 byes.
-						for(int c = 0; c <= 0x600000; c += 0x100000) {
-							map_to(c, ((c >> 20)&1) ? BusDevice::ROM : BusDevice::Unassigned);
+						for(int c = 0; c < 0x600000; c += 0x100000) {
+							map_to(c + 0x100000, (c & 0x100000) ? BusDevice::Unassigned : BusDevice::ROM);
 						}
 						map_to(0x800000, BusDevice::RAM);
 						map_to(0x900000, BusDevice::Unassigned);
@@ -732,10 +734,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 				case Model::MacPlus:
 					populate_memory_map([] (std::function<void(int target, BusDevice device)> map_to) {
-						map_to(0x100000, BusDevice::ROM);
-						map_to(0x400000, BusDevice::Unassigned);
-						map_to(0x500000, BusDevice::ROM);
-						map_to(0x580000, BusDevice::Unassigned);
+						for(int c = 0; c < 0x580000; c += 0x20000) {
+							map_to(c + 0x20000, ((c & 0x100000) || (c & 0x20000)) ? BusDevice::Unassigned : BusDevice::ROM);
+						}
 						map_to(0x600000, BusDevice::SCSI);
 						map_to(0x800000, BusDevice::RAM);
 						map_to(0x900000, BusDevice::Unassigned);
@@ -758,7 +759,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// to the supplied 24-bit address, setting a particular mapped device.
 			int segment = 0;
 			auto map_to = [&segment, this](int address, BusDevice device) {
-				for(; segment < address >> 19; ++segment) {
+				for(; segment < address >> 17; ++segment) {
 					this->memory_map_[segment] = device;
 				}
 			};
