@@ -29,6 +29,7 @@
 
 //#define LOG_TRACE
 
+#include "../../../Components/5380/ncr5380.hpp"
 #include "../../../Components/6522/6522.hpp"
 #include "../../../Components/8530/z8530.hpp"
 #include "../../../Components/DiskII/IWM.hpp"
@@ -183,8 +184,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			uint16_t *memory_base = nullptr;
 			HalfCycles delay;
 			switch(memory_map_[word_address >> 16]) {
-				case BusDevice::SCSI:
-					printf("SCSI\n");
 				default: assert(false);
 
 				case BusDevice::Unassigned:
@@ -231,6 +230,35 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;
 					} else {
 						fill_unmapped(cycle);
+					}
+				} return delay;
+
+				case BusDevice::SCSI: {
+					const int register_address = word_address >> 2;	// TODO: this is a guess.
+
+					// Even accesses = read; odd = write.
+					if(*cycle.address & 1) {
+						// Odd access => this is a write. Data will be in the upper byte.
+						if(cycle.operation & Microcycle::Read) {
+							scsi_.write(register_address, 0xff);
+						} else {
+							if(cycle.operation & Microcycle::SelectWord) {
+								scsi_.write(register_address, cycle.value->halves.high);
+							} else {
+								scsi_.write(register_address, cycle.value->halves.low);
+							}
+						}
+					} else {
+						// Even access => this is a read.
+						if(cycle.operation & Microcycle::Read) {
+							const auto result = scsi_.read(register_address);
+							if(cycle.operation & Microcycle::SelectWord) {
+								// Data is loaded on the top part of the bus only.
+								cycle.value->full = (result << 8) | 0xff;
+							} else {
+								cycle.value->halves.low = result;
+							}
+						}
 					}
 				} return delay;
 
@@ -350,7 +378,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				case Model::Mac128k:
 				case Model::Mac512k:
 				case Model::Mac512ke:
-					populate_memory_map([rom_is_overlay] (std::function<void(int target, BusDevice device)> map_to) {
+					populate_memory_map(0, [rom_is_overlay] (std::function<void(int target, BusDevice device)> map_to) {
 						// Addresses up to $80 0000 aren't affected by this bit.
 						if(rom_is_overlay) {
 							// Up to $60 0000 mirrors of the ROM alternate with unassigned areas every $10 0000 byes.
@@ -367,7 +395,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				break;
 
 				case Model::MacPlus:
-					populate_memory_map([rom_is_overlay] (std::function<void(int target, BusDevice device)> map_to) {
+					populate_memory_map(0, [rom_is_overlay] (std::function<void(int target, BusDevice device)> map_to) {
 						// Addresses up to $80 0000 aren't affected by this bit.
 						if(rom_is_overlay) {
 							for(int c = 0; c < 0x580000; c += 0x20000) {
@@ -674,6 +702,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
  		VIAPortHandler via_port_handler_;
 
  		Zilog::SCC::z8530 scc_;
+ 		NCR::NCR5380::NCR5380 scsi_;
 
  		HalfCycles via_clock_;
  		HalfCycles real_time_clock_;
@@ -704,60 +733,28 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		BusDevice memory_map_[128];
 
 		void setup_memory_map() {
-			// Apply the power-up memory map, i.e. assume that ROM_is_overlay_ = true.
+			// Apply the power-up memory map, i.e. assume that ROM_is_overlay_ = true;
+			// start by calling into set_rom_is_overlay to seed everything up to $800000.
+			set_rom_is_overlay(true);
 
-			using Model = Analyser::Static::Macintosh::Target::Model;
-			switch(model) {
-				default: assert(false);
-
-				case Model::Mac128k:
-				case Model::Mac512k:
-				case Model::Mac512ke:
-					populate_memory_map([] (std::function<void(int target, BusDevice device)> map_to) {
-						// Up to $60 0000 mirrors of the ROM alternate with unassigned areas every $10 0000 byes.
-						for(int c = 0; c < 0x600000; c += 0x100000) {
-							map_to(c + 0x100000, (c & 0x100000) ? BusDevice::Unassigned : BusDevice::ROM);
-						}
-						map_to(0x800000, BusDevice::RAM);
-						map_to(0x900000, BusDevice::Unassigned);
-						map_to(0xa00000, BusDevice::SCCReadResetPhase);
-						map_to(0xb00000, BusDevice::Unassigned);
-						map_to(0xc00000, BusDevice::SCCWrite);
-						map_to(0xd00000, BusDevice::Unassigned);
-						map_to(0xe00000, BusDevice::IWM);
-						map_to(0xe80000, BusDevice::Unassigned);
-						map_to(0xf00000, BusDevice::VIA);
-						map_to(0xf80000, BusDevice::PhaseRead);
-						map_to(0x1000000, BusDevice::Unassigned);
-					});
-				break;
-
-				case Model::MacPlus:
-					populate_memory_map([] (std::function<void(int target, BusDevice device)> map_to) {
-						for(int c = 0; c < 0x580000; c += 0x20000) {
-							map_to(c + 0x20000, ((c & 0x100000) || (c & 0x20000)) ? BusDevice::Unassigned : BusDevice::ROM);
-						}
-						map_to(0x600000, BusDevice::SCSI);
-						map_to(0x800000, BusDevice::RAM);
-						map_to(0x900000, BusDevice::Unassigned);
-						map_to(0xa00000, BusDevice::SCCReadResetPhase);
-						map_to(0xb00000, BusDevice::Unassigned);
-						map_to(0xc00000, BusDevice::SCCWrite);
-						map_to(0xd00000, BusDevice::Unassigned);
-						map_to(0xe00000, BusDevice::IWM);
-						map_to(0xe80000, BusDevice::Unassigned);
-						map_to(0xf00000, BusDevice::VIA);
-						map_to(0xf80000, BusDevice::PhaseRead);
-						map_to(0x1000000, BusDevice::Unassigned);
-					});
-				break;
-			}
+			populate_memory_map(0x800000, [] (std::function<void(int target, BusDevice device)> map_to) {
+				map_to(0x900000, BusDevice::Unassigned);
+				map_to(0xa00000, BusDevice::SCCReadResetPhase);
+				map_to(0xb00000, BusDevice::Unassigned);
+				map_to(0xc00000, BusDevice::SCCWrite);
+				map_to(0xd00000, BusDevice::Unassigned);
+				map_to(0xe00000, BusDevice::IWM);
+				map_to(0xe80000, BusDevice::Unassigned);
+				map_to(0xf00000, BusDevice::VIA);
+				map_to(0xf80000, BusDevice::PhaseRead);
+				map_to(0x1000000, BusDevice::Unassigned);
+			});
 		}
 
-		void populate_memory_map(std::function<void(std::function<void(int, BusDevice)>)> populator) {
+		void populate_memory_map(int start_address, std::function<void(std::function<void(int, BusDevice)>)> populator) {
 			// Define semantics for below; map_to will write from the current cursor position
 			// to the supplied 24-bit address, setting a particular mapped device.
-			int segment = 0;
+			int segment = start_address >> 17;
 			auto map_to = [&segment, this](int address, BusDevice device) {
 				for(; segment < address >> 17; ++segment) {
 					this->memory_map_[segment] = device;

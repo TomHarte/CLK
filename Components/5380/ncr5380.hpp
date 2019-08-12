@@ -24,6 +24,9 @@ class NCR5380 {
 
 		/*! Reads from @c address. */
 		uint8_t read(int address);
+
+	private:
+		uint8_t mode_ = 0xff;
 };
 
 }
