@@ -235,7 +235,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				} return delay;
 
 				case BusDevice::SCSI: {
-					const int register_address = word_address >> 2;	// TODO: this is a guess.
+					const int register_address = word_address >> 3;
 
 					// Even accesses = read; odd = write.
 					if(*cycle.address & 1) {
