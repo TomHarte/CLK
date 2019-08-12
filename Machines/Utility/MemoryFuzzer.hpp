@@ -22,7 +22,9 @@ void Fuzz(uint8_t *buffer, std::size_t size);
 void Fuzz(uint16_t *buffer, std::size_t size);
 
 /// Replaces all existing vector contents with random bytes.
-void Fuzz(std::vector<uint8_t> &buffer);
+template <typename T> void Fuzz(std::vector<T> &buffer) {
+	Fuzz(reinterpret_cast<uint8_t *>(buffer.data()), buffer.size() * sizeof(buffer[0]));
+}
 
 }
 

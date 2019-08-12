@@ -66,7 +66,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 		 	mc68000_(*this),
 		 	iwm_(CLOCK_RATE),
-		 	video_(ram_, audio_, drive_speed_accumulator_),
+		 	video_(audio_, drive_speed_accumulator_),
 		 	via_(via_port_handler_),
 		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_, mouse_),
 		 	drives_{
@@ -95,7 +95,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				break;
 				case Model::Mac512ke:
 				case Model::MacPlus: {
-					ram_size = 512*1024;
+					ram_size = ((model == Model::MacPlus) ? 4096 : 512)*1024;
 					rom_size = 128*1024;
 					const std::initializer_list<uint32_t> crc32s = { 0x4fa5b399, 0x7cacd18f, 0xb2102e8e };
 					rom_descriptions.emplace_back(machine_name, "the Macintosh Plus ROM", "macplus.rom", 128*1024, crc32s);
@@ -103,7 +103,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			}
 			ram_mask_ = (ram_size >> 1) - 1;
 			rom_mask_ = (rom_size >> 1) - 1;
-			video_.set_ram_mask(ram_mask_);
+			ram_.resize(ram_size >> 1);
+			video_.set_ram(ram_.data(), ram_mask_);
 
 			// Grab a copy of the ROM and convert it into big-endian data.
 			const auto roms = rom_fetcher(rom_descriptions);
@@ -114,7 +115,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			Memory::PackBigEndian16(*roms[0], rom_);
 
 			// Randomise memory contents.
-			Memory::Fuzz(ram_, sizeof(ram_) / sizeof(*ram_));
+			Memory::Fuzz(ram_);
 
 			// Attach the drives to the IWM.
 			iwm_->set_drive(0, &drives_[0]);
@@ -254,7 +255,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 							const auto result = scsi_.read(register_address);
 							if(cycle.operation & Microcycle::SelectWord) {
 								// Data is loaded on the top part of the bus only.
-								cycle.value->full = (result << 8) | 0xff;
+								cycle.value->full = uint16_t((result << 8) | 0xff);
 							} else {
 								cycle.value->halves.low = result;
 							}
@@ -310,7 +311,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					if(word_address > ram_mask_ - 0x6c80)
 						update_video();
 
-					memory_base = ram_;
+					memory_base = ram_.data();
 					word_address &= ram_mask_;
 
 					// Apply a delay due to video contention if applicable; technically this is
@@ -766,8 +767,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		uint32_t ram_mask_ = 0;
 		uint32_t rom_mask_ = 0;
-		uint16_t rom_[64*1024];
-		uint16_t ram_[256*1024];
+		uint16_t rom_[64*1024];	// i.e. up to 128kb in size.
+		std::vector<uint16_t> ram_;
 };
 
 }
