@@ -12,19 +12,56 @@
 
 using namespace NCR::NCR5380;
 
+NCR5380::NCR5380() {
+	device_id_ = bus_.add_device();
+}
+
 void NCR5380::write(int address, uint8_t value) {
+	using Line = SCSI::Line;
 	switch(address & 7) {
 		case 0:
 			LOG("[SCSI 0] Set current SCSI bus state to " << PADHEX(2) << int(value));
+			data_bus_ = value;
 		break;
 
-		case 1:
+		case 1: {
 			LOG("[SCSI 1] Initiator command register set: " << PADHEX(2) << int(value));
-		break;
+			initiator_command_ = value;
+
+			SCSI::BusState mask = SCSI::DefaultBusState;
+			if(value & 0x80) mask &= ~Line::Reset;
+			test_mode_ = !!(value & 0x40);
+			/* bit 5 = differential enable if this were a 5381 */
+			if(value & 0x10) mask &= ~Line::Acknowledge;
+			if(value & 0x08) mask &= ~Line::Busy;
+			if(value & 0x04) mask &= ~Line::SelectTarget;
+			if(value & 0x02) mask &= ~Line::Attention;
+			assert_data_bus_ = (value & 0x01);
+			bus_output_ = (bus_output_ | Line::Reset | Line::Acknowledge | Line::Busy | Line::SelectTarget | Line::Attention) & mask;
+		} break;
 
 		case 2:
 			LOG("[SCSI 2] Set mode: " << PADHEX(2) << int(value));
 			mode_ = value;
+
+			// bit 7: 1 = use block mode DMA mode (if DMA mode is also enabled)
+			// bit 6: 1 = be a SCSI target; 0 = be an initiator
+			// bit 5: 1 = check parity
+			// bit 4: 1 = generate an interrupt if parity checking is enabled and an error is found
+			// bit 3: 1 = generate an interrupt when an EOP is received from the DMA controller
+			// bit 2: 1 = generate an interrupt and reset low 6 bits of register 1 if an unexpected loss of Line::Busy occurs
+			// bit 1: 1 = use DMA mode
+			// bit 0: 1 = begin arbitration mode (device ID should be in register 0)
+
+			/*
+				Arbitration is accomplished using a bus-free filter to continuously monitor BSY.
+				If BSY remains inactive for at least 400 nsec then the SCSI bus is considered free
+				and arbitration may begin. Arbitration will begin if the bus is free, SEL is inactive
+				and the ARBITRATION bit (port 2, bit 0) is active. Once arbitration has begun
+				(BSY asserted), an arbitration delay of 2.2 /Lsec must elapse before the data bus
+				can be examined to deter- mine if arbitration has been won. This delay must be
+				implemented in the controlling software driver.
+			*/
 		break;
 
 		case 3:
@@ -47,17 +84,32 @@ void NCR5380::write(int address, uint8_t value) {
 			LOG("[SCSI 7] Start DMA initiator receive: " << PADHEX(2) << int(value));
 		break;
 	}
+
+	// Data is output only if the data bus is asserted.
+	if(assert_data_bus_) {
+		bus_output_ &= data_bus_;
+	} else {
+		bus_output_ |= SCSI::Line::Data;
+	}
+
+	// In test mode, still nothing is output. Otherwise throw out
+	// the current value of bus_output_.
+	if(test_mode_) {
+		bus_.set_device_output(device_id_, SCSI::DefaultBusState);
+	} else {
+		bus_.set_device_output(device_id_, bus_output_);
+	}
 }
 
 uint8_t NCR5380::read(int address) {
 	switch(address & 7) {
 		case 0:
 			LOG("[SCSI 0] Get current SCSI bus state");
-		return 0xff;
+		return uint8_t(bus_.get_state());
 
 		case 1:
 			LOG("[SCSI 1] Initiator command register get");
-		return 0xff;
+		return initiator_command_;
 
 		case 2:
 			LOG("[SCSI 2] Get mode");
