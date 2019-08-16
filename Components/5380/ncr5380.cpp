@@ -66,7 +66,7 @@ void NCR5380::write(int address, uint8_t value) {
 			if(mode_ & 1) {
 				if(state_ == ExecutionState::None) {
 					set_execution_state(ExecutionState::WatchingBusy);
-					arbitration_in_progress_ = false;
+					arbitration_in_progress_ = true;
 					lost_arbitration_ = false;
 				}
 			} else {
@@ -118,7 +118,7 @@ uint8_t NCR5380::read(int address) {
 		return uint8_t(bus_.get_state());
 
 		case 1:
-			LOG("[SCSI 1] Initiator command register get");
+			LOG("[SCSI 1] Initiator command register get: " << (arbitration_in_progress_ ? 'p' : '-') <<  (lost_arbitration_ ? 'l' : '-'));
 		return
 			// Bits repeated as they were set.
 			(initiator_command_ & ~0x60) |
