@@ -26,6 +26,7 @@
 #include "../../../Outputs/Log.hpp"
 
 #include "../../../ClockReceiver/JustInTime.hpp"
+#include "../../../ClockReceiver/ClockingHintSource.hpp"
 
 //#define LOG_TRACE
 
@@ -59,7 +60,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public KeyboardMachine::MappedMachine,
 	public Zilog::SCC::z8530::Delegate,
 	public Activity::Source,
-	public DriveSpeedAccumulator::Delegate {
+	public DriveSpeedAccumulator::Delegate,
+	public ClockingHint::Observer {
 	public:
 		using Target = Analyser::Static::Macintosh::Target;
 
@@ -69,6 +71,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		 	video_(audio_, drive_speed_accumulator_),
 		 	via_(via_port_handler_),
 		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_, mouse_),
+		 	scsi_(CLOCK_RATE * 2),
 		 	drives_{
 		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke},
 		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke}
@@ -128,6 +131,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			// Make sure interrupt changes from the SCC are observed.
 			scc_.set_delegate(this);
+
+			// Also watch for changes in clocking requirement from the SCSI chip.
+			if(model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
+				scsi_.set_clocking_hint_observer(this);
+			}
 
 			// The Mac runs at 7.8336mHz.
 			set_clock_rate(double(CLOCK_RATE));
@@ -477,6 +485,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 	private:
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override {
+			scsi_is_clocked_ = scsi_.preferred_clocking() != ClockingHint::Preference::None;
+		}
+
 		void drive_speed_accumulator_set_drive_speed(DriveSpeedAccumulator *, float speed) override {
 			iwm_.flush();
 			drives_[0].set_rotation_speed(speed);
@@ -563,6 +575,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				// TODO: leave a delay between toggling the input rather than using this coupled hack.
 				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, true);
 				via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::Two, false);
+			}
+
+			// Update the SCSI if currently active.
+			if(model == Analyser::Static::Macintosh::Target::Model::MacPlus && scsi_is_clocked_) {
+				scsi_.run_for(Cycles(duration.as_int()));
 			}
 		}
 
@@ -704,6 +721,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
  		Zilog::SCC::z8530 scc_;
  		NCR::NCR5380::NCR5380 scsi_;
+ 		bool scsi_is_clocked_ = false;
 
  		HalfCycles via_clock_;
  		HalfCycles real_time_clock_;

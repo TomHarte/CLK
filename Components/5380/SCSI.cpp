@@ -27,7 +27,7 @@ BusState Bus::get_state() {
 	state_is_valid_ = true;
 	state_ = DefaultBusState;
 	for(auto state: device_states_) {
-		state_ &= state;
+		state_ |= state;
 	}
 
 	return state_;

@@ -16,7 +16,7 @@ namespace SCSI {
 
 typedef int BusState;
 
-static const BusState DefaultBusState = std::numeric_limits<BusState>::max();
+static const BusState DefaultBusState = 0;
 
 /*!
 	SCSI bus state is encoded entirely within an int.
@@ -33,20 +33,22 @@ enum Line: BusState {
 	/// Set if the SEL line is currently selecting a target.
 	/// Reset if it is selecting an initiator.
 	SelectTarget	= 1 << 9,
-	/// Reset to indicate an attention condition. Set otherwise.
+	/// Set to indicate an attention condition. Reset otherwise.
 	Attention		= 1 << 10,
 	/// Set if control is on the bus. Reset if data is on the bus.
 	Control			= 1 << 11,
-	/// Reset if the bus is busy. Set otherwise.
+	/// Set if the bus is busy. Reset otherwise.
 	Busy			= 1 << 12,
-	/// Reset if acknowledging a data transfer request. Set otherwise.
+	/// Set if acknowledging a data transfer request. Reset otherwise.
 	Acknowledge		= 1 << 13,
-	/// Reset if a bus reset is being requested. Set otherwise.
+	/// Set if a bus reset is being requested. Reset otherwise.
 	Reset			= 1 << 14,
-	/// Set if data is currently input. Reset if it is an output.
+	/// Set if data is currently an input to the initiator. Reset if it is an output.
 	Input			= 1 << 15,
 	/// Set during the message phase. Reset otherwise.
-	MessagePhase	= 1 << 16
+	Message			= 1 << 16,
+	/// Set if requesting a data transfer. Reset otherwise.
+	Request			= 1 << 17,
 };
 
 

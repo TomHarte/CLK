@@ -26,7 +26,7 @@ namespace Apple {
 /*!
 	Provides an emulation of the Apple Disk II.
 */
-class DiskII:
+class DiskII final:
 	public Storage::Disk::Drive::EventDelegate,
 	public ClockingHint::Source,
 	public ClockingHint::Observer {
@@ -76,7 +76,7 @@ class DiskII:
 		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
 
 		// As per Sleeper.
-		ClockingHint::Preference preferred_clocking() override;
+		ClockingHint::Preference preferred_clocking() final;
 
 		// The Disk II functions as a potential target for @c Activity::Sources.
 		void set_activity_observer(Activity::Observer *observer);

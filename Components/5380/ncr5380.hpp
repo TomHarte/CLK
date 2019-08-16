@@ -13,6 +13,7 @@
 
 #include "SCSI.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockingHintSource.hpp"
 
 
 namespace NCR {
@@ -21,9 +22,9 @@ namespace NCR5380 {
 /*!
 	Models the NCR 5380, a SCSI interface chip.
 */
-class NCR5380 {
+class NCR5380 final: public ClockingHint::Source {
 	public:
-		NCR5380();
+		NCR5380(int clock_rate);
 
 		/*! Writes @c value to @c address.  */
 		void write(int address, uint8_t value);
@@ -47,7 +48,11 @@ class NCR5380 {
 		*/
 		void run_for(Cycles);
 
+		/// As per ClockingHint::Source.
+		ClockingHint::Preference preferred_clocking() final;
+
 	private:
+		const int clock_rate_;
 		SCSI::Bus bus_;
 		size_t device_id_;
 
@@ -57,6 +62,16 @@ class NCR5380 {
 		uint8_t data_bus_ = 0xff;
 		bool test_mode_ = false;
 		bool assert_data_bus_ = false;
+
+		enum class ExecutionState {
+			None,
+
+			WatchingBusy,
+		} state_ = ExecutionState::None;
+		int time_in_state_ = 0;
+		bool lost_arbitration_ = false, arbitration_in_progress_ = false;
+
+		void set_execution_state(ExecutionState state);
 };
 
 }
