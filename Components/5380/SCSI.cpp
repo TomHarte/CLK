@@ -17,6 +17,7 @@ size_t Bus::add_device() {
 }
 
 void Bus::set_device_output(size_t device, BusState output) {
+	printf("%08x output\n", output);
 	device_states_[device] = output;
 	state_is_valid_ = false;
 }

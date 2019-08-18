@@ -97,9 +97,9 @@ void NCR5380::write(int address, uint8_t value) {
 
 	// Data is output only if the data bus is asserted.
 	if(assert_data_bus_) {
-		bus_output_ &= data_bus_;
+		bus_output_ |= data_bus_;
 	} else {
-		bus_output_ |= SCSI::Line::Data;
+		bus_output_ &= ~SCSI::Line::Data;
 	}
 
 	// In test mode, still nothing is output. Otherwise throw out
