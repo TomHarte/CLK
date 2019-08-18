@@ -12,7 +12,9 @@
 
 using namespace NCR::NCR5380;
 
-NCR5380::NCR5380(int clock_rate) : clock_rate_(clock_rate) {
+NCR5380::NCR5380(int clock_rate) :
+	device_(bus_, 6),
+	clock_rate_(clock_rate) {
 	device_id_ = bus_.add_device();
 }
 
@@ -28,16 +30,17 @@ void NCR5380::write(int address, uint8_t value) {
 			LOG("[SCSI 1] Initiator command register set: " << PADHEX(2) << int(value));
 			initiator_command_ = value;
 
-			SCSI::BusState mask = SCSI::DefaultBusState;
-			if(value & 0x80) mask |= Line::Reset;
-			test_mode_ = value & 0x40;
+			bus_output_ &= ~(Line::Reset | Line::Acknowledge | Line::Busy | Line::SelectTarget | Line::Attention);
+			if(value & 0x80) bus_output_ |= Line::Reset;
+			if(value & 0x10) bus_output_ |= Line::Acknowledge;
+			if(value & 0x08) bus_output_ |= Line::Busy;
+			if(value & 0x04) bus_output_ |= Line::SelectTarget;
+			if(value & 0x02) bus_output_ |= Line::Attention;
+
 			/* bit 5 = differential enable if this were a 5381 */
-			if(value & 0x10) mask |= Line::Acknowledge;
-			if(value & 0x08) mask |= Line::Busy;
-			if(value & 0x04) mask |= Line::SelectTarget;
-			if(value & 0x02) mask |= Line::Attention;
+
+			test_mode_ = value & 0x40;
 			assert_data_bus_ = value & 0x01;
-			bus_output_ = (bus_output_ & ~(Line::Reset | Line::Acknowledge | Line::Busy | Line::SelectTarget | Line::Attention)) | mask;
 		} break;
 
 		case 2:
@@ -74,9 +77,14 @@ void NCR5380::write(int address, uint8_t value) {
 			}
 		break;
 
-		case 3:
+		case 3: {
 			LOG("[SCSI 3] Set target command: " << PADHEX(2) << int(value));
-		break;
+			bus_output_ &= ~(Line::Request | Line::Message | Line::Control | Line::Input);
+			if(value & 0x08) bus_output_ |= Line::Request;
+			if(value & 0x04) bus_output_ |= Line::Message;
+			if(value & 0x02) bus_output_ |= Line::Control;
+			if(value & 0x01) bus_output_ |= Line::Input;
+		} break;
 
 		case 4:
 			LOG("[SCSI 4] Set select enabled: " << PADHEX(2) << int(value));
@@ -133,9 +141,15 @@ uint8_t NCR5380::read(int address) {
 			LOG("[SCSI 2] Get mode");
 		return mode_;
 
-		case 3:
+		case 3: {
 			LOG("[SCSI 3] Get target command");
-		return 0xff;
+			const auto bus_state = bus_.get_state();
+			return
+				((bus_state & SCSI::Line::Request)			? 0x08 : 0x00) |
+				((bus_state & SCSI::Line::Message)			? 0x04 : 0x00) |
+				((bus_state & SCSI::Line::Control)			? 0x02 : 0x00) |
+				((bus_state & SCSI::Line::Input)			? 0x01 : 0x00);
+		}
 
 		case 4: {
 			LOG("[SCSI 4] Get current bus state");

@@ -12,6 +12,7 @@
 #include <cstdint>
 
 #include "SCSI.hpp"
+#include "DirectAccessDevice.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 
@@ -52,8 +53,12 @@ class NCR5380 final: public ClockingHint::Source {
 		ClockingHint::Preference preferred_clocking() final;
 
 	private:
-		const int clock_rate_;
+		// TEMPORARY. For development expediency, the 5380 owns its own
+		// SCSI bus and direct access device. These will be moved out.
 		SCSI::Bus bus_;
+		SCSI::DirectAccessDevice device_;
+
+		const int clock_rate_;
 		size_t device_id_;
 
 		SCSI::BusState bus_output_ = SCSI::DefaultBusState;

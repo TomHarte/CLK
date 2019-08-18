@@ -70,10 +70,18 @@ class Bus {
 		*/
 		BusState get_state();
 
+		struct Observer {
+			virtual void scsi_bus_did_change(Bus *, BusState new_state) = 0;
+		};
+		/*!
+			Adds an observer.
+		*/
+		void add_observer(Observer *);
+
 	private:
 		std::vector<BusState> device_states_;
 		BusState state_ = DefaultBusState;
-		bool state_is_valid_ = false;
+		std::vector<Observer *> observers_;
 };
 
 }

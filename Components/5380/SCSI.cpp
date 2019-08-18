@@ -17,19 +17,27 @@ size_t Bus::add_device() {
 }
 
 void Bus::set_device_output(size_t device, BusState output) {
-	printf("%08x output\n", output);
+	if(device_states_[device] == output) return;
 	device_states_[device] = output;
-	state_is_valid_ = false;
-}
 
-BusState Bus::get_state() {
-	if(!state_is_valid_) return state_;
-
-	state_is_valid_ = true;
+	const auto previous_state = state_;
 	state_ = DefaultBusState;
 	for(auto state: device_states_) {
 		state_ |= state;
 	}
+	if(state_ == previous_state) return;
 
+	printf("SCSI bus: %08x\n", state_);
+
+	for(auto &observer: observers_) {
+		observer->scsi_bus_did_change(this, state_);
+	}
+}
+
+BusState Bus::get_state() {
 	return state_;
+}
+
+void Bus::add_observer(Observer *observer) {
+	observers_.push_back(observer);
 }
