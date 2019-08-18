@@ -32,10 +32,10 @@ class DirectAccessDevice: public Bus::Observer {
 		const BusState scsi_id_mask_;
 		const size_t scsi_bus_device_id_;
 
-		enum class State {
-			Inactive,
-			Selected
-		} state_ = State::Inactive;
+		enum class Phase {
+			AwaitingSelection,
+			Command
+		} phase_ = Phase::AwaitingSelection;
 		BusState bus_state_ = DefaultBusState;
 };
 
