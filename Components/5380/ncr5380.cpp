@@ -19,7 +19,7 @@ NCR5380::NCR5380(int clock_rate) :
 }
 
 void NCR5380::write(int address, uint8_t value) {
-	using Line = SCSI::Line;
+	using SCSI::Line;
 	switch(address & 7) {
 		case 0:
 			LOG("[SCSI 0] Set current SCSI bus state to " << PADHEX(2) << int(value));
@@ -112,6 +112,7 @@ void NCR5380::write(int address, uint8_t value) {
 }
 
 uint8_t NCR5380::read(int address) {
+	using SCSI::Line;
 	switch(address & 7) {
 		case 0:
 			LOG("[SCSI 0] Get current SCSI bus state");
@@ -146,23 +147,28 @@ uint8_t NCR5380::read(int address) {
 		case 4: {
 			const auto bus_state = bus_.get_state();
 			const uint8_t result =
-				((bus_state & SCSI::Line::Reset)			? 0x80 : 0x00) |
-				((bus_state & SCSI::Line::Busy)				? 0x40 : 0x00) |
-				((bus_state & SCSI::Line::Request)			? 0x20 : 0x00) |
-				((bus_state & SCSI::Line::Message)			? 0x10 : 0x00) |
-				((bus_state & SCSI::Line::Control)			? 0x08 : 0x00) |
-				((bus_state & SCSI::Line::Input)			? 0x04 : 0x00) |
-				((bus_state & SCSI::Line::SelectTarget)		? 0x02 : 0x00) |
-				((bus_state & SCSI::Line::Parity)			? 0x01 : 0x00);
+				((bus_state & Line::Reset)			? 0x80 : 0x00) |
+				((bus_state & Line::Busy)			? 0x40 : 0x00) |
+				((bus_state & Line::Request)		? 0x20 : 0x00) |
+				((bus_state & Line::Message)		? 0x10 : 0x00) |
+				((bus_state & Line::Control)		? 0x08 : 0x00) |
+				((bus_state & Line::Input)			? 0x04 : 0x00) |
+				((bus_state & Line::SelectTarget)	? 0x02 : 0x00) |
+				((bus_state & Line::Parity)			? 0x01 : 0x00);
 			LOG("[SCSI 4] Get current bus state: " << PADHEX(2) << int(result));
 			return result;
 		}
 
 		case 5: {
 			const auto bus_state = bus_.get_state();
+			const bool phase_matches =
+				(bus_output_ & (Line::Message | Line::Control | Line::Input)) ==
+				(bus_state & (Line::Message | Line::Control | Line::Input));
+
 			const uint8_t result =
-				((bus_state & SCSI::Line::Attention) ? 0x02 : 0x00) |
-				((bus_state & SCSI::Line::Acknowledge) ? 0x01 : 0x00);
+				(phase_matches ? 0x08 : 0x00)	|
+				((bus_state & Line::Attention) ? 0x02 : 0x00) |
+				((bus_state & Line::Acknowledge) ? 0x01 : 0x00);
 			LOG("[SCSI 5] Get bus and status: " << PADHEX(2) << int(result));
 			return result;
 		}

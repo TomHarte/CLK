@@ -59,7 +59,7 @@ void DirectAccessDevice::scsi_bus_did_change(Bus *, BusState new_state) {
 				// If request and acknowledge are both enabled, grab a byte and cancel the request.
 				case Line::Request | Line::Acknowledge:
 					bus_state_ &= ~Line::Request;
-					printf("Got %02x maybe?\n", bus_state_ & 0xff);
+					printf("Got %02x maybe?\n", new_state & 0xff);
 
 					// TODO: is the command phase over?
 				break;
