@@ -56,23 +56,15 @@ void NCR5380::write(int address, uint8_t value) {
 			// bit 1: 1 = use DMA mode
 			// bit 0: 1 = begin arbitration mode (device ID should be in register 0)
 
-			/*
-				Arbitration is accomplished using a bus-free filter to continuously monitor BSY.
-				If BSY remains inactive for at least 400 nsec then the SCSI bus is considered free
-				and arbitration may begin. Arbitration will begin if the bus is free, SEL is inactive
-				and the ARBITRATION bit (port 2, bit 0) is active. Once arbitration has begun
-				(BSY asserted), an arbitration delay of 2.2 /Lsec must elapse before the data bus
-				can be examined to deter- mine if arbitration has been won. This delay must be
-				implemented in the controlling software driver.
-			*/
-
 			if(mode_ & 1) {
+				arbitration_in_progress_ = true;
 				if(state_ == ExecutionState::None) {
 					set_execution_state(ExecutionState::WatchingBusy);
-					arbitration_in_progress_ = true;
 					lost_arbitration_ = false;
 				}
 			} else {
+				arbitration_in_progress_ = false;
+				bus_output_ &= ~SCSI::Line::Busy;
 				set_execution_state(ExecutionState::None);
 			}
 		break;
@@ -152,9 +144,8 @@ uint8_t NCR5380::read(int address) {
 		}
 
 		case 4: {
-			LOG("[SCSI 4] Get current bus state");
 			const auto bus_state = bus_.get_state();
-			return
+			const uint8_t result =
 				((bus_state & SCSI::Line::Reset)			? 0x80 : 0x00) |
 				((bus_state & SCSI::Line::Busy)				? 0x40 : 0x00) |
 				((bus_state & SCSI::Line::Request)			? 0x20 : 0x00) |
@@ -163,14 +154,17 @@ uint8_t NCR5380::read(int address) {
 				((bus_state & SCSI::Line::Input)			? 0x04 : 0x00) |
 				((bus_state & SCSI::Line::SelectTarget)		? 0x02 : 0x00) |
 				((bus_state & SCSI::Line::Parity)			? 0x01 : 0x00);
+			LOG("[SCSI 4] Get current bus state: " << PADHEX(2) << int(result));
+			return result;
 		}
 
 		case 5: {
-			LOG("[SCSI 5] Get bus and status");
 			const auto bus_state = bus_.get_state();
-			return
+			const uint8_t result =
 				((bus_state & SCSI::Line::Attention) ? 0x02 : 0x00) |
 				((bus_state & SCSI::Line::Acknowledge) ? 0x01 : 0x00);
+			LOG("[SCSI 5] Get bus and status: " << PADHEX(2) << int(result));
+			return result;
 		}
 
 		case 6:
@@ -191,27 +185,48 @@ void NCR5380::run_for(Cycles cycles) {
 	switch(state_) {
 		default: break;
 
-		case ExecutionState::WatchingBusy:
-			/*
+		/*
+			Official documentation:
+
 				Arbitration is accomplished using a bus-free filter to continuously monitor BSY.
 				If BSY remains inactive for at least 400 nsec then the SCSI bus is considered free
 				and arbitration may begin. Arbitration will begin if the bus is free, SEL is inactive
 				and the ARBITRATION bit (port 2, bit 0) is active. Once arbitration has begun
-				(BSY asserted)...
-			*/
-			if(bus_.get_state() & SCSI::Line::Busy) {
-				lost_arbitration_ = true;
-				set_execution_state(ExecutionState::None);
-			}
+				(BSY asserted), an arbitration delay of 2.2 /Lsec must elapse before the data bus
+				can be examined to deter- mine if arbitration has been won. This delay must be
+				implemented in the controlling software driver.
 
-			// Check for having hit the 400ns state.
-			if(time_in_state_ == 400 * clock_rate_ / 1000000000) {
-				arbitration_in_progress_ = false;
+			Personal notes:
+
+				I'm discounting that "arbitratation is accomplished" opening, and assuming that what needs
+				to happen is:
+
+					(i) wait for BSY to be inactive;
+					(ii) count 400 nsec;
+					(iii) check that BSY and SEL are inactive.
+		*/
+
+		case ExecutionState::WatchingBusy:
+			if(bus_.get_state() & SCSI::Line::Busy) {
+				// Arbitration is lost only if a non-busy state had previously been observed.
+				if(time_in_state_ > 1) {
+					lost_arbitration_ = true;
+					set_execution_state(ExecutionState::None);
+				} else {
+					time_in_state_ = 0;
+				}
+			} /* else {
+				arbitration_in_progress_ = true;
+			}*/
+
+			// Check for having hit 400ns (more or less) since BSY was inactive.
+			if(!lost_arbitration_ && time_in_state_ == int(int64_t(400) * int64_t(clock_rate_) / int64_t(1000000000))) {
+//				arbitration_in_progress_ = false;
 				if(bus_.get_state() & SCSI::Line::SelectTarget) {
 					lost_arbitration_ = true;
 					set_execution_state(ExecutionState::None);
 				} else {
-					bus_output_ |= SCSI::Line::Busy;
+					bus_output_ &= ~SCSI::Line::Busy;
 					set_execution_state(ExecutionState::None);
 				}
 			}
@@ -221,6 +236,7 @@ void NCR5380::run_for(Cycles cycles) {
 
 void NCR5380::set_execution_state(ExecutionState state) {
 	time_in_state_ = 0;
+	state_ = state;
 	update_clocking_observer();
 }
 
@@ -228,5 +244,5 @@ ClockingHint::Preference NCR5380::preferred_clocking() {
 	// Request real-time clocking if any sort of timed bus watching is ongoing,
 	// given that there's no knowledge in here as to what clocking other devices
 	// on the SCSI bus might be enjoying.
-	return (state_ == ExecutionState::None) ? ClockingHint::Preference::RealTime : ClockingHint::Preference::None;
+	return (state_ == ExecutionState::None) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
 }
