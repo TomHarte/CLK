@@ -1501,6 +1501,7 @@
 		4BE3231520532AA7006EF799 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4BE3231620532BED006EF799 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4BE3231720532CC0006EF799 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
+		4BE64626230B939B00C36C50 /* TargetImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TargetImplementation.hpp; sourceTree = "<group>"; };
 		4BE76CF822641ED300ACD6FA /* QLTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = QLTests.mm; sourceTree = "<group>"; };
 		4BE7C9161E3D397100A5496D /* TIA.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TIA.cpp; sourceTree = "<group>"; };
 		4BE7C9171E3D397100A5496D /* TIA.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TIA.hpp; sourceTree = "<group>"; };
@@ -3338,6 +3339,7 @@
 				4B89BCFB23024BB500EA0782 /* SCSI.hpp */,
 				4BB8F5252308E5A50015C2A6 /* DirectAccessDevice.cpp */,
 				4BB8F5262308E5A50015C2A6 /* DirectAccessDevice.hpp */,
+				4BE64626230B939B00C36C50 /* TargetImplementation.hpp */,
 			);
 			path = 5380;
 			sourceTree = "<group>";

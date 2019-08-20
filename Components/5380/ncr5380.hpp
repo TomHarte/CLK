@@ -54,9 +54,9 @@ class NCR5380 final: public ClockingHint::Source {
 
 	private:
 		// TEMPORARY. For development expediency, the 5380 owns its own
-		// SCSI bus and direct access device. These will be moved out.
+		// SCSI bus and target. These will be moved out.
 		SCSI::Bus bus_;
-		SCSI::DirectAccessDevice device_;
+		SCSI::Target::Target<SCSI::Target::Executor> device_;
 
 		const int clock_rate_;
 		size_t device_id_;
