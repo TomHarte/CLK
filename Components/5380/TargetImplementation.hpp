@@ -102,7 +102,7 @@ template <typename Executor> void Target<Executor>::begin_command(uint8_t first_
 
 template <typename Executor> bool Target<Executor>::dispatch_command() {
 
-	CommandArguments arguments(command_);
+	CommandState arguments(command_);
 
 #define G0(x)	x
 #define G1(x)	(0x20|x)
@@ -111,29 +111,29 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 	switch(command_[0]) {
 		default:		return false;
 
-		case G0(0x00):	return executor.test_unit_ready(arguments);
-		case G0(0x01):	return executor.rezero_unit(arguments);
-		case G0(0x03):	return executor.request_sense(arguments);
-		case G0(0x04):	return executor.format_unit(arguments);
-		case G0(0x08):	return executor.read(arguments);
-		case G0(0x0a):	return executor.write(arguments);
-		case G0(0x0b):	return executor.seek(arguments);
-		case G0(0x16):	return executor.reserve_unit(arguments);
-		case G0(0x17):	return executor.release_unit(arguments);
-		case G0(0x1c):	return executor.read_diagnostic(arguments);
-		case G0(0x1d):	return executor.write_diagnostic(arguments);
-		case G0(0x12):	return executor.inquiry(arguments);
+		case G0(0x00):	return executor.test_unit_ready(arguments, *this);
+		case G0(0x01):	return executor.rezero_unit(arguments, *this);
+		case G0(0x03):	return executor.request_sense(arguments, *this);
+		case G0(0x04):	return executor.format_unit(arguments, *this);
+		case G0(0x08):	return executor.read(arguments, *this);
+		case G0(0x0a):	return executor.write(arguments, *this);
+		case G0(0x0b):	return executor.seek(arguments, *this);
+		case G0(0x16):	return executor.reserve_unit(arguments, *this);
+		case G0(0x17):	return executor.release_unit(arguments, *this);
+		case G0(0x1c):	return executor.read_diagnostic(arguments, *this);
+		case G0(0x1d):	return executor.write_diagnostic(arguments, *this);
+		case G0(0x12):	return executor.inquiry(arguments, *this);
 
-		case G1(0x05):	return executor.read_capacity(arguments);
-		case G1(0x08):	return executor.read(arguments);
-		case G1(0x0a):	return executor.write(arguments);
-		case G1(0x0e):	return executor.write_and_verify(arguments);
-		case G1(0x0f):	return executor.verify(arguments);
-		case G1(0x11):	return executor.search_data_equal(arguments);
-		case G1(0x10):	return executor.search_data_high(arguments);
-		case G1(0x12):	return executor.search_data_low(arguments);
+		case G1(0x05):	return executor.read_capacity(arguments, *this);
+		case G1(0x08):	return executor.read(arguments, *this);
+		case G1(0x0a):	return executor.write(arguments, *this);
+		case G1(0x0e):	return executor.write_and_verify(arguments, *this);
+		case G1(0x0f):	return executor.verify(arguments, *this);
+		case G1(0x11):	return executor.search_data_equal(arguments, *this);
+		case G1(0x10):	return executor.search_data_high(arguments, *this);
+		case G1(0x12):	return executor.search_data_low(arguments, *this);
 
-		case G5(0x09):	return executor.set_block_limits(arguments);
+		case G5(0x09):	return executor.set_block_limits(arguments, *this);
 	}
 
 #undef G0
@@ -142,3 +142,9 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 
 	return false;
 }
+
+template <typename Executor> void Target<Executor>::send_data(std::vector<uint8_t> &&data, continuation next) {}
+template <typename Executor> void Target<Executor>::receive_data(size_t length, continuation next) {}
+template <typename Executor> void Target<Executor>::send_status(Status, continuation next) {}
+template <typename Executor> void Target<Executor>::send_message(Message, continuation next) {}
+template <typename Executor> void Target<Executor>::end_command() {}

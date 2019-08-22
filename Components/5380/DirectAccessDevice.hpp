@@ -11,23 +11,74 @@
 
 #include "SCSI.hpp"
 
+#include <functional>
+
 namespace SCSI {
 namespace Target {
 
 /*!
 	Encapsulates the arguments supplied for a target SCSI command during
-	the command phase. An instance of TargetCommandArguments will be
-	supplied to the target whenever a function is called.
+	the command phase plus any other data read since then.
 */
-class CommandArguments {
+class CommandState {
 	public:
-		CommandArguments(const std::vector<uint8_t> &data);
+		CommandState(const std::vector<uint8_t> &data);
 
 		uint32_t address();
 		uint16_t number_of_blocks();
 
 	private:
 		const std::vector<uint8_t> &data_;
+};
+
+/*!
+	A Responder is supplied both (i) to the initial call-in to an Executor; and
+	(ii) to all continuations provided by that Executor. It allows the next
+	set of bus interactions to be dictated.
+*/
+struct Responder {
+	using continuation = std::function<void(const CommandState &, Responder &)>;
+
+	enum class Status {
+		Good						= 0x00,
+		CheckCondition				= 0x02,
+		ConditionMet				= 0x04,
+		Busy						= 0x08,
+		Intermediate				= 0x10,
+		IntermediateConditionMet	= 0x14,
+		ReservationConflict			= 0x18,
+		CommandTerminated			= 0x22,
+		TaskSetFull					= 0x28,
+		ACAActive					= 0x30,
+		TaskAborted					= 0x40
+	};
+
+	enum class Message {
+		CommandComplete				= 0x00
+	};
+
+	/*!
+		Causes the SCSI device to send @c data to the initiator and
+		call @c next when done.
+	*/
+	virtual void send_data(std::vector<uint8_t> &&data, continuation next) = 0;
+	/*!
+		Causes the SCSI device to receive @c length bytes from the initiator and
+		call @c next when done. The bytes will be accessible via the CommandInput object.
+	*/
+	virtual void receive_data(size_t length, continuation next) = 0;
+	/*!
+		Communicates the supplied status to the initiator.
+	*/
+	virtual void send_status(Status, continuation next) = 0;
+	/*!
+		Communicates the supplied message to the initiator.
+	*/
+	virtual void send_message(Message, continuation next) = 0;
+	/*!
+		Ends the SCSI command.
+	*/
+	virtual void end_command() = 0;
 };
 
 /*!
@@ -41,32 +92,31 @@ class CommandArguments {
 */
 struct Executor {
 	/* Group 0 commands. */
-	bool test_unit_ready(const CommandArguments &)		{	return false;	}
-	bool rezero_unit(const CommandArguments &)			{	return false;	}
-	bool request_sense(const CommandArguments &)		{	return false;	}
-	bool format_unit(const CommandArguments &)			{	return false;	}
-	bool seek(const CommandArguments &)					{	return false;	}
-	bool reserve_unit(const CommandArguments &)			{	return false;	}
-	bool release_unit(const CommandArguments &)			{	return false;	}
-	bool read_diagnostic(const CommandArguments &)		{	return false;	}
-	bool write_diagnostic(const CommandArguments &)		{	return false;	}
-	bool inquiry(const CommandArguments &)				{	return false;	}
+	bool test_unit_ready(const CommandState &, Responder &)		{	return false;	}
+	bool rezero_unit(const CommandState &, Responder &)			{	return false;	}
+	bool request_sense(const CommandState &, Responder &)		{	return false;	}
+	bool format_unit(const CommandState &, Responder &)			{	return false;	}
+	bool seek(const CommandState &, Responder &)				{	return false;	}
+	bool reserve_unit(const CommandState &, Responder &)		{	return false;	}
+	bool release_unit(const CommandState &, Responder &)		{	return false;	}
+	bool read_diagnostic(const CommandState &, Responder &)		{	return false;	}
+	bool write_diagnostic(const CommandState &, Responder &)	{	return false;	}
+	bool inquiry(const CommandState &, Responder &)				{	return false;	}
 
 	/* Group 0/1 commands. */
-	bool read(const CommandArguments &)					{	return false;	}
-	bool write(const CommandArguments &)				{	return false;	}
+	bool read(const CommandState &, Responder &)				{	return false;	}
+	bool write(const CommandState &, Responder &)				{	return false;	}
 
 	/* Group 1 commands. */
-	bool read_capacity(const CommandArguments &)		{	return false;	}
-	bool write_and_verify(const CommandArguments &)		{	return false;	}
-	bool verify(const CommandArguments &)				{	return false;	}
-	bool search_data_equal(const CommandArguments &)	{	return false;	}
-	bool search_data_high(const CommandArguments &)		{	return false;	}
-	bool search_data_low(const CommandArguments &)		{	return false;	}
+	bool read_capacity(const CommandState &, Responder &)		{	return false;	}
+	bool write_and_verify(const CommandState &, Responder &)	{	return false;	}
+	bool verify(const CommandState &, Responder &)				{	return false;	}
+	bool search_data_equal(const CommandState &, Responder &)	{	return false;	}
+	bool search_data_high(const CommandState &, Responder &)	{	return false;	}
+	bool search_data_low(const CommandState &, Responder &)		{	return false;	}
 
 	/*  Group 5 commands. */
-	bool set_block_limits(const CommandArguments &)		{	return false;	}
-	void reset_block_limits(const CommandArguments &)	{}
+	bool set_block_limits(const CommandState &, Responder &)	{	return false;	}
 };
 
 /*!
@@ -74,7 +124,7 @@ struct Executor {
 	receive and respond to commands. Specific targets should be implemented
 	as Executors.
 */
-template <typename Executor> class Target: public Bus::Observer {
+template <typename Executor> class Target: public Bus::Observer, public Responder {
 	public:
 		/*!
 			Instantiates a target attached to @c bus,
@@ -87,8 +137,17 @@ template <typename Executor> class Target: public Bus::Observer {
 		Executor executor;
 
 	private:
+		// Bus::Observer.
 		void scsi_bus_did_change(Bus *, BusState new_state) final;
 
+		// Responder
+		void send_data(std::vector<uint8_t> &&data, continuation next) final;
+		void receive_data(size_t length, continuation next) final;
+		void send_status(Status, continuation next) final;
+		void send_message(Message, continuation next) final;
+		void end_command() final;
+
+		// Instance storage.
 		Bus &bus_;
 		const BusState scsi_id_mask_;
 		const size_t scsi_bus_device_id_;
