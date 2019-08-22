@@ -21,6 +21,9 @@
 namespace Storage {
 namespace Disk {
 
+/*!
+	Models a flopy disk.
+*/
 class Disk {
 	public:
 		virtual ~Disk() {}

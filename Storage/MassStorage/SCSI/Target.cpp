@@ -1,12 +1,12 @@
 //
-//  DirectAccessDevice.cpp
+//  Target.cpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 17/08/2019.
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#include "DirectAccessDevice.hpp"
+#include "Target.hpp"
 
 using namespace SCSI::Target;
 

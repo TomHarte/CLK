@@ -11,8 +11,8 @@
 
 #include <cstdint>
 
-#include "SCSI.hpp"
-#include "DirectAccessDevice.hpp"
+#include "../../Storage/MassStorage/SCSI/SCSI.hpp"
+#include "../../Storage/MassStorage/SCSI/Target.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 
