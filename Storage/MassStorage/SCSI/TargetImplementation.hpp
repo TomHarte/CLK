@@ -94,6 +94,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 					bus_state_ |= Line::Request;
 				break;
 			}
+			bus_.set_device_output(scsi_bus_device_id_, bus_state_);
 		break;
 
 		case Phase::SendingData:
@@ -112,6 +113,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 					bus_state_ = (bus_state_ & ~0xff) | data_[data_pointer_];
 				break;
 			}
+			bus_.set_device_output(scsi_bus_device_id_, bus_state_);
 		break;
 	}
 }
