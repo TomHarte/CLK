@@ -636,6 +636,8 @@
 		4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B11D157E61006C31D9 /* 6522Tests.swift */; };
 		4BC76E691C98E31700E6EF73 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4BC76E6B1C98F43700E6EF73 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */; };
+		4BC890D3230F86020025A55A /* DirectAccessDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC890D1230F86020025A55A /* DirectAccessDevice.cpp */; };
+		4BC890D4230F86020025A55A /* DirectAccessDevice.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC890D1230F86020025A55A /* DirectAccessDevice.cpp */; };
 		4BC91B831D1F160E00884B76 /* CommodoreTAP.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */; };
 		4BC9DF4F1D04691600F44158 /* 6560.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9DF4D1D04691600F44158 /* 6560.cpp */; };
 		4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC9E1ED1D23449A003FCEE4 /* 6502InterruptTests.swift */; };
@@ -1436,6 +1438,8 @@
 		4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = FIRFilter.cpp; sourceTree = "<group>"; };
 		4BC76E681C98E31700E6EF73 /* FIRFilter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = FIRFilter.hpp; sourceTree = "<group>"; };
 		4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		4BC890D1230F86020025A55A /* DirectAccessDevice.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DirectAccessDevice.cpp; sourceTree = "<group>"; };
+		4BC890D2230F86020025A55A /* DirectAccessDevice.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DirectAccessDevice.hpp; sourceTree = "<group>"; };
 		4BC91B811D1F160E00884B76 /* CommodoreTAP.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CommodoreTAP.cpp; sourceTree = "<group>"; };
 		4BC91B821D1F160E00884B76 /* CommodoreTAP.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CommodoreTAP.hpp; sourceTree = "<group>"; };
 		4BC9DF441D044FCA00F44158 /* ROMImages */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ROMImages; path = ../../../../ROMImages; sourceTree = "<group>"; };
@@ -2264,10 +2268,12 @@
 		4B6AAEA5230E40250078E864 /* SCSI */ = {
 			isa = PBXGroup;
 			children = (
-				4B6AAEA8230E40250078E864 /* Target.cpp */,
+				4BC890D1230F86020025A55A /* DirectAccessDevice.cpp */,
 				4B6AAEA7230E40250078E864 /* SCSI.cpp */,
-				4B6AAEA6230E40250078E864 /* Target.hpp */,
+				4B6AAEA8230E40250078E864 /* Target.cpp */,
+				4BC890D2230F86020025A55A /* DirectAccessDevice.hpp */,
 				4B6AAEA9230E40250078E864 /* SCSI.hpp */,
+				4B6AAEA6230E40250078E864 /* Target.hpp */,
 				4B6AAEAA230E40250078E864 /* TargetImplementation.hpp */,
 			);
 			path = SCSI;
@@ -4005,6 +4011,7 @@
 				4B055AEE1FAE9BBF0060FFFF /* Keyboard.cpp in Sources */,
 				4B055AED1FAE9BA20060FFFF /* Z80Storage.cpp in Sources */,
 				4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */,
+				4BC890D4230F86020025A55A /* DirectAccessDevice.cpp in Sources */,
 				4B6AAEAE230E40250078E864 /* Target.cpp in Sources */,
 				4BF437EF209D0F7E008CBD6B /* SegmentParser.cpp in Sources */,
 				4B055AD11FAE9B030060FFFF /* Video.cpp in Sources */,
@@ -4161,6 +4168,7 @@
 				4B6AAEA4230E3E1D0078E864 /* MassStorageDevice.cpp in Sources */,
 				4B89452E201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BD5D2682199148100DDF17D /* ScanTargetGLSLFragments.cpp in Sources */,
+				4BC890D3230F86020025A55A /* DirectAccessDevice.cpp in Sources */,
 				4B38F3481F2EC11D00D9235D /* AmstradCPC.cpp in Sources */,
 				4B8FE2221DA19FB20090D3CE /* MachinePanel.swift in Sources */,
 				4B4518A41F75FD1C00926311 /* OricMFMDSK.cpp in Sources */,

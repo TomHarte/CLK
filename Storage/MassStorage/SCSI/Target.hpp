@@ -1,13 +1,13 @@
 //
-//  DirectAccessDevice.hpp
+//  Target.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 17/08/2019.
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef DirectAccessDevice_hpp
-#define DirectAccessDevice_hpp
+#ifndef SCSI_Target_hpp
+#define SCSI_Target_hpp
 
 #include "SCSI.hpp"
 
@@ -154,7 +154,11 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 
 		enum class Phase {
 			AwaitingSelection,
-			Command
+			Command,
+			ReceivingData,
+			SendingData,
+			SendingStatus,
+			SendingMessage
 		} phase_ = Phase::AwaitingSelection;
 		BusState bus_state_ = DefaultBusState;
 
@@ -162,6 +166,11 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 		std::vector<uint8_t> command_;
 		size_t command_pointer_ = 0;
 		bool dispatch_command();
+
+		std::vector<uint8_t> data_;
+		size_t data_pointer_ = 0;
+
+		continuation next_function_;
 };
 
 #import "TargetImplementation.hpp"
@@ -169,4 +178,4 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 }
 }
 
-#endif /* DirectAccessDevice_hpp */
+#endif /* SCSI_Target_hpp */

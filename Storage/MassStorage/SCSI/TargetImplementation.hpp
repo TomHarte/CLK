@@ -35,13 +35,9 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 				(new_state & scsi_id_mask_) &&
 				((new_state & (Line::SelectTarget | Line::Busy | Line::Input)) == Line::SelectTarget)
 			) {
-				printf("Selected\n");
 				phase_ = Phase::Command;
 				bus_state_ |= Line::Busy;	// Initiate the command phase: request a command byte.
 				bus_.set_device_output(scsi_bus_device_id_, bus_state_);
-			} else {
-				if(!(new_state & scsi_id_mask_)) printf("No ID mask\n");
-				else printf("Not SEL|~BSY|~IO");
 			}
 		break;
 
@@ -80,6 +76,42 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 				default: break;
 			}
 			bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+		break;
+
+		case Phase::ReceivingData:
+			switch(new_state & (Line::Request | Line::Acknowledge)) {
+				case Line::Request | Line::Acknowledge:
+					bus_state_ &= ~Line::Request;
+
+					data_[data_pointer_] = uint8_t(new_state);
+					++data_pointer_;
+					if(data_pointer_ == data_.size()) {
+						next_function_(CommandState(command_), *this);
+					}
+				break;
+
+				case 0:
+					bus_state_ |= Line::Request;
+				break;
+			}
+		break;
+
+		case Phase::SendingData:
+			switch(new_state & (Line::Request | Line::Acknowledge)) {
+				case Line::Request | Line::Acknowledge:
+					bus_state_ &= ~(Line::Request | 0xff);
+
+					++data_pointer_;
+					if(data_pointer_ == data_.size()) {
+						next_function_(CommandState(command_), *this);
+					}
+				break;
+
+				case 0:
+					bus_state_ |= Line::Request;
+					bus_state_ = (bus_state_ & ~0xff) | data_[data_pointer_];
+				break;
+			}
 		break;
 	}
 }
@@ -143,8 +175,46 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 	return false;
 }
 
-template <typename Executor> void Target<Executor>::send_data(std::vector<uint8_t> &&data, continuation next) {}
-template <typename Executor> void Target<Executor>::receive_data(size_t length, continuation next) {}
-template <typename Executor> void Target<Executor>::send_status(Status, continuation next) {}
-template <typename Executor> void Target<Executor>::send_message(Message, continuation next) {}
-template <typename Executor> void Target<Executor>::end_command() {}
+template <typename Executor> void Target<Executor>::send_data(std::vector<uint8_t> &&data, continuation next) {
+	// Data out phase: control and message all reset, input set.
+	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
+	bus_state_ |= Line::Input;
+	phase_ = Phase::SendingData;
+	data_ = std::move(data);
+	data_pointer_ = 0;
+	bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+}
+
+template <typename Executor> void Target<Executor>::receive_data(size_t length, continuation next) {
+	// Data out phase: control, input and message all reset.
+	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
+	phase_ = Phase::ReceivingData;
+	data_.resize(length);
+	data_pointer_ = 0;
+	bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+}
+
+template <typename Executor> void Target<Executor>::send_status(Status, continuation next) {
+	// Status phase: message reset, control and input set.
+	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
+	bus_state_ |= Line::Input | Line::Control;
+	phase_ = Phase::SendingStatus;
+	bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+}
+
+template <typename Executor> void Target<Executor>::send_message(Message, continuation next) {
+	// Message out phase: message and control set, input reset.
+	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
+	bus_state_ |= Line::Message | Line::Control;
+	phase_ = Phase::SendingMessage;
+	bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+}
+
+template <typename Executor> void Target<Executor>::end_command() {
+	// TODO: was this a linked command?
+
+	// Release all bus lines and return to awaiting selection.
+	phase_ = Phase::AwaitingSelection;
+	bus_state_ = DefaultBusState;
+	bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+}
