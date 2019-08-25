@@ -30,6 +30,11 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 	}
 
 	switch(phase_) {
+		/*
+			While awaiting selection the SCSI target is passively watching the bus waiting for its ID
+			to be set during a target selection. It will segue automatically from there to the command
+			phase regardless of its executor.
+		*/
 		case Phase::AwaitingSelection:
 			if(
 				(new_state & scsi_id_mask_) &&
@@ -43,6 +48,12 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 			}
 		break;
 
+		/*
+			In the command phase, the target will stream an appropriate number of bytes for the command
+			it is being offered, before giving the executor a chance to handle the command. If the target
+			supports this command, it becomes responsible for the appropriate next phase transition. If it
+			reports that it doesn't support that command, a suitable response is automatically dispatched.
+		*/
 		case Phase::Command:
 			// Wait for select to be disabled before beginning the control phase proper.
 			if((new_state & Line::SelectTarget)) return;
@@ -62,7 +73,6 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 						command_[command_pointer_] = uint8_t(new_state);
 						++command_pointer_;
 						if(command_pointer_ == command_.size()) {
-							printf("Dispatching command\n");
 							dispatch_command();
 
 							// TODO: if(!dispatch_command()) signal_error_somehow();
