@@ -36,6 +36,8 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 				((new_state & (Line::SelectTarget | Line::Busy | Line::Input)) == Line::SelectTarget)
 			) {
 				phase_ = Phase::Command;
+				command_.resize(0);
+				command_pointer_ = 0;
 				bus_state_ |= Line::Busy;	// Initiate the command phase: request a command byte.
 				bus_.set_device_output(scsi_bus_device_id_, bus_state_);
 			}
@@ -60,6 +62,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 						command_[command_pointer_] = uint8_t(new_state);
 						++command_pointer_;
 						if(command_pointer_ == command_.size()) {
+							printf("Dispatching command\n");
 							dispatch_command();
 
 							// TODO: if(!dispatch_command()) signal_error_somehow();
