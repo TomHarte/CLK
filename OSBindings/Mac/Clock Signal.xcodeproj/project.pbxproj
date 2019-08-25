@@ -227,6 +227,8 @@
 		4B7136891F78725F008B8ED9 /* Shifter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136871F78725F008B8ED9 /* Shifter.cpp */; };
 		4B71368E1F788112008B8ED9 /* Parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368C1F788112008B8ED9 /* Parser.cpp */; };
 		4B7136911F789C93008B8ED9 /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */; };
+		4B74CF812312FA9C00500CE8 /* HFV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF802312FA9C00500CE8 /* HFV.cpp */; };
+		4B74CF822312FA9C00500CE8 /* HFV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF802312FA9C00500CE8 /* HFV.cpp */; };
 		4B7913CC1DFCD80E00175A82 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7913CA1DFCD80E00175A82 /* Video.cpp */; };
 		4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B79A4FF1FC913C900EEDAD5 /* MSX.cpp */; };
 		4B79E4441E3AF38600141F11 /* cassette.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4411E3AF38600141F11 /* cassette.png */; };
@@ -984,6 +986,8 @@
 		4B71368D1F788112008B8ED9 /* Parser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Parser.hpp; sourceTree = "<group>"; };
 		4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SegmentParser.cpp; sourceTree = "<group>"; };
 		4B7136901F789C93008B8ED9 /* SegmentParser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SegmentParser.hpp; sourceTree = "<group>"; };
+		4B74CF7F2312FA9C00500CE8 /* HFV.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = HFV.hpp; sourceTree = "<group>"; };
+		4B74CF802312FA9C00500CE8 /* HFV.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HFV.cpp; sourceTree = "<group>"; };
 		4B77069C1EC904570053B588 /* Z80.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Z80.hpp; path = Z80/Z80.hpp; sourceTree = "<group>"; };
 		4B770A961FE9EE770026DC70 /* CompoundSource.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CompoundSource.hpp; sourceTree = "<group>"; };
 		4B7913CA1DFCD80E00175A82 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = Electron/Video.cpp; sourceTree = "<group>"; };
@@ -2260,6 +2264,7 @@
 			children = (
 				4B6AAEA2230E3E1D0078E864 /* MassStorageDevice.cpp */,
 				4B6AAEA3230E3E1D0078E864 /* MassStorageDevice.hpp */,
+				4B74CF7E2312FA9C00500CE8 /* Formats */,
 				4B6AAEA5230E40250078E864 /* SCSI */,
 			);
 			path = MassStorage;
@@ -2295,6 +2300,15 @@
 			);
 			name = MFM;
 			path = Encodings/MFM;
+			sourceTree = "<group>";
+		};
+		4B74CF7E2312FA9C00500CE8 /* Formats */ = {
+			isa = PBXGroup;
+			children = (
+				4B74CF7F2312FA9C00500CE8 /* HFV.hpp */,
+				4B74CF802312FA9C00500CE8 /* HFV.cpp */,
+			);
+			path = Formats;
 			sourceTree = "<group>";
 		};
 		4B77069E1EC9045B0053B588 /* Z80 */ = {
@@ -4035,6 +4049,7 @@
 				4B055AC91FAE9AFB0060FFFF /* Keyboard.cpp in Sources */,
 				4B055A991FAE85CB0060FFFF /* DiskController.cpp in Sources */,
 				4B055ACC1FAE9B030060FFFF /* Electron.cpp in Sources */,
+				4B74CF822312FA9C00500CE8 /* HFV.cpp in Sources */,
 				4B8318B022D3E531006DB630 /* AppleII.cpp in Sources */,
 				4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */,
 				4BFE7B881FC39D8900160B38 /* StandardOptions.cpp in Sources */,
@@ -4228,6 +4243,7 @@
 				4BB4BFAD22A33DE50069048D /* DriveSpeedAccumulator.cpp in Sources */,
 				4B2B3A4B1F9B8FA70062DABF /* Typer.cpp in Sources */,
 				4B4518821F75E91A00926311 /* PCMSegment.cpp in Sources */,
+				4B74CF812312FA9C00500CE8 /* HFV.cpp in Sources */,
 				4B894522201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B17B58B20A8A9D9007CCA8F /* StringSerialiser.cpp in Sources */,
 				4BE7C9181E3D397100A5496D /* TIA.cpp in Sources */,
