@@ -29,6 +29,7 @@ class HFV: public MassStorageDevice {
 		size_t get_block_size() final;
 		size_t get_number_of_blocks() final;
 		std::vector<uint8_t> get_block(size_t address) final;
+		void set_block(size_t address, const std::vector<uint8_t> &) final;
 
 };
 

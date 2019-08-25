@@ -31,3 +31,9 @@ std::vector<uint8_t> HFV::get_block(size_t address) {
 	file_.seek(file_offset, SEEK_SET);
 	return file_.read(get_block_size());
 }
+
+void HFV::set_block(size_t address, const std::vector<uint8_t> &contents) {
+	const long file_offset = long(get_block_size() * address);
+	file_.seek(file_offset, SEEK_SET);
+	file_.write(contents);
+}
