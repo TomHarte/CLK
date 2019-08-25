@@ -67,11 +67,13 @@ class NCR5380 final: public ClockingHint::Source {
 		uint8_t data_bus_ = 0xff;
 		bool test_mode_ = false;
 		bool assert_data_bus_ = false;
+		bool dma_request_ = false;
 
 		enum class ExecutionState {
 			None,
 
 			WatchingBusy,
+			PerformingDMA,
 		} state_ = ExecutionState::None;
 		int time_in_state_ = 0;
 		bool lost_arbitration_ = false, arbitration_in_progress_ = false;

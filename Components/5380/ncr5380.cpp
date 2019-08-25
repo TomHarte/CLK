@@ -55,17 +55,24 @@ void NCR5380::write(int address, uint8_t value) {
 			// bit 2: 1 = generate an interrupt and reset low 6 bits of register 1 if an unexpected loss of Line::Busy occurs
 			// bit 1: 1 = use DMA mode
 			// bit 0: 1 = begin arbitration mode (device ID should be in register 0)
+			arbitration_in_progress_ = false;
+			switch(mode_ & 0x3) {
+				case 0x0:
+					bus_output_ &= ~SCSI::Line::Busy;
+					dma_request_ = false;
+					set_execution_state(ExecutionState::None);
+				break;
 
-			if(mode_ & 1) {
-				arbitration_in_progress_ = true;
-				if(state_ == ExecutionState::None) {
+				case 0x1:
+					arbitration_in_progress_ = true;
 					set_execution_state(ExecutionState::WatchingBusy);
 					lost_arbitration_ = false;
-				}
-			} else {
-				arbitration_in_progress_ = false;
-				bus_output_ &= ~SCSI::Line::Busy;
-				set_execution_state(ExecutionState::None);
+				break;
+
+				default:
+					assert_data_bus_ = false; // TODO: proper logic for this.
+					set_execution_state(ExecutionState::PerformingDMA);
+				break;
 			}
 		break;
 
@@ -115,7 +122,13 @@ uint8_t NCR5380::read(int address) {
 	using SCSI::Line;
 	switch(address & 7) {
 		case 0:
-			LOG("[SCSI 0] Get current SCSI bus state");
+			LOG("[SCSI 0] Get current SCSI bus state: " << PADHEX(2) << (bus_.get_state() & 0xff));
+
+			if(dma_request_ && state_ == ExecutionState::PerformingDMA) {
+				bus_output_ |= SCSI::Line::Acknowledge;
+				dma_request_ = false;
+				bus_.set_device_output(device_id_, bus_output_);
+			}
 		return uint8_t(bus_.get_state());
 
 		case 1:
@@ -166,7 +179,12 @@ uint8_t NCR5380::read(int address) {
 				(bus_state & (Line::Message | Line::Control | Line::Input));
 
 			const uint8_t result =
+				/* b7 = end of DMA */
+				((dma_request_ && state_ == ExecutionState::PerformingDMA) ? 0x40 : 0x00)	|
+				/* b5 = parity error */
+				/* b4 = IRQ active */
 				(phase_matches ? 0x08 : 0x00)	|
+				/* b2 = busy error */
 				((bus_state & Line::Attention) ? 0x02 : 0x00) |
 				((bus_state & Line::Acknowledge) ? 0x01 : 0x00);
 			LOG("[SCSI 5] Get bus and status: " << PADHEX(2) << int(result));
@@ -187,6 +205,7 @@ uint8_t NCR5380::read(int address) {
 void NCR5380::run_for(Cycles cycles) {
 	if(state_ == ExecutionState::None) return;
 
+	const auto bus_state = bus_.get_state();
 	++time_in_state_;
 	switch(state_) {
 		default: break;
@@ -213,7 +232,7 @@ void NCR5380::run_for(Cycles cycles) {
 		*/
 
 		case ExecutionState::WatchingBusy:
-			if(bus_.get_state() & SCSI::Line::Busy) {
+			if(bus_state & SCSI::Line::Busy) {
 				// Arbitration is lost only if a non-busy state had previously been observed.
 				if(time_in_state_ > 1) {
 					lost_arbitration_ = true;
@@ -236,6 +255,30 @@ void NCR5380::run_for(Cycles cycles) {
 					set_execution_state(ExecutionState::None);
 				}
 			}
+
+			/* TODO: there's a bug here, given that the dropping of Busy isn't communicated onward. */
+		break;
+
+		case ExecutionState::PerformingDMA:
+			// Signal a DMA request if the request line is active, i.e. meaningful data is
+			// on the bus, and this device hasn't yet acknowledged it.
+			switch(bus_state & (SCSI::Line::Request | SCSI::Line::Acknowledge)) {
+				case 0:
+					dma_request_ = false;
+				break;
+				case SCSI::Line::Request:
+					dma_request_ = true;
+				break;
+				case SCSI::Line::Request | SCSI::Line::Acknowledge:
+					dma_request_ = false;
+				break;
+				case SCSI::Line::Acknowledge:
+					bus_output_ &= ~SCSI::Line::Acknowledge;
+					dma_request_ = false;
+				break;
+			}
+
+			bus_.set_device_output(device_id_, bus_output_);
 		break;
 	}
 }
@@ -250,5 +293,5 @@ ClockingHint::Preference NCR5380::preferred_clocking() {
 	// Request real-time clocking if any sort of timed bus watching is ongoing,
 	// given that there's no knowledge in here as to what clocking other devices
 	// on the SCSI bus might be enjoying.
-	return (state_ == ExecutionState::None) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
+	return (state_ < ExecutionState::WatchingBusy) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
 }

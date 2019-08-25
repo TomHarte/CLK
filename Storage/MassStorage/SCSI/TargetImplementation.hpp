@@ -103,6 +103,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 					bus_state_ &= ~(Line::Request | 0xff);
 
 					++data_pointer_;
+					printf("DP: %zu\n", data_pointer_);
 					if(data_pointer_ == data_.size()) {
 						next_function_(CommandState(command_), *this);
 					}
@@ -111,6 +112,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 				case 0:
 					bus_state_ |= Line::Request;
 					bus_state_ = (bus_state_ & ~0xff) | data_[data_pointer_];
+					printf("Lower bus: %02x\n", bus_state_ & 0xff);
 				break;
 			}
 			bus_.set_device_output(scsi_bus_device_id_, bus_state_);
