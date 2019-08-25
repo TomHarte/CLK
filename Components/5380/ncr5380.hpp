@@ -12,7 +12,6 @@
 #include <cstdint>
 
 #include "../../Storage/MassStorage/SCSI/SCSI.hpp"
-#include "../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 
@@ -25,7 +24,7 @@ namespace NCR5380 {
 */
 class NCR5380 final: public ClockingHint::Source {
 	public:
-		NCR5380(int clock_rate);
+		NCR5380(SCSI::Bus &bus, int clock_rate);
 
 		/*! Writes @c value to @c address.  */
 		void write(int address, uint8_t value);
@@ -53,10 +52,7 @@ class NCR5380 final: public ClockingHint::Source {
 		ClockingHint::Preference preferred_clocking() final;
 
 	private:
-		// TEMPORARY. For development expediency, the 5380 owns its own
-		// SCSI bus and target. These will be moved out.
-		SCSI::Bus bus_;
-		SCSI::Target::Target<SCSI::DirectAccessDevice> device_;
+		SCSI::Bus &bus_;
 
 		const int clock_rate_;
 		size_t device_id_;

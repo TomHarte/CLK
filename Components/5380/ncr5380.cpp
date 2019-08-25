@@ -12,8 +12,8 @@
 
 using namespace NCR::NCR5380;
 
-NCR5380::NCR5380(int clock_rate) :
-	device_(bus_, 6),
+NCR5380::NCR5380(SCSI::Bus &bus, int clock_rate) :
+	bus_(bus),
 	clock_rate_(clock_rate) {
 	device_id_ = bus_.add_device();
 }

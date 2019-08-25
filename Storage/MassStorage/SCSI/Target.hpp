@@ -24,8 +24,8 @@ class CommandState {
 	public:
 		CommandState(const std::vector<uint8_t> &data);
 
-		uint32_t address();
-		uint16_t number_of_blocks();
+		uint32_t address() const;
+		uint16_t number_of_blocks() const;
 
 	private:
 		const std::vector<uint8_t> &data_;
@@ -134,9 +134,13 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 		*/
 		Target(Bus &bus, int scsi_id);
 
-		Executor executor;
+		inline Executor *operator->() {
+			return &executor_;
+		}
 
 	private:
+		Executor executor_;
+
 		// Bus::Observer.
 		void scsi_bus_did_change(Bus *, BusState new_state) final;
 

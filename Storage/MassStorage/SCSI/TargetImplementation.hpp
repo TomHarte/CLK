@@ -147,29 +147,29 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 	switch(command_[0]) {
 		default:		return false;
 
-		case G0(0x00):	return executor.test_unit_ready(arguments, *this);
-		case G0(0x01):	return executor.rezero_unit(arguments, *this);
-		case G0(0x03):	return executor.request_sense(arguments, *this);
-		case G0(0x04):	return executor.format_unit(arguments, *this);
-		case G0(0x08):	return executor.read(arguments, *this);
-		case G0(0x0a):	return executor.write(arguments, *this);
-		case G0(0x0b):	return executor.seek(arguments, *this);
-		case G0(0x16):	return executor.reserve_unit(arguments, *this);
-		case G0(0x17):	return executor.release_unit(arguments, *this);
-		case G0(0x1c):	return executor.read_diagnostic(arguments, *this);
-		case G0(0x1d):	return executor.write_diagnostic(arguments, *this);
-		case G0(0x12):	return executor.inquiry(arguments, *this);
+		case G0(0x00):	return executor_.test_unit_ready(arguments, *this);
+		case G0(0x01):	return executor_.rezero_unit(arguments, *this);
+		case G0(0x03):	return executor_.request_sense(arguments, *this);
+		case G0(0x04):	return executor_.format_unit(arguments, *this);
+		case G0(0x08):	return executor_.read(arguments, *this);
+		case G0(0x0a):	return executor_.write(arguments, *this);
+		case G0(0x0b):	return executor_.seek(arguments, *this);
+		case G0(0x16):	return executor_.reserve_unit(arguments, *this);
+		case G0(0x17):	return executor_.release_unit(arguments, *this);
+		case G0(0x1c):	return executor_.read_diagnostic(arguments, *this);
+		case G0(0x1d):	return executor_.write_diagnostic(arguments, *this);
+		case G0(0x12):	return executor_.inquiry(arguments, *this);
 
-		case G1(0x05):	return executor.read_capacity(arguments, *this);
-		case G1(0x08):	return executor.read(arguments, *this);
-		case G1(0x0a):	return executor.write(arguments, *this);
-		case G1(0x0e):	return executor.write_and_verify(arguments, *this);
-		case G1(0x0f):	return executor.verify(arguments, *this);
-		case G1(0x11):	return executor.search_data_equal(arguments, *this);
-		case G1(0x10):	return executor.search_data_high(arguments, *this);
-		case G1(0x12):	return executor.search_data_low(arguments, *this);
+		case G1(0x05):	return executor_.read_capacity(arguments, *this);
+		case G1(0x08):	return executor_.read(arguments, *this);
+		case G1(0x0a):	return executor_.write(arguments, *this);
+		case G1(0x0e):	return executor_.write_and_verify(arguments, *this);
+		case G1(0x0f):	return executor_.verify(arguments, *this);
+		case G1(0x11):	return executor_.search_data_equal(arguments, *this);
+		case G1(0x10):	return executor_.search_data_high(arguments, *this);
+		case G1(0x12):	return executor_.search_data_low(arguments, *this);
 
-		case G5(0x09):	return executor.set_block_limits(arguments, *this);
+		case G5(0x09):	return executor_.set_block_limits(arguments, *this);
 	}
 
 #undef G0

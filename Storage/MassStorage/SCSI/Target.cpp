@@ -12,7 +12,7 @@ using namespace SCSI::Target;
 
 CommandState::CommandState(const std::vector<uint8_t> &data) : data_(data) {}
 
-uint32_t CommandState::address() {
+uint32_t CommandState::address() const {
 	switch(data_.size()) {
 		default:	return 0;
 		case 6:
@@ -30,7 +30,7 @@ uint32_t CommandState::address() {
 	}
 }
 
-uint16_t CommandState::number_of_blocks() {
+uint16_t CommandState::number_of_blocks() const {
 	switch(data_.size()) {
 		default:	return 0;
 		case 6:

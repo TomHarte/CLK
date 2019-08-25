@@ -37,6 +37,9 @@
 #include "../../../Components/DiskII/MacintoshDoubleDensityDrive.hpp"
 #include "../../../Processors/68000/68000.hpp"
 
+#include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
+#include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
+
 #include "../../../Analyser/Static/Macintosh/Target.hpp"
 
 #include "../../Utility/MemoryPacker.hpp"
@@ -71,7 +74,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		 	video_(audio_, drive_speed_accumulator_),
 		 	via_(via_port_handler_),
 		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_, mouse_),
-		 	scsi_(CLOCK_RATE * 2),
+		 	scsi_(scsi_bus_, CLOCK_RATE * 2),
+		 	hard_drive_(scsi_bus_, 6 /* SCSI ID */),
 		 	drives_{
 		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke},
 		 		{CLOCK_RATE, model >= Analyser::Static::Macintosh::Target::Model::Mac512ke}
@@ -435,16 +439,23 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 		bool insert_media(const Analyser::Static::Media &media) override {
-			if(media.disks.empty())
+			if(media.disks.empty() && media.mass_storage_devices.empty())
 				return false;
 
 			// TODO: shouldn't allow disks to be replaced like this, as the Mac
 			// uses software eject. Will need to expand messaging ability of
 			// insert_media.
-			if(drives_[0].has_disk())
-				drives_[1].set_disk(media.disks[0]);
-			else
-				drives_[0].set_disk(media.disks[0]);
+			if(!media.disks.empty()) {
+				if(drives_[0].has_disk())
+					drives_[1].set_disk(media.disks[0]);
+				else
+					drives_[0].set_disk(media.disks[0]);
+			}
+
+			// TODO: allow this only at machine startup.
+			if(!media.mass_storage_devices.empty()) {
+				hard_drive_->set_storage(media.mass_storage_devices.front());
+			}
 
 			return true;
 		}
@@ -720,7 +731,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
  		VIAPortHandler via_port_handler_;
 
  		Zilog::SCC::z8530 scc_;
+		SCSI::Bus scsi_bus_;
  		NCR::NCR5380::NCR5380 scsi_;
+		SCSI::Target::Target<SCSI::DirectAccessDevice> hard_drive_;
  		bool scsi_is_clocked_ = false;
 
  		HalfCycles via_clock_;
