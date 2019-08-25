@@ -10,10 +10,10 @@
 #include "Target.hpp"
 
 Analyser::Static::TargetList Analyser::Static::Macintosh::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
-	// This analyser can comprehend disks only.
-	if(media.disks.empty()) return {};
+	// This analyser can comprehend disks and mass-storage devices only.
+	if(media.disks.empty() && media.mass_storage_devices.empty()) return {};
 
-	// If there is at least one disk, wave it through.
+	// As there is at least one usable media image, wave it through.
 	Analyser::Static::TargetList targets;
 
 	using Target = Analyser::Static::Macintosh::Target;

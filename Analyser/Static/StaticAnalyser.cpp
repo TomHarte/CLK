@@ -46,6 +46,9 @@
 #include "../../Storage/Disk/DiskImage/Formats/SSD.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/WOZ.hpp"
 
+// Mass Storage Devices (i.e. usually, hard disks)
+#include "../../Storage/MassStorage/Formats/HFV.hpp"
+
 // Tapes
 #include "../../Storage/Tape/Formats/CAS.hpp"
 #include "../../Storage/Tape/Formats/CommodoreTAP.hpp"
@@ -102,7 +105,8 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("dsd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)				// DSD
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::CPCDSK>, TargetPlatform::AmstradCPC)		// DSK (Amstrad CPC)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::AppleDSK>, TargetPlatform::DiskII)			// DSK (Apple II)
-	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// DSK (Macintosh)
+	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// DSK (Macintosh, floppy disk)
+	Format("dsk", result.mass_storage_devices, MassStorage::HFV, TargetPlatform::Macintosh)						// DSK (Macintosh, hard disk)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::MSXDSK>, TargetPlatform::MSX)				// DSK (MSX)
 	Format("dsk", result.disks, Disk::DiskImageHolder<Storage::Disk::OricMFMDSK>, TargetPlatform::Oric)			// DSK (Oric)
 	Format("g64", result.disks, Disk::DiskImageHolder<Storage::Disk::G64>, TargetPlatform::Commodore)			// G64
@@ -160,7 +164,7 @@ Media Analyser::Static::GetMedia(const std::string &file_name) {
 TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	TargetList targets;
 
-	// Collect all disks, tapes and ROMs as can be extrapolated from this file, forming the
+	// Collect all disks, tapes ROMs, etc as can be extrapolated from this file, forming the
 	// union of all platforms this file might be a target for.
 	TargetPlatform::IntType potential_platforms = 0;
 	Media media = GetMediaAndPlatforms(file_name, potential_platforms);
