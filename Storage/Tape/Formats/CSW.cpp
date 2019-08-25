@@ -8,6 +8,8 @@
 
 #include "CSW.hpp"
 
+#include "../../FileHolder.hpp"
+
 #include <cassert>
 
 using namespace Storage::Tape;
