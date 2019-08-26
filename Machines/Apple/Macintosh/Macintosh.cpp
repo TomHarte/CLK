@@ -39,6 +39,7 @@
 
 #include "../../../Storage/MassStorage/SCSI/SCSI.hpp"
 #include "../../../Storage/MassStorage/SCSI/DirectAccessDevice.hpp"
+#include "../../../Storage/MassStorage/Encodings/MacintoshVolume.hpp"
 
 #include "../../../Analyser/Static/Macintosh/Target.hpp"
 
@@ -454,6 +455,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			// TODO: allow this only at machine startup.
 			if(!media.mass_storage_devices.empty()) {
+				const auto volume = dynamic_cast<Storage::MassStorage::Encodings::Macintosh::Volume *>(media.mass_storage_devices.front().get());
+				if(volume) {
+					volume->set_drive_type(Storage::MassStorage::Encodings::Macintosh::DriveType::SCSI);
+				}
 				hard_drive_->set_storage(media.mass_storage_devices.front());
 			}
 
