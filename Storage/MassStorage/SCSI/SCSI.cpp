@@ -31,7 +31,7 @@ void Bus::set_device_output(size_t device, BusState output) {
 		state_ & 0xff,
 		(state_ & Line::Parity) ? 'p' : '-',
 		(state_ & Line::SelectTarget) ? 's' : '-',
-		(state_ & Line::Attention) ? 'a' : '-',
+		(state_ & Line::Attention) ? 't' : '-',
 		(state_ & Line::Control) ? 'c' : '-',
 		(state_ & Line::Busy) ? 'b' : '-',
 		(state_ & Line::Acknowledge) ? 'a' : '-',
@@ -42,7 +42,7 @@ void Bus::set_device_output(size_t device, BusState output) {
 	);
 
 	for(auto &observer: observers_) {
-		observer->scsi_bus_did_change(this, state_);
+		observer->scsi_bus_did_change(this, state_, 0.0);
 	}
 }
 

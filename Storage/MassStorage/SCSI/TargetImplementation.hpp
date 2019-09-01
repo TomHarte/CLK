@@ -13,7 +13,7 @@ template <typename Executor> Target<Executor>::Target(Bus &bus, int scsi_id) :
 	bus.add_observer(this);
 }
 
-template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, BusState new_state) {
+template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, BusState new_state, double time_since_change) {
 	/*
 		"The target determines that it is selected when the SEL# signal
 		and its SCSI ID bit are active and the BSY# and I#/O signals
@@ -25,9 +25,17 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 	if(new_state & Line::Reset) {
 		phase_ = Phase::AwaitingSelection;
 		bus_state_ = DefaultBusState;
-		bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+		set_device_output(bus_state_);
 		return;
 	}
+
+	// Check for an unexpected change of SCSI state.
+/*	if((phase_ > Phase::Command) && (new_state & (Line::Control | Line::Input | Line::Message)) != expected_control_state_) {
+		phase_ = Phase::AwaitingSelection;
+		bus_state_ = DefaultBusState;
+		set_device_output(bus_state_);
+		return;
+	}*/
 
 	switch(phase_) {
 		/*
@@ -44,7 +52,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 				command_.resize(0);
 				command_pointer_ = 0;
 				bus_state_ |= Line::Busy;	// Initiate the command phase: request a command byte.
-				bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+				set_device_output(bus_state_);
 			}
 		break;
 
@@ -88,7 +96,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 
 				default: break;
 			}
-			bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+			set_device_output(bus_state_);
 		break;
 
 		case Phase::ReceivingData:
@@ -107,7 +115,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 					bus_state_ |= Line::Request;
 				break;
 			}
-			bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+			set_device_output(bus_state_);
 		break;
 
 		case Phase::SendingData:
@@ -127,7 +135,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 					bus_state_ = (bus_state_ & ~0xff) | data_[data_pointer_];
 				break;
 			}
-			bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+			set_device_output(bus_state_);
 		break;
 	}
 }
@@ -198,7 +206,7 @@ template <typename Executor> void Target<Executor>::send_data(std::vector<uint8_
 	phase_ = Phase::SendingData;
 	data_ = std::move(data);
 	data_pointer_ = 0;
-	bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+	set_device_output(bus_state_);
 }
 
 template <typename Executor> void Target<Executor>::receive_data(size_t length, continuation next) {
@@ -207,7 +215,7 @@ template <typename Executor> void Target<Executor>::receive_data(size_t length, 
 	phase_ = Phase::ReceivingData;
 	data_.resize(length);
 	data_pointer_ = 0;
-	bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+	set_device_output(bus_state_);
 }
 
 template <typename Executor> void Target<Executor>::send_status(Status, continuation next) {
@@ -215,7 +223,7 @@ template <typename Executor> void Target<Executor>::send_status(Status, continua
 	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
 	bus_state_ |= Line::Input | Line::Control;
 	phase_ = Phase::SendingStatus;
-	bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+	set_device_output(bus_state_);
 }
 
 template <typename Executor> void Target<Executor>::send_message(Message, continuation next) {
@@ -223,7 +231,7 @@ template <typename Executor> void Target<Executor>::send_message(Message, contin
 	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
 	bus_state_ |= Line::Message | Line::Control;
 	phase_ = Phase::SendingMessage;
-	bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+	set_device_output(bus_state_);
 }
 
 template <typename Executor> void Target<Executor>::end_command() {
@@ -232,5 +240,5 @@ template <typename Executor> void Target<Executor>::end_command() {
 	// Release all bus lines and return to awaiting selection.
 	phase_ = Phase::AwaitingSelection;
 	bus_state_ = DefaultBusState;
-	bus_.set_device_output(scsi_bus_device_id_, bus_state_);
+	set_device_output(bus_state_);
 }

@@ -142,7 +142,7 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 		Executor executor_;
 
 		// Bus::Observer.
-		void scsi_bus_did_change(Bus *, BusState new_state) final;
+		void scsi_bus_did_change(Bus *, BusState new_state, double time_since_change) final;
 
 		// Responder
 		void send_data(std::vector<uint8_t> &&data, continuation next) final;
@@ -165,6 +165,12 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 			SendingMessage
 		} phase_ = Phase::AwaitingSelection;
 		BusState bus_state_ = DefaultBusState;
+
+		void set_device_output(BusState state) {
+			expected_control_state_ = state & (Line::Control | Line::Input | Line::Message);
+			bus_.set_device_output(scsi_bus_device_id_, state);
+		}
+		BusState expected_control_state_ = DefaultBusState;
 
 		void begin_command(uint8_t first_byte);
 		std::vector<uint8_t> command_;
