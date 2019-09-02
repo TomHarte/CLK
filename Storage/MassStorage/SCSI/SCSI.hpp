@@ -9,6 +9,7 @@
 #ifndef SCSI_hpp
 #define SCSI_hpp
 
+#include <array>
 #include <limits>
 #include <vector>
 
@@ -138,7 +139,7 @@ class Bus: public ClockingHint::Source {
 		HalfCycles time_in_state_;
 		double cycles_to_time_ = 1.0;
 		size_t dispatch_index_ = 0;
-		int dispatch_times_[8];
+		std::array<int, 8> dispatch_times_;
 
 		std::vector<BusState> device_states_;
 		BusState state_ = DefaultBusState;

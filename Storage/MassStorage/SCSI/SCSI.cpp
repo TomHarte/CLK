@@ -73,16 +73,16 @@ void Bus::add_observer(Observer *observer) {
 }
 
 ClockingHint::Preference Bus::preferred_clocking() {
-	return (dispatch_index_ < sizeof(dispatch_times_)) ? ClockingHint::Preference::RealTime : ClockingHint::Preference::None;
+	return (dispatch_index_ < dispatch_times_.size()) ? ClockingHint::Preference::RealTime : ClockingHint::Preference::None;
 }
 
 void Bus::run_for(HalfCycles time) {
-	if(dispatch_index_ < sizeof(dispatch_times_)) {
+	if(dispatch_index_ < dispatch_times_.size()) {
 		time_in_state_ += time;
 
 		const auto old_index = dispatch_index_;
 		const auto time_as_int = time_in_state_.as_int();
-		while(time_as_int >= dispatch_times_[dispatch_index_] && dispatch_index_ < sizeof(dispatch_times_)) {
+		while(time_as_int >= dispatch_times_[dispatch_index_] && dispatch_index_ < dispatch_times_.size()) {
 			++dispatch_index_;
 		}
 

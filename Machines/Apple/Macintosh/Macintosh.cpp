@@ -504,6 +504,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	private:
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override {
 			scsi_is_clocked_ = scsi_.preferred_clocking() != ClockingHint::Preference::None;
+			scsi_bus_is_clocked_ = scsi_bus_.preferred_clocking() != ClockingHint::Preference::None;
 		}
 
 		void drive_speed_accumulator_set_drive_speed(DriveSpeedAccumulator *, float speed) override {
@@ -595,8 +596,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			}
 
 			// Update the SCSI if currently active.
-			if(model == Analyser::Static::Macintosh::Target::Model::MacPlus && scsi_is_clocked_) {
-				scsi_.run_for(Cycles(duration.as_int()));
+			if(model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
+				if(scsi_is_clocked_) scsi_.run_for(Cycles(duration.as_int()));
+				if(scsi_bus_is_clocked_) scsi_bus_.run_for(duration);
 			}
 		}
 
@@ -741,6 +743,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
  		NCR::NCR5380::NCR5380 scsi_;
 		SCSI::Target::Target<SCSI::DirectAccessDevice> hard_drive_;
  		bool scsi_is_clocked_ = false;
+ 		bool scsi_bus_is_clocked_ = false;
 
  		HalfCycles via_clock_;
  		HalfCycles real_time_clock_;
