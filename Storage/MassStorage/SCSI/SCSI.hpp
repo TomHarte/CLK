@@ -57,6 +57,9 @@ enum Line: BusState {
 #define us(x)	(x) / 1000000.0
 #define ns(x)	(x) / 1000000000.0
 
+/// The minimum amount of time that reset must be held for.
+constexpr double ResetHoldTime		= us(25.0);
+
 /// The minimum amount of time a SCSI device must wait after asserting ::Busy
 /// until the data bus can be inspected to see whether arbitration has been won.
 constexpr double ArbitrationDelay	= us(1.7);
@@ -81,9 +84,6 @@ constexpr double BusFreeDelay		= ns(100.0);
 /// The minimum amount of time required for deskew of "certain signals". TODO: which?
 constexpr double DeskewDelay		= ns(45.0);
 
-/// The minimum amount of time that reset must be held for.
-constexpr double ResetHoldTime		= us(25.0);
-
 /// The maximum amount of time that propagation of a SCSI bus signal can take between
 /// any two devices.
 constexpr double CableSkew			= ns(10.0);
@@ -91,8 +91,9 @@ constexpr double CableSkew			= ns(10.0);
 #undef ns
 #undef us
 
-class Bus {
+class Bus: public ClockingHint::Source {
 	public:
+		Bus(HalfCycles clock_rate);
 
 		/*!
 			Adds a device to the bus, returning the index it should use
@@ -123,7 +124,22 @@ class Bus {
 		*/
 		void add_observer(Observer *);
 
+		/*!
+			SCSI buses don't have a clock. But devices on the bus are concerned with time-based factors,
+			and `run_for` is the way that time propagates within this emulator. So please permit this
+			fiction.
+		*/
+		void run_for(HalfCycles);
+
+		/// As per ClockingHint::Source.
+		ClockingHint::Preference preferred_clocking() final;
+
 	private:
+		HalfCycles time_in_state_;
+		double cycles_to_time_ = 1.0;
+		size_t dispatch_index_ = 0;
+		int dispatch_times_[8];
+
 		std::vector<BusState> device_states_;
 		BusState state_ = DefaultBusState;
 		std::vector<Observer *> observers_;

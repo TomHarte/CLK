@@ -75,6 +75,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		 	video_(audio_, drive_speed_accumulator_),
 		 	via_(via_port_handler_),
 		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_, mouse_),
+		 	scsi_bus_(CLOCK_RATE * 2),
 		 	scsi_(scsi_bus_, CLOCK_RATE * 2),
 		 	hard_drive_(scsi_bus_, 6 /* SCSI ID */),
 		 	drives_{
