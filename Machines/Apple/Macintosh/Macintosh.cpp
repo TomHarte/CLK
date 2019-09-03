@@ -141,6 +141,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// Also watch for changes in clocking requirement from the SCSI chip.
 			if(model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
 				scsi_.set_clocking_hint_observer(this);
+				scsi_bus_.set_clocking_hint_observer(this);
 			}
 
 			// The Mac runs at 7.8336mHz.

@@ -30,12 +30,12 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 	}
 
 	// Check for an unexpected change of SCSI state.
-/*	if((phase_ > Phase::Command) && (new_state & (Line::Control | Line::Input | Line::Message)) != expected_control_state_) {
+	if((phase_ > Phase::Command) && (new_state & (Line::Control | Line::Input | Line::Message)) != expected_control_state_) {
 		phase_ = Phase::AwaitingSelection;
 		bus_state_ = DefaultBusState;
 		set_device_output(bus_state_);
 		return;
-	}*/
+	}
 
 	switch(phase_) {
 		/*
@@ -203,8 +203,11 @@ template <typename Executor> void Target<Executor>::send_data(std::vector<uint8_
 	// Data out phase: control and message all reset, input set.
 	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
 	bus_state_ |= Line::Input;
+
 	phase_ = Phase::SendingData;
+	next_function_ = next;
 	data_ = std::move(data);
+
 	data_pointer_ = 0;
 	set_device_output(bus_state_);
 }
@@ -212,8 +215,11 @@ template <typename Executor> void Target<Executor>::send_data(std::vector<uint8_
 template <typename Executor> void Target<Executor>::receive_data(size_t length, continuation next) {
 	// Data out phase: control, input and message all reset.
 	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
+
 	phase_ = Phase::ReceivingData;
+	next_function_ = next;
 	data_.resize(length);
+
 	data_pointer_ = 0;
 	set_device_output(bus_state_);
 }
@@ -222,7 +228,10 @@ template <typename Executor> void Target<Executor>::send_status(Status, continua
 	// Status phase: message reset, control and input set.
 	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
 	bus_state_ |= Line::Input | Line::Control;
+
 	phase_ = Phase::SendingStatus;
+	next_function_ = next;
+
 	set_device_output(bus_state_);
 }
 
@@ -230,7 +239,10 @@ template <typename Executor> void Target<Executor>::send_message(Message, contin
 	// Message out phase: message and control set, input reset.
 	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
 	bus_state_ |= Line::Message | Line::Control;
+
 	phase_ = Phase::SendingMessage;
+	next_function_ = next;
+
 	set_device_output(bus_state_);
 }
 

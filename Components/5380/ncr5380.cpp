@@ -11,6 +11,7 @@
 #include "../../Outputs/Log.hpp"
 
 using namespace NCR::NCR5380;
+using SCSI::Line;
 
 NCR5380::NCR5380(SCSI::Bus &bus, int clock_rate) :
 	bus_(bus),
@@ -19,7 +20,6 @@ NCR5380::NCR5380(SCSI::Bus &bus, int clock_rate) :
 }
 
 void NCR5380::write(int address, uint8_t value) {
-	using SCSI::Line;
 	switch(address & 7) {
 		case 0:
 			LOG("[SCSI 0] Set current SCSI bus state to " << PADHEX(2) << int(value));
@@ -32,15 +32,14 @@ void NCR5380::write(int address, uint8_t value) {
 
 			bus_output_ &= ~(Line::Reset | Line::Acknowledge | Line::Busy | Line::SelectTarget | Line::Attention);
 			if(value & 0x80) bus_output_ |= Line::Reset;
-			if(value & 0x10) bus_output_ |= Line::Acknowledge;
 			if(value & 0x08) bus_output_ |= Line::Busy;
 			if(value & 0x04) bus_output_ |= Line::SelectTarget;
-			if(value & 0x02) bus_output_ |= Line::Attention;
 
 			/* bit 5 = differential enable if this were a 5381 */
 
 			test_mode_ = value & 0x40;
 			assert_data_bus_ = value & 0x01;
+			update_control_output();
 		} break;
 
 		case 2:
@@ -74,15 +73,13 @@ void NCR5380::write(int address, uint8_t value) {
 					set_execution_state(ExecutionState::PerformingDMA);
 				break;
 			}
+			update_control_output();
 		break;
 
 		case 3: {
 			LOG("[SCSI 3] Set target command: " << PADHEX(2) << int(value));
-			bus_output_ &= ~(Line::Request | Line::Message | Line::Control | Line::Input);
-			if(value & 0x08) bus_output_ |= Line::Request;
-			if(value & 0x04) bus_output_ |= Line::Message;
-			if(value & 0x02) bus_output_ |= Line::Control;
-			if(value & 0x01) bus_output_ |= Line::Input;
+			target_command_ = value;
+			update_control_output();
 		} break;
 
 		case 4:
@@ -119,14 +116,14 @@ void NCR5380::write(int address, uint8_t value) {
 }
 
 uint8_t NCR5380::read(int address) {
-	using SCSI::Line;
 	switch(address & 7) {
 		case 0:
 			LOG("[SCSI 0] Get current SCSI bus state: " << PADHEX(2) << (bus_.get_state() & 0xff));
 
 			if(dma_request_ && state_ == ExecutionState::PerformingDMA) {
-				bus_output_ |= SCSI::Line::Acknowledge;
+				dma_acknowledge_ = true;
 				dma_request_ = false;
+				update_control_output();
 				bus_.set_device_output(device_id_, bus_output_);
 			}
 		return uint8_t(bus_.get_state());
@@ -147,15 +144,9 @@ uint8_t NCR5380::read(int address) {
 			LOG("[SCSI 2] Get mode");
 		return mode_;
 
-		case 3: {
+		case 3:
 			LOG("[SCSI 3] Get target command");
-			const auto bus_state = bus_.get_state();
-			return
-				((bus_state & SCSI::Line::Request)			? 0x08 : 0x00) |
-				((bus_state & SCSI::Line::Message)			? 0x04 : 0x00) |
-				((bus_state & SCSI::Line::Control)			? 0x02 : 0x00) |
-				((bus_state & SCSI::Line::Input)			? 0x01 : 0x00);
-		}
+		return target_command_;
 
 		case 4: {
 			const auto bus_state = bus_.get_state();
@@ -175,7 +166,7 @@ uint8_t NCR5380::read(int address) {
 		case 5: {
 			const auto bus_state = bus_.get_state();
 			const bool phase_matches =
-				(bus_output_ & (Line::Message | Line::Control | Line::Input)) ==
+				(target_output() & (Line::Message | Line::Control | Line::Input)) ==
 				(bus_state & (Line::Message | Line::Control | Line::Input));
 
 			const uint8_t result =
@@ -200,6 +191,30 @@ uint8_t NCR5380::read(int address) {
 		return 0xff;
 	}
 	return 0;
+}
+
+SCSI::BusState NCR5380::target_output() {
+	SCSI::BusState output = SCSI::DefaultBusState;
+	if(target_command_ & 0x08) output |= Line::Request;
+	if(target_command_ & 0x04) output |= Line::Message;
+	if(target_command_ & 0x02) output |= Line::Control;
+	if(target_command_ & 0x01) output |= Line::Input;
+	return output;
+}
+
+void NCR5380::update_control_output() {
+	bus_output_ &= ~(Line::Request | Line::Message | Line::Control | Line::Input | Line::Acknowledge | Line::Attention);
+	if(mode_ & 0x40) {
+		// This is a target; C/D, I/O, /MSG and /REQ are signalled on the bus.
+		bus_output_ |= target_output();
+	} else {
+		// This is an initiator; /ATN and /ACK are signalled on the bus.
+		if(
+			(initiator_command_ & 0x10) ||
+			(state_ == ExecutionState::PerformingDMA && dma_acknowledge_)
+		) bus_output_ |= Line::Acknowledge;
+		if(initiator_command_ & 0x02) bus_output_ |= Line::Attention;
+	}
 }
 
 void NCR5380::run_for(Cycles cycles) {
@@ -273,12 +288,12 @@ void NCR5380::run_for(Cycles cycles) {
 					dma_request_ = false;
 				break;
 				case SCSI::Line::Acknowledge:
-					bus_output_ &= ~SCSI::Line::Acknowledge;
+					dma_acknowledge_ = false;
 					dma_request_ = false;
+					update_control_output();
+					bus_.set_device_output(device_id_, bus_output_);
 				break;
 			}
-
-			bus_.set_device_output(device_id_, bus_output_);
 		break;
 	}
 }

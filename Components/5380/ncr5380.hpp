@@ -58,12 +58,15 @@ class NCR5380 final: public ClockingHint::Source {
 		size_t device_id_;
 
 		SCSI::BusState bus_output_ = SCSI::DefaultBusState;
+		SCSI::BusState expected_phase_ = SCSI::DefaultBusState;
 		uint8_t mode_ = 0xff;
 		uint8_t initiator_command_ = 0xff;
 		uint8_t data_bus_ = 0xff;
+		uint8_t target_command_ = 0xff;
 		bool test_mode_ = false;
 		bool assert_data_bus_ = false;
 		bool dma_request_ = false;
+		bool dma_acknowledge_ = false;
 
 		enum class ExecutionState {
 			None,
@@ -75,6 +78,9 @@ class NCR5380 final: public ClockingHint::Source {
 		bool lost_arbitration_ = false, arbitration_in_progress_ = false;
 
 		void set_execution_state(ExecutionState state);
+
+		SCSI::BusState target_output();
+		void update_control_output();
 };
 
 }
