@@ -174,6 +174,8 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 
 		void begin_command(uint8_t first_byte);
 		std::vector<uint8_t> command_;
+		Status status_;
+		Message message_;
 		size_t command_pointer_ = 0;
 		bool dispatch_command();
 

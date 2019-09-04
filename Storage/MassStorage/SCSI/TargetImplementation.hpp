@@ -29,14 +29,6 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 		return;
 	}
 
-	// Check for an unexpected change of SCSI state.
-	if((phase_ > Phase::Command) && (new_state & (Line::Control | Line::Input | Line::Message)) != expected_control_state_) {
-		phase_ = Phase::AwaitingSelection;
-		bus_state_ = DefaultBusState;
-		set_device_output(bus_state_);
-		return;
-	}
-
 	switch(phase_) {
 		/*
 			While awaiting selection the SCSI target is passively watching the bus waiting for its ID
@@ -119,20 +111,33 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 		break;
 
 		case Phase::SendingData:
+		case Phase::SendingStatus:
+		case Phase::SendingMessage:
 			switch(new_state & (Line::Request | Line::Acknowledge)) {
 				case Line::Request | Line::Acknowledge:
 					bus_state_ &= ~(Line::Request | 0xff);
 
 					++data_pointer_;
 					printf("DP: %zu\n", data_pointer_);
-					if(data_pointer_ == data_.size()) {
+					if(
+						phase_ == Phase::SendingMessage ||
+						phase_ == Phase::SendingStatus ||
+						(phase_ == Phase::SendingData && data_pointer_ == data_.size())
+					) {
 						next_function_(CommandState(command_), *this);
 					}
 				break;
 
 				case 0:
 					bus_state_ |= Line::Request;
-					bus_state_ = (bus_state_ & ~0xff) | data_[data_pointer_];
+					bus_state_ &= ~0xff;
+
+					switch(phase_) {
+						case Phase::SendingData: 	bus_state_ |= data_[data_pointer_];	break;
+						case Phase::SendingStatus:	bus_state_ |= BusState(status_);	break;
+						default:
+						case Phase::SendingMessage:	bus_state_ |= BusState(message_);	break;
+					}
 				break;
 			}
 			set_device_output(bus_state_);
@@ -224,22 +229,24 @@ template <typename Executor> void Target<Executor>::receive_data(size_t length, 
 	set_device_output(bus_state_);
 }
 
-template <typename Executor> void Target<Executor>::send_status(Status, continuation next) {
+template <typename Executor> void Target<Executor>::send_status(Status status, continuation next) {
 	// Status phase: message reset, control and input set.
 	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
 	bus_state_ |= Line::Input | Line::Control;
 
+	status_ = status;
 	phase_ = Phase::SendingStatus;
 	next_function_ = next;
 
 	set_device_output(bus_state_);
 }
 
-template <typename Executor> void Target<Executor>::send_message(Message, continuation next) {
+template <typename Executor> void Target<Executor>::send_message(Message message, continuation next) {
 	// Message out phase: message and control set, input reset.
 	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
 	bus_state_ |= Line::Message | Line::Control;
 
+	message_ = message;
 	phase_ = Phase::SendingMessage;
 	next_function_ = next;
 
@@ -253,4 +260,6 @@ template <typename Executor> void Target<Executor>::end_command() {
 	phase_ = Phase::AwaitingSelection;
 	bus_state_ = DefaultBusState;
 	set_device_output(bus_state_);
+
+	printf("---Done---\n");
 }
