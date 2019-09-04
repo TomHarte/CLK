@@ -79,6 +79,16 @@ struct Responder {
 		Ends the SCSI command.
 	*/
 	virtual void end_command() = 0;
+	/*!
+		Terminates a SCSI command, sending the proper sequence of status and message phases.
+	*/
+	void terminate_command(Status status) {
+		send_message(Target::Responder::Message::CommandComplete, [status] (const Target::CommandState &state, Target::Responder &responder) {
+			responder.send_status(status, [] (const Target::CommandState &state, Target::Responder &responder) {
+				responder.end_command();
+			});
+		});
+	}
 };
 
 /*!
@@ -92,7 +102,11 @@ struct Responder {
 */
 struct Executor {
 	/* Group 0 commands. */
-	bool test_unit_ready(const CommandState &, Responder &)		{	return false;	}
+	bool test_unit_ready(const CommandState &, Responder &responder)		{
+		/* "Returns zero status if addressed unit is powered on and ready. */
+		responder.terminate_command(Target::Responder::Status::Good);
+		return true;
+	}
 	bool rezero_unit(const CommandState &, Responder &)			{	return false;	}
 	bool request_sense(const CommandState &, Responder &)		{	return false;	}
 	bool format_unit(const CommandState &, Responder &)			{	return false;	}

@@ -19,11 +19,7 @@ bool DirectAccessDevice::read(const Target::CommandState &state, Target::Respond
 	if(!device_) return false;
 
 	responder.send_data(device_->get_block(state.address()), [] (const Target::CommandState &state, Target::Responder &responder) {
-		responder.send_message(Target::Responder::Message::CommandComplete, [] (const Target::CommandState &state, Target::Responder &responder) {
-			responder.send_status(Target::Responder::Status::Good, [] (const Target::CommandState &state, Target::Responder &responder) {
-				responder.end_command();
-			});
-		});
+		responder.terminate_command(Target::Responder::Status::Good);
 	});
 
 	return true;
