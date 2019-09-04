@@ -8,6 +8,7 @@
 
 #include "ncr5380.hpp"
 
+#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 using namespace NCR::NCR5380;
