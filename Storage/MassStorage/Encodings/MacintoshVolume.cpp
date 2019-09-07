@@ -45,7 +45,7 @@ std::vector<uint8_t> Mapper::convert_source_block(ssize_t source_address, std::v
 				uint8_t(total_device_blocks),
 								/* number of blocks on device */
 
-				0x00, 0x00,		/* reserved */
+				0x00, 0x00,		/* reserved (device ID?) */
 				0x00, 0x00,		/* reserved */
 				0x00, 0x00,		/* reserved */
 
@@ -58,6 +58,9 @@ std::vector<uint8_t> Mapper::convert_source_block(ssize_t source_address, std::v
 
 			return driver_description;
 		}
+
+		case -4: case -3: case -2: case -1: /* TODO */
+		return std::vector<uint8_t>(512);
 
 		default: return source_data;
 	}
