@@ -98,12 +98,13 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 
 					data_[data_pointer_] = uint8_t(new_state);
 					++data_pointer_;
-					if(data_pointer_ == data_.size()) {
-						next_function_(CommandState(command_), *this);
-					}
 				break;
 
 				case 0:
+					if(data_pointer_ == data_.size()) {
+						next_function_(CommandState(command_), *this);
+					}
+
 					bus_state_ |= Line::Request;
 				break;
 			}
@@ -119,16 +120,17 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 
 					++data_pointer_;
 					printf("DP: %zu\n", data_pointer_);
+				break;
+
+				case 0:
 					if(
-						phase_ == Phase::SendingMessage ||
-						phase_ == Phase::SendingStatus ||
+						(phase_ == Phase::SendingMessage && data_pointer_ == 1) ||
+						(phase_ == Phase::SendingStatus && data_pointer_ == 1) ||
 						(phase_ == Phase::SendingData && data_pointer_ == data_.size())
 					) {
 						next_function_(CommandState(command_), *this);
 					}
-				break;
 
-				case 0:
 					bus_state_ |= Line::Request;
 					bus_state_ &= ~0xff;
 
@@ -238,6 +240,7 @@ template <typename Executor> void Target<Executor>::send_status(Status status, c
 	phase_ = Phase::SendingStatus;
 	next_function_ = next;
 
+	data_pointer_ = 0;
 	set_device_output(bus_state_);
 }
 
@@ -250,6 +253,7 @@ template <typename Executor> void Target<Executor>::send_message(Message message
 	phase_ = Phase::SendingMessage;
 	next_function_ = next;
 
+	data_pointer_ = 0;
 	set_device_output(bus_state_);
 }
 

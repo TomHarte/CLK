@@ -83,11 +83,17 @@ struct Responder {
 		Terminates a SCSI command, sending the proper sequence of status and message phases.
 	*/
 	void terminate_command(Status status) {
-		send_message(Target::Responder::Message::CommandComplete, [status] (const Target::CommandState &state, Target::Responder &responder) {
-			responder.send_status(status, [] (const Target::CommandState &state, Target::Responder &responder) {
+		send_status(status, [] (const Target::CommandState &state, Target::Responder &responder) {
+			responder.send_message(Target::Responder::Message::CommandComplete, [] (const Target::CommandState &state, Target::Responder &responder) {
 				responder.end_command();
 			});
 		});
+
+//		send_message(Target::Responder::Message::CommandComplete, [status] (const Target::CommandState &state, Target::Responder &responder) {
+//			responder.send_status(status, [] (const Target::CommandState &state, Target::Responder &responder) {
+//				responder.end_command();
+//			});
+//		});
 	}
 };
 
