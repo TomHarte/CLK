@@ -245,9 +245,8 @@ template <typename Executor> void Target<Executor>::send_status(Status status, c
 }
 
 template <typename Executor> void Target<Executor>::send_message(Message message, continuation next) {
-	// Message out phase: message and control set, input reset.
-	bus_state_ &= ~(Line::Control | Line::Input | Line::Message);
-	bus_state_ |= Line::Message | Line::Control;
+	// Message in phase: message, control and input set.
+	bus_state_ |= Line::Message | Line::Control | Line::Input;
 
 	message_ = message;
 	phase_ = Phase::SendingMessage;
