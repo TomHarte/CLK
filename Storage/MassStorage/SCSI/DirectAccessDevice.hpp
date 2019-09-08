@@ -26,6 +26,7 @@ class DirectAccessDevice: public Target::Executor {
 
 		/* SCSI commands. */
 		bool read(const Target::CommandState &, Target::Responder &);
+		bool inquiry(const Target::CommandState &, Target::Responder &);
 
 	private:
 		std::shared_ptr<Storage::MassStorage::MassStorageDevice> device_;

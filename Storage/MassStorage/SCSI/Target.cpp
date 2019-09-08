@@ -39,3 +39,7 @@ uint16_t CommandState::number_of_blocks() const {
 			return uint16_t((data_[7] << 8) | data_[8]);
 	}
 }
+
+size_t CommandState::allocated_inquiry_bytes() const {
+	return size_t(((data_[4] - 1) & 0xff) + 1);
+}

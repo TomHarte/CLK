@@ -24,8 +24,12 @@ class CommandState {
 	public:
 		CommandState(const std::vector<uint8_t> &data);
 
+		// For read and write commands.
 		uint32_t address() const;
 		uint16_t number_of_blocks() const;
+
+		// For inquiry commands.
+		size_t allocated_inquiry_bytes() const;
 
 	private:
 		const std::vector<uint8_t> &data_;
@@ -88,12 +92,6 @@ struct Responder {
 				responder.end_command();
 			});
 		});
-
-//		send_message(Target::Responder::Message::CommandComplete, [status] (const Target::CommandState &state, Target::Responder &responder) {
-//			responder.send_status(status, [] (const Target::CommandState &state, Target::Responder &responder) {
-//				responder.end_command();
-//			});
-//		});
 	}
 };
 

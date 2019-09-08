@@ -73,9 +73,12 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 						command_[command_pointer_] = uint8_t(new_state);
 						++command_pointer_;
 						if(command_pointer_ == command_.size()) {
-							dispatch_command();
-
-							// TODO: if(!dispatch_command()) signal_error_somehow();
+							if(!dispatch_command()) {
+								// This is just a guess for now; I don't know how SCSI
+								// devices are supposed to respond if they don't support
+								// a command.
+								terminate_command(Responder::Status::TaskAborted);
+							}
 						}
 					}
 				break;
@@ -103,9 +106,9 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 				case 0:
 					if(data_pointer_ == data_.size()) {
 						next_function_(CommandState(command_), *this);
+					} else {
+						bus_state_ |= Line::Request;
 					}
-
-					bus_state_ |= Line::Request;
 				break;
 			}
 			set_device_output(bus_state_);
@@ -129,16 +132,16 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 						(phase_ == Phase::SendingData && data_pointer_ == data_.size())
 					) {
 						next_function_(CommandState(command_), *this);
-					}
+					} else {
+						bus_state_ |= Line::Request;
+						bus_state_ &= ~0xff;
 
-					bus_state_ |= Line::Request;
-					bus_state_ &= ~0xff;
-
-					switch(phase_) {
-						case Phase::SendingData: 	bus_state_ |= data_[data_pointer_];	break;
-						case Phase::SendingStatus:	bus_state_ |= BusState(status_);	break;
-						default:
-						case Phase::SendingMessage:	bus_state_ |= BusState(message_);	break;
+						switch(phase_) {
+							case Phase::SendingData: 	bus_state_ |= data_[data_pointer_];	break;
+							case Phase::SendingStatus:	bus_state_ |= BusState(status_);	break;
+							default:
+							case Phase::SendingMessage:	bus_state_ |= BusState(message_);	break;
+						}
 					}
 				break;
 			}
@@ -170,6 +173,8 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 #define G0(x)	x
 #define G1(x)	(0x20|x)
 #define G5(x)	(0xa0|x)
+
+	printf("---Command %02x---\n", command_[0]);
 
 	switch(command_[0]) {
 		default:		return false;
