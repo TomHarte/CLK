@@ -191,6 +191,7 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 		case G0(0x1c):	return executor_.read_diagnostic(arguments, *this);
 		case G0(0x1d):	return executor_.write_diagnostic(arguments, *this);
 		case G0(0x12):	return executor_.inquiry(arguments, *this);
+		case G0(0x1a):	return executor_.mode_sense(arguments, *this);
 
 		case G1(0x05):	return executor_.read_capacity(arguments, *this);
 		case G1(0x08):	return executor_.read(arguments, *this);

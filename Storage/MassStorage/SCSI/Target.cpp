@@ -41,5 +41,18 @@ uint16_t CommandState::number_of_blocks() const {
 }
 
 size_t CommandState::allocated_inquiry_bytes() const {
+	// 0 means 256 bytes allocated for inquiry.
 	return size_t(((data_[4] - 1) & 0xff) + 1);
+}
+
+CommandState::ModeSense CommandState::mode_sense_specs() const {
+	CommandState::ModeSense specs;
+
+	specs.exclude_block_descriptors = (data_[1] & 0x08);
+	specs.page_control_values = ModeSense::PageControlValues(data_[2] >> 5);
+	specs.page_code = data_[2] & 0x3f;
+	specs.subpage_code = data_[3];
+	specs.allocated_bytes = number_of_blocks();
+
+	return specs;
 }

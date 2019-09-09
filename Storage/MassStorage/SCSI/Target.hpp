@@ -11,6 +11,7 @@
 
 #include "SCSI.hpp"
 
+#include <cstring>
 #include <functional>
 
 namespace SCSI {
@@ -30,6 +31,21 @@ class CommandState {
 
 		// For inquiry commands.
 		size_t allocated_inquiry_bytes() const;
+
+		// For mode sense commands.
+		struct ModeSense {
+			bool exclude_block_descriptors = false;
+			enum class PageControlValues {
+				Current = 0,
+				Changeable = 1,
+				Default = 2,
+				Saved = 3
+			} page_control_values = PageControlValues::Current;
+			uint8_t page_code;
+			uint8_t subpage_code;
+			uint16_t allocated_bytes;
+		};
+		ModeSense mode_sense_specs() const;
 
 	private:
 		const std::vector<uint8_t> &data_;
@@ -119,7 +135,129 @@ struct Executor {
 	bool release_unit(const CommandState &, Responder &)		{	return false;	}
 	bool read_diagnostic(const CommandState &, Responder &)		{	return false;	}
 	bool write_diagnostic(const CommandState &, Responder &)	{	return false;	}
-	bool inquiry(const CommandState &, Responder &)				{	return false;	}
+
+	/// Mode sense: the default implementation will call into the appropriate
+	/// strucutred getter.
+	bool mode_sense(const CommandState &state, Responder &responder) {
+		const auto specs = state.mode_sense_specs();
+		std::vector<uint8_t> response = {
+			specs.page_code,
+			uint8_t(specs.allocated_bytes)
+		};
+		switch(specs.page_code) {
+			default:
+				printf("Unknown mode sense page code %02x\n", specs.page_code);
+				response.resize(specs.allocated_bytes);
+			break;
+
+			case 0x30:
+				response.resize(34);
+				strcpy(reinterpret_cast<char *>(&response[14]), "APPLE COMPUTER, INC");	// This seems to be required to satisfy the Apple HD SC Utility.
+			break;
+		}
+
+		if(specs.allocated_bytes < response.size()) {
+			response.resize(specs.allocated_bytes);
+		}
+		responder.send_data(std::move(response), [] (const Target::CommandState &state, Target::Responder &responder) {
+			responder.terminate_command(Target::Responder::Status::Good);
+		});
+
+		return true;
+	}
+
+	/// Inquiry: the default implementation will call the structured version and
+	/// package appropriately.
+	struct Inquiry {
+		enum class DeviceType {
+			DirectAccess = 0,
+			SequentialAccess = 1,
+			Printer = 2,
+			Processor = 3,
+			WriteOnceMultipleRead = 4,
+			ReadOnlyDirectAccess = 5,
+			Scanner = 6,
+			OpticalMemory = 7,
+			MediumChanger = 8,
+			Communications = 9,
+		} device_type = DeviceType::DirectAccess;
+		bool is_removeable = false;
+		uint8_t iso_standard = 0, ecma_standard = 0, ansi_standard = 0;
+		bool supports_asynchronous_events = false;
+		bool supports_terminate_io_process = false;
+		bool supports_relative_addressing = false;
+		bool supports_synchronous_transfer = true;
+		bool supports_linked_commands = false;
+		bool supports_command_queing = false;
+		bool supports_soft_reset = false;
+		char vendor_identifier[9] = "";
+		char product_identifier[17] = "";
+		char product_revision_level[5] = "";
+
+		Inquiry(const char *vendor, const char *product, const char *revision) {
+			assert(strlen(vendor) <= 8);
+			assert(strlen(product) <= 16);
+			assert(strlen(revision) <= 4);
+			strcpy(vendor_identifier, vendor);
+			strcpy(product_identifier, product);
+			strcpy(product_revision_level, revision);
+		}
+		Inquiry() = default;
+	};
+	Inquiry inquiry_values() {
+		return Inquiry();
+	}
+	bool inquiry(const CommandState &state, Responder &responder) {
+		const Inquiry inq = inquiry_values();
+
+		// Set up the easy fields.
+		std::vector<uint8_t> response = {
+			uint8_t(inq.device_type),
+			uint8_t(inq.is_removeable ? 0x80 : 0x00),
+			uint8_t((inq.iso_standard << 5) | (inq.ecma_standard << 3) | (inq.ansi_standard)),
+			uint8_t((inq.supports_asynchronous_events ? 0x80 : 0x00) | (inq.supports_terminate_io_process ? 0x40 : 0x00) | 0x02),
+			32,		/* Additional length: 36 - 4. */
+			0x00,	/* Reserved. */
+			0x00,	/* Reserved. */
+			uint8_t(
+				(inq.supports_relative_addressing ? 0x80 : 0x00) |
+				/* b6: supports 32-bit data; b5: supports 16-bit data. */
+				(inq.supports_synchronous_transfer ? 0x10 : 0x00) |
+				(inq.supports_linked_commands ? 0x08 : 0x00) |
+				/* b3: reserved. */
+				(inq.supports_command_queing ? 0x02 : 0x00) |
+				(inq.supports_soft_reset ? 0x01 : 0x00)
+			),
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	/* Space for the vendor ID. */
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,	/* Space for the product ID. */
+			0x00, 0x00, 0x00, 0x00							/* Space for the revision level. */
+		};
+
+		auto copy_string = [] (uint8_t *destination, const char *source, size_t length) -> void {
+			// Copy as much of the string as will fit, and pad with spaces.
+			uint8_t *end = reinterpret_cast<uint8_t *>(stpncpy(reinterpret_cast<char *>(destination), source, length));
+			while(end < destination + length) {
+				*end = ' ';
+				++end;
+			}
+		};
+		copy_string(&response[8], inq.vendor_identifier, 8);
+		copy_string(&response[16], inq.product_identifier, 16);
+		copy_string(&response[32], inq.product_revision_level, 4);
+
+		// Truncate if requested.
+		const auto allocated_bytes = state.allocated_inquiry_bytes();
+		if(allocated_bytes < response.size()) {
+			response.resize(allocated_bytes);
+		}
+
+		responder.send_data(std::move(response), [] (const Target::CommandState &state, Target::Responder &responder) {
+			responder.terminate_command(Target::Responder::Status::Good);
+		});
+
+		return true;
+	}
 
 	/* Group 0/1 commands. */
 	bool read(const CommandState &, Responder &)				{	return false;	}
