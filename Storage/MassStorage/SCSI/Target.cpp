@@ -46,13 +46,25 @@ size_t CommandState::allocated_inquiry_bytes() const {
 }
 
 CommandState::ModeSense CommandState::mode_sense_specs() const {
-	CommandState::ModeSense specs;
+	ModeSense specs;
 
 	specs.exclude_block_descriptors = (data_[1] & 0x08);
 	specs.page_control_values = ModeSense::PageControlValues(data_[2] >> 5);
 	specs.page_code = data_[2] & 0x3f;
 	specs.subpage_code = data_[3];
 	specs.allocated_bytes = number_of_blocks();
+
+	return specs;
+}
+
+CommandState::ReadBuffer CommandState::read_buffer_specs() const {
+	ReadBuffer specs;
+
+	specs.mode = ReadBuffer::Mode(data_[1]&7);
+	if(specs.mode > ReadBuffer::Mode::Reserved) specs.mode = ReadBuffer::Mode::Reserved;
+	specs.buffer_id = data_[2];
+	specs.buffer_offset = uint32_t((data_[3] << 16) | (data_[4] << 8) | data_[5]);
+	specs.buffer_length = uint32_t((data_[6] << 16) | (data_[7] << 8) | data_[8]);
 
 	return specs;
 }

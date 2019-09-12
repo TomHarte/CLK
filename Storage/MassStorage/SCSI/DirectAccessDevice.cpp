@@ -25,6 +25,28 @@ bool DirectAccessDevice::read(const Target::CommandState &state, Target::Respond
 	return true;
 }
 
+bool DirectAccessDevice::read_capacity(const Target::CommandState &state, Target::Responder &responder) {
+	const auto final_block = device_->get_number_of_blocks() - 1;
+	const auto block_size = device_->get_block_size();
+	std::vector<uint8_t> data = {
+		uint8_t(final_block >> 24),
+		uint8_t(final_block >> 16),
+		uint8_t(final_block >> 8),
+		uint8_t(final_block >> 0),
+
+		uint8_t(block_size >> 24),
+		uint8_t(block_size >> 16),
+		uint8_t(block_size >> 8),
+		uint8_t(block_size >> 0),
+	};
+
+	responder.send_data(std::move(data), [] (const Target::CommandState &state, Target::Responder &responder) {
+		responder.terminate_command(Target::Responder::Status::Good);
+	});
+
+	return true;
+}
+
 Target::Executor::Inquiry DirectAccessDevice::inquiry_values() {
 	return Inquiry("Apple", "ProFile", "1");	// All just guesses.
 }

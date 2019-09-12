@@ -47,6 +47,19 @@ class CommandState {
 		};
 		ModeSense mode_sense_specs() const;
 
+		struct ReadBuffer {
+			enum class Mode {
+				CombinedHeaderAndData = 0,
+				VendorSpecific = 1,
+				Data = 2,
+				Descriptor = 3,
+				Reserved = 4
+			} mode = Mode::CombinedHeaderAndData;
+			uint8_t buffer_id = 0;
+			uint32_t buffer_offset = 0, buffer_length = 0;
+		};
+		ReadBuffer read_buffer_specs() const;
+
 	private:
 		const std::vector<uint8_t> &data_;
 };
@@ -137,7 +150,7 @@ struct Executor {
 	bool write_diagnostic(const CommandState &, Responder &)	{	return false;	}
 
 	/// Mode sense: the default implementation will call into the appropriate
-	/// strucutred getter.
+	/// structured getter.
 	bool mode_sense(const CommandState &state, Responder &responder) {
 		const auto specs = state.mode_sense_specs();
 		std::vector<uint8_t> response = {
@@ -270,6 +283,16 @@ struct Executor {
 	bool search_data_equal(const CommandState &, Responder &)	{	return false;	}
 	bool search_data_high(const CommandState &, Responder &)	{	return false;	}
 	bool search_data_low(const CommandState &, Responder &)		{	return false;	}
+	bool read_buffer(const CommandState &state, Responder &responder) {
+		// Since I have no idea what earthly function READ BUFFER is meant to allow,
+		// the default implementation just returns an empty buffer of the requested size.
+		const auto specs = state.read_buffer_specs();
+		responder.send_data(std::vector<uint8_t>(specs.buffer_length), [] (const Target::CommandState &, Target::Responder &responder) {
+			responder.terminate_command(Target::Responder::Status::Good);
+		});
+
+		return true;
+	}
 
 	/*  Group 5 commands. */
 	bool set_block_limits(const CommandState &, Responder &)	{	return false;	}

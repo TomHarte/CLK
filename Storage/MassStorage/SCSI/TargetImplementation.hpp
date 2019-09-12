@@ -186,12 +186,12 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 		case G0(0x08):	return executor_.read(arguments, *this);
 		case G0(0x0a):	return executor_.write(arguments, *this);
 		case G0(0x0b):	return executor_.seek(arguments, *this);
+		case G0(0x12):	return executor_.inquiry(arguments, *this);
 		case G0(0x16):	return executor_.reserve_unit(arguments, *this);
 		case G0(0x17):	return executor_.release_unit(arguments, *this);
+		case G0(0x1a):	return executor_.mode_sense(arguments, *this);
 		case G0(0x1c):	return executor_.read_diagnostic(arguments, *this);
 		case G0(0x1d):	return executor_.write_diagnostic(arguments, *this);
-		case G0(0x12):	return executor_.inquiry(arguments, *this);
-		case G0(0x1a):	return executor_.mode_sense(arguments, *this);
 
 		case G1(0x05):	return executor_.read_capacity(arguments, *this);
 		case G1(0x08):	return executor_.read(arguments, *this);
@@ -201,6 +201,7 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 		case G1(0x11):	return executor_.search_data_equal(arguments, *this);
 		case G1(0x10):	return executor_.search_data_high(arguments, *this);
 		case G1(0x12):	return executor_.search_data_low(arguments, *this);
+		case G1(0x1c):	return executor_.read_buffer(arguments, *this);
 
 		case G5(0x09):	return executor_.set_block_limits(arguments, *this);
 	}
