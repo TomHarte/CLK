@@ -25,6 +25,17 @@ bool DirectAccessDevice::read(const Target::CommandState &state, Target::Respond
 	return true;
 }
 
+bool DirectAccessDevice::write(const Target::CommandState &state, Target::Responder &responder) {
+	if(!device_) return false;
+
+	const auto target_address = state.address();
+	responder.receive_data(device_->get_block_size(), [target_address] (const Target::CommandState &state, Target::Responder &responder) {
+		responder.terminate_command(Target::Responder::Status::Good);
+	});
+
+	return true;
+}
+
 bool DirectAccessDevice::read_capacity(const Target::CommandState &state, Target::Responder &responder) {
 	const auto final_block = device_->get_number_of_blocks() - 1;
 	const auto block_size = device_->get_block_size();
@@ -49,4 +60,10 @@ bool DirectAccessDevice::read_capacity(const Target::CommandState &state, Target
 
 Target::Executor::Inquiry DirectAccessDevice::inquiry_values() {
 	return Inquiry("Apple", "ProFile", "1");	// All just guesses.
+}
+
+bool DirectAccessDevice::format_unit(const Target::CommandState &state, Target::Responder &responder) {
+	// Formatting: immediate.
+	responder.terminate_command(Target::Responder::Status::Good);
+	return true;
 }

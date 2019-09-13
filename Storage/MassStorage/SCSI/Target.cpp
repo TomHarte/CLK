@@ -10,7 +10,7 @@
 
 using namespace SCSI::Target;
 
-CommandState::CommandState(const std::vector<uint8_t> &data) : data_(data) {}
+CommandState::CommandState(const std::vector<uint8_t> &data, const std::vector<uint8_t> &received) : data_(data), received_(received) {}
 
 uint32_t CommandState::address() const {
 	switch(data_.size()) {
@@ -65,6 +65,17 @@ CommandState::ReadBuffer CommandState::read_buffer_specs() const {
 	specs.buffer_id = data_[2];
 	specs.buffer_offset = uint32_t((data_[3] << 16) | (data_[4] << 8) | data_[5]);
 	specs.buffer_length = uint32_t((data_[6] << 16) | (data_[7] << 8) | data_[8]);
+
+	return specs;
+}
+
+CommandState::ModeSelect CommandState::mode_select_specs() const {
+	ModeSelect specs;
+
+	specs.parameter_list_length = number_of_blocks();
+	specs.content_is_vendor_specific = !(data_[1] & 0x10);
+	specs.revert_to_default = (data_[1] & 0x02);
+	specs.save_pages = (data_[1] & 0x01);
 
 	return specs;
 }

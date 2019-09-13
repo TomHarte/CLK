@@ -105,7 +105,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 
 				case 0:
 					if(data_pointer_ == data_.size()) {
-						next_function_(CommandState(command_), *this);
+						next_function_(CommandState(command_, data_), *this);
 					} else {
 						bus_state_ |= Line::Request;
 					}
@@ -131,7 +131,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 						(phase_ == Phase::SendingStatus && data_pointer_ == 1) ||
 						(phase_ == Phase::SendingData && data_pointer_ == data_.size())
 					) {
-						next_function_(CommandState(command_), *this);
+						next_function_(CommandState(command_, data_), *this);
 					} else {
 						bus_state_ |= Line::Request;
 						bus_state_ &= ~0xff;
@@ -168,7 +168,7 @@ template <typename Executor> void Target<Executor>::begin_command(uint8_t first_
 
 template <typename Executor> bool Target<Executor>::dispatch_command() {
 
-	CommandState arguments(command_);
+	CommandState arguments(command_, data_);
 
 #define G0(x)	x
 #define G1(x)	(0x20|x)
@@ -187,6 +187,7 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 		case G0(0x0a):	return executor_.write(arguments, *this);
 		case G0(0x0b):	return executor_.seek(arguments, *this);
 		case G0(0x12):	return executor_.inquiry(arguments, *this);
+		case G0(0x15):	return executor_.mode_select(arguments, *this);
 		case G0(0x16):	return executor_.reserve_unit(arguments, *this);
 		case G0(0x17):	return executor_.release_unit(arguments, *this);
 		case G0(0x1a):	return executor_.mode_sense(arguments, *this);
@@ -202,6 +203,8 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 		case G1(0x10):	return executor_.search_data_high(arguments, *this);
 		case G1(0x12):	return executor_.search_data_low(arguments, *this);
 		case G1(0x1c):	return executor_.read_buffer(arguments, *this);
+		case G1(0x15):	return executor_.mode_select(arguments, *this);
+
 
 		case G5(0x09):	return executor_.set_block_limits(arguments, *this);
 	}

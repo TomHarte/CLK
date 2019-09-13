@@ -23,7 +23,7 @@ namespace Target {
 */
 class CommandState {
 	public:
-		CommandState(const std::vector<uint8_t> &data);
+		CommandState(const std::vector<uint8_t> &command, const std::vector<uint8_t> &received);
 
 		// For read and write commands.
 		uint32_t address() const;
@@ -47,6 +47,14 @@ class CommandState {
 		};
 		ModeSense mode_sense_specs() const;
 
+		struct ModeSelect {
+			bool content_is_vendor_specific = true;
+			bool revert_to_default = false;
+			bool save_pages = false;
+			uint16_t parameter_list_length = 0;
+		};
+		ModeSelect mode_select_specs() const;
+
 		struct ReadBuffer {
 			enum class Mode {
 				CombinedHeaderAndData = 0,
@@ -60,8 +68,13 @@ class CommandState {
 		};
 		ReadBuffer read_buffer_specs() const;
 
+		const std::vector<uint8_t> &received_data() {
+			return received_;
+		}
+
 	private:
 		const std::vector<uint8_t> &data_;
+		const std::vector<uint8_t> &received_;
 };
 
 /*!
@@ -173,6 +186,17 @@ struct Executor {
 			response.resize(specs.allocated_bytes);
 		}
 		responder.send_data(std::move(response), [] (const Target::CommandState &state, Target::Responder &responder) {
+			responder.terminate_command(Target::Responder::Status::Good);
+		});
+
+		return true;
+	}
+
+	bool mode_select(const CommandState &state, Responder &responder) {
+		const auto specs = state.mode_select_specs();
+
+		responder.receive_data(specs.parameter_list_length, [] (const Target::CommandState &state, Target::Responder &responder) {
+			// TODO: parse data according to current sense mode.
 			responder.terminate_command(Target::Responder::Status::Good);
 		});
 
