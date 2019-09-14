@@ -27,10 +27,10 @@ class NCR5380 final: public ClockingHint::Source {
 		NCR5380(SCSI::Bus &bus, int clock_rate);
 
 		/*! Writes @c value to @c address.  */
-		void write(int address, uint8_t value);
+		void write(int address, uint8_t value, bool dma_acknowledge = false);
 
 		/*! Reads from @c address. */
-		uint8_t read(int address);
+		uint8_t read(int address, bool dma_acknowledge = false);
 
 		/*!
 			As per its design manual:
@@ -74,6 +74,11 @@ class NCR5380 final: public ClockingHint::Source {
 			WatchingBusy,
 			PerformingDMA,
 		} state_ = ExecutionState::None;
+		enum class DMAOperation {
+			Ready,
+			Reading,
+			Writing
+		} dma_operation_ = DMAOperation::Ready;
 		int time_in_state_ = 0;
 		bool lost_arbitration_ = false, arbitration_in_progress_ = false;
 

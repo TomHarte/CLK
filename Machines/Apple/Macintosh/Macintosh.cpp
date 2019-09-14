@@ -251,23 +251,24 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 				case BusDevice::SCSI: {
 					const int register_address = word_address >> 3;
+					const bool dma_acknowledge = word_address & 0x100;
 
 					// Even accesses = read; odd = write.
 					if(*cycle.address & 1) {
 						// Odd access => this is a write. Data will be in the upper byte.
 						if(cycle.operation & Microcycle::Read) {
-							scsi_.write(register_address, 0xff);
+							scsi_.write(register_address, 0xff, dma_acknowledge);
 						} else {
 							if(cycle.operation & Microcycle::SelectWord) {
-								scsi_.write(register_address, cycle.value->halves.high);
+								scsi_.write(register_address, cycle.value->halves.high, dma_acknowledge);
 							} else {
-								scsi_.write(register_address, cycle.value->halves.low);
+								scsi_.write(register_address, cycle.value->halves.low, dma_acknowledge);
 							}
 						}
 					} else {
 						// Even access => this is a read.
 						if(cycle.operation & Microcycle::Read) {
-							const auto result = scsi_.read(register_address);
+							const auto result = scsi_.read(register_address, dma_acknowledge);
 							if(cycle.operation & Microcycle::SelectWord) {
 								// Data is loaded on the top part of the bus only.
 								cycle.value->full = uint16_t((result << 8) | 0xff);

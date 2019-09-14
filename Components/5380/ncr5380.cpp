@@ -20,7 +20,7 @@ NCR5380::NCR5380(SCSI::Bus &bus, int clock_rate) :
 	device_id_ = bus_.add_device();
 }
 
-void NCR5380::write(int address, uint8_t value) {
+void NCR5380::write(int address, uint8_t value, bool dma_acknowledge) {
 	switch(address & 7) {
 		case 0:
 			LOG("[SCSI 0] Set current SCSI bus state to " << PADHEX(2) << int(value));
@@ -116,7 +116,7 @@ void NCR5380::write(int address, uint8_t value) {
 	}
 }
 
-uint8_t NCR5380::read(int address) {
+uint8_t NCR5380::read(int address, bool dma_acknowledge) {
 	switch(address & 7) {
 		case 0:
 			LOG("[SCSI 0] Get current SCSI bus state: " << PADHEX(2) << (bus_.get_state() & 0xff));
@@ -302,6 +302,7 @@ void NCR5380::run_for(Cycles cycles) {
 void NCR5380::set_execution_state(ExecutionState state) {
 	time_in_state_ = 0;
 	state_ = state;
+	if(state != ExecutionState::PerformingDMA) dma_operation_ = DMAOperation::Ready;
 	update_clocking_observer();
 }
 
