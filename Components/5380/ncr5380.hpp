@@ -76,8 +76,9 @@ class NCR5380 final: public ClockingHint::Source {
 		} state_ = ExecutionState::None;
 		enum class DMAOperation {
 			Ready,
-			Reading,
-			Writing
+			Send,
+			TargetReceive,
+			InitiatorReceive
 		} dma_operation_ = DMAOperation::Ready;
 		int time_in_state_ = 0;
 		bool lost_arbitration_ = false, arbitration_in_progress_ = false;
