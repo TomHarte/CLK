@@ -28,8 +28,8 @@ bool DirectAccessDevice::read(const Target::CommandState &state, Target::Respond
 bool DirectAccessDevice::write(const Target::CommandState &state, Target::Responder &responder) {
 	if(!device_) return false;
 
-	const auto target_address = state.address();
-	responder.receive_data(device_->get_block_size(), [target_address] (const Target::CommandState &state, Target::Responder &responder) {
+	responder.receive_data(device_->get_block_size(), [this] (const Target::CommandState &state, Target::Responder &responder) {
+		this->device_->set_block(state.address(), state.received_data());
 		responder.terminate_command(Target::Responder::Status::Good);
 	});
 

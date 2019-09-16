@@ -21,6 +21,9 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 		time."
 	*/
 
+	// Wait for deskew, at the very least.
+	if(time_since_change < SCSI::DeskewDelay) return;
+
 	// A reset always takes precedence over anything else ongoing.
 	if(new_state & Line::Reset) {
 		phase_ = Phase::AwaitingSelection;

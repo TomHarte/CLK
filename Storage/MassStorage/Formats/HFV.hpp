@@ -13,6 +13,9 @@
 #include "../../FileHolder.hpp"
 #include "../Encodings/MacintoshVolume.hpp"
 
+#include <vector>
+#include <map>
+
 namespace Storage {
 namespace MassStorage {
 
@@ -41,6 +44,8 @@ class HFV: public MassStorageDevice, public Encodings::Macintosh::Volume {
 
 		/* Encodings::Macintosh::Volume overrides. */
 		void set_drive_type(Encodings::Macintosh::DriveType) final;
+
+		std::map<size_t, std::vector<uint8_t>> writes_;
 };
 
 }

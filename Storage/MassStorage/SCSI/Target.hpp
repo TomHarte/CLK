@@ -68,7 +68,7 @@ class CommandState {
 		};
 		ReadBuffer read_buffer_specs() const;
 
-		const std::vector<uint8_t> &received_data() {
+		const std::vector<uint8_t> &received_data() const {
 			return received_;
 		}
 
