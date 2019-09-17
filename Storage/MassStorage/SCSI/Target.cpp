@@ -40,6 +40,15 @@ uint16_t CommandState::number_of_blocks() const {
 	}
 }
 
+CommandState::ReadWrite CommandState::read_write_specs() const {
+	ReadWrite specs;
+
+	specs.address = address();
+	specs.number_of_blocks = number_of_blocks();
+
+	return specs;
+}
+
 size_t CommandState::allocated_inquiry_bytes() const {
 	// 0 means 256 bytes allocated for inquiry.
 	return size_t(((data_[4] - 1) & 0xff) + 1);

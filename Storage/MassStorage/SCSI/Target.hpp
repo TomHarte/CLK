@@ -26,8 +26,11 @@ class CommandState {
 		CommandState(const std::vector<uint8_t> &command, const std::vector<uint8_t> &received);
 
 		// For read and write commands.
-		uint32_t address() const;
-		uint16_t number_of_blocks() const;
+		struct ReadWrite {
+			uint32_t address;
+			uint16_t number_of_blocks;
+		};
+		ReadWrite read_write_specs() const;
 
 		// For inquiry commands.
 		size_t allocated_inquiry_bytes() const;
@@ -73,6 +76,8 @@ class CommandState {
 		}
 
 	private:
+		uint32_t address() const;
+		uint16_t number_of_blocks() const;
 		const std::vector<uint8_t> &data_;
 		const std::vector<uint8_t> &received_;
 };

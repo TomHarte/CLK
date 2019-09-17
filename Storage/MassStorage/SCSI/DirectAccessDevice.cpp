@@ -18,7 +18,15 @@ void DirectAccessDevice::set_storage(const std::shared_ptr<Storage::MassStorage:
 bool DirectAccessDevice::read(const Target::CommandState &state, Target::Responder &responder) {
 	if(!device_) return false;
 
-	responder.send_data(device_->get_block(state.address()), [] (const Target::CommandState &state, Target::Responder &responder) {
+	const auto specs = state.read_write_specs();
+
+	std::vector<uint8_t> output = device_->get_block(specs.address);
+	for(uint32_t offset = 1; offset < specs.number_of_blocks; ++offset) {
+		const auto next_block = device_->get_block(specs.address + offset);
+		std::copy(next_block.begin(), next_block.end(), std::back_inserter(output));
+	}
+
+	responder.send_data(std::move(output), [] (const Target::CommandState &state, Target::Responder &responder) {
 		responder.terminate_command(Target::Responder::Status::Good);
 	});
 
@@ -28,8 +36,16 @@ bool DirectAccessDevice::read(const Target::CommandState &state, Target::Respond
 bool DirectAccessDevice::write(const Target::CommandState &state, Target::Responder &responder) {
 	if(!device_) return false;
 
-	responder.receive_data(device_->get_block_size(), [this] (const Target::CommandState &state, Target::Responder &responder) {
-		this->device_->set_block(state.address(), state.received_data());
+	const auto specs = state.read_write_specs();
+
+	responder.receive_data(device_->get_block_size() * specs.number_of_blocks, [this, specs] (const Target::CommandState &state, Target::Responder &responder) {
+		const auto received_data = state.received_data();
+		const auto block_size = device_->get_block_size();
+		for(uint32_t offset = 0; offset < specs.number_of_blocks; ++offset) {
+			// TODO: clean up this gross inefficiency when std::span is standard.
+			std::vector<uint8_t> sub_vector(received_data.begin() + size_t(offset)*block_size, received_data.begin() + size_t(offset+1)*block_size);
+			this->device_->set_block(specs.address + offset, sub_vector);
+		}
 		responder.terminate_command(Target::Responder::Status::Good);
 	});
 

@@ -27,6 +27,8 @@ void NCR5380::write(int address, uint8_t value, bool dma_acknowledge) {
 			data_bus_ = value;
 
 			if(dma_request_ && dma_operation_ == DMAOperation::Send) {
+				if(value)
+					printf("!");
 				printf("w %02x\n", value);
 				dma_acknowledge_ = true;
 				dma_request_ = false;
