@@ -45,14 +45,18 @@ std::vector<uint8_t> Mapper::convert_source_block(ssize_t source_address, std::v
 				uint8_t(total_device_blocks),
 								/* number of blocks on device */
 
-				0x00, 0x00,		/* reserved (device ID?) */
-				0x00, 0x00,		/* reserved */
-				0x00, 0x00,		/* reserved */
+				0x00, 0x00,		/* reserved (formerly: device type) */
+				0x00, 0x00,		/* reserved (formerly: device ID) */
+				0x00, 0x00,
+				0x00, 0x00,		/* reserved ('sbData', no further explanation given) */
 
 				0x00, 0x01,		/* number of device descriptor entries */
 				0x00, 0x01,		/* first device descriptor's starting block */
 				0x00, 0x04,		/* size of device driver */
-				0x00, 0x01,		/* operating system (MacOS = 1) */
+				0x00, 0x01,		/*
+									More modern documentation: operating system (MacOS = 1)
+									Inside Macintosh IV: system type (Mac Plus = 1)
+								*/
 			};
 			driver_description.resize(512);
 
