@@ -44,19 +44,19 @@ void Bus::set_device_output(size_t device, BusState output) {
 	}
 	if(state_ == previous_state) return;
 
-	printf("SCSI bus: %02x %c%c%c%c%c%c%c%c%c%c\n",
-		state_ & 0xff,
-		(state_ & Line::Parity) ? 'p' : '-',
-		(state_ & Line::SelectTarget) ? 's' : '-',
-		(state_ & Line::Attention) ? 't' : '-',
-		(state_ & Line::Control) ? 'c' : '-',
-		(state_ & Line::Busy) ? 'b' : '-',
-		(state_ & Line::Acknowledge) ? 'a' : '-',
-		(state_ & Line::Reset) ? 'r' : '-',
-		(state_ & Line::Input) ? 'i' : '-',
-		(state_ & Line::Message) ? 'm' : '-',
-		(state_ & Line::Request) ? 'q' : '-'
-	);
+//	printf("SCSI bus: %02x %c%c%c%c%c%c%c%c%c%c\n",
+//		state_ & 0xff,
+//		(state_ & Line::Parity) ? 'p' : '-',
+//		(state_ & Line::SelectTarget) ? 's' : '-',
+//		(state_ & Line::Attention) ? 't' : '-',
+//		(state_ & Line::Control) ? 'c' : '-',
+//		(state_ & Line::Busy) ? 'b' : '-',
+//		(state_ & Line::Acknowledge) ? 'a' : '-',
+//		(state_ & Line::Reset) ? 'r' : '-',
+//		(state_ & Line::Input) ? 'i' : '-',
+//		(state_ & Line::Message) ? 'm' : '-',
+//		(state_ & Line::Request) ? 'q' : '-'
+//	);
 
 	bool was_asleep = preferred_clocking() == ClockingHint::Preference::None;
 	dispatch_index_ = 0;

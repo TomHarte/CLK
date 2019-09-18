@@ -125,7 +125,7 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 					bus_state_ &= ~(Line::Request | 0xff);
 
 					++data_pointer_;
-					printf("DP: %zu\n", data_pointer_);
+//					printf("DP: %zu\n", data_pointer_);
 				break;
 
 				case 0:

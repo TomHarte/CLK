@@ -27,9 +27,7 @@ void NCR5380::write(int address, uint8_t value, bool dma_acknowledge) {
 			data_bus_ = value;
 
 			if(dma_request_ && dma_operation_ == DMAOperation::Send) {
-				if(value)
-					printf("!");
-				printf("w %02x\n", value);
+//				printf("w %02x\n", value);
 				dma_acknowledge_ = true;
 				dma_request_ = false;
 				update_control_output();
@@ -115,7 +113,7 @@ void NCR5380::write(int address, uint8_t value, bool dma_acknowledge) {
 
 	// Data is output only if the data bus is asserted.
 	if(assert_data_bus_) {
-		bus_output_ |= data_bus_;
+		bus_output_ = (bus_output_ & ~SCSI::Line::Data) | data_bus_;
 	} else {
 		bus_output_ &= ~SCSI::Line::Data;
 	}
