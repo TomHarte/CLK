@@ -92,34 +92,35 @@ std::vector<uint8_t> Mapper::convert_source_block(ssize_t source_address, std::v
 		partition[10] = uint8_t(details.start_block >> 8);
 		partition[11] = uint8_t(details.start_block);
 
-		partition[52] = partition[12] = uint8_t(details.size >> 24);
-		partition[53] = partition[13] = uint8_t(details.size >> 16);
-		partition[54] = partition[14] = uint8_t(details.size >> 8);
-		partition[55] = partition[15] = uint8_t(details.size);
+		partition[84] = partition[12] = uint8_t(details.size >> 24);
+		partition[85] = partition[13] = uint8_t(details.size >> 16);
+		partition[86] = partition[14] = uint8_t(details.size >> 8);
+		partition[87] = partition[15] = uint8_t(details.size);
 
+		// 32 bytes are allocated for each of the following strings.
 		memcpy(&partition[16], details.name, strlen(details.name));
-		memcpy(&partition[32], details.type, strlen(details.type));
+		memcpy(&partition[48], details.type, strlen(details.type));
 
-		partition[59] = details.status;
+		partition[91] = details.status;
 
 		// The third entry in this constructed partition map is the driver;
 		// add some additional details.
 		if(source_address == 3) {
-			partition[66] = 0x13;
-			partition[67] = 0x9e;	/* This version of the driver code is 0x139e bytes long. */
+			partition[98] = 0x13;
+			partition[99] = 0x9e;	/* This version of the driver code is 0x139e bytes long. */
 
-			partition[86] = 0x84;
-			partition[87] = 0xb9;	/* Driver checksum. */
+			partition[118] = 0x84;
+			partition[119] = 0xb9;	/* Driver checksum. */
 
-			memcpy(&partition[88], "68000", strlen("68000"));	/* Driver is for the 68000. */
+			memcpy(&partition[120], "68000", strlen("68000"));	/* Driver is for the 68000. */
 
 			// Various non-zero values that Apple HD SC Tool wrote are below; they are
 			// documented as reserved officially, so I don't know their meaning.
-			partition[105] = 0x01;
-			partition[106] = 0x06;
-			partition[111] = 0x01;
-			partition[115] = 0x02;
-			partition[117] = 0x07;
+			partition[137] = 0x01;
+			partition[138] = 0x06;
+			partition[143] = 0x01;
+			partition[147] = 0x02;
+			partition[149] = 0x07;
 		}
 
 		return partition;
