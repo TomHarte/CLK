@@ -45,6 +45,9 @@ CommandState::ReadWrite CommandState::read_write_specs() const {
 
 	specs.address = address();
 	specs.number_of_blocks = number_of_blocks();
+	if(!specs.number_of_blocks && (data_.size() == 6)) {
+		specs.number_of_blocks = 256;
+	}
 
 	return specs;
 }

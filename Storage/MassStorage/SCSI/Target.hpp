@@ -27,8 +27,7 @@ class CommandState {
 
 		// For read and write commands.
 		struct ReadWrite {
-			uint32_t address;
-			uint16_t number_of_blocks;
+			uint32_t address, number_of_blocks;
 		};
 		ReadWrite read_write_specs() const;
 
