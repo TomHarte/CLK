@@ -41,19 +41,14 @@ std::vector<uint8_t> HFV::get_block(size_t address) {
 }
 
 void HFV::set_block(size_t address, const std::vector<uint8_t> &contents) {
-	writes_[address] = contents;
-
-	printf("[%zu]: ", address);
-	for(uint8_t v: contents) {
-		printf("%02x ", v);
-	}
-	printf("\n");
-//	const auto source_address = mapper_.to_source_address(address);
-//	if(source_address >= 0 && size_t(source_address)*get_block_size() < size_t(file_.stats().st_size)) {
-//		const long file_offset = long(get_block_size()) * long(source_address);
-//		file_.seek(file_offset, SEEK_SET);
-//		file_.write(contents);
-//	}
+	const auto source_address = mapper_.to_source_address(address);
+	if(source_address >= 0 && size_t(source_address)*get_block_size() < size_t(file_.stats().st_size)) {
+		const long file_offset = long(get_block_size()) * long(source_address);
+		file_.seek(file_offset, SEEK_SET);
+		file_.write(contents);
+	} else {
+		writes_[address] = contents;
+ 	}
 }
 
 void HFV::set_drive_type(Encodings::Macintosh::DriveType drive_type) {
