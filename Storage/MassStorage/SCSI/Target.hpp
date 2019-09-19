@@ -12,6 +12,7 @@
 #include "SCSI.hpp"
 #include "../../../Outputs/Log.hpp"
 
+#include <cassert>
 #include <cstring>
 #include <functional>
 
