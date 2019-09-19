@@ -11,6 +11,8 @@
 
 #include <vector>
 #include <cstdint>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace Storage {
 namespace MassStorage {
