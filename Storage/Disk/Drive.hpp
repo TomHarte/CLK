@@ -138,7 +138,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		void set_event_delegate(EventDelegate *);
 
 		// As per Sleeper.
-		ClockingHint::Preference preferred_clocking() override;
+		ClockingHint::Preference preferred_clocking() final;
 
 		/// Adds an activity observer; it'll be notified of disk activity.
 		/// The caller can specify whether to add an LED based on disk motor.

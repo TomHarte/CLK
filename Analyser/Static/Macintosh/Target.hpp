@@ -21,7 +21,7 @@ struct Target: public ::Analyser::Static::Target {
 		MacPlus
 	};
 
-	Model model = Model::Mac512ke;
+	Model model = Model::MacPlus;
 };
 
 }

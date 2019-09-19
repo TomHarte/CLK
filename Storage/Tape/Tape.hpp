@@ -128,7 +128,7 @@ class TapePlayer: public TimedEventLoop, public ClockingHint::Source {
 
 	They can also provide a delegate to be notified upon any change in the input level.
 */
-class BinaryTapePlayer: public TapePlayer {
+class BinaryTapePlayer : public TapePlayer {
 	public:
 		BinaryTapePlayer(int input_clock_rate);
 		void set_motor_control(bool enabled);
@@ -145,7 +145,7 @@ class BinaryTapePlayer: public TapePlayer {
 		};
 		void set_delegate(Delegate *delegate);
 
-		ClockingHint::Preference preferred_clocking() override;
+		ClockingHint::Preference preferred_clocking() final;
 
 	protected:
 		Delegate *delegate_ = nullptr;

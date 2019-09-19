@@ -33,11 +33,10 @@ const int sync_end = 38;
 //	"The visible portion of a full-screen display consists of 342 horizontal scan lines...
 //	During the vertical blanking interval, the turned-off beam ... traces out an additional 28 scan lines,"
 //
-Video::Video(uint16_t *ram, DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulator) :
+Video::Video(DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulator) :
 	audio_(audio),
 	drive_speed_accumulator_(drive_speed_accumulator),
- 	crt_(704, 1, 370, Outputs::Display::ColourSpace::YIQ, 1, 1, 6, false, Outputs::Display::InputDataType::Luminance1),
- 	ram_(ram) {
+ 	crt_(704, 1, 370, Outputs::Display::ColourSpace::YIQ, 1, 1, 6, false, Outputs::Display::InputDataType::Luminance1) {
 
  	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	crt_.set_visible_area(Outputs::Display::Rect(0.08f, -0.025f, 0.82f, 0.82f));
@@ -196,6 +195,7 @@ void Video::set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use
 	use_alternate_audio_buffer_ = use_alternate_audio_buffer;
 }
 
-void Video::set_ram_mask(uint32_t mask) {
+void Video::set_ram(uint16_t *ram, uint32_t mask) {
+	ram_ = ram;
 	ram_mask_ = mask;
 }

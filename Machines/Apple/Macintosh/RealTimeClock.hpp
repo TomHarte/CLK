@@ -25,8 +25,15 @@ class RealTimeClock {
 	public:
 		RealTimeClock() {
 			// TODO: this should persist, if possible, rather than
-			// being randomly initialised.
-			Memory::Fuzz(data_, sizeof(data_));
+			// being default initialised.
+			const uint8_t default_data[] = {
+				0xa8, 0x00, 0x00, 0x00,
+				0xcc, 0x0a, 0xcc, 0x0a,
+				0x00, 0x00, 0x00, 0x00,
+				0x00, 0x02, 0x63, 0x00,
+				0x03, 0x88, 0x00, 0x4c
+			};
+			memcpy(data_, default_data, sizeof(data_));
 		}
 
 		/*!

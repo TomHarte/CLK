@@ -29,7 +29,7 @@ class Video {
 			Constructs an instance of @c Video sourcing its pixel data from @c ram and
 			providing audio and drive-speed bytes to @c audio and @c drive_speed_accumulator.
 		*/
-		Video(uint16_t *ram, DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulator);
+		Video(DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulator);
 
 		/*!
 			Sets the target device for video data.
@@ -47,10 +47,10 @@ class Video {
 		void set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use_alternate_audio_buffer);
 
 		/*!
-			Provides a mask indicating which parts of the generated video and audio/drive addresses are
+			Provides a base address and a mask indicating which parts of the generated video and audio/drive addresses are
 			actually decoded, accessing *word-sized memory*; e.g. for a 128kb Macintosh this should be (1 << 16) - 1 = 0xffff.
 		*/
-		void set_ram_mask(uint32_t);
+		void set_ram(uint16_t *ram, uint32_t mask);
 
 		/*!
 			@returns @c true if the video is currently outputting a vertical sync, @c false otherwise.

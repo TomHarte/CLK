@@ -11,9 +11,10 @@
 
 #include "../Machines.hpp"
 
-#include "../../Storage/Tape/Tape.hpp"
-#include "../../Storage/Disk/Disk.hpp"
 #include "../../Storage/Cartridge/Cartridge.hpp"
+#include "../../Storage/Disk/Disk.hpp"
+#include "../../Storage/MassStorage/MassStorageDevice.hpp"
+#include "../../Storage/Tape/Tape.hpp"
 
 #include <memory>
 #include <string>
@@ -29,9 +30,10 @@ struct Media {
 	std::vector<std::shared_ptr<Storage::Disk::Disk>> disks;
 	std::vector<std::shared_ptr<Storage::Tape::Tape>> tapes;
 	std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>> cartridges;
+	std::vector<std::shared_ptr<Storage::MassStorage::MassStorageDevice>> mass_storage_devices;
 
 	bool empty() const {
-		return disks.empty() && tapes.empty() && cartridges.empty();
+		return disks.empty() && tapes.empty() && cartridges.empty() && mass_storage_devices.empty();
 	}
 };
 

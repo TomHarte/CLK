@@ -24,7 +24,7 @@ class BusHandler {
 		virtual void set_interrupt(bool irq) {}
 };
 
-class i8272: public Storage::Disk::MFMController {
+class i8272 : public Storage::Disk::MFMController {
 	public:
 		i8272(BusHandler &bus_handler, Cycles clock_rate);
 
@@ -39,7 +39,7 @@ class i8272: public Storage::Disk::MFMController {
 		void set_dma_acknowledge(bool dack);
 		void set_terminal_count(bool tc);
 
-		ClockingHint::Preference preferred_clocking() override;
+		ClockingHint::Preference preferred_clocking() final;
 
 	protected:
 		virtual void select_drive(int number) = 0;
