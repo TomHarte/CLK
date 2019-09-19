@@ -76,6 +76,13 @@ ClockingHint::Preference Bus::preferred_clocking() {
 	return (dispatch_index_ < dispatch_times_.size()) ? ClockingHint::Preference::RealTime : ClockingHint::Preference::None;
 }
 
+void Bus::update_observers() {
+	const auto time_elapsed = double(time_in_state_.as_int()) * cycles_to_time_;
+	for(auto &observer: observers_) {
+		observer->scsi_bus_did_change(this, state_, time_elapsed);
+	}
+}
+
 void Bus::run_for(HalfCycles time) {
 	if(dispatch_index_ < dispatch_times_.size()) {
 		time_in_state_ += time;
@@ -87,9 +94,7 @@ void Bus::run_for(HalfCycles time) {
 		}
 
 		if(dispatch_index_ != old_index) {
-			for(auto &observer: observers_) {
-				observer->scsi_bus_did_change(this, state_, double(time_as_int) * cycles_to_time_);
-			}
+			update_observers();
 		}
 
 		if(preferred_clocking() == ClockingHint::Preference::None) {

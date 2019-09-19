@@ -132,6 +132,11 @@ class Bus: public ClockingHint::Source {
 		*/
 		void run_for(HalfCycles);
 
+		/*!
+			Forces a `scsi_bus_did_change` propagation now.
+		*/
+		void update_observers();
+
 		/// As per ClockingHint::Source.
 		ClockingHint::Preference preferred_clocking() final;
 

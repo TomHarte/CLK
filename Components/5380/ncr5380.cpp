@@ -18,6 +18,7 @@ NCR5380::NCR5380(SCSI::Bus &bus, int clock_rate) :
 	bus_(bus),
 	clock_rate_(clock_rate) {
 	device_id_ = bus_.add_device();
+	bus_.add_observer(this);
 }
 
 void NCR5380::write(int address, uint8_t value, bool dma_acknowledge) {
@@ -73,13 +74,14 @@ void NCR5380::write(int address, uint8_t value, bool dma_acknowledge) {
 
 				case 0x1:
 					arbitration_in_progress_ = true;
-					set_execution_state(ExecutionState::WatchingBusy);
+					set_execution_state(ExecutionState::WaitingForBusy);
 					lost_arbitration_ = false;
 				break;
 
 				default:
-					assert_data_bus_ = false; // TODO: proper logic for this.
+					assert_data_bus_ = false;
 					set_execution_state(ExecutionState::PerformingDMA);
+					bus_.update_observers();
 				break;
 			}
 			update_control_output();
@@ -229,11 +231,7 @@ void NCR5380::update_control_output() {
 	}
 }
 
-void NCR5380::run_for(Cycles cycles) {
-	if(state_ == ExecutionState::None) return;
-
-	const auto bus_state = bus_.get_state();
-	++time_in_state_;
+void NCR5380::scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double time_since_change) {
 	switch(state_) {
 		default: break;
 
@@ -258,23 +256,20 @@ void NCR5380::run_for(Cycles cycles) {
 					(iii) check that BSY and SEL are inactive.
 		*/
 
+		case ExecutionState::WaitingForBusy:
+			if(!(new_state & SCSI::Line::Busy) || time_since_change < SCSI::DeskewDelay) return;
+			state_ = ExecutionState::WatchingBusy;
+
 		case ExecutionState::WatchingBusy:
-			if(bus_state & SCSI::Line::Busy) {
-				// Arbitration is lost only if a non-busy state had previously been observed.
-				if(time_in_state_ > 1) {
-					lost_arbitration_ = true;
-					set_execution_state(ExecutionState::None);
-				} else {
-					time_in_state_ = 0;
-				}
-			} /* else {
-				arbitration_in_progress_ = true;
-			}*/
+			if(!(new_state & SCSI::Line::Busy)) {
+				lost_arbitration_ = true;
+				set_execution_state(ExecutionState::None);
+			}
 
 			// Check for having hit 400ns (more or less) since BSY was inactive.
-			if(!lost_arbitration_ && time_in_state_ == int(int64_t(400) * int64_t(clock_rate_) / int64_t(1000000000))) {
+			if(time_since_change >= SCSI::BusSettleDelay) {
 //				arbitration_in_progress_ = false;
-				if(bus_.get_state() & SCSI::Line::SelectTarget) {
+				if(new_state & SCSI::Line::SelectTarget) {
 					lost_arbitration_ = true;
 					set_execution_state(ExecutionState::None);
 				} else {
@@ -287,9 +282,11 @@ void NCR5380::run_for(Cycles cycles) {
 		break;
 
 		case ExecutionState::PerformingDMA:
+			if(time_since_change < SCSI::DeskewDelay) return;
+
 			// Signal a DMA request if the request line is active, i.e. meaningful data is
 			// on the bus, and this device hasn't yet acknowledged it.
-			switch(bus_state & (SCSI::Line::Request | SCSI::Line::Acknowledge)) {
+			switch(new_state & (SCSI::Line::Request | SCSI::Line::Acknowledge)) {
 				case 0:
 					dma_request_ = false;
 				break;
@@ -311,15 +308,6 @@ void NCR5380::run_for(Cycles cycles) {
 }
 
 void NCR5380::set_execution_state(ExecutionState state) {
-	time_in_state_ = 0;
 	state_ = state;
 	if(state != ExecutionState::PerformingDMA) dma_operation_ = DMAOperation::Ready;
-	update_clocking_observer();
-}
-
-ClockingHint::Preference NCR5380::preferred_clocking() {
-	// Request real-time clocking if any sort of timed bus watching is ongoing,
-	// given that there's no knowledge in here as to what clocking other devices
-	// on the SCSI bus might be enjoying.
-	return (state_ < ExecutionState::WatchingBusy) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
 }
