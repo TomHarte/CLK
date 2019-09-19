@@ -19,7 +19,8 @@ enum StandardOptions {
 	DisplayCompositeColour		= (1 << 2),
 	DisplayCompositeMonochrome	= (1 << 3),
 	QuickLoadTape				= (1 << 4),
-	AutomaticTapeMotorControl	= (1 << 5)
+	AutomaticTapeMotorControl	= (1 << 5),
+	QuickBoot					= (1 << 6),
 };
 
 enum class Display {
@@ -50,6 +51,11 @@ void append_automatic_tape_motor_control_selection(SelectionSet &selection_set, 
 void append_display_selection(SelectionSet &selection_set, Display selection);
 
 /*!
+	Appends to @c selection_set a selection of @c selection for QuickBoot.
+*/
+void append_quick_boot_selection(SelectionSet &selection_set, bool selection);
+
+/*!
 	Attempts to discern a QuickLoadTape selection from @c selections_by_option.
  
 	@param selections_by_option The user selections.
@@ -75,6 +81,15 @@ bool get_automatic_tape_motor_control_selection(const SelectionSet &selections_b
 	@returns @c true if a selection is found; @c false otherwise.
 */
 bool get_display(const SelectionSet &selections_by_option, Display &result);
+
+/*!
+	Attempts to QuickBoot a QuickLoadTape selection from @c selections_by_option.
+
+	@param selections_by_option The user selections.
+	@param result The location to which the selection will be stored if found.
+	@returns @c true if a selection is found; @c false otherwise.
+*/
+bool get_quick_boot(const SelectionSet &selections_by_option, bool &result);
 
 }
 

@@ -42,6 +42,7 @@ std::vector<std::unique_ptr<Configurable::Option>> Configurable::standard_option
 		options.emplace_back(new Configurable::ListOption("Display", "display", display_options));
 	}
 	if(mask & AutomaticTapeMotorControl)	options.emplace_back(new Configurable::BooleanOption("Automatic Tape Motor Control", "autotapemotor"));
+	if(mask & QuickBoot)					options.emplace_back(new Configurable::BooleanOption("Boot Quickly", "quickboot"));
 	return options;
 }
 
@@ -64,6 +65,10 @@ void Configurable::append_display_selection(Configurable::SelectionSet &selectio
 		case Display::CompositeColour:		string_selection = "composite";			break;
 	}
 	selection_set["display"] = std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection(string_selection));
+}
+
+void Configurable::append_quick_boot_selection(Configurable::SelectionSet &selection_set, bool selection) {
+	append_bool(selection_set, "quickboot", selection);
 }
 
 // MARK: - Selection parsers
@@ -96,4 +101,8 @@ bool Configurable::get_display(const Configurable::SelectionSet &selections_by_o
 		}
 	}
 	return false;
+}
+
+bool Configurable::get_quick_boot(const Configurable::SelectionSet &selections_by_option, bool &result) {
+	return get_bool(selections_by_option, "quickboot", result);
 }
