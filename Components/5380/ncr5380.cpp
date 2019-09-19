@@ -23,7 +23,7 @@ NCR5380::NCR5380(SCSI::Bus &bus, int clock_rate) :
 void NCR5380::write(int address, uint8_t value, bool dma_acknowledge) {
 	switch(address & 7) {
 		case 0:
-			LOG("[SCSI 0] Set current SCSI bus state to " << PADHEX(2) << int(value));
+//			LOG("[SCSI 0] Set current SCSI bus state to " << PADHEX(2) << int(value));
 			data_bus_ = value;
 
 			if(dma_request_ && dma_operation_ == DMAOperation::Send) {
@@ -36,7 +36,7 @@ void NCR5380::write(int address, uint8_t value, bool dma_acknowledge) {
 		break;
 
 		case 1: {
-			LOG("[SCSI 1] Initiator command register set: " << PADHEX(2) << int(value));
+//			LOG("[SCSI 1] Initiator command register set: " << PADHEX(2) << int(value));
 			initiator_command_ = value;
 
 			bus_output_ &= ~(Line::Reset | Line::Acknowledge | Line::Busy | Line::SelectTarget | Line::Attention);
@@ -52,7 +52,7 @@ void NCR5380::write(int address, uint8_t value, bool dma_acknowledge) {
 		} break;
 
 		case 2:
-			LOG("[SCSI 2] Set mode: " << PADHEX(2) << int(value));
+//			LOG("[SCSI 2] Set mode: " << PADHEX(2) << int(value));
 			mode_ = value;
 
 			// bit 7: 1 = use block mode DMA mode (if DMA mode is also enabled)
@@ -87,27 +87,27 @@ void NCR5380::write(int address, uint8_t value, bool dma_acknowledge) {
 		break;
 
 		case 3: {
-			LOG("[SCSI 3] Set target command: " << PADHEX(2) << int(value));
+//			LOG("[SCSI 3] Set target command: " << PADHEX(2) << int(value));
 			target_command_ = value;
 			update_control_output();
 		} break;
 
 		case 4:
-			LOG("[SCSI 4] Set select enabled: " << PADHEX(2) << int(value));
+//			LOG("[SCSI 4] Set select enabled: " << PADHEX(2) << int(value));
 		break;
 
 		case 5:
-			LOG("[SCSI 5] Start DMA send: " << PADHEX(2) << int(value));
+//			LOG("[SCSI 5] Start DMA send: " << PADHEX(2) << int(value));
 			dma_operation_ = DMAOperation::Send;
 		break;
 
 		case 6:
-			LOG("[SCSI 6] Start DMA target receive: " << PADHEX(2) << int(value));
+//			LOG("[SCSI 6] Start DMA target receive: " << PADHEX(2) << int(value));
 			dma_operation_ = DMAOperation::TargetReceive;
 		break;
 
 		case 7:
-			LOG("[SCSI 7] Start DMA initiator receive: " << PADHEX(2) << int(value));
+//			LOG("[SCSI 7] Start DMA initiator receive: " << PADHEX(2) << int(value));
 			dma_operation_ = DMAOperation::InitiatorReceive;
 		break;
 	}
@@ -131,7 +131,7 @@ void NCR5380::write(int address, uint8_t value, bool dma_acknowledge) {
 uint8_t NCR5380::read(int address, bool dma_acknowledge) {
 	switch(address & 7) {
 		case 0:
-			LOG("[SCSI 0] Get current SCSI bus state: " << PADHEX(2) << (bus_.get_state() & 0xff));
+//			LOG("[SCSI 0] Get current SCSI bus state: " << PADHEX(2) << (bus_.get_state() & 0xff));
 
 			if(dma_request_ && dma_operation_ == DMAOperation::InitiatorReceive) {
 				dma_acknowledge_ = true;
@@ -142,7 +142,7 @@ uint8_t NCR5380::read(int address, bool dma_acknowledge) {
 		return uint8_t(bus_.get_state());
 
 		case 1:
-			LOG("[SCSI 1] Initiator command register get: " << (arbitration_in_progress_ ? 'p' : '-') <<  (lost_arbitration_ ? 'l' : '-'));
+//			LOG("[SCSI 1] Initiator command register get: " << (arbitration_in_progress_ ? 'p' : '-') <<  (lost_arbitration_ ? 'l' : '-'));
 		return
 			// Bits repeated as they were set.
 			(initiator_command_ & ~0x60) |
@@ -154,11 +154,11 @@ uint8_t NCR5380::read(int address, bool dma_acknowledge) {
 			(lost_arbitration_ ? 0x20 : 0x00);
 
 		case 2:
-			LOG("[SCSI 2] Get mode");
+//			LOG("[SCSI 2] Get mode");
 		return mode_;
 
 		case 3:
-			LOG("[SCSI 3] Get target command");
+//			LOG("[SCSI 3] Get target command");
 		return target_command_;
 
 		case 4: {
@@ -172,7 +172,7 @@ uint8_t NCR5380::read(int address, bool dma_acknowledge) {
 				((bus_state & Line::Input)			? 0x04 : 0x00) |
 				((bus_state & Line::SelectTarget)	? 0x02 : 0x00) |
 				((bus_state & Line::Parity)			? 0x01 : 0x00);
-			LOG("[SCSI 4] Get current bus state: " << PADHEX(2) << int(result));
+//			LOG("[SCSI 4] Get current bus state: " << PADHEX(2) << int(result));
 			return result;
 		}
 
@@ -191,16 +191,16 @@ uint8_t NCR5380::read(int address, bool dma_acknowledge) {
 				/* b2 = busy error */
 				((bus_state & Line::Attention) ? 0x02 : 0x00) |
 				((bus_state & Line::Acknowledge) ? 0x01 : 0x00);
-			LOG("[SCSI 5] Get bus and status: " << PADHEX(2) << int(result));
+//			LOG("[SCSI 5] Get bus and status: " << PADHEX(2) << int(result));
 			return result;
 		}
 
 		case 6:
-			LOG("[SCSI 6] Get input data");
+//			LOG("[SCSI 6] Get input data");
 		return 0xff;
 
 		case 7:
-			LOG("[SCSI 7] Reset parity/interrupt");
+//			LOG("[SCSI 7] Reset parity/interrupt");
 		return 0xff;
 	}
 	return 0;

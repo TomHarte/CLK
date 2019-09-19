@@ -10,6 +10,7 @@
 #define SCSI_Target_hpp
 
 #include "SCSI.hpp"
+#include "../../../Outputs/Log.hpp"
 
 #include <cstring>
 #include <functional>

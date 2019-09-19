@@ -125,7 +125,6 @@ template <typename Executor> void Target<Executor>::scsi_bus_did_change(Bus *, B
 					bus_state_ &= ~(Line::Request | 0xff);
 
 					++data_pointer_;
-//					printf("DP: %zu\n", data_pointer_);
 				break;
 
 				case 0:
@@ -177,7 +176,7 @@ template <typename Executor> bool Target<Executor>::dispatch_command() {
 #define G1(x)	(0x20|x)
 #define G5(x)	(0xa0|x)
 
-	printf("---Command %02x---\n", command_[0]);
+	LOG("---Command " << PADHEX(2) << int(command_[0]) << "---");
 
 	switch(command_[0]) {
 		default:		return false;
@@ -277,5 +276,5 @@ template <typename Executor> void Target<Executor>::end_command() {
 	bus_state_ = DefaultBusState;
 	set_device_output(bus_state_);
 
-	printf("---Done---\n");
+	LOG("---Done---");
 }
