@@ -12,6 +12,7 @@
 #include "SCSI.hpp"
 #include "../../../Outputs/Log.hpp"
 
+#include <cassert>
 #include <cstring>
 #include <functional>
 
@@ -393,7 +394,7 @@ template <typename Executor> class Target: public Bus::Observer, public Responde
 		continuation next_function_;
 };
 
-#import "TargetImplementation.hpp"
+#include "TargetImplementation.hpp"
 
 }
 }
