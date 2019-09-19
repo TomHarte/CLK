@@ -15,6 +15,7 @@
 
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../../../ClockReceiver/ClockingHintSource.hpp"
+#include "../../../Activity/Source.hpp"
 
 namespace SCSI {
 
@@ -92,7 +93,7 @@ constexpr double CableSkew			= ns(10.0);
 #undef ns
 #undef us
 
-class Bus: public ClockingHint::Source {
+class Bus: public ClockingHint::Source, public Activity::Source {
 	public:
 		Bus(HalfCycles clock_rate);
 
@@ -137,8 +138,11 @@ class Bus: public ClockingHint::Source {
 		*/
 		void update_observers();
 
-		/// As per ClockingHint::Source.
+		// As per ClockingHint::Source.
 		ClockingHint::Preference preferred_clocking() final;
+
+		// Fulfilling public Activity::Source.
+		void set_activity_observer(Activity::Observer *observer) final;
 
 	private:
 		HalfCycles time_in_state_;
@@ -149,6 +153,8 @@ class Bus: public ClockingHint::Source {
 		std::vector<BusState> device_states_;
 		BusState state_ = DefaultBusState;
 		std::vector<Observer *> observers_;
+
+		Activity::Observer *activity_observer_ = nullptr;
 };
 
 }

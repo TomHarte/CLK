@@ -500,6 +500,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		// MARK: - Activity Source
 		void set_activity_observer(Activity::Observer *observer) override {
 			iwm_->set_activity_observer(observer);
+
+			if(model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
+				scsi_bus_.set_activity_observer(observer);
+			}
 		}
 
 	private:
