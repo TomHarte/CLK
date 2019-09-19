@@ -9,6 +9,7 @@
 #include "MacintoshVolume.hpp"
 
 #include <sys/types.h>
+#include <unistd.h>
 #include <cstring>
 
 using namespace Storage::MassStorage::Encodings::Macintosh;
