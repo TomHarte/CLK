@@ -18,8 +18,8 @@ It currently contains emulations of the:
 * Atari 2600;
 * ColecoVision;
 * Commodore Vic-20 (and Commodore 1540/1);
-* MSX 1;
 * Macintosh 512ke and Plus;
+* MSX 1;
 * Oric 1/Atmos;
 * Sega Master System; and
 * Sinclair ZX80/81.
