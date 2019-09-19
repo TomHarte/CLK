@@ -44,6 +44,10 @@ void Bus::set_device_output(size_t device, BusState output) {
 	}
 	if(state_ == previous_state) return;
 
+	if(activity_observer_ && (state_^previous_state)&SCSI::Line::Busy) {
+		activity_observer_->set_led_status("SCSI", state_&SCSI::Line::Busy);
+	}
+
 //	printf("SCSI bus: %02x %c%c%c%c%c%c%c%c%c%c\n",
 //		state_ & 0xff,
 //		(state_ & Line::Parity) ? 'p' : '-',
@@ -62,6 +66,11 @@ void Bus::set_device_output(size_t device, BusState output) {
 	dispatch_index_ = 0;
 	time_in_state_ = HalfCycles(0);
 	if(was_asleep) update_clocking_observer();
+}
+
+void Bus::set_activity_observer(Activity::Observer *observer) {
+	activity_observer_ = observer;
+	activity_observer_->register_led("SCSI");
 }
 
 BusState Bus::get_state() {
