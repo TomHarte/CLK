@@ -19,11 +19,10 @@ It currently contains emulations of the:
 * ColecoVision;
 * Commodore Vic-20 (and Commodore 1540/1);
 * MSX 1;
+* Macintosh 512ke and Plus;
 * Oric 1/Atmos;
 * Sega Master System; and
 * Sinclair ZX80/81.
-
-Work is in progress on the Macintosh 512ke; it is presently very experimental.
 
 ## Single-click Loading
 
