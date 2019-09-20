@@ -35,11 +35,9 @@ class MachinePanel: NSPanel {
 	}
 	@IBOutlet var fastBootingButton: NSButton?
 	@IBAction func setFastBooting(_ sender: NSButton!) {
-//		if let fastLoadingMachine = machine as? CSFastLoading {
-//			let useFastLoadingHack = sender.state == .on
-//			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
-//			UserDefaults.standard.set(useFastLoadingHack, forKey: fastLoadingUserDefaultsKey)
-//		}
+		let useQuickBootingHack = sender.state == .on
+		machine.useQuickBootingHack = useQuickBootingHack
+		UserDefaults.standard.set(useQuickBootingHack, forKey: bootQuicklyUserDefaultsKey)
 	}
 
 	// MARK: Display-Type Selection
@@ -69,6 +67,7 @@ class MachinePanel: NSPanel {
 		let standardUserDefaults = UserDefaults.standard
 		standardUserDefaults.register(defaults: [
 			fastLoadingUserDefaultsKey: true,
+			bootQuicklyUserDefaultsKey: true,
 			displayTypeUserDefaultsKey: 0
 		])
 
@@ -78,6 +77,11 @@ class MachinePanel: NSPanel {
 			self.fastLoadingButton?.state = useFastLoadingHack ? .on : .off
 		}
 
+		if let fastBootingButton = self.fastBootingButton {
+			let bootQuickly = standardUserDefaults.bool(forKey: self.bootQuicklyUserDefaultsKey)
+			machine.useQuickBootingHack = bootQuickly
+			fastBootingButton.state = bootQuickly ? .on : .off
+		}
 
 		if let displayTypeButton = self.displayTypeButton {
 			// Enable or disable options as per machine support.
