@@ -21,9 +21,9 @@ void append_bool(Configurable::SelectionSet &selection_set, const std::string &n
 	Enquires for a Boolean selection for option @c name from @c selections_by_option, storing it to @c result if found.
 */
 bool get_bool(const Configurable::SelectionSet &selections_by_option, const std::string &name, bool &result) {
-	auto quickload = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, "quickload");
-	if(!quickload) return false;
-	result = quickload->value;
+	auto selection = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, name);
+	if(!selection) return false;
+	result = selection->value;
 	return true;
 }
 

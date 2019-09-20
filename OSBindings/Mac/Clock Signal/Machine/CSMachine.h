@@ -86,6 +86,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 @property (nonatomic, assign) BOOL useFastLoadingHack;
 @property (nonatomic, assign) CSMachineVideoSignal videoSignal;
 @property (nonatomic, assign) BOOL useAutomaticTapeMotorControl;
+@property (nonatomic, assign) BOOL useQuickBootingHack;
 
 @property (nonatomic, readonly) BOOL canInsertMedia;
 

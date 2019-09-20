@@ -624,6 +624,19 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
+- (void)setUseQuickBootingHack:(BOOL)useQuickBootingHack {
+	Configurable::Device *configurable_device = _machine->configurable_device();
+	if(!configurable_device) return;
+
+	@synchronized(self) {
+		_useQuickBootingHack = useQuickBootingHack;
+
+		Configurable::SelectionSet selection_set;
+		append_quick_boot_selection(selection_set, useQuickBootingHack ? true : false);
+		configurable_device->set_selections(selection_set);
+	}
+}
+
 - (NSString *)userDefaultsPrefix {
 	// Assumes that the first machine in the targets list is the source of user defaults.
 	std::string name = Machine::ShortNameForTargetMachine(_analyser.targets.front()->machine);

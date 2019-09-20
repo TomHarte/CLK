@@ -522,6 +522,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
 			bool quick_boot;
 			if(Configurable::get_quick_boot(selections_by_option, quick_boot)) {
+				if(quick_boot) {
+					// Cf. Big Mess o' Wires' disassembly of the Mac Plus ROM, and the
+					// test at $E00. TODO: adapt as(/if?) necessary for other Macs.
+					ram_[0x02ae >> 1] = 0x40;
+					ram_[0x02b0 >> 1] = 0x00;
+				}
 			}
 		}
 

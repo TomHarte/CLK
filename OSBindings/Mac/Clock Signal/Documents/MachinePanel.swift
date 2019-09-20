@@ -16,6 +16,7 @@ class MachinePanel: NSPanel {
 		return "\(self.machine.userDefaultsPrefix).\(key)"
 	}
 
+	// MARK: Fast Loading
 	var fastLoadingUserDefaultsKey: String {
 		return prefixedUserDefaultsKey("fastLoading")
 	}
@@ -28,6 +29,20 @@ class MachinePanel: NSPanel {
 		}
 	}
 
+	// MARK: Quick Boot
+	var bootQuicklyUserDefaultsKey: String {
+		return prefixedUserDefaultsKey("bootQuickly")
+	}
+	@IBOutlet var fastBootingButton: NSButton?
+	@IBAction func setFastBooting(_ sender: NSButton!) {
+//		if let fastLoadingMachine = machine as? CSFastLoading {
+//			let useFastLoadingHack = sender.state == .on
+//			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
+//			UserDefaults.standard.set(useFastLoadingHack, forKey: fastLoadingUserDefaultsKey)
+//		}
+	}
+
+	// MARK: Display-Type Selection
 	fileprivate func signalForTag(tag: Int) -> CSMachineVideoSignal {
 		switch tag {
 			case 1: return .composite
@@ -49,6 +64,7 @@ class MachinePanel: NSPanel {
 		}
 	}
 
+	// MARK: Restoring user defaults
 	func establishStoredOptions() {
 		let standardUserDefaults = UserDefaults.standard
 		standardUserDefaults.register(defaults: [
@@ -61,6 +77,7 @@ class MachinePanel: NSPanel {
 			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
 			self.fastLoadingButton?.state = useFastLoadingHack ? .on : .off
 		}
+
 
 		if let displayTypeButton = self.displayTypeButton {
 			// Enable or disable options as per machine support.
