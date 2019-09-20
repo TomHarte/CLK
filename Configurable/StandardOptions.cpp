@@ -21,9 +21,9 @@ void append_bool(Configurable::SelectionSet &selection_set, const std::string &n
 	Enquires for a Boolean selection for option @c name from @c selections_by_option, storing it to @c result if found.
 */
 bool get_bool(const Configurable::SelectionSet &selections_by_option, const std::string &name, bool &result) {
-	auto quickload = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, "quickload");
-	if(!quickload) return false;
-	result = quickload->value;
+	auto selection = Configurable::selection<Configurable::BooleanSelection>(selections_by_option, name);
+	if(!selection) return false;
+	result = selection->value;
 	return true;
 }
 
@@ -42,6 +42,7 @@ std::vector<std::unique_ptr<Configurable::Option>> Configurable::standard_option
 		options.emplace_back(new Configurable::ListOption("Display", "display", display_options));
 	}
 	if(mask & AutomaticTapeMotorControl)	options.emplace_back(new Configurable::BooleanOption("Automatic Tape Motor Control", "autotapemotor"));
+	if(mask & QuickBoot)					options.emplace_back(new Configurable::BooleanOption("Boot Quickly", "quickboot"));
 	return options;
 }
 
@@ -64,6 +65,10 @@ void Configurable::append_display_selection(Configurable::SelectionSet &selectio
 		case Display::CompositeColour:		string_selection = "composite";			break;
 	}
 	selection_set["display"] = std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection(string_selection));
+}
+
+void Configurable::append_quick_boot_selection(Configurable::SelectionSet &selection_set, bool selection) {
+	append_bool(selection_set, "quickboot", selection);
 }
 
 // MARK: - Selection parsers
@@ -96,4 +101,8 @@ bool Configurable::get_display(const Configurable::SelectionSet &selections_by_o
 		}
 	}
 	return false;
+}
+
+bool Configurable::get_quick_boot(const Configurable::SelectionSet &selections_by_option, bool &result) {
+	return get_bool(selections_by_option, "quickboot", result);
 }

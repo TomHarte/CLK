@@ -186,6 +186,7 @@
 		4B4518A31F75FD1C00926311 /* HFE.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518951F75FD1B00926311 /* HFE.cpp */; };
 		4B4518A41F75FD1C00926311 /* OricMFMDSK.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518971F75FD1B00926311 /* OricMFMDSK.cpp */; };
 		4B4518A51F75FD1C00926311 /* SSD.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518991F75FD1B00926311 /* SSD.cpp */; };
+		4B49F0A923346F7A0045E6A6 /* MacintoshOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B49F0A723346F7A0045E6A6 /* MacintoshOptions.xib */; };
 		4B4A76301DB1A3FA007AAE2E /* AY38910.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */; };
 		4B4B1A3C200198CA00A0F866 /* KonamiSCC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4B1A3A200198C900A0F866 /* KonamiSCC.cpp */; };
 		4B4B1A3D200198CA00A0F866 /* KonamiSCC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4B1A3A200198C900A0F866 /* KonamiSCC.cpp */; };
@@ -912,6 +913,7 @@
 		4B45189A1F75FD1B00926311 /* SSD.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SSD.hpp; sourceTree = "<group>"; };
 		4B4518A71F76004200926311 /* TapeParser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = TapeParser.hpp; path = Parsers/TapeParser.hpp; sourceTree = "<group>"; };
 		4B4518A81F76022000926311 /* DiskImageImplementation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DiskImageImplementation.hpp; sourceTree = "<group>"; };
+		4B49F0A823346F7A0045E6A6 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MacintoshOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4B4A762E1DB1A3FA007AAE2E /* AY38910.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AY38910.cpp; path = AY38910/AY38910.cpp; sourceTree = "<group>"; };
 		4B4A762F1DB1A3FA007AAE2E /* AY38910.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = AY38910.hpp; path = AY38910/AY38910.hpp; sourceTree = "<group>"; };
 		4B4B1A3A200198C900A0F866 /* KonamiSCC.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = KonamiSCC.cpp; sourceTree = "<group>"; };
@@ -2134,6 +2136,7 @@
 				4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */,
 				4BEEE6BB20DC72EA003723BF /* CompositeOptions.xib */,
 				4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */,
+				4B49F0A723346F7A0045E6A6 /* MacintoshOptions.xib */,
 				4B2A332B1DB86821002876E3 /* OricOptions.xib */,
 				4B8FE2171DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib */,
 				4BD61662206B2AC700236112 /* QuickLoadOptions.xib */,
@@ -2266,12 +2269,12 @@
 		4B6AAEA1230E3E1D0078E864 /* MassStorage */ = {
 			isa = PBXGroup;
 			children = (
+				4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */,
 				4B6AAEA2230E3E1D0078E864 /* MassStorageDevice.cpp */,
+				4B74CF84231370BC00500CE8 /* MacintoshVolume.hpp */,
 				4B6AAEA3230E3E1D0078E864 /* MassStorageDevice.hpp */,
 				4B74CF7E2312FA9C00500CE8 /* Formats */,
 				4B6AAEA5230E40250078E864 /* SCSI */,
-				4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */,
-				4B74CF84231370BC00500CE8 /* MacintoshVolume.hpp */,
 			);
 			path = MassStorage;
 			sourceTree = "<group>";
@@ -3651,6 +3654,7 @@
 				4B79E4441E3AF38600141F11 /* cassette.png in Resources */,
 				4BB73EAC1B587A5100552FC2 /* MainMenu.xib in Resources */,
 				4B8FE21D1DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib in Resources */,
+				4B49F0A923346F7A0045E6A6 /* MacintoshOptions.xib in Resources */,
 				4BA3189422E7A4CA00D18CFA /* ROMImages in Resources */,
 				4B79E4461E3AF38600141F11 /* floppy525.png in Resources */,
 				4BEEE6BD20DC72EB003723BF /* CompositeOptions.xib in Resources */,
@@ -4424,6 +4428,14 @@
 				4B2A332C1DB86821002876E3 /* Base */,
 			);
 			name = OricOptions.xib;
+			sourceTree = "<group>";
+		};
+		4B49F0A723346F7A0045E6A6 /* MacintoshOptions.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				4B49F0A823346F7A0045E6A6 /* Base */,
+			);
+			name = MacintoshOptions.xib;
 			sourceTree = "<group>";
 		};
 		4B55DD8120DF06680043F2E5 /* MachinePicker.xib */ = {

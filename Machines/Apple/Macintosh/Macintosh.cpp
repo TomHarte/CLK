@@ -27,6 +27,7 @@
 
 #include "../../../ClockReceiver/JustInTime.hpp"
 #include "../../../ClockReceiver/ClockingHintSource.hpp"
+#include "../../../Configurable/StandardOptions.hpp"
 
 //#define LOG_TRACE
 
@@ -55,6 +56,12 @@ const int CLOCK_RATE = 7833600;
 namespace Apple {
 namespace Macintosh {
 
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::QuickBoot)
+	);
+}
+
 template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachine:
 	public Machine,
 	public CRTMachine::Machine,
@@ -64,6 +71,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	public KeyboardMachine::MappedMachine,
 	public Zilog::SCC::z8530::Delegate,
 	public Activity::Source,
+	public Configurable::Device,
 	public DriveSpeedAccumulator::Delegate,
 	public ClockingHint::Observer {
 	public:
@@ -504,6 +512,35 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			if(model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
 				scsi_bus_.set_activity_observer(observer);
 			}
+		}
+
+		// MARK: - Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+			return Apple::Macintosh::get_options();
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+			bool quick_boot;
+			if(Configurable::get_quick_boot(selections_by_option, quick_boot)) {
+				if(quick_boot) {
+					// Cf. Big Mess o' Wires' disassembly of the Mac Plus ROM, and the
+					// test at $E00. TODO: adapt as(/if?) necessary for other Macs.
+					ram_[0x02ae >> 1] = 0x40;
+					ram_[0x02b0 >> 1] = 0x00;
+				}
+			}
+		}
+
+		Configurable::SelectionSet get_accurate_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_quick_boot_selection(selection_set, false);
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() override {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_quick_boot_selection(selection_set, true);
+			return selection_set;
 		}
 
 	private:
