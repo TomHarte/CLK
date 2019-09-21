@@ -82,7 +82,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		 	iwm_(CLOCK_RATE),
 		 	video_(audio_, drive_speed_accumulator_),
 		 	via_(via_port_handler_),
-		 	via_port_handler_(*this, clock_, keyboard_, video_, audio_, iwm_, mouse_),
+		 	via_port_handler_(*this, clock_, keyboard_, audio_, iwm_, mouse_),
 		 	scsi_bus_(CLOCK_RATE * 2),
 		 	scsi_(scsi_bus_, CLOCK_RATE * 2),
 		 	hard_drive_(scsi_bus_, 6 /* SCSI ID */),
@@ -653,8 +653,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:
-				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, Video &video, DeferredAudio &audio, JustInTimeActor<IWM, HalfCycles, Cycles> &iwm, Inputs::QuadratureMouse &mouse) :
-					machine_(machine), clock_(clock), keyboard_(keyboard), video_(video), audio_(audio), iwm_(iwm), mouse_(mouse) {}
+				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, DeferredAudio &audio, JustInTimeActor<IWM, HalfCycles, Cycles> &iwm, Inputs::QuadratureMouse &mouse) :
+					machine_(machine), clock_(clock), keyboard_(keyboard), audio_(audio), iwm_(iwm), mouse_(mouse) {}
 
 				using Port = MOS::MOS6522::Port;
 				using Line = MOS::MOS6522::Line;
@@ -758,7 +758,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				ConcreteMachine &machine_;
 				RealTimeClock &clock_;
 				Keyboard &keyboard_;
-				Video &video_;
 				DeferredAudio &audio_;
 				JustInTimeActor<IWM, HalfCycles, Cycles> &iwm_;
 				Inputs::QuadratureMouse &mouse_;
