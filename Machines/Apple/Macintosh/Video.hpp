@@ -17,6 +17,12 @@
 namespace Apple {
 namespace Macintosh {
 
+static const HalfCycles line_length(704);
+static const int number_of_lines = 370;
+static const HalfCycles frame_length(line_length * HalfCycles(number_of_lines));
+static const int sync_start = 36;
+static const int sync_end = 38;
+
 /*!
 	Models the 68000-era Macintosh video hardware, producing a 512x348 pixel image,
 	within a total scanning area of 370 lines, at 352 cycles per line.
@@ -61,7 +67,12 @@ class Video {
 			@returns @c true if in @c offset half cycles from now, the video will be outputting pixels;
 				@c false otherwise.
 		*/
-		bool is_outputting(HalfCycles offset = HalfCycles(0));
+		bool is_outputting(HalfCycles offset = HalfCycles(0)) {
+			const auto offset_position = frame_position_ + offset % frame_length;
+			const int column = (offset_position % line_length).as_int() >> 4;
+			const int line = (offset_position / line_length).as_int();
+			return line < 342 && column < 32;
+		}
 
 		/*!
 			@returns the amount of time until there is next a transition on the
