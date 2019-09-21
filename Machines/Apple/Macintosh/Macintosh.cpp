@@ -337,12 +337,12 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					memory_base = ram_.data();
 					word_address &= ram_mask_;
 
-					// Apply a delay due to video contention if applicable; technically this is
-					// incorrectly placed — strictly speaking here I'm extending the part of the
-					// bus cycle after DTACK rather than delaying DTACK. But it adds up to the
-					// same thing.
-					if(ram_subcycle_ < 4) {
-						delay = HalfCycles(4 - ram_subcycle_);
+					// Apply a delay due to video contention if applicable; scheme applied:
+					// only every other access slot is available during the period of video
+					// output. I believe this to be correct for the 128k, 512k and Plus.
+					// More research to do on other models.
+					if(video_is_outputting() && ram_subcycle_ < 8) {
+						delay = HalfCycles(8 - ram_subcycle_);
 						advance_time(delay);
 					}
 				} break;

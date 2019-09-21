@@ -14,11 +14,6 @@ using namespace Apple::Macintosh;
 
 namespace {
 
-const HalfCycles line_length(704);
-const int number_of_lines = 370;
-const HalfCycles frame_length(line_length * HalfCycles(number_of_lines));
-const int sync_start = 36;
-const int sync_end = 38;
 
 }
 
@@ -181,13 +176,6 @@ HalfCycles Video::get_next_sequence_point() {
 		else
 			return start_of_vsync + HalfCycles(number_of_lines) * line_length - frame_position_;
 	}
-}
-
-bool Video::is_outputting(HalfCycles offset) {
-	const auto offset_position = frame_position_ + offset % frame_length;
-	const int column = (offset_position % line_length).as_int() >> 4;
-	const int line = (offset_position / line_length).as_int();
-	return line < 342 && column < 32;
 }
 
 void Video::set_use_alternate_buffers(bool use_alternate_screen_buffer, bool use_alternate_audio_buffer) {
