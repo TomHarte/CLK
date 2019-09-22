@@ -13,16 +13,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 	func applicationDidFinishLaunching(_ aNotification: Notification) {
 		// Insert code here to initialize your application.
-
-		if NSDocumentController.shared.documents.count == 0 {
-			NSDocumentController.shared.openDocument(self)
-		}
 	}
 
 	func applicationWillTerminate(_ aNotification: Notification) {
 		// Insert code here to tear down your application.
 	}
 
+	private var hasShownOpenDocument = false
 	func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
 		// Decline to show the 'New...' selector by default; the 'Open...'
 		// dialogue has already been shown if this application was started
@@ -31,6 +28,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 		// Obiter: I dislike it when other applications do this for me, but it
 		// seems to be the new norm, and I've had user feedback that showing
 		// nothing is confusing. So here it is.
+		if !hasShownOpenDocument {
+			NSDocumentController.shared.openDocument(self)
+			hasShownOpenDocument = true
+		}
 		return false
 	}
 }
