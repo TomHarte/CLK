@@ -86,3 +86,13 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 #undef Bind
 	}
 }
+
+std::set<Inputs::Keyboard::Key> KeyboardMapper::get_essential_modifiers() {
+	// Control is fairly optional for a Mac, but option, meta and shift
+	// are essential.
+	return {
+		Inputs::Keyboard::Key::LeftShift, Inputs::Keyboard::Key::RightShift,
+		Inputs::Keyboard::Key::LeftOption, Inputs::Keyboard::Key::RightOption,
+		Inputs::Keyboard::Key::LeftMeta, Inputs::Keyboard::Key::RightMeta,
+	};
+}

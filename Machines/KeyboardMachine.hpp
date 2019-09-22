@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <string>
+#include <set>
 
 #include "../Inputs/Keyboard.hpp"
 
@@ -65,6 +66,7 @@ class MappedMachine: public Inputs::Keyboard::Delegate, public Machine {
 		class KeyboardMapper {
 			public:
 				virtual uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) = 0;
+				virtual std::set<Inputs::Keyboard::Key> get_essential_modifiers() { return {}; }
 		};
 
 		/// Terminates a key sequence from the character mapper.
