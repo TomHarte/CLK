@@ -57,7 +57,7 @@ class Machine: public KeyActions {
 */
 class MappedMachine: public Inputs::Keyboard::Delegate, public Machine {
 	public:
-		MappedMachine();
+		MappedMachine(const std::set<Inputs::Keyboard::Key> &essential_modifiers = {});
 
 		/*!
 			A keyboard mapper attempts to provide a physical mapping between host keys and emulated keys.
@@ -66,7 +66,6 @@ class MappedMachine: public Inputs::Keyboard::Delegate, public Machine {
 		class KeyboardMapper {
 			public:
 				virtual uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) = 0;
-				virtual std::set<Inputs::Keyboard::Key> get_essential_modifiers() { return {}; }
 		};
 
 		/// Terminates a key sequence from the character mapper.

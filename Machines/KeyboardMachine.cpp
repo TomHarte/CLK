@@ -10,7 +10,7 @@
 
 using namespace KeyboardMachine;
 
-MappedMachine::MappedMachine() {
+MappedMachine::MappedMachine(const std::set<Inputs::Keyboard::Key> &essential_modifiers) : keyboard_(essential_modifiers) {
 	keyboard_.set_delegate(this);
 }
 

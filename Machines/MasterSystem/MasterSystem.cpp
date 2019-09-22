@@ -101,7 +101,7 @@ class ConcreteMachine:
 				audio_queue_,
 				sn76489_divider),
 			speaker_(sn76489_),
-			keyboard_({Inputs::Keyboard::Key::Enter, Inputs::Keyboard::Key::Escape}) {
+			keyboard_({Inputs::Keyboard::Key::Enter, Inputs::Keyboard::Key::Escape}, {}) {
 			// Pick the clock rate based on the region.
 			const double clock_rate = target.region == Target::Region::Europe ? 3546893.0 : 3579540.0;
 			speaker_.set_input_rate(static_cast<float>(clock_rate / sn76489_divider));

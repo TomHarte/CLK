@@ -292,7 +292,6 @@ class Keyboard {
 */
 class KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) final;
-	std::set<Inputs::Keyboard::Key> get_essential_modifiers() final;
 };
 
 }

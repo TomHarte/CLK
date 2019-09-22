@@ -78,6 +78,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		using Target = Analyser::Static::Macintosh::Target;
 
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+			KeyboardMachine::MappedMachine({
+				Inputs::Keyboard::Key::LeftShift, Inputs::Keyboard::Key::RightShift,
+				Inputs::Keyboard::Key::LeftOption, Inputs::Keyboard::Key::RightOption,
+				Inputs::Keyboard::Key::LeftMeta, Inputs::Keyboard::Key::RightMeta,
+			}),
 		 	mc68000_(*this),
 		 	iwm_(CLOCK_RATE),
 		 	video_(audio_, drive_speed_accumulator_),
