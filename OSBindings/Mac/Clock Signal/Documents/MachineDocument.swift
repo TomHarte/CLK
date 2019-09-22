@@ -209,8 +209,10 @@ class MachineDocument:
 			openGLView.delegate = self
 			openGLView.responderDelegate = self
 
-			// If this machine has a mouse, enable mouse capture.
+			// If this machine has a mouse, enable mouse capture; also indicate whether usurption
+			// of the command key is desired.
 			openGLView.shouldCaptureMouse = machine.hasMouse
+			openGLView.shouldUsurpCommand = machine.shouldUsurpCommand
 
 			setupAudioQueueClockRate()
 

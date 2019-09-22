@@ -245,6 +245,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		CGAssociateMouseAndMouseCursorPosition(true);
 		[NSCursor unhide];
 		[self.delegate openGLViewDidReleaseMouse:self];
+		((CSApplication *)[NSApplication sharedApplication]).keyboardEventDelegate = nil;
 	}
 }
 
@@ -304,6 +305,9 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			[NSCursor hide];
 			CGAssociateMouseAndMouseCursorPosition(false);
 			[self.delegate openGLViewDidCaptureMouse:self];
+			if(self.shouldUsurpCommand) {
+				((CSApplication *)[NSApplication sharedApplication]).keyboardEventDelegate = self;
+			}
 
 			// Don't report the first click to the delegate; treat that as merely
 			// an invitation to capture the cursor.
