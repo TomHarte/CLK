@@ -23,7 +23,7 @@ namespace Z80 {
 /*
 	The list of registers that can be accessed via @c set_value_of_register and @c set_value_of_register.
 */
-enum Register {
+enum class Register {
 	ProgramCounter,
 	StackPointer,
 

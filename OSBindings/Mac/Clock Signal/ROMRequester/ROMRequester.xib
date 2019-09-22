@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14868" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14490.70"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14868"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -25,8 +25,8 @@
                 <rect key="frame" x="0.0" y="0.0" width="480" height="270"/>
                 <autoresizingMask key="autoresizingMask"/>
                 <subviews>
-                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5qG-I3-Qav">
-                        <rect key="frame" x="18" y="148" width="444" height="102"/>
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5qG-I3-Qav">
+                        <rect key="frame" x="18" y="154" width="444" height="96"/>
                         <textFieldCell key="cell" enabled="NO" allowsUndo="NO" id="itJ-2T-0ia">
                             <font key="font" usesAppearanceFont="YES"/>
                             <string key="title">Clock Signal requires you to provide images of the system ROMs for this machine. They will be stored permanently; you need do this only once.  Please drag and drop the following over this view:
@@ -50,7 +50,7 @@ DQ
                         </connections>
                     </button>
                     <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Bia-0m-GxK">
-                        <rect key="frame" x="20" y="61" width="442" height="17"/>
+                        <rect key="frame" x="20" y="61" width="442" height="16"/>
                         <textFieldCell key="cell" allowsUndo="NO" alignment="center" title="Multiline Label" drawsBackground="YES" id="8jl-xs-LjP">
                             <font key="font" metaFont="message"/>
                             <color key="textColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -70,6 +70,7 @@ DQ
                     <constraint firstItem="5qG-I3-Qav" firstAttribute="top" secondItem="EiT-Mj-1SZ" secondAttribute="top" constant="20" id="qeC-Rh-hmr"/>
                 </constraints>
             </view>
+            <point key="canvasLocation" x="139" y="147"/>
         </window>
     </objects>
 </document>
