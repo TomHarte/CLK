@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <string>
+#include <set>
 
 #include "../Inputs/Keyboard.hpp"
 
@@ -56,7 +57,7 @@ class Machine: public KeyActions {
 */
 class MappedMachine: public Inputs::Keyboard::Delegate, public Machine {
 	public:
-		MappedMachine();
+		MappedMachine(const std::set<Inputs::Keyboard::Key> &essential_modifiers = {});
 
 		/*!
 			A keyboard mapper attempts to provide a physical mapping between host keys and emulated keys.

@@ -656,6 +656,7 @@
 		4BCE005D227D30CC000CA200 /* MemoryPacker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE005B227D30CC000CA200 /* MemoryPacker.cpp */; };
 		4BCE0060227D39AB000CA200 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCE005E227D39AB000CA200 /* Video.cpp */; };
 		4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */; };
+		4BD0FBC3233706A200148981 /* CSApplication.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BD0FBC2233706A200148981 /* CSApplication.m */; };
 		4BD191F42191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
 		4BD191F52191180E0042E144 /* ScanTarget.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD191F22191180E0042E144 /* ScanTarget.cpp */; };
 		4BD388882239E198002D14B5 /* 68000Tests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BD388872239E198002D14B5 /* 68000Tests.mm */; };
@@ -1095,6 +1096,7 @@
 		4B90467222C6FA31000E2074 /* TestRunner68000.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TestRunner68000.hpp; sourceTree = "<group>"; };
 		4B90467322C6FADD000E2074 /* 68000BitwiseTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000BitwiseTests.mm; sourceTree = "<group>"; };
 		4B90467522C6FD6E000E2074 /* 68000ArithmeticTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000ArithmeticTests.mm; sourceTree = "<group>"; };
+		4B911A9B2337D8AB00A2BB1D /* CSApplication.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSApplication.h; sourceTree = "<group>"; };
 		4B92294222B04A3D00A1458F /* MouseMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MouseMachine.hpp; sourceTree = "<group>"; };
 		4B92294422B04ACB00A1458F /* Mouse.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Mouse.hpp; sourceTree = "<group>"; };
 		4B92294A22B064FD00A1458F /* QuadratureMouse.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = QuadratureMouse.hpp; sourceTree = "<group>"; };
@@ -1478,6 +1480,7 @@
 		4BCF1FA31DADC3DD0039D2E7 /* Oric.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Oric.hpp; path = Oric/Oric.hpp; sourceTree = "<group>"; };
 		4BD060A51FE49D3C006E14BE /* Speaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Speaker.hpp; sourceTree = "<group>"; };
 		4BD0692B22828A2D00D2A54F /* RealTimeClock.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = RealTimeClock.hpp; sourceTree = "<group>"; };
+		4BD0FBC2233706A200148981 /* CSApplication.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CSApplication.m; sourceTree = "<group>"; };
 		4BD191D9219113B80042E144 /* OpenGL.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OpenGL.hpp; sourceTree = "<group>"; };
 		4BD191F22191180E0042E144 /* ScanTarget.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScanTarget.cpp; sourceTree = "<group>"; };
 		4BD191F32191180E0042E144 /* ScanTarget.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScanTarget.hpp; sourceTree = "<group>"; };
@@ -3005,22 +3008,24 @@
 		4BB73EA01B587A5100552FC2 /* Clock Signal */ = {
 			isa = PBXGroup;
 			children = (
-				4BBFE83B21015D9C00BF1C40 /* Joystick Manager */,
 				4BB73ECF1B587A6700552FC2 /* Clock Signal.entitlements */,
 				4B1414501B58848C00E04248 /* ClockSignal-Bridging-Header.h */,
+				4B911A9B2337D8AB00A2BB1D /* CSApplication.h */,
+				4BD0FBC2233706A200148981 /* CSApplication.m */,
 				4BB73EAD1B587A5100552FC2 /* Info.plist */,
 				4BB73EA11B587A5100552FC2 /* AppDelegate.swift */,
 				4BB73EA81B587A5100552FC2 /* Assets.xcassets */,
 				4B2A538F1D117D36003C6002 /* Audio */,
 				4B643F3D1D77B88000D431D6 /* Document Controller */,
 				4B55CE551C3B7D360093A61B /* Documents */,
+				4BBFE83B21015D9C00BF1C40 /* Joystick Manager */,
 				4B2A53921D117D36003C6002 /* Machine */,
 				4B55DD7F20DF06680043F2E5 /* MachinePicker */,
 				4BB73EAA1B587A5100552FC2 /* MainMenu.xib */,
 				4BE5F85A1C3E1C2500C43F01 /* Resources */,
+				4BDA00DB22E60EE900AC3CD0 /* ROMRequester */,
 				4BD5F1961D1352A000631CD1 /* Updater */,
 				4B55CE5A1C3B7D6F0093A61B /* Views */,
-				4BDA00DB22E60EE900AC3CD0 /* ROMRequester */,
 			);
 			path = "Clock Signal";
 			sourceTree = "<group>";
@@ -4273,6 +4278,7 @@
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
 				4BDACBEC22FFA5D20045EF7E /* ncr5380.cpp in Sources */,
 				4B54C0C21F8D91CD0050900F /* Keyboard.cpp in Sources */,
+				4BD0FBC3233706A200148981 /* CSApplication.m in Sources */,
 				4BBC951E1F368D83008F4C34 /* i8272.cpp in Sources */,
 				4B89449520194CB3007DE474 /* MachineForTarget.cpp in Sources */,
 				4B4A76301DB1A3FA007AAE2E /* AY38910.cpp in Sources */,

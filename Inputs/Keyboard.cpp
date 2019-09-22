@@ -10,13 +10,14 @@
 
 using namespace Inputs;
 
-Keyboard::Keyboard() {
+Keyboard::Keyboard(const std::set<Key> &essential_modifiers) : essential_modifiers_(essential_modifiers) {
 	for(int k = 0; k < int(Key::Help); ++k) {
 		observed_keys_.insert(Key(k));
 	}
 }
 
-Keyboard::Keyboard(const std::set<Key> &observed_keys) : observed_keys_(observed_keys), is_exclusive_(false) {}
+Keyboard::Keyboard(const std::set<Key> &observed_keys, const std::set<Key> &essential_modifiers) :
+	observed_keys_(observed_keys), essential_modifiers_(essential_modifiers), is_exclusive_(false) {}
 
 void Keyboard::set_key_pressed(Key key, char value, bool is_pressed) {
 	std::size_t key_offset = static_cast<std::size_t>(key);
@@ -26,6 +27,10 @@ void Keyboard::set_key_pressed(Key key, char value, bool is_pressed) {
 	key_states_[key_offset] = is_pressed;
 
 	if(delegate_) delegate_->keyboard_did_change_key(this, key, is_pressed);
+}
+
+const std::set<Inputs::Keyboard::Key> &Keyboard::get_essential_modifiers() {
+	return essential_modifiers_;
 }
 
 void Keyboard::reset_all_keys() {

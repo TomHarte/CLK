@@ -671,6 +671,14 @@ struct ActivityObserver: public Activity::Observer {
 	return !!_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive();
 }
 
+- (BOOL)shouldUsurpCommand {
+	if(!_machine->keyboard_machine()) return NO;
+
+	const auto essential_modifiers = _machine->keyboard_machine()->get_keyboard().get_essential_modifiers();
+	return	essential_modifiers.find(Inputs::Keyboard::Key::LeftMeta) != essential_modifiers.end() ||
+			essential_modifiers.find(Inputs::Keyboard::Key::RightMeta) != essential_modifiers.end();
+}
+
 #pragma mark - Activity observation
 
 - (void)addLED:(NSString *)led {

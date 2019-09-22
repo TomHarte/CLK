@@ -39,10 +39,10 @@ class Keyboard {
 		};
 
 		/// Constructs a Keyboard that declares itself to observe all keys.
-		Keyboard();
+		Keyboard(const std::set<Key> &essential_modifiers = {});
 
 		/// Constructs a Keyboard that declares itself to observe only members of @c observed_keys.
-		Keyboard(const std::set<Key> &observed_keys);
+		Keyboard(const std::set<Key> &observed_keys, const std::set<Key> &essential_modifiers);
 
 		// Host interface.
 		virtual void set_key_pressed(Key key, char value, bool is_pressed);
@@ -51,10 +51,18 @@ class Keyboard {
 		/// @returns a set of all Keys that this keyboard responds to.
 		virtual const std::set<Key> &observed_keys();
 
-		/*
+		/// @returns the list of modifiers that this keyboard considers 'essential' (i.e. both mapped and highly used).
+		virtual const std::set<Inputs::Keyboard::Key> &get_essential_modifiers();
+
+		/*!
 			@returns @c true if this keyboard, on its original machine, looked
 			like a complete keyboard — i.e. if a user would expect this keyboard
 			to be the only thing a real keyboard maps to.
+
+			So this would be true of something like the Amstrad CPC, which has a full
+			keyboard, but it would be false of something like the Sega Master System
+			which has some buttons that you'd expect an emulator to map to its host
+			keyboard but which does not offer a full keyboard.
 		*/
 		virtual bool is_exclusive();
 
@@ -68,6 +76,7 @@ class Keyboard {
 
 	private:
 		std::set<Key> observed_keys_;
+		std::set<Key> essential_modifiers_;
 		std::vector<bool> key_states_;
 		Delegate *delegate_ = nullptr;
 		bool is_exclusive_ = true;
