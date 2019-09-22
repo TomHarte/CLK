@@ -110,7 +110,21 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 @property (atomic, weak, nullable) id <CSOpenGLViewDelegate> delegate;
 @property (nonatomic, weak, nullable) id <CSOpenGLViewResponderDelegate> responderDelegate;
 
+/// Determines whether the view offers mouse capturing — i.e. if the user clicks on the view then
+/// then the system cursor is disabled and the mouse events defined by CSOpenGLViewResponderDelegate
+/// are forwarded, unless and until the user releases the mouse using the control+command shortcut.
 @property (nonatomic, assign) BOOL shouldCaptureMouse;
+
+/// Determines whether the CSOpenGLViewResponderDelegate of this window expects to use the command
+/// key as though it were any other key — i.e. all command combinations should be forwarded to the delegate,
+/// not being allowed to trigger regular application shortcuts such as command+q or command+h.
+///
+/// How the view respects this will depend on other state; if this view is one that captures the mouse then it
+/// will usurp command only while the mouse is captured.
+///
+/// TODO: what's smart behaviour if this view doesn't capture the mouse? Probably
+/// force a similar capturing behaviour?
+@property (nonatomic, assign) BOOL shouldUsurpCommand;
 
 /*!
 	Ends the timer tracking time; should be called prior to giving up the last owning reference
