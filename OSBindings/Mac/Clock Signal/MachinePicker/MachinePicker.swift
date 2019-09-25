@@ -22,6 +22,9 @@ class MachinePicker: NSObject {
 	// MARK: - CPC properties
 	@IBOutlet var cpcModelTypeButton: NSPopUpButton?
 
+	// MARK: - Macintosh properties
+	@IBOutlet var macintoshModelTypeButton: NSPopUpButton?
+
 	// MARK: - MSX properties
 	@IBOutlet var msxRegionButton: NSPopUpButton?
 	@IBOutlet var msxHasDiskDriveButton: NSButton?
@@ -62,6 +65,9 @@ class MachinePicker: NSObject {
 		// CPC settings
 		cpcModelTypeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.cpcModel"))
 
+		// Macintosh settings
+		macintoshModelTypeButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.macintoshModel"))
+
 		// MSX settings
 		msxRegionButton?.selectItem(withTag: standardUserDefaults.integer(forKey: "new.msxRegion"))
 		msxHasDiskDriveButton?.state = standardUserDefaults.bool(forKey: "new.msxDiskDrive") ? .on : .off
@@ -99,6 +105,9 @@ class MachinePicker: NSObject {
 
 		// CPC settings
 		standardUserDefaults.set(cpcModelTypeButton!.selectedTag(), forKey: "new.cpcModel")
+
+		// Macintosh settings
+		standardUserDefaults.set(macintoshModelTypeButton!.selectedTag(), forKey: "new.macintoshModel")
 
 		// MSX settings
 		standardUserDefaults.set(msxRegionButton!.selectedTag(), forKey: "new.msxRegion")
@@ -158,7 +167,13 @@ class MachinePicker: NSObject {
 				}
 
 			case "mac":
-				return CSStaticAnalyser(macintoshModel: .model512ke)
+				switch macintoshModelTypeButton!.selectedItem!.tag {
+					case 0:		return CSStaticAnalyser(macintoshModel: .model128k)
+					case 1:		return CSStaticAnalyser(macintoshModel: .model512k)
+					case 2:		return CSStaticAnalyser(macintoshModel: .model512ke)
+					case 3:		fallthrough
+					default:	return CSStaticAnalyser(macintoshModel: .modelPlus)
+				}
 
 			case "msx":
 				let hasDiskDrive = msxHasDiskDriveButton!.state == .on
