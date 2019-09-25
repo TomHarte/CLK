@@ -12,11 +12,6 @@
 
 using namespace Apple::Macintosh;
 
-namespace {
-
-
-}
-
 // Re: CRT timings, see the Apple Guide to the Macintosh Hardware Family,
 // bottom of page 400:
 //
