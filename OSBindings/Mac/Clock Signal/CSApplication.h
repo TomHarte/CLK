@@ -11,20 +11,22 @@
 
 #import <Cocoa/Cocoa.h>
 
-@protocol CSApplicationKeyboardEventDelegate
-- (void)sendEvent:(nonnull NSEvent *)event;
+@class CSApplication;
+
+@protocol CSApplicationEventDelegate
+- (BOOL)application:(nonnull CSApplication *)application shouldSendEvent:(nonnull NSEvent *)event;
 @end
 
 /*!
-	CSApplication differs from NSApplication in only one regard: it supports a keyboardEventDelegate.
+	CSApplication differs from NSApplication in only one regard: it supports an eventDelegate.
 
-	If a keyboardEventDelegate is installed, all keyboard events — @c NSEventTypeKeyUp,
-	@c NSEventTypeKeyDown and @c NSEventTypeFlagsChanged — will be diverted to it
-	rather than passed through the usual processing. As a result keyboard shortcuts and assistive
-	dialogue navigations won't work.
+	If conected, an eventDelegate will be offered all application events prior to their propagation
+	into the application proper. It may opt to remove those events from the queue. This primarily
+	provides a way to divert things like the command key that will otherwise trigger menu
+	shortcuts, for periods when it is appropriate to do so.
 */
 @interface CSApplication: NSApplication
-@property(nonatomic, weak, nullable) id<CSApplicationKeyboardEventDelegate> keyboardEventDelegate;
+@property(nonatomic, weak, nullable) id<CSApplicationEventDelegate> eventDelegate;
 @end
 
 
