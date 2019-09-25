@@ -9,7 +9,6 @@
 #import <Foundation/Foundation.h>
 
 #import "CSAudioQueue.h"
-#import "CSFastLoading.h"
 #import "CSOpenGLView.h"
 #import "CSStaticAnalyser.h"
 #import "CSJoystickManager.h"
