@@ -11,7 +11,7 @@
 @import CoreVideo;
 @import GLKit;
 
-@interface CSOpenGLView () <NSDraggingDestination, CSApplicationKeyboardEventDelegate>
+@interface CSOpenGLView () <NSDraggingDestination, CSApplicationEventDelegate>
 @end
 
 @implementation CSOpenGLView {
@@ -140,43 +140,32 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	return YES;
 }
 
-- (void)propagateKeyboardEvent:(NSEvent *)event {
-	switch(event.type) {
-		default: break;
+- (void)keyDown:(NSEvent *)event {
+	[self.responderDelegate keyDown:event];
+}
 
-		case kCGEventKeyDown:
-			[self.responderDelegate keyDown:event];
-		break;
-		case kCGEventKeyUp:
-			[self.responderDelegate keyUp:event];
-		break;
-		case kCGEventFlagsChanged:
-			// Release the mouse upon a control + command.
-			if(_mouseIsCaptured &&
-				event.modifierFlags & NSEventModifierFlagControl &&
-				event.modifierFlags & NSEventModifierFlagCommand) {
-				[self releaseMouse];
-			}
+- (void)keyUp:(NSEvent *)event {
+	[self.responderDelegate keyUp:event];
+}
 
-			[self.responderDelegate flagsChanged:event];
-		break;
+- (void)flagsChanged:(NSEvent *)event {
+	// Release the mouse upon a control + command.
+	if(_mouseIsCaptured &&
+		event.modifierFlags & NSEventModifierFlagControl &&
+		event.modifierFlags & NSEventModifierFlagCommand) {
+		[self releaseMouse];
 	}
+
+	[self.responderDelegate flagsChanged:event];
 }
 
-- (void)keyDown:(NSEvent *)theEvent {
-	[self propagateKeyboardEvent:theEvent];
-}
-
-- (void)keyUp:(NSEvent *)theEvent {
-	[self propagateKeyboardEvent:theEvent];
-}
-
-- (void)flagsChanged:(NSEvent *)theEvent {
-	[self propagateKeyboardEvent:theEvent];
-}
-
-- (void)sendEvent:(NSEvent *)event {
-	[self propagateKeyboardEvent:event];
+- (BOOL)application:(nonnull CSApplication *)application shouldSendEvent:(nonnull NSEvent *)event {
+	switch(event.type) {
+		default: return YES;
+		case NSEventTypeKeyUp:			[self keyUp:event];		return NO;
+		case NSEventTypeKeyDown:		[self keyDown:event];	return NO;
+		case NSEventTypeFlagsChanged:	[self flagsChanged:event];	return NO;
+	}
 }
 
 - (void)paste:(id)sender {
@@ -245,7 +234,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		CGAssociateMouseAndMouseCursorPosition(true);
 		[NSCursor unhide];
 		[self.delegate openGLViewDidReleaseMouse:self];
-		((CSApplication *)[NSApplication sharedApplication]).keyboardEventDelegate = nil;
+		((CSApplication *)[NSApplication sharedApplication]).eventDelegate = nil;
 	}
 }
 
@@ -306,7 +295,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			CGAssociateMouseAndMouseCursorPosition(false);
 			[self.delegate openGLViewDidCaptureMouse:self];
 			if(self.shouldUsurpCommand) {
-				((CSApplication *)[NSApplication sharedApplication]).keyboardEventDelegate = self;
+				((CSApplication *)[NSApplication sharedApplication]).eventDelegate = self;
 			}
 
 			// Don't report the first click to the delegate; treat that as merely
