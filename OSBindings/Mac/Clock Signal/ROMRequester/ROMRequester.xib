@@ -29,7 +29,7 @@
                         <rect key="frame" x="18" y="154" width="444" height="96"/>
                         <textFieldCell key="cell" enabled="NO" allowsUndo="NO" id="itJ-2T-0ia">
                             <font key="font" usesAppearanceFont="YES"/>
-                            <string key="title">Clock Signal requires you to provide images of the system ROMs for this machine. They will be stored permanently; you need do this only once.  Please drag and drop the following over this view:
+                            <string key="title">Clock Signal requires you to provide images of the system ROMs for this machine. They will be stored permanently; you need do this only once.  Please drag and drop the following over this text:
 
 </string>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
