@@ -22,11 +22,9 @@ class MachinePanel: NSPanel {
 	}
 	@IBOutlet var fastLoadingButton: NSButton?
 	@IBAction func setFastLoading(_ sender: NSButton!) {
-		if let fastLoadingMachine = machine as? CSFastLoading {
-			let useFastLoadingHack = sender.state == .on
-			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
-			UserDefaults.standard.set(useFastLoadingHack, forKey: fastLoadingUserDefaultsKey)
-		}
+		let useFastLoadingHack = sender.state == .on
+		machine.useFastLoadingHack = useFastLoadingHack
+		UserDefaults.standard.set(useFastLoadingHack, forKey: fastLoadingUserDefaultsKey)
 	}
 
 	// MARK: Quick Boot
@@ -71,10 +69,10 @@ class MachinePanel: NSPanel {
 			displayTypeUserDefaultsKey: 0
 		])
 
-		if let fastLoadingMachine = machine as? CSFastLoading {
+		if let fastLoadingButton = self.fastLoadingButton {
 			let useFastLoadingHack = standardUserDefaults.bool(forKey: self.fastLoadingUserDefaultsKey)
-			fastLoadingMachine.useFastLoadingHack = useFastLoadingHack
-			self.fastLoadingButton?.state = useFastLoadingHack ? .on : .off
+			machine.useFastLoadingHack = useFastLoadingHack
+			fastLoadingButton.state = useFastLoadingHack ? .on : .off
 		}
 
 		if let fastBootingButton = self.fastBootingButton {

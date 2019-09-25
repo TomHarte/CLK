@@ -1434,7 +1434,6 @@
 		4BBB70A3202011C2002FE009 /* MultiMediaTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MultiMediaTarget.cpp; sourceTree = "<group>"; };
 		4BBB70A6202014E2002FE009 /* MultiCRTMachine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiCRTMachine.cpp; sourceTree = "<group>"; };
 		4BBB70A7202014E2002FE009 /* MultiCRTMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiCRTMachine.hpp; sourceTree = "<group>"; };
-		4BBC34241D2208B100FFC9DF /* CSFastLoading.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSFastLoading.h; sourceTree = "<group>"; };
 		4BBC951C1F368D83008F4C34 /* i8272.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = i8272.cpp; path = 8272/i8272.cpp; sourceTree = "<group>"; };
 		4BBC951D1F368D83008F4C34 /* i8272.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = i8272.hpp; path = 8272/i8272.hpp; sourceTree = "<group>"; };
 		4BBF49AE1ED2880200AB3669 /* FUSETests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FUSETests.swift; sourceTree = "<group>"; };
@@ -1774,7 +1773,6 @@
 		4B2A53921D117D36003C6002 /* Machine */ = {
 			isa = PBXGroup;
 			children = (
-				4BBC34241D2208B100FFC9DF /* CSFastLoading.h */,
 				4B2A53951D117D36003C6002 /* CSMachine.h */,
 				4B643F3C1D77AE5C00D431D6 /* CSMachine+Target.h */,
 				4B2A53971D117D36003C6002 /* KeyCodes.h */,

@@ -32,7 +32,7 @@
 #include "../../../../Outputs/OpenGL/ScanTarget.hpp"
 #include "../../../../Outputs/OpenGL/Screenshot.hpp"
 
-@interface CSMachine() <CSFastLoading>
+@interface CSMachine()
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
 - (void)addLED:(NSString *)led;
