@@ -84,8 +84,10 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
 		}
 		void update_just_in_time_cards() {
-			for(const auto &card : just_in_time_cards_) {
-				card->run_for(cycles_since_card_update_, stretched_cycles_since_card_update_);
+			if(cycles_since_card_update_ > Cycles(0)) {
+				for(const auto &card : just_in_time_cards_) {
+					card->run_for(cycles_since_card_update_, stretched_cycles_since_card_update_);
+				}
 			}
 			cycles_since_card_update_ = 0;
 			stretched_cycles_since_card_update_ = 0;
@@ -124,19 +126,25 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			pick_card_messaging_group(card);
 		}
 
-		bool is_every_cycle_card(Apple::II::Card *card) {
+		bool is_every_cycle_card(const Apple::II::Card *card) {
 			return !card->get_select_constraints();
 		}
 
+		bool card_lists_are_dirty_ = true;
+		bool card_became_just_in_time_ = false;
 		void pick_card_messaging_group(Apple::II::Card *card) {
+			// Simplify to a card being either just-in-time or realtime.
+			// Don't worry about exactly what it's watching,
 			const bool is_every_cycle = is_every_cycle_card(card);
 			std::vector<Apple::II::Card *> &intended = is_every_cycle ? every_cycle_cards_ : just_in_time_cards_;
-			std::vector<Apple::II::Card *> &undesired = is_every_cycle ? just_in_time_cards_ : every_cycle_cards_;
 
+			// If the card is already in the proper group, stop.
 			if(std::find(intended.begin(), intended.end(), card) != intended.end()) return;
-			auto old_membership = std::find(undesired.begin(), undesired.end(), card);
-			if(old_membership != undesired.end()) undesired.erase(old_membership);
-			intended.push_back(card);
+
+			// Otherwise, mark the sets as dirty. It isn't safe to transition the card here,
+			// as the main loop may be part way through iterating the two lists.
+			card_lists_are_dirty_ = true;
+			card_became_just_in_time_ |= !is_every_cycle;
 		}
 
 		void card_did_change_select_constraints(Apple::II::Card *card) override {
@@ -750,6 +758,31 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 				for(const auto &card: every_cycle_cards_) {
 					card->run_for(Cycles(1), is_stretched_cycle);
 					card->perform_bus_operation(Apple::II::Card::None, is_read, address, value);
+				}
+			}
+
+			// Update the card lists if any mutations are due.
+			if(card_lists_are_dirty_) {
+				card_lists_are_dirty_ = false;
+
+				// There's only one counter of time since update
+				// for just-in-time cards. If something new is
+				// transitioning, that needs to be zeroed.
+				if(card_became_just_in_time_) {
+					card_became_just_in_time_ = false;
+					update_just_in_time_cards();
+				}
+
+				// Clear the two lists and repopulate.
+				every_cycle_cards_.clear();
+				just_in_time_cards_.clear();
+				for(const auto &card: cards_) {
+					if(!card) continue;
+					if(is_every_cycle_card(card.get())) {
+						every_cycle_cards_.push_back(card.get());
+					} else {
+						just_in_time_cards_.push_back(card.get());
+					}
 				}
 			}
 
