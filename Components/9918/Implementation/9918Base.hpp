@@ -100,7 +100,7 @@ class Base {
 			// (though, in practice, it won't happen until the next
 			// external slot after this number of cycles after the
 			// device has requested the read or write).
-			return 7;
+			return 6;
 		}
 
 		// Holds the main status register.
