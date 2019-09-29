@@ -83,10 +83,8 @@ class Card {
 			will receive a perform_bus_operation every cycle. To reduce the number of
 			virtual method calls, they **will not** receive run_for. run_for will propagate
 			only to cards that register for IO and/or Device accesses only.
-
-
 		*/
-		int get_select_constraints() {
+		int get_select_constraints() const {
 			return select_constraints_;
 		}
 
