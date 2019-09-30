@@ -25,17 +25,25 @@ bool z8530::get_interrupt_line() {
 		);
 }
 
+/*
+	Per the standard defined in the header file, this implementation follows
+	an addressing convention of:
+
+	A0 = A/B		(i.e. channel select)
+	A1 = C/D		(i.e. control or data)
+*/
+
 std::uint8_t z8530::read(int address) {
 	if(address & 2) {
-		// Read data register for channel
-		return 0x00;
+		// Read data register for channel.
+		return channels_[address & 1].read(true, pointer_);
 	} else {
 		// Read control register for channel.
 		uint8_t result = 0;
 
 		switch(pointer_) {
 			default:
-				result = channels_[address & 1].read(address & 2, pointer_);
+				result = channels_[address & 1].read(false, pointer_);
 			break;
 
 			case 2:		// Handled non-symmetrically between channels.
@@ -63,7 +71,11 @@ std::uint8_t z8530::read(int address) {
 			break;
 		}
 
+		// Cf. the two-step control register selection process in ::write. Since this
+		// definitely wasn't a *write* to register 0, it follows that the next selected
+		// control register will be 0.
 		pointer_ = 0;
+
 		update_delegate();
 		return result;
 	}
@@ -73,23 +85,30 @@ std::uint8_t z8530::read(int address) {
 
 void z8530::write(int address, std::uint8_t value) {
 	if(address & 2) {
-		// Write data register for channel.
+		// Write data register for channel. This is completely independent
+		// of whatever is going on over in the control realm.
+		channels_[address & 1].write(true, pointer_, value);
 	} else {
-		// Write control register for channel.
+		// Write control register for channel; there's a two-step sequence
+		// here for the programmer. Initially the selected register
+		// (i.e. `pointer_`) is zero. That register includes a field to
+		// set the next selected register. After any other register has
+		// been written to, register 0 is selected again.
 
-		// Most registers are per channel, but a couple are shared; sever
-		// them here.
+		// Most registers are per channel, but a couple are shared;
+		// sever them here, send the rest to the appropriate chnanel.
 		switch(pointer_) {
 			default:
-				channels_[address & 1].write(address & 2, pointer_, value);
+				channels_[address & 1].write(false, pointer_, value);
 			break;
 
-			case 2:	// Interrupt vector register; shared between both channels.
+			case 2:	// Interrupt vector register; used only by Channel B.
+					// So there's only one of these.
 				interrupt_vector_ = value;
 				LOG("[SCC] Interrupt vector set to " << PADHEX(2) << int(value));
 			break;
 
-			case 9:	// Master interrupt and reset register; also shared between both channels.
+			case 9:	// Master interrupt and reset register; there is also only one of these.
 				LOG("[SCC] Master interrupt and reset register: " << PADHEX(2) << int(value));
 				master_interrupt_control_ = value;
 			break;
@@ -105,7 +124,8 @@ void z8530::write(int address, std::uint8_t value) {
 			pointer_ = value & 7;
 
 			// If the command part of the byte is a 'point high', also set the
-			// top bit of the pointer.
+			// top bit of the pointer. Channels themselves therefore need not
+			// (/should not) respond to the point high command.
 			if(((value >> 3)&7) == 1) {
 				pointer_ |= 8;
 			}
@@ -259,6 +279,11 @@ bool z8530::Channel::get_interrupt_line() {
 	// TODO: other potential causes of an interrupt.
 }
 
+/*!
+	Evaluates the new level of the interrupt line and notifies the delegate if
+	both: (i) there is one; and (ii) the interrupt line has changed since last
+	the delegate was notified.
+*/
 void z8530::update_delegate() {
 	const bool interrupt_line = get_interrupt_line();
 	if(interrupt_line != previous_interrupt_line_) {
