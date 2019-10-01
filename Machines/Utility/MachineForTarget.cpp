@@ -106,6 +106,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Electron";
 		case Analyser::Machine::Macintosh:		return "Macintosh";
+		case Analyser::Machine::MasterSystem:	return "MasterSystem";
 		case Analyser::Machine::MSX:			return "MSX";
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Vic20:			return "Vic20";
@@ -123,6 +124,7 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Acorn Electron";
 		case Analyser::Machine::Macintosh:		return "Apple Macintosh";
+		case Analyser::Machine::MasterSystem:	return "Sega Master System";
 		case Analyser::Machine::MSX:			return "MSX";
 		case Analyser::Machine::Oric:			return "Oric";
 		case Analyser::Machine::Vic20:			return "Vic 20";
@@ -140,6 +142,7 @@ std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> Machin
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::ColecoVision), Coleco::Vision::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Electron), Electron::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Macintosh), Apple::Macintosh::get_options()));
+	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::MasterSystem), Sega::MasterSystem::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::MSX), MSX::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Oric), Oric::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Vic20), Commodore::Vic20::get_options()));
