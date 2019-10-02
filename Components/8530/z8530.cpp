@@ -216,7 +216,51 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 
 			case 0x1:	// Write register 1 — Transmit/Receive Interrupt and Data Transfer Mode Definition.
 				interrupt_mask_ = value;
+
+				/*
+					b7 = 0 => Wait/Request output is inactive; 1 => output is informative.
+					b6 = Wait/request output is for...
+						0 => wait: floating when inactive, low if CPU is attempting to transfer data the SCC isn't yet ready for.
+						1 => request: high if inactive, low if SCC is ready to transfer data.
+					b5 = 1 => wait/request is relative to read buffer; 0 => relative to write buffer.
+
+					b4/b3:
+						00 = disable receive interrupt
+						01 = interrupt on first character or special condition
+						10 = interrupt on all characters and special conditions
+						11 = interrupt only upon special conditions.
+
+					b2 = 1 => parity error is a special condition; 0 => it isn't.
+					b1 = 1 => transmit buffer empty interrupt is enabled; 0 => it isn't.
+					b0 = 1 => external interrupt is enabled; 0 => it isn't.
+				*/
+				LOG("[SCC] Interrupt mask: " << PADHEX(2) << int(value));
 			break;
+
+			case 0x3: {	// Write register 3 — Receive Parameters and Control.
+				// Get bit count.
+				int receive_bit_count = 8;
+				switch(value >> 6) {
+					default:	receive_bit_count = 5;	break;
+					case 1:		receive_bit_count = 7;	break;
+					case 2:		receive_bit_count = 6;	break;
+					case 3:		receive_bit_count = 8;	break;
+				}
+				LOG("[SCC] Receive bit count: " << receive_bit_count);
+
+				/*
+					b7,b6:
+						00 = 5 receive bits per character
+						01 = 7 bits
+						10 = 6 bits
+						11 = 8 bits
+
+					b5 = 1 => DCD and CTS outputs are set automatically; 0 => they're inputs to read register 0.
+								(DCD is ignored in local loopback; CTS is ignored in both auto echo and local loopback).
+					b4: enter hunt mode (if set to 1, presumably?)
+					b3 = 1 => enable receiver CRC generation; 0 => don't.
+				*/
+			} break;
 
 			case 0x4:	// Write register 4 — Transmit/Receive Miscellaneous Parameters and Modes.
 				// Bits 0 and 1 select parity mode.
