@@ -386,6 +386,8 @@
 			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>
@@ -406,6 +408,8 @@
 			<string>Owner</string>
 			<key>LSTypeIsPackage</key>
 			<false/>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).MachineDocument</string>
 		</dict>
 		<dict>
 			<key>CFBundleTypeExtensions</key>

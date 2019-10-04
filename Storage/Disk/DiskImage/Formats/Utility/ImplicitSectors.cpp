@@ -18,7 +18,7 @@
 
 using namespace Storage::Disk;
 
-std::shared_ptr<Track> Storage::Disk::track_for_sectors(uint8_t *const source, int number_of_sectors, uint8_t track, uint8_t side, uint8_t first_sector, uint8_t size, bool is_double_density) {
+std::shared_ptr<Track> Storage::Disk::track_for_sectors(const uint8_t *const source, int number_of_sectors, uint8_t track, uint8_t side, uint8_t first_sector, uint8_t size, bool is_double_density) {
 	std::vector<Storage::Encodings::MFM::Sector> sectors;
 
 	off_t byte_size = static_cast<off_t>(128 << size);
