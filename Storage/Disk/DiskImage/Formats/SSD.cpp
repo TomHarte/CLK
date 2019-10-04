@@ -8,10 +8,6 @@
 
 #include "SSD.hpp"
 
-#include <cstring>
-
-#include "Utility/ImplicitSectors.hpp"
-
 namespace {
 	static const int sectors_per_track = 10;
 	static const int sector_size = 1;
@@ -29,7 +25,7 @@ SSD::SSD(const std::string &file_name) : MFMSectorDump(file_name) {
 
 	// this has two heads if the suffix is .dsd, one if it's .ssd
 	head_count_ = (tolower(file_name[file_name.size() - 3]) == 'd') ? 2 : 1;
-	track_count_ = static_cast<int>(file_.stats().st_size / (256 * 10));
+	track_count_ = int(file_.stats().st_size / (256 * 10));
 	if(track_count_ < 40) track_count_ = 40;
 	else if(track_count_ < 80) track_count_ = 80;
 
