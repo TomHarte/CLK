@@ -12,6 +12,7 @@
 #include "../Apple/AppleII/AppleII.hpp"
 #include "../Apple/Macintosh/Macintosh.hpp"
 #include "../Atari2600/Atari2600.hpp"
+#include "../AtariST/AtariST.hpp"
 #include "../ColecoVision/ColecoVision.hpp"
 #include "../Commodore/Vic-20/Vic20.hpp"
 #include "../Electron/Electron.hpp"
@@ -37,6 +38,7 @@ namespace {
 			BindD(Apple::II, AppleII)
 			BindD(Apple::Macintosh, Macintosh)
 			Bind(Atari2600)
+			BindD(Atari::ST, AtariST)
 			BindD(Coleco::Vision, ColecoVision)
 			BindD(Commodore::Vic20, Vic20)
 			Bind(Electron)
@@ -103,6 +105,7 @@ std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) 
 		case Analyser::Machine::AmstradCPC:		return "AmstradCPC";
 		case Analyser::Machine::AppleII:		return "AppleII";
 		case Analyser::Machine::Atari2600:		return "Atari2600";
+		case Analyser::Machine::AtariST:		return "AtariST";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Electron";
 		case Analyser::Machine::Macintosh:		return "Macintosh";
@@ -121,6 +124,7 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 		case Analyser::Machine::AmstradCPC:		return "Amstrad CPC";
 		case Analyser::Machine::AppleII:		return "Apple II";
 		case Analyser::Machine::Atari2600:		return "Atari 2600";
+		case Analyser::Machine::AtariST:		return "Atari ST";
 		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Acorn Electron";
 		case Analyser::Machine::Macintosh:		return "Apple Macintosh";

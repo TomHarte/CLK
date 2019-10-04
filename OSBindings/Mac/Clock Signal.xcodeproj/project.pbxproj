@@ -636,6 +636,8 @@
 		4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */; };
 		4BBFE83D21015D9C00BF1C40 /* CSJoystickManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFE83C21015D9C00BF1C40 /* CSJoystickManager.m */; };
 		4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */; };
+		4BC1316A2346C61100E4FF3D /* AtariST.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC131682346C61100E4FF3D /* AtariST.cpp */; };
+		4BC1316B2346C61100E4FF3D /* AtariST.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC131682346C61100E4FF3D /* AtariST.cpp */; };
 		4BC5C3E022C994CD00795658 /* 68000MoveTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BC5C3DF22C994CC00795658 /* 68000MoveTests.mm */; };
 		4BC5FC3020CDDDEF00410AA0 /* AppleIIOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BC5FC2E20CDDDEE00410AA0 /* AppleIIOptions.xib */; };
 		4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B11D157E61006C31D9 /* 6522Tests.swift */; };
@@ -1443,6 +1445,8 @@
 		4BBFE83C21015D9C00BF1C40 /* CSJoystickManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSJoystickManager.m; sourceTree = "<group>"; };
 		4BBFE83E21015DAE00BF1C40 /* CSJoystickManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSJoystickManager.h; sourceTree = "<group>"; };
 		4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TrackSerialiser.cpp; sourceTree = "<group>"; };
+		4BC131682346C61100E4FF3D /* AtariST.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AtariST.cpp; sourceTree = "<group>"; };
+		4BC131692346C61100E4FF3D /* AtariST.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AtariST.hpp; sourceTree = "<group>"; };
 		4BC5C3DF22C994CC00795658 /* 68000MoveTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000MoveTests.mm; sourceTree = "<group>"; };
 		4BC5FC2F20CDDDEE00410AA0 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/AppleIIOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4BC751B11D157E61006C31D9 /* 6522Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6522Tests.swift; sourceTree = "<group>"; };
@@ -3098,6 +3102,7 @@
 				4B38F3491F2EC12000D9235D /* AmstradCPC */,
 				4BCE0048227CE8CA000CA200 /* Apple */,
 				4B2E2D961C3A06EC00138695 /* Atari2600 */,
+				4BC131672346C61100E4FF3D /* AtariST */,
 				4B7A90E22041097C008514A2 /* ColecoVision */,
 				4B4DC81D1D2C2425003C5BF8 /* Commodore */,
 				4B2E2D9E1C3A070900138695 /* Electron */,
@@ -3177,6 +3182,15 @@
 				4BBFE83E21015DAE00BF1C40 /* CSJoystickManager.h */,
 			);
 			path = "Joystick Manager";
+			sourceTree = "<group>";
+		};
+		4BC131672346C61100E4FF3D /* AtariST */ = {
+			isa = PBXGroup;
+			children = (
+				4BC131682346C61100E4FF3D /* AtariST.cpp */,
+				4BC131692346C61100E4FF3D /* AtariST.hpp */,
+			);
+			path = AtariST;
 			sourceTree = "<group>";
 		};
 		4BC9DF4A1D04691600F44158 /* Components */ = {
@@ -4033,6 +4047,7 @@
 				4B055AB31FAE860F0060FFFF /* CSW.cpp in Sources */,
 				4B89451D201967B4007DE474 /* Disk.cpp in Sources */,
 				4BDACBED22FFA5D20045EF7E /* ncr5380.cpp in Sources */,
+				4BC1316B2346C61100E4FF3D /* AtariST.cpp in Sources */,
 				4B055ACF1FAE9B030060FFFF /* SoundGenerator.cpp in Sources */,
 				4B894519201967B4007DE474 /* ConfidenceCounter.cpp in Sources */,
 				4B055AEE1FAE9BBF0060FFFF /* Keyboard.cpp in Sources */,
@@ -4167,6 +4182,7 @@
 				4B4518A11F75FD1C00926311 /* D64.cpp in Sources */,
 				4B1558C01F844ECD006E9A97 /* BitReverse.cpp in Sources */,
 				4BCE0052227CE8CA000CA200 /* DiskIICard.cpp in Sources */,
+				4BC1316A2346C61100E4FF3D /* AtariST.cpp in Sources */,
 				4BCF1FA41DADC3DD0039D2E7 /* Oric.cpp in Sources */,
 				4BD67DCB209BE4D700AB2146 /* StaticAnalyser.cpp in Sources */,
 				4BB4BFB922A4372F0069048D /* StaticAnalyser.cpp in Sources */,
