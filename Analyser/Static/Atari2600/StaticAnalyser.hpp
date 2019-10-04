@@ -15,7 +15,7 @@
 
 namespace Analyser {
 namespace Static {
-namespace Atari {
+namespace Atari2600 {
 
 TargetList GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms);
 
