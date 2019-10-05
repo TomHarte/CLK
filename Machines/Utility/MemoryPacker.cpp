@@ -13,3 +13,8 @@ void Memory::PackBigEndian16(const std::vector<uint8_t> &source, uint16_t *targe
 		target[c >> 1] = uint16_t(source[c] << 8) | uint16_t(source[c+1]);
 	}
 }
+
+void Memory::PackBigEndian16(const std::vector<uint8_t> &source, std::vector<uint16_t> &target) {
+	target.resize(source.size() >> 1);
+	PackBigEndian16(source, target.data());
+}
