@@ -45,6 +45,17 @@ class ConcreteMachine:
 				throw ROMMachine::Error::MissingROMs;
 			}
 			Memory::PackBigEndian16(*roms[0], rom_);
+
+			// Set up basic memory map.
+			memory_map_[0] = BusDevice::MostlyRAM;
+			for(int c = 1; c < 0xf0; ++c) memory_map_[c] = BusDevice::RAM;
+
+			// This is appropriate for: TOS 1.x, no cartridge.
+			for(int c = 0xf0; c < 0xfc; ++c) memory_map_[c] = BusDevice::Unassigned;
+			for(int c = 0xfc; c < 0xff; ++c) memory_map_[c] = BusDevice::ROM;
+			memory_map_[0xfa] = memory_map_[0xfb] = BusDevice::Cartridge;
+
+			memory_map_[0xff] = BusDevice::IO;
 		}
 
 		// MARK: CRTMachine::Machine
@@ -69,22 +80,49 @@ class ConcreteMachine:
 			// A null cycle leaves nothing else to do.
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
 
+			/* TODO: DTack, bus error, VPA.  */
+
 			auto address = cycle.word_address();
 			uint16_t *memory;
-			if(address < 4) {
-				memory = rom_.data();
-			} else if(address < 0x700000) {
-				memory = ram_.data();
-				address &= ram_.size() - 1;
-				// TODO: align with the next access window.
-			} else if(address < 0x780000) {		// TOS 2.0+ address
-				memory = rom_.data();
-				address &= rom_.size() - 1;
-			} else if(address >= 0x7e0000 && address < 0x7f8000) {	// TOS 1.0 address
-				memory = rom_.data();
-				address &= rom_.size() - 1;
-			} else {
-				assert(false);
+			switch(memory_map_[address >> 15]) {
+				case BusDevice::MostlyRAM:
+					if(address < 4) {
+						memory = rom_.data();
+						break;
+					}
+				case BusDevice::RAM:
+					memory = ram_.data();
+					address &= ram_.size() - 1;
+					// TODO: align with the next access window.
+				break;
+
+				case BusDevice::ROM:
+					memory = rom_.data();
+					address %= rom_.size();
+				break;
+
+				case BusDevice::Cartridge:
+					/*
+						TOS 1.0 appears to attempt to read from the catridge before it has setup
+						the bus error vector. Therefore I assume no bus error flows.
+					*/
+					switch(cycle.operation & (Microcycle::SelectWord | Microcycle::SelectByte | Microcycle::Read)) {
+						default: break;
+						case Microcycle::SelectWord | Microcycle::Read:
+							*cycle.value = 0xffff;
+						break;
+						case Microcycle::SelectByte | Microcycle::Read:
+							cycle.value->halves.low = 0xff;
+						break;
+					}
+				return HalfCycles(0);
+
+				case BusDevice::Unassigned:
+				return HalfCycles(0);
+
+				case BusDevice::IO:
+					assert(false);
+				break;
 			}
 
 			// If control has fallen through to here, the access is either a read from ROM, or a read or write to RAM.
@@ -119,6 +157,10 @@ class ConcreteMachine:
 		std::vector<uint16_t> ram_;
 		std::vector<uint16_t> rom_;
 
+		enum class BusDevice {
+			MostlyRAM, RAM, ROM, Cartridge, IO, Unassigned
+		};
+		BusDevice memory_map_[256];
 };
 
 }
