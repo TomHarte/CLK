@@ -12,8 +12,13 @@
 
 #include "../../Processors/68000/68000.hpp"
 
+#include "../../Components/AY38910/AY38910.hpp"
+
 #include "Video.hpp"
 #include "../../ClockReceiver/JustInTime.hpp"
+#include "../../ClockReceiver/ForceInline.hpp"
+
+#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 #include "../Utility/MemoryPacker.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
@@ -31,8 +36,11 @@ class ConcreteMachine:
 	public CRTMachine::Machine {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-			mc68000_(*this) {
+			mc68000_(*this),
+			ay_(audio_queue_),
+			speaker_(ay_) {
 			set_clock_rate(CLOCK_RATE);
+			speaker_.set_input_rate(CLOCK_RATE / 4);
 
 			ram_.resize(512 * 512);
 			Memory::Fuzz(ram_);
@@ -58,13 +66,17 @@ class ConcreteMachine:
 			memory_map_[0xff] = BusDevice::IO;
 		}
 
+		~ConcreteMachine() {
+			audio_queue_.flush();
+		}
+
 		// MARK: CRTMachine::Machine
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_->set_scan_target(scan_target);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
-			return nullptr;
+			return &speaker_;
 		}
 
 		void run_for(const Cycles cycles) final {
@@ -75,7 +87,7 @@ class ConcreteMachine:
 		using Microcycle = CPU::MC68000::Microcycle;
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
 			// Advance time.
-			video_ += cycle.length;
+			advance_time(cycle.length);
 
 			// A null cycle leaves nothing else to do.
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
@@ -83,6 +95,7 @@ class ConcreteMachine:
 			/* TODO: DTack, bus error, VPA.  */
 
 			auto address = cycle.word_address();
+			if(cycle.data_select_active()) printf("%c %06x\n", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address & 0xffffff);
 			uint16_t *memory;
 			switch(memory_map_[address >> 15]) {
 				case BusDevice::MostlyRAM:
@@ -118,11 +131,51 @@ class ConcreteMachine:
 				return HalfCycles(0);
 
 				case BusDevice::Unassigned:
+				assert(false);
 				return HalfCycles(0);
 
 				case BusDevice::IO:
-					assert(false);
-				break;
+					switch(address) {
+						default:
+							assert(false);
+
+						case 0x7fc000:
+							/* Memory controller configuration:
+									b0, b1: bank 1
+									b2, b3: bank 0
+
+									00 = 128k
+									01 = 512k
+									10 = 2mb
+									11 = reserved
+							*/
+						break;
+
+						case 0x7fc400:	/* PSG: write to select register, read to read register. */
+						case 0x7fc401:	/* PSG: write to write register. */
+							if(!cycle.data_select_active()) return HalfCycles(0);
+
+							// TODO: byte accesses to the odd addresses shouldn't obey logic below.
+							advance_time(HalfCycles(2));
+							update_audio();
+							if(cycle.operation & Microcycle::Read) {
+								ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
+								cycle.value->halves.low = ay_.get_data_output();
+								ay_.set_control_lines(GI::AY38910::ControlLines(0));
+							} else {
+								if(address == 0x7fc400) {
+									ay_.set_control_lines(GI::AY38910::BC1);
+									ay_.set_data_input(cycle.value->halves.low);
+									ay_.set_control_lines(GI::AY38910::ControlLines(0));
+								} else {
+									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
+									ay_.set_data_input(cycle.value->halves.low);
+									ay_.set_control_lines(GI::AY38910::ControlLines(0));
+								}
+							}
+						return HalfCycles(2);
+					}
+				return HalfCycles(0);
 			}
 
 			// If control has fallen through to here, the access is either a read from ROM, or a read or write to RAM.
@@ -150,9 +203,27 @@ class ConcreteMachine:
 			return HalfCycles(0);
 		}
 
+		void flush() {
+			audio_queue_.perform();
+		}
+
 	private:
+		forceinline void advance_time(HalfCycles length) {
+			video_ += length;
+			cycles_since_audio_update_ += length;
+		}
+
+		void update_audio() {
+			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide_cycles(Cycles(4)));
+		}
+
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 		JustInTimeActor<Video, HalfCycles> video_;
+
+		Concurrency::DeferringAsyncTaskQueue audio_queue_;
+		GI::AY38910::AY38910 ay_;
+		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
+		HalfCycles cycles_since_audio_update_;
 
 		std::vector<uint16_t> ram_;
 		std::vector<uint16_t> rom_;
