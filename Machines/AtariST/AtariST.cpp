@@ -13,6 +13,7 @@
 #include "../../Processors/68000/68000.hpp"
 
 #include "../../Components/AY38910/AY38910.hpp"
+#include "../../Components/68901/MFP68901.hpp"
 
 #include "Video.hpp"
 #include "../../ClockReceiver/JustInTime.hpp"
@@ -173,7 +174,55 @@ class ConcreteMachine:
 									ay_.set_control_lines(GI::AY38910::ControlLines(0));
 								}
 							}
+
+							/*
+								TODO: Port A:
+									b7: reserved
+									b6: "freely usable output (monitor jack)"
+									b5: centronics strobe
+									b4: RS-232 DTR output
+									b3: RS-232 RTS output
+									b2: select floppy drive 1
+									b1: select floppy drive 0
+									b0: "page choice signal for double-sided floppy drive"
+							*/
 						return HalfCycles(2);
+
+						// The MFP block:
+						case 0x7ffd00:	case 0x7ffd01:	case 0x7ffd02:	case 0x7ffd03:
+						case 0x7ffd04:	case 0x7ffd05:	case 0x7ffd06:	case 0x7ffd07:
+						case 0x7ffd08:	case 0x7ffd09:	case 0x7ffd0a:	case 0x7ffd0b:
+						case 0x7ffd0c:	case 0x7ffd0d:	case 0x7ffd0e:	case 0x7ffd0f:
+						case 0x7ffd10:	case 0x7ffd11:	case 0x7ffd12:	case 0x7ffd13:
+						case 0x7ffd14:	case 0x7ffd15:	case 0x7ffd16:	case 0x7ffd17:
+						case 0x7ffd18:	case 0x7ffd19:	case 0x7ffd1a:	case 0x7ffd1b:
+						case 0x7ffd1c:	case 0x7ffd1d:	case 0x7ffd1e:	case 0x7ffd1f:
+							if(!cycle.data_select_active()) return HalfCycles(0);
+
+							// The lower data lines aren't connected.
+							if(!cycle.upper_data_select()) {
+								if(cycle.operation & Microcycle::Read) {
+									cycle.value->halves.low = 0xff;
+								}
+								return HalfCycles(0);
+							}
+
+							if(cycle.operation & Microcycle::Read) {
+								const uint8_t value = mfp_->read(int(address));
+								if(cycle.operation & Microcycle::SelectByte) {
+									cycle.value->halves.low = value;
+								} else {
+									cycle.value->halves.high = value;
+									cycle.value->halves.low = 0xff;
+								}
+							} else {
+								if(cycle.operation & Microcycle::SelectByte) {
+									mfp_->write(int(address), cycle.value->halves.low);
+								} else {
+									mfp_->write(int(address), cycle.value->halves.high);
+								}
+							}
+						break;
 					}
 				return HalfCycles(0);
 			}
@@ -211,6 +260,7 @@ class ConcreteMachine:
 		forceinline void advance_time(HalfCycles length) {
 			video_ += length;
 			cycles_since_audio_update_ += length;
+			mfp_ += length;
 		}
 
 		void update_audio() {
@@ -219,6 +269,7 @@ class ConcreteMachine:
 
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 		JustInTimeActor<Video, HalfCycles> video_;
+		JustInTimeActor<Motorola::MFP68901::MFP68901, HalfCycles> mfp_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910 ay_;
