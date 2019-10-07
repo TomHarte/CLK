@@ -317,6 +317,8 @@
 		4B90467622C6FD6E000E2074 /* 68000ArithmeticTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B90467522C6FD6E000E2074 /* 68000ArithmeticTests.mm */; };
 		4B924E991E74D22700B76AF1 /* AtariStaticAnalyserTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */; };
 		4B9252CE1E74D28200B76AF1 /* Atari ROMs in Resources */ = {isa = PBXBuildFile; fileRef = 4B9252CD1E74D28200B76AF1 /* Atari ROMs */; };
+		4B92E26A234AE35100CD6D1B /* MFP68901.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B92E268234AE35000CD6D1B /* MFP68901.cpp */; };
+		4B92E26B234AE35100CD6D1B /* MFP68901.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B92E268234AE35000CD6D1B /* MFP68901.cpp */; };
 		4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */; };
 		4B9378E422A199C600973513 /* Audio.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B9378E222A199C600973513 /* Audio.cpp */; };
 		4B98A05E1FFAD3F600ADF63B /* CSROMFetcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B98A05D1FFAD3F600ADF63B /* CSROMFetcher.mm */; };
@@ -1108,6 +1110,8 @@
 		4B92294A22B064FD00A1458F /* QuadratureMouse.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = QuadratureMouse.hpp; sourceTree = "<group>"; };
 		4B924E981E74D22700B76AF1 /* AtariStaticAnalyserTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AtariStaticAnalyserTests.mm; sourceTree = "<group>"; };
 		4B9252CD1E74D28200B76AF1 /* Atari ROMs */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Atari ROMs"; sourceTree = "<group>"; };
+		4B92E268234AE35000CD6D1B /* MFP68901.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MFP68901.cpp; sourceTree = "<group>"; };
+		4B92E269234AE35000CD6D1B /* MFP68901.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MFP68901.hpp; sourceTree = "<group>"; };
 		4B92EAC91B7C112B00246143 /* 6502TimingTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6502TimingTests.swift; sourceTree = "<group>"; };
 		4B9378E222A199C600973513 /* Audio.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Audio.cpp; sourceTree = "<group>"; };
 		4B9378E322A199C600973513 /* Audio.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Audio.hpp; sourceTree = "<group>"; };
@@ -2629,6 +2633,15 @@
 			path = QuadratureMouse;
 			sourceTree = "<group>";
 		};
+		4B92E267234AE35000CD6D1B /* 68901 */ = {
+			isa = PBXGroup;
+			children = (
+				4B92E268234AE35000CD6D1B /* MFP68901.cpp */,
+				4B92E269234AE35000CD6D1B /* MFP68901.hpp */,
+			);
+			path = 68901;
+			sourceTree = "<group>";
+		};
 		4B9F11C72272375400701480 /* QL Startup */ = {
 			isa = PBXGroup;
 			children = (
@@ -3224,8 +3237,8 @@
 		4BC9DF4A1D04691600F44158 /* Components */ = {
 			isa = PBXGroup;
 			children = (
-				4BDACBE922FFA5B50045EF7E /* 5380 */,
 				4BD468F81D8DF4290084958B /* 1770 */,
+				4BDACBE922FFA5B50045EF7E /* 5380 */,
 				4BC9DF4B1D04691600F44158 /* 6522 */,
 				4B1E85791D174DEC001EF87D /* 6532 */,
 				4BC9DF4C1D04691600F44158 /* 6560 */,
@@ -3234,6 +3247,7 @@
 				4BBC951F1F368D87008F4C34 /* 8272 */,
 				4BB244D222AABAF500BE20E5 /* 8530 */,
 				4B0E04F71FC9F2C800F43484 /* 9918 */,
+				4B92E267234AE35000CD6D1B /* 68901 */,
 				4B595FAA2086DFBA0083CAA8 /* AudioToggle */,
 				4B4A762D1DB1A35C007AAE2E /* AY38910 */,
 				4B302181208A550100773308 /* DiskII */,
@@ -4035,6 +4049,7 @@
 				4B89452F201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B894531201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B894539201967B4007DE474 /* Tape.cpp in Sources */,
+				4B92E26B234AE35100CD6D1B /* MFP68901.cpp in Sources */,
 				4B7F1898215486A200388727 /* StaticAnalyser.cpp in Sources */,
 				4B15A9FD208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,
 				4B055AD31FAE9B0B0060FFFF /* Microdisc.cpp in Sources */,
@@ -4231,6 +4246,7 @@
 				4BB4BFB022A42F290069048D /* MacintoshIMG.cpp in Sources */,
 				4B05401E219D1618001BF69C /* ScanTarget.cpp in Sources */,
 				4B4518861F75E91A00926311 /* MFMDiskController.cpp in Sources */,
+				4B92E26A234AE35100CD6D1B /* MFP68901.cpp in Sources */,
 				4B54C0BF1F8D8F450050900F /* Keyboard.cpp in Sources */,
 				4B3FE75E1F3CF68B00448EE4 /* CPM.cpp in Sources */,
 				4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */,
