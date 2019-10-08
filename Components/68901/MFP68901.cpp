@@ -8,21 +8,154 @@
 
 #include "MFP68901.hpp"
 
+#include "../../Outputs/Log.hpp"
+
 using namespace Motorola::MFP68901;
 
 uint8_t MFP68901::read(int address) {
-	/* TODO */
+	address &= 0x1f;
+	switch(address) {
+		case 0x00:		LOG("Read: general purpose IO");		break;
+		case 0x01:		LOG("Read: active edge");				break;
+		case 0x02:		LOG("Read: data direction");			break;
+		case 0x03:		LOG("Read: interrupt enable A");		break;
+		case 0x04:		LOG("Read: interrupt enable B");		break;
+		case 0x05:		LOG("Read: interrupt pending A");		break;
+		case 0x06:		LOG("Read: interrupt pending B");		break;
+		case 0x07:		LOG("Read: interrupt in-service A");	break;
+		case 0x08:		LOG("Read: interrupt in-service B");	break;
+		case 0x09:		LOG("Read: interrupt mask A");			break;
+		case 0x0a:		LOG("Read: interrupt mask B");			break;
+		case 0x0b:		LOG("Read: vector");					break;
+		case 0x0c:		LOG("Read: timer A control");			break;
+		case 0x0d:		LOG("Read: timer B control");			break;
+		case 0x0e:		LOG("Read: timers C/D control");		break;
+		case 0x0f:	case 0x10:	case 0x11:	case 0x12:
+			return get_timer_data(address - 0xf);
+		case 0x13:		LOG("Read: sync character generator");	break;
+		case 0x14:		LOG("Read: USART control");				break;
+		case 0x15:		LOG("Read: receiver status");			break;
+		case 0x16:		LOG("Read: transmitter status");		break;
+		case 0x17:		LOG("Read: USART data");				break;
+	}
 	return 0xff;
 }
 
 void MFP68901::write(int address, uint8_t value) {
-	/* TODO */
+	address &= 0x1f;
+	switch(address) {
+		case 0x00:		LOG("Write: general purpose IO");		break;
+		case 0x01:		LOG("Write: active edge");				break;
+		case 0x02:		LOG("Write: data direction");			break;
+		case 0x03:		LOG("Write: interrupt enable A");		break;
+		case 0x04:		LOG("Write: interrupt enable B");		break;
+		case 0x05:		LOG("Write: interrupt pending A");		break;
+		case 0x06:		LOG("Write: interrupt pending B");		break;
+		case 0x07:		LOG("Write: interrupt in-service A");	break;
+		case 0x08:		LOG("Write: interrupt in-service B");	break;
+		case 0x09:		LOG("Write: interrupt mask A");			break;
+		case 0x0a:		LOG("Write: interrupt mask B");			break;
+		case 0x0b:		LOG("Write: vector");					break;
+		case 0x0c:
+		case 0x0d: {
+			const auto timer = address - 0xc;
+			const bool reset = value & 0x10;
+			switch(value & 0xf) {
+				case 0x0:	set_timer_mode(timer, TimerMode::Stopped, 0, reset);		break;
+				case 0x1:	set_timer_mode(timer, TimerMode::Delay, 4, reset);			break;
+				case 0x2:	set_timer_mode(timer, TimerMode::Delay, 10, reset);			break;
+				case 0x3:	set_timer_mode(timer, TimerMode::Delay, 16, reset);			break;
+				case 0x4:	set_timer_mode(timer, TimerMode::Delay, 50, reset);			break;
+				case 0x5:	set_timer_mode(timer, TimerMode::Delay, 64, reset);			break;
+				case 0x6:	set_timer_mode(timer, TimerMode::Delay, 100, reset);		break;
+				case 0x7:	set_timer_mode(timer, TimerMode::Delay, 200, reset);		break;
+				case 0x8:	set_timer_mode(timer, TimerMode::EventCount, 0, reset);		break;
+				case 0x9:	set_timer_mode(timer, TimerMode::PulseWidth, 4, reset);		break;
+				case 0xa:	set_timer_mode(timer, TimerMode::PulseWidth, 10, reset);	break;
+				case 0xb:	set_timer_mode(timer, TimerMode::PulseWidth, 16, reset);	break;
+				case 0xc:	set_timer_mode(timer, TimerMode::PulseWidth, 50, reset);	break;
+				case 0xd:	set_timer_mode(timer, TimerMode::PulseWidth, 64, reset);	break;
+				case 0xe:	set_timer_mode(timer, TimerMode::PulseWidth, 100, reset);	break;
+				case 0xf:	set_timer_mode(timer, TimerMode::PulseWidth, 200, reset);	break;
+			}
+		} break;
+		case 0x0e:
+			switch(value & 7) {
+				case 0:	set_timer_mode(3, TimerMode::Stopped, 0, false);	break;
+				case 1:	set_timer_mode(3, TimerMode::Delay, 4, false);		break;
+				case 2:	set_timer_mode(3, TimerMode::Delay, 10, false);		break;
+				case 3:	set_timer_mode(3, TimerMode::Delay, 16, false);		break;
+				case 4:	set_timer_mode(3, TimerMode::Delay, 50, false);		break;
+				case 5:	set_timer_mode(3, TimerMode::Delay, 64, false);		break;
+				case 6:	set_timer_mode(3, TimerMode::Delay, 100, false);	break;
+				case 7:	set_timer_mode(3, TimerMode::Delay, 200, false);	break;
+			}
+			switch((value >> 4) & 7) {
+				case 0:	set_timer_mode(2, TimerMode::Stopped, 0, false);	break;
+				case 1:	set_timer_mode(2, TimerMode::Delay, 4, false);		break;
+				case 2:	set_timer_mode(2, TimerMode::Delay, 10, false);		break;
+				case 3:	set_timer_mode(2, TimerMode::Delay, 16, false);		break;
+				case 4:	set_timer_mode(2, TimerMode::Delay, 50, false);		break;
+				case 5:	set_timer_mode(2, TimerMode::Delay, 64, false);		break;
+				case 6:	set_timer_mode(2, TimerMode::Delay, 100, false);	break;
+				case 7:	set_timer_mode(2, TimerMode::Delay, 200, false);	break;
+			}
+		break;
+		case 0x0f:	case 0x10:	case 0x11:	case 0x12:
+			set_timer_data(address - 0xf, value);
+		break;
+		case 0x13:		LOG("Write: sync character generator");	break;
+		case 0x14:		LOG("Write: USART control");			break;
+		case 0x15:		LOG("Write: receiver status");			break;
+		case 0x16:		LOG("Write: transmitter status");		break;
+		case 0x17:		LOG("Write: USART data");				break;
+	}
 }
 
-void MFP68901::run_for(HalfCycles) {
-	/* TODO */
+void MFP68901::run_for(HalfCycles time) {
+	cycles_left_ += time;
+
+	// TODO: this is the stupidest possible implementation. Improve.
+	int cycles = cycles_left_.flush<Cycles>().as_int();
+	while(cycles--) {
+		for(int c = 0; c < 4; ++c) {
+			if(timers_[c].mode >= TimerMode::Delay) {
+				--timers_[c].divisor;
+				if(!timers_[c].divisor) {
+					timers_[c].divisor = timers_[c].prescale;
+
+					--timers_[c].value;
+					if(!timers_[c].value) {
+						// TODO: interrupt.
+					}
+				}
+			}
+		}
+	}
 }
 
 HalfCycles MFP68901::get_next_sequence_point() {
 	return HalfCycles(-1);
+}
+
+// MARK: - Timers
+
+void MFP68901::set_timer_mode(int timer, TimerMode mode, int prescale, bool reset_timer) {
+	timers_[timer].mode = mode;
+	timers_[timer].prescale = prescale;
+	if(reset_timer) {
+		timers_[timer].divisor = prescale;
+		timers_[timer].value = timers_[timer].reload_value;
+	}
+}
+
+void MFP68901::set_timer_data(int timer, uint8_t value) {
+	if(timers_[timer].mode == TimerMode::Stopped) {
+		timers_[timer].value = value;
+	}
+	timers_[timer].reload_value = value;
+}
+
+uint8_t MFP68901::get_timer_data(int timer) {
+	return timers_[timer].value;
 }

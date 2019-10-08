@@ -22,6 +22,25 @@ class MFP68901 {
 
 		void run_for(HalfCycles);
 		HalfCycles get_next_sequence_point();
+
+	private:
+		// MARK: - Timers
+		enum class TimerMode {
+			Stopped, EventCount, Delay, PulseWidth
+		};
+		void set_timer_mode(int timer, TimerMode, int prescale, bool reset_timer);
+		void set_timer_data(int timer, uint8_t);
+		uint8_t get_timer_data(int timer);
+
+		struct Timer {
+			TimerMode mode = TimerMode::Stopped;
+			uint8_t value = 0;
+			uint8_t reload_value = 0;
+			int prescale = 1;
+			int divisor = 0;
+		} timers_[4];
+
+		HalfCycles cycles_left_;
 };
 
 }
