@@ -96,7 +96,7 @@ class ConcreteMachine:
 			/* TODO: DTack, bus error, VPA.  */
 
 			auto address = cycle.word_address();
-			if(cycle.data_select_active()) printf("%c %06x\n", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address & 0xffffff);
+//			if(cycle.data_select_active()) printf("%c %06x\n", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address & 0xffffff);
 			uint16_t *memory;
 			switch(memory_map_[address >> 15]) {
 				case BusDevice::MostlyRAM:
@@ -222,6 +222,19 @@ class ConcreteMachine:
 									mfp_->write(int(address), cycle.value->halves.high);
 								}
 							}
+
+							/*
+								Atari ST GPIP bits:
+
+									GPIP 7: monochrome monitor detect
+									GPIP 6: RS-232 ring indicator
+									GPIP 5: FD/HD interrupt
+									GPIP 4: keyboard/MIDI interrupt
+									GPIP 3: unused
+									GPIP 2: RS-232 clear to send
+									GPIP 1: RS-232 carrier detect
+									GPIP 0: centronics busy
+							*/
 						break;
 					}
 				return HalfCycles(0);
