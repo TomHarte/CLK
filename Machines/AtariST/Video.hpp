@@ -6,8 +6,8 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#ifndef Video_hpp
-#define Video_hpp
+#ifndef Atari_ST_Video_hpp
+#define Atari_ST_Video_hpp
 
 #include "../../Outputs/CRT/CRT.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
@@ -29,11 +29,24 @@ class Video {
 		*/
 		void run_for(HalfCycles duration);
 
+		/*!
+			@returns the number of cycles until there is next a change in the hsync,
+			vsync or display_enable outputs.
+		*/
+		HalfCycles get_next_sequence_point();
+
+		bool hsync();
+		bool vsync();
+		bool display_enabled();
+
 	private:
 		Outputs::CRT::CRT crt_;
+
+		int x = 0, y = 0;
+		void output_border(int duration);
 };
 
 }
 }
 
-#endif /* Video_hpp */
+#endif /* Atari_ST_Video_hpp */
