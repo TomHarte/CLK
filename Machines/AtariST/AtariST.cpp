@@ -267,6 +267,7 @@ class ConcreteMachine:
 
 		void flush() {
 			audio_queue_.perform();
+			video_.flush();
 		}
 
 	private:
