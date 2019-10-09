@@ -272,9 +272,18 @@ class ConcreteMachine:
 
 	private:
 		forceinline void advance_time(HalfCycles length) {
-			video_ += length;
 			cycles_since_audio_update_ += length;
 			mfp_ += length;
+
+			while(length >= cycles_until_video_event_) {
+				length -= cycles_until_video_event_;
+				video_ += cycles_until_video_event_;
+				cycles_until_video_event_ = video_->get_next_sequence_point();
+
+				// TODO: push v/hsync/display_enable elsewhere.
+			}
+			cycles_until_video_event_ -= length;
+			video_ += length;
 		}
 
 		void update_audio() {
@@ -284,6 +293,7 @@ class ConcreteMachine:
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 		JustInTimeActor<Video, HalfCycles> video_;
 		JustInTimeActor<Motorola::MFP68901::MFP68901, HalfCycles> mfp_;
+		HalfCycles cycles_until_video_event_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910 ay_;
