@@ -167,6 +167,7 @@ HalfCycles Video::get_next_sequence_point() {
 		} else if(y >= mode_params.final_video_line ) {
 			vertical_lines = mode_params.first_video_line + mode_params.lines_per_frame - y;
 		}
+		if(horizontal_cycles < 0) ++vertical_lines;
 		cycles_until_display_enable = HalfCycles(horizontal_cycles + vertical_lines * mode_params.line_length);
 	}
 
