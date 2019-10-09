@@ -120,3 +120,60 @@ void Video::output_border(int duration) {
 	if(colour_pointer) *colour_pointer = 0x333;
 	crt_.output_level(duration);
 }
+
+bool Video::hsync() {
+	const auto mode_params = mode_params_for_mode();
+	return x >= mode_params.start_of_hsync && x < mode_params.end_of_hsync;
+}
+
+bool Video::vsync() {
+	return y < 3;
+}
+
+bool Video::display_enabled() {
+	const auto mode_params = mode_params_for_mode();
+	return y >= mode_params.first_video_line && y < mode_params.final_video_line && x >= mode_params.start_of_display_enable && x < mode_params.end_of_display_enable;
+}
+
+HalfCycles Video::get_next_sequence_point() {
+	// The next hsync transition will occur either this line or the next.
+	const auto mode_params = mode_params_for_mode();
+	HalfCycles cycles_until_hsync;
+	if(x < mode_params.start_of_hsync) {
+		cycles_until_hsync = HalfCycles(mode_params.start_of_hsync - x);
+	} else if(x < mode_params.end_of_hsync) {
+		cycles_until_hsync = HalfCycles(mode_params.end_of_hsync - x);
+	} else {
+		cycles_until_hsync = HalfCycles(mode_params.start_of_hsync + mode_params.line_length - x);
+	}
+
+	// The next vsync transition depends purely on the current y.
+	HalfCycles cycles_until_vsync;
+	if(y < 3) {
+		cycles_until_vsync = HalfCycles(mode_params.line_length - x + (2 - y)*mode_params.line_length);
+	} else {
+		cycles_until_vsync = HalfCycles(mode_params.line_length - x + (mode_params.lines_per_frame - 1 - y)*mode_params.line_length);
+	}
+
+	// The next display enable transition will occur only in the visible area.
+	HalfCycles cycles_until_display_enable;
+	if(display_enabled()) {
+		cycles_until_display_enable = HalfCycles(mode_params.end_of_display_enable - x);
+	} else {
+		const auto horizontal_cycles = mode_params.start_of_display_enable - x;
+		int vertical_lines = 0;
+		if(y < mode_params.first_video_line) {
+			vertical_lines = mode_params.first_video_line - y;
+		} else if(y >= mode_params.final_video_line ) {
+			vertical_lines = mode_params.first_video_line + mode_params.lines_per_frame - y;
+		}
+		cycles_until_display_enable = HalfCycles(horizontal_cycles + vertical_lines * mode_params.line_length);
+	}
+
+	// Determine the minimum of the three
+	if(cycles_until_hsync < cycles_until_vsync && cycles_until_hsync < cycles_until_display_enable) {
+		return cycles_until_hsync;
+	} else {
+		return (cycles_until_vsync < cycles_until_display_enable) ? cycles_until_vsync : cycles_until_display_enable;
+	}
+}
