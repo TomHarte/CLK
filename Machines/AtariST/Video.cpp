@@ -89,8 +89,8 @@ void Video::run_for(HalfCycles duration) {
 
 			Period(mode_params.end_of_output, 	mode_params.start_of_blank, 	output_border);
 			Period(mode_params.start_of_blank, 	mode_params.start_of_hsync,		crt_.output_blank);
-			Period(mode_params.start_of_hsync,	mode_params.start_of_blank,		crt_.output_sync);
-			Period(mode_params.start_of_blank, 	mode_params.line_length,		crt_.output_blank);
+			Period(mode_params.start_of_hsync,	mode_params.end_of_hsync,		crt_.output_sync);
+			Period(mode_params.end_of_hsync, 	mode_params.line_length,		crt_.output_blank);
 		} else {
 			// Hard code the first three lines as vertical sync.
 			if(y < 3) {
@@ -101,8 +101,8 @@ void Video::run_for(HalfCycles duration) {
 				Period(0, 							mode_params.end_of_blank, 		crt_.output_blank);
 				Period(mode_params.end_of_blank, 	mode_params.start_of_blank, 	output_border);
 				Period(mode_params.start_of_blank, 	mode_params.start_of_hsync,		crt_.output_blank);
-				Period(mode_params.start_of_hsync,	mode_params.start_of_blank,		crt_.output_sync);
-				Period(mode_params.start_of_blank, 	mode_params.line_length,		crt_.output_blank);
+				Period(mode_params.start_of_hsync,	mode_params.end_of_hsync,		crt_.output_sync);
+				Period(mode_params.end_of_hsync, 	mode_params.line_length,		crt_.output_blank);
 			}
 		}
 
