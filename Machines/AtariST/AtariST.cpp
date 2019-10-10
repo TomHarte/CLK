@@ -115,6 +115,8 @@ class ConcreteMachine:
 					address %= rom_.size();
 				break;
 
+				case BusDevice::Unassigned:
+					// TODO: figure out the rules about bus errors.
 				case BusDevice::Cartridge:
 					/*
 						TOS 1.0 appears to attempt to read from the catridge before it has setup
@@ -129,10 +131,6 @@ class ConcreteMachine:
 							cycle.value->halves.low = 0xff;
 						break;
 					}
-				return HalfCycles(0);
-
-				case BusDevice::Unassigned:
-				assert(false);
 				return HalfCycles(0);
 
 				case BusDevice::IO:
@@ -236,6 +234,39 @@ class ConcreteMachine:
 									GPIP 0: centronics busy
 							*/
 						break;
+
+						// Video controls.
+						case 0x7fc100:	case 0x7fc101:	case 0x7fc102:	case 0x7fc103:
+						case 0x7fc104:	case 0x7fc105:	case 0x7fc106:	case 0x7fc107:
+						case 0x7fc108:	case 0x7fc109:	case 0x7fc10a:	case 0x7fc10b:
+						case 0x7fc10c:	case 0x7fc10d:	case 0x7fc10e:	case 0x7fc10f:
+						case 0x7fc110:	case 0x7fc111:	case 0x7fc112:	case 0x7fc113:
+						case 0x7fc114:	case 0x7fc115:	case 0x7fc116:	case 0x7fc117:
+						case 0x7fc118:	case 0x7fc119:	case 0x7fc11a:	case 0x7fc11b:
+						case 0x7fc11c:	case 0x7fc11d:	case 0x7fc11e:	case 0x7fc11f:
+						case 0x7fc120:	case 0x7fc121:	case 0x7fc122:	case 0x7fc123:
+						case 0x7fc124:	case 0x7fc125:	case 0x7fc126:	case 0x7fc127:
+						case 0x7fc128:	case 0x7fc129:	case 0x7fc12a:	case 0x7fc12b:
+						case 0x7fc12c:	case 0x7fc12d:	case 0x7fc12e:	case 0x7fc12f:
+						case 0x7fc130:	case 0x7fc131:
+							if(!cycle.data_select_active()) return HalfCycles(0);
+
+							if(cycle.operation & Microcycle::Read) {
+								const uint8_t value = video_->read(int(address));
+								if(cycle.operation & Microcycle::SelectByte) {
+									cycle.value->halves.low = value;
+								} else {
+									cycle.value->halves.high = value;
+									cycle.value->halves.low = 0xff;
+								}
+							} else {
+								if(cycle.operation & Microcycle::SelectByte) {
+									video_->write(int(address), cycle.value->halves.low);
+								} else {
+									video_->write(int(address), cycle.value->halves.high);
+								}
+							}
+						break;
 					}
 				return HalfCycles(0);
 			}
@@ -281,6 +312,8 @@ class ConcreteMachine:
 				cycles_until_video_event_ = video_->get_next_sequence_point();
 
 				// TODO: push v/hsync/display_enable elsewhere.
+				mfp_->set_timer_event_input(1, video_->display_enabled());
+//				printf("%c%c%c\n", video_->display_enabled() ? 'e' : '-', video_->hsync() ? 'h' : '-', video_->vsync() ? 'v' : '-');
 			}
 			cycles_until_video_event_ -= length;
 			video_ += length;

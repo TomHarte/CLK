@@ -8,6 +8,8 @@
 
 #include "Video.hpp"
 
+#include "../../Outputs/Log.hpp"
+
 #include <algorithm>
 
 using namespace Atari::ST;
@@ -66,6 +68,9 @@ void Video::run_for(HalfCycles duration) {
 		x = target;	\
 	}
 
+	// TODO: the below is **way off**. The real hardware does what you'd expect with ongoing state and
+	// exact equality tests. Fixes to come.
+
 	while(integer_duration) {
 		const int final_x = std::min(x + integer_duration, mode_params.line_length);
 		integer_duration -= (final_x - x);
@@ -117,7 +122,7 @@ void Video::run_for(HalfCycles duration) {
 
 void Video::output_border(int duration) {
 	uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-	if(colour_pointer) *colour_pointer = 0x333;
+	if(colour_pointer) *colour_pointer = palette_[0];
 	crt_.output_level(duration);
 }
 
@@ -176,5 +181,28 @@ HalfCycles Video::get_next_sequence_point() {
 		return cycles_until_hsync;
 	} else {
 		return (cycles_until_vsync < cycles_until_display_enable) ? cycles_until_vsync : cycles_until_display_enable;
+	}
+}
+
+// MARK: - IO dispatch
+
+uint8_t Video::read(int address) {
+	LOG("[Video] read " << (address & 0x3f));
+	return 0xff;
+}
+
+void Video::write(int address, uint8_t value) {
+	LOG("[Video] write " << PADHEX(2) << int(value) << " to " << PADHEX(2) << (address & 0x3f));
+	address &= 0x3f;
+	switch(address) {
+		default: break;
+
+		// Palette.
+		case 0x20:	case 0x21:	case 0x22:	case 0x23:
+		case 0x24:	case 0x25:	case 0x26:	case 0x27:
+		case 0x28:	case 0x29:	case 0x2a:	case 0x2b:
+		case 0x2c:	case 0x2d:	case 0x2e:	case 0x2f:
+			palette_[address - 0x20] = uint16_t((value & 0x777) << 5);
+		break;
 	}
 }
