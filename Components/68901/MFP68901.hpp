@@ -23,6 +23,8 @@ class MFP68901 {
 		void run_for(HalfCycles);
 		HalfCycles get_next_sequence_point();
 
+		void set_timer_event_input(int channel, bool value);
+
 	private:
 		// MARK: - Timers
 		enum class TimerMode {
@@ -31,6 +33,7 @@ class MFP68901 {
 		void set_timer_mode(int timer, TimerMode, int prescale, bool reset_timer);
 		void set_timer_data(int timer, uint8_t);
 		uint8_t get_timer_data(int timer);
+		void decrement_timer(int timer);
 
 		struct Timer {
 			TimerMode mode = TimerMode::Stopped;
@@ -38,6 +41,7 @@ class MFP68901 {
 			uint8_t reload_value = 0;
 			int prescale = 1;
 			int divisor = 0;
+			bool event_input = false;
 		} timers_[4];
 
 		HalfCycles cycles_left_;

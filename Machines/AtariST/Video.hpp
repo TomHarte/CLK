@@ -39,8 +39,13 @@ class Video {
 		bool vsync();
 		bool display_enabled();
 
+		uint8_t read(int address);
+		void write(int address, uint8_t value);
+
 	private:
 		Outputs::CRT::CRT crt_;
+
+		uint16_t palette_[16];
 
 		int x = 0, y = 0;
 		void output_border(int duration);

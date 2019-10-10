@@ -123,11 +123,7 @@ void MFP68901::run_for(HalfCycles time) {
 				--timers_[c].divisor;
 				if(!timers_[c].divisor) {
 					timers_[c].divisor = timers_[c].prescale;
-
-					--timers_[c].value;
-					if(!timers_[c].value) {
-						// TODO: interrupt.
-					}
+					decrement_timer(c);
 				}
 			}
 		}
@@ -158,4 +154,20 @@ void MFP68901::set_timer_data(int timer, uint8_t value) {
 
 uint8_t MFP68901::get_timer_data(int timer) {
 	return timers_[timer].value;
+}
+
+void MFP68901::set_timer_event_input(int channel, bool value) {
+	if(timers_[channel].event_input == value) return;
+
+	timers_[channel].event_input = value;
+	if(timers_[channel].mode == TimerMode::EventCount && !value) {	/* TODO: which edge is counted? "as defined by the associated Interrupt Channel’s edge bit"?  */
+		decrement_timer(channel);
+	}
+}
+
+void MFP68901::decrement_timer(int timer) {
+	--timers_[timer].value;
+	if(!timers_[timer].value) {
+		// TODO: interrupt. Reload, possibly.
+	}
 }
