@@ -42,7 +42,7 @@ class Video {
 		void set_ram(uint16_t *);
 
 		uint8_t read(int address);
-		void write(int address, uint8_t value);
+		void write(int address, uint16_t value);
 
 	private:
 		Outputs::CRT::CRT crt_;
