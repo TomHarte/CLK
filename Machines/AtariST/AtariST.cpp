@@ -293,6 +293,19 @@ class ConcreteMachine:
 								}
 							}
 						} break;
+
+						// DMA.
+						case 0x7fc302:	case 0x7fc303:	case 0x7fc304:	case 0x7fc305:	case 0x7fc306:
+							if(cycle.operation & Microcycle::Read) {
+								const uint8_t value = 0;
+								if(cycle.operation & Microcycle::SelectByte) {
+									cycle.value->halves.low = value;
+								} else {
+									cycle.value->halves.high = value;
+									cycle.value->halves.low = 0xff;
+								}
+							}
+						break;
 					}
 				return HalfCycles(0);
 			}
