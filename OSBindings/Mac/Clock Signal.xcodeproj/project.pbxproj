@@ -616,6 +616,8 @@
 		4BB299F81B587D8400A49093 /* txsn in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298EC1B587D8400A49093 /* txsn */; };
 		4BB299F91B587D8400A49093 /* tyan in Resources */ = {isa = PBXBuildFile; fileRef = 4BB298ED1B587D8400A49093 /* tyan */; };
 		4BB2A9AF1E13367E001A5C23 /* CRCTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */; };
+		4BB307BB235001C300457D33 /* 6850.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB307BA235001C300457D33 /* 6850.cpp */; };
+		4BB307BC235001C300457D33 /* 6850.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB307BA235001C300457D33 /* 6850.cpp */; };
 		4BB4BFAD22A33DE50069048D /* DriveSpeedAccumulator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4BFAC22A33DE50069048D /* DriveSpeedAccumulator.cpp */; };
 		4BB4BFB022A42F290069048D /* MacintoshIMG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4BFAE22A42F290069048D /* MacintoshIMG.cpp */; };
 		4BB4BFB922A4372F0069048D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BB4BFB822A4372E0069048D /* StaticAnalyser.cpp */; };
@@ -1415,6 +1417,8 @@
 		4BB298EC1B587D8400A49093 /* txsn */ = {isa = PBXFileReference; lastKnownFileType = file; path = txsn; sourceTree = "<group>"; };
 		4BB298ED1B587D8400A49093 /* tyan */ = {isa = PBXFileReference; lastKnownFileType = file; path = tyan; sourceTree = "<group>"; };
 		4BB2A9AE1E13367E001A5C23 /* CRCTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = CRCTests.mm; sourceTree = "<group>"; };
+		4BB307B9235001C300457D33 /* 6850.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 6850.hpp; sourceTree = "<group>"; };
+		4BB307BA235001C300457D33 /* 6850.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6850.cpp; sourceTree = "<group>"; };
 		4BB4BFAA22A300710069048D /* DeferredAudio.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DeferredAudio.hpp; sourceTree = "<group>"; };
 		4BB4BFAB22A33D710069048D /* DriveSpeedAccumulator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DriveSpeedAccumulator.hpp; sourceTree = "<group>"; };
 		4BB4BFAC22A33DE50069048D /* DriveSpeedAccumulator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DriveSpeedAccumulator.cpp; sourceTree = "<group>"; };
@@ -2956,6 +2960,15 @@
 			path = "Wolfgang Lorenz 6502 test suite";
 			sourceTree = "<group>";
 		};
+		4BB307B8235001C300457D33 /* 6850 */ = {
+			isa = PBXGroup;
+			children = (
+				4BB307B9235001C300457D33 /* 6850.hpp */,
+				4BB307BA235001C300457D33 /* 6850.cpp */,
+			);
+			path = 6850;
+			sourceTree = "<group>";
+		};
 		4BB4BFB622A4372E0069048D /* Macintosh */ = {
 			isa = PBXGroup;
 			children = (
@@ -3243,6 +3256,7 @@
 				4B1E85791D174DEC001EF87D /* 6532 */,
 				4BC9DF4C1D04691600F44158 /* 6560 */,
 				4BE845221F2FF7F400A5EA22 /* 6845 */,
+				4BB307B8235001C300457D33 /* 6850 */,
 				4BD9137C1F3115AC009BCF85 /* 8255 */,
 				4BBC951F1F368D87008F4C34 /* 8272 */,
 				4BB244D222AABAF500BE20E5 /* 8530 */,
@@ -4088,6 +4102,7 @@
 				4B055A8E1FAE85920060FFFF /* BestEffortUpdater.cpp in Sources */,
 				4B055AB01FAE86070060FFFF /* PulseQueuedTape.cpp in Sources */,
 				4B055AAC1FAE85FD0060FFFF /* PCMSegment.cpp in Sources */,
+				4BB307BC235001C300457D33 /* 6850.cpp in Sources */,
 				4B055AB31FAE860F0060FFFF /* CSW.cpp in Sources */,
 				4B89451D201967B4007DE474 /* Disk.cpp in Sources */,
 				4BDACBED22FFA5D20045EF7E /* ncr5380.cpp in Sources */,
@@ -4376,6 +4391,7 @@
 				4B54C0C81F8D91E50050900F /* Keyboard.cpp in Sources */,
 				4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */,
 				4BEE0A701D72496600532C7B /* PRG.cpp in Sources */,
+				4BB307BB235001C300457D33 /* 6850.cpp in Sources */,
 				4BF437EE209D0F7E008CBD6B /* SegmentParser.cpp in Sources */,
 				4BC131762346DE9100E4FF3D /* StaticAnalyser.cpp in Sources */,
 				4B8334861F5DA3780097E338 /* 6502Storage.cpp in Sources */,

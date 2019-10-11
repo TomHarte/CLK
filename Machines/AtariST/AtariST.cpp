@@ -14,6 +14,7 @@
 
 #include "../../Components/AY38910/AY38910.hpp"
 #include "../../Components/68901/MFP68901.hpp"
+#include "../../Components/6850/6850.hpp"
 
 #include "Video.hpp"
 #include "../../ClockReceiver/JustInTime.hpp"
@@ -267,6 +268,31 @@ class ConcreteMachine:
 								}
 							}
 						break;
+
+						// ACIAs.
+						case 0x7ffe00:	case 0x7ffe01:	case 0x7ffe02:	case 0x7ffe03: {
+							// Set VPA.
+							mc68000_.set_is_peripheral_address(!cycle.data_select_active());
+							if(!cycle.data_select_active()) return HalfCycles(0);
+
+							const auto acia_ = (address < 0x7ffe02) ? &keyboard_acia_ : &midi_acia_;
+
+							if(cycle.operation & Microcycle::Read) {
+								const uint8_t value = (*acia_)->read(int(address));
+								if(cycle.operation & Microcycle::SelectByte) {
+									cycle.value->halves.low = value;
+								} else {
+									cycle.value->halves.high = value;
+									cycle.value->halves.low = 0xff;
+								}
+							} else {
+								if(cycle.operation & Microcycle::SelectByte) {
+									(*acia_)->write(int(address), cycle.value->halves.low);
+								} else {
+									(*acia_)->write(int(address), cycle.value->halves.high);
+								}
+							}
+						} break;
 					}
 				return HalfCycles(0);
 			}
@@ -325,8 +351,11 @@ class ConcreteMachine:
 
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 		JustInTimeActor<Video, HalfCycles> video_;
-		JustInTimeActor<Motorola::MFP68901::MFP68901, HalfCycles> mfp_;
 		HalfCycles cycles_until_video_event_;
+
+		JustInTimeActor<Motorola::MFP68901::MFP68901, HalfCycles> mfp_;
+		JustInTimeActor<Motorola::ACIA::ACIA, HalfCycles> keyboard_acia_;
+		JustInTimeActor<Motorola::ACIA::ACIA, HalfCycles> midi_acia_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910 ay_;
