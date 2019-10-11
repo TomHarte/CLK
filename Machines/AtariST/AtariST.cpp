@@ -45,6 +45,7 @@ class ConcreteMachine:
 			speaker_.set_input_rate(CLOCK_RATE / 4);
 
 			ram_.resize(512 * 512);
+			video_->set_ram(ram_.data());
 			Memory::Fuzz(ram_);
 
 			std::vector<ROMMachine::ROM> rom_descriptions = {
