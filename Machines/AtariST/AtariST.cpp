@@ -263,9 +263,9 @@ class ConcreteMachine:
 								}
 							} else {
 								if(cycle.operation & Microcycle::SelectByte) {
-									video_->write(int(address), cycle.value->halves.low);
+									video_->write(int(address), uint16_t(cycle.value->halves.low << cycle.byte_shift()));
 								} else {
-									video_->write(int(address), cycle.value->halves.high);
+									video_->write(int(address), cycle.value->full);
 								}
 							}
 						break;

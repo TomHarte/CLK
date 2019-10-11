@@ -233,7 +233,7 @@ uint8_t Video::read(int address) {
 	return 0xff;
 }
 
-void Video::write(int address, uint8_t value) {
+void Video::write(int address, uint16_t value) {
 	LOG("[Video] write " << PADHEX(2) << int(value) << " to " << PADHEX(2) << (address & 0x3f));
 	address &= 0x3f;
 	switch(address) {
@@ -247,8 +247,10 @@ void Video::write(int address, uint8_t value) {
 		case 0x20:	case 0x21:	case 0x22:	case 0x23:
 		case 0x24:	case 0x25:	case 0x26:	case 0x27:
 		case 0x28:	case 0x29:	case 0x2a:	case 0x2b:
-		case 0x2c:	case 0x2d:	case 0x2e:	case 0x2f:
-			palette_[address - 0x20] = uint16_t((value & 0x777) << 5);
-		break;
+		case 0x2c:	case 0x2d:	case 0x2e:	case 0x2f: {
+			uint8_t *const entry = reinterpret_cast<uint8_t *>(&palette_[address - 0x20]);
+			entry[0] = uint8_t((value & 0x700) >> 7);
+			entry[1] = uint8_t((value & 0x77) << 1);
+		} break;
 	}
 }
