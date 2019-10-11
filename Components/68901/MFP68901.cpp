@@ -8,6 +8,7 @@
 
 #include "MFP68901.hpp"
 
+#define LOG_PREFIX "[MFP] "
 #include "../../Outputs/Log.hpp"
 
 using namespace Motorola::MFP68901;
@@ -38,7 +39,7 @@ uint8_t MFP68901::read(int address) {
 		case 0x16:		LOG("Read: transmitter status");		break;
 		case 0x17:		LOG("Read: USART data");				break;
 	}
-	return 0xff;
+	return 0x00;
 }
 
 void MFP68901::write(int address, uint8_t value) {

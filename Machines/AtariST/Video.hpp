@@ -39,6 +39,8 @@ class Video {
 		bool vsync();
 		bool display_enabled();
 
+		void set_ram(uint16_t *);
+
 		uint8_t read(int address);
 		void write(int address, uint8_t value);
 
@@ -46,6 +48,12 @@ class Video {
 		Outputs::CRT::CRT crt_;
 
 		uint16_t palette_[16];
+		int base_address_ = 0;
+		int current_address_ = 0;
+
+		uint16_t *ram_;
+		uint16_t line_buffer_[256];
+		uint16_t *pixel_pointer_;
 
 		int x = 0, y = 0;
 		void output_border(int duration);

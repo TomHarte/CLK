@@ -53,6 +53,10 @@ Video::Video() :
 	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 }
 
+void Video::set_ram(uint16_t *ram) {
+	ram_ = ram;
+}
+
 void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
@@ -82,13 +86,42 @@ void Video::run_for(HalfCycles duration) {
 			Period(mode_params.end_of_blank, 	mode_params.start_of_output, 	output_border);
 
 			if(x >= mode_params.start_of_output && x < mode_params.end_of_output) {
+				if(x == mode_params.start_of_output) {
+					// TODO: resolutions other than 320.
+					pixel_pointer_ = reinterpret_cast<uint16_t *>(crt_.begin_data(320));
+				}
+
 				const auto target = std::min(mode_params.end_of_output, final_x);
-				x = target;
+				while(x < target) {
+					if(!(x&31) && pixel_pointer_) {
+						uint16_t source[4] = {
+							ram_[current_address_ + 0],
+							ram_[current_address_ + 1],
+							ram_[current_address_ + 2],
+							ram_[current_address_ + 3],
+						};
+						current_address_ += 4;
+
+						for(int c = 0; c < 16; ++c) {
+							*pixel_pointer_ = palette_[
+								((source[0] >> 12) & 0x8)	|
+								((source[1] >> 13) & 0x4)	|
+								((source[2] >> 14) & 0x2)	|
+								((source[3] >> 15) & 0x1)
+							];
+							source[0] <<= 1;
+							source[1] <<= 1;
+							source[2] <<= 1;
+							source[3] <<= 1;
+							++pixel_pointer_;
+						}
+					}
+					++x;
+				}
 
 				if(x == mode_params.end_of_output) {
-					uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-					if(colour_pointer) *colour_pointer = 0xffff;
-					crt_.output_level(mode_params.end_of_output - mode_params.start_of_output);
+					crt_.output_data(mode_params.end_of_output - mode_params.start_of_output, 320);
+					pixel_pointer_ = nullptr;
 				}
 			}
 
@@ -114,6 +147,7 @@ void Video::run_for(HalfCycles duration) {
 		if(x == mode_params.line_length) {
 			x = 0;
 			y = (y + 1) % mode_params.lines_per_frame;
+			if(!y) current_address_ = base_address_;
 		}
 	}
 
@@ -188,6 +222,14 @@ HalfCycles Video::get_next_sequence_point() {
 
 uint8_t Video::read(int address) {
 	LOG("[Video] read " << (address & 0x3f));
+	address &= 0x3f;
+	switch(address) {
+		case 0x00:	return uint8_t(base_address_ >> 16);
+		case 0x01:	return uint8_t(base_address_ >> 8);
+		case 0x02:	return uint8_t(current_address_ >> 16);
+		case 0x03:	return uint8_t(current_address_ >> 8);
+		case 0x04:	return uint8_t(current_address_);
+	}
 	return 0xff;
 }
 
@@ -196,6 +238,10 @@ void Video::write(int address, uint8_t value) {
 	address &= 0x3f;
 	switch(address) {
 		default: break;
+
+		// Start address.
+		case 0x00:	base_address_ = (base_address_ & 0x00ffff) | (value << 16);	break;
+		case 0x01:	base_address_ = (base_address_ & 0xff00ff) | (value << 8);	break;
 
 		// Palette.
 		case 0x20:	case 0x21:	case 0x22:	case 0x23:
