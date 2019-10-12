@@ -40,6 +40,14 @@ class ACIA {
 	private:
 		int divider_ = 1;
 		uint8_t status_ = 0x00;
+		enum class Parity {
+			Even, Odd, None
+		} parity_ = Parity::None;
+		int word_size_ = 7, stop_bits_ = 2;
+		bool receive_interrupt_enabled_ = false;
+		bool transmit_interrupt_enabled_ = false;
+
+		void set_ready_to_transmit(bool);
 };
 
 }
