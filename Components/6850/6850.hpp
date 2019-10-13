@@ -11,12 +11,13 @@
 
 #include <cstdint>
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../SerialPort/SerialPort.hpp"
 
 namespace Motorola {
 namespace ACIA {
 
-class ACIA {
+class ACIA: public ClockingHint::Source {
 	public:
 		ACIA();
 
@@ -40,6 +41,8 @@ class ACIA {
 
 		void run_for(HalfCycles);
 
+		bool get_interrupt_line();
+
 		// Input lines.
 		Serial::Line receive;
 		Serial::Line clear_to_send;
@@ -62,6 +65,10 @@ class ACIA {
 
 		bool receive_interrupt_enabled_ = false;
 		bool transmit_interrupt_enabled_ = false;
+
+		bool interrupt_request_ = false;
+
+		ClockingHint::Preference preferred_clocking() final;
 };
 
 }

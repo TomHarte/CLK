@@ -18,12 +18,14 @@ ACIA::ACIA() {}
 uint8_t ACIA::read(int address) {
 	if(address&1) {
 		LOG("Read from receive register");
+		interrupt_request_ = false;
 	} else {
 		LOG("Read status");
 		return
 			((next_transmission_ == NoTransmission) ? 0x02 : 0x00) |
 			(data_carrier_detect.read() ? 0x04 : 0x00) |
-			(clear_to_send.read() ? 0x08 : 0x00)
+			(clear_to_send.read() ? 0x08 : 0x00) |
+			(interrupt_request_ ? 0x80 : 0x00)
 		;
 
 		// b0: receive data full.
@@ -42,6 +44,8 @@ void ACIA::write(int address, uint8_t value) {
 	if(address&1) {
 		next_transmission_ = value;
 		consider_transmission();
+		update_clocking_observer();
+		interrupt_request_ = false;
 	} else {
 		if((value&3) == 3) {
 			transmit.reset_writing();
@@ -82,16 +86,22 @@ void ACIA::write(int address, uint8_t value) {
 
 void ACIA::run_for(HalfCycles length) {
 	// Transmission.
-	int transmit_advance = length.as_int();
-	if(next_transmission_ != NoTransmission) {
-		const auto write_data_time_remaining = transmit.write_data_time_remaining();
-		if(transmit_advance > write_data_time_remaining) {
+	const int transmit_advance = length.as_int();
+	const auto write_data_time_remaining = transmit.write_data_time_remaining();
+
+	if(transmit_advance > write_data_time_remaining) {
+		if(next_transmission_ != NoTransmission) {
 			transmit.flush_writing();
-			transmit_advance -= write_data_time_remaining;
 			consider_transmission();
+			transmit.advance_writer(transmit_advance - write_data_time_remaining);
+		} else {
+			transmit.advance_writer(transmit_advance);
+			update_clocking_observer();
+			interrupt_request_ |= transmit_interrupt_enabled_;
 		}
+	} else {
+		transmit.advance_writer(transmit_advance);
 	}
-	transmit.advance_writer(transmit_advance);
 
 	// Reception.
 }
@@ -128,4 +138,12 @@ void ACIA::consider_transmission() {
 		// Mark the transmit register as empty again.
 		next_transmission_ = NoTransmission;
 	}
+}
+
+ClockingHint::Preference ACIA::preferred_clocking() {
+	return (transmit.write_data_time_remaining() > 0) ? ClockingHint::Preference::JustInTime : ClockingHint::Preference::None;
+}
+
+bool ACIA::get_interrupt_line() {
+	return interrupt_request_;
 }
