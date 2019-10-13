@@ -11,12 +11,15 @@
 
 #include <cstdint>
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../SerialPort/SerialPort.hpp"
 
 namespace Motorola {
 namespace ACIA {
 
 class ACIA {
 	public:
+		ACIA();
+
 		/*!
 			Reads from the ACIA.
 
@@ -37,17 +40,28 @@ class ACIA {
 
 		void run_for(HalfCycles);
 
+		// Input lines.
+		Serial::Line receive;
+		Serial::Line clear_to_send;
+		Serial::Line data_carrier_detect;
+
+		// Output lines.
+		Serial::Line transmit;
+		Serial::Line request_to_send;
+
 	private:
 		int divider_ = 1;
-		uint8_t status_ = 0x00;
 		enum class Parity {
 			Even, Odd, None
 		} parity_ = Parity::None;
-		int word_size_ = 7, stop_bits_ = 2;
+		int data_bits_ = 7, stop_bits_ = 2;
+
+		static const int NoTransmission = 0x100;
+		int next_transmission_ = NoTransmission;
+		void consider_transmission();
+
 		bool receive_interrupt_enabled_ = false;
 		bool transmit_interrupt_enabled_ = false;
-
-		void set_ready_to_transmit(bool);
 };
 
 }
