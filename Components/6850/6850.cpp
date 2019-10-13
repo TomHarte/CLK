@@ -89,18 +89,20 @@ void ACIA::run_for(HalfCycles length) {
 	const int transmit_advance = length.as_int();
 	const auto write_data_time_remaining = transmit.write_data_time_remaining();
 
-	if(transmit_advance > write_data_time_remaining) {
-		if(next_transmission_ != NoTransmission) {
-			transmit.flush_writing();
-			consider_transmission();
-			transmit.advance_writer(transmit_advance - write_data_time_remaining);
+	if(write_data_time_remaining) {
+		if(transmit_advance > write_data_time_remaining) {
+			if(next_transmission_ != NoTransmission) {
+				transmit.flush_writing();
+				consider_transmission();
+				transmit.advance_writer(transmit_advance - write_data_time_remaining);
+			} else {
+				transmit.advance_writer(transmit_advance);
+				update_clocking_observer();
+				interrupt_request_ |= transmit_interrupt_enabled_;
+			}
 		} else {
 			transmit.advance_writer(transmit_advance);
-			update_clocking_observer();
-			interrupt_request_ |= transmit_interrupt_enabled_;
 		}
-	} else {
-		transmit.advance_writer(transmit_advance);
 	}
 
 	// Reception.

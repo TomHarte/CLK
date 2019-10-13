@@ -347,6 +347,8 @@ class ConcreteMachine:
 		forceinline void advance_time(HalfCycles length) {
 			cycles_since_audio_update_ += length;
 			mfp_ += length;
+			keyboard_acia_ += length;
+			midi_acia_ += length;
 
 			while(length >= cycles_until_video_event_) {
 				length -= cycles_until_video_event_;
@@ -366,12 +368,12 @@ class ConcreteMachine:
 		}
 
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
-		JustInTimeActor<Video, HalfCycles> video_;
+		JustInTimeActor<Video> video_;
 		HalfCycles cycles_until_video_event_;
 
-		JustInTimeActor<Motorola::MFP68901::MFP68901, HalfCycles> mfp_;
-		JustInTimeActor<Motorola::ACIA::ACIA, HalfCycles> keyboard_acia_;
-		JustInTimeActor<Motorola::ACIA::ACIA, HalfCycles> midi_acia_;
+		JustInTimeActor<Motorola::MFP68901::MFP68901> mfp_;
+		JustInTimeActor<Motorola::ACIA::ACIA, 10> keyboard_acia_;
+		JustInTimeActor<Motorola::ACIA::ACIA, 10> midi_acia_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910 ay_;

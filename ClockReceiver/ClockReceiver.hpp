@@ -139,10 +139,10 @@ template <class T> class WrappedInt {
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
 			the value of @c this modulo @c divisor and @c divided by @c divisor is returned.
 		*/
-		forceinline T divide(const T &divisor) {
-			T result(length_ / divisor.length_);
-			length_ %= divisor.length_;
-			return result;
+		template <typename Result = T> forceinline Result divide(const T &divisor) {
+			Result r;
+			static_cast<T *>(this)->fill(r, divisor);
+			return r;
 		}
 
 		/*!
@@ -176,6 +176,11 @@ class Cycles: public WrappedInt<Cycles> {
 		void fill(Cycles &result) {
 			result.length_ = length_;
 			length_ = 0;
+		}
+
+		void fill(Cycles &result, const Cycles &divisor) {
+			result.length_ = length_ / divisor.length_;
+			length_ %= divisor.length_;
 		}
 };
 
@@ -214,6 +219,16 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		void fill(HalfCycles &result) {
 			result.length_ = length_;
 			length_ = 0;
+		}
+
+		void fill(Cycles &result, const HalfCycles &divisor) {
+			result = Cycles(length_ / (divisor.length_ << 1));
+			length_ %= (divisor.length_ << 1);
+		}
+
+		void fill(HalfCycles &result, const HalfCycles &divisor) {
+			result.length_ = length_ / divisor.length_;
+			length_ %= divisor.length_;
 		}
 };
 
