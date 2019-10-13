@@ -656,9 +656,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			return mouse_;
 		}
 
+		using IWMActor = JustInTimeActor<IWM, 1, HalfCycles, Cycles>;
+
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:
-				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, DeferredAudio &audio, JustInTimeActor<IWM, HalfCycles, Cycles> &iwm, Inputs::QuadratureMouse &mouse) :
+				VIAPortHandler(ConcreteMachine &machine, RealTimeClock &clock, Keyboard &keyboard, DeferredAudio &audio, IWMActor &iwm, Inputs::QuadratureMouse &mouse) :
 					machine_(machine), clock_(clock), keyboard_(keyboard), audio_(audio), iwm_(iwm), mouse_(mouse) {}
 
 				using Port = MOS::MOS6522::Port;
@@ -764,14 +766,14 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				RealTimeClock &clock_;
 				Keyboard &keyboard_;
 				DeferredAudio &audio_;
-				JustInTimeActor<IWM, HalfCycles, Cycles> &iwm_;
+				IWMActor &iwm_;
 				Inputs::QuadratureMouse &mouse_;
 		};
 
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
 
 		DriveSpeedAccumulator drive_speed_accumulator_;
-		JustInTimeActor<IWM, HalfCycles, Cycles> iwm_;
+		IWMActor iwm_;
 
 		DeferredAudio audio_;
 		Video video_;
