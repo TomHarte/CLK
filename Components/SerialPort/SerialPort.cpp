@@ -59,10 +59,12 @@ int Line::write_data_time_remaining() {
 }
 
 void Line::reset_writing() {
+	remaining_delays_ = 0;
 	events_.clear();
 }
 
 void Line::flush_writing() {
+	remaining_delays_ = 0;
 	for(const auto &event : events_) {
 		switch(event.type) {
 			default: break;
