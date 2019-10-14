@@ -97,7 +97,7 @@ void ACIA::run_for(HalfCycles length) {
 	const auto write_data_time_remaining = transmit.write_data_time_remaining();
 
 	if(write_data_time_remaining) {
-		if(transmit_advance > write_data_time_remaining) {
+		if(transmit_advance >= write_data_time_remaining) {
 			if(next_transmission_ != NoTransmission) {
 				transmit.flush_writing();
 				consider_transmission();
@@ -142,7 +142,7 @@ void ACIA::consider_transmission() {
 
 		// Output all that.
 		const int total_bits = 1 + data_bits_ + stop_bits_ + (parity_ != Parity::None);
-		transmit.write(divider_, total_bits, transmission);
+		transmit.write(divider_ * 2, total_bits, transmission);
 
 		// Mark the transmit register as empty again.
 		next_transmission_ = NoTransmission;
