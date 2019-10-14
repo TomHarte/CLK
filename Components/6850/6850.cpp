@@ -29,7 +29,8 @@ uint8_t ACIA::read(int address) {
 	} else {
 		LOG("Read status");
 		return
-			((next_transmission_ == NoTransmission) ? 0x02 : 0x00) |
+			((received_data_ == NoValue) ? 0x00 : 0x01) |
+			((next_transmission_ == NoValue) ? 0x02 : 0x00) |
 			(data_carrier_detect.read() ? 0x04 : 0x00) |
 			(clear_to_send.read() ? 0x08 : 0x00) |
 			(interrupt_request_ ? 0x80 : 0x00)
@@ -98,7 +99,7 @@ void ACIA::run_for(HalfCycles length) {
 
 	if(write_data_time_remaining) {
 		if(transmit_advance >= write_data_time_remaining) {
-			if(next_transmission_ != NoTransmission) {
+			if(next_transmission_ != NoValue) {
 				transmit.flush_writing();
 				consider_transmission();
 				transmit.advance_writer(transmit_advance - write_data_time_remaining);
@@ -116,7 +117,7 @@ void ACIA::run_for(HalfCycles length) {
 }
 
 void ACIA::consider_transmission() {
-	if(next_transmission_ != NoTransmission && !transmit.write_data_time_remaining()) {
+	if(next_transmission_ != NoValue && !transmit.write_data_time_remaining()) {
 		// Establish start bit and [7 or 8] data bits.
 		if(data_bits_ == 7) next_transmission_ &= 0x7f;
 		int transmission = next_transmission_ << 1;
@@ -145,7 +146,7 @@ void ACIA::consider_transmission() {
 		transmit.write(divider_ * 2, total_bits, transmission);
 
 		// Mark the transmit register as empty again.
-		next_transmission_ = NoTransmission;
+		next_transmission_ = NoValue;
 	}
 }
 

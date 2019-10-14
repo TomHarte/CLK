@@ -69,8 +69,10 @@ class ACIA: public ClockingHint::Source {
 		} parity_ = Parity::None;
 		int data_bits_ = 7, stop_bits_ = 2;
 
-		static const int NoTransmission = 0x100;
-		int next_transmission_ = NoTransmission;
+		static const int NoValue = 0x100;
+		int next_transmission_ = NoValue;
+		int received_data_ = NoValue;
+
 		void consider_transmission();
 
 		bool receive_interrupt_enabled_ = false;
