@@ -19,7 +19,13 @@ namespace ACIA {
 
 class ACIA: public ClockingHint::Source {
 	public:
-		ACIA(int clock_rate);
+		static constexpr const HalfCycles SameAsTransmit = HalfCycles(0);
+
+		/*!
+			Constructs a new instance of ACIA which will receive a transmission clock at a rate of
+			@c transmit_clock_rate, and a receive clock at a rate of @c receive_clock_rate.
+		*/
+		ACIA(HalfCycles transmit_clock_rate, HalfCycles receive_clock_rate = SameAsTransmit);
 
 		/*!
 			Reads from the ACIA.
@@ -39,9 +45,13 @@ class ACIA: public ClockingHint::Source {
 		*/
 		void write(int address, uint8_t value);
 
-		void run_for(HalfCycles);
+		/*!
+			Advances @c transmission_cycles in time, which should be
+			counted relative to the @c transmit_clock_rate.
+		*/
+		void run_for(HalfCycles transmission_cycles);
 
-		bool get_interrupt_line();
+		bool get_interrupt_line() const;
 
 		// Input lines.
 		Serial::Line receive;
@@ -69,6 +79,9 @@ class ACIA: public ClockingHint::Source {
 		bool interrupt_request_ = false;
 
 		ClockingHint::Preference preferred_clocking() final;
+
+		HalfCycles transmit_clock_rate_;
+		HalfCycles receive_clock_rate_;
 };
 
 }

@@ -39,8 +39,8 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
-			keyboard_acia_(CLOCK_RATE / 10),
-			midi_acia_(CLOCK_RATE / 10),
+			keyboard_acia_(Cycles(500000)),
+			midi_acia_(Cycles(500000)),
 			ay_(audio_queue_),
 			speaker_(ay_) {
 			set_clock_rate(CLOCK_RATE);
@@ -372,8 +372,8 @@ class ConcreteMachine:
 		HalfCycles cycles_until_video_event_;
 
 		JustInTimeActor<Motorola::MFP68901::MFP68901> mfp_;
-		JustInTimeActor<Motorola::ACIA::ACIA, 10> keyboard_acia_;
-		JustInTimeActor<Motorola::ACIA::ACIA, 10> midi_acia_;
+		JustInTimeActor<Motorola::ACIA::ACIA, 16> keyboard_acia_;
+		JustInTimeActor<Motorola::ACIA::ACIA, 16> midi_acia_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910 ay_;

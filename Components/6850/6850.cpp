@@ -13,9 +13,13 @@
 
 using namespace Motorola::ACIA;
 
-ACIA::ACIA(int clock_rate) {
-	transmit.set_writer_clock_rate(clock_rate);
-	request_to_send.set_writer_clock_rate(clock_rate);
+const HalfCycles ACIA::SameAsTransmit;
+
+ACIA::ACIA(HalfCycles transmit_clock_rate, HalfCycles receive_clock_rate) :
+	transmit_clock_rate_(transmit_clock_rate),
+	receive_clock_rate_((receive_clock_rate != SameAsTransmit) ? receive_clock_rate : transmit_clock_rate) {
+	transmit.set_writer_clock_rate(transmit_clock_rate.as_int());
+	request_to_send.set_writer_clock_rate(transmit_clock_rate.as_int());
 }
 
 uint8_t ACIA::read(int address) {
@@ -149,6 +153,6 @@ ClockingHint::Preference ACIA::preferred_clocking() {
 	return (transmit.write_data_time_remaining() > 0) ? ClockingHint::Preference::JustInTime : ClockingHint::Preference::None;
 }
 
-bool ACIA::get_interrupt_line() {
+bool ACIA::get_interrupt_line() const {
 	return interrupt_request_;
 }
