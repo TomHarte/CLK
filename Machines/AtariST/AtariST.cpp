@@ -39,8 +39,8 @@ class ConcreteMachine:
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
-			keyboard_acia_(),
-			midi_acia_(),
+			keyboard_acia_(CLOCK_RATE / 10),
+			midi_acia_(CLOCK_RATE / 10),
 			ay_(audio_queue_),
 			speaker_(ay_) {
 			set_clock_rate(CLOCK_RATE);

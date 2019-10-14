@@ -24,6 +24,8 @@ namespace Serial {
 */
 class Line {
 	public:
+		void set_writer_clock_rate(int clock_rate);
+
 		/// Advances the read position by @c cycles relative to the writer's
 		/// clock rate.
 		void advance_writer(int cycles);
@@ -61,6 +63,7 @@ class Line {
 		std::vector<Event> events_;
 		int remaining_delays_ = 0;
 		bool level_ = false;
+		int clock_rate_ = 0;
 };
 
 /*!

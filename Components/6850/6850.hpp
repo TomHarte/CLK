@@ -19,7 +19,7 @@ namespace ACIA {
 
 class ACIA: public ClockingHint::Source {
 	public:
-		ACIA();
+		ACIA(int clock_rate);
 
 		/*!
 			Reads from the ACIA.

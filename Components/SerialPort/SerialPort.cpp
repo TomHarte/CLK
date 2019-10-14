@@ -10,6 +10,10 @@
 
 using namespace Serial;
 
+void Line::set_writer_clock_rate(int clock_rate) {
+	clock_rate_ = clock_rate;
+}
+
 void Line::advance_writer(int cycles) {
 	remaining_delays_ = std::max(remaining_delays_ - cycles, 0);
 	while(!events_.empty()) {
