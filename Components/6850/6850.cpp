@@ -13,7 +13,10 @@
 
 using namespace Motorola::ACIA;
 
-ACIA::ACIA() {}
+ACIA::ACIA(int clock_rate) {
+	transmit.set_writer_clock_rate(clock_rate);
+	request_to_send.set_writer_clock_rate(clock_rate);
+}
 
 uint8_t ACIA::read(int address) {
 	if(address&1) {
