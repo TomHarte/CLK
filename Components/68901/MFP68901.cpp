@@ -9,6 +9,7 @@
 #include "MFP68901.hpp"
 
 #define LOG_PREFIX "[MFP] "
+#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 using namespace Motorola::MFP68901;
