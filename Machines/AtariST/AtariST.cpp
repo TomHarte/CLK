@@ -21,6 +21,7 @@
 #include "../../ClockReceiver/ForceInline.hpp"
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Outputs/Log.hpp"
 
 #include "../Utility/MemoryPacker.hpp"
 #include "../Utility/MemoryFuzzer.hpp"
@@ -30,8 +31,50 @@ namespace ST {
 
 const int CLOCK_RATE = 8000000;
 
-using Target = Analyser::Static::Target;
+/*!
+	A receiver for the Atari ST's "intelligent keyboard" commands, which actually cover
+	keyboard input and output and mouse handling.
+*/
+class IntelligentKeyboard:
+	public Serial::Line::ReadDelegate {
+	public:
+		IntelligentKeyboard(Serial::Line &input, Serial::Line &output) : output_line_(output) {
+			input.set_read_delegate(this);
+		}
 
+		void serial_line_did_change_output(Serial::Line *, Storage::Time time_since_last_change, bool new_level) final {
+			// Figure out how many bits have passed. TODO: in fixed point?
+			const float number_of_bits = time_since_last_change.get<float>() * 7812.5f + bit_offset_;
+			bit_offset_ = fmodf(number_of_bits, 1.0f);
+
+			int bits_remaining = int(number_of_bits);
+			while(bits_remaining--) {
+				if(!bit_count_) {
+					// Check for a potential start bit.
+					if(!new_level) {
+						bit_count_ = 10;
+						command_ = 0;
+					}
+				} else {
+					command_ >>= 1;
+					command_ |= new_level ? 0 : 0x200;
+					--bit_count_;
+
+					if(!bit_count_) {
+						LOG("[IKBD] Should perform " << PADHEX(2) << ((command_ >> 1) & 0xff));
+					}
+				}
+			}
+		}
+
+	private:
+		int bit_count_ = 0;
+		int command_ = 0;
+		Serial::Line &output_line_;
+		float bit_offset_ = 0.0f;
+};
+
+using Target = Analyser::Static::Target;
 class ConcreteMachine:
 	public Atari::ST::Machine,
 	public CPU::MC68000::BusHandler,
@@ -42,7 +85,8 @@ class ConcreteMachine:
 			keyboard_acia_(Cycles(500000)),
 			midi_acia_(Cycles(500000)),
 			ay_(audio_queue_),
-			speaker_(ay_) {
+			speaker_(ay_),
+			ikbd_(keyboard_acia_->transmit, keyboard_acia_->receive) {
 			set_clock_rate(CLOCK_RATE);
 			speaker_.set_input_rate(CLOCK_RATE / 4);
 
@@ -379,6 +423,8 @@ class ConcreteMachine:
 		GI::AY38910::AY38910 ay_;
 		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
 		HalfCycles cycles_since_audio_update_;
+
+		IntelligentKeyboard ikbd_;
 
 		std::vector<uint16_t> ram_;
 		std::vector<uint16_t> rom_;
