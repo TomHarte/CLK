@@ -10,6 +10,7 @@
 #define SerialPort_hpp
 
 #include <vector>
+#include "../../Storage/Storage.hpp"
 
 namespace Serial {
 
@@ -53,6 +54,11 @@ class Line {
 		/// @returns The instantaneous level of this line.
 		bool read();
 
+		struct ReadDelegate {
+			virtual void serial_line_did_change_output(Line *line, Storage::Time time_since_last_change, bool new_level) = 0;
+		};
+		void set_read_delegate(ReadDelegate *delegate);
+
 	private:
 		struct Event {
 			enum Type {
@@ -64,6 +70,9 @@ class Line {
 		int remaining_delays_ = 0;
 		bool level_ = false;
 		int clock_rate_ = 0;
+
+		ReadDelegate *read_delegate_ = nullptr;
+		int write_cycles_since_delegate_call_ = 0;
 };
 
 /*!

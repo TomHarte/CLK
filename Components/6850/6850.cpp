@@ -57,6 +57,7 @@ void ACIA::write(int address, uint8_t value) {
 	} else {
 		if((value&3) == 3) {
 			transmit.reset_writing();
+			transmit.write(true);
 			request_to_send.reset_writing();
 		} else {
 			switch(value & 3) {
