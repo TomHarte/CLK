@@ -55,7 +55,7 @@ class Line {
 		bool read();
 
 		struct ReadDelegate {
-			virtual void serial_line_did_change_output(Line *line, Storage::Time time_since_last_change, bool new_level) = 0;
+			virtual void serial_line_did_change_output(Line *line, Storage::Time time_since_last_change, bool old_level) = 0;
 		};
 		void set_read_delegate(ReadDelegate *delegate);
 
