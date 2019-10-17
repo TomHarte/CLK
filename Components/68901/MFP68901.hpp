@@ -15,6 +15,16 @@
 namespace Motorola {
 namespace MFP68901 {
 
+class PortHandler {
+	public:
+		/*!
+			Requests the current input on the GPIP port.
+		*/
+		virtual uint8_t get_port_input() {
+			return 0xff;
+		}
+};
+
 class MFP68901 {
 	public:
 		uint8_t read(int address);
@@ -24,6 +34,10 @@ class MFP68901 {
 		HalfCycles get_next_sequence_point();
 
 		void set_timer_event_input(int channel, bool value);
+
+		void set_port_handler(PortHandler *);
+		void set_port_input(uint8_t);
+		uint8_t get_port_output();
 
 	private:
 		// MARK: - Timers
