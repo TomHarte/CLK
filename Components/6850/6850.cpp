@@ -9,6 +9,7 @@
 #include "6850.hpp"
 
 #define LOG_PREFIX "[6850] "
+#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 using namespace Motorola::ACIA;
@@ -145,6 +146,7 @@ void ACIA::consider_transmission() {
 		// Output all that.
 		const int total_bits = 1 + data_bits_ + stop_bits_ + (parity_ != Parity::None);
 		transmit.write(divider_ * 2, total_bits, transmission);
+		printf("Transmitted %02x [%03x]\n", next_transmission_, transmission);
 
 		// Mark the transmit register as empty again.
 		next_transmission_ = NoValue;

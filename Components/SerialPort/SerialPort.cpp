@@ -31,7 +31,7 @@ void Line::advance_writer(int cycles) {
 
 			if(old_level != level_) {
 				if(read_delegate_) {
-					read_delegate_->serial_line_did_change_output(this, Storage::Time(write_cycles_since_delegate_call_, clock_rate_), level_);
+					read_delegate_->serial_line_did_change_output(this, Storage::Time(write_cycles_since_delegate_call_, clock_rate_), old_level);
 					write_cycles_since_delegate_call_ = 0;
 				}
 			}
@@ -89,11 +89,11 @@ void Line::flush_writing() {
 		}
 
 		if(new_level != level_) {
-			level_ = new_level;
 			if(read_delegate_) {
 				read_delegate_->serial_line_did_change_output(this, Storage::Time(write_cycles_since_delegate_call_, clock_rate_), level_);
 				write_cycles_since_delegate_call_ = 0;
 			}
+			level_ = new_level;
 		}
 	}
 	events_.clear();
