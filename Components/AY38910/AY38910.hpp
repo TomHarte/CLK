@@ -35,9 +35,10 @@ class PortHandler {
 		}
 
 		/*!
-			Requests the current input on an AY port.
+			Sets the current output on an AY port.
 
-			@param port_b @c true if the input being queried is Port B. @c false if it is Port A.
+			@param port_b @c true if the output being posted is Port B. @c false if it is Port A.
+			@param value the value now being output.
 		*/
 		virtual void set_port_output(bool port_b, uint8_t value) {}
 };
