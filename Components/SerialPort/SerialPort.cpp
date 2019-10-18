@@ -16,30 +16,33 @@ void Line::set_writer_clock_rate(int clock_rate) {
 
 void Line::advance_writer(int cycles) {
 	remaining_delays_ = std::max(remaining_delays_ - cycles, 0);
-	while(!events_.empty()) {
-		if(events_.front().delay < cycles) {
-			cycles -= events_.front().delay;
-			write_cycles_since_delegate_call_ += events_.front().delay;
-			const auto old_level = level_;
+	if(events_.empty()) {
+		write_cycles_since_delegate_call_ += cycles;
+		if(write_cycles_since_delegate_call_ > 256) update_delegate(level_);
+	} else {
+		while(!events_.empty()) {
+			if(events_.front().delay < cycles) {
+				cycles -= events_.front().delay;
+				write_cycles_since_delegate_call_ += events_.front().delay;
+				const auto old_level = level_;
 
-			auto iterator = events_.begin() + 1;
-			while(iterator != events_.end() && iterator->type != Event::Delay) {
-				level_ = iterator->type == Event::SetHigh;
-				++iterator;
-			}
-			events_.erase(events_.begin(), iterator);
+				auto iterator = events_.begin() + 1;
+				while(iterator != events_.end() && iterator->type != Event::Delay) {
+					level_ = iterator->type == Event::SetHigh;
+					++iterator;
+				}
+				events_.erase(events_.begin(), iterator);
 
-			if(old_level != level_) {
-				update_delegate(old_level);
+				if(old_level != level_) {
+					update_delegate(old_level);
+				}
+			} else {
+				events_.front().delay -= cycles;
+				write_cycles_since_delegate_call_ += cycles;
+				break;
 			}
-		} else {
-			events_.front().delay -= cycles;
-			write_cycles_since_delegate_call_ += cycles;
-			break;
 		}
 	}
-
-	// TODO: some sort of ongoing update_delegate() ?
 }
 
 void Line::write(bool level) {
