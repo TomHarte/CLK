@@ -102,7 +102,7 @@ void ACIA::run_for(HalfCycles length) {
 	if(write_data_time_remaining) {
 		if(transmit_advance >= write_data_time_remaining) {
 			if(next_transmission_ != NoValue) {
-				transmit.flush_writing();
+				transmit.advance_writer(write_data_time_remaining);
 				consider_transmission();
 				transmit.advance_writer(transmit_advance - write_data_time_remaining);
 			} else {

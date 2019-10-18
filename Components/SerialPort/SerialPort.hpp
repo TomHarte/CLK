@@ -48,16 +48,22 @@ class Line {
 		/// Eliminates all future write states, leaving the output at whatever it is now.
 		void reset_writing();
 
-		/// Applies all pending write changes instantly.
-		void flush_writing();
-
 		/// @returns The instantaneous level of this line.
 		bool read();
 
 		struct ReadDelegate {
-			virtual void serial_line_did_change_output(Line *line, Storage::Time time_since_last_change, bool old_level) = 0;
+			virtual bool serial_line_did_produce_bit(Line *line, int bit) = 0;
 		};
-		void set_read_delegate(ReadDelegate *delegate);
+		/*!
+			Sets a read delegate, which will receive samples of the output level every
+			@c bit_lengths of a second apart subject to a state machine:
+
+				* initially no bits will be delivered;
+				* when a zero level is first detected, the line will wait half a bit's length, then start
+				sampling at single-bit intervals, passing each bit to the delegate while it returns @c true;
+				* as soon as the delegate returns @c false, the line will return to the initial state.
+		*/
+		void set_read_delegate(ReadDelegate *delegate, Storage::Time bit_length);
 
 	private:
 		struct Event {
@@ -72,7 +78,14 @@ class Line {
 		int clock_rate_ = 0;
 
 		ReadDelegate *read_delegate_ = nullptr;
+		Storage::Time read_delegate_bit_length_, time_left_in_bit_;
 		int write_cycles_since_delegate_call_ = 0;
+		enum class ReadDelegatePhase {
+			WaitingForZero,
+			Serialising
+		} read_delegate_phase_ = ReadDelegatePhase::WaitingForZero;
+
+		void update_delegate(bool level);
 };
 
 /*!

@@ -30,10 +30,7 @@ void Line::advance_writer(int cycles) {
 			events_.erase(events_.begin(), iterator);
 
 			if(old_level != level_) {
-				if(read_delegate_) {
-					read_delegate_->serial_line_did_change_output(this, Storage::Time(write_cycles_since_delegate_call_, clock_rate_), old_level);
-					write_cycles_since_delegate_call_ = 0;
-				}
+				update_delegate(old_level);
 			}
 		} else {
 			events_.front().delay -= cycles;
@@ -41,6 +38,8 @@ void Line::advance_writer(int cycles) {
 			break;
 		}
 	}
+
+	// TODO: some sort of ongoing update_delegate() ?
 }
 
 void Line::write(bool level) {
@@ -75,35 +74,45 @@ void Line::reset_writing() {
 	events_.clear();
 }
 
-void Line::flush_writing() {
-	remaining_delays_ = 0;
-	for(const auto &event : events_) {
-		bool new_level = level_;
-		switch(event.type) {
-			default: break;
-			case Event::SetHigh:	new_level = true;	break;
-			case Event::SetLow:		new_level = false;	break;
-			case Event::Delay:
-				write_cycles_since_delegate_call_ += event.delay;
-			continue;
-		}
-
-		if(new_level != level_) {
-			if(read_delegate_) {
-				read_delegate_->serial_line_did_change_output(this, Storage::Time(write_cycles_since_delegate_call_, clock_rate_), level_);
-				write_cycles_since_delegate_call_ = 0;
-			}
-			level_ = new_level;
-		}
-	}
-	events_.clear();
-}
-
 bool Line::read() {
 	return level_;
 }
 
-void Line::set_read_delegate(ReadDelegate *delegate) {
+void Line::set_read_delegate(ReadDelegate *delegate, Storage::Time bit_length) {
 	read_delegate_ = delegate;
+	read_delegate_bit_length_ = bit_length;
 	write_cycles_since_delegate_call_ = 0;
+}
+
+void Line::update_delegate(bool level) {
+	// Exit early if there's no delegate, or if the delegate is waiting for
+	// zero and this isn't zero.
+	if(!read_delegate_) return;
+
+	const int cycles_to_forward = write_cycles_since_delegate_call_;
+	write_cycles_since_delegate_call_ = 0;
+	if(level && read_delegate_phase_ == ReadDelegatePhase::WaitingForZero) return;
+
+	// Deal with a transition out of waiting-for-zero mode by seeding time left
+	// in bit at half a bit.
+	if(read_delegate_phase_ == ReadDelegatePhase::WaitingForZero) {
+		time_left_in_bit_ = read_delegate_bit_length_;
+		time_left_in_bit_.clock_rate <<= 1;
+		read_delegate_phase_ = ReadDelegatePhase::Serialising;
+	}
+
+	// Forward as many bits as occur.
+	Storage::Time time_left(cycles_to_forward, clock_rate_);
+	const int bit = level ? 1 : 0;
+	int bits = 0;
+	while(time_left >= time_left_in_bit_) {
+		++bits;
+		if(!read_delegate_->serial_line_did_produce_bit(this, bit)) {
+			read_delegate_phase_ = ReadDelegatePhase::WaitingForZero;
+		}
+
+		time_left -= time_left_in_bit_;
+		time_left_in_bit_ = read_delegate_bit_length_;
+	}
+	time_left_in_bit_ -= time_left;
 }
