@@ -39,33 +39,18 @@ class IntelligentKeyboard:
 	public Serial::Line::ReadDelegate {
 	public:
 		IntelligentKeyboard(Serial::Line &input, Serial::Line &output) : output_line_(output) {
-			input.set_read_delegate(this);
+			input.set_read_delegate(this, Storage::Time(2, 15625));
 		}
 
-		void serial_line_did_change_output(Serial::Line *, Storage::Time time_since_last_change, bool old_level) final {
-			// Figure out how many bits have passed. TODO: in fixed point?
-			const float number_of_bits = time_since_last_change.get<float>() * 7812.5f + bit_offset_;
-			bit_offset_ = fmodf(number_of_bits, 1.0f);
-			printf("Changed from %d after %d bits\n", old_level, int(number_of_bits));
-
-			int bits_remaining = int(number_of_bits);
-			while(bits_remaining--) {
-				if(!bit_count_) {
-					// Check for a potential start bit.
-					if(!old_level) {
-						bit_count_ = 9;
-						command_ = 0;
-					}
-				} else {
-					command_ >>= 1;
-					command_ |= old_level ? 0x200 : 0x000;
-					--bit_count_;
-
-					if(!bit_count_) {
-						LOG("[IKBD] Should perform " << PADHEX(2) << ((command_ >> 1) & 0xff));
-					}
-				}
+		bool serial_line_did_produce_bit(Serial::Line *, int bit) final {
+			command_ = (command_ >> 1) | (bit << 9);
+			bit_count_ = (bit_count_ + 1) % 10;
+			if(!bit_count_) {
+				LOG("[IKBD] Should perform " << PADHEX(2) << ((command_ >> 1) & 0xff));
+				command_ = 0;
+				return false;
 			}
+			return true;
 		}
 
 	private:
