@@ -8,6 +8,7 @@
 
 #include "Video.hpp"
 
+#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 #include <algorithm>
