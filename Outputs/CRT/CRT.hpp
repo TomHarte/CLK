@@ -10,6 +10,7 @@
 #define CRT_hpp
 
 #include <cstdint>
+#include <limits>
 #include <memory>
 
 #include "../ScanTarget.hpp"
@@ -84,7 +85,7 @@ class CRT {
 		static const uint8_t DefaultAmplitude = 80;
 
 #ifndef NDEBUG
-		size_t allocated_data_length_ = 0;
+		size_t allocated_data_length_ = std::numeric_limits<size_t>::min();
 #endif
 
 	public:
