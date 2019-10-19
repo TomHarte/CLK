@@ -406,6 +406,9 @@ void CRT::set_immediate_default_phase(float phase) {
 }
 
 void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
+#ifndef NDEBUG
+	assert(number_of_samples <= allocated_data_length_);
+#endif
 	scan_target_->end_data(number_of_samples);
 	Scan scan;
 	scan.type = Scan::Type::Data;
