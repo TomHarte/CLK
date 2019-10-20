@@ -249,7 +249,7 @@ class CRTCBusHandler {
 					// the CPC shuffles output lines as:
 					//	MA13 MA12	RA2 RA1 RA0		MA9 MA8 MA7 MA6 MA5 MA4 MA3 MA2 MA1 MA0		CCLK
 					// ... so form the real access address.
-					uint16_t address =
+					const uint16_t address =
 						static_cast<uint16_t>(
 							((state.refresh_address & 0x3ff) << 1) |
 							((state.row_address & 0x7) << 11) |
@@ -257,7 +257,8 @@ class CRTCBusHandler {
 						);
 
 					// Fetch two bytes and translate into pixels. Guaranteed: the mode can change only at
-					// hsync, so there's no risk of pixel_pointer_ passing 320 without hitting 320.
+					// hsync, so there's no risk of pixel_pointer_ overrunning 320 output pixels without
+					// exactly reaching 320 output pixels.
 					switch(mode_) {
 						case 0:
 							reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode0_output_[ram_[address]];
@@ -285,9 +286,9 @@ class CRTCBusHandler {
 
 					}
 
-					// flush the current buffer pixel if full; the CRTC allows many different display
+					// Flush the current buffer pixel if full; the CRTC allows many different display
 					// widths so it's not necessarily possible to predict the correct number in advance
-					// and using the upper bound could lead to inefficient behaviour
+					// and using the upper bound could lead to inefficient behaviour.
 					if(pixel_pointer_ == pixel_data_ + 320) {
 						crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
 						pixel_pointer_ = pixel_data_ = nullptr;
@@ -371,6 +372,9 @@ class CRTCBusHandler {
 	private:
 		void output_border(int length) {
 			assert(length >= 0);
+
+			// A black border can be output via crt_.output_blank for a minor performance
+			// win; otherwise paint whatever the border colour really is.
 			if(border_) {
 				uint8_t *const colour_pointer = static_cast<uint8_t *>(crt_.begin_data(1));
 				if(colour_pointer) *colour_pointer = border_;
