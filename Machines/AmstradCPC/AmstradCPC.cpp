@@ -222,9 +222,9 @@ class CRTCBusHandler {
 				if(cycles_) {
 					switch(previous_output_mode_) {
 						default:
-						case OutputMode::Blank:			crt_.output_blank(cycles_ * 16);					break;
+						case OutputMode::Blank:			crt_.output_blank(cycles_ * 16);				break;
 						case OutputMode::Sync:			crt_.output_sync(cycles_ * 16);					break;
-						case OutputMode::Border:		output_border(cycles_);								break;
+						case OutputMode::Border:		output_border(cycles_);							break;
 						case OutputMode::ColourBurst:	crt_.output_default_colour_burst(cycles_ * 16);	break;
 						case OutputMode::Pixels:
 							crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
@@ -256,7 +256,8 @@ class CRTCBusHandler {
 							((state.refresh_address & 0x3000) << 2)
 						);
 
-					// fetch two bytes and translate into pixels
+					// Fetch two bytes and translate into pixels. Guaranteed: the mode can change only at
+					// hsync, so there's no risk of pixel_pointer_ passing 320 without hitting 320.
 					switch(mode_) {
 						case 0:
 							reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode0_output_[ram_[address]];
@@ -369,9 +370,14 @@ class CRTCBusHandler {
 
 	private:
 		void output_border(int length) {
-			uint8_t *colour_pointer = static_cast<uint8_t *>(crt_.begin_data(1));
-			if(colour_pointer) *colour_pointer = border_;
-			crt_.output_level(length * 16);
+			assert(length >= 0);
+			if(border_) {
+				uint8_t *const colour_pointer = static_cast<uint8_t *>(crt_.begin_data(1));
+				if(colour_pointer) *colour_pointer = border_;
+				crt_.output_level(length * 16);
+			} else {
+				crt_.output_blank(length * 16);
+			}
 		}
 
 #define Mode0Colour0(c) ((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2)
