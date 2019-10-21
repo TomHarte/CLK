@@ -103,6 +103,7 @@ bool Line::read() {
 void Line::set_read_delegate(ReadDelegate *delegate, Storage::Time bit_length) {
 	read_delegate_ = delegate;
 	read_delegate_bit_length_ = bit_length;
+	read_delegate_bit_length_.simplify();
 	write_cycles_since_delegate_call_ = 0;
 }
 

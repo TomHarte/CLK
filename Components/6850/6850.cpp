@@ -89,6 +89,7 @@ void ACIA::write(int address, uint8_t value) {
 					transmit.write(false);
 				break;
 			}
+			receive.set_read_delegate(this, Storage::Time(divider_ * 2, receive_clock_rate_.as_int()));
 			receive_interrupt_enabled_ = value & 0x80;
 		}
 	}
@@ -173,4 +174,9 @@ ClockingHint::Preference ACIA::preferred_clocking() {
 
 bool ACIA::get_interrupt_line() const {
 	return interrupt_request_;
+}
+
+bool ACIA::serial_line_did_produce_bit(Serial::Line *line, int bit) {
+	// TODO: how does this affect signalling?
+	return false;
 }

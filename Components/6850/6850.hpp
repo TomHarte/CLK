@@ -17,7 +17,7 @@
 namespace Motorola {
 namespace ACIA {
 
-class ACIA: public ClockingHint::Source {
+class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 	public:
 		static constexpr const HalfCycles SameAsTransmit = HalfCycles(0);
 
@@ -85,6 +85,8 @@ class ACIA: public ClockingHint::Source {
 
 		HalfCycles transmit_clock_rate_;
 		HalfCycles receive_clock_rate_;
+
+		bool serial_line_did_produce_bit(Serial::Line *line, int bit) final;
 };
 
 }
