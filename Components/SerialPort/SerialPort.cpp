@@ -15,6 +15,8 @@ void Line::set_writer_clock_rate(int clock_rate) {
 }
 
 void Line::advance_writer(int cycles) {
+	if(!cycles) return;
+
 	remaining_delays_ = std::max(remaining_delays_ - cycles, 0);
 	if(events_.empty()) {
 		write_cycles_since_delegate_call_ += cycles;

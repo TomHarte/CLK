@@ -36,7 +36,8 @@ const int CLOCK_RATE = 8000000;
 	keyboard input and output and mouse handling.
 */
 class IntelligentKeyboard:
-	public Serial::Line::ReadDelegate {
+	public Serial::Line::ReadDelegate,
+	public ClockingHint::Source {
 	public:
 		IntelligentKeyboard(Serial::Line &input, Serial::Line &output) : output_line_(output) {
 			input.set_read_delegate(this, Storage::Time(2, 15625));
@@ -54,6 +55,14 @@ class IntelligentKeyboard:
 			return true;
 		}
 
+		ClockingHint::Preference preferred_clocking() final {
+			return output_line_.transmission_data_time_remaining() ? ClockingHint::Preference::RealTime : ClockingHint::Preference::None;
+		}
+
+		void run_for(HalfCycles duration) {
+			output_line_.advance_writer(duration.as_int());
+		}
+
 	private:
 		// MARK: - Serial line state.
 		int bit_count_ = 0;
@@ -63,6 +72,7 @@ class IntelligentKeyboard:
 		void output_byte(uint8_t value) {
 			// Wrap the value in a start and stop bit, and send it on its way.
 			output_line_.write(2, 10, 0x200 | (value << 1));
+			update_clocking_observer();
 		}
 
 		// MARK: - Command dispatch.
@@ -242,6 +252,7 @@ class ConcreteMachine:
 
 			midi_acia_->set_clocking_hint_observer(this);
 			keyboard_acia_->set_clocking_hint_observer(this);
+			ikbd_.set_clocking_hint_observer(this);
 		}
 
 		~ConcreteMachine() {
@@ -528,6 +539,11 @@ class ConcreteMachine:
 				midi_acia_.flush();
 			}
 
+			if(keyboard_needs_clock_) {
+				cycles_since_ikbd_update_ += length;
+				ikbd_.run_for(cycles_since_ikbd_update_.divide(HalfCycles(512)));
+			}
+
 			while(length >= cycles_until_video_event_) {
 				length -= cycles_until_video_event_;
 				video_ += cycles_until_video_event_;
@@ -557,6 +573,7 @@ class ConcreteMachine:
 		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
 		HalfCycles cycles_since_audio_update_;
 
+		HalfCycles cycles_since_ikbd_update_;
 		IntelligentKeyboard ikbd_;
 
 		std::vector<uint16_t> ram_;
@@ -568,12 +585,14 @@ class ConcreteMachine:
 		BusDevice memory_map_[256];
 
 		bool may_defer_acias_ = true;
+		bool keyboard_needs_clock_ = false;
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
 			// This is being called by one of the components; avoid any time flushing here as that's
 			// already dealt with (and, just to be absolutely sure, to avoid recursive mania).
 			may_defer_acias_ =
 				(keyboard_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime) &&
 				(midi_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime);
+			keyboard_needs_clock_ = ikbd_.preferred_clocking() != ClockingHint::Preference::None;
 		}
 };
 
