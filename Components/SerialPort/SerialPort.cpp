@@ -15,7 +15,6 @@ void Line::set_writer_clock_rate(int clock_rate) {
 }
 
 void Line::advance_writer(int cycles) {
-<<<<<<< HEAD
 	if(!cycles) return;
 
 	remaining_delays_ = std::max(remaining_delays_ - cycles, 0);
@@ -31,15 +30,6 @@ void Line::advance_writer(int cycles) {
 	} else {
 		while(!events_.empty()) {
 			if(events_.front().delay <= cycles) {
-=======
-	remaining_delays_ = std::max(remaining_delays_ - cycles, 0);
-	if(events_.empty()) {
-		write_cycles_since_delegate_call_ += cycles;
-		if(write_cycles_since_delegate_call_ > 256) update_delegate(level_);
-	} else {
-		while(!events_.empty()) {
-			if(events_.front().delay < cycles) {
->>>>>>> 2ae5739b8b6458acd867002563f1e03e747a8ee2
 				cycles -= events_.front().delay;
 				write_cycles_since_delegate_call_ += events_.front().delay;
 				const auto old_level = level_;
@@ -54,15 +44,12 @@ void Line::advance_writer(int cycles) {
 				if(old_level != level_) {
 					update_delegate(old_level);
 				}
-<<<<<<< HEAD
 
 				// Book enough extra time for the read delegate to be posted
 				// the final bit if one is attached.
 				if(events_.empty()) {
 					transmission_extra_ = minimum_write_cycles_for_read_delegate_bit();
 				}
-=======
->>>>>>> 2ae5739b8b6458acd867002563f1e03e747a8ee2
 			} else {
 				events_.front().delay -= cycles;
 				write_cycles_since_delegate_call_ += cycles;
@@ -78,10 +65,7 @@ void Line::write(bool level) {
 		events_.back().type = level ? Event::SetHigh : Event::SetLow;
 	} else {
 		level_ = level;
-<<<<<<< HEAD
 		transmission_extra_ = minimum_write_cycles_for_read_delegate_bit();
-=======
->>>>>>> 2ae5739b8b6458acd867002563f1e03e747a8ee2
 	}
 }
 
@@ -155,11 +139,8 @@ void Line::update_delegate(bool level) {
 	}
 	time_left_in_bit_ -= time_left;
 }
-<<<<<<< HEAD
 
 int Line::minimum_write_cycles_for_read_delegate_bit() {
 	if(!read_delegate_) return 0;
 	return 1 + (read_delegate_bit_length_ * static_cast<unsigned int>(clock_rate_)).get<int>();
 }
-=======
->>>>>>> 2ae5739b8b6458acd867002563f1e03e747a8ee2
