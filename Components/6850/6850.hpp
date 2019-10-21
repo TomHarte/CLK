@@ -62,6 +62,9 @@ class ACIA: public ClockingHint::Source {
 		Serial::Line transmit;
 		Serial::Line request_to_send;
 
+		// ClockingHint::Source.
+		ClockingHint::Preference preferred_clocking() final;
+
 	private:
 		int divider_ = 1;
 		enum class Parity {
@@ -79,8 +82,6 @@ class ACIA: public ClockingHint::Source {
 		bool transmit_interrupt_enabled_ = false;
 
 		bool interrupt_request_ = false;
-
-		ClockingHint::Preference preferred_clocking() final;
 
 		HalfCycles transmit_clock_rate_;
 		HalfCycles receive_clock_rate_;

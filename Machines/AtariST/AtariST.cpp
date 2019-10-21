@@ -64,7 +64,8 @@ using Target = Analyser::Static::Target;
 class ConcreteMachine:
 	public Atari::ST::Machine,
 	public CPU::MC68000::BusHandler,
-	public CRTMachine::Machine {
+	public CRTMachine::Machine,
+	public ClockingHint::Observer {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
@@ -99,6 +100,9 @@ class ConcreteMachine:
 			memory_map_[0xfa] = memory_map_[0xfb] = BusDevice::Cartridge;
 
 			memory_map_[0xff] = BusDevice::IO;
+
+			midi_acia_->set_clocking_hint_observer(this);
+			keyboard_acia_->set_clocking_hint_observer(this);
 		}
 
 		~ConcreteMachine() {
@@ -377,8 +381,13 @@ class ConcreteMachine:
 		forceinline void advance_time(HalfCycles length) {
 			cycles_since_audio_update_ += length;
 			mfp_ += length;
+
 			keyboard_acia_ += length;
 			midi_acia_ += length;
+			if(!may_defer_acias_) {
+				keyboard_acia_.flush();
+				midi_acia_.flush();
+			}
 
 			while(length >= cycles_until_video_event_) {
 				length -= cycles_until_video_event_;
@@ -419,6 +428,15 @@ class ConcreteMachine:
 			MostlyRAM, RAM, ROM, Cartridge, IO, Unassigned
 		};
 		BusDevice memory_map_[256];
+
+		bool may_defer_acias_ = true;
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
+			// This is being called by one of the components; avoid any time flushing here as that's
+			// already dealt with (and, just to be absolutely sure, to avoid recursive mania).
+			may_defer_acias_ =
+				(keyboard_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime) &&
+				(midi_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime);
+		}
 };
 
 }

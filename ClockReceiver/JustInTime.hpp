@@ -46,13 +46,13 @@ template <class T, int divider = 1, class LocalTimeScale = HalfCycles, class Tar
 		/// Flushes all accumulated time.
 		void flush() {
 			if(!is_flushed_) {
+				is_flushed_ = true;
 				if(divider == 1) {
 					object_.run_for(time_since_update_.template flush<TargetTimeScale>());
 				} else {
 					object_.run_for(time_since_update_.template divide<TargetTimeScale>(LocalTimeScale(divider)));
 				}
 			}
-			is_flushed_ = true;
 		}
 
 	private:

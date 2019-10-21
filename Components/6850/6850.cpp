@@ -97,9 +97,13 @@ void ACIA::write(int address, uint8_t value) {
 void ACIA::run_for(HalfCycles length) {
 	// Transmission.
 	const int transmit_advance = length.as_int();
-	const auto write_data_time_remaining = transmit.write_data_time_remaining();
 
-	if(write_data_time_remaining) {
+	if(transmit.transmission_data_time_remaining()) {
+		const auto write_data_time_remaining = transmit.write_data_time_remaining();
+
+		// There's at most one further byte available to enqueue, so a single 'if'
+		// rather than a 'while' is correct here. It's the responsibilit of the caller
+		// to ensure run_for lengths are appropriate for longer sequences.
 		if(transmit_advance >= write_data_time_remaining) {
 			if(next_transmission_ != NoValue) {
 				transmit.advance_writer(write_data_time_remaining);
@@ -145,6 +149,9 @@ void ACIA::consider_transmission() {
 
 		// Output all that.
 		const int total_bits = 1 + data_bits_ + stop_bits_ + (parity_ != Parity::None);
+		if(!next_transmission_) {
+			printf("");
+		}
 		transmit.write(divider_ * 2, total_bits, transmission);
 		printf("Transmitted %02x [%03x]\n", next_transmission_, transmission);
 
@@ -154,7 +161,14 @@ void ACIA::consider_transmission() {
 }
 
 ClockingHint::Preference ACIA::preferred_clocking() {
-	return (transmit.write_data_time_remaining() > 0) ? ClockingHint::Preference::JustInTime : ClockingHint::Preference::None;
+	// Real-time clocking is required if a transmission is ongoing; this is a courtesy for whomever
+	// is on the receiving end.
+	if(transmit.transmission_data_time_remaining() > 0) return ClockingHint::Preference::RealTime;
+
+	// TODO: real-time clocking if a process of receiving is ongoing.
+
+	// No clocking required then.
+	return ClockingHint::Preference::None;
 }
 
 bool ACIA::get_interrupt_line() const {

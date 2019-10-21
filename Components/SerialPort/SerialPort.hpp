@@ -45,6 +45,10 @@ class Line {
 		/// @returns the number of cycles until currently enqueued write data is exhausted.
 		int write_data_time_remaining();
 
+		/// @returns the number of cycles left until it is guaranteed that a passive reader
+		/// has received all currently-enqueued bits.
+		int transmission_data_time_remaining();
+
 		/// Eliminates all future write states, leaving the output at whatever it is now.
 		void reset_writing();
 
@@ -74,6 +78,7 @@ class Line {
 		};
 		std::vector<Event> events_;
 		int remaining_delays_ = 0;
+		int transmission_extra_ = 0;
 		bool level_ = false;
 		int clock_rate_ = 0;
 
@@ -86,6 +91,7 @@ class Line {
 		} read_delegate_phase_ = ReadDelegatePhase::WaitingForZero;
 
 		void update_delegate(bool level);
+		int minimum_write_cycles_for_read_delegate_bit();
 };
 
 /*!
