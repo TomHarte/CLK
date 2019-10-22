@@ -95,11 +95,12 @@ void Video::run_for(HalfCycles duration) {
 				const auto target = std::min(mode_params.end_of_output, final_x);
 				while(x < target) {
 					if(!(x&31) && pixel_pointer_) {
+						// TODO: RAM sizes other than 512kb.
 						uint16_t source[4] = {
-							ram_[current_address_ + 0],
-							ram_[current_address_ + 1],
-							ram_[current_address_ + 2],
-							ram_[current_address_ + 3],
+							ram_[(current_address_ + 0) & 262143],
+							ram_[(current_address_ + 1) & 262143],
+							ram_[(current_address_ + 2) & 262143],
+							ram_[(current_address_ + 3) & 262143],
 						};
 						current_address_ += 4;
 
@@ -148,7 +149,8 @@ void Video::run_for(HalfCycles duration) {
 		if(x == mode_params.line_length) {
 			x = 0;
 			y = (y + 1) % mode_params.lines_per_frame;
-			if(!y) current_address_ = base_address_;
+			if(!y)
+				current_address_ = base_address_;
 		}
 	}
 

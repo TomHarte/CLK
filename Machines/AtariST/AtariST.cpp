@@ -242,11 +242,12 @@ class ConcreteMachine:
 
 			// Set up basic memory map.
 			memory_map_[0] = BusDevice::MostlyRAM;
-			for(int c = 1; c < 0xf0; ++c) memory_map_[c] = BusDevice::RAM;
+			int c = 1;
+			for(; c < 0x08; ++c) memory_map_[c] = BusDevice::RAM;
 
 			// This is appropriate for: TOS 1.x, no cartridge.
-			for(int c = 0xf0; c < 0xfc; ++c) memory_map_[c] = BusDevice::Unassigned;
-			for(int c = 0xfc; c < 0xff; ++c) memory_map_[c] = BusDevice::ROM;
+			for(; c < 0xfc; ++c) memory_map_[c] = BusDevice::Unassigned;
+			for(; c < 0xff; ++c) memory_map_[c] = BusDevice::ROM;
 			memory_map_[0xfa] = memory_map_[0xfb] = BusDevice::Cartridge;
 
 			memory_map_[0xff] = BusDevice::IO;
