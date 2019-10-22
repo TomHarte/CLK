@@ -65,6 +65,11 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 		// ClockingHint::Source.
 		ClockingHint::Preference preferred_clocking() final;
 
+		struct InterruptDelegate {
+			virtual void acia6850_did_change_interrupt_status(ACIA *acia) = 0;
+		};
+		void set_interrupt_delegate(InterruptDelegate *delegate);
+
 	private:
 		int divider_ = 1;
 		enum class Parity {
@@ -86,12 +91,20 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 		bool receive_interrupt_enabled_ = false;
 		bool transmit_interrupt_enabled_ = false;
 
-		bool interrupt_request_ = false;
-
 		HalfCycles transmit_clock_rate_;
 		HalfCycles receive_clock_rate_;
 
 		bool serial_line_did_produce_bit(Serial::Line *line, int bit) final;
+
+		enum InterruptCause: int {
+			TransmitNeedsWrite = 1 << 0,
+			ReceiveNeedsRead = 1 << 1,
+			StatusNeedsRead = 1 << 2
+		};
+		int interrupt_causes_ = 0;
+		void add_interrupt_cause(int cause);
+		void clear_interrupt_cause(int cause);
+		InterruptDelegate *interrupt_delegate_ = nullptr;
 };
 
 }

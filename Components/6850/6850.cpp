@@ -8,10 +8,6 @@
 
 #include "6850.hpp"
 
-#define LOG_PREFIX "[6850] "
-#define NDEBUG
-#include "../../Outputs/Log.hpp"
-
 using namespace Motorola::ACIA;
 
 const HalfCycles ACIA::SameAsTransmit;
@@ -25,17 +21,16 @@ ACIA::ACIA(HalfCycles transmit_clock_rate, HalfCycles receive_clock_rate) :
 
 uint8_t ACIA::read(int address) {
 	if(address&1) {
-		LOG("Read from receive register");
-		interrupt_request_ = false;
+		clear_interrupt_cause(ReceiveNeedsRead);
 		received_data_ |= NoValueMask;
 	} else {
-		LOG("Read status");
+		clear_interrupt_cause(StatusNeedsRead);
 		return
 			((received_data_ & NoValueMask) ? 0x00 : 0x01) |
 			((next_transmission_ == NoValueMask) ? 0x02 : 0x00) |
 			(data_carrier_detect.read() ? 0x04 : 0x00) |
 			(clear_to_send.read() ? 0x08 : 0x00) |
-			(interrupt_request_ ? 0x80 : 0x00)
+			(interrupt_causes_ ? 0x80 : 0x00)
 		;
 
 		// b0: receive data full.
@@ -54,7 +49,7 @@ void ACIA::write(int address, uint8_t value) {
 	if(address&1) {
 		next_transmission_ = value;
 		consider_transmission();
-		interrupt_request_ = false;
+		clear_interrupt_cause(TransmitNeedsWrite);
 	} else {
 		if((value&3) == 3) {
 			transmit.reset_writing();
@@ -114,7 +109,7 @@ void ACIA::run_for(HalfCycles length) {
 			} else {
 				transmit.advance_writer(transmit_advance);
 				update_clocking_observer();
-				interrupt_request_ |= transmit_interrupt_enabled_;
+				if(transmit_interrupt_enabled_) add_interrupt_cause(TransmitNeedsWrite);
 			}
 		} else {
 			transmit.advance_writer(transmit_advance);
@@ -143,11 +138,7 @@ void ACIA::consider_transmission() {
 
 		// Output all that.
 		const int total_bits = expected_bits();
-		if(!next_transmission_) {
-			printf("");
-		}
 		transmit.write(divider_ * 2, total_bits, transmission);
-		printf("Transmitted %02x [%03x]\n", next_transmission_, transmission);
 
 		// Mark the transmit register as empty again.
 		next_transmission_ = NoValueMask;
@@ -168,7 +159,7 @@ ClockingHint::Preference ACIA::preferred_clocking() {
 }
 
 bool ACIA::get_interrupt_line() const {
-	return interrupt_request_;
+	return interrupt_causes_;
 }
 
 int ACIA::expected_bits() {
@@ -193,7 +184,7 @@ bool ACIA::serial_line_did_produce_bit(Serial::Line *line, int bit) {
 	if(bits_received_ >= bit_target) {
 		bits_received_ = 0;
 		received_data_ = uint8_t(bits_incoming_ >> (12 - bit_target));
-		interrupt_request_ |= receive_interrupt_enabled_;
+		if(receive_interrupt_enabled_) add_interrupt_cause(ReceiveNeedsRead);
 		update_clocking_observer();
 		return false;
 	}
@@ -203,4 +194,22 @@ bool ACIA::serial_line_did_produce_bit(Serial::Line *line, int bit) {
 	// Keep receiving, and consider a potential clocking change.
 	if(bits_received_ == 1) update_clocking_observer();
 	return true;
+}
+
+void ACIA::set_interrupt_delegate(InterruptDelegate *delegate) {
+	interrupt_delegate_ = delegate;
+}
+
+void ACIA::add_interrupt_cause(int cause) {
+	const bool is_changing_state = !interrupt_causes_;
+	interrupt_causes_ |= cause | StatusNeedsRead;
+	if(interrupt_delegate_ && is_changing_state)
+		interrupt_delegate_->acia6850_did_change_interrupt_status(this);
+}
+
+void ACIA::clear_interrupt_cause(int cause) {
+	const bool was_set = interrupt_causes_;
+	interrupt_causes_ &= ~cause;
+	if(interrupt_delegate_ && was_set && !interrupt_causes_)
+		interrupt_delegate_->acia6850_did_change_interrupt_status(this);
 }
