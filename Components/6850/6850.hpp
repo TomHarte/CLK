@@ -72,11 +72,16 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 		} parity_ = Parity::None;
 		int data_bits_ = 7, stop_bits_ = 2;
 
-		static const int NoValue = 0x100;
-		int next_transmission_ = NoValue;
-		int received_data_ = NoValue;
+		static const int NoValueMask = 0x100;
+		int next_transmission_ = NoValueMask;
+		int received_data_ = NoValueMask;
+
+		int bits_received_ = 0;
+		int bits_incoming_ = 0;
 
 		void consider_transmission();
+		int expected_bits();
+		uint8_t parity(uint8_t value);
 
 		bool receive_interrupt_enabled_ = false;
 		bool transmit_interrupt_enabled_ = false;

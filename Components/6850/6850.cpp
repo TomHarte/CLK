@@ -30,8 +30,8 @@ uint8_t ACIA::read(int address) {
 	} else {
 		LOG("Read status");
 		return
-			((received_data_ == NoValue) ? 0x00 : 0x01) |
-			((next_transmission_ == NoValue) ? 0x02 : 0x00) |
+			((received_data_ & NoValueMask) ? 0x00 : 0x01) |
+			((next_transmission_ == NoValueMask) ? 0x02 : 0x00) |
 			(data_carrier_detect.read() ? 0x04 : 0x00) |
 			(clear_to_send.read() ? 0x08 : 0x00) |
 			(interrupt_request_ ? 0x80 : 0x00)
@@ -106,7 +106,7 @@ void ACIA::run_for(HalfCycles length) {
 		// rather than a 'while' is correct here. It's the responsibilit of the caller
 		// to ensure run_for lengths are appropriate for longer sequences.
 		if(transmit_advance >= write_data_time_remaining) {
-			if(next_transmission_ != NoValue) {
+			if(next_transmission_ != NoValueMask) {
 				transmit.advance_writer(write_data_time_remaining);
 				consider_transmission();
 				transmit.advance_writer(transmit_advance - write_data_time_remaining);
@@ -124,7 +124,7 @@ void ACIA::run_for(HalfCycles length) {
 }
 
 void ACIA::consider_transmission() {
-	if(next_transmission_ != NoValue && !transmit.write_data_time_remaining()) {
+	if(next_transmission_ != NoValueMask && !transmit.write_data_time_remaining()) {
 		// Establish start bit and [7 or 8] data bits.
 		if(data_bits_ == 7) next_transmission_ &= 0x7f;
 		int transmission = next_transmission_ << 1;
@@ -132,13 +132,7 @@ void ACIA::consider_transmission() {
 		// Add a parity bit, if any.
 		int mask = 0x2 << data_bits_;
 		if(parity_ != Parity::None) {
-			next_transmission_ ^= next_transmission_ >> 4;
-			next_transmission_ ^= next_transmission_ >> 2;
-			next_transmission_ ^= next_transmission_ >> 1;
-
-			if((next_transmission_&1) != (parity_ == Parity::Even)) {
-				transmission |= mask;
-			}
+			transmission |= parity(uint8_t(next_transmission_)) ? mask : 0;
 			mask <<= 1;
 		}
 
@@ -149,7 +143,7 @@ void ACIA::consider_transmission() {
 		}
 
 		// Output all that.
-		const int total_bits = 1 + data_bits_ + stop_bits_ + (parity_ != Parity::None);
+		const int total_bits = expected_bits();
 		if(!next_transmission_) {
 			printf("");
 		}
@@ -157,7 +151,7 @@ void ACIA::consider_transmission() {
 		printf("Transmitted %02x [%03x]\n", next_transmission_, transmission);
 
 		// Mark the transmit register as empty again.
-		next_transmission_ = NoValue;
+		next_transmission_ = NoValueMask;
 	}
 }
 
@@ -176,7 +170,31 @@ bool ACIA::get_interrupt_line() const {
 	return interrupt_request_;
 }
 
+int ACIA::expected_bits() {
+	return 1 + data_bits_ + stop_bits_ + (parity_ != Parity::None);
+}
+
+uint8_t ACIA::parity(uint8_t value) {
+	value ^= value >> 4;
+	value ^= value >> 2;
+	value ^= value >> 1;
+	return value ^ (parity_ == Parity::Even);
+}
+
 bool ACIA::serial_line_did_produce_bit(Serial::Line *line, int bit) {
-	// TODO: how does this affect signalling?
-	return false;
+	// Shift this bit into the 11-bit input register; this is big enough to hold
+	// the largest transmission symbol.
+	++bits_received_;
+	bits_incoming_ = (bits_incoming_ >> 1) | (bit << 11);
+	printf("i: %d\n", bit);
+
+	// If that's the now-expected number of bits, update.
+	const int bit_target = expected_bits();
+	if(bits_received_ == bit_target) {
+		received_data_ = uint8_t(bits_incoming_ >> (12 - bit_target));
+		printf("r: %02x\n", received_data_);
+		return false;
+	}
+
+	return true;
 }
