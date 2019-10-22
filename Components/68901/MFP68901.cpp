@@ -66,15 +66,15 @@ void MFP68901::write(int address, uint8_t value) {
 			gpip_direction_ = value;
 			reevaluate_gpip_interrupts();
 		break;
-		case 0x03:		LOG("Write: interrupt enable A");		break;
-		case 0x04:		LOG("Write: interrupt enable B");		break;
-		case 0x05:		LOG("Write: interrupt pending A");		break;
-		case 0x06:		LOG("Write: interrupt pending B");		break;
-		case 0x07:		LOG("Write: interrupt in-service A");	break;
-		case 0x08:		LOG("Write: interrupt in-service B");	break;
-		case 0x09:		LOG("Write: interrupt mask A");			break;
-		case 0x0a:		LOG("Write: interrupt mask B");			break;
-		case 0x0b:		LOG("Write: vector");					break;
+		case 0x03:		LOG("Write: interrupt enable A " << PADHEX(2) << int(value));		break;
+		case 0x04:		LOG("Write: interrupt enable B " << PADHEX(2) << int(value));		break;
+		case 0x05:		LOG("Write: interrupt pending A " << PADHEX(2) << int(value));		break;
+		case 0x06:		LOG("Write: interrupt pending B " << PADHEX(2) << int(value));		break;
+		case 0x07:		LOG("Write: interrupt in-service A " << PADHEX(2) << int(value));	break;
+		case 0x08:		LOG("Write: interrupt in-service B " << PADHEX(2) << int(value));	break;
+		case 0x09:		LOG("Write: interrupt mask A " << PADHEX(2) << int(value));			break;
+		case 0x0a:		LOG("Write: interrupt mask B " << PADHEX(2) << int(value));			break;
+		case 0x0b:		LOG("Write: vector " << PADHEX(2) << int(value));					break;
 		case 0x0c:
 		case 0x0d: {
 			const auto timer = address - 0xc;
