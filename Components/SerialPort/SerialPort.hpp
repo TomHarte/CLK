@@ -79,7 +79,7 @@ class Line {
 		std::vector<Event> events_;
 		int remaining_delays_ = 0;
 		int transmission_extra_ = 0;
-		bool level_ = false;
+		bool level_ = true;
 		int clock_rate_ = 0;
 
 		ReadDelegate *read_delegate_ = nullptr;
