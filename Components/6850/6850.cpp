@@ -53,7 +53,6 @@ void ACIA::write(int address, uint8_t value) {
 	if(address&1) {
 		next_transmission_ = value;
 		consider_transmission();
-		update_clocking_observer();
 		interrupt_request_ = false;
 	} else {
 		if((value&3) == 3) {
@@ -93,6 +92,7 @@ void ACIA::write(int address, uint8_t value) {
 			receive_interrupt_enabled_ = value & 0x80;
 		}
 	}
+	update_clocking_observer();
 }
 
 void ACIA::run_for(HalfCycles length) {
@@ -185,14 +185,13 @@ bool ACIA::serial_line_did_produce_bit(Serial::Line *line, int bit) {
 	// Shift this bit into the 11-bit input register; this is big enough to hold
 	// the largest transmission symbol.
 	++bits_received_;
-	bits_incoming_ = (bits_incoming_ >> 1) | (bit << 11);
-	printf("i: %d\n", bit);
+	bits_incoming_ = (bits_incoming_ >> 1) | (bit << 10);
 
 	// If that's the now-expected number of bits, update.
 	const int bit_target = expected_bits();
 	if(bits_received_ == bit_target) {
 		received_data_ = uint8_t(bits_incoming_ >> (12 - bit_target));
-		printf("r: %02x\n", received_data_);
+		printf("Received %02x [%03x]\n", received_data_, bits_incoming_);
 		return false;
 	}
 
