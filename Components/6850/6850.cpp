@@ -27,6 +27,7 @@ uint8_t ACIA::read(int address) {
 	if(address&1) {
 		LOG("Read from receive register");
 		interrupt_request_ = false;
+		received_data_ |= NoValueMask;
 	} else {
 		LOG("Read status");
 		return
@@ -119,8 +120,6 @@ void ACIA::run_for(HalfCycles length) {
 			transmit.advance_writer(transmit_advance);
 		}
 	}
-
-	// Reception.
 }
 
 void ACIA::consider_transmission() {
@@ -160,7 +159,9 @@ ClockingHint::Preference ACIA::preferred_clocking() {
 	// is on the receiving end.
 	if(transmit.transmission_data_time_remaining() > 0) return ClockingHint::Preference::RealTime;
 
-	// TODO: real-time clocking if a process of receiving is ongoing.
+	// If a bit reception is ongoing that might lead to an interrupt, ask for real-time clocking
+	// because it's unclear when the interrupt might come.
+	if(bits_incoming_ && receive_interrupt_enabled_) return ClockingHint::Preference::RealTime;
 
 	// No clocking required then.
 	return ClockingHint::Preference::None;
@@ -189,11 +190,17 @@ bool ACIA::serial_line_did_produce_bit(Serial::Line *line, int bit) {
 
 	// If that's the now-expected number of bits, update.
 	const int bit_target = expected_bits();
-	if(bits_received_ == bit_target) {
+	if(bits_received_ >= bit_target) {
+		bits_received_ = 0;
 		received_data_ = uint8_t(bits_incoming_ >> (12 - bit_target));
-		printf("Received %02x [%03x]\n", received_data_, bits_incoming_);
+		interrupt_request_ |= receive_interrupt_enabled_;
+		update_clocking_observer();
 		return false;
 	}
 
+	// TODO: overrun, and parity.
+
+	// Keep receiving, and consider a potential clocking change.
+	if(bits_received_ == 1) update_clocking_observer();
 	return true;
 }
