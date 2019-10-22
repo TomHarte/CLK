@@ -214,7 +214,8 @@ class ConcreteMachine:
 	public Atari::ST::Machine,
 	public CPU::MC68000::BusHandler,
 	public CRTMachine::Machine,
-	public ClockingHint::Observer {
+	public ClockingHint::Observer,
+	public Motorola::ACIA::ACIA::InterruptDelegate {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
@@ -250,9 +251,14 @@ class ConcreteMachine:
 
 			memory_map_[0xff] = BusDevice::IO;
 
+			midi_acia_->set_interrupt_delegate(this);
+			keyboard_acia_->set_interrupt_delegate(this);
+
 			midi_acia_->set_clocking_hint_observer(this);
 			keyboard_acia_->set_clocking_hint_observer(this);
 			ikbd_.set_clocking_hint_observer(this);
+
+			set_gpip_input();
 		}
 
 		~ConcreteMachine() {
@@ -408,19 +414,6 @@ class ConcreteMachine:
 									mfp_->write(int(address), cycle.value->halves.high);
 								}
 							}
-
-							/*
-								Atari ST GPIP bits:
-
-									GPIP 7: monochrome monitor detect
-									GPIP 6: RS-232 ring indicator
-									GPIP 5: FD/HD interrupt
-									GPIP 4: keyboard/MIDI interrupt
-									GPIP 3: unused
-									GPIP 2: RS-232 clear to send
-									GPIP 1: RS-232 carrier detect
-									GPIP 0: centronics busy
-							*/
 						break;
 
 						// Video controls.
@@ -584,6 +577,7 @@ class ConcreteMachine:
 		};
 		BusDevice memory_map_[256];
 
+		// MARK: - Clocking Management.
 		bool may_defer_acias_ = true;
 		bool keyboard_needs_clock_ = false;
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
@@ -593,6 +587,29 @@ class ConcreteMachine:
 				(keyboard_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime) &&
 				(midi_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime);
 			keyboard_needs_clock_ = ikbd_.preferred_clocking() != ClockingHint::Preference::None;
+		}
+
+		// MARK: - GPIP input.
+		void acia6850_did_change_interrupt_status(Motorola::ACIA::ACIA *acia) final {
+			set_gpip_input();
+		}
+		void set_gpip_input() {
+			/*
+				Atari ST GPIP bits:
+
+					GPIP 7: monochrome monitor detect
+					GPIP 6: RS-232 ring indicator
+					GPIP 5: FD/HD interrupt
+					GPIP 4: keyboard/MIDI interrupt
+					GPIP 3: unused
+					GPIP 2: RS-232 clear to send
+					GPIP 1: RS-232 carrier detect
+					GPIP 0: centronics busy
+			*/
+			mfp_->set_port_input(
+				0x80 |
+				((keyboard_acia_->get_interrupt_line() || midi_acia_->get_interrupt_line()) ? 0x10 : 0x00)
+			);
 		}
 };
 

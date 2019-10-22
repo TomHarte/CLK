@@ -17,12 +17,7 @@ namespace MFP68901 {
 
 class PortHandler {
 	public:
-		/*!
-			Requests the current input on the GPIP port.
-		*/
-		virtual uint8_t get_port_input() {
-			return 0xff;
-		}
+		// TODO: announce changes in output.
 };
 
 class MFP68901 {
@@ -59,6 +54,15 @@ class MFP68901 {
 		} timers_[4];
 
 		HalfCycles cycles_left_;
+
+		// MARK: - GPIP
+		uint8_t gpip_input_ = 0;
+		uint8_t gpip_output_ = 0;
+		uint8_t gpip_active_edge_ = 0;
+		uint8_t gpip_direction_ = 0;
+		uint8_t gpip_interrupt_state_ = 0;
+
+		void reevaluate_gpip_interrupts();
 };
 
 }

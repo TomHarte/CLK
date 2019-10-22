@@ -9,7 +9,7 @@
 #include "MFP68901.hpp"
 
 #define LOG_PREFIX "[MFP] "
-#define NDEBUG
+//#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 using namespace Motorola::MFP68901;
@@ -17,9 +17,15 @@ using namespace Motorola::MFP68901;
 uint8_t MFP68901::read(int address) {
 	address &= 0x1f;
 	switch(address) {
-		case 0x00:		LOG("Read: general purpose IO");		break;
-		case 0x01:		LOG("Read: active edge");				break;
-		case 0x02:		LOG("Read: data direction");			break;
+		case 0x00:
+			LOG("Read: general purpose IO " << PADHEX(2) << int(gpip_input_ | gpip_direction_));
+		return gpip_input_ | gpip_direction_;
+		case 0x01:
+			LOG("Read: active edge " << PADHEX(2) << int(gpip_active_edge_));
+		return gpip_active_edge_;
+		case 0x02:
+			LOG("Read: data direction "  << PADHEX(2) << int(gpip_direction_));
+		return gpip_direction_;
 		case 0x03:		LOG("Read: interrupt enable A");		break;
 		case 0x04:		LOG("Read: interrupt enable B");		break;
 		case 0x05:		LOG("Read: interrupt pending A");		break;
@@ -46,9 +52,20 @@ uint8_t MFP68901::read(int address) {
 void MFP68901::write(int address, uint8_t value) {
 	address &= 0x1f;
 	switch(address) {
-		case 0x00:		LOG("Write: general purpose IO");		break;
-		case 0x01:		LOG("Write: active edge");				break;
-		case 0x02:		LOG("Write: data direction");			break;
+		case 0x00:
+			LOG("Write: general purpose IO " << PADHEX(2) << int(value));
+			gpip_output_ = value;
+		break;
+		case 0x01:
+			LOG("Write: active edge " << PADHEX(2) << int(value));
+			gpip_active_edge_ = value;
+			reevaluate_gpip_interrupts();
+		break;
+		case 0x02:
+			LOG("Write: data direction " << PADHEX(2) << int(value));
+			gpip_direction_ = value;
+			reevaluate_gpip_interrupts();
+		break;
 		case 0x03:		LOG("Write: interrupt enable A");		break;
 		case 0x04:		LOG("Write: interrupt enable B");		break;
 		case 0x05:		LOG("Write: interrupt pending A");		break;
@@ -172,4 +189,23 @@ void MFP68901::decrement_timer(int timer) {
 	if(!timers_[timer].value) {
 		// TODO: interrupt. Reload, possibly.
 	}
+}
+
+// MARK: - GPIP
+void MFP68901::set_port_input(uint8_t input) {
+	gpip_input_ = input;
+	reevaluate_gpip_interrupts();
+}
+
+uint8_t MFP68901::get_port_output() {
+	return 0xff;
+}
+
+void MFP68901::reevaluate_gpip_interrupts() {
+	const uint8_t gpip_state = gpip_input_ ^ gpip_active_edge_;
+	// An interrupt is detected on any falling edge.
+	if((gpip_state ^ gpip_interrupt_state_) & gpip_interrupt_state_) {
+		LOG("Should post GPIP interrupt");
+	}
+	gpip_interrupt_state_ = gpip_state;
 }
