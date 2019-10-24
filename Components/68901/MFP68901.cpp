@@ -26,10 +26,18 @@ uint8_t MFP68901::read(int address) {
 		case 0x02:
 			LOG("Read: data direction "  << PADHEX(2) << int(gpip_direction_));
 		return gpip_direction_;
-		case 0x03:		LOG("Read: interrupt enable A");		break;
-		case 0x04:		LOG("Read: interrupt enable B");		break;
-		case 0x05:		LOG("Read: interrupt pending A");		break;
-		case 0x06:		LOG("Read: interrupt pending B");		break;
+		case 0x03:
+			LOG("Read: interrupt enable A");
+		return interrupt_enable_[0];
+		case 0x04:
+			LOG("Read: interrupt enable B");
+		return interrupt_enable_[1];
+		case 0x05:
+			LOG("Read: interrupt pending A");
+		return interrupt_pending_[0];
+		case 0x06:
+			LOG("Read: interrupt pending B");
+		return interrupt_pending_[1];
 		case 0x07:		LOG("Read: interrupt in-service A");	break;
 		case 0x08:		LOG("Read: interrupt in-service B");	break;
 		case 0x09:		LOG("Read: interrupt mask A");			break;
@@ -208,4 +216,19 @@ void MFP68901::reevaluate_gpip_interrupts() {
 		LOG("Should post GPIP interrupt");
 	}
 	gpip_interrupt_state_ = gpip_state;
+}
+
+
+// MARK: - Interrupts
+
+void MFP68901::begin_interrupt(Interrupt interrupt) {
+	// In service is always set.
+	interrupt_in_service_[interrupt >> 3] |= 1 << (interrupt & 7);
+
+	// Pending is set only if the interrupt is enabled.
+//	interrupt_pending_[interrupt >> 3] |=
+}
+
+void MFP68901::end_interrupt(Interrupt interrupt) {
+	// Reset in-service and pending.
 }

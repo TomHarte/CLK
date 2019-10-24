@@ -63,6 +63,47 @@ class MFP68901 {
 		uint8_t gpip_interrupt_state_ = 0;
 
 		void reevaluate_gpip_interrupts();
+
+		// MARK: - Interrupts
+
+		// Ad hoc documentation: there seems to be a four-stage process here.
+		// This is my current understanding:
+		//
+		// Interrupt in-service refers to whether the signal that would cause an
+		// interrupt is active.
+		//
+		// If the interrupt is in-service and enabled, it will be listed as pending.
+		//
+		// If a pending interrupt is enabled in the interrupt mask, it will generate
+		// a processor interrupt.
+		//
+		// So, the designers seem to have wanted to allow for polling and interrupts,
+		// and then also decided to have some interrupts be able to be completely
+		// disabled, so that don't even show up for polling.
+		uint8_t interrupt_in_service_[2] = {0, 0};
+		uint8_t interrupt_enable_[2] = {0, 0};
+		uint8_t interrupt_pending_[2] = {0, 0};
+		uint8_t interrupt_mask_[2] = {0, 0};
+
+		enum Interrupt {
+			GPIP0 = 0,
+			GPIP1,
+			GPIP2,
+			GPIP3,
+			TimerD,
+			TimerC,
+			GPIP4,
+			GPIP5,
+			TimerB,
+			TransmitError,
+			TransmitBufferEmpty,
+			ReceiveError,
+			ReceiveBufferFull,
+			GPIP6,
+			GPIP7
+		};
+		void begin_interrupt(Interrupt interrupt);
+		void end_interrupt(Interrupt interrupt);
 };
 
 }
