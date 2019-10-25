@@ -241,7 +241,7 @@ void MFP68901::reevaluate_gpip_interrupts() {
 	if(new_interrupt_mask) {
 		begin_interrupts(
 			(new_interrupt_mask & 0x0f) |
-			((new_interrupt_mask & 0x03) << 2) |
+			((new_interrupt_mask & 0x30) << 2) |
 			((new_interrupt_mask & 0xc0) << 8)
 		);
 	}
