@@ -609,7 +609,7 @@ class ConcreteMachine:
 			*/
 			mfp_->set_port_input(
 				0x80 |
-				((keyboard_acia_->get_interrupt_line() || midi_acia_->get_interrupt_line()) ? 0x10 : 0x00)
+				((keyboard_acia_->get_interrupt_line() || midi_acia_->get_interrupt_line()) ? 0x0 : 0x10)	// Interrupts are active low.
 			);
 		}
 };
