@@ -28,20 +28,28 @@ uint8_t MFP68901::read(int address) {
 		return gpip_direction_;
 		case 0x03:
 			LOG("Read: interrupt enable A");
-		return interrupt_enable_[0];
+		return uint8_t(interrupt_enable_ >> 8);
 		case 0x04:
 			LOG("Read: interrupt enable B");
-		return interrupt_enable_[1];
+		return uint8_t(interrupt_enable_);
 		case 0x05:
 			LOG("Read: interrupt pending A");
-		return interrupt_pending_[0];
+		return uint8_t(interrupt_pending_ >> 8);
 		case 0x06:
 			LOG("Read: interrupt pending B");
-		return interrupt_pending_[1];
-		case 0x07:		LOG("Read: interrupt in-service A");	break;
-		case 0x08:		LOG("Read: interrupt in-service B");	break;
-		case 0x09:		LOG("Read: interrupt mask A");			break;
-		case 0x0a:		LOG("Read: interrupt mask B");			break;
+		return uint8_t(interrupt_pending_);
+		case 0x07:
+			LOG("Read: interrupt in-service A");
+		return uint8_t(interrupt_in_service_ >> 8);
+		case 0x08:
+			LOG("Read: interrupt in-service B");
+		return uint8_t(interrupt_in_service_);
+		case 0x09:
+			LOG("Read: interrupt mask A");
+		return uint8_t(interrupt_mask_ >> 8);
+		case 0x0a:
+			LOG("Read: interrupt mask B");
+		return uint8_t(interrupt_mask_);
 		case 0x0b:		LOG("Read: vector");					break;
 		case 0x0c:		LOG("Read: timer A control");			break;
 		case 0x0d:		LOG("Read: timer B control");			break;
@@ -74,14 +82,30 @@ void MFP68901::write(int address, uint8_t value) {
 			gpip_direction_ = value;
 			reevaluate_gpip_interrupts();
 		break;
-		case 0x03:		LOG("Write: interrupt enable A " << PADHEX(2) << int(value));		break;
-		case 0x04:		LOG("Write: interrupt enable B " << PADHEX(2) << int(value));		break;
-		case 0x05:		LOG("Write: interrupt pending A " << PADHEX(2) << int(value));		break;
-		case 0x06:		LOG("Write: interrupt pending B " << PADHEX(2) << int(value));		break;
-		case 0x07:		LOG("Write: interrupt in-service A " << PADHEX(2) << int(value));	break;
-		case 0x08:		LOG("Write: interrupt in-service B " << PADHEX(2) << int(value));	break;
-		case 0x09:		LOG("Write: interrupt mask A " << PADHEX(2) << int(value));			break;
-		case 0x0a:		LOG("Write: interrupt mask B " << PADHEX(2) << int(value));			break;
+		case 0x03:
+			LOG("Write: interrupt enable A " << PADHEX(2) << int(value));
+			interrupt_enable_ = (interrupt_enable_ & 0x00ff) | (value << 8);
+			update_interrupts();
+		break;
+		case 0x04:
+			LOG("Write: interrupt enable B " << PADHEX(2) << int(value));
+			interrupt_enable_ = (interrupt_enable_ & 0xff00) | value;
+			update_interrupts();
+		break;
+		case 0x05:		LOG("Write: interrupt pending A (no-op?) " << PADHEX(2) << int(value));		break;
+		case 0x06:		LOG("Write: interrupt pending B (no-op?) " << PADHEX(2) << int(value));		break;
+		case 0x07:		LOG("Write: interrupt in-service A (no-op?) " << PADHEX(2) << int(value));	break;
+		case 0x08:		LOG("Write: interrupt in-service B (no-op?) " << PADHEX(2) << int(value));	break;
+		case 0x09:
+			LOG("Write: interrupt mask A " << PADHEX(2) << int(value));
+			interrupt_mask_ = (interrupt_mask_ & 0x00ff) | (value << 8);
+			update_interrupts();
+		break;
+		case 0x0a:
+			LOG("Write: interrupt mask B " << PADHEX(2) << int(value));
+			interrupt_mask_ = (interrupt_mask_ & 0xff00) | value;
+			update_interrupts();
+		break;
 		case 0x0b:		LOG("Write: vector " << PADHEX(2) << int(value));					break;
 		case 0x0c:
 		case 0x0d: {
@@ -211,24 +235,45 @@ uint8_t MFP68901::get_port_output() {
 
 void MFP68901::reevaluate_gpip_interrupts() {
 	const uint8_t gpip_state = gpip_input_ ^ gpip_active_edge_;
+
 	// An interrupt is detected on any falling edge.
-	if((gpip_state ^ gpip_interrupt_state_) & gpip_interrupt_state_) {
-		LOG("Should post GPIP interrupt");
+	const uint8_t new_interrupt_mask = (gpip_state ^ gpip_interrupt_state_) & gpip_interrupt_state_;
+	if(new_interrupt_mask) {
+		begin_interrupts(
+			(new_interrupt_mask & 0x0f) |
+			((new_interrupt_mask & 0x03) << 2) |
+			((new_interrupt_mask & 0xc0) << 8)
+		);
 	}
 	gpip_interrupt_state_ = gpip_state;
 }
 
-
 // MARK: - Interrupts
 
-void MFP68901::begin_interrupt(Interrupt interrupt) {
-	// In service is always set.
-	interrupt_in_service_[interrupt >> 3] |= 1 << (interrupt & 7);
-
-	// Pending is set only if the interrupt is enabled.
-//	interrupt_pending_[interrupt >> 3] |=
+void MFP68901::begin_interrupts(int interrupt) {
+	interrupt_in_service_ |= interrupt;
+	update_interrupts();
 }
 
-void MFP68901::end_interrupt(Interrupt interrupt) {
-	// Reset in-service and pending.
+void MFP68901::end_interrupts(int interrupt) {
+	interrupt_in_service_ &= ~interrupt;
+	update_interrupts();
+}
+
+void MFP68901::update_interrupts() {
+	interrupt_pending_ = interrupt_in_service_ & interrupt_enable_;
+	interrupt_line_ = interrupt_pending_ & interrupt_mask_;
+
+	if(interrupt_line_) {
+		LOG("Should produce interrupt...");
+	}
+}
+
+bool MFP68901::get_interrupt_line() {
+	return interrupt_line_;
+}
+
+uint16_t MFP68901::acknowledge_interrupt() {
+	// TODO.
+	return 0;
 }

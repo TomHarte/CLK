@@ -34,6 +34,9 @@ class MFP68901 {
 		void set_port_input(uint8_t);
 		uint8_t get_port_output();
 
+		bool get_interrupt_line();
+		uint16_t acknowledge_interrupt();
+
 	private:
 		// MARK: - Timers
 		enum class TimerMode {
@@ -80,30 +83,34 @@ class MFP68901 {
 		// So, the designers seem to have wanted to allow for polling and interrupts,
 		// and then also decided to have some interrupts be able to be completely
 		// disabled, so that don't even show up for polling.
-		uint8_t interrupt_in_service_[2] = {0, 0};
-		uint8_t interrupt_enable_[2] = {0, 0};
-		uint8_t interrupt_pending_[2] = {0, 0};
-		uint8_t interrupt_mask_[2] = {0, 0};
+		int interrupt_in_service_ = 0;
+		int interrupt_enable_ = 0;
+		int interrupt_pending_ = 0;
+		int interrupt_mask_ = 0;
+		bool interrupt_line_ = false;
 
 		enum Interrupt {
-			GPIP0 = 0,
-			GPIP1,
-			GPIP2,
-			GPIP3,
-			TimerD,
-			TimerC,
-			GPIP4,
-			GPIP5,
-			TimerB,
-			TransmitError,
-			TransmitBufferEmpty,
-			ReceiveError,
-			ReceiveBufferFull,
-			GPIP6,
-			GPIP7
+			GPIP0				= (1 << 0),
+			GPIP1				= (1 << 1),
+			GPIP2				= (1 << 2),
+			GPIP3				= (1 << 3),
+			TimerD				= (1 << 4),
+			TimerC				= (1 << 5),
+			GPIP4				= (1 << 6),
+			GPIP5				= (1 << 7),
+
+			TimerB				= (1 << 8),
+			TransmitError		= (1 << 9),
+			TransmitBufferEmpty	= (1 << 10),
+			ReceiveError		= (1 << 11),
+			ReceiveBufferFull	= (1 << 12),
+			TimerA				= (1 << 13),
+			GPIP6				= (1 << 14),
+			GPIP7				= (1 << 15),
 		};
-		void begin_interrupt(Interrupt interrupt);
-		void end_interrupt(Interrupt interrupt);
+		void begin_interrupts(int interrupt);
+		void end_interrupts(int interrupt);
+		void update_interrupts();
 };
 
 }
