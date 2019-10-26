@@ -563,8 +563,8 @@ class ConcreteMachine:
 				video_ += cycles_until_video_event_;
 				cycles_until_video_event_ = video_->get_next_sequence_point();
 
-				// TODO: push v/hsync/display_enable elsewhere.
 				mfp_->set_timer_event_input(1, video_->display_enabled());
+				update_interrupt_input();
 			}
 			cycles_until_video_event_ -= length;
 			video_ += length;
@@ -641,6 +641,10 @@ class ConcreteMachine:
 		void update_interrupt_input() {
 			if(mfp_->get_interrupt_line()) {
 				mc68000_.set_interrupt_level(6);
+			} else if(video_->vsync()) {
+				mc68000_.set_interrupt_level(4);
+			} else if(video_->hsync()) {
+				mc68000_.set_interrupt_level(2);
 			} else {
 				mc68000_.set_interrupt_level(0);
 			}
