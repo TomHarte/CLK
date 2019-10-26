@@ -76,24 +76,34 @@ class MFP68901 {
 
 		InterruptDelegate *interrupt_delegate_ = nullptr;
 
-		// Ad hoc documentation: there seems to be a four-stage process here.
-		// This is my current understanding:
+		// Ad hoc documentation:
 		//
-		// Interrupt in-service refers to whether the signal that would cause an
-		// interrupt is active.
+		// An interrupt becomes pending if it is enabled at the time it occurs.
 		//
-		// If the interrupt is in-service and enabled, it will be listed as pending.
+		// If a pending interrupt is enabled in the interrupt mask, a processor
+		// interrupt is generated. Otherwise no processor interrupt is generated.
 		//
-		// If a pending interrupt is enabled in the interrupt mask, it will generate
-		// a processor interrupt.
+		// (Disabling a bit in the enabled mask also instantaneously clears anything
+		// in the pending mask.)
 		//
-		// So, the designers seem to have wanted to allow for polling and interrupts,
-		// and then also decided to have some interrupts be able to be completely
-		// disabled, so that don't even show up for polling.
-		int interrupt_in_service_ = 0;
+		// The user can write to the pending interrupt register; a write
+		// masks whatever is there — so you can disable bits but you cannot set them.
+		//
+		// If the vector register's 'S' bit is set then software end-of-interrupt mode applies:
+		// Acknowledgement of an interrupt clears that interrupt's pending bit, but also sets
+		// its in-service bit. That bit will remain set until the user writes a zero to its position.
+		// If any bits are set in the in-service register, then they will prevent lower-priority
+		// interrupts from being signalled to the CPU. Further interrupts of the same or a higher
+		// priority may occur.
+		//
+		// If the vector register's 'S' bit is clear then automatic end-of-interrupt mode applies:
+		// Acknowledgement of an interrupt will automatically clear the corresponding
+		// pending bit.
+		//
 		int interrupt_enable_ = 0;
 		int interrupt_pending_ = 0;
 		int interrupt_mask_ = 0;
+		int interrupt_in_service_ = 0;
 		bool interrupt_line_ = false;
 		uint8_t interrupt_vector_ = 0;
 
