@@ -35,7 +35,12 @@ class MFP68901 {
 		uint8_t get_port_output();
 
 		bool get_interrupt_line();
-		uint16_t acknowledge_interrupt();
+		uint8_t acknowledge_interrupt();
+
+		struct InterruptDelegate {
+			virtual void mfp68901_did_change_interrupt_status(MFP68901 *) = 0;
+		};
+		void set_interrupt_delegate(InterruptDelegate *delegate);
 
 	private:
 		// MARK: - Timers
@@ -69,6 +74,8 @@ class MFP68901 {
 
 		// MARK: - Interrupts
 
+		InterruptDelegate *interrupt_delegate_ = nullptr;
+
 		// Ad hoc documentation: there seems to be a four-stage process here.
 		// This is my current understanding:
 		//
@@ -88,6 +95,7 @@ class MFP68901 {
 		int interrupt_pending_ = 0;
 		int interrupt_mask_ = 0;
 		bool interrupt_line_ = false;
+		uint8_t interrupt_vector_ = 0;
 
 		enum Interrupt {
 			GPIP0				= (1 << 0),

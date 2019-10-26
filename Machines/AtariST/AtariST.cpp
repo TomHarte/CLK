@@ -215,7 +215,8 @@ class ConcreteMachine:
 	public CPU::MC68000::BusHandler,
 	public CRTMachine::Machine,
 	public ClockingHint::Observer,
-	public Motorola::ACIA::ACIA::InterruptDelegate {
+	public Motorola::ACIA::ACIA::InterruptDelegate,
+	public Motorola::MFP68901::MFP68901::InterruptDelegate {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
@@ -259,6 +260,8 @@ class ConcreteMachine:
 			keyboard_acia_->set_clocking_hint_observer(this);
 			ikbd_.set_clocking_hint_observer(this);
 
+			mfp_->set_interrupt_delegate(this);
+
 			set_gpip_input();
 		}
 
@@ -289,6 +292,23 @@ class ConcreteMachine:
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
 
 			/* TODO: DTack, bus error, VPA.  */
+
+			// An interrupt acknowledge, perhaps?
+			if(cycle.operation & Microcycle::InterruptAcknowledge) {
+				// Current implementation: everything other than 6 (i.e. the MFP is autovectored.
+				if((cycle.word_address()&7) != 6) {
+					mc68000_.set_is_peripheral_address(true);
+					return HalfCycles(0);
+				} else {
+					if(cycle.operation & Microcycle::SelectByte) {
+						cycle.value->halves.low = mfp_->acknowledge_interrupt();
+					}
+					return HalfCycles(0);
+				}
+			}
+
+			// Just in case the last cycle was an interrupt acknowledge. TODO: find a better solution?
+			mc68000_.set_is_peripheral_address(false);
 
 			auto address = cycle.word_address();
 //			if(cycle.data_select_active()) printf("%c %06x\n", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address & 0xffffff);
@@ -611,6 +631,19 @@ class ConcreteMachine:
 				0x80 |
 				((keyboard_acia_->get_interrupt_line() || midi_acia_->get_interrupt_line()) ? 0x0 : 0x10)	// Interrupts are active low.
 			);
+		}
+
+		// MARK - MFP input.
+		void mfp68901_did_change_interrupt_status(Motorola::MFP68901::MFP68901 *mfp) final {
+			update_interrupt_input();
+		}
+
+		void update_interrupt_input() {
+			if(mfp_->get_interrupt_line()) {
+				mc68000_.set_interrupt_level(6);
+			} else {
+				mc68000_.set_interrupt_level(0);
+			}
 		}
 };
 

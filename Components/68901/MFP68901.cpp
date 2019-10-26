@@ -50,7 +50,9 @@ uint8_t MFP68901::read(int address) {
 		case 0x0a:
 			LOG("Read: interrupt mask B");
 		return uint8_t(interrupt_mask_);
-		case 0x0b:		LOG("Read: vector");					break;
+		case 0x0b:
+			LOG("Read: vector");
+		return interrupt_vector_;
 		case 0x0c:		LOG("Read: timer A control");			break;
 		case 0x0d:		LOG("Read: timer B control");			break;
 		case 0x0e:		LOG("Read: timers C/D control");		break;
@@ -106,7 +108,10 @@ void MFP68901::write(int address, uint8_t value) {
 			interrupt_mask_ = (interrupt_mask_ & 0xff00) | value;
 			update_interrupts();
 		break;
-		case 0x0b:		LOG("Write: vector " << PADHEX(2) << int(value));					break;
+		case 0x0b:
+			LOG("Write: vector " << PADHEX(2) << int(value));
+			interrupt_vector_ = value;
+		break;
 		case 0x0c:
 		case 0x0d: {
 			const auto timer = address - 0xc;
@@ -261,11 +266,12 @@ void MFP68901::end_interrupts(int interrupt) {
 }
 
 void MFP68901::update_interrupts() {
+	const bool old_interrupt_line = interrupt_line_;
 	interrupt_pending_ = interrupt_in_service_ & interrupt_enable_;
 	interrupt_line_ = interrupt_pending_ & interrupt_mask_;
 
-	if(interrupt_line_) {
-		LOG("Should produce interrupt...");
+	if(interrupt_delegate_ && interrupt_line_ != old_interrupt_line) {
+		interrupt_delegate_->mfp68901_did_change_interrupt_status(this);
 	}
 }
 
@@ -273,7 +279,17 @@ bool MFP68901::get_interrupt_line() {
 	return interrupt_line_;
 }
 
-uint16_t MFP68901::acknowledge_interrupt() {
-	// TODO.
-	return 0;
+uint8_t MFP68901::acknowledge_interrupt() {
+	uint8_t selected_interrupt = 15;
+	uint16_t interrupt_mask = 0x8000;
+	while(!(interrupt_pending_ & interrupt_mask) && interrupt_mask) {
+		interrupt_mask >>= 1;
+		--selected_interrupt;
+	}
+	end_interrupts(interrupt_mask);
+	return (interrupt_vector_ & 0xf0) | selected_interrupt;
+}
+
+void MFP68901::set_interrupt_delegate(InterruptDelegate *delegate) {
+	interrupt_delegate_ = delegate;
 }
