@@ -94,8 +94,18 @@ void MFP68901::write(int address, uint8_t value) {
 			interrupt_enable_ = (interrupt_enable_ & 0xff00) | value;
 			update_interrupts();
 		break;
-		case 0x05:		LOG("Write: interrupt pending A (no-op?) " << PADHEX(2) << int(value));		break;
-		case 0x06:		LOG("Write: interrupt pending B (no-op?) " << PADHEX(2) << int(value));		break;
+		case 0x05:
+			LOG("Write: interrupt pending A " << PADHEX(2) << int(value));
+			interrupt_pending_ = (interrupt_pending_ & 0x00ff) | (value << 8);
+			interrupt_in_service_ &= 0x00ff | (value << 8);
+			update_interrupts();
+		break;
+		case 0x06:
+			LOG("Write: interrupt pending B " << PADHEX(2) << int(value));
+			interrupt_pending_ = (interrupt_pending_ & 0xff00) | value;
+			interrupt_in_service_ &= 0xff00 | value;
+			update_interrupts();
+		break;
 		case 0x07:		LOG("Write: interrupt in-service A (no-op?) " << PADHEX(2) << int(value));	break;
 		case 0x08:		LOG("Write: interrupt in-service B (no-op?) " << PADHEX(2) << int(value));	break;
 		case 0x09:
