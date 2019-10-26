@@ -10,6 +10,7 @@
 
 #include "../CRTMachine.hpp"
 
+//#define LOG_TRACE
 #include "../../Processors/68000/68000.hpp"
 
 #include "../../Components/AY38910/AY38910.hpp"
@@ -250,12 +251,16 @@ class ConcreteMachine:
 			memory_map_[0] = BusDevice::MostlyRAM;
 			int c = 1;
 			for(; c < 0x08; ++c) memory_map_[c] = BusDevice::RAM;
+			for(; c < 0xff; ++c) memory_map_[c] = BusDevice::Unassigned;
 
-			// This is appropriate for: TOS 1.x, no cartridge.
-			for(; c < 0xfc; ++c) memory_map_[c] = BusDevice::Unassigned;
-			for(; c < 0xff; ++c) memory_map_[c] = BusDevice::ROM;
+			const bool is_early_tos = true;
+			if(is_early_tos) {
+				for(c = 0xfc; c < 0xff; ++c) memory_map_[c] = BusDevice::ROM;
+			} else {
+				for(c = 0xe0; c < 0xe4; ++c) memory_map_[c] = BusDevice::ROM;
+			}
+
 			memory_map_[0xfa] = memory_map_[0xfb] = BusDevice::Cartridge;
-
 			memory_map_[0xff] = BusDevice::IO;
 
 			midi_acia_->set_interrupt_delegate(this);
@@ -356,7 +361,7 @@ class ConcreteMachine:
 				case BusDevice::IO:
 					switch(address) {
 						default:
-							assert(false);
+//							assert(false);
 
 						case 0x7fc000:
 							/* Memory controller configuration:
