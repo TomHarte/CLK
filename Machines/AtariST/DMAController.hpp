@@ -10,6 +10,8 @@
 #define DMAController_hpp
 
 #include <cstdint>
+#include <vector>
+
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../Components/1770/1770.hpp"
 
@@ -26,7 +28,20 @@ class DMAController {
 
 	private:
 		HalfCycles running_time_;
-		WD::WD1770 fdc_;
+		struct WD1772: public WD::WD1770 {
+			WD1772(): WD::WD1770(WD::WD1770::P1772) {
+				drives_.emplace_back(new Storage::Disk::Drive(8000000, 300, 2));
+				drives_.emplace_back(new Storage::Disk::Drive(8000000, 300, 2));
+				set_drive(drives_[0]);
+			}
+
+			void set_motor_on(bool motor_on) final {
+				drives_[0]->set_motor_on(motor_on);
+				drives_[1]->set_motor_on(motor_on);
+			}
+
+			std::vector<std::shared_ptr<Storage::Disk::Drive>> drives_;
+		} fdc_;
 
 		uint16_t control_ = 0;
 		uint32_t address_ = 0;

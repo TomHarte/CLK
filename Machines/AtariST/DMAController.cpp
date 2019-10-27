@@ -12,7 +12,7 @@
 
 using namespace Atari::ST;
 
-DMAController::DMAController() : fdc_(WD::WD1770::P1772) {
+DMAController::DMAController() {
 }
 
 uint16_t DMAController::read(int address) {
