@@ -105,12 +105,12 @@ void MFP68901::write(int address, uint8_t value) {
 			update_interrupts();
 		break;
 		case 0x07:
-			LOG("Write: interrupt in-service A (no-op?) " << PADHEX(2) << int(value));
+			LOG("Write: interrupt in-service A " << PADHEX(2) << int(value));
 			interrupt_in_service_ &= 0x00ff | (value << 8);
 			update_interrupts();
 		break;
 		case 0x08:
-			LOG("Write: interrupt in-service B (no-op?) " << PADHEX(2) << int(value));
+			LOG("Write: interrupt in-service B " << PADHEX(2) << int(value));
 			interrupt_in_service_ &= 0xff00 | value;
 			update_interrupts();
 		break;
@@ -298,15 +298,15 @@ void MFP68901::end_interrupts(int interrupt) {
 
 void MFP68901::update_interrupts() {
 	const auto old_interrupt_line = interrupt_line_;
-	const auto permitted_interrupts = interrupt_pending_ & interrupt_mask_;
+	const auto firing_interrupts = interrupt_pending_ & interrupt_mask_;
 
-	if(!permitted_interrupts) {
+	if(!firing_interrupts) {
 		interrupt_line_ = false;
 	} else {
 		if(interrupt_vector_ & 0x8) {
 			// Software interrupt mode: permit only if no higher interrupts
 			// are currently in service.
-			const int highest_bit = 1 << (fls(permitted_interrupts) - 1);
+			const int highest_bit = 1 << (fls(firing_interrupts) - 1);
 			interrupt_line_ = !(interrupt_in_service_ & ~(highest_bit + highest_bit - 1));
 		} else {
 			// Auto-interrupt mode; just signal.
@@ -316,6 +316,7 @@ void MFP68901::update_interrupts() {
 
 	// Update the delegate if necessary.
 	if(interrupt_delegate_ && interrupt_line_ != old_interrupt_line) {
+		if(interrupt_line_) LOG("Generating interrupt: " << std::hex << interrupt_pending_ << " / " << std::hex << interrupt_mask_ << " : " << std::hex << interrupt_in_service_);
 		interrupt_delegate_->mfp68901_did_change_interrupt_status(this);
 	}
 }
@@ -338,6 +339,7 @@ uint8_t MFP68901::acknowledge_interrupt() {
 
 	update_interrupts();
 
+	LOG("Interrupt acknowledged: " << selected);
 	return (interrupt_vector_ & 0xf0) | uint8_t(selected);
 }
 
