@@ -57,7 +57,7 @@ class MFP68901 {
 			uint8_t value = 0;
 			uint8_t reload_value = 0;
 			int prescale = 1;
-			int divisor = 0;
+			int divisor = 1;
 			bool event_input = false;
 		} timers_[4];
 

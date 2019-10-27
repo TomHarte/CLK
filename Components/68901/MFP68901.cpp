@@ -140,7 +140,7 @@ void MFP68901::write(int address, uint8_t value) {
 			const auto timer = address - 0xc;
 			const bool reset = value & 0x10;
 			switch(value & 0xf) {
-				case 0x0:	set_timer_mode(timer, TimerMode::Stopped, 0, reset);		break;
+				case 0x0:	set_timer_mode(timer, TimerMode::Stopped, 1, reset);		break;
 				case 0x1:	set_timer_mode(timer, TimerMode::Delay, 4, reset);			break;
 				case 0x2:	set_timer_mode(timer, TimerMode::Delay, 10, reset);			break;
 				case 0x3:	set_timer_mode(timer, TimerMode::Delay, 16, reset);			break;
@@ -148,7 +148,7 @@ void MFP68901::write(int address, uint8_t value) {
 				case 0x5:	set_timer_mode(timer, TimerMode::Delay, 64, reset);			break;
 				case 0x6:	set_timer_mode(timer, TimerMode::Delay, 100, reset);		break;
 				case 0x7:	set_timer_mode(timer, TimerMode::Delay, 200, reset);		break;
-				case 0x8:	set_timer_mode(timer, TimerMode::EventCount, 0, reset);		break;
+				case 0x8:	set_timer_mode(timer, TimerMode::EventCount, 1, reset);		break;
 				case 0x9:	set_timer_mode(timer, TimerMode::PulseWidth, 4, reset);		break;
 				case 0xa:	set_timer_mode(timer, TimerMode::PulseWidth, 10, reset);	break;
 				case 0xb:	set_timer_mode(timer, TimerMode::PulseWidth, 16, reset);	break;
@@ -160,7 +160,7 @@ void MFP68901::write(int address, uint8_t value) {
 		} break;
 		case 0x0e:
 			switch(value & 7) {
-				case 0:	set_timer_mode(3, TimerMode::Stopped, 0, false);	break;
+				case 0:	set_timer_mode(3, TimerMode::Stopped, 1, false);	break;
 				case 1:	set_timer_mode(3, TimerMode::Delay, 4, false);		break;
 				case 2:	set_timer_mode(3, TimerMode::Delay, 10, false);		break;
 				case 3:	set_timer_mode(3, TimerMode::Delay, 16, false);		break;
@@ -170,7 +170,7 @@ void MFP68901::write(int address, uint8_t value) {
 				case 7:	set_timer_mode(3, TimerMode::Delay, 200, false);	break;
 			}
 			switch((value >> 4) & 7) {
-				case 0:	set_timer_mode(2, TimerMode::Stopped, 0, false);	break;
+				case 0:	set_timer_mode(2, TimerMode::Stopped, 1, false);	break;
 				case 1:	set_timer_mode(2, TimerMode::Delay, 4, false);		break;
 				case 2:	set_timer_mode(2, TimerMode::Delay, 10, false);		break;
 				case 3:	set_timer_mode(2, TimerMode::Delay, 16, false);		break;
@@ -247,7 +247,15 @@ void MFP68901::set_timer_event_input(int channel, bool value) {
 void MFP68901::decrement_timer(int timer) {
 	--timers_[timer].value;
 	if(!timers_[timer].value) {
-		// TODO: interrupt. Reload, possibly.
+		switch(timer) {
+			case 0: begin_interrupts(Interrupt::TimerA);	break;
+			case 1: begin_interrupts(Interrupt::TimerB);	break;
+			case 2: begin_interrupts(Interrupt::TimerC);	break;
+			case 3: begin_interrupts(Interrupt::TimerD);	break;
+		}
+		if(timers_[timer].mode == TimerMode::Delay) {
+			timers_[timer].value = timers_[timer].reload_value;
+		}
 	}
 }
 
