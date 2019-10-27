@@ -171,7 +171,7 @@ class AYDeferrer {
 */
 class CRTCBusHandler {
 	public:
-		CRTCBusHandler(uint8_t *ram, InterruptTimer &interrupt_timer) :
+		CRTCBusHandler(const uint8_t *ram, InterruptTimer &interrupt_timer) :
 			crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2),
 			ram_(ram),
 			interrupt_timer_(interrupt_timer) {
@@ -263,25 +263,25 @@ class CRTCBusHandler {
 						case 0:
 							reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode0_output_[ram_[address]];
 							reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode0_output_[ram_[address+1]];
-							pixel_pointer_ += 4;
+							pixel_pointer_ += 2 * sizeof(uint16_t);
 						break;
 
 						case 1:
 							reinterpret_cast<uint32_t *>(pixel_pointer_)[0] = mode1_output_[ram_[address]];
 							reinterpret_cast<uint32_t *>(pixel_pointer_)[1] = mode1_output_[ram_[address+1]];
-							pixel_pointer_ += 8;
+							pixel_pointer_ += 2 * sizeof(uint32_t);
 						break;
 
 						case 2:
 							reinterpret_cast<uint64_t *>(pixel_pointer_)[0] = mode2_output_[ram_[address]];
 							reinterpret_cast<uint64_t *>(pixel_pointer_)[1] = mode2_output_[ram_[address+1]];
-							pixel_pointer_ += 16;
+							pixel_pointer_ += 2 * sizeof(uint64_t);
 						break;
 
 						case 3:
 							reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode3_output_[ram_[address]];
 							reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode3_output_[ram_[address+1]];
-							pixel_pointer_ += 4;
+							pixel_pointer_ += 2 * sizeof(uint16_t);
 						break;
 
 					}
@@ -538,7 +538,7 @@ class CRTCBusHandler {
 		Outputs::CRT::CRT crt_;
 		uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
 
-		uint8_t *ram_ = nullptr;
+		const uint8_t *const ram_ = nullptr;
 
 		int next_mode_ = 2, mode_ = 2;
 
