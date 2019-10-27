@@ -17,7 +17,9 @@
 #include "../../Components/68901/MFP68901.hpp"
 #include "../../Components/6850/6850.hpp"
 
+#include "DMAController.hpp"
 #include "Video.hpp"
+
 #include "../../ClockReceiver/JustInTime.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
 
@@ -507,13 +509,23 @@ class ConcreteMachine:
 
 						// DMA.
 						case 0x7fc302:	case 0x7fc303:	case 0x7fc304:	case 0x7fc305:	case 0x7fc306:
+							if(!cycle.data_select_active()) return HalfCycles(0);
+
 							if(cycle.operation & Microcycle::Read) {
-								const uint8_t value = 0;
-								if(cycle.operation & Microcycle::SelectByte) {
-									cycle.value->halves.low = value;
+								const auto value = dma_->read(int(address));
+								if(cycle.operation & Microcycle::SelectWord) {
+									cycle.value->full = value;
 								} else {
-									cycle.value->halves.high = value;
-									cycle.value->halves.low = 0xff;
+									cycle.value->halves.low = uint8_t(value >> cycle.byte_shift());
+								}
+							} else {
+								if(cycle.operation & Microcycle::SelectWord) {
+									dma_->write(int(address), cycle.value->full);
+								} else {
+									dma_->write(int(address), uint16_t(
+										(cycle.value->halves.low << cycle.byte_shift()) |
+										(0xff00 >> cycle.byte_shift())
+									));
 								}
 							}
 						break;
@@ -555,6 +567,7 @@ class ConcreteMachine:
 		forceinline void advance_time(HalfCycles length) {
 			cycles_since_audio_update_ += length;
 			mfp_ += length;
+			dma_ += length;
 
 			keyboard_acia_ += length;
 			midi_acia_ += length;
@@ -596,6 +609,8 @@ class ConcreteMachine:
 		GI::AY38910::AY38910 ay_;
 		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
 		HalfCycles cycles_since_audio_update_;
+
+		JustInTimeActor<DMAController> dma_;
 
 		HalfCycles cycles_since_ikbd_update_;
 		IntelligentKeyboard ikbd_;
