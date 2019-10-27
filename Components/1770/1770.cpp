@@ -9,6 +9,8 @@
 #include "1770.hpp"
 
 #include "../../Storage/Disk/Encodings/MFM/Constants.hpp"
+
+#define LOG_PREFIX "[WD FDC] "
 #include "../../Outputs/Log.hpp"
 
 using namespace WD;
