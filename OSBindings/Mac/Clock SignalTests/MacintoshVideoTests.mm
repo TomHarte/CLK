@@ -23,7 +23,8 @@
 
 - (void)setUp {
 	// Put setup code here. This method is called before the invocation of each test method in the class.
-	_video.reset(new Apple::Macintosh::Video(_ram, _dummy_audio, _dummy_drive_speed_accumulator));
+	_video.reset(new Apple::Macintosh::Video(_dummy_audio, _dummy_drive_speed_accumulator));
+	_video->set_ram(_ram, sizeof(_ram) - 1);
 }
 
 - (void)testPrediction {
