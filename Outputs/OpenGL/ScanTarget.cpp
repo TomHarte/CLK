@@ -174,8 +174,10 @@ void ScanTarget::end_scan() {
 }
 
 uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignment) {
+	assert(required_alignment);
+
 	if(allocation_has_failed_) return nullptr;
-	if(!write_area_texture_.size()) {
+	if(write_area_texture_.empty()) {
 		allocation_has_failed_ = true;
 		return nullptr;
 	}
