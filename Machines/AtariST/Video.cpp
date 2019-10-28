@@ -8,7 +8,6 @@
 
 #include "Video.hpp"
 
-#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 #include <algorithm>
@@ -224,14 +223,17 @@ HalfCycles Video::get_next_sequence_point() {
 // MARK: - IO dispatch
 
 uint8_t Video::read(int address) {
-	LOG("[Video] read " << (address & 0x3f));
+	LOG("[Video] read " << PADHEX(2) << (address & 0x3f));
 	address &= 0x3f;
 	switch(address) {
+		default:
+		break;
 		case 0x00:	return uint8_t(base_address_ >> 16);
 		case 0x01:	return uint8_t(base_address_ >> 8);
 		case 0x02:	return uint8_t(current_address_ >> 16);
 		case 0x03:	return uint8_t(current_address_ >> 8);
 		case 0x04:	return uint8_t(current_address_);
+		case 0x30:	return video_mode_ | 0xfc;
 	}
 	return 0xff;
 }
@@ -245,6 +247,9 @@ void Video::write(int address, uint16_t value) {
 		// Start address.
 		case 0x00:	base_address_ = (base_address_ & 0x00ffff) | (value << 16);	break;
 		case 0x01:	base_address_ = (base_address_ & 0xff00ff) | (value << 8);	break;
+
+		// Mode.
+		case 0x30:	video_mode_ = uint8_t(value);								break;
 
 		// Palette.
 		case 0x20:	case 0x21:	case 0x22:	case 0x23:

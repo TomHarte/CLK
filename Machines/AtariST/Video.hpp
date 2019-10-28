@@ -57,6 +57,8 @@ class Video {
 
 		int x = 0, y = 0;
 		void output_border(int duration);
+
+		uint8_t video_mode_ = 0;
 };
 
 }
