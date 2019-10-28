@@ -60,6 +60,8 @@ class MFP68901 {
 			int divisor = 1;
 			bool event_input = false;
 		} timers_[4];
+		uint8_t timer_ab_control_[2] = { 0, 0 };
+		uint8_t timer_cd_control_ = 0;
 
 		HalfCycles cycles_left_;
 

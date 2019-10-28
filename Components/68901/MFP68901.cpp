@@ -55,11 +55,17 @@ uint8_t MFP68901::read(int address) {
 		case 0x0b:
 			LOG("Read: vector");
 		return interrupt_vector_;
-		case 0x0c:		LOG("Read: timer A control");			break;
-		case 0x0d:		LOG("Read: timer B control");			break;
-		case 0x0e:		LOG("Read: timers C/D control");		break;
+		case 0x0c:
+			LOG("Read: timer A control");
+		return timer_ab_control_[0];
+		case 0x0d:
+			LOG("Read: timer B control");
+		return timer_ab_control_[1];
+		case 0x0e:
+			LOG("Read: timers C/D control");
+		return timer_cd_control_;
 		case 0x0f:	case 0x10:	case 0x11:	case 0x12:
-			return get_timer_data(address - 0xf);
+		return get_timer_data(address - 0xf);
 		case 0x13:		LOG("Read: sync character generator");	break;
 		case 0x14:		LOG("Read: USART control");				break;
 		case 0x15:		LOG("Read: receiver status");			break;
@@ -139,6 +145,7 @@ void MFP68901::write(int address, uint8_t value) {
 		case 0x0d: {
 			const auto timer = address - 0xc;
 			const bool reset = value & 0x10;
+			timer_ab_control_[timer] = value;
 			switch(value & 0xf) {
 				case 0x0:	set_timer_mode(timer, TimerMode::Stopped, 1, reset);		break;
 				case 0x1:	set_timer_mode(timer, TimerMode::Delay, 4, reset);			break;
@@ -159,6 +166,7 @@ void MFP68901::write(int address, uint8_t value) {
 			}
 		} break;
 		case 0x0e:
+			timer_cd_control_ = value;
 			switch(value & 7) {
 				case 0:	set_timer_mode(3, TimerMode::Stopped, 1, false);	break;
 				case 1:	set_timer_mode(3, TimerMode::Delay, 4, false);		break;
@@ -316,7 +324,8 @@ void MFP68901::update_interrupts() {
 
 	// Update the delegate if necessary.
 	if(interrupt_delegate_ && interrupt_line_ != old_interrupt_line) {
-		if(interrupt_line_) LOG("Generating interrupt: " << std::hex << interrupt_pending_ << " / " << std::hex << interrupt_mask_ << " : " << std::hex << interrupt_in_service_);
+		if(interrupt_line_)
+			LOG("Generating interrupt: " << std::hex << interrupt_pending_ << " / " << std::hex << interrupt_mask_ << " : " << std::hex << interrupt_in_service_);
 		interrupt_delegate_->mfp68901_did_change_interrupt_status(this);
 	}
 }
