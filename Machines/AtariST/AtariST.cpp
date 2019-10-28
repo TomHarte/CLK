@@ -205,6 +205,7 @@ class IntelligentKeyboard:
 		}
 
 		void interrogate_mouse_position() {
+			output_byte(0xf7);	// Beginning of mouse response.
 			output_byte(0x00);	// 0000dcba; a = right button down since last interrogation, b = right button up since, c/d = left button.
 			output_byte(0x00);	// x motion: MSB, LSB
 			output_byte(0x00);
