@@ -13,6 +13,7 @@
 using namespace Atari::ST;
 
 DMAController::DMAController() {
+	fdc_.set_delegate(this);
 }
 
 uint16_t DMAController::read(int address) {
