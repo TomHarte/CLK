@@ -83,3 +83,19 @@ void DMAController::run_for(HalfCycles duration) {
 	running_time_ += duration;
 	fdc_.run_for(duration.flush<Cycles>());
 }
+
+void DMAController::wd1770_did_change_output(WD::WD1770 *) {
+	const bool old_interrupt_line = interrupt_line_;
+	interrupt_line_ = fdc_.get_interrupt_request_line();
+	if(interrupt_delegate_ && interrupt_line_ != old_interrupt_line) {
+		interrupt_delegate_->dma_controller_did_change_interrupt_status(this);
+	}
+}
+
+void DMAController::set_interrupt_delegate(InterruptDelegate *delegate) {
+	interrupt_delegate_ = delegate;
+}
+
+bool DMAController::get_interrupt_line() {
+	return interrupt_line_;
+}

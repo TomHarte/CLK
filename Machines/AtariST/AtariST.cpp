@@ -225,7 +225,8 @@ class ConcreteMachine:
 	public CRTMachine::Machine,
 	public ClockingHint::Observer,
 	public Motorola::ACIA::ACIA::InterruptDelegate,
-	public Motorola::MFP68901::MFP68901::InterruptDelegate {
+	public Motorola::MFP68901::MFP68901::InterruptDelegate,
+	public DMAController::InterruptDelegate {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
@@ -274,6 +275,7 @@ class ConcreteMachine:
 			ikbd_.set_clocking_hint_observer(this);
 
 			mfp_->set_interrupt_delegate(this);
+			dma_->set_interrupt_delegate(this);
 
 			set_gpip_input();
 		}
@@ -637,7 +639,10 @@ class ConcreteMachine:
 		}
 
 		// MARK: - GPIP input.
-		void acia6850_did_change_interrupt_status(Motorola::ACIA::ACIA *acia) final {
+		void acia6850_did_change_interrupt_status(Motorola::ACIA::ACIA *) final {
+			set_gpip_input();
+		}
+		void dma_controller_did_change_interrupt_status(DMAController *) final {
 			set_gpip_input();
 		}
 		void set_gpip_input() {
@@ -656,8 +661,8 @@ class ConcreteMachine:
 			mfp_->set_port_input(
 				0x00 |	// b7: Monochrome monitor detect (1 = is monochrome).
 				0x40 |	// b6: RS-232 ring indicator.
-				0x20 |	// b5: FD/HS interrupt (0 = interrupt requested).
-				((keyboard_acia_->get_interrupt_line() || midi_acia_->get_interrupt_line()) ? 0x0 : 0x10) |	// b4: Keyboard/MIDI interrupt (0 = interrupt requested).
+				(dma_->get_interrupt_line() ? 0x00 : 0x20) |	// b5: FD/HS interrupt (0 = interrupt requested).
+				((keyboard_acia_->get_interrupt_line() || midi_acia_->get_interrupt_line()) ? 0x00 : 0x10) |	// b4: Keyboard/MIDI interrupt (0 = interrupt requested).
 				0x08 |	// b3: Unused
 				0x04 |	// b2: RS-232 clear to send.
 				0x02 |	// b1 : RS-232 carrier detect.

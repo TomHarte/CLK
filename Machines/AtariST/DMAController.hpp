@@ -18,13 +18,20 @@
 namespace Atari {
 namespace ST {
 
-class DMAController {
+class DMAController: public WD::WD1770::Delegate {
 	public:
 		DMAController();
 
 		uint16_t read(int address);
 		void write(int address, uint16_t value);
 		void run_for(HalfCycles duration);
+
+		bool get_interrupt_line();
+
+		struct InterruptDelegate {
+			virtual void dma_controller_did_change_interrupt_status(DMAController *) = 0;
+		};
+		void set_interrupt_delegate(InterruptDelegate *delegate);
 
 	private:
 		HalfCycles running_time_;
@@ -43,10 +50,15 @@ class DMAController {
 			std::vector<std::shared_ptr<Storage::Disk::Drive>> drives_;
 		} fdc_;
 
+		void wd1770_did_change_output(WD::WD1770 *) final;
+
 		uint16_t control_ = 0;
 		uint32_t address_ = 0;
 		uint16_t status_ = 0;
 		uint16_t sector_count_ = 0;
+
+		InterruptDelegate *interrupt_delegate_ = nullptr;
+		bool interrupt_line_ = false;
 };
 
 }
