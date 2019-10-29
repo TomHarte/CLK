@@ -32,7 +32,7 @@ void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive
 }
 
 void Microdisc::set_control_register(uint8_t control) {
-	uint8_t changes = last_control_ ^ control;
+	const uint8_t changes = last_control_ ^ control;
 	last_control_ = control;
 	set_control_register(control, changes);
 }
@@ -48,7 +48,7 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 
 	// b4: side select
 	if(changes & 0x10) {
-		int head = (control & 0x10) ? 1 : 0;
+		const int head = (control & 0x10) ? 1 : 0;
 		for(auto &drive : drives_) {
 			if(drive) drive->set_head(head);
 		}
@@ -61,9 +61,9 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 
 	// b0: IRQ enable
 	if(changes & 0x01) {
-		bool had_irq = get_interrupt_request_line();
+		const bool had_irq = get_interrupt_request_line();
 		irq_enable_ = !!(control & 0x01);
-		bool has_irq = get_interrupt_request_line();
+		const bool has_irq = get_interrupt_request_line();
 		if(has_irq != had_irq && delegate_) {
 			delegate_->wd1770_did_change_output(this);
 		}
