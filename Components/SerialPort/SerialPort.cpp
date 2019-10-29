@@ -132,6 +132,7 @@ void Line::update_delegate(bool level) {
 		++bits;
 		if(!read_delegate_->serial_line_did_produce_bit(this, bit)) {
 			read_delegate_phase_ = ReadDelegatePhase::WaitingForZero;
+			if(bit) return;
 		}
 
 		time_left -= time_left_in_bit_;
