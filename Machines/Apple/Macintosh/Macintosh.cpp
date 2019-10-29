@@ -656,7 +656,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			return mouse_;
 		}
 
-		using IWMActor = JustInTimeActor<IWM, 1, HalfCycles, Cycles>;
+		using IWMActor = JustInTimeActor<IWM, 1, 1, HalfCycles, Cycles>;
 
 		class VIAPortHandler: public MOS::MOS6522::PortHandler {
 			public:

@@ -32,7 +32,7 @@
 namespace Atari {
 namespace ST {
 
-const int CLOCK_RATE = 8000000;
+const int CLOCK_RATE = 8021247;
 
 /*!
 	A receiver for the Atari ST's "intelligent keyboard" commands, which actually cover
@@ -604,7 +604,8 @@ class ConcreteMachine:
 		JustInTimeActor<Video> video_;
 		HalfCycles cycles_until_video_event_;
 
-		JustInTimeActor<Motorola::MFP68901::MFP68901> mfp_;
+		// The MFP runs at 819200/2673749ths of the CPU clock rate.
+		JustInTimeActor<Motorola::MFP68901::MFP68901, 819200, 2673749> mfp_;
 		JustInTimeActor<Motorola::ACIA::ACIA, 16> keyboard_acia_;
 		JustInTimeActor<Motorola::ACIA::ACIA, 16> midi_acia_;
 

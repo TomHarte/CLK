@@ -21,14 +21,18 @@
 	Machines that accumulate HalfCycle time but supply to a Cycle-counted device may supply a
 	separate @c TargetTimeScale at template declaration.
 */
-template <class T, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class JustInTimeActor {
+template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class JustInTimeActor {
 	public:
 		/// Constructs a new JustInTimeActor using the same construction arguments as the included object.
 		template<typename... Args> JustInTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {}
 
 		/// Adds time to the actor.
 		inline void operator += (const LocalTimeScale &rhs) {
-			time_since_update_ += rhs;
+			if(multiplier != 1) {
+				time_since_update_ += rhs * multiplier;
+			} else {
+				time_since_update_ += rhs;
+			}
 			is_flushed_ = false;
 		}
 
