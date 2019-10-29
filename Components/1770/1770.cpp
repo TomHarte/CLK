@@ -772,7 +772,7 @@ void WD1770::update_status(std::function<void(Status &)> updater) {
 	if(delegate_) {
 		Status old_status = status_;
 		updater(status_);
-		bool did_change =
+		const bool did_change =
 			(status_.busy != old_status.busy) ||
 			(status_.data_request != old_status.data_request) ||
 			(status_.interrupt_request != old_status.interrupt_request);
