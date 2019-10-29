@@ -20,8 +20,8 @@ uint8_t MFP68901::read(int address) {
 	address &= 0x1f;
 	switch(address) {
 		case 0x00:
-			LOG("Read: general purpose IO " << PADHEX(2) << int(gpip_input_ | gpip_direction_));
-		return gpip_input_ | gpip_direction_;
+			LOG("Read: general purpose IO " << PADHEX(2) << ((gpip_input_ & ~gpip_direction_) | (gpip_output_ & gpip_direction_)));
+		return (gpip_input_ & ~gpip_direction_) | (gpip_output_ & gpip_direction_);
 		case 0x01:
 			LOG("Read: active edge " << PADHEX(2) << int(gpip_active_edge_));
 		return gpip_active_edge_;
