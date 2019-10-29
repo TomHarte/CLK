@@ -48,13 +48,18 @@ class IntelligentKeyboard:
 		}
 
 		bool serial_line_did_produce_bit(Serial::Line *, int bit) final {
+			// Shift.
 			command_ = (command_ >> 1) | (bit << 9);
+
+			// If that's 10 bits, decode a byte and stop.
 			bit_count_ = (bit_count_ + 1) % 10;
 			if(!bit_count_) {
 				dispatch_command(uint8_t(command_ >> 1));
 				command_ = 0;
 				return false;
 			}
+
+			// Continue.
 			return true;
 		}
 
