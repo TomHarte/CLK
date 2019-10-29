@@ -95,10 +95,14 @@ void MFP68901::write(int address, uint8_t value) {
 		case 0x03:
 			LOG("Write: interrupt enable A " << PADHEX(2) << int(value));
 			interrupt_enable_ = (interrupt_enable_ & 0x00ff) | (value << 8);
+			interrupt_pending_ = (interrupt_enable_ & 0x00ff) | (value << 8);
+			update_interrupts();
 		break;
 		case 0x04:
 			LOG("Write: interrupt enable B " << PADHEX(2) << int(value));
 			interrupt_enable_ = (interrupt_enable_ & 0xff00) | value;
+			interrupt_pending_ = (interrupt_enable_ & 0xff00) | value;
+			update_interrupts();
 		break;
 		case 0x05:
 			LOG("Write: interrupt pending A " << PADHEX(2) << int(value));
@@ -312,10 +316,10 @@ void MFP68901::update_interrupts() {
 		interrupt_line_ = false;
 	} else {
 		if(interrupt_vector_ & 0x8) {
-			// Software interrupt mode: permit only if no higher interrupts
-			// are currently in service.
+			// Software interrupt mode: permit only if neither this interrupt
+			// nor a higher interrupt is currently in service.
 			const int highest_bit = 1 << (fls(firing_interrupts) - 1);
-			interrupt_line_ = !(interrupt_in_service_ & ~(highest_bit + highest_bit - 1));
+			interrupt_line_ = !(interrupt_in_service_ & ~(highest_bit - 1));
 		} else {
 			// Auto-interrupt mode; just signal.
 			interrupt_line_ = true;
