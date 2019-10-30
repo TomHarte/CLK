@@ -18,54 +18,37 @@ using namespace Motorola::MFP68901;
 
 uint8_t MFP68901::read(int address) {
 	address &= 0x1f;
+
+	// Interrupt block: various bits of state can be read, all passively.
+	if(address >= 0x03 && address <= 0x0b) {
+		const int shift = (address&1) << 3;
+		switch(address) {
+			case 0x03:	case 0x04:	return uint8_t(interrupt_enable_ >> shift);
+			case 0x05:	case 0x06:	return uint8_t(interrupt_pending_ >> shift);
+			case 0x07:	case 0x08:	return uint8_t(interrupt_in_service_ >> shift);
+			case 0x09:	case 0x0a:	return uint8_t(interrupt_mask_ >> shift);
+			case 0x0b:	return interrupt_vector_;
+
+			default: break;
+		}
+	}
+
 	switch(address) {
-		case 0x00:
-			LOG("Read: general purpose IO " << PADHEX(2) << ((gpip_input_ & ~gpip_direction_) | (gpip_output_ & gpip_direction_)));
-		return (gpip_input_ & ~gpip_direction_) | (gpip_output_ & gpip_direction_);
-		case 0x01:
-			LOG("Read: active edge " << PADHEX(2) << int(gpip_active_edge_));
-		return gpip_active_edge_;
-		case 0x02:
-			LOG("Read: data direction "  << PADHEX(2) << int(gpip_direction_));
-		return gpip_direction_;
-		case 0x03:
-			LOG("Read: interrupt enable A");
-		return uint8_t(interrupt_enable_ >> 8);
-		case 0x04:
-			LOG("Read: interrupt enable B");
-		return uint8_t(interrupt_enable_);
-		case 0x05:
-			LOG("Read: interrupt pending A");
-		return uint8_t(interrupt_pending_ >> 8);
-		case 0x06:
-			LOG("Read: interrupt pending B");
-		return uint8_t(interrupt_pending_);
-		case 0x07:
-			LOG("Read: interrupt in-service A");
-		return uint8_t(interrupt_in_service_ >> 8);
-		case 0x08:
-			LOG("Read: interrupt in-service B");
-		return uint8_t(interrupt_in_service_);
-		case 0x09:
-			LOG("Read: interrupt mask A");
-		return uint8_t(interrupt_mask_ >> 8);
-		case 0x0a:
-			LOG("Read: interrupt mask B");
-		return uint8_t(interrupt_mask_);
-		case 0x0b:
-			LOG("Read: vector");
-		return interrupt_vector_;
-		case 0x0c:
-			LOG("Read: timer A control");
-		return timer_ab_control_[0];
-		case 0x0d:
-			LOG("Read: timer B control");
-		return timer_ab_control_[1];
-		case 0x0e:
-			LOG("Read: timers C/D control");
-		return timer_cd_control_;
-		case 0x0f:	case 0x10:	case 0x11:	case 0x12:
-		return get_timer_data(address - 0xf);
+		// GPIP block: input, and configured active edge and direction values.
+		case 0x00:	return (gpip_input_ & ~gpip_direction_) | (gpip_output_ & gpip_direction_);
+		case 0x01:	return gpip_active_edge_;
+		case 0x02:	return gpip_direction_;
+
+		/* Interrupt block dealt with above. */
+		default: break;
+
+		// Timer block: read back A, B and C/D control, and read current timer values.
+		case 0x0c:	case 0x0d:	return timer_ab_control_[address - 0xc];
+		case 0x0e:				return timer_cd_control_;
+		case 0x0f:	case 0x10:
+		case 0x11:	case 0x12:	return get_timer_data(address - 0xf);
+
+		// USART block: TODO.
 		case 0x13:		LOG("Read: sync character generator");	break;
 		case 0x14:		LOG("Read: USART control");				break;
 		case 0x15:		LOG("Read: receiver status");			break;
@@ -77,74 +60,61 @@ uint8_t MFP68901::read(int address) {
 
 void MFP68901::write(int address, uint8_t value) {
 	address &= 0x1f;
+
+	// Interrupt block: enabled and masked interrupts can be set; pending and in-service interrupts can be masked.
+	if(address >= 0x03 && address <= 0x0b) {
+		const int shift = (address&1) << 3;
+		const int preserve = 0xff00 >> shift;
+		const int word_value = value << shift;
+
+		switch(address) {
+			default: break;
+			case 0x03: case 0x04:	// Adjust enabled interrupts; disabled ones also cease to be pending.
+				interrupt_enable_ = (interrupt_enable_ & preserve) | word_value;
+				interrupt_pending_ &= interrupt_enable_;
+			break;
+			case 0x05: case 0x06:	// Resolve pending interrupts.
+				interrupt_pending_ &= (preserve | word_value);
+			break;
+			case 0x07: case 0x08:	// Resolve in-service interrupts.
+				interrupt_in_service_ &= (preserve | word_value);
+			break;
+			case 0x09: case 0x0a:	// Adjust interrupt mask.
+				interrupt_mask_ = (interrupt_mask_ & preserve) | word_value;
+			break;
+			case 0x0b:				// Set the interrupt vector, possibly changing end-of-interrupt mode.
+				interrupt_vector_ = value;
+
+				// If automatic end-of-interrupt mode has now been enabled, clear
+				// the in-process mask and re-evaluate.
+				if(interrupt_vector_ & 0x08) return;
+				interrupt_in_service_ = 0;
+			break;
+		}
+
+		// Whatever just happened may have affected the state of the interrupt line.
+		update_interrupts();
+		return;
+	}
+
 	switch(address) {
+		// GPIP block: output and configuration of active edge and direction values.
 		case 0x00:
-			LOG("Write: general purpose IO " << PADHEX(2) << int(value));
 			gpip_output_ = value;
 		break;
 		case 0x01:
-			LOG("Write: active edge " << PADHEX(2) << int(value));
 			gpip_active_edge_ = value;
 			reevaluate_gpip_interrupts();
 		break;
 		case 0x02:
-			LOG("Write: data direction " << PADHEX(2) << int(value));
 			gpip_direction_ = value;
 			reevaluate_gpip_interrupts();
 		break;
-		case 0x03:
-			LOG("Write: interrupt enable A " << PADHEX(2) << int(value));
-			interrupt_enable_ = (interrupt_enable_ & 0x00ff) | (value << 8);
-			interrupt_pending_ = (interrupt_enable_ & 0x00ff) | (value << 8);
-			update_interrupts();
-		break;
-		case 0x04:
-			LOG("Write: interrupt enable B " << PADHEX(2) << int(value));
-			interrupt_enable_ = (interrupt_enable_ & 0xff00) | value;
-			interrupt_pending_ = (interrupt_enable_ & 0xff00) | value;
-			update_interrupts();
-		break;
-		case 0x05:
-			LOG("Write: interrupt pending A " << PADHEX(2) << int(value));
-			interrupt_pending_ &= 0x00ff | (value << 8);
-			update_interrupts();
-		break;
-		case 0x06:
-			LOG("Write: interrupt pending B " << PADHEX(2) << int(value));
-			interrupt_pending_ &= 0xff00 | value;
-			update_interrupts();
-		break;
-		case 0x07:
-			LOG("Write: interrupt in-service A " << PADHEX(2) << int(value));
-			interrupt_in_service_ &= 0x00ff | (value << 8);
-			update_interrupts();
-		break;
-		case 0x08:
-			LOG("Write: interrupt in-service B " << PADHEX(2) << int(value));
-			interrupt_in_service_ &= 0xff00 | value;
-			update_interrupts();
-		break;
-		case 0x09:
-			LOG("Write: interrupt mask A " << PADHEX(2) << int(value));
-			interrupt_mask_ = (interrupt_mask_ & 0x00ff) | (value << 8);
-			update_interrupts();
-		break;
-		case 0x0a:
-			LOG("Write: interrupt mask B " << PADHEX(2) << int(value));
-			interrupt_mask_ = (interrupt_mask_ & 0xff00) | value;
-			update_interrupts();
-		break;
-		case 0x0b:
-			LOG("Write: vector " << PADHEX(2) << int(value));
-			interrupt_vector_ = value;
 
-			// If automatic end-of-interrupt mode has now been enabled, clear
-			// the in-process mask and re-evaluate.
-			if(!(interrupt_vector_ & 0x08)) {
-				interrupt_in_service_ = 0;
-				update_interrupts();
-			}
-		break;
+		/* Interrupt block dealt with above. */
+		default: break;
+
+		// Timer block.
 		case 0x0c:
 		case 0x0d: {
 			const auto timer = address - 0xc;
@@ -195,6 +165,8 @@ void MFP68901::write(int address, uint8_t value) {
 		case 0x0f:	case 0x10:	case 0x11:	case 0x12:
 			set_timer_data(address - 0xf, value);
 		break;
+
+		// USART block: TODO.
 		case 0x13:		LOG("Write: sync character generator");	break;
 		case 0x14:		LOG("Write: USART control");			break;
 		case 0x15:		LOG("Write: receiver status");			break;
@@ -282,7 +254,7 @@ uint8_t MFP68901::get_port_output() {
 }
 
 void MFP68901::reevaluate_gpip_interrupts() {
-	const uint8_t gpip_state = gpip_input_ ^ gpip_active_edge_;
+	const uint8_t gpip_state = (gpip_input_ & ~gpip_direction_) ^ gpip_active_edge_;
 
 	// An interrupt is detected on any falling edge.
 	const uint8_t new_interrupt_mask = (gpip_state ^ gpip_interrupt_state_) & gpip_interrupt_state_;
@@ -299,7 +271,7 @@ void MFP68901::reevaluate_gpip_interrupts() {
 // MARK: - Interrupts
 
 void MFP68901::begin_interrupts(int interrupt) {
-	interrupt_pending_ |= interrupt;
+	interrupt_pending_ |= interrupt & interrupt_enable_;
 	update_interrupts();
 }
 
