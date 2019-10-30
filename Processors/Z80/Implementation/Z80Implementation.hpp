@@ -941,7 +941,7 @@ template <	class T,
 		operation_indices.push_back(target.all_operations.size());
 		for(std::size_t t = 0; t < lengths[c];) {
 			// Skip zero-length bus cycles.
-			if(table[c][t].type == MicroOp::BusOperation && table[c][t].machine_cycle.length.as_int() == 0) {
+			if(table[c][t].type == MicroOp::BusOperation && table[c][t].machine_cycle.length.as_integral() == 0) {
 				t++;
 				continue;
 			}

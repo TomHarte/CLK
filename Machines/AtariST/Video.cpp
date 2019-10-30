@@ -62,7 +62,7 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 void Video::run_for(HalfCycles duration) {
-	int integer_duration = duration.as_int();
+	int integer_duration = int(duration.as_integral());
 	const auto mode_params = mode_params_for_mode();
 
 #define Period(lower, upper, type)	\

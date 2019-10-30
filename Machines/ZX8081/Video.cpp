@@ -42,7 +42,7 @@ void Video::flush() {
 void Video::flush(bool next_sync) {
 	if(sync_) {
 		// If in sync, that takes priority. Output the proper amount of sync.
-		crt_.output_sync(time_since_update_.as_int());
+		crt_.output_sync(int(time_since_update_.as_integral()));
 	} else {
 		// If not presently in sync, then...
 
@@ -50,8 +50,8 @@ void Video::flush(bool next_sync) {
 			// If there is output data queued, output it either if it's being interrupted by
 			// sync, or if we're past its end anyway. Otherwise let it be.
 			int data_length = static_cast<int>(line_data_pointer_ - line_data_);
-			if(data_length < time_since_update_.as_int() || next_sync) {
-				auto output_length = std::min(data_length, time_since_update_.as_int());
+			if(data_length < int(time_since_update_.as_integral()) || next_sync) {
+				auto output_length = std::min(data_length, int(time_since_update_.as_integral()));
 				crt_.output_data(output_length);
 				line_data_pointer_ = line_data_ = nullptr;
 				time_since_update_ -= HalfCycles(output_length);
@@ -61,7 +61,7 @@ void Video::flush(bool next_sync) {
 		// Any pending pixels being dealt with, pad with the white level.
 		uint8_t *colour_pointer = static_cast<uint8_t *>(crt_.begin_data(1));
 		if(colour_pointer) *colour_pointer = 0xff;
-		crt_.output_level(time_since_update_.as_int());
+		crt_.output_level(int(time_since_update_.as_integral()));
 	}
 
 	time_since_update_ = 0;

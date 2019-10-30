@@ -166,7 +166,7 @@ class ConcreteMachine:
 
 				// for the entire frame, RAM is accessible only on odd cycles; in modes below 4
 				// it's also accessible only outside of the pixel regions
-				cycles += video_output_.get_cycles_until_next_ram_availability(cycles_since_display_update_.as_int() + 1);
+				cycles += video_output_.get_cycles_until_next_ram_availability(int(cycles_since_display_update_.as_integral()) + 1);
 			} else {
 				switch(address & 0xff0f) {
 					case 0xfe00:

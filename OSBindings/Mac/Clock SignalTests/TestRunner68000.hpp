@@ -128,7 +128,7 @@ class RAM68000: public CPU::MC68000::BusHandler {
 		}
 
 		int get_cycle_count() {
-			return duration_.as_int() >> 1;
+			return int(duration_.as_integral()) >> 1;
 		}
 
 	private:

@@ -143,7 +143,7 @@ void TIA::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 void TIA::run_for(const Cycles cycles) {
-	int number_of_cycles = cycles.as_int();
+	int number_of_cycles = int(cycles.as_integral());
 
 	// if part way through a line, definitely perform a partial, at most up to the end of the line
 	if(horizontal_counter_) {
@@ -176,7 +176,7 @@ void TIA::reset_horizontal_counter() {
 }
 
 int TIA::get_cycles_until_horizontal_blank(const Cycles from_offset) {
-	return (cycles_per_line - (horizontal_counter_ + from_offset.as_int()) % cycles_per_line) % cycles_per_line;
+	return (cycles_per_line - (horizontal_counter_ + from_offset.as_integral()) % cycles_per_line) % cycles_per_line;
 }
 
 void TIA::set_background_colour(uint8_t colour) {

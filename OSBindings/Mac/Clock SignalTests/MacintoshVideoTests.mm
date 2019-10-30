@@ -31,14 +31,14 @@
 	int c = 5;
 	bool vsync = _video->vsync();
 	while(c--) {
-		int remaining_time_in_state = _video->get_next_sequence_point().as_int();
+		auto remaining_time_in_state = _video->get_next_sequence_point().as_integral();
 		NSLog(@"Vsync %@ expected for %@ half-cycles", vsync ? @"on" : @"off", @(remaining_time_in_state));
 		while(remaining_time_in_state--) {
 			XCTAssertEqual(vsync, _video->vsync());
 			_video->run_for(HalfCycles(1));
 
 			if(remaining_time_in_state)
-				XCTAssertEqual(remaining_time_in_state, _video->get_next_sequence_point().as_int());
+				XCTAssertEqual(remaining_time_in_state, _video->get_next_sequence_point().as_integral());
 		}
 		vsync ^= true;
 	}

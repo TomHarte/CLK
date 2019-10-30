@@ -599,7 +599,7 @@ class ConcreteMachine:
 			}
 
 			if(!tape_player_is_sleeping_)
-				tape_player_.run_for(cycle.length.as_int());
+				tape_player_.run_for(int(cycle.length.as_integral()));
 
 			if(time_until_interrupt_ > 0) {
 				time_until_interrupt_ -= total_length;

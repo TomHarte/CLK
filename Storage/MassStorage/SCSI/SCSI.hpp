@@ -148,7 +148,7 @@ class Bus: public ClockingHint::Source, public Activity::Source {
 		HalfCycles time_in_state_;
 		double cycles_to_time_ = 1.0;
 		size_t dispatch_index_ = 0;
-		std::array<int, 8> dispatch_times_;
+		std::array<Cycles::IntType, 8> dispatch_times_;
 
 		std::vector<BusState> device_states_;
 		BusState state_ = DefaultBusState;

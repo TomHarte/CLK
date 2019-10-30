@@ -52,7 +52,7 @@ void DiskIICard::perform_bus_operation(Select select, bool is_read, uint16_t add
 
 void DiskIICard::run_for(Cycles cycles, int stretches) {
 	if(diskii_clocking_preference_ == ClockingHint::Preference::None) return;
-	diskii_.run_for(Cycles(cycles.as_int() * 2));
+	diskii_.run_for(Cycles(cycles.as_integral() * 2));
 }
 
 void DiskIICard::set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive) {

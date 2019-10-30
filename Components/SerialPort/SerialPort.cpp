@@ -10,18 +10,19 @@
 
 using namespace Serial;
 
-void Line::set_writer_clock_rate(int clock_rate) {
+void Line::set_writer_clock_rate(HalfCycles clock_rate) {
 	clock_rate_ = clock_rate;
 }
 
-void Line::advance_writer(int cycles) {
-	if(!cycles) return;
+void Line::advance_writer(HalfCycles cycles) {
+	if(cycles == HalfCycles(0)) return;
 
-	remaining_delays_ = std::max(remaining_delays_ - cycles, 0);
+	const auto integral_cycles = cycles.as_integral();
+	remaining_delays_ = std::max(remaining_delays_ - integral_cycles, Cycles::IntType(0));
 	if(events_.empty()) {
-		write_cycles_since_delegate_call_ += cycles;
+		write_cycles_since_delegate_call_ += integral_cycles;
 		if(transmission_extra_) {
-			transmission_extra_ -= cycles;
+			transmission_extra_ -= integral_cycles;
 			if(transmission_extra_ <= 0) {
 				transmission_extra_ = 0;
 				update_delegate(level_);
@@ -29,7 +30,7 @@ void Line::advance_writer(int cycles) {
 		}
 	} else {
 		while(!events_.empty()) {
-			if(events_.front().delay <= cycles) {
+			if(events_.front().delay <= integral_cycles) {
 				cycles -= events_.front().delay;
 				write_cycles_since_delegate_call_ += events_.front().delay;
 				const auto old_level = level_;
@@ -51,8 +52,8 @@ void Line::advance_writer(int cycles) {
 					transmission_extra_ = minimum_write_cycles_for_read_delegate_bit();
 				}
 			} else {
-				events_.front().delay -= cycles;
-				write_cycles_since_delegate_call_ += cycles;
+				events_.front().delay -= integral_cycles;
+				write_cycles_since_delegate_call_ += integral_cycles;
 				break;
 			}
 		}
@@ -69,26 +70,26 @@ void Line::write(bool level) {
 	}
 }
 
-void Line::write(int cycles, int count, int levels) {
-	remaining_delays_ += count*cycles;
+void Line::write(HalfCycles cycles, int count, int levels) {
+	remaining_delays_ += count * cycles.as_integral();
 
 	auto event = events_.size();
 	events_.resize(events_.size() + size_t(count)*2);
 	while(count--) {
 		events_[event].type = Event::Delay;
-		events_[event].delay = cycles;
+		events_[event].delay = int(cycles.as_integral());
 		events_[event+1].type = (levels&1) ? Event::SetHigh : Event::SetLow;
 		levels >>= 1;
 		event += 2;
 	}
 }
 
-int Line::write_data_time_remaining() {
-	return remaining_delays_;
+HalfCycles Line::write_data_time_remaining() {
+	return HalfCycles(remaining_delays_);
 }
 
-int Line::transmission_data_time_remaining() {
-	return remaining_delays_ + transmission_extra_;
+HalfCycles Line::transmission_data_time_remaining() {
+	return HalfCycles(remaining_delays_ + transmission_extra_);
 }
 
 void Line::reset_writing() {
@@ -125,7 +126,7 @@ void Line::update_delegate(bool level) {
 	}
 
 	// Forward as many bits as occur.
-	Storage::Time time_left(cycles_to_forward, clock_rate_);
+	Storage::Time time_left(cycles_to_forward, int(clock_rate_.as_integral()));
 	const int bit = level ? 1 : 0;
 	int bits = 0;
 	while(time_left >= time_left_in_bit_) {
@@ -141,7 +142,7 @@ void Line::update_delegate(bool level) {
 	time_left_in_bit_ -= time_left;
 }
 
-int Line::minimum_write_cycles_for_read_delegate_bit() {
+Cycles::IntType Line::minimum_write_cycles_for_read_delegate_bit() {
 	if(!read_delegate_) return 0;
-	return 1 + (read_delegate_bit_length_ * static_cast<unsigned int>(clock_rate_)).get<int>();
+	return 1 + (read_delegate_bit_length_ * static_cast<unsigned int>(clock_rate_.as_integral())).get<int>();
 }

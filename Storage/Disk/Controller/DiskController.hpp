@@ -106,8 +106,8 @@ class Controller:
 
 	private:
 		Time bit_length_;
-		int clock_rate_multiplier_ = 1;
-		int clock_rate_ = 1;
+		Cycles::IntType clock_rate_multiplier_ = 1;
+		Cycles::IntType clock_rate_ = 1;
 
 		bool is_reading_ = true;
 

@@ -107,7 +107,7 @@ void WD1770::run_for(const Cycles cycles) {
 	Storage::Disk::Controller::run_for(cycles);
 
 	if(delay_time_) {
-		unsigned int number_of_cycles = static_cast<unsigned int>(cycles.as_int());
+		const auto number_of_cycles = cycles.as_integral();
 		if(delay_time_ <= number_of_cycles) {
 			delay_time_ = 0;
 			posit_event(static_cast<int>(Event1770::Timer));
@@ -286,7 +286,7 @@ void WD1770::posit_event(int new_event_type) {
 			goto verify;
 		}
 		get_drive().step(Storage::Disk::HeadPosition(step_direction_ ? 1 : -1));
-		unsigned int time_to_wait;
+		Cycles::IntType time_to_wait;
 		switch(command_ & 3) {
 			default:
 			case 0: time_to_wait = 6;	break;

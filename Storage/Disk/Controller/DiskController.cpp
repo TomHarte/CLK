@@ -13,9 +13,9 @@
 using namespace Storage::Disk;
 
 Controller::Controller(Cycles clock_rate) :
-		clock_rate_multiplier_(128000000 / clock_rate.as_int()),
-		clock_rate_(clock_rate.as_int() * clock_rate_multiplier_),
-		empty_drive_(new Drive(clock_rate.as_int(), 1, 1)) {
+		clock_rate_multiplier_(128000000 / clock_rate.as_integral()),
+		clock_rate_(clock_rate.as_integral() * clock_rate_multiplier_),
+		empty_drive_(new Drive(int(clock_rate.as_integral()), 1, 1)) {
 	// seed this class with a PLL, any PLL, so that it's safe to assume non-nullptr later
 	Time one(1);
 	set_expected_bit_length(one);
@@ -48,7 +48,7 @@ void Controller::process_event(const Drive::Event &event) {
 }
 
 void Controller::advance(const Cycles cycles) {
-	if(is_reading_) pll_->run_for(Cycles(cycles.as_int() * clock_rate_multiplier_));
+	if(is_reading_) pll_->run_for(Cycles(cycles.as_integral() * clock_rate_multiplier_));
 }
 
 void Controller::process_write_completed() {
@@ -61,7 +61,7 @@ void Controller::set_expected_bit_length(Time bit_length) {
 	bit_length_ = bit_length;
 	bit_length_.simplify();
 
-	Time cycles_per_bit = Storage::Time(clock_rate_) * bit_length;
+	Time cycles_per_bit = Storage::Time(int(clock_rate_)) * bit_length;
 	cycles_per_bit.simplify();
 
 	// this conversion doesn't need to be exact because there's a lot of variation to be taken

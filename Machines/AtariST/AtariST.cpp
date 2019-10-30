@@ -64,11 +64,11 @@ class IntelligentKeyboard:
 		}
 
 		ClockingHint::Preference preferred_clocking() final {
-			return output_line_.transmission_data_time_remaining() ? ClockingHint::Preference::RealTime : ClockingHint::Preference::None;
+			return output_line_.transmission_data_time_remaining().as_integral() ? ClockingHint::Preference::RealTime : ClockingHint::Preference::None;
 		}
 
 		void run_for(HalfCycles duration) {
-			output_line_.advance_writer(duration.as_int());
+			output_line_.advance_writer(duration);
 		}
 
 	private:

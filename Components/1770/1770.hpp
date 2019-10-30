@@ -121,7 +121,7 @@ class WD1770: public Storage::Disk::MFMController {
 		void posit_event(int type);
 		int interesting_event_mask_;
 		int resume_point_ = 0;
-		unsigned int delay_time_ = 0;
+		Cycles::IntType delay_time_ = 0;
 
 		// ID buffer
 		uint8_t header_[6];

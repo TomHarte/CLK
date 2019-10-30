@@ -101,7 +101,7 @@ class Pitfall2: public BusExtender {
 
 		inline uint8_t update_audio() {
 			const unsigned int clock_divisor = 57;
-			int cycles_to_run_for = cycles_since_audio_update_.divide(clock_divisor).as_int();
+			int cycles_to_run_for = int(cycles_since_audio_update_.divide(clock_divisor).as_integral());
 
 			int table_position = 0;
 			for(int c = 0; c < 3; c++) {

@@ -10,6 +10,7 @@
 #define ClockReceiver_hpp
 
 #include "ForceInline.hpp"
+#include <cstdint>
 
 /*
 	Informal pattern for all classes that run from a clock cycle:
@@ -54,7 +55,9 @@
 */
 template <class T> class WrappedInt {
 	public:
-		forceinline constexpr WrappedInt(int l) noexcept : length_(l) {}
+		using IntType = int64_t;
+
+		forceinline constexpr WrappedInt(IntType l) noexcept : length_(l) {}
 		forceinline constexpr WrappedInt() noexcept : length_(0) {}
 
 		forceinline T &operator =(const T &rhs) {
@@ -133,7 +136,11 @@ template <class T> class WrappedInt {
 		forceinline constexpr bool operator !() const					{	return !length_;					}
 		// bool operator () is not supported because it offers an implicit cast to int, which is prone silently to permit misuse
 
-		forceinline constexpr int as_int() const { return length_; }
+		/// @returns The underlying int, cast to an integral type of your choosing.
+		template<typename Type = IntType> forceinline constexpr Type as() { return Type(length_); }
+
+		/// @returns The underlying int, in its native form.
+		forceinline constexpr IntType as_integral() const { return length_; }
 
 		/*!
 			Severs from @c this the effect of dividing by @c divisor; @c this will end up with
@@ -161,13 +168,13 @@ template <class T> class WrappedInt {
 		// classes that use this template.
 
 	protected:
-		int length_;
+		IntType length_;
 };
 
 /// Describes an integer number of whole cycles: pairs of clock signal transitions.
 class Cycles: public WrappedInt<Cycles> {
 	public:
-		forceinline constexpr Cycles(int l) noexcept : WrappedInt<Cycles>(l) {}
+		forceinline constexpr Cycles(IntType l) noexcept : WrappedInt<Cycles>(l) {}
 		forceinline constexpr Cycles() noexcept : WrappedInt<Cycles>() {}
 		forceinline constexpr Cycles(const Cycles &cycles) noexcept : WrappedInt<Cycles>(cycles.length_) {}
 
@@ -187,10 +194,10 @@ class Cycles: public WrappedInt<Cycles> {
 /// Describes an integer number of half cycles: single clock signal transitions.
 class HalfCycles: public WrappedInt<HalfCycles> {
 	public:
-		forceinline constexpr HalfCycles(int l) noexcept : WrappedInt<HalfCycles>(l) {}
+		forceinline constexpr HalfCycles(IntType l) noexcept : WrappedInt<HalfCycles>(l) {}
 		forceinline constexpr HalfCycles() noexcept : WrappedInt<HalfCycles>() {}
 
-		forceinline constexpr HalfCycles(const Cycles &cycles) noexcept : WrappedInt<HalfCycles>(cycles.as_int() * 2) {}
+		forceinline constexpr HalfCycles(const Cycles &cycles) noexcept : WrappedInt<HalfCycles>(cycles.as_integral() * 2) {}
 		forceinline constexpr HalfCycles(const HalfCycles &half_cycles) noexcept : WrappedInt<HalfCycles>(half_cycles.length_) {}
 
 		/// @returns The number of whole cycles completely covered by this span of half cycles.

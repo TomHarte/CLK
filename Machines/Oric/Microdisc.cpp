@@ -15,7 +15,7 @@ namespace {
 	// by comparing the amount of time this emulator took to show a directory versus a video of
 	// a real Oric. It therefore assumes all other timing measurements were correct on the day
 	// of the test. More work to do, I think.
-	const int head_load_request_counter_target = 7653333;
+	const Cycles::IntType head_load_request_counter_target = 7653333;
 }
 
 Microdisc::Microdisc() : WD1770(P1793) {
@@ -114,7 +114,7 @@ void Microdisc::set_head_load_request(bool head_load) {
 
 void Microdisc::run_for(const Cycles cycles) {
 	if(head_load_request_counter_ < head_load_request_counter_target) {
-		head_load_request_counter_ += cycles.as_int();
+		head_load_request_counter_ += cycles.as_integral();
 		if(head_load_request_counter_ >= head_load_request_counter_target) set_head_loaded(true);
 	}
 	WD::WD1770::run_for(cycles);

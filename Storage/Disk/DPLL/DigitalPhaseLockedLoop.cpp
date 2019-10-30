@@ -18,14 +18,14 @@ DigitalPhaseLockedLoop::DigitalPhaseLockedLoop(int clocks_per_bit, std::size_t l
 		clocks_per_bit_(clocks_per_bit) {}
 
 void DigitalPhaseLockedLoop::run_for(const Cycles cycles) {
-	offset_ += cycles.as_int();
-	phase_ += cycles.as_int();
+	offset_ += cycles.as_integral();
+	phase_ += cycles.as_integral();
 	if(phase_ >= window_length_) {
-		int windows_crossed = phase_ / window_length_;
+		auto windows_crossed = phase_ / window_length_;
 
 		// check whether this triggers any 0s, if anybody cares
 		if(delegate_) {
-			if(window_was_filled_) windows_crossed--;
+			if(window_was_filled_) --windows_crossed;
 			for(int c = 0; c < windows_crossed; c++)
 				delegate_->digital_phase_locked_loop_output_bit(0);
 		}
@@ -44,16 +44,16 @@ void DigitalPhaseLockedLoop::add_pulse() {
 	}
 }
 
-void DigitalPhaseLockedLoop::post_phase_offset(int new_phase, int new_offset) {
+void DigitalPhaseLockedLoop::post_phase_offset(Cycles::IntType new_phase, Cycles::IntType new_offset) {
 	offset_history_[offset_history_pointer_] = new_offset;
 	offset_history_pointer_ = (offset_history_pointer_ + 1) % offset_history_.size();
 
 	// use an unweighted average of the stored offsets to compute current window size,
 	// bucketing them by rounding to the nearest multiple of the base clocks per bit
-	int total_spacing = 0;
-	int total_divisor = 0;
-	for(int offset : offset_history_) {
-		int multiple = (offset + (clocks_per_bit_ >> 1)) / clocks_per_bit_;
+	Cycles::IntType total_spacing = 0;
+	Cycles::IntType total_divisor = 0;
+	for(auto offset : offset_history_) {
+		auto multiple = (offset + (clocks_per_bit_ >> 1)) / clocks_per_bit_;
 		if(!multiple) continue;
 		total_divisor += multiple;
 		total_spacing += offset;
@@ -62,7 +62,7 @@ void DigitalPhaseLockedLoop::post_phase_offset(int new_phase, int new_offset) {
 		window_length_ = total_spacing / total_divisor;
 	}
 
-	int error = new_phase - (window_length_ >> 1);
+	auto error = new_phase - (window_length_ >> 1);
 
 	// use a simple spring mechanism as a lowpass filter for phase
 	phase_ -= (error + 1) >> 1;

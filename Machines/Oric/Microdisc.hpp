@@ -58,7 +58,7 @@ class Microdisc: public WD::WD1770 {
 		size_t selected_drive_;
 		bool irq_enable_ = false;
 		int paging_flags_ = BASICDisable;
-		int head_load_request_counter_ = -1;
+		Cycles::IntType head_load_request_counter_ = -1;
 		bool head_load_request_ = false;
 		Delegate *delegate_ = nullptr;
 		uint8_t last_control_ = 0;

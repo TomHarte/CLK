@@ -207,7 +207,7 @@ void MFP68901::run_for(HalfCycles time) {
 	cycles_left_ += time;
 
 	// TODO: this is the stupidest possible implementation. Improve.
-	int cycles = cycles_left_.flush<Cycles>().as_int();
+	int cycles = int(cycles_left_.flush<Cycles>().as_integral());
 	while(cycles--) {
 		for(int c = 0; c < 4; ++c) {
 			if(timers_[c].mode >= TimerMode::Delay) {

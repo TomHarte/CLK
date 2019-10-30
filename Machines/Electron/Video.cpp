@@ -225,7 +225,7 @@ void VideoOutput::output_pixels(int number_of_cycles) {
 }
 
 void VideoOutput::run_for(const Cycles cycles) {
-	int number_of_cycles = cycles.as_int();
+	int number_of_cycles = int(cycles.as_integral());
 	output_position_ = (output_position_ + number_of_cycles) % cycles_per_frame;
 	while(number_of_cycles) {
 		int draw_action_length = screen_map_[screen_map_pointer_].length;

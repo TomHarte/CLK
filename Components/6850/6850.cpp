@@ -15,8 +15,8 @@ const HalfCycles ACIA::SameAsTransmit;
 ACIA::ACIA(HalfCycles transmit_clock_rate, HalfCycles receive_clock_rate) :
 	transmit_clock_rate_(transmit_clock_rate),
 	receive_clock_rate_((receive_clock_rate != SameAsTransmit) ? receive_clock_rate : transmit_clock_rate) {
-	transmit.set_writer_clock_rate(transmit_clock_rate.as_int());
-	request_to_send.set_writer_clock_rate(transmit_clock_rate.as_int());
+	transmit.set_writer_clock_rate(transmit_clock_rate);
+	request_to_send.set_writer_clock_rate(transmit_clock_rate);
 }
 
 uint8_t ACIA::read(int address) {
@@ -84,7 +84,7 @@ void ACIA::write(int address, uint8_t value) {
 					transmit.write(false);
 				break;
 			}
-			receive.set_read_delegate(this, Storage::Time(divider_ * 2, receive_clock_rate_.as_int()));
+			receive.set_read_delegate(this, Storage::Time(divider_ * 2, int(receive_clock_rate_.as_integral())));
 			receive_interrupt_enabled_ = value & 0x80;
 		}
 	}
@@ -92,27 +92,24 @@ void ACIA::write(int address, uint8_t value) {
 }
 
 void ACIA::run_for(HalfCycles length) {
-	// Transmission.
-	const int transmit_advance = length.as_int();
-
-	if(transmit.transmission_data_time_remaining()) {
+	if(transmit.transmission_data_time_remaining() > HalfCycles(0)) {
 		const auto write_data_time_remaining = transmit.write_data_time_remaining();
 
 		// There's at most one further byte available to enqueue, so a single 'if'
 		// rather than a 'while' is correct here. It's the responsibilit of the caller
 		// to ensure run_for lengths are appropriate for longer sequences.
-		if(transmit_advance >= write_data_time_remaining) {
+		if(length >= write_data_time_remaining) {
 			if(next_transmission_ != NoValueMask) {
 				transmit.advance_writer(write_data_time_remaining);
 				consider_transmission();
-				transmit.advance_writer(transmit_advance - write_data_time_remaining);
+				transmit.advance_writer(length - write_data_time_remaining);
 			} else {
-				transmit.advance_writer(transmit_advance);
+				transmit.advance_writer(length);
 				update_clocking_observer();
 				if(transmit_interrupt_enabled_) add_interrupt_cause(TransmitNeedsWrite);
 			}
 		} else {
-			transmit.advance_writer(transmit_advance);
+			transmit.advance_writer(length);
 		}
 	}
 }

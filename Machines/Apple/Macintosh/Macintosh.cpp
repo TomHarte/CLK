@@ -576,7 +576,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		forceinline void advance_time(HalfCycles duration) {
 			time_since_video_update_ += duration;
 			iwm_ += duration;
-			ram_subcycle_ = (ram_subcycle_ + duration.as_int()) & 15;
+			ram_subcycle_ = (ram_subcycle_ + duration.as_integral()) & 15;
 
 			// The VIA runs at one-tenth of the 68000's clock speed, in sync with the E clock.
 			// See: Guide to the Macintosh Hardware Family p149 (PDF p188). Some extra division
@@ -633,7 +633,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 			// Consider updating the real-time clock.
 			real_time_clock_ += duration;
-			auto ticks = real_time_clock_.divide_cycles(Cycles(CLOCK_RATE)).as_int();
+			auto ticks = real_time_clock_.divide_cycles(Cycles(CLOCK_RATE)).as_integral();
 			while(ticks--) {
 				clock_.update();
 				// TODO: leave a delay between toggling the input rather than using this coupled hack.
@@ -750,7 +750,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				void run_for(HalfCycles duration) {
 					// The 6522 enjoys a divide-by-ten, so multiply back up here to make the
 					// divided-by-two clock the audio works on.
-					audio_.time_since_update += HalfCycles(duration.as_int() * 5);
+					audio_.time_since_update += HalfCycles(duration.as_integral() * 5);
 				}
 
 				void flush() {

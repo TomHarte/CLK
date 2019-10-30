@@ -53,7 +53,7 @@ void DiskROM::run_for(HalfCycles half_cycles) {
 	// Input clock is going to be 7159090/2 Mhz, but the drive controller
 	// needs an 8Mhz clock, so scale up. 8000000/7159090 simplifies to
 	// 800000/715909.
-	controller_cycles_ += 800000 * half_cycles.as_int();
+	controller_cycles_ += 800000 * half_cycles.as_integral();
 	WD::WD1770::run_for(Cycles(static_cast<int>(controller_cycles_ / 715909)));
 	controller_cycles_ %= 715909;
 }

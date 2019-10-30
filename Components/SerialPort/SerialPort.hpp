@@ -11,6 +11,7 @@
 
 #include <vector>
 #include "../../Storage/Storage.hpp"
+#include "../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Serial {
 
@@ -25,11 +26,11 @@ namespace Serial {
 */
 class Line {
 	public:
-		void set_writer_clock_rate(int clock_rate);
+		void set_writer_clock_rate(HalfCycles clock_rate);
 
 		/// Advances the read position by @c cycles relative to the writer's
 		/// clock rate.
-		void advance_writer(int cycles);
+		void advance_writer(HalfCycles cycles);
 
 		/// Sets the line to @c level.
 		void write(bool level);
@@ -40,14 +41,14 @@ class Line {
 		/// is scheduled after the final output. The levels to output are
 		/// taken from @c levels which is read from lsb to msb. @c cycles is
 		/// relative to the writer's clock rate.
-		void write(int cycles, int count, int levels);
+		void write(HalfCycles cycles, int count, int levels);
 
 		/// @returns the number of cycles until currently enqueued write data is exhausted.
-		int write_data_time_remaining();
+		HalfCycles write_data_time_remaining();
 
 		/// @returns the number of cycles left until it is guaranteed that a passive reader
 		/// has received all currently-enqueued bits.
-		int transmission_data_time_remaining();
+		HalfCycles transmission_data_time_remaining();
 
 		/// Eliminates all future write states, leaving the output at whatever it is now.
 		void reset_writing();
@@ -77,10 +78,10 @@ class Line {
 			int delay;
 		};
 		std::vector<Event> events_;
-		int remaining_delays_ = 0;
-		int transmission_extra_ = 0;
+		HalfCycles::IntType remaining_delays_ = 0;
+		HalfCycles::IntType transmission_extra_ = 0;
 		bool level_ = true;
-		int clock_rate_ = 0;
+		HalfCycles clock_rate_ = 0;
 
 		ReadDelegate *read_delegate_ = nullptr;
 		Storage::Time read_delegate_bit_length_, time_left_in_bit_;
@@ -91,7 +92,7 @@ class Line {
 		} read_delegate_phase_ = ReadDelegatePhase::WaitingForZero;
 
 		void update_delegate(bool level);
-		int minimum_write_cycles_for_read_delegate_bit();
+		HalfCycles::IntType minimum_write_cycles_for_read_delegate_bit();
 };
 
 /*!
