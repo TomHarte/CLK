@@ -278,6 +278,7 @@ class ConcreteMachine:
 			midi_acia_->set_clocking_hint_observer(this);
 			keyboard_acia_->set_clocking_hint_observer(this);
 			ikbd_.set_clocking_hint_observer(this);
+			mfp_->set_clocking_hint_observer(this);
 
 			mfp_->set_interrupt_delegate(this);
 			dma_->set_interrupt_delegate(this);
@@ -573,22 +574,34 @@ class ConcreteMachine:
 
 	private:
 		forceinline void advance_time(HalfCycles length) {
+			// Advance the relevant counters.
 			cycles_since_audio_update_ += length;
 			mfp_ += length;
 			dma_ += length;
-
 			keyboard_acia_ += length;
 			midi_acia_ += length;
-			if(!may_defer_acias_) {
-				keyboard_acia_.flush();
-				midi_acia_.flush();
-			}
 
+			// Don't even count time for the keyboard unless it has requested it.
 			if(keyboard_needs_clock_) {
 				cycles_since_ikbd_update_ += length;
 				ikbd_.run_for(cycles_since_ikbd_update_.divide(HalfCycles(512)));
 			}
 
+			// Flush anything that needs real-time updating.
+			if(!may_defer_acias_) {
+				keyboard_acia_.flush();
+				midi_acia_.flush();
+			}
+
+			if(mfp_is_realtime_) {
+				mfp_.flush();
+			}
+
+			if(dma_is_realtime_) {
+				dma_.flush();
+			}
+
+			// Update the video output, checking whether a sequence point has been hit.
 			while(length >= cycles_until_video_event_) {
 				length -= cycles_until_video_event_;
 				video_ += cycles_until_video_event_;
@@ -635,6 +648,8 @@ class ConcreteMachine:
 		// MARK: - Clocking Management.
 		bool may_defer_acias_ = true;
 		bool keyboard_needs_clock_ = false;
+		bool mfp_is_realtime_ = false;
+		bool dma_is_realtime_ = false;
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
 			// This is being called by one of the components; avoid any time flushing here as that's
 			// already dealt with (and, just to be absolutely sure, to avoid recursive mania).
@@ -642,6 +657,7 @@ class ConcreteMachine:
 				(keyboard_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime) &&
 				(midi_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime);
 			keyboard_needs_clock_ = ikbd_.preferred_clocking() != ClockingHint::Preference::None;
+			mfp_is_realtime_ = mfp_.last_valid()->preferred_clocking() == ClockingHint::Preference::RealTime;
 		}
 
 		// MARK: - GPIP input.

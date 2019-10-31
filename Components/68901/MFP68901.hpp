@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockingHintSource.hpp"
 
 namespace Motorola {
 namespace MFP68901 {
@@ -20,7 +21,7 @@ class PortHandler {
 		// TODO: announce changes in output.
 };
 
-class MFP68901 {
+class MFP68901: public ClockingHint::Source {
 	public:
 		uint8_t read(int address);
 		void write(int address, uint8_t value);
@@ -42,6 +43,9 @@ class MFP68901 {
 		};
 		void set_interrupt_delegate(InterruptDelegate *delegate);
 
+		// ClockingHint::Source.
+		ClockingHint::Preference preferred_clocking() final;
+
 	private:
 		// MARK: - Timers
 		enum class TimerMode {
@@ -50,7 +54,7 @@ class MFP68901 {
 		void set_timer_mode(int timer, TimerMode, int prescale, bool reset_timer);
 		void set_timer_data(int timer, uint8_t);
 		uint8_t get_timer_data(int timer);
-		void decrement_timer(int timer);
+		void decrement_timer(int timer, int amount);
 
 		struct Timer {
 			TimerMode mode = TimerMode::Stopped;

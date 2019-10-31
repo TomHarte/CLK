@@ -16,6 +16,17 @@
 
 using namespace Motorola::MFP68901;
 
+ClockingHint::Preference MFP68901::preferred_clocking() {
+	// Rule applied: if any timer is actively running and permitted to produce an
+	// interrupt, request real-time running.
+	return
+		(timers_[0].mode >= TimerMode::Delay && interrupt_enable_&Interrupt::TimerA) ||
+		(timers_[1].mode >= TimerMode::Delay && interrupt_enable_&Interrupt::TimerB) ||
+		(timers_[2].mode >= TimerMode::Delay && interrupt_enable_&Interrupt::TimerC) ||
+		(timers_[3].mode >= TimerMode::Delay && interrupt_enable_&Interrupt::TimerD)
+			? ClockingHint::Preference::RealTime : ClockingHint::Preference::JustInTime;
+}
+
 uint8_t MFP68901::read(int address) {
 	address &= 0x1f;
 
@@ -94,8 +105,13 @@ void MFP68901::write(int address, uint8_t value) {
 
 		// Whatever just happened may have affected the state of the interrupt line.
 		update_interrupts();
+		update_clocking_observer();
 		return;
 	}
+
+	const int timer_prescales[] = {
+		1, 4, 10, 16, 50, 64, 100, 200
+	};
 
 	switch(address) {
 		// GPIP block: output and configuration of active edge and direction values.
@@ -141,26 +157,8 @@ void MFP68901::write(int address, uint8_t value) {
 		} break;
 		case 0x0e:
 			timer_cd_control_ = value;
-			switch(value & 7) {
-				case 0:	set_timer_mode(3, TimerMode::Stopped, 1, false);	break;
-				case 1:	set_timer_mode(3, TimerMode::Delay, 4, false);		break;
-				case 2:	set_timer_mode(3, TimerMode::Delay, 10, false);		break;
-				case 3:	set_timer_mode(3, TimerMode::Delay, 16, false);		break;
-				case 4:	set_timer_mode(3, TimerMode::Delay, 50, false);		break;
-				case 5:	set_timer_mode(3, TimerMode::Delay, 64, false);		break;
-				case 6:	set_timer_mode(3, TimerMode::Delay, 100, false);	break;
-				case 7:	set_timer_mode(3, TimerMode::Delay, 200, false);	break;
-			}
-			switch((value >> 4) & 7) {
-				case 0:	set_timer_mode(2, TimerMode::Stopped, 1, false);	break;
-				case 1:	set_timer_mode(2, TimerMode::Delay, 4, false);		break;
-				case 2:	set_timer_mode(2, TimerMode::Delay, 10, false);		break;
-				case 3:	set_timer_mode(2, TimerMode::Delay, 16, false);		break;
-				case 4:	set_timer_mode(2, TimerMode::Delay, 50, false);		break;
-				case 5:	set_timer_mode(2, TimerMode::Delay, 64, false);		break;
-				case 6:	set_timer_mode(2, TimerMode::Delay, 100, false);	break;
-				case 7:	set_timer_mode(2, TimerMode::Delay, 200, false);	break;
-			}
+			set_timer_mode(3, (value & 7) ? TimerMode::Delay : TimerMode::Stopped, timer_prescales[value & 7], false);
+			set_timer_mode(2, ((value >> 4) & 7) ? TimerMode::Delay : TimerMode::Stopped, timer_prescales[(value >> 4) & 7], false);
 		break;
 		case 0x0f:	case 0x10:	case 0x11:	case 0x12:
 			set_timer_data(address - 0xf, value);
@@ -173,6 +171,8 @@ void MFP68901::write(int address, uint8_t value) {
 		case 0x16:		LOG("Write: transmitter status");		break;
 		case 0x17:		LOG("Write: USART data");				break;
 	}
+
+	update_clocking_observer();
 }
 
 void MFP68901::run_for(HalfCycles time) {
@@ -186,11 +186,20 @@ void MFP68901::run_for(HalfCycles time) {
 				--timers_[c].divisor;
 				if(!timers_[c].divisor) {
 					timers_[c].divisor = timers_[c].prescale;
-					decrement_timer(c);
+					decrement_timer(c, 1);
 				}
 			}
 		}
 	}
+//	const int cycles = int(cycles_left_.flush<Cycles>().as_integral());
+//	for(int c = 0; c < 4; ++c) {
+//		if(timers_[c].mode >= TimerMode::Delay) {
+//			const int dividend = (cycles + timers_[c].prescale - timers_[c].divisor);
+//			const int decrements = dividend / timers_[c].prescale;
+//			timers_[c].divisor = timers_[c].prescale - (dividend % timers_[c].prescale);
+//			if(decrements) decrement_timer(c, decrements);
+//		}
+//	}
 }
 
 HalfCycles MFP68901::get_next_sequence_point() {
@@ -224,21 +233,23 @@ void MFP68901::set_timer_event_input(int channel, bool value) {
 
 	timers_[channel].event_input = value;
 	if(timers_[channel].mode == TimerMode::EventCount && !value) {	/* TODO: which edge is counted? "as defined by the associated Interrupt Channel’s edge bit"?  */
-		decrement_timer(channel);
+		decrement_timer(channel, 1);
 	}
 }
 
-void MFP68901::decrement_timer(int timer) {
-	--timers_[timer].value;
-	if(!timers_[timer].value) {
-		switch(timer) {
-			case 0: begin_interrupts(Interrupt::TimerA);	break;
-			case 1: begin_interrupts(Interrupt::TimerB);	break;
-			case 2: begin_interrupts(Interrupt::TimerC);	break;
-			case 3: begin_interrupts(Interrupt::TimerD);	break;
-		}
-		if(timers_[timer].mode == TimerMode::Delay) {
-			timers_[timer].value = timers_[timer].reload_value;
+void MFP68901::decrement_timer(int timer, int amount) {
+	while(amount--) {
+		--timers_[timer].value;
+		if(timers_[timer].value < 1) {
+			switch(timer) {
+				case 0: begin_interrupts(Interrupt::TimerA);	break;
+				case 1: begin_interrupts(Interrupt::TimerB);	break;
+				case 2: begin_interrupts(Interrupt::TimerC);	break;
+				case 3: begin_interrupts(Interrupt::TimerD);	break;
+			}
+			if(timers_[timer].mode == TimerMode::Delay) {
+				timers_[timer].value += timers_[timer].reload_value;	// TODO: properly.
+			}
 		}
 	}
 }
