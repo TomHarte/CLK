@@ -36,7 +36,9 @@ class MFP68901: public ClockingHint::Source {
 		uint8_t get_port_output();
 
 		bool get_interrupt_line();
-		uint8_t acknowledge_interrupt();
+
+		const int NoAcknowledgement = 0x100;
+		int acknowledge_interrupt();
 
 		struct InterruptDelegate {
 			virtual void mfp68901_did_change_interrupt_status(MFP68901 *) = 0;

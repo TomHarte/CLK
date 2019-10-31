@@ -321,7 +321,11 @@ bool MFP68901::get_interrupt_line() {
 	return interrupt_line_;
 }
 
-uint8_t MFP68901::acknowledge_interrupt() {
+int MFP68901::acknowledge_interrupt() {
+	if(!(interrupt_pending_ & interrupt_mask_)) {
+		return NoAcknowledgement;
+	}
+
 	const int selected = fls(interrupt_pending_ & interrupt_mask_) - 1;
 	const int mask = 1 << selected;
 
