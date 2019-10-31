@@ -10,6 +10,7 @@
 #define JustInTime_h
 
 #include "../Concurrency/AsyncTaskQueue.hpp"
+#include "ForceInline.hpp"
 
 /*!
 	A JustInTimeActor holds (i) an embedded object with a run_for method; and (ii) an amount
@@ -27,7 +28,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		template<typename... Args> JustInTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {}
 
 		/// Adds time to the actor.
-		inline void operator += (const LocalTimeScale &rhs) {
+		forceinline void operator += (const LocalTimeScale &rhs) {
 			if(multiplier != 1) {
 				time_since_update_ += rhs * multiplier;
 			} else {
@@ -37,24 +38,26 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		}
 
 		/// Flushes all accumulated time and returns a pointer to the included object.
-		inline T *operator->() {
+		forceinline T *operator->() {
 			flush();
 			return &object_;
 		}
 
 		/// Returns a pointer to the included object without flushing time.
-		inline T *last_valid() {
+		forceinline T *last_valid() {
 			return &object_;
 		}
 
 		/// Flushes all accumulated time.
-		void flush() {
+		forceinline void flush() {
 			if(!is_flushed_) {
 				is_flushed_ = true;
 				if(divider == 1) {
 					object_.run_for(time_since_update_.template flush<TargetTimeScale>());
 				} else {
-					object_.run_for(time_since_update_.template divide<TargetTimeScale>(LocalTimeScale(divider)));
+					const auto duration = time_since_update_.template divide<TargetTimeScale>(LocalTimeScale(divider));
+					if(duration > TargetTimeScale(0))
+						object_.run_for(duration);
 				}
 			}
 		}
