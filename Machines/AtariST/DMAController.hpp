@@ -13,12 +13,13 @@
 #include <vector>
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../../Components/1770/1770.hpp"
 
 namespace Atari {
 namespace ST {
 
-class DMAController: public WD::WD1770::Delegate {
+class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, public ClockingHint::Observer {
 	public:
 		DMAController();
 
@@ -32,6 +33,9 @@ class DMAController: public WD::WD1770::Delegate {
 			virtual void dma_controller_did_change_interrupt_status(DMAController *) = 0;
 		};
 		void set_interrupt_delegate(InterruptDelegate *delegate);
+
+		// ClockingHint::Source.
+		ClockingHint::Preference preferred_clocking() final;
 
 	private:
 		HalfCycles running_time_;
@@ -59,6 +63,8 @@ class DMAController: public WD::WD1770::Delegate {
 
 		InterruptDelegate *interrupt_delegate_ = nullptr;
 		bool interrupt_line_ = false;
+
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
 };
 
 }

@@ -769,16 +769,18 @@ void WD1770::posit_event(int new_event_type) {
 }
 
 void WD1770::update_status(std::function<void(Status &)> updater) {
+	const Status old_status = status_;
+
 	if(delegate_) {
-		Status old_status = status_;
 		updater(status_);
 		const bool did_change =
 			(status_.busy != old_status.busy) ||
 			(status_.data_request != old_status.data_request) ||
 			(status_.interrupt_request != old_status.interrupt_request);
 		if(did_change) delegate_->wd1770_did_change_output(this);
-	}
-	else updater(status_);
+	} else updater(status_);
+
+	if(status_.busy != old_status.busy) update_clocking_observer();
 }
 
 void WD1770::set_head_load_request(bool head_load) {}
@@ -787,4 +789,9 @@ void WD1770::set_motor_on(bool motor_on) {}
 void WD1770::set_head_loaded(bool head_loaded) {
 	head_is_loaded_ = head_loaded;
 	if(head_loaded) posit_event(static_cast<int>(Event1770::HeadLoad));
+}
+
+ClockingHint::Preference WD1770::preferred_clocking() {
+	if(status_.busy) return ClockingHint::Preference::RealTime;
+	return Storage::Disk::MFMController::preferred_clocking();
 }

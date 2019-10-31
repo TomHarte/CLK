@@ -14,6 +14,7 @@ using namespace Atari::ST;
 
 DMAController::DMAController() {
 	fdc_.set_delegate(this);
+	fdc_.set_clocking_hint_observer(this);
 }
 
 uint16_t DMAController::read(int address) {
@@ -99,4 +100,12 @@ void DMAController::set_interrupt_delegate(InterruptDelegate *delegate) {
 
 bool DMAController::get_interrupt_line() {
 	return interrupt_line_;
+}
+
+void DMAController::set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) {
+	update_clocking_observer();
+}
+
+ClockingHint::Preference DMAController::preferred_clocking() {
+	return (fdc_.preferred_clocking() == ClockingHint::Preference::None) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
 }

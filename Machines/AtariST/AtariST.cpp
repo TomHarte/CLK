@@ -279,6 +279,7 @@ class ConcreteMachine:
 			keyboard_acia_->set_clocking_hint_observer(this);
 			ikbd_.set_clocking_hint_observer(this);
 			mfp_->set_clocking_hint_observer(this);
+			dma_->set_clocking_hint_observer(this);
 
 			mfp_->set_interrupt_delegate(this);
 			dma_->set_interrupt_delegate(this);
@@ -658,6 +659,7 @@ class ConcreteMachine:
 				(midi_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime);
 			keyboard_needs_clock_ = ikbd_.preferred_clocking() != ClockingHint::Preference::None;
 			mfp_is_realtime_ = mfp_.last_valid()->preferred_clocking() == ClockingHint::Preference::RealTime;
+			dma_is_realtime_ = dma_.last_valid()->preferred_clocking() == ClockingHint::Preference::RealTime;
 		}
 
 		// MARK: - GPIP input.

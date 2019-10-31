@@ -73,6 +73,8 @@ class WD1770: public Storage::Disk::MFMController {
 		};
 		inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;			}
 
+		ClockingHint::Preference preferred_clocking() final;
+
 	protected:
 		virtual void set_head_load_request(bool head_load);
 		virtual void set_motor_on(bool motor_on);
