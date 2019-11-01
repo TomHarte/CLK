@@ -307,6 +307,10 @@ class ConcreteMachine:
 		// MARK: MC68000::BusHandler
 		using Microcycle = CPU::MC68000::Microcycle;
 		HalfCycles perform_bus_operation(const CPU::MC68000::Microcycle &cycle, int is_supervisor) {
+			// Just in case the last cycle was an interrupt acknowledge or bus error. TODO: find a better solution?
+			mc68000_.set_is_peripheral_address(false);
+			mc68000_.set_bus_error(false);
+
 			// Advance time.
 			advance_time(cycle.length);
 
@@ -323,14 +327,17 @@ class ConcreteMachine:
 					return HalfCycles(0);
 				} else {
 					if(cycle.operation & Microcycle::SelectByte) {
-						cycle.value->halves.low = mfp_->acknowledge_interrupt();
+						const int interrupt = mfp_->acknowledge_interrupt();
+						if(interrupt != Motorola::MFP68901::MFP68901::NoAcknowledgement) {
+							cycle.value->halves.low = uint8_t(interrupt);
+						} else {
+							// TODO: this should take a while. Find out how long.
+							mc68000_.set_bus_error(true);
+						}
 					}
 					return HalfCycles(0);
 				}
 			}
-
-			// Just in case the last cycle was an interrupt acknowledge. TODO: find a better solution?
-			mc68000_.set_is_peripheral_address(false);
 
 			auto address = cycle.word_address();
 //			if(cycle.data_select_active()) printf("%c %06x\n", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address & 0xffffff);

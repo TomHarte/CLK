@@ -37,7 +37,7 @@ class MFP68901: public ClockingHint::Source {
 
 		bool get_interrupt_line();
 
-		const int NoAcknowledgement = 0x100;
+		static const int NoAcknowledgement = 0x100;
 		int acknowledge_interrupt();
 
 		struct InterruptDelegate {
