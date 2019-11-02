@@ -341,6 +341,8 @@
 		4BA3189422E7A4CA00D18CFA /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4BA61EB01D91515900B3C876 /* NSData+StdVector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA61EAF1D91515900B3C876 /* NSData+StdVector.mm */; };
 		4BA91E1D216D85BA00F79557 /* MasterSystemVDPTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BA91E1C216D85BA00F79557 /* MasterSystemVDPTests.mm */; };
+		4BAC075E236E4B11003C3AB1 /* IntelligentKeyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAC075C236E4B11003C3AB1 /* IntelligentKeyboard.cpp */; };
+		4BAC075F236E4B11003C3AB1 /* IntelligentKeyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BAC075C236E4B11003C3AB1 /* IntelligentKeyboard.cpp */; };
 		4BAD13441FF709C700FD114A /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E61051FF34737002A9DBD /* MSX.cpp */; };
 		4BAE49582032881E004BE78E /* CSZX8081.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B14978E1EE4B4D200CE2596 /* CSZX8081.mm */; };
 		4BAE495920328897004BE78E /* ZX8081OptionsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B95FA9C1F11893B0008E395 /* ZX8081OptionsPanel.swift */; };
@@ -1149,6 +1151,8 @@
 		4BAA167B21582B1D008A3276 /* Target.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4BAB62AC1D3272D200DF5BA0 /* Disk.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Disk.hpp; sourceTree = "<group>"; };
 		4BAB62AE1D32730D00DF5BA0 /* Storage.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Storage.hpp; sourceTree = "<group>"; };
+		4BAC075C236E4B11003C3AB1 /* IntelligentKeyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IntelligentKeyboard.cpp; sourceTree = "<group>"; };
+		4BAC075D236E4B11003C3AB1 /* IntelligentKeyboard.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IntelligentKeyboard.hpp; sourceTree = "<group>"; };
 		4BAF2B4C2004580C00480230 /* DMK.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DMK.cpp; sourceTree = "<group>"; };
 		4BAF2B4D2004580C00480230 /* DMK.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DMK.hpp; sourceTree = "<group>"; };
 		4BB06B211F316A3F00600C7A /* ForceInline.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ForceInline.hpp; sourceTree = "<group>"; };
@@ -3238,9 +3242,11 @@
 			children = (
 				4BC131682346C61100E4FF3D /* AtariST.cpp */,
 				4B21922B236523CB007FEEBC /* DMAController.cpp */,
+				4BAC075C236E4B11003C3AB1 /* IntelligentKeyboard.cpp */,
 				4BB50DC6234828A20057B9CA /* Video.cpp */,
 				4BC131692346C61100E4FF3D /* AtariST.hpp */,
 				4B21922C236523CB007FEEBC /* DMAController.hpp */,
+				4BAC075D236E4B11003C3AB1 /* IntelligentKeyboard.hpp */,
 				4BB50DC7234828A20057B9CA /* Video.hpp */,
 			);
 			path = AtariST;
@@ -4184,6 +4190,7 @@
 				4B055A971FAE85BB0060FFFF /* ZX8081.cpp in Sources */,
 				4B055AAD1FAE85FD0060FFFF /* PCMTrack.cpp in Sources */,
 				4BD67DD1209BF27B00AB2146 /* Encoder.cpp in Sources */,
+				4BAC075F236E4B11003C3AB1 /* IntelligentKeyboard.cpp in Sources */,
 				4B055AC61FAE9AEE0060FFFF /* TIASound.cpp in Sources */,
 				4B89451F201967B4007DE474 /* Tape.cpp in Sources */,
 				4B055AA81FAE85EF0060FFFF /* Shifter.cpp in Sources */,
@@ -4331,6 +4338,7 @@
 				4BEA52631DF339D7007E74F2 /* SoundGenerator.cpp in Sources */,
 				4BD67DD0209BF27B00AB2146 /* Encoder.cpp in Sources */,
 				4BB50DC8234828A20057B9CA /* Video.cpp in Sources */,
+				4BAC075E236E4B11003C3AB1 /* IntelligentKeyboard.cpp in Sources */,
 				4BAE495920328897004BE78E /* ZX8081OptionsPanel.swift in Sources */,
 				4B89451A201967B4007DE474 /* ConfidenceSummary.cpp in Sources */,
 				4B54C0C51F8D91D90050900F /* Keyboard.cpp in Sources */,
