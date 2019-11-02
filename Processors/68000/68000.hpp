@@ -194,6 +194,75 @@ struct Microcycle {
 	}
 
 	/*!
+		@returns the value on the data bus — all 16 bits, with any inactive lines
+		(as er the upper and lower data selects) being represented by 1s. Assumes
+		this is a write cycle.
+	*/
+	forceinline uint16_t value16() const {
+		if(operation & SelectWord) return value->full;
+		const auto shift = byte_shift();
+		return uint16_t((value->halves.low << shift) | (0xff00 >> shift));
+	}
+
+	/*!
+		@returns the value currently on the high 8 lines of the data bus if any;
+		@c 0xff otherwise. Assumes this is a write cycle.
+	*/
+	forceinline uint8_t value8_high() const {
+		if(operation & SelectWord) {
+			return uint8_t(value->full >> 8);
+		}
+
+		return uint8_t(value->halves.low | (0xff00 >> ((*address & 1) << 3)));
+	}
+
+	/*!
+		@returns the value currently on the low 8 lines of the data bus if any;
+		@c 0xff otherwise. Assumes this is a write cycle.
+	*/
+	forceinline uint8_t value8_low() const {
+		if(operation & SelectWord) {
+			return uint8_t(value->full);
+		}
+
+		return uint8_t(value->halves.low | (0x00ff << ((*address & 1) << 3)));
+	}
+
+	/*!
+		Sets to @c value the 8- or 16-bit portion of the supplied value that is
+		currently being read. Assumes this is a read cycle.
+	*/
+	forceinline void set_value16(uint16_t v) const {
+		if(operation & Microcycle::SelectWord) {
+			value->full = v;
+		} else {
+			value->halves.low = uint8_t(v >> byte_shift());
+		}
+	}
+
+	/*!
+		Equivalent to set_value16((v << 8) | 0x00ff).
+	*/
+	forceinline void set_value8_high(uint8_t v) const {
+		if(operation & Microcycle::SelectWord) {
+			value->full = uint16_t(0x00ff | (v << 8));
+		} else {
+			value->halves.low = uint8_t(v | (0xff00 >> ((*address & 1) << 3)));
+		}
+	}
+
+	/*!
+		Equivalent to set_value16((v) | 0xff00).
+	*/
+	forceinline void set_value8_low(uint8_t v) const {
+		if(operation & Microcycle::SelectWord) {
+			value->full = 0xff00 | v;
+		} else {
+			value->halves.low = uint8_t(v | (0x00ff << ((*address & 1) << 3)));
+		}
+	}
+
+	/*!
 		@returns the same value as word_address() for any Microcycle with the NewAddress or
 		SameAddress flags set; undefined behaviour otherwise.
 	*/

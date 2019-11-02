@@ -222,18 +222,18 @@ HalfCycles Video::get_next_sequence_point() {
 
 // MARK: - IO dispatch
 
-uint8_t Video::read(int address) {
+uint16_t Video::read(int address) {
 	LOG("[Video] read " << PADHEX(2) << (address & 0x3f));
 	address &= 0x3f;
 	switch(address) {
 		default:
 		break;
-		case 0x00:	return uint8_t(base_address_ >> 16);
-		case 0x01:	return uint8_t(base_address_ >> 8);
-		case 0x02:	return uint8_t(current_address_ >> 16);
-		case 0x03:	return uint8_t(current_address_ >> 8);
-		case 0x04:	return uint8_t(current_address_);
-		case 0x30:	return video_mode_ | 0xfc;
+		case 0x00:	return uint16_t(0xff00 | (base_address_ >> 16));
+		case 0x01:	return uint16_t(0xff00 | (base_address_ >> 8));
+		case 0x02:	return uint16_t(0xff00 | (current_address_ >> 16));
+		case 0x03:	return uint16_t(0xff00 | (current_address_ >> 8));
+		case 0x04:	return uint16_t(0xff00 | (current_address_));
+		case 0x30:	return video_mode_ | 0xfcff;
 	}
 	return 0xff;
 }
@@ -245,11 +245,11 @@ void Video::write(int address, uint16_t value) {
 		default: break;
 
 		// Start address.
-		case 0x00:	base_address_ = (base_address_ & 0x00ffff) | (value << 16);	break;
-		case 0x01:	base_address_ = (base_address_ & 0xff00ff) | (value << 8);	break;
+		case 0x00:	base_address_ = (base_address_ & 0x00ffff) | ((value & 0xff) << 16);	break;
+		case 0x01:	base_address_ = (base_address_ & 0xff00ff) | ((value & 0xff) << 8);		break;
 
 		// Mode.
-		case 0x30:	video_mode_ = uint8_t(value);								break;
+		case 0x30:	video_mode_ = value;	break;
 
 		// Palette.
 		case 0x20:	case 0x21:	case 0x22:	case 0x23:

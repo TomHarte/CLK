@@ -41,7 +41,7 @@ class Video {
 
 		void set_ram(uint16_t *);
 
-		uint8_t read(int address);
+		uint16_t read(int address);
 		void write(int address, uint16_t value);
 
 	private:
@@ -58,7 +58,7 @@ class Video {
 		int x = 0, y = 0;
 		void output_border(int duration);
 
-		uint8_t video_mode_ = 0;
+		uint16_t video_mode_ = 0;
 };
 
 }

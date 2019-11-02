@@ -398,23 +398,21 @@ class ConcreteMachine:
 						case 0x7fc401:	/* PSG: write to write register. */
 							if(!cycle.data_select_active()) return HalfCycles(0);
 
-							// TODO: byte accesses to the odd addresses shouldn't obey logic below.
 							advance_time(HalfCycles(2));
 							update_audio();
+
 							if(cycle.operation & Microcycle::Read) {
 								ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
-								cycle.value->halves.low = ay_.get_data_output();
+								cycle.set_value8_high(ay_.get_data_output());
 								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							} else {
 								if(address == 0x7fc400) {
 									ay_.set_control_lines(GI::AY38910::BC1);
-									ay_.set_data_input(cycle.value->halves.low);
-									ay_.set_control_lines(GI::AY38910::ControlLines(0));
 								} else {
 									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
-									ay_.set_data_input(cycle.value->halves.low);
-									ay_.set_control_lines(GI::AY38910::ControlLines(0));
 								}
+								ay_.set_data_input(cycle.value8_high());
+								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							}
 
 							/*
@@ -441,28 +439,10 @@ class ConcreteMachine:
 						case 0x7ffd1c:	case 0x7ffd1d:	case 0x7ffd1e:	case 0x7ffd1f:
 							if(!cycle.data_select_active()) return HalfCycles(0);
 
-							// The lower data lines aren't connected.
-							if(!cycle.upper_data_select()) {
-								if(cycle.operation & Microcycle::Read) {
-									cycle.value->halves.low = 0xff;
-								}
-								return HalfCycles(0);
-							}
-
 							if(cycle.operation & Microcycle::Read) {
-								const uint8_t value = mfp_->read(int(address));
-								if(cycle.operation & Microcycle::SelectByte) {
-									cycle.value->halves.low = value;
-								} else {
-									cycle.value->halves.high = value;
-									cycle.value->halves.low = 0xff;
-								}
+								cycle.set_value8_low(mfp_->read(int(address)));
 							} else {
-								if(cycle.operation & Microcycle::SelectByte) {
-									mfp_->write(int(address), cycle.value->halves.low);
-								} else {
-									mfp_->write(int(address), cycle.value->halves.high);
-								}
+								mfp_->write(int(address), cycle.value8_low());
 							}
 						break;
 
@@ -483,19 +463,9 @@ class ConcreteMachine:
 							if(!cycle.data_select_active()) return HalfCycles(0);
 
 							if(cycle.operation & Microcycle::Read) {
-								const uint8_t value = video_->read(int(address));
-								if(cycle.operation & Microcycle::SelectByte) {
-									cycle.value->halves.low = value;
-								} else {
-									cycle.value->halves.high = value;
-									cycle.value->halves.low = 0xff;
-								}
+								cycle.set_value16(video_->read(int(address)));
 							} else {
-								if(cycle.operation & Microcycle::SelectByte) {
-									video_->write(int(address), uint16_t(cycle.value->halves.low << cycle.byte_shift()));
-								} else {
-									video_->write(int(address), cycle.value->full);
-								}
+								video_->write(int(address), cycle.value16());
 							}
 						break;
 
@@ -506,21 +476,10 @@ class ConcreteMachine:
 							if(!cycle.data_select_active()) return HalfCycles(0);
 
 							const auto acia_ = (address < 0x7ffe02) ? &keyboard_acia_ : &midi_acia_;
-
 							if(cycle.operation & Microcycle::Read) {
-								const uint8_t value = (*acia_)->read(int(address));
-								if(cycle.operation & Microcycle::SelectByte) {
-									cycle.value->halves.low = value;
-								} else {
-									cycle.value->halves.high = value;
-									cycle.value->halves.low = 0xff;
-								}
+								cycle.set_value8_high((*acia_)->read(int(address)));
 							} else {
-								if(cycle.operation & Microcycle::SelectByte) {
-									(*acia_)->write(int(address), cycle.value->halves.low);
-								} else {
-									(*acia_)->write(int(address), cycle.value->halves.high);
-								}
+								(*acia_)->write(int(address), cycle.value8_high());
 							}
 						} break;
 
@@ -529,21 +488,9 @@ class ConcreteMachine:
 							if(!cycle.data_select_active()) return HalfCycles(0);
 
 							if(cycle.operation & Microcycle::Read) {
-								const auto value = dma_->read(int(address));
-								if(cycle.operation & Microcycle::SelectWord) {
-									cycle.value->full = value;
-								} else {
-									cycle.value->halves.low = uint8_t(value >> cycle.byte_shift());
-								}
+								cycle.set_value16(dma_->read(int(address)));
 							} else {
-								if(cycle.operation & Microcycle::SelectWord) {
-									dma_->write(int(address), cycle.value->full);
-								} else {
-									dma_->write(int(address), uint16_t(
-										(cycle.value->halves.low << cycle.byte_shift()) |
-										(0xff00 >> cycle.byte_shift())
-									));
-								}
+								dma_->write(int(address), cycle.value16());
 							}
 						break;
 					}

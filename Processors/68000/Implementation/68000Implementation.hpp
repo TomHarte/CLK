@@ -70,7 +70,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	const HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
 
 #ifdef LOG_TRACE
-						static bool should_log = true;
+						static bool should_log = false;
 #endif
 
 	// This loop counts upwards rather than downwards because it simplifies calculation of
@@ -241,6 +241,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 				continue;
 
 				case ExecutionState::BeginInterrupt:
+#ifdef LOG_TRACE
+					should_log = true;
+#endif
 					active_program_ = nullptr;
 					active_micro_op_ = interrupt_micro_ops_;
 					execution_state_ = ExecutionState::Executing;
@@ -1997,6 +2000,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 							// Otherwise, the vector is whatever we were just told it is.
 							effective_address_[0].full = uint32_t(source_bus_data_[0].halves.low.halves.low << 2);
+
+							printf("Interrupt vector: %06x\n", effective_address_[0].full);
 						break;
 
 						case int_type(MicroOp::Action::CopyNextWord):
