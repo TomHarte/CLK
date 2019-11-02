@@ -149,7 +149,7 @@ void Video::run_for(HalfCycles duration) {
 			x = 0;
 			y = (y + 1) % mode_params.lines_per_frame;
 			if(!y)
-				current_address_ = base_address_;
+				current_address_ = base_address_ >> 1;
 		}
 	}
 
