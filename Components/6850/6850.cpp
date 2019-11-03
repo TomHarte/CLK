@@ -23,6 +23,7 @@ uint8_t ACIA::read(int address) {
 	if(address&1) {
 		clear_interrupt_cause(ReceiveNeedsRead);
 		received_data_ |= NoValueMask;
+		return uint8_t(received_data_);
 	} else {
 		clear_interrupt_cause(StatusNeedsRead);
 		return
@@ -42,7 +43,6 @@ uint8_t ACIA::read(int address) {
 		// b6: parity error.
 		// b7: IRQ state.
 	}
-	return 0x00;
 }
 
 void ACIA::write(int address, uint8_t value) {
