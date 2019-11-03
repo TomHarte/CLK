@@ -58,6 +58,16 @@ void IntelligentKeyboard::run_for(HalfCycles duration) {
 
 	}
 
+	// Forward key changes; implicit assumption here: mutexs are cheap while there's
+	// negligible contention.
+	{
+		std::lock_guard<decltype(key_queue_mutex_)> guard(key_queue_mutex_);
+		for(uint8_t key: key_queue_) {
+			output_bytes({key});
+		}
+		key_queue_.clear();
+	}
+
 	output_line_.advance_writer(duration);
 }
 
@@ -66,8 +76,6 @@ void IntelligentKeyboard::output_bytes(std::initializer_list<uint8_t> values) {
 	for(auto value : values) {
 		output_line_.write(2, 10, 0x200 | (value << 1));
 	}
-
-	// TODO: this isn't thread safe! Might need this class to imply a poll?
 	update_clocking_observer();
 }
 
@@ -225,6 +233,77 @@ void IntelligentKeyboard::post_relative_mouse_event(int x, int y) {
 	} while(x || y);
 }
 
+// MARK: - Keyboard Input
+void IntelligentKeyboard::set_key_state(Key key, bool is_pressed) {
+	std::lock_guard<decltype(key_queue_mutex_)> guard(key_queue_mutex_);
+	if(is_pressed) {
+		key_queue_.push_back(uint8_t(key));
+	} else {
+		key_queue_.push_back(0x80 | uint8_t(key));
+	}
+}
+
+uint16_t IntelligentKeyboard::KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
+	using Key = Inputs::Keyboard::Key;
+	using STKey = Atari::ST::Key;
+	switch(key) {
+		default: return KeyboardMachine::MappedMachine::KeyNotMapped;
+
+#define Bind(x, y) case Key::x: return uint16_t(STKey::y)
+#define QBind(x) case Key::x: return uint16_t(STKey::x)
+
+		QBind(k1);	QBind(k2);	QBind(k3);	QBind(k4);	QBind(k5);	QBind(k6);	QBind(k7);	QBind(k8);	QBind(k9);	QBind(k0);
+		QBind(Q);	QBind(W);	QBind(E);	QBind(R);	QBind(T);	QBind(Y);	QBind(U);	QBind(I);	QBind(O);	QBind(P);
+		QBind(A);	QBind(S);	QBind(D);	QBind(F);	QBind(G);	QBind(H);	QBind(J);	QBind(K);	QBind(L);
+		QBind(Z);	QBind(X);	QBind(C);	QBind(V);	QBind(B);	QBind(N);	QBind(M);
+
+		QBind(Left);	QBind(Right);	QBind(Up);	QBind(Down);
+
+		QBind(BackTick);	QBind(Tab);
+		QBind(Hyphen);	QBind(Equals);	QBind(Backspace);
+		QBind(OpenSquareBracket);
+		QBind(CloseSquareBracket);
+		QBind(CapsLock);
+		QBind(Semicolon);
+		QBind(Quote);
+		Bind(Enter, Return);
+		QBind(LeftShift);
+		QBind(RightShift);
+
+		Bind(Comma, Comma);
+		Bind(FullStop, FullStop);
+		Bind(ForwardSlash, ForwardSlash);
+
+		Bind(LeftOption, Alt);
+		Bind(RightOption, Alt);
+		QBind(Space);
+		QBind(Backslash);
+
+/*		Bind(KeyPadDelete, KeyPadDelete);
+		Bind(KeyPadEquals, KeyPadEquals);
+		Bind(KeyPadSlash, KeyPadSlash);
+		Bind(KeyPadAsterisk, KeyPadAsterisk);
+		Bind(KeyPadMinus, KeyPadMinus);
+		Bind(KeyPadPlus, KeyPadPlus);
+		Bind(KeyPadEnter, KeyPadEnter);
+		Bind(KeyPadDecimalPoint, KeyPadDecimalPoint);
+
+		Bind(KeyPad9, KeyPad9);
+		Bind(KeyPad8, KeyPad8);
+		Bind(KeyPad7, KeyPad7);
+		Bind(KeyPad6, KeyPad6);
+		Bind(KeyPad5, KeyPad5);
+		Bind(KeyPad4, KeyPad4);
+		Bind(KeyPad3, KeyPad3);
+		Bind(KeyPad2, KeyPad2);
+		Bind(KeyPad1, KeyPad1);
+		Bind(KeyPad0, KeyPad0);*/
+
+#undef QBind
+#undef Bind
+	}
+}
+
 // MARK: - Mouse Input
 
 void IntelligentKeyboard::move(int x, int y) {
@@ -252,3 +331,4 @@ void IntelligentKeyboard::reset_all_buttons() {
 // MARK: - Joystick Output
 void IntelligentKeyboard::disable_joysticks() {
 }
+

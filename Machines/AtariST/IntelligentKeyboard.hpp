@@ -11,13 +11,37 @@
 
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../../Components/SerialPort/SerialPort.hpp"
+#include "../KeyboardMachine.hpp"
 
 #include "../../Inputs/Mouse.hpp"
 
 #include <atomic>
+#include <mutex>
 
 namespace Atari {
 namespace ST {
+
+enum class Key: uint16_t {
+	Escape = 1,
+	k1, k2, k3, k4, k5, k6, k7, k8, k9, k0, Hyphen, Equals, Backspace,
+	Tab, Q, W, E, R, T, Y, U, I, O, P, OpenSquareBracket, CloseSquareBracket, Return,
+	Control, A, S, D, F, G, H, J, K, L, Semicolon, Quote, BackTick,
+	LeftShift, Backslash, Z, X, C, V, B, N, M, Comma, FullStop, ForwardSlash, RightShift,
+	/* 0x37 is unused. */
+	Alt = 0x38, Space, CapsLock, F1, F2, F3, F4, F5, F6, F7, F8, F9, F10,
+	/* Various gaps follow. */
+	Home = 0x47, Up,
+	KeypadMinus = 0x4a, Left,
+	Right = 0x4d, KeypadPlus,
+	Down = 0x50,
+	Insert = 0x52, Delete,
+	ISO = 0x60, Undo, Help, KeypadOpenBracket, KeypadCloseBracket, KeypadDivide, KeypadMultiply,
+	Keypad7, Keypad8, Keypad9, Keypad4, KeyPad5, Keypad6, Keypad1, Keypad2, Keypad3, Keypad0, KeypadDecimalPoint,
+	KeypadEnter
+};
+static_assert(uint16_t(Key::RightShift) == 0x36, "RightShift should have key code 0x36; check intermediate entries");
+static_assert(uint16_t(Key::F10) == 0x44, "F10 should have key code 0x44; check intermediate entries");
+static_assert(uint16_t(Key::KeypadEnter) == 0x72, "KeypadEnter should have key code 0x72; check intermediate entries");
 
 /*!
 	A receiver for the Atari ST's "intelligent keyboard" commands, which actually cover
@@ -32,7 +56,16 @@ class IntelligentKeyboard:
 		ClockingHint::Preference preferred_clocking() final;
 		void run_for(HalfCycles duration);
 
+		void set_key_state(Key key, bool is_pressed);
+		class KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
+			uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) final;
+		};
+
 	private:
+		// MARK: - Key queue.
+		std::mutex key_queue_mutex_;
+		std::vector<uint8_t> key_queue_;
+
 		// MARK: - Serial line state.
 		int bit_count_ = 0;
 		int command_ = 0;

@@ -9,6 +9,7 @@
 #include "AtariST.hpp"
 
 #include "../CRTMachine.hpp"
+#include "../KeyboardMachine.hpp"
 #include "../MouseMachine.hpp"
 
 //#define LOG_TRACE
@@ -45,7 +46,8 @@ class ConcreteMachine:
 	public Motorola::ACIA::ACIA::InterruptDelegate,
 	public Motorola::MFP68901::MFP68901::InterruptDelegate,
 	public DMAController::InterruptDelegate,
-	public MouseMachine::Machine {
+	public MouseMachine::Machine,
+	public KeyboardMachine::MappedMachine {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
@@ -488,7 +490,18 @@ class ConcreteMachine:
 		Inputs::Mouse &get_mouse() final {
 			return ikbd_;
 		}
-	};
+
+		// MARK: - KeyboardMachine
+		void set_key_state(uint16_t key, bool is_pressed) final {
+			ikbd_.set_key_state(Key(key), is_pressed);
+		}
+
+		IntelligentKeyboard::KeyboardMapper keyboard_mapper_;
+		KeyboardMapper *get_keyboard_mapper() final {
+			return &keyboard_mapper_;
+		}
+
+};
 
 }
 }
