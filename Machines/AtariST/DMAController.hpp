@@ -73,14 +73,19 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 		void wd1770_did_change_output(WD::WD1770 *) final;
 
 		uint16_t control_ = 0;
-		uint32_t address_ = 0;
-		uint16_t status_ = 0;
-		uint16_t sector_count_ = 0;
 
 		InterruptDelegate *interrupt_delegate_ = nullptr;
 		bool interrupt_line_ = false;
 
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
+
+		// MARK: - DMA State.
+		uint8_t buffer_[2][16];
+		int active_buffer_ = 0;
+		int bytes_received_ = 0;
+		bool error_ = false;
+		int address_ = 0;
+		int byte_count_ = 0;
 };
 
 }

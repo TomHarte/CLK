@@ -12,6 +12,17 @@
 
 using namespace Atari::ST;
 
+namespace {
+
+enum Control: uint16_t {
+	Direction = 0x100,
+	DRQSource = 0x80,
+	SectorCountSelect = 0x10,
+	CPUTarget = 0x08
+};
+
+}
+
 DMAController::DMAController() {
 	fdc_.set_delegate(this);
 	fdc_.set_clocking_hint_observer(this);
@@ -24,22 +35,27 @@ uint16_t DMAController::read(int address) {
 
 		// Disk controller or sector count.
 		case 2:
-			if(control_ & 0x10) {
-				return sector_count_;
+			if(control_ & Control::SectorCountSelect) {
+				return uint16_t((byte_count_ + 511) >> 9);	// Assumed here: the count is of sectors remaining, i.e. it decrements
+															// only when a sector is complete.
 			} else {
-				return fdc_.get_register(control_ >> 1);
+				if(control_ & Control::CPUTarget) {
+					return 0xffff;
+				} else {
+					return 0xff00 | fdc_.get_register(control_ >> 1);
+				}
 			}
 		break;
 
 		// DMA status.
 		case 3:
-		return status_;
+		// TODO: should DRQ come from the HDC if that mode is selected?
+		return 0xfff8 | (error_ ? 0 : 1) | (byte_count_ ? 2 : 0) | (fdc_.get_data_request_line() ? 4 : 0);
 
 		// DMA addressing.
-		case 4:
-		case 5:
-		case 6:
-		break;
+		case 4:	return uint16_t(0xff00 | ((address_ >> 16) & 0xff));
+		case 5:	return uint16_t(0xff00 | ((address_ >> 8) & 0xff));
+		case 6:	return uint16_t(0xff00 | ((address_ >> 0) & 0xff));
 	}
 	return 0xffff;
 }
@@ -51,33 +67,45 @@ void DMAController::write(int address, uint16_t value) {
 
 		// Disk controller or sector count.
 		case 2:
-			if(control_ & 0x10) {
-				sector_count_ = value;
+			if(control_ & Control::SectorCountSelect) {
+				byte_count_ = (value & 0xff) << 9;	// The computer provides a sector count; that times 512 is a byte count.
+
+				// TODO: if this is a write-mode DMA operation, try to fill both buffers, ASAP.
 			} else {
-				fdc_.set_register(control_ >> 1, uint8_t(value));
+				if(control_ & Control::CPUTarget) {
+					// TODO: HDC.
+				} else {
+					fdc_.set_register(control_ >> 1, uint8_t(value));
+				}
 			}
 		break;
 
 		// DMA control; meaning is:
 		//
+		//	b0: unused
 		//	b1, b2 = address lines for FDC access.
-		//	b3 = 1 => HDC access; 0 => FDC access.
-		//	b4 = 1 => sector count access; 1 => FDC access.
-		//	b6 = 1 => DMA off; 0 => DMA on.
-		//	b7 = 1 => FDC access; 0 => HDC access.
-		//	b8 = 1 => write to [F/H]DC registers; 0 => read.
+		//	b3 = 1 => CPU HDC access; 0 => CPU FDC access.
+		//	b4 = 1 => sector count access; 0 => [F/H]DC access.
+		//	b5: unused.
+		//	b6 = officially, 1 => DMA off; 0 => DMA on. Ignored in real hardware.
+		//	b7 = 1 => FDC DRQs being observed; 0 => HDC access DRQs being observed.
+		//	b8 = 1 => DMA is writing to [F/H]DC; 0 => DMA is reading. Changing value resets DMA state.
 		//
 		//	All other bits: undefined.
-		//	TODO: determine how b3 and b7 differ.
 		case 3:
+			// Check for a DMA state reset.
+			if((control_^value) & Control::Direction) {
+				bytes_received_ = active_buffer_ = 0;
+				error_ = false;
+				byte_count_ = 0;
+			}
 			control_ = value;
 		break;
 
 		// DMA addressing.
-		case 4:
-		case 5:
-		case 6:
-		break;
+		case 4:	address_ = int((address_ & 0x00ffff) | ((value & 0xff) << 16));	break;
+		case 5:	address_ = int((address_ & 0xff00ff) | ((value & 0xff) << 8));	break;
+		case 6:	address_ = int((address_ & 0xffff00) | ((value & 0xff) << 0));	break;
 	}
 }
 
@@ -102,10 +130,24 @@ void DMAController::wd1770_did_change_output(WD::WD1770 *) {
 		interrupt_delegate_->dma_controller_did_change_interrupt_status(this);
 	}
 
-	// TODO: check for a data request.
+	// Check for a change in DRQ state, if it's the FDC that is currently being watched.
 	if(fdc_.get_data_request_line()) {
-		// TODO: something?
-		printf("DRQ?\n");
+		if(!(control_ & Control::DRQSource)) return;
+		if(control_ & Control::Direction) {
+			// TODO: DMA is supposed to be helping with a write.
+		} else {
+			// DMA is enabling a read.
+
+			// Read from the data register into the active buffer.
+			buffer_[active_buffer_][bytes_received_] = fdc_.get_register(3);
+			++bytes_received_;
+			if(bytes_received_ == 16) {
+				// TODO: BusReq and eventual deposit into RAM?
+
+				active_buffer_ ^= 1;
+				bytes_received_ = 0;
+			}
+		}
 	}
 }
 
