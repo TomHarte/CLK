@@ -105,10 +105,10 @@ void Video::run_for(HalfCycles duration) {
 
 						for(int c = 0; c < 16; ++c) {
 							*pixel_pointer_ = palette_[
-								((source[0] >> 12) & 0x8)	|
-								((source[1] >> 13) & 0x4)	|
-								((source[2] >> 14) & 0x2)	|
-								((source[3] >> 15) & 0x1)
+								((source[3] >> 12) & 0x8)	|
+								((source[2] >> 13) & 0x4)	|
+								((source[1] >> 14) & 0x2)	|
+								((source[0] >> 15) & 0x1)
 							];
 							source[0] <<= 1;
 							source[1] <<= 1;
