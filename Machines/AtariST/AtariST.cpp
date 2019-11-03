@@ -9,6 +9,7 @@
 #include "AtariST.hpp"
 
 #include "../CRTMachine.hpp"
+#include "../MouseMachine.hpp"
 
 //#define LOG_TRACE
 #include "../../Processors/68000/68000.hpp"
@@ -43,7 +44,8 @@ class ConcreteMachine:
 	public ClockingHint::Observer,
 	public Motorola::ACIA::ACIA::InterruptDelegate,
 	public Motorola::MFP68901::MFP68901::InterruptDelegate,
-	public DMAController::InterruptDelegate {
+	public DMAController::InterruptDelegate,
+	public MouseMachine::Machine {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
@@ -113,6 +115,11 @@ class ConcreteMachine:
 		}
 
 		void run_for(const Cycles cycles) final {
+			// Give the keyboard an opportunity to consume any events.
+			if(!keyboard_needs_clock_) {
+				ikbd_.run_for(HalfCycles(0));
+			}
+
 			mc68000_.run_for(cycles);
 		}
 
@@ -476,7 +483,12 @@ class ConcreteMachine:
 				mc68000_.set_interrupt_level(0);
 			}
 		}
-};
+
+		// MARK: - MouseMachine
+		Inputs::Mouse &get_mouse() final {
+			return ikbd_;
+		}
+	};
 
 }
 }

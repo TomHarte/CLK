@@ -12,6 +12,10 @@
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../../Components/SerialPort/SerialPort.hpp"
 
+#include "../../Inputs/Mouse.hpp"
+
+#include <atomic>
+
 namespace Atari {
 namespace ST {
 
@@ -21,7 +25,8 @@ namespace ST {
 */
 class IntelligentKeyboard:
 	public Serial::Line::ReadDelegate,
-	public ClockingHint::Source {
+	public ClockingHint::Source,
+	public Inputs::Mouse {
 	public:
 		IntelligentKeyboard(Serial::Line &input, Serial::Line &output);
 		ClockingHint::Preference preferred_clocking() final;
@@ -33,7 +38,7 @@ class IntelligentKeyboard:
 		int command_ = 0;
 		Serial::Line &output_line_;
 
-		void output_byte(uint8_t value);
+		void output_bytes(std::initializer_list<uint8_t> value);
 		bool serial_line_did_produce_bit(Serial::Line *, int bit) final;
 
 		// MARK: - Command dispatch.
@@ -57,6 +62,29 @@ class IntelligentKeyboard:
 		void set_mouse_y_upward();
 		void set_mouse_button_actions(uint8_t actions);
 		void interrogate_mouse_position();
+
+		// Inputs::Mouse.
+		void move(int x, int y) final;
+		int get_number_of_buttons() final;
+		void set_button_pressed(int index, bool is_pressed) final;
+		void reset_all_buttons() final;
+
+		enum class MouseMode {
+			Relative, Absolute
+		} mouse_mode_ = MouseMode::Relative;
+
+		// Absolute positioning state.
+		int mouse_range_[2] = {0, 0};
+		int mouse_scale_[2] = {0, 0};
+
+		// Relative positioning state.
+		int posted_button_state_ = 0;
+		int mouse_threshold_[2] = {1, 1};
+		void post_relative_mouse_event(int x, int y);
+
+		// Received mouse state.
+		std::atomic<int> mouse_movement_[2];
+		std::atomic<int> mouse_button_state_;
 
 		// MARK: - Joystick.
 		void disable_joysticks();

@@ -13,6 +13,10 @@ using namespace Atari::ST;
 IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &output) : output_line_(output) {
 	input.set_read_delegate(this, Storage::Time(2, 15625));
 	output_line_.set_writer_clock_rate(15625);
+
+	mouse_button_state_ = 0;
+	mouse_movement_[0] = 0;
+	mouse_movement_[1] = 0;
 }
 
 bool IntelligentKeyboard::serial_line_did_produce_bit(Serial::Line *, int bit) {
@@ -36,12 +40,34 @@ ClockingHint::Preference IntelligentKeyboard::preferred_clocking() {
 }
 
 void IntelligentKeyboard::run_for(HalfCycles duration) {
+	// Take this opportunity to check for mouse and keyboard events,
+	// which will have been received asynchronously.
+	if(mouse_mode_ == MouseMode::Relative) {
+		const int captured_movement[2] = { mouse_movement_[0].load(), mouse_movement_[1].load() };
+		const int captured_button_state = mouse_button_state_;
+		if(
+			(posted_button_state_ != captured_button_state) ||
+			(abs(captured_movement[0]) >= mouse_threshold_[0]) ||
+			(abs(captured_movement[1]) >= mouse_threshold_[1]) ) {
+			mouse_movement_[0] -= captured_movement[0];
+			mouse_movement_[1] -= captured_movement[1];
+
+			post_relative_mouse_event(captured_movement[0], captured_movement[1]);
+		}
+	} else {
+
+	}
+
 	output_line_.advance_writer(duration);
 }
 
-void IntelligentKeyboard::output_byte(uint8_t value) {
+void IntelligentKeyboard::output_bytes(std::initializer_list<uint8_t> values) {
 	// Wrap the value in a start and stop bit, and send it on its way.
-	output_line_.write(2, 10, 0x200 | (value << 1));
+	for(auto value : values) {
+		output_line_.write(2, 10, 0x200 | (value << 1));
+	}
+
+	// TODO: this isn't thread safe! Might need this class to imply a poll?
 	update_clocking_observer();
 }
 
@@ -128,7 +154,7 @@ void IntelligentKeyboard::reset() {
 	// Reset should perform a self test, lasting at most 200ms, then post 0xf0.
 	// Following that it should look for any keys that currently seem to be pressed.
 	// Those are considered stuck and a break code is generated for them.
-	output_byte(0xf0);
+	output_bytes({0xf0});
 }
 
 void IntelligentKeyboard::resume() {
@@ -168,13 +194,61 @@ void IntelligentKeyboard::set_mouse_button_actions(uint8_t actions) {
 }
 
 void IntelligentKeyboard::interrogate_mouse_position() {
-	output_byte(0xf7);	// Beginning of mouse response.
-	output_byte(0x00);	// 0000dcba; a = right button down since last interrogation, b = right button up since, c/d = left button.
-	output_byte(0x00);	// x motion: MSB, LSB
-	output_byte(0x00);
-	output_byte(0x00);	// y motion: MSB, LSB
-	output_byte(0x00);
+	output_bytes({
+		0xf7,	// Beginning of mouse response.
+		0x00,	// 0000dcba; a = right button down since last interrogation, b = right button up since, c/d = left button.
+		0x00,	// x motion: MSB, LSB
+		0x00,
+		0x00,	// y motion: MSB, LSB
+		0x00
+	});
 }
 
+void IntelligentKeyboard::post_relative_mouse_event(int x, int y) {
+	posted_button_state_ = mouse_button_state_;
+
+	// Break up the motion to impart, if it's too large.
+	do {
+		int stepped_motion[2] = {
+			(x >= -128 && x < 127) ? x : (x > 0 ? 127 : -128),
+			(y >= -128 && y < 127) ? y : (y > 0 ? 127 : -128),
+		};
+
+		output_bytes({
+			uint8_t(0xf8 | posted_button_state_),	// Command code is a function of button state.
+			uint8_t(stepped_motion[0]),
+			uint8_t(stepped_motion[1]),
+		});
+
+		x -= stepped_motion[0];
+		y -= stepped_motion[1];
+	} while(x || y);
+}
+
+// MARK: - Mouse Input
+
+void IntelligentKeyboard::move(int x, int y) {
+	mouse_movement_[0] += x;
+	mouse_movement_[1] += y;
+}
+
+int IntelligentKeyboard::get_number_of_buttons() {
+	return 2;
+}
+
+void IntelligentKeyboard::set_button_pressed(int index, bool is_pressed) {
+	const auto mask = 1 << index;
+	if(is_pressed) {
+		mouse_button_state_ |= mask;
+	} else {
+		mouse_button_state_ &= ~mask;
+	}
+}
+
+void IntelligentKeyboard::reset_all_buttons() {
+	mouse_button_state_ = 0;
+}
+
+// MARK: - Joystick Output
 void IntelligentKeyboard::disable_joysticks() {
 }
