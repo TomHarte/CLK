@@ -237,7 +237,7 @@ int IntelligentKeyboard::get_number_of_buttons() {
 }
 
 void IntelligentKeyboard::set_button_pressed(int index, bool is_pressed) {
-	const auto mask = 1 << index;
+	const auto mask = 1 << (index ^ 1);	// The primary button is b1; the secondary is b0.
 	if(is_pressed) {
 		mouse_button_state_ |= mask;
 	} else {
