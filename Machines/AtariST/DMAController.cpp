@@ -85,16 +85,27 @@ void DMAController::set_floppy_drive_selection(bool drive1, bool drive2, bool si
 	fdc_.set_floppy_drive_selection(drive1, drive2, side2);
 }
 
+void DMAController::set_floppy_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
+	fdc_.drives_[drive]->set_disk(disk);
+}
+
 void DMAController::run_for(HalfCycles duration) {
 	running_time_ += duration;
 	fdc_.run_for(duration.flush<Cycles>());
 }
 
 void DMAController::wd1770_did_change_output(WD::WD1770 *) {
+	// Check for a change in interrupt state.
 	const bool old_interrupt_line = interrupt_line_;
 	interrupt_line_ = fdc_.get_interrupt_request_line();
 	if(interrupt_delegate_ && interrupt_line_ != old_interrupt_line) {
 		interrupt_delegate_->dma_controller_did_change_interrupt_status(this);
+	}
+
+	// TODO: check for a data request.
+	if(fdc_.get_data_request_line()) {
+		// TODO: something?
+		printf("DRQ?\n");
 	}
 }
 

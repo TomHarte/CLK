@@ -11,6 +11,7 @@
 #include "../CRTMachine.hpp"
 #include "../KeyboardMachine.hpp"
 #include "../MouseMachine.hpp"
+#include "../MediaTarget.hpp"
 
 //#define LOG_TRACE
 #include "../../Processors/68000/68000.hpp"
@@ -48,6 +49,7 @@ class ConcreteMachine:
 	public DMAController::InterruptDelegate,
 	public MouseMachine::Machine,
 	public KeyboardMachine::MappedMachine,
+	public MediaTarget::Machine,
 	public GI::AY38910::PortHandler {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -103,6 +105,9 @@ class ConcreteMachine:
 			ay_.set_port_handler(this);
 
 			set_gpip_input();
+
+			// Insert any supplied media.
+			insert_media(target.media);
 		}
 
 		~ConcreteMachine() {
@@ -509,6 +514,17 @@ class ConcreteMachine:
 				*/
 				dma_->set_floppy_drive_selection(value & 2, value & 4, value & 1);
 			}
+		}
+
+		// MARK: - MediaTarget
+		bool insert_media(const Analyser::Static::Media &media) final {
+			size_t c = 0;
+			for(const auto &disk: media.disks) {
+				dma_->set_floppy_disk(disk, c);
+				++c;
+				if(c == 2) break;
+			}
+			return true;
 		}
 };
 

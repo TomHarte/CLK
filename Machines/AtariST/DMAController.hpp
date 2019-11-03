@@ -30,6 +30,7 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 		bool get_interrupt_line();
 
 		void set_floppy_drive_selection(bool drive1, bool drive2, bool side2);
+		void set_floppy_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive);
 
 		struct InterruptDelegate {
 			virtual void dma_controller_did_change_interrupt_status(DMAController *) = 0;
@@ -46,6 +47,7 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 				drives_.emplace_back(new Storage::Disk::Drive(8000000, 300, 2));
 				drives_.emplace_back(new Storage::Disk::Drive(8000000, 300, 2));
 				set_drive(drives_[0]);
+				set_is_double_density(true);	// TODO: is this selectable on the ST?
 			}
 
 			void set_motor_on(bool motor_on) final {
