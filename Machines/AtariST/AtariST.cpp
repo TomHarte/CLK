@@ -47,7 +47,8 @@ class ConcreteMachine:
 	public Motorola::MFP68901::MFP68901::InterruptDelegate,
 	public DMAController::InterruptDelegate,
 	public MouseMachine::Machine,
-	public KeyboardMachine::MappedMachine {
+	public KeyboardMachine::MappedMachine,
+	public GI::AY38910::PortHandler {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
@@ -99,6 +100,7 @@ class ConcreteMachine:
 
 			mfp_->set_interrupt_delegate(this);
 			dma_->set_interrupt_delegate(this);
+			ay_.set_port_handler(this);
 
 			set_gpip_input();
 		}
@@ -235,18 +237,6 @@ class ConcreteMachine:
 								ay_.set_data_input(cycle.value8_high());
 								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							}
-
-							/*
-								TODO: Port A:
-									b7: reserved
-									b6: "freely usable output (monitor jack)"
-									b5: centronics strobe
-									b4: RS-232 DTR output
-									b3: RS-232 RTS output
-									b2: select floppy drive 1
-									b1: select floppy drive 0
-									b0: "page choice signal for double-sided floppy drive"
-							*/
 						return HalfCycles(2);
 
 						// The MFP block:
@@ -501,6 +491,25 @@ class ConcreteMachine:
 			return &keyboard_mapper_;
 		}
 
+		// MARK: - AYPortHandler
+		void set_port_output(bool port_b, uint8_t value) final {
+			if(port_b) {
+				// TODO: ?
+			} else {
+				/*
+					TODO: Port A:
+						b7: reserved
+						b6: "freely usable output (monitor jack)"
+						b5: centronics strobe
+						b4: RS-232 DTR output
+						b3: RS-232 RTS output
+						b2: select floppy drive 1
+						b1: select floppy drive 0
+						b0: "page choice signal for double-sided floppy drive"
+				*/
+				dma_->set_floppy_drive_selection(value & 2, value & 4, value & 1);
+			}
+		}
 };
 
 }

@@ -81,6 +81,10 @@ void DMAController::write(int address, uint16_t value) {
 	}
 }
 
+void DMAController::set_floppy_drive_selection(bool drive1, bool drive2, bool side2) {
+	fdc_.set_floppy_drive_selection(drive1, drive2, side2);
+}
+
 void DMAController::run_for(HalfCycles duration) {
 	running_time_ += duration;
 	fdc_.run_for(duration.flush<Cycles>());

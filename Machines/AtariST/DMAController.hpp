@@ -29,6 +29,8 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 
 		bool get_interrupt_line();
 
+		void set_floppy_drive_selection(bool drive1, bool drive2, bool side2);
+
 		struct InterruptDelegate {
 			virtual void dma_controller_did_change_interrupt_status(DMAController *) = 0;
 		};
@@ -49,6 +51,18 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 			void set_motor_on(bool motor_on) final {
 				drives_[0]->set_motor_on(motor_on);
 				drives_[1]->set_motor_on(motor_on);
+			}
+
+			void set_floppy_drive_selection(bool drive1, bool drive2, bool side2) {
+				// TODO: handle no drives and/or both drives selected.
+				if(drive1) {
+					set_drive(drives_[0]);
+				} else {
+					set_drive(drives_[1]);
+				}
+
+				drives_[0]->set_head(side2);
+				drives_[1]->set_head(side2);
 			}
 
 			std::vector<std::shared_ptr<Storage::Disk::Drive>> drives_;
