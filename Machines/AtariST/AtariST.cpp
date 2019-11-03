@@ -512,7 +512,7 @@ class ConcreteMachine:
 						b1: select floppy drive 0
 						b0: "page choice signal for double-sided floppy drive"
 				*/
-				dma_->set_floppy_drive_selection(value & 2, value & 4, value & 1);
+				dma_->set_floppy_drive_selection(!(value & 2), !(value & 4), value & 1);
 			}
 		}
 
