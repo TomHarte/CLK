@@ -151,7 +151,11 @@ void IntelligentKeyboard::dispatch_command(uint8_t command) {
 		case 0x11:	resume();					break;
 		case 0x12:	disable_mouse();			break;
 		case 0x13:	pause();					break;
-		case 0x1a:	disable_joysticks();		break;
+
+		case 0x14:	set_joystick_event_mode();			break;
+		case 0x15:	set_joystick_interrogation_mode();	break;
+		case 0x16:	interrogate_joysticks();			break;
+		case 0x1a:	disable_joysticks();				break;
 	}
 
 	// There was no premature exit, so a complete command sequence must have been satisfied.
@@ -330,5 +334,21 @@ void IntelligentKeyboard::reset_all_buttons() {
 
 // MARK: - Joystick Output
 void IntelligentKeyboard::disable_joysticks() {
+	joystick_mode_ = JoystickMode::Disabled;
 }
 
+void IntelligentKeyboard::set_joystick_event_mode() {
+	joystick_mode_ = JoystickMode::Event;
+}
+
+void IntelligentKeyboard::set_joystick_interrogation_mode() {
+	joystick_mode_ = JoystickMode::Interrogation;
+}
+
+void IntelligentKeyboard::interrogate_joysticks() {
+	output_bytes({
+		0xfd,
+		0x00,
+		0x00
+	});
+}

@@ -121,6 +121,13 @@ class IntelligentKeyboard:
 
 		// MARK: - Joystick.
 		void disable_joysticks();
+		void set_joystick_event_mode();
+		void set_joystick_interrogation_mode();
+		void interrogate_joysticks();
+
+		enum class JoystickMode {
+			Disabled, Event, Interrogation
+		} joystick_mode_ = JoystickMode::Event;
 };
 
 }
