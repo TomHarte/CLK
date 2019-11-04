@@ -225,3 +225,8 @@ void DMAController::set_component_prefers_clocking(ClockingHint::Source *, Clock
 ClockingHint::Preference DMAController::preferred_clocking() {
 	return (fdc_.preferred_clocking() == ClockingHint::Preference::None) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
 }
+
+void DMAController::set_activity_observer(Activity::Observer *observer) {
+	fdc_.drives_[0]->set_activity_observer(observer, "Internal", true);
+	fdc_.drives_[1]->set_activity_observer(observer, "External", true);
+}

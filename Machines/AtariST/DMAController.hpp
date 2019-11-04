@@ -15,6 +15,7 @@
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../../Components/1770/1770.hpp"
+#include "../../Activity/Source.hpp"
 
 namespace Atari {
 namespace ST {
@@ -45,6 +46,8 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 			virtual void dma_controller_did_change_output(DMAController *) = 0;
 		};
 		void set_delegate(Delegate *delegate);
+
+		void set_activity_observer(Activity::Observer *observer);
 
 		// ClockingHint::Source.
 		ClockingHint::Preference preferred_clocking() final;

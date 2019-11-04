@@ -12,6 +12,7 @@
 #include "../KeyboardMachine.hpp"
 #include "../MouseMachine.hpp"
 #include "../MediaTarget.hpp"
+#include "../../Activity/Source.hpp"
 
 //#define LOG_TRACE
 #include "../../Processors/68000/68000.hpp"
@@ -49,6 +50,7 @@ class ConcreteMachine:
 	public DMAController::Delegate,
 	public MouseMachine::Machine,
 	public KeyboardMachine::MappedMachine,
+	public Activity::Source,
 	public MediaTarget::Machine,
 	public GI::AY38910::PortHandler {
 	public:
@@ -532,6 +534,11 @@ class ConcreteMachine:
 				if(c == 2) break;
 			}
 			return true;
+		}
+
+		// MARK: - Activity Source
+		void set_activity_observer(Activity::Observer *observer) override {
+			dma_->set_activity_observer(observer);
 		}
 };
 
