@@ -179,7 +179,7 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		if(!buffer_[active_buffer_ ^ 1].is_full) return 0;
 
 		for(int c = 0; c < 8; ++c) {
-			ram[address_ >> 1] = uint16_t(
+			ram[size_t(address_ >> 1) & (size - 1)] = uint16_t(
 				(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 0] << 8) |
 				(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 1] << 0)
 			);
@@ -191,7 +191,7 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		if(!buffer_[active_buffer_ ].is_full) return 8;
 
 		for(int c = 0; c < 8; ++c) {
-			ram[address_ >> 1] = uint16_t(
+			ram[size_t(address_ >> 1) & (size - 1)] = uint16_t(
 				(buffer_[active_buffer_].contents[(c << 1) + 0] << 8) |
 				(buffer_[active_buffer_].contents[(c << 1) + 1] << 0)
 			);
