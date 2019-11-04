@@ -126,37 +126,96 @@ void DMAController::wd1770_did_change_output(WD::WD1770 *) {
 	// Check for a change in interrupt state.
 	const bool old_interrupt_line = interrupt_line_;
 	interrupt_line_ = fdc_.get_interrupt_request_line();
-	if(interrupt_delegate_ && interrupt_line_ != old_interrupt_line) {
-		interrupt_delegate_->dma_controller_did_change_interrupt_status(this);
+	if(delegate_ && interrupt_line_ != old_interrupt_line) {
+		delegate_->dma_controller_did_change_output(this);
 	}
 
 	// Check for a change in DRQ state, if it's the FDC that is currently being watched.
-	if(fdc_.get_data_request_line()) {
-		if(!(control_ & Control::DRQSource)) return;
+	if(byte_count_ && fdc_.get_data_request_line() && (control_ & Control::DRQSource)) {
+		--byte_count_;
+
 		if(control_ & Control::Direction) {
 			// TODO: DMA is supposed to be helping with a write.
 		} else {
 			// DMA is enabling a read.
 
 			// Read from the data register into the active buffer.
-			buffer_[active_buffer_][bytes_received_] = fdc_.get_register(3);
-			++bytes_received_;
+			if(bytes_received_ < 16) {
+				buffer_[active_buffer_].contents[bytes_received_] = fdc_.get_register(3);
+				++bytes_received_;
+			}
 			if(bytes_received_ == 16) {
-				// TODO: BusReq and eventual deposit into RAM?
+				// Mark buffer as full.
+				buffer_[active_buffer_].is_full = true;
 
-				active_buffer_ ^= 1;
-				bytes_received_ = 0;
+				// Move to the next if it is empty; if it isn't, note a DMA error.
+				const auto next_buffer = active_buffer_ ^ 1;
+				error_ |= buffer_[next_buffer].is_full;
+				if(!buffer_[next_buffer].is_full) {
+					bytes_received_ = 0;
+					active_buffer_ = next_buffer;
+				}
+
+				// Set bus request.
+				if(!bus_request_line_) {
+					bus_request_line_ = true;
+					if(delegate_) delegate_->dma_controller_did_change_output(this);
+				}
 			}
 		}
 	}
 }
 
-void DMAController::set_interrupt_delegate(InterruptDelegate *delegate) {
-	interrupt_delegate_ = delegate;
+int DMAController::bus_grant(uint16_t *ram, size_t size) {
+	// Being granted the bus negates the request.
+	bus_request_line_ = false;
+	if(delegate_) delegate_->dma_controller_did_change_output(this);
+
+	if(control_ & Control::Direction) {
+		// TODO: writes.
+		return 0;
+	} else {
+		// Check that the older buffer is full; stop if not.
+		if(!buffer_[active_buffer_ ^ 1].is_full) return 0;
+
+		for(int c = 0; c < 8; ++c) {
+			ram[address_ >> 1] = uint16_t(
+				(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 0] << 8) |
+				(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 1] << 0)
+			);
+			address_ += 2;
+		}
+		buffer_[active_buffer_ ^ 1].is_full = false;
+
+		// Check that the newer buffer is full; stop if not.
+		if(!buffer_[active_buffer_ ].is_full) return 8;
+
+		for(int c = 0; c < 8; ++c) {
+			ram[address_ >> 1] = uint16_t(
+				(buffer_[active_buffer_].contents[(c << 1) + 0] << 8) |
+				(buffer_[active_buffer_].contents[(c << 1) + 1] << 0)
+			);
+			address_ += 2;
+		}
+		buffer_[active_buffer_].is_full = false;
+
+		// Both buffers were full, so unblock reading.
+		bytes_received_ = 0;
+
+		return 16;
+	}
+}
+
+void DMAController::set_delegate(Delegate *delegate) {
+	delegate_ = delegate;
 }
 
 bool DMAController::get_interrupt_line() {
 	return interrupt_line_;
+}
+
+bool DMAController::get_bus_request_line() {
+	return bus_request_line_;
 }
 
 void DMAController::set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) {

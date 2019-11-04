@@ -28,14 +28,23 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 		void run_for(HalfCycles duration);
 
 		bool get_interrupt_line();
+		bool get_bus_request_line();
+
+		/*!
+			Indicates that the DMA controller has been granted bus access to the block of memory at @c ram, which
+			is of size @c size.
+
+			@returns The number of words read or written.
+		*/
+		int bus_grant(uint16_t *ram, size_t size);
 
 		void set_floppy_drive_selection(bool drive1, bool drive2, bool side2);
 		void set_floppy_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive);
 
-		struct InterruptDelegate {
-			virtual void dma_controller_did_change_interrupt_status(DMAController *) = 0;
+		struct Delegate {
+			virtual void dma_controller_did_change_output(DMAController *) = 0;
 		};
-		void set_interrupt_delegate(InterruptDelegate *delegate);
+		void set_delegate(Delegate *delegate);
 
 		// ClockingHint::Source.
 		ClockingHint::Preference preferred_clocking() final;
@@ -74,13 +83,17 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 
 		uint16_t control_ = 0;
 
-		InterruptDelegate *interrupt_delegate_ = nullptr;
+		Delegate *delegate_ = nullptr;
 		bool interrupt_line_ = false;
+		bool bus_request_line_ = false;
 
 		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final;
 
 		// MARK: - DMA State.
-		uint8_t buffer_[2][16];
+		struct Buffer {
+			uint8_t contents[16];
+			bool is_full = false;
+		} buffer_[2];
 		int active_buffer_ = 0;
 		int bytes_received_ = 0;
 		bool error_ = false;

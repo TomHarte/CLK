@@ -46,7 +46,7 @@ class ConcreteMachine:
 	public ClockingHint::Observer,
 	public Motorola::ACIA::ACIA::InterruptDelegate,
 	public Motorola::MFP68901::MFP68901::InterruptDelegate,
-	public DMAController::InterruptDelegate,
+	public DMAController::Delegate,
 	public MouseMachine::Machine,
 	public KeyboardMachine::MappedMachine,
 	public MediaTarget::Machine,
@@ -101,7 +101,7 @@ class ConcreteMachine:
 			dma_->set_clocking_hint_observer(this);
 
 			mfp_->set_interrupt_delegate(this);
-			dma_->set_interrupt_delegate(this);
+			dma_->set_delegate(this);
 			ay_.set_port_handler(this);
 
 			set_gpip_input();
@@ -436,8 +436,15 @@ class ConcreteMachine:
 		void acia6850_did_change_interrupt_status(Motorola::ACIA::ACIA *) final {
 			set_gpip_input();
 		}
-		void dma_controller_did_change_interrupt_status(DMAController *) final {
+		void dma_controller_did_change_output(DMAController *) final {
 			set_gpip_input();
+
+			// Filty hack, here! Should: set the 68000's bus request line. But until
+			// that's implemented, just offers magical zero-cost DMA insertion and
+			// extrication.
+			if(dma_->get_bus_request_line()) {
+				dma_->bus_grant(ram_.data(), ram_.size());
+			}
 		}
 		void set_gpip_input() {
 			/*
@@ -512,7 +519,7 @@ class ConcreteMachine:
 						b1: select floppy drive 0
 						b0: "page choice signal for double-sided floppy drive"
 				*/
-				dma_->set_floppy_drive_selection(!(value & 2), !(value & 4), value & 1);
+				dma_->set_floppy_drive_selection(!(value & 2), !(value & 4), !(value & 1));
 			}
 		}
 
