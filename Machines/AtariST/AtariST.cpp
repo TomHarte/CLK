@@ -341,8 +341,13 @@ class ConcreteMachine:
 		}
 
 		void flush() {
-			audio_queue_.perform();
+			dma_.flush();
+			mfp_.flush();
+			keyboard_acia_.flush();
+			midi_acia_.flush();
 			video_.flush();
+			update_audio();
+			audio_queue_.perform();
 		}
 
 	private:
