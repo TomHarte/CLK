@@ -84,6 +84,9 @@ struct Microcycle {
 	/// is synchronised with the E clock to satisfy a valid peripheral address request.
 	static const int IsPeripheral 			= 1 << 9;
 
+	/// Provides the 68000's bus grant line — indicating whether a bus request has been acknowledged.
+	static const int BusGrant				= 1 << 10;
+
 	/// Contains a valid combination of the various static const int flags, describing the operation
 	/// performed by this Microcycle.
 	int operation = 0;
@@ -371,13 +374,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform = false> cla
 		}
 
 		/// Sets the bus request line.
-		/// This are of functionality is TODO.
+		/// This area of functionality is TODO.
 		inline void set_bus_request(bool bus_request) {
 			bus_request_ = bus_request;
 		}
 
 		/// Sets the bus acknowledge line.
-		/// This are of functionality is TODO.
+		/// This area of functionality is TODO.
 		inline void set_bus_acknowledge(bool bus_acknowledge) {
 			bus_acknowledge_ = bus_acknowledge;
 		}
