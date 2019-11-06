@@ -64,11 +64,10 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 	}
 
 	// NIB files leave sync bytes implicit and make no guarantees
-	// about overall track positioning. So the approach taken here
-	// is to look for the epilogue sequence (which concludes all Apple
-	// tracks and headers), then treat all following FFs as a sync
-	// region, then switch back to ordinary behaviour as soon as a
-	// non-FF appears.
+	// about overall track positioning. My current best-guess attempt
+	// is to seek sector prologues then work backwards, inserting sync
+	// bits into [at most 5] preceding FFs. This is intended to put the
+	// Disk II into synchronisation just before each sector.
 	std::size_t start_index = 0;
 	std::set<size_t> sync_starts;
 
