@@ -310,11 +310,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
+//							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
 
 //							should_log |= fetched_pc == 0x6d9c;
 //							should_log = (fetched_pc >= 0x41806A && fetched_pc <= 0x418618);
- //							should_log |= fetched_pc == 0x4012A2;
+//							should_log |= fetched_pc == 0x4012A2;
 //							should_log &= fetched_pc != 0x4012AE;
 
 //							should_log = (fetched_pc >= 0x408D66) && (fetched_pc <= 0x408D84);
