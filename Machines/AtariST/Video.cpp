@@ -137,9 +137,10 @@ void Video::run_for(HalfCycles duration) {
 					output_border(run_length);
 				} else {
 					if(run_length < 32) {
-						shift_out(run_length);
+						shift_out(run_length);	// TODO: this might end up overrunning.
 					} else {
 						shift_out(32);
+						output_shifter = 0;
 						output_border(run_length - 32);
 					}
 				}
@@ -255,12 +256,12 @@ void Video::shift_out(int length) {
 						((output_shifter >> 63) & 1) |
 						((output_shifter >> 46) & 2)
 					];
-					output_shifter = (output_shifter << 1) & 0xefff;
+					output_shifter = (output_shifter << 1);// & 0xfeffffff;
 					++pixel_buffer_.pixel_pointer;
 				}
 			} else {
 				while(length--) {
-					output_shifter = (output_shifter << 1) & 0xefff;
+					output_shifter = (output_shifter << 1);// & 0xfeffffff;
 				}
 			}
 		break;
@@ -275,13 +276,13 @@ void Video::shift_out(int length) {
 						((output_shifter >> 29) & 4) |
 						((output_shifter >> 12) & 8)
 					];
-					output_shifter = (output_shifter << 1) & 0xeeee;
+					output_shifter = (output_shifter << 1);// & 0xfefefefe;
 					++pixel_buffer_.pixel_pointer;
 					length -= 2;
 				}
 			} else {
 				while(length) {
-					output_shifter = (output_shifter << 1) & 0xeeee;
+					output_shifter = (output_shifter << 1);// & 0xfefefefe;
 					length -= 2;
 				}
 			}
