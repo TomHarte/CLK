@@ -16,35 +16,54 @@ using namespace Atari::ST;
 
 namespace {
 
-struct ModeParams {
-	const int lines_per_frame;
-
-	const int first_video_line;
-	const int final_video_line;
-
-	const int line_length;
-
-	const int end_of_blank;
-
-	const int start_of_display_enable;
-	const int end_of_display_enable;
-
-	const int start_of_output;
-	const int end_of_output;
-
-	const int start_of_blank;
-
-	const int start_of_hsync;
-	const int end_of_hsync;
-} modes[3] = {
-	{313,	56, 256,	1024,		64,		116, 116+640,	116+48, 116+48+640,		904,	928, 1008	},
-	{},
-	{}
+/*!
+	Defines the line counts at which mode-specific events will occur:
+	vertical enable being set and being reset, and the line on which
+	the frame will end.
+*/
+struct VerticalParams {
+	const int set_enable;
+	const int reset_enable;
+	const int height;
+} vertical_params[3] = {
+	{63, 264, 313},	// 47 rather than 63 on early machines.
+	{34, 234, 263},
+	{1, 401, 500}	// 72 Hz mode: who knows?
 };
 
-const ModeParams &mode_params_for_mode() {
-	// TODO: rest of potential combinations, and accept mode as a paramter.
-	return modes[0];
+/// @returns The correct @c VerticalParams for output at @c frequency.
+const VerticalParams &vertical_parameters(FieldFrequency frequency) {
+	return vertical_params[int(frequency)];
+}
+
+
+/*!
+	Defines the horizontal counts at which mode-specific events will occur:
+	horizontal enable being set and being reset, blank being set and reset, and the
+	intended length of this ine.
+
+	The caller should:
+
+		* latch line length at cycle 54 (TODO: also for 72Hz mode?);
+		* at (line length - 50), start sync and reset enable (usually for the second time);
+		* at (line length - 10), disable sync.
+*/
+struct HorizontalParams {
+	const int set_enable;
+	const int reset_enable;
+
+	const int set_blank;
+	const int reset_blank;
+
+	const int length;
+} modes[3] = {
+	{56*2, 376*2,	450*2, 28*2,	512*2},
+	{52*2, 372*2,	450*2, 24*2,	508*2},
+	{4*2, 164*2,	184*2, 2*2,		224*2}
+};
+
+const HorizontalParams &horizontal_parameters(FieldFrequency frequency) {
+	return modes[int(frequency)];
 }
 
 }
@@ -53,7 +72,7 @@ Video::Video() :
 	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 }
 
-void Video::set_ram(uint16_t *ram) {
+void Video::set_ram(uint16_t *ram, size_t size) {
 	ram_ = ram;
 }
 
@@ -62,98 +81,216 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 void Video::run_for(HalfCycles duration) {
+	const auto horizontal_timings = horizontal_parameters(field_frequency_);
+	const auto vertical_timings = vertical_parameters(field_frequency_);
+
 	int integer_duration = int(duration.as_integral());
-	const auto mode_params = mode_params_for_mode();
-
-#define Period(lower, upper, type)	\
-	if(x >= lower && x < upper) {	\
-		const auto target = std::min(upper, final_x);	\
-		type(target - x);	\
-		x = target;	\
-	}
-
-	// TODO: the below is **way off**. The real hardware does what you'd expect with ongoing state and
-	// exact equality tests. Fixes to come.
-
 	while(integer_duration) {
-		const int final_x = std::min(x + integer_duration, mode_params.line_length);
-		integer_duration -= (final_x - x);
+		// Seed next event to end of line.
+		int next_event = line_length_;
 
-		if(y >= mode_params.first_video_line && y < mode_params.final_video_line) {
-			// TODO: Prior to output: collect all necessary data, obeying start_of_display_enable and end_of_display_enable.
+		// Check the explicitly-placed events.
+		if(horizontal_timings.reset_blank > x)	next_event = std::min(next_event, horizontal_timings.reset_blank);
+		if(horizontal_timings.set_blank > x)	next_event = std::min(next_event, horizontal_timings.set_blank);
+		if(horizontal_timings.reset_enable > x)	next_event = std::min(next_event, horizontal_timings.reset_enable);
+		if(horizontal_timings.set_enable > x) 	next_event = std::min(next_event, horizontal_timings.set_enable);
 
-			Period(0, 							mode_params.end_of_blank, 		crt_.output_blank);
-			Period(mode_params.end_of_blank, 	mode_params.start_of_output, 	output_border);
+		// Check for events that are relative to existing latched state.
+		if(line_length_ - 50 > x)	next_event = std::min(next_event, line_length_ - 50);
+		if(line_length_ - 10 > x)	next_event = std::min(next_event, line_length_ - 10);
 
-			if(x >= mode_params.start_of_output && x < mode_params.end_of_output) {
-				if(x == mode_params.start_of_output) {
-					// TODO: resolutions other than 320.
-					pixel_pointer_ = reinterpret_cast<uint16_t *>(crt_.begin_data(320));
-				}
+		// Determine current output mode and number of cycles to output for.
+		const int run_length = std::min(integer_duration, next_event - x);
 
-				const auto target = std::min(mode_params.end_of_output, final_x);
-				while(x < target) {
-					if(!(x&31) && pixel_pointer_) {
-						// TODO: RAM sizes other than 512kb.
-						uint16_t source[4] = {
-							ram_[(current_address_ + 0) & 262143],
-							ram_[(current_address_ + 1) & 262143],
-							ram_[(current_address_ + 2) & 262143],
-							ram_[(current_address_ + 3) & 262143],
-						};
-						current_address_ += 4;
+		enum class OutputMode {
+			Sync, Blank, Border, Pixels
+		} output_mode;
 
-						for(int c = 0; c < 16; ++c) {
-							*pixel_pointer_ = palette_[
-								((source[3] >> 12) & 0x8)	|
-								((source[2] >> 13) & 0x4)	|
-								((source[1] >> 14) & 0x2)	|
-								((source[0] >> 15) & 0x1)
-							];
-							source[0] <<= 1;
-							source[1] <<= 1;
-							source[2] <<= 1;
-							source[3] <<= 1;
-							++pixel_pointer_;
-						}
-					}
-					++x;
-				}
-
-				if(x == mode_params.end_of_output) {
-					crt_.output_data(mode_params.end_of_output - mode_params.start_of_output, 320);
-					pixel_pointer_ = nullptr;
-				}
-			}
-
-			Period(mode_params.end_of_output, 	mode_params.start_of_blank, 	output_border);
-			Period(mode_params.start_of_blank, 	mode_params.start_of_hsync,		crt_.output_blank);
-			Period(mode_params.start_of_hsync,	mode_params.end_of_hsync,		crt_.output_sync);
-			Period(mode_params.end_of_hsync, 	mode_params.line_length,		crt_.output_blank);
+		if(horizontal_.sync || vertical_.sync) {
+			// Output sync.
+			output_mode = OutputMode::Sync;
+		} else if(horizontal_.blank || vertical_.blank) {
+			// Output blank.
+			output_mode = OutputMode::Blank;
+		} else if(!vertical_.enable) {
+			// There can be no pixels this line, just draw border.
+			output_mode = OutputMode::Border;
 		} else {
-			// Hard code the first three lines as vertical sync.
-			if(y < 3) {
-				Period(0,							mode_params.start_of_hsync,	crt_.output_sync);
-				Period(mode_params.start_of_hsync,	mode_params.end_of_hsync,	crt_.output_blank);
-				Period(mode_params.end_of_hsync,	mode_params.line_length,	crt_.output_sync);
-			} else {
-				Period(0, 							mode_params.end_of_blank, 		crt_.output_blank);
-				Period(mode_params.end_of_blank, 	mode_params.start_of_blank, 	output_border);
-				Period(mode_params.start_of_blank, 	mode_params.start_of_hsync,		crt_.output_blank);
-				Period(mode_params.start_of_hsync,	mode_params.end_of_hsync,		crt_.output_sync);
-				Period(mode_params.end_of_hsync, 	mode_params.line_length,		crt_.output_blank);
-			}
+			output_mode = horizontal_.enable ? OutputMode::Pixels : OutputMode::Border;
 		}
 
-		if(x == mode_params.line_length) {
+		// Flush any lingering pixels.
+		if(
+			(pixel_buffer_.output_bpp != output_bpp_)	||		// Buffer is now of wrong density.
+			(output_mode != OutputMode::Pixels && pixel_buffer_.pixels_output)) {	// Buffering has stopped for now.
+			pixel_buffer_.flush(crt_);
+		}
+
+		switch(output_mode) {
+			case OutputMode::Sync:		crt_.output_sync(run_length);	break;
+			case OutputMode::Blank:
+				data_latch_position_ = 0;
+				crt_.output_blank(run_length);
+			break;
+			case OutputMode::Border:	{
+				if(!output_shifter) {
+					output_border(run_length);
+				} else {
+					if(run_length < 32) {
+						shift_out(run_length);
+					} else {
+						shift_out(32);
+						output_border(run_length - 32);
+					}
+				}
+			} break;
+			default:
+				// There will be pixels this line, subject to the shifter pipeline.
+				// Divide into 8-[half-]cycle windows; at the start of each window fetch a word,
+				// and during the rest of the window, shift out.
+				int start_column = x >> 3;
+				const int end_column = (x + run_length) >> 3;
+
+				if(start_column == end_column) {
+					shift_out(run_length);
+				} else {
+					// Continue the current column if partway across.
+					if(x&7) {
+						// If at least one column boundary is crossed, complete this column.
+						// Otherwise the run_length is clearly less than 8 and within this column,
+						// so go for the entirety of it.
+						shift_out(8 - (x & 7));
+						++start_column;
+					}
+
+					// Run for all columns that have their starts in this time period.
+					int complete_columns = end_column - start_column;
+					while(complete_columns--) {
+						latch_word();
+						shift_out(8);
+					}
+
+					// Output the start of the next column, if necessary.
+					if(start_column != end_column && (x + run_length) & 7) {
+						latch_word();
+						shift_out((x + run_length) & 7);
+					}
+				}
+			break;
+		}
+
+		// Check for whether line length should have been latched during this run.
+		if(x <= 54 && (x + run_length) > 54) line_length_ = horizontal_timings.length;
+
+		// Apply the next event.
+		x += run_length;
+		integer_duration -= run_length;
+
+		if(horizontal_timings.reset_blank == x)		horizontal_.blank = false;
+		if(horizontal_timings.set_blank == x)		horizontal_.blank = true;
+		if(horizontal_timings.reset_enable == x)	horizontal_.enable = false;
+		if(horizontal_timings.set_enable == x) 		horizontal_.enable = true;
+		if(line_length_ - 50 == x)					horizontal_.sync = true;
+		if(line_length_ - 10 == x)					horizontal_.sync = false;
+
+		// Check whether the terminating event was end-of-line; if so then advance
+		// the vertical bits of state.
+		if(x == line_length_) {
 			x = 0;
-			y = (y + 1) % mode_params.lines_per_frame;
-			if(!y)
+			++y;
+
+			// Use vertical_parameters to get parameters for the current output frequency.
+			if(y == vertical_timings.set_enable) {
+				vertical_.enable = true;
+			} else if(y == vertical_timings.reset_enable) {
+				vertical_.enable = false;
+			} else if(y == vertical_timings.height) {
+				y = 0;
+				vertical_.sync = true;
 				current_address_ = base_address_ >> 1;
+			} else if(y == 3) {
+				vertical_.sync = false;
+			}
 		}
 	}
+}
 
-#undef Period
+void Video::latch_word() {
+	data_latch_[data_latch_position_] = ram_[current_address_ & 262143];
+	++current_address_;
+	++data_latch_position_;
+	if(data_latch_position_ == 4) {
+		data_latch_position_ = 0;
+		output_shifter =
+			(uint64_t(data_latch_[0]) << 48) |
+			(uint64_t(data_latch_[1]) << 32) |
+			(uint64_t(data_latch_[2]) << 16) |
+			uint64_t(data_latch_[3]);
+	}
+}
+
+void Video::shift_out(int length) {
+	if(!pixel_buffer_.pixel_pointer) pixel_buffer_.allocate(crt_);
+
+	pixel_buffer_.cycles_output += length;
+	switch(output_bpp_) {
+		case OutputBpp::One: {
+			int pixels = length << 1;
+			pixel_buffer_.pixels_output += pixels;
+			if(pixel_buffer_.pixel_pointer) {
+				while(pixels--) {
+					*pixel_buffer_.pixel_pointer = ((output_shifter >> 63) & 1) * 0xffff;
+					output_shifter <<= 1;
+					++pixel_buffer_.pixel_pointer;
+				}
+			} else {
+				output_shifter <<= pixels;
+			}
+		} break;
+		case OutputBpp::Two:
+			pixel_buffer_.pixels_output += length;
+			if(pixel_buffer_.pixel_pointer) {
+				while(length--) {
+					*pixel_buffer_.pixel_pointer = palette_[
+						((output_shifter >> 63) & 1) |
+						((output_shifter >> 46) & 2)
+					];
+					output_shifter = (output_shifter << 1) & 0xefff;
+					++pixel_buffer_.pixel_pointer;
+				}
+			} else {
+				while(length--) {
+					output_shifter = (output_shifter << 1) & 0xefff;
+				}
+			}
+		break;
+		default:
+		case OutputBpp::Four:
+			pixel_buffer_.pixels_output += length >> 1;
+			if(pixel_buffer_.pixel_pointer) {
+				while(length) {
+					*pixel_buffer_.pixel_pointer = palette_[
+						((output_shifter >> 63) & 1) |
+						((output_shifter >> 46) & 2) |
+						((output_shifter >> 29) & 4) |
+						((output_shifter >> 12) & 8)
+					];
+					output_shifter = (output_shifter << 1) & 0xeeee;
+					++pixel_buffer_.pixel_pointer;
+					length -= 2;
+				}
+			} else {
+				while(length) {
+					output_shifter = (output_shifter << 1) & 0xeeee;
+					length -= 2;
+				}
+			}
+		break;
+	}
+
+	// Check for buffer being full. Buffers are allocated as 328 pixels, and this method is
+	// never called for more than 8 pixels, so there's no chance of overrun.
+	if(pixel_buffer_.pixels_output >= 320) pixel_buffer_.flush(crt_);
 }
 
 void Video::output_border(int duration) {
@@ -163,61 +300,41 @@ void Video::output_border(int duration) {
 }
 
 bool Video::hsync() {
-	const auto mode_params = mode_params_for_mode();
-	return x >= mode_params.start_of_hsync && x < mode_params.end_of_hsync;
+	return horizontal_.sync;
 }
 
 bool Video::vsync() {
-	return y < 3;
+	return vertical_.sync;
 }
 
 bool Video::display_enabled() {
-	const auto mode_params = mode_params_for_mode();
-	return y >= mode_params.first_video_line && y < mode_params.final_video_line && x >= mode_params.start_of_display_enable && x < mode_params.end_of_display_enable;
+	return horizontal_.enable && vertical_.enable;
 }
 
 HalfCycles Video::get_next_sequence_point() {
-	// The next hsync transition will occur either this line or the next.
-	const auto mode_params = mode_params_for_mode();
-	HalfCycles cycles_until_hsync;
-	if(x < mode_params.start_of_hsync) {
-		cycles_until_hsync = HalfCycles(mode_params.start_of_hsync - x);
-	} else if(x < mode_params.end_of_hsync) {
-		cycles_until_hsync = HalfCycles(mode_params.end_of_hsync - x);
-	} else {
-		cycles_until_hsync = HalfCycles(mode_params.start_of_hsync + mode_params.line_length - x);
-	}
+	// The next sequence point will be whenever display_enabled, vsync or hsync next changes.
 
-	// The next vsync transition depends purely on the current y.
-	HalfCycles cycles_until_vsync;
-	if(y < 3) {
-		cycles_until_vsync = HalfCycles(mode_params.line_length - x + (2 - y)*mode_params.line_length);
-	} else {
-		cycles_until_vsync = HalfCycles(mode_params.line_length - x + (mode_params.lines_per_frame - 1 - y)*mode_params.line_length);
-	}
-
-	// The next display enable transition will occur only in the visible area.
-	HalfCycles cycles_until_display_enable;
-	if(display_enabled()) {
-		cycles_until_display_enable = HalfCycles(mode_params.end_of_display_enable - x);
-	} else {
-		const auto horizontal_cycles = mode_params.start_of_display_enable - x;
-		int vertical_lines = 0;
-		if(y < mode_params.first_video_line) {
-			vertical_lines = mode_params.first_video_line - y;
-		} else if(y >= mode_params.final_video_line ) {
-			vertical_lines = mode_params.first_video_line + mode_params.lines_per_frame - y;
+	// If this is a vertically-enabled line, and right now is either before graphics display,
+	// or during it, then it's display enabled that will change next.
+	const auto horizontal_timings = horizontal_parameters(field_frequency_);
+	if(vertical_.enable) {
+		if(x < horizontal_timings.set_enable) {
+			return HalfCycles(horizontal_timings.set_enable - x);
+		} else if(x < horizontal_timings.reset_enable) {
+			return HalfCycles(horizontal_timings.reset_enable - x);
 		}
-		if(horizontal_cycles < 0) ++vertical_lines;
-		cycles_until_display_enable = HalfCycles(horizontal_cycles + vertical_lines * mode_params.line_length);
 	}
 
-	// Determine the minimum of the three
-	if(cycles_until_hsync < cycles_until_vsync && cycles_until_hsync < cycles_until_display_enable) {
-		return cycles_until_hsync;
-	} else {
-		return (cycles_until_vsync < cycles_until_display_enable) ? cycles_until_vsync : cycles_until_display_enable;
-	}
+	// Otherwise, if this is before or during horizontal sync then that's the next event.
+	if(x < line_length_ - 50) return HalfCycles(line_length_ - 50 - x);
+	else if(x < line_length_ - 10) return HalfCycles(line_length_ - 10 - x);
+
+	// Okay, then, it depends on the next line. If the next line is the start or end of vertical sync,
+	// it's that. Otherwise it's the beginning of display enable on the next line.
+	const auto vertical_timings = horizontal_parameters(field_frequency_);
+	if(y+1 == vertical_timings.length || y+1 == 3) return HalfCycles(line_length_ - x);
+
+	return HalfCycles(line_length_ + horizontal_timings.set_enable - x);
 }
 
 // MARK: - IO dispatch
@@ -233,6 +350,7 @@ uint16_t Video::read(int address) {
 		case 0x02:	return uint16_t(0xff00 | (current_address_ >> 16));
 		case 0x03:	return uint16_t(0xff00 | (current_address_ >> 8));
 		case 0x04:	return uint16_t(0xff00 | (current_address_));
+		case 0x05:	return sync_mode_ | 0xfcff;
 		case 0x30:	return video_mode_ | 0xfcff;
 	}
 	return 0xff;
@@ -248,8 +366,15 @@ void Video::write(int address, uint16_t value) {
 		case 0x00:	base_address_ = (base_address_ & 0x00ffff) | ((value & 0xff) << 16);	break;
 		case 0x01:	base_address_ = (base_address_ & 0xff00ff) | ((value & 0xff) << 8);		break;
 
-		// Mode.
-		case 0x30:	video_mode_ = value;	break;
+		// Sync mode and pixel mode.
+		case 0x05:
+			sync_mode_ = value;
+			update_output_mode();
+		break;
+		case 0x30:
+			video_mode_ = value;
+			update_output_mode();
+		break;
 
 		// Palette.
 		case 0x20:	case 0x21:	case 0x22:	case 0x23:
@@ -261,4 +386,21 @@ void Video::write(int address, uint16_t value) {
 			entry[1] = uint8_t((value & 0x77) << 1);
 		} break;
 	}
+}
+
+void Video::update_output_mode() {
+	// If this is black and white mode, that's that.
+	switch((video_mode_ >> 8) & 3) {
+		default:
+		case 0:	output_bpp_ = OutputBpp::Four;	break;
+		case 1:	output_bpp_ = OutputBpp::Two;	break;
+
+		// 1bpp mode ignores the otherwise-programmed frequency.
+		case 2:
+			output_bpp_ = OutputBpp::One;
+			field_frequency_ = FieldFrequency::SeventyTwo;
+		return;
+	}
+
+	field_frequency_ = (sync_mode_ & 0x200) ? FieldFrequency::Fifty : FieldFrequency::Sixty;
 }
