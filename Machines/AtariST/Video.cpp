@@ -264,12 +264,20 @@ void Video::shift_out(int length) {
 						((output_shifter >> 63) & 1) |
 						((output_shifter >> 46) & 2)
 					];
-					output_shifter = (output_shifter << 1);// & 0xfeffffff;
+					// This ensures that the top two words shift one to the left;
+					// their least significant bits are fed from the most significant bits
+					// of the bottom two words, respectively.
+					shifter_halves[1] = (shifter_halves[1] << 1) & 0xfffefffe;
+					shifter_halves[1] |= (shifter_halves[0] & 0x80008000) >> 15;
+					shifter_halves[0] = (shifter_halves[0] << 1) & 0xfffefffe;
+
 					++pixel_buffer_.pixel_pointer;
 				}
 			} else {
 				while(length--) {
-					output_shifter = (output_shifter << 1);// & 0xfeffffff;
+					shifter_halves[1] = (shifter_halves[1] << 1) & 0xfffefffe;
+					shifter_halves[1] |= (shifter_halves[0] & 0x80008000) >> 15;
+					shifter_halves[0] = (shifter_halves[0] << 1) & 0xfffefffe;
 				}
 			}
 		break;
@@ -284,13 +292,13 @@ void Video::shift_out(int length) {
 						((output_shifter >> 29) & 4) |
 						((output_shifter >> 12) & 8)
 					];
-					output_shifter = (output_shifter << 1);// & 0xfefefefe;
+					output_shifter = (output_shifter << 1) & 0xfffefffefffefffe;
 					++pixel_buffer_.pixel_pointer;
 					length -= 2;
 				}
 			} else {
 				while(length) {
-					output_shifter = (output_shifter << 1);// & 0xfefefefe;
+					output_shifter = (output_shifter << 1) & 0xfffefffefffefffe;
 					length -= 2;
 				}
 			}
