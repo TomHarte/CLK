@@ -138,9 +138,11 @@ void Video::run_for(HalfCycles duration) {
 				} else {
 					if(run_length < 32) {
 						shift_out(run_length);	// TODO: this might end up overrunning.
+						if(!output_shifter) pixel_buffer_.flush(crt_);
 					} else {
 						shift_out(32);
 						output_shifter = 0;
+						pixel_buffer_.flush(crt_);
 						output_border(run_length - 32);
 					}
 				}
@@ -152,6 +154,12 @@ void Video::run_for(HalfCycles duration) {
 				int start_column = x >> 3;
 				const int end_column = (x + run_length) >> 3;
 
+				// Rules obeyed below:
+				//
+				//	Video fetches occur as the first act of business in a column. Each
+				//	fetch is then followed by 8 shift clocks. Whether or not the shifter
+				//	was reloaded by the fetch depends on the FIFO.
+
 				if(start_column == end_column) {
 					shift_out(run_length);
 				} else {
@@ -162,18 +170,18 @@ void Video::run_for(HalfCycles duration) {
 						// so go for the entirety of it.
 						shift_out(8 - (x & 7));
 						++start_column;
+						latch_word();
 					}
 
 					// Run for all columns that have their starts in this time period.
 					int complete_columns = end_column - start_column;
 					while(complete_columns--) {
-						latch_word();
 						shift_out(8);
+						latch_word();
 					}
 
 					// Output the start of the next column, if necessary.
 					if(start_column != end_column && (x + run_length) & 7) {
-						latch_word();
 						shift_out((x + run_length) & 7);
 					}
 				}
