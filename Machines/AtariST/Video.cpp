@@ -71,7 +71,7 @@ const HorizontalParams &horizontal_parameters(FieldFrequency frequency) {
 Video::Video() :
 	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 
-	crt_.set_visible_area(crt_.get_rect_for_area(43, 240, 120, 784, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(43, 240, 220, 784, 4.0f / 3.0f));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
@@ -98,8 +98,8 @@ void Video::run_for(HalfCycles duration) {
 		if(horizontal_timings.set_enable > x) 	next_event = std::min(next_event, horizontal_timings.set_enable);
 
 		// Check for events that are relative to existing latched state.
-		if(line_length_ - 50 > x)	next_event = std::min(next_event, line_length_ - 50);
-		if(line_length_ - 10 > x)	next_event = std::min(next_event, line_length_ - 10);
+		if(line_length_ - 50*2 > x)		next_event = std::min(next_event, line_length_ - 50*2);
+		if(line_length_ - 10*2 > x)		next_event = std::min(next_event, line_length_ - 10*2);
 
 		// Determine current output mode and number of cycles to output for.
 		const int run_length = std::min(integer_duration, next_event - x);
@@ -191,18 +191,18 @@ void Video::run_for(HalfCycles duration) {
 		}
 
 		// Check for whether line length should have been latched during this run.
-		if(x <= 54 && (x + run_length) > 54) line_length_ = horizontal_timings.length;
+		if(x <= 54*2 && (x + run_length) > 54*2) line_length_ = horizontal_timings.length;
 
 		// Apply the next event.
 		x += run_length;
 		integer_duration -= run_length;
 
-		if(horizontal_timings.reset_blank == x)		horizontal_.blank = false;
-		if(horizontal_timings.set_blank == x)		horizontal_.blank = true;
-		if(horizontal_timings.reset_enable == x)	horizontal_.enable = false;
-		if(horizontal_timings.set_enable == x) 		horizontal_.enable = true;
-		if(line_length_ - 50 == x)					horizontal_.sync = true;
-		if(line_length_ - 10 == x)					horizontal_.sync = false;
+		if(horizontal_timings.reset_blank == x)			horizontal_.blank = false;
+		else if(horizontal_timings.set_blank == x)		horizontal_.blank = true;
+		else if(horizontal_timings.reset_enable == x)	horizontal_.enable = false;
+		else if(horizontal_timings.set_enable == x) 	horizontal_.enable = true;
+		else if(line_length_ - 50*2 == x)				horizontal_.sync = true;
+		else if(line_length_ - 10*2 == x)				horizontal_.sync = false;
 
 		// Check whether the terminating event was end-of-line; if so then advance
 		// the vertical bits of state.
