@@ -232,7 +232,7 @@ void ScanTarget::end_data(size_t actual_length) {
 	// distance left on the current line, but there's a risk of exactly filling
 	// the final line, in which case this should wrap back to 0.
 	write_pointers_.write_area += actual_length + 1;
-	write_pointers_.write_area %= write_area_texture_.size();
+	write_pointers_.write_area %= (write_area_texture_.size() / data_type_size_);
 
 	// Also bookend the end.
 	memcpy(
