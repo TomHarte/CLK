@@ -147,8 +147,6 @@ class ConcreteMachine:
 			// A null cycle leaves nothing else to do.
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
 
-			/* TODO: DTack, bus error, VPA.  */
-
 			// An interrupt acknowledge, perhaps?
 			if(cycle.operation & Microcycle::InterruptAcknowledge) {
 				// Current implementation: everything other than 6 (i.e. the MFP is autovectored.
@@ -167,6 +165,20 @@ class ConcreteMachine:
 					}
 					return HalfCycles(0);
 				}
+			}
+
+			// If this is a new strobing of the address signal, test for bus error and pre-DTack delay.
+			HalfCycles delay(0);
+			if(cycle.operation & Microcycle::NewAddress) {
+				// DTack will be implicit; work out how long until that should be,
+				// and apply bus error constraints.
+				const int i_phase = bus_phase_.as<int>() & 7;
+				if(i_phase < 4) {
+					delay = HalfCycles(4 - i_phase);
+					advance_time(delay);
+				}
+
+				// TODO: presumably test is if(after declared memory size and (not supervisor or before hardware space)) bus_error?
 			}
 
 			auto address = cycle.word_address();
@@ -205,7 +217,7 @@ class ConcreteMachine:
 							cycle.value->halves.low = 0xff;
 						break;
 					}
-				return HalfCycles(0);
+				return delay;
 
 				case BusDevice::IO:
 					switch(address) {
@@ -226,7 +238,7 @@ class ConcreteMachine:
 
 						case 0x7fc400:	/* PSG: write to select register, read to read register. */
 						case 0x7fc401:	/* PSG: write to write register. */
-							if(!cycle.data_select_active()) return HalfCycles(0);
+							if(!cycle.data_select_active()) return delay;
 
 							advance_time(HalfCycles(2));
 							update_audio();
@@ -244,7 +256,7 @@ class ConcreteMachine:
 								ay_.set_data_input(cycle.value8_high());
 								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							}
-						return HalfCycles(2);
+						return delay + HalfCycles(2);
 
 						// The MFP block:
 						case 0x7ffd00:	case 0x7ffd01:	case 0x7ffd02:	case 0x7ffd03:
@@ -255,7 +267,7 @@ class ConcreteMachine:
 						case 0x7ffd14:	case 0x7ffd15:	case 0x7ffd16:	case 0x7ffd17:
 						case 0x7ffd18:	case 0x7ffd19:	case 0x7ffd1a:	case 0x7ffd1b:
 						case 0x7ffd1c:	case 0x7ffd1d:	case 0x7ffd1e:	case 0x7ffd1f:
-							if(!cycle.data_select_active()) return HalfCycles(0);
+							if(!cycle.data_select_active()) return delay;
 
 							if(cycle.operation & Microcycle::Read) {
 								cycle.set_value8_low(mfp_->read(int(address)));
@@ -278,7 +290,7 @@ class ConcreteMachine:
 						case 0x7fc128:	case 0x7fc129:	case 0x7fc12a:	case 0x7fc12b:
 						case 0x7fc12c:	case 0x7fc12d:	case 0x7fc12e:	case 0x7fc12f:
 						case 0x7fc130:	case 0x7fc131:
-							if(!cycle.data_select_active()) return HalfCycles(0);
+							if(!cycle.data_select_active()) return delay;
 
 							if(cycle.operation & Microcycle::Read) {
 								cycle.set_value16(video_->read(int(address)));
@@ -291,7 +303,7 @@ class ConcreteMachine:
 						case 0x7ffe00:	case 0x7ffe01:	case 0x7ffe02:	case 0x7ffe03: {
 							// Set VPA.
 							mc68000_.set_is_peripheral_address(!cycle.data_select_active());
-							if(!cycle.data_select_active()) return HalfCycles(0);
+							if(!cycle.data_select_active()) return delay;
 
 							const auto acia_ = (address < 0x7ffe02) ? &keyboard_acia_ : &midi_acia_;
 							if(cycle.operation & Microcycle::Read) {
@@ -303,7 +315,7 @@ class ConcreteMachine:
 
 						// DMA.
 						case 0x7fc302:	case 0x7fc303:	case 0x7fc304:	case 0x7fc305:	case 0x7fc306:
-							if(!cycle.data_select_active()) return HalfCycles(0);
+							if(!cycle.data_select_active()) return delay;
 
 							if(cycle.operation & Microcycle::Read) {
 								cycle.set_value16(dma_->read(int(address)));
@@ -358,6 +370,7 @@ class ConcreteMachine:
 			dma_ += length;
 			keyboard_acia_ += length;
 			midi_acia_ += length;
+			bus_phase_ += length;
 
 			// Don't even count time for the keyboard unless it has requested it.
 			if(keyboard_needs_clock_) {
@@ -397,6 +410,8 @@ class ConcreteMachine:
 		}
 
 		CPU::MC68000::Processor<ConcreteMachine, true> mc68000_;
+		HalfCycles bus_phase_;
+
 		JustInTimeActor<Video> video_;
 		HalfCycles cycles_until_video_event_;
 
