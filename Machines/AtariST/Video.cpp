@@ -26,7 +26,7 @@ struct VerticalParams {
 	const int reset_enable;
 	const int height;
 } vertical_params[3] = {
-	{63, 264, 313},	// 47 rather than 63 on early machines.
+	{63, 263, 313},	// 47 rather than 63 on early machines.
 	{34, 234, 263},
 	{1, 401, 500}	// 72 Hz mode: who knows?
 };
