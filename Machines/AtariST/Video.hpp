@@ -75,7 +75,7 @@ class Video {
 			bool blank = false;
 			bool sync = false;
 		} horizontal_, vertical_;
-		int line_length_ = 512;
+		int line_length_ = 1024;
 
 		int data_latch_position_ = 0;
 		uint16_t data_latch_[4];
