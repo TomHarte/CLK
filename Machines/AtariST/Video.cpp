@@ -70,6 +70,8 @@ const HorizontalParams &horizontal_parameters(FieldFrequency frequency) {
 
 Video::Video() :
 	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
+
+	crt_.set_visible_area(crt_.get_rect_for_area(43, 240, 120, 784, 4.0f / 3.0f));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
