@@ -339,9 +339,11 @@ class ConcreteMachine:
 					cycle.value->halves.low = uint8_t(memory[address] >> cycle.byte_shift());
 				break;
 				case Microcycle::SelectWord:
+					video_.flush();	// TODO: (and below), a range check to determine whether this is really necesary.
 					memory[address] = cycle.value->full;
 				break;
 				case Microcycle::SelectByte:
+					video_.flush();
 					memory[address] = uint16_t(
 						(cycle.value->halves.low << cycle.byte_shift()) |
 						(memory[address] & cycle.untouched_byte_mask())
