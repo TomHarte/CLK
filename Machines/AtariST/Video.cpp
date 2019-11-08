@@ -318,8 +318,8 @@ void Video::output_border(int duration) {
 	crt_.output_level(duration);
 }
 
-bool Video::hsync() {
-	return horizontal_.sync;
+bool Video::hblank() {
+	return horizontal_.blank;
 }
 
 bool Video::vsync() {
@@ -333,27 +333,35 @@ bool Video::display_enabled() {
 HalfCycles Video::get_next_sequence_point() {
 	// The next sequence point will be whenever display_enabled, vsync or hsync next changes.
 
-	// If this is a vertically-enabled line, and right now is either before graphics display,
-	// or during it, then it's display enabled that will change next.
+	// Sequence of events within a line:
+	//
+	//	1) blank disabled;
+	//	2) de enabled;
+	//	3) de disabled;
+	//	4) blank enabled;
+	//	5) end-of-line, potential vertical event.
+
 	const auto horizontal_timings = horizontal_parameters(field_frequency_);
+
+	// Test for end of blank.
+	if(x < horizontal_timings.reset_blank)	return HalfCycles(horizontal_timings.reset_blank - x);
+
+	// If this is a vertically-enabled line, check for the display enable boundaries.
 	if(vertical_.enable) {
-		if(x < horizontal_timings.set_enable) {
-			return HalfCycles(horizontal_timings.set_enable - x);
-		} else if(x < horizontal_timings.reset_enable) {
-			return HalfCycles(horizontal_timings.reset_enable - x);
-		}
+		if(x < horizontal_timings.set_enable)		return HalfCycles(horizontal_timings.set_enable - x);
+		if(x < horizontal_timings.reset_enable) 	return HalfCycles(horizontal_timings.reset_enable - x);
 	}
 
-	// Otherwise, if this is before or during horizontal sync then that's the next event.
-	if(x < line_length_ - 50) return HalfCycles(line_length_ - 50 - x);
-	else if(x < line_length_ - 10) return HalfCycles(line_length_ - 10 - x);
+	// Test for beginning of blank.
+	if(x < horizontal_timings.set_blank) 	return HalfCycles(horizontal_timings.set_blank - x);
 
 	// Okay, then, it depends on the next line. If the next line is the start or end of vertical sync,
-	// it's that. Otherwise it's the beginning of display enable on the next line.
+	// it's that.
 	const auto vertical_timings = horizontal_parameters(field_frequency_);
 	if(y+1 == vertical_timings.length || y+1 == 3) return HalfCycles(line_length_ - x);
 
-	return HalfCycles(line_length_ + horizontal_timings.set_enable - x);
+	// It wasn't any of those, so it's blank disabled on the next line.
+	return HalfCycles(line_length_ + horizontal_timings.reset_blank - x);
 }
 
 // MARK: - IO dispatch

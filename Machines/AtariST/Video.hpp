@@ -39,7 +39,7 @@ class Video {
 		*/
 		HalfCycles get_next_sequence_point();
 
-		bool hsync();
+		bool hblank();
 		bool vsync();
 		bool display_enabled();
 
