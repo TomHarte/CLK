@@ -367,7 +367,7 @@ HalfCycles Video::get_next_sequence_point() {
 // MARK: - IO dispatch
 
 uint16_t Video::read(int address) {
-	LOG("[Video] read " << PADHEX(2) << (address & 0x3f));
+//	LOG("[Video] read " << PADHEX(2) << (address & 0x3f));
 	address &= 0x3f;
 	switch(address) {
 		default:
@@ -377,14 +377,20 @@ uint16_t Video::read(int address) {
 		case 0x02:	return uint16_t(0xff00 | (current_address_ >> 16));
 		case 0x03:	return uint16_t(0xff00 | (current_address_ >> 8));
 		case 0x04:	return uint16_t(0xff00 | (current_address_));
+
 		case 0x05:	return sync_mode_ | 0xfcff;
 		case 0x30:	return video_mode_ | 0xfcff;
+
+		case 0x20:	case 0x21:	case 0x22:	case 0x23:
+		case 0x24:	case 0x25:	case 0x26:	case 0x27:
+		case 0x28:	case 0x29:	case 0x2a:	case 0x2b:
+		case 0x2c:	case 0x2d:	case 0x2e:	case 0x2f: return raw_palette_[address - 0x20];
 	}
 	return 0xff;
 }
 
 void Video::write(int address, uint16_t value) {
-	LOG("[Video] write " << PADHEX(2) << int(value) << " to " << PADHEX(2) << (address & 0x3f));
+//	LOG("[Video] write " << PADHEX(2) << int(value) << " to " << PADHEX(2) << (address & 0x3f));
 	address &= 0x3f;
 	switch(address) {
 		default: break;
@@ -408,6 +414,7 @@ void Video::write(int address, uint16_t value) {
 		case 0x24:	case 0x25:	case 0x26:	case 0x27:
 		case 0x28:	case 0x29:	case 0x2a:	case 0x2b:
 		case 0x2c:	case 0x2d:	case 0x2e:	case 0x2f: {
+			raw_palette_[address - 0x20] = value;
 			uint8_t *const entry = reinterpret_cast<uint8_t *>(&palette_[address - 0x20]);
 			entry[0] = uint8_t((value & 0x700) >> 7);
 			entry[1] = uint8_t((value & 0x77) << 1);

@@ -51,6 +51,7 @@ class Video {
 	private:
 		Outputs::CRT::CRT crt_;
 
+		uint16_t raw_palette_[16];
 		uint16_t palette_[16];
 		int base_address_ = 0;
 		int current_address_ = 0;
