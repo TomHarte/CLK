@@ -133,15 +133,15 @@ void Video::run_for(HalfCycles duration) {
 				crt_.output_blank(run_length);
 			break;
 			case OutputMode::Border:	{
-				if(!output_shifter) {
+				if(!output_shifter_) {
 					output_border(run_length);
 				} else {
 					if(run_length < 32) {
 						shift_out(run_length);	// TODO: this might end up overrunning.
-						if(!output_shifter) pixel_buffer_.flush(crt_);
+						if(!output_shifter_) pixel_buffer_.flush(crt_);
 					} else {
 						shift_out(32);
-						output_shifter = 0;
+						output_shifter_ = 0;
 						pixel_buffer_.flush(crt_);
 						output_border(run_length - 32);
 					}
@@ -230,7 +230,7 @@ void Video::latch_word() {
 	++data_latch_position_;
 	if(data_latch_position_ == 4) {
 		data_latch_position_ = 0;
-		output_shifter =
+		output_shifter_ =
 			(uint64_t(data_latch_[0]) << 48) |
 			(uint64_t(data_latch_[1]) << 32) |
 			(uint64_t(data_latch_[2]) << 16) |
@@ -248,12 +248,12 @@ void Video::shift_out(int length) {
 			pixel_buffer_.pixels_output += pixels;
 			if(pixel_buffer_.pixel_pointer) {
 				while(pixels--) {
-					*pixel_buffer_.pixel_pointer = ((output_shifter >> 63) & 1) * 0xffff;
-					output_shifter <<= 1;
+					*pixel_buffer_.pixel_pointer = ((output_shifter_ >> 63) & 1) * 0xffff;
+					output_shifter_ <<= 1;
 					++pixel_buffer_.pixel_pointer;
 				}
 			} else {
-				output_shifter <<= pixels;
+				output_shifter_ <<= pixels;
 			}
 		} break;
 		case OutputBpp::Two:
@@ -261,23 +261,23 @@ void Video::shift_out(int length) {
 			if(pixel_buffer_.pixel_pointer) {
 				while(length--) {
 					*pixel_buffer_.pixel_pointer = palette_[
-						((output_shifter >> 63) & 1) |
-						((output_shifter >> 46) & 2)
+						((output_shifter_ >> 63) & 1) |
+						((output_shifter_ >> 46) & 2)
 					];
 					// This ensures that the top two words shift one to the left;
 					// their least significant bits are fed from the most significant bits
 					// of the bottom two words, respectively.
-					shifter_halves[1] = (shifter_halves[1] << 1) & 0xfffefffe;
-					shifter_halves[1] |= (shifter_halves[0] & 0x80008000) >> 15;
-					shifter_halves[0] = (shifter_halves[0] << 1) & 0xfffefffe;
+					shifter_halves_[1] = (shifter_halves_[1] << 1) & 0xfffefffe;
+					shifter_halves_[1] |= (shifter_halves_[0] & 0x80008000) >> 15;
+					shifter_halves_[0] = (shifter_halves_[0] << 1) & 0xfffefffe;
 
 					++pixel_buffer_.pixel_pointer;
 				}
 			} else {
 				while(length--) {
-					shifter_halves[1] = (shifter_halves[1] << 1) & 0xfffefffe;
-					shifter_halves[1] |= (shifter_halves[0] & 0x80008000) >> 15;
-					shifter_halves[0] = (shifter_halves[0] << 1) & 0xfffefffe;
+					shifter_halves_[1] = (shifter_halves_[1] << 1) & 0xfffefffe;
+					shifter_halves_[1] |= (shifter_halves_[0] & 0x80008000) >> 15;
+					shifter_halves_[0] = (shifter_halves_[0] << 1) & 0xfffefffe;
 				}
 			}
 		break;
@@ -287,18 +287,18 @@ void Video::shift_out(int length) {
 			if(pixel_buffer_.pixel_pointer) {
 				while(length) {
 					*pixel_buffer_.pixel_pointer = palette_[
-						((output_shifter >> 63) & 1) |
-						((output_shifter >> 46) & 2) |
-						((output_shifter >> 29) & 4) |
-						((output_shifter >> 12) & 8)
+						((output_shifter_ >> 63) & 1) |
+						((output_shifter_ >> 46) & 2) |
+						((output_shifter_ >> 29) & 4) |
+						((output_shifter_ >> 12) & 8)
 					];
-					output_shifter = (output_shifter << 1) & 0xfffefffefffefffe;
+					output_shifter_ = (output_shifter_ << 1) & 0xfffefffefffefffe;
 					++pixel_buffer_.pixel_pointer;
 					length -= 2;
 				}
 			} else {
 				while(length) {
-					output_shifter = (output_shifter << 1) & 0xfffefffefffefffe;
+					output_shifter_ = (output_shifter_ << 1) & 0xfffefffefffefffe;
 					length -= 2;
 				}
 			}

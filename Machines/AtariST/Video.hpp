@@ -80,8 +80,8 @@ class Video {
 		int data_latch_position_ = 0;
 		uint16_t data_latch_[4];
 		union {
-			uint64_t output_shifter;
-			uint32_t shifter_halves[2];
+			uint64_t output_shifter_;
+			uint32_t shifter_halves_[2];
 		};
 		void shift_out(int length);
 		void latch_word();
