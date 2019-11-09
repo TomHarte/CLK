@@ -1056,7 +1056,7 @@ struct ProcessorStorageConstructor {
 									break;
 
 									case bw(PreDec):	// [AND/OR/EOR].bw Dn, -(An)
-										op(dec(ea_register) | MicroOp::SourceMask, seq("n nrd", { a(ea_register) }, !is_byte_access));
+										op(dec(ea_register) | MicroOp::DestinationMask, seq("n nrd", { a(ea_register) }, !is_byte_access));
 										op(Action::PerformOperation, seq("np nw", { a(ea_register) }, !is_byte_access));
 									break;
 
