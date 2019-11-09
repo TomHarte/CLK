@@ -94,7 +94,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 #define clamp(action)	\
 	if(cycles_run_for <= number_of_cycles) { action; } else cycles_run_for = number_of_cycles;
 
-	int number_of_cycles = cycles.as_int();
+	int number_of_cycles = int(cycles.as_integral());
 	while(number_of_cycles) {
 		int h_counter = counter_ & 63;
 		int cycles_run_for = 0;

@@ -228,17 +228,19 @@ void ScanTarget::end_data(size_t actual_length) {
 		&write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_],
 		data_type_size_);
 
-	// The write area was allocated in the knowledge that there's sufficient
-	// distance left on the current line, but there's a risk of exactly filling
-	// the final line, in which case this should wrap back to 0.
+	// Advance to the end of the current run.
 	write_pointers_.write_area += actual_length + 1;
-	write_pointers_.write_area %= write_area_texture_.size();
 
 	// Also bookend the end.
 	memcpy(
 		&write_area_texture_[size_t(write_pointers_.write_area - 1) * data_type_size_],
 		&write_area_texture_[size_t(write_pointers_.write_area - 2) * data_type_size_],
 		data_type_size_);
+
+	// The write area was allocated in the knowledge that there's sufficient
+	// distance left on the current line, but there's a risk of exactly filling
+	// the final line, in which case this should wrap back to 0.
+	write_pointers_.write_area %= (write_area_texture_.size() / data_type_size_);
 
 	// Record that no further end_data calls are expected.
 	data_is_allocated_ = false;
@@ -353,7 +355,7 @@ void ScanTarget::setup_pipeline() {
 		// TODO: flush output.
 
 		data_type_size_ = data_type_size;
-		write_area_texture_.resize(2048*2048*data_type_size_);
+		write_area_texture_.resize(WriteAreaWidth*WriteAreaHeight*data_type_size_);
 
 		write_pointers_.scan_buffer = 0;
 		write_pointers_.write_area = 0;

@@ -6,14 +6,14 @@
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef Analyser_Static_Atari_Target_h
-#define Analyser_Static_Atari_Target_h
+#ifndef Analyser_Static_Atari2600_Target_h
+#define Analyser_Static_Atari2600_Target_h
 
 #include "../StaticAnalyser.hpp"
 
 namespace Analyser {
 namespace Static {
-namespace Atari {
+namespace Atari2600 {
 
 struct Target: public ::Analyser::Static::Target {
 	enum class PagingModel {

@@ -11,10 +11,10 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "../CRTMachine.hpp"
-#include "../JoystickMachine.hpp"
+#include "../../CRTMachine.hpp"
+#include "../../JoystickMachine.hpp"
 
-#include "../../Analyser/Static/Atari/Target.hpp"
+#include "../../../Analyser/Static/Atari2600/Target.hpp"
 
 #include "Cartridges/Atari8k.hpp"
 #include "Cartridges/Atari16k.hpp"
@@ -72,18 +72,20 @@ class Joystick: public Inputs::ConcreteJoystick {
 		std::size_t shift_, fire_tia_input_;
 };
 
+using Target = Analyser::Static::Atari2600::Target;
+
 class ConcreteMachine:
 	public Machine,
 	public CRTMachine::Machine,
 	public JoystickMachine::Machine,
 	public Outputs::CRT::Delegate {
 	public:
-		ConcreteMachine(const Analyser::Static::Atari::Target &target) {
+		ConcreteMachine(const Target &target) {
 			set_clock_rate(NTSC_clock_rate);
 
 			const std::vector<uint8_t> &rom = target.media.cartridges.front()->get_segments().front().data;
 
-			using PagingModel = Analyser::Static::Atari::Target::PagingModel;
+			using PagingModel = Target::PagingModel;
 			switch(target.paging_model) {
 				case PagingModel::ActivisionStack:	bus_.reset(new Cartridge::Cartridge<Cartridge::ActivisionStack>(rom));	break;
 				case PagingModel::CBSRamPlus:		bus_.reset(new Cartridge::Cartridge<Cartridge::CBSRAMPlus>(rom));		break;
@@ -232,7 +234,6 @@ class ConcreteMachine:
 using namespace Atari2600;
 
 Machine *Machine::Atari2600(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
-	using Target = Analyser::Static::Atari::Target;
 	const Target *const atari_target = dynamic_cast<const Target *>(target);
 	return new Atari2600::ConcreteMachine(*atari_target);
 }

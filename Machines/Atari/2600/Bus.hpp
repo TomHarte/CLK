@@ -14,9 +14,9 @@
 #include "TIA.hpp"
 #include "TIASound.hpp"
 
-#include "../../Analyser/Dynamic/ConfidenceCounter.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../../Analyser/Dynamic/ConfidenceCounter.hpp"
+#include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
 namespace Atari2600 {
 

@@ -196,7 +196,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		// A count of time since the index hole was last seen. Which is used to
 		// determine how far the drive is into a full rotation when switching to
 		// a new track.
-		int cycles_since_index_hole_ = 0;
+		Cycles::IntType cycles_since_index_hole_ = 0;
 
 		// The number of cycles that should fall within one revolution at the
 		// current rotation speed.

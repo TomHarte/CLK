@@ -111,7 +111,7 @@ template <class T> class CRTC6845 {
 		}
 
 		void run_for(Cycles cycles) {
-			int cyles_remaining = cycles.as_int();
+			auto cyles_remaining = cycles.as_integral();
 			while(cyles_remaining--) {
 				// check for end of visible characters
 				if(character_counter_ == registers_[1]) {

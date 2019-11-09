@@ -107,7 +107,7 @@ template <class T> class MOS6532 {
 		}
 
 		inline void run_for(const Cycles cycles) {
-			unsigned int number_of_cycles = static_cast<unsigned int>(cycles.as_int());
+			unsigned int number_of_cycles = static_cast<unsigned int>(cycles.as_integral());
 
 			// permit counting _to_ zero; counting _through_ zero initiates the other behaviour
 			if(timer_.value >= number_of_cycles) {

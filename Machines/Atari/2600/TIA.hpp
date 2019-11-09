@@ -14,8 +14,8 @@
 #include <cstdint>
 #include <functional>
 
-#include "../../Outputs/CRT/CRT.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../Outputs/CRT/CRT.hpp"
+#include "../../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Atari2600 {
 

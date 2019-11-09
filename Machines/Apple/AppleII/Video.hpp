@@ -284,7 +284,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			// Source: Have an Apple Split by Bob Bishop; http://rich12345.tripod.com/aiivideo/softalk.html
 
 			// Determine column at offset.
-			int mapped_column = column_ + offset.as_int();
+			int mapped_column = column_ + int(offset.as_integral());
 
 			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
 			// (so what was column 0 is now column 25).
@@ -315,7 +315,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 		bool get_is_vertical_blank(Cycles offset) {
 			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
 			// (so what was column 0 is now column 25).
-			int mapped_column = column_ + offset.as_int();
+			int mapped_column = column_ + int(offset.as_integral());
 
 			// Map that backwards from the internal pixels-at-start generation to pixels-at-end
 			// (so what was column 0 is now column 25).
@@ -343,7 +343,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			static const int first_sync_column = 49;	// Also a guess.
 			static const int sync_length = 4;			// One of the two likely candidates.
 
-			int int_cycles = cycles.as_int();
+			int int_cycles = int(cycles.as_integral());
 			while(int_cycles) {
 				const int cycles_this_line = std::min(65 - column_, int_cycles);
 				const int ending_column = column_ + cycles_this_line;

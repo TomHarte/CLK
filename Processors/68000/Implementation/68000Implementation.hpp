@@ -241,6 +241,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 				continue;
 
 				case ExecutionState::BeginInterrupt:
+#ifdef LOG_TRACE
+					should_log = true;
+#endif
 					active_program_ = nullptr;
 					active_micro_op_ = interrupt_micro_ops_;
 					execution_state_ = ExecutionState::Executing;
@@ -307,11 +310,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
+//							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
 
 //							should_log |= fetched_pc == 0x6d9c;
-							should_log = (fetched_pc >= 0x41806A && fetched_pc <= 0x418618);
- //							should_log |= fetched_pc == 0x4012A2;
+//							should_log = (fetched_pc >= 0x41806A && fetched_pc <= 0x418618);
+//							should_log |= fetched_pc == 0x4012A2;
 //							should_log &= fetched_pc != 0x4012AE;
 
 //							should_log = (fetched_pc >= 0x408D66) && (fetched_pc <= 0x408D84);
@@ -1997,6 +2000,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 							// Otherwise, the vector is whatever we were just told it is.
 							effective_address_[0].full = uint32_t(source_bus_data_[0].halves.low.halves.low << 2);
+
+//							printf("Interrupt vector: %06x\n", effective_address_[0].full);
 						break;
 
 						case int_type(MicroOp::Action::CopyNextWord):

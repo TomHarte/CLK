@@ -94,7 +94,8 @@ int WOZ::get_head_count() {
 
 long WOZ::file_offset(Track::Address address) {
 	// Calculate table position; if this track is defined to be unformatted, return no track.
-	const int table_position = address.head * (is_3_5_disk_ ? 80 : 160) + (is_3_5_disk_ ? address.position.as_int() : address.position.as_quarter());
+	const int table_position = address.head * (is_3_5_disk_ ? 80 : 160) +
+		(is_3_5_disk_ ? address.position.as_int() : address.position.as_quarter());
 	if(track_map_[table_position] == 0xff) return NoSuchTrack;
 
 	// Seek to the real track.

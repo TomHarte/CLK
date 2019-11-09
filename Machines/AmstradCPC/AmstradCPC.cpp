@@ -872,7 +872,7 @@ template <bool has_fdc> class ConcreteMachine:
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
 			// run_for as HalfCycles
-			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.as_int());
+			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.as_integral());
 
 			// Pump the AY
 			ay_.run_for(cycle.length);
@@ -1157,7 +1157,7 @@ template <bool has_fdc> class ConcreteMachine:
 		void flush_fdc() {
 			// Clock the FDC, if connected, using a lazy scale by two
 			if(has_fdc && !fdc_is_sleeping_) {
-				fdc_.run_for(Cycles(time_since_fdc_update_.as_int()));
+				fdc_.run_for(Cycles(time_since_fdc_update_.as_integral()));
 			}
 			time_since_fdc_update_ = HalfCycles(0);
 		}

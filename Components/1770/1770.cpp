@@ -9,6 +9,8 @@
 #include "1770.hpp"
 
 #include "../../Storage/Disk/Encodings/MFM/Constants.hpp"
+
+#define LOG_PREFIX "[WD FDC] "
 #include "../../Outputs/Log.hpp"
 
 using namespace WD;
@@ -105,7 +107,7 @@ void WD1770::run_for(const Cycles cycles) {
 	Storage::Disk::Controller::run_for(cycles);
 
 	if(delay_time_) {
-		unsigned int number_of_cycles = static_cast<unsigned int>(cycles.as_int());
+		const auto number_of_cycles = cycles.as_integral();
 		if(delay_time_ <= number_of_cycles) {
 			delay_time_ = 0;
 			posit_event(static_cast<int>(Event1770::Timer));
@@ -284,7 +286,7 @@ void WD1770::posit_event(int new_event_type) {
 			goto verify;
 		}
 		get_drive().step(Storage::Disk::HeadPosition(step_direction_ ? 1 : -1));
-		unsigned int time_to_wait;
+		Cycles::IntType time_to_wait;
 		switch(command_ & 3) {
 			default:
 			case 0: time_to_wait = 6;	break;
@@ -767,15 +769,18 @@ void WD1770::posit_event(int new_event_type) {
 }
 
 void WD1770::update_status(std::function<void(Status &)> updater) {
+	const Status old_status = status_;
+
 	if(delegate_) {
-		Status old_status = status_;
 		updater(status_);
-		bool did_change =
+		const bool did_change =
 			(status_.busy != old_status.busy) ||
-			(status_.data_request != old_status.data_request);
+			(status_.data_request != old_status.data_request) ||
+			(status_.interrupt_request != old_status.interrupt_request);
 		if(did_change) delegate_->wd1770_did_change_output(this);
-	}
-	else updater(status_);
+	} else updater(status_);
+
+	if(status_.busy != old_status.busy) update_clocking_observer();
 }
 
 void WD1770::set_head_load_request(bool head_load) {}
@@ -784,4 +789,9 @@ void WD1770::set_motor_on(bool motor_on) {}
 void WD1770::set_head_loaded(bool head_loaded) {
 	head_is_loaded_ = head_loaded;
 	if(head_loaded) posit_event(static_cast<int>(Event1770::HeadLoad));
+}
+
+ClockingHint::Preference WD1770::preferred_clocking() {
+	if(status_.busy) return ClockingHint::Preference::RealTime;
+	return Storage::Disk::MFMController::preferred_clocking();
 }

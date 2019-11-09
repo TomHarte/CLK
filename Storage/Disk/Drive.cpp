@@ -98,7 +98,7 @@ std::shared_ptr<Track> Drive::step_to(HeadPosition offset) {
 	HeadPosition old_head_position = head_position_;
 	head_position_ = std::max(offset, HeadPosition(0));
 
-	if(head_position_ != old_head_position) {
+	if(disk_ && head_position_ != old_head_position) {
 		track_ = nullptr;
 		setup_track();
 	}
@@ -173,40 +173,44 @@ void Drive::set_event_delegate(Storage::Disk::Drive::EventDelegate *delegate) {
 }
 
 void Drive::advance(const Cycles cycles) {
-	cycles_since_index_hole_ += cycles.as_int();
+	cycles_since_index_hole_ += cycles.as_integral();
 	if(event_delegate_) event_delegate_->advance(cycles);
 }
 
 void Drive::run_for(const Cycles cycles) {
-	if(has_disk_ && motor_is_on_) {
-		Time zero(0);
+	if(motor_is_on_) {
+		if(has_disk_) {
+			Time zero(0);
 
-		int number_of_cycles = cycles.as_int();
-		while(number_of_cycles) {
-			int cycles_until_next_event = static_cast<int>(get_cycles_until_next_event());
-			int cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
-			if(!is_reading_ && cycles_until_bits_written_ > zero) {
-				int write_cycles_target = cycles_until_bits_written_.get<int>();
-				if(cycles_until_bits_written_.length % cycles_until_bits_written_.clock_rate) write_cycles_target++;
-				cycles_to_run_for = std::min(cycles_to_run_for, write_cycles_target);
-			}
+			auto number_of_cycles = cycles.as_integral();
+			while(number_of_cycles) {
+				auto cycles_until_next_event = get_cycles_until_next_event();
+				auto cycles_to_run_for = std::min(cycles_until_next_event, number_of_cycles);
+				if(!is_reading_ && cycles_until_bits_written_ > zero) {
+					auto write_cycles_target = cycles_until_bits_written_.get<Cycles::IntType>();
+					if(cycles_until_bits_written_.length % cycles_until_bits_written_.clock_rate) ++write_cycles_target;
+					cycles_to_run_for = std::min(cycles_to_run_for, write_cycles_target);
+				}
 
-			number_of_cycles -= cycles_to_run_for;
-			if(!is_reading_) {
-				if(cycles_until_bits_written_ > zero) {
-					Storage::Time cycles_to_run_for_time(cycles_to_run_for);
-					if(cycles_until_bits_written_ <= cycles_to_run_for_time) {
-						if(event_delegate_) event_delegate_->process_write_completed();
-						if(cycles_until_bits_written_ <= cycles_to_run_for_time)
-							cycles_until_bits_written_.set_zero();
-						else
+				number_of_cycles -= cycles_to_run_for;
+				if(!is_reading_) {
+					if(cycles_until_bits_written_ > zero) {
+						Storage::Time cycles_to_run_for_time(static_cast<int>(cycles_to_run_for));
+						if(cycles_until_bits_written_ <= cycles_to_run_for_time) {
+							if(event_delegate_) event_delegate_->process_write_completed();
+							if(cycles_until_bits_written_ <= cycles_to_run_for_time)
+								cycles_until_bits_written_.set_zero();
+							else
+								cycles_until_bits_written_ -= cycles_to_run_for_time;
+						} else {
 							cycles_until_bits_written_ -= cycles_to_run_for_time;
-					} else {
-						cycles_until_bits_written_ -= cycles_to_run_for_time;
+						}
 					}
 				}
+				TimedEventLoop::run_for(Cycles(cycles_to_run_for));
 			}
-			TimedEventLoop::run_for(Cycles(cycles_to_run_for));
+		} else {
+			TimedEventLoop::run_for(cycles);
 		}
 	}
 }
@@ -214,6 +218,13 @@ void Drive::run_for(const Cycles cycles) {
 // MARK: - Track timed event loop
 
 void Drive::get_next_event(float duration_already_passed) {
+	if(!disk_) {
+		current_event_.type = Track::Event::IndexHole;
+		current_event_.length = 1.0f;
+		set_next_event_time_interval((current_event_.length - duration_already_passed) * rotational_multiplier_);
+		return;
+	}
+
 	// Grab a new track if not already in possession of one. This will recursively call get_next_event,
 	// supplying a proper duration_already_passed.
 	if(!track_) {
@@ -322,7 +333,8 @@ void Drive::invalidate_track() {
 
 void Drive::begin_writing(Time bit_length, bool clamp_to_index_hole) {
 	// Do nothing if already writing.
-	if(!is_reading_) return;
+	// TODO: cope properly if there's no disk to write to.
+	if(!is_reading_ || !disk_) return;
 
 	// Get a copy of the track if that hasn't happened yet.
 	if(!track_) {
@@ -333,7 +345,7 @@ void Drive::begin_writing(Time bit_length, bool clamp_to_index_hole) {
 	is_reading_ = false;
 	clamp_writing_to_index_hole_ = clamp_to_index_hole;
 
-	cycles_per_bit_ = Storage::Time(get_input_clock_rate()) * bit_length;
+	cycles_per_bit_ = Storage::Time(int(get_input_clock_rate())) * bit_length;
 	cycles_per_bit_.simplify();
 
 	write_segment_.length_of_a_bit = bit_length / Time(rotational_multiplier_);

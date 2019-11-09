@@ -73,7 +73,7 @@ class i8272 : public Storage::Disk::MFMController {
 		bool is_access_command_ = false;
 
 		// The counter used for ::Timer events.
-		int delay_time_ = 0;
+		Cycles::IntType delay_time_ = 0;
 
 		// The connected drives.
 		struct Drive {
@@ -89,12 +89,12 @@ class i8272 : public Storage::Disk::MFMController {
 			bool seek_failed = false;
 
 			// Seeking: transient state.
-			int step_rate_counter = 0;
+			Cycles::IntType step_rate_counter = 0;
 			int steps_taken = 0;
 			int target_head_position = 0;	// either an actual number, or -1 to indicate to step until track zero
 
 			// Head state.
-			int head_unload_delay[2] = {0, 0};
+			Cycles::IntType head_unload_delay[2] = {0, 0};
 			bool head_is_loaded[2] = {false, false};
 
 		} drives_[4];

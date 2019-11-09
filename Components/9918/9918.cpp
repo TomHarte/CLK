@@ -166,7 +166,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 	// Convert 456 clocked half cycles per line to 342 internal cycles per line;
 	// the internal clock is 1.5 times the nominal 3.579545 Mhz that I've advertised
 	// for this part. So multiply by three quarters.
-	int int_cycles = (cycles.as_int() * 3) + cycles_error_;
+	int int_cycles = int(cycles.as_integral() * 3) + cycles_error_;
 	cycles_error_ = int_cycles & 3;
 	int_cycles >>= 2;
 	if(!int_cycles) return;
