@@ -182,9 +182,9 @@ class ConcreteMachine:
 			}
 
 			auto address = cycle.word_address();
-//			if(cycle.data_select_active()) printf("%c %06x\n", (cycle.operation & Microcycle::Read) ? 'r' : 'w', *cycle.address & 0xffffff);
-			uint16_t *memory;
+			uint16_t *memory = nullptr;
 			switch(memory_map_[address >> 15]) {
+				default:
 				case BusDevice::MostlyRAM:
 					if(address < 4) {
 						memory = rom_.data();

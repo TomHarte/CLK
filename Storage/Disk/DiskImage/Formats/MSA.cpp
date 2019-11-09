@@ -61,7 +61,7 @@ MSA::MSA(const std::string &file_name) :
 		}
 	}
 
-	if(uncompressed_tracks_.size() != (ending_track_ - starting_track_ + 1)*sides_) throw Error::InvalidFormat;
+	if(uncompressed_tracks_.size() != size_t((ending_track_ - starting_track_ + 1)*sides_)) throw Error::InvalidFormat;
 }
 
 std::shared_ptr<::Storage::Disk::Track> MSA::get_track_at_position(::Storage::Disk::Track::Address address) {
