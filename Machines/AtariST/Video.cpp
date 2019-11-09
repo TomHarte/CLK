@@ -302,8 +302,13 @@ void Video::shift_out(int length) {
 				output_shifter_ <<= pixels;
 			}
 		} break;
-		case OutputBpp::Two:
+		case OutputBpp::Two: {
 			pixel_buffer_.pixels_output += length;
+#if TARGET_RT_BIG_ENDIAN
+			const int upper = 0;
+#else
+			const int upper = 1;
+#endif
 			if(pixel_buffer_.pixel_pointer) {
 				while(length--) {
 					*pixel_buffer_.pixel_pointer = palette_[
@@ -313,20 +318,20 @@ void Video::shift_out(int length) {
 					// This ensures that the top two words shift one to the left;
 					// their least significant bits are fed from the most significant bits
 					// of the bottom two words, respectively.
-					shifter_halves_[1] = (shifter_halves_[1] << 1) & 0xfffefffe;
-					shifter_halves_[1] |= (shifter_halves_[0] & 0x80008000) >> 15;
-					shifter_halves_[0] = (shifter_halves_[0] << 1) & 0xfffefffe;
+					shifter_halves_[upper] = (shifter_halves_[upper] << 1) & 0xfffefffe;
+					shifter_halves_[upper] |= (shifter_halves_[upper^1] & 0x80008000) >> 15;
+					shifter_halves_[upper^1] = (shifter_halves_[upper^1] << 1) & 0xfffefffe;
 
 					++pixel_buffer_.pixel_pointer;
 				}
 			} else {
 				while(length--) {
-					shifter_halves_[1] = (shifter_halves_[1] << 1) & 0xfffefffe;
-					shifter_halves_[1] |= (shifter_halves_[0] & 0x80008000) >> 15;
-					shifter_halves_[0] = (shifter_halves_[0] << 1) & 0xfffefffe;
+					shifter_halves_[upper] = (shifter_halves_[upper] << 1) & 0xfffefffe;
+					shifter_halves_[upper] |= (shifter_halves_[upper^1] & 0x80008000) >> 15;
+					shifter_halves_[upper^1] = (shifter_halves_[upper^1] << 1) & 0xfffefffe;
 				}
 			}
-		break;
+		} break;
 		default:
 		case OutputBpp::Four:
 			pixel_buffer_.pixels_output += length >> 1;
