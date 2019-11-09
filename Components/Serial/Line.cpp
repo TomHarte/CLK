@@ -6,7 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#include "SerialPort.hpp"
+#include "Line.hpp"
 
 using namespace Serial;
 

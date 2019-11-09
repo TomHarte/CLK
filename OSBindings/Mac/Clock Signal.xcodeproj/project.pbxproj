@@ -110,6 +110,8 @@
 		4B08A2751EE35D56008B7065 /* Z80InterruptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */; };
 		4B08A2781EE39306008B7065 /* TestMachine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B08A2771EE39306008B7065 /* TestMachine.mm */; };
 		4B08A56920D72BEF0016CE5A /* Activity.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B08A56720D72BEF0016CE5A /* Activity.xib */; };
+		4B0ACC02237756ED008902D0 /* Line.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0ACC00237756EC008902D0 /* Line.cpp */; };
+		4B0ACC03237756F6008902D0 /* Line.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0ACC00237756EC008902D0 /* Line.cpp */; };
 		4B0CCC451C62D0B3001CAC5F /* CRT.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0CCC421C62D0B3001CAC5F /* CRT.cpp */; };
 		4B0E04EA1FC9E5DA00F43484 /* CAS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04E81FC9E5DA00F43484 /* CAS.cpp */; };
 		4B0E04EB1FC9E78800F43484 /* CAS.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04E81FC9E5DA00F43484 /* CAS.cpp */; };
@@ -310,8 +312,6 @@
 		4B89453D201967B4007DE474 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894516201967B4007DE474 /* StaticAnalyser.cpp */; };
 		4B89453E201967B4007DE474 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894517201967B4007DE474 /* StaticAnalyser.cpp */; };
 		4B89453F201967B4007DE474 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894517201967B4007DE474 /* StaticAnalyser.cpp */; };
-		4B8F5D962352125200C775ED /* SerialPort.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8F5D942352125200C775ED /* SerialPort.cpp */; };
-		4B8F5D972352125200C775ED /* SerialPort.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8F5D942352125200C775ED /* SerialPort.cpp */; };
 		4B8FE21B1DA19D5F0090D3CE /* Atari2600Options.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2131DA19D5F0090D3CE /* Atari2600Options.xib */; };
 		4B8FE21C1DA19D5F0090D3CE /* MachineDocument.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2151DA19D5F0090D3CE /* MachineDocument.xib */; };
 		4B8FE21D1DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B8FE2171DA19D5F0090D3CE /* QuickLoadCompositeOptions.xib */; };
@@ -789,6 +789,8 @@
 		4B08A2771EE39306008B7065 /* TestMachine.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TestMachine.mm; sourceTree = "<group>"; };
 		4B08A2791EE3957B008B7065 /* TestMachine+ForSubclassEyesOnly.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "TestMachine+ForSubclassEyesOnly.h"; sourceTree = "<group>"; };
 		4B08A56820D72BEF0016CE5A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Activity.xib"; sourceTree = SOURCE_ROOT; };
+		4B0ACC00237756EC008902D0 /* Line.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Line.cpp; sourceTree = "<group>"; };
+		4B0ACC01237756EC008902D0 /* Line.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Line.hpp; sourceTree = "<group>"; };
 		4B0CCC421C62D0B3001CAC5F /* CRT.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CRT.cpp; sourceTree = "<group>"; };
 		4B0CCC431C62D0B3001CAC5F /* CRT.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CRT.hpp; sourceTree = "<group>"; };
 		4B0E04E81FC9E5DA00F43484 /* CAS.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CAS.cpp; sourceTree = "<group>"; };
@@ -1104,8 +1106,6 @@
 		4B8D287E1F77207100645199 /* TrackSerialiser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TrackSerialiser.hpp; sourceTree = "<group>"; };
 		4B8E4ECD1DCE483D003716C3 /* KeyboardMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyboardMachine.hpp; sourceTree = "<group>"; };
 		4B8EF6071FE5AF830076CCDD /* LowpassSpeaker.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = LowpassSpeaker.hpp; sourceTree = "<group>"; };
-		4B8F5D942352125200C775ED /* SerialPort.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SerialPort.cpp; sourceTree = "<group>"; };
-		4B8F5D952352125200C775ED /* SerialPort.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SerialPort.hpp; sourceTree = "<group>"; };
 		4B8FE2141DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/Atari2600Options.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE2161DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/MachineDocument.xib"; sourceTree = SOURCE_ROOT; };
 		4B8FE2181DA19D5F0090D3CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/QuickLoadCompositeOptions.xib"; sourceTree = SOURCE_ROOT; };
@@ -1681,6 +1681,15 @@
 			);
 			name = SDL;
 			path = ../SDL;
+			sourceTree = "<group>";
+		};
+		4B0ACBFF237756EC008902D0 /* Serial */ = {
+			isa = PBXGroup;
+			children = (
+				4B0ACC00237756EC008902D0 /* Line.cpp */,
+				4B0ACC01237756EC008902D0 /* Line.hpp */,
+			);
+			path = Serial;
 			sourceTree = "<group>";
 		};
 		4B0CCC411C62D0B3001CAC5F /* CRT */ = {
@@ -2641,15 +2650,6 @@
 			path = Implementation;
 			sourceTree = "<group>";
 		};
-		4B8F5D932352125200C775ED /* SerialPort */ = {
-			isa = PBXGroup;
-			children = (
-				4B8F5D942352125200C775ED /* SerialPort.cpp */,
-				4B8F5D952352125200C775ED /* SerialPort.hpp */,
-			);
-			path = SerialPort;
-			sourceTree = "<group>";
-		};
 		4B92294922B064FD00A1458F /* QuadratureMouse */ = {
 			isa = PBXGroup;
 			children = (
@@ -3291,7 +3291,7 @@
 				4B4A762D1DB1A35C007AAE2E /* AY38910 */,
 				4B302181208A550100773308 /* DiskII */,
 				4B4B1A39200198C900A0F866 /* KonamiSCC */,
-				4B8F5D932352125200C775ED /* SerialPort */,
+				4B0ACBFF237756EC008902D0 /* Serial */,
 				4BB0A6582044FD3000FB3688 /* SN76489 */,
 			);
 			name = Components;
@@ -4167,9 +4167,9 @@
 				4B055ACC1FAE9B030060FFFF /* Electron.cpp in Sources */,
 				4B74CF822312FA9C00500CE8 /* HFV.cpp in Sources */,
 				4B8318B022D3E531006DB630 /* AppleII.cpp in Sources */,
+				4B0ACC03237756F6008902D0 /* Line.cpp in Sources */,
 				4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */,
 				4BC1317B2346DF2B00E4FF3D /* MSA.cpp in Sources */,
-				4B8F5D972352125200C775ED /* SerialPort.cpp in Sources */,
 				4BFE7B881FC39D8900160B38 /* StandardOptions.cpp in Sources */,
 				4B894533201967B4007DE474 /* 6502.cpp in Sources */,
 				4B055AA91FAE85EF0060FFFF /* CommodoreGCR.cpp in Sources */,
@@ -4282,7 +4282,6 @@
 				4BEA525E1DF33323007E74F2 /* Tape.cpp in Sources */,
 				4B07835A1FC11D10001D12BB /* Configurable.cpp in Sources */,
 				4B8334951F5E25B60097E338 /* C1540.cpp in Sources */,
-				4B8F5D962352125200C775ED /* SerialPort.cpp in Sources */,
 				4B89453C201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */,
 				4B1497921EE4B5A800CE2596 /* ZX8081.cpp in Sources */,
@@ -4382,6 +4381,7 @@
 				4B65086022F4CF8D009C1100 /* Keyboard.cpp in Sources */,
 				4B894528201967B4007DE474 /* Disk.cpp in Sources */,
 				4BBB70A4202011C2002FE009 /* MultiMediaTarget.cpp in Sources */,
+				4B0ACC02237756ED008902D0 /* Line.cpp in Sources */,
 				4B89453A201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BB697CB1D4B6D3E00248BDF /* TimedEventLoop.cpp in Sources */,
 				4BDACBEC22FFA5D20045EF7E /* ncr5380.cpp in Sources */,

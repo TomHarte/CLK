@@ -13,7 +13,7 @@
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
-#include "../SerialPort/SerialPort.hpp"
+#include "../Serial/Line.hpp"
 
 namespace Motorola {
 namespace ACIA {
