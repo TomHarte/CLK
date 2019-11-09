@@ -355,7 +355,7 @@ void ScanTarget::setup_pipeline() {
 		// TODO: flush output.
 
 		data_type_size_ = data_type_size;
-		write_area_texture_.resize(2048*2048*data_type_size_);
+		write_area_texture_.resize(WriteAreaWidth*WriteAreaHeight*data_type_size_);
 
 		write_pointers_.scan_buffer = 0;
 		write_pointers_.write_area = 0;
