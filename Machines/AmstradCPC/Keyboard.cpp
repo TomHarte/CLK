@@ -57,19 +57,19 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(Left, KeyLeft);	BIND(Right, KeyRight);
 		BIND(Up, KeyUp);		BIND(Down, KeyDown);
 
-		BIND(KeyPad0, KeyF0);
-		BIND(KeyPad1, KeyF1);		BIND(KeyPad2, KeyF2);		BIND(KeyPad3, KeyF3);
-		BIND(KeyPad4, KeyF4);		BIND(KeyPad5, KeyF5);		BIND(KeyPad6, KeyF6);
-		BIND(KeyPad7, KeyF7);		BIND(KeyPad8, KeyF8);		BIND(KeyPad9, KeyF9);
-		BIND(KeyPadPlus, KeySemicolon);
-		BIND(KeyPadMinus, KeyMinus);
+		BIND(Keypad0, KeyF0);
+		BIND(Keypad1, KeyF1);		BIND(Keypad2, KeyF2);		BIND(Keypad3, KeyF3);
+		BIND(Keypad4, KeyF4);		BIND(Keypad5, KeyF5);		BIND(Keypad6, KeyF6);
+		BIND(Keypad7, KeyF7);		BIND(Keypad8, KeyF8);		BIND(Keypad9, KeyF9);
+		BIND(KeypadPlus, KeySemicolon);
+		BIND(KeypadMinus, KeyMinus);
 
-		BIND(KeyPadEnter, KeyEnter);
-		BIND(KeyPadDecimalPoint, KeyFullStop);
-		BIND(KeyPadEquals, KeyMinus);
-		BIND(KeyPadSlash, KeyForwardSlash);
-		BIND(KeyPadAsterisk, KeyColon);
-		BIND(KeyPadDelete, KeyDelete);
+		BIND(KeypadEnter, KeyEnter);
+		BIND(KeypadDecimalPoint, KeyFullStop);
+		BIND(KeypadEquals, KeyMinus);
+		BIND(KeypadSlash, KeyForwardSlash);
+		BIND(KeypadAsterisk, KeyColon);
+		BIND(KeypadDelete, KeyDelete);
 	}
 #undef BIND
 }
