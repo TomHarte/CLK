@@ -301,7 +301,7 @@ void MFP68901::update_interrupts() {
 		if(interrupt_vector_ & 0x8) {
 			// Software interrupt mode: permit only if neither this interrupt
 			// nor a higher interrupt is currently in service.
-			const int highest_bit = 1 << (fls(firing_interrupts) - 1);
+			const int highest_bit = msb16(firing_interrupts);
 			interrupt_line_ = !(interrupt_in_service_ & ~(highest_bit - 1));
 		} else {
 			// Auto-interrupt mode; just signal.
@@ -326,8 +326,7 @@ int MFP68901::acknowledge_interrupt() {
 		return NoAcknowledgement;
 	}
 
-	const int selected = fls(interrupt_pending_ & interrupt_mask_) - 1;
-	const int mask = 1 << selected;
+	const int mask = msb16(interrupt_pending_ & interrupt_mask_);
 
 	// Clear the pending bit regardless.
 	interrupt_pending_ &= ~mask;
@@ -339,6 +338,8 @@ int MFP68901::acknowledge_interrupt() {
 
 	update_interrupts();
 
+	int selected = 0;
+	while((1 << selected) != mask) ++selected;
 	LOG("Interrupt acknowledged: " << selected);
 	return (interrupt_vector_ & 0xf0) | uint8_t(selected);
 }

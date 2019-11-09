@@ -137,6 +137,18 @@ class MFP68901: public ClockingHint::Source {
 		void begin_interrupts(int interrupt);
 		void end_interrupts(int interrupt);
 		void update_interrupts();
+
+		/// @returns the most significant bit set in v, assuming it is one of the least significant 16.
+		inline static int msb16(int v) {
+			// Saturate all bits below the MSB.
+			v |= v >> 1;
+			v |= v >> 2;
+			v |= v >> 4;
+			v |= v >> 8;
+
+			// Throw away lesser bits.
+			return (v+1) >> 1;
+		}
 };
 
 }
