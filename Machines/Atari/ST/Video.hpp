@@ -9,8 +9,8 @@
 #ifndef Atari_ST_Video_hpp
 #define Atari_ST_Video_hpp
 
-#include "../../Outputs/CRT/CRT.hpp"
-#include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../Outputs/CRT/CRT.hpp"
+#include "../../../ClockReceiver/ClockReceiver.hpp"
 
 namespace Atari {
 namespace ST {

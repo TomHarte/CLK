@@ -11,7 +11,7 @@
 
 #include <cstdint>
 
-#include "../../Components/6532/6532.hpp"
+#include "../../../Components/6532/6532.hpp"
 
 namespace Atari2600 {
 

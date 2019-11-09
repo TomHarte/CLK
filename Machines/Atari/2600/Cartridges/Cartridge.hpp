@@ -9,7 +9,7 @@
 #ifndef Atari2600_Cartridge_hpp
 #define Atari2600_Cartridge_hpp
 
-#include "../../../Processors/6502/6502.hpp"
+#include "../../../../Processors/6502/6502.hpp"
 #include "../Bus.hpp"
 
 namespace Atari2600 {

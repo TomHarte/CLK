@@ -9,8 +9,8 @@
 #ifndef Atari2600_TIASound_hpp
 #define Atari2600_TIASound_hpp
 
-#include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
-#include "../../Concurrency/AsyncTaskQueue.hpp"
+#include "../../../Outputs/Speaker/Implementation/SampleSource.hpp"
+#include "../../../Concurrency/AsyncTaskQueue.hpp"
 
 namespace Atari2600 {
 

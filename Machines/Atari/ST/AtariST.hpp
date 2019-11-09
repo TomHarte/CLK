@@ -9,9 +9,9 @@
 #ifndef AtariST_hpp
 #define AtariST_hpp
 
-#include "../../Configurable/Configurable.hpp"
-#include "../../Analyser/Static/StaticAnalyser.hpp"
-#include "../ROMMachine.hpp"
+#include "../../../Configurable/Configurable.hpp"
+#include "../../../Analyser/Static/StaticAnalyser.hpp"
+#include "../../ROMMachine.hpp"
 
 namespace Atari {
 namespace ST {

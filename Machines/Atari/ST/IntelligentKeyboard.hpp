@@ -9,11 +9,11 @@
 #ifndef IntelligentKeyboard_hpp
 #define IntelligentKeyboard_hpp
 
-#include "../../ClockReceiver/ClockingHintSource.hpp"
-#include "../../Components/Serial/Line.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../../../ClockReceiver/ClockingHintSource.hpp"
+#include "../../../Components/Serial/Line.hpp"
+#include "../../KeyboardMachine.hpp"
 
-#include "../../Inputs/Mouse.hpp"
+#include "../../../Inputs/Mouse.hpp"
 
 #include <atomic>
 #include <mutex>
