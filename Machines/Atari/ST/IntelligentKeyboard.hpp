@@ -36,7 +36,7 @@ enum class Key: uint16_t {
 	Down = 0x50,
 	Insert = 0x52, Delete,
 	ISO = 0x60, Undo, Help, KeypadOpenBracket, KeypadCloseBracket, KeypadDivide, KeypadMultiply,
-	Keypad7, Keypad8, Keypad9, Keypad4, KeyPad5, Keypad6, Keypad1, Keypad2, Keypad3, Keypad0, KeypadDecimalPoint,
+	Keypad7, Keypad8, Keypad9, Keypad4, Keypad5, Keypad6, Keypad1, Keypad2, Keypad3, Keypad0, KeypadDecimalPoint,
 	KeypadEnter
 };
 static_assert(uint16_t(Key::RightShift) == 0x36, "RightShift should have key code 0x36; check intermediate entries");

@@ -42,12 +42,12 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 
 		BIND(Hyphen, KeyMinus);
 		BIND(Delete, KeyDelete);		BIND(Backspace, KeyDelete);
-		BIND(Enter, KeyReturn);			BIND(KeyPadEnter, KeyReturn);
+		BIND(Enter, KeyReturn);			BIND(KeypadEnter, KeyReturn);
 
-		BIND(KeyPad0, Key0);		BIND(KeyPad1, Key1);		BIND(KeyPad2, Key2);		BIND(KeyPad3, Key3);		BIND(KeyPad4, Key4);
-		BIND(KeyPad5, Key5);		BIND(KeyPad6, Key6);		BIND(KeyPad7, Key7);		BIND(KeyPad8, Key8);		BIND(KeyPad9, Key9);
+		BIND(Keypad0, Key0);		BIND(Keypad1, Key1);		BIND(Keypad2, Key2);		BIND(Keypad3, Key3);		BIND(Keypad4, Key4);
+		BIND(Keypad5, Key5);		BIND(Keypad6, Key6);		BIND(Keypad7, Key7);		BIND(Keypad8, Key8);		BIND(Keypad9, Key9);
 
-		BIND(KeyPadMinus, KeyMinus);			BIND(KeyPadPlus, KeyColon);
+		BIND(KeypadMinus, KeyMinus);			BIND(KeypadPlus, KeyColon);
 
 		BIND(Space, KeySpace);
 	}

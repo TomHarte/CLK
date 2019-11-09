@@ -264,7 +264,8 @@ uint16_t IntelligentKeyboard::KeyboardMapper::mapped_key_for_key(Inputs::Keyboar
 		QBind(Left);	QBind(Right);	QBind(Up);	QBind(Down);
 
 		QBind(BackTick);	QBind(Tab);
-		QBind(Hyphen);	QBind(Equals);	QBind(Backspace);
+		QBind(Hyphen);		QBind(Equals);
+		QBind(Backspace);	QBind(Delete);
 		QBind(OpenSquareBracket);
 		QBind(CloseSquareBracket);
 		QBind(CapsLock);
@@ -273,6 +274,13 @@ uint16_t IntelligentKeyboard::KeyboardMapper::mapped_key_for_key(Inputs::Keyboar
 		Bind(Enter, Return);
 		QBind(LeftShift);
 		QBind(RightShift);
+		QBind(Escape);
+		QBind(Home);
+		QBind(Insert);
+
+		Bind(F12, Help);	Bind(F11, Help);
+		Bind(PageUp, Undo);
+		Bind(PageDown, ISO);
 
 		Bind(Comma, Comma);
 		Bind(FullStop, FullStop);
@@ -280,28 +288,20 @@ uint16_t IntelligentKeyboard::KeyboardMapper::mapped_key_for_key(Inputs::Keyboar
 
 		Bind(LeftOption, Alt);
 		Bind(RightOption, Alt);
+		Bind(LeftControl, Control);
+		Bind(RightControl, Control);
 		QBind(Space);
 		QBind(Backslash);
 
-/*		Bind(KeyPadDelete, KeyPadDelete);
-		Bind(KeyPadEquals, KeyPadEquals);
-		Bind(KeyPadSlash, KeyPadSlash);
-		Bind(KeyPadAsterisk, KeyPadAsterisk);
-		Bind(KeyPadMinus, KeyPadMinus);
-		Bind(KeyPadPlus, KeyPadPlus);
-		Bind(KeyPadEnter, KeyPadEnter);
-		Bind(KeyPadDecimalPoint, KeyPadDecimalPoint);
+		QBind(Keypad0);	QBind(Keypad1);	QBind(Keypad2);	QBind(Keypad3);	QBind(Keypad4);
+		QBind(Keypad5);	QBind(Keypad6);	QBind(Keypad7);	QBind(Keypad8);	QBind(Keypad9);
+		QBind(KeypadMinus);
+		QBind(KeypadPlus);
+		QBind(KeypadDecimalPoint);
+		QBind(KeypadEnter);
 
-		Bind(KeyPad9, KeyPad9);
-		Bind(KeyPad8, KeyPad8);
-		Bind(KeyPad7, KeyPad7);
-		Bind(KeyPad6, KeyPad6);
-		Bind(KeyPad5, KeyPad5);
-		Bind(KeyPad4, KeyPad4);
-		Bind(KeyPad3, KeyPad3);
-		Bind(KeyPad2, KeyPad2);
-		Bind(KeyPad1, KeyPad1);
-		Bind(KeyPad0, KeyPad0);*/
+		QBind(F1);	QBind(F2);	QBind(F3);	QBind(F4);	QBind(F5);
+		QBind(F6);	QBind(F7);	QBind(F8);	QBind(F9);	QBind(F10);
 
 #undef QBind
 #undef Bind

@@ -180,10 +180,10 @@ bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key)
 		BIND(Z, Z)		BIND(X, X)		BIND(C, C)		BIND(V, V)
 		BIND(B, B)		BIND(N, N)		BIND(M, M)
 
-		BIND(KP_7, KeyPad7)	BIND(KP_8, KeyPad8)	BIND(KP_9, KeyPad9)
-		BIND(KP_4, KeyPad4)	BIND(KP_5, KeyPad5)	BIND(KP_6, KeyPad6)
-		BIND(KP_1, KeyPad1)	BIND(KP_2, KeyPad2)	BIND(KP_3, KeyPad3)
-		BIND(KP_0, KeyPad0)
+		BIND(KP_7, Keypad7)	BIND(KP_8, Keypad8)	BIND(KP_9, Keypad9)
+		BIND(KP_4, Keypad4)	BIND(KP_5, Keypad5)	BIND(KP_6, Keypad6)
+		BIND(KP_1, Keypad1)	BIND(KP_2, Keypad2)	BIND(KP_3, Keypad3)
+		BIND(KP_0, Keypad0)
 
 		BIND(ESCAPE, Escape)
 
@@ -210,10 +210,10 @@ bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key)
 		BIND(INSERT, Insert)	BIND(HOME, Home)	BIND(PAGEUP, PageUp)
 		BIND(DELETE, Delete)	BIND(END, End)		BIND(PAGEDOWN, PageDown)
 
-		BIND(NUMLOCKCLEAR, NumLock)		BIND(KP_DIVIDE, KeyPadSlash)		BIND(KP_MULTIPLY, KeyPadAsterisk)
-		BIND(KP_PLUS, KeyPadPlus)		BIND(KP_MINUS, KeyPadMinus)			BIND(KP_ENTER, KeyPadEnter)
-		BIND(KP_DECIMAL, KeyPadDecimalPoint)
-		BIND(KP_EQUALS, KeyPadEquals)
+		BIND(NUMLOCKCLEAR, NumLock)		BIND(KP_DIVIDE, KeypadSlash)		BIND(KP_MULTIPLY, KeypadAsterisk)
+		BIND(KP_PLUS, KeypadPlus)		BIND(KP_MINUS, KeypadMinus)			BIND(KP_ENTER, KeypadEnter)
+		BIND(KP_DECIMAL, KeypadDecimalPoint)
+		BIND(KP_EQUALS, KeypadEquals)
 		BIND(HELP, Help)
 
 		// SDL doesn't seem to have scancodes for hash or keypad delete?

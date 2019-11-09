@@ -30,11 +30,11 @@ class Keyboard {
 			LeftControl, LeftOption, LeftMeta, Space, RightMeta, RightOption, RightControl,
 			Left, Right, Up, Down,
 			Insert, Home, PageUp, Delete, End, PageDown,
-			NumLock, KeyPadSlash, KeyPadAsterisk, KeyPadDelete,
-			KeyPad7, KeyPad8, KeyPad9, KeyPadPlus,
-			KeyPad4, KeyPad5, KeyPad6, KeyPadMinus,
-			KeyPad1, KeyPad2, KeyPad3, KeyPadEnter,
-			KeyPad0, KeyPadDecimalPoint, KeyPadEquals,
+			NumLock, KeypadSlash, KeypadAsterisk, KeypadDelete,
+			Keypad7, Keypad8, Keypad9, KeypadPlus,
+			Keypad4, Keypad5, Keypad6, KeypadMinus,
+			Keypad1, Keypad2, Keypad3, KeypadEnter,
+			Keypad0, KeypadDecimalPoint, KeypadEquals,
 			Help
 		};
 
