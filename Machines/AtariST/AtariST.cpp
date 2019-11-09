@@ -505,7 +505,7 @@ class ConcreteMachine:
 				mc68000_.set_interrupt_level(6);
 			} else if(video_->vsync()) {
 				mc68000_.set_interrupt_level(4);
-			} else if(video_->hblank()) {
+			} else if(video_->hsync()) {
 				mc68000_.set_interrupt_level(2);
 			} else {
 				mc68000_.set_interrupt_level(0);

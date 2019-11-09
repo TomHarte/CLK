@@ -338,8 +338,8 @@ void Video::output_border(int duration) {
 	crt_.output_level(duration);
 }
 
-bool Video::hblank() {
-	return horizontal_.blank;
+bool Video::hsync() {
+	return horizontal_.sync;
 }
 
 bool Video::vsync() {
@@ -356,15 +356,14 @@ HalfCycles Video::get_next_sequence_point() {
 	// Sequence of events within a line:
 	//
 	//	1) blank disabled;
-	//	2) de enabled;
-	//	3) de disabled;
+	//	2) display enabled;
+	//	3) display disabled;
 	//	4) blank enabled;
-	//	5) end-of-line, potential vertical event.
+	//	5) sync enabled;
+	//	6) sync disabled;
+	//	7) end-of-line, potential vertical event.
 
 	const auto horizontal_timings = horizontal_parameters(field_frequency_);
-
-	// Test for end of blank.
-	if(x < horizontal_timings.reset_blank)	return HalfCycles(horizontal_timings.reset_blank - x);
 
 	// If this is a vertically-enabled line, check for the display enable boundaries.
 	if(vertical_.enable) {
@@ -372,16 +371,17 @@ HalfCycles Video::get_next_sequence_point() {
 		if(x < horizontal_timings.reset_enable) 	return HalfCycles(horizontal_timings.reset_enable - x);
 	}
 
-	// Test for beginning of blank.
-	if(x < horizontal_timings.set_blank) 	return HalfCycles(horizontal_timings.set_blank - x);
+	// Test for beginning and end of sync.
+	if(x < line_length_ - 50) 	return HalfCycles(line_length_ - 50 - x);
+	if(x < line_length_ - 10) 	return HalfCycles(line_length_ - 10 - x);
 
 	// Okay, then, it depends on the next line. If the next line is the start or end of vertical sync,
 	// it's that.
 	const auto vertical_timings = horizontal_parameters(field_frequency_);
 	if(y+1 == vertical_timings.length || y+1 == 3) return HalfCycles(line_length_ - x);
 
-	// It wasn't any of those, so it's blank disabled on the next line.
-	return HalfCycles(line_length_ + horizontal_timings.reset_blank - x);
+	// It wasn't any of those, so it's display enabled on the next line.
+	return HalfCycles(line_length_ + horizontal_timings.set_enable - x);
 }
 
 // MARK: - IO dispatch
@@ -394,9 +394,9 @@ uint16_t Video::read(int address) {
 		break;
 		case 0x00:	return uint16_t(0xff00 | (base_address_ >> 16));
 		case 0x01:	return uint16_t(0xff00 | (base_address_ >> 8));
-		case 0x02:	return uint16_t(0xff00 | (current_address_ >> 15));
-		case 0x03:	return uint16_t(0xff00 | (current_address_ >> 7));
-		case 0x04:	return uint16_t(0xff00 | (current_address_ << 1));
+		case 0x02:	return uint16_t(0xff00 | (current_address_ >> 15));	// Current address is kept in word precision internally;
+		case 0x03:	return uint16_t(0xff00 | (current_address_ >> 7));	// the shifts here represent a conversion back to
+		case 0x04:	return uint16_t(0xff00 | (current_address_ << 1));	// byte precision.
 
 		case 0x05:	return sync_mode_ | 0xfcff;
 		case 0x30:	return video_mode_ | 0xfcff;
