@@ -21,7 +21,7 @@ namespace {
 	vertical enable being set and being reset, and the line on which
 	the frame will end.
 */
-struct VerticalParams {
+const struct VerticalParams {
 	const int set_enable;
 	const int reset_enable;
 	const int height;
@@ -48,7 +48,7 @@ const VerticalParams &vertical_parameters(FieldFrequency frequency) {
 		* at (line length - 50), start sync and reset enable (usually for the second time);
 		* at (line length - 10), disable sync.
 */
-struct HorizontalParams {
+const struct HorizontalParams {
 	const int set_enable;
 	const int reset_enable;
 
@@ -56,15 +56,35 @@ struct HorizontalParams {
 	const int reset_blank;
 
 	const int length;
-} modes[3] = {
+} horizontal_params[3] = {
 	{56*2, 376*2,	450*2, 28*2,	512*2},
 	{52*2, 372*2,	450*2, 24*2,	508*2},
 	{4*2, 164*2,	184*2, 2*2,		224*2}
 };
 
 const HorizontalParams &horizontal_parameters(FieldFrequency frequency) {
-	return modes[int(frequency)];
+	return horizontal_params[int(frequency)];
 }
+
+#ifndef NDEBUG
+struct Checker {
+	Checker() {
+		for(int c = 0; c < 3; ++c) {
+			// Expected horizontal order of events: reset blank, enable display, disable display, enable blank (at least 50 before end of line), end of line
+			const auto horizontal = horizontal_parameters(FieldFrequency(c));
+			assert(horizontal.reset_blank < horizontal.set_enable);
+			assert(horizontal.set_enable < horizontal.reset_enable);
+			assert(horizontal.reset_enable < horizontal.set_blank);
+			assert(horizontal.set_blank+50 < horizontal.length);
+
+			// Expected vertical order of events: reset blank, enable display, disable display, enable blank (at least 50 before end of line), end of line
+			const auto vertical = vertical_parameters(FieldFrequency(c));
+			assert(vertical.set_enable < vertical.reset_enable);
+			assert(vertical.reset_enable < vertical.height);
+		}
+	}
+} checker;
+#endif
 
 }
 
