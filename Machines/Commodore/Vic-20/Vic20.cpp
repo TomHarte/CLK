@@ -494,7 +494,7 @@ class ConcreteMachine:
 			keyboard_via_port_handler_->clear_all_keys();
 		}
 
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
 		}
 

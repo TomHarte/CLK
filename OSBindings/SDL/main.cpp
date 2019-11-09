@@ -741,7 +741,7 @@ int main(int argc, char *argv[]) {
 
 					JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
 					if(joystick_machine) {
-						std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks = joystick_machine->get_joysticks();
+						auto &joysticks = joystick_machine->get_joysticks();
 						if(!joysticks.empty()) {
 							switch(event.key.keysym.scancode) {
 								case SDL_SCANCODE_LEFT:		joysticks[0]->set_input(Inputs::Joystick::Input::Left, is_pressed);		break;
@@ -791,7 +791,7 @@ int main(int argc, char *argv[]) {
 		// Push new joystick state, if any.
 		JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
 		if(joystick_machine) {
-			std::vector<std::unique_ptr<Inputs::Joystick>> &machine_joysticks = joystick_machine->get_joysticks();
+			auto &machine_joysticks = joystick_machine->get_joysticks();
 			for(size_t c = 0; c < joysticks.size(); ++c) {
 				size_t target = c % machine_joysticks.size();
 

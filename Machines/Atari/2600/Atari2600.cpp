@@ -124,7 +124,7 @@ class ConcreteMachine:
 			joysticks_.emplace_back(new Joystick(bus_.get(), 4, 1));
 		}
 
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
 		}
 

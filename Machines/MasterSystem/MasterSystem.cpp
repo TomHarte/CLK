@@ -340,7 +340,7 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
 		}
 

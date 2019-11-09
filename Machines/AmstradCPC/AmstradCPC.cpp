@@ -604,7 +604,7 @@ class KeyboardState: public GI::AY38910::PortHandler {
 			memset(rows_, 0xff, sizeof(rows_));
 		}
 
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
 			return joysticks_;
 		}
 
@@ -1093,7 +1093,7 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		// MARK: - Joysticks
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return key_state_.get_joysticks();
 		}
 

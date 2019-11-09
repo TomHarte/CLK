@@ -13,10 +13,13 @@
 #include "../../../Components/Serial/Line.hpp"
 #include "../../KeyboardMachine.hpp"
 
+#include "../../../Inputs/Joystick.hpp"
 #include "../../../Inputs/Mouse.hpp"
 
 #include <atomic>
 #include <mutex>
+#include <memory>
+#include <vector>
 
 namespace Atari {
 namespace ST {
@@ -60,6 +63,10 @@ class IntelligentKeyboard:
 		class KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
 			uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) final;
 		};
+
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+			return joysticks_;
+		}
 
 	private:
 		// MARK: - Key queue.
@@ -128,6 +135,7 @@ class IntelligentKeyboard:
 		enum class JoystickMode {
 			Disabled, Event, Interrogation
 		} joystick_mode_ = JoystickMode::Event;
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 };
 
 }

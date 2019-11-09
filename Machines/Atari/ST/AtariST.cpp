@@ -9,6 +9,7 @@
 #include "AtariST.hpp"
 
 #include "../../CRTMachine.hpp"
+#include "../../JoystickMachine.hpp"
 #include "../../KeyboardMachine.hpp"
 #include "../../MouseMachine.hpp"
 #include "../../MediaTarget.hpp"
@@ -49,6 +50,7 @@ class ConcreteMachine:
 	public Motorola::MFP68901::MFP68901::InterruptDelegate,
 	public DMAController::Delegate,
 	public MouseMachine::Machine,
+	public JoystickMachine::Machine,
 	public KeyboardMachine::MappedMachine,
 	public Activity::Source,
 	public MediaTarget::Machine,
@@ -525,6 +527,11 @@ class ConcreteMachine:
 		IntelligentKeyboard::KeyboardMapper keyboard_mapper_;
 		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
+		}
+
+		// MARK: - JoystickMachine
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
+			return ikbd_.get_joysticks();
 		}
 
 		// MARK: - AYPortHandler
