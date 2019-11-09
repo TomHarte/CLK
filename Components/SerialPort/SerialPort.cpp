@@ -84,14 +84,6 @@ void Line::write(HalfCycles cycles, int count, int levels) {
 	}
 }
 
-HalfCycles Line::write_data_time_remaining() {
-	return HalfCycles(remaining_delays_);
-}
-
-HalfCycles Line::transmission_data_time_remaining() {
-	return HalfCycles(remaining_delays_ + transmission_extra_);
-}
-
 void Line::reset_writing() {
 	remaining_delays_ = 0;
 	events_.clear();

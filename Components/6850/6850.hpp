@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/ForceInline.hpp"
 #include "../../ClockReceiver/ClockingHintSource.hpp"
 #include "../SerialPort/SerialPort.hpp"
 
@@ -49,7 +50,28 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 			Advances @c transmission_cycles in time, which should be
 			counted relative to the @c transmit_clock_rate.
 		*/
-		void run_for(HalfCycles transmission_cycles);
+		forceinline void run_for(HalfCycles transmission_cycles) {
+			if(transmit.transmission_data_time_remaining() > HalfCycles(0)) {
+				const auto write_data_time_remaining = transmit.write_data_time_remaining();
+
+				// There's at most one further byte available to enqueue, so a single 'if'
+				// rather than a 'while' is correct here. It's the responsibilit of the caller
+				// to ensure run_for lengths are appropriate for longer sequences.
+				if(transmission_cycles >= write_data_time_remaining) {
+					if(next_transmission_ != NoValueMask) {
+						transmit.advance_writer(write_data_time_remaining);
+						consider_transmission();
+						transmit.advance_writer(transmission_cycles - write_data_time_remaining);
+					} else {
+						transmit.advance_writer(transmission_cycles);
+						update_clocking_observer();
+						if(transmit_interrupt_enabled_) add_interrupt_cause(TransmitNeedsWrite);
+					}
+				} else {
+					transmit.advance_writer(transmission_cycles);
+				}
+			}
+		}
 
 		bool get_interrupt_line() const;
 

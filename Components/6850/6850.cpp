@@ -91,29 +91,6 @@ void ACIA::write(int address, uint8_t value) {
 	update_clocking_observer();
 }
 
-void ACIA::run_for(HalfCycles length) {
-	if(transmit.transmission_data_time_remaining() > HalfCycles(0)) {
-		const auto write_data_time_remaining = transmit.write_data_time_remaining();
-
-		// There's at most one further byte available to enqueue, so a single 'if'
-		// rather than a 'while' is correct here. It's the responsibilit of the caller
-		// to ensure run_for lengths are appropriate for longer sequences.
-		if(length >= write_data_time_remaining) {
-			if(next_transmission_ != NoValueMask) {
-				transmit.advance_writer(write_data_time_remaining);
-				consider_transmission();
-				transmit.advance_writer(length - write_data_time_remaining);
-			} else {
-				transmit.advance_writer(length);
-				update_clocking_observer();
-				if(transmit_interrupt_enabled_) add_interrupt_cause(TransmitNeedsWrite);
-			}
-		} else {
-			transmit.advance_writer(length);
-		}
-	}
-}
-
 void ACIA::consider_transmission() {
 	if(next_transmission_ != NoValueMask && !transmit.write_data_time_remaining()) {
 		// Establish start bit and [7 or 8] data bits.

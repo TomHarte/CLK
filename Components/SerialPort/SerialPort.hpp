@@ -12,6 +12,7 @@
 #include <vector>
 #include "../../Storage/Storage.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
+#include "../../ClockReceiver/ForceInline.hpp"
 
 namespace Serial {
 
@@ -44,11 +45,15 @@ class Line {
 		void write(HalfCycles cycles, int count, int levels);
 
 		/// @returns the number of cycles until currently enqueued write data is exhausted.
-		HalfCycles write_data_time_remaining();
+		forceinline HalfCycles write_data_time_remaining() const {
+			return HalfCycles(remaining_delays_);
+		}
 
 		/// @returns the number of cycles left until it is guaranteed that a passive reader
 		/// has received all currently-enqueued bits.
-		HalfCycles transmission_data_time_remaining();
+		forceinline HalfCycles transmission_data_time_remaining() const {
+			return HalfCycles(remaining_delays_ + transmission_extra_);
+		}
 
 		/// Eliminates all future write states, leaving the output at whatever it is now.
 		void reset_writing();
