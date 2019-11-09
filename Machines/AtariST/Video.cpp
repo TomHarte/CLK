@@ -146,21 +146,19 @@ void Video::run_for(HalfCycles duration) {
 			output_mode = horizontal_.enable ? OutputMode::Pixels : OutputMode::Border;
 		}
 
-		// Flush any lingering pixels.
-		if(
-			(pixel_buffer_.output_bpp != output_bpp_)	||		// Buffer is now of wrong density.
-			(output_mode != OutputMode::Pixels && pixel_buffer_.pixels_output)) {	// Buffering has stopped for now.
-			pixel_buffer_.flush(crt_);
-		}
-
 		switch(output_mode) {
-			case OutputMode::Sync:		crt_.output_sync(run_length);	break;
+			case OutputMode::Sync:
+				pixel_buffer_.flush(crt_);
+				crt_.output_sync(run_length);
+			break;
 			case OutputMode::Blank:
 				data_latch_position_ = 0;
+				pixel_buffer_.flush(crt_);
 				crt_.output_blank(run_length);
 			break;
 			case OutputMode::Border:	{
 				if(!output_shifter_) {
+					pixel_buffer_.flush(crt_);
 					output_border(run_length);
 				} else {
 					if(run_length < 32) {
@@ -281,6 +279,9 @@ void Video::latch_word() {
 }
 
 void Video::shift_out(int length) {
+	if(pixel_buffer_.output_bpp != output_bpp_) {
+		pixel_buffer_.flush(crt_);
+	}
 	if(!pixel_buffer_.pixel_pointer) {
 		pixel_buffer_.allocate(crt_);
 		pixel_buffer_.output_bpp = output_bpp_;
