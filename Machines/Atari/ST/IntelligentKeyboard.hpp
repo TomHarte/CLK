@@ -135,6 +135,45 @@ class IntelligentKeyboard:
 		enum class JoystickMode {
 			Disabled, Event, Interrogation
 		} joystick_mode_ = JoystickMode::Event;
+
+		class Joystick: public Inputs::ConcreteJoystick {
+			public:
+				Joystick() :
+					ConcreteJoystick({
+						Input(Input::Up),
+						Input(Input::Down),
+						Input(Input::Left),
+						Input(Input::Right),
+						Input(Input::Fire, 0),
+					}) {}
+
+				void did_set_input(const Input &input, bool is_active) override {
+					uint8_t mask = 0;
+					switch(input.type) {
+						default: return;
+						case Input::Up:		mask = 0x01;	break;
+						case Input::Down:	mask = 0x02;	break;
+						case Input::Left:	mask = 0x04;	break;
+						case Input::Right:	mask = 0x08;	break;
+						case Input::Fire:	mask = 0x80;	break;
+					}
+
+					if(is_active) state_ &= ~mask; else state_ |= mask;
+				}
+
+				uint8_t get_state() {
+					returned_state_ = state_;
+					return state_;
+				}
+
+				bool has_event() {
+					return returned_state_ != state_;
+				}
+
+			private:
+				uint8_t state_ = 0x8f;
+				uint8_t returned_state_ = 0x8f;
+		};
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 };
 
