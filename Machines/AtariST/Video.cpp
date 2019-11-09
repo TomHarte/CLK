@@ -394,9 +394,9 @@ uint16_t Video::read(int address) {
 		break;
 		case 0x00:	return uint16_t(0xff00 | (base_address_ >> 16));
 		case 0x01:	return uint16_t(0xff00 | (base_address_ >> 8));
-		case 0x02:	return uint16_t(0xff00 | (current_address_ >> 16));
-		case 0x03:	return uint16_t(0xff00 | (current_address_ >> 8));
-		case 0x04:	return uint16_t(0xff00 | (current_address_));
+		case 0x02:	return uint16_t(0xff00 | (current_address_ >> 15));
+		case 0x03:	return uint16_t(0xff00 | (current_address_ >> 7));
+		case 0x04:	return uint16_t(0xff00 | (current_address_ << 1));
 
 		case 0x05:	return sync_mode_ | 0xfcff;
 		case 0x30:	return video_mode_ | 0xfcff;
