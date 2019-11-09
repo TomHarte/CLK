@@ -272,7 +272,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 				colour_burst_amplitude_);
 		}
 
-		// if this is vertical retrace then adcance a field
+		// if this is vertical retrace then advance a field
 		if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event == Flywheel::SyncEvent::EndRetrace) {
 			if(delegate_) {
 				frames_since_last_delegate_call_++;
