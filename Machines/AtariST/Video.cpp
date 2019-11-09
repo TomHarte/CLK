@@ -281,7 +281,10 @@ void Video::latch_word() {
 }
 
 void Video::shift_out(int length) {
-	if(!pixel_buffer_.pixel_pointer) pixel_buffer_.allocate(crt_);
+	if(!pixel_buffer_.pixel_pointer) {
+		pixel_buffer_.allocate(crt_);
+		pixel_buffer_.output_bpp = output_bpp_;
+	}
 
 	pixel_buffer_.cycles_output += length;
 	switch(output_bpp_) {
