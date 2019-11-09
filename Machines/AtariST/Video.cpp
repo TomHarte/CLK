@@ -213,6 +213,25 @@ void Video::run_for(HalfCycles duration) {
 		// Check for whether line length should have been latched during this run.
 		if(x <= 54*2 && (x + run_length) > 54*2) line_length_ = horizontal_timings.length;
 
+		// Make a decision about vertical state on cycle 502.
+		if(x <= 502*2 && (x + run_length) > 502*2) {
+			next_y = y + 1;
+			next_vertical_ = vertical_;
+
+			// Use vertical_parameters to get parameters for the current output frequency.
+			if(y == vertical_timings.set_enable) {
+				next_vertical_.enable = true;
+			} else if(y == vertical_timings.reset_enable) {
+				next_vertical_.enable = false;
+			} else if(y == vertical_timings.height) {
+				next_y = 0;
+				next_vertical_.sync = true;
+				current_address_ = base_address_ >> 1;
+			} else if(y == 3) {
+				next_vertical_.sync = false;
+			}
+		}
+
 		// Apply the next event.
 		x += run_length;
 		integer_duration -= run_length;
@@ -228,20 +247,8 @@ void Video::run_for(HalfCycles duration) {
 		// the vertical bits of state.
 		if(x == line_length_) {
 			x = 0;
-			++y;
-
-			// Use vertical_parameters to get parameters for the current output frequency.
-			if(y == vertical_timings.set_enable) {
-				vertical_.enable = true;
-			} else if(y == vertical_timings.reset_enable) {
-				vertical_.enable = false;
-			} else if(y == vertical_timings.height) {
-				y = 0;
-				vertical_.sync = true;
-				current_address_ = base_address_ >> 1;
-			} else if(y == 3) {
-				vertical_.sync = false;
-			}
+			vertical_ = next_vertical_;
+			y = next_y;
 		}
 	}
 }

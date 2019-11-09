@@ -59,7 +59,7 @@ class Video {
 		uint16_t *ram_;
 		uint16_t line_buffer_[256];
 
-		int x = 0, y = 0;
+		int x = 0, y = 0, next_y = 0;
 		void output_border(int duration);
 
 		uint16_t video_mode_ = 0;
@@ -75,7 +75,7 @@ class Video {
 			bool enable = false;
 			bool blank = false;
 			bool sync = false;
-		} horizontal_, vertical_;
+		} horizontal_, vertical_, next_vertical_;
 		int line_length_ = 1024;
 
 		int data_latch_position_ = 0;
