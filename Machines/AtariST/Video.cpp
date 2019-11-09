@@ -112,17 +112,22 @@ void Video::run_for(HalfCycles duration) {
 		int next_event = line_length_;
 
 		// Check the explicitly-placed events.
-		if(horizontal_timings.reset_blank > x)	next_event = std::min(next_event, horizontal_timings.reset_blank);
-		if(horizontal_timings.set_blank > x)	next_event = std::min(next_event, horizontal_timings.set_blank);
-		if(horizontal_timings.reset_enable > x)	next_event = std::min(next_event, horizontal_timings.reset_enable);
-		if(horizontal_timings.set_enable > x) 	next_event = std::min(next_event, horizontal_timings.set_enable);
+		if(horizontal_timings.reset_blank > x_)		next_event = std::min(next_event, horizontal_timings.reset_blank);
+		if(horizontal_timings.set_blank > x_)		next_event = std::min(next_event, horizontal_timings.set_blank);
+		if(horizontal_timings.reset_enable > x_)	next_event = std::min(next_event, horizontal_timings.reset_enable);
+		if(horizontal_timings.set_enable > x_) 		next_event = std::min(next_event, horizontal_timings.set_enable);
 
 		// Check for events that are relative to existing latched state.
-		if(line_length_ - 50*2 > x)		next_event = std::min(next_event, line_length_ - 50*2);
-		if(line_length_ - 10*2 > x)		next_event = std::min(next_event, line_length_ - 10*2);
+		if(line_length_ - 50*2 > x_)				next_event = std::min(next_event, line_length_ - 50*2);
+		if(line_length_ - 10*2 > x_)				next_event = std::min(next_event, line_length_ - 10*2);
+
+		// Also, a vertical sync event might intercede.
+		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ < 30*2 && next_event >= 30*2) {
+			next_event = 30*2;
+		}
 
 		// Determine current output mode and number of cycles to output for.
-		const int run_length = std::min(integer_duration, next_event - x);
+		const int run_length = std::min(integer_duration, next_event - x_);
 
 		enum class OutputMode {
 			Sync, Blank, Border, Pixels
@@ -173,8 +178,8 @@ void Video::run_for(HalfCycles duration) {
 				// There will be pixels this line, subject to the shifter pipeline.
 				// Divide into 8-[half-]cycle windows; at the start of each window fetch a word,
 				// and during the rest of the window, shift out.
-				int start_column = x >> 3;
-				const int end_column = (x + run_length) >> 3;
+				int start_column = x_ >> 3;
+				const int end_column = (x_ + run_length) >> 3;
 
 				// Rules obeyed below:
 				//
@@ -186,11 +191,11 @@ void Video::run_for(HalfCycles duration) {
 					shift_out(run_length);
 				} else {
 					// Continue the current column if partway across.
-					if(x&7) {
+					if(x_&7) {
 						// If at least one column boundary is crossed, complete this column.
 						// Otherwise the run_length is clearly less than 8 and within this column,
 						// so go for the entirety of it.
-						shift_out(8 - (x & 7));
+						shift_out(8 - (x_ & 7));
 						++start_column;
 						latch_word();
 					}
@@ -203,52 +208,60 @@ void Video::run_for(HalfCycles duration) {
 					}
 
 					// Output the start of the next column, if necessary.
-					if(start_column != end_column && (x + run_length) & 7) {
-						shift_out((x + run_length) & 7);
+					if(start_column != end_column && (x_ + run_length) & 7) {
+						shift_out((x_ + run_length) & 7);
 					}
 				}
 			break;
 		}
 
 		// Check for whether line length should have been latched during this run.
-		if(x <= 54*2 && (x + run_length) > 54*2) line_length_ = horizontal_timings.length;
+		if(x_ <= 54*2 && (x_ + run_length) > 54*2) line_length_ = horizontal_timings.length;
 
 		// Make a decision about vertical state on cycle 502.
-		if(x <= 502*2 && (x + run_length) > 502*2) {
-			next_y = y + 1;
+		if(x_ <= 502*2 && (x_ + run_length) > 502*2) {
+			next_y_ = y_ + 1;
 			next_vertical_ = vertical_;
+			next_vertical_.sync_schedule = VerticalState::SyncSchedule::None;
 
 			// Use vertical_parameters to get parameters for the current output frequency.
-			if(y == vertical_timings.set_enable) {
+			if(next_y_ == vertical_timings.set_enable) {
 				next_vertical_.enable = true;
-			} else if(y == vertical_timings.reset_enable) {
+			} else if(next_y_ == vertical_timings.reset_enable) {
 				next_vertical_.enable = false;
-			} else if(y == vertical_timings.height) {
-				next_y = 0;
-				next_vertical_.sync = true;
+			} else if(next_y_ == vertical_timings.height) {
+				next_y_ = 0;
+				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
 				current_address_ = base_address_ >> 1;
-			} else if(y == 3) {
-				next_vertical_.sync = false;
+			} else if(next_y_ == 3) {
+				next_vertical_.sync_schedule = VerticalState::SyncSchedule::End;
 			}
 		}
 
 		// Apply the next event.
-		x += run_length;
+		x_ += run_length;
 		integer_duration -= run_length;
 
-		if(horizontal_timings.reset_blank == x)			horizontal_.blank = false;
-		else if(horizontal_timings.set_blank == x)		horizontal_.blank = true;
-		else if(horizontal_timings.reset_enable == x)	horizontal_.enable = false;
-		else if(horizontal_timings.set_enable == x) 	horizontal_.enable = true;
-		else if(line_length_ - 50*2 == x)				horizontal_.sync = true;
-		else if(line_length_ - 10*2 == x)				horizontal_.sync = false;
+		// Check horizontal events.
+		if(horizontal_timings.reset_blank == x_)		horizontal_.blank = false;
+		else if(horizontal_timings.set_blank == x_)		horizontal_.blank = true;
+		else if(horizontal_timings.reset_enable == x_)	horizontal_.enable = false;
+		else if(horizontal_timings.set_enable == x_) 	horizontal_.enable = true;
+		else if(line_length_ - 50*2 == x_)				horizontal_.sync = true;
+		else if(line_length_ - 10*2 == x_)				horizontal_.sync = false;
+
+		// Check vertical events.
+		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ == 30*2) {
+			vertical_.sync = vertical_.sync_schedule == VerticalState::SyncSchedule::Begin;
+			vertical_.enable &= !vertical_.sync;
+		}
 
 		// Check whether the terminating event was end-of-line; if so then advance
 		// the vertical bits of state.
-		if(x == line_length_) {
-			x = 0;
+		if(x_ == line_length_) {
+			x_ = 0;
 			vertical_ = next_vertical_;
-			y = next_y;
+			y_ = next_y_;
 		}
 	}
 }
@@ -360,7 +373,7 @@ bool Video::display_enabled() {
 HalfCycles Video::get_next_sequence_point() {
 	// The next sequence point will be whenever display_enabled, vsync or hsync next changes.
 
-	// Sequence of events within a line:
+	// Sequence of events within a standard line:
 	//
 	//	1) blank disabled;
 	//	2) display enabled;
@@ -369,32 +382,40 @@ HalfCycles Video::get_next_sequence_point() {
 	//	5) sync enabled;
 	//	6) sync disabled;
 	//	7) end-of-line, potential vertical event.
+	//
+	// If this line has a vertical sync event on it, there will also be an event at cycle 30,
+	// which will always falls somewhere between (1) and (4) but might or might not be in the
+	// visible area.
 
 	const auto horizontal_timings = horizontal_parameters(field_frequency_);
+//	const auto vertical_timings = vertical_parameters(field_frequency_);
 
 	// If this is a vertically-enabled line, check for the display enable boundaries.
 	if(vertical_.enable) {
-		if(x < horizontal_timings.set_enable)		return HalfCycles(horizontal_timings.set_enable - x);
-		if(x < horizontal_timings.reset_enable) 	return HalfCycles(horizontal_timings.reset_enable - x);
+		// TODO: what if there's a sync event scheduled for this line?
+		if(x_ < horizontal_timings.set_enable)		return HalfCycles(horizontal_timings.set_enable - x_);
+		if(x_ < horizontal_timings.reset_enable) 	return HalfCycles(horizontal_timings.reset_enable - x_);
+	} else {
+		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && (x_ < 30*2)) {
+			return HalfCycles(30*2 - x_);
+		}
 	}
 
 	// Test for beginning and end of sync.
-	if(x < line_length_ - 50) 	return HalfCycles(line_length_ - 50 - x);
-	if(x < line_length_ - 10) 	return HalfCycles(line_length_ - 10 - x);
+	if(x_ < line_length_ - 50) 	return HalfCycles(line_length_ - 50 - x_);
+	if(x_ < line_length_ - 10) 	return HalfCycles(line_length_ - 10 - x_);
 
 	// Okay, then, it depends on the next line. If the next line is the start or end of vertical sync,
 	// it's that.
-	const auto vertical_timings = horizontal_parameters(field_frequency_);
-	if(y+1 == vertical_timings.length || y+1 == 3) return HalfCycles(line_length_ - x);
+//	if(y_+1 == vertical_timings.height || y_+1 == 3) return HalfCycles(line_length_ - x_);
 
-	// It wasn't any of those, so it's display enabled on the next line.
-	return HalfCycles(line_length_ + horizontal_timings.set_enable - x);
+	// It wasn't any of those, so as a temporary expedient, just supply end of line.
+	return HalfCycles(line_length_ - x_);
 }
 
 // MARK: - IO dispatch
 
 uint16_t Video::read(int address) {
-//	LOG("[Video] read " << PADHEX(2) << (address & 0x3f));
 	address &= 0x3f;
 	switch(address) {
 		default:
@@ -417,7 +438,6 @@ uint16_t Video::read(int address) {
 }
 
 void Video::write(int address, uint16_t value) {
-//	LOG("[Video] write " << PADHEX(2) << int(value) << " to " << PADHEX(2) << (address & 0x3f));
 	address &= 0x3f;
 	switch(address) {
 		default: break;

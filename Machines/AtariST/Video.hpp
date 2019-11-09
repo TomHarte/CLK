@@ -59,7 +59,7 @@ class Video {
 		uint16_t *ram_;
 		uint16_t line_buffer_[256];
 
-		int x = 0, y = 0, next_y = 0;
+		int x_ = 0, y_ = 0, next_y_ = 0;
 		void output_border(int duration);
 
 		uint16_t video_mode_ = 0;
@@ -71,11 +71,25 @@ class Video {
 		} output_bpp_;
 		void update_output_mode();
 
-		struct State {
+		struct HorizontalState {
 			bool enable = false;
 			bool blank = false;
 			bool sync = false;
-		} horizontal_, vertical_, next_vertical_;
+		} horizontal_;
+		struct VerticalState {
+			bool enable = false;
+			bool blank = false;
+
+			enum class SyncSchedule {
+				/// No sync events this line.
+				None,
+				/// Sync should begin during this horizontal line.
+				Begin,
+				/// Sync should end during this horizontal line.
+				End,
+			} sync_schedule = SyncSchedule::None;
+			bool sync = false;
+		} vertical_, next_vertical_;
 		int line_length_ = 1024;
 
 		int data_latch_position_ = 0;
@@ -93,9 +107,11 @@ class Video {
 			int cycles_output = 0;
 			OutputBpp output_bpp;
 			void flush(Outputs::CRT::CRT &crt) {
-				if(cycles_output) crt.output_data(cycles_output, size_t(pixels_output));
-				pixels_output = cycles_output = 0;
-				pixel_pointer = nullptr;
+				if(cycles_output) {
+					crt.output_data(cycles_output, size_t(pixels_output));
+					pixels_output = cycles_output = 0;
+					pixel_pointer = nullptr;
+				}
 			}
 			void allocate(Outputs::CRT::CRT &crt) {
 				flush(crt);
