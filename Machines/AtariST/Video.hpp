@@ -115,7 +115,7 @@ class Video {
 			}
 			void allocate(Outputs::CRT::CRT &crt) {
 				flush(crt);
-				pixel_pointer = reinterpret_cast<uint16_t *>(crt.begin_data(328));
+				pixel_pointer = reinterpret_cast<uint16_t *>(crt.begin_data(320 + 32));
 			}
 		} pixel_buffer_;
 };

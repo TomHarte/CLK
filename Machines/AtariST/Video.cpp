@@ -91,7 +91,9 @@ struct Checker {
 Video::Video() :
 	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
 
-	crt_.set_visible_area(crt_.get_rect_for_area(43, 240, 220, 784, 4.0f / 3.0f));
+	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
+	// usual output height of 200 lines.
+	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 188, 850, 4.0f / 3.0f));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
@@ -172,7 +174,7 @@ void Video::run_for(HalfCycles duration) {
 					}
 				}
 			} break;
-			default:
+			default: {
 				// There will be pixels this line, subject to the shifter pipeline.
 				// Divide into 8-[half-]cycle windows; at the start of each window fetch a word,
 				// and during the rest of the window, shift out.
@@ -210,7 +212,7 @@ void Video::run_for(HalfCycles duration) {
 						shift_out((x_ + run_length) & 7);
 					}
 				}
-			break;
+			} break;
 		}
 
 		// Check for whether line length should have been latched during this run.
@@ -334,6 +336,7 @@ void Video::shift_out(int length) {
 		} break;
 		default:
 		case OutputBpp::Four:
+			assert(!(length & 1));
 			pixel_buffer_.pixels_output += length >> 1;
 			if(pixel_buffer_.pixel_pointer) {
 				while(length) {
@@ -358,7 +361,8 @@ void Video::shift_out(int length) {
 
 	// Check for buffer being full. Buffers are allocated as 328 pixels, and this method is
 	// never called for more than 8 pixels, so there's no chance of overrun.
-	if(pixel_buffer_.pixels_output >= 320) pixel_buffer_.flush(crt_);
+	if(pixel_buffer_.pixel_pointer && pixel_buffer_.pixels_output >= 320)
+		pixel_buffer_.flush(crt_);
 }
 
 void Video::output_border(int duration) {
