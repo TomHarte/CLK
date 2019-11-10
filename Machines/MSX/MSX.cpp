@@ -89,7 +89,7 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 			return 0xff;
 		}
 
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
 			return joysticks_;
 		}
 
@@ -686,7 +686,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Joysticks
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return ay_port_handler_.get_joysticks();
 		}
 

@@ -14,6 +14,10 @@ IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &outp
 	input.set_read_delegate(this, Storage::Time(2, 15625));
 	output_line_.set_writer_clock_rate(15625);
 
+	// Add two joysticks into the mix.
+	joysticks_.emplace_back(new Joystick);
+	joysticks_.emplace_back(new Joystick);
+
 	mouse_button_state_ = 0;
 	mouse_movement_[0] = 0;
 	mouse_movement_[1] = 0;
@@ -40,7 +44,7 @@ ClockingHint::Preference IntelligentKeyboard::preferred_clocking() {
 }
 
 void IntelligentKeyboard::run_for(HalfCycles duration) {
-	// Take this opportunity to check for mouse and keyboard events,
+	// Take this opportunity to check for joystick, mouse and keyboard events,
 	// which will have been received asynchronously.
 	if(mouse_mode_ == MouseMode::Relative) {
 		const int captured_movement[2] = { mouse_movement_[0].load(), mouse_movement_[1].load() };
@@ -55,7 +59,7 @@ void IntelligentKeyboard::run_for(HalfCycles duration) {
 			post_relative_mouse_event(captured_movement[0], captured_movement[1]);
 		}
 	} else {
-
+		// TODO: absolute-mode mouse updates.
 	}
 
 	// Forward key changes; implicit assumption here: mutexs are cheap while there's
@@ -66,6 +70,17 @@ void IntelligentKeyboard::run_for(HalfCycles duration) {
 			output_bytes({key});
 		}
 		key_queue_.clear();
+	}
+
+	// Check for joystick changes.
+	for(size_t c = 0; c < 2; ++c) {
+		const auto joystick = static_cast<Joystick *>(joysticks_[c].get());
+		if(joystick->has_event()) {
+			output_bytes({
+				uint8_t(0xfe | c),
+				joystick->get_state()
+			});
+		}
 	}
 
 	output_line_.advance_writer(duration);
@@ -152,10 +167,30 @@ void IntelligentKeyboard::dispatch_command(uint8_t command) {
 		case 0x12:	disable_mouse();			break;
 		case 0x13:	pause();					break;
 
-		case 0x14:	set_joystick_event_mode();			break;
-		case 0x15:	set_joystick_interrogation_mode();	break;
-		case 0x16:	interrogate_joysticks();			break;
-		case 0x1a:	disable_joysticks();				break;
+		/* Joystick commands. */
+		case 0x14:	set_joystick_event_mode();					break;
+		case 0x15:	set_joystick_interrogation_mode();			break;
+		case 0x16:	interrogate_joysticks();					break;
+		case 0x17:
+			if(command_sequence_.size() != 2) return;
+			set_joystick_monitoring_mode(command_sequence_[1]);
+		break;
+		case 0x18:	set_joystick_fire_button_monitoring_mode();	break;
+		case 0x19: {
+			if(command_sequence_.size() != 7) return;
+
+			VelocityThreshold horizontal, vertical;
+			horizontal.threshold = command_sequence_[1];
+			horizontal.prior_rate = command_sequence_[3];
+			horizontal.post_rate = command_sequence_[5];
+
+			vertical.threshold = command_sequence_[2];
+			vertical.prior_rate = command_sequence_[4];
+			vertical.post_rate = command_sequence_[6];
+
+			set_joystick_keycode_mode(horizontal, vertical);
+		} break;
+		case 0x1a:	disable_joysticks();						break;
 	}
 
 	// There was no premature exit, so a complete command sequence must have been satisfied.
@@ -346,9 +381,21 @@ void IntelligentKeyboard::set_joystick_interrogation_mode() {
 }
 
 void IntelligentKeyboard::interrogate_joysticks() {
+	const auto joystick1 = static_cast<Joystick *>(joysticks_[0].get());
+	const auto joystick2 = static_cast<Joystick *>(joysticks_[1].get());
+
 	output_bytes({
 		0xfd,
-		0x00,
-		0x00
+		joystick1->get_state(),
+		joystick2->get_state()
 	});
+}
+
+void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t rate) {
+}
+
+void IntelligentKeyboard::set_joystick_fire_button_monitoring_mode() {
+}
+
+void IntelligentKeyboard::set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical) {
 }

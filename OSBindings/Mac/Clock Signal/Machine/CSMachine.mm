@@ -268,7 +268,7 @@ struct ActivityObserver: public Activity::Observer {
 			// Until then, apply a default mapping.
 
 			size_t c = 0;
-			std::vector<std::unique_ptr<Inputs::Joystick>> &machine_joysticks = _joystickMachine->get_joysticks();
+			auto &machine_joysticks = _joystickMachine->get_joysticks();
 			for(CSJoystick *joystick in _joystickManager.joysticks) {
 				size_t target = c % machine_joysticks.size();
 				++c;
@@ -373,7 +373,7 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		_joystickManager = joystickManager;
 		if(_joystickMachine) {
-			std::vector<std::unique_ptr<Inputs::Joystick>> &machine_joysticks = _joystickMachine->get_joysticks();
+			auto &machine_joysticks = _joystickMachine->get_joysticks();
 			for(const auto &joystick: machine_joysticks) {
 				joystick->reset_all_inputs();
 			}
@@ -467,7 +467,7 @@ struct ActivityObserver: public Activity::Observer {
 	auto joystick_machine = _machine->joystick_machine();
 	if(self.inputMode == CSMachineKeyboardInputModeJoystick && joystick_machine) {
 		@synchronized(self) {
-			std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks = joystick_machine->get_joysticks();
+			auto &joysticks = joystick_machine->get_joysticks();
 			if(!joysticks.empty()) {
 				// Convert to a C++ bool so that the following calls are resolved correctly even if overloaded.
 				bool is_pressed = !!isPressed;

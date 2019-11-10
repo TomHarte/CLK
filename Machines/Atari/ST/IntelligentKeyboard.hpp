@@ -13,10 +13,13 @@
 #include "../../../Components/Serial/Line.hpp"
 #include "../../KeyboardMachine.hpp"
 
+#include "../../../Inputs/Joystick.hpp"
 #include "../../../Inputs/Mouse.hpp"
 
 #include <atomic>
 #include <mutex>
+#include <memory>
+#include <vector>
 
 namespace Atari {
 namespace ST {
@@ -60,6 +63,10 @@ class IntelligentKeyboard:
 		class KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
 			uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) final;
 		};
+
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+			return joysticks_;
+		}
 
 	private:
 		// MARK: - Key queue.
@@ -123,11 +130,59 @@ class IntelligentKeyboard:
 		void disable_joysticks();
 		void set_joystick_event_mode();
 		void set_joystick_interrogation_mode();
+		void set_joystick_monitoring_mode(uint8_t rate);
+		void set_joystick_fire_button_monitoring_mode();
+		struct VelocityThreshold {
+			uint8_t threshold;
+			uint8_t prior_rate;
+			uint8_t post_rate;
+		};
+		void set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical);
 		void interrogate_joysticks();
 
 		enum class JoystickMode {
 			Disabled, Event, Interrogation
 		} joystick_mode_ = JoystickMode::Event;
+
+		class Joystick: public Inputs::ConcreteJoystick {
+			public:
+				Joystick() :
+					ConcreteJoystick({
+						Input(Input::Up),
+						Input(Input::Down),
+						Input(Input::Left),
+						Input(Input::Right),
+						Input(Input::Fire, 0),
+					}) {}
+
+				void did_set_input(const Input &input, bool is_active) override {
+					uint8_t mask = 0;
+					switch(input.type) {
+						default: return;
+						case Input::Up:		mask = 0x01;	break;
+						case Input::Down:	mask = 0x02;	break;
+						case Input::Left:	mask = 0x04;	break;
+						case Input::Right:	mask = 0x08;	break;
+						case Input::Fire:	mask = 0x80;	break;
+					}
+
+					if(is_active) state_ |= mask; else state_ &= ~mask;
+				}
+
+				uint8_t get_state() {
+					returned_state_ = state_;
+					return state_;
+				}
+
+				bool has_event() {
+					return returned_state_ != state_;
+				}
+
+			private:
+				uint8_t state_ = 0x00;
+				uint8_t returned_state_ = 0x00;
+		};
+		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 };
 
 }
