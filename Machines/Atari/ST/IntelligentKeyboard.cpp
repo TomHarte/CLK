@@ -167,10 +167,30 @@ void IntelligentKeyboard::dispatch_command(uint8_t command) {
 		case 0x12:	disable_mouse();			break;
 		case 0x13:	pause();					break;
 
-		case 0x14:	set_joystick_event_mode();			break;
-		case 0x15:	set_joystick_interrogation_mode();	break;
-		case 0x16:	interrogate_joysticks();			break;
-		case 0x1a:	disable_joysticks();				break;
+		/* Joystick commands. */
+		case 0x14:	set_joystick_event_mode();					break;
+		case 0x15:	set_joystick_interrogation_mode();			break;
+		case 0x16:	interrogate_joysticks();					break;
+		case 0x17:
+			if(command_sequence_.size() != 2) return;
+			set_joystick_monitoring_mode(command_sequence_[1]);
+		break;
+		case 0x18:	set_joystick_fire_button_monitoring_mode();	break;
+		case 0x19: {
+			if(command_sequence_.size() != 7) return;
+
+			VelocityThreshold horizontal, vertical;
+			horizontal.threshold = command_sequence_[1];
+			horizontal.prior_rate = command_sequence_[3];
+			horizontal.post_rate = command_sequence_[5];
+
+			vertical.threshold = command_sequence_[2];
+			vertical.prior_rate = command_sequence_[4];
+			vertical.post_rate = command_sequence_[6];
+
+			set_joystick_keycode_mode(horizontal, vertical);
+		} break;
+		case 0x1a:	disable_joysticks();						break;
 	}
 
 	// There was no premature exit, so a complete command sequence must have been satisfied.
@@ -369,4 +389,13 @@ void IntelligentKeyboard::interrogate_joysticks() {
 		joystick1->get_state(),
 		joystick2->get_state()
 	});
+}
+
+void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t rate) {
+}
+
+void IntelligentKeyboard::set_joystick_fire_button_monitoring_mode() {
+}
+
+void IntelligentKeyboard::set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical) {
 }

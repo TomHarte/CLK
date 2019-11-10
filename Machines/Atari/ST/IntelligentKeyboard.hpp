@@ -130,6 +130,14 @@ class IntelligentKeyboard:
 		void disable_joysticks();
 		void set_joystick_event_mode();
 		void set_joystick_interrogation_mode();
+		void set_joystick_monitoring_mode(uint8_t rate);
+		void set_joystick_fire_button_monitoring_mode();
+		struct VelocityThreshold {
+			uint8_t threshold;
+			uint8_t prior_rate;
+			uint8_t post_rate;
+		};
+		void set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical);
 		void interrogate_joysticks();
 
 		enum class JoystickMode {
@@ -158,7 +166,7 @@ class IntelligentKeyboard:
 						case Input::Fire:	mask = 0x80;	break;
 					}
 
-					if(is_active) state_ &= ~mask; else state_ |= mask;
+					if(is_active) state_ |= mask; else state_ &= ~mask;
 				}
 
 				uint8_t get_state() {
@@ -171,8 +179,8 @@ class IntelligentKeyboard:
 				}
 
 			private:
-				uint8_t state_ = 0x8f;
-				uint8_t returned_state_ = 0x8f;
+				uint8_t state_ = 0x00;
+				uint8_t returned_state_ = 0x00;
 		};
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 };
