@@ -25,7 +25,6 @@ uint8_t ACIA::read(int address) {
 		received_data_ |= NoValueMask;
 		return uint8_t(received_data_);
 	} else {
-		clear_interrupt_cause(StatusNeedsRead);
 		return
 			((received_data_ & NoValueMask) ? 0x00 : 0x01) |
 			((next_transmission_ == NoValueMask) ? 0x02 : 0x00) |
@@ -176,7 +175,7 @@ void ACIA::set_interrupt_delegate(InterruptDelegate *delegate) {
 
 void ACIA::add_interrupt_cause(int cause) {
 	const bool is_changing_state = !interrupt_causes_;
-	interrupt_causes_ |= cause | StatusNeedsRead;
+	interrupt_causes_ |= cause;
 	if(interrupt_delegate_ && is_changing_state)
 		interrupt_delegate_->acia6850_did_change_interrupt_status(this);
 }
