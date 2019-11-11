@@ -89,11 +89,12 @@ struct Checker {
 }
 
 Video::Video() :
-	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4) {
+	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+	shifter_(crt_, palette_) {
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
-	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 188, 850, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 216, 850, 4.0f / 3.0f));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
@@ -131,88 +132,48 @@ void Video::run_for(HalfCycles duration) {
 		// Determine current output mode and number of cycles to output for.
 		const int run_length = std::min(integer_duration, next_event - x_);
 
-		enum class OutputMode {
-			Sync, Blank, Border, Pixels
-		} output_mode;
-
 		if(horizontal_.sync || vertical_.sync) {
-			// Output sync.
-			output_mode = OutputMode::Sync;
+			shifter_.output_sync(run_length);
 		} else if(horizontal_.blank || vertical_.blank) {
-			// Output blank.
-			output_mode = OutputMode::Blank;
-		} else if(!vertical_.enable) {
-			// There can be no pixels this line, just draw border.
-			output_mode = OutputMode::Border;
+			shifter_.output_blank(run_length);
+		} else if(!vertical_.enable || !horizontal_.enable) {
+			shifter_.output_border(run_length, output_bpp_);
 		} else {
-			output_mode = horizontal_.enable ? OutputMode::Pixels : OutputMode::Border;
-		}
+			// There will be pixels this line, subject to the shifter pipeline.
+			// Divide into 8-[half-]cycle windows; at the start of each window fetch a word,
+			// and during the rest of the window, shift out.
+			int start_column = x_ >> 3;
+			const int end_column = (x_ + run_length) >> 3;
 
-		switch(output_mode) {
-			case OutputMode::Sync:
-				pixel_buffer_.flush(crt_);
-				crt_.output_sync(run_length);
-			break;
-			case OutputMode::Blank:
-				data_latch_position_ = 0;
-				pixel_buffer_.flush(crt_);
-				crt_.output_blank(run_length);
-			break;
-			case OutputMode::Border:	{
-				if(!output_shifter_) {
-					pixel_buffer_.flush(crt_);
-					output_border(run_length);
-				} else {
-					if(run_length < 32) {
-						shift_out(run_length);	// TODO: this might end up overrunning.
-						if(!output_shifter_) pixel_buffer_.flush(crt_);
-					} else {
-						shift_out(32);
-						output_shifter_ = 0;
-						pixel_buffer_.flush(crt_);
-						output_border(run_length - 32);
-					}
+			// Rules obeyed below:
+			//
+			//	Video fetches occur as the first act of business in a column. Each
+			//	fetch is then followed by 8 shift clocks. Whether or not the shifter
+			//	was reloaded by the fetch depends on the FIFO.
+
+			if(start_column == end_column) {
+				shifter_.output_pixels(run_length, output_bpp_);
+			} else {
+				// Continue the current column if partway across.
+				if(x_&7) {
+					// If at least one column boundary is crossed, complete this column.
+					shifter_.output_pixels(8 - (x_ & 7), output_bpp_);
+					++start_column;	// This starts a new column, so latch a new word.
+					latch_word();
 				}
-			} break;
-			default: {
-				// There will be pixels this line, subject to the shifter pipeline.
-				// Divide into 8-[half-]cycle windows; at the start of each window fetch a word,
-				// and during the rest of the window, shift out.
-				int start_column = x_ >> 3;
-				const int end_column = (x_ + run_length) >> 3;
 
-				// Rules obeyed below:
-				//
-				//	Video fetches occur as the first act of business in a column. Each
-				//	fetch is then followed by 8 shift clocks. Whether or not the shifter
-				//	was reloaded by the fetch depends on the FIFO.
-
-				if(start_column == end_column) {
-					shift_out(run_length);
-				} else {
-					// Continue the current column if partway across.
-					if(x_&7) {
-						// If at least one column boundary is crossed, complete this column.
-						// Otherwise the run_length is clearly less than 8 and within this column,
-						// so go for the entirety of it.
-						shift_out(8 - (x_ & 7));
-						++start_column;
-						latch_word();
-					}
-
-					// Run for all columns that have their starts in this time period.
-					int complete_columns = end_column - start_column;
-					while(complete_columns--) {
-						shift_out(8);
-						latch_word();
-					}
-
-					// Output the start of the next column, if necessary.
-					if(start_column != end_column && (x_ + run_length) & 7) {
-						shift_out((x_ + run_length) & 7);
-					}
+				// Run for all columns that have their starts in this time period.
+				int complete_columns = end_column - start_column;
+				while(complete_columns--) {
+					shifter_.output_pixels(8, output_bpp_);
+					latch_word();
 				}
-			} break;
+
+				// Output the start of the next column, if necessary.
+				if(start_column != end_column && (x_ + run_length) & 7) {
+					shifter_.output_pixels((x_ + run_length) & 7, output_bpp_);
+				}
+			}
 		}
 
 		// Check for whether line length should have been latched during this run.
@@ -272,103 +233,13 @@ void Video::latch_word() {
 	++data_latch_position_;
 	if(data_latch_position_ == 4) {
 		data_latch_position_ = 0;
-		output_shifter_ =
+		shifter_.load(
 			(uint64_t(data_latch_[0]) << 48) |
 			(uint64_t(data_latch_[1]) << 32) |
 			(uint64_t(data_latch_[2]) << 16) |
-			uint64_t(data_latch_[3]);
+			uint64_t(data_latch_[3])
+		);
 	}
-}
-
-void Video::shift_out(int length) {
-	if(pixel_buffer_.output_bpp != output_bpp_) {
-		pixel_buffer_.flush(crt_);
-	}
-	if(!pixel_buffer_.pixel_pointer) {
-		pixel_buffer_.allocate(crt_);
-		pixel_buffer_.output_bpp = output_bpp_;
-	}
-
-	pixel_buffer_.cycles_output += length;
-	switch(output_bpp_) {
-		case OutputBpp::One: {
-			int pixels = length << 1;
-			pixel_buffer_.pixels_output += pixels;
-			if(pixel_buffer_.pixel_pointer) {
-				while(pixels--) {
-					*pixel_buffer_.pixel_pointer = ((output_shifter_ >> 63) & 1) * 0xffff;
-					output_shifter_ <<= 1;
-					++pixel_buffer_.pixel_pointer;
-				}
-			} else {
-				output_shifter_ <<= pixels;
-			}
-		} break;
-		case OutputBpp::Two: {
-			pixel_buffer_.pixels_output += length;
-#if TARGET_RT_BIG_ENDIAN
-			const int upper = 0;
-#else
-			const int upper = 1;
-#endif
-			if(pixel_buffer_.pixel_pointer) {
-				while(length--) {
-					*pixel_buffer_.pixel_pointer = palette_[
-						((output_shifter_ >> 63) & 1) |
-						((output_shifter_ >> 46) & 2)
-					];
-					// This ensures that the top two words shift one to the left;
-					// their least significant bits are fed from the most significant bits
-					// of the bottom two words, respectively.
-					shifter_halves_[upper] = (shifter_halves_[upper] << 1) & 0xfffefffe;
-					shifter_halves_[upper] |= (shifter_halves_[upper^1] & 0x80008000) >> 15;
-					shifter_halves_[upper^1] = (shifter_halves_[upper^1] << 1) & 0xfffefffe;
-
-					++pixel_buffer_.pixel_pointer;
-				}
-			} else {
-				while(length--) {
-					shifter_halves_[upper] = (shifter_halves_[upper] << 1) & 0xfffefffe;
-					shifter_halves_[upper] |= (shifter_halves_[upper^1] & 0x80008000) >> 15;
-					shifter_halves_[upper^1] = (shifter_halves_[upper^1] << 1) & 0xfffefffe;
-				}
-			}
-		} break;
-		default:
-		case OutputBpp::Four:
-			assert(!(length & 1));
-			pixel_buffer_.pixels_output += length >> 1;
-			if(pixel_buffer_.pixel_pointer) {
-				while(length) {
-					*pixel_buffer_.pixel_pointer = palette_[
-						((output_shifter_ >> 63) & 1) |
-						((output_shifter_ >> 46) & 2) |
-						((output_shifter_ >> 29) & 4) |
-						((output_shifter_ >> 12) & 8)
-					];
-					output_shifter_ = (output_shifter_ << 1) & 0xfffefffefffefffe;
-					++pixel_buffer_.pixel_pointer;
-					length -= 2;
-				}
-			} else {
-				while(length) {
-					output_shifter_ = (output_shifter_ << 1) & 0xfffefffefffefffe;
-					length -= 2;
-				}
-			}
-		break;
-	}
-
-	// Check for buffer being full. Buffers are allocated as 328 pixels, and this method is
-	// never called for more than 8 pixels, so there's no chance of overrun.
-	if(pixel_buffer_.pixel_pointer && pixel_buffer_.pixels_output >= 320)
-		pixel_buffer_.flush(crt_);
-}
-
-void Video::output_border(int duration) {
-	uint16_t *colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-	if(colour_pointer) *colour_pointer = palette_[0];
-	crt_.output_level(duration);
 }
 
 bool Video::hsync() {
@@ -497,4 +368,151 @@ void Video::update_output_mode() {
 	}
 
 	field_frequency_ = (sync_mode_ & 0x200) ? FieldFrequency::Fifty : FieldFrequency::Sixty;
+}
+
+// MARK: - The shifter
+
+void Video::Shifter::flush_output(OutputMode next_mode) {
+	switch(output_mode_) {
+		case OutputMode::Sync:	crt_.output_sync(duration_);	break;
+		case OutputMode::Blank:	crt_.output_blank(duration_);	break;
+		case OutputMode::Border: {
+			uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
+			if(colour_pointer) *colour_pointer = border_colour_;
+			crt_.output_level(duration_);
+		} break;
+		case OutputMode::Pixels: {
+			crt_.output_data(duration_, pixel_pointer_);
+			pixel_buffer_ = nullptr;
+			pixel_pointer_ = 0;
+		} break;
+	}
+	duration_ = 0;
+	output_mode_ = next_mode;
+}
+
+
+void Video::Shifter::output_blank(int duration) {
+	if(output_mode_ != OutputMode::Blank) {
+		flush_output(OutputMode::Blank);
+	}
+	duration_ += duration;
+}
+
+void Video::Shifter::output_sync(int duration) {
+	if(output_mode_ != OutputMode::Sync) {
+		flush_output(OutputMode::Sync);
+	}
+	duration_ += duration;
+}
+
+void Video::Shifter::output_border(int duration, OutputBpp bpp) {
+	// If there's still anything in the shifter, redirect this to an output_pixels call.
+	if(output_shifter_) {
+		// This doesn't take an opinion on how much of the shifter remains populated;
+		// it assumes the worst case.
+		const int pixel_length = std::min(32, duration);
+		output_pixels(pixel_length, bpp);
+		duration -= pixel_length;
+		if(!duration) {
+			return;
+		}
+	}
+
+	// Flush anything that isn't level output *in the current border colour*.
+	if(output_mode_ != OutputMode::Border || border_colour_ != palette_[0]) {
+		flush_output(OutputMode::Border);
+		border_colour_ = palette_[0];
+	}
+	duration_ += duration;
+}
+
+void Video::Shifter::output_pixels(int duration, OutputBpp bpp) {
+	// If the shifter is empty, redirect this to an output_level call.
+	if(!output_shifter_) {
+		output_border(duration, bpp);
+		return;
+	}
+
+	// Flush anything that isn't pixel output in the proper bpp; also flush if there's nowhere
+	// left to put pixels.
+	if(output_mode_ != OutputMode::Pixels || bpp_ != bpp || pixel_pointer_ >= 320) {
+		flush_output(OutputMode::Pixels);
+		bpp_ = bpp;
+		pixel_buffer_ = reinterpret_cast<uint16_t *>(crt_.begin_data(320 + 32));
+	}
+	duration_ += duration;
+
+	switch(bpp_) {
+		case OutputBpp::One: {
+			int pixels = duration << 1;
+			if(pixel_buffer_) {
+				while(pixels--) {
+					pixel_buffer_[pixel_pointer_] = ((output_shifter_ >> 63) & 1) * 0xffff;
+					output_shifter_ <<= 1;
+					++pixel_pointer_;
+				}
+			} else {
+				pixel_pointer_ += size_t(pixels);
+				output_shifter_ <<= pixels;
+			}
+		} break;
+		case OutputBpp::Two: {
+	#if TARGET_RT_BIG_ENDIAN
+			const int upper = 0;
+	#else
+			const int upper = 1;
+	#endif
+			if(pixel_buffer_) {
+				while(duration--) {
+					pixel_buffer_[pixel_pointer_] = palette_[
+						((output_shifter_ >> 63) & 1) |
+						((output_shifter_ >> 46) & 2)
+					];
+					// This ensures that the top two words shift one to the left;
+					// their least significant bits are fed from the most significant bits
+					// of the bottom two words, respectively.
+					shifter_halves_[upper] = (shifter_halves_[upper] << 1) & 0xfffefffe;
+					shifter_halves_[upper] |= (shifter_halves_[upper^1] & 0x80008000) >> 15;
+					shifter_halves_[upper^1] = (shifter_halves_[upper^1] << 1) & 0xfffefffe;
+
+					++pixel_pointer_;
+				}
+			} else {
+				pixel_pointer_ += size_t(duration);
+				while(duration--) {
+					shifter_halves_[upper] = (shifter_halves_[upper] << 1) & 0xfffefffe;
+					shifter_halves_[upper] |= (shifter_halves_[upper^1] & 0x80008000) >> 15;
+					shifter_halves_[upper^1] = (shifter_halves_[upper^1] << 1) & 0xfffefffe;
+				}
+			}
+		} break;
+		default:
+		case OutputBpp::Four:
+			assert(!(duration & 1));
+			if(pixel_buffer_) {
+				while(duration) {
+					pixel_buffer_[pixel_pointer_] = palette_[
+						((output_shifter_ >> 63) & 1) |
+						((output_shifter_ >> 46) & 2) |
+						((output_shifter_ >> 29) & 4) |
+						((output_shifter_ >> 12) & 8)
+					];
+					output_shifter_ = (output_shifter_ << 1) & 0xfffefffefffefffe;
+					++pixel_pointer_;
+					duration -= 2;
+				}
+			} else {
+				pixel_pointer_ += size_t(duration >> 1);
+				while(duration) {
+					output_shifter_ = (output_shifter_ << 1) & 0xfffefffefffefffe;
+					duration -= 2;
+				}
+			}
+		break;
+	}
+}
+
+void Video::Shifter::load(uint64_t value) {
+	output_shifter_ = value;
 }
