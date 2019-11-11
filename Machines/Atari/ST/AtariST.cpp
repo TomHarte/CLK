@@ -558,7 +558,7 @@ class ConcreteMachine:
 		bool insert_media(const Analyser::Static::Media &media) final {
 			size_t c = 0;
 			for(const auto &disk: media.disks) {
-//				dma_->set_floppy_disk(disk, c);
+				dma_->set_floppy_disk(disk, c);
 				++c;
 				if(c == 2) break;
 			}
