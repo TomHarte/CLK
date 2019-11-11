@@ -60,7 +60,6 @@ class Video {
 		uint16_t line_buffer_[256];
 
 		int x_ = 0, y_ = 0, next_y_ = 0;
-		void output_border(int duration);
 
 		uint16_t video_mode_ = 0;
 		uint16_t sync_mode_ = 0;
@@ -94,30 +93,38 @@ class Video {
 
 		int data_latch_position_ = 0;
 		uint16_t data_latch_[4];
-		union {
-			uint64_t output_shifter_;
-			uint32_t shifter_halves_[2];
-		};
-		void shift_out(int length);
 		void latch_word();
 
-		struct PixelBufferState {
-			uint16_t *pixel_pointer;
-			int pixels_output = 0;
-			int cycles_output = 0;
-			OutputBpp output_bpp;
-			void flush(Outputs::CRT::CRT &crt) {
-				if(cycles_output) {
-					crt.output_data(cycles_output, size_t(pixels_output));
-					pixels_output = cycles_output = 0;
-					pixel_pointer = nullptr;
-				}
-			}
-			void allocate(Outputs::CRT::CRT &crt) {
-				flush(crt);
-				pixel_pointer = reinterpret_cast<uint16_t *>(crt.begin_data(320 + 32));
-			}
-		} pixel_buffer_;
+		class Shifter {
+			public:
+				Shifter(Outputs::CRT::CRT &crt, uint16_t *palette) : crt_(crt), palette_(palette) {}
+				void output_blank(int duration);
+				void output_sync(int duration);
+				void output_border(int duration, OutputBpp bpp);
+				void output_pixels(int duration, OutputBpp bpp);
+
+				void load(uint64_t value);
+
+			private:
+				int duration_ = 0;
+				enum class OutputMode {
+					Sync, Blank, Border, Pixels
+				} output_mode_ = OutputMode::Sync;
+				uint16_t border_colour_;
+				OutputBpp bpp_;
+				union {
+					uint64_t output_shifter_;
+					uint32_t shifter_halves_[2];
+				};
+
+				void flush_output(OutputMode next_mode);
+
+				uint16_t *pixel_buffer_;
+				size_t pixel_pointer_ = 0;
+
+				Outputs::CRT::CRT &crt_;
+				uint16_t *palette_ = nullptr;
+		} shifter_;
 };
 
 }
