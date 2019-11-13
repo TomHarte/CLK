@@ -393,6 +393,7 @@
 			<key>CFBundleTypeExtensions</key>
 			<array>
 				<string>msa</string>
+				<string>st</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy35.png</string>
