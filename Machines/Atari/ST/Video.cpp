@@ -11,6 +11,7 @@
 #include "../../../Outputs/Log.hpp"
 
 #include <algorithm>
+#include <cstring>
 
 using namespace Atari::ST;
 
@@ -377,9 +378,13 @@ void Video::Shifter::flush_output(OutputMode next_mode) {
 		case OutputMode::Sync:	crt_.output_sync(duration_);	break;
 		case OutputMode::Blank:	crt_.output_blank(duration_);	break;
 		case OutputMode::Border: {
-			uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-			if(colour_pointer) *colour_pointer = border_colour_;
-			crt_.output_level(duration_);
+			if(!border_colour_) {
+				crt_.output_blank(duration_);
+			} else {
+				uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
+				if(colour_pointer) *colour_pointer = border_colour_;
+				crt_.output_level(duration_);
+			}
 		} break;
 		case OutputMode::Pixels: {
 			crt_.output_data(duration_, pixel_pointer_);
@@ -428,9 +433,34 @@ void Video::Shifter::output_border(int duration, OutputBpp bpp) {
 }
 
 void Video::Shifter::output_pixels(int duration, OutputBpp bpp) {
-	// If the shifter is empty, redirect this to an output_level call.
+	// If the shifter is empty and there's no pixel buffer at present,
+	// redirect this to an output_level call. Otherwise, do a quick
+	// memset-type fill, since the special case has been detected anyway.
 	if(!output_shifter_) {
-		output_border(duration, bpp);
+		if(!pixel_buffer_) {
+			output_border(duration, bpp);
+		} else {
+			duration_ += duration;
+
+			switch(bpp_) {
+				case OutputBpp::One: {
+					const size_t pixels = size_t(duration << 1);
+					memset(&pixel_buffer_[pixel_pointer_], 0, pixels * sizeof(uint16_t));
+					pixel_pointer_ += pixels;
+				} break;
+
+				default:
+				case OutputBpp::Four:
+					assert(!(duration & 1));
+					duration >>= 1;
+				case OutputBpp::Two: {
+					while(duration--) {
+						pixel_buffer_[pixel_pointer_] = palette_[0];
+						++pixel_pointer_;
+					}
+				} break;
+			}
+		}
 		return;
 	}
 
