@@ -65,7 +65,7 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 					} else {
 						transmit.advance_writer(transmission_cycles);
 						update_clocking_observer();
-						if(transmit_interrupt_enabled_) add_interrupt_cause(TransmitNeedsWrite);
+						update_interrupt_line();
 					}
 				} else {
 					transmit.advance_writer(transmission_cycles);
@@ -118,15 +118,10 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 
 		bool serial_line_did_produce_bit(Serial::Line *line, int bit) final;
 
-		enum InterruptCause: int {
-			TransmitNeedsWrite = 1 << 0,
-			ReceiveNeedsRead = 1 << 1,
-			StatusNeedsRead = 1 << 2
-		};
-		int interrupt_causes_ = 0;
-		void add_interrupt_cause(int cause);
-		void clear_interrupt_cause(int cause);
+		bool interrupt_line_ = false;
+		void update_interrupt_line();
 		InterruptDelegate *interrupt_delegate_ = nullptr;
+		uint8_t get_status();
 };
 
 }
