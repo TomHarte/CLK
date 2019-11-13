@@ -302,7 +302,7 @@ void MFP68901::update_interrupts() {
 			// Software interrupt mode: permit only if neither this interrupt
 			// nor a higher interrupt is currently in service.
 			const int highest_bit = msb16(firing_interrupts);
-			interrupt_line_ = !(interrupt_in_service_ & ~(highest_bit - 1));
+			interrupt_line_ = !(interrupt_in_service_ & ~(highest_bit + highest_bit - 1));
 		} else {
 			// Auto-interrupt mode; just signal.
 			interrupt_line_ = true;
