@@ -71,7 +71,8 @@ class ConcreteMachine:
 			Memory::Fuzz(ram_);
 
 			std::vector<ROMMachine::ROM> rom_descriptions = {
-				{"AtariST", "the TOS ROM", "tos100.img", 192*1024, 0x1a586c64}
+//				{"AtariST", "the UK TOS 1.00 ROM", "tos100.img", 192*1024, 0x1a586c64}
+				{"AtariST", "the UK TOS 1.04 ROM", "tos104.img", 192*1024, 0xa50d1d43}
 			};
 			const auto roms = rom_fetcher(rom_descriptions);
 			if(!roms[0]) {
