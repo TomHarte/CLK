@@ -22,10 +22,11 @@ void MFMSectorDump::set_geometry(int sectors_per_track, uint8_t sector_size, uin
 }
 
 std::shared_ptr<Track> MFMSectorDump::get_track_at_position(Track::Address address) {
-	uint8_t sectors[(128 << sector_size_)*sectors_per_track_];
+	if(address.head >= get_head_count()) return nullptr;
+	if(address.position.as_largest() >= get_maximum_head_position().as_largest()) return nullptr;
 
-	if(address.head > 1) return nullptr;
-	long file_offset = get_file_offset_for_position(address);
+	uint8_t sectors[(128 << sector_size_)*sectors_per_track_];
+	const long file_offset = get_file_offset_for_position(address);
 
 	{
 		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
@@ -45,7 +46,7 @@ void MFMSectorDump::set_tracks(const std::map<Track::Address, std::shared_ptr<Tr
 	for(const auto &track : tracks) {
 		// Assumption here: sector IDs will run from 0.
 		decode_sectors(*track.second, parsed_track, first_sector_, first_sector_ + static_cast<uint8_t>(sectors_per_track_-1), sector_size_, is_double_density_);
-		long file_offset = get_file_offset_for_position(track.first);
+		const long file_offset = get_file_offset_for_position(track.first);
 
 		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
 		file_.ensure_is_at_least_length(file_offset);
