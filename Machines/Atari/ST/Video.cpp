@@ -378,13 +378,13 @@ void Video::Shifter::flush_output(OutputMode next_mode) {
 		case OutputMode::Sync:	crt_.output_sync(duration_);	break;
 		case OutputMode::Blank:	crt_.output_blank(duration_);	break;
 		case OutputMode::Border: {
-			if(!border_colour_) {
-				crt_.output_blank(duration_);
-			} else {
+//			if(!border_colour_) {
+//				crt_.output_blank(duration_);
+//			} else {
 				uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
 				if(colour_pointer) *colour_pointer = border_colour_;
 				crt_.output_level(duration_);
-			}
+//			}
 		} break;
 		case OutputMode::Pixels: {
 			crt_.output_data(duration_, pixel_pointer_);
