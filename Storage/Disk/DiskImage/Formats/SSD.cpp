@@ -25,7 +25,7 @@ SSD::SSD(const std::string &file_name) : MFMSectorDump(file_name) {
 
 	// this has two heads if the suffix is .dsd, one if it's .ssd
 	head_count_ = (tolower(file_name[file_name.size() - 3]) == 'd') ? 2 : 1;
-	track_count_ = int(file_.stats().st_size / (256 * 10));
+	track_count_ = int(file_.stats().st_size / (256 * 10 * head_count_));
 	if(track_count_ < 40) track_count_ = 40;
 	else if(track_count_ < 80) track_count_ = 80;
 
