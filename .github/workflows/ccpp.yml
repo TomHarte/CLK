@@ -17,6 +17,6 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: install dependencies
-      run: apt-get install libsdl2-dev scons
+      run: sudo apt-get install libsdl2-dev scons
     - name: make
       run: cd OSBindings/SDL; scons
