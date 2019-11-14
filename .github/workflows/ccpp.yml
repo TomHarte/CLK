@@ -1,4 +1,4 @@
-name: Build: SDL/Ubuntu
+name: Build SDL/Ubuntu
 
 on:
   push:
