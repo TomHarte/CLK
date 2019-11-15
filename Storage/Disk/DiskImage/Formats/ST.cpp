@@ -19,7 +19,7 @@ ST::ST(const std::string &file_name) : MFMSectorDump(file_name) {
 	// Very loose validation: the file needs to be a whole number of tracks,
 	// and not more than 160 of them.
 	const auto stats = file_.stats();
-	if(stats.st_size % 512*10) throw Error::InvalidFormat;
+	if(stats.st_size % (512*10)) throw Error::InvalidFormat;
 	if(stats.st_size > 512*10*160) throw Error::InvalidFormat;
 
 	// Head count: 2 if there are more than 80 tracks. Otherwise 1.
