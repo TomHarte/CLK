@@ -171,7 +171,7 @@ void Video::run_for(HalfCycles duration) {
 				}
 
 				// Output the start of the next column, if necessary.
-				if(start_column != end_column && (x_ + run_length) & 7) {
+				if((x_ + run_length) & 7) {
 					shifter_.output_pixels((x_ + run_length) & 7, output_bpp_);
 				}
 			}
