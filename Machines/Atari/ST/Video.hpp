@@ -12,6 +12,8 @@
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 
+#include <vector>
+
 namespace Atari {
 namespace ST {
 
@@ -161,6 +163,53 @@ class Video {
 				Outputs::CRT::CRT &crt_;
 				uint16_t *palette_ = nullptr;
 		} shifter_;
+
+		/// Contains copies of the various observeable fields, after the relevant propagation delay.
+		struct PublicState {
+			bool display_enable = false;
+		} public_state_;
+
+		struct Event {
+			int delay;
+			enum class Type {
+				SetDisplayEnable, ResetDisplayEnable
+			} type;
+
+			Event(Type type, int delay) : delay(delay), type(type) {}
+
+			void apply(PublicState &state) {
+				apply(type, state);
+			}
+
+			static void apply(Type type, PublicState &state) {
+				switch(type) {
+					default:
+					case Type::SetDisplayEnable:	state.display_enable = true;	break;
+					case Type::ResetDisplayEnable:	state.display_enable = false;	break;
+				}
+			}
+		};
+
+		std::vector<Event> pending_events_;
+		void add_event(int delay, Event::Type type) {
+			// Apply immediately if there's no delay (or a negative delay).
+			if(delay <= 0) {
+				Event::apply(type, public_state_);
+				return;
+			}
+
+			// Otherwise enqueue, having subtracted the delay for any preceding events,
+			// and subtracting from the subsequent, if any.
+			auto insertion_point = pending_events_.begin();
+			while(insertion_point != pending_events_.end() && insertion_point->delay > delay) {
+				delay -= insertion_point->delay;
+				++insertion_point;
+			}
+			if(insertion_point != pending_events_.end()) {
+				insertion_point->delay -= delay;
+			}
+			pending_events_.emplace(insertion_point, type, delay);
+		}
 };
 
 }

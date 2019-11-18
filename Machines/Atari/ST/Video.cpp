@@ -109,8 +109,27 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 void Video::run_for(HalfCycles duration) {
 	const auto horizontal_timings = horizontal_parameters(field_frequency_);
 	const auto vertical_timings = vertical_parameters(field_frequency_);
-
 	int integer_duration = int(duration.as_integral());
+
+	// Effect any changes in visible state out here; they're not relevant in the inner loop.
+	if(!pending_events_.empty()) {
+		auto erase_iterator = pending_events_.begin();
+		int duration_remaining = integer_duration;
+		while(erase_iterator != pending_events_.end()) {
+			erase_iterator->delay -= duration_remaining;
+			if(erase_iterator->delay < 0) {
+				duration_remaining = -erase_iterator->delay;
+				erase_iterator->apply(public_state_);
+				++erase_iterator;
+			} else {
+				break;
+			}
+		}
+		if(erase_iterator != pending_events_.begin()) {
+			pending_events_.erase(pending_events_.begin(), erase_iterator);
+		}
+	}
+
 	while(integer_duration) {
 		// Seed next event to end of line.
 		int next_event = line_length_;
@@ -132,6 +151,7 @@ void Video::run_for(HalfCycles duration) {
 
 		// Determine current output mode and number of cycles to output for.
 		const int run_length = std::min(integer_duration, next_event - x_);
+		const bool display_enable = vertical_.enable && horizontal_.enable;
 
 		if(horizontal_.sync || vertical_.sync) {
 			shifter_.output_sync(run_length);
@@ -225,6 +245,12 @@ void Video::run_for(HalfCycles duration) {
 			vertical_ = next_vertical_;
 			y_ = next_y_;
 		}
+
+		// Chuck any deferred output changes into the queue.
+		const bool next_display_enable = vertical_.enable && horizontal_.enable;
+		if(display_enable != next_display_enable) {
+			add_event(28*2 - integer_duration, next_display_enable ? Event::Type::SetDisplayEnable : Event::Type::ResetDisplayEnable);
+		}
 	}
 }
 
@@ -273,11 +299,13 @@ HalfCycles Video::get_next_sequence_point() {
 	// visible area.
 
 	const auto horizontal_timings = horizontal_parameters(field_frequency_);
-//	const auto vertical_timings = vertical_parameters(field_frequency_);
 
 	// If this is a vertically-enabled line, check for the display enable boundaries.
 	if(vertical_.enable) {
-		// TODO: what if there's a sync event scheduled for this line?
+		/*
+			TODO: what if there's a sync event scheduled for this line? That can happen with the
+			lower border open.
+		*/
 		if(x_ < horizontal_timings.set_enable)		return HalfCycles(horizontal_timings.set_enable - x_);
 		if(x_ < horizontal_timings.reset_enable) 	return HalfCycles(horizontal_timings.reset_enable - x_);
 	} else {
@@ -289,10 +317,6 @@ HalfCycles Video::get_next_sequence_point() {
 	// Test for beginning and end of sync.
 	if(x_ < line_length_ - 50) 	return HalfCycles(line_length_ - 50 - x_);
 	if(x_ < line_length_ - 10) 	return HalfCycles(line_length_ - 10 - x_);
-
-	// Okay, then, it depends on the next line. If the next line is the start or end of vertical sync,
-	// it's that.
-//	if(y_+1 == vertical_timings.height || y_+1 == 3) return HalfCycles(line_length_ - x_);
 
 	// It wasn't any of those, so as a temporary expedient, just supply end of line.
 	return HalfCycles(line_length_ - x_);
