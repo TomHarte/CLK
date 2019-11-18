@@ -33,7 +33,7 @@ const struct VerticalParams {
 };
 
 /// @returns The correct @c VerticalParams for output at @c frequency.
-const VerticalParams &vertical_parameters(FieldFrequency frequency) {
+const VerticalParams &vertical_parameters(Video::FieldFrequency frequency) {
 	return vertical_params[int(frequency)];
 }
 
@@ -63,7 +63,7 @@ const struct HorizontalParams {
 	{4*2, 164*2,	184*2, 2*2,		224*2}
 };
 
-const HorizontalParams &horizontal_parameters(FieldFrequency frequency) {
+const HorizontalParams &horizontal_parameters(Video::FieldFrequency frequency) {
 	return horizontal_params[int(frequency)];
 }
 
@@ -72,14 +72,14 @@ struct Checker {
 	Checker() {
 		for(int c = 0; c < 3; ++c) {
 			// Expected horizontal order of events: reset blank, enable display, disable display, enable blank (at least 50 before end of line), end of line
-			const auto horizontal = horizontal_parameters(FieldFrequency(c));
+			const auto horizontal = horizontal_parameters(Video::FieldFrequency(c));
 			assert(horizontal.reset_blank < horizontal.set_enable);
 			assert(horizontal.set_enable < horizontal.reset_enable);
 			assert(horizontal.reset_enable < horizontal.set_blank);
 			assert(horizontal.set_blank+50 < horizontal.length);
 
 			// Expected vertical order of events: reset blank, enable display, disable display, enable blank (at least 50 before end of line), end of line
-			const auto vertical = vertical_parameters(FieldFrequency(c));
+			const auto vertical = vertical_parameters(Video::FieldFrequency(c));
 			assert(vertical.set_enable < vertical.reset_enable);
 			assert(vertical.reset_enable < vertical.height);
 		}
