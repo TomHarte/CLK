@@ -170,9 +170,14 @@ class ConcreteMachine:
 				}
 			}
 
+			auto address = cycle.word_address();
+
 			// If this is a new strobing of the address signal, test for bus error and pre-DTack delay.
+			//
+			// DTack delay rule: if accessing RAM or the shifter, align with the two cycles next available
+			// for the CPU to access that side of the bus.
 			HalfCycles delay(0);
-			if(cycle.operation & Microcycle::NewAddress) {
+			if((cycle.operation & Microcycle::NewAddress) && (address < ram_.size() || (address == (0xff8260 >> 1)))) {
 				// DTack will be implicit; work out how long until that should be,
 				// and apply bus error constraints.
 				const int i_phase = bus_phase_.as<int>() & 7;
@@ -184,7 +189,6 @@ class ConcreteMachine:
 				// TODO: presumably test is if(after declared memory size and (not supervisor or before hardware space)) bus_error?
 			}
 
-			auto address = cycle.word_address();
 			uint16_t *memory = nullptr;
 			switch(memory_map_[address >> 15]) {
 				default:

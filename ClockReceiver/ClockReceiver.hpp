@@ -137,7 +137,7 @@ template <class T> class WrappedInt {
 		// bool operator () is not supported because it offers an implicit cast to int, which is prone silently to permit misuse
 
 		/// @returns The underlying int, cast to an integral type of your choosing.
-		template<typename Type = IntType> forceinline constexpr Type as() { return Type(length_); }
+		template<typename Type = IntType> forceinline constexpr Type as() const { return Type(length_); }
 
 		/// @returns The underlying int, in its native form.
 		forceinline constexpr IntType as_integral() const { return length_; }

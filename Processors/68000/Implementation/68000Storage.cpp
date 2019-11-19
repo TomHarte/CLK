@@ -3040,7 +3040,7 @@ struct ProcessorStorageConstructor {
 		// Throw in the interrupt program.
 		const auto interrupt_pointer = storage_.all_micro_ops_.size();
 
-		// WORKAROUND FOR THE BE68000 MAIN LOOP. Hopefully temporary.
+		// WORKAROUND FOR THE 68000 MAIN LOOP. Hopefully temporary.
 		op(Action::None, seq(""));
 
 		// Perform a single write and then a cycle that will obtain an interrupt vector, or else dictate an autovector or a spurious interrupt.

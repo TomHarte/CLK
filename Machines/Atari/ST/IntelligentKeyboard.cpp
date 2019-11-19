@@ -72,9 +72,12 @@ void IntelligentKeyboard::run_for(HalfCycles duration) {
 		key_queue_.clear();
 	}
 
-	// Check for joystick changes.
+	// Check for joystick changes; slight complexity here: the joystick that the emulated
+	// machine advertises as joystick 1 is mapped to the Atari ST's joystick 2, so as to
+	// maintain both the normal emulation expections that the first joystick is the primary
+	// one and the Atari ST's convention that the main joystick is in port 2.
 	for(size_t c = 0; c < 2; ++c) {
-		const auto joystick = static_cast<Joystick *>(joysticks_[c].get());
+		const auto joystick = static_cast<Joystick *>(joysticks_[c ^ 1].get());
 		if(joystick->has_event()) {
 			output_bytes({
 				uint8_t(0xfe | c),
@@ -386,8 +389,8 @@ void IntelligentKeyboard::interrogate_joysticks() {
 
 	output_bytes({
 		0xfd,
-		joystick1->get_state(),
-		joystick2->get_state()
+		joystick2->get_state(),
+		joystick1->get_state()
 	});
 }
 
