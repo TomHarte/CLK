@@ -28,7 +28,7 @@ const struct VerticalParams {
 	const int height;
 } vertical_params[3] = {
 	{63, 263, 313},	// 47 rather than 63 on early machines.
-	{34, 234, 263},
+	{34, 234, 262},	// TODO: is 262 correct? If it's 263, how does that interact with opening the bottom border?
 	{1, 401, 500}	// 72 Hz mode: who knows?
 };
 
