@@ -87,6 +87,8 @@ struct Checker {
 } checker;
 #endif
 
+const int de_delay_period = 28*2;
+
 }
 
 Video::Video() :
@@ -117,7 +119,7 @@ void Video::run_for(HalfCycles duration) {
 		int duration_remaining = integer_duration;
 		while(erase_iterator != pending_events_.end()) {
 			erase_iterator->delay -= duration_remaining;
-			if(erase_iterator->delay < 0) {
+			if(erase_iterator->delay <= 0) {
 				duration_remaining = -erase_iterator->delay;
 				erase_iterator->apply(public_state_);
 				++erase_iterator;
@@ -249,7 +251,7 @@ void Video::run_for(HalfCycles duration) {
 		// Chuck any deferred output changes into the queue.
 		const bool next_display_enable = vertical_.enable && horizontal_.enable;
 		if(display_enable != next_display_enable) {
-			add_event(28*2 - integer_duration, next_display_enable ? Event::Type::SetDisplayEnable : Event::Type::ResetDisplayEnable);
+			add_event(de_delay_period - integer_duration, next_display_enable ? Event::Type::SetDisplayEnable : Event::Type::ResetDisplayEnable);
 		}
 	}
 }
@@ -278,7 +280,7 @@ bool Video::vsync() {
 }
 
 bool Video::display_enabled() {
-	return horizontal_.enable && vertical_.enable;
+	return public_state_.display_enable;
 }
 
 HalfCycles Video::get_next_sequence_point() {
@@ -300,26 +302,34 @@ HalfCycles Video::get_next_sequence_point() {
 
 	const auto horizontal_timings = horizontal_parameters(field_frequency_);
 
-	// If this is a vertically-enabled line, check for the display enable boundaries.
+	int event_time = line_length_;	// Worst case: report end of line.
+
+	// If any events are pending, give the first of those the chance to be next.
+	if(!pending_events_.empty()) {
+		event_time = std::min(event_time, x_ + event_time);
+	}
+
+	// If this is a vertically-enabled line, check for the display enable boundaries, + the standard delay.
 	if(vertical_.enable) {
-		/*
-			TODO: what if there's a sync event scheduled for this line? That can happen with the
-			lower border open.
-		*/
-		if(x_ < horizontal_timings.set_enable)		return HalfCycles(horizontal_timings.set_enable - x_);
-		if(x_ < horizontal_timings.reset_enable) 	return HalfCycles(horizontal_timings.reset_enable - x_);
-	} else {
-		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && (x_ < 30*2)) {
-			return HalfCycles(30*2 - x_);
+		if(x_ < horizontal_timings.set_enable + de_delay_period) {
+			event_time = std::min(event_time, horizontal_timings.set_enable + de_delay_period);
+		}
+		else if(x_ < horizontal_timings.reset_enable + de_delay_period) {
+			event_time = std::min(event_time, horizontal_timings.reset_enable + de_delay_period);
 		}
 	}
 
-	// Test for beginning and end of sync.
-	if(x_ < line_length_ - 50) 	return HalfCycles(line_length_ - 50 - x_);
-	if(x_ < line_length_ - 10) 	return HalfCycles(line_length_ - 10 - x_);
+	// If a vertical sync event is scheduled, test for that.
+	if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && (x_ < 30*2)) {
+		event_time = std::min(event_time, 30*2);
+	}
+
+	// Test for beginning and end of horizontal sync.
+	if(x_ < line_length_ - 50*2) 		event_time = std::min(line_length_ - 50*2, event_time);
+	else if(x_ < line_length_ - 10*2)	event_time = std::min(line_length_ - 10*2, event_time);
 
 	// It wasn't any of those, so as a temporary expedient, just supply end of line.
-	return HalfCycles(line_length_ - x_);
+	return HalfCycles(event_time - x_);
 }
 
 // MARK: - IO dispatch
