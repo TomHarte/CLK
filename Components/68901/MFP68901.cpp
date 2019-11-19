@@ -232,7 +232,10 @@ void MFP68901::set_timer_event_input(int channel, bool value) {
 	if(timers_[channel].event_input == value) return;
 
 	timers_[channel].event_input = value;
-	if(timers_[channel].mode == TimerMode::EventCount && !value) {	/* TODO: which edge is counted? "as defined by the associated Interrupt Channel’s edge bit"?  */
+	if(timers_[channel].mode == TimerMode::EventCount && (value == !!(gpip_active_edge_ & (0x10 >> channel)))) {
+		// "The active state of the signal on TAI or TBI is dependent upon the associated
+		// Interrupt Channel’s edge bit (GPIP 4 for TAI and GPIP 3 for TBI [...] ).
+		// If the edge bit associated with the TAI or TBI input is a one, it will be active high.
 		decrement_timer(channel, 1);
 	}
 }
