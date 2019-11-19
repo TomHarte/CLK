@@ -391,11 +391,11 @@ void Video::write(int address, uint16_t value) {
 void Video::update_output_mode() {
 	// If this is black and white mode, that's that.
 	switch((video_mode_ >> 8) & 3) {
-		default:
 		case 0:	output_bpp_ = OutputBpp::Four;	break;
 		case 1:	output_bpp_ = OutputBpp::Two;	break;
 
 		// 1bpp mode ignores the otherwise-programmed frequency.
+		default:
 		case 2:
 			output_bpp_ = OutputBpp::One;
 			field_frequency_ = FieldFrequency::SeventyTwo;
