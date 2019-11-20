@@ -239,6 +239,15 @@ void MFP68901::set_timer_event_input(int channel, bool value) {
 		// If the edge bit associated with the TAI or TBI input is a one, it will be active high.
 		decrement_timer(channel, 1);
 	}
+
+	// TODO:
+	//
+	// Altering the edge bit while the timer is in the event count mode can produce a count pulse.
+	// The interrupt channel associated with the input (I3 for I4 for TAI) is allowed to function normally.
+	// To count transitions reliably, the input must remain in each state (1/O) for a length of time equal
+	// to four periods of the timer clock.
+	//
+	// (the final bit probably explains 13 cycles of the DE to interrupt latency; not sure about the other ~15)
 }
 
 void MFP68901::decrement_timer(int timer, int amount) {
@@ -251,7 +260,10 @@ void MFP68901::decrement_timer(int timer, int amount) {
 				case 2: begin_interrupts(Interrupt::TimerC);	break;
 				case 3: begin_interrupts(Interrupt::TimerD);	break;
 			}
-			if(timers_[timer].mode == TimerMode::Delay) {
+
+			// Re: reloading when in event counting mode; I found the data sheet thoroughly unclear on
+			// this, but it appears empirically to be correct. See e.g. Pompey Pirates menu 27.
+			if(timers_[timer].mode == TimerMode::Delay || timers_[timer].mode == TimerMode::EventCount) {
 				timers_[timer].value += timers_[timer].reload_value;	// TODO: properly.
 			}
 		}
