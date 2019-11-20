@@ -277,7 +277,7 @@ void MFP68901::set_port_input(uint8_t input) {
 }
 
 uint8_t MFP68901::get_port_output() {
-	return 0xff;
+	return 0xff;	// TODO.
 }
 
 void MFP68901::reevaluate_gpip_interrupts() {

@@ -21,28 +21,58 @@ class PortHandler {
 		// TODO: announce changes in output.
 };
 
+/*!
+	Models the Motorola 68901 Multi-Function Peripheral ('MFP').
+*/
 class MFP68901: public ClockingHint::Source {
 	public:
+		/// @returns the result of a read from @c address.
 		uint8_t read(int address);
+
+		/// Performs a write of @c value to @c address.
 		void write(int address, uint8_t value);
 
+		/// Advances the MFP by the supplied number of HalfCycles.
 		void run_for(HalfCycles);
+
+		/// @returns the number of cycles until the next possible sequence point — the next time
+		/// at which the interrupt line _might_ change. This object conforms to ClockingHint::Source
+		/// so that mechanism can also be used to reduce the quantity of calls into this class.
+		///
+		/// @discussion TODO, alas.
 		HalfCycles get_next_sequence_point();
 
+		/// Sets the current level of either of the timer event inputs — TAI and TBI in datasheet terms.
 		void set_timer_event_input(int channel, bool value);
 
+		/// Sets a port handler, a receiver that will be notified upon any change in GPIP output.
+		///
+		/// @discussion TODO.
 		void set_port_handler(PortHandler *);
+
+		/// Sets the current input GPIP values.
 		void set_port_input(uint8_t);
+
+		/// @returns the current GPIP output values.
+		///
+		/// @discussion TODO.
 		uint8_t get_port_output();
 
+		/// @returns @c true if the interrupt output is currently active; @c false otherwise.s
 		bool get_interrupt_line();
 
 		static const int NoAcknowledgement = 0x100;
+
+		/// Communicates an interrupt acknowledge cycle.
+		///
+		/// @returns the vector placed on the bus if any; @c NoAcknowledgement if nothing is loaded.
 		int acknowledge_interrupt();
 
 		struct InterruptDelegate {
+			/// Informs the delegate of a change in the interrupt line of the nominated MFP.
 			virtual void mfp68901_did_change_interrupt_status(MFP68901 *) = 0;
 		};
+		/// Sets a delegate that will be notified upon any change in the interrupt line.
 		void set_interrupt_delegate(InterruptDelegate *delegate);
 
 		// ClockingHint::Source.
