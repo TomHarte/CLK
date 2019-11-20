@@ -209,6 +209,7 @@ HalfCycles MFP68901::get_next_sequence_point() {
 // MARK: - Timers
 
 void MFP68901::set_timer_mode(int timer, TimerMode mode, int prescale, bool reset_timer) {
+	LOG("Timer " << timer << " mode set: " << int(mode) << "; prescale: " << prescale);
 	timers_[timer].mode = mode;
 	timers_[timer].prescale = prescale;
 	if(reset_timer) {
@@ -314,8 +315,6 @@ void MFP68901::update_interrupts() {
 
 	// Update the delegate if necessary.
 	if(interrupt_delegate_ && interrupt_line_ != old_interrupt_line) {
-		if(interrupt_line_)
-			LOG("Generating interrupt: " << std::hex << interrupt_pending_ << " / " << std::hex << interrupt_mask_ << " : " << std::hex << interrupt_in_service_);
 		interrupt_delegate_->mfp68901_did_change_interrupt_status(this);
 	}
 }
