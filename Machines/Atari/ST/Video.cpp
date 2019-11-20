@@ -28,7 +28,7 @@ const struct VerticalParams {
 	const int height;
 } vertical_params[3] = {
 	{63, 263, 313},	// 47 rather than 63 on early machines.
-	{34, 234, 262},	// TODO: is 262 correct? If it's 263, how does that interact with opening the bottom border?
+	{34, 234, 263},	// TODO: is 262 correct? If it's 263, how does that interact with opening the bottom border?
 	{1, 401, 500}	// 72 Hz mode: who knows?
 };
 
@@ -87,7 +87,11 @@ struct Checker {
 } checker;
 #endif
 
-const int de_delay_period = 28*2;
+const int de_delay_period = 28*2;	// Number of half cycles after DE that observed DE changes.
+const int vsync_x_position = 54*2;	// Horizontal cycle on which vertical sync changes happen.
+
+// "VSYNC starts 104 cycles after the start of the previous line's HSYNC, so that's 4 cycles before DE would be activated. ";
+// hsync is at -50, so that's +54
 
 }
 
@@ -147,8 +151,8 @@ void Video::run_for(HalfCycles duration) {
 		if(line_length_ - 10*2 > x_)				next_event = std::min(next_event, line_length_ - 10*2);
 
 		// Also, a vertical sync event might intercede.
-		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ < 30*2 && next_event >= 30*2) {
-			next_event = 30*2;
+		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ < vsync_x_position && next_event >= vsync_x_position) {
+			next_event = vsync_x_position;
 		}
 
 		// Determine current output mode and number of cycles to output for.
@@ -208,16 +212,21 @@ void Video::run_for(HalfCycles duration) {
 			next_vertical_ = vertical_;
 			next_vertical_.sync_schedule = VerticalState::SyncSchedule::None;
 
-			// Use vertical_parameters to get parameters for the current output frequency.
-			if(next_y_ == vertical_timings.set_enable) {
+			// Use vertical_parameters to get parameters for the current output frequency;
+			// quick note: things other than the total frame size are counted in terms
+			// of the line they're evaluated on — i.e. the test is this line, not the next
+			// one. The total height constraint is obviously whether the next one would be
+			// too far.
+			if(y_ == vertical_timings.set_enable) {
 				next_vertical_.enable = true;
-			} else if(next_y_ == vertical_timings.reset_enable) {
+			} else if(y_ == vertical_timings.reset_enable) {
 				next_vertical_.enable = false;
 			} else if(next_y_ == vertical_timings.height) {
 				next_y_ = 0;
-				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
 				current_address_ = base_address_ >> 1;
-			} else if(next_y_ == 3) {
+			} else if(y_ == 0) {
+				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
+			} else if(y_ == 3) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::End;
 			}
 		}
@@ -235,7 +244,7 @@ void Video::run_for(HalfCycles duration) {
 		else if(line_length_ - 10*2 == x_)				horizontal_.sync = false;
 
 		// Check vertical events.
-		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ == 30*2) {
+		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ == vsync_x_position) {
 			vertical_.sync = vertical_.sync_schedule == VerticalState::SyncSchedule::Begin;
 			vertical_.enable &= !vertical_.sync;
 		}
@@ -320,8 +329,8 @@ HalfCycles Video::get_next_sequence_point() {
 	}
 
 	// If a vertical sync event is scheduled, test for that.
-	if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && (x_ < 30*2)) {
-		event_time = std::min(event_time, 30*2);
+	if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && (x_ < vsync_x_position)) {
+		event_time = std::min(event_time, vsync_x_position);
 	}
 
 	// Test for beginning and end of horizontal sync.
