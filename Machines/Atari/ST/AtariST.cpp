@@ -83,7 +83,8 @@ class ConcreteMachine:
 			// Set up basic memory map.
 			memory_map_[0] = BusDevice::MostlyRAM;
 			int c = 1;
-			for(; c < 0x08; ++c) memory_map_[c] = BusDevice::RAM;
+			for(; c < int(ram_.size() >> 15); ++c) memory_map_[c] = BusDevice::RAM;
+			for(; c < 0x40; ++c) memory_map_[c] = BusDevice::Floating;
 			for(; c < 0xff; ++c) memory_map_[c] = BusDevice::Unassigned;
 
 			const bool is_early_tos = true;
@@ -174,19 +175,30 @@ class ConcreteMachine:
 
 			// If this is a new strobing of the address signal, test for bus error and pre-DTack delay.
 			//
-			// DTack delay rule: if accessing RAM or the shifter, align with the two cycles next available
-			// for the CPU to access that side of the bus.
 			HalfCycles delay(0);
-			if((cycle.operation & Microcycle::NewAddress) && (address < ram_.size() || (address == (0xff8260 >> 1)))) {
-				// DTack will be implicit; work out how long until that should be,
-				// and apply bus error constraints.
-				const int i_phase = bus_phase_.as<int>() & 7;
-				if(i_phase < 4) {
-					delay = HalfCycles(4 - i_phase);
-					advance_time(delay);
+			if(cycle.operation & Microcycle::NewAddress) {
+				if(
+					// Anything unassigned should generate a bus error.
+					(memory_map_[address >> 15] == BusDevice::Unassigned) ||
+
+					// Bus errors also apply to unprivileged access to the first 0x800 bytes, or the IO area.
+					(!is_supervisor && (address < 0x400 || memory_map_[address >> 15] == BusDevice::IO))
+				) {
+					mc68000_.set_bus_error(true);
+					return delay;	// TODO: there should be an extra delay here.
 				}
 
-				// TODO: presumably test is if(after declared memory size and (not supervisor or before hardware space)) bus_error?
+				// DTack delay rule: if accessing RAM or the shifter, align with the two cycles next available
+				// for the CPU to access that side of the bus.
+				if(address < ram_.size() || (address == (0xff8260 >> 1))) {
+					// DTack will be implicit; work out how long until that should be,
+					// and apply bus error constraints.
+					const int i_phase = bus_phase_.as<int>() & 7;
+					if(i_phase < 4) {
+						delay = HalfCycles(4 - i_phase);
+						advance_time(delay);
+					}
+				}
 			}
 
 			uint16_t *memory = nullptr;
@@ -199,8 +211,6 @@ class ConcreteMachine:
 					}
 				case BusDevice::RAM:
 					memory = ram_.data();
-					address &= ram_.size() - 1;
-					// TODO: align with the next access window.
 				break;
 
 				case BusDevice::ROM:
@@ -208,8 +218,9 @@ class ConcreteMachine:
 					address %= rom_.size();
 				break;
 
+				case BusDevice::Floating:
+					// TODO: provide vapour reads here. But: will these always be of the last video fetch?
 				case BusDevice::Unassigned:
-					// TODO: figure out the rules about bus errors.
 				case BusDevice::Cartridge:
 					/*
 						TOS 1.0 appears to attempt to read from the catridge before it has setup
@@ -443,7 +454,20 @@ class ConcreteMachine:
 		std::vector<uint16_t> rom_;
 
 		enum class BusDevice {
-			MostlyRAM, RAM, ROM, Cartridge, IO, Unassigned
+			/// A mostly RAM page is one that returns ROM for the first 8 bytes, RAM elsewhere.
+			MostlyRAM,
+			/// Allows reads and writes to ram_.
+			RAM,
+			/// Nothing is mapped to this area, and it also doesn't trigger an exception upon access.
+			Floating,
+			/// Allows reading from rom_; writes do nothing.
+			ROM,
+			/// Allows interaction with a cartrige_.
+			Cartridge,
+			/// Marks the IO page, in which finer decoding will occur.
+			IO,
+			/// An unassigned page has nothing below it, in a way that triggers exceptions.
+			Unassigned
 		};
 		BusDevice memory_map_[256];
 
