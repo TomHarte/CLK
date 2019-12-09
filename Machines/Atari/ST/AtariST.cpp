@@ -30,6 +30,8 @@
 #include "../../../ClockReceiver/ForceInline.hpp"
 
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+
+#define LOG_PREFIX "[ST] "
 #include "../../../Outputs/Log.hpp"
 
 #include "../../Utility/MemoryPacker.hpp"
@@ -150,6 +152,11 @@ class ConcreteMachine:
 
 			// Advance time.
 			advance_time(cycle.length);
+
+			// Check for assertion of reset.
+			if(cycle.operation & Microcycle::Reset) {
+				LOG("Unhandled Reset");
+			}
 
 			// A null cycle leaves nothing else to do.
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
