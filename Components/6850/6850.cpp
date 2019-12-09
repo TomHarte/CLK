@@ -8,6 +8,8 @@
 
 #include "6850.hpp"
 
+#include <cassert>
+
 using namespace Motorola::ACIA;
 
 const HalfCycles ACIA::SameAsTransmit;
