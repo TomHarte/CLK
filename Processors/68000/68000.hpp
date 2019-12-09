@@ -49,23 +49,25 @@ namespace MC68000 {
 	avoid the runtime cost of actual DTack emulation. But such as the bus allows.)
 */
 struct Microcycle {
+	/// Indicates that the address strobe and exactly one of the data strobes are active; you can determine
+	/// which by inspecting the low bit of the provided address. The RW line indicates a read.
+	static const int SelectByte				= 1 << 0;
+	// Maintenance note: this is bit 0 to reduce the cost of getting a host-endian
+	// bytewise address. See implementation of host_endian_byte_address().
+
+	/// Indicates that the address and both data select strobes are active.
+	static const int SelectWord				= 1 << 1;
+
 	/// A NewAddress cycle is one in which the address strobe is initially low but becomes high;
 	/// this correlates to states 0 to 5 of a standard read/write cycle.
-	static const int NewAddress				= 1 << 0;
+	static const int NewAddress				= 1 << 2;
 
 	/// A SameAddress cycle is one in which the address strobe is continuously asserted, but neither
 	/// of the data strobes are.
-	static const int SameAddress			= 1 << 1;
+	static const int SameAddress			= 1 << 3;
 
 	/// A Reset cycle is one in which the RESET output is asserted.
-	static const int Reset					= 1 << 2;
-
-	/// Indicates that the address and both data select strobes are active.
-	static const int SelectWord				= 1 << 3;
-
-	/// Indicates that the address strobe and exactly one of the data strobes are active; you can determine
-	/// which by inspecting the low bit of the provided address. The RW line indicates a read.
-	static const int SelectByte				= 1 << 4;
+	static const int Reset					= 1 << 4;
 
 	/// If set, indicates a read. Otherwise, a write.
 	static const int Read 					= 1 << 5;
@@ -197,6 +199,25 @@ struct Microcycle {
 	}
 
 	/*!
+		@returns the address of the word or byte being accessed at byte precision,
+		in the endianness of the host platform.
+
+		So: if this is a word access, and the 68000 wants to select the word at address
+		@c n, this will evaluate to @c n regardless of the host machine's endianness..
+
+		If this is a byte access and the host machine is big endian it will evalue to @c n.
+
+		If the host machine is little endian then it will evaluate to @c n^1.
+	*/
+	forceinline uint32_t host_endian_byte_address() const {
+		#if TARGET_RT_BIG_ENDIAN
+		return *address & 0xffffff;
+		#else
+		return (*address ^ (1 & operation & SelectByte)) & 0xffffff;
+		#endif
+	}
+
+	/*!
 		@returns the value on the data bus — all 16 bits, with any inactive lines
 		(as er the upper and lower data selects) being represented by 1s. Assumes
 		this is a write cycle.
@@ -271,6 +292,34 @@ struct Microcycle {
 	*/
 	forceinline uint32_t active_operation_word_address() const {
 		return ((*address) & 0x00fffffe) >> 1;
+	}
+
+	/*!
+		Assuming this to be a cycle with a data select active, applies it to @c target,
+		where 'applies' means:
+
+			* if this is a byte read, reads a single byte from @c target;
+			* if this is a word read, reads a word (in the host platform's endianness) from @c target; and
+			* if this is a write, does the converse of a read.
+	*/
+	forceinline void apply(uint8_t *target) const {
+		switch(operation & (SelectWord | SelectByte | Read)) {
+			default:
+			break;
+
+			case SelectWord | Read:
+				value->full = *reinterpret_cast<uint16_t *>(target);
+			break;
+			case SelectByte | Read:
+				value->halves.low = *target;
+			break;
+			case Microcycle::SelectWord:
+				*reinterpret_cast<uint16_t *>(target) = value->full;
+			break;
+			case Microcycle::SelectByte:
+				*target = value->halves.low;
+			break;
+		}
 	}
 
 #ifndef NDEBUG
