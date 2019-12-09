@@ -41,6 +41,7 @@ void ACIA::reset() {
 	next_transmission_ = received_data_ = NoValueMask;
 
 	update_interrupt_line();
+	assert(!interrupt_line_);
 }
 
 void ACIA::write(int address, uint8_t value) {
