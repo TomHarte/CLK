@@ -419,7 +419,11 @@ void Video::update_output_mode() {
 		return;
 	}
 
+//	const auto old_frequency = field_frequency_;
 	field_frequency_ = (sync_mode_ & 0x200) ? FieldFrequency::Fifty : FieldFrequency::Sixty;
+//	if(field_frequency_ != old_frequency) {
+//		printf("%d, %d -> %d\n", x_, y_, field_frequency_);
+//	}
 }
 
 // MARK: - The shifter
