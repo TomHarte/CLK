@@ -28,7 +28,7 @@ const struct VerticalParams {
 	const int height;
 } vertical_params[3] = {
 	{63, 263, 313},	// 47 rather than 63 on early machines.
-	{34, 234, 263},	// TODO: is 262 correct? If it's 263, how does that interact with opening the bottom border?
+	{34, 234, 263},
 	{1, 401, 500}	// 72 Hz mode: who knows?
 };
 
@@ -224,6 +224,14 @@ void Video::run_for(HalfCycles duration) {
 			} else if(next_y_ == vertical_timings.height) {
 				next_y_ = 0;
 				current_address_ = base_address_ >> 1;
+
+				// Consider a shout out to the range observer.
+				if(previous_base_address_ != base_address_) {
+					previous_base_address_ = base_address_;
+					if(range_observer_) {
+						range_observer_->video_did_change_access_range(this);
+					}
+				}
 			} else if(y_ == 0) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
 			} else if(y_ == 3) {
@@ -411,7 +419,11 @@ void Video::update_output_mode() {
 		return;
 	}
 
+//	const auto old_frequency = field_frequency_;
 	field_frequency_ = (sync_mode_ & 0x200) ? FieldFrequency::Fifty : FieldFrequency::Sixty;
+//	if(field_frequency_ != old_frequency) {
+//		printf("%d, %d -> %d\n", x_, y_, field_frequency_);
+//	}
 }
 
 // MARK: - The shifter
@@ -588,4 +600,20 @@ void Video::Shifter::output_pixels(int duration, OutputBpp bpp) {
 
 void Video::Shifter::load(uint64_t value) {
 	output_shifter_ = value;
+}
+
+// MARK: - Range observer.
+
+Video::Range Video::get_memory_access_range() {
+	Range range;
+	range.low_address = uint32_t(previous_base_address_);
+	range.high_address = range.low_address + 56994;
+	// 56994 is pessimistic but unscientific, being derived from the resolution of the largest
+	// fullscreen demo I could quickly find documentation of. TODO: calculate real number.
+	return range;
+}
+
+void Video::set_range_observer(RangeObserver *observer) {
+	range_observer_ = observer;
+	observer->video_did_change_access_range(this);
 }

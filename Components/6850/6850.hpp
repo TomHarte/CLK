@@ -74,6 +74,7 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 		}
 
 		bool get_interrupt_line() const;
+		void reset();
 
 		// Input lines.
 		Serial::Line receive;
@@ -105,6 +106,7 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 
 		int bits_received_ = 0;
 		int bits_incoming_ = 0;
+		bool overran_ = false;
 
 		void consider_transmission();
 		int expected_bits();

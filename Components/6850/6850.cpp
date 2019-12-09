@@ -8,6 +8,8 @@
 
 #include "6850.hpp"
 
+#include <cassert>
+
 using namespace Motorola::ACIA;
 
 const HalfCycles ACIA::SameAsTransmit;
@@ -21,12 +23,27 @@ ACIA::ACIA(HalfCycles transmit_clock_rate, HalfCycles receive_clock_rate) :
 
 uint8_t ACIA::read(int address) {
 	if(address&1) {
+		overran_ = false;
 		received_data_ |= NoValueMask;
 		update_interrupt_line();
 		return uint8_t(received_data_);
 	} else {
 		return get_status();
 	}
+}
+
+void ACIA::reset() {
+	transmit.reset_writing();
+	transmit.write(true);
+	request_to_send.reset_writing();
+
+	bits_received_ = bits_incoming_ = 0;
+	receive_interrupt_enabled_ = transmit_interrupt_enabled_ = false;
+	overran_ = false;
+	next_transmission_ = received_data_ = NoValueMask;
+
+	update_interrupt_line();
+	assert(!interrupt_line_);
 }
 
 void ACIA::write(int address, uint8_t value) {
@@ -36,9 +53,7 @@ void ACIA::write(int address, uint8_t value) {
 		update_interrupt_line();
 	} else {
 		if((value&3) == 3) {
-			transmit.reset_writing();
-			transmit.write(true);
-			request_to_send.reset_writing();
+			reset();
 		} else {
 			switch(value & 3) {
 				default:
@@ -143,6 +158,7 @@ bool ACIA::serial_line_did_produce_bit(Serial::Line *line, int bit) {
 	const int bit_target = expected_bits();
 	if(bits_received_ >= bit_target) {
 		bits_received_ = 0;
+		overran_ |= get_status() & 1;
 		received_data_ = uint8_t(bits_incoming_ >> (12 - bit_target));
 		update_interrupt_line();
 		update_clocking_observer();
@@ -186,8 +202,9 @@ void ACIA::update_interrupt_line() {
 		(receive_interrupt_enabled_ && (status & 0x25)) ||
 		(transmit_interrupt_enabled_ && (status & 0x02));
 
-	if(interrupt_delegate_ && old_line != interrupt_line_)
+	if(interrupt_delegate_ && old_line != interrupt_line_) {
 		interrupt_delegate_->acia6850_did_change_interrupt_status(this);
+	}
 }
 
 uint8_t ACIA::get_status() {
@@ -196,6 +213,7 @@ uint8_t ACIA::get_status() {
 		((next_transmission_ == NoValueMask) ? 0x02 : 0x00) |
 //		(data_carrier_detect.read() ? 0x04 : 0x00) |
 //		(clear_to_send.read() ? 0x08 : 0x00) |
+		(overran_ ? 0x20 : 0x00) |
 		(interrupt_line_ ? 0x80 : 0x00)
 	;
 

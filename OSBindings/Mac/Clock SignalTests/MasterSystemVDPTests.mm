@@ -149,7 +149,10 @@
 				NSAssert(time_until_interrupt >= 0, @"Interrupt is scheduled in the past; position %d %d @ %d", c, with_eof, half_cycles);
 
 				if(last_time_until_interrupt) {
-					NSAssert(time_until_interrupt == (last_time_until_interrupt - 1), @"Discontinuity found in interrupt prediction; from %d to %d; position %d %d @ %d", last_time_until_interrupt, time_until_interrupt, c, with_eof, half_cycles);
+					NSAssert(
+						time_until_interrupt == (last_time_until_interrupt - 1),
+						@"Discontinuity found in interrupt prediction; from %@ to %@; position %d %d @ %d",
+						@(last_time_until_interrupt), @(time_until_interrupt), c, with_eof, half_cycles);
 				}
 				last_time_until_interrupt = time_until_interrupt;
 			}
@@ -167,7 +170,10 @@
 		const auto time_remaining_until_line = vdp.get_time_until_line(-1).as_integral();
 		--time_until_line;
 		if(time_until_line) {
-			NSAssert(time_remaining_until_line == time_until_line, @"Discontinuity found in distance-to-line prediction; expected %d but got %d", time_until_line, time_remaining_until_line);
+			NSAssert(
+				time_remaining_until_line == time_until_line,
+				@"Discontinuity found in distance-to-line prediction; expected %@ but got %@",
+				@(time_until_line), @(time_remaining_until_line));
 		}
 		time_until_line = time_remaining_until_line;
 	}
