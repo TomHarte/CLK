@@ -280,6 +280,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								std::cout << std::setfill('0');
 								std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
 								std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
+								std::cout << (is_supervisor_ ? 's' : 'u') << '\t';
 								for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
 								for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
 								if(is_supervisor_) {
