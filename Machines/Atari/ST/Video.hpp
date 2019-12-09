@@ -86,12 +86,30 @@ class Video {
 			Fifty = 0, Sixty = 1, SeventyTwo = 2
 		};
 
+		struct RangeObserver {
+			/// Indicates to the observer that the memory access range has changed.
+			virtual void video_did_change_access_range(Video *) = 0;
+		};
+
+		/// Sets a range observer, which is an actor that will be notified if the memory access range changes.
+		void set_range_observer(RangeObserver *);
+
+		struct Range {
+			uint32_t low_address, high_address;
+		};
+		/*!
+			@returns the range of addresses that the video might read from.
+		*/
+		Range get_memory_access_range();
+
 	private:
 		Outputs::CRT::CRT crt_;
+		RangeObserver *range_observer_ = nullptr;
 
 		uint16_t raw_palette_[16];
 		uint16_t palette_[16];
 		int base_address_ = 0;
+		int previous_base_address_ = 0;
 		int current_address_ = 0;
 
 		uint16_t *ram_ = nullptr;

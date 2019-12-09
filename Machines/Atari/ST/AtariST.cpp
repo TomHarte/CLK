@@ -54,7 +54,8 @@ class ConcreteMachine:
 	public KeyboardMachine::MappedMachine,
 	public Activity::Source,
 	public MediaTarget::Machine,
-	public GI::AY38910::PortHandler {
+	public GI::AY38910::PortHandler,
+	public Video::RangeObserver {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			mc68000_(*this),
@@ -66,8 +67,8 @@ class ConcreteMachine:
 			set_clock_rate(CLOCK_RATE);
 			speaker_.set_input_rate(CLOCK_RATE / 4);
 
-			ram_.resize(512 * 512);	// i.e. 512kb
-			video_->set_ram(ram_.data(), ram_.size());
+			ram_.resize(512 * 1024);	// i.e. 512kb
+			video_->set_ram(reinterpret_cast<uint16_t *>(ram_.data()), ram_.size());
 			Memory::Fuzz(ram_);
 
 			std::vector<ROMMachine::ROM> rom_descriptions = {
@@ -83,7 +84,7 @@ class ConcreteMachine:
 			// Set up basic memory map.
 			memory_map_[0] = BusDevice::MostlyRAM;
 			int c = 1;
-			for(; c < int(ram_.size() >> 15); ++c) memory_map_[c] = BusDevice::RAM;
+			for(; c < int(ram_.size() >> 16); ++c) memory_map_[c] = BusDevice::RAM;
 			for(; c < 0x40; ++c) memory_map_[c] = BusDevice::Floating;
 			for(; c < 0xff; ++c) memory_map_[c] = BusDevice::Unassigned;
 
@@ -111,6 +112,8 @@ class ConcreteMachine:
 			ay_.set_port_handler(this);
 
 			set_gpip_input();
+
+			video_->set_range_observer(this);
 
 			// Insert any supplied media.
 			insert_media(target.media);
@@ -171,18 +174,18 @@ class ConcreteMachine:
 				}
 			}
 
-			auto address = cycle.word_address();
+			auto address = cycle.host_endian_byte_address();
 
 			// If this is a new strobing of the address signal, test for bus error and pre-DTack delay.
-			//
 			HalfCycles delay(0);
 			if(cycle.operation & Microcycle::NewAddress) {
+				// Bus error test.
 				if(
 					// Anything unassigned should generate a bus error.
-					(memory_map_[address >> 15] == BusDevice::Unassigned) ||
+					(memory_map_[address >> 16] == BusDevice::Unassigned) ||
 
 					// Bus errors also apply to unprivileged access to the first 0x800 bytes, or the IO area.
-					(!is_supervisor && (address < 0x400 || memory_map_[address >> 15] == BusDevice::IO))
+					(!is_supervisor && (address < 0x800 || memory_map_[address >> 16] == BusDevice::IO))
 				) {
 					mc68000_.set_bus_error(true);
 					return delay;	// TODO: there should be an extra delay here.
@@ -190,7 +193,7 @@ class ConcreteMachine:
 
 				// DTack delay rule: if accessing RAM or the shifter, align with the two cycles next available
 				// for the CPU to access that side of the bus.
-				if(address < ram_.size() || (address == (0xff8260 >> 1))) {
+				if(address < ram_.size() || (address == 0xff8260)) {
 					// DTack will be implicit; work out how long until that should be,
 					// and apply bus error constraints.
 					const int i_phase = bus_phase_.as<int>() & 7;
@@ -201,11 +204,11 @@ class ConcreteMachine:
 				}
 			}
 
-			uint16_t *memory = nullptr;
-			switch(memory_map_[address >> 15]) {
+			uint8_t *memory = nullptr;
+			switch(memory_map_[address >> 16]) {
 				default:
 				case BusDevice::MostlyRAM:
-					if(address < 4) {
+					if(address < 8) {
 						memory = rom_.data();
 						break;
 					}
@@ -238,7 +241,7 @@ class ConcreteMachine:
 				return delay;
 
 				case BusDevice::IO:
-					switch(address) {
+					switch(address >> 1) {
 						default:
 //							assert(false);
 
@@ -266,7 +269,7 @@ class ConcreteMachine:
 								cycle.set_value8_high(ay_.get_data_output());
 								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							} else {
-								if(address == 0x7fc400) {
+								if((address >> 1) == 0x7fc400) {
 									ay_.set_control_lines(GI::AY38910::BC1);
 								} else {
 									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
@@ -288,9 +291,9 @@ class ConcreteMachine:
 							if(!cycle.data_select_active()) return delay;
 
 							if(cycle.operation & Microcycle::Read) {
-								cycle.set_value8_low(mfp_->read(int(address)));
+								cycle.set_value8_low(mfp_->read(int(address >> 1)));
 							} else {
-								mfp_->write(int(address), cycle.value8_low());
+								mfp_->write(int(address >> 1), cycle.value8_low());
 							}
 						break;
 
@@ -311,9 +314,9 @@ class ConcreteMachine:
 							if(!cycle.data_select_active()) return delay;
 
 							if(cycle.operation & Microcycle::Read) {
-								cycle.set_value16(video_->read(int(address)));
+								cycle.set_value16(video_->read(int(address >> 1)));
 							} else {
-								video_->write(int(address), cycle.value16());
+								video_->write(int(address >> 1), cycle.value16());
 							}
 						break;
 
@@ -323,11 +326,11 @@ class ConcreteMachine:
 							mc68000_.set_is_peripheral_address(!cycle.data_select_active());
 							if(!cycle.data_select_active()) return delay;
 
-							const auto acia_ = (address < 0x7ffe02) ? &keyboard_acia_ : &midi_acia_;
+							const auto acia_ = ((address >> 1) < 0x7ffe02) ? &keyboard_acia_ : &midi_acia_;
 							if(cycle.operation & Microcycle::Read) {
-								cycle.set_value8_high((*acia_)->read(int(address)));
+								cycle.set_value8_high((*acia_)->read(int(address >> 1)));
 							} else {
-								(*acia_)->write(int(address), cycle.value8_high());
+								(*acia_)->write(int(address >> 1), cycle.value8_high());
 							}
 						} break;
 
@@ -336,9 +339,9 @@ class ConcreteMachine:
 							if(!cycle.data_select_active()) return delay;
 
 							if(cycle.operation & Microcycle::Read) {
-								cycle.set_value16(dma_->read(int(address)));
+								cycle.set_value16(dma_->read(int(address >> 1)));
 							} else {
-								dma_->write(int(address), cycle.value16());
+								dma_->write(int(address >> 1), cycle.value16());
 							}
 						break;
 					}
@@ -351,21 +354,20 @@ class ConcreteMachine:
 				break;
 
 				case Microcycle::SelectWord | Microcycle::Read:
-					cycle.value->full = memory[address];
+					cycle.value->full = *reinterpret_cast<uint16_t *>(&memory[address]);
 				break;
 				case Microcycle::SelectByte | Microcycle::Read:
-					cycle.value->halves.low = uint8_t(memory[address] >> cycle.byte_shift());
+					cycle.value->halves.low = memory[address];
 				break;
 				case Microcycle::SelectWord:
-					video_.flush();	// TODO: (and below), a range check to determine whether this is really necesary.
-					memory[address] = cycle.value->full;
+					if(address >= video_range_.low_address && address < video_range_.high_address)
+						video_.flush();
+					*reinterpret_cast<uint16_t *>(&memory[address]) = cycle.value->full;
 				break;
 				case Microcycle::SelectByte:
-					video_.flush();
-					memory[address] = uint16_t(
-						(cycle.value->halves.low << cycle.byte_shift()) |
-						(memory[address] & cycle.untouched_byte_mask())
-					);
+					if(address >= video_range_.low_address && address < video_range_.high_address)
+						video_.flush();
+					memory[address] = cycle.value->halves.low;
 				break;
 			}
 
@@ -450,8 +452,8 @@ class ConcreteMachine:
 		HalfCycles cycles_since_ikbd_update_;
 		IntelligentKeyboard ikbd_;
 
-		std::vector<uint16_t> ram_;
-		std::vector<uint16_t> rom_;
+		std::vector<uint8_t> ram_;
+		std::vector<uint8_t> rom_;
 
 		enum class BusDevice {
 			/// A mostly RAM page is one that returns ROM for the first 8 bytes, RAM elsewhere.
@@ -498,7 +500,7 @@ class ConcreteMachine:
 			// that's implemented, just offers magical zero-cost DMA insertion and
 			// extrication.
 			if(dma_->get_bus_request_line()) {
-				dma_->bus_grant(ram_.data(), ram_.size());
+				dma_->bus_grant(reinterpret_cast<uint16_t *>(ram_.data()), ram_.size());
 			}
 		}
 		void set_gpip_input() {
@@ -597,6 +599,12 @@ class ConcreteMachine:
 		// MARK: - Activity Source
 		void set_activity_observer(Activity::Observer *observer) override {
 			dma_->set_activity_observer(observer);
+		}
+
+		// MARK: - Video Range
+		Video::Range video_range_;
+		void video_did_change_access_range(Video *video) final {
+			video_range_ = video->get_memory_access_range();
 		}
 };
 

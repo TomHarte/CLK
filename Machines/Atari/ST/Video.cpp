@@ -224,6 +224,14 @@ void Video::run_for(HalfCycles duration) {
 			} else if(next_y_ == vertical_timings.height) {
 				next_y_ = 0;
 				current_address_ = base_address_ >> 1;
+
+				// Consider a shout out to the range observer.
+				if(previous_base_address_ != base_address_) {
+					previous_base_address_ = base_address_;
+					if(range_observer_) {
+						range_observer_->video_did_change_access_range(this);
+					}
+				}
 			} else if(y_ == 0) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
 			} else if(y_ == 3) {
@@ -588,4 +596,20 @@ void Video::Shifter::output_pixels(int duration, OutputBpp bpp) {
 
 void Video::Shifter::load(uint64_t value) {
 	output_shifter_ = value;
+}
+
+// MARK: - Range observer.
+
+Video::Range Video::get_memory_access_range() {
+	Range range;
+	range.low_address = uint32_t(previous_base_address_);
+	range.high_address = range.low_address + 56994;
+	// 56994 is pessimistic but unscientific, being derived from the resolution of the largest
+	// fullscreen demo I could quickly find documentation of. TODO: calculate real number.
+	return range;
+}
+
+void Video::set_range_observer(RangeObserver *observer) {
+	range_observer_ = observer;
+	observer->video_did_change_access_range(this);
 }
