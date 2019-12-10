@@ -178,28 +178,15 @@ void MFP68901::write(int address, uint8_t value) {
 void MFP68901::run_for(HalfCycles time) {
 	cycles_left_ += time;
 
-	// TODO: this is the stupidest possible implementation. Improve.
-	int cycles = int(cycles_left_.flush<Cycles>().as_integral());
-	while(cycles--) {
-		for(int c = 0; c < 4; ++c) {
-			if(timers_[c].mode >= TimerMode::Delay) {
-				--timers_[c].divisor;
-				if(!timers_[c].divisor) {
-					timers_[c].divisor = timers_[c].prescale;
-					decrement_timer(c, 1);
-				}
-			}
+	const int cycles = int(cycles_left_.flush<Cycles>().as_integral());
+	for(int c = 0; c < 4; ++c) {
+		if(timers_[c].mode >= TimerMode::Delay) {
+			const int dividend = (cycles + timers_[c].prescale - timers_[c].divisor);
+			const int decrements = dividend / timers_[c].prescale;
+			timers_[c].divisor = timers_[c].prescale - (dividend % timers_[c].prescale);
+			if(decrements) decrement_timer(c, decrements);
 		}
 	}
-//	const int cycles = int(cycles_left_.flush<Cycles>().as_integral());
-//	for(int c = 0; c < 4; ++c) {
-//		if(timers_[c].mode >= TimerMode::Delay) {
-//			const int dividend = (cycles + timers_[c].prescale - timers_[c].divisor);
-//			const int decrements = dividend / timers_[c].prescale;
-//			timers_[c].divisor = timers_[c].prescale - (dividend % timers_[c].prescale);
-//			if(decrements) decrement_timer(c, decrements);
-//		}
-//	}
 }
 
 HalfCycles MFP68901::get_next_sequence_point() {
