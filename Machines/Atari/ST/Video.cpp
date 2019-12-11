@@ -145,6 +145,7 @@ void Video::run_for(HalfCycles duration) {
 		if(horizontal_timings.set_blank > x_)		next_event = std::min(next_event, horizontal_timings.set_blank);
 		if(horizontal_timings.reset_enable > x_)	next_event = std::min(next_event, horizontal_timings.reset_enable);
 		if(horizontal_timings.set_enable > x_) 		next_event = std::min(next_event, horizontal_timings.set_enable);
+		if(next_load_toggle_ > x_) 					next_event = std::min(next_event, next_load_toggle_);
 
 		// Check for events that are relative to existing latched state.
 		if(line_length_ - 50*2 > x_)				next_event = std::min(next_event, line_length_ - 50*2);
@@ -163,14 +164,16 @@ void Video::run_for(HalfCycles duration) {
 			shifter_.output_sync(run_length);
 		} else if(horizontal_.blank || vertical_.blank) {
 			shifter_.output_blank(run_length);
-		} else if(!vertical_.enable || !horizontal_.enable) {
+		} else if(!load_) {
 			shifter_.output_border(run_length, output_bpp_);
 		} else {
+			const int since_load = x_ - load_base_;
+
 			// There will be pixels this line, subject to the shifter pipeline.
 			// Divide into 8-[half-]cycle windows; at the start of each window fetch a word,
 			// and during the rest of the window, shift out.
-			int start_column = x_ >> 3;
-			const int end_column = (x_ + run_length) >> 3;
+			int start_column = since_load >> 3;
+			const int end_column = (since_load + run_length) >> 3;
 
 			// Rules obeyed below:
 			//
@@ -182,9 +185,9 @@ void Video::run_for(HalfCycles duration) {
 				shifter_.output_pixels(run_length, output_bpp_);
 			} else {
 				// Continue the current column if partway across.
-				if(x_&7) {
+				if(since_load&7) {
 					// If at least one column boundary is crossed, complete this column.
-					shifter_.output_pixels(8 - (x_ & 7), output_bpp_);
+					shifter_.output_pixels(8 - (since_load & 7), output_bpp_);
 					++start_column;	// This starts a new column, so latch a new word.
 					latch_word();
 				}
@@ -197,8 +200,8 @@ void Video::run_for(HalfCycles duration) {
 				}
 
 				// Output the start of the next column, if necessary.
-				if((x_ + run_length) & 7) {
-					shifter_.output_pixels((x_ + run_length) & 7, output_bpp_);
+				if((since_load + run_length) & 7) {
+					shifter_.output_pixels((since_load + run_length) & 7, output_bpp_);
 				}
 			}
 		}
@@ -248,8 +251,20 @@ void Video::run_for(HalfCycles duration) {
 		else if(horizontal_timings.set_blank == x_)		horizontal_.blank = true;
 		else if(horizontal_timings.reset_enable == x_)	horizontal_.enable = false;
 		else if(horizontal_timings.set_enable == x_) 	horizontal_.enable = true;
-		else if(line_length_ - 50*2 == x_)				horizontal_.sync = true;
+		else if(line_length_ - 50*2 == x_)				{ horizontal_.sync = true; horizontal_.enable = false; }
 		else if(line_length_ - 10*2 == x_)				horizontal_.sync = false;
+		else if(next_load_toggle_ == x_)				{
+			next_load_toggle_ = -1;
+			load_ ^= true;
+			load_base_ = x_;
+		}
+
+		// Check for an upcoming load toggle — that is, a time at which load_ will be either
+		// disabled or enabled. These are scheduled for four cycles after the event that should
+		// change load has occurred.
+		if((horizontal_.enable && vertical_.enable) != load_ && next_load_toggle_ == -1) {
+			next_load_toggle_ = x_ + 8;	// 4 cycles = 8 half-cycles
+		}
 
 		// Check vertical events.
 		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ == vsync_x_position) {
@@ -406,6 +421,8 @@ void Video::write(int address, uint16_t value) {
 }
 
 void Video::update_output_mode() {
+//	const auto old_frequency = field_frequency_;
+
 	// If this is black and white mode, that's that.
 	switch((video_mode_ >> 8) & 3) {
 		case 0:	output_bpp_ = OutputBpp::Four;	break;
@@ -416,10 +433,12 @@ void Video::update_output_mode() {
 		case 2:
 			output_bpp_ = OutputBpp::One;
 			field_frequency_ = FieldFrequency::SeventyTwo;
+//			if(field_frequency_ != old_frequency) {
+//				printf("%d, %d -> %d\n", x_, y_, field_frequency_);
+//			}
 		return;
 	}
 
-//	const auto old_frequency = field_frequency_;
 	field_frequency_ = (sync_mode_ & 0x200) ? FieldFrequency::Fifty : FieldFrequency::Sixty;
 //	if(field_frequency_ != old_frequency) {
 //		printf("%d, %d -> %d\n", x_, y_, field_frequency_);
