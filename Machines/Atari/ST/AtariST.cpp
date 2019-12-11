@@ -67,7 +67,7 @@ class ConcreteMachine:
 			speaker_(ay_),
 			ikbd_(keyboard_acia_->transmit, keyboard_acia_->receive) {
 			set_clock_rate(CLOCK_RATE);
-			speaker_.set_input_rate(CLOCK_RATE / 4);
+			speaker_.set_input_rate(float(CLOCK_RATE) / 4.0f);
 
 			ram_.resize(512 * 1024);	// i.e. 512kb
 			video_->set_ram(reinterpret_cast<uint16_t *>(ram_.data()), ram_.size());
