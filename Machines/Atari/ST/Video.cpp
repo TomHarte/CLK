@@ -58,9 +58,9 @@ const struct HorizontalParams {
 
 	const int length;
 } horizontal_params[3] = {
-	{56*2, 376*2,	450*2, 28*2,	512*2},
-	{52*2, 372*2,	450*2, 24*2,	508*2},
-	{4*2, 164*2,	184*2, 2*2,		224*2}
+	{56*2, 376*2,	448*2, 28*2,	512*2},
+	{52*2, 372*2,	448*2, 24*2,	508*2},
+	{4*2, 164*2,	999*2, 999*2,	224*2}	// 72Hz mode doesn't set or reset blank.
 };
 
 const HorizontalParams &horizontal_parameters(Video::FieldFrequency frequency) {
@@ -73,10 +73,16 @@ struct Checker {
 		for(int c = 0; c < 3; ++c) {
 			// Expected horizontal order of events: reset blank, enable display, disable display, enable blank (at least 50 before end of line), end of line
 			const auto horizontal = horizontal_parameters(Video::FieldFrequency(c));
-			assert(horizontal.reset_blank < horizontal.set_enable);
-			assert(horizontal.set_enable < horizontal.reset_enable);
-			assert(horizontal.reset_enable < horizontal.set_blank);
-			assert(horizontal.set_blank+50 < horizontal.length);
+
+			if(c < 2) {
+				assert(horizontal.reset_blank < horizontal.set_enable);
+				assert(horizontal.set_enable < horizontal.reset_enable);
+				assert(horizontal.reset_enable < horizontal.set_blank);
+				assert(horizontal.set_blank+50 < horizontal.length);
+			} else {
+				assert(horizontal.set_enable < horizontal.reset_enable);
+				assert(horizontal.set_enable+50 <horizontal.length);
+			}
 
 			// Expected vertical order of events: reset blank, enable display, disable display, enable blank (at least 50 before end of line), end of line
 			const auto vertical = vertical_parameters(Video::FieldFrequency(c));
@@ -259,9 +265,8 @@ void Video::run_for(HalfCycles duration) {
 			load_base_ = x_;
 		}
 
-		// Check for an upcoming load toggle — that is, a time at which load_ will be either
-		// disabled or enabled. These are scheduled for four cycles after the event that should
-		// change load has occurred.
+		// Check for an upcoming load toggle; that is, a time at which load_ will be either
+		// disabled or enabled. These occur with a brief latency.
 		if((horizontal_.enable && vertical_.enable) != load_ && next_load_toggle_ == -1) {
 			next_load_toggle_ = x_ + 8;	// 4 cycles = 8 half-cycles
 		}
