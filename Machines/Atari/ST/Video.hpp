@@ -153,6 +153,7 @@ class Video {
 		int data_latch_position_ = 0;
 		uint16_t data_latch_[4] = {0, 0, 0, 0};
 		void latch_word();
+		void reset_fifo();
 
 		class Shifter {
 			public:

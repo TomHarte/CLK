@@ -38,6 +38,7 @@ const VerticalParams &vertical_parameters(Video::FieldFrequency frequency) {
 }
 
 
+#define CYCLE(x)	((x) * 2)
 /*!
 	Defines the horizontal counts at which mode-specific events will occur:
 	horizontal enable being set and being reset, blank being set and reset, and the
@@ -58,9 +59,9 @@ const struct HorizontalParams {
 
 	const int length;
 } horizontal_params[3] = {
-	{56*2, 376*2,	448*2, 28*2,	512*2},
-	{52*2, 372*2,	448*2, 24*2,	508*2},
-	{4*2, 164*2,	999*2, 999*2,	224*2}	// 72Hz mode doesn't set or reset blank.
+	{CYCLE(56), CYCLE(376),		CYCLE(450), CYCLE(28),		CYCLE(512)},
+	{CYCLE(52), CYCLE(372),		CYCLE(450), CYCLE(24),		CYCLE(508)},
+	{CYCLE(4),	CYCLE(164),		CYCLE(999), CYCLE(999),		CYCLE(224)}	// 72Hz mode doesn't set or reset blank.
 };
 
 const HorizontalParams &horizontal_parameters(Video::FieldFrequency frequency) {
@@ -93,8 +94,10 @@ struct Checker {
 } checker;
 #endif
 
-const int de_delay_period = 28*2;	// Number of half cycles after DE that observed DE changes.
-const int vsync_x_position = 54*2;	// Horizontal cycle on which vertical sync changes happen.
+const int de_delay_period = CYCLE(28);	// Number of half cycles after DE that observed DE changes.
+const int vsync_x_position = CYCLE(54);	// Horizontal cycle on which vertical sync changes happen.
+const int hsync_start = CYCLE(48);		// Cycles before end of line when hsync starts.
+const int hsync_end = CYCLE(8);			// Cycles before end of line when hsync ends.
 
 // "VSYNC starts 104 cycles after the start of the previous line's HSYNC, so that's 4 cycles before DE would be activated. ";
 // hsync is at -50, so that's +54
@@ -154,8 +157,8 @@ void Video::run_for(HalfCycles duration) {
 		if(next_load_toggle_ > x_) 					next_event = std::min(next_event, next_load_toggle_);
 
 		// Check for events that are relative to existing latched state.
-		if(line_length_ - 50*2 > x_)				next_event = std::min(next_event, line_length_ - 50*2);
-		if(line_length_ - 10*2 > x_)				next_event = std::min(next_event, line_length_ - 10*2);
+		if(line_length_ - hsync_start > x_)			next_event = std::min(next_event, line_length_ - hsync_start);
+		if(line_length_ - hsync_end > x_)			next_event = std::min(next_event, line_length_ - hsync_end);
 
 		// Also, a vertical sync event might intercede.
 		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ < vsync_x_position && next_event >= vsync_x_position) {
@@ -213,10 +216,10 @@ void Video::run_for(HalfCycles duration) {
 		}
 
 		// Check for whether line length should have been latched during this run.
-		if(x_ <= 54*2 && (x_ + run_length) > 54*2) line_length_ = horizontal_timings.length;
+		if(x_ <= CYCLE(54) && (x_ + run_length) > CYCLE(54)) line_length_ = horizontal_timings.length;
 
 		// Make a decision about vertical state on cycle 502.
-		if(x_ <= 502*2 && (x_ + run_length) > 502*2) {
+		if(x_ <= CYCLE(502) && (x_ + run_length) > CYCLE(502)) {
 			next_y_ = y_ + 1;
 			next_vertical_ = vertical_;
 			next_vertical_.sync_schedule = VerticalState::SyncSchedule::None;
@@ -233,6 +236,7 @@ void Video::run_for(HalfCycles duration) {
 			} else if(next_y_ == vertical_timings.height) {
 				next_y_ = 0;
 				current_address_ = base_address_ >> 1;
+				reset_fifo();	// TODO: remove this, I think, once otherwise stable.
 
 				// Consider a shout out to the range observer.
 				if(previous_base_address_ != base_address_) {
@@ -257,8 +261,8 @@ void Video::run_for(HalfCycles duration) {
 		else if(horizontal_timings.set_blank == x_)		horizontal_.blank = true;
 		else if(horizontal_timings.reset_enable == x_)	horizontal_.enable = false;
 		else if(horizontal_timings.set_enable == x_) 	horizontal_.enable = true;
-		else if(line_length_ - 50*2 == x_)				{ horizontal_.sync = true; horizontal_.enable = false; }
-		else if(line_length_ - 10*2 == x_)				horizontal_.sync = false;
+		else if(line_length_ - hsync_start == x_)		{ horizontal_.sync = true; horizontal_.enable = false; }
+		else if(line_length_ - hsync_end == x_)			horizontal_.sync = false;
 		else if(next_load_toggle_ == x_)				{
 			next_load_toggle_ = -1;
 			load_ ^= true;
@@ -306,6 +310,10 @@ void Video::latch_word() {
 			uint64_t(data_latch_[3])
 		);
 	}
+}
+
+void Video::reset_fifo() {
+	data_latch_position_ = 0;
 }
 
 bool Video::hsync() {
@@ -362,8 +370,8 @@ HalfCycles Video::get_next_sequence_point() {
 	}
 
 	// Test for beginning and end of horizontal sync.
-	if(x_ < line_length_ - 50*2) 		event_time = std::min(line_length_ - 50*2, event_time);
-	else if(x_ < line_length_ - 10*2)	event_time = std::min(line_length_ - 10*2, event_time);
+	if(x_ < line_length_ - hsync_start) 	event_time = std::min(line_length_ - hsync_start, event_time);
+	else if(x_ < line_length_ - hsync_end)	event_time = std::min(line_length_ - hsync_end, event_time);
 
 	// It wasn't any of those, so as a temporary expedient, just supply end of line.
 	return HalfCycles(event_time - x_);
@@ -426,7 +434,8 @@ void Video::write(int address, uint16_t value) {
 }
 
 void Video::update_output_mode() {
-//	const auto old_frequency = field_frequency_;
+	// All I know about this is: "the 71-Hz-switch does something like a shifter-reset."
+	const auto old_frequency = field_frequency_;
 
 	// If this is black and white mode, that's that.
 	switch((video_mode_ >> 8) & 3) {
@@ -438,16 +447,18 @@ void Video::update_output_mode() {
 		case 2:
 			output_bpp_ = OutputBpp::One;
 			field_frequency_ = FieldFrequency::SeventyTwo;
-//			if(field_frequency_ != old_frequency) {
+			if(field_frequency_ != old_frequency) {
+				reset_fifo();
 //				printf("%d, %d -> %d\n", x_, y_, field_frequency_);
-//			}
+			}
 		return;
 	}
 
 	field_frequency_ = (sync_mode_ & 0x200) ? FieldFrequency::Fifty : FieldFrequency::Sixty;
-//	if(field_frequency_ != old_frequency) {
+	if(field_frequency_ != old_frequency && old_frequency == FieldFrequency::SeventyTwo) {
+		reset_fifo();
 //		printf("%d, %d -> %d\n", x_, y_, field_frequency_);
-//	}
+	}
 }
 
 // MARK: - The shifter
