@@ -269,12 +269,6 @@ void Video::run_for(HalfCycles duration) {
 			load_base_ = x_;
 		}
 
-		// Check for an upcoming load toggle; that is, a time at which load_ will be either
-		// disabled or enabled. These occur with a brief latency.
-		if((horizontal_.enable && vertical_.enable) != load_ && next_load_toggle_ == -1) {
-			next_load_toggle_ = x_ + 8;	// 4 cycles = 8 half-cycles
-		}
-
 		// Check vertical events.
 		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ == vsync_x_position) {
 			vertical_.sync = vertical_.sync_schedule == VerticalState::SyncSchedule::Begin;
@@ -292,7 +286,11 @@ void Video::run_for(HalfCycles duration) {
 		// Chuck any deferred output changes into the queue.
 		const bool next_display_enable = vertical_.enable && horizontal_.enable;
 		if(display_enable != next_display_enable) {
+			// Schedule change in outwardly-visible DE line.
 			add_event(de_delay_period - integer_duration, next_display_enable ? Event::Type::SetDisplayEnable : Event::Type::ResetDisplayEnable);
+
+			// Schedule change in inwardly-visible effect.
+			next_load_toggle_ = x_ + 8;	// 4 cycles = 8 half-cycles
 		}
 	}
 }
@@ -434,30 +432,25 @@ void Video::write(int address, uint16_t value) {
 }
 
 void Video::update_output_mode() {
-	// All I know about this is: "the 71-Hz-switch does something like a shifter-reset."
-	const auto old_frequency = field_frequency_;
+	const auto old_bpp_ = output_bpp_;
 
 	// If this is black and white mode, that's that.
 	switch((video_mode_ >> 8) & 3) {
 		case 0:	output_bpp_ = OutputBpp::Four;	break;
 		case 1:	output_bpp_ = OutputBpp::Two;	break;
-
-		// 1bpp mode ignores the otherwise-programmed frequency.
 		default:
-		case 2:
-			output_bpp_ = OutputBpp::One;
-			field_frequency_ = FieldFrequency::SeventyTwo;
-			if(field_frequency_ != old_frequency) {
-				reset_fifo();
-//				printf("%d, %d -> %d\n", x_, y_, field_frequency_);
-			}
-		return;
+		case 2:	output_bpp_ = OutputBpp::One;	break;
 	}
 
-	field_frequency_ = (sync_mode_ & 0x200) ? FieldFrequency::Fifty : FieldFrequency::Sixty;
-	if(field_frequency_ != old_frequency && old_frequency == FieldFrequency::SeventyTwo) {
+	// 1bpp mode ignores the otherwise-programmed frequency.
+	if(output_bpp_ == OutputBpp::One) {
+		field_frequency_ = FieldFrequency::SeventyTwo;
+	} else {
+		field_frequency_ = (sync_mode_ & 0x200) ? FieldFrequency::Fifty : FieldFrequency::Sixty;
+	}
+	if(output_bpp_ != old_bpp_) {
+		// "the 71-Hz-switch does something like a shifter-reset." (and some people use a high-low resolutions switch instead)
 		reset_fifo();
-//		printf("%d, %d -> %d\n", x_, y_, field_frequency_);
 	}
 }
 
