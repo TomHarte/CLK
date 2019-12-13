@@ -151,8 +151,10 @@ class Video {
 		int line_length_ = 1024;
 
 		int data_latch_position_ = 0;
-		uint16_t data_latch_[4] = {0, 0, 0, 0};
-		void latch_word();
+		int data_latch_read_position_ = 0;
+		uint16_t data_latch_[128];
+		void push_latched_data();
+
 		void reset_fifo();
 
 		class Shifter {

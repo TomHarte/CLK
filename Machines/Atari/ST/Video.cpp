@@ -169,6 +169,28 @@ void Video::run_for(HalfCycles duration) {
 		const int run_length = std::min(integer_duration, next_event - x_);
 		const bool display_enable = vertical_.enable && horizontal_.enable;
 
+		// Ensure proper fetching irrespective of the output.
+		if(load_) {
+			const int since_load = x_ - load_base_;
+
+			// There will be pixels this line, subject to the shifter pipeline.
+			// Divide into 8-[half-]cycle windows; at the start of each window fetch a word,
+			// and during the rest of the window, shift out.
+			int start_column = since_load >> 3;
+			const int end_column = (since_load + run_length) >> 3;
+
+			while(start_column != end_column) {
+				data_latch_[data_latch_position_] = ram_[current_address_ & 262143];
+				data_latch_position_ = (data_latch_position_ + 1) & 127;
+				++current_address_;
+				++start_column;
+			}
+		}
+
+		// TODO: if I'm asserting that sync and blank override the shifter (but, presumably,
+		// the shifter keeps shifting), then output_sync and output_blank need to have an effect
+		// inside the shifter on the temporary register values.
+
 		if(horizontal_.sync || vertical_.sync) {
 			shifter_.output_sync(run_length);
 		} else if(horizontal_.blank || vertical_.blank) {
@@ -198,14 +220,14 @@ void Video::run_for(HalfCycles duration) {
 					// If at least one column boundary is crossed, complete this column.
 					shifter_.output_pixels(8 - (since_load & 7), output_bpp_);
 					++start_column;	// This starts a new column, so latch a new word.
-					latch_word();
+					push_latched_data();
 				}
 
 				// Run for all columns that have their starts in this time period.
 				int complete_columns = end_column - start_column;
 				while(complete_columns--) {
 					shifter_.output_pixels(8, output_bpp_);
-					latch_word();
+					push_latched_data();
 				}
 
 				// Output the start of the next column, if necessary.
@@ -295,23 +317,21 @@ void Video::run_for(HalfCycles duration) {
 	}
 }
 
-void Video::latch_word() {
-	data_latch_[data_latch_position_] = ram_[current_address_ & 262143];
-	++current_address_;
-	++data_latch_position_;
-	if(data_latch_position_ == 4) {
-		data_latch_position_ = 0;
+void Video::push_latched_data() {
+	data_latch_read_position_ = (data_latch_read_position_ + 1) & 127;
+
+	if(!(data_latch_read_position_ & 3)) {
 		shifter_.load(
-			(uint64_t(data_latch_[0]) << 48) |
-			(uint64_t(data_latch_[1]) << 32) |
-			(uint64_t(data_latch_[2]) << 16) |
-			uint64_t(data_latch_[3])
+			(uint64_t(data_latch_[(data_latch_read_position_ - 4) & 127]) << 48) |
+			(uint64_t(data_latch_[(data_latch_read_position_ - 3) & 127]) << 32) |
+			(uint64_t(data_latch_[(data_latch_read_position_ - 2) & 127]) << 16) |
+			uint64_t(data_latch_[(data_latch_read_position_ - 1) & 127])
 		);
 	}
 }
 
 void Video::reset_fifo() {
-	data_latch_position_ = 0;
+	data_latch_read_position_ = data_latch_position_ = 0;
 }
 
 bool Video::hsync() {
