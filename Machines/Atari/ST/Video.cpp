@@ -105,6 +105,7 @@ const int hsync_end = CYCLE(8);			// Cycles before end of line when hsync ends.
 }
 
 Video::Video() :
+	deferrer_([=] (HalfCycles duration) { advance(duration); }),
 	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
 	shifter_(crt_, palette_) {
 
@@ -122,6 +123,10 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 void Video::run_for(HalfCycles duration) {
+	deferrer_.run_for(duration);
+}
+
+void Video::advance(HalfCycles duration) {
 	const auto horizontal_timings = horizontal_parameters(field_frequency_);
 	const auto vertical_timings = vertical_parameters(field_frequency_);
 	int integer_duration = int(duration.as_integral());
@@ -430,8 +435,11 @@ void Video::write(int address, uint16_t value) {
 
 		// Sync mode and pixel mode.
 		case 0x05:
-			sync_mode_ = value;
-			update_output_mode();
+			// Writes to sync mode have a one-cycle delay in effect.
+			deferrer_.defer(HalfCycles(2), [=] {
+				sync_mode_ = value;
+				update_output_mode();
+			});
 		break;
 		case 0x30:
 			video_mode_ = value;

@@ -11,6 +11,7 @@
 
 #include "../../../Outputs/CRT/CRT.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
+#include "../../../ClockReceiver/DeferredQueue.hpp"
 
 #include <vector>
 
@@ -103,6 +104,9 @@ class Video {
 		Range get_memory_access_range();
 
 	private:
+		void advance(HalfCycles duration);
+		DeferredQueue<HalfCycles> deferrer_;
+
 		Outputs::CRT::CRT crt_;
 		RangeObserver *range_observer_ = nullptr;
 
