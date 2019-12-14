@@ -97,7 +97,7 @@
 		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
 
 		state.data[c] = [initialState[dX] intValue];
-		if(c < 8)
+		if(c < 7)
 			state.address[c] = [initialState[aX] intValue];
 	}
 	state.supervisor_stack_pointer = [initialState[@"a7"] intValue];
@@ -116,13 +116,13 @@
 		const NSString *aX = [@"a" stringByAppendingFormat:@"%d", c];
 
 		XCTAssertEqual(state.data[c], [finalState[dX] intValue], @"%@: D%d inconsistent", name, c);
-		if(c < 8) {
+		if(c < 7) {
 			XCTAssertEqual(state.address[c], [finalState[aX] intValue], @"%@: A%d inconsistent", name, c);
 		}
 	}
-	XCTAssertEqual(state.supervisor_stack_pointer, [initialState[@"a7"] intValue], @"%@: A7 inconsistent", name);
-	XCTAssertEqual(state.user_stack_pointer, [initialState[@"usp"] intValue], @"%@: USP inconsistent", name);
-	XCTAssertEqual(state.status, [initialState[@"sr"] intValue], @"%@: Status inconsistent", name);
+	XCTAssertEqual(state.supervisor_stack_pointer, [finalState[@"a7"] intValue], @"%@: A7 inconsistent", name);
+	XCTAssertEqual(state.user_stack_pointer, [finalState[@"usp"] intValue], @"%@: USP inconsistent", name);
+	XCTAssertEqual(state.status, [finalState[@"sr"] intValue], @"%@: Status inconsistent", name);
 
 	// Test final memory state.
 	NSArray<NSNumber *> *const finalMemory = test[@"final memory"];
