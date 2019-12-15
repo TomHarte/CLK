@@ -47,6 +47,8 @@
 	NSString *const name = test[@"name"];
 	if(!name) return;
 
+//	if(![name isEqualToString:@"ORI 7c"]) return;
+
 	// This is the test class for 68000 execution.
 	struct Test68000: public CPU::MC68000::BusHandler {
 		std::array<uint8_t, 16*1024*1024> ram;
