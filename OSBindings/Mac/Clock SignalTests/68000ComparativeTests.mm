@@ -22,7 +22,9 @@
 - (void)testAll {
 	NSBundle *const bundle = [NSBundle bundleForClass:[self class]];
 	NSArray<NSURL *> *const tests = [bundle URLsForResourcesWithExtension:@"json" subdirectory:@"68000 Comparative Tests"];
+
 	for(NSURL *url in tests) {
+		NSLog(@"Testing %@", url);
 		[self testJSONAtURL:url];
 	}
 }
@@ -36,12 +38,6 @@
 		return;
 	}
 
-	// Parallelise as much as possible.
-//	dispatch_apply(jsonContents.count,  DISPATCH_APPLY_AUTO, ^(size_t index) {
-//		NSDictionary *const test = jsonContents[index];
-//		if(![test isKindOfClass:[NSDictionary class]]) return;
-//		[self testOperation:test];
-//	});
 	for(NSDictionary *test in jsonContents) {
 		if(![test isKindOfClass:[NSDictionary class]]) continue;
 		[self testOperation:test];
