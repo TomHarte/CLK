@@ -3142,7 +3142,7 @@ struct ProcessorStorageConstructor {
 }
 }
 
-CPU::MC68000::ProcessorStorage::ProcessorStorage()  {
+CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	ProcessorStorageConstructor constructor(*this);
 
 	// Create the special programs.
