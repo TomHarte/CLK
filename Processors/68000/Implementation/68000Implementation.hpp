@@ -797,7 +797,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::CMPAw: {
 									const auto source = uint64_t(u_extend16(source()->halves.low.full));
-									const auto destination = uint64_t(u_extend16(destination()->halves.low.full));
+									const uint64_t destination = destination()->full;
 									const auto result = destination - source;
 
 									zero_result_ = uint32_t(result);
@@ -1541,7 +1541,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);			\
 	negative_flag_ = result & 0x80;												\
 	const int unadjusted_result = destination - source - (extend_flag_ ? 1 : 0);	\
-	overflow_flag_ = unadjusted_result &~ result & 0x80;						\
+	overflow_flag_ = unadjusted_result & (~result) & 0x80;						\
 																				\
 	/* Store the result. */														\
 	destination()->halves.low.halves.low = uint8_t(result);
