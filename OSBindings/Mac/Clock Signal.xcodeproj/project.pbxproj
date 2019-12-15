@@ -246,6 +246,13 @@
 		4B74CF822312FA9C00500CE8 /* HFV.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF802312FA9C00500CE8 /* HFV.cpp */; };
 		4B74CF85231370BC00500CE8 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */; };
 		4B74CF86231370BC00500CE8 /* MacintoshVolume.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B74CF83231370BC00500CE8 /* MacintoshVolume.cpp */; };
+		4B778EEF23A5D6680000D260 /* AsyncTaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */; };
+		4B778EF023A5D68C0000D260 /* 68000Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */; };
+		4B778EF123A5D6B50000D260 /* 9918.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B0E04F91FC9FA3100F43484 /* 9918.cpp */; };
+		4B778EF223A5DB100000D260 /* DigitalPhaseLockedLoop.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B45187F1F75E91900926311 /* DigitalPhaseLockedLoop.cpp */; };
+		4B778EF323A5DB230000D260 /* PCMSegment.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B4518731F75E91800926311 /* PCMSegment.cpp */; };
+		4B778EF423A5DB3A0000D260 /* C1540.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B8334941F5E25B60097E338 /* C1540.cpp */; };
+		4B778EF523A5DB440000D260 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894517201967B4007DE474 /* StaticAnalyser.cpp */; };
 		4B7913CC1DFCD80E00175A82 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7913CA1DFCD80E00175A82 /* Video.cpp */; };
 		4B79A5011FC913C900EEDAD5 /* MSX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B79A4FF1FC913C900EEDAD5 /* MSX.cpp */; };
 		4B79E4441E3AF38600141F11 /* cassette.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B79E4411E3AF38600141F11 /* cassette.png */; };
@@ -4491,12 +4498,14 @@
 				4B7BC7F51F58F27800D1B1B4 /* 6502AllRAM.cpp in Sources */,
 				4BC5C3E022C994CD00795658 /* 68000MoveTests.mm in Sources */,
 				4B08A2751EE35D56008B7065 /* Z80InterruptTests.swift in Sources */,
+				4B778EF223A5DB100000D260 /* DigitalPhaseLockedLoop.cpp in Sources */,
 				4BFCA1241ECBDCB400AC40C1 /* AllRAMProcessor.cpp in Sources */,
 				4BBF49AF1ED2880200AB3669 /* FUSETests.swift in Sources */,
 				4B3BA0CE1D318B44005DD7A7 /* C1540Bridge.mm in Sources */,
 				4B3BA0D11D318B44005DD7A7 /* TestMachine6502.mm in Sources */,
 				4B92EACA1B7C112B00246143 /* 6502TimingTests.swift in Sources */,
 				4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */,
+				4B778EF023A5D68C0000D260 /* 68000Storage.cpp in Sources */,
 				4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */,
 				4BEE1EC122B5E2FD000A26A6 /* Encoder.cpp in Sources */,
 				4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */,
@@ -4509,16 +4518,21 @@
 				4B3BA0CF1D318B44005DD7A7 /* MOS6522Bridge.mm in Sources */,
 				4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */,
 				4BFCA12B1ECBE7C400AC40C1 /* ZexallTests.swift in Sources */,
+				4B778EF123A5D6B50000D260 /* 9918.cpp in Sources */,
 				4B9D0C4D22C7DA1A00DE1AD3 /* 68000ControlFlowTests.mm in Sources */,
 				4BB2A9AF1E13367E001A5C23 /* CRCTests.mm in Sources */,
 				4B3BA0D01D318B44005DD7A7 /* MOS6532Bridge.mm in Sources */,
+				4B778EEF23A5D6680000D260 /* AsyncTaskQueue.cpp in Sources */,
+				4B778EF423A5DB3A0000D260 /* C1540.cpp in Sources */,
 				4B9D0C4B22C7D70A00DE1AD3 /* 68000BCDTests.mm in Sources */,
 				4B3BA0C31D318AEC005DD7A7 /* C1540Tests.swift in Sources */,
+				4B778EF323A5DB230000D260 /* PCMSegment.cpp in Sources */,
 				4B1414621B58888700E04248 /* KlausDormannTests.swift in Sources */,
 				4B1414601B58885000E04248 /* WolfgangLorenzTests.swift in Sources */,
 				4BD4A8D01E077FD20020D856 /* PCMTrackTests.mm in Sources */,
 				4B049CDD1DA3C82F00322067 /* BCDTest.swift in Sources */,
 				4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */,
+				4B778EF523A5DB440000D260 /* StaticAnalyser.cpp in Sources */,
 				4BEE1EC022B5E236000A26A6 /* MacGCRTests.mm in Sources */,
 				4BE90FFD22D5864800FB464D /* MacintoshVideoTests.mm in Sources */,
 				4B08A2781EE39306008B7065 /* TestMachine.mm in Sources */,

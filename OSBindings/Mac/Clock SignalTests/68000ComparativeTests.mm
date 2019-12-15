@@ -36,6 +36,12 @@
 		return;
 	}
 
+	// Parallelise as much as possible.
+//	dispatch_apply(jsonContents.count,  DISPATCH_APPLY_AUTO, ^(size_t index) {
+//		NSDictionary *const test = jsonContents[index];
+//		if(![test isKindOfClass:[NSDictionary class]]) return;
+//		[self testOperation:test];
+//	});
 	for(NSDictionary *test in jsonContents) {
 		if(![test isKindOfClass:[NSDictionary class]]) continue;
 		[self testOperation:test];
