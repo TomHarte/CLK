@@ -186,7 +186,7 @@
 
 		// Consider collating extra detail.
 		if([_failures containsObject:name]) {
-			[_failingOpcodes addObject:@((test68000->ram[0x100] << 8) | test68000->ram[0x101])];
+			[_failingOpcodes addObject:@((test68000->ram[0x101] << 8) | test68000->ram[0x100])];
 		}
 	};
 
