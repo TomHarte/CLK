@@ -1326,7 +1326,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 									overflow_flag_ = carry_flag_ = 0;
 									zero_result_ = destination()->halves.low.full;
-									negative_flag_ = (is_under && !is_over) ? 1 : 0;
+									if(is_under) negative_flag_ = 1;
+									if(is_over) negative_flag_ = 0;
 
 									// No exception is the default course of action; deviate only if an
 									// exception is necessary.
@@ -1541,7 +1542,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);			\
 	negative_flag_ = result & 0x80;												\
 	const int unadjusted_result = destination - source - (extend_flag_ ? 1 : 0);	\
-	overflow_flag_ = unadjusted_result & (~result) & 0x80;						\
+	overflow_flag_ = ~unadjusted_result & result & 0x80;						\
 																				\
 	/* Store the result. */														\
 	destination()->halves.low.halves.low = uint8_t(result);
