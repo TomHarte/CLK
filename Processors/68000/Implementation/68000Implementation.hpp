@@ -1542,7 +1542,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);			\
 	negative_flag_ = result & 0x80;												\
 	const int unadjusted_result = destination - source - (extend_flag_ ? 1 : 0);	\
-	overflow_flag_ = ~unadjusted_result & result & 0x80;						\
+	overflow_flag_ = unadjusted_result & ~result & 0x80;						\
 																				\
 	/* Store the result. */														\
 	destination()->halves.low.halves.low = uint8_t(result);
