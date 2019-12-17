@@ -1874,6 +1874,7 @@ struct ProcessorStorageConstructor {
 						// Decodes the format used by ABCD and SBCD.
 						case Decoder::ABCD_SBCD: {
 							if(instruction & 8) {
+								// [A/S]BCD -(An), -(An)
 								program.set_source(storage_, Ind, ea_register);
 								program.set_destination(storage_, Ind, data_register);
 
@@ -1881,6 +1882,7 @@ struct ProcessorStorageConstructor {
 								op(MicroOp::DestinationMask | dec(data_register), seq("nrd np", { a(data_register) }, false ));
 								op(Action::PerformOperation, seq("nw", { a(data_register) }, false));
 							} else {
+								// [A/S]BCD Dn, Dn
 								program.set_source(storage_, Dn, ea_register);
 								program.set_destination(storage_, Dn, data_register);
 
@@ -2486,7 +2488,7 @@ struct ProcessorStorageConstructor {
 									op(Action::PerformOperation, seq("np"));
 								break;
 
-								case XXXl:	// LEA (xxx).L, An
+								case XXXl:		// LEA (xxx).L, An
 									op(Action::None, seq("np"));
 								case XXXw:		// LEA (xxx).W, An
 								case d16An:		// LEA (d16, An), An
@@ -2507,6 +2509,7 @@ struct ProcessorStorageConstructor {
 							program.set_destination(storage_, ea_mode, ea_register);
 
 							is_byte_access = operation == Operation::NBCD;
+							is_long_word_access = false;
 
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
@@ -2521,12 +2524,12 @@ struct ProcessorStorageConstructor {
 									op(Action::None, seq("nrd", { a(ea_register) }, !is_byte_access));
 									op(Action::PerformOperation, seq("np nw", { a(ea_register) }, !is_byte_access));
 									if(mode == PostInc) {
-										op(int(Action::Increment2) | MicroOp::DestinationMask);
+										op(inc(ea_register)  | MicroOp::DestinationMask);
 									}
 								break;
 
 								case PreDec:	// MOVE SR, -(An)
-									op(int(Action::Decrement2) | MicroOp::DestinationMask, seq("n nrd", { a(ea_register) }, !is_byte_access));
+									op(dec(ea_register) | MicroOp::DestinationMask, seq("n nrd", { a(ea_register) }, !is_byte_access));
 									op(Action::PerformOperation, seq("np nw", { a(ea_register) }, !is_byte_access));
 								break;
 
@@ -2907,7 +2910,7 @@ struct ProcessorStorageConstructor {
 									}
 								break;
 
-								case PreDec:	// CHK (An)-, Dn
+								case PreDec:	// CHK -(An), Dn
 									op(int(Action::Decrement2) | MicroOp::SourceMask, seq("n nr np", { a(ea_register) }));
 								break;
 
