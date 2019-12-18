@@ -268,7 +268,7 @@ struct ActivityObserver: public Activity::Observer {
 			// Until then, apply a default mapping.
 
 			size_t c = 0;
-			std::vector<std::unique_ptr<Inputs::Joystick>> &machine_joysticks = _joystickMachine->get_joysticks();
+			auto &machine_joysticks = _joystickMachine->get_joysticks();
 			for(CSJoystick *joystick in _joystickManager.joysticks) {
 				size_t target = c % machine_joysticks.size();
 				++c;
@@ -373,7 +373,7 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		_joystickManager = joystickManager;
 		if(_joystickMachine) {
-			std::vector<std::unique_ptr<Inputs::Joystick>> &machine_joysticks = _joystickMachine->get_joysticks();
+			auto &machine_joysticks = _joystickMachine->get_joysticks();
 			for(const auto &joystick: machine_joysticks) {
 				joystick->reset_all_inputs();
 			}
@@ -405,10 +405,10 @@ struct ActivityObserver: public Activity::Observer {
 			BIND(VK_F5, F5);		BIND(VK_F6, F6);		BIND(VK_F7, F7);		BIND(VK_F8, F8);
 			BIND(VK_F9, F9);		BIND(VK_F10, F10);		BIND(VK_F11, F11);		BIND(VK_F12, F12);
 
-			BIND(VK_ANSI_Keypad0, KeyPad0);		BIND(VK_ANSI_Keypad1, KeyPad1);		BIND(VK_ANSI_Keypad2, KeyPad2);
-			BIND(VK_ANSI_Keypad3, KeyPad3);		BIND(VK_ANSI_Keypad4, KeyPad4);		BIND(VK_ANSI_Keypad5, KeyPad5);
-			BIND(VK_ANSI_Keypad6, KeyPad6);		BIND(VK_ANSI_Keypad7, KeyPad7);		BIND(VK_ANSI_Keypad8, KeyPad8);
-			BIND(VK_ANSI_Keypad9, KeyPad9);
+			BIND(VK_ANSI_Keypad0, Keypad0);		BIND(VK_ANSI_Keypad1, Keypad1);		BIND(VK_ANSI_Keypad2, Keypad2);
+			BIND(VK_ANSI_Keypad3, Keypad3);		BIND(VK_ANSI_Keypad4, Keypad4);		BIND(VK_ANSI_Keypad5, Keypad5);
+			BIND(VK_ANSI_Keypad6, Keypad6);		BIND(VK_ANSI_Keypad7, Keypad7);		BIND(VK_ANSI_Keypad8, Keypad8);
+			BIND(VK_ANSI_Keypad9, Keypad9);
 
 			BIND(VK_ANSI_Equal, Equals);						BIND(VK_ANSI_Minus, Hyphen);
 			BIND(VK_ANSI_RightBracket, CloseSquareBracket);		BIND(VK_ANSI_LeftBracket, OpenSquareBracket);
@@ -418,10 +418,10 @@ struct ActivityObserver: public Activity::Observer {
 			BIND(VK_ANSI_Backslash, Backslash);					BIND(VK_ANSI_Slash, ForwardSlash);
 			BIND(VK_ANSI_Comma, Comma);							BIND(VK_ANSI_Period, FullStop);
 
-			BIND(VK_ANSI_KeypadDecimal, KeyPadDecimalPoint);	BIND(VK_ANSI_KeypadEquals, KeyPadEquals);
-			BIND(VK_ANSI_KeypadMultiply, KeyPadAsterisk);		BIND(VK_ANSI_KeypadDivide, KeyPadSlash);
-			BIND(VK_ANSI_KeypadPlus, KeyPadPlus);				BIND(VK_ANSI_KeypadMinus, KeyPadMinus);
-			BIND(VK_ANSI_KeypadClear, KeyPadDelete);			BIND(VK_ANSI_KeypadEnter, KeyPadEnter);
+			BIND(VK_ANSI_KeypadDecimal, KeypadDecimalPoint);	BIND(VK_ANSI_KeypadEquals, KeypadEquals);
+			BIND(VK_ANSI_KeypadMultiply, KeypadAsterisk);		BIND(VK_ANSI_KeypadDivide, KeypadSlash);
+			BIND(VK_ANSI_KeypadPlus, KeypadPlus);				BIND(VK_ANSI_KeypadMinus, KeypadMinus);
+			BIND(VK_ANSI_KeypadClear, KeypadDelete);			BIND(VK_ANSI_KeypadEnter, KeypadEnter);
 
 			BIND(VK_Return, Enter);					BIND(VK_Tab, Tab);
 			BIND(VK_Space, Space);					BIND(VK_Delete, Backspace);
@@ -467,7 +467,7 @@ struct ActivityObserver: public Activity::Observer {
 	auto joystick_machine = _machine->joystick_machine();
 	if(self.inputMode == CSMachineKeyboardInputModeJoystick && joystick_machine) {
 		@synchronized(self) {
-			std::vector<std::unique_ptr<Inputs::Joystick>> &joysticks = joystick_machine->get_joysticks();
+			auto &joysticks = joystick_machine->get_joysticks();
 			if(!joysticks.empty()) {
 				// Convert to a C++ bool so that the following calls are resolved correctly even if overloaded.
 				bool is_pressed = !!isPressed;

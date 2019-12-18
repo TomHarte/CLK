@@ -63,25 +63,25 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		Bind(Space, MacKey::Space);
 		Bind(Backslash, MacKey::Backslash);
 
-		Bind(KeyPadDelete, MacKey::KeyPadDelete);
-		Bind(KeyPadEquals, MacKey::KeyPadEquals);
-		Bind(KeyPadSlash, MacKey::KeyPadSlash);
-		Bind(KeyPadAsterisk, MacKey::KeyPadAsterisk);
-		Bind(KeyPadMinus, MacKey::KeyPadMinus);
-		Bind(KeyPadPlus, MacKey::KeyPadPlus);
-		Bind(KeyPadEnter, MacKey::KeyPadEnter);
-		Bind(KeyPadDecimalPoint, MacKey::KeyPadDecimalPoint);
+		Bind(KeypadDelete, MacKey::KeypadDelete);
+		Bind(KeypadEquals, MacKey::KeypadEquals);
+		Bind(KeypadSlash, MacKey::KeypadSlash);
+		Bind(KeypadAsterisk, MacKey::KeypadAsterisk);
+		Bind(KeypadMinus, MacKey::KeypadMinus);
+		Bind(KeypadPlus, MacKey::KeypadPlus);
+		Bind(KeypadEnter, MacKey::KeypadEnter);
+		Bind(KeypadDecimalPoint, MacKey::KeypadDecimalPoint);
 
-		Bind(KeyPad9, MacKey::KeyPad9);
-		Bind(KeyPad8, MacKey::KeyPad8);
-		Bind(KeyPad7, MacKey::KeyPad7);
-		Bind(KeyPad6, MacKey::KeyPad6);
-		Bind(KeyPad5, MacKey::KeyPad5);
-		Bind(KeyPad4, MacKey::KeyPad4);
-		Bind(KeyPad3, MacKey::KeyPad3);
-		Bind(KeyPad2, MacKey::KeyPad2);
-		Bind(KeyPad1, MacKey::KeyPad1);
-		Bind(KeyPad0, MacKey::KeyPad0);
+		Bind(Keypad9, MacKey::Keypad9);
+		Bind(Keypad8, MacKey::Keypad8);
+		Bind(Keypad7, MacKey::Keypad7);
+		Bind(Keypad6, MacKey::Keypad6);
+		Bind(Keypad5, MacKey::Keypad5);
+		Bind(Keypad4, MacKey::Keypad4);
+		Bind(Keypad3, MacKey::Keypad3);
+		Bind(Keypad2, MacKey::Keypad2);
+		Bind(Keypad1, MacKey::Keypad1);
+		Bind(Keypad0, MacKey::Keypad0);
 
 #undef Bind
 	}

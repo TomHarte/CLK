@@ -16,7 +16,7 @@ namespace JoystickMachine {
 
 class Machine {
 	public:
-		virtual std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() = 0;
+		virtual const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() = 0;
 };
 
 }

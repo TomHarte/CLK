@@ -155,7 +155,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 }
 
 - (int)completedHalfCycles {
-	return _processor->get_timestamp().as_int();
+	return int(_processor->get_timestamp().as_integral());
 }
 
 - (void)setNmiLine:(BOOL)nmiLine {
@@ -216,7 +216,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 		}
 		capture.address = address;
 		capture.value = value;
-		capture.timeStamp = timeStamp.as_int();
+		capture.timeStamp = int(timeStamp.as_integral());
 
 		[_busOperationCaptures addObject:capture];
 	}

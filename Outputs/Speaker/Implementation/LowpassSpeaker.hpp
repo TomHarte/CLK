@@ -106,7 +106,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		void run_for(const Cycles cycles) {
 			if(!delegate_) return;
 
-			std::size_t cycles_remaining = size_t(cycles.as_int());
+			std::size_t cycles_remaining = size_t(cycles.as_integral());
 			if(!cycles_remaining) return;
 
 			FilterParameters filter_parameters;

@@ -10,6 +10,7 @@
 #define JustInTime_h
 
 #include "../Concurrency/AsyncTaskQueue.hpp"
+#include "ForceInline.hpp"
 
 /*!
 	A JustInTimeActor holds (i) an embedded object with a run_for method; and (ii) an amount
@@ -21,32 +22,44 @@
 	Machines that accumulate HalfCycle time but supply to a Cycle-counted device may supply a
 	separate @c TargetTimeScale at template declaration.
 */
-template <class T, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class JustInTimeActor {
+template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class JustInTimeActor {
 	public:
 		/// Constructs a new JustInTimeActor using the same construction arguments as the included object.
 		template<typename... Args> JustInTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {}
 
 		/// Adds time to the actor.
-		inline void operator += (const LocalTimeScale &rhs) {
-			time_since_update_ += rhs;
+		forceinline void operator += (const LocalTimeScale &rhs) {
+			if(multiplier != 1) {
+				time_since_update_ += rhs * multiplier;
+			} else {
+				time_since_update_ += rhs;
+			}
 			is_flushed_ = false;
 		}
 
 		/// Flushes all accumulated time and returns a pointer to the included object.
-		inline T *operator->() {
+		forceinline T *operator->() {
 			flush();
 			return &object_;
 		}
 
 		/// Returns a pointer to the included object without flushing time.
-		inline T *last_valid() {
+		forceinline T *last_valid() {
 			return &object_;
 		}
 
 		/// Flushes all accumulated time.
-		inline void flush() {
-			if(!is_flushed_) object_.run_for(time_since_update_.template flush<TargetTimeScale>());
-			is_flushed_ = true;
+		forceinline void flush() {
+			if(!is_flushed_) {
+				is_flushed_ = true;
+				if(divider == 1) {
+					object_.run_for(time_since_update_.template flush<TargetTimeScale>());
+				} else {
+					const auto duration = time_since_update_.template divide<TargetTimeScale>(LocalTimeScale(divider));
+					if(duration > TargetTimeScale(0))
+						object_.run_for(duration);
+				}
+			}
 		}
 
 	private:

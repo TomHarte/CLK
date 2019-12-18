@@ -69,8 +69,8 @@ class Video {
 		*/
 		bool is_outputting(HalfCycles offset = HalfCycles(0)) {
 			const auto offset_position = frame_position_ + offset % frame_length;
-			const int column = (offset_position % line_length).as_int() >> 4;
-			const int line = (offset_position / line_length).as_int();
+			const int column = int((offset_position % line_length).as_integral()) >> 4;
+			const int line = int((offset_position / line_length).as_integral());
 			return line < 342 && column < 32;
 		}
 

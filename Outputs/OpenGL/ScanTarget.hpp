@@ -123,8 +123,8 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		/// A pointer to the first thing not yet submitted for display.
 		std::atomic<PointerSet> read_pointers_;
 
-		// Maintains a buffer of the most recent 3072 scans.
-		std::array<Scan, 3072> scan_buffer_;
+		/// Maintains a buffer of the most recent scans.
+		std::array<Scan, 16384> scan_buffer_;
 
 		// Maintains a list of composite scan buffer coordinates; the Line struct
 		// is transported to the GPU in its entirety; the LineMetadatas live in CPU

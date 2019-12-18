@@ -272,7 +272,7 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 				colour_burst_amplitude_);
 		}
 
-		// if this is vertical retrace then adcance a field
+		// if this is vertical retrace then advance a field
 		if(next_run_length == time_until_vertical_sync_event && next_vertical_sync_event == Flywheel::SyncEvent::EndRetrace) {
 			if(delegate_) {
 				frames_since_last_delegate_call_++;
@@ -406,6 +406,10 @@ void CRT::set_immediate_default_phase(float phase) {
 }
 
 void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
+#ifndef NDEBUG
+	assert(number_of_samples > 0 && number_of_samples <= allocated_data_length_);
+	allocated_data_length_ = std::numeric_limits<size_t>::min();
+#endif
 	scan_target_->end_data(number_of_samples);
 	Scan scan;
 	scan.type = Scan::Type::Data;

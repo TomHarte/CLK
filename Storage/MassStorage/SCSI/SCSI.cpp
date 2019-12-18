@@ -11,20 +11,21 @@
 using namespace SCSI;
 
 Bus::Bus(HalfCycles clock_rate) {
-	cycles_to_time_ = 1.0 / double(clock_rate.as_int());
+	cycles_to_time_ = 1.0 / double(clock_rate.as_integral());
 
 	// NB: note that the dispatch times below are **ORDERED**
 	// from least to greatest. Each box should contain the number
 	// of whole clock periods it will take to get the the first
 	// discrete moment after the required delay interval has been met.
-	dispatch_times_[0] = 1 + int(CableSkew / cycles_to_time_);
-	dispatch_times_[1] = 1 + int(DeskewDelay / cycles_to_time_);
-	dispatch_times_[2] = 1 + int(BusFreeDelay / cycles_to_time_);
-	dispatch_times_[3] = 1 + int(BusSettleDelay / cycles_to_time_);
-	dispatch_times_[4] = 1 + int(BusClearDelay / cycles_to_time_);
-	dispatch_times_[5] = 1 + int(BusSetDelay / cycles_to_time_);
-	dispatch_times_[6] = 1 + int(ArbitrationDelay / cycles_to_time_);
-	dispatch_times_[7] = 1 + int(ResetHoldTime / cycles_to_time_);
+	using IntType = Cycles::IntType;
+	dispatch_times_[0] = 1 + IntType(CableSkew / cycles_to_time_);
+	dispatch_times_[1] = 1 + IntType(DeskewDelay / cycles_to_time_);
+	dispatch_times_[2] = 1 + IntType(BusFreeDelay / cycles_to_time_);
+	dispatch_times_[3] = 1 + IntType(BusSettleDelay / cycles_to_time_);
+	dispatch_times_[4] = 1 + IntType(BusClearDelay / cycles_to_time_);
+	dispatch_times_[5] = 1 + IntType(BusSetDelay / cycles_to_time_);
+	dispatch_times_[6] = 1 + IntType(ArbitrationDelay / cycles_to_time_);
+	dispatch_times_[7] = 1 + IntType(ResetHoldTime / cycles_to_time_);
 }
 
 size_t Bus::add_device() {
@@ -86,7 +87,7 @@ ClockingHint::Preference Bus::preferred_clocking() {
 }
 
 void Bus::update_observers() {
-	const auto time_elapsed = double(time_in_state_.as_int()) * cycles_to_time_;
+	const auto time_elapsed = double(time_in_state_.as_integral()) * cycles_to_time_;
 	for(auto &observer: observers_) {
 		observer->scsi_bus_did_change(this, state_, time_elapsed);
 	}
@@ -97,7 +98,7 @@ void Bus::run_for(HalfCycles time) {
 		time_in_state_ += time;
 
 		const auto old_index = dispatch_index_;
-		const auto time_as_int = time_in_state_.as_int();
+		const auto time_as_int = time_in_state_.as_integral();
 		while(time_as_int >= dispatch_times_[dispatch_index_] && dispatch_index_ < dispatch_times_.size()) {
 			++dispatch_index_;
 		}

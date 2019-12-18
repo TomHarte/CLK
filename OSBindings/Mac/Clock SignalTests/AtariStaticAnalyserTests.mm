@@ -10,9 +10,9 @@
 
 #import <CommonCrypto/CommonDigest.h>
 #include "../../../Analyser/Static/StaticAnalyser.hpp"
-#include "../../../Analyser/Static/Atari/Target.hpp"
+#include "../../../Analyser/Static/Atari2600/Target.hpp"
 
-using PagingModel = Analyser::Static::Atari::Target::PagingModel;
+using PagingModel = Analyser::Static::Atari2600::Target::PagingModel;
 
 @interface AtariROMRecord : NSObject
 @property(nonatomic, readonly) PagingModel pagingModel;
@@ -601,7 +601,7 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 		if(!romRecord) continue;
 
 		// assert equality
-		Analyser::Static::Atari::Target *atari_target = dynamic_cast<Analyser::Static::Atari::Target *>(targets.front().get());
+		auto *const atari_target = dynamic_cast<Analyser::Static::Atari2600::Target *>(targets.front().get());
 		XCTAssert(atari_target != nullptr);
 		XCTAssert(atari_target->paging_model == romRecord.pagingModel, @"%@; should be %d, is %d", testFile, romRecord.pagingModel, atari_target->paging_model);
 		XCTAssert(atari_target->uses_superchip == romRecord.usesSuperchip, @"%@; should be %@", testFile, romRecord.usesSuperchip ? @"true" : @"false");

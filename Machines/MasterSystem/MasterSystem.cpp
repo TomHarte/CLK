@@ -340,7 +340,7 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return joysticks_;
 		}
 
@@ -414,7 +414,7 @@ class ConcreteMachine:
 		Target::Region region_;
 		Target::PagingScheme paging_scheme_;
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<TI::TMS::TMS9918, HalfCycles> vdp_;
+		JustInTimeActor<TI::TMS::TMS9918> vdp_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;

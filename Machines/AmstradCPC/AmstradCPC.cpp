@@ -41,7 +41,7 @@ namespace AmstradCPC {
 
 std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayCompositeColour)
+		Configurable::StandardOptions(Configurable::DisplayRGB | Configurable::DisplayCompositeColour)
 	);
 }
 
@@ -171,7 +171,7 @@ class AYDeferrer {
 */
 class CRTCBusHandler {
 	public:
-		CRTCBusHandler(uint8_t *ram, InterruptTimer &interrupt_timer) :
+		CRTCBusHandler(const uint8_t *ram, InterruptTimer &interrupt_timer) :
 			crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red2Green2Blue2),
 			ram_(ram),
 			interrupt_timer_(interrupt_timer) {
@@ -222,9 +222,9 @@ class CRTCBusHandler {
 				if(cycles_) {
 					switch(previous_output_mode_) {
 						default:
-						case OutputMode::Blank:			crt_.output_blank(cycles_ * 16);					break;
+						case OutputMode::Blank:			crt_.output_blank(cycles_ * 16);				break;
 						case OutputMode::Sync:			crt_.output_sync(cycles_ * 16);					break;
-						case OutputMode::Border:		output_border(cycles_);								break;
+						case OutputMode::Border:		output_border(cycles_);							break;
 						case OutputMode::ColourBurst:	crt_.output_default_colour_burst(cycles_ * 16);	break;
 						case OutputMode::Pixels:
 							crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
@@ -249,44 +249,46 @@ class CRTCBusHandler {
 					// the CPC shuffles output lines as:
 					//	MA13 MA12	RA2 RA1 RA0		MA9 MA8 MA7 MA6 MA5 MA4 MA3 MA2 MA1 MA0		CCLK
 					// ... so form the real access address.
-					uint16_t address =
-						static_cast<uint16_t>(
+					const uint16_t address =
+						uint16_t(
 							((state.refresh_address & 0x3ff) << 1) |
 							((state.row_address & 0x7) << 11) |
 							((state.refresh_address & 0x3000) << 2)
 						);
 
-					// fetch two bytes and translate into pixels
+					// Fetch two bytes and translate into pixels. Guaranteed: the mode can change only at
+					// hsync, so there's no risk of pixel_pointer_ overrunning 320 output pixels without
+					// exactly reaching 320 output pixels.
 					switch(mode_) {
 						case 0:
 							reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode0_output_[ram_[address]];
 							reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode0_output_[ram_[address+1]];
-							pixel_pointer_ += 4;
+							pixel_pointer_ += 2 * sizeof(uint16_t);
 						break;
 
 						case 1:
 							reinterpret_cast<uint32_t *>(pixel_pointer_)[0] = mode1_output_[ram_[address]];
 							reinterpret_cast<uint32_t *>(pixel_pointer_)[1] = mode1_output_[ram_[address+1]];
-							pixel_pointer_ += 8;
+							pixel_pointer_ += 2 * sizeof(uint32_t);
 						break;
 
 						case 2:
 							reinterpret_cast<uint64_t *>(pixel_pointer_)[0] = mode2_output_[ram_[address]];
 							reinterpret_cast<uint64_t *>(pixel_pointer_)[1] = mode2_output_[ram_[address+1]];
-							pixel_pointer_ += 16;
+							pixel_pointer_ += 2 * sizeof(uint64_t);
 						break;
 
 						case 3:
 							reinterpret_cast<uint16_t *>(pixel_pointer_)[0] = mode3_output_[ram_[address]];
 							reinterpret_cast<uint16_t *>(pixel_pointer_)[1] = mode3_output_[ram_[address+1]];
-							pixel_pointer_ += 4;
+							pixel_pointer_ += 2 * sizeof(uint16_t);
 						break;
 
 					}
 
-					// flush the current buffer pixel if full; the CRTC allows many different display
+					// Flush the current buffer pixel if full; the CRTC allows many different display
 					// widths so it's not necessarily possible to predict the correct number in advance
-					// and using the upper bound could lead to inefficient behaviour
+					// and using the upper bound could lead to inefficient behaviour.
 					if(pixel_pointer_ == pixel_data_ + 320) {
 						crt_.output_data(cycles_ * 16, size_t(cycles_ * 16 / pixel_divider_));
 						pixel_pointer_ = pixel_data_ = nullptr;
@@ -369,9 +371,17 @@ class CRTCBusHandler {
 
 	private:
 		void output_border(int length) {
-			uint8_t *colour_pointer = static_cast<uint8_t *>(crt_.begin_data(1));
-			if(colour_pointer) *colour_pointer = border_;
-			crt_.output_level(length * 16);
+			assert(length >= 0);
+
+			// A black border can be output via crt_.output_blank for a minor performance
+			// win; otherwise paint whatever the border colour really is.
+			if(border_) {
+				uint8_t *const colour_pointer = static_cast<uint8_t *>(crt_.begin_data(1));
+				if(colour_pointer) *colour_pointer = border_;
+				crt_.output_level(length * 16);
+			} else {
+				crt_.output_blank(length * 16);
+			}
 		}
 
 #define Mode0Colour0(c) ((c & 0x80) >> 7) | ((c & 0x20) >> 3) | ((c & 0x08) >> 2) | ((c & 0x02) << 2)
@@ -387,16 +397,16 @@ class CRTCBusHandler {
 
 		void establish_palette_hits() {
 			for(int c = 0; c < 256; c++) {
-				mode0_palette_hits_[Mode0Colour0(c)].push_back(static_cast<uint8_t>(c));
-				mode0_palette_hits_[Mode0Colour1(c)].push_back(static_cast<uint8_t>(c));
+				mode0_palette_hits_[Mode0Colour0(c)].push_back(uint8_t(c));
+				mode0_palette_hits_[Mode0Colour1(c)].push_back(uint8_t(c));
 
-				mode1_palette_hits_[Mode1Colour0(c)].push_back(static_cast<uint8_t>(c));
-				mode1_palette_hits_[Mode1Colour1(c)].push_back(static_cast<uint8_t>(c));
-				mode1_palette_hits_[Mode1Colour2(c)].push_back(static_cast<uint8_t>(c));
-				mode1_palette_hits_[Mode1Colour3(c)].push_back(static_cast<uint8_t>(c));
+				mode1_palette_hits_[Mode1Colour0(c)].push_back(uint8_t(c));
+				mode1_palette_hits_[Mode1Colour1(c)].push_back(uint8_t(c));
+				mode1_palette_hits_[Mode1Colour2(c)].push_back(uint8_t(c));
+				mode1_palette_hits_[Mode1Colour3(c)].push_back(uint8_t(c));
 
-				mode3_palette_hits_[Mode3Colour0(c)].push_back(static_cast<uint8_t>(c));
-				mode3_palette_hits_[Mode3Colour1(c)].push_back(static_cast<uint8_t>(c));
+				mode3_palette_hits_[Mode3Colour0(c)].push_back(uint8_t(c));
+				mode3_palette_hits_[Mode3Colour1(c)].push_back(uint8_t(c));
 			}
 		}
 
@@ -406,7 +416,7 @@ class CRTCBusHandler {
 					// Mode 0: abcdefgh -> [gcea] [hdfb]
 					for(int c = 0; c < 256; c++) {
 						// prepare mode 0
-						uint8_t *mode0_pixels = reinterpret_cast<uint8_t *>(&mode0_output_[c]);
+						uint8_t *const mode0_pixels = reinterpret_cast<uint8_t *>(&mode0_output_[c]);
 						mode0_pixels[0] = palette_[Mode0Colour0(c)];
 						mode0_pixels[1] = palette_[Mode0Colour1(c)];
 					}
@@ -415,7 +425,7 @@ class CRTCBusHandler {
 				case 1:
 					for(int c = 0; c < 256; c++) {
 						// prepare mode 1
-						uint8_t *mode1_pixels = reinterpret_cast<uint8_t *>(&mode1_output_[c]);
+						uint8_t *const mode1_pixels = reinterpret_cast<uint8_t *>(&mode1_output_[c]);
 						mode1_pixels[0] = palette_[Mode1Colour0(c)];
 						mode1_pixels[1] = palette_[Mode1Colour1(c)];
 						mode1_pixels[2] = palette_[Mode1Colour2(c)];
@@ -426,7 +436,7 @@ class CRTCBusHandler {
 				case 2:
 					for(int c = 0; c < 256; c++) {
 						// prepare mode 2
-						uint8_t *mode2_pixels = reinterpret_cast<uint8_t *>(&mode2_output_[c]);
+						uint8_t *const mode2_pixels = reinterpret_cast<uint8_t *>(&mode2_output_[c]);
 						mode2_pixels[0] = palette_[((c & 0x80) >> 7)];
 						mode2_pixels[1] = palette_[((c & 0x40) >> 6)];
 						mode2_pixels[2] = palette_[((c & 0x20) >> 5)];
@@ -441,7 +451,7 @@ class CRTCBusHandler {
 				case 3:
 					for(int c = 0; c < 256; c++) {
 						// prepare mode 3
-						uint8_t *mode3_pixels = reinterpret_cast<uint8_t *>(&mode3_output_[c]);
+						uint8_t *const mode3_pixels = reinterpret_cast<uint8_t *>(&mode3_output_[c]);
 						mode3_pixels[0] = palette_[Mode3Colour0(c)];
 						mode3_pixels[1] = palette_[Mode3Colour1(c)];
 					}
@@ -453,7 +463,7 @@ class CRTCBusHandler {
 			switch(mode_) {
 				case 0: {
 					for(uint8_t c : mode0_palette_hits_[pen]) {
-						uint8_t *mode0_pixels = reinterpret_cast<uint8_t *>(&mode0_output_[c]);
+						uint8_t *const mode0_pixels = reinterpret_cast<uint8_t *>(&mode0_output_[c]);
 						mode0_pixels[0] = palette_[Mode0Colour0(c)];
 						mode0_pixels[1] = palette_[Mode0Colour1(c)];
 					}
@@ -461,7 +471,7 @@ class CRTCBusHandler {
 				case 1:
 					if(pen > 3) return;
 					for(uint8_t c : mode1_palette_hits_[pen]) {
-						uint8_t *mode1_pixels = reinterpret_cast<uint8_t *>(&mode1_output_[c]);
+						uint8_t *const mode1_pixels = reinterpret_cast<uint8_t *>(&mode1_output_[c]);
 						mode1_pixels[0] = palette_[Mode1Colour0(c)];
 						mode1_pixels[1] = palette_[Mode1Colour1(c)];
 						mode1_pixels[2] = palette_[Mode1Colour2(c)];
@@ -478,7 +488,7 @@ class CRTCBusHandler {
 					if(pen > 3) return;
 					// Same argument applies here as to case 1, as the unused bits aren't masked out.
 					for(uint8_t c : mode3_palette_hits_[pen]) {
-						uint8_t *mode3_pixels = reinterpret_cast<uint8_t *>(&mode3_output_[c]);
+						uint8_t *const mode3_pixels = reinterpret_cast<uint8_t *>(&mode3_output_[c]);
 						mode3_pixels[0] = palette_[Mode3Colour0(c)];
 						mode3_pixels[1] = palette_[Mode3Colour1(c)];
 					}
@@ -528,7 +538,7 @@ class CRTCBusHandler {
 		Outputs::CRT::CRT crt_;
 		uint8_t *pixel_data_ = nullptr, *pixel_pointer_ = nullptr;
 
-		uint8_t *ram_ = nullptr;
+		const uint8_t *const ram_ = nullptr;
 
 		int next_mode_ = 2, mode_ = 2;
 
@@ -564,7 +574,7 @@ class KeyboardState: public GI::AY38910::PortHandler {
 			Sets the row currently being reported to the AY.
 		*/
 		void set_row(int row) {
-			row_ = static_cast<size_t>(row);
+			row_ = size_t(row);
 		}
 
 		/*!
@@ -583,7 +593,7 @@ class KeyboardState: public GI::AY38910::PortHandler {
 		*/
 		void set_is_pressed(bool is_pressed, int line, int key) {
 			int mask = 1 << key;
-			assert(static_cast<size_t>(line) < sizeof(rows_));
+			assert(size_t(line) < sizeof(rows_));
 			if(is_pressed) rows_[line] &= ~mask; else rows_[line] |= mask;
 		}
 
@@ -594,7 +604,7 @@ class KeyboardState: public GI::AY38910::PortHandler {
 			memset(rows_, 0xff, sizeof(rows_));
 		}
 
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
 			return joysticks_;
 		}
 
@@ -816,8 +826,8 @@ template <bool has_fdc> class ConcreteMachine:
 			for(std::size_t index = 0; index < roms.size(); ++index) {
 				auto &data = roms[index];
 				if(!data) throw ROMMachine::Error::MissingROMs;
-				roms_[static_cast<int>(index)] = std::move(*data);
-				roms_[static_cast<int>(index)].resize(16384);
+				roms_[int(index)] = std::move(*data);
+				roms_[int(index)].resize(16384);
 			}
 
 			// Establish default memory map
@@ -862,7 +872,7 @@ template <bool has_fdc> class ConcreteMachine:
 
 			// TODO (in the player, not here): adapt it to accept an input clock rate and
 			// run_for as HalfCycles
-			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.as_int());
+			if(!tape_player_is_sleeping_) tape_player_.run_for(cycle.length.as_integral());
 
 			// Pump the AY
 			ay_.run_for(cycle.length);
@@ -1083,7 +1093,7 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		// MARK: - Joysticks
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return key_state_.get_joysticks();
 		}
 
@@ -1147,7 +1157,7 @@ template <bool has_fdc> class ConcreteMachine:
 		void flush_fdc() {
 			// Clock the FDC, if connected, using a lazy scale by two
 			if(has_fdc && !fdc_is_sleeping_) {
-				fdc_.run_for(Cycles(time_since_fdc_update_.as_int()));
+				fdc_.run_for(Cycles(time_since_fdc_update_.as_integral()));
 			}
 			time_since_fdc_update_ = HalfCycles(0);
 		}

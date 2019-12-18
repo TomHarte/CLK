@@ -241,6 +241,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 				continue;
 
 				case ExecutionState::BeginInterrupt:
+#ifdef LOG_TRACE
+					should_log = true;
+#endif
 					active_program_ = nullptr;
 					active_micro_op_ = interrupt_micro_ops_;
 					execution_state_ = ExecutionState::Executing;
@@ -277,6 +280,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								std::cout << std::setfill('0');
 								std::cout << (extend_flag_ ? 'x' : '-') << (negative_flag_ ? 'n' : '-') << (zero_result_ ? '-' : 'z');
 								std::cout << (overflow_flag_ ? 'v' : '-') << (carry_flag_ ? 'c' : '-') << '\t';
+								std::cout << (is_supervisor_ ? 's' : 'u') << '\t';
 								for(int c = 0; c < 8; ++ c) std::cout << "d" << c << ":" << std::setw(8) << data_[c].full << " ";
 								for(int c = 0; c < 8; ++ c) std::cout << "a" << c << ":" << std::setw(8) << address_[c].full << " ";
 								if(is_supervisor_) {
@@ -307,11 +311,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 #ifdef LOG_TRACE
-							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
+//							const uint32_t fetched_pc = (program_counter_.full - 4)&0xffffff;
 
 //							should_log |= fetched_pc == 0x6d9c;
-							should_log = (fetched_pc >= 0x41806A && fetched_pc <= 0x418618);
- //							should_log |= fetched_pc == 0x4012A2;
+//							should_log = (fetched_pc >= 0x41806A && fetched_pc <= 0x418618);
+//							should_log |= fetched_pc == 0x4012A2;
 //							should_log &= fetched_pc != 0x4012AE;
 
 //							should_log = (fetched_pc >= 0x408D66) && (fetched_pc <= 0x408D84);
@@ -386,6 +390,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const uint8_t destination = destination()->halves.low.halves.low;
 
 									// Perform the BCD add by evaluating the two nibbles separately.
+									const int unadjusted_result = destination + source + (extend_flag_ ? 1 : 0);
 									int result = (destination & 0xf) + (source & 0xf) + (extend_flag_ ? 1 : 0);
 									if(result > 0x09) result += 0x06;
 									result += (destination & 0xf0) + (source & 0xf0);
@@ -395,8 +400,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									zero_result_ |= result & 0xff;
 									extend_flag_ = carry_flag_ = uint_fast32_t(result & ~0xff);
 									negative_flag_ = result & 0x80;
-
-									const int unadjusted_result = destination + source + (extend_flag_ ? 1 : 0);
 									overflow_flag_ = ~unadjusted_result & result & 0x80;
 
 									// Store the result.
@@ -793,7 +796,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::CMPAw: {
 									const auto source = uint64_t(u_extend16(source()->halves.low.full));
-									const auto destination = uint64_t(u_extend16(destination()->halves.low.full));
+									const uint64_t destination = destination()->full;
 									const auto result = destination - source;
 
 									zero_result_ = uint32_t(result);
@@ -1322,7 +1325,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 									overflow_flag_ = carry_flag_ = 0;
 									zero_result_ = destination()->halves.low.full;
-									negative_flag_ = (is_under && !is_over) ? 1 : 0;
+									if(is_under) negative_flag_ = 1;
+									if(is_over) negative_flag_ = 0;
 
 									// No exception is the default course of action; deviate only if an
 									// exception is necessary.
@@ -1525,21 +1529,21 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									overflow_flag_ = carry_flag_ = 0;
 								break;
 
-#define sbcd()	\
-	/* Perform the BCD arithmetic by evaluating the two nibbles separately. */	\
-	int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);	\
-	if((result & 0x1f) > 0x09) result -= 0x06;									\
-	result += (destination & 0xf0) - (source & 0xf0);							\
-	if((result & 0x1ff) > 0x99) result -= 0x60;									\
-																				\
-	/* Set all flags essentially as if this were normal subtraction. */			\
-	zero_result_ |= result & 0xff;												\
-	extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);			\
-	negative_flag_ = result & 0x80;												\
+#define sbcd()																		\
+	/* Perform the BCD arithmetic by evaluating the two nibbles separately. */		\
 	const int unadjusted_result = destination - source - (extend_flag_ ? 1 : 0);	\
-	overflow_flag_ = unadjusted_result &~ result & 0x80;						\
-																				\
-	/* Store the result. */														\
+	int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);		\
+	if((result & 0x1f) > 0x09) result -= 0x06;										\
+	result += (destination & 0xf0) - (source & 0xf0);								\
+	extend_flag_ = carry_flag_ = decltype(carry_flag_)((result & 0x1ff) > 0x99);	\
+	if(carry_flag_) result -= 0x60;													\
+																					\
+	/* Set all flags essentially as if this were normal subtraction. */				\
+	zero_result_ |= result & 0xff;													\
+	negative_flag_ = result & 0x80;													\
+	overflow_flag_ = unadjusted_result & ~result & 0x80;							\
+																					\
+	/* Store the result. */															\
 	destination()->halves.low.halves.low = uint8_t(result);
 
 								/*
@@ -1997,6 +2001,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 							// Otherwise, the vector is whatever we were just told it is.
 							effective_address_[0].full = uint32_t(source_bus_data_[0].halves.low.halves.low << 2);
+
+//							printf("Interrupt vector: %06x\n", effective_address_[0].full);
 						break;
 
 						case int_type(MicroOp::Action::CopyNextWord):

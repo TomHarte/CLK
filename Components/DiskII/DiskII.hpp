@@ -101,7 +101,7 @@ class DiskII final:
 		void process_event(const Storage::Disk::Drive::Event &event) override;
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) override;
 
-		const int clock_rate_ = 0;
+		const Cycles::IntType clock_rate_ = 0;
 
 		uint8_t state_ = 0;
 		uint8_t inputs_ = 0;
@@ -109,7 +109,7 @@ class DiskII final:
 
 		int stepper_mask_ = 0;
 		int stepper_position_ = 0;
-		int motor_off_time_ = -1;
+		Cycles::IntType motor_off_time_ = -1;
 
 		bool is_write_protected();
 		std::array<uint8_t, 256> state_machine_;

@@ -15,6 +15,7 @@ enum class Machine {
 	AmstradCPC,
 	AppleII,
 	Atari2600,
+	AtariST,
 	ColecoVision,
 	Electron,
 	Macintosh,

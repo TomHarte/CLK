@@ -81,6 +81,6 @@ MultiJoystickMachine::MultiJoystickMachine(const std::vector<std::unique_ptr<::M
 	}
 }
 
-std::vector<std::unique_ptr<Inputs::Joystick>> &MultiJoystickMachine::get_joysticks() {
+const std::vector<std::unique_ptr<Inputs::Joystick>> &MultiJoystickMachine::get_joysticks() {
 	return joysticks_;
 }

@@ -89,7 +89,7 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 			return 0xff;
 		}
 
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
 			return joysticks_;
 		}
 
@@ -599,7 +599,7 @@ class ConcreteMachine:
 			}
 
 			if(!tape_player_is_sleeping_)
-				tape_player_.run_for(cycle.length.as_int());
+				tape_player_.run_for(int(cycle.length.as_integral()));
 
 			if(time_until_interrupt_ > 0) {
 				time_until_interrupt_ -= total_length;
@@ -686,7 +686,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Joysticks
-		std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
 			return ay_port_handler_.get_joysticks();
 		}
 
@@ -752,7 +752,7 @@ class ConcreteMachine:
 		};
 
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
-		JustInTimeActor<TI::TMS::TMS9918, HalfCycles> vdp_;
+		JustInTimeActor<TI::TMS::TMS9918> vdp_;
 		Intel::i8255::i8255<i8255PortHandler> i8255_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;

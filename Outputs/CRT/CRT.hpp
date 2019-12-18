@@ -10,6 +10,7 @@
 #define CRT_hpp
 
 #include <cstdint>
+#include <limits>
 #include <memory>
 
 #include "../ScanTarget.hpp"
@@ -82,6 +83,10 @@ class CRT {
 		Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
 		Outputs::Display::ScanTarget::Modals scan_target_modals_;
 		static const uint8_t DefaultAmplitude = 80;
+
+#ifndef NDEBUG
+		size_t allocated_data_length_ = std::numeric_limits<size_t>::min();
+#endif
 
 	public:
 		/*!	Constructs the CRT with a specified clock rate, height and colour subcarrier frequency.
@@ -221,6 +226,9 @@ class CRT {
 			@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 		*/
 		inline uint8_t *begin_data(std::size_t required_length, std::size_t required_alignment = 1) {
+#ifndef NDEBUG
+			allocated_data_length_ = required_length;
+#endif
 			return scan_target_->begin_data(required_length, required_alignment);
 		}
 

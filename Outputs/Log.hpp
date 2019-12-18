@@ -26,11 +26,23 @@
 #define PADHEX(n) std::hex << std::setfill('0') << std::setw(n)
 #define PADDEC(n) std::dec << std::setfill('0') << std::setw(n) 
 
+#ifdef LOG_PREFIX
+
+#define LOG(x) std::cout << LOG_PREFIX << x << std::endl
+#define LOGNBR(x) std::cout << LOG_PREFIX << x
+
+#define ERROR(x) std::cerr << LOG_PREFIX << x << std::endl
+#define ERRORNBR(x) std::cerr << LOG_PREFIX << x
+
+#else
+
 #define LOG(x) std::cout << x << std::endl
 #define LOGNBR(x) std::cout << x
 
 #define ERROR(x) std::cerr << x << std::endl
 #define ERRORNBR(x) std::cerr << x
+
+#endif
 
 #endif
 

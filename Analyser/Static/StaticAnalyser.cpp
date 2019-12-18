@@ -17,7 +17,8 @@
 #include "Acorn/StaticAnalyser.hpp"
 #include "AmstradCPC/StaticAnalyser.hpp"
 #include "AppleII/StaticAnalyser.hpp"
-#include "Atari/StaticAnalyser.hpp"
+#include "Atari2600/StaticAnalyser.hpp"
+#include "AtariST/StaticAnalyser.hpp"
 #include "Coleco/StaticAnalyser.hpp"
 #include "Commodore/StaticAnalyser.hpp"
 #include "DiskII/StaticAnalyser.hpp"
@@ -40,10 +41,12 @@
 #include "../../Storage/Disk/DiskImage/Formats/G64.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/DMK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/HFE.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/MSA.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/MSXDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/NIB.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/SSD.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/ST.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/WOZ.hpp"
 
 // Mass Storage Devices (i.e. usually, hard disks)
@@ -117,6 +120,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 			// HFE (TODO: switch to AllDisk once the MSX stops being so greedy)
 	Format("img", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)		// IMG (DiskCopy 4.2)
 	Format("image", result.disks, Disk::DiskImageHolder<Storage::Disk::MacintoshIMG>, TargetPlatform::Macintosh)	// IMG (DiskCopy 4.2)
+	Format("msa", result.disks, Disk::DiskImageHolder<Storage::Disk::MSA>, TargetPlatform::AtariST)				// MSA
 	Format("nib", result.disks, Disk::DiskImageHolder<Storage::Disk::NIB>, TargetPlatform::DiskII)				// NIB
 	Format("o", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// O
 	Format("p", result.tapes, Tape::ZX80O81P, TargetPlatform::ZX8081)											// P
@@ -142,6 +146,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("sg", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)								// SG
 	Format("sms", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)								// SMS
 	Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)				// SSD
+	Format("st", result.disks, Disk::DiskImageHolder<Storage::Disk::ST>, TargetPlatform::AtariST)				// ST
 	Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)									// TAP (Commodore)
 	Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)											// TAP (Oric)
 	Format("tsx", result.tapes, Tape::TZX, TargetPlatform::MSX)													// TSX
@@ -178,7 +183,8 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	if(potential_platforms & TargetPlatform::Acorn)			Append(Acorn);
 	if(potential_platforms & TargetPlatform::AmstradCPC)	Append(AmstradCPC);
 	if(potential_platforms & TargetPlatform::AppleII)		Append(AppleII);
-	if(potential_platforms & TargetPlatform::Atari2600)		Append(Atari);
+	if(potential_platforms & TargetPlatform::Atari2600)		Append(Atari2600);
+	if(potential_platforms & TargetPlatform::AtariST)		Append(AtariST);
 	if(potential_platforms & TargetPlatform::ColecoVision)	Append(Coleco);
 	if(potential_platforms & TargetPlatform::Commodore)		Append(Commodore);
 	if(potential_platforms & TargetPlatform::DiskII)		Append(DiskII);

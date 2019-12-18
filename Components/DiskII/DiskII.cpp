@@ -78,7 +78,7 @@ void DiskII::select_drive(int drive) {
 void DiskII::run_for(const Cycles cycles) {
 	if(preferred_clocking() == ClockingHint::Preference::None) return;
 
-	int integer_cycles = cycles.as_int();
+	auto integer_cycles = cycles.as_integral();
 	while(integer_cycles--) {
 		const int address = (state_ & 0xf0) | inputs_ | ((shift_register_&0x80) >> 6);
 		if(flux_duration_) {
@@ -124,7 +124,7 @@ void DiskII::run_for(const Cycles cycles) {
 	// motor switch being flipped and the drive motor actually switching off.
 	// This models that, accepting overrun as a risk.
 	if(motor_off_time_ >= 0) {
-		motor_off_time_ -= cycles.as_int();
+		motor_off_time_ -= cycles.as_integral();
 		if(motor_off_time_ < 0) {
 			set_control(Control::Motor, false);
 		}
@@ -266,7 +266,7 @@ int DiskII::read_address(int address) {
 		break;
 		case 0xf:
 			if(!(inputs_ & input_mode))
-				drives_[active_drive_].begin_writing(Storage::Time(1, clock_rate_), false);
+				drives_[active_drive_].begin_writing(Storage::Time(1, int(clock_rate_)), false);
 			inputs_ |= input_mode;
 		break;
 	}

@@ -15,13 +15,13 @@
 
 using namespace Storage;
 
-TimedEventLoop::TimedEventLoop(int input_clock_rate) :
+TimedEventLoop::TimedEventLoop(Cycles::IntType input_clock_rate) :
 	input_clock_rate_(input_clock_rate) {}
 
 void TimedEventLoop::run_for(const Cycles cycles) {
-	int remaining_cycles = cycles.as_int();
+	auto remaining_cycles = cycles.as_integral();
 #ifndef NDEBUG
-	int cycles_advanced = 0;
+	decltype(remaining_cycles) cycles_advanced = 0;
 #endif
 
 	while(cycles_until_event_ <= remaining_cycles) {
@@ -42,15 +42,15 @@ void TimedEventLoop::run_for(const Cycles cycles) {
 		advance(remaining_cycles);
 	}
 
-	assert(cycles_advanced == cycles.as_int());
+	assert(cycles_advanced == cycles.as_integral());
 	assert(cycles_until_event_ > 0);
 }
 
-int TimedEventLoop::get_cycles_until_next_event() {
-	return std::max(cycles_until_event_, 0);
+Cycles::IntType TimedEventLoop::get_cycles_until_next_event() {
+	return std::max(cycles_until_event_, Cycles::IntType(0));
 }
 
-int TimedEventLoop::get_input_clock_rate() {
+Cycles::IntType TimedEventLoop::get_input_clock_rate() {
 	return input_clock_rate_;
 }
 
@@ -74,7 +74,7 @@ void TimedEventLoop::set_next_event_time_interval(float interval) {
 
 	// So this event will fire in the integral number of cycles from now, putting us at the remainder
 	// number of subcycles
-	const int addition = int(float_interval);
+	const Cycles::IntType addition = Cycles::IntType(float_interval);
 	cycles_until_event_ += addition;
 	subcycles_until_event_ = fmodf(float_interval, 1.0);
 

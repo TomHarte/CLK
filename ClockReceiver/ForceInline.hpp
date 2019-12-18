@@ -9,9 +9,9 @@
 #ifndef ForceInline_hpp
 #define ForceInline_hpp
 
-#ifdef DEBUG
+#ifndef NDEBUG
 
-#define forceinline
+#define forceinline inline
 
 #else
 
