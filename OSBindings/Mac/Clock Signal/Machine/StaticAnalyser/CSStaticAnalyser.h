@@ -23,6 +23,10 @@ typedef NS_ENUM(NSInteger, CSMachineAppleIIDiskController) {
 	CSMachineAppleIIDiskControllerThirteenSector
 };
 
+typedef NS_ENUM(NSInteger, CSMachineAtariSTModel) {
+	CSMachineAtariSTModel512k,
+};
+
 typedef NS_ENUM(NSInteger, CSMachineCPCModel) {
 	CSMachineCPCModel464,
 	CSMachineCPCModel664,
@@ -77,6 +81,7 @@ typedef int Kilobytes;
 - (instancetype)initWithZX81MemorySize:(Kilobytes)memorySize;
 - (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController;
 - (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model;
+- (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model;
 
 @property(nonatomic, readonly) NSString *optionsPanelNibName;
 @property(nonatomic, readonly) NSString *displayName;
