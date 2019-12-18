@@ -49,6 +49,7 @@
 	}
 
 	// Output a summary of failures.
+	NSLog(@"Total: %@", @(_failures.count));
 	NSLog(@"Failures: %@", _failures);
 	NSLog(@"Failing opcodes:");
 	for(NSNumber *number in _failingOpcodes) {
