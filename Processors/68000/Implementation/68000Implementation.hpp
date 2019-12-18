@@ -390,6 +390,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const uint8_t destination = destination()->halves.low.halves.low;
 
 									// Perform the BCD add by evaluating the two nibbles separately.
+									const int unadjusted_result = destination + source + (extend_flag_ ? 1 : 0);
 									int result = (destination & 0xf) + (source & 0xf) + (extend_flag_ ? 1 : 0);
 									if(result > 0x09) result += 0x06;
 									result += (destination & 0xf0) + (source & 0xf0);
@@ -399,8 +400,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									zero_result_ |= result & 0xff;
 									extend_flag_ = carry_flag_ = uint_fast32_t(result & ~0xff);
 									negative_flag_ = result & 0x80;
-
-									const int unadjusted_result = destination + source + (extend_flag_ ? 1 : 0);
 									overflow_flag_ = ~unadjusted_result & result & 0x80;
 
 									// Store the result.
@@ -1530,21 +1529,21 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									overflow_flag_ = carry_flag_ = 0;
 								break;
 
-#define sbcd()	\
-	/* Perform the BCD arithmetic by evaluating the two nibbles separately. */	\
-	int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);	\
-	if((result & 0x1f) > 0x09) result -= 0x06;									\
-	result += (destination & 0xf0) - (source & 0xf0);							\
-	if((result & 0x1ff) > 0x99) result -= 0x60;									\
-																				\
-	/* Set all flags essentially as if this were normal subtraction. */			\
-	zero_result_ |= result & 0xff;												\
-	extend_flag_ = carry_flag_ = decltype(carry_flag_)(result & ~0xff);			\
-	negative_flag_ = result & 0x80;												\
+#define sbcd()																		\
+	/* Perform the BCD arithmetic by evaluating the two nibbles separately. */		\
 	const int unadjusted_result = destination - source - (extend_flag_ ? 1 : 0);	\
-	overflow_flag_ = unadjusted_result & ~result & 0x80;						\
-																				\
-	/* Store the result. */														\
+	int result = (destination & 0xf) - (source & 0xf) - (extend_flag_ ? 1 : 0);		\
+	if((result & 0x1f) > 0x09) result -= 0x06;										\
+	result += (destination & 0xf0) - (source & 0xf0);								\
+	extend_flag_ = carry_flag_ = decltype(carry_flag_)((result & 0x1ff) > 0x99);	\
+	if(carry_flag_) result -= 0x60;													\
+																					\
+	/* Set all flags essentially as if this were normal subtraction. */				\
+	zero_result_ |= result & 0xff;													\
+	negative_flag_ = result & 0x80;													\
+	overflow_flag_ = unadjusted_result & ~result & 0x80;							\
+																					\
+	/* Store the result. */															\
 	destination()->halves.low.halves.low = uint8_t(result);
 
 								/*
