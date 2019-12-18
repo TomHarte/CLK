@@ -59,9 +59,6 @@ If your machine has a 4k monitor and a 96Khz audio output? Then you'll get a 4k 
 |![Amstrad text, with a classic 1:1 pixel emulation](READMEImages/NaiveCPC.png)|![Amstrad text, with correct aspect ratio and subject to a lowpass filter](READMEImages/FilteredCPC.png)|
 |![The Amstrad CPC version of Stormlord, with a classic 1:1 pixel emulation](READMEImages/NaiveCPCStormlord.png)|![The Amstrad CPC version of Stormlord, with correct aspect ratio and subject to a lowpass filter](READMEImages/CPCStormlord.png)|
 
-<img src="READMEImages/ReptonInterlaced.gif" height=400 alt="Repton title screen, interlaced"><img src="READMEImages/AppleIIPrinceOfPersia.png" height=400 alt="Apple IIe Prince of Persia">
-<img src="READMEImages/MusicWorks.png" height=400 alt="Apple Macintosh MusicWorks">
-
 ## Low Latency
 
 The display produced is an emulated CRT, with phosphor decay. Therefore if you have a 140Hz monitor it can produce 140 distinct frames per second. Latency is dictated by the output hardware, not the emulated machine.
@@ -74,10 +71,8 @@ A corollary of emulating the continuous nature CRT, not merely performing end-of
 
 Cycle-accurate emulation for the supported target machines is fairly trite; this emulator seeks to follow that precedent. All emulation logic is written in C++ for explicit control over costs but, where a conflict arises, the presumption is towards clarity and simplicity of code. This emulator is willing to spend the processing resources available on modern hardware.
 
-Self-ratings:
-* the Electron, Oric and Vic-20 are pretty much perfect;
-* the ZX80, ZX81, ColecoVision, MSX 1 and Apple IIs are very strong;
-* the Master System is almost perfect, access windows and CRAM dots and all the rest, but further work is required on some small aspects of behaviour;
-* the Amstrad CPC has known accuracy deficiencies in its 8272 and 6845;
-* the Atari 2600 has some known accuracy deficiencies in its TIA;
-* the C-1540(/1) is locked in reading mode and doesn't yet support writing.
+## Additional Screenshots
+
+<img src="READMEImages/AppleIIPrinceOfPersia.png" height=400 alt="Apple IIe Prince of Persia">
+<img src="READMEImages/MusicWorks.png" height=400 alt="Apple Macintosh MusicWorks">
+<img src="READMEImages/STStuntCarRacer.png" height=400 alt="Atari ST Stunt Car Racer">
