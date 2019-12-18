@@ -158,6 +158,9 @@ class MachinePicker: NSObject {
 
 				return CSStaticAnalyser(appleIIModel: model, diskController: diskController)
 
+			case "atarist":
+				return CSStaticAnalyser(atariSTModel: .model512k)
+
 			case "cpc":
 				switch cpcModelTypeButton!.selectedItem!.tag {
 					case 464:	return CSStaticAnalyser(amstradCPCModel: .model464)
