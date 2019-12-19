@@ -8,6 +8,7 @@
 
 #include "z8530.hpp"
 
+#define LOG_PREFIX "[SCC] "
 #include "../../Outputs/Log.hpp"
 
 using namespace Zilog::SCC;
@@ -48,7 +49,7 @@ std::uint8_t z8530::read(int address) {
 
 			case 2:		// Handled non-symmetrically between channels.
 				if(address & 1) {
-					LOG("[SCC] Unimplemented: register 2 status bits");
+					LOG("Unimplemented: register 2 status bits");
 				} else {
 					result = interrupt_vector_;
 
@@ -105,11 +106,11 @@ void z8530::write(int address, std::uint8_t value) {
 			case 2:	// Interrupt vector register; used only by Channel B.
 					// So there's only one of these.
 				interrupt_vector_ = value;
-				LOG("[SCC] Interrupt vector set to " << PADHEX(2) << int(value));
+				LOG("Interrupt vector set to " << PADHEX(2) << int(value));
 			break;
 
 			case 9:	// Master interrupt and reset register; there is also only one of these.
-				LOG("[SCC] Master interrupt and reset register: " << PADHEX(2) << int(value));
+				LOG("Master interrupt and reset register: " << PADHEX(2) << int(value));
 				master_interrupt_control_ = value;
 			break;
 		}
@@ -146,16 +147,79 @@ uint8_t z8530::Channel::read(bool data, uint8_t pointer) {
 	if(data) {
 		return data_;
 	} else {
+		LOG("Control read from register " << int(pointer));
 		// Otherwise, this is a control read...
 		switch(pointer) {
 			default:
-				LOG("[SCC] Unrecognised control read from register " << int(pointer));
 			return 0x00;
 
-			case 0:
+			case 0x0:	// Read Register 0; see p.37 (PDF p.45).
+				// b0: Rx character available.
+				// b1: zero count.
+				// b2: Tx buffer empty.
+				// b3: DCD.
+				// b4: sync/hunt.
+				// b5: CTS.
+				// b6: Tx underrun/EOM.
+				// b7: break/abort.
 			return dcd_ ? 0x8 : 0x0;
 
-			case 0xf:
+			case 0x1:	// Read Register 1; see p.37 (PDF p.45).
+				// b0: all sent.
+				// b1: residue code 0.
+				// b2: residue code 1.
+				// b3: residue code 2.
+				// b4: parity error.
+				// b5: Rx overrun error.
+				// b6: CRC/framing error.
+				// b7: end of frame (SDLC).
+			return 0x01;
+
+			case 0x2:	// Read Register 2; see p.37 (PDF p.45).
+				// Interrupt vector — modified by status information in B channel.
+			return 0x00;
+
+			case 0x3:	// Read Register 3; see p.37 (PDF p.45).
+				// B channel: all bits are 0.
+				// A channel:
+				// b0: Channel B ext/status IP.
+				// b1: Channel B Tx IP.
+				// b2: Channel B Rx IP.
+				// b3: Channel A ext/status IP.
+				// b4: Channel A Tx IP.
+				// b5: Channel A Rx IP.
+				// b6, b7: 0.
+			return 0x00;
+
+			case 0xa:	// Read Register 10; see p.37 (PDF p.45).
+				// b0: 0
+				// b1: On loop.
+				// b2: 0
+				// b3: 0
+				// b4: Loop sending.
+				// b5: 0
+				// b6: Two clocks missing.
+				// b7: One clock missing.
+			return 0x00;
+
+			case 0xc:	// Read Register 12; see p.37 (PDF p.45).
+				// Lower byte of time constant.
+			return 0x00;
+
+			case 0xd:	// Read Register 13; see p.38 (PDF p.46).
+				// Upper byte of time constant.
+			return 0x00;
+
+			case 0xf:	// Read Register 15; see p.38 (PDF p.46).
+				// External interrupt status:
+				// b0: 0
+				// b1: Zero count.
+				// b2: 0
+				// b3: DCD.
+				// b4: Sync/hunt.
+				// b5: CTS.
+				// b6: Tx underrun/EOM.
+				// b7: Break/abort.
 			return external_interrupt_status_;
 		}
 	}
@@ -168,9 +232,10 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 		data_ = value;
 		return;
 	} else {
+		LOG("Control write: " << PADHEX(2) << int(value) << " to register " << int(pointer));
 		switch(pointer) {
 			default:
-				LOG("[SCC] Unrecognised control write: " << PADHEX(2) << int(value) << " to register " << int(pointer));
+				LOG("Unrecognised control write: " << PADHEX(2) << int(value) << " to register " << int(pointer));
 			break;
 
 			case 0x0:	// Write register 0 — CRC reset and other functions.
@@ -178,13 +243,13 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 				switch(value >> 6) {
 					default:	/* Do nothing. */		break;
 					case 1:
-						LOG("[SCC] TODO: reset Rx CRC checker.");
+						LOG("TODO: reset Rx CRC checker.");
 					break;
 					case 2:
-						LOG("[SCC] TODO: reset Tx CRC checker.");
+						LOG("TODO: reset Tx CRC checker.");
 					break;
 					case 3:
-						LOG("[SCC] TODO: reset Tx underrun/EOM latch.");
+						LOG("TODO: reset Tx underrun/EOM latch.");
 					break;
 				}
 
@@ -192,24 +257,24 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 				switch((value >> 3)&7) {
 					default:	/* Do nothing. */		break;
 					case 2:
-//						LOG("[SCC] reset ext/status interrupts.");
+//						LOG("reset ext/status interrupts.");
 						external_status_interrupt_ = false;
 						external_interrupt_status_ = 0;
 					break;
 					case 3:
-						LOG("[SCC] TODO: send abort (SDLC).");
+						LOG("TODO: send abort (SDLC).");
 					break;
 					case 4:
-						LOG("[SCC] TODO: enable interrupt on next Rx character.");
+						LOG("TODO: enable interrupt on next Rx character.");
 					break;
 					case 5:
-						LOG("[SCC] TODO: reset Tx interrupt pending.");
+						LOG("TODO: reset Tx interrupt pending.");
 					break;
 					case 6:
-						LOG("[SCC] TODO: reset error.");
+						LOG("TODO: reset error.");
 					break;
 					case 7:
-						LOG("[SCC] TODO: reset highest IUS.");
+						LOG("TODO: reset highest IUS.");
 					break;
 				}
 			break;
@@ -234,7 +299,10 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 					b1 = 1 => transmit buffer empty interrupt is enabled; 0 => it isn't.
 					b0 = 1 => external interrupt is enabled; 0 => it isn't.
 				*/
-				LOG("[SCC] Interrupt mask: " << PADHEX(2) << int(value));
+				LOG("Interrupt mask: " << PADHEX(2) << int(value));
+			break;
+
+			case 0x2:	// Write register 2 - interrupt vector.
 			break;
 
 			case 0x3: {	// Write register 3 — Receive Parameters and Control.
@@ -246,7 +314,7 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 					case 2:		receive_bit_count = 6;	break;
 					case 3:		receive_bit_count = 8;	break;
 				}
-				LOG("[SCC] Receive bit count: " << receive_bit_count);
+				LOG("Receive bit count: " << receive_bit_count);
 
 				/*
 					b7,b6:
@@ -259,6 +327,9 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 								(DCD is ignored in local loopback; CTS is ignored in both auto echo and local loopback).
 					b4: enter hunt mode (if set to 1, presumably?)
 					b3 = 1 => enable receiver CRC generation; 0 => don't.
+					b2: address search mode (SDLC)
+					b1: sync character load inhibit.
+					b0: Rx enable.
 				*/
 			} break;
 
@@ -298,6 +369,23 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 						case 3:		clock_rate_multiplier_ = 64;	break;
 					}
 				}
+			break;
+
+			case 0x5:
+				// b7: DTR
+				// b6/b5:
+				//	00 = Tx 5 bits (or less) per character
+				//	01 = Tx 7 bits per character
+				//	10 = Tx 6 bits per character
+				//	11 = Tx 8 bits per character
+				// b4: send break.
+				// b3: Tx enable.
+				// b2: SDLC (if 0) / CRC-16 (if 1)
+				// b1: RTS
+				// b0: Tx CRC enable.
+			break;
+
+			case 0x6:
 			break;
 
 			case 0xf:	// Write register 15 — External/Status Interrupt Control.
