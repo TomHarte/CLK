@@ -116,11 +116,11 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 
 		int envelope_period_ = 0;
 		int envelope_divider_ = 0;
-		int envelope_position_ = 0;
-		int envelope_shapes_[16][32];
+		int envelope_position_ = 0, envelope_position_mask_ = 0;
+		int envelope_shapes_[16][64];
 		int envelope_overflow_masks_[16];
 
-		int volumes_[16];
+		int volumes_[32];
 
 		enum ControlState {
 			Inactive,
