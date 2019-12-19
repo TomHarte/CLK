@@ -12,8 +12,8 @@
 
 using namespace GI::AY38910;
 
-AY38910::AY38910(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {
-	// set up envelope lookup tables
+AY38910::AY38910(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {
+	// Set up envelope lookup tables.
 	for(int c = 0; c < 16; c++) {
 		for(int p = 0; p < 32; p++) {
 			switch(c) {

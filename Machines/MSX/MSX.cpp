@@ -154,7 +154,7 @@ class ConcreteMachine:
 			z80_(*this),
 			vdp_(TI::TMS::TMS9918A),
 			i8255_(i8255_port_handler_),
-			ay_(audio_queue_),
+			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			audio_toggle_(audio_queue_),
 			scc_(audio_queue_),
 			mixer_(ay_, audio_toggle_, scc_),
