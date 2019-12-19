@@ -124,7 +124,7 @@ class InterruptTimer {
 class AYDeferrer {
 	public:
 		/// Constructs a new AY instance and sets its clock rate.
-		AYDeferrer() : ay_(audio_queue_), speaker_(ay_) {
+		AYDeferrer() : ay_(GI::AY38910::Personality::AY38910, audio_queue_), speaker_(ay_) {
 			speaker_.set_input_rate(1000000);
 		}
 

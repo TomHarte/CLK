@@ -69,7 +69,7 @@ template<bool is_zx81> class ConcreteMachine:
 		ConcreteMachine(const Analyser::Static::ZX8081::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 			z80_(*this),
 			tape_player_(ZX8081ClockRate),
-			ay_(audio_queue_),
+			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			speaker_(ay_) {
 			set_clock_rate(ZX8081ClockRate);
 			speaker_.set_input_rate(static_cast<float>(ZX8081ClockRate) / 2.0f);

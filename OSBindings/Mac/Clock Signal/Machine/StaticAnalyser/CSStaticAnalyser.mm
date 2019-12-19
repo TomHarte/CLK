@@ -212,6 +212,17 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	return self;
 }
 
+- (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::Macintosh::Target;
+		std::unique_ptr<Target> target(new Target);
+		target->machine = Analyser::Machine::AtariST;
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
 - (NSString *)optionsPanelNibName {
 	switch(_targets.front()->machine) {
 		case Analyser::Machine::AmstradCPC:		return @"CompositeOptions";

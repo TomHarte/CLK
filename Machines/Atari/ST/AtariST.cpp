@@ -63,7 +63,7 @@ class ConcreteMachine:
 			mc68000_(*this),
 			keyboard_acia_(Cycles(500000)),
 			midi_acia_(Cycles(500000)),
-			ay_(audio_queue_),
+			ay_(GI::AY38910::Personality::YM2149F, audio_queue_),
 			speaker_(ay_),
 			ikbd_(keyboard_acia_->transmit, keyboard_acia_->receive) {
 			set_clock_rate(CLOCK_RATE);

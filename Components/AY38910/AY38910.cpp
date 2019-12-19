@@ -12,45 +12,56 @@
 
 using namespace GI::AY38910;
 
-AY38910::AY38910(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {
-	// set up envelope lookup tables
+AY38910::AY38910(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {
+	// Don't use the low bit of the envelope position if this is an AY.
+	envelope_position_mask_ |= personality == Personality::AY38910;
+
+	// Set up envelope lookup tables.
 	for(int c = 0; c < 16; c++) {
-		for(int p = 0; p < 32; p++) {
+		for(int p = 0; p < 64; p++) {
 			switch(c) {
 				case 0: case 1: case 2: case 3: case 9:
-					envelope_shapes_[c][p] = (p < 16) ? (p^0xf) : 0;
-					envelope_overflow_masks_[c] = 0x1f;
+					/* Envelope: \____ */
+					envelope_shapes_[c][p] = (p < 32) ? (p^0x1f) : 0;
+					envelope_overflow_masks_[c] = 0x3f;
 				break;
 				case 4: case 5: case 6: case 7: case 15:
-					envelope_shapes_[c][p] = (p < 16) ? p : 0;
-					envelope_overflow_masks_[c] = 0x1f;
+					/* Envelope: /____ */
+					envelope_shapes_[c][p] = (p < 32) ? p : 0;
+					envelope_overflow_masks_[c] = 0x3f;
 				break;
 
 				case 8:
-					envelope_shapes_[c][p] = (p & 0xf) ^ 0xf;
+					/* Envelope: \\\\\\\\ */
+					envelope_shapes_[c][p] = (p & 0x1f) ^ 0x1f;
 					envelope_overflow_masks_[c] = 0x00;
 				break;
 				case 12:
-					envelope_shapes_[c][p] = (p & 0xf);
+					/* Envelope: //////// */
+					envelope_shapes_[c][p] = (p & 0x1f);
 					envelope_overflow_masks_[c] = 0x00;
 				break;
 
 				case 10:
-					envelope_shapes_[c][p] = (p & 0xf) ^ ((p < 16) ? 0xf : 0x0);
+					/* Envelope: \/\/\/\/ */
+					envelope_shapes_[c][p] = (p & 0x1f) ^ ((p < 32) ? 0x1f : 0x0);
 					envelope_overflow_masks_[c] = 0x00;
 				break;
 				case 14:
-					envelope_shapes_[c][p] = (p & 0xf) ^ ((p < 16) ? 0x0 : 0xf);
+					/* Envelope: /\/\/\/\ */
+					envelope_shapes_[c][p] = (p & 0x1f) ^ ((p < 32) ? 0x0 : 0x1f);
 					envelope_overflow_masks_[c] = 0x00;
 				break;
 
 				case 11:
-					envelope_shapes_[c][p] = (p < 16) ? (p^0xf) : 0xf;
-					envelope_overflow_masks_[c] = 0x1f;
+					/* Envelope: \------	(if - is high) */
+					envelope_shapes_[c][p] = (p < 32) ? (p^0x1f) : 0x1f;
+					envelope_overflow_masks_[c] = 0x3f;
 				break;
 				case 13:
-					envelope_shapes_[c][p] = (p < 16) ? p : 0xf;
-					envelope_overflow_masks_[c] = 0x1f;
+					/* Envelope: /------- */
+					envelope_shapes_[c][p] = (p < 32) ? p : 0x1f;
+					envelope_overflow_masks_[c] = 0x3f;
 				break;
 			}
 		}
@@ -63,16 +74,24 @@ void AY38910::set_sample_volume_range(std::int16_t range) {
 	// set up volume lookup table
 	const float max_volume = static_cast<float>(range) / 3.0f;	// As there are three channels.
 	const float root_two = sqrtf(2.0f);
-	for(int v = 0; v < 16; v++) {
-		volumes_[v] = static_cast<int>(max_volume / powf(root_two, static_cast<float>(v ^ 0xf)));
+	for(int v = 0; v < 32; v++) {
+		volumes_[v] = int(max_volume / powf(root_two, float(v ^ 0x1f) / 2.0f));
 	}
-	volumes_[0] = 0;
 	evaluate_output_volume();
 }
 
 void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
+	// Note on structure below: the real AY has a built-in divider of 8
+	// prior to applying its tone and noise dividers. But the YM fills the
+	// same total periods for noise and tone with double-precision envelopes.
+	// Therefore this class implements a divider of 4 and doubles the tone
+	// and noise periods. The envelope ticks along at the divide-by-four rate,
+	// but if this is an AY rather than a YM then its lowest bit is forced to 1,
+	// matching the YM datasheet's depiction of envelope level 31 as equal to
+	// programmatic volume 15, envelope level 29 as equal to programmatic 14, etc.
+
 	std::size_t c = 0;
-	while((master_divider_&7) && c < number_of_samples) {
+	while((master_divider_&3) && c < number_of_samples) {
 		target[c] = output_volume_;
 		master_divider_++;
 		c++;
@@ -83,49 +102,49 @@ void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
 	if(tone_counters_[c]) tone_counters_[c]--;\
 	else {\
 		tone_outputs_[c] ^= 1;\
-		tone_counters_[c] = tone_periods_[c];\
+		tone_counters_[c] = tone_periods_[c] << 1;\
 	}
 
-		// update the tone channels
+		// Update the tone channels.
 		step_channel(0);
 		step_channel(1);
 		step_channel(2);
 
 #undef step_channel
 
-		// ... the noise generator. This recomputes the new bit repeatedly but harmlessly, only shifting
+		// Update the noise generator. This recomputes the new bit repeatedly but harmlessly, only shifting
 		// it into the official 17 upon divider underflow.
 		if(noise_counter_) noise_counter_--;
 		else {
-			noise_counter_ = noise_period_;
+			noise_counter_ = noise_period_ << 1;	// To cover the double resolution of envelopes.
 			noise_output_ ^= noise_shift_register_&1;
 			noise_shift_register_ |= ((noise_shift_register_ ^ (noise_shift_register_ >> 3))&1) << 17;
 			noise_shift_register_ >>= 1;
 		}
 
-		// ... and the envelope generator. Table based for pattern lookup, with a 'refill' step: a way of
-		// implementing non-repeating patterns by locking them to table position 0x1f.
+		// Update the envelope generator. Table based for pattern lookup, with a 'refill' step: a way of
+		// implementing non-repeating patterns by locking them to the final table position.
 		if(envelope_divider_) envelope_divider_--;
 		else {
 			envelope_divider_ = envelope_period_;
 			envelope_position_ ++;
-			if(envelope_position_ == 32) envelope_position_ = envelope_overflow_masks_[output_registers_[13]];
+			if(envelope_position_ == 64) envelope_position_ = envelope_overflow_masks_[output_registers_[13]];
 		}
 
 		evaluate_output_volume();
 
-		for(int ic = 0; ic < 8 && c < number_of_samples; ic++) {
+		for(int ic = 0; ic < 4 && c < number_of_samples; ic++) {
 			target[c] = output_volume_;
 			c++;
 			master_divider_++;
 		}
 	}
 
-	master_divider_ &= 7;
+	master_divider_ &= 3;
 }
 
 void AY38910::evaluate_output_volume() {
-	int envelope_volume = envelope_shapes_[output_registers_[13]][envelope_position_];
+	int envelope_volume = envelope_shapes_[output_registers_[13]][envelope_position_ | envelope_position_mask_];
 
 	// The output level for a channel is:
 	//	1 if neither tone nor noise is enabled;
@@ -142,9 +161,10 @@ void AY38910::evaluate_output_volume() {
 	};
 #undef level
 
-		// Channel volume is a simple selection: if the bit at 0x10 is set, use the envelope volume; otherwise use the lower four bits
+		// Channel volume is a simple selection: if the bit at 0x10 is set, use the envelope volume; otherwise use the lower four bits,
+		// mapped to the range 1–31 in case this is a YM.
 #define channel_volume(c)	\
-	((output_registers_[c] >> 4)&1) * envelope_volume + (((output_registers_[c] >> 4)&1)^1) * (output_registers_[c]&0xf)
+	((output_registers_[c] >> 4)&1) * envelope_volume + (((output_registers_[c] >> 4)&1)^1) * (((output_registers_[c]&0xf) << 1) + 1)
 
 	const int volumes[3] = {
 		channel_volume(8),
