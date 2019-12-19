@@ -52,6 +52,13 @@ enum ControlLines {
 	BDIR	= (1 << 2)
 };
 
+enum class Personality {
+	/// Provides 16 volume levels to envelopes.
+	AY38910,
+	/// Provides 32 volume levels to envelopes.
+	YM2149F
+};
+
 /*!
 	Provides emulation of an AY-3-8910 / YM2149, which is a three-channel sound chip with a
 	noise generator and a volume envelope generator, which also provides two bidirectional
@@ -60,7 +67,7 @@ enum ControlLines {
 class AY38910: public ::Outputs::Speaker::SampleSource {
 	public:
 		/// Creates a new AY38910.
-		AY38910(Concurrency::DeferringAsyncTaskQueue &task_queue);
+		AY38910(Personality, Concurrency::DeferringAsyncTaskQueue &);
 
 		/// Sets the value the AY would read from its data lines if it were not outputting.
 		void set_data_input(uint8_t r);
@@ -109,11 +116,11 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 
 		int envelope_period_ = 0;
 		int envelope_divider_ = 0;
-		int envelope_position_ = 0;
-		int envelope_shapes_[16][32];
+		int envelope_position_ = 0, envelope_position_mask_ = 0;
+		int envelope_shapes_[16][64];
 		int envelope_overflow_masks_[16];
 
-		int volumes_[16];
+		int volumes_[32];
 
 		enum ControlState {
 			Inactive,

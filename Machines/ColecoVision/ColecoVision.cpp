@@ -123,7 +123,7 @@ class ConcreteMachine:
 			z80_(*this),
 			vdp_(TI::TMS::TMS9918A),
 			sn76489_(TI::SN76489::Personality::SN76489, audio_queue_, sn76489_divider),
-			ay_(audio_queue_),
+			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			mixer_(sn76489_, ay_),
 			speaker_(mixer_) {
 			speaker_.set_input_rate(3579545.0f / static_cast<float>(sn76489_divider));

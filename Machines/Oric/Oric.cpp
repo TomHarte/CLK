@@ -213,7 +213,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		ConcreteMachine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
 				m6502_(*this),
 				video_output_(ram_),
-				ay8910_(audio_queue_),
+				ay8910_(GI::AY38910::Personality::AY38910, audio_queue_),
 				speaker_(ay8910_),
 				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),
 				via_(via_port_handler_),
