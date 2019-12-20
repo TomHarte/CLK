@@ -105,7 +105,7 @@ void DMAController::write(int address, uint16_t value) {
 		// DMA addressing.
 		case 4:	address_ = int((address_ & 0x00ffff) | ((value & 0xff) << 16));	break;
 		case 5:	address_ = int((address_ & 0xff00ff) | ((value & 0xff) << 8));	break;
-		case 6:	address_ = int((address_ & 0xffff00) | ((value & 0xff) << 0));	break;
+		case 6:	address_ = int((address_ & 0xffff00) | ((value & 0xfe) << 0));	break;	// Lowest bit: discarded.
 	}
 }
 
