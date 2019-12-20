@@ -507,7 +507,7 @@ class ConcreteMachine:
 			// that's implemented, just offers magical zero-cost DMA insertion and
 			// extrication.
 			if(dma_->get_bus_request_line()) {
-				dma_->bus_grant(reinterpret_cast<uint16_t *>(ram_.data()), ram_.size());
+				dma_->bus_grant(reinterpret_cast<uint16_t *>(ram_.data()), ram_.size() >> 1);
 			}
 		}
 		void set_gpip_input() {
