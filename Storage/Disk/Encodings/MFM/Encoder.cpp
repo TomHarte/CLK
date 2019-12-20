@@ -16,6 +16,11 @@
 
 using namespace Storage::Encodings::MFM;
 
+enum class SurfaceItem {
+	Mark,
+	Data
+};
+
 class MFMEncoder: public Encoder {
 	public:
 		MFMEncoder(std::vector<bool> &target) : Encoder(target) {}
@@ -57,6 +62,14 @@ class MFMEncoder: public Encoder {
 		void add_deleted_data_address_mark() {
 			output_sync();
 			add_byte(DeletedDataAddressByte);
+		}
+
+		size_t item_size(SurfaceItem item) {
+			switch(item) {
+				case SurfaceItem::Mark: return 8;	// Three syncs plus the mark type.
+				case SurfaceItem::Data: return 2;	// Just a single encoded byte.
+				default: assert(false);
+			}
 		}
 
 	private:
@@ -116,6 +129,11 @@ class FMEncoder: public Encoder {
 			crc_generator_.add(DeletedDataAddressByte);
 			output_short(FMDeletedDataAddressMark);
 		}
+
+		size_t item_size(SurfaceItem item) {
+			// Marks are just slightly-invalid bytes, so everything is the same length.
+			return 2;
+		}
 };
 
 template<class T> std::shared_ptr<Storage::Disk::Track>
@@ -131,18 +149,53 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	segment.data.reserve(expected_track_bytes * 8);
 	T shifter(segment.data);
 
-	// output the index mark
+	// Make a pre-estimate of output size, in case any of the idealised gaps
+	// provided need to be shortened.
+	const size_t data_size = shifter.item_size(SurfaceItem::Data);
+	const size_t mark_size = shifter.item_size(SurfaceItem::Mark);
+	const size_t max_size = (expected_track_bytes + (expected_track_bytes / 10)) * 8;
+
+	size_t total_sector_bytes = 0;
+	for(const auto sector : sectors) {
+		total_sector_bytes += size_t(128 << sector->size) + 2;
+	}
+
+	while(true) {
+		const size_t size =
+			mark_size +
+			post_index_address_mark_bytes * data_size +
+			total_sector_bytes * data_size +
+			sectors.size() * (
+				(pre_address_mark_bytes + 6 + post_address_mark_bytes + pre_data_mark_bytes + post_data_bytes) * data_size + 2 * mark_size
+			);
+
+		// If this track already fits, do nothing.
+		if(size*8 < max_size) break;
+
+		// If all gaps are already zero, do nothing.
+		if(!post_index_address_mark_bytes && !pre_address_mark_bytes && !post_address_mark_bytes && !pre_data_mark_bytes && !post_data_bytes)
+			break;
+
+		// Very simple solution: try halving all gaps.
+		post_index_address_mark_bytes >>= 1;
+		pre_address_mark_bytes >>= 1;
+		post_address_mark_bytes >>= 1;
+		pre_data_mark_bytes >>= 1;
+		post_data_bytes >>= 1;
+	}
+
+	// Output the index mark.
 	shifter.add_index_address_mark();
 
-	// add the post-index mark
+	// Add the post-index mark.
 	for(std::size_t c = 0; c < post_index_address_mark_bytes; c++) shifter.add_byte(post_index_address_mark_value);
 
-	// add sectors
+	// Add sectors.
 	for(const Sector *sector : sectors) {
-		// gap
+		// Gap.
 		for(std::size_t c = 0; c < pre_address_mark_bytes; c++) shifter.add_byte(0x00);
 
-		// sector header
+		// Sector header.
 		shifter.add_ID_address_mark();
 		shifter.add_byte(sector->address.track);
 		shifter.add_byte(sector->address.side);
@@ -150,11 +203,11 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		shifter.add_byte(sector->size);
 		shifter.add_crc(sector->has_header_crc_error);
 
-		// gap
+		// Gap.
 		for(std::size_t c = 0; c < post_address_mark_bytes; c++) shifter.add_byte(post_address_mark_value);
 		for(std::size_t c = 0; c < pre_data_mark_bytes; c++) shifter.add_byte(0x00);
 
-		// data, if attached
+		// Data, if attached.
 		// TODO: allow for weak/fuzzy data.
 		if(!sector->samples.empty()) {
 			if(sector->is_deleted)
@@ -173,14 +226,13 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 			shifter.add_crc(sector->has_data_crc_error);
 		}
 
-		// gap
+		// Gap.
 		for(std::size_t c = 0; c < post_data_bytes; c++) shifter.add_byte(post_data_value);
 	}
 
 	while(segment.data.size() < expected_track_bytes*8) shifter.add_byte(0x00);
 
 	// Allow the amount of data written to be up to 10% more than the expected size. Which is generous.
-	const std::size_t max_size = (expected_track_bytes + (expected_track_bytes / 10)) * 8;
 	if(segment.data.size() > max_size) segment.data.resize(max_size);
 
 	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(segment)));
