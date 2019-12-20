@@ -262,6 +262,11 @@ void Video::advance(HalfCycles duration) {
 				next_vertical_.enable = false;
 			} else if(next_y_ == vertical_timings.height) {
 				next_y_ = 0;
+			} else if(y_ == 0) {
+				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
+			} else if(y_ == 3) {
+				next_vertical_.sync_schedule = VerticalState::SyncSchedule::End;
+
 				current_address_ = base_address_ >> 1;
 				reset_fifo();	// TODO: remove this, I think, once otherwise stable.
 
@@ -272,10 +277,6 @@ void Video::advance(HalfCycles duration) {
 						range_observer_->video_did_change_access_range(this);
 					}
 				}
-			} else if(y_ == 0) {
-				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
-			} else if(y_ == 3) {
-				next_vertical_.sync_schedule = VerticalState::SyncSchedule::End;
 			}
 		}
 

@@ -102,10 +102,18 @@ void DMAController::write(int address, uint16_t value) {
 			control_ = value;
 		break;
 
-		// DMA addressing.
+		// DMA addressing; cf. http://www.atari-forum.com/viewtopic.php?t=30289 on a hardware
+		// feature emulated here: 'carry' will ripple upwards if a write resets the top bit
+		// of the byte it is adjusting.
 		case 4:	address_ = int((address_ & 0x00ffff) | ((value & 0xff) << 16));	break;
-		case 5:	address_ = int((address_ & 0xff00ff) | ((value & 0xff) << 8));	break;
-		case 6:	address_ = int((address_ & 0xffff00) | ((value & 0xff) << 0));	break;
+		case 5:
+			if((value << 8) ^ address_ & ~(value << 8) & 0x8000) address_ += 0x10000;
+			address_ = int((address_ & 0xff00ff) | ((value & 0xff) << 8));
+		break;
+		case 6:
+			if(value ^ address_ & ~value & 0x80) address_ += 0x100;
+			address_ = int((address_ & 0xffff00) | ((value & 0xfe) << 0));
+		break;	// Lowest bit: discarded.
 	}
 }
 
@@ -171,6 +179,7 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 	bus_request_line_ = false;
 	if(delegate_) delegate_->dma_controller_did_change_output(this);
 
+	size <<= 1;	// Convert to bytes.
 	if(control_ & Control::Direction) {
 		// TODO: writes.
 		return 0;
@@ -179,10 +188,12 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		if(!buffer_[active_buffer_ ^ 1].is_full) return 0;
 
 		for(int c = 0; c < 8; ++c) {
-			ram[size_t(address_ >> 1) & (size - 1)] = uint16_t(
-				(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 0] << 8) |
-				(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 1] << 0)
-			);
+			if(size_t(address_) < size) {
+				ram[address_ >> 1] = uint16_t(
+					(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 0] << 8) |
+					(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 1] << 0)
+				);
+			}
 			address_ += 2;
 		}
 		buffer_[active_buffer_ ^ 1].is_full = false;
@@ -191,10 +202,12 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		if(!buffer_[active_buffer_ ].is_full) return 8;
 
 		for(int c = 0; c < 8; ++c) {
-			ram[size_t(address_ >> 1) & (size - 1)] = uint16_t(
-				(buffer_[active_buffer_].contents[(c << 1) + 0] << 8) |
-				(buffer_[active_buffer_].contents[(c << 1) + 1] << 0)
-			);
+			if(size_t(address_) < size) {
+				ram[address_ >> 1] = uint16_t(
+					(buffer_[active_buffer_].contents[(c << 1) + 0] << 8) |
+					(buffer_[active_buffer_].contents[(c << 1) + 1] << 0)
+				);
+			}
 			address_ += 2;
 		}
 		buffer_[active_buffer_].is_full = false;

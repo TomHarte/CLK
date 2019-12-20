@@ -341,7 +341,7 @@ int MFP68901::acknowledge_interrupt() {
 
 	int selected = 0;
 	while((1 << selected) != mask) ++selected;
-	LOG("Interrupt acknowledged: " << selected);
+//	LOG("Interrupt acknowledged: " << selected);
 	return (interrupt_vector_ & 0xf0) | uint8_t(selected);
 }
 
