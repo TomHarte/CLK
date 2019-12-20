@@ -578,7 +578,7 @@ class ConcreteMachine:
 				// TODO: ?
 			} else {
 				/*
-					TODO: Port A:
+					Port A:
 						b7: reserved
 						b6: "freely usable output (monitor jack)"
 						b5: centronics strobe
