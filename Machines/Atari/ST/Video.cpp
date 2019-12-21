@@ -491,8 +491,9 @@ void Video::update_output_mode() {
 
 void Video::Shifter::flush_output(OutputMode next_mode) {
 	switch(output_mode_) {
-		case OutputMode::Sync:	crt_.output_sync(duration_);	break;
-		case OutputMode::Blank:	crt_.output_blank(duration_);	break;
+		case OutputMode::Sync:			crt_.output_sync(duration_);					break;
+		case OutputMode::Blank:			crt_.output_blank(duration_);					break;
+		case OutputMode::ColourBurst:	crt_.output_default_colour_burst(duration_);	break;
 		case OutputMode::Border: {
 //			if(!border_colour_) {
 //				crt_.output_blank(duration_);
@@ -512,9 +513,29 @@ void Video::Shifter::flush_output(OutputMode next_mode) {
 	output_mode_ = next_mode;
 }
 
+void Video::Shifter::output_colour_burst(int duration) {
+	// More hackery afoot here; if and when duration_ crosses a threshold of 40,
+	// output 40 cycles of colour burst and then redirect to blank.
+	if(output_mode_ != OutputMode::ColourBurst) {
+		flush_output(OutputMode::ColourBurst);
+	}
+	duration_ += duration;
+	if(duration_ >= 40) {
+		const int blank_duration = duration_ - 40;
+		duration_ = 40;
+		flush_output(OutputMode::Blank);
+		output_blank(blank_duration);
+	}
+}
 
 void Video::Shifter::output_blank(int duration) {
 	if(output_mode_ != OutputMode::Blank) {
+		// Bit of a hack: if this is a transition from sync or we're really in
+		// colour burst, divert into that.
+		if(output_mode_ == OutputMode::Sync || output_mode_ == OutputMode::ColourBurst) {
+			output_colour_burst(duration);
+			return;
+		}
 		flush_output(OutputMode::Blank);
 	}
 	duration_ += duration;
