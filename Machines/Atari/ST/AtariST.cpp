@@ -28,6 +28,7 @@
 
 #include "../../../ClockReceiver/JustInTime.hpp"
 #include "../../../ClockReceiver/ForceInline.hpp"
+#include "../../../Configurable/StandardOptions.hpp"
 
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
@@ -39,6 +40,12 @@
 
 namespace Atari {
 namespace ST {
+
+std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+	return Configurable::standard_options(
+		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayCompositeColour | Configurable::QuickLoadTape)
+	);
+}
 
 const int CLOCK_RATE = 8021247;
 
@@ -57,6 +64,7 @@ class ConcreteMachine:
 	public Activity::Source,
 	public MediaTarget::Machine,
 	public GI::AY38910::PortHandler,
+	public Configurable::Device,
 	public Video::RangeObserver {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -128,6 +136,10 @@ class ConcreteMachine:
 		// MARK: CRTMachine::Machine
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_->set_scan_target(scan_target);
+		}
+
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
+			video_->set_display_type(display_type);
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
@@ -612,6 +624,30 @@ class ConcreteMachine:
 		Video::Range video_range_;
 		void video_did_change_access_range(Video *video) final {
 			video_range_ = video->get_memory_access_range();
+		}
+
+		// MARK: - Configuration options.
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
+			return Atari::ST::get_options();
+		}
+
+		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
+			Configurable::Display display;
+			if(Configurable::get_display(selections_by_option, display)) {
+				set_video_signal_configurable(display);
+			}
+		}
+
+		Configurable::SelectionSet get_accurate_selections() final {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
+			return selection_set;
+		}
+
+		Configurable::SelectionSet get_user_friendly_selections() final {
+			Configurable::SelectionSet selection_set;
+			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
+			return selection_set;
 		}
 };
 

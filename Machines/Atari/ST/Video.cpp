@@ -122,6 +122,10 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
+void Video::set_display_type(Outputs::Display::DisplayType display_type) {
+	crt_.set_display_type(display_type);
+}
+
 void Video::run_for(HalfCycles duration) {
 	deferrer_.run_for(duration);
 }

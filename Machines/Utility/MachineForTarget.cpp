@@ -143,6 +143,7 @@ std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> Machin
 
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::AmstradCPC), AmstradCPC::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::AppleII), Apple::II::get_options()));
+	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::AtariST), Atari::ST::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::ColecoVision), Coleco::Vision::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Electron), Electron::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Macintosh), Apple::Macintosh::get_options()));

@@ -16,6 +16,9 @@
 namespace Atari {
 namespace ST {
 
+/// @returns The options available for an Atari ST.
+std::vector<std::unique_ptr<Configurable::Option>> get_options();
+
 class Machine {
 	public:
 		virtual ~Machine();
