@@ -38,6 +38,11 @@ class Video {
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 
 		/*!
+			Sets the type of output.
+		*/
+		void set_display_type(Outputs::Display::DisplayType);
+
+		/*!
 			Produces the next @c duration period of pixels.
 		*/
 		void run_for(HalfCycles duration);
@@ -168,13 +173,14 @@ class Video {
 				void output_sync(int duration);
 				void output_border(int duration, OutputBpp bpp);
 				void output_pixels(int duration, OutputBpp bpp);
+				void output_colour_burst(int duration);
 
 				void load(uint64_t value);
 
 			private:
 				int duration_ = 0;
 				enum class OutputMode {
-					Sync, Blank, Border, Pixels
+					Sync, Blank, Border, Pixels, ColourBurst
 				} output_mode_ = OutputMode::Sync;
 				uint16_t border_colour_ = 0;
 				OutputBpp bpp_ = OutputBpp::Four;

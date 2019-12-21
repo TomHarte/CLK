@@ -93,7 +93,7 @@ class MFP68901: public ClockingHint::Source {
 			uint8_t value = 0;
 			uint8_t reload_value = 0;
 			int prescale = 1;
-			int divisor = 1;
+			int prescale_count = 1;
 			bool event_input = false;
 		} timers_[4];
 		uint8_t timer_ab_control_[2] = { 0, 0 };
