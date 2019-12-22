@@ -73,11 +73,11 @@ Cycle-accurate emulation for the supported target machines is fairly trite; this
 
 ## Additional Screenshots
 |---|---|
-|[Apple IIe Prince of Persia](READMEImages/AppleIIPrinceOfPersia.png)|[Apple Macintosh MusicWorks](READMEImages/MusicWorks.png)
-|[Atari ST Stung Car Racer](READMEImages/STStuntCarRacer.png)|[Amstrad CPC Chase HQ](READMEImages/CPCChaseHQ.png)
-|[Acorn Electron Chuckie Egg](READMEImages/ElectronChuckieEgg.png)|[ColecoVision Galaxian](READMEImages/ColecoVisionGalaxian.png)
-|[ZX81 3D Monster Maze](READMEImages/ZX81MonsterMaze.png)|[ZX80 Kong](READMEImages/ZX80Kong.png)
-|[SG1000 Chack'n'Pop](READMEImages/SGChackNPop.png)|[Atari 2600 Solaris](READMEImages/Atari2600Solaris.png)
-|[Vic-20 Gridrunner](READMEImages/Vic20Gridrunner.png)|[VIC-20 BASIC](READMEImages/Vic20BASIC.png)
+|![Apple IIe Prince of Persia](READMEImages/AppleIIPrinceOfPersia.png)|![Apple Macintosh MusicWorks](READMEImages/MusicWorks.png)
+|![Atari ST Stung Car Racer](READMEImages/STStuntCarRacer.png)|![Amstrad CPC Chase HQ](READMEImages/CPCChaseHQ.png)
+|![Acorn Electron Chuckie Egg](READMEImages/ElectronChuckieEgg.png)|![ColecoVision Galaxian](READMEImages/ColecoVisionGalaxian.png)
+|![ZX81 3D Monster Maze](READMEImages/ZX81MonsterMaze.png)|![ZX80 Kong](READMEImages/ZX80Kong.png)
+|![SG1000 Chack'n'Pop](READMEImages/SGChackNPop.png)|![Atari 2600 Solaris](READMEImages/Atari2600Solaris.png)
+|![Vic-20 Gridrunner](READMEImages/Vic20Gridrunner.png)|![VIC-20 BASIC](READMEImages/Vic20BASIC.png)
 
 [macOS Version](READMEImages/MultipleSystems.png)
