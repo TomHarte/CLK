@@ -77,8 +77,7 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 
 	// get header type
 	uint8_t header_type = get_next_byte(tape);
-	switch(header_type)
-	{
+	switch(header_type) {
 		default:	header->type = Header::Unknown;					break;
 		case 0x01:	header->type = Header::RelocatableProgram;		break;
 		case 0x02:	header->type = Header::DataBlock;				break;
@@ -89,8 +88,7 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 
 	// grab rest of data
 	header->data.reserve(191);
-	for(std::size_t c = 0; c < 191; c++)
-	{
+	for(std::size_t c = 0; c < 191; c++) {
 		header->data.push_back(get_next_byte(tape));
 	}
 
@@ -98,13 +96,11 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 	header->parity_was_valid = get_next_byte(tape) == parity_byte;
 
 	// parse if this is not pure data
-	if(header->type != Header::DataBlock)
-	{
+	if(header->type != Header::DataBlock) {
 		header->starting_address	= static_cast<uint16_t>(header->data[0] | (header->data[1] << 8));
 		header->ending_address		= static_cast<uint16_t>(header->data[2] | (header->data[3] << 8));
 
-		for(std::size_t c = 0; c < 16; c++)
-		{
+		for(std::size_t c = 0; c < 16; c++) {
 			header->raw_name.push_back(header->data[4 + c]);
 		}
 		header->name = Storage::Data::Commodore::petscii_from_bytes(&header->raw_name[0], 16, false);

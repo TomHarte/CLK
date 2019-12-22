@@ -352,8 +352,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				// Output video stream.
 				// --------------------
 
-#define intersect(left, right, code)	\
-	{	\
+#define intersect(left, right, code)	{	\
 		const int start = std::max(read_pointer_.column, left);	\
 		const int end = std::min(end_column, right);	\
 		if(end > start) {\

@@ -15,21 +15,18 @@
 
 @implementation PCMSegmentEventSourceTests
 
-- (Storage::Disk::PCMSegmentEventSource)segmentSource
-{
+- (Storage::Disk::PCMSegmentEventSource)segmentSource {
 	std::vector<uint8_t> data = {0xff, 0x00, 0xff, 0x00};
 	Storage::Disk::PCMSegment alternatingFFs(Storage::Time(1, 10), data.size()*8, data);
 	return Storage::Disk::PCMSegmentEventSource(alternatingFFs);
 }
 
-- (void)testCentring
-{
+- (void)testCentring {
 	Storage::Disk::PCMSegmentEventSource segmentSource = self.segmentSource;
 	[self assertFirstTwoEventLengthsForSource:segmentSource];
 }
 
-- (void)assertFirstTwoEventLengthsForSource:(Storage::Disk::PCMSegmentEventSource &)segmentSource
-{
+- (void)assertFirstTwoEventLengthsForSource:(Storage::Disk::PCMSegmentEventSource &)segmentSource {
 	Storage::Disk::Track::Event first_event = segmentSource.get_next_event();
 	Storage::Disk::Track::Event second_event = segmentSource.get_next_event();
 
@@ -39,8 +36,7 @@
 	XCTAssertTrue(second_event.length.length == 1 && second_event.length.clock_rate == 10, @"Second event should occur a whole bit's length after the first");
 }
 
-- (void)testLongerGap
-{
+- (void)testLongerGap {
 	Storage::Disk::PCMSegmentEventSource segmentSource = self.segmentSource;
 
 	// skip first eight flux transitions
@@ -52,8 +48,7 @@
 	XCTAssertTrue(next_event.length.length == 9 && next_event.length.clock_rate == 10, @"Zero byte should give a nine bit length event gap");
 }
 
-- (void)testTermination
-{
+- (void)testTermination {
 	Storage::Disk::PCMSegmentEventSource segmentSource = self.segmentSource;
 	Storage::Time total_time;
 	for(int c = 0; c < 16; c++) total_time += segmentSource.get_next_event().length;
@@ -66,16 +61,14 @@
 	XCTAssertTrue(total_time.length == 16 && total_time.clock_rate == 5, @"Should have taken 32 bit lengths to finish the segment");
 }
 
-- (void)testReset
-{
+- (void)testReset {
 	Storage::Disk::PCMSegmentEventSource segmentSource = self.segmentSource;
 	for(int c = 0; c < 8; c++) segmentSource.get_next_event();
 	segmentSource.reset();
 	[self assertFirstTwoEventLengthsForSource:segmentSource];
 }
 
-- (void)testSeekToSecondBit
-{
+- (void)testSeekToSecondBit {
 	Storage::Disk::PCMSegmentEventSource segmentSource = self.segmentSource;
 	Storage::Time target_time(1, 10);
 
@@ -90,8 +83,7 @@
 	XCTAssertTrue(next_event.length.length == 1 && next_event.length.clock_rate == 10, @"Next event should be 1/10th later");
 }
 
-- (void)testSeekBeyondFinalBit
-{
+- (void)testSeekBeyondFinalBit {
 	Storage::Disk::PCMSegmentEventSource segmentSource = self.segmentSource;
 	Storage::Time target_time(24, 10);
 
