@@ -108,7 +108,7 @@ void Shifter::add_input_bit(int value) {
 }
 
 uint8_t Shifter::get_byte() const {
-	return static_cast<uint8_t>(
+	return uint8_t(
 		((shift_register_ & 0x0001) >> 0) |
 		((shift_register_ & 0x0004) >> 1) |
 		((shift_register_ & 0x0010) >> 2) |
