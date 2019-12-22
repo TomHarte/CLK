@@ -16,24 +16,24 @@ using namespace Electron;
 #define graphics_column(v)	((((v) & 127) - first_graphics_cycle + 128) & 127)
 
 namespace {
-	static constexpr int cycles_per_line = 128;
-	static constexpr int lines_per_frame = 625;
-	static constexpr int cycles_per_frame = lines_per_frame * cycles_per_line;
-	static constexpr int crt_cycles_multiplier = 8;
-	static constexpr int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
+	constexpr int cycles_per_line = 128;
+	constexpr int lines_per_frame = 625;
+	constexpr int cycles_per_frame = lines_per_frame * cycles_per_line;
+	constexpr int crt_cycles_multiplier = 8;
+	constexpr int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 
-	static constexpr int field_divider_line = 312;	// i.e. the line, simultaneous with which, the first field's sync ends. So if
-													// the first line with pixels in field 1 is the 20th in the frame, the first line
-													// with pixels in field 2 will be 20+field_divider_line
-	static constexpr int first_graphics_line = 31;
-	static constexpr int first_graphics_cycle = 33;
+	constexpr int field_divider_line = 312;	// i.e. the line, simultaneous with which, the first field's sync ends. So if
+											// the first line with pixels in field 1 is the 20th in the frame, the first line
+											// with pixels in field 2 will be 20+field_divider_line
+	constexpr int first_graphics_line = 31;
+	constexpr int first_graphics_cycle = 33;
 
-	static constexpr int display_end_interrupt_line = 256;
+	constexpr int display_end_interrupt_line = 256;
 
-	static constexpr int real_time_clock_interrupt_1 = 16704;
-	static constexpr int real_time_clock_interrupt_2 = 56704;
-	static constexpr int display_end_interrupt_1 = (first_graphics_line + display_end_interrupt_line)*cycles_per_line;
-	static constexpr int display_end_interrupt_2 = (first_graphics_line + field_divider_line + display_end_interrupt_line)*cycles_per_line;
+	constexpr int real_time_clock_interrupt_1 = 16704;
+	constexpr int real_time_clock_interrupt_2 = 56704;
+	constexpr int display_end_interrupt_1 = (first_graphics_line + display_end_interrupt_line)*cycles_per_line;
+	constexpr int display_end_interrupt_2 = (first_graphics_line + field_divider_line + display_end_interrupt_line)*cycles_per_line;
 }
 
 // MARK: - Lifecycle

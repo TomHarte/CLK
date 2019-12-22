@@ -877,8 +877,10 @@ template <bool has_fdc> class ConcreteMachine:
 			// Pump the AY
 			ay_.run_for(cycle.length);
 
-			// Clock the FDC, if connected, using a lazy scale by two
-			time_since_fdc_update_ += cycle.length;
+			if constexpr (has_fdc) {
+				// Clock the FDC, if connected, using a lazy scale by two
+				time_since_fdc_update_ += cycle.length;
+			}
 
 			// Update typing activity
 			if(typer_) typer_->run_for(cycle.length);
@@ -904,9 +906,11 @@ template <bool has_fdc> class ConcreteMachine:
 					}
 
 					// Check for an upper ROM selection
-					if(has_fdc && !(address&0x2000)) {
-						upper_rom_ = (*cycle.value == 7) ? ROMType::AMSDOS : ROMType::BASIC;
-						if(upper_rom_is_paged_) read_pointers_[3] = roms_[upper_rom_].data();
+					if constexpr (has_fdc) {
+						if(!(address&0x2000)) {
+							upper_rom_ = (*cycle.value == 7) ? ROMType::AMSDOS : ROMType::BASIC;
+							if(upper_rom_is_paged_) read_pointers_[3] = roms_[upper_rom_].data();
+						}
 					}
 
 					// Check for a CRTC access
@@ -923,16 +927,18 @@ template <bool has_fdc> class ConcreteMachine:
 						i8255_.set_register((address >> 8) & 3, *cycle.value);
 					}
 
-					// Check for an FDC access
-					if(has_fdc && (address & 0x580) == 0x100) {
-						flush_fdc();
-						fdc_.set_register(address & 1, *cycle.value);
-					}
+					if constexpr (has_fdc) {
+						// Check for an FDC access
+						if((address & 0x580) == 0x100) {
+							flush_fdc();
+							fdc_.set_register(address & 1, *cycle.value);
+						}
 
-					// Check for a disk motor access
-					if(has_fdc && !(address & 0x580)) {
-						flush_fdc();
-						fdc_.set_motor_on(!!(*cycle.value));
+						// Check for a disk motor access
+						if(!(address & 0x580)) {
+							flush_fdc();
+							fdc_.set_motor_on(!!(*cycle.value));
+						}
 					}
 				break;
 				case CPU::Z80::PartialMachineCycle::Input:
@@ -945,9 +951,11 @@ template <bool has_fdc> class ConcreteMachine:
 					}
 
 					// Check for an FDC access
-					if(has_fdc && (address & 0x580) == 0x100) {
-						flush_fdc();
-						*cycle.value &= fdc_.get_register(address & 1);
+					if constexpr (has_fdc) {
+						if((address & 0x580) == 0x100) {
+							flush_fdc();
+							*cycle.value &= fdc_.get_register(address & 1);
+						}
 					}
 
 					// Check for a CRTC access; the below is not a typo, the CRTC can be selected
@@ -1065,7 +1073,7 @@ template <bool has_fdc> class ConcreteMachine:
 
 		// MARK: - Activity Source
 		void set_activity_observer(Activity::Observer *observer) override {
-			if(has_fdc) fdc_.set_activity_observer(observer);
+			if constexpr (has_fdc) fdc_.set_activity_observer(observer);
 		}
 
 		// MARK: - Configuration options.
@@ -1155,11 +1163,13 @@ template <bool has_fdc> class ConcreteMachine:
 		FDC fdc_;
 		HalfCycles time_since_fdc_update_;
 		void flush_fdc() {
-			// Clock the FDC, if connected, using a lazy scale by two
-			if(has_fdc && !fdc_is_sleeping_) {
-				fdc_.run_for(Cycles(time_since_fdc_update_.as_integral()));
+			if constexpr (has_fdc) {
+				// Clock the FDC, if connected, using a lazy scale by two
+				if(!fdc_is_sleeping_) {
+					fdc_.run_for(Cycles(time_since_fdc_update_.as_integral()));
+				}
+				time_since_fdc_update_ = HalfCycles(0);
 			}
-			time_since_fdc_update_ = HalfCycles(0);
 		}
 
 		InterruptTimer interrupt_timer_;
