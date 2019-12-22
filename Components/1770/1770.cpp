@@ -91,6 +91,7 @@ uint8_t WD1770::get_register(int address) {
 				if(status_.type == Status::One)
 					status |= (status_.spin_up ? Flag::SpinUp : 0);
 			}
+//			LOG("Returned status " << PADHEX(2) << int(status) << " of type " << 1+int(status_.type));
 			return status;
 		}
 		case 1:		return track_;
@@ -124,11 +125,13 @@ void WD1770::run_for(const Cycles cycles) {
 #define END_SECTION()	(void)0; }
 
 #define READ_ID()	\
-		if(new_event_type == static_cast<int>(Event::Token)) {	\
-			if(!distance_into_section_ && get_latest_token().type == Token::ID) {set_data_mode(DataMode::Reading); distance_into_section_++; }	\
-			else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {	\
+		if(new_event_type == int(Event::Token)) {	\
+			if(!distance_into_section_ && get_latest_token().type == Token::ID) {\
+				set_data_mode(DataMode::Reading);	\
+				++distance_into_section_;	\
+			} else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {	\
 				header_[distance_into_section_ - 1] = get_latest_token().byte_value;	\
-				distance_into_section_++;	\
+				++distance_into_section_;	\
 			}	\
 		}
 
