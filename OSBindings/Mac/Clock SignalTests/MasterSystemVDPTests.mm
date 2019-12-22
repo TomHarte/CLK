@@ -22,8 +22,7 @@
 	[super setUp];
 
 	// Create a valid OpenGL context, so that a VDP can be constructed.
-	NSOpenGLPixelFormatAttribute attributes[] =
-	{
+	NSOpenGLPixelFormatAttribute attributes[] = {
 		NSOpenGLPFAOpenGLProfile,	NSOpenGLProfileVersion3_2Core,
 		0
 	};

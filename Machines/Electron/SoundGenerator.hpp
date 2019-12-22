@@ -22,7 +22,7 @@ class SoundGenerator: public ::Outputs::Speaker::SampleSource {
 
 		void set_is_enabled(bool is_enabled);
 
-		static const unsigned int clock_rate_divider = 8;
+		static constexpr unsigned int clock_rate_divider = 8;
 
 		// To satisfy ::SampleSource.
 		void get_samples(std::size_t number_of_samples, int16_t *target);

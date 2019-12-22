@@ -48,7 +48,7 @@ class DiskII final:
 			The value returned by @c read_address if accessing that address
 			didn't cause the disk II to place anything onto the bus.
 		*/
-		const int DidNotLoad = -1;
+		static constexpr int DidNotLoad = -1;
 
 		/// Advances the controller by @c cycles.
 		void run_for(const Cycles cycles);

@@ -49,7 +49,7 @@
 
 namespace {
 
-const int CLOCK_RATE = 7833600;
+constexpr int CLOCK_RATE = 7833600;
 
 }
 

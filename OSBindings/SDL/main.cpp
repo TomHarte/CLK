@@ -43,7 +43,7 @@ struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegat
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	// This is set to a relatively large number for now.
-	static const int buffer_size = 1024;
+	static constexpr int buffer_size = 1024;
 
 	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override {
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
@@ -106,13 +106,12 @@ class ActivityObserver: public Activity::Observer {
 			lights_.clear();
 
 			// Generate a bunch of LEDs for connected drives.
-			const float height = 0.05f;
+			constexpr float height = 0.05f;
 			const float width = height / aspect_ratio;
 			const float right_x = 1.0f - 2.0f * width;
 			float y = 1.0f - 2.0f * height;
 			for(const auto &drive: drives_) {
-				// TODO: use std::make_unique as below, if/when formally embracing C++14.
-				lights_.emplace(std::make_pair(drive, std::unique_ptr<Outputs::Display::OpenGL::Rectangle>(new Outputs::Display::OpenGL::Rectangle(right_x, y, width, height))));
+				lights_.emplace(std::make_pair(drive, std::make_unique<Outputs::Display::OpenGL::Rectangle>(right_x, y, width, height)));
 				y -= height * 2.0f;
 			}
 
@@ -424,7 +423,7 @@ int main(int argc, char *argv[]) {
 					continue;
 				}
 
-				std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
+				auto data = std::make_unique<std::vector<uint8_t>>();
 
 				std::fseek(file, 0, SEEK_END);
 				data->resize(std::ftell(file));

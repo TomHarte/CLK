@@ -183,7 +183,7 @@ static void DeterminePagingForCartridge(Target &target, const Storage::Cartridge
 
 Analyser::Static::TargetList Analyser::Static::Atari2600::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
 	// TODO: sanity checking; is this image really for an Atari 2600?
-	std::unique_ptr<Target> target(new Target);
+	auto target = std::make_unique<Target>();
 	target->machine = Machine::Atari2600;
 	target->confidence = 0.5;
 	target->media.cartridges = media.cartridges;

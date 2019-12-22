@@ -16,7 +16,7 @@ namespace Atari2600 {
 
 // This should be a divisor of 38; audio counters are updated every 38 cycles, though lesser dividers
 // will give greater resolution to changes in audio state. 1, 2 and 19 are the only divisors of 38.
-const int CPUTicksPerAudioTick = 2;
+constexpr int CPUTicksPerAudioTick = 2;
 
 class TIASound: public Outputs::Speaker::SampleSource {
 	public:

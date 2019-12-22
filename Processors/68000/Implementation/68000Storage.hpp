@@ -317,8 +317,8 @@ class ProcessorStorage {
 				// steps detail appropriately.
 				PrepareINTVector,
 			};
-			static const int SourceMask = 1 << 7;
-			static const int DestinationMask = 1 << 6;
+			static constexpr int SourceMask = 1 << 7;
+			static constexpr int DestinationMask = 1 << 6;
 			uint8_t action = uint8_t(Action::None);
 
 			static const uint16_t NoBusProgram = std::numeric_limits<uint16_t>::max();

@@ -13,11 +13,11 @@
 
 using namespace Atari2600;
 namespace {
-	const int cycles_per_line = 228;
-	const int first_pixel_cycle = 68;
+	constexpr int cycles_per_line = 228;
+	constexpr int first_pixel_cycle = 68;
 
-	const int sync_flag	= 0x1;
-	const int blank_flag = 0x2;
+	constexpr int sync_flag	= 0x1;
+	constexpr int blank_flag = 0x2;
 
 	uint8_t reverse_table[256];
 }

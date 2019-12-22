@@ -17,11 +17,11 @@
 namespace Apple {
 namespace Macintosh {
 
-static const HalfCycles line_length(704);
-static const int number_of_lines = 370;
-static const HalfCycles frame_length(line_length * HalfCycles(number_of_lines));
-static const int sync_start = 36;
-static const int sync_end = 38;
+static constexpr HalfCycles line_length(704);
+static constexpr int number_of_lines = 370;
+static constexpr HalfCycles frame_length(line_length * HalfCycles(number_of_lines));
+static constexpr int sync_start = 36;
+static constexpr int sync_end = 38;
 
 /*!
 	Models the 68000-era Macintosh video hardware, producing a 512x348 pixel image,

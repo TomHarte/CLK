@@ -292,7 +292,7 @@ void i8272::posit_event(int event_type) {
 			WAIT_FOR_EVENT(Event8272::CommandByte)
 			SetBusy();
 
-			static const std::size_t required_lengths[32] = {
+			static constexpr std::size_t required_lengths[32] = {
 				0,	0,	9,	3,	2,	9,	9,	2,
 				1,	9,	2,	0,	9,	6,	0,	3,
 				0,	9,	0,	0,	0,	0,	0,	0,

@@ -125,7 +125,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 		}
 
 		std::shared_ptr<Sector> get_next_sector() {
-			std::shared_ptr<Sector> sector(new Sector);
+			auto sector = std::make_shared<Sector>();
 			const int max_index_count = index_count_ + 2;
 
 			while(index_count_ < max_index_count) {

@@ -48,7 +48,7 @@ ROMMachine::ROMFetcher CSROMFetcher(std::vector<ROMMachine::ROM> *missing_roms) 
 				}
 			}
 			else {
-				std::unique_ptr<std::vector<std::uint8_t>> data(new std::vector<std::uint8_t>);
+				auto data = std::make_unique<std::vector<std::uint8_t>>();
 				*data = fileData.stdVector8;
 				results.emplace_back(std::move(data));
 			}

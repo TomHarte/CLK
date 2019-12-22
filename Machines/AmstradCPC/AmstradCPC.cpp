@@ -509,7 +509,7 @@ class CRTCBusHandler {
 
 		uint8_t mapped_palette_value(uint8_t colour) {
 #define COL(r, g, b) (r << 4) | (g << 2) | b
-			static const uint8_t mapping[32] = {
+			constexpr uint8_t mapping[32] = {
 				COL(1, 1, 1),	COL(1, 1, 1),	COL(0, 2, 1),	COL(2, 2, 1),
 				COL(0, 0, 1),	COL(2, 0, 1),	COL(0, 1, 1),	COL(2, 1, 1),
 				COL(2, 0, 1),	COL(2, 2, 1),	COL(2, 2, 0),	COL(2, 2, 2),

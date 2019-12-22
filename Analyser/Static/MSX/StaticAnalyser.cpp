@@ -34,7 +34,7 @@ static std::unique_ptr<Analyser::Static::Target> CartridgeTarget(
 		output_segments.emplace_back(start_address, segment.data);
 	}
 
-	std::unique_ptr<Analyser::Static::MSX::Target> target(new Analyser::Static::MSX::Target);
+	auto target = std::make_unique<Analyser::Static::MSX::Target>();
 	target->machine = Analyser::Machine::MSX;
 	target->confidence = confidence;
 
@@ -269,7 +269,7 @@ Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &medi
 	std::move(cartridge_targets.begin(), cartridge_targets.end(), std::back_inserter(destination));
 
 	// Consider building a target for disks and/or tapes.
-	std::unique_ptr<Target> target(new Target);
+	auto target = std::make_unique<Target>();
 
 	// Check tapes for loadable files.
 	for(auto &tape : media.tapes) {

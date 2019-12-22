@@ -71,7 +71,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	// To convert to the loop count format used by the MSX BIOS.
 	uint8_t int_result = static_cast<uint8_t>(total_length / (0.00001145f * 0.75f));
 
-	std::unique_ptr<FileSpeed> result(new FileSpeed);
+	auto result = std::make_unique<FileSpeed>();
 	result->minimum_start_bit_duration = int_result;
 	result->low_high_disrimination_duration = (int_result * 3) >> 2;
 
@@ -101,7 +101,7 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 		So I'm going to look for the next two consecutive pulses that are each big
 		enough to be half of a zero.
 	*/
-	const float minimum_start_bit_duration = static_cast<float>(speed.minimum_start_bit_duration) * 0.00001145f * 0.5f;
+	const float minimum_start_bit_duration = float(speed.minimum_start_bit_duration) * 0.00001145f * 0.5f;
 	int input = 0;
 	while(!tape_player.get_tape()->is_at_end()) {
 		// Find next transition.
@@ -126,9 +126,9 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 	int result = 0;
 	const int cycles_per_window = static_cast<int>(
 		0.5f +
-		static_cast<float>(speed.low_high_disrimination_duration) *
+		float(speed.low_high_disrimination_duration) *
 		0.0000173f *
-		static_cast<float>(tape_player.get_input_clock_rate())
+		float(tape_player.get_input_clock_rate())
 	);
 	int bits_left = 8;
 	bool level = tape_player.get_input();
@@ -137,7 +137,7 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 		int transitions = 0;
 		int cycles_remaining = cycles_per_window;
 		while(!tape_player.get_tape()->is_at_end() && cycles_remaining) {
-			const int cycles_until_next_event = static_cast<int>(tape_player.get_cycles_until_next_event());
+			const int cycles_until_next_event = int(tape_player.get_cycles_until_next_event());
 			const int cycles_to_run_for = std::min(cycles_until_next_event, cycles_remaining);
 
 			cycles_remaining -= cycles_to_run_for;

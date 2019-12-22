@@ -61,7 +61,7 @@ class MFP68901: public ClockingHint::Source {
 		/// @returns @c true if the interrupt output is currently active; @c false otherwise.s
 		bool get_interrupt_line();
 
-		static const int NoAcknowledgement = 0x100;
+		static constexpr int NoAcknowledgement = 0x100;
 
 		/// Communicates an interrupt acknowledge cycle.
 		///

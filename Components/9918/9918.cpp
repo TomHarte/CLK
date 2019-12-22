@@ -17,16 +17,16 @@ using namespace TI::TMS;
 
 namespace {
 
-const uint8_t StatusInterrupt = 0x80;
-const uint8_t StatusSpriteOverflow = 0x40;
+constexpr uint8_t StatusInterrupt = 0x80;
+constexpr uint8_t StatusSpriteOverflow = 0x40;
 
-const int StatusSpriteCollisionShift = 5;
-const uint8_t StatusSpriteCollision = 0x20;
+constexpr int StatusSpriteCollisionShift = 5;
+constexpr uint8_t StatusSpriteCollision = 0x20;
 
 // 342 internal cycles are 228/227.5ths of a line, so 341.25 cycles should be a whole
 // line. Therefore multiply everything by four, but set line length to 1365 rather than 342*4 = 1368.
-const unsigned int CRTCyclesPerLine = 1365;
-const unsigned int CRTCyclesDivider = 4;
+constexpr unsigned int CRTCyclesPerLine = 1365;
+constexpr unsigned int CRTCyclesDivider = 4;
 
 struct ReverseTable {
 	std::uint8_t map[256];
@@ -352,8 +352,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				// Output video stream.
 				// --------------------
 
-#define intersect(left, right, code)	\
-	{	\
+#define intersect(left, right, code)	{	\
 		const int start = std::max(read_pointer_.column, left);	\
 		const int end = std::min(end_column, right);	\
 		if(end > start) {\
@@ -625,7 +624,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 
 uint8_t TMS9918::get_current_line() {
 	// Determine the row to return.
-	static const int row_change_position = 63;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
+	constexpr int row_change_position = 63;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
 	int source_row =
 		(write_pointer_.column < row_change_position)
 			? (write_pointer_.row + mode_timing_.total_lines - 1)%mode_timing_.total_lines
@@ -830,8 +829,8 @@ void Base::draw_tms_character(int start, int end) {
 		int sprite_collision = 0;
 		memset(&sprite_buffer[start], 0, size_t(end - start)*sizeof(sprite_buffer[0]));
 
-		static const uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
-		static const int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+		constexpr uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
+		constexpr int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 		// Draw all sprites into the sprite buffer.
 		const int shifter_target = sprites_16x16_ ? 32 : 16;

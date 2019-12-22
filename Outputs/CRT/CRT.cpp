@@ -17,15 +17,15 @@ using namespace Outputs::CRT;
 
 void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Display::ColourSpace colour_space, int colour_cycle_numerator, int colour_cycle_denominator, int vertical_sync_half_lines, bool should_alternate) {
 
-	const int millisecondsHorizontalRetraceTime = 7;	// Source: Dictionary of Video and Television Technology, p. 234.
-	const int scanlinesVerticalRetraceTime = 8;			// Source: ibid.
+	constexpr int millisecondsHorizontalRetraceTime = 7;	// Source: Dictionary of Video and Television Technology, p. 234.
+	constexpr int scanlinesVerticalRetraceTime = 8;			// Source: ibid.
 
-														// To quote:
-														//
-														//	"retrace interval; The interval of time for the return of the blanked scanning beam of
-														//	a TV picture tube or camera tube to the starting point of a line or field. It is about
-														//	7 microseconds for horizontal retrace and 500 to 750 microseconds for vertical retrace
-														//  in NTSC and PAL TV."
+															// To quote:
+															//
+															//	"retrace interval; The interval of time for the return of the blanked scanning beam of
+															//	a TV picture tube or camera tube to the starting point of a line or field. It is about
+															//	7 microseconds for horizontal retrace and 500 to 750 microseconds for vertical retrace
+															//  in NTSC and PAL TV."
 
 	time_multiplier_ = 65535 / cycles_per_line;
 	phase_denominator_ = int64_t(cycles_per_line) * int64_t(colour_cycle_denominator) * int64_t(time_multiplier_);

@@ -626,9 +626,9 @@ void Video::Shifter::output_pixels(int duration, OutputBpp bpp) {
 		} break;
 		case OutputBpp::Two: {
 	#if TARGET_RT_BIG_ENDIAN
-			const int upper = 0;
+			constexpr int upper = 0;
 	#else
-			const int upper = 1;
+			constexpr int upper = 1;
 	#endif
 			if(pixel_buffer_) {
 				while(duration--) {

@@ -39,7 +39,7 @@ static std::shared_ptr<File> ZX80FileFromData(const std::vector<uint8_t> &data) 
 
 	// TODO: check that the line numbers declared above exist (?)
 
-	std::shared_ptr<File> file(new File);
+	auto file = std::make_shared<File>();
 	file->data = data;
 	file->isZX81 = false;
 	return file;
@@ -81,7 +81,7 @@ static std::shared_ptr<File> ZX81FileFromData(const std::vector<uint8_t> &data) 
 
 	// TODO: check that the line numbers declared above exist (?)
 
-	std::shared_ptr<File> file(new File);
+	auto file = std::make_shared<File>();
 	file->name = StringFromData(name_data, true);
 	file->data = data;
 	file->isZX81 = true;

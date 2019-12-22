@@ -336,8 +336,7 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) override final {
-			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper(is_zx81));
-			Utility::TypeRecipient::add_typer(string, std::move(mapper));
+			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>(is_zx81));
 		}
 
 		// MARK: - Keyboard

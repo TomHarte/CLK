@@ -54,7 +54,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 
 Analyser::Static::TargetList Analyser::Static::Coleco::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
 	TargetList targets;
-	std::unique_ptr<Target> target(new Target);
+	auto target = std::make_unique<Target>();
 	target->machine = Machine::ColecoVision;
 	target->confidence = 1.0f - 1.0f / 32768.0f;
 	target->media.cartridges = ColecoCartridgesFrom(media.cartridges);

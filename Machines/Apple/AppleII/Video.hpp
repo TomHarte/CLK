@@ -203,7 +203,7 @@ class VideoBase {
 		std::array<uint8_t, 40> auxiliary_stream_;
 
 		bool is_iie_ = false;
-		static const int flash_length = 8406;
+		static constexpr int flash_length = 8406;
 
 		// Describes the current text mode mapping from in-memory character index
 		// to output character.
@@ -339,9 +339,9 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 
 				A frame is oriented around 65 cycles across, 262 lines down.
 			*/
-			static const int first_sync_line = 220;		// A complete guess. Information needed.
-			static const int first_sync_column = 49;	// Also a guess.
-			static const int sync_length = 4;			// One of the two likely candidates.
+			constexpr int first_sync_line = 220;		// A complete guess. Information needed.
+			constexpr int first_sync_column = 49;	// Also a guess.
+			constexpr int sync_length = 4;			// One of the two likely candidates.
 
 			int int_cycles = int(cycles.as_integral());
 			while(int_cycles) {

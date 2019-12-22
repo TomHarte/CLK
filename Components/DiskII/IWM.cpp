@@ -13,15 +13,15 @@
 using namespace Apple;
 
 namespace  {
-	const int CA0		= 1 << 0;
-	const int CA1		= 1 << 1;
-	const int CA2		= 1 << 2;
-	const int LSTRB		= 1 << 3;
-	const int ENABLE	= 1 << 4;
-	const int DRIVESEL	= 1 << 5;	/* This means drive select, like on the original Disk II. */
-	const int Q6		= 1 << 6;
-	const int Q7		= 1 << 7;
-	const int SEL		= 1 << 8;	/* This is an additional input, not available on a Disk II, with a confusingly-similar name to SELECT but a distinct purpose. */
+	constexpr int CA0		= 1 << 0;
+	constexpr int CA1		= 1 << 1;
+	constexpr int CA2		= 1 << 2;
+	constexpr int LSTRB		= 1 << 3;
+	constexpr int ENABLE	= 1 << 4;
+	constexpr int DRIVESEL	= 1 << 5;	/* This means drive select, like on the original Disk II. */
+	constexpr int Q6		= 1 << 6;
+	constexpr int Q7		= 1 << 7;
+	constexpr int SEL		= 1 << 8;	/* This is an additional input, not available on a Disk II, with a confusingly-similar name to SELECT but a distinct purpose. */
 }
 
 IWM::IWM(int clock_rate) :

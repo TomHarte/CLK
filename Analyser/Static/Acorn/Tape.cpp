@@ -16,7 +16,7 @@
 using namespace Analyser::Static::Acorn;
 
 static std::unique_ptr<File::Chunk> GetNextChunk(const std::shared_ptr<Storage::Tape::Tape> &tape, Storage::Tape::Acorn::Parser &parser) {
-	std::unique_ptr<File::Chunk> new_chunk(new File::Chunk);
+	auto new_chunk = std::make_unique<File::Chunk>();
 	int shift_register = 0;
 
 // TODO: move this into the parser
@@ -90,7 +90,7 @@ static std::unique_ptr<File> GetNextFile(std::deque<File::Chunk> &chunks) {
 	if(!chunks.size()) return nullptr;
 
 	// accumulate chunks for as long as block number is sequential and the end-of-file bit isn't set
-	std::unique_ptr<File> file(new File);
+	auto file = std::make_unique<File>();
 
 	uint16_t block_number = 0;
 

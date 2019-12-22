@@ -11,7 +11,7 @@
 using namespace Storage::Tape::Acorn;
 
 namespace {
-const int PLLClockRate = 1920000;
+constexpr int PLLClockRate = 1920000;
 }
 
 Parser::Parser(): crc_(0x1021) {
