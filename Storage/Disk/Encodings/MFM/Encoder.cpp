@@ -236,7 +236,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	// Allow the amount of data written to be up to 10% more than the expected size. Which is generous.
 	if(segment.data.size() > max_size) segment.data.resize(max_size);
 
-	return std::shared_ptr<Storage::Disk::Track>(new Storage::Disk::PCMTrack(std::move(segment)));
+	return std::make_shared<Storage::Disk::PCMTrack>(std::move(segment));
 }
 
 Encoder::Encoder(std::vector<bool> &target) :
@@ -311,9 +311,9 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 }
 
 std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<bool> &target) {
-	return std::unique_ptr<Encoder>(new MFMEncoder(target));
+	return std::make_unique<MFMEncoder>(target);
 }
 
 std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<bool> &target) {
-	return std::unique_ptr<Encoder>(new FMEncoder(target));
+	return std::make_unique<FMEncoder>(target);
 }

@@ -121,7 +121,7 @@ std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
 		number_of_bits = std::min(file_.get16le(), static_cast<uint16_t>(6646*8));
 	}
 
-	return std::shared_ptr<PCMTrack>(new PCMTrack(PCMSegment(number_of_bits, track_contents)));
+	return std::make_shared<PCMTrack>(PCMSegment(number_of_bits, track_contents));
 }
 
 void WOZ::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {

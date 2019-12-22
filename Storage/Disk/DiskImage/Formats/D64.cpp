@@ -136,5 +136,5 @@ std::shared_ptr<Track> D64::get_track_at_position(Track::Address address) {
 		Encodings::CommodoreGCR::encode_block(&sector_data[target_data_offset], end_of_data);
 	}
 
-	return std::shared_ptr<Track>(new PCMTrack(PCMSegment(data)));
+	return std::make_shared<PCMTrack>(PCMSegment(data));
 }

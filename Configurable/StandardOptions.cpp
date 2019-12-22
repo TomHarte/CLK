@@ -14,7 +14,7 @@ namespace {
 	Appends a Boolean selection of @c selection for option @c name to @c selection_set.
 */
 void append_bool(Configurable::SelectionSet &selection_set, const std::string &name, bool selection) {
-	selection_set[name] = std::unique_ptr<Configurable::Selection>(new Configurable::BooleanSelection(selection));
+	selection_set[name] = std::make_unique<Configurable::BooleanSelection>(selection);
 }
 
 /*!
@@ -64,7 +64,7 @@ void Configurable::append_display_selection(Configurable::SelectionSet &selectio
 		case Display::CompositeMonochrome:	string_selection = "composite-mono";	break;
 		case Display::CompositeColour:		string_selection = "composite";			break;
 	}
-	selection_set["display"] = std::unique_ptr<Configurable::Selection>(new Configurable::ListSelection(string_selection));
+	selection_set["display"] = std::make_unique<Configurable::ListSelection>(string_selection);
 }
 
 void Configurable::append_quick_boot_selection(Configurable::SelectionSet &selection_set, bool selection) {

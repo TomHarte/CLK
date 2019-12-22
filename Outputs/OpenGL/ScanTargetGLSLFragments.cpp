@@ -470,11 +470,11 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"fragColour = vec4(fragColour3, 0.64);"
 		"}";
 
-	return std::unique_ptr<Shader>(new Shader(
+	return std::make_unique<Shader>(
 		vertex_shader,
 		fragment_shader,
 		bindings(ShaderType::Conversion)
-	));
+	);
 }
 
 std::unique_ptr<Shader> ScanTarget::composition_shader() const {
@@ -544,11 +544,11 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 		break;
 	}
 
-	return std::unique_ptr<Shader>(new Shader(
+	return std::make_unique<Shader>(
 		vertex_shader,
 		fragment_shader + "}",
 		bindings(ShaderType::Composition)
-	));
+	);
 }
 
 std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
@@ -656,9 +656,9 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 			"fragColour = fragColour*0.5 + vec4(0.5);"
 		"}";
 
-	return std::unique_ptr<Shader>(new Shader(
+	return std::make_unique<Shader>(
 		vertex_shader,
 		fragment_shader,
 		bindings(ShaderType::QAMSeparation)
-	));
+	);
 }
