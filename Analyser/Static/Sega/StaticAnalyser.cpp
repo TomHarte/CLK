@@ -18,7 +18,7 @@ Analyser::Static::TargetList Analyser::Static::Sega::GetTargets(const Media &med
 		return {};
 
 	TargetList targets;
-	std::unique_ptr<Target> target(new Target);
+	auto target = std::make_unique<Target>();
 
 	target->machine = Machine::MasterSystem;
 

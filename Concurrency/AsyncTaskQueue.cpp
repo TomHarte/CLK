@@ -70,8 +70,8 @@ void AsyncTaskQueue::flush() {
 #ifdef __APPLE__
 	dispatch_sync(serial_dispatch_queue_, ^{});
 #else
-	std::shared_ptr<std::mutex> flush_mutex(new std::mutex);
-	std::shared_ptr<std::condition_variable> flush_condition(new std::condition_variable);
+	auto flush_mutex = std::make_shared<std::mutex>();
+	auto flush_condition = std::make_shared<std::condition_variable>();
 	std::unique_lock<std::mutex> lock(*flush_mutex);
 	enqueue([=] () {
 		std::unique_lock<std::mutex> inner_lock(*flush_mutex);

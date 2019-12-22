@@ -101,7 +101,7 @@ static bool IsMicrodisc(Storage::Encodings::MFM::Parser &parser) {
 }
 
 Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
-	std::unique_ptr<Target> target(new Target);
+	auto target = std::make_unique<Target>();
 	target->machine = Machine::Oric;
 	target->confidence = 0.5;
 

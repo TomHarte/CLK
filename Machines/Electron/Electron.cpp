@@ -409,8 +409,7 @@ class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) override final {
-			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
-			Utility::TypeRecipient::add_typer(string, std::move(mapper));
+			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
 		}
 
 		KeyboardMapper *get_keyboard_mapper() override {

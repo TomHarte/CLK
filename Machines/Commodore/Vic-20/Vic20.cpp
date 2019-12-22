@@ -646,8 +646,7 @@ class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) override final {
-			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
-			Utility::TypeRecipient::add_typer(string, std::move(mapper));
+			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
 		}
 
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) override final {

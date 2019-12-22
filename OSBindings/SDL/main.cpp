@@ -423,7 +423,7 @@ int main(int argc, char *argv[]) {
 					continue;
 				}
 
-				std::unique_ptr<std::vector<uint8_t>> data(new std::vector<uint8_t>);
+				auto data = std::make_unique<std::vector<uint8_t>>();
 
 				std::fseek(file, 0, SEEK_END);
 				data->resize(std::ftell(file));

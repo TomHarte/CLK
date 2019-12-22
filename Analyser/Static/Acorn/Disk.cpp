@@ -18,7 +18,7 @@ using namespace Analyser::Static::Acorn;
 
 std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetDFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	// c.f. http://beebwiki.mdfs.net/Acorn_DFS_disc_format
-	std::unique_ptr<Catalogue> catalogue(new Catalogue);
+	auto catalogue = std::make_unique<Catalogue>();
 	Storage::Encodings::MFM::Parser parser(false, disk);
 
 	Storage::Encodings::MFM::Sector *names = parser.get_sector(0, 0, 0);
@@ -75,7 +75,7 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetDFSCatalogue(const std::s
 	return catalogue;
 }
 std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::shared_ptr<Storage::Disk::Disk> &disk) {
-	std::unique_ptr<Catalogue> catalogue(new Catalogue);
+	auto catalogue = std::make_unique<Catalogue>();
 	Storage::Encodings::MFM::Parser parser(true, disk);
 
 	Storage::Encodings::MFM::Sector *free_space_map_second_half = parser.get_sector(0, 0, 1);

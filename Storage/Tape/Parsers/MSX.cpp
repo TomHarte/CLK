@@ -71,7 +71,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	// To convert to the loop count format used by the MSX BIOS.
 	uint8_t int_result = static_cast<uint8_t>(total_length / (0.00001145f * 0.75f));
 
-	std::unique_ptr<FileSpeed> result(new FileSpeed);
+	auto result = std::make_unique<FileSpeed>();
 	result->minimum_start_bit_duration = int_result;
 	result->low_high_disrimination_duration = (int_result * 3) >> 2;
 
