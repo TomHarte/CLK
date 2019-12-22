@@ -53,7 +53,9 @@ struct Microcycle {
 	/// which by inspecting the low bit of the provided address. The RW line indicates a read.
 	static const int SelectByte				= 1 << 0;
 	// Maintenance note: this is bit 0 to reduce the cost of getting a host-endian
-	// bytewise address. See implementation of host_endian_byte_address().
+	// bytewise address. The assumption that it is bit 0 is also used for branchless
+	// selection in a few places. See implementation of host_endian_byte_address(),
+	// value8_high(), value8_low() and value16().
 
 	/// Indicates that the address and both data select strobes are active.
 	static const int SelectWord				= 1 << 1;
@@ -223,9 +225,8 @@ struct Microcycle {
 		this is a write cycle.
 	*/
 	forceinline uint16_t value16() const {
-		if(operation & SelectWord) return value->full;
-		const auto shift = byte_shift();
-		return uint16_t((value->halves.low << shift) | (0xff00 >> shift));
+		const uint16_t values[] = { value->full, uint16_t((value->halves.low << 8) | value->halves.low) };
+		return values[operation & SelectByte];
 	}
 
 	/*!
@@ -233,11 +234,8 @@ struct Microcycle {
 		@c 0xff otherwise. Assumes this is a write cycle.
 	*/
 	forceinline uint8_t value8_high() const {
-		if(operation & SelectWord) {
-			return uint8_t(value->full >> 8);
-		}
-
-		return uint8_t(value->halves.low | (0xff00 >> ((*address & 1) << 3)));
+		const uint8_t values[] = { uint8_t(value->full >> 8), value->halves.low};
+		return values[operation & SelectByte];
 	}
 
 	/*!
@@ -245,11 +243,8 @@ struct Microcycle {
 		@c 0xff otherwise. Assumes this is a write cycle.
 	*/
 	forceinline uint8_t value8_low() const {
-		if(operation & SelectWord) {
-			return uint8_t(value->full);
-		}
-
-		return uint8_t(value->halves.low | (0x00ff << ((*address & 1) << 3)));
+		const uint8_t values[] = { uint8_t(value->full), value->halves.low};
+		return values[operation & SelectByte];
 	}
 
 	/*!
