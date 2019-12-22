@@ -224,7 +224,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			tape_player_.set_delegate(this);
 			Memory::Fuzz(ram_, sizeof(ram_));
 
-			if(disk_interface == Analyser::Static::Oric::Target::DiskInterface::Pravetz) {
+			if constexpr (disk_interface == Analyser::Static::Oric::Target::DiskInterface::Pravetz) {
 				diskii_.set_clocking_hint_observer(this);
 			}
 
@@ -630,7 +630,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		// Helper to discern current IRQ state
 		inline void set_interrupt_line() {
 			bool irq_line = via_.get_interrupt_line();
-			if(disk_interface == Analyser::Static::Oric::Target::DiskInterface::Microdisc)
+			if constexpr (disk_interface == Analyser::Static::Oric::Target::DiskInterface::Microdisc)
 				irq_line |= microdisc_.get_interrupt_request_line();
 			m6502_.set_irq_line(irq_line);
 		}

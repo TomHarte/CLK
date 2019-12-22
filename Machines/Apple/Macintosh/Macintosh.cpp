@@ -152,7 +152,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			scc_.set_delegate(this);
 
 			// Also watch for changes in clocking requirement from the SCSI chip.
-			if(model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
+			if constexpr (model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
 				scsi_bus_.set_clocking_hint_observer(this);
 			}
 
@@ -514,7 +514,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		void set_activity_observer(Activity::Observer *observer) override {
 			iwm_->set_activity_observer(observer);
 
-			if(model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
+			if constexpr (model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
 				scsi_bus_.set_activity_observer(observer);
 			}
 		}
@@ -642,7 +642,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			}
 
 			// Update the SCSI if currently active.
-			if(model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
+			if constexpr (model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
 				if(scsi_bus_is_clocked_) scsi_bus_.run_for(duration);
 			}
 		}

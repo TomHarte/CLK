@@ -21,7 +21,7 @@ namespace SCSI {
 
 typedef int BusState;
 
-static constexpr BusState DefaultBusState = 0;
+constexpr BusState DefaultBusState = 0;
 
 /*!
 	SCSI bus state is encoded entirely within an int.

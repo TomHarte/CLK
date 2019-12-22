@@ -86,7 +86,7 @@ template<bool is_zx81> class ConcreteMachine:
 			rom_ = std::move(*roms[0]);
 			rom_.resize(use_zx81_rom ? 8192 : 4096);
 
-			if(is_zx81) {
+			if constexpr (is_zx81) {
 				tape_trap_address_ = 0x37c;
 				tape_return_address_ = 0x380;
 				vsync_start_ = HalfCycles(32);
@@ -158,7 +158,7 @@ template<bool is_zx81> class ConcreteMachine:
 				video_.run_for(cycle.length);
 			}
 
-			if(is_zx81) horizontal_counter_ %= HalfCycles(Cycles(207));
+			if constexpr (is_zx81) horizontal_counter_ %= HalfCycles(Cycles(207));
 			if(!tape_advance_delay_) {
 				tape_player_.run_for(cycle.length);
 			} else {
@@ -185,7 +185,7 @@ template<bool is_zx81> class ConcreteMachine:
 					if(!(address & 1)) nmi_is_enabled_ = is_zx81;
 
 					// The below emulates the ZonX AY expansion device.
-					if(is_zx81) {
+					if constexpr (is_zx81) {
 						if((address&0xef) == 0xcf) {
 							ay_set_register(*cycle.value);
 						} else if((address&0xef) == 0x0f) {
@@ -209,7 +209,7 @@ template<bool is_zx81> class ConcreteMachine:
 					}
 
 					// The below emulates the ZonX AY expansion device.
-					if(is_zx81) {
+					if constexpr (is_zx81) {
 						if((address&0xef) == 0xcf) {
 							value &= ay_read_data();
 						}
@@ -308,7 +308,7 @@ template<bool is_zx81> class ConcreteMachine:
 
 		forceinline void flush() {
 			video_.flush();
-			if(is_zx81) {
+			if constexpr (is_zx81) {
 				update_audio();
 				audio_queue_.perform();
 			}

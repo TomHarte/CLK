@@ -18,7 +18,7 @@
 namespace Apple {
 namespace Macintosh {
 
-static constexpr uint16_t KeypadMask = 0x100;
+constexpr uint16_t KeypadMask = 0x100;
 
 /*!
 	Defines the keycodes that could be passed directly to a Macintosh via set_key_pressed.
