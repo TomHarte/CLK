@@ -110,7 +110,7 @@ void MFP68901::write(int address, uint8_t value) {
 		return;
 	}
 
-	const int timer_prescales[] = {
+	constexpr int timer_prescales[] = {
 		1, 4, 10, 16, 50, 64, 100, 200
 	};
 

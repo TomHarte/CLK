@@ -18,8 +18,8 @@
 using namespace Storage::Disk;
 
 namespace {
-	const int number_of_tracks = 35;
-	const int bytes_per_sector = 256;
+	constexpr int number_of_tracks = 35;
+	constexpr int bytes_per_sector = 256;
 }
 
 AppleDSK::AppleDSK(const std::string &file_name) :

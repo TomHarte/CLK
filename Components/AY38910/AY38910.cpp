@@ -72,8 +72,8 @@ AY38910::AY38910(Personality personality, Concurrency::DeferringAsyncTaskQueue &
 
 void AY38910::set_sample_volume_range(std::int16_t range) {
 	// set up volume lookup table
-	const float max_volume = static_cast<float>(range) / 3.0f;	// As there are three channels.
-	const float root_two = sqrtf(2.0f);
+	const float max_volume = float(range) / 3.0f;	// As there are three channels.
+	constexpr float root_two = 1.414213562373095f;
 	for(int v = 0; v < 32; v++) {
 		volumes_[v] = int(max_volume / powf(root_two, float(v ^ 0x1f) / 2.0f));
 	}

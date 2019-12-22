@@ -100,7 +100,7 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 		} parity_ = Parity::None;
 		int data_bits_ = 7, stop_bits_ = 2;
 
-		static const int NoValueMask = 0x100;
+		static constexpr int NoValueMask = 0x100;
 		int next_transmission_ = NoValueMask;
 		int received_data_ = NoValueMask;
 

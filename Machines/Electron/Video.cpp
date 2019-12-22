@@ -16,24 +16,24 @@ using namespace Electron;
 #define graphics_column(v)	((((v) & 127) - first_graphics_cycle + 128) & 127)
 
 namespace {
-	static const int cycles_per_line = 128;
-	static const int lines_per_frame = 625;
-	static const int cycles_per_frame = lines_per_frame * cycles_per_line;
-	static const int crt_cycles_multiplier = 8;
-	static const int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
+	static constexpr int cycles_per_line = 128;
+	static constexpr int lines_per_frame = 625;
+	static constexpr int cycles_per_frame = lines_per_frame * cycles_per_line;
+	static constexpr int crt_cycles_multiplier = 8;
+	static constexpr int crt_cycles_per_line = crt_cycles_multiplier * cycles_per_line;
 
-	static const int field_divider_line = 312;	// i.e. the line, simultaneous with which, the first field's sync ends. So if
-												// the first line with pixels in field 1 is the 20th in the frame, the first line
-												// with pixels in field 2 will be 20+field_divider_line
-	static const int first_graphics_line = 31;
-	static const int first_graphics_cycle = 33;
+	static constexpr int field_divider_line = 312;	// i.e. the line, simultaneous with which, the first field's sync ends. So if
+													// the first line with pixels in field 1 is the 20th in the frame, the first line
+													// with pixels in field 2 will be 20+field_divider_line
+	static constexpr int first_graphics_line = 31;
+	static constexpr int first_graphics_cycle = 33;
 
-	static const int display_end_interrupt_line = 256;
+	static constexpr int display_end_interrupt_line = 256;
 
-	static const int real_time_clock_interrupt_1 = 16704;
-	static const int real_time_clock_interrupt_2 = 56704;
-	static const int display_end_interrupt_1 = (first_graphics_line + display_end_interrupt_line)*cycles_per_line;
-	static const int display_end_interrupt_2 = (first_graphics_line + field_divider_line + display_end_interrupt_line)*cycles_per_line;
+	static constexpr int real_time_clock_interrupt_1 = 16704;
+	static constexpr int real_time_clock_interrupt_2 = 56704;
+	static constexpr int display_end_interrupt_1 = (first_graphics_line + display_end_interrupt_line)*cycles_per_line;
+	static constexpr int display_end_interrupt_2 = (first_graphics_line + field_divider_line + display_end_interrupt_line)*cycles_per_line;
 }
 
 // MARK: - Lifecycle
@@ -272,7 +272,7 @@ void VideoOutput::set_register(int address, uint8_t value) {
 		break;
 		case 0x08: case 0x09: case 0x0a: case 0x0b:
 		case 0x0c: case 0x0d: case 0x0e: case 0x0f: {
-			static const int registers[4][4] = {
+			constexpr int registers[4][4] = {
 				{10, 8, 2, 0},
 				{14, 12, 6, 4},
 				{15, 13, 7, 5},

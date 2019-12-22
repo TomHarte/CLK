@@ -79,7 +79,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		void update_video() {
 			video_.run_for(cycles_since_video_update_.flush<Cycles>());
 		}
-		static const int audio_divider = 8;
+		static constexpr int audio_divider = 8;
 		void update_audio() {
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
 		}
@@ -329,7 +329,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			audio_toggle_(audio_queue_),
 			speaker_(audio_toggle_) {
 			// The system's master clock rate.
-			const float master_clock = 14318180.0;
+			constexpr float master_clock = 14318180.0;
 
 			// This is where things get slightly convoluted: establish the machine as having a clock rate
 			// equal to the number of cycles of work the 6502 will actually achieve. Which is less than

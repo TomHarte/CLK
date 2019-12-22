@@ -43,7 +43,7 @@ struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegat
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	// This is set to a relatively large number for now.
-	static const int buffer_size = 1024;
+	static constexpr int buffer_size = 1024;
 
 	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override {
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
@@ -106,7 +106,7 @@ class ActivityObserver: public Activity::Observer {
 			lights_.clear();
 
 			// Generate a bunch of LEDs for connected drives.
-			const float height = 0.05f;
+			constexpr float height = 0.05f;
 			const float width = height / aspect_ratio;
 			const float right_x = 1.0f - 2.0f * width;
 			float y = 1.0f - 2.0f * height;

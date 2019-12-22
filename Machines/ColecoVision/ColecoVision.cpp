@@ -27,7 +27,7 @@
 #include "../../Analyser/Dynamic/ConfidenceCounter.hpp"
 
 namespace {
-const int sn76489_divider = 2;
+constexpr int sn76489_divider = 2;
 }
 
 namespace Coleco {

@@ -29,7 +29,7 @@
 #include <iostream>
 
 namespace {
-const int sn76489_divider = 2;
+constexpr int sn76489_divider = 2;
 }
 
 namespace Sega {

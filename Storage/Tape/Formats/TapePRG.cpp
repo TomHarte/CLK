@@ -65,10 +65,10 @@ PRG::PRG(const std::string &file_name) :
 
 Storage::Tape::Tape::Pulse PRG::virtual_get_next_pulse() {
 	// these are all microseconds per pole
-	static const unsigned int leader_zero_length = 179;
-	static const unsigned int zero_length = 169;
-	static const unsigned int one_length = 247;
-	static const unsigned int marker_length = 328;
+	constexpr unsigned int leader_zero_length = 179;
+	constexpr unsigned int zero_length = 169;
+	constexpr unsigned int one_length = 247;
+	constexpr unsigned int marker_length = 328;
 
 	bit_phase_ = (bit_phase_+1)&3;
 	if(!bit_phase_) get_next_output_token();
@@ -100,10 +100,10 @@ bool PRG::is_at_end() {
 }
 
 void PRG::get_next_output_token() {
-	static const int block_length = 192;	// not counting the checksum
-	static const int countdown_bytes = 9;
-	static const int leadin_length = 20000;
-	static const int block_leadin_length = 5000;
+	constexpr int block_length = 192;	// not counting the checksum
+	constexpr int countdown_bytes = 9;
+	constexpr int leadin_length = 20000;
+	constexpr int block_leadin_length = 5000;
 
 	if(file_phase_ == FilePhaseHeaderDataGap || file_phase_ == FilePhaseAtEnd) {
 		output_token_ = Silence;

@@ -11,8 +11,8 @@
 #include "Utility/ImplicitSectors.hpp"
 
 namespace {
-	static const int sectors_per_track = 16;
-	static const int sector_size = 1;
+	constexpr int sectors_per_track = 16;
+	constexpr int sector_size = 1;
 }
 
 using namespace Storage::Disk;

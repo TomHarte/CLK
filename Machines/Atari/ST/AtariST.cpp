@@ -47,7 +47,7 @@ std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 	);
 }
 
-const int CLOCK_RATE = 8021247;
+constexpr int CLOCK_RATE = 8021247;
 
 using Target = Analyser::Static::Target;
 class ConcreteMachine:
