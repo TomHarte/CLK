@@ -224,8 +224,7 @@ struct Microcycle {
 	*/
 	forceinline uint16_t value16() const {
 		if(operation & SelectWord) return value->full;
-		const auto shift = byte_shift();
-		return uint16_t((value->halves.low << shift) | (0xff00 >> shift));
+		return uint16_t((value->halves.low << 8) | value->halves.low);
 	}
 
 	/*!
@@ -237,7 +236,7 @@ struct Microcycle {
 			return uint8_t(value->full >> 8);
 		}
 
-		return uint8_t(value->halves.low | (0xff00 >> ((*address & 1) << 3)));
+		return value->halves.low;
 	}
 
 	/*!
@@ -249,7 +248,7 @@ struct Microcycle {
 			return uint8_t(value->full);
 		}
 
-		return uint8_t(value->halves.low | (0x00ff << ((*address & 1) << 3)));
+		return value->halves.low;
 	}
 
 	/*!
