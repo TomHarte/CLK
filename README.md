@@ -81,4 +81,4 @@ Cycle-accurate emulation for the supported target machines is fairly trite; this
 |![SG1000 Chack'n'Pop](READMEImages/SGChackNPop.png) | ![Atari 2600 Solaris](READMEImages/Atari2600Solaris.png)
 |![Vic-20 Gridrunner](READMEImages/Vic20Gridrunner.png) | ![VIC-20 BASIC](READMEImages/Vic20BASIC.png)
 
-[macOS Version](READMEImages/MultipleSystems.png)
+![macOS Version](READMEImages/MultipleSystems.png)
