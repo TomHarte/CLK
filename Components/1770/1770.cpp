@@ -324,7 +324,9 @@ void WD1770::posit_event(int new_event_type) {
 			goto wait_for_command;
 		}
 		if(distance_into_section_ == 7) {
+			distance_into_section_ = 0;
 			set_data_mode(DataMode::Scanning);
+
 			if(get_crc_generator().get_value()) {
 				update_status([] (Status &status) {
 					status.crc_error = true;
@@ -339,8 +341,6 @@ void WD1770::posit_event(int new_event_type) {
 				});
 				goto wait_for_command;
 			}
-
-			distance_into_section_ = 0;
 		}
 		goto verify_read_data;
 
@@ -397,6 +397,9 @@ void WD1770::posit_event(int new_event_type) {
 			goto wait_for_command;
 		}
 
+		distance_into_section_ = 0;
+		set_data_mode(DataMode::Scanning);
+
 	type2_get_header:
 		WAIT_FOR_EVENT(static_cast<int>(Event::IndexHole) | static_cast<int>(Event::Token));
 		READ_ID();
@@ -409,8 +412,10 @@ void WD1770::posit_event(int new_event_type) {
 			goto wait_for_command;
 		}
 		if(distance_into_section_ == 7) {
-			LOG("Considering " << std::dec << int(header_[0]) << "/" << int(header_[2]));
+			distance_into_section_ = 0;
 			set_data_mode(DataMode::Scanning);
+
+			LOG("Considering " << std::dec << int(header_[0]) << "/" << int(header_[2]));
 			if(		header_[0] == track_ && header_[2] == sector_ &&
 					(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1])) {
 				LOG("Found " << std::dec << int(header_[0]) << "/" << int(header_[2]));
@@ -427,7 +432,6 @@ void WD1770::posit_event(int new_event_type) {
 				});
 				goto type2_read_or_write_data;
 			}
-			distance_into_section_ = 0;
 		}
 		goto type2_get_header;
 
@@ -470,6 +474,9 @@ void WD1770::posit_event(int new_event_type) {
 		header_[distance_into_section_] = get_latest_token().byte_value;
 		distance_into_section_++;
 		if(distance_into_section_ == 2) {
+			distance_into_section_ = 0;
+			set_data_mode(DataMode::Scanning);
+
 			if(get_crc_generator().get_value()) {
 				LOG("CRC error; terminating");
 				update_status([this] (Status &status) {
@@ -478,11 +485,13 @@ void WD1770::posit_event(int new_event_type) {
 				goto wait_for_command;
 			}
 
+			LOG("Finished reading sector " << std::dec << int(sector_));
+
 			if(command_ & 0x10) {
 				sector_++;
+				LOG("Advancing to search for sector " << std::dec << int(sector_));
 				goto test_type2_write_protection;
 			}
-			LOG("Finished reading sector " << std::dec << int(sector_));
 			goto wait_for_command;
 		}
 		goto type2_check_crc;
@@ -630,9 +639,11 @@ void WD1770::posit_event(int new_event_type) {
 				update_status([] (Status &status) {
 					status.data_request = true;
 				});
-				distance_into_section_++;
+				++distance_into_section_;
 
 				if(distance_into_section_ == 7) {
+					distance_into_section_ = 0;
+
 					if(get_crc_generator().get_value()) {
 						update_status([] (Status &status) {
 							status.crc_error = true;
