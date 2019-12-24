@@ -500,7 +500,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 		// for Utility::TypeRecipient::Delegate
 		void type_string(const std::string &string) override final {
-			string_serialiser_.reset(new Utility::StringSerialiser(string, true));
+			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
 		}
 
 		// for Microdisc::Delegate

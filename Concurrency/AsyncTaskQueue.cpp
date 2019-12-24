@@ -18,7 +18,7 @@ AsyncTaskQueue::AsyncTaskQueue()
 #ifdef __APPLE__
 	serial_dispatch_queue_ = dispatch_queue_create("com.thomasharte.clocksignal.asyntaskqueue", DISPATCH_QUEUE_SERIAL);
 #else
-	thread_.reset(new std::thread([this]() {
+	thread_ = std::make_unique<std::thread>([this]() {
 		while(!should_destruct_) {
 			std::function<void(void)> next_function;
 
@@ -39,7 +39,7 @@ AsyncTaskQueue::AsyncTaskQueue()
 				processing_condition_.wait(lock);
 			}
 		}
-	}));
+	});
 #endif
 }
 
@@ -88,7 +88,7 @@ DeferringAsyncTaskQueue::~DeferringAsyncTaskQueue() {
 
 void DeferringAsyncTaskQueue::defer(std::function<void(void)> function) {
 	if(!deferred_tasks_) {
-		deferred_tasks_.reset(new std::list<std::function<void(void)>>);
+		deferred_tasks_ = std::make_shared<std::list<std::function<void(void)>>>();
 	}
 	deferred_tasks_->push_back(function);
 }

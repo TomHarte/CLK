@@ -27,7 +27,7 @@ static void receive_line(uint8_t *next_line)
 {
 	[super setUp];
 	std::function<void(uint8_t *)> function = receive_line;
-	_tia.reset(new Atari2600::TIA(function));
+	_tia = std::make_unique<Atari2600::TIA>(function);
 	line = nullptr;
 
 	_tia->set_playfield(0, 0x00);

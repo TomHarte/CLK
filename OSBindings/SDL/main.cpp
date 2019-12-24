@@ -248,11 +248,11 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 			std::size_t split_index = argument.find("=");
 
 			if(split_index == std::string::npos) {
-				arguments.selections[argument].reset(new Configurable::BooleanSelection(true));
+				arguments.selections[argument] = std::make_unique<Configurable::BooleanSelection>(true);
 			} else {
 				std::string name = argument.substr(0, split_index);
 				std::string value = argument.substr(split_index+1, std::string::npos);
-				arguments.selections[name].reset(new Configurable::ListSelection(value));
+				arguments.selections[name] = std::make_unique<Configurable::ListSelection>(value);
 			}
 		} else {
 			arguments.file_name = arg;
@@ -609,7 +609,7 @@ int main(int argc, char *argv[]) {
 	std::unique_ptr<ActivityObserver> activity_observer;
 	Activity::Source *const activity_source = machine->activity_source();
 	if(activity_source) {
-		activity_observer.reset(new ActivityObserver(activity_source, 4.0f / 3.0f));
+		activity_observer = std::make_unique<ActivityObserver>(activity_source, 4.0f / 3.0f);
 	}
 
 	// Run the main event loop until the OS tells us to quit.

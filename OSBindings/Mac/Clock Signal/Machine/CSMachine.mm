@@ -321,7 +321,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
-	_scanTarget.reset(new Outputs::Display::OpenGL::ScanTarget);
+	_scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>();
 	_machine->crt_machine()->set_scan_target(_scanTarget.get());
 }
 

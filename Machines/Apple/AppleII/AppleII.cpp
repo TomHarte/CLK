@@ -851,7 +851,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) override {
-			string_serialiser_.reset(new Utility::StringSerialiser(string, true));
+			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
 		}
 
 		// MARK:: Configuration options.

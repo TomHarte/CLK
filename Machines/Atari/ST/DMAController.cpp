@@ -187,6 +187,12 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		// Check that the older buffer is full; stop if not.
 		if(!buffer_[active_buffer_ ^ 1].is_full) return 0;
 
+		printf("[1], to %06x: ", address_);
+		for(int c = 0; c < 16; ++c) {
+			printf("%02x ", buffer_[active_buffer_ ^ 1].contents[c]);
+		}
+		printf("\n");
+
 		for(int c = 0; c < 8; ++c) {
 			if(size_t(address_) < size) {
 				ram[address_ >> 1] = uint16_t(
@@ -200,6 +206,12 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 
 		// Check that the newer buffer is full; stop if not.
 		if(!buffer_[active_buffer_ ].is_full) return 8;
+
+		printf("[2], to %06x: ", address_);
+		for(int c = 0; c < 16; ++c) {
+			printf("%02x ", buffer_[active_buffer_].contents[c]);
+		}
+		printf("\n");
 
 		for(int c = 0; c < 8; ++c) {
 			if(size_t(address_) < size) {

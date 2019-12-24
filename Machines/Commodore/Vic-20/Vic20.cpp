@@ -369,7 +369,7 @@ class ConcreteMachine:
 
 			if(target.has_c1540) {
 				// construct the 1540
-				c1540_.reset(new ::Commodore::C1540::Machine(Commodore::C1540::Personality::C1540, rom_fetcher));
+				c1540_ = std::make_unique<::Commodore::C1540::Machine>(Commodore::C1540::Personality::C1540, rom_fetcher);
 
 				// attach it to the serial bus
 				c1540_->set_serial_bus(serial_bus_);

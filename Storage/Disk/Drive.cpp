@@ -301,7 +301,7 @@ void Drive::set_track(const std::shared_ptr<Track> &track) {
 void Drive::setup_track() {
 	track_ = get_track();
 	if(!track_) {
-		track_.reset(new UnformattedTrack);
+		track_ = std::make_shared<UnformattedTrack>();
 	}
 
 	float offset = 0.0f;

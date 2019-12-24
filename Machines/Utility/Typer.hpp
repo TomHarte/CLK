@@ -85,7 +85,7 @@ class TypeRecipient: public Typer::Delegate {
 	protected:
 		/// Attaches a typer to this class that will type @c string using @c character_mapper as a source.
 		void add_typer(const std::string &string, std::unique_ptr<CharacterMapper> character_mapper) {
-			typer_.reset(new Typer(string, get_typer_delay(), get_typer_frequency(), std::move(character_mapper), this));
+			typer_ = std::make_unique<Typer>(string, get_typer_delay(), get_typer_frequency(), std::move(character_mapper), this);
 		}
 
 		/*!

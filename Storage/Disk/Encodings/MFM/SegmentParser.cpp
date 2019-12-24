@@ -35,7 +35,7 @@ std::map<std::size_t, Storage::Encodings::MFM::Sector> Storage::Encodings::MFM::
 			break;
 
 			case Shifter::Token::ID:
-				new_sector.reset(new Storage::Encodings::MFM::Sector);
+				new_sector = std::make_unique<Storage::Encodings::MFM::Sector>();
 				is_reading = true;
 				start_location = bit_cursor;
 				position = 0;

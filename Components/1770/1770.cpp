@@ -91,11 +91,15 @@ uint8_t WD1770::get_register(int address) {
 				if(status_.type == Status::One)
 					status |= (status_.spin_up ? Flag::SpinUp : 0);
 			}
-//			LOG("Returned status " << PADHEX(2) << int(status) << " of type " << 1+int(status_.type));
+			LOG("Returned status " << PADHEX(2) << int(status) << " of type " << 1+int(status_.type));
 			return status;
 		}
-		case 1:		return track_;
-		case 2:		return sector_;
+		case 1:
+			LOG("Returned track " << int(track_));
+			return track_;
+		case 2:
+			LOG("Returned sector " << int(sector_));
+			return sector_;
 		case 3:
 			update_status([] (Status &status) {
 				status.data_request = false;

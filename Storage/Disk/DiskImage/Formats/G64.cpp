@@ -93,7 +93,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 			}
 		}
 
-		resulting_track.reset(new PCMTrack(std::move(segments)));
+		resulting_track = std::make_shared<PCMTrack>(std::move(segments));
 	} else {
 		PCMSegment segment(
 			Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(speed_zone_offset)),
@@ -101,7 +101,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 			track_contents
 		);
 
-		resulting_track.reset(new PCMTrack(std::move(segment)));
+		resulting_track = std::make_shared<PCMTrack>(std::move(segment));
 	}
 
 	// TODO: find out whether it's possible for a G64 to supply only a partial track. I don't think it is, which would make the

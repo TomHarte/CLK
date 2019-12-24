@@ -32,7 +32,7 @@ class DigitalPhaseLockedLoopDelegate: public Storage::DigitalPhaseLockedLoop::De
 - (instancetype)initWithClocksPerBit:(NSUInteger)clocksPerBit historyLength:(NSUInteger)historyLength {
 	self = [super init];
 	if(self) {
-		_digitalPhaseLockedLoop.reset(new Storage::DigitalPhaseLockedLoop((unsigned int)clocksPerBit, (unsigned int)historyLength));
+		_digitalPhaseLockedLoop = std::make_unique<Storage::DigitalPhaseLockedLoop>((unsigned int)clocksPerBit, (unsigned int)historyLength));
 		_delegate.bridge = self;
 		_digitalPhaseLockedLoop->set_delegate(&_delegate);
 	}

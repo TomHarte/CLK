@@ -46,7 +46,7 @@ class VanillaVIAPortHandler: public MOS::MOS6522::PortHandler {
 - (instancetype)init {
 	self = [super init];
 	if(self) {
-		_via.reset(new MOS::MOS6522::MOS6522<VanillaVIAPortHandler>(_viaPortHandler));
+		_via = std::make_unique<MOS::MOS6522::MOS6522<VanillaVIAPortHandler>(_viaPortHandler);
 		_viaPortHandler.bridge = self;
 	}
 	return self;
