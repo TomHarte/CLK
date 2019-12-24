@@ -88,7 +88,7 @@ class ConcreteMachine:
 			set_rom(ROM::OS, *roms[1], false);
 
 			if(target.has_dfs || target.has_adfs) {
-				plus3_.reset(new Plus3);
+				plus3_ = std::make_unique<Plus3>();
 
 				if(target.has_dfs) {
 					set_rom(ROM::Slot0, *roms[dfs_rom_position], true);

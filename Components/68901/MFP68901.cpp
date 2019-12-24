@@ -12,7 +12,7 @@
 #include <cstring>
 
 #define LOG_PREFIX "[MFP] "
-//#define NDEBUG
+#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 using namespace Motorola::MFP68901;

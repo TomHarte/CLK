@@ -111,7 +111,7 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 - (void)setUp {
-    _machine.reset(new RAM68000());
+    _machine = std::make_unique<RAM68000>();
 }
 
 - (void)tearDown {
@@ -120,7 +120,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 - (void)testABCDLong {
 	for(int d = 0; d < 100; ++d) {
-		_machine.reset(new RAM68000());
+		_machine = std::make_unique<RAM68000>();
 		_machine->set_program({
 			0xc100		// ABCD D0, D0
 		});

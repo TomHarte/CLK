@@ -87,35 +87,35 @@ class ConcreteMachine:
 
 			using PagingModel = Target::PagingModel;
 			switch(target.paging_model) {
-				case PagingModel::ActivisionStack:	bus_.reset(new Cartridge::Cartridge<Cartridge::ActivisionStack>(rom));	break;
-				case PagingModel::CBSRamPlus:		bus_.reset(new Cartridge::Cartridge<Cartridge::CBSRAMPlus>(rom));		break;
-				case PagingModel::CommaVid:			bus_.reset(new Cartridge::Cartridge<Cartridge::CommaVid>(rom));			break;
-				case PagingModel::MegaBoy:			bus_.reset(new Cartridge::Cartridge<Cartridge::MegaBoy>(rom));			break;
-				case PagingModel::MNetwork:			bus_.reset(new Cartridge::Cartridge<Cartridge::MNetwork>(rom));			break;
-				case PagingModel::None:				bus_.reset(new Cartridge::Cartridge<Cartridge::Unpaged>(rom));			break;
-				case PagingModel::ParkerBros:		bus_.reset(new Cartridge::Cartridge<Cartridge::ParkerBros>(rom));		break;
-				case PagingModel::Pitfall2:			bus_.reset(new Cartridge::Cartridge<Cartridge::Pitfall2>(rom));			break;
-				case PagingModel::Tigervision:		bus_.reset(new Cartridge::Cartridge<Cartridge::Tigervision>(rom));		break;
+				case PagingModel::ActivisionStack:	bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::ActivisionStack>>(rom);	break;
+				case PagingModel::CBSRamPlus:		bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::CBSRAMPlus>>(rom);		break;
+				case PagingModel::CommaVid:			bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::CommaVid>>(rom);		break;
+				case PagingModel::MegaBoy:			bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::MegaBoy>>(rom);			break;
+				case PagingModel::MNetwork:			bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::MNetwork>>(rom);		break;
+				case PagingModel::None:				bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Unpaged>>(rom);			break;
+				case PagingModel::ParkerBros:		bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::ParkerBros>>(rom);		break;
+				case PagingModel::Pitfall2:			bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Pitfall2>>(rom);		break;
+				case PagingModel::Tigervision:		bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Tigervision>>(rom);		break;
 
 				case PagingModel::Atari8k:
 					if(target.uses_superchip) {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari8kSuperChip>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari8kSuperChip>>(rom);
 					} else {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari8k>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari8k>>(rom);
 					}
 				break;
 				case PagingModel::Atari16k:
 					if(target.uses_superchip) {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari16kSuperChip>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari16kSuperChip>>(rom);
 					} else {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari16k>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari16k>>(rom);
 					}
 				break;
 				case PagingModel::Atari32k:
 					if(target.uses_superchip) {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari32kSuperChip>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari32kSuperChip>>(rom);
 					} else {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari32k>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari32k>>(rom);
 					}
 				break;
 			}

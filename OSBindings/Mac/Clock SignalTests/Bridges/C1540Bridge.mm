@@ -11,6 +11,8 @@
 #include "NSData+StdVector.h"
 #include "CSROMFetcher.hpp"
 
+#include <memory>
+
 class VanillaSerialPort: public Commodore::Serial::Port {
 	public:
 		void set_input(Commodore::Serial::Line line, Commodore::Serial::LineLevel value) {
@@ -29,11 +31,11 @@ class VanillaSerialPort: public Commodore::Serial::Port {
 - (instancetype)init {
 	self = [super init];
 	if(self) {
-		_serialBus.reset(new ::Commodore::Serial::Bus);
-		_serialPort.reset(new VanillaSerialPort);
+		_serialBus = std::make_shared<::Commodore::Serial::Bus>();
+		_serialPort = std::make_shared<VanillaSerialPort>();
 
 		auto rom_fetcher = CSROMFetcher();
-		_c1540.reset(new Commodore::C1540::Machine(Commodore::C1540::Personality::C1540, rom_fetcher));
+		_c1540 = std::make_unique<Commodore::C1540::Machine>(Commodore::C1540::Personality::C1540, rom_fetcher);
 		_c1540->set_serial_bus(_serialBus);
 		Commodore::Serial::AttachPortAndBus(_serialPort, _serialBus);
 	}

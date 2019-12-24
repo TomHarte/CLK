@@ -50,8 +50,8 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	// The vertical slywheel has an ideal period of `multiplied_cycles_per_line * height_of_display`,
 	// will accept syncs within 1/8th of that (i.e. tolerates 12.5% error) and takes scanlinesVerticalRetraceTime
 	// to retrace.
-	horizontal_flywheel_.reset(new Flywheel(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 5));
-	vertical_flywheel_.reset(new Flywheel(multiplied_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * multiplied_cycles_per_line, (multiplied_cycles_per_line * height_of_display) >> 3));
+	horizontal_flywheel_ = std::make_unique<Flywheel>(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 5);
+	vertical_flywheel_ = std::make_unique<Flywheel>(multiplied_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * multiplied_cycles_per_line, (multiplied_cycles_per_line * height_of_display) >> 3);
 
 	// Figure out the divisor necessary to get the horizontal flywheel into a 16-bit range.
 	const int real_clock_scan_period = vertical_flywheel_->get_scan_period();

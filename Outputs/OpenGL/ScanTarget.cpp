@@ -369,7 +369,7 @@ void ScanTarget::setup_pipeline() {
 	const bool needs_qam_buffer = (modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::SVideo);
 	if(needs_qam_buffer) {
 		if(!qam_chroma_texture_) {
-			qam_chroma_texture_.reset(new TextureTarget(LineBufferWidth, LineBufferHeight, QAMChromaTextureUnit, GL_NEAREST, false));
+			qam_chroma_texture_ = std::make_unique<TextureTarget>(LineBufferWidth, LineBufferHeight, QAMChromaTextureUnit, GL_NEAREST, false);
 		}
 
 		qam_separation_shader_ = qam_separation_shader();

@@ -13,8 +13,8 @@ using namespace MSX;
 DiskROM::DiskROM(const std::vector<uint8_t> &rom) :
 	WD1770(P1793),
 	rom_(rom) {
-	drives_[0].reset(new Storage::Disk::Drive(8000000, 300, 2));
-	drives_[1].reset(new Storage::Disk::Drive(8000000, 300, 2));
+	drives_[0] = std::make_shared<Storage::Disk::Drive>(8000000, 300, 2);
+	drives_[1] = std::make_shared<Storage::Disk::Drive>(8000000, 300, 2);
 	set_is_double_density(true);
 }
 

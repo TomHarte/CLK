@@ -20,7 +20,7 @@
 }
 
 - (void)setUp {
-    _machine.reset(new RAM68000());
+    _machine = std::make_unique<RAM68000>();
 }
 
 - (void)tearDown {

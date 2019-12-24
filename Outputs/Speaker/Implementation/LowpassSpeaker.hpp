@@ -219,16 +219,16 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			number_of_taps = (number_of_taps * 2) | 1;
 
 			output_buffer_pointer_ = 0;
-			stepper_.reset(new SignalProcessing::Stepper(
+			stepper_ = std::make_unique<SignalProcessing::Stepper>(
 				uint64_t(filter_parameters.input_cycles_per_second),
-				uint64_t(filter_parameters.output_cycles_per_second)));
+				uint64_t(filter_parameters.output_cycles_per_second));
 
-			filter_.reset(new SignalProcessing::FIRFilter(
+			filter_ = std::make_unique<SignalProcessing::FIRFilter>(
 				static_cast<unsigned int>(number_of_taps),
 				filter_parameters.input_cycles_per_second,
 				0.0,
 				high_pass_frequency,
-				SignalProcessing::FIRFilter::DefaultAttenuation));
+				SignalProcessing::FIRFilter::DefaultAttenuation);
 
 			input_buffer_.resize(std::size_t(number_of_taps));
 			input_buffer_depth_ = 0;
