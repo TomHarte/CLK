@@ -8,6 +8,9 @@
 
 #include "DMAController.hpp"
 
+#define LOG_PREFIX "[DMA] "
+#include "../../../Outputs/Log.hpp"
+
 #include <cstdio>
 
 using namespace Atari::ST;
@@ -187,11 +190,11 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		// Check that the older buffer is full; stop if not.
 		if(!buffer_[active_buffer_ ^ 1].is_full) return 0;
 
-		printf("[1], to %06x: ", address_);
-		for(int c = 0; c < 16; ++c) {
-			printf("%02x ", buffer_[active_buffer_ ^ 1].contents[c]);
-		}
-		printf("\n");
+#define b(i, n) " " << PADHEX(2) << buffer_[i].contents[n]
+#define b2(i, n) b(i, n) << b(i, n+1)
+#define b4(i, n) b2(i, n) << b2(i, n+2)
+#define b16(i) b4(i, 0) << b4(i, 4) << b4(i, 8) << b4(i, 12)
+		LOG("[1] to " << PADHEX(6) << address_ << b16(active_buffer_ ^ 1));
 
 		for(int c = 0; c < 8; ++c) {
 			if(size_t(address_) < size) {
@@ -207,11 +210,11 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		// Check that the newer buffer is full; stop if not.
 		if(!buffer_[active_buffer_ ].is_full) return 8;
 
-		printf("[2], to %06x: ", address_);
-		for(int c = 0; c < 16; ++c) {
-			printf("%02x ", buffer_[active_buffer_].contents[c]);
-		}
-		printf("\n");
+		LOG("[2] to " << PADHEX(6) << address_ << b16(active_buffer_));
+#undef b16
+#undef b4
+#undef b2
+#undef b
 
 		for(int c = 0; c < 8; ++c) {
 			if(size_t(address_) < size) {
