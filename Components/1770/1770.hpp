@@ -96,6 +96,7 @@ class WD1770: public Storage::Disk::MFMController {
 			bool data_request = false;
 			bool interrupt_request = false;
 			bool busy = false;
+			bool track_zero = false;
 			enum {
 				One, Two, Three
 			} type = One;

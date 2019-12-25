@@ -63,10 +63,17 @@ uint8_t WD1770::get_register(int address) {
 			uint8_t status =
 				(status_.crc_error ? Flag::CRCError : 0) |
 				(status_.busy ? Flag::Busy : 0);
+
+			// Per Jean Louis-Guérin's documentation:
+			//
+			//	* 	the write-protect bit is locked into place by a type 2 or type 3 command, but is
+			//		read live after a type 1.
+			//	*	the track 0 bit is captured during a type 1 instruction and lost upon any other type,
+			//		it is not live sampled.
 			switch(status_.type) {
 				case Status::One:
 					status |=
-						(get_drive().get_is_track_zero() ? Flag::TrackZero : 0) |
+						(status_.track_zero ? Flag::TrackZero : 0) |
 						(status_.seek_error ? Flag::SeekError : 0) |
 						(get_drive().get_is_read_only() ? Flag::WriteProtect : 0) |
 						(get_drive().get_index_pulse() ? Flag::Index : 0);
@@ -219,6 +226,7 @@ void WD1770::posit_event(int new_event_type) {
 		update_status([] (Status &status) {
 			status.busy = true;
 			status.interrupt_request = false;
+			status.track_zero = false;	// Always reset by a non-type 1; so reset regardless and set properly later.
 		});
 
 		LOG("Starting " << PADHEX(2) << int(command_));
@@ -284,7 +292,7 @@ void WD1770::posit_event(int new_event_type) {
 		}
 
 	perform_seek_or_restore_command:
-		if(track_ == data_) goto verify;
+		if(track_ == data_) goto verify_seek;
 		step_direction_ = (data_ > track_);
 
 	adjust_track:
@@ -293,7 +301,7 @@ void WD1770::posit_event(int new_event_type) {
 	perform_step:
 		if(!step_direction_ && get_drive().get_is_track_zero()) {
 			track_ = 0;
-			goto verify;
+			goto verify_seek;
 		}
 		get_drive().step(Storage::Disk::HeadPosition(step_direction_ ? 1 : -1));
 		Cycles::IntType time_to_wait;
@@ -305,14 +313,17 @@ void WD1770::posit_event(int new_event_type) {
 			case 3: time_to_wait = (personality_ == P1772) ? 3 : 30;	break;
 		}
 		WAIT_FOR_TIME(time_to_wait);
-		if(command_ >> 5) goto verify;
+		if(command_ >> 5) goto verify_seek;
 		goto perform_seek_or_restore_command;
 
 	perform_step_command:
 		if(command_ & 0x10) goto adjust_track;
 		goto perform_step;
 
-	verify:
+	verify_seek:
+		update_status([this] (Status &status) {
+			status.track_zero = get_drive().get_is_track_zero();
+		});
 		if(!(command_ & 0x04)) {
 			goto wait_for_command;
 		}
