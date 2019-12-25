@@ -190,7 +190,7 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		// Check that the older buffer is full; stop if not.
 		if(!buffer_[active_buffer_ ^ 1].is_full) return 0;
 
-#define b(i, n) " " << PADHEX(2) << buffer_[i].contents[n]
+#define b(i, n) " " << PADHEX(2) << int(buffer_[i].contents[n])
 #define b2(i, n) b(i, n) << b(i, n+1)
 #define b4(i, n) b2(i, n) << b2(i, n+2)
 #define b16(i) b4(i, 0) << b4(i, 4) << b4(i, 8) << b4(i, 12)
