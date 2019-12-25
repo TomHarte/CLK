@@ -61,20 +61,21 @@ uint8_t WD1770::get_register(int address) {
 				status.interrupt_request = false;
 			});
 			uint8_t status =
-					(status_.write_protect ? Flag::WriteProtect : 0) |
-					(status_.crc_error ? Flag::CRCError : 0) |
-					(status_.busy ? Flag::Busy : 0);
+				(status_.crc_error ? Flag::CRCError : 0) |
+				(status_.busy ? Flag::Busy : 0);
 			switch(status_.type) {
 				case Status::One:
 					status |=
 						(get_drive().get_is_track_zero() ? Flag::TrackZero : 0) |
-						(status_.seek_error ? Flag::SeekError : 0);
+						(status_.seek_error ? Flag::SeekError : 0) |
+						(get_drive().get_is_read_only() ? Flag::WriteProtect : 0);
 						// TODO: index hole
 				break;
 
 				case Status::Two:
 				case Status::Three:
 					status |=
+						(status_.write_protect ? Flag::WriteProtect : 0) |
 						(status_.record_type ? Flag::RecordType : 0) |
 						(status_.lost_data ? Flag::LostData : 0) |
 						(status_.data_request ? Flag::DataRequest : 0) |
