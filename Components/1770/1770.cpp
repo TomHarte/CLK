@@ -192,6 +192,7 @@ void WD1770::posit_event(int new_event_type) {
 		update_status([] (Status &status) {
 			status.type = Status::One;
 			status.data_request = false;
+			status.spin_up = false;
 		});
 	} else {
 		if(!(interesting_event_mask_ & int(new_event_type))) return;
