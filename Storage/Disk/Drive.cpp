@@ -182,6 +182,9 @@ void Drive::advance(const Cycles cycles) {
 }
 
 void Drive::run_for(const Cycles cycles) {
+	// Assumed: the index pulse pulses even if the drive has stopped spinning.
+	index_pulse_remaining_ = std::max(index_pulse_remaining_ - cycles, Cycles(0));
+
 	if(motor_is_on_) {
 		if(has_disk_) {
 			Time zero(0);
@@ -260,6 +263,11 @@ void Drive::get_next_event(float duration_already_passed) {
 	} else {
 		current_event_.length = 1.0f;
 		current_event_.type = Track::Event::IndexHole;
+	}
+
+	// Begin a 2ms period of holding the index line pulse active if this is an index pulse event.
+	if(current_event_.type == Track::Event::IndexHole) {
+		index_pulse_remaining_ = Cycles((get_input_clock_rate() * 2) / 1000);
 	}
 
 	// divide interval, which is in terms of a single rotation of the disk, by rotation speed to
