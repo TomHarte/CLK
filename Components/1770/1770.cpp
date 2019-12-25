@@ -68,8 +68,8 @@ uint8_t WD1770::get_register(int address) {
 					status |=
 						(get_drive().get_is_track_zero() ? Flag::TrackZero : 0) |
 						(status_.seek_error ? Flag::SeekError : 0) |
-						(get_drive().get_is_read_only() ? Flag::WriteProtect : 0);
-						// TODO: index hole
+						(get_drive().get_is_read_only() ? Flag::WriteProtect : 0) |
+						(get_drive().get_index_pulse() ? Flag::Index : 0);
 				break;
 
 				case Status::Two:

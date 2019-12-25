@@ -36,12 +36,12 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		/*!
 			@returns @c true if a disk is currently inserted; @c false otherwise.
 		*/
-		bool has_disk();
+		bool has_disk() const;
 
 		/*!
 			@returns @c true if the drive head is currently at track zero; @c false otherwise.
 		*/
-		bool get_is_track_zero();
+		bool get_is_track_zero() const;
 
 		/*!
 			Steps the disk head the specified number of tracks. Positive numbers step inwards (i.e. away from track 0),
@@ -57,17 +57,17 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		/*!
 			Gets the head count for this disk.
 		*/
-		int get_head_count();
+		int get_head_count() const;
 
 		/*!
 			@returns @c true if the inserted disk is read-only or no disk is inserted; @c false otherwise.
 		*/
-		bool get_is_read_only();
+		bool get_is_read_only() const;
 
 		/*!
 			@returns @c true if the drive is ready; @c false otherwise.
 		*/
-		bool get_is_ready();
+		bool get_is_ready() const;
 
 		/*!
 			Sets whether the disk motor is on.
@@ -77,7 +77,12 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		/*!
 			@returns @c true if the motor is on; @c false otherwise.
 		*/
-		bool get_motor_on();
+		bool get_motor_on() const;
+
+		/*!
+			@returns @c true if the index pulse output is active; @c false otherwise.
+		*/
+		bool get_index_pulse() const;
 
 		/*!
 			Begins write mode, initiating a PCM sampled region of data. Bits should be written via
@@ -104,7 +109,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 			@returns @c true if the drive has received a call to begin_writing but not yet a call to
 			end_writing; @c false otherwise.
 		*/
-		bool is_writing();
+		bool is_writing() const;
 
 		/*!
 			Advances the drive by @c number_of_cycles cycles.
@@ -163,7 +168,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		/*!
 			@returns the current value of the tachometer pulse offered by some drives.
 		*/
-		bool get_tachometer();
+		bool get_tachometer() const;
 
 	protected:
 		/*!
@@ -180,7 +185,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 			@returns the current rotation of the disk, a float in the half-open range
 				0.0 (the index hole) to 1.0 (back to the index hole, a whole rotation later).
 		*/
-		float get_rotation();
+		float get_rotation() const;
 
 	private:
 		// Drives contain an entire disk; from that a certain track
@@ -210,6 +215,9 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		// Motor control state.
 		bool motor_is_on_ = false;
 
+		// Current state of the index pulse output.
+		Cycles index_pulse_remaining_;
+
 		// If the drive is not currently reading then it is writing. While writing
 		// it can optionally be told to clamp to the index hole.
 		bool is_reading_ = true;
@@ -235,7 +243,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		void advance(const Cycles cycles) override;
 
 		// Helper for track changes.
-		float get_time_into_track();
+		float get_time_into_track() const;
 
 		// The target (if any) for track events.
 		EventDelegate *event_delegate_ = nullptr;
