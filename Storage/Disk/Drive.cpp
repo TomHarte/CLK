@@ -63,7 +63,7 @@ void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
 	update_clocking_observer();
 }
 
-bool Drive::has_disk() {
+bool Drive::has_disk() const {
 	return has_disk_;
 }
 
@@ -71,7 +71,7 @@ ClockingHint::Preference Drive::preferred_clocking() {
 	return (!motor_is_on_ || !has_disk_) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
-bool Drive::get_is_track_zero() {
+bool Drive::get_is_track_zero() const {
 	return head_position_ == HeadPosition(0);
 }
 
@@ -114,11 +114,11 @@ void Drive::set_head(int head) {
 	}
 }
 
-int Drive::get_head_count() {
+int Drive::get_head_count() const {
 	return available_heads_;
 }
 
-bool Drive::get_tachometer() {
+bool Drive::get_tachometer() const {
 	// I have made a guess here that the tachometer is a symmetric square wave;
 	// if that is correct then around 60 beats per rotation appears to be correct
 	// to proceed beyond the speed checks I've so far uncovered.
@@ -126,22 +126,22 @@ bool Drive::get_tachometer() {
 	return int(get_rotation() * 2.0f * ticks_per_rotation) & 1;
 }
 
-float Drive::get_rotation() {
+float Drive::get_rotation() const {
 	return get_time_into_track();
 }
 
-float Drive::get_time_into_track() {
+float Drive::get_time_into_track() const {
 	// i.e. amount of time since the index hole was seen, as a proportion of a second,
 	// converted to a proportion of a rotation.
 	return float(cycles_since_index_hole_) / (float(get_input_clock_rate()) * rotational_multiplier_);
 }
 
-bool Drive::get_is_read_only() {
+bool Drive::get_is_read_only() const {
 	if(disk_) return disk_->get_is_read_only();
 	return true;
 }
 
-bool Drive::get_is_ready() {
+bool Drive::get_is_ready() const {
 	return ready_index_count_ == 2;
 }
 
@@ -164,8 +164,12 @@ void Drive::set_motor_on(bool motor_is_on) {
 	}
 }
 
-bool Drive::get_motor_on() {
+bool Drive::get_motor_on() const {
 	return motor_is_on_;
+}
+
+bool Drive::get_index_pulse() const {
+	return index_pulse_remaining_ > Cycles(0);
 }
 
 void Drive::set_event_delegate(Storage::Disk::Drive::EventDelegate *delegate) {
@@ -178,6 +182,9 @@ void Drive::advance(const Cycles cycles) {
 }
 
 void Drive::run_for(const Cycles cycles) {
+	// Assumed: the index pulse pulses even if the drive has stopped spinning.
+	index_pulse_remaining_ = std::max(index_pulse_remaining_ - cycles, Cycles(0));
+
 	if(motor_is_on_) {
 		if(has_disk_) {
 			Time zero(0);
@@ -256,6 +263,11 @@ void Drive::get_next_event(float duration_already_passed) {
 	} else {
 		current_event_.length = 1.0f;
 		current_event_.type = Track::Event::IndexHole;
+	}
+
+	// Begin a 2ms period of holding the index line pulse active if this is an index pulse event.
+	if(current_event_.type == Track::Event::IndexHole) {
+		index_pulse_remaining_ = Cycles((get_input_clock_rate() * 2) / 1000);
 	}
 
 	// divide interval, which is in terms of a single rotation of the disk, by rotation speed to
@@ -384,7 +396,7 @@ void Drive::end_writing() {
 	}
 }
 
-bool Drive::is_writing() {
+bool Drive::is_writing() const {
 	return !is_reading_;
 }
 

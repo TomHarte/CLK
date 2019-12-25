@@ -121,6 +121,7 @@ void DMAController::write(int address, uint16_t value) {
 }
 
 void DMAController::set_floppy_drive_selection(bool drive1, bool drive2, bool side2) {
+//	LOG("Selected: " << (drive1 ? "1" : "-") << (drive2 ? "2" : "-") << (side2 ? "s" : "-"));
 	fdc_.set_floppy_drive_selection(drive1, drive2, side2);
 }
 
@@ -190,11 +191,11 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		// Check that the older buffer is full; stop if not.
 		if(!buffer_[active_buffer_ ^ 1].is_full) return 0;
 
-#define b(i, n) " " << PADHEX(2) << buffer_[i].contents[n]
+#define b(i, n) " " << PADHEX(2) << int(buffer_[i].contents[n])
 #define b2(i, n) b(i, n) << b(i, n+1)
 #define b4(i, n) b2(i, n) << b2(i, n+2)
 #define b16(i) b4(i, 0) << b4(i, 4) << b4(i, 8) << b4(i, 12)
-		LOG("[1] to " << PADHEX(6) << address_ << b16(active_buffer_ ^ 1));
+//		LOG("[1] to " << PADHEX(6) << address_ << b16(active_buffer_ ^ 1));
 
 		for(int c = 0; c < 8; ++c) {
 			if(size_t(address_) < size) {
@@ -210,7 +211,7 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		// Check that the newer buffer is full; stop if not.
 		if(!buffer_[active_buffer_ ].is_full) return 8;
 
-		LOG("[2] to " << PADHEX(6) << address_ << b16(active_buffer_));
+//		LOG("[2] to " << PADHEX(6) << address_ << b16(active_buffer_));
 #undef b16
 #undef b4
 #undef b2

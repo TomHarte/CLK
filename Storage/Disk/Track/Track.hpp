@@ -21,40 +21,40 @@ namespace Disk {
 class HeadPosition {
 	public:
 		/// Creates an instance decribing position @c value at a resolution of @c scale ticks per track.
-		HeadPosition(int value, int scale) : position_(value * (4/scale)) {}
-		explicit HeadPosition(int value) : HeadPosition(value, 1) {}
-		HeadPosition() : HeadPosition(0) {}
+		constexpr HeadPosition(int value, int scale) : position_(value * (4/scale)) {}
+		constexpr explicit HeadPosition(int value) : HeadPosition(value, 1) {}
+		constexpr HeadPosition() : HeadPosition(0) {}
 
 		/// @returns the whole number part of the position.
-		int as_int() const { return position_ >> 2; }
+		constexpr int as_int() const { return position_ >> 2; }
 		/// @returns n where n/2 is the head position.
-		int as_half() const { return position_ >> 1; }
+		constexpr int as_half() const { return position_ >> 1; }
 		/// @returns n where n/4 is the head position.
-		int as_quarter() const { return position_; }
+		constexpr int as_quarter() const { return position_; }
 
 		/// @returns the head position at maximal but unspecified precision.
-		int as_largest() const { return as_quarter(); }
+		constexpr int as_largest() const { return as_quarter(); }
 
 		HeadPosition &operator +=(const HeadPosition &rhs) {
 			position_ += rhs.position_;
 			return *this;
 		}
-		bool operator ==(const HeadPosition &rhs) const {
+		constexpr bool operator ==(const HeadPosition &rhs) const {
 			return position_ == rhs.position_;
 		}
-		bool operator !=(const HeadPosition &rhs) const {
+		constexpr bool operator !=(const HeadPosition &rhs) const {
 			return position_ != rhs.position_;
 		}
-		bool operator <(const HeadPosition &rhs) const {
+		constexpr bool operator <(const HeadPosition &rhs) const {
 			return position_ < rhs.position_;
 		}
-		bool operator <=(const HeadPosition &rhs) const {
+		constexpr bool operator <=(const HeadPosition &rhs) const {
 			return position_ <= rhs.position_;
 		}
-		bool operator >(const HeadPosition &rhs) const {
+		constexpr bool operator >(const HeadPosition &rhs) const {
 			return position_ > rhs.position_;
 		}
-		bool operator >=(const HeadPosition &rhs) const {
+		constexpr bool operator >=(const HeadPosition &rhs) const {
 			return position_ >= rhs.position_;
 		}
 
@@ -79,7 +79,7 @@ class Track {
 			int head;
 			HeadPosition position;
 
-			bool operator < (const Address &rhs) const {
+			constexpr bool operator < (const Address &rhs) const {
 				int largest_position = position.as_largest();
 				int rhs_largest_position = rhs.position.as_largest();
 				return std::tie(head, largest_position) < std::tie(rhs.head, rhs_largest_position);
