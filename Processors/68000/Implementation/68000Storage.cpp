@@ -1013,7 +1013,11 @@ struct ProcessorStorageConstructor {
 						case Decoder::RTE_RTR: {
 							program.set_requires_supervisor(instruction == 0x4e73);
 
-							// TODO: something explicit to ensure the nR nr nr is exclusively linked.
+							// The targets of the nR nr nr below are reset to the program counter elsewhere;
+							// look for the comment "relink the RTE and RTR bus steps". It is currently not
+							// explicitly tested that these bus steps are not shared with a non-RTE/RTR operation,
+							// just assumed because the repetition of nr is fairly silly. A more explicit soution
+							// might be preferable in the future.
 							op(Action::PrepareRTE_RTR, seq("nR nr nr", { &storage_.precomputed_addresses_[0], &storage_.precomputed_addresses_[1], &storage_.precomputed_addresses_[2] } ));
 							op(Action::PerformOperation, seq("np np"));
 							op();
