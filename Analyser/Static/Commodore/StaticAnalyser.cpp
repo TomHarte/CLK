@@ -16,6 +16,7 @@
 #include "../../../Outputs/Log.hpp"
 
 #include <algorithm>
+#include <cstring>
 #include <sstream>
 
 using namespace Analyser::Static::Commodore;
