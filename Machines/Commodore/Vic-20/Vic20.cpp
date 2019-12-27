@@ -320,7 +320,7 @@ class ConcreteMachine:
 			tape_->set_delegate(this);
 			tape_->set_clocking_hint_observer(this);
 
-			// install a joystick
+			// Install a joystick.
 			joysticks_.emplace_back(new Joystick(*user_port_via_port_handler_, *keyboard_via_port_handler_));
 
 			const std::string machine_name = "Vic20";
@@ -401,22 +401,14 @@ class ConcreteMachine:
 	write_to_map(processor_read_memory_map_, &ram_[baseaddr], baseaddr, length);	\
 	write_to_map(processor_write_memory_map_, &ram_[baseaddr], baseaddr, length);
 
-			// Add 6502-visible RAM as requested
-			switch(target.memory_model) {
-				case Analyser::Static::Commodore::Target::MemoryModel::Unexpanded:
-					// The default Vic-20 memory map has 1kb at address 0 and another 4kb at address 0x1000.
-					set_ram(0x0000, 0x0400);
-					set_ram(0x1000, 0x1000);
-				break;
-				case Analyser::Static::Commodore::Target::MemoryModel::EightKB:
-					// An 8kb Vic-20 fills in the gap between the two blocks of RAM on an unexpanded machine.
-					set_ram(0x0000, 0x2000);
-				break;
-				case Analyser::Static::Commodore::Target::MemoryModel::ThirtyTwoKB:
-					// A 32kb Vic-20 fills the entire lower 32kb with RAM.
-					set_ram(0x0000, 0x8000);
-				break;
-			}
+			// Add 6502-visible RAM as requested.
+			set_ram(0x0000, 0x0400);
+			set_ram(0x1000, 0x1000);	// Built-in RAM.
+			if(target.enabled_ram.bank0) set_ram(0x0400, 0x0c00);	// Bank 0:	0x0400 -> 0x1000.
+			if(target.enabled_ram.bank1) set_ram(0x2000, 0x2000);	// Bank 1:	0x2000 -> 0x4000.
+			if(target.enabled_ram.bank2) set_ram(0x4000, 0x2000);	// Bank 2:	0x4000 -> 0x6000.
+			if(target.enabled_ram.bank3) set_ram(0x6000, 0x2000);	// Bank 3:	0x6000 -> 0x8000.
+			if(target.enabled_ram.bank5) set_ram(0xa000, 0x2000);	// Bank 5:	0xa000 -> 0xc000.
 
 #undef set_ram
 
@@ -453,6 +445,8 @@ class ConcreteMachine:
 			write_to_map(mos6560_bus_handler_.video_memory_map, character_rom_.data(), 0x0000, static_cast<uint16_t>(character_rom_.size()));
 			write_to_map(processor_read_memory_map_, kernel_rom_.data(), 0xe000, static_cast<uint16_t>(kernel_rom_.size()));
 
+			// The insert_media occurs last, so if there's a conflict between cartridges and RAM,
+			// the cartridge wins.
 			insert_media(target.media);
 			if(!target.loading_command.empty()) {
 				type_string(target.loading_command);
@@ -711,7 +705,7 @@ class ConcreteMachine:
 
 		std::vector<uint8_t> rom_;
 		uint16_t rom_address_, rom_length_;
-		uint8_t ram_[0x8000];
+		uint8_t ram_[0x10000];
 		uint8_t colour_ram_[0x0400];
 
 		uint8_t *processor_read_memory_map_[64];

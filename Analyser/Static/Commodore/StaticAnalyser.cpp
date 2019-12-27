@@ -78,7 +78,7 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media
 	}
 
 	if(!files.empty()) {
-		target->memory_model = Target::MemoryModel::Unexpanded;
+		auto memory_model = Target::MemoryModel::Unexpanded;
 		std::ostringstream string_stream;
 		string_stream << "LOAD\"" << (is_disk ? "*" : "") << "\"," << device << ",";
 		if(files.front().is_basic()) {
@@ -94,15 +94,17 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media
 			default:
 				LOG("Unrecognised loading address for Commodore program: " << PADHEX(4) <<  files.front().starting_address);
 			case 0x1001:
-				target->memory_model = Target::MemoryModel::Unexpanded;
+				memory_model = Target::MemoryModel::Unexpanded;
 			break;
 			case 0x1201:
-				target->memory_model = Target::MemoryModel::ThirtyTwoKB;
+				memory_model = Target::MemoryModel::ThirtyTwoKB;
 			break;
 			case 0x0401:
-				target->memory_model = Target::MemoryModel::EightKB;
+				memory_model = Target::MemoryModel::EightKB;
 			break;
 		}
+
+		target->set_memory_model(memory_model);
 
 		// General approach: increase memory size conservatively such that the largest file found will fit.
 //		for(File &file : files) {
@@ -145,11 +147,50 @@ Analyser::Static::TargetList Analyser::Static::Commodore::GetTargets(const Media
 	}
 
 	if(!target->media.empty()) {
-		// Inspect filename for a region hint.
+		// Inspect filename for configuration hints.
 		std::string lowercase_name = file_name;
 		std::transform(lowercase_name.begin(), lowercase_name.end(), lowercase_name.begin(), ::tolower);
+
+		// Hint 1: 'ntsc' anywhere in the name implies America.
 		if(lowercase_name.find("ntsc") != std::string::npos) {
 			target->region = Analyser::Static::Commodore::Target::Region::American;
+		}
+
+		// Potential additional hints: check for TheC64 tags.
+		auto final_underscore = lowercase_name.find_last_of('_');
+		if(final_underscore != std::string::npos) {
+			auto iterator = lowercase_name.begin() + ssize_t(final_underscore) + 1;
+
+			while(iterator != lowercase_name.end()) {
+				// Grab the next tag.
+				char next_tag[3] = {0, 0, 0};
+				next_tag[0] = *iterator++;
+				if(iterator == lowercase_name.end()) break;
+				next_tag[1] = *iterator++;
+
+				// Exit early if attempting to read another tag has run over the file extension.
+				if(next_tag[0] == '.' || next_tag[1] == '.') break;
+
+				// Check whether it's anything.
+				target->enabled_ram.bank0 |= !strcmp(next_tag, "b0");
+				target->enabled_ram.bank1 |= !strcmp(next_tag, "b1");
+				target->enabled_ram.bank2 |= !strcmp(next_tag, "b2");
+				target->enabled_ram.bank3 |= !strcmp(next_tag, "b3");
+				target->enabled_ram.bank5 |= !strcmp(next_tag, "b5");
+				if(!strcmp(next_tag, "tn")) {	// i.e. NTSC.
+					target->region = Analyser::Static::Commodore::Target::Region::American;
+				}
+				if(!strcmp(next_tag, "tp")) {	// i.e. PAL.
+					target->region = Analyser::Static::Commodore::Target::Region::European;
+				}
+
+				// Unhandled:
+				//
+				//	M6: 	this is a C64 file.
+				//	MV: 	this is a Vic-20 file.
+				//	J1/J2:	this C64 file should have the primary joystick in slot 1/2.
+				//	RO:		this disk image should be treated as read-only.
+			}
 		}
 
 		// Attach a 1540 if there are any disks here.
