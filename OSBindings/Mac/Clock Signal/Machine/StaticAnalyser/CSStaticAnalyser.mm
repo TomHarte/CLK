@@ -121,11 +121,13 @@
 			case CSMachineVic20RegionEuropean:	target->region = Target::Region::European;	break;
 			case CSMachineVic20RegionJapanese:	target->region = Target::Region::Japanese;	break;
 		}
+		auto memory_model = Target::MemoryModel::Unexpanded;
 		switch(memorySize) {
-			default:	target->memory_model = Target::MemoryModel::Unexpanded;		break;
-			case 8:		target->memory_model = Target::MemoryModel::EightKB;		break;
-			case 32:	target->memory_model = Target::MemoryModel::ThirtyTwoKB;	break;
+			default:	break;
+			case 8:		memory_model = Target::MemoryModel::EightKB;		break;
+			case 32:	memory_model = Target::MemoryModel::ThirtyTwoKB;	break;
 		}
+		target->set_memory_model(memory_model);
 		target->has_c1540 = !!hasC1540;
 		_targets.push_back(std::move(target));
 	}
