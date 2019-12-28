@@ -698,10 +698,6 @@ void Video::VideoStream::output_pixels(int duration) {
 		shift(leftover_duration);
 		crt_.output_data(leftover_duration);
 	}
-
-	// Duration will be at most 32, since this will need to be interspersed with load() calls.
-	// Therefore it's always safe to assume that if a buffer is allocated, then it's big enough,
-	// provided it is flushed fairly proactively.
 }
 
 void Video::VideoStream::flush_pixels() {
