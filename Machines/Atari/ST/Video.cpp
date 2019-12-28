@@ -463,6 +463,8 @@ void Video::write(int address, uint16_t value) {
 		case 0x24:	case 0x25:	case 0x26:	case 0x27:
 		case 0x28:	case 0x29:	case 0x2a:	case 0x2b:
 		case 0x2c:	case 0x2d:	case 0x2e:	case 0x2f: {
+			if(address == 0x20) video_stream_.will_change_border_colour();
+
 			raw_palette_[address - 0x20] = value;
 			uint8_t *const entry = reinterpret_cast<uint8_t *>(&palette_[address - 0x20]);
 			entry[0] = uint8_t((value & 0x700) >> 7);
@@ -494,8 +496,8 @@ void Video::update_output_mode() {
 		video_stream_.set_bpp(output_bpp_);
 	}
 
-	const int freqs[] = {50, 60, 72};
-	printf("%d, %d -> %d [%d %d]\n", x_ / 2, y_, freqs[int(field_frequency_)], horizontal_.enable, vertical_.enable);
+//	const int freqs[] = {50, 60, 72};
+//	printf("%d, %d -> %d [%d %d]\n", x_ / 2, y_, freqs[int(field_frequency_)], horizontal_.enable, vertical_.enable);
 }
 
 // MARK: - The shifter
@@ -550,12 +552,6 @@ void Video::VideoStream::generate(int duration, OutputMode mode, bool is_termina
 		return;
 	}
 
-	// If the background colour has changed and border is accumulated, flush it.
-	if(border_colour_ != palette_[0] && duration_) {
-		flush_border();
-	}
-	border_colour_ = palette_[0];
-
 	// If the shifter is empty, accumulate in duration_ a promise to draw border later.
 	if(!output_shifter_) {
 		if(pixel_pointer_) {
@@ -586,10 +582,17 @@ void Video::VideoStream::generate(int duration, OutputMode mode, bool is_termina
 	}
 }
 
+void Video::VideoStream::will_change_border_colour() {
+	// Flush the accumulated border if it'd be adversely affected.
+	if(duration_ && output_mode_ == OutputMode::Pixels) {
+		flush_border();
+	}
+}
+
 void Video::VideoStream::flush_border() {
 	// Output colour 0 for the entirety of duration_ (or black, if this is 1bpp mode).
 	uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-	if(colour_pointer) *colour_pointer = (bpp_ != OutputBpp::One) ?  border_colour_ : 0;
+	if(colour_pointer) *colour_pointer = (bpp_ != OutputBpp::One) ?  palette_[0] : 0;
 	crt_.output_level(duration_);
 
 	duration_ = 0;

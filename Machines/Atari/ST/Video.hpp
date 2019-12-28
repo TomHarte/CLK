@@ -177,7 +177,6 @@ class Video {
 			public:
 				VideoStream(Outputs::CRT::CRT &crt, uint16_t *palette) : crt_(crt), palette_(palette) {}
 
-
 				enum class OutputMode {
 					Sync, Blank, ColourBurst, Pixels,
 				};
@@ -185,7 +184,13 @@ class Video {
 				/// Sets the current data format for the shifter. Changes in output BPP flush the shifter.
 				void set_bpp(OutputBpp bpp);
 
+				/// Outputs signal of type @c mode for @c duration.
 				void output(int duration, OutputMode mode);
+
+				/// Warns the video stream that the border colour, included in the palette that it holds a pointer to,
+				/// will change momentarily. This should be called after the relevant @c output() updates, and
+				/// is used to help elide border-regio output.
+				void will_change_border_colour();
 
 				/// Loads 64 bits into the Shifter. The shifter shifts continuously. If you also declare
 				/// a pixels region then whatever is being shifted will reach the display, in a form that
@@ -208,7 +213,6 @@ class Video {
 				// Internal state that is a function of output intent.
 				int duration_ = 0;
 				OutputMode output_mode_ = OutputMode::Sync;
-				uint16_t border_colour_ = 0;
 				OutputBpp bpp_ = OutputBpp::Four;
 				union {
 					uint64_t output_shifter_;
