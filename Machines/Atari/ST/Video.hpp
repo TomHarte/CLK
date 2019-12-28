@@ -166,22 +166,48 @@ class Video {
 
 		void reset_fifo();
 
+		/*!
+			Provides a target for control over the output video stream, which is considered to be
+			a permanently shifting shifter, that you need to reload when appropriate, which can be
+			overridden by the blank and sync levels.
+
+			This stream will automatically insert a colour burst.
+		*/
 		class VideoStream {
 			public:
 				VideoStream(Outputs::CRT::CRT &crt, uint16_t *palette) : crt_(crt), palette_(palette) {}
-				void output_blank(int duration);
-				void output_sync(int duration);
-				void output_border(int duration, OutputBpp bpp);
-				void output_pixels(int duration, OutputBpp bpp);
-				void output_colour_burst(int duration);
 
+
+				enum class OutputMode {
+					Sync, Blank, ColourBurst, Pixels,
+				};
+
+				/// Sets the current data format for the shifter. Changes in output BPP flush the shifter.
+				void set_bpp(OutputBpp bpp);
+
+				void output(int duration, OutputMode mode);
+
+				/// Loads 64 bits into the Shifter. The shifter shifts continuously. If you also declare
+				/// a pixels region then whatever is being shifted will reach the display, in a form that
+				/// depends on the current output BPP.
 				void load(uint64_t value);
 
 			private:
+				// The target CRT and the palette to use.
+				Outputs::CRT::CRT &crt_;
+				uint16_t *palette_ = nullptr;
+
+				// Internal stateful processes.
+				void generate(int duration, OutputMode mode, bool is_terminal);
+
+				void flush_border();
+				void flush_pixels();
+				void shift(int duration);
+				void output_pixels(int duration);
+
+				// Internal state that is a function of output intent.
 				int duration_ = 0;
-				enum class OutputMode {
-					Sync, Blank, Border, Pixels, ColourBurst
-				} output_mode_ = OutputMode::Sync;
+				OutputMode output_mode_ = OutputMode::Sync;
 				uint16_t border_colour_ = 0;
 				OutputBpp bpp_ = OutputBpp::Four;
 				union {
@@ -189,13 +215,9 @@ class Video {
 					uint32_t shifter_halves_[2];
 				};
 
-				void flush_output(OutputMode next_mode);
-
+				// Internal state for handling output serialisation.
 				uint16_t *pixel_buffer_ = nullptr;
-				size_t pixel_pointer_ = 0;
-
-				Outputs::CRT::CRT &crt_;
-				uint16_t *palette_ = nullptr;
+				int pixel_pointer_ = 0;
 		} video_stream_;
 
 		/// Contains copies of the various observeable fields, after the relevant propagation delay.
