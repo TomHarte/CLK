@@ -107,7 +107,7 @@ const int hsync_end = CYCLE(8);			// Cycles before end of line when hsync ends.
 Video::Video() :
 	deferrer_([=] (HalfCycles duration) { advance(duration); }),
 	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
-	shifter_(crt_, palette_) {
+	video_stream_(crt_, palette_) {
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
@@ -201,11 +201,11 @@ void Video::advance(HalfCycles duration) {
 		// inside the shifter on the temporary register values.
 
 		if(horizontal_.sync || vertical_.sync) {
-			shifter_.output_sync(run_length);
+			video_stream_.output_sync(run_length);
 		} else if(horizontal_.blank || vertical_.blank) {
-			shifter_.output_blank(run_length);
+			video_stream_.output_blank(run_length);
 		} else if(!load_) {
-			shifter_.output_border(run_length, output_bpp_);
+			video_stream_.output_border(run_length, output_bpp_);
 		} else {
 			const int since_load = x_ - load_base_;
 
@@ -222,12 +222,12 @@ void Video::advance(HalfCycles duration) {
 			//	was reloaded by the fetch depends on the FIFO.
 
 			if(start_column == end_column) {
-				shifter_.output_pixels(run_length, output_bpp_);
+				video_stream_.output_pixels(run_length, output_bpp_);
 			} else {
 				// Continue the current column if partway across.
 				if(since_load&7) {
 					// If at least one column boundary is crossed, complete this column.
-					shifter_.output_pixels(8 - (since_load & 7), output_bpp_);
+					video_stream_.output_pixels(8 - (since_load & 7), output_bpp_);
 					++start_column;	// This starts a new column, so latch a new word.
 					push_latched_data();
 				}
@@ -235,13 +235,13 @@ void Video::advance(HalfCycles duration) {
 				// Run for all columns that have their starts in this time period.
 				int complete_columns = end_column - start_column;
 				while(complete_columns--) {
-					shifter_.output_pixels(8, output_bpp_);
+					video_stream_.output_pixels(8, output_bpp_);
 					push_latched_data();
 				}
 
 				// Output the start of the next column, if necessary.
 				if((since_load + run_length) & 7) {
-					shifter_.output_pixels((since_load + run_length) & 7, output_bpp_);
+					video_stream_.output_pixels((since_load + run_length) & 7, output_bpp_);
 				}
 			}
 		}
@@ -331,7 +331,7 @@ void Video::push_latched_data() {
 	data_latch_read_position_ = (data_latch_read_position_ + 1) & 127;
 
 	if(!(data_latch_read_position_ & 3)) {
-		shifter_.load(
+		video_stream_.load(
 			(uint64_t(data_latch_[(data_latch_read_position_ - 4) & 127]) << 48) |
 			(uint64_t(data_latch_[(data_latch_read_position_ - 3) & 127]) << 32) |
 			(uint64_t(data_latch_[(data_latch_read_position_ - 2) & 127]) << 16) |
@@ -489,7 +489,7 @@ void Video::update_output_mode() {
 
 // MARK: - The shifter
 
-void Video::Shifter::flush_output(OutputMode next_mode) {
+void Video::VideoStream::flush_output(OutputMode next_mode) {
 	switch(output_mode_) {
 		case OutputMode::Sync:			crt_.output_sync(duration_);					break;
 		case OutputMode::Blank:			crt_.output_blank(duration_);					break;
@@ -513,7 +513,7 @@ void Video::Shifter::flush_output(OutputMode next_mode) {
 	output_mode_ = next_mode;
 }
 
-void Video::Shifter::output_colour_burst(int duration) {
+void Video::VideoStream::output_colour_burst(int duration) {
 	// More hackery afoot here; if and when duration_ crosses a threshold of 40,
 	// output 40 cycles of colour burst and then redirect to blank.
 	if(output_mode_ != OutputMode::ColourBurst) {
@@ -528,7 +528,7 @@ void Video::Shifter::output_colour_burst(int duration) {
 	}
 }
 
-void Video::Shifter::output_blank(int duration) {
+void Video::VideoStream::output_blank(int duration) {
 	if(output_mode_ != OutputMode::Blank) {
 		// Bit of a hack: if this is a transition from sync or we're really in
 		// colour burst, divert into that.
@@ -541,14 +541,14 @@ void Video::Shifter::output_blank(int duration) {
 	duration_ += duration;
 }
 
-void Video::Shifter::output_sync(int duration) {
+void Video::VideoStream::output_sync(int duration) {
 	if(output_mode_ != OutputMode::Sync) {
 		flush_output(OutputMode::Sync);
 	}
 	duration_ += duration;
 }
 
-void Video::Shifter::output_border(int duration, OutputBpp bpp) {
+void Video::VideoStream::output_border(int duration, OutputBpp bpp) {
 	// If there's still anything in the shifter, redirect this to an output_pixels call.
 	if(output_shifter_) {
 		// This doesn't take an opinion on how much of the shifter remains populated;
@@ -569,7 +569,7 @@ void Video::Shifter::output_border(int duration, OutputBpp bpp) {
 	duration_ += duration;
 }
 
-void Video::Shifter::output_pixels(int duration, OutputBpp bpp) {
+void Video::VideoStream::output_pixels(int duration, OutputBpp bpp) {
 	// If the shifter is empty and there's no pixel buffer at present,
 	// redirect this to an output_level call. Otherwise, do a quick
 	// memset-type fill, since the special case has been detected anyway.
@@ -680,7 +680,7 @@ void Video::Shifter::output_pixels(int duration, OutputBpp bpp) {
 	}
 }
 
-void Video::Shifter::load(uint64_t value) {
+void Video::VideoStream::load(uint64_t value) {
 	output_shifter_ = value;
 }
 

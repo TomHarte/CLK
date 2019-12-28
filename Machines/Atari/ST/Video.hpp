@@ -166,9 +166,9 @@ class Video {
 
 		void reset_fifo();
 
-		class Shifter {
+		class VideoStream {
 			public:
-				Shifter(Outputs::CRT::CRT &crt, uint16_t *palette) : crt_(crt), palette_(palette) {}
+				VideoStream(Outputs::CRT::CRT &crt, uint16_t *palette) : crt_(crt), palette_(palette) {}
 				void output_blank(int duration);
 				void output_sync(int duration);
 				void output_border(int duration, OutputBpp bpp);
@@ -196,7 +196,7 @@ class Video {
 
 				Outputs::CRT::CRT &crt_;
 				uint16_t *palette_ = nullptr;
-		} shifter_;
+		} video_stream_;
 
 		/// Contains copies of the various observeable fields, after the relevant propagation delay.
 		struct PublicState {
