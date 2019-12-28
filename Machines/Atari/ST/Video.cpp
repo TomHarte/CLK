@@ -100,7 +100,7 @@ const int hsync_start = CYCLE(48);		// Cycles before end of line when hsync star
 const int hsync_end = CYCLE(8);			// Cycles before end of line when hsync ends.
 
 // "VSYNC starts 104 cycles after the start of the previous line's HSYNC, so that's 4 cycles before DE would be activated. ";
-// hsync is at -50, so that's +54
+// hsync is at -50, so that's +54, or thereabouts.
 
 }
 
@@ -246,6 +246,12 @@ void Video::advance(HalfCycles duration) {
 			}
 		}
 
+		// Check for address reload; this timing is _highly_ speculative on my part.
+		if(y_ == vertical_timings.height - 3 && x_ <= vsync_x_position && (x_ + run_length) > vsync_x_position) {
+			current_address_ = base_address_ >> 1;
+			reset_fifo();	// TODO: remove this, probably, once otherwise stable?
+		}
+
 		// Check for whether line length should have been latched during this run.
 		if(x_ <= CYCLE(54) && (x_ + run_length) > CYCLE(54)) line_length_ = horizontal_timings.length;
 
@@ -270,9 +276,6 @@ void Video::advance(HalfCycles duration) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
 			} else if(y_ == 3) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::End;
-
-				current_address_ = base_address_ >> 1;
-				reset_fifo();	// TODO: remove this, I think, once otherwise stable.
 
 				// Consider a shout out to the range observer.
 				if(previous_base_address_ != base_address_) {
@@ -486,6 +489,9 @@ void Video::update_output_mode() {
 		reset_fifo();
 		video_stream_.set_bpp(output_bpp_);
 	}
+
+//	const int freqs[] = {50, 60, 72};
+//	printf("%d, %d -> %d [%d %d]\n", x_ / 2, y_, freqs[int(field_frequency_)], horizontal_.enable, vertical_.enable);
 }
 
 // MARK: - The shifter
@@ -579,7 +585,7 @@ void Video::VideoStream::generate(int duration, OutputMode mode, bool is_termina
 void Video::VideoStream::flush_border() {
 	// Output colour 0 for the entirety of duration_ (or black, if this is 1bpp mode).
 	uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
-	if(colour_pointer) *colour_pointer = (bpp_ != OutputBpp::One) ?  palette_[0] : 0;
+	if(colour_pointer) *colour_pointer = (bpp_ != OutputBpp::One) ?  border_colour_ : 0;
 	crt_.output_level(duration_);
 
 	duration_ = 0;
