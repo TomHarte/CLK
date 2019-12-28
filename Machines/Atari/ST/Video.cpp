@@ -94,10 +94,11 @@ struct Checker {
 } checker;
 #endif
 
-const int de_delay_period = CYCLE(28);	// Number of half cycles after DE that observed DE changes.
-const int vsync_x_position = CYCLE(54);	// Horizontal cycle on which vertical sync changes happen.
-const int hsync_start = CYCLE(48);		// Cycles before end of line when hsync starts.
-const int hsync_end = CYCLE(8);			// Cycles before end of line when hsync ends.
+const int de_delay_period = CYCLE(28);		// Number of half cycles after DE that observed DE changes.
+const int vsync_x_position = CYCLE(54);		// Horizontal cycle on which vertical sync changes happen.
+const int address_reload_x_position = CYCLE(54);		// Horizontal cycle on which the base address is reloaded.
+const int hsync_start = CYCLE(48);			// Cycles before end of line when hsync starts.
+const int hsync_end = CYCLE(8);				// Cycles before end of line when hsync ends.
 
 // "VSYNC starts 104 cycles after the start of the previous line's HSYNC, so that's 4 cycles before DE would be activated. ";
 // hsync is at -50, so that's +54, or thereabouts.
@@ -246,10 +247,21 @@ void Video::advance(HalfCycles duration) {
 			}
 		}
 
-		// Check for address reload; this timing is _highly_ speculative on my part.
-		if(y_ == vertical_timings.height - 3 && x_ <= vsync_x_position && (x_ + run_length) > vsync_x_position) {
+		// Check for address reload; this timing is _highly_ speculative on my part. I originally had it at frame end,
+		// then Enchanted Woods seemed to be doing its things three lines too late, so I moved it forward a little.
+		// Which didn't solve the problem, so I guess that title's logic isn't triggered on address reload, but it makes
+		// sense to keep it out separate and I've no better intel about its actual positioning.
+		if(y_ == vertical_timings.height - 3 && x_ <= address_reload_x_position && (x_ + run_length) > address_reload_x_position) {
 			current_address_ = base_address_ >> 1;
 			reset_fifo();	// TODO: remove this, probably, once otherwise stable?
+
+			// Consider a shout out to the range observer.
+			if(previous_base_address_ != base_address_) {
+				previous_base_address_ = base_address_;
+				if(range_observer_) {
+					range_observer_->video_did_change_access_range(this);
+				}
+			}
 		}
 
 		// Check for whether line length should have been latched during this run.
@@ -270,20 +282,12 @@ void Video::advance(HalfCycles duration) {
 				next_vertical_.enable = true;
 			} else if(y_ == vertical_timings.reset_enable) {
 				next_vertical_.enable = false;
+			} else if(next_y_ == vertical_timings.height - 1) {
+				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
 			} else if(next_y_ == vertical_timings.height) {
 				next_y_ = 0;
-			} else if(y_ == 0) {
-				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
-			} else if(y_ == 3) {
+			} else if(next_y_ == 2) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::End;
-
-				// Consider a shout out to the range observer.
-				if(previous_base_address_ != base_address_) {
-					previous_base_address_ = base_address_;
-					if(range_observer_) {
-						range_observer_->video_did_change_access_range(this);
-					}
-				}
 			}
 		}
 
@@ -490,8 +494,8 @@ void Video::update_output_mode() {
 		video_stream_.set_bpp(output_bpp_);
 	}
 
-//	const int freqs[] = {50, 60, 72};
-//	printf("%d, %d -> %d [%d %d]\n", x_ / 2, y_, freqs[int(field_frequency_)], horizontal_.enable, vertical_.enable);
+	const int freqs[] = {50, 60, 72};
+	printf("%d, %d -> %d [%d %d]\n", x_ / 2, y_, freqs[int(field_frequency_)], horizontal_.enable, vertical_.enable);
 }
 
 // MARK: - The shifter
