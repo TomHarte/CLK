@@ -197,10 +197,6 @@ void Video::advance(HalfCycles duration) {
 			}
 		}
 
-		// TODO: if I'm asserting that sync and blank override the shifter (but, presumably,
-		// the shifter keeps shifting), then output_sync and output_blank need to have an effect
-		// inside the shifter on the temporary register values.
-
 		if(horizontal_.sync || vertical_.sync) {
 			video_stream_.output(run_length, VideoStream::OutputMode::Sync);
 		} else if(horizontal_.blank || vertical_.blank) {
@@ -295,14 +291,17 @@ void Video::advance(HalfCycles duration) {
 		x_ += run_length;
 		integer_duration -= run_length;
 
-		// Check horizontal events.
+		// Check horizontal events; the first six are guaranteed to occur separately.
 		if(horizontal_timings.reset_blank == x_)		horizontal_.blank = false;
 		else if(horizontal_timings.set_blank == x_)		horizontal_.blank = true;
 		else if(horizontal_timings.reset_enable == x_)	horizontal_.enable = false;
 		else if(horizontal_timings.set_enable == x_) 	horizontal_.enable = true;
 		else if(line_length_ - hsync_start == x_)		{ horizontal_.sync = true; horizontal_.enable = false; }
 		else if(line_length_ - hsync_end == x_)			horizontal_.sync = false;
-		else if(next_load_toggle_ == x_)				{
+
+		// next_load_toggle_ is less predictable; test separately because it may coincide
+		// with one of the above tests.
+		if(next_load_toggle_ == x_)	{
 			next_load_toggle_ = -1;
 			load_ ^= true;
 			load_base_ = x_;
