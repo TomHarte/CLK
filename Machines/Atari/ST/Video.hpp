@@ -227,12 +227,14 @@ class Video {
 		/// Contains copies of the various observeable fields, after the relevant propagation delay.
 		struct PublicState {
 			bool display_enable = false;
+			bool hsync = false;
 		} public_state_;
 
 		struct Event {
 			int delay;
 			enum class Type {
-				SetDisplayEnable, ResetDisplayEnable
+				SetDisplayEnable, ResetDisplayEnable,
+				SetHsync, ResetHsync,
 			} type;
 
 			Event(Type type, int delay) : delay(delay), type(type) {}
@@ -246,6 +248,8 @@ class Video {
 					default:
 					case Type::SetDisplayEnable:	state.display_enable = true;	break;
 					case Type::ResetDisplayEnable:	state.display_enable = false;	break;
+					case Type::SetHsync:			state.hsync = true;				break;
+					case Type::ResetHsync:			state.hsync = false;			break;
 				}
 			}
 		};

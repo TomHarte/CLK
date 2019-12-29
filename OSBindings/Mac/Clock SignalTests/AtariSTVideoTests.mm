@@ -20,6 +20,8 @@
 	uint16_t _ram[256*1024];
 }
 
+// MARK: - Setup and tear down.
+
 - (void)setUp {
 	[super setUp];
 
@@ -35,35 +37,7 @@
 	_video = nullptr;
 }
 
-/// Tests that no events occur outside of the sequence points the video predicts.
-- (void)testSequencePoints {
-	// Set 4bpp, 50Hz.
-	_video->write(0x05, 0x0200);
-	_video->write(0x30, 0x0000);
-
-	// Run for [more than] a whole frame making sure that no observeable outputs
-	// change at any time other than a sequence point.
-	HalfCycles next_event;
-	bool display_enable = false;
-	bool vsync = false;
-	bool hsync = false;
-	for(size_t c = 0; c < 10 * 1000 * 1000; ++c) {
-		const bool is_transition_point = next_event == HalfCycles(0);
-
-		if(is_transition_point) {
-			display_enable = _video->display_enabled();
-			vsync = _video->vsync();
-			hsync = _video->hsync();
-			next_event = _video->get_next_sequence_point();
-		} else {
-			NSAssert(display_enable == _video->display_enabled(), @"Unannounced change in display enabled at cycle %zu [%d before next sequence point]", c, next_event.as<int>());
-			NSAssert(vsync == _video->vsync(), @"Unannounced change in vsync at cycle %zu [%d before next sequence point]", c, next_event.as<int>());
-			NSAssert(hsync == _video->hsync(), @"Unannounced change in hsync at cycle %zu [%d before next sequence point]", c, next_event.as<int>());
-		}
-		_video->run_for(HalfCycles(2));
-		next_event -= HalfCycles(2);
-	}
-}
+// MARK: - Helpers
 
 - (void)runVideoForCycles:(int)cycles {
 	while(cycles--) {
@@ -107,6 +81,45 @@
 		((_video->read(0x03) & 0xff) << 8) |
 		((_video->read(0x02) & 0xff) << 16);
 }
+
+- (void)setVideoBaseAddress:(uint32_t)baseAddress {
+	_video->write(0x00, baseAddress >> 16);
+	_video->write(0x01, baseAddress >> 8);
+}
+
+// MARK: - Sequence Point Prediction Tests
+
+/// Tests that no events occur outside of the sequence points the video predicts.
+- (void)testSequencePoints {
+	// Set 4bpp, 50Hz.
+	_video->write(0x05, 0x0200);
+	_video->write(0x30, 0x0000);
+
+	// Run for [more than] a whole frame making sure that no observeable outputs
+	// change at any time other than a sequence point.
+	HalfCycles next_event;
+	bool display_enable = false;
+	bool vsync = false;
+	bool hsync = false;
+	for(size_t c = 0; c < 10 * 1000 * 1000; ++c) {
+		const bool is_transition_point = next_event == HalfCycles(0);
+
+		if(is_transition_point) {
+			display_enable = _video->display_enabled();
+			vsync = _video->vsync();
+			hsync = _video->hsync();
+			next_event = _video->get_next_sequence_point();
+		} else {
+			NSAssert(display_enable == _video->display_enabled(), @"Unannounced change in display enabled at cycle %zu [%d before next sequence point]", c, next_event.as<int>());
+			NSAssert(vsync == _video->vsync(), @"Unannounced change in vsync at cycle %zu [%d before next sequence point]", c, next_event.as<int>());
+			NSAssert(hsync == _video->hsync(), @"Unannounced change in hsync at cycle %zu [%d before next sequence point]", c, next_event.as<int>());
+		}
+		_video->run_for(HalfCycles(2));
+		next_event -= HalfCycles(2);
+	}
+}
+
+// MARK: - Sync Line Length Tests
 
 struct RunLength {
 	int frequency;
@@ -258,6 +271,49 @@ struct RunLength {
 		{-1}
 	};
 	[self testSequence:test targetLength:230];
+}
+
+// MARK: - Address Reload Timing tests
+
+/// Tests that the current video address is reloaded constantly throughout hsync
+- (void)testHsyncReload {
+	// Set an initial video address of 0.
+	[self setVideoBaseAddress:0];
+
+	// Find next area of non-vsync.
+	while(_video->vsync()) {
+		_video->run_for(Cycles(1));
+	}
+
+	// Set a different base video address.
+	[self setVideoBaseAddress:0x800000];
+
+	// Find next area of vsync, checking that the address isn't
+	// reloaded before then.
+	while(!_video->vsync()) {
+		XCTAssertNotEqual([self currentVideoAddress], 0x800000);
+		_video->run_for(Cycles(1));
+	}
+
+	// Vsync has now started, test that video address has been set.
+	XCTAssertEqual([self currentVideoAddress], 0x800000);
+
+	// Run a few cycles, set a different video base address,
+	// confirm that has been set.
+	[self runVideoForCycles:200];
+	XCTAssertEqual([self currentVideoAddress], 0x800000);
+	[self setVideoBaseAddress:0xc00000];
+	[self runVideoForCycles:1];
+	XCTAssertEqual([self currentVideoAddress], 0xc00000);
+
+	// Find end of vertical sync, set a different base address,
+	// check that it doesn't become current.
+	while(_video->vsync()) {
+		_video->run_for(Cycles(1));
+	}
+	[self setVideoBaseAddress:0];
+	[self runVideoForCycles:1];
+	XCTAssertNotEqual([self currentVideoAddress], 0);
 }
 
 @end

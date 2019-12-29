@@ -95,13 +95,17 @@ struct Checker {
 #endif
 
 const int de_delay_period = CYCLE(28);		// Number of half cycles after DE that observed DE changes.
-const int vsync_x_position = CYCLE(54);		// Horizontal cycle on which vertical sync changes happen.
-const int address_reload_x_position = CYCLE(54);		// Horizontal cycle on which the base address is reloaded.
+const int vsync_x_position = CYCLE(56);		// Horizontal cycle on which vertical sync changes happen.
+
 const int hsync_start = CYCLE(48);			// Cycles before end of line when hsync starts.
 const int hsync_end = CYCLE(8);				// Cycles before end of line when hsync ends.
+const int hsync_delay_period = hsync_end;	// Signal hsync at the end of the line.
 
 // "VSYNC starts 104 cycles after the start of the previous line's HSYNC, so that's 4 cycles before DE would be activated. ";
-// hsync is at -50, so that's +54, or thereabouts.
+// that's an inconsistent statement since it would imply VSYNC at +54, which is 2 cycles before DE in 60Hz mode and 6 before
+// in 50Hz mode. I've gone with 56, to be four cycles ahead of DE in 50Hz mode.
+//
+// TODO: some sort of latency on vsync and hsync visibility, I would imagine?
 
 }
 
@@ -178,6 +182,7 @@ void Video::advance(HalfCycles duration) {
 		// Determine current output mode and number of cycles to output for.
 		const int run_length = std::min(integer_duration, next_event - x_);
 		const bool display_enable = vertical_.enable && horizontal_.enable;
+		const bool hsync = horizontal_.sync;
 
 		// Ensure proper fetching irrespective of the output.
 		if(load_) {
@@ -243,23 +248,6 @@ void Video::advance(HalfCycles duration) {
 			}
 		}
 
-		// Check for address reload; this timing is _highly_ speculative on my part. I originally had it at frame end,
-		// then Enchanted Woods seemed to be doing its things three lines too late, so I moved it forward a little.
-		// Which didn't solve the problem, so I guess that title's logic isn't triggered on address reload, but it makes
-		// sense to keep it out separate and I've no better intel about its actual positioning.
-		if(y_ == vertical_timings.height - 3 && x_ <= address_reload_x_position && (x_ + run_length) > address_reload_x_position) {
-			current_address_ = base_address_ >> 1;
-			reset_fifo();	// TODO: remove this, probably, once otherwise stable?
-
-			// Consider a shout out to the range observer.
-			if(previous_base_address_ != base_address_) {
-				previous_base_address_ = base_address_;
-				if(range_observer_) {
-					range_observer_->video_did_change_access_range(this);
-				}
-			}
-		}
-
 		// Check for whether line length should have been latched during this run.
 		if(x_ <= CYCLE(54) && (x_ + run_length) > CYCLE(54)) line_length_ = horizontal_timings.length;
 
@@ -278,11 +266,11 @@ void Video::advance(HalfCycles duration) {
 				next_vertical_.enable = true;
 			} else if(y_ == vertical_timings.reset_enable) {
 				next_vertical_.enable = false;
-			} else if(next_y_ == vertical_timings.height - 1) {
+			} else if(next_y_ == vertical_timings.height - 2) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
 			} else if(next_y_ == vertical_timings.height) {
 				next_y_ = 0;
-			} else if(next_y_ == 2) {
+			} else if(y_ == 0) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::End;
 			}
 		}
@@ -311,6 +299,8 @@ void Video::advance(HalfCycles duration) {
 		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ == vsync_x_position) {
 			vertical_.sync = vertical_.sync_schedule == VerticalState::SyncSchedule::Begin;
 			vertical_.enable &= !vertical_.sync;
+
+			reset_fifo();	// TODO: remove this, probably, once otherwise stable?
 		}
 
 		// Check whether the terminating event was end-of-line; if so then advance
@@ -321,6 +311,20 @@ void Video::advance(HalfCycles duration) {
 			y_ = next_y_;
 		}
 
+		// The address is reloaded during the entire period of vertical sync.
+		// Cf. http://www.atari-forum.com/viewtopic.php?t=31954&start=50#p324730
+		if(vertical_.sync) {
+			current_address_ = base_address_ >> 1;
+
+			// Consider a shout out to the range observer.
+			if(previous_base_address_ != base_address_) {
+				previous_base_address_ = base_address_;
+				if(range_observer_) {
+					range_observer_->video_did_change_access_range(this);
+				}
+			}
+		}
+
 		// Chuck any deferred output changes into the queue.
 		const bool next_display_enable = vertical_.enable && horizontal_.enable;
 		if(display_enable != next_display_enable) {
@@ -329,6 +333,11 @@ void Video::advance(HalfCycles duration) {
 
 			// Schedule change in inwardly-visible effect.
 			next_load_toggle_ = x_ + 8;	// 4 cycles = 8 half-cycles
+		}
+
+		if(horizontal_.sync != hsync) {
+			// Schedule change in outwardly-visible hsync line.
+			add_event(hsync_delay_period - integer_duration, horizontal_.sync ? Event::Type::SetHsync : Event::Type::ResetHsync);
 		}
 	}
 }
@@ -351,7 +360,7 @@ void Video::reset_fifo() {
 }
 
 bool Video::hsync() {
-	return horizontal_.sync;
+	return public_state_.hsync;
 }
 
 bool Video::vsync() {
