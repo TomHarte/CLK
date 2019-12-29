@@ -61,9 +61,6 @@
 	while(_video->hsync()) {
 		_video->run_for(Cycles(1));
 	}
-
-	// Run 12 cycles further.
-	[self runVideoForCycles:8];
 }
 
 - (void)setFrequency:(int)frequency {
@@ -314,6 +311,21 @@ struct RunLength {
 	[self setVideoBaseAddress:0];
 	[self runVideoForCycles:1];
 	XCTAssertNotEqual([self currentVideoAddress], 0);
+}
+
+// MARK: - Tests Correlating To Exact Pieces of Software
+
+- (void)testUnionDemoScroller {
+	const RunLength test[] = {
+		{72, 8},
+		{50, 365},
+		{60, 8},
+		{50, 59},
+		{72, 12},
+		{50, 60},
+		{-1}
+	};
+	[self testSequence:test targetLength:230];
 }
 
 @end
