@@ -412,9 +412,15 @@ HalfCycles Video::get_next_sequence_point() {
 		event_time = std::min(event_time, vsync_x_position);
 	}
 
-	// Test for beginning and end of horizontal sync.
-	if(x_ < line_length_ - hsync_start) 	event_time = std::min(line_length_ - hsync_start, event_time);
-	else if(x_ < line_length_ - hsync_end)	event_time = std::min(line_length_ - hsync_end, event_time);
+	// Test for beginning and end of horizontal sync, and the times when those will actually be communicated.
+	if(x_ < line_length_ - hsync_start) {
+		event_time = std::min(line_length_ - hsync_start, event_time);
+	} else if(x_ < line_length_ - hsync_start + hsync_delay_period)	{
+		event_time = std::min(line_length_ - hsync_start + hsync_delay_period, event_time);
+	} else if(x_ < line_length_ - hsync_end) {
+		event_time = std::min(line_length_ - hsync_end, event_time);
+	}
+	/* Assumed: hsync end will become visible at end of line. */
 
 	// It wasn't any of those, so as a temporary expedient, just supply end of line.
 	return HalfCycles(event_time - x_);
