@@ -400,7 +400,7 @@ HalfCycles Video::get_next_sequence_point() {
 
 	// If any events are pending, give the first of those the chance to be next.
 	if(!pending_events_.empty()) {
-		event_time = std::min(event_time, x_ + event_time);
+		event_time = std::min(event_time, x_ + pending_events_.front().delay);
 	}
 
 	// If this is a vertically-enabled line, check for the display enable boundaries, + the standard delay.
@@ -418,17 +418,14 @@ HalfCycles Video::get_next_sequence_point() {
 		event_time = std::min(event_time, vsync_x_position);
 	}
 
-	// Test for beginning and end of horizontal sync, and the times when those will actually be communicated.
-	if(x_ < line_length_ - hsync_start) {
-		event_time = std::min(line_length_ - hsync_start, event_time);
-	} else if(x_ < line_length_ - hsync_start + hsync_delay_period)	{
+	// Test for beginning and end of horizontal sync.
+	if(x_ < line_length_ - hsync_start + hsync_delay_period) {
 		event_time = std::min(line_length_ - hsync_start + hsync_delay_period, event_time);
-	} else if(x_ < line_length_ - hsync_end) {
-		event_time = std::min(line_length_ - hsync_end, event_time);
 	}
-	/* Assumed: hsync end will become visible at end of line. */
+	/* Hereby assumed: hsync end will be communicated at end of line: */
+	static_assert(hsync_end == hsync_delay_period);
 
-	// It wasn't any of those, so as a temporary expedient, just supply end of line.
+	// It wasn't any of those, just supply end of line. That's when the static_assert above assumes a visible hsync transition.
 	return HalfCycles(event_time - x_);
 }
 
