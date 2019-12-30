@@ -12,6 +12,14 @@
 
 #include "../../../Machines/Atari/ST/Video.hpp"
 
+// Implement Atari::ST::Video's friend class, to expose some
+// internal state.
+struct VideoTester {
+	static bool vsync(Atari::ST::Video &video) {
+		return video.vertical_.sync;
+	}
+};
+
 @interface AtariSTVideoTests : XCTestCase
 @end
 
@@ -272,13 +280,14 @@ struct RunLength {
 
 // MARK: - Address Reload Timing tests
 
-/// Tests that the current video address is reloaded constantly throughout hsync
-- (void)testHsyncReload {
+/// Tests that the current video address is reloaded constantly throughout vsync (subject to caveat: observed .
+- (void)testVsyncReload {
+
 	// Set an initial video address of 0.
 	[self setVideoBaseAddress:0];
 
 	// Find next area of non-vsync.
-	while(_video->vsync()) {
+	while(VideoTester::vsync(*_video)) {
 		_video->run_for(Cycles(1));
 	}
 
@@ -287,7 +296,7 @@ struct RunLength {
 
 	// Find next area of vsync, checking that the address isn't
 	// reloaded before then.
-	while(!_video->vsync()) {
+	while(!VideoTester::vsync(*_video)) {
 		XCTAssertNotEqual([self currentVideoAddress], 0x800000);
 		_video->run_for(Cycles(1));
 	}
@@ -305,7 +314,7 @@ struct RunLength {
 
 	// Find end of vertical sync, set a different base address,
 	// check that it doesn't become current.
-	while(_video->vsync()) {
+	while(VideoTester::vsync(*_video)) {
 		_video->run_for(Cycles(1));
 	}
 	[self setVideoBaseAddress:0];

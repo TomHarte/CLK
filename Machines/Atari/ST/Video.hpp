@@ -15,6 +15,9 @@
 
 #include <vector>
 
+// Testing hook; not for any other user.
+class VideoTester;
+
 namespace Atari {
 namespace ST {
 
@@ -278,6 +281,8 @@ class Video {
 			}
 			pending_events_.emplace(insertion_point, type, delay);
 		}
+
+		friend class ::VideoTester;
 };
 
 }
