@@ -269,17 +269,22 @@ class Video {
 				return;
 			}
 
-			// Otherwise enqueue, having subtracted the delay for any preceding events,
-			// and subtracting from the subsequent, if any.
-			auto insertion_point = pending_events_.begin();
-			while(insertion_point != pending_events_.end() && insertion_point->delay > delay) {
-				delay -= insertion_point->delay;
-				++insertion_point;
+			if(!pending_events_.empty()) {
+				// Otherwise enqueue, having subtracted the delay for any preceding events,
+				// and subtracting from the subsequent, if any.
+				auto insertion_point = pending_events_.begin();
+				while(insertion_point != pending_events_.end() && insertion_point->delay < delay) {
+					delay -= insertion_point->delay;
+					++insertion_point;
+				}
+				if(insertion_point != pending_events_.end()) {
+					insertion_point->delay -= delay;
+				}
+
+				pending_events_.emplace(insertion_point, type, delay);
+			} else {
+				pending_events_.emplace_back(type, delay);
 			}
-			if(insertion_point != pending_events_.end()) {
-				insertion_point->delay -= delay;
-			}
-			pending_events_.emplace(insertion_point, type, delay);
 		}
 
 		friend class ::VideoTester;
