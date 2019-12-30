@@ -343,7 +343,7 @@ void Video::advance(HalfCycles duration) {
 
 		if(vertical_.sync != vsync) {
 			// Schedule change in outwardly-visible hsync line.
-			add_event(vsync_delay_period - integer_duration, horizontal_.sync ? Event::Type::SetVsync : Event::Type::ResetVsync);
+			add_event(vsync_delay_period - integer_duration, vertical_.sync ? Event::Type::SetVsync : Event::Type::ResetVsync);
 		}
 	}
 }
