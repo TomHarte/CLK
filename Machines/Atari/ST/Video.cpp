@@ -99,13 +99,13 @@ const int vsync_x_position = CYCLE(56);		// Horizontal cycle on which vertical s
 
 const int hsync_start = CYCLE(48);			// Cycles before end of line when hsync starts.
 const int hsync_end = CYCLE(8);				// Cycles before end of line when hsync ends.
-const int hsync_delay_period = hsync_end;	// Signal hsync at the end of the line.
+
+const int hsync_delay_period = hsync_end;			// Signal hsync at the end of the line.
+const int vsync_delay_period = hsync_delay_period;	// Signal vsync with the same delay as hsync.
 
 // "VSYNC starts 104 cycles after the start of the previous line's HSYNC, so that's 4 cycles before DE would be activated. ";
 // that's an inconsistent statement since it would imply VSYNC at +54, which is 2 cycles before DE in 60Hz mode and 6 before
 // in 50Hz mode. I've gone with 56, to be four cycles ahead of DE in 50Hz mode.
-//
-// TODO: some sort of latency on vsync and hsync visibility, I would imagine?
 
 }
 
@@ -183,6 +183,7 @@ void Video::advance(HalfCycles duration) {
 		const int run_length = std::min(integer_duration, next_event - x_);
 		const bool display_enable = vertical_.enable && horizontal_.enable;
 		const bool hsync = horizontal_.sync;
+		const bool vsync = vertical_.sync;
 
 		// Ensure proper fetching irrespective of the output.
 		if(load_) {
@@ -339,6 +340,11 @@ void Video::advance(HalfCycles duration) {
 			// Schedule change in outwardly-visible hsync line.
 			add_event(hsync_delay_period - integer_duration, horizontal_.sync ? Event::Type::SetHsync : Event::Type::ResetHsync);
 		}
+
+		if(vertical_.sync != vsync) {
+			// Schedule change in outwardly-visible hsync line.
+			add_event(vsync_delay_period - integer_duration, horizontal_.sync ? Event::Type::SetVsync : Event::Type::ResetVsync);
+		}
 	}
 }
 
@@ -364,7 +370,7 @@ bool Video::hsync() {
 }
 
 bool Video::vsync() {
-	return vertical_.sync;
+	return public_state_.vsync;
 }
 
 bool Video::display_enabled() {

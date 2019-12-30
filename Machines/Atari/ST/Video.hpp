@@ -228,6 +228,7 @@ class Video {
 		struct PublicState {
 			bool display_enable = false;
 			bool hsync = false;
+			bool vsync = false;
 		} public_state_;
 
 		struct Event {
@@ -235,6 +236,7 @@ class Video {
 			enum class Type {
 				SetDisplayEnable, ResetDisplayEnable,
 				SetHsync, ResetHsync,
+				SetVsync, ResetVsync,
 			} type;
 
 			Event(Type type, int delay) : delay(delay), type(type) {}
@@ -250,6 +252,8 @@ class Video {
 					case Type::ResetDisplayEnable:	state.display_enable = false;	break;
 					case Type::SetHsync:			state.hsync = true;				break;
 					case Type::ResetHsync:			state.hsync = false;			break;
+					case Type::SetVsync:			state.vsync = true;				break;
+					case Type::ResetVsync:			state.vsync = false;			break;
 				}
 			}
 		};
