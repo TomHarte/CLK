@@ -267,11 +267,10 @@ void Video::advance(HalfCycles duration) {
 				next_vertical_.enable = true;
 			} else if(y_ == vertical_timings.reset_enable) {
 				next_vertical_.enable = false;
-			} else if(next_y_ == vertical_timings.height - 2) {
-				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
 			} else if(next_y_ == vertical_timings.height) {
+				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
 				next_y_ = 0;
-			} else if(y_ == 0) {
+			} else if(next_y_ == 2) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::End;
 			}
 		}
