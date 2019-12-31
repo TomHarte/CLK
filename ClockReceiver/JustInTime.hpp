@@ -29,7 +29,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 
 		/// Adds time to the actor.
 		forceinline void operator += (const LocalTimeScale &rhs) {
-			if(multiplier != 1) {
+			if constexpr (multiplier != 1) {
 				time_since_update_ += rhs * multiplier;
 			} else {
 				time_since_update_ += rhs;
@@ -52,7 +52,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		forceinline void flush() {
 			if(!is_flushed_) {
 				is_flushed_ = true;
-				if(divider == 1) {
+				if constexpr (divider == 1) {
 					object_.run_for(time_since_update_.template flush<TargetTimeScale>());
 				} else {
 					const auto duration = time_since_update_.template divide<TargetTimeScale>(LocalTimeScale(divider));

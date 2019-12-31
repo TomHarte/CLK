@@ -176,7 +176,10 @@ class ConcreteMachine:
 			// An interrupt acknowledge, perhaps?
 			if(cycle.operation & Microcycle::InterruptAcknowledge) {
 				// Current implementation: everything other than 6 (i.e. the MFP is autovectored.
-				if((cycle.word_address()&7) != 6) {
+				const int interrupt_level = cycle.word_address()&7;
+				if(interrupt_level != 6) {
+					video_interrupts_pending_ &= ~interrupt_level;
+					update_interrupt_input();
 					mc68000_.set_is_peripheral_address(true);
 					return HalfCycles(0);
 				} else {
@@ -552,12 +555,27 @@ class ConcreteMachine:
 			update_interrupt_input();
 		}
 
+		int video_interrupts_pending_ = 0;
+		bool previous_hsync_ = false, previous_vsync_ = false;
 		void update_interrupt_input() {
+			// Complete guess: set video interrupts pending if/when hsync of vsync
+			// go inactive. Reset upon IACK.
+			const bool hsync = video_.last_valid()->hsync();
+			const bool vsync = video_.last_valid()->vsync();
+			if(previous_hsync_ != hsync && previous_hsync_) {
+				video_interrupts_pending_ |= 2;
+			}
+			if(previous_vsync_ != vsync && previous_vsync_) {
+				video_interrupts_pending_ |= 4;
+			}
+			previous_vsync_ = vsync;
+			previous_hsync_ = hsync;
+
 			if(mfp_->get_interrupt_line()) {
 				mc68000_.set_interrupt_level(6);
-			} else if(video_->vsync()) {
+			} else if(video_interrupts_pending_ & 4) {
 				mc68000_.set_interrupt_level(4);
-			} else if(video_->hsync()) {
+			} else if(video_interrupts_pending_ & 2) {
 				mc68000_.set_interrupt_level(2);
 			} else {
 				mc68000_.set_interrupt_level(0);

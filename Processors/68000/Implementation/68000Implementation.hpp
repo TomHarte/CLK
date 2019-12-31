@@ -1854,11 +1854,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									RTE and RTR share an implementation.
 								*/
 								case Operation::RTE_RTR:
-									// If this is RTR, patch out the is_supervisor bit.
+									// If this is RTR, patch out the supervisor half of the status register.
 									if(decoded_instruction_.full == 0x4e77) {
-										source_bus_data_[0].full =
-											(source_bus_data_[0].full & uint32_t(~(1 << 13))) |
-											uint32_t(is_supervisor_ << 13);
+										const auto current_status = get_status();
+										source_bus_data_[0].halves.low.halves.high =
+											uint8_t(current_status >> 8);
 									}
 									set_status(source_bus_data_[0].full);
 								break;
