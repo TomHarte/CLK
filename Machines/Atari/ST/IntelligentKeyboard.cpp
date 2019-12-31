@@ -8,6 +8,9 @@
 
 #include "IntelligentKeyboard.hpp"
 
+#define LOG_PREFIX "[IKYB] "
+#include "../../../Outputs/Log.hpp"
+
 using namespace Atari::ST;
 
 IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &output) : output_line_(output) {
@@ -208,42 +211,55 @@ void IntelligentKeyboard::reset() {
 }
 
 void IntelligentKeyboard::resume() {
+	LOG("Unimplemented: resume");
 }
 
 void IntelligentKeyboard::pause() {
+	LOG("Unimplemented: pause");
 }
 
 void IntelligentKeyboard::disable_mouse() {
+	LOG("Unimplemented: disable mouse");
 }
 
 void IntelligentKeyboard::set_relative_mouse_position_reporting() {
+	LOG("Unimplemented: set relative mouse position reporting");
 }
 
 void IntelligentKeyboard::set_absolute_mouse_position_reporting(uint16_t max_x, uint16_t max_y) {
+	LOG("Unimplemented: set absolute mouse position reporting");
 }
 
 void IntelligentKeyboard::set_mouse_position(uint16_t x, uint16_t y) {
+	LOG("Unimplemented: set mouse position");
 }
 
 void IntelligentKeyboard::set_mouse_keycode_reporting(uint8_t delta_x, uint8_t delta_y) {
+	LOG("Unimplemented: set mouse keycode reporting");
 }
 
 void IntelligentKeyboard::set_mouse_threshold(uint8_t x, uint8_t y) {
+	LOG("Unimplemented: set mouse threshold");
 }
 
 void IntelligentKeyboard::set_mouse_scale(uint8_t x, uint8_t y) {
+	LOG("Unimplemented: set mouse scale");
 }
 
 void IntelligentKeyboard::set_mouse_y_downward() {
+	LOG("Unimplemented: set mouse y downward");
 }
 
 void IntelligentKeyboard::set_mouse_y_upward() {
+	LOG("Unimplemented: set mouse y upward");
 }
 
 void IntelligentKeyboard::set_mouse_button_actions(uint8_t actions) {
+	LOG("Unimplemented: set mouse button actions");
 }
 
 void IntelligentKeyboard::interrogate_mouse_position() {
+	LOG("Unimplemented: interrogate mouse position");
 	output_bytes({
 		0xf7,	// Beginning of mouse response.
 		0x00,	// 0000dcba; a = right button down since last interrogation, b = right button up since, c/d = left button.
@@ -395,10 +411,13 @@ void IntelligentKeyboard::interrogate_joysticks() {
 }
 
 void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t rate) {
+	LOG("Unimplemented: joystick monitoring mode");
 }
 
 void IntelligentKeyboard::set_joystick_fire_button_monitoring_mode() {
+	LOG("Unimplemented: joystick fire button monitoring mode");
 }
 
 void IntelligentKeyboard::set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical) {
+	LOG("Unimplemented: joystick keycode mode");
 }
