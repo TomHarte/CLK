@@ -110,12 +110,14 @@ class IntelligentKeyboard:
 		void reset_all_buttons() final;
 
 		enum class MouseMode {
-			Relative, Absolute
+			Relative, Absolute, Disabled
 		} mouse_mode_ = MouseMode::Relative;
 
 		// Absolute positioning state.
-		int mouse_range_[2] = {0, 0};
-		int mouse_scale_[2] = {0, 0};
+		int mouse_range_[2] = {320, 200};
+		int mouse_scale_[2] = {1, 1};
+		int mouse_position_[2] = {0, 0};
+		int mouse_y_multiplier_ = 1;
 
 		// Relative positioning state.
 		int posted_button_state_ = 0;
@@ -125,6 +127,7 @@ class IntelligentKeyboard:
 		// Received mouse state.
 		std::atomic<int> mouse_movement_[2];
 		std::atomic<int> mouse_button_state_;
+		std::atomic<int> mouse_button_events_;
 
 		// MARK: - Joystick.
 		void disable_joysticks();
