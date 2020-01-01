@@ -206,6 +206,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					// exit the STOP.
 					if(bus_interrupt_level_ > interrupt_level_) {
 						pending_interrupt_level_ = bus_interrupt_level_;
+						program_counter_.full += 4;	// Don't return to this stop.
 						execution_state_ = ExecutionState::BeginInterrupt;
 						continue;
 					}
