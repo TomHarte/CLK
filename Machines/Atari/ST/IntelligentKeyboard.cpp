@@ -61,9 +61,9 @@ void IntelligentKeyboard::run_for(HalfCycles duration) {
 				(abs(captured_movement[0]) >= mouse_threshold_[0]) ||
 				(abs(captured_movement[1]) >= mouse_threshold_[1]) ) {
 				mouse_movement_[0] -= captured_movement[0];
-				mouse_movement_[1] -= mouse_y_multiplier_ * captured_movement[1];
+				mouse_movement_[1] -= captured_movement[1];
 
-				post_relative_mouse_event(captured_movement[0], captured_movement[1]);
+				post_relative_mouse_event(captured_movement[0], captured_movement[1] * mouse_y_multiplier_);
 			}
 		} break;
 
