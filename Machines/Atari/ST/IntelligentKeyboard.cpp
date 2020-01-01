@@ -8,6 +8,8 @@
 
 #include "IntelligentKeyboard.hpp"
 
+#include <algorithm>
+
 #define LOG_PREFIX "[IKYB] "
 #include "../../../Outputs/Log.hpp"
 
@@ -22,6 +24,7 @@ IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &outp
 	joysticks_.emplace_back(new Joystick);
 
 	mouse_button_state_ = 0;
+	mouse_button_events_ = 0;
 	mouse_movement_[0] = 0;
 	mouse_movement_[1] = 0;
 }
@@ -49,20 +52,38 @@ ClockingHint::Preference IntelligentKeyboard::preferred_clocking() {
 void IntelligentKeyboard::run_for(HalfCycles duration) {
 	// Take this opportunity to check for joystick, mouse and keyboard events,
 	// which will have been received asynchronously.
-	if(mouse_mode_ == MouseMode::Relative) {
-		const int captured_movement[2] = { mouse_movement_[0].load(), mouse_movement_[1].load() };
-		const int captured_button_state = mouse_button_state_;
-		if(
-			(posted_button_state_ != captured_button_state) ||
-			(abs(captured_movement[0]) >= mouse_threshold_[0]) ||
-			(abs(captured_movement[1]) >= mouse_threshold_[1]) ) {
-			mouse_movement_[0] -= captured_movement[0];
-			mouse_movement_[1] -= captured_movement[1];
+	const int captured_movement[2] = { mouse_movement_[0].load(), mouse_movement_[1].load() };
+	switch(mouse_mode_) {
+		case MouseMode::Relative: {
+			const int captured_button_state = mouse_button_state_;
+			if(
+				(posted_button_state_ != captured_button_state) ||
+				(abs(captured_movement[0]) >= mouse_threshold_[0]) ||
+				(abs(captured_movement[1]) >= mouse_threshold_[1]) ) {
+				mouse_movement_[0] -= captured_movement[0];
+				mouse_movement_[1] -= captured_movement[1];
 
-			post_relative_mouse_event(captured_movement[0], captured_movement[1]);
-		}
-	} else {
-		// TODO: absolute-mode mouse updates.
+				post_relative_mouse_event(captured_movement[0], captured_movement[1] * mouse_y_multiplier_);
+			}
+		} break;
+
+		case MouseMode::Absolute: {
+			const int scaled_movement[2] = { captured_movement[0] / mouse_scale_[0], captured_movement[1] / mouse_scale_[1] };
+			mouse_position_[0] += scaled_movement[0];
+			mouse_position_[1] += mouse_y_multiplier_ * scaled_movement[1];
+
+			// Clamp to range.
+			mouse_position_[0] = std::min(std::max(mouse_position_[0], 0), mouse_range_[0]);
+			mouse_position_[1] = std::min(std::max(mouse_position_[1], 0), mouse_range_[1]);
+
+			mouse_movement_[0] -= scaled_movement[0] * mouse_scale_[0];
+			mouse_movement_[1] -= scaled_movement[1] * mouse_scale_[1];
+		} break;
+
+		case MouseMode::Disabled:
+			mouse_movement_[0] = 0;
+			mouse_movement_[1] = 0;
+		break;
 	}
 
 	// Forward key changes; implicit assumption here: mutexs are cheap while there's
@@ -219,19 +240,22 @@ void IntelligentKeyboard::pause() {
 }
 
 void IntelligentKeyboard::disable_mouse() {
-	LOG("Unimplemented: disable mouse");
+	mouse_mode_ = MouseMode::Disabled;
 }
 
 void IntelligentKeyboard::set_relative_mouse_position_reporting() {
-	LOG("Unimplemented: set relative mouse position reporting");
+	mouse_mode_ = MouseMode::Relative;
 }
 
 void IntelligentKeyboard::set_absolute_mouse_position_reporting(uint16_t max_x, uint16_t max_y) {
-	LOG("Unimplemented: set absolute mouse position reporting");
+	mouse_mode_ = MouseMode::Absolute;
+	mouse_range_[0] = int(max_x);
+	mouse_range_[1] = int(max_y);
 }
 
 void IntelligentKeyboard::set_mouse_position(uint16_t x, uint16_t y) {
-	LOG("Unimplemented: set mouse position");
+	mouse_position_[0] = std::min(int(x), mouse_range_[0]);
+	mouse_position_[1] = std::min(int(y), mouse_range_[1]);
 }
 
 void IntelligentKeyboard::set_mouse_keycode_reporting(uint8_t delta_x, uint8_t delta_y) {
@@ -239,19 +263,21 @@ void IntelligentKeyboard::set_mouse_keycode_reporting(uint8_t delta_x, uint8_t d
 }
 
 void IntelligentKeyboard::set_mouse_threshold(uint8_t x, uint8_t y) {
-	LOG("Unimplemented: set mouse threshold");
+	mouse_threshold_[0] = x;
+	mouse_threshold_[1] = y;
 }
 
 void IntelligentKeyboard::set_mouse_scale(uint8_t x, uint8_t y) {
-	LOG("Unimplemented: set mouse scale");
+	mouse_scale_[0] = x;
+	mouse_scale_[1] = y;
 }
 
 void IntelligentKeyboard::set_mouse_y_downward() {
-	LOG("Unimplemented: set mouse y downward");
+	mouse_y_multiplier_ = 1;
 }
 
 void IntelligentKeyboard::set_mouse_y_upward() {
-	LOG("Unimplemented: set mouse y upward");
+	mouse_y_multiplier_ = -1;
 }
 
 void IntelligentKeyboard::set_mouse_button_actions(uint8_t actions) {
@@ -259,14 +285,15 @@ void IntelligentKeyboard::set_mouse_button_actions(uint8_t actions) {
 }
 
 void IntelligentKeyboard::interrogate_mouse_position() {
-	LOG("Unimplemented: interrogate mouse position");
+	const int captured_mouse_button_events_ = mouse_button_events_;
+	mouse_button_events_ &= ~captured_mouse_button_events_;
 	output_bytes({
-		0xf7,	// Beginning of mouse response.
-		0x00,	// 0000dcba; a = right button down since last interrogation, b = right button up since, c/d = left button.
-		0x00,	// x motion: MSB, LSB
-		0x00,
-		0x00,	// y motion: MSB, LSB
-		0x00
+		0xf7,									// Beginning of mouse response.
+		uint8_t(captured_mouse_button_events_),	// 0000dcba; a = right button down since last interrogation, b = right button up since, c/d = left button.
+		uint8_t(mouse_position_[0] >> 8),		// x position: MSB, LSB
+		uint8_t(mouse_position_[0] & 0xff),
+		uint8_t(mouse_position_[1] >> 8),		// y position: MSB, LSB
+		uint8_t(mouse_position_[1] & 0xff)
 	});
 }
 
@@ -374,11 +401,16 @@ int IntelligentKeyboard::get_number_of_buttons() {
 }
 
 void IntelligentKeyboard::set_button_pressed(int index, bool is_pressed) {
-	const auto mask = 1 << (index ^ 1);	// The primary button is b1; the secondary is b0.
+	index ^= 1;		// The primary button is b1; the secondary is b0.
+
+	const auto mask = 1 << index;
+	const auto event_mask = 1 << (index << 1);
 	if(is_pressed) {
 		mouse_button_state_ |= mask;
+		mouse_button_events_ |= event_mask;
 	} else {
 		mouse_button_state_ &= ~mask;
+		mouse_button_events_ |= event_mask << 1;
 	}
 }
 
