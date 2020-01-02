@@ -2928,7 +2928,7 @@ struct ProcessorStorageConstructor {
 								case d16PC:		// CHK (d16, PC), Dn
 								case d8AnXn:	// CHK (d8, An, Xn), Dn
 								case d8PCXn:	// CHK (d8, PC, Xn), Dn
-									op(address_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nr", mode), { ea(0) }));
+									op(address_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nr np", mode), { ea(0) }));
 								break;
 
 								case Imm:		// CHK #, Dn

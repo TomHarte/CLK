@@ -27,8 +27,8 @@
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-//	_fileSet = [NSSet setWithArray:@[@"rtr.json"]];
-//	_testSet = [NSSet setWithArray:@[@"EOR b0c0", @"EOR b0c2", @"EOR b0c3", @"EOR b0c5", @"EOR b0c6", @"EOR b0c7", @"OR b0c7"]];
+//	_fileSet = [NSSet setWithArray:@[@"move_tofrom_srccr.json"]];
+//	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }
 
 - (void)testAll {

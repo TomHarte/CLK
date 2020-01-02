@@ -1326,8 +1326,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 									overflow_flag_ = carry_flag_ = 0;
 									zero_result_ = destination()->halves.low.full;
-									if(is_under) negative_flag_ = 1;
+
+									// Test applied for N:
+									//
+									//	if Dn < 0, set negative flag;
+									//	otherwise, if Dn > <ea>, reset negative flag.
 									if(is_over) negative_flag_ = 0;
+									if(is_under) negative_flag_ = 1;
 
 									// No exception is the default course of action; deviate only if an
 									// exception is necessary.
