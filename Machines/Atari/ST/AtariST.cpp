@@ -16,6 +16,7 @@
 #include "../../../Activity/Source.hpp"
 
 //#define LOG_TRACE
+//bool should_log = false;
 #include "../../../Processors/68000/68000.hpp"
 
 #include "../../../Components/AY38910/AY38910.hpp"
