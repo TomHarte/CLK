@@ -11,7 +11,6 @@
 
 #include <array>
 
-#define LOG_TRACE
 #include "../../../Processors/68000/68000.hpp"
 
 using Flag = CPU::MC68000::Flag;

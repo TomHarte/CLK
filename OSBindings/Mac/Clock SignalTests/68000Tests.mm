@@ -10,7 +10,6 @@
 
 #include <cassert>
 
-#define LOG_TRACE
 #include "TestRunner68000.hpp"
 
 class CPU::MC68000::ProcessorStorageTests {

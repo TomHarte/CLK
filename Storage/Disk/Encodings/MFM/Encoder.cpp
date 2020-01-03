@@ -71,6 +71,7 @@ class MFMEncoder: public Encoder {
 				case SurfaceItem::Data: return 2;	// Just a single encoded byte.
 				default: assert(false);
 			}
+			return 0;	// Should be impossible to reach in debug builds.
 		}
 
 	private:

@@ -94,7 +94,7 @@ struct Checker {
 } checker;
 #endif
 
-const int de_delay_period = CYCLE(28);		// Number of half cycles after DE that observed DE changes.
+const int de_delay_period = CYCLE(28);		// Amount of time after DE that observed DE changes. NB: HACK HERE. This currently incorporates the MFP recognition delay. MUST FIX.
 const int vsync_x_position = CYCLE(56);		// Horizontal cycle on which vertical sync changes happen.
 
 const int hsync_start = CYCLE(48);			// Cycles before end of line when hsync starts.
@@ -116,7 +116,7 @@ Video::Video() :
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
-	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 216, 850, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 220, 850, 4.0f / 3.0f));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
@@ -267,10 +267,11 @@ void Video::advance(HalfCycles duration) {
 				next_vertical_.enable = true;
 			} else if(y_ == vertical_timings.reset_enable) {
 				next_vertical_.enable = false;
-			} else if(next_y_ == vertical_timings.height) {
+			} else if(next_y_ == vertical_timings.height - 2) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
+			} else if(next_y_ == vertical_timings.height) {
 				next_y_ = 0;
-			} else if(next_y_ == 2) {
+			} else if(y_ == 0) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::End;
 			}
 		}
@@ -730,10 +731,13 @@ void Video::VideoStream::output_pixels(int duration) {
 }
 
 void Video::VideoStream::flush_pixels() {
-	switch(bpp_) {
-		case OutputBpp::One:	crt_.output_data(pixel_pointer_ >> 1, size_t(pixel_pointer_)); break;
-		default: 				crt_.output_data(pixel_pointer_); break;
-		case OutputBpp::Four:	crt_.output_data(pixel_pointer_ << 1, size_t(pixel_pointer_)); break;
+	// Flush only if there's something to flush.
+	if(pixel_pointer_) {
+		switch(bpp_) {
+			case OutputBpp::One:	crt_.output_data(pixel_pointer_ >> 1, size_t(pixel_pointer_)); break;
+			default: 				crt_.output_data(pixel_pointer_); break;
+			case OutputBpp::Four:	crt_.output_data(pixel_pointer_ << 1, size_t(pixel_pointer_)); break;
+		}
 	}
 
 	pixel_pointer_ = 0;
@@ -741,8 +745,14 @@ void Video::VideoStream::flush_pixels() {
 }
 
 void Video::VideoStream::set_bpp(OutputBpp bpp) {
+	// Terminate the allocated block of memory (if any).
+	flush_pixels();
+
+	// Reset the shifter.
 	// TODO: is flushing like this correct?
 	output_shifter_ = 0;
+
+	// Store the new BPP.
 	bpp_ = bpp;
 }
 

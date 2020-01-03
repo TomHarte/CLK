@@ -69,10 +69,6 @@
 template <class T, bool dtack_is_implicit, bool signal_will_perform> void Processor<T, dtack_is_implicit, signal_will_perform>::run_for(HalfCycles duration) {
 	const HalfCycles remaining_duration = duration + half_cycles_left_to_run_;
 
-#ifdef LOG_TRACE
-						static bool should_log = false;
-#endif
-
 	// This loop counts upwards rather than downwards because it simplifies calculation of
 	// E as and when required.
 	HalfCycles cycles_run_for;
@@ -243,7 +239,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 				case ExecutionState::BeginInterrupt:
 #ifdef LOG_TRACE
-					should_log = true;
+//					should_log = true;
 #endif
 					active_program_ = nullptr;
 					active_micro_op_ = interrupt_micro_ops_;
