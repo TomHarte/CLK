@@ -337,4 +337,29 @@ struct RunLength {
 	[self testSequence:test targetLength:230];
 }
 
+- (void)testPP88 {
+	// Test a full line.
+	{
+		const RunLength test[] = {
+			{72, 8},
+			{50, 364},
+			{60, 16},
+			{50, 116},
+			{72, 8},
+			{-1}
+		};
+		[self testSequence:test targetLength:230];
+	}
+
+	{
+		const RunLength test[] = {
+			{72, 8},
+			{496, 50},
+			{72, 8},
+			{-1}
+		};
+		[self testSequence:test targetLength:186];
+	}
+}
+
 @end
