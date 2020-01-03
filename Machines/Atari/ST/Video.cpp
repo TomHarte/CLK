@@ -513,8 +513,8 @@ void Video::update_output_mode() {
 		video_stream_.set_bpp(output_bpp_);
 	}
 
-	const int freqs[] = {50, 60, 72};
-	printf("%d, %d -> %d [%d %d]\n", x_ / 2, y_, freqs[int(field_frequency_)], horizontal_.enable, vertical_.enable);
+//	const int freqs[] = {50, 60, 72};
+//	printf("%d, %d -> %d [%d %d]\n", x_ / 2, y_, freqs[int(field_frequency_)], horizontal_.enable, vertical_.enable);
 }
 
 // MARK: - The shifter
@@ -731,10 +731,13 @@ void Video::VideoStream::output_pixels(int duration) {
 }
 
 void Video::VideoStream::flush_pixels() {
-	switch(bpp_) {
-		case OutputBpp::One:	crt_.output_data(pixel_pointer_ >> 1, size_t(pixel_pointer_)); break;
-		default: 				crt_.output_data(pixel_pointer_); break;
-		case OutputBpp::Four:	crt_.output_data(pixel_pointer_ << 1, size_t(pixel_pointer_)); break;
+	// Flush only if there's something to flush.
+	if(pixel_pointer_) {
+		switch(bpp_) {
+			case OutputBpp::One:	crt_.output_data(pixel_pointer_ >> 1, size_t(pixel_pointer_)); break;
+			default: 				crt_.output_data(pixel_pointer_); break;
+			case OutputBpp::Four:	crt_.output_data(pixel_pointer_ << 1, size_t(pixel_pointer_)); break;
+		}
 	}
 
 	pixel_pointer_ = 0;
@@ -742,8 +745,14 @@ void Video::VideoStream::flush_pixels() {
 }
 
 void Video::VideoStream::set_bpp(OutputBpp bpp) {
+	// Terminate the allocated block of memory (if any).
+	flush_pixels();
+
+	// Reset the shifter.
 	// TODO: is flushing like this correct?
 	output_shifter_ = 0;
+
+	// Store the new BPP.
 	bpp_ = bpp;
 }
 
