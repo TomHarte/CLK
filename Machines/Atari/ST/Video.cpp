@@ -267,10 +267,11 @@ void Video::advance(HalfCycles duration) {
 				next_vertical_.enable = true;
 			} else if(y_ == vertical_timings.reset_enable) {
 				next_vertical_.enable = false;
-			} else if(next_y_ == vertical_timings.height) {
+			} else if(next_y_ == vertical_timings.height - 2) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::Begin;
+			} else if(next_y_ == vertical_timings.height) {
 				next_y_ = 0;
-			} else if(next_y_ == 2) {
+			} else if(y_ == 0) {
 				next_vertical_.sync_schedule = VerticalState::SyncSchedule::End;
 			}
 		}
@@ -464,10 +465,10 @@ void Video::write(int address, uint16_t value) {
 		// Sync mode and pixel mode.
 		case 0x05:
 			// Writes to sync mode have a one-cycle delay in effect.
-			deferrer_.defer(HalfCycles(2), [=] {
+//			deferrer_.defer(HalfCycles(2), [=] {
 				sync_mode_ = value;
 				update_output_mode();
-			});
+//			});
 		break;
 		case 0x30:
 			video_mode_ = value;
@@ -512,8 +513,8 @@ void Video::update_output_mode() {
 		video_stream_.set_bpp(output_bpp_);
 	}
 
-//	const int freqs[] = {50, 60, 72};
-//	printf("%d, %d -> %d [%d %d]\n", x_ / 2, y_, freqs[int(field_frequency_)], horizontal_.enable, vertical_.enable);
+	const int freqs[] = {50, 60, 72};
+	printf("%d, %d -> %d [%d %d]\n", x_ / 2, y_, freqs[int(field_frequency_)], horizontal_.enable, vertical_.enable);
 }
 
 // MARK: - The shifter
