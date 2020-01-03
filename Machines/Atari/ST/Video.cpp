@@ -465,10 +465,10 @@ void Video::write(int address, uint16_t value) {
 		// Sync mode and pixel mode.
 		case 0x05:
 			// Writes to sync mode have a one-cycle delay in effect.
-//			deferrer_.defer(HalfCycles(2), [=] {
+			deferrer_.defer(HalfCycles(2), [=] {
 				sync_mode_ = value;
 				update_output_mode();
-//			});
+			});
 		break;
 		case 0x30:
 			video_mode_ = value;
