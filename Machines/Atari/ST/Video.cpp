@@ -94,7 +94,7 @@ struct Checker {
 } checker;
 #endif
 
-const int de_delay_period = CYCLE(28);		// Number of half cycles after DE that observed DE changes.
+const int de_delay_period = CYCLE(28);		// Amount of time after DE that observed DE changes. NB: HACK HERE. This currently incorporates the MFP recognition delay. MUST FIX.
 const int vsync_x_position = CYCLE(56);		// Horizontal cycle on which vertical sync changes happen.
 
 const int hsync_start = CYCLE(48);			// Cycles before end of line when hsync starts.
@@ -116,7 +116,7 @@ Video::Video() :
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
-	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 216, 850, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 220, 850, 4.0f / 3.0f));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
