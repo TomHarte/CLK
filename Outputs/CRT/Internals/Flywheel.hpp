@@ -61,7 +61,7 @@ struct Flywheel {
 		@returns The next synchronisation event.
 	*/
 	inline SyncEvent get_next_event_in_period(bool sync_is_requested, int cycles_to_run_for, int *cycles_advanced) {
-		// do we recognise this hsync, thereby adjusting future time expectations?
+		// If sync is signalled _now_, consider adjusting expected_next_sync_.
 		if(sync_is_requested) {
 			if(counter_ < sync_error_window_ || counter_ > expected_next_sync_ - sync_error_window_) {
 				const int time_now = (counter_ < sync_error_window_) ? expected_next_sync_ + counter_ : counter_;
