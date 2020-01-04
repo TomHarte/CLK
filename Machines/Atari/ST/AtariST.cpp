@@ -292,7 +292,7 @@ class ConcreteMachine:
 								cycle.set_value8_high(ay_.get_data_output());
 								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							} else {
-								if((address >> 1) == 0x7fc400) {
+								if(!(address&2)) {
 									ay_.set_control_lines(GI::AY38910::BC1);
 								} else {
 									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
@@ -349,7 +349,7 @@ class ConcreteMachine:
 							mc68000_.set_is_peripheral_address(!cycle.data_select_active());
 							if(!cycle.data_select_active()) return delay;
 
-							const auto acia_ = ((address >> 1) < 0x7ffe02) ? &keyboard_acia_ : &midi_acia_;
+							const auto acia_ = (address & 4) ? &midi_acia_ : &keyboard_acia_;
 							if(cycle.operation & Microcycle::Read) {
 								cycle.set_value8_high((*acia_)->read(int(address >> 1)));
 							} else {
