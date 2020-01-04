@@ -86,9 +86,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					}
 
 					if(active_step_->microcycle.data_select_active()) {
-						// TODO: if valid peripheral address is asserted, substitute a
-						// synhronous bus access.
-
 						// Check whether the processor needs to await DTack.
 						if(!dtack_is_implicit && !dtack_ && !bus_error_) {
 							execution_state_ = ExecutionState::WaitingForDTack;
@@ -999,12 +996,8 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									const auto quotient = dividend / divisor;
 
 									// If overflow would occur, appropriate flags are set and the result is not written back.
-									if(quotient >= 65536) {
-										overflow_flag_ =
-										zero_result_ =
-										negative_flag_ = 1;
-										// TODO: Zero and Negative flags as above are merely sufficient
-										// to satisfy the tests I currentl have. What should they really be?
+									if(quotient > 65535) {
+										overflow_flag_ = zero_result_ = negative_flag_ = 1;
 										set_next_microcycle_length(HalfCycles(3*2*2));
 										break;
 									}
@@ -1075,11 +1068,6 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									if(quotient > 32767) {
 										overflow_flag_ = 1;
 										set_next_microcycle_length(HalfCycles(6*2*2));
-
-										// These are officially undefined for results that overflow, so the below is a guess.
-										zero_result_ = decltype(zero_result_)(dividend);
-										negative_flag_ = zero_result_ & 0x8000;
-
 										break;
 									}
 
