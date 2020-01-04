@@ -40,7 +40,9 @@ enum class Key: uint16_t {
 	Insert = 0x52, Delete,
 	ISO = 0x60, Undo, Help, KeypadOpenBracket, KeypadCloseBracket, KeypadDivide, KeypadMultiply,
 	Keypad7, Keypad8, Keypad9, Keypad4, Keypad5, Keypad6, Keypad1, Keypad2, Keypad3, Keypad0, KeypadDecimalPoint,
-	KeypadEnter
+	KeypadEnter,
+	Joystick1Button = 0x74,	// These keycodes are used only in joystick keycode mode.
+	Joystick2Button = 0x75,
 };
 static_assert(uint16_t(Key::RightShift) == 0x36, "RightShift should have key code 0x36; check intermediate entries");
 static_assert(uint16_t(Key::F10) == 0x44, "F10 should have key code 0x44; check intermediate entries");
@@ -143,8 +145,10 @@ class IntelligentKeyboard:
 		void set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical);
 		void interrogate_joysticks();
 
+		void clear_joystick_events();
+
 		enum class JoystickMode {
-			Disabled, Event, Interrogation
+			Disabled, Event, Interrogation, KeyCode
 		} joystick_mode_ = JoystickMode::Event;
 
 		class Joystick: public Inputs::ConcreteJoystick {
@@ -179,6 +183,10 @@ class IntelligentKeyboard:
 
 				bool has_event() {
 					return returned_state_ != state_;
+				}
+
+				uint8_t event_mask() {
+					return returned_state_ ^ state_;
 				}
 
 			private:

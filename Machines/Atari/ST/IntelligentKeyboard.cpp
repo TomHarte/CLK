@@ -100,13 +100,46 @@ void IntelligentKeyboard::run_for(HalfCycles duration) {
 	// machine advertises as joystick 1 is mapped to the Atari ST's joystick 2, so as to
 	// maintain both the normal emulation expections that the first joystick is the primary
 	// one and the Atari ST's convention that the main joystick is in port 2.
-	for(size_t c = 0; c < 2; ++c) {
-		const auto joystick = static_cast<Joystick *>(joysticks_[c ^ 1].get());
-		if(joystick->has_event()) {
-			output_bytes({
-				uint8_t(0xfe | c),
-				joystick->get_state()
-			});
+	if(joystick_mode_ == JoystickMode::Event || joystick_mode_ == JoystickMode::KeyCode) {
+		for(size_t c = 0; c < 2; ++c) {
+			const auto joystick = static_cast<Joystick *>(joysticks_[c ^ 1].get());
+			if(joystick->has_event()) {
+
+				if(joystick_mode_ == JoystickMode::Event) {
+					// Event mode: forward a joystick event message.
+					output_bytes({
+						uint8_t(0xfe | c),
+						joystick->get_state()
+					});
+				} else {
+					// Key code mode: decompose the joystick event into
+					// instantaneous key events.
+					const auto event_mask = joystick->event_mask();
+					const auto new_state = joystick->get_state();
+					const auto new_presses = (event_mask ^ new_state) & new_state;
+
+					// Send cursor keys for the movement.
+					const Key keys[] = {Key::Up, Key::Down, Key::Left, Key::Right};
+					for(int key = 0; key < 4; ++key) {
+						if(new_presses & (1 << key)) {
+							output_bytes({
+								uint8_t(keys[key]),
+								uint8_t(0x80 | uint8_t(keys[key]))
+							});
+						}
+					}
+
+					// Check also for fire, but the key to send depends
+					// on the joystick.
+					if(new_presses & 0x80) {
+						const Key fire_buttons[] = {Key::Joystick1Button, Key::Joystick2Button};
+						output_bytes({
+							uint8_t(fire_buttons[c]),
+							uint8_t(0x80 | uint8_t(fire_buttons[c]))
+						});
+					}
+				}
+			}
 		}
 	}
 
@@ -425,21 +458,45 @@ void IntelligentKeyboard::disable_joysticks() {
 
 void IntelligentKeyboard::set_joystick_event_mode() {
 	joystick_mode_ = JoystickMode::Event;
+	clear_joystick_events();
 }
 
 void IntelligentKeyboard::set_joystick_interrogation_mode() {
 	joystick_mode_ = JoystickMode::Interrogation;
 }
 
-void IntelligentKeyboard::interrogate_joysticks() {
+void IntelligentKeyboard::set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical) {
+	joystick_mode_ = JoystickMode::KeyCode;
+	clear_joystick_events();
+}
+
+void IntelligentKeyboard::clear_joystick_events() {
 	const auto joystick1 = static_cast<Joystick *>(joysticks_[0].get());
 	const auto joystick2 = static_cast<Joystick *>(joysticks_[1].get());
+	joystick1->get_state();
+	joystick2->get_state();
+}
 
-	output_bytes({
-		0xfd,
-		joystick2->get_state(),
-		joystick1->get_state()
-	});
+void IntelligentKeyboard::interrogate_joysticks() {
+	if(joystick_mode_ != JoystickMode::Interrogation) {
+		// Joystick::get_state() implicitly clears Joystick::has_event,
+		// so don't permit interrogation if the user isn't in interrogation
+		// mode because it might cause dropped events.
+		output_bytes({
+			0xfd,
+			0x00,
+			0x00
+		});
+	} else {
+		const auto joystick1 = static_cast<Joystick *>(joysticks_[0].get());
+		const auto joystick2 = static_cast<Joystick *>(joysticks_[1].get());
+
+		output_bytes({
+			0xfd,
+			joystick2->get_state(),
+			joystick1->get_state()
+		});
+	}
 }
 
 void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t rate) {
@@ -448,8 +505,4 @@ void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t rate) {
 
 void IntelligentKeyboard::set_joystick_fire_button_monitoring_mode() {
 	LOG("Unimplemented: joystick fire button monitoring mode");
-}
-
-void IntelligentKeyboard::set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical) {
-	LOG("Unimplemented: joystick keycode mode");
 }
