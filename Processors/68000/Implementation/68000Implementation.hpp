@@ -940,7 +940,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::MULU: {
 									destination()->full = destination()->halves.low.full * source()->halves.low.full;
-									carry_flag_ = overflow_flag_ = 0;	// TODO: "set if overflow".
+									carry_flag_ = overflow_flag_ = 0;
 									zero_result_ = destination()->full;
 									negative_flag_ = zero_result_ & 0x80000000;
 
@@ -954,7 +954,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::MULS: {
 									destination()->full =
 										u_extend16(destination()->halves.low.full) * u_extend16(source()->halves.low.full);
-									carry_flag_ = overflow_flag_ = 0;	// TODO: "set if overflow".
+									carry_flag_ = overflow_flag_ = 0;
 									zero_result_ = destination()->full;
 									negative_flag_ = zero_result_ & 0x80000000;
 
