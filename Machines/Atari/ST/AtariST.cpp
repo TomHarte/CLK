@@ -348,13 +348,12 @@ class ConcreteMachine:
 								cycle.set_value8_high(ay_.get_data_output());
 								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							} else {
-								if(!(address&2)) {
-									// Select register.
-									ay_.set_control_lines(GI::AY38910::BC1);
-								} else {
-									// Write data to register.
-									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
-								}
+								// Net effect here: addresses with bit 1 set write to a register,
+								// addresses with bit 1 clear select a register.
+								ay_.set_control_lines(GI::AY38910::ControlLines(
+									GI::AY38910::BC2 | GI::AY38910::BDIR
+									| ((address&2) ? 0 : GI::AY38910::BC1)
+								));
 								ay_.set_data_input(cycle.value8_high());
 								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							}
