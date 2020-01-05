@@ -3262,9 +3262,9 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 		&destination_bus_data_[0].halves.low,
 		&program_counter_.halves.high,
 		&decoded_instruction_,
-		&effective_address_[0].halves.low,
+		&effective_address_[1].halves.low,
 		&destination_bus_data_[0].halves.high,
-		&effective_address_[0].halves.high
+		&effective_address_[1].halves.high
 	});
 
 	// Also relink the RTE and RTR bus steps to collect the program counter.
