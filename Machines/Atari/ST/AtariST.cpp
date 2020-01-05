@@ -280,8 +280,64 @@ class ConcreteMachine:
 							*/
 						break;
 
-						case 0x8800:	/* PSG: write to select register, read to read register. */
-						case 0x8802:	/* PSG: write to write register. */
+						// Video controls.
+						case 0x8200:	case 0x8202:	case 0x8204:	case 0x8206:
+						case 0x8208:	case 0x820a:	case 0x820c:	case 0x820e:
+						case 0x8210:	case 0x8212:	case 0x8214:	case 0x8216:
+						case 0x8218:	case 0x821a:	case 0x821c:	case 0x821e:
+						case 0x8220:	case 0x8222:	case 0x8224:	case 0x8226:
+						case 0x8228:	case 0x822a:	case 0x822c:	case 0x822e:
+						case 0x8230:	case 0x8232:	case 0x8234:	case 0x8236:
+						case 0x8238:	case 0x823a:	case 0x823c:	case 0x823e:
+						case 0x8240:	case 0x8242:	case 0x8244:	case 0x8246:
+						case 0x8248:	case 0x824a:	case 0x824c:	case 0x824e:
+						case 0x8250:	case 0x8252:	case 0x8254:	case 0x8256:
+						case 0x8258:	case 0x825a:	case 0x825c:	case 0x825e:
+						case 0x8260:	case 0x8262:
+							if(!cycle.data_select_active()) return delay;
+
+							if(cycle.operation & Microcycle::Read) {
+								cycle.set_value16(video_->read(int(address >> 1)));
+							} else {
+								video_->write(int(address >> 1), cycle.value16());
+							}
+						break;
+
+						// DMA.
+						case 0x8604:	case 0x8606:	case 0x8608:	case 0x860a:	case 0x860c:
+							if(!cycle.data_select_active()) return delay;
+
+							if(cycle.operation & Microcycle::Read) {
+								cycle.set_value16(dma_->read(int(address >> 1)));
+							} else {
+								dma_->write(int(address >> 1), cycle.value16());
+							}
+						break;
+
+						// Audio.
+						//
+						// Re: mirrors, Dan Hollis' hardware register list asserts:
+						//
+						// "Note: PSG Registers are now fixed at these addresses. All other addresses are masked out on the Falcon. Any
+						// writes to the shadow registers $8804-$88FF will cause bus errors.", which I am taking to imply that those shadow
+						// registers exist on the Atari ST.
+						case 0x8800: case 0x8802: case 0x8804: case 0x8806: case 0x8808: case 0x880a: case 0x880c: case 0x880e:
+						case 0x8810: case 0x8812: case 0x8814: case 0x8816: case 0x8818: case 0x881a: case 0x881c: case 0x881e:
+						case 0x8820: case 0x8822: case 0x8824: case 0x8826: case 0x8828: case 0x882a: case 0x882c: case 0x882e:
+						case 0x8830: case 0x8832: case 0x8834: case 0x8836: case 0x8838: case 0x883a: case 0x883c: case 0x883e:
+						case 0x8840: case 0x8842: case 0x8844: case 0x8846: case 0x8848: case 0x884a: case 0x884c: case 0x884e:
+						case 0x8850: case 0x8852: case 0x8854: case 0x8856: case 0x8858: case 0x885a: case 0x885c: case 0x885e:
+						case 0x8860: case 0x8862: case 0x8864: case 0x8866: case 0x8868: case 0x886a: case 0x886c: case 0x886e:
+						case 0x8870: case 0x8872: case 0x8874: case 0x8876: case 0x8878: case 0x887a: case 0x887c: case 0x887e:
+						case 0x8880: case 0x8882: case 0x8884: case 0x8886: case 0x8888: case 0x888a: case 0x888c: case 0x888e:
+						case 0x8890: case 0x8892: case 0x8894: case 0x8896: case 0x8898: case 0x889a: case 0x889c: case 0x889e:
+						case 0x88a0: case 0x88a2: case 0x88a4: case 0x88a6: case 0x88a8: case 0x88aa: case 0x88ac: case 0x88ae:
+						case 0x88b0: case 0x88b2: case 0x88b4: case 0x88b6: case 0x88b8: case 0x88ba: case 0x88bc: case 0x88be:
+						case 0x88c0: case 0x88c2: case 0x88c4: case 0x88c6: case 0x88c8: case 0x88ca: case 0x88cc: case 0x88ce:
+						case 0x88d0: case 0x88d2: case 0x88d4: case 0x88d6: case 0x88d8: case 0x88da: case 0x88dc: case 0x88de:
+						case 0x88e0: case 0x88e2: case 0x88e4: case 0x88e6: case 0x88e8: case 0x88ea: case 0x88ec: case 0x88ee:
+						case 0x88f0: case 0x88f2: case 0x88f4: case 0x88f6: case 0x88f8: case 0x88fa: case 0x88fc: case 0x88fe:
+
 							if(!cycle.data_select_active()) return delay;
 
 							advance_time(HalfCycles(2));
@@ -293,8 +349,10 @@ class ConcreteMachine:
 								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							} else {
 								if(!(address&2)) {
+									// Select register.
 									ay_.set_control_lines(GI::AY38910::BC1);
 								} else {
+									// Write data to register.
 									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
 								}
 								ay_.set_data_input(cycle.value8_high());
@@ -320,29 +378,6 @@ class ConcreteMachine:
 							}
 						break;
 
-						// Video controls.
-						case 0x8200:	case 0x8202:	case 0x8204:	case 0x8206:
-						case 0x8208:	case 0x820a:	case 0x820c:	case 0x820e:
-						case 0x8210:	case 0x8212:	case 0x8214:	case 0x8216:
-						case 0x8218:	case 0x821a:	case 0x821c:	case 0x821e:
-						case 0x8220:	case 0x8222:	case 0x8224:	case 0x8226:
-						case 0x8228:	case 0x822a:	case 0x822c:	case 0x822e:
-						case 0x8230:	case 0x8232:	case 0x8234:	case 0x8236:
-						case 0x8238:	case 0x823a:	case 0x823c:	case 0x823e:
-						case 0x8240:	case 0x8242:	case 0x8244:	case 0x8246:
-						case 0x8248:	case 0x824a:	case 0x824c:	case 0x824e:
-						case 0x8250:	case 0x8252:	case 0x8254:	case 0x8256:
-						case 0x8258:	case 0x825a:	case 0x825c:	case 0x825e:
-						case 0x8260:	case 0x8262:
-							if(!cycle.data_select_active()) return delay;
-
-							if(cycle.operation & Microcycle::Read) {
-								cycle.set_value16(video_->read(int(address >> 1)));
-							} else {
-								video_->write(int(address >> 1), cycle.value16());
-							}
-						break;
-
 						// ACIAs.
 						case 0xfc00:	case 0xfc02:	case 0xfc04:	case 0xfc06: {
 							// Set VPA.
@@ -356,17 +391,6 @@ class ConcreteMachine:
 								(*acia_)->write(int(address >> 1), cycle.value8_high());
 							}
 						} break;
-
-						// DMA.
-						case 0x8604:	case 0x8606:	case 0x8608:	case 0x860a:	case 0x860c:
-							if(!cycle.data_select_active()) return delay;
-
-							if(cycle.operation & Microcycle::Read) {
-								cycle.set_value16(dma_->read(int(address >> 1)));
-							} else {
-								dma_->write(int(address >> 1), cycle.value16());
-							}
-						break;
 					}
 				return HalfCycles(0);
 			}
