@@ -428,7 +428,7 @@ class ConcreteMachine:
 								// TAPION
 
 								// Enable the tape motor.
-								i8255_.set_register(0xab, 0x8);
+								i8255_.write(0xab, 0x8);
 
 								// Disable interrupts.
 								z80_.set_value_of_register(CPU::Z80::Register::IFF1, 0);
@@ -509,7 +509,7 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch(address & 0xff) {
 							case 0x98:	case 0x99:
-								*cycle.value = vdp_->get_register(address);
+								*cycle.value = vdp_->read(address);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
@@ -523,7 +523,7 @@ class ConcreteMachine:
 
 							case 0xa8:	case 0xa9:
 							case 0xaa:	case 0xab:
-								*cycle.value = i8255_.get_register(address);
+								*cycle.value = i8255_.read(address);
 							break;
 
 							default:
@@ -536,7 +536,7 @@ class ConcreteMachine:
 						const int port = address & 0xff;
 						switch(port) {
 							case 0x98:	case 0x99:
-								vdp_->set_register(address, *cycle.value);
+								vdp_->write(address, *cycle.value);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
@@ -550,7 +550,7 @@ class ConcreteMachine:
 
 							case 0xa8:	case 0xa9:
 							case 0xaa:	case 0xab:
-								i8255_.set_register(address, *cycle.value);
+								i8255_.write(address, *cycle.value);
 							break;
 
 							case 0xfc: case 0xfd: case 0xfe: case 0xff:

@@ -27,7 +27,7 @@ template <class T> class i8255 {
 			Stores the value @c value to the register at @c address. If this causes a change in 8255 output
 			then the PortHandler will be informed.
 		*/
-		void set_register(int address, uint8_t value) {
+		void write(int address, uint8_t value) {
 			switch(address & 3) {
 				case 0:
 					if(!(control_ & 0x10)) {
@@ -60,7 +60,7 @@ template <class T> class i8255 {
 			Obtains the current value for the register at @c address. If this provides a reading
 			of input then the PortHandler will be queried.
 		*/
-		uint8_t get_register(int address) {
+		uint8_t read(int address) {
 			switch(address & 3) {
 				case 0:	return (control_ & 0x10) ? port_handler_.get_value(0) : outputs_[0];
 				case 1:	return (control_ & 0x02) ? port_handler_.get_value(1) : outputs_[1];

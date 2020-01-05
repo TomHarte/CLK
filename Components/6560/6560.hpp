@@ -58,7 +58,7 @@ enum class OutputMode {
 	To run the VIC for a cycle, the caller should call @c get_address, make the requested bus access
 	and call @c set_graphics_value with the result.
 
-	@c set_register and @c get_register provide register access.
+	@c write and @c read provide register access.
 */
 template <class BusHandler> class MOS6560 {
 	public:
@@ -353,7 +353,7 @@ template <class BusHandler> class MOS6560 {
 		/*!
 			Writes to a 6560 register.
 		*/
-		void set_register(int address, uint8_t value) {
+		void write(int address, uint8_t value) {
 			address &= 0xf;
 			registers_.direct_values[address] = value;
 			switch(address) {
@@ -417,7 +417,7 @@ template <class BusHandler> class MOS6560 {
 		/*
 			Reads from a 6560 register.
 		*/
-		uint8_t get_register(int address) {
+		uint8_t read(int address) {
 			address &= 0xf;
 			switch(address) {
 				default: return registers_.direct_values[address];

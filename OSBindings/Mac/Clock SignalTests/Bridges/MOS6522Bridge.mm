@@ -53,11 +53,11 @@ class VanillaVIAPortHandler: public MOS::MOS6522::PortHandler {
 }
 
 - (void)setValue:(uint8_t)value forRegister:(NSUInteger)registerNumber {
-	_via->set_register((int)registerNumber, value);
+	_via->write((int)registerNumber, value);
 }
 
 - (uint8_t)valueForRegister:(NSUInteger)registerNumber {
-	return _via->get_register((int)registerNumber);
+	return _via->read((int)registerNumber);
 }
 
 - (void)runForHalfCycles:(NSUInteger)numberOfHalfCycles {

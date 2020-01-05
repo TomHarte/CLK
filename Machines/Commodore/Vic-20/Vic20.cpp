@@ -503,10 +503,10 @@ class ConcreteMachine:
 				if((address&0xfc00) == 0x9000) {
 					if(!(address&0x100)) {
 						update_video();
-						result &= mos6560_.get_register(address);
+						result &= mos6560_.read(address);
 					}
-					if(address & 0x10) result &= user_port_via_.get_register(address);
-					if(address & 0x20) result &= keyboard_via_.get_register(address);
+					if(address & 0x10) result &= user_port_via_.read(address);
+					if(address & 0x20) result &= keyboard_via_.read(address);
 				}
 				*value = result;
 
@@ -590,12 +590,12 @@ class ConcreteMachine:
 					// The VIC is selected by bit 8 = 0
 					if(!(address&0x100)) {
 						update_video();
-						mos6560_.set_register(address, *value);
+						mos6560_.write(address, *value);
 					}
 					// The first VIA is selected by bit 4 = 1.
-					if(address & 0x10) user_port_via_.set_register(address, *value);
+					if(address & 0x10) user_port_via_.write(address, *value);
 					// The second VIA is selected by bit 5 = 1.
-					if(address & 0x20) keyboard_via_.set_register(address, *value);
+					if(address & 0x20) keyboard_via_.write(address, *value);
 				}
 			}
 

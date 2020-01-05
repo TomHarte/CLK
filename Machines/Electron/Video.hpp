@@ -46,7 +46,7 @@ class VideoOutput {
 			Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
 			@c get_cycles_until_next_ram_availability and @c get_memory_access_range.
 		*/
-		void set_register(int address, uint8_t value);
+		void write(int address, uint8_t value);
 
 		/*!
 			Describes an interrupt the video hardware will generate by its identity and scheduling time.
@@ -62,7 +62,7 @@ class VideoOutput {
 			The time until signalling returned is the number of cycles after the final one triggered
 			by the most recent call to @c run_for.
 
-			This result may be mutated by calls to @c set_register.
+			This result may be mutated by calls to @c write.
 		*/
 		Interrupt get_next_interrupt();
 

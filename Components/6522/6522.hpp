@@ -94,10 +94,10 @@ template <class T> class MOS6522: public MOS6522Storage {
 		MOS6522(const MOS6522 &) = delete;
 
 		/*! Sets a register value. */
-		void set_register(int address, uint8_t value);
+		void write(int address, uint8_t value);
 
 		/*! Gets a register value. */
-		uint8_t get_register(int address);
+		uint8_t read(int address);
 
 		/*! @returns the bus handler. */
 		T &bus_handler();

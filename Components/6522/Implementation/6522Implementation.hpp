@@ -30,7 +30,7 @@ template <typename T> void MOS6522<T>::access(int address) {
 	}
 }
 
-template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) {
+template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 	address &= 0xf;
 	access(address);
 	switch(address) {
@@ -155,7 +155,7 @@ template <typename T> void MOS6522<T>::set_register(int address, uint8_t value) 
 	}
 }
 
-template <typename T> uint8_t MOS6522<T>::get_register(int address) {
+template <typename T> uint8_t MOS6522<T>::read(int address) {
 	address &= 0xf;
 	access(address);
 	switch(address) {

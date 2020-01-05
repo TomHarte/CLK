@@ -45,7 +45,7 @@ uint16_t DMAController::read(int address) {
 				if(control_ & Control::CPUTarget) {
 					return 0xffff;
 				} else {
-					return 0xff00 | fdc_.get_register(control_ >> 1);
+					return 0xff00 | fdc_.read(control_ >> 1);
 				}
 			}
 		break;
@@ -78,7 +78,7 @@ void DMAController::write(int address, uint16_t value) {
 				if(control_ & Control::CPUTarget) {
 					// TODO: HDC.
 				} else {
-					fdc_.set_register(control_ >> 1, uint8_t(value));
+					fdc_.write(control_ >> 1, uint8_t(value));
 				}
 			}
 		break;
@@ -153,7 +153,7 @@ void DMAController::wd1770_did_change_output(WD::WD1770 *) {
 
 			// Read from the data register into the active buffer.
 			if(bytes_received_ < 16) {
-				buffer_[active_buffer_].contents[bytes_received_] = fdc_.get_register(3);
+				buffer_[active_buffer_].contents[bytes_received_] = fdc_.read(3);
 				++bytes_received_;
 			}
 			if(bytes_received_ == 16) {

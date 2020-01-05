@@ -36,10 +36,10 @@ class WD1770: public Storage::Disk::MFMController {
 		using Storage::Disk::MFMController::set_is_double_density;
 
 		/// Writes @c value to the register at @c address. Only the low two bits of the address are decoded.
-		void set_register(int address, uint8_t value);
+		void write(int address, uint8_t value);
 
 		/// Fetches the value of the register @c address. Only the low two bits of the address are decoded.
-		uint8_t get_register(int address);
+		uint8_t read(int address);
 
 		/// Runs the controller for @c number_of_cycles cycles.
 		void run_for(const Cycles cycles);

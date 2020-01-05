@@ -163,7 +163,7 @@ void i8272::run_for(Cycles cycles) {
 	if(is_sleeping_) update_clocking_observer();
 }
 
-void i8272::set_register(int address, uint8_t value) {
+void i8272::write(int address, uint8_t value) {
 	// don't consider attempted sets to the status register
 	if(!address) return;
 
@@ -181,7 +181,7 @@ void i8272::set_register(int address, uint8_t value) {
 	}
 }
 
-uint8_t i8272::get_register(int address) {
+uint8_t i8272::read(int address) {
 	if(address) {
 		if(result_stack_.empty()) return 0xff;
 		uint8_t result = result_stack_.back();
@@ -865,7 +865,7 @@ void i8272::posit_event(int event_type) {
 			SetDataRequest();
 			SetDataDirectionToProcessor();
 
-			// The actual stuff of unwinding result_stack_ is handled by ::get_register; wait
+			// The actual stuff of unwinding result_stack_ is handled by ::read; wait
 			// until the processor has read all result bytes.
 			WAIT_FOR_EVENT(Event8272::ResultEmpty);
 

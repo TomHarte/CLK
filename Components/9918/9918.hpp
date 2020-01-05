@@ -54,10 +54,10 @@ class TMS9918: public Base {
 		void run_for(const HalfCycles cycles);
 
 		/*! Sets a register value. */
-		void set_register(int address, uint8_t value);
+		void write(int address, uint8_t value);
 
 		/*! Gets a register value. */
-		uint8_t get_register(int address);
+		uint8_t read(int address);
 
 		/*! Gets the current scan line; provided by the Master System only. */
 		uint8_t get_current_line();
@@ -69,8 +69,8 @@ class TMS9918: public Base {
 		void latch_horizontal_counter();
 
 		/*!
-			Returns the amount of time until get_interrupt_line would next return true if
-			there are no interceding calls to set_register or get_register.
+			Returns the amount of time until @c get_interrupt_line would next return true if
+			there are no interceding calls to @c write or to @c read.
 
 			If get_interrupt_line is true now, returns zero. If get_interrupt_line would
 			never return true, returns -1.

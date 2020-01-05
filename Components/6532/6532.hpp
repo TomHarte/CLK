@@ -32,7 +32,7 @@ template <class T> class MOS6532 {
 		inline void set_ram(uint16_t address, uint8_t value)	{	ram_[address&0x7f] = value;		}
 		inline uint8_t get_ram(uint16_t address)				{	return ram_[address & 0x7f];	}
 
-		inline void set_register(int address, uint8_t value) {
+		inline void write(int address, uint8_t value) {
 			const uint8_t decodedAddress = address & 0x07;
 			switch(decodedAddress) {
 				// Port output
@@ -63,7 +63,7 @@ template <class T> class MOS6532 {
 			}
 		}
 
-		inline uint8_t get_register(int address) {
+		inline uint8_t read(int address) {
 			const uint8_t decodedAddress = address & 0x7;
 			switch(decodedAddress) {
 				// Port input

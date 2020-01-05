@@ -21,7 +21,7 @@ DiskROM::DiskROM(const std::vector<uint8_t> &rom) :
 void DiskROM::write(uint16_t address, uint8_t value, bool pc_is_outside_bios) {
 	switch(address) {
 		case 0x7ff8: case 0x7ff9: case 0x7ffa: case 0x7ffb:
-			set_register(address, value);
+			WD::WD1770::write(address, value);
 		break;
 		case 0x7ffc:
 			selected_head_ = value & 1;
@@ -41,7 +41,7 @@ void DiskROM::write(uint16_t address, uint8_t value, bool pc_is_outside_bios) {
 
 uint8_t DiskROM::read(uint16_t address) {
 	if(address >= 0x7ff8 && address < 0x7ffc) {
-		return get_register(address);
+		return WD::WD1770::read(address);
 	}
 	if(address == 0x7fff) {
 		return (get_data_request_line() ? 0x00 : 0x80) | (get_interrupt_request_line() ? 0x00 : 0x40);

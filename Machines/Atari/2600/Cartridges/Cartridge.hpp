@@ -181,9 +181,9 @@ template<class T> class Cartridge:
 				if((address&0x1280) == 0x280) {
 					update_6532();
 					if(isReadOperation(operation)) {
-						returnValue &= mos6532_.get_register(address);
+						returnValue &= mos6532_.read(address);
 					} else {
-						mos6532_.set_register(address, *value);
+						mos6532_.write(address, *value);
 					}
 				}
 

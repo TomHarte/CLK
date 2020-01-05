@@ -386,16 +386,16 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			} else {
 				if((address & 0xff00) == 0x0300) {
 					if(address < 0x0310 || (disk_interface == Analyser::Static::Oric::Target::DiskInterface::None)) {
-						if(isReadOperation(operation)) *value = via_.get_register(address);
-						else via_.set_register(address, *value);
+						if(isReadOperation(operation)) *value = via_.read(address);
+						else via_.write(address, *value);
 					} else {
 						switch(disk_interface) {
 							default: break;
 							case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
 								switch(address) {
 									case 0x0310: case 0x0311: case 0x0312: case 0x0313:
-										if(isReadOperation(operation)) *value = microdisc_.get_register(address);
-										else microdisc_.set_register(address, *value);
+										if(isReadOperation(operation)) *value = microdisc_.read(address);
+										else microdisc_.write(address, *value);
 									break;
 									case 0x314: case 0x315: case 0x316: case 0x317:
 										if(isReadOperation(operation)) *value = microdisc_.get_interrupt_request_register();
