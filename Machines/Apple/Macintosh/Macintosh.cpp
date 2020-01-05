@@ -227,9 +227,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 						// VIA accesses are via address 0xefe1fe + register*512,
 						// which at word precision is 0x77f0ff + register*256.
 						if(cycle.operation & Microcycle::Read) {
-							cycle.value->halves.low = via_.get_register(register_address);
+							cycle.value->halves.low = via_.read(register_address);
 						} else {
-							via_.set_register(register_address, cycle.value->halves.low);
+							via_.write(register_address, cycle.value->halves.low);
 						}
 
 						if(cycle.operation & Microcycle::SelectWord) cycle.value->halves.high = 0xff;

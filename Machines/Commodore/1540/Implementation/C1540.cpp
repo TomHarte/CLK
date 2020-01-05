@@ -86,14 +86,14 @@ Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, 
 		}
 	} else if(address >= 0x1800 && address <= 0x180f) {
 		if(isReadOperation(operation))
-			*value = serial_port_VIA_.get_register(address);
+			*value = serial_port_VIA_.read(address);
 		else
-			serial_port_VIA_.set_register(address, *value);
+			serial_port_VIA_.write(address, *value);
 	} else if(address >= 0x1c00 && address <= 0x1c0f) {
 		if(isReadOperation(operation))
-			*value = drive_VIA_.get_register(address);
+			*value = drive_VIA_.read(address);
 		else
-			drive_VIA_.set_register(address, *value);
+			drive_VIA_.write(address, *value);
 	}
 
 	serial_port_VIA_.run_for(Cycles(1));

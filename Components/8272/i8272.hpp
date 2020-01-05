@@ -33,8 +33,8 @@ class i8272 : public Storage::Disk::MFMController {
 		void set_data_input(uint8_t value);
 		uint8_t get_data_output();
 
-		void set_register(int address, uint8_t value);
-		uint8_t get_register(int address);
+		void write(int address, uint8_t value);
+		uint8_t read(int address);
 
 		void set_dma_acknowledge(bool dack);
 		void set_terminal_count(bool tc);

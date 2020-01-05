@@ -240,7 +240,7 @@ class ConcreteMachine:
 								*cycle.value = vdp_.last_valid()->get_latched_horizontal_counter();
 							break;
 							case 0x80: case 0x81:
-								*cycle.value = vdp_->get_register(address);
+								*cycle.value = vdp_->read(address);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
@@ -288,10 +288,10 @@ class ConcreteMachine:
 							} break;
 							case 0x40: case 0x41:
 								update_audio();
-								sn76489_.set_register(*cycle.value);
+								sn76489_.write(*cycle.value);
 							break;
 							case 0x80: case 0x81:
-								vdp_->set_register(address, *cycle.value);
+								vdp_->write(address, *cycle.value);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;

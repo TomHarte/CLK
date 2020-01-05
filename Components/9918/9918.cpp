@@ -492,7 +492,7 @@ void Base::output_border(int cycles, uint32_t cram_dot) {
 	}
 }
 
-void TMS9918::set_register(int address, uint8_t value) {
+void TMS9918::write(int address, uint8_t value) {
 	// Writes to address 0 are writes to the video RAM. Store
 	// the value and return.
 	if(!(address & 1)) {
@@ -670,7 +670,7 @@ void TMS9918::latch_horizontal_counter() {
 	latched_column_ = write_pointer_.column;
 }
 
-uint8_t TMS9918::get_register(int address) {
+uint8_t TMS9918::read(int address) {
 	write_phase_ = false;
 
 	// Reads from address 0 read video RAM, via the read-ahead buffer.

@@ -22,11 +22,11 @@ class VanillaRIOT: public MOS::MOS6532<VanillaRIOT> {
 }
 
 - (void)setValue:(uint8_t)value forRegister:(NSUInteger)registerNumber {
-	_riot.set_register((int)registerNumber, value);
+	_riot.write((int)registerNumber, value);
 }
 
 - (uint8_t)valueForRegister:(NSUInteger)registerNumber {
-	return _riot.get_register((int)registerNumber);
+	return _riot.read((int)registerNumber);
 }
 
 - (void)runForCycles:(NSUInteger)numberOfCycles {

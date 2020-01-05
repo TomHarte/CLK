@@ -23,7 +23,7 @@ WD1770::WD1770(Personality p) :
 	posit_event(int(Event1770::Command));
 }
 
-void WD1770::set_register(int address, uint8_t value) {
+void WD1770::write(int address, uint8_t value) {
 	switch(address&3) {
 		case 0: {
 			if((value&0xf0) == 0xd0) {
@@ -54,7 +54,7 @@ void WD1770::set_register(int address, uint8_t value) {
 	}
 }
 
-uint8_t WD1770::get_register(int address) {
+uint8_t WD1770::read(int address) {
 	switch(address&3) {
 		default: {
 			update_status([] (Status &status) {

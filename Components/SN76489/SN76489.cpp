@@ -48,7 +48,7 @@ void SN76489::set_sample_volume_range(std::int16_t range) {
 	evaluate_output_volume();
 }
 
-void SN76489::set_register(uint8_t value) {
+void SN76489::write(uint8_t value) {
 	task_queue_.defer([value, this] () {
 		if(value & 0x80) {
 			active_register_ = value;

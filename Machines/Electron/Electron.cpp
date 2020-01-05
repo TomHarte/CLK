@@ -204,7 +204,7 @@ class ConcreteMachine:
 					case 0xfe0c: case 0xfe0d: case 0xfe0e: case 0xfe0f:
 						if(!isReadOperation(operation)) {
 							update_display();
-							video_output_.set_register(address, *value);
+							video_output_.write(address, *value);
 							video_access_range_ = video_output_.get_memory_access_range();
 							queue_next_display_interrupt();
 						}
@@ -260,9 +260,9 @@ class ConcreteMachine:
 								set_key_state(KeyShift, false);
 							}
 							if(isReadOperation(operation))
-								*value = plus3_->get_register(address);
+								*value = plus3_->read(address);
 							else
-								plus3_->set_register(address, *value);
+								plus3_->write(address, *value);
 						}
 					break;
 					case 0xfc00:

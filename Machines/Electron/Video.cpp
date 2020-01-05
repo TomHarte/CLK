@@ -250,7 +250,7 @@ void VideoOutput::run_for(const Cycles cycles) {
 
 // MARK: - Register hub
 
-void VideoOutput::set_register(int address, uint8_t value) {
+void VideoOutput::write(int address, uint8_t value) {
 	switch(address & 0xf) {
 		case 0x02:
 			start_screen_address_ = (start_screen_address_ & 0xfe00) | static_cast<uint16_t>((value & 0xe0) << 1);

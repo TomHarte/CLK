@@ -924,14 +924,14 @@ template <bool has_fdc> class ConcreteMachine:
 
 					// Check for an 8255 PIO access
 					if(!(address & 0x800)) {
-						i8255_.set_register((address >> 8) & 3, *cycle.value);
+						i8255_.write((address >> 8) & 3, *cycle.value);
 					}
 
 					if constexpr (has_fdc) {
 						// Check for an FDC access
 						if((address & 0x580) == 0x100) {
 							flush_fdc();
-							fdc_.set_register(address & 1, *cycle.value);
+							fdc_.write(address & 1, *cycle.value);
 						}
 
 						// Check for a disk motor access
@@ -947,14 +947,14 @@ template <bool has_fdc> class ConcreteMachine:
 
 					// Check for a PIO access
 					if(!(address & 0x800)) {
-						*cycle.value &= i8255_.get_register((address >> 8) & 3);
+						*cycle.value &= i8255_.read((address >> 8) & 3);
 					}
 
 					// Check for an FDC access
 					if constexpr (has_fdc) {
 						if((address & 0x580) == 0x100) {
 							flush_fdc();
-							*cycle.value &= fdc_.get_register(address & 1);
+							*cycle.value &= fdc_.read(address & 1);
 						}
 					}
 

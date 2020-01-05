@@ -256,7 +256,7 @@ class ConcreteMachine:
 					case CPU::Z80::PartialMachineCycle::Input:
 						switch((address >> 5) & 7) {
 							case 5:
-								*cycle.value = vdp_->get_register(address);
+								*cycle.value = vdp_->read(address);
 								z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
@@ -299,14 +299,14 @@ class ConcreteMachine:
 							break;
 
 							case 5:
-								vdp_->set_register(address, *cycle.value);
+								vdp_->write(address, *cycle.value);
 								z80_.set_non_maskable_interrupt_line(vdp_->get_interrupt_line());
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 
 							case 7:
 								update_audio();
-								sn76489_.set_register(*cycle.value);
+								sn76489_.write(*cycle.value);
 							break;
 
 							default:
