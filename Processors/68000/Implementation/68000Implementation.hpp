@@ -116,6 +116,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						active_micro_op_ = long_exception_micro_ops_;
 						active_step_ = &all_bus_steps_[active_micro_op_->bus_program];
 						populate_bus_error_steps(3, get_status(), get_bus_code(), offending_address);
+						program_counter_.full -= 4;
 					}
 
 					// Perform the microcycle if it is of non-zero length. If this is an operation that
