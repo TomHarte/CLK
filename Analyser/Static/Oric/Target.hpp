@@ -26,6 +26,7 @@ struct Target: public ::Analyser::Static::Target {
 	enum class DiskInterface {
 		Microdisc,
 		Pravetz,
+		Jasmin,
 		None
 	};
 
