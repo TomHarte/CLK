@@ -41,7 +41,8 @@
 		((active_step_->microcycle.operation & Microcycle::IsProgram) ? 0x02 : 0x01) |	\
 		(is_supervisor_ << 2) |	\
 		(active_program_ ? 0x08 : 0) |	\
-		((active_step_->microcycle.operation & Microcycle::Read) ? 0x10 : 0)	\
+		((active_step_->microcycle.operation & Microcycle::Read) ? 0x10 : 0) |	\
+		(decoded_instruction_.full & 0xffe0)	\
 	)
 
 #define u_extend16(x)	uint32_t(int16_t(x))
@@ -100,8 +101,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							const auto offending_address = *active_step_->microcycle.address;
 							active_program_ = nullptr;
 							active_micro_op_ = long_exception_micro_ops_;
-							active_step_ = &all_bus_steps_[active_micro_op_->bus_program];
 							populate_bus_error_steps(2, get_status(), get_bus_code(), offending_address);
+							program_counter_.full -= 4;
+							active_step_ = &all_bus_steps_[active_micro_op_->bus_program];
 						}
 					}
 
@@ -114,9 +116,16 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						const auto offending_address = *active_step_->microcycle.address;
 						active_program_ = nullptr;
 						active_micro_op_ = long_exception_micro_ops_;
-						active_step_ = &all_bus_steps_[active_micro_op_->bus_program];
 						populate_bus_error_steps(3, get_status(), get_bus_code(), offending_address);
 						program_counter_.full -= 4;
+						active_step_ = &all_bus_steps_[active_micro_op_->bus_program];
+
+						// TODO: the above is only correct prior to the final microcycle of an
+						// instruction. If an exception occurs in the final microcycle then
+						// the next instruction will already have moved into the current instruction
+						// slot (decoded_instruction_ in my terms).
+
+						// TODO: it's also not correct for a bus error that occurs during another exception.
 					}
 
 					// Perform the microcycle if it is of non-zero length. If this is an operation that

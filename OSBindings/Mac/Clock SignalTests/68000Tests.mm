@@ -239,7 +239,12 @@ class CPU::MC68000::ProcessorStorageTests {
 	const auto stack_frame = _machine->ram_at(0x1f8);
 
 	// Function code et al.
-//	XCTAssertEqual(stack_frame[0], 0x0000);	// ??
+	XCTAssertEqual(stack_frame[0],
+		(0x4a9e & 0xffe0)	|	// Top 11 bits: decoded instruction;
+		0x10				|	// Bit 4: read or write;
+		0x0					|	// Bit 3: 0 = in instruction, 1 = not;
+		0x5						// Bits 0–2: FC0–2, i.e. bit 2 = supervisor, bit 1 = is program, bit 0 = is data.
+	);
 
 	// Access address.
 	XCTAssertEqual(stack_frame[1], 0x0000);
