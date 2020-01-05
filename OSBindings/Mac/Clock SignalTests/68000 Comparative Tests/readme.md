@@ -32,9 +32,6 @@ So the output is very scattergun approach, with a lot of redundancy.
 
 ## Questionable Results
 
-I am presently unconvinced by the results for:
-
-* the N flag on many of the [A/S/N]BCD results, as these often seem to conflict with Bart Trzynadlowski's 68knotes.txt; and
-* the alleged results of A7-relative JSR, for which the emulator I was testing against appears to have computed a target address for the value of A7 after pushing the existing PC to the stack, which is unlikely because the first of that instruction's program fetches occurs before any stack activity.  
+I am presently unconvinced by the results for  the N flag on many of the [A/S/N]BCD results, as these often seem to conflict with Bart Trzynadlowski's 68knotes.txt.
 
 This emulator seems not yet to generate values for the undocumented flags of DIVU and DIVS that match those listed here, but that's through lack of documentation. The objective here is to test my implementation of behaviour I am able to find descriptions of against other people's implementations of that same behaviour, to flush out errors in my comprehension and implementation.

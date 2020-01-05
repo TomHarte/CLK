@@ -2371,6 +2371,10 @@ struct ProcessorStorageConstructor {
 							// ... but otherwise assume that the true source of a destination will be the computed source address.
 							program.set_source(storage_, &storage_.effective_address_[0]);
 
+							// Beware below: PrepareJSR will pre-emptively subtract four from A7 in order
+							// to facilitate the peculiar stack write order of JSR. Therefore any address
+							// calculation that might be a function of A7 needs to be done before PrepareJSR.
+
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
 								default: continue;
@@ -2391,15 +2395,15 @@ struct ProcessorStorageConstructor {
 								case XXXw:		// JSR (xxx).W
 								case d16PC:		// JSR (d16, PC)
 								case d16An:		// JSR (d16, An)
-									op(Action::PrepareJSR);
 									op(address_action_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PrepareJSR);
 									op(Action::PerformOperation, seq("n np nW+ nw np", { ea(1), ea(1) }));
 								break;
 
 								case d8PCXn:	// JSR (d8, PC, Xn)
 								case d8AnXn:	// JSR (d8, An, Xn)
-									op(Action::PrepareJSR);
 									op(calc_action_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PrepareJSR);
 									op(Action::PerformOperation, seq("n nn np nW+ nw np", { ea(1), ea(1) }));
 								break;
 							}
