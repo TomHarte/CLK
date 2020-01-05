@@ -264,11 +264,11 @@ class ConcreteMachine:
 				return delay;
 
 				case BusDevice::IO:
-					switch(address >> 1) {
+					switch(address & 0xfffe) {	// TODO: surely it's going to be even less precise than this?
 						default:
 //							assert(false);
 
-						case 0x7fc000:
+						case 0x8000:
 							/* Memory controller configuration:
 									b0, b1: bank 1
 									b2, b3: bank 0
@@ -280,8 +280,8 @@ class ConcreteMachine:
 							*/
 						break;
 
-						case 0x7fc400:	/* PSG: write to select register, read to read register. */
-						case 0x7fc401:	/* PSG: write to write register. */
+						case 0x8800:	/* PSG: write to select register, read to read register. */
+						case 0x8802:	/* PSG: write to write register. */
 							if(!cycle.data_select_active()) return delay;
 
 							advance_time(HalfCycles(2));
@@ -303,14 +303,14 @@ class ConcreteMachine:
 						return delay + HalfCycles(2);
 
 						// The MFP block:
-						case 0x7ffd00:	case 0x7ffd01:	case 0x7ffd02:	case 0x7ffd03:
-						case 0x7ffd04:	case 0x7ffd05:	case 0x7ffd06:	case 0x7ffd07:
-						case 0x7ffd08:	case 0x7ffd09:	case 0x7ffd0a:	case 0x7ffd0b:
-						case 0x7ffd0c:	case 0x7ffd0d:	case 0x7ffd0e:	case 0x7ffd0f:
-						case 0x7ffd10:	case 0x7ffd11:	case 0x7ffd12:	case 0x7ffd13:
-						case 0x7ffd14:	case 0x7ffd15:	case 0x7ffd16:	case 0x7ffd17:
-						case 0x7ffd18:	case 0x7ffd19:	case 0x7ffd1a:	case 0x7ffd1b:
-						case 0x7ffd1c:	case 0x7ffd1d:	case 0x7ffd1e:	case 0x7ffd1f:
+						case 0xfa00:	case 0xfa02:	case 0xfa04:	case 0xfa06:
+						case 0xfa08:	case 0xfa0a:	case 0xfa0c:	case 0xfa0e:
+						case 0xfa10:	case 0xfa12:	case 0xfa14:	case 0xfa16:
+						case 0xfa18:	case 0xfa1a:	case 0xfa1c:	case 0xfa1e:
+						case 0xfa20:	case 0xfa22:	case 0xfa24:	case 0xfa26:
+						case 0xfa28:	case 0xfa2a:	case 0xfa2c:	case 0xfa2e:
+						case 0xfa30:	case 0xfa32:	case 0xfa34:	case 0xfa36:
+						case 0xfa38:	case 0xfa3a:	case 0xfa3c:	case 0xfa3e:
 							if(!cycle.data_select_active()) return delay;
 
 							if(cycle.operation & Microcycle::Read) {
@@ -321,19 +321,19 @@ class ConcreteMachine:
 						break;
 
 						// Video controls.
-						case 0x7fc100:	case 0x7fc101:	case 0x7fc102:	case 0x7fc103:
-						case 0x7fc104:	case 0x7fc105:	case 0x7fc106:	case 0x7fc107:
-						case 0x7fc108:	case 0x7fc109:	case 0x7fc10a:	case 0x7fc10b:
-						case 0x7fc10c:	case 0x7fc10d:	case 0x7fc10e:	case 0x7fc10f:
-						case 0x7fc110:	case 0x7fc111:	case 0x7fc112:	case 0x7fc113:
-						case 0x7fc114:	case 0x7fc115:	case 0x7fc116:	case 0x7fc117:
-						case 0x7fc118:	case 0x7fc119:	case 0x7fc11a:	case 0x7fc11b:
-						case 0x7fc11c:	case 0x7fc11d:	case 0x7fc11e:	case 0x7fc11f:
-						case 0x7fc120:	case 0x7fc121:	case 0x7fc122:	case 0x7fc123:
-						case 0x7fc124:	case 0x7fc125:	case 0x7fc126:	case 0x7fc127:
-						case 0x7fc128:	case 0x7fc129:	case 0x7fc12a:	case 0x7fc12b:
-						case 0x7fc12c:	case 0x7fc12d:	case 0x7fc12e:	case 0x7fc12f:
-						case 0x7fc130:	case 0x7fc131:
+						case 0x8200:	case 0x8202:	case 0x8204:	case 0x8206:
+						case 0x8208:	case 0x820a:	case 0x820c:	case 0x820e:
+						case 0x8210:	case 0x8212:	case 0x8214:	case 0x8216:
+						case 0x8218:	case 0x821a:	case 0x821c:	case 0x821e:
+						case 0x8220:	case 0x8222:	case 0x8224:	case 0x8226:
+						case 0x8228:	case 0x822a:	case 0x822c:	case 0x822e:
+						case 0x8230:	case 0x8232:	case 0x8234:	case 0x8236:
+						case 0x8238:	case 0x823a:	case 0x823c:	case 0x823e:
+						case 0x8240:	case 0x8242:	case 0x8244:	case 0x8246:
+						case 0x8248:	case 0x824a:	case 0x824c:	case 0x824e:
+						case 0x8250:	case 0x8252:	case 0x8254:	case 0x8256:
+						case 0x8258:	case 0x825a:	case 0x825c:	case 0x825e:
+						case 0x8260:	case 0x8262:
 							if(!cycle.data_select_active()) return delay;
 
 							if(cycle.operation & Microcycle::Read) {
@@ -344,7 +344,7 @@ class ConcreteMachine:
 						break;
 
 						// ACIAs.
-						case 0x7ffe00:	case 0x7ffe01:	case 0x7ffe02:	case 0x7ffe03: {
+						case 0xfc00:	case 0xfc02:	case 0xfc04:	case 0xfc06: {
 							// Set VPA.
 							mc68000_.set_is_peripheral_address(!cycle.data_select_active());
 							if(!cycle.data_select_active()) return delay;
@@ -358,7 +358,7 @@ class ConcreteMachine:
 						} break;
 
 						// DMA.
-						case 0x7fc302:	case 0x7fc303:	case 0x7fc304:	case 0x7fc305:	case 0x7fc306:
+						case 0x8604:	case 0x8606:	case 0x8608:	case 0x860a:	case 0x860c:
 							if(!cycle.data_select_active()) return delay;
 
 							if(cycle.operation & Microcycle::Read) {
