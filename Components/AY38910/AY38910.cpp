@@ -77,6 +77,7 @@ void AY38910::set_sample_volume_range(std::int16_t range) {
 	for(int v = 0; v < 32; v++) {
 		volumes_[v] = int(max_volume / powf(root_two, float(v ^ 0x1f) / 2.0f));
 	}
+	volumes_[0] = 0;	// Tie level 0 to silence.
 	evaluate_output_volume();
 }
 
@@ -161,10 +162,20 @@ void AY38910::evaluate_output_volume() {
 	};
 #undef level
 
+	// This remapping table seeks to map 'channel volumes', i.e. the levels produced from the
+	// 16-step progammatic volumes set per channel to 'envelope volumes', i.e. the 32-step
+	// volumes that are produced by the envelope generators (on a YM at least). My reading of
+	// the data sheet is that '0' is still off, but 15 should be as loud as peak envelope. So
+	// I've thrown in the discontinuity at the low end, where it'll be very quiet.
+	const int channel_volumes[] = {
+		0, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31
+	};
+	static_assert(sizeof(channel_volumes) == 16*sizeof(int));
+
 		// Channel volume is a simple selection: if the bit at 0x10 is set, use the envelope volume; otherwise use the lower four bits,
 		// mapped to the range 1–31 in case this is a YM.
 #define channel_volume(c)	\
-	((output_registers_[c] >> 4)&1) * envelope_volume + (((output_registers_[c] >> 4)&1)^1) * (((output_registers_[c]&0xf) << 1) + 1)
+	((output_registers_[c] >> 4)&1) * envelope_volume + (((output_registers_[c] >> 4)&1)^1) * channel_volumes[output_registers_[c]&0xf]
 
 	const int volumes[3] = {
 		channel_volume(8),
