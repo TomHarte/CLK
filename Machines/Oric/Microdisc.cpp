@@ -22,7 +22,8 @@ Microdisc::Microdisc() : WD1770(P1793) {
 	set_control_register(last_control_, 0xff);
 }
 
-void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
+void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int d) {
+	const size_t drive = size_t(d);
 	if(!drives_[drive]) {
 		drives_[drive] = std::make_unique<Storage::Disk::Drive>(8000000, 300, 2);
 		if(drive == selected_drive_) set_drive(drives_[drive]);

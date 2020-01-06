@@ -20,7 +20,7 @@ class Microdisc: public WD::WD1770 {
 	public:
 		Microdisc();
 
-		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive);
+		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive);
 		void set_control_register(uint8_t control);
 		uint8_t get_interrupt_request_register();
 		uint8_t get_data_request_register();

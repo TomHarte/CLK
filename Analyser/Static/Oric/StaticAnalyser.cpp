@@ -100,6 +100,34 @@ static bool IsMicrodisc(Storage::Encodings::MFM::Parser &parser) {
 	return !std::memcmp(signature, first_sample.data(), sizeof(signature));
 }
 
+static bool IsJasmin(Storage::Encodings::MFM::Parser &parser) {
+	/*
+		The Jasmin boot sector is sector 1 of track 0 and is loaded at $400;
+		disassemble it to test it for validity.
+	*/
+	Storage::Encodings::MFM::Sector *sector = parser.get_sector(0, 0, 1);
+	if(!sector) return false;
+	if(sector->samples.empty()) return false;
+
+	const std::vector<uint8_t> &first_sample = sector->samples[0];
+	if(first_sample.size() != 256) return false;
+
+	// Grab a disassembly.
+	const auto disassembly =
+		Analyser::Static::MOS6502::Disassemble(first_sample, Analyser::Static::Disassembler::OffsetMapper(0x400), {0x400});
+
+	// Check for references to the Jasmin registers.
+	int register_hits = 0;
+	for(auto list : {disassembly.external_stores, disassembly.external_loads, disassembly.external_modifies}) {
+		for(auto address : list) {
+			register_hits += (address >= 0x3f4 && address <= 0x3ff);
+		}
+	}
+
+	// Arbitrary, sure, but as long as at least two accesses to Jasmin registers are found, accept this.
+	return register_hits >= 2;
+}
+
 Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
 	auto target = std::make_unique<Target>();
 	target->machine = Machine::Oric;
@@ -115,7 +143,7 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &med
 			for(const auto &file : tape_files) {
 				if(file.data_type == File::MachineCode) {
 					std::vector<uint16_t> entry_points = {file.starting_address};
-					Analyser::Static::MOS6502::Disassembly disassembly =
+					const Analyser::Static::MOS6502::Disassembly disassembly =
 						Analyser::Static::MOS6502::Disassemble(file.data, Analyser::Static::Disassembler::OffsetMapper(file.starting_address), entry_points);
 
 					int basic10_score = Basic10Score(disassembly);
@@ -130,11 +158,16 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &med
 	}
 
 	if(!media.disks.empty()) {
-		// Only the Microdisc is emulated right now, so accept only disks that it can boot from.
+		// 8-DOS is recognised by a dedicated Disk II analyser, so check only for Microdisc and
+		// Jasmin formats here.
 		for(auto &disk: media.disks) {
 			Storage::Encodings::MFM::Parser parser(true, disk);
 			if(IsMicrodisc(parser)) {
 				target->disk_interface = Target::DiskInterface::Microdisc;
+				target->media.disks.push_back(disk);
+			} else if(IsJasmin(parser)) {
+				target->disk_interface = Target::DiskInterface::Jasmin;
+				target->should_start_jasmin = true;
 				target->media.disks.push_back(disk);
 			}
 		}

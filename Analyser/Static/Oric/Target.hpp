@@ -26,12 +26,14 @@ struct Target: public ::Analyser::Static::Target {
 	enum class DiskInterface {
 		Microdisc,
 		Pravetz,
+		Jasmin,
 		None
 	};
 
 	ROM rom = ROM::BASIC11;
 	DiskInterface disk_interface = DiskInterface::None;
 	std::string loading_command;
+	bool should_start_jasmin = false;
 };
 
 }
