@@ -41,6 +41,8 @@
 
 namespace Oric {
 
+using DiskInterface = Analyser::Static::Oric::Target::DiskInterface;
+
 enum ROM {
 	BASIC10 = 0, BASIC11, Microdisc, Colour
 };
@@ -70,8 +72,8 @@ class Keyboard {
 
 		/// Sets whether @c key is or is not pressed, per @c is_pressed.
 		void set_key_state(uint16_t key, bool is_pressed) {
-			uint8_t mask = key & 0xff;
-			int line = key >> 8;
+			const uint8_t mask = key & 0xff;
+			const int line = key >> 8;
 
 			if(is_pressed)	rows_[line] |= mask;
 			else			rows_[line] &= ~mask;
@@ -226,7 +228,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			tape_player_.set_delegate(this);
 			Memory::Fuzz(ram_, sizeof(ram_));
 
-			if constexpr (disk_interface == Analyser::Static::Oric::Target::DiskInterface::Pravetz) {
+			if constexpr (disk_interface == DiskInterface::Pravetz) {
 				diskii_.set_clocking_hint_observer(this);
 			}
 
@@ -246,13 +248,13 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			size_t diskii_state_machine_index = 0;
 			switch(disk_interface) {
 				default: break;
-				case Analyser::Static::Oric::Target::DiskInterface::Jasmin:
+				case DiskInterface::Jasmin:
 					rom_names.emplace_back(machine_name, "the ORIC Jasmin ROM", "jasmin.rom", 2*1024, 0x37220e89);
 				break;
-				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+				case DiskInterface::Microdisc:
 					rom_names.emplace_back(machine_name, "the ORIC Microdisc ROM", "microdisc.rom", 8*1024, 0xa9664a9c);
 				break;
-				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
+				case DiskInterface::Pravetz:
 					rom_names.emplace_back(machine_name, "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06);
 					// These ROM details are coupled with those in the DiskIICard.
 					diskii_state_machine_index = rom_names.size();
@@ -273,15 +275,15 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 			switch(disk_interface) {
 				default: break;
-				case Analyser::Static::Oric::Target::DiskInterface::Jasmin:
+				case DiskInterface::Jasmin:
 					jasmin_rom_ = std::move(*roms[2]);
 					jasmin_rom_.resize(2048);
 				break;
-				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+				case DiskInterface::Microdisc:
 					microdisc_rom_ = std::move(*roms[2]);
 					microdisc_rom_.resize(8192);
 				break;
-				case Analyser::Static::Oric::Target::DiskInterface::Pravetz: {
+				case DiskInterface::Pravetz: {
 					pravetz_rom_ = std::move(*roms[2]);
 					pravetz_rom_.resize(512);
 
@@ -294,11 +296,12 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 			switch(target.disk_interface) {
 				default: break;
-				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+				case DiskInterface::Microdisc:
 					microdisc_did_change_paging_flags(&microdisc_);
 					microdisc_.set_delegate(this);
 				break;
-				case Analyser::Static::Oric::Target::DiskInterface::Jasmin:
+				case DiskInterface::Jasmin:
+					jasmin_did_change_paging_flags(&jasmin_);
 					jasmin_.set_delegate(this);
 				break;
 			}
@@ -363,13 +366,13 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 			if(!media.disks.empty()) {
 				switch(disk_interface) {
-					case Analyser::Static::Oric::Target::DiskInterface::Jasmin:
+					case DiskInterface::Jasmin:
 						inserted |= insert_disks(media, jasmin_, 4);
 					break;
-					case Analyser::Static::Oric::Target::DiskInterface::Microdisc: {
+					case DiskInterface::Microdisc: {
 						inserted |= insert_disks(media, microdisc_, 4);
 					} break;
-					case Analyser::Static::Oric::Target::DiskInterface::Pravetz: {
+					case DiskInterface::Pravetz: {
 						inserted |= insert_disks(media, diskii_, 2);
 					} break;
 
@@ -401,19 +404,19 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				}
 			} else {
 				if((address & 0xff00) == 0x0300) {
-					if(address < 0x0310 || (disk_interface == Analyser::Static::Oric::Target::DiskInterface::None)) {
+					if(address < 0x0310 || (disk_interface == DiskInterface::None)) {
 						if(isReadOperation(operation)) *value = via_.read(address);
 						else via_.write(address, *value);
 					} else {
 						switch(disk_interface) {
 							default: break;
-							case Analyser::Static::Oric::Target::DiskInterface::Jasmin:
+							case DiskInterface::Jasmin:
 								if(address >= 0x3f4) {
 									if(isReadOperation(operation)) *value = jasmin_.read(address);
 									else jasmin_.write(address, *value);
 								}
 							break;
-							case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+							case DiskInterface::Microdisc:
 								switch(address) {
 									case 0x0310: case 0x0311: case 0x0312: case 0x0313:
 										if(isReadOperation(operation)) *value = microdisc_.read(address);
@@ -428,7 +431,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 									break;
 								}
 							break;
-							case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
+							case DiskInterface::Pravetz:
 								if(address >= 0x0320) {
 									if(isReadOperation(operation)) *value = pravetz_rom_[pravetz_rom_base_pointer_ + (address & 0xff)];
 									else {
@@ -470,13 +473,24 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			tape_player_.run_for(Cycles(1));
 			switch(disk_interface) {
 				default: break;
-				case Analyser::Static::Oric::Target::DiskInterface::Jasmin:
+				case DiskInterface::Jasmin:
 					jasmin_.run_for(Cycles(8));
+
+					// Jasmin autostart hack: wait for a period, then trigger a reset, having forced
+					// the Jasmin to page its ROM in first.
+					if(jasmin_reset_counter_) {
+						--jasmin_reset_counter_;
+						if(!jasmin_reset_counter_) {
+							jasmin_.write(0x3fa, 0);
+							jasmin_.write(0x3fb, 1);
+							m6502_.set_power_on(true);
+						}
+					}
 				break;
-				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+				case DiskInterface::Microdisc:
 					microdisc_.run_for(Cycles(8));
 				break;
-				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
+				case DiskInterface::Pravetz:
 					if(diskii_clocking_preference_ == ClockingHint::Preference::RealTime) {
 						diskii_.set_data_input(*value);
 						diskii_.run_for(Cycles(2));
@@ -486,6 +500,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				break;
 			}
 			cycles_since_video_update_++;
+
 			return Cycles(1);
 		}
 
@@ -611,10 +626,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		void set_activity_observer(Activity::Observer *observer) override {
 			switch(disk_interface) {
 				default: break;
-				case Analyser::Static::Oric::Target::DiskInterface::Microdisc:
+				case DiskInterface::Microdisc:
 					microdisc_.set_activity_observer(observer);
 				break;
-				case Analyser::Static::Oric::Target::DiskInterface::Pravetz:
+				case DiskInterface::Pravetz:
 					diskii_.set_activity_observer(observer);
 				break;
 			}
@@ -665,6 +680,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 		// the Jasmin, if in use.
 		Jasmin jasmin_;
+		int jasmin_reset_counter_ = 6000000;	// i.e. 8 seconds.
 
 		// the Pravetz/Disk II, if in use.
 		Apple::DiskII diskii_;
@@ -685,12 +701,12 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			bool irq_line = via_.get_interrupt_line();
 
 			// The Microdisc directly provides an interrupt line.
-			if constexpr (disk_interface == Analyser::Static::Oric::Target::DiskInterface::Microdisc) {
+			if constexpr (disk_interface == DiskInterface::Microdisc) {
 				irq_line |= microdisc_.get_interrupt_request_line();
 			}
 
 			// The Jasmin reroutes its data request line to the processor's interrupt line.
-			if constexpr (disk_interface == Analyser::Static::Oric::Target::DiskInterface::Jasmin) {
+			if constexpr (disk_interface == DiskInterface::Jasmin) {
 				irq_line |= jasmin_.get_data_request_line();
 			}
 
@@ -707,7 +723,6 @@ using namespace Oric;
 
 Machine *Machine::Oric(const Analyser::Static::Target *target_hint, const ROMMachine::ROMFetcher &rom_fetcher) {
 	auto *const oric_target = dynamic_cast<const Analyser::Static::Oric::Target *>(target_hint);
-	using DiskInterface = Analyser::Static::Oric::Target::DiskInterface;
 	switch(oric_target->disk_interface) {
 		default:						return new ConcreteMachine<DiskInterface::None>(*oric_target, rom_fetcher);
 		case DiskInterface::Microdisc:	return new ConcreteMachine<DiskInterface::Microdisc>(*oric_target, rom_fetcher);

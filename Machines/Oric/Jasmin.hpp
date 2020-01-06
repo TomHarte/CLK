@@ -38,11 +38,10 @@ class Jasmin: public WD::WD1770 {
 		inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;	WD1770::set_delegate(delegate);	}
 		inline int get_paging_flags()					{	return paging_flags_;									}
 
-
 	private:
 		std::array<std::shared_ptr<Storage::Disk::Drive>, 4> drives_;
 		size_t selected_drive_;
-		int paging_flags_ = 0;
+		int paging_flags_ = BASICDisable;
 		Delegate *delegate_ = nullptr;
 
 		void posit_paging_flags(int new_flags) {
