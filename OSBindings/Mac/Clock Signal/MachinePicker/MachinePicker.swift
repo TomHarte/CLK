@@ -195,6 +195,7 @@ class MachinePicker: NSObject {
 				switch oricDiskInterfaceButton!.selectedTag() {
 					case 1:		diskInterface = .microdisc
 					case 2:		diskInterface = .pravetz
+					case 3:		diskInterface = .jasmin
 					default:	break;
 
 				}

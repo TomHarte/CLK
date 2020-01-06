@@ -45,6 +45,9 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 
 		BIND(Space, KeySpace);
 		BIND(Enter, KeyReturn);
+
+		BIND(F12, KeyNMI);
+		BIND(F1, KeyJasminReset);
 	}
 #undef BIND
 

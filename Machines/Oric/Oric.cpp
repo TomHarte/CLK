@@ -66,17 +66,32 @@ std::vector<std::unique_ptr<Configurable::Option>> get_options() {
 */
 class Keyboard {
 	public:
-		Keyboard() {
+		struct SpecialKeyHandler {
+			virtual void perform_special_key(Oric::Key key) = 0;
+		};
+
+		Keyboard(SpecialKeyHandler *handler) : special_key_handler_(handler) {
 			clear_all_keys();
 		}
 
 		/// Sets whether @c key is or is not pressed, per @c is_pressed.
 		void set_key_state(uint16_t key, bool is_pressed) {
-			const uint8_t mask = key & 0xff;
-			const int line = key >> 8;
+			switch(key) {
+				default: {
+					const uint8_t mask = key & 0xff;
+					const int line = key >> 8;
 
-			if(is_pressed)	rows_[line] |= mask;
-			else			rows_[line] &= ~mask;
+					if(is_pressed)	rows_[line] |= mask;
+					else			rows_[line] &= ~mask;
+				} break;
+
+				case KeyNMI:
+				case KeyJasminReset:
+					if(is_pressed) {
+						special_key_handler_->perform_special_key(Oric::Key(key));
+					}
+				break;
+			}
 		}
 
 		/// Sets all keys as unpressed.
@@ -97,6 +112,7 @@ class Keyboard {
 	private:
 		uint8_t row_ = 0;
 		uint8_t rows_[8];
+		SpecialKeyHandler *const special_key_handler_;
 };
 
 /*!
@@ -211,7 +227,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 	public Jasmin::Delegate,
 	public ClockingHint::Observer,
 	public Activity::Source,
-	public Machine {
+	public Machine,
+	public Keyboard::SpecialKeyHandler {
 
 	public:
 		ConcreteMachine(const Analyser::Static::Oric::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -221,6 +238,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				speaker_(ay8910_),
 				via_port_handler_(audio_queue_, ay8910_, speaker_, tape_player_, keyboard_),
 				via_(via_port_handler_),
+				keyboard_(this),
 				diskii_(2000000) {
 			set_clock_rate(1000000);
 			speaker_.set_input_rate(1000000.0f);
@@ -308,6 +326,12 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 			if(!target.loading_command.empty()) {
 				type_string(target.loading_command);
+			}
+
+			if(target.should_start_jasmin) {
+				// If Jasmin autostart is requested then plan to do so in 3 seconds; empirically long enough
+				// for the Oric to boot normally, before the Jasmin intercedes.
+				jasmin_reset_counter_ = 3000000;
 			}
 
 			switch(target.rom) {
@@ -482,9 +506,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					if(jasmin_reset_counter_) {
 						--jasmin_reset_counter_;
 						if(!jasmin_reset_counter_) {
-							jasmin_.write(0x3fa, 0);
-							jasmin_.write(0x3fb, 1);
-							m6502_.set_power_on(true);
+							perform_special_key(KeyJasminReset);
 						}
 					}
 				break;
@@ -681,8 +703,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 		// the Jasmin, if in use.
 		Jasmin jasmin_;
-		int jasmin_reset_counter_ = 3000000;	// i.e. 3 seconds; empirically long enough for the Oric to boot normally,
-												// before the Jasmin intercedes.
+		int jasmin_reset_counter_ = 0;
 
 		// the Pravetz/Disk II, if in use.
 		Apple::DiskII diskii_;
@@ -713,6 +734,26 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 
 			m6502_.set_irq_line(irq_line);
+		}
+
+		// Keys that aren't read by polling.
+		void perform_special_key(Oric::Key key) override {
+			switch(key) {
+				default: break;
+
+				case KeyJasminReset:
+					jasmin_.write(0x3fa, 0);
+					jasmin_.write(0x3fb, 1);
+					m6502_.set_power_on(true);
+				break;
+
+				case KeyNMI:
+					// As luck would have it, the 6502's NMI line is edge triggered.
+					// So just forcing through an edge will work here.
+					m6502_.set_nmi_line(true);
+					m6502_.set_nmi_line(false);
+				break;
+			}
 		}
 
 		// MARK - typing

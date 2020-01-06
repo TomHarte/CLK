@@ -167,8 +167,8 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &med
 				target->media.disks.push_back(disk);
 			} else if(IsJasmin(parser)) {
 				target->disk_interface = Target::DiskInterface::Jasmin;
+				target->should_start_jasmin = true;
 				target->media.disks.push_back(disk);
-
 			}
 		}
 	}
