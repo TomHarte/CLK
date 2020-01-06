@@ -477,7 +477,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					jasmin_.run_for(Cycles(8));
 
 					// Jasmin autostart hack: wait for a period, then trigger a reset, having forced
-					// the Jasmin to page its ROM in first.
+					// the Jasmin to page its ROM in first. I assume the latter being what the Jasmin's
+					// hardware boot button did.
 					if(jasmin_reset_counter_) {
 						--jasmin_reset_counter_;
 						if(!jasmin_reset_counter_) {
@@ -680,7 +681,8 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 		// the Jasmin, if in use.
 		Jasmin jasmin_;
-		int jasmin_reset_counter_ = 6000000;	// i.e. 8 seconds.
+		int jasmin_reset_counter_ = 3000000;	// i.e. 3 seconds; empirically long enough for the Oric to boot normally,
+												// before the Jasmin intercedes.
 
 		// the Pravetz/Disk II, if in use.
 		Apple::DiskII diskii_;

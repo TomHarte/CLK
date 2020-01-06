@@ -41,7 +41,7 @@ class Jasmin: public WD::WD1770 {
 	private:
 		std::array<std::shared_ptr<Storage::Disk::Drive>, 4> drives_;
 		size_t selected_drive_;
-		int paging_flags_ = BASICDisable;
+		int paging_flags_ = 0;
 		Delegate *delegate_ = nullptr;
 
 		void posit_paging_flags(int new_flags) {
@@ -50,6 +50,9 @@ class Jasmin: public WD::WD1770 {
 				if(delegate_) delegate_->jasmin_did_change_paging_flags(this);
 			}
 		}
+
+		void set_motor_on(bool on) final;
+		bool motor_on_ = false;
 };
 
 };

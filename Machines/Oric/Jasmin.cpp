@@ -55,12 +55,16 @@ void Jasmin::write(int address, uint8_t value) {
 				if(drives_[selected_drive_]) drives_[selected_drive_]->set_motor_on(false);
 				selected_drive_ = new_selected_drive;
 				set_drive(drives_[selected_drive_]);
-
-				// TODO: establish motor status for new drive.
+				if(drives_[selected_drive_]) drives_[selected_drive_]->set_motor_on(motor_on_);
 			}
 		} break;
 
 		default:
 			return WD::WD1770::write(address, value);
 	}
+}
+
+void Jasmin::set_motor_on(bool on) {
+	motor_on_ = on;
+	if(drives_[selected_drive_]) drives_[selected_drive_]->set_motor_on(motor_on_);
 }
