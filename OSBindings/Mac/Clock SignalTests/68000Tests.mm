@@ -261,6 +261,32 @@ class CPU::MC68000::ProcessorStorageTests {
 	XCTAssertEqual(stack_frame[6], 0x1004);
 }
 
+- (void)testShiftDuration {
+	//
+	_machine->set_program({
+		0x7004,		// MOVE.l #$4, D0
+		0x7207,		// MOVE.l #$7, D1
+		0x7401,		// MOVE.l #$1, D2
+
+		0xe16e,		// lsl d0, d6
+		0xe36e,		// lsl d1, d6
+		0xe56e,		// lsl d2, d6
+	});
+	_machine->run_for_instructions(3);
+
+	_machine->reset_cycle_count();
+	_machine->run_for_instructions(1);
+	XCTAssertEqual(_machine->get_cycle_count(), 6 + 8);
+	_machine->reset_cycle_count();
+
+	_machine->run_for_instructions(1);
+	XCTAssertEqual(_machine->get_cycle_count(), 6 + 14);
+	_machine->reset_cycle_count();
+
+	_machine->run_for_instructions(1);
+	XCTAssertEqual(_machine->get_cycle_count(), 6 + 2);
+}
+
 - (void)testOpcodeCoverage {
 	// Perform an audit of implemented instructions.
 	CPU::MC68000::ProcessorStorageTests storage_tests(
