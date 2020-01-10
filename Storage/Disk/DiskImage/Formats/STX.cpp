@@ -24,6 +24,79 @@ namespace {
 
 class TrackConstructor {
 	public:
+		constexpr static uint16_t NoFirstOffset = std::numeric_limits<uint16_t>::max();
+
+		struct Sector {
+			// Records explicitly present in the sector table.
+			uint32_t data_offset = 0;
+			size_t bit_position = 0;
+			uint16_t data_duration = 0;
+			uint8_t address[6] = {0, 0, 0, 0, 0, 0};
+			uint8_t status = 0;
+
+			// Other facts that will either be supplied by the STX or which
+			// will be empty.
+			std::vector<uint8_t> fuzzy_mask;
+			std::vector<uint8_t> contents;
+			std::vector<uint16_t> timing;
+
+			// Accessors.
+			uint32_t data_size() {
+				return uint32_t(128 << address[3]);
+			}
+//			std::vector<uint8_t> get_track_header_image() {
+//
+//			}
+		};
+
+
+		TrackConstructor(const std::vector<uint8_t> &track_data, const std::vector<Sector> &sectors, size_t track_size, uint16_t first_sync) :
+			track_data_(track_data), sectors_(sectors), track_size_(track_size), first_sync_(first_sync) {
+		}
+
+		std::shared_ptr<PCMTrack> get_track() {
+			std::unique_ptr<Storage::Encodings::MFM::Encoder> encoder;
+			std::unique_ptr<PCMSegment> segment;
+
+			// To reconcile the list of sectors with the WD get track-style track image,
+			// use sector bodies as definitive and refer to the track image for in-fill.
+			for(const auto &sector: sectors_) {
+				// HACK: assume nothing between sectors. Crazy time!
+
+				if(!encoder) {
+					segment.reset(new PCMSegment);
+					encoder = Storage::Encodings::MFM::GetMFMEncoder(segment->data);
+				}
+
+				// Add sector header.
+				encoder->add_ID_address_mark();
+				for(int c = 0; c < 6; ++c)
+					encoder->add_byte(sector.address[c]);
+
+				// Add a gap.
+				for(int c = 0; c < 12; ++c)
+					encoder->add_byte(0x4e);
+
+				// Add sector body.
+				encoder->add_data_address_mark();
+				for(const auto byte: sector.contents) {
+					encoder->add_byte(byte);
+				}
+				encoder->add_crc(sector.status & 0x8);	// Get the CRC wrong if required.	(TODO: take from track image, if possible?)
+
+				// Add a gap.
+				for(int c = 0; c < 42; ++c)
+					encoder->add_byte(0x4e);
+			}
+
+			return std::make_shared<PCMTrack>(*segment);
+		}
+
+	private:
+		const std::vector<uint8_t> &track_data_;
+		const std::vector<Sector> &sectors_;
+		const size_t track_size_;
+		const uint16_t first_sync_;
 
 };
 
@@ -107,131 +180,127 @@ std::shared_ptr<::Storage::Disk::Track> STX::get_track_at_position(::Storage::Di
 	}
 
 	// Grab sector records, if provided.
-	struct Sector {
-		// Records explicitly present in the sector table.
-		uint32_t data_offset = 0;
-		size_t bit_position = 0;
-		uint16_t data_duration = 0;
-		uint8_t address[6] = {0, 0, 0, 0, 0, 0};
-		uint8_t status = 0;
+	std::vector<TrackConstructor::Sector> sectors;
+	std::vector<uint8_t> track_data;
+	uint16_t first_sync = TrackConstructor::NoFirstOffset;
 
-		// Other facts that will either be supplied by the STX or which
-		// will be empty.
-		std::vector<uint8_t> fuzzy_mask;
-		std::vector<uint8_t> contents;
-
-		// Information accumulated locally during processing.
-		bool address_has_crc = true;
-		size_t track_offset_of_header = 0;
-		size_t track_offset_of_data = 0;
-
-		// Accessors.
-		uint32_t data_size() {
-			return uint32_t(128 << address[3]);
-		}
-	};
-	std::vector<Sector> sectors;
-	if(flags & 1) {
-		// Read sector records first.
-		for(uint16_t c = 0; c < sector_count; ++c) {
-			sectors.emplace_back();
-			sectors.back().data_offset = file_.get32le();
-			sectors.back().bit_position = file_.get16le();
-			sectors.back().data_duration = file_.get16le();
-			file_.read(sectors.back().address, 6);
-			sectors.back().status = file_.get8();
-			file_.seek(1, SEEK_CUR);
-		}
-
-		// Now read fuzzy masks, if available.
-		if(fuzzy_size) {
-			uint32_t fuzzy_bytes_read = 0;
-			for(auto &sector: sectors) {
-				// Check for the fuzzy bit mask; if it's not set then
-				// there's nothing for this sector.
-				if(!(sector.status & 0x80)) continue;
-
-				// Make sure there are enough bytes left.
-				const uint32_t expected_bytes = sector.data_size();
-				if(fuzzy_bytes_read + expected_bytes > fuzzy_size) break;
-
-				// Okay, there are, so read them.
-				sector.fuzzy_mask = file_.read(expected_bytes);
-				fuzzy_bytes_read += expected_bytes;
-			}
-
-			// It should be true that the number of fuzzy masks caused
-			// exactly the correct number of fuzzy bytes to be read.
-			// But, just in case, check and possibly skip some.
-			file_.seek(long(fuzzy_size) - fuzzy_bytes_read, SEEK_CUR);
-		}
-	} else {
-		// No sector records, so there should be no fuzzy records.
-		// Skip the supplied size, just in case.
-		file_.seek(fuzzy_size, SEEK_CUR);
+	// Sector records come first.
+	for(uint16_t c = 0; c < sector_count; ++c) {
+		sectors.emplace_back();
+		sectors.back().data_offset = file_.get32le();
+		sectors.back().bit_position = file_.get16le();
+		sectors.back().data_duration = file_.get16le();
+		file_.read(sectors.back().address, 6);
+		sectors.back().status = file_.get8();
+		file_.seek(1, SEEK_CUR);
 	}
 
-	// From here: there's either a track image or there isn't.
-	//
-	// If there is then it may or may not contain the sector bodies.
-	// The sectors themselves will be the guide — if they have
-	// offsets within the track image then that's that; if it's
-	// outside then that implies extra sector contents.
-	//
-	// If there isn't a track image at all then either the sectors
-	// were explicit or they're completely implicit, like an ST file.
+	// If fuzzy masks are specified, attach them to their corresponding sectors.
+	if(fuzzy_size) {
+		uint32_t fuzzy_bytes_read = 0;
+		for(auto &sector: sectors) {
+			// Check for the fuzzy bit mask; if it's not set then
+			// there's nothing for this sector.
+			if(!(sector.status & 0x80)) continue;
+
+			// Make sure there are enough bytes left.
+			const uint32_t expected_bytes = sector.data_size();
+			if(fuzzy_bytes_read + expected_bytes > fuzzy_size) break;
+
+			// Okay, there are, so read them.
+			sector.fuzzy_mask = file_.read(expected_bytes);
+			fuzzy_bytes_read += expected_bytes;
+		}
+
+		// It should be true that the number of fuzzy masks caused
+		// exactly the correct number of fuzzy bytes to be read.
+		// But, just in case, check and possibly skip some.
+		file_.seek(long(fuzzy_size) - fuzzy_bytes_read, SEEK_CUR);
+	}
+
+	// There may or may not be a track image. Grab it if so.
 
 	// Grab the read-track-esque track contents, if available.
-	std::vector<uint8_t> track_data;
 	long sector_start = file_.tell();
 	if(flags & 0x40) {
+		// Bit 6 => there is a track to read;
+		// bit
 		if(flags & 0x80) {
-			const uint16_t first_sync = file_.get16le();
+			first_sync = file_.get16le();
 			const uint16_t image_size = file_.get16le();
 			track_data = file_.read(image_size);
-
-			// TODO: and encode... ignoring sector contents?
-			(void)first_sync;
 		} else {
 			const uint16_t image_size = file_.get16le();
 			track_data = file_.read(image_size);
 		}
 	}
 
-	// Grab all sector contents.
-	if(sectors.empty()) {
-		// No explicit sectors were given, so create the implied sort.
-		for(int c = 0; c < sector_count; ++c) {
-			sectors.emplace_back();
-			sectors.back().address[0] = uint8_t(address.position.as_int());	// Track.
-			sectors.back().address[1] = uint8_t(address.head);	// Head.
-			sectors.back().address[2] = uint8_t(c + 1);	// Sector.
-			sectors.back().address[3] = uint8_t(c + 1);	// Size.
-			sectors.back().address_has_crc = false;
-
-			sectors.back().contents = file_.read(512);
-			sectors.back().bit_position = size_t(c);	// For the sake of ordering only.
+	// Grab sector contents.
+	long end_of_data = file_.tell();
+	for(auto &sector: sectors) {
+		// If the FDC record-not-found flag is set, there's no sector body to find.
+		// Otherwise there's a sector body in the file somewhere.
+		if(!(sector.status & 0x10)) {
+			file_.seek(sector.data_offset + sector_start, SEEK_SET);
+			sector.contents = file_.read(sector.data_size());
+			end_of_data = std::max(end_of_data, file_.tell());
 		}
-	} else {
-		long end_of_data = file_.tell();
-		for(auto &sector: sectors) {
-			if(!(sector.status & 0x10)) {
-				file_.seek(sector.data_offset + sector_start, SEEK_SET);
-				sector.contents = file_.read(sector.data_size());
-				end_of_data = std::max(end_of_data, file_.tell());
+	}
+	file_.seek(end_of_data, SEEK_SET);
+
+	// Grab timing info if available.
+	file_.seek(4, SEEK_CUR);	// Skip the timing descriptor, as it includes no new information.
+	for(auto &sector: sectors) {
+		// Skip any sector with no intra-sector bit width variation.
+		if(!(sector.status&1)) continue;
+
+		const auto timing_record_size = sector.data_size() >> 4;	// Use one entry per 16 bytes.
+		sector.timing.resize(timing_record_size);
+
+		if(!is_new_format_) {
+			// Generate timing records for Macrodos/Speedlock.
+			// Timing is specified in quarters. Which might or might not be
+			// quantities of 128 bytes, who knows?
+			for(size_t c = 0; c < timing_record_size; ++c) {
+				if(c < (timing_record_size >> 2)) {
+					sector.timing[c] = 127;
+				} else if(c < ((timing_record_size*2) >> 2)) {
+					sector.timing[c] = 133;
+				} else if(c < ((timing_record_size*3) >> 2)) {
+					sector.timing[c] = 121;
+				} else {
+					sector.timing[c] = 127;
+				}
 			}
+
+			continue;
 		}
-		file_.seek(end_of_data, SEEK_SET);
+
+		// This is going to be a new-format record.
+		for(size_t c = 0; c < timing_record_size; ++c) {
+			sector.timing[c] = file_.get16be();		// These values are big endian, unlike the rest of the file.
+		}
 	}
 
-	// Check for timing info.
-	if(is_new_format_) {
-		// Do something, do something, else, else.
-	}
+	// Sort the sectors by starting position. It's perfectly possible that they're always
+	// sorted in STX but, again, the reverse-engineered documentation doesn't make the
+	// promise, so that's that.
+	std::sort(sectors.begin(), sectors.end(),
+		[] (TrackConstructor::Sector &lhs, TrackConstructor::Sector &rhs) {
+			return lhs.bit_position < rhs.bit_position;
+	});
+
 
 	/*
-		Having reached here:
+		Having reached here, the actual stuff of parsing the file structure should be done.
+		So hand off to the TrackConstructor.
 
+	*/
+
+	TrackConstructor constructor(track_data, sectors, track_length, first_sync);
+	return constructor.get_track();
+
+	/*
 			* 	if track_data is not empty, it is what you'd see from a read track command;
 			* 	the vector of sectors will contain sectors to be written; contents will be populated,
 				and each individually may or may not have a fuzzy_mask and/or timing.
@@ -239,12 +308,7 @@ std::shared_ptr<::Storage::Disk::Track> STX::get_track_at_position(::Storage::Di
 		Also note track_length, which is the perceived length of the track, rounded to whole bytes.
 	*/
 
-	// Sort the sectors by starting position. It's perfectly possible that they're always
-	// sorted in STX but, again, the reverse-engineered documentation doesn't make the
-	// promise, so that's that.
-	std::sort(sectors.begin(), sectors.end(), [] (Sector &lhs, Sector &rhs) { return lhs.bit_position < rhs.bit_position; });
-
-	if(track_data.empty()) {
+/*	if(track_data.empty()) {
 
 	} else {
 		// Locate things that might be ID or data address marks; as a side effect of the way
@@ -407,7 +471,6 @@ std::shared_ptr<::Storage::Disk::Track> STX::get_track_at_position(::Storage::Di
 		}
 
 		return std::make_shared<PCMTrack>(*segment);
-	}
+	}*/
 
-	return nullptr;
 }
