@@ -55,6 +55,24 @@ class TrackConstructor {
 		}
 
 		std::shared_ptr<PCMTrack> get_track() {
+			// If no contents are supplied, return an unformatted track.
+			if(sectors_.empty() && track_data_.empty()) {
+				return nullptr;
+			}
+
+			// If no sectors are on this track, just encode the track data. STX allows speed
+			// changes and fuzzy bits in sectors only.
+			if(sectors_.empty()) {
+				PCMSegment segment;
+				std::unique_ptr<Storage::Encodings::MFM::Encoder> encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
+				for(auto c: track_data_) {
+					encoder->add_byte(c);
+				}
+				return std::make_shared<PCMTrack>(segment);
+			}
+
+			// Otherwise, seek to encode the sectors, using the track data to
+			// fill in the gaps (if provided).
 			std::unique_ptr<Storage::Encodings::MFM::Encoder> encoder;
 			std::unique_ptr<PCMSegment> segment;
 
@@ -87,6 +105,14 @@ class TrackConstructor {
 				// Add a gap.
 				for(int c = 0; c < 42; ++c)
 					encoder->add_byte(0x4e);
+			}
+
+//			while(segment->data.size() < track_size_ * 16) {
+//				encoder->add_byte(0x4e);
+//			}
+
+			while(segment->data.size() < 6250 * 16) {
+				encoder->add_byte(0x4e);
 			}
 
 			return std::make_shared<PCMTrack>(*segment);
