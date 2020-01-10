@@ -31,7 +31,7 @@ class TrackConstructor {
 			uint32_t data_offset = 0;
 			size_t bit_position = 0;
 			uint16_t data_duration = 0;
-			uint8_t address[6] = {0, 0, 0, 0, 0, 0};
+			std::array<uint8_t, 6> address = {0, 0, 0, 0, 0, 0};
 			uint8_t status = 0;
 
 			// Other facts that will either be supplied by the STX or which
@@ -41,12 +41,48 @@ class TrackConstructor {
 			std::vector<uint16_t> timing;
 
 			// Accessors.
-			uint32_t data_size() {
+			uint32_t data_size() const {
 				return uint32_t(128 << address[3]);
 			}
-//			std::vector<uint8_t> get_track_header_image() {
-//
-//			}
+			std::vector<uint8_t> get_track_address_image() const {
+				return track_encoding(address.begin(), address.begin() + 4, {0xa1, 0xfe});
+			}
+			std::vector<uint8_t> get_track_data_image() const {
+				return track_encoding(contents.begin(), contents.end(), {0xa1, 0xfb});
+			}
+
+			private:
+				template <typename T> static std::vector<uint8_t> track_encoding(T begin, T end, std::initializer_list<uint8_t> prefix) {
+					std::vector<uint8_t> result;
+					result.reserve(size_t(end - begin) + prefix.size());
+
+					// Encode as MFM.
+					PCMSegment segment;
+					std::unique_ptr<Storage::Encodings::MFM::Encoder> encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
+					while(begin != end) {
+						encoder->add_byte(*begin);
+						++begin;
+					}
+
+					// Decode, obeying false syncs.
+					using Shifter = Storage::Encodings::MFM::Shifter;
+					Shifter shifter;
+					shifter.set_should_obey_syncs(true);
+
+					// Add the prefix.
+					std::copy(prefix.begin(), prefix.end(), std::back_inserter(result));
+
+					// Add whatever comes from the track.
+					for(auto bit: segment.data) {
+						shifter.add_input_bit(int(bit));
+
+						if(shifter.get_token() != Shifter::None) {
+							result.push_back(shifter.get_byte());
+						}
+					}
+
+					return result;
+				}
 		};
 
 
@@ -78,7 +114,25 @@ class TrackConstructor {
 
 			// To reconcile the list of sectors with the WD get track-style track image,
 			// use sector bodies as definitive and refer to the track image for in-fill.
+			auto track_position = track_data_.begin();
 			for(const auto &sector: sectors_) {
+				// Find out what the header would look like, if found in a read track.
+				const auto track_address = sector.get_track_address_image();
+				const auto track_data = sector.get_track_data_image();
+
+				// Try to locate the header within the track image.
+				const auto address_position = std::search(track_position, track_data_.end(), track_address.begin(), track_address.end());
+				const auto data_position = std::search(track_position, track_data_.end(), track_data.begin(), track_data.end());
+
+				if(address_position == track_data_.end()) {
+					printf("?\n");
+				}
+				if(data_position == track_data_.end()) {
+					printf("??\n");
+				}
+
+				printf("%lu / %lu\n", address_position - track_data_.begin(), data_position - track_data_.begin());
+
 				// HACK: assume nothing between sectors. Crazy time!
 
 				if(!encoder) {
@@ -88,7 +142,7 @@ class TrackConstructor {
 
 				// Add sector header.
 				encoder->add_ID_address_mark();
-				for(int c = 0; c < 6; ++c)
+				for(size_t c = 0; c < 6; ++c)
 					encoder->add_byte(sector.address[c]);
 
 				// Add a gap.
@@ -216,7 +270,7 @@ std::shared_ptr<::Storage::Disk::Track> STX::get_track_at_position(::Storage::Di
 		sectors.back().data_offset = file_.get32le();
 		sectors.back().bit_position = file_.get16le();
 		sectors.back().data_duration = file_.get16le();
-		file_.read(sectors.back().address, 6);
+		file_.read(sectors.back().address);
 		sectors.back().status = file_.get8();
 		file_.seek(1, SEEK_CUR);
 	}

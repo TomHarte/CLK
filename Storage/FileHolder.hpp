@@ -10,6 +10,7 @@
 #define FileHolder_hpp
 
 #include <sys/stat.h>
+#include <array>
 #include <cstdio>
 #include <cstdint>
 #include <mutex>
@@ -125,6 +126,11 @@ class FileHolder final {
 
 		/*! Reads @c size bytes and returns them as a vector. */
 		std::vector<uint8_t> read(std::size_t size);
+
+		/*! Reads @c a.size() bytes into @c a.data(). */
+		template <size_t size> std::size_t read(std::array<uint8_t, size> &a) {
+			return read(a.data(), a.size());
+		}
 
 		/*! Reads @c size bytes and writes them to @c buffer. */
 		std::size_t read(uint8_t *buffer, std::size_t size);
