@@ -130,6 +130,10 @@ class RAM68000: public CPU::MC68000::BusHandler {
 			return int(duration_.as_integral()) >> 1;
 		}
 
+		void reset_cycle_count() {
+			duration_ = HalfCycles(0);
+		}
+
 	private:
 		CPU::MC68000::Processor<RAM68000, true, true> m68000_;
 		std::array<uint16_t, 256*1024> ram_{};

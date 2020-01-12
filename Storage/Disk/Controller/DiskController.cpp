@@ -15,10 +15,9 @@ using namespace Storage::Disk;
 Controller::Controller(Cycles clock_rate) :
 		clock_rate_multiplier_(128000000 / clock_rate.as_integral()),
 		clock_rate_(clock_rate.as_integral() * clock_rate_multiplier_),
+		pll_(100, *this),
 		empty_drive_(new Drive(int(clock_rate.as_integral()), 1, 1)) {
-	// seed this class with a PLL, any PLL, so that it's safe to assume non-nullptr later
-	Time one(1);
-	set_expected_bit_length(one);
+	set_expected_bit_length(Time(1));
 	set_drive(empty_drive_);
 }
 
@@ -42,13 +41,13 @@ Drive &Controller::get_drive() {
 
 void Controller::process_event(const Drive::Event &event) {
 	switch(event.type) {
-		case Track::Event::FluxTransition:	pll_->add_pulse();		break;
+		case Track::Event::FluxTransition:	pll_.add_pulse();		break;
 		case Track::Event::IndexHole:		process_index_hole();	break;
 	}
 }
 
 void Controller::advance(const Cycles cycles) {
-	if(is_reading_) pll_->run_for(Cycles(cycles.as_integral() * clock_rate_multiplier_));
+	if(is_reading_) pll_.run_for(Cycles(cycles.as_integral() * clock_rate_multiplier_));
 }
 
 void Controller::process_write_completed() {
@@ -66,9 +65,8 @@ void Controller::set_expected_bit_length(Time bit_length) {
 
 	// this conversion doesn't need to be exact because there's a lot of variation to be taken
 	// account of in rotation speed, air turbulence, etc, so a direct conversion will do
-	int clocks_per_bit = cycles_per_bit.get<int>();
-	pll_ = std::make_unique<DigitalPhaseLockedLoop>(clocks_per_bit, 3);
-	pll_->set_delegate(this);
+	const int clocks_per_bit = cycles_per_bit.get<int>();
+	pll_.set_clocks_per_bit(clocks_per_bit);
 }
 
 void Controller::digital_phase_locked_loop_output_bit(int value) {

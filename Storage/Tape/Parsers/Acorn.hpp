@@ -17,7 +17,7 @@ namespace Storage {
 namespace Tape {
 namespace Acorn {
 
-class Shifter: public Storage::DigitalPhaseLockedLoop::Delegate {
+class Shifter {
 	public:
 		Shifter();
 
@@ -34,7 +34,7 @@ class Shifter: public Storage::DigitalPhaseLockedLoop::Delegate {
 		void digital_phase_locked_loop_output_bit(int value);
 
 	private:
-		Storage::DigitalPhaseLockedLoop pll_;
+		Storage::DigitalPhaseLockedLoop<Shifter, 15> pll_;
 		bool was_high_;
 
 		unsigned int input_pattern_;
