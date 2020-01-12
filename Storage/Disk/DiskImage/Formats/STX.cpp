@@ -17,6 +17,7 @@
 
 #include <array>
 #include <cstdlib>
+#include <cstring>
 
 using namespace Storage::Disk;
 
