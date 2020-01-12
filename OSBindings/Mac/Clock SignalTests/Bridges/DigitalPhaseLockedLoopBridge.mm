@@ -15,7 +15,7 @@
 - (void)pushBit:(int)value;
 @end
 
-class DigitalPhaseLockedLoopDelegate: public Storage::DigitalPhaseLockedLoop::Delegate {
+class DigitalPhaseLockedLoopDelegate {
 	public:
 		__weak DigitalPhaseLockedLoopBridge *bridge;
 
@@ -25,14 +25,14 @@ class DigitalPhaseLockedLoopDelegate: public Storage::DigitalPhaseLockedLoop::De
 };
 
 @implementation DigitalPhaseLockedLoopBridge {
-	std::unique_ptr<Storage::DigitalPhaseLockedLoop> _digitalPhaseLockedLoop;
+	std::unique_ptr<Storage::DigitalPhaseLockedLoop<DigitalPhaseLockedLoopDelegate>> _digitalPhaseLockedLoop;
 	DigitalPhaseLockedLoopDelegate _delegate;
 }
 
-- (instancetype)initWithClocksPerBit:(NSUInteger)clocksPerBit historyLength:(NSUInteger)historyLength {
+- (instancetype)initWithClocksPerBit:(NSUInteger)clocksPerBit {
 	self = [super init];
 	if(self) {
-		_digitalPhaseLockedLoop = std::make_unique<Storage::DigitalPhaseLockedLoop>((unsigned int)clocksPerBit, (unsigned int)historyLength);
+		_digitalPhaseLockedLoop = std::make_unique<Storage::DigitalPhaseLockedLoop<DigitalPhaseLockedLoopDelegate>>((unsigned int)clocksPerBit);
 		_delegate.bridge = self;
 		_digitalPhaseLockedLoop->set_delegate(&_delegate);
 	}
