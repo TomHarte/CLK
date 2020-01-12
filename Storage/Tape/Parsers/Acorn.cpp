@@ -66,7 +66,7 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 
 
 Shifter::Shifter() :
-	pll_(PLLClockRate / 4800, 15),
+	pll_(PLLClockRate / 4800),
 	was_high_(false),
 	input_pattern_(0),
 	input_bit_counter_(0),

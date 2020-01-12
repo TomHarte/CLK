@@ -26,22 +26,22 @@ class DPLLTests: XCTestCase {
 	}
 
 	func testPerfectInput() {
-		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100, historyLength: 3)
+		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100)
 		testRegularNibblesOnPLL(pll!, bitLength: 100)
 	}
 
 	func testFastButRegular() {
-		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100, historyLength: 3)
+		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100)
 		testRegularNibblesOnPLL(pll!, bitLength: 90)
 	}
 
 	func testSlowButRegular() {
-		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100, historyLength: 3)
+		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100)
 		testRegularNibblesOnPLL(pll!, bitLength: 110)
 	}
 
 	func testTwentyPercentSinePattern() {
-		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100, historyLength: 3)
+		let pll = DigitalPhaseLockedLoopBridge(clocksPerBit: 100)
 		var angle = 0.0
 
 		// clock in two 1s, a 0, and a 1, 200 times over

@@ -29,7 +29,6 @@ namespace Disk {
 	TODO: communication of head size and permissible stepping extents, appropriate simulation of gain.
 */
 class Controller:
-	public DigitalPhaseLockedLoop::Delegate,
 	public Drive::EventDelegate,
 	public ClockingHint::Source,
 	public ClockingHint::Observer {
@@ -111,7 +110,9 @@ class Controller:
 
 		bool is_reading_ = true;
 
-		std::shared_ptr<DigitalPhaseLockedLoop> pll_;
+		DigitalPhaseLockedLoop<Controller> pll_;
+		friend DigitalPhaseLockedLoop<Controller>;
+
 		std::shared_ptr<Drive> drive_;
 
 		std::shared_ptr<Drive> empty_drive_;
@@ -124,7 +125,7 @@ class Controller:
 		void advance(const Cycles cycles) override ;
 
 		// to satisfy DigitalPhaseLockedLoop::Delegate
-		void digital_phase_locked_loop_output_bit(int value) override;
+		void digital_phase_locked_loop_output_bit(int value);
 };
 
 }

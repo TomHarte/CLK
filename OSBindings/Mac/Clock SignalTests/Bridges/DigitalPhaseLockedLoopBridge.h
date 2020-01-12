@@ -10,7 +10,7 @@
 
 @interface DigitalPhaseLockedLoopBridge : NSObject
 
-- (instancetype)initWithClocksPerBit:(NSUInteger)clocksPerBit historyLength:(NSUInteger)historyLength;
+- (instancetype)initWithClocksPerBit:(NSUInteger)clocksPerBit;
 
 - (void)runForCycles:(NSUInteger)cycles;
 - (void)addPulse;
