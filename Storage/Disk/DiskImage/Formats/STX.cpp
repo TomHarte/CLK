@@ -56,9 +56,15 @@ class TrackConstructor {
 					std::vector<uint8_t> result;
 					result.reserve(size_t(end - begin) + prefix.size());
 
-					// Encode as MFM.
 					PCMSegment segment;
 					std::unique_ptr<Storage::Encodings::MFM::Encoder> encoder = Storage::Encodings::MFM::GetMFMEncoder(segment.data);
+
+					// Encode prefix.
+					for(auto c: prefix) {
+						encoder->add_byte(c);
+					}
+
+					// Encode body.
 					while(begin != end) {
 						encoder->add_byte(*begin);
 						++begin;
@@ -68,9 +74,6 @@ class TrackConstructor {
 					using Shifter = Storage::Encodings::MFM::Shifter;
 					Shifter shifter;
 					shifter.set_should_obey_syncs(true);
-
-					// Add the prefix.
-					std::copy(prefix.begin(), prefix.end(), std::back_inserter(result));
 
 					// Add whatever comes from the track.
 					for(auto bit: segment.data) {
@@ -242,6 +245,10 @@ std::shared_ptr<::Storage::Disk::Track> STX::get_track_at_position(::Storage::Di
 	// If no track was found, there's nothing to do here.
 	const int track_index = (address.head * 0x80) + address.position.as_int();
 	if(!offset_by_track_[track_index]) return nullptr;
+
+	if(track_index == 41) {
+		printf("Y\n");
+	} else printf("N\n");
 
 	// Seek to the track (skipping the record size field).
 	file_.seek(offset_by_track_[track_index] + 4, SEEK_SET);
