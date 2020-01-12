@@ -15,9 +15,8 @@ using namespace Storage::Disk;
 Controller::Controller(Cycles clock_rate) :
 		clock_rate_multiplier_(128000000 / clock_rate.as_integral()),
 		clock_rate_(clock_rate.as_integral() * clock_rate_multiplier_),
-		pll_(100),
+		pll_(100, *this),
 		empty_drive_(new Drive(int(clock_rate.as_integral()), 1, 1)) {
-	pll_.set_delegate(this);
 	set_expected_bit_length(Time(1));
 	set_drive(empty_drive_);
 }

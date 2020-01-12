@@ -21,6 +21,7 @@ namespace Storage {
 /*!
 	Template parameters:
 
+	@c bit_handler A class that must implement a method, digital_phase_locked_loop_output_bit(int) for receving bits from the DPLL.
 	@c length_of_history The number of historic pulses to consider in locking to phase.
 */
 template <typename BitHandler, size_t length_of_history = 3> class DigitalPhaseLockedLoop {
@@ -30,8 +31,8 @@ template <typename BitHandler, size_t length_of_history = 3> class DigitalPhaseL
 
 			@param clocks_per_bit The expected number of cycles between each bit of input.
 		*/
-		DigitalPhaseLockedLoop(int clocks_per_bit) :
-			window_length_(clocks_per_bit), clocks_per_bit_(clocks_per_bit) {}
+		DigitalPhaseLockedLoop(int clocks_per_bit, BitHandler &handler) :
+			bit_handler_(handler), window_length_(clocks_per_bit), clocks_per_bit_(clocks_per_bit) {}
 
 		/*!
 			Changes the expected window length.
@@ -51,12 +52,10 @@ template <typename BitHandler, size_t length_of_history = 3> class DigitalPhaseL
 			if(phase_ >= window_length_) {
 				auto windows_crossed = phase_ / window_length_;
 
-				// check whether this triggers any 0s, if anybody cares
-				if(delegate_) {
-					if(window_was_filled_) --windows_crossed;
-					for(int c = 0; c < windows_crossed; c++)
-						delegate_->digital_phase_locked_loop_output_bit(0);
-				}
+				// Check whether this triggers any 0s.
+				if(window_was_filled_) --windows_crossed;
+				for(int c = 0; c < windows_crossed; c++)
+					bit_handler_.digital_phase_locked_loop_output_bit(0);
 
 				window_was_filled_ = false;
 				phase_ %= window_length_;
@@ -68,22 +67,15 @@ template <typename BitHandler, size_t length_of_history = 3> class DigitalPhaseL
 		*/
 		void add_pulse() {
 			if(!window_was_filled_) {
-				if(delegate_) delegate_->digital_phase_locked_loop_output_bit(1);
+				bit_handler_.digital_phase_locked_loop_output_bit(1);
 				window_was_filled_ = true;
 				post_phase_offset(phase_, offset_);
 				offset_ = 0;
 			}
 		}
 
-		/*!
-			A receiver for PCM output data; called upon every recognised bit.
-		*/
-		void set_delegate(BitHandler *delegate) {
-			delegate_ = delegate;
-		}
-
 	private:
-		BitHandler *delegate_ = nullptr;
+		BitHandler &bit_handler_;
 
 		void post_phase_offset(Cycles::IntType new_phase, Cycles::IntType new_offset) {
 			// Erase the effect of whatever is currently in this slot.

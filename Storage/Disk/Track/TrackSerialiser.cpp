@@ -20,12 +20,13 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 	// its PCMSegment.
 	struct ResultAccumulator {
 		PCMSegment result;
+		bool is_recording = false;
 		void digital_phase_locked_loop_output_bit(int value) {
-			result.data.push_back(!!value);
+			if(is_recording) result.data.push_back(!!value);
 		}
 	} result_accumulator;
 	result_accumulator.result.length_of_a_bit = length_of_a_bit;
-	DigitalPhaseLockedLoop<ResultAccumulator> pll(100);
+	DigitalPhaseLockedLoop<ResultAccumulator> pll(100, result_accumulator);
 
 	// Obtain a length multiplier which is 100 times the reciprocal
 	// of the expected bit length. So a perfect bit length from
@@ -55,7 +56,7 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 			if(!history_size) {
 				track_copy->seek_to(Time(0));
 				time_error.set_zero();
-				pll.set_delegate(&result_accumulator);
+				result_accumulator.is_recording = true;
 			}
 		}
 	}

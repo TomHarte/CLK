@@ -66,13 +66,11 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 
 
 Shifter::Shifter() :
-	pll_(PLLClockRate / 4800),
+	pll_(PLLClockRate / 4800, *this),
 	was_high_(false),
 	input_pattern_(0),
 	input_bit_counter_(0),
-	delegate_(nullptr) {
-	pll_.set_delegate(this);
-}
+	delegate_(nullptr) {}
 
 void Shifter::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 	pll_.run_for(Cycles(static_cast<int>(static_cast<float>(PLLClockRate) * pulse.length.get<float>())));
