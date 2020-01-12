@@ -23,7 +23,7 @@ namespace Storage {
 
 	@c length_of_history The number of historic pulses to consider in locking to phase.
 */
-template <typename BitHandler, size_t length_of_history = 10> class DigitalPhaseLockedLoop {
+template <typename BitHandler, size_t length_of_history = 3> class DigitalPhaseLockedLoop {
 	public:
 		/*!
 			Instantiates a @c DigitalPhaseLockedLoop.
