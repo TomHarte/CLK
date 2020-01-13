@@ -280,8 +280,8 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 	// Skip: tool used, 2 reserved bytes.
 	file_.seek(4, SEEK_CUR);
 
-	// Grab the track count and test for a new-style encoding, and skip a reserved area.
-	track_count_ = file_.get8();
+	// Skip the track count, test for a new-style encoding, skip a reserved area.
+	file_.seek(1, SEEK_CUR);
 	is_new_format_ = file_.get8() == 2;
 	file_.seek(4, SEEK_CUR);
 
@@ -301,6 +301,8 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 	//	12	2	Total number of bytes on track.
 	//	14	1	Track number (b7 = side, b0-b6 = track).
 	//	15	1	Track type.
+	track_count_ = 0;
+	head_count_ = 1;
 	while(true) {
 		const long offset = file_.tell();
 		const uint32_t size = file_.get32le();
@@ -312,17 +314,21 @@ STX::STX(const std::string &file_name) : file_(file_name) {
 		const uint8_t track_position = file_.get8();
 		offset_by_track_[track_position] = offset;
 
+		// Update the maximum surface dimensions.
+		track_count_ = std::max(track_count_, track_position & 0x7f);
+		head_count_ = std::max(head_count_, ((track_position & 0x80) >> 6));
+
 		// Seek next track start.
 		file_.seek(offset + size, SEEK_SET);
 	}
 }
 
 HeadPosition STX::get_maximum_head_position() {
-	return HeadPosition(80);
+	return HeadPosition(track_count_ + 1);	// Same issue as MSA; must fix!
 }
 
 int STX::get_head_count() {
-	return 2;
+	return head_count_;
 }
 
 std::shared_ptr<::Storage::Disk::Track> STX::get_track_at_position(::Storage::Disk::Track::Address address) {

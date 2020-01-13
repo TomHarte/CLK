@@ -38,6 +38,8 @@ class STX: public DiskImage {
 		FileHolder file_;
 
 		int track_count_;
+		int head_count_;
+
 		bool is_new_format_;
 		long offset_by_track_[256];
 };
