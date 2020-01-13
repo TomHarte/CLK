@@ -174,16 +174,16 @@ class TrackConstructor {
 				}
 			}
 
+			// Just create an encoder if one doesn't exist. TODO: factor in data rate.
+			if(!encoder) {
+				segment.reset(new PCMSegment);
+				encoder = Storage::Encodings::MFM::GetMFMEncoder(segment->data);
+			}
+
 			// Write out, being wary of potential overlapping sectors, and copying from track_data_ to fill in gaps.
 			auto location = locations.begin();
 			track_position = track_data_.begin();
 			while(location != locations.end()) {
-				// Just create an encoder if one doesn't exist. TODO: factor in data rate.
-				if(!encoder) {
-					segment.reset(new PCMSegment);
-					encoder = Storage::Encodings::MFM::GetMFMEncoder(segment->data);
-				}
-
 				// Advance to location.position.
 				while(track_position != location->position) {
 					encoder->add_byte(*track_position);
