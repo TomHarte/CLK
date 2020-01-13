@@ -42,17 +42,25 @@ class TrackConstructor {
 			std::vector<uint16_t> timing;
 
 			// Accessors.
+
+			/// @returns The byte size of this sector, according to its address mark.
 			uint32_t data_size() const {
 				return uint32_t(128 << address[3]);
 			}
+
+			/// @returns The byte stream this sector address would produce if a WD read track command were to observe it.
 			std::vector<uint8_t> get_track_address_image() const {
-				return track_encoding(address.begin(), address.begin() + 4, {0xa1, 0xfe});
+				return track_encoding(address.begin(), address.begin() + 4, {0xa1, 0xa1, 0xfe});
 			}
+
+			/// @returns The byte stream this sector data would produce if a WD read track command were to observe it.
 			std::vector<uint8_t> get_track_data_image() const {
-				return track_encoding(contents.begin(), contents.end(), {0xa1, 0xfb});
+				return track_encoding(contents.begin(), contents.end(), {0xa1, 0xa1, 0xfb});
 			}
 
 			private:
+				/// @returns The effect of encoding @c prefix followed by the bytes from @c begin to @c end as MFM data and then decoding them as if
+				/// observed by a WD read track command.
 				template <typename T> static std::vector<uint8_t> track_encoding(T begin, T end, std::initializer_list<uint8_t> prefix) {
 					std::vector<uint8_t> result;
 					result.reserve(size_t(end - begin) + prefix.size());
@@ -119,57 +127,135 @@ class TrackConstructor {
 			// To reconcile the list of sectors with the WD get track-style track image,
 			// use sector bodies as definitive and refer to the track image for in-fill.
 			auto track_position = track_data_.begin();
+			const auto address_mark = {0xa1, 0xa1, 0xfe};
+			const auto track_mark = {0xa1, 0xa1, 0xfb};
+			struct Location {
+				enum Type {
+					Address, Data
+				} type;
+				std::vector<uint8_t>::const_iterator position;
+				const Sector &sector;
+
+				Location(Type type, std::vector<uint8_t>::const_iterator position, const Sector &sector) : type(type), position(position), sector(sector) {}
+			};
+			std::vector<Location> locations;
 			for(const auto &sector: sectors_) {
-				// Find out what the header would look like, if found in a read track.
-				const auto track_address = sector.get_track_address_image();
-				const auto track_data = sector.get_track_data_image();
+				{
+					// Find out what the address would look like, if found in a read track.
+					const auto track_address = sector.get_track_address_image();
 
-				// Try to locate the header within the track image.
-				const auto address_position = std::search(track_position, track_data_.end(), track_address.begin(), track_address.end());
-				const auto data_position = std::search(track_position, track_data_.end(), track_data.begin(), track_data.end());
+					// Try to locate the header within the track image; if it can't be found then settle for
+					// the next thing that looks like a header of any sort.
+					auto address_position = std::search(track_position, track_data_.end(), track_address.begin(), track_address.end());
+					if(address_position == track_data_.end()) {
+						address_position = std::search(track_position, track_data_.end(), address_mark.begin(), address_mark.end());
+					}
 
-				if(address_position == track_data_.end()) {
-					printf("?\n");
+					// Stop now if there's nowhere obvious to put this sector.
+					if(address_position == track_data_.end()) break;
+					locations.emplace_back(Location::Address, address_position, sector);
+
+					// Advance the track position.
+					track_position = address_position;
 				}
-				if(data_position == track_data_.end()) {
-					printf("??\n");
+
+				// Do much the same thing for the data, if it exists.
+				if(!(sector.status & 0x10)) {
+					const auto track_data = sector.get_track_data_image();
+
+					auto data_position = std::search(track_position, track_data_.end(), track_data.begin(), track_data.end());
+					if(data_position == track_data_.end()) {
+						data_position = std::search(track_position, track_data_.end(), track_mark.begin(), track_mark.end());
+					}
+					if(data_position == track_data_.end()) break;
+
+					locations.emplace_back(Location::Data, data_position, sector);
+					track_position = data_position;
 				}
+			}
 
-				printf("%lu / %lu\n", address_position - track_data_.begin(), data_position - track_data_.begin());
-
-				// HACK: assume nothing between sectors. Crazy time!
-
+			// Write out, being wary of potential overlapping sectors, and copying from track_data_ to fill in gaps.
+			auto location = locations.begin();
+			track_position = track_data_.begin();
+			while(location != locations.end()) {
+				// Just create an encoder if one doesn't exist. TODO: factor in data rate.
 				if(!encoder) {
 					segment.reset(new PCMSegment);
 					encoder = Storage::Encodings::MFM::GetMFMEncoder(segment->data);
 				}
 
-				// Add sector header.
-				encoder->add_ID_address_mark();
-				for(size_t c = 0; c < 6; ++c)
-					encoder->add_byte(sector.address[c]);
-
-				// Add a gap.
-				for(int c = 0; c < 12; ++c)
-					encoder->add_byte(0x4e);
-
-				// Add sector body.
-				encoder->add_data_address_mark();
-				for(const auto byte: sector.contents) {
-					encoder->add_byte(byte);
+				// Advance to location.position.
+				while(track_position != location->position) {
+					encoder->add_byte(*track_position);
+					++track_position;
 				}
-				encoder->add_crc(sector.status & 0x8);	// Get the CRC wrong if required.	(TODO: take from track image, if possible?)
 
-				// Add a gap.
-				for(int c = 0; c < 42; ++c)
-					encoder->add_byte(0x4e);
+				// Write the relevant mark and fill in a default number of bytes to write.
+				size_t bytes_to_write;
+				switch(location->type) {
+					default:
+					case Location::Address:
+						encoder->add_ID_address_mark();
+						bytes_to_write = 6;
+					break;
+					case Location::Data:
+						if(location->sector.status & 0x20)
+							encoder->add_deleted_data_address_mark();
+						else
+							encoder->add_data_address_mark();
+						bytes_to_write = location->sector.data_size() + 2;
+					break;
+				}
+				track_position += 3;
+
+				// Decide how much data to write for real; this [partially] allows for overlapping sectors.
+				auto next_location = location + 1;
+				if(next_location != locations.end()) {
+					bytes_to_write = std::min(bytes_to_write, size_t(next_location->position - track_position));
+				}
+
+				// Skip that many bytes from the underlying track image.
+				track_position += ssize_t(bytes_to_write);
+
+				// Write bytes.
+				switch(location->type) {
+					default:
+					case Location::Address:
+						for(size_t c = 0; c < bytes_to_write; ++c)
+							encoder->add_byte(location->sector.address[c]);
+					break;
+					case Location::Data: {
+						const auto body_bytes = std::min(bytes_to_write, size_t(location->sector.data_size()));
+						for(size_t c = 0; c < body_bytes; ++c)
+							encoder->add_byte(location->sector.contents[c]);
+
+						// Add a CRC only if it fits (TODO: crop if necessary?).
+						if(bytes_to_write & 127) {
+							encoder->add_crc((location->sector.status & 0x18) == 0x10);
+						}
+					} break;
+				}
+
+				// Advance location.
+				++location;
 			}
 
-//			while(segment->data.size() < track_size_ * 16) {
-//				encoder->add_byte(0x4e);
-//			}
+			// Write anything remaining from the track image.
+			while(track_position < track_data_.end()) {
+				encoder->add_byte(*track_position);
+				++track_position;
+			}
 
-			while(segment->data.size() < 6250 * 16) {
+			// Write generic padding up until the specified track size.
+			while(segment->data.size() < track_size_ * 16) {
+				encoder->add_byte(0x4e);
+			}
+
+			// Pad out to the minimum size a WD can actually make sense of.
+			// I've no idea why it's valid for tracks to be shorter than this,
+			// so likely I'm suffering a comprehansion deficiency.
+			// TODO: determine why this isn't correct (or, possibly, is).
+			while(segment->data.size() < 5750 * 16) {
 				encoder->add_byte(0x4e);
 			}
 
@@ -247,10 +333,6 @@ std::shared_ptr<::Storage::Disk::Track> STX::get_track_at_position(::Storage::Di
 	const int track_index = (address.head * 0x80) + address.position.as_int();
 	if(!offset_by_track_[track_index]) return nullptr;
 
-	if(track_index == 41) {
-		printf("Y\n");
-	} else printf("N\n");
-
 	// Seek to the track (skipping the record size field).
 	file_.seek(offset_by_track_[track_index] + 4, SEEK_SET);
 
@@ -258,7 +340,7 @@ std::shared_ptr<::Storage::Disk::Track> STX::get_track_at_position(::Storage::Di
 	const uint32_t fuzzy_size = file_.get32le();
 	const uint16_t sector_count = file_.get16le();
 	const uint16_t flags = file_.get16le();
-	const size_t track_length = size_t(file_.get16le() << 3);	// Convert bytes to bits.
+	const size_t track_length = file_.get16le();
 	file_.seek(2, SEEK_CUR);		// Skip track type; despite being named, it's apparently unused.
 
 	// If this is a trivial .ST-style sector dump, life is easy.
@@ -387,178 +469,4 @@ std::shared_ptr<::Storage::Disk::Track> STX::get_track_at_position(::Storage::Di
 
 	TrackConstructor constructor(track_data, sectors, track_length, first_sync);
 	return constructor.get_track();
-
-	/*
-			* 	if track_data is not empty, it is what you'd see from a read track command;
-			* 	the vector of sectors will contain sectors to be written; contents will be populated,
-				and each individually may or may not have a fuzzy_mask and/or timing.
-
-		Also note track_length, which is the perceived length of the track, rounded to whole bytes.
-	*/
-
-/*	if(track_data.empty()) {
-
-	} else {
-		// Locate things that might be ID or data address marks; as a side effect of the way
-		// this is implemented, the byte_locations will be set to the first bit of apparent
-		// content for an ID or data mark.
-		struct PotentialMark {
-			enum class Type { ID, Data } type;
-			size_t byte_location;
-
-			PotentialMark(Type type, size_t byte_location) : type(type), byte_location(byte_location) {}
-		};
-		std::vector<PotentialMark> potential_marks;
-		{
-			const uint32_t id_mark = 0xa1a1fe;
-			const uint32_t data_mark = 0xa1a1fb;
-			uint32_t shifter = 0;
-			for(size_t c = 0; c < track_data.size(); ++c) {
-				shifter = ((shifter << 8) | track_data[c]) & 0xffffff;
-
-				if(shifter == id_mark) {
-					potential_marks.emplace_back(PotentialMark::Type::ID, c);
-				} else if(shifter == data_mark) {
-					potential_marks.emplace_back(PotentialMark::Type::Data, c);
-				}
-			}
-		}
-
-		// For each sector that exists, locate the correlated potential marks.
-		// Since sectors are now in track order, a forward walk through potential
-		// marks should work.
-		auto next_mark = potential_marks.begin();
-		for(auto &sector: sectors) {
-			if(sector.data_offset < track_data.size()) {
-				// The sector already tells us where its body is, so life is easy.
-				// Link the body to its known position, and backtrack to find the ID.
-				sector.track_offset_of_data = sector.data_offset;
-
-				// Search for an unconsumed data mark at this location.
-				auto data_search = next_mark;
-				while(
-					data_search != potential_marks.end() &&
-					!(data_search->type == PotentialMark::Type::Data && data_search->byte_location == sector.track_offset_of_data))
-					++data_search;
-
-				// Advance the potential mark consumption pointer.
-				next_mark = data_search + 1;
-
-				// Recede to a previous ID mark if possible.
-				while(data_search >= potential_marks.begin() &&
-					!(data_search->type == PotentialMark::Type::ID && data_search->byte_location >= sector.track_offset_of_data - 150))
-					--data_search;
-
-				if(data_search >= potential_marks.begin()) {
-					sector.track_offset_of_header = data_search->byte_location;
-				} else {
-					// Couldn't figure this one out; just make a geuss.
-					sector.track_offset_of_header = sector.track_offset_of_data - 50;
-				}
-			} else {
-				// For either approach below, the next ID is needed.
-				while(next_mark != potential_marks.end() && next_mark->type != PotentialMark::Type::ID)
-					++next_mark;
-
-				if(next_mark == potential_marks.end()) break;
-
-				// This sector's body isn't accurately represented within the read track
-				// image (or, at least, isn't decalred to be), so look for a suitable
-				// ID mark and then — if it has a body — consume the next data mark too.
-				if(sector.status & 0x10) {
-					// There's no placement information to go from, so compare by ID fields. As long
-					// as at least two bytes match, that'll do. Arbitrarily.
-					int matches = 0;
-					for(size_t c = 0; c < 4; ++c) {
-						matches += track_data[next_mark->byte_location + c] == sector.address[c];
-					}
-					if(matches >= 2) {
-						sector.track_offset_of_header = next_mark->byte_location;
-						++ next_mark;
-					} else {
-						// Desperation. The meaning of bit_position versus the track_contents is
-						// fairly undefined at the best of times, but seems to correlate with data
-						// rather than the header anyway. So, ummm...
-						sector.track_offset_of_header = sector.bit_position >> 3;
-					}
-				} else {
-					// If the next potential marks are an ID/data pair, and the stated data location is within
-					// 100 bytes of that encoded in the sector, take it.
-					auto data_mark = next_mark + 1;
-					if(
-						next_mark->type == PotentialMark::Type::ID &&
-						data_mark->type == PotentialMark::Type::Data &&
-						std::abs(int(next_mark->byte_location - (sector.bit_position >> 3))) < 100) {
-						sector.track_offset_of_header = next_mark->byte_location;
-						sector.track_offset_of_data = data_mark->byte_location;
-						next_mark += 2;
-					} else {
-						// Don't know. TODO?
-					}
-				}
-			}
-		}
-
-
-		// The game: take bytes from track_data unless or until a sector is hit.
-		auto next_sector = sectors.begin();
-		size_t bytes_consumed = 0;
-		std::unique_ptr<Encodings::MFM::Encoder> encoder;
-		std::unique_ptr<PCMSegment> segment;
-		while(bytes_consumed < track_length) {
-			// Next event is either the next sector or the end of the track. Let's see.
-			size_t bytes_to_consume =
-				((next_sector != sectors.end()) ?
-					next_sector->track_offset_of_header : track_length) - bytes_consumed;
-
-			// Write from bits_written to bits_written + bits_to_consume from track_data
-			// to an encoder. If there is no encoder right now, create one.
-			if(!encoder) {
-				segment.reset(new PCMSegment);
-				encoder = Encodings::MFM::GetMFMEncoder(segment->data);
-			}
-
-			// Output bytes up to the sector.
-			while(bytes_to_consume--) {
-				encoder->add_byte(track_data[bytes_consumed]);
-				++bytes_consumed;
-			}
-
-			// Chuck out a sector if it's time for one.
-			if(next_sector != sectors.end()) {
-				// Output header.
-				encoder->add_ID_address_mark();					// This is four 'bytes', but pretend it's three.
-				encoder->add_byte(next_sector->address[0]);
-				encoder->add_byte(next_sector->address[1]);
-				encoder->add_byte(next_sector->address[2]);
-				encoder->add_byte(next_sector->address[3]);
-				if(next_sector->address_has_crc) {
-					encoder->add_byte(next_sector->address[4]);
-					encoder->add_byte(next_sector->address[5]);
-				} else {
-					encoder->add_crc((next_sector->status & 0x18) == 0x18);
-				}
-				bytes_consumed += 9;
-
-				if(!(next_sector->status & 0x10)) {
-					while(bytes_consumed < next_sector->track_offset_of_data) {
-						encoder->add_byte(track_data[bytes_consumed]);
-						++bytes_consumed;
-					}
-
-					encoder->add_data_address_mark();		// Also four bytes, which we'll model as three.
-					for(const auto byte: next_sector->contents) {
-						encoder->add_byte(byte);
-					}
-					encoder->add_crc(next_sector->status & 0x8);
-					bytes_consumed += next_sector->contents.size() + 5;
-				}
-
-				++next_sector;
-			}
-		}
-
-		return std::make_shared<PCMTrack>(*segment);
-	}*/
-
 }

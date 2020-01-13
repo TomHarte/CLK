@@ -336,6 +336,7 @@ void WD1770::posit_event(int new_event_type) {
 		READ_ID();
 
 		if(index_hole_count_ == 6) {
+			LOG("Nothing found to verify");
 			update_status([] (Status &status) {
 				status.seek_error = true;
 			});
