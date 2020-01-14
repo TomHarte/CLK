@@ -188,8 +188,10 @@ class TrackConstructor {
 			auto location = locations.begin();
 			track_position = track_data_.begin();
 			while(location != locations.end()) {
+				assert(location->position < track_data_.end());
+
 				// Advance to location.position.
-				while(track_position != location->position) {
+				while(track_position < location->position) {
 					encoder->add_byte(*track_position);
 					++track_position;
 				}
