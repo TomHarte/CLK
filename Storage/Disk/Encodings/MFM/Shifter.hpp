@@ -27,6 +27,10 @@ namespace MFM {
 	It will ordinarily honour sync patterns; that should be turned off when within
 	a sector because false syncs can occur. See @c set_should_obey_syncs.
 
+	It aims to implement the same behaviour as WD177x-series controllers when
+	detecting a false sync — the received byte value will be either a 0xc1 or 0x14,
+	depending on phase.
+
 	Bits should be fed in with @c add_input_bit.
 
 	The current output token can be read with @c get_token. It will usually be None but
@@ -62,14 +66,14 @@ class Shifter {
 		}
 
 	private:
-		// Bit stream input state
+		// Bit stream input state.
 		int bits_since_token_ = 0;
 		unsigned int shift_register_ = 0;
 		bool is_awaiting_marker_value_ = false;
 		bool should_obey_syncs_ = true;
 		Token token_ = None;
 
-		// input configuration
+		// Input configuration.
 		bool is_double_density_ = false;
 
 		std::unique_ptr<CRC::CCITT> owned_crc_generator_;

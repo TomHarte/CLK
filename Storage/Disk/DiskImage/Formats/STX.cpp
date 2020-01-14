@@ -83,6 +83,7 @@ class TrackConstructor {
 					using Shifter = Storage::Encodings::MFM::Shifter;
 					Shifter shifter;
 					shifter.set_should_obey_syncs(true);
+					shifter.set_is_double_density(true);
 
 					// Add whatever comes from the track.
 					for(auto bit: segment.data) {
@@ -127,8 +128,7 @@ class TrackConstructor {
 			// To reconcile the list of sectors with the WD get track-style track image,
 			// use sector bodies as definitive and refer to the track image for in-fill.
 			auto track_position = track_data_.begin();
-			const auto address_mark = {0xa1, 0xa1, 0xfe};
-			const auto track_mark = {0xa1, 0xa1, 0xfb};
+			const auto sync_mark = {0xa1, 0xa1};
 			struct Location {
 				enum Type {
 					Address, Data
@@ -148,15 +148,16 @@ class TrackConstructor {
 					// the next thing that looks like a header of any sort.
 					auto address_position = std::search(track_position, track_data_.end(), track_address.begin(), track_address.end());
 					if(address_position == track_data_.end()) {
-						address_position = std::search(track_position, track_data_.end(), address_mark.begin(), address_mark.end());
+						address_position = std::search(track_position, track_data_.end(), sync_mark.begin(), sync_mark.end());
 					}
 
-					// Stop now if there's nowhere obvious to put this sector.
-					if(address_position == track_data_.end()) break;
-					locations.emplace_back(Location::Address, address_position, sector);
+					// Place this address only if somewhere to put it was found.
+					if(address_position != track_data_.end()) {
+						locations.emplace_back(Location::Address, address_position, sector);
 
-					// Advance the track position.
-					track_position = address_position;
+						// Advance the track position.
+						track_position = address_position;
+					}
 				}
 
 				// Do much the same thing for the data, if it exists.
@@ -165,9 +166,12 @@ class TrackConstructor {
 
 					auto data_position = std::search(track_position, track_data_.end(), track_data.begin(), track_data.end());
 					if(data_position == track_data_.end()) {
-						data_position = std::search(track_position, track_data_.end(), track_mark.begin(), track_mark.end());
+						data_position = std::search(track_position, track_data_.end(), sync_mark.begin(), sync_mark.end());
 					}
-					if(data_position == track_data_.end()) break;
+					if(data_position == track_data_.end()) {
+						// Desperation: guess from the given offset.
+						data_position = track_data_.begin() + (sector.bit_position / 16);
+					}
 
 					locations.emplace_back(Location::Data, data_position, sector);
 					track_position = data_position;
