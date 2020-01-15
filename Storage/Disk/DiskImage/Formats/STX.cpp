@@ -45,7 +45,7 @@ class TrackConstructor {
 
 			/// @returns The byte size of this sector, according to its address mark.
 			uint32_t data_size() const {
-				return uint32_t(128 << address[3]);
+				return uint32_t(128 << (address[3]&3));
 			}
 
 			/// @returns The byte stream this sector address would produce if a WD read track command were to observe it.
@@ -156,7 +156,7 @@ class TrackConstructor {
 						locations.emplace_back(Location::Address, address_position, sector);
 
 						// Advance the track position.
-						track_position = address_position;
+						track_position = address_position + 6;
 					}
 				}
 
@@ -174,7 +174,7 @@ class TrackConstructor {
 					}
 
 					locations.emplace_back(Location::Data, data_position, sector);
-					track_position = data_position;
+					track_position = data_position + sector.data_size();
 				}
 			}
 
@@ -188,7 +188,7 @@ class TrackConstructor {
 			auto location = locations.begin();
 			track_position = track_data_.begin();
 			while(location != locations.end()) {
-				assert(location->position < track_data_.end());
+//				assert(location->position >= track_position && location->position < track_data_.end());
 
 				// Advance to location.position.
 				while(track_position < location->position) {
