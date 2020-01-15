@@ -25,8 +25,11 @@ class BD500: public DiskController {
 		void write(int address, uint8_t value);
 		uint8_t read(int address);
 
+		void run_for(const Cycles cycles);
+
 	private:
 		void set_head_load_request(bool head_load) final;
+		bool is_loading_head_ = false;
 };
 
 };

@@ -44,8 +44,20 @@ uint8_t BD500::read(int address) {
 
 void BD500::set_head_load_request(bool head_load) {
 	// Turn all motors on or off, and load the head instantly.
+	is_loading_head_ |= head_load;
 	for(auto &drive : drives_) {
 		if(drive) drive->set_motor_on(head_load);
 	}
-	set_head_loaded(head_load);
+	if(!head_load) set_head_loaded(false);
+}
+
+void BD500::run_for(const Cycles cycles) {
+	// If a head load is in progress and the selected drive is now ready,
+	// declare head loaded.
+	if(is_loading_head_ && drives_[selected_drive_] && drives_[selected_drive_]->get_is_ready()) {
+		set_head_loaded(true);
+		is_loading_head_ = false;
+	}
+
+	WD::WD1770::run_for(cycles);
 }
