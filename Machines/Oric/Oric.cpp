@@ -223,7 +223,6 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
 	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
-	public Microdisc::Delegate,
 	public DiskController::Delegate,
 	public ClockingHint::Observer,
 	public Activity::Source,
@@ -321,12 +320,14 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 			switch(target.disk_interface) {
 				default: break;
-				case DiskInterface::Microdisc:
-					microdisc_did_change_paging_flags(&microdisc_);
-					microdisc_.set_delegate(this);
+				case DiskInterface::BD500:
+//					jasmin_.set_delegate(this);
 				break;
 				case DiskInterface::Jasmin:
 					jasmin_.set_delegate(this);
+				break;
+				case DiskInterface::Microdisc:
+					microdisc_.set_delegate(this);
 				break;
 			}
 
@@ -573,7 +574,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// for Microdisc::Delegate
-		void microdisc_did_change_paging_flags(class Microdisc *microdisc) final {
+/*		void microdisc_did_change_paging_flags(class Microdisc *microdisc) final {
 			const int flags = microdisc->get_paging_flags();
 			if(!(flags&Microdisc::PagingFlags::BASICDisable)) {
 				ram_top_ = basic_visible_ram_top_;
@@ -586,27 +587,21 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					paged_rom_ = disk_rom_.data();
 				}
 			}
-		}
+		}*/
 
 		// DiskController::Delegate
-		void disk_controller_did_change_paging_flags(DiskController *controller) final {
-			const int flags = controller->get_paging_flags();
-
-			switch(flags) {
-				// BASIC enabled, overlay disabled.
+		void disk_controller_did_change_paged_item(DiskController *controller) final {
+			switch(controller->get_paged_item()) {
 				default:
 					ram_top_ = basic_visible_ram_top_;
 					paged_rom_ = rom_.data();
 				break;
 
-				// Overlay RAM enabled, with or without BASIC.
-				case DiskController::OverlayRAMEnable:
-				case DiskController::OverlayRAMEnable | DiskController::BASICDisable:
+				case DiskController::PagedItem::RAM:
 					ram_top_ = basic_invisible_ram_top_;
 				break;
 
-				// BASIC disabled, overlay disabled.
-				case DiskController::BASICDisable:
+				case DiskController::PagedItem::DiskROM:
 					ram_top_ = uint16_t(0xffff - disk_rom_.size());
 					paged_rom_ = disk_rom_.data();
 				break;

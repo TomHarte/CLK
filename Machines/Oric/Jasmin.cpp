@@ -14,6 +14,7 @@ using namespace Oric;
 // the only difference is stepping rates, and it says 1770 on the schematic I'm looking at.
 Jasmin::Jasmin() : DiskController(P1770, 8000000) {
 	set_is_double_density(true);
+	select_paged_item();
 }
 
 void Jasmin::write(int address, uint8_t value) {
@@ -31,12 +32,14 @@ void Jasmin::write(int address, uint8_t value) {
 
 		case 0x3fa: {
 			// If b0, enable overlay RAM.
-			set_paging_flags((get_paging_flags() & BASICDisable) | ((value & 1) ? OverlayRAMEnable : 0));
+			enable_overlay_ram_ = value & 1;
+			select_paged_item();
 		} break;
 
 		case 0x3fb:
 			// If b0, disable BASIC ROM.
-			set_paging_flags((get_paging_flags() & OverlayRAMEnable) | ((value & 1) ? BASICDisable : 0));
+			disable_basic_rom_ = value & 1;
+			select_paged_item();
 		break;
 
 		case 0x3fc: case 0x3fd: case 0x3fe: case 0x3ff: {
@@ -48,6 +51,14 @@ void Jasmin::write(int address, uint8_t value) {
 		default:
 			return WD::WD1770::write(address, value);
 	}
+}
+
+void Jasmin::select_paged_item() {
+	PagedItem item = PagedItem::RAM;
+	if(!enable_overlay_ram_) {
+		item = disable_basic_rom_ ? PagedItem::DiskROM : PagedItem::BASIC;
+	}
+	set_paged_item(item);
 }
 
 void Jasmin::set_motor_on(bool on) {

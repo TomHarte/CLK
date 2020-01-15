@@ -25,33 +25,30 @@ class DiskController: public WD::WD1770 {
 			drives_[drive]->set_disk(disk);
 		}
 
-		enum PagingFlags {
-			/// Indicates that overlay RAM is enabled, implying no ROM is visible.
-			OverlayRAMEnable		=	(1 << 0),
-
-			/// Indicates that the BASIC ROM is disabled, implying that the disk
-			/// controller's ROM fills its space.
-			BASICDisable			=	(1 << 1)
+		enum class PagedItem {
+			DiskROM,
+			BASIC,
+			RAM
 		};
 
 		struct Delegate: public WD1770::Delegate {
-			virtual void disk_controller_did_change_paging_flags(DiskController *controller) = 0;
+			virtual void disk_controller_did_change_paged_item(DiskController *controller) = 0;
 		};
 		inline void set_delegate(Delegate *delegate)	{
 			delegate_ = delegate;
 			WD1770::set_delegate(delegate);
-			if(delegate) delegate->disk_controller_did_change_paging_flags(this);
+			if(delegate) delegate->disk_controller_did_change_paged_item(this);
 		}
-		inline int get_paging_flags() {
-			return paging_flags_;
+		inline PagedItem get_paged_item() {
+			return paged_item_;
 		}
 
 	protected:
-		inline void set_paging_flags(int new_flags) {
-			if(paging_flags_ == new_flags) return;
-			paging_flags_ = new_flags;
+		inline void set_paged_item(PagedItem item) {
+			if(paged_item_ == item) return;
+			paged_item_ = item;
 			if(delegate_) {
-				delegate_->disk_controller_did_change_paging_flags(this);
+				delegate_->disk_controller_did_change_paged_item(this);
 			}
 		}
 
@@ -63,10 +60,10 @@ class DiskController: public WD::WD1770 {
 				set_drive(drives_[selected_drive_]);
 			}
 		}
+		Delegate *delegate_ = nullptr;
 
 	private:
-		int paging_flags_ = 0;
-		Delegate *delegate_ = nullptr;
+		PagedItem paged_item_ = PagedItem::DiskROM;
 		int clock_rate_;
 
 };

@@ -18,18 +18,8 @@ namespace {
 	const Cycles::IntType head_load_request_counter_target = 7653333;
 }
 
-Microdisc::Microdisc() : WD1770(P1793) {
+Microdisc::Microdisc() : DiskController(P1793, 8000000) {
 	set_control_register(last_control_, 0xff);
-}
-
-void Microdisc::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int d) {
-	const size_t drive = size_t(d);
-	if(!drives_[drive]) {
-		drives_[drive] = std::make_unique<Storage::Disk::Drive>(8000000, 300, 2);
-		if(drive == selected_drive_) set_drive(drives_[drive]);
-		drives_[drive]->set_activity_observer(observer_, drive_name(drive), false);
-	}
-	drives_[drive]->set_disk(disk);
 }
 
 void Microdisc::set_control_register(uint8_t control) {
@@ -73,8 +63,11 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 	// b7: EPROM select (0 = select)
 	// b1: ROM disable (0 = disable)
 	if(changes & 0x82) {
-		paging_flags_ = ((control & 0x02) ? 0 : BASICDisable) | ((control & 0x80) ? MicrodiscDisable : 0);
-		if(delegate_) delegate_->microdisc_did_change_paging_flags(this);
+		PagedItem item = PagedItem::RAM;
+		if(!(control & 0x80)) {
+			item = (control & 0x02) ? PagedItem::BASIC : PagedItem::DiskROM;
+		}
+		set_paged_item(item);
 	}
 }
 
@@ -119,10 +112,6 @@ void Microdisc::run_for(const Cycles cycles) {
 		if(head_load_request_counter_ >= head_load_request_counter_target) set_head_loaded(true);
 	}
 	WD::WD1770::run_for(cycles);
-}
-
-bool Microdisc::get_drive_is_ready() {
-	return true;
 }
 
 void Microdisc::set_activity_observer(Activity::Observer *observer) {
