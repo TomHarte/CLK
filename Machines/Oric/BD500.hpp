@@ -18,6 +18,17 @@
 
 namespace Oric {
 
+class BD500: public DiskController {
+	public:
+		BD500();
+
+		void write(int address, uint8_t value);
+		uint8_t read(int address);
+
+	private:
+		void set_head_load_request(bool head_load) final;
+};
+
 };
 
 #endif /* BD500_hpp */

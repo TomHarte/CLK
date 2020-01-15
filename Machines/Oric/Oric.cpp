@@ -8,6 +8,7 @@
 
 #include "Oric.hpp"
 
+#include "BD500.hpp"
 #include "Jasmin.hpp"
 #include "Keyboard.hpp"
 #include "Microdisc.hpp"
@@ -321,7 +322,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			switch(target.disk_interface) {
 				default: break;
 				case DiskInterface::BD500:
-//					jasmin_.set_delegate(this);
+					bd500_.set_delegate(this);
 				break;
 				case DiskInterface::Jasmin:
 					jasmin_.set_delegate(this);
@@ -397,16 +398,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 			if(!media.disks.empty()) {
 				switch(disk_interface) {
-					case DiskInterface::Jasmin:
-						inserted |= insert_disks(media, jasmin_, 4);
-					break;
-					case DiskInterface::Microdisc: {
-						inserted |= insert_disks(media, microdisc_, 4);
-					} break;
-					case DiskInterface::Pravetz: {
-						inserted |= insert_disks(media, diskii_, 2);
-					} break;
-
+					case DiskInterface::BD500:		inserted |= insert_disks(media, bd500_, 4);		break;
+					case DiskInterface::Jasmin:		inserted |= insert_disks(media, jasmin_, 4);	break;
+					case DiskInterface::Microdisc:	inserted |= insert_disks(media, microdisc_, 4);	break;
+					case DiskInterface::Pravetz:	inserted |= insert_disks(media, diskii_, 2);	break;
 					default: break;
 				}
 			}
@@ -441,6 +436,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					} else {
 						switch(disk_interface) {
 							default: break;
+							case DiskInterface::BD500:
+								if(isReadOperation(operation)) *value = bd500_.read(address);
+								else bd500_.write(address, *value);
+							break;
 							case DiskInterface::Jasmin:
 								if(address >= 0x3f4) {
 									if(isReadOperation(operation)) *value = jasmin_.read(address);
@@ -504,6 +503,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			tape_player_.run_for(Cycles(1));
 			switch(disk_interface) {
 				default: break;
+				case DiskInterface::BD500:
+					bd500_.run_for(Cycles(8));
+				break;
 				case DiskInterface::Jasmin:
 					jasmin_.run_for(Cycles(8));
 
@@ -572,22 +574,6 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		void type_string(const std::string &string) final {
 			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
 		}
-
-		// for Microdisc::Delegate
-/*		void microdisc_did_change_paging_flags(class Microdisc *microdisc) final {
-			const int flags = microdisc->get_paging_flags();
-			if(!(flags&Microdisc::PagingFlags::BASICDisable)) {
-				ram_top_ = basic_visible_ram_top_;
-				paged_rom_ = rom_.data();
-			} else {
-				if(flags&Microdisc::PagingFlags::MicrodiscDisable) {
-					ram_top_ = basic_invisible_ram_top_;
-				} else {
-					ram_top_ = 0xdfff;
-					paged_rom_ = disk_rom_.data();
-				}
-			}
-		}*/
 
 		// DiskController::Delegate
 		void disk_controller_did_change_paged_item(DiskController *controller) final {
@@ -706,6 +692,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		// the Jasmin, if in use.
 		Jasmin jasmin_;
 		int jasmin_reset_counter_ = 0;
+
+		// the BD-500, if in use.
+		BD500 bd500_;
 
 		// the Pravetz/Disk II, if in use.
 		Apple::DiskII diskii_;
