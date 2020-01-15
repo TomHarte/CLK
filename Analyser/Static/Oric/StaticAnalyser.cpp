@@ -188,6 +188,7 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &med
 			} else if(is_bd500(parser)) {
 				target->disk_interface = Target::DiskInterface::BD500;
 				target->media.disks.push_back(disk);
+				target->rom = Target::ROM::BASIC10;
 			}
 		}
 	}
