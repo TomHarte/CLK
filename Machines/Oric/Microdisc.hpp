@@ -13,6 +13,7 @@
 #include "../../Activity/Observer.hpp"
 
 #include <array>
+#include "DiskController.hpp"
 
 namespace Oric {
 

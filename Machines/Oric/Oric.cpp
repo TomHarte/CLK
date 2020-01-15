@@ -224,7 +224,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Microdisc::Delegate,
-	public Jasmin::Delegate,
+	public DiskController::Delegate,
 	public ClockingHint::Observer,
 	public Activity::Source,
 	public Machine,
@@ -266,6 +266,9 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			size_t diskii_state_machine_index = 0;
 			switch(disk_interface) {
 				default: break;
+				case DiskInterface::BD500:
+					rom_names.emplace_back(machine_name, "the ORIC Byte Drive 500 ROM", "bd500.rom", 8*1024, 0x61952e34);
+				break;
 				case DiskInterface::Jasmin:
 					rom_names.emplace_back(machine_name, "the ORIC Jasmin ROM", "jasmin.rom", 2*1024, 0x37220e89);
 				break;
@@ -293,13 +296,17 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 
 			switch(disk_interface) {
 				default: break;
+				case DiskInterface::BD500:
+					disk_rom_ = std::move(*roms[2]);
+					disk_rom_.resize(8192);
+				break;
 				case DiskInterface::Jasmin:
-					jasmin_rom_ = std::move(*roms[2]);
-					jasmin_rom_.resize(2048);
+					disk_rom_ = std::move(*roms[2]);
+					disk_rom_.resize(2048);
 				break;
 				case DiskInterface::Microdisc:
-					microdisc_rom_ = std::move(*roms[2]);
-					microdisc_rom_.resize(8192);
+					disk_rom_ = std::move(*roms[2]);
+					disk_rom_.resize(8192);
 				break;
 				case DiskInterface::Pravetz: {
 					pravetz_rom_ = std::move(*roms[2]);
@@ -319,7 +326,6 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					microdisc_.set_delegate(this);
 				break;
 				case DiskInterface::Jasmin:
-					jasmin_did_change_paging_flags(&jasmin_);
 					jasmin_.set_delegate(this);
 				break;
 			}
@@ -353,7 +359,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			audio_queue_.flush();
 		}
 
-		void set_key_state(uint16_t key, bool is_pressed) override final {
+		void set_key_state(uint16_t key, bool is_pressed) final {
 			if(key == KeyNMI) {
 				m6502_.set_nmi_line(is_pressed);
 			} else {
@@ -361,7 +367,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 		}
 
-		void clear_all_keys() override final {
+		void clear_all_keys() final {
 			keyboard_.clear_all_keys();
 		}
 
@@ -380,7 +386,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			return true;
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			bool inserted = false;
 
 			if(!media.tapes.empty()) {
@@ -534,40 +540,40 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// to satisfy CRTMachine::Machine
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_output_.set_scan_target(scan_target);
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			video_output_.set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override final {
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
-		void run_for(const Cycles cycles) override final {
+		void run_for(const Cycles cycles) final {
 			m6502_.run_for(cycles);
 		}
 
 		// to satisfy MOS::MOS6522IRQDelegate::Delegate
-		void mos6522_did_change_interrupt_status(void *mos6522) override final {
+		void mos6522_did_change_interrupt_status(void *mos6522) final {
 			set_interrupt_line();
 		}
 
 		// to satisfy Storage::Tape::BinaryTapePlayer::Delegate
-		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player) override final {
+		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape_player) final {
 			// set CB1
 			via_.set_control_line_input(MOS::MOS6522::Port::B, MOS::MOS6522::Line::One, !tape_player->get_input());
 		}
 
 		// for Utility::TypeRecipient::Delegate
-		void type_string(const std::string &string) override final {
+		void type_string(const std::string &string) final {
 			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
 		}
 
 		// for Microdisc::Delegate
-		void microdisc_did_change_paging_flags(class Microdisc *microdisc) override final {
+		void microdisc_did_change_paging_flags(class Microdisc *microdisc) final {
 			const int flags = microdisc->get_paging_flags();
 			if(!(flags&Microdisc::PagingFlags::BASICDisable)) {
 				ram_top_ = basic_visible_ram_top_;
@@ -577,14 +583,15 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					ram_top_ = basic_invisible_ram_top_;
 				} else {
 					ram_top_ = 0xdfff;
-					paged_rom_ = microdisc_rom_.data();
+					paged_rom_ = disk_rom_.data();
 				}
 			}
 		}
 
-		// Jasmin::Delegate
-		void jasmin_did_change_paging_flags(Jasmin *jasmin) override final {
-			const int flags = jasmin->get_paging_flags();
+		// DiskController::Delegate
+		void disk_controller_did_change_paging_flags(DiskController *controller) final {
+			const int flags = controller->get_paging_flags();
+
 			switch(flags) {
 				// BASIC enabled, overlay disabled.
 				default:
@@ -593,15 +600,15 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 				break;
 
 				// Overlay RAM enabled, with or without BASIC.
-				case Jasmin::OverlayRAMEnable:
-				case Jasmin::OverlayRAMEnable | Jasmin::BASICDisable:
+				case DiskController::OverlayRAMEnable:
+				case DiskController::OverlayRAMEnable | DiskController::BASICDisable:
 					ram_top_ = basic_invisible_ram_top_;
 				break;
 
 				// BASIC disabled, overlay disabled.
-				case Jasmin::BASICDisable:
-					ram_top_ = 0xf7ff;
-					paged_rom_ = jasmin_rom_.data();
+				case DiskController::BASICDisable:
+					ram_top_ = uint16_t(0xffff - disk_rom_.size());
+					paged_rom_ = disk_rom_.data();
 				break;
 			}
 		}
@@ -669,7 +676,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		CPU::MOS6502::Processor<CPU::MOS6502::Personality::P6502, ConcreteMachine, false> m6502_;
 
 		// RAM and ROM
-		std::vector<uint8_t> rom_, microdisc_rom_, jasmin_rom_;
+		std::vector<uint8_t> rom_, disk_rom_;
 		uint8_t ram_[65536];
 		Cycles cycles_since_video_update_;
 		inline void update_video() {
@@ -771,6 +778,7 @@ Machine *Machine::Oric(const Analyser::Static::Target *target_hint, const ROMMac
 		case DiskInterface::Microdisc:	return new ConcreteMachine<DiskInterface::Microdisc>(*oric_target, rom_fetcher);
 		case DiskInterface::Pravetz:	return new ConcreteMachine<DiskInterface::Pravetz>(*oric_target, rom_fetcher);
 		case DiskInterface::Jasmin:		return new ConcreteMachine<DiskInterface::Jasmin>(*oric_target, rom_fetcher);
+		case DiskInterface::BD500:		return new ConcreteMachine<DiskInterface::BD500>(*oric_target, rom_fetcher);
 	}
 }
 
