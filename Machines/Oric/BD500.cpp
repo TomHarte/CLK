@@ -20,6 +20,10 @@ void BD500::write(int address, uint8_t value) {
 		case 0x0320: case 0x0321: case 0x0322: case 0x0323:
 			WD::WD1770::write(address, value);
 		break;
+
+		default:
+			printf("Write to %04x?\n", address);
+		break;
 	}
 }
 
@@ -27,6 +31,12 @@ uint8_t BD500::read(int address) {
 	switch(address) {
 		case 0x0320: case 0x0321: case 0x0322: case 0x0323:
 		return WD::WD1770::read(address);
+
+		case 0x312:	return (get_data_request_line() ? 0x80 : 0x00) | (get_interrupt_request_line() ? 0x40 : 0x00);
+
+		default:
+			printf("Read from %04x?\n", address);
+		break;
 	}
 
 	return 0xff;
