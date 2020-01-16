@@ -75,7 +75,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		void set_motor_on(bool);
 
 		/*!
-			@returns @c true if the motor is on; @c false otherwise.
+			@returns @c true if the motor on input is active; @c false otherwise. This does not necessarily indicate whether the drive is spinning, due to momentum.
 		*/
 		bool get_motor_on() const;
 
@@ -213,7 +213,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		int available_heads_ = 0;
 
 		// Motor control state.
-		bool motor_is_on_ = false;
+		bool motor_input_is_on_ = false;
 
 		// Current state of the index pulse output.
 		Cycles index_pulse_remaining_;

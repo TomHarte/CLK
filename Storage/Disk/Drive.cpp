@@ -68,7 +68,7 @@ bool Drive::has_disk() const {
 }
 
 ClockingHint::Preference Drive::preferred_clocking() {
-	return (!motor_is_on_ || !has_disk_) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
+	return (!motor_input_is_on_ || !has_disk_) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
 bool Drive::get_is_track_zero() const {
@@ -146,13 +146,13 @@ bool Drive::get_is_ready() const {
 }
 
 void Drive::set_motor_on(bool motor_is_on) {
-	if(motor_is_on_ != motor_is_on) {
-		motor_is_on_ = motor_is_on;
+	if(motor_input_is_on_ != motor_is_on) {
+		motor_input_is_on_ = motor_is_on;
 
 		if(observer_) {
-			observer_->set_drive_motor_status(drive_name_, motor_is_on_);
+			observer_->set_drive_motor_status(drive_name_, motor_input_is_on_);
 			if(announce_motor_led_) {
-				observer_->set_led_status(drive_name_, motor_is_on_);
+				observer_->set_led_status(drive_name_, motor_input_is_on_);
 			}
 		}
 
@@ -165,7 +165,7 @@ void Drive::set_motor_on(bool motor_is_on) {
 }
 
 bool Drive::get_motor_on() const {
-	return motor_is_on_;
+	return motor_input_is_on_;
 }
 
 bool Drive::get_index_pulse() const {
@@ -185,7 +185,7 @@ void Drive::run_for(const Cycles cycles) {
 	// Assumed: the index pulse pulses even if the drive has stopped spinning.
 	index_pulse_remaining_ = std::max(index_pulse_remaining_ - cycles, Cycles(0));
 
-	if(motor_is_on_) {
+	if(motor_input_is_on_) {
 		if(has_disk_) {
 			Time zero(0);
 
@@ -407,11 +407,11 @@ void Drive::set_activity_observer(Activity::Observer *observer, const std::strin
 		drive_name_ = name;
 
 		observer->register_drive(drive_name_);
-		observer->set_drive_motor_status(drive_name_, motor_is_on_);
+		observer->set_drive_motor_status(drive_name_, motor_input_is_on_);
 
 		if(add_motor_led) {
 			observer->register_led(drive_name_);
-			observer->set_led_status(drive_name_, motor_is_on_);
+			observer->set_led_status(drive_name_, motor_input_is_on_);
 		}
 	}
 }
