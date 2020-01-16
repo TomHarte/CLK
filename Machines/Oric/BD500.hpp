@@ -30,6 +30,8 @@ class BD500: public DiskController {
 	private:
 		void set_head_load_request(bool head_load) final;
 		bool is_loading_head_ = false;
+
+		void access(int address);
 };
 
 };

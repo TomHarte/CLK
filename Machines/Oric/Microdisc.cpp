@@ -63,11 +63,9 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 	// b7: EPROM select (0 = select)
 	// b1: ROM disable (0 = disable)
 	if(changes & 0x82) {
-		PagedItem item = PagedItem::RAM;
-		if(!(control & 0x80)) {
-			item = (control & 0x02) ? PagedItem::BASIC : PagedItem::DiskROM;
-		}
-		set_paged_item(item);
+		enable_overlay_ram_ = control & 0x80;
+		disable_basic_rom_ = !(control & 0x02);
+		select_paged_item();
 	}
 }
 

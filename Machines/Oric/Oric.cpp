@@ -504,10 +504,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			switch(disk_interface) {
 				default: break;
 				case DiskInterface::BD500:
-					bd500_.run_for(Cycles(8));
+					bd500_.run_for(Cycles(9));		// i.e. effective clock rate of 9Mhz.
 				break;
 				case DiskInterface::Jasmin:
-					jasmin_.run_for(Cycles(8));
+					jasmin_.run_for(Cycles(8));;	// i.e. effective clock rate of 8Mhz.
 
 					// Jasmin autostart hack: wait for a period, then trigger a reset, having forced
 					// the Jasmin to page its ROM in first. I assume the latter being what the Jasmin's
@@ -520,12 +520,12 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 					}
 				break;
 				case DiskInterface::Microdisc:
-					microdisc_.run_for(Cycles(8));
+					microdisc_.run_for(Cycles(8));;	// i.e. effective clock rate of 8Mhz.
 				break;
 				case DiskInterface::Pravetz:
 					if(diskii_clocking_preference_ == ClockingHint::Preference::RealTime) {
 						diskii_.set_data_input(*value);
-						diskii_.run_for(Cycles(2));
+						diskii_.run_for(Cycles(2));;	// i.e. effective clock rate of 2Mhz.
 					} else {
 						cycles_since_diskii_update_ += Cycles(2);
 					}

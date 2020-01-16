@@ -25,13 +25,8 @@ class Jasmin: public DiskController {
 		void write(int address, uint8_t value);
 
 	private:
-
 		void set_motor_on(bool on) final;
 		bool motor_on_ = false;
-
-		bool enable_overlay_ram_ = false;
-		bool disable_basic_rom_ = false;
-		void select_paged_item();
 };
 
 };

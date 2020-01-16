@@ -53,14 +53,6 @@ void Jasmin::write(int address, uint8_t value) {
 	}
 }
 
-void Jasmin::select_paged_item() {
-	PagedItem item = PagedItem::RAM;
-	if(!enable_overlay_ram_) {
-		item = disable_basic_rom_ ? PagedItem::DiskROM : PagedItem::BASIC;
-	}
-	set_paged_item(item);
-}
-
 void Jasmin::set_motor_on(bool on) {
 	motor_on_ = on;
 	if(drives_[selected_drive_]) drives_[selected_drive_]->set_motor_on(motor_on_);

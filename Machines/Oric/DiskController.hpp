@@ -62,6 +62,16 @@ class DiskController: public WD::WD1770 {
 		}
 		Delegate *delegate_ = nullptr;
 
+		bool enable_overlay_ram_ = false;
+		bool disable_basic_rom_ = false;
+		void select_paged_item() {
+			PagedItem item = PagedItem::RAM;
+			if(!enable_overlay_ram_) {
+				item = disable_basic_rom_ ? PagedItem::DiskROM : PagedItem::BASIC;
+			}
+			set_paged_item(item);
+		}
+
 	private:
 		PagedItem paged_item_ = PagedItem::DiskROM;
 		int clock_rate_;
