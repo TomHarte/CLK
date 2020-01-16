@@ -214,6 +214,9 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		// Motor control state.
 		bool motor_input_is_on_ = false;
+		bool disk_is_rotating_ = false;
+		Cycles time_until_motor_transition;
+		void set_disk_is_rotating(bool);
 
 		// Current state of the index pulse output.
 		Cycles index_pulse_remaining_;

@@ -68,7 +68,7 @@ bool Drive::has_disk() const {
 }
 
 ClockingHint::Preference Drive::preferred_clocking() {
-	return (!motor_input_is_on_ || !has_disk_) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
+	return (!has_disk_ || (time_until_motor_transition == Cycles(0) && !disk_is_rotating_)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
 bool Drive::get_is_track_zero() const {
@@ -146,22 +146,29 @@ bool Drive::get_is_ready() const {
 }
 
 void Drive::set_motor_on(bool motor_is_on) {
-	if(motor_input_is_on_ != motor_is_on) {
-		motor_input_is_on_ = motor_is_on;
+	// Do nothing if the input hasn't changed.
+	if(motor_input_is_on_ == motor_is_on) return;
+	motor_input_is_on_ = motor_is_on;
 
-		if(observer_) {
-			observer_->set_drive_motor_status(drive_name_, motor_input_is_on_);
-			if(announce_motor_led_) {
-				observer_->set_led_status(drive_name_, motor_input_is_on_);
-			}
-		}
-
-		if(!motor_is_on) {
-			ready_index_count_ = 0;
-			if(disk_) disk_->flush_tracks();
-		}
-		update_clocking_observer();
+	// If this now means that the input and the actual state are in harmony,
+	// cancel any planned change and stop.
+	if(disk_is_rotating_ == motor_is_on) {
+		time_until_motor_transition = Cycles(0);
+		return;
 	}
+
+	// If this is a transition to on, start immediately.
+	// TODO: spin-up?
+	// TODO: momentum.
+	if(motor_is_on) {
+		set_disk_is_rotating(true);
+		return;
+	}
+
+	// This is a transition from on to off. Simulate momentum (ha!)
+	// by delaying the time until complete standstill.
+	if(time_until_motor_transition == Cycles(0))
+		time_until_motor_transition = get_input_clock_rate();
 }
 
 bool Drive::get_motor_on() const {
@@ -185,7 +192,16 @@ void Drive::run_for(const Cycles cycles) {
 	// Assumed: the index pulse pulses even if the drive has stopped spinning.
 	index_pulse_remaining_ = std::max(index_pulse_remaining_ - cycles, Cycles(0));
 
-	if(motor_input_is_on_) {
+	if(time_until_motor_transition > Cycles(0)) {
+		if(time_until_motor_transition > cycles) {
+			time_until_motor_transition -= cycles;
+		} else {
+			time_until_motor_transition = Cycles(0);
+			set_disk_is_rotating(!disk_is_rotating_);
+		}
+	}
+
+	if(disk_is_rotating_) {
 		if(has_disk_) {
 			Time zero(0);
 
@@ -400,6 +416,23 @@ bool Drive::is_writing() const {
 	return !is_reading_;
 }
 
+void Drive::set_disk_is_rotating(bool is_rotating) {
+	disk_is_rotating_ = is_rotating;
+
+	if(observer_) {
+		observer_->set_drive_motor_status(drive_name_, motor_input_is_on_);
+		if(announce_motor_led_) {
+			observer_->set_led_status(drive_name_, motor_input_is_on_);
+		}
+	}
+
+	if(!is_rotating) {
+		ready_index_count_ = 0;
+		if(disk_) disk_->flush_tracks();
+	}
+	update_clocking_observer();
+}
+
 void Drive::set_activity_observer(Activity::Observer *observer, const std::string &name, bool add_motor_led) {
 	observer_ = observer;
 	announce_motor_led_ = add_motor_led;
@@ -407,11 +440,11 @@ void Drive::set_activity_observer(Activity::Observer *observer, const std::strin
 		drive_name_ = name;
 
 		observer->register_drive(drive_name_);
-		observer->set_drive_motor_status(drive_name_, motor_input_is_on_);
+		observer->set_drive_motor_status(drive_name_, disk_is_rotating_);
 
 		if(add_motor_led) {
 			observer->register_led(drive_name_);
-			observer->set_led_status(drive_name_, motor_input_is_on_);
+			observer->set_led_status(drive_name_, disk_is_rotating_);
 		}
 	}
 }
