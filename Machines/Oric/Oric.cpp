@@ -244,7 +244,16 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			speaker_.set_input_rate(1000000.0f);
 			via_port_handler_.set_interrupt_delegate(this);
 			tape_player_.set_delegate(this);
+
+			// Slight hack here: I'm unclear what RAM should look like at startup.
+			// Actually, I think completely random might be right since the Microdisc
+			// sort of assumes it, but also the BD-500 never explicitly sets PAL mode
+			// so I can't have any switch-to-NTSC bytes in the display area. Hence:
+			// disallow all atributes.
 			Memory::Fuzz(ram_, sizeof(ram_));
+			for(size_t c = 0; c < sizeof(ram_); ++c) {
+				ram_[c] &= ~0x40;
+			}
 
 			if constexpr (disk_interface == DiskInterface::Pravetz) {
 				diskii_.set_clocking_hint_observer(this);

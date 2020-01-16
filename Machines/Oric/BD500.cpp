@@ -20,7 +20,7 @@ void BD500::write(int address, uint8_t value) {
 	access(address);
 
 	if(address >= 0x0320 && address <= 0x0323) {
-		if(address == 0x320) printf("Command %02x\n", value);
+//		if(address == 0x320) printf("Command %02x\n", value);
 		WD::WD1770::write(address, value);
 	}
 }
@@ -49,7 +49,7 @@ void BD500::access(int address) {
 		case 0x317:	disable_basic_rom_ = false;		break;		// Could be 0x311.
 
 		default:
-			printf("Switch %04x???\n", address);
+//			printf("Switch %04x???\n", address);
 		break;
 	}
 
