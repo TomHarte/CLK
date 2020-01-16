@@ -331,7 +331,7 @@ Gw
                                             </popUpButtonCell>
                                         </popUpButton>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fYL-p6-wyn">
-                                            <rect key="frame" x="111" y="36" width="97" height="25"/>
+                                            <rect key="frame" x="111" y="36" width="129" height="25"/>
                                             <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="XhK-Jh-oTW" id="aYb-m1-H9X">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="system"/>
@@ -341,6 +341,7 @@ Gw
                                                         <menuItem title="Microdisc" tag="1" id="1jS-Lz-FRj"/>
                                                         <menuItem title="Jasmin" tag="3" id="CGU-gd-xov"/>
                                                         <menuItem title="8DOS" tag="2" id="edb-fl-C8Y"/>
+                                                        <menuItem title="Byte Drive 500" tag="4" id="lkS-Rr-m1D"/>
                                                     </items>
                                                 </menu>
                                             </popUpButtonCell>
