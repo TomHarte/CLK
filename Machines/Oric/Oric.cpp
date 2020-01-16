@@ -252,7 +252,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			// disallow all atributes.
 			Memory::Fuzz(ram_, sizeof(ram_));
 			for(size_t c = 0; c < sizeof(ram_); ++c) {
-				ram_[c] &= ~0x40;
+				ram_[c] |= 0x40;
 			}
 
 			if constexpr (disk_interface == DiskInterface::Pravetz) {
