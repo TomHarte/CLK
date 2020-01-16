@@ -50,7 +50,8 @@ typedef NS_ENUM(NSInteger, CSMachineOricDiskInterface) {
 	CSMachineOricDiskInterfaceNone,
 	CSMachineOricDiskInterfaceMicrodisc,
 	CSMachineOricDiskInterfacePravetz,
-	CSMachineOricDiskInterfaceJasmin
+	CSMachineOricDiskInterfaceJasmin,
+	CSMachineOricDiskInterfaceBD500
 };
 
 typedef NS_ENUM(NSInteger, CSMachineVic20Region) {
