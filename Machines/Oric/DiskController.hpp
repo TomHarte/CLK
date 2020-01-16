@@ -44,14 +44,6 @@ class DiskController: public WD::WD1770 {
 		}
 
 	protected:
-		inline void set_paged_item(PagedItem item) {
-			if(paged_item_ == item) return;
-			paged_item_ = item;
-			if(delegate_) {
-				delegate_->disk_controller_did_change_paged_item(this);
-			}
-		}
-
 		std::array<std::shared_ptr<Storage::Disk::Drive>, 4> drives_;
 		size_t selected_drive_;
 		void select_drive(size_t drive) {
@@ -76,6 +68,13 @@ class DiskController: public WD::WD1770 {
 		PagedItem paged_item_ = PagedItem::DiskROM;
 		int clock_rate_;
 
+		inline void set_paged_item(PagedItem item) {
+			if(paged_item_ == item) return;
+			paged_item_ = item;
+			if(delegate_) {
+				delegate_->disk_controller_did_change_paged_item(this);
+			}
+		}
 };
 
 

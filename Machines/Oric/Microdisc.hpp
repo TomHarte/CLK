@@ -11,8 +11,6 @@
 
 #include "../../Components/1770/1770.hpp"
 #include "../../Activity/Observer.hpp"
-
-#include <array>
 #include "DiskController.hpp"
 
 namespace Oric {
@@ -42,8 +40,6 @@ class Microdisc: public DiskController {
 		bool head_load_request_ = false;
 
 		Activity::Observer *observer_ = nullptr;
-
-		std::string drive_name(size_t index);
 };
 
 }

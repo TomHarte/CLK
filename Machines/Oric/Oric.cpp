@@ -637,6 +637,12 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		void set_activity_observer(Activity::Observer *observer) override {
 			switch(disk_interface) {
 				default: break;
+				case DiskInterface::BD500:
+					bd500_.set_activity_observer(observer);
+				break;
+				case DiskInterface::Jasmin:
+					jasmin_.set_activity_observer(observer);
+				break;
 				case DiskInterface::Microdisc:
 					microdisc_.set_activity_observer(observer);
 				break;

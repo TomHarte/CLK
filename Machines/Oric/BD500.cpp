@@ -129,3 +129,18 @@ void BD500::run_for(const Cycles cycles) {
 
 	WD::WD1770::run_for(cycles);
 }
+
+void BD500::set_activity_observer(Activity::Observer *observer) {
+	observer_ = observer;
+	if(observer) {
+		observer->register_led("BD-500");
+		observer_->set_led_status("BD-500", get_head_loaded());
+	}
+}
+
+void BD500::set_head_loaded(bool loaded) {
+	WD::WD1770::set_head_loaded(loaded);
+	if(observer_) {
+		observer_->set_led_status("BD-500", loaded);
+	}
+}

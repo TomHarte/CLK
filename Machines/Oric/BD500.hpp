@@ -27,11 +27,15 @@ class BD500: public DiskController {
 
 		void run_for(const Cycles cycles);
 
+		void set_activity_observer(Activity::Observer *observer);
+
 	private:
 		void set_head_load_request(bool head_load) final;
 		bool is_loading_head_ = false;
+		Activity::Observer *observer_ = nullptr;
 
 		void access(int address);
+		void set_head_loaded(bool loaded);
 };
 
 };

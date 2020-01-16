@@ -118,13 +118,4 @@ void Microdisc::set_activity_observer(Activity::Observer *observer) {
 		observer->register_led("Microdisc");
 		observer_->set_led_status("Microdisc", head_load_request_);
 	}
-	size_t c = 0;
-	for(auto &drive : drives_) {
-		if(drive) drive->set_activity_observer(observer, drive_name(c), false);
-		++c;
-	}
-}
-
-std::string Microdisc::drive_name(size_t index) {
-	return "Drive " + std::to_string(index);
 }

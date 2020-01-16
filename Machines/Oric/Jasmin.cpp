@@ -56,4 +56,15 @@ void Jasmin::write(int address, uint8_t value) {
 void Jasmin::set_motor_on(bool on) {
 	motor_on_ = on;
 	if(drives_[selected_drive_]) drives_[selected_drive_]->set_motor_on(motor_on_);
+	if(observer_) {
+		observer_->set_led_status("Microdisc", on);
+	}
+}
+
+void Jasmin::set_activity_observer(Activity::Observer *observer) {
+	observer_ = observer;
+	if(observer) {
+		observer->register_led("Jasmin");
+		observer_->set_led_status("Jasmin", motor_on_);
+	}
 }

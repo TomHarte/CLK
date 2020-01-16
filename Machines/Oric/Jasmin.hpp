@@ -13,9 +13,6 @@
 #include "../../Activity/Observer.hpp"
 #include "DiskController.hpp"
 
-#include <array>
-#include <memory>
-
 namespace Oric {
 
 class Jasmin: public DiskController {
@@ -24,9 +21,13 @@ class Jasmin: public DiskController {
 
 		void write(int address, uint8_t value);
 
+		void set_activity_observer(Activity::Observer *observer);
+
 	private:
 		void set_motor_on(bool on) final;
 		bool motor_on_ = false;
+
+		Activity::Observer *observer_ = nullptr;
 };
 
 };
