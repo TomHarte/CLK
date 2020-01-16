@@ -45,7 +45,7 @@ class DiskController: public WD::WD1770 {
 
 	protected:
 		std::array<std::shared_ptr<Storage::Disk::Drive>, 4> drives_;
-		size_t selected_drive_;
+		size_t selected_drive_ = 0;
 		void select_drive(size_t drive) {
 			if(drive != selected_drive_) {
 				selected_drive_ = drive;
