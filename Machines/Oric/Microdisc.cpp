@@ -18,7 +18,7 @@ namespace {
 	const Cycles::IntType head_load_request_counter_target = 7653333;
 }
 
-Microdisc::Microdisc() : DiskController(P1793, 8000000) {
+Microdisc::Microdisc() : DiskController(P1793, 8000000, Storage::Disk::Drive::ReadyType::ShugartRDY) {
 	set_control_register(last_control_, 0xff);
 }
 

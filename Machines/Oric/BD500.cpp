@@ -10,7 +10,7 @@
 
 using namespace Oric;
 
-BD500::BD500() : DiskController(P1793, 9000000) {
+BD500::BD500() : DiskController(P1793, 9000000, Storage::Disk::Drive::ReadyType::ShugartModifiedRDY) {
 	disable_basic_rom_ = true;
 	select_paged_item();
 	set_is_double_density(true);

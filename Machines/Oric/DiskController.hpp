@@ -13,13 +13,13 @@ namespace Oric {
 
 class DiskController: public WD::WD1770 {
 	public:
-		DiskController(WD::WD1770::Personality personality, int clock_rate) :
-			WD::WD1770(personality), clock_rate_(clock_rate) {}
+		DiskController(WD::WD1770::Personality personality, int clock_rate, Storage::Disk::Drive::ReadyType ready_type) :
+			WD::WD1770(personality), clock_rate_(clock_rate), ready_type_(ready_type) {}
 
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int d) {
 			const size_t drive = size_t(d);
 			if(!drives_[drive]) {
-				drives_[drive] = std::make_unique<Storage::Disk::Drive>(clock_rate_, 300, 2);
+				drives_[drive] = std::make_unique<Storage::Disk::Drive>(clock_rate_, 300, 2, ready_type_);
 				if(drive == selected_drive_) set_drive(drives_[drive]);
 			}
 			drives_[drive]->set_disk(disk);
@@ -67,6 +67,7 @@ class DiskController: public WD::WD1770 {
 	private:
 		PagedItem paged_item_ = PagedItem::DiskROM;
 		int clock_rate_;
+		Storage::Disk::Drive::ReadyType ready_type_;
 
 		inline void set_paged_item(PagedItem item) {
 			if(paged_item_ == item) return;
