@@ -18,9 +18,10 @@
 
 using namespace Storage::Disk;
 
-Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads):
+Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads, ReadyType rdy_type):
 	Storage::TimedEventLoop(input_clock_rate),
-	available_heads_(number_of_heads) {
+	available_heads_(number_of_heads),
+	ready_type_(rdy_type) {
 	set_rotation_speed(revolutions_per_minute);
 
 	const auto seed = static_cast<std::default_random_engine::result_type>(std::chrono::system_clock::now().time_since_epoch().count());
@@ -35,7 +36,7 @@ Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_hea
 	}
 }
 
-Drive::Drive(int input_clock_rate, int number_of_heads) : Drive(input_clock_rate, 300, number_of_heads) {}
+Drive::Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type) : Drive(input_clock_rate, 300, number_of_heads, rdy_type) {}
 
 void Drive::set_rotation_speed(float revolutions_per_minute) {
 	// Rationalise the supplied speed so that cycles_per_revolution_ is exact.
@@ -54,6 +55,9 @@ Drive::~Drive() {
 }
 
 void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
+	if(ready_type_ == ReadyType::ShugartModifiedRDY || ready_type_ == ReadyType::IBMRDY) {
+		is_ready_ = false;
+	}
 	if(disk_) disk_->flush_tracks();
 	disk_ = disk;
 	has_disk_ = !!disk_;
@@ -76,6 +80,10 @@ bool Drive::get_is_track_zero() const {
 }
 
 void Drive::step(HeadPosition offset) {
+	if(ready_type_ == ReadyType::IBMRDY) {
+		is_ready_ = true;
+	}
+
 	HeadPosition old_head_position = head_position_;
 	head_position_ += offset;
 	if(head_position_ < HeadPosition(0)) {
@@ -142,7 +150,7 @@ bool Drive::get_is_read_only() const {
 }
 
 bool Drive::get_is_ready() const {
-	return ready_index_count_ == 2;
+	return is_ready_;
 }
 
 void Drive::set_motor_on(bool motor_is_on) {
@@ -303,7 +311,10 @@ void Drive::get_next_event(float duration_already_passed) {
 
 void Drive::process_next_event() {
 	if(current_event_.type == Track::Event::IndexHole) {
-		if(ready_index_count_ < 2) ready_index_count_++;
+		++ready_index_count_;
+		if(ready_index_count_ == 2 && (ready_type_ == ReadyType::ShugartRDY || ready_type_ == ReadyType::ShugartModifiedRDY)) {
+			is_ready_ = true;
+		}
 		cycles_since_index_hole_ = 0;
 	}
 	if(
@@ -427,6 +438,9 @@ void Drive::set_disk_is_rotating(bool is_rotating) {
 	}
 
 	if(!is_rotating) {
+		if(ready_type_ == ReadyType::ShugartRDY) {
+			is_ready_ = false;
+		}
 		ready_index_count_ = 0;
 		if(disk_) disk_->flush_tracks();
 	}
