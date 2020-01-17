@@ -3845,6 +3845,7 @@
 					};
 					4BB73E9D1B587A5100552FC2 = {
 						CreatedOnToolsVersion = 7.0;
+						DevelopmentTeam = CP2SKEB3XT;
 						LastSwiftMigration = 1020;
 						SystemCapabilities = {
 							com.apple.Sandbox = {
@@ -5055,6 +5056,8 @@
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = CP2SKEB3XT;
+				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(USER_LIBRARY_DIR)/Frameworks",
@@ -5097,6 +5100,8 @@
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = CP2SKEB3XT;
+				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(USER_LIBRARY_DIR)/Frameworks",
