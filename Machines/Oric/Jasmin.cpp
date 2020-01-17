@@ -12,7 +12,7 @@ using namespace Oric;
 
 // NB: there's some controversy here on WD1770 versus WD1772, but between those two I think
 // the only difference is stepping rates, and it says 1770 on the schematic I'm looking at.
-Jasmin::Jasmin() : DiskController(P1770, 8000000) {
+Jasmin::Jasmin() : DiskController(P1770, 8000000, Storage::Disk::Drive::ReadyType::ShugartRDY) {
 	set_is_double_density(true);
 	select_paged_item();
 }

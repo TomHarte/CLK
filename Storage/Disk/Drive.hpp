@@ -24,12 +24,21 @@ namespace Disk {
 
 class Drive: public ClockingHint::Source, public TimedEventLoop {
 	public:
-		Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads);
-		Drive(int input_clock_rate, int number_of_heads);
+		enum class ReadyType {
+			/// Indicates that RDY will go active when the motor is on and two index holes have passed; it will go inactive when the motor is off.
+			ShugartRDY,
+			/// Indicates that RDY will go active when the motor is on and two index holes have passed; it will go inactive when the disk is ejected.
+			ShugartModifiedRDY,
+			/// Indicates that RDY will go active when the head steps; it will go inactive when the disk is ejected.
+			IBMRDY,
+		};
+
+		Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
+		Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
 		~Drive();
 
 		/*!
-			Replaces whatever is in the drive with @c disk.
+			Replaces whatever is in the drive with @c disk. Supply @c nullptr to eject any current disk and leave none inserted.
 		*/
 		void set_disk(const std::shared_ptr<Disk> &disk);
 
@@ -232,8 +241,10 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		PCMSegment write_segment_;
 		Time write_start_time_;
 
-		// Indicates progress towards drive ready state.
+		// Indicates progress towards Shugart-style drive ready states.
 		int ready_index_count_ = 0;
+		ReadyType ready_type_;
+		bool is_ready_ = false;
 
 		// Maintains appropriate counting to know when to indicate that writing
 		// is complete.
