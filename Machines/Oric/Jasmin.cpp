@@ -57,7 +57,7 @@ void Jasmin::set_motor_on(bool on) {
 	motor_on_ = on;
 	if(drives_[selected_drive_]) drives_[selected_drive_]->set_motor_on(motor_on_);
 	if(observer_) {
-		observer_->set_led_status("Microdisc", on);
+		observer_->set_led_status("Jasmin", on);
 	}
 }
 
