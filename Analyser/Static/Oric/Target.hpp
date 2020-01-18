@@ -27,6 +27,7 @@ struct Target: public ::Analyser::Static::Target {
 		Microdisc,
 		Pravetz,
 		Jasmin,
+		BD500,
 		None
 	};
 

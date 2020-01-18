@@ -77,7 +77,7 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address)
 								for(int byte = 0; byte < 6; byte++) {
 									last_header[byte] = file_.get8();
 									encoder->add_byte(last_header[byte]);
-									track_offset++;
+									++track_offset;
 									if(track_offset == 6250) break;
 								}
 							break;
@@ -85,8 +85,12 @@ std::shared_ptr<Track> OricMFMDSK::get_track_at_position(Track::Address address)
 							case 0xfb:
 								for(int byte = 0; byte < (128 << last_header[3]) + 2; byte++) {
 									encoder->add_byte(file_.get8());
-									track_offset++;
-									if(track_offset == 6250) break;
+									++track_offset;
+									// Special exception: don't interrupt a sector body if it seems to
+									// be about to run over the end of the track. It seems like BD-500
+									// disks break the usual 6250-byte rule, pushing out to just less
+									// than 6400 bytes total.
+									if(track_offset == 6400) break;
 								}
 							break;
 						}

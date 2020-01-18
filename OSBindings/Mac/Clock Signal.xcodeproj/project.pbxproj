@@ -369,6 +369,7 @@
 		4B7BA03023C2B19C00B98D9E /* Jasmin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA02E23C2B19B00B98D9E /* Jasmin.cpp */; };
 		4B7BA03123C2B19C00B98D9E /* Jasmin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA02E23C2B19B00B98D9E /* Jasmin.cpp */; };
 		4B7BA03423C58B1F00B98D9E /* STX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03323C58B1E00B98D9E /* STX.cpp */; };
+		4B7BA03723CEB86000B98D9E /* BD500.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03523CEB86000B98D9E /* BD500.cpp */; };
 		4B7BC7F51F58F27800D1B1B4 /* 6502AllRAM.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B6A4C911F58F09E00E3F787 /* 6502AllRAM.cpp */; };
 		4B7F188E2154825E00388727 /* MasterSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F188C2154825D00388727 /* MasterSystem.cpp */; };
 		4B7F188F2154825E00388727 /* MasterSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7F188C2154825D00388727 /* MasterSystem.cpp */; };
@@ -1181,6 +1182,9 @@
 		4B7BA02F23C2B19B00B98D9E /* Jasmin.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = Jasmin.hpp; path = Oric/Jasmin.hpp; sourceTree = "<group>"; };
 		4B7BA03223C58B1E00B98D9E /* STX.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = STX.hpp; sourceTree = "<group>"; };
 		4B7BA03323C58B1E00B98D9E /* STX.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = STX.cpp; sourceTree = "<group>"; };
+		4B7BA03523CEB86000B98D9E /* BD500.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BD500.cpp; path = Oric/BD500.cpp; sourceTree = "<group>"; };
+		4B7BA03623CEB86000B98D9E /* BD500.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = BD500.hpp; path = Oric/BD500.hpp; sourceTree = "<group>"; };
+		4B7BA03823CEB8D200B98D9E /* DiskController.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = DiskController.hpp; path = Oric/DiskController.hpp; sourceTree = "<group>"; };
 		4B7F188C2154825D00388727 /* MasterSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MasterSystem.cpp; sourceTree = "<group>"; };
 		4B7F188D2154825D00388727 /* MasterSystem.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MasterSystem.hpp; sourceTree = "<group>"; };
 		4B7F1895215486A100388727 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
@@ -3533,16 +3537,19 @@
 		4BCF1FA51DADC3E10039D2E7 /* Oric */ = {
 			isa = PBXGroup;
 			children = (
+				4B7BA03523CEB86000B98D9E /* BD500.cpp */,
 				4B7BA02E23C2B19B00B98D9E /* Jasmin.cpp */,
 				4B54C0BD1F8D8F450050900F /* Keyboard.cpp */,
 				4B5FADBE1DE3BF2B00AEC565 /* Microdisc.cpp */,
 				4BCF1FA21DADC3DD0039D2E7 /* Oric.cpp */,
 				4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */,
+				4B7BA03623CEB86000B98D9E /* BD500.hpp */,
 				4B7BA02F23C2B19B00B98D9E /* Jasmin.hpp */,
 				4B54C0BE1F8D8F450050900F /* Keyboard.hpp */,
 				4B5FADBF1DE3BF2B00AEC565 /* Microdisc.hpp */,
 				4BCF1FA31DADC3DD0039D2E7 /* Oric.hpp */,
 				4B2BFDB11DAEF5FF001A68B8 /* Video.hpp */,
+				4B7BA03823CEB8D200B98D9E /* DiskController.hpp */,
 			);
 			name = Oric;
 			sourceTree = "<group>";
@@ -3838,6 +3845,7 @@
 					};
 					4BB73E9D1B587A5100552FC2 = {
 						CreatedOnToolsVersion = 7.0;
+						DevelopmentTeam = CP2SKEB3XT;
 						LastSwiftMigration = 1020;
 						SystemCapabilities = {
 							com.apple.Sandbox = {
@@ -4455,6 +4463,7 @@
 				4B89452E201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4BD5D2682199148100DDF17D /* ScanTargetGLSLFragments.cpp in Sources */,
 				4BC890D3230F86020025A55A /* DirectAccessDevice.cpp in Sources */,
+				4B7BA03723CEB86000B98D9E /* BD500.cpp in Sources */,
 				4B38F3481F2EC11D00D9235D /* AmstradCPC.cpp in Sources */,
 				4B8FE2221DA19FB20090D3CE /* MachinePanel.swift in Sources */,
 				4B4518A41F75FD1C00926311 /* OricMFMDSK.cpp in Sources */,
@@ -5047,6 +5056,8 @@
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = CP2SKEB3XT;
+				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(USER_LIBRARY_DIR)/Frameworks",
@@ -5089,6 +5100,8 @@
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = CP2SKEB3XT;
+				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(USER_LIBRARY_DIR)/Frameworks",

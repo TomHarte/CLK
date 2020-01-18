@@ -80,6 +80,9 @@ class WD1770: public Storage::Disk::MFMController {
 		virtual void set_motor_on(bool motor_on);
 		void set_head_loaded(bool head_loaded);
 
+		/// @returns The last value posted to @c set_head_loaded.
+		bool get_head_loaded();
+
 	private:
 		Personality personality_;
 		inline bool has_motor_on_line() { return (personality_ != P1793 ) && (personality_ != P1773); }

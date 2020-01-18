@@ -196,6 +196,7 @@ class MachinePicker: NSObject {
 					case 1:		diskInterface = .microdisc
 					case 2:		diskInterface = .pravetz
 					case 3:		diskInterface = .jasmin
+					case 4:		diskInterface = .BD500
 					default:	break;
 
 				}

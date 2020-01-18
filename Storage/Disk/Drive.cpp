@@ -18,9 +18,10 @@
 
 using namespace Storage::Disk;
 
-Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads):
+Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads, ReadyType rdy_type):
 	Storage::TimedEventLoop(input_clock_rate),
-	available_heads_(number_of_heads) {
+	available_heads_(number_of_heads),
+	ready_type_(rdy_type) {
 	set_rotation_speed(revolutions_per_minute);
 
 	const auto seed = static_cast<std::default_random_engine::result_type>(std::chrono::system_clock::now().time_since_epoch().count());
@@ -35,7 +36,7 @@ Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_hea
 	}
 }
 
-Drive::Drive(int input_clock_rate, int number_of_heads) : Drive(input_clock_rate, 300, number_of_heads) {}
+Drive::Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type) : Drive(input_clock_rate, 300, number_of_heads, rdy_type) {}
 
 void Drive::set_rotation_speed(float revolutions_per_minute) {
 	// Rationalise the supplied speed so that cycles_per_revolution_ is exact.
@@ -54,6 +55,9 @@ Drive::~Drive() {
 }
 
 void Drive::set_disk(const std::shared_ptr<Disk> &disk) {
+	if(ready_type_ == ReadyType::ShugartModifiedRDY || ready_type_ == ReadyType::IBMRDY) {
+		is_ready_ = false;
+	}
 	if(disk_) disk_->flush_tracks();
 	disk_ = disk;
 	has_disk_ = !!disk_;
@@ -68,7 +72,7 @@ bool Drive::has_disk() const {
 }
 
 ClockingHint::Preference Drive::preferred_clocking() {
-	return (!motor_is_on_ || !has_disk_) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
+	return (!has_disk_ || (time_until_motor_transition == Cycles(0) && !disk_is_rotating_)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
 bool Drive::get_is_track_zero() const {
@@ -76,6 +80,10 @@ bool Drive::get_is_track_zero() const {
 }
 
 void Drive::step(HeadPosition offset) {
+	if(ready_type_ == ReadyType::IBMRDY) {
+		is_ready_ = true;
+	}
+
 	HeadPosition old_head_position = head_position_;
 	head_position_ += offset;
 	if(head_position_ < HeadPosition(0)) {
@@ -142,30 +150,37 @@ bool Drive::get_is_read_only() const {
 }
 
 bool Drive::get_is_ready() const {
-	return ready_index_count_ == 2;
+	return is_ready_;
 }
 
 void Drive::set_motor_on(bool motor_is_on) {
-	if(motor_is_on_ != motor_is_on) {
-		motor_is_on_ = motor_is_on;
+	// Do nothing if the input hasn't changed.
+	if(motor_input_is_on_ == motor_is_on) return;
+	motor_input_is_on_ = motor_is_on;
 
-		if(observer_) {
-			observer_->set_drive_motor_status(drive_name_, motor_is_on_);
-			if(announce_motor_led_) {
-				observer_->set_led_status(drive_name_, motor_is_on_);
-			}
-		}
-
-		if(!motor_is_on) {
-			ready_index_count_ = 0;
-			if(disk_) disk_->flush_tracks();
-		}
-		update_clocking_observer();
+	// If this now means that the input and the actual state are in harmony,
+	// cancel any planned change and stop.
+	if(disk_is_rotating_ == motor_is_on) {
+		time_until_motor_transition = Cycles(0);
+		return;
 	}
+
+	// If this is a transition to on, start immediately.
+	// TODO: spin-up?
+	// TODO: momentum.
+	if(motor_is_on) {
+		set_disk_is_rotating(true);
+		return;
+	}
+
+	// This is a transition from on to off. Simulate momentum (ha!)
+	// by delaying the time until complete standstill.
+	if(time_until_motor_transition == Cycles(0))
+		time_until_motor_transition = get_input_clock_rate();
 }
 
 bool Drive::get_motor_on() const {
-	return motor_is_on_;
+	return motor_input_is_on_;
 }
 
 bool Drive::get_index_pulse() const {
@@ -185,7 +200,16 @@ void Drive::run_for(const Cycles cycles) {
 	// Assumed: the index pulse pulses even if the drive has stopped spinning.
 	index_pulse_remaining_ = std::max(index_pulse_remaining_ - cycles, Cycles(0));
 
-	if(motor_is_on_) {
+	if(time_until_motor_transition > Cycles(0)) {
+		if(time_until_motor_transition > cycles) {
+			time_until_motor_transition -= cycles;
+		} else {
+			time_until_motor_transition = Cycles(0);
+			set_disk_is_rotating(!disk_is_rotating_);
+		}
+	}
+
+	if(disk_is_rotating_) {
 		if(has_disk_) {
 			Time zero(0);
 
@@ -287,7 +311,10 @@ void Drive::get_next_event(float duration_already_passed) {
 
 void Drive::process_next_event() {
 	if(current_event_.type == Track::Event::IndexHole) {
-		if(ready_index_count_ < 2) ready_index_count_++;
+		++ready_index_count_;
+		if(ready_index_count_ == 2 && (ready_type_ == ReadyType::ShugartRDY || ready_type_ == ReadyType::ShugartModifiedRDY)) {
+			is_ready_ = true;
+		}
 		cycles_since_index_hole_ = 0;
 	}
 	if(
@@ -400,6 +427,26 @@ bool Drive::is_writing() const {
 	return !is_reading_;
 }
 
+void Drive::set_disk_is_rotating(bool is_rotating) {
+	disk_is_rotating_ = is_rotating;
+
+	if(observer_) {
+		observer_->set_drive_motor_status(drive_name_, motor_input_is_on_);
+		if(announce_motor_led_) {
+			observer_->set_led_status(drive_name_, motor_input_is_on_);
+		}
+	}
+
+	if(!is_rotating) {
+		if(ready_type_ == ReadyType::ShugartRDY) {
+			is_ready_ = false;
+		}
+		ready_index_count_ = 0;
+		if(disk_) disk_->flush_tracks();
+	}
+	update_clocking_observer();
+}
+
 void Drive::set_activity_observer(Activity::Observer *observer, const std::string &name, bool add_motor_led) {
 	observer_ = observer;
 	announce_motor_led_ = add_motor_led;
@@ -407,11 +454,11 @@ void Drive::set_activity_observer(Activity::Observer *observer, const std::strin
 		drive_name_ = name;
 
 		observer->register_drive(drive_name_);
-		observer->set_drive_motor_status(drive_name_, motor_is_on_);
+		observer->set_drive_motor_status(drive_name_, disk_is_rotating_);
 
 		if(add_motor_led) {
 			observer->register_led(drive_name_);
-			observer->set_led_status(drive_name_, motor_is_on_);
+			observer->set_led_status(drive_name_, disk_is_rotating_);
 		}
 	}
 }
