@@ -48,21 +48,73 @@ class TrackConstructor {
 				return uint32_t(128 << (address[3]&3));
 			}
 
+			struct Fragment {
+				int prior_syncs = 1;
+				std::vector<uint8_t> contents;
+			};
+
 			/// @returns The byte stream this sector address would produce if a WD read track command were to observe it.
-			std::vector<uint8_t> get_track_address_image() const {
-				return track_encoding(address.begin(), address.begin() + 4, {0xa1, 0xa1, 0xfe});
+			std::vector<Fragment> get_track_address_fragments() const {
+				return track_fragments(address.begin(), address.begin() + 4, {0xa1, 0xa1, 0xfe});
 			}
 
 			/// @returns The byte stream this sector data would produce if a WD read track command were to observe it.
-			std::vector<uint8_t> get_track_data_image() const {
-				return track_encoding(contents.begin(), contents.end(), {0xa1, 0xa1, 0xfb});
+			std::vector<Fragment> get_track_data_fragments() const {
+				return track_fragments(contents.begin(), contents.end(), {0xa1, 0xa1, 0xfb});
+			}
+
+			/*!
+				Acts like std::search except that it tries to find a start location from which all of the members of @c fragments
+				can be found in successive order with no more than a 'permissible' amount of gap between them.
+
+				Where 'permissible' is derived empirically from trial and error; in practice it's a measure of the number of bytes
+				a WD may produce when it has encountered a false sync, and I don't have documentation on that. So it's
+				derived from in-practice testing of STXs (which, hopefully, contain an accurate copy of what a WD would do,
+				so are themselves possibly a way to research that).
+			*/
+			template <typename Iterator> static Iterator find_fragments(Iterator begin, Iterator end, const std::vector<Fragment> &fragments) {
+				while(true) {
+					// To match the fragments, they must all be found, in order, with at most two bytes of gap.
+					auto this_begin = begin;
+					std::vector<uint8_t>::const_iterator first_location = end;
+					bool is_found = true;
+					bool is_first = true;
+					for(auto fragment: fragments) {
+						auto location = std::search(this_begin, end, fragment.contents.begin(), fragment.contents.end());
+
+						// If fragment wasn't found at all, it's never going to be found. So game over.
+						if(location == end) {
+							return location;
+						}
+
+						// Otherwise, either mark
+						if(is_first) {
+							first_location = location;
+						} else if(location > this_begin + 5*fragment.prior_syncs) {
+							is_found = false;
+							break;
+						}
+
+						is_first = false;
+						this_begin = location + ssize_t(fragment.contents.size());
+					}
+
+					if(is_found) {
+						return first_location;
+					}
+
+					// TODO: can I assume more than this?
+					++begin;
+				}
+				return end;
 			}
 
 			private:
 				/// @returns The effect of encoding @c prefix followed by the bytes from @c begin to @c end as MFM data and then decoding them as if
-				/// observed by a WD read track command.
-				template <typename T> static std::vector<uint8_t> track_encoding(T begin, T end, std::initializer_list<uint8_t> prefix) {
-					std::vector<uint8_t> result;
+				/// observed by a WD read track command, split into fragments separated by any instances of false sync — since it's still unclear to me exactly what
+				/// a WD should put out in those instances.
+				template <typename T> static std::vector<Fragment> track_fragments(T begin, T end, std::initializer_list<uint8_t> prefix) {
+					std::vector<Fragment> result;
 					result.reserve(size_t(end - begin) + prefix.size());
 
 					PCMSegment segment;
@@ -79,18 +131,44 @@ class TrackConstructor {
 						++begin;
 					}
 
-					// Decode, obeying false syncs.
+					// Decode, starting a new segment upon any false sync since I don't have good documentation
+					// presently on exactly how a WD should react to those.
 					using Shifter = Storage::Encodings::MFM::Shifter;
 					Shifter shifter;
 					shifter.set_should_obey_syncs(true);
 					shifter.set_is_double_density(true);
 
+					result.emplace_back();
+
 					// Add whatever comes from the track.
+					int ignore_count = 0;
 					for(auto bit: segment.data) {
 						shifter.add_input_bit(int(bit));
 
-						if(shifter.get_token() != Shifter::None) {
-							result.push_back(shifter.get_byte());
+						const auto token = shifter.get_token();
+						if(token != Shifter::None) {
+							if(ignore_count) {
+								--ignore_count;
+								continue;
+							}
+
+							// If anything other than a byte is encountered,
+							// skip it and the next thing to be reported,
+							// beginning a new fragment.
+							if(token != Shifter::Token::Byte) {
+								ignore_count = 1;
+
+								if(!result.back().contents.empty()) {
+									result.emplace_back();
+								} else {
+									++result.back().prior_syncs;
+								}
+
+								continue;
+							}
+
+							// This was an ordinary byte, retain it.
+							result.back().contents.push_back(shifter.get_byte());
 						}
 					}
 
@@ -142,11 +220,11 @@ class TrackConstructor {
 			for(const auto &sector: sectors_) {
 				{
 					// Find out what the address would look like, if found in a read track.
-					const auto track_address = sector.get_track_address_image();
+					const auto address_fragments = sector.get_track_address_fragments();
 
 					// Try to locate the header within the track image; if it can't be found then settle for
 					// the next thing that looks like a header of any sort.
-					auto address_position = std::search(track_position, track_data_.end(), track_address.begin(), track_address.end());
+					auto address_position = TrackConstructor::Sector::find_fragments(track_position, track_data_.end(), address_fragments);
 					if(address_position == track_data_.end()) {
 						address_position = std::search(track_position, track_data_.end(), sync_mark.begin(), sync_mark.end());
 					}
@@ -162,9 +240,9 @@ class TrackConstructor {
 
 				// Do much the same thing for the data, if it exists.
 				if(!(sector.status & 0x10)) {
-					const auto track_data = sector.get_track_data_image();
+					const auto data_fragments = sector.get_track_data_fragments();
 
-					auto data_position = std::search(track_position, track_data_.end(), track_data.begin(), track_data.end());
+					auto data_position = TrackConstructor::Sector::find_fragments(track_position, track_data_.end(), data_fragments);
 					if(data_position == track_data_.end()) {
 						data_position = std::search(track_position, track_data_.end(), sync_mark.begin(), sync_mark.end());
 					}
