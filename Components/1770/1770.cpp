@@ -481,7 +481,7 @@ void WD1770::posit_event(int new_event_type) {
 			status.data_request = true;
 		});
 		distance_into_section_++;
-		if(distance_into_section_ == 128 << header_[3]) {
+		if(distance_into_section_ == 128 << (header_[3]&3)) {
 			distance_into_section_ = 0;
 			goto type2_check_crc;
 		}
@@ -564,7 +564,7 @@ void WD1770::posit_event(int new_event_type) {
 		*/
 		write_byte(data_);
 		distance_into_section_++;
-		if(distance_into_section_ == 128 << header_[3]) {
+		if(distance_into_section_ == 128 << (header_[3]&3)) {
 			goto type2_write_crc;
 		}
 
