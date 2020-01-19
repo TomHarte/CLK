@@ -273,7 +273,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							break;
 						}
 
-						if(last_trace_flag_) {
+						if(trace_flag_ && last_trace_flag_) {
 							// The user has set the trace bit in the status register.
 							active_program_ = nullptr;
 							active_micro_op_ = short_exception_micro_ops_;
