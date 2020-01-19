@@ -273,11 +273,12 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							break;
 						}
 
-						if(trace_flag_) {
+						if(trace_flag_ && last_trace_flag_) {
 							// The user has set the trace bit in the status register.
 							active_program_ = nullptr;
 							active_micro_op_ = short_exception_micro_ops_;
 							populate_trap_steps(9, get_status());
+							program_counter_.full -= 4;
 						} else {
 #ifdef LOG_TRACE
 							if(should_log) {
@@ -310,7 +311,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 #endif
 
-							if(signal_will_perform) {
+							if constexpr (signal_will_perform) {
 								bus_handler_.will_perform(program_counter_.full - 4, decoded_instruction_.full);
 							}
 
@@ -363,6 +364,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								}
 							}
 						}
+						last_trace_flag_ = trace_flag_;
 					}
 
 					auto bus_program = &all_bus_steps_[active_micro_op_->bus_program];
