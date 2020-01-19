@@ -241,12 +241,16 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 }
 
 Encoder::Encoder(std::vector<bool> &target) :
-	target_(target) {}
+	target_(&target) {}
+
+void Encoder::reset_target(std::vector<bool> &target) {
+	target_ = &target;
+}
 
 void Encoder::output_short(uint16_t value) {
 	uint16_t mask = 0x8000;
 	while(mask) {
-		target_.push_back(!!(value & mask));
+		target_->push_back(!!(value & mask));
 		mask >>= 1;
 	}
 }

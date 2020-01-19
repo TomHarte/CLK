@@ -201,7 +201,7 @@ class TrackConstructor {
 			// Otherwise, seek to encode the sectors, using the track data to
 			// fill in the gaps (if provided).
 			std::unique_ptr<Storage::Encodings::MFM::Encoder> encoder;
-			std::unique_ptr<PCMSegment> segment;
+			std::vector<PCMSegment> segments;
 
 			// To reconcile the list of sectors with the WD get track-style track image,
 			// use sector bodies as definitive and refer to the track image for in-fill.
@@ -256,11 +256,18 @@ class TrackConstructor {
 				}
 			}
 
-			// Just create an encoder if one doesn't exist. TODO: factor in data rate.
-			if(!encoder) {
-				segment.reset(new PCMSegment);
-				encoder = Storage::Encodings::MFM::GetMFMEncoder(segment->data);
-			}
+			const auto encoder_at_rate = [&encoder, &segments](unsigned int rate) -> Storage::Encodings::MFM::Encoder* {
+				if(!encoder) {
+					segments.emplace_back();
+					segments.back().length_of_a_bit = Storage::Time(int(rate), 1);
+					encoder = Storage::Encodings::MFM::GetMFMEncoder(segments.back().data);
+				} else if(segments.back().length_of_a_bit.length != rate) {
+					segments.emplace_back();
+					segments.back().length_of_a_bit = Storage::Time(int(rate), 1);
+					encoder->reset_target(segments.back().data);
+				}
+				return encoder.get();
+			};
 
 			// Write out, being wary of potential overlapping sectors, and copying from track_data_ to fill in gaps.
 			auto location = locations.begin();
@@ -269,8 +276,9 @@ class TrackConstructor {
 //				assert(location->position >= track_position && location->position < track_data_.end());
 
 				// Advance to location.position.
+				auto default_rate_encoder = encoder_at_rate(128);
 				while(track_position < location->position) {
-					encoder->add_byte(*track_position);
+					default_rate_encoder->add_byte(*track_position);
 					++track_position;
 				}
 
@@ -279,14 +287,14 @@ class TrackConstructor {
 				switch(location->type) {
 					default:
 					case Location::Address:
-						encoder->add_ID_address_mark();
+						default_rate_encoder->add_ID_address_mark();
 						bytes_to_write = 6;
 					break;
 					case Location::Data:
 						if(location->sector.status & 0x20)
-							encoder->add_deleted_data_address_mark();
+							default_rate_encoder->add_deleted_data_address_mark();
 						else
-							encoder->add_data_address_mark();
+							default_rate_encoder->add_data_address_mark();
 						bytes_to_write = location->sector.data_size() + 2;
 					break;
 				}
@@ -306,16 +314,27 @@ class TrackConstructor {
 					default:
 					case Location::Address:
 						for(size_t c = 0; c < bytes_to_write; ++c)
-							encoder->add_byte(location->sector.address[c]);
+							default_rate_encoder->add_byte(location->sector.address[c]);
 					break;
 					case Location::Data: {
 						const auto body_bytes = std::min(bytes_to_write, size_t(location->sector.data_size()));
-						for(size_t c = 0; c < body_bytes; ++c)
-							encoder->add_byte(location->sector.contents[c]);
+
+						// If timing information is attached to this sector, write each byte at the proper speed.
+						// (TODO: is there any benefit to optiming number of calls to encoder_at_rate?)
+						if(!location->sector.timing.empty()) {
+							for(size_t c = 0; c < body_bytes; ++c) {
+								encoder_at_rate(location->sector.timing[c >> 4])->add_byte(location->sector.contents[c]);
+							}
+						} else {
+							for(size_t c = 0; c < body_bytes; ++c) {
+								default_rate_encoder->add_byte(location->sector.contents[c]);
+							}
+						}
 
 						// Add a CRC only if it fits (TODO: crop if necessary?).
 						if(bytes_to_write & 127) {
-							encoder->add_crc((location->sector.status & 0x18) == 0x10);
+							default_rate_encoder = encoder_at_rate(128);
+							default_rate_encoder->add_crc((location->sector.status & 0x18) == 0x10);
 						}
 					} break;
 				}
@@ -330,20 +349,28 @@ class TrackConstructor {
 				++track_position;
 			}
 
+			// Count total size of track.
+			size_t track_size = 0;
+			for(auto &segment: segments) {
+				track_size += segment.data.size();
+			}
+
 			// Write generic padding up until the specified track size.
-			while(segment->data.size() < track_size_ * 16) {
+			while(track_size < track_size_ * 16) {
 				encoder->add_byte(0x4e);
+				track_size += 16;
 			}
 
 			// Pad out to the minimum size a WD can actually make sense of.
 			// I've no idea why it's valid for tracks to be shorter than this,
 			// so likely I'm suffering a comprehansion deficiency.
 			// TODO: determine why this isn't correct (or, possibly, is).
-			while(segment->data.size() < 5750 * 16) {
+			while(track_size < 5750 * 16) {
 				encoder->add_byte(0x4e);
+				track_size += 16;
 			}
 
-			return std::make_shared<PCMTrack>(*segment);
+			return std::make_shared<PCMTrack>(segments);
 		}
 
 	private:

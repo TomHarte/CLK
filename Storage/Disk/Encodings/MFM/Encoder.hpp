@@ -46,6 +46,8 @@ class Encoder {
 	public:
 		Encoder(std::vector<bool> &target);
 		virtual ~Encoder() {}
+		virtual void reset_target(std::vector<bool> &target);
+
 		virtual void add_byte(uint8_t input) = 0;
 		virtual void add_index_address_mark() = 0;
 		virtual void add_ID_address_mark() = 0;
@@ -60,7 +62,7 @@ class Encoder {
 		CRC::CCITT crc_generator_;
 
 	private:
-		std::vector<bool> &target_;
+		std::vector<bool> *target_ = nullptr;
 };
 
 std::unique_ptr<Encoder> GetMFMEncoder(std::vector<bool> &target);
