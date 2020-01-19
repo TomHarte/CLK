@@ -53,6 +53,8 @@ class ProcessorStorage {
 		uint_fast32_t negative_flag_;	// The negative flag is set if this value is non-zero.
 		uint_fast32_t trace_flag_;		// The trace flag is set if this value is non-zero.
 
+		uint_fast32_t last_trace_flag_ = 0;
+
 		// Bus inputs.
 		int bus_interrupt_level_ = 0;
 		bool dtack_ = false;
@@ -498,7 +500,7 @@ class ProcessorStorage {
 
 			// Switch to supervisor mode, disable the trace bit.
 			set_is_supervisor(true);
-			trace_flag_ = 0;
+			trace_flag_ = last_trace_flag_ = 0;
 
 			// Pick a vector.
 			effective_address_[0].full = vector << 2;
@@ -521,7 +523,7 @@ class ProcessorStorage {
 
 			// Switch to supervisor mode, disable the trace bit.
 			set_is_supervisor(true);
-			trace_flag_ = 0;
+			trace_flag_ = last_trace_flag_ = 0;
 
 			// Pick a vector.
 			effective_address_[0].full = vector << 2;
