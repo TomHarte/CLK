@@ -71,32 +71,33 @@ class Machine {
 			return total_runtime;
 		}
 
-		enum class MachineEvent {
+		enum MachineEvent: int {
 			/// At least one new packet of audio has been delivered to the spaker's delegate.
-			NewSpeakerSamplesGenerated
+			NewSpeakerSamplesGenerated = 1 << 0
 		};
 
 		/*!
-			Runs for at least @c duration seconds, and then until @c event has occurred at least once since this
+			Runs for at least @c duration seconds, and then every one of the @c events has occurred at least once since this
 			call to @c run_until_event.
 
+			@param events A bitmask comprised of @c MachineEvent flags.
 			@returns The amount of time run for.
 		*/
-		Time::Seconds run_until(Time::Seconds minimum_duration, MachineEvent event) {
-			switch(event) {
-				case MachineEvent::NewSpeakerSamplesGenerated: {
-					const auto speaker = get_speaker();
-					if(!speaker) {
-						run_for(minimum_duration);
-						return minimum_duration;
-					}
-
-					const int sample_sets = speaker->completed_sample_sets();
-					return run_until(minimum_duration, [sample_sets, speaker]() {
-						return speaker->completed_sample_sets() != sample_sets;
-					});
-				} break;
+		Time::Seconds run_until(Time::Seconds minimum_duration, int events) {
+			// Tie up a wait-for-samples, if requested.
+			const Outputs::Speaker::Speaker *speaker = nullptr;
+			int sample_sets = 0;
+			if(events & MachineEvent::NewSpeakerSamplesGenerated) {
+				speaker = get_speaker();
+				if(!speaker) events &= ~MachineEvent::NewSpeakerSamplesGenerated;
+				sample_sets = speaker->completed_sample_sets();
 			}
+
+			// Run until all requested events are satisfied.
+			return run_until(minimum_duration, [=]() {
+				return
+					(!(events & MachineEvent::NewSpeakerSamplesGenerated) || (sample_sets != speaker->completed_sample_sets()));
+			});
 		}
 
 	protected:

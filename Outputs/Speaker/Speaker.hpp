@@ -26,7 +26,7 @@ class Speaker {
 		virtual float get_ideal_clock_rate_in_range(float minimum, float maximum) = 0;
 		virtual void set_output_rate(float cycles_per_second, int buffer_size) = 0;
 
-		int completed_sample_sets() { return completed_sample_sets_; }
+		int completed_sample_sets() const { return completed_sample_sets_; }
 
 		struct Delegate {
 			virtual void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) = 0;
