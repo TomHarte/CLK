@@ -36,7 +36,7 @@ void BestEffortUpdater::update(int flags) {
 		has_skipped_ = update_requested_;
 		update_requested_ = true;
 		flags_ |= flags;
-		target_time_ = std::chrono::high_resolution_clock::now();
+		target_time_ = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 	}
 	update_condition_.notify_one();
 }
@@ -71,21 +71,17 @@ void BestEffortUpdater::update_loop() {
 		flags_ = 0;
 		lock.unlock();
 
-		// Calculate period from previous time to now.
-		const auto elapsed = target_time - previous_time_point_;
-		previous_time_point_ = target_time;
-
 		// Invoke the delegate, if supplied, in order to run.
-		const int64_t integer_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count();
-		if(integer_duration > 0) {
-			const auto delegate = delegate_.load();
-			if(delegate) {
-				// Cap running at 1/5th of a second, to avoid doing a huge amount of work after any
-				// brief system interruption.
-				const double duration = std::min(double(integer_duration) / 1e9, 0.2);
-				delegate->update(this, duration, has_skipped_, flags);
-				has_skipped_ = false;
-			}
+		const int64_t integer_duration = std::max(target_time - previous_time_point_, int64_t(0));
+		const auto delegate = delegate_.load();
+		if(delegate) {
+			// Cap running at 1/5th of a second, to avoid doing a huge amount of work after any
+			// brief system interruption.
+			const double duration = std::min(double(integer_duration) / 1e9, 0.2);
+			const double elapsed_duraation = delegate->update(this, duration, has_skipped_, flags);
+
+			previous_time_point_ += int64_t(elapsed_duraation * 1e9);
+			has_skipped_ = false;
 		}
 	}
 }

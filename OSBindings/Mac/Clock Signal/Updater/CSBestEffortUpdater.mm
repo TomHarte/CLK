@@ -13,8 +13,8 @@
 struct UpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
 	__weak CSMachine *machine;
 
-	void update(Concurrency::BestEffortUpdater *updater, Time::Seconds seconds, bool did_skip_previous_update, int flags) {
-		[machine runForInterval:seconds untilEvent:flags];
+	Time::Seconds update(Concurrency::BestEffortUpdater *updater, Time::Seconds seconds, bool did_skip_previous_update, int flags) final {
+		return [machine runForInterval:seconds untilEvent:flags];
 	}
 };
 
@@ -33,6 +33,10 @@ struct UpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
 
 - (void)update {
 	_updater.update();
+}
+
+- (void)updateWithEvent:(CSBestEffortUpdaterEvent)event {
+	_updater.update((int)event);
 }
 
 - (void)flush {

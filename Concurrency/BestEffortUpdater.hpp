@@ -33,7 +33,13 @@ class BestEffortUpdater {
 
 		/// A delegate receives timing cues.
 		struct Delegate {
-			virtual void update(BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update, int flags) = 0;
+			/*!
+				Instructs the delegate to run for at least @c duration, providing hints as to whether multiple updates were requested before the previous had completed
+				(as @c did_skip_previous_update) and providing the union of any flags supplied to @c update.
+
+				@returns The amount of time actually run for.
+			*/
+			virtual Time::Seconds update(BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update, int flags) = 0;
 		};
 
 		/// Sets the current delegate.
@@ -52,13 +58,13 @@ class BestEffortUpdater {
 		std::atomic<bool> should_quit_;
 		std::atomic<bool> is_updating_;
 
-		std::chrono::time_point<std::chrono::high_resolution_clock> target_time_;
+		int64_t target_time_;
 		int flags_ = 0;
 		bool update_requested_;
 		std::mutex update_mutex_;
 		std::condition_variable update_condition_;
 
-		std::chrono::time_point<std::chrono::high_resolution_clock> previous_time_point_;
+		decltype(target_time_) previous_time_point_;
 		bool has_previous_time_point_ = false;
 		std::atomic<bool> has_skipped_ = false;
 

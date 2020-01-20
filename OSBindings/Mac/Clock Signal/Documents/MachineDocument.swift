@@ -243,7 +243,7 @@ class MachineDocument:
 	/// Responds to the CSAudioQueueDelegate dry-queue warning message by requesting a machine update.
 	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
 		bestEffortLock.lock()
-		bestEffortUpdater?.update()
+		bestEffortUpdater?.update(with: .audioNeeded)
 		bestEffortLock.unlock()
 	}
 
