@@ -158,7 +158,7 @@ CPCDSK::CPCDSK(const std::string &file_name) :
 				}
 
 				// As per the weak/fuzzy sector extension, multiple samplings may be stored here.
-				// Plan to tead as many as there were.
+				// Plan to read as many as there were.
 				sector.samples.emplace_back();
 				sector.samples.resize(number_of_samplings);
 				while(number_of_samplings--) {
