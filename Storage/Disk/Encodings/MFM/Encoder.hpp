@@ -15,7 +15,7 @@
 
 #include "Sector.hpp"
 #include "../../Track/Track.hpp"
-#include "../../../../NumberTheory/CRC.hpp"
+#include "../../../../Numeric/CRC.hpp"
 
 namespace Storage {
 namespace Encodings {

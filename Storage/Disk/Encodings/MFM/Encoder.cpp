@@ -10,7 +10,7 @@
 
 #include "Constants.hpp"
 #include "../../Track/PCMTrack.hpp"
-#include "../../../../NumberTheory/CRC.hpp"
+#include "../../../../Numeric/CRC.hpp"
 
 #include <cassert>
 #include <set>

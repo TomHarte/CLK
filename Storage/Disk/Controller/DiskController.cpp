@@ -8,7 +8,7 @@
 
 #include "DiskController.hpp"
 
-#include "../../../NumberTheory/Factors.hpp"
+#include "../../../Numeric/Factors.hpp"
 
 using namespace Storage::Disk;
 

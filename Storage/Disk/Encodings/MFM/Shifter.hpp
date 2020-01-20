@@ -11,7 +11,7 @@
 
 #include <cstdint>
 #include <memory>
-#include "../../../../NumberTheory/CRC.hpp"
+#include "../../../../Numeric/CRC.hpp"
 
 namespace Storage {
 namespace Encodings {

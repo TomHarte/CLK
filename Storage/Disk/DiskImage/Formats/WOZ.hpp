@@ -11,7 +11,7 @@
 
 #include "../DiskImage.hpp"
 #include "../../../FileHolder.hpp"
-#include "../../../../NumberTheory/CRC.hpp"
+#include "../../../../Numeric/CRC.hpp"
 
 #include <string>
 

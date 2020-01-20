@@ -9,8 +9,9 @@
 #ifndef LFSR_h
 #define LFSR_h
 
-template <typename IntType> struct LSFRPolynomial {
-};
+namespace Numeric {
+
+template <typename IntType> struct LSFRPolynomial {};
 
 // The following were taken 'at random' from https://users.ece.cmu.edu/~koopman/lfsr/index.html
 template <> struct LSFRPolynomial<uint64_t> {
@@ -60,5 +61,7 @@ template <typename IntType = uint64_t, IntType polynomial = LSFRPolynomial<IntTy
 	private:
 		IntType value_ = 0;
 };
+
+}
 
 #endif /* LFSR_h */
