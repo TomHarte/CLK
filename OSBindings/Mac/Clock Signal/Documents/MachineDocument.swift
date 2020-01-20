@@ -269,14 +269,6 @@ class MachineDocument:
 		}
 	}
 
-	/// Responds to CSBestEffortUpdaterDelegate update message by running the machine.
-	final func bestEffortUpdater(_ bestEffortUpdater: CSBestEffortUpdater!, runForInterval duration: TimeInterval, didSkipPreviousUpdate: Bool) {
-		if let machine = self.machine, actionLock.try() {
-			machine.run(forInterval: duration)
-			actionLock.unlock()
-		}
-	}
-
 	// MARK: - Pasteboard Forwarding.
 
 	/// Forwards any text currently on the pasteboard into the active machine.

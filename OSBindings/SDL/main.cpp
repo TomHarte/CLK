@@ -35,7 +35,7 @@ namespace {
 
 struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
 	void update(Concurrency::BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update, int flags) override {
-		machine->crt_machine()->run_until(duration);
+		machine->crt_machine()->run_until(duration, flags);
 	}
 
 	Machine::DynamicMachine *machine;

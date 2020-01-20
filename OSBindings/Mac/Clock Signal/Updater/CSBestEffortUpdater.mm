@@ -14,7 +14,7 @@ struct UpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
 	__weak CSMachine *machine;
 
 	void update(Concurrency::BestEffortUpdater *updater, Time::Seconds seconds, bool did_skip_previous_update, int flags) {
-		[machine runForInterval:seconds];
+		[machine runForInterval:seconds untilEvent:flags];
 	}
 };
 

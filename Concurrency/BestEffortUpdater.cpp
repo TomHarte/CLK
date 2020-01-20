@@ -29,12 +29,13 @@ BestEffortUpdater::~BestEffortUpdater() {
 	update_thread_.join();
 }
 
-void BestEffortUpdater::update() {
+void BestEffortUpdater::update(int flags) {
 	// Bump the requested target time and set the update requested flag.
 	{
 		std::lock_guard<decltype(update_mutex_)> lock(update_mutex_);
 		has_skipped_ = update_requested_;
 		update_requested_ = true;
+		flags_ |= flags;
 		target_time_ = std::chrono::high_resolution_clock::now();
 	}
 	update_condition_.notify_one();
@@ -66,6 +67,8 @@ void BestEffortUpdater::update_loop() {
 
 		// Release the lock on requesting new updates.
 		is_updating_ = true;
+		const int flags = flags_;
+		flags_ = 0;
 		lock.unlock();
 
 		// Calculate period from previous time to now.
@@ -80,7 +83,7 @@ void BestEffortUpdater::update_loop() {
 				// Cap running at 1/5th of a second, to avoid doing a huge amount of work after any
 				// brief system interruption.
 				const double duration = std::min(double(integer_duration) / 1e9, 0.2);
-				delegate->update(this, duration, has_skipped_, 0);
+				delegate->update(this, duration, has_skipped_, flags);
 				has_skipped_ = false;
 			}
 		}

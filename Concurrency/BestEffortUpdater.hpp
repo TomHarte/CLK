@@ -43,7 +43,7 @@ class BestEffortUpdater {
 			If the delegate is not currently in the process of an `update` call, calls it now to catch up to the current time.
 			The call is asynchronous; this method will return immediately.
 		*/
-		void update();
+		void update(int flags = 0);
 
 		/// Blocks until any ongoing update is complete; may spin.
 		void flush();
@@ -53,6 +53,7 @@ class BestEffortUpdater {
 		std::atomic<bool> is_updating_;
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> target_time_;
+		int flags_ = 0;
 		bool update_requested_;
 		std::mutex update_mutex_;
 		std::condition_variable update_condition_;
