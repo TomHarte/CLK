@@ -12,61 +12,90 @@
 
 using namespace Concurrency;
 
-BestEffortUpdater::BestEffortUpdater() {
-	// ATOMIC_FLAG_INIT isn't necessarily safe to use, so establish default state by other means.
-	update_is_ongoing_.clear();
-}
+BestEffortUpdater::BestEffortUpdater() :
+	update_thread_([this]() {
+		this->update_loop();
+	}) {}
 
 BestEffortUpdater::~BestEffortUpdater() {
-	// Don't allow further deconstruction until the task queue is stopped.
+	// Sever the delegate now, as soon as possible, then wait for any
+	// pending tasks to finish.
+	set_delegate(nullptr);
 	flush();
+
+	// Wind up the update thread.
+	should_quit_ = true;
+	update();
+	update_thread_.join();
 }
 
 void BestEffortUpdater::update() {
-	// Perform an update only if one is not currently ongoing.
-	if(!update_is_ongoing_.test_and_set()) {
-		async_task_queue_.enqueue([this]() {
-			// Get time now using the highest-resolution clock provided by the implementation, and determine
-			// the duration since the last time this section was entered.
-			const std::chrono::time_point<std::chrono::high_resolution_clock> now = std::chrono::high_resolution_clock::now();
-			const auto elapsed = now - previous_time_point_;
-			previous_time_point_ = now;
+	// Bump the requested target time and set the update requested flag.
+	{
+		std::lock_guard<decltype(update_mutex_)> lock(update_mutex_);
+		has_skipped_ = update_requested_;
+		update_requested_ = true;
+		target_time_ = std::chrono::high_resolution_clock::now();
+	}
+	update_condition_.notify_one();
+}
 
-			if(has_previous_time_point_) {
-				// If the duration is valid, convert it to integer cycles, maintaining a rolling error and call the delegate
-				// if there is one. Proceed only if the number of cycles is positive, and cap it to the per-second maximum as
-				// it's possible this is an adjustable clock so be ready to swallow unexpected adjustments.
-				const int64_t integer_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count();
-				if(integer_duration > 0) {
-					if(delegate_) {
-						// Cap running at 1/5th of a second, to avoid doing a huge amount of work after any
-						// brief system interruption.
-						const double duration = std::min(static_cast<double>(integer_duration) / 1e9, 0.2);
-						delegate_->update(this, duration, has_skipped_);
-					}
-					has_skipped_ = false;
-				}
-			} else {
-				has_previous_time_point_ = true;
+void BestEffortUpdater::update_loop() {
+ 	while(true) {
+		std::unique_lock<decltype(update_mutex_)> lock(update_mutex_);
+		is_updating_ = false;
+
+		// Wait to be signalled.
+		update_condition_.wait(lock, [this]() -> bool {
+			return update_requested_;
+		});
+
+		// Possibly this signalling really means 'quit'.
+		if(should_quit_) return;
+
+		// Note update started, crib the target time.
+		auto target_time = target_time_;
+		update_requested_ = false;
+
+		// If this was actually the first update request, silently swallow it.
+		if(!has_previous_time_point_) {
+			has_previous_time_point_ = true;
+			previous_time_point_ = target_time;
+			continue;
+		}
+
+		// Release the lock on requesting new updates.
+		is_updating_ = true;
+		lock.unlock();
+
+		// Calculate period from previous time to now.
+		const auto elapsed = target_time - previous_time_point_;
+		previous_time_point_ = target_time;
+
+		// Invoke the delegate, if supplied, in order to run.
+		const int64_t integer_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count();
+		if(integer_duration > 0) {
+			const auto delegate = delegate_.load();
+			if(delegate) {
+				// Cap running at 1/5th of a second, to avoid doing a huge amount of work after any
+				// brief system interruption.
+				const double duration = std::min(double(integer_duration) / 1e9, 0.2);
+				delegate->update(this, duration, has_skipped_);
+				has_skipped_ = false;
 			}
-
-			// Allow furthers updates to occur.
-			update_is_ongoing_.clear();
-		});
-	} else {
-		async_task_queue_.enqueue([this]() {
-			has_skipped_ = true;
-		});
+		}
 	}
 }
 
 void BestEffortUpdater::flush() {
-	async_task_queue_.flush();
+	// Spin lock; this is allowed to be slow.
+	while(true) {
+		std::lock_guard<decltype(update_mutex_)> lock(update_mutex_);
+		if(!is_updating_) return;
+	}
 }
 
 void BestEffortUpdater::set_delegate(Delegate *const delegate) {
-	async_task_queue_.enqueue([this, delegate]() {
-		delegate_ = delegate;
-	});
+	delegate_.store(delegate);
 }
 

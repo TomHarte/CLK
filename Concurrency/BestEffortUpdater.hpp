@@ -11,8 +11,10 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 
-#include "AsyncTaskQueue.hpp"
 #include "../ClockReceiver/TimeTypes.hpp"
 
 namespace Concurrency {
@@ -43,18 +45,29 @@ class BestEffortUpdater {
 		*/
 		void update();
 
-		/// Blocks until any ongoing update is complete.
+		/// Blocks until any ongoing update is complete; may spin.
 		void flush();
 
 	private:
-		std::atomic_flag update_is_ongoing_;
-		AsyncTaskQueue async_task_queue_;
+		std::atomic<bool> should_quit_;
+		std::atomic<bool> is_updating_;
+
+		std::chrono::time_point<std::chrono::high_resolution_clock> target_time_;
+		bool update_requested_;
+		std::mutex update_mutex_;
+		std::condition_variable update_condition_;
 
 		std::chrono::time_point<std::chrono::high_resolution_clock> previous_time_point_;
 		bool has_previous_time_point_ = false;
-		bool has_skipped_ = false;
+		std::atomic<bool> has_skipped_ = false;
 
-		Delegate *delegate_ = nullptr;
+		std::atomic<Delegate *>delegate_ = nullptr;
+
+		void update_loop();
+
+		// This is deliberately at the bottom, to ensure it constructs after the various
+		// mutexs, conditions, etc, that it'll depend upon.
+		std::thread update_thread_;
 };
 
 }
