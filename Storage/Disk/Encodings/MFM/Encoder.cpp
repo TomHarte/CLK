@@ -27,7 +27,7 @@ class MFMEncoder: public Encoder {
 		MFMEncoder(std::vector<bool> &target) : Encoder(target) {}
 		virtual ~MFMEncoder() {}
 
-		void add_byte(uint8_t input) {
+		void add_byte(uint8_t input) final {
 			crc_generator_.add(input);
 			uint16_t spread_value =
 				static_cast<uint16_t>(
@@ -45,22 +45,22 @@ class MFMEncoder: public Encoder {
 			output_short(output);
 		}
 
-		void add_index_address_mark() {
+		void add_index_address_mark() final {
 			for(int c = 0; c < 3; c++) output_short(MFMIndexSync);
 			add_byte(IndexAddressByte);
 		}
 
-		void add_ID_address_mark() {
+		void add_ID_address_mark() final {
 			output_sync();
 			add_byte(IDAddressByte);
 		}
 
-		void add_data_address_mark() {
+		void add_data_address_mark() final {
 			output_sync();
 			add_byte(DataAddressByte);
 		}
 
-		void add_deleted_data_address_mark() {
+		void add_deleted_data_address_mark() final {
 			output_sync();
 			add_byte(DeletedDataAddressByte);
 		}
@@ -76,7 +76,7 @@ class MFMEncoder: public Encoder {
 
 	private:
 		uint16_t last_output_;
-		void output_short(uint16_t value) {
+		void output_short(uint16_t value) final {
 			last_output_ = value;
 			Encoder::output_short(value);
 		}
@@ -92,7 +92,7 @@ class FMEncoder: public Encoder {
 	public:
 		FMEncoder(std::vector<bool> &target) : Encoder(target) {}
 
-		void add_byte(uint8_t input) {
+		void add_byte(uint8_t input) final {
 			crc_generator_.add(input);
 			output_short(
 				static_cast<uint16_t>(
@@ -108,25 +108,25 @@ class FMEncoder: public Encoder {
 				));
 		}
 
-		void add_index_address_mark() {
+		void add_index_address_mark() final {
 			crc_generator_.reset();
 			crc_generator_.add(IndexAddressByte);
 			output_short(FMIndexAddressMark);
 		}
 
-		void add_ID_address_mark() {
+		void add_ID_address_mark() final {
 			crc_generator_.reset();
 			crc_generator_.add(IDAddressByte);
 			output_short(FMIDAddressMark);
 		}
 
-		void add_data_address_mark() {
+		void add_data_address_mark() final {
 			crc_generator_.reset();
 			crc_generator_.add(DataAddressByte);
 			output_short(FMDataAddressMark);
 		}
 
-		void add_deleted_data_address_mark() {
+		void add_deleted_data_address_mark() final {
 			crc_generator_.reset();
 			crc_generator_.add(DeletedDataAddressByte);
 			output_short(FMDeletedDataAddressMark);
