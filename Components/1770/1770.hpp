@@ -45,20 +45,20 @@ class WD1770: public Storage::Disk::MFMController {
 		void run_for(const Cycles cycles);
 
 		enum Flag: uint8_t {
-			NotReady		= 0x80,
+			NotReady		= 0x80,		// 0x80
 			MotorOn			= 0x80,
-			WriteProtect	= 0x40,
-			RecordType		= 0x20,
+			WriteProtect	= 0x40,		// 0x40
+			RecordType		= 0x20,		// 0x20
 			SpinUp			= 0x20,
 			HeadLoaded		= 0x20,
-			RecordNotFound	= 0x10,
+			RecordNotFound	= 0x10,		// 0x10
 			SeekError		= 0x10,
-			CRCError		= 0x08,
-			LostData		= 0x04,
+			CRCError		= 0x08,		// 0x08
+			LostData		= 0x04,		// 0x04
 			TrackZero		= 0x04,
-			DataRequest		= 0x02,
+			DataRequest		= 0x02,		// 0x02
 			Index			= 0x02,
-			Busy			= 0x01
+			Busy			= 0x01		// 0x01
 		};
 
 		/// @returns The current value of the IRQ line output.
