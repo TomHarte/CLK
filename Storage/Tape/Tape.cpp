@@ -7,7 +7,6 @@
 //
 
 #include "Tape.hpp"
-#include "../../NumberTheory/Factors.hpp"
 
 using namespace Storage::Tape;
 

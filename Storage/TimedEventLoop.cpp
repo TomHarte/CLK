@@ -7,7 +7,6 @@
 //
 
 #include "TimedEventLoop.hpp"
-#include "../NumberTheory/Factors.hpp"
 
 #include <algorithm>
 #include <cassert>

@@ -10,7 +10,7 @@
 #define MFMDiskController_hpp
 
 #include "DiskController.hpp"
-#include "../../../NumberTheory/CRC.hpp"
+#include "../../../Numeric/CRC.hpp"
 #include "../../../ClockReceiver/ClockReceiver.hpp"
 #include "../Encodings/MFM/Shifter.hpp"
 

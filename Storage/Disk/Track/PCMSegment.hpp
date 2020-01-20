@@ -14,7 +14,7 @@
 #include <vector>
 
 #include "../../Storage.hpp"
-#include "../../../NumberTheory/LFSR.hpp"
+#include "../../../Numeric/LFSR.hpp"
 #include "Track.hpp"
 
 namespace Storage {
@@ -200,7 +200,7 @@ class PCMSegmentEventSource {
 		std::shared_ptr<PCMSegment> segment_;
 		std::size_t bit_pointer_;
 		Track::Event next_event_;
-		LFSR<uint64_t> lfsr_;
+		Numeric::LFSR<uint64_t> lfsr_;
 };
 
 }

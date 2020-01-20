@@ -10,7 +10,7 @@
 
 #include "../../../Storage/Disk/Controller/DiskController.hpp"
 #include "../../../Storage/Disk/Encodings/MFM/Parser.hpp"
-#include "../../../NumberTheory/CRC.hpp"
+#include "../../../Numeric/CRC.hpp"
 
 #include <algorithm>
 

@@ -8,8 +8,6 @@
 
 #include "DiskController.hpp"
 
-#include "../../../NumberTheory/Factors.hpp"
-
 using namespace Storage::Disk;
 
 Controller::Controller(Cycles clock_rate) :

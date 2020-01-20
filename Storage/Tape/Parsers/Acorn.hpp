@@ -10,7 +10,7 @@
 #define Storage_Tape_Parsers_Acorn_hpp
 
 #include "TapeParser.hpp"
-#include "../../../NumberTheory/CRC.hpp"
+#include "../../../Numeric/CRC.hpp"
 #include "../../Disk/DPLL/DigitalPhaseLockedLoop.hpp"
 
 namespace Storage {
