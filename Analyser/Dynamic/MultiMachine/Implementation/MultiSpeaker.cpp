@@ -53,7 +53,7 @@ void MultiSpeaker::speaker_did_complete_samples(Speaker *speaker, const std::vec
 		std::lock_guard<std::mutex> lock_guard(front_speaker_mutex_);
 		if(speaker != front_speaker_) return;
 	}
-	delegate_->speaker_did_complete_samples(this, buffer);
+	did_complete_samples(this, buffer);
 }
 
 void MultiSpeaker::speaker_did_change_input_clock(Speaker *speaker) {
