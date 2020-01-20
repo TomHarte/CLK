@@ -260,11 +260,11 @@ class TrackConstructor {
 				if(!encoder) {
 					segments.emplace_back();
 					segments.back().length_of_a_bit = Storage::Time(int(rate + 1), 1);
-					encoder = Storage::Encodings::MFM::GetMFMEncoder(segments.back().data);
+					encoder = Storage::Encodings::MFM::GetMFMEncoder(segments.back().data, &segments.back().fuzzy_mask);
 				} else if(segments.back().length_of_a_bit.length != rate) {
 					segments.emplace_back();
 					segments.back().length_of_a_bit = Storage::Time(int(rate + 1), 1);
-					encoder->reset_target(segments.back().data);
+					encoder->reset_target(segments.back().data, &segments.back().fuzzy_mask);
 				}
 				return encoder.get();
 			};
@@ -323,11 +323,17 @@ class TrackConstructor {
 						// (TODO: is there any benefit to optiming number of calls to encoder_at_rate?)
 						if(!location->sector.timing.empty()) {
 							for(size_t c = 0; c < body_bytes; ++c) {
-								encoder_at_rate(location->sector.timing[c >> 4])->add_byte(location->sector.contents[c]);
+								encoder_at_rate(location->sector.timing[c >> 4])->add_byte(
+									location->sector.contents[c],
+									location->sector.fuzzy_mask.empty() ? 0x00 : location->sector.fuzzy_mask[c]
+								);
 							}
 						} else {
 							for(size_t c = 0; c < body_bytes; ++c) {
-								default_rate_encoder->add_byte(location->sector.contents[c]);
+								default_rate_encoder->add_byte(
+									location->sector.contents[c],
+									location->sector.fuzzy_mask.empty() ? 0x00 : location->sector.fuzzy_mask[c]
+								);
 							}
 						}
 
