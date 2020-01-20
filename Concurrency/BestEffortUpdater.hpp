@@ -11,8 +11,10 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 
-#include "AsyncTaskQueue.hpp"
 #include "../ClockReceiver/TimeTypes.hpp"
 
 namespace Concurrency {
@@ -31,7 +33,13 @@ class BestEffortUpdater {
 
 		/// A delegate receives timing cues.
 		struct Delegate {
-			virtual void update(BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update) = 0;
+			/*!
+				Instructs the delegate to run for at least @c duration, providing hints as to whether multiple updates were requested before the previous had completed
+				(as @c did_skip_previous_update) and providing the union of any flags supplied to @c update.
+
+				@returns The amount of time actually run for.
+			*/
+			virtual Time::Seconds update(BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update, int flags) = 0;
 		};
 
 		/// Sets the current delegate.
@@ -41,20 +49,32 @@ class BestEffortUpdater {
 			If the delegate is not currently in the process of an `update` call, calls it now to catch up to the current time.
 			The call is asynchronous; this method will return immediately.
 		*/
-		void update();
+		void update(int flags = 0);
 
-		/// Blocks until any ongoing update is complete.
+		/// Blocks until any ongoing update is complete; may spin.
 		void flush();
 
 	private:
-		std::atomic_flag update_is_ongoing_;
-		AsyncTaskQueue async_task_queue_;
+		std::atomic<bool> should_quit_;
+		std::atomic<bool> is_updating_;
 
-		std::chrono::time_point<std::chrono::high_resolution_clock> previous_time_point_;
+		int64_t target_time_;
+		int flags_ = 0;
+		bool update_requested_;
+		std::mutex update_mutex_;
+		std::condition_variable update_condition_;
+
+		decltype(target_time_) previous_time_point_;
 		bool has_previous_time_point_ = false;
-		bool has_skipped_ = false;
+		std::atomic<bool> has_skipped_ = false;
 
-		Delegate *delegate_ = nullptr;
+		std::atomic<Delegate *>delegate_ = nullptr;
+
+		void update_loop();
+
+		// This is deliberately at the bottom, to ensure it constructs after the various
+		// mutexs, conditions, etc, that it'll depend upon.
+		std::thread update_thread_;
 };
 
 }

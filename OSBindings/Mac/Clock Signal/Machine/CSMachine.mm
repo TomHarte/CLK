@@ -259,7 +259,7 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
-- (void)runForInterval:(NSTimeInterval)interval {
+- (NSTimeInterval)runForInterval:(NSTimeInterval)interval untilEvent:(int)events {
 	@synchronized(self) {
 		if(_joystickMachine && _joystickManager) {
 			[_joystickManager update];
@@ -309,7 +309,7 @@ struct ActivityObserver: public Activity::Observer {
 				}
 			}
 		}
-		_machine->crt_machine()->run_for(interval);
+		return _machine->crt_machine()->run_until(interval, events);
 	}
 }
 

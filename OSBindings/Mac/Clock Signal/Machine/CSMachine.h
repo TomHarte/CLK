@@ -57,7 +57,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 */
 - (nullable instancetype)initWithAnalyser:(nonnull CSStaticAnalyser *)result missingROMs:(nullable inout NSMutableArray<CSMissingROM *> *)missingROMs NS_DESIGNATED_INITIALIZER;
 
-- (void)runForInterval:(NSTimeInterval)interval;
+- (NSTimeInterval)runForInterval:(NSTimeInterval)interval untilEvent:(int)events;
 
 - (float)idealSamplingRateFromRange:(NSRange)range;
 - (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize;

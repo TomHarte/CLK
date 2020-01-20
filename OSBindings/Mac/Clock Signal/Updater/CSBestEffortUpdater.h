@@ -9,20 +9,19 @@
 #import <Foundation/Foundation.h>
 #import <CoreVideo/CoreVideo.h>
 
-@class CSBestEffortUpdater;
+#import "CSMachine.h"
 
-@protocol CSBestEffortUpdaterDelegate <NSObject>
-
-- (void)bestEffortUpdater:(CSBestEffortUpdater *)bestEffortUpdater runForInterval:(NSTimeInterval)interval didSkipPreviousUpdate:(BOOL)didSkipPreviousUpdate;
-
-@end
-
+// The following is coupled to the definitions in CRTMachine.hpp, but exposed here
+// for the benefit of Swift.
+typedef NS_ENUM(NSInteger, CSBestEffortUpdaterEvent) {
+	CSBestEffortUpdaterEventAudioNeeded = 1 << 0
+};
 
 @interface CSBestEffortUpdater : NSObject
 
-@property (nonatomic, weak) id<CSBestEffortUpdaterDelegate> delegate;
-
 - (void)update;
+- (void)updateWithEvent:(CSBestEffortUpdaterEvent)event;
 - (void)flush;
+- (void)setMachine:(CSMachine *)machine;
 
 @end

@@ -15,7 +15,6 @@ class MachineDocument:
 	CSMachineDelegate,
 	CSOpenGLViewDelegate,
 	CSOpenGLViewResponderDelegate,
-	CSBestEffortUpdaterDelegate,
 	CSAudioQueueDelegate,
 	CSROMReciverViewDelegate
 {
@@ -98,7 +97,6 @@ class MachineDocument:
 
 		bestEffortLock.lock()
 		if let bestEffortUpdater = bestEffortUpdater {
-			bestEffortUpdater.delegate = nil
 			bestEffortUpdater.flush()
 			self.bestEffortUpdater = nil
 		}
@@ -221,8 +219,8 @@ class MachineDocument:
 			openGLView.window!.makeKeyAndOrderFront(self)
 			openGLView.window!.makeFirstResponder(openGLView)
 
-			// Start accepting best effort updates.
-			self.bestEffortUpdater!.delegate = self
+			// Start forwarding best-effort updates.
+			self.bestEffortUpdater!.setMachine(machine)
 		}
 	}
 
@@ -245,7 +243,7 @@ class MachineDocument:
 	/// Responds to the CSAudioQueueDelegate dry-queue warning message by requesting a machine update.
 	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
 		bestEffortLock.lock()
-		bestEffortUpdater?.update()
+		bestEffortUpdater?.update(with: .audioNeeded)
 		bestEffortLock.unlock()
 	}
 
@@ -268,14 +266,6 @@ class MachineDocument:
 			}
 			machine.drawView(forPixelSize: view.backingSize)
 			drawLock.unlock()
-		}
-	}
-
-	/// Responds to CSBestEffortUpdaterDelegate update message by running the machine.
-	final func bestEffortUpdater(_ bestEffortUpdater: CSBestEffortUpdater!, runForInterval duration: TimeInterval, didSkipPreviousUpdate: Bool) {
-		if let machine = self.machine, actionLock.try() {
-			machine.run(forInterval: duration)
-			actionLock.unlock()
 		}
 	}
 

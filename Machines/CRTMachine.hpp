@@ -51,6 +51,55 @@ class Machine {
 			run_for(Cycles(static_cast<int>(cycles)));
 		}
 
+		/*!
+			Runs for the machine for at least @c duration seconds, and then until @c condition is true.
+
+			@returns The amount of time run for.
+		*/
+		Time::Seconds run_until(Time::Seconds minimum_duration, std::function<bool()> condition) {
+			Time::Seconds total_runtime = minimum_duration;
+			run_for(minimum_duration);
+			while(!condition()) {
+				// Advance in increments of one 500th of a second until the condition
+				// is true; that's 1/10th of a 50Hz frame, but more like 1/8.33 of a
+				// 60Hz frame. Though most machines aren't exactly 50Hz or 60Hz, and some
+				// are arbitrary other refresh rates. So those observations are merely
+				// for scale.
+				run_for(0.002);
+				total_runtime += 0.002;
+			}
+			return total_runtime;
+		}
+
+		enum MachineEvent: int {
+			/// At least one new packet of audio has been delivered to the spaker's delegate.
+			NewSpeakerSamplesGenerated = 1 << 0
+		};
+
+		/*!
+			Runs for at least @c duration seconds, and then every one of the @c events has occurred at least once since this
+			call to @c run_until_event.
+
+			@param events A bitmask comprised of @c MachineEvent flags.
+			@returns The amount of time run for.
+		*/
+		Time::Seconds run_until(Time::Seconds minimum_duration, int events) {
+			// Tie up a wait-for-samples, if requested.
+			const Outputs::Speaker::Speaker *speaker = nullptr;
+			int sample_sets = 0;
+			if(events & MachineEvent::NewSpeakerSamplesGenerated) {
+				speaker = get_speaker();
+				if(!speaker) events &= ~MachineEvent::NewSpeakerSamplesGenerated;
+				sample_sets = speaker->completed_sample_sets();
+			}
+
+			// Run until all requested events are satisfied.
+			return run_until(minimum_duration, [=]() {
+				return
+					(!(events & MachineEvent::NewSpeakerSamplesGenerated) || (sample_sets != speaker->completed_sample_sets()));
+			});
+		}
+
 	protected:
 		/// Runs the machine for @c cycles.
 		virtual void run_for(const Cycles cycles) = 0;

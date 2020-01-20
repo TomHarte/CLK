@@ -11,60 +11,41 @@
 #include "BestEffortUpdater.hpp"
 
 struct UpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
-	__weak id<CSBestEffortUpdaterDelegate> delegate;
-	NSLock *delegateLock;
+	__weak CSMachine *machine;
 
-	void update(Concurrency::BestEffortUpdater *updater, Time::Seconds cycles, bool did_skip_previous_update) {
-		[delegateLock lock];
-		__weak id<CSBestEffortUpdaterDelegate> delegateCopy = delegate;
-		[delegateLock unlock];
-
-		[delegateCopy bestEffortUpdater:nil runForInterval:(NSTimeInterval)cycles didSkipPreviousUpdate:did_skip_previous_update];
+	Time::Seconds update(Concurrency::BestEffortUpdater *updater, Time::Seconds seconds, bool did_skip_previous_update, int flags) final {
+		return [machine runForInterval:seconds untilEvent:flags];
 	}
 };
 
 @implementation CSBestEffortUpdater {
 	Concurrency::BestEffortUpdater _updater;
 	UpdaterDelegate _updaterDelegate;
-	NSLock *_delegateLock;
 }
 
 - (instancetype)init {
 	self = [super init];
 	if(self) {
-		_delegateLock = [[NSLock alloc] init];
-		_updaterDelegate.delegateLock = _delegateLock;
 		_updater.set_delegate(&_updaterDelegate);
 	}
 	return self;
 }
 
-//- (void)dealloc {
-//	_updater.flush();
-//}
-
 - (void)update {
 	_updater.update();
+}
+
+- (void)updateWithEvent:(CSBestEffortUpdaterEvent)event {
+	_updater.update((int)event);
 }
 
 - (void)flush {
 	_updater.flush();
 }
 
-- (void)setDelegate:(id<CSBestEffortUpdaterDelegate>)delegate {
-	[_delegateLock lock];
-	_updaterDelegate.delegate = delegate;
-	[_delegateLock unlock];
-}
-
-- (id<CSBestEffortUpdaterDelegate>)delegate {
-	id<CSBestEffortUpdaterDelegate> delegate;
-
-	[_delegateLock lock];
-	delegate = _updaterDelegate.delegate;
-	[_delegateLock unlock];
-
-	return delegate;
+- (void)setMachine:(CSMachine *)machine {
+	_updater.flush();
+	_updaterDelegate.machine = machine;
 }
 
 @end
