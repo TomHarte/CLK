@@ -52,7 +52,7 @@ template <typename IntType = uint64_t, IntType polynomial = LSFRPolynomial<IntTy
 			determining the bit that was just shifted out.
 		*/
 		IntType next() {
-			auto result = value_ & 1;
+			const auto result = value_ & 1;
 			value_ = (value_ >> 1) ^ (result * polynomial);
 			return result;
 		}
