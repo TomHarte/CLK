@@ -33,7 +33,7 @@ class BestEffortUpdater {
 
 		/// A delegate receives timing cues.
 		struct Delegate {
-			virtual void update(BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update) = 0;
+			virtual void update(BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update, int flags) = 0;
 		};
 
 		/// Sets the current delegate.

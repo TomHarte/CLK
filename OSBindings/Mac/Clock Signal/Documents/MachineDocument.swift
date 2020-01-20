@@ -15,7 +15,6 @@ class MachineDocument:
 	CSMachineDelegate,
 	CSOpenGLViewDelegate,
 	CSOpenGLViewResponderDelegate,
-	CSBestEffortUpdaterDelegate,
 	CSAudioQueueDelegate,
 	CSROMReciverViewDelegate
 {
@@ -98,7 +97,6 @@ class MachineDocument:
 
 		bestEffortLock.lock()
 		if let bestEffortUpdater = bestEffortUpdater {
-			bestEffortUpdater.delegate = nil
 			bestEffortUpdater.flush()
 			self.bestEffortUpdater = nil
 		}
@@ -221,8 +219,8 @@ class MachineDocument:
 			openGLView.window!.makeKeyAndOrderFront(self)
 			openGLView.window!.makeFirstResponder(openGLView)
 
-			// Start accepting best effort updates.
-			self.bestEffortUpdater!.delegate = self
+			// Start forwarding best-effort updates.
+			self.bestEffortUpdater!.setMachine(machine)
 		}
 	}
 

@@ -9,20 +9,12 @@
 #import <Foundation/Foundation.h>
 #import <CoreVideo/CoreVideo.h>
 
-@class CSBestEffortUpdater;
-
-@protocol CSBestEffortUpdaterDelegate <NSObject>
-
-- (void)bestEffortUpdater:(CSBestEffortUpdater *)bestEffortUpdater runForInterval:(NSTimeInterval)interval didSkipPreviousUpdate:(BOOL)didSkipPreviousUpdate;
-
-@end
-
+#import "CSMachine.h"
 
 @interface CSBestEffortUpdater : NSObject
 
-@property (nonatomic, weak) id<CSBestEffortUpdaterDelegate> delegate;
-
 - (void)update;
 - (void)flush;
+- (void)setMachine:(CSMachine *)machine;
 
 @end

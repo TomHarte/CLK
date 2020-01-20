@@ -80,7 +80,7 @@ void BestEffortUpdater::update_loop() {
 				// Cap running at 1/5th of a second, to avoid doing a huge amount of work after any
 				// brief system interruption.
 				const double duration = std::min(double(integer_duration) / 1e9, 0.2);
-				delegate->update(this, duration, has_skipped_);
+				delegate->update(this, duration, has_skipped_, 0);
 				has_skipped_ = false;
 			}
 		}
