@@ -9,10 +9,10 @@
 #ifndef Storage_hpp
 #define Storage_hpp
 
-#include "../Numeric/Factors.hpp"
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <numeric>
 
 namespace Storage {
 
@@ -39,7 +39,7 @@ struct Time {
 		and @c clock_rate.
 	*/
 	void simplify() {
-		unsigned int common_divisor = Numeric::greatest_common_divisor(length, clock_rate);
+		unsigned int common_divisor = std::gcd(length, clock_rate);
 		length /= common_divisor;
 		clock_rate /= common_divisor;
 	}
@@ -229,7 +229,7 @@ struct Time {
 			}
 
 			if(long_length > std::numeric_limits<unsigned int>::max() || long_clock_rate > std::numeric_limits<unsigned int>::max()) {
-				uint64_t common_divisor = Numeric::greatest_common_divisor(long_length, long_clock_rate);
+				uint64_t common_divisor = std::gcd(long_length, long_clock_rate);
 				long_length /= common_divisor;
 				long_clock_rate /= common_divisor;
 
