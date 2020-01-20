@@ -47,6 +47,10 @@ template <typename IntType = uint64_t, IntType polynomial = LSFRPolynomial<IntTy
 			}
 		}
 
+		/*!
+			Advances the LSFR, returning either an @c IntType of value @c 1 or @c 0,
+			determining the bit that was just shifted out.
+		*/
 		IntType next() {
 			auto result = value_ & 1;
 			value_ = (value_ >> 1) ^ (result * polynomial);
