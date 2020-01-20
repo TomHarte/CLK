@@ -1185,6 +1185,7 @@
 		4B7BA03523CEB86000B98D9E /* BD500.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BD500.cpp; path = Oric/BD500.cpp; sourceTree = "<group>"; };
 		4B7BA03623CEB86000B98D9E /* BD500.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = BD500.hpp; path = Oric/BD500.hpp; sourceTree = "<group>"; };
 		4B7BA03823CEB8D200B98D9E /* DiskController.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = DiskController.hpp; path = Oric/DiskController.hpp; sourceTree = "<group>"; };
+		4B7BA03923D5302C00B98D9E /* LFSR.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = LFSR.hpp; path = ../../NumberTheory/LFSR.hpp; sourceTree = "<group>"; };
 		4B7F188C2154825D00388727 /* MasterSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MasterSystem.cpp; sourceTree = "<group>"; };
 		4B7F188D2154825D00388727 /* MasterSystem.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MasterSystem.hpp; sourceTree = "<group>"; };
 		4B7F1895215486A100388727 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
@@ -3186,6 +3187,7 @@
 			children = (
 				4BB697C61D4B558F00248BDF /* Factors.hpp */,
 				4BF8295F1D8F3C87001BAE39 /* CRC.hpp */,
+				4B7BA03923D5302C00B98D9E /* LFSR.hpp */,
 			);
 			name = NumberTheory;
 			sourceTree = "<group>";

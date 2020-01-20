@@ -9,6 +9,7 @@
 #include "PCMSegment.hpp"
 
 #include <cassert>
+#include <cstdlib>
 
 using namespace Storage::Disk;
 
@@ -70,31 +71,33 @@ void PCMSegment::rotate_right(size_t length) {
 }
 
 Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event() {
-	// track the initial bit pointer for potentially considering whether this was an
-	// initial index hole or a subsequent one later on
+	// Track the initial bit pointer for potentially considering whether this was an
+	// initial index hole or a subsequent one later on.
 	const std::size_t initial_bit_pointer = bit_pointer_;
 
-	// if starting from the beginning, pull half a bit backward, as if the initial bit
-	// is set, it should be in the centre of its window
+	// If starting from the beginning, pull half a bit backward, as if the initial bit
+	// is set, it should be in the centre of its window.
 	next_event_.length.length = bit_pointer_ ? 0 : -(segment_->length_of_a_bit.length >> 1);
 
 	// search for the next bit that is set, if any
 	while(bit_pointer_ < segment_->data.size()) {
 		bool bit = segment_->data[bit_pointer_];
-		bit_pointer_++;	// so this always points one beyond the most recent bit returned
+		++bit_pointer_;	// so this always points one beyond the most recent bit returned
 		next_event_.length.length += segment_->length_of_a_bit.length;
 
-		// if this bit is set, return the event
-		if(bit) return next_event_;
+		// if this bit is set, or is fuzzy and a random bit of 1 is selected, return the event.
+		if(bit ||
+			(!segment_->fuzzy_mask.empty() && segment_->fuzzy_mask[bit_pointer_] && lfsr_.next())
+		)	return next_event_;
 	}
 
-	// if the end is reached without a bit being set, it'll be index holes from now on
+	// If the end is reached without a bit being set, it'll be index holes from now on.
 	next_event_.type = Track::Event::IndexHole;
 
-	// test whether this is the very first time that bits have been exhausted. If so then
+	// Test whether this is the very first time that bits have been exhausted. If so then
 	// allow an extra half bit's length to run from the position of the potential final transition
 	// event to the end of the segment. Otherwise don't allow any extra time, as it's already
-	// been consumed
+	// been consumed.
 	if(initial_bit_pointer <= segment_->data.size()) {
 		next_event_.length.length += (segment_->length_of_a_bit.length >> 1);
 		bit_pointer_++;
