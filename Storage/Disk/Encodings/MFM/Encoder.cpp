@@ -186,6 +186,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		total_sector_bytes += size_t(128 << sector->size) + 2;
 	}
 
+	// Seek appropriate gap sizes, if the defaults don't allow all data to fit.
 	while(true) {
 		const size_t size =
 			mark_size +
@@ -234,7 +235,6 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		for(std::size_t c = 0; c < pre_data_mark_bytes; c++) shifter.add_byte(0x00);
 
 		// Data, if attached.
-		// TODO: allow for weak/fuzzy data.
 		if(!sector->samples.empty()) {
 			if(sector->is_deleted)
 				shifter.add_deleted_data_address_mark();
@@ -243,8 +243,30 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 
 			std::size_t c = 0;
 			std::size_t declared_length = static_cast<std::size_t>(128 << sector->size);
-			for(c = 0; c < sector->samples[0].size() && c < declared_length; c++) {
-				shifter.add_byte(sector->samples[0][c]);
+			if(sector->samples.size() > 1) {
+				// For each byte, mark as fuzzy any bits that differ. Which isn't exactly the
+				// same thing as obeying the multiple samples, as it discards the implied
+				// probabilities of different values.
+				for(c = 0; c < sector->samples[0].size() && c < declared_length; c++) {
+					auto sample_iterator = sector->samples.begin();
+					uint8_t value = (*sample_iterator)[c], fuzzy_mask = 0;
+
+					++sample_iterator;
+					while(sample_iterator != sector->samples.end()) {
+						// Mark as fuzzy any bits that differ here from the
+						// canonical value, and zero them out in the original.
+						// That might cause them to retrigger, but who cares?
+						fuzzy_mask |= value ^ (*sample_iterator)[c];
+						value &= ~fuzzy_mask;
+
+						++sample_iterator;
+					}
+					shifter.add_byte(sector->samples[0][c], fuzzy_mask);
+				}
+			} else {
+				for(c = 0; c < sector->samples[0].size() && c < declared_length; c++) {
+					shifter.add_byte(sector->samples[0][c]);
+				}
 			}
 			for(; c < declared_length; c++) {
 				shifter.add_byte(0x00);
@@ -278,8 +300,10 @@ void Encoder::output_short(uint16_t value, uint16_t fuzzy_mask) {
 	if(write_fuzzy_bits) {
 		assert(fuzzy_target_);
 
-		// Zero-fill the bits to date, to cover any shorts written without fuzzy bits.
+		// Zero-fill the bits to date, to cover any shorts written without fuzzy bits,
+		// and make sure the value has a 0 anywhere it should be fuzzy.
 		fuzzy_target_->resize(target_->size());
+		value &= ~fuzzy_mask;
 	}
 
 	uint16_t mask = 0x8000;
@@ -291,7 +315,7 @@ void Encoder::output_short(uint16_t value, uint16_t fuzzy_mask) {
 }
 
 void Encoder::add_crc(bool incorrectly) {
-	uint16_t crc_value = crc_generator_.get_value();
+	const uint16_t crc_value = crc_generator_.get_value();
 	add_byte(crc_value >> 8);
 	add_byte((crc_value & 0xff) ^ (incorrectly ? 1 : 0));
 }
