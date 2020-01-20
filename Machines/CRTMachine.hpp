@@ -45,10 +45,18 @@ class Machine {
 		virtual std::string debug_type() { return ""; }
 
 		/// Runs the machine for @c duration seconds.
-		virtual void run_for(Time::Seconds duration) {
+		void run_for(Time::Seconds duration) {
 			const double cycles = (duration * clock_rate_) + clock_conversion_error_;
 			clock_conversion_error_ = std::fmod(cycles, 1.0);
 			run_for(Cycles(static_cast<int>(cycles)));
+		}
+
+		/// Runs for the machine for at least @c duration seconds, and then until @c condition is true.
+		void run_until(Time::Seconds minimum_duration, std::function<bool()> condition) {
+			run_for(minimum_duration);
+			while(!condition()) {
+				run_for(0.002);
+			}
 		}
 
 	protected:
