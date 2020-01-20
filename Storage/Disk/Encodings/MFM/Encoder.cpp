@@ -29,7 +29,7 @@ class MFMEncoder: public Encoder {
 
 		void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
 			crc_generator_.add(input);
-			uint16_t spread_value =
+			const uint16_t spread_value =
 				static_cast<uint16_t>(
 					((input & 0x01) << 0) |
 					((input & 0x02) << 1) |
@@ -40,9 +40,22 @@ class MFMEncoder: public Encoder {
 					((input & 0x40) << 6) |
 					((input & 0x80) << 7)
 				);
-			uint16_t or_bits = static_cast<uint16_t>((spread_value << 1) | (spread_value >> 1) | (last_output_ << 15));
-			uint16_t output = spread_value | ((~or_bits) & 0xaaaa);
-			output_short(output);
+			const uint16_t or_bits = static_cast<uint16_t>((spread_value << 1) | (spread_value >> 1) | (last_output_ << 15));
+			const uint16_t output = spread_value | ((~or_bits) & 0xaaaa);
+
+			const uint16_t spread_mask =
+				static_cast<uint16_t>(
+					((fuzzy_mask & 0x01) << 0) |
+					((fuzzy_mask & 0x02) << 1) |
+					((fuzzy_mask & 0x04) << 2) |
+					((fuzzy_mask & 0x08) << 3) |
+					((fuzzy_mask & 0x10) << 4) |
+					((fuzzy_mask & 0x20) << 5) |
+					((fuzzy_mask & 0x40) << 6) |
+					((fuzzy_mask & 0x80) << 7)
+				);
+
+			output_short(output, spread_mask);
 		}
 
 		void add_index_address_mark() final {
@@ -76,9 +89,9 @@ class MFMEncoder: public Encoder {
 
 	private:
 		uint16_t last_output_;
-		void output_short(uint16_t value) final {
+		void output_short(uint16_t value, uint16_t fuzzy_mask = 0) final {
 			last_output_ = value;
-			Encoder::output_short(value);
+			Encoder::output_short(value, fuzzy_mask);
 		}
 
 		void output_sync() {
@@ -105,7 +118,18 @@ class FMEncoder: public Encoder {
 					((input & 0x40) << 6) |
 					((input & 0x80) << 7) |
 					0xaaaa
-				));
+				),
+				static_cast<uint16_t>(
+					((fuzzy_mask & 0x01) << 0) |
+					((fuzzy_mask & 0x02) << 1) |
+					((fuzzy_mask & 0x04) << 2) |
+					((fuzzy_mask & 0x08) << 3) |
+					((fuzzy_mask & 0x10) << 4) |
+					((fuzzy_mask & 0x20) << 5) |
+					((fuzzy_mask & 0x40) << 6) |
+					((fuzzy_mask & 0x80) << 7)
+				)
+			);
 		}
 
 		void add_index_address_mark() final {
@@ -248,10 +272,20 @@ void Encoder::reset_target(std::vector<bool> &target, std::vector<bool> *fuzzy_t
 	fuzzy_target_ = fuzzy_target;
 }
 
-void Encoder::output_short(uint16_t value) {
+void Encoder::output_short(uint16_t value, uint16_t fuzzy_mask) {
+	const bool write_fuzzy_bits = fuzzy_mask;
+
+	if(write_fuzzy_bits) {
+		assert(fuzzy_target_);
+
+		// Zero-fill the bits to date, to cover any shorts written without fuzzy bits.
+		fuzzy_target_->resize(target_->size());
+	}
+
 	uint16_t mask = 0x8000;
 	while(mask) {
-		target_->push_back(!!(value & mask));
+		target_->push_back(value & mask);
+		if(write_fuzzy_bits) fuzzy_target_->push_back(fuzzy_mask & mask);
 		mask >>= 1;
 	}
 }
