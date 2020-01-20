@@ -44,16 +44,16 @@ std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<co
 
 class Encoder {
 	public:
-		Encoder(std::vector<bool> &target);
+		Encoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target);
 		virtual ~Encoder() {}
-		virtual void reset_target(std::vector<bool> &target);
+		virtual void reset_target(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr);
 
-		virtual void add_byte(uint8_t input) = 0;
+		virtual void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) = 0;
 		virtual void add_index_address_mark() = 0;
 		virtual void add_ID_address_mark() = 0;
 		virtual void add_data_address_mark() = 0;
 		virtual void add_deleted_data_address_mark() = 0;
-		virtual void output_short(uint16_t value);
+		virtual void output_short(uint16_t value, uint16_t fuzzy_mask = 0);
 
 		/// Outputs the CRC for all data since the last address mask; if @c incorrectly is @c true then outputs an incorrect CRC.
 		void add_crc(bool incorrectly);
@@ -63,10 +63,11 @@ class Encoder {
 
 	private:
 		std::vector<bool> *target_ = nullptr;
+		std::vector<bool> *fuzzy_target_ = nullptr;
 };
 
-std::unique_ptr<Encoder> GetMFMEncoder(std::vector<bool> &target);
-std::unique_ptr<Encoder> GetFMEncoder(std::vector<bool> &target);
+std::unique_ptr<Encoder> GetMFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr);
+std::unique_ptr<Encoder> GetFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr);
 
 }
 }

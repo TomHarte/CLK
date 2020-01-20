@@ -24,12 +24,12 @@ enum class SurfaceItem {
 
 class MFMEncoder: public Encoder {
 	public:
-		MFMEncoder(std::vector<bool> &target) : Encoder(target) {}
+		MFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr) : Encoder(target, fuzzy_target) {}
 		virtual ~MFMEncoder() {}
 
-		void add_byte(uint8_t input) {
+		void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
 			crc_generator_.add(input);
-			uint16_t spread_value =
+			const uint16_t spread_value =
 				static_cast<uint16_t>(
 					((input & 0x01) << 0) |
 					((input & 0x02) << 1) |
@@ -40,27 +40,40 @@ class MFMEncoder: public Encoder {
 					((input & 0x40) << 6) |
 					((input & 0x80) << 7)
 				);
-			uint16_t or_bits = static_cast<uint16_t>((spread_value << 1) | (spread_value >> 1) | (last_output_ << 15));
-			uint16_t output = spread_value | ((~or_bits) & 0xaaaa);
-			output_short(output);
+			const uint16_t or_bits = static_cast<uint16_t>((spread_value << 1) | (spread_value >> 1) | (last_output_ << 15));
+			const uint16_t output = spread_value | ((~or_bits) & 0xaaaa);
+
+			const uint16_t spread_mask =
+				static_cast<uint16_t>(
+					((fuzzy_mask & 0x01) << 0) |
+					((fuzzy_mask & 0x02) << 1) |
+					((fuzzy_mask & 0x04) << 2) |
+					((fuzzy_mask & 0x08) << 3) |
+					((fuzzy_mask & 0x10) << 4) |
+					((fuzzy_mask & 0x20) << 5) |
+					((fuzzy_mask & 0x40) << 6) |
+					((fuzzy_mask & 0x80) << 7)
+				);
+
+			output_short(output, spread_mask);
 		}
 
-		void add_index_address_mark() {
+		void add_index_address_mark() final {
 			for(int c = 0; c < 3; c++) output_short(MFMIndexSync);
 			add_byte(IndexAddressByte);
 		}
 
-		void add_ID_address_mark() {
+		void add_ID_address_mark() final {
 			output_sync();
 			add_byte(IDAddressByte);
 		}
 
-		void add_data_address_mark() {
+		void add_data_address_mark() final {
 			output_sync();
 			add_byte(DataAddressByte);
 		}
 
-		void add_deleted_data_address_mark() {
+		void add_deleted_data_address_mark() final {
 			output_sync();
 			add_byte(DeletedDataAddressByte);
 		}
@@ -76,9 +89,9 @@ class MFMEncoder: public Encoder {
 
 	private:
 		uint16_t last_output_;
-		void output_short(uint16_t value) {
+		void output_short(uint16_t value, uint16_t fuzzy_mask = 0) final {
 			last_output_ = value;
-			Encoder::output_short(value);
+			Encoder::output_short(value, fuzzy_mask);
 		}
 
 		void output_sync() {
@@ -90,9 +103,9 @@ class MFMEncoder: public Encoder {
 class FMEncoder: public Encoder {
 	// encodes each 16-bit part as clock, data, clock, data [...]
 	public:
-		FMEncoder(std::vector<bool> &target) : Encoder(target) {}
+		FMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target = nullptr) : Encoder(target, fuzzy_target) {}
 
-		void add_byte(uint8_t input) {
+		void add_byte(uint8_t input, uint8_t fuzzy_mask = 0) final {
 			crc_generator_.add(input);
 			output_short(
 				static_cast<uint16_t>(
@@ -105,28 +118,39 @@ class FMEncoder: public Encoder {
 					((input & 0x40) << 6) |
 					((input & 0x80) << 7) |
 					0xaaaa
-				));
+				),
+				static_cast<uint16_t>(
+					((fuzzy_mask & 0x01) << 0) |
+					((fuzzy_mask & 0x02) << 1) |
+					((fuzzy_mask & 0x04) << 2) |
+					((fuzzy_mask & 0x08) << 3) |
+					((fuzzy_mask & 0x10) << 4) |
+					((fuzzy_mask & 0x20) << 5) |
+					((fuzzy_mask & 0x40) << 6) |
+					((fuzzy_mask & 0x80) << 7)
+				)
+			);
 		}
 
-		void add_index_address_mark() {
+		void add_index_address_mark() final {
 			crc_generator_.reset();
 			crc_generator_.add(IndexAddressByte);
 			output_short(FMIndexAddressMark);
 		}
 
-		void add_ID_address_mark() {
+		void add_ID_address_mark() final {
 			crc_generator_.reset();
 			crc_generator_.add(IDAddressByte);
 			output_short(FMIDAddressMark);
 		}
 
-		void add_data_address_mark() {
+		void add_data_address_mark() final {
 			crc_generator_.reset();
 			crc_generator_.add(DataAddressByte);
 			output_short(FMDataAddressMark);
 		}
 
-		void add_deleted_data_address_mark() {
+		void add_deleted_data_address_mark() final {
 			crc_generator_.reset();
 			crc_generator_.add(DeletedDataAddressByte);
 			output_short(FMDeletedDataAddressMark);
@@ -162,6 +186,7 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		total_sector_bytes += size_t(128 << sector->size) + 2;
 	}
 
+	// Seek appropriate gap sizes, if the defaults don't allow all data to fit.
 	while(true) {
 		const size_t size =
 			mark_size +
@@ -210,7 +235,6 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 		for(std::size_t c = 0; c < pre_data_mark_bytes; c++) shifter.add_byte(0x00);
 
 		// Data, if attached.
-		// TODO: allow for weak/fuzzy data.
 		if(!sector->samples.empty()) {
 			if(sector->is_deleted)
 				shifter.add_deleted_data_address_mark();
@@ -219,8 +243,30 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 
 			std::size_t c = 0;
 			std::size_t declared_length = static_cast<std::size_t>(128 << sector->size);
-			for(c = 0; c < sector->samples[0].size() && c < declared_length; c++) {
-				shifter.add_byte(sector->samples[0][c]);
+			if(sector->samples.size() > 1) {
+				// For each byte, mark as fuzzy any bits that differ. Which isn't exactly the
+				// same thing as obeying the multiple samples, as it discards the implied
+				// probabilities of different values.
+				for(c = 0; c < sector->samples[0].size() && c < declared_length; c++) {
+					auto sample_iterator = sector->samples.begin();
+					uint8_t value = (*sample_iterator)[c], fuzzy_mask = 0;
+
+					++sample_iterator;
+					while(sample_iterator != sector->samples.end()) {
+						// Mark as fuzzy any bits that differ here from the
+						// canonical value, and zero them out in the original.
+						// That might cause them to retrigger, but who cares?
+						fuzzy_mask |= value ^ (*sample_iterator)[c];
+						value &= ~fuzzy_mask;
+
+						++sample_iterator;
+					}
+					shifter.add_byte(sector->samples[0][c], fuzzy_mask);
+				}
+			} else {
+				for(c = 0; c < sector->samples[0].size() && c < declared_length; c++) {
+					shifter.add_byte(sector->samples[0][c]);
+				}
 			}
 			for(; c < declared_length; c++) {
 				shifter.add_byte(0x00);
@@ -240,23 +286,36 @@ template<class T> std::shared_ptr<Storage::Disk::Track>
 	return std::make_shared<Storage::Disk::PCMTrack>(std::move(segment));
 }
 
-Encoder::Encoder(std::vector<bool> &target) :
-	target_(&target) {}
+Encoder::Encoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target) :
+	target_(&target), fuzzy_target_(fuzzy_target) {}
 
-void Encoder::reset_target(std::vector<bool> &target) {
+void Encoder::reset_target(std::vector<bool> &target, std::vector<bool> *fuzzy_target) {
 	target_ = &target;
+	fuzzy_target_ = fuzzy_target;
 }
 
-void Encoder::output_short(uint16_t value) {
+void Encoder::output_short(uint16_t value, uint16_t fuzzy_mask) {
+	const bool write_fuzzy_bits = fuzzy_mask;
+
+	if(write_fuzzy_bits) {
+		assert(fuzzy_target_);
+
+		// Zero-fill the bits to date, to cover any shorts written without fuzzy bits,
+		// and make sure the value has a 0 anywhere it should be fuzzy.
+		fuzzy_target_->resize(target_->size());
+		value &= ~fuzzy_mask;
+	}
+
 	uint16_t mask = 0x8000;
 	while(mask) {
-		target_->push_back(!!(value & mask));
+		target_->push_back(value & mask);
+		if(write_fuzzy_bits) fuzzy_target_->push_back(fuzzy_mask & mask);
 		mask >>= 1;
 	}
 }
 
 void Encoder::add_crc(bool incorrectly) {
-	uint16_t crc_value = crc_generator_.get_value();
+	const uint16_t crc_value = crc_generator_.get_value();
 	add_byte(crc_value >> 8);
 	add_byte((crc_value & 0xff) ^ (incorrectly ? 1 : 0));
 }
@@ -315,10 +374,10 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kbps @ 300 rpm)
 }
 
-std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<bool> &target) {
-	return std::make_unique<MFMEncoder>(target);
+std::unique_ptr<Encoder> Storage::Encodings::MFM::GetMFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target) {
+	return std::make_unique<MFMEncoder>(target, fuzzy_target);
 }
 
-std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<bool> &target) {
-	return std::make_unique<FMEncoder>(target);
+std::unique_ptr<Encoder> Storage::Encodings::MFM::GetFMEncoder(std::vector<bool> &target, std::vector<bool> *fuzzy_target) {
+	return std::make_unique<FMEncoder>(target, fuzzy_target);
 }
