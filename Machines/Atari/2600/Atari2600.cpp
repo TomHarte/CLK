@@ -161,6 +161,10 @@ class ConcreteMachine:
 			bus_->tia_.set_scan_target(scan_target);
 		}
 
+		Outputs::Display::ScanStatus get_scan_status() const final {
+			return bus_->tia_.get_scan_status();
+		}
+
 		Outputs::Speaker::Speaker *get_speaker() override {
 			return &bus_->speaker_;
 		}

@@ -60,6 +60,13 @@ void MultiCRTMachine::set_scan_target(Outputs::Display::ScanTarget *scan_target)
 	if(crt_machine) crt_machine->set_scan_target(scan_target);
 }
 
+Outputs::Display::ScanStatus MultiCRTMachine::get_scan_status() const {
+	CRTMachine::Machine *const crt_machine = machines_.front()->crt_machine();
+	if(crt_machine) crt_machine->get_scan_status();
+
+	return Outputs::Display::ScanStatus();
+}
+
 Outputs::Speaker::Speaker *MultiCRTMachine::get_speaker() {
 	return speaker_;
 }

@@ -27,6 +27,7 @@ class VideoOutput {
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		void set_display_type(Outputs::Display::DisplayType display_type);
+		Outputs::Display::ScanStatus get_scan_status() const;
 
 	private:
 		uint8_t *ram_;

@@ -175,6 +175,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			video_.set_scan_target(scan_target);
 		}
 
+		Outputs::Display::ScanStatus get_scan_status() const final {
+			return video_.get_scan_status();
+		}
+
 		Outputs::Speaker::Speaker *get_speaker() override {
 			return &audio_.speaker;
 		}

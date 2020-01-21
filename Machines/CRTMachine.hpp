@@ -37,6 +37,11 @@ class Machine {
 		*/
 		virtual void set_scan_target(Outputs::Display::ScanTarget *scan_target) = 0;
 
+		/*!
+			@returns The current scan status.
+		*/
+		virtual Outputs::Display::ScanStatus get_scan_status() const = 0;
+
 		/// @returns The speaker that receives this machine's output, or @c nullptr if this machine is mute.
 		virtual Outputs::Speaker::Speaker *get_speaker() = 0;
 

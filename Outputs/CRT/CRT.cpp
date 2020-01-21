@@ -418,6 +418,8 @@ void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
 	output_scan(&scan);
 }
 
+// MARK: - Getters.
+
 Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio) {
 	first_cycle_after_sync *= time_multiplier_;
 	number_of_cycles *= time_multiplier_;
@@ -464,4 +466,8 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 	}
 
 	return Outputs::Display::Rect(start_x, start_y, width, height);
+}
+
+Outputs::Display::ScanStatus CRT::get_scan_status() const {
+	return Outputs::Display::ScanStatus();
 }

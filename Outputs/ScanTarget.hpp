@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "../ClockReceiver/TimeTypes.hpp"
 
 namespace Outputs {
 namespace Display {
@@ -307,6 +308,18 @@ struct ScanTarget {
 			@param composite_amplitude The amplitude of the colour burst on this line (0, if no colour burst was found).
 		*/
 		virtual void announce(Event event, bool is_visible, const Scan::EndPoint &location, uint8_t composite_amplitude) {}
+};
+
+struct ScanStatus {
+	/// The current (prediced) length of a field.
+	Time::Seconds field_duration;
+	/// The difference applied to the field_duration estimate during the last field.
+	Time::Seconds field_duration_gradient;
+	/// The distance into the current field, from 0 (start of field) to 1 (end of field).
+	/// This is unlikely to be linear but should increase monotonically, being a measure
+	/// of the current vertical position — i.e. if current_position = 0.8 then a caller can
+	/// conclude that the top 80% of the visible part of the display has been painted.
+	float current_position;
 };
 
 /*!

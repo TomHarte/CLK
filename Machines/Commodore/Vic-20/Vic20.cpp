@@ -626,6 +626,10 @@ class ConcreteMachine:
 			mos6560_.set_scan_target(scan_target);
 		}
 
+		Outputs::Display::ScanStatus get_scan_status() const final {
+			return mos6560_.get_scan_status();
+		}
+
 		void set_display_type(Outputs::Display::DisplayType display_type) override final {
 			mos6560_.set_display_type(display_type);
 		}

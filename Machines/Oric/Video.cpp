@@ -56,6 +56,10 @@ void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
+Outputs::Display::ScanStatus VideoOutput::get_scan_status() const {
+	return crt_.get_scan_status();
+}
+
 void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 	for(std::size_t c = 0; c < 8; c++) {
 		colour_forms_[c] = 0;

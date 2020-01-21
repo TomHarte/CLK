@@ -36,11 +36,15 @@ class Video {
 
 		/// Sets the current sync output.
 		void set_sync(bool sync);
+
 		/// Causes @c byte to be serialised into pixels and output over the next four cycles.
 		void output_byte(uint8_t byte);
 
 		/// Sets the scan target.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+
+		/// Gets the current scan status.
+		Outputs::Display::ScanStatus get_scan_status() const;
 
 	private:
 		bool sync_ = false;

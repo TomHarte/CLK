@@ -109,3 +109,7 @@ void Video::output_byte(uint8_t byte) {
 void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
+
+Outputs::Display::ScanStatus Video::get_scan_status() const {
+	return crt_.get_scan_status();
+}

@@ -56,6 +56,10 @@ void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
+Outputs::Display::ScanStatus VideoOutput::get_scan_status() const {
+	return crt_.get_scan_status();
+}
+
 void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 }
