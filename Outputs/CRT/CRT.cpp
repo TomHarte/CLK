@@ -420,7 +420,7 @@ void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
 
 // MARK: - Getters.
 
-Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio) {
+Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio) const {
 	first_cycle_after_sync *= time_multiplier_;
 	number_of_cycles *= time_multiplier_;
 
@@ -470,8 +470,11 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 
 Outputs::Display::ScanStatus CRT::get_scan_status() const {
 	Outputs::Display::ScanStatus status;
-	status.field_duration = vertical_flywheel_->get_locked_period();
-	status.field_duration_gradient = vertical_flywheel_->get_last_period_adjustment();
-	status.current_position = float(vertical_flywheel_->get_current_output_position()) / float(vertical_flywheel_->get_locked_period());
+	status.field_duration = float(vertical_flywheel_->get_locked_period()) / float(time_multiplier_);
+	status.field_duration_gradient = float(vertical_flywheel_->get_last_period_adjustment()) / float(time_multiplier_);
+	status.current_position =
+		std::max(0.0f,
+			float(vertical_flywheel_->get_current_output_position()) / (float(vertical_flywheel_->get_locked_period()) * float(time_multiplier_))
+		);
 	return status;
 }

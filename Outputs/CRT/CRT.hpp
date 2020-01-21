@@ -264,7 +264,7 @@ class CRT {
 			int number_of_lines,
 			int first_cycle_after_sync,
 			int number_of_cycles,
-			float aspect_ratio);
+			float aspect_ratio) const;
 
 		/*!	Sets the CRT delegate; set to @c nullptr if no delegate is desired. */
 		inline void set_delegate(Delegate *delegate) {
