@@ -63,6 +63,7 @@ struct Flywheel {
 	inline SyncEvent get_next_event_in_period(bool sync_is_requested, int cycles_to_run_for, int *cycles_advanced) {
 		// If sync is signalled _now_, consider adjusting expected_next_sync_.
 		if(sync_is_requested) {
+			const auto last_sync = expected_next_sync_;
 			if(counter_ < sync_error_window_ || counter_ > expected_next_sync_ - sync_error_window_) {
 				const int time_now = (counter_ < sync_error_window_) ? expected_next_sync_ + counter_ : counter_;
 				expected_next_sync_ = (3*expected_next_sync_ + time_now) >> 2;
@@ -75,6 +76,7 @@ struct Flywheel {
 					expected_next_sync_ = (3*expected_next_sync_ + standard_period_ - sync_error_window_) >> 2;
 				}
 			}
+			last_adjustment_ = expected_next_sync_ - last_sync;
 		}
 
 		SyncEvent proposed_event = SyncEvent::None;
@@ -166,6 +168,20 @@ struct Flywheel {
 	}
 
 	/*!
+		@returns the actual current period for a complete scan (including retrace).
+	*/
+	inline int get_locked_period() {
+		return expected_next_sync_;
+	}
+
+	/*!
+		@returns the amount by which the @c locked_period was adjusted, the last time that an adjustment was applied.
+	*/
+	inline int get_last_period_adjustment() {
+		return last_adjustment_;
+	}
+
+	/*!
 		@returns the number of synchronisation events that have seemed surprising since the last time this method was called;
 		a low number indicates good synchronisation.
 	*/
@@ -194,6 +210,8 @@ struct Flywheel {
 		int expected_next_sync_;		// our current expection of when the next sync will be encountered (which implies velocity)
 
 		int number_of_surprises_ = 0;	// a count of the surprising syncs
+
+		int last_adjustment_ = 0;		// The amount by which
 
 		/*
 			Implementation notes:
