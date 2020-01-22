@@ -468,7 +468,7 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 	return Outputs::Display::Rect(start_x, start_y, width, height);
 }
 
-Outputs::Display::ScanStatus CRT::get_scan_status() const {
+Outputs::Display::ScanStatus CRT::get_scaled_scan_status() const {
 	Outputs::Display::ScanStatus status;
 	status.field_duration = float(vertical_flywheel_->get_locked_period()) / float(time_multiplier_);
 	status.field_duration_gradient = float(vertical_flywheel_->get_last_period_adjustment()) / float(time_multiplier_);

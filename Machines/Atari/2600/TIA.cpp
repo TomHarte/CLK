@@ -142,8 +142,8 @@ void TIA::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
-Outputs::Display::ScanStatus TIA::get_scan_status() const {
-	return crt_.get_scan_status();
+Outputs::Display::ScanStatus TIA::get_scaled_scan_status() const {
+	return crt_.get_scaled_scan_status() / 2.0f;
 }
 
 void TIA::run_for(const Cycles cycles) {

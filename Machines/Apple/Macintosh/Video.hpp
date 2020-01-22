@@ -43,7 +43,7 @@ class Video {
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 
 		/// Gets the current scan status.
-		Outputs::Display::ScanStatus get_scan_status() const;
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 		/*!
 			Produces the next @c duration period of pixels.

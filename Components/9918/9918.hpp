@@ -45,7 +45,7 @@ class TMS9918: public Base {
 		void set_scan_target(Outputs::Display::ScanTarget *);
 
 		/// Gets the current scan status.
-		Outputs::Display::ScanStatus get_scan_status() const;
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 		/*! Sets the type of display the CRT will request. */
 		void set_display_type(Outputs::Display::DisplayType);

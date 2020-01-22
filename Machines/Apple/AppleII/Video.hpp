@@ -41,7 +41,7 @@ class VideoBase {
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 
 		/// Gets the current scan status.
-		Outputs::Display::ScanStatus get_scan_status() const;
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 		/// Sets the type of output.
 		void set_display_type(Outputs::Display::DisplayType);

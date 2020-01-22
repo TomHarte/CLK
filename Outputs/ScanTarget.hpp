@@ -320,6 +320,30 @@ struct ScanStatus {
 	/// of the current vertical position — i.e. if current_position = 0.8 then a caller can
 	/// conclude that the top 80% of the visible part of the display has been painted.
 	float current_position;
+
+	/*!
+		@returns this ScanStatus, with time-relative fields scaled by dividing them by @c dividend.
+	*/
+	ScanStatus operator / (float dividend) {
+		const ScanStatus result = {
+			.field_duration = field_duration / dividend,
+			.field_duration_gradient = field_duration_gradient / dividend,
+			.current_position = current_position
+		};
+		return result;
+	}
+
+	/*!
+		@returns this ScanStatus, with time-relative fields scaled by multiplying them by @c multiplier.
+	*/
+	ScanStatus operator * (float multiplier) {
+		const ScanStatus result = {
+			.field_duration = field_duration * multiplier,
+			.field_duration_gradient = field_duration_gradient * multiplier,
+			.current_position = current_position
+		};
+		return result;
+	}
 };
 
 /*!

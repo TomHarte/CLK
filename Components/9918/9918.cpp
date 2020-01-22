@@ -117,8 +117,8 @@ void TMS9918::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
-Outputs::Display::ScanStatus TMS9918::get_scan_status() const {
-	return crt_.get_scan_status();
+Outputs::Display::ScanStatus TMS9918::get_scaled_scan_status() const {
+	return crt_.get_scaled_scan_status();
 }
 
 void TMS9918::set_display_type(Outputs::Display::DisplayType display_type) {

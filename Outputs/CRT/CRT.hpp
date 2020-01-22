@@ -274,8 +274,11 @@ class CRT {
 		/*! Sets the scan target for CRT output. */
 		void set_scan_target(Outputs::Display::ScanTarget *);
 
-		/*! Gets current scan status. */
-		Outputs::Display::ScanStatus get_scan_status() const;
+		/*!
+			Gets current scan status, with time based fields being in the input scale — e.g. if you're supplying
+			86 cycles/line and 98 lines/field then it'll return a field duration of 86*98.
+		*/
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 		/*! Sets the display type that will be nominated to the scan target. */
 		void set_display_type(Outputs::Display::DisplayType);

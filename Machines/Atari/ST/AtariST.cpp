@@ -139,8 +139,8 @@ class ConcreteMachine:
 			video_->set_scan_target(scan_target);
 		}
 
-		Outputs::Display::ScanStatus get_scan_status() const final {
-			return video_->get_scan_status();
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+			return video_->get_scaled_scan_status();
 		}
 
 		void set_display_type(Outputs::Display::DisplayType display_type) final {

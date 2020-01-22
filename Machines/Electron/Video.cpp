@@ -56,8 +56,8 @@ void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
-Outputs::Display::ScanStatus VideoOutput::get_scan_status() const {
-	return crt_.get_scan_status();
+Outputs::Display::ScanStatus VideoOutput::get_scaled_scan_status() const {
+	return crt_.get_scaled_scan_status() / float(crt_cycles_multiplier);
 }
 
 void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {

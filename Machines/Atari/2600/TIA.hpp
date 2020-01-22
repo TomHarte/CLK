@@ -75,7 +75,7 @@ class TIA {
 
 		void set_crt_delegate(Outputs::CRT::Delegate *);
 		void set_scan_target(Outputs::Display::ScanTarget *);
-		Outputs::Display::ScanStatus get_scan_status() const;
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 	private:
 		Outputs::CRT::CRT crt_;

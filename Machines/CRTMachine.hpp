@@ -40,7 +40,9 @@ class Machine {
 		/*!
 			@returns The current scan status.
 		*/
-		virtual Outputs::Display::ScanStatus get_scan_status() const = 0;
+		virtual Outputs::Display::ScanStatus get_scan_status() const {
+			return get_scaled_scan_status() / float(clock_rate_);
+		}
 
 		/// @returns The speaker that receives this machine's output, or @c nullptr if this machine is mute.
 		virtual Outputs::Speaker::Speaker *get_speaker() = 0;
@@ -113,6 +115,15 @@ class Machine {
 		}
 		double get_clock_rate() {
 			return clock_rate_;
+		}
+
+		virtual Outputs::Display::ScanStatus get_scaled_scan_status() const {
+			// This deliberately sets up an infinite loop if the user hasn't
+			// overridden at least one of this or get_scan_status.
+			//
+			// Most likely you want to override this, and let the base class
+			// throw in a divide-by-clock-rate at the end for you.
+			return get_scan_status();
 		}
 
 		/*!
