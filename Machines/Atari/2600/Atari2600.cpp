@@ -174,6 +174,10 @@ class ConcreteMachine:
 			bus_->apply_confidence(confidence_counter_);
 		}
 
+		void flush() {
+			bus_->flush();
+		}
+
 		// to satisfy Outputs::CRT::Delegate
 		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) override {
 			const std::size_t number_of_frame_records = sizeof(frame_records_) / sizeof(frame_records_[0]);
