@@ -118,7 +118,11 @@ void TMS9918::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 Outputs::Display::ScanStatus TMS9918::get_scaled_scan_status() const {
-	return crt_.get_scaled_scan_status();
+	// The input was scaled by 3/4 to convert half cycles to internal ticks,
+	// so undo that and also allow for: (i) the multiply by 4 that it takes
+	// to reach the CRT; and (ii) the fact that the half-cycles value was scaled,
+	// and this should really reply in whole cycles.
+	return crt_.get_scaled_scan_status() * (4.0f / (3.0f * 8.0f));
 }
 
 void TMS9918::set_display_type(Outputs::Display::DisplayType display_type) {
