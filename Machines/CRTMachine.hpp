@@ -80,7 +80,10 @@ class Machine {
 
 		enum MachineEvent: int {
 			/// At least one new packet of audio has been delivered to the spaker's delegate.
-			NewSpeakerSamplesGenerated = 1 << 0
+			NewSpeakerSamplesGenerated = 1 << 0,
+
+			/// The next vertical retrace has begun.
+			VerticalSync = 1 << 1,
 		};
 
 		/*!
@@ -100,10 +103,16 @@ class Machine {
 				sample_sets = speaker->completed_sample_sets();
 			}
 
+			int retraces = 0;
+			if(events & MachineEvent::VerticalSync) {
+				retraces = get_scan_status().hsync_count;
+			}
+
 			// Run until all requested events are satisfied.
 			return run_until(minimum_duration, [=]() {
 				return
-					(!(events & MachineEvent::NewSpeakerSamplesGenerated) || (sample_sets != speaker->completed_sample_sets()));
+					(!(events & MachineEvent::NewSpeakerSamplesGenerated) || (sample_sets != speaker->completed_sample_sets())) &&
+					(!(events & MachineEvent::VerticalSync) || (retraces != get_scan_status().hsync_count));
 			});
 		}
 
