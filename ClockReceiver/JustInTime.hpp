@@ -60,7 +60,8 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 			if(!is_flushed_) {
 				is_flushed_ = true;
 				if constexpr (divider == 1) {
-					object_.run_for(time_since_update_.template flush<TargetTimeScale>());
+					const auto duration = time_since_update_.template flush<TargetTimeScale>();
+					object_.run_for(duration);
 				} else {
 					const auto duration = time_since_update_.template divide<TargetTimeScale>(LocalTimeScale(divider));
 					if(duration > TargetTimeScale(0))
