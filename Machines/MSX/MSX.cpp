@@ -618,6 +618,7 @@ class ConcreteMachine:
 			vdp_.flush();
 			update_audio();
 			audio_queue_.perform();
+			audio_queue_.flush();
 		}
 
 		void set_keyboard_line(int line) {
