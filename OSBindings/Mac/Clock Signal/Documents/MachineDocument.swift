@@ -225,16 +225,25 @@ class MachineDocument:
 	}
 
 	func machineSpeakerDidChangeInputClock(_ machine: CSMachine) {
-		setupAudioQueueClockRate()
+		// setupAudioQueueClockRate not only needs blocking access to the machine,
+		// but may be triggered on an arbitrary thread by a running machine, and that
+		// running machine may not be able to stop running until it has been called
+		// (e.g. if it is currently trying to run_until an audio event). Break the
+		// deadlock with an async dispatch. 
+		DispatchQueue.main.async {
+			self.setupAudioQueueClockRate()
+		}
 	}
 
 	private func setupAudioQueueClockRate() {
-		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
+		// Establish and provide the audio queue, taking advice as to an appropriate sampling rate.
+		//
+		// TODO: this needs to be threadsafe. FIX!
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
 		let selectedSamplingRate = self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
 		if selectedSamplingRate > 0 {
-			audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
-			audioQueue.delegate = self
+			self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
+			self.audioQueue.delegate = self
 			self.machine.audioQueue = self.audioQueue
 			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.preferredBufferSize)
 		}
