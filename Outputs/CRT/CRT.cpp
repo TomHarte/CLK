@@ -472,9 +472,11 @@ Outputs::Display::ScanStatus CRT::get_scaled_scan_status() const {
 	Outputs::Display::ScanStatus status;
 	status.field_duration = float(vertical_flywheel_->get_locked_period()) / float(time_multiplier_);
 	status.field_duration_gradient = float(vertical_flywheel_->get_last_period_adjustment()) / float(time_multiplier_);
+	status.retrace_duration = float(vertical_flywheel_->get_retrace_period()) / float(time_multiplier_);
 	status.current_position =
 		std::max(0.0f,
 			float(vertical_flywheel_->get_current_output_position()) / (float(vertical_flywheel_->get_locked_period()) * float(time_multiplier_))
 		);
+	status.hsync_count = vertical_flywheel_->get_number_of_retraces();
 	return status;
 }

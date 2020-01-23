@@ -311,15 +311,23 @@ struct ScanTarget {
 };
 
 struct ScanStatus {
-	/// The current (prediced) length of a field.
+	/// The current (prediced) length of a field (including retrace).
 	Time::Seconds field_duration;
 	/// The difference applied to the field_duration estimate during the last field.
 	Time::Seconds field_duration_gradient;
-	/// The distance into the current field, from 0 (start of field) to 1 (end of field).
-	/// This is unlikely to be linear but should increase monotonically, being a measure
+	/// The amount of time this device spends in retrace.
+	Time::Seconds retrace_duration;
+	/// The distance into the current field, from a small negative amount (in retrace) through
+	/// 0 (start of visible area field) to 1 (end of field).
+	///
+	/// This will increase monotonically, being a measure
 	/// of the current vertical position — i.e. if current_position = 0.8 then a caller can
 	/// conclude that the top 80% of the visible part of the display has been painted.
 	float current_position;
+	/// The total number of hsyncs so far encountered;
+	int hsync_count;
+	/// @c true if retrace is currently going on; @c false otherwise.
+	bool is_in_retrace;
 
 	/*!
 		@returns this ScanStatus, with time-relative fields scaled by dividing them by @c dividend.
@@ -328,7 +336,9 @@ struct ScanStatus {
 		const ScanStatus result = {
 			.field_duration = field_duration / dividend,
 			.field_duration_gradient = field_duration_gradient / dividend,
-			.current_position = current_position
+			.retrace_duration = retrace_duration / dividend,
+			.current_position = current_position,
+			.hsync_count = hsync_count,
 		};
 		return result;
 	}
@@ -340,7 +350,9 @@ struct ScanStatus {
 		const ScanStatus result = {
 			.field_duration = field_duration * multiplier,
 			.field_duration_gradient = field_duration_gradient * multiplier,
-			.current_position = current_position
+			.retrace_duration = retrace_duration * multiplier,
+			.current_position = current_position,
+			.hsync_count = hsync_count,
 		};
 		return result;
 	}

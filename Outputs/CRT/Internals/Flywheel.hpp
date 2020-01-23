@@ -192,6 +192,20 @@ struct Flywheel {
 	}
 
 	/*!
+		@returns A count of the number of retraces so far performed.
+	*/
+	inline int get_number_of_retraces() {
+		return number_of_retraces_;
+	}
+
+	/*!
+		@returns The amount of time this flywheel spends in retrace, as supplied at construction.
+	*/
+	inline int get_retrace_period() {
+		return retrace_time_;
+	}
+
+	/*!
 		@returns `true` if a sync is expected soon or if the time at which it was expected (or received) was recent.
 	*/
 	inline bool is_near_expected_sync() {
@@ -201,17 +215,18 @@ struct Flywheel {
 	}
 
 	private:
-		const int standard_period_;		// the normal length of time between syncs
-		const int retrace_time_;		// a constant indicating the amount of time it takes to perform a retrace
-		const int sync_error_window_;	// a constant indicating the window either side of the next expected sync in which we'll accept other syncs
+		const int standard_period_;		// The idealised length of time between syncs.
+		const int retrace_time_;		// A constant indicating the amount of time it takes to perform a retrace.
+		const int sync_error_window_;	// A constant indicating the window either side of the next expected sync in which we'll accept other syncs.
 
-		int counter_ = 0;				// time since the _start_ of the last sync
-		int counter_before_retrace_;	// the value of _counter immediately before retrace began
-		int expected_next_sync_;		// our current expection of when the next sync will be encountered (which implies velocity)
+		int counter_ = 0;				// Time since the _start_ of the last sync.
+		int counter_before_retrace_;	// The value of _counter immediately before retrace began.
+		int expected_next_sync_;		// Our current expection of when the next sync will be encountered (which implies velocity).
 
-		int number_of_surprises_ = 0;	// a count of the surprising syncs
+		int number_of_surprises_ = 0;	// A count of the surprising syncs.
+		int number_of_retraces_ = 0;	// A count of the number of retraces to date.
 
-		int last_adjustment_ = 0;		// The amount by which
+		int last_adjustment_ = 0;		// The amount by which expected_next_sync_ was adjusted at the last sync.
 
 		/*
 			Implementation notes:
