@@ -118,11 +118,11 @@ class Controller:
 		std::shared_ptr<Drive> empty_drive_;
 
 		// ClockingHint::Observer.
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override;
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final;
 
 		// for Drive::EventDelegate
-		void process_event(const Drive::Event &event) override;
-		void advance(const Cycles cycles) override ;
+		void process_event(const Drive::Event &event) final;
+		void advance(const Cycles cycles) final;
 
 		// to satisfy DigitalPhaseLockedLoop::Delegate
 		void digital_phase_locked_loop_output_bit(int value);

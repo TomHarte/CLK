@@ -71,15 +71,15 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		GLuint target_framebuffer_;
 		const float output_gamma_;
 
-		// Outputs::Display::ScanTarget overrides.
-		void set_modals(Modals) override;
-		Scan *begin_scan() override;
-		void end_scan() override;
-		uint8_t *begin_data(size_t required_length, size_t required_alignment) override;
-		void end_data(size_t actual_length) override;
-		void submit() override;
-		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) override;
-		void will_change_owner() override;
+		// Outputs::Display::ScanTarget finals.
+		void set_modals(Modals) final;
+		Scan *begin_scan() final;
+		void end_scan() final;
+		uint8_t *begin_data(size_t required_length, size_t required_alignment) final;
+		void end_data(size_t actual_length) final;
+		void submit() final;
+		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) final;
+		void will_change_owner() final;
 
 		bool output_is_visible_ = false;
 

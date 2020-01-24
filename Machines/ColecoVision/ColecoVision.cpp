@@ -57,7 +57,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 				Input('9'),	Input('*'),	Input('#'),
 			}) {}
 
-		void did_set_input(const Input &digital_input, bool is_active) override {
+		void did_set_input(const Input &digital_input, bool is_active) final {
 			switch(digital_input.type) {
 				default: return;
 
@@ -177,11 +177,11 @@ class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return joysticks_;
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			vdp_->set_scan_target(scan_target);
 		}
 
@@ -189,15 +189,15 @@ class ConcreteMachine:
 			return vdp_->get_scaled_scan_status();
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			vdp_->set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
-		void run_for(const Cycles cycles) override {
+		void run_for(const Cycles cycles) final {
 			z80_.run_for(cycles);
 		}
 
@@ -362,30 +362,30 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		float get_confidence() override {
+		float get_confidence() final {
 			if(pc_zero_accesses_ > 1) return 0.0f;
 			return confidence_counter_.get_confidence();
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
 			return Coleco::Vision::get_options();
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
 			Configurable::Display display;
 			if(Configurable::get_display(selections_by_option, display)) {
 				set_video_signal_configurable(display);
 			}
 		}
 
-		Configurable::SelectionSet get_accurate_selections() override {
+		Configurable::SelectionSet get_accurate_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
 			return selection_set;
 		}
 
-		Configurable::SelectionSet get_user_friendly_selections() override {
+		Configurable::SelectionSet get_user_friendly_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_display_selection(selection_set, Configurable::Display::SVideo);
 			return selection_set;

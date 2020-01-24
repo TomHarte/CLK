@@ -376,16 +376,16 @@ template<bool is_zx81> class ConcreteMachine:
 		HalfCycles get_typer_delay() final { return Cycles(7000000); }
 		HalfCycles get_typer_frequency() final { return Cycles(390000); }
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
 			return ZX8081::get_options();
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
 			bool quickload;
 			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
 				allow_fast_tape_hack_ = quickload;
@@ -398,14 +398,14 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 		}
 
-		Configurable::SelectionSet get_accurate_selections() override {
+		Configurable::SelectionSet get_accurate_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, false);
 			Configurable::append_automatic_tape_motor_control_selection(selection_set, false);
 			return selection_set;
 		}
 
-		Configurable::SelectionSet get_user_friendly_selections() override {
+		Configurable::SelectionSet get_user_friendly_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, true);
 			Configurable::append_automatic_tape_motor_control_selection(selection_set, true);

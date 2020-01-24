@@ -32,10 +32,10 @@ class MultiKeyboardMachine: public KeyboardMachine::Machine {
 			public:
 				MultiKeyboard(const std::vector<::KeyboardMachine::Machine *> &machines);
 
-				void set_key_pressed(Key key, char value, bool is_pressed) override;
-				void reset_all_keys() override;
-				const std::set<Key> &observed_keys() override;
-				bool is_exclusive() override;
+				void set_key_pressed(Key key, char value, bool is_pressed) final;
+				void reset_all_keys() final;
+				const std::set<Key> &observed_keys() final;
+				bool is_exclusive() final;
 
 			private:
 				const std::vector<::KeyboardMachine::Machine *> &machines_;
@@ -48,10 +48,10 @@ class MultiKeyboardMachine: public KeyboardMachine::Machine {
 		MultiKeyboardMachine(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
 
 		// Below is the standard KeyboardMachine::Machine interface; see there for documentation.
-		void clear_all_keys() override;
-		void set_key_state(uint16_t key, bool is_pressed) override;
-		void type_string(const std::string &) override;
-		Inputs::Keyboard &get_keyboard() override;
+		void clear_all_keys() final;
+		void set_key_state(uint16_t key, bool is_pressed) final;
+		void type_string(const std::string &) final;
+		Inputs::Keyboard &get_keyboard() final;
 };
 
 }

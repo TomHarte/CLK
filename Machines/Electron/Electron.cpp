@@ -387,7 +387,7 @@ class ConcreteMachine:
 			return video_output_.get_scaled_scan_status();
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			video_output_.set_display_type(display_type);
 		}
 
@@ -416,16 +416,16 @@ class ConcreteMachine:
 			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
 		}
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
 			return Electron::get_options();
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
 			bool quickload;
 			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
 				allow_fast_tape_hack_ = quickload;
@@ -438,14 +438,14 @@ class ConcreteMachine:
 			}
 		}
 
-		Configurable::SelectionSet get_accurate_selections() override {
+		Configurable::SelectionSet get_accurate_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, false);
 			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
 			return selection_set;
 		}
 
-		Configurable::SelectionSet get_user_friendly_selections() override {
+		Configurable::SelectionSet get_user_friendly_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, true);
 			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
@@ -453,7 +453,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			activity_observer_ = observer;
 			if(activity_observer_) {
 				activity_observer_->register_led(caps_led);

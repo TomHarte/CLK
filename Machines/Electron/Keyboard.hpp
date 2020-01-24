@@ -34,7 +34,7 @@ enum Key: uint16_t {
 };
 
 struct KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
-	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) override;
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) final;
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {

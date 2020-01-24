@@ -30,12 +30,12 @@ class OricMFMDSK: public DiskImage {
 		OricMFMDSK(const std::string &file_name);
 
 		// implemented to satisfy @c DiskImage
-		HeadPosition get_maximum_head_position() override;
-		int get_head_count() override;
-		bool get_is_read_only() override;
+		HeadPosition get_maximum_head_position() final;
+		int get_head_count() final;
+		bool get_is_read_only() final;
 
-		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
-		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
+		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) final;
+		std::shared_ptr<Track> get_track_at_position(Track::Address address) final;
 
 	private:
 		Storage::FileHolder file_;

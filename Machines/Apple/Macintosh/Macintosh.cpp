@@ -171,7 +171,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			audio_.queue.flush();
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_.set_scan_target(scan_target);
 		}
 
@@ -179,11 +179,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			return video_.get_scaled_scan_status();
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &audio_.speaker;
 		}
 
-		void run_for(const Cycles cycles) override {
+		void run_for(const Cycles cycles) final {
 			mc68000_.run_for(cycles);
 		}
 
@@ -458,7 +458,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			video_.set_use_alternate_buffers(use_alternate_screen_buffer, use_alternate_audio_buffer);
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(media.disks.empty() && media.mass_storage_devices.empty())
 				return false;
 
@@ -486,11 +486,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		// MARK: Keyboard input.
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
-		void set_key_state(uint16_t key, bool is_pressed) override {
+		void set_key_state(uint16_t key, bool is_pressed) final {
 			keyboard_.enqueue_key_state(key, is_pressed);
 		}
 
@@ -498,7 +498,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		// MARK: Interrupt updates.
 
-		void did_change_interrupt_status(Zilog::SCC::z8530 *sender, bool new_status) override {
+		void did_change_interrupt_status(Zilog::SCC::z8530 *sender, bool new_status) final {
 			update_interrupt_input();
 		}
 
@@ -515,7 +515,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			iwm_->set_activity_observer(observer);
 
 			if constexpr (model == Analyser::Static::Macintosh::Target::Model::MacPlus) {
@@ -524,11 +524,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
 			return Apple::Macintosh::get_options();
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
 			bool quick_boot;
 			if(Configurable::get_quick_boot(selections_by_option, quick_boot)) {
 				if(quick_boot) {
@@ -540,24 +540,24 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			}
 		}
 
-		Configurable::SelectionSet get_accurate_selections() override {
+		Configurable::SelectionSet get_accurate_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_boot_selection(selection_set, false);
 			return selection_set;
 		}
 
-		Configurable::SelectionSet get_user_friendly_selections() override {
+		Configurable::SelectionSet get_user_friendly_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_boot_selection(selection_set, true);
 			return selection_set;
 		}
 
 	private:
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override {
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
 			scsi_bus_is_clocked_ = scsi_bus_.preferred_clocking() != ClockingHint::Preference::None;
 		}
 
-		void drive_speed_accumulator_set_drive_speed(DriveSpeedAccumulator *, float speed) override {
+		void drive_speed_accumulator_set_drive_speed(DriveSpeedAccumulator *, float speed) final {
 			iwm_.flush();
 			drives_[0].set_rotation_speed(speed);
 			drives_[1].set_rotation_speed(speed);
@@ -656,7 +656,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			time_until_video_event_ = video_.get_next_sequence_point();
 		}
 
-		Inputs::Mouse &get_mouse() override {
+		Inputs::Mouse &get_mouse() final {
 			return mouse_;
 		}
 

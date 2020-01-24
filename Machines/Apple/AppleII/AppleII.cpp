@@ -147,7 +147,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			card_became_just_in_time_ |= !is_every_cycle;
 		}
 
-		void card_did_change_select_constraints(Apple::II::Card *card) override {
+		void card_did_change_select_constraints(Apple::II::Card *card) final {
 			pick_card_messaging_group(card);
 		}
 
@@ -283,12 +283,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						Input(Input::Fire, 2),
 					}) {}
 
-					void did_set_input(const Input &input, float value) override {
+					void did_set_input(const Input &input, float value) final {
 						if(!input.info.control.index && (input.type == Input::Type::Horizontal || input.type == Input::Type::Vertical))
 							axes[(input.type == Input::Type::Horizontal) ? 0 : 1] = 1.0f - value;
 					}
 
-					void did_set_input(const Input &input, bool value) override {
+					void did_set_input(const Input &input, bool value) final {
 						if(input.type == Input::Type::Fire && input.info.control.index < 3) {
 							buttons[input.info.control.index] = value;
 						}
@@ -417,7 +417,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_.set_scan_target(scan_target);
 		}
 
@@ -426,11 +426,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		/// Sets the type of display.
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			video_.set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
@@ -803,15 +803,15 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		void run_for(const Cycles cycles) override {
+		void run_for(const Cycles cycles) final {
 			m6502_.run_for(cycles);
 		}
 
-		void reset_all_keys() override {
+		void reset_all_keys() final {
 			open_apple_is_pressed_ = closed_apple_is_pressed_ = key_is_down_ = false;
 		}
 
-		void set_key_pressed(Key key, char value, bool is_pressed) override {
+		void set_key_pressed(Key key, char value, bool is_pressed) final {
 			switch(key) {
 				default: break;
 				case Key::F12:
@@ -850,38 +850,38 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 		}
 
-		Inputs::Keyboard &get_keyboard() override {
+		Inputs::Keyboard &get_keyboard() final {
 			return *this;
 		}
 
-		void type_string(const std::string &string) override {
+		void type_string(const std::string &string) final {
 			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
 		}
 
 		// MARK:: Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
 			return Apple::II::get_options();
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
 			Configurable::Display display;
 			if(Configurable::get_display(selections_by_option, display)) {
 				set_video_signal_configurable(display);
 			}
 		}
 
-		Configurable::SelectionSet get_accurate_selections() override {
+		Configurable::SelectionSet get_accurate_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
 			return selection_set;
 		}
 
-		Configurable::SelectionSet get_user_friendly_selections() override {
+		Configurable::SelectionSet get_user_friendly_selections() final {
 			return get_accurate_selections();
 		}
 
 		// MARK: MediaTarget
-		bool insert_media(const Analyser::Static::Media &media) override {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.disks.empty()) {
 				auto diskii = diskii_card();
 				if(diskii) diskii->set_disk(media.disks[0], 0);
@@ -890,14 +890,14 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		// MARK: Activity::Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			for(const auto &card: cards_) {
 				if(card) card->set_activity_observer(observer);
 			}
 		}
 
 		// MARK: JoystickMachine
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return joysticks_;
 		}
 };

@@ -50,17 +50,17 @@ class MultiMachine: public ::Machine::DynamicMachine, public MultiCRTMachine::De
 		static bool would_collapse(const std::vector<std::unique_ptr<DynamicMachine>> &machines);
 		MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machines);
 
-		Activity::Source *activity_source() override;
-		Configurable::Device *configurable_device() override;
-		CRTMachine::Machine *crt_machine() override;
-		JoystickMachine::Machine *joystick_machine() override;
-		MouseMachine::Machine *mouse_machine() override;
-		KeyboardMachine::Machine *keyboard_machine() override;
-		MediaTarget::Machine *media_target() override;
-		void *raw_pointer() override;
+		Activity::Source *activity_source() final;
+		Configurable::Device *configurable_device() final;
+		CRTMachine::Machine *crt_machine() final;
+		JoystickMachine::Machine *joystick_machine() final;
+		MouseMachine::Machine *mouse_machine() final;
+		KeyboardMachine::Machine *keyboard_machine() final;
+		MediaTarget::Machine *media_target() final;
+		void *raw_pointer() final;
 
 	private:
-		void multi_crt_did_run_machines() override;
+		void multi_crt_did_run_machines() final;
 
 		std::vector<std::unique_ptr<DynamicMachine>> machines_;
 		std::recursive_mutex machines_mutex_;

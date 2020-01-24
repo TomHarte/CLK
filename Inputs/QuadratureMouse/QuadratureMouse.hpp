@@ -34,24 +34,24 @@ class QuadratureMouse: public Mouse {
 		/*
 			Inputs, to satisfy the Mouse interface.
 		*/
-		void move(int x, int y) override {
+		void move(int x, int y) final {
 			// Accumulate all provided motion.
 			axes_[0] += x;
 			axes_[1] += y;
 		}
 
-		int get_number_of_buttons() override {
+		int get_number_of_buttons() final {
 			return number_of_buttons_;
 		}
 
-		void set_button_pressed(int index, bool is_pressed) override {
+		void set_button_pressed(int index, bool is_pressed) final {
 			if(is_pressed)
 				button_flags_ |= (1 << index);
 			else
 				button_flags_ &= ~(1 << index);
 		}
 
-		void reset_all_buttons() override {
+		void reset_all_buttons() final {
 			button_flags_ = 0;
 		}
 

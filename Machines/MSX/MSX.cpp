@@ -110,7 +110,7 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 						Input(Input::Fire, 1),
 					}) {}
 
-				void did_set_input(const Input &input, bool is_active) override {
+				void did_set_input(const Input &input, bool is_active) final {
 					uint8_t mask = 0;
 					switch(input.type) {
 						default: return;
@@ -278,7 +278,7 @@ class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			vdp_->set_scan_target(scan_target);
 		}
 
@@ -286,19 +286,19 @@ class ConcreteMachine:
 			return vdp_->get_scaled_scan_status();
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			vdp_->set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
-		void run_for(const Cycles cycles) override {
+		void run_for(const Cycles cycles) final {
 			z80_.run_for(cycles);
 		}
 
-		float get_confidence() override {
+		float get_confidence() final {
 			if(performed_unmapped_access_ || pc_zero_accesses_ > 1) return 0.0f;
 			if(memory_slots_[1].handler) {
 				return memory_slots_[1].handler->get_confidence();
@@ -306,14 +306,14 @@ class ConcreteMachine:
 			return 0.5f;
 		}
 
-		std::string debug_type() override {
+		std::string debug_type() final {
 			if(memory_slots_[1].handler) {
 				return "MSX:" + memory_slots_[1].handler->debug_type();
 			}
 			return "MSX";
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
 				memory_slots_[1].source = segment.data;
@@ -370,7 +370,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: MSX::MemoryMap
-		void map(int slot, std::size_t source_address, uint16_t destination_address, std::size_t length) override {
+		void map(int slot, std::size_t source_address, uint16_t destination_address, std::size_t length) final {
 			assert(!(destination_address & 8191));
 			assert(!(length & 8191));
 			assert(static_cast<std::size_t>(destination_address) + length <= 65536);
@@ -385,7 +385,7 @@ class ConcreteMachine:
 			page_memory(paged_memory_);
 		}
 
-		void unmap(int slot, uint16_t destination_address, std::size_t length) override {
+		void unmap(int slot, uint16_t destination_address, std::size_t length) final {
 			assert(!(destination_address & 8191));
 			assert(!(length & 8191));
 			assert(static_cast<std::size_t>(destination_address) + length <= 65536);
@@ -628,26 +628,26 @@ class ConcreteMachine:
 			return key_states_[selected_key_line_];
 		}
 
-		void clear_all_keys() override {
+		void clear_all_keys() final {
 			std::memset(key_states_, 0xff, sizeof(key_states_));
 		}
 
-		void set_key_state(uint16_t key, bool is_pressed) override {
+		void set_key_state(uint16_t key, bool is_pressed) final {
 			int mask = 1 << (key & 7);
 			int line = key >> 4;
 			if(is_pressed) key_states_[line] &= ~mask; else key_states_[line] |= mask;
 		}
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
 			return MSX::get_options();
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
 			bool quickload;
 			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
 				allow_fast_tape_ = quickload;
@@ -660,14 +660,14 @@ class ConcreteMachine:
 			}
 		}
 
-		Configurable::SelectionSet get_accurate_selections() override {
+		Configurable::SelectionSet get_accurate_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, false);
 			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
 			return selection_set;
 		}
 
-		Configurable::SelectionSet get_user_friendly_selections() override {
+		Configurable::SelectionSet get_user_friendly_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, true);
 			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
@@ -675,13 +675,13 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Sleeper
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override {
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
 			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 			set_use_fast_tape();
 		}
 
 		// MARK: - Activity::Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			DiskROM *disk_rom = get_disk_rom();
 			if(disk_rom) {
 				disk_rom->set_activity_observer(observer);
@@ -690,7 +690,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Joysticks
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return ay_port_handler_.get_joysticks();
 		}
 

@@ -49,9 +49,9 @@ class PCMTrack: public Track {
 		static PCMTrack *resampled_clone(Track *original, size_t bits_per_track);
 
 		// as per @c Track
-		Event get_next_event() override;
-		Time seek_to(const Time &time_since_index_hole) override;
-		Track *clone() const override;
+		Event get_next_event() final;
+		Time seek_to(const Time &time_since_index_hole) final;
+		Track *clone() const final;
 
 		// Obtains a copy of this track, flattened to a single PCMSegment, which
 		// consists of @c bits_per_track potential flux transition points.

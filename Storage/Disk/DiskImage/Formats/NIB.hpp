@@ -25,10 +25,10 @@ class NIB: public DiskImage {
 		NIB(const std::string &file_name);
 
 		// Implemented to satisfy @c DiskImage.
-		HeadPosition get_maximum_head_position() override;
-		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) override;
-		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) override;
-		bool get_is_read_only() override;
+		HeadPosition get_maximum_head_position() final;
+		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) final;
+		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) final;
+		bool get_is_read_only() final;
 
 	private:
 		FileHolder file_;

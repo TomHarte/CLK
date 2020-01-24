@@ -632,7 +632,7 @@ class KeyboardState: public GI::AY38910::PortHandler {
 					}),
 					state_(state) {}
 
-				void did_set_input(const Input &input, bool is_active) override {
+				void did_set_input(const Input &input, bool is_active) final {
 					uint8_t mask = 0;
 					switch(input.type) {
 						default: return;
@@ -1077,41 +1077,41 @@ template <bool has_fdc> class ConcreteMachine:
 			key_state_.clear_all_keys();
 		}
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			if constexpr (has_fdc) fdc_.set_activity_observer(observer);
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
 			return AmstradCPC::get_options();
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
 			Configurable::Display display;
 			if(Configurable::get_display(selections_by_option, display)) {
 				set_video_signal_configurable(display);
 			}
 		}
 
-		Configurable::SelectionSet get_accurate_selections() override {
+		Configurable::SelectionSet get_accurate_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
 			return selection_set;
 		}
 
-		Configurable::SelectionSet get_user_friendly_selections() override {
+		Configurable::SelectionSet get_user_friendly_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
 			return selection_set;
 		}
 
 		// MARK: - Joysticks
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return key_state_.get_joysticks();
 		}
 

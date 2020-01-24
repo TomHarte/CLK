@@ -34,7 +34,7 @@
 namespace {
 
 struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
-	Time::Seconds update(Concurrency::BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update, int flags) override {
+	Time::Seconds update(Concurrency::BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update, int flags) final {
 		return machine->crt_machine()->run_until(duration, flags);
 	}
 
@@ -45,7 +45,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	// This is set to a relatively large number for now.
 	static constexpr int buffer_size = 1024;
 
-	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override {
+	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) final {
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
 		if(audio_buffer_.size() > buffer_size) {
 			audio_buffer_.erase(audio_buffer_.begin(), audio_buffer_.end() - buffer_size);
@@ -138,21 +138,21 @@ class ActivityObserver: public Activity::Observer {
 
 	private:
 		std::vector<std::string> leds_;
-		void register_led(const std::string &name) override {
+		void register_led(const std::string &name) final {
 			leds_.push_back(name);
 		}
 
 		std::vector<std::string> drives_;
-		void register_drive(const std::string &name) override {
+		void register_drive(const std::string &name) final {
 			drives_.push_back(name);
 		}
 
-		void set_led_status(const std::string &name, bool lit) override {
+		void set_led_status(const std::string &name, bool lit) final {
 			if(lit) lit_leds_.insert(name);
 			else lit_leds_.erase(name);
 		}
 
-		void announce_drive_event(const std::string &name, DriveEvent event) override {
+		void announce_drive_event(const std::string &name, DriveEvent event) final {
 			blinking_leds_.insert(name);
 		}
 
@@ -551,7 +551,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		// Apply the user's actual selections to override the defaults.
+		// Apply the user's actual selections to final the defaults.
 		configurable_device->set_selections(arguments.selections);
 	}
 

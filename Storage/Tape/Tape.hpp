@@ -149,7 +149,7 @@ class BinaryTapePlayer : public TapePlayer {
 
 	protected:
 		Delegate *delegate_ = nullptr;
-		void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) override;
+		void process_input_pulse(const Storage::Tape::Tape::Pulse &pulse) final;
 		bool input_level_ = false;
 		bool motor_is_running_ = false;
 };

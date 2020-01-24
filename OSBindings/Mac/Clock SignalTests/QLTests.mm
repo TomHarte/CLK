@@ -35,7 +35,7 @@ class QL: public ComparativeBusHandler {
 			m68000_.run_for(cycles);
 		}
 
-		CPU::MC68000::ProcessorState get_state() override {
+		CPU::MC68000::ProcessorState get_state() final {
 			return m68000_.get_state();
 		}
 

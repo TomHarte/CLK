@@ -162,7 +162,7 @@ class IntelligentKeyboard:
 						Input(Input::Fire, 0),
 					}) {}
 
-				void did_set_input(const Input &input, bool is_active) override {
+				void did_set_input(const Input &input, bool is_active) final {
 					uint8_t mask = 0;
 					switch(input.type) {
 						default: return;

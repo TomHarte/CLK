@@ -48,7 +48,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 			}),
 			bus_(bus), shift_(shift), fire_tia_input_(fire_tia_input) {}
 
-		void did_set_input(const Input &digital_input, bool is_active) override {
+		void did_set_input(const Input &digital_input, bool is_active) final {
 			switch(digital_input.type) {
 				case Input::Up:		bus_->mos6532_.update_port_input(0, 0x10 >> shift_, is_active);		break;
 				case Input::Down:	bus_->mos6532_.update_port_input(0, 0x20 >> shift_, is_active);		break;
@@ -123,11 +123,11 @@ class ConcreteMachine:
 			set_is_ntsc(is_ntsc_);
 		}
 
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return joysticks_;
 		}
 
-		void set_switch_is_enabled(Atari2600Switch input, bool state) override {
+		void set_switch_is_enabled(Atari2600Switch input, bool state) final {
 			switch(input) {
 				case Atari2600SwitchReset:					bus_->mos6532_.update_port_input(1, 0x01, state);	break;
 				case Atari2600SwitchSelect:					bus_->mos6532_.update_port_input(1, 0x02, state);	break;
@@ -137,7 +137,7 @@ class ConcreteMachine:
 			}
 		}
 
-		bool get_switch_is_enabled(Atari2600Switch input) override {
+		bool get_switch_is_enabled(Atari2600Switch input) final {
 			uint8_t port_input = bus_->mos6532_.get_port_input(1);
 			switch(input) {
 				case Atari2600SwitchReset:					return !!(port_input & 0x01);
@@ -149,12 +149,12 @@ class ConcreteMachine:
 			}
 		}
 
-		void set_reset_switch(bool state) override {
+		void set_reset_switch(bool state) final {
 			bus_->set_reset_line(state);
 		}
 
 		// to satisfy CRTMachine::Machine
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			bus_->speaker_.set_input_rate(static_cast<float>(get_clock_rate() / static_cast<double>(CPUTicksPerAudioTick)));
 			bus_->tia_.set_crt_delegate(&frequency_mismatch_warner_);
 			bus_->tia_.set_scan_target(scan_target);
@@ -164,11 +164,11 @@ class ConcreteMachine:
 			return bus_->tia_.get_scaled_scan_status() / 3.0f;
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &bus_->speaker_;
 		}
 
-		void run_for(const Cycles cycles) override {
+		void run_for(const Cycles cycles) final {
 			bus_->run_for(cycles);
 			bus_->apply_confidence(confidence_counter_);
 		}
@@ -182,7 +182,7 @@ class ConcreteMachine:
 			set_is_ntsc(is_ntsc_);
 		}
 
-		float get_confidence() override {
+		float get_confidence() final {
 			return confidence_counter_.get_confidence();
 		}
 

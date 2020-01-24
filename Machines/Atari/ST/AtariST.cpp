@@ -662,7 +662,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			dma_->set_activity_observer(observer);
 		}
 
