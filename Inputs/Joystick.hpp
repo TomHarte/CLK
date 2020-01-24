@@ -170,11 +170,11 @@ class ConcreteJoystick: public Joystick {
 			}
 		}
 
-		std::vector<Input> &get_inputs() override final {
+		std::vector<Input> &get_inputs() final {
 			return inputs_;
 		}
 
-		void set_input(const Input &input, bool is_active) override final {
+		void set_input(const Input &input, bool is_active) final {
 			// If this is a digital setting to a digital property, just pass it along.
 			if(input.is_button() || stick_types_[input.info.control.index] == StickType::Digital) {
 				did_set_input(input, is_active);
@@ -193,7 +193,7 @@ class ConcreteJoystick: public Joystick {
 			}
 		}
 
-		void set_input(const Input &input, float value) override final {
+		void set_input(const Input &input, float value) final {
 			// If this is an analogue setting to an analogue property, just pass it along.
 			if(!input.is_button() && stick_types_[input.info.control.index] == StickType::Analogue) {
 				did_set_input(input, value);

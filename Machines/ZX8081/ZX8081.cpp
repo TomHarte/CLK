@@ -314,7 +314,7 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_.set_scan_target(scan_target);
 		}
 
@@ -322,15 +322,15 @@ template<bool is_zx81> class ConcreteMachine:
 			return video_.get_scaled_scan_status();
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override final {
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return is_zx81 ? &speaker_ : nullptr;
 		}
 
-		void run_for(const Cycles cycles) override final {
+		void run_for(const Cycles cycles) final {
 			z80_.run_for(cycles);
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.tapes.empty()) {
 				tape_player_.set_tape(media.tapes.front());
 			}
@@ -339,19 +339,19 @@ template<bool is_zx81> class ConcreteMachine:
 			return !media.tapes.empty();
 		}
 
-		void type_string(const std::string &string) override final {
+		void type_string(const std::string &string) final {
 			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>(is_zx81));
 		}
 
 		// MARK: - Keyboard
-		void set_key_state(uint16_t key, bool is_pressed) override final {
+		void set_key_state(uint16_t key, bool is_pressed) final {
 			if(is_pressed)
 				key_states_[key >> 8] &= static_cast<uint8_t>(~key);
 			else
 				key_states_[key >> 8] |= static_cast<uint8_t>(key);
 		}
 
-		void clear_all_keys() override final {
+		void clear_all_keys() final {
 			memset(key_states_, 0xff, 8);
 		}
 
@@ -364,17 +364,17 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 		}
 
-		void set_tape_is_playing(bool is_playing) override final {
+		void set_tape_is_playing(bool is_playing) final {
 			tape_player_.set_motor_control(is_playing);
 		}
 
-		bool get_tape_is_playing() override final {
+		bool get_tape_is_playing() final {
 			return tape_player_.get_motor_control();
 		}
 
 		// MARK: - Typer timing
-		HalfCycles get_typer_delay() override final { return Cycles(7000000); }
-		HalfCycles get_typer_frequency() override final { return Cycles(390000); }
+		HalfCycles get_typer_delay() final { return Cycles(7000000); }
+		HalfCycles get_typer_frequency() final { return Cycles(390000); }
 
 		KeyboardMapper *get_keyboard_mapper() override {
 			return &keyboard_mapper_;

@@ -608,7 +608,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// WD::WD1770::Delegate
-		void wd1770_did_change_output(WD::WD1770 *wd1770) override final {
+		void wd1770_did_change_output(WD::WD1770 *wd1770) final {
 			set_interrupt_line();
 		}
 
@@ -665,7 +665,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 		}
 
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) override final {
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) final {
 			diskii_clocking_preference_ = diskii_.preferred_clocking();
 		}
 

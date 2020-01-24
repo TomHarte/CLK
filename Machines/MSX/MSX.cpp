@@ -360,7 +360,7 @@ class ConcreteMachine:
 			return true;
 		}
 
-		void type_string(const std::string &string) override final {
+		void type_string(const std::string &string) final {
 			std::transform(
 				string.begin(),
 				string.end(),

@@ -114,7 +114,7 @@ class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void set_key_state(uint16_t key, bool isPressed) override final {
+		void set_key_state(uint16_t key, bool isPressed) final {
 			if(key == KeyBreak) {
 				m6502_.set_reset_line(isPressed);
 			} else {
@@ -125,12 +125,12 @@ class ConcreteMachine:
 			}
 		}
 
-		void clear_all_keys() override final {
+		void clear_all_keys() final {
 			memset(key_states_, 0, sizeof(key_states_));
 			if(is_holding_shift_) set_key_state(KeyShift, true);
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.tapes.empty()) {
 				tape_.set_tape(media.tapes.front());
 			}
@@ -379,7 +379,7 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_output_.set_scan_target(scan_target);
 		}
 
@@ -391,28 +391,28 @@ class ConcreteMachine:
 			video_output_.set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override final {
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
-		void run_for(const Cycles cycles) override final {
+		void run_for(const Cycles cycles) final {
 			m6502_.run_for(cycles);
 		}
 
-		void tape_did_change_interrupt_status(Tape *tape) override final {
+		void tape_did_change_interrupt_status(Tape *tape) final {
 			interrupt_status_ = (interrupt_status_ & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | tape_.get_interrupt_status();
 			evaluate_interrupts();
 		}
 
-		HalfCycles get_typer_delay() override final {
+		HalfCycles get_typer_delay() final {
 			return m6502_.get_is_resetting() ? Cycles(625*25*128) : Cycles(0);	// wait one second if resetting
 		}
 
-		HalfCycles get_typer_frequency() override final {
+		HalfCycles get_typer_frequency() final {
 			return Cycles(625*128*2);	// accept a new character every two frames
 		}
 
-		void type_string(const std::string &string) override final {
+		void type_string(const std::string &string) final {
 			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
 		}
 
