@@ -17,6 +17,7 @@
 
 #include "../Configurable/StandardOptions.hpp"
 
+#include <array>
 #include <cmath>
 
 // TODO: rename.
@@ -163,6 +164,7 @@ class Machine {
 			Forwards the video signal to the target returned by get_crt().
 		*/
 		virtual void set_display_type(Outputs::Display::DisplayType display_type) {}
+
 
 	private:
 		double clock_rate_ = 1.0;
