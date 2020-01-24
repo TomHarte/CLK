@@ -342,7 +342,6 @@ class ConcreteMachine:
 			vdp_.flush();
 			update_audio();
 			audio_queue_.perform();
-			audio_queue_.flush();
 		}
 
 		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {

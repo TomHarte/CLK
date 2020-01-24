@@ -201,7 +201,6 @@ template<class T> class Cartridge:
 			update_audio();
 			update_video();
 			audio_queue_.perform();
-			audio_queue_.flush();
 		}
 
 	protected:
