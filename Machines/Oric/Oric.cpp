@@ -556,6 +556,10 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			video_output_.set_scan_target(scan_target);
 		}
 
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+			return video_output_.get_scaled_scan_status();
+		}
+
 		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			video_output_.set_display_type(display_type);
 		}

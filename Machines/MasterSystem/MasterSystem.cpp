@@ -177,6 +177,10 @@ class ConcreteMachine:
 			vdp_->set_scan_target(scan_target);
 		}
 
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+			return vdp_->get_scaled_scan_status();
+		}
+
 		void set_display_type(Outputs::Display::DisplayType display_type) override {
 			vdp_->set_display_type(display_type);
 		}

@@ -77,12 +77,9 @@ using Target = Analyser::Static::Atari2600::Target;
 class ConcreteMachine:
 	public Machine,
 	public CRTMachine::Machine,
-	public JoystickMachine::Machine,
-	public Outputs::CRT::Delegate {
+	public JoystickMachine::Machine {
 	public:
-		ConcreteMachine(const Target &target) {
-			set_clock_rate(NTSC_clock_rate);
-
+		ConcreteMachine(const Target &target) : frequency_mismatch_warner_(*this) {
 			const std::vector<uint8_t> &rom = target.media.cartridges.front()->get_segments().front().data;
 
 			using PagingModel = Target::PagingModel;
@@ -122,6 +119,8 @@ class ConcreteMachine:
 
 			joysticks_.emplace_back(new Joystick(bus_.get(), 0, 0));
 			joysticks_.emplace_back(new Joystick(bus_.get(), 4, 1));
+
+			set_is_ntsc(is_ntsc_);
 		}
 
 		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
@@ -157,8 +156,12 @@ class ConcreteMachine:
 		// to satisfy CRTMachine::Machine
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
 			bus_->speaker_.set_input_rate(static_cast<float>(get_clock_rate() / static_cast<double>(CPUTicksPerAudioTick)));
-			bus_->tia_.set_crt_delegate(this);
+			bus_->tia_.set_crt_delegate(&frequency_mismatch_warner_);
 			bus_->tia_.set_scan_target(scan_target);
+		}
+
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+			return bus_->tia_.get_scaled_scan_status() / 3.0f;
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() override {
@@ -170,42 +173,13 @@ class ConcreteMachine:
 			bus_->apply_confidence(confidence_counter_);
 		}
 
-		// to satisfy Outputs::CRT::Delegate
-		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) override {
-			const std::size_t number_of_frame_records = sizeof(frame_records_) / sizeof(frame_records_[0]);
-			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_frames = number_of_frames;
-			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
-			frame_record_pointer_ ++;
+		void flush() {
+			bus_->flush();
+		}
 
-			if(frame_record_pointer_ >= 6) {
-				int total_number_of_frames = 0;
-				int total_number_of_unexpected_vertical_syncs = 0;
-				for(std::size_t c = 0; c < number_of_frame_records; c++) {
-					total_number_of_frames += frame_records_[c].number_of_frames;
-					total_number_of_unexpected_vertical_syncs += frame_records_[c].number_of_unexpected_vertical_syncs;
-				}
-
-				if(total_number_of_unexpected_vertical_syncs >= total_number_of_frames >> 1) {
-					for(std::size_t c = 0; c < number_of_frame_records; c++) {
-						frame_records_[c].number_of_frames = 0;
-						frame_records_[c].number_of_unexpected_vertical_syncs = 0;
-					}
-					is_ntsc_ ^= true;
-
-					double clock_rate;
-					if(is_ntsc_) {
-						clock_rate = NTSC_clock_rate;
-						bus_->tia_.set_output_mode(TIA::OutputMode::NTSC);
-					} else {
-						clock_rate = PAL_clock_rate;
-						bus_->tia_.set_output_mode(TIA::OutputMode::PAL);
-					}
-
-					bus_->speaker_.set_input_rate(static_cast<float>(clock_rate / static_cast<double>(CPUTicksPerAudioTick)));
-					bus_->speaker_.set_high_frequency_cutoff(static_cast<float>(clock_rate / (static_cast<double>(CPUTicksPerAudioTick) * 2.0)));
-					set_clock_rate(clock_rate);
-				}
-			}
+		void register_crt_frequency_mismatch() {
+			is_ntsc_ ^= true;
+			set_is_ntsc(is_ntsc_);
 		}
 
 		float get_confidence() override {
@@ -213,20 +187,24 @@ class ConcreteMachine:
 		}
 
 	private:
-		// the bus
+		// The bus.
 		std::unique_ptr<Bus> bus_;
 
-		// output frame rate tracker
-		struct FrameRecord {
-			int number_of_frames = 0;
-			int number_of_unexpected_vertical_syncs = 0;
-		} frame_records_[4];
-		unsigned int frame_record_pointer_ = 0;
+		// Output frame rate tracker.
+		Outputs::CRT::CRTFrequencyMismatchWarner<ConcreteMachine> frequency_mismatch_warner_;
 		bool is_ntsc_ = true;
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 
 		// a confidence counter
 		Analyser::Dynamic::ConfidenceCounter confidence_counter_;
+
+		void set_is_ntsc(bool is_ntsc) {
+			bus_->tia_.set_output_mode(is_ntsc ? TIA::OutputMode::NTSC : TIA::OutputMode::PAL);
+			const double clock_rate = is_ntsc ? NTSC_clock_rate : PAL_clock_rate;
+			bus_->speaker_.set_input_rate(float(clock_rate) / float(CPUTicksPerAudioTick));
+			bus_->speaker_.set_high_frequency_cutoff(float(clock_rate) / float(CPUTicksPerAudioTick * 2));
+			set_clock_rate(clock_rate);
+		}
 };
 
 }

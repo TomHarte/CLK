@@ -318,6 +318,10 @@ template<bool is_zx81> class ConcreteMachine:
 			video_.set_scan_target(scan_target);
 		}
 
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+			return video_.get_scaled_scan_status();
+		}
+
 		Outputs::Speaker::Speaker *get_speaker() override final {
 			return is_zx81 ? &speaker_ : nullptr;
 		}

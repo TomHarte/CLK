@@ -43,6 +43,13 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 			return &object_;
 		}
 
+		/// Acts exactly as per the standard ->, but preserves constness.
+		forceinline const T *operator->() const {
+			auto non_const_this = const_cast<JustInTimeActor<T, multiplier, divider, LocalTimeScale, TargetTimeScale> *>(this);
+			non_const_this->flush();
+			return &object_;
+		}
+
 		/// Returns a pointer to the included object without flushing time.
 		forceinline T *last_valid() {
 			return &object_;
@@ -53,7 +60,8 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 			if(!is_flushed_) {
 				is_flushed_ = true;
 				if constexpr (divider == 1) {
-					object_.run_for(time_since_update_.template flush<TargetTimeScale>());
+					const auto duration = time_since_update_.template flush<TargetTimeScale>();
+					object_.run_for(duration);
 				} else {
 					const auto duration = time_since_update_.template divide<TargetTimeScale>(LocalTimeScale(divider));
 					if(duration > TargetTimeScale(0))

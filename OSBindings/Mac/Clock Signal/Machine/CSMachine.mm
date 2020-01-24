@@ -327,6 +327,11 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)updateViewForPixelSize:(CGSize)pixelSize {
 	_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+
+//	@synchronized(self) {
+//		const auto scan_status = _machine->crt_machine()->get_scan_status();
+//		NSLog(@"FPS (hopefully): %0.2f [retrace: %0.4f]", 1.0f / scan_status.field_duration, scan_status.retrace_duration);
+//	}
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize {

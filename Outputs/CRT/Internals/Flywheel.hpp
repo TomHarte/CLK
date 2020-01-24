@@ -63,6 +63,7 @@ struct Flywheel {
 	inline SyncEvent get_next_event_in_period(bool sync_is_requested, int cycles_to_run_for, int *cycles_advanced) {
 		// If sync is signalled _now_, consider adjusting expected_next_sync_.
 		if(sync_is_requested) {
+			const auto last_sync = expected_next_sync_;
 			if(counter_ < sync_error_window_ || counter_ > expected_next_sync_ - sync_error_window_) {
 				const int time_now = (counter_ < sync_error_window_) ? expected_next_sync_ + counter_ : counter_;
 				expected_next_sync_ = (3*expected_next_sync_ + time_now) >> 2;
@@ -75,6 +76,7 @@ struct Flywheel {
 					expected_next_sync_ = (3*expected_next_sync_ + standard_period_ - sync_error_window_) >> 2;
 				}
 			}
+			last_adjustment_ = expected_next_sync_ - last_sync;
 		}
 
 		SyncEvent proposed_event = SyncEvent::None;
@@ -166,6 +168,20 @@ struct Flywheel {
 	}
 
 	/*!
+		@returns the actual current period for a complete scan (including retrace).
+	*/
+	inline int get_locked_period() {
+		return expected_next_sync_;
+	}
+
+	/*!
+		@returns the amount by which the @c locked_period was adjusted, the last time that an adjustment was applied.
+	*/
+	inline int get_last_period_adjustment() {
+		return last_adjustment_;
+	}
+
+	/*!
 		@returns the number of synchronisation events that have seemed surprising since the last time this method was called;
 		a low number indicates good synchronisation.
 	*/
@@ -173,6 +189,20 @@ struct Flywheel {
 		const int result = number_of_surprises_;
 		number_of_surprises_ = 0;
 		return result;
+	}
+
+	/*!
+		@returns A count of the number of retraces so far performed.
+	*/
+	inline int get_number_of_retraces() {
+		return number_of_retraces_;
+	}
+
+	/*!
+		@returns The amount of time this flywheel spends in retrace, as supplied at construction.
+	*/
+	inline int get_retrace_period() {
+		return retrace_time_;
 	}
 
 	/*!
@@ -185,15 +215,18 @@ struct Flywheel {
 	}
 
 	private:
-		const int standard_period_;		// the normal length of time between syncs
-		const int retrace_time_;		// a constant indicating the amount of time it takes to perform a retrace
-		const int sync_error_window_;	// a constant indicating the window either side of the next expected sync in which we'll accept other syncs
+		const int standard_period_;		// The idealised length of time between syncs.
+		const int retrace_time_;		// A constant indicating the amount of time it takes to perform a retrace.
+		const int sync_error_window_;	// A constant indicating the window either side of the next expected sync in which we'll accept other syncs.
 
-		int counter_ = 0;				// time since the _start_ of the last sync
-		int counter_before_retrace_;	// the value of _counter immediately before retrace began
-		int expected_next_sync_;		// our current expection of when the next sync will be encountered (which implies velocity)
+		int counter_ = 0;				// Time since the _start_ of the last sync.
+		int counter_before_retrace_;	// The value of _counter immediately before retrace began.
+		int expected_next_sync_;		// Our current expection of when the next sync will be encountered (which implies velocity).
 
-		int number_of_surprises_ = 0;	// a count of the surprising syncs
+		int number_of_surprises_ = 0;	// A count of the surprising syncs.
+		int number_of_retraces_ = 0;	// A count of the number of retraces to date.
+
+		int last_adjustment_ = 0;		// The amount by which expected_next_sync_ was adjusted at the last sync.
 
 		/*
 			Implementation notes:

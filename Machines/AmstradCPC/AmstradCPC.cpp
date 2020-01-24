@@ -335,6 +335,11 @@ class CRTCBusHandler {
 			crt_.set_scan_target(scan_target);
 		}
 
+		/// @returns The current scan status.
+		Outputs::Display::ScanStatus get_scaled_scan_status() const {
+			return crt_.get_scaled_scan_status() / 64.0f;
+		}
+
 		/// Sets the type of display.
 		void set_display_type(Outputs::Display::DisplayType display_type) {
 			crt_.set_display_type(display_type);
@@ -1004,6 +1009,11 @@ template <bool has_fdc> class ConcreteMachine:
 		/// A CRTMachine function; sets the destination for video.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
 			crtc_bus_handler_.set_scan_target(scan_target);
+		}
+
+		/// A CRTMachine function; returns the current scan status.
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+			return crtc_bus_handler_.get_scaled_scan_status();
 		}
 
 		/// A CRTMachine function; sets the output display type.

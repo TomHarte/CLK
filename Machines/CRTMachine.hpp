@@ -17,6 +17,7 @@
 
 #include "../Configurable/StandardOptions.hpp"
 
+#include <array>
 #include <cmath>
 
 // TODO: rename.
@@ -36,6 +37,13 @@ class Machine {
 			that it is non-null.
 		*/
 		virtual void set_scan_target(Outputs::Display::ScanTarget *scan_target) = 0;
+
+		/*!
+			@returns The current scan status.
+		*/
+		virtual Outputs::Display::ScanStatus get_scan_status() const {
+			return get_scaled_scan_status() / float(clock_rate_);
+		}
 
 		/// @returns The speaker that receives this machine's output, or @c nullptr if this machine is mute.
 		virtual Outputs::Speaker::Speaker *get_speaker() = 0;
@@ -73,7 +81,10 @@ class Machine {
 
 		enum MachineEvent: int {
 			/// At least one new packet of audio has been delivered to the spaker's delegate.
-			NewSpeakerSamplesGenerated = 1 << 0
+			NewSpeakerSamplesGenerated = 1 << 0,
+
+			/// The next vertical retrace has begun.
+			VerticalSync = 1 << 1,
 		};
 
 		/*!
@@ -93,10 +104,16 @@ class Machine {
 				sample_sets = speaker->completed_sample_sets();
 			}
 
+			int retraces = 0;
+			if(events & MachineEvent::VerticalSync) {
+				retraces = get_scan_status().hsync_count;
+			}
+
 			// Run until all requested events are satisfied.
 			return run_until(minimum_duration, [=]() {
 				return
-					(!(events & MachineEvent::NewSpeakerSamplesGenerated) || (sample_sets != speaker->completed_sample_sets()));
+					(!(events & MachineEvent::NewSpeakerSamplesGenerated) || (sample_sets != speaker->completed_sample_sets())) &&
+					(!(events & MachineEvent::VerticalSync) || (retraces != get_scan_status().hsync_count));
 			});
 		}
 
@@ -108,6 +125,15 @@ class Machine {
 		}
 		double get_clock_rate() {
 			return clock_rate_;
+		}
+
+		virtual Outputs::Display::ScanStatus get_scaled_scan_status() const {
+			// This deliberately sets up an infinite loop if the user hasn't
+			// overridden at least one of this or get_scan_status.
+			//
+			// Most likely you want to override this, and let the base class
+			// throw in a divide-by-clock-rate at the end for you.
+			return get_scan_status();
 		}
 
 		/*!
@@ -138,6 +164,7 @@ class Machine {
 			Forwards the video signal to the target returned by get_crt().
 		*/
 		virtual void set_display_type(Outputs::Display::DisplayType display_type) {}
+
 
 	private:
 		double clock_rate_ = 1.0;

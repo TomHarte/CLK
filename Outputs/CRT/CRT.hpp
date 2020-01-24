@@ -9,6 +9,7 @@
 #ifndef CRT_hpp
 #define CRT_hpp
 
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <memory>
@@ -264,7 +265,7 @@ class CRT {
 			int number_of_lines,
 			int first_cycle_after_sync,
 			int number_of_cycles,
-			float aspect_ratio);
+			float aspect_ratio) const;
 
 		/*!	Sets the CRT delegate; set to @c nullptr if no delegate is desired. */
 		inline void set_delegate(Delegate *delegate) {
@@ -273,6 +274,12 @@ class CRT {
 
 		/*! Sets the scan target for CRT output. */
 		void set_scan_target(Outputs::Display::ScanTarget *);
+
+		/*!
+			Gets current scan status, with time based fields being in the input scale — e.g. if you're supplying
+			86 cycles/line and 98 lines/field then it'll return a field duration of 86*98.
+		*/
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 		/*! Sets the display type that will be nominated to the scan target. */
 		void set_display_type(Outputs::Display::DisplayType);
@@ -285,6 +292,51 @@ class CRT {
 
 		/*! Sets the output brightness. */
 		void set_brightness(float);
+};
+
+/*!
+	Provides a CRT delegate that will will observe sync mismatches and, when an appropriate threshold is crossed,
+	ask its receiver to try a different display frequency.
+*/
+template <typename Receiver> class CRTFrequencyMismatchWarner: public Outputs::CRT::Delegate {
+	public:
+		CRTFrequencyMismatchWarner(Receiver &receiver) : receiver_(receiver) {}
+
+		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) final {
+			frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_frames = number_of_frames;
+			frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
+			++frame_record_pointer_;
+
+			if(frame_record_pointer_*2 >= frame_records_.size()*3) {
+				int total_number_of_frames = 0;
+				int total_number_of_unexpected_vertical_syncs = 0;
+				for(const auto &record: frame_records_) {
+					total_number_of_frames += record.number_of_frames;
+					total_number_of_unexpected_vertical_syncs += record.number_of_unexpected_vertical_syncs;
+				}
+
+				if(total_number_of_unexpected_vertical_syncs >= total_number_of_frames >> 1) {
+					reset();
+					receiver_.register_crt_frequency_mismatch();
+				}
+			}
+		}
+
+		void reset() {
+			for(auto &record: frame_records_) {
+				record.number_of_frames = 0;
+				record.number_of_unexpected_vertical_syncs = 0;
+			}
+		}
+
+	private:
+		Receiver &receiver_;
+		struct FrameRecord {
+			int number_of_frames = 0;
+			int number_of_unexpected_vertical_syncs = 0;
+		};
+		std::array<FrameRecord, 4> frame_records_;
+		size_t frame_record_pointer_ = 0;
 };
 
 }

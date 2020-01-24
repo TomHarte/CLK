@@ -127,6 +127,10 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
+Outputs::Display::ScanStatus Video::get_scaled_scan_status() const {
+	return crt_.get_scaled_scan_status() / 2.0f;
+}
+
 void Video::set_display_type(Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 }

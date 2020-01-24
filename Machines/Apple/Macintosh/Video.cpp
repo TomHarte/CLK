@@ -37,6 +37,10 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
+Outputs::Display::ScanStatus Video::get_scaled_scan_status() const {
+	return crt_.get_scaled_scan_status() / 2.0f;
+}
+
 void Video::run_for(HalfCycles duration) {
 	// Determine the current video and audio bases. These values don't appear to be latched, they apply immediately.
 	const size_t video_base = (use_alternate_screen_buffer_ ? (0xffff2700 >> 1) : (0xffffa700 >> 1)) & ram_mask_;

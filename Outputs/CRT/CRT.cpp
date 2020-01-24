@@ -111,8 +111,10 @@ void CRT::set_brightness(float brightness) {
 void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displayType) {
 	switch(displayType) {
 		case Outputs::Display::Type::PAL50:
+		case Outputs::Display::Type::PAL60:
 			scan_target_modals_.intended_gamma = 2.8f;
-			set_new_timing(cycles_per_line, 312, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516 colour cycles per line; 2.5 lines = vertical sync.
+			set_new_timing(cycles_per_line, (displayType == Outputs::Display::Type::PAL50) ? 312 : 262, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);
+					// i.e. 283.7516 colour cycles per line; 2.5 lines = vertical sync.
 		break;
 
 		case Outputs::Display::Type::NTSC60:
@@ -418,7 +420,9 @@ void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
 	output_scan(&scan);
 }
 
-Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio) {
+// MARK: - Getters.
+
+Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio) const {
 	first_cycle_after_sync *= time_multiplier_;
 	number_of_cycles *= time_multiplier_;
 
@@ -464,4 +468,17 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 	}
 
 	return Outputs::Display::Rect(start_x, start_y, width, height);
+}
+
+Outputs::Display::ScanStatus CRT::get_scaled_scan_status() const {
+	Outputs::Display::ScanStatus status;
+	status.field_duration = float(vertical_flywheel_->get_locked_period()) / float(time_multiplier_);
+	status.field_duration_gradient = float(vertical_flywheel_->get_last_period_adjustment()) / float(time_multiplier_);
+	status.retrace_duration = float(vertical_flywheel_->get_retrace_period()) / float(time_multiplier_);
+	status.current_position =
+		std::max(0.0f,
+			float(vertical_flywheel_->get_current_output_position()) / (float(vertical_flywheel_->get_locked_period()) * float(time_multiplier_))
+		);
+	status.hsync_count = vertical_flywheel_->get_number_of_retraces();
+	return status;
 }

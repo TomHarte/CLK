@@ -11,12 +11,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "../ClockReceiver/TimeTypes.hpp"
 
 namespace Outputs {
 namespace Display {
 
 enum class Type {
 	PAL50,
+	PAL60,
 	NTSC60
 };
 
@@ -307,6 +309,54 @@ struct ScanTarget {
 			@param composite_amplitude The amplitude of the colour burst on this line (0, if no colour burst was found).
 		*/
 		virtual void announce(Event event, bool is_visible, const Scan::EndPoint &location, uint8_t composite_amplitude) {}
+};
+
+struct ScanStatus {
+	/// The current (prediced) length of a field (including retrace).
+	Time::Seconds field_duration;
+	/// The difference applied to the field_duration estimate during the last field.
+	Time::Seconds field_duration_gradient;
+	/// The amount of time this device spends in retrace.
+	Time::Seconds retrace_duration;
+	/// The distance into the current field, from a small negative amount (in retrace) through
+	/// 0 (start of visible area field) to 1 (end of field).
+	///
+	/// This will increase monotonically, being a measure
+	/// of the current vertical position — i.e. if current_position = 0.8 then a caller can
+	/// conclude that the top 80% of the visible part of the display has been painted.
+	float current_position;
+	/// The total number of hsyncs so far encountered;
+	int hsync_count;
+	/// @c true if retrace is currently going on; @c false otherwise.
+	bool is_in_retrace;
+
+	/*!
+		@returns this ScanStatus, with time-relative fields scaled by dividing them by @c dividend.
+	*/
+	ScanStatus operator / (float dividend) {
+		const ScanStatus result = {
+			.field_duration = field_duration / dividend,
+			.field_duration_gradient = field_duration_gradient / dividend,
+			.retrace_duration = retrace_duration / dividend,
+			.current_position = current_position,
+			.hsync_count = hsync_count,
+		};
+		return result;
+	}
+
+	/*!
+		@returns this ScanStatus, with time-relative fields scaled by multiplying them by @c multiplier.
+	*/
+	ScanStatus operator * (float multiplier) {
+		const ScanStatus result = {
+			.field_duration = field_duration * multiplier,
+			.field_duration_gradient = field_duration_gradient * multiplier,
+			.retrace_duration = retrace_duration * multiplier,
+			.current_position = current_position,
+			.hsync_count = hsync_count,
+		};
+		return result;
+	}
 };
 
 /*!
