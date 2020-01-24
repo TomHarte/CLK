@@ -26,12 +26,27 @@ namespace {
 VideoOutput::VideoOutput(uint8_t *memory) :
 		ram_(memory),
 		crt_(64*6, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red1Green1Blue1),
+		frequency_mismatch_warner_(*this),
 		v_sync_start_position_(PAL50VSyncStartPosition), v_sync_end_position_(PAL50VSyncEndPosition),
 		counter_period_(PAL50Period) {
-	crt_.set_visible_area(crt_.get_rect_for_area(54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 	crt_.set_phase_linked_luminance_offset(-1.0f / 8.0f);
 	data_type_ = Outputs::Display::InputDataType::Red1Green1Blue1;
 	crt_.set_input_data_type(data_type_);
+	crt_.set_delegate(&frequency_mismatch_warner_);
+	update_crt_frequency();
+}
+
+void VideoOutput::register_crt_frequency_mismatch() {
+	crt_is_60Hz_ ^= true;
+	update_crt_frequency();
+}
+
+void VideoOutput::update_crt_frequency() {
+	// Set the proper frequency...
+	crt_.set_new_display_type(64*6, crt_is_60Hz_ ? Outputs::Display::Type::PAL60 : Outputs::Display::Type::PAL50);
+
+	// ... but also pick an appropriate crop rectangle.
+	crt_.set_visible_area(crt_.get_rect_for_area(crt_is_60Hz_ ? 26 : 54, 224, 16 * 6, 40 * 6, 4.0f / 3.0f));
 }
 
 void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
@@ -92,8 +107,8 @@ void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 }
 
 void VideoOutput::run_for(const Cycles cycles) {
-	// Vertical: 0-39: pixels; otherwise blank; 48-53 sync, 54-56 colour burst
-	// Horizontal: 0-223: pixels; otherwise blank; 256-259 sync
+	// Horizontal: 0-39: pixels; otherwise blank; 48-53 sync, 54-56 colour burst.
+	// Vertical: 0-223: pixels; otherwise blank; 256-259 (50Hz) or 234-238 (60Hz) sync.
 
 #define clamp(action)	\
 	if(cycles_run_for <= number_of_cycles) { action; } else cycles_run_for = number_of_cycles;

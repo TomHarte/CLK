@@ -9,6 +9,7 @@
 #ifndef CRT_hpp
 #define CRT_hpp
 
+#include <array>
 #include <cstdint>
 #include <limits>
 #include <memory>

@@ -18,6 +18,7 @@ namespace Display {
 
 enum class Type {
 	PAL50,
+	PAL60,
 	NTSC60
 };
 

@@ -111,8 +111,10 @@ void CRT::set_brightness(float brightness) {
 void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displayType) {
 	switch(displayType) {
 		case Outputs::Display::Type::PAL50:
+		case Outputs::Display::Type::PAL60:
 			scan_target_modals_.intended_gamma = 2.8f;
-			set_new_timing(cycles_per_line, 312, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516 colour cycles per line; 2.5 lines = vertical sync.
+			set_new_timing(cycles_per_line, (displayType == Outputs::Display::Type::PAL50) ? 312 : 262, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);
+					// i.e. 283.7516 colour cycles per line; 2.5 lines = vertical sync.
 		break;
 
 		case Outputs::Display::Type::NTSC60:
