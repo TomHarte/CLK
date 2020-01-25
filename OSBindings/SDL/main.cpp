@@ -628,11 +628,14 @@ int main(int argc, char *argv[]) {
 	bool should_quit = false;
 	Uint32 fullscreen_mode = 0;
 	while(!should_quit) {
-		// Wait for vsync and draw a new frame (NB: machine_mutex is *not* currently locked).
+		// Wait for vsync, draw a new frame and post a machine update.
+		// NB: machine_mutex is *not* currently locked, therefore it shouldn't
+		// be 'most' of the time.
 		SDL_GL_SwapWindow(window);
 		scan_target.update(int(window_width), int(window_height));
 		scan_target.draw(int(window_width), int(window_height));
 		if(activity_observer) activity_observer->draw();
+		updater.update();
 
 		// Grab the machine lock and process all pending events.
 		std::lock_guard<std::mutex> lock_guard(machine_mutex);
@@ -854,9 +857,6 @@ int main(int argc, char *argv[]) {
 				}
 			}
 		}
-
-		// Request a machine update.
-		updater.update();
 	}
 
 	// Clean up.
