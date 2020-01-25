@@ -35,9 +35,11 @@ namespace {
 
 struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
 	Time::Seconds update(Concurrency::BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update, int flags) override {
+		std::lock_guard<std::mutex> lock_guard(*machine_mutex);
 		return machine->crt_machine()->run_until(duration, flags);
 	}
 
+	std::mutex *machine_mutex;
 	Machine::DynamicMachine *machine;
 };
 
@@ -103,6 +105,7 @@ class ActivityObserver: public Activity::Observer {
 		}
 
 		void set_aspect_ratio(float aspect_ratio) {
+			std::lock_guard<std::mutex> lock_guard(mutex);
 			lights_.clear();
 
 			// Generate a bunch of LEDs for connected drives.
@@ -129,6 +132,7 @@ class ActivityObserver: public Activity::Observer {
 		}
 
 		void draw() {
+			std::lock_guard<std::mutex> lock_guard(mutex);
 			for(const auto &lit_led: lit_leds_) {
 				if(blinking_leds_.find(lit_led) == blinking_leds_.end() && lights_.find(lit_led) != lights_.end())
 					lights_[lit_led]->draw(0.0, 0.8, 0.0);
@@ -139,26 +143,31 @@ class ActivityObserver: public Activity::Observer {
 	private:
 		std::vector<std::string> leds_;
 		void register_led(const std::string &name) override {
+			std::lock_guard<std::mutex> lock_guard(mutex);
 			leds_.push_back(name);
 		}
 
 		std::vector<std::string> drives_;
 		void register_drive(const std::string &name) override {
+			std::lock_guard<std::mutex> lock_guard(mutex);
 			drives_.push_back(name);
 		}
 
 		void set_led_status(const std::string &name, bool lit) override {
+			std::lock_guard<std::mutex> lock_guard(mutex);
 			if(lit) lit_leds_.insert(name);
 			else lit_leds_.erase(name);
 		}
 
 		void announce_drive_event(const std::string &name, DriveEvent event) override {
+			std::lock_guard<std::mutex> lock_guard(mutex);
 			blinking_leds_.insert(name);
 		}
 
 		std::map<std::string, std::unique_ptr<Outputs::Display::OpenGL::Rectangle>> lights_;
 		std::set<std::string> lit_leds_;
 		std::set<std::string> blinking_leds_;
+		std::mutex mutex;
 };
 
 bool KeyboardKeyForSDLScancode(SDL_Keycode scancode, Inputs::Keyboard::Key &key) {
@@ -442,6 +451,7 @@ int main(int argc, char *argv[]) {
 
 	// Create and configure a machine.
 	::Machine::Error error;
+	std::mutex machine_mutex;
 	std::unique_ptr<::Machine::DynamicMachine> machine(::Machine::MachineForTargets(targets, rom_fetcher, error));
 	if(!machine) {
 		switch(error) {
@@ -463,6 +473,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	best_effort_updater_delegate.machine = machine.get();
+	best_effort_updater_delegate.machine_mutex = &machine_mutex;
 	speaker_delegate.updater = &updater;
 	updater.set_delegate(&best_effort_updater_delegate);
 
@@ -617,7 +628,14 @@ int main(int argc, char *argv[]) {
 	bool should_quit = false;
 	Uint32 fullscreen_mode = 0;
 	while(!should_quit) {
-		// Process all pending events.
+		// Wait for vsync and draw a new frame (NB: machine_mutex is *not* currently locked).
+		SDL_GL_SwapWindow(window);
+		scan_target.update(int(window_width), int(window_height));
+		scan_target.draw(int(window_width), int(window_height));
+		if(activity_observer) activity_observer->draw();
+
+		// Grab the machine lock and process all pending events.
+		std::lock_guard<std::mutex> lock_guard(machine_mutex);
 		SDL_Event event;
 		while(SDL_PollEvent(&event)) {
 			switch(event.type) {
@@ -643,87 +661,88 @@ int main(int argc, char *argv[]) {
 				} break;
 
 				case SDL_KEYDOWN:
-					// Syphon off the key-press if it's control+shift+V (paste).
-					if(event.key.keysym.sym == SDLK_v && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
-						const auto keyboard_machine = machine->keyboard_machine();
-						if(keyboard_machine) {
-							keyboard_machine->type_string(SDL_GetClipboardText());
+				case SDL_KEYUP: {
+					const auto keyboard_machine = machine->keyboard_machine();
+
+					if(event.type == SDL_KEYDOWN) {
+						// Syphon off the key-press if it's control+shift+V (paste).
+						if(event.key.keysym.sym == SDLK_v && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
+							if(keyboard_machine) {
+								keyboard_machine->type_string(SDL_GetClipboardText());
+								break;
+							}
+						}
+
+						// Use ctrl+escape to release the mouse (if captured).
+						if(event.key.keysym.sym == SDLK_ESCAPE && (SDL_GetModState()&KMOD_CTRL)) {
+							SDL_SetRelativeMouseMode(SDL_FALSE);
+							window_titler.set_mouse_is_captured(false);
+						}
+
+						// Capture ctrl+shift+d as a take-a-screenshot command.
+						if(event.key.keysym.sym == SDLK_d && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
+							// Grab the screen buffer.
+							Outputs::Display::OpenGL::Screenshot screenshot(4, 3);
+
+							// Pick the directory for images. Try `xdg-user-dir PICTURES` first.
+							std::string target_directory = system_get("xdg-user-dir PICTURES");
+
+							// Make sure there are no newlines.
+							target_directory.erase(std::remove(target_directory.begin(), target_directory.end(), '\n'), target_directory.end());
+							target_directory.erase(std::remove(target_directory.begin(), target_directory.end(), '\r'), target_directory.end());
+
+							// Fall back on the HOME directory if necessary.
+							if(target_directory.empty()) target_directory = getenv("HOME");
+
+							// Find the first available name of the form ~/clk-screenshot-<number>.bmp.
+							size_t index = 0;
+							std::string target;
+							while(true) {
+								target = target_directory + "/clk-screenshot-" + std::to_string(index) + ".bmp";
+
+								struct stat file_stats;
+								if(stat(target.c_str(), &file_stats))
+									break;
+
+								++index;
+							}
+
+							// Create a suitable SDL surface and save the thing.
+							const bool is_big_endian = SDL_BYTEORDER == SDL_BIG_ENDIAN;
+							SDL_Surface *const surface = SDL_CreateRGBSurfaceFrom(
+								screenshot.pixel_data.data(),
+								screenshot.width, screenshot.height,
+								8*4,
+								screenshot.width*4,
+								is_big_endian ? 0xff000000 : 0x000000ff,
+								is_big_endian ? 0x00ff0000 : 0x0000ff00,
+								is_big_endian ? 0x0000ff00 : 0x00ff0000,
+								0);
+							SDL_SaveBMP(surface, target.c_str());
+							SDL_FreeSurface(surface);
+							break;
+						}
+
+
+						// Syphon off alt+enter (toggle full-screen) upon key up only; this was previously a key down action,
+						// but the SDL_KEYDOWN announcement was found to be reposted after changing graphics mode on some
+						// systems so key up is safer.
+						if(event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
+							fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
+							SDL_SetWindowFullscreen(window, fullscreen_mode);
+							SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
+
+							// Announce a potential discontinuity in keyboard input.
+							const auto keyboard_machine = machine->keyboard_machine();
+							if(keyboard_machine) {
+								keyboard_machine->get_keyboard().reset_all_keys();
+							}
 							break;
 						}
 					}
 
-					// Use ctrl+escape to release the mouse (if captured).
-					if(event.key.keysym.sym == SDLK_ESCAPE && (SDL_GetModState()&KMOD_CTRL)) {
-						SDL_SetRelativeMouseMode(SDL_FALSE);
-						window_titler.set_mouse_is_captured(false);
-					}
-
-					// Capture ctrl+shift+d as a take-a-screenshot command.
-					if(event.key.keysym.sym == SDLK_d && (SDL_GetModState()&KMOD_CTRL) && (SDL_GetModState()&KMOD_SHIFT)) {
-						// Grab the screen buffer.
-						Outputs::Display::OpenGL::Screenshot screenshot(4, 3);
-
-						// Pick the directory for images. Try `xdg-user-dir PICTURES` first.
-						std::string target_directory = system_get("xdg-user-dir PICTURES");
-
-						// Make sure there are no newlines.
-						target_directory.erase(std::remove(target_directory.begin(), target_directory.end(), '\n'), target_directory.end());
-						target_directory.erase(std::remove(target_directory.begin(), target_directory.end(), '\r'), target_directory.end());
-
-						// Fall back on the HOME directory if necessary.
-						if(target_directory.empty()) target_directory = getenv("HOME");
-
-						// Find the first available name of the form ~/clk-screenshot-<number>.bmp.
-						size_t index = 0;
-						std::string target;
-						while(true) {
-							target = target_directory + "/clk-screenshot-" + std::to_string(index) + ".bmp";
-
-							struct stat file_stats;
-							if(stat(target.c_str(), &file_stats))
-								break;
-
-							++index;
-						}
-
-						// Create a suitable SDL surface and save the thing.
-						const bool is_big_endian = SDL_BYTEORDER == SDL_BIG_ENDIAN;
-						SDL_Surface *const surface = SDL_CreateRGBSurfaceFrom(
-							screenshot.pixel_data.data(),
-							screenshot.width, screenshot.height,
-							8*4,
-							screenshot.width*4,
-							is_big_endian ? 0xff000000 : 0x000000ff,
-							is_big_endian ? 0x00ff0000 : 0x0000ff00,
-							is_big_endian ? 0x0000ff00 : 0x00ff0000,
-							0);
-						SDL_SaveBMP(surface, target.c_str());
-						SDL_FreeSurface(surface);
-						break;
-					}
-
-				// deliberate fallthrough...
-				case SDL_KEYUP: {
-
-					// Syphon off alt+enter (toggle full-screen) upon key up only; this was previously a key down action,
-					// but the SDL_KEYDOWN announcement was found to be reposted after changing graphics mode on some
-					// systems so key up is safer.
-					if(event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
-						fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
-						SDL_SetWindowFullscreen(window, fullscreen_mode);
-						SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
-
-						// Announce a potential discontinuity in keyboard input.
-						const auto keyboard_machine = machine->keyboard_machine();
-						if(keyboard_machine) {
-							keyboard_machine->get_keyboard().reset_all_keys();
-						}
-						break;
-					}
-
 					const bool is_pressed = event.type == SDL_KEYDOWN;
 
-					const auto keyboard_machine = machine->keyboard_machine();
 					if(keyboard_machine) {
 						Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
 						if(!KeyboardKeyForSDLScancode(event.key.keysym.scancode, key)) break;
@@ -760,12 +779,13 @@ int main(int argc, char *argv[]) {
 				} break;
 
 				case SDL_MOUSEBUTTONDOWN:
-					if(uses_mouse && !SDL_GetRelativeMouseMode()) {
+				case SDL_MOUSEBUTTONUP: {
+					if(uses_mouse && event.type == SDL_MOUSEBUTTONDOWN && !SDL_GetRelativeMouseMode()) {
 						SDL_SetRelativeMouseMode(SDL_TRUE);
 						window_titler.set_mouse_is_captured(true);
 						break;
 					}
-				case SDL_MOUSEBUTTONUP: {
+
 					const auto mouse_machine = machine->mouse_machine();
 					if(mouse_machine) {
 						mouse_machine->get_mouse().set_button_pressed(
@@ -835,15 +855,12 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		// Display a new frame and wait for vsync.
+		// Request a machine update.
 		updater.update();
-		scan_target.update(int(window_width), int(window_height));
-		scan_target.draw(int(window_width), int(window_height));
-		if(activity_observer) activity_observer->draw();
-		SDL_GL_SwapWindow(window);
 	}
 
 	// Clean up.
+	updater.flush();	// Ensure no further updates will occur.
 	joysticks.clear();
 	SDL_DestroyWindow( window );
 	SDL_Quit();
