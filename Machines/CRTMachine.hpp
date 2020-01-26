@@ -54,9 +54,29 @@ class Machine {
 
 		/// Runs the machine for @c duration seconds.
 		virtual void run_for(Time::Seconds duration) {
-			const double cycles = (duration * clock_rate_) + clock_conversion_error_;
+			const double cycles = (duration * clock_rate_ * speed_multiplier_) + clock_conversion_error_;
 			clock_conversion_error_ = std::fmod(cycles, 1.0);
 			run_for(Cycles(static_cast<int>(cycles)));
+		}
+
+		/*!
+			Sets a speed multiplier to apply to this machine; e.g. a multiplier of 1.5 will cause the
+			emulated machine to run 50% faster than a real machine. This speed-up is an emulation
+			fiction: it will apply across the system, including to the CRT.
+		*/
+		virtual void set_speed_multiplier(double multiplier) {
+			speed_multiplier_ = multiplier;
+			auto speaker = get_speaker();
+			if(speaker) {
+				speaker->set_input_rate_multiplier(float(multiplier));
+			}
+		}
+
+		/*!
+			@returns The current speed multiplier.
+		*/
+		virtual double get_speed_multiplier() {
+			return speed_multiplier_;
 		}
 
 		/*!
@@ -169,6 +189,7 @@ class Machine {
 	private:
 		double clock_rate_ = 1.0;
 		double clock_conversion_error_ = 0.0;
+		double speed_multiplier_ = 1.0;
 };
 
 }
