@@ -35,7 +35,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		}
 
 		// Implemented as per Speaker.
-		float get_ideal_clock_rate_in_range(float minimum, float maximum) {
+		float get_ideal_clock_rate_in_range(float minimum, float maximum) final {
 			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
 
 			// return twice the cut off, if applicable
@@ -58,7 +58,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		}
 
 		// Implemented as per Speaker.
-		void set_output_rate(float cycles_per_second, int buffer_size) {
+		void set_computed_output_rate(float cycles_per_second, int buffer_size) final {
 			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
 			filter_parameters_.output_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;

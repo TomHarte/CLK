@@ -24,7 +24,15 @@ class Speaker {
 		virtual ~Speaker() {}
 
 		virtual float get_ideal_clock_rate_in_range(float minimum, float maximum) = 0;
-		virtual void set_output_rate(float cycles_per_second, int buffer_size) = 0;
+		void set_output_rate(float cycles_per_second, int buffer_size) {
+			output_cycles_per_second_ = cycles_per_second;
+			output_buffer_size_ = buffer_size;
+			compute_output_rate();
+		}
+		void set_input_rate_multiplier(float multiplier) {
+			input_rate_multiplier_ = multiplier;
+			compute_output_rate();
+		}
 
 		int completed_sample_sets() const { return completed_sample_sets_; }
 
@@ -36,13 +44,26 @@ class Speaker {
 			delegate_ = delegate;
 		}
 
+		virtual void set_computed_output_rate(float cycles_per_second, int buffer_size) = 0;
+
 	protected:
 		void did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) {
 			++completed_sample_sets_;
 			delegate_->speaker_did_complete_samples(this, buffer);
 		}
 		Delegate *delegate_ = nullptr;
+
+	private:
+		void compute_output_rate() {
+			// The input rate multiplier is actually used as an output rate divider,
+			// to confirm to the public interface of a generic speaker being output-centric.
+			set_computed_output_rate(output_cycles_per_second_ / input_rate_multiplier_, output_buffer_size_);
+		}
+
 		int completed_sample_sets_ = 0;
+		float input_rate_multiplier_ = 1.0f;
+		float output_cycles_per_second_ = 1.0f;
+		int output_buffer_size_ = 1;
 };
 
 }

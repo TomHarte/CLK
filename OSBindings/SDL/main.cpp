@@ -345,7 +345,7 @@ int main(int argc, char *argv[]) {
 	ParsedArguments arguments = parse_arguments(argc, argv);
 
 	// This may be printed either as
-	const std::string usage_suffix = " [file] [OPTIONS] [--rompath={path to ROMs}]";
+	const std::string usage_suffix = " [file] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]";
 
 	// Print a help message if requested.
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
@@ -410,7 +410,7 @@ int main(int argc, char *argv[]) {
 				"/usr/share/CLK/"
 			};
 			if(arguments.selections.find("rompath") != arguments.selections.end()) {
-				std::string user_path = arguments.selections["rompath"]->list_selection()->value;
+				const std::string user_path = arguments.selections["rompath"]->list_selection()->value;
 				if(user_path.back() != '/') {
 					paths.push_back(user_path + "/");
 				} else {
@@ -472,6 +472,23 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	// Apply the speed multiplier, if one was requested.
+	if(arguments.selections.find("speed") != arguments.selections.end()) {
+		const char *speed_string = arguments.selections["speed"]->list_selection()->value.c_str();
+		char *end;
+		double speed = strtod(speed_string, &end);
+
+		if(end-speed_string != strlen(speed_string)) {
+			std::cerr << "Unable to parse speed: " << speed_string << std::endl;
+		} else if(speed <= 0.0) {
+			std::cerr << "Cannot run at speed " << speed_string << "; speeds must be positive." << std::endl;
+		} else {
+			machine->crt_machine()->set_speed_multiplier(speed);
+			// TODO: what if not a 'CRT' machine? Likely rests on resolving this project's machine naming policy.
+		}
+	}
+
+	// Wire up the best-effort updater, its delegate, and the speaker delegate.
 	best_effort_updater_delegate.machine = machine.get();
 	best_effort_updater_delegate.machine_mutex = &machine_mutex;
 	speaker_delegate.updater = &updater;
