@@ -596,7 +596,7 @@ class MachineDocument:
 		return super.validateUserInterfaceItem(item)
 	}
 
-	/// Saves a screenshot of the
+	/// Saves a screenshot of the machine's current display.
 	@IBAction func saveScreenshot(_ sender: AnyObject!) {
 		// Grab a date formatter and form a file name.
 		let dateFormatter = DateFormatter()
@@ -605,8 +605,8 @@ class MachineDocument:
 
 		let filename = ("Clock Signal Screen Shot " + dateFormatter.string(from: Date()) + ".png").replacingOccurrences(of: "/", with: "-")
 			.replacingOccurrences(of: ":", with: ".")
-		let pictursURL = FileManager.default.urls(for: .picturesDirectory, in: .userDomainMask)[0]
-		let url = pictursURL.appendingPathComponent(filename)
+		let desktopURL = FileManager.default.urls(for: .desktopDirectory, in: .userDomainMask)[0]
+		let url = desktopURL.appendingPathComponent(filename)
 
 		// Obtain the machine's current display.
 		var imageRepresentation: NSBitmapImageRep? = nil
