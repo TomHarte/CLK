@@ -17,6 +17,7 @@
 @implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
 	CGSize _backingSize;
+	NSScreen *_currentScreen;
 
 	NSTrackingArea *_mouseTrackingArea;
 	NSTimer *_mouseHideTimer;
@@ -25,6 +26,9 @@
 
 - (void)prepareOpenGL {
 	[super prepareOpenGL];
+
+	// Note the initial screen.
+	_currentScreen = self.window.screen;
 
 	// Synchronize buffer swaps with vertical refresh rate
 	GLint swapInt = 1;
@@ -56,6 +60,14 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 }
 
 - (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency {
+	if(self.window.screen != _currentScreen) {
+		_currentScreen = self.window.screen;
+
+		// Issue a reshape, in case a switch to/from a Retina display has
+		// happened, changing the results of -convertSizeToBacking:, etc.
+		[self reshape];
+	}
+
 	[self redrawWithEvent:CSOpenGLViewRedrawEventTimer];
 }
 
