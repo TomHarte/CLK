@@ -399,7 +399,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			via_.flush();
 			audio_.queue.perform();
 
-			// Experimental?
+			// This avoids deferring IWM costs indefinitely, until
+			// they become artbitrarily large.
 			iwm_.flush();
 		}
 

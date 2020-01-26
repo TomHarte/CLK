@@ -111,5 +111,5 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 Outputs::Display::ScanStatus Video::get_scaled_scan_status() const {
-	return crt_.get_scaled_scan_status() / 0.5f;
+	return crt_.get_scaled_scan_status() / 2.0f;
 }
