@@ -158,6 +158,8 @@
 		4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A53911D117D36003C6002 /* CSAudioQueue.m */; };
 		4B2B3A4B1F9B8FA70062DABF /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B3A471F9B8FA70062DABF /* Typer.cpp */; };
 		4B2B3A4C1F9B8FA70062DABF /* MemoryFuzzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B3A481F9B8FA70062DABF /* MemoryFuzzer.cpp */; };
+		4B2BF19123DCC6A200C3AD60 /* BD500.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03523CEB86000B98D9E /* BD500.cpp */; };
+		4B2BF19223DCC6A800C3AD60 /* STX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03323C58B1E00B98D9E /* STX.cpp */; };
 		4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */; };
 		4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */; };
 		4B2C45421E3C3896002A2389 /* cartridge.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B2C45411E3C3896002A2389 /* cartridge.png */; };
@@ -4252,6 +4254,7 @@
 				4B055AD31FAE9B0B0060FFFF /* Microdisc.cpp in Sources */,
 				4B055AB41FAE860F0060FFFF /* OricTAP.cpp in Sources */,
 				4B055AB71FAE860F0060FFFF /* TZX.cpp in Sources */,
+				4B2BF19123DCC6A200C3AD60 /* BD500.cpp in Sources */,
 				4B055ADA1FAE9B460060FFFF /* 1770.cpp in Sources */,
 				4B055ADC1FAE9B460060FFFF /* AY38910.cpp in Sources */,
 				4B055AD71FAE9B180060FFFF /* Keyboard.cpp in Sources */,
@@ -4303,6 +4306,7 @@
 				4BEBFB4E2002C4BF000708CC /* MSXDSK.cpp in Sources */,
 				4B055ADD1FAE9B460060FFFF /* i8272.cpp in Sources */,
 				4B055A9C1FAE85DA0060FFFF /* CPCDSK.cpp in Sources */,
+				4B2BF19223DCC6A800C3AD60 /* STX.cpp in Sources */,
 				4B0ACC2723775819008902D0 /* AtariST.cpp in Sources */,
 				4B8318B922D3E56D006DB630 /* MemoryPacker.cpp in Sources */,
 				4B055ABA1FAE86170060FFFF /* Commodore.cpp in Sources */,
@@ -5075,6 +5079,7 @@
 				GCC_WARN_UNUSED_LABEL = YES;
 				INFOPLIST_FILE = "Clock Signal/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-Wreorder",
@@ -5121,6 +5126,7 @@
 				GCC_WARN_UNUSED_LABEL = YES;
 				INFOPLIST_FILE = "Clock Signal/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				OTHER_CPLUSPLUSFLAGS = (
 					"$(OTHER_CFLAGS)",
 					"-Wreorder",

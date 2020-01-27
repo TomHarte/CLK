@@ -337,7 +337,7 @@ class CRTCBusHandler {
 
 		/// @returns The current scan status.
 		Outputs::Display::ScanStatus get_scaled_scan_status() const {
-			return crt_.get_scaled_scan_status() / 64.0f;
+			return crt_.get_scaled_scan_status() / 4.0f;
 		}
 
 		/// Sets the type of display.
