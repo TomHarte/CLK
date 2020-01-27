@@ -66,9 +66,23 @@ template <typename T, T reset_value, T xor_output, bool reflect_input, bool refl
 				[add all data from @c data]
 				get_value()
 		*/
-		T compute_crc(const std::vector<uint8_t> &data) {
+		template <typename Collection> T compute_crc(const Collection &data) {
+			return compute_crc(data.begin(), data.end());
+		}
+
+		/*!
+			A compound for:
+
+				reset()
+				[add all data from @c begin to @c end]
+				get_value()
+		*/
+		template <typename Iterator> T compute_crc(Iterator begin, Iterator end) {
 			reset();
-			for(const auto &byte: data) add(byte);
+			while(begin != end) {
+				add(*begin);
+				++begin;
+			}
 			return get_value();
 		}
 
