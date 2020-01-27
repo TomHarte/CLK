@@ -30,12 +30,35 @@
 	// Note the initial screen.
 	_currentScreen = self.window.screen;
 
-	// Synchronize buffer swaps with vertical refresh rate
+	// Synchronize buffer swaps with vertical refresh rate.
+	// TODO: discard this, once scheduling is sufficiently intelligent?
 	GLint swapInt = 1;
 	[[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
 
+	// set the clear colour
+	[self.openGLContext makeCurrentContext];
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+
+	// Setup the [initial] display link.
+	[self setupDisplayLink];
+}
+
+- (void)setupDisplayLink {
+	// Kill the existing link if there is one, then wait until its final shout is definitely done.
+	if(_displayLink) {
+		const double duration = CVDisplayLinkGetActualOutputVideoRefreshPeriod(_displayLink);
+		CVDisplayLinkStop(_displayLink);
+
+		// This is a workaround; I could find no way to ensure that a callback from the display
+		// link is not currently ongoing.
+		usleep((useconds_t)ceil(duration * 1000000.0));
+
+		CVDisplayLinkRelease(_displayLink);
+	}
+
 	// Create a display link capable of being used with all active displays
-	CVDisplayLinkCreateWithActiveCGDisplays(&_displayLink);
+	NSNumber *const screenNumber = self.window.screen.deviceDescription[@"NSScreenNumber"];
+	CVDisplayLinkCreateWithCGDisplay(screenNumber.unsignedIntValue, &_displayLink);
 
 	// Set the renderer output callback function
 	CVDisplayLinkSetOutputCallback(_displayLink, DisplayLinkCallback, (__bridge void * __nullable)(self));
@@ -45,27 +68,42 @@
 	CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
 	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
 
-	// set the clear colour
-	[self.openGLContext makeCurrentContext];
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-
 	// Activate the display link
 	CVDisplayLinkStart(_displayLink);
 }
 
 static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext) {
 	CSOpenGLView *const view = (__bridge CSOpenGLView *)displayLinkContext;
+
 	[view drawAtTime:now frequency:CVDisplayLinkGetActualOutputVideoRefreshPeriod(displayLink)];
+	/*
+		Do not touch the display link from after this call; there's a bit of a race condition with setupDisplayLink.
+		Specifically: Apple provides CVDisplayLinkStop but a call to that merely prevents future calls to the callback,
+		it doesn't wait for completion of any current calls. So I've set up a usleep for one callback's duration,
+		so code in here gets one callback's duration to access the display link.
+
+		In practice, it should do so only upon entry, and before calling into the view. The view promises not to
+		access the display link itself as part of -drawAtTime:frequency:.
+	*/
+
 	return kCVReturnSuccess;
 }
 
 - (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency {
+	// Test now whether the screen this view is on has changed since last time it was checked.
+	// There's likely a callback available for this, on NSWindow if nowhere else, or an NSNotification,
+	// but since this method is going to be called repeatedly anyway, and the test is cheap, polling
+	// feels fine.
 	if(self.window.screen != _currentScreen) {
 		_currentScreen = self.window.screen;
 
 		// Issue a reshape, in case a switch to/from a Retina display has
 		// happened, changing the results of -convertSizeToBacking:, etc.
 		[self reshape];
+
+		// Also switch display links, to make sure synchronisation is with the display
+		// the window is actually on, and at its rate.
+		[self setupDisplayLink];
 	}
 
 	[self redrawWithEvent:CSOpenGLViewRedrawEventTimer];
@@ -87,7 +125,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 }
 
 - (void)dealloc {
-	// Release the display link
+	// Stop and release the display link
+	CVDisplayLinkStop(_displayLink);
 	CVDisplayLinkRelease(_displayLink);
 }
 
