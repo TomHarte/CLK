@@ -15,19 +15,19 @@
 namespace CRC {
 
 /*! Provides a class capable of generating a CRC from source data. */
-template <typename T, T reset_value, T xor_output, bool reflect_input, bool reflect_output> class Generator {
+template <typename IntType, IntType reset_value, IntType output_xor, bool reflect_input, bool reflect_output> class Generator {
 	public:
 		/*!
 			Instantiates a CRC16 that will compute the CRC16 specified by the supplied
 			@c polynomial and @c reset_value.
 		*/
-		Generator(T polynomial): value_(reset_value) {
-			const T top_bit = T(~(T(~0) >> 1));
+		Generator(IntType polynomial): value_(reset_value) {
+			const IntType top_bit = IntType(~(IntType(~0) >> 1));
 			for(int c = 0; c < 256; c++) {
-				T shift_value = static_cast<T>(c << multibyte_shift);
+				IntType shift_value = IntType(c << multibyte_shift);
 				for(int b = 0; b < 8; b++) {
-					T exclusive_or = (shift_value&top_bit) ? polynomial : 0;
-					shift_value = static_cast<T>(shift_value << 1) ^ exclusive_or;
+					IntType exclusive_or = (shift_value&top_bit) ? polynomial : 0;
+					shift_value = IntType(shift_value << 1) ^ exclusive_or;
 				}
 				xor_table[c] = shift_value;
 			}
@@ -38,17 +38,17 @@ template <typename T, T reset_value, T xor_output, bool reflect_input, bool refl
 
 		/// Updates the CRC to include @c byte.
 		void add(uint8_t byte) {
-			if(reflect_input) byte = reverse_byte(byte);
-			value_ = static_cast<T>((value_ << 8) ^ xor_table[(value_ >> multibyte_shift) ^ byte]);
+			if constexpr (reflect_input) byte = reverse_byte(byte);
+			value_ = IntType((value_ << 8) ^ xor_table[(value_ >> multibyte_shift) ^ byte]);
 		}
 
 		/// @returns The current value of the CRC.
-		inline T get_value() const {
-			T result = value_^xor_output;
-			if(reflect_output) {
-				T reflected_output = 0;
-				for(std::size_t c = 0; c < sizeof(T); ++c) {
-					reflected_output = T(reflected_output << 8) | T(reverse_byte(result & 0xff));
+		inline IntType get_value() const {
+			IntType result = value_ ^ output_xor;
+			if constexpr (reflect_output) {
+				IntType reflected_output = 0;
+				for(std::size_t c = 0; c < sizeof(IntType); ++c) {
+					reflected_output = IntType(reflected_output << 8) | IntType(reverse_byte(result & 0xff));
 					result >>= 8;
 				}
 				return reflected_output;
@@ -57,7 +57,7 @@ template <typename T, T reset_value, T xor_output, bool reflect_input, bool refl
 		}
 
 		/// Sets the current value of the CRC.
-		inline void set_value(T value) { value_ = value; }
+		inline void set_value(IntType value) { value_ = value; }
 
 		/*!
 			A compound for:
@@ -66,7 +66,7 @@ template <typename T, T reset_value, T xor_output, bool reflect_input, bool refl
 				[add all data from @c data]
 				get_value()
 		*/
-		template <typename Collection> T compute_crc(const Collection &data) {
+		template <typename Collection> IntType compute_crc(const Collection &data) {
 			return compute_crc(data.begin(), data.end());
 		}
 
@@ -77,7 +77,7 @@ template <typename T, T reset_value, T xor_output, bool reflect_input, bool refl
 				[add all data from @c begin to @c end]
 				get_value()
 		*/
-		template <typename Iterator> T compute_crc(Iterator begin, Iterator end) {
+		template <typename Iterator> IntType compute_crc(Iterator begin, Iterator end) {
 			reset();
 			while(begin != end) {
 				add(*begin);
@@ -87,9 +87,9 @@ template <typename T, T reset_value, T xor_output, bool reflect_input, bool refl
 		}
 
 	private:
-		static constexpr int multibyte_shift = (sizeof(T) * 8) - 8;
-		T xor_table[256];
-		T value_;
+		static constexpr int multibyte_shift = (sizeof(IntType) * 8) - 8;
+		IntType xor_table[256];
+		IntType value_;
 
 		constexpr uint8_t reverse_byte(uint8_t byte) const {
 			return
