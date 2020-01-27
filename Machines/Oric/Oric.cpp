@@ -608,20 +608,20 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// WD::WD1770::Delegate
-		void wd1770_did_change_output(WD::WD1770 *wd1770) override final {
+		void wd1770_did_change_output(WD::WD1770 *wd1770) final {
 			set_interrupt_line();
 		}
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
 			return Oric::get_options();
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
 			bool quickload;
 			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
 				set_use_fast_tape_hack(quickload);
@@ -633,21 +633,21 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 		}
 
-		Configurable::SelectionSet get_accurate_selections() override {
+		Configurable::SelectionSet get_accurate_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, false);
 			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
 			return selection_set;
 		}
 
-		Configurable::SelectionSet get_user_friendly_selections() override {
+		Configurable::SelectionSet get_user_friendly_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, true);
 			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
 			return selection_set;
 		}
 
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			switch(disk_interface) {
 				default: break;
 				case DiskInterface::BD500:
@@ -665,7 +665,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 		}
 
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) override final {
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) final {
 			diskii_clocking_preference_ = diskii_.preferred_clocking();
 		}
 
@@ -747,7 +747,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// Keys that aren't read by polling.
-		void perform_special_key(Oric::Key key) override {
+		void perform_special_key(Oric::Key key) final {
 			switch(key) {
 				default: break;
 

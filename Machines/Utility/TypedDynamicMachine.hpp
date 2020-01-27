@@ -25,35 +25,35 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 			return *this;
 		}
 
-		Activity::Source *activity_source() override {
+		Activity::Source *activity_source() final {
 			return get<Activity::Source>();
 		}
 
-		MediaTarget::Machine *media_target() override {
+		MediaTarget::Machine *media_target() final {
 			return get<MediaTarget::Machine>();
 		}
 
-		CRTMachine::Machine *crt_machine() override {
+		CRTMachine::Machine *crt_machine() final {
 			return get<CRTMachine::Machine>();
 		}
 
-		JoystickMachine::Machine *joystick_machine() override {
+		JoystickMachine::Machine *joystick_machine() final {
 			return get<JoystickMachine::Machine>();
 		}
 
-		KeyboardMachine::Machine *keyboard_machine() override {
+		KeyboardMachine::Machine *keyboard_machine() final {
 			return get<KeyboardMachine::Machine>();
 		}
 
-		MouseMachine::Machine *mouse_machine() override {
+		MouseMachine::Machine *mouse_machine() final {
 			return get<MouseMachine::Machine>();
 		}
 
-		Configurable::Device *configurable_device() override {
+		Configurable::Device *configurable_device() final {
 			return get<Configurable::Device>();
 		}
 
-		void *raw_pointer() override {
+		void *raw_pointer() final {
 			return get();
 		}
 

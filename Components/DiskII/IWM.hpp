@@ -76,7 +76,7 @@ class IWM:
 
 	private:
 		// Storage::Disk::Drive::EventDelegate.
-		void process_event(const Storage::Disk::Drive::Event &event) override;
+		void process_event(const Storage::Disk::Drive::Event &event) final;
 
 		const int clock_rate_;
 
@@ -91,7 +91,7 @@ class IWM:
 		IWMDrive *drives_[2] = {nullptr, nullptr};
 		bool drive_is_rotating_[2] = {false, false};
 
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override;
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final;
 
 		Cycles cycles_until_disable_;
 		uint8_t write_handshake_ = 0x80;

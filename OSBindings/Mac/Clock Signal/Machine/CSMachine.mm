@@ -46,12 +46,12 @@ struct LockProtectedDelegate {
 };
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockProtectedDelegate {
-	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override {
+	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) final {
 		[machineAccessLock lock];
 		[machine speaker:speaker didCompleteSamples:buffer.data() length:(int)buffer.size()];
 		[machineAccessLock unlock];
 	}
-	void speaker_did_change_input_clock(Outputs::Speaker::Speaker *speaker) override {
+	void speaker_did_change_input_clock(Outputs::Speaker::Speaker *speaker) final {
 		[machineAccessLock lock];
 		[machine speakerDidChangeInputClock:speaker];
 		[machineAccessLock unlock];
@@ -59,15 +59,15 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 };
 
 struct ActivityObserver: public Activity::Observer {
-	void register_led(const std::string &name) override {
+	void register_led(const std::string &name) final {
 		[machine addLED:[NSString stringWithUTF8String:name.c_str()]];
 	}
 
-	void set_led_status(const std::string &name, bool lit) override {
+	void set_led_status(const std::string &name, bool lit) final {
 		[machine.delegate machine:machine led:[NSString stringWithUTF8String:name.c_str()] didChangeToLit:lit];
 	}
 
-	void announce_drive_event(const std::string &name, DriveEvent event) override {
+	void announce_drive_event(const std::string &name, DriveEvent event) final {
 		[machine.delegate machine:machine ledShouldBlink:[NSString stringWithUTF8String:name.c_str()]];
 	}
 

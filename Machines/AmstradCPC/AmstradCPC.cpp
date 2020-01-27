@@ -632,7 +632,7 @@ class KeyboardState: public GI::AY38910::PortHandler {
 					}),
 					state_(state) {}
 
-				void did_set_input(const Input &input, bool is_active) override {
+				void did_set_input(const Input &input, bool is_active) final {
 					uint8_t mask = 0;
 					switch(input.type) {
 						default: return;
@@ -1007,7 +1007,7 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		/// A CRTMachine function; sets the destination for video.
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			crtc_bus_handler_.set_scan_target(scan_target);
 		}
 
@@ -1017,21 +1017,21 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		/// A CRTMachine function; sets the output display type.
-		void set_display_type(Outputs::Display::DisplayType display_type) override final {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			crtc_bus_handler_.set_display_type(display_type);
 		}
 
 		/// @returns the speaker in use.
-		Outputs::Speaker::Speaker *get_speaker() override final {
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return ay_.get_speaker();
 		}
 
 		/// Wires virtual-dispatched CRTMachine run_for requests to the static Z80 method.
-		void run_for(const Cycles cycles) override final {
+		void run_for(const Cycles cycles) final {
 			z80_.run_for(cycles);
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			// If there are any tapes supplied, use the first of them.
 			if(!media.tapes.empty()) {
 				tape_player_.set_tape(media.tapes.front());
@@ -1048,70 +1048,70 @@ template <bool has_fdc> class ConcreteMachine:
 			return !media.tapes.empty() || (!media.disks.empty() && has_fdc);
 		}
 
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override final {
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
 			fdc_is_sleeping_ = fdc_.preferred_clocking() == ClockingHint::Preference::None;
 			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 		}
 
 		// MARK: - Keyboard
-		void type_string(const std::string &string) override final {
+		void type_string(const std::string &string) final {
 			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
 			Utility::TypeRecipient::add_typer(string, std::move(mapper));
 		}
 
-		HalfCycles get_typer_delay() override final {
+		HalfCycles get_typer_delay() final {
 			return Cycles(4000000);	// Wait 1 second before typing.
 		}
 
-		HalfCycles get_typer_frequency() override final {
+		HalfCycles get_typer_frequency() final {
 			return Cycles(160000);	// Type one character per frame.
 		}
 
 		// See header; sets a key as either pressed or released.
-		void set_key_state(uint16_t key, bool isPressed) override final {
+		void set_key_state(uint16_t key, bool isPressed) final {
 			key_state_.set_is_pressed(isPressed, key >> 4, key & 7);
 		}
 
 		// See header; sets all keys to released.
-		void clear_all_keys() override final {
+		void clear_all_keys() final {
 			key_state_.clear_all_keys();
 		}
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			if constexpr (has_fdc) fdc_.set_activity_observer(observer);
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
 			return AmstradCPC::get_options();
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
 			Configurable::Display display;
 			if(Configurable::get_display(selections_by_option, display)) {
 				set_video_signal_configurable(display);
 			}
 		}
 
-		Configurable::SelectionSet get_accurate_selections() override {
+		Configurable::SelectionSet get_accurate_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
 			return selection_set;
 		}
 
-		Configurable::SelectionSet get_user_friendly_selections() override {
+		Configurable::SelectionSet get_user_friendly_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
 			return selection_set;
 		}
 
 		// MARK: - Joysticks
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return key_state_.get_joysticks();
 		}
 

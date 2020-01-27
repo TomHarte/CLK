@@ -53,13 +53,13 @@ class MultiCRTMachine: public CRTMachine::Machine {
 		}
 
 		// Below is the standard CRTMachine::Machine interface; see there for documentation.
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override;
-		Outputs::Display::ScanStatus get_scan_status() const override;
-		Outputs::Speaker::Speaker *get_speaker() override;
-		void run_for(Time::Seconds duration) override;
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final;
+		Outputs::Display::ScanStatus get_scan_status() const final;
+		Outputs::Speaker::Speaker *get_speaker() final;
+		void run_for(Time::Seconds duration) final;
 
 	private:
-		void run_for(const Cycles cycles) override {}
+		void run_for(const Cycles cycles) final {}
 		const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines_;
 		std::recursive_mutex &machines_mutex_;
 		std::vector<Concurrency::AsyncTaskQueue> queues_;

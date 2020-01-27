@@ -29,7 +29,7 @@ struct MultiMediaTarget: public MediaTarget::Machine {
 		MultiMediaTarget(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
 
 		// Below is the standard MediaTarget::Machine interface; see there for documentation.
-		bool insert_media(const Analyser::Static::Media &media) override;
+		bool insert_media(const Analyser::Static::Media &media) final;
 
 	private:
 		std::vector<MediaTarget::Machine *> targets_;

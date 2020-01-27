@@ -259,7 +259,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 			user_port_via_port_handler_(user_port_via_port_handler),
 			keyboard_via_port_handler_(keyboard_via_port_handler) {}
 
-		void did_set_input(const Input &digital_input, bool is_active) override {
+		void did_set_input(const Input &digital_input, bool is_active) final {
 			JoystickInput mapped_input;
 			switch(digital_input.type) {
 				default: return;
@@ -453,7 +453,7 @@ class ConcreteMachine:
 			}
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.tapes.empty()) {
 				tape_->set_tape(media.tapes.front());
 			}
@@ -477,18 +477,18 @@ class ConcreteMachine:
 			return !media.tapes.empty() || (!media.disks.empty() && c1540_ != nullptr) || !media.cartridges.empty();
 		}
 
-		void set_key_state(uint16_t key, bool is_pressed) override final {
+		void set_key_state(uint16_t key, bool is_pressed) final {
 			if(key != KeyRestore)
 				keyboard_via_port_handler_->set_key_state(key, is_pressed);
 			else
 				user_port_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !is_pressed);
 		}
 
-		void clear_all_keys() override final {
+		void clear_all_keys() final {
 			keyboard_via_port_handler_->clear_all_keys();
 		}
 
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return joysticks_;
 		}
 
@@ -618,11 +618,11 @@ class ConcreteMachine:
 			mos6560_.flush();
 		}
 
-		void run_for(const Cycles cycles) override final {
+		void run_for(const Cycles cycles) final {
 			m6502_.run_for(cycles);
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			mos6560_.set_scan_target(scan_target);
 		}
 
@@ -630,37 +630,37 @@ class ConcreteMachine:
 			return mos6560_.get_scaled_scan_status();
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override final {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			mos6560_.set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override final {
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return mos6560_.get_speaker();
 		}
 
-		void mos6522_did_change_interrupt_status(void *mos6522) override final {
+		void mos6522_did_change_interrupt_status(void *mos6522) final {
 			m6502_.set_nmi_line(user_port_via_.get_interrupt_line());
 			m6502_.set_irq_line(keyboard_via_.get_interrupt_line());
 		}
 
-		void type_string(const std::string &string) override final {
+		void type_string(const std::string &string) final {
 			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
 		}
 
-		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) override final {
+		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) final {
 			keyboard_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !tape->get_input());
 		}
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
 			return Commodore::Vic20::get_options();
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
+		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
 			bool quickload;
 			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
 				allow_fast_tape_hack_ = quickload;
@@ -673,27 +673,27 @@ class ConcreteMachine:
 			}
 		}
 
-		Configurable::SelectionSet get_accurate_selections() override {
+		Configurable::SelectionSet get_accurate_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, false);
 			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
 			return selection_set;
 		}
 
-		Configurable::SelectionSet get_user_friendly_selections() override {
+		Configurable::SelectionSet get_user_friendly_selections() final {
 			Configurable::SelectionSet selection_set;
 			Configurable::append_quick_load_tape_selection(selection_set, true);
 			Configurable::append_display_selection(selection_set, Configurable::Display::SVideo);
 			return selection_set;
 		}
 
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override {
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
 			tape_is_sleeping_ = clocking == ClockingHint::Preference::None;
 			set_use_fast_tape();
 		}
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			if(c1540_) c1540_->set_activity_observer(observer);
 		}
 

@@ -19,7 +19,7 @@ class ASCII16kbROMSlotHandler: public ROMSlotHandler {
 		ASCII16kbROMSlotHandler(MSX::MemoryMap &map, int slot) :
 			map_(map), slot_(slot) {}
 
-		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) override {
+		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) final {
 			switch(address >> 11) {
 				default:
 					if(pc_is_outside_bios) confidence_counter_.add_miss();
@@ -39,7 +39,7 @@ class ASCII16kbROMSlotHandler: public ROMSlotHandler {
 			}
 		}
 
-		virtual std::string debug_type() override {
+		virtual std::string debug_type() final {
 			return "A16";
 		}
 

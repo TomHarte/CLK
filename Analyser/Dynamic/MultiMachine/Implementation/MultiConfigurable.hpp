@@ -28,10 +28,10 @@ class MultiConfigurable: public Configurable::Device {
 		MultiConfigurable(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
 
 		// Below is the standard Configurable::Device interface; see there for documentation.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override;
-		void set_selections(const Configurable::SelectionSet &selection_by_option) override;
-		Configurable::SelectionSet get_accurate_selections() override;
-		Configurable::SelectionSet get_user_friendly_selections() override;
+		std::vector<std::unique_ptr<Configurable::Option>> get_options() final;
+		void set_selections(const Configurable::SelectionSet &selection_by_option) final;
+		Configurable::SelectionSet get_accurate_selections() final;
+		Configurable::SelectionSet get_user_friendly_selections() final;
 
 	private:
 		std::vector<Configurable::Device *> devices_;

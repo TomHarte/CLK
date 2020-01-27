@@ -26,7 +26,7 @@ namespace Apple {
 /*!
 	Provides an emulation of the Apple Disk II.
 */
-class DiskII final:
+class DiskII :
 	public Storage::Disk::Drive::EventDelegate,
 	public ClockingHint::Source,
 	public ClockingHint::Observer {
@@ -98,8 +98,8 @@ class DiskII final:
 		void select_drive(int drive);
 
 		uint8_t trigger_address(int address, uint8_t value);
-		void process_event(const Storage::Disk::Drive::Event &event) override;
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) override;
+		void process_event(const Storage::Disk::Drive::Event &event) final;
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) final;
 
 		const Cycles::IntType clock_rate_ = 0;
 

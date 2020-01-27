@@ -43,8 +43,8 @@ class MultiSpeaker: public Outputs::Speaker::Speaker, Outputs::Speaker::Speaker:
 		void set_delegate(Outputs::Speaker::Speaker::Delegate *delegate) override;
 
 	private:
-		void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) override;
-		void speaker_did_change_input_clock(Speaker *speaker) override;
+		void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) final;
+		void speaker_did_change_input_clock(Speaker *speaker) final;
 		MultiSpeaker(const std::vector<Outputs::Speaker::Speaker *> &speakers);
 
 		std::vector<Outputs::Speaker::Speaker *> speakers_;
