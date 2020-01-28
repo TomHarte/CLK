@@ -89,10 +89,10 @@ struct Checker {
 				assert(horizontal.reset_blank < horizontal.set_enable);
 				assert(horizontal.set_enable < horizontal.reset_enable);
 				assert(horizontal.reset_enable < horizontal.set_blank);
-				assert(horizontal.set_blank+50 < horizontal.length);
+				assert(horizontal.set_blank+50 < horizontal.length.length);
 			} else {
 				assert(horizontal.set_enable < horizontal.reset_enable);
-				assert(horizontal.set_enable+50 <horizontal.length);
+				assert(horizontal.set_enable+50 <horizontal.length.length);
 			}
 
 			// Expected vertical order of events: reset blank, enable display, disable display, enable blank (at least 50 before end of line), end of line
