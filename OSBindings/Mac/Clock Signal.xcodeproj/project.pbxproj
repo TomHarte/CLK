@@ -3858,6 +3858,7 @@
 					};
 					4BB73EB11B587A5100552FC2 = {
 						CreatedOnToolsVersion = 7.0;
+						DevelopmentTeam = CP2SKEB3XT;
 						LastSwiftMigration = 1020;
 						TestTargetID = 4BB73E9D1B587A5100552FC2;
 					};
@@ -5059,7 +5060,6 @@
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				CLANG_WARN__EXIT_TIME_DESTRUCTORS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
-				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = CP2SKEB3XT;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -5104,7 +5104,6 @@
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				CLANG_WARN__EXIT_TIME_DESTRUCTORS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
-				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				DEVELOPMENT_TEAM = CP2SKEB3XT;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -5144,7 +5143,10 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = CP2SKEB3XT;
+				ENABLE_HARDENED_RUNTIME = NO;
 				INFOPLIST_FILE = "Clock SignalTests/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-SignalTests";
@@ -5162,7 +5164,10 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = CP2SKEB3XT;
+				ENABLE_HARDENED_RUNTIME = NO;
 				GCC_OPTIMIZATION_LEVEL = 2;
 				INFOPLIST_FILE = "Clock SignalTests/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";

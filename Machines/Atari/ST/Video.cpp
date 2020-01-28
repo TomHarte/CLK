@@ -29,7 +29,7 @@ const struct VerticalParams {
 } vertical_params[3] = {
 	{63, 263, 313},	// 47 rather than 63 on early machines.
 	{34, 234, 263},
-	{1, 401, 500}	// 72 Hz mode: who knows?
+	{51, 451, 500}	// 72 Hz mode: who knows?
 };
 
 /// @returns The correct @c VerticalParams for output at @c frequency.
@@ -57,12 +57,19 @@ const struct HorizontalParams {
 	const int set_blank;
 	const int reset_blank;
 
+	const int vertical_decision;
+
 	const int length;
 } horizontal_params[3] = {
-	{CYCLE(56), CYCLE(376),		CYCLE(450), CYCLE(28),		CYCLE(512)},
-	{CYCLE(52), CYCLE(372),		CYCLE(450), CYCLE(24),		CYCLE(508)},
-	{CYCLE(4),	CYCLE(164),		CYCLE(999), CYCLE(999),		CYCLE(224)}	// 72Hz mode doesn't set or reset blank.
+	{CYCLE(56), CYCLE(376),		CYCLE(450), CYCLE(28),		CYCLE(502),		CYCLE(512)},
+	{CYCLE(52), CYCLE(372),		CYCLE(450), CYCLE(24),		CYCLE(502),		CYCLE(508)},
+	{CYCLE(4),	CYCLE(164),		CYCLE(999), CYCLE(999),		CYCLE(214),		CYCLE(224)}	// 72Hz mode doesn't set or reset blank.
 };
+
+// Re: 'vertical_decision':
+// This is cycle 502 if in 50 or 60 Hz mode; in 70 Hz mode I've put it on cycle 214
+// in order to be analogous to 50 and 60 Hz mode. I have no idea where it should
+// actually go.
 
 const HorizontalParams &horizontal_parameters(Video::FieldFrequency frequency) {
 	return horizontal_params[int(frequency)];
@@ -111,12 +118,13 @@ const int vsync_delay_period = hsync_delay_period;	// Signal vsync with the same
 
 Video::Video() :
 	deferrer_([=] (HalfCycles duration) { advance(duration); }),
-	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+//	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+	crt_(448, 1, 500, Outputs::Display::ColourSpace::YIQ, 100, 50, 5, false, Outputs::Display::InputDataType::Red4Green4Blue4),
 	video_stream_(crt_, palette_) {
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
-	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 220, 850, 4.0f / 3.0f));
+//	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 220, 850, 4.0f / 3.0f));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
@@ -256,8 +264,8 @@ void Video::advance(HalfCycles duration) {
 		// Check for whether line length should have been latched during this run.
 		if(x_ <= CYCLE(54) && (x_ + run_length) > CYCLE(54)) line_length_ = horizontal_timings.length;
 
-		// Make a decision about vertical state on cycle 502.
-		if(x_ <= CYCLE(502) && (x_ + run_length) > CYCLE(502)) {
+		// Make a decision about vertical state on the appropriate cycle.
+		if(x_ <= horizontal_timings.vertical_decision && (x_ + run_length) > horizontal_timings.vertical_decision) {
 			next_y_ = y_ + 1;
 			next_vertical_ = vertical_;
 			next_vertical_.sync_schedule = VerticalState::SyncSchedule::None;
@@ -761,7 +769,13 @@ void Video::VideoStream::set_bpp(OutputBpp bpp) {
 }
 
 void Video::VideoStream::load(uint64_t value) {
-	output_shifter_ = value;
+	// In 1bpp mode, a 0 bit is white and a 1 bit is black.
+	// Invert the input so that the 'just output the border colour
+	// when the shifter is empty' optimisation works.
+	if(bpp_ == OutputBpp::One)
+		output_shifter_ = ~value;
+	else
+		output_shifter_ = value;
 }
 
 // MARK: - Range observer.
