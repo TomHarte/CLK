@@ -118,13 +118,13 @@ const int vsync_delay_period = hsync_delay_period;	// Signal vsync with the same
 
 Video::Video() :
 	deferrer_([=] (HalfCycles duration) { advance(duration); }),
-//	crt_(1024, 1, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
-	crt_(448, 1, 500, Outputs::Display::ColourSpace::YIQ, 100, 50, 5, false, Outputs::Display::InputDataType::Red4Green4Blue4),
+//	crt_(2048, 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+	crt_(896, 1, 500, Outputs::Display::ColourSpace::YIQ, 100, 50, 5, false, Outputs::Display::InputDataType::Red4Green4Blue4),
 	video_stream_(crt_, palette_) {
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
-//	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 220, 850, 4.0f / 3.0f));
+//	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 440, 1700, 4.0f / 3.0f));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
@@ -136,7 +136,7 @@ void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 }
 
 Outputs::Display::ScanStatus Video::get_scaled_scan_status() const {
-	return crt_.get_scaled_scan_status() / 2.0f;
+	return crt_.get_scaled_scan_status() / 4.0f;
 }
 
 void Video::set_display_type(Outputs::Display::DisplayType display_type) {
@@ -567,9 +567,9 @@ void Video::VideoStream::generate(int duration, OutputMode mode, bool is_termina
 	if(mode != OutputMode::Pixels) {
 		switch(mode) {
 			default:
-			case OutputMode::Sync:			crt_.output_sync(duration_);					break;
-			case OutputMode::Blank:			crt_.output_blank(duration_);					break;
-			case OutputMode::ColourBurst:	crt_.output_default_colour_burst(duration_);	break;
+			case OutputMode::Sync:			crt_.output_sync(duration_*2);					break;
+			case OutputMode::Blank:			crt_.output_blank(duration_*2);					break;
+			case OutputMode::ColourBurst:	crt_.output_default_colour_burst(duration_*2);	break;
 		}
 
 		// Reseed duration
@@ -622,7 +622,7 @@ void Video::VideoStream::flush_border() {
 	// Output colour 0 for the entirety of duration_ (or black, if this is 1bpp mode).
 	uint16_t *const colour_pointer = reinterpret_cast<uint16_t *>(crt_.begin_data(1));
 	if(colour_pointer) *colour_pointer = (bpp_ != OutputBpp::One) ?  palette_[0] : 0;
-	crt_.output_level(duration_);
+	crt_.output_level(duration_*2);
 
 	duration_ = 0;
 }
@@ -738,7 +738,7 @@ void Video::VideoStream::output_pixels(int duration) {
 			case OutputBpp::Four: leftover_duration <<= 1;	break;
 		}
 		shift(leftover_duration);
-		crt_.output_data(leftover_duration);
+		crt_.output_data(leftover_duration*2);
 	}
 }
 
@@ -746,9 +746,9 @@ void Video::VideoStream::flush_pixels() {
 	// Flush only if there's something to flush.
 	if(pixel_pointer_) {
 		switch(bpp_) {
-			case OutputBpp::One:	crt_.output_data(pixel_pointer_ >> 1, size_t(pixel_pointer_)); break;
-			default: 				crt_.output_data(pixel_pointer_); break;
-			case OutputBpp::Four:	crt_.output_data(pixel_pointer_ << 1, size_t(pixel_pointer_)); break;
+			case OutputBpp::One:	crt_.output_data(pixel_pointer_); break;
+			default: 				crt_.output_data(pixel_pointer_ << 1, size_t(pixel_pointer_)); break;
+			case OutputBpp::Four:	crt_.output_data(pixel_pointer_ << 2, size_t(pixel_pointer_)); break;
 		}
 	}
 
