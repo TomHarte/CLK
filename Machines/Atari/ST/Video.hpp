@@ -21,6 +21,12 @@ class VideoTester;
 namespace Atari {
 namespace ST {
 
+struct LineLength {
+	int length = 1024;
+	int hsync_start;
+	int hsync_end;
+};
+
 /*!
 	Models a combination of the parts of the GLUE, MMU and Shifter that in net
 	form the video subsystem of the Atari ST. So not accurate to a real chip, but
@@ -163,7 +169,7 @@ class Video {
 			} sync_schedule = SyncSchedule::None;
 			bool sync = false;
 		} vertical_, next_vertical_;
-		int line_length_ = 1024;
+		LineLength line_length_;
 
 		int data_latch_position_ = 0;
 		int data_latch_read_position_ = 0;

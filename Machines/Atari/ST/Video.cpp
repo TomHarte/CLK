@@ -13,6 +13,8 @@
 #include <algorithm>
 #include <cstring>
 
+#define CYCLE(x)	((x) * 2)
+
 using namespace Atari::ST;
 
 namespace {
@@ -37,8 +39,6 @@ const VerticalParams &vertical_parameters(Video::FieldFrequency frequency) {
 	return vertical_params[int(frequency)];
 }
 
-
-#define CYCLE(x)	((x) * 2)
 /*!
 	Defines the horizontal counts at which mode-specific events will occur:
 	horizontal enable being set and being reset, blank being set and reset, and the
@@ -59,17 +59,20 @@ const struct HorizontalParams {
 
 	const int vertical_decision;
 
-	const int length;
+	LineLength length;
 } horizontal_params[3] = {
-	{CYCLE(56), CYCLE(376),		CYCLE(450), CYCLE(28),		CYCLE(502),		CYCLE(512)},
-	{CYCLE(52), CYCLE(372),		CYCLE(450), CYCLE(24),		CYCLE(502),		CYCLE(508)},
-	{CYCLE(4),	CYCLE(164),		CYCLE(999), CYCLE(999),		CYCLE(214),		CYCLE(224)}	// 72Hz mode doesn't set or reset blank.
+	{CYCLE(56), CYCLE(376),		CYCLE(450), CYCLE(28),		CYCLE(502),		{ CYCLE(512), CYCLE(464), CYCLE(504) }},
+	{CYCLE(52), CYCLE(372),		CYCLE(450), CYCLE(24),		CYCLE(502),		{ CYCLE(508), CYCLE(460), CYCLE(500) }},
+	{CYCLE(4),	CYCLE(164),		CYCLE(999), CYCLE(999),		CYCLE(214),		{ CYCLE(224), CYCLE(194), CYCLE(212) }}
+		// 72Hz mode doesn't set or reset blank.
 };
 
 // Re: 'vertical_decision':
 // This is cycle 502 if in 50 or 60 Hz mode; in 70 Hz mode I've put it on cycle 214
 // in order to be analogous to 50 and 60 Hz mode. I have no idea where it should
 // actually go.
+//
+// Ditto the horizontal sync timings for 72Hz are plucked out of thin air.
 
 const HorizontalParams &horizontal_parameters(Video::FieldFrequency frequency) {
 	return horizontal_params[int(frequency)];
@@ -104,10 +107,10 @@ struct Checker {
 const int de_delay_period = CYCLE(28);		// Amount of time after DE that observed DE changes. NB: HACK HERE. This currently incorporates the MFP recognition delay. MUST FIX.
 const int vsync_x_position = CYCLE(56);		// Horizontal cycle on which vertical sync changes happen.
 
-const int hsync_start = CYCLE(48);			// Cycles before end of line when hsync starts.
-const int hsync_end = CYCLE(8);				// Cycles before end of line when hsync ends.
+//const int hsync_start = CYCLE(48);			// Cycles before end of line when hsync starts.
+//const int hsync_end = CYCLE(8);				// Cycles before end of line when hsync ends.
 
-const int hsync_delay_period = hsync_end;			// Signal hsync at the end of the line.
+const int hsync_delay_period = CYCLE(8);			// Signal hsync at the end of the line.
 const int vsync_delay_period = hsync_delay_period;	// Signal vsync with the same delay as hsync.
 
 // "VSYNC starts 104 cycles after the start of the previous line's HSYNC, so that's 4 cycles before DE would be activated. ";
@@ -118,13 +121,13 @@ const int vsync_delay_period = hsync_delay_period;	// Signal vsync with the same
 
 Video::Video() :
 	deferrer_([=] (HalfCycles duration) { advance(duration); }),
-//	crt_(2048, 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
-	crt_(896, 1, 500, Outputs::Display::ColourSpace::YIQ, 100, 50, 5, false, Outputs::Display::InputDataType::Red4Green4Blue4),
+	crt_(2048, 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+//	crt_(896, 1, 500, Outputs::Display::ColourSpace::YIQ, 100, 50, 5, false, Outputs::Display::InputDataType::Red4Green4Blue4),
 	video_stream_(crt_, palette_) {
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
-//	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 440, 1700, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 440, 1700, 4.0f / 3.0f));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
@@ -173,7 +176,7 @@ void Video::advance(HalfCycles duration) {
 
 	while(integer_duration) {
 		// Seed next event to end of line.
-		int next_event = line_length_;
+		int next_event = line_length_.length;
 
 		// Check the explicitly-placed events.
 		if(horizontal_timings.reset_blank > x_)		next_event = std::min(next_event, horizontal_timings.reset_blank);
@@ -183,8 +186,8 @@ void Video::advance(HalfCycles duration) {
 		if(next_load_toggle_ > x_) 					next_event = std::min(next_event, next_load_toggle_);
 
 		// Check for events that are relative to existing latched state.
-		if(line_length_ - hsync_start > x_)			next_event = std::min(next_event, line_length_ - hsync_start);
-		if(line_length_ - hsync_end > x_)			next_event = std::min(next_event, line_length_ - hsync_end);
+		if(line_length_.hsync_start > x_)			next_event = std::min(next_event, line_length_.hsync_start);
+		if(line_length_.hsync_end > x_)				next_event = std::min(next_event, line_length_.hsync_end);
 
 		// Also, a vertical sync event might intercede.
 		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ < vsync_x_position && next_event >= vsync_x_position) {
@@ -297,8 +300,8 @@ void Video::advance(HalfCycles duration) {
 		else if(horizontal_timings.set_blank == x_)		horizontal_.blank = true;
 		else if(horizontal_timings.reset_enable == x_)	horizontal_.enable = false;
 		else if(horizontal_timings.set_enable == x_) 	horizontal_.enable = true;
-		else if(line_length_ - hsync_start == x_)		{ horizontal_.sync = true; horizontal_.enable = false; }
-		else if(line_length_ - hsync_end == x_)			horizontal_.sync = false;
+		else if(line_length_.hsync_start == x_)			{ horizontal_.sync = true; horizontal_.enable = false; }
+		else if(line_length_.hsync_end == x_)			horizontal_.sync = false;
 
 		// next_load_toggle_ is less predictable; test separately because it may coincide
 		// with one of the above tests.
@@ -318,7 +321,7 @@ void Video::advance(HalfCycles duration) {
 
 		// Check whether the terminating event was end-of-line; if so then advance
 		// the vertical bits of state.
-		if(x_ == line_length_) {
+		if(x_ == line_length_.length) {
 			x_ = 0;
 			vertical_ = next_vertical_;
 			y_ = next_y_;
@@ -408,7 +411,7 @@ HalfCycles Video::get_next_sequence_point() {
 
 	const auto horizontal_timings = horizontal_parameters(field_frequency_);
 
-	int event_time = line_length_;	// Worst case: report end of line.
+	int event_time = line_length_.length;	// Worst case: report end of line.
 
 	// If any events are pending, give the first of those the chance to be next.
 	if(!pending_events_.empty()) {
@@ -431,11 +434,11 @@ HalfCycles Video::get_next_sequence_point() {
 	}
 
 	// Test for beginning and end of horizontal sync.
-	if(x_ < line_length_ - hsync_start + hsync_delay_period) {
-		event_time = std::min(line_length_ - hsync_start + hsync_delay_period, event_time);
+	if(x_ < line_length_.hsync_start + hsync_delay_period) {
+		event_time = std::min(line_length_.hsync_start + hsync_delay_period, event_time);
 	}
 	/* Hereby assumed: hsync end will be communicated at end of line: */
-	static_assert(hsync_end == hsync_delay_period);
+//	static_assert(line_length_.hsync_end == hsync_delay_period);
 
 	// It wasn't any of those, just supply end of line. That's when the static_assert above assumes a visible hsync transition.
 	return HalfCycles(event_time - x_);
