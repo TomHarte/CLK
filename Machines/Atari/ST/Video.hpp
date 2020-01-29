@@ -23,8 +23,8 @@ namespace ST {
 
 struct LineLength {
 	int length = 1024;
-	int hsync_start;
-	int hsync_end;
+	int hsync_start = 1024;
+	int hsync_end = 1024;
 };
 
 /*!

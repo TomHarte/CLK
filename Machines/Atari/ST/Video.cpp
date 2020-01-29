@@ -438,8 +438,9 @@ HalfCycles Video::get_next_sequence_point() {
 	if(x_ < line_length_.hsync_start + hsync_delay_period) {
 		event_time = std::min(line_length_.hsync_start + hsync_delay_period, event_time);
 	}
-	/* Hereby assumed: hsync end will be communicated at end of line: */
-//	static_assert(line_length_.hsync_end == hsync_delay_period);
+	if(x_ < line_length_.hsync_end + hsync_delay_period) {
+		event_time = std::min(line_length_.hsync_end + hsync_delay_period, event_time);
+	}
 
 	// Also factor in the line length latching time.
 	if(x_ < line_length_latch_position) {
