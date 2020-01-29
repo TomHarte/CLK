@@ -120,13 +120,13 @@ const int vsync_delay_period = hsync_delay_period;	// Signal vsync with the same
 
 Video::Video() :
 	deferrer_([=] (HalfCycles duration) { advance(duration); }),
-//	crt_(2048, 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
-	crt_(896, 1, 500, Outputs::Display::ColourSpace::YIQ, 100, 50, 5, false, Outputs::Display::InputDataType::Red4Green4Blue4),
+	crt_(2048, 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+//	crt_(896, 1, 500, Outputs::Display::ColourSpace::YIQ, 100, 50, 5, false, Outputs::Display::InputDataType::Red4Green4Blue4),
 	video_stream_(crt_, palette_) {
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
-//	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 440, 1700, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 440, 1700, 4.0f / 3.0f));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
@@ -153,25 +153,6 @@ void Video::advance(HalfCycles duration) {
 	const auto horizontal_timings = horizontal_parameters(field_frequency_);
 	const auto vertical_timings = vertical_parameters(field_frequency_);
 	int integer_duration = int(duration.as_integral());
-
-	// Effect any changes in visible state out here; they're not relevant in the inner loop.
-	if(!pending_events_.empty()) {
-		auto erase_iterator = pending_events_.begin();
-		int duration_remaining = integer_duration;
-		while(erase_iterator != pending_events_.end()) {
-			erase_iterator->delay -= duration_remaining;
-			if(erase_iterator->delay <= 0) {
-				duration_remaining = -erase_iterator->delay;
-				erase_iterator->apply(public_state_);
-				++erase_iterator;
-			} else {
-				break;
-			}
-		}
-		if(erase_iterator != pending_events_.begin()) {
-			pending_events_.erase(pending_events_.begin(), erase_iterator);
-		}
-	}
 
 	while(integer_duration) {
 		// Seed next event to end of line.
@@ -360,6 +341,27 @@ void Video::advance(HalfCycles duration) {
 		if(vertical_.sync != vsync) {
 			// Schedule change in outwardly-visible hsync line.
 			add_event(vsync_delay_period - integer_duration, vertical_.sync ? Event::Type::SetVsync : Event::Type::ResetVsync);
+		}
+	}
+
+	// Effect any changes in visible state out here; they've been supplied as sequence points, so
+	// a conforming caller can't hit them within the inner loop.
+	integer_duration = int(duration.as_integral());
+	if(!pending_events_.empty()) {
+		auto erase_iterator = pending_events_.begin();
+		int duration_remaining = integer_duration;
+		while(erase_iterator != pending_events_.end()) {
+			erase_iterator->delay -= duration_remaining;
+			if(erase_iterator->delay <= 0) {
+				duration_remaining = -erase_iterator->delay;
+				erase_iterator->apply(public_state_);
+				++erase_iterator;
+			} else {
+				break;
+			}
+		}
+		if(erase_iterator != pending_events_.begin()) {
+			pending_events_.erase(pending_events_.begin(), erase_iterator);
 		}
 	}
 }
