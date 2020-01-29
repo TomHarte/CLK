@@ -106,7 +106,7 @@ template <typename BitHandler, size_t length_of_history = 3> class DigitalPhaseL
 
 			// In net: use an unweighted average of the stored offsets to compute current window size,
 			// bucketing them by rounding to the nearest multiple of the base clocks per bit
-			window_length_ = total_spacing_ / total_divisor_;
+			window_length_ = std::max(total_spacing_ / total_divisor_, Cycles::IntType(1));
 
 			// Also apply a difference to phase, use a simple spring mechanism as a lowpass filter.
 			const auto error = new_phase - (window_length_ >> 1);
