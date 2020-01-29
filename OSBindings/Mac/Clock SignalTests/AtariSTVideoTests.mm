@@ -111,13 +111,13 @@ struct VideoTester {
 }
 
 - (void)runSequencePointsTest {
-	// Run for [more than] a whole frame making sure that no observeable outputs
+	// Run for [more than] two frames making sure that no observeable outputs
 	// change at any time other than a sequence point.
 	HalfCycles next_event;
 	bool display_enable = false;
 	bool vsync = false;
 	bool hsync = false;
-	for(size_t c = 0; c < 10 * 1000 * 1000; ++c) {
+	for(size_t c = 0; c < 8000000 / 20; ++c) {
 		const bool is_transition_point = next_event == HalfCycles(0);
 
 		if(is_transition_point) {
