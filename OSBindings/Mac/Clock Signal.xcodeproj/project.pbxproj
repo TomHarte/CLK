@@ -160,6 +160,7 @@
 		4B2B3A4C1F9B8FA70062DABF /* MemoryFuzzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B3A481F9B8FA70062DABF /* MemoryFuzzer.cpp */; };
 		4B2BF19123DCC6A200C3AD60 /* BD500.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03523CEB86000B98D9E /* BD500.cpp */; };
 		4B2BF19223DCC6A800C3AD60 /* STX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03323C58B1E00B98D9E /* STX.cpp */; };
+		4B2BF19623E10F0100C3AD60 /* CSHighPrecisionTimer.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BF19523E10F0000C3AD60 /* CSHighPrecisionTimer.m */; };
 		4B2BFC5F1D613E0200BA3AA9 /* TapePRG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */; };
 		4B2BFDB21DAEF5FF001A68B8 /* Video.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */; };
 		4B2C45421E3C3896002A2389 /* cartridge.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B2C45411E3C3896002A2389 /* cartridge.png */; };
@@ -1002,6 +1003,8 @@
 		4B2B3A481F9B8FA70062DABF /* MemoryFuzzer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = MemoryFuzzer.cpp; sourceTree = "<group>"; };
 		4B2B3A491F9B8FA70062DABF /* MemoryFuzzer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = MemoryFuzzer.hpp; sourceTree = "<group>"; };
 		4B2B3A4A1F9B8FA70062DABF /* Typer.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Typer.hpp; sourceTree = "<group>"; };
+		4B2BF19423E10F0000C3AD60 /* CSHighPrecisionTimer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSHighPrecisionTimer.h; sourceTree = "<group>"; };
+		4B2BF19523E10F0000C3AD60 /* CSHighPrecisionTimer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSHighPrecisionTimer.m; sourceTree = "<group>"; };
 		4B2BFC5D1D613E0200BA3AA9 /* TapePRG.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = TapePRG.cpp; sourceTree = "<group>"; };
 		4B2BFC5E1D613E0200BA3AA9 /* TapePRG.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = TapePRG.hpp; sourceTree = "<group>"; };
 		4B2BFDB01DAEF5FF001A68B8 /* Video.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Video.cpp; path = Oric/Video.cpp; sourceTree = "<group>"; };
@@ -2061,6 +2064,15 @@
 				4B2B3A4A1F9B8FA70062DABF /* Typer.hpp */,
 			);
 			path = Utility;
+			sourceTree = "<group>";
+		};
+		4B2BF19323E10F0000C3AD60 /* High Precision Timer */ = {
+			isa = PBXGroup;
+			children = (
+				4B2BF19423E10F0000C3AD60 /* CSHighPrecisionTimer.h */,
+				4B2BF19523E10F0000C3AD60 /* CSHighPrecisionTimer.m */,
+			);
+			path = "High Precision Timer";
 			sourceTree = "<group>";
 		};
 		4B2E2D9E1C3A070900138695 /* Electron */ = {
@@ -3257,6 +3269,7 @@
 				4B2A538F1D117D36003C6002 /* Audio */,
 				4B643F3D1D77B88000D431D6 /* Document Controller */,
 				4B55CE551C3B7D360093A61B /* Documents */,
+				4B2BF19323E10F0000C3AD60 /* High Precision Timer */,
 				4BBFE83B21015D9C00BF1C40 /* Joystick Manager */,
 				4B2A53921D117D36003C6002 /* Machine */,
 				4B55DD7F20DF06680043F2E5 /* MachinePicker */,
@@ -3839,17 +3852,19 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0700;
-				LastUpgradeCheck = 1100;
+				LastUpgradeCheck = 1130;
 				ORGANIZATIONNAME = "Thomas Harte";
 				TargetAttributes = {
 					4B055A691FAE763F0060FFFF = {
 						CreatedOnToolsVersion = 9.1;
+						DevelopmentTeam = CP2SKEB3XT;
 						ProvisioningStyle = Automatic;
 					};
 					4BB73E9D1B587A5100552FC2 = {
 						CreatedOnToolsVersion = 7.0;
 						DevelopmentTeam = CP2SKEB3XT;
 						LastSwiftMigration = 1020;
+						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.Sandbox = {
 								enabled = 1;
@@ -3860,10 +3875,12 @@
 						CreatedOnToolsVersion = 7.0;
 						DevelopmentTeam = CP2SKEB3XT;
 						LastSwiftMigration = 1020;
+						ProvisioningStyle = Automatic;
 						TestTargetID = 4BB73E9D1B587A5100552FC2;
 					};
 					4BB73EBC1B587A5100552FC2 = {
 						CreatedOnToolsVersion = 7.0;
+						DevelopmentTeam = CP2SKEB3XT;
 						LastSwiftMigration = 1020;
 						TestTargetID = 4BB73E9D1B587A5100552FC2;
 					};
@@ -4443,6 +4460,7 @@
 				4B54C0CB1F8D92590050900F /* Keyboard.cpp in Sources */,
 				4BEA525E1DF33323007E74F2 /* Tape.cpp in Sources */,
 				4B07835A1FC11D10001D12BB /* Configurable.cpp in Sources */,
+				4B2BF19623E10F0100C3AD60 /* CSHighPrecisionTimer.m in Sources */,
 				4B8334951F5E25B60097E338 /* C1540.cpp in Sources */,
 				4B89453C201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B595FAD2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */,
@@ -4912,6 +4930,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = CP2SKEB3XT;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(USER_LIBRARY_DIR)/Frameworks",
@@ -4932,6 +4951,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = CP2SKEB3XT;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(USER_LIBRARY_DIR)/Frameworks",
@@ -5060,8 +5080,10 @@
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				CLANG_WARN__EXIT_TIME_DESTRUCTORS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = CP2SKEB3XT;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -5086,6 +5108,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-Signal";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Clock Signal/ClockSignal-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -5104,8 +5127,10 @@
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
 				CLANG_WARN__EXIT_TIME_DESTRUCTORS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = CP2SKEB3XT;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -5132,6 +5157,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-Signal";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Clock Signal/ClockSignal-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 			};
@@ -5144,13 +5170,16 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = CP2SKEB3XT;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = NO;
 				INFOPLIST_FILE = "Clock SignalTests/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-SignalTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Clock SignalTests/Bridges/Clock SignalTests-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -5165,14 +5194,17 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++17";
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = "Clock Signal/Clock Signal.entitlements";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = CP2SKEB3XT;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_HARDENED_RUNTIME = NO;
 				GCC_OPTIMIZATION_LEVEL = 2;
 				INFOPLIST_FILE = "Clock SignalTests/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-SignalTests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_OBJC_BRIDGING_HEADER = "Clock SignalTests/Bridges/Clock SignalTests-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clock Signal.app/Contents/MacOS/Clock Signal";
@@ -5183,6 +5215,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = CP2SKEB3XT;
 				INFOPLIST_FILE = "Clock SignalUITests/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-SignalUITests";
@@ -5197,6 +5230,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = CP2SKEB3XT;
 				INFOPLIST_FILE = "Clock SignalUITests/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = "TH.Clock-SignalUITests";
