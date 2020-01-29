@@ -107,8 +107,7 @@ struct Checker {
 const int de_delay_period = CYCLE(28);		// Amount of time after DE that observed DE changes. NB: HACK HERE. This currently incorporates the MFP recognition delay. MUST FIX.
 const int vsync_x_position = CYCLE(56);		// Horizontal cycle on which vertical sync changes happen.
 
-//const int hsync_start = CYCLE(48);			// Cycles before end of line when hsync starts.
-//const int hsync_end = CYCLE(8);				// Cycles before end of line when hsync ends.
+const int line_length_latch_position = CYCLE(54);
 
 const int hsync_delay_period = CYCLE(8);			// Signal hsync at the end of the line.
 const int vsync_delay_period = hsync_delay_period;	// Signal vsync with the same delay as hsync.
@@ -265,10 +264,12 @@ void Video::advance(HalfCycles duration) {
 		}
 
 		// Check for whether line length should have been latched during this run.
-		if(x_ <= CYCLE(54) && (x_ + run_length) > CYCLE(54)) line_length_ = horizontal_timings.length;
+		if(x_ < line_length_latch_position && (x_ + run_length) >= line_length_latch_position) {
+			line_length_ = horizontal_timings.length;
+		}
 
 		// Make a decision about vertical state on the appropriate cycle.
-		if(x_ <= horizontal_timings.vertical_decision && (x_ + run_length) > horizontal_timings.vertical_decision) {
+		if(x_ < horizontal_timings.vertical_decision && (x_ + run_length) >= horizontal_timings.vertical_decision) {
 			next_y_ = y_ + 1;
 			next_vertical_ = vertical_;
 			next_vertical_.sync_schedule = VerticalState::SyncSchedule::None;
@@ -439,6 +440,11 @@ HalfCycles Video::get_next_sequence_point() {
 	}
 	/* Hereby assumed: hsync end will be communicated at end of line: */
 //	static_assert(line_length_.hsync_end == hsync_delay_period);
+
+	// Also factor in the line length latching time.
+	if(x_ < line_length_latch_position) {
+		event_time = std::min(line_length_latch_position, event_time);
+	}
 
 	// It wasn't any of those, just supply end of line. That's when the static_assert above assumes a visible hsync transition.
 	return HalfCycles(event_time - x_);
