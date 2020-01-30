@@ -16,6 +16,8 @@
 	A DeferredQueue maintains a list of ordered actions and the times at which
 	they should happen, and divides a total execution period up into the portions
 	that occur between those actions, triggering each action when it is reached.
+
+	This list is efficient only for short queues.
 */
 template <typename TimeUnit> class DeferredQueue {
 	public:
@@ -24,12 +26,30 @@ template <typename TimeUnit> class DeferredQueue {
 
 		/*!
 			Schedules @c action to occur in @c delay units of time.
-
-			Actions must be scheduled in the order they will occur. It is undefined behaviour
-			to schedule them out of order.
 		*/
 		void defer(TimeUnit delay, const std::function<void(void)> &action) {
-			pending_actions_.emplace_back(delay, action);
+			// Apply immediately if there's no delay (or a negative delay).
+			if(delay <= 0) {
+				action();
+				return;
+			}
+
+			if(!pending_actions_.empty()) {
+				// Otherwise enqueue, having subtracted the delay for any preceding events,
+				// and subtracting from the subsequent, if any.
+				auto insertion_point = pending_actions_.begin();
+				while(insertion_point != pending_actions_.end() && insertion_point->delay < delay) {
+					delay -= insertion_point->delay;
+					++insertion_point;
+				}
+				if(insertion_point != pending_actions_.end()) {
+					insertion_point->delay -= delay;
+				}
+
+				pending_actions_.emplace(insertion_point, delay, action);
+			} else {
+				pending_actions_.emplace_back(delay, action);
+			}
 		}
 
 		/*!
@@ -47,22 +67,23 @@ template <typename TimeUnit> class DeferredQueue {
 			}
 
 			// Divide the time to run according to the pending actions.
-			while(length > TimeUnit(0)) {
-				TimeUnit next_period = pending_actions_.empty() ? length : std::min(length, pending_actions_[0].delay);
-				target_(next_period);
-				length -= next_period;
-
-				off_t performances = 0;
-				for(auto &action: pending_actions_) {
-					action.delay -= next_period;
-					if(!action.delay) {
-						action.action();
-						++performances;
-					}
+			auto erase_iterator = pending_actions_.begin();
+			while(erase_iterator != pending_actions_.end()) {
+				erase_iterator->delay -= length;
+				if(erase_iterator->delay <= TimeUnit(0)) {
+					target_(length + erase_iterator->delay);
+					length = -erase_iterator->delay;
+					erase_iterator->action();
+					++erase_iterator;
+				} else {
+					break;
 				}
-				if(performances) {
-					pending_actions_.erase(pending_actions_.begin(), pending_actions_.begin() + performances);
-				}
+			}
+			if(erase_iterator != pending_actions_.begin()) {
+				pending_actions_.erase(pending_actions_.begin(), erase_iterator);
+			}
+			if(length != TimeUnit(0)) {
+				target_(length);
 			}
 		}
 
