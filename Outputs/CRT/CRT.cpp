@@ -294,6 +294,8 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 // MARK: - stream feeding methods
 
 void CRT::output_scan(const Scan *const scan) {
+	assert(scan->number_of_cycles >= 0);
+
 	// Simplified colour burst logic: if it's within the back porch we'll take it.
 	if(scan->type == Scan::Type::ColourBurst) {
 		if(!colour_burst_amplitude_ && horizontal_flywheel_->get_current_time() < (horizontal_flywheel_->get_standard_period() * 12) >> 6) {

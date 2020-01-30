@@ -469,6 +469,7 @@ class ConcreteMachine:
 				length -= cycles_until_video_event_;
 				video_ += cycles_until_video_event_;
 				cycles_until_video_event_ = video_->get_next_sequence_point();
+				assert(cycles_until_video_event_ > HalfCycles(0));
 
 				mfp_->set_timer_event_input(1, video_->display_enabled());
 				update_interrupt_input();
