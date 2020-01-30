@@ -122,7 +122,7 @@ class Video {
 
 	private:
 		void advance(HalfCycles duration);
-		DeferredQueue<HalfCycles> deferrer_;
+		DeferredQueuePerformer<HalfCycles> deferrer_;
 
 		Outputs::CRT::CRT crt_;
 		RangeObserver *range_observer_ = nullptr;
@@ -270,7 +270,7 @@ class Video {
 			}
 		};
 
-		std::vector<Event> pending_events_;
+/*		std::vector<Event> pending_events_;
 		void add_event(int delay, Event::Type type) {
 			// Apply immediately if there's no delay (or a negative delay).
 			if(delay <= 0) {
@@ -294,7 +294,7 @@ class Video {
 			} else {
 				pending_events_.emplace_back(type, delay);
 			}
-		}
+		}*/
 
 		friend class ::VideoTester;
 };

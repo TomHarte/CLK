@@ -13,17 +13,10 @@
 #include <vector>
 
 /*!
-	A DeferredQueue maintains a list of ordered actions and the times at which
-	they should happen, and divides a total execution period up into the portions
-	that occur between those actions, triggering each action when it is reached.
-
-	This list is efficient only for short queues.
+	Provides the logic to insert into and traverse a list of future scheduled items.
 */
 template <typename TimeUnit> class DeferredQueue {
 	public:
-		/// Constructs a DeferredQueue that will call target(period) in between deferred actions.
-		DeferredQueue(std::function<void(TimeUnit)> &&target) : target_(std::move(target)) {}
-
 		/*!
 			Schedules @c action to occur in @c delay units of time.
 		*/
@@ -53,26 +46,23 @@ template <typename TimeUnit> class DeferredQueue {
 		}
 
 		/*!
-			Runs for @c length units of time.
-
-			The constructor-supplied target will be called with one or more periods that add up to @c length;
-			any scheduled actions will be called between periods.
+			@returns The amount of time until the next enqueued action will occur,
+				or TimeUnit(-1) if the queue is empty.
 		*/
-		void run_for(TimeUnit length) {
-			// If there are no pending actions, just run for the entire length.
-			// This should be the normal branch.
-			if(pending_actions_.empty()) {
-				target_(length);
-				return;
-			}
+		TimeUnit time_until_next_action() {
+			if(pending_actions_.empty()) return TimeUnit(-1);
+			return pending_actions_.front().delay;
+		}
 
-			// Divide the time to run according to the pending actions.
+		/*!
+			Advances the queue the specified amount of time, performing any actions it reaches.
+		*/
+		void advance(TimeUnit time) {
 			auto erase_iterator = pending_actions_.begin();
 			while(erase_iterator != pending_actions_.end()) {
-				erase_iterator->delay -= length;
+				erase_iterator->delay -= time;
 				if(erase_iterator->delay <= TimeUnit(0)) {
-					target_(length + erase_iterator->delay);
-					length = -erase_iterator->delay;
+					time = -erase_iterator->delay;
 					erase_iterator->action();
 					++erase_iterator;
 				} else {
@@ -82,14 +72,23 @@ template <typename TimeUnit> class DeferredQueue {
 			if(erase_iterator != pending_actions_.begin()) {
 				pending_actions_.erase(pending_actions_.begin(), erase_iterator);
 			}
-			if(length != TimeUnit(0)) {
-				target_(length);
+		}
+
+		/*!
+			Advances the queue by @c min(time_until_next_action(),duration)  time.
+		*/
+		void advance_to_next(TimeUnit duration) {
+			if(pending_actions_.empty()) return;
+
+			auto front = pending_actions_.front();
+			front.delay -= duration;
+			if(front.delay <= TimeUnit(0)) {
+				front.action();
+				pending_actions_.erase(pending_actions_.begin());
 			}
 		}
 
 	private:
-		std::function<void(TimeUnit)> target_;
-
 		// The list of deferred actions.
 		struct DeferredAction {
 			TimeUnit delay;
@@ -98,6 +97,40 @@ template <typename TimeUnit> class DeferredQueue {
 			DeferredAction(TimeUnit delay, const std::function<void(void)> &action) : delay(delay), action(std::move(action)) {}
 		};
 		std::vector<DeferredAction> pending_actions_;
+};
+
+/*!
+	A DeferredQueue maintains a list of ordered actions and the times at which
+	they should happen, and divides a total execution period up into the portions
+	that occur between those actions, triggering each action when it is reached.
+
+	This list is efficient only for short queues.
+*/
+template <typename TimeUnit> class DeferredQueuePerformer: public DeferredQueue<TimeUnit> {
+	public:
+		/// Constructs a DeferredQueue that will call target(period) in between deferred actions.
+		DeferredQueuePerformer(std::function<void(TimeUnit)> &&target) : target_(std::move(target)) {}
+
+		/*!
+			Runs for @c length units of time.
+
+			The constructor-supplied target will be called with one or more periods that add up to @c length;
+			any scheduled actions will be called between periods.
+		*/
+		void run_for(TimeUnit length) {
+			auto time_to_next = DeferredQueue<TimeUnit>::time_until_next_action();
+			while(time_to_next != TimeUnit(-1) && time_to_next <= length) {
+				target_(time_to_next);
+				length -= time_to_next;
+				DeferredQueue<TimeUnit>::advance_to_next(time_to_next);
+			}
+
+			DeferredQueue<TimeUnit>::advance_to_next(length);
+			target_(length);
+		}
+
+	private:
+		std::function<void(TimeUnit)> target_;
 };
 
 #endif /* DeferredQueue_h */

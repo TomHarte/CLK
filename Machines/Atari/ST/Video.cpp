@@ -327,7 +327,7 @@ void Video::advance(HalfCycles duration) {
 		const bool next_display_enable = vertical_.enable && horizontal_.enable;
 		if(display_enable != next_display_enable) {
 			// Schedule change in outwardly-visible DE line.
-			add_event(de_delay_period - integer_duration, next_display_enable ? Event::Type::SetDisplayEnable : Event::Type::ResetDisplayEnable);
+//			add_event(de_delay_period - integer_duration, next_display_enable ? Event::Type::SetDisplayEnable : Event::Type::ResetDisplayEnable);
 
 			// Schedule change in inwardly-visible effect.
 			next_load_toggle_ = x_ + 8;	// 4 cycles = 8 half-cycles
@@ -335,35 +335,35 @@ void Video::advance(HalfCycles duration) {
 
 		if(horizontal_.sync != hsync) {
 			// Schedule change in outwardly-visible hsync line.
-			add_event(hsync_delay_period - integer_duration, horizontal_.sync ? Event::Type::SetHsync : Event::Type::ResetHsync);
+//			add_event(hsync_delay_period - integer_duration, horizontal_.sync ? Event::Type::SetHsync : Event::Type::ResetHsync);
 		}
 
 		if(vertical_.sync != vsync) {
 			// Schedule change in outwardly-visible hsync line.
-			add_event(vsync_delay_period - integer_duration, vertical_.sync ? Event::Type::SetVsync : Event::Type::ResetVsync);
+//			add_event(vsync_delay_period - integer_duration, vertical_.sync ? Event::Type::SetVsync : Event::Type::ResetVsync);
 		}
 	}
 
 	// Effect any changes in visible state out here; they've been supplied as sequence points, so
 	// a conforming caller can't hit them within the inner loop.
-	integer_duration = int(duration.as_integral());
-	if(!pending_events_.empty()) {
-		auto erase_iterator = pending_events_.begin();
-		int duration_remaining = integer_duration;
-		while(erase_iterator != pending_events_.end()) {
-			erase_iterator->delay -= duration_remaining;
-			if(erase_iterator->delay <= 0) {
-				duration_remaining = -erase_iterator->delay;
-				erase_iterator->apply(public_state_);
-				++erase_iterator;
-			} else {
-				break;
-			}
-		}
-		if(erase_iterator != pending_events_.begin()) {
-			pending_events_.erase(pending_events_.begin(), erase_iterator);
-		}
-	}
+//	integer_duration = int(duration.as_integral());
+//	if(!pending_events_.empty()) {
+//		auto erase_iterator = pending_events_.begin();
+//		int duration_remaining = integer_duration;
+//		while(erase_iterator != pending_events_.end()) {
+//			erase_iterator->delay -= duration_remaining;
+//			if(erase_iterator->delay <= 0) {
+//				duration_remaining = -erase_iterator->delay;
+//				erase_iterator->apply(public_state_);
+//				++erase_iterator;
+//			} else {
+//				break;
+//			}
+//		}
+//		if(erase_iterator != pending_events_.begin()) {
+//			pending_events_.erase(pending_events_.begin(), erase_iterator);
+//		}
+//	}
 }
 
 void Video::push_latched_data() {
@@ -417,8 +417,9 @@ HalfCycles Video::get_next_sequence_point() {
 	int event_time = line_length_.length;	// Worst case: report end of line.
 
 	// If any events are pending, give the first of those the chance to be next.
-	if(!pending_events_.empty()) {
-		event_time = std::min(event_time, x_ + pending_events_.front().delay);
+	const auto next_deferred_item = deferrer_.time_until_next_action();
+	if(next_deferred_item != HalfCycles(-1)) {
+		event_time = std::min(event_time, next_deferred_item.as<int>());
 	}
 
 	// If this is a vertically-enabled line, check for the display enable boundaries, + the standard delay.
