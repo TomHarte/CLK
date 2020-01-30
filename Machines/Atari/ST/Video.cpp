@@ -119,7 +119,6 @@ const int vsync_delay_period = hsync_delay_period;	// Signal vsync with the same
 }
 
 Video::Video() :
-	deferrer_([=] (HalfCycles duration) { advance(duration); }),
 	crt_(2048, 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
 //	crt_(896, 1, 500, Outputs::Display::ColourSpace::YIQ, 100, 50, 5, false, Outputs::Display::InputDataType::Red4Green4Blue4),
 	video_stream_(crt_, palette_) {
@@ -146,17 +145,22 @@ void Video::set_display_type(Outputs::Display::DisplayType display_type) {
 }
 
 void Video::run_for(HalfCycles duration) {
-	deferrer_.run_for(duration);
-}
-
-void Video::advance(HalfCycles duration) {
-	const auto horizontal_timings = horizontal_parameters(field_frequency_);
-	const auto vertical_timings = vertical_parameters(field_frequency_);
 	int integer_duration = int(duration.as_integral());
+	assert(integer_duration >= 0);
 
 	while(integer_duration) {
+		const auto horizontal_timings = horizontal_parameters(field_frequency_);
+		const auto vertical_timings = vertical_parameters(field_frequency_);
+
+		// Determine time to next event; this'll either be one of the ones informally scheduled in here,
+		// or something from the deferral queue.
+
 		// Seed next event to end of line.
 		int next_event = line_length_.length;
+
+		const int next_deferred_event = deferrer_.time_until_next_action().as<int>();
+		if(next_deferred_event >= 0)
+			next_event = std::min(next_event, next_deferred_event + x_);
 
 		// Check the explicitly-placed events.
 		if(horizontal_timings.reset_blank > x_)		next_event = std::min(next_event, horizontal_timings.reset_blank);
@@ -179,6 +183,8 @@ void Video::advance(HalfCycles duration) {
 		const bool display_enable = vertical_.enable && horizontal_.enable;
 		const bool hsync = horizontal_.sync;
 		const bool vsync = vertical_.sync;
+
+		assert(run_length > 0);
 
 		// Ensure proper fetching irrespective of the output.
 		if(load_) {
@@ -275,7 +281,9 @@ void Video::advance(HalfCycles duration) {
 
 		// Apply the next event.
 		x_ += run_length;
+		assert(integer_duration >= run_length);
 		integer_duration -= run_length;
+		deferrer_.advance(HalfCycles(run_length));
 
 		// Check horizontal events; the first six are guaranteed to occur separately.
 		if(horizontal_timings.reset_blank == x_)		horizontal_.blank = false;
@@ -327,7 +335,9 @@ void Video::advance(HalfCycles duration) {
 		const bool next_display_enable = vertical_.enable && horizontal_.enable;
 		if(display_enable != next_display_enable) {
 			// Schedule change in outwardly-visible DE line.
-//			add_event(de_delay_period - integer_duration, next_display_enable ? Event::Type::SetDisplayEnable : Event::Type::ResetDisplayEnable);
+			deferrer_.defer(de_delay_period, [this, next_display_enable] {
+				this->public_state_.display_enable = next_display_enable;
+			});
 
 			// Schedule change in inwardly-visible effect.
 			next_load_toggle_ = x_ + 8;	// 4 cycles = 8 half-cycles
@@ -335,35 +345,18 @@ void Video::advance(HalfCycles duration) {
 
 		if(horizontal_.sync != hsync) {
 			// Schedule change in outwardly-visible hsync line.
-//			add_event(hsync_delay_period - integer_duration, horizontal_.sync ? Event::Type::SetHsync : Event::Type::ResetHsync);
+			deferrer_.defer(hsync_delay_period, [this, next_horizontal_sync = horizontal_.sync] {
+				this->public_state_.hsync = next_horizontal_sync;
+			});
 		}
 
 		if(vertical_.sync != vsync) {
 			// Schedule change in outwardly-visible hsync line.
-//			add_event(vsync_delay_period - integer_duration, vertical_.sync ? Event::Type::SetVsync : Event::Type::ResetVsync);
+			deferrer_.defer(vsync_delay_period, [this, next_vertical_sync = vertical_.sync] {
+				this->public_state_.vsync = next_vertical_sync;
+			});
 		}
 	}
-
-	// Effect any changes in visible state out here; they've been supplied as sequence points, so
-	// a conforming caller can't hit them within the inner loop.
-//	integer_duration = int(duration.as_integral());
-//	if(!pending_events_.empty()) {
-//		auto erase_iterator = pending_events_.begin();
-//		int duration_remaining = integer_duration;
-//		while(erase_iterator != pending_events_.end()) {
-//			erase_iterator->delay -= duration_remaining;
-//			if(erase_iterator->delay <= 0) {
-//				duration_remaining = -erase_iterator->delay;
-//				erase_iterator->apply(public_state_);
-//				++erase_iterator;
-//			} else {
-//				break;
-//			}
-//		}
-//		if(erase_iterator != pending_events_.begin()) {
-//			pending_events_.erase(pending_events_.begin(), erase_iterator);
-//		}
-//	}
 }
 
 void Video::push_latched_data() {
@@ -419,7 +412,7 @@ HalfCycles Video::get_next_sequence_point() {
 	// If any events are pending, give the first of those the chance to be next.
 	const auto next_deferred_item = deferrer_.time_until_next_action();
 	if(next_deferred_item != HalfCycles(-1)) {
-		event_time = std::min(event_time, next_deferred_item.as<int>());
+		event_time = std::min(event_time, x_ + next_deferred_item.as<int>());
 	}
 
 	// If this is a vertically-enabled line, check for the display enable boundaries, + the standard delay.
