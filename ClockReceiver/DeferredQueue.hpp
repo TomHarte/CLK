@@ -22,7 +22,7 @@ template <typename TimeUnit> class DeferredQueue {
 		*/
 		void defer(TimeUnit delay, const std::function<void(void)> &action) {
 			// Apply immediately if there's no delay (or a negative delay).
-			if(delay <= 0) {
+			if(delay <= TimeUnit(0)) {
 				action();
 				return;
 			}
@@ -74,20 +74,6 @@ template <typename TimeUnit> class DeferredQueue {
 			}
 		}
 
-		/*!
-			Advances the queue by @c min(time_until_next_action(),duration)  time.
-		*/
-		void advance_to_next(TimeUnit duration) {
-			if(pending_actions_.empty()) return;
-
-			auto front = pending_actions_.front();
-			front.delay -= duration;
-			if(front.delay <= TimeUnit(0)) {
-				front.action();
-				pending_actions_.erase(pending_actions_.begin());
-			}
-		}
-
 	private:
 		// The list of deferred actions.
 		struct DeferredAction {
@@ -122,11 +108,13 @@ template <typename TimeUnit> class DeferredQueuePerformer: public DeferredQueue<
 			while(time_to_next != TimeUnit(-1) && time_to_next <= length) {
 				target_(time_to_next);
 				length -= time_to_next;
-				DeferredQueue<TimeUnit>::advance_to_next(time_to_next);
+				DeferredQueue<TimeUnit>::advance(time_to_next);
 			}
 
-			DeferredQueue<TimeUnit>::advance_to_next(length);
+			DeferredQueue<TimeUnit>::advance(length);
 			target_(length);
+
+			// TODO: optimise this to avoid the multiple std::vector deletes. Find a neat way to expose that solution, maybe?
 		}
 
 	private:
