@@ -136,7 +136,6 @@ class Video {
 		uint16_t line_buffer_[256];
 
 		int x_ = 0, y_ = 0, next_y_ = 0;
-		int next_load_toggle_ = -1;
 		bool load_ = false;
 		int load_base_ = 0;
 

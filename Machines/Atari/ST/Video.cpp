@@ -112,6 +112,8 @@ const int line_length_latch_position = CYCLE(54);
 const int hsync_delay_period = CYCLE(8);			// Signal hsync at the end of the line.
 const int vsync_delay_period = hsync_delay_period;	// Signal vsync with the same delay as hsync.
 
+const int load_delay_period = CYCLE(4);		// Amount of time after DE that observed DE changes. NB: HACK HERE. This currently incorporates the MFP recognition delay. MUST FIX.
+
 // "VSYNC starts 104 cycles after the start of the previous line's HSYNC, so that's 4 cycles before DE would be activated. ";
 // that's an inconsistent statement since it would imply VSYNC at +54, which is 2 cycles before DE in 60Hz mode and 6 before
 // in 50Hz mode. I've gone with 56, to be four cycles ahead of DE in 50Hz mode.
@@ -167,7 +169,6 @@ void Video::run_for(HalfCycles duration) {
 		if(horizontal_timings.set_blank > x_)		next_event = std::min(next_event, horizontal_timings.set_blank);
 		if(horizontal_timings.reset_enable > x_)	next_event = std::min(next_event, horizontal_timings.reset_enable);
 		if(horizontal_timings.set_enable > x_) 		next_event = std::min(next_event, horizontal_timings.set_enable);
-		if(next_load_toggle_ > x_) 					next_event = std::min(next_event, next_load_toggle_);
 
 		// Check for events that are relative to existing latched state.
 		if(line_length_.hsync_start > x_)			next_event = std::min(next_event, line_length_.hsync_start);
@@ -293,14 +294,6 @@ void Video::run_for(HalfCycles duration) {
 		else if(line_length_.hsync_start == x_)			{ horizontal_.sync = true; horizontal_.enable = false; }
 		else if(line_length_.hsync_end == x_)			horizontal_.sync = false;
 
-		// next_load_toggle_ is less predictable; test separately because it may coincide
-		// with one of the above tests.
-		if(next_load_toggle_ == x_)	{
-			next_load_toggle_ = -1;
-			load_ ^= true;
-			load_base_ = x_;
-		}
-
 		// Check vertical events.
 		if(vertical_.sync_schedule != VerticalState::SyncSchedule::None && x_ == vsync_x_position) {
 			vertical_.sync = vertical_.sync_schedule == VerticalState::SyncSchedule::Begin;
@@ -334,13 +327,16 @@ void Video::run_for(HalfCycles duration) {
 		// Chuck any deferred output changes into the queue.
 		const bool next_display_enable = vertical_.enable && horizontal_.enable;
 		if(display_enable != next_display_enable) {
+			// Schedule change in load line.
+			deferrer_.defer(load_delay_period, [this, next_display_enable] {
+				this->load_ = next_display_enable;
+				this->load_base_ = this->x_;
+			});
+
 			// Schedule change in outwardly-visible DE line.
 			deferrer_.defer(de_delay_period, [this, next_display_enable] {
 				this->public_state_.display_enable = next_display_enable;
 			});
-
-			// Schedule change in inwardly-visible effect.
-			next_load_toggle_ = x_ + 8;	// 4 cycles = 8 half-cycles
 		}
 
 		if(horizontal_.sync != hsync) {
