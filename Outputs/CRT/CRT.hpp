@@ -123,6 +123,15 @@ class CRT {
 			bool should_alternate,
 			Outputs::Display::InputDataType data_type);
 
+		/*! Constructs a monitor-style CRT — one that will take only an RGB or monochrome signal, and therefore has
+			no colour space or colour subcarrier frequency. This monitor will automatically map colour bursts to the black level.
+		*/
+		CRT(int cycles_per_line,
+			int clocks_per_pixel_greatest_common_divisor,
+			int height_of_display,
+			int vertical_sync_half_lines,
+			Outputs::Display::InputDataType data_type);
+
 		/*!	Exactly identical to calling the designated constructor with colour subcarrier information
 			looked up by display type.
 		*/

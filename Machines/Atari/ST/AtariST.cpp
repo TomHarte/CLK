@@ -571,7 +571,7 @@ class ConcreteMachine:
 					GPIP 0: centronics busy
 			*/
 			mfp_->set_port_input(
-				0x80 |	// b7: Monochrome monitor detect (0 = is monochrome).
+				0x00 |	// b7: Monochrome monitor detect (0 = is monochrome).
 				0x40 |	// b6: RS-232 ring indicator.
 				(dma_->get_interrupt_line() ? 0x00 : 0x20) |	// b5: FD/HS interrupt (0 = interrupt requested).
 				((keyboard_acia_->get_interrupt_line() || midi_acia_->get_interrupt_line()) ? 0x00 : 0x10) |	// b4: Keyboard/MIDI interrupt (0 = interrupt requested).
