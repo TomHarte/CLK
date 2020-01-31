@@ -26,7 +26,7 @@ using namespace Apple::Macintosh;
 Video::Video(DeferredAudio &audio, DriveSpeedAccumulator &drive_speed_accumulator) :
 	audio_(audio),
 	drive_speed_accumulator_(drive_speed_accumulator),
- 	crt_(704, 1, 370, Outputs::Display::ColourSpace::YIQ, 1, 1, 6, false, Outputs::Display::InputDataType::Luminance1) {
+ 	crt_(704, 1, 370, 6, Outputs::Display::InputDataType::Luminance1) {
 
  	crt_.set_display_type(Outputs::Display::DisplayType::RGB);
 	crt_.set_visible_area(Outputs::Display::Rect(0.08f, -0.025f, 0.82f, 0.82f));
