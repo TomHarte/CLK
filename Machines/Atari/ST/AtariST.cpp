@@ -101,8 +101,10 @@ class ConcreteMachine:
 
 			const bool is_early_tos = true;
 			if(is_early_tos) {
+				rom_start_ = 0xfc0000;
 				for(c = 0xfc; c < 0xff; ++c) memory_map_[c] = BusDevice::ROM;
 			} else {
+				rom_start_ = 0xe00000;
 				for(c = 0xe0; c < 0xe4; ++c) memory_map_[c] = BusDevice::ROM;
 			}
 
@@ -245,7 +247,7 @@ class ConcreteMachine:
 
 				case BusDevice::ROM:
 					memory = rom_.data();
-					address %= rom_.size();
+					address -= rom_start_;
 				break;
 
 				case BusDevice::Floating:
@@ -505,6 +507,7 @@ class ConcreteMachine:
 
 		std::vector<uint8_t> ram_;
 		std::vector<uint8_t> rom_;
+		uint32_t rom_start_ = 0;
 
 		enum class BusDevice {
 			/// A mostly RAM page is one that returns ROM for the first 8 bytes, RAM elsewhere.
