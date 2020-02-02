@@ -161,6 +161,18 @@ CRT::CRT(	int cycles_per_line,
 	set_new_display_type(cycles_per_line, display_type);
 }
 
+CRT::CRT(int cycles_per_line,
+	int clocks_per_pixel_greatest_common_divisor,
+	int height_of_display,
+	int vertical_sync_half_lines,
+	Outputs::Display::InputDataType data_type) {
+	scan_target_modals_.input_data_type = data_type;
+	scan_target_modals_.cycles_per_line = cycles_per_line;
+	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
+	set_new_timing(cycles_per_line, height_of_display, Outputs::Display::ColourSpace::YIQ, 1, 1, vertical_sync_half_lines, false);
+}
+
+
 // MARK: - Sync loop
 
 Flywheel::SyncEvent CRT::get_next_vertical_sync_event(bool vsync_is_requested, int cycles_to_run_for, int *cycles_advanced) {
@@ -294,6 +306,8 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 // MARK: - stream feeding methods
 
 void CRT::output_scan(const Scan *const scan) {
+	assert(scan->number_of_cycles >= 0);
+
 	// Simplified colour burst logic: if it's within the back porch we'll take it.
 	if(scan->type == Scan::Type::ColourBurst) {
 		if(!colour_burst_amplitude_ && horizontal_flywheel_->get_current_time() < (horizontal_flywheel_->get_standard_period() * 12) >> 6) {

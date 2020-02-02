@@ -101,8 +101,10 @@ class ConcreteMachine:
 
 			const bool is_early_tos = true;
 			if(is_early_tos) {
+				rom_start_ = 0xfc0000;
 				for(c = 0xfc; c < 0xff; ++c) memory_map_[c] = BusDevice::ROM;
 			} else {
+				rom_start_ = 0xe00000;
 				for(c = 0xe0; c < 0xe4; ++c) memory_map_[c] = BusDevice::ROM;
 			}
 
@@ -245,7 +247,7 @@ class ConcreteMachine:
 
 				case BusDevice::ROM:
 					memory = rom_.data();
-					address %= rom_.size();
+					address -= rom_start_;
 				break;
 
 				case BusDevice::Floating:
@@ -469,6 +471,7 @@ class ConcreteMachine:
 				length -= cycles_until_video_event_;
 				video_ += cycles_until_video_event_;
 				cycles_until_video_event_ = video_->get_next_sequence_point();
+				assert(cycles_until_video_event_ > HalfCycles(0));
 
 				mfp_->set_timer_event_input(1, video_->display_enabled());
 				update_interrupt_input();
@@ -504,6 +507,7 @@ class ConcreteMachine:
 
 		std::vector<uint8_t> ram_;
 		std::vector<uint8_t> rom_;
+		uint32_t rom_start_ = 0;
 
 		enum class BusDevice {
 			/// A mostly RAM page is one that returns ROM for the first 8 bytes, RAM elsewhere.
@@ -567,7 +571,7 @@ class ConcreteMachine:
 					GPIP 0: centronics busy
 			*/
 			mfp_->set_port_input(
-				0x80 |	// b7: Monochrome monitor detect (1 = is monochrome).
+				0x80 |	// b7: Monochrome monitor detect (0 = is monochrome).
 				0x40 |	// b6: RS-232 ring indicator.
 				(dma_->get_interrupt_line() ? 0x00 : 0x20) |	// b5: FD/HS interrupt (0 = interrupt requested).
 				((keyboard_acia_->get_interrupt_line() || midi_acia_->get_interrupt_line()) ? 0x00 : 0x10) |	// b4: Keyboard/MIDI interrupt (0 = interrupt requested).

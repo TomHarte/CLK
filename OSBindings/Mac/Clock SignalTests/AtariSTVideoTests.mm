@@ -95,18 +95,29 @@ struct VideoTester {
 // MARK: - Sequence Point Prediction Tests
 
 /// Tests that no events occur outside of the sequence points the video predicts.
-- (void)testSequencePoints {
+- (void)testSequencePoints50 {
 	// Set 4bpp, 50Hz.
 	_video->write(0x05, 0x0200);
 	_video->write(0x30, 0x0000);
 
-	// Run for [more than] a whole frame making sure that no observeable outputs
+	[self runSequencePointsTest];
+}
+
+- (void)testSequencePoints72 {
+	// Set 1bpp, 72Hz.
+	_video->write(0x30, 0x0200);
+
+	[self runSequencePointsTest];
+}
+
+- (void)runSequencePointsTest {
+	// Run for [more than] two frames making sure that no observeable outputs
 	// change at any time other than a sequence point.
 	HalfCycles next_event;
 	bool display_enable = false;
 	bool vsync = false;
 	bool hsync = false;
-	for(size_t c = 0; c < 10 * 1000 * 1000; ++c) {
+	for(size_t c = 0; c < 8000000 / 20; ++c) {
 		const bool is_transition_point = next_event == HalfCycles(0);
 
 		if(is_transition_point) {
@@ -320,6 +331,16 @@ struct RunLength {
 	[self setVideoBaseAddress:0];
 	[self runVideoForCycles:1];
 	XCTAssertNotEqual([self currentVideoAddress], 0);
+}
+
+// MARK: - Tests Relating To Specific Bugs
+
+- (void)test72LineLength {
+	// Set 1bpp, 72Hz.
+	_video->write(0x30, 0x0200);
+
+	[self syncToStartOfLine];
+	_video->run_for(HalfCycles(400));	// 392, 399, 406
 }
 
 // MARK: - Tests Correlating To Exact Pieces of Software

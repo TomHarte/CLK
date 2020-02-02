@@ -123,6 +123,15 @@ class CRT {
 			bool should_alternate,
 			Outputs::Display::InputDataType data_type);
 
+		/*! Constructs a monitor-style CRT — one that will take only an RGB or monochrome signal, and therefore has
+			no colour space or colour subcarrier frequency. This monitor will automatically map colour bursts to the black level.
+		*/
+		CRT(int cycles_per_line,
+			int clocks_per_pixel_greatest_common_divisor,
+			int height_of_display,
+			int vertical_sync_half_lines,
+			Outputs::Display::InputDataType data_type);
+
 		/*!	Exactly identical to calling the designated constructor with colour subcarrier information
 			looked up by display type.
 		*/
@@ -227,10 +236,15 @@ class CRT {
 			@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 		*/
 		inline uint8_t *begin_data(std::size_t required_length, std::size_t required_alignment = 1) {
+			const auto result = scan_target_->begin_data(required_length, required_alignment);
 #ifndef NDEBUG
-			allocated_data_length_ = required_length;
+			// If data was allocated, make a record of how much so as to be able to hold the caller to that
+			// contract later. If allocation failed, don't constrain the caller. This allows callers that
+			// allocate on demand but may allow one failure to hold for a longer period — e.g. until the
+			// next line.
+			allocated_data_length_ = result ? required_length : std::numeric_limits<size_t>::max();
 #endif
-			return scan_target_->begin_data(required_length, required_alignment);
+			return result;
 		}
 
 		/*!	Sets the gamma exponent for the simulated screen. */

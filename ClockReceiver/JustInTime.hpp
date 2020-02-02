@@ -77,6 +77,48 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 };
 
 /*!
+	A RealTimeActor presents the same interface as a JustInTimeActor but doesn't defer work.
+	Time added will be performed immediately.
+
+	Its primary purpose is to allow consumers to remain flexible in their scheduling.
+*/
+template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class RealTimeActor {
+	public:
+		template<typename... Args> RealTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {}
+
+		forceinline void operator += (const LocalTimeScale &rhs) {
+			if constexpr (multiplier == 1 && divider == 1) {
+				object_.run_for(TargetTimeScale(rhs));
+				return;
+			}
+
+			if constexpr (multiplier == 1) {
+				accumulated_time_ += rhs;
+			} else {
+				accumulated_time_ += rhs * multiplier;
+			}
+
+			if constexpr (divider == 1) {
+				const auto duration = accumulated_time_.template flush<TargetTimeScale>();
+				object_.run_for(duration);
+			} else {
+				const auto duration = accumulated_time_.template divide<TargetTimeScale>(LocalTimeScale(divider));
+				if(duration > TargetTimeScale(0))
+					object_.run_for(duration);
+			}
+		}
+
+		forceinline T *operator->()				{	return &object_;	}
+		forceinline const T *operator->() const	{	return &object_;	}
+		forceinline T *last_valid() 			{	return &object_;	}
+		forceinline void flush()				{}
+
+	private:
+		T object_;
+		LocalTimeScale accumulated_time_;
+};
+
+/*!
 	A AsyncJustInTimeActor acts like a JustInTimeActor but additionally contains an AsyncTaskQueue.
 	Any time the amount of accumulated time crosses a threshold provided at construction time,
 	the object will be updated on the AsyncTaskQueue.

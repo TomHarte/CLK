@@ -19,6 +19,9 @@
 
 /// Initialises a new instance of the high precision timer; the timer will begin
 /// ticking immediately.
+///
+/// @param task The block to perform each time the timer fires.
+/// @param interval The interval at which to fire the timer, in nanoseconds.
 - (instancetype)initWithTask:(dispatch_block_t)task interval:(uint64_t)interval;
 
 /// Stops the timer.
