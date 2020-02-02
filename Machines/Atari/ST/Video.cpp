@@ -31,7 +31,7 @@ const struct VerticalParams {
 } vertical_params[3] = {
 	{63, 263, 313},	// 47 rather than 63 on early machines.
 	{34, 234, 263},
-	{51, 451, 500}	// 72 Hz mode: who knows?
+	{34, 434, 500}	// Guesswork: (i) nobody ever recommends 72Hz mode for opening the top border, so it's likely to be the same as another mode; (ii) being the same as PAL feels too late.
 };
 
 /// @returns The correct @c VerticalParams for output at @c frequency.
@@ -121,13 +121,13 @@ const int load_delay_period = CYCLE(4);		// Amount of time after DE that observe
 }
 
 Video::Video() :
-//	crt_(2048, 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
-	crt_(896, 1, 500, 5, Outputs::Display::InputDataType::Red4Green4Blue4),
+	crt_(2048, 2, Outputs::Display::Type::PAL50, Outputs::Display::InputDataType::Red4Green4Blue4),
+//	crt_(896, 1, 500, 5, Outputs::Display::InputDataType::Red4Green4Blue4),
 	video_stream_(crt_, palette_) {
 
 	// Show a total of 260 lines; a little short for PAL but a compromise between that and the ST's
 	// usual output height of 200 lines.
-//	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 440, 1700, 4.0f / 3.0f));
+	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 440, 1700, 4.0f / 3.0f));
 }
 
 void Video::set_ram(uint16_t *ram, size_t size) {
@@ -212,13 +212,16 @@ void Video::run_for(HalfCycles duration) {
 		} else if(!load_) {
 			video_stream_.output(run_length, VideoStream::OutputMode::Pixels);
 		} else {
-			const int since_load = x_ - load_base_;
+			const int start = x_ - load_base_;
+			const int end = start + run_length;
 
 			// There will be pixels this line, subject to the shifter pipeline.
 			// Divide into 8-[half-]cycle windows; at the start of each window fetch a word,
 			// and during the rest of the window, shift out.
-			int start_column = since_load >> 3;
-			const int end_column = (since_load + run_length) >> 3;
+			int start_column = start >> 3;
+			const int end_column = end >> 3;
+			const int start_offset = start & 7;
+			const int end_offset = end & 7;
 
 			// Rules obeyed below:
 			//
@@ -227,26 +230,29 @@ void Video::run_for(HalfCycles duration) {
 			//	was reloaded by the fetch depends on the FIFO.
 
 			if(start_column == end_column) {
+				if(!start_offset) {
+					push_latched_data();
+				}
 				video_stream_.output(run_length, VideoStream::OutputMode::Pixels);
 			} else {
 				// Continue the current column if partway across.
-				if(since_load&7) {
+				if(start_offset) {
 					// If at least one column boundary is crossed, complete this column.
-					video_stream_.output(8 - (since_load & 7), VideoStream::OutputMode::Pixels);
+					video_stream_.output(8 - start_offset, VideoStream::OutputMode::Pixels);
 					++start_column;	// This starts a new column, so latch a new word.
-					push_latched_data();
 				}
 
 				// Run for all columns that have their starts in this time period.
 				int complete_columns = end_column - start_column;
 				while(complete_columns--) {
-					video_stream_.output(8, VideoStream::OutputMode::Pixels);
 					push_latched_data();
+					video_stream_.output(8, VideoStream::OutputMode::Pixels);
 				}
 
 				// Output the start of the next column, if necessary.
-				if((since_load + run_length) & 7) {
-					video_stream_.output((since_load + run_length) & 7, VideoStream::OutputMode::Pixels);
+				if(end_offset) {
+					push_latched_data();
+					video_stream_.output(end_offset, VideoStream::OutputMode::Pixels);
 				}
 			}
 		}
@@ -574,7 +580,7 @@ void Video::VideoStream::generate(int duration, OutputMode mode, bool is_termina
 			case OutputMode::ColourBurst:	crt_.output_default_colour_burst(duration_*2);	break;
 		}
 
-		// Reseed duration
+		// Reseed duration.
 		duration_ = duration;
 
 		// The shifter should keep running, so throw away the proper amount of content.
@@ -725,7 +731,7 @@ void Video::VideoStream::output_pixels(int duration) {
 		}
 
 		// Check whether the limit has been reached.
-		if(pixel_pointer_ == allocation_size) {
+		if(pixel_pointer_ >= allocation_size - 32) {
 			flush_pixels();
 		}
 	}
@@ -735,9 +741,9 @@ void Video::VideoStream::output_pixels(int duration) {
 	if(pixels) {
 		int leftover_duration = pixels;
 		switch(bpp_) {
-			case OutputBpp::One: leftover_duration >>= 1;	break;
-			default: break;
-			case OutputBpp::Four: leftover_duration <<= 1;	break;
+			default: 				leftover_duration >>= 1;	break;
+			case OutputBpp::Two:								break;
+			case OutputBpp::Four:	leftover_duration <<= 1;	break;
 		}
 		shift(leftover_duration);
 		crt_.output_data(leftover_duration*2);
@@ -748,9 +754,9 @@ void Video::VideoStream::flush_pixels() {
 	// Flush only if there's something to flush.
 	if(pixel_pointer_) {
 		switch(bpp_) {
-			case OutputBpp::One:	crt_.output_data(pixel_pointer_); break;
-			default: 				crt_.output_data(pixel_pointer_ << 1, size_t(pixel_pointer_)); break;
-			case OutputBpp::Four:	crt_.output_data(pixel_pointer_ << 2, size_t(pixel_pointer_)); break;
+			case OutputBpp::One:	crt_.output_data(pixel_pointer_); 								break;
+			default:				crt_.output_data(pixel_pointer_ << 1, size_t(pixel_pointer_));	break;
+			case OutputBpp::Four:	crt_.output_data(pixel_pointer_ << 2, size_t(pixel_pointer_));	break;
 		}
 	}
 

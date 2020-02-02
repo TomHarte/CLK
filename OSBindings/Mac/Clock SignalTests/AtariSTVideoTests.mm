@@ -333,6 +333,16 @@ struct RunLength {
 	XCTAssertNotEqual([self currentVideoAddress], 0);
 }
 
+// MARK: - Tests Relating To Specific Bugs
+
+- (void)test72LineLength {
+	// Set 1bpp, 72Hz.
+	_video->write(0x30, 0x0200);
+
+	[self syncToStartOfLine];
+	_video->run_for(HalfCycles(400));	// 392, 399, 406
+}
+
 // MARK: - Tests Correlating To Exact Pieces of Software
 
 - (void)testUnionDemoScroller {
