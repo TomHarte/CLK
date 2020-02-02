@@ -236,10 +236,15 @@ class CRT {
 			@returns A pointer to the allocated area if room is available; @c nullptr otherwise.
 		*/
 		inline uint8_t *begin_data(std::size_t required_length, std::size_t required_alignment = 1) {
+			const auto result = scan_target_->begin_data(required_length, required_alignment);
 #ifndef NDEBUG
-			allocated_data_length_ = required_length;
+			// If data was allocated, make a record of how much so as to be able to hold the caller to that
+			// contract later. If allocation failed, don't constrain the caller. This allows callers that
+			// allocate on demand but may allow one failure to hold for a longer period — e.g. until the
+			// next line.
+			allocated_data_length_ = result ? required_length : std::numeric_limits<size_t>::max();
 #endif
-			return scan_target_->begin_data(required_length, required_alignment);
+			return result;
 		}
 
 		/*!	Sets the gamma exponent for the simulated screen. */
