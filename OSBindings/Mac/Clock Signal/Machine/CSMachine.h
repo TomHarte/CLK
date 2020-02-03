@@ -64,6 +64,9 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 
 - (void)setView:(nullable CSOpenGLView *)view aspectRatio:(float)aspectRatio;
 
+- (void)start;
+- (void)stop;
+
 - (void)updateViewForPixelSize:(CGSize)pixelSize;
 - (void)drawViewForPixelSize:(CGSize)pixelSize;
 

@@ -10,6 +10,7 @@
 #import "CSMachine+Target.h"
 
 #include "CSROMFetcher.hpp"
+#import "CSHighPrecisionTimer.h"
 
 #include "MediaTarget.hpp"
 #include "JoystickMachine.hpp"
@@ -148,6 +149,8 @@ struct ActivityObserver: public Activity::Observer {
 	CSJoystickManager *_joystickManager;
 	std::bitset<65536> _depressedKeys;
 	NSMutableArray<NSString *> *_leds;
+
+	CSHighPrecisionTimer *_timer;
 
 	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
 }
@@ -326,7 +329,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)updateViewForPixelSize:(CGSize)pixelSize {
-	_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+	self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
 
 //	@synchronized(self) {
 //		const auto scan_status = _machine->crt_machine()->get_scan_status();
@@ -692,6 +695,19 @@ struct ActivityObserver: public Activity::Observer {
 
 - (NSArray<NSString *> *)leds {
 	return _leds;
+}
+
+#pragma mark - Timer
+
+- (void)start {
+	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
+		self->_machine->crt_machine()->run_for(2500000.0 / 1000000000.0);
+	} interval:2500000];
+}
+
+- (void)stop {
+	[_timer invalidate];
+	_timer = nil;
 }
 
 @end

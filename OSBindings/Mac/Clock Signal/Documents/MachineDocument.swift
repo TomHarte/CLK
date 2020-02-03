@@ -24,8 +24,6 @@ class MachineDocument:
 	private let actionLock = NSLock()
 	/// Ensures exclusive access between calls to machine.updateView and machine.drawView, and close().
 	private let drawLock = NSLock()
-	/// Ensures exclusive access to the best-effort updater.
-	private let bestEffortLock = NSLock()
 
 	// MARK: - Machine details.
 
@@ -42,9 +40,6 @@ class MachineDocument:
 
 	/// The output audio queue, if any.
 	private var audioQueue: CSAudioQueue!
-
-	/// The best-effort updater.
-	private var bestEffortUpdater: CSBestEffortUpdater?
 
 	// MARK: - Main NIB connections.
 
@@ -89,18 +84,13 @@ class MachineDocument:
 	}
 
 	override func close() {
+		machine.stop()
+
 		activityPanel?.setIsVisible(false)
 		activityPanel = nil
 
 		optionsPanel?.setIsVisible(false)
 		optionsPanel = nil
-
-		bestEffortLock.lock()
-		if let bestEffortUpdater = bestEffortUpdater {
-			bestEffortUpdater.flush()
-			self.bestEffortUpdater = nil
-		}
-		bestEffortLock.unlock()
 
 		actionLock.lock()
 		drawLock.lock()
@@ -200,7 +190,6 @@ class MachineDocument:
 			}
 
 			machine.delegate = self
-			self.bestEffortUpdater = CSBestEffortUpdater()
 
 			// Callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
 			// hence the full setup of the best-effort updater prior to setting self as a delegate.
@@ -220,7 +209,7 @@ class MachineDocument:
 			openGLView.window!.makeFirstResponder(openGLView)
 
 			// Start forwarding best-effort updates.
-			self.bestEffortUpdater!.setMachine(machine)
+			machine.start()
 		}
 	}
 
@@ -251,24 +240,11 @@ class MachineDocument:
 
 	/// Responds to the CSAudioQueueDelegate dry-queue warning message by requesting a machine update.
 	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
-		bestEffortLock.lock()
-		bestEffortUpdater?.update(with: .audioNeeded)
-		bestEffortLock.unlock()
 	}
 
 	/// Responds to the CSOpenGLViewDelegate redraw message by requesting a machine update if this is a timed
 	/// request, and ordering a redraw regardless of the motivation.
 	final func openGLViewRedraw(_ view: CSOpenGLView, event redrawEvent: CSOpenGLViewRedrawEvent) {
-		if redrawEvent == .timer {
-			bestEffortLock.lock()
-			if let bestEffortUpdater = bestEffortUpdater {
-				bestEffortLock.unlock()
-				bestEffortUpdater.update()
-			} else {
-				bestEffortLock.unlock()
-			}
-		}
-
 		if drawLock.try() {
 			if redrawEvent == .timer {
 				machine.updateView(forPixelSize: view.backingSize)
