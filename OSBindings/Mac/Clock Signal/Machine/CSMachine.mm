@@ -717,11 +717,13 @@ struct ActivityObserver: public Activity::Observer {
 	} flushDrawable:YES];
 }
 
+#define TICKS	600
+
 - (void)start {
 	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
 		CGSize pixelSize;
 		@synchronized(self) {
-			self->_machine->crt_machine()->run_for(2500000.0 / 1000000000.0);
+			self->_machine->crt_machine()->run_for(1.0 / double(TICKS));
 			pixelSize = self->_pixelSize;
 		}
 
@@ -733,8 +735,10 @@ struct ActivityObserver: public Activity::Observer {
 				self->is_updating.clear();
 			});
 		}
-	} interval:2500000];
+	} interval:uint64_t(1000000000) / uint64_t(TICKS)];
 }
+
+#undef TICKS
 
 - (void)stop {
 	[_timer invalidate];
