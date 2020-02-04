@@ -25,6 +25,7 @@
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
 
+#include <atomic>
 #include <bitset>
 
 #import <OpenGL/OpenGL.h>
@@ -152,6 +153,7 @@ struct ActivityObserver: public Activity::Observer {
 
 	CSHighPrecisionTimer *_timer;
 	CGSize _pixelSize;
+	std::atomic_flag is_updating;
 
 	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
 }
@@ -205,6 +207,7 @@ struct ActivityObserver: public Activity::Observer {
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
 
 		_joystickMachine = _machine->joystick_machine();
+		is_updating.clear();
 	}
 	return self;
 }
@@ -705,11 +708,12 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)openGLViewDisplayLinkDidFire:(CSOpenGLView *)view {
+	CGSize pixelSize = view.backingSize;
 	@synchronized(self) {
-		_pixelSize = view.backingSize;
+		_pixelSize = pixelSize;
 	}
 	[self.view performWithGLContext:^{
-		self->_scanTarget->draw((int)self->_pixelSize.width, (int)self->_pixelSize.height);
+		self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
 	} flushDrawable:YES];
 }
 
@@ -721,11 +725,14 @@ struct ActivityObserver: public Activity::Observer {
 			pixelSize = self->_pixelSize;
 		}
 
-		dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
-			[self.view performWithGLContext:^{
-				self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
-			} flushDrawable:NO];
-		});
+		if(!self->is_updating.test_and_set()) {
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
+				[self.view performWithGLContext:^{
+					self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+				} flushDrawable:NO];
+				self->is_updating.clear();
+			});
+		}
 	} interval:2500000];
 }
 
