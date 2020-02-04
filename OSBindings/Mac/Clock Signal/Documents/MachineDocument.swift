@@ -177,9 +177,7 @@ class MachineDocument:
 		if let machine = self.machine, let openGLView = self.openGLView {
 			// Establish the output aspect ratio and audio.
 			let aspectRatio = self.aspectRatio()
-			openGLView.perform(glContext: {
-				machine.setView(openGLView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
-			})
+			machine.setView(openGLView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
 
 			// Attach an options panel if one is available.
 			if let optionsPanelNibName = self.machineDescription?.optionsPanelNibName {

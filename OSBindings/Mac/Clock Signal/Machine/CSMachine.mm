@@ -33,7 +33,7 @@
 #include "../../../../Outputs/OpenGL/ScanTarget.hpp"
 #include "../../../../Outputs/OpenGL/Screenshot.hpp"
 
-@interface CSMachine()
+@interface CSMachine() <CSOpenGLViewDisplayLinkDelegate>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
 - (void)addLED:(NSString *)led;
@@ -151,6 +151,7 @@ struct ActivityObserver: public Activity::Observer {
 	NSMutableArray<NSString *> *_leds;
 
 	CSHighPrecisionTimer *_timer;
+	CGSize _pixelSize;
 
 	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
 }
@@ -318,9 +319,10 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio {
 	_view = view;
+	_view.displayLinkDelegate = self;
 	[view performWithGLContext:^{
 		[self setupOutputWithAspectRatio:aspectRatio];
-	}];
+	} flushDrawable:NO];
 }
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
@@ -329,7 +331,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)updateViewForPixelSize:(CGSize)pixelSize {
-	self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+//	_pixelSize = pixelSize;
 
 //	@synchronized(self) {
 //		const auto scan_status = _machine->crt_machine()->get_scan_status();
@@ -699,9 +701,31 @@ struct ActivityObserver: public Activity::Observer {
 
 #pragma mark - Timer
 
+- (void)openGLView:(CSOpenGLView *)view didUpdateDisplayLink:(CVDisplayLinkRef)displayLink {
+}
+
+- (void)openGLViewDisplayLinkDidFire:(CSOpenGLView *)view {
+	@synchronized(self) {
+		_pixelSize = view.backingSize;
+	}
+	[self.view performWithGLContext:^{
+		self->_scanTarget->draw((int)self->_pixelSize.width, (int)self->_pixelSize.height);
+	} flushDrawable:YES];
+}
+
 - (void)start {
 	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
-		self->_machine->crt_machine()->run_for(2500000.0 / 1000000000.0);
+		CGSize pixelSize;
+		@synchronized(self) {
+			self->_machine->crt_machine()->run_for(2500000.0 / 1000000000.0);
+			pixelSize = self->_pixelSize;
+		}
+
+		dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
+			[self.view performWithGLContext:^{
+				self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+			} flushDrawable:NO];
+		});
 	} interval:2500000];
 }
 

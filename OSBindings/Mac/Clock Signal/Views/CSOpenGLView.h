@@ -102,6 +102,29 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 @end
 
 /*!
+	Although I'm still on the fence about this as a design decision, CSOpenGLView  is itself responsible
+	for creating and destroying a CVDisplayLink. There's a practical reason for this: you'll get real synchronisation
+	only if a link is explicitly tied to a particular display, and the CSOpenGLView therefore owns the knowledge
+	necessary to decide when to create and modify them. It doesn't currently just propagate "did change screen"-type
+	messages because I haven't yet found a way to track that other than polling, in which case I might as well put
+	that into the display link callback.
+*/
+@protocol CSOpenGLViewDisplayLinkDelegate
+
+/*!
+	Informs the delegate that from now on, the display link @c displayLink will be used for update notifications
+	and/or that the frequency or phase or @c displayLink has changed.
+*/
+- (void)openGLView:(nonnull CSOpenGLView *)view didUpdateDisplayLink:(nonnull CVDisplayLinkRef)displayLink;
+
+/*!
+	Informs the delegate that the display link has fired.
+*/
+- (void)openGLViewDisplayLinkDidFire:(nonnull CSOpenGLView *)view;
+
+@end
+
+/*!
 	Provides an OpenGL canvas with a refresh-linked update timer that can forward a subset
 	of typical first-responder actions.
 */
@@ -109,6 +132,7 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 
 @property (atomic, weak, nullable) id <CSOpenGLViewDelegate> delegate;
 @property (nonatomic, weak, nullable) id <CSOpenGLViewResponderDelegate> responderDelegate;
+@property (atomic, weak, nullable) id <CSOpenGLViewDisplayLinkDelegate> displayLinkDelegate;
 
 /// Determines whether the view offers mouse capturing — i.e. if the user clicks on the view then
 /// then the system cursor is disabled and the mouse events defined by CSOpenGLViewResponderDelegate
@@ -139,6 +163,7 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 	Locks this view's OpenGL context and makes it current, performs @c action and then unlocks
 	the context. @c action is performed on the calling queue.
 */
+- (void)performWithGLContext:(nonnull dispatch_block_t)action flushDrawable:(BOOL)flushDrawable;
 - (void)performWithGLContext:(nonnull dispatch_block_t)action;
 
 /*!
