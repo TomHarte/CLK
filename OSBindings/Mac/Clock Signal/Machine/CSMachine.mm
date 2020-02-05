@@ -720,10 +720,16 @@ struct ActivityObserver: public Activity::Observer {
 #define TICKS	600
 
 - (void)start {
+	__block auto lastTime = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+
 	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
+		const auto timeNow = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+		const auto duration = timeNow - lastTime;
+		lastTime = timeNow;
+
 		CGSize pixelSize;
 		@synchronized(self) {
-			self->_machine->crt_machine()->run_for(1.0 / double(TICKS));
+			self->_machine->crt_machine()->run_for((double)duration / 1e9);
 			pixelSize = self->_pixelSize;
 		}
 
