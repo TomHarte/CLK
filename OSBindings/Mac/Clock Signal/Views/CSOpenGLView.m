@@ -22,6 +22,8 @@
 	NSTrackingArea *_mouseTrackingArea;
 	NSTimer *_mouseHideTimer;
 	BOOL _mouseIsCaptured;
+
+	id<CSOpenGLViewDisplayLinkDelegate> _displayLinkDelegate;
 }
 
 - (void)prepareOpenGL {
@@ -68,6 +70,23 @@
 
 	// Activate the display link
 	CVDisplayLinkStart(_displayLink);
+}
+
+- (void)setDisplayLinkDelegate:(id<CSOpenGLViewDisplayLinkDelegate>)displayLinkDelegate {
+	@synchronized(self) {
+		_displayLinkDelegate = displayLinkDelegate;
+
+		// Seed with the current _displayLink, if any.
+		if(_displayLink) {
+			[displayLinkDelegate openGLView:self didUpdateDisplayLink:_displayLink];
+		}
+	}
+}
+
+- (id<CSOpenGLViewDisplayLinkDelegate>)displayLinkDelegate {
+	@synchronized(self) {
+		return _displayLinkDelegate;
+	}
 }
 
 static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext) {
