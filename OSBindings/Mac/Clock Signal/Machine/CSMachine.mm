@@ -153,7 +153,9 @@ struct ActivityObserver: public Activity::Observer {
 
 	CSHighPrecisionTimer *_timer;
 	CGSize _pixelSize;
-	std::atomic_flag is_updating;
+	std::atomic_flag _isUpdating;
+	int64_t _syncTime;
+	double _refreshPeriod;
 
 	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
 }
@@ -207,7 +209,7 @@ struct ActivityObserver: public Activity::Observer {
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
 
 		_joystickMachine = _machine->joystick_machine();
-		is_updating.clear();
+		_isUpdating.clear();
 	}
 	return self;
 }
@@ -705,11 +707,14 @@ struct ActivityObserver: public Activity::Observer {
 #pragma mark - Timer
 
 - (void)openGLView:(CSOpenGLView *)view didUpdateDisplayLink:(CVDisplayLinkRef)displayLink {
+	_refreshPeriod = CVDisplayLinkGetActualOutputVideoRefreshPeriod(displayLink);
+	NSLog(@"Refresh period: %0.5f (%0.5f)", _refreshPeriod, 1.0 / _refreshPeriod);
 }
 
 - (void)openGLViewDisplayLinkDidFire:(CSOpenGLView *)view {
 	CGSize pixelSize = view.backingSize;
 	@synchronized(self) {
+		_syncTime = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 		_pixelSize = pixelSize;
 	}
 	[self.view performWithGLContext:^{
@@ -725,22 +730,48 @@ struct ActivityObserver: public Activity::Observer {
 	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
 		const auto timeNow = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 		const auto duration = timeNow - lastTime;
-		lastTime = timeNow;
 
 		CGSize pixelSize;
+		int64_t syncTime;
 		@synchronized(self) {
+			syncTime = self->_syncTime;
+
+			// If this tick includes vsync then inspect the machine.
+			BOOL splitAndSync = NO;
+			if(timeNow >= self->_syncTime && lastTime < self->_syncTime) {
+				// Grab the scan status and check out the machine's current frame time.
+				// If it's stable and within 3% of a non-zero integer multiple of the
+				// display rate, consider an adjustment.
+				const auto scan_status = self->_machine->crt_machine()->get_scan_status();
+				if(scan_status.field_duration_gradient < 0.00001) {
+					auto ratio = self->_refreshPeriod / scan_status.field_duration;
+					if(ratio > 1.5) {
+						ratio = fmod(ratio, 1.0);
+						if(ratio < 0.5) ratio += 1.0;
+					}
+					splitAndSync = ratio <= 1.03 && ratio >= 0.97;
+//					if(splitAndSync) {
+//						NSLog(@"+: %0.3f %0.3f [%0.5f]", scan_status.field_duration / self->_refreshPeriod, ratio, scan_status.field_duration_gradient);
+//					} else {
+//						NSLog(@"-: %0.3f %0.3f [%0.5f]", scan_status.field_duration / self->_refreshPeriod, ratio, scan_status.field_duration_gradient);
+//					}
+				} // else NSLog(@"e");
+			}
+
 			self->_machine->crt_machine()->run_for((double)duration / 1e9);
 			pixelSize = self->_pixelSize;
 		}
 
-		if(!self->is_updating.test_and_set()) {
+		if(!self->_isUpdating.test_and_set()) {
 			dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
 				[self.view performWithGLContext:^{
 					self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
 				} flushDrawable:NO];
-				self->is_updating.clear();
+				self->_isUpdating.clear();
 			});
 		}
+
+		lastTime = timeNow;
 	} interval:uint64_t(1000000000) / uint64_t(TICKS)];
 }
 
