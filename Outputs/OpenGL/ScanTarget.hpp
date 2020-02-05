@@ -77,7 +77,6 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void end_scan() final;
 		uint8_t *begin_data(size_t required_length, size_t required_alignment) final;
 		void end_data(size_t actual_length) final;
-		void submit() final;
 		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) final;
 		void will_change_owner() final;
 
@@ -188,7 +187,6 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// Track allocation failures.
 		bool data_is_allocated_ = false;
 		bool allocation_has_failed_ = false;
-		bool line_allocation_has_failed_ = false;
 
 		// Receives scan target modals.
 		Modals modals_;

@@ -288,7 +288,7 @@ struct ScanTarget {
 		///
 		/// The ScanTarget isn't bound to take any drawing action immediately; it may sit on submitted data for
 		/// as long as it feels is appropriate, subject to a @c flush.
-		virtual void submit() = 0;
+		virtual void submit() {}
 
 
 	/*
