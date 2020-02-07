@@ -772,8 +772,6 @@ struct ActivityObserver: public Activity::Observer {
 			if(splitAndSync) {
 				self->_machine->crt_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
 //				NSLog(@"%0.4f [%d / %0.4f]\n", self->_machine->crt_machine()->get_scan_status().current_position, apple_cycles, CRTMachine::Machine::machine_duration);
-				apple_cycles = 0;
-				CRTMachine::Machine::machine_duration = 0.0;
 				self->_machine->crt_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
 			} else {
 				self->_machine->crt_machine()->run_for((double)duration / 1e9);
