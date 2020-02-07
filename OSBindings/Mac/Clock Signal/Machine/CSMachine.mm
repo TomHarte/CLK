@@ -155,6 +155,7 @@ struct ActivityObserver: public Activity::Observer {
 	CGSize _pixelSize;
 	std::atomic_flag _isUpdating;
 	int64_t _syncTime;
+	int64_t _timeDiff;
 	double _refreshPeriod;
 
 	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
@@ -711,12 +712,26 @@ struct ActivityObserver: public Activity::Observer {
 	NSLog(@"Refresh period: %0.5f (%0.5f)", _refreshPeriod, 1.0 / _refreshPeriod);
 }
 
-- (void)openGLViewDisplayLinkDidFire:(CSOpenGLView *)view {
+- (void)openGLViewDisplayLinkDidFire:(CSOpenGLView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
+	// First order of business: grab a timestamp.
+	const auto timeNow = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+
 	CGSize pixelSize = view.backingSize;
 	@synchronized(self) {
-		_syncTime = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+		// Store a means to map from CVTimeStamp.hostTime to std::chrono::high_resolution_clock;
+		// there is an extremely dodgy assumption here that both are in the same units (and, below, that both as in ns).
+		if(!_timeDiff) {
+			_timeDiff = int64_t(now->hostTime) - int64_t(timeNow);
+		}
+
+		// Store the next end-of-frame time. TODO: and start of next and implied visible duration, if raster racing?
+		_syncTime = int64_t(now->hostTime) + _timeDiff;
+
+		// Also crib the current view pixel size.
 		_pixelSize = pixelSize;
 	}
+
+	// Draw the current output. (TODO: do this within the timer if either raster racing or, at least, sync matching).
 	[self.view performWithGLContext:^{
 		self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
 	} flushDrawable:YES];
@@ -728,44 +743,63 @@ struct ActivityObserver: public Activity::Observer {
 	__block auto lastTime = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 
 	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
+		// Grab the time now and, therefore, the amount of time since the timer last fired.
 		const auto timeNow = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 		const auto duration = timeNow - lastTime;
 
+		
 		CGSize pixelSize;
-		int64_t syncTime;
+		BOOL splitAndSync = NO;
 		@synchronized(self) {
-			syncTime = self->_syncTime;
-
 			// If this tick includes vsync then inspect the machine.
-			BOOL splitAndSync = NO;
 			if(timeNow >= self->_syncTime && lastTime < self->_syncTime) {
 				// Grab the scan status and check out the machine's current frame time.
 				// If it's stable and within 3% of a non-zero integer multiple of the
-				// display rate, consider an adjustment.
+				// display rate, mark this time window to be split over the sync.
 				const auto scan_status = self->_machine->crt_machine()->get_scan_status();
 				if(scan_status.field_duration_gradient < 0.00001) {
 					auto ratio = self->_refreshPeriod / scan_status.field_duration;
-					if(ratio > 1.5) {
-						ratio = fmod(ratio, 1.0);
-						if(ratio < 0.5) ratio += 1.0;
+					const double integerRatio = round(ratio);
+					if(integerRatio > 0.0) {
+						ratio /= integerRatio;
+						splitAndSync = ratio <= 1.03 && ratio >= 0.97;
 					}
-					splitAndSync = ratio <= 1.03 && ratio >= 0.97;
-//					if(splitAndSync) {
-//						NSLog(@"+: %0.3f %0.3f [%0.5f]", scan_status.field_duration / self->_refreshPeriod, ratio, scan_status.field_duration_gradient);
-//					} else {
-//						NSLog(@"-: %0.3f %0.3f [%0.5f]", scan_status.field_duration / self->_refreshPeriod, ratio, scan_status.field_duration_gradient);
-//					}
-				} // else NSLog(@"e");
+				}
 			}
 
-			self->_machine->crt_machine()->run_for((double)duration / 1e9);
+			// If the time window is being split, run up to the split, then check out machine speed, possibly
+			// adjusting multiplier, then run after the split.
+			if(splitAndSync) {
+				self->_machine->crt_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
+//				NSLog(@"%0.4f [%d / %0.4f]\n", self->_machine->crt_machine()->get_scan_status().current_position, apple_cycles, CRTMachine::Machine::machine_duration);
+				apple_cycles = 0;
+				CRTMachine::Machine::machine_duration = 0.0;
+				self->_machine->crt_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
+			} else {
+				self->_machine->crt_machine()->run_for((double)duration / 1e9);
+			}
 			pixelSize = self->_pixelSize;
 		}
 
-		if(!self->_isUpdating.test_and_set()) {
+		// If this was not a split-and-sync then dispatch the update request asynchronously, unless
+		// there is an earlier one not yet finished, in which case don't worry about it for now.
+		//
+		// If it was a split-and-sync then spin until it is safe to dispatch, and dispatch with
+		// a concluding draw. Implicit assumption here: whatever is left to be done in the final window
+		// can be done within the retrace period.
+		auto wasUpdating = self->_isUpdating.test_and_set();
+//		if(wasUpdating && splitAndSync) {
+//			while(self->_isUpdating.test_and_set());
+//			wasUpdating = false;
+//		}
+		if(!wasUpdating) {
 			dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
 				[self.view performWithGLContext:^{
 					self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+
+//					if(splitAndSync) {
+//						self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
+//					}
 				} flushDrawable:NO];
 				self->_isUpdating.clear();
 			});

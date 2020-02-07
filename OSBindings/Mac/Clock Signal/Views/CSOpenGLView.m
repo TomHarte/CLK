@@ -93,7 +93,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	CSOpenGLView *const view = (__bridge CSOpenGLView *)displayLinkContext;
 
 	[view checkDisplayLink];
-	[view.displayLinkDelegate openGLViewDisplayLinkDidFire:view];
+	[view.displayLinkDelegate openGLViewDisplayLinkDidFire:view now:now outputTime:outputTime];
 	/*
 		Do not touch the display link from after this call; there's a bit of a race condition with setupDisplayLink.
 		Specifically: Apple provides CVDisplayLinkStop but a call to that merely prevents future calls to the callback,

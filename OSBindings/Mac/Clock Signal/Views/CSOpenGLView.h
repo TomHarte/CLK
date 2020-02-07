@@ -120,7 +120,7 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 /*!
 	Informs the delegate that the display link has fired.
 */
-- (void)openGLViewDisplayLinkDidFire:(nonnull CSOpenGLView *)view;
+- (void)openGLViewDisplayLinkDidFire:(nonnull CSOpenGLView *)view now:(nonnull const CVTimeStamp *)now outputTime:(nonnull const CVTimeStamp *)outputTime;
 
 @end
 
