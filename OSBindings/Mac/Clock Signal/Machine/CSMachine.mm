@@ -755,23 +755,43 @@ struct ActivityObserver: public Activity::Observer {
 				// If it's stable and within 3% of a non-zero integer multiple of the
 				// display rate, mark this time window to be split over the sync.
 				const auto scan_status = self->_machine->crt_machine()->get_scan_status();
+				double ratio = 1.0;
 				if(scan_status.field_duration_gradient < 0.00001) {
-					auto ratio = self->_refreshPeriod / scan_status.field_duration;
+					ratio = self->_refreshPeriod / scan_status.field_duration;
 					const double integerRatio = round(ratio);
 					if(integerRatio > 0.0) {
 						ratio /= integerRatio;
-						splitAndSync = ratio <= 1.03 && ratio >= 0.97;
+
+						constexpr double maximumAdjustment = 1.03;
+						splitAndSync = ratio <= maximumAdjustment && ratio >= 1 / maximumAdjustment;
 					}
+				}
+
+				// If the time window is being split, run up to the split, then check out machine speed, possibly
+				// adjusting multiplier, then run after the split.
+				if(splitAndSync) {
+					self->_machine->crt_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
+
+					// The host versus emulated ratio is calculated based on the current perceived frame duration of the machine.
+					// Either that number is exactly correct or it's already the result of some sort of low-pass filter. So there's
+					// no benefit to second guessing it here — just take it to be correct.
+					//
+					// ... with one slight caveat, which is that it is desireable to adjust phase here, to align vertical sync points.
+					// So the set speed multiplier may be adjusted slightly to aim for that.
+					double speed_multiplier = 1.0 / ratio;
+					if(scan_status.current_position > 0.0) {
+						constexpr double adjustmentRatio = 1.01;
+						if(scan_status.current_position < 0.5) speed_multiplier /= adjustmentRatio;
+						else speed_multiplier *= adjustmentRatio;
+					}
+					self->_machine->crt_machine()->set_speed_multiplier(speed_multiplier);
+					self->_machine->crt_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
 				}
 			}
 
 			// If the time window is being split, run up to the split, then check out machine speed, possibly
 			// adjusting multiplier, then run after the split.
-			if(splitAndSync) {
-				self->_machine->crt_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
-//				NSLog(@"%0.4f [%d / %0.4f]\n", self->_machine->crt_machine()->get_scan_status().current_position, apple_cycles, CRTMachine::Machine::machine_duration);
-				self->_machine->crt_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
-			} else {
+			if(!splitAndSync) {
 				self->_machine->crt_machine()->run_for((double)duration / 1e9);
 			}
 			pixelSize = self->_pixelSize;
