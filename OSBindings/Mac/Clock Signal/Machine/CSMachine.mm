@@ -707,11 +707,6 @@ struct ActivityObserver: public Activity::Observer {
 
 #pragma mark - Timer
 
-- (void)openGLView:(CSOpenGLView *)view didUpdateDisplayLink:(CVDisplayLinkRef)displayLink {
-	_refreshPeriod = CVDisplayLinkGetActualOutputVideoRefreshPeriod(displayLink);
-	NSLog(@"Refresh period: %0.5f (%0.5f)", _refreshPeriod, 1.0 / _refreshPeriod);
-}
-
 - (void)openGLViewDisplayLinkDidFire:(CSOpenGLView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
 	// First order of business: grab a timestamp.
 	const auto timeNow = std::chrono::high_resolution_clock::now().time_since_epoch().count();
@@ -729,6 +724,9 @@ struct ActivityObserver: public Activity::Observer {
 
 		// Also crib the current view pixel size.
 		_pixelSize = pixelSize;
+
+		// Set the current refresh period.
+		_refreshPeriod = double(now->videoRefreshPeriod) / double(now->videoTimeScale);
 	}
 
 	// Draw the current output. (TODO: do this within the timer if either raster racing or, at least, sync matching).

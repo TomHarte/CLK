@@ -112,12 +112,6 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 @protocol CSOpenGLViewDisplayLinkDelegate
 
 /*!
-	Informs the delegate that from now on, the display link @c displayLink will be used for update notifications
-	and/or that the frequency or phase or @c displayLink has changed.
-*/
-- (void)openGLView:(nonnull CSOpenGLView *)view didUpdateDisplayLink:(nonnull CVDisplayLinkRef)displayLink;
-
-/*!
 	Informs the delegate that the display link has fired.
 */
 - (void)openGLViewDisplayLinkDidFire:(nonnull CSOpenGLView *)view now:(nonnull const CVTimeStamp *)now outputTime:(nonnull const CVTimeStamp *)outputTime;
