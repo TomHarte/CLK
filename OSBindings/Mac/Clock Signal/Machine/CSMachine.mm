@@ -157,6 +157,7 @@ struct ActivityObserver: public Activity::Observer {
 	int64_t _syncTime;
 	int64_t _timeDiff;
 	double _refreshPeriod;
+	BOOL _isSyncLocking;
 
 	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
 }
@@ -712,6 +713,7 @@ struct ActivityObserver: public Activity::Observer {
 	const auto timeNow = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 
 	CGSize pixelSize = view.backingSize;
+	BOOL isSyncLocking;
 	@synchronized(self) {
 		// Store a means to map from CVTimeStamp.hostTime to std::chrono::high_resolution_clock;
 		// there is an extremely dodgy assumption here that both are in the same units (and, below, that both as in ns).
@@ -727,12 +729,17 @@ struct ActivityObserver: public Activity::Observer {
 
 		// Set the current refresh period.
 		_refreshPeriod = double(now->videoRefreshPeriod) / double(now->videoTimeScale);
+
+		// Determine where responsibility lies for drawing.
+		isSyncLocking = _isSyncLocking;
 	}
 
 	// Draw the current output. (TODO: do this within the timer if either raster racing or, at least, sync matching).
-	[self.view performWithGLContext:^{
-		self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
-	} flushDrawable:YES];
+	if(!isSyncLocking) {
+		[self.view performWithGLContext:^{
+			self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
+		} flushDrawable:YES];
+	}
 }
 
 #define TICKS	600
@@ -766,6 +773,7 @@ struct ActivityObserver: public Activity::Observer {
 						splitAndSync = ratio <= maximumAdjustment && ratio >= 1 / maximumAdjustment;
 					}
 				}
+				self->_isSyncLocking = splitAndSync;
 
 				// If the time window is being split, run up to the split, then check out machine speed, possibly
 				// adjusting multiplier, then run after the split.
@@ -804,19 +812,19 @@ struct ActivityObserver: public Activity::Observer {
 		// a concluding draw. Implicit assumption here: whatever is left to be done in the final window
 		// can be done within the retrace period.
 		auto wasUpdating = self->_isUpdating.test_and_set();
-//		if(wasUpdating && splitAndSync) {
-//			while(self->_isUpdating.test_and_set());
-//			wasUpdating = false;
-//		}
+		if(wasUpdating && splitAndSync) {
+			while(self->_isUpdating.test_and_set());
+			wasUpdating = false;
+		}
 		if(!wasUpdating) {
 			dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
 				[self.view performWithGLContext:^{
 					self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
 
-//					if(splitAndSync) {
-//						self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
-//					}
-				} flushDrawable:NO];
+					if(splitAndSync) {
+						self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
+					}
+				} flushDrawable:splitAndSync];
 				self->_isUpdating.clear();
 			});
 		}
