@@ -60,6 +60,10 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		// Implemented as per Speaker.
 		void set_computed_output_rate(float cycles_per_second, int buffer_size) final {
 			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
+			if(filter_parameters_.output_cycles_per_second == cycles_per_second && size_t(buffer_size) == output_buffer_.size()) {
+				return;
+			}
+
 			filter_parameters_.output_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;
 			output_buffer_.resize(std::size_t(buffer_size));
@@ -70,6 +74,9 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		*/
 		void set_input_rate(float cycles_per_second) {
 			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
+			if(filter_parameters_.input_cycles_per_second == cycles_per_second) {
+				return;
+			}
 			filter_parameters_.input_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;
 			filter_parameters_.input_rate_changed = true;
@@ -83,6 +90,9 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		*/
 		void set_high_frequency_cutoff(float high_frequency) {
 			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
+			if(filter_parameters_.high_frequency_cutoff == high_frequency) {
+				return;
+			}
 			filter_parameters_.high_frequency_cutoff = high_frequency;
 			filter_parameters_.parameters_are_dirty = true;
 		}
