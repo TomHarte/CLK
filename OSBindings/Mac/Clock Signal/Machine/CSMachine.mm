@@ -158,6 +158,7 @@ struct ActivityObserver: public Activity::Observer {
 	int64_t _timeDiff;
 	double _refreshPeriod;
 	BOOL _isSyncLocking;
+	double _speedMultiplier;
 
 	NSTimer *_joystickTimer;
 
@@ -168,6 +169,7 @@ struct ActivityObserver: public Activity::Observer {
 	self = [super init];
 	if(self) {
 		_analyser = result;
+		_speedMultiplier = 1.0;
 
 		Machine::Error error;
 		std::vector<ROMMachine::ROM> missing_roms;
@@ -802,11 +804,12 @@ struct ActivityObserver: public Activity::Observer {
 					// So the set speed multiplier may be adjusted slightly to aim for that.
 					double speed_multiplier = 1.0 / ratio;
 					if(scan_status.current_position > 0.0) {
-						constexpr double adjustmentRatio = 1.01;
+						constexpr double adjustmentRatio = 1.005;
 						if(scan_status.current_position < 0.5) speed_multiplier /= adjustmentRatio;
 						else speed_multiplier *= adjustmentRatio;
 					}
-					self->_machine->crt_machine()->set_speed_multiplier(speed_multiplier);
+					self->_speedMultiplier = (self->_speedMultiplier * 0.95) + (speed_multiplier * 0.05);
+					self->_machine->crt_machine()->set_speed_multiplier(self->_speedMultiplier);
 					self->_machine->crt_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
 				}
 			}
