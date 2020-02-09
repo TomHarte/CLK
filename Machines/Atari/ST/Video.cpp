@@ -194,8 +194,8 @@ void Video::run_for(HalfCycles duration) {
 			// There will be pixels this line, subject to the shifter pipeline.
 			// Divide into 8-[half-]cycle windows; at the start of each window fetch a word,
 			// and during the rest of the window, shift out.
-			int start_column = since_load >> 3;
-			const int end_column = (since_load + run_length) >> 3;
+			int start_column = (since_load - 1) >> 3;
+			const int end_column = (since_load + run_length - 1) >> 3;
 
 			while(start_column != end_column) {
 				data_latch_[data_latch_position_] = ram_[current_address_ & 262143];
