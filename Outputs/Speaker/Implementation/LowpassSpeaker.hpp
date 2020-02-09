@@ -228,7 +228,6 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			);
 			number_of_taps = (number_of_taps * 2) | 1;
 
-			output_buffer_pointer_ = 0;
 			stepper_ = std::make_unique<SignalProcessing::Stepper>(
 				uint64_t(filter_parameters.input_cycles_per_second),
 				uint64_t(filter_parameters.output_cycles_per_second));
