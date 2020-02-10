@@ -23,6 +23,7 @@
 #include "../../Machines/Utility/MachineForTarget.hpp"
 
 #include "../../ClockReceiver/TimeTypes.hpp"
+#include "../../ClockReceiver/ScanSynchroniser.hpp"
 
 #include "../../Machines/MediaTarget.hpp"
 #include "../../Machines/CRTMachine.hpp"
@@ -52,7 +53,17 @@ struct MachineRunner {
 	}
 
 	void signal_vsync() {
-		vsync_time_.store(Time::nanos_now());
+		const auto now = Time::nanos_now();
+		const auto previous_vsync_time = vsync_time_.load();
+		vsync_time_.store(now);
+
+		// Update estimate of current frame time.
+		frame_time_average_ -= frame_times_[frame_time_pointer_];
+		frame_times_[frame_time_pointer_] = now - previous_vsync_time;
+		frame_time_average_ += frame_times_[frame_time_pointer_];
+		frame_time_pointer_ = (frame_time_pointer_ + 1) & (frame_times_.size() - 1);
+
+		_frame_period.store((1e9 * 32.0) / double(frame_time_average_));
 	}
 
 	std::mutex *machine_mutex;
@@ -63,6 +74,17 @@ struct MachineRunner {
 		Time::Nanos last_time_ = 0;
 		std::atomic<Time::Nanos> vsync_time_;
 
+		Time::ScanSynchroniser scan_synchroniser_;
+
+		// A slightly clumsy means of trying to derive frame rate from calls to
+		// signal_vsync(); SDL_DisplayMode provides only an integral quantity
+		// whereas, empirically, it's fairly common for monitors to run at the
+		// NTSC-esque frame rates of 59.94Hz.
+		std::array<Time::Nanos, 32> frame_times_;
+		Time::Nanos frame_time_average_ = 0;
+		size_t frame_time_pointer_ = 0;
+		std::atomic<double> _frame_period;
+
 		static constexpr Uint32 timer_period = 4;
 		static Uint32 sdl_callback(Uint32 interval, void *param) {
 			reinterpret_cast<MachineRunner *>(param)->update();
@@ -70,10 +92,26 @@ struct MachineRunner {
 		}
 
 		void update() {
-			const int64_t time_now = Time::nanos_now();
+			const auto time_now = Time::nanos_now();
+			const auto vsync_time = vsync_time_.load();
 
 			std::lock_guard<std::mutex> lock_guard(*machine_mutex);
-			machine->crt_machine()->run_for(double(time_now - last_time_) / 1e9);
+			const auto crt_machine = machine->crt_machine();
+
+			bool split_and_sync = false;
+			if(last_time_ < vsync_time && time_now >= vsync_time) {
+				split_and_sync = scan_synchroniser_.can_synchronise(crt_machine->get_scan_status(), _frame_period);
+			}
+
+			if(split_and_sync) {
+				crt_machine->run_for(double(vsync_time - last_time_) / 1e9);
+				crt_machine->set_speed_multiplier(
+					scan_synchroniser_.next_speed_multiplier(crt_machine->get_scan_status())
+				);
+				crt_machine->run_for(double(time_now - vsync_time) / 1e9);
+			} else {
+				crt_machine->run_for(double(time_now - last_time_) / 1e9);
+			}
 			last_time_ = time_now;
 		}
 };
