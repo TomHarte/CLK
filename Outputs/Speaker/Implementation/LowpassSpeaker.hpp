@@ -109,6 +109,12 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		}
 
 	private:
+		enum class Conversion {
+			ResampleSmaller,
+			Copy,
+			ResampleLarger
+		} conversion_ = Conversion::Copy;
+
 		/*!
 			Advances by the number of cycles specified, obtaining data from the sample source supplied
 			at construction, filtering it and passing it on to the speaker's delegate if there is one.
@@ -131,69 +137,41 @@ template <typename T> class LowpassSpeaker: public Speaker {
 				delegate_->speaker_did_change_input_clock(this);
 			}
 
-			// If input and output rates exactly match, and no additional cut-off has been specified,
-			// just accumulate results and pass on.
-			if(	filter_parameters.input_cycles_per_second == filter_parameters.output_cycles_per_second &&
-				filter_parameters.high_frequency_cutoff < 0.0) {
-				while(cycles_remaining) {
-					const auto cycles_to_read = std::min(output_buffer_.size() - output_buffer_pointer_, cycles_remaining);
+			switch(conversion_) {
+				case Conversion::Copy:
+					while(cycles_remaining) {
+						const auto cycles_to_read = std::min(output_buffer_.size() - output_buffer_pointer_, cycles_remaining);
 
-					sample_source_.get_samples(cycles_to_read, &output_buffer_[output_buffer_pointer_]);
-					output_buffer_pointer_ += cycles_to_read;
+						sample_source_.get_samples(cycles_to_read, &output_buffer_[output_buffer_pointer_]);
+						output_buffer_pointer_ += cycles_to_read;
 
-					// announce to delegate if full
-					if(output_buffer_pointer_ == output_buffer_.size()) {
-						output_buffer_pointer_ = 0;
-						did_complete_samples(this, output_buffer_);
-					}
-
-					cycles_remaining -= cycles_to_read;
-				}
-
-				return;
-			}
-
-			// If the output rate is less than the input rate, or an additional cut-off has been specified, use the filter.
-			if(	filter_parameters.input_cycles_per_second > filter_parameters.output_cycles_per_second ||
-				(filter_parameters.input_cycles_per_second == filter_parameters.output_cycles_per_second && filter_parameters.high_frequency_cutoff >= 0.0)) {
-				while(cycles_remaining) {
-					const auto cycles_to_read = std::min(cycles_remaining, input_buffer_.size() - input_buffer_depth_);
-					sample_source_.get_samples(cycles_to_read, &input_buffer_[input_buffer_depth_]);
-					cycles_remaining -= cycles_to_read;
-					input_buffer_depth_ += cycles_to_read;
-
-					if(input_buffer_depth_ == input_buffer_.size()) {
-						output_buffer_[output_buffer_pointer_] = filter_->apply(input_buffer_.data());
-						output_buffer_pointer_++;
-
-						// Announce to delegate if full.
+						// announce to delegate if full
 						if(output_buffer_pointer_ == output_buffer_.size()) {
 							output_buffer_pointer_ = 0;
 							did_complete_samples(this, output_buffer_);
 						}
 
-						// If the next loop around is going to reuse some of the samples just collected, use a memmove to
-						// preserve them in the correct locations (TODO: use a longer buffer to fix that) and don't skip
-						// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
-						const auto steps = stepper_->step();
-						if(steps < input_buffer_.size()) {
-							auto *const input_buffer = input_buffer_.data();
-							std::memmove(	input_buffer,
-											&input_buffer[steps],
-											sizeof(int16_t) * (input_buffer_.size() - steps));
-							input_buffer_depth_ -= steps;
-						} else {
-							if(steps > input_buffer_.size())
-								sample_source_.skip_samples(steps - input_buffer_.size());
-							input_buffer_depth_ = 0;
+						cycles_remaining -= cycles_to_read;
+					}
+				break;
+
+				case Conversion::ResampleSmaller:
+					while(cycles_remaining) {
+						const auto cycles_to_read = std::min(cycles_remaining, input_buffer_.size() - input_buffer_depth_);
+						sample_source_.get_samples(cycles_to_read, &input_buffer_[input_buffer_depth_]);
+						cycles_remaining -= cycles_to_read;
+						input_buffer_depth_ += cycles_to_read;
+
+						if(input_buffer_depth_ == input_buffer_.size()) {
+							resample_input_buffer();
 						}
 					}
-				}
+				break;
 
-				return;
+				case Conversion::ResampleLarger:
+					// TODO: input rate is less than output rate.
+				break;
 			}
-
-			// TODO: input rate is less than output rate
 		}
 
 		T &sample_source_;
@@ -239,8 +217,68 @@ template <typename T> class LowpassSpeaker: public Speaker {
 				high_pass_frequency,
 				SignalProcessing::FIRFilter::DefaultAttenuation);
 
-			input_buffer_.resize(std::size_t(number_of_taps));
-			input_buffer_depth_ = 0;
+
+			// Pick the new conversion function.
+			if(	filter_parameters.input_cycles_per_second == filter_parameters.output_cycles_per_second &&
+				filter_parameters.high_frequency_cutoff < 0.0) {
+				// If input and output rates exactly match, and no additional cut-off has been specified,
+				// just accumulate results and pass on.
+				conversion_ = Conversion::Copy;
+			} else if(	filter_parameters.input_cycles_per_second > filter_parameters.output_cycles_per_second ||
+				(filter_parameters.input_cycles_per_second == filter_parameters.output_cycles_per_second && filter_parameters.high_frequency_cutoff >= 0.0)) {
+				// If the output rate is less than the input rate, or an additional cut-off has been specified, use the filter.
+				conversion_ = Conversion::ResampleSmaller;
+			} else {
+				conversion_ = Conversion::ResampleLarger;
+			}
+
+			// Do something sensible with any dangling input, if necessary.
+			switch(conversion_) {
+				// Neither direct copying nor resampling larger currently use any temporary input.
+				// Although in the latter case that's just because it's unimplemented. But, regardless,
+				// that means nothing to do.
+				default: break;
+
+				case Conversion::ResampleSmaller:
+					// Reize the input buffer only if absolutely necessary; if sizing downward
+					// such that a sample would otherwise be lost then output it now. Keep anything
+					// currently in the input buffer that hasn't yet been processed.
+					if(input_buffer_.size() != size_t(number_of_taps)) {
+						if(input_buffer_depth_ >= size_t(number_of_taps)) {
+							resample_input_buffer();
+							input_buffer_depth_ %= size_t(number_of_taps);
+						}
+						input_buffer_.resize(size_t(number_of_taps));
+					}
+				break;
+			}
+		}
+
+		inline void resample_input_buffer() {
+			output_buffer_[output_buffer_pointer_] = filter_->apply(input_buffer_.data());
+			output_buffer_pointer_++;
+
+			// Announce to delegate if full.
+			if(output_buffer_pointer_ == output_buffer_.size()) {
+				output_buffer_pointer_ = 0;
+				did_complete_samples(this, output_buffer_);
+			}
+
+			// If the next loop around is going to reuse some of the samples just collected, use a memmove to
+			// preserve them in the correct locations (TODO: use a longer buffer to fix that?) and don't skip
+			// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
+			const auto steps = stepper_->step();
+			if(steps < input_buffer_.size()) {
+				auto *const input_buffer = input_buffer_.data();
+				std::memmove(	input_buffer,
+								&input_buffer[steps],
+								sizeof(int16_t) * (input_buffer_.size() - steps));
+				input_buffer_depth_ -= steps;
+			} else {
+				if(steps > input_buffer_.size())
+					sample_source_.skip_samples(steps - input_buffer_.size());
+				input_buffer_depth_ = 0;
+			}
 		}
 };
 
