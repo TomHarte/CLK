@@ -108,7 +108,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			// The sizes below might be less hassle as something more natural like ints,
 			// but squeezing this struct into 64 bits makes the std::atomics more likely
 			// to be lock free; they are under LLVM x86-64.
-			int write_area = 0;
+			int write_area = 1;	// By convention this points to the vended area. Which is preceded by a guard pixel. So a sensible default construction is write_area = 1.
 			uint16_t scan_buffer = 0;
 			uint16_t line = 0;
 		};
