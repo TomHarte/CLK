@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -21,10 +22,10 @@
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
 
+#include "../../ClockReceiver/TimeTypes.hpp"
+
 #include "../../Machines/MediaTarget.hpp"
 #include "../../Machines/CRTMachine.hpp"
-
-#include "../../Concurrency/BestEffortUpdater.hpp"
 
 #include "../../Activity/Observer.hpp"
 #include "../../Outputs/OpenGL/Primitives/Rectangle.hpp"
@@ -33,18 +34,52 @@
 
 namespace {
 
-struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
-	Time::Seconds update(Concurrency::BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update, int flags) override {
-		std::lock_guard<std::mutex> lock_guard(*machine_mutex);
-		return machine->crt_machine()->run_until(duration, flags);
+struct MachineRunner {
+	~MachineRunner() {
+		stop();
+	}
+
+	void start() {
+		last_time_ = Time::nanos_now();
+		timer_ = SDL_AddTimer(timer_period, &sdl_callback, reinterpret_cast<void *>(this));
+	}
+
+	void stop() {
+		if(timer_) {
+			SDL_RemoveTimer(timer_);
+			timer_ = 0;
+		}
+	}
+
+	void signal_vsync() {
+		vsync_time_.store(Time::nanos_now());
 	}
 
 	std::mutex *machine_mutex;
 	Machine::DynamicMachine *machine;
+
+	private:
+		SDL_TimerID timer_ = 0;
+		Time::Nanos last_time_ = 0;
+		std::atomic<Time::Nanos> vsync_time_;
+
+		static constexpr Uint32 timer_period = 4;
+		static Uint32 sdl_callback(Uint32 interval, void *param) {
+			reinterpret_cast<MachineRunner *>(param)->update();
+			return timer_period;
+		}
+
+		void update() {
+			const int64_t time_now = Time::nanos_now();
+
+			std::lock_guard<std::mutex> lock_guard(*machine_mutex);
+			machine->crt_machine()->run_for(double(time_now - last_time_) / 1e9);
+			last_time_ = time_now;
+		}
 };
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
-	// This is set to a relatively large number for now.
+	// This is empirically the best that I can seem to do with SDL's timer precision.
 	static constexpr int buffer_size = 1024;
 
 	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) final {
@@ -56,7 +91,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	}
 
 	void audio_callback(Uint8 *stream, int len) {
-		updater->update();
+//		updater->update();
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
 
 		std::size_t sample_length = static_cast<std::size_t>(len) / sizeof(int16_t);
@@ -75,7 +110,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	}
 
 	SDL_AudioDeviceID audio_device;
-	Concurrency::BestEffortUpdater *updater;
+//	Concurrency::BestEffortUpdater *updater;
 
 	std::mutex audio_buffer_mutex_;
 	std::vector<int16_t> audio_buffer_;
@@ -391,8 +426,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	Concurrency::BestEffortUpdater updater;
-	BestEffortUpdaterDelegate best_effort_updater_delegate;
+	MachineRunner machine_runner;
 	SpeakerDelegate speaker_delegate;
 
 	// For vanilla SDL purposes, assume system ROMs can be found in one of:
@@ -489,10 +523,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Wire up the best-effort updater, its delegate, and the speaker delegate.
-	best_effort_updater_delegate.machine = machine.get();
-	best_effort_updater_delegate.machine_mutex = &machine_mutex;
-	speaker_delegate.updater = &updater;
-	updater.set_delegate(&best_effort_updater_delegate);
+	machine_runner.machine = machine.get();
+	machine_runner.machine_mutex = &machine_mutex;
 
 	// Attempt to set up video and audio.
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
@@ -644,15 +676,16 @@ int main(int argc, char *argv[]) {
 	const bool uses_mouse = !!machine->mouse_machine();
 	bool should_quit = false;
 	Uint32 fullscreen_mode = 0;
+	machine_runner.start();
 	while(!should_quit) {
 		// Wait for vsync, draw a new frame and post a machine update.
 		// NB: machine_mutex is *not* currently locked, therefore it shouldn't
 		// be 'most' of the time.
 		SDL_GL_SwapWindow(window);
+		machine_runner.signal_vsync();
 		scan_target.update(int(window_width), int(window_height));
 		scan_target.draw(int(window_width), int(window_height));
 		if(activity_observer) activity_observer->draw();
-		updater.update();
 
 		// Grab the machine lock and process all pending events.
 		std::lock_guard<std::mutex> lock_guard(machine_mutex);
@@ -877,7 +910,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Clean up.
-	updater.flush();	// Ensure no further updates will occur.
+	machine_runner.stop();	// Ensure no further updates will occur.
 	joysticks.clear();
 	SDL_DestroyWindow( window );
 	SDL_Quit();
