@@ -30,11 +30,6 @@
 	// Note the initial screen.
 	_currentScreen = self.window.screen;
 
-	// Synchronize buffer swaps with vertical refresh rate.
-	// TODO: discard this, once scheduling is sufficiently intelligent?
-	GLint swapInt = 1;
-	[[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
-
 	// set the clear colour
 	[self.openGLContext makeCurrentContext];
 	glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -75,7 +70,8 @@
 static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext) {
 	CSOpenGLView *const view = (__bridge CSOpenGLView *)displayLinkContext;
 
-	[view drawAtTime:now frequency:CVDisplayLinkGetActualOutputVideoRefreshPeriod(displayLink)];
+	[view checkDisplayLink];
+	[view.displayLinkDelegate openGLViewDisplayLinkDidFire:view now:now outputTime:outputTime];
 	/*
 		Do not touch the display link from after this call; there's a bit of a race condition with setupDisplayLink.
 		Specifically: Apple provides CVDisplayLinkStop but a call to that merely prevents future calls to the callback,
@@ -89,7 +85,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	return kCVReturnSuccess;
 }
 
-- (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency {
+- (void)checkDisplayLink {
 	// Test now whether the screen this view is on has changed since last time it was checked.
 	// There's likely a callback available for this, on NSWindow if nowhere else, or an NSNotification,
 	// but since this method is going to be called repeatedly anyway, and the test is cheap, polling
@@ -105,7 +101,9 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		// the window is actually on, and at its rate.
 		[self setupDisplayLink];
 	}
+}
 
+- (void)drawAtTime:(const CVTimeStamp *)now frequency:(double)frequency {
 	[self redrawWithEvent:CSOpenGLViewRedrawEventTimer];
 }
 
@@ -113,11 +111,10 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[self redrawWithEvent:CSOpenGLViewRedrawEventAppKit];
 }
 
-- (void)redrawWithEvent:(CSOpenGLViewRedrawEvent)event {
+- (void)redrawWithEvent:(CSOpenGLViewRedrawEvent)event  {
 	[self performWithGLContext:^{
 		[self.delegate openGLViewRedraw:self event:event];
-		CGLFlushDrawable([[self openGLContext] CGLContextObj]);
-	}];
+	} flushDrawable:YES];
 }
 
 - (void)invalidate {
@@ -145,7 +142,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[self performWithGLContext:^{
 		CGSize viewSize = [self backingSize];
 		glViewport(0, 0, (GLsizei)viewSize.width, (GLsizei)viewSize.height);
-	}];
+	} flushDrawable:NO];
 }
 
 - (void)awakeFromNib {
@@ -178,11 +175,17 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[self registerForDraggedTypes:@[(__bridge NSString *)kUTTypeFileURL]];
 }
 
-- (void)performWithGLContext:(dispatch_block_t)action {
+- (void)performWithGLContext:(dispatch_block_t)action flushDrawable:(BOOL)flushDrawable {
 	CGLLockContext([[self openGLContext] CGLContextObj]);
 	[self.openGLContext makeCurrentContext];
 	action();
 	CGLUnlockContext([[self openGLContext] CGLContextObj]);
+
+	if(flushDrawable) CGLFlushDrawable([[self openGLContext] CGLContextObj]);
+}
+
+- (void)performWithGLContext:(nonnull dispatch_block_t)action {
+	[self performWithGLContext:action flushDrawable:NO];
 }
 
 #pragma mark - NSResponder

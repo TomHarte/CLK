@@ -140,6 +140,16 @@ struct Flywheel {
 	}
 
 	/*!
+		Returns the current 'phase' — 0 is the start of the display; a count up to 0 from a negative number represents
+		the retrace period and it will then count up to get_locked_scan_period().
+
+		@returns The current output position.
+	*/
+	inline int get_current_phase() {
+		return counter_ - retrace_time_;
+	}
+
+	/*!
 		@returns the amount of time since retrace last began. Time then counts monotonically up from zero.
 	*/
 	inline int get_current_time() {
@@ -158,6 +168,13 @@ struct Flywheel {
 	*/
 	inline int get_scan_period() {
 		return standard_period_ - retrace_time_;
+	}
+
+	/*!
+		@returns the actual length of the scan period (excluding retrace).
+	*/
+	inline int get_locked_scan_period() {
+		return expected_next_sync_ - retrace_time_;
 	}
 
 	/*!

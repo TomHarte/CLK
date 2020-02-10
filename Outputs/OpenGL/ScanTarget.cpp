@@ -251,21 +251,6 @@ void ScanTarget::will_change_owner() {
 	vended_scan_ = nullptr;
 }
 
-void ScanTarget::submit() {
-	if(allocation_has_failed_) {
-		// Reset all pointers to where they were; this also means
-		// the stencil won't be properly populated.
-		write_pointers_ = submit_pointers_.load();
-		frame_is_complete_ = false;
-	} else {
-		// Advance submit pointer.
-		submit_pointers_.store(write_pointers_);
-	}
-
-	// Continue defaulting to a failed allocation for as long as there isn't a line available.
-	allocation_has_failed_ = line_allocation_has_failed_;
-}
-
 void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
 	// Forward the event to the display metrics tracker.
 	display_metrics_.announce_event(event);
@@ -273,10 +258,8 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 	if(event == ScanTarget::Event::EndVerticalRetrace) {
 		// The previous-frame-is-complete flag is subject to a two-slot queue because
 		// measurement for *this* frame needs to begin now, meaning that the previous
-		// result needs to be put somewhere. Setting frame_is_complete_ back to true
-		// only after it has been put somewhere also doesn't work, since if the first
-		// few lines of a frame are skipped for any reason, there'll be nowhere to
-		// put it.
+		// result needs to be put somewhere — it'll be attached to the first successful
+		// line output.
 		is_first_in_frame_ = true;
 		previous_frame_was_complete_ = frame_is_complete_;
 		frame_is_complete_ = true;
@@ -299,24 +282,13 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 			// Attempt to allocate a new line; note allocation failure if necessary.
 			const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
 			if(next_line == read_pointers.line) {
-				line_allocation_has_failed_ = allocation_has_failed_ = true;
+				allocation_has_failed_ = true;
 				active_line_ = nullptr;
 			} else {
-				line_allocation_has_failed_ = false;
 				write_pointers_.line = next_line;
 				active_line_ = &line_buffer_[size_t(write_pointers_.line)];
 			}
 			provided_scans_ = 0;
-		} else {
-			// Just check whether a new line is available now, if waiting.
-			if(line_allocation_has_failed_) {
-				const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
-				if(next_line != read_pointers.line) {
-					line_allocation_has_failed_ = false;
-					write_pointers_.line = next_line;
-					active_line_ = &line_buffer_[size_t(write_pointers_.line)];
-				}
-			}
 		}
 
 		if(active_line_) {
@@ -329,6 +301,7 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 		}
 	} else {
 		if(active_line_) {
+			// A successfully-allocated line is ending.
 			active_line_->end_points[1].x = location.x;
 			active_line_->end_points[1].y = location.y;
 			active_line_->end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
@@ -345,6 +318,18 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 			}
 #endif
 		}
+
+		// A line is complete; submit latest updates if nothing failed.
+		if(allocation_has_failed_) {
+			// Reset all pointers to where they were; this also means
+			// the stencil won't be properly populated.
+			write_pointers_ = submit_pointers_.load();
+			frame_is_complete_ = false;
+		} else {
+			// Advance submit pointer.
+			submit_pointers_.store(write_pointers_);
+		}
+		allocation_has_failed_ = false;
 	}
 	output_is_visible_ = is_visible;
 }

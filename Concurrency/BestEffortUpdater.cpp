@@ -78,9 +78,9 @@ void BestEffortUpdater::update_loop() {
 			// Cap running at 1/5th of a second, to avoid doing a huge amount of work after any
 			// brief system interruption.
 			const double duration = std::min(double(integer_duration) / 1e9, 0.2);
-			const double elapsed_duraation = delegate->update(this, duration, has_skipped_, flags);
+			const double elapsed_duration = delegate->update(this, duration, has_skipped_, flags);
 
-			previous_time_point_ += int64_t(elapsed_duraation * 1e9);
+			previous_time_point_ += int64_t(elapsed_duration * 1e9);
 			has_skipped_ = false;
 		}
 	}

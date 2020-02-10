@@ -10,6 +10,7 @@
 #import "CSMachine+Target.h"
 
 #include "CSROMFetcher.hpp"
+#import "CSHighPrecisionTimer.h"
 
 #include "MediaTarget.hpp"
 #include "JoystickMachine.hpp"
@@ -24,6 +25,7 @@
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
 
+#include <atomic>
 #include <bitset>
 
 #import <OpenGL/OpenGL.h>
@@ -32,7 +34,7 @@
 #include "../../../../Outputs/OpenGL/ScanTarget.hpp"
 #include "../../../../Outputs/OpenGL/Screenshot.hpp"
 
-@interface CSMachine()
+@interface CSMachine() <CSOpenGLViewDisplayLinkDelegate>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
 - (void)addLED:(NSString *)led;
@@ -149,6 +151,17 @@ struct ActivityObserver: public Activity::Observer {
 	std::bitset<65536> _depressedKeys;
 	NSMutableArray<NSString *> *_leds;
 
+	CSHighPrecisionTimer *_timer;
+	CGSize _pixelSize;
+	std::atomic_flag _isUpdating;
+	int64_t _syncTime;
+	int64_t _timeDiff;
+	double _refreshPeriod;
+	BOOL _isSyncLocking;
+	double _speedMultiplier;
+
+	NSTimer *_joystickTimer;
+
 	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
 }
 
@@ -156,6 +169,7 @@ struct ActivityObserver: public Activity::Observer {
 	self = [super init];
 	if(self) {
 		_analyser = result;
+		_speedMultiplier = 1.0;
 
 		Machine::Error error;
 		std::vector<ROMMachine::ROM> missing_roms;
@@ -201,6 +215,8 @@ struct ActivityObserver: public Activity::Observer {
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
 
 		_joystickMachine = _machine->joystick_machine();
+		[self updateJoystickTimer];
+		_isUpdating.clear();
 	}
 	return self;
 }
@@ -214,6 +230,8 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)dealloc {
+	[_joystickTimer invalidate];
+
 	// The two delegate's references to this machine are nilled out here because close_output may result
 	// in a data flush, which might cause an audio callback, which could cause the audio queue to decide
 	// that it's out of data, resulting in an attempt further to run the machine while it is dealloc'ing.
@@ -259,65 +277,73 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
-- (NSTimeInterval)runForInterval:(NSTimeInterval)interval untilEvent:(int)events {
+- (void)updateJoystickTimer {
+	// Joysticks updates are scheduled for a nominal 200 polls/second, using a plain old NSTimer.
+	if(_joystickMachine && _joystickManager) {
+		_joystickTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 / 200.0 target:self selector:@selector(updateJoysticks) userInfo:nil repeats:YES];
+	} else {
+		[_joystickTimer invalidate];
+		_joystickTimer = nil;
+	}
+}
+
+- (void)updateJoysticks {
+	[_joystickManager update];
+
+	// TODO: configurable mapping from physical joypad inputs to machine inputs.
+	// Until then, apply a default mapping.
+
 	@synchronized(self) {
-		if(_joystickMachine && _joystickManager) {
-			[_joystickManager update];
+		size_t c = 0;
+		auto &machine_joysticks = _joystickMachine->get_joysticks();
+		for(CSJoystick *joystick in _joystickManager.joysticks) {
+			size_t target = c % machine_joysticks.size();
+			++c;
 
-			// TODO: configurable mapping from physical joypad inputs to machine inputs.
-			// Until then, apply a default mapping.
-
-			size_t c = 0;
-			auto &machine_joysticks = _joystickMachine->get_joysticks();
-			for(CSJoystick *joystick in _joystickManager.joysticks) {
-				size_t target = c % machine_joysticks.size();
-				++c;
-
-				// Post the first two analogue axes presented by the controller as horizontal and vertical inputs,
-				// unless the user seems to be using a hat.
-				// SDL will return a value in the range [-32768, 32767], so map from that to [0, 1.0]
-				if(!joystick.hats.count || !joystick.hats[0].direction) {
-					if(joystick.axes.count > 0) {
-						const float x_axis = joystick.axes[0].position;
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Horizontal), x_axis);
-					}
-					if(joystick.axes.count > 1) {
-						const float y_axis = joystick.axes[1].position;
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Vertical), y_axis);
-					}
-				} else {
-					// Forward hats as directions; hats always override analogue inputs.
-					for(CSJoystickHat *hat in joystick.hats) {
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Up), !!(hat.direction & CSJoystickHatDirectionUp));
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Down), !!(hat.direction & CSJoystickHatDirectionDown));
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Left), !!(hat.direction & CSJoystickHatDirectionLeft));
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Right), !!(hat.direction & CSJoystickHatDirectionRight));
-					}
+			// Post the first two analogue axes presented by the controller as horizontal and vertical inputs,
+			// unless the user seems to be using a hat.
+			// SDL will return a value in the range [-32768, 32767], so map from that to [0, 1.0]
+			if(!joystick.hats.count || !joystick.hats[0].direction) {
+				if(joystick.axes.count > 0) {
+					const float x_axis = joystick.axes[0].position;
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Horizontal), x_axis);
 				}
+				if(joystick.axes.count > 1) {
+					const float y_axis = joystick.axes[1].position;
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Vertical), y_axis);
+				}
+			} else {
+				// Forward hats as directions; hats always override analogue inputs.
+				for(CSJoystickHat *hat in joystick.hats) {
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Up), !!(hat.direction & CSJoystickHatDirectionUp));
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Down), !!(hat.direction & CSJoystickHatDirectionDown));
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Left), !!(hat.direction & CSJoystickHatDirectionLeft));
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Right), !!(hat.direction & CSJoystickHatDirectionRight));
+				}
+			}
 
-				// Forward all fire buttons, mapping as a function of index.
-				if(machine_joysticks[target]->get_number_of_fire_buttons()) {
-					std::vector<bool> button_states((size_t)machine_joysticks[target]->get_number_of_fire_buttons());
-					for(CSJoystickButton *button in joystick.buttons) {
-						if(button.isPressed) button_states[(size_t)(((int)button.index - 1) % machine_joysticks[target]->get_number_of_fire_buttons())] = true;
-					}
-					for(size_t index = 0; index < button_states.size(); ++index) {
-						machine_joysticks[target]->set_input(
-							Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Fire, index),
-							button_states[index]);
-					}
+			// Forward all fire buttons, mapping as a function of index.
+			if(machine_joysticks[target]->get_number_of_fire_buttons()) {
+				std::vector<bool> button_states((size_t)machine_joysticks[target]->get_number_of_fire_buttons());
+				for(CSJoystickButton *button in joystick.buttons) {
+					if(button.isPressed) button_states[(size_t)(((int)button.index - 1) % machine_joysticks[target]->get_number_of_fire_buttons())] = true;
+				}
+				for(size_t index = 0; index < button_states.size(); ++index) {
+					machine_joysticks[target]->set_input(
+						Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Fire, index),
+						button_states[index]);
 				}
 			}
 		}
-		return _machine->crt_machine()->run_until(interval, events);
 	}
 }
 
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio {
 	_view = view;
+	_view.displayLinkDelegate = self;
 	[view performWithGLContext:^{
 		[self setupOutputWithAspectRatio:aspectRatio];
-	}];
+	} flushDrawable:NO];
 }
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
@@ -326,7 +352,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)updateViewForPixelSize:(CGSize)pixelSize {
-	_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+//	_pixelSize = pixelSize;
 
 //	@synchronized(self) {
 //		const auto scan_status = _machine->crt_machine()->get_scan_status();
@@ -375,15 +401,17 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)setJoystickManager:(CSJoystickManager *)joystickManager {
-	@synchronized(self) {
-		_joystickManager = joystickManager;
-		if(_joystickMachine) {
+	_joystickManager = joystickManager;
+	if(_joystickMachine) {
+		@synchronized(self) {
 			auto &machine_joysticks = _joystickMachine->get_joysticks();
 			for(const auto &joystick: machine_joysticks) {
 				joystick->reset_all_inputs();
 			}
 		}
 	}
+
+	[self updateJoystickTimer];
 }
 
 - (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed {
@@ -692,6 +720,141 @@ struct ActivityObserver: public Activity::Observer {
 
 - (NSArray<NSString *> *)leds {
 	return _leds;
+}
+
+#pragma mark - Timer
+
+- (void)openGLViewDisplayLinkDidFire:(CSOpenGLView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
+	// First order of business: grab a timestamp.
+	const auto timeNow = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+
+	CGSize pixelSize = view.backingSize;
+	BOOL isSyncLocking;
+	@synchronized(self) {
+		// Store a means to map from CVTimeStamp.hostTime to std::chrono::high_resolution_clock;
+		// there is an extremely dodgy assumption here that both are in the same units (and, below, that both as in ns).
+		if(!_timeDiff) {
+			_timeDiff = int64_t(now->hostTime) - int64_t(timeNow);
+		}
+
+		// Store the next end-of-frame time. TODO: and start of next and implied visible duration, if raster racing?
+		_syncTime = int64_t(now->hostTime) + _timeDiff;
+
+		// Also crib the current view pixel size.
+		_pixelSize = pixelSize;
+
+		// Set the current refresh period.
+		_refreshPeriod = double(now->videoRefreshPeriod) / double(now->videoTimeScale);
+
+		// Determine where responsibility lies for drawing.
+		isSyncLocking = _isSyncLocking;
+	}
+
+	// Draw the current output. (TODO: do this within the timer if either raster racing or, at least, sync matching).
+	if(!isSyncLocking) {
+		[self.view performWithGLContext:^{
+			self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
+		} flushDrawable:YES];
+	}
+}
+
+#define TICKS	600
+
+- (void)start {
+	__block auto lastTime = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+
+	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
+		// Grab the time now and, therefore, the amount of time since the timer last fired.
+		const auto timeNow = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+		const auto duration = timeNow - lastTime;
+
+		
+		CGSize pixelSize;
+		BOOL splitAndSync = NO;
+		@synchronized(self) {
+			// If this tick includes vsync then inspect the machine.
+			if(timeNow >= self->_syncTime && lastTime < self->_syncTime) {
+				// Grab the scan status and check out the machine's current frame time.
+				// If it's stable and within 3% of a non-zero integer multiple of the
+				// display rate, mark this time window to be split over the sync.
+				const auto scan_status = self->_machine->crt_machine()->get_scan_status();
+				double ratio = 1.0;
+				if(scan_status.field_duration_gradient < 0.00001) {
+					ratio = self->_refreshPeriod / scan_status.field_duration;
+					const double integerRatio = round(ratio);
+					if(integerRatio > 0.0) {
+						ratio /= integerRatio;
+
+						constexpr double maximumAdjustment = 1.03;
+						splitAndSync = ratio <= maximumAdjustment && ratio >= 1 / maximumAdjustment;
+					}
+				}
+				self->_isSyncLocking = splitAndSync;
+
+				// If the time window is being split, run up to the split, then check out machine speed, possibly
+				// adjusting multiplier, then run after the split.
+				if(splitAndSync) {
+					self->_machine->crt_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
+
+					// The host versus emulated ratio is calculated based on the current perceived frame duration of the machine.
+					// Either that number is exactly correct or it's already the result of some sort of low-pass filter. So there's
+					// no benefit to second guessing it here — just take it to be correct.
+					//
+					// ... with one slight caveat, which is that it is desireable to adjust phase here, to align vertical sync points.
+					// So the set speed multiplier may be adjusted slightly to aim for that.
+					double speed_multiplier = 1.0 / ratio;
+					if(scan_status.current_position > 0.0) {
+						constexpr double adjustmentRatio = 1.005;
+						if(scan_status.current_position < 0.5) speed_multiplier /= adjustmentRatio;
+						else speed_multiplier *= adjustmentRatio;
+					}
+					self->_speedMultiplier = (self->_speedMultiplier * 0.95) + (speed_multiplier * 0.05);
+					self->_machine->crt_machine()->set_speed_multiplier(self->_speedMultiplier);
+					self->_machine->crt_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
+				}
+			}
+
+			// If the time window is being split, run up to the split, then check out machine speed, possibly
+			// adjusting multiplier, then run after the split.
+			if(!splitAndSync) {
+				self->_machine->crt_machine()->run_for((double)duration / 1e9);
+			}
+			pixelSize = self->_pixelSize;
+		}
+
+		// If this was not a split-and-sync then dispatch the update request asynchronously, unless
+		// there is an earlier one not yet finished, in which case don't worry about it for now.
+		//
+		// If it was a split-and-sync then spin until it is safe to dispatch, and dispatch with
+		// a concluding draw. Implicit assumption here: whatever is left to be done in the final window
+		// can be done within the retrace period.
+		auto wasUpdating = self->_isUpdating.test_and_set();
+		if(wasUpdating && splitAndSync) {
+			while(self->_isUpdating.test_and_set());
+			wasUpdating = false;
+		}
+		if(!wasUpdating) {
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
+				[self.view performWithGLContext:^{
+					self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+
+					if(splitAndSync) {
+						self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
+					}
+				} flushDrawable:splitAndSync];
+				self->_isUpdating.clear();
+			});
+		}
+
+		lastTime = timeNow;
+	} interval:uint64_t(1000000000) / uint64_t(TICKS)];
+}
+
+#undef TICKS
+
+- (void)stop {
+	[_timer invalidate];
+	_timer = nil;
 }
 
 @end

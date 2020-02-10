@@ -77,7 +77,6 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		void end_scan() final;
 		uint8_t *begin_data(size_t required_length, size_t required_alignment) final;
 		void end_data(size_t actual_length) final;
-		void submit() final;
 		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) final;
 		void will_change_owner() final;
 
@@ -109,7 +108,7 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			// The sizes below might be less hassle as something more natural like ints,
 			// but squeezing this struct into 64 bits makes the std::atomics more likely
 			// to be lock free; they are under LLVM x86-64.
-			int write_area = 0;
+			int write_area = 1;	// By convention this points to the vended area. Which is preceded by a guard pixel. So a sensible default construction is write_area = 1.
 			uint16_t scan_buffer = 0;
 			uint16_t line = 0;
 		};
@@ -188,7 +187,6 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// Track allocation failures.
 		bool data_is_allocated_ = false;
 		bool allocation_has_failed_ = false;
-		bool line_allocation_has_failed_ = false;
 
 		// Receives scan target modals.
 		Modals modals_;

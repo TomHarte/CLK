@@ -273,18 +273,22 @@ struct ScanTarget {
 		/// data and scan allocations should be invalidated.
 		virtual void will_change_owner() {}
 
-		/// Marks the end of an atomic set of data. Drawing is best effort, so the scan target should either:
+		/// Acts as a fence, marking the end of an atomic set of [begin/end]_[scan/data] calls] — all future pieces of
+		/// data will have no relation to scans prior to the submit() and all future scans will similarly have no relation to
+		/// prior runs of data.
+		///
+		/// Drawing is defined to be best effort, so the scan target should either:
 		///
 		///		(i)	output everything received since the previous submit; or
-		///		(ii) output nothing.
+		///		(ii)	output nothing.
 		///
 		/// If there were any allocation failures — i.e. any nullptr responses to begin_data or
 		/// begin_scan — then (ii) is a required response. But a scan target may also need to opt for (ii)
 		/// for any other reason.
 		///
 		/// The ScanTarget isn't bound to take any drawing action immediately; it may sit on submitted data for
-		/// as long as it feels is appropriate subject to an @c flush.
-		virtual void submit() = 0;
+		/// as long as it feels is appropriate, subject to a @c flush.
+		virtual void submit() {}
 
 
 	/*
@@ -302,6 +306,12 @@ struct ScanTarget {
 
 		/*!
 			Provides a hint that the named event has occurred.
+
+			Guarantee:
+			* any announce acts as an implicit fence on data/scans, much as a submit().
+
+			Permitted ScanTarget implementation:
+			* ignore all output during retrace periods.
 
 			@param event The event.
 			@param is_visible @c true if the output stream is visible immediately after this event; @c false otherwise.

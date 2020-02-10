@@ -117,7 +117,6 @@ static void audioOutputCallback(
 				kCFRunLoopCommonModes,
 				0,
 				&_audioQueue)) {
-			AudioQueueStart(_audioQueue, NULL);
 		}
 	}
 
@@ -175,6 +174,10 @@ static void audioOutputCallback(
 
 	AudioQueueEnqueueBuffer(_audioQueue, newBuffer, 0, NULL);
 	[_storedBuffersLock unlock];
+
+	// 'Start' the queue. This is documented to be a no-op if the queue is already started,
+	// and it's better to defer starting it until at least some data is available.
+	AudioQueueStart(_audioQueue, NULL);
 }
 
 #pragma mark - Sampling Rate getters
