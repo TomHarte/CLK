@@ -21,6 +21,8 @@
 #include "../../ClockReceiver/JustInTime.hpp"
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+
+#define LOG_PREFIX "[SMS] "
 #include "../../Outputs/Log.hpp"
 
 #include "../../Analyser/Static/Sega/Target.hpp"
