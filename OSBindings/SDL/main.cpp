@@ -74,6 +74,10 @@ struct MachineRunner {
 		frame_lock_.clear();
 	}
 
+	void set_speed_multiplier(double multiplier) {
+		scan_synchroniser_.set_base_speed_multiplier(multiplier);
+	}
+
 	std::mutex *machine_mutex;
 	Machine::DynamicMachine *machine;
 
@@ -127,6 +131,7 @@ struct MachineRunner {
 
 				crt_machine->run_for(double(time_now - vsync_time) / 1e9);
 			} else {
+				crt_machine->set_speed_multiplier(scan_synchroniser_.get_base_speed_multiplier());
 				crt_machine->run_for(double(time_now - last_time_) / 1e9);
 			}
 			last_time_ = time_now;
@@ -565,13 +570,12 @@ int main(int argc, char *argv[]) {
 		char *end;
 		double speed = strtod(speed_string, &end);
 
-		if(end-speed_string != strlen(speed_string)) {
+		if(size_t(end - speed_string) != strlen(speed_string)) {
 			std::cerr << "Unable to parse speed: " << speed_string << std::endl;
 		} else if(speed <= 0.0) {
 			std::cerr << "Cannot run at speed " << speed_string << "; speeds must be positive." << std::endl;
 		} else {
-			machine->crt_machine()->set_speed_multiplier(speed);
-			// TODO: what if not a 'CRT' machine? Likely rests on resolving this project's machine naming policy.
+			machine_runner.set_speed_multiplier(speed);
 		}
 	}
 

@@ -33,7 +33,7 @@ class ScanSynchroniser {
 				// Check out the machine's current frame time.
 				// If it's within 3% of a non-zero integer multiple of the
 				// display rate, mark this time window to be split over the sync.
-				ratio_ = frame_duration / scan_status.field_duration;
+				ratio_ = (frame_duration * base_multiplier_) / scan_status.field_duration;
 				const double integer_ratio = round(ratio_);
 				if(integer_ratio > 0.0) {
 					ratio_ /= integer_ratio;
@@ -54,13 +54,21 @@ class ScanSynchroniser {
 			//
 			// ... with one slight caveat, which is that it is desireable to adjust phase here, to align vertical sync points.
 			// So the set speed multiplier may be adjusted slightly to aim for that.
-			double speed_multiplier = 1.0 / ratio_;
+			double speed_multiplier = 1.0 / (ratio_ / base_multiplier_);
 			if(scan_status.current_position > 0.0) {
 				if(scan_status.current_position < 0.5) speed_multiplier /= phase_adjustment_ratio;
 				else speed_multiplier *= phase_adjustment_ratio;
 			}
 			speed_multiplier_ = (speed_multiplier_ * 0.95) + (speed_multiplier * 0.05);
-			return speed_multiplier_;
+			return speed_multiplier_ * base_multiplier_;
+		}
+
+		void set_base_speed_multiplier(double multiplier) {
+			base_multiplier_ = multiplier;
+		}
+
+		double get_base_speed_multiplier() {
+			return base_multiplier_;
 		}
 
 	private:
@@ -69,6 +77,7 @@ class ScanSynchroniser {
 
 		// Managed local state.
 		double speed_multiplier_ = 1.0;
+		double base_multiplier_ = 1.0;
 
 		// Temporary storage to bridge the can_synchronise -> next_speed_multiplier gap.
 		double ratio_ = 1.0;
