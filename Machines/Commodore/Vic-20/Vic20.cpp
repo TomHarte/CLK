@@ -397,9 +397,10 @@ class ConcreteMachine:
 			memset(processor_write_memory_map_, 0, sizeof(processor_write_memory_map_));
 			memset(mos6560_bus_handler_.video_memory_map, 0, sizeof(mos6560_bus_handler_.video_memory_map));
 
-#define set_ram(baseaddr, length)	\
-	write_to_map(processor_read_memory_map_, &ram_[baseaddr], baseaddr, length);	\
-	write_to_map(processor_write_memory_map_, &ram_[baseaddr], baseaddr, length);
+#define set_ram(baseaddr, length)	{ \
+		write_to_map(processor_read_memory_map_, &ram_[baseaddr], baseaddr, length);	\
+		write_to_map(processor_write_memory_map_, &ram_[baseaddr], baseaddr, length);	\
+	}
 
 			// Add 6502-visible RAM as requested.
 			set_ram(0x0000, 0x0400);
