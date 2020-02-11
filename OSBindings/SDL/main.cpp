@@ -36,6 +36,10 @@
 namespace {
 
 struct MachineRunner {
+	MachineRunner() {
+		frame_lock_.clear();
+	}
+
 	~MachineRunner() {
 		stop();
 	}
@@ -66,6 +70,10 @@ struct MachineRunner {
 		_frame_period.store((1e9 * 32.0) / double(frame_time_average_));
 	}
 
+	void signal_did_draw() {
+		frame_lock_.clear();
+	}
+
 	std::mutex *machine_mutex;
 	Machine::DynamicMachine *machine;
 
@@ -73,6 +81,7 @@ struct MachineRunner {
 		SDL_TimerID timer_ = 0;
 		Time::Nanos last_time_ = 0;
 		std::atomic<Time::Nanos> vsync_time_;
+		std::atomic_flag frame_lock_;
 
 		Time::ScanSynchroniser scan_synchroniser_;
 
@@ -95,7 +104,7 @@ struct MachineRunner {
 			const auto time_now = Time::nanos_now();
 			const auto vsync_time = vsync_time_.load();
 
-			std::lock_guard<std::mutex> lock_guard(*machine_mutex);
+			std::unique_lock<std::mutex> lock_guard(*machine_mutex);
 			const auto crt_machine = machine->crt_machine();
 
 			bool split_and_sync = false;
@@ -108,6 +117,14 @@ struct MachineRunner {
 				crt_machine->set_speed_multiplier(
 					scan_synchroniser_.next_speed_multiplier(crt_machine->get_scan_status())
 				);
+
+				// This is a bit of an SDL ugliness; wait here until the next frame is drawn.
+				// That is, unless and until I can think of a good way of running background
+				// updates via a share group — possibly an extra intermediate buffer is needed?
+				lock_guard.unlock();
+				while(frame_lock_.test_and_set());
+				lock_guard.lock();
+
 				crt_machine->run_for(double(time_now - vsync_time) / 1e9);
 			} else {
 				crt_machine->run_for(double(time_now - last_time_) / 1e9);
@@ -129,7 +146,6 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	}
 
 	void audio_callback(Uint8 *stream, int len) {
-//		updater->update();
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
 
 		std::size_t sample_length = static_cast<std::size_t>(len) / sizeof(int16_t);
@@ -148,7 +164,6 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	}
 
 	SDL_AudioDeviceID audio_device;
-//	Concurrency::BestEffortUpdater *updater;
 
 	std::mutex audio_buffer_mutex_;
 	std::vector<int16_t> audio_buffer_;
@@ -716,14 +731,19 @@ int main(int argc, char *argv[]) {
 	Uint32 fullscreen_mode = 0;
 	machine_runner.start();
 	while(!should_quit) {
-		// Wait for vsync, draw a new frame and post a machine update.
-		// NB: machine_mutex is *not* currently locked, therefore it shouldn't
-		// be 'most' of the time.
-		SDL_GL_SwapWindow(window);
-		machine_runner.signal_vsync();
+		// Draw a new frame, indicating completion of the draw to the machine runner.
 		scan_target.update(int(window_width), int(window_height));
 		scan_target.draw(int(window_width), int(window_height));
 		if(activity_observer) activity_observer->draw();
+		machine_runner.signal_did_draw();
+
+		// Wait for presentation of that frame, posting a vsync.
+		SDL_GL_SwapWindow(window);
+		machine_runner.signal_vsync();
+
+		// NB: machine_mutex is *not* currently locked, therefore it shouldn't
+		// be 'most' of the time — assuming most of the time is spent waiting
+		// on vsync, anyway.
 
 		// Grab the machine lock and process all pending events.
 		std::lock_guard<std::mutex> lock_guard(machine_mutex);
