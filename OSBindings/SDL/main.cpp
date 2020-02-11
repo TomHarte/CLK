@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -21,10 +22,11 @@
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
 
+#include "../../ClockReceiver/TimeTypes.hpp"
+#include "../../ClockReceiver/ScanSynchroniser.hpp"
+
 #include "../../Machines/MediaTarget.hpp"
 #include "../../Machines/CRTMachine.hpp"
-
-#include "../../Concurrency/BestEffortUpdater.hpp"
 
 #include "../../Activity/Observer.hpp"
 #include "../../Outputs/OpenGL/Primitives/Rectangle.hpp"
@@ -33,18 +35,111 @@
 
 namespace {
 
-struct BestEffortUpdaterDelegate: public Concurrency::BestEffortUpdater::Delegate {
-	Time::Seconds update(Concurrency::BestEffortUpdater *updater, Time::Seconds duration, bool did_skip_previous_update, int flags) override {
-		std::lock_guard<std::mutex> lock_guard(*machine_mutex);
-		return machine->crt_machine()->run_until(duration, flags);
+struct MachineRunner {
+	MachineRunner() {
+		frame_lock_.clear();
+	}
+
+	~MachineRunner() {
+		stop();
+	}
+
+	void start() {
+		last_time_ = Time::nanos_now();
+		timer_ = SDL_AddTimer(timer_period, &sdl_callback, reinterpret_cast<void *>(this));
+	}
+
+	void stop() {
+		if(timer_) {
+			SDL_RemoveTimer(timer_);
+			timer_ = 0;
+		}
+	}
+
+	void signal_vsync() {
+		const auto now = Time::nanos_now();
+		const auto previous_vsync_time = vsync_time_.load();
+		vsync_time_.store(now);
+
+		// Update estimate of current frame time.
+		frame_time_average_ -= frame_times_[frame_time_pointer_];
+		frame_times_[frame_time_pointer_] = now - previous_vsync_time;
+		frame_time_average_ += frame_times_[frame_time_pointer_];
+		frame_time_pointer_ = (frame_time_pointer_ + 1) & (frame_times_.size() - 1);
+
+		_frame_period.store((1e9 * 32.0) / double(frame_time_average_));
+	}
+
+	void signal_did_draw() {
+		frame_lock_.clear();
+	}
+
+	void set_speed_multiplier(double multiplier) {
+		scan_synchroniser_.set_base_speed_multiplier(multiplier);
 	}
 
 	std::mutex *machine_mutex;
 	Machine::DynamicMachine *machine;
+
+	private:
+		SDL_TimerID timer_ = 0;
+		Time::Nanos last_time_ = 0;
+		std::atomic<Time::Nanos> vsync_time_;
+		std::atomic_flag frame_lock_;
+
+		Time::ScanSynchroniser scan_synchroniser_;
+
+		// A slightly clumsy means of trying to derive frame rate from calls to
+		// signal_vsync(); SDL_DisplayMode provides only an integral quantity
+		// whereas, empirically, it's fairly common for monitors to run at the
+		// NTSC-esque frame rates of 59.94Hz.
+		std::array<Time::Nanos, 32> frame_times_;
+		Time::Nanos frame_time_average_ = 0;
+		size_t frame_time_pointer_ = 0;
+		std::atomic<double> _frame_period;
+
+		static constexpr Uint32 timer_period = 4;
+		static Uint32 sdl_callback(Uint32 interval, void *param) {
+			reinterpret_cast<MachineRunner *>(param)->update();
+			return timer_period;
+		}
+
+		void update() {
+			const auto time_now = Time::nanos_now();
+			const auto vsync_time = vsync_time_.load();
+
+			std::unique_lock<std::mutex> lock_guard(*machine_mutex);
+			const auto crt_machine = machine->crt_machine();
+
+			bool split_and_sync = false;
+			if(last_time_ < vsync_time && time_now >= vsync_time) {
+				split_and_sync = scan_synchroniser_.can_synchronise(crt_machine->get_scan_status(), _frame_period);
+			}
+
+			if(split_and_sync) {
+				crt_machine->run_for(double(vsync_time - last_time_) / 1e9);
+				crt_machine->set_speed_multiplier(
+					scan_synchroniser_.next_speed_multiplier(crt_machine->get_scan_status())
+				);
+
+				// This is a bit of an SDL ugliness; wait here until the next frame is drawn.
+				// That is, unless and until I can think of a good way of running background
+				// updates via a share group — possibly an extra intermediate buffer is needed?
+				lock_guard.unlock();
+				while(frame_lock_.test_and_set());
+				lock_guard.lock();
+
+				crt_machine->run_for(double(time_now - vsync_time) / 1e9);
+			} else {
+				crt_machine->set_speed_multiplier(scan_synchroniser_.get_base_speed_multiplier());
+				crt_machine->run_for(double(time_now - last_time_) / 1e9);
+			}
+			last_time_ = time_now;
+		}
 };
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
-	// This is set to a relatively large number for now.
+	// This is empirically the best that I can seem to do with SDL's timer precision.
 	static constexpr int buffer_size = 1024;
 
 	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) final {
@@ -56,7 +151,6 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	}
 
 	void audio_callback(Uint8 *stream, int len) {
-		updater->update();
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
 
 		std::size_t sample_length = static_cast<std::size_t>(len) / sizeof(int16_t);
@@ -75,7 +169,6 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	}
 
 	SDL_AudioDeviceID audio_device;
-	Concurrency::BestEffortUpdater *updater;
 
 	std::mutex audio_buffer_mutex_;
 	std::vector<int16_t> audio_buffer_;
@@ -391,8 +484,7 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	Concurrency::BestEffortUpdater updater;
-	BestEffortUpdaterDelegate best_effort_updater_delegate;
+	MachineRunner machine_runner;
 	SpeakerDelegate speaker_delegate;
 
 	// For vanilla SDL purposes, assume system ROMs can be found in one of:
@@ -478,21 +570,18 @@ int main(int argc, char *argv[]) {
 		char *end;
 		double speed = strtod(speed_string, &end);
 
-		if(end-speed_string != strlen(speed_string)) {
+		if(size_t(end - speed_string) != strlen(speed_string)) {
 			std::cerr << "Unable to parse speed: " << speed_string << std::endl;
 		} else if(speed <= 0.0) {
 			std::cerr << "Cannot run at speed " << speed_string << "; speeds must be positive." << std::endl;
 		} else {
-			machine->crt_machine()->set_speed_multiplier(speed);
-			// TODO: what if not a 'CRT' machine? Likely rests on resolving this project's machine naming policy.
+			machine_runner.set_speed_multiplier(speed);
 		}
 	}
 
 	// Wire up the best-effort updater, its delegate, and the speaker delegate.
-	best_effort_updater_delegate.machine = machine.get();
-	best_effort_updater_delegate.machine_mutex = &machine_mutex;
-	speaker_delegate.updater = &updater;
-	updater.set_delegate(&best_effort_updater_delegate);
+	machine_runner.machine = machine.get();
+	machine_runner.machine_mutex = &machine_mutex;
 
 	// Attempt to set up video and audio.
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
@@ -644,15 +733,21 @@ int main(int argc, char *argv[]) {
 	const bool uses_mouse = !!machine->mouse_machine();
 	bool should_quit = false;
 	Uint32 fullscreen_mode = 0;
+	machine_runner.start();
 	while(!should_quit) {
-		// Wait for vsync, draw a new frame and post a machine update.
-		// NB: machine_mutex is *not* currently locked, therefore it shouldn't
-		// be 'most' of the time.
-		SDL_GL_SwapWindow(window);
+		// Draw a new frame, indicating completion of the draw to the machine runner.
 		scan_target.update(int(window_width), int(window_height));
 		scan_target.draw(int(window_width), int(window_height));
 		if(activity_observer) activity_observer->draw();
-		updater.update();
+		machine_runner.signal_did_draw();
+
+		// Wait for presentation of that frame, posting a vsync.
+		SDL_GL_SwapWindow(window);
+		machine_runner.signal_vsync();
+
+		// NB: machine_mutex is *not* currently locked, therefore it shouldn't
+		// be 'most' of the time — assuming most of the time is spent waiting
+		// on vsync, anyway.
 
 		// Grab the machine lock and process all pending events.
 		std::lock_guard<std::mutex> lock_guard(machine_mutex);
@@ -877,7 +972,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Clean up.
-	updater.flush();	// Ensure no further updates will occur.
+	machine_runner.stop();	// Ensure no further updates will occur.
 	joysticks.clear();
 	SDL_DestroyWindow( window );
 	SDL_Quit();

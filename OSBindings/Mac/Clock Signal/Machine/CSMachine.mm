@@ -21,6 +21,9 @@
 #include "Typer.hpp"
 #include "../../../../Activity/Observer.hpp"
 
+#include "../../../../ClockReceiver/TimeTypes.hpp"
+#include "../../../../ClockReceiver/ScanSynchroniser.hpp"
+
 #import "CSStaticAnalyser+TargetVector.h"
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
@@ -154,11 +157,12 @@ struct ActivityObserver: public Activity::Observer {
 	CSHighPrecisionTimer *_timer;
 	CGSize _pixelSize;
 	std::atomic_flag _isUpdating;
-	int64_t _syncTime;
-	int64_t _timeDiff;
+	Time::Nanos _syncTime;
+	Time::Nanos _timeDiff;
 	double _refreshPeriod;
 	BOOL _isSyncLocking;
-	double _speedMultiplier;
+
+	Time::ScanSynchroniser _scanSynchroniser;
 
 	NSTimer *_joystickTimer;
 
@@ -169,7 +173,6 @@ struct ActivityObserver: public Activity::Observer {
 	self = [super init];
 	if(self) {
 		_analyser = result;
-		_speedMultiplier = 1.0;
 
 		Machine::Error error;
 		std::vector<ROMMachine::ROM> missing_roms;
@@ -726,13 +729,13 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)openGLViewDisplayLinkDidFire:(CSOpenGLView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
 	// First order of business: grab a timestamp.
-	const auto timeNow = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+	const auto timeNow = Time::nanos_now();
 
 	CGSize pixelSize = view.backingSize;
 	BOOL isSyncLocking;
 	@synchronized(self) {
-		// Store a means to map from CVTimeStamp.hostTime to std::chrono::high_resolution_clock;
-		// there is an extremely dodgy assumption here that both are in the same units (and, below, that both as in ns).
+		// Store a means to map from CVTimeStamp.hostTime to Time::Nanos;
+		// there is an extremely dodgy assumption here that the former is in ns.
 		if(!_timeDiff) {
 			_timeDiff = int64_t(now->hostTime) - int64_t(timeNow);
 		}
@@ -761,11 +764,11 @@ struct ActivityObserver: public Activity::Observer {
 #define TICKS	600
 
 - (void)start {
-	__block auto lastTime = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+	__block auto lastTime = Time::nanos_now();
 
 	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
 		// Grab the time now and, therefore, the amount of time since the timer last fired.
-		const auto timeNow = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+		const auto timeNow = Time::nanos_now();
 		const auto duration = timeNow - lastTime;
 
 		
@@ -774,42 +777,15 @@ struct ActivityObserver: public Activity::Observer {
 		@synchronized(self) {
 			// If this tick includes vsync then inspect the machine.
 			if(timeNow >= self->_syncTime && lastTime < self->_syncTime) {
-				// Grab the scan status and check out the machine's current frame time.
-				// If it's stable and within 3% of a non-zero integer multiple of the
-				// display rate, mark this time window to be split over the sync.
-				const auto scan_status = self->_machine->crt_machine()->get_scan_status();
-				double ratio = 1.0;
-				if(scan_status.field_duration_gradient < 0.00001) {
-					ratio = self->_refreshPeriod / scan_status.field_duration;
-					const double integerRatio = round(ratio);
-					if(integerRatio > 0.0) {
-						ratio /= integerRatio;
-
-						constexpr double maximumAdjustment = 1.03;
-						splitAndSync = ratio <= maximumAdjustment && ratio >= 1 / maximumAdjustment;
-					}
-				}
-				self->_isSyncLocking = splitAndSync;
+				splitAndSync = self->_isSyncLocking = self->_scanSynchroniser.can_synchronise(self->_machine->crt_machine()->get_scan_status(), self->_refreshPeriod);
 
 				// If the time window is being split, run up to the split, then check out machine speed, possibly
 				// adjusting multiplier, then run after the split.
 				if(splitAndSync) {
 					self->_machine->crt_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
-
-					// The host versus emulated ratio is calculated based on the current perceived frame duration of the machine.
-					// Either that number is exactly correct or it's already the result of some sort of low-pass filter. So there's
-					// no benefit to second guessing it here — just take it to be correct.
-					//
-					// ... with one slight caveat, which is that it is desireable to adjust phase here, to align vertical sync points.
-					// So the set speed multiplier may be adjusted slightly to aim for that.
-					double speed_multiplier = 1.0 / ratio;
-					if(scan_status.current_position > 0.0) {
-						constexpr double adjustmentRatio = 1.005;
-						if(scan_status.current_position < 0.5) speed_multiplier /= adjustmentRatio;
-						else speed_multiplier *= adjustmentRatio;
-					}
-					self->_speedMultiplier = (self->_speedMultiplier * 0.95) + (speed_multiplier * 0.05);
-					self->_machine->crt_machine()->set_speed_multiplier(self->_speedMultiplier);
+					self->_machine->crt_machine()->set_speed_multiplier(
+						self->_scanSynchroniser.next_speed_multiplier(self->_machine->crt_machine()->get_scan_status())
+					);
 					self->_machine->crt_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
 				}
 			}
