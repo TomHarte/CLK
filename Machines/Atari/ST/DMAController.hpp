@@ -56,30 +56,36 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 		HalfCycles running_time_;
 		struct WD1772: public WD::WD1770 {
 			WD1772(): WD::WD1770(WD::WD1770::P1772) {
-				drives_.emplace_back(new Storage::Disk::Drive(8000000, 300, 2));
-				drives_.emplace_back(new Storage::Disk::Drive(8000000, 300, 2));
-				set_drive(drives_[0]);
+				emplace_drives(2, 8000000, 300, 2);
 				set_is_double_density(true);	// TODO: is this selectable on the ST?
 			}
 
 			void set_motor_on(bool motor_on) final {
-				drives_[0]->set_motor_on(motor_on);
-				drives_[1]->set_motor_on(motor_on);
+				for_all_drives([motor_on] (Storage::Disk::Drive &drive, size_t) {
+					drive.set_motor_on(motor_on);
+				});
 			}
 
 			void set_floppy_drive_selection(bool drive1, bool drive2, bool side2) {
-				// TODO: handle no drives and/or both drives selected.
-				if(drive1) {
-					set_drive(drives_[0]);
-				} else {
-					set_drive(drives_[1]);
-				}
+				set_drive(
+					(drive1 ? 1 : 0) |
+					(drive2 ? 2 : 0)
+				);
 
-				drives_[0]->set_head(side2);
-				drives_[1]->set_head(side2);
+				for_all_drives([side2] (Storage::Disk::Drive &drive, size_t) {
+					drive.set_head(side2);
+				});
 			}
 
-			std::vector<std::shared_ptr<Storage::Disk::Drive>> drives_;
+			void set_activity_observer(Activity::Observer *observer) {
+				get_drive(0).set_activity_observer(observer, "Internal", true);
+				get_drive(1).set_activity_observer(observer, "External", true);
+			}
+
+			void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
+				get_drive(drive).set_disk(disk);
+			}
+
 		} fdc_;
 
 		void wd1770_did_change_output(WD::WD1770 *) final;

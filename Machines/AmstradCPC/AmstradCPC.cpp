@@ -661,17 +661,15 @@ class KeyboardState: public GI::AY38910::PortHandler {
 class FDC: public Intel::i8272::i8272 {
 	private:
 		Intel::i8272::BusHandler bus_handler_;
-		std::shared_ptr<Storage::Disk::Drive> drive_;
 
 	public:
-		FDC() :
-			i8272(bus_handler_, Cycles(8000000)),
-			drive_(new Storage::Disk::Drive(8000000, 300, 1)) {
-			set_drive(drive_);
+		FDC() : i8272(bus_handler_, Cycles(8000000)) {
+			emplace_drive(8000000, 300, 1);
+			set_drive(1);
 		}
 
 		void set_motor_on(bool on) {
-			drive_->set_motor_on(on);
+			get_drive().set_motor_on(on);
 		}
 
 		void select_drive(int c) {
@@ -679,11 +677,11 @@ class FDC: public Intel::i8272::i8272 {
 		}
 
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int drive) {
-			drive_->set_disk(disk);
+			get_drive().set_disk(disk);
 		}
 
 		void set_activity_observer(Activity::Observer *observer) {
-			drive_->set_activity_observer(observer, "Drive 1", true);
+			get_drive().set_activity_observer(observer, "Drive 1", true);
 		}
 };
 

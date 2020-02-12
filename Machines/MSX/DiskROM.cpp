@@ -13,8 +13,7 @@ using namespace MSX;
 DiskROM::DiskROM(const std::vector<uint8_t> &rom) :
 	WD1770(P1793),
 	rom_(rom) {
-	drives_[0] = std::make_shared<Storage::Disk::Drive>(8000000, 300, 2);
-	drives_[1] = std::make_shared<Storage::Disk::Drive>(8000000, 300, 2);
+	emplace_drives(2, 8000000, 300, 2);
 	set_is_double_density(true);
 }
 
@@ -23,18 +22,19 @@ void DiskROM::write(uint16_t address, uint8_t value, bool pc_is_outside_bios) {
 		case 0x7ff8: case 0x7ff9: case 0x7ffa: case 0x7ffb:
 			WD::WD1770::write(address, value);
 		break;
-		case 0x7ffc:
-			selected_head_ = value & 1;
-			drives_[0]->set_head(selected_head_);
-			drives_[1]->set_head(selected_head_);
-		break;
+		case 0x7ffc: {
+			const int selected_head = value & 1;
+			for_all_drives([selected_head] (Storage::Disk::Drive &drive, size_t index) {
+				drive.set_head(selected_head);
+			});
+		} break;
 		case 0x7ffd: {
-			selected_drive_ = value & 1;
-			set_drive(drives_[selected_drive_]);
+			set_drive(1 << (value & 1));
 
-			bool drive_motor = !!(value & 0x80);
-			drives_[0]->set_motor_on(drive_motor);
-			drives_[1]->set_motor_on(drive_motor);
+			const bool drive_motor = value & 0x80;
+			for_all_drives([drive_motor] (Storage::Disk::Drive &drive, size_t index) {
+				drive.set_motor_on(drive_motor);
+			});
 		} break;
 	}
 }
@@ -59,7 +59,7 @@ void DiskROM::run_for(HalfCycles half_cycles) {
 }
 
 void DiskROM::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
-	drives_[drive]->set_disk(disk);
+	get_drive(drive).set_disk(disk);
 }
 
 void DiskROM::set_head_load_request(bool head_load) {
@@ -68,9 +68,7 @@ void DiskROM::set_head_load_request(bool head_load) {
 }
 
 void DiskROM::set_activity_observer(Activity::Observer *observer) {
-	size_t c = 1;
-	for(auto &drive: drives_) {
-		drive->set_activity_observer(observer, "Drive " + std::to_string(c), true);
-		++c;
-	}
+	for_all_drives([observer] (Storage::Disk::Drive &drive, size_t index) {
+		drive.set_activity_observer(observer, "Drive " + std::to_string(index), true);
+	});
 }

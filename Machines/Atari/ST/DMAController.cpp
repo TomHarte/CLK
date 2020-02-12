@@ -126,7 +126,7 @@ void DMAController::set_floppy_drive_selection(bool drive1, bool drive2, bool si
 }
 
 void DMAController::set_floppy_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
-	fdc_.drives_[drive]->set_disk(disk);
+	fdc_.set_disk(disk, drive);
 }
 
 void DMAController::run_for(HalfCycles duration) {
@@ -256,6 +256,5 @@ ClockingHint::Preference DMAController::preferred_clocking() {
 }
 
 void DMAController::set_activity_observer(Activity::Observer *observer) {
-	fdc_.drives_[0]->set_activity_observer(observer, "Internal", true);
-	fdc_.drives_[1]->set_activity_observer(observer, "External", true);
+	fdc_.set_activity_observer(observer);
 }

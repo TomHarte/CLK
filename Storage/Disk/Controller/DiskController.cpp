@@ -14,9 +14,9 @@ Controller::Controller(Cycles clock_rate) :
 		clock_rate_multiplier_(128000000 / clock_rate.as_integral()),
 		clock_rate_(clock_rate.as_integral() * clock_rate_multiplier_),
 		pll_(100, *this),
-		empty_drive_(new Drive(int(clock_rate.as_integral()), 1, 1)) {
+		empty_drive_(int(clock_rate.as_integral()), 1, 1),
+		drive_(&empty_drive_) {
 	set_expected_bit_length(Time(1));
-	set_drive(empty_drive_);
 }
 
 void Controller::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) {
@@ -32,7 +32,7 @@ void Controller::run_for(const Cycles cycles) {
 }
 
 Drive &Controller::get_drive() {
-	return *drive_.get();
+	return *drive_;
 }
 
 // MARK: - Drive::EventDelegate
@@ -71,26 +71,33 @@ void Controller::digital_phase_locked_loop_output_bit(int value) {
 	if(is_reading_) process_input_bit(value);
 }
 
-void Controller::set_drive(std::shared_ptr<Drive> drive) {
-	if(drive_ != drive) {
-		ClockingHint::Preference former_prefernece = preferred_clocking();
-//		invalidate_track();
+void Controller::set_drive(int index_mask) {
+	if(drive_selection_mask_ == index_mask) {
+		return;
+	}
 
-		if(drive_) {
-			drive_->set_event_delegate(nullptr);
-			drive_->set_clocking_hint_observer(nullptr);
-		}
-		drive_ = drive;
-		if(drive_) {
-			drive_->set_event_delegate(this);
-			drive_->set_clocking_hint_observer(this);
-		} else {
-			drive_ = empty_drive_;
-		}
+	ClockingHint::Preference former_prefernece = preferred_clocking();
+//	invalidate_track();
 
-		if(preferred_clocking() != former_prefernece) {
-			update_clocking_observer();
+	get_drive().set_event_delegate(nullptr);
+	get_drive().set_clocking_hint_observer(nullptr);
+
+	if(!index_mask) {
+		drive_ = &empty_drive_;
+	} else {
+		size_t index = 0;
+		while(!(index_mask&1)) {
+			index_mask >>= 1;
+			++index;
 		}
+		drive_ = &drives_[index];
+	}
+
+	get_drive().set_event_delegate(this);
+	get_drive().set_clocking_hint_observer(this);
+
+	if(preferred_clocking() != former_prefernece) {
+		update_clocking_observer();
 	}
 }
 

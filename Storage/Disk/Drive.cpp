@@ -170,6 +170,7 @@ void Drive::set_motor_on(bool motor_is_on) {
 	// TODO: momentum.
 	if(motor_is_on) {
 		set_disk_is_rotating(true);
+		time_until_motor_transition = Cycles(0);
 		return;
 	}
 
@@ -431,9 +432,10 @@ void Drive::set_disk_is_rotating(bool is_rotating) {
 	disk_is_rotating_ = is_rotating;
 
 	if(observer_) {
-		observer_->set_drive_motor_status(drive_name_, motor_input_is_on_);
+		observer_->set_drive_motor_status(drive_name_, disk_is_rotating_);
 		if(announce_motor_led_) {
-			observer_->set_led_status(drive_name_, motor_input_is_on_);
+			printf("LED set: %s %d\n", drive_name_.c_str(), int(disk_is_rotating_));
+			observer_->set_led_status(drive_name_, disk_is_rotating_);
 		}
 	}
 
