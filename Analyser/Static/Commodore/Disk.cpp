@@ -19,12 +19,10 @@ using namespace Analyser::Static::Commodore;
 
 class CommodoreGCRParser: public Storage::Disk::Controller {
 	public:
-		std::shared_ptr<Storage::Disk::Drive> drive;
-
 		CommodoreGCRParser() : Storage::Disk::Controller(4000000), shift_register_(0), track_(1) {
 			emplace_drive(4000000, 300, 2);
 			set_drive(1);
-			drive->set_motor_on(true);
+			get_drive().set_motor_on(true);
 		}
 
 		struct Sector {
@@ -59,6 +57,10 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 			}
 
 			return get_sector(sector);
+		}
+
+		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk) {
+			get_drive().set_disk(disk);
 		}
 
 	private:
@@ -170,7 +172,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	std::vector<File> files;
 	CommodoreGCRParser parser;
-	parser.drive->set_disk(disk);
+	parser.set_disk(disk);
 
 	// find any sector whatsoever to establish the current track
 	std::shared_ptr<CommodoreGCRParser::Sector> sector;
