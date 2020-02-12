@@ -434,7 +434,6 @@ void Drive::set_disk_is_rotating(bool is_rotating) {
 	if(observer_) {
 		observer_->set_drive_motor_status(drive_name_, disk_is_rotating_);
 		if(announce_motor_led_) {
-			printf("LED set: %s %d\n", drive_name_.c_str(), int(disk_is_rotating_));
 			observer_->set_led_status(drive_name_, disk_is_rotating_);
 		}
 	}
