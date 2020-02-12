@@ -14,6 +14,7 @@ BD500::BD500() : DiskController(P1793, 9000000, Storage::Disk::Drive::ReadyType:
 	disable_basic_rom_ = true;
 	select_paged_item();
 	set_is_double_density(true);
+	set_drive(1);
 }
 
 void BD500::write(int address, uint8_t value) {
