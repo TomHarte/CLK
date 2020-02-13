@@ -14,15 +14,13 @@ namespace Oric {
 class DiskController: public WD::WD1770 {
 	public:
 		DiskController(WD::WD1770::Personality personality, int clock_rate, Storage::Disk::Drive::ReadyType ready_type) :
-			WD::WD1770(personality), clock_rate_(clock_rate), ready_type_(ready_type) {}
+			WD::WD1770(personality), clock_rate_(clock_rate), ready_type_(ready_type) {
+			emplace_drives(4, clock_rate_, 300, 2, ready_type_);
+			// TODO: don't assume four drives?
+		}
 
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int d) {
-			const size_t drive = size_t(d);
-			if(!drives_[drive]) {
-				drives_[drive] = std::make_unique<Storage::Disk::Drive>(clock_rate_, 300, 2, ready_type_);
-				if(drive == selected_drive_) set_drive(drives_[drive]);
-			}
-			drives_[drive]->set_disk(disk);
+			get_drive(size_t(d)).set_disk(disk);
 		}
 
 		enum class PagedItem {
@@ -44,14 +42,6 @@ class DiskController: public WD::WD1770 {
 		}
 
 	protected:
-		std::array<std::shared_ptr<Storage::Disk::Drive>, 4> drives_;
-		size_t selected_drive_ = 0;
-		void select_drive(size_t drive) {
-			if(drive != selected_drive_) {
-				selected_drive_ = drive;
-				set_drive(drives_[selected_drive_]);
-			}
-		}
 		Delegate *delegate_ = nullptr;
 
 		bool enable_overlay_ram_ = false;

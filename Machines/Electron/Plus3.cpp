@@ -11,13 +11,12 @@
 using namespace Electron;
 
 Plus3::Plus3() : WD1770(P1770) {
-	drives_.emplace_back(new Storage::Disk::Drive(8000000, 300, 2));
-	drives_.emplace_back(new Storage::Disk::Drive(8000000, 300, 2));
+	emplace_drives(2, 8000000, 300, 2);
 	set_control_register(last_control_, 0xff);
 }
 
 void Plus3::set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
-	drives_[drive]->set_disk(disk);
+	get_drive(drive).set_disk(disk);
 }
 
 void Plus3::set_control_register(uint8_t control) {
@@ -33,16 +32,15 @@ void Plus3::set_control_register(uint8_t control) {
 
 void Plus3::set_control_register(uint8_t control, uint8_t changes) {
 	if(changes&3) {
-		switch(control&3) {
-			case 0:		selected_drive_ = -1;	set_drive(nullptr);		break;
-			default:	selected_drive_ = 0;	set_drive(drives_[0]);	break;
-			case 2:		selected_drive_ = 1;	set_drive(drives_[1]);	break;
-		}
+		set_drive(control&3);
 	}
+
+	// Select the side on both drives at once.
 	if(changes & 0x04) {
-		drives_[0]->set_head((control & 0x04) ? 1 : 0);
-		drives_[1]->set_head((control & 0x04) ? 1 : 0);
+		get_drive(0).set_head((control & 0x04) ? 1 : 0);
+		get_drive(1).set_head((control & 0x04) ? 1 : 0);
 	}
+
 	if(changes & 0x08) set_is_double_density(!(control & 0x08));
 }
 
@@ -53,9 +51,7 @@ void Plus3::set_motor_on(bool on) {
 }
 
 void Plus3::set_activity_observer(Activity::Observer *observer) {
-	size_t index = 0;
-	for(const auto &drive: drives_) {
-		drive->set_activity_observer(observer, "Drive " + std::to_string(index+1), true);
-		++index;
-	}
+	for_all_drives([observer] (Storage::Disk::Drive &drive, size_t index) {
+		drive.set_activity_observer(observer, "Drive " + std::to_string(index+1), true);
+	});
 }

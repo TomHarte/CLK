@@ -14,9 +14,10 @@ Controller::Controller(Cycles clock_rate) :
 		clock_rate_multiplier_(128000000 / clock_rate.as_integral()),
 		clock_rate_(clock_rate.as_integral() * clock_rate_multiplier_),
 		pll_(100, *this),
-		empty_drive_(new Drive(int(clock_rate.as_integral()), 1, 1)) {
+		empty_drive_(int(clock_rate.as_integral()), 1, 1),
+		drive_(&empty_drive_) {
+	empty_drive_.set_clocking_hint_observer(this);
 	set_expected_bit_length(Time(1));
-	set_drive(empty_drive_);
 }
 
 void Controller::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) {
@@ -24,15 +25,28 @@ void Controller::set_component_prefers_clocking(ClockingHint::Source *component,
 }
 
 ClockingHint::Preference Controller::preferred_clocking() {
-	return (!drive_ || (drive_->preferred_clocking() == ClockingHint::Preference::None)) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
+	// Nominate RealTime clocking if any drive currently wants any clocking whatsoever.
+	// Otherwise, ::None will do.
+	for(auto &drive: drives_) {
+		if(drive.preferred_clocking() != ClockingHint::Preference::None) {
+			return ClockingHint::Preference::RealTime;
+		}
+	}
+	if(empty_drive_.preferred_clocking() != ClockingHint::Preference::None) {
+		return ClockingHint::Preference::RealTime;
+	}
+	return ClockingHint::Preference::None;
 }
 
 void Controller::run_for(const Cycles cycles) {
-	if(drive_) drive_->run_for(cycles);
+	for(auto &drive: drives_) {
+		drive.run_for(cycles);
+	}
+	empty_drive_.run_for(cycles);
 }
 
 Drive &Controller::get_drive() {
-	return *drive_.get();
+	return *drive_;
 }
 
 // MARK: - Drive::EventDelegate
@@ -71,26 +85,37 @@ void Controller::digital_phase_locked_loop_output_bit(int value) {
 	if(is_reading_) process_input_bit(value);
 }
 
-void Controller::set_drive(std::shared_ptr<Drive> drive) {
-	if(drive_ != drive) {
-		ClockingHint::Preference former_prefernece = preferred_clocking();
-//		invalidate_track();
+void Controller::set_drive(int index_mask) {
+	if(drive_selection_mask_ == index_mask) {
+		return;
+	}
 
-		if(drive_) {
-			drive_->set_event_delegate(nullptr);
-			drive_->set_clocking_hint_observer(nullptr);
-		}
-		drive_ = drive;
-		if(drive_) {
-			drive_->set_event_delegate(this);
-			drive_->set_clocking_hint_observer(this);
-		} else {
-			drive_ = empty_drive_;
-		}
+	ClockingHint::Preference former_prefernece = preferred_clocking();
 
-		if(preferred_clocking() != former_prefernece) {
-			update_clocking_observer();
+	// Stop receiving events from the current drive.
+	get_drive().set_event_delegate(nullptr);
+
+	// TODO: a transfer of writing state, if writing?
+
+	if(!index_mask) {
+		drive_ = &empty_drive_;
+	} else {
+		// TEMPORARY FIX: connect up only the first selected drive.
+		// TODO: at least merge events if multiple drives are selected. Some computers have
+		// controllers that allow this, with usually meaningless results as far as I can
+		// imagine. But the limit of an emulator shouldn't be the author's imagination.
+		size_t index = 0;
+		while(!(index_mask&1)) {
+			index_mask >>= 1;
+			++index;
 		}
+		drive_ = &drives_[index];
+	}
+
+	get_drive().set_event_delegate(this);
+
+	if(preferred_clocking() != former_prefernece) {
+		update_clocking_observer();
 	}
 }
 

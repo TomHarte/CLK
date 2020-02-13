@@ -14,6 +14,7 @@ BD500::BD500() : DiskController(P1793, 9000000, Storage::Disk::Drive::ReadyType:
 	disable_basic_rom_ = true;
 	select_paged_item();
 	set_is_double_density(true);
+	set_drive(1);
 }
 
 void BD500::write(int address, uint8_t value) {
@@ -22,6 +23,18 @@ void BD500::write(int address, uint8_t value) {
 	if(address >= 0x0320 && address <= 0x0323) {
 //		if(address == 0x320) printf("Command %02x\n", value);
 		WD::WD1770::write(address, value);
+	}
+
+	if(address == 0x031a) {
+		// Drive select; kudos to iss of Oricutron for figuring this one out;
+		// cf. http://forum.defence-force.org/viewtopic.php?f=25&p=21409#p21393
+		switch(value & 0xe0) {
+			default:	set_drive(0);	break;
+			case 0x20:	set_drive(1);	break;
+			case 0x40:	set_drive(2);	break;
+			case 0x80:	set_drive(4);	break;
+			case 0xc0:	set_drive(8);	break;
+		}
 	}
 }
 
@@ -113,16 +126,16 @@ void BD500::access(int address) {
 void BD500::set_head_load_request(bool head_load) {
 	// Turn all motors on or off; if off then unload the head instantly.
 	is_loading_head_ |= head_load;
-	for(auto &drive : drives_) {
-		if(drive) drive->set_motor_on(head_load);
-	}
+	for_all_drives([head_load] (Storage::Disk::Drive &drive, size_t) {
+		drive.set_motor_on(head_load);
+	});
 	if(!head_load) set_head_loaded(false);
 }
 
 void BD500::run_for(const Cycles cycles) {
 	// If a head load is in progress and the selected drive is now ready,
 	// declare head loaded.
-	if(is_loading_head_ && drives_[selected_drive_] && drives_[selected_drive_]->get_is_ready()) {
+	if(is_loading_head_ && get_drive().get_is_ready()) {
 		set_head_loaded(true);
 		is_loading_head_ = false;
 	}

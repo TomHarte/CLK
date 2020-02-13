@@ -19,7 +19,6 @@ using namespace Commodore::C1540;
 MachineBase::MachineBase(Personality personality, const ROMMachine::ROMFetcher &rom_fetcher) :
 		Storage::Disk::Controller(1000000),
 		m6502_(*this),
-		drive_(new Storage::Disk::Drive(1000000, 300, 2)),
 		serial_port_VIA_port_handler_(new SerialPortVIA(serial_port_VIA_)),
 		serial_port_(new SerialPort),
 		drive_VIA_(drive_VIA_port_handler_),
@@ -37,7 +36,8 @@ MachineBase::MachineBase(Personality personality, const ROMMachine::ROMFetcher &
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(3));
 
 	// attach the only drive there is
-	set_drive(drive_);
+	emplace_drive(1000000, 300, 2);
+	set_drive(1);
 
 	std::string device_name;
 	uint32_t crc = 0;
@@ -103,21 +103,21 @@ Cycles MachineBase::perform_bus_operation(CPU::MOS6502::BusOperation operation, 
 }
 
 void Machine::set_disk(std::shared_ptr<Storage::Disk::Disk> disk) {
-	drive_->set_disk(disk);
+	get_drive().set_disk(disk);
 }
 
 void Machine::run_for(const Cycles cycles) {
 	m6502_.run_for(cycles);
 
-	bool drive_motor = drive_VIA_port_handler_.get_motor_enabled();
-	drive_->set_motor_on(drive_motor);
+	const bool drive_motor = drive_VIA_port_handler_.get_motor_enabled();
+	get_drive().set_motor_on(drive_motor);
 	if(drive_motor)
 		Storage::Disk::Controller::run_for(cycles);
 }
 
 void MachineBase::set_activity_observer(Activity::Observer *observer) {
 	drive_VIA_.bus_handler().set_activity_observer(observer);
-	drive_->set_activity_observer(observer, "Drive", false);
+	get_drive().set_activity_observer(observer, "Drive", false);
 }
 
 // MARK: - 6522 delegate
@@ -154,7 +154,7 @@ void MachineBase::process_index_hole()	{}
 // MARK: - Drive VIA delegate
 
 void MachineBase::drive_via_did_step_head(void *driveVIA, int direction) {
-	drive_->step(Storage::Disk::HeadPosition(direction, 2));
+	get_drive().step(Storage::Disk::HeadPosition(direction, 2));
 }
 
 void MachineBase::drive_via_did_set_data_density(void *driveVIA, int density) {

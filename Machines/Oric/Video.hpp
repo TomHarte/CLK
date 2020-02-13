@@ -44,8 +44,8 @@ class VideoOutput {
 		int v_sync_start_position_, v_sync_end_position_, counter_period_;
 
 		// Output target and device.
-		uint8_t *rgb_pixel_target_;
-		uint32_t *composite_pixel_target_;
+		uint8_t *rgb_pixel_target_ = nullptr;
+		uint32_t *composite_pixel_target_ = nullptr;
 		uint32_t colour_forms_[8];
 		Outputs::Display::InputDataType data_type_;
 

@@ -441,7 +441,8 @@ class ConcreteMachine:
 			// Advance the relevant counters.
 			cycles_since_audio_update_ += length;
 			mfp_ += length;
-			dma_ += length;
+			if(dma_clocking_preference_ != ClockingHint::Preference::None)
+				dma_ += length;
 			keyboard_acia_ += length;
 			midi_acia_ += length;
 			bus_phase_ += length;
@@ -462,7 +463,7 @@ class ConcreteMachine:
 				mfp_.flush();
 			}
 
-			if(dma_is_realtime_) {
+			if(dma_clocking_preference_ == ClockingHint::Preference::RealTime) {
 				dma_.flush();
 			}
 
@@ -531,7 +532,7 @@ class ConcreteMachine:
 		bool may_defer_acias_ = true;
 		bool keyboard_needs_clock_ = false;
 		bool mfp_is_realtime_ = false;
-		bool dma_is_realtime_ = false;
+		ClockingHint::Preference dma_clocking_preference_ = ClockingHint::Preference::None;
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
 			// This is being called by one of the components; avoid any time flushing here as that's
 			// already dealt with (and, just to be absolutely sure, to avoid recursive mania).
@@ -540,7 +541,7 @@ class ConcreteMachine:
 				(midi_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime);
 			keyboard_needs_clock_ = ikbd_.preferred_clocking() != ClockingHint::Preference::None;
 			mfp_is_realtime_ = mfp_.last_valid()->preferred_clocking() == ClockingHint::Preference::RealTime;
-			dma_is_realtime_ = dma_.last_valid()->preferred_clocking() == ClockingHint::Preference::RealTime;
+			dma_clocking_preference_ = dma_.last_valid()->preferred_clocking();
 		}
 
 		// MARK: - GPIP input.

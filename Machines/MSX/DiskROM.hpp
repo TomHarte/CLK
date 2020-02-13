@@ -36,9 +36,6 @@ class DiskROM: public ROMSlotHandler, public WD::WD1770 {
 		const std::vector<uint8_t> &rom_;
 
 		long int controller_cycles_ = 0;
-		size_t selected_drive_ = 0;
-		int selected_head_ = 0;
-		std::array<std::shared_ptr<Storage::Disk::Drive>, 2> drives_;
 
 		void set_head_load_request(bool head_load) final;
 };

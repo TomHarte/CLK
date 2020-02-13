@@ -49,9 +49,30 @@ class Controller:
 		void run_for(const Cycles cycles);
 
 		/*!
-			Sets the current drive. This drive is the one the PLL listens to.
+			Sets the current drive(s). Normally this will be exactly one, but some machines allow
+			zero or multiple drives to be attached, with useless results.
 		*/
-		void set_drive(std::shared_ptr<Drive> drive);
+		void set_drive(int index_mask);
+
+		/*!
+			Adds a new drive to the drive list, returning its index.
+		*/
+		template<typename... Args> size_t emplace_drive(Args&&... args) {
+			drives_.emplace_back(std::forward<Args>(args)...);
+			drives_.back().set_clocking_hint_observer(this);
+			return drives_.size() - 1;
+		}
+
+		/*!
+			Adds @c count new drives to the drive list, returning the index of the final one added.
+		*/
+		template<typename... Args> size_t emplace_drives(size_t count, Args&&... args) {
+			while(count--) {
+				drives_.emplace_back(std::forward<Args>(args)...);
+				drives_.back().set_clocking_hint_observer(this);
+			}
+			return drives_.size() - 1;
+		}
 
 		/*!
 			Should be implemented by subclasses; communicates each bit that the PLL recognises.
@@ -98,6 +119,18 @@ class Controller:
 		*/
 		Drive &get_drive();
 
+		Drive &get_drive(size_t index) {
+			return drives_[index];
+		}
+
+		void for_all_drives(const std::function<void(Drive &, size_t)> &func) {
+			size_t index = 0;
+			for(auto &drive: drives_) {
+				func(drive, index);
+				++index;
+			}
+		}
+
 		/*!
 			As per ClockingHint::Source.
 		*/
@@ -113,9 +146,10 @@ class Controller:
 		DigitalPhaseLockedLoop<Controller> pll_;
 		friend DigitalPhaseLockedLoop<Controller>;
 
-		std::shared_ptr<Drive> drive_;
-
-		std::shared_ptr<Drive> empty_drive_;
+		Drive empty_drive_;
+		std::vector<Drive> drives_;
+		Drive *drive_;
+		int drive_selection_mask_ = 0xff;
 
 		// ClockingHint::Observer.
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final;
