@@ -24,6 +24,18 @@ void BD500::write(int address, uint8_t value) {
 //		if(address == 0x320) printf("Command %02x\n", value);
 		WD::WD1770::write(address, value);
 	}
+
+	if(address == 0x031a) {
+		// Drive select; kudos to iss of Oricutron for figuring this one out;
+		// cf. http://forum.defence-force.org/viewtopic.php?f=25&p=21409#p21393
+		switch(value & 0xe0) {
+			default:	set_drive(0);	break;
+			case 0x20:	set_drive(1);	break;
+			case 0x40:	set_drive(2);	break;
+			case 0x80:	set_drive(4);	break;
+			case 0xc0:	set_drive(8);	break;
+		}
+	}
 }
 
 uint8_t BD500::read(int address) {
