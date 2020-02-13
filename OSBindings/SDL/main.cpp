@@ -51,6 +51,14 @@ struct MachineRunner {
 
 	void stop() {
 		if(timer_) {
+			// SDL doesn't define whether SDL_RemoveTimer will block until any pending calls
+			// have been completed, or will return instantly. So: do an ordered shutdown,
+			// then remove the timer.
+			state_ = State::Stopping;
+			while(state_ == State::Stopping) {
+				frame_lock_.clear();
+			}
+
 			SDL_RemoveTimer(timer_);
 			timer_ = 0;
 		}
@@ -87,6 +95,13 @@ struct MachineRunner {
 		std::atomic<Time::Nanos> vsync_time_;
 		std::atomic_flag frame_lock_;
 
+		enum class State {
+			Running,
+			Stopping,
+			Stopped
+		};
+		std::atomic<State> state_ = State::Running;
+
 		Time::ScanSynchroniser scan_synchroniser_;
 
 		// A slightly clumsy means of trying to derive frame rate from calls to
@@ -105,7 +120,21 @@ struct MachineRunner {
 		}
 
 		void update() {
+			// If a shutdown is in progress, signal stoppage and do nothing.
+			if(state_ != State::Running) {
+				state_ = State::Stopped;
+				return;
+			}
+
+			// Get time now and determine how long it has been since the last time this
+			// function was called. If it's more than half a second then forego any activity
+			// now, as there's obviously been some sort of substantial time glitch.
 			const auto time_now = Time::nanos_now();
+			if(time_now - last_time_ > Time::Nanos(500'000'000)) {
+				last_time_ = time_now;
+				return;
+			}
+
 			const auto vsync_time = vsync_time_.load();
 
 			std::unique_lock<std::mutex> lock_guard(*machine_mutex);

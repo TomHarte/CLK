@@ -767,11 +767,15 @@ struct ActivityObserver: public Activity::Observer {
 	__block auto lastTime = Time::nanos_now();
 
 	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
-		// Grab the time now and, therefore, the amount of time since the timer last fired.
+		// Grab the time now and, therefore, the amount of time since the timer last fired
+		// (capped at half a second).
 		const auto timeNow = Time::nanos_now();
 		const auto duration = timeNow - lastTime;
+		if(duration > Time::Nanos(500'000'000)) {
+			lastTime = timeNow;
+			return;
+		}
 
-		
 		CGSize pixelSize;
 		BOOL splitAndSync = NO;
 		@synchronized(self) {
