@@ -55,16 +55,21 @@ class Controller:
 		void set_drive(int index_mask);
 
 		/*!
-			Adds a new drive to the attached list, returning its index.
+			Adds a new drive to the drive list, returning its index.
 		*/
 		template<typename... Args> size_t emplace_drive(Args&&... args) {
 			drives_.emplace_back(std::forward<Args>(args)...);
+			drives_.back().set_clocking_hint_observer(this);
 			return drives_.size() - 1;
 		}
 
+		/*!
+			Adds @c count new drives to the drive list, returning the index of the final one added.
+		*/
 		template<typename... Args> size_t emplace_drives(size_t count, Args&&... args) {
 			while(count--) {
 				drives_.emplace_back(std::forward<Args>(args)...);
+				drives_.back().set_clocking_hint_observer(this);
 			}
 			return drives_.size() - 1;
 		}

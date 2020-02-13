@@ -16,6 +16,7 @@ Controller::Controller(Cycles clock_rate) :
 		pll_(100, *this),
 		empty_drive_(int(clock_rate.as_integral()), 1, 1),
 		drive_(&empty_drive_) {
+	empty_drive_.set_clocking_hint_observer(this);
 	set_expected_bit_length(Time(1));
 }
 
@@ -24,11 +25,24 @@ void Controller::set_component_prefers_clocking(ClockingHint::Source *component,
 }
 
 ClockingHint::Preference Controller::preferred_clocking() {
-	return (!drive_ || (drive_->preferred_clocking() == ClockingHint::Preference::None)) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
+	// Nominate RealTime clocking if any drive currently wants any clocking whatsoever.
+	// Otherwise, ::None will do.
+	for(auto &drive: drives_) {
+		if(drive.preferred_clocking() != ClockingHint::Preference::None) {
+			return ClockingHint::Preference::RealTime;
+		}
+	}
+	if(empty_drive_.preferred_clocking() != ClockingHint::Preference::None) {
+		return ClockingHint::Preference::RealTime;
+	}
+	return ClockingHint::Preference::None;
 }
 
 void Controller::run_for(const Cycles cycles) {
-	if(drive_) drive_->run_for(cycles);
+	for(auto &drive: drives_) {
+		drive.run_for(cycles);
+	}
+	empty_drive_.run_for(cycles);
 }
 
 Drive &Controller::get_drive() {
@@ -77,14 +91,19 @@ void Controller::set_drive(int index_mask) {
 	}
 
 	ClockingHint::Preference former_prefernece = preferred_clocking();
-//	invalidate_track();
 
+	// Stop receiving events from the current drive.
 	get_drive().set_event_delegate(nullptr);
-	get_drive().set_clocking_hint_observer(nullptr);
+
+	// TODO: a transfer of writing state, if writing?
 
 	if(!index_mask) {
 		drive_ = &empty_drive_;
 	} else {
+		// TEMPORARY FIX: connect up only the first selected drive.
+		// TODO: at least merge events if multiple drives are selected. Some computers have
+		// controllers that allow this, with usually meaningless results as far as I can
+		// imagine. But the limit of an emulator shouldn't be the author's imagination.
 		size_t index = 0;
 		while(!(index_mask&1)) {
 			index_mask >>= 1;
@@ -94,7 +113,6 @@ void Controller::set_drive(int index_mask) {
 	}
 
 	get_drive().set_event_delegate(this);
-	get_drive().set_clocking_hint_observer(this);
 
 	if(preferred_clocking() != former_prefernece) {
 		update_clocking_observer();
