@@ -223,8 +223,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				return delay;
 
 				case BusDevice::VIA: {
-					// TODO: adapt to 16-bit.
-
 					if(*cycle.address & 1) {
 						fill_unmapped(cycle);
 					} else {
@@ -251,8 +249,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				} return delay;
 
 				case BusDevice::IWM: {
-					// TODO: adapt to 16-bit.
-
 					if(*cycle.address & 1) {
 						const int register_address = address >> 9;
 
@@ -270,8 +266,6 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				} return delay;
 
 				case BusDevice::SCSI: {
-					// TODO: adapt to 16-bit.
-
 					const int register_address = address >> 4;
 					const bool dma_acknowledge = address & 0x200;
 
@@ -476,7 +470,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					drives_[0].set_disk(media.disks[0]);
 			}
 
-			// TODO: allow this only at machine startup.
+			// TODO: allow this only at machine startup?
 			if(!media.mass_storage_devices.empty()) {
 				const auto volume = dynamic_cast<Storage::MassStorage::Encodings::Macintosh::Volume *>(media.mass_storage_devices.front().get());
 				if(volume) {
