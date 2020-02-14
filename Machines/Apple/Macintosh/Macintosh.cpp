@@ -123,10 +123,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					rom_descriptions.emplace_back(machine_name, "the Macintosh Plus ROM", "macplus.rom", 128*1024, crc32s);
 				} break;
 			}
-			ram_mask_ = (ram_size >> 1) - 1;
-			rom_mask_ = (rom_size >> 1) - 1;
-			ram_.resize(ram_size >> 1);
-			video_.set_ram(ram_.data(), ram_mask_);
+			ram_mask_ = ram_size - 1;
+			rom_mask_ = rom_size - 1;
+			ram_.resize(ram_size);
+			video_.set_ram(reinterpret_cast<uint16_t *>(ram_.data()), ram_mask_ >> 1);
 
 			// Grab a copy of the ROM and convert it into big-endian data.
 			const auto roms = rom_fetcher(rom_descriptions);
@@ -196,11 +196,11 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			// A null cycle leaves nothing else to do.
 			if(!(cycle.operation & (Microcycle::NewAddress | Microcycle::SameAddress))) return HalfCycles(0);
 
-			// Grab the value on the address bus, at word precision.
-			uint32_t word_address = cycle.active_operation_word_address();
+			// Grab the address.
+			auto address = cycle.host_endian_byte_address();
 
 			// Everything above E0 0000 is signalled as being on the peripheral bus.
-			mc68000_.set_is_peripheral_address(word_address >= 0x700000);
+			mc68000_.set_is_peripheral_address(address >= 0xe0'0000);
 
 			// All code below deals only with reads and writes — cycles in which a
 			// data select is active. So quit now if this is not the active part of
@@ -213,9 +213,9 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 			if(!cycle.data_select_active() || (cycle.operation & Microcycle::InterruptAcknowledge)) return HalfCycles(0);
 
 			// Grab the word-precision address being accessed.
-			uint16_t *memory_base = nullptr;
+			uint8_t *memory_base = nullptr;
 			HalfCycles delay;
-			switch(memory_map_[word_address >> 16]) {
+			switch(memory_map_[address >> 17]) {
 				default: assert(false);
 
 				case BusDevice::Unassigned:
@@ -226,7 +226,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					if(*cycle.address & 1) {
 						fill_unmapped(cycle);
 					} else {
-						const int register_address = word_address >> 8;
+						const int register_address = address >> 9;
 
 						// VIA accesses are via address 0xefe1fe + register*512,
 						// which at word precision is 0x77f0ff + register*256.
@@ -250,7 +250,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 				case BusDevice::IWM: {
 					if(*cycle.address & 1) {
-						const int register_address = word_address >> 8;
+						const int register_address = address >> 9;
 
 						// The IWM; this is a purely polled device, so can be run on demand.
 						if(cycle.operation & Microcycle::Read) {
@@ -266,8 +266,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				} return delay;
 
 				case BusDevice::SCSI: {
-					const int register_address = word_address >> 3;
-					const bool dma_acknowledge = word_address & 0x100;
+					const int register_address = address >> 4;
+					const bool dma_acknowledge = address & 0x200;
 
 					// Even accesses = read; odd = write.
 					if(*cycle.address & 1) {
@@ -308,7 +308,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 								cycle.value->halves.low = 0xff;
 							}
 						} else {
-							const auto read = scc_.read(int(word_address));
+							const auto read = scc_.read(int(address >> 1));
 							if(cycle.operation & Microcycle::Read) {
 								cycle.value->halves.low = read;
 							}
@@ -323,10 +323,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					} else {
 						if(*cycle.address & 1) {
 							if(cycle.operation & Microcycle::Read) {
-								scc_.write(int(word_address), 0xff);
+								scc_.write(int(address >> 1), 0xff);
 								cycle.value->halves.low = 0xff;
 							} else {
-								scc_.write(int(word_address), cycle.value->halves.low);
+								scc_.write(int(address >> 1), cycle.value->halves.low);
 							}
 						} else {
 							fill_unmapped(cycle);
@@ -338,13 +338,13 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					// This is coupled with the Macintosh implementation of video; the magic
 					// constant should probably be factored into the Video class.
 					// It embodies knowledge of the fact that video (and audio) will always
-					// be fetched from the final $d900 bytes (i.e. $6c80 words) of memory.
+					// be fetched from the final $d900 bytes of memory.
 					// (And that ram_mask_ = ram size - 1).
-					if(word_address > ram_mask_ - 0x6c80)
+					if(address > ram_mask_ - 0xd900)
 						update_video();
 
 					memory_base = ram_.data();
-					word_address &= ram_mask_;
+					address &= ram_mask_;
 
 					// Apply a delay due to video contention if applicable; scheme applied:
 					// only every other access slot is available during the period of video
@@ -359,7 +359,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				case BusDevice::ROM: {
 					if(!(cycle.operation & Microcycle::Read)) return delay;
 					memory_base = rom_;
-					word_address &= rom_mask_;
+					address &= rom_mask_;
 				} break;
 			}
 
@@ -369,19 +369,16 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				break;
 
 				case Microcycle::SelectWord | Microcycle::Read:
-					cycle.value->full = memory_base[word_address];
+					cycle.value->full = *reinterpret_cast<uint16_t *>(&memory_base[address]);
 				break;
 				case Microcycle::SelectByte | Microcycle::Read:
-					cycle.value->halves.low = uint8_t(memory_base[word_address] >> cycle.byte_shift());
+					cycle.value->halves.low = memory_base[address];
 				break;
 				case Microcycle::SelectWord:
-					memory_base[word_address] = cycle.value->full;
+					*reinterpret_cast<uint16_t *>(&memory_base[address]) = cycle.value->full;
 				break;
 				case Microcycle::SelectByte:
-					memory_base[word_address] = uint16_t(
-						(cycle.value->halves.low << cycle.byte_shift()) |
-						(memory_base[word_address] & cycle.untouched_byte_mask())
-					);
+					memory_base[address] = cycle.value->halves.low;
 				break;
 			}
 
@@ -473,7 +470,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					drives_[0].set_disk(media.disks[0]);
 			}
 
-			// TODO: allow this only at machine startup.
+			// TODO: allow this only at machine startup?
 			if(!media.mass_storage_devices.empty()) {
 				const auto volume = dynamic_cast<Storage::MassStorage::Encodings::Macintosh::Volume *>(media.mass_storage_devices.front().get());
 				if(volume) {
@@ -535,8 +532,10 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				if(quick_boot) {
 					// Cf. Big Mess o' Wires' disassembly of the Mac Plus ROM, and the
 					// test at $E00. TODO: adapt as(/if?) necessary for other Macs.
-					ram_[0x02ae >> 1] = 0x40;
-					ram_[0x02b0 >> 1] = 0x00;
+					ram_[0x02ae] = 0x40;
+					ram_[0x02af] = 0x00;
+					ram_[0x02b0] = 0x00;
+					ram_[0x02b1] = 0x00;
 				}
 			}
 		}
@@ -570,11 +569,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		forceinline void fill_unmapped(const Microcycle &cycle) {
 			if(!(cycle.operation & Microcycle::Read)) return;
-			if(cycle.operation & Microcycle::SelectWord) {
-				cycle.value->full = 0xffff;
-			} else {
-				cycle.value->halves.low = 0xff;
-			}
+			cycle.set_value16(0xffff);
 		}
 
 		/// Advances all non-CPU components by @c duration half cycles.
@@ -857,8 +852,8 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		uint32_t ram_mask_ = 0;
 		uint32_t rom_mask_ = 0;
-		uint16_t rom_[64*1024];	// i.e. up to 128kb in size.
-		std::vector<uint16_t> ram_;
+		uint8_t rom_[128*1024];
+		std::vector<uint8_t> ram_;
 };
 
 }
