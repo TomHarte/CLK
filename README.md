@@ -1,4 +1,4 @@
-# [Application Icon](READMEImages/Icon.png) Clock Signal
+# ![Application Icon](READMEImages/Icon.png) Clock Signal
 Clock Signal ('CLK') is an emulator for tourists that seeks to be invisible. Users directly launch classic software with no emulator or per-emulated-machine learning curve.
 
 [Releases](https://github.com/TomHarte/CLK/releases) are hosted on GitHub.
