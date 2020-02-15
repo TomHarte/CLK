@@ -72,7 +72,7 @@ Outputs::Speaker::Speaker *MultiCRTMachine::get_speaker() {
 }
 
 void MultiCRTMachine::run_for(Time::Seconds duration) {
-	perform_parallel([=](::CRTMachine::Machine *machine) {
+	perform_parallel([duration](::CRTMachine::Machine *machine) {
 		if(machine->get_confidence() >= 0.01f) machine->run_for(duration);
 	});
 
@@ -82,7 +82,7 @@ void MultiCRTMachine::run_for(Time::Seconds duration) {
 void MultiCRTMachine::did_change_machine_order() {
 	if(scan_target_) scan_target_->will_change_owner();
 
-	perform_serial([=](::CRTMachine::Machine *machine) {
+	perform_serial([](::CRTMachine::Machine *machine) {
 		machine->set_scan_target(nullptr);
 	});
 	CRTMachine::Machine *const crt_machine = machines_.front()->crt_machine();

@@ -17,13 +17,13 @@ AudioGenerator::AudioGenerator(Concurrency::DeferringAsyncTaskQueue &audio_queue
 
 
 void AudioGenerator::set_volume(uint8_t volume) {
-	audio_queue_.defer([=]() {
-		volume_ = static_cast<int16_t>(volume) * range_multiplier_;
+	audio_queue_.defer([this, volume]() {
+		volume_ = int16_t(volume) * range_multiplier_;
 	});
 }
 
 void AudioGenerator::set_control(int channel, uint8_t value) {
-	audio_queue_.defer([=]() {
+	audio_queue_.defer([this, channel, value]() {
 		control_registers_[channel] = value;
 	});
 }

@@ -18,21 +18,21 @@ Atari2600::TIASound::TIASound(Concurrency::DeferringAsyncTaskQueue &audio_queue)
 {}
 
 void Atari2600::TIASound::set_volume(int channel, uint8_t volume) {
-	audio_queue_.defer([=]() {
-		volume_[channel] = volume & 0xf;
+	audio_queue_.defer([target = &volume_[channel], volume]() {
+		*target = volume & 0xf;
 	});
 }
 
 void Atari2600::TIASound::set_divider(int channel, uint8_t divider) {
-	audio_queue_.defer([=]() {
+	audio_queue_.defer([this, channel, divider]() {
 		divider_[channel] = divider & 0x1f;
 		divider_counter_[channel] = 0;
 	});
 }
 
 void Atari2600::TIASound::set_control(int channel, uint8_t control) {
-	audio_queue_.defer([=]() {
-		control_[channel] = control & 0xf;
+	audio_queue_.defer([target = &control_[channel], control]() {
+		*target = control & 0xf;
 	});
 }
 

@@ -55,7 +55,7 @@ void SCC::write(uint16_t address, uint8_t value) {
 	address &= 0xff;
 	if(address < 0x80) ram_[address] = value;
 
-	task_queue_.defer([=] {
+	task_queue_.defer([this, address, value] {
 		// Check for a write into waveform memory.
 		if(address < 0x80) {
 			waves_[address >> 5].samples[address & 0x1f] = value;

@@ -262,7 +262,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 	public:
 		/// Constructs an instance of the video feed; a CRT is also created.
 		Video(BusHandler &bus_handler) :
-			VideoBase(is_iie, [=] (Cycles cycles) { advance(cycles); }),
+			VideoBase(is_iie, [this] (Cycles cycles) { advance(cycles); }),
 			bus_handler_(bus_handler) {}
 
 		/*!
