@@ -66,7 +66,7 @@ template <typename SampleSource, bool is_stereo> class LowpassSpeaker: public Sp
 
 			filter_parameters_.output_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;
-			output_buffer_.resize(std::size_t(buffer_size));
+			output_buffer_.resize(std::size_t(buffer_size) * (is_stereo ? 2 : 1);
 		}
 
 		bool get_is_stereo() final {
@@ -144,12 +144,11 @@ template <typename SampleSource, bool is_stereo> class LowpassSpeaker: public Sp
 			switch(conversion_) {
 				case Conversion::Copy:
 					while(cycles_remaining) {
-						const auto cycles_to_read = std::min(output_buffer_.size() - output_buffer_pointer_, cycles_remaining);
+						const auto cycles_to_read = std::min((output_buffer_.size() - output_buffer_pointer_) / (is_stereo ? 2 : 1), cycles_remaining);
+						sample_source_.get_samples(cycles_to_read, &output_buffer_[output_buffer_pointer_ ]);
+						output_buffer_pointer_ += cycles_to_read * (is_stereo ? 2 : 1);
 
-						sample_source_.get_samples(cycles_to_read, &output_buffer_[output_buffer_pointer_]);
-						output_buffer_pointer_ += cycles_to_read;
-
-						// announce to delegate if full
+						// Announce to delegate if full.
 						if(output_buffer_pointer_ == output_buffer_.size()) {
 							output_buffer_pointer_ = 0;
 							did_complete_samples(this, output_buffer_);
@@ -161,14 +160,16 @@ template <typename SampleSource, bool is_stereo> class LowpassSpeaker: public Sp
 
 				case Conversion::ResampleSmaller:
 					while(cycles_remaining) {
-						const auto cycles_to_read = std::min(cycles_remaining, input_buffer_.size() - input_buffer_depth_);
+						const auto cycles_to_read = std::min((input_buffer_.size() - input_buffer_depth_) / (is_stereo ? 2 : 1), cycles_remaining);
+
 						sample_source_.get_samples(cycles_to_read, &input_buffer_[input_buffer_depth_]);
-						cycles_remaining -= cycles_to_read;
-						input_buffer_depth_ += cycles_to_read;
+						input_buffer_depth_ += cycles_to_read * (is_stereo ? 2 : 1);
 
 						if(input_buffer_depth_ == input_buffer_.size()) {
 							resample_input_buffer();
 						}
+
+						cycles_remaining -= cycles_to_read;
 					}
 				break;
 
@@ -243,24 +244,31 @@ template <typename SampleSource, bool is_stereo> class LowpassSpeaker: public Sp
 				// that means nothing to do.
 				default: break;
 
-				case Conversion::ResampleSmaller:
+				case Conversion::ResampleSmaller: {
 					// Reize the input buffer only if absolutely necessary; if sizing downward
 					// such that a sample would otherwise be lost then output it now. Keep anything
 					// currently in the input buffer that hasn't yet been processed.
-					if(input_buffer_.size() != size_t(number_of_taps)) {
-						if(input_buffer_depth_ >= size_t(number_of_taps)) {
+					const size_t required_buffer_size = size_t(number_of_taps) * (is_stereo ? 2 : 1);
+					if(input_buffer_.size() != required_buffer_size) {
+						if(input_buffer_depth_ >= required_buffer_size) {
 							resample_input_buffer();
-							input_buffer_depth_ %= size_t(number_of_taps);
+							input_buffer_depth_ %= required_buffer_size;
 						}
-						input_buffer_.resize(size_t(number_of_taps));
+						input_buffer_.resize(required_buffer_size);
 					}
-				break;
+				} break;
 			}
 		}
 
 		inline void resample_input_buffer() {
-			output_buffer_[output_buffer_pointer_] = filter_->apply(input_buffer_.data());
-			output_buffer_pointer_++;
+			if constexpr (is_stereo) {
+				output_buffer_[output_buffer_pointer_ + 0] = filter_->apply(input_buffer_.data(), 2);
+				output_buffer_[output_buffer_pointer_ + 1] = filter_->apply(input_buffer_.data() + 1, 2);
+				output_buffer_pointer_+= 2;
+			} else {
+				output_buffer_[output_buffer_pointer_] = filter_->apply(input_buffer_.data());
+				output_buffer_pointer_++;
+			}
 
 			// Announce to delegate if full.
 			if(output_buffer_pointer_ == output_buffer_.size()) {
@@ -279,8 +287,9 @@ template <typename SampleSource, bool is_stereo> class LowpassSpeaker: public Sp
 								sizeof(int16_t) * (input_buffer_.size() - steps));
 				input_buffer_depth_ -= steps;
 			} else {
-				if(steps > input_buffer_.size())
-					sample_source_.skip_samples(steps - input_buffer_.size());
+				if(steps > input_buffer_.size()) {
+					sample_source_.skip_samples((steps - input_buffer_.size()) / (is_stereo ? 2 : 1));
+				}
 				input_buffer_depth_ = 0;
 			}
 		}
