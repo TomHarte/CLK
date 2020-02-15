@@ -28,7 +28,7 @@ void Toggle::skip_samples(const std::size_t number_of_samples) {}
 void Toggle::set_output(bool enabled) {
 	if(is_enabled_ == enabled) return;
 	is_enabled_ = enabled;
-	audio_queue_.defer([=] {
+	audio_queue_.defer([this, enabled] {
 		level_ = enabled ? volume_ : 0;
 	});
 }

@@ -35,7 +35,7 @@ void Audio::set_volume(int volume) {
 	posted_volume_ = volume;
 
 	// Post the volume change as a deferred event.
-	task_queue_.defer([=] () {
+	task_queue_.defer([this, volume] () {
 		volume_ = volume;
 		set_volume_multiplier();
 	});
@@ -47,7 +47,7 @@ void Audio::set_enabled(bool on) {
 	posted_enable_mask_ = int(on);
 
 	// Post the enabled mask change as a deferred event.
-	task_queue_.defer([=] () {
+	task_queue_.defer([this, on] () {
 		enabled_mask_ = int(on);
 		set_volume_multiplier();
 	});

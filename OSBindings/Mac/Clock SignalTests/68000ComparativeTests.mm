@@ -149,7 +149,7 @@
 	}
 
 	// Run the thing.
-	const auto comparitor = [=] {
+	const auto comparitor = [] {
 		// Test the end state.
 		NSDictionary *const finalState = test[@"final state"];
 		const auto state = test68000->processor.get_state();

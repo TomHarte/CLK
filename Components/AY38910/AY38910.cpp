@@ -216,8 +216,7 @@ void AY38910::set_register_value(uint8_t value) {
 	// If this is a register that affects audio output, enqueue a mutation onto the
 	// audio generation thread.
 	if(selected_register_ < 14) {
-		const int selected_register = selected_register_;
-		task_queue_.defer([=] () {
+		task_queue_.defer([this, selected_register = selected_register_, value] () {
 			// Perform any register-specific mutation to output generation.
 			uint8_t masked_value = value;
 			switch(selected_register) {
