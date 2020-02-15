@@ -84,10 +84,33 @@ void AY38910::set_sample_volume_range(std::int16_t range) {
 	for(int v = 31; v >= 0; --v) {
 		volumes_[v] -= volumes_[0];
 	}
-	evaluate_output_volume();
+
+	if(is_stereo_) {
+		evaluate_output_volume<true>();
+	} else {
+		evaluate_output_volume<false>();
+	}
+}
+
+void AY38910::set_output_mixing(bool is_stereo, float a_left, float b_left, float c_left, float a_right, float b_right, float c_right) {
+	is_stereo_ = is_stereo;
+	a_left_ = uint8_t(a_left * 255.0f);
+	b_left_ = uint8_t(b_left * 255.0f);
+	c_left_ = uint8_t(c_left * 255.0f);
+	a_right_ = uint8_t(a_right * 255.0f);
+	b_right_ = uint8_t(b_right * 255.0f);
+	c_right_ = uint8_t(c_right * 255.0f);
 }
 
 void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
+	if(is_stereo_) {
+		get_samples<true>(number_of_samples, target);
+	} else {
+		get_samples<false>(number_of_samples, target);
+	}
+}
+
+template <bool is_stereo> void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
 	// Note on structure below: the real AY has a built-in divider of 8
 	// prior to applying its tone and noise dividers. But the YM fills the
 	// same total periods for noise and tone with double-precision envelopes.
@@ -99,7 +122,11 @@ void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
 
 	std::size_t c = 0;
 	while((master_divider_&3) && c < number_of_samples) {
-		target[c] = output_volume_;
+		if constexpr (is_stereo) {
+			reinterpret_cast<uint32_t *>(target)[c] = output_volume_;
+		} else {
+			target[c] = output_volume_;
+		}
 		master_divider_++;
 		c++;
 	}
@@ -138,10 +165,14 @@ void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
 			if(envelope_position_ == 64) envelope_position_ = envelope_overflow_masks_[output_registers_[13]];
 		}
 
-		evaluate_output_volume();
+		evaluate_output_volume<is_stereo>();
 
 		for(int ic = 0; ic < 4 && c < number_of_samples; ic++) {
-			target[c] = output_volume_;
+			if constexpr (is_stereo) {
+				reinterpret_cast<uint32_t *>(target)[c] = output_volume_;
+			} else {
+				target[c] = output_volume_;
+			}
 			c++;
 			master_divider_++;
 		}
@@ -150,7 +181,7 @@ void AY38910::get_samples(std::size_t number_of_samples, int16_t *target) {
 	master_divider_ &= 3;
 }
 
-void AY38910::evaluate_output_volume() {
+template <bool is_stereo> void AY38910::evaluate_output_volume() {
 	int envelope_volume = envelope_shapes_[output_registers_[13]][envelope_position_ | envelope_position_mask_];
 
 	// The output level for a channel is:
@@ -190,12 +221,26 @@ void AY38910::evaluate_output_volume() {
 	};
 #undef channel_volume
 
-	// Mix additively.
-	output_volume_ = int16_t(
-		volumes_[volumes[0]] * channel_levels[0] +
-		volumes_[volumes[1]] * channel_levels[1] +
-		volumes_[volumes[2]] * channel_levels[2]
-	);
+	// Mix additively, weighting if in stereo.
+	if constexpr (is_stereo) {
+		int16_t *const volumes = reinterpret_cast<int16_t *>(&output_volume_);
+		volumes[0] = int16_t((
+			volumes_[volumes[0]] * channel_levels[0] * a_left_ +
+			volumes_[volumes[1]] * channel_levels[1] * b_left_ +
+			volumes_[volumes[2]] * channel_levels[2] * c_left_
+		) >> 8);
+		volumes[1] = int16_t((
+			volumes_[volumes[0]] * channel_levels[0] * a_right_ +
+			volumes_[volumes[1]] * channel_levels[1] * b_right_ +
+			volumes_[volumes[2]] * channel_levels[2] * c_right_
+		) >> 8);
+	} else {
+		output_volume_ = int16_t(
+			volumes_[volumes[0]] * channel_levels[0] +
+			volumes_[volumes[1]] * channel_levels[1] +
+			volumes_[volumes[2]] * channel_levels[2]
+		);
+	}
 }
 
 bool AY38910::is_zero_level() {
@@ -252,7 +297,11 @@ void AY38910::set_register_value(uint8_t value) {
 			// Store a copy of the current register within the storage used by the audio generation
 			// thread, and apply any changes to output volume.
 			output_registers_[selected_register] = masked_value;
-			evaluate_output_volume();
+			if(is_stereo_) {
+				evaluate_output_volume<true>();
+			} else {
+				evaluate_output_volume<false>();
+			}
 		});
 	}
 

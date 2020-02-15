@@ -63,6 +63,8 @@ enum class Personality {
 	Provides emulation of an AY-3-8910 / YM2149, which is a three-channel sound chip with a
 	noise generator and a volume envelope generator, which also provides two bidirectional
 	interface ports.
+
+	This AY has an attached mono or stereo mixer.
 */
 class AY38910: public ::Outputs::Speaker::SampleSource {
 	public:
@@ -90,6 +92,18 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 			without installing a port handler via get_port_output.
 		*/
 		void set_port_handler(PortHandler *);
+
+		/*!
+			Enables or disables stereo output; if stereo output is enabled then also sets the weight of each of the AY's
+			channels in each of the output channels.
+
+			If a_left_ = b_left = c_left = a_right = b_right = c_right = 1.0 then you'll get output that's effectively mono.
+
+			a_left = 0.0, a_right = 1.0 will make A full volume on the right output, and silent on the left.
+
+			a_left = 0.5, a_right = 0.5 will make A half volume on both outputs.
+		*/
+		void set_output_mixing(bool is_stereo, float a_left, float b_left, float c_left, float a_right, float b_right, float c_right);
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
@@ -135,12 +149,20 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 
 		uint8_t data_input_, data_output_;
 
-		int16_t output_volume_;
-		void evaluate_output_volume();
+		uint32_t output_volume_;
 
 		void update_bus();
 		PortHandler *port_handler_ = nullptr;
 		void set_port_output(bool port_b);
+
+		template <bool is_stereo> void get_samples(std::size_t number_of_samples, int16_t *target);
+		template <bool is_stereo> void evaluate_output_volume();
+
+		// Output mixing control.
+		bool is_stereo_ = false;
+		uint8_t a_left_ = 255, a_right_ = 255;
+		uint8_t b_left_ = 255, b_right_ = 255;
+		uint8_t c_left_ = 255, c_right_ = 255;
 };
 
 }
