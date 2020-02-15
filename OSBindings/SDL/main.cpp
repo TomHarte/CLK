@@ -667,7 +667,7 @@ int main(int argc, char *argv[]) {
 
 		speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
 
-		speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples);
+		speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples, false);
 		speaker->set_delegate(&speaker_delegate);
 		SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
 	}

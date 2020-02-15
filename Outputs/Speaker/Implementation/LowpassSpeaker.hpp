@@ -58,7 +58,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		}
 
 		// Implemented as per Speaker.
-		void set_computed_output_rate(float cycles_per_second, int buffer_size) final {
+		void set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) final {
 			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
 			if(filter_parameters_.output_cycles_per_second == cycles_per_second && size_t(buffer_size) == output_buffer_.size()) {
 				return;
@@ -67,6 +67,11 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			filter_parameters_.output_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;
 			output_buffer_.resize(std::size_t(buffer_size));
+		}
+
+		// TODO.
+		bool get_is_stereo() final {
+			return false;
 		}
 
 		/*!

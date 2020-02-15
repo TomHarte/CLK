@@ -272,7 +272,7 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
 		if(speaker) {
-			speaker->set_output_rate(sampleRate, (int)bufferSize);
+			speaker->set_output_rate(sampleRate, (int)bufferSize, false);
 			speaker->set_delegate(delegate);
 			return YES;
 		}
