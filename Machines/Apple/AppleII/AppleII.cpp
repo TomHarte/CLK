@@ -108,7 +108,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		Audio::Toggle audio_toggle_;
-		Outputs::Speaker::LowpassSpeaker<Audio::Toggle> speaker_;
+		Outputs::Speaker::LowpassSpeaker<Audio::Toggle, false> speaker_;
 		Cycles cycles_since_audio_update_;
 
 		// MARK: - Cards

@@ -433,7 +433,7 @@ template <class BusHandler> class MOS6560 {
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		AudioGenerator audio_generator_;
-		Outputs::Speaker::LowpassSpeaker<AudioGenerator> speaker_;
+		Outputs::Speaker::LowpassSpeaker<AudioGenerator, false> speaker_;
 
 		Cycles cycles_since_speaker_update_;
 		void update_audio() {

@@ -28,9 +28,9 @@ namespace Speaker {
 	source of a high-frequency stream of audio which it filters down to a
 	lower-frequency output.
 */
-template <typename T> class LowpassSpeaker: public Speaker {
+template <typename SampleSource, bool is_stereo> class LowpassSpeaker: public Speaker {
 	public:
-		LowpassSpeaker(T &sample_source) : sample_source_(sample_source) {
+		LowpassSpeaker(SampleSource &sample_source) : sample_source_(sample_source) {
 			sample_source.set_sample_volume_range(32767);
 		}
 
@@ -69,9 +69,8 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			output_buffer_.resize(std::size_t(buffer_size));
 		}
 
-		// TODO.
 		bool get_is_stereo() final {
-			return false;
+			return is_stereo;
 		}
 
 		/*!
@@ -179,7 +178,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			}
 		}
 
-		T &sample_source_;
+		SampleSource &sample_source_;
 
 		std::size_t output_buffer_pointer_ = 0;
 		std::size_t input_buffer_depth_ = 0;

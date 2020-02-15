@@ -764,7 +764,7 @@ class ConcreteMachine:
 		Audio::Toggle audio_toggle_;
 		Konami::SCC scc_;
 		Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, Audio::Toggle, Konami::SCC> mixer_;
-		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, Audio::Toggle, Konami::SCC>> speaker_;
+		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<GI::AY38910::AY38910, Audio::Toggle, Konami::SCC>, false> speaker_;
 
 		Storage::Tape::BinaryTapePlayer tape_player_;
 		bool tape_player_is_sleeping_ = false;

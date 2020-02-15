@@ -498,7 +498,7 @@ class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910 ay_;
-		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
+		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910, false> speaker_;
 		HalfCycles cycles_since_audio_update_;
 
 		JustInTimeActor<DMAController> dma_;

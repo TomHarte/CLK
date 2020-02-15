@@ -407,7 +407,7 @@ class ConcreteMachine:
 		TI::SN76489 sn76489_;
 		GI::AY38910::AY38910 ay_;
 		Outputs::Speaker::CompoundSource<TI::SN76489, GI::AY38910::AY38910> mixer_;
-		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<TI::SN76489, GI::AY38910::AY38910>> speaker_;
+		Outputs::Speaker::LowpassSpeaker<Outputs::Speaker::CompoundSource<TI::SN76489, GI::AY38910::AY38910>, false> speaker_;
 
 		std::vector<uint8_t> bios_;
 		std::vector<uint8_t> cartridge_;

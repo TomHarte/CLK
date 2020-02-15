@@ -424,7 +424,7 @@ class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;
-		Outputs::Speaker::LowpassSpeaker<TI::SN76489> speaker_;
+		Outputs::Speaker::LowpassSpeaker<TI::SN76489, false> speaker_;
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 		Inputs::Keyboard keyboard_;

@@ -468,7 +468,7 @@ template<bool is_zx81> class ConcreteMachine:
 		// MARK: - Audio
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		GI::AY38910::AY38910 ay_;
-		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
+		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910, false> speaker_;
 		HalfCycles time_since_ay_update_;
 		inline void ay_set_register(uint8_t value) {
 			update_audio();
