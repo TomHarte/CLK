@@ -770,11 +770,7 @@ struct ActivityObserver: public Activity::Observer {
 		// Grab the time now and, therefore, the amount of time since the timer last fired
 		// (capped at half a second).
 		const auto timeNow = Time::nanos_now();
-		const auto duration = timeNow - lastTime;
-		if(duration > Time::Nanos(500'000'000)) {
-			lastTime = timeNow;
-			return;
-		}
+		const auto duration = std::min(timeNow - lastTime, Time::Nanos(10'000'000'000 / TICKS));
 
 		CGSize pixelSize;
 		BOOL splitAndSync = NO;

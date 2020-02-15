@@ -84,7 +84,7 @@ class MachineDocument:
 	}
 
 	override func close() {
-		machine.stop()
+		machine?.stop()
 
 		activityPanel?.setIsVisible(false)
 		activityPanel = nil

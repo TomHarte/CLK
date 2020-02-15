@@ -131,8 +131,7 @@ struct MachineRunner {
 			// now, as there's obviously been some sort of substantial time glitch.
 			const auto time_now = Time::nanos_now();
 			if(time_now - last_time_ > Time::Nanos(500'000'000)) {
-				last_time_ = time_now;
-				return;
+				last_time_ = time_now - Time::Nanos(500'000'000);
 			}
 
 			const auto vsync_time = vsync_time_.load();
