@@ -660,14 +660,14 @@ int main(int argc, char *argv[]) {
 		SDL_zero(desired_audio_spec);
 		desired_audio_spec.freq = 48000;	// TODO: how can I get SDL to reveal the output rate of this machine?
 		desired_audio_spec.format = AUDIO_S16;
-		desired_audio_spec.channels = 1;
+		desired_audio_spec.channels = 1 + int(speaker->get_is_stereo());
 		desired_audio_spec.samples = SpeakerDelegate::buffer_size;
 		desired_audio_spec.callback = SpeakerDelegate::SDL_audio_callback;
 		desired_audio_spec.userdata = &speaker_delegate;
 
 		speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
 
-		speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples, false);
+		speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples, speaker->get_is_stereo());
 		speaker->set_delegate(&speaker_delegate);
 		SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
 	}
