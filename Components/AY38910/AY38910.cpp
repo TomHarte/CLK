@@ -71,11 +71,13 @@ AY38910::AY38910(Personality personality, Concurrency::DeferringAsyncTaskQueue &
 }
 
 void AY38910::set_sample_volume_range(std::int16_t range) {
-	// set up volume lookup table
+	// Set up volume lookup table; the function below is based on a combination of the graph
+	// from the YM's datasheet, showing a clear power curve, and fitting that to observed
+	// values reported elsewhere.
 	const float max_volume = float(range) / 3.0f;	// As there are three channels.
 	constexpr float root_two = 1.414213562373095f;
 	for(int v = 0; v < 32; v++) {
-		volumes_[v] = int(max_volume / powf(root_two, float(v ^ 0x1f) / 2.0f));
+		volumes_[v] = int(max_volume / powf(root_two, float(v ^ 0x1f) / 3.18f));
 	}
 	volumes_[0] = 0;	// Tie level 0 to silence.
 	evaluate_output_volume();
@@ -185,7 +187,7 @@ void AY38910::evaluate_output_volume() {
 #undef channel_volume
 
 	// Mix additively.
-	output_volume_ = static_cast<int16_t>(
+	output_volume_ = int16_t(
 		volumes_[volumes[0]] * channel_levels[0] +
 		volumes_[volumes[1]] * channel_levels[1] +
 		volumes_[volumes[2]] * channel_levels[2]
@@ -220,7 +222,7 @@ void AY38910::set_register_value(uint8_t value) {
 					int channel = selected_register >> 1;
 
 					if(selected_register & 1)
-						tone_periods_[channel] = (tone_periods_[channel] & 0xff) | static_cast<uint16_t>((value&0xf) << 8);
+						tone_periods_[channel] = (tone_periods_[channel] & 0xff) | uint16_t((value&0xf) << 8);
 					else
 						tone_periods_[channel] = (tone_periods_[channel] & ~0xff) | value;
 				}
@@ -235,7 +237,7 @@ void AY38910::set_register_value(uint8_t value) {
 				break;
 
 				case 12:
-					envelope_period_ = (envelope_period_ & 0xff) | static_cast<int>(value << 8);
+					envelope_period_ = (envelope_period_ & 0xff) | int(value << 8);
 				break;
 
 				case 13:
@@ -331,15 +333,15 @@ uint8_t AY38910::get_data_output() {
 }
 
 void AY38910::set_control_lines(ControlLines control_lines) {
-	switch(static_cast<int>(control_lines)) {
+	switch(int(control_lines)) {
 		default:					control_state_ = Inactive;		break;
 
-		case static_cast<int>(BDIR | BC2 | BC1):
+		case int(BDIR | BC2 | BC1):
 		case BDIR:
 		case BC1:					control_state_ = LatchAddress;	break;
 
-		case static_cast<int>(BC2 | BC1):		control_state_ = Read;			break;
-		case static_cast<int>(BDIR | BC2):		control_state_ = Write;			break;
+		case int(BC2 | BC1):		control_state_ = Read;			break;
+		case int(BDIR | BC2):		control_state_ = Write;			break;
 	}
 
 	update_bus();
