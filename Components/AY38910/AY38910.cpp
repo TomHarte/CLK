@@ -79,7 +79,11 @@ void AY38910::set_sample_volume_range(std::int16_t range) {
 	for(int v = 0; v < 32; v++) {
 		volumes_[v] = int(max_volume / powf(root_two, float(v ^ 0x1f) / 3.18f));
 	}
-	volumes_[0] = 0;	// Tie level 0 to silence.
+
+	// Tie level 0 to silence.
+	for(int v = 31; v >= 0; --v) {
+		volumes_[v] -= volumes_[0];
+	}
 	evaluate_output_volume();
 }
 
