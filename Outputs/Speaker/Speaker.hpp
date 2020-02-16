@@ -31,7 +31,7 @@ class Speaker {
 		/*!
 			@returns @c true if the device would most ideally output stereo sound; @c false otherwise.
 		*/
-		virtual bool get_is_stereo() { return false; };
+		virtual bool get_is_stereo() = 0;
 
 		/*!
 			Sets the actual output rate; packets provided to the delegate will conform to these

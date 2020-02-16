@@ -38,10 +38,20 @@ float MultiSpeaker::get_ideal_clock_rate_in_range(float minimum, float maximum) 
 }
 
 void MultiSpeaker::set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) {
-	is_stereo_ = stereo;
+	stereo_output_ = stereo;
 	for(const auto &speaker: speakers_) {
 		speaker->set_computed_output_rate(cycles_per_second, buffer_size, stereo);
 	}
+}
+
+bool MultiSpeaker::get_is_stereo() {
+	// Return as stereo if any subspeaker is stereo.
+	for(const auto &speaker: speakers_) {
+		if(speaker->get_is_stereo()) {
+			return true;
+		}
+	}
+	return false;
 }
 
 void MultiSpeaker::set_delegate(Outputs::Speaker::Speaker::Delegate *delegate) {
@@ -54,7 +64,7 @@ void MultiSpeaker::speaker_did_complete_samples(Speaker *speaker, const std::vec
 		std::lock_guard<std::mutex> lock_guard(front_speaker_mutex_);
 		if(speaker != front_speaker_) return;
 	}
-	did_complete_samples(this, buffer, is_stereo_);
+	did_complete_samples(this, buffer, stereo_output_);
 }
 
 void MultiSpeaker::speaker_did_change_input_clock(Speaker *speaker) {
