@@ -66,7 +66,7 @@ template <typename SampleSource, bool is_stereo> class LowpassSpeaker: public Sp
 
 			filter_parameters_.output_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;
-			output_buffer_.resize(std::size_t(buffer_size) * (is_stereo ? 2 : 1);
+			output_buffer_.resize(std::size_t(buffer_size) * (is_stereo ? 2 : 1));
 		}
 
 		bool get_is_stereo() final {
@@ -279,7 +279,7 @@ template <typename SampleSource, bool is_stereo> class LowpassSpeaker: public Sp
 			// If the next loop around is going to reuse some of the samples just collected, use a memmove to
 			// preserve them in the correct locations (TODO: use a longer buffer to fix that?) and don't skip
 			// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
-			const auto steps = stepper_->step();
+			const auto steps = stepper_->step() * (is_stereo ? 2 : 1);
 			if(steps < input_buffer_.size()) {
 				auto *const input_buffer = input_buffer_.data();
 				std::memmove(	input_buffer,
