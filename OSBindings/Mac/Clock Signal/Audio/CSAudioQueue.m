@@ -73,7 +73,7 @@ static void audioOutputCallback(
 
 #pragma mark - Standard object lifecycle
 
-- (instancetype)initWithSamplingRate:(Float64)samplingRate {
+- (instancetype)initWithSamplingRate:(Float64)samplingRate isStereo:(BOOL)isStereo {
 	self = [super init];
 
 	if(self) {
@@ -121,10 +121,6 @@ static void audioOutputCallback(
 	}
 
 	return self;
-}
-
-- (instancetype)init {
-	return [self initWithSamplingRate:[[self class] preferredSamplingRate]];
 }
 
 - (void)dealloc {

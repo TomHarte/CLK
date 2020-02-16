@@ -58,7 +58,8 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 - (nullable instancetype)initWithAnalyser:(nonnull CSStaticAnalyser *)result missingROMs:(nullable inout NSMutableArray<CSMissingROM *> *)missingROMs NS_DESIGNATED_INITIALIZER;
 
 - (float)idealSamplingRateFromRange:(NSRange)range;
-- (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize;
+- (BOOL)isStereo;
+- (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo;
 
 - (void)setView:(nullable CSOpenGLView *)view aspectRatio:(float)aspectRatio;
 
