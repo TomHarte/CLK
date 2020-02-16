@@ -81,9 +81,32 @@ class Speaker {
 		virtual void set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) = 0;
 
 	protected:
-		void did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) {
+		void did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer, bool is_stereo) {
 			++completed_sample_sets_;
-			delegate_->speaker_did_complete_samples(this, buffer);
+
+			// Hope for the fast path first: producer and consumer agree about
+			// number of channels.
+			if(is_stereo == stereo_output_) {
+				delegate_->speaker_did_complete_samples(this, buffer);
+				return;
+			}
+
+			// Producer and consumer don't agree, so mix two channels to one, or double out one to two.
+			if(is_stereo) {
+				// Mix down.
+				mix_buffer_.resize(buffer.size() / 2);
+				for(size_t c = 0; c < mix_buffer_.size(); ++c) {
+					mix_buffer_[c] = (buffer[(c << 1) + 0] + buffer[(c << 1) + 1]) >> 1;
+					// TODO: is there an Accelerate framework solution to this?
+				}
+			} else {
+				// Double up.
+				mix_buffer_.resize(buffer.size() * 2);
+				for(size_t c = 0; c < buffer.size(); ++c) {
+					mix_buffer_[(c << 1) + 0] = mix_buffer_[(c << 1) + 1] = buffer[c];
+				}
+			}
+			delegate_->speaker_did_complete_samples(this, mix_buffer_);
 		}
 		Delegate *delegate_ = nullptr;
 
@@ -99,6 +122,7 @@ class Speaker {
 		float output_cycles_per_second_ = 1.0f;
 		int output_buffer_size_ = 1;
 		bool stereo_output_ = false;
+		std::vector<int16_t> mix_buffer_;
 };
 
 }

@@ -151,7 +151,7 @@ template <typename SampleSource, bool is_stereo> class LowpassSpeaker: public Sp
 						// Announce to delegate if full.
 						if(output_buffer_pointer_ == output_buffer_.size()) {
 							output_buffer_pointer_ = 0;
-							did_complete_samples(this, output_buffer_);
+							did_complete_samples(this, output_buffer_, is_stereo);
 						}
 
 						cycles_remaining -= cycles_to_read;
@@ -273,7 +273,7 @@ template <typename SampleSource, bool is_stereo> class LowpassSpeaker: public Sp
 			// Announce to delegate if full.
 			if(output_buffer_pointer_ == output_buffer_.size()) {
 				output_buffer_pointer_ = 0;
-				did_complete_samples(this, output_buffer_);
+				did_complete_samples(this, output_buffer_, is_stereo);
 			}
 
 			// If the next loop around is going to reuse some of the samples just collected, use a memmove to

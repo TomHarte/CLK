@@ -51,6 +51,8 @@ class MultiSpeaker: public Outputs::Speaker::Speaker, Outputs::Speaker::Speaker:
 		Outputs::Speaker::Speaker *front_speaker_ = nullptr;
 		Outputs::Speaker::Speaker::Delegate *delegate_ = nullptr;
 		std::mutex front_speaker_mutex_;
+
+		bool is_stereo_ = false;
 };
 
 }
