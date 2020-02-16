@@ -52,7 +52,7 @@ class FIRFilter {
 		inline short apply(const short *src, size_t stride = 1) const {
 			#ifdef __APPLE__
 				short result;
-				vDSP_dotpr_s1_15(filter_coefficients_.data(), 1, src, stride, &result, filter_coefficients_.size());
+				vDSP_dotpr_s1_15(filter_coefficients_.data(), 1, src, vDSP_Stride(stride), &result, filter_coefficients_.size());
 				return result;
 			#else
 				int outputValue = 0;

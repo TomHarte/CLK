@@ -125,7 +125,7 @@ template <bool is_stereo> void AY38910::get_samples(std::size_t number_of_sample
 		if constexpr (is_stereo) {
 			reinterpret_cast<uint32_t *>(target)[c] = output_volume_;
 		} else {
-			target[c] = output_volume_;
+			target[c] = int16_t(output_volume_);
 		}
 		master_divider_++;
 		c++;
@@ -171,7 +171,7 @@ template <bool is_stereo> void AY38910::get_samples(std::size_t number_of_sample
 			if constexpr (is_stereo) {
 				reinterpret_cast<uint32_t *>(target)[c] = output_volume_;
 			} else {
-				target[c] = output_volume_;
+				target[c] = int16_t(output_volume_);
 			}
 			c++;
 			master_divider_++;
@@ -235,7 +235,7 @@ template <bool is_stereo> void AY38910::evaluate_output_volume() {
 			volumes_[volumes[2]] * channel_levels[2] * c_right_
 		) >> 8);
 	} else {
-		output_volume_ = int16_t(
+		output_volume_ = uint32_t(
 			volumes_[volumes[0]] * channel_levels[0] +
 			volumes_[volumes[1]] * channel_levels[1] +
 			volumes_[volumes[2]] * channel_levels[2]
