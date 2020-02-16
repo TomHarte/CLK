@@ -98,10 +98,11 @@ static void audioOutputCallback(
 		outputDescription.mFormatID = kAudioFormatLinearPCM;
 		outputDescription.mFormatFlags = kLinearPCMFormatFlagIsSignedInteger;
 
-		outputDescription.mBytesPerPacket = 2;
+
+		outputDescription.mChannelsPerFrame = isStereo ? 2 : 1;
 		outputDescription.mFramesPerPacket = 1;
-		outputDescription.mBytesPerFrame = 2;
-		outputDescription.mChannelsPerFrame = 1;
+		outputDescription.mBytesPerFrame = 2 * outputDescription.mChannelsPerFrame;
+		outputDescription.mBytesPerPacket = outputDescription.mBytesPerFrame * outputDescription.mFramesPerPacket;
 		outputDescription.mBitsPerChannel = 16;
 
 		outputDescription.mReserved = 0;
