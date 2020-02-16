@@ -66,7 +66,7 @@ enum class Personality {
 
 	This AY has an attached mono or stereo mixer.
 */
-class AY38910: public ::Outputs::Speaker::SampleSource {
+template <bool is_stereo> class AY38910: public ::Outputs::Speaker::SampleSource {
 	public:
 		/// Creates a new AY38910.
 		AY38910(Personality, Concurrency::DeferringAsyncTaskQueue &);
@@ -103,12 +103,13 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 
 			a_left = 0.5, a_right = 0.5 will make A half volume on both outputs.
 		*/
-		void set_output_mixing(bool is_stereo, float a_left, float b_left, float c_left, float a_right, float b_right, float c_right);
+		void set_output_mixing(float a_left, float b_left, float c_left, float a_right = 1.0, float b_right = 1.0, float c_right = 1.0);
 
 		// to satisfy ::Outputs::Speaker (included via ::Outputs::Filter.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		bool is_zero_level();
 		void set_sample_volume_range(std::int16_t range);
+		static constexpr bool get_is_stereo() { return is_stereo; }
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue &task_queue_;
@@ -155,15 +156,14 @@ class AY38910: public ::Outputs::Speaker::SampleSource {
 		PortHandler *port_handler_ = nullptr;
 		void set_port_output(bool port_b);
 
-		template <bool is_stereo> void get_samples(std::size_t number_of_samples, int16_t *target);
-		template <bool is_stereo> void evaluate_output_volume();
+		void evaluate_output_volume();
 
 		// Output mixing control.
-		bool is_stereo_ = false;
 		uint8_t a_left_ = 255, a_right_ = 255;
 		uint8_t b_left_ = 255, b_right_ = 255;
 		uint8_t c_left_ = 255, c_right_ = 255;
 };
+
 
 }
 }

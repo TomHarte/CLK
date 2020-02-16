@@ -55,6 +55,7 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		bool is_zero_level();
 		void set_sample_volume_range(std::int16_t range);
+		constexpr static bool get_is_stereo() { return false; }
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue &task_queue_;

@@ -43,7 +43,8 @@
 namespace Oric {
 
 using DiskInterface = Analyser::Static::Oric::Target::DiskInterface;
-using Speaker = Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910, false>;
+using AY = GI::AY38910::AY38910<false>;
+using Speaker = Outputs::Speaker::LowpassSpeaker<AY>;
 
 enum ROM {
 	BASIC10 = 0, BASIC11, Microdisc, Colour
@@ -147,7 +148,7 @@ class TapePlayer: public Storage::Tape::BinaryTapePlayer {
 */
 class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 	public:
-		VIAPortHandler(Concurrency::DeferringAsyncTaskQueue &audio_queue, GI::AY38910::AY38910 &ay8910, Speaker &speaker, TapePlayer &tape_player, Keyboard &keyboard) :
+		VIAPortHandler(Concurrency::DeferringAsyncTaskQueue &audio_queue, AY &ay8910, Speaker &speaker, TapePlayer &tape_player, Keyboard &keyboard) :
 			audio_queue_(audio_queue), ay8910_(ay8910), speaker_(speaker), tape_player_(tape_player), keyboard_(keyboard) {}
 
 		/*!
@@ -210,7 +211,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 		HalfCycles cycles_since_ay_update_;
 
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;
-		GI::AY38910::AY38910 &ay8910_;
+		AY &ay8910_;
 		Speaker &speaker_;
 		TapePlayer &tape_player_;
 		Keyboard &keyboard_;
@@ -692,7 +693,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		VideoOutput video_output_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
-		GI::AY38910::AY38910 ay8910_;
+		GI::AY38910::AY38910<false> ay8910_;
 		Speaker speaker_;
 
 		// Inputs
