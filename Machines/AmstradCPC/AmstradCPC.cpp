@@ -126,6 +126,8 @@ class AYDeferrer {
 		/// Constructs a new AY instance and sets its clock rate.
 		AYDeferrer() : ay_(GI::AY38910::Personality::AY38910, audio_queue_), speaker_(ay_) {
 			speaker_.set_input_rate(1000000);
+			// Per the CPC Wiki:
+			// "A is output to the right, channel C is output left, and channel B is output to both left and right".
 			ay_.set_output_mixing(true, 0.0, 0.5, 1.0, 1.0, 0.5, 0.0);
 		}
 
