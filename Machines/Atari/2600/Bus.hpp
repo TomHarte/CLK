@@ -41,7 +41,7 @@ class Bus {
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TIASound tia_sound_;
-		Outputs::Speaker::LowpassSpeaker<TIASound, false> speaker_;
+		Outputs::Speaker::LowpassSpeaker<TIASound> speaker_;
 
 		// joystick state
 		uint8_t tia_input_value_[2] = {0xff, 0xff};

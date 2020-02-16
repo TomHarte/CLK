@@ -29,6 +29,7 @@ class TIASound: public Outputs::Speaker::SampleSource {
 		// To satisfy ::SampleSource.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
+		static constexpr bool get_is_stereo() { return false; }
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;

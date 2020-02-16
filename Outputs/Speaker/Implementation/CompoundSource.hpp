@@ -57,6 +57,8 @@ template <typename... T> class CompoundSource:
 			push_volumes();
 		}
 
+		static constexpr bool get_is_stereo() { return CompoundSourceHolder<T...>::get_is_stereo(); }
+
 	private:
 		void push_volumes() {
 			source_holder_.set_scaled_volume_range(volume_range_, volumes_.data());
@@ -72,6 +74,10 @@ template <typename... T> class CompoundSource:
 
 				std::size_t size() {
 					return 0;
+				}
+
+				static constexpr bool get_is_stereo() {
+					return false;
 				}
 		};
 
@@ -105,6 +111,10 @@ template <typename... T> class CompoundSource:
 
 				std::size_t size() {
 					return 1+next_source_.size();
+				}
+
+				static constexpr bool get_is_stereo() {
+					return S::get_is_stereo() || CompoundSourceHolder<R...>::get_is_stereo();
 				}
 
 			private:
