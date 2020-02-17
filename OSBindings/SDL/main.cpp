@@ -168,12 +168,12 @@ struct MachineRunner {
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	// This is empirically the best that I can seem to do with SDL's timer precision.
-	static constexpr int buffered_samples = 1024;
+	static constexpr size_t buffered_samples = 1024;
 	bool is_stereo = false;
 
 	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) final {
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
-		const auto buffer_size = buffered_samples * (is_stereo ? 2 : 1);
+		const size_t buffer_size = buffered_samples * (is_stereo ? 2 : 1);
 		if(audio_buffer_.size() > buffer_size) {
 			audio_buffer_.erase(audio_buffer_.begin(), audio_buffer_.end() - buffer_size);
 		}
@@ -664,7 +664,7 @@ int main(int argc, char *argv[]) {
 		desired_audio_spec.freq = 48000;	// TODO: how can I get SDL to reveal the output rate of this machine?
 		desired_audio_spec.format = AUDIO_S16;
 		desired_audio_spec.channels = 1 + int(speaker->get_is_stereo());
-		desired_audio_spec.samples = SpeakerDelegate::buffered_samples;
+		desired_audio_spec.samples = Uint16(SpeakerDelegate::buffered_samples);
 		desired_audio_spec.callback = SpeakerDelegate::SDL_audio_callback;
 		desired_audio_spec.userdata = &speaker_delegate;
 
@@ -869,23 +869,22 @@ int main(int argc, char *argv[]) {
 							SDL_FreeSurface(surface);
 							break;
 						}
+					}
 
+					// Syphon off alt+enter (toggle full-screen) upon key up only; this was previously a key down action,
+					// but the SDL_KEYDOWN announcement was found to be reposted after changing graphics mode on some
+					// systems, causing a loop of changes, so key up is safer.
+					if(event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
+						fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
+						SDL_SetWindowFullscreen(window, fullscreen_mode);
+						SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
 
-						// Syphon off alt+enter (toggle full-screen) upon key up only; this was previously a key down action,
-						// but the SDL_KEYDOWN announcement was found to be reposted after changing graphics mode on some
-						// systems so key up is safer.
-						if(event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
-							fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
-							SDL_SetWindowFullscreen(window, fullscreen_mode);
-							SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
-
-							// Announce a potential discontinuity in keyboard input.
-							const auto keyboard_machine = machine->keyboard_machine();
-							if(keyboard_machine) {
-								keyboard_machine->get_keyboard().reset_all_keys();
-							}
-							break;
+						// Announce a potential discontinuity in keyboard input.
+						const auto keyboard_machine = machine->keyboard_machine();
+						if(keyboard_machine) {
+							keyboard_machine->get_keyboard().reset_all_keys();
 						}
+						break;
 					}
 
 					const bool is_pressed = event.type == SDL_KEYDOWN;
