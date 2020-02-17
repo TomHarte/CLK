@@ -11,6 +11,7 @@
 
 #ifdef __APPLE__
 #include <Accelerate/Accelerate.h>
+#define USE_ACCELERATE
 #endif
 
 #include <vector>
@@ -49,15 +50,15 @@ class FIRFilter {
 			@param src The source buffer to apply the filter to.
 			@returns The result of applying the filter.
 		*/
-		inline short apply(const short *src) const {
-			#ifdef __APPLE__
+		inline short apply(const short *src, size_t stride = 1) const {
+			#ifdef USE_ACCELERATE
 				short result;
-				vDSP_dotpr_s1_15(filter_coefficients_.data(), 1, src, 1, &result, filter_coefficients_.size());
+				vDSP_dotpr_s1_15(filter_coefficients_.data(), 1, src, vDSP_Stride(stride), &result, filter_coefficients_.size());
 				return result;
 			#else
 				int outputValue = 0;
 				for(std::size_t c = 0; c < filter_coefficients_.size(); ++c) {
-					outputValue += filter_coefficients_[c] * src[c];
+					outputValue += filter_coefficients_[c] * src[c * stride];
 				}
 				return static_cast<short>(outputValue >> FixedShift);
 			#endif

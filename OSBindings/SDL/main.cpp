@@ -168,10 +168,12 @@ struct MachineRunner {
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	// This is empirically the best that I can seem to do with SDL's timer precision.
-	static constexpr int buffer_size = 1024;
+	static constexpr size_t buffered_samples = 1024;
+	bool is_stereo = false;
 
 	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) final {
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
+		const size_t buffer_size = buffered_samples * (is_stereo ? 2 : 1);
 		if(audio_buffer_.size() > buffer_size) {
 			audio_buffer_.erase(audio_buffer_.begin(), audio_buffer_.end() - buffer_size);
 		}
@@ -181,9 +183,10 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	void audio_callback(Uint8 *stream, int len) {
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
 
-		std::size_t sample_length = static_cast<std::size_t>(len) / sizeof(int16_t);
-		std::size_t copy_length = std::min(sample_length, audio_buffer_.size());
-		int16_t *target = static_cast<int16_t *>(static_cast<void *>(stream));
+		// SDL buffer length is in bytes, so there's no need to adjust for stereo/mono in here.
+		const std::size_t sample_length = static_cast<std::size_t>(len) / sizeof(int16_t);
+		const std::size_t copy_length = std::min(sample_length, audio_buffer_.size());
+		int16_t *const target = static_cast<int16_t *>(static_cast<void *>(stream));
 
 		std::memcpy(stream, audio_buffer_.data(), copy_length * sizeof(int16_t));
 		if(copy_length < sample_length) {
@@ -660,14 +663,15 @@ int main(int argc, char *argv[]) {
 		SDL_zero(desired_audio_spec);
 		desired_audio_spec.freq = 48000;	// TODO: how can I get SDL to reveal the output rate of this machine?
 		desired_audio_spec.format = AUDIO_S16;
-		desired_audio_spec.channels = 1;
-		desired_audio_spec.samples = SpeakerDelegate::buffer_size;
+		desired_audio_spec.channels = 1 + int(speaker->get_is_stereo());
+		desired_audio_spec.samples = Uint16(SpeakerDelegate::buffered_samples);
 		desired_audio_spec.callback = SpeakerDelegate::SDL_audio_callback;
 		desired_audio_spec.userdata = &speaker_delegate;
 
 		speaker_delegate.audio_device = SDL_OpenAudioDevice(nullptr, 0, &desired_audio_spec, &obtained_audio_spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
 
-		speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples);
+		speaker->set_output_rate(obtained_audio_spec.freq, desired_audio_spec.samples, obtained_audio_spec.channels == 2);
+		speaker_delegate.is_stereo = obtained_audio_spec.channels == 2;
 		speaker->set_delegate(&speaker_delegate);
 		SDL_PauseAudioDevice(speaker_delegate.audio_device, 0);
 	}
@@ -865,23 +869,22 @@ int main(int argc, char *argv[]) {
 							SDL_FreeSurface(surface);
 							break;
 						}
+					}
 
+					// Syphon off alt+enter (toggle full-screen) upon key up only; this was previously a key down action,
+					// but the SDL_KEYDOWN announcement was found to be reposted after changing graphics mode on some
+					// systems, causing a loop of changes, so key up is safer.
+					if(event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
+						fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
+						SDL_SetWindowFullscreen(window, fullscreen_mode);
+						SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
 
-						// Syphon off alt+enter (toggle full-screen) upon key up only; this was previously a key down action,
-						// but the SDL_KEYDOWN announcement was found to be reposted after changing graphics mode on some
-						// systems so key up is safer.
-						if(event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_RETURN && (SDL_GetModState()&KMOD_ALT)) {
-							fullscreen_mode ^= SDL_WINDOW_FULLSCREEN_DESKTOP;
-							SDL_SetWindowFullscreen(window, fullscreen_mode);
-							SDL_ShowCursor((fullscreen_mode&SDL_WINDOW_FULLSCREEN_DESKTOP) ? SDL_DISABLE : SDL_ENABLE);
-
-							// Announce a potential discontinuity in keyboard input.
-							const auto keyboard_machine = machine->keyboard_machine();
-							if(keyboard_machine) {
-								keyboard_machine->get_keyboard().reset_all_keys();
-							}
-							break;
+						// Announce a potential discontinuity in keyboard input.
+						const auto keyboard_machine = machine->keyboard_machine();
+						if(keyboard_machine) {
+							keyboard_machine->get_keyboard().reset_all_keys();
 						}
+						break;
 					}
 
 					const bool is_pressed = event.type == SDL_KEYDOWN;

@@ -39,8 +39,9 @@ class MultiSpeaker: public Outputs::Speaker::Speaker, Outputs::Speaker::Speaker:
 
 		// Below is the standard Outputs::Speaker::Speaker interface; see there for documentation.
 		float get_ideal_clock_rate_in_range(float minimum, float maximum) override;
-		void set_computed_output_rate(float cycles_per_second, int buffer_size) override;
+		void set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) override;
 		void set_delegate(Outputs::Speaker::Speaker::Delegate *delegate) override;
+		bool get_is_stereo() override;
 
 	private:
 		void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) final;
@@ -51,6 +52,8 @@ class MultiSpeaker: public Outputs::Speaker::Speaker, Outputs::Speaker::Speaker:
 		Outputs::Speaker::Speaker *front_speaker_ = nullptr;
 		Outputs::Speaker::Speaker::Delegate *delegate_ = nullptr;
 		std::mutex front_speaker_mutex_;
+
+		bool stereo_output_ = false;
 };
 
 }

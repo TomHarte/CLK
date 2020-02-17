@@ -126,6 +126,9 @@ class AYDeferrer {
 		/// Constructs a new AY instance and sets its clock rate.
 		AYDeferrer() : ay_(GI::AY38910::Personality::AY38910, audio_queue_), speaker_(ay_) {
 			speaker_.set_input_rate(1000000);
+			// Per the CPC Wiki:
+			// "A is output to the right, channel C is output left, and channel B is output to both left and right".
+			ay_.set_output_mixing(0.0, 0.5, 1.0, 1.0, 0.5, 0.0);
 		}
 
 		~AYDeferrer() {
@@ -153,14 +156,14 @@ class AYDeferrer {
 		}
 
 		/// @returns the AY itself.
-		GI::AY38910::AY38910 &ay() {
+		GI::AY38910::AY38910<true> &ay() {
 			return ay_;
 		}
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
-		GI::AY38910::AY38910 ay_;
-		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
+		GI::AY38910::AY38910<true> ay_;
+		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910<true>> speaker_;
 		HalfCycles cycles_since_update_;
 };
 

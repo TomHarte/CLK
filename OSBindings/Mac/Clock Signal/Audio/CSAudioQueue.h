@@ -25,10 +25,12 @@
 	Creates an instance of CSAudioQueue.
 
 	@param samplingRate The output audio rate.
+	@param isStereo @c YES if audio buffers will contain stereo audio, @c NO otherwise.
 
 	@returns An instance of CSAudioQueue if successful; @c nil otherwise.
 */
-- (nonnull instancetype)initWithSamplingRate:(Float64)samplingRate;
+- (nonnull instancetype)initWithSamplingRate:(Float64)samplingRate isStereo:(BOOL)isStereo NS_DESIGNATED_INITIALIZER;
+- (nonnull instancetype)init __attribute((unavailable));
 
 /*!
 	Enqueues a buffer for playback.

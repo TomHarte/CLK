@@ -262,17 +262,27 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
-- (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize {
-	@synchronized(self) {
-		[self setSpeakerDelegate:&_speakerDelegate sampleRate:samplingRate bufferSize:bufferSize];
-	}
-}
-
-- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize {
+- (BOOL)isStereo {
 	@synchronized(self) {
 		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
 		if(speaker) {
-			speaker->set_output_rate(sampleRate, (int)bufferSize);
+			return speaker->get_is_stereo();
+		}
+		return NO;
+	}
+}
+
+- (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo {
+	@synchronized(self) {
+		[self setSpeakerDelegate:&_speakerDelegate sampleRate:samplingRate bufferSize:bufferSize stereo:stereo];
+	}
+}
+
+- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo {
+	@synchronized(self) {
+		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		if(speaker) {
+			speaker->set_output_rate(sampleRate, (int)bufferSize, stereo);
 			speaker->set_delegate(delegate);
 			return YES;
 		}

@@ -33,7 +33,7 @@ template <typename... T> class CompoundSource:
 		}
 
 		void get_samples(std::size_t number_of_samples, std::int16_t *target) {
-			source_holder_.get_samples(number_of_samples, target);
+			source_holder_.template get_samples<get_is_stereo()>(number_of_samples, target);
 		}
 
 		void skip_samples(const std::size_t number_of_samples) {
@@ -57,6 +57,8 @@ template <typename... T> class CompoundSource:
 			push_volumes();
 		}
 
+		static constexpr bool get_is_stereo() { return CompoundSourceHolder<T...>::get_is_stereo(); }
+
 	private:
 		void push_volumes() {
 			source_holder_.set_scaled_volume_range(volume_range_, volumes_.data());
@@ -64,7 +66,7 @@ template <typename... T> class CompoundSource:
 
 		template <typename... S> class CompoundSourceHolder: public Outputs::Speaker::SampleSource {
 			public:
-				void get_samples(std::size_t number_of_samples, std::int16_t *target) {
+				template <bool output_stereo> void get_samples(std::size_t number_of_samples, std::int16_t *target) {
 					std::memset(target, 0, sizeof(std::int16_t) * number_of_samples);
 				}
 
@@ -73,24 +75,49 @@ template <typename... T> class CompoundSource:
 				std::size_t size() {
 					return 0;
 				}
+
+				static constexpr bool get_is_stereo() {
+					return false;
+				}
 		};
 
 		template <typename S, typename... R> class CompoundSourceHolder<S, R...> {
 			public:
 				CompoundSourceHolder(S &source, R &...next) : source_(source), next_source_(next...) {}
 
-				void get_samples(std::size_t number_of_samples, std::int16_t *target) {
+				template <bool output_stereo> void get_samples(std::size_t number_of_samples, std::int16_t *target) {
+					// Get the rest of the output.
+					next_source_.template get_samples<output_stereo>(number_of_samples, target);
+
 					if(source_.is_zero_level()) {
+						// This component is currently outputting silence; therefore don't add anything to the output
+						// audio — just pass the call onward.
 						source_.skip_samples(number_of_samples);
-						next_source_.get_samples(number_of_samples, target);
+						return;
+					}
+
+					// Get this component's output.
+					auto buffer_size = number_of_samples * (output_stereo ? 2 : 1);
+					int16_t local_samples[buffer_size];
+					source_.get_samples(number_of_samples, local_samples);
+
+					// Merge it in; furthermore if total output is stereo but this source isn't,
+					// map it to stereo.
+					if constexpr (output_stereo == S::get_is_stereo()) {
+						while(buffer_size--) {
+							target[buffer_size] += local_samples[buffer_size];
+						}
 					} else {
-						int16_t next_samples[number_of_samples];
-						next_source_.get_samples(number_of_samples, next_samples);
-						source_.get_samples(number_of_samples, target);
-						while(number_of_samples--) {
-							target[number_of_samples] += next_samples[number_of_samples];
+						// This will happen only if mapping from mono to stereo, never in the
+						// other direction, because the compound source outputs stereo if any
+						// subcomponent does. So it outputs mono only if no stereo devices are
+						// in the mixing chain.
+						while(buffer_size--) {
+							target[buffer_size] += local_samples[buffer_size >> 1];
 						}
 					}
+
+					// TODO: accelerate above?
 				}
 
 				void skip_samples(const std::size_t number_of_samples) {
@@ -105,6 +132,10 @@ template <typename... T> class CompoundSource:
 
 				std::size_t size() {
 					return 1+next_source_.size();
+				}
+
+				static constexpr bool get_is_stereo() {
+					return S::get_is_stereo() || CompoundSourceHolder<R...>::get_is_stereo();
 				}
 
 			private:

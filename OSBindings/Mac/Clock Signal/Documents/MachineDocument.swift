@@ -228,11 +228,12 @@ class MachineDocument:
 		// TODO: this needs to be threadsafe. FIX!
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
 		let selectedSamplingRate = self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
+		let isStereo = self.machine.isStereo()
 		if selectedSamplingRate > 0 {
-			self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
+			self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate), isStereo:isStereo)
 			self.audioQueue.delegate = self
 			self.machine.audioQueue = self.audioQueue
-			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.preferredBufferSize)
+			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
 		}
 	}
 

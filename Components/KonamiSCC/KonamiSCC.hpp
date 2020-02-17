@@ -32,6 +32,7 @@ class SCC: public ::Outputs::Speaker::SampleSource {
 		/// As per ::SampleSource; provides audio output.
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
+		static constexpr bool get_is_stereo() { return false; }
 
 		/// Writes to the SCC.
 		void write(uint16_t address, uint8_t value);

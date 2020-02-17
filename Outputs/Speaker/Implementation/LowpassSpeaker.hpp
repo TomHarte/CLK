@@ -28,9 +28,9 @@ namespace Speaker {
 	source of a high-frequency stream of audio which it filters down to a
 	lower-frequency output.
 */
-template <typename T> class LowpassSpeaker: public Speaker {
+template <typename SampleSource> class LowpassSpeaker: public Speaker {
 	public:
-		LowpassSpeaker(T &sample_source) : sample_source_(sample_source) {
+		LowpassSpeaker(SampleSource &sample_source) : sample_source_(sample_source) {
 			sample_source.set_sample_volume_range(32767);
 		}
 
@@ -58,7 +58,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 		}
 
 		// Implemented as per Speaker.
-		void set_computed_output_rate(float cycles_per_second, int buffer_size) final {
+		void set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) final {
 			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
 			if(filter_parameters_.output_cycles_per_second == cycles_per_second && size_t(buffer_size) == output_buffer_.size()) {
 				return;
@@ -66,7 +66,11 @@ template <typename T> class LowpassSpeaker: public Speaker {
 
 			filter_parameters_.output_cycles_per_second = cycles_per_second;
 			filter_parameters_.parameters_are_dirty = true;
-			output_buffer_.resize(std::size_t(buffer_size));
+			output_buffer_.resize(std::size_t(buffer_size) * (SampleSource::get_is_stereo() ? 2 : 1));
+		}
+
+		bool get_is_stereo() final {
+			return SampleSource::get_is_stereo();
 		}
 
 		/*!
@@ -140,15 +144,14 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			switch(conversion_) {
 				case Conversion::Copy:
 					while(cycles_remaining) {
-						const auto cycles_to_read = std::min(output_buffer_.size() - output_buffer_pointer_, cycles_remaining);
+						const auto cycles_to_read = std::min((output_buffer_.size() - output_buffer_pointer_) / (SampleSource::get_is_stereo() ? 2 : 1), cycles_remaining);
+						sample_source_.get_samples(cycles_to_read, &output_buffer_[output_buffer_pointer_ ]);
+						output_buffer_pointer_ += cycles_to_read * (SampleSource::get_is_stereo() ? 2 : 1);
 
-						sample_source_.get_samples(cycles_to_read, &output_buffer_[output_buffer_pointer_]);
-						output_buffer_pointer_ += cycles_to_read;
-
-						// announce to delegate if full
+						// Announce to delegate if full.
 						if(output_buffer_pointer_ == output_buffer_.size()) {
 							output_buffer_pointer_ = 0;
-							did_complete_samples(this, output_buffer_);
+							did_complete_samples(this, output_buffer_, SampleSource::get_is_stereo());
 						}
 
 						cycles_remaining -= cycles_to_read;
@@ -157,14 +160,16 @@ template <typename T> class LowpassSpeaker: public Speaker {
 
 				case Conversion::ResampleSmaller:
 					while(cycles_remaining) {
-						const auto cycles_to_read = std::min(cycles_remaining, input_buffer_.size() - input_buffer_depth_);
+						const auto cycles_to_read = std::min((input_buffer_.size() - input_buffer_depth_) / (SampleSource::get_is_stereo() ? 2 : 1), cycles_remaining);
+
 						sample_source_.get_samples(cycles_to_read, &input_buffer_[input_buffer_depth_]);
-						cycles_remaining -= cycles_to_read;
-						input_buffer_depth_ += cycles_to_read;
+						input_buffer_depth_ += cycles_to_read * (SampleSource::get_is_stereo() ? 2 : 1);
 
 						if(input_buffer_depth_ == input_buffer_.size()) {
 							resample_input_buffer();
 						}
+
+						cycles_remaining -= cycles_to_read;
 					}
 				break;
 
@@ -174,7 +179,7 @@ template <typename T> class LowpassSpeaker: public Speaker {
 			}
 		}
 
-		T &sample_source_;
+		SampleSource &sample_source_;
 
 		std::size_t output_buffer_pointer_ = 0;
 		std::size_t input_buffer_depth_ = 0;
@@ -239,35 +244,42 @@ template <typename T> class LowpassSpeaker: public Speaker {
 				// that means nothing to do.
 				default: break;
 
-				case Conversion::ResampleSmaller:
+				case Conversion::ResampleSmaller: {
 					// Reize the input buffer only if absolutely necessary; if sizing downward
 					// such that a sample would otherwise be lost then output it now. Keep anything
 					// currently in the input buffer that hasn't yet been processed.
-					if(input_buffer_.size() != size_t(number_of_taps)) {
-						if(input_buffer_depth_ >= size_t(number_of_taps)) {
+					const size_t required_buffer_size = size_t(number_of_taps) * (SampleSource::get_is_stereo() ? 2 : 1);
+					if(input_buffer_.size() != required_buffer_size) {
+						if(input_buffer_depth_ >= required_buffer_size) {
 							resample_input_buffer();
-							input_buffer_depth_ %= size_t(number_of_taps);
+							input_buffer_depth_ %= required_buffer_size;
 						}
-						input_buffer_.resize(size_t(number_of_taps));
+						input_buffer_.resize(required_buffer_size);
 					}
-				break;
+				} break;
 			}
 		}
 
 		inline void resample_input_buffer() {
-			output_buffer_[output_buffer_pointer_] = filter_->apply(input_buffer_.data());
-			output_buffer_pointer_++;
+			if constexpr (SampleSource::get_is_stereo()) {
+				output_buffer_[output_buffer_pointer_ + 0] = filter_->apply(input_buffer_.data(), 2);
+				output_buffer_[output_buffer_pointer_ + 1] = filter_->apply(input_buffer_.data() + 1, 2);
+				output_buffer_pointer_+= 2;
+			} else {
+				output_buffer_[output_buffer_pointer_] = filter_->apply(input_buffer_.data());
+				output_buffer_pointer_++;
+			}
 
 			// Announce to delegate if full.
 			if(output_buffer_pointer_ == output_buffer_.size()) {
 				output_buffer_pointer_ = 0;
-				did_complete_samples(this, output_buffer_);
+				did_complete_samples(this, output_buffer_, SampleSource::get_is_stereo());
 			}
 
 			// If the next loop around is going to reuse some of the samples just collected, use a memmove to
 			// preserve them in the correct locations (TODO: use a longer buffer to fix that?) and don't skip
 			// anything. Otherwise skip as required to get to the next sample batch and don't expect to reuse.
-			const auto steps = stepper_->step();
+			const auto steps = stepper_->step() * (SampleSource::get_is_stereo() ? 2 : 1);
 			if(steps < input_buffer_.size()) {
 				auto *const input_buffer = input_buffer_.data();
 				std::memmove(	input_buffer,
@@ -275,8 +287,9 @@ template <typename T> class LowpassSpeaker: public Speaker {
 								sizeof(int16_t) * (input_buffer_.size() - steps));
 				input_buffer_depth_ -= steps;
 			} else {
-				if(steps > input_buffer_.size())
-					sample_source_.skip_samples(steps - input_buffer_.size());
+				if(steps > input_buffer_.size()) {
+					sample_source_.skip_samples((steps - input_buffer_.size()) / (SampleSource::get_is_stereo() ? 2 : 1));
+				}
 				input_buffer_depth_ = 0;
 			}
 		}
