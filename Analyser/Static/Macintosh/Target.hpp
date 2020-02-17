@@ -9,19 +9,17 @@
 #ifndef Analyser_Static_Macintosh_Target_h
 #define Analyser_Static_Macintosh_Target_h
 
+#include "../../../Reflection/Enum.h"
+
+ReflectiveEnum(MacintoshModel, int, Mac128k, Mac512k, Mac128ke, MacPlus);
+
 namespace Analyser {
 namespace Static {
 namespace Macintosh {
 
-struct Target: public ::Analyser::Static::Target {
-	enum class Model {
-		Mac128k,
-		Mac512k,
-		Mac512ke,
-		MacPlus
-	};
 
-	Model model = Model::MacPlus;
+struct Target: public ::Analyser::Static::Target {
+	MacintoshModel model = MacintoshModel::MacPlus;
 };
 
 }
