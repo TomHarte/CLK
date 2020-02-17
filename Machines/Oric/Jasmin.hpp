@@ -26,6 +26,7 @@ class Jasmin: public DiskController {
 	private:
 		void set_motor_on(bool on) final;
 		bool motor_on_ = false;
+		uint8_t selected_drives_ = 0;
 
 		Activity::Observer *observer_ = nullptr;
 };
