@@ -180,12 +180,12 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 	assert(required_alignment);
 
 	if(allocation_has_failed_) return nullptr;
+
+	std::lock_guard<std::mutex> lock_guard(write_pointers_mutex_);
 	if(write_area_texture_.empty()) {
 		allocation_has_failed_ = true;
 		return nullptr;
 	}
-
-	std::lock_guard<std::mutex> lock_guard(write_pointers_mutex_);
 
 	// Determine where the proposed write area would start and end.
 	uint16_t output_y = TextureAddressGetY(write_pointers_.write_area);

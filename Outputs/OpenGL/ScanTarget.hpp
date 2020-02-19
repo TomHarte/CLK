@@ -116,8 +116,9 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		/// A pointer to the next thing that should be provided to the caller for data.
 		PointerSet write_pointers_;
 
-		/// A mutex for gettng access to write_pointers_; access to write_pointers_
-		/// or data_type_size_ is almost never contended, so this is cheap for the main use case.
+		/// A mutex for gettng access to write_pointers_; access to write_pointers_,
+		/// data_type_size_ or write_area_texture_ is almost never contended, so this
+		/// is cheap for the main use case.
 		std::mutex write_pointers_mutex_;
 
 		/// A pointer to the final thing currently cleared for submission.
