@@ -174,7 +174,7 @@ class MachineDocument:
 	// MARK: - Connections Between Machine and the Outside World
 
 	private func setupMachineOutput() {
-		if let machine = self.machine, let openGLView = self.openGLView {
+		if let machine = self.machine, let openGLView = self.openGLView, machine.view != openGLView {
 			// Establish the output aspect ratio and audio.
 			let aspectRatio = self.aspectRatio()
 			machine.setView(openGLView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
@@ -227,13 +227,17 @@ class MachineDocument:
 		//
 		// TODO: this needs to be threadsafe. FIX!
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
-		let selectedSamplingRate = self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
+		let selectedSamplingRate = Float64(self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate))))
 		let isStereo = self.machine.isStereo()
 		if selectedSamplingRate > 0 {
-			self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate), isStereo:isStereo)
-			self.audioQueue.delegate = self
-			self.machine.audioQueue = self.audioQueue
-			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
+			// [Re]create the audio queue only if necessary.
+			if self.audioQueue == nil || self.audioQueue.samplingRate != selectedSamplingRate {
+				self.machine.audioQueue = nil
+				self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate), isStereo:isStereo)
+				self.audioQueue.delegate = self
+				self.machine.audioQueue = self.audioQueue
+				self.machine.setAudioSamplingRate(Float(selectedSamplingRate), bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
+			}
 		}
 	}
 
