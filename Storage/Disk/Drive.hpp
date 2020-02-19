@@ -205,7 +205,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		// Contains the multiplier that converts between track-relative lengths
 		// to real-time lengths. So it's the reciprocal of rotation speed.
-		float rotational_multiplier_;
+		float rotational_multiplier_ = 1.0f;
 
 		// A count of time since the index hole was last seen. Which is used to
 		// determine how far the drive is into a full rotation when switching to
