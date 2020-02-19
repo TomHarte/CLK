@@ -9,6 +9,7 @@
 #ifndef Speaker_hpp
 #define Speaker_hpp
 
+#include <atomic>
 #include <cstdint>
 #include <vector>
 
@@ -82,12 +83,16 @@ class Speaker {
 
 	protected:
 		void did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer, bool is_stereo) {
+			// Test the delegate for existence again, as it may have changed.
+			const auto delegate = delegate_.load();
+			if(!delegate) return;
+
 			++completed_sample_sets_;
 
 			// Hope for the fast path first: producer and consumer agree about
 			// number of channels.
 			if(is_stereo == stereo_output_) {
-				delegate_->speaker_did_complete_samples(this, buffer);
+				delegate->speaker_did_complete_samples(this, buffer);
 				return;
 			}
 
@@ -106,9 +111,9 @@ class Speaker {
 					mix_buffer_[(c << 1) + 0] = mix_buffer_[(c << 1) + 1] = buffer[c];
 				}
 			}
-			delegate_->speaker_did_complete_samples(this, mix_buffer_);
+			delegate->speaker_did_complete_samples(this, mix_buffer_);
 		}
-		Delegate *delegate_ = nullptr;
+		std::atomic<Delegate *> delegate_ = nullptr;
 
 	private:
 		void compute_output_rate() {
@@ -121,7 +126,7 @@ class Speaker {
 		float input_rate_multiplier_ = 1.0f;
 		float output_cycles_per_second_ = 1.0f;
 		int output_buffer_size_ = 1;
-		bool stereo_output_ = false;
+		std::atomic<bool> stereo_output_ = false;
 		std::vector<int16_t> mix_buffer_;
 };
 

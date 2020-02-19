@@ -124,7 +124,8 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 			at construction, filtering it and passing it on to the speaker's delegate if there is one.
 		*/
 		void run_for(const Cycles cycles) {
-			if(!delegate_) return;
+			const auto delegate = delegate_.load();
+			if(!delegate) return;
 
 			std::size_t cycles_remaining = size_t(cycles.as_integral());
 			if(!cycles_remaining) return;
@@ -138,7 +139,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 			}
 			if(filter_parameters.parameters_are_dirty) update_filter_coefficients(filter_parameters);
 			if(filter_parameters.input_rate_changed) {
-				delegate_->speaker_did_change_input_clock(this);
+				delegate->speaker_did_change_input_clock(this);
 			}
 
 			switch(conversion_) {
