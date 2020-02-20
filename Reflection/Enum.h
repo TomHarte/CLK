@@ -40,8 +40,8 @@ template <typename EnumType> struct Enum {
 			@returns A vector of string_views naming the members of this enum in value order.
 		*/
 		static std::vector<std::string_view> members() {
-			Enum<EnumType> m;
-			const char *const declaration = m.declaration();
+			EnumType m;
+			const char *const declaration = __declaration(m);
 			const char *d_ptr = declaration;
 
 			std::vector<std::string_view> result;
@@ -60,10 +60,6 @@ template <typename EnumType> struct Enum {
 
 			return result;
 		}
-
-	private:
-		constexpr const char *declaration();
-
 };
 
 }
@@ -75,6 +71,6 @@ template <typename EnumType> struct Enum {
 */
 #define ReflectiveEnum(Name, Type, ...)	\
 	enum class Name: Type { __VA_ARGS__ };	\
-	template <> constexpr const char *::Reflection::Enum<Name>::declaration() { return #__VA_ARGS__; };
+	constexpr const char *__declaration(Name) { return #__VA_ARGS__; }
 
 #endif /* Enum_h */
