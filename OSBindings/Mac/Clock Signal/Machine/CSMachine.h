@@ -75,7 +75,7 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 - (void)setMouseButton:(int)button isPressed:(BOOL)isPressed;
 - (void)addMouseMotionX:(CGFloat)deltaX y:(CGFloat)deltaY;
 
-@property (nonatomic, strong, nullable) CSAudioQueue *audioQueue;
+@property (atomic, strong, nullable) CSAudioQueue *audioQueue;
 @property (nonatomic, readonly, nonnull) CSOpenGLView *view;
 @property (nonatomic, weak, nullable) id<CSMachineDelegate> delegate;
 

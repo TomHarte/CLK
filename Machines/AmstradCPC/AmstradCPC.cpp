@@ -306,9 +306,16 @@ class CRTCBusHandler {
 			visible early. The CPC uses changes in sync to clock the interrupt timer.
 		*/
 		void perform_bus_cycle_phase2(const Motorola::CRTC::BusState &state) {
-			// check for a trailing CRTC hsync; if one occurred then that's the trigger potentially to change
-			// modes, and should also be sent on to the interrupt timer
+			// Notify a leading hsync edge to the interrupt timer.
+			// Per Interrupts in the CPC: "to be confirmed: does gate array count positive or negative edge transitions of HSYNC signal?";
+			// if you take it as given that display mode is latched as a result of hsync then Pipe Mania seems to imply that the count
+			// occurs on a leading edge and the mode lock on a trailing.
 			if(was_hsync_ && !state.hsync) {
+				interrupt_timer_.signal_hsync();
+			}
+
+			// Check for a trailing CRTC hsync; if one occurred then that's the trigger potentially to change modes.
+			if(!was_hsync_ && state.hsync) {
 				if(mode_ != next_mode_) {
 					mode_ = next_mode_;
 					switch(mode_) {
@@ -319,8 +326,6 @@ class CRTCBusHandler {
 					}
 					build_mode_table();
 				}
-
-				interrupt_timer_.signal_hsync();
 			}
 
 			// check for a leading vsync; that also needs to be communicated to the interrupt timer
