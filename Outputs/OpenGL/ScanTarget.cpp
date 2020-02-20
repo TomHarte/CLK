@@ -218,6 +218,8 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 	// Everything checks out, note expectation of a future end_data and return the pointer.
 	data_is_allocated_ = true;
 	vended_write_area_pointer_ = write_pointers_.write_area = TextureAddress(aligned_start_x, output_y);
+
+	assert(write_pointers_.write_area >= 1 && ((size_t(write_pointers_.write_area) + required_length + 1) * data_type_size_) <= write_area_texture_.size());
 	return &write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_];
 
 	// Note state at exit:
