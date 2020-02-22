@@ -72,6 +72,26 @@ class PatrikRakTests: XCTestCase, CSTestMachineTrapHandler {
 		runTest("z80ccf", targetOutput: targetOutput)
 	}
 
+	func testDoc() {
+		let targetOutput = "???"
+		runTest("z80doc", targetOutput: targetOutput)
+	}
+
+	func testDocFlags() {
+		let targetOutput = "???"
+		runTest("z80docflags", targetOutput: targetOutput)
+	}
+
+	func testFull() {
+		let targetOutput = "???"
+		runTest("z80full", targetOutput: targetOutput)
+	}
+
+	func testMemptr() {
+		let targetOutput = "???"
+		runTest("z80memptr", targetOutput: targetOutput)
+	}
+
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
 		let testMachineZ80 = testMachine as! CSTestMachineZ80
 		switch address {
