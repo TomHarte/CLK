@@ -96,7 +96,14 @@ class PatrikRakTests: XCTestCase, CSTestMachineTrapHandler {
 		let testMachineZ80 = testMachine as! CSTestMachineZ80
 		switch address {
 			case 0x0010:
-				let textToAppend = UnicodeScalar(testMachineZ80.value(for: .A))!
+				var characterCode = testMachineZ80.value(for: .A)
+
+				// Of the control codes, retain only new line. Map the rest to space.
+				if characterCode < 32 && characterCode != 13 {
+					characterCode = 32
+				}
+
+				let textToAppend = UnicodeScalar(characterCode)!
 				output += String(textToAppend)
 				print(textToAppend, terminator:"")
 
