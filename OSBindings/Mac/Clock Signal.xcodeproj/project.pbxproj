@@ -817,6 +817,8 @@
 		4BD67DCC209BE4D700AB2146 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD67DCA209BE4D600AB2146 /* StaticAnalyser.cpp */; };
 		4BD67DD0209BF27B00AB2146 /* Encoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD67DCE209BF27B00AB2146 /* Encoder.cpp */; };
 		4BD67DD1209BF27B00AB2146 /* Encoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD67DCE209BF27B00AB2146 /* Encoder.cpp */; };
+		4BD91D732401960C007BDC91 /* STX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03323C58B1E00B98D9E /* STX.cpp */; };
+		4BD91D772401C2B8007BDC91 /* PatrikRakTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD91D762401C2B8007BDC91 /* PatrikRakTests.swift */; };
 		4BDA00DA22E60EE300AC3CD0 /* ROMRequester.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BDA00D922E60EE300AC3CD0 /* ROMRequester.xib */; };
 		4BDA00DD22E622C200AC3CD0 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4BDA00E022E644AF00AC3CD0 /* CSROMReceiverView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BDA00DF22E644AF00AC3CD0 /* CSROMReceiverView.m */; };
@@ -1696,6 +1698,7 @@
 		4BD67DCE209BF27B00AB2146 /* Encoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Encoder.cpp; sourceTree = "<group>"; };
 		4BD67DCF209BF27B00AB2146 /* Encoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Encoder.hpp; sourceTree = "<group>"; };
 		4BD9137D1F311BC5009BCF85 /* i8255.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = i8255.hpp; path = 8255/i8255.hpp; sourceTree = "<group>"; };
+		4BD91D762401C2B8007BDC91 /* PatrikRakTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PatrikRakTests.swift; sourceTree = "<group>"; };
 		4BDA00D922E60EE300AC3CD0 /* ROMRequester.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ROMRequester.xib; sourceTree = "<group>"; };
 		4BDA00DE22E644AF00AC3CD0 /* CSROMReceiverView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSROMReceiverView.h; sourceTree = "<group>"; };
 		4BDA00DF22E644AF00AC3CD0 /* CSROMReceiverView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CSROMReceiverView.m; sourceTree = "<group>"; };
@@ -3316,6 +3319,7 @@
 				4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */,
 				4BBF49AE1ED2880200AB3669 /* FUSETests.swift */,
 				4B1414611B58888700E04248 /* KlausDormannTests.swift */,
+				4BD91D762401C2B8007BDC91 /* PatrikRakTests.swift */,
 				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
 				4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */,
 				4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */,
@@ -4643,6 +4647,7 @@
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,
 				4B778F3123A5F0CB0000D260 /* Keyboard.cpp in Sources */,
 				4B778F4A23A5F1FB0000D260 /* StaticAnalyser.cpp in Sources */,
+				4BD91D772401C2B8007BDC91 /* PatrikRakTests.swift in Sources */,
 				4B680CE223A5553100451D43 /* 68000ComparativeTests.mm in Sources */,
 				4B778F3723A5F11C0000D260 /* Parser.cpp in Sources */,
 				4B778F4523A5F1CD0000D260 /* SegmentParser.cpp in Sources */,
@@ -4780,6 +4785,7 @@
 				4B778F0223A5EBA40000D260 /* MFMSectorDump.cpp in Sources */,
 				4BFCA1271ECBE33200AC40C1 /* TestMachineZ80.mm in Sources */,
 				4B778F3E23A5F17C0000D260 /* IWM.cpp in Sources */,
+				4BD91D732401960C007BDC91 /* STX.cpp in Sources */,
 				4B778F1023A5EC5D0000D260 /* Drive.cpp in Sources */,
 				4B9D0C4F22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm in Sources */,
 			);
