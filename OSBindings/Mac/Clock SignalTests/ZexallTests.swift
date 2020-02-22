@@ -14,8 +14,8 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 	fileprivate var done = false
 	fileprivate var output = ""
 
-	func testZexall() {
-		if let filename = Bundle(for: type(of: self)).path(forResource: "zexdoc", ofType: "com") {
+	private func runTest(_ name: String) {
+		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: "com") {
 			if let testData = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
 
 				// install test program, at the usual CP/M place
@@ -47,10 +47,11 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 				var cyclesToDate: TimeInterval = 0
 				let startDate = Date()
 				var printDate = Date()
+				let printMhz = false
 				while !done {
 					machine.runForNumber(ofCycles: cyclesPerIteration)
 					cyclesToDate += TimeInterval(cyclesPerIteration)
-					if printDate.timeIntervalSinceNow < -5.0 {
+					if printMhz && printDate.timeIntervalSinceNow < -5.0 {
 						print("\(cyclesToDate / -startDate.timeIntervalSinceNow) Mhz")
 						printDate = Date()
 					}
@@ -129,6 +130,14 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 				XCTAssertEqual(targetOutput, output);
 			}
 		}
+	}
+
+	func testZexAll() {
+		runTest("zexall")
+	}
+
+	func testZexDoc() {
+		runTest("zexdoc")
 	}
 
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
