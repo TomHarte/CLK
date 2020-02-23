@@ -14,7 +14,7 @@ class PatrikRakTests: XCTestCase, CSTestMachineTrapHandler {
 	fileprivate var done = false
 	fileprivate var output = ""
 
-	private func runTest(_ name: String, targetOutput: String) {
+	private func runTest(_ name: String) {
 		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: "tap") {
 			if let testData = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
 
@@ -62,34 +62,34 @@ class PatrikRakTests: XCTestCase, CSTestMachineTrapHandler {
 					machine.runForNumber(ofCycles: cyclesPerIteration)
 				}
 
-				XCTAssertEqual(targetOutput, output);
+				let successRange = output.range(of: "Result: all tests passed.")
+				XCTAssertNotEqual(successRange, nil)
+
+				if successRange == nil {
+					print("Output was: \(output)")
+				}
 			}
 		}
 	}
 
 	func testCCF() {
-		let targetOutput = "???"
-		runTest("z80ccf", targetOutput: targetOutput)
+		runTest("z80ccf")
 	}
 
 	func testDoc() {
-		let targetOutput = "???"
-		runTest("z80doc", targetOutput: targetOutput)
+		runTest("z80doc")
 	}
 
 	func testDocFlags() {
-		let targetOutput = "???"
-		runTest("z80docflags", targetOutput: targetOutput)
+		runTest("z80docflags")
 	}
 
 	func testFull() {
-		let targetOutput = "???"
-		runTest("z80full", targetOutput: targetOutput)
+		runTest("z80full")
 	}
 
 	func testMemptr() {
-		let targetOutput = "???"
-		runTest("z80memptr", targetOutput: targetOutput)
+		runTest("z80memptr")
 	}
 
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
@@ -103,9 +103,13 @@ class PatrikRakTests: XCTestCase, CSTestMachineTrapHandler {
 					characterCode = 32
 				}
 
+				// Similarly, map down unprintables.
+				if characterCode >= 127 {
+					characterCode = 32
+				}
+
 				let textToAppend = UnicodeScalar(characterCode)!
 				output += String(textToAppend)
-				print(textToAppend, terminator:"")
 
 			case 0x7003:
 				done = true
