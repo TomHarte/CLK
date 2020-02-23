@@ -279,18 +279,22 @@ class Z80MemptrTests: XCTestCase {
 	*/
 
 	/* TODO:
-		JP(except JP rp)/CALL addr (even in case of conditional call/jp, independantly on condition satisfied or not)
+		JP(except JP rp)/CALL addr (even in case of conditional call/jp, independently on condition satisfied or not)
 			MEMPTR = addr
 	*/
 
 	/* TODO:
 		IN A,(port)
 			MEMPTR = (A_before_operation << 8) + port + 1
+
+		(implemented, not tested)
 	*/
 
 	/* TODO:
 		IN A,(C)
 			MEMPTR = BC + 1
+
+		(implemented, not tested)
 	*/
 
 	/* TODO:

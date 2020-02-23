@@ -487,7 +487,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		/* 0xd6 SUB n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::SUB8, &temp8_}),
 		/* 0xd7 RST 10h */	RST(),
 		/* 0xd8 RET C */	RET(TestC),								/* 0xd9 EXX */		StdInstr({MicroOp::EXX}),
-		/* 0xda JP C */		JP(TestC),								/* 0xdb IN A, (n) */StdInstr(ReadInc(pc_, temp16_.halves.low), {MicroOp::Move8, &a_, &temp16_.halves.high}, Input(temp16_, a_)),
+		/* 0xda JP C */		JP(TestC),								/* 0xdb IN A, (n) */StdInstr(ReadInc(pc_, memptr_.halves.low), {MicroOp::Move8, &a_, &memptr_.halves.high}, Input(memptr_, a_), Inc16(memptr_)),
 		/* 0xdc CALL C */	CALL(TestC),							/* 0xdd [DD page] */StdInstr({MicroOp::SetInstructionPage, &dd_page_}),
 		/* 0xde SBC A, n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::SBC8, &temp8_}),
 		/* 0xdf RST 18h */	RST(),

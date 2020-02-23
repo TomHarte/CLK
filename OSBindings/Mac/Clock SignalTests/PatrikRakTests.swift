@@ -90,6 +90,7 @@ class PatrikRakTests: XCTestCase, CSTestMachineTrapHandler {
 
 	func testMemptr() {
 		runTest("z80memptr")
+		// Result: 102 of 152 tests failed.
 	}
 
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
@@ -110,6 +111,7 @@ class PatrikRakTests: XCTestCase, CSTestMachineTrapHandler {
 
 				let textToAppend = UnicodeScalar(characterCode)!
 				output += String(textToAppend)
+//				print(textToAppend, terminator:"")
 
 			case 0x7003:
 				done = true

@@ -804,6 +804,7 @@ template <	class T,
 					sign_result_ = zero_result_ = bit53_result_ = *static_cast<uint8_t *>(operation->source);
 					set_parity(sign_result_);
 					set_did_compute_flags();
+					memptr_.full = bc_.full + 1;
 				break;
 
 				case MicroOp::SetAFlags:
@@ -840,6 +841,7 @@ template <	class T,
 				case MicroOp::RETN:
 					iff1_ = iff2_;
 					if(irq_line_ && iff1_) request_status_ |= Interrupt::IRQ;
+					memptr_ = pc_;
 				break;
 
 				case MicroOp::HALT:
