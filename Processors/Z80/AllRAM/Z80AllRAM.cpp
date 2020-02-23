@@ -36,9 +36,7 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 				case PartialMachineCycle::Output:
 				break;
 				case PartialMachineCycle::Input:
-					// This logic is selected specifically because it seems to match
-					// the FUSE unit tests. It might need factoring out.
-					*cycle.value = address >> 8;
+					*cycle.value = port_delegate_ ? port_delegate_->z80_all_ram_processor_input(address) : 0xff;
 				break;
 
 				case PartialMachineCycle::Internal:
@@ -55,8 +53,8 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 				break;
 			}
 
-			if(delegate_ != nullptr) {
-				delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle.operation, address, cycle.value ? *cycle.value : 0x00, timestamp_);
+			if(memory_delegate_ != nullptr) {
+				memory_delegate_->z80_all_ram_processor_did_perform_bus_operation(*this, cycle.operation, address, cycle.value ? *cycle.value : 0x00, timestamp_);
 			}
 
 			return HalfCycles(0);

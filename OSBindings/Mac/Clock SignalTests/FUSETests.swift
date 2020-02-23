@@ -176,6 +176,7 @@ class FUSETests: XCTestCase {
 			let targetState = RegisterState(dictionary: outputDictionary["state"] as! [String: Any])
 
 			let machine = CSTestMachineZ80()
+			machine.portLogic = .returnUpperByte
 			machine.captureBusActivity = true
 			initialState.set(onMachine: machine)
 

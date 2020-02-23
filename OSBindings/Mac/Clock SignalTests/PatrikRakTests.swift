@@ -31,6 +31,7 @@ class PatrikRakTests: XCTestCase, CSTestMachineTrapHandler {
 
 				// Create a machine.
 				let machine = CSTestMachineZ80()
+				machine.portLogic = .return191
 
 				// Copy everything from finalBlock+1 to the end of the file to $8000.
 				let fileContents = testData.subdata(in: finalBlock+1 ..< testData.count)
@@ -90,7 +91,7 @@ class PatrikRakTests: XCTestCase, CSTestMachineTrapHandler {
 
 	func testMemptr() {
 		runTest("z80memptr")
-		// Result: 102 of 152 tests failed.
+		// Current status: 101 of 152 tests failed.
 	}
 
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
