@@ -58,6 +58,7 @@ typedef NS_ENUM(NSInteger, CSTestMachinePortLogic) {
 - (uint8_t)valueAtAddress:(uint16_t)address;
 
 - (void)runForNumberOfCycles:(int)cycles;
+- (void)runForInstruction;
 
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineZ80Register)reg;
 - (uint16_t)valueForRegister:(CSTestMachineZ80Register)reg;

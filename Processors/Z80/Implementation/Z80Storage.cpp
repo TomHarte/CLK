@@ -80,6 +80,7 @@ ProcessorStorage::ProcessorStorage() {
 
 /* The following are helper macros that define common parts of instructions */
 #define Inc16(r)				{(&r == &pc_) ? MicroOp::IncrementPC : MicroOp::Increment16, &r.full}
+#define Inc8NoFlags(r)			{MicroOp::Increment8NoFlags, &r}
 
 #define ReadInc(addr, val)		Read3(addr, val), Inc16(addr)
 #define Read4Inc(addr, val)		Read4(addr, val), Inc16(addr)
@@ -104,10 +105,10 @@ ProcessorStorage::ProcessorStorage() {
 /* The following are actual instructions */
 #define NOP						Sequence(BusOp(Refresh(4)))
 
-#define JP(cc)					StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc, nullptr}, {MicroOp::Move16, &temp16_.full, &pc_.full})
-#define CALL(cc)				StdInstr(ReadInc(pc_, temp16_.halves.low), {MicroOp::cc, conditional_call_untaken_program_.data()}, Read4Inc(pc_, temp16_.halves.high), Push(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
+#define JP(cc)					StdInstr(Read16Inc(pc_, memptr_), {MicroOp::cc, nullptr}, {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define CALL(cc)				StdInstr(ReadInc(pc_, memptr_.halves.low), {MicroOp::cc, conditional_call_untaken_program_.data()}, Read4Inc(pc_, memptr_.halves.high), Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RET(cc)					Instr(6, {MicroOp::cc, nullptr}, Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
-#define JR(cc)					StdInstr(ReadInc(pc_, temp8_), {MicroOp::cc, nullptr}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define JR(cc)					StdInstr(ReadInc(pc_, temp8_), {MicroOp::Move16, &pc_.full, &memptr_.full}, {MicroOp::cc, nullptr}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RST()					Instr(6, {MicroOp::CalculateRSTDestination}, Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define LD(a, b)				StdInstr({MicroOp::Move8, &b, &a})
 
@@ -166,7 +167,7 @@ ProcessorStorage::ProcessorStorage() {
 #define SBC16(d, s) StdInstr(InternalOperation(8), InternalOperation(6), {MicroOp::SBC16, &s.full, &d.full})
 
 void ProcessorStorage::install_default_instruction_set() {
-	MicroOp conditional_call_untaken_program[] = Sequence(ReadInc(pc_, temp16_.halves.high));
+	MicroOp conditional_call_untaken_program[] = Sequence(ReadInc(pc_, memptr_.halves.high));
 	copy_program(conditional_call_untaken_program, conditional_call_untaken_program_);
 
 	assemble_base_page(base_page_, hl_, false, cb_page_);
@@ -244,7 +245,7 @@ void ProcessorStorage::install_default_instruction_set() {
 
 void ProcessorStorage::assemble_ed_page(InstructionPage &target) {
 #define IN_C(r)		StdInstr(Input(bc_, r), {MicroOp::SetInFlags, &r})
-#define OUT_C(r)	StdInstr(Output(bc_, r))
+#define OUT_C(r)	StdInstr(Output(bc_, r), {MicroOp::SetOutFlags, &r})
 #define IN_OUT(r)	IN_C(r), OUT_C(r)
 
 #define NOP_ROW()	NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP
@@ -370,7 +371,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		DEC_INC_DEC_LD(bc_, bc_.halves.low),
 
 		/* 0x0f RRCA */			StdInstr({MicroOp::RRCA}),
-		/* 0x10 DJNZ */			Instr(6, ReadInc(pc_, temp8_), {MicroOp::DJNZ}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
+		/* 0x10 DJNZ */			Instr(6, ReadInc(pc_, temp8_), {MicroOp::Move16, &pc_.full, &memptr_.full}, {MicroOp::DJNZ}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0x11 LD DE, nn */	StdInstr(Read16Inc(pc_, de_)),
 		/* 0x12 LD (DE), A */	StdInstr({MicroOp::SetAddrAMemptr, &de_.full}, Write3(de_, a_)),
 
@@ -476,13 +477,13 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		/* 0xc4 CALL NZ */	CALL(TestNZ),							/* 0xc5 PUSH BC */	Instr(6, Push(bc_)),
 		/* 0xc6 ADD A, n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::ADD8, &temp8_}),
 		/* 0xc7 RST 00h */	RST(),
-		/* 0xc8 RET Z */	RET(TestZ),								/* 0xc9 RET */		StdInstr(Pop(pc_)),
+		/* 0xc8 RET Z */	RET(TestZ),								/* 0xc9 RET */		StdInstr(Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0xca JP Z */		JP(TestZ),								/* 0xcb [CB page] */StdInstr(FINDEX(), {MicroOp::SetInstructionPage, &cb_page}),
-		/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		StdInstr(ReadInc(pc_, temp16_.halves.low), Read4Inc(pc_, temp16_.halves.high), Push(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
+		/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		StdInstr(ReadInc(pc_, memptr_.halves.low), Read4Inc(pc_, memptr_.halves.high), Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0xce ADC A, n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::ADC8, &temp8_}),
 		/* 0xcf RST 08h */	RST(),
 		/* 0xd0 RET NC */	RET(TestNC),							/* 0xd1 POP DE */	StdInstr(Pop(de_)),
-		/* 0xd2 JP NC */	JP(TestNC),								/* 0xd3 OUT (n), A */StdInstr(ReadInc(pc_, temp16_.halves.low), {MicroOp::Move8, &a_, &temp16_.halves.high}, Output(temp16_, a_)),
+		/* 0xd2 JP NC */	JP(TestNC),								/* 0xd3 OUT (n), A */StdInstr(ReadInc(pc_, memptr_.halves.low), {MicroOp::Move8, &a_, &memptr_.halves.high}, Output(memptr_, a_), Inc8NoFlags(memptr_.halves.low)),
 		/* 0xd4 CALL NC */	CALL(TestNC),							/* 0xd5 PUSH DE */	Instr(6, Push(de_)),
 		/* 0xd6 SUB n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::SUB8, &temp8_}),
 		/* 0xd7 RST 10h */	RST(),
@@ -542,4 +543,10 @@ void ProcessorStorage::assemble_fetch_decode_execute(InstructionPage &target, in
 	};
 	copy_program((length == 4) ? normal_fetch_decode_execute : short_fetch_decode_execute, target.fetch_decode_execute);
 	target.fetch_decode_execute_data = target.fetch_decode_execute.data();
+}
+
+bool ProcessorBase::is_starting_new_instruction() {
+	return
+		current_instruction_page_ == &base_page_ &&
+		scheduled_program_counter_ == &base_page_.fetch_decode_execute[0];
 }

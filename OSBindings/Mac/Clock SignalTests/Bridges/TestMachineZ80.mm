@@ -146,6 +146,10 @@ struct PortAccessDelegate191: public CPU::Z80::AllRAMProcessor::PortAccessDelega
 	_processor->run_for(Cycles(cycles));
 }
 
+- (void)runForInstruction {
+	_processor->run_for_instruction();
+}
+
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineZ80Register)reg {
 	_processor->set_value_of_register(registerForRegister(reg), value);
 }

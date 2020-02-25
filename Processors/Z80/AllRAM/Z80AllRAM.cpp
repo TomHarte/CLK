@@ -60,40 +60,59 @@ class ConcreteAllRAMProcessor: public AllRAMProcessor, public BusHandler {
 			return HalfCycles(0);
 		}
 
-		void run_for(const Cycles cycles) {
+		void run_for(const Cycles cycles) final {
 			z80_.run_for(cycles);
 		}
 
-		uint16_t get_value_of_register(Register r) {
+		void run_for_instruction() final {
+			int toggles = 0;
+			int cycles = 0;
+
+			// Run:
+			//	(1) until is_starting_new_instruction is true;
+			//	(2) until it is false again; and
+			//	(3) until it is true again.
+			while(true) {
+				if(z80_.is_starting_new_instruction() != (toggles&1)) {
+					++toggles;
+					if(toggles == 3) break;
+				}
+				z80_.run_for(Cycles(1));
+				++cycles;
+			}
+		}
+
+		uint16_t get_value_of_register(Register r) final {
 			return z80_.get_value_of_register(r);
 		}
 
-		void set_value_of_register(Register r, uint16_t value) {
+		void set_value_of_register(Register r, uint16_t value) final {
 			z80_.set_value_of_register(r, value);
 		}
 
-		bool get_halt_line() {
+		bool get_halt_line() final {
 			return z80_.get_halt_line();
 		}
 
-		void reset_power_on() {
+		void reset_power_on() final {
 			return z80_.reset_power_on();
 		}
 
-		void set_interrupt_line(bool value) {
+		void set_interrupt_line(bool value) final {
 			z80_.set_interrupt_line(value);
 		}
 
-		void set_non_maskable_interrupt_line(bool value) {
+		void set_non_maskable_interrupt_line(bool value) final {
 			z80_.set_non_maskable_interrupt_line(value);
 		}
 
-		void set_wait_line(bool value) {
+		void set_wait_line(bool value) final {
 			z80_.set_wait_line(value);
 		}
 
 	private:
 		CPU::Z80::Processor<ConcreteAllRAMProcessor, false, true> z80_;
+		bool was_m1_ = false;
 };
 
 }
