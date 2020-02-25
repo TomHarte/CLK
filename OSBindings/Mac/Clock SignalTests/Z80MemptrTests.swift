@@ -421,14 +421,14 @@ class Z80MemptrTester: XCTestCase {
 		machine.setValue(0x00, for: .AF)
 		testJR(instruction: 0x28)
 
-		machine.setValue(0x01, for: .AF)
+		machine.setValue(0xff, for: .AF)
 		testJR(instruction: 0x28)
 
 		// JR C
 		machine.setValue(0x00, for: .AF)
 		testJR(instruction: 0x38)
 
-		machine.setValue(0x01, for: .AF)
+		machine.setValue(0xff, for: .AF)
 		testJR(instruction: 0x38)
 	}
 
