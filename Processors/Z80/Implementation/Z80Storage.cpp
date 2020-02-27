@@ -473,7 +473,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		READ_OP_GROUP(CP8),
 
 		/* 0xc0 RET NZ */	RET(TestNZ),							/* 0xc1 POP BC */	StdInstr(Pop(bc_)),
-		/* 0xc2 JP NZ */	JP(TestNZ),								/* 0xc3 JP nn */	StdInstr(Read16(pc_, temp16_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
+		/* 0xc2 JP NZ */	JP(TestNZ),								/* 0xc3 JP nn */	StdInstr(Read16(pc_, memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0xc4 CALL NZ */	CALL(TestNZ),							/* 0xc5 PUSH BC */	Instr(6, Push(bc_)),
 		/* 0xc6 ADD A, n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::ADD8, &temp8_}),
 		/* 0xc7 RST 00h */	RST(),
