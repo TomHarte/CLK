@@ -244,7 +244,7 @@ void ProcessorStorage::install_default_instruction_set() {
 }
 
 void ProcessorStorage::assemble_ed_page(InstructionPage &target) {
-#define IN_C(r)		StdInstr(Input(bc_, r), {MicroOp::SetInFlags, &r})
+#define IN_C(r)		StdInstr({MicroOp::Move16, &bc_.full, &memptr_.full}, Input(bc_, r), {MicroOp::SetInFlags, &r})
 #define OUT_C(r)	StdInstr(Output(bc_, r), {MicroOp::SetOutFlags, &r})
 #define IN_OUT(r)	IN_C(r), OUT_C(r)
 

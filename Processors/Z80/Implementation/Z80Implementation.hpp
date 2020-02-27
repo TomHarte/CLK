@@ -805,9 +805,19 @@ template <	class T,
 					subtract_flag_ = half_carry_result_ = 0;
 					sign_result_ = zero_result_ = bit53_result_ = *static_cast<uint8_t *>(operation->source);
 					set_parity(sign_result_);
-					set_did_compute_flags();	// deliberate fallthrough
-				case MicroOp::SetOutFlags:
+					set_did_compute_flags();
 
+					if(operation_ == 0xdb) {
+						// IN A, (n)
+						memptr_.full = bc_.full + 1;
+					} else {
+						// IN r, (C)
+						// TODO: this surely isn't right?
+						++memptr_.full;
+					}
+				break;
+
+				case MicroOp::SetOutFlags:
 					memptr_.full = bc_.full + 1;
 				break;
 
