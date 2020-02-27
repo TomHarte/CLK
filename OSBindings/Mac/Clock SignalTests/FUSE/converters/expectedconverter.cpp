@@ -71,6 +71,7 @@ int main(void) {
 		std::cout << "\t\"state\" : {" << std::endl;
 
 #define OUTPUTnbr(name)	std::cout << "\t\t\"" << #name << "\" : " << strtol(name.c_str(), nullptr, 16)
+#define OUTPUT10(name)	std::cout << "\t\t\"" << #name << "\" : " << name
 #define OUTPUT(name)	OUTPUTnbr(name) << "," << std::endl
 #define OUTPUTb(name)	std::cout << "\t\t\"" << #name << "\" : " << ((name == "0") ? "false" : "true") << "," << std::endl
 
@@ -93,7 +94,7 @@ int main(void) {
 		OUTPUTb(iff2);
 		OUTPUT(im);
 		OUTPUTb(halted);
-		OUTPUTnbr(tStates) << std::endl;
+		OUTPUT10(tStates) << std::endl;
 		
 #undef OUTPUTb
 #undef OUTPUT
