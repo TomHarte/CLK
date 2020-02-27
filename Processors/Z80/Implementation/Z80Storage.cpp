@@ -395,7 +395,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 
 		/* 0x27 DAA */			StdInstr({MicroOp::DAA}),
 		/* 0x28 JR Z */			JR(TestZ),							/* 0x29 ADD HL, HL */	ADD16(index, index),
-		/* 0x2a LD HL, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Read16(temp16_, index)),
+		/* 0x2a LD HL, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read16(memptr_, index)),
 
 		/* 0x2b DEC HL;	0x2c INC L; 0x2d DEC L; 0x2e LD L, n */
 		DEC_INC_DEC_LD(index, index.halves.low),
