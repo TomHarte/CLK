@@ -181,7 +181,6 @@ template <	class T,
 				case MicroOp::DJNZ:
 					bc_.halves.high--;
 					if(!bc_.halves.high) {
-						memptr_.full = pc_.full;
 						advance_operation();
 					}
 				break;
@@ -873,7 +872,7 @@ template <	class T,
 				break;
 
 				case MicroOp::CalculateIndexAddress:
-					memptr_.full = static_cast<uint16_t>(*static_cast<uint16_t *>(operation->source) + (int8_t)temp8_);
+					memptr_.full = static_cast<uint16_t>(*static_cast<uint16_t *>(operation->source) + int8_t(temp8_));
 				break;
 
 				case MicroOp::SetAddrAMemptr:

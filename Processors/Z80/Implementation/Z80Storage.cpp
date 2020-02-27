@@ -371,7 +371,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		DEC_INC_DEC_LD(bc_, bc_.halves.low),
 
 		/* 0x0f RRCA */			StdInstr({MicroOp::RRCA}),
-		/* 0x10 DJNZ */			Instr(6, ReadInc(pc_, temp8_), {MicroOp::Move16, &pc_.full, &memptr_.full}, {MicroOp::DJNZ}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
+		/* 0x10 DJNZ */			Instr(6, ReadInc(pc_, temp8_), {MicroOp::DJNZ}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0x11 LD DE, nn */	StdInstr(Read16Inc(pc_, de_)),
 		/* 0x12 LD (DE), A */	StdInstr({MicroOp::SetAddrAMemptr, &de_.full}, Write3(de_, a_)),
 
