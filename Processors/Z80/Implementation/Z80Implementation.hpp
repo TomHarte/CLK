@@ -480,8 +480,8 @@ template <	class T,
 #define REPEAT(test)	\
 	if(test) {	\
 		pc_.full -= 2;	\
+		memptr_.full = pc_.full + 1;	\
 	} else {	\
-		memptr_.full = pc_.full - 1;	\
 		advance_operation();		\
 	}
 

@@ -93,7 +93,7 @@ class PatrikRakTests: XCTestCase, CSTestMachineTrapHandler {
 
 	func testMemptr() {
 		runTest("z80memptr")
-		// Current status: 4 of 152 tests failed.
+		// Current status: 2 of 152 tests failed.
 	}
 
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {
