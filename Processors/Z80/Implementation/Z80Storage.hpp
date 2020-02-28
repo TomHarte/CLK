@@ -20,6 +20,7 @@ class ProcessorStorage {
 				DecodeOperationNoRChange,
 				MoveToNextProgram,
 
+				Increment8NoFlags,
 				Increment8,
 				Increment16,
 				Decrement8,
@@ -73,31 +74,45 @@ class ProcessorStorage {
 				JumpTo66,
 				HALT,
 
+				/// Decrements BC; if BC is 0 then moves to the next instruction. Otherwise allows this instruction to finish.
 				DJNZ,
+
 				DAA,
 				CPL,
 				SCF,
 				CCF,
 
+				/// Resets the bit in @c source implied by @c operation_ .
 				RES,
+				/// Tests the bit in @c source implied by @c operation_ .
 				BIT,
+				/// Sets the bit in @c source implied by @c operation_ .
 				SET,
 
+				/// Sets @c memptr_ to the target address implied by @c operation_ .
 				CalculateRSTDestination,
 
+				/// Resets subtract and carry, sets sign, zero, five and three according to the value of @c a_ and sets parity to the value of @c IFF2 .
 				SetAFlags,
+				/// Resets subtract and carry, sets sign, zero, five and three according to the value of @c operation and sets parity the same as sign.
 				SetInFlags,
+				/// Sets @c memptr_ to @c bc_.full+1 .
+				SetOutFlags,
+				/// Sets @c temp8_ to 0.
 				SetZero,
 
+				/// A no-op; used in instruction lists to indicate where an index calculation should go if this is an I[X/Y]+d operation.
 				IndexedPlaceHolder,
 
+				/// Sets @c memptr_ to (a_ << 8) + ((source_ + 1) & 0xff)
 				SetAddrAMemptr,
 
+				/// Resets: IFF1, IFF2, interrupt mode, the PC, I and R; sets all flags, the SP to 0xffff and a_ to 0xff.
 				Reset
 			};
 			Type type;
-			void *source;
-			void *destination;
+			void *source = nullptr;
+			void *destination = nullptr;
 			PartialMachineCycle machine_cycle;
 		};
 
@@ -105,7 +120,7 @@ class ProcessorStorage {
 			std::vector<MicroOp *> instructions;
 			std::vector<MicroOp> all_operations;
 			std::vector<MicroOp> fetch_decode_execute;
-			MicroOp *fetch_decode_execute_data;
+			MicroOp *fetch_decode_execute_data = nullptr;
 			uint8_t r_step;
 			bool is_indexed;
 

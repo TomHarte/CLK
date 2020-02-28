@@ -101,9 +101,10 @@ template <	class T,
 					scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 				break;
 
-				case MicroOp::Increment16:			(*static_cast<uint16_t *>(operation->source))++;		break;
+				case MicroOp::Increment8NoFlags:	++ *static_cast<uint8_t *>(operation->source);			break;
+				case MicroOp::Increment16:			++ *static_cast<uint16_t *>(operation->source);			break;
 				case MicroOp::IncrementPC:			pc_.full += pc_increment_;								break;
-				case MicroOp::Decrement16:			(*static_cast<uint16_t *>(operation->source))--;		break;
+				case MicroOp::Decrement16:			-- *static_cast<uint16_t *>(operation->source);			break;
 				case MicroOp::Move8:				*static_cast<uint8_t *>(operation->destination) = *static_cast<uint8_t *>(operation->source);		break;
 				case MicroOp::Move16:				*static_cast<uint16_t *>(operation->destination) = *static_cast<uint16_t *>(operation->source);		break;
 
@@ -479,8 +480,9 @@ template <	class T,
 #define REPEAT(test)	\
 	if(test) {	\
 		pc_.full -= 2;	\
+		memptr_.full = pc_.full + 1;	\
 	} else {	\
-		advance_operation();	\
+		advance_operation();		\
 	}
 
 #define LDxR_STEP(dir)	\
@@ -514,9 +516,10 @@ template <	class T,
 
 #undef LDxR_STEP
 
-#define CPxR_STEP(dir)	\
-	hl_.full += dir;	\
-	bc_.full--;	\
+#define CPxR_STEP(dir)		\
+	hl_.full += dir;		\
+	memptr_.full += dir;	\
+	bc_.full--;				\
 	\
 	uint8_t result = a_ - temp8_;	\
 	const uint8_t halfResult = (a_&0xf) - (temp8_&0xf);	\
@@ -541,18 +544,25 @@ template <	class T,
 				} break;
 
 				case MicroOp::CPD: {
-					memptr_.full--;
 					CPxR_STEP(-1);
 				} break;
 
 				case MicroOp::CPI: {
-					memptr_.full++;
 					CPxR_STEP(1);
 				} break;
 
 #undef CPxR_STEP
 
+#undef REPEAT
+#define REPEAT(test)	\
+	if(test) {	\
+		pc_.full -= 2;	\
+	} else {	\
+		advance_operation();		\
+	}
+
 #define INxR_STEP(dir)	\
+	memptr_.full = uint16_t(bc_.full + dir);	\
 	bc_.halves.high--;	\
 	hl_.full += dir;	\
 	\
@@ -585,12 +595,10 @@ template <	class T,
 				} break;
 
 				case MicroOp::IND: {
-					memptr_.full = bc_.full - 1;
 					INxR_STEP(-1);
 				} break;
 
 				case MicroOp::INI: {
-					memptr_.full = bc_.full + 1;
 					INxR_STEP(1);
 				} break;
 
@@ -598,6 +606,7 @@ template <	class T,
 
 #define OUTxR_STEP(dir)	\
 	bc_.halves.high--;	\
+	memptr_.full = uint16_t(bc_.full + dir);	\
 	hl_.full += dir;	\
 	\
 	sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;	\
@@ -621,12 +630,10 @@ template <	class T,
 
 				case MicroOp::OUTD: {
 					OUTxR_STEP(-1);
-					memptr_.full = bc_.full - 1;
 				} break;
 
 				case MicroOp::OUTI: {
 					OUTxR_STEP(1);
-					memptr_.full = bc_.full + 1;
 				} break;
 
 #undef OUTxR_STEP
@@ -636,6 +643,7 @@ template <	class T,
 				case MicroOp::BIT: {
 					const uint8_t result = *static_cast<uint8_t *>(operation->source) & (1 << ((operation_ >> 3)&7));
 
+					// Leak MEMPTR into bits 5 and 3 if this is either BIT n,(HL) or BIT n,(IX/IY+d).
 					if(current_instruction_page_->is_indexed || ((operation_&0x07) == 6)) {
 						bit53_result_ = memptr_.halves.high;
 					} else {
@@ -797,13 +805,18 @@ template <	class T,
 					}
 				break;
 
-// MARK: - Input
+// MARK: - Input and Output
 
 				case MicroOp::SetInFlags:
 					subtract_flag_ = half_carry_result_ = 0;
 					sign_result_ = zero_result_ = bit53_result_ = *static_cast<uint8_t *>(operation->source);
 					set_parity(sign_result_);
 					set_did_compute_flags();
+					++memptr_.full;
+				break;
+
+				case MicroOp::SetOutFlags:
+					memptr_.full = bc_.full + 1;
 				break;
 
 				case MicroOp::SetAFlags:
@@ -840,6 +853,7 @@ template <	class T,
 				case MicroOp::RETN:
 					iff1_ = iff2_;
 					if(irq_line_ && iff1_) request_status_ |= Interrupt::IRQ;
+					memptr_ = pc_;
 				break;
 
 				case MicroOp::HALT:
@@ -866,7 +880,7 @@ template <	class T,
 				break;
 
 				case MicroOp::CalculateIndexAddress:
-					memptr_.full = static_cast<uint16_t>(*static_cast<uint16_t *>(operation->source) + (int8_t)temp8_);
+					memptr_.full = static_cast<uint16_t>(*static_cast<uint16_t *>(operation->source) + int8_t(temp8_));
 				break;
 
 				case MicroOp::SetAddrAMemptr:

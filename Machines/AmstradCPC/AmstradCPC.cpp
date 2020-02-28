@@ -1012,6 +1012,9 @@ template <bool has_fdc> class ConcreteMachine:
 				default: break;
 			}
 
+			// Check whether the interrupt signal has changed the other way.
+			if(interrupt_timer_.request_has_changed()) z80_.set_interrupt_line(interrupt_timer_.get_request());
+
 			// This implementation doesn't use time-stuffing; once in-phase waits won't be longer
 			// than a single cycle so there's no real performance benefit to trying to find the
 			// next non-wait when a wait cycle comes in, and there'd be no benefit to reproducing
@@ -1228,7 +1231,7 @@ template <bool has_fdc> class ConcreteMachine:
 		KeyboardState key_state_;
 		AmstradCPC::KeyboardMapper keyboard_mapper_;
 
-		uint8_t ram_[128 * 1024];
+		uint8_t ram_[1024 * 1024];
 };
 
 }

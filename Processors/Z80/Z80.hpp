@@ -224,6 +224,13 @@ class ProcessorBase: public ProcessorStorage {
 			reset at the first opportunity. Use @c reset_power_on to disable that behaviour.
 		*/
 		void reset_power_on();
+
+		/*!
+			@returns @c true if the Z80 is currently beginning to fetch a new instruction; @c false otherwise.
+
+			This is not a speedy operation.
+		*/
+		bool is_starting_new_instruction();
 };
 
 /*!

@@ -225,6 +225,12 @@
 		4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F3E1D77B88000D431D6 /* DocumentController.swift */; };
 		4B65086022F4CF8D009C1100 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B65085F22F4CF8D009C1100 /* Keyboard.cpp */; };
 		4B65086122F4CFE0009C1100 /* Keyboard.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B65085F22F4CF8D009C1100 /* Keyboard.cpp */; };
+		4B670A9B2401CB8400D4E002 /* z80memptr.tap in Resources */ = {isa = PBXBuildFile; fileRef = 4B670A832401CB8400D4E002 /* z80memptr.tap */; };
+		4B670A9D2401CB8400D4E002 /* z80ccf.tap in Resources */ = {isa = PBXBuildFile; fileRef = 4B670A852401CB8400D4E002 /* z80ccf.tap */; };
+		4B670A9F2401CB8400D4E002 /* z80flags.tap in Resources */ = {isa = PBXBuildFile; fileRef = 4B670A872401CB8400D4E002 /* z80flags.tap */; };
+		4B670AA12401CB8400D4E002 /* z80doc.tap in Resources */ = {isa = PBXBuildFile; fileRef = 4B670A892401CB8400D4E002 /* z80doc.tap */; };
+		4B670AB02401CB8400D4E002 /* z80full.tap in Resources */ = {isa = PBXBuildFile; fileRef = 4B670A992401CB8400D4E002 /* z80full.tap */; };
+		4B670AB12401CB8400D4E002 /* z80docflags.tap in Resources */ = {isa = PBXBuildFile; fileRef = 4B670A9A2401CB8400D4E002 /* z80docflags.tap */; };
 		4B680CE223A5553100451D43 /* 68000ComparativeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B680CE123A5553100451D43 /* 68000ComparativeTests.mm */; };
 		4B680CE423A555CA00451D43 /* 68000 Comparative Tests in Resources */ = {isa = PBXBuildFile; fileRef = 4B680CE323A555CA00451D43 /* 68000 Comparative Tests */; };
 		4B69FB3D1C4D908A00B5F0AA /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B69FB3B1C4D908A00B5F0AA /* Tape.cpp */; };
@@ -817,6 +823,8 @@
 		4BD67DCC209BE4D700AB2146 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD67DCA209BE4D600AB2146 /* StaticAnalyser.cpp */; };
 		4BD67DD0209BF27B00AB2146 /* Encoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD67DCE209BF27B00AB2146 /* Encoder.cpp */; };
 		4BD67DD1209BF27B00AB2146 /* Encoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BD67DCE209BF27B00AB2146 /* Encoder.cpp */; };
+		4BD91D732401960C007BDC91 /* STX.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7BA03323C58B1E00B98D9E /* STX.cpp */; };
+		4BD91D772401C2B8007BDC91 /* PatrikRakTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BD91D762401C2B8007BDC91 /* PatrikRakTests.swift */; };
 		4BDA00DA22E60EE300AC3CD0 /* ROMRequester.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BDA00D922E60EE300AC3CD0 /* ROMRequester.xib */; };
 		4BDA00DD22E622C200AC3CD0 /* ROMImages in Resources */ = {isa = PBXBuildFile; fileRef = 4BC9DF441D044FCA00F44158 /* ROMImages */; };
 		4BDA00E022E644AF00AC3CD0 /* CSROMReceiverView.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BDA00DF22E644AF00AC3CD0 /* CSROMReceiverView.m */; };
@@ -1131,6 +1139,12 @@
 		4B643F3E1D77B88000D431D6 /* DocumentController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
 		4B644ED023F0FB55006C0CC5 /* ScanSynchroniser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScanSynchroniser.hpp; sourceTree = "<group>"; };
 		4B65085F22F4CF8D009C1100 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
+		4B670A832401CB8400D4E002 /* z80memptr.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80memptr.tap; sourceTree = "<group>"; };
+		4B670A852401CB8400D4E002 /* z80ccf.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80ccf.tap; sourceTree = "<group>"; };
+		4B670A872401CB8400D4E002 /* z80flags.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80flags.tap; sourceTree = "<group>"; };
+		4B670A892401CB8400D4E002 /* z80doc.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80doc.tap; sourceTree = "<group>"; };
+		4B670A992401CB8400D4E002 /* z80full.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80full.tap; sourceTree = "<group>"; };
+		4B670A9A2401CB8400D4E002 /* z80docflags.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80docflags.tap; sourceTree = "<group>"; };
 		4B680CE123A5553100451D43 /* 68000ComparativeTests.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000ComparativeTests.mm; sourceTree = "<group>"; };
 		4B680CE323A555CA00451D43 /* 68000 Comparative Tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "68000 Comparative Tests"; sourceTree = "<group>"; };
 		4B698D1A1FE768A100696C91 /* SampleSource.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SampleSource.hpp; sourceTree = "<group>"; };
@@ -1696,6 +1710,7 @@
 		4BD67DCE209BF27B00AB2146 /* Encoder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Encoder.cpp; sourceTree = "<group>"; };
 		4BD67DCF209BF27B00AB2146 /* Encoder.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Encoder.hpp; sourceTree = "<group>"; };
 		4BD9137D1F311BC5009BCF85 /* i8255.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = i8255.hpp; path = 8255/i8255.hpp; sourceTree = "<group>"; };
+		4BD91D762401C2B8007BDC91 /* PatrikRakTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PatrikRakTests.swift; sourceTree = "<group>"; };
 		4BDA00D922E60EE300AC3CD0 /* ROMRequester.xib */ = {isa = PBXFileReference; lastKnownFileType = file.xib; path = ROMRequester.xib; sourceTree = "<group>"; };
 		4BDA00DE22E644AF00AC3CD0 /* CSROMReceiverView.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSROMReceiverView.h; sourceTree = "<group>"; };
 		4BDA00DF22E644AF00AC3CD0 /* CSROMReceiverView.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = CSROMReceiverView.m; sourceTree = "<group>"; };
@@ -1923,6 +1938,7 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
+				4B670A822401CB8400D4E002 /* Patrik Rak Z80 Tests */,
 				4B680CE323A555CA00451D43 /* 68000 Comparative Tests */,
 				4B85322B227793CA00F26553 /* TOS Startup */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
@@ -2430,6 +2446,19 @@
 				4B643F3E1D77B88000D431D6 /* DocumentController.swift */,
 			);
 			path = "Document Controller";
+			sourceTree = "<group>";
+		};
+		4B670A822401CB8400D4E002 /* Patrik Rak Z80 Tests */ = {
+			isa = PBXGroup;
+			children = (
+				4B670A852401CB8400D4E002 /* z80ccf.tap */,
+				4B670A892401CB8400D4E002 /* z80doc.tap */,
+				4B670A9A2401CB8400D4E002 /* z80docflags.tap */,
+				4B670A872401CB8400D4E002 /* z80flags.tap */,
+				4B670A992401CB8400D4E002 /* z80full.tap */,
+				4B670A832401CB8400D4E002 /* z80memptr.tap */,
+			);
+			path = "Patrik Rak Z80 Tests";
 			sourceTree = "<group>";
 		};
 		4B69FB391C4D908A00B5F0AA /* Storage */ = {
@@ -3316,6 +3345,7 @@
 				4BEF6AAB1D35D1C400E73575 /* DPLLTests.swift */,
 				4BBF49AE1ED2880200AB3669 /* FUSETests.swift */,
 				4B1414611B58888700E04248 /* KlausDormannTests.swift */,
+				4BD91D762401C2B8007BDC91 /* PatrikRakTests.swift */,
 				4B14145F1B58885000E04248 /* WolfgangLorenzTests.swift */,
 				4B08A2741EE35D56008B7065 /* Z80InterruptTests.swift */,
 				4BDDBA981EF3451200347E61 /* Z80MachineCycleTests.swift */,
@@ -3953,6 +3983,7 @@
 				4BB299551B587D8400A49093 /* eoriy in Resources */,
 				4BB298F91B587D8400A49093 /* adczx in Resources */,
 				4BB299F21B587D8400A49093 /* trap6 in Resources */,
+				4B670A9B2401CB8400D4E002 /* z80memptr.tap in Resources */,
 				4BB299A91B587D8400A49093 /* plpn in Resources */,
 				4BB299671B587D8400A49093 /* inxn in Resources */,
 				4BB2998C1B587D8400A49093 /* lsez in Resources */,
@@ -3994,6 +4025,7 @@
 				4BB299B01B587D8400A49093 /* rlazx in Resources */,
 				4BB2999F1B587D8400A49093 /* oraax in Resources */,
 				4BB299B71B587D8400A49093 /* rorax in Resources */,
+				4B670AB02401CB8400D4E002 /* z80full.tap in Resources */,
 				4BB299DB1B587D8400A49093 /* staz in Resources */,
 				4BB299961B587D8400A49093 /* nmi in Resources */,
 				4BB299241B587D8400A49093 /* cia1ta in Resources */,
@@ -4007,6 +4039,7 @@
 				4BB299B11B587D8400A49093 /* rola in Resources */,
 				4BB299CE1B587D8400A49093 /* secn in Resources */,
 				4BB298F31B587D8400A49093 /* adcax in Resources */,
+				4B670A9F2401CB8400D4E002 /* z80flags.tap in Resources */,
 				4BB299641B587D8400A49093 /* insiy in Resources */,
 				4BB299E61B587D8400A49093 /* trap10 in Resources */,
 				4BB299651B587D8400A49093 /* insz in Resources */,
@@ -4047,6 +4080,7 @@
 				4BB299251B587D8400A49093 /* cia1tab in Resources */,
 				4BB299C21B587D8400A49093 /* rtin in Resources */,
 				4BB299071B587D8400A49093 /* aslax in Resources */,
+				4B670AB12401CB8400D4E002 /* z80docflags.tap in Resources */,
 				4BB299D51B587D8400A49093 /* shyax in Resources */,
 				4BB2992F1B587D8400A49093 /* clin in Resources */,
 				4BB299D21B587D8400A49093 /* shaiy in Resources */,
@@ -4074,6 +4108,7 @@
 				4BB299DD1B587D8400A49093 /* stxa in Resources */,
 				4BB299051B587D8400A49093 /* arrb in Resources */,
 				4BB299DC1B587D8400A49093 /* stazx in Resources */,
+				4B670A9D2401CB8400D4E002 /* z80ccf.tap in Resources */,
 				4BB299C41B587D8400A49093 /* sbca in Resources */,
 				4BB298F41B587D8400A49093 /* adcay in Resources */,
 				4B44EBF51DC987AF00A7820C /* AllSuiteA.bin in Resources */,
@@ -4104,6 +4139,7 @@
 				4BB2991E1B587D8400A49093 /* branchwrap in Resources */,
 				4BB299121B587D8400A49093 /* axsa in Resources */,
 				4BB299561B587D8400A49093 /* eorz in Resources */,
+				4B670AA12401CB8400D4E002 /* z80doc.tap in Resources */,
 				4BB299941B587D8400A49093 /* mmu in Resources */,
 				4BB299E11B587D8400A49093 /* styz in Resources */,
 				4BB299BA1B587D8400A49093 /* rorzx in Resources */,
@@ -4643,6 +4679,7 @@
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,
 				4B778F3123A5F0CB0000D260 /* Keyboard.cpp in Sources */,
 				4B778F4A23A5F1FB0000D260 /* StaticAnalyser.cpp in Sources */,
+				4BD91D772401C2B8007BDC91 /* PatrikRakTests.swift in Sources */,
 				4B680CE223A5553100451D43 /* 68000ComparativeTests.mm in Sources */,
 				4B778F3723A5F11C0000D260 /* Parser.cpp in Sources */,
 				4B778F4523A5F1CD0000D260 /* SegmentParser.cpp in Sources */,
@@ -4780,6 +4817,7 @@
 				4B778F0223A5EBA40000D260 /* MFMSectorDump.cpp in Sources */,
 				4BFCA1271ECBE33200AC40C1 /* TestMachineZ80.mm in Sources */,
 				4B778F3E23A5F17C0000D260 /* IWM.cpp in Sources */,
+				4BD91D732401960C007BDC91 /* STX.cpp in Sources */,
 				4B778F1023A5EC5D0000D260 /* Drive.cpp in Sources */,
 				4B9D0C4F22C7E0CF00DE1AD3 /* 68000RollShiftTests.mm in Sources */,
 			);

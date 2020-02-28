@@ -80,6 +80,7 @@ ProcessorStorage::ProcessorStorage() {
 
 /* The following are helper macros that define common parts of instructions */
 #define Inc16(r)				{(&r == &pc_) ? MicroOp::IncrementPC : MicroOp::Increment16, &r.full}
+#define Inc8NoFlags(r)			{MicroOp::Increment8NoFlags, &r}
 
 #define ReadInc(addr, val)		Read3(addr, val), Inc16(addr)
 #define Read4Inc(addr, val)		Read4(addr, val), Inc16(addr)
@@ -104,8 +105,8 @@ ProcessorStorage::ProcessorStorage() {
 /* The following are actual instructions */
 #define NOP						Sequence(BusOp(Refresh(4)))
 
-#define JP(cc)					StdInstr(Read16Inc(pc_, temp16_), {MicroOp::cc, nullptr}, {MicroOp::Move16, &temp16_.full, &pc_.full})
-#define CALL(cc)				StdInstr(ReadInc(pc_, temp16_.halves.low), {MicroOp::cc, conditional_call_untaken_program_.data()}, Read4Inc(pc_, temp16_.halves.high), Push(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full})
+#define JP(cc)					StdInstr(Read16Inc(pc_, memptr_), {MicroOp::cc, nullptr}, {MicroOp::Move16, &memptr_.full, &pc_.full})
+#define CALL(cc)				StdInstr(ReadInc(pc_, memptr_.halves.low), {MicroOp::cc, conditional_call_untaken_program_.data()}, Read4Inc(pc_, memptr_.halves.high), Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RET(cc)					Instr(6, {MicroOp::cc, nullptr}, Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define JR(cc)					StdInstr(ReadInc(pc_, temp8_), {MicroOp::cc, nullptr}, InternalOperation(10), {MicroOp::CalculateIndexAddress, &pc_.full}, {MicroOp::Move16, &memptr_.full, &pc_.full})
 #define RST()					Instr(6, {MicroOp::CalculateRSTDestination}, Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full})
@@ -166,7 +167,7 @@ ProcessorStorage::ProcessorStorage() {
 #define SBC16(d, s) StdInstr(InternalOperation(8), InternalOperation(6), {MicroOp::SBC16, &s.full, &d.full})
 
 void ProcessorStorage::install_default_instruction_set() {
-	MicroOp conditional_call_untaken_program[] = Sequence(ReadInc(pc_, temp16_.halves.high));
+	MicroOp conditional_call_untaken_program[] = Sequence(ReadInc(pc_, memptr_.halves.high));
 	copy_program(conditional_call_untaken_program, conditional_call_untaken_program_);
 
 	assemble_base_page(base_page_, hl_, false, cb_page_);
@@ -243,8 +244,8 @@ void ProcessorStorage::install_default_instruction_set() {
 }
 
 void ProcessorStorage::assemble_ed_page(InstructionPage &target) {
-#define IN_C(r)		StdInstr(Input(bc_, r), {MicroOp::SetInFlags, &r})
-#define OUT_C(r)	StdInstr(Output(bc_, r))
+#define IN_C(r)		StdInstr({MicroOp::Move16, &bc_.full, &memptr_.full}, Input(bc_, r), {MicroOp::SetInFlags, &r})
+#define OUT_C(r)	StdInstr(Output(bc_, r), {MicroOp::SetOutFlags})
 #define IN_OUT(r)	IN_C(r), OUT_C(r)
 
 #define NOP_ROW()	NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP
@@ -258,7 +259,7 @@ void ProcessorStorage::assemble_ed_page(InstructionPage &target) {
 		/* 0x44 NEG */			StdInstr({MicroOp::NEG}),		/* 0x45 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 		/* 0x46 IM 0 */			StdInstr({MicroOp::IM}),		/* 0x47 LD I, A */		Instr(6, {MicroOp::Move8, &a_, &ir_.halves.high}),
 		/* 0x48 IN C, (C);	0x49 OUT (C), C */	IN_OUT(bc_.halves.low),
-		/* 0x4a ADC HL, BC */	ADC16(hl_, bc_),				/* 0x4b LD BC, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Read16(temp16_, bc_)),
+		/* 0x4a ADC HL, BC */	ADC16(hl_, bc_),				/* 0x4b LD BC, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read16(memptr_, bc_)),
 		/* 0x4c NEG */			StdInstr({MicroOp::NEG}),		/* 0x4d RETI */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 		/* 0x4e IM 0/1 */		StdInstr({MicroOp::IM}),		/* 0x4f LD R, A */		Instr(6, {MicroOp::Move8, &a_, &ir_.halves.low}),
 		/* 0x50 IN D, (C);	0x51 OUT (C), D */	IN_OUT(de_.halves.high),
@@ -266,7 +267,7 @@ void ProcessorStorage::assemble_ed_page(InstructionPage &target) {
 		/* 0x54 NEG */			StdInstr({MicroOp::NEG}),		/* 0x55 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 		/* 0x56 IM 1 */			StdInstr({MicroOp::IM}),		/* 0x57 LD A, I */		Instr(6, {MicroOp::Move8, &ir_.halves.high, &a_}, {MicroOp::SetAFlags}),
 		/* 0x58 IN E, (C);	0x59 OUT (C), E */	IN_OUT(de_.halves.low),
-		/* 0x5a ADC HL, DE */	ADC16(hl_, de_),				/* 0x5b LD DE, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Read16(temp16_, de_)),
+		/* 0x5a ADC HL, DE */	ADC16(hl_, de_),				/* 0x5b LD DE, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read16(memptr_, de_)),
 		/* 0x5c NEG */			StdInstr({MicroOp::NEG}),		/* 0x5d RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 		/* 0x5e IM 2 */			StdInstr({MicroOp::IM}),		/* 0x5f LD A, R */		Instr(6, {MicroOp::Move8, &ir_.halves.low, &a_}, {MicroOp::SetAFlags}),
 		/* 0x60 IN H, (C);	0x61 OUT (C), H */	IN_OUT(hl_.halves.high),
@@ -274,15 +275,15 @@ void ProcessorStorage::assemble_ed_page(InstructionPage &target) {
 		/* 0x64 NEG */			StdInstr({MicroOp::NEG}),		/* 0x65 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 		/* 0x66 IM 0 */			StdInstr({MicroOp::IM}),		/* 0x67 RRD */			StdInstr(Read3(hl_, temp8_), InternalOperation(8), {MicroOp::RRD}, Write3(hl_, temp8_)),
 		/* 0x68 IN L, (C);	0x69 OUT (C), L */	IN_OUT(hl_.halves.low),
-		/* 0x6a ADC HL, HL */	ADC16(hl_, hl_),				/* 0x6b LD HL, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Read16(temp16_, hl_)),
+		/* 0x6a ADC HL, HL */	ADC16(hl_, hl_),				/* 0x6b LD HL, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read16(memptr_, hl_)),
 		/* 0x6c NEG */			StdInstr({MicroOp::NEG}),		/* 0x6d RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 		/* 0x6e IM 0/1 */		StdInstr({MicroOp::IM}),		/* 0x6f RLD */			StdInstr(Read3(hl_, temp8_), InternalOperation(8), {MicroOp::RLD}, Write3(hl_, temp8_)),
-		/* 0x70 IN (C) */		IN_C(temp8_),					/* 0x71 OUT (C), 0 */	StdInstr({MicroOp::SetZero}, Output(bc_, temp8_)),
+		/* 0x70 IN (C) */		IN_C(temp8_),					/* 0x71 OUT (C), 0 */	StdInstr({MicroOp::SetZero}, Output(bc_, temp8_), {MicroOp::SetOutFlags}),
 		/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	StdInstr(Read16Inc(pc_, memptr_), Write16(memptr_, sp_)),
 		/* 0x74 NEG */			StdInstr({MicroOp::NEG}),		/* 0x75 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 		/* 0x76 IM 1 */			StdInstr({MicroOp::IM}),		/* 0x77 XX */			NOP,
 		/* 0x78 IN A, (C);	0x79 OUT (C), A */	IN_OUT(a_),
-		/* 0x7a ADC HL, SP */	ADC16(hl_, sp_),				/* 0x7b LD SP, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Read16(temp16_, sp_)),
+		/* 0x7a ADC HL, SP */	ADC16(hl_, sp_),				/* 0x7b LD SP, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read16(memptr_, sp_)),
 		/* 0x7c NEG */			StdInstr({MicroOp::NEG}),		/* 0x7d RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 		/* 0x7e IM 2 */			StdInstr({MicroOp::IM}),		/* 0x7f XX */			NOP,
 		NOP_ROW(),	/* 0x80 ... 0x8f */
@@ -394,7 +395,7 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 
 		/* 0x27 DAA */			StdInstr({MicroOp::DAA}),
 		/* 0x28 JR Z */			JR(TestZ),							/* 0x29 ADD HL, HL */	ADD16(index, index),
-		/* 0x2a LD HL, (nn) */	StdInstr(Read16Inc(pc_, temp16_), Read16(temp16_, index)),
+		/* 0x2a LD HL, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read16(memptr_, index)),
 
 		/* 0x2b DEC HL;	0x2c INC L; 0x2d DEC L; 0x2e LD L, n */
 		DEC_INC_DEC_LD(index, index.halves.low),
@@ -472,22 +473,22 @@ void ProcessorStorage::assemble_base_page(InstructionPage &target, RegisterPair1
 		READ_OP_GROUP(CP8),
 
 		/* 0xc0 RET NZ */	RET(TestNZ),							/* 0xc1 POP BC */	StdInstr(Pop(bc_)),
-		/* 0xc2 JP NZ */	JP(TestNZ),								/* 0xc3 JP nn */	StdInstr(Read16(pc_, temp16_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
+		/* 0xc2 JP NZ */	JP(TestNZ),								/* 0xc3 JP nn */	StdInstr(Read16(pc_, memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0xc4 CALL NZ */	CALL(TestNZ),							/* 0xc5 PUSH BC */	Instr(6, Push(bc_)),
 		/* 0xc6 ADD A, n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::ADD8, &temp8_}),
 		/* 0xc7 RST 00h */	RST(),
-		/* 0xc8 RET Z */	RET(TestZ),								/* 0xc9 RET */		StdInstr(Pop(pc_)),
+		/* 0xc8 RET Z */	RET(TestZ),								/* 0xc9 RET */		StdInstr(Pop(memptr_), {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0xca JP Z */		JP(TestZ),								/* 0xcb [CB page] */StdInstr(FINDEX(), {MicroOp::SetInstructionPage, &cb_page}),
-		/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		StdInstr(ReadInc(pc_, temp16_.halves.low), Read4Inc(pc_, temp16_.halves.high), Push(pc_), {MicroOp::Move16, &temp16_.full, &pc_.full}),
+		/* 0xcc CALL Z */	CALL(TestZ),							/* 0xcd CALL */		StdInstr(ReadInc(pc_, memptr_.halves.low), Read4Inc(pc_, memptr_.halves.high), Push(pc_), {MicroOp::Move16, &memptr_.full, &pc_.full}),
 		/* 0xce ADC A, n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::ADC8, &temp8_}),
 		/* 0xcf RST 08h */	RST(),
 		/* 0xd0 RET NC */	RET(TestNC),							/* 0xd1 POP DE */	StdInstr(Pop(de_)),
-		/* 0xd2 JP NC */	JP(TestNC),								/* 0xd3 OUT (n), A */StdInstr(ReadInc(pc_, temp16_.halves.low), {MicroOp::Move8, &a_, &temp16_.halves.high}, Output(temp16_, a_)),
+		/* 0xd2 JP NC */	JP(TestNC),								/* 0xd3 OUT (n), A */StdInstr(ReadInc(pc_, memptr_.halves.low), {MicroOp::Move8, &a_, &memptr_.halves.high}, Output(memptr_, a_), Inc8NoFlags(memptr_.halves.low)),
 		/* 0xd4 CALL NC */	CALL(TestNC),							/* 0xd5 PUSH DE */	Instr(6, Push(de_)),
 		/* 0xd6 SUB n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::SUB8, &temp8_}),
 		/* 0xd7 RST 10h */	RST(),
 		/* 0xd8 RET C */	RET(TestC),								/* 0xd9 EXX */		StdInstr({MicroOp::EXX}),
-		/* 0xda JP C */		JP(TestC),								/* 0xdb IN A, (n) */StdInstr(ReadInc(pc_, temp16_.halves.low), {MicroOp::Move8, &a_, &temp16_.halves.high}, Input(temp16_, a_)),
+		/* 0xda JP C */		JP(TestC),								/* 0xdb IN A, (n) */StdInstr(ReadInc(pc_, memptr_.halves.low), {MicroOp::Move8, &a_, &memptr_.halves.high}, Input(memptr_, a_), Inc16(memptr_)),
 		/* 0xdc CALL C */	CALL(TestC),							/* 0xdd [DD page] */StdInstr({MicroOp::SetInstructionPage, &dd_page_}),
 		/* 0xde SBC A, n */	StdInstr(ReadInc(pc_, temp8_), {MicroOp::SBC8, &temp8_}),
 		/* 0xdf RST 18h */	RST(),
@@ -542,4 +543,10 @@ void ProcessorStorage::assemble_fetch_decode_execute(InstructionPage &target, in
 	};
 	copy_program((length == 4) ? normal_fetch_decode_execute : short_fetch_decode_execute, target.fetch_decode_execute);
 	target.fetch_decode_execute_data = target.fetch_decode_execute.data();
+}
+
+bool ProcessorBase::is_starting_new_instruction() {
+	return
+		current_instruction_page_ == &base_page_ &&
+		scheduled_program_counter_ == &base_page_.fetch_decode_execute[0];
 }
