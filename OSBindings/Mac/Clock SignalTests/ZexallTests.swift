@@ -58,7 +58,6 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 				}
 
 				let targetOutput =
-					"Z80doc instruction exerciser\n\r"			+
 					"<adc,sbc> hl,<bc,de,hl,sp>....  OK\n\r"	+
 					"add hl,<bc,de,hl,sp>..........  OK\n\r"	+
 					"add ix,<bc,de,ix,sp>..........  OK\n\r"	+
@@ -127,7 +126,8 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 					"ld (<ix,iy>+1),a..............  OK\n\r"	+
 					"ld (<bc,de>),a................  OK\n\r"	+
 					"Tests complete\n\r"
-				XCTAssertEqual(targetOutput, output);
+				let successRange = output.range(of: targetOutput)
+				XCTAssertNotEqual(successRange, nil, output);
 			}
 		}
 	}
