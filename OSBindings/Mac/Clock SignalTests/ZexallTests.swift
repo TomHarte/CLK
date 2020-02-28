@@ -18,31 +18,32 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 		if let filename = Bundle(for: type(of: self)).path(forResource: name, ofType: "com") {
 			if let testData = try? Data(contentsOf: URL(fileURLWithPath: filename)) {
 
-				// install test program, at the usual CP/M place
+				// Install test program, at the usual CP/M place.
 				let machine = CSTestMachineZ80()
 				machine.setData(testData, atAddress: 0x0100)
 
-				// add a RET at the CP/M entry location, and establish it as a trap location
+				// Add a RET at the CP/M entry location, set a high memtop, and
+				// and establish the entry location as a trap location.
 				machine.setValue(0xc9, atAddress: 0x0005)
 				machine.setValue(0xff, atAddress: 0x0006)
 				machine.setValue(0xff, atAddress: 0x0007)
 				machine.addTrapAddress(0x0005);
 				machine.trapHandler = self
 
-				// establish 0 as another trap location, as RST 0h is one of the ways that
-				// CP/M programs can exit
+				// Establish 0 as another trap location, as RST 0h is one of the ways that
+				// CP/M programs can exit.
 				machine.addTrapAddress(0);
 
-				// ensure that if the CPU hits zero, it stays there until the end of the
-				// sampling window
+				// Ensure that if the CPU hits zero, it stays there until the end of the
+				// sampling window.
 				machine.setValue(0xc3, atAddress: 0x0000)
 				machine.setValue(0x00, atAddress: 0x0001)
 				machine.setValue(0x00, atAddress: 0x0002)
 
-				// seed execution at 0x0100
+				// Seed execution at 0x0100.
 				machine.setValue(0x0100, for: .programCounter)
 
-				// run!
+				// Run!
 				let cyclesPerIteration: Int32 = 400_000_000
 				var cyclesToDate: TimeInterval = 0
 				let startDate = Date()
@@ -144,6 +145,7 @@ class ZexallTests: XCTestCase, CSTestMachineTrapHandler {
 		let testMachineZ80 = testMachine as! CSTestMachineZ80
 		switch address {
 			case 0x0005:
+				// Only the output text CP/M calls are implemented.
 				let cRegister = testMachineZ80.value(for: .C)
 				var textToAppend = ""
 				switch cRegister {
