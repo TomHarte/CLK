@@ -85,15 +85,16 @@ class PatrikRakTests: XCTestCase, CSTestMachineTrapHandler {
 		runTest("z80docflags")
 	}
 
+	func testFlags() {
+		runTest("z80flags")
+	}
+
 	func testFull() {
 		runTest("z80full")
-		// Current status: 002 of 152 tests failed.
-		// Specifically: BIT N,(HL)  and BIT N,[R,(HL)], i.e. MEMPTR by proxy.
 	}
 
 	func testMemptr() {
 		runTest("z80memptr")
-		// Current status: 2 of 152 tests failed.
 	}
 
 	func testMachine(_ testMachine: CSTestMachine, didTrapAtAddress address: UInt16) {

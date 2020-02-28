@@ -553,7 +553,16 @@ template <	class T,
 
 #undef CPxR_STEP
 
+#undef REPEAT
+#define REPEAT(test)	\
+	if(test) {	\
+		pc_.full -= 2;	\
+	} else {	\
+		advance_operation();		\
+	}
+
 #define INxR_STEP(dir)	\
+	memptr_.full = uint16_t(bc_.full + dir);	\
 	bc_.halves.high--;	\
 	hl_.full += dir;	\
 	\
@@ -586,12 +595,10 @@ template <	class T,
 				} break;
 
 				case MicroOp::IND: {
-					memptr_.full = bc_.full - 1;
 					INxR_STEP(-1);
 				} break;
 
 				case MicroOp::INI: {
-					memptr_.full = bc_.full + 1;
 					INxR_STEP(1);
 				} break;
 
@@ -599,6 +606,7 @@ template <	class T,
 
 #define OUTxR_STEP(dir)	\
 	bc_.halves.high--;	\
+	memptr_.full = uint16_t(bc_.full + dir);	\
 	hl_.full += dir;	\
 	\
 	sign_result_ = zero_result_ = bit53_result_ = bc_.halves.high;	\
@@ -622,12 +630,10 @@ template <	class T,
 
 				case MicroOp::OUTD: {
 					OUTxR_STEP(-1);
-					memptr_.full = bc_.full - 1;
 				} break;
 
 				case MicroOp::OUTI: {
 					OUTxR_STEP(1);
-					memptr_.full = bc_.full + 1;
 				} break;
 
 #undef OUTxR_STEP
