@@ -245,7 +245,7 @@ void ProcessorStorage::install_default_instruction_set() {
 
 void ProcessorStorage::assemble_ed_page(InstructionPage &target) {
 #define IN_C(r)		StdInstr({MicroOp::Move16, &bc_.full, &memptr_.full}, Input(bc_, r), {MicroOp::SetInFlags, &r})
-#define OUT_C(r)	StdInstr(Output(bc_, r), {MicroOp::SetOutFlags, &r})
+#define OUT_C(r)	StdInstr(Output(bc_, r), {MicroOp::SetOutFlags})
 #define IN_OUT(r)	IN_C(r), OUT_C(r)
 
 #define NOP_ROW()	NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP, NOP
@@ -278,7 +278,7 @@ void ProcessorStorage::assemble_ed_page(InstructionPage &target) {
 		/* 0x6a ADC HL, HL */	ADC16(hl_, hl_),				/* 0x6b LD HL, (nn) */	StdInstr(Read16Inc(pc_, memptr_), Read16(memptr_, hl_)),
 		/* 0x6c NEG */			StdInstr({MicroOp::NEG}),		/* 0x6d RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 		/* 0x6e IM 0/1 */		StdInstr({MicroOp::IM}),		/* 0x6f RLD */			StdInstr(Read3(hl_, temp8_), InternalOperation(8), {MicroOp::RLD}, Write3(hl_, temp8_)),
-		/* 0x70 IN (C) */		IN_C(temp8_),					/* 0x71 OUT (C), 0 */	StdInstr({MicroOp::SetZero}, Output(bc_, temp8_)),
+		/* 0x70 IN (C) */		IN_C(temp8_),					/* 0x71 OUT (C), 0 */	StdInstr({MicroOp::SetZero}, Output(bc_, temp8_), {MicroOp::SetOutFlags}),
 		/* 0x72 SBC HL, SP */	SBC16(hl_, sp_),				/* 0x73 LD (nn), SP */	StdInstr(Read16Inc(pc_, memptr_), Write16(memptr_, sp_)),
 		/* 0x74 NEG */			StdInstr({MicroOp::NEG}),		/* 0x75 RETN */			StdInstr(Pop(pc_), {MicroOp::RETN}),
 		/* 0x76 IM 1 */			StdInstr({MicroOp::IM}),		/* 0x77 XX */			NOP,
