@@ -44,7 +44,7 @@ class Z80MemptrTester: XCTestCase {
 				let result = test(program: program, initialValue: expectedResult)
 				XCTAssertEqual(result, expectedResult, "Failed for opcode \(String(opcode, radix:16))")
 
-				// One failure will do.
+				// One failure per opcode will do.
 				if result != expectedResult {
 					break
 				}
@@ -72,6 +72,7 @@ class Z80MemptrTester: XCTestCase {
 			0x22,		// LD (nn), HL
 			0x28,		// JR Z
 			0x29,		// ADD HL, HL
+			0x2a,		// LD HL, (nn)
 			0x30,		// JR NC
 			0x32,		// LD (nn), A
 			0x38,		// JR C
@@ -87,29 +88,47 @@ class Z80MemptrTester: XCTestCase {
 
 	func testEDPageOthers() {
 		testPage(0xed, exclusions: [
+			0x40,		// IN B, (C)
+			0x41,		// OUT (C), B
 			0x42,		// SBC HL, BC
 			0x43,		// LD (nn), HL
 			0x45,		// RETN				(??)
+			0x48,		// IN C, (C)
+			0x49,		// OUT (C), C
 			0x4a,		// ADC HL, BC
+			0x4b,		// LD BC, (nn)
 			0x4d,		// RETI
+			0x50,		// IN D, (C)
+			0x51,		// OUT (C), D
 			0x52,		// SBC HL, DE
 			0x53,		// LD (nn), DE
 			0x55,		// RETN				(??)
+			0x58,		// IN E, (C)
+			0x59,		// OUT (C), E
 			0x5a,		// ADC HL, DE
+			0x5b,		// LD DE, (nn)
 			0x5d,		// RETN				(??)
+			0x60,		// IN H, (C)
+			0x61,		// OUT (C), H
 			0x62,		// SBC HL, HL
 			0x63,		// LD (nn), HL
 			0x65,		// RETN				(??)
 			0x67,		// RRD
+			0x68,		// IN L, (C)
+			0x69,		// OUT (C), L
 			0x6a,		// ADC HL, HL
+			0x6b,		// LD HL, (nn)
 			0x6d,		// RETN				(??)
 			0x6f,		// RLD
+			0x70,		// IN (C)
+			0x71,		// OUT (C), 0
 			0x72,		// SBC HL, SP
 			0x73,		// LD (nn), SP
 			0x75,		// RETN				(??)
 			0x78,		// IN A, (C)
 			0x79,		// OUT (C), A
 			0x7a,		// ADC HL, SP
+			0x7b,		// LD SP, (nn)
 			0x7d,		// RETN				(??)
 			0xa1,		// CPI
 			0xa2,		// INI
@@ -117,10 +136,14 @@ class Z80MemptrTester: XCTestCase {
 			0xa9,		// CPD
 			0xaa,		// IND
 			0xab,		// OUTD
+			0xb0,		// LDIR
 			0xb1,		// CPIR
+			0xb2,		// INIR
 			0xb3,		// OUIR
+			0xb8, 		// LDDR
 			0xb9,		// CPDR
-			0xbb		// OTDR
+			0xba,		// INDR
+			0xbb,		// OTDR
 		])
 //		testPage(0xcb, exclusions: [])
 //		testPage(0xdd, exclusions: [])
@@ -391,7 +414,7 @@ class Z80MemptrTester: XCTestCase {
 	}
 
 	func testJRcc() {
-		func testJR(instruction: UInt8) {
+		func testJR(instruction: UInt8, shouldPass: Bool) {
 			var program: [UInt8] = [
 				instruction, 0x00
 			]
@@ -399,37 +422,37 @@ class Z80MemptrTester: XCTestCase {
 			for offset in 0 ..< 256 {
 				program[1] = UInt8(offset)
 				let result = test(program: program, initialValue: 0xffff)
-				XCTAssertEqual(result, machine.value(for: .programCounter))
+				XCTAssertEqual(result, shouldPass ? machine.value(for: .programCounter) : 0xffff)
 			}
 		}
 
 		// JR NZ.
 		machine.setValue(0x00, for: .AF)
-		testJR(instruction: 0x20)
+		testJR(instruction: 0x20, shouldPass: true)
 
 		machine.setValue(0xff, for: .AF)
-		testJR(instruction: 0x20)
+		testJR(instruction: 0x20, shouldPass: false)
 
 		// JR NC
 		machine.setValue(0x00, for: .AF)
-		testJR(instruction: 0x30)
+		testJR(instruction: 0x30, shouldPass: true)
 
 		machine.setValue(0xff, for: .AF)
-		testJR(instruction: 0x30)
+		testJR(instruction: 0x30, shouldPass: false)
 
 		// JR Z
 		machine.setValue(0x00, for: .AF)
-		testJR(instruction: 0x28)
+		testJR(instruction: 0x28, shouldPass: false)
 
 		machine.setValue(0xff, for: .AF)
-		testJR(instruction: 0x28)
+		testJR(instruction: 0x28, shouldPass: true)
 
 		// JR C
 		machine.setValue(0x00, for: .AF)
-		testJR(instruction: 0x38)
+		testJR(instruction: 0x38, shouldPass: false)
 
 		machine.setValue(0xff, for: .AF)
-		testJR(instruction: 0x38)
+		testJR(instruction: 0x38, shouldPass: true)
 	}
 
 	func testRST() {
