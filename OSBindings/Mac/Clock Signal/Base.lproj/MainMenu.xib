@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14113" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15705" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14113"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15705"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="NSApplication">
@@ -121,18 +121,6 @@
                                     <action selector="insertMedia:" target="-1" id="9Hs-9J-dlY"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="rXU-KX-GkZ"/>
-                            <menuItem title="Page Setup…" enabled="NO" keyEquivalent="P" id="qIS-W8-SiK">
-                                <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
-                                <connections>
-                                    <action selector="runPageLayout:" target="-1" id="Din-rz-gC5"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Print…" enabled="NO" keyEquivalent="p" id="aTl-1u-JFS">
-                                <connections>
-                                    <action selector="printDocument:" target="-1" id="qaZ-4w-aoO"/>
-                                </connections>
-                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
@@ -176,9 +164,14 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Input" id="6yv-Cf-E9r">
                         <items>
-                            <menuItem title="Use Keyboard as Keyboard" state="on" tag="100" keyEquivalent="k" id="TfX-0B-j4U">
+                            <menuItem title="Use Keyboard as Keyboard; Map Keys by Physical Location" state="on" tag="100" keyEquivalent="k" id="TfX-0B-j4U">
                                 <connections>
-                                    <action selector="useKeyboardAsKeyboard:" target="-1" id="6fl-fS-Oe9"/>
+                                    <action selector="useKeyboardAsPhysicalKeyboard:" target="-1" id="3NX-jl-F4z"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Use Keyboard as Keyboard; Map Keys by Symbol" tag="102" keyEquivalent="p" id="Nzx-y4-1WD">
+                                <connections>
+                                    <action selector="useKeyboardAsLogicalKeyboard:" target="-1" id="mo3-yB-wVB"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Use Keyboard as Joystick" tag="101" enabled="NO" keyEquivalent="j" id="5mn-ch-Xv6">
@@ -227,6 +220,7 @@
                     </menu>
                 </menuItem>
             </items>
+            <point key="canvasLocation" x="140" y="154"/>
         </menu>
     </objects>
 </document>
