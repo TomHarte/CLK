@@ -1052,6 +1052,7 @@ template <bool has_fdc> class ConcreteMachine:
 
 		/// Wires virtual-dispatched CRTMachine run_for requests to the static Z80 method.
 		void run_for(const Cycles cycles) final {
+			has_run_ = true;
 			z80_.run_for(cycles);
 		}
 
@@ -1079,16 +1080,20 @@ template <bool has_fdc> class ConcreteMachine:
 
 		// MARK: - Keyboard
 		void type_string(const std::string &string) final {
-			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
-			Utility::TypeRecipient::add_typer(string, std::move(mapper));
+			if(typer_) {
+				typer_->append(string);
+			} else {
+				std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
+				Utility::TypeRecipient::add_typer(string, std::move(mapper));
+			}
 		}
 
 		HalfCycles get_typer_delay() final {
-			return Cycles(4000000);	// Wait 1 second before typing.
+			return has_run_ ? Cycles(0) : Cycles(3'400'000);
 		}
 
 		HalfCycles get_typer_frequency() final {
-			return Cycles(160000);	// Type one character per frame.
+			return Cycles(80'000);	// Perform one key transition per frame.
 		}
 
 		// See header; sets a key as either pressed or released.
@@ -1231,7 +1236,8 @@ template <bool has_fdc> class ConcreteMachine:
 		KeyboardState key_state_;
 		AmstradCPC::KeyboardMapper keyboard_mapper_;
 
-		uint8_t ram_[1024 * 1024];
+		bool has_run_ = false;
+		uint8_t ram_[128 * 1024];
 };
 
 }
