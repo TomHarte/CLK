@@ -201,9 +201,10 @@ struct ActivityObserver: public Activity::Observer {
 			return nil;
 		}
 
+		// Use the keyboard as a joystick if the machine has no keyboard, or if it has a 'non-exclusive' keyboard.
 		_inputMode =
 			(_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive())
-				? CSMachineKeyboardInputModeKeyboard : CSMachineKeyboardInputModeJoystick;
+				? CSMachineKeyboardInputModeKeyboardPhysical : CSMachineKeyboardInputModeJoystick;
 
 		_leds = [[NSMutableArray alloc] init];
 		Activity::Source *const activity_source = _machine->activity_source();
@@ -429,7 +430,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed {
 	auto keyboard_machine = _machine->keyboard_machine();
-	if(keyboard_machine && (self.inputMode == CSMachineKeyboardInputModeKeyboard || !keyboard_machine->get_keyboard().is_exclusive())) {
+	if(keyboard_machine && (self.inputMode != CSMachineKeyboardInputModeJoystick || !keyboard_machine->get_keyboard().is_exclusive())) {
 		Inputs::Keyboard::Key mapped_key = Inputs::Keyboard::Key::Help;	// Make an innocuous default guess.
 #define BIND(source, dest) case source: mapped_key = Inputs::Keyboard::Key::dest; break;
 		// Connect the Carbon-era Mac keyboard scancodes to Clock Signal's 'universal' enumeration in order
@@ -503,9 +504,19 @@ struct ActivityObserver: public Activity::Observer {
 				}
 			}
 
-			@synchronized(self) {
-				keyboard.set_key_pressed(mapped_key, pressedKey, isPressed);
+			if(self.inputMode == CSMachineKeyboardInputModeKeyboardLogical) {
+				if(isPressed) {
+					@synchronized(self) {
+						char string[2] = { pressedKey, 0 };
+						keyboard_machine->type_string(string);
+					}
+				}
+			} else {
+				@synchronized(self) {
+					keyboard.set_key_pressed(mapped_key, pressedKey, isPressed);
+				}
 			}
+
 			return;
 		}
 	}

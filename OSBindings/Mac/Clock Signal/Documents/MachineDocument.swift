@@ -532,7 +532,7 @@ class MachineDocument:
 
 	// MARK: Joystick-via-the-keyboard selection
 	@IBAction func useKeyboardAsKeyboard(_ sender: NSMenuItem?) {
-		machine.inputMode = .keyboard
+		machine.inputMode = .keyboardPhysical
 	}
 
 	@IBAction func useKeyboardAsJoystick(_ sender: NSMenuItem?) {
@@ -551,7 +551,7 @@ class MachineDocument:
 						return false
 					}
 
-					menuItem.state = machine.inputMode == .keyboard ? .on : .off
+					menuItem.state = machine.inputMode == .keyboardPhysical ? .on : .off
 					return true
 
 				case #selector(self.useKeyboardAsJoystick):
