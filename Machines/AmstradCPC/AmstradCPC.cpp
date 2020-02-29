@@ -1083,8 +1083,7 @@ template <bool has_fdc> class ConcreteMachine:
 			if(typer_) {
 				typer_->append(string);
 			} else {
-				std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
-				Utility::TypeRecipient::add_typer(string, std::move(mapper));
+				Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
 			}
 		}
 
