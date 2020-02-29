@@ -128,7 +128,7 @@ bool Typer::type_next_character() {
 
 uint16_t *CharacterMapper::table_lookup_sequence_for_character(KeySequence *sequences, std::size_t length, char character) {
 	std::size_t ucharacter = static_cast<std::size_t>((unsigned char)character);
-	if(ucharacter > (length / sizeof(KeySequence))) return nullptr;
+	if(ucharacter >= (length / sizeof(KeySequence))) return nullptr;
 	if(sequences[ucharacter][0] == KeyboardMachine::MappedMachine::KeyNotMapped) return nullptr;
 	return sequences[ucharacter];
 }
