@@ -51,14 +51,21 @@ class Typer {
 	public:
 		class Delegate: public KeyboardMachine::KeyActions {
 			public:
+				/// Informs the delegate that this typer has reached the end of its content.
 				virtual void typer_reset(Typer *typer) = 0;
 		};
 
 		Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate);
 
+		/// Advances for @c duration.
 		void run_for(const HalfCycles duration);
+
+		/// Types the next character now, if there is one.
+		/// @returns @c true if there was anything left to type; @c false otherwise.
 		bool type_next_character();
-		bool is_completed();
+
+		/// Adds the contents of @c str to the end of the current string.
+		void append(const std::string &str);
 
 		const char BeginString = 0x02;	// i.e. ASCII start of text
 		const char EndString = 0x03;	// i.e. ASCII end of text
@@ -75,6 +82,7 @@ class Typer {
 		std::unique_ptr<CharacterMapper> character_mapper_;
 
 		bool try_type_next_character();
+		const uint16_t *sequence_for_character(char) const;
 };
 
 /*!

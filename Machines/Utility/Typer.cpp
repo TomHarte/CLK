@@ -8,8 +8,6 @@
 
 #include "Typer.hpp"
 
-#include <sstream>
-
 using namespace Utility;
 
 Typer::Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate) :
@@ -17,33 +15,69 @@ Typer::Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, 
 		counter_(-delay),
 		delegate_(delegate),
 		character_mapper_(std::move(character_mapper)) {
-	std::ostringstream string_stream;
-	string_stream << Typer::BeginString << string << Typer::EndString;
-	string_ = string_stream.str();
+	// Retain only those characters that actually map to something.
+	if(sequence_for_character(Typer::BeginString)) {
+		string_ += Typer::BeginString;
+	}
+	if(sequence_for_character(Typer::EndString)) {
+		string_ += Typer::EndString;
+	}
+
+	append(string);
 }
 
 void Typer::run_for(const HalfCycles duration) {
-	if(string_pointer_ < string_.size()) {
-		if(counter_ < 0 && counter_ + duration >= 0) {
-			if(!type_next_character()) {
-				delegate_->typer_reset(this);
-			}
-		}
+	if(string_pointer_ >= string_.size()) {
+		return;
+	}
 
-		counter_ += duration;
-		while(string_pointer_ < string_.size() && counter_ > frequency_) {
-			counter_ -= frequency_;
-			if(!type_next_character()) {
-				delegate_->typer_reset(this);
-			}
+	if(counter_ < 0 && counter_ + duration >= 0) {
+		if(!type_next_character()) {
+			delegate_->typer_reset(this);
+		}
+	}
+
+	counter_ += duration;
+	while(string_pointer_ < string_.size() && counter_ > frequency_) {
+		counter_ -= frequency_;
+		if(!type_next_character()) {
+			delegate_->typer_reset(this);
 		}
 	}
 }
 
-bool Typer::try_type_next_character() {
-	uint16_t *sequence = character_mapper_->sequence_for_character(string_[string_pointer_]);
+void Typer::append(const std::string &string) {
+	// Remove any characters that are already completely done;
+	// otherwise things may accumulate here indefinitely.
+	string_.erase(string_.begin(), string_.begin() + ssize_t(string_pointer_));
+	string_pointer_ = 0;
 
+	// If the final character in the string is not Typer::EndString
+	// then this machine doesn't need Begin and End, so don't worry about it.
+	ssize_t insertion_position = ssize_t(string_.size());
+	if(string_.back() == Typer::EndString) --insertion_position;
+
+	string_.reserve(string_.size() + string.size());
+	for(const char c : string) {
+		if(sequence_for_character(c)) {
+			string_.insert(string_.begin() + insertion_position, c);
+			++insertion_position;
+		}
+	}
+}
+
+const uint16_t *Typer::sequence_for_character(char c) const {
+	const uint16_t *const sequence = character_mapper_->sequence_for_character(c);
 	if(!sequence || sequence[0] == KeyboardMachine::MappedMachine::KeyNotMapped) {
+		return nullptr;
+	}
+	return sequence;
+}
+
+bool Typer::try_type_next_character() {
+	const uint16_t *const sequence = sequence_for_character(string_[string_pointer_]);
+
+	if(!sequence) {
 		return false;
 	}
 
@@ -61,10 +95,10 @@ bool Typer::type_next_character() {
 
 	if(!try_type_next_character()) {
 		phase_ = 0;
-		string_pointer_++;
+		++string_pointer_;
 		if(string_pointer_ == string_.size()) return false;
 	} else {
-		phase_++;
+		++phase_;
 	}
 
 	return true;
