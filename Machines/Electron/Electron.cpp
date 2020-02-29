@@ -346,10 +346,10 @@ class ConcreteMachine:
 				}
 			}
 
-			cycles_since_display_update_ += Cycles(static_cast<int>(cycles));
-			cycles_since_audio_update_ += Cycles(static_cast<int>(cycles));
+			cycles_since_display_update_ += Cycles(int(cycles));
+			cycles_since_audio_update_ += Cycles(int(cycles));
 			if(cycles_since_audio_update_ > Cycles(16384)) update_audio();
-			tape_.run_for(Cycles(static_cast<int>(cycles)));
+			tape_.run_for(Cycles(int(cycles)));
 
 			cycles_until_display_interrupt_ -= cycles;
 			if(cycles_until_display_interrupt_ < 0) {
@@ -358,8 +358,8 @@ class ConcreteMachine:
 				queue_next_display_interrupt();
 			}
 
-			if(typer_) typer_->run_for(Cycles(static_cast<int>(cycles)));
-			if(plus3_) plus3_->run_for(Cycles(4*static_cast<int>(cycles)));
+			if(typer_) typer_->run_for(Cycles(int(cycles)));
+			if(plus3_) plus3_->run_for(Cycles(4*int(cycles)));
 			if(shift_restart_counter_) {
 				shift_restart_counter_ -= cycles;
 				if(shift_restart_counter_ <= 0) {
@@ -413,7 +413,11 @@ class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) final {
-			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
+			if(typer_) {
+				typer_->append(string);
+			} else {
+				Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
+			}
 		}
 
 		KeyboardMapper *get_keyboard_mapper() final {
