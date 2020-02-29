@@ -81,27 +81,28 @@ uint16_t Typer::try_type_next_character() {
 		return 0;
 	}
 
+	// Advance phase.
+	++phase_;
+
 	// If this is the start of the output sequence, start with a reset all keys.
 	// Then pause unless the caracter mapper says not to.
-	if(!phase_) {
+	if(phase_ == 1) {
 		delegate_->clear_all_keys();
 		if(character_mapper_->needs_pause_after_reset_all_keys()) {
 			return 0xffff;	// Arbitrarily. Anything non-zero will do.
 		}
+		++phase_;
 	}
 
-	// Advance phase.
-	++phase_;
-
 	// If the sequence is over, stop.
-	if(sequence[phase_ - 1] == KeyboardMachine::MappedMachine::KeyEndSequence) {
+	if(sequence[phase_ - 2] == KeyboardMachine::MappedMachine::KeyEndSequence) {
 		return 0;
 	}
 
 	// Otherwise, type the key.
-	delegate_->set_key_state(sequence[phase_ - 1], true);
+	delegate_->set_key_state(sequence[phase_ - 2], true);
 
-	return sequence[phase_ - 1];
+	return sequence[phase_ - 2];
 }
 
 bool Typer::type_next_character() {
