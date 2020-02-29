@@ -74,31 +74,51 @@ const uint16_t *Typer::sequence_for_character(char c) const {
 	return sequence;
 }
 
-bool Typer::try_type_next_character() {
+uint16_t Typer::try_type_next_character() {
 	const uint16_t *const sequence = sequence_for_character(string_[string_pointer_]);
 
 	if(!sequence) {
-		return false;
+		return 0;
 	}
 
-	if(!phase_) delegate_->clear_all_keys();
-	else {
-		delegate_->set_key_state(sequence[phase_ - 1], true);
-		return sequence[phase_] != KeyboardMachine::MappedMachine::KeyEndSequence;
+	// If this is the start of the output sequence, start with a reset all keys.
+	// Then pause unless the caracter mapper says not to.
+	if(!phase_) {
+		delegate_->clear_all_keys();
+		if(character_mapper_->needs_pause_after_reset_all_keys()) {
+			return 0xffff;	// Arbitrarily. Anything non-zero will do.
+		}
 	}
 
-	return true;
+	// Advance phase.
+	++phase_;
+
+	// If the sequence is over, stop.
+	if(sequence[phase_ - 1] == KeyboardMachine::MappedMachine::KeyEndSequence) {
+		return 0;
+	}
+
+	// Otherwise, type the key.
+	delegate_->set_key_state(sequence[phase_ - 1], true);
+
+	return sequence[phase_ - 1];
 }
 
 bool Typer::type_next_character() {
 	if(string_pointer_ == string_.size()) return false;
 
-	if(!try_type_next_character()) {
-		phase_ = 0;
-		++string_pointer_;
-		if(string_pointer_ == string_.size()) return false;
-	} else {
-		++phase_;
+	while(true) {
+		const uint16_t key_pressed = try_type_next_character();
+
+		if(!key_pressed) {
+			phase_ = 0;
+			++string_pointer_;
+			if(string_pointer_ == string_.size()) return false;
+		}
+
+		if(character_mapper_->needs_pause_after_key(key_pressed)) {
+			break;
+		}
 	}
 
 	return true;

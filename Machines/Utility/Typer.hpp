@@ -28,6 +28,18 @@ class CharacterMapper {
 		/// @returns The EndSequence-terminated sequence of keys that would cause @c character to be typed.
 		virtual uint16_t *sequence_for_character(char character) = 0;
 
+		/// The typer will automatically reset all keys in between each sequence that it types.
+		/// By default it will pause for one key's duration when doing so. Character mappers
+		/// can eliminate that pause by overriding this method.
+		/// @returns @c true if the typer should pause after performing a reset; @c false otherwise.
+		virtual bool needs_pause_after_reset_all_keys()	{ return true; }
+
+		/// The typer will pause between every entry in a keyboard sequence. On some machines
+		/// that may not be necessary — it'll often depends on whether the machine needs time to
+		/// observe a modifier like shift before it sees the actual keypress.
+		/// @returns @c true if the typer should pause after forwarding @c key; @c false otherwise.
+		virtual bool needs_pause_after_key(uint16_t key)	{ return true; }
+
 	protected:
 		typedef uint16_t KeySequence[16];
 
@@ -81,7 +93,7 @@ class Typer {
 		Delegate *delegate_;
 		std::unique_ptr<CharacterMapper> character_mapper_;
 
-		bool try_type_next_character();
+		uint16_t try_type_next_character();
 		const uint16_t *sequence_for_character(char) const;
 };
 
