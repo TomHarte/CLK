@@ -169,7 +169,7 @@
                                     <action selector="useKeyboardAsPhysicalKeyboard:" target="-1" id="3NX-jl-F4z"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Use Keyboard as Keyboard; Map Keys by Symbol" tag="102" keyEquivalent="p" id="Nzx-y4-1WD">
+                            <menuItem title="Use Keyboard as Keyboard; Map Keys by Symbol" tag="102" keyEquivalent="l" id="Nzx-y4-1WD">
                                 <connections>
                                     <action selector="useKeyboardAsLogicalKeyboard:" target="-1" id="mo3-yB-wVB"/>
                                 </connections>
