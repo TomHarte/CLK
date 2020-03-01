@@ -550,3 +550,7 @@ bool ProcessorBase::is_starting_new_instruction() {
 		current_instruction_page_ == &base_page_ &&
 		scheduled_program_counter_ == &base_page_.fetch_decode_execute[0];
 }
+
+bool ProcessorBase::get_is_resetting() {
+	return request_status_ & (Interrupt::PowerOn | Interrupt::Reset);
+}

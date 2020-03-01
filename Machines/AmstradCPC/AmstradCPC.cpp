@@ -1052,7 +1052,6 @@ template <bool has_fdc> class ConcreteMachine:
 
 		/// Wires virtual-dispatched CRTMachine run_for requests to the static Z80 method.
 		void run_for(const Cycles cycles) final {
-			has_run_ = true;
 			z80_.run_for(cycles);
 		}
 
@@ -1088,7 +1087,7 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		HalfCycles get_typer_delay() final {
-			return has_run_ ? Cycles(0) : Cycles(3'400'000);
+			return z80_.get_is_resetting() ? Cycles(3'400'000) : Cycles(0);
 		}
 
 		HalfCycles get_typer_frequency() final {

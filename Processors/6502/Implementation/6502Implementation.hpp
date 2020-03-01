@@ -705,7 +705,7 @@ void ProcessorBase::set_reset_line(bool active) {
 }
 
 bool ProcessorBase::get_is_resetting() {
-	return !!(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn));
+	return interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn);
 }
 
 void ProcessorBase::set_power_on(bool active) {
