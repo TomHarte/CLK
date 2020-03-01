@@ -34,6 +34,8 @@ class CharacterMapper: public ::Utility::CharacterMapper {
 		CharacterMapper(bool is_zx81);
 		uint16_t *sequence_for_character(char character) override;
 
+		bool needs_pause_after_key(uint16_t key) override;
+
 	private:
 		bool is_zx81_;
 };

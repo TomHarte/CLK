@@ -179,3 +179,7 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 	else
 		return table_lookup_sequence_for_character(zx80_key_sequences, sizeof(zx80_key_sequences), character);
 }
+
+bool CharacterMapper::needs_pause_after_key(uint16_t key) {
+	return key != KeyShift;
+}
