@@ -340,7 +340,11 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) final {
-			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>(is_zx81));
+			if(typer_) {
+				typer_->append(string);
+			} else {
+				Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>(is_zx81));
+			}
 		}
 
 		// MARK: - Keyboard
@@ -373,8 +377,13 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// MARK: - Typer timing
-		HalfCycles get_typer_delay() final { return Cycles(7000000); }
-		HalfCycles get_typer_frequency() final { return Cycles(390000); }
+		HalfCycles get_typer_delay() final {
+			return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
+		}
+
+		HalfCycles get_typer_frequency() final {
+			return Cycles(390'000);
+		}
 
 		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;

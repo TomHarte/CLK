@@ -32,7 +32,7 @@ struct KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
 class CharacterMapper: public ::Utility::CharacterMapper {
 	public:
 		CharacterMapper(bool is_zx81);
-		uint16_t *sequence_for_character(char character);
+		uint16_t *sequence_for_character(char character) override;
 
 	private:
 		bool is_zx81_;
