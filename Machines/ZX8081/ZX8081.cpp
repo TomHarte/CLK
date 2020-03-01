@@ -349,10 +349,23 @@ template<bool is_zx81> class ConcreteMachine:
 
 		// MARK: - Keyboard
 		void set_key_state(uint16_t key, bool is_pressed) final {
-			if(is_pressed)
-				key_states_[key >> 8] &= static_cast<uint8_t>(~key);
-			else
-				key_states_[key >> 8] |= static_cast<uint8_t>(key);
+			const auto line = key >> 8;
+
+			// Check for special cases.
+			if(line == 8) {
+				switch(key) {
+					case KeyDelete:
+						// Map delete to shift+0.
+						set_key_state(KeyShift, is_pressed);
+						set_key_state(Key0, is_pressed);
+					break;
+				}
+			} else {
+				if(is_pressed)
+					key_states_[line] &= uint8_t(~key);
+				else
+					key_states_[line] |= uint8_t(key);
+			}
 		}
 
 		void clear_all_keys() final {

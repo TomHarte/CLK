@@ -28,6 +28,9 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(FullStop, KeyDot);
 		BIND(Enter, KeyEnter);
 		BIND(Space, KeySpace);
+
+		// Virtual keys follow.
+		BIND(Backspace, KeyDelete);
 	}
 #undef BIND
 	return KeyboardMachine::MappedMachine::KeyNotMapped;
