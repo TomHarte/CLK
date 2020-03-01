@@ -645,7 +645,11 @@ class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) final {
-			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
+			if(typer_) {
+				typer_->append(string);
+			} else {
+				Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
+			}
 		}
 
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) final {
