@@ -405,11 +405,11 @@ class ConcreteMachine:
 		}
 
 		HalfCycles get_typer_delay() final {
-			return m6502_.get_is_resetting() ? Cycles(625*25*128) : Cycles(0);	// wait one second if resetting
+			return m6502_.get_is_resetting() ? Cycles(750'000) : Cycles(0);
 		}
 
 		HalfCycles get_typer_frequency() final {
-			return Cycles(625*128*2);	// accept a new character every two frames
+			return Cycles(60'000);
 		}
 
 		void type_string(const std::string &string) final {

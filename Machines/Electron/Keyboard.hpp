@@ -38,7 +38,10 @@ struct KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	uint16_t *sequence_for_character(char character);
+	uint16_t *sequence_for_character(char character) override;
+
+	bool needs_pause_after_reset_all_keys() override	{ return false; }
+	bool needs_pause_after_key(uint16_t key) override;
 };
 
 };
