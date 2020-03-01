@@ -359,6 +359,12 @@ template<bool is_zx81> class ConcreteMachine:
 						set_key_state(KeyShift, is_pressed);
 						set_key_state(Key0, is_pressed);
 					break;
+
+					case KeyBreak:
+						// Map break to shift+space.
+						set_key_state(KeyShift, is_pressed);
+						set_key_state(KeySpace, is_pressed);
+					break;
 				}
 			} else {
 				if(is_pressed)
