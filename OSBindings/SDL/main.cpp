@@ -469,7 +469,7 @@ int main(int argc, char *argv[]) {
 	ParsedArguments arguments = parse_arguments(argc, argv);
 
 	// This may be printed either as
-	const std::string usage_suffix = " [file] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]";
+	const std::string usage_suffix = " [file] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}] [--logical-keyboard]";
 
 	// Print a help message if requested.
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
@@ -609,6 +609,9 @@ int main(int argc, char *argv[]) {
 			machine_runner.set_speed_multiplier(speed);
 		}
 	}
+
+	// Check whether a 'logical' keyboard has been requested.
+	const bool logical_keyboard = arguments.selections.find("logical_keyboard") != arguments.selections.end();
 
 	// Wire up the best-effort updater, its delegate, and the speaker delegate.
 	machine_runner.machine = machine.get();
@@ -890,14 +893,21 @@ int main(int argc, char *argv[]) {
 					const bool is_pressed = event.type == SDL_KEYDOWN;
 
 					if(keyboard_machine) {
+						// Grab the key's symbol.
+						char key_value = '\0';
+						const char *key_name = SDL_GetKeyName(event.key.keysym.sym);
+						if(key_name[0] >= 0) key_value = key_name[0];
+
+						// If a logical mapping was selected and a symbol was found, type it.
+						if(logical_keyboard && key_value != '\0') {
+							keyboard_machine->type_string(string);
+							break;
+						}
+
+						// Otherwise, supply as a normal keypress.
 						Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
 						if(!KeyboardKeyForSDLScancode(event.key.keysym.scancode, key)) break;
-
 						if(keyboard_machine->get_keyboard().observed_keys().find(key) != keyboard_machine->get_keyboard().observed_keys().end()) {
-							char key_value = '\0';
-							const char *key_name = SDL_GetKeyName(event.key.keysym.sym);
-							if(key_name[0] >= 0) key_value = key_name[0];
-
 							keyboard_machine->get_keyboard().set_key_pressed(key, key_value, is_pressed);
 							break;
 						}
