@@ -62,11 +62,12 @@ template<bool is_zx81> class ConcreteMachine:
 	public MediaTarget::Machine,
 	public KeyboardMachine::MappedMachine,
 	public Configurable::Device,
-	public Utility::TypeRecipient,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public CPU::Z80::BusHandler,
 	public Machine {
 	public:
 		ConcreteMachine(const Analyser::Static::ZX8081::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+			Utility::TypeRecipient<CharacterMapper>(is_zx81),
 			z80_(*this),
 			tape_player_(ZX8081ClockRate),
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
@@ -340,11 +341,7 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) final {
-			if(typer_) {
-				typer_->append(string);
-			} else {
-				Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>(is_zx81));
-			}
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
 		// MARK: - Keyboard

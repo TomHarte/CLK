@@ -786,7 +786,7 @@ template <bool has_fdc> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
 	public KeyboardMachine::MappedMachine,
-	public Utility::TypeRecipient,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public CPU::Z80::BusHandler,
 	public ClockingHint::Observer,
 	public Configurable::Device,
@@ -1079,11 +1079,7 @@ template <bool has_fdc> class ConcreteMachine:
 
 		// MARK: - Keyboard
 		void type_string(const std::string &string) final {
-			if(typer_) {
-				typer_->append(string);
-			} else {
-				Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
-			}
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
 		HalfCycles get_typer_delay() final {

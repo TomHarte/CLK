@@ -10,11 +10,11 @@
 
 using namespace Utility;
 
-Typer::Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate) :
+Typer::Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, CharacterMapper &character_mapper, Delegate *delegate) :
 		frequency_(frequency),
 		counter_(-delay),
 		delegate_(delegate),
-		character_mapper_(std::move(character_mapper)) {
+		character_mapper_(character_mapper) {
 	// Retain only those characters that actually map to something.
 	if(sequence_for_character(Typer::BeginString)) {
 		string_ += Typer::BeginString;
@@ -71,7 +71,7 @@ void Typer::append(const std::string &string) {
 }
 
 const uint16_t *Typer::sequence_for_character(char c) const {
-	const uint16_t *const sequence = character_mapper_->sequence_for_character(c);
+	const uint16_t *const sequence = character_mapper_.sequence_for_character(c);
 	if(!sequence || sequence[0] == KeyboardMachine::MappedMachine::KeyNotMapped) {
 		return nullptr;
 	}
@@ -94,7 +94,7 @@ uint16_t Typer::try_type_next_character() {
 	// be clear.
 	if(phase_ == 1) {
 		delegate_->clear_all_keys();
-		if(character_mapper_->needs_pause_after_reset_all_keys() ||
+		if(character_mapper_.needs_pause_after_reset_all_keys() ||
 			(string_pointer_ > 0 && string_[string_pointer_ - 1] == string_[string_pointer_])) {
 			return 0xffff;	// Arbitrarily. Anything non-zero will do.
 		}
@@ -124,7 +124,7 @@ bool Typer::type_next_character() {
 			if(string_pointer_ == string_.size()) return false;
 		}
 
-		if(character_mapper_->needs_pause_after_key(key_pressed)) {
+		if(character_mapper_.needs_pause_after_key(key_pressed)) {
 			break;
 		}
 	}

@@ -287,7 +287,7 @@ class ConcreteMachine:
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
-	public Utility::TypeRecipient,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Machine,
 	public ClockingHint::Observer,
@@ -645,11 +645,7 @@ class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) final {
-			if(typer_) {
-				typer_->append(string);
-			} else {
-				Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
-			}
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) final {

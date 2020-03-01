@@ -46,7 +46,7 @@ class ConcreteMachine:
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public Tape::Delegate,
-	public Utility::TypeRecipient,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public Activity::Source {
 	public:
 		ConcreteMachine(const Analyser::Static::Acorn::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -413,11 +413,7 @@ class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) final {
-			if(typer_) {
-				typer_->append(string);
-			} else {
-				Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
-			}
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
 		KeyboardMapper *get_keyboard_mapper() final {

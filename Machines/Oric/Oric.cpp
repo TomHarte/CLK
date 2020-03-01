@@ -224,7 +224,6 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
-	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public DiskController::Delegate,
 	public ClockingHint::Observer,

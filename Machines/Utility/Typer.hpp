@@ -67,7 +67,7 @@ class Typer {
 				virtual void typer_reset(Typer *typer) = 0;
 		};
 
-		Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate);
+		Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, CharacterMapper &character_mapper, Delegate *delegate);
 
 		/// Advances for @c duration.
 		void run_for(const HalfCycles duration);
@@ -91,7 +91,7 @@ class Typer {
 		int phase_ = 0;
 
 		Delegate *delegate_;
-		std::unique_ptr<CharacterMapper> character_mapper_;
+		CharacterMapper &character_mapper_;
 
 		uint16_t try_type_next_character();
 		const uint16_t *sequence_for_character(char) const;
@@ -101,11 +101,18 @@ class Typer {
 	Provides a default base class for type recipients: classes that want to attach a single typer at a time and
 	which may or may not want to nominate an initial delay and typing frequency.
 */
+template <typename CMApper>
 class TypeRecipient: public Typer::Delegate {
 	protected:
+		template <typename... Args> TypeRecipient(Args&&... args) : character_mapper(std::forward<Args>(args)...) {}
+
 		/// Attaches a typer to this class that will type @c string using @c character_mapper as a source.
-		void add_typer(const std::string &string, std::unique_ptr<CharacterMapper> character_mapper) {
-			typer_ = std::make_unique<Typer>(string, get_typer_delay(), get_typer_frequency(), std::move(character_mapper), this);
+		void add_typer(const std::string &string) {
+			if(!typer_) {
+				typer_ = std::make_unique<Typer>(string, get_typer_delay(), get_typer_frequency(), character_mapper, this);
+			} else {
+				typer_->append(string);
+			}
 		}
 
 		/*!
@@ -128,6 +135,7 @@ class TypeRecipient: public Typer::Delegate {
 
 	private:
 		std::unique_ptr<Typer> previous_typer_;
+		CMApper character_mapper;
 };
 
 }
