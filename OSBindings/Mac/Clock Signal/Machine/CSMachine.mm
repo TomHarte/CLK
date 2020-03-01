@@ -504,17 +504,23 @@ struct ActivityObserver: public Activity::Observer {
 				}
 			}
 
+			// If this is logical mode and this key maps to a symbol, supply it
+			// as something to type. If this isn't logical mode, or this key doesn't
+			// map to a symbol, pass it along as a standard press.
 			if(self.inputMode == CSMachineKeyboardInputModeKeyboardLogical) {
-				if(isPressed) {
-					@synchronized(self) {
-						char string[2] = { pressedKey, 0 };
-						keyboard_machine->type_string(string);
+				if(pressedKey) {
+					if(isPressed) {
+						@synchronized(self) {
+							char string[2] = { pressedKey, 0 };
+							keyboard_machine->type_string(string);
+						}
 					}
+					return;
 				}
-			} else {
-				@synchronized(self) {
-					keyboard.set_key_pressed(mapped_key, pressedKey, isPressed);
-				}
+			}
+
+			@synchronized(self) {
+				keyboard.set_key_pressed(mapped_key, pressedKey, isPressed);
 			}
 
 			return;
