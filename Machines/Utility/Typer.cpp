@@ -49,8 +49,12 @@ void Typer::run_for(const HalfCycles duration) {
 void Typer::append(const std::string &string) {
 	// Remove any characters that are already completely done;
 	// otherwise things may accumulate here indefinitely.
-	string_.erase(string_.begin(), string_.begin() + ssize_t(string_pointer_));
-	string_pointer_ = 0;
+	// Note that sequence_for_character may seek to look one backwards,
+	// so keep 'the character before' if there was one.
+	if(string_pointer_ > 1) {
+		string_.erase(string_.begin(), string_.begin() + ssize_t(string_pointer_) - 1);
+		string_pointer_ = 1;
+	}
 
 	// If the final character in the string is not Typer::EndString
 	// then this machine doesn't need Begin and End, so don't worry about it.
@@ -85,10 +89,13 @@ uint16_t Typer::try_type_next_character() {
 	++phase_;
 
 	// If this is the start of the output sequence, start with a reset all keys.
-	// Then pause unless the caracter mapper says not to.
+	// Then pause if either: (i) the machine requires it; or (ii) this is the same
+	// character that was just typed, in which case the gap in presses will need to
+	// be clear.
 	if(phase_ == 1) {
 		delegate_->clear_all_keys();
-		if(character_mapper_->needs_pause_after_reset_all_keys()) {
+		if(character_mapper_->needs_pause_after_reset_all_keys() ||
+			(string_pointer_ > 0 && string_[string_pointer_ - 1] == string_[string_pointer_])) {
 			return 0xffff;	// Arbitrarily. Anything non-zero will do.
 		}
 		++phase_;
