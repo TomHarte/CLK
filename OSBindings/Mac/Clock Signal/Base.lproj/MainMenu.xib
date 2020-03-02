@@ -164,12 +164,12 @@
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Input" id="6yv-Cf-E9r">
                         <items>
-                            <menuItem title="Use Keyboard as Keyboard; Map Keys by Physical Location" state="on" tag="100" keyEquivalent="k" id="TfX-0B-j4U">
+                            <menuItem title="Use Keyboard as Keyboard" state="on" tag="100" keyEquivalent="k" id="TfX-0B-j4U">
                                 <connections>
                                     <action selector="useKeyboardAsPhysicalKeyboard:" target="-1" id="3NX-jl-F4z"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Use Keyboard as Keyboard; Map Keys by Symbol" tag="102" keyEquivalent="l" id="Nzx-y4-1WD">
+                            <menuItem title="Map Typed Characters by Symbol" tag="102" keyEquivalent="l" id="Nzx-y4-1WD">
                                 <connections>
                                     <action selector="useKeyboardAsLogicalKeyboard:" target="-1" id="mo3-yB-wVB"/>
                                 </connections>
