@@ -469,7 +469,7 @@ int main(int argc, char *argv[]) {
 	ParsedArguments arguments = parse_arguments(argc, argv);
 
 	// This may be printed either as
-	const std::string usage_suffix = " [file] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}] [--logical-keyboard]";
+	const std::string usage_suffix = " [file] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]";	/* [--logical-keyboard] */
 
 	// Print a help message if requested.
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
@@ -611,7 +611,10 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Check whether a 'logical' keyboard has been requested.
-	const bool logical_keyboard = arguments.selections.find("logical_keyboard") != arguments.selections.end();
+	constexpr bool logical_keyboard = false; //arguments.selections.find("logical-keyboard") != arguments.selections.end();
+	/* Logical keyboard entry is currently disabled; the attempt below to get logical input via SDL_GetKeyName is
+	too flawed — all letters are always capitals, shifted symbols are reported correctly on their first
+	press only, etc. I need to see whether other options are available. If not then SDL may not allow this feature.*/
 
 	// Wire up the best-effort updater, its delegate, and the speaker delegate.
 	machine_runner.machine = machine.get();
@@ -896,12 +899,14 @@ int main(int argc, char *argv[]) {
 						// Grab the key's symbol.
 						char key_value = '\0';
 						const char *key_name = SDL_GetKeyName(event.key.keysym.sym);
-						if(key_name[0] >= 0) key_value = key_name[0];
+						if(key_name[0] >= 0 && key_name[1] == 0) key_value = key_name[0];
 
 						// If a logical mapping was selected and a symbol was found, type it.
 						if(logical_keyboard && key_value != '\0' && keyboard_machine->can_type(key_value)) {
-							char string[] = { key_value, 0 };
-							keyboard_machine->type_string(string);
+							if(is_pressed) {
+								char string[] = { key_value, 0 };
+								keyboard_machine->type_string(string);
+							}
 							break;
 						}
 
