@@ -37,6 +37,10 @@ enum Key: uint16_t {
 	// Virtual keys.
 	KeyUp		= 0xfff0,
 	KeyLeft		= 0xfff1,
+	KeyF2		= 0xfff2,
+	KeyF4		= 0xfff3,
+	KeyF6		= 0xfff4,
+	KeyF8		= 0xfff5,
 
 	//  Physical keys not within the usual matrix.
 	KeyRestore	= 0xfffd,

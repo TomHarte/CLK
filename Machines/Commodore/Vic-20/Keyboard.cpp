@@ -56,8 +56,6 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 
 		BIND(Right, KeyRight);
 		BIND(Down, KeyDown);
-		BIND(Left, KeyLeft);
-		BIND(Up, KeyUp);
 
 		BIND(Enter, KeyReturn);
 		BIND(Space, KeySpace);
@@ -68,6 +66,14 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(F3, KeyF3);
 		BIND(F5, KeyF5);
 		BIND(F7, KeyF7);
+
+		// Mappings to virtual keys.
+		BIND(Left, KeyLeft);
+		BIND(Up, KeyUp);
+		BIND(F2, KeyF2);
+		BIND(F4, KeyF4);
+		BIND(F6, KeyF6);
+		BIND(F8, KeyF8);
 	}
 #undef BIND
 	return KeyboardMachine::MappedMachine::KeyNotMapped;

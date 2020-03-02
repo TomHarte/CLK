@@ -486,14 +486,19 @@ class ConcreteMachine:
 					case KeyRestore:
 						user_port_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !is_pressed);
 					break;
-					case KeyUp:
-						keyboard_via_port_handler_->set_key_state(KeyLShift, is_pressed);
-						keyboard_via_port_handler_->set_key_state(KeyDown, is_pressed);
+#define ShiftedMap(source, target)	\
+					case source:	\
+						keyboard_via_port_handler_->set_key_state(KeyLShift, is_pressed);	\
+						keyboard_via_port_handler_->set_key_state(target, is_pressed);	\
 					break;
-					case KeyLeft:
-						keyboard_via_port_handler_->set_key_state(KeyLShift, is_pressed);
-						keyboard_via_port_handler_->set_key_state(KeyRight, is_pressed);
-					break;
+
+					ShiftedMap(KeyUp, KeyDown);
+					ShiftedMap(KeyLeft, KeyRight);
+					ShiftedMap(KeyF2, KeyF1);
+					ShiftedMap(KeyF4, KeyF3);
+					ShiftedMap(KeyF6, KeyF5);
+					ShiftedMap(KeyF8, KeyF7);
+#undef ShiftedMap
 				}
 			}
 		}
