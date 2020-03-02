@@ -899,7 +899,8 @@ int main(int argc, char *argv[]) {
 						if(key_name[0] >= 0) key_value = key_name[0];
 
 						// If a logical mapping was selected and a symbol was found, type it.
-						if(logical_keyboard && key_value != '\0') {
+						if(logical_keyboard && key_value != '\0' && keyboard_machine->can_type(key_value)) {
+							char string[] = { key_value, 0 };
 							keyboard_machine->type_string(string);
 							break;
 						}

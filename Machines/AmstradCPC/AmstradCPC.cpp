@@ -1082,6 +1082,10 @@ template <bool has_fdc> class ConcreteMachine:
 			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
+		bool can_type(char c) final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
+		}
+
 		HalfCycles get_typer_delay() final {
 			return z80_.get_is_resetting() ? Cycles(3'400'000) : Cycles(0);
 		}

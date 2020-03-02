@@ -589,6 +589,11 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
 		}
 
+		bool can_type(char c) final {
+			// Make an effort to type the entire printable ASCII range.
+			return c >= 32 && c < 127;
+		}
+
 		// DiskController::Delegate
 		void disk_controller_did_change_paged_item(DiskController *controller) final {
 			switch(controller->get_paged_item()) {

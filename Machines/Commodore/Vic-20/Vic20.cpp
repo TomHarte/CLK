@@ -648,6 +648,10 @@ class ConcreteMachine:
 			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
+		bool can_type(char c) final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
+		}
+
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) final {
 			keyboard_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !tape->get_input());
 		}

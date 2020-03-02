@@ -344,6 +344,10 @@ template<bool is_zx81> class ConcreteMachine:
 			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
+		bool can_type(char c) final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
+		}
+
 		// MARK: - Keyboard
 		void set_key_state(uint16_t key, bool is_pressed) final {
 			const auto line = key >> 8;

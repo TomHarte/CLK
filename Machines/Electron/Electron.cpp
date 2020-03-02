@@ -416,6 +416,10 @@ class ConcreteMachine:
 			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
+		bool can_type(char c) final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
+		}
+
 		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}

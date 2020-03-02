@@ -116,6 +116,14 @@ class TypeRecipient: public Typer::Delegate {
 		}
 
 		/*!
+			@returns @c true if the character mapper provides a mapping for @c c; @c false otherwise.
+		*/
+		bool can_type(char c) {
+			const auto sequence = character_mapper.sequence_for_character(c);
+			return sequence && sequence[0] != KeyboardMachine::MappedMachine::KeyNotMapped;
+		}
+
+		/*!
 			Provided in order to conform to that part of the Typer::Delegate interface that goes above and
 			beyond KeyboardMachine::Machine; responds to the end of typing by clearing all keys.
 		*/

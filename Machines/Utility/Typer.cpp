@@ -140,3 +140,4 @@ uint16_t *CharacterMapper::table_lookup_sequence_for_character(KeySequence *sequ
 	if(sequences[ucharacter][0] == KeyboardMachine::MappedMachine::KeyNotMapped) return nullptr;
 	return sequences[ucharacter];
 }
+
