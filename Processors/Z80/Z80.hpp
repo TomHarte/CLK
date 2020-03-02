@@ -220,6 +220,13 @@ class ProcessorBase: public ProcessorStorage {
 		inline void set_reset_line(bool value);
 
 		/*!
+			Gets whether the Z80 would reset at the next opportunity.
+
+			@returns @c true if the line is logically active; @c false otherwise.
+		*/
+		bool get_is_resetting();
+
+		/*!
 			This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
 			reset at the first opportunity. Use @c reset_power_on to disable that behaviour.
 		*/

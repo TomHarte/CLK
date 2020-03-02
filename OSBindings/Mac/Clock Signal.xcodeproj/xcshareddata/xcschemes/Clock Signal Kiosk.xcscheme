@@ -31,7 +31,7 @@
       </Testables>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Release"
+      buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       disableMainThreadChecker = "YES"
@@ -58,6 +58,14 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/Master System/R-Type (NTSC).sms&quot;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--logical-keyboard"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/Amstrad CPC/Amstrad CPC [TOSEC]/Amstrad CPC - Applications - [DSK] (TOSEC-v2011-08-31_CM)/Tasword (1984)(Tasman Software).dsk&quot;"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument

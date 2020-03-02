@@ -858,6 +858,11 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
 		}
 
+		bool can_type(char c) final {
+			// Make an effort to type the entire printable ASCII range.
+			return c >= 32 && c < 127;
+		}
+
 		// MARK:: Configuration options.
 		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
 			return Apple::II::get_options();

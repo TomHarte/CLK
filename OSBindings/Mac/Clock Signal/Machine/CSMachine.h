@@ -28,8 +28,9 @@ typedef NS_ENUM(NSInteger, CSMachineVideoSignal) {
 };
 
 typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
-	CSMachineKeyboardInputModeKeyboard,
-	CSMachineKeyboardInputModeJoystick
+	CSMachineKeyboardInputModeKeyboardPhysical,
+	CSMachineKeyboardInputModeKeyboardLogical,
+	CSMachineKeyboardInputModeJoystick,
 };
 
 @interface CSMissingROM: NSObject

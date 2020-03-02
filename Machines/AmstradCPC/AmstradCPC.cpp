@@ -786,7 +786,7 @@ template <bool has_fdc> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
 	public KeyboardMachine::MappedMachine,
-	public Utility::TypeRecipient,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public CPU::Z80::BusHandler,
 	public ClockingHint::Observer,
 	public Configurable::Device,
@@ -1079,16 +1079,19 @@ template <bool has_fdc> class ConcreteMachine:
 
 		// MARK: - Keyboard
 		void type_string(const std::string &string) final {
-			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
-			Utility::TypeRecipient::add_typer(string, std::move(mapper));
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+		}
+
+		bool can_type(char c) final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 
 		HalfCycles get_typer_delay() final {
-			return Cycles(4000000);	// Wait 1 second before typing.
+			return z80_.get_is_resetting() ? Cycles(3'400'000) : Cycles(0);
 		}
 
 		HalfCycles get_typer_frequency() final {
-			return Cycles(160000);	// Type one character per frame.
+			return Cycles(80'000);	// Perform one key transition per frame.
 		}
 
 		// See header; sets a key as either pressed or released.
@@ -1231,7 +1234,8 @@ template <bool has_fdc> class ConcreteMachine:
 		KeyboardState key_state_;
 		AmstradCPC::KeyboardMapper keyboard_mapper_;
 
-		uint8_t ram_[1024 * 1024];
+		bool has_run_ = false;
+		uint8_t ram_[128 * 1024];
 };
 
 }

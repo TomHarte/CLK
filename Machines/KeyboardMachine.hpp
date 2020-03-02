@@ -46,6 +46,11 @@ class Machine: public KeyActions {
 		virtual void type_string(const std::string &);
 
 		/*!
+			@returns @c true if this machine can type the character @c c as part of a @c type_string; @c false otherwise.
+		*/
+		virtual bool can_type(char c) { return false; }
+
+		/*!
 			Provides a destination for keyboard input.
 		*/
 		virtual Inputs::Keyboard &get_keyboard() = 0;

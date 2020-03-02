@@ -224,7 +224,6 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
-	public Utility::TypeRecipient,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public DiskController::Delegate,
 	public ClockingHint::Observer,
@@ -588,6 +587,11 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		// for Utility::TypeRecipient::Delegate
 		void type_string(const std::string &string) final {
 			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
+		}
+
+		bool can_type(char c) final {
+			// Make an effort to type the entire printable ASCII range.
+			return c >= 32 && c < 127;
 		}
 
 		// DiskController::Delegate

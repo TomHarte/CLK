@@ -36,6 +36,14 @@ void MultiKeyboardMachine::type_string(const std::string &string) {
 	}
 }
 
+bool MultiKeyboardMachine::can_type(char c) {
+	bool can_type = true;
+	for(const auto &machine: machines_) {
+		can_type &= machine->can_type(c);
+	}
+	return can_type;
+}
+
 Inputs::Keyboard &MultiKeyboardMachine::get_keyboard() {
 	return keyboard_;
 }

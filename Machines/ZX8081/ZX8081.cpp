@@ -62,11 +62,12 @@ template<bool is_zx81> class ConcreteMachine:
 	public MediaTarget::Machine,
 	public KeyboardMachine::MappedMachine,
 	public Configurable::Device,
-	public Utility::TypeRecipient,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public CPU::Z80::BusHandler,
 	public Machine {
 	public:
 		ConcreteMachine(const Analyser::Static::ZX8081::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+			Utility::TypeRecipient<CharacterMapper>(is_zx81),
 			z80_(*this),
 			tape_player_(ZX8081ClockRate),
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
@@ -340,15 +341,38 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) final {
-			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>(is_zx81));
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+		}
+
+		bool can_type(char c) final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 
 		// MARK: - Keyboard
 		void set_key_state(uint16_t key, bool is_pressed) final {
-			if(is_pressed)
-				key_states_[key >> 8] &= static_cast<uint8_t>(~key);
-			else
-				key_states_[key >> 8] |= static_cast<uint8_t>(key);
+			const auto line = key >> 8;
+
+			// Check for special cases.
+			if(line == 8) {
+				switch(key) {
+					case KeyDelete:
+						// Map delete to shift+0.
+						set_key_state(KeyShift, is_pressed);
+						set_key_state(Key0, is_pressed);
+					break;
+
+					case KeyBreak:
+						// Map break to shift+space.
+						set_key_state(KeyShift, is_pressed);
+						set_key_state(KeySpace, is_pressed);
+					break;
+				}
+			} else {
+				if(is_pressed)
+					key_states_[line] &= uint8_t(~key);
+				else
+					key_states_[line] |= uint8_t(key);
+			}
 		}
 
 		void clear_all_keys() final {
@@ -373,8 +397,13 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// MARK: - Typer timing
-		HalfCycles get_typer_delay() final { return Cycles(7000000); }
-		HalfCycles get_typer_frequency() final { return Cycles(390000); }
+		HalfCycles get_typer_delay() final {
+			return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
+		}
+
+		HalfCycles get_typer_frequency() final {
+			return Cycles(146'250);
+		}
 
 		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;

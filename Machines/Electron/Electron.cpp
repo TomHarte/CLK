@@ -46,7 +46,7 @@ class ConcreteMachine:
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public Tape::Delegate,
-	public Utility::TypeRecipient,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public Activity::Source {
 	public:
 		ConcreteMachine(const Analyser::Static::Acorn::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -346,10 +346,10 @@ class ConcreteMachine:
 				}
 			}
 
-			cycles_since_display_update_ += Cycles(static_cast<int>(cycles));
-			cycles_since_audio_update_ += Cycles(static_cast<int>(cycles));
+			cycles_since_display_update_ += Cycles(int(cycles));
+			cycles_since_audio_update_ += Cycles(int(cycles));
 			if(cycles_since_audio_update_ > Cycles(16384)) update_audio();
-			tape_.run_for(Cycles(static_cast<int>(cycles)));
+			tape_.run_for(Cycles(int(cycles)));
 
 			cycles_until_display_interrupt_ -= cycles;
 			if(cycles_until_display_interrupt_ < 0) {
@@ -358,8 +358,8 @@ class ConcreteMachine:
 				queue_next_display_interrupt();
 			}
 
-			if(typer_) typer_->run_for(Cycles(static_cast<int>(cycles)));
-			if(plus3_) plus3_->run_for(Cycles(4*static_cast<int>(cycles)));
+			if(typer_) typer_->run_for(Cycles(int(cycles)));
+			if(plus3_) plus3_->run_for(Cycles(4*int(cycles)));
 			if(shift_restart_counter_) {
 				shift_restart_counter_ -= cycles;
 				if(shift_restart_counter_ <= 0) {
@@ -405,15 +405,19 @@ class ConcreteMachine:
 		}
 
 		HalfCycles get_typer_delay() final {
-			return m6502_.get_is_resetting() ? Cycles(625*25*128) : Cycles(0);	// wait one second if resetting
+			return m6502_.get_is_resetting() ? Cycles(750'000) : Cycles(0);
 		}
 
 		HalfCycles get_typer_frequency() final {
-			return Cycles(625*128*2);	// accept a new character every two frames
+			return Cycles(60'000);
 		}
 
 		void type_string(const std::string &string) final {
-			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+		}
+
+		bool can_type(char c) final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 
 		KeyboardMapper *get_keyboard_mapper() final {

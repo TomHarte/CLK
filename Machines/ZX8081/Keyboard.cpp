@@ -28,6 +28,10 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(FullStop, KeyDot);
 		BIND(Enter, KeyEnter);
 		BIND(Space, KeySpace);
+
+		// Virtual keys follow.
+		BIND(Backspace, KeyDelete);
+		BIND(Escape, KeyBreak);
 	}
 #undef BIND
 	return KeyboardMachine::MappedMachine::KeyNotMapped;
@@ -46,7 +50,7 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		/* ACK */	X,							/* BEL */	X,
 		/* BS */	SHIFT(Key0),				/* HT */	X,
 		/* LF */	KEYS(KeyEnter),				/* VT */	X,
-		/* FF */	X,							/* CR */	X,
+		/* FF */	X,							/* CR */	KEYS(KeyEnter),
 		/* SO */	X,							/* SI */	X,
 		/* DLE */	X,							/* DC1 */	X,
 		/* DC2 */	X,							/* DC3 */	X,
@@ -112,7 +116,7 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		/* ACK */	X,							/* BEL */	X,
 		/* BS */	SHIFT(Key0),				/* HT */	X,
 		/* LF */	KEYS(KeyEnter),				/* VT */	X,
-		/* FF */	X,							/* CR */	X,
+		/* FF */	X,							/* CR */	KEYS(KeyEnter),
 		/* SO */	X,							/* SI */	X,
 		/* DLE */	X,							/* DC1 */	X,
 		/* DC2 */	X,							/* DC3 */	X,
@@ -178,4 +182,8 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		return table_lookup_sequence_for_character(zx81_key_sequences, sizeof(zx81_key_sequences), character);
 	else
 		return table_lookup_sequence_for_character(zx80_key_sequences, sizeof(zx80_key_sequences), character);
+}
+
+bool CharacterMapper::needs_pause_after_key(uint16_t key) {
+	return key != KeyShift;
 }

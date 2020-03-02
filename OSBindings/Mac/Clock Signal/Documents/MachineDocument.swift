@@ -531,8 +531,12 @@ class MachineDocument:
 	}
 
 	// MARK: Joystick-via-the-keyboard selection
-	@IBAction func useKeyboardAsKeyboard(_ sender: NSMenuItem?) {
-		machine.inputMode = .keyboard
+	@IBAction func useKeyboardAsPhysicalKeyboard(_ sender: NSMenuItem?) {
+		machine.inputMode = .keyboardPhysical
+	}
+
+	@IBAction func useKeyboardAsLogicalKeyboard(_ sender: NSMenuItem?) {
+		machine.inputMode = .keyboardLogical
 	}
 
 	@IBAction func useKeyboardAsJoystick(_ sender: NSMenuItem?) {
@@ -545,13 +549,22 @@ class MachineDocument:
 	override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
 		if let menuItem = item as? NSMenuItem {
 			switch item.action {
-				case #selector(self.useKeyboardAsKeyboard):
+				case #selector(self.useKeyboardAsPhysicalKeyboard):
 					if machine == nil || !machine.hasExclusiveKeyboard {
 						menuItem.state = .off
 						return false
 					}
 
-					menuItem.state = machine.inputMode == .keyboard ? .on : .off
+					menuItem.state = machine.inputMode == .keyboardPhysical ? .on : .off
+					return true
+
+				case #selector(self.useKeyboardAsLogicalKeyboard):
+					if machine == nil || !machine.hasExclusiveKeyboard {
+						menuItem.state = .off
+						return false
+					}
+
+					menuItem.state = machine.inputMode == .keyboardLogical ? .on : .off
 					return true
 
 				case #selector(self.useKeyboardAsJoystick):

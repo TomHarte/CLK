@@ -369,6 +369,11 @@ class ConcreteMachine:
 			);
 		}
 
+		bool can_type(char c) final {
+			// Make an effort to type the entire printable ASCII range.
+			return c >= 32 && c < 127;
+		}
+
 		// MARK: MSX::MemoryMap
 		void map(int slot, std::size_t source_address, uint16_t destination_address, std::size_t length) final {
 			assert(!(destination_address & 8191));

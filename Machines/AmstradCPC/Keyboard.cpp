@@ -85,7 +85,7 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		/* ACK */	X,							/* BEL */	X,
 		/* BS */	KEYS(KeyDelete),			/* HT */	X,
 		/* LF */	KEYS(KeyReturn),			/* VT */	X,
-		/* FF */	X,							/* CR */	X,
+		/* FF */	X,							/* CR */	KEYS(KeyReturn),
 		/* SO */	X,							/* SI */	X,
 		/* DLE */	X,							/* DC1 */	X,
 		/* DC2 */	X,							/* DC3 */	X,
@@ -142,11 +142,15 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		/* x */		KEYS(KeyX),					/* y */		KEYS(KeyY),
 		/* z */		KEYS(KeyZ),					/* { */		X,
 		/* | */		SHIFT(KeyAt),				/* } */		X,
-		/* ~ */		X
+		/* ~ */		X,							/* DEL */	KEYS(KeyDelete),
 	};
 #undef KEYS
 #undef SHIFT
 #undef X
 
 	return table_lookup_sequence_for_character(key_sequences, sizeof(key_sequences), character);
+}
+
+bool CharacterMapper::needs_pause_after_key(uint16_t key) {
+	return key != KeyControl && key != KeyShift;
 }

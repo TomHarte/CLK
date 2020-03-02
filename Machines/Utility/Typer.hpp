@@ -28,6 +28,18 @@ class CharacterMapper {
 		/// @returns The EndSequence-terminated sequence of keys that would cause @c character to be typed.
 		virtual uint16_t *sequence_for_character(char character) = 0;
 
+		/// The typer will automatically reset all keys in between each sequence that it types.
+		/// By default it will pause for one key's duration when doing so. Character mappers
+		/// can eliminate that pause by overriding this method.
+		/// @returns @c true if the typer should pause after performing a reset; @c false otherwise.
+		virtual bool needs_pause_after_reset_all_keys()	{ return true; }
+
+		/// The typer will pause between every entry in a keyboard sequence. On some machines
+		/// that may not be necessary — it'll often depends on whether the machine needs time to
+		/// observe a modifier like shift before it sees the actual keypress.
+		/// @returns @c true if the typer should pause after forwarding @c key; @c false otherwise.
+		virtual bool needs_pause_after_key(uint16_t key)	{ return true; }
+
 	protected:
 		typedef uint16_t KeySequence[16];
 
@@ -51,14 +63,21 @@ class Typer {
 	public:
 		class Delegate: public KeyboardMachine::KeyActions {
 			public:
+				/// Informs the delegate that this typer has reached the end of its content.
 				virtual void typer_reset(Typer *typer) = 0;
 		};
 
-		Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, std::unique_ptr<CharacterMapper> character_mapper, Delegate *delegate);
+		Typer(const std::string &string, HalfCycles delay, HalfCycles frequency, CharacterMapper &character_mapper, Delegate *delegate);
 
+		/// Advances for @c duration.
 		void run_for(const HalfCycles duration);
+
+		/// Types the next character now, if there is one.
+		/// @returns @c true if there was anything left to type; @c false otherwise.
 		bool type_next_character();
-		bool is_completed();
+
+		/// Adds the contents of @c str to the end of the current string.
+		void append(const std::string &str);
 
 		const char BeginString = 0x02;	// i.e. ASCII start of text
 		const char EndString = 0x03;	// i.e. ASCII end of text
@@ -72,20 +91,36 @@ class Typer {
 		int phase_ = 0;
 
 		Delegate *delegate_;
-		std::unique_ptr<CharacterMapper> character_mapper_;
+		CharacterMapper &character_mapper_;
 
-		bool try_type_next_character();
+		uint16_t try_type_next_character();
+		const uint16_t *sequence_for_character(char) const;
 };
 
 /*!
 	Provides a default base class for type recipients: classes that want to attach a single typer at a time and
 	which may or may not want to nominate an initial delay and typing frequency.
 */
+template <typename CMApper>
 class TypeRecipient: public Typer::Delegate {
 	protected:
+		template <typename... Args> TypeRecipient(Args&&... args) : character_mapper(std::forward<Args>(args)...) {}
+
 		/// Attaches a typer to this class that will type @c string using @c character_mapper as a source.
-		void add_typer(const std::string &string, std::unique_ptr<CharacterMapper> character_mapper) {
-			typer_ = std::make_unique<Typer>(string, get_typer_delay(), get_typer_frequency(), std::move(character_mapper), this);
+		void add_typer(const std::string &string) {
+			if(!typer_) {
+				typer_ = std::make_unique<Typer>(string, get_typer_delay(), get_typer_frequency(), character_mapper, this);
+			} else {
+				typer_->append(string);
+			}
+		}
+
+		/*!
+			@returns @c true if the character mapper provides a mapping for @c c; @c false otherwise.
+		*/
+		bool can_type(char c) {
+			const auto sequence = character_mapper.sequence_for_character(c);
+			return sequence && sequence[0] != KeyboardMachine::MappedMachine::KeyNotMapped;
 		}
 
 		/*!
@@ -108,6 +143,7 @@ class TypeRecipient: public Typer::Delegate {
 
 	private:
 		std::unique_ptr<Typer> previous_typer_;
+		CMApper character_mapper;
 };
 
 }

@@ -287,7 +287,7 @@ class ConcreteMachine:
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,
-	public Utility::TypeRecipient,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public Storage::Tape::BinaryTapePlayer::Delegate,
 	public Machine,
 	public ClockingHint::Observer,
@@ -479,10 +479,28 @@ class ConcreteMachine:
 		}
 
 		void set_key_state(uint16_t key, bool is_pressed) final {
-			if(key != KeyRestore)
+			if(key < 0xfff0) {
 				keyboard_via_port_handler_->set_key_state(key, is_pressed);
-			else
-				user_port_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !is_pressed);
+			} else {
+				switch(key) {
+					case KeyRestore:
+						user_port_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !is_pressed);
+					break;
+#define ShiftedMap(source, target)	\
+					case source:	\
+						keyboard_via_port_handler_->set_key_state(KeyLShift, is_pressed);	\
+						keyboard_via_port_handler_->set_key_state(target, is_pressed);	\
+					break;
+
+					ShiftedMap(KeyUp, KeyDown);
+					ShiftedMap(KeyLeft, KeyRight);
+					ShiftedMap(KeyF2, KeyF1);
+					ShiftedMap(KeyF4, KeyF3);
+					ShiftedMap(KeyF6, KeyF5);
+					ShiftedMap(KeyF8, KeyF7);
+#undef ShiftedMap
+				}
+			}
 		}
 
 		void clear_all_keys() final {
@@ -645,7 +663,11 @@ class ConcreteMachine:
 		}
 
 		void type_string(const std::string &string) final {
-			Utility::TypeRecipient::add_typer(string, std::make_unique<CharacterMapper>());
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+		}
+
+		bool can_type(char c) final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 
 		void tape_did_change_input(Storage::Tape::BinaryTapePlayer *tape) final {
