@@ -24,7 +24,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(Z, KeyZ);		BIND(X, KeyX);		BIND(C, KeyC);		BIND(V, KeyV);
 		BIND(B, KeyB);		BIND(N, KeyN);		BIND(M, KeyM);
 
-		BIND(BackTick, KeyLeft);
+		BIND(BackTick, KeyLeftArrow);
 		BIND(Hyphen, KeyPlus);
 		BIND(Equals, KeyDash);
 		BIND(F11, KeyGBP);
@@ -35,8 +35,8 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(CloseSquareBracket, KeyAsterisk);
 
 		BIND(Backslash, KeyRestore);
-		BIND(Hash, KeyUp);
-		BIND(F10, KeyUp);
+		BIND(Hash, KeyUpArrow);
+		BIND(F10, KeyUpArrow);
 
 		BIND(Semicolon, KeyColon);
 		BIND(Quote, KeySemicolon);
@@ -56,6 +56,8 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 
 		BIND(Right, KeyRight);
 		BIND(Down, KeyDown);
+		BIND(Left, KeyLeft);
+		BIND(Up, KeyUp);
 
 		BIND(Enter, KeyReturn);
 		BIND(Space, KeySpace);

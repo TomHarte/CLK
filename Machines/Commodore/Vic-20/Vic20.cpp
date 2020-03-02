@@ -479,10 +479,23 @@ class ConcreteMachine:
 		}
 
 		void set_key_state(uint16_t key, bool is_pressed) final {
-			if(key != KeyRestore)
+			if(key < 0xfff0) {
 				keyboard_via_port_handler_->set_key_state(key, is_pressed);
-			else
-				user_port_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !is_pressed);
+			} else {
+				switch(key) {
+					case KeyRestore:
+						user_port_via_.set_control_line_input(MOS::MOS6522::Port::A, MOS::MOS6522::Line::One, !is_pressed);
+					break;
+					case KeyUp:
+						keyboard_via_port_handler_->set_key_state(KeyLShift, is_pressed);
+						keyboard_via_port_handler_->set_key_state(KeyDown, is_pressed);
+					break;
+					case KeyLeft:
+						keyboard_via_port_handler_->set_key_state(KeyLShift, is_pressed);
+						keyboard_via_port_handler_->set_key_state(KeyRight, is_pressed);
+					break;
+				}
+			}
 		}
 
 		void clear_all_keys() final {
