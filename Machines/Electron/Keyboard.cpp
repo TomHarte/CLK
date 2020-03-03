@@ -13,7 +13,9 @@ using namespace Electron;
 uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 #define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return Electron::Key::dest
 	switch(key) {
-		default: return KeyCopy;
+		default: break;
+
+		BIND(BackTick, KeyCopy);
 
 		BIND(k0, Key0);		BIND(k1, Key1);		BIND(k2, Key2);		BIND(k3, Key3);		BIND(k4, Key4);
 		BIND(k5, Key5);		BIND(k6, Key6);		BIND(k7, Key7);		BIND(k8, Key8);		BIND(k9, Key9);
@@ -52,6 +54,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(Space, KeySpace);
 	}
 #undef BIND
+	return KeyboardMachine::MappedMachine::KeyNotMapped;
 }
 
 uint16_t *CharacterMapper::sequence_for_character(char character) {
@@ -123,7 +126,7 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		/* x */		SHIFT(KeyX),				/* y */		SHIFT(KeyY),
 		/* z */		SHIFT(KeyZ),				/* { */		CTRL(KeyUp),
 		/* | */		SHIFT(KeyRight),			/* } */		CTRL(KeyDown),
-		/* ~ */		CTRL(KeyLeft),				/* DEL */	KEYS(KeyDelete),
+		/* ~ */		CTRL(KeyLeft)
 	};
 #undef KEYS
 #undef SHIFT
