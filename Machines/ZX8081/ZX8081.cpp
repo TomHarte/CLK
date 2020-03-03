@@ -367,7 +367,7 @@ template<bool is_zx81> class ConcreteMachine:
 					ShiftedKey(KeyDown, Key6);
 					ShiftedKey(KeyLeft, Key5);
 					ShiftedKey(KeyRight, Key8);
-					ShiftedKey(KeyEdit, Key1);
+					ShiftedKey(KeyEdit, is_zx81 ? Key1 : KeyEnter);
 #undef ShiftedKey
 				}
 			} else {
