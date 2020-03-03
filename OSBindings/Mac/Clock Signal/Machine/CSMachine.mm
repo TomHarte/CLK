@@ -504,10 +504,21 @@ struct ActivityObserver: public Activity::Observer {
 				}
 			}
 
-			// If this is logical mode and this key maps to a symbol, supply it
-			// as something to type. If this isn't logical mode, or this key doesn't
-			// map to a symbol, pass it along as a standard press.
-			if(self.inputMode == CSMachineKeyboardInputModeKeyboardLogical) {
+			// Decide whether to try to 'type' (in the logical mapping sense) in the first instance.
+			bool shouldTryToType = self.inputMode == CSMachineKeyboardInputModeKeyboardLogical;
+
+			// Even if the default wasn't to try to type, have a go anyway if the key wasn't
+			// recognised directly. E.g. if the user hits their square bracket key on a machine that
+			// doesn't have a correspondingly-placed key, then try to type a square bracket.
+			if(!shouldTryToType) {
+				@synchronized(self) {
+					shouldTryToType = !keyboard.set_key_pressed(mapped_key, pressedKey, isPressed);
+				}
+			}
+
+			// If this should try to type, give that a go. But typing may fail, e.g. because the user
+			// has pressed something like the cursor keys, which don't actually map to a typeable symbol.
+			if(shouldTryToType) {
 				@synchronized(self) {
 					if(pressedKey && keyboard_machine->can_type(pressedKey)) {
 						if(isPressed) {
@@ -517,10 +528,12 @@ struct ActivityObserver: public Activity::Observer {
 						return;
 					}
 				}
-			}
 
-			@synchronized(self) {
-				keyboard.set_key_pressed(mapped_key, pressedKey, isPressed);
+				// Okay, so at this point either: set_key_pressed was already tried but will fail anyway,
+				// or else it hasn't been tried yet and is worth a go.
+				@synchronized(self) {
+					shouldTryToType = !keyboard.set_key_pressed(mapped_key, pressedKey, isPressed);
+				}
 			}
 
 			return;

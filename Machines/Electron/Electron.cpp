@@ -62,7 +62,7 @@ class ConcreteMachine:
 			set_clock_rate(2000000);
 
 			speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
-			speaker_.set_high_frequency_cutoff(7000);
+			speaker_.set_high_frequency_cutoff(6000);
 
 			const std::string machine_name = "Electron";
 			std::vector<ROMMachine::ROM> required_roms = {

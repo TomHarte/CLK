@@ -14,9 +14,11 @@ MappedMachine::MappedMachine(const std::set<Inputs::Keyboard::Key> &essential_mo
 	keyboard_.set_delegate(this);
 }
 
-void MappedMachine::keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) {
+bool MappedMachine::keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) {
 	uint16_t mapped_key = get_keyboard_mapper()->mapped_key_for_key(key);
-	if(mapped_key != KeyNotMapped) set_key_state(mapped_key, is_pressed);
+	if(mapped_key == KeyNotMapped) return false;
+	set_key_state(mapped_key, is_pressed);
+	return true;
 }
 
 void MappedMachine::reset_all_keys(Inputs::Keyboard *keyboard) {

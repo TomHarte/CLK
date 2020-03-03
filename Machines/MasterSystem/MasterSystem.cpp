@@ -355,12 +355,18 @@ class ConcreteMachine:
 			return keyboard_;
 		}
 
-		void keyboard_did_change_key(Inputs::Keyboard *, Inputs::Keyboard::Key key, bool is_pressed) final {
+		bool keyboard_did_change_key(Inputs::Keyboard *, Inputs::Keyboard::Key key, bool is_pressed) final {
 			if(key == Inputs::Keyboard::Key::Enter) {
 				pause_is_pressed_ = is_pressed;
-			} else if(key == Inputs::Keyboard::Key::Escape) {
-				reset_is_pressed_ = is_pressed;
+				return true;
 			}
+
+			if(key == Inputs::Keyboard::Key::Escape) {
+				reset_is_pressed_ = is_pressed;
+				return true;
+			}
+
+			return false;
 		}
 
 		void reset_all_keys(Inputs::Keyboard *) final {
