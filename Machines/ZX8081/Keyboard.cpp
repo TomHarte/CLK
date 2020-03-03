@@ -32,6 +32,11 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		// Virtual keys follow.
 		BIND(Backspace, KeyDelete);
 		BIND(Escape, KeyBreak);
+		BIND(Up, KeyUp);
+		BIND(Down, KeyDown);
+		BIND(Left, KeyLeft);
+		BIND(Right, KeyRight);
+		BIND(BackTick, KeyEdit);	BIND(F1, KeyEdit);
 	}
 #undef BIND
 	return KeyboardMachine::MappedMachine::KeyNotMapped;

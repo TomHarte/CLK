@@ -353,19 +353,22 @@ template<bool is_zx81> class ConcreteMachine:
 			const auto line = key >> 8;
 
 			// Check for special cases.
-			if(line == 8) {
+			if(line > 7) {
 				switch(key) {
-					case KeyDelete:
-						// Map delete to shift+0.
-						set_key_state(KeyShift, is_pressed);
-						set_key_state(Key0, is_pressed);
+#define ShiftedKey(source, base)	\
+					case source:	\
+						set_key_state(KeyShift, is_pressed);	\
+						set_key_state(base, is_pressed);		\
 					break;
 
-					case KeyBreak:
-						// Map break to shift+space.
-						set_key_state(KeyShift, is_pressed);
-						set_key_state(KeySpace, is_pressed);
-					break;
+					ShiftedKey(KeyDelete, Key0);
+					ShiftedKey(KeyBreak, KeySpace);
+					ShiftedKey(KeyUp, Key7);
+					ShiftedKey(KeyDown, Key6);
+					ShiftedKey(KeyLeft, Key5);
+					ShiftedKey(KeyRight, Key8);
+					ShiftedKey(KeyEdit, Key1);
+#undef ShiftedKey
 				}
 			} else {
 				if(is_pressed)

@@ -26,7 +26,7 @@ enum Key: uint16_t {
 
 	// Add some virtual keys; these do not exist on a real ZX80 or ZX81. They're just a convenience.
 	KeyDelete	= 0x0801,
-	KeyBreak	= 0x0802,
+	KeyBreak, KeyLeft, KeyRight, KeyUp, KeyDown, KeyEdit
 };
 
 struct KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
