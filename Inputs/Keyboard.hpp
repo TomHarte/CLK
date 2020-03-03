@@ -45,7 +45,9 @@ class Keyboard {
 		Keyboard(const std::set<Key> &observed_keys, const std::set<Key> &essential_modifiers);
 
 		// Host interface.
-		virtual void set_key_pressed(Key key, char value, bool is_pressed);
+
+		/// @returns @c true if the key press affects the machine; @c false otherwise.
+		virtual bool set_key_pressed(Key key, char value, bool is_pressed);
 		virtual void reset_all_keys();
 
 		/// @returns a set of all Keys that this keyboard responds to.
@@ -68,7 +70,7 @@ class Keyboard {
 
 		// Delegate interface.
 		struct Delegate {
-			virtual void keyboard_did_change_key(Keyboard *keyboard, Key key, bool is_pressed) = 0;
+			virtual bool keyboard_did_change_key(Keyboard *keyboard, Key key, bool is_pressed) = 0;
 			virtual void reset_all_keys(Keyboard *keyboard) = 0;
 		};
 		void set_delegate(Delegate *delegate);

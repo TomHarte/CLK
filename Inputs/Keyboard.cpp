@@ -19,14 +19,15 @@ Keyboard::Keyboard(const std::set<Key> &essential_modifiers) : essential_modifie
 Keyboard::Keyboard(const std::set<Key> &observed_keys, const std::set<Key> &essential_modifiers) :
 	observed_keys_(observed_keys), essential_modifiers_(essential_modifiers), is_exclusive_(false) {}
 
-void Keyboard::set_key_pressed(Key key, char value, bool is_pressed) {
+bool Keyboard::set_key_pressed(Key key, char value, bool is_pressed) {
 	std::size_t key_offset = static_cast<std::size_t>(key);
 	if(key_offset >= key_states_.size()) {
 		key_states_.resize(key_offset+1, false);
 	}
 	key_states_[key_offset] = is_pressed;
 
-	if(delegate_) delegate_->keyboard_did_change_key(this, key, is_pressed);
+	if(delegate_) return delegate_->keyboard_did_change_key(this, key, is_pressed);
+	return false;
 }
 
 const std::set<Inputs::Keyboard::Key> &Keyboard::get_essential_modifiers() {

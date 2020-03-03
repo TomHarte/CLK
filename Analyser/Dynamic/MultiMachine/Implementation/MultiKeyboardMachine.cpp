@@ -56,10 +56,12 @@ MultiKeyboardMachine::MultiKeyboard::MultiKeyboard(const std::vector<::KeyboardM
 	}
 }
 
-void MultiKeyboardMachine::MultiKeyboard::set_key_pressed(Key key, char value, bool is_pressed) {
+bool MultiKeyboardMachine::MultiKeyboard::set_key_pressed(Key key, char value, bool is_pressed) {
+	bool was_consumed = false;
 	for(const auto &machine: machines_) {
-		machine->get_keyboard().set_key_pressed(key, value, is_pressed);
+		was_consumed |= machine->get_keyboard().set_key_pressed(key, value, is_pressed);
 	}
+	return was_consumed;
 }
 
 void MultiKeyboardMachine::MultiKeyboard::reset_all_keys() {

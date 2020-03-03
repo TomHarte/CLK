@@ -95,7 +95,7 @@ class MappedMachine: public Inputs::Keyboard::Delegate, public Machine {
 		virtual Inputs::Keyboard &get_keyboard() override;
 
 	private:
-		void keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) override;
+		bool keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) override;
 		void reset_all_keys(Inputs::Keyboard *keyboard) override;
 		Inputs::Keyboard keyboard_;
 };

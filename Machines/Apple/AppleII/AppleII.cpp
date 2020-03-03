@@ -811,18 +811,18 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			open_apple_is_pressed_ = closed_apple_is_pressed_ = key_is_down_ = false;
 		}
 
-		void set_key_pressed(Key key, char value, bool is_pressed) final {
+		bool set_key_pressed(Key key, char value, bool is_pressed) final {
 			switch(key) {
 				default: break;
 				case Key::F12:
 					m6502_.set_reset_line(is_pressed);
-				return;
+				return true;
 				case Key::LeftOption:
 					open_apple_is_pressed_ = is_pressed;
-				return;
+				return true;
 				case Key::RightOption:
 					closed_apple_is_pressed_ = is_pressed;
-				return;
+				return true;
 			}
 
 			// If no ASCII value is supplied, look for a few special cases.
@@ -833,7 +833,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case Key::Down:			value = 0x0a;	break;
 					case Key::Up:			value = 0x0b;	break;
 					case Key::Backspace:	value = 0x7f;	break;
-					default: return;
+					default: return false;
 				}
 			}
 
@@ -848,6 +848,8 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					key_is_down_ = false;
 				}
 			}
+
+			return true;
 		}
 
 		Inputs::Keyboard &get_keyboard() final {
