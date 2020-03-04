@@ -16,6 +16,7 @@
 #include <memory>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <unordered_map>
 
 #include <SDL2/SDL.h>
 
@@ -611,10 +612,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Check whether a 'logical' keyboard has been requested.
-	constexpr bool logical_keyboard = false; //arguments.selections.find("logical-keyboard") != arguments.selections.end();
-	/* Logical keyboard entry is currently disabled; the attempt below to get logical input via SDL_GetKeyName is
-	too flawed — all letters are always capitals, shifted symbols are reported correctly on their first
-	press only, etc. I need to see whether other options are available. If not then SDL may not allow this feature.*/
+	const bool logical_keyboard = arguments.selections.find("logical-keyboard") != arguments.selections.end();
+	SDL_StartTextInput();
 
 	// Wire up the best-effort updater, its delegate, and the speaker delegate.
 	machine_runner.machine = machine.get();
@@ -767,6 +766,15 @@ int main(int argc, char *argv[]) {
 		activity_observer = std::make_unique<ActivityObserver>(activity_source, 4.0f / 3.0f);
 	}
 
+	// SDL 2.x delivers key up/down events and text inputs separately even when they're correlated;
+	// this struct and map is used to correlate them by time.
+	struct KeyPress {
+		bool is_down = true;
+		std::string input;
+		SDL_Keycode keycode = SDLK_UNKNOWN;
+	};
+	std::unordered_map<uint32_t, KeyPress> keypresses;
+
 	// Run the main event loop until the OS tells us to quit.
 	const bool uses_mouse = !!machine->mouse_machine();
 	bool should_quit = false;
@@ -811,6 +819,13 @@ int main(int argc, char *argv[]) {
 				case SDL_DROPFILE: {
 					Analyser::Static::Media media = Analyser::Static::GetMedia(event.drop.file);
 					machine->media_target()->insert_media(media);
+				} break;
+
+				case SDL_TEXTINPUT: {
+					const auto keyboard_machine = machine->keyboard_machine();
+					if(keyboard_machine) {
+						keypresses[event.text.timestamp].input = event.text.text;
+					}
 				} break;
 
 				case SDL_KEYDOWN:
@@ -896,27 +911,8 @@ int main(int argc, char *argv[]) {
 					const bool is_pressed = event.type == SDL_KEYDOWN;
 
 					if(keyboard_machine) {
-						// Grab the key's symbol.
-						char key_value = '\0';
-						const char *key_name = SDL_GetKeyName(event.key.keysym.sym);
-						if(key_name[0] >= 0 && key_name[1] == 0) key_value = key_name[0];
-
-						// If a logical mapping was selected and a symbol was found, type it.
-						if(logical_keyboard && key_value != '\0' && keyboard_machine->can_type(key_value)) {
-							if(is_pressed) {
-								char string[] = { key_value, 0 };
-								keyboard_machine->type_string(string);
-							}
-							break;
-						}
-
-						// Otherwise, supply as a normal keypress.
-						Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
-						if(!KeyboardKeyForSDLScancode(event.key.keysym.scancode, key)) break;
-						if(keyboard_machine->get_keyboard().observed_keys().find(key) != keyboard_machine->get_keyboard().observed_keys().end()) {
-							keyboard_machine->get_keyboard().set_key_pressed(key, key_value, is_pressed);
-							break;
-						}
+						keypresses[event.text.timestamp].keycode = event.key.keysym.sym;
+						keypresses[event.text.timestamp].is_down = is_pressed;
 					}
 
 					JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
@@ -968,6 +964,35 @@ int main(int argc, char *argv[]) {
 				default: break;
 			}
 		}
+
+		// Handle accumulated key states.
+		for (const auto &keypress: keypresses) {
+			printf("Key: %d %d %s\n", keypress.second.keycode, keypress.second.is_down, keypress.second.input.c_str());
+		}
+		keypresses.clear();
+//		printf("Key down: %d", event.text.timestamp);
+//
+//		// Grab the key's symbol.
+//		char key_value = '\0';
+//		const char *key_name = SDL_GetKeyName(event.key.keysym.sym);
+//		if(key_name[0] >= 0 && key_name[1] == 0) key_value = key_name[0];
+//
+//		// If a logical mapping was selected and a symbol was found, type it.
+//		if(logical_keyboard && key_value != '\0' && keyboard_machine->can_type(key_value)) {
+//			if(is_pressed) {
+//				char string[] = { key_value, 0 };
+//				keyboard_machine->type_string(string);
+//			}
+//			break;
+//		}
+//
+//		// Otherwise, supply as a normal keypress.
+//		Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
+//		if(!KeyboardKeyForSDLScancode(event.key.keysym.scancode, key)) break;
+//		if(keyboard_machine->get_keyboard().observed_keys().find(key) != keyboard_machine->get_keyboard().observed_keys().end()) {
+//			keyboard_machine->get_keyboard().set_key_pressed(key, key_value, is_pressed);
+//			break;
+//		}
 
 		// Push new joystick state, if any.
 		JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
