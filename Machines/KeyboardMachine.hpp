@@ -9,6 +9,7 @@
 #ifndef KeyboardMachine_h
 #define KeyboardMachine_h
 
+#include <bitset>
 #include <cstdint>
 #include <string>
 #include <set>
@@ -54,6 +55,52 @@ class Machine: public KeyActions {
 			Provides a destination for keyboard input.
 		*/
 		virtual Inputs::Keyboard &get_keyboard() = 0;
+
+		/*!
+			Provides a standard bundle of logic for hosts that are able to correlate typed symbols
+			with keypresses. Specifically:
+
+			If map_logically is false:
+
+				(i) initially try to set @c key as @c is_pressed;
+				(ii) if this machine doesn't map @c key to anything but @c symbol is a printable ASCII character, attempt to @c type_string it.
+
+			If map_logically is true:
+
+				(i) if @c symbol can be typed and this is a key down, @c type_string it;
+				(ii) if @c symbol cannot be typed, set @c key as @c is_pressed
+		*/
+		bool apply_key(Inputs::Keyboard::Key key, char symbol, bool is_pressed, bool map_logically) {
+			Inputs::Keyboard &keyboard = get_keyboard();
+
+			if(!map_logically) {
+				// Try a regular keypress first, and stop if that works.
+				if(keyboard.set_key_pressed(key, symbol, is_pressed)) {
+					return true;
+				}
+
+				// That having failed, if a symbol has been supplied then try typing it.
+				if(symbol && can_type(symbol)) {
+					char string[2] = { symbol, 0 };
+					type_string(string);
+					return true;
+				}
+
+				return false;
+			} else {
+				// Try to type first.
+				if(is_pressed && symbol && can_type(symbol)) {
+					char string[2] = { symbol, 0 };
+					type_string(string);
+					return true;
+				}
+
+				// That didn't work. Forward as a keypress. As, either:
+				//	(i) this is a key down, but doesn't have a symbol, or is an untypeable symbol; or
+				//	(ii) this is a key up, which it won't be an issue to miscommunicate.
+				return keyboard.set_key_pressed(key, symbol, is_pressed);
+			}
+		}
 };
 
 /*!

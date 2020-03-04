@@ -488,55 +488,19 @@ struct ActivityObserver: public Activity::Observer {
 		}
 #undef BIND
 
-		Inputs::Keyboard &keyboard = keyboard_machine->get_keyboard();
-
-		if(keyboard.observed_keys().find(mapped_key) != keyboard.observed_keys().end()) {
-			// Don't pass anything on if this is not new information.
-			if(_depressedKeys[key] == !!isPressed) return;
-			_depressedKeys[key] = !!isPressed;
-
-			// Pick an ASCII code, if any.
-			char pressedKey = '\0';
-			if(characters.length) {
-				unichar firstCharacter = [characters characterAtIndex:0];
-				if(firstCharacter < 128) {
-					pressedKey = (char)firstCharacter;
-				}
+		// Pick an ASCII code, if any.
+		char pressedKey = '\0';
+		if(characters.length) {
+			unichar firstCharacter = [characters characterAtIndex:0];
+			if(firstCharacter < 128) {
+				pressedKey = (char)firstCharacter;
 			}
+		}
 
-			// Decide whether to try to 'type' (in the logical mapping sense) in the first instance.
-			bool shouldTryToType = self.inputMode == CSMachineKeyboardInputModeKeyboardLogical;
-
-			// Even if the default wasn't to try to type, have a go anyway if the key wasn't
-			// recognised directly. E.g. if the user hits their square bracket key on a machine that
-			// doesn't have a correspondingly-placed key, then try to type a square bracket.
-			if(!shouldTryToType) {
-				@synchronized(self) {
-					shouldTryToType = !keyboard.set_key_pressed(mapped_key, pressedKey, isPressed);
-				}
+		@synchronized(self) {
+			if(keyboard_machine->apply_key(mapped_key, pressedKey, isPressed, self.inputMode == CSMachineKeyboardInputModeKeyboardLogical)) {
+				return;
 			}
-
-			// If this should try to type, give that a go. But typing may fail, e.g. because the user
-			// has pressed something like the cursor keys, which don't actually map to a typeable symbol.
-			if(shouldTryToType) {
-				@synchronized(self) {
-					if(pressedKey && keyboard_machine->can_type(pressedKey)) {
-						if(isPressed) {
-							char string[2] = { pressedKey, 0 };
-							keyboard_machine->type_string(string);
-						}
-						return;
-					}
-				}
-
-				// Okay, so at this point either: set_key_pressed was already tried but will fail anyway,
-				// or else it hasn't been tried yet and is worth a go.
-				@synchronized(self) {
-					shouldTryToType = !keyboard.set_key_pressed(mapped_key, pressedKey, isPressed);
-				}
-			}
-
-			return;
 		}
 	}
 
