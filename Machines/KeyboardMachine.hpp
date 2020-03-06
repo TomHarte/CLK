@@ -80,7 +80,7 @@ class Machine: public KeyActions {
 				}
 
 				// That having failed, if a symbol has been supplied then try typing it.
-				if(symbol && can_type(symbol)) {
+				if(is_pressed && symbol && can_type(symbol)) {
 					char string[2] = { symbol, 0 };
 					type_string(string);
 					return true;

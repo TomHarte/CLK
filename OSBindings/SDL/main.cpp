@@ -16,7 +16,7 @@
 #include <memory>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <unordered_map>
+#include <map>
 
 #include <SDL2/SDL.h>
 
@@ -773,7 +773,7 @@ int main(int argc, char *argv[]) {
 		std::string input;
 		SDL_Scancode scancode = SDL_SCANCODE_UNKNOWN;
 	};
-	std::unordered_map<uint32_t, KeyPress> keypresses;
+	std::map<uint32_t, KeyPress> keypresses;
 
 	// Run the main event loop until the OS tells us to quit.
 	const bool uses_mouse = !!machine->mouse_machine();
@@ -904,9 +904,8 @@ int main(int argc, char *argv[]) {
 						break;
 					}
 
-					const bool is_pressed = event.type == SDL_KEYDOWN;
 					keypresses[event.text.timestamp].scancode = event.key.keysym.scancode;
-					keypresses[event.text.timestamp].is_down = is_pressed;
+					keypresses[event.text.timestamp].is_down = event.type == SDL_KEYDOWN;
 				} break;
 
 				case SDL_MOUSEBUTTONDOWN:
@@ -938,14 +937,50 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
+		// Look for potential keypress merges; SDL doesn't in any capacity guarantee that keypresses that produce
+		// symbols will be delivered with the same timestamp. So look for any pairs of recorded kepresses that are
+		// close together temporally and otherwise seem to match.
+		std::vector<KeyPress> matched_keypresses;
+		if(keypresses.size()) {
+			auto next_keypress = keypresses.begin();
+
+			while(next_keypress != keypresses.end()) {
+				auto keypress = next_keypress;
+				++next_keypress;
+
+				// If the two appear to pair off, push a combination and advance twice.
+				// Otherwise, keep just the first and advance once.
+				if(
+					next_keypress != keypresses.end() &&
+					keypress->first >= next_keypress->first - 5 &&
+					keypress->second.is_down && next_keypress->second.is_down &&
+					!keypress->second.input.size() != !next_keypress->second.input.size() &&
+					(keypress->second.scancode != SDL_SCANCODE_UNKNOWN) != (next_keypress->second.scancode != SDL_SCANCODE_UNKNOWN)) {
+
+					KeyPress combined_keypress;
+
+					if(keypress->second.scancode != SDL_SCANCODE_UNKNOWN) {
+						combined_keypress.scancode = keypress->second.scancode;
+						combined_keypress.input = std::move(next_keypress->second.input);
+					} else {
+						combined_keypress.scancode = next_keypress->second.scancode;
+						combined_keypress.input = std::move(keypress->second.input);
+					};
+					++next_keypress;
+				} else {
+					matched_keypresses.push_back(keypress->second);
+				}
+			}
+		}
+
 		// Handle accumulated key states.
 		JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
-		for (const auto &keypress: keypresses) {
+		for (const auto &keypress: matched_keypresses) {
 			// Try to set this key on the keyboard first, if there is one.
 			if(keyboard_machine) {
 				Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
-				if(	KeyboardKeyForSDLScancode(keypress.second.scancode, key) &&
-					keyboard_machine->apply_key(key, keypress.second.input.size() ? keypress.second.input[0] : 0, keypress.second.is_down, logical_keyboard)) {
+				if(	KeyboardKeyForSDLScancode(keypress.scancode, key) &&
+					keyboard_machine->apply_key(key, keypress.input.size() ? keypress.input[0] : 0, keypress.is_down, logical_keyboard)) {
 					continue;
 				}
 			}
@@ -954,8 +989,8 @@ int main(int argc, char *argv[]) {
 			if(joystick_machine) {
 				auto &joysticks = joystick_machine->get_joysticks();
 				if(!joysticks.empty()) {
-					const bool is_pressed = keypress.second.is_down;
-					switch(keypress.second.scancode) {
+					const bool is_pressed = keypress.is_down;
+					switch(keypress.scancode) {
 						case SDL_SCANCODE_LEFT:		joysticks[0]->set_input(Inputs::Joystick::Input::Left, is_pressed);		break;
 						case SDL_SCANCODE_RIGHT:	joysticks[0]->set_input(Inputs::Joystick::Input::Right, is_pressed);	break;
 						case SDL_SCANCODE_UP:		joysticks[0]->set_input(Inputs::Joystick::Input::Up, is_pressed);		break;
@@ -966,8 +1001,8 @@ int main(int argc, char *argv[]) {
 						case SDL_SCANCODE_D:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 2), is_pressed);	break;
 						case SDL_SCANCODE_F:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 3), is_pressed);	break;
 						default: {
-							if(keypress.second.input.size()) {
-								joysticks[0]->set_input(Inputs::Joystick::Input(keypress.second.input[0]), is_pressed);
+							if(keypress.input.size()) {
+								joysticks[0]->set_input(Inputs::Joystick::Input(keypress.input[0]), is_pressed);
 							}
 						} break;
 					}
