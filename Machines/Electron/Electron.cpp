@@ -115,13 +115,36 @@ class ConcreteMachine:
 		}
 
 		void set_key_state(uint16_t key, bool isPressed) final {
-			if(key == KeyBreak) {
-				m6502_.set_reset_line(isPressed);
-			} else {
-				if(isPressed)
-					key_states_[key >> 4] |= key&0xf;
-				else
-					key_states_[key >> 4] &= ~(key&0xf);
+			switch(key) {
+				default:
+					if(isPressed)
+						key_states_[key >> 4] |= key&0xf;
+					else
+						key_states_[key >> 4] &= ~(key&0xf);
+				break;
+
+				case KeyBreak:
+					m6502_.set_reset_line(isPressed);
+				break;
+
+#define ShiftedKey(source, dest)	\
+				case source:	\
+					set_key_state(KeyShift, isPressed);	\
+					set_key_state(dest, isPressed);	\
+				break;
+
+				ShiftedKey(KeyF1, Key1);
+				ShiftedKey(KeyF2, Key2);
+				ShiftedKey(KeyF3, Key3);
+				ShiftedKey(KeyF4, Key4);
+				ShiftedKey(KeyF5, Key5);
+				ShiftedKey(KeyF6, Key6);
+				ShiftedKey(KeyF7, Key7);
+				ShiftedKey(KeyF8, Key8);
+				ShiftedKey(KeyF9, Key9);
+				ShiftedKey(KeyF0, Key0);
+
+#undef ShiftedKey
 			}
 		}
 
