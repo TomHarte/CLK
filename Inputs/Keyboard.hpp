@@ -35,7 +35,9 @@ class Keyboard {
 			Keypad4, Keypad5, Keypad6, KeypadMinus,
 			Keypad1, Keypad2, Keypad3, KeypadEnter,
 			Keypad0, KeypadDecimalPoint, KeypadEquals,
-			Help
+			Help,
+
+			Max = Help
 		};
 
 		/// Constructs a Keyboard that declares itself to observe all keys.

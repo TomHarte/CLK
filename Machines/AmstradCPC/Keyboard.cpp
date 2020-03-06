@@ -143,8 +143,8 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		/* t */		KEYS(KeyT),					/* u */		KEYS(KeyU),
 		/* v */		KEYS(KeyV),					/* w */		KEYS(KeyW),
 		/* x */		KEYS(KeyX),					/* y */		KEYS(KeyY),
-		/* z */		KEYS(KeyZ),					/* { */		X,
-		/* | */		SHIFT(KeyAt),				/* } */		X,
+		/* z */		KEYS(KeyZ),					/* { */		SHIFT(KeyLeftSquareBracket),
+		/* | */		SHIFT(KeyAt),				/* } */		SHIFT(KeyRightSquareBracket),
 		/* ~ */		X
 	};
 #undef KEYS
