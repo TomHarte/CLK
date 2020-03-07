@@ -127,24 +127,24 @@ class ConcreteMachine:
 					m6502_.set_reset_line(isPressed);
 				break;
 
-#define ShiftedKey(source, dest)	\
+#define FuncShiftedKey(source, dest)	\
 				case source:	\
-					set_key_state(KeyShift, isPressed);	\
+					set_key_state(KeyFunc, isPressed);	\
 					set_key_state(dest, isPressed);	\
 				break;
 
-				ShiftedKey(KeyF1, Key1);
-				ShiftedKey(KeyF2, Key2);
-				ShiftedKey(KeyF3, Key3);
-				ShiftedKey(KeyF4, Key4);
-				ShiftedKey(KeyF5, Key5);
-				ShiftedKey(KeyF6, Key6);
-				ShiftedKey(KeyF7, Key7);
-				ShiftedKey(KeyF8, Key8);
-				ShiftedKey(KeyF9, Key9);
-				ShiftedKey(KeyF0, Key0);
+				FuncShiftedKey(KeyF1, Key1);
+				FuncShiftedKey(KeyF2, Key2);
+				FuncShiftedKey(KeyF3, Key3);
+				FuncShiftedKey(KeyF4, Key4);
+				FuncShiftedKey(KeyF5, Key5);
+				FuncShiftedKey(KeyF6, Key6);
+				FuncShiftedKey(KeyF7, Key7);
+				FuncShiftedKey(KeyF8, Key8);
+				FuncShiftedKey(KeyF9, Key9);
+				FuncShiftedKey(KeyF0, Key0);
 
-#undef ShiftedKey
+#undef FuncShiftedKey
 			}
 		}
 

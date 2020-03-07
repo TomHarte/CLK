@@ -258,17 +258,17 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case OperationCMP: {
 						const uint16_t temp16 = a_ - operand_;
-						negative_result_ = zero_result_ = static_cast<uint8_t>(temp16);
+						negative_result_ = zero_result_ = uint8_t(temp16);
 						carry_flag_ = ((~temp16) >> 8)&1;
 					} continue;
 					case OperationCPX: {
 						const uint16_t temp16 = x_ - operand_;
-						negative_result_ = zero_result_ = static_cast<uint8_t>(temp16);
+						negative_result_ = zero_result_ = uint8_t(temp16);
 						carry_flag_ = ((~temp16) >> 8)&1;
 					} continue;
 					case OperationCPY: {
 						const uint16_t temp16 = y_ - operand_;
-						negative_result_ = zero_result_ = static_cast<uint8_t>(temp16);
+						negative_result_ = zero_result_ = uint8_t(temp16);
 						carry_flag_ = ((~temp16) >> 8)&1;
 					} continue;
 
@@ -307,7 +307,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case OperationSBC:
 						if(decimal_flag_ && has_decimal_mode(personality)) {
 							const uint16_t notCarry = carry_flag_ ^ 0x1;
-							const uint16_t decimalResult = static_cast<uint16_t>(a_) - static_cast<uint16_t>(operand_) - notCarry;
+							const uint16_t decimalResult = uint16_t(a_) - uint16_t(operand_) - notCarry;
 							uint16_t temp16;
 
 							temp16 = (a_&0xf) - (operand_&0xf) - notCarry;
@@ -316,13 +316,13 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							temp16 += (a_&0xf0) - (operand_&0xf0);
 
 							overflow_flag_ = ( ( (decimalResult^a_)&(~decimalResult^operand_) )&0x80) >> 1;
-							negative_result_ = static_cast<uint8_t>(temp16);
-							zero_result_ = static_cast<uint8_t>(decimalResult);
+							negative_result_ = uint8_t(temp16);
+							zero_result_ = uint8_t(decimalResult);
 
 							if(temp16 > 0xff) temp16 -= 0x60;
 
 							carry_flag_ = (temp16 > 0xff) ? 0 : Flag::Carry;
-							a_ = static_cast<uint8_t>(temp16);
+							a_ = uint8_t(temp16);
 
 							if(is_65c02(personality)) {
 								negative_result_ = zero_result_ = a_;
@@ -337,18 +337,18 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					// deliberate fallthrough
 					case OperationADC:
 						if(decimal_flag_ && has_decimal_mode(personality)) {
-							const uint16_t decimalResult = static_cast<uint16_t>(a_) + static_cast<uint16_t>(operand_) + static_cast<uint16_t>(carry_flag_);
+							const uint16_t decimalResult = uint16_t(a_) + uint16_t(operand_) + uint16_t(carry_flag_);
 
 							uint8_t low_nibble = (a_ & 0xf) + (operand_ & 0xf) + carry_flag_;
 							if(low_nibble >= 0xa) low_nibble = ((low_nibble + 0x6) & 0xf) + 0x10;
-							uint16_t result = static_cast<uint16_t>(a_ & 0xf0) + static_cast<uint16_t>(operand_ & 0xf0) + static_cast<uint16_t>(low_nibble);
-							negative_result_ = static_cast<uint8_t>(result);
+							uint16_t result = uint16_t(a_ & 0xf0) + uint16_t(operand_ & 0xf0) + uint16_t(low_nibble);
+							negative_result_ = uint8_t(result);
 							overflow_flag_ = (( (result^a_)&(result^operand_) )&0x80) >> 1;
 							if(result >= 0xa0) result += 0x60;
 
 							carry_flag_ = (result >> 8) ? 1 : 0;
-							a_ = static_cast<uint8_t>(result);
-							zero_result_ = static_cast<uint8_t>(decimalResult);
+							a_ = uint8_t(result);
+							zero_result_ = uint8_t(decimalResult);
 
 							if(is_65c02(personality)) {
 								negative_result_ = zero_result_ = a_;
@@ -356,9 +356,9 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 								break;
 							}
 						} else {
-							const uint16_t result = static_cast<uint16_t>(a_) + static_cast<uint16_t>(operand_) + static_cast<uint16_t>(carry_flag_);
+							const uint16_t result = uint16_t(a_) + uint16_t(operand_) + uint16_t(carry_flag_);
 							overflow_flag_ = (( (result^a_)&(result^operand_) )&0x80) >> 1;
-							negative_result_ = zero_result_ = a_ = static_cast<uint8_t>(result);
+							negative_result_ = zero_result_ = a_ = uint8_t(result);
 							carry_flag_ = (result >> 8)&1;
 						}
 
@@ -382,13 +382,13 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					continue;
 
 					case OperationROL: {
-						const uint8_t temp8 = static_cast<uint8_t>((operand_ << 1) | carry_flag_);
+						const uint8_t temp8 = uint8_t((operand_ << 1) | carry_flag_);
 						carry_flag_ = operand_ >> 7;
 						operand_ = negative_result_ = zero_result_ = temp8;
 					} continue;
 
 					case OperationRLA: {
-						const uint8_t temp8 = static_cast<uint8_t>((operand_ << 1) | carry_flag_);
+						const uint8_t temp8 = uint8_t((operand_ << 1) | carry_flag_);
 						carry_flag_ = operand_ >> 7;
 						operand_ = temp8;
 						a_ &= operand_;
@@ -416,13 +416,13 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					continue;
 
 					case OperationROR: {
-						const uint8_t temp8 = static_cast<uint8_t>((operand_ >> 1) | (carry_flag_ << 7));
+						const uint8_t temp8 = uint8_t((operand_ >> 1) | (carry_flag_ << 7));
 						carry_flag_ = operand_ & 1;
 						operand_ = negative_result_ = zero_result_ = temp8;
 					} continue;
 
 					case OperationRRA: {
-						const uint8_t temp8 = static_cast<uint8_t>((operand_ >> 1) | (carry_flag_ << 7));
+						const uint8_t temp8 = uint8_t((operand_ >> 1) | (carry_flag_ << 7));
 						carry_flag_ = operand_ & 1;
 						operand_ = temp8;
 					} continue;
@@ -582,7 +582,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 #undef BRA
 
 					case CycleAddSignedOperandToPC:
-						nextAddress.full = static_cast<uint16_t>(pc_.full + (int8_t)operand_);
+						nextAddress.full = uint16_t(pc_.full + int8_t(operand_));
 						pc_.halves.low = nextAddress.halves.low;
 						if(nextAddress.halves.high != pc_.halves.high) {
 							uint16_t halfUpdatedPc = pc_.full;
@@ -598,18 +598,18 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					continue;
 
 					case CycleFetchFromHalfUpdatedPC: {
-						uint16_t halfUpdatedPc = static_cast<uint16_t>(((pc_.halves.low + (int8_t)operand_) & 0xff) | (pc_.halves.high << 8));
+						uint16_t halfUpdatedPc = uint16_t(((pc_.halves.low + int8_t(operand_)) & 0xff) | (pc_.halves.high << 8));
 						throwaway_read(halfUpdatedPc);
 					} break;
 
 					case OperationAddSignedOperandToPC16:
-						pc_.full = static_cast<uint16_t>(pc_.full + (int8_t)operand_);
+						pc_.full = uint16_t(pc_.full + int8_t(operand_));
 					continue;
 
 					case OperationBBRBBS: {
 						// To reach here, the 6502 has (i) read the operation; (ii) read the first operand;
 						// and (iii) read from the corresponding zero page.
-						const uint8_t mask = static_cast<uint8_t>(1 << ((operation_ >> 4)&7));
+						const uint8_t mask = uint8_t(1 << ((operation_ >> 4)&7));
 						if((operand_ & mask) == ((operation_ & 0x80) ? mask : 0)) {
 							static const MicroOp do_branch[] = {
 								CycleFetchOperand,			// Fetch offset.
@@ -643,7 +643,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						if(decimal_flag_) {
 							a_ &= operand_;
 							uint8_t unshiftedA = a_;
-							a_ = static_cast<uint8_t>((a_ >> 1) | (carry_flag_ << 7));
+							a_ = uint8_t((a_ >> 1) | (carry_flag_ << 7));
 							zero_result_ = negative_result_ = a_;
 							overflow_flag_ = (a_^(a_ << 1))&Flag::Overflow;
 
@@ -653,7 +653,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							if(carry_flag_) a_ += 0x60;
 						} else {
 							a_ &= operand_;
-							a_ = static_cast<uint8_t>((a_ >> 1) | (carry_flag_ << 7));
+							a_ = uint8_t((a_ >> 1) | (carry_flag_ << 7));
 							negative_result_ = zero_result_ = a_;
 							carry_flag_ = (a_ >> 6)&1;
 							overflow_flag_ = (a_^(a_ << 1))&Flag::Overflow;
@@ -663,7 +663,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case OperationSBX:
 						x_ &= a_;
 						uint16_t difference = x_ - operand_;
-						x_ = static_cast<uint8_t>(difference);
+						x_ = uint8_t(difference);
 						negative_result_ = zero_result_ = x_;
 						carry_flag_ = ((difference >> 8)&1)^1;
 					continue;
