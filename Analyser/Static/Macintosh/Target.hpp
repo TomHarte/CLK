@@ -10,24 +10,21 @@
 #define Analyser_Static_Macintosh_Target_h
 
 #include "../../../Reflection/Enum.h"
-
+#include "../../../Reflection/Struct.h"
 
 namespace Analyser {
 namespace Static {
 namespace Macintosh {
 
-
-struct Target: public ::Analyser::Static::Target {
-	ReflectiveEnum(Model, int, Mac128k, Mac512k, Mac512ke, MacPlus);
+struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
+	ReflectableEnum(Model, int, Mac128k, Mac512k, Mac512ke, MacPlus);
 
 	Target() {
-//		Model m;
-//		printf("%s\n", __declaration(m));
-		printf("%zu\n", Reflection::Enum<Model>::size());
-//		for(size_t c = 0; c < Reflection::Enum<Model>::size(); ++c) {
-//			const auto name = Reflection::Enum<Model>::toString(Model(c));
-//			printf("%.*s\n", int(name.size()), name.data());
-//		}
+		// Boilerplate for declaring fields and potential values.
+		if(needs_declare()) {
+			declare(&model, "model");
+			declare_enum(&model, EnumDeclaration(Model));
+		}
 	}
 
 	Model model = Model::MacPlus;
@@ -36,6 +33,5 @@ struct Target: public ::Analyser::Static::Target {
 }
 }
 }
-
 
 #endif /* Analyser_Static_Macintosh_Target_h */

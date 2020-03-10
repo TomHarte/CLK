@@ -1040,6 +1040,8 @@
 		4B38F3471F2EC11D00D9235D /* AmstradCPC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = AmstradCPC.hpp; path = AmstradCPC/AmstradCPC.hpp; sourceTree = "<group>"; };
 		4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AsyncTaskQueue.cpp; path = ../../Concurrency/AsyncTaskQueue.cpp; sourceTree = "<group>"; };
 		4B3940E61DA83C8300427841 /* AsyncTaskQueue.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = AsyncTaskQueue.hpp; path = ../../Concurrency/AsyncTaskQueue.hpp; sourceTree = "<group>"; };
+		4B3AF7D02413470E00873C0B /* Enum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Enum.h; sourceTree = "<group>"; };
+		4B3AF7D12413472200873C0B /* Struct.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Struct.h; sourceTree = "<group>"; };
 		4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = C1540Tests.swift; sourceTree = "<group>"; };
 		4B3BA0C51D318B44005DD7A7 /* C1540Bridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = C1540Bridge.h; sourceTree = "<group>"; };
 		4B3BA0C61D318B44005DD7A7 /* C1540Bridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = C1540Bridge.mm; sourceTree = "<group>"; };
@@ -1138,7 +1140,6 @@
 		4B643F3C1D77AE5C00D431D6 /* CSMachine+Target.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "CSMachine+Target.h"; sourceTree = "<group>"; };
 		4B643F3E1D77B88000D431D6 /* DocumentController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DocumentController.swift; sourceTree = "<group>"; };
 		4B644ED023F0FB55006C0CC5 /* ScanSynchroniser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScanSynchroniser.hpp; sourceTree = "<group>"; };
-		4B644ED123FAF162006C0CC5 /* Enum.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Enum.h; path = ../../Reflection/Enum.h; sourceTree = "<group>"; };
 		4B65085F22F4CF8D009C1100 /* Keyboard.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Keyboard.cpp; sourceTree = "<group>"; };
 		4B670A832401CB8400D4E002 /* z80memptr.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80memptr.tap; sourceTree = "<group>"; };
 		4B670A852401CB8400D4E002 /* z80ccf.tap */ = {isa = PBXFileReference; lastKnownFileType = file; path = z80ccf.tap; sourceTree = "<group>"; };
@@ -2195,6 +2196,16 @@
 			name = Concurrency;
 			sourceTree = "<group>";
 		};
+		4B3AF7CF2413470E00873C0B /* Reflection */ = {
+			isa = PBXGroup;
+			children = (
+				4B3AF7D02413470E00873C0B /* Enum.h */,
+				4B3AF7D12413472200873C0B /* Struct.h */,
+			);
+			name = Reflection;
+			path = ../../Reflection;
+			sourceTree = "<group>";
+		};
 		4B3BA0C41D318B44005DD7A7 /* Bridges */ = {
 			isa = PBXGroup;
 			children = (
@@ -3247,7 +3258,6 @@
 		4BB73E951B587A5100552FC2 = {
 			isa = PBXGroup;
 			children = (
-				4B644ED123FAF162006C0CC5 /* Enum.h */,
 				4BC76E6A1C98F43700E6EF73 /* Accelerate.framework */,
 				4B51F70820A521D700AFA2C1 /* Activity */,
 				4B8944E2201967B4007DE474 /* Analyser */,
@@ -3265,6 +3275,7 @@
 				4B366DFD1B5C165F0026627B /* Outputs */,
 				4BB73EDD1B587CA500552FC2 /* Processors */,
 				4BB73E9F1B587A5100552FC2 /* Products */,
+				4B3AF7CF2413470E00873C0B /* Reflection */,
 				4B055A7B1FAE84A50060FFFF /* SDL */,
 				4B2409591C45DF85004DA684 /* SignalProcessing */,
 				4B69FB391C4D908A00B5F0AA /* Storage */,
