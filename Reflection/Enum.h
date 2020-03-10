@@ -10,8 +10,16 @@
 #define Enum_h
 
 #include <cctype>
+#include <string>
 
 namespace Reflection {
+
+#define ReflectableEnum(Name, Type, ...)	\
+	enum class Name: Type { Mac128k, Mac512k, Mac512ke, MacPlus };	\
+	constexpr static const char *__declaration##Name = #__VA_ARGS__;
+
+#define EnumDeclaration(Name) __declaration##Name
+
 
 template <typename EnumType> struct Enum {
 		static size_t size() {
@@ -69,8 +77,16 @@ template <typename EnumType> struct Enum {
 
 	Enum members must take default values, and this enum must be in the global scope.
 */
-#define ReflectiveEnum(Name, Type, ...)	\
-	enum class Name: Type { __VA_ARGS__ };	\
-	constexpr const char *__declaration(Name) { return #__VA_ARGS__; }
+//#define DefX	#define X
+
+//#define ForwardDeclareReflectiveEnum(Namespace, Name, ...)	\
+//	#define HAT
+
+//	DeclName(m) m(__VA_ARGS__)
+
+//	constexpr const char *__declaration(Namespace::Name) { return __VA_ARGS__; }
+
+//#define DefineReflectiveEnum(Name, Type)	\
+//	enum class Name: Type { Mac128k, Mac512k, Mac512ke, MacPlus };
 
 #endif /* Enum_h */

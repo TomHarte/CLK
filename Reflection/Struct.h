@@ -57,12 +57,24 @@ template <typename Owner> class Struct {
 			to determine whether a class of this type has already established the
 			reflective fields.
 		*/
+
+		/*!
+			Exposes the field pointed to by @c t for reflection as @c name.
+		*/
 		template <typename Type> void declare(Type *t, const std::string &name) {
 			contents_.emplace(
 				std::make_pair(
 					name,
 					Field(typeid(Type), reinterpret_cast<uint8_t *>(t) - reinterpret_cast<uint8_t *>(this))
 				));
+		}
+
+		/*!
+			Provides the original declaration of an enum.
+		*/
+		template <typename Type> void declare_enum(Type *t, const char *declaration) {
+			// TODO: something.
+			printf("%s\n", declaration);
 		}
 
 		/*!
