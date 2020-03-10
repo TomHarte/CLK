@@ -613,7 +613,9 @@ int main(int argc, char *argv[]) {
 
 	// Check whether a 'logical' keyboard has been requested.
 	const bool logical_keyboard = arguments.selections.find("logical-keyboard") != arguments.selections.end();
-	SDL_StartTextInput();
+	if(logical_keyboard) {
+		SDL_StartTextInput();
+	}
 
 	// Wire up the best-effort updater, its delegate, and the speaker delegate.
 	machine_runner.machine = machine.get();
@@ -769,11 +771,17 @@ int main(int argc, char *argv[]) {
 	// SDL 2.x delivers key up/down events and text inputs separately even when they're correlated;
 	// this struct and map is used to correlate them by time.
 	struct KeyPress {
-		bool is_down = true;
+		uint32_t timestamp = 0;
 		std::string input;
 		SDL_Scancode scancode = SDL_SCANCODE_UNKNOWN;
+		SDL_Keycode keycode = SDLK_UNKNOWN;
+		bool is_down = true;
+
+		KeyPress(uint32_t timestamp, const char *text) : timestamp(timestamp), input(text) {}
+		KeyPress(uint32_t timestamp, SDL_Scancode scancode, SDL_Keycode keycode, bool is_down) : timestamp(timestamp), scancode(scancode), keycode(keycode), is_down(is_down) {}
+		KeyPress() {}
 	};
-	std::map<uint32_t, KeyPress> keypresses;
+	std::vector<KeyPress> keypresses;
 
 	// Run the main event loop until the OS tells us to quit.
 	const bool uses_mouse = !!machine->mouse_machine();
@@ -823,7 +831,7 @@ int main(int argc, char *argv[]) {
 				} break;
 
 				case SDL_TEXTINPUT:
-					keypresses[event.text.timestamp].input = event.text.text;
+					keypresses.emplace_back(event.text.timestamp, event.text.text);
 				break;
 
 				case SDL_KEYDOWN:
@@ -904,8 +912,7 @@ int main(int argc, char *argv[]) {
 						break;
 					}
 
-					keypresses[event.text.timestamp].scancode = event.key.keysym.scancode;
-					keypresses[event.text.timestamp].is_down = event.type == SDL_KEYDOWN;
+					keypresses.emplace_back(event.text.timestamp, event.key.keysym.scancode, event.key.keysym.sym, event.type == SDL_KEYDOWN);
 				} break;
 
 				case SDL_MOUSEBUTTONDOWN:
@@ -937,51 +944,75 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		// Look for potential keypress merges; SDL doesn't in any capacity guarantee that keypresses that produce
-		// symbols will be delivered with the same timestamp. So look for any pairs of recorded kepresses that are
-		// close together temporally and otherwise seem to match.
 		std::vector<KeyPress> matched_keypresses;
-		if(keypresses.size()) {
-			auto next_keypress = keypresses.begin();
+		if(logical_keyboard) {
+			// Look for potential keypress merges; SDL doesn't in any capacity guarantee that keypresses that produce
+			// symbols will be delivered with the same timestamp. So look for any pairs of recorded kepresses that are
+			// close together temporally and otherwise seem to match.
+			if(keypresses.size()) {
+				auto next_keypress = keypresses.begin();
 
-			while(next_keypress != keypresses.end()) {
-				auto keypress = next_keypress;
-				++next_keypress;
-
-				// If the two appear to pair off, push a combination and advance twice.
-				// Otherwise, keep just the first and advance once.
-				if(
-					next_keypress != keypresses.end() &&
-					keypress->first >= next_keypress->first - 5 &&
-					keypress->second.is_down && next_keypress->second.is_down &&
-					!keypress->second.input.size() != !next_keypress->second.input.size() &&
-					(keypress->second.scancode != SDL_SCANCODE_UNKNOWN) != (next_keypress->second.scancode != SDL_SCANCODE_UNKNOWN)) {
-
-					KeyPress combined_keypress;
-
-					if(keypress->second.scancode != SDL_SCANCODE_UNKNOWN) {
-						combined_keypress.scancode = keypress->second.scancode;
-						combined_keypress.input = std::move(next_keypress->second.input);
-					} else {
-						combined_keypress.scancode = next_keypress->second.scancode;
-						combined_keypress.input = std::move(keypress->second.input);
-					};
+				while(next_keypress != keypresses.end()) {
+					auto keypress = next_keypress;
 					++next_keypress;
-				} else {
-					matched_keypresses.push_back(keypress->second);
+
+					// If the two appear to pair off, push a combination and advance twice.
+					// Otherwise, keep just the first and advance once.
+					if(
+						next_keypress != keypresses.end() &&
+						keypress->timestamp >= next_keypress->timestamp - 5 &&
+						keypress->is_down && next_keypress->is_down &&
+						!keypress->input.size() != !next_keypress->input.size() &&
+						(keypress->scancode != SDL_SCANCODE_UNKNOWN) != (next_keypress->scancode != SDL_SCANCODE_UNKNOWN)) {
+
+						KeyPress combined_keypress;
+
+						if(keypress->scancode != SDL_SCANCODE_UNKNOWN) {
+							combined_keypress.scancode = keypress->scancode;
+							combined_keypress.keycode = keypress->keycode;
+							combined_keypress.input = std::move(next_keypress->input);
+						} else {
+							combined_keypress.scancode = next_keypress->scancode;
+							combined_keypress.keycode = next_keypress->keycode;
+							combined_keypress.input = std::move(keypress->input);
+						};
+						++next_keypress;
+
+						matched_keypresses.push_back(combined_keypress);
+					} else {
+						matched_keypresses.push_back(*keypress);
+					}
 				}
 			}
 		}
 
 		// Handle accumulated key states.
 		JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
-		for (const auto &keypress: matched_keypresses) {
+		for (const auto &keypress: logical_keyboard ? matched_keypresses : keypresses) {
 			// Try to set this key on the keyboard first, if there is one.
 			if(keyboard_machine) {
 				Inputs::Keyboard::Key key = Inputs::Keyboard::Key::Space;
-				if(	KeyboardKeyForSDLScancode(keypress.scancode, key) &&
-					keyboard_machine->apply_key(key, keypress.input.size() ? keypress.input[0] : 0, keypress.is_down, logical_keyboard)) {
-					continue;
+				if(KeyboardKeyForSDLScancode(keypress.scancode, key)) {
+					// In principle there's no need for a conditional here; in practice logical_keyboard mode
+					// is sufficiently untested on SDL, and somewhat too reliant on empirical timestamp behaviour,
+					// for it to be trustworthy enough otherwise to expose.
+					if(logical_keyboard) {
+						if(keyboard_machine->apply_key(key, keypress.input.size() ? keypress.input[0] : 0, keypress.is_down, logical_keyboard)) {
+							continue;
+						}
+					} else {
+						// This is a slightly terrible way of obtaining a symbol for the key, e.g. for letters it will always return
+						// the capital letter version, at least empirically. But it'll have to do for now.
+						//
+						// TODO: ideally have a keyboard machine declare whether it wants either key events or text input? But that
+						// doesn't match machines like the IIe that, to some extent, expose both. So then eliding as attempted above,
+						// and keeping ephemeral track of which symbols have been tied to which keys for the benefit of future key up
+						// events is probably the way forward?
+						const char *key_name = SDL_GetKeyName(keypress.keycode);
+						if(keyboard_machine->get_keyboard().set_key_pressed(key, key_name[0], keypress.is_down)) {
+							continue;
+						}
+					}
 				}
 			}
 
