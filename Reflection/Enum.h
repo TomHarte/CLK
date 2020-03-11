@@ -11,6 +11,10 @@
 
 #include <cctype>
 #include <string>
+#include <typeindex>
+#include <typeinfo>
+#include <vector>
+#include <unordered_map>
 
 namespace Reflection {
 
@@ -20,39 +24,12 @@ namespace Reflection {
 
 #define EnumDeclaration(Name) __declaration##Name
 
-
-template <typename EnumType> struct Enum {
-		static size_t size() {
-			return members().size();
-		}
-
-		/*!
-			@returns A @c string_view name for the enum value @c e.
-		*/
-		static std::string_view toString(EnumType e) {
-			return members()[size_t(e)];
-		}
-
-		/*!
-			@returns A value of @c EnumType name for the name @c str, or @c EnumType(-1) if
-				the string is not found.
-		*/
-		static EnumType fromString(const std::string_view &str) {
-			const auto member_list = members();
-			auto position = std::find(member_list.begin(), member_list.end(), str);
-			if(position == member_list.end()) return EnumType(-1);
-			return EnumType(position - member_list.begin());
-		}
-
-		/*!
-			@returns A vector of string_views naming the members of this enum in value order.
-		*/
-		static std::vector<std::string_view> members() {
-			EnumType m;
-			const char *const declaration = __declaration(m);
+class Enum {
+	public:
+		template <typename Type> static void declare(const char *declaration) {
 			const char *d_ptr = declaration;
 
-			std::vector<std::string_view> result;
+			std::vector<std::string> result;
 			while(true) {
 				// Skip non-alphas, and exit if the terminator is found.
 				while(*d_ptr && !isalpha(*d_ptr)) ++d_ptr;
@@ -63,30 +40,52 @@ template <typename EnumType> struct Enum {
 				while(isalpha(*d_ptr) || isdigit(*d_ptr)) ++d_ptr;
 
 				// Add a string view.
-				result.emplace_back(start, d_ptr - start);
+				result.emplace_back(std::string(start, size_t(d_ptr - start)));
 			}
 
-			return result;
+			members_by_type_.emplace(std::make_pair(&typeid(Type), result));
 		}
+
+		template <typename Type> size_t size() {
+			return size(typeid(Type));
+		}
+
+		size_t size(const std::type_info &type) {
+			const auto entry = members_by_type_.find(&type);
+			if(entry == members_by_type_.end()) return 0;
+			return entry->second.size();
+		}
+
+		/*!
+			@returns A @c string_view name for the enum value @c e.
+		*/
+		template <typename EnumType> static const std::string &toString(EnumType e) {
+			const auto entry = members_by_type_.find(&typeid(EnumType));
+			if(entry == members_by_type_.end()) return empty_string_;
+			return entry->second[size_t(e)];
+		}
+
+		/*!
+			@returns A value of @c EnumType name for the name @c str, or @c EnumType(-1) if
+				the string is not found.
+		*/
+		template <typename Type> Type fromString(const std::string &str) {
+			return Type(fromString(typeid(Type), str));
+		}
+
+		size_t fromString(const std::type_info &type, const std::string &str) {
+			const auto entry = members_by_type_.find(&type);
+			if(entry == members_by_type_.end()) return 0;
+			const auto iterator = std::find(entry->second.begin(), entry->second.end(), str);
+			if(iterator == entry->second.end()) return 0;
+			return size_t(iterator - entry->second.begin());
+		}
+
+	private:
+		static inline std::unordered_map<const std::type_info *, std::vector<std::string>> members_by_type_;
+		static inline const std::string empty_string_;
 };
 
 }
-
-/*!
-	Provides a very limited subset of normal enums, with the addition of reflection.
-
-	Enum members must take default values, and this enum must be in the global scope.
-*/
-//#define DefX	#define X
-
-//#define ForwardDeclareReflectiveEnum(Namespace, Name, ...)	\
-//	#define HAT
-
-//	DeclName(m) m(__VA_ARGS__)
-
-//	constexpr const char *__declaration(Namespace::Name) { return __VA_ARGS__; }
-
-//#define DefineReflectiveEnum(Name, Type)	\
-//	enum class Name: Type { Mac128k, Mac512k, Mac512ke, MacPlus };
 
 #endif /* Enum_h */
