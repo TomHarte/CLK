@@ -19,24 +19,39 @@ namespace Reflection {
 
 template <typename Owner> class Struct {
 	public:
+		/*!
+			@returns the value of type @c Type that is loaded from the offset registered for the field @c name.
+				It is the caller's responsibility to provide an appropriate type of data.
+		*/
 		template <typename Type> const Type *get(const std::string &name) {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return nullptr;
 			return reinterpret_cast<Type *>(reinterpret_cast<uint8_t *>(this) + iterator->second.offset);
 		}
 
+		/*!
+			Stores the @c value of type @c Type to the offset registered for the field @c name.
+
+			It is the caller's responsibility to provide an appropriate type of data.
+		*/
 		template <typename Type> void set(const std::string &name, const Type &value) {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return;
 			*reinterpret_cast<Type *>(reinterpret_cast<uint8_t *>(this) + iterator->second.offset) = value;
 		}
 
+		/*!
+			@returns @c type_info for the field @c name.
+		*/
 		const std::type_info *type_of(const std::string &name) {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return nullptr;
 			return iterator->second.type;
 		}
 
+		/*!
+			@returns A vector of all declared fields for this struct.
+		*/
 		std::vector<std::string> all_keys() {
 			std::vector<std::string> keys;
 			for(const auto &pair: contents_) {
@@ -70,15 +85,7 @@ template <typename Owner> class Struct {
 		}
 
 		/*!
-			Provides the original declaration of an enum.
-		*/
-		template <typename Type> void declare_enum(Type *t, const char *declaration) {
-			// TODO: something.
-			printf("%s\n", declaration);
-		}
-
-		/*!
-			@returns @c true if this 
+			@returns @c true if this subclass of @c Struct has not yet declared any fields.
 		*/
 		bool needs_declare() {
 			return !contents_.size();
