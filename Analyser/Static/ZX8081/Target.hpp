@@ -19,7 +19,7 @@ namespace Static {
 namespace ZX8081 {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
-	ReflectableEnum(MemoryModel, int,
+	ReflectableEnum(MemoryModel,
 		Unexpanded,
 		SixteenKB,
 		SixtyFourKB

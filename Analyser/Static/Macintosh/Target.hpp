@@ -17,7 +17,7 @@ namespace Static {
 namespace Macintosh {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
-	ReflectableEnum(Model, int, Mac128k, Mac512k, Mac512ke, MacPlus);
+	ReflectableEnum(Model, Mac128k, Mac512k, Mac512ke, MacPlus);
 	Model model = Model::MacPlus;
 
 	Target() {

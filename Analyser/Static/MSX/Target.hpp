@@ -22,7 +22,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Targ
 	bool has_disk_drive = false;
 	std::string loading_command;
 
-	ReflectableEnum(Region, int,
+	ReflectableEnum(Region,
 		Japan,
 		USA,
 		Europe

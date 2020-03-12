@@ -19,13 +19,13 @@ namespace Static {
 namespace Oric {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
-	ReflectableEnum(ROM, int,
+	ReflectableEnum(ROM,
 		BASIC10,
 		BASIC11,
 		Pravetz
 	);
 
-	ReflectableEnum(DiskInterface, int,
+	ReflectableEnum(DiskInterface,
 		None,
 		Microdisc,
 		Pravetz,

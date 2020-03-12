@@ -19,7 +19,7 @@ namespace Static {
 namespace AmstradCPC {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
-	ReflectableEnum(Model, int, CPC464, CPC664, CPC6128);
+	ReflectableEnum(Model, CPC464, CPC664, CPC6128);
 	Model model = Model::CPC464;
 	std::string loading_command;
 

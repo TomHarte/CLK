@@ -18,13 +18,13 @@ namespace Static {
 namespace AppleII {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
-	ReflectableEnum(Model, int,
+	ReflectableEnum(Model,
 		II,
 		IIplus,
 		IIe,
 		EnhancedIIe
 	);
-	ReflectableEnum(DiskController, int,
+	ReflectableEnum(DiskController,
 		None,
 		SixteenSector,
 		ThirteenSector

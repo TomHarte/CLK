@@ -25,7 +25,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Targ
 		ThirtyTwoKB
 	};
 
-	ReflectableEnum(Region, int,
+	ReflectableEnum(Region,
 		American,
 		Danish,
 		Japanese,
