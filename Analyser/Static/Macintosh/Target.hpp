@@ -23,7 +23,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Targ
 		// Boilerplate for declaring fields and potential values.
 		if(needs_declare()) {
 			declare(&model, "model");
-			Reflection::Enum::declare<Model>(EnumDeclaration(Model));
+			AnnounceEnum(Model);
 		}
 	}
 
