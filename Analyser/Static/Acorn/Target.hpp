@@ -9,6 +9,7 @@
 #ifndef Analyser_Static_Acorn_Target_h
 #define Analyser_Static_Acorn_Target_h
 
+#include "../../../Reflection/Struct.h"
 #include "../StaticAnalyser.hpp"
 #include <string>
 
@@ -16,11 +17,18 @@ namespace Analyser {
 namespace Static {
 namespace Acorn {
 
-struct Target: public ::Analyser::Static::Target {
+struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
 	bool has_adfs = false;
 	bool has_dfs = false;
 	bool should_shift_restart = false;
 	std::string loading_command;
+
+	Target() {
+		if(needs_declare()) {
+			DeclareField(has_adfs);
+			DeclareField(has_dfs);
+		}
+	}
 };
 
 }

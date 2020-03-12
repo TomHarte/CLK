@@ -17,6 +17,8 @@
 
 namespace Reflection {
 
+#define DeclareField(Name) declare(&Name, #Name)
+
 template <typename Owner> class Struct {
 	public:
 		/*!

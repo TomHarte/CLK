@@ -18,16 +18,15 @@ namespace Macintosh {
 
 struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
 	ReflectableEnum(Model, int, Mac128k, Mac512k, Mac512ke, MacPlus);
+	Model model = Model::MacPlus;
 
 	Target() {
 		// Boilerplate for declaring fields and potential values.
 		if(needs_declare()) {
-			declare(&model, "model");
+			DeclareField(model);
 			AnnounceEnum(Model);
 		}
 	}
-
-	Model model = Model::MacPlus;
 };
 
 }

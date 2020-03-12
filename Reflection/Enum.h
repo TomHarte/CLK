@@ -19,7 +19,7 @@
 namespace Reflection {
 
 #define ReflectableEnum(Name, Type, ...)	\
-	enum class Name: Type { Mac128k, Mac512k, Mac512ke, MacPlus };	\
+	enum class Name: Type { __VA_ARGS__ };	\
 	constexpr static const char *__declaration##Name = #__VA_ARGS__;
 
 #define EnumDeclaration(Name) #Name, __declaration##Name

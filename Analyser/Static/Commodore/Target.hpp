@@ -9,6 +9,8 @@
 #ifndef Analyser_Static_Commodore_Target_h
 #define Analyser_Static_Commodore_Target_h
 
+#include "../../../Reflection/Enum.h"
+#include "../../../Reflection/Struct.h"
 #include "../StaticAnalyser.hpp"
 #include <string>
 
@@ -16,20 +18,20 @@ namespace Analyser {
 namespace Static {
 namespace Commodore {
 
-struct Target: public ::Analyser::Static::Target {
+struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
 	enum class MemoryModel {
 		Unexpanded,
 		EightKB,
 		ThirtyTwoKB
 	};
 
-	enum class Region {
+	ReflectableEnum(Region, int,
 		American,
 		Danish,
 		Japanese,
 		European,
 		Swedish
-	};
+	);
 
 	/// Maps from a named memory model to a bank enabled/disabled set.
 	void set_memory_model(MemoryModel memory_model) {
@@ -54,6 +56,19 @@ struct Target: public ::Analyser::Static::Target {
 	Region region = Region::European;
 	bool has_c1540 = false;
 	std::string loading_command;
+
+	Target() {
+		if(needs_declare()) {
+			DeclareField(enabled_ram.bank0);
+			DeclareField(enabled_ram.bank1);
+			DeclareField(enabled_ram.bank2);
+			DeclareField(enabled_ram.bank3);
+			DeclareField(enabled_ram.bank5);
+			DeclareField(region);
+			DeclareField(has_c1540);
+			AnnounceEnum(Region);
+		}
+	}
 };
 
 }
