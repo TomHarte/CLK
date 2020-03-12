@@ -41,12 +41,7 @@
 - (void)setupDisplayLink {
 	// Kill the existing link if there is one, then wait until its final shout is definitely done.
 	if(_displayLink) {
-		const double duration = CVDisplayLinkGetActualOutputVideoRefreshPeriod(_displayLink);
-		CVDisplayLinkStop(_displayLink);
-
-		// This is a workaround; I could find no way to ensure that a callback from the display
-		// link is not currently ongoing.
-		usleep((useconds_t)ceil(duration * 1000000.0));
+		[self invalidate];
 
 		CVDisplayLinkRelease(_displayLink);
 	}
@@ -118,7 +113,13 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 }
 
 - (void)invalidate {
+	const double duration = CVDisplayLinkGetActualOutputVideoRefreshPeriod(_displayLink);
 	CVDisplayLinkStop(_displayLink);
+
+	// This is a workaround; I could find no way to ensure that a callback from the display
+	// link is not currently ongoing. In short: call stop, wait for an entire refresh period,
+	// then assume (/hope) the coast is clear.
+	usleep((useconds_t)ceil(duration * 1000000.0));
 }
 
 - (void)dealloc {
