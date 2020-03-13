@@ -72,19 +72,20 @@ class Enum {
 			}
 
 			members_by_type_.emplace(std::make_pair(&typeid(Type), result));
+			names_by_type_.emplace(std::make_pair(&typeid(Type), std::string(name)));
 		}
 
 		/*!
 			@returns the declared name of the enum @c Type if it has been registered; the empty string otherwise.
 		*/
-		template <typename Type> const std::string &name() {
+		template <typename Type> static const std::string &name() {
 			return name(typeid(Type));
 		}
 
 		/*!
 			@returns the declared name of the enum with type_info @c type if it has been registered; the empty string otherwise.
 		*/
-		const std::string &name(const std::type_info &type) {
+		static const std::string &name(const std::type_info &type) {
 			const auto entry = names_by_type_.find(&type);
 			if(entry == names_by_type_.end()) return empty_string_;
 			return entry->second;
@@ -93,14 +94,14 @@ class Enum {
 		/*!
 			@returns the number of members of the enum @c Type if it has been registered; 0 otherwise.
 		*/
-		template <typename Type> size_t size() {
+		template <typename Type> static size_t size() {
 			return size(typeid(Type));
 		}
 
 		/*!
 			@returns the number of members of the enum with type_info @c type if it has been registered; @c std::string::npos otherwise.
 		*/
-		size_t size(const std::type_info &type) {
+		static size_t size(const std::type_info &type) {
 			const auto entry = members_by_type_.find(&type);
 			if(entry == members_by_type_.end()) return std::string::npos;
 			return entry->second.size();
@@ -109,32 +110,48 @@ class Enum {
 		/*!
 			@returns A @c std::string name for the enum value @c e.
 		*/
-		template <typename Type> static const std::string &toString(Type e) {
-			return toString(typeid(Type), size_t(e));
+		template <typename Type> static const std::string &to_string(Type e) {
+			return to_string(typeid(Type), size_t(e));
 		}
 
 		/*!
 			@returns A @c std::string name for the enum value @c e from the enum with type_info @c type.
 		*/
-		static const std::string &toString(const std::type_info &type, size_t e) {
+		static const std::string &to_string(const std::type_info &type, size_t e) {
 			const auto entry = members_by_type_.find(&type);
 			if(entry == members_by_type_.end()) return empty_string_;
 			return entry->second[e];
 		}
 
 		/*!
+			@returns a vector naming the members of the enum with type_info @c type if it has been registered; an empty vector otherwise.
+		*/
+		static const std::vector<std::string> &all_values(const std::type_info &type) {
+			const auto entry = members_by_type_.find(&type);
+			if(entry == members_by_type_.end()) return empty_vector_;
+			return entry->second;
+		}
+
+		/*!
+			@returns a vector naming the members of the enum @c Type type if it has been registered; an empty vector otherwise.
+		*/
+		template <typename Type> static const std::vector<std::string> &all_values() {
+			return all_values(typeid(Type));
+		}
+
+		/*!
 			@returns A value of @c Type for the name @c str, or @c EnumType(std::string::npos) if
 				the name is not found.
 		*/
-		template <typename Type> Type fromString(const std::string &str) {
-			return Type(fromString(typeid(Type), str));
+		template <typename Type> static Type from_string(const std::string &str) {
+			return Type(from_string(typeid(Type), str));
 		}
 
 		/*!
 			@returns A value for the name @c str in the enum with type_info @c type , or @c std::string::npos if
 				the name is not found.
 		*/
-		size_t fromString(const std::type_info &type, const std::string &str) {
+		static size_t from_string(const std::type_info &type, const std::string &str) {
 			const auto entry = members_by_type_.find(&type);
 			if(entry == members_by_type_.end()) return std::string::npos;
 			const auto iterator = std::find(entry->second.begin(), entry->second.end(), str);
@@ -146,6 +163,7 @@ class Enum {
 		static inline std::unordered_map<const std::type_info *, std::vector<std::string>> members_by_type_;
 		static inline std::unordered_map<const std::type_info *, std::string> names_by_type_;
 		static inline const std::string empty_string_;
+		static inline const std::vector<std::string> empty_vector_;
 };
 
 }

@@ -34,6 +34,9 @@
 #include "../../Outputs/OpenGL/ScanTarget.hpp"
 #include "../../Outputs/OpenGL/Screenshot.hpp"
 
+#include "../../Reflection/Enum.h"
+#include "../../Reflection/Struct.h"
+
 namespace {
 
 struct MachineRunner {
@@ -478,7 +481,7 @@ int main(int argc, char *argv[]) {
 		std::cout << "Use alt+enter to toggle full screen display. Use control+shift+V to paste text." << std::endl;
 		std::cout << "Required machine type and configuration is determined from the file. Machines with further options:" << std::endl << std::endl;
 
-		auto all_options = Machine::AllOptionsByMachineName();
+		const auto all_options = Machine::AllOptionsByMachineName();
 		for(const auto &machine_options: all_options) {
 			std::cout << machine_options.first << ":" << std::endl;
 			for(const auto &option: machine_options.second) {
@@ -497,6 +500,32 @@ int main(int argc, char *argv[]) {
 				}
 				std::cout << std::endl;
 			}
+			std::cout << std::endl;
+		}
+
+		const auto construction_options = Machine::ConstructionOptionsByMachineName();
+		for(const auto &options: construction_options) {
+			std::cout << options.first << ":" << std::endl;
+			for(const auto &option: options.second->all_keys()) {
+				std::cout << '\t' << "--" << option;
+				const auto type = options.second->type_of(option);
+
+				// Is this a registered enum? If so, list options.
+				if(!Reflection::Enum::name(*type).empty()) {
+					std::cout << "={";
+					bool is_first = true;
+					for(const auto &value: Reflection::Enum::all_values(*type)) {
+						if(!is_first) std::cout << '|';
+						is_first = false;
+						std::cout << value;
+					}
+					std::cout << "}";
+				}
+
+				// TODO: if not a registered enum... then assume it was a Boolean?
+				std::cout << std::endl;
+			}
+
 			std::cout << std::endl;
 		}
 		return EXIT_SUCCESS;

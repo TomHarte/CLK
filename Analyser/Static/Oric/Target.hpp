@@ -18,7 +18,7 @@ namespace Analyser {
 namespace Static {
 namespace Oric {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
+struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(ROM,
 		BASIC10,
 		BASIC11,

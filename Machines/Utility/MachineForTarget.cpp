@@ -8,6 +8,7 @@
 
 #include "MachineForTarget.hpp"
 
+// Sources for runtime options.
 #include "../AmstradCPC/AmstradCPC.hpp"
 #include "../Apple/AppleII/AppleII.hpp"
 #include "../Apple/Macintosh/Macintosh.hpp"
@@ -20,6 +21,17 @@
 #include "../MSX/MSX.hpp"
 #include "../Oric/Oric.hpp"
 #include "../ZX8081/ZX8081.hpp"
+
+// Sources for construction options.
+#include "../../Analyser/Static/Acorn/Target.hpp"
+#include "../../Analyser/Static/AmstradCPC/Target.hpp"
+#include "../../Analyser/Static/AppleII/Target.hpp"
+#include "../../Analyser/Static/AtariST/Target.hpp"
+#include "../../Analyser/Static/Commodore/Target.hpp"
+#include "../../Analyser/Static/Macintosh/Target.hpp"
+#include "../../Analyser/Static/MSX/Target.hpp"
+#include "../../Analyser/Static/Oric/Target.hpp"
+#include "../../Analyser/Static/ZX8081/Target.hpp"
 
 #include "../../Analyser/Dynamic/MultiMachine/MultiMachine.hpp"
 #include "TypedDynamicMachine.hpp"
@@ -152,6 +164,26 @@ std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> Machin
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Oric), Oric::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Vic20), Commodore::Vic20::get_options()));
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::ZX8081), ZX8081::get_options()));
+
+	return options;
+}
+
+std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::ConstructionOptionsByMachineName() {
+	std::map<std::string, std::unique_ptr<Reflection::Struct>> options;
+
+#define Add(Name)	\
+	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Name), new Analyser::Static::Name::Target));
+
+	Add(AmstradCPC);
+	Add(AppleII);
+//	Add(AtariST);
+//	Add(Electron);
+//	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Electron), Electron::get_options()));
+//	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Macintosh), Apple::Macintosh::get_options()));
+	Add(MSX);
+	Add(Oric);
+//	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Vic20), Commodore::Vic20::get_options()));
+	Add(ZX8081);
 
 	return options;
 }

@@ -16,7 +16,7 @@ namespace Analyser {
 namespace Static {
 namespace Macintosh {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
+struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model, Mac128k, Mac512k, Mac512ke, MacPlus);
 	Model model = Model::MacPlus;
 

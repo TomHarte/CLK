@@ -18,7 +18,7 @@ namespace Analyser {
 namespace Static {
 namespace Commodore {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
+struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	enum class MemoryModel {
 		Unexpanded,
 		EightKB,

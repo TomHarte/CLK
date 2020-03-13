@@ -17,7 +17,7 @@ namespace Analyser {
 namespace Static {
 namespace Acorn {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
+struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	bool has_adfs = false;
 	bool has_dfs = false;
 	bool should_shift_restart = false;

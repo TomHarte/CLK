@@ -17,7 +17,7 @@ namespace Analyser {
 namespace Static {
 namespace AppleII {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
+struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model,
 		II,
 		IIplus,

@@ -18,7 +18,7 @@ namespace Analyser {
 namespace Static {
 namespace MSX {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::Struct<Target> {
+struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	bool has_disk_drive = false;
 	std::string loading_command;
 

@@ -19,16 +19,24 @@ namespace Reflection {
 
 #define DeclareField(Name) declare(&Name, #Name)
 
-template <typename Owner> class Struct {
+struct Struct {
+	virtual std::vector<std::string> all_keys() = 0;
+	virtual const std::type_info *type_of(const std::string &name) = 0;
+	virtual void set(const std::string &name, const void *value) = 0;
+	virtual const void *get(const std::string &name) = 0;
+	virtual ~Struct() {}
+};
+
+template <typename Owner> class StructImpl: public Struct {
 	public:
 		/*!
 			@returns the value of type @c Type that is loaded from the offset registered for the field @c name.
 				It is the caller's responsibility to provide an appropriate type of data.
 		*/
-		template <typename Type> const Type *get(const std::string &name) {
+		const void *get(const std::string &name) final {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return nullptr;
-			return reinterpret_cast<Type *>(reinterpret_cast<uint8_t *>(this) + iterator->second.offset);
+			return reinterpret_cast<uint8_t *>(this) + iterator->second.offset;
 		}
 
 		/*!
@@ -36,16 +44,16 @@ template <typename Owner> class Struct {
 
 			It is the caller's responsibility to provide an appropriate type of data.
 		*/
-		template <typename Type> void set(const std::string &name, const Type &value) {
+		void set(const std::string &name, const void *value) final {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return;
-			*reinterpret_cast<Type *>(reinterpret_cast<uint8_t *>(this) + iterator->second.offset) = value;
+			memcpy(reinterpret_cast<uint8_t *>(this) + iterator->second.offset, value, iterator->second.size);
 		}
 
 		/*!
 			@returns @c type_info for the field @c name.
 		*/
-		const std::type_info *type_of(const std::string &name) {
+		const std::type_info *type_of(const std::string &name) final {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return nullptr;
 			return iterator->second.type;
@@ -54,7 +62,7 @@ template <typename Owner> class Struct {
 		/*!
 			@returns A vector of all declared fields for this struct.
 		*/
-		std::vector<std::string> all_keys() {
+		std::vector<std::string> all_keys() final {
 			std::vector<std::string> keys;
 			for(const auto &pair: contents_) {
 				keys.push_back(pair.first);
@@ -82,7 +90,7 @@ template <typename Owner> class Struct {
 			contents_.emplace(
 				std::make_pair(
 					name,
-					Field(typeid(Type), reinterpret_cast<uint8_t *>(t) - reinterpret_cast<uint8_t *>(this))
+					Field(typeid(Type), reinterpret_cast<uint8_t *>(t) - reinterpret_cast<uint8_t *>(this), sizeof(Type))
 				));
 		}
 
@@ -96,9 +104,9 @@ template <typename Owner> class Struct {
 	private:
 		struct Field {
 			const std::type_info *type;
-			ssize_t offset;
-			Field(const std::type_info &type, ssize_t offset) :
-				type(&type), offset(offset) {}
+			ssize_t offset, size;
+			Field(const std::type_info &type, ssize_t offset, size_t size) :
+				type(&type), offset(offset), size(size) {}
 		};
 		static inline std::unordered_map<std::string, Field> contents_;
 };

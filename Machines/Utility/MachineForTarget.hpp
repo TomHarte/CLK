@@ -10,10 +10,12 @@
 #define MachineForTarget_hpp
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
+#include "../../Reflection/Struct.h"
 
 #include "../DynamicMachine.hpp"
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -52,6 +54,8 @@ std::string LongNameForTargetMachine(const Analyser::Machine target);
 	exposes, for all machines.
 */
 std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> AllOptionsByMachineName();
+
+std::map<std::string, std::unique_ptr<Reflection::Struct>> ConstructionOptionsByMachineName();
 
 }
 
