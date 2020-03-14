@@ -9,6 +9,7 @@
 #ifndef Enum_h
 #define Enum_h
 
+#include <algorithm>
 #include <cctype>
 #include <string>
 #include <typeindex>
