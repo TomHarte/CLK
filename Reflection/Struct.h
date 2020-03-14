@@ -9,6 +9,7 @@
 #ifndef Struct_h
 #define Struct_h
 
+#include <cstring>
 #include <string>
 #include <typeindex>
 #include <typeinfo>
