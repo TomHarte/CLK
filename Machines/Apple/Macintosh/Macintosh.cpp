@@ -51,9 +51,6 @@ namespace {
 
 constexpr int CLOCK_RATE = 7833600;
 
-
-Analyser::Static::Macintosh::Target nothing;
-
 }
 
 namespace Apple {

@@ -39,6 +39,9 @@
 
 namespace {
 
+/// Takes an enum-style camel-case string (e.g. Mac128k) and
+//std::string
+
 struct MachineRunner {
 	MachineRunner() {
 		frame_lock_.clear();
