@@ -27,7 +27,15 @@ struct Struct {
 	virtual ~Struct() {}
 };
 
-template <typename Owner> class StructImpl: public Struct {
+struct Serialisable {
+		/// Serialises this object, appending it to @c target.
+		virtual void serialise(std::vector<uint8_t> &target) = 0;
+		/// Deserialises this object from @c source.
+		/// @returns @c true if the deserialisation was successful; @c false otherwise.
+		virtual bool deserialise(const std::vector<uint8_t> &source) = 0;
+};
+
+template <typename Owner> class StructImpl: public Struct, public Serialisable {
 	public:
 		/*!
 			@returns the value of type @c Type that is loaded from the offset registered for the field @c name.
