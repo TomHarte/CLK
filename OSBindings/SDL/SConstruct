@@ -85,6 +85,8 @@ SOURCES += glob.glob('../../Processors/6502/Implementation/*.cpp')
 SOURCES += glob.glob('../../Processors/68000/Implementation/*.cpp')
 SOURCES += glob.glob('../../Processors/Z80/Implementation/*.cpp')
 
+SOURCES += glob.glob('../../Reflection/*.cpp')
+
 SOURCES += glob.glob('../../SignalProcessing/*.cpp')
 
 SOURCES += glob.glob('../../Storage/*.cpp')

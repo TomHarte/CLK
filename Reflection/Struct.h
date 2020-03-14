@@ -24,76 +24,34 @@ namespace Reflection {
 struct Struct {
 	virtual std::vector<std::string> all_keys() = 0;
 	virtual const std::type_info *type_of(const std::string &name) = 0;
-	virtual void set_raw(const std::string &name, const void *value) = 0;
-	virtual const void *get_raw(const std::string &name) = 0;
+	virtual void set(const std::string &name, const void *value) = 0;
+	virtual const void *get(const std::string &name) = 0;
 	virtual ~Struct() {}
-
-	/*!
-		Attempts to set the property @c name to @c value ; will perform limited type conversions.
-
-		@returns @c true if t
-	*/
-	template <typename Type> bool set(const std::string &name, Type value) {
-		return false;
-	}
-
-	/*!
-		Setting an int:
-
-			* to an int copies the int;
-			* to an int64_t promotes the int; and
-			* to a registered enum, copies the int.
-	*/
-	template <> bool set(const std::string &name, int value) {
-		const auto target_type = type_of(name);
-		if(!target_type) return false;
-
-		// No need to convert an int or a registered enum.
-		if(*target_type == typeid(int) || !Reflection::Enum::name(*target_type).empty()) {
-			set_raw(name, &value);
-			return true;
-		}
-
-		// Promote to an int64_t.
-		if(*target_type == typeid(int64_t)) {
-			const auto int64 = int64_t(value);
-			set_raw(name, &int64);
-			return true;
-		}
-
-		return false;
-	}
-
-	/*!
-		Setting a string:
-
-			* to an enum, if the string names a member of the enum, sets the value.
-	*/
-	template <> bool set(const std::string &name, const std::string &value) {
-		const auto target_type = type_of(name);
-		if(!target_type) return false;
-
-		if(Reflection::Enum::name(*target_type).empty()) {
-			return false;
-		}
-
-		const auto enum_value = Reflection::Enum::from_string(*target_type, value);
-		if(enum_value == std::string::npos) {
-			return false;
-		}
-
-		int int_value = int(enum_value);
-		set_raw(name, &int_value);
-
-		return true;
-	}
-
-	template <> bool set(const std::string &name, const char *value) {
-		const std::string string(value);
-		return set<const std::string &>(name, string);
-	}
-
 };
+
+/*!
+	Attempts to set the property @c name to @c value ; will perform limited type conversions.
+
+	@returns @c true if t
+*/
+template <typename Type> bool set(Struct &target, const std::string &name, Type value);
+
+/*!
+	Setting an int:
+
+		* to an int copies the int;
+		* to an int64_t promotes the int; and
+		* to a registered enum, copies the int.
+*/
+template <> bool set(Struct &target, const std::string &name, int value);
+
+/*!
+	Setting a string:
+
+		* to an enum, if the string names a member of the enum, sets the value.
+*/
+template <> bool set(Struct &target, const std::string &name, const std::string &value);
+template <> bool set(Struct &target, const std::string &name, const char *value);
 
 struct Serialisable {
 		/// Serialises this object, appending it to @c target.
@@ -109,7 +67,7 @@ template <typename Owner> class StructImpl: public Struct {
 			@returns the value of type @c Type that is loaded from the offset registered for the field @c name.
 				It is the caller's responsibility to provide an appropriate type of data.
 		*/
-		const void *get_raw(const std::string &name) final {
+		const void *get(const std::string &name) final {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return nullptr;
 			return reinterpret_cast<uint8_t *>(this) + iterator->second.offset;
@@ -120,7 +78,7 @@ template <typename Owner> class StructImpl: public Struct {
 
 			It is the caller's responsibility to provide an appropriate type of data.
 		*/
-		void set_raw(const std::string &name, const void *value) final {
+		void set(const std::string &name, const void *value) final {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return;
 			memcpy(reinterpret_cast<uint8_t *>(this) + iterator->second.offset, value, iterator->second.size);

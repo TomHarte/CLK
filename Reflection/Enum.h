@@ -71,8 +71,8 @@ class Enum {
 				result.emplace_back(std::string(start, size_t(d_ptr - start)));
 			}
 
-			members_by_type_.emplace(std::make_pair(&typeid(Type), result));
-			names_by_type_.emplace(std::make_pair(&typeid(Type), std::string(name)));
+			members_by_type_.emplace(std::make_pair(std::type_index(typeid(Type)), result));
+			names_by_type_.emplace(std::make_pair(std::type_index(typeid(Type)), std::string(name)));
 		}
 
 		/*!
@@ -85,8 +85,8 @@ class Enum {
 		/*!
 			@returns the declared name of the enum with type_info @c type if it has been registered; the empty string otherwise.
 		*/
-		static const std::string &name(const std::type_info &type) {
-			const auto entry = names_by_type_.find(&type);
+		static const std::string &name(std::type_index type) {
+			const auto entry = names_by_type_.find(type);
 			if(entry == names_by_type_.end()) return empty_string_;
 			return entry->second;
 		}
@@ -101,8 +101,8 @@ class Enum {
 		/*!
 			@returns the number of members of the enum with type_info @c type if it has been registered; @c std::string::npos otherwise.
 		*/
-		static size_t size(const std::type_info &type) {
-			const auto entry = members_by_type_.find(&type);
+		static size_t size(std::type_index type) {
+			const auto entry = members_by_type_.find(type);
 			if(entry == members_by_type_.end()) return std::string::npos;
 			return entry->second.size();
 		}
@@ -117,8 +117,8 @@ class Enum {
 		/*!
 			@returns A @c std::string name for the enum value @c e from the enum with type_info @c type.
 		*/
-		static const std::string &to_string(const std::type_info &type, size_t e) {
-			const auto entry = members_by_type_.find(&type);
+		static const std::string &to_string(std::type_index type, size_t e) {
+			const auto entry = members_by_type_.find(type);
 			if(entry == members_by_type_.end()) return empty_string_;
 			return entry->second[e];
 		}
@@ -126,8 +126,8 @@ class Enum {
 		/*!
 			@returns a vector naming the members of the enum with type_info @c type if it has been registered; an empty vector otherwise.
 		*/
-		static const std::vector<std::string> &all_values(const std::type_info &type) {
-			const auto entry = members_by_type_.find(&type);
+		static const std::vector<std::string> &all_values(std::type_index type) {
+			const auto entry = members_by_type_.find(type);
 			if(entry == members_by_type_.end()) return empty_vector_;
 			return entry->second;
 		}
@@ -151,8 +151,8 @@ class Enum {
 			@returns A value for the name @c str in the enum with type_info @c type , or @c std::string::npos if
 				the name is not found.
 		*/
-		static size_t from_string(const std::type_info &type, const std::string &str) {
-			const auto entry = members_by_type_.find(&type);
+		static size_t from_string(std::type_index type, const std::string &str) {
+			const auto entry = members_by_type_.find(type);
 			if(entry == members_by_type_.end()) return std::string::npos;
 			const auto iterator = std::find(entry->second.begin(), entry->second.end(), str);
 			if(iterator == entry->second.end()) return std::string::npos;
@@ -160,8 +160,8 @@ class Enum {
 		}
 
 	private:
-		static inline std::unordered_map<const std::type_info *, std::vector<std::string>> members_by_type_;
-		static inline std::unordered_map<const std::type_info *, std::string> names_by_type_;
+		static inline std::unordered_map<std::type_index, std::vector<std::string>> members_by_type_;
+		static inline std::unordered_map<std::type_index, std::string> names_by_type_;
 		static inline const std::string empty_string_;
 		static inline const std::vector<std::string> empty_vector_;
 };
