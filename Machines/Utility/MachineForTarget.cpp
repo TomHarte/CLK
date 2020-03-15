@@ -150,6 +150,31 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 	}
 }
 
+std::vector<std::string> Machine::AllMachines(bool meaningful_without_media_only, bool long_names) {
+	std::vector<std::string> result;
+
+#define AddName(x) result.push_back(long_names ? LongNameForTargetMachine(Analyser::Machine::x) : ShortNameForTargetMachine(Analyser::Machine::x))
+#define AddConditionalName(x) if(!meaningful_without_media_only) result.push_back(long_names ? LongNameForTargetMachine(Analyser::Machine::x) : ShortNameForTargetMachine(Analyser::Machine::x))
+
+	AddName(AmstradCPC);
+	AddName(AppleII);
+	AddConditionalName(Atari2600);
+	AddName(AtariST);
+	AddConditionalName(ColecoVision);
+	AddName(Electron);
+	AddName(Macintosh);
+	AddConditionalName(MasterSystem);
+	AddName(MSX);
+	AddName(Oric);
+	AddName(Vic20);
+	AddName(ZX8081);
+
+#undef AddConditionalName
+#undef AddName
+
+	return result;
+}
+
 std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> Machine::AllOptionsByMachineName() {
 	std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> options;
 
@@ -171,19 +196,22 @@ std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> Machin
 std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::ConstructionOptionsByMachineName() {
 	std::map<std::string, std::unique_ptr<Reflection::Struct>> options;
 
-#define Add(Name)	\
-	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Name), new Analyser::Static::Name::Target));
+#define AddMapped(Name, TargetNamespace)	\
+	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Name), new Analyser::Static::TargetNamespace::Target));
+#define Add(Name)	AddMapped(Name, Name)
 
 	Add(AmstradCPC);
 	Add(AppleII);
-//	Add(AtariST);
-//	Add(Electron);
-//	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Electron), Electron::get_options()));
-//	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Macintosh), Apple::Macintosh::get_options()));
+	Add(AtariST);
+	AddMapped(Electron, Acorn);
+	Add(Macintosh);
 	Add(MSX);
 	Add(Oric);
-//	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Vic20), Commodore::Vic20::get_options()));
+	AddMapped(Vic20, Commodore);
 	Add(ZX8081);
+
+#undef Add
+#undef AddTwo
 
 	return options;
 }

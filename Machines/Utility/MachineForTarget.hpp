@@ -50,6 +50,11 @@ std::string ShortNameForTargetMachine(const Analyser::Machine target);
 std::string LongNameForTargetMachine(const Analyser::Machine target);
 
 /*!
+	@returns A list of all available machines.
+*/
+std::vector<std::string> AllMachines(bool meaningful_without_media_only, bool long_names);
+
+/*!
 	Returns a map from machine name to the list of options that machine
 	exposes, for all machines.
 */
