@@ -9,11 +9,15 @@
 #ifndef Analyser_Static_AtariST_Target_h
 #define Analyser_Static_AtariST_Target_h
 
+#include "../../../Reflection/Struct.h"
+#include "../StaticAnalyser.hpp"
+
 namespace Analyser {
 namespace Static {
 namespace AtariST {
 
-struct Target: public ::Analyser::Static::Target {
+struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
+	Target() : Analyser::Static::Target(Machine::AtariST) {}
 };
 
 }

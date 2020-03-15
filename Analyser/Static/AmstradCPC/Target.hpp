@@ -18,12 +18,12 @@ namespace Analyser {
 namespace Static {
 namespace AmstradCPC {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
+struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model, CPC464, CPC664, CPC6128);
 	Model model = Model::CPC464;
 	std::string loading_command;
 
-	Target() {
+	Target() : Analyser::Static::Target(Machine::AmstradCPC) {
 		if(needs_declare()) {
 			DeclareField(model);
 			AnnounceEnum(Model);

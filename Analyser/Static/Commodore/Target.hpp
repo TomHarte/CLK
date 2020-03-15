@@ -18,7 +18,7 @@ namespace Analyser {
 namespace Static {
 namespace Commodore {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
+struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	enum class MemoryModel {
 		Unexpanded,
 		EightKB,
@@ -57,7 +57,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	bool has_c1540 = false;
 	std::string loading_command;
 
-	Target() {
+	Target() : Analyser::Static::Target(Machine::Vic20) {
 		if(needs_declare()) {
 			DeclareField(enabled_ram.bank0);
 			DeclareField(enabled_ram.bank1);

@@ -42,11 +42,12 @@ struct Media {
 	and instructions on how to launch the software attached, plus a measure of confidence in this target's correctness.
 */
 struct Target {
+	Target(Machine machine) : machine(machine) {}
 	virtual ~Target() {}
 
 	Machine machine;
 	Media media;
-	float confidence;
+	float confidence = 0.0f;
 };
 typedef std::vector<std::unique_ptr<Target>> TargetList;
 

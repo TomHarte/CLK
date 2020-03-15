@@ -18,7 +18,7 @@ namespace Analyser {
 namespace Static {
 namespace Oric {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
+struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(ROM,
 		BASIC10,
 		BASIC11,
@@ -38,7 +38,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	std::string loading_command;
 	bool should_start_jasmin = false;
 
-	Target() {
+	Target(): Analyser::Static::Target(Machine::Oric) {
 		if(needs_declare()) {
 			DeclareField(rom);
 			DeclareField(disk_interface);

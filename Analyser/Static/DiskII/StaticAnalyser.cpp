@@ -21,7 +21,6 @@ namespace {
 Analyser::Static::Target *AppleTarget(const Storage::Encodings::AppleGCR::Sector *sector_zero) {
 	using Target = Analyser::Static::AppleII::Target;
 	auto *target = new Target;
-	target->machine = Analyser::Machine::AppleII;
 
 	if(sector_zero && sector_zero->encoding == Storage::Encodings::AppleGCR::Sector::Encoding::FiveAndThree) {
 		target->disk_controller = Target::DiskController::ThirteenSector;
@@ -35,7 +34,6 @@ Analyser::Static::Target *AppleTarget(const Storage::Encodings::AppleGCR::Sector
 Analyser::Static::Target *OricTarget(const Storage::Encodings::AppleGCR::Sector *sector_zero) {
 	using Target = Analyser::Static::Oric::Target;
 	auto *target = new Target;
-	target->machine = Analyser::Machine::Oric;
 	target->rom = Target::ROM::Pravetz;
 	target->disk_interface = Target::DiskInterface::Pravetz;
 	target->loading_command = "CALL 800\n";

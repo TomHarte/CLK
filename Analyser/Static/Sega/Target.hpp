@@ -9,11 +9,13 @@
 #ifndef Analyser_Static_Sega_Target_h
 #define Analyser_Static_Sega_Target_h
 
+#include "../StaticAnalyser.hpp"
+
 namespace Analyser {
 namespace Static {
 namespace Sega {
 
-struct Target: public ::Analyser::Static::Target {
+struct Target: public Analyser::Static::Target {
 	enum class Model {
 		SG1000,
 		MasterSystem,
@@ -35,6 +37,8 @@ struct Target: public ::Analyser::Static::Target {
 	Model model = Model::MasterSystem;
 	Region region = Region::Japan;
 	PagingScheme paging_scheme = PagingScheme::Sega;
+
+	Target() : Analyser::Static::Target(Machine::MasterSystem) {}
 };
 
 #define is_master_system(v) v >= Analyser::Static::Sega::Target::Model::MasterSystem

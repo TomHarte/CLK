@@ -30,7 +30,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	bool ZX80_uses_ZX81_ROM = false;
 	std::string loading_command;
 
-	Target() {
+	Target(): Analyser::Static::Target(Machine::ZX8081) {
 		if(needs_declare()) {
 			DeclareField(memory_model);
 			DeclareField(is_ZX81);

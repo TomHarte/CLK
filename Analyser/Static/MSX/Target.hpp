@@ -29,7 +29,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	);
 	Region region = Region::USA;
 
-	Target() {
+	Target(): Analyser::Static::Target(Machine::MSX) {
 		if(needs_declare()) {
 			DeclareField(has_disk_drive);
 			DeclareField(region);

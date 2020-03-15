@@ -139,7 +139,8 @@ template <typename Owner> class StructImpl: public Struct {
 	private:
 		struct Field {
 			const std::type_info *type;
-			ssize_t offset, size;
+			ssize_t offset;
+			size_t size;
 			Field(const std::type_info &type, ssize_t offset, size_t size) :
 				type(&type), offset(offset), size(size) {}
 		};

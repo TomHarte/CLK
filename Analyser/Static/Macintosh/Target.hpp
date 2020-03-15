@@ -16,11 +16,11 @@ namespace Analyser {
 namespace Static {
 namespace Macintosh {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
+struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model, Mac128k, Mac512k, Mac512ke, MacPlus);
 	Model model = Model::MacPlus;
 
-	Target() {
+	Target() : Analyser::Static::Target(Machine::Macintosh) {
 		// Boilerplate for declaring fields and potential values.
 		if(needs_declare()) {
 			DeclareField(model);

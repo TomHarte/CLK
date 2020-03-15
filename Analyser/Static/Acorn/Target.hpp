@@ -23,7 +23,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	bool should_shift_restart = false;
 	std::string loading_command;
 
-	Target() {
+	Target() : Analyser::Static::Target(Machine::Electron) {
 		if(needs_declare()) {
 			DeclareField(has_adfs);
 			DeclareField(has_dfs);

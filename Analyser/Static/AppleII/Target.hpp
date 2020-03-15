@@ -17,7 +17,7 @@ namespace Analyser {
 namespace Static {
 namespace AppleII {
 
-struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<Target> {
+struct Target: public Analyser::Static::Target, public Reflection::StructImpl<Target> {
 	ReflectableEnum(Model,
 		II,
 		IIplus,
@@ -33,7 +33,7 @@ struct Target: public ::Analyser::Static::Target, public Reflection::StructImpl<
 	Model model = Model::IIe;
 	DiskController disk_controller = DiskController::None;
 
-	Target() {
+	Target() : Analyser::Static::Target(Machine::AppleII) {
 		if(needs_declare()) {
 			DeclareField(model);
 			DeclareField(disk_controller);
