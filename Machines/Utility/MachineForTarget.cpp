@@ -26,19 +26,19 @@
 #include "../../Analyser/Static/Acorn/Target.hpp"
 #include "../../Analyser/Static/AmstradCPC/Target.hpp"
 #include "../../Analyser/Static/AppleII/Target.hpp"
+#include "../../Analyser/Static/Atari2600/Target.hpp"
 #include "../../Analyser/Static/AtariST/Target.hpp"
 #include "../../Analyser/Static/Commodore/Target.hpp"
 #include "../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../Analyser/Static/MSX/Target.hpp"
 #include "../../Analyser/Static/Oric/Target.hpp"
+#include "../../Analyser/Static/Sega/Target.hpp"
 #include "../../Analyser/Static/ZX8081/Target.hpp"
 
 #include "../../Analyser/Dynamic/MultiMachine/MultiMachine.hpp"
 #include "TypedDynamicMachine.hpp"
 
-namespace {
-
-::Machine::DynamicMachine *MachineForTarget(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher, Machine::Error &error) {
+Machine::DynamicMachine *Machine::MachineForTarget(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher, Machine::Error &error) {
 	error = Machine::Error::None;
 
 	Machine::DynamicMachine *machine = nullptr;
@@ -78,9 +78,7 @@ namespace {
 	return machine;
 }
 
-}
-
-::Machine::DynamicMachine *::Machine::MachineForTargets(const Analyser::Static::TargetList &targets, const ROMMachine::ROMFetcher &rom_fetcher, Error &error) {
+Machine::DynamicMachine *Machine::MachineForTargets(const Analyser::Static::TargetList &targets, const ROMMachine::ROMFetcher &rom_fetcher, Error &error) {
 	// Zero targets implies no machine.
 	if(targets.empty()) {
 		error = Error::NoTargets;
@@ -193,8 +191,8 @@ std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> Machin
 	return options;
 }
 
-std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::ConstructionOptionsByMachineName() {
-	std::map<std::string, std::unique_ptr<Reflection::Struct>> options;
+std::map<std::string, std::unique_ptr<Analyser::Static::Target>> Machine::TargetsByMachineName(bool meaningful_without_media_only) {
+	std::map<std::string, std::unique_ptr<Analyser::Static::Target>> options;
 
 #define AddMapped(Name, TargetNamespace)	\
 	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Name), new Analyser::Static::TargetNamespace::Target));
@@ -209,6 +207,12 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::Construction
 	Add(Oric);
 	AddMapped(Vic20, Commodore);
 	Add(ZX8081);
+
+	if(!meaningful_without_media_only) {
+		Add(Atari2600);
+		options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::ColecoVision), new Analyser::Static::Target(Analyser::Machine::ColecoVision)));
+		AddMapped(MasterSystem, Sega);
+	}
 
 #undef Add
 #undef AddTwo

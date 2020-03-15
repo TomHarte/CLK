@@ -13,10 +13,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <map>
+#include <variant>
 
 #include <SDL2/SDL.h>
 
@@ -363,7 +364,7 @@ bool KeyboardKeyForSDLScancode(SDL_Scancode scancode, Inputs::Keyboard::Key &key
 
 struct ParsedArguments {
 	std::string file_name;
-	Configurable::SelectionSet selections;
+	std::map<std::string, std::variant<std::string, bool>> selections;
 };
 
 /*! Parses an argc/argv pair to discern program arguments. */
@@ -388,11 +389,11 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 			std::size_t split_index = argument.find("=");
 
 			if(split_index == std::string::npos) {
-				arguments.selections[argument] = std::make_unique<Configurable::BooleanSelection>(true);
+				arguments.selections[argument] = true;
 			} else {
 				std::string name = argument.substr(0, split_index);
 				std::string value = argument.substr(split_index+1, std::string::npos);
-				arguments.selections[name] = std::make_unique<Configurable::ListSelection>(value);
+				arguments.selections[name] = value;
 			}
 		} else {
 			arguments.file_name = arg;
@@ -506,12 +507,14 @@ int main(int argc, char *argv[]) {
 			std::cout << std::endl;
 		}
 
-		const auto construction_options = Machine::ConstructionOptionsByMachineName();
-		for(const auto &options: construction_options) {
-			std::cout << options.first << ":" << std::endl;
-			for(const auto &option: options.second->all_keys()) {
+		const auto targets = Machine::TargetsByMachineName(false);
+		for(const auto &target: targets) {
+			const auto reflectable = dynamic_cast<Reflection::Struct *>(target.second.get());
+
+			std::cout << target.first << ":" << std::endl;
+			for(const auto &option: reflectable->all_keys()) {
 				std::cout << '\t' << "--" << option;
-				const auto type = options.second->type_of(option);
+				const auto type = reflectable->type_of(option);
 
 				// Is this a registered enum? If so, list options.
 				if(!Reflection::Enum::name(*type).empty()) {
@@ -565,14 +568,14 @@ int main(int argc, char *argv[]) {
 				"/usr/local/share/CLK/",
 				"/usr/share/CLK/"
 			};
-			if(arguments.selections.find("rompath") != arguments.selections.end()) {
-				const std::string user_path = arguments.selections["rompath"]->list_selection()->value;
-				if(user_path.back() != '/') {
-					paths.push_back(user_path + "/");
-				} else {
-					paths.push_back(user_path);
-				}
-			}
+//			if(arguments.selections.find("rompath") != arguments.selections.end()) {
+//				const std::string user_path = arguments.selections["rompath"]->list_selection()->value;
+//				if(user_path.back() != '/') {
+//					paths.push_back(user_path + "/");
+//				} else {
+//					paths.push_back(user_path);
+//				}
+//			}
 
 			std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
 			for(const auto &rom: roms) {
@@ -630,17 +633,17 @@ int main(int argc, char *argv[]) {
 
 	// Apply the speed multiplier, if one was requested.
 	if(arguments.selections.find("speed") != arguments.selections.end()) {
-		const char *speed_string = arguments.selections["speed"]->list_selection()->value.c_str();
-		char *end;
-		double speed = strtod(speed_string, &end);
-
-		if(size_t(end - speed_string) != strlen(speed_string)) {
-			std::cerr << "Unable to parse speed: " << speed_string << std::endl;
-		} else if(speed <= 0.0) {
-			std::cerr << "Cannot run at speed " << speed_string << "; speeds must be positive." << std::endl;
-		} else {
-			machine_runner.set_speed_multiplier(speed);
-		}
+//		const char *speed_string = arguments.selections["speed"]->list_selection()->value.c_str();
+//		char *end;
+//		double speed = strtod(speed_string, &end);
+//
+//		if(size_t(end - speed_string) != strlen(speed_string)) {
+//			std::cerr << "Unable to parse speed: " << speed_string << std::endl;
+//		} else if(speed <= 0.0) {
+//			std::cerr << "Cannot run at speed " << speed_string << "; speeds must be positive." << std::endl;
+//		} else {
+//			machine_runner.set_speed_multiplier(speed);
+//		}
 	}
 
 	// Check whether a 'logical' keyboard has been requested.
@@ -718,7 +721,7 @@ int main(int argc, char *argv[]) {
 	int window_width, window_height;
 	SDL_GetWindowSize(window, &window_width, &window_height);
 
-	Configurable::Device *const configurable_device = machine->configurable_device();
+/*	Configurable::Device *const configurable_device = machine->configurable_device();
 	if(configurable_device) {
 		// Establish user-friendly options by default.
 		configurable_device->set_selections(configurable_device->get_user_friendly_selections());
@@ -741,7 +744,7 @@ int main(int argc, char *argv[]) {
 
 		// Apply the user's actual selections to final the defaults.
 		configurable_device->set_selections(arguments.selections);
-	}
+	}*/
 
 	// If this is a joystick machine, check for and open attached joysticks.
 	/*!
