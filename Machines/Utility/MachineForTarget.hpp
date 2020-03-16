@@ -20,6 +20,14 @@
 #include <vector>
 
 /*!
+	This namespace acts as a grab-bag of functions that allow a client to:
+
+		(i) discover the total list of implemented machines;
+		(ii) discover the construction and runtime options available for controlling them; and
+		(iii) create any implemented machine via its construction options.
+
+	See Reflection::Struct and Reflection::Enum for getting dynamic information from the
+	Targets that this namespace deals in.
 */
 namespace Machine {
 
@@ -58,13 +66,16 @@ std::string ShortNameForTargetMachine(const Analyser::Machine target);
 std::string LongNameForTargetMachine(const Analyser::Machine target);
 
 /*!
-	@returns A list of all available machines.
+	@param meaningful_without_media_only If this is @c true then only machines that it is meaningful to start without a piece of media will be listed;
+		otherwise all supported machines will be listed.
+	@param long_names If this is @c true then long names will be returned; otherwise short names will be returned.
+
+	@returns A list of all available machines. Names are always guaranteed to be in the same order.
 */
 std::vector<std::string> AllMachines(bool meaningful_without_media_only, bool long_names);
 
 /*!
-	Returns a map from long machine name to the list of options that machine
-	exposes, for all machines.
+	Returns a map from long machine name to the list of options that machine exposes, for all machines.
 */
 std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> AllOptionsByMachineName();
 

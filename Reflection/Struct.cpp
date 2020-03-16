@@ -51,3 +51,7 @@ template <> bool Reflection::set(Struct &target, const std::string &name, const 
 	const std::string string(value);
 	return set<const std::string &>(target, name, string);
 }
+
+bool Reflection::fuzzy_set(Struct &target, const std::string &name, const std::string &value) {
+	return false;
+}

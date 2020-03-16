@@ -33,7 +33,7 @@ struct Struct {
 /*!
 	Attempts to set the property @c name to @c value ; will perform limited type conversions.
 
-	@returns @c true if t
+	@returns @c true if the property was successfully set; @c false otherwise.
 */
 template <typename Type> bool set(Struct &target, const std::string &name, Type value);
 
@@ -54,12 +54,30 @@ template <> bool set(Struct &target, const std::string &name, int value);
 template <> bool set(Struct &target, const std::string &name, const std::string &value);
 template <> bool set(Struct &target, const std::string &name, const char *value);
 
+
+/*!
+	Fuzzy-set attempts to set any property based on a string value. This is intended to allow input provided by the user.
+
+	Amongst other steps, it might:
+		* if the target is a bool, map true, false, yes, no, y, n, etc;
+		* if the target is an integer, parse like strtrol;
+		* if the target is a float, parse like strtod; or
+		* if the target is a reflective enum, attempt to match to enum members (possibly doing so in a case insensitive fashion).
+
+	This method reserves the right to perform more or fewer attempted mappings, using any other logic it
+	decides is appropriate.
+
+@returns @c true if the property was successfully set; @c false otherwise.
+*/
+bool fuzzy_set(Struct &target, const std::string &name, const std::string &value);
+
+// TODO: move this elsewhere. It's just a sketch anyway.
 struct Serialisable {
-		/// Serialises this object, appending it to @c target.
-		virtual void serialise(std::vector<uint8_t> &target) = 0;
-		/// Deserialises this object from @c source.
-		/// @returns @c true if the deserialisation was successful; @c false otherwise.
-		virtual bool deserialise(const std::vector<uint8_t> &source) = 0;
+	/// Serialises this object, appending it to @c target.
+	virtual void serialise(std::vector<uint8_t> &target) = 0;
+	/// Deserialises this object from @c source.
+	/// @returns @c true if the deserialisation was successful; @c false otherwise.
+	virtual bool deserialise(const std::vector<uint8_t> &source) = 0;
 };
 
 template <typename Owner> class StructImpl: public Struct {

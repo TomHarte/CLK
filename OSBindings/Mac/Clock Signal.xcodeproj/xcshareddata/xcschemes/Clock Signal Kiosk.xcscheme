@@ -34,7 +34,6 @@
       buildConfiguration = "Debug"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
-      enableThreadSanitizer = "YES"
       disableMainThreadChecker = "YES"
       launchStyle = "0"
       useCustomWorkingDirectory = "NO"
@@ -56,6 +55,10 @@
          <CommandLineArgument
             argument = "/Users/thomasharte/Downloads/test-dsk-for-rw-and-50-60-hz/TEST-RW-60Hz.DSK"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "--new=amstradcpc"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/ColecoVision/Galaxian (1983)(Atari).col&quot;"
@@ -87,7 +90,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--help"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

@@ -17,7 +17,6 @@
 #include <memory>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <variant>
 
 #include <SDL2/SDL.h>
 
@@ -364,7 +363,7 @@ bool KeyboardKeyForSDLScancode(SDL_Scancode scancode, Inputs::Keyboard::Key &key
 
 struct ParsedArguments {
 	std::string file_name;
-	std::map<std::string, std::variant<std::string, bool>> selections;
+	std::map<std::string, std::string> selections;	// The empty string will be inserted for arguments without an = suffix.
 };
 
 /*! Parses an argc/argv pair to discern program arguments. */
@@ -389,7 +388,7 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 			std::size_t split_index = argument.find("=");
 
 			if(split_index == std::string::npos) {
-				arguments.selections[argument] = true;
+				arguments.selections[argument];	// To create an entry with the default empty string.
 			} else {
 				std::string name = argument.substr(0, split_index);
 				std::string value = argument.substr(split_index+1, std::string::npos);
@@ -477,39 +476,55 @@ int main(int argc, char *argv[]) {
 	ParsedArguments arguments = parse_arguments(argc, argv);
 
 	// This may be printed either as
-	const std::string usage_suffix = " [file] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]";	/* [--logical-keyboard] */
+	const std::string usage_suffix = " [file or --new={machine}] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]  [--logical-keyboard]";
 
 	// Print a help message if requested.
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
+		const auto all_machines = Machine::AllMachines(false, false);
+
 		std::cout << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
 		std::cout << "Use alt+enter to toggle full screen display. Use control+shift+V to paste text." << std::endl;
-		std::cout << "Required machine type and configuration is determined from the file. Machines with further options:" << std::endl << std::endl;
-
-		const auto all_options = Machine::AllOptionsByMachineName();
-		for(const auto &machine_options: all_options) {
-			std::cout << machine_options.first << ":" << std::endl;
-			for(const auto &option: machine_options.second) {
-				std::cout << '\t' << "--" << option->short_name;
-
-				Configurable::ListOption *list_option = dynamic_cast<Configurable::ListOption *>(option.get());
-				if(list_option) {
-					std::cout << "={";
-					bool is_first = true;
-					for(const auto &option: list_option->options) {
-						if(!is_first) std::cout << '|';
-						is_first = false;
-						std::cout << option;
-					}
-					std::cout << "}";
-				}
-				std::cout << std::endl;
-			}
-			std::cout << std::endl;
+		std::cout << "Required machine type and configuration is determined from the file if specified; otherwise use:" << std::endl << std::endl;
+		std::cout << "\t--new={";
+		bool is_first = true;
+		for(const auto &name: all_machines) {
+			if(!is_first) std::cout << "|";
+			std::cout << name;
+			is_first = false;
 		}
+		std::cout << "}" << std::endl << std::endl;
+
+		std::cout << "Further machine options:" << std::endl;
+		std::cout << "(* means: a selection will be made automatically based on the file selected, if any)" << std::endl << std::endl;
+
+//		const auto all_options = Machine::AllOptionsByMachineName();
+//		for(const auto &machine_options: all_options) {
+//			std::cout << machine_options.first << ":" << std::endl;
+//			for(const auto &option: machine_options.second) {
+//				std::cout << '\t' << "--" << option->short_name;
+//
+//				Configurable::ListOption *list_option = dynamic_cast<Configurable::ListOption *>(option.get());
+//				if(list_option) {
+//					std::cout << "={";
+//					bool is_first = true;
+//					for(const auto &option: list_option->options) {
+//						if(!is_first) std::cout << '|';
+//						is_first = false;
+//						std::cout << option;
+//					}
+//					std::cout << "}";
+//				}
+//				std::cout << std::endl;
+//			}
+//			std::cout << std::endl;
+//		}
 
 		const auto targets = Machine::TargetsByMachineName(false);
 		for(const auto &target: targets) {
 			const auto reflectable = dynamic_cast<Reflection::Struct *>(target.second.get());
+			if(!reflectable) continue;
+			const auto all_keys = reflectable->all_keys();
+			if(all_keys.empty()) continue;
 
 			std::cout << target.first << ":" << std::endl;
 			for(const auto &option: reflectable->all_keys()) {
@@ -529,7 +544,7 @@ int main(int argc, char *argv[]) {
 				}
 
 				// TODO: if not a registered enum... then assume it was a Boolean?
-				std::cout << std::endl;
+				std::cout << "\t*" << std::endl;
 			}
 
 			std::cout << std::endl;
@@ -537,17 +552,50 @@ int main(int argc, char *argv[]) {
 		return EXIT_SUCCESS;
 	}
 
-	// Perform a sanity check on arguments.
-	if(arguments.file_name.empty()) {
-		std::cerr << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
-		std::cerr << "Use --help to learn more about available options." << std::endl;
-		return EXIT_FAILURE;
+	// Determine the machine for the supplied file, if any, or from --new.
+	Analyser::Static::TargetList targets;
+	if(!arguments.file_name.empty()) {
+		targets = Analyser::Static::GetTargets(arguments.file_name);
 	}
 
-	// Determine the machine for the supplied file.
-	const auto targets = Analyser::Static::GetTargets(arguments.file_name);
+	const auto new_argument = arguments.selections.find("new");
+	if(new_argument != arguments.selections.end() && !new_argument->second.empty()) {
+		// Perform for a case-insensitive search against short names.
+		const auto short_names = Machine::AllMachines(false, false);
+		auto short_name = short_names.begin();
+		while(short_name != short_names.end()) {
+			if(std::equal(
+				short_name->begin(), short_name->end(),
+				new_argument->second.begin(), new_argument->second.end(),
+				[](char a, char b) { return tolower(b) == tolower(a); })) {
+				break;
+			}
+			++short_name;
+		}
+
+		// If a match was found, use the corresponding long name to look up a suitable
+		// Analyser::Statuc::Target and move that to the targets list.
+		if(short_name != short_names.end()) {
+			const auto long_name = Machine::AllMachines(false, true)[short_name - short_names.begin()];
+			auto targets_by_machine = Machine::TargetsByMachineName(false);
+			std::unique_ptr<Analyser::Static::Target> tgt = std::move(targets_by_machine[long_name]);
+			targets.push_back(std::move(tgt));
+		}
+	}
+
 	if(targets.empty()) {
-		std::cerr << "Cannot open " << arguments.file_name << "; no target machine found" << std::endl;
+		if(!arguments.file_name.empty()) {
+			std::cerr << "Cannot open " << arguments.file_name << "; no target machine found" << std::endl;
+			return EXIT_FAILURE;
+		}
+
+		if(!new_argument->second.empty()) {
+			std::cerr << "Unknown machine: " << new_argument->second << std::endl;
+			return EXIT_FAILURE;
+		}
+
+		std::cerr << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
+		std::cerr << "Use --help to learn more about available options." << std::endl;
 		return EXIT_FAILURE;
 	}
 
@@ -568,14 +616,14 @@ int main(int argc, char *argv[]) {
 				"/usr/local/share/CLK/",
 				"/usr/share/CLK/"
 			};
-//			if(arguments.selections.find("rompath") != arguments.selections.end()) {
-//				const std::string user_path = arguments.selections["rompath"]->list_selection()->value;
-//				if(user_path.back() != '/') {
-//					paths.push_back(user_path + "/");
-//				} else {
-//					paths.push_back(user_path);
-//				}
-//			}
+			if(arguments.selections.find("rompath") != arguments.selections.end()) {
+				const std::string user_path = arguments.selections["rompath"];
+				if(user_path.back() != '/') {
+					paths.push_back(user_path + "/");
+				} else {
+					paths.push_back(user_path);
+				}
+			}
 
 			std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
 			for(const auto &rom: roms) {
