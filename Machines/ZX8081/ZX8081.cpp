@@ -18,7 +18,6 @@
 #include "../../Storage/Tape/Parsers/ZX8081.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
-#include "../../Configurable/StandardOptions.hpp"
 
 #include "../Utility/MemoryFuzzer.hpp"
 #include "../Utility/Typer.hpp"
@@ -51,10 +50,20 @@ enum ROMType: uint8_t {
 	ZX80 = 0, ZX81
 };
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::AutomaticTapeMotorControl | Configurable::QuickLoadTape)
-	);
+struct Options: public Reflection::StructImpl<Options> {
+	bool automatic_tape_motor_control = true;
+	bool quickload = true;
+
+	Options() {
+		if(needs_declare()) {
+			DeclareField(automatic_tape_motor_control);
+			DeclareField(quickload);
+		}
+	}
+};
+
+std::unique_ptr<Reflection::Struct> get_options() {
+	return std::make_unique<Options>();
 }
 
 template<bool is_zx81> class ConcreteMachine:
@@ -413,35 +422,31 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
-			return ZX8081::get_options();
+		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
+			auto options = std::make_unique<Options>();
+			switch(type) {
+				case OptionsType::Current:
+					options->automatic_tape_motor_control = use_automatic_tape_motor_control_;
+					options->quickload = allow_fast_tape_hack_;
+				break;
+				case OptionsType::Accurate:
+				case OptionsType::UserFriendly:
+					options->automatic_tape_motor_control =
+					options->quickload = type == OptionsType::UserFriendly;
+				break;
+			}
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
-			bool quickload;
-			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				allow_fast_tape_hack_ = quickload;
+		void set_options(const std::unique_ptr<Reflection::Struct> &options) {
+			if(Reflection::get<bool>(*options, "quickload", allow_fast_tape_hack_)) {
 				set_use_fast_tape();
 			}
 
 			bool autotapemotor;
-			if(Configurable::get_automatic_tape_motor_control_selection(selections_by_option, autotapemotor)) {
+			if(Reflection::get<bool>(*options, "automatic_tape_motor_control", autotapemotor)) {
 				set_use_automatic_tape_motor_control(autotapemotor);
 			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_automatic_tape_motor_control_selection(selection_set, false);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, true);
-			Configurable::append_automatic_tape_motor_control_selection(selection_set, true);
-			return selection_set;
 		}
 
 	private:

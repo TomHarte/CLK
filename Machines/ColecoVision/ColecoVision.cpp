@@ -16,6 +16,7 @@
 
 #include "../CRTMachine.hpp"
 #include "../JoystickMachine.hpp"
+#include "../../Configurable/Configurable.hpp"
 
 #include "../../Configurable/StandardOptions.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
@@ -33,10 +34,14 @@ constexpr int sn76489_divider = 2;
 namespace Coleco {
 namespace Vision {
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplaySVideo | Configurable::DisplayCompositeColour)
-	);
+//std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+//	return Configurable::standard_options(
+//		static_cast<Configurable::StandardOptions>(Configurable::DisplaySVideo | Configurable::DisplayCompositeColour)
+//	);
+//}
+
+std::unique_ptr<Reflection::Struct> get_options() {
+	return nullptr;
 }
 
 class Joystick: public Inputs::ConcreteJoystick {
@@ -368,28 +373,34 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
-			return Coleco::Vision::get_options();
+		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
+			return nullptr;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
+		void set_options(const std::unique_ptr<Reflection::Struct> &options) final {
 		}
-
-		Configurable::SelectionSet get_accurate_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::SVideo);
-			return selection_set;
-		}
+//		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
+//			return Coleco::Vision::get_options();
+//		}
+//
+//		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
+//			Configurable::Display display;
+//			if(Configurable::get_display(selections_by_option, display)) {
+//				set_video_signal_configurable(display);
+//			}
+//		}
+//
+//		Configurable::SelectionSet get_accurate_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
+//			return selection_set;
+//		}
+//
+//		Configurable::SelectionSet get_user_friendly_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_display_selection(selection_set, Configurable::Display::SVideo);
+//			return selection_set;
+//		}
 
 	private:
 		inline void page_megacart(uint16_t address) {

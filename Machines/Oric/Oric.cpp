@@ -50,14 +50,18 @@ enum ROM {
 	BASIC10 = 0, BASIC11, Microdisc, Colour
 };
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(
-			Configurable::DisplayRGB |
-			Configurable::DisplayCompositeColour |
-			Configurable::DisplayCompositeMonochrome |
-			Configurable::QuickLoadTape)
-	);
+//std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+//	return Configurable::standard_options(
+//		static_cast<Configurable::StandardOptions>(
+//			Configurable::DisplayRGB |
+//			Configurable::DisplayCompositeColour |
+//			Configurable::DisplayCompositeMonochrome |
+//			Configurable::QuickLoadTape)
+//	);
+//}
+
+std::unique_ptr<Reflection::Struct> get_options() {
+	return nullptr;
 }
 
 /*!
@@ -623,35 +627,41 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
-			return Oric::get_options();
+		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
+			return nullptr;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
-			bool quickload;
-			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				set_use_fast_tape_hack(quickload);
-			}
-
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
+		void set_options(const std::unique_ptr<Reflection::Struct> &options) final {
 		}
-
-		Configurable::SelectionSet get_accurate_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, true);
-			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-			return selection_set;
-		}
+//		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
+//			return Oric::get_options();
+//		}
+//
+//		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
+//			bool quickload;
+//			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
+//				set_use_fast_tape_hack(quickload);
+//			}
+//
+//			Configurable::Display display;
+//			if(Configurable::get_display(selections_by_option, display)) {
+//				set_video_signal_configurable(display);
+//			}
+//		}
+//
+//		Configurable::SelectionSet get_accurate_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_quick_load_tape_selection(selection_set, false);
+//			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
+//			return selection_set;
+//		}
+//
+//		Configurable::SelectionSet get_user_friendly_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_quick_load_tape_selection(selection_set, true);
+//			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
+//			return selection_set;
+//		}
 
 		void set_activity_observer(Activity::Observer *observer) final {
 			switch(disk_interface) {

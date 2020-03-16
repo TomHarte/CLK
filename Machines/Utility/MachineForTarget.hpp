@@ -77,7 +77,7 @@ std::vector<std::string> AllMachines(bool meaningful_without_media_only, bool lo
 /*!
 	Returns a map from long machine name to the list of options that machine exposes, for all machines.
 */
-std::map<std::string, std::vector<std::unique_ptr<Configurable::Option>>> AllOptionsByMachineName();
+std::map<std::string, std::unique_ptr<Reflection::Struct>> AllOptionsByMachineName();
 
 /*!
 	Returns a map from long machine name to appropriate instances of Target for the machine.

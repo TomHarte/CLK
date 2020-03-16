@@ -9,14 +9,16 @@
 #ifndef ZX8081_hpp
 #define ZX8081_hpp
 
-#include "../../Configurable/Configurable.hpp"
+#include "../../Reflection/Struct.h"
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
+
+#include <memory>
 
 namespace ZX8081 {
 
 /// @returns The options available for a ZX80 or ZX81.
-std::vector<std::unique_ptr<Configurable::Option>> get_options();
+std::unique_ptr<Reflection::Struct> get_options();
 
 class Machine {
 	public:

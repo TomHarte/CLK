@@ -9,18 +9,16 @@
 #ifndef Electron_hpp
 #define Electron_hpp
 
-#include "../../Configurable/Configurable.hpp"
+#include "../../Reflection/Struct.h"
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
 
-#include <cstdint>
 #include <memory>
-#include <vector>
 
 namespace Electron {
 
 /// @returns The options available for an Electron.
-std::vector<std::unique_ptr<Configurable::Option>> get_options();
+std::unique_ptr<Reflection::Struct> get_options();
 
 /*!
 	@abstract Represents an Acorn Electron.

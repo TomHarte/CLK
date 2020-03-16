@@ -19,7 +19,15 @@ MultiConfigurable::MultiConfigurable(const std::vector<std::unique_ptr<::Machine
 	}
 }
 
-std::vector<std::unique_ptr<Configurable::Option>> MultiConfigurable::get_options() {
+void MultiConfigurable::set_options(const std::unique_ptr<Reflection::Struct> &options) {
+}
+
+std::unique_ptr<Reflection::Struct> MultiConfigurable::get_options(OptionsType type) {
+	// TODO: this'll need to mash options together, maybe? Or just take the front?
+	return nullptr;
+}
+
+/*std::vector<std::unique_ptr<Configurable::Option>> MultiConfigurable::get_options() {
 	std::vector<std::unique_ptr<Configurable::Option>> options;
 
 	// Produce the list of unique options.
@@ -62,3 +70,4 @@ Configurable::SelectionSet MultiConfigurable::get_user_friendly_selections() {
 	}
 	return set;
 }
+*/

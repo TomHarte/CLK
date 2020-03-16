@@ -21,6 +21,7 @@
 #include "../../KeyboardMachine.hpp"
 #include "../../MediaTarget.hpp"
 #include "../../MouseMachine.hpp"
+#include "../../../Configurable/Configurable.hpp"
 
 #include "../../../Inputs/QuadratureMouse/QuadratureMouse.hpp"
 #include "../../../Outputs/Log.hpp"
@@ -56,10 +57,14 @@ constexpr int CLOCK_RATE = 7833600;
 namespace Apple {
 namespace Macintosh {
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::QuickBoot)
-	);
+//std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+//	return Configurable::standard_options(
+//		static_cast<Configurable::StandardOptions>(Configurable::QuickBoot)
+//	);
+//}
+
+std::unique_ptr<Reflection::Struct> get_options() {
+	return nullptr;
 }
 
 template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachine:
@@ -522,35 +527,41 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
-			return Apple::Macintosh::get_options();
+		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
+			return nullptr;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
-			bool quick_boot;
-			if(Configurable::get_quick_boot(selections_by_option, quick_boot)) {
-				if(quick_boot) {
-					// Cf. Big Mess o' Wires' disassembly of the Mac Plus ROM, and the
-					// test at $E00. TODO: adapt as(/if?) necessary for other Macs.
-					ram_[0x02ae] = 0x40;
-					ram_[0x02af] = 0x00;
-					ram_[0x02b0] = 0x00;
-					ram_[0x02b1] = 0x00;
-				}
-			}
+		void set_options(const std::unique_ptr<Reflection::Struct> &options) final {
 		}
-
-		Configurable::SelectionSet get_accurate_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_boot_selection(selection_set, false);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_boot_selection(selection_set, true);
-			return selection_set;
-		}
+//		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
+//			return Apple::Macintosh::get_options();
+//		}
+//
+//		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
+//			bool quick_boot;
+//			if(Configurable::get_quick_boot(selections_by_option, quick_boot)) {
+//				if(quick_boot) {
+//					// Cf. Big Mess o' Wires' disassembly of the Mac Plus ROM, and the
+//					// test at $E00. TODO: adapt as(/if?) necessary for other Macs.
+//					ram_[0x02ae] = 0x40;
+//					ram_[0x02af] = 0x00;
+//					ram_[0x02b0] = 0x00;
+//					ram_[0x02b1] = 0x00;
+//				}
+//			}
+//		}
+//
+//		Configurable::SelectionSet get_accurate_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_quick_boot_selection(selection_set, false);
+//			return selection_set;
+//		}
+//
+//		Configurable::SelectionSet get_user_friendly_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_quick_boot_selection(selection_set, true);
+//			return selection_set;
+//		}
 
 	private:
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {

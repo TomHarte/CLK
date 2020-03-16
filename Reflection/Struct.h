@@ -71,6 +71,17 @@ template <> bool set(Struct &target, const std::string &name, const char *value)
 */
 bool fuzzy_set(Struct &target, const std::string &name, const std::string &value);
 
+
+/*!
+	Attempts to get the property @c name to @c value ; will perform limited type conversions.
+
+	@returns @c true if the property was successfully read; @c false otherwise.
+*/
+template <typename Type> bool get(Struct &target, const std::string &name, Type &value);
+
+template <> bool get(Struct &target, const std::string &name, bool &value);
+
+
 // TODO: move this elsewhere. It's just a sketch anyway.
 struct Serialisable {
 	/// Serialises this object, appending it to @c target.

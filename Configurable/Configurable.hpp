@@ -9,89 +9,34 @@
 #ifndef Configurable_h
 #define Configurable_h
 
-#include <map>
-#include <memory>
-#include <string>
-#include <vector>
+#include "../Reflection/Struct.h"
 
 namespace Configurable {
 
 /*!
-	The Option class hierarchy provides a way for components, machines, etc, to provide a named
-	list of typed options to which they can respond.
-*/
-struct Option {
-	std::string long_name;
-	std::string short_name;
-	virtual ~Option() {}
+	A Configurable::Device provides a reflective struct listing the available runtime options for this machine.
+	It can provide it populated with 'accurate' options, 'user-friendly' options or just whatever the user
+	currently has selected.
 
-	Option(const std::string &long_name, const std::string &short_name) : long_name(long_name), short_name(short_name) {}
+	'Accurate' options should correspond to the way that this device was usually used during its lifespan.
+	E.g. a ColecoVision might accurately be given composite output.
 
-	virtual bool operator==(const Option &rhs) {
-		return long_name == rhs.long_name && short_name == rhs.short_name;
-	}
-};
-
-struct BooleanOption: public Option {
-	BooleanOption(const std::string &long_name, const std::string &short_name) : Option(long_name, short_name) {}
-};
-
-struct ListOption: public Option {
-	std::vector<std::string> options;
-	ListOption(const std::string &long_name, const std::string &short_name, const std::vector<std::string> &options) : Option(long_name, short_name), options(options) {}
-
-	virtual bool operator==(const Option &rhs) {
-		const ListOption *list_rhs = dynamic_cast<const ListOption *>(&rhs);
-		if(!list_rhs) return false;
-		return long_name == rhs.long_name && short_name == rhs.short_name && options == list_rhs->options;
-	}
-};
-
-struct BooleanSelection;
-struct ListSelection;
-
-/*!
-	Selections are responses to Options.
-*/
-struct Selection {
-	virtual ~Selection() {}
-	virtual ListSelection *list_selection() = 0;
-	virtual BooleanSelection *boolean_selection() = 0;
-};
-
-struct BooleanSelection: public Selection {
-	bool value;
-
-	ListSelection *list_selection();
-	BooleanSelection *boolean_selection();
-	BooleanSelection(bool value) : value(value) {}
-};
-
-struct ListSelection: public Selection {
-	std::string value;
-
-	ListSelection *list_selection();
-	BooleanSelection *boolean_selection();
-	ListSelection(const std::string value) : value(value) {}
-};
-
-using SelectionSet = std::map<std::string, std::unique_ptr<Selection>>;
-
-/*!
-	A Configuratble provides the options that it responds to and allows selections to be set.
+	'User-friendly' options should be more like those that a user today might most expect from an emulator.
+	E.g. the ColecoVision might bump itself up to S-Video output.
 */
 struct Device {
-	virtual std::vector<std::unique_ptr<Option>> get_options() = 0;
-	virtual void set_selections(const SelectionSet &selection_by_option) = 0;
-	virtual SelectionSet get_accurate_selections() = 0;
-	virtual SelectionSet get_user_friendly_selections() = 0;
-};
+	/// Sets the current options.
+	virtual void set_options(const std::unique_ptr<Reflection::Struct> &options) = 0;
 
-template <typename T> T *selection(const Configurable::SelectionSet &selections_by_option, const std::string &name) {
-	auto selection = selections_by_option.find(name);
-	if(selection == selections_by_option.end()) return nullptr;
-	return dynamic_cast<T *>(selection->second.get());
-}
+	enum class OptionsType {
+		Current,
+		Accurate,
+		UserFriendly
+	};
+
+	/// @returns Options of type @c type.
+	virtual std::unique_ptr<Reflection::Struct> get_options(OptionsType type) = 0;
+};
 
 }
 

@@ -40,10 +40,14 @@
 
 namespace AmstradCPC {
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		Configurable::StandardOptions(Configurable::DisplayRGB | Configurable::DisplayCompositeColour)
-	);
+//std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+//	return Configurable::standard_options(
+//		Configurable::StandardOptions(Configurable::DisplayRGB | Configurable::DisplayCompositeColour)
+//	);
+//}
+
+std::unique_ptr<Reflection::Struct> get_options() {
+	return nullptr;
 }
 
 /*!
@@ -1114,28 +1118,34 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
-			return AmstradCPC::get_options();
+		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
+			return nullptr;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
+		void set_options(const std::unique_ptr<Reflection::Struct> &options) {
 		}
-
-		Configurable::SelectionSet get_accurate_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-			return selection_set;
-		}
+//		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
+//			return AmstradCPC::get_options();
+//		}
+//
+//		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
+//			Configurable::Display display;
+//			if(Configurable::get_display(selections_by_option, display)) {
+//				set_video_signal_configurable(display);
+//			}
+//		}
+//
+//		Configurable::SelectionSet get_accurate_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
+//			return selection_set;
+//		}
+//
+//		Configurable::SelectionSet get_user_friendly_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
+//			return selection_set;
+//		}
 
 		// MARK: - Joysticks
 		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {

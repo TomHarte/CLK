@@ -42,10 +42,14 @@
 namespace Atari {
 namespace ST {
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayCompositeColour)
-	);
+//std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+//	return Configurable::standard_options(
+//		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayCompositeColour)
+//	);
+//}
+
+std::unique_ptr<Reflection::Struct> get_options() {
+	return nullptr;
 }
 
 constexpr int CLOCK_RATE = 8021247;
@@ -678,28 +682,30 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
-			return Atari::ST::get_options();
+		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
+			return nullptr;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
+		void set_options(const std::unique_ptr<Reflection::Struct> &options) final {
 		}
-
-		Configurable::SelectionSet get_accurate_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-			return selection_set;
-		}
+//		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
+//			Configurable::Display display;
+//			if(Configurable::get_display(selections_by_option, display)) {
+//				set_video_signal_configurable(display);
+//			}
+//		}
+//
+//		Configurable::SelectionSet get_accurate_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
+//			return selection_set;
+//		}
+//
+//		Configurable::SelectionSet get_user_friendly_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
+//			return selection_set;
+//		}
 };
 
 }

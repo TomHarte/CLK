@@ -9,14 +9,16 @@
 #ifndef Macintosh_hpp
 #define Macintosh_hpp
 
-#include "../../../Configurable/Configurable.hpp"
+#include "../../../Reflection/Struct.h"
 #include "../../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../ROMMachine.hpp"
+
+#include <memory>
 
 namespace Apple {
 namespace Macintosh {
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options();
+std::unique_ptr<Reflection::Struct> get_options();
 
 class Machine {
 	public:

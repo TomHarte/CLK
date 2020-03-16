@@ -49,11 +49,14 @@ enum ROMSlot {
 	Drive
 };
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplaySVideo | Configurable::DisplayCompositeColour | Configurable::QuickLoadTape)
-	);
+std::unique_ptr<Reflection::Struct> get_options() {
+	return nullptr;
 }
+//std::vector<std::unique_ptr<Configurable::Option>> get_options() {
+//	return Configurable::standard_options(
+//		static_cast<Configurable::StandardOptions>(Configurable::DisplaySVideo | Configurable::DisplayCompositeColour | Configurable::QuickLoadTape)
+//	);
+//}
 
 enum JoystickInput {
 	Up = 0x04,
@@ -679,36 +682,42 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
-			return Commodore::Vic20::get_options();
+		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
+			return nullptr;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
-			bool quickload;
-			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				allow_fast_tape_hack_ = quickload;
-				set_use_fast_tape();
-			}
-
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
+		void set_options(const std::unique_ptr<Reflection::Struct> &options) final {
 		}
-
-		Configurable::SelectionSet get_accurate_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, true);
-			Configurable::append_display_selection(selection_set, Configurable::Display::SVideo);
-			return selection_set;
-		}
+//		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
+//			return Commodore::Vic20::get_options();
+//		}
+//
+//		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
+//			bool quickload;
+//			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
+//				allow_fast_tape_hack_ = quickload;
+//				set_use_fast_tape();
+//			}
+//
+//			Configurable::Display display;
+//			if(Configurable::get_display(selections_by_option, display)) {
+//				set_video_signal_configurable(display);
+//			}
+//		}
+//
+//		Configurable::SelectionSet get_accurate_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_quick_load_tape_selection(selection_set, false);
+//			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
+//			return selection_set;
+//		}
+//
+//		Configurable::SelectionSet get_user_friendly_selections() final {
+//			Configurable::SelectionSet selection_set;
+//			Configurable::append_quick_load_tape_selection(selection_set, true);
+//			Configurable::append_display_selection(selection_set, Configurable::Display::SVideo);
+//			return selection_set;
+//		}
 
 		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
 			tape_is_sleeping_ = clocking == ClockingHint::Preference::None;
