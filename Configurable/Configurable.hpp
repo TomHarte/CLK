@@ -11,6 +11,8 @@
 
 #include "../Reflection/Struct.h"
 
+#include <memory>
+
 namespace Configurable {
 
 /*!
