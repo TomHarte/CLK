@@ -93,6 +93,10 @@ void CRT::set_display_type(Outputs::Display::DisplayType display_type) {
 	scan_target_->set_modals(scan_target_modals_);
 }
 
+Outputs::Display::DisplayType CRT::get_display_type() {
+	return scan_target_modals_.display_type;
+}
+
 void CRT::set_phase_linked_luminance_offset(float offset) {
 	scan_target_modals_.input_data_tweaks.phase_linked_luminance_offset = offset;
 	scan_target_->set_modals(scan_target_modals_);

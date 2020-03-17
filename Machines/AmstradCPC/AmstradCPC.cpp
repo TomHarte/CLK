@@ -40,16 +40,6 @@
 
 namespace AmstradCPC {
 
-//std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-//	return Configurable::standard_options(
-//		Configurable::StandardOptions(Configurable::DisplayRGB | Configurable::DisplayCompositeColour)
-//	);
-//}
-
-std::unique_ptr<Reflection::Struct> get_options() {
-	return nullptr;
-}
-
 /*!
 	Models the CPC's interrupt timer. Inputs are vsync, hsync, interrupt acknowledge and reset, and its output
 	is simply yes or no on whether an interupt is currently requested. Internally it uses a counter with a period
@@ -356,6 +346,11 @@ class CRTCBusHandler {
 		/// Sets the type of display.
 		void set_display_type(Outputs::Display::DisplayType display_type) {
 			crt_.set_display_type(display_type);
+		}
+
+		/// Gets the type of display.
+		Outputs::Display::DisplayType get_display_type() {
+			return crt_.get_display_type();
 		}
 
 		/*!
@@ -1049,6 +1044,11 @@ template <bool has_fdc> class ConcreteMachine:
 			crtc_bus_handler_.set_display_type(display_type);
 		}
 
+		/// A CRTMachine function; gets the output display type.
+		Outputs::Display::DisplayType get_display_type() {
+			return crtc_bus_handler_.get_display_type();
+		}
+
 		/// @returns the speaker in use.
 		Outputs::Speaker::Speaker *get_speaker() final {
 			return ay_.get_speaker();
@@ -1118,34 +1118,16 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
-			return nullptr;
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			return options;
 		}
 
-		void set_options(const std::unique_ptr<Reflection::Struct> &options) {
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
 		}
-//		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
-//			return AmstradCPC::get_options();
-//		}
-//
-//		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
-//			Configurable::Display display;
-//			if(Configurable::get_display(selections_by_option, display)) {
-//				set_video_signal_configurable(display);
-//			}
-//		}
-//
-//		Configurable::SelectionSet get_accurate_selections() final {
-//			Configurable::SelectionSet selection_set;
-//			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-//			return selection_set;
-//		}
-//
-//		Configurable::SelectionSet get_user_friendly_selections() final {
-//			Configurable::SelectionSet selection_set;
-//			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-//			return selection_set;
-//		}
 
 		// MARK: - Joysticks
 		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {

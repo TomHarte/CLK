@@ -87,6 +87,7 @@ template <class BusHandler> class MOS6560 {
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target)		{ crt_.set_scan_target(scan_target); 			}
 		Outputs::Display::ScanStatus get_scaled_scan_status() const			{ return crt_.get_scaled_scan_status() / 4.0f;	}
 		void set_display_type(Outputs::Display::DisplayType display_type)	{ crt_.set_display_type(display_type); 			}
+		Outputs::Display::DisplayType get_display_type()					{ return crt_.get_display_type(); 				}
 		Outputs::Speaker::Speaker *get_speaker() { return &speaker_; }
 
 		void set_high_frequency_cutoff(float cutoff) {

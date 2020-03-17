@@ -30,7 +30,7 @@ class MultiConfigurable: public Configurable::Device {
 
 		// Below is the standard Configurable::Device interface; see there for documentation.
 		void set_options(const std::unique_ptr<Reflection::Struct> &options) final;
-		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final;
+		std::unique_ptr<Reflection::Struct> get_options() final;
 //		std::vector<std::unique_ptr<Configurable::Option>> get_options() final;
 //		void set_selections(const Configurable::SelectionSet &selection_by_option) final;
 //		Configurable::SelectionSet get_accurate_selections() final;

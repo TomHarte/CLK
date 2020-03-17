@@ -627,7 +627,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// MARK: - Configuration options.
-		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
+		std::unique_ptr<Reflection::Struct> get_options() final {
 			return nullptr;
 		}
 

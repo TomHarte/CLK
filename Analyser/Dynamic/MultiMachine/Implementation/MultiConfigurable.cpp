@@ -22,7 +22,7 @@ MultiConfigurable::MultiConfigurable(const std::vector<std::unique_ptr<::Machine
 void MultiConfigurable::set_options(const std::unique_ptr<Reflection::Struct> &options) {
 }
 
-std::unique_ptr<Reflection::Struct> MultiConfigurable::get_options(OptionsType type) {
+std::unique_ptr<Reflection::Struct> MultiConfigurable::get_options() {
 	// TODO: this'll need to mash options together, maybe? Or just take the front?
 	return nullptr;
 }

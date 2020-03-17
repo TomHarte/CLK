@@ -527,7 +527,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		}
 
 		// MARK: - Configuration options.
-		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
+		std::unique_ptr<Reflection::Struct> get_options() final {
 			return nullptr;
 		}
 

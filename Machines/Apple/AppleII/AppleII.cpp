@@ -869,7 +869,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		// MARK:: Configuration options.
-		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
+		std::unique_ptr<Reflection::Struct> get_options() final {
 			return nullptr;
 		}
 

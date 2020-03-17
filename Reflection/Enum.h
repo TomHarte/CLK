@@ -26,6 +26,7 @@ namespace Reflection {
 #define EnumDeclaration(Name) #Name, __declaration##Name
 
 #define AnnounceEnum(Name) ::Reflection::Enum::declare<Name>(EnumDeclaration(Name))
+#define AnnounceEnumNS(Namespace, Name) ::Reflection::Enum::declare<Namespace::Name>(#Name, Namespace::__declaration##Name)
 
 /*!
 	This provides a very slight version of enum reflection; you can introspect only:

@@ -497,39 +497,42 @@ int main(int argc, char *argv[]) {
 		std::cout << "Further machine options:" << std::endl;
 		std::cout << "(* means: a selection will be made automatically based on the file selected, if any)" << std::endl << std::endl;
 
-//		const auto all_options = Machine::AllOptionsByMachineName();
-//		for(const auto &machine_options: all_options) {
-//			std::cout << machine_options.first << ":" << std::endl;
-//			for(const auto &option: machine_options.second) {
-//				std::cout << '\t' << "--" << option->short_name;
-//
-//				Configurable::ListOption *list_option = dynamic_cast<Configurable::ListOption *>(option.get());
-//				if(list_option) {
-//					std::cout << "={";
-//					bool is_first = true;
-//					for(const auto &option: list_option->options) {
-//						if(!is_first) std::cout << '|';
-//						is_first = false;
-//						std::cout << option;
-//					}
-//					std::cout << "}";
-//				}
-//				std::cout << std::endl;
-//			}
-//			std::cout << std::endl;
-//		}
-
 		const auto targets = Machine::TargetsByMachineName(false);
-		for(const auto &target: targets) {
-			const auto reflectable = dynamic_cast<Reflection::Struct *>(target.second.get());
-			if(!reflectable) continue;
-			const auto all_keys = reflectable->all_keys();
-			if(all_keys.empty()) continue;
+		const auto runtime_options = Machine::AllOptionsByMachineName();
+		const auto machine_names = Machine::AllMachines(false, true);
+		for(const auto &machine: machine_names) {
+			const auto target = targets.find(machine);
+			const auto options = runtime_options.find(machine);
 
-			std::cout << target.first << ":" << std::endl;
-			for(const auto &option: reflectable->all_keys()) {
+			const auto target_reflectable = dynamic_cast<Reflection::Struct *>(target != targets.end() ? target->second.get() : nullptr);
+			const auto options_reflectable = dynamic_cast<Reflection::Struct *>(options != runtime_options.end() ? options->second.get() : nullptr);
+
+			// Don't print a section for this machine if it has no construction and no runtime options objects.
+			if(!target_reflectable && !options_reflectable) continue;
+
+			const auto target_keys = target_reflectable ? target_reflectable->all_keys() : std::vector<std::string>();
+			const auto options_keys = options_reflectable ? options_reflectable->all_keys() : std::vector<std::string>();
+
+			// Don't print a section for this machine if it doesn't actually have any options.
+			if(target_keys.empty() && options_keys.empty()) {
+				continue;
+			}
+
+			std::cout << machine << ":" << std::endl;
+
+			// Join the two lists of properties.
+			std::vector<std::string> all_options = options_keys;
+			all_options.insert(all_options.end(), target_keys.begin(), target_keys.end());
+
+			for(const auto &option: all_options) {
 				std::cout << '\t' << "--" << option;
-				const auto type = reflectable->type_of(option);
+
+				bool is_construction_option = true;
+				auto type = target_reflectable->type_of(option);
+				if(!type) {
+					is_construction_option = false;
+					type = options_reflectable->type_of(option);
+				}
 
 				// Is this a registered enum? If so, list options.
 				if(!Reflection::Enum::name(*type).empty()) {
@@ -544,7 +547,9 @@ int main(int argc, char *argv[]) {
 				}
 
 				// TODO: if not a registered enum... then assume it was a Boolean?
-				std::cout << "\t*" << std::endl;
+
+				if(is_construction_option) std::cout << "\t*";
+				std::cout << std::endl;
 			}
 
 			std::cout << std::endl;

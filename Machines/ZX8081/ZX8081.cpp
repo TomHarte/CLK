@@ -50,22 +50,6 @@ enum ROMType: uint8_t {
 	ZX80 = 0, ZX81
 };
 
-struct Options: public Reflection::StructImpl<Options> {
-	bool automatic_tape_motor_control = true;
-	bool quickload = true;
-
-	Options() {
-		if(needs_declare()) {
-			DeclareField(automatic_tape_motor_control);
-			DeclareField(quickload);
-		}
-	}
-};
-
-std::unique_ptr<Reflection::Struct> get_options() {
-	return std::make_unique<Options>();
-}
-
 template<bool is_zx81> class ConcreteMachine:
 	public CRTMachine::Machine,
 	public MediaTarget::Machine,
@@ -422,31 +406,18 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::unique_ptr<Reflection::Struct> get_options(OptionsType type) final {
-			auto options = std::make_unique<Options>();
-			switch(type) {
-				case OptionsType::Current:
-					options->automatic_tape_motor_control = use_automatic_tape_motor_control_;
-					options->quickload = allow_fast_tape_hack_;
-				break;
-				case OptionsType::Accurate:
-				case OptionsType::UserFriendly:
-					options->automatic_tape_motor_control =
-					options->quickload = type == OptionsType::UserFriendly;
-				break;
-			}
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);	// OptionsType is arbitrary, but not optional.
+			options->automatic_tape_motor_control = use_automatic_tape_motor_control_;
+			options->quickload = allow_fast_tape_hack_;
 			return options;
 		}
 
-		void set_options(const std::unique_ptr<Reflection::Struct> &options) {
-			if(Reflection::get<bool>(*options, "quickload", allow_fast_tape_hack_)) {
-				set_use_fast_tape();
-			}
-
-			bool autotapemotor;
-			if(Reflection::get<bool>(*options, "automatic_tape_motor_control", autotapemotor)) {
-				set_use_automatic_tape_motor_control(autotapemotor);
-			}
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_use_automatic_tape_motor_control(options->automatic_tape_motor_control);
+			allow_fast_tape_hack_ = options->quickload;
+			set_use_fast_tape();
 		}
 
 	private:
