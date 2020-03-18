@@ -10,6 +10,7 @@
 #define ZX8081_hpp
 
 #include "../../Configurable/Configurable.hpp"
+#include "../../Configurable/StandardOptions.hpp"
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
 
@@ -28,19 +29,19 @@ class Machine {
 		virtual bool get_tape_is_playing() = 0;
 
 		/// Defines the runtime options available for a ZX80/81.
-		class Options: public Reflection::StructImpl<Options> {
+		class Options: public Reflection::StructImpl<Options>, public Configurable::QuickloadOption<Options> {
+			friend Configurable::QuickloadOption<Options>;
 			public:
 				bool automatic_tape_motor_control;
-				bool quickload;
 
 				Options(Configurable::OptionsType type):
 					automatic_tape_motor_control(type == Configurable::OptionsType::UserFriendly),
-					quickload(automatic_tape_motor_control) {
+					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {
 
 					// Declare fields if necessary.
 					if(needs_declare()) {
 						DeclareField(automatic_tape_motor_control);
-						DeclareField(quickload);
+						declare_quickload_option();
 					}
 				}
 		};

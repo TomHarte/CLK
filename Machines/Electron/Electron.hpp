@@ -32,19 +32,16 @@ class Machine {
 		static Machine *Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		/// Defines the runtime options available for an Electron.
-		class Options: public Reflection::StructImpl<Options> {
+		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options>, public Configurable::QuickloadOption<Options> {
+			friend Configurable::DisplayOption<Options>;
+			friend Configurable::QuickloadOption<Options>;
 			public:
-				Configurable::Display output;
-				bool quickload;
-
 				Options(Configurable::OptionsType type) :
-					output(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour),
-					quickload(type == Configurable::OptionsType::UserFriendly) {
-
+					Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour),
+					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {
 					if(needs_declare()) {
-						DeclareField(output);
-						DeclareField(quickload);
-						AnnounceEnumNS(Configurable, Display);
+						declare_display_option();
+						declare_quickload_option();
 						limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, -1);
 					}
 				}

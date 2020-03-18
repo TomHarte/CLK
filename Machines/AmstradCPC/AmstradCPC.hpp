@@ -29,15 +29,12 @@ class Machine {
 		static Machine *AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
 		/// Defines the runtime options available for an Amstrad CPC.
-		class Options: public Reflection::StructImpl<Options> {
+		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
+			friend Configurable::DisplayOption<Options>;
 			public:
-				Configurable::Display output = Configurable::Display::RGB;
-
-				Options(Configurable::OptionsType type) {
-					// Declare fields if necessary.
+				Options(Configurable::OptionsType type) : Configurable::DisplayOption<Options>(Configurable::Display::RGB)  {
 					if(needs_declare()) {
-						DeclareField(output);
-						AnnounceEnumNS(Configurable, Display);
+						declare_display_option();
 						limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, -1);
 					}
 				}
