@@ -528,7 +528,7 @@ int main(int argc, char *argv[]) {
 				std::cout << '\t' << "--" << option;
 
 				auto source = target_reflectable;
-				auto type = target_reflectable->type_of(option);
+				auto type = target_reflectable ? target_reflectable->type_of(option) : nullptr;
 				if(!type) {
 					source = options_reflectable;
 					type = options_reflectable->type_of(option);

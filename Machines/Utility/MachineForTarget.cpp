@@ -176,7 +176,6 @@ std::vector<std::string> Machine::AllMachines(bool meaningful_without_media_only
 std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsByMachineName() {
 	std::map<std::string, std::unique_ptr<Reflection::Struct>> options;
 
-//	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::ColecoVision), Coleco::Vision::get_options()));
 //	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Macintosh), Apple::Macintosh::get_options()));
 //	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::MasterSystem), Sega::MasterSystem::get_options()));
 //	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::MSX), MSX::get_options()));
@@ -189,6 +188,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	Emplace(AmstradCPC, AmstradCPC::Machine);
 	Emplace(AppleII, Apple::II::Machine);
 	Emplace(AtariST, Atari::ST::Machine);
+	Emplace(ColecoVision, Coleco::Vision::Machine);
 	Emplace(Electron, Electron::Machine);
 	Emplace(ZX8081, ZX8081::Machine);
 
