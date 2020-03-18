@@ -9,7 +9,8 @@
 #ifndef MasterSystem_hpp
 #define MasterSystem_hpp
 
-#include "../../Reflection/Struct.h"
+#include "../../Configurable/Configurable.hpp"
+#include "../../Configurable/StandardOptions.hpp"
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
 
@@ -18,12 +19,21 @@
 namespace Sega {
 namespace MasterSystem {
 
-std::unique_ptr<Reflection::Struct> get_options();
-
 class Machine {
 	public:
 		virtual ~Machine();
 		static Machine *MasterSystem(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+
+		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
+			friend Configurable::DisplayOption<Options>;
+			public:
+				Options(Configurable::OptionsType type) :
+					Configurable::DisplayOption<Options>(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour) {
+					if(needs_declare()) {
+						declare_display_option();
+					}
+				}
+		};
 };
 
 }
