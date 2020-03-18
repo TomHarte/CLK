@@ -27,6 +27,7 @@ class VideoOutput {
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		void set_display_type(Outputs::Display::DisplayType display_type);
+		Outputs::Display::DisplayType get_display_type();
 		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 		void register_crt_frequency_mismatch();

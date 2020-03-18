@@ -177,7 +177,6 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	std::map<std::string, std::unique_ptr<Reflection::Struct>> options;
 
 //	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Macintosh), Apple::Macintosh::get_options()));
-//	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Oric), Oric::get_options()));
 //	options.emplace(std::make_pair(LongNameForTargetMachine(Analyser::Machine::Vic20), Commodore::Vic20::get_options()));
 
 #define Emplace(machine, class)	\
@@ -190,6 +189,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 	Emplace(Electron, Electron::Machine);
 	Emplace(MasterSystem, Sega::MasterSystem::Machine);
 	Emplace(MSX, MSX::Machine);
+	Emplace(Oric, Oric::Machine);
 	Emplace(ZX8081, ZX8081::Machine);
 
 #undef Emplace
