@@ -20,7 +20,6 @@ ReflectableEnum(Display,
 	CompositeMonochrome
 );
 
-
 }
 
 #endif /* StandardOptions_hpp */

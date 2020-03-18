@@ -45,6 +45,9 @@ class VideoOutput {
 		/// Sets the type of output.
 		void set_display_type(Outputs::Display::DisplayType);
 
+		/// Gets the type of output.
+		Outputs::Display::DisplayType get_display_type();
+
 		/*!
 			Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
 			@c get_cycles_until_next_ram_availability and @c get_memory_access_range.

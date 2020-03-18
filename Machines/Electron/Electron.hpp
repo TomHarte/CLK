@@ -9,16 +9,14 @@
 #ifndef Electron_hpp
 #define Electron_hpp
 
-#include "../../Reflection/Struct.h"
+#include "../../Configurable/Configurable.hpp"
+#include "../../Configurable/StandardOptions.hpp"
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
 
 #include <memory>
 
 namespace Electron {
-
-/// @returns The options available for an Electron.
-std::unique_ptr<Reflection::Struct> get_options();
 
 /*!
 	@abstract Represents an Acorn Electron.
@@ -32,6 +30,25 @@ class Machine {
 
 		/// Creates and returns an Electron.
 		static Machine *Electron(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+
+		/// Defines the runtime options available for an Electron.
+		class Options: public Reflection::StructImpl<Options> {
+			public:
+				Configurable::Display output;
+				bool quickload;
+
+				Options(Configurable::OptionsType type) :
+					output(type == Configurable::OptionsType::UserFriendly ? Configurable::Display::RGB : Configurable::Display::CompositeColour),
+					quickload(type == Configurable::OptionsType::UserFriendly) {
+
+					if(needs_declare()) {
+						DeclareField(output);
+						DeclareField(quickload);
+						AnnounceEnumNS(Configurable, Display);
+						limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, -1);
+					}
+				}
+		};
 };
 
 }
