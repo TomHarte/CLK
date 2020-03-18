@@ -38,8 +38,7 @@ class Machine {
 					if(needs_declare()) {
 						DeclareField(output);
 						AnnounceEnumNS(Configurable, Display);
-						// TODO: some way to set limited enum support for a struct?
-						// In this case, to support only RGB and CompositeColour.
+						limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, -1);
 					}
 				}
 		};

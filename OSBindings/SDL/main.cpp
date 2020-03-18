@@ -495,7 +495,6 @@ int main(int argc, char *argv[]) {
 		std::cout << "}" << std::endl << std::endl;
 
 		std::cout << "Further machine options:" << std::endl;
-		std::cout << "(* means: a selection will be made automatically based on the file selected, if any)" << std::endl << std::endl;
 
 		const auto targets = Machine::TargetsByMachineName(false);
 		const auto runtime_options = Machine::AllOptionsByMachineName();
@@ -520,17 +519,18 @@ int main(int argc, char *argv[]) {
 
 			std::cout << machine << ":" << std::endl;
 
-			// Join the two lists of properties.
+			// Join the two lists of properties and sort the result.
 			std::vector<std::string> all_options = options_keys;
 			all_options.insert(all_options.end(), target_keys.begin(), target_keys.end());
+			std::sort(all_options.begin(), all_options.end());
 
 			for(const auto &option: all_options) {
 				std::cout << '\t' << "--" << option;
 
-				bool is_construction_option = true;
+				auto source = target_reflectable;
 				auto type = target_reflectable->type_of(option);
 				if(!type) {
-					is_construction_option = false;
+					source = options_reflectable;
 					type = options_reflectable->type_of(option);
 				}
 
@@ -538,7 +538,7 @@ int main(int argc, char *argv[]) {
 				if(!Reflection::Enum::name(*type).empty()) {
 					std::cout << "={";
 					bool is_first = true;
-					for(const auto &value: Reflection::Enum::all_values(*type)) {
+					for(const auto &value: source->values_for(option)) {
 						if(!is_first) std::cout << '|';
 						is_first = false;
 						std::cout << value;
@@ -546,9 +546,10 @@ int main(int argc, char *argv[]) {
 					std::cout << "}";
 				}
 
-				// TODO: if not a registered enum... then assume it was a Boolean?
+				// The above effectively assumes that every field is either a
+				// Boolean or an enum. This may need to be revisted. It also
+				// assumes no name collisions, but that's kind of unavoidable.
 
-				if(is_construction_option) std::cout << "\t*";
 				std::cout << std::endl;
 			}
 
