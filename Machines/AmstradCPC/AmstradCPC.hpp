@@ -28,7 +28,7 @@ class Machine {
 		/// Creates and returns an Amstrad CPC.
 		static Machine *AmstradCPC(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
 
-		/// Defines the runtime options available for a ZX80/81.
+		/// Defines the runtime options available for an Amstrad CPC.
 		class Options: public Reflection::StructImpl<Options> {
 			public:
 				Configurable::Display output = Configurable::Display::RGB;

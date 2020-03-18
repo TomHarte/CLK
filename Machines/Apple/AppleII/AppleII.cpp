@@ -37,15 +37,6 @@
 namespace Apple {
 namespace II {
 
-std::unique_ptr<Reflection::Struct> get_options() {
-	return nullptr;
-}
-//std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-//	return Configurable::standard_options(
-//		static_cast<Configurable::StandardOptions>(Configurable::DisplayCompositeMonochrome | Configurable::DisplayCompositeColour)
-//	);
-//}
-
 #define is_iie() ((model == Analyser::Static::AppleII::Target::Model::IIe) || (model == Analyser::Static::AppleII::Target::Model::EnhancedIIe))
 
 template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
@@ -431,6 +422,10 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		/// Sets the type of display.
 		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			video_.set_display_type(display_type);
+		}
+
+		Outputs::Display::DisplayType get_display_type() final {
+			return video_.get_display_type();
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
@@ -870,31 +865,15 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 		// MARK:: Configuration options.
 		std::unique_ptr<Reflection::Struct> get_options() final {
-			return nullptr;
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			return options;
 		}
 
-		void set_options(const std::unique_ptr<Reflection::Struct> &options) final {
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
 		}
-//		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
-//			return Apple::II::get_options();
-//		}
-//
-//		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
-//			Configurable::Display display;
-//			if(Configurable::get_display(selections_by_option, display)) {
-//				set_video_signal_configurable(display);
-//			}
-//		}
-//
-//		Configurable::SelectionSet get_accurate_selections() final {
-//			Configurable::SelectionSet selection_set;
-//			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-//			return selection_set;
-//		}
-//
-//		Configurable::SelectionSet get_user_friendly_selections() final {
-//			return get_accurate_selections();
-//		}
 
 		// MARK: MediaTarget
 		bool insert_media(const Analyser::Static::Media &media) final {

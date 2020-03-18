@@ -46,6 +46,9 @@ class VideoBase {
 		/// Sets the type of output.
 		void set_display_type(Outputs::Display::DisplayType);
 
+		/// Gets the type of output.
+		Outputs::Display::DisplayType get_display_type();
+
 		/*
 			Descriptions for the setters below are taken verbatim from
 			the Apple IIe Technical Reference. Addresses are the conventional
