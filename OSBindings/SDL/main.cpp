@@ -361,6 +361,20 @@ bool KeyboardKeyForSDLScancode(SDL_Scancode scancode, Inputs::Keyboard::Key &key
 struct ParsedArguments {
 	std::string file_name;
 	std::map<std::string, std::string> selections;	// The empty string will be inserted for arguments without an = suffix.
+
+	void apply(Reflection::Struct *reflectable) const {
+		for(const auto &argument: selections) {
+			// Replace any dashes with underscores in the argument name.
+			std::string property;
+			std::transform(argument.first.begin(), argument.first.end(), std::back_inserter(property), [](char c) { return c == '-' ? '_' : c; });
+
+			if(argument.second.empty()) {
+				Reflection::set<bool>(*reflectable, property, true);
+			} else {
+				Reflection::fuzzy_set(*reflectable, property, argument.second);
+			}
+		}
+	}
 };
 
 /*! Parses an argc/argv pair to discern program arguments. */
@@ -387,7 +401,7 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 			if(split_index == std::string::npos) {
 				arguments.selections[argument];	// To create an entry with the default empty string.
 			} else {
-				std::string name = argument.substr(0, split_index);
+				const std::string name = argument.substr(0, split_index);
 				std::string value = argument.substr(split_index+1, std::string::npos);
 				arguments.selections[name] = value;
 			}
@@ -477,11 +491,11 @@ int main(int argc, char *argv[]) {
 
 	// Print a help message if requested.
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
-		const auto all_machines = Machine::AllMachines(false, false);
+		const auto all_machines = Machine::AllMachines(Machine::Type::DoesntRequireMedia, false);
 
 		std::cout << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
 		std::cout << "Use alt+enter to toggle full screen display. Use control+shift+V to paste text." << std::endl;
-		std::cout << "Required machine type and configuration is determined from the file if specified; otherwise use:" << std::endl << std::endl;
+		std::cout << "Required machine type **and all options** are determined from the file if specified; otherwise use:" << std::endl << std::endl;
 		std::cout << "\t--new={";
 		bool is_first = true;
 		for(const auto &name: all_machines) {
@@ -491,11 +505,21 @@ int main(int argc, char *argv[]) {
 		}
 		std::cout << "}" << std::endl << std::endl;
 
-		std::cout << "Further machine options:" << std::endl;
+		std::cout << "Media is required to start the: ";
+		const auto other_machines = Machine::AllMachines(Machine::Type::RequiresMedia, true);
+		is_first = true;
+		for(const auto &name: other_machines) {
+			if(!is_first) std::cout << ", ";
+			std::cout << name;
+			is_first = false;
+		}
+		std::cout << "." << std::endl << std::endl;
+
+		std::cout << "Further machine options:" << std::endl << std::endl;;
 
 		const auto targets = Machine::TargetsByMachineName(false);
 		const auto runtime_options = Machine::AllOptionsByMachineName();
-		const auto machine_names = Machine::AllMachines(false, true);
+		const auto machine_names = Machine::AllMachines(Machine::Type::Any, true);
 		for(const auto &machine: machine_names) {
 			const auto target = targets.find(machine);
 			const auto options = runtime_options.find(machine);
@@ -522,7 +546,10 @@ int main(int argc, char *argv[]) {
 			std::sort(all_options.begin(), all_options.end());
 
 			for(const auto &option: all_options) {
-				std::cout << '\t' << "--" << option;
+				// Replace any underscores with hyphens, better to conform to command-line norms.
+				std::string mapped_option;
+				std::transform(option.begin(), option.end(), std::back_inserter(mapped_option), [](char c) { return c == '_' ? '-' : c; });
+				std::cout << '\t' << "--" << mapped_option;
 
 				auto source = target_reflectable;
 				auto type = target_reflectable ? target_reflectable->type_of(option) : nullptr;
@@ -538,6 +565,7 @@ int main(int argc, char *argv[]) {
 					for(const auto &value: source->values_for(option)) {
 						if(!is_first) std::cout << '|';
 						is_first = false;
+
 						std::cout << value;
 					}
 					std::cout << "}";
@@ -564,7 +592,7 @@ int main(int argc, char *argv[]) {
 	const auto new_argument = arguments.selections.find("new");
 	if(new_argument != arguments.selections.end() && !new_argument->second.empty()) {
 		// Perform for a case-insensitive search against short names.
-		const auto short_names = Machine::AllMachines(false, false);
+		const auto short_names = Machine::AllMachines(Machine::Type::DoesntRequireMedia, false);
 		auto short_name = short_names.begin();
 		while(short_name != short_names.end()) {
 			if(std::equal(
@@ -579,7 +607,7 @@ int main(int argc, char *argv[]) {
 		// If a match was found, use the corresponding long name to look up a suitable
 		// Analyser::Statuc::Target and move that to the targets list.
 		if(short_name != short_names.end()) {
-			const auto long_name = Machine::AllMachines(false, true)[short_name - short_names.begin()];
+			const auto long_name = Machine::AllMachines(Machine::Type::DoesntRequireMedia, true)[short_name - short_names.begin()];
 			auto targets_by_machine = Machine::TargetsByMachineName(false);
 			std::unique_ptr<Analyser::Static::Target> tgt = std::move(targets_by_machine[long_name]);
 			targets.push_back(std::move(tgt));
@@ -664,14 +692,7 @@ int main(int argc, char *argv[]) {
 	for(auto &target: targets) {
 		auto reflectable_target = dynamic_cast<Reflection::Struct *>(target.get());
 		if(!reflectable_target) continue;
-
-		for(const auto &argument: arguments.selections) {
-			if(argument.second.empty()) {
-				Reflection::set<bool>(*reflectable_target, argument.first, true);
-			} else {
-				Reflection::fuzzy_set(*reflectable_target, argument.first, argument.second);
-			}
-		}
+		arguments.apply(reflectable_target);
 	}
 
 	// Create and configure a machine.
@@ -701,15 +722,7 @@ int main(int argc, char *argv[]) {
 	auto configurable = machine->configurable_device();
 	if(configurable) {
 		const auto options = configurable->get_options();
-
-		for(const auto &argument: arguments.selections) {
-			if(argument.second.empty()) {
-				Reflection::set<bool>(*options, argument.first, true);
-			} else {
-				Reflection::fuzzy_set(*options, argument.first, argument.second);
-			}
-		}
-
+		arguments.apply(options.get());
 		configurable->set_options(options);
 	}
 

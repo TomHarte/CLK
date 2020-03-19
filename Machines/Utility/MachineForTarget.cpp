@@ -8,6 +8,8 @@
 
 #include "MachineForTarget.hpp"
 
+#include <algorithm>
+
 // Sources for runtime options.
 #include "../AmstradCPC/AmstradCPC.hpp"
 #include "../Apple/AppleII/AppleII.hpp"
@@ -148,27 +150,32 @@ std::string Machine::LongNameForTargetMachine(Analyser::Machine machine) {
 	}
 }
 
-std::vector<std::string> Machine::AllMachines(bool meaningful_without_media_only, bool long_names) {
+std::vector<std::string> Machine::AllMachines(Type type, bool long_names) {
 	std::vector<std::string> result;
 
 #define AddName(x) result.push_back(long_names ? LongNameForTargetMachine(Analyser::Machine::x) : ShortNameForTargetMachine(Analyser::Machine::x))
-#define AddConditionalName(x) if(!meaningful_without_media_only) result.push_back(long_names ? LongNameForTargetMachine(Analyser::Machine::x) : ShortNameForTargetMachine(Analyser::Machine::x))
 
-	AddName(AmstradCPC);
-	AddName(AppleII);
-	AddConditionalName(Atari2600);
-	AddName(AtariST);
-	AddConditionalName(ColecoVision);
-	AddName(Electron);
-	AddName(Macintosh);
-	AddConditionalName(MasterSystem);
-	AddName(MSX);
-	AddName(Oric);
-	AddName(Vic20);
-	AddName(ZX8081);
+	if(type == Type::Any || type == Type::DoesntRequireMedia) {
+		AddName(AmstradCPC);
+		AddName(AppleII);
+		AddName(AtariST);
+		AddName(Electron);
+		AddName(Macintosh);
+		AddName(MSX);
+		AddName(Oric);
+		AddName(Vic20);
+		AddName(ZX8081);
+	}
 
-#undef AddConditionalName
+	if(type == Type::Any || type == Type::RequiresMedia) {
+		AddName(Atari2600);
+		AddName(ColecoVision);
+		AddName(MasterSystem);
+	}
+
 #undef AddName
+
+	std::sort(result.begin(), result.end());
 
 	return result;
 }

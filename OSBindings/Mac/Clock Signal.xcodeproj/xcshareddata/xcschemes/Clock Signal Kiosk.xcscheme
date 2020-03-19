@@ -90,7 +90,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--help"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--model=cpc6128"
