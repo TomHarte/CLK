@@ -18,9 +18,6 @@
 
 namespace Oric {
 
-/// @returns The options available for an Oric.
-std::unique_ptr<Reflection::Struct> get_options();
-
 /*!
 	Models an Oric 1/Atmos with or without a Microdisc.
 */

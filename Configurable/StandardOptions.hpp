@@ -49,6 +49,17 @@ template <typename Owner> class QuickloadOption {
 		}
 };
 
+template <typename Owner> class QuickbootOption {
+	public:
+		bool quickboot;
+		QuickbootOption(bool quickboot) : quickboot(quickboot) {}
+
+	protected:
+		void declare_quickboot_option() {
+			static_cast<Owner *>(this)->declare(&quickboot, "quickboot");
+		}
+};
+
 }
 
 #endif /* StandardOptions_hpp */

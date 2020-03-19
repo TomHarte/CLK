@@ -34,10 +34,6 @@ constexpr int sn76489_divider = 2;
 namespace Coleco {
 namespace Vision {
 
-std::unique_ptr<Reflection::Struct> get_options() {
-	return nullptr;
-}
-
 class Joystick: public Inputs::ConcreteJoystick {
 	public:
 		Joystick() :

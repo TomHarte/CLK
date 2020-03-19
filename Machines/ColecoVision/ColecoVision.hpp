@@ -14,8 +14,6 @@
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../ROMMachine.hpp"
 
-#include <memory>
-
 namespace Coleco {
 namespace Vision {
 
