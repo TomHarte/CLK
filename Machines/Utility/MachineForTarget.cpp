@@ -155,6 +155,12 @@ std::vector<std::string> Machine::AllMachines(Type type, bool long_names) {
 
 #define AddName(x) result.push_back(long_names ? LongNameForTargetMachine(Analyser::Machine::x) : ShortNameForTargetMachine(Analyser::Machine::x))
 
+	if(type == Type::Any || type == Type::RequiresMedia) {
+		AddName(Atari2600);
+		AddName(ColecoVision);
+		AddName(MasterSystem);
+	}
+
 	if(type == Type::Any || type == Type::DoesntRequireMedia) {
 		AddName(AmstradCPC);
 		AddName(AppleII);
@@ -167,15 +173,7 @@ std::vector<std::string> Machine::AllMachines(Type type, bool long_names) {
 		AddName(ZX8081);
 	}
 
-	if(type == Type::Any || type == Type::RequiresMedia) {
-		AddName(Atari2600);
-		AddName(ColecoVision);
-		AddName(MasterSystem);
-	}
-
 #undef AddName
-
-	std::sort(result.begin(), result.end());
 
 	return result;
 }
