@@ -35,8 +35,8 @@ class Machine {
 				bool automatic_tape_motor_control;
 
 				Options(Configurable::OptionsType type):
-					automatic_tape_motor_control(type == Configurable::OptionsType::UserFriendly),
-					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly) {
+					Configurable::QuickloadOption<Options>(type == Configurable::OptionsType::UserFriendly),
+					automatic_tape_motor_control(type == Configurable::OptionsType::UserFriendly) {
 
 					// Declare fields if necessary.
 					if(needs_declare()) {
