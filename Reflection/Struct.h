@@ -219,10 +219,10 @@ template <typename Owner> class StructImpl: public Struct {
 				const int next = va_arg(list, int);
 				if(next < 0) break;
 
-				if(permitted_values.size() <= next) {
+				if(permitted_values.size() <= size_t(next)) {
 					permitted_values.resize(permitted_values.size() << 1);
 				}
-				permitted_values[next] = true;
+				permitted_values[size_t(next)] = true;
 			}
 			va_end(list);
 

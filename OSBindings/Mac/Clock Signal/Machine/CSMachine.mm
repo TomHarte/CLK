@@ -586,9 +586,9 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		_useFastLoadingHack = useFastLoadingHack;
 
-		Configurable::SelectionSet selection_set;
-		append_quick_load_tape_selection(selection_set, useFastLoadingHack ? true : false);
-		configurable_device->set_selections(selection_set);
+		auto options = configurable_device->get_options();
+		Reflection::set(*options, "quickload", useFastLoadingHack ? true : false);
+		configurable_device->set_options(options);
 	}
 }
 
@@ -599,7 +599,6 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		_videoSignal = videoSignal;
 
-		Configurable::SelectionSet selection_set;
 		Configurable::Display display;
 		switch(videoSignal) {
 			case CSMachineVideoSignalRGB:					display = Configurable::Display::RGB;					break;
@@ -607,8 +606,10 @@ struct ActivityObserver: public Activity::Observer {
 			case CSMachineVideoSignalComposite:				display = Configurable::Display::CompositeColour;		break;
 			case CSMachineVideoSignalMonochromeComposite:	display = Configurable::Display::CompositeMonochrome;	break;
 		}
-		append_display_selection(selection_set, display);
-		configurable_device->set_selections(selection_set);
+
+		auto options = configurable_device->get_options();
+		Reflection::set(*options, "output", int(display));
+		configurable_device->set_options(options);
 	}
 }
 
@@ -617,35 +618,23 @@ struct ActivityObserver: public Activity::Observer {
 	if(!configurable_device) return NO;
 
 	// Get the options this machine provides.
-	std::vector<std::unique_ptr<Configurable::Option>> options;
 	@synchronized(self) {
-		options = configurable_device->get_options();
-	}
+		auto options = configurable_device->get_options();
 
-	// Get the standard option for this video signal.
-	Configurable::StandardOptions option;
-	switch(videoSignal) {
-		case CSMachineVideoSignalRGB:					option = Configurable::DisplayRGB;					break;
-		case CSMachineVideoSignalSVideo:				option = Configurable::DisplaySVideo;				break;
-		case CSMachineVideoSignalComposite:				option = Configurable::DisplayCompositeColour;		break;
-		case CSMachineVideoSignalMonochromeComposite:	option = Configurable::DisplayCompositeMonochrome;	break;
-	}
-	std::unique_ptr<Configurable::Option> display_option = std::move(standard_options(option).front());
-	Configurable::ListOption *display_list_option = dynamic_cast<Configurable::ListOption *>(display_option.get());
-	NSAssert(display_list_option, @"Expected display option to be a list");
+		// Get the standard option for this video signal.
+		Configurable::Display option;
+		switch(videoSignal) {
+			case CSMachineVideoSignalRGB:					option = Configurable::Display::RGB;					break;
+			case CSMachineVideoSignalSVideo:				option = Configurable::Display::SVideo;					break;
+			case CSMachineVideoSignalComposite:				option = Configurable::Display::CompositeColour;		break;
+			case CSMachineVideoSignalMonochromeComposite:	option = Configurable::Display::CompositeMonochrome;	break;
+		}
 
-	// See whether the video signal is included in the machine options.
-	for(auto &candidate: options) {
-		Configurable::ListOption *list_option = dynamic_cast<Configurable::ListOption *>(candidate.get());
+		// Map to a string and check against returned options for the 'output' field.
+		const auto string_option = Reflection::Enum::to_string<Configurable::Display>(option);
+		const auto all_values = options->values_for("output");
 
-		// Both should be list options
-		if(!list_option) continue;
-
-		// Check for same name of option.
-		if(candidate->short_name != display_option->short_name) continue;
-
-		// Check that the video signal option is included.
-		return std::find(list_option->options.begin(), list_option->options.end(), display_list_option->options.front()) != list_option->options.end();
+		return std::find(all_values.begin(), all_values.end(), string_option) != all_values.end();
 	}
 
 	return NO;
@@ -658,9 +647,9 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		_useAutomaticTapeMotorControl = useAutomaticTapeMotorControl;
 
-		Configurable::SelectionSet selection_set;
-		append_automatic_tape_motor_control_selection(selection_set, useAutomaticTapeMotorControl ? true : false);
-		configurable_device->set_selections(selection_set);
+		auto options = configurable_device->get_options();
+		Reflection::set(*options, "automatic_tape_motor_control", useAutomaticTapeMotorControl ? true : false);
+		configurable_device->set_options(options);
 	}
 }
 
@@ -671,9 +660,9 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		_useQuickBootingHack = useQuickBootingHack;
 
-		Configurable::SelectionSet selection_set;
-		append_quick_boot_selection(selection_set, useQuickBootingHack ? true : false);
-		configurable_device->set_selections(selection_set);
+		auto options = configurable_device->get_options();
+		Reflection::set(*options, "quickboot", useQuickBootingHack ? true : false);
+		configurable_device->set_options(options);
 	}
 }
 

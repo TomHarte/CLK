@@ -122,7 +122,7 @@ class Enum {
 		static const std::string &to_string(std::type_index type, int e) {
 			const auto entry = members_by_type_.find(type);
 			if(entry == members_by_type_.end()) return empty_string_;
-			return entry->second[e];
+			return entry->second[size_t(e)];
 		}
 
 		/*!
