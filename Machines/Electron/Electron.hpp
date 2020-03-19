@@ -42,7 +42,7 @@ class Machine {
 					if(needs_declare()) {
 						declare_display_option();
 						declare_quickload_option();
-						limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, -1);
+						limit_enum(&output, Configurable::Display::RGB, Configurable::Display::CompositeColour, Configurable::Display::CompositeMonochrome, -1);
 					}
 				}
 		};
