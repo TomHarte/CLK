@@ -56,6 +56,13 @@ template <> bool set(Struct &target, const std::string &name, int value);
 template <> bool set(Struct &target, const std::string &name, const std::string &value);
 template <> bool set(Struct &target, const std::string &name, const char *value);
 
+/*!
+	Setting a bool:
+
+		* to a bool, copies the value.
+*/
+template <> bool set(Struct &target, const std::string &name, bool value);
+
 
 /*!
 	Fuzzy-set attempts to set any property based on a string value. This is intended to allow input provided by the user.

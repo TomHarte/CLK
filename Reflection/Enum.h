@@ -113,13 +113,13 @@ class Enum {
 			@returns A @c std::string name for the enum value @c e.
 		*/
 		template <typename Type> static const std::string &to_string(Type e) {
-			return to_string(typeid(Type), size_t(e));
+			return to_string(typeid(Type), int(e));
 		}
 
 		/*!
 			@returns A @c std::string name for the enum value @c e from the enum with type_info @c type.
 		*/
-		static const std::string &to_string(std::type_index type, size_t e) {
+		static const std::string &to_string(std::type_index type, int e) {
 			const auto entry = members_by_type_.find(type);
 			if(entry == members_by_type_.end()) return empty_string_;
 			return entry->second[e];
@@ -150,15 +150,15 @@ class Enum {
 		}
 
 		/*!
-			@returns A value for the name @c str in the enum with type_info @c type , or @c std::string::npos if
+			@returns A value for the name @c str in the enum with type_info @c type , or @c -1 if
 				the name is not found.
 		*/
-		static size_t from_string(std::type_index type, const std::string &str) {
+		static int from_string(std::type_index type, const std::string &str) {
 			const auto entry = members_by_type_.find(type);
-			if(entry == members_by_type_.end()) return std::string::npos;
+			if(entry == members_by_type_.end()) return -1;
 			const auto iterator = std::find(entry->second.begin(), entry->second.end(), str);
-			if(iterator == entry->second.end()) return std::string::npos;
-			return size_t(iterator - entry->second.begin());
+			if(iterator == entry->second.end()) return -1;
+			return int(iterator - entry->second.begin());
 		}
 
 	private:

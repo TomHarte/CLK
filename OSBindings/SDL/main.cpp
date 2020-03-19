@@ -39,9 +39,6 @@
 
 namespace {
 
-/// Takes an enum-style camel-case string (e.g. Mac128k) and
-//std::string
-
 struct MachineRunner {
 	MachineRunner() {
 		frame_lock_.clear();
@@ -473,7 +470,7 @@ int main(int argc, char *argv[]) {
 	SDL_Window *window = nullptr;
 
 	// Attempt to parse arguments.
-	ParsedArguments arguments = parse_arguments(argc, argv);
+	const ParsedArguments arguments = parse_arguments(argc, argv);
 
 	// This may be printed either as
 	const std::string usage_suffix = " [file or --new={machine}] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]  [--logical-keyboard]";
@@ -622,12 +619,13 @@ int main(int argc, char *argv[]) {
 				"/usr/local/share/CLK/",
 				"/usr/share/CLK/"
 			};
-			if(arguments.selections.find("rompath") != arguments.selections.end()) {
-				const std::string user_path = arguments.selections["rompath"];
-				if(user_path.back() != '/') {
-					paths.push_back(user_path + "/");
+
+			const auto rompath = arguments.selections.find("rompath");
+			if(rompath != arguments.selections.end()) {
+				if(rompath->second.back() != '/') {
+					paths.push_back(rompath->second + "/");
 				} else {
-					paths.push_back(user_path);
+					paths.push_back(rompath->second);
 				}
 			}
 
@@ -662,6 +660,20 @@ int main(int argc, char *argv[]) {
 			return results;
 		};
 
+	// Apply all command-line options to the targets.
+	for(auto &target: targets) {
+		auto reflectable_target = dynamic_cast<Reflection::Struct *>(target.get());
+		if(!reflectable_target) continue;
+
+		for(const auto &argument: arguments.selections) {
+			if(argument.second.empty()) {
+				Reflection::set<bool>(*reflectable_target, argument.first, true);
+			} else {
+				Reflection::fuzzy_set(*reflectable_target, argument.first, argument.second);
+			}
+		}
+	}
+
 	// Create and configure a machine.
 	::Machine::Error error;
 	std::mutex machine_mutex;
@@ -685,19 +697,36 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	// Apply all command-line options to the machines.
+	auto configurable = machine->configurable_device();
+	if(configurable) {
+		const auto options = configurable->get_options();
+
+		for(const auto &argument: arguments.selections) {
+			if(argument.second.empty()) {
+				Reflection::set<bool>(*options, argument.first, true);
+			} else {
+				Reflection::fuzzy_set(*options, argument.first, argument.second);
+			}
+		}
+
+		configurable->set_options(options);
+	}
+
 	// Apply the speed multiplier, if one was requested.
-	if(arguments.selections.find("speed") != arguments.selections.end()) {
-//		const char *speed_string = arguments.selections["speed"]->list_selection()->value.c_str();
-//		char *end;
-//		double speed = strtod(speed_string, &end);
-//
-//		if(size_t(end - speed_string) != strlen(speed_string)) {
-//			std::cerr << "Unable to parse speed: " << speed_string << std::endl;
-//		} else if(speed <= 0.0) {
-//			std::cerr << "Cannot run at speed " << speed_string << "; speeds must be positive." << std::endl;
-//		} else {
-//			machine_runner.set_speed_multiplier(speed);
-//		}
+	const auto speed_argument = arguments.selections.find("speed");
+	if(speed_argument != arguments.selections.end()) {
+		const char *speed_string = speed_argument->second.c_str();
+		char *end;
+		double speed = strtod(speed_string, &end);
+
+		if(size_t(end - speed_string) != strlen(speed_string)) {
+			std::cerr << "Unable to parse speed: " << speed_string << std::endl;
+		} else if(speed <= 0.0) {
+			std::cerr << "Cannot run at speed " << speed_string << "; speeds must be positive." << std::endl;
+		} else {
+			machine_runner.set_speed_multiplier(speed);
+		}
 	}
 
 	// Check whether a 'logical' keyboard has been requested.
@@ -774,31 +803,6 @@ int main(int argc, char *argv[]) {
 
 	int window_width, window_height;
 	SDL_GetWindowSize(window, &window_width, &window_height);
-
-/*	Configurable::Device *const configurable_device = machine->configurable_device();
-	if(configurable_device) {
-		// Establish user-friendly options by default.
-		configurable_device->set_selections(configurable_device->get_user_friendly_selections());
-
-		// Consider transcoding any list selections that map to Boolean options.
-		for(const auto &option: configurable_device->get_options()) {
-			// Check for a corresponding selection.
-			auto selection = arguments.selections.find(option->short_name);
-			if(selection != arguments.selections.end()) {
-				// Transcode selection if necessary.
-				if(dynamic_cast<Configurable::BooleanOption *>(option.get())) {
-					arguments.selections[selection->first] =  std::unique_ptr<Configurable::Selection>(selection->second->boolean_selection());
-				}
-
-				if(dynamic_cast<Configurable::ListOption *>(option.get())) {
-					arguments.selections[selection->first] =  std::unique_ptr<Configurable::Selection>(selection->second->list_selection());
-				}
-			}
-		}
-
-		// Apply the user's actual selections to final the defaults.
-		configurable_device->set_selections(arguments.selections);
-	}*/
 
 	// If this is a joystick machine, check for and open attached joysticks.
 	/*!

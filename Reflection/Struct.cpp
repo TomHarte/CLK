@@ -8,6 +8,8 @@
 
 #include "Struct.h"
 
+#include <algorithm>
+
 // MARK: - Setters
 
 template <> bool Reflection::set(Struct &target, const std::string &name, int value) {
@@ -38,13 +40,11 @@ template <> bool Reflection::set(Struct &target, const std::string &name, const 
 		return false;
 	}
 
-	const auto enum_value = Reflection::Enum::from_string(*target_type, value);
-	if(enum_value == std::string::npos) {
+	const int enum_value = Reflection::Enum::from_string(*target_type, value);
+	if(enum_value < 0) {
 		return false;
 	}
-
-	int int_value = int(enum_value);
-	target.set(name, &int_value);
+	target.set(name, &enum_value);
 
 	return true;
 }
@@ -54,9 +54,54 @@ template <> bool Reflection::set(Struct &target, const std::string &name, const 
 	return set<const std::string &>(target, name, string);
 }
 
+template <> bool Reflection::set(Struct &target, const std::string &name, bool value) {
+	const auto target_type = target.type_of(name);
+	if(!target_type) return false;
+
+	if(*target_type == typeid(bool)) {
+		target.set(name, &value);;
+	}
+
+	return false;
+}
+
 // MARK: - Fuzzy setter
 
 bool Reflection::fuzzy_set(Struct &target, const std::string &name, const std::string &value) {
+	const auto target_type = target.type_of(name);
+	if(!target_type) return false;
+
+	// If the target is a registered enum, ttry to convert the value. Failing that,
+	// try to match without case sensitivity.
+	if(Reflection::Enum::size(*target_type)) {
+		const int from_string = Reflection::Enum::from_string(*target_type, value);
+		if(from_string >= 0) {
+			target.set(name, &from_string);
+			return true;
+		}
+
+		const auto all_values = Reflection::Enum::all_values(*target_type);
+		const auto value_location = std::find_if(all_values.begin(), all_values.end(),
+			[&value] (const auto &entry) {
+				if(value.size() != entry.size()) return false;
+				const char *v = value.c_str();
+				const char *e = entry.c_str();
+				while(*v) {
+					if(tolower(*v) != tolower(*e)) return false;
+					++v;
+					++e;
+				}
+				return true;
+			});
+		if(value_location != all_values.end()) {
+			const int offset = int(value_location - all_values.begin());
+			target.set(name, &offset);
+			return true;
+		}
+
+		return false;
+	}
+
 	return false;
 }
 
