@@ -1,13 +1,13 @@
 //
-//  Enum.h
+//  Enum.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 17/02/2020.
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Enum_h
-#define Enum_h
+#ifndef Enum_hpp
+#define Enum_hpp
 
 #include <algorithm>
 #include <cctype>
@@ -170,4 +170,4 @@ class Enum {
 
 }
 
-#endif /* Enum_h */
+#endif /* Enum_hpp */

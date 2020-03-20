@@ -1038,8 +1038,8 @@
 		4B38F3471F2EC11D00D9235D /* AmstradCPC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = AmstradCPC.hpp; path = AmstradCPC/AmstradCPC.hpp; sourceTree = "<group>"; };
 		4B3940E51DA83C8300427841 /* AsyncTaskQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AsyncTaskQueue.cpp; path = ../../Concurrency/AsyncTaskQueue.cpp; sourceTree = "<group>"; };
 		4B3940E61DA83C8300427841 /* AsyncTaskQueue.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = AsyncTaskQueue.hpp; path = ../../Concurrency/AsyncTaskQueue.hpp; sourceTree = "<group>"; };
-		4B3AF7D02413470E00873C0B /* Enum.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Enum.h; sourceTree = "<group>"; };
-		4B3AF7D12413472200873C0B /* Struct.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Struct.h; sourceTree = "<group>"; };
+		4B3AF7D02413470E00873C0B /* Enum.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Enum.hpp; sourceTree = "<group>"; };
+		4B3AF7D12413472200873C0B /* Struct.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Struct.hpp; sourceTree = "<group>"; };
 		4B3BA0C21D318AEB005DD7A7 /* C1540Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = C1540Tests.swift; sourceTree = "<group>"; };
 		4B3BA0C51D318B44005DD7A7 /* C1540Bridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = C1540Bridge.h; sourceTree = "<group>"; };
 		4B3BA0C61D318B44005DD7A7 /* C1540Bridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = C1540Bridge.mm; sourceTree = "<group>"; };
@@ -2197,8 +2197,8 @@
 		4B3AF7CF2413470E00873C0B /* Reflection */ = {
 			isa = PBXGroup;
 			children = (
-				4B3AF7D02413470E00873C0B /* Enum.h */,
-				4B3AF7D12413472200873C0B /* Struct.h */,
+				4B3AF7D02413470E00873C0B /* Enum.hpp */,
+				4B3AF7D12413472200873C0B /* Struct.hpp */,
 				4B47F6C4241C87A100ED06F7 /* Struct.cpp */,
 			);
 			name = Reflection;

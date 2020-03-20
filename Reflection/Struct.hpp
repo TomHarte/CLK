@@ -1,13 +1,13 @@
 //
-//  Struct.h
+//  Struct.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 06/03/2020.
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Struct_h
-#define Struct_h
+#ifndef Struct_hpp
+#define Struct_hpp
 
 #include <cstdarg>
 #include <cstring>
@@ -17,7 +17,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "Enum.h"
+#include "Enum.hpp"
 
 namespace Reflection {
 
@@ -269,4 +269,4 @@ template <typename Owner> class StructImpl: public Struct {
 
 }
 
-#endif /* Struct_h */
+#endif /* Struct_hpp */

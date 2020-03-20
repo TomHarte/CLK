@@ -6,7 +6,7 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#include "Struct.h"
+#include "Struct.hpp"
 
 #include <algorithm>
 

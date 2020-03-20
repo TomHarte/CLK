@@ -10,7 +10,7 @@
 #define MachineForTarget_hpp
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
-#include "../../Reflection/Struct.h"
+#include "../../Reflection/Struct.hpp"
 
 #include "../DynamicMachine.hpp"
 

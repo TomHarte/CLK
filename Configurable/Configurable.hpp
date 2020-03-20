@@ -9,7 +9,7 @@
 #ifndef Configurable_h
 #define Configurable_h
 
-#include "../Reflection/Struct.h"
+#include "../Reflection/Struct.hpp"
 
 #include <memory>
 

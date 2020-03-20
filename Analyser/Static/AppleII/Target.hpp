@@ -9,8 +9,8 @@
 #ifndef Target_h
 #define Target_h
 
-#include "../../../Reflection/Enum.h"
-#include "../../../Reflection/Struct.h"
+#include "../../../Reflection/Enum.hpp"
+#include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 
 namespace Analyser {

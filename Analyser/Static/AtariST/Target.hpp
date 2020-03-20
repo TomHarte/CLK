@@ -9,7 +9,7 @@
 #ifndef Analyser_Static_AtariST_Target_h
 #define Analyser_Static_AtariST_Target_h
 
-#include "../../../Reflection/Struct.h"
+#include "../../../Reflection/Struct.hpp"
 #include "../StaticAnalyser.hpp"
 
 namespace Analyser {

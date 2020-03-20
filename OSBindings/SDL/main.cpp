@@ -34,8 +34,8 @@
 #include "../../Outputs/OpenGL/ScanTarget.hpp"
 #include "../../Outputs/OpenGL/Screenshot.hpp"
 
-#include "../../Reflection/Enum.h"
-#include "../../Reflection/Struct.h"
+#include "../../Reflection/Enum.hpp"
+#include "../../Reflection/Struct.hpp"
 
 namespace {
 

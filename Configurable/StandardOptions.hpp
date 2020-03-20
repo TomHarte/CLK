@@ -9,7 +9,7 @@
 #ifndef StandardOptions_hpp
 #define StandardOptions_hpp
 
-#include "../Reflection/Enum.h"
+#include "../Reflection/Enum.hpp"
 
 namespace Configurable {
 
