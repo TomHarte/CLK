@@ -16,6 +16,7 @@
 #include "../../../../../Analyser/Static/Acorn/Target.hpp"
 #include "../../../../../Analyser/Static/AmstradCPC/Target.hpp"
 #include "../../../../../Analyser/Static/AppleII/Target.hpp"
+#include "../../../../../Analyser/Static/AtariST/Target.hpp"
 #include "../../../../../Analyser/Static/Commodore/Target.hpp"
 #include "../../../../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../../../../Analyser/Static/MSX/Target.hpp"
@@ -46,7 +47,6 @@
 	if(self) {
 		using Target = Analyser::Static::Acorn::Target;
 		auto target = std::make_unique<Target>();
-		target->machine = Analyser::Machine::Electron;
 		target->has_dfs = !!dfs;
 		target->has_adfs = !!adfs;
 		_targets.push_back(std::move(target));
@@ -59,7 +59,6 @@
 	if(self) {
 		using Target = Analyser::Static::AmstradCPC::Target;
 		auto target = std::make_unique<Target>();
-		target->machine = Analyser::Machine::AmstradCPC;
 		switch(model) {
 			case CSMachineCPCModel464: target->model = Analyser::Static::AmstradCPC::Target::Model::CPC464;		break;
 			case CSMachineCPCModel664: target->model = Analyser::Static::AmstradCPC::Target::Model::CPC664;		break;
@@ -75,7 +74,6 @@
 	if(self) {
 		using Target = Analyser::Static::MSX::Target;
 		auto target = std::make_unique<Target>();
-		target->machine = Analyser::Machine::MSX;
 		target->has_disk_drive = !!hasDiskDrive;
 		switch(region) {
 			case CSMachineMSXRegionAmerican:	target->region = Analyser::Static::MSX::Target::Region::USA;	break;
@@ -92,7 +90,6 @@
 	if(self) {
 		using Target = Analyser::Static::Oric::Target;
 		auto target = std::make_unique<Target>();
-		target->machine = Analyser::Machine::Oric;
 		switch(model) {
 			case CSMachineOricModelOric1:		target->rom = Target::ROM::BASIC10;	break;
 			case CSMachineOricModelOricAtmos:	target->rom = Target::ROM::BASIC11;	break;
@@ -115,7 +112,6 @@
 	if(self) {
 		using Target = Analyser::Static::Commodore::Target;
 		auto target = std::make_unique<Target>();
-		target->machine = Analyser::Machine::Vic20;
 		switch(region) {
 			case CSMachineVic20RegionDanish:	target->region = Target::Region::Danish;	break;
 			case CSMachineVic20RegionSwedish:	target->region = Target::Region::Swedish;	break;
@@ -150,7 +146,6 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	if(self) {
 		using Target = Analyser::Static::ZX8081::Target;
 		auto target = std::make_unique<Target>();
-		target->machine = Analyser::Machine::ZX8081;
 		target->is_ZX81 = false;
 		target->ZX80_uses_ZX81_ROM = !!useZX81ROM;
 		target->memory_model = ZX8081MemoryModelFromSize(memorySize);
@@ -164,7 +159,6 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	if(self) {
 		using Target = Analyser::Static::ZX8081::Target;
 		auto target = std::make_unique<Target>();
-		target->machine = Analyser::Machine::ZX8081;
 		target->is_ZX81 = true;
 		target->memory_model = ZX8081MemoryModelFromSize(memorySize);
 		_targets.push_back(std::move(target));
@@ -177,7 +171,6 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	if(self) {
 		using Target = Analyser::Static::AppleII::Target;
 		auto target = std::make_unique<Target>();
-		target->machine = Analyser::Machine::AppleII;
 		switch(model) {
 			default:									target->model = Target::Model::II;				break;
 			case CSMachineAppleIIModelAppleIIPlus:		target->model = Target::Model::IIplus;			break;
@@ -200,7 +193,6 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	if(self) {
 		using Target = Analyser::Static::Macintosh::Target;
 		auto target = std::make_unique<Target>();
-		target->machine = Analyser::Machine::Macintosh;
 
 		using Model = Target::Model;
 		switch(model) {
@@ -219,9 +211,8 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 - (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model {
 	self = [super init];
 	if(self) {
-		using Target = Analyser::Static::Macintosh::Target;
+		using Target = Analyser::Static::AtariST::Target;
 		auto target = std::make_unique<Target>();
-		target->machine = Analyser::Machine::AtariST;
 		_targets.push_back(std::move(target));
 	}
 	return self;

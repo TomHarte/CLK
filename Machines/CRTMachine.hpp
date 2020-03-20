@@ -181,10 +181,28 @@ class Machine {
 		}
 
 		/*!
-			Forwards the video signal to the target returned by get_crt().
+			Maps back from Outputs::Display::VideoSignal  to Configurable::Display,
+			calling @c get_display_type for the input.
+		*/
+		Configurable::Display get_video_signal_configurable() {
+			switch(get_display_type()) {
+				default:
+				case Outputs::Display::DisplayType::RGB:					return Configurable::Display::RGB;
+				case Outputs::Display::DisplayType::SVideo: 				return Configurable::Display::SVideo;
+				case Outputs::Display::DisplayType::CompositeColour: 		return Configurable::Display::CompositeColour;
+				case Outputs::Display::DisplayType::CompositeMonochrome:	return Configurable::Display::CompositeMonochrome;
+			}
+		}
+
+		/*!
+			Sets the display type.
 		*/
 		virtual void set_display_type(Outputs::Display::DisplayType display_type) {}
 
+		/*!
+			Gets the display type.
+		*/
+		virtual Outputs::Display::DisplayType get_display_type() { return Outputs::Display::DisplayType::RGB; }
 
 	private:
 		double clock_rate_ = 1.0;

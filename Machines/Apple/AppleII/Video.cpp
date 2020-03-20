@@ -55,6 +55,10 @@ void VideoBase::set_display_type(Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
 }
 
+Outputs::Display::DisplayType VideoBase::get_display_type() {
+	return crt_.get_display_type();
+}
+
 /*
 	Rote setters and getters.
 */

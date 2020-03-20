@@ -67,6 +67,10 @@ void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
 	}
 }
 
+Outputs::Display::DisplayType VideoOutput::get_display_type() {
+	return crt_.get_display_type();
+}
+
 void VideoOutput::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }

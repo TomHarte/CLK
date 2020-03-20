@@ -35,7 +35,6 @@ static std::unique_ptr<Analyser::Static::Target> CartridgeTarget(
 	}
 
 	auto target = std::make_unique<Analyser::Static::MSX::Target>();
-	target->machine = Analyser::Machine::MSX;
 	target->confidence = confidence;
 
 	if(type == Analyser::Static::MSX::Cartridge::Type::None) {
@@ -295,7 +294,6 @@ Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &medi
 	target->has_disk_drive = !media.disks.empty();
 
 	if(!target->media.empty()) {
-		target->machine = Machine::MSX;
 		target->confidence = 0.5;
 		destination.push_back(std::move(target));
 	}

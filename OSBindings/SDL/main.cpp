@@ -13,10 +13,10 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <memory>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <map>
 
 #include <SDL2/SDL.h>
 
@@ -33,6 +33,9 @@
 #include "../../Outputs/OpenGL/Primitives/Rectangle.hpp"
 #include "../../Outputs/OpenGL/ScanTarget.hpp"
 #include "../../Outputs/OpenGL/Screenshot.hpp"
+
+#include "../../Reflection/Enum.hpp"
+#include "../../Reflection/Struct.hpp"
 
 namespace {
 
@@ -356,8 +359,22 @@ bool KeyboardKeyForSDLScancode(SDL_Scancode scancode, Inputs::Keyboard::Key &key
 }
 
 struct ParsedArguments {
-	std::string file_name;
-	Configurable::SelectionSet selections;
+	std::vector<std::string> file_names;
+	std::map<std::string, std::string> selections;	// The empty string will be inserted for arguments without an = suffix.
+
+	void apply(Reflection::Struct *reflectable) const {
+		for(const auto &argument: selections) {
+			// Replace any dashes with underscores in the argument name.
+			std::string property;
+			std::transform(argument.first.begin(), argument.first.end(), std::back_inserter(property), [](char c) { return c == '-' ? '_' : c; });
+
+			if(argument.second.empty()) {
+				Reflection::set<bool>(*reflectable, property, true);
+			} else {
+				Reflection::fuzzy_set(*reflectable, property, argument.second);
+			}
+		}
+	}
 };
 
 /*! Parses an argc/argv pair to discern program arguments. */
@@ -382,14 +399,14 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 			std::size_t split_index = argument.find("=");
 
 			if(split_index == std::string::npos) {
-				arguments.selections[argument] = std::make_unique<Configurable::BooleanSelection>(true);
+				arguments.selections[argument];	// To create an entry with the default empty string.
 			} else {
-				std::string name = argument.substr(0, split_index);
+				const std::string name = argument.substr(0, split_index);
 				std::string value = argument.substr(split_index+1, std::string::npos);
-				arguments.selections[name] = std::make_unique<Configurable::ListSelection>(value);
+				arguments.selections[name] = value;
 			}
 		} else {
-			arguments.file_name = arg;
+			arguments.file_names.push_back(arg);
 		}
 	}
 
@@ -467,52 +484,161 @@ int main(int argc, char *argv[]) {
 	SDL_Window *window = nullptr;
 
 	// Attempt to parse arguments.
-	ParsedArguments arguments = parse_arguments(argc, argv);
+	const ParsedArguments arguments = parse_arguments(argc, argv);
 
 	// This may be printed either as
-	const std::string usage_suffix = " [file] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]";	/* [--logical-keyboard] */
+	const std::string usage_suffix = " [file or --new={machine}] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]  [--logical-keyboard]";
 
 	// Print a help message if requested.
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
+		const auto all_machines = Machine::AllMachines(Machine::Type::DoesntRequireMedia, false);
+
 		std::cout << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
 		std::cout << "Use alt+enter to toggle full screen display. Use control+shift+V to paste text." << std::endl;
-		std::cout << "Required machine type and configuration is determined from the file. Machines with further options:" << std::endl << std::endl;
+		std::cout << "Required machine type **and all options** are determined from the file if specified; otherwise use:" << std::endl << std::endl;
+		std::cout << "\t--new={";
+		bool is_first = true;
+		for(const auto &name: all_machines) {
+			if(!is_first) std::cout << "|";
+			std::cout << name;
+			is_first = false;
+		}
+		std::cout << "}" << std::endl << std::endl;
 
-		auto all_options = Machine::AllOptionsByMachineName();
-		for(const auto &machine_options: all_options) {
-			std::cout << machine_options.first << ":" << std::endl;
-			for(const auto &option: machine_options.second) {
-				std::cout << '\t' << "--" << option->short_name;
+		std::cout << "Media is required to start the: ";
+		const auto other_machines = Machine::AllMachines(Machine::Type::RequiresMedia, true);
+		is_first = true;
+		for(const auto &name: other_machines) {
+			if(!is_first) std::cout << ", ";
+			std::cout << name;
+			is_first = false;
+		}
+		std::cout << "." << std::endl << std::endl;
 
-				Configurable::ListOption *list_option = dynamic_cast<Configurable::ListOption *>(option.get());
-				if(list_option) {
+		std::cout << "Further machine options:" << std::endl << std::endl;;
+
+		const auto targets = Machine::TargetsByMachineName(false);
+		const auto runtime_options = Machine::AllOptionsByMachineName();
+		const auto machine_names = Machine::AllMachines(Machine::Type::Any, true);
+		for(const auto &machine: machine_names) {
+			const auto target = targets.find(machine);
+			const auto options = runtime_options.find(machine);
+
+			const auto target_reflectable = dynamic_cast<Reflection::Struct *>(target != targets.end() ? target->second.get() : nullptr);
+			const auto options_reflectable = dynamic_cast<Reflection::Struct *>(options != runtime_options.end() ? options->second.get() : nullptr);
+
+			// Don't print a section for this machine if it has no construction and no runtime options objects.
+			if(!target_reflectable && !options_reflectable) continue;
+
+			const auto target_keys = target_reflectable ? target_reflectable->all_keys() : std::vector<std::string>();
+			const auto options_keys = options_reflectable ? options_reflectable->all_keys() : std::vector<std::string>();
+
+			// Don't print a section for this machine if it doesn't actually have any options.
+			if(target_keys.empty() && options_keys.empty()) {
+				continue;
+			}
+
+			std::cout << machine << ":" << std::endl;
+
+			// Join the two lists of properties and sort the result.
+			std::vector<std::string> all_options = options_keys;
+			all_options.insert(all_options.end(), target_keys.begin(), target_keys.end());
+			std::sort(all_options.begin(), all_options.end());
+
+			for(const auto &option: all_options) {
+				// Replace any underscores with hyphens, better to conform to command-line norms.
+				std::string mapped_option;
+				std::transform(option.begin(), option.end(), std::back_inserter(mapped_option), [](char c) { return c == '_' ? '-' : c; });
+				std::cout << '\t' << "--" << mapped_option;
+
+				auto source = target_reflectable;
+				auto type = target_reflectable ? target_reflectable->type_of(option) : nullptr;
+				if(!type) {
+					source = options_reflectable;
+					type = options_reflectable->type_of(option);
+				}
+
+				// Is this a registered enum? If so, list options.
+				if(!Reflection::Enum::name(*type).empty()) {
 					std::cout << "={";
 					bool is_first = true;
-					for(const auto &option: list_option->options) {
+					for(const auto &value: source->values_for(option)) {
 						if(!is_first) std::cout << '|';
 						is_first = false;
-						std::cout << option;
+
+						std::cout << value;
 					}
 					std::cout << "}";
 				}
+
+				// The above effectively assumes that every field is either a
+				// Boolean or an enum. This may need to be revisted. It also
+				// assumes no name collisions, but that's kind of unavoidable.
+
 				std::cout << std::endl;
 			}
+
 			std::cout << std::endl;
 		}
 		return EXIT_SUCCESS;
 	}
 
-	// Perform a sanity check on arguments.
-	if(arguments.file_name.empty()) {
-		std::cerr << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
-		std::cerr << "Use --help to learn more about available options." << std::endl;
-		return EXIT_FAILURE;
+	// Determine the machine for the supplied file, if any, or from --new.
+	Analyser::Static::TargetList targets;
+
+	const auto new_argument = arguments.selections.find("new");
+	std::string long_machine_name;
+	if(new_argument != arguments.selections.end() && !new_argument->second.empty()) {
+		// Perform for a case-insensitive search against short names.
+		const auto short_names = Machine::AllMachines(Machine::Type::DoesntRequireMedia, false);
+		auto short_name = short_names.begin();
+		while(short_name != short_names.end()) {
+			if(std::equal(
+				short_name->begin(), short_name->end(),
+				new_argument->second.begin(), new_argument->second.end(),
+				[](char a, char b) { return tolower(b) == tolower(a); })) {
+				break;
+			}
+			++short_name;
+		}
+
+		// If a match was found, use the corresponding long name to look up a suitable
+		// Analyser::Statuc::Target and move that to the targets list.
+		if(short_name != short_names.end()) {
+			long_machine_name = Machine::AllMachines(Machine::Type::DoesntRequireMedia, true)[short_name - short_names.begin()];
+			auto targets_by_machine = Machine::TargetsByMachineName(false);
+			std::unique_ptr<Analyser::Static::Target> tgt = std::move(targets_by_machine[long_machine_name]);
+			targets.push_back(std::move(tgt));
+		}
+	} else if(!arguments.file_names.empty()) {
+		// Take the first file name that actually implies a machine.
+		auto file_name = arguments.file_names.begin();
+		while(file_name != arguments.file_names.end() && targets.empty()) {
+			targets = Analyser::Static::GetTargets(*file_name);
+			++file_name;
+		}
 	}
 
-	// Determine the machine for the supplied file.
-	const auto targets = Analyser::Static::GetTargets(arguments.file_name);
 	if(targets.empty()) {
-		std::cerr << "Cannot open " << arguments.file_name << "; no target machine found" << std::endl;
+		if(!arguments.file_names.empty()) {
+			std::cerr << "Cannot open ";
+			bool is_first = true;
+			for(const auto &name: arguments.file_names) {
+				if(!is_first) std::cerr << ", ";
+				is_first = false;
+				std::cerr << name;
+			}
+			std::cerr << "; no target machine found" << std::endl;
+			return EXIT_FAILURE;
+		}
+
+		if(!new_argument->second.empty()) {
+			std::cerr << "Unknown machine: " << new_argument->second << std::endl;
+			return EXIT_FAILURE;
+		}
+
+		std::cerr << "Usage: " << final_path_component(argv[0]) << usage_suffix << std::endl;
+		std::cerr << "Use --help to learn more about available options." << std::endl;
 		return EXIT_FAILURE;
 	}
 
@@ -533,12 +659,13 @@ int main(int argc, char *argv[]) {
 				"/usr/local/share/CLK/",
 				"/usr/share/CLK/"
 			};
-			if(arguments.selections.find("rompath") != arguments.selections.end()) {
-				const std::string user_path = arguments.selections["rompath"]->list_selection()->value;
-				if(user_path.back() != '/') {
-					paths.push_back(user_path + "/");
+
+			const auto rompath = arguments.selections.find("rompath");
+			if(rompath != arguments.selections.end()) {
+				if(rompath->second.back() != '/') {
+					paths.push_back(rompath->second + "/");
 				} else {
-					paths.push_back(user_path);
+					paths.push_back(rompath->second);
 				}
 			}
 
@@ -573,6 +700,13 @@ int main(int argc, char *argv[]) {
 			return results;
 		};
 
+	// Apply all command-line options to the targets.
+	for(auto &target: targets) {
+		auto reflectable_target = dynamic_cast<Reflection::Struct *>(target.get());
+		if(!reflectable_target) continue;
+		arguments.apply(reflectable_target);
+	}
+
 	// Create and configure a machine.
 	::Machine::Error error;
 	std::mutex machine_mutex;
@@ -596,9 +730,18 @@ int main(int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	// Apply all command-line options to the machines.
+	auto configurable = machine->configurable_device();
+	if(configurable) {
+		const auto options = configurable->get_options();
+		arguments.apply(options.get());
+		configurable->set_options(options);
+	}
+
 	// Apply the speed multiplier, if one was requested.
-	if(arguments.selections.find("speed") != arguments.selections.end()) {
-		const char *speed_string = arguments.selections["speed"]->list_selection()->value.c_str();
+	const auto speed_argument = arguments.selections.find("speed");
+	if(speed_argument != arguments.selections.end()) {
+		const char *speed_string = speed_argument->second.c_str();
 		char *end;
 		double speed = strtod(speed_string, &end);
 
@@ -621,6 +764,18 @@ int main(int argc, char *argv[]) {
 	machine_runner.machine = machine.get();
 	machine_runner.machine_mutex = &machine_mutex;
 
+	// Ensure all media is inserted, if this machine accepts it.
+	{
+		auto media_target = machine->media_target();
+		if(media_target) {
+			Analyser::Static::Media media;
+			for(const auto &file_name: arguments.file_names) {
+				media += Analyser::Static::GetMedia(file_name);
+			}
+			media_target->insert_media(media);
+		}
+	}
+
 	// Attempt to set up video and audio.
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 		std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
@@ -634,7 +789,7 @@ int main(int argc, char *argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 	SDL_GL_SetSwapInterval(1);
 
-	window = SDL_CreateWindow(	final_path_component(arguments.file_name).c_str(),
+	window = SDL_CreateWindow(	long_machine_name.empty() ? final_path_component(arguments.file_names.front()).c_str() : long_machine_name.c_str(),
 								SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 								400, 300,
 								SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
@@ -685,31 +840,6 @@ int main(int argc, char *argv[]) {
 
 	int window_width, window_height;
 	SDL_GetWindowSize(window, &window_width, &window_height);
-
-	Configurable::Device *const configurable_device = machine->configurable_device();
-	if(configurable_device) {
-		// Establish user-friendly options by default.
-		configurable_device->set_selections(configurable_device->get_user_friendly_selections());
-
-		// Consider transcoding any list selections that map to Boolean options.
-		for(const auto &option: configurable_device->get_options()) {
-			// Check for a corresponding selection.
-			auto selection = arguments.selections.find(option->short_name);
-			if(selection != arguments.selections.end()) {
-				// Transcode selection if necessary.
-				if(dynamic_cast<Configurable::BooleanOption *>(option.get())) {
-					arguments.selections[selection->first] =  std::unique_ptr<Configurable::Selection>(selection->second->boolean_selection());
-				}
-
-				if(dynamic_cast<Configurable::ListOption *>(option.get())) {
-					arguments.selections[selection->first] =  std::unique_ptr<Configurable::Selection>(selection->second->list_selection());
-				}
-			}
-		}
-
-		// Apply the user's actual selections to final the defaults.
-		configurable_device->set_selections(arguments.selections);
-	}
 
 	// If this is a joystick machine, check for and open attached joysticks.
 	/*!

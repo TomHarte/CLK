@@ -37,6 +37,7 @@
 #include "../JoystickMachine.hpp"
 #include "../MediaTarget.hpp"
 #include "../KeyboardMachine.hpp"
+#include "../../Configurable/Configurable.hpp"
 
 #include "../../Outputs/Log.hpp"
 #include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
@@ -50,12 +51,6 @@
 #include "../../Analyser/Static/MSX/Target.hpp"
 
 namespace MSX {
-
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplaySVideo | Configurable::DisplayCompositeColour | Configurable::QuickLoadTape)
-	);
-}
 
 class AYPortHandler: public GI::AY38910::PortHandler {
 	public:
@@ -288,6 +283,10 @@ class ConcreteMachine:
 
 		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			vdp_->set_display_type(display_type);
+		}
+
+		Outputs::Display::DisplayType get_display_type() final {
+			return vdp_->get_display_type();
 		}
 
 		Outputs::Speaker::Speaker *get_speaker() final {
@@ -648,35 +647,19 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() final {
-			return MSX::get_options();
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			options->quickload = allow_fast_tape_;
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) final {
-			bool quickload;
-			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				allow_fast_tape_ = quickload;
-				set_use_fast_tape();
-			}
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
 
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() final {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, true);
-			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-			return selection_set;
+			set_video_signal_configurable(options->output);
+			allow_fast_tape_ = options->quickload;
+			set_use_fast_tape();
 		}
 
 		// MARK: - Sleeper

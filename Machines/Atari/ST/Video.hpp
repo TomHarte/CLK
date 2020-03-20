@@ -55,6 +55,11 @@ class Video {
 		void set_display_type(Outputs::Display::DisplayType);
 
 		/*!
+			Gets the type of output.
+		*/
+		Outputs::Display::DisplayType get_display_type();
+
+		/*!
 			Produces the next @c duration period of pixels.
 		*/
 		void run_for(HalfCycles duration);

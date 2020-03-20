@@ -16,9 +16,8 @@ Analyser::Static::TargetList Analyser::Static::AtariST::GetTargets(const Media &
 	// As there is at least one usable media image, wave it through.
 	Analyser::Static::TargetList targets;
 
-	using Target = Analyser::Static::Target;
-	auto *target = new Target;
-	target->machine = Analyser::Machine::AtariST;
+	using Target = Analyser::Static::AtariST::Target;
+	auto *target = new Target();
 	target->media = media;
 	targets.push_back(std::unique_ptr<Analyser::Static::Target>(target));
 
