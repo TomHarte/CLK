@@ -11,6 +11,7 @@
 
 #include "../../../Reflection/Enum.h"
 #include "../../../Reflection/Struct.h"
+#include "../StaticAnalyser.hpp"
 
 namespace Analyser {
 namespace Static {
