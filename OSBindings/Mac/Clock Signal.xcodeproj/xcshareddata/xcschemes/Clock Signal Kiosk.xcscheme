@@ -58,7 +58,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--new=amstradcpc"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/ColecoVision/Galaxian (1983)(Atari).col&quot;"
@@ -74,11 +74,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/Amstrad CPC/Amstrad CPC [TOSEC]/Amstrad CPC - Applications - [DSK] (TOSEC-v2011-08-31_CM)/Tasword (1984)(Tasman Software).dsk&quot;"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/Amstrad CPC/Robocop.dsk&quot;"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--speed=5"

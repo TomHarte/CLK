@@ -585,14 +585,6 @@ int main(int argc, char *argv[]) {
 
 	// Determine the machine for the supplied file, if any, or from --new.
 	Analyser::Static::TargetList targets;
-	if(!arguments.file_names.empty()) {
-		// Take the first file name that actually implies a machine.
-		auto file_name = arguments.file_names.begin();
-		while(file_name != arguments.file_names.end() && targets.empty()) {
-			targets = Analyser::Static::GetTargets(*file_name);
-			++file_name;
-		}
-	}
 
 	const auto new_argument = arguments.selections.find("new");
 	std::string long_machine_name;
@@ -617,6 +609,13 @@ int main(int argc, char *argv[]) {
 			auto targets_by_machine = Machine::TargetsByMachineName(false);
 			std::unique_ptr<Analyser::Static::Target> tgt = std::move(targets_by_machine[long_machine_name]);
 			targets.push_back(std::move(tgt));
+		}
+	} else if(!arguments.file_names.empty()) {
+		// Take the first file name that actually implies a machine.
+		auto file_name = arguments.file_names.begin();
+		while(file_name != arguments.file_names.end() && targets.empty()) {
+			targets = Analyser::Static::GetTargets(*file_name);
+			++file_name;
 		}
 	}
 
@@ -765,12 +764,17 @@ int main(int argc, char *argv[]) {
 	machine_runner.machine = machine.get();
 	machine_runner.machine_mutex = &machine_mutex;
 
-	// Ensure all media is inserted.
-	Analyser::Static::Media media;
-	for(const auto &file_name: arguments.file_names) {
-		media += Analyser::Static::GetMedia(file_name);
+	// Ensure all media is inserted, if this machine accepts it.
+	{
+		auto media_target = machine->media_target();
+		if(media_target) {
+			Analyser::Static::Media media;
+			for(const auto &file_name: arguments.file_names) {
+				media += Analyser::Static::GetMedia(file_name);
+			}
+			media_target->insert_media(media);
+		}
 	}
-	machine->media_target()->insert_media(media);
 
 	// Attempt to set up video and audio.
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
