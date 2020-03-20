@@ -359,7 +359,7 @@ bool KeyboardKeyForSDLScancode(SDL_Scancode scancode, Inputs::Keyboard::Key &key
 }
 
 struct ParsedArguments {
-	std::string file_name;
+	std::vector<std::string> file_names;
 	std::map<std::string, std::string> selections;	// The empty string will be inserted for arguments without an = suffix.
 
 	void apply(Reflection::Struct *reflectable) const {
@@ -406,7 +406,7 @@ ParsedArguments parse_arguments(int argc, char *argv[]) {
 				arguments.selections[name] = value;
 			}
 		} else {
-			arguments.file_name = arg;
+			arguments.file_names.push_back(arg);
 		}
 	}
 
@@ -585,11 +585,17 @@ int main(int argc, char *argv[]) {
 
 	// Determine the machine for the supplied file, if any, or from --new.
 	Analyser::Static::TargetList targets;
-	if(!arguments.file_name.empty()) {
-		targets = Analyser::Static::GetTargets(arguments.file_name);
+	if(!arguments.file_names.empty()) {
+		// Take the first file name that actually implies a machine.
+		auto file_name = arguments.file_names.begin();
+		while(file_name != arguments.file_names.end() && targets.empty()) {
+			targets = Analyser::Static::GetTargets(*file_name);
+			++file_name;
+		}
 	}
 
 	const auto new_argument = arguments.selections.find("new");
+	std::string long_machine_name;
 	if(new_argument != arguments.selections.end() && !new_argument->second.empty()) {
 		// Perform for a case-insensitive search against short names.
 		const auto short_names = Machine::AllMachines(Machine::Type::DoesntRequireMedia, false);
@@ -607,16 +613,23 @@ int main(int argc, char *argv[]) {
 		// If a match was found, use the corresponding long name to look up a suitable
 		// Analyser::Statuc::Target and move that to the targets list.
 		if(short_name != short_names.end()) {
-			const auto long_name = Machine::AllMachines(Machine::Type::DoesntRequireMedia, true)[short_name - short_names.begin()];
+			long_machine_name = Machine::AllMachines(Machine::Type::DoesntRequireMedia, true)[short_name - short_names.begin()];
 			auto targets_by_machine = Machine::TargetsByMachineName(false);
-			std::unique_ptr<Analyser::Static::Target> tgt = std::move(targets_by_machine[long_name]);
+			std::unique_ptr<Analyser::Static::Target> tgt = std::move(targets_by_machine[long_machine_name]);
 			targets.push_back(std::move(tgt));
 		}
 	}
 
 	if(targets.empty()) {
-		if(!arguments.file_name.empty()) {
-			std::cerr << "Cannot open " << arguments.file_name << "; no target machine found" << std::endl;
+		if(!arguments.file_names.empty()) {
+			std::cerr << "Cannot open ";
+			bool is_first = true;
+			for(const auto &name: arguments.file_names) {
+				if(!is_first) std::cerr << ", ";
+				is_first = false;
+				std::cerr << name;
+			}
+			std::cerr << "; no target machine found" << std::endl;
 			return EXIT_FAILURE;
 		}
 
@@ -752,6 +765,13 @@ int main(int argc, char *argv[]) {
 	machine_runner.machine = machine.get();
 	machine_runner.machine_mutex = &machine_mutex;
 
+	// Ensure all media is inserted.
+	Analyser::Static::Media media;
+	for(const auto &file_name: arguments.file_names) {
+		media += Analyser::Static::GetMedia(file_name);
+	}
+	machine->media_target()->insert_media(media);
+
 	// Attempt to set up video and audio.
 	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 		std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError() << std::endl;
@@ -765,7 +785,7 @@ int main(int argc, char *argv[]) {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
 	SDL_GL_SetSwapInterval(1);
 
-	window = SDL_CreateWindow(	final_path_component(arguments.file_name).c_str(),
+	window = SDL_CreateWindow(	long_machine_name.empty() ? final_path_component(arguments.file_names.front()).c_str() : long_machine_name.c_str(),
 								SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 								400, 300,
 								SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);

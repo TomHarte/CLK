@@ -35,6 +35,16 @@ struct Media {
 	bool empty() const {
 		return disks.empty() && tapes.empty() && cartridges.empty() && mass_storage_devices.empty();
 	}
+
+	Media &operator +=(const Media &rhs) {
+#define append(name)	name.insert(name.end(), rhs.name.begin(), rhs.name.end());
+		append(disks);
+		append(tapes);
+		append(cartridges);
+		append(mass_storage_devices);
+#undef append
+		return *this;
+	}
 };
 
 /*!
