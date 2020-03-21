@@ -17,7 +17,7 @@
 @implementation CSOpenGLView {
 	CVDisplayLinkRef _displayLink;
 	CGSize _backingSize;
-	NSScreen *_currentScreen;
+	NSNumber *_currentScreenNumber;
 
 	NSTrackingArea *_mouseTrackingArea;
 	NSTimer *_mouseHideTimer;
@@ -30,10 +30,7 @@
 - (void)prepareOpenGL {
 	[super prepareOpenGL];
 
-	// Note the initial screen.
-	_currentScreen = self.window.screen;
-
-	// set the clear colour
+	// Set the clear colour.
 	[self.openGLContext makeCurrentContext];
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -50,6 +47,7 @@
 
 	// Create a display link for the display the window is currently on.
 	NSNumber *const screenNumber = self.window.screen.deviceDescription[@"NSScreenNumber"];
+	_currentScreenNumber = screenNumber;
 	CVDisplayLinkCreateWithCGDisplay(screenNumber.unsignedIntValue, &_displayLink);
 
 	// Set the renderer output callback function.
@@ -101,9 +99,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	// There's likely a callback available for this, on NSWindow if nowhere else, or an NSNotification,
 	// but since this method is going to be called repeatedly anyway, and the test is cheap, polling
 	// feels fine.
-	if(![self.window.screen isEqual:_currentScreen]) {
-		_currentScreen = self.window.screen;
-
+	NSNumber *const screenNumber = self.window.screen.deviceDescription[@"NSScreenNumber"];
+	if(![_currentScreenNumber isEqual:screenNumber]) {
 		// Issue a reshape, in case a switch to/from a Retina display has
 		// happened, changing the results of -convertSizeToBacking:, etc.
 		[self reshape];
