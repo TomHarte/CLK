@@ -22,6 +22,9 @@
 	NSTrackingArea *_mouseTrackingArea;
 	NSTimer *_mouseHideTimer;
 	BOOL _mouseIsCaptured;
+
+	volatile int32_t _isDrawingFlag;
+	BOOL _isInvalid;
 }
 
 - (void)prepareOpenGL {
@@ -39,33 +42,39 @@
 }
 
 - (void)setupDisplayLink {
-	// Kill the existing link if there is one, then wait until its final shout is definitely done.
+	// Kill the existing link if there is one.
 	if(_displayLink) {
-		[self invalidate];
-
+		[self stopDisplayLink];
 		CVDisplayLinkRelease(_displayLink);
 	}
 
-	// Create a display link capable of being used with all active displays
+	// Create a display link for the display the window is currently on.
 	NSNumber *const screenNumber = self.window.screen.deviceDescription[@"NSScreenNumber"];
 	CVDisplayLinkCreateWithCGDisplay(screenNumber.unsignedIntValue, &_displayLink);
 
-	// Set the renderer output callback function
+	// Set the renderer output callback function.
 	CVDisplayLinkSetOutputCallback(_displayLink, DisplayLinkCallback, (__bridge void * __nullable)(self));
 
-	// Set the display link for the current renderer
+	// Set the display link for the current renderer.
 	CGLContextObj cglContext = [[self openGLContext] CGLContextObj];
 	CGLPixelFormatObj cglPixelFormat = [[self pixelFormat] CGLPixelFormatObj];
 	CVDisplayLinkSetCurrentCGDisplayFromOpenGLContext(_displayLink, cglContext, cglPixelFormat);
 
-	// Activate the display link
+	// Activate the display link.
 	CVDisplayLinkStart(_displayLink);
 }
 
 static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext) {
 	CSOpenGLView *const view = (__bridge CSOpenGLView *)displayLinkContext;
 
-	[view checkDisplayLink];
+	// Schedule an opportunity to check that the display link is still linked to the correct display.
+	dispatch_async(dispatch_get_main_queue(), ^{
+		[view checkDisplayLink];
+	});
+
+	// Ensure _isDrawingFlag has value 1 when drawing, 0 otherwise.
+	OSAtomicIncrement32(&view->_isDrawingFlag);
+
 	[view.displayLinkDelegate openGLViewDisplayLinkDidFire:view now:now outputTime:outputTime];
 	/*
 		Do not touch the display link from after this call; there's a bit of a race condition with setupDisplayLink.
@@ -77,15 +86,22 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		access the display link itself as part of -drawAtTime:frequency:.
 	*/
 
+	OSAtomicDecrement32(&view->_isDrawingFlag);
+
 	return kCVReturnSuccess;
 }
 
 - (void)checkDisplayLink {
+	// Don't do anything if this view has already been invalidated.
+	if(_isInvalid) {
+		return;
+	}
+
 	// Test now whether the screen this view is on has changed since last time it was checked.
 	// There's likely a callback available for this, on NSWindow if nowhere else, or an NSNotification,
 	// but since this method is going to be called repeatedly anyway, and the test is cheap, polling
 	// feels fine.
-	if(self.window.screen != _currentScreen) {
+	if(![self.window.screen isEqual:_currentScreen]) {
 		_currentScreen = self.window.screen;
 
 		// Issue a reshape, in case a switch to/from a Retina display has
@@ -113,13 +129,24 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 }
 
 - (void)invalidate {
+	_isInvalid = YES;
+	[self stopDisplayLink];
+}
+
+- (void)stopDisplayLink {
 	const double duration = CVDisplayLinkGetActualOutputVideoRefreshPeriod(_displayLink);
 	CVDisplayLinkStop(_displayLink);
 
-	// This is a workaround; I could find no way to ensure that a callback from the display
-	// link is not currently ongoing. In short: call stop, wait for an entire refresh period,
-	// then assume (/hope) the coast is clear.
+	// This is a workaround; CVDisplayLinkStop does not wait for any existing call to the
+	// display-link callback to stop. Furthermore there's a race condition between a callback
+	// and any ability by me to set state.
+	//
+	// So: wait for a whole display link tick to avoid the second race condition. Then spin
+	// on an atomic flag.
 	usleep((useconds_t)ceil(duration * 1000000.0));
+
+	// Spin until _isDrawingFlag is 0 (and leave it as 0).
+	while(!OSAtomicCompareAndSwap32(0, 0, &_isDrawingFlag));
 }
 
 - (void)dealloc {
