@@ -722,4 +722,14 @@ class MachineDocument:
 			machine.setVolume(sender.floatValue);
 		}
 	}
+
+	func openGLViewDidShowOSMouseCursor(_ view: CSOpenGLView) {
+		// The OS mouse cursor became visible, so show the volume controls.
+		volumeView.isHidden = false
+	}
+
+	func openGLViewWillHideOSMouseCursor(_ view: CSOpenGLView) {
+		// The OS mouse cursor will be hidden, so hide the volume controls.
+		volumeView.isHidden = true
+	}
 }

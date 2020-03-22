@@ -288,10 +288,12 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)scheduleMouseHide {
 	if(!self.shouldCaptureMouse) {
+		[self.delegate openGLViewDidShowOSMouseCursor:self];
 		[_mouseHideTimer invalidate];
 
 		_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 repeats:NO block:^(NSTimer * _Nonnull timer) {
 			[NSCursor setHiddenUntilMouseMoves:YES];
+			[self.delegate openGLViewWillHideOSMouseCursor:self];
 		}];
 	}
 }

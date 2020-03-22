@@ -29,7 +29,7 @@
                     <openGLView hidden="YES" wantsLayer="YES" useAuxiliaryDepthBufferStencil="NO" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSOpenGLView">
                         <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
                     </openGLView>
-                    <box boxType="custom" cornerRadius="4" title="Box" titlePosition="noTitle" translatesAutoresizingMaskIntoConstraints="NO" id="4ap-Gi-2AO">
+                    <box hidden="YES" boxType="custom" cornerRadius="4" title="Box" titlePosition="noTitle" translatesAutoresizingMaskIntoConstraints="NO" id="4ap-Gi-2AO">
                         <rect key="frame" x="150" y="20" width="300" height="48"/>
                         <view key="contentView" id="gwO-Ty-LCX">
                             <rect key="frame" x="1" y="1" width="298" height="46"/>

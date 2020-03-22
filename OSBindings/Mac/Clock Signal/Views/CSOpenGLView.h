@@ -50,6 +50,18 @@ typedef NS_ENUM(NSInteger, CSOpenGLViewRedrawEvent) {
 */
 - (void)openGLViewDidReleaseMouse:(nonnull CSOpenGLView *)view;
 
+/*!
+	Announces that the OS mouse cursor is now being displayed again, after having been invisible.
+	@param view The view making the announcement.
+*/
+- (void)openGLViewDidShowOSMouseCursor:(nonnull CSOpenGLView *)view;
+
+/*!
+	Announces that the OS mouse cursor will now be hidden.
+	@param view The view making the announcement.
+*/
+- (void)openGLViewWillHideOSMouseCursor:(nonnull CSOpenGLView *)view;
+
 @end
 
 @protocol CSOpenGLViewResponderDelegate <NSObject>
