@@ -42,6 +42,7 @@ class MultiSpeaker: public Outputs::Speaker::Speaker, Outputs::Speaker::Speaker:
 		void set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) override;
 		void set_delegate(Outputs::Speaker::Speaker::Delegate *delegate) override;
 		bool get_is_stereo() override;
+		void set_output_volume(float) override;
 
 	private:
 		void speaker_did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer) final;

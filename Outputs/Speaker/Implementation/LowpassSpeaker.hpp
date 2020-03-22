@@ -31,7 +31,14 @@ namespace Speaker {
 template <typename SampleSource> class LowpassSpeaker: public Speaker {
 	public:
 		LowpassSpeaker(SampleSource &sample_source) : sample_source_(sample_source) {
+			// Propagate an initial volume level.
 			sample_source.set_sample_volume_range(32767);
+		}
+
+		void set_output_volume(float volume) final {
+			// Clamp to the acceptable range, and set.
+			volume = std::min(std::max(0.0f, volume), 1.0f);
+			sample_source_.set_sample_volume_range(int16_t(32767.0f * volume));
 		}
 
 		// Implemented as per Speaker.
