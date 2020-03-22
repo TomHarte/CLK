@@ -307,6 +307,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[super mouseExited:event];
 	[_mouseHideTimer invalidate];
 	_mouseHideTimer = nil;
+	[self.delegate openGLViewWillHideOSMouseCursor:self];
 }
 
 - (void)releaseMouse {

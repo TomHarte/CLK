@@ -8,6 +8,7 @@
 
 import AudioToolbox
 import Cocoa
+import QuartzCore
 
 class MachineDocument:
 	NSDocument,
@@ -723,13 +724,47 @@ class MachineDocument:
 		}
 	}
 
+	// This class is pure nonsense to work around Xcode's opaque behaviour.
+	// If I make the main class a sub of CAAnimationDelegate then the compiler
+	// generates a bridging header that doesn't include QuartzCore and therefore
+	// can't find a declaration of the CAAnimationDelegate protocol. Doesn't
+	// seem to matter what I add explicitly to the link stage, which version of
+	// macOS I set as the target, etc.
+	//
+	// So, the workaround: make my CAAnimationDelegate something that doesn't
+	// appear in the bridging header.
+	fileprivate class ViewFader: NSObject, CAAnimationDelegate {
+		var volumeView: NSView
+
+		init(view: NSView) {
+			volumeView = view
+		}
+
+		func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
+			volumeView.isHidden = true
+		}
+	}
+	fileprivate var animationFader: ViewFader? = nil
+
 	func openGLViewDidShowOSMouseCursor(_ view: CSOpenGLView) {
 		// The OS mouse cursor became visible, so show the volume controls.
+		volumeView.layer?.removeAllAnimations()
+		animationFader = nil
 		volumeView.isHidden = false
+		volumeView.layer?.opacity = 1.0
 	}
 
 	func openGLViewWillHideOSMouseCursor(_ view: CSOpenGLView) {
 		// The OS mouse cursor will be hidden, so hide the volume controls.
-		volumeView.isHidden = true
+		if !volumeView.isHidden && volumeView.layer?.animation(forKey: "opacity") == nil {
+			let fadeAnimation = CABasicAnimation(keyPath: "opacity")
+			fadeAnimation.fromValue = 1.0
+			fadeAnimation.toValue = 0.0
+			fadeAnimation.duration = 0.5
+			animationFader = ViewFader(view: volumeView)
+			fadeAnimation.delegate = animationFader
+			volumeView.layer?.add(fadeAnimation, forKey: "opacity")
+			volumeView.layer?.opacity = 0.0
+		}
 	}
 }
