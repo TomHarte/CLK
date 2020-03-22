@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="14490.70" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15705" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14490.70"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15705"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
                 <outlet property="openGLView" destination="DEG-fq-cjd" id="Gxs-2u-n7B"/>
+                <outlet property="volumeView" destination="4ap-Gi-2AO" id="v4e-k6-Fqf"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
             </connections>
         </customObject>
@@ -19,7 +20,7 @@
             <windowCollectionBehavior key="collectionBehavior" fullScreenPrimary="YES"/>
             <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
             <rect key="contentRect" x="80" y="250" width="600" height="450"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1440" height="900"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="3840" height="2137"/>
             <value key="minSize" type="size" width="228" height="171"/>
             <view key="contentView" id="gIp-Ho-8D9">
                 <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
@@ -28,9 +29,57 @@
                     <openGLView hidden="YES" wantsLayer="YES" useAuxiliaryDepthBufferStencil="NO" allowOffline="YES" wantsBestResolutionOpenGLSurface="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DEG-fq-cjd" customClass="CSOpenGLView">
                         <rect key="frame" x="0.0" y="0.0" width="600" height="450"/>
                     </openGLView>
+                    <box boxType="custom" cornerRadius="4" title="Box" titlePosition="noTitle" translatesAutoresizingMaskIntoConstraints="NO" id="4ap-Gi-2AO">
+                        <rect key="frame" x="150" y="20" width="300" height="48"/>
+                        <view key="contentView" id="gwO-Ty-LCX">
+                            <rect key="frame" x="1" y="1" width="298" height="46"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <subviews>
+                                <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="Hzw-P6-1dH">
+                                    <rect key="frame" x="258" y="8" width="32" height="30"/>
+                                    <constraints>
+                                        <constraint firstAttribute="width" constant="32" id="WrK-W9-mPP"/>
+                                    </constraints>
+                                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSTouchBarAudioOutputVolumeHighTemplate" id="5dB-4Y-iEl"/>
+                                    <color key="contentTintColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                </imageView>
+                                <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="p0w-Ti-Tu9">
+                                    <rect key="frame" x="8" y="8" width="32" height="30"/>
+                                    <constraints>
+                                        <constraint firstAttribute="width" constant="32" id="dZn-Fc-fRU"/>
+                                    </constraints>
+                                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSTouchBarAudioOutputVolumeOffTemplate" id="mUH-aA-T9N"/>
+                                    <color key="contentTintColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                </imageView>
+                                <slider verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="zaz-lB-Iyt">
+                                    <rect key="frame" x="46" y="14" width="206" height="19"/>
+                                    <sliderCell key="cell" continuous="YES" state="on" alignment="left" maxValue="1" doubleValue="1" tickMarkPosition="above" sliderType="linear" id="Zvz-Og-dGA"/>
+                                    <connections>
+                                        <action selector="setVolume:" target="-2" id="eEc-5v-I2c"/>
+                                    </connections>
+                                </slider>
+                            </subviews>
+                            <constraints>
+                                <constraint firstItem="p0w-Ti-Tu9" firstAttribute="leading" secondItem="gwO-Ty-LCX" secondAttribute="leading" constant="8" id="1t0-CW-zp9"/>
+                                <constraint firstItem="Hzw-P6-1dH" firstAttribute="top" secondItem="gwO-Ty-LCX" secondAttribute="top" constant="8" id="OHP-c3-2Aa"/>
+                                <constraint firstAttribute="trailing" secondItem="Hzw-P6-1dH" secondAttribute="trailing" constant="8" id="W24-Wx-bdQ"/>
+                                <constraint firstItem="zaz-lB-Iyt" firstAttribute="centerY" secondItem="p0w-Ti-Tu9" secondAttribute="centerY" id="f3C-My-T0S"/>
+                                <constraint firstItem="zaz-lB-Iyt" firstAttribute="leading" secondItem="p0w-Ti-Tu9" secondAttribute="trailing" constant="8" id="n0g-y6-wHP"/>
+                                <constraint firstItem="p0w-Ti-Tu9" firstAttribute="centerY" secondItem="gwO-Ty-LCX" secondAttribute="centerY" id="uTt-VY-o8c"/>
+                                <constraint firstItem="Hzw-P6-1dH" firstAttribute="leading" secondItem="zaz-lB-Iyt" secondAttribute="trailing" constant="8" id="xCS-qF-Gz8"/>
+                                <constraint firstAttribute="bottom" secondItem="Hzw-P6-1dH" secondAttribute="bottom" constant="8" id="yaF-k8-W5B"/>
+                            </constraints>
+                        </view>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="300" id="HKL-vy-Mov"/>
+                        </constraints>
+                        <color key="fillColor" red="0.0" green="0.0" blue="0.0" alpha="0.5" colorSpace="custom" customColorSpace="sRGB"/>
+                    </box>
                 </subviews>
                 <constraints>
                     <constraint firstItem="DEG-fq-cjd" firstAttribute="centerX" secondItem="gIp-Ho-8D9" secondAttribute="centerX" id="ES5-nL-N3h"/>
+                    <constraint firstItem="4ap-Gi-2AO" firstAttribute="centerX" secondItem="DEG-fq-cjd" secondAttribute="centerX" id="T41-z9-BsM"/>
+                    <constraint firstItem="4ap-Gi-2AO" firstAttribute="bottom" secondItem="DEG-fq-cjd" secondAttribute="bottom" constant="-20" id="Tly-Uu-96H"/>
                     <constraint firstItem="DEG-fq-cjd" firstAttribute="height" secondItem="gIp-Ho-8D9" secondAttribute="height" id="YoB-qI-LFX"/>
                     <constraint firstItem="DEG-fq-cjd" firstAttribute="centerY" secondItem="gIp-Ho-8D9" secondAttribute="centerY" id="d5Y-3a-CEI"/>
                     <constraint firstItem="DEG-fq-cjd" firstAttribute="width" secondItem="gIp-Ho-8D9" secondAttribute="width" id="mYS-bH-DST"/>
@@ -45,6 +94,11 @@
                 <outlet property="delegate" destination="-2" id="0bl-1N-x8E"/>
                 <outlet property="initialFirstResponder" destination="DEG-fq-cjd" id="9RI-Kx-QeN"/>
             </connections>
+            <point key="canvasLocation" x="141" y="147"/>
         </window>
     </objects>
+    <resources>
+        <image name="NSTouchBarAudioOutputVolumeHighTemplate" width="23" height="30"/>
+        <image name="NSTouchBarAudioOutputVolumeOffTemplate" width="23" height="30"/>
+    </resources>
 </document>

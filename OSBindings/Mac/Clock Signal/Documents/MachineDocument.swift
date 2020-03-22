@@ -62,6 +62,9 @@ class MachineDocument:
 		activityPanel.setIsVisible(true)
 	}
 
+	/// The volume view.
+	@IBOutlet var volumeView: NSView!
+
 	// MARK: - NSDocument Overrides and NSWindowDelegate methods.
 
 	/// Links this class to the MachineDocument NIB.
@@ -710,6 +713,13 @@ class MachineDocument:
 				led.levelIndicator.floatValue = isLit ? 1.0 : 0.0
 				led.isLit = isLit
 			}
+		}
+	}
+
+	// MARK: - Volume Control.
+	@IBAction func setVolume(_ sender: NSSlider!) {
+		if let machine = self.machine {
+			machine.setVolume(sender.floatValue);
 		}
 	}
 }

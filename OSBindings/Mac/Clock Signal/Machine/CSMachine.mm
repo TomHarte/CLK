@@ -613,7 +613,7 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
-- (bool)supportsVideoSignal:(CSMachineVideoSignal)videoSignal {
+- (BOOL)supportsVideoSignal:(CSMachineVideoSignal)videoSignal {
 	Configurable::Device *configurable_device = _machine->configurable_device();
 	if(!configurable_device) return NO;
 
@@ -706,6 +706,24 @@ struct ActivityObserver: public Activity::Observer {
 	const auto essential_modifiers = _machine->keyboard_machine()->get_keyboard().get_essential_modifiers();
 	return	essential_modifiers.find(Inputs::Keyboard::Key::LeftMeta) != essential_modifiers.end() ||
 			essential_modifiers.find(Inputs::Keyboard::Key::RightMeta) != essential_modifiers.end();
+}
+
+#pragma mark - Volume control
+
+- (void)setVolume:(float)volume {
+	@synchronized(self) {
+		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		if(speaker) {
+			return speaker->set_output_volume(volume);
+		}
+	}
+}
+
+- (BOOL)hasAudioOutput {
+	@synchronized(self) {
+		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		return speaker ? YES : NO;
+	}
 }
 
 #pragma mark - Activity observation
