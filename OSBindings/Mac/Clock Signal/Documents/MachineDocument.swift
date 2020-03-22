@@ -748,8 +748,8 @@ class MachineDocument:
 
 	func openGLViewDidShowOSMouseCursor(_ view: CSOpenGLView) {
 		// The OS mouse cursor became visible, so show the volume controls.
-		volumeView.layer?.removeAllAnimations()
 		animationFader = nil
+		volumeView.layer?.removeAllAnimations()
 		volumeView.isHidden = false
 		volumeView.layer?.opacity = 1.0
 	}
