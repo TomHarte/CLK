@@ -288,7 +288,6 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 - (void)scheduleMouseHide {
 	if(!self.shouldCaptureMouse) {
-		[self.delegate openGLViewDidShowOSMouseCursor:self];
 		[_mouseHideTimer invalidate];
 
 		_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 repeats:NO block:^(NSTimer * _Nonnull timer) {
@@ -299,6 +298,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 }
 
 - (void)mouseEntered:(NSEvent *)event {
+	[self.delegate openGLViewDidShowOSMouseCursor:self];
 	[super mouseEntered:event];
 	[self scheduleMouseHide];
 }
@@ -316,6 +316,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		CGAssociateMouseAndMouseCursorPosition(true);
 		[NSCursor unhide];
 		[self.delegate openGLViewDidReleaseMouse:self];
+		[self.delegate openGLViewDidShowOSMouseCursor:self];
 		((CSApplication *)[NSApplication sharedApplication]).eventDelegate = nil;
 	}
 }
@@ -327,6 +328,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		// Mouse capture is off, so don't play games with the cursor, just schedule it to
 		// hide in the near future.
 		[self scheduleMouseHide];
+		[self.delegate openGLViewDidShowOSMouseCursor:self];
 	} else {
 		if(_mouseIsCaptured) {
 			// Mouse capture is on, so move the cursor back to the middle of the window, and
@@ -343,6 +345,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			));
 
 			[self.responderDelegate mouseMoved:event];
+		} else {
+			[self.delegate openGLViewDidShowOSMouseCursor:self];
 		}
 	}
 }
@@ -375,6 +379,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			_mouseIsCaptured = YES;
 			[NSCursor hide];
 			CGAssociateMouseAndMouseCursorPosition(false);
+			[self.delegate openGLViewWillHideOSMouseCursor:self];
 			[self.delegate openGLViewDidCaptureMouse:self];
 			if(self.shouldUsurpCommand) {
 				((CSApplication *)[NSApplication sharedApplication]).eventDelegate = self;
