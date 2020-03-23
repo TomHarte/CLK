@@ -9,6 +9,7 @@
         <customObject id="-2" userLabel="File's Owner" customClass="MachineDocument" customModule="Clock_Signal" customModuleProvider="target">
             <connections>
                 <outlet property="openGLView" destination="DEG-fq-cjd" id="Gxs-2u-n7B"/>
+                <outlet property="volumeSlider" destination="zaz-lB-Iyt" id="flY-Th-oG4"/>
                 <outlet property="volumeView" destination="4ap-Gi-2AO" id="v4e-k6-Fqf"/>
                 <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
             </connections>
