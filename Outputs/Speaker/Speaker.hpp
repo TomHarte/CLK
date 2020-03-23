@@ -45,6 +45,9 @@ class Speaker {
 			compute_output_rate();
 		}
 
+		/// Sets the output volume, in the range [0, 1].
+		virtual void set_output_volume(float) = 0;
+
 		/*!
 			Speeds a speed multiplier for this machine, e.g. that it is currently being run at 2.0x its normal rate.
 			This will affect the number of input samples that are combined to produce one output sample.
@@ -79,6 +82,8 @@ class Speaker {
 			delegate_ = delegate;
 		}
 
+
+		// This is primarily exposed for MultiSpeaker et al; it's not for general callers.
 		virtual void set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) = 0;
 
 	protected:

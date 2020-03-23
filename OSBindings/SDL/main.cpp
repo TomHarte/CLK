@@ -487,7 +487,7 @@ int main(int argc, char *argv[]) {
 	const ParsedArguments arguments = parse_arguments(argc, argv);
 
 	// This may be printed either as
-	const std::string usage_suffix = " [file or --new={machine}] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]  [--logical-keyboard]";
+	const std::string usage_suffix = " [file or --new={machine}] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]  [--logical-keyboard] [--volume={0.0 to 1.0}]";
 
 	// Print a help message if requested.
 	if(arguments.selections.find("help") != arguments.selections.end() || arguments.selections.find("h") != arguments.selections.end()) {
@@ -739,18 +739,39 @@ int main(int argc, char *argv[]) {
 	}
 
 	// Apply the speed multiplier, if one was requested.
-	const auto speed_argument = arguments.selections.find("speed");
-	if(speed_argument != arguments.selections.end()) {
-		const char *speed_string = speed_argument->second.c_str();
-		char *end;
-		double speed = strtod(speed_string, &end);
+	{
+		const auto speed_argument = arguments.selections.find("speed");
+		if(speed_argument != arguments.selections.end()) {
+			const char *speed_string = speed_argument->second.c_str();
+			char *end;
+			const double speed = strtod(speed_string, &end);
 
-		if(size_t(end - speed_string) != strlen(speed_string)) {
-			std::cerr << "Unable to parse speed: " << speed_string << std::endl;
-		} else if(speed <= 0.0) {
-			std::cerr << "Cannot run at speed " << speed_string << "; speeds must be positive." << std::endl;
-		} else {
-			machine_runner.set_speed_multiplier(speed);
+			if(size_t(end - speed_string) != strlen(speed_string)) {
+				std::cerr << "Unable to parse speed: " << speed_string << std::endl;
+			} else if(speed <= 0.0) {
+				std::cerr << "Cannot run at speed " << speed_string << "; speeds must be positive." << std::endl;
+			} else {
+				machine_runner.set_speed_multiplier(speed);
+			}
+		}
+	}
+
+	// Apply the desired output volume, if requested.
+	{
+		const auto volume_argument = arguments.selections.find("volume");
+		if(volume_argument != arguments.selections.end()) {
+			const char *volume_string = volume_argument->second.c_str();
+			char *end;
+			const double volume = strtod(volume_string, &end);
+
+			if(size_t(end - volume_string) != strlen(volume_string)) {
+				std::cerr << "Unable to parse volume: " << volume_string << std::endl;
+			} else if(volume < 0.0 || volume > 1.0) {
+				std::cerr << "Cannot run with volume " << volume_string << "; volumes must be between 0.0 and 1.0." << std::endl;
+			} else {
+				const auto speaker = machine->crt_machine()->get_speaker();
+				if(speaker) speaker->set_output_volume(volume);
+			}
 		}
 	}
 

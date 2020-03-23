@@ -54,6 +54,12 @@ bool MultiSpeaker::get_is_stereo() {
 	return false;
 }
 
+void MultiSpeaker::set_output_volume(float volume) {
+	for(const auto &speaker: speakers_) {
+		speaker->set_output_volume(volume);
+	}
+}
+
 void MultiSpeaker::set_delegate(Outputs::Speaker::Speaker::Delegate *delegate) {
 	delegate_ = delegate;
 }

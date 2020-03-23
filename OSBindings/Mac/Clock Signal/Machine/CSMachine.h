@@ -92,7 +92,11 @@ typedef NS_ENUM(NSInteger, CSMachineKeyboardInputMode) {
 
 @property (nonatomic, readonly) BOOL canInsertMedia;
 
-- (bool)supportsVideoSignal:(CSMachineVideoSignal)videoSignal;
+- (BOOL)supportsVideoSignal:(CSMachineVideoSignal)videoSignal;
+
+// Volume contorl.
+- (void)setVolume:(float)volume;
+@property (nonatomic, readonly) BOOL hasAudioOutput;
 
 // Input control.
 @property (nonatomic, readonly) BOOL hasExclusiveKeyboard;

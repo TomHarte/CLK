@@ -613,7 +613,7 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
-- (bool)supportsVideoSignal:(CSMachineVideoSignal)videoSignal {
+- (BOOL)supportsVideoSignal:(CSMachineVideoSignal)videoSignal {
 	Configurable::Device *configurable_device = _machine->configurable_device();
 	if(!configurable_device) return NO;
 
@@ -708,6 +708,24 @@ struct ActivityObserver: public Activity::Observer {
 			essential_modifiers.find(Inputs::Keyboard::Key::RightMeta) != essential_modifiers.end();
 }
 
+#pragma mark - Volume control
+
+- (void)setVolume:(float)volume {
+	@synchronized(self) {
+		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		if(speaker) {
+			return speaker->set_output_volume(volume);
+		}
+	}
+}
+
+- (BOOL)hasAudioOutput {
+	@synchronized(self) {
+		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		return speaker ? YES : NO;
+	}
+}
+
 #pragma mark - Activity observation
 
 - (void)addLED:(NSString *)led {
@@ -761,9 +779,10 @@ struct ActivityObserver: public Activity::Observer {
 
 	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
 		// Grab the time now and, therefore, the amount of time since the timer last fired
-		// (capped at half a second).
+		// (subject to a cap to avoid potential perpetual regression).
 		const auto timeNow = Time::nanos_now();
-		const auto duration = std::min(timeNow - lastTime, Time::Nanos(10'000'000'000 / TICKS));
+		lastTime = std::max(timeNow - Time::Nanos(10'000'000'000 / TICKS), lastTime);
+		const auto duration = timeNow - lastTime;
 
 		CGSize pixelSize;
 		BOOL splitAndSync = NO;

@@ -11,6 +11,8 @@
 @import CoreVideo;
 @import GLKit;
 
+#include <stdatomic.h>
+
 @interface CSOpenGLView () <NSDraggingDestination, CSApplicationEventDelegate>
 @end
 
@@ -23,12 +25,15 @@
 	NSTimer *_mouseHideTimer;
 	BOOL _mouseIsCaptured;
 
-	volatile int32_t _isDrawingFlag;
+	atomic_int _isDrawingFlag;
 	BOOL _isInvalid;
 }
 
 - (void)prepareOpenGL {
 	[super prepareOpenGL];
+
+	// Prepare the atomic int.
+	atomic_init(&_isDrawingFlag, 0);
 
 	// Set the clear colour.
 	[self.openGLContext makeCurrentContext];
@@ -71,7 +76,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	});
 
 	// Ensure _isDrawingFlag has value 1 when drawing, 0 otherwise.
-	OSAtomicIncrement32(&view->_isDrawingFlag);
+	atomic_store(&view->_isDrawingFlag, 1);
 
 	[view.displayLinkDelegate openGLViewDisplayLinkDidFire:view now:now outputTime:outputTime];
 	/*
@@ -84,7 +89,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		access the display link itself as part of -drawAtTime:frequency:.
 	*/
 
-	OSAtomicDecrement32(&view->_isDrawingFlag);
+	atomic_store(&view->_isDrawingFlag, 0);
 
 	return kCVReturnSuccess;
 }
@@ -143,7 +148,10 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	usleep((useconds_t)ceil(duration * 1000000.0));
 
 	// Spin until _isDrawingFlag is 0 (and leave it as 0).
-	while(!OSAtomicCompareAndSwap32(0, 0, &_isDrawingFlag));
+	int expected_value = 0;
+	while(!atomic_compare_exchange_weak(&_isDrawingFlag, &expected_value, 0)) {
+		expected_value = 0;
+	}
 }
 
 - (void)dealloc {
@@ -292,11 +300,13 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 
 		_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 repeats:NO block:^(NSTimer * _Nonnull timer) {
 			[NSCursor setHiddenUntilMouseMoves:YES];
+			[self.delegate openGLViewWillHideOSMouseCursor:self];
 		}];
 	}
 }
 
 - (void)mouseEntered:(NSEvent *)event {
+	[self.delegate openGLViewDidShowOSMouseCursor:self];
 	[super mouseEntered:event];
 	[self scheduleMouseHide];
 }
@@ -305,6 +315,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	[super mouseExited:event];
 	[_mouseHideTimer invalidate];
 	_mouseHideTimer = nil;
+	[self.delegate openGLViewWillHideOSMouseCursor:self];
 }
 
 - (void)releaseMouse {
@@ -313,6 +324,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		CGAssociateMouseAndMouseCursorPosition(true);
 		[NSCursor unhide];
 		[self.delegate openGLViewDidReleaseMouse:self];
+		[self.delegate openGLViewDidShowOSMouseCursor:self];
 		((CSApplication *)[NSApplication sharedApplication]).eventDelegate = nil;
 	}
 }
@@ -324,6 +336,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 		// Mouse capture is off, so don't play games with the cursor, just schedule it to
 		// hide in the near future.
 		[self scheduleMouseHide];
+		[self.delegate openGLViewDidShowOSMouseCursor:self];
 	} else {
 		if(_mouseIsCaptured) {
 			// Mouse capture is on, so move the cursor back to the middle of the window, and
@@ -340,6 +353,8 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			));
 
 			[self.responderDelegate mouseMoved:event];
+		} else {
+			[self.delegate openGLViewDidShowOSMouseCursor:self];
 		}
 	}
 }
@@ -372,6 +387,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 			_mouseIsCaptured = YES;
 			[NSCursor hide];
 			CGAssociateMouseAndMouseCursorPosition(false);
+			[self.delegate openGLViewWillHideOSMouseCursor:self];
 			[self.delegate openGLViewDidCaptureMouse:self];
 			if(self.shouldUsurpCommand) {
 				((CSApplication *)[NSApplication sharedApplication]).eventDelegate = self;
