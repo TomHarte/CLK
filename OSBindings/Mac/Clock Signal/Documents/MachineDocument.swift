@@ -760,7 +760,7 @@ class MachineDocument:
 			let fadeAnimation = CABasicAnimation(keyPath: "opacity")
 			fadeAnimation.fromValue = 1.0
 			fadeAnimation.toValue = 0.0
-			fadeAnimation.duration = 0.5
+			fadeAnimation.duration = 0.2
 			animationFader = ViewFader(view: volumeView)
 			fadeAnimation.delegate = animationFader
 			volumeView.layer?.add(fadeAnimation, forKey: "opacity")
