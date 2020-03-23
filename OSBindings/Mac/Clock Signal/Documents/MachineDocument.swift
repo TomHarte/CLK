@@ -64,7 +64,8 @@ class MachineDocument:
 	}
 
 	/// The volume view.
-	@IBOutlet var volumeView: NSView!
+	@IBOutlet var volumeView: NSBox!
+	@IBOutlet var volumeSlider: NSSlider!
 
 	// MARK: - NSDocument Overrides and NSWindowDelegate methods.
 
@@ -114,6 +115,7 @@ class MachineDocument:
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 		aController.window?.contentAspectRatio = self.aspectRatio()
+		volumeSlider.floatValue = userDefaultsVolume()
 	}
 
 	private var missingROMs: [CSMissingROM] = []
@@ -125,6 +127,7 @@ class MachineDocument:
 			self.machine = machine
 			setupMachineOutput()
 			setupActivityDisplay()
+			machine.setVolume(userDefaultsVolume())
 		} else {
 			// Store the selected machine and list of missing ROMs, and
 			// show the missing ROMs dialogue.
@@ -720,7 +723,8 @@ class MachineDocument:
 	// MARK: - Volume Control.
 	@IBAction func setVolume(_ sender: NSSlider!) {
 		if let machine = self.machine {
-			machine.setVolume(sender.floatValue);
+			machine.setVolume(sender.floatValue)
+			setUserDefaultsVolume(sender.floatValue)
 		}
 	}
 
@@ -766,5 +770,15 @@ class MachineDocument:
 			volumeView.layer?.add(fadeAnimation, forKey: "opacity")
 			volumeView.layer?.opacity = 0.0
 		}
+	}
+
+	// The user's selected volume is stored as 1 - volume in the user defaults in order
+	// to take advantage of the default value being 0.
+	private func userDefaultsVolume() -> Float {
+		return 1.0 - UserDefaults.standard.float(forKey: "defaultVolume")
+	}
+
+	private func setUserDefaultsVolume(_ volume: Float) {
+		UserDefaults.standard.set(1.0 - volume, forKey: "defaultVolume")
 	}
 }
