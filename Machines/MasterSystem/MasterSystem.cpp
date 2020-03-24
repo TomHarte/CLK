@@ -126,7 +126,6 @@ class ConcreteMachine:
 				paging_registers_[1] = 1;
 				paging_registers_[2] = 0;
 			}
-			page_cartridge();
 
 			// Load the BIOS if relevant.
 			if(has_bios()) {
@@ -145,6 +144,7 @@ class ConcreteMachine:
 					memcpy(&bios_, roms[0]->data(), roms[0]->size());
 				}
 			}
+			page_cartridge();
 
 			// Map RAM.
 			if(is_master_system(model_)) {

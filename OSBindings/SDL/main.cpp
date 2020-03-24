@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -718,11 +719,18 @@ int main(int argc, char *argv[]) {
 				std::cerr << "Could not find system ROMs; please install to /usr/local/share/CLK/ or /usr/share/CLK/, or provide a --rompath." << std::endl;
 				std::cerr << "One or more of the following was needed but not found:" << std::endl;
 				for(const auto &rom: requested_roms) {
-					std::cerr << rom.machine_name << '/' << rom.file_name;
+					std::cerr << rom.machine_name << '/' << rom.file_name << " (";
 					if(!rom.descriptive_name.empty()) {
-						std::cerr << " (" << rom.descriptive_name << ")";
+						std::cerr << rom.descriptive_name << "; ";
 					}
-					std::cerr << std::endl;
+					std::cerr << "accepted crc32s: ";
+					bool is_first = true;
+					for(const auto crc32: rom.crc32s) {
+						if(!is_first) std::cerr << ", ";
+						is_first = false;
+						std::cerr << std::hex << std::setfill('0') << std::setw(8) << crc32;
+					}
+					std::cerr << ")" << std::endl;
 				}
 			break;
 		}

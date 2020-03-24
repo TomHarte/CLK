@@ -70,7 +70,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/Master System/R-Type (NTSC).sms&quot;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--output=CompositeMonochrome"
@@ -86,7 +86,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&quot;/Users/thomasharte/Library/Mobile Documents/com~apple~CloudDocs/Desktop/Soft/Amstrad CPC/Robocop.dsk&quot;"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--speed=5"
@@ -94,7 +94,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--rompath=/Users/thomasharte/Projects/CLK/ROMImages"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "--help"
