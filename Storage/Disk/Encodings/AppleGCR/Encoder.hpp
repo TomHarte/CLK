@@ -16,12 +16,14 @@ namespace Storage {
 namespace Encodings {
 namespace AppleGCR {
 
-/// Describes the standard three-byte prologue that begins a header.
-const uint8_t header_prologue[3] = {0xd5, 0xaa, 0x96};
+/// Describes the standard three-byte prologue that begins a header on both the Macintosh and the Apple II from DOS 3.3.
+constexpr uint8_t header_prologue[3] = {0xd5, 0xaa, 0x96};
 /// Describes the standard three-byte prologue that begins a data section.
-const uint8_t data_prologue[3] = {0xd5, 0xaa, 0xad};
+constexpr uint8_t data_prologue[3] = {0xd5, 0xaa, 0xad};
 /// Describes the epilogue that ends both data sections and headers.
-const uint8_t epilogue[3] = {0xde, 0xaa, 0xeb};
+constexpr uint8_t epilogue[3] = {0xde, 0xaa, 0xeb};
+/// Describes the standard three-byte prologue used by DOS 3.2 and earlier.
+constexpr uint8_t five_and_three_header_prologue[3] = {0xd5, 0xaa, 0xb5};
 
 namespace AppleII {
 
