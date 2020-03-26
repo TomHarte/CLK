@@ -36,6 +36,25 @@ uint8_t unmap_six_and_two(uint8_t source) {
 	return six_and_two_unmapping[source - 0x96];
 }
 
+const uint8_t five_and_three_unmapping[] = {
+	/* 0xab */	0x00, 0xff,	0x01, 0x02, 0x03,
+	/* 0xb0 */	0xff, 0xff, 0xff, 0xff, 0xff, 0x04, 0x05, 0x06,
+	/* 0xb8 */	0xff, 0xff, 0x07, 0x08, 0xff, 0x09, 0x0a, 0x0b,
+	/* 0xc0 */	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	/* 0xc8 */	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	/* 0xd0 */	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x0c, 0x0d,
+	/* 0xd8 */	0xff, 0xff, 0x0e, 0x0f, 0xff, 0x10, 0x11, 0x12,
+	/* 0xe0 */	0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+	/* 0xe8 */	0xff, 0xff,	0x13, 0x14, 0xff, 0x15, 0x16, 0x17,
+	/* 0xf0 */	0xff, 0xff,	0xff, 0xff, 0xff, 0x18, 0x19, 0x1a,
+	/* 0xf8 */	0xff, 0xff, 0x1b, 0x1c, 0xff, 0x1d, 0x1e, 0x1f,
+};
+
+uint8_t unmap_five_and_three(uint8_t source) {
+	if(source < 0xab) return 0xff;
+	return five_and_three_unmapping[source - 0xab];
+}
+
 }
 
 using namespace Storage::Encodings::AppleGCR;
@@ -56,6 +75,7 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 	// sector is still being parsed.
 	size_t bit = 0;
 	int header_delay = 0;
+	bool is_five_and_three = false;
 	while(bit < segment.data.size() || pointer != scanning_sentinel || header_delay) {
 		shift_register = static_cast<uint_fast8_t>((shift_register << 1) | (segment.data[bit % segment.data.size()] ? 1 : 0));
 		++bit;
@@ -77,10 +97,15 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 				scanner[0] == header_prologue[0] &&
 				scanner[1] == header_prologue[1] &&
 				(
+					scanner[2] == five_and_three_header_prologue[2] ||
 					scanner[2] == header_prologue[2] ||
 					scanner[2] == data_prologue[2]
 				)) {
 				pointer = 0;
+
+				if(scanner[2] != data_prologue[2]) {
+					is_five_and_three = scanner[2] == five_and_three_header_prologue[2];
+				}
 
 				// If this is the start of a data section, and at least
 				// one header has been witnessed, start a sector.
@@ -97,7 +122,8 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 			if(new_sector) {
 				// Check whether the value just read is a legal GCR byte, in six-and-two
 				// encoding (which is a strict superset of five-and-three).
-				if(unmap_six_and_two(value) == 0xff) {
+				const bool is_invalid = is_five_and_three ? (unmap_five_and_three(value) == 0xff) : (unmap_six_and_two(value) == 0xff);
+				if(is_invalid) {
 					// The second byte of the standard epilogue is illegal, so this still may
 					// be a valid sector. If the final byte was the first byte of an epilogue,
 					// chop it off and see whether the sector is otherwise intelligible.
@@ -123,8 +149,7 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 						default:	// This is not a decodeable sector.
 						break;
 
-						// TODO: check for five-and-three / 13-sector form sectors.
-
+						case 411:	// Potentially this is an Apple II five-and-three sector.
 						case 343: {	// Potentially this is an Apple II six-and-two sector.
 							// Check for apparent four and four encoding.
 							uint_fast8_t header_mask = 0xff;
@@ -137,13 +162,15 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 							sector->address.sector = ((header[4] << 1) | 1) & header[5];
 
 							// Check the header checksum.
-							uint_fast8_t checksum = ((header[6] << 1) | 1) & header[7];
+							// The 0x11 is reverse engineered from the game 'Alien Rain' and is present even on the boot sector,
+							// so probably isn't copy protection?
+							uint_fast8_t checksum = (((header[6] << 1) | 1) & header[7]) ^ (is_five_and_three ? 0x11 : 0x00);
 							if(checksum != (sector->address.volume^sector->address.track^sector->address.sector)) continue;
 
-							// Unmap the sector contents as 6 and 2 data.
+							// Unmap the sector contents.
 							bool out_of_bounds = false;
 							for(auto &c : sector->data) {
-								c = unmap_six_and_two(c);
+								c = is_five_and_three ? unmap_five_and_three(c) : unmap_six_and_two(c);
 								if(c == 0xff) {
 									out_of_bounds = true;
 									break;
@@ -160,30 +187,52 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 							// Having checked the checksum, remove it.
 							sector->data.resize(sector->data.size() - 1);
 
-							// Undo the 6 and 2 mapping.
-							const uint8_t bit_reverse[] = {0, 2, 1, 3};
-							#define unmap(byte, nibble, shift)	\
-								sector->data[86 + byte] = static_cast<uint8_t>(\
-									(sector->data[86 + byte] << 2) | bit_reverse[(sector->data[nibble] >> shift)&3]);
+							if(is_five_and_three) {
+								// TODO: the above is almost certainly incorrect; Beneath Apple DOS partly documents
+								// the process, enough to give the basic outline below of how five source bytes are
+								// mapped to eight five-bit quantities, but isn't clear on the order those bytes will
+								// end up in on disk.
 
-							for(std::size_t c = 0; c < 84; ++c) {
-								unmap(c, c, 0);
-								unmap(c+86, c, 2);
-								unmap(c+172, c, 4);
+								std::vector<uint8_t> buffer(256);
+								for(size_t c = 0; c < 0x33; ++c) {
+									const uint8_t *const base = &sector->data[0x032 - c];
+
+									buffer[(c * 5) + 0] = uint8_t((base[0x000] << 3) | (base[0x100] >> 2));
+									buffer[(c * 5) + 1] = uint8_t((base[0x033] << 3) | (base[0x133] >> 2));
+									buffer[(c * 5) + 2] = uint8_t((base[0x066] << 3) | (base[0x166] >> 2));
+									buffer[(c * 5) + 3] = uint8_t((base[0x099] << 3) | ((base[0x100] & 2) << 1) | (base[0x133] & 2) | ((base[0x166] & 2) >> 1));
+									buffer[(c * 5) + 4] = uint8_t((base[0x0cc] << 3) | ((base[0x100] & 1) << 2) | ((base[0x133] & 1) << 1) | (base[0x166] & 1));
+								}
+								buffer[255] = uint8_t((sector->data[0x0ff] << 3) | (sector->data[0x199] >> 2));
+
+								sector->data = std::move(buffer);
+								sector->encoding = Sector::Encoding::FiveAndThree;
+							} else {
+								// Undo the 6 and 2 mapping.
+								const uint8_t bit_reverse[] = {0, 2, 1, 3};
+								#define unmap(byte, nibble, shift)	\
+									sector->data[86 + byte] = static_cast<uint8_t>(\
+										(sector->data[86 + byte] << 2) | bit_reverse[(sector->data[nibble] >> shift)&3]);
+
+								for(std::size_t c = 0; c < 84; ++c) {
+									unmap(c, c, 0);
+									unmap(c+86, c, 2);
+									unmap(c+172, c, 4);
+								}
+
+								unmap(84, 84, 0);
+								unmap(170, 84, 2);
+								unmap(85, 85, 0);
+								unmap(171, 85, 2);
+
+								#undef unmap
+
+								// Throw away the collection of two-bit chunks from the start of the sector.
+								sector->data.erase(sector->data.begin(), sector->data.end() - 256);
+
+								sector->encoding = Sector::Encoding::SixAndTwo;
 							}
-
-							unmap(84, 84, 0);
-							unmap(170, 84, 2);
-							unmap(85, 85, 0);
-							unmap(171, 85, 2);
-
-							#undef unmap
-
-							// Throw away the collection of two-bit chunks from the start of the sector.
-							sector->data.erase(sector->data.begin(), sector->data.end() - 256);
-
 							// Add this sector to the map.
-							sector->encoding = Sector::Encoding::SixAndTwo;
 							result.insert(std::make_pair(sector_location, std::move(*sector)));
 						} break;
 

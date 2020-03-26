@@ -20,7 +20,7 @@ namespace {
 
 Analyser::Static::Target *AppleTarget(const Storage::Encodings::AppleGCR::Sector *sector_zero) {
 	using Target = Analyser::Static::AppleII::Target;
-	auto *target = new Target;
+	auto *const target = new Target;
 
 	if(sector_zero && sector_zero->encoding == Storage::Encodings::AppleGCR::Sector::Encoding::FiveAndThree) {
 		target->disk_controller = Target::DiskController::ThirteenSector;
@@ -33,7 +33,7 @@ Analyser::Static::Target *AppleTarget(const Storage::Encodings::AppleGCR::Sector
 
 Analyser::Static::Target *OricTarget(const Storage::Encodings::AppleGCR::Sector *sector_zero) {
 	using Target = Analyser::Static::Oric::Target;
-	auto *target = new Target;
+	auto *const target = new Target;
 	target->rom = Target::ROM::Pravetz;
 	target->disk_interface = Target::DiskInterface::Pravetz;
 	target->loading_command = "CALL 800\n";
@@ -47,8 +47,8 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &m
 	if(media.disks.empty()) return {};
 
 	// Grab track 0, sector 0: the boot sector.
-	auto track_zero = media.disks.front()->get_track_at_position(Storage::Disk::Track::Address(0, Storage::Disk::HeadPosition(0)));
-	auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
+	const auto track_zero = media.disks.front()->get_track_at_position(Storage::Disk::Track::Address(0, Storage::Disk::HeadPosition(0)));
+	const auto sector_map = Storage::Encodings::AppleGCR::sectors_from_segment(
 		Storage::Disk::track_serialisation(*track_zero, Storage::Time(1, 50000)));
 
 	const Storage::Encodings::AppleGCR::Sector *sector_zero = nullptr;
@@ -75,7 +75,7 @@ Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &m
 	// If the boot sector looks like it's intended for the Oric, create an Oric.
 	// Otherwise go with the Apple II.
 
-	auto disassembly = Analyser::Static::MOS6502::Disassemble(sector_zero->data, Analyser::Static::Disassembler::OffsetMapper(0xb800), {0xb800});
+	const auto disassembly = Analyser::Static::MOS6502::Disassemble(sector_zero->data, Analyser::Static::Disassembler::OffsetMapper(0xb800), {0xb800});
 
 	bool did_read_shift_register = false;
 	bool is_oric = false;
