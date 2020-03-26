@@ -87,7 +87,10 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 				++length;
 			}
 
-			// Record a sync position only if there were at least five FFs.
+			// Record a sync position only if there were at least five FFs, and
+			// sync only in the final five. One of the many crazy fictions of NIBs
+			// is the fixed track length in bytes, which is quite long. So the aim
+			// is to be as conservative as possible with sync placement.
 			if(length == 5) {
 				sync_starts.insert((start + 1) % track_data.size());
 
@@ -118,10 +121,7 @@ std::shared_ptr<::Storage::Disk::Track> NIB::get_track_at_position(::Storage::Di
 				track_data.begin() + off_t(index),
 				track_data.begin() + off_t(location));
 			segment += PCMSegment(data_segment);
-		} else {
-			printf("");
 		}
-
 
 		// Add a sync from sync_start to end of 0xffs, if there are
 		// any before the end of data.

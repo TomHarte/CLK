@@ -188,6 +188,11 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 							sector->data.resize(sector->data.size() - 1);
 
 							if(is_five_and_three) {
+								// TODO: the above is almost certainly incorrect; Beneath Apple DOS partly documents
+								// the process, enough to give the basic outline below of how five source bytes are
+								// mapped to eight five-bit quantities, but isn't clear on the order those bytes will
+								// end up in on disk.
+
 								std::vector<uint8_t> buffer(256);
 								for(size_t c = 0; c < 0x33; ++c) {
 									const uint8_t *const base = &sector->data[0x032 - c];
