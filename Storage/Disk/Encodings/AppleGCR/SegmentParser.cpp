@@ -188,7 +188,20 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 							sector->data.resize(sector->data.size() - 1);
 
 							if(is_five_and_three) {
-								// TODO
+								std::vector<uint8_t> buffer(256);
+								for(size_t c = 0; c < 0x33; ++c) {
+									const uint8_t *const base = &sector->data[0x032 - c];
+
+									buffer[(c * 5) + 0] = uint8_t((base[0x000] << 3) | (base[0x100] >> 2));
+									buffer[(c * 5) + 1] = uint8_t((base[0x033] << 3) | (base[0x133] >> 2));
+									buffer[(c * 5) + 2] = uint8_t((base[0x066] << 3) | (base[0x166] >> 2));
+									buffer[(c * 5) + 3] = uint8_t((base[0x099] << 3) | ((base[0x100] & 2) << 1) | (base[0x133] & 2) | ((base[0x166] & 2) >> 1));
+									buffer[(c * 5) + 4] = uint8_t((base[0x0cc] << 3) | ((base[0x100] & 1) << 2) | ((base[0x133] & 1) << 1) | (base[0x166] & 1));
+								}
+								buffer[255] = uint8_t((sector->data[0x0ff] << 3) | (sector->data[0x199] >> 2));
+
+								sector->data = std::move(buffer);
+								sector->encoding = Sector::Encoding::FiveAndThree;
 							} else {
 								// Undo the 6 and 2 mapping.
 								const uint8_t bit_reverse[] = {0, 2, 1, 3};
@@ -212,9 +225,9 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 								// Throw away the collection of two-bit chunks from the start of the sector.
 								sector->data.erase(sector->data.begin(), sector->data.end() - 256);
 
-								// Add this sector to the map.
 								sector->encoding = Sector::Encoding::SixAndTwo;
 							}
+							// Add this sector to the map.
 							result.insert(std::make_pair(sector_location, std::move(*sector)));
 						} break;
 
