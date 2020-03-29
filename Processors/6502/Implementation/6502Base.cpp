@@ -63,7 +63,6 @@ ProcessorBase::State ProcessorBase::get_state() {
 	// Fill in execution state.
 	state.execution_state.operation = operation_;
 	state.execution_state.operand = operand_;
-	state.execution_state.cycles_into_phase = cycles_in_phase_;
 	state.execution_state.address = address_.full;
 	state.execution_state.next_address = next_address_.full;
 	if(is_jammed_) {
@@ -73,27 +72,13 @@ ProcessorBase::State ProcessorBase::get_state() {
 	} else if(stop_is_active_) {
 		state.execution_state.phase = State::ExecutionState::Phase::Stopped;
 	} else {
-		// Test for the micro-op pointer being inside the reset, IRQ or NMI programs.
-		// If not then the only thing left is instruction.
-		auto is_in_program = [this](const MicroOp *const op) -> bool {
-			if(scheduled_program_counter_ < op) return false;
+		state.execution_state.phase = State::ExecutionState::Phase::Instruction;
 
-			const MicroOp *final_op = op;
-			while(*final_op != OperationMoveToNextProgram) {
-				++final_op;
-			}
-			return scheduled_program_counter_ < final_op;
-		};
+		const auto micro_offset = size_t(scheduled_program_counter_ - &operations_[0][0]);
+		const auto list_length = sizeof(InstructionList) / sizeof(MicroOp);
 
-		if(is_in_program(get_reset_program())) {
-			state.execution_state.phase = State::ExecutionState::Phase::Reset;
-		} else if(is_in_program(get_irq_program())) {
-			state.execution_state.phase = State::ExecutionState::Phase::IRQ;
-		} else if(is_in_program(get_nmi_program())) {
-			state.execution_state.phase = State::ExecutionState::Phase::NMI;
-		} else {
-			state.execution_state.phase = State::ExecutionState::Phase::Instruction;
-		}
+		state.execution_state.micro_program = int(micro_offset / list_length);
+		state.execution_state.micro_program_offset = int(micro_offset % list_length);
 	}
 
 	return state;

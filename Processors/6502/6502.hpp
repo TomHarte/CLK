@@ -163,14 +163,13 @@ class ProcessorBase: public ProcessorStorage {
 			*/
 			struct ExecutionState: public Reflection::StructImpl<Registers> {
 				ReflectableEnum(Phase,
-					Reset, IRQ, NMI, Instruction, Stopped, Waiting, Jammed
+					Instruction, Stopped, Waiting, Jammed
 				);
 
 				/// Current executon phase, e.g. standard instruction flow or responding to an IRQ.
 				Phase phase;
-				/// A count of the number of cycles since this instance of this phase last began.
-				/// E.g. if the phase is currently execution an instruction, this might be 0 to 7.
-				int cycles_into_phase;
+				int micro_program;
+				int micro_program_offset;
 
 				// The following are very internal things. At the minute I
 				// consider these 'reliable' for inter-launch state
@@ -292,7 +291,8 @@ inline ProcessorBase::State::ExecutionState::ExecutionState() {
 	if(needs_declare()) {
 		AnnounceEnum(Phase);
 		DeclareField(phase);
-		DeclareField(cycles_into_phase);
+		DeclareField(micro_program);
+		DeclareField(micro_program_offset);
 		DeclareField(operation);
 		DeclareField(operand);
 		DeclareField(address);

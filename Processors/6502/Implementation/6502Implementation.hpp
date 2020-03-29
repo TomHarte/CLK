@@ -13,17 +13,7 @@
 */
 
 template <Personality personality, typename T, bool uses_ready_line> void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
-	static const MicroOp do_branch[] = {
-		CycleReadFromPC,
-		CycleAddSignedOperandToPC,
-		OperationMoveToNextProgram
-	};
 	static uint8_t throwaway_target;
-	static const MicroOp fetch_decode_execute[] = {
-		CycleFetchOperation,
-		CycleFetchOperand,
-		OperationDecodeOperation
-	};
 
 	// These plus program below act to give the compiler permission to update these values
 	// without touching the class storage (i.e. it explicitly says they need be completely up
@@ -38,15 +28,15 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 		if(interrupt_requests_) {\
 			if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
 				interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
-				scheduled_program_counter_ = get_reset_program();\
+				scheduled_program_counter_ = operations_[size_t(OperationsSlot::Reset)];\
 			} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {\
 				interrupt_requests_ &= ~InterruptRequestFlags::NMI;\
-				scheduled_program_counter_ = get_nmi_program();\
+				scheduled_program_counter_ = operations_[size_t(OperationsSlot::NMI)];\
 			} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {\
-				scheduled_program_counter_ = get_irq_program();\
+				scheduled_program_counter_ = operations_[size_t(OperationsSlot::IRQ)];\
 			} \
 		} else {\
-			scheduled_program_counter_ = fetch_decode_execute;\
+			scheduled_program_counter_ = operations_[size_t(OperationsSlot::FetchDecodeExecute)];\
 		}\
 		cycles_in_phase_ = 0;	\
 	}
@@ -570,7 +560,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 #define BRA(condition)	\
 	pc_.full++; \
 	if(condition) {	\
-		scheduled_program_counter_ = do_branch;	\
+		scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoBRA)];	\
 	}
 
 					case OperationBPL: BRA(!(negative_result_&0x80));				continue;
@@ -597,7 +587,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							// 65C02 modification to all branches: a branch that is taken but requires only a single cycle
 							// to target its destination skips any pending interrupts.
 							// Cf. http://forum.6502.org/viewtopic.php?f=4&t=1634
-							scheduled_program_counter_ = fetch_decode_execute;
+							scheduled_program_counter_ = operations_[size_t(OperationsSlot::FetchDecodeExecute)];
 						}
 					continue;
 
@@ -615,22 +605,9 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						// and (iii) read from the corresponding zero page.
 						const uint8_t mask = uint8_t(1 << ((operation_ >> 4)&7));
 						if((operand_ & mask) == ((operation_ & 0x80) ? mask : 0)) {
-							static const MicroOp do_branch[] = {
-								CycleFetchOperand,			// Fetch offset.
-								OperationIncrementPC,
-								CycleFetchFromHalfUpdatedPC,
-								OperationAddSignedOperandToPC16,
-								OperationMoveToNextProgram
-							};
-							scheduled_program_counter_ = do_branch;
+							scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoBBRBBS)];
 						} else {
-							static const MicroOp do_not_branch[] = {
-								CycleFetchOperand,
-								OperationIncrementPC,
-								CycleFetchFromHalfUpdatedPC,
-								OperationMoveToNextProgram
-							};
-							scheduled_program_counter_ = do_not_branch;
+							scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoNotBBRBBS)];
 						}
 					} break;
 
@@ -732,56 +709,6 @@ void ProcessorBase::set_nmi_line(bool active) {
 	if(active && !nmi_line_is_enabled_)
 		interrupt_requests_ |= InterruptRequestFlags::NMI;
 	nmi_line_is_enabled_ = active;
-}
-
-inline const ProcessorStorage::MicroOp *ProcessorStorage::get_reset_program() {
-	static constexpr MicroOp reset[] = {
-		CycleFetchOperand,
-		CycleFetchOperand,
-		CycleNoWritePush,
-		CycleNoWritePush,
-		OperationRSTPickVector,
-		CycleNoWritePush,
-		OperationSetNMIRSTFlags,
-		CycleReadVectorLow,
-		CycleReadVectorHigh,
-		OperationMoveToNextProgram
-	};
-	return reset;
-}
-
-inline const ProcessorStorage::MicroOp *ProcessorStorage::get_irq_program() {
-	static constexpr MicroOp irq[] = {
-		CycleFetchOperand,
-		CycleFetchOperand,
-		CyclePushPCH,
-		CyclePushPCL,
-		OperationBRKPickVector,
-		OperationSetOperandFromFlags,
-		CyclePushOperand,
-		OperationSetIRQFlags,
-		CycleReadVectorLow,
-		CycleReadVectorHigh,
-		OperationMoveToNextProgram
-	};
-	return irq;
-}
-
-inline const ProcessorStorage::MicroOp *ProcessorStorage::get_nmi_program() {
-	static constexpr MicroOp nmi[] = {
-		CycleFetchOperand,
-		CycleFetchOperand,
-		CyclePushPCH,
-		CyclePushPCL,
-		OperationNMIPickVector,
-		OperationSetOperandFromFlags,
-		CyclePushOperand,
-		OperationSetNMIRSTFlags,
-		CycleReadVectorLow,
-		CycleReadVectorHigh,
-		OperationMoveToNextProgram
-	};
-	return nmi;
 }
 
 uint8_t ProcessorStorage::get_flags() {
