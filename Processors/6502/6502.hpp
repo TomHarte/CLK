@@ -31,8 +31,7 @@ enum Register {
 	Flags,
 	A,
 	X,
-	Y,
-	S
+	Y
 };
 
 /*
