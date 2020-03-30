@@ -160,7 +160,7 @@ class ProcessorBase: public ProcessorStorage {
 				does not necessarily correlate with anything in a real 6502, and some of it very
 				obviously doesn't.
 			*/
-			struct ExecutionState: public Reflection::StructImpl<Registers> {
+			struct ExecutionState: public Reflection::StructImpl<ExecutionState> {
 				ReflectableEnum(Phase,
 					Instruction, Stopped, Waiting, Jammed, Ready
 				);
