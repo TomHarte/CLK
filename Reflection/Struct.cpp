@@ -9,6 +9,7 @@
 #include "Struct.hpp"
 
 #include <algorithm>
+#include <iomanip>
 #include <sstream>
 
 // MARK: - Setters
@@ -150,7 +151,7 @@ std::string Reflection::Struct::description() const {
 		}
 
 		// Output Ints of all sizes as hex.
-#define OutputIntC(int_type, cast_type) if(*type == typeid(int_type)) { stream << std::hex << cast_type(::Reflection::get<int_type>(*this, key)); continue; }
+#define OutputIntC(int_type, cast_type) if(*type == typeid(int_type)) { stream << std::setfill('0') << std::setw(sizeof(int_type)*2) << std::hex << cast_type(::Reflection::get<int_type>(*this, key)); continue; }
 #define OutputInt(int_type) OutputIntC(int_type, int_type)
 		OutputIntC(int8_t, int16_t);
 		OutputIntC(uint8_t, uint16_t);
