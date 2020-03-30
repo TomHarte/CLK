@@ -30,7 +30,7 @@ class MultiStruct: public Reflection::Struct {
 			}
 		}
 
-		std::vector<std::string> all_keys() final {
+		std::vector<std::string> all_keys() const final {
 			std::set<std::string> keys;
 			for(auto &options: options_) {
 				const auto new_keys = options->all_keys();
@@ -39,7 +39,7 @@ class MultiStruct: public Reflection::Struct {
 			return std::vector<std::string>(keys.begin(), keys.end());
 		}
 
-		std::vector<std::string> values_for(const std::string &name) final {
+		std::vector<std::string> values_for(const std::string &name) const final {
 			std::set<std::string> values;
 			for(auto &options: options_) {
 				const auto new_values = options->values_for(name);
@@ -48,7 +48,7 @@ class MultiStruct: public Reflection::Struct {
 			return std::vector<std::string>(values.begin(), values.end());
 		}
 
-		const std::type_info *type_of(const std::string &name) final {
+		const std::type_info *type_of(const std::string &name) const final {
 			for(auto &options: options_) {
 				auto info = options->type_of(name);
 				if(info) return info;
@@ -56,7 +56,7 @@ class MultiStruct: public Reflection::Struct {
 			return nullptr;
 		}
 
-		const void *get(const std::string &name) final {
+		const void *get(const std::string &name) const final {
 			for(auto &options: options_) {
 				auto value = options->get(name);
 				if(value) return value;

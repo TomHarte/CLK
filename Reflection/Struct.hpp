@@ -24,12 +24,18 @@ namespace Reflection {
 #define DeclareField(Name) declare(&Name, #Name)
 
 struct Struct {
-	virtual std::vector<std::string> all_keys() = 0;
-	virtual const std::type_info *type_of(const std::string &name) = 0;
+	virtual std::vector<std::string> all_keys() const = 0;
+	virtual const std::type_info *type_of(const std::string &name) const = 0;
 	virtual void set(const std::string &name, const void *value) = 0;
-	virtual const void *get(const std::string &name) = 0;
-	virtual std::vector<std::string> values_for(const std::string &name) = 0;
+	virtual const void *get(const std::string &name) const = 0;
+	virtual std::vector<std::string> values_for(const std::string &name) const = 0;
 	virtual ~Struct() {}
+
+	/*!
+		@returns A string describing this struct. This string has no guaranteed layout, may not be
+			sufficiently formed for a formal language parser, etc.
+	*/
+	std::string description() const;
 };
 
 /*!
@@ -86,9 +92,14 @@ bool fuzzy_set(Struct &target, const std::string &name, const std::string &value
 
 	@returns @c true if the property was successfully read; @c false otherwise.
 */
-template <typename Type> bool get(Struct &target, const std::string &name, Type &value);
+template <typename Type> bool get(const Struct &target, const std::string &name, Type &value);
 
-template <> bool get(Struct &target, const std::string &name, bool &value);
+/*!
+	Attempts to get the property @c name to @c value ; will perform limited type conversions.
+
+	@returns @c true if the property was successfully read; a default-constructed instance of Type otherwise.
+*/
+template <typename Type> Type get(const Struct &target, const std::string &name);
 
 
 // TODO: move this elsewhere. It's just a sketch anyway.
@@ -106,10 +117,10 @@ template <typename Owner> class StructImpl: public Struct {
 			@returns the value of type @c Type that is loaded from the offset registered for the field @c name.
 				It is the caller's responsibility to provide an appropriate type of data.
 		*/
-		const void *get(const std::string &name) final {
+		const void *get(const std::string &name) const final {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return nullptr;
-			return reinterpret_cast<uint8_t *>(this) + iterator->second.offset;
+			return reinterpret_cast<const uint8_t *>(this) + iterator->second.offset;
 		}
 
 		/*!
@@ -126,7 +137,7 @@ template <typename Owner> class StructImpl: public Struct {
 		/*!
 			@returns @c type_info for the field @c name.
 		*/
-		const std::type_info *type_of(const std::string &name) final {
+		const std::type_info *type_of(const std::string &name) const final {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return nullptr;
 			return iterator->second.type;
@@ -136,7 +147,7 @@ template <typename Owner> class StructImpl: public Struct {
 			@returns a list of the valid enum value names for field @c name if it is a declared enum field of this struct;
 				the empty list otherwise.
 		*/
-		std::vector<std::string> values_for(const std::string &name) final {
+		std::vector<std::string> values_for(const std::string &name) const final {
 			std::vector<std::string> result;
 
 			// Return an empty vector if this field isn't declared.
@@ -168,7 +179,7 @@ template <typename Owner> class StructImpl: public Struct {
 		/*!
 			@returns A vector of all declared fields for this struct.
 		*/
-		std::vector<std::string> all_keys() final {
+		std::vector<std::string> all_keys() const final {
 			std::vector<std::string> keys;
 			for(const auto &pair: contents_) {
 				keys.push_back(pair.first);
@@ -190,14 +201,14 @@ template <typename Owner> class StructImpl: public Struct {
 		*/
 
 		/*!
-			Exposes the field pointed to by @c t for reflection as @c name.
+			Exposes the field pointed to by @c t for reflection as @c name. If @c t is itself a Reflection::Struct,
+			it'll be the struct that's exposed.
 		*/
 		template <typename Type> void declare(Type *t, const std::string &name) {
-			contents_.emplace(
-				std::make_pair(
-					name,
-					Field(typeid(Type), reinterpret_cast<uint8_t *>(t) - reinterpret_cast<uint8_t *>(this), sizeof(Type))
-				));
+			if constexpr (std::is_class<Type>()) {
+				if(declare_reflectable(t, name)) return;
+			}
+			declare_emplace(t, name);
 		}
 
 		/*!
@@ -233,7 +244,7 @@ template <typename Owner> class StructImpl: public Struct {
 			@returns @c true if this subclass of @c Struct has not yet declared any fields.
 		*/
 		bool needs_declare() {
-			return !contents_.size();
+			return contents_.empty();
 		}
 
 		/*!
@@ -256,6 +267,24 @@ template <typename Owner> class StructImpl: public Struct {
 		}
 
 	private:
+		template <typename Type> bool declare_reflectable(Type *t, const std::string &name) {
+			Reflection::Struct *const str = static_cast<Reflection::Struct *>(t);
+			if(str) {
+				declare_emplace(str, name);
+				return true;
+			}
+
+			return false;
+		}
+
+		template <typename Type> void declare_emplace(Type *t, const std::string &name) {
+			contents_.emplace(
+				std::make_pair(
+					name,
+					Field(typeid(Type), reinterpret_cast<uint8_t *>(t) - reinterpret_cast<uint8_t *>(this), sizeof(Type))
+				));
+		}
+
 		struct Field {
 			const std::type_info *type;
 			ssize_t offset;
