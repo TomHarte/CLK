@@ -163,7 +163,7 @@ class ProcessorBase: public ProcessorStorage {
 			*/
 			struct ExecutionState: public Reflection::StructImpl<Registers> {
 				ReflectableEnum(Phase,
-					Instruction, Stopped, Waiting, Jammed
+					Instruction, Stopped, Waiting, Jammed, Ready
 				);
 
 				/// Current executon phase, e.g. standard instruction flow or responding to an IRQ.
