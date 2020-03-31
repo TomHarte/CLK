@@ -114,15 +114,6 @@ struct Serialisable {
 
 template <typename Owner> class StructImpl: public Struct {
 	public:
-#ifndef NDEBUG
-		StructImpl() {
-			// Protect against declarations that nominate the wrong Owner; this isn't
-			// a static assert because that wouldn't catch all invalid cases.
-			const auto owner = static_cast<Owner *>(this);
-			assert(owner != nullptr);
-		}
-#endif
-
 		/*!
 			@returns the value of type @c Type that is loaded from the offset registered for the field @c name.
 				It is the caller's responsibility to provide an appropriate type of data.
