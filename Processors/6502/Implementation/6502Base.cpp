@@ -8,6 +8,8 @@
 
 #include "../6502.hpp"
 
+#include <cassert>
+
 using namespace CPU::MOS6502;
 
 const uint8_t CPU::MOS6502::JamOpcode = 0xf2;
@@ -80,6 +82,7 @@ ProcessorBase::State ProcessorBase::get_state() {
 
 	state.execution_state.micro_program = int(micro_offset / list_length);
 	state.execution_state.micro_program_offset = int(micro_offset % list_length);
+	assert(&operations_[state.execution_state.micro_program][state.execution_state.micro_program_offset] == scheduled_program_counter_);
 
 	return state;
 }
