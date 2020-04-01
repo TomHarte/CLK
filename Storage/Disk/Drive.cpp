@@ -45,7 +45,7 @@ void Drive::set_rotation_speed(float revolutions_per_minute) {
 	// From there derive the appropriate rotational multiplier and possibly update the
 	// count of cycles since the index hole proportionally.
 	const float new_rotational_multiplier = float(cycles_per_revolution_) / float(get_input_clock_rate());
-	cycles_since_index_hole_ *= new_rotational_multiplier / rotational_multiplier_;
+	cycles_since_index_hole_ = Cycles::IntType(float(cycles_since_index_hole_) * new_rotational_multiplier / rotational_multiplier_);
 	rotational_multiplier_ = new_rotational_multiplier;
 	cycles_since_index_hole_ %= cycles_per_revolution_;
 }
