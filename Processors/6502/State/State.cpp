@@ -81,3 +81,45 @@ void State::apply(ProcessorBase &target) {
 	target.next_address_.full = execution_state.next_address;
 	target.scheduled_program_counter_ = &target.operations_[execution_state.micro_program][execution_state.micro_program_offset];
 }
+
+// Boilerplate follows here, to establish 'reflection'.
+State::State() {
+	if(needs_declare()) {
+		DeclareField(registers);
+		DeclareField(execution_state);
+		DeclareField(inputs);
+	}
+}
+
+State::Registers::Registers() {
+	if(needs_declare()) {
+		DeclareField(program_counter);
+		DeclareField(stack_pointer);
+		DeclareField(flags);
+		DeclareField(a);
+		DeclareField(x);
+		DeclareField(y);
+	}
+}
+
+State::ExecutionState::ExecutionState() {
+	if(needs_declare()) {
+		AnnounceEnum(Phase);
+		DeclareField(phase);
+		DeclareField(micro_program);
+		DeclareField(micro_program_offset);
+		DeclareField(operation);
+		DeclareField(operand);
+		DeclareField(address);
+		DeclareField(next_address);
+	}
+}
+
+State::Inputs::Inputs() {
+	if(needs_declare()) {
+		DeclareField(ready);
+		DeclareField(irq);
+		DeclareField(nmi);
+		DeclareField(reset);
+	}
+}

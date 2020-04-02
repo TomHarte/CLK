@@ -24,12 +24,6 @@ namespace MOS6502 {
 	encapsulated in Reflection/[Enum/Struct].hpp just don't use this class.
 */
 struct State: public Reflection::StructImpl<State> {
-	/// Instantiates a new State based on the processor @c src.
-	State(const ProcessorBase &src);
-
-	/// Applies this state to @c target.
-	void apply(ProcessorBase &target);
-
 	/*!
 		Provides the current state of the well-known, published internal registers.
 	*/
@@ -85,48 +79,16 @@ struct State: public Reflection::StructImpl<State> {
 		ExecutionState();
 	} execution_state;
 
-	State() {
-		if(needs_declare()) {
-			DeclareField(registers);
-			DeclareField(execution_state);
-			DeclareField(inputs);
-		}
-	}
+	/// Default constructor; makes no guarantees as to field values beyond those given above.
+	State();
+
+	/// Instantiates a new State based on the processor @c src.
+	State(const ProcessorBase &src);
+
+	/// Applies this state to @c target.
+	void apply(ProcessorBase &target);
 };
 
-// Boilerplate follows here, to establish 'reflection' for the state struct defined above.
-inline State::Registers::Registers() {
-	if(needs_declare()) {
-		DeclareField(program_counter);
-		DeclareField(stack_pointer);
-		DeclareField(flags);
-		DeclareField(a);
-		DeclareField(x);
-		DeclareField(y);
-	}
-}
-
-inline State::ExecutionState::ExecutionState() {
-	if(needs_declare()) {
-		AnnounceEnum(Phase);
-		DeclareField(phase);
-		DeclareField(micro_program);
-		DeclareField(micro_program_offset);
-		DeclareField(operation);
-		DeclareField(operand);
-		DeclareField(address);
-		DeclareField(next_address);
-	}
-}
-
-inline State::Inputs::Inputs() {
-	if(needs_declare()) {
-		DeclareField(ready);
-		DeclareField(irq);
-		DeclareField(nmi);
-		DeclareField(reset);
-	}
-}
 
 }
 }
