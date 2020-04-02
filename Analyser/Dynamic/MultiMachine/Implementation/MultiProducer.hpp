@@ -1,13 +1,13 @@
 //
-//  MultiCRTMachine.hpp
+//  MultiProducer.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 29/01/2018.
 //  Copyright 2018 Thomas Harte. All rights reserved.
 //
 
-#ifndef MultiCRTMachine_hpp
-#define MultiCRTMachine_hpp
+#ifndef MultiProducer_hpp
+#define MultiProducer_hpp
 
 #include "../../../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../../../Machines/MachineTypes.hpp"
@@ -119,4 +119,4 @@ class MultiAudioProducer: public MultiInterface<MachineTypes::AudioProducer>, pu
 }
 
 
-#endif /* MultiCRTMachine_hpp */
+#endif /* MultiProducer_hpp */

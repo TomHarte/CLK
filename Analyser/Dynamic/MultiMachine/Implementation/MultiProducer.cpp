@@ -1,5 +1,5 @@
 //
-//  MultiCRTMachine.cpp
+//  MultiProducer.cpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 29/01/2018.

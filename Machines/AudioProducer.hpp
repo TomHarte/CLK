@@ -25,5 +25,3 @@ class AudioProducer {
 }
 
 #endif /* AudioProducer_h */
-
-//		virtual std::string debug_type() { return ""; }
