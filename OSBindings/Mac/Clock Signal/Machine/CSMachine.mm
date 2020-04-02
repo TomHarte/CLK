@@ -148,7 +148,7 @@ struct ActivityObserver: public Activity::Observer {
 
 	CSStaticAnalyser *_analyser;
 	std::unique_ptr<Machine::DynamicMachine> _machine;
-	JoystickMachine::Machine *_joystickMachine;
+	MachineTypes::JoystickMachine *_joystickMachine;
 
 	CSJoystickManager *_joystickManager;
 	std::bitset<65536> _depressedKeys;
@@ -255,7 +255,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (float)idealSamplingRateFromRange:(NSRange)range {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
 		if(speaker) {
 			return speaker->get_ideal_clock_rate_in_range((float)range.location, (float)(range.location + range.length));
 		}
@@ -265,7 +265,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (BOOL)isStereo {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
 		if(speaker) {
 			return speaker->get_is_stereo();
 		}
@@ -281,7 +281,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (BOOL)setSpeakerDelegate:(Outputs::Speaker::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
 		if(speaker) {
 			speaker->set_output_rate(sampleRate, (int)bufferSize, stereo);
 			speaker->set_delegate(delegate);
@@ -362,7 +362,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
 	_scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>();
-	_machine->crt_machine()->set_scan_target(_scanTarget.get());
+	_machine->scan_producer()->set_scan_target(_scanTarget.get());
 }
 
 - (void)updateViewForPixelSize:(CGSize)pixelSize {
@@ -379,7 +379,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)paste:(NSString *)paste {
-	KeyboardMachine::Machine *keyboardMachine = _machine->keyboard_machine();
+	auto keyboardMachine = _machine->keyboard_machine();
 	if(keyboardMachine)
 		keyboardMachine->type_string([paste UTF8String]);
 }
@@ -409,7 +409,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)applyMedia:(const Analyser::Static::Media &)media {
 	@synchronized(self) {
-		MediaTarget::Machine *const mediaTarget = _machine->media_target();
+		const auto mediaTarget = _machine->media_target();
 		if(mediaTarget) mediaTarget->insert_media(media);
 	}
 }
@@ -712,7 +712,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)setVolume:(float)volume {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
 		if(speaker) {
 			return speaker->set_output_volume(volume);
 		}
@@ -721,7 +721,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (BOOL)hasAudioOutput {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
 		return speaker ? YES : NO;
 	}
 }
@@ -789,23 +789,23 @@ struct ActivityObserver: public Activity::Observer {
 		@synchronized(self) {
 			// If this tick includes vsync then inspect the machine.
 			if(timeNow >= self->_syncTime && lastTime < self->_syncTime) {
-				splitAndSync = self->_isSyncLocking = self->_scanSynchroniser.can_synchronise(self->_machine->crt_machine()->get_scan_status(), self->_refreshPeriod);
+				splitAndSync = self->_isSyncLocking = self->_scanSynchroniser.can_synchronise(self->_machine->scan_producer()->get_scan_status(), self->_refreshPeriod);
 
 				// If the time window is being split, run up to the split, then check out machine speed, possibly
 				// adjusting multiplier, then run after the split.
 				if(splitAndSync) {
-					self->_machine->crt_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
-					self->_machine->crt_machine()->set_speed_multiplier(
-						self->_scanSynchroniser.next_speed_multiplier(self->_machine->crt_machine()->get_scan_status())
+					self->_machine->timed_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
+					self->_machine->timed_machine()->set_speed_multiplier(
+						self->_scanSynchroniser.next_speed_multiplier(self->_machine->scan_producer()->get_scan_status())
 					);
-					self->_machine->crt_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
+					self->_machine->timed_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
 				}
 			}
 
 			// If the time window is being split, run up to the split, then check out machine speed, possibly
 			// adjusting multiplier, then run after the split.
 			if(!splitAndSync) {
-				self->_machine->crt_machine()->run_for((double)duration / 1e9);
+				self->_machine->timed_machine()->run_for((double)duration / 1e9);
 			}
 			pixelSize = self->_pixelSize;
 		}

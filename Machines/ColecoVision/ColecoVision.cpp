@@ -14,8 +14,7 @@
 #include "../../Components/AY38910/AY38910.hpp"	// For the Super Game Module.
 #include "../../Components/SN76489/SN76489.hpp"
 
-#include "../CRTMachine.hpp"
-#include "../JoystickMachine.hpp"
+#include "../MachineTypes.hpp"
 #include "../../Configurable/Configurable.hpp"
 
 #include "../../Configurable/StandardOptions.hpp"
@@ -109,9 +108,11 @@ class Joystick: public Inputs::ConcreteJoystick {
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
-	public CRTMachine::Machine,
 	public Configurable::Device,
-	public JoystickMachine::Machine {
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::JoystickMachine {
 
 	public:
 		ConcreteMachine(const Analyser::Static::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :

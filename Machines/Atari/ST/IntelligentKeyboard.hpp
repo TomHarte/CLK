@@ -62,7 +62,7 @@ class IntelligentKeyboard:
 		void run_for(HalfCycles duration);
 
 		void set_key_state(Key key, bool is_pressed);
-		class KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
+		class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
 			uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) final;
 		};
 

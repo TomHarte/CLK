@@ -57,5 +57,5 @@ uint16_t MSX::KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		default: break;
 	}
 #undef BIND
-	return KeyboardMachine::MappedMachine::KeyNotMapped;
+	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }

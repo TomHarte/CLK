@@ -14,12 +14,12 @@
 
 #include <string>
 
-namespace MediaTarget {
+namespace MachineTypes {
 
 /*!
 	A MediaTarget::Machine is anything that can accept new media while running.
 */
-class Machine {
+class MediaTarget {
 	public:
 		/*!
 			Requests that the machine insert @c media as a modification to current state

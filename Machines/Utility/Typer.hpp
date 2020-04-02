@@ -61,7 +61,7 @@ class CharacterMapper {
 */
 class Typer {
 	public:
-		class Delegate: public KeyboardMachine::KeyActions {
+		class Delegate: public MachineTypes::KeyActions {
 			public:
 				/// Informs the delegate that this typer has reached the end of its content.
 				virtual void typer_reset(Typer *typer) = 0;
@@ -101,7 +101,7 @@ class Typer {
 	Provides a default base class for type recipients: classes that want to attach a single typer at a time and
 	which may or may not want to nominate an initial delay and typing frequency.
 */
-template <typename CMApper>
+template <typename CMapper>
 class TypeRecipient: public Typer::Delegate {
 	protected:
 		template <typename... Args> TypeRecipient(Args&&... args) : character_mapper(std::forward<Args>(args)...) {}
@@ -120,7 +120,7 @@ class TypeRecipient: public Typer::Delegate {
 		*/
 		bool can_type(char c) {
 			const auto sequence = character_mapper.sequence_for_character(c);
-			return sequence && sequence[0] != KeyboardMachine::MappedMachine::KeyNotMapped;
+			return sequence && sequence[0] != MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 		}
 
 		/*!
@@ -143,7 +143,7 @@ class TypeRecipient: public Typer::Delegate {
 
 	private:
 		std::unique_ptr<Typer> previous_typer_;
-		CMApper character_mapper;
+		CMapper character_mapper;
 };
 
 }

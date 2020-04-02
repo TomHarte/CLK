@@ -11,8 +11,7 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "../../CRTMachine.hpp"
-#include "../../JoystickMachine.hpp"
+#include "../../MachineTypes.hpp"
 
 #include "../../../Analyser/Static/Atari2600/Target.hpp"
 
@@ -76,8 +75,10 @@ using Target = Analyser::Static::Atari2600::Target;
 
 class ConcreteMachine:
 	public Machine,
-	public CRTMachine::Machine,
-	public JoystickMachine::Machine {
+	public MachineTypes::TimedMachine,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::JoystickMachine {
 	public:
 		ConcreteMachine(const Target &target) : frequency_mismatch_warner_(*this) {
 			const std::vector<uint8_t> &rom = target.media.cartridges.front()->get_segments().front().data;

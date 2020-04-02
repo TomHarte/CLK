@@ -11,10 +11,7 @@
 #include "Keyboard.hpp"
 
 #include "../../../Activity/Source.hpp"
-#include "../../MediaTarget.hpp"
-#include "../../CRTMachine.hpp"
-#include "../../KeyboardMachine.hpp"
-#include "../../JoystickMachine.hpp"
+#include "../../MachineTypes.hpp"
 
 #include "../../../Processors/6502/6502.hpp"
 #include "../../../Components/6560/6560.hpp"
@@ -274,10 +271,12 @@ class Joystick: public Inputs::ConcreteJoystick {
 };
 
 class ConcreteMachine:
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
-	public JoystickMachine::Machine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,

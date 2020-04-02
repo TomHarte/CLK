@@ -16,74 +16,55 @@ using namespace Analyser::Dynamic;
 MultiMachine::MultiMachine(std::vector<std::unique_ptr<DynamicMachine>> &&machines) :
 	machines_(std::move(machines)),
 	configurable_(machines_),
-	crt_machine_(machines_, machines_mutex_),
-	joystick_machine_(machines),
+	timed_machine_(machines_, machines_mutex_),
+	scan_producer_(machines_, machines_mutex_),
+	audio_producer_(machines_, machines_mutex_),
+	joystick_machine_(machines_),
 	keyboard_machine_(machines_),
 	media_target_(machines_) {
-	crt_machine_.set_delegate(this);
+	timed_machine_.set_delegate(this);
 }
 
 Activity::Source *MultiMachine::activity_source() {
 	return nullptr; // TODO
 }
 
-MediaTarget::Machine *MultiMachine::media_target() {
-	if(has_picked_) {
-		return machines_.front()->media_target();
-	} else {
-		return &media_target_;
+#define Provider(type, name, member)	\
+	type *MultiMachine::name() {	\
+		if(has_picked_) {	\
+			return machines_.front()->name();	\
+		} else {	\
+			return &member;	\
+		}	\
 	}
-}
 
-CRTMachine::Machine *MultiMachine::crt_machine() {
-	if(has_picked_) {
-		return machines_.front()->crt_machine();
-	} else {
-		return &crt_machine_;
-	}
-}
+Provider(Configurable::Device, configurable_device, configurable_)
+Provider(MachineTypes::TimedMachine, timed_machine, timed_machine_)
+Provider(MachineTypes::ScanProducer, scan_producer, scan_producer_)
+Provider(MachineTypes::AudioProducer, audio_producer, audio_producer_)
+Provider(MachineTypes::JoystickMachine, joystick_machine, joystick_machine_)
+Provider(MachineTypes::KeyboardMachine, keyboard_machine, keyboard_machine_)
+Provider(MachineTypes::MediaTarget, media_target, media_target_)
 
-JoystickMachine::Machine *MultiMachine::joystick_machine() {
-	if(has_picked_) {
-		return machines_.front()->joystick_machine();
-	} else {
-		return &joystick_machine_;
-	}
-}
-
-KeyboardMachine::Machine *MultiMachine::keyboard_machine() {
-	if(has_picked_) {
-		return machines_.front()->keyboard_machine();
-	} else {
-		return &keyboard_machine_;
-	}
-}
-
-MouseMachine::Machine *MultiMachine::mouse_machine() {
+MachineTypes::MouseMachine *MultiMachine::mouse_machine() {
 	// TODO.
 	return nullptr;
 }
 
-Configurable::Device *MultiMachine::configurable_device() {
-	if(has_picked_) {
-		return machines_.front()->configurable_device();
-	} else {
-		return &configurable_;
-	}
-}
+#undef Provider
 
 bool MultiMachine::would_collapse(const std::vector<std::unique_ptr<DynamicMachine>> &machines) {
 	return
-		(machines.front()->crt_machine()->get_confidence() > 0.9f) ||
-		(machines.front()->crt_machine()->get_confidence() >= 2.0f * machines[1]->crt_machine()->get_confidence());
+		(machines.front()->timed_machine()->get_confidence() > 0.9f) ||
+		(machines.front()->timed_machine()->get_confidence() >= 2.0f * machines[1]->timed_machine()->get_confidence());
 }
 
-void MultiMachine::multi_crt_did_run_machines() {
+void MultiMachine::did_run_machines(MultiTimedMachine *) {
 	std::lock_guard<decltype(machines_mutex_)> machines_lock(machines_mutex_);
 #ifndef NDEBUG
 	for(const auto &machine: machines_) {
-		CRTMachine::Machine *crt = machine->crt_machine();
-		LOGNBR(PADHEX(2) << crt->get_confidence() << " " << crt->debug_type() << "; ");
+		auto timed_machine = machine->timed_machine();
+		LOGNBR(PADHEX(2) << timed_machine->get_confidence() << " " << timed_machine->debug_type() << "; ");
 	}
 	LOGNBR(std::endl);
 #endif
@@ -91,13 +72,14 @@ void MultiMachine::multi_crt_did_run_machines() {
 	DynamicMachine *front = machines_.front().get();
 	std::stable_sort(machines_.begin(), machines_.end(),
 		[] (const std::unique_ptr<DynamicMachine> &lhs, const std::unique_ptr<DynamicMachine> &rhs){
-			CRTMachine::Machine *lhs_crt = lhs->crt_machine();
-			CRTMachine::Machine *rhs_crt = rhs->crt_machine();
-			return lhs_crt->get_confidence() > rhs_crt->get_confidence();
+			auto lhs_timed = lhs->timed_machine();
+			auto rhs_timed = rhs->timed_machine();
+			return lhs_timed->get_confidence() > rhs_timed->get_confidence();
 		});
 
 	if(machines_.front().get() != front) {
-		crt_machine_.did_change_machine_order();
+		scan_producer_.did_change_machine_order();
+		audio_producer_.did_change_machine_order();
 	}
 
 	if(would_collapse(machines_)) {

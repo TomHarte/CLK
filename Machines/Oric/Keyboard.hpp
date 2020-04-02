@@ -36,7 +36,7 @@ enum Key: uint16_t {
 	KeyJasminReset	= 0xfffc,
 };
 
-struct KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
+struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
 	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key);
 };
 

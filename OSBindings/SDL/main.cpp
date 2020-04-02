@@ -27,8 +27,7 @@
 #include "../../ClockReceiver/TimeTypes.hpp"
 #include "../../ClockReceiver/ScanSynchroniser.hpp"
 
-#include "../../Machines/MediaTarget.hpp"
-#include "../../Machines/CRTMachine.hpp"
+#include "../../Machines/MachineTypes.hpp"
 
 #include "../../Activity/Observer.hpp"
 #include "../../Outputs/OpenGL/Primitives/Rectangle.hpp"
@@ -142,17 +141,18 @@ struct MachineRunner {
 			const auto vsync_time = vsync_time_.load();
 
 			std::unique_lock<std::mutex> lock_guard(*machine_mutex);
-			const auto crt_machine = machine->crt_machine();
+			const auto scan_producer = machine->scan_producer();
+			const auto timed_machine = machine->timed_machine();
 
 			bool split_and_sync = false;
 			if(last_time_ < vsync_time && time_now >= vsync_time) {
-				split_and_sync = scan_synchroniser_.can_synchronise(crt_machine->get_scan_status(), _frame_period);
+				split_and_sync = scan_synchroniser_.can_synchronise(scan_producer->get_scan_status(), _frame_period);
 			}
 
 			if(split_and_sync) {
-				crt_machine->run_for(double(vsync_time - last_time_) / 1e9);
-				crt_machine->set_speed_multiplier(
-					scan_synchroniser_.next_speed_multiplier(crt_machine->get_scan_status())
+				timed_machine->run_for(double(vsync_time - last_time_) / 1e9);
+				timed_machine->set_speed_multiplier(
+					scan_synchroniser_.next_speed_multiplier(scan_producer->get_scan_status())
 				);
 
 				// This is a bit of an SDL ugliness; wait here until the next frame is drawn.
@@ -162,10 +162,10 @@ struct MachineRunner {
 				while(frame_lock_.test_and_set());
 				lock_guard.lock();
 
-				crt_machine->run_for(double(time_now - vsync_time) / 1e9);
+				timed_machine->run_for(double(time_now - vsync_time) / 1e9);
 			} else {
-				crt_machine->set_speed_multiplier(scan_synchroniser_.get_base_speed_multiplier());
-				crt_machine->run_for(double(time_now - last_time_) / 1e9);
+				timed_machine->set_speed_multiplier(scan_synchroniser_.get_base_speed_multiplier());
+				timed_machine->run_for(double(time_now - last_time_) / 1e9);
 			}
 			last_time_ = time_now;
 		}
@@ -777,7 +777,7 @@ int main(int argc, char *argv[]) {
 			} else if(volume < 0.0 || volume > 1.0) {
 				std::cerr << "Cannot run with volume " << volume_string << "; volumes must be between 0.0 and 1.0." << std::endl;
 			} else {
-				const auto speaker = machine->crt_machine()->get_speaker();
+				const auto speaker = machine->audio_producer()->get_speaker();
 				if(speaker) speaker->set_output_volume(volume);
 			}
 		}
@@ -842,10 +842,10 @@ int main(int argc, char *argv[]) {
 
 	// Setup output, assuming a CRT machine for now, and prepare a best-effort updater.
 	Outputs::Display::OpenGL::ScanTarget scan_target(target_framebuffer);
-	machine->crt_machine()->set_scan_target(&scan_target);
+	machine->scan_producer()->set_scan_target(&scan_target);
 
 	// For now, lie about audio output intentions.
-	auto speaker = machine->crt_machine()->get_speaker();
+	auto speaker = machine->audio_producer()->get_speaker();
 	if(speaker) {
 		// Create an audio pipe.
 		SDL_AudioSpec desired_audio_spec;
@@ -909,7 +909,7 @@ int main(int argc, char *argv[]) {
 			std::vector<Uint8> hat_values_;
 	};
 	std::vector<SDLJoystick> joysticks;
-	JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
+	const auto joystick_machine = machine->joystick_machine();
 	if(joystick_machine) {
 		SDL_InitSubSystem(SDL_INIT_JOYSTICK);
 		for(int c = 0; c < SDL_NumJoysticks(); ++c) {
@@ -1146,7 +1146,7 @@ int main(int argc, char *argv[]) {
 		}
 
 		// Handle accumulated key states.
-		JoystickMachine::Machine *const joystick_machine = machine->joystick_machine();
+		const auto joystick_machine = machine->joystick_machine();
 		for (const auto &keypress: logical_keyboard ? matched_keypresses : keypresses) {
 			// Try to set this key on the keyboard first, if there is one.
 			if(keyboard_machine) {

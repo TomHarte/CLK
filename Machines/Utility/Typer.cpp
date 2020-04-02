@@ -72,7 +72,7 @@ void Typer::append(const std::string &string) {
 
 const uint16_t *Typer::sequence_for_character(char c) const {
 	const uint16_t *const sequence = character_mapper_.sequence_for_character(c);
-	if(!sequence || sequence[0] == KeyboardMachine::MappedMachine::KeyNotMapped) {
+	if(!sequence || sequence[0] == MachineTypes::MappedKeyboardMachine::KeyNotMapped) {
 		return nullptr;
 	}
 	return sequence;
@@ -102,7 +102,7 @@ uint16_t Typer::try_type_next_character() {
 	}
 
 	// If the sequence is over, stop.
-	if(sequence[phase_ - 2] == KeyboardMachine::MappedMachine::KeyEndSequence) {
+	if(sequence[phase_ - 2] == MachineTypes::MappedKeyboardMachine::KeyEndSequence) {
 		return 0;
 	}
 
@@ -137,7 +137,7 @@ bool Typer::type_next_character() {
 uint16_t *CharacterMapper::table_lookup_sequence_for_character(KeySequence *sequences, std::size_t length, char character) {
 	std::size_t ucharacter = static_cast<std::size_t>((unsigned char)character);
 	if(ucharacter >= (length / sizeof(KeySequence))) return nullptr;
-	if(sequences[ucharacter][0] == KeyboardMachine::MappedMachine::KeyNotMapped) return nullptr;
+	if(sequences[ucharacter][0] == MachineTypes::MappedKeyboardMachine::KeyNotMapped) return nullptr;
 	return sequences[ucharacter];
 }
 

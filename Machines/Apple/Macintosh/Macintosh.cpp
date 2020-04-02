@@ -16,11 +16,8 @@
 #include "RealTimeClock.hpp"
 #include "Video.hpp"
 
+#include "../../MachineTypes.hpp"
 #include "../../../Activity/Source.hpp"
-#include "../../CRTMachine.hpp"
-#include "../../KeyboardMachine.hpp"
-#include "../../MediaTarget.hpp"
-#include "../../MouseMachine.hpp"
 #include "../../../Configurable/Configurable.hpp"
 
 #include "../../../Inputs/QuadratureMouse/QuadratureMouse.hpp"
@@ -59,11 +56,13 @@ namespace Macintosh {
 
 template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachine:
 	public Machine,
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public MouseMachine::Machine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MouseMachine,
+	public MachineTypes::MappedKeyboardMachine,
 	public CPU::MC68000::BusHandler,
-	public KeyboardMachine::MappedMachine,
 	public Zilog::SCC::z8530::Delegate,
 	public Activity::Source,
 	public Configurable::Device,
@@ -73,7 +72,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 		using Target = Analyser::Static::Macintosh::Target;
 
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
-			KeyboardMachine::MappedMachine({
+			MachineTypes::MappedKeyboardMachine({
 				Inputs::Keyboard::Key::LeftShift, Inputs::Keyboard::Key::RightShift,
 				Inputs::Keyboard::Key::LeftOption, Inputs::Keyboard::Key::RightOption,
 				Inputs::Keyboard::Key::LeftMeta, Inputs::Keyboard::Key::RightMeta,
