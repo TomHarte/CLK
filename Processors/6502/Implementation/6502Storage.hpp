@@ -225,7 +225,6 @@ class ProcessorStorage {
 		InstructionList operations_[size_t(OperationsSlot::Max)];
 
 		const MicroOp *scheduled_program_counter_ = nullptr;
-		int cycles_in_phase_ = 0;
 
 		/*
 			Storage for the 6502 registers; F is stored as individual flags.
