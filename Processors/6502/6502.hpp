@@ -15,8 +15,6 @@
 
 #include "../RegisterSizes.hpp"
 #include "../../ClockReceiver/ClockReceiver.hpp"
-#include "../../Reflection/Enum.hpp"
-#include "../../Reflection/Struct.hpp"
 
 namespace CPU {
 namespace MOS6502 {
@@ -129,81 +127,6 @@ class ProcessorBase: public ProcessorStorage {
 	public:
 		ProcessorBase(Personality personality) : ProcessorStorage(personality) {}
 
-		struct State: public Reflection::StructImpl<State> {
-			/*!
-				Provides the current state of the well-known, published internal registers.
-			*/
-			struct Registers: public Reflection::StructImpl<Registers> {
-				uint16_t program_counter;
-				uint8_t stack_pointer;
-				uint8_t flags;
-				uint8_t a, x, y;
-
-				Registers();
-			} registers;
-
-			/*!
-				Provides the current state of the processor's various input lines that aren't
-				related to an access cycle.
-			*/
-			struct Inputs: public Reflection::StructImpl<Inputs> {
-				bool ready;
-				bool irq;
-				bool nmi;
-				bool reset;
-
-				Inputs();
-			} inputs;
-
-			/*!
-				Contains internal state used by this particular implementation of a 6502. Most of it
-				does not necessarily correlate with anything in a real 6502, and some of it very
-				obviously doesn't.
-			*/
-			struct ExecutionState: public Reflection::StructImpl<ExecutionState> {
-				ReflectableEnum(Phase,
-					Instruction, Stopped, Waiting, Jammed, Ready
-				);
-
-				/// Current executon phase, e.g. standard instruction flow or responding to an IRQ.
-				Phase phase;
-				int micro_program;
-				int micro_program_offset;
-
-				// The following are very internal things. At the minute I
-				// consider these 'reliable' for inter-launch state
-				// preservation only on the grounds that this implementation
-				// of a 6502 is now empirically stable.
-				//
-				// If cycles_into_phase is 0, the values below need not be
-				// retained, they're entirely ephemeral. If providing a state
-				// for persistance, machines that can should advance until
-				// cycles_into_phase is 0.
-				uint8_t operation, operand;
-				uint16_t address, next_address;
-
-				ExecutionState();
-			} execution_state;
-
-			State() {
-				if(needs_declare()) {
-					DeclareField(registers);
-					DeclareField(execution_state);
-					DeclareField(inputs);
-				}
-			}
-		};
-
-		/*!
-			Gets current processor state.
-		*/
-		State get_state();
-
-		/*!
-			Sets current processor state.
-		*/
-		void set_state(const State &);
-
 		/*!
 			Gets the value of a register.
 
@@ -212,7 +135,7 @@ class ProcessorBase: public ProcessorStorage {
 			@param r The register to set.
 			@returns The value of the register. 8-bit registers will be returned as unsigned.
 		*/
-		uint16_t get_value_of_register(Register r);
+		uint16_t get_value_of_register(Register r) const;
 
 		/*!
 			Sets the value of a register.
@@ -236,7 +159,7 @@ class ProcessorBase: public ProcessorStorage {
 
 			@returns @c true if the line is logically active; @c false otherwise.
 		*/
-		inline bool get_is_resetting();
+		inline bool get_is_resetting() const;
 
 		/*!
 			This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
@@ -271,42 +194,8 @@ class ProcessorBase: public ProcessorStorage {
 
 			@returns @c true if the 6502 is jammed; @c false otherwise.
 		*/
-		bool is_jammed();
+		bool is_jammed() const;
 };
-
-// Boilerplate follows here, to establish 'reflection' for the state struct defined above.
-inline ProcessorBase::State::Registers::Registers() {
-	if(needs_declare()) {
-		DeclareField(program_counter);
-		DeclareField(stack_pointer);
-		DeclareField(flags);
-		DeclareField(a);
-		DeclareField(x);
-		DeclareField(y);
-	}
-}
-
-inline ProcessorBase::State::ExecutionState::ExecutionState() {
-	if(needs_declare()) {
-		AnnounceEnum(Phase);
-		DeclareField(phase);
-		DeclareField(micro_program);
-		DeclareField(micro_program_offset);
-		DeclareField(operation);
-		DeclareField(operand);
-		DeclareField(address);
-		DeclareField(next_address);
-	}
-}
-
-inline ProcessorBase::State::Inputs::Inputs() {
-	if(needs_declare()) {
-		DeclareField(ready);
-		DeclareField(irq);
-		DeclareField(nmi);
-		DeclareField(reset);
-	}
-}
 
 /*!
 	@abstact Template providing emulation of a 6502 processor.

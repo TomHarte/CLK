@@ -680,7 +680,7 @@ void ProcessorBase::set_reset_line(bool active) {
 	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::Reset) | (active ? InterruptRequestFlags::Reset : 0);
 }
 
-bool ProcessorBase::get_is_resetting() {
+bool ProcessorBase::get_is_resetting() const {
 	return interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn);
 }
 
@@ -706,7 +706,7 @@ void ProcessorBase::set_nmi_line(bool active) {
 	nmi_line_is_enabled_ = active;
 }
 
-uint8_t ProcessorStorage::get_flags() {
+uint8_t ProcessorStorage::get_flags() const {
 	return carry_flag_ | overflow_flag_ | (inverse_interrupt_flag_ ^ Flag::Interrupt) | (negative_result_ & 0x80) | (zero_result_ ? 0 : Flag::Zero) | Flag::Always | decimal_flag_;
 }
 
