@@ -24,13 +24,13 @@ namespace Dynamic {
 	Makes a static internal copy of the list of machines; makes no guarantees about the
 	order of delivered messages.
 */
-class MultiKeyboardMachine: public KeyboardMachine::Machine {
+class MultiKeyboardMachine: public MachineTypes::KeyboardMachine {
 	private:
-		std::vector<::KeyboardMachine::Machine *> machines_;
+		std::vector<MachineTypes::KeyboardMachine *> machines_;
 
 		class MultiKeyboard: public Inputs::Keyboard {
 			public:
-				MultiKeyboard(const std::vector<::KeyboardMachine::Machine *> &machines);
+				MultiKeyboard(const std::vector<MachineTypes::KeyboardMachine *> &machines);
 
 				bool set_key_pressed(Key key, char value, bool is_pressed) final;
 				void reset_all_keys() final;
@@ -38,7 +38,7 @@ class MultiKeyboardMachine: public KeyboardMachine::Machine {
 				bool is_exclusive() final;
 
 			private:
-				const std::vector<::KeyboardMachine::Machine *> &machines_;
+				const std::vector<MachineTypes::KeyboardMachine *> &machines_;
 				std::set<Key> observed_keys_;
 				bool is_exclusive_ = false;
 		};

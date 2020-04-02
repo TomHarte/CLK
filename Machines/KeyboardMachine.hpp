@@ -16,7 +16,7 @@
 
 #include "../Inputs/Keyboard.hpp"
 
-namespace KeyboardMachine {
+namespace MachineTypes {
 
 /*!
 	Covers just the actions necessary to communicate keyboard state, as a purely abstract class.
@@ -37,7 +37,7 @@ struct KeyActions {
 /*!
 	Describes an emulated machine which exposes a keyboard and accepts a typed string.
 */
-class Machine: public KeyActions {
+class KeyboardMachine: public KeyActions {
 	public:
 		/*!
 			Causes the machine to attempt to type the supplied string.
@@ -107,9 +107,9 @@ class Machine: public KeyActions {
 	Provides a base class for machines that want to provide a keyboard mapper,
 	allowing automatic mapping from keyboard inputs to KeyActions.
 */
-class MappedMachine: public Inputs::Keyboard::Delegate, public Machine {
+class MappedKeyboardMachine: public Inputs::Keyboard::Delegate, public KeyboardMachine {
 	public:
-		MappedMachine(const std::set<Inputs::Keyboard::Key> &essential_modifiers = {});
+		MappedKeyboardMachine(const std::set<Inputs::Keyboard::Key> &essential_modifiers = {});
 
 		/*!
 			A keyboard mapper attempts to provide a physical mapping between host keys and emulated keys.

@@ -8,9 +8,7 @@
 
 #include "ZX8081.hpp"
 
-#include "../MediaTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../MachineTypes.hpp"
 
 #include "../../Components/AY38910/AY38910.hpp"
 #include "../../Processors/Z80/Z80.hpp"
@@ -51,9 +49,11 @@ enum ROMType: uint8_t {
 };
 
 template<bool is_zx81> class ConcreteMachine:
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
 	public Configurable::Device,
 	public Utility::TypeRecipient<CharacterMapper>,
 	public CPU::Z80::BusHandler,

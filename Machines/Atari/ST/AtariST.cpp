@@ -8,11 +8,7 @@
 
 #include "AtariST.hpp"
 
-#include "../../CRTMachine.hpp"
-#include "../../JoystickMachine.hpp"
-#include "../../KeyboardMachine.hpp"
-#include "../../MouseMachine.hpp"
-#include "../../MediaTarget.hpp"
+#include "../../MachineTypes.hpp"
 #include "../../../Activity/Source.hpp"
 
 //#define LOG_TRACE
@@ -48,16 +44,18 @@ using Target = Analyser::Static::Target;
 class ConcreteMachine:
 	public Atari::ST::Machine,
 	public CPU::MC68000::BusHandler,
-	public CRTMachine::Machine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MouseMachine,
+	public MachineTypes::JoystickMachine,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaTarget,
 	public ClockingHint::Observer,
 	public Motorola::ACIA::ACIA::InterruptDelegate,
 	public Motorola::MFP68901::MFP68901::InterruptDelegate,
 	public DMAController::Delegate,
-	public MouseMachine::Machine,
-	public JoystickMachine::Machine,
-	public KeyboardMachine::MappedMachine,
 	public Activity::Source,
-	public MediaTarget::Machine,
 	public GI::AY38910::PortHandler,
 	public Configurable::Device,
 	public Video::RangeObserver {

@@ -15,9 +15,7 @@
 #include "Video.hpp"
 
 #include "../../Activity/Source.hpp"
-#include "../MediaTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../MachineTypes.hpp"
 
 #include "../Utility/MemoryFuzzer.hpp"
 #include "../Utility/StringSerialiser.hpp"
@@ -208,9 +206,11 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 };
 
 template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class ConcreteMachine:
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public MOS::MOS6522::IRQDelegatePortHandler::Delegate,

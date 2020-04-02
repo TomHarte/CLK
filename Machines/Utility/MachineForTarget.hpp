@@ -13,6 +13,7 @@
 #include "../../Reflection/Struct.hpp"
 
 #include "../DynamicMachine.hpp"
+#include "../ROMMachine.hpp"
 
 #include <map>
 #include <memory>

@@ -33,10 +33,7 @@
 #include "../../Storage/Tape/Tape.hpp"
 
 #include "../../Activity/Source.hpp"
-#include "../CRTMachine.hpp"
-#include "../JoystickMachine.hpp"
-#include "../MediaTarget.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../MachineTypes.hpp"
 #include "../../Configurable/Configurable.hpp"
 
 #include "../../Outputs/Log.hpp"
@@ -134,11 +131,13 @@ class AYPortHandler: public GI::AY38910::PortHandler {
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
-	public JoystickMachine::Machine,
 	public MemoryMap,
 	public ClockingHint::Observer,
 	public Activity::Source {

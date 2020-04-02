@@ -21,10 +21,7 @@
 #include "../Utility/Typer.hpp"
 
 #include "../../Activity/Source.hpp"
-#include "../MediaTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../JoystickMachine.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../MachineTypes.hpp"
 
 #include "../../Storage/Tape/Tape.hpp"
 
@@ -782,14 +779,16 @@ class i8255PortHandler : public Intel::i8255::PortHandler {
 	The actual Amstrad CPC implementation; tying the 8255, 6845 and AY to the Z80.
 */
 template <bool has_fdc> class ConcreteMachine:
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::JoystickMachine,
 	public Utility::TypeRecipient<CharacterMapper>,
 	public CPU::Z80::BusHandler,
 	public ClockingHint::Observer,
 	public Configurable::Device,
-	public JoystickMachine::Machine,
 	public Machine,
 	public Activity::Source {
 	public:

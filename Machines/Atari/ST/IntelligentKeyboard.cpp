@@ -365,7 +365,7 @@ uint16_t IntelligentKeyboard::KeyboardMapper::mapped_key_for_key(Inputs::Keyboar
 	using Key = Inputs::Keyboard::Key;
 	using STKey = Atari::ST::Key;
 	switch(key) {
-		default: return KeyboardMachine::MappedMachine::KeyNotMapped;
+		default: return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 
 #define Bind(x, y) case Key::x: return uint16_t(STKey::y)
 #define QBind(x) case Key::x: return uint16_t(STKey::x)

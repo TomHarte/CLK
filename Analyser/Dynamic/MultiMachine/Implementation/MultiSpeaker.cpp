@@ -13,7 +13,7 @@ using namespace Analyser::Dynamic;
 MultiSpeaker *MultiSpeaker::create(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) {
 	std::vector<Outputs::Speaker::Speaker *> speakers;
 	for(const auto &machine: machines) {
-		Outputs::Speaker::Speaker *speaker = machine->crt_machine()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = machine->audio_producer()->get_speaker();
 		if(speaker) speakers.push_back(speaker);
 	}
 	if(speakers.empty()) return nullptr;
@@ -85,7 +85,7 @@ void MultiSpeaker::speaker_did_change_input_clock(Speaker *speaker) {
 void MultiSpeaker::set_new_front_machine(::Machine::DynamicMachine *machine) {
 	{
 		std::lock_guard<std::mutex> lock_guard(front_speaker_mutex_);
-		front_speaker_ = machine->crt_machine()->get_speaker();
+		front_speaker_ = machine->audio_producer()->get_speaker();
 	}
 	if(delegate_) {
 		delegate_->speaker_did_change_input_clock(this);

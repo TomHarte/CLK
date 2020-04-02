@@ -9,10 +9,7 @@
 #include "AppleII.hpp"
 
 #include "../../../Activity/Source.hpp"
-#include "../../MediaTarget.hpp"
-#include "../../CRTMachine.hpp"
-#include "../../JoystickMachine.hpp"
-#include "../../KeyboardMachine.hpp"
+#include "../../MachineTypes.hpp"
 #include "../../Utility/MemoryFuzzer.hpp"
 #include "../../Utility/StringSerialiser.hpp"
 
@@ -40,15 +37,17 @@ namespace II {
 #define is_iie() ((model == Analyser::Static::AppleII::Target::Model::IIe) || (model == Analyser::Static::AppleII::Target::Model::EnhancedIIe))
 
 template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::JoystickMachine,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
 	public Configurable::Device,
 	public Apple::II::Machine,
 	public Activity::Source,
-	public JoystickMachine::Machine,
 	public Apple::II::Card::Delegate {
 	private:
 		struct VideoBusHandler : public Apple::II::Video::BusHandler {

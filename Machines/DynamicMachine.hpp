@@ -12,13 +12,7 @@
 #include "../Configurable/Configurable.hpp"
 #include "../Activity/Source.hpp"
 
-#include "CRTMachine.hpp"
-#include "JoystickMachine.hpp"
-#include "KeyboardMachine.hpp"
-#include "MediaTarget.hpp"
-#include "MouseMachine.hpp"
-
-#include "Utility/Typer.hpp"
+#include "MachineTypes.hpp"
 
 namespace Machine {
 
@@ -31,11 +25,13 @@ struct DynamicMachine {
 
 	virtual Activity::Source *activity_source() = 0;
 	virtual Configurable::Device *configurable_device() = 0;
-	virtual CRTMachine::Machine *crt_machine() = 0;
-	virtual JoystickMachine::Machine *joystick_machine() = 0;
-	virtual KeyboardMachine::Machine *keyboard_machine() = 0;
-	virtual MouseMachine::Machine *mouse_machine() = 0;
-	virtual MediaTarget::Machine *media_target() = 0;
+	virtual MachineTypes::TimedMachine *timed_machine() = 0;
+	virtual MachineTypes::ScanProducer *scan_producer() = 0;
+	virtual MachineTypes::AudioProducer *audio_producer() = 0;
+	virtual MachineTypes::JoystickMachine *joystick_machine() = 0;
+	virtual MachineTypes::KeyboardMachine *keyboard_machine() = 0;
+	virtual MachineTypes::MouseMachine *mouse_machine() = 0;
+	virtual MachineTypes::MediaTarget *media_target() = 0;
 
 	/*!
 		Provides a raw pointer to the underlying machine if and only if this dynamic machine really is
@@ -49,6 +45,29 @@ struct DynamicMachine {
 	*/
 	virtual void *raw_pointer() = 0;
 };
+
+/*!
+	Provides a templateable means to access the above.
+*/
+template <typename MachineType> MachineType *get(DynamicMachine &);
+
+#define SpecialisedGet(type, name)	\
+template <>	\
+inline type *get<type>(DynamicMachine &machine) {	\
+	return machine.name();	\
+}
+
+SpecialisedGet(Activity::Source, activity_source)
+SpecialisedGet(Configurable::Device, configurable_device)
+SpecialisedGet(MachineTypes::TimedMachine, timed_machine)
+SpecialisedGet(MachineTypes::ScanProducer, scan_producer)
+SpecialisedGet(MachineTypes::AudioProducer, audio_producer)
+SpecialisedGet(MachineTypes::JoystickMachine, joystick_machine)
+SpecialisedGet(MachineTypes::KeyboardMachine, keyboard_machine)
+SpecialisedGet(MachineTypes::MouseMachine, mouse_machine)
+SpecialisedGet(MachineTypes::MediaTarget, media_target)
+
+#undef SpecialisedGet
 
 }
 

@@ -13,9 +13,7 @@
 #include "../../Components/9918/9918.hpp"
 #include "../../Components/SN76489/SN76489.hpp"
 
-#include "../CRTMachine.hpp"
-#include "../JoystickMachine.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../MachineTypes.hpp"
 #include "../../Configurable/Configurable.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
@@ -80,11 +78,13 @@ class Joystick: public Inputs::ConcreteJoystick {
 class ConcreteMachine:
 	public Machine,
 	public CPU::Z80::BusHandler,
-	public CRTMachine::Machine,
-	public KeyboardMachine::Machine,
-	public Inputs::Keyboard::Delegate,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::KeyboardMachine,
+	public MachineTypes::JoystickMachine,
 	public Configurable::Device,
-	public JoystickMachine::Machine {
+	public Inputs::Keyboard::Delegate {
 
 	public:
 		ConcreteMachine(const Analyser::Static::Sega::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
