@@ -38,14 +38,12 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 		} else {\
 			scheduled_program_counter_ = operations_[size_t(OperationsSlot::FetchDecodeExecute)];\
 		}\
-		cycles_in_phase_ = 0;	\
 	}
 
 #define bus_access() \
 	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::IRQ) | irq_request_history_;	\
 	irq_request_history_ = irq_line_ & inverse_interrupt_flag_;	\
 	number_of_cycles -= bus_handler_.perform_bus_operation(nextBusOperation, busAddress, busValue);	\
-	++cycles_in_phase_;	\
 	nextBusOperation = BusOperation::None;	\
 	if(number_of_cycles <= Cycles(0)) break;
 
@@ -57,13 +55,11 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 		// Deal with a potential RDY state, if this 6502 has anything connected to ready.
 		while(uses_ready_line && ready_is_active_ && number_of_cycles > Cycles(0)) {
 			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
-			++cycles_in_phase_;
 		}
 
 		// Deal with a potential STP state, if this 6502 implements STP.
 		while(has_stpwai(personality) && stop_is_active_ && number_of_cycles > Cycles(0)) {
 			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
-			++cycles_in_phase_;
 			if(interrupt_requests_ & InterruptRequestFlags::Reset) {
 				stop_is_active_ = false;
 				checkSchedule();
@@ -74,7 +70,6 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 		// Deal with a potential WAI state, if this 6502 implements WAI.
 		while(has_stpwai(personality) && wait_is_active_ && number_of_cycles > Cycles(0)) {
 			number_of_cycles -= bus_handler_.perform_bus_operation(BusOperation::Ready, busAddress, busValue);
-			++cycles_in_phase_;
 			interrupt_requests_ |= (irq_line_ & inverse_interrupt_flag_);
 			if(interrupt_requests_ & InterruptRequestFlags::NMI || irq_line_) {
 				wait_is_active_ = false;
@@ -685,7 +680,7 @@ void ProcessorBase::set_reset_line(bool active) {
 	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::Reset) | (active ? InterruptRequestFlags::Reset : 0);
 }
 
-bool ProcessorBase::get_is_resetting() {
+bool ProcessorBase::get_is_resetting() const {
 	return interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn);
 }
 
@@ -711,7 +706,7 @@ void ProcessorBase::set_nmi_line(bool active) {
 	nmi_line_is_enabled_ = active;
 }
 
-uint8_t ProcessorStorage::get_flags() {
+uint8_t ProcessorStorage::get_flags() const {
 	return carry_flag_ | overflow_flag_ | (inverse_interrupt_flag_ ^ Flag::Interrupt) | (negative_result_ & 0x80) | (zero_result_ ? 0 : Flag::Zero) | Flag::Always | decimal_flag_;
 }
 
