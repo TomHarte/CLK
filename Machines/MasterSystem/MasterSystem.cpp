@@ -12,6 +12,7 @@
 
 #include "../../Components/9918/9918.hpp"
 #include "../../Components/SN76489/SN76489.hpp"
+#include "../../Components/OPL2/OPL2.hpp"
 
 #include "../MachineTypes.hpp"
 #include "../../Configurable/Configurable.hpp"
@@ -20,6 +21,7 @@
 #include "../../ClockReceiver/JustInTime.hpp"
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 
 #define LOG_PREFIX "[SMS] "
 #include "../../Outputs/Log.hpp"
@@ -97,7 +99,9 @@ class ConcreteMachine:
 				(target.model == Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
 				audio_queue_,
 				sn76489_divider),
-			speaker_(sn76489_),
+			opll_(Yamaha::OPL2::Personality::OPLL, audio_queue_),
+			mixer_(sn76489_, opll_),
+			speaker_(mixer_),
 			keyboard_({Inputs::Keyboard::Key::Enter, Inputs::Keyboard::Key::Escape}, {}) {
 			// Pick the clock rate based on the region.
 			const double clock_rate = target.region == Target::Region::Europe ? 3546893.0 : 3579540.0;
@@ -250,17 +254,29 @@ class ConcreteMachine:
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc0: {
-								Joystick *const joypad1 = static_cast<Joystick *>(joysticks_[0].get());
-								Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
-								*cycle.value = static_cast<uint8_t>(joypad1->get_state() | (joypad2->get_state() << 6));
+								if(memory_control_ & 0x4) {
+									if(has_fm_audio_ && (address & 0xff) == 0xf2) {
+										*cycle.value = opll_detection_word_;
+									} else {
+										*cycle.value = 0xff;
+									}
+								} else {
+									Joystick *const joypad1 = static_cast<Joystick *>(joysticks_[0].get());
+									Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
+									*cycle.value = static_cast<uint8_t>(joypad1->get_state() | (joypad2->get_state() << 6));
+								}
 							} break;
 							case 0xc1: {
-								Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
+								if(memory_control_ & 0x4) {
+									*cycle.value = 0xff;
+								} else {
+									Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
 
-								*cycle.value =
-									(joypad2->get_state() >> 2) |
-									0x30 |
-									get_th_values();
+									*cycle.value =
+										(joypad2->get_state() >> 2) |
+										0x30 |
+										get_th_values();
+								}
 							} break;
 
 							default:
@@ -271,14 +287,15 @@ class ConcreteMachine:
 
 					case CPU::Z80::PartialMachineCycle::Output:
 						switch(address & 0xc1) {
-							case 0x00:
+							case 0x00:		// i.e. even ports less than 0x40.
 								if(is_master_system(model_)) {
 									// TODO: Obey the RAM enable.
+									printf("Memory control: %02x\n", memory_control_);
 									memory_control_ = *cycle.value;
 									page_cartridge();
 								}
 							break;
-							case 0x01: {
+							case 0x01: {	// i.e. odd ports less than 0x40.
 								// A programmer can force the TH lines to 0 here,
 								// causing a phoney lightgun latch, so check for any
 								// discontinuity in TH inputs.
@@ -291,20 +308,26 @@ class ConcreteMachine:
 									vdp_->latch_horizontal_counter();
 								}
 							} break;
-							case 0x40: case 0x41:
+							case 0x40: case 0x41:	// i.e. ports 0x40–0x7f.
 								update_audio();
 								sn76489_.write(*cycle.value);
 							break;
-							case 0x80: case 0x81:
+							case 0x80: case 0x81:	// i.e. ports 0x80–0xbf.
 								vdp_->write(address, *cycle.value);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
-							case 0xc0:
-								LOG("TODO: [output] I/O port A/N; " << int(*cycle.value));
-							break;
-							case 0xc1:
-								LOG("TODO: [output] I/O port B/misc");
+							case 0xc1: case 0xc0:	// i.e. ports 0xc0–0xff.
+								if(has_fm_audio_) {
+									switch(address & 0xff) {
+										case 0xf0: case 0xf1:
+											opll_.write(address, *cycle.value);
+										break;
+										case 0xf2:
+											opll_detection_word_ = *cycle.value;
+										break;
+									}
+								}
 							break;
 
 							default:
@@ -312,6 +335,19 @@ class ConcreteMachine:
 							break;
 						}
 					break;
+
+/*
+	TODO: implementation of the below is incomplete.
+	Re: io_port_control_
+
+	Set the TH pins for ports A and B as outputs. Set their output level
+	to any value desired by writing to bits 7 and 5. Read the state of both
+	TH pins back through bits 7 and 6 of port $DD. If the data returned is
+	the same as the data written, it's an export machine, otherwise it's
+	a domestic one.
+
+	— Charles MacDonald
+ */
 
 					case CPU::Z80::PartialMachineCycle::Interrupt:
 						*cycle.value = 0xff;
@@ -417,7 +453,10 @@ class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;
-		Outputs::Speaker::LowpassSpeaker<TI::SN76489> speaker_;
+		Yamaha::OPL2 opll_;
+		Outputs::Speaker::CompoundSource<TI::SN76489, Yamaha::OPL2> mixer_;
+		Outputs::Speaker::LowpassSpeaker<decltype(mixer_)> speaker_;
+		uint8_t opll_detection_word_ = 0xff;
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 		Inputs::Keyboard keyboard_;
@@ -432,6 +471,9 @@ class ConcreteMachine:
 		std::vector<uint8_t> cartridge_;
 
 		uint8_t io_port_control_ = 0x0f;
+
+		// This is a static constexpr for now; I may use it in the future.
+		static constexpr bool has_fm_audio_ = true;
 
 		// The memory map has a 1kb granularity; this is determined by the SG1000's 1kb of RAM.
 		const uint8_t *read_pointers_[64];

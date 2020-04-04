@@ -53,6 +53,11 @@ class SampleSource {
 		*/
 		void set_sample_volume_range(std::int16_t volume) {
 		}
+
+		/*!
+			Indicates whether this component will write stereo samples.
+		*/
+		static constexpr bool get_is_stereo() { return false; }
 };
 
 }
