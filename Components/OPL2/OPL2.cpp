@@ -112,6 +112,30 @@ bool OPL2::is_zero_level() {
 void OPL2::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 	// TODO.
 	//  out = exp(logsin(phase2 + exp(logsin(phase1) + gain1)) + gain2)
+
+	/*
+		Melodic channels are:
+
+		Channel		Operator 1		Operator 2
+		0			0				3
+		1			1				4
+		2			2				5
+		3			6				9
+		4			7				10
+		5			8				11
+		6			12				15
+		7			13				16
+		8			14				17
+
+		In percussion mode, only channels 0–5 are use as melodic, with 6 7 and 8 being
+		replaced by:
+
+		Bass drum, using operators 12 and 15;
+		Snare, using operator 16;
+		Tom tom, using operator 14,
+		Cymbal, using operator 17; and
+		Symbol, using operator 13.
+	*/
 }
 
 void OPL2::set_sample_volume_range(std::int16_t range) {
@@ -127,7 +151,10 @@ void OPL2::write(uint16_t address, uint8_t value) {
 }
 
 uint8_t OPL2::read(uint16_t address) {
-	// TODO.
+	// TODO. There's a status register where:
+	//	b7 = IRQ status (set if interrupt request ongoing)
+	//	b6 = timer 1 flag (set if timer 1 expired)
+	//	b5 = timer 2 flag
 	return 0xff;
 }
 
@@ -139,6 +166,10 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 		case 0x02:	timers_[0] = value; 	return;
 		case 0x03:	timers_[1] = value;		return;
 		case 0x04:	timer_control_ = value;	return;
+		// TODO from register 4:
+		//	b7 = IRQ reset;
+		//	b6/b5 = timer 1/2 mask (irq enabling flags, I think?)
+		//	b4/b3 = timer 2/1 start (seemingly the opposite order to b6/b5?)
 
 		default: break;
 	}
@@ -150,35 +181,58 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 		// Operator modifications.
 		//
 
+		// The 18 operators are spreat out across 22 addresses; each group of
+		// six is framed within an eight-byte area thusly:
+		constexpr int operator_by_address[] = {
+			0,	1,	2,	3,	4,	5,	-1,	-1,
+			6,	7,	8,	9,	10,	11,	-1,	-1,
+			12,	13,	14,	15,	16,	17,	-1,	-1
+		};
+
 		if(location >= 0x20 && location <= 0x35) {
-			operators_[location - 0x20].apply_amplitude_modulation = value & 0x80;
-			operators_[location - 0x20].apply_vibrato = value & 0x40;
-			operators_[location - 0x20].hold_sustain_level = value & 0x20;
-			operators_[location - 0x20].keyboard_scaling_rate = value & 0x10;
-			operators_[location - 0x20].frequency_multiple = value & 0xf;
+			const auto index = operator_by_address[location - 0x20];
+			if(index == -1) return;
+
+			operators_[index].apply_amplitude_modulation = value & 0x80;
+			operators_[index].apply_vibrato = value & 0x40;
+			operators_[index].hold_sustain_level = value & 0x20;
+			operators_[index].keyboard_scaling_rate = value & 0x10;
+			operators_[index].frequency_multiple = value & 0xf;
 			return;
 		}
 
 		if(location >= 0x40 && location <= 0x55) {
-			operators_[location - 0x40].scaling_level = value >> 6;
-			operators_[location - 0x40].output_level = value & 0x3f;
+			const auto index = operator_by_address[location - 0x40];
+			if(index == -1) return;
+
+			operators_[index].scaling_level = value >> 6;
+			operators_[index].output_level = value & 0x3f;
 			return;
 		}
 
 		if(location >= 0x60 && location <= 0x75) {
-			operators_[location - 0x60].attack_rate = value >> 5;
-			operators_[location - 0x60].decay_rate = value & 0xf;
+			const auto index = operator_by_address[location - 0x60];
+			if(index == -1) return;
+
+			operators_[index].attack_rate = value >> 5;
+			operators_[index].decay_rate = value & 0xf;
 			return;
 		}
 
 		if(location >= 0x80 && location <= 0x95) {
-			operators_[location - 0x60].sustain_level = value >> 5;
-			operators_[location - 0x60].release_rate = value & 0xf;
+			const auto index = operator_by_address[location - 0x80];
+			if(index == -1) return;
+
+			operators_[index].sustain_level = value >> 5;
+			operators_[index].release_rate = value & 0xf;
 			return;
 		}
 
 		if(location >= 0xe0 && location <= 0xf5) {
-			operators_[location - 0xe0].waveform = value & 3;
+			const auto index = operator_by_address[location - 0xe0];
+			if(index == -1) return;
+
+			operators_[index].waveform = value & 3;
 			return;
 		}
 
@@ -201,7 +255,7 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 
 		if(location >= 0xc0 && location <= 0xc8) {
 			channels_[location - 0xc0].feedback_strength = (value >> 1) & 0x7;
-			channels_[location - 0xc0].two_operator = value & 1;
+			channels_[location - 0xc0].use_fm_synthesis = value & 1;
 			return;
 		}
 
@@ -211,7 +265,12 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 		//
 		switch(location) {
 			case 0x01:	waveform_enable_ = value & 0x20;	break;
-			case 0x08:	csm_keyboard_split_ = value;		break;
+			case 0x08:
+				// b7: "composite sine wave mode on/off"?
+				csm_keyboard_split_ = value;
+				// b6: "Controls the split point of the keyboard. When 0, the keyboard split is the
+				// second bit from the bit 8 of the F-Number. When 1, the MSB of the F-Number is used."
+			break;
 			case 0xbd:	depth_rhythm_control_ = value;		break;
 
 			default: break;

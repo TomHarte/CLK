@@ -64,14 +64,14 @@ class OPL2: public ::Outputs::Speaker::SampleSource {
 			int sustain_level = 0;
 			int release_rate = 0;
 			int waveform = 0;
-		} operators_[22];
+		} operators_[18];
 
 		struct Channel {
 			int frequency;
 			int octave;
 			bool key_on;
 			int feedback_strength;
-			bool two_operator;
+			bool use_fm_synthesis;
 		} channels_[9];
 
 		uint8_t depth_rhythm_control_;
