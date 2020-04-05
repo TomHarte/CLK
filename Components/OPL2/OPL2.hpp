@@ -21,7 +21,7 @@ class OPL2: public ::Outputs::Speaker::SampleSource {
 	public:
 		enum class Personality {
 			OPL2,	// Provides full configuration of all channels.
-			OPLL,	// Uses the OPLL sound font, permitting full configuration of only a single channel.
+			OPLL,	// i.e. YM2413; uses the OPLL sound font, permitting full configuration of only a single channel.
 			VRC7,	// Uses the VRC7 sound font, permitting full configuration of only a single channel.
 		};
 
@@ -44,6 +44,34 @@ class OPL2: public ::Outputs::Speaker::SampleSource {
 	private:
 		Concurrency::DeferringAsyncTaskQueue &task_queue_;
 
+		int exponential_[256];
+		int log_sin_[256];
+		uint8_t selected_register_ = 0;
+
+		void set_opl2_register(uint8_t location, uint8_t value);
+
+		struct Operator {
+			bool apply_amplitude_modulation = false;
+			bool apply_vibrato = false;
+			bool hold_sustain_level = false;
+			bool keyboard_scaling_rate = false;	// ???
+			int frequency_multiple = 0;
+			int scaling_level = 0;
+			int output_level = 0;
+			int attack_rate = 0;
+			int decay_rate = 0;
+			int sustain_level = 0;
+			int release_rate = 0;
+			int waveform = 0;
+		} operators_[22];
+
+		struct Channel {
+			int frequency;
+			int octave;
+			bool key_on;
+			int feedback_strength;
+			bool two_operator;
+		} channels_[9];
 };
 
 }

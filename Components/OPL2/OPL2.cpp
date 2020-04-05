@@ -8,6 +8,8 @@
 
 #include "OPL2.hpp"
 
+#include <cmath>
+
 namespace {
 
 /*
@@ -88,6 +90,19 @@ OPL2::OPL2(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_q
 	(void)opll_patch_set;
 	(void)vrc7_patch_set;
 	(void)percussion_patch_set;
+
+	// Populate the exponential and log-sine tables; formulas here taken from Matthew Gambrell
+	// and Olli Niemitalo's decapping and reverse-engineering of the OPL2.
+	for(int c = 0; c < 256; ++c) {
+		exponential_[c] = int(round((pow(2.0, double(c) / 256.0) - 1.0) * 1024.0));
+
+		const double sine = sin((double(c) + 0.5) * M_PI/512.0);
+		log_sin_[c] = int(
+			round(
+				-log(sine) / log(2.0) * 256.0
+			 )
+		);
+	}
 }
 
 bool OPL2::is_zero_level() {
@@ -96,6 +111,7 @@ bool OPL2::is_zero_level() {
 
 void OPL2::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 	// TODO.
+	//  out = exp(logsin(phase2 + exp(logsin(phase1) + gain1)) + gain2)
 }
 
 void OPL2::set_sample_volume_range(std::int16_t range) {
@@ -103,11 +119,80 @@ void OPL2::set_sample_volume_range(std::int16_t range) {
 }
 
 void OPL2::write(uint16_t address, uint8_t value) {
-	// TODO.
-	printf("OPL2 write: %02x to %d\n", value, address&1);
+	if(address & 1) {
+		set_opl2_register(selected_register_, value);
+	} else {
+		selected_register_ = value;
+	}
 }
 
 uint8_t OPL2::read(uint16_t address) {
 	// TODO.
 	return 0xff;
+}
+
+void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
+	printf("OPL2 write: %02x to %d\n", value, selected_register_);
+
+	task_queue_.enqueue([this, location, value] {
+
+		//
+		// Operator modifications.
+		//
+
+		if(location >= 0x20 && location <= 0x35) {
+			operators_[location - 0x20].apply_amplitude_modulation = value & 0x80;
+			operators_[location - 0x20].apply_vibrato = value & 0x40;
+			operators_[location - 0x20].hold_sustain_level = value & 0x20;
+			operators_[location - 0x20].keyboard_scaling_rate = value & 0x10;
+			operators_[location - 0x20].frequency_multiple = value & 0xf;
+			return;
+		}
+
+		if(location >= 0x50 && location <= 0x55) {
+			operators_[location - 0x40].scaling_level = value >> 6;
+			operators_[location - 0x40].output_level = value & 0x3f;
+			return;
+		}
+
+		if(location >= 0x60 && location <= 0x75) {
+			operators_[location - 0x60].attack_rate = value >> 5;
+			operators_[location - 0x60].decay_rate = value & 0xf;
+			return;
+		}
+
+		if(location >= 0x80 && location <= 0x95) {
+			operators_[location - 0x60].sustain_level = value >> 5;
+			operators_[location - 0x60].release_rate = value & 0xf;
+			return;
+		}
+
+		if(location >= 0xe0 && location <= 0xf5) {
+			operators_[location - 0xe0].waveform = value & 3;
+			return;
+		}
+
+
+		//
+		// Channel modifications.
+		//
+
+		if(location >= 0xa0 && location <= 0xa8) {
+			channels_[location - 0xa0].frequency = (channels_[location - 0xa0].frequency & ~0xff) | value;
+			return;
+		}
+
+		if(location >= 0xb0 && location <= 0xb8) {
+			channels_[location - 0xb0].frequency = (channels_[location - 0xb0].frequency & 0xff) | ((value & 3) << 8);
+			channels_[location - 0xb0].octave = (value >> 2) & 0x7;
+			channels_[location - 0xb0].key_on = value & 0x20;;
+			return;
+		}
+
+		if(location >= 0xc0 && location <= 0xc8) {
+			channels_[location - 0xc0].feedback_strength = (value >> 1) & 0x7;
+			channels_[location - 0xc0].two_operator = value & 1;
+			return;
+		}
+	});
 }
