@@ -50,6 +50,7 @@ class OPL2: public ::Outputs::Speaker::SampleSource {
 
 		void set_opl2_register(uint8_t location, uint8_t value);
 
+		// Asynchronous properties, valid only on the audio thread.
 		struct Operator {
 			bool apply_amplitude_modulation = false;
 			bool apply_vibrato = false;
@@ -72,6 +73,14 @@ class OPL2: public ::Outputs::Speaker::SampleSource {
 			int feedback_strength;
 			bool two_operator;
 		} channels_[9];
+
+		uint8_t depth_rhythm_control_;
+		uint8_t csm_keyboard_split_;
+		bool waveform_enable_;
+
+		// Synchronous properties, valid only on the emulation thread.
+		uint8_t timers_[2];
+		uint8_t timer_control_;
 };
 
 }

@@ -36,7 +36,7 @@ namespace {
 			Registers 4 and 5, i.e. decay and attack rate, modulator and carrier.
 
 		Bytes 7, 8:
-			Registers 6 and 6, i.e. decay-sustain level and release rate, modulator and carrier.
+			Registers 6 and 7, i.e. decay-sustain level and release rate, modulator and carrier.
 
 */
 
@@ -134,6 +134,16 @@ uint8_t OPL2::read(uint16_t address) {
 void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 	printf("OPL2 write: %02x to %d\n", value, selected_register_);
 
+	// Deal with timer changes synchronously.
+	switch(location) {
+		case 0x02:	timers_[0] = value; 	return;
+		case 0x03:	timers_[1] = value;		return;
+		case 0x04:	timer_control_ = value;	return;
+
+		default: break;
+	}
+
+	// Enqueue any changes that affect audio output.
 	task_queue_.enqueue([this, location, value] {
 
 		//
@@ -149,7 +159,7 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 			return;
 		}
 
-		if(location >= 0x50 && location <= 0x55) {
+		if(location >= 0x40 && location <= 0x55) {
 			operators_[location - 0x40].scaling_level = value >> 6;
 			operators_[location - 0x40].output_level = value & 0x3f;
 			return;
@@ -193,6 +203,18 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 			channels_[location - 0xc0].feedback_strength = (value >> 1) & 0x7;
 			channels_[location - 0xc0].two_operator = value & 1;
 			return;
+		}
+
+
+		//
+		// Modal modifications.
+		//
+		switch(location) {
+			case 0x01:	waveform_enable_ = value & 0x20;	break;
+			case 0x08:	csm_keyboard_split_ = value;		break;
+			case 0xbd:	depth_rhythm_control_ = value;		break;
+
+			default: break;
 		}
 	});
 }
