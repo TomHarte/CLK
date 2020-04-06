@@ -86,11 +86,9 @@ constexpr uint8_t percussion_patch_set[] = {
 
 using namespace Yamaha;
 
-OPL2::OPL2(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue): task_queue_(task_queue) {
-	(void)opll_patch_set;
-	(void)vrc7_patch_set;
-	(void)percussion_patch_set;
+// MARK: - Construction
 
+OPL2::OPL2(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue): task_queue_(task_queue), personality_(personality) {
 	// Populate the exponential and log-sine tables; formulas here taken from Matthew Gambrell
 	// and Olli Niemitalo's decapping and reverse-engineering of the OPL2.
 	for(int c = 0; c < 256; ++c) {
@@ -103,7 +101,12 @@ OPL2::OPL2(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_q
 			 )
 		);
 	}
+
+	// TODO: use this when in OPLL percussion mode.
+	(void)percussion_patch_set;
 }
+
+// MARK: - Audio Generation
 
 bool OPL2::is_zero_level() {
 	return true;
@@ -127,7 +130,7 @@ void OPL2::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 		7			13				16
 		8			14				17
 
-		In percussion mode, only channels 0–5 are use as melodic, with 6 7 and 8 being
+		In percussion mode, only channels 0–5 are use as melodic, with 6, 7 and 8 being
 		replaced by:
 
 		Bass drum, using operators 12 and 15;
@@ -142,9 +145,18 @@ void OPL2::set_sample_volume_range(std::int16_t range) {
 	// TODO.
 }
 
+// MARK: - Software Interface
+
 void OPL2::write(uint16_t address, uint8_t value) {
 	if(address & 1) {
-		set_opl2_register(selected_register_, value);
+		switch(personality_) {
+			case Personality::OPL2:
+				set_opl2_register(selected_register_, value);
+			break;
+			default:
+				set_opll_register(selected_register_, value);
+			break;
+		}
 	} else {
 		selected_register_ = value;
 	}
@@ -156,6 +168,92 @@ uint8_t OPL2::read(uint16_t address) {
 	//	b6 = timer 1 flag (set if timer 1 expired)
 	//	b5 = timer 2 flag
 	return 0xff;
+}
+
+void OPL2::set_opll_register(uint8_t location, uint8_t value) {
+	if(location < 8) {
+		opll_custom_instrument_[location] = value;
+		// Repush this instrument for any channels it's presently selected on.
+		for(int c = 0; c < 9; ++c) {
+			if(!(instrument_selections_[c] >> 4)) {
+				set_opll_instrument(uint8_t(c), 0, instrument_selections_[c] & 0xf);
+			}
+		}
+		return;
+	}
+
+	if(location >= 0x30 && location <= 0x38) {
+		instrument_selections_[location - 0x30] = value;
+		set_opll_instrument(location - 0x30, value >> 4, value & 0xf);
+		return;
+	}
+
+	if(location == 0xe) {
+		set_opl2_register(0xbd, value & 0x3f);
+		return;
+	}
+
+	if(location >= 0x10 && location <= 0x18) {
+		set_opl2_register(location - 0x10 + 0xa0, value);
+		return;
+	}
+
+	if(location >= 0x20 && location <= 0x28) {
+		const auto index = location = 0x20;
+		operators_[index].hold_sustain_level = value & 0x20;
+
+		// Only the bottom bit contributes to the frequency on an OPLL; on an OPL2 it's the two
+		// bottom bits (and hold-sustain isn't set in the same register).
+		set_opl2_register(index + 0xb0, uint8_t((value & 1) | ((value & 0xfe) << 1)));
+		return;
+	}
+}
+
+void OPL2::set_opll_instrument(uint8_t target, uint8_t source_instrument, uint8_t volume) {
+	const uint8_t *source;
+	if(!source_instrument) {
+		source = opll_custom_instrument_;
+	} else {
+		--source_instrument;
+		source =
+			(source_instrument * 8) +
+			(personality_ == Personality::OPLL ? opll_patch_set : vrc7_patch_set);
+	}
+
+	constexpr uint8_t offsets[9][2] = {
+		{0x00, 0x03},
+		{0x01, 0x04},
+		{0x02, 0x05},
+
+		{0x08, 0x0b},
+		{0x09, 0x0c},
+		{0x0a, 0x0d},
+
+		{0x10, 0x13},
+		{0x11, 0x14},
+		{0x12, 0x15},
+	};
+	const auto carrier = offsets[target][0];
+	const auto modulator = offsets[target][1];
+
+	// Set waveforms — only sine and halfsine are available.
+	set_opl2_register(0xe0 + carrier, (source[3] & 0x10) ? 1 : 0);
+	set_opl2_register(0xe0 + modulator, (source[3] & 0x08) ? 1 : 0);
+
+	// Volume on the OPLL is four bit; on the OPL2 it's six. Pair that with key scale level.
+	set_opl2_register(0xe0 + carrier, uint8_t((source[3] & 0xc0) | (volume << 2)));
+
+	// Set feedback level, which is per channel. And always set frequency modulation.
+	set_opl2_register(0xc0 + target, uint8_t((source[3] & 0x7) << 1));
+
+	// The other values don't require any mapping.
+	set_opl2_register(0x20 + carrier, source[0]);
+	set_opl2_register(0x20 + modulator, source[1]);
+	set_opl2_register(0x40 + carrier, source[2]);
+	set_opl2_register(0x60 + carrier, source[4]);
+	set_opl2_register(0x60 + modulator, source[5]);
+	set_opl2_register(0x80 + carrier, source[6]);
+	set_opl2_register(0x80 + modulator, source[7]);
 }
 
 void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
@@ -263,6 +361,7 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 		//
 		// Modal modifications.
 		//
+
 		switch(location) {
 			case 0x01:	waveform_enable_ = value & 0x20;	break;
 			case 0x08:

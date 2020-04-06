@@ -11,6 +11,7 @@
 
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
+#include "../../Numeric/LFSR.hpp"
 
 namespace Yamaha {
 
@@ -43,12 +44,16 @@ class OPL2: public ::Outputs::Speaker::SampleSource {
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue &task_queue_;
+		const Personality personality_;
 
 		int exponential_[256];
 		int log_sin_[256];
 		uint8_t selected_register_ = 0;
 
+		// Register write routines.
 		void set_opl2_register(uint8_t location, uint8_t value);
+		void set_opll_register(uint8_t location, uint8_t value);
+		void set_opll_instrument(uint8_t target, uint8_t source, uint8_t volume);
 
 		// Asynchronous properties, valid only on the audio thread.
 		struct Operator {
@@ -78,9 +83,16 @@ class OPL2: public ::Outputs::Speaker::SampleSource {
 		uint8_t csm_keyboard_split_;
 		bool waveform_enable_;
 
+		// This is the correct LSFR per forums.submarine.org.uk.
+		Numeric::LFSR<uint32_t, 0x800302> noise_source_;
+
 		// Synchronous properties, valid only on the emulation thread.
 		uint8_t timers_[2];
 		uint8_t timer_control_;
+
+		// OPLL-specific storage.
+		uint8_t opll_custom_instrument_[8];
+		uint8_t instrument_selections_[9];
 };
 
 }
