@@ -37,6 +37,9 @@ template <> struct LSFRPolynomial<uint8_t> {
 */
 template <typename IntType = uint64_t, IntType polynomial = LSFRPolynomial<IntType>::value> class LFSR {
 	public:
+		/*!
+			Constructs an LFSR with a random initial value.
+		*/
 		LFSR() {
 			// Randomise the value, ensuring it doesn't end up being 0.
 			while(!value_) {
@@ -47,6 +50,13 @@ template <typename IntType = uint64_t, IntType polynomial = LSFRPolynomial<IntTy
 				}
 			}
 		}
+
+		/*!
+			Constructs an LFSR with the specified initial value.
+
+			An initial value of 0 is invalid.
+		*/
+		LFSR(IntType initial_value) : value_(initial_value) {}
 
 		/*!
 			Advances the LSFR, returning either an @c IntType of value @c 1 or @c 0,
