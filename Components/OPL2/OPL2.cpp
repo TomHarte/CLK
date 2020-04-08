@@ -84,11 +84,11 @@ constexpr uint8_t percussion_patch_set[] = {
 
 }
 
-using namespace Yamaha;
+using namespace Yamaha::OPL;
 
-// MARK: - Construction
 
-OPL2::OPL2(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue): task_queue_(task_queue), personality_(personality) {
+template <typename Child>
+OPLBase<Child>::OPLBase(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {
 	// Populate the exponential and log-sine tables; formulas here taken from Matthew Gambrell
 	// and Olli Niemitalo's decapping and reverse-engineering of the OPL2.
 	for(int c = 0; c < 256; ++c) {
@@ -101,166 +101,154 @@ OPL2::OPL2(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_q
 			 )
 		);
 	}
-
-	// TODO: use this when in OPLL percussion mode.
-	(void)percussion_patch_set;
 }
 
-// MARK: - Audio Generation
-
-bool OPL2::is_zero_level() {
-	return true;
-}
-
-void OPL2::get_samples(std::size_t number_of_samples, std::int16_t *target) {
-	// TODO.
-	//  out = exp(logsin(phase2 + exp(logsin(phase1) + gain1)) + gain2)
-
-	/*
-		Melodic channels are:
-
-		Channel		Operator 1		Operator 2
-		0			0				3
-		1			1				4
-		2			2				5
-		3			6				9
-		4			7				10
-		5			8				11
-		6			12				15
-		7			13				16
-		8			14				17
-
-		In percussion mode, only channels 0–5 are use as melodic, with 6, 7 and 8 being
-		replaced by:
-
-		Bass drum, using operators 12 and 15;
-		Snare, using operator 16;
-		Tom tom, using operator 14,
-		Cymbal, using operator 17; and
-		Symbol, using operator 13.
-	*/
-}
-
-void OPL2::set_sample_volume_range(std::int16_t range) {
-	// TODO.
-}
-
-// MARK: - Software Interface
-
-void OPL2::write(uint16_t address, uint8_t value) {
+template <typename Child>
+void OPLBase<Child>::write(uint16_t address, uint8_t value) {
 	if(address & 1) {
-		switch(personality_) {
-			case Personality::OPL2:
-				set_opl2_register(selected_register_, value);
-			break;
-			default:
-				set_opll_register(selected_register_, value);
-			break;
-		}
+		static_cast<Child *>(this)->write_register(selected_register_, value);
 	} else {
 		selected_register_ = value;
 	}
 }
 
-uint8_t OPL2::read(uint16_t address) {
-	// TODO. There's a status register where:
-	//	b7 = IRQ status (set if interrupt request ongoing)
-	//	b6 = timer 1 flag (set if timer 1 expired)
-	//	b5 = timer 2 flag
+template class Yamaha::OPL::OPLBase<Yamaha::OPL::OPLL>;
+template class Yamaha::OPL::OPLBase<Yamaha::OPL::OPL2>;
+
+
+OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, bool is_vrc7): OPLBase(task_queue) {
+	// Install fixed instruments.
+	const uint8_t *patch_set = is_vrc7 ? vrc7_patch_set : opll_patch_set;
+	for(int c = 0; c < 15; ++c) {
+		setup_fixed_instrument(c+1, patch_set);
+		patch_set += 8;
+	}
+
+	// TODO: install percussion.
+	(void)percussion_patch_set;
+}
+
+bool OPLL::is_zero_level() {
+	return true;
+}
+
+void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
+}
+
+void OPLL::set_sample_volume_range(std::int16_t range) {
+}
+
+uint8_t OPLL::read(uint16_t address) {
+	// I've seen mention of an undocumented two-bit status register. I don't yet know what is in it.
 	return 0xff;
 }
 
-void OPL2::set_opll_register(uint8_t location, uint8_t value) {
-	if(location < 8) {
-		opll_custom_instrument_[location] = value;
-		// Repush this instrument for any channels it's presently selected on.
-		for(int c = 0; c < 9; ++c) {
-			if(!(instrument_selections_[c] >> 4)) {
-				set_opll_instrument(uint8_t(c), 0, instrument_selections_[c] & 0xf);
-			}
+void OPLL::write_register(uint8_t address, uint8_t value) {
+	// The OPLL doesn't have timers or other non-audio functions, so all writes
+	// go to the audio queue.
+	task_queue_.defer([this, address, value] {
+		// The first 8 locations are used to define the custom instrument, and have
+		// exactly the same format as the patch set arrays at the head of this file.
+		if(address < 8) {
+			custom_instrument_[address] = value;
+
+			// Update whatever that did to the instrument.
+			setup_fixed_instrument(0, custom_instrument_);
+			return;
 		}
-		return;
-	}
 
-	if(location >= 0x30 && location <= 0x38) {
-		instrument_selections_[location - 0x30] = value;
-		set_opll_instrument(location - 0x30, value >> 4, value & 0xf);
-		return;
-	}
+		// Locations 0x30 to 0x38: select an instrument in the top nibble, set a channel volume in the lower.
+		if(address >= 0x30 && address <= 0x38) {
+			const auto index = address - 0x30;
+			const auto instrument = value >> 4;
 
-	if(location == 0xe) {
-		set_opl2_register(0xbd, value & 0x3f);
-		return;
-	}
+			channels_[index].output_level = value & 0xf;
+			channels_[index].modulator = &operators_[instrument * 2];
+			return;
+		}
 
-	if(location >= 0x10 && location <= 0x18) {
-		set_opl2_register(location - 0x10 + 0xa0, value);
-		return;
-	}
+		// Register 0xe is a cut-down version of the OPLL's register 0xbd.
+		if(address == 0xe) {
+			depth_rhythm_control_ = value & 0x3f;
+			return;
+		}
 
-	if(location >= 0x20 && location <= 0x28) {
-		const auto index = location = 0x20;
-		operators_[index].hold_sustain_level = value & 0x20;
+		// Registers 0x10 to 0x18 set the bottom part of the channel frequency.
+		if(address >= 0x10 && address <= 0x18) {
+			const auto index = address - 0x10;
+			channels_[index].frequency = (channels_[index].frequency & ~0xff) | value;
+			return;
+		}
 
-		// Only the bottom bit contributes to the frequency on an OPLL; on an OPL2 it's the two
-		// bottom bits (and hold-sustain isn't set in the same register).
-		set_opl2_register(index + 0xb0, uint8_t((value & 1) | ((value & 0xfe) << 1)));
-		return;
-	}
+		// 0x20 to 0x28 set sustain on/off, key on/off, octave and a single extra bit of frequency.
+		// So they're a lot like OPLL registers 0xb0 to 0xb8, but not identical.
+		if(address >= 0x20 && address <= 0x28) {
+			const auto index = address - 0x20;
+			channels_[index].frequency = (channels_[index].frequency & 0xff) | (value & 1);
+			channels_[index].octave = (value >> 1) & 7;
+			channels_[index].key_on = value & 0x10;
+			channels_[index].hold_sustain_level = value & 0x20;
+			return;
+		}
+	});
 }
 
-void OPL2::set_opll_instrument(uint8_t target, uint8_t source_instrument, uint8_t volume) {
-	const uint8_t *source;
-	if(!source_instrument) {
-		source = opll_custom_instrument_;
-	} else {
-		--source_instrument;
-		source =
-			(source_instrument * 8) +
-			(personality_ == Personality::OPLL ? opll_patch_set : vrc7_patch_set);
-	}
-
-	constexpr uint8_t offsets[9][2] = {
-		{0x00, 0x03},
-		{0x01, 0x04},
-		{0x02, 0x05},
-
-		{0x08, 0x0b},
-		{0x09, 0x0c},
-		{0x0a, 0x0d},
-
-		{0x10, 0x13},
-		{0x11, 0x14},
-		{0x12, 0x15},
-	};
-	const auto carrier = offsets[target][0];
-	const auto modulator = offsets[target][1];
+void OPLL::setup_fixed_instrument(int number, const uint8_t *data) {
+	auto modulator = &operators_[number * 2];
+	auto carrier = &operators_[number * 2 + 1];
 
 	// Set waveforms — only sine and halfsine are available.
-	set_opl2_register(0xe0 + carrier, (source[3] & 0x10) ? 1 : 0);
-	set_opl2_register(0xe0 + modulator, (source[3] & 0x08) ? 1 : 0);
+	carrier->waveform = (data[3] & 0x10) ? 1 : 0;
+	modulator->waveform = (data[3] & 0x08) ? 1 : 0;
 
-	// Volume on the OPLL is four bit; on the OPL2 it's six. Pair that with key scale level.
-	set_opl2_register(0xe0 + carrier, uint8_t((source[3] & 0xc0) | (volume << 2)));
+	// Set modulator amplitude and key-scale level.
+	modulator->scaling_level = data[2] >> 6;
+	modulator->output_level = data[2] & 0x3f;
 
-	// Set feedback level, which is per channel. And always set frequency modulation.
-	set_opl2_register(0xc0 + target, uint8_t((source[3] & 0x7) << 1));
-
-	// The other values don't require any mapping.
-	set_opl2_register(0x20 + carrier, source[0]);
-	set_opl2_register(0x20 + modulator, source[1]);
-	set_opl2_register(0x40 + carrier, source[2]);
-	set_opl2_register(0x60 + carrier, source[4]);
-	set_opl2_register(0x60 + modulator, source[5]);
-	set_opl2_register(0x80 + carrier, source[6]);
-	set_opl2_register(0x80 + modulator, source[7]);
+//	set_opl2_register(0x20 + carrier, source[0]);
+//	set_opl2_register(0x20 + modulator, source[1]);
+//	set_opl2_register(0x40 + carrier, source[2]);
+//	set_opl2_register(0x60 + carrier, source[4]);
+//	set_opl2_register(0x60 + modulator, source[5]);
+//	set_opl2_register(0x80 + carrier, source[6]);
+//	set_opl2_register(0x80 + modulator, source[7]);
 }
 
-void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
-	printf("OPL2 write: %02x to %d\n", value, selected_register_);
+/*
+template <Personality personality>
+void OPL2<personality>::get_samples(std::size_t number_of_samples, std::int16_t *target) {
+	// TODO.
+	//  out = exp(logsin(phase2 + exp(logsin(phase1) + gain1)) + gain2)
+
+//		Melodic channels are:
+//
+//		Channel		Operator 1		Operator 2
+//		0			0				3
+//		1			1				4
+//		2			2				5
+//		3			6				9
+//		4			7				10
+//		5			8				11
+//		6			12				15
+//		7			13				16
+//		8			14				17
+//
+//		In percussion mode, only channels 0–5 are use as melodic, with 6, 7 and 8 being
+//		replaced by:
+//
+//		Bass drum, using operators 12 and 15;
+//		Snare, using operator 16;
+//		Tom tom, using operator 14,
+//		Cymbal, using operator 17; and
+//		Symbol, using operator 13.
+}
+
+*/
+
+void OPL2::write_register(uint8_t address, uint8_t value) {
 
 	// Deal with timer changes synchronously.
-	switch(location) {
+	switch(address) {
 		case 0x02:	timers_[0] = value; 	return;
 		case 0x03:	timers_[1] = value;		return;
 		case 0x04:	timer_control_ = value;	return;
@@ -273,8 +261,7 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 	}
 
 	// Enqueue any changes that affect audio output.
-	task_queue_.enqueue([this, location, value] {
-
+	task_queue_.enqueue([this, address, value] {
 		//
 		// Operator modifications.
 		//
@@ -287,8 +274,8 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 			12,	13,	14,	15,	16,	17,	-1,	-1
 		};
 
-		if(location >= 0x20 && location <= 0x35) {
-			const auto index = operator_by_address[location - 0x20];
+		if(address >= 0x20 && address <= 0x35) {
+			const auto index = operator_by_address[address - 0x20];
 			if(index == -1) return;
 
 			operators_[index].apply_amplitude_modulation = value & 0x80;
@@ -299,8 +286,8 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 			return;
 		}
 
-		if(location >= 0x40 && location <= 0x55) {
-			const auto index = operator_by_address[location - 0x40];
+		if(address >= 0x40 && address <= 0x55) {
+			const auto index = operator_by_address[address - 0x40];
 			if(index == -1) return;
 
 			operators_[index].scaling_level = value >> 6;
@@ -308,8 +295,8 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 			return;
 		}
 
-		if(location >= 0x60 && location <= 0x75) {
-			const auto index = operator_by_address[location - 0x60];
+		if(address >= 0x60 && address <= 0x75) {
+			const auto index = operator_by_address[address - 0x60];
 			if(index == -1) return;
 
 			operators_[index].attack_rate = value >> 5;
@@ -317,8 +304,8 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 			return;
 		}
 
-		if(location >= 0x80 && location <= 0x95) {
-			const auto index = operator_by_address[location - 0x80];
+		if(address >= 0x80 && address <= 0x95) {
+			const auto index = operator_by_address[address - 0x80];
 			if(index == -1) return;
 
 			operators_[index].sustain_level = value >> 5;
@@ -326,8 +313,8 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 			return;
 		}
 
-		if(location >= 0xe0 && location <= 0xf5) {
-			const auto index = operator_by_address[location - 0xe0];
+		if(address >= 0xe0 && address <= 0xf5) {
+			const auto index = operator_by_address[address - 0xe0];
 			if(index == -1) return;
 
 			operators_[index].waveform = value & 3;
@@ -339,21 +326,21 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 		// Channel modifications.
 		//
 
-		if(location >= 0xa0 && location <= 0xa8) {
-			channels_[location - 0xa0].frequency = (channels_[location - 0xa0].frequency & ~0xff) | value;
+		if(address >= 0xa0 && address <= 0xa8) {
+			channels_[address - 0xa0].frequency = (channels_[address - 0xa0].frequency & ~0xff) | value;
 			return;
 		}
 
-		if(location >= 0xb0 && location <= 0xb8) {
-			channels_[location - 0xb0].frequency = (channels_[location - 0xb0].frequency & 0xff) | ((value & 3) << 8);
-			channels_[location - 0xb0].octave = (value >> 2) & 0x7;
-			channels_[location - 0xb0].key_on = value & 0x20;;
+		if(address >= 0xb0 && address <= 0xb8) {
+			channels_[address - 0xb0].frequency = (channels_[address - 0xb0].frequency & 0xff) | ((value & 3) << 8);
+			channels_[address - 0xb0].octave = (value >> 2) & 0x7;
+			channels_[address - 0xb0].key_on = value & 0x20;;
 			return;
 		}
 
-		if(location >= 0xc0 && location <= 0xc8) {
-			channels_[location - 0xc0].feedback_strength = (value >> 1) & 0x7;
-			channels_[location - 0xc0].use_fm_synthesis = value & 1;
+		if(address >= 0xc0 && address <= 0xc8) {
+			channels_[address - 0xc0].feedback_strength = (value >> 1) & 0x7;
+			channels_[address - 0xc0].use_fm_synthesis = value & 1;
 			return;
 		}
 
@@ -362,7 +349,7 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 		// Modal modifications.
 		//
 
-		switch(location) {
+		switch(address) {
 			case 0x01:	waveform_enable_ = value & 0x20;	break;
 			case 0x08:
 				// b7: "composite sine wave mode on/off"?
@@ -375,4 +362,12 @@ void OPL2::set_opl2_register(uint8_t location, uint8_t value) {
 			default: break;
 		}
 	});
+}
+
+uint8_t OPL2::read(uint16_t address) {
+	// TODO. There's a status register where:
+	//	b7 = IRQ status (set if interrupt request ongoing)
+	//	b6 = timer 1 flag (set if timer 1 expired)
+	//	b5 = timer 2 flag
+	return 0xff;
 }

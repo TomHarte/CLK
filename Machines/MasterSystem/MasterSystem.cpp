@@ -99,7 +99,7 @@ class ConcreteMachine:
 				(target.model == Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
 				audio_queue_,
 				sn76489_divider),
-			opll_(Yamaha::OPL2::Personality::OPLL, audio_queue_),
+			opll_(audio_queue_),
 			mixer_(sn76489_, opll_),
 			speaker_(mixer_),
 			keyboard_({Inputs::Keyboard::Key::Enter, Inputs::Keyboard::Key::Escape}, {}) {
@@ -453,8 +453,8 @@ class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;
-		Yamaha::OPL2 opll_;
-		Outputs::Speaker::CompoundSource<TI::SN76489, Yamaha::OPL2> mixer_;
+		Yamaha::OPL::OPLL opll_;
+		Outputs::Speaker::CompoundSource<decltype(sn76489_), decltype(opll_)> mixer_;
 		Outputs::Speaker::LowpassSpeaker<decltype(mixer_)> speaker_;
 		uint8_t opll_detection_word_ = 0xff;
 
