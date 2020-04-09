@@ -185,7 +185,7 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 		if(address >= 0x20 && address <= 0x28) {
 			const auto index = address - 0x20;
 			channels_[index].frequency = (channels_[index].frequency & 0xff) | (value & 1);
-			channels_[index].octave = (value >> 1) & 7;
+			channels_[index].octave = (value >> 1) & 0x7;
 			channels_[index].key_on = value & 0x10;
 			channels_[index].hold_sustain_level = value & 0x20;
 			return;
@@ -198,8 +198,8 @@ void OPLL::setup_fixed_instrument(int number, const uint8_t *data) {
 	auto carrier = &operators_[number * 2 + 1];
 
 	// Set waveforms — only sine and halfsine are available.
-	carrier->waveform = (data[3] & 0x10) ? 1 : 0;
-	modulator->waveform = (data[3] & 0x08) ? 1 : 0;
+	carrier->waveform = Operator::Waveform((data[3] & 0x10) ? 1 : 0);
+	modulator->waveform = Operator::Waveform((data[3] & 0x08) ? 1 : 0);
 
 	// Set modulator amplitude and key-scale level.
 	modulator->scaling_level = data[2] >> 6;
@@ -317,7 +317,7 @@ void OPL2::write_register(uint8_t address, uint8_t value) {
 			const auto index = operator_by_address[address - 0xe0];
 			if(index == -1) return;
 
-			operators_[index].waveform = value & 3;
+			operators_[index].waveform = Operator::Waveform(value & 3);
 			return;
 		}
 

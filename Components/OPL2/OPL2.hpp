@@ -19,18 +19,43 @@ namespace Yamaha {
 namespace OPL {
 
 struct Operator {
+	/// If true then an amplitude modulation of "3.7Hz" is applied,
+	/// with a depth "determined by the AM-DEPTH of the BD register"?
 	bool apply_amplitude_modulation = false;
+
+	/// If true then a vibrato of '6.4 Hz' is applied, with a depth
+	/// "determined by VOB_DEPTH of the BD register"?
 	bool apply_vibrato = false;
+
+	/// Selects between an ADSR envelope that holds at the sustain level
+	/// for as long as this key is on, releasing afterwards, and one that
+	/// simply switches straight to the release rate once the sustain
+	/// level is hit, getting back to 0 regardless of an ongoing key-on.
 	bool hold_sustain_level = false;
+
+	/// Provides a potential faster step through the ADSR envelope. Cf. p12.
 	bool keyboard_scaling_rate = false;
+
+	/// Indexes a lookup table to determine what multiple of the channel's frequency
+	/// this operator is advancing at.
 	int frequency_multiple = 0;
-	int scaling_level = 0;
+
+	/// Sets the current output level of this modulator, as an attenuation.
 	int output_level = 0;
+
+	/// Selects attenuation that is applied as a function of interval. Cf. p14.
+	int scaling_level = 0;
+
+	/// Sets the ADSR rates.
 	int attack_rate = 0;
 	int decay_rate = 0;
 	int sustain_level = 0;
 	int release_rate = 0;
-	int waveform = 0;
+
+	/// Selects the generated waveform.
+	enum class Waveform {
+		Sine, HalfSine, AbsSine, PulseSine
+	} waveform = Waveform::Sine;
 };
 
 struct Channel {
@@ -39,6 +64,22 @@ struct Channel {
 	bool key_on = false;
 	int feedback_strength = 0;
 	bool use_fm_synthesis = true;
+
+	// This should be called at a rate of around 49,716 Hz.
+	void update() {
+		// Per the documentation:
+		// F-Num = Music Frequency * 2^(20-Block) / 49716
+		//
+		// Given that a 256-entry table is used to store a quarter of a sine wave,
+		// making 1024 steps per complete wave, add what I've called frequency
+		// to an accumulator and move on whenever that exceeds 2^(10 - octave).
+		//
+		// TODO: but, how does that apply to the two operator multipliers?
+		//
+		// Or: 2^19?
+	}
+
+	// Stateful information.
 };
 
 template <typename Child> class OPLBase: public ::Outputs::Speaker::SampleSource {
