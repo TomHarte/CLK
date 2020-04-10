@@ -18,68 +18,170 @@ namespace Yamaha {
 
 namespace OPL {
 
-struct Operator {
-	/// If true then an amplitude modulation of "3.7Hz" is applied,
-	/// with a depth "determined by the AM-DEPTH of the BD register"?
-	bool apply_amplitude_modulation = false;
+/*!
+	Models an operator.
 
-	/// If true then a vibrato of '6.4 Hz' is applied, with a depth
-	/// "determined by VOB_DEPTH of the BD register"?
-	bool apply_vibrato = false;
+	In Yamaha FM terms, an operator is a combination of a few things:
 
-	/// Selects between an ADSR envelope that holds at the sustain level
-	/// for as long as this key is on, releasing afterwards, and one that
-	/// simply switches straight to the release rate once the sustain
-	/// level is hit, getting back to 0 regardless of an ongoing key-on.
-	bool hold_sustain_level = false;
+		* an oscillator, producing one of a handful of sine-derived waveforms;
+		* an ADSR output level envelope; and
+		* a bunch of potential adjustments to those two things:
+			* optional tremolo and/or vibrato (the rates of which are global);
+			* the option to skip 'sustain' in ADSR and go straight to release (since no sustain period is supplied,
+				it otherwise runs for as long as the programmer leaves a channel enabled);
+			* an attenuation for the output level; and
+			* a factor by which to speed up the ADSR envelope as a function of frequency.
 
-	/// Provides a potential faster step through the ADSR envelope. Cf. p12.
-	bool keyboard_scaling_rate = false;
+	Oscillator frequency isn't set directly, it's a multiple of the owning channel, in which
+	frequency is set as a combination of f-num and octave.
+*/
+class Operator {
+	public:
+		/// Sets this operator's attack rate as the top nibble of @c value, its decay rate as the bottom nibble.
+		void set_attack_decay(uint8_t value) {
+			attack_rate = value >> 4;
+			decay_rate = value & 0xf;
+		}
 
-	/// Indexes a lookup table to determine what multiple of the channel's frequency
-	/// this operator is advancing at.
-	int frequency_multiple = 0;
+		/// Sets this operator's sustain level as the top nibble of @c value, its release rate as the bottom nibble.
+		void set_sustain_release(uint8_t value) {
+			sustain_level = value >> 4;
+			release_rate = value & 0xf;
+		}
 
-	/// Sets the current output level of this modulator, as an attenuation.
-	int output_level = 0;
+		/// Sets this operator's key scale level as the top two bits of @c value, its total output level as the low six bits.
+		void set_scaling_output(uint8_t value) {
+			scaling_level = value >> 6;
+			output_level = value & 0x3f;
+		}
 
-	/// Selects attenuation that is applied as a function of interval. Cf. p14.
-	int scaling_level = 0;
+		/// Sets this operator's waveform using the low two bits of @c value.
+		void set_waveform(uint8_t value) {
+			waveform = Operator::Waveform(value & 3);
+		}
 
-	/// Sets the ADSR rates.
-	int attack_rate = 0;
-	int decay_rate = 0;
-	int sustain_level = 0;
-	int release_rate = 0;
+		/// From the top nibble of @c value sets the AM, vibrato, hold/sustain level and keyboard sampling rate flags;
+		/// uses the bottom nibble to set the frequency multiplier.
+		void set_am_vibrato_hold_sustain_ksr_multiple(uint8_t value) {
+			apply_amplitude_modulation = value & 0x80;
+			apply_vibrato = value & 0x40;
+			hold_sustain_level = value & 0x20;
+			keyboard_scaling_rate = value & 0x10;
+			frequency_multiple = value & 0xf;
+		}
 
-	/// Selects the generated waveform.
-	enum class Waveform {
-		Sine, HalfSine, AbsSine, PulseSine
-	} waveform = Waveform::Sine;
+		void update(int channel_frequency, int channel_octave) {
+			// Per the documentation:
+			// F-Num = Music Frequency * 2^(20-Block) / 49716
+			//
+			// Given that a 256-entry table is used to store a quarter of a sine wave,
+			// making 1024 steps per complete wave, add what I've called frequency
+			// to an accumulator and move on whenever that exceeds 2^(10 - octave).
+			//
+			// ... subject to each operator having a frequency multiple.
+			//
+			// Or: 2^19?
+
+			// This encodes the MUL -> multiple table given on page 12,
+			// multiplied by two.
+			constexpr int multipliers[] = {
+				1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30
+			};
+
+			// Update the raw phase.
+			const int octave_divider = (10 - channel_octave) << 9;
+			divider_ += multipliers[frequency_multiple] * channel_frequency;
+			raw_phase_ += divider_ / octave_divider;
+			divider_ %= octave_divider;
+
+			// Hence calculate phase (TODO: by also taking account of vibrato).
+			constexpr int waveforms[4][4] = {
+				{1023, 1023, 1023, 1023},	// Sine: don't mask in any quadrant.
+				{511, 511, 0, 0},			// Half sine: keep the first half in tact, lock to 0 in the second half.
+				{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
+				{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
+			};
+			phase = raw_phase_ & waveforms[int(waveform)][(raw_phase_ >> 8) & 3];
+
+			// TODO: calculate output volume properly; apply: ADSR and amplitude modulation (tremolo, I assume?)
+			volume = output_level;
+		}
+
+		// Outputs.
+		int phase = 0;		// Will be in the range [0, 1023], mapping into a 1024-unit sine curve.
+		int volume = 0;
+
+	private:
+		/// If true then an amplitude modulation of "3.7Hz" is applied,
+		/// with a depth "determined by the AM-DEPTH of the BD register"?
+		bool apply_amplitude_modulation = false;
+
+		/// If true then a vibrato of '6.4 Hz' is applied, with a depth
+		/// "determined by VOB_DEPTH of the BD register"?
+		bool apply_vibrato = false;
+
+		/// Selects between an ADSR envelope that holds at the sustain level
+		/// for as long as this key is on, releasing afterwards, and one that
+		/// simply switches straight to the release rate once the sustain
+		/// level is hit, getting back to 0 regardless of an ongoing key-on.
+		bool hold_sustain_level = false;
+
+		/// Provides a potential faster step through the ADSR envelope. Cf. p12.
+		bool keyboard_scaling_rate = false;
+
+		/// Indexes a lookup table to determine what multiple of the channel's frequency
+		/// this operator is advancing at.
+		int frequency_multiple = 0;
+
+		/// Sets the current output level of this modulator, as an attenuation.
+		int output_level = 0;
+
+		/// Selects attenuation that is applied as a function of interval. Cf. p14.
+		int scaling_level = 0;
+
+		/// Sets the ADSR rates.
+		int attack_rate = 0;
+		int decay_rate = 0;
+		int sustain_level = 0;
+		int release_rate = 0;
+
+		/// Selects the generated waveform.
+		enum class Waveform {
+			Sine, HalfSine, AbsSine, PulseSine
+		} waveform = Waveform::Sine;
+
+		// Ephemeral state.
+		int raw_phase_ = 0;
+		int divider_ = 0;
 };
 
+/*!
+	Models an L-type two-operator channel.
+
+	Assuming FM synthesis is enabled, the channel modulates the output of the carrier with that of the modulator.
+*/
 struct Channel {
+	/// 'F-Num' in the spec; this plus the current octave determines channel frequency.
 	int frequency = 0;
+
+	/// Linked with the frequency, determines the channel frequency.
 	int octave = 0;
+
+	/// Sets sets this channel on or off, as an input to the ADSR envelope,
 	bool key_on = false;
+
+	/// Sets the degree of feedback applied to the modulator.
 	int feedback_strength = 0;
+
+	/// Selects between FM synthesis, using the modulator to modulate the carrier, or simple mixing of the two
+	/// underlying operators as completely disjoint entities.
 	bool use_fm_synthesis = true;
 
 	// This should be called at a rate of around 49,716 Hz.
-	void update() {
-		// Per the documentation:
-		// F-Num = Music Frequency * 2^(20-Block) / 49716
-		//
-		// Given that a 256-entry table is used to store a quarter of a sine wave,
-		// making 1024 steps per complete wave, add what I've called frequency
-		// to an accumulator and move on whenever that exceeds 2^(10 - octave).
-		//
-		// TODO: but, how does that apply to the two operator multipliers?
-		//
-		// Or: 2^19?
+	void update(Operator *carrier, Operator *modulator) {
+		modulator->update(frequency, octave);
+		carrier->update(frequency, octave);
 	}
-
-	// Stateful information.
 };
 
 template <typename Child> class OPLBase: public ::Outputs::Speaker::SampleSource {

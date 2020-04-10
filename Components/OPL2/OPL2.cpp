@@ -157,38 +157,37 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 			return;
 		}
 
-		// Locations 0x30 to 0x38: select an instrument in the top nibble, set a channel volume in the lower.
-		if(address >= 0x30 && address <= 0x38) {
-			const auto index = address - 0x30;
-			const auto instrument = value >> 4;
-
-			channels_[index].output_level = value & 0xf;
-			channels_[index].modulator = &operators_[instrument * 2];
-			return;
-		}
-
 		// Register 0xe is a cut-down version of the OPLL's register 0xbd.
 		if(address == 0xe) {
 			depth_rhythm_control_ = value & 0x3f;
 			return;
 		}
 
-		// Registers 0x10 to 0x18 set the bottom part of the channel frequency.
-		if(address >= 0x10 && address <= 0x18) {
-			const auto index = address - 0x10;
-			channels_[index].frequency = (channels_[index].frequency & ~0xff) | value;
-			return;
-		}
+		const auto index = address & 0xf;
+		if(index > 8) return;
 
-		// 0x20 to 0x28 set sustain on/off, key on/off, octave and a single extra bit of frequency.
-		// So they're a lot like OPLL registers 0xb0 to 0xb8, but not identical.
-		if(address >= 0x20 && address <= 0x28) {
-			const auto index = address - 0x20;
-			channels_[index].frequency = (channels_[index].frequency & 0xff) | (value & 1);
-			channels_[index].octave = (value >> 1) & 0x7;
-			channels_[index].key_on = value & 0x10;
-			channels_[index].hold_sustain_level = value & 0x20;
-			return;
+		switch(address & 0xf0) {
+			case 0x30:
+				// Select an instrument in the top nibble, set a channel volume in the lower.
+				channels_[index].output_level = value & 0xf;
+				channels_[index].modulator = &operators_[(value >> 4) * 2];
+			break;
+
+			case 0x10:
+				// Set the bottom part of the channel frequency.
+				channels_[index].frequency = (channels_[index].frequency & ~0xff) | value;
+			break;
+
+			case 0x20:
+				// Set sustain on/off, key on/off, octave and a single extra bit of frequency.
+				// So they're a lot like OPLL registers 0xb0 to 0xb8, but not identical.
+				channels_[index].frequency = (channels_[index].frequency & 0xff) | (value & 1);
+				channels_[index].octave = (value >> 1) & 0x7;
+				channels_[index].key_on = value & 0x10;
+				channels_[index].hold_sustain_level = value & 0x20;
+			break;
+
+			default: break;
 		}
 	});
 }
@@ -197,21 +196,22 @@ void OPLL::setup_fixed_instrument(int number, const uint8_t *data) {
 	auto modulator = &operators_[number * 2];
 	auto carrier = &operators_[number * 2 + 1];
 
+	modulator->set_am_vibrato_hold_sustain_ksr_multiple(data[0]);
+	carrier->set_am_vibrato_hold_sustain_ksr_multiple(data[1]);
+	modulator->set_scaling_output(data[2]);
+
 	// Set waveforms — only sine and halfsine are available.
-	carrier->waveform = Operator::Waveform((data[3] & 0x10) ? 1 : 0);
-	modulator->waveform = Operator::Waveform((data[3] & 0x08) ? 1 : 0);
+	carrier->set_waveform((data[3] >> 4) & 1);
+	modulator->set_waveform((data[3] >> 3) & 1);
 
-	// Set modulator amplitude and key-scale level.
-	modulator->scaling_level = data[2] >> 6;
-	modulator->output_level = data[2] & 0x3f;
+	// TODO: data[3] b0-b2: modulator feedback level
+	// TODO: data[3] b6, b7: carrier key-scale level
 
-//	set_opl2_register(0x20 + carrier, source[0]);
-//	set_opl2_register(0x20 + modulator, source[1]);
-//	set_opl2_register(0x40 + carrier, source[2]);
-//	set_opl2_register(0x60 + carrier, source[4]);
-//	set_opl2_register(0x60 + modulator, source[5]);
-//	set_opl2_register(0x80 + carrier, source[6]);
-//	set_opl2_register(0x80 + modulator, source[7]);
+	// Set ADSR parameters.
+	modulator->set_attack_decay(data[4]);
+	carrier->set_attack_decay(data[5]);
+	modulator->set_sustain_release(data[6]);
+	carrier->set_sustain_release(data[7]);
 }
 
 /*
@@ -266,59 +266,28 @@ void OPL2::write_register(uint8_t address, uint8_t value) {
 		// Operator modifications.
 		//
 
-		// The 18 operators are spreat out across 22 addresses; each group of
-		// six is framed within an eight-byte area thusly:
-		constexpr int operator_by_address[] = {
-			0,	1,	2,	3,	4,	5,	-1,	-1,
-			6,	7,	8,	9,	10,	11,	-1,	-1,
-			12,	13,	14,	15,	16,	17,	-1,	-1
-		};
+		if((address >= 0x20 && address < 0xa0) || address >= 0xe0) {
+			// The 18 operators are spreat out across 22 addresses; each group of
+			// six is framed within an eight-byte area thusly:
+			constexpr int operator_by_address[] = {
+				0,	1,	2,	3,	4,	5,	-1,	-1,
+				6,	7,	8,	9,	10,	11,	-1,	-1,
+				12,	13,	14,	15,	16,	17,	-1,	-1,
+				-1,	-1, -1, -1, -1, -1, -1, -1,
+			};
 
-		if(address >= 0x20 && address <= 0x35) {
-			const auto index = operator_by_address[address - 0x20];
+			const auto index = operator_by_address[address & 0x1f];
 			if(index == -1) return;
 
-			operators_[index].apply_amplitude_modulation = value & 0x80;
-			operators_[index].apply_vibrato = value & 0x40;
-			operators_[index].hold_sustain_level = value & 0x20;
-			operators_[index].keyboard_scaling_rate = value & 0x10;
-			operators_[index].frequency_multiple = value & 0xf;
-			return;
-		}
+			switch(address & 0xe0) {
+				case 0x20:	operators_[index].set_am_vibrato_hold_sustain_ksr_multiple(value);	break;
+				case 0x40:	operators_[index].set_scaling_output(value);						break;
+				case 0x60:	operators_[index].set_attack_decay(value);							break;
+				case 0x80:	operators_[index].set_sustain_release(value);						break;
+				case 0xe0:	operators_[index].set_waveform(value);								break;
 
-		if(address >= 0x40 && address <= 0x55) {
-			const auto index = operator_by_address[address - 0x40];
-			if(index == -1) return;
-
-			operators_[index].scaling_level = value >> 6;
-			operators_[index].output_level = value & 0x3f;
-			return;
-		}
-
-		if(address >= 0x60 && address <= 0x75) {
-			const auto index = operator_by_address[address - 0x60];
-			if(index == -1) return;
-
-			operators_[index].attack_rate = value >> 5;
-			operators_[index].decay_rate = value & 0xf;
-			return;
-		}
-
-		if(address >= 0x80 && address <= 0x95) {
-			const auto index = operator_by_address[address - 0x80];
-			if(index == -1) return;
-
-			operators_[index].sustain_level = value >> 5;
-			operators_[index].release_rate = value & 0xf;
-			return;
-		}
-
-		if(address >= 0xe0 && address <= 0xf5) {
-			const auto index = operator_by_address[address - 0xe0];
-			if(index == -1) return;
-
-			operators_[index].waveform = Operator::Waveform(value & 3);
-			return;
+				default: break;
+			}
 		}
 
 
@@ -326,21 +295,25 @@ void OPL2::write_register(uint8_t address, uint8_t value) {
 		// Channel modifications.
 		//
 
-		if(address >= 0xa0 && address <= 0xa8) {
-			channels_[address - 0xa0].frequency = (channels_[address - 0xa0].frequency & ~0xff) | value;
-			return;
-		}
+		if(address >= 0xa0 && address <= 0xd0) {
+			const auto index = address & 0xf;
+			if(index > 8) return;
 
-		if(address >= 0xb0 && address <= 0xb8) {
-			channels_[address - 0xb0].frequency = (channels_[address - 0xb0].frequency & 0xff) | ((value & 3) << 8);
-			channels_[address - 0xb0].octave = (value >> 2) & 0x7;
-			channels_[address - 0xb0].key_on = value & 0x20;;
-			return;
-		}
+			switch(address & 0xf0) {
+				case 0xa0:
+					channels_[index].frequency = (channels_[index].frequency & ~0xff) | value;
+				break;
+				case 0xb0:
+					channels_[index].frequency = (channels_[index].frequency & 0xff) | ((value & 3) << 8);
+					channels_[index].octave = (value >> 2) & 0x7;
+					channels_[index].key_on = value & 0x20;;
+				break;
+				case 0xc0:
+					channels_[index].feedback_strength = (value >> 1) & 0x7;
+					channels_[index].use_fm_synthesis = value & 1;
+				break;
+			}
 
-		if(address >= 0xc0 && address <= 0xc8) {
-			channels_[address - 0xc0].feedback_strength = (value >> 1) & 0x7;
-			channels_[address - 0xc0].use_fm_synthesis = value & 1;
 			return;
 		}
 
