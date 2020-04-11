@@ -19,6 +19,31 @@ namespace Yamaha {
 namespace OPL {
 
 /*!
+	Describes the ephemeral state of an operator.
+*/
+struct OperatorState {
+	public:
+		int phase = 0;		// Will be in the range [0, 1023], mapping into a 1024-unit sine curve.
+		int volume = 0;
+
+	private:
+		int divider_ = 0;
+		int raw_phase_ = 0;
+
+		friend class Operator;
+};
+
+/*!
+	Describes parts of an operator that are genuinely stored per-operator on the OPLL;
+	these can be provided to the Operator in order to have it ignore its local values
+	if the host is an OPLL or VRC7.
+*/
+struct OperatorOverrides {
+	int output_level = 0;
+	bool hold_sustain_level = false;
+};
+
+/*!
 	Models an operator.
 
 	In Yamaha FM terms, an operator is a combination of a few things:
@@ -70,7 +95,7 @@ class Operator {
 			frequency_multiple = value & 0xf;
 		}
 
-		void update(int channel_frequency, int channel_octave) {
+		void update(OperatorState &state, int channel_frequency, int channel_octave, OperatorOverrides *overrides = nullptr) {
 			// Per the documentation:
 			// F-Num = Music Frequency * 2^(20-Block) / 49716
 			//
@@ -90,9 +115,9 @@ class Operator {
 
 			// Update the raw phase.
 			const int octave_divider = (10 - channel_octave) << 9;
-			divider_ += multipliers[frequency_multiple] * channel_frequency;
-			raw_phase_ += divider_ / octave_divider;
-			divider_ %= octave_divider;
+			state.divider_ += multipliers[frequency_multiple] * channel_frequency;
+			state.raw_phase_ += state.divider_ / octave_divider;
+			state.divider_ %= octave_divider;
 
 			// Hence calculate phase (TODO: by also taking account of vibrato).
 			constexpr int waveforms[4][4] = {
@@ -101,15 +126,11 @@ class Operator {
 				{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
 				{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
 			};
-			phase = raw_phase_ & waveforms[int(waveform)][(raw_phase_ >> 8) & 3];
+			state.phase = state.raw_phase_ & waveforms[int(waveform)][(state.raw_phase_ >> 8) & 3];
 
 			// TODO: calculate output volume properly; apply: ADSR and amplitude modulation (tremolo, I assume?)
-			volume = output_level;
+			state.volume = output_level;
 		}
-
-		// Outputs.
-		int phase = 0;		// Will be in the range [0, 1023], mapping into a 1024-unit sine curve.
-		int volume = 0;
 
 	private:
 		/// If true then an amplitude modulation of "3.7Hz" is applied,
@@ -149,10 +170,6 @@ class Operator {
 		enum class Waveform {
 			Sine, HalfSine, AbsSine, PulseSine
 		} waveform = Waveform::Sine;
-
-		// Ephemeral state.
-		int raw_phase_ = 0;
-		int divider_ = 0;
 };
 
 /*!
@@ -160,28 +177,62 @@ class Operator {
 
 	Assuming FM synthesis is enabled, the channel modulates the output of the carrier with that of the modulator.
 */
-struct Channel {
-	/// 'F-Num' in the spec; this plus the current octave determines channel frequency.
-	int frequency = 0;
+class Channel {
+	public:
+		/// Sets the low 8 bits of frequency control.
+		void set_frequency_low(uint8_t value) {
+			frequency = (frequency &~0xff) | value;
+		}
 
-	/// Linked with the frequency, determines the channel frequency.
-	int octave = 0;
+		/// Sets the high two bits of a 10-bit frequency control, along with this channel's
+		/// block/octave, and key on or off.
+		void set_10bit_frequency_octave_key_on(uint8_t value) {
+			frequency = (frequency & 0xff) | ((value & 3) << 8);
+			octave = (value >> 2) & 0x7;
+			key_on = value & 0x20;;
+		}
 
-	/// Sets sets this channel on or off, as an input to the ADSR envelope,
-	bool key_on = false;
+		/// Sets the high two bits of a 9-bit frequency control, along with this channel's
+		/// block/octave, and key on or off.
+		void set_9bit_frequency_octave_key_on(uint8_t value) {
+			frequency = (frequency & 0xff) | ((value & 1) << 8);
+			octave = (value >> 1) & 0x7;
+			key_on = value & 0x10;;
+		}
 
-	/// Sets the degree of feedback applied to the modulator.
-	int feedback_strength = 0;
+		/// Sets the amount of feedback provided to the first operator (i.e. the modulator)
+		/// associated with this channel, and whether FM synthesis is in use.
+		void set_feedback_mode(uint8_t value) {
+			feedback_strength = (value >> 1) & 0x7;
+			use_fm_synthesis = value & 1;
+		}
 
-	/// Selects between FM synthesis, using the modulator to modulate the carrier, or simple mixing of the two
-	/// underlying operators as completely disjoint entities.
-	bool use_fm_synthesis = true;
+		// This should be called at a rate of around 49,716 Hz.
+		void update(Operator *carrier, Operator *modulator) {
+			modulator->update(modulator_state_, frequency, octave);
+			carrier->update(carrier_state_, frequency, octave);
+		}
 
-	// This should be called at a rate of around 49,716 Hz.
-	void update(Operator *carrier, Operator *modulator) {
-		modulator->update(frequency, octave);
-		carrier->update(frequency, octave);
-	}
+	private:
+		/// 'F-Num' in the spec; this plus the current octave determines channel frequency.
+		int frequency = 0;
+
+		/// Linked with the frequency, determines the channel frequency.
+		int octave = 0;
+
+		/// Sets sets this channel on or off, as an input to the ADSR envelope,
+		bool key_on = false;
+
+		/// Sets the degree of feedback applied to the modulator.
+		int feedback_strength = 0;
+
+		/// Selects between FM synthesis, using the modulator to modulate the carrier, or simple mixing of the two
+		/// underlying operators as completely disjoint entities.
+		bool use_fm_synthesis = true;
+
+		// Stored separately because carrier/modulator may not be unique per channel —
+		// on the OPLL there's an extra level of indirection.
+		OperatorState carrier_state_, modulator_state_;
 };
 
 template <typename Child> class OPLBase: public ::Outputs::Speaker::SampleSource {
@@ -253,11 +304,14 @@ struct OPLL: public OPLBase<OPLL> {
 	private:
 		friend OPLBase<OPLL>;
 
-		Operator operators_[32];
+		Operator operators_[38];	// There's an extra level of indirection with the OPLL; these 38
+									// operators are to describe 19 hypothetical channels, being
+									// one user-configurable channel, 15 hard-coded channels, and
+									// three channels configured for rhythm generation.
+
 		struct Channel: public ::Yamaha::OPL::Channel {
-			int output_level = 0;
-			bool hold_sustain_level = false;
 			Operator *modulator;	// Implicitly, the carrier is modulator+1.
+			OperatorOverrides overrides;
 		};
 		Channel channels_[9];
 

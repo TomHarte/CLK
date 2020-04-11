@@ -124,8 +124,10 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, bool is_vrc7): OPLB
 		patch_set += 8;
 	}
 
-	// TODO: install percussion.
-	(void)percussion_patch_set;
+	// Install rhythm patches.
+	for(int c = 0; c < 3; ++c) {
+		setup_fixed_instrument(c+16, &percussion_patch_set[c * 8]);
+	}
 }
 
 bool OPLL::is_zero_level() {
@@ -169,22 +171,17 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 		switch(address & 0xf0) {
 			case 0x30:
 				// Select an instrument in the top nibble, set a channel volume in the lower.
-				channels_[index].output_level = value & 0xf;
+				channels_[index].overrides.output_level = value & 0xf;
 				channels_[index].modulator = &operators_[(value >> 4) * 2];
 			break;
 
-			case 0x10:
-				// Set the bottom part of the channel frequency.
-				channels_[index].frequency = (channels_[index].frequency & ~0xff) | value;
-			break;
+			case 0x10:	channels_[index].set_frequency_low(value);	break;
 
 			case 0x20:
 				// Set sustain on/off, key on/off, octave and a single extra bit of frequency.
 				// So they're a lot like OPLL registers 0xb0 to 0xb8, but not identical.
-				channels_[index].frequency = (channels_[index].frequency & 0xff) | (value & 1);
-				channels_[index].octave = (value >> 1) & 0x7;
-				channels_[index].key_on = value & 0x10;
-				channels_[index].hold_sustain_level = value & 0x20;
+				channels_[index].set_9bit_frequency_octave_key_on(value);
+				channels_[index].overrides.hold_sustain_level = value & 0x20;
 			break;
 
 			default: break;
@@ -263,6 +260,24 @@ void OPL2::write_register(uint8_t address, uint8_t value) {
 	// Enqueue any changes that affect audio output.
 	task_queue_.enqueue([this, address, value] {
 		//
+		// Modal modifications.
+		//
+
+		switch(address) {
+			case 0x01:	waveform_enable_ = value & 0x20;	break;
+			case 0x08:
+				// b7: "composite sine wave mode on/off"?
+				csm_keyboard_split_ = value;
+				// b6: "Controls the split point of the keyboard. When 0, the keyboard split is the
+				// second bit from the bit 8 of the F-Number. When 1, the MSB of the F-Number is used."
+			break;
+			case 0xbd:	depth_rhythm_control_ = value;		break;
+
+			default: break;
+		}
+
+
+		//
 		// Operator modifications.
 		//
 
@@ -295,42 +310,13 @@ void OPL2::write_register(uint8_t address, uint8_t value) {
 		// Channel modifications.
 		//
 
-		if(address >= 0xa0 && address <= 0xd0) {
-			const auto index = address & 0xf;
-			if(index > 8) return;
+		const auto index = address & 0xf;
+		if(index > 8) return;
 
-			switch(address & 0xf0) {
-				case 0xa0:
-					channels_[index].frequency = (channels_[index].frequency & ~0xff) | value;
-				break;
-				case 0xb0:
-					channels_[index].frequency = (channels_[index].frequency & 0xff) | ((value & 3) << 8);
-					channels_[index].octave = (value >> 2) & 0x7;
-					channels_[index].key_on = value & 0x20;;
-				break;
-				case 0xc0:
-					channels_[index].feedback_strength = (value >> 1) & 0x7;
-					channels_[index].use_fm_synthesis = value & 1;
-				break;
-			}
-
-			return;
-		}
-
-
-		//
-		// Modal modifications.
-		//
-
-		switch(address) {
-			case 0x01:	waveform_enable_ = value & 0x20;	break;
-			case 0x08:
-				// b7: "composite sine wave mode on/off"?
-				csm_keyboard_split_ = value;
-				// b6: "Controls the split point of the keyboard. When 0, the keyboard split is the
-				// second bit from the bit 8 of the F-Number. When 1, the MSB of the F-Number is used."
-			break;
-			case 0xbd:	depth_rhythm_control_ = value;		break;
+		switch(address & 0xf0) {
+			case 0xa0:	channels_[index].set_frequency_low(value);					break;
+			case 0xb0:	channels_[index].set_10bit_frequency_octave_key_on(value);	break;
+			case 0xc0:	channels_[index].set_feedback_mode(value);					break;
 
 			default: break;
 		}
