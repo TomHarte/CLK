@@ -99,15 +99,10 @@ class Operator {
 
 		void update(OperatorState &state, int channel_frequency, int channel_octave, OperatorOverrides *overrides = nullptr) {
 			// Per the documentation:
-			// F-Num = Music Frequency * 2^(20-Block) / 49716
 			//
-			// Given that a 256-entry table is used to store a quarter of a sine wave,
-			// making 1024 steps per complete wave, add what I've called frequency
-			// to an accumulator and move on whenever that exceeds 2^(10 - octave).
+			// Delta phase = ( [desired freq] * 2^19 / [input clock / 72] ) / 2 ^ (b - 1)
 			//
-			// ... subject to each operator having a frequency multiple.
-			//
-			// Or: 2^19?
+			// After experimentation, I think this gives rate calculation as formulated below.
 
 			// This encodes the MUL -> multiple table given on page 12,
 			// multiplied by two.
@@ -116,10 +111,10 @@ class Operator {
 			};
 
 			// Update the raw phase.
-			const int octave_divider = (10 - channel_octave) << 9;
+			const int octave_divider = 32 << channel_octave;
+			state.divider_ %= octave_divider;
 			state.divider_ += multipliers[frequency_multiple] * channel_frequency;
 			state.raw_phase_ += state.divider_ / octave_divider;
-			state.divider_ %= octave_divider;
 
 			// Hence calculate phase (TODO: by also taking account of vibrato).
 			constexpr int waveforms[4][4] = {
@@ -192,7 +187,8 @@ class Channel {
 		void set_10bit_frequency_octave_key_on(uint8_t value) {
 			frequency = (frequency & 0xff) | ((value & 3) << 8);
 			octave = (value >> 2) & 0x7;
-			key_on = value & 0x20;;
+			key_on = value & 0x20;
+			frequency_shift = 0;
 		}
 
 		/// Sets the high two bits of a 9-bit frequency control, along with this channel's
@@ -201,6 +197,7 @@ class Channel {
 			frequency = (frequency & 0xff) | ((value & 1) << 8);
 			octave = (value >> 1) & 0x7;
 			key_on = value & 0x10;;
+			frequency_shift = 1;
 		}
 
 		/// Sets the amount of feedback provided to the first operator (i.e. the modulator)
@@ -213,12 +210,12 @@ class Channel {
 		/// This should be called at a rate of around 49,716 Hz; it returns the current output level
 		/// level for this channel.
 		int update(Operator *modulator, Operator *carrier) {
-			modulator->update(modulator_state_, frequency, octave);
-			carrier->update(carrier_state_, frequency, octave);
+			modulator->update(modulator_state_, frequency << frequency_shift, octave);
+			carrier->update(carrier_state_, frequency << frequency_shift, octave);
 
 			// TODO: almost everything else. This is a quick test.
 			if(!key_on) return 0;
-			return int(sin(float(carrier_state_.phase) / 1024.0) * 2048.0);
+			return int(sin(float(carrier_state_.phase) / 1024.0) * 20000.0);
 		}
 
 		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
@@ -242,6 +239,10 @@ class Channel {
 		/// Selects between FM synthesis, using the modulator to modulate the carrier, or simple mixing of the two
 		/// underlying operators as completely disjoint entities.
 		bool use_fm_synthesis = true;
+
+		/// Used internally to make both the 10-bit OPL2 frequency selection and 9-bit OPLL/VRC7 frequency
+		/// selections look the same when passed to the operators.
+		int frequency_shift = 0;
 
 		// Stored separately because carrier/modulator may not be unique per channel —
 		// on the OPLL there's an extra level of indirection.
