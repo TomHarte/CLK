@@ -8,6 +8,7 @@
 
 #include "OPL2.hpp"
 
+#include <cassert>
 #include <cmath>
 
 namespace {
