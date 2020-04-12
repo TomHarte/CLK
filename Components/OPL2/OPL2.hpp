@@ -13,6 +13,8 @@
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../Numeric/LFSR.hpp"
 
+#include <cmath>
+
 namespace Yamaha {
 
 
@@ -64,14 +66,14 @@ class Operator {
 	public:
 		/// Sets this operator's attack rate as the top nibble of @c value, its decay rate as the bottom nibble.
 		void set_attack_decay(uint8_t value) {
-			attack_rate = value >> 4;
-			decay_rate = value & 0xf;
+			attack_rate = (value & 0xf0) >> 2;
+			decay_rate = (value & 0x0f) << 2;
 		}
 
 		/// Sets this operator's sustain level as the top nibble of @c value, its release rate as the bottom nibble.
 		void set_sustain_release(uint8_t value) {
-			sustain_level = value >> 4;
-			release_rate = value & 0xf;
+			sustain_level = (value & 0xf0) >> 2;
+			release_rate = (value & 0x0f) << 2;
 		}
 
 		/// Sets this operator's key scale level as the top two bits of @c value, its total output level as the low six bits.
@@ -160,7 +162,8 @@ class Operator {
 		/// Selects attenuation that is applied as a function of interval. Cf. p14.
 		int scaling_level = 0;
 
-		/// Sets the ADSR rates.
+		/// Sets the ADSR rates. These all provide the top four bits of a six-bit number;
+		/// the bottom two bits... are 'RL'?
 		int attack_rate = 0;
 		int decay_rate = 0;
 		int sustain_level = 0;
@@ -207,10 +210,20 @@ class Channel {
 			use_fm_synthesis = value & 1;
 		}
 
-		// This should be called at a rate of around 49,716 Hz.
-		void update(Operator *carrier, Operator *modulator) {
+		/// This should be called at a rate of around 49,716 Hz; it returns the current output level
+		/// level for this channel.
+		int update(Operator *modulator, Operator *carrier) {
 			modulator->update(modulator_state_, frequency, octave);
 			carrier->update(carrier_state_, frequency, octave);
+
+			// TODO: almost everything else. This is a quick test.
+			if(!key_on) return 0;
+			return int(sin(float(carrier_state_.phase) / 1024.0) * 2048.0);
+		}
+
+		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
+		bool is_audible() {
+			return key_on;	// TODO: this is a temporary hack in lieu of ADSR. Fix.
 		}
 
 	private:
@@ -289,7 +302,7 @@ struct OPL2: public OPLBase<OPL2> {
 struct OPLL: public OPLBase<OPLL> {
 	public:
 		// Creates a new OPLL or VRC7.
-		OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, bool is_vrc7 = false);
+		OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider = 1, bool is_vrc7 = false);
 
 		/// As per ::SampleSource; provides a broadphase test for silence.
 		bool is_zero_level();
@@ -312,13 +325,22 @@ struct OPLL: public OPLBase<OPLL> {
 		struct Channel: public ::Yamaha::OPL::Channel {
 			Operator *modulator;	// Implicitly, the carrier is modulator+1.
 			OperatorOverrides overrides;
+			int level = 0;
 		};
+		void update_all_chanels() {
+			for(int c = 0; c < 6; ++ c) {	// Don't do anything with channels that might be percussion for now.
+				channels_[c].level = channels_[c].update(channels_[c].modulator, channels_[c].modulator + 1);
+			}
+		}
 		Channel channels_[9];
 
 		void setup_fixed_instrument(int number, const uint8_t *data);
 		uint8_t custom_instrument_[8];
 
 		void write_register(uint8_t address, uint8_t value);
+
+		const int audio_divider_ = 1;
+		int audio_offset_ = 0;
 };
 
 }

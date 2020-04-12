@@ -32,7 +32,7 @@
 #include <iostream>
 
 namespace {
-constexpr int sn76489_divider = 2;
+constexpr int audio_divider = 2;
 }
 
 namespace Sega {
@@ -98,14 +98,14 @@ class ConcreteMachine:
 			sn76489_(
 				(target.model == Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
 				audio_queue_,
-				sn76489_divider),
-			opll_(audio_queue_),
+				audio_divider),
+			opll_(audio_queue_, audio_divider),
 			mixer_(sn76489_, opll_),
 			speaker_(mixer_),
 			keyboard_({Inputs::Keyboard::Key::Enter, Inputs::Keyboard::Key::Escape}, {}) {
 			// Pick the clock rate based on the region.
 			const double clock_rate = target.region == Target::Region::Europe ? 3546893.0 : 3579540.0;
-			speaker_.set_input_rate(static_cast<float>(clock_rate / sn76489_divider));
+			speaker_.set_input_rate(static_cast<float>(clock_rate / audio_divider));
 			set_clock_rate(clock_rate);
 
 			// Instantiate the joysticks.
@@ -321,6 +321,7 @@ class ConcreteMachine:
 								if(has_fm_audio_) {
 									switch(address & 0xff) {
 										case 0xf0: case 0xf1:
+											update_audio();
 											opll_.write(address, *cycle.value);
 										break;
 										case 0xf2:
@@ -441,7 +442,7 @@ class ConcreteMachine:
 		}
 
 		inline void update_audio() {
-			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
+			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(audio_divider)));
 		}
 
 		using Target = Analyser::Static::Sega::Target;

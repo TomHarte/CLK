@@ -116,7 +116,11 @@ template class Yamaha::OPL::OPLBase<Yamaha::OPL::OPLL>;
 template class Yamaha::OPL::OPLBase<Yamaha::OPL::OPL2>;
 
 
-OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, bool is_vrc7): OPLBase(task_queue) {
+OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, bool is_vrc7): OPLBase(task_queue), audio_divider_(audio_divider) {
+	// Due to the way that sound mixing works on the OPLL, the audio divider may not
+	// be larger than 2.
+	assert(audio_divider <= 2);
+
 	// Install fixed instruments.
 	const uint8_t *patch_set = is_vrc7 ? vrc7_patch_set : opll_patch_set;
 	for(int c = 0; c < 15; ++c) {
@@ -128,13 +132,63 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, bool is_vrc7): OPLB
 	for(int c = 0; c < 3; ++c) {
 		setup_fixed_instrument(c+16, &percussion_patch_set[c * 8]);
 	}
+
+	// Set default modulators.
+	for(int c = 0; c < 9; ++c) {
+		channels_[c].modulator = &operators_[0];
+	}
 }
 
 bool OPLL::is_zero_level() {
+	for(int c = 0; c < 9; ++c) {
+		if(channels_[c].is_audible()) return false;
+	}
 	return true;
 }
 
 void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
+	// Both the OPLL and the OPL2 divide the input clock by 72 to get the base tick frequency;
+	// unlike the OPL2 the OPLL time-divides the output for 'mixing'.
+
+	const int update_period = 72 / audio_divider_;
+	const int channel_output_period = 8 / audio_divider_;
+
+	// Fill in any leftover from the previous session.
+	if(audio_offset_) {
+		while(audio_offset_ < update_period && number_of_samples) {
+			*target = int16_t(channels_[audio_offset_ / channel_output_period].level);
+			++target;
+			++audio_offset_;
+			--number_of_samples;
+		}
+		audio_offset_ = 0;
+	}
+
+	// End now if that provided everything that was asked for.
+	if(!number_of_samples) return;
+
+	int total_updates = int(number_of_samples) / update_period;
+	number_of_samples %= size_t(update_period);
+	audio_offset_ = int(number_of_samples);
+
+	while(total_updates--) {
+		update_all_chanels();
+
+		for(int c = 0; c < update_period; ++c) {
+			*target = int16_t(channels_[c / channel_output_period].level);
+			++target;
+		}
+	}
+
+	// If there are any other spots remaining, fill them.
+	if(number_of_samples) {
+		update_all_chanels();
+
+		for(int c = 0; c < int(number_of_samples); ++c) {
+			*target = int16_t(channels_[c / channel_output_period].level);
+			++target;
+		}
+	}
 }
 
 void OPLL::set_sample_volume_range(std::int16_t range) {
