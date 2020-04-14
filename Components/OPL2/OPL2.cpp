@@ -226,7 +226,7 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 		switch(address & 0xf0) {
 			case 0x30:
 				// Select an instrument in the top nibble, set a channel volume in the lower.
-				channels_[index].overrides.output_level = value & 0xf;
+				channels_[index].overrides.attenuation = value & 0xf;
 				channels_[index].modulator = &operators_[(value >> 4) * 2];
 			break;
 
@@ -385,3 +385,129 @@ uint8_t OPL2::read(uint16_t address) {
 	//	b5 = timer 2 flag
 	return 0xff;
 }
+
+// MARK: - Operators
+
+void Operator::update(OperatorState &state, bool key_on, int channel_frequency, int channel_octave, OperatorOverrides *overrides) {
+	// Per the documentation:
+	//
+	// Delta phase = ( [desired freq] * 2^19 / [input clock / 72] ) / 2 ^ (b - 1)
+	//
+	// After experimentation, I think this gives rate calculation as formulated below.
+
+	// This encodes the MUL -> multiple table given on page 12,
+	// multiplied by two.
+	constexpr int multipliers[] = {
+		1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30
+	};
+
+	// Update the raw phase.
+	const int octave_divider = 32 << channel_octave;
+	state.divider_ %= octave_divider;
+	state.divider_ += multipliers[frequency_multiple] * channel_frequency;
+	state.raw_phase_ += state.divider_ / octave_divider;
+
+	// Hence calculate phase (TODO: by also taking account of vibrato).
+	constexpr int waveforms[4][4] = {
+		{1023, 1023, 1023, 1023},	// Sine: don't mask in any quadrant.
+		{511, 511, 0, 0},			// Half sine: keep the first half in tact, lock to 0 in the second half.
+		{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
+		{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
+	};
+	state.phase = state.raw_phase_ & waveforms[int(waveform)][(state.raw_phase_ >> 8) & 3];
+
+	// Key-on logic: any time it is false, be in the release state.
+	// On the leading edge of it becoming true, enter the attack state.
+	if(!key_on) {
+		state.adsr_phase_ = OperatorState::ADSRPhase::Release;
+		state.time_in_phase_ = 0;
+	} else if(!state.last_key_on_) {
+		state.adsr_phase_ = OperatorState::ADSRPhase::Attack;
+		state.time_in_phase_ = 0;
+	}
+	state.last_key_on_ = key_on;
+
+	// Adjust the ADSR attenuation appropriately;
+	// cf. http://forums.submarine.org.uk/phpBB/viewtopic.php?f=9&t=16 (primarily) for the source of the maths below.
+
+	// "An attack rate value of 52 (AR = 13) has 32 samples in the attack phase, an attack rate value of 48 (AR = 12)
+	// has 64 samples in the attack phase, but pairs of samples show the same envelope attenuation. I am however struggling to find a plausible algorithm to match the experimental results.
+
+	const auto current_phase = state.adsr_phase_;
+	switch(current_phase) {
+		case OperatorState::ADSRPhase::Attack: {
+			const int attack_rate = attack_rate_;	// TODO: key scaling rate. Which I do not yet understand.
+
+			// Rules:
+			//
+			// An attack rate of '13' has 32 samples in the attack phase; a rate of '12' has the same 32 steps, but spread out over 64 samples, etc.
+			// An attack rate of '14' uses a divide by four instead of two.
+			// 15 is instantaneous.
+
+			if(attack_rate >= 56) {
+				state.adsr_attenuation_ = state.adsr_attenuation_ - (state.adsr_attenuation_ >> 2) - 1;
+			} else {
+				const int sample_length = 1 << (14 - (attack_rate >> 2));	// TODO: don't throw away KSR bits.
+				if(!(state.time_in_phase_ & (sample_length - 1))) {
+					state.adsr_attenuation_ = state.adsr_attenuation_ - (state.adsr_attenuation_ / 8) - 1;
+				}
+			}
+
+			// Two possible terminating conditions: (i) the attack rate is 15; (ii) full volume has been reached.
+			if(attack_rate > 60 || state.adsr_attenuation_ < 0) {
+				state.adsr_attenuation_ = 0;
+				state.adsr_phase_ = OperatorState::ADSRPhase::Decay;
+			}
+		} break;
+
+		case OperatorState::ADSRPhase::Decay:
+		case OperatorState::ADSRPhase::Release: {
+			// Rules:
+			//
+			// (relative to a 511 scale)
+			//
+			// A rate of 0 is no decay at all.
+			// A rate of 1 means increase 4 per cycle.
+			// A rate of 2 means increase 2 per cycle.
+			// A rate of 3 means increase 1 per cycle.
+			// A rate of 4 means increase 1 every other cycle.
+			// (etc)
+			const int decrease_rate = (state.adsr_phase_ == OperatorState::ADSRPhase::Decay) ? decay_rate_ : release_rate_;	// TODO: again, key scaling rate.
+
+			if(decrease_rate) {
+				// TODO: don't throw away KSR bits.
+				switch(decrease_rate >> 2) {
+					case 1: state.adsr_attenuation_ += 4;	break;
+					case 2: state.adsr_attenuation_ += 2;	break;
+					default: {
+						const int sample_length = 1 << ((decrease_rate >> 2) - 3);
+						if(!(state.time_in_phase_ & (sample_length - 1))) {
+							++state.adsr_attenuation_;
+						}
+					} break;
+				}
+			}
+
+			// Clamp to the proper range.
+			state.adsr_attenuation_ = std::min(state.adsr_attenuation_, 511);
+
+			// Check for the decay exit condition.
+			if(state.adsr_phase_ == OperatorState::ADSRPhase::Decay && state.adsr_attenuation_ > (sustain_level_ << 5)) {
+				state.adsr_phase_ = hold_sustain_level ? OperatorState::ADSRPhase::Sustain : OperatorState::ADSRPhase::Release;
+			}
+		} break;
+
+		case OperatorState::ADSRPhase::Sustain:
+			// Nothing to do.
+		break;
+	}
+	if(state.adsr_phase_ == current_phase) {
+		++state.time_in_phase_;
+	} else {
+		state.time_in_phase_ = 0;
+	}
+
+	// TODO: calculate attenuation properly. Need to factor in channel attenuation, but presumably not through multiplication?
+	state.attenuation = state.adsr_attenuation_;
+}
+

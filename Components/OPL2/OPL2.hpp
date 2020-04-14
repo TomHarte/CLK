@@ -26,11 +26,18 @@ namespace OPL {
 struct OperatorState {
 	public:
 		int phase = 0;		// Will be in the range [0, 1023], mapping into a 1024-unit sine curve.
-		int volume = 0;
+		int attenuation = 511;
 
 	private:
 		int divider_ = 0;
 		int raw_phase_ = 0;
+
+		enum class ADSRPhase {
+			Attack, Decay, Sustain, Release
+		} adsr_phase_ = ADSRPhase::Attack;
+		int time_in_phase_ = 0;
+		int adsr_attenuation_ = 511;
+		bool last_key_on_ = false;
 
 		friend class Operator;
 };
@@ -41,7 +48,7 @@ struct OperatorState {
 	if the host is an OPLL or VRC7.
 */
 struct OperatorOverrides {
-	int output_level = 0;
+	int attenuation = 0;
 	bool hold_sustain_level = false;
 };
 
@@ -66,20 +73,20 @@ class Operator {
 	public:
 		/// Sets this operator's attack rate as the top nibble of @c value, its decay rate as the bottom nibble.
 		void set_attack_decay(uint8_t value) {
-			attack_rate = (value & 0xf0) >> 2;
-			decay_rate = (value & 0x0f) << 2;
+			attack_rate_ = (value & 0xf0) >> 2;
+			decay_rate_ = (value & 0x0f) << 2;
 		}
 
 		/// Sets this operator's sustain level as the top nibble of @c value, its release rate as the bottom nibble.
 		void set_sustain_release(uint8_t value) {
-			sustain_level = (value & 0xf0) >> 2;
-			release_rate = (value & 0x0f) << 2;
+			sustain_level_ = (value & 0xf0) >> 4;
+			release_rate_ = (value & 0x0f) << 2;
 		}
 
 		/// Sets this operator's key scale level as the top two bits of @c value, its total output level as the low six bits.
 		void set_scaling_output(uint8_t value) {
 			scaling_level = value >> 6;
-			output_level = value & 0x3f;
+			attenuation_ = value & 0x3f;
 		}
 
 		/// Sets this operator's waveform using the low two bits of @c value.
@@ -97,36 +104,15 @@ class Operator {
 			frequency_multiple = value & 0xf;
 		}
 
-		void update(OperatorState &state, int channel_frequency, int channel_octave, OperatorOverrides *overrides = nullptr) {
-			// Per the documentation:
-			//
-			// Delta phase = ( [desired freq] * 2^19 / [input clock / 72] ) / 2 ^ (b - 1)
-			//
-			// After experimentation, I think this gives rate calculation as formulated below.
+		void update(OperatorState &state, bool key_on, int channel_frequency, int channel_octave, OperatorOverrides *overrides = nullptr);
 
-			// This encodes the MUL -> multiple table given on page 12,
-			// multiplied by two.
-			constexpr int multipliers[] = {
-				1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30
-			};
-
-			// Update the raw phase.
-			const int octave_divider = 32 << channel_octave;
-			state.divider_ %= octave_divider;
-			state.divider_ += multipliers[frequency_multiple] * channel_frequency;
-			state.raw_phase_ += state.divider_ / octave_divider;
-
-			// Hence calculate phase (TODO: by also taking account of vibrato).
-			constexpr int waveforms[4][4] = {
-				{1023, 1023, 1023, 1023},	// Sine: don't mask in any quadrant.
-				{511, 511, 0, 0},			// Half sine: keep the first half in tact, lock to 0 in the second half.
-				{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
-				{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
-			};
-			state.phase = state.raw_phase_ & waveforms[int(waveform)][(state.raw_phase_ >> 8) & 3];
-
-			// TODO: calculate output volume properly; apply: ADSR and amplitude modulation (tremolo, I assume?)
-			state.volume = output_level;
+		bool is_audible(OperatorState &state, OperatorOverrides *overrides = nullptr) {
+			if(overrides) {
+				if(overrides->attenuation == 0xf) return false;
+			} else {
+				if(attenuation_ == 0x3f) return false;
+			}
+			return state.adsr_attenuation_ != 511;
 		}
 
 	private:
@@ -152,17 +138,17 @@ class Operator {
 		int frequency_multiple = 0;
 
 		/// Sets the current output level of this modulator, as an attenuation.
-		int output_level = 0;
+		int attenuation_ = 0;
 
 		/// Selects attenuation that is applied as a function of interval. Cf. p14.
 		int scaling_level = 0;
 
 		/// Sets the ADSR rates. These all provide the top four bits of a six-bit number;
 		/// the bottom two bits... are 'RL'?
-		int attack_rate = 0;
-		int decay_rate = 0;
-		int sustain_level = 0;
-		int release_rate = 0;
+		int attack_rate_ = 0;
+		int decay_rate_ = 0;
+		int sustain_level_ = 0;
+		int release_rate_ = 0;
 
 		/// Selects the generated waveform.
 		enum class Waveform {
@@ -209,9 +195,9 @@ class Channel {
 
 		/// This should be called at a rate of around 49,716 Hz; it returns the current output level
 		/// level for this channel.
-		int update(Operator *modulator, Operator *carrier) {
-			modulator->update(modulator_state_, frequency << frequency_shift, octave);
-			carrier->update(carrier_state_, frequency << frequency_shift, octave);
+		int update(Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr) {
+			modulator->update(modulator_state_, key_on, frequency << frequency_shift, octave, modulator_overrides);
+			carrier->update(carrier_state_, key_on, frequency << frequency_shift, octave, carrier_overrides);
 
 			// TODO: almost everything else. This is a quick test.
 			if(!key_on) return 0;
@@ -219,8 +205,8 @@ class Channel {
 		}
 
 		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
-		bool is_audible() {
-			return key_on;	// TODO: this is a temporary hack in lieu of ADSR. Fix.
+		bool is_audible(Operator *carrier, OperatorOverrides *carrier_overrides = nullptr) {
+			return carrier->is_audible(carrier_state_, carrier_overrides);
 		}
 
 	private:
@@ -324,13 +310,21 @@ struct OPLL: public OPLBase<OPLL> {
 									// three channels configured for rhythm generation.
 
 		struct Channel: public ::Yamaha::OPL::Channel {
+			int update() {
+				return Yamaha::OPL::Channel::update(modulator, modulator + 1, nullptr, &overrides);
+			}
+
+			bool is_audible() {
+				return Yamaha::OPL::Channel::is_audible(modulator + 1, &overrides);
+			}
+
 			Operator *modulator;	// Implicitly, the carrier is modulator+1.
 			OperatorOverrides overrides;
 			int level = 0;
 		};
 		void update_all_chanels() {
 			for(int c = 0; c < 6; ++ c) {	// Don't do anything with channels that might be percussion for now.
-				channels_[c].level = channels_[c].update(channels_[c].modulator, channels_[c].modulator + 1);
+				channels_[c].level = channels_[c].update();
 			}
 		}
 		Channel channels_[9];
