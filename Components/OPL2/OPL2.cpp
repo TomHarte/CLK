@@ -141,10 +141,10 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, 
 }
 
 bool OPLL::is_zero_level() {
-	for(int c = 0; c < 9; ++c) {
-		if(channels_[c].is_audible()) return false;
-	}
-	return true;
+//	for(int c = 0; c < 9; ++c) {
+//		if(channels_[c].is_audible()) return false;
+//	}
+	return false;
 }
 
 void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
@@ -402,7 +402,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_frequency, 
 	};
 
 	// Update the raw phase.
-	const int octave_divider = 32 << channel_octave;
+	const int octave_divider = 64 << channel_octave;
 	state.divider_ %= octave_divider;
 	state.divider_ += multipliers[frequency_multiple] * channel_frequency;
 	state.raw_phase_ += state.divider_ / octave_divider;
@@ -449,7 +449,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_frequency, 
 			} else {
 				const int sample_length = 1 << (14 - (attack_rate >> 2));	// TODO: don't throw away KSR bits.
 				if(!(state.time_in_phase_ & (sample_length - 1))) {
-					state.adsr_attenuation_ = state.adsr_attenuation_ - (state.adsr_attenuation_ / 8) - 1;
+					state.adsr_attenuation_ = state.adsr_attenuation_ - (state.adsr_attenuation_ >> 3) - 1;
 				}
 			}
 
@@ -460,8 +460,9 @@ void Operator::update(OperatorState &state, bool key_on, int channel_frequency, 
 			}
 		} break;
 
+		case OperatorState::ADSRPhase::Release:
 		case OperatorState::ADSRPhase::Decay:
-		case OperatorState::ADSRPhase::Release: {
+		{
 			// Rules:
 			//
 			// (relative to a 511 scale)
@@ -480,7 +481,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_frequency, 
 					case 1: state.adsr_attenuation_ += 4;	break;
 					case 2: state.adsr_attenuation_ += 2;	break;
 					default: {
-						const int sample_length = 1 << ((decrease_rate >> 2) - 3);
+						const int sample_length = 1 << ((decrease_rate >> 2) - 4);
 						if(!(state.time_in_phase_ & (sample_length - 1))) {
 							++state.adsr_attenuation_;
 						}
@@ -492,8 +493,9 @@ void Operator::update(OperatorState &state, bool key_on, int channel_frequency, 
 			state.adsr_attenuation_ = std::min(state.adsr_attenuation_, 511);
 
 			// Check for the decay exit condition.
-			if(state.adsr_phase_ == OperatorState::ADSRPhase::Decay && state.adsr_attenuation_ > (sustain_level_ << 5)) {
-				state.adsr_phase_ = hold_sustain_level ? OperatorState::ADSRPhase::Sustain : OperatorState::ADSRPhase::Release;
+			if(state.adsr_phase_ == OperatorState::ADSRPhase::Decay && state.adsr_attenuation_ >= (sustain_level_ << 5)) {
+				state.adsr_attenuation_ = sustain_level_ << 5;
+				state.adsr_phase_ = ((overrides && overrides->hold_sustain_level) || hold_sustain_level) ? OperatorState::ADSRPhase::Sustain : OperatorState::ADSRPhase::Release;
 			}
 		} break;
 
@@ -507,7 +509,11 @@ void Operator::update(OperatorState &state, bool key_on, int channel_frequency, 
 		state.time_in_phase_ = 0;
 	}
 
-	// TODO: calculate attenuation properly. Need to factor in channel attenuation, but presumably not through multiplication?
-	state.attenuation = state.adsr_attenuation_;
+	// TODO: probably there's no multiply here?
+	if(overrides) {
+		state.attenuation = (state.adsr_attenuation_ * overrides->attenuation) >> 4;
+	} else {
+		state.attenuation = (state.adsr_attenuation_ * attenuation_) >> 6;
+	}
 }
 

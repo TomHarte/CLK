@@ -107,10 +107,12 @@ class Operator {
 		void update(OperatorState &state, bool key_on, int channel_frequency, int channel_octave, OperatorOverrides *overrides = nullptr);
 
 		bool is_audible(OperatorState &state, OperatorOverrides *overrides = nullptr) {
-			if(overrides) {
-				if(overrides->attenuation == 0xf) return false;
-			} else {
-				if(attenuation_ == 0x3f) return false;
+			if(state.adsr_phase_ == OperatorState::ADSRPhase::Release) {
+				if(overrides) {
+					if(overrides->attenuation == 0xf) return false;
+				} else {
+					if(attenuation_ == 0x3f) return false;
+				}
 			}
 			return state.adsr_attenuation_ != 511;
 		}
@@ -196,12 +198,14 @@ class Channel {
 		/// This should be called at a rate of around 49,716 Hz; it returns the current output level
 		/// level for this channel.
 		int update(Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr) {
-			modulator->update(modulator_state_, key_on, frequency << frequency_shift, octave, modulator_overrides);
+//			modulator->update(modulator_state_, key_on, frequency << frequency_shift, octave, modulator_overrides);
 			carrier->update(carrier_state_, key_on, frequency << frequency_shift, octave, carrier_overrides);
 
 			// TODO: almost everything else. This is a quick test.
-			if(!key_on) return 0;
-			return int(sin(float(carrier_state_.phase) / 1024.0) * 20000.0);
+			// Specifically: use lookup tables, apply attenuation properly.
+			if(carrier_state_.attenuation == 511) return 0;
+			const float volume = 1.0f - float(carrier_state_.attenuation) / 511.0f;
+			return int(volume * sin(float(carrier_state_.phase) / 1024.0) * 20000.0);
 		}
 
 		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
