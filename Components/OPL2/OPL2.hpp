@@ -13,6 +13,7 @@
 #include "../../Concurrency/AsyncTaskQueue.hpp"
 #include "../../Numeric/LFSR.hpp"
 
+#include <atomic>
 #include <cmath>
 
 namespace Yamaha {
@@ -25,8 +26,8 @@ namespace OPL {
 */
 struct OperatorState {
 	public:
-		int phase = 0;		// Will be in the range [0, 1023], mapping into a 1024-unit sine curve.
-		int attenuation = 511;
+		int phase = 0;			// Will be in the range [0, 1023], mapping into a 1024-unit sine curve.
+		int attenuation = 255;	// Will be in the range [0, 1023].
 
 	private:
 		int divider_ = 0;
@@ -198,14 +199,16 @@ class Channel {
 		/// This should be called at a rate of around 49,716 Hz; it returns the current output level
 		/// level for this channel.
 		int update(Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr) {
-//			modulator->update(modulator_state_, key_on, frequency << frequency_shift, octave, modulator_overrides);
+			modulator->update(modulator_state_, key_on, frequency << frequency_shift, octave, modulator_overrides);
 			carrier->update(carrier_state_, key_on, frequency << frequency_shift, octave, carrier_overrides);
 
 			// TODO: almost everything else. This is a quick test.
-			// Specifically: use lookup tables, apply attenuation properly.
-			if(carrier_state_.attenuation == 511) return 0;
-			const float volume = 1.0f - float(carrier_state_.attenuation) / 511.0f;
-			return int(volume * sin(float(carrier_state_.phase) / 1024.0) * 20000.0);
+			// Specifically: use lookup tables.
+			const float carrier_volume = logf(float(carrier_state_.attenuation + 1)) / logf(1023.0);
+			const float modulator_volume = logf(float(modulator_state_.attenuation + 1)) / logf(1023.0);
+
+			const float modulator_output = modulator_volume * sinf(float(modulator_state_.phase) / 1024.0f);
+			return int(carrier_volume * sinf(modulator_output + (float(carrier_state_.phase) / 1024.0f)) * 20000.0f);
 		}
 
 		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
@@ -328,7 +331,7 @@ struct OPLL: public OPLBase<OPLL> {
 		};
 		void update_all_chanels() {
 			for(int c = 0; c < 6; ++ c) {	// Don't do anything with channels that might be percussion for now.
-				channels_[c].level = channels_[c].update();
+				channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
 			}
 		}
 		Channel channels_[9];
@@ -340,6 +343,8 @@ struct OPLL: public OPLBase<OPLL> {
 
 		const int audio_divider_ = 1;
 		int audio_offset_ = 0;
+
+		std::atomic<int> total_volume_;
 };
 
 }

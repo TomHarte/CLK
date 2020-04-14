@@ -193,6 +193,7 @@ void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 }
 
 void OPLL::set_sample_volume_range(std::int16_t range) {
+	total_volume_ = range;
 }
 
 uint8_t OPLL::read(uint16_t address) {
@@ -402,7 +403,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_frequency, 
 	};
 
 	// Update the raw phase.
-	const int octave_divider = 64 << channel_octave;
+	const int octave_divider = 128 << channel_octave;
 	state.divider_ %= octave_divider;
 	state.divider_ += multipliers[frequency_multiple] * channel_frequency;
 	state.raw_phase_ += state.divider_ / octave_divider;
@@ -509,11 +510,11 @@ void Operator::update(OperatorState &state, bool key_on, int channel_frequency, 
 		state.time_in_phase_ = 0;
 	}
 
-	// TODO: probably there's no multiply here?
+	// Combine the ADSR attenuation and overall channel attenuation, clamping to the permitted range.
 	if(overrides) {
-		state.attenuation = (state.adsr_attenuation_ * overrides->attenuation) >> 4;
+		state.attenuation = state.adsr_attenuation_ + (overrides->attenuation << 5);
 	} else {
-		state.attenuation = (state.adsr_attenuation_ * attenuation_) >> 6;
+		state.attenuation = state.adsr_attenuation_ + (attenuation_ << 3);
 	}
 }
 
