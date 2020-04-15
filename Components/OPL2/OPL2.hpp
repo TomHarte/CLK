@@ -27,7 +27,7 @@ namespace OPL {
 struct OperatorState {
 	public:
 		int phase = 0;			// Will be in the range [0, 1023], mapping into a 1024-unit sine curve.
-		int attenuation = 255;	// Will be in the range [0, 1023].
+		int attenuation = 1023;	// Will be in the range [0, 1023].
 
 	private:
 		int divider_ = 0;

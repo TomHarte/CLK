@@ -455,7 +455,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 			}
 
 			// Two possible terminating conditions: (i) the attack rate is 15; (ii) full volume has been reached.
-			if(attack_rate > 60 || state.adsr_attenuation_ < 0) {
+			if(attack_rate > 60 || state.adsr_attenuation_ <= 0) {
 				state.adsr_attenuation_ = 0;
 				state.adsr_phase_ = OperatorState::ADSRPhase::Decay;
 			}

@@ -777,6 +777,7 @@
 		4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFBB6A1EE8401E00C01E7A /* ZX8081.cpp */; };
 		4BBFE83D21015D9C00BF1C40 /* CSJoystickManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFE83C21015D9C00BF1C40 /* CSJoystickManager.m */; };
 		4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */; };
+		4BC0CB282446BC7B00A79DBB /* OPLTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BC0CB272446BC7B00A79DBB /* OPLTests.mm */; };
 		4BC131702346DE5000E4FF3D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC1316F2346DE5000E4FF3D /* StaticAnalyser.cpp */; };
 		4BC131712346DE5000E4FF3D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC1316F2346DE5000E4FF3D /* StaticAnalyser.cpp */; };
 		4BC131762346DE9100E4FF3D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC131752346DE9100E4FF3D /* StaticAnalyser.cpp */; };
@@ -1648,6 +1649,7 @@
 		4BBFE83C21015D9C00BF1C40 /* CSJoystickManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSJoystickManager.m; sourceTree = "<group>"; };
 		4BBFE83E21015DAE00BF1C40 /* CSJoystickManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSJoystickManager.h; sourceTree = "<group>"; };
 		4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TrackSerialiser.cpp; sourceTree = "<group>"; };
+		4BC0CB272446BC7B00A79DBB /* OPLTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = OPLTests.mm; sourceTree = "<group>"; };
 		4BC1316D2346DE5000E4FF3D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BC1316E2346DE5000E4FF3D /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4BC1316F2346DE5000E4FF3D /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
@@ -3339,6 +3341,7 @@
 		4BB73EB51B587A5100552FC2 /* Clock SignalTests */ = {
 			isa = PBXGroup;
 			children = (
+				4BC0CB272446BC7B00A79DBB /* OPLTests.mm */,
 				4B85322922778E4200F26553 /* Comparative68000.hpp */,
 				4B90467222C6FA31000E2074 /* TestRunner68000.hpp */,
 				4B97ADC722C6FD9B00A22A41 /* 68000ArithmeticTests.mm */,
@@ -4729,6 +4732,7 @@
 				4B778F5523A5F2A70000D260 /* Keyboard.cpp in Sources */,
 				4B778F5D23A5F3230000D260 /* Commodore.cpp in Sources */,
 				4B98A05F1FFAD62400ADF63B /* CSROMFetcher.mm in Sources */,
+				4BC0CB282446BC7B00A79DBB /* OPLTests.mm in Sources */,
 				4BC9E1EE1D23449A003FCEE4 /* 6502InterruptTests.swift in Sources */,
 				4BEF6AAA1D35CE9E00E73575 /* DigitalPhaseLockedLoopBridge.mm in Sources */,
 				4B778F3123A5F0CB0000D260 /* Keyboard.cpp in Sources */,
