@@ -334,9 +334,10 @@ struct OPLL: public OPLBase<OPLL> {
 			int level = 0;
 		};
 		void update_all_chanels() {
-			for(int c = 0; c < 6; ++ c) {	// Don't do anything with channels that might be percussion for now.
-				channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
-			}
+//			for(int c = 0; c < 6; ++ c) {	// Don't do anything with channels that might be percussion for now.
+//				channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
+//			}
+			channels_[0].level = (channels_[0].update() * total_volume_) >> 14;
 		}
 		Channel channels_[9];
 
