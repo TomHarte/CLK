@@ -204,11 +204,8 @@ class Channel {
 
 			// TODO: almost everything. This is a quick test.
 			// Specifically: use lookup tables.
-			const float modulator_output = 0.0f;//expf(logf(float(M_PI) * sinf(float(modulator_state_.phase) / 512.0f)) + (float(modulator_state_.attenuation) / 1023.0f));
-			const float carrier_phase = modulator_output + float(carrier_state_.phase) / 1024.0f;
-			const float carrier_output = expf(logf(sinf(float(M_PI) * 2.0f * carrier_phase)) + (float(carrier_state_.attenuation) / 1023.0f));
-
-			return int(carrier_output * 20'000.0f);
+			const auto modulator_level = 0.0f;//level(modulator_state_, 0.0f) * 0.25f;
+			return int(level(carrier_state_, modulator_level) * 20'000.0f);
 		}
 
 		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
@@ -217,6 +214,13 @@ class Channel {
 		}
 
 	private:
+		float level(OperatorState &state, float modulator_level) {
+			const float phase = modulator_level + float(state.phase) / 1024.0f;
+			const float phase_attenuation = logf(1.0f + sinf(float(M_PI) * 2.0f * phase));
+			const float total_attenuation = phase_attenuation + float(state.attenuation) / 1023.0f;
+			return expf(total_attenuation);
+		}
+
 		/// 'F-Num' in the spec; this plus the current octave determines channel frequency.
 		int period_ = 0;
 
