@@ -67,8 +67,8 @@ struct OperatorOverrides {
 			* an attenuation for the output level; and
 			* a factor by which to speed up the ADSR envelope as a function of frequency.
 
-	Oscillator frequency isn't set directly, it's a multiple of the owning channel, in which
-	frequency is set as a combination of f-num and octave.
+	Oscillator period isn't set directly, it's a multiple of the owning channel, in which
+	period is set as a combination of f-num and octave.
 */
 class Operator {
 	public:
@@ -92,11 +92,11 @@ class Operator {
 
 		/// Sets this operator's waveform using the low two bits of @c value.
 		void set_waveform(uint8_t value) {
-			waveform = Operator::Waveform(value & 3);
+//			waveform = Operator::Waveform(value & 3);
 		}
 
 		/// From the top nibble of @c value sets the AM, vibrato, hold/sustain level and keyboard sampling rate flags;
-		/// uses the bottom nibble to set the frequency multiplier.
+		/// uses the bottom nibble to set the period multiplier.
 		void set_am_vibrato_hold_sustain_ksr_multiple(uint8_t value) {
 			apply_amplitude_modulation = value & 0x80;
 			apply_vibrato = value & 0x40;
@@ -105,7 +105,7 @@ class Operator {
 			frequency_multiple = value & 0xf;
 		}
 
-		void update(OperatorState &state, bool key_on, int channel_frequency, int channel_octave, OperatorOverrides *overrides = nullptr);
+		void update(OperatorState &state, bool key_on, int channel_period, int channel_octave, OperatorOverrides *overrides = nullptr);
 
 		bool is_audible(OperatorState &state, OperatorOverrides *overrides = nullptr) {
 			if(state.adsr_phase_ == OperatorState::ADSRPhase::Release) {
@@ -168,13 +168,13 @@ class Channel {
 	public:
 		/// Sets the low 8 bits of frequency control.
 		void set_frequency_low(uint8_t value) {
-			frequency = (frequency &~0xff) | value;
+			period_ = (period_ &~0xff) | value;
 		}
 
 		/// Sets the high two bits of a 10-bit frequency control, along with this channel's
 		/// block/octave, and key on or off.
 		void set_10bit_frequency_octave_key_on(uint8_t value) {
-			frequency = (frequency & 0xff) | ((value & 3) << 8);
+			period_ = (period_ & 0xff) | ((value & 3) << 8);
 			octave = (value >> 2) & 0x7;
 			key_on = value & 0x20;
 			frequency_shift = 0;
@@ -183,7 +183,7 @@ class Channel {
 		/// Sets the high two bits of a 9-bit frequency control, along with this channel's
 		/// block/octave, and key on or off.
 		void set_9bit_frequency_octave_key_on(uint8_t value) {
-			frequency = (frequency & 0xff) | ((value & 1) << 8);
+			period_ = (period_ & 0xff) | ((value & 1) << 8);
 			octave = (value >> 1) & 0x7;
 			key_on = value & 0x10;;
 			frequency_shift = 1;
@@ -199,16 +199,16 @@ class Channel {
 		/// This should be called at a rate of around 49,716 Hz; it returns the current output level
 		/// level for this channel.
 		int update(Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr) {
-			modulator->update(modulator_state_, key_on, frequency << frequency_shift, octave, modulator_overrides);
-			carrier->update(carrier_state_, key_on, frequency << frequency_shift, octave, carrier_overrides);
+			modulator->update(modulator_state_, key_on, period_ << frequency_shift, octave, modulator_overrides);
+			carrier->update(carrier_state_, key_on, period_ << frequency_shift, octave, carrier_overrides);
 
-			// TODO: almost everything else. This is a quick test.
+			// TODO: almost everything. This is a quick test.
 			// Specifically: use lookup tables.
-			const float carrier_volume = logf(float(carrier_state_.attenuation + 1)) / logf(1023.0);
-			const float modulator_volume = logf(float(modulator_state_.attenuation + 1)) / logf(1023.0);
+			const float modulator_output = 0.0f;//expf(logf(float(M_PI) * sinf(float(modulator_state_.phase) / 512.0f)) + (float(modulator_state_.attenuation) / 1023.0f));
+			const float carrier_phase = modulator_output + float(carrier_state_.phase) / 1024.0f;
+			const float carrier_output = expf(logf(sinf(float(M_PI) * 2.0f * carrier_phase)) + (float(carrier_state_.attenuation) / 1023.0f));
 
-			const float modulator_output = modulator_volume * sinf(float(modulator_state_.phase) / 1024.0f);
-			return int(carrier_volume * sinf(modulator_output + (float(carrier_state_.phase) / 1024.0f)) * 20000.0f);
+			return int(carrier_output * 20'000.0f);
 		}
 
 		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
@@ -218,7 +218,7 @@ class Channel {
 
 	private:
 		/// 'F-Num' in the spec; this plus the current octave determines channel frequency.
-		int frequency = 0;
+		int period_ = 0;
 
 		/// Linked with the frequency, determines the channel frequency.
 		int octave = 0;

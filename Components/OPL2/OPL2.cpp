@@ -389,7 +389,7 @@ uint8_t OPL2::read(uint16_t address) {
 
 // MARK: - Operators
 
-void Operator::update(OperatorState &state, bool key_on, int channel_frequency, int channel_octave, OperatorOverrides *overrides) {
+void Operator::update(OperatorState &state, bool key_on, int channel_period, int channel_octave, OperatorOverrides *overrides) {
 	// Per the documentation:
 	//
 	// Delta phase = ( [desired freq] * 2^19 / [input clock / 72] ) / 2 ^ (b - 1)
@@ -403,9 +403,9 @@ void Operator::update(OperatorState &state, bool key_on, int channel_frequency, 
 	};
 
 	// Update the raw phase.
-	const int octave_divider = 128 << channel_octave;
+	const int octave_divider = 2048 >> channel_octave;
 	state.divider_ %= octave_divider;
-	state.divider_ += multipliers[frequency_multiple] * channel_frequency;
+	state.divider_ += multipliers[frequency_multiple] * channel_period;
 	state.raw_phase_ += state.divider_ / octave_divider;
 
 	// Hence calculate phase (TODO: by also taking account of vibrato).
@@ -512,7 +512,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_frequency, 
 
 	// Combine the ADSR attenuation and overall channel attenuation, clamping to the permitted range.
 	if(overrides) {
-		state.attenuation = state.adsr_attenuation_ + (overrides->attenuation << 5);
+		state.attenuation = state.adsr_attenuation_ + (overrides->attenuation << 6);
 	} else {
 		state.attenuation = state.adsr_attenuation_ + (attenuation_ << 3);
 	}
