@@ -92,7 +92,7 @@ class Operator {
 
 		/// Sets this operator's waveform using the low two bits of @c value.
 		void set_waveform(uint8_t value) {
-//			waveform = Operator::Waveform(value & 3);
+			waveform = Operator::Waveform(value & 3);
 		}
 
 		/// From the top nibble of @c value sets the AM, vibrato, hold/sustain level and keyboard sampling rate flags;
@@ -204,7 +204,7 @@ class Channel {
 
 			// TODO: almost everything. This is a quick test.
 			// Specifically: use lookup tables.
-			const auto modulator_level = 0.0f;//level(modulator_state_, 0.0f) * 0.25f;
+			const auto modulator_level = level(modulator_state_, 0.0f);	// TODO: what's the proper scaling on this?
 			return int(level(carrier_state_, modulator_level) * 20'000.0f);
 		}
 
@@ -218,7 +218,9 @@ class Channel {
 			const float phase = modulator_level + float(state.phase) / 1024.0f;
 			const float phase_attenuation = logf(1.0f + sinf(float(M_PI) * 2.0f * phase));
 			const float total_attenuation = phase_attenuation + float(state.attenuation) / 1023.0f;
-			return expf(total_attenuation);
+			const float result = expf(total_attenuation / 2.0f);
+
+			return result;
 		}
 
 		/// 'F-Num' in the spec; this plus the current octave determines channel frequency.
@@ -334,10 +336,10 @@ struct OPLL: public OPLBase<OPLL> {
 			int level = 0;
 		};
 		void update_all_chanels() {
-//			for(int c = 0; c < 6; ++ c) {	// Don't do anything with channels that might be percussion for now.
-//				channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
-//			}
-			channels_[0].level = (channels_[0].update() * total_volume_) >> 14;
+			for(int c = 0; c < 6; ++ c) {	// Don't do anything with channels that might be percussion for now.
+				channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
+			}
+			channels_[2].level = (channels_[2].update() * total_volume_) >> 14;
 		}
 		Channel channels_[9];
 

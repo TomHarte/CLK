@@ -403,10 +403,14 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 	};
 
 	// Update the raw phase.
+	// TODO: if this is the real formula (i.e. a downward shift for channel_octave), this is a highly
+	// suboptimal way to do this. Could just keep one accumulator and shift that downward for the result.
 	const int octave_divider = 2048 >> channel_octave;
 	state.divider_ %= octave_divider;
-	state.divider_ += multipliers[frequency_multiple] * channel_period;
-	state.raw_phase_ += state.divider_ / octave_divider;
+	state.divider_ += channel_period;
+	state.raw_phase_ += multipliers[frequency_multiple] * (state.divider_ / octave_divider);
+	// TODO: this last step introduces aliasing, but is a quick way to verify whether the multiplier should
+	// be applied also to the octave.
 
 	// Hence calculate phase (TODO: by also taking account of vibrato).
 	constexpr int waveforms[4][4] = {
@@ -512,9 +516,9 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 
 	// Combine the ADSR attenuation and overall channel attenuation, clamping to the permitted range.
 	if(overrides) {
-		state.attenuation = state.adsr_attenuation_ + (overrides->attenuation << 6);
+		state.attenuation = state.adsr_attenuation_ + (overrides->attenuation << 4);
 	} else {
-		state.attenuation = state.adsr_attenuation_ + (attenuation_ << 3);
+		state.attenuation = state.adsr_attenuation_ + (attenuation_ << 2);
 	}
 }
 
