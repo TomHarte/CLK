@@ -102,9 +102,6 @@ class Operator {
 		/// level is hit, getting back to 0 regardless of an ongoing key-on.
 		bool use_sustain_level_ = false;
 
-		/// Provides a potential faster step through the ADSR envelope. Cf. p12.
-		bool keyboard_scaling_rate_ = false;
-
 		/// Indexes a lookup table to determine what multiple of the channel's frequency
 		/// this operator is advancing at.
 		int frequency_multiple_ = 0;
@@ -112,8 +109,11 @@ class Operator {
 		/// Sets the current output level of this modulator, as an attenuation.
 		int attenuation_ = 0;
 
+		/// Provides a potential faster step through the ADSR envelope. Cf. p12.
+		bool key_scaling_rate_ = false;
+
 		/// Selects attenuation that is applied as a function of interval. Cf. p14.
-		int scaling_level_ = 0;
+		int level_key_scaling_ = 0;
 
 		/// Sets the ADSR rates. These all provide the top four bits of a six-bit number;
 		/// the bottom two bits... are 'RL'?

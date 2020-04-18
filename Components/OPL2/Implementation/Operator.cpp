@@ -23,7 +23,7 @@ void Operator::set_sustain_release(uint8_t value) {
 }
 
 void Operator::set_scaling_output(uint8_t value) {
-	scaling_level_ = value >> 6;
+	level_key_scaling_ = value >> 6;
 	attenuation_ = value & 0x3f;
 }
 
@@ -35,7 +35,7 @@ void Operator::set_am_vibrato_hold_sustain_ksr_multiple(uint8_t value) {
 	apply_amplitude_modulation_ = value & 0x80;
 	apply_vibrato_ = value & 0x40;
 	use_sustain_level_ = value & 0x20;
-	keyboard_scaling_rate_ = value & 0x10;
+	key_scaling_rate_ = value & 0x10;
 	frequency_multiple_ = value & 0xf;
 }
 
