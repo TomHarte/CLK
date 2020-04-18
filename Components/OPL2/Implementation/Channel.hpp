@@ -11,8 +11,6 @@
 
 #include "Operator.hpp"
 
-#include <cmath>
-
 namespace Yamaha {
 namespace OPL {
 
@@ -48,7 +46,7 @@ class Channel {
 		bool is_audible(Operator *carrier, OperatorOverrides *carrier_overrides = nullptr);
 
 	private:
-		float level(OperatorState &state, float modulator_level);
+		int level(OperatorState &state, int modulator_level);
 
 		/// 'F-Num' in the spec; this plus the current octave determines channel frequency.
 		int period_ = 0;

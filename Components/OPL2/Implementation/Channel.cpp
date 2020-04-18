@@ -7,6 +7,7 @@
 //
 
 #include "Channel.hpp"
+#include "Tables.h"
 
 using namespace Yamaha::OPL;
 
@@ -39,19 +40,15 @@ int Channel::update(Operator *modulator, Operator *carrier, OperatorOverrides *m
 
 	// TODO: almost everything. This is a quick test.
 	// Specifically: use lookup tables.
-	const auto modulator_level = level(modulator_state_, 0.0f);	// TODO: what's the proper scaling on this?
-	return int(level(carrier_state_, modulator_level) * 20'000.0f);
+	const auto modulator_level = level(modulator_state_, 0);
+	return level(carrier_state_, modulator_level);
 }
 
 bool Channel::is_audible(Operator *carrier, OperatorOverrides *carrier_overrides) {
 	return carrier->is_audible(carrier_state_, carrier_overrides);
 }
 
-float Channel::level(OperatorState &state, float modulator_level) {
-	const float phase = modulator_level + float(state.phase) / 1024.0f;
-	const float phase_attenuation = logf(1.0f + sinf(float(M_PI) * 2.0f * phase));
-	const float total_attenuation = phase_attenuation + float(state.attenuation) / 1023.0f;
-	const float result = expf(total_attenuation / 2.0f);
-
-	return result;
+int Channel::level(OperatorState &state, int modulator_level) {
+	const auto log_sin  = negative_log_sin(modulator_level + state.phase);
+	return power_two(log_sin.logsin + state.attenuation) * log_sin.sign;
 }

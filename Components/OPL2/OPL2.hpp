@@ -109,7 +109,7 @@ struct OPLL: public OPLBase<OPLL> {
 			for(int c = 0; c < 6; ++ c) {	// Don't do anything with channels that might be percussion for now.
 				channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
 			}
-			channels_[2].level = (channels_[2].update() * total_volume_) >> 14;
+//			channels_[2].level = (channels_[2].update() * total_volume_) >> 14;
 		}
 		Channel channels_[9];
 
