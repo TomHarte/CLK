@@ -181,6 +181,22 @@ void OPLL::setup_fixed_instrument(int number, const uint8_t *data) {
 	carrier->set_sustain_release(data[7]);
 }
 
+void OPLL::update_all_chanels() {
+	if(depth_rhythm_control_ & 0x20) {
+		// Rhythm mode. Somehow?
+
+		// Melodic channels. Easy!
+		for(int c = 0; c < 6; ++ c) {
+			channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
+		}
+	} else {
+		// All melody, all the time.
+		for(int c = 0; c < 9; ++ c) {
+			channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
+		}
+	}
+}
+
 /*
 template <Personality personality>
 void OPL2<personality>::get_samples(std::size_t number_of_samples, std::int16_t *target) {

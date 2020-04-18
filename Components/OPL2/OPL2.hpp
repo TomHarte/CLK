@@ -105,12 +105,7 @@ struct OPLL: public OPLBase<OPLL> {
 			OperatorOverrides overrides;
 			int level = 0;
 		};
-		void update_all_chanels() {
-			for(int c = 0; c < 6; ++ c) {	// Don't do anything with channels that might be percussion for now.
-				channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
-			}
-//			channels_[2].level = (channels_[2].update() * total_volume_) >> 14;
-		}
+		void update_all_chanels();
 		Channel channels_[9];
 
 		void setup_fixed_instrument(int number, const uint8_t *data);

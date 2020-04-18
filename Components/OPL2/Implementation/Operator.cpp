@@ -66,7 +66,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 	// Update the raw phase.
 	// TODO: if this is the real formula (i.e. a downward shift for channel_octave), this is a highly
 	// suboptimal way to do this. Could just keep one accumulator and shift that downward for the result.
-	const int octave_divider = 2048 >> channel_octave;
+	const int octave_divider = 4096 >> channel_octave;
 	state.divider_ %= octave_divider;
 	state.divider_ += channel_period;
 	state.raw_phase_ += multipliers[frequency_multiple_] * (state.divider_ / octave_divider);

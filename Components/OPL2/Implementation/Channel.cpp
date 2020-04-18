@@ -39,7 +39,11 @@ int Channel::update(Operator *modulator, Operator *carrier, OperatorOverrides *m
 	carrier->update(carrier_state_, key_on_, period_ << frequency_shift_, octave_, carrier_overrides);
 
 	const auto modulator_level = level(modulator_state_);
-	return level(carrier_state_, modulator_level) << 2;
+	if(use_fm_synthesis_) {
+		return level(carrier_state_, modulator_level) << 2;
+	} else {
+		return (modulator_level + level(carrier_state_)) << 1;
+	}
 }
 
 bool Channel::is_audible(Operator *carrier, OperatorOverrides *carrier_overrides) {
