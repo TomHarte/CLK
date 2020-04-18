@@ -38,10 +38,8 @@ int Channel::update(Operator *modulator, Operator *carrier, OperatorOverrides *m
 	modulator->update(modulator_state_, key_on_, period_ << frequency_shift_, octave_, modulator_overrides);
 	carrier->update(carrier_state_, key_on_, period_ << frequency_shift_, octave_, carrier_overrides);
 
-	// TODO: almost everything. This is a quick test.
-	// Specifically: use lookup tables.
-	const auto modulator_level = level(modulator_state_, 0);
-	return level(carrier_state_, modulator_level);
+	const auto modulator_level = level(modulator_state_);
+	return level(carrier_state_, modulator_level) << 2;
 }
 
 bool Channel::is_audible(Operator *carrier, OperatorOverrides *carrier_overrides) {
