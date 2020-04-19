@@ -168,8 +168,8 @@ void OPLL::setup_fixed_instrument(int number, const uint8_t *data) {
 	modulator->set_scaling_output(data[2]);
 
 	// Set waveforms — only sine and halfsine are available.
-	carrier->set_waveform((data[3] >> 4) & 1);
 	modulator->set_waveform((data[3] >> 3) & 1);
+	carrier->set_waveform((data[3] >> 4) & 1);
 
 	// TODO: data[3] b0-b2: modulator feedback level
 	// TODO: data[3] b6, b7: carrier key-scale level

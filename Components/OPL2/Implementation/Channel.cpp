@@ -35,22 +35,21 @@ void Channel::set_feedback_mode(uint8_t value) {
 }
 
 int Channel::update(Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides, OperatorOverrides *carrier_overrides) {
-	modulator->update(modulator_state_, key_on_, period_ << frequency_shift_, octave_, modulator_overrides);
-	carrier->update(carrier_state_, key_on_, period_ << frequency_shift_, octave_, carrier_overrides);
-
-	const auto modulator_level = level(modulator_state_);
 	if(use_fm_synthesis_) {
-		return level(carrier_state_, modulator_level) << 2;
+		// Get modulator level, use that as a phase-adjusting input to the carrier and then return the carrier level.
+		modulator->update(modulator_state_, key_on_, period_ << frequency_shift_, octave_, 0, modulator_overrides);
+		const auto modulator_level = modulator_state_.level();
+
+		carrier->update(carrier_state_, key_on_, period_ << frequency_shift_, octave_, modulator_level, carrier_overrides);
+		return carrier_state_.level() << 2;
 	} else {
-		return (modulator_level + level(carrier_state_)) << 1;
+		// Get modulator and carrier levels separately, return their sum.
+		modulator->update(modulator_state_, key_on_, period_ << frequency_shift_, octave_, 0, modulator_overrides);
+		carrier->update(carrier_state_, key_on_, period_ << frequency_shift_, octave_, 0, carrier_overrides);
+		return (modulator_state_.level() + carrier_state_.level()) << 1;
 	}
 }
 
 bool Channel::is_audible(Operator *carrier, OperatorOverrides *carrier_overrides) {
 	return carrier->is_audible(carrier_state_, carrier_overrides);
-}
-
-int Channel::level(OperatorState &state, int modulator_level) {
-	const auto log_sin  = negative_log_sin(modulator_level + state.phase);
-	return power_two(log_sin.logsin + state.attenuation) * log_sin.sign;
 }

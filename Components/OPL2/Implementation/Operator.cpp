@@ -9,8 +9,13 @@
 #include "Operator.hpp"
 
 #include <algorithm>
+#include "Tables.h"
 
 using namespace Yamaha::OPL;
+
+int OperatorState::level() {
+	return power_two(attenuation.logsin) * attenuation.sign;
+}
 
 void Operator::set_attack_decay(uint8_t value) {
 	attack_rate_ = (value & 0xf0) >> 2;
@@ -50,7 +55,7 @@ bool Operator::is_audible(OperatorState &state, OperatorOverrides *overrides) {
 	return state.adsr_attenuation_ != 511;
 }
 
-void Operator::update(OperatorState &state, bool key_on, int channel_period, int channel_octave, OperatorOverrides *overrides) {
+void Operator::update(OperatorState &state, bool key_on, int channel_period, int channel_octave, int phase_offset, OperatorOverrides *overrides) {
 	// Per the documentation:
 	//
 	// Delta phase = ( [desired freq] * 2^19 / [input clock / 72] ) / 2 ^ (b - 1)
@@ -73,8 +78,8 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 		{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
 		{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
 	};
-	const int phase = state.raw_phase_ >> 11;
-	state.phase = phase & waveforms[int(waveform_)][(phase >> 8) & 3];
+	const int phase = (state.raw_phase_ >> 12) + phase_offset;
+	state.attenuation = negative_log_sin(phase & waveforms[int(waveform_)][(phase >> 8) & 3]);
 
 	// Key-on logic: any time it is false, be in the release state.
 	// On the leading edge of it becoming true, enter the attack state.
@@ -169,10 +174,15 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 		state.time_in_phase_ = 0;
 	}
 
-	// Combine the ADSR attenuation and overall channel attenuation, clamping to the permitted range.
+	// Combine the ADSR attenuation and overall channel attenuation.
 	if(overrides) {
-		state.attenuation = state.adsr_attenuation_ + (overrides->attenuation << 4);
+		// Overrides here represent per-channel volume on an OPLL. The bits are defined to represent
+		// attenuations of 24db to 3db; the main envelope generator is stated to have a resolution of
+		// 0.325db (which I've assumed is supposed to say 0.375db).
+		state.attenuation.logsin += state.adsr_attenuation_ + (overrides->attenuation << 4);
 	} else {
-		state.attenuation = state.adsr_attenuation_ + (attenuation_ << 2);
+		// Overrides here represent per-channel volume on an OPLL. The bits are defined to represent
+		// attenuations of 24db to 0.75db.
+		state.attenuation.logsin += (state.adsr_attenuation_ << 3) + (attenuation_ << 5);
 	}
 }

@@ -10,6 +10,7 @@
 #define Operator_hpp
 
 #include <cstdint>
+#include "Tables.h"
 
 namespace Yamaha {
 namespace OPL {
@@ -19,10 +20,11 @@ namespace OPL {
 */
 struct OperatorState {
 	public:
-		int phase = 0;			// Will be in the range [0, 1023], mapping into a 1024-unit sine curve.
-		int attenuation = 1023;	// Will be in the range [0, 1023].
+		/// @returns The linear output level for the operator with this state..
+		int level();
 
 	private:
+		LogSin attenuation;
 		int raw_phase_ = 0;
 
 		enum class ADSRPhase {
@@ -81,7 +83,7 @@ class Operator {
 		void set_am_vibrato_hold_sustain_ksr_multiple(uint8_t value);
 
 		/// Provides one clock tick to the operator, along with the relevant parameters of its channel.
-		void update(OperatorState &state, bool key_on, int channel_period, int channel_octave, OperatorOverrides *overrides = nullptr);
+		void update(OperatorState &state, bool key_on, int channel_period, int channel_octave, int phase_offset, OperatorOverrides *overrides = nullptr);
 
 		/// @returns @c true if this channel currently has a non-zero output; @c false otherwise.
 		bool is_audible(OperatorState &state, OperatorOverrides *overrides = nullptr);

@@ -46,9 +46,6 @@ class Channel {
 		bool is_audible(Operator *carrier, OperatorOverrides *carrier_overrides = nullptr);
 
 	private:
-		/// @returns The linear output level for the operator with state @c state and with an [optional] modulation input of @c modulator_level.
-		int level(OperatorState &state, int modulator_level = 0);
-
 		/// 'F-Num' in the spec; this plus the current octave determines channel frequency.
 		int period_ = 0;
 
