@@ -1,13 +1,13 @@
 //
-//  Tables.h
+//  Tables.hpp
 //  Clock Signal
 //
 //  Created by Thomas Harte on 15/04/2020.
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Tables_h
-#define Tables_h
+#ifndef Tables_hpp
+#define Tables_hpp
 
 namespace Yamaha {
 namespace OPL {
@@ -21,14 +21,14 @@ namespace OPL {
 */
 
 
-struct LogSin {
-	int logsin;
+struct LogSign {
+	int log;
 	int sign;
 };
 /*!
 	@returns Negative log sin of x, assuming a 1024-unit circle.
 */
-constexpr LogSin negative_log_sin(int x) {
+constexpr LogSign negative_log_sin(int x) {
 	/// Defines the first quadrant of 1024-unit negative log to the base two of  sine (that conveniently misses sin(0)).
 	///
 	/// Expected branchless usage for a full 1024 unit output:
@@ -77,7 +77,7 @@ constexpr LogSin negative_log_sin(int x) {
 	constexpr int16_t mask[] = { 0, 255 };
 
 	return {
-		.logsin = log_sin[x & 255] ^ mask[(x >> 8) & 1],
+		.log = log_sin[x & 255] ^ mask[(x >> 8) & 1],
 		.sign = sign[(x >> 9) & 1]
 	};
 }
@@ -85,7 +85,7 @@ constexpr LogSin negative_log_sin(int x) {
 /*!
 	@returns 2 ^ -x/256 in 0.10 fixed-point form.
 */
-constexpr int power_two(int x) {
+constexpr int power_two(LogSign ls) {
 	/// A derivative of the exponent table in a real OPL2; mapped_exp[x] = (source[c ^ 0xff] << 1) | 0x800.
 	///
 	/// The ahead-of-time transformation represents fixed work the OPL2 does when reading its table
@@ -102,7 +102,7 @@ constexpr int power_two(int x) {
 	/// be achieved more easily. Specifically, to convert a logarithmic attenuation to a linear one, just perform:
 	///
 	///	result = mapped_exp[x & 0xff] >> (x >> 8)
-	constexpr int mapped_exp[] = {
+	constexpr int16_t mapped_exp[] = {
 		4084,	4074,	4062,	4052,	4040,	4030,	4020,	4008,
 		3998,	3986,	3976,	3966,	3954,	3944,	3932,	3922,
 		3912,	3902,	3890,	3880,	3870,	3860,	3848,	3838,
@@ -137,7 +137,7 @@ constexpr int power_two(int x) {
 		2088,	2082,	2076,	2070,	2064,	2060,	2054,	2048,
 	};
 
-	return mapped_exp[x & 0xff] >> (x >> 8);
+	return (mapped_exp[ls.log & 0xff] >> (ls.log >> 8)) * ls.sign;
 }
 
 /*
@@ -195,4 +195,4 @@ constexpr uint8_t percussion_patch_set[] = {
 }
 }
 
-#endif /* Tables_h */
+#endif /* Tables_hpp */

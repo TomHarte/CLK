@@ -7,7 +7,6 @@
 //
 
 #include "Channel.hpp"
-#include "Tables.h"
 
 using namespace Yamaha::OPL;
 

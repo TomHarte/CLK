@@ -10,7 +10,7 @@
 #define Operator_hpp
 
 #include <cstdint>
-#include "Tables.h"
+#include "Tables.hpp"
 
 namespace Yamaha {
 namespace OPL {
@@ -24,7 +24,7 @@ struct OperatorState {
 		int level();
 
 	private:
-		LogSin attenuation;
+		LogSign attenuation;
 		int raw_phase_ = 0;
 
 		enum class ADSRPhase {

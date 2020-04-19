@@ -1660,7 +1660,7 @@
 		4BC0CB312447EC7C00A79DBB /* Operator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Operator.hpp; sourceTree = "<group>"; };
 		4BC0CB352447EC9A00A79DBB /* Channel.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Channel.cpp; sourceTree = "<group>"; };
 		4BC0CB362447EC9A00A79DBB /* Channel.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Channel.hpp; sourceTree = "<group>"; };
-		4BC0CB3A2447ECAE00A79DBB /* Tables.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Tables.h; sourceTree = "<group>"; };
+		4BC0CB3A2447ECAE00A79DBB /* Tables.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Tables.hpp; sourceTree = "<group>"; };
 		4BC1316D2346DE5000E4FF3D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BC1316E2346DE5000E4FF3D /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
 		4BC1316F2346DE5000E4FF3D /* StaticAnalyser.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = StaticAnalyser.cpp; sourceTree = "<group>"; };
@@ -3514,7 +3514,7 @@
 				4BC0CB312447EC7C00A79DBB /* Operator.hpp */,
 				4BC0CB352447EC9A00A79DBB /* Channel.cpp */,
 				4BC0CB362447EC9A00A79DBB /* Channel.hpp */,
-				4BC0CB3A2447ECAE00A79DBB /* Tables.h */,
+				4BC0CB3A2447ECAE00A79DBB /* Tables.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";

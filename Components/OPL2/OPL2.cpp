@@ -11,8 +11,6 @@
 #include <cassert>
 #include <cmath>
 
-#include "Implementation/Tables.h"
-
 using namespace Yamaha::OPL;
 
 template <typename Child>
