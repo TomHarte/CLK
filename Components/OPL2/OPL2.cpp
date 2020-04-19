@@ -195,6 +195,8 @@ void OPLL::update_all_chanels() {
 			channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
 		}
 	}
+
+//	channels_[2].level = (channels_[2].update() * total_volume_) >> 14;
 }
 
 /*

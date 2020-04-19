@@ -23,7 +23,6 @@ struct OperatorState {
 		int attenuation = 1023;	// Will be in the range [0, 1023].
 
 	private:
-		int divider_ = 0;
 		int raw_phase_ = 0;
 
 		enum class ADSRPhase {

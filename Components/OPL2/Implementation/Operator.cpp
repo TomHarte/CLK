@@ -64,14 +64,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 	};
 
 	// Update the raw phase.
-	// TODO: if this is the real formula (i.e. a downward shift for channel_octave), this is a highly
-	// suboptimal way to do this. Could just keep one accumulator and shift that downward for the result.
-	const int octave_divider = 4096 >> channel_octave;
-	state.divider_ %= octave_divider;
-	state.divider_ += channel_period;
-	state.raw_phase_ += multipliers[frequency_multiple_] * (state.divider_ / octave_divider);
-	// TODO: this last step introduces aliasing, but is a quick way to verify whether the multiplier should
-	// be applied also to the octave.
+	state.raw_phase_ += multipliers[frequency_multiple_] * channel_period << channel_octave;
 
 	// Hence calculate phase (TODO: by also taking account of vibrato).
 	constexpr int waveforms[4][4] = {
@@ -80,7 +73,8 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 		{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
 		{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
 	};
-	state.phase = state.raw_phase_ & waveforms[int(waveform_)][(state.raw_phase_ >> 8) & 3];
+	const int phase = state.raw_phase_ >> 11;
+	state.phase = phase & waveforms[int(waveform_)][(phase >> 8) & 3];
 
 	// Key-on logic: any time it is false, be in the release state.
 	// On the leading edge of it becoming true, enter the attack state.
