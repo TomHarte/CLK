@@ -325,6 +325,8 @@ class ConcreteMachine:
 											opll_.write(address, *cycle.value);
 										break;
 										case 0xf2:
+											// TODO: it turns out this address isn't just a detection space;
+											// it's actually an audio control. See https://www.smspower.org/Development/AudioControlPort
 											opll_detection_word_ = *cycle.value;
 										break;
 									}

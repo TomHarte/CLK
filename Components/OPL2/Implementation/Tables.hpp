@@ -20,11 +20,16 @@ namespace OPL {
 	they're very compact.
 */
 
+/*!
+	Represents both the logarithm of a value and its sign.
 
+	It's actually the negative logarithm, in base two, in fixed point.
+*/
 struct LogSign {
 	int log;
 	int sign;
 };
+
 /*!
 	@returns Negative log sin of x, assuming a 1024-unit circle.
 */
@@ -83,7 +88,7 @@ constexpr LogSign negative_log_sin(int x) {
 }
 
 /*!
-	@returns 2 ^ -x/256 in 0.10 fixed-point form.
+	Computes the linear value represented by the log-sign @c ls.
 */
 constexpr int power_two(LogSign ls) {
 	/// A derivative of the exponent table in a real OPL2; mapped_exp[x] = (source[c ^ 0xff] << 1) | 0x800.
