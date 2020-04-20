@@ -77,7 +77,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 		{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
 		{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
 	};
-	const int phase = (state.raw_phase_ >> 12) + phase_offset;
+	const int phase = (state.raw_phase_ >> 11) + phase_offset;
 	state.attenuation = negative_log_sin(phase & waveforms[int(waveform_)][(phase >> 8) & 3]);
 
 	// Key-on logic: any time it is false, be in the release state.
@@ -142,12 +142,12 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 			if(decrease_rate) {
 				// TODO: don't throw away KSR bits.
 				switch(decrease_rate >> 2) {
-					case 1: state.adsr_attenuation_ += 4;	break;
-					case 2: state.adsr_attenuation_ += 2;	break;
+					case 1: state.adsr_attenuation_ += 32;	break;
+					case 2: state.adsr_attenuation_ += 16;	break;
 					default: {
 						const int sample_length = 1 << ((decrease_rate >> 2) - 4);
 						if(!(state.time_in_phase_ & (sample_length - 1))) {
-							++state.adsr_attenuation_;
+							state.adsr_attenuation_ += 8;
 						}
 					} break;
 				}
