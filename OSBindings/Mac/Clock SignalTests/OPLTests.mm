@@ -17,6 +17,8 @@
 @implementation OPLTests {
 }
 
+// MARK: - Table tests
+
 - (void)testSineLookup {
 	for(int c = 0; c < 1024; ++c) {
 		const auto logSin = Yamaha::OPL::negative_log_sin(c);
@@ -28,6 +30,8 @@
 		XCTAssertLessThanOrEqual(fabs(fl_level - double(level) / 4096.0), 0.01, "Sine varies by more than 0.01 at angle %d", c);
 	}
 }
+
+// MARK: - Two-operator FM tests
 
 - (void)compareFMTo:(NSArray *)knownGood atAttenuation:(int)attenuation {
 	Yamaha::OPL::Operator modulator, carrier;
@@ -83,6 +87,7 @@
 	}
 }
 
+// MARK: - ADSR tests
 
 - (void)testADSR {
 	Yamaha::OPL::Operator test_operator;
