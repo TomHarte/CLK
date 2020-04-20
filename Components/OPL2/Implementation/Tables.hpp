@@ -82,7 +82,7 @@ constexpr LogSign negative_log_sin(int x) {
 	constexpr int16_t mask[] = { 0, 255 };
 
 	return {
-		.log = log_sin[x & 255] ^ mask[(x >> 8) & 1],
+		.log = log_sin[(x & 255) ^ mask[(x >> 8) & 1]],
 		.sign = sign[(x >> 9) & 1]
 	};
 }
