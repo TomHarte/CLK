@@ -180,16 +180,16 @@ void OPLL::setup_fixed_instrument(int number, const uint8_t *data) {
 }
 
 void OPLL::update_all_chanels() {
+	// Channels that are updated for melodic output regardless.
+	for(int c = 0; c < 6; ++ c) {
+		channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
+	}
+
 	if(depth_rhythm_control_ & 0x20) {
 		// Rhythm mode. Somehow?
-
-		// Melodic channels. Easy!
-		for(int c = 0; c < 6; ++ c) {
-			channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
-		}
 	} else {
 		// All melody, all the time.
-		for(int c = 0; c < 9; ++ c) {
+		for(int c = 6; c < 9; ++ c) {
 			channels_[c].level = (channels_[c].update() * total_volume_) >> 14;
 		}
 	}
