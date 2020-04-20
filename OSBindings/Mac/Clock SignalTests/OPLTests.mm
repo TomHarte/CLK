@@ -29,27 +29,7 @@
 	}
 }
 
-- (void)testADSR {
-	Yamaha::OPL::Operator test_operator;
-	Yamaha::OPL::OperatorState test_state;
-
-	test_operator.set_attack_decay(0x88);
-	test_operator.set_sustain_release(0x88);
-
-	// While key is off, output level should remain at 0.
-	for(int c = 0; c < 1024; ++c) {
-		test_operator.update(test_state, false, 0, 0, 0);
-		XCTAssertGreaterThanOrEqual(test_state.level(), 0);
-	}
-
-	// Set key on...
-	for(int c = 0; c < 4096; ++c) {
-		test_operator.update(test_state, true, 0, 0, 0);
-		NSLog(@"%d", test_state.level());
-	}
-}
-
-- (void)testFM {
+- (void)compareFMTo:(NSArray *)knownGood atAttenuation:(int)attenuation {
 	Yamaha::OPL::Operator modulator, carrier;
 	Yamaha::OPL::Channel channel;
 
@@ -58,7 +38,7 @@
 	carrier.set_am_vibrato_hold_sustain_ksr_multiple(0x20);
 
 	// Set: KL = 0, TL = 0
-	modulator.set_scaling_output(0x3f);
+	modulator.set_scaling_output(attenuation);
 	carrier.set_scaling_output(0);
 
 	// Set: waveform = 0.
@@ -80,11 +60,48 @@
 	channel.set_frequency_low(0x40);
 	channel.set_9bit_frequency_octave_key_on(0x10);
 
-	// Grab a bunch of samples.
+	// Check one complete cycle of samples.
+	NSEnumerator *goodValues = [knownGood objectEnumerator];
 	for(int c = 0; c < 16384; ++c) {
-		printf("%d\n", channel.update(&modulator, &carrier));
+		const int generated = channel.update(&modulator, &carrier);
+		const int known = [[goodValues nextObject] intValue];
+		XCTAssertLessThanOrEqual(abs(generated - known), 10, "FM synthesis varies by more than 10 at sample %d of attenuation %d", c, attenuation);
 	}
-	printf("\n");
+}
+
+- (void)testFM {
+	// The following have been verified by sight against
+	// the images at https://www.smspower.org/Development/RE10
+	// as "close enough". Sadly the raw data isn't given, so
+	// that's the best as I can do. Fingers crossed!
+
+	NSURL *const url = [[NSBundle bundleForClass:[self class]] URLForResource:@"fm"  withExtension:@"json"];
+	NSArray *const parent = [NSJSONSerialization JSONObjectWithData:[NSData dataWithContentsOfURL:url] options:0 error:nil];
+
+	for(int c = 0; c < 64; ++c) {
+		[self compareFMTo:parent[c] atAttenuation:c];
+	}
+}
+
+
+- (void)testADSR {
+	Yamaha::OPL::Operator test_operator;
+	Yamaha::OPL::OperatorState test_state;
+
+	test_operator.set_attack_decay(0x88);
+	test_operator.set_sustain_release(0x88);
+
+	// While key is off, output level should remain at 0.
+	for(int c = 0; c < 1024; ++c) {
+		test_operator.update(test_state, false, 0, 0, 0);
+		XCTAssertGreaterThanOrEqual(test_state.level(), 0);
+	}
+
+	// Set key on...
+	for(int c = 0; c < 4096; ++c) {
+		test_operator.update(test_state, true, 0, 0, 0);
+		NSLog(@"%d", test_state.level());
+	}
 }
 
 @end

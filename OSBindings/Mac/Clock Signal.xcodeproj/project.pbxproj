@@ -152,6 +152,7 @@
 		4B1D08061E0F7A1100763741 /* TimeTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B1D08051E0F7A1100763741 /* TimeTests.mm */; };
 		4B1E85811D176468001EF87D /* 6532Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B1E85801D176468001EF87D /* 6532Tests.swift */; };
 		4B1EDB451E39A0AC009D6819 /* chip.png in Resources */ = {isa = PBXBuildFile; fileRef = 4B1EDB431E39A0AC009D6819 /* chip.png */; };
+		4B2530F4244E6774007980BF /* fm.json in Resources */ = {isa = PBXBuildFile; fileRef = 4B2530F3244E6773007980BF /* fm.json */; };
 		4B2A332D1DB86821002876E3 /* OricOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4B2A332B1DB86821002876E3 /* OricOptions.xib */; };
 		4B2A539F1D117D36003C6002 /* CSAudioQueue.m in Sources */ = {isa = PBXBuildFile; fileRef = 4B2A53911D117D36003C6002 /* CSAudioQueue.m */; };
 		4B2B3A4B1F9B8FA70062DABF /* Typer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B2B3A471F9B8FA70062DABF /* Typer.cpp */; };
@@ -1007,6 +1008,7 @@
 		4B1E85801D176468001EF87D /* 6532Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6532Tests.swift; sourceTree = "<group>"; };
 		4B1EDB431E39A0AC009D6819 /* chip.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = chip.png; sourceTree = "<group>"; };
 		4B24095A1C45DF85004DA684 /* Stepper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Stepper.hpp; sourceTree = "<group>"; };
+		4B2530F3244E6773007980BF /* fm.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = fm.json; sourceTree = "<group>"; };
 		4B2A332C1DB86821002876E3 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/OricOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4B2A53901D117D36003C6002 /* CSAudioQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSAudioQueue.h; sourceTree = "<group>"; };
 		4B2A53911D117D36003C6002 /* CSAudioQueue.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CSAudioQueue.m; sourceTree = "<group>"; };
@@ -1968,9 +1970,7 @@
 		4B1414631B588A1100E04248 /* Test Binaries */ = {
 			isa = PBXGroup;
 			children = (
-				4B670A822401CB8400D4E002 /* Patrik Rak Z80 Tests */,
 				4B680CE323A555CA00451D43 /* 68000 Comparative Tests */,
-				4B85322B227793CA00F26553 /* TOS Startup */,
 				4B9252CD1E74D28200B76AF1 /* Atari ROMs */,
 				4B44EBF81DC9898E00A7820C /* BCDTEST_beeb */,
 				4B98A1CD1FFADEC400ADF63B /* MSX ROMs */,
@@ -1978,8 +1978,11 @@
 				4B44EBF61DC9883B00A7820C /* 6502_functional_test.bin */,
 				4B44EBF41DC987AE00A7820C /* AllSuiteA.bin */,
 				4B9F11CB22729B3500701480 /* OPCLOGR2.BIN */,
+				4B2530F2244E6773007980BF /* FM Synthesis */,
 				4BBF49B41ED2881600AB3669 /* FUSE */,
+				4B670A822401CB8400D4E002 /* Patrik Rak Z80 Tests */,
 				4B9F11C72272375400701480 /* QL Startup */,
+				4B85322B227793CA00F26553 /* TOS Startup */,
 				4BB297E41B587D8300A49093 /* Wolfgang Lorenz 6502 test suite */,
 				4BE9A6B21EDE294200CBCB47 /* Zexall */,
 			);
@@ -2049,6 +2052,14 @@
 			);
 			name = SignalProcessing;
 			path = ../../SignalProcessing;
+			sourceTree = "<group>";
+		};
+		4B2530F2244E6773007980BF /* FM Synthesis */ = {
+			isa = PBXGroup;
+			children = (
+				4B2530F3244E6773007980BF /* fm.json */,
+			);
+			path = "FM Synthesis";
 			sourceTree = "<group>";
 		};
 		4B2A538F1D117D36003C6002 /* Audio */ = {
@@ -4293,6 +4304,7 @@
 				4BB299611B587D8400A49093 /* insax in Resources */,
 				4BB299351B587D8400A49093 /* cmpix in Resources */,
 				4B9F11C92272375400701480 /* qltrace.txt.gz in Resources */,
+				4B2530F4244E6774007980BF /* fm.json in Resources */,
 				4BB299041B587D8400A49093 /* aneb in Resources */,
 				4BB299BB1B587D8400A49093 /* rraa in Resources */,
 				4BB299091B587D8400A49093 /* aslz in Resources */,
