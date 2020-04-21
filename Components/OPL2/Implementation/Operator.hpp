@@ -114,7 +114,7 @@ class Operator {
 		bool key_scaling_rate_ = false;
 
 		/// Selects attenuation that is applied as a function of interval. Cf. p14.
-		int level_key_scaling_ = 0;
+		int key_level_scaling_ = 0;
 
 		/// Sets the ADSR rates. These all provide the top four bits of a six-bit number;
 		/// the bottom two bits... are 'RL'?
