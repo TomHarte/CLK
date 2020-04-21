@@ -68,7 +68,7 @@
 	NSEnumerator *goodValues = [knownGood objectEnumerator];
 	for(int c = 0; c < 16384; ++c) {
 		const int generated = channel.update(&modulator, &carrier);
-		const int known = [[goodValues nextObject] intValue];
+		const int known = [[goodValues nextObject] intValue] >> 2;
 		XCTAssertLessThanOrEqual(abs(generated - known), 10, "FM synthesis varies by more than 10 at sample %d of attenuation %d", c, attenuation);
 	}
 }
@@ -84,6 +84,59 @@
 
 	for(int c = 0; c < 64; ++c) {
 		[self compareFMTo:parent[c] atAttenuation:c];
+	}
+}
+
+// MARK: - Level tests
+
+- (int)maxLevelForOPLLAttenuation:(int)attenuation {
+	Yamaha::OPL::Operator modulator, carrier;
+	Yamaha::OPL::Channel channel;
+	Yamaha::OPL::OperatorOverrides overrides;
+
+	// Reach maximum volume immediately, and hold it during sustain.
+	carrier.set_sustain_release(0x0f);
+	carrier.set_attack_decay(0xf0);
+
+	// Use FM synthesis.
+	channel.set_feedback_mode(1);
+
+	// Set hold sustain level.
+	carrier.set_am_vibrato_hold_sustain_ksr_multiple(0x20);
+
+	// Disable the modulator.
+	modulator.set_scaling_output(0x3f);
+
+	// Set a non-zero frequency, set key on.
+	channel.set_frequency_low(0x40);
+	channel.set_9bit_frequency_octave_key_on(0x10);
+
+	// Get the maximum output for this volume level.
+	overrides.attenuation = attenuation;
+	overrides.use_sustain_level = true;
+
+	int max = 0;
+	for(int c = 0; c < 16384; ++c) {
+		const int level = channel.update(&modulator, &carrier, nullptr, &overrides);
+		if(level > max) max = level;
+	}
+
+	return max;
+}
+
+- (void)testOPLLVolumeLevels {
+	// Get maximum output levels for all channels.
+	int maxLevels[16];
+	for(int c = 0; c < 16; ++c) {
+		maxLevels[c] = [self maxLevelForOPLLAttenuation:c];
+	}
+
+	// Figure out a divider to turn that into the sampled range.
+	const double multiplier = 255.0 / double(maxLevels[0]);
+	const double expectedLevels[16] = {255.0, 181.0, 127.0, 90.0, 63.0, 45.0, 31.0, 22.0, 15.0, 11.0, 7.0, 5.0, 3.0, 2.0, 1.0, 1.0};
+	for(int c = 0; c < 16; ++c) {
+		const double empiricalLevel = double(maxLevels[c]) * multiplier;
+		XCTAssertLessThanOrEqual(fabs(round(empiricalLevel) - expectedLevels[c]), 2.0, "Fixed attenuation %d was %0.0f; should have been %0.0f", c, empiricalLevel, expectedLevels[c]);
 	}
 }
 

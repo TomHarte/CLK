@@ -178,7 +178,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 		// Overrides here represent per-channel volume on an OPLL. The bits are defined to represent
 		// attenuations of 24db to 3db; the main envelope generator is stated to have a resolution of
 		// 0.325db (which I've assumed is supposed to say 0.375db).
-		state.attenuation.log += state.adsr_attenuation_ + (overrides->attenuation << 4);
+		state.attenuation.log += (state.adsr_attenuation_ << 3) + (overrides->attenuation << 7);
 	} else {
 		// Overrides here represent per-channel volume on an OPLL. The bits are defined to represent
 		// attenuations of 24db to 0.75db.

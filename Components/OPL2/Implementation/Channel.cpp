@@ -40,12 +40,12 @@ int Channel::update(Operator *modulator, Operator *carrier, OperatorOverrides *m
 		const auto modulator_level = modulator_state_.level();
 
 		carrier->update(carrier_state_, key_on_, period_ << frequency_shift_, octave_, modulator_level, carrier_overrides);
-		return carrier_state_.level() << 2;
+		return carrier_state_.level();
 	} else {
 		// Get modulator and carrier levels separately, return their sum.
 		modulator->update(modulator_state_, key_on_, period_ << frequency_shift_, octave_, 0, modulator_overrides);
 		carrier->update(carrier_state_, key_on_, period_ << frequency_shift_, octave_, 0, carrier_overrides);
-		return (modulator_state_.level() + carrier_state_.level()) << 1;
+		return (modulator_state_.level() + carrier_state_.level());
 	}
 }
 
