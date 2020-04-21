@@ -159,8 +159,11 @@ class ConcreteMachine:
 				map(write_pointers_, ram_, 1024, 0xc000, 0x10000);
 			}
 
-			// Apple a relatively low low-pass filter. More guidance needed here.
-			speaker_.set_high_frequency_cutoff(8000);
+			// Apply a relatively low low-pass filter. More guidance needed here.
+//			speaker_.set_high_frequency_cutoff(8000);
+
+			// Set default mixer levels: FM off, SN full-throttle.
+			set_mixer_levels(0);
 
 			keyboard_.set_delegate(this);
 		}
@@ -325,9 +328,8 @@ class ConcreteMachine:
 											opll_.write(address, *cycle.value);
 										break;
 										case 0xf2:
-											// TODO: it turns out this address isn't just a detection space;
-											// it's actually an audio control. See https://www.smspower.org/Development/AudioControlPort
 											opll_detection_word_ = *cycle.value;
+											set_mixer_levels(opll_detection_word_);
 										break;
 									}
 								}
@@ -445,6 +447,31 @@ class ConcreteMachine:
 
 		inline void update_audio() {
 			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(audio_divider)));
+		}
+
+		void set_mixer_levels(uint8_t mode) {
+			// This is as per the audio control register;
+			// see https://www.smspower.org/Development/AudioControlPort
+			update_audio();
+			audio_queue_.defer([this, mode] {
+				switch(mode & 3) {
+					case 0:	// SN76489 only; the default.
+						mixer_.set_relative_volumes({1.0f, 0.0f});
+					break;
+
+					case 1: // FM only.
+						mixer_.set_relative_volumes({0.0f, 1.0f});
+					break;
+
+					case 2: // No audio.
+						mixer_.set_relative_volumes({0.0f, 0.0f});
+					break;
+
+					case 3: // Both FM and SN76489.
+						mixer_.set_relative_volumes({0.5f, 0.5f});
+					break;
+				}
+			});
 		}
 
 		using Target = Analyser::Static::Sega::Target;
