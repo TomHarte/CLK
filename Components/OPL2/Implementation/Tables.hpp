@@ -88,9 +88,10 @@ constexpr LogSign negative_log_sin(int x) {
 }
 
 /*!
-	Computes the linear value represented by the log-sign @c ls.
+	Computes the linear value represented by the log-sign @c ls, shifted left by @c fractional prior
+	to loss of precision.
 */
-constexpr int power_two(LogSign ls) {
+constexpr int power_two(LogSign ls, int fractional = 0) {
 	/// A derivative of the exponent table in a real OPL2; mapped_exp[x] = (source[c ^ 0xff] << 1) | 0x800.
 	///
 	/// The ahead-of-time transformation represents fixed work the OPL2 does when reading its table
@@ -142,7 +143,7 @@ constexpr int power_two(LogSign ls) {
 		2088,	2082,	2076,	2070,	2064,	2060,	2054,	2048,
 	};
 
-	return (mapped_exp[ls.log & 0xff] >> (ls.log >> 8)) * ls.sign;
+	return ((mapped_exp[ls.log & 0xff] << fractional) >> (ls.log >> 8)) * ls.sign;
 }
 
 /*

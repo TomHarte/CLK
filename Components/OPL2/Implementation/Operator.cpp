@@ -54,7 +54,7 @@ bool Operator::is_audible(OperatorState &state, OperatorOverrides *overrides) {
 	return state.adsr_attenuation_ != 511;
 }
 
-void Operator::update(OperatorState &state, bool key_on, int channel_period, int channel_octave, int phase_offset, OperatorOverrides *overrides) {
+void Operator::update(OperatorState &state, bool key_on, int channel_period, int channel_octave, OperatorState *phase_offset, OperatorOverrides *overrides) {
 	// Per the documentation:
 	//
 	// Delta phase = ( [desired freq] * 2^19 / [input clock / 72] ) / 2 ^ (b - 1)
@@ -77,7 +77,8 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 		{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
 		{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
 	};
-	const int phase = (state.raw_phase_ >> 11) + phase_offset;
+	const int scaled_phase_offset = phase_offset ? power_two(phase_offset->attenuation, 11) : 0;
+	const int phase = (state.raw_phase_ + scaled_phase_offset) >> 11;
 	state.attenuation = negative_log_sin(phase & waveforms[int(waveform_)][(phase >> 8) & 3]);
 
 	// Key-on logic: any time it is false, be in the release state.
