@@ -158,8 +158,8 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 			state.adsr_attenuation_ = std::min(state.adsr_attenuation_, 511);
 
 			// Check for the decay exit condition.
-			if(state.adsr_phase_ == OperatorState::ADSRPhase::Decay && state.adsr_attenuation_ >= (sustain_level_ << 5)) {
-				state.adsr_attenuation_ = sustain_level_ << 5;
+			if(state.adsr_phase_ == OperatorState::ADSRPhase::Decay && state.adsr_attenuation_ >= (sustain_level_ << 3)) {
+				state.adsr_attenuation_ = sustain_level_ << 3;
 				state.adsr_phase_ = ((overrides && overrides->use_sustain_level) || use_sustain_level_) ? OperatorState::ADSRPhase::Sustain : OperatorState::ADSRPhase::Release;
 			}
 		} break;
@@ -177,7 +177,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 	// Calculate key-level scaling. Table is as per p14 of the YM3812 application manual,
 	// converted into a fixed-point scheme. Compare with https://www.smspower.org/Development/RE12
 	// and apologies for the highly ad hoc indentation.
-	constexpr int key_level_scales[4][8][16] = {
+/*	constexpr int key_level_scales[4][8][16] = {
 #define _ 0
 		{
 			{_,	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
@@ -221,7 +221,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 		},
 #undef _
 	};
-	state.attenuation.log += key_level_scales[key_level_scaling_][channel_octave][channel_period >> 6] << 7;
+	state.attenuation.log += key_level_scales[key_level_scaling_][channel_octave][channel_period >> 6] << 7;*/
 
 	// Combine the ADSR attenuation and overall channel attenuation.
 	if(overrides) {
