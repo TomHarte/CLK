@@ -9,6 +9,7 @@
 #include "Operator.hpp"
 
 #include <algorithm>
+#include <cassert>
 
 using namespace Yamaha::OPL;
 
