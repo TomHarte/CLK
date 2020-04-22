@@ -40,7 +40,7 @@ void Operator::set_am_vibrato_hold_sustain_ksr_multiple(uint8_t value) {
 	apply_amplitude_modulation_ = value & 0x80;
 	apply_vibrato_ = value & 0x40;
 	use_sustain_level_ = value & 0x20;
-	key_scaling_rate_ = value & 0x10;
+	key_rate_scaling_shift_ = (value & 0x10) ? 0 : 2;
 	frequency_multiple_ = value & 0xf;
 }
 
@@ -99,10 +99,14 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 	// "An attack rate value of 52 (AR = 13) has 32 samples in the attack phase, an attack rate value of 48 (AR = 12)
 	// has 64 samples in the attack phase, but pairs of samples show the same envelope attenuation. I am however struggling to find a plausible algorithm to match the experimental results.
 
+	const int key_scaling_rate = ((channel_octave << 1) | (channel_period >> 9)) >> key_rate_scaling_shift_;
+	assert(key_scaling_rate < 16);
+	assert((channel_period >> 9) < 2);
+
 	const auto current_phase = state.adsr_phase_;
 	switch(current_phase) {
 		case OperatorState::ADSRPhase::Attack: {
-			const int attack_rate = attack_rate_;	// TODO: key scaling rate. Which I do not yet understand.
+			const int attack_rate = attack_rate_ + key_scaling_rate;
 
 			// Rules:
 			//
@@ -139,7 +143,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 			// A rate of 3 means increase 1 per cycle.
 			// A rate of 4 means increase 1 every other cycle.
 			// (etc)
-			const int decrease_rate = (state.adsr_phase_ == OperatorState::ADSRPhase::Decay) ? decay_rate_ : release_rate_;	// TODO: again, key scaling rate.
+			const int decrease_rate = key_scaling_rate + ((state.adsr_phase_ == OperatorState::ADSRPhase::Decay) ? decay_rate_ : release_rate_);
 
 			if(decrease_rate) {
 				// TODO: don't throw away KSR bits.

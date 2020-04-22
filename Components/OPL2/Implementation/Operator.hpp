@@ -111,7 +111,7 @@ class Operator {
 		int attenuation_ = 0;
 
 		/// Provides a potential faster step through the ADSR envelope. Cf. p12.
-		bool key_scaling_rate_ = false;
+		int key_rate_scaling_shift_ = 0;
 
 		/// Selects attenuation that is applied as a function of interval. Cf. p14.
 		int key_level_scaling_ = 0;
