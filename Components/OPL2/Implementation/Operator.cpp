@@ -177,9 +177,9 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 	// Calculate key-level scaling. Table is as per p14 of the YM3812 application manual,
 	// converted into a fixed-point scheme. Compare with https://www.smspower.org/Development/RE12
 	// and apologies for the highly ad hoc indentation.
-/*	constexpr int key_level_scales[4][8][16] = {
+	constexpr int key_level_scales[4][8][16] = {
 #define _ 0
-		{
+		{	// 0 db of attenuation.
 			{_,	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
 			{_,	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
 			{_,	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
@@ -189,17 +189,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 			{_,	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
 			{_,	_, _, _, _, _, _, _, _, _, _, _, _, _, _, _},
 		},
-		{
-			{_,	 _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _},
-			{_,  _,  _,  _,  _,  _,  _,  _,  _,  1,  1,  2,  2,  3,  3,  4},
-			{_,  _,  _,  _,  _,  1,  2,  3,  4,  5,  5,  6,  6,  7,  7,  8},
-			{_,  _,  _,  2,  4,  5,  6,  7,  8,  9,  9, 10, 10, 11, 11, 12},
-			{_,	 _,  4,  6,  8,  9, 10, 11, 12, 13, 13, 14, 14, 15, 15, 16},
-			{_,	 4,  8, 10, 12, 13, 14, 15, 16, 17, 17, 18, 18, 19, 19, 20},
-			{_,	 8, 12, 14, 16, 17, 18, 19, 20, 21, 21, 22, 22, 23, 23, 24},
-			{_,	12, 16, 18, 20, 21, 22, 23, 24, 25, 25, 26, 26, 27, 27, 28},
-		},
-		{
+		{	// 3 db.
 			{_,	 _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _},
 			{_,  _,  _,  _,  _,  _,  _,  _,  _,  2,  3,  4,  5,  6,  7,  8},
 			{_,  _,  _,  _,  _,  3,  5,  7,  8, 10, 11, 12, 13, 14, 15, 16},
@@ -209,7 +199,17 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 			{_,	16, 24, 29, 32, 35, 37, 39, 40, 42, 43, 44, 45, 46, 47, 48},
 			{_,	24, 32, 37, 40, 43, 45, 47, 48, 50, 51, 52, 53, 54, 55, 56},
 		},
-		{
+		{	// 1.5 db.
+			{_,	 _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _,  _},
+			{_,  _,  _,  _,  _,  _,  _,  _,  _,  1,  1,  2,  2,  3,  3,  4},
+			{_,  _,  _,  _,  _,  1,  2,  3,  4,  5,  5,  6,  6,  7,  7,  8},
+			{_,  _,  _,  2,  4,  5,  6,  7,  8,  9,  9, 10, 10, 11, 11, 12},
+			{_,	 _,  4,  6,  8,  9, 10, 11, 12, 13, 13, 14, 14, 15, 15, 16},
+			{_,	 4,  8, 10, 12, 13, 14, 15, 16, 17, 17, 18, 18, 19, 19, 20},
+			{_,	 8, 12, 14, 16, 17, 18, 19, 20, 21, 21, 22, 22, 23, 23, 24},
+			{_,	12, 16, 18, 20, 21, 22, 23, 24, 25, 25, 26, 26, 27, 27, 28},
+		},
+		{	// 6 db.
 			{_,	  _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _},
 			{_,   _,   _,   _,   _,   _,   _,   _,   _,   4,   6,   8,  10,  12,  14,  16},
 			{_,   _,   _,   _,   _,   6,  10,  14,  16,  20,  22,  24,  26,  28,  30,  32},
@@ -221,7 +221,9 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 		},
 #undef _
 	};
-	state.attenuation.log += key_level_scales[key_level_scaling_][channel_octave][channel_period >> 6] << 7;*/
+	assert((channel_period >> 6) < 4);
+	assert(channel_octave < 8);
+	state.attenuation.log += key_level_scales[key_level_scaling_][channel_octave][channel_period >> 6] << 7;
 
 	// Combine the ADSR attenuation and overall channel attenuation.
 	if(overrides) {
