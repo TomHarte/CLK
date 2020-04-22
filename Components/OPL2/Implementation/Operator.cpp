@@ -13,6 +13,8 @@
 
 using namespace Yamaha::OPL;
 
+// MARK: - Setters
+
 int OperatorState::level() {
 	return power_two(attenuation);
 }
@@ -44,7 +46,10 @@ void Operator::set_am_vibrato_hold_sustain_ksr_multiple(uint8_t value) {
 	frequency_multiple_ = value & 0xf;
 }
 
+// MARK: - Getter
+
 bool Operator::is_audible(OperatorState &state, OperatorOverrides *overrides) {
+	// TODO: (i) do I actually want to support this functionality? (ii) if so, fix below.
 	if(state.adsr_phase_ == OperatorState::ADSRPhase::Release) {
 		if(overrides) {
 			if(overrides->attenuation == 0xf) return false;
@@ -54,6 +59,8 @@ bool Operator::is_audible(OperatorState &state, OperatorOverrides *overrides) {
 	}
 	return state.adsr_attenuation_ != 511;
 }
+
+// MARK: - Update logic.
 
 void Operator::update(OperatorState &state, bool key_on, int channel_period, int channel_octave, OperatorState *phase_offset, OperatorOverrides *overrides) {
 	// Per the documentation:
@@ -74,7 +81,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 	// Hence calculate phase (TODO: by also taking account of vibrato).
 	constexpr int waveforms[4][4] = {
 		{1023, 1023, 1023, 1023},	// Sine: don't mask in any quadrant.
-		{511, 511, 0, 0},			// Half sine: keep the first half in tact, lock to 0 in the second half.
+		{511, 511, 0, 0},			// Half sine: keep the first half intact, lock to 0 in the second half.
 		{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
 		{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
 	};
@@ -142,8 +149,11 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 			// A rate of 2 means increase 2 per cycle.
 			// A rate of 3 means increase 1 per cycle.
 			// A rate of 4 means increase 1 every other cycle.
-			// (etc)
+			// A rate of 5 means increase once every fourth cycle.
+			// etc.
+			// eighth, sixteenth, 32nd, 64th, 128th, 256th, 512th, 1024th, 2048th, 4096th, 8192th
 			const int decrease_rate = key_scaling_rate + ((state.adsr_phase_ == OperatorState::ADSRPhase::Decay) ? decay_rate_ : release_rate_);
+
 
 			if(decrease_rate) {
 				// TODO: don't throw away KSR bits.
