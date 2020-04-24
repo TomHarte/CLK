@@ -135,6 +135,14 @@ class Operator {
 		enum class Waveform {
 			Sine, HalfSine, AbsSine, PulseSine
 		} waveform_ = Waveform::Sine;
+
+void update_adsr(
+			OperatorState &state,
+			const LowFrequencyOscillator &oscillator,
+			bool key_on,
+			int channel_period,
+			int channel_octave,
+			const OperatorOverrides *overrides);
 };
 
 }

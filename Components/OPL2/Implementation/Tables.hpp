@@ -28,6 +28,22 @@ namespace OPL {
 struct LogSign {
 	int log;
 	int sign;
+
+	void reset() {
+		log = 0;
+		sign = 1;
+	}
+
+	LogSign &operator +=(int attenuation) {
+		log += attenuation;
+		return *this;
+	}
+
+	LogSign &operator +=(LogSign log_sign) {
+		log += log_sign.log;
+		sign *= log_sign.sign;
+		return *this;
+	}
 };
 
 /*!
