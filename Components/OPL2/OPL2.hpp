@@ -29,6 +29,7 @@ template <typename Child> class OPLBase: public ::Outputs::Speaker::SampleSource
 		OPLBase(Concurrency::DeferringAsyncTaskQueue &task_queue);
 
 		Concurrency::DeferringAsyncTaskQueue &task_queue_;
+		LowFrequencyOscillator oscillator_;
 
 		uint8_t depth_rhythm_control_;
 		uint8_t csm_keyboard_split_;
@@ -92,9 +93,10 @@ struct OPLL: public OPLBase<OPLL> {
 									// one user-configurable channel, 15 hard-coded channels, and
 									// three channels configured for rhythm generation.
 
+
 		struct Channel: public ::Yamaha::OPL::Channel {
-			int update() {
-				return Yamaha::OPL::Channel::update(modulator, modulator + 1, nullptr, &overrides);
+			int update(const LowFrequencyOscillator &oscillator) {
+				return Yamaha::OPL::Channel::update(oscillator, modulator, modulator + 1, nullptr, &overrides);
 			}
 
 			bool is_audible() {

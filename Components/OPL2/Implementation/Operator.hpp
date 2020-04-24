@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include "Tables.hpp"
+#include "LowFrequencyOscillator.hpp"
 
 namespace Yamaha {
 namespace OPL {
@@ -30,7 +31,7 @@ struct OperatorState {
 		enum class ADSRPhase {
 			Attack, Decay, Sustain, Release
 		} adsr_phase_ = ADSRPhase::Attack;
-		int time_in_phase_ = 0;
+		int attack_time_ = 0;
 		int adsr_attenuation_ = 511;
 		bool last_key_on_ = false;
 
@@ -83,7 +84,14 @@ class Operator {
 		void set_am_vibrato_hold_sustain_ksr_multiple(uint8_t value);
 
 		/// Provides one clock tick to the operator, along with the relevant parameters of its channel.
-		void update(OperatorState &state, bool key_on, int channel_period, int channel_octave, OperatorState *phase_offset, OperatorOverrides *overrides = nullptr);
+		void update(
+			OperatorState &state,
+			const OperatorState *phase_offset,
+			const LowFrequencyOscillator &oscillator,
+			bool key_on,
+			int channel_period,
+			int channel_octave,
+			const OperatorOverrides *overrides = nullptr);
 
 		/// @returns @c true if this channel currently has a non-zero output; @c false otherwise.
 		bool is_audible(OperatorState &state, OperatorOverrides *overrides = nullptr);

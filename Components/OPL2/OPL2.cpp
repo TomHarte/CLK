@@ -180,9 +180,12 @@ void OPLL::setup_fixed_instrument(int number, const uint8_t *data) {
 }
 
 void OPLL::update_all_chanels() {
+	// Update the LFO.
+	oscillator_.update();
+
 	// Channels that are updated for melodic output regardless.
 	for(int c = 0; c < 6; ++ c) {
-		channels_[c].level = (channels_[c].update() * total_volume_) >> 11;
+		channels_[c].level = (channels_[c].update(oscillator_) * total_volume_) >> 11;
 	}
 
 	if(depth_rhythm_control_ & 0x20) {
@@ -190,7 +193,7 @@ void OPLL::update_all_chanels() {
 	} else {
 		// All melody, all the time.
 		for(int c = 6; c < 9; ++ c) {
-			channels_[c].level = (channels_[c].update() * total_volume_) >> 11;
+			channels_[c].level = (channels_[c].update(oscillator_) * total_volume_) >> 11;
 		}
 	}
 

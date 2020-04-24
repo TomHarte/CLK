@@ -9,6 +9,7 @@
 #ifndef Channel_hpp
 #define Channel_hpp
 
+#include "LowFrequencyOscillator.hpp"
 #include "Operator.hpp"
 
 namespace Yamaha {
@@ -40,7 +41,7 @@ class Channel {
 
 		/// This should be called at a rate of around 49,716 Hz; it returns the current output level
 		/// level for this channel.
-		int update(Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
+		int update(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
 
 		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
 		bool is_audible(Operator *carrier, OperatorOverrides *carrier_overrides = nullptr);

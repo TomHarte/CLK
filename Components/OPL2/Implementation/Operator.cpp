@@ -62,7 +62,14 @@ bool Operator::is_audible(OperatorState &state, OperatorOverrides *overrides) {
 
 // MARK: - Update logic.
 
-void Operator::update(OperatorState &state, bool key_on, int channel_period, int channel_octave, OperatorState *phase_offset, OperatorOverrides *overrides) {
+void Operator::update(
+			OperatorState &state,
+			const OperatorState *phase_offset,
+			const LowFrequencyOscillator &oscillator,
+			bool key_on,
+			int channel_period,
+			int channel_octave,
+			const OperatorOverrides *overrides) {
 	// Per the documentation:
 	//
 	// Delta phase = ( [desired freq] * 2^19 / [input clock / 72] ) / 2 ^ (b - 1)
@@ -93,10 +100,9 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 	// On the leading edge of it becoming true, enter the attack state.
 	if(!key_on) {
 		state.adsr_phase_ = OperatorState::ADSRPhase::Release;
-		state.time_in_phase_ = 0;
 	} else if(!state.last_key_on_) {
 		state.adsr_phase_ = OperatorState::ADSRPhase::Attack;
-		state.time_in_phase_ = 0;
+		state.attack_time_ = 0;
 	}
 	state.last_key_on_ = key_on;
 
@@ -110,8 +116,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 	assert(key_scaling_rate < 16);
 	assert((channel_period >> 9) < 2);
 
-	const auto current_phase = state.adsr_phase_;
-	switch(current_phase) {
+	switch(state.adsr_phase_) {
 		case OperatorState::ADSRPhase::Attack: {
 			const int attack_rate = attack_rate_ + key_scaling_rate;
 
@@ -125,7 +130,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 				state.adsr_attenuation_ = state.adsr_attenuation_ - (state.adsr_attenuation_ >> 2) - 1;
 			} else {
 				const int sample_length = 1 << (14 - (attack_rate >> 2));	// TODO: don't throw away KSR bits.
-				if(!(state.time_in_phase_ & (sample_length - 1))) {
+				if(!(state.attack_time_ & (sample_length - 1))) {
 					state.adsr_attenuation_ = state.adsr_attenuation_ - (state.adsr_attenuation_ >> 3) - 1;
 				}
 			}
@@ -162,7 +167,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 					case 2: state.adsr_attenuation_ += 16;	break;
 					default: {
 						const int sample_length = 1 << ((decrease_rate >> 2) - 4);
-						if(!(state.time_in_phase_ & (sample_length - 1))) {
+						if(!(oscillator.counter & (sample_length - 1))) {
 							state.adsr_attenuation_ += 8;
 						}
 					} break;
@@ -183,11 +188,7 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 			// Nothing to do.
 		break;
 	}
-	if(state.adsr_phase_ == current_phase) {
-		++state.time_in_phase_;
-	} else {
-		state.time_in_phase_ = 0;
-	}
+	++state.attack_time_;
 
 	// Calculate key-level scaling. Table is as per p14 of the YM3812 application manual,
 	// converted into a fixed-point scheme. Compare with https://www.smspower.org/Development/RE12
@@ -221,4 +222,9 @@ void Operator::update(OperatorState &state, bool key_on, int channel_period, int
 		// attenuations of 24db to 0.75db.
 		state.attenuation.log += (state.adsr_attenuation_ << 3) + (attenuation_ << 5);
 	}
+
+	// Add optional tremolo.
+	state.attenuation.log += int(apply_amplitude_modulation_) * oscillator.tremolo << 4;
 }
+
+// TODO: both the tremolo and ADSR envelopes should be half-resolution on an OPLL.
