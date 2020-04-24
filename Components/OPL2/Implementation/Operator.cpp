@@ -81,11 +81,16 @@ void Operator::update(
 	constexpr int multipliers[] = {
 		1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30
 	};
+	const int top_freq = channel_period >> 7;
+	assert(top_freq < 8);
+	constexpr int vibrato_shifts[8] = {3, 1, 0, 1, 3, 1, 0, 1};
+	constexpr int vibrato_signs[2] = {1, -1};
+	const int vibrato = (top_freq >> vibrato_shifts[oscillator.vibrato]) * vibrato_signs[oscillator.vibrato >> 2] * int(apply_vibrato_);
 
 	// Update the raw phase.
-	state.raw_phase_ += multipliers[frequency_multiple_] * channel_period << channel_octave;
+	state.raw_phase_ += multipliers[frequency_multiple_] * (channel_period + vibrato) << channel_octave;
 
-	// Hence calculate phase (TODO: by also taking account of vibrato).
+	// Hence calculate phase.
 	constexpr int waveforms[4][4] = {
 		{1023, 1023, 1023, 1023},	// Sine: don't mask in any quadrant.
 		{511, 511, 0, 0},			// Half sine: keep the first half intact, lock to 0 in the second half.
