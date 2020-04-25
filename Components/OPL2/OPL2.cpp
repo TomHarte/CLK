@@ -66,7 +66,16 @@ void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 	const int update_period = 72 / audio_divider_;
 	const int channel_output_period = 8 / audio_divider_;
 
-	// Fill in any leftover from the previous session.
+	while(number_of_samples--) {
+		if(!audio_offset_) update_all_chanels();
+
+		*target = int16_t(channels_[audio_offset_ / channel_output_period].level);
+		++target;
+		audio_offset_ = (audio_offset_ + 1) % update_period;
+	}
+
+
+/*	// Fill in any leftover from the previous session.
 	if(audio_offset_) {
 		while(audio_offset_ < update_period && number_of_samples) {
 			*target = int16_t(channels_[audio_offset_ / channel_output_period].level);
@@ -101,7 +110,7 @@ void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 			*target = int16_t(channels_[c / channel_output_period].level);
 			++target;
 		}
-	}
+	}*/
 }
 
 void OPLL::set_sample_volume_range(std::int16_t range) {
