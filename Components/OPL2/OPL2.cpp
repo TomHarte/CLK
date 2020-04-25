@@ -64,12 +64,12 @@ void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 	// unlike the OPL2 the OPLL time-divides the output for 'mixing'.
 
 	const int update_period = 72 / audio_divider_;
-	const int channel_output_period = 8 / audio_divider_;
+	const int channel_output_period = 1;//2 / audio_divider_;
 
 	while(number_of_samples--) {
 		if(!audio_offset_) update_all_chanels();
 
-		*target = int16_t(channels_[audio_offset_ / channel_output_period].level);
+		*target = int16_t(channels_[(audio_offset_ / channel_output_period) % 9].level);
 		++target;
 		audio_offset_ = (audio_offset_ + 1) % update_period;
 	}
@@ -192,7 +192,9 @@ void OPLL::update_all_chanels() {
 	// Update the LFO.
 	oscillator_.update();
 
-	// Channels that are updated for melodic output regardless.
+	// Channels that are updated for melodic output regardless;
+	// in rhythm mode the final three channels — 6, 7, and 8 —
+	// are lost as their operators are used for drum noises.
 	for(int c = 0; c < 6; ++ c) {
 		channels_[c].level = (channels_[c].update(oscillator_) * total_volume_) >> 11;
 	}
@@ -200,8 +202,8 @@ void OPLL::update_all_chanels() {
 	if(depth_rhythm_control_ & 0x20) {
 		// Rhythm mode. Somehow?
 	} else {
-		// All melody, all the time.
-		for(int c = 6; c < 9; ++ c) {
+		// Not in rhythm mode; channels 7, 8 and 9 are melodic.
+		for(int c = 7; c < 9; ++ c) {
 			channels_[c].level = (channels_[c].update(oscillator_) * total_volume_) >> 11;
 		}
 	}

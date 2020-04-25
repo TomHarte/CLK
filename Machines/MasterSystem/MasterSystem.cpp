@@ -32,7 +32,7 @@
 #include <iostream>
 
 namespace {
-constexpr int audio_divider = 2;
+constexpr int audio_divider = 1;
 }
 
 namespace Sega {
