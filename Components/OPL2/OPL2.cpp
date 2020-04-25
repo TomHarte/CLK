@@ -196,7 +196,7 @@ void OPLL::update_all_chanels() {
 	// in rhythm mode the final three channels — 6, 7, and 8 —
 	// are lost as their operators are used for drum noises.
 	for(int c = 0; c < 6; ++ c) {
-		channels_[c].level = (channels_[c].update(oscillator_) * total_volume_) >> 11;
+		channels_[c].level = (channels_[c].update(oscillator_) * total_volume_) >> 12;
 	}
 
 	if(depth_rhythm_control_ & 0x20) {
@@ -204,7 +204,7 @@ void OPLL::update_all_chanels() {
 	} else {
 		// Not in rhythm mode; channels 7, 8 and 9 are melodic.
 		for(int c = 7; c < 9; ++ c) {
-			channels_[c].level = (channels_[c].update(oscillator_) * total_volume_) >> 11;
+			channels_[c].level = (channels_[c].update(oscillator_) * total_volume_) >> 12;
 		}
 	}
 
