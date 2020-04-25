@@ -33,16 +33,16 @@ void Channel::set_feedback_mode(uint8_t value) {
 	use_fm_synthesis_ = value & 1;
 }
 
-int Channel::update(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides, OperatorOverrides *carrier_overrides) {
+int Channel::update_melodic(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, bool force_key_on, OperatorOverrides *modulator_overrides, OperatorOverrides *carrier_overrides) {
 	if(use_fm_synthesis_) {
 		// Get modulator level, use that as a phase-adjusting input to the carrier and then return the carrier level.
-		modulator->update(modulator_state_, nullptr, oscillator, key_on_, period_ << frequency_shift_, octave_, modulator_overrides);
-		carrier->update(carrier_state_, &modulator_state_, oscillator, key_on_, period_ << frequency_shift_, octave_, carrier_overrides);
+		modulator->update(modulator_state_, nullptr, oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, modulator_overrides);
+		carrier->update(carrier_state_, &modulator_state_, oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, carrier_overrides);
 		return carrier_state_.level();
 	} else {
 		// Get modulator and carrier levels separately, return their sum.
-		modulator->update(modulator_state_, nullptr, oscillator, key_on_, period_ << frequency_shift_, octave_, modulator_overrides);
-		carrier->update(carrier_state_, nullptr, oscillator, key_on_, period_ << frequency_shift_, octave_, carrier_overrides);
+		modulator->update(modulator_state_, nullptr, oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, modulator_overrides);
+		carrier->update(carrier_state_, nullptr, oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, carrier_overrides);
 		return (modulator_state_.level() + carrier_state_.level());
 	}
 }

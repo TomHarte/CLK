@@ -95,8 +95,12 @@ struct OPLL: public OPLBase<OPLL> {
 
 
 		struct Channel: public ::Yamaha::OPL::Channel {
-			int update(const LowFrequencyOscillator &oscillator) {
-				return Yamaha::OPL::Channel::update(oscillator, modulator, modulator + 1, nullptr, &overrides);
+			int update_melodic(const LowFrequencyOscillator &oscillator) {
+				return Yamaha::OPL::Channel::update_melodic(oscillator, modulator, modulator + 1, false, nullptr, &overrides);
+			}
+
+			int update_bass(const LowFrequencyOscillator &oscillator, Operator *bass, bool key_on) {
+				return Yamaha::OPL::Channel::update_melodic(oscillator, bass, bass + 1, key_on, nullptr, &overrides);
 			}
 
 			bool is_audible() {
@@ -105,10 +109,10 @@ struct OPLL: public OPLBase<OPLL> {
 
 			Operator *modulator;	// Implicitly, the carrier is modulator+1.
 			OperatorOverrides overrides;
-			int level = 0;
 		};
 		void update_all_chanels();
 		Channel channels_[9];
+		int output_levels_[18];
 
 		void setup_fixed_instrument(int number, const uint8_t *data);
 		uint8_t custom_instrument_[8];

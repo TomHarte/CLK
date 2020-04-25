@@ -39,9 +39,14 @@ class Channel {
 		/// associated with this channel, and whether FM synthesis is in use.
 		void set_feedback_mode(uint8_t value);
 
-		/// This should be called at a rate of around 49,716 Hz; it returns the current output level
-		/// level for this channel.
-		int update(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
+		/// Updates this channel, using the operators for melodic output.
+		int update_melodic(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, bool force_key_on = false, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
+
+		/// Updates this channel, using the carrier to produce a snare drum and the modulator to produce a tom tom.
+		int update_snare_tom_tom(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
+
+		/// Updates this channel, using the carrier to produce a cymbal and the modulator to produce a high-hat.
+		int update_symbal_high_hat(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
 
 		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
 		bool is_audible(Operator *carrier, OperatorOverrides *carrier_overrides = nullptr);
