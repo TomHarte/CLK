@@ -42,6 +42,9 @@ class Channel {
 		/// Updates this channel, using the operators for melodic output.
 		int update_melodic(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, bool force_key_on = false, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
 
+		/// Updates this channel's modulator state, to produce a tom tom.
+		int update_tom_tom(const LowFrequencyOscillator &oscillator, Operator *modulator, bool force_key_on, OperatorOverrides *modulator_overrides = nullptr);
+
 		/// Updates this channel, using the carrier to produce a snare drum and the modulator to produce a tom tom.
 		int update_snare_tom_tom(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
 

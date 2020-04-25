@@ -139,6 +139,8 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 		// Register 0xe is a cut-down version of the OPLL's register 0xbd.
 		if(address == 0xe) {
 			depth_rhythm_control_ = value & 0x3f;
+//			if(depth_rhythm_control_ & 0x04)
+//				printf("%02x\n", depth_rhythm_control_);
 			return;
 		}
 
@@ -216,11 +218,12 @@ void OPLL::update_all_chanels() {
 		output_levels_[2] = output_levels_[15] =
 			(channels_[6].update_bass(oscillator_, &operators_[32], depth_rhythm_control_ & 0x10) * total_volume_) >> 12;
 
+		// Use the modulator from channel 7 for the tom tom.
+		output_levels_[1] = output_levels_[14] =
+			(channels_[7].update_tom_tom(oscillator_, &operators_[34], depth_rhythm_control_ & 0x04) * total_volume_) >> 12;
+
 		// TODO: snare.
 		output_levels_[6] = output_levels_[16] = 0;
-
-		// TODO: tom tom.
-		output_levels_[1] = output_levels_[14] = 0;
 
 		// TODO: cymbal.
 		output_levels_[7] = output_levels_[17] = 0;
@@ -229,9 +232,9 @@ void OPLL::update_all_chanels() {
 		output_levels_[0] = output_levels_[13] = 0;
 	} else {
 		// Not in rhythm mode; channels 7, 8 and 9 are melodic.
-		for(int c = 7; c < 9; ++ c) {
-			channel_levels[c] = (channels_[c].update_melodic(oscillator_) * total_volume_) >> 12;
-		}
+//		for(int c = 7; c < 9; ++ c) {
+//			channel_levels[c] = (channels_[c].update_melodic(oscillator_) * total_volume_) >> 12;
+//		}
 
 		output_levels_[0] = output_levels_[1] = output_levels_[2] =
 		output_levels_[6] = output_levels_[7] = output_levels_[8] =
@@ -244,7 +247,10 @@ void OPLL::update_all_chanels() {
 
 	// Test!
 //	for(int c = 0; c < 18; ++c) {
-//		if(c != 2 && c != 15) output_levels_[c] = 0;
+////		if(c != 1 && c != 14 && c != 2 && c != 15)
+////			output_levels_[c] = 0;
+//		if(c != 1 && c != 14)
+//			output_levels_[c] = 0;
 //	}
 
 //	channels_[2].level = (channels_[2].update() * total_volume_) >> 14;

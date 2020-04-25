@@ -103,6 +103,11 @@ struct OPLL: public OPLBase<OPLL> {
 				return Yamaha::OPL::Channel::update_melodic(oscillator, bass, bass + 1, key_on, nullptr, &overrides);
 			}
 
+			int update_tom_tom(const LowFrequencyOscillator &oscillator, Operator *bass, bool key_on) {
+				// TODO: should overrides be applied here?
+				return Yamaha::OPL::Channel::update_tom_tom(oscillator, bass, key_on, &overrides);
+			}
+
 			bool is_audible() {
 				return Yamaha::OPL::Channel::is_audible(modulator + 1, &overrides);
 			}

@@ -47,6 +47,11 @@ int Channel::update_melodic(const LowFrequencyOscillator &oscillator, Operator *
 	}
 }
 
+int Channel::update_tom_tom(const LowFrequencyOscillator &oscillator, Operator *modulator, bool force_key_on, OperatorOverrides *modulator_overrides) {
+	modulator->update(modulator_state_, nullptr, oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, modulator_overrides);
+	return modulator_state_.level();
+}
+
 bool Channel::is_audible(Operator *carrier, OperatorOverrides *carrier_overrides) {
 	return carrier->is_audible(carrier_state_, carrier_overrides);
 }

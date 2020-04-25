@@ -74,8 +74,12 @@ void Operator::update_adsr(
 	if(!key_on) {
 		state.adsr_phase_ = OperatorState::ADSRPhase::Release;
 	} else if(!state.last_key_on_) {
+//		printf("---\n");
 		state.adsr_phase_ = OperatorState::ADSRPhase::Attack;
 		state.attack_time_ = 0;
+
+		// TODO: should this happen only if current ADSR attenuation is 511?
+//		state.raw_phase_ = 0;
 	}
 	state.last_key_on_ = key_on;
 
@@ -162,6 +166,10 @@ void Operator::update_adsr(
 		break;
 	}
 	++state.attack_time_;
+
+//	if(key_on) {
+//		printf("%d\n", state.adsr_attenuation_);
+//	}
 }
 
 void Operator::update(
