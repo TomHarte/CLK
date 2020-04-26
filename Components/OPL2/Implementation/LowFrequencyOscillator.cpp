@@ -26,3 +26,7 @@ void LowFrequencyOscillator::update() {
 	// Vibrato is relatively simple: it's just three bits from the counter.
 	vibrato = (counter >> 10) & 7;
 }
+
+void LowFrequencyOscillator::update_lfsr() {
+	lfsr = noise_source_.next();
+}

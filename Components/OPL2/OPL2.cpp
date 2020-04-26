@@ -68,6 +68,7 @@ void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 
 	while(number_of_samples--) {
 		if(!audio_offset_) update_all_chanels();
+		if(!(audio_offset_&3)) oscillator_.update_lfsr();
 
 		*target = int16_t(output_levels_[audio_offset_ / channel_output_period]);
 		++target;

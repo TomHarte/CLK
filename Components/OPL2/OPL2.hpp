@@ -11,7 +11,6 @@
 
 #include "../../Outputs/Speaker/Implementation/SampleSource.hpp"
 #include "../../Concurrency/AsyncTaskQueue.hpp"
-#include "../../Numeric/LFSR.hpp"
 
 #include "Implementation/Channel.hpp"
 #include "Implementation/Operator.hpp"
@@ -59,9 +58,6 @@ struct OPL2: public OPLBase<OPL2> {
 
 		Operator operators_[18];
 		Channel channels_[9];
-
-		// This is the correct LSFR per forums.submarine.org.uk.
-		Numeric::LFSR<uint32_t, 0x800302> noise_source_;
 
 		// Synchronous properties, valid only on the emulation thread.
 		uint8_t timers_[2] = {0, 0};

@@ -9,6 +9,8 @@
 #ifndef LowFrequencyOscillator_hpp
 #define LowFrequencyOscillator_hpp
 
+#include "../../../Numeric/LFSR.hpp"
+
 namespace Yamaha {
 namespace OPL {
 
@@ -21,14 +23,26 @@ class LowFrequencyOscillator {
 	public:
 		/// Current attenuation due to tremolo / amplitude modulation, between 0 and 26.
 		int tremolo = 0;
+
 		/// A number between 0 and 7 indicating the current vibrato offset; this should be combined by operators
 		/// with their frequency number to get the actual vibrato.
 		int vibrato = 0;
+
 		/// A counter of the number of operator update cycles (i.e. input clock / 72) since an arbitrary time.
 		int counter = 0;
 
-		/// Updates the oscillator outputs
+		/// Describes the current output of the LFSR; will be either 0 or 1.
+		int lfsr = 0;
+
+		/// Updates the oscillator outputs. Should be called at the (input clock/72) rate.
 		void update();
+
+		/// Updartes the LFSR output. Should be called at the input clock rate.
+		void update_lfsr();
+
+	private:
+		// This is the correct LSFR per forums.submarine.org.uk.
+		Numeric::LFSR<int, 0x800302> noise_source_;
 };
 
 }
