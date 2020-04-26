@@ -9,6 +9,9 @@
 #ifndef LFSR_h
 #define LFSR_h
 
+#include <cstdint>
+#include <cstdlib>
+
 namespace Numeric {
 
 template <typename IntType> struct LSFRPolynomial {};
@@ -41,11 +44,12 @@ template <typename IntType = uint64_t, IntType polynomial = LSFRPolynomial<IntTy
 			Constructs an LFSR with a random initial value.
 		*/
 		LFSR() {
-			// Randomise the value, ensuring it doesn't end up being 0.
+			// Randomise the value, ensuring it doesn't end up being 0;
+			// don't set any top bits, in case this is a signed type.
 			while(!value_) {
 				uint8_t *value_byte = reinterpret_cast<uint8_t *>(&value_);
 				for(size_t c = 0; c < sizeof(IntType); ++c) {
-					*value_byte = uint8_t(uint64_t(rand()) * 255 / RAND_MAX);
+					*value_byte = uint8_t(uint64_t(rand()) * 127 / RAND_MAX);
 					++value_byte;
 				}
 			}
