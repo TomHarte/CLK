@@ -94,8 +94,19 @@ class Operator {
 		/// @returns @c true if this channel currently has a non-zero output; @c false otherwise.
 		bool is_audible(OperatorState &state, OperatorOverrides *overrides = nullptr);
 
-		LogSign melodic_output(OperatorState &state, const LogSign *phase_offset = nullptr);
-		LogSign snare_output(OperatorState &state);
+		/// Provides ordinary melodic output, optionally with modulation.
+		LogSign melodic_output(const OperatorState &state, const LogSign *phase_offset = nullptr);
+
+		/// Provides snare drum output, which is a function of phase and the captured LFSR level.
+		LogSign snare_output(const OperatorState &state);
+
+		/// Provides cymbal output, which is a function of the phase given by @c state, ordinarily the carrier of channel 8,
+		/// and the phase of @c modulator, which is ordinarily the modulator of channel 7.
+		LogSign cymbal_output(const OperatorState &state, const OperatorState &modulator);
+
+		/// Provides high-hat output, which is a function of the phase given by @c state, ordinarily the carrier of channel 8,
+		/// and the phase of @c modulator, which is ordinarily the modulator of channel 7.
+		LogSign high_hat_output(const OperatorState &state, const OperatorState &modulator);
 
 	private:
 		/// If true then an amplitude modulation of "3.7Hz" is applied,

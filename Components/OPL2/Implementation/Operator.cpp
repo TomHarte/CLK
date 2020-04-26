@@ -245,7 +245,10 @@ void Operator::update(
 
 // MARK: - Output Generators.
 
-LogSign Operator::melodic_output(OperatorState &state, const LogSign *phase_offset) {
+// A heavy debt is owed to https://github.com/andete/ym2413/blob/master/results/rhythm/rhythm.md regarding
+// the drum sound generation below.
+
+LogSign Operator::melodic_output(const OperatorState &state, const LogSign *phase_offset) {
 	// Calculate raw attenuation level.
 	constexpr int waveforms[4][4] = {
 		{1023, 1023, 1023, 1023},	// Sine: don't mask in any quadrant.
@@ -262,32 +265,43 @@ LogSign Operator::melodic_output(OperatorState &state, const LogSign *phase_offs
 	return result;
 }
 
-LogSign Operator::snare_output(OperatorState &state) {
+LogSign Operator::snare_output(const OperatorState &state) {
 	LogSign result;
 
 	// If noise is 0, output is positive.
 	// If noise is 1, output is negative.
 	// If (noise ^ sign) is 0, output is 0. Otherwise it is max.
-//	const int angle = ((state.lfsr_ << 10) ^ (state.raw_phase_ >> 12)) & 0x100;
-//
-//	result = negative_log_sin((state.raw_phase_ >> 11) &;
-//	constexpr int masks[] = {~0, 0};
-//	result += masks[state.lfsr_
-
 	const int sign = (state.raw_phase_ >> 11) & 0x200;
 	const int level = ((state.raw_phase_ >> 20) & 1) ^ state.lfsr_;
 	result = negative_log_sin(sign + (level << 8));
 
-//	if((state.raw_phase_ >> 11) & 0x200) {
-//		// Result is -max if LFSR is 0, otherwise -0.
-//		result = negative_log_sin(512 + ((state.lfsr_^1) << 8));
-//	} else {
-//		// Result is +max if LFSR is 1, otherwise +0.
-//		result = negative_log_sin(state.lfsr_ << 8);
-//	}
+	result += state.key_level_scaling_;
+	result += state.channel_adsr_attenuation_;
+	return result;
+}
 
+LogSign Operator::cymbal_output(const OperatorState &state, const OperatorState &modulator) {
+	const int output =
+		((state.raw_phase_ >> 16) ^ (state.raw_phase_ >> 14)) &
+		((modulator.raw_phase_ >> 18) ^ (modulator.raw_phase_ >> 13)) &
+		((state.raw_phase_ >> 16) ^ (modulator.raw_phase_ >> 14));
 
-//	printf("%d %d: %d/%d\n", state.lfsr_, (state.raw_phase_ >> 11) & 1023, result.log, result.sign);
+	constexpr int angles[] = {256, 768};
+	LogSign result = negative_log_sin(angles[output & 1]);
+
+	result += state.key_level_scaling_;
+	result += state.channel_adsr_attenuation_;
+	return result;
+}
+
+LogSign Operator::high_hat_output(const OperatorState &state, const OperatorState &modulator) {
+	const int output =
+		((state.raw_phase_ >> 16) ^ (state.raw_phase_ >> 14)) &
+		((modulator.raw_phase_ >> 18) ^ (modulator.raw_phase_ >> 13)) &
+		((state.raw_phase_ >> 16) ^ (modulator.raw_phase_ >> 14));
+
+	constexpr int angles[] = {0x234, 0xd0, 0x2d0, 0x34};
+	LogSign result = negative_log_sin(angles[(output & 1) | (state.lfsr_ << 1)]);
 
 	result += state.key_level_scaling_;
 	result += state.channel_adsr_attenuation_;
