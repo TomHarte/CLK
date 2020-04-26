@@ -46,10 +46,10 @@ class Channel {
 		int update_tom_tom(const LowFrequencyOscillator &oscillator, Operator *modulator, bool force_key_on, OperatorOverrides *modulator_overrides = nullptr);
 
 		/// Updates this channel, using the carrier to produce a snare drum and the modulator to produce a tom tom.
-		int update_snare_tom_tom(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
+		int update_snare(const LowFrequencyOscillator &oscillator, Operator *carrier, bool force_key_on, OperatorOverrides *carrier_overrides = nullptr);
 
 		/// Updates this channel, using the carrier to produce a cymbal and the modulator to produce a high-hat.
-		int update_symbal_high_hat(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
+		int update_cymbal_high_hat(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
 
 		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
 		bool is_audible(Operator *carrier, OperatorOverrides *carrier_overrides = nullptr);

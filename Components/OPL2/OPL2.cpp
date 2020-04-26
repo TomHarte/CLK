@@ -68,7 +68,8 @@ void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 
 	while(number_of_samples--) {
 		if(!audio_offset_) update_all_chanels();
-		if(!(audio_offset_&3)) oscillator_.update_lfsr();
+		if(!(audio_offset_&3))
+			oscillator_.update_lfsr();
 
 		*target = int16_t(output_levels_[audio_offset_ / channel_output_period]);
 		++target;
@@ -140,7 +141,7 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 		// Register 0xe is a cut-down version of the OPLL's register 0xbd.
 		if(address == 0xe) {
 			depth_rhythm_control_ = value & 0x3f;
-//			if(depth_rhythm_control_ & 0x04)
+//			if(depth_rhythm_control_ & 0x08)
 //				printf("%02x\n", depth_rhythm_control_);
 			return;
 		}
@@ -225,8 +226,9 @@ void OPLL::update_all_chanels() {
 		output_levels_[1] = output_levels_[14] =
 			VOLUME(channels_[7].update_tom_tom(oscillator_, &operators_[34], depth_rhythm_control_ & 0x04));
 
-		// TODO: snare.
-		output_levels_[6] = output_levels_[16] = 0;
+		// Use the carrier from channel 7 for the snare.
+		output_levels_[6] = output_levels_[16] =
+			VOLUME(channels_[7].update_snare(oscillator_, &operators_[35], depth_rhythm_control_ & 0x08));
 
 		// TODO: cymbal.
 		output_levels_[7] = output_levels_[17] = 0;
@@ -250,9 +252,7 @@ void OPLL::update_all_chanels() {
 
 	// Test!
 //	for(int c = 0; c < 18; ++c) {
-////		if(c != 1 && c != 14 && c != 2 && c != 15)
-////			output_levels_[c] = 0;
-//		if(c != 1 && c != 14)
+//		if(c != 6 && c != 16)
 //			output_levels_[c] = 0;
 //	}
 

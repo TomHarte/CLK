@@ -44,6 +44,8 @@ struct LogSign {
 		sign *= log_sign.sign;
 		return *this;
 	}
+
+	int level(int fractional = 0) const;
 };
 
 /*!
@@ -213,6 +215,11 @@ constexpr uint8_t percussion_patch_set[] = {
 	0x01, 0x01, 0x00, 0x00, 0xc8, 0xd8, 0xa7, 0x48,
 	0x05, 0x01, 0x00, 0x00, 0xf8, 0xaa, 0x59, 0x55,
 };
+
+
+inline int LogSign::level(int fractional) const {
+	return power_two(*this, fractional);
+}
 
 }
 }

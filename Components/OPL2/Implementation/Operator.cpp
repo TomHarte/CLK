@@ -15,10 +15,6 @@ using namespace Yamaha::OPL;
 
 // MARK: - Setters
 
-int OperatorState::level() {
-	return power_two(attenuation);
-}
-
 void Operator::set_attack_decay(uint8_t value) {
 	attack_rate_ = (value & 0xf0) >> 2;
 	decay_rate_ = (value & 0x0f) << 2;
@@ -167,46 +163,6 @@ void Operator::update_adsr(
 	++state.attack_time_;
 }
 
-void Operator::apply_key_level_scaling(OperatorState &state, int channel_period, int channel_octave) {
-	// Calculate key-level scaling. Table is as per p14 of the YM3812 application manual,
-	// converted into a fixed-point scheme. Compare with https://www.smspower.org/Development/RE12
-	// and apologies for the highly ad hoc indentation.
-	constexpr int key_level_scale_shifts[4] = {7, 1, 2, 0};	// '7' is just a number large enough to render all the numbers below as 0.
-	constexpr int key_level_scales[8][16] = {
-#define _ 0
-		// 6 db attenuations.
-		{_,	  _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _},
-		{_,   _,   _,   _,   _,   _,   _,   _,   _,   4,   6,   8,  10,  12,  14,  16},
-		{_,   _,   _,   _,   _,   6,  10,  14,  16,  20,  22,  24,  26,  28,  30,  32},
-		{_,   _,   _,  10,  16,  22,  26,  30,  32,  36,  38,  40,  42,  44,  46,  48},
-		{_,	  _,  16,  26,  32,  38,  42,  46,  48,  52,  54,  56,  58,  60,  62,  64},
-		{_,	 16,  32,  42,  48,  54,  58,  62,  64,  68,  70,  72,  74,  76,  78,  80},
-		{_,	 32,  48,  58,  64,  70,  74,  78,  80,  84,  86,  88,  90,  92,  94,  96},
-		{_,	 48,  64,  74,  80,  86,  90,  94,  96, 100, 102, 104, 106, 108, 110, 112},
-#undef _
-	};
-	assert((channel_period >> 6) < 16);
-	assert(channel_octave < 8);
-	state.attenuation += (key_level_scales[channel_octave][channel_period >> 6] >> key_level_scale_shifts[key_level_scaling_]) << 7;
-}
-
-void Operator::apply_attenuation_adsr(OperatorState &state, const LowFrequencyOscillator &oscillator, const OperatorOverrides *overrides) {
-	// Combine the ADSR attenuation and overall channel attenuation.
-	if(overrides) {
-		// Overrides here represent per-channel volume on an OPLL. The bits are defined to represent
-		// attenuations of 24db to 3db; the main envelope generator is stated to have a resolution of
-		// 0.325db (which I've assumed is supposed to say 0.375db).
-		state.attenuation += (state.adsr_attenuation_ << 3) + (overrides->attenuation << 7);
-	} else {
-		// Overrides here represent per-channel volume on an OPLL. The bits are defined to represent
-		// attenuations of 24db to 0.75db.
-		state.attenuation += (state.adsr_attenuation_ << 3) + (attenuation_ << 5);
-	}
-
-	// Add optional tremolo.
-	state.attenuation += int(apply_amplitude_modulation_) * oscillator.tremolo << 4;
-}
-
 void Operator::update_phase(OperatorState &state, const LowFrequencyOscillator &oscillator, int channel_period, int channel_octave) {
 	// Per the documentation:
 	//
@@ -229,9 +185,50 @@ void Operator::update_phase(OperatorState &state, const LowFrequencyOscillator &
 	state.raw_phase_ += multipliers[frequency_multiple_] * (channel_period + vibrato) << channel_octave;
 }
 
+int Operator::key_level_scaling(OperatorState &state, int channel_period, int channel_octave) {
+	// Calculate key-level scaling. Table is as per p14 of the YM3812 application manual,
+	// converted into a fixed-point scheme. Compare with https://www.smspower.org/Development/RE12
+	// and apologies for the highly ad hoc indentation.
+	constexpr int key_level_scale_shifts[4] = {7, 1, 2, 0};	// '7' is just a number large enough to render all the numbers below as 0.
+	constexpr int key_level_scales[8][16] = {
+#define _ 0
+		// 6 db attenuations.
+		{_,	  _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _,   _},
+		{_,   _,   _,   _,   _,   _,   _,   _,   _,   4,   6,   8,  10,  12,  14,  16},
+		{_,   _,   _,   _,   _,   6,  10,  14,  16,  20,  22,  24,  26,  28,  30,  32},
+		{_,   _,   _,  10,  16,  22,  26,  30,  32,  36,  38,  40,  42,  44,  46,  48},
+		{_,	  _,  16,  26,  32,  38,  42,  46,  48,  52,  54,  56,  58,  60,  62,  64},
+		{_,	 16,  32,  42,  48,  54,  58,  62,  64,  68,  70,  72,  74,  76,  78,  80},
+		{_,	 32,  48,  58,  64,  70,  74,  78,  80,  84,  86,  88,  90,  92,  94,  96},
+		{_,	 48,  64,  74,  80,  86,  90,  94,  96, 100, 102, 104, 106, 108, 110, 112},
+#undef _
+	};
+	assert((channel_period >> 6) < 16);
+	assert(channel_octave < 8);
+	return (key_level_scales[channel_octave][channel_period >> 6] >> key_level_scale_shifts[key_level_scaling_]) << 7;
+}
+
+int Operator::attenuation_adsr(OperatorState &state, const LowFrequencyOscillator &oscillator, const OperatorOverrides *overrides) {
+	int attenuation = 0;
+
+	// Combine the ADSR attenuation and overall channel attenuation.
+	if(overrides) {
+		// Overrides here represent per-channel volume on an OPLL. The bits are defined to represent
+		// attenuations of 24db to 3db; the main envelope generator is stated to have a resolution of
+		// 0.325db (which I've assumed is supposed to say 0.375db).
+		attenuation += (state.adsr_attenuation_ << 3) + (overrides->attenuation << 7);
+	} else {
+		// Overrides here represent per-channel volume on an OPLL. The bits are defined to represent
+		// attenuations of 24db to 0.75db.
+		attenuation += (state.adsr_attenuation_ << 3) + (attenuation_ << 5);
+	}
+
+	// Add optional tremolo.
+	return attenuation + (int(apply_amplitude_modulation_) * oscillator.tremolo << 4);
+}
+
 void Operator::update(
 			OperatorState &state,
-			const OperatorState *phase_offset,
 			const LowFrequencyOscillator &oscillator,
 			bool key_on,
 			int channel_period,
@@ -239,7 +236,16 @@ void Operator::update(
 			const OperatorOverrides *overrides) {
 	update_adsr(state, oscillator, key_on, channel_period, channel_octave, overrides);
 	update_phase(state, oscillator, channel_period, channel_octave);
+	state.key_level_scaling_ = key_level_scaling(state, channel_period, channel_octave);
+	state.channel_adsr_attenuation_ = attenuation_adsr(state, oscillator, overrides);
+	state.lfsr_ = oscillator.lfsr;
+}
 
+// TODO: both the tremolo and ADSR envelopes should be half-resolution on an OPLL.
+
+// MARK: - Output Generators.
+
+LogSign Operator::melodic_output(OperatorState &state, const LogSign *phase_offset) {
 	// Calculate raw attenuation level.
 	constexpr int waveforms[4][4] = {
 		{1023, 1023, 1023, 1023},	// Sine: don't mask in any quadrant.
@@ -247,12 +253,39 @@ void Operator::update(
 		{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
 		{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
 	};
-	const int scaled_phase_offset = phase_offset ? power_two(phase_offset->attenuation, 11) : 0;
+	const int scaled_phase_offset = phase_offset ? phase_offset->level(11) : 0;
 	const int phase = (state.raw_phase_ + scaled_phase_offset) >> 11;
-	state.attenuation = negative_log_sin(phase & waveforms[int(waveform_)][(phase >> 8) & 3]);
 
-	apply_key_level_scaling(state, channel_period, channel_octave);
-	apply_attenuation_adsr(state, oscillator, overrides);
+	LogSign result = negative_log_sin(phase & waveforms[int(waveform_)][(phase >> 8) & 3]);
+	result += state.key_level_scaling_;
+	result += state.channel_adsr_attenuation_;
+	return result;
 }
 
-// TODO: both the tremolo and ADSR envelopes should be half-resolution on an OPLL.
+LogSign Operator::snare_output(OperatorState &state) {
+	LogSign result;
+
+	// If noise is 0, output is positive.
+	// If noise is 1, output is negative.
+	// If (noise ^ sign) is 0, output is 0. Otherwise it is max.
+//	const int angle = ((state.lfsr_ << 10) ^ (state.raw_phase_ >> 12)) & 0x100;
+//
+//	result = negative_log_sin((state.raw_phase_ >> 11) &;
+//	constexpr int masks[] = {~0, 0};
+//	result += masks[state.lfsr_
+
+	if((state.raw_phase_ >> 11) & 0x200) {
+		// Result is -max if LFSR is 0, otherwise -0.
+		result = negative_log_sin(1024 + ((state.lfsr_^1) << 8));
+	} else {
+		// Result is +max if LFSR is 1, otherwise +0.
+		result = negative_log_sin(state.lfsr_ << 8);
+	}
+
+
+//	printf("%d %d: %d/%d\n", state.lfsr_, (state.raw_phase_ >> 11) & 1023, result.log, result.sign);
+
+	result += state.key_level_scaling_;
+	result += state.channel_adsr_attenuation_;
+	return result;
+}

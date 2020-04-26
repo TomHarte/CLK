@@ -17,25 +17,24 @@ namespace Yamaha {
 namespace OPL {
 
 /*!
-	Describes the ephemeral state of an operator.
+	Opaquely describes the ephemeral state of an operator.
 */
 struct OperatorState {
-	public:
-		/// @returns The linear output level for the operator with this state..
-		int level();
-
 	private:
-		LogSign attenuation;
-		int raw_phase_ = 0;
+		friend class Operator;
 
+		int raw_phase_ = 0;
 		enum class ADSRPhase {
 			Attack, Decay, Sustain, Release
 		} adsr_phase_ = ADSRPhase::Attack;
-		int attack_time_ = 0;
 		int adsr_attenuation_ = 511;
-		bool last_key_on_ = false;
+		int attack_time_ = 0;
 
-		friend class Operator;
+		int key_level_scaling_;
+		int channel_adsr_attenuation_;
+		int lfsr_;
+
+		bool last_key_on_ = false;
 };
 
 /*!
@@ -86,7 +85,6 @@ class Operator {
 		/// Provides one clock tick to the operator, along with the relevant parameters of its channel.
 		void update(
 			OperatorState &state,
-			const OperatorState *phase_offset,
 			const LowFrequencyOscillator &oscillator,
 			bool key_on,
 			int channel_period,
@@ -95,6 +93,9 @@ class Operator {
 
 		/// @returns @c true if this channel currently has a non-zero output; @c false otherwise.
 		bool is_audible(OperatorState &state, OperatorOverrides *overrides = nullptr);
+
+		LogSign melodic_output(OperatorState &state, const LogSign *phase_offset = nullptr);
+		LogSign snare_output(OperatorState &state);
 
 	private:
 		/// If true then an amplitude modulation of "3.7Hz" is applied,
@@ -149,10 +150,10 @@ class Operator {
 		void update_phase(OperatorState &state, const LowFrequencyOscillator &oscillator, int channel_period, int channel_octave);
 
 		/// Adds key-level scaling to the current output state.
-		void apply_key_level_scaling(OperatorState &state, int channel_period, int channel_octave);
+		int key_level_scaling(OperatorState &state, int channel_period, int channel_octave);
 
 		/// Adds ADSR and general channel attenuations to the output state.
-		void apply_attenuation_adsr(OperatorState &state, const LowFrequencyOscillator &oscillator, const OperatorOverrides *overrides);
+		int attenuation_adsr(OperatorState &state, const LowFrequencyOscillator &oscillator, const OperatorOverrides *overrides);
 
 };
 
