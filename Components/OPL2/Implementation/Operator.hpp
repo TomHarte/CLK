@@ -136,13 +136,24 @@ class Operator {
 			Sine, HalfSine, AbsSine, PulseSine
 		} waveform_ = Waveform::Sine;
 
-void update_adsr(
+		/// Updates the ADSR envelope.
+		void update_adsr(
 			OperatorState &state,
 			const LowFrequencyOscillator &oscillator,
 			bool key_on,
 			int channel_period,
 			int channel_octave,
 			const OperatorOverrides *overrides);
+
+		/// Updates the phase generator.
+		void update_phase(OperatorState &state, const LowFrequencyOscillator &oscillator, int channel_period, int channel_octave);
+
+		/// Adds key-level scaling to the current output state.
+		void apply_key_level_scaling(OperatorState &state, int channel_period, int channel_octave);
+
+		/// Adds ADSR and general channel attenuations to the output state.
+		void apply_attenuation_adsr(OperatorState &state, const LowFrequencyOscillator &oscillator, const OperatorOverrides *overrides);
+
 };
 
 }

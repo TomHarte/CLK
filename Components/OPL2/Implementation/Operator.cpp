@@ -74,12 +74,11 @@ void Operator::update_adsr(
 	if(!key_on) {
 		state.adsr_phase_ = OperatorState::ADSRPhase::Release;
 	} else if(!state.last_key_on_) {
-//		printf("---\n");
 		state.adsr_phase_ = OperatorState::ADSRPhase::Attack;
 		state.attack_time_ = 0;
 
 		// TODO: should this happen only if current ADSR attenuation is 511?
-//		state.raw_phase_ = 0;
+		state.raw_phase_ = 0;
 	}
 	state.last_key_on_ = key_on;
 
@@ -166,55 +165,9 @@ void Operator::update_adsr(
 		break;
 	}
 	++state.attack_time_;
-
-//	if(key_on) {
-//		printf("%d\n", state.adsr_attenuation_);
-//	}
 }
 
-void Operator::update(
-			OperatorState &state,
-			const OperatorState *phase_offset,
-			const LowFrequencyOscillator &oscillator,
-			bool key_on,
-			int channel_period,
-			int channel_octave,
-			const OperatorOverrides *overrides) {
-	state.attenuation.reset();
-	update_adsr(state, oscillator, key_on, channel_period, channel_octave, overrides);
-
-	// Per the documentation:
-	//
-	// Delta phase = ( [desired freq] * 2^19 / [input clock / 72] ) / 2 ^ (b - 1)
-	//
-	// After experimentation, I think this gives rate calculation as formulated below.
-
-	// This encodes the MUL -> multiple table given on page 12,
-	// multiplied by two.
-	constexpr int multipliers[] = {
-		1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30
-	};
-	const int top_freq = channel_period >> 7;
-	assert(top_freq < 8);
-	constexpr int vibrato_shifts[8] = {3, 1, 0, 1, 3, 1, 0, 1};
-	constexpr int vibrato_signs[2] = {1, -1};
-	const int vibrato = (top_freq >> vibrato_shifts[oscillator.vibrato]) * vibrato_signs[oscillator.vibrato >> 2] * int(apply_vibrato_);
-
-	// Update the raw phase.
-	state.raw_phase_ += multipliers[frequency_multiple_] * (channel_period + vibrato) << channel_octave;
-
-	// Hence calculate phase.
-	constexpr int waveforms[4][4] = {
-		{1023, 1023, 1023, 1023},	// Sine: don't mask in any quadrant.
-		{511, 511, 0, 0},			// Half sine: keep the first half intact, lock to 0 in the second half.
-		{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
-		{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
-	};
-	const int scaled_phase_offset = phase_offset ? power_two(phase_offset->attenuation, 11) : 0;
-	const int phase = (state.raw_phase_ + scaled_phase_offset) >> 11;
-	state.attenuation += negative_log_sin(phase & waveforms[int(waveform_)][(phase >> 8) & 3]);
-
-
+void Operator::apply_key_level_scaling(OperatorState &state, int channel_period, int channel_octave) {
 	// Calculate key-level scaling. Table is as per p14 of the YM3812 application manual,
 	// converted into a fixed-point scheme. Compare with https://www.smspower.org/Development/RE12
 	// and apologies for the highly ad hoc indentation.
@@ -235,7 +188,9 @@ void Operator::update(
 	assert((channel_period >> 6) < 16);
 	assert(channel_octave < 8);
 	state.attenuation += (key_level_scales[channel_octave][channel_period >> 6] >> key_level_scale_shifts[key_level_scaling_]) << 7;
+}
 
+void Operator::apply_attenuation_adsr(OperatorState &state, const LowFrequencyOscillator &oscillator, const OperatorOverrides *overrides) {
 	// Combine the ADSR attenuation and overall channel attenuation.
 	if(overrides) {
 		// Overrides here represent per-channel volume on an OPLL. The bits are defined to represent
@@ -250,6 +205,54 @@ void Operator::update(
 
 	// Add optional tremolo.
 	state.attenuation += int(apply_amplitude_modulation_) * oscillator.tremolo << 4;
+}
+
+void Operator::update_phase(OperatorState &state, const LowFrequencyOscillator &oscillator, int channel_period, int channel_octave) {
+	// Per the documentation:
+	//
+	// Delta phase = ( [desired freq] * 2^19 / [input clock / 72] ) / 2 ^ (b - 1)
+	//
+	// After experimentation, I think this gives rate calculation as formulated below.
+
+	// This encodes the MUL -> multiple table given on page 12,
+	// multiplied by two.
+	constexpr int multipliers[] = {
+		1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30
+	};
+	const int top_freq = channel_period >> 7;
+	assert(top_freq < 8);
+	constexpr int vibrato_shifts[8] = {3, 1, 0, 1, 3, 1, 0, 1};
+	constexpr int vibrato_signs[2] = {1, -1};
+	const int vibrato = (top_freq >> vibrato_shifts[oscillator.vibrato]) * vibrato_signs[oscillator.vibrato >> 2] * int(apply_vibrato_);
+
+	// Update the raw phase.
+	state.raw_phase_ += multipliers[frequency_multiple_] * (channel_period + vibrato) << channel_octave;
+}
+
+void Operator::update(
+			OperatorState &state,
+			const OperatorState *phase_offset,
+			const LowFrequencyOscillator &oscillator,
+			bool key_on,
+			int channel_period,
+			int channel_octave,
+			const OperatorOverrides *overrides) {
+	update_adsr(state, oscillator, key_on, channel_period, channel_octave, overrides);
+	update_phase(state, oscillator, channel_period, channel_octave);
+
+	// Calculate raw attenuation level.
+	constexpr int waveforms[4][4] = {
+		{1023, 1023, 1023, 1023},	// Sine: don't mask in any quadrant.
+		{511, 511, 0, 0},			// Half sine: keep the first half intact, lock to 0 in the second half.
+		{511, 511, 511, 511},		// AbsSine: endlessly repeat the first half of the sine wave.
+		{255, 0, 255, 0},			// PulseSine: act as if the first quadrant is in the first and third; lock the other two to 0.
+	};
+	const int scaled_phase_offset = phase_offset ? power_two(phase_offset->attenuation, 11) : 0;
+	const int phase = (state.raw_phase_ + scaled_phase_offset) >> 11;
+	state.attenuation = negative_log_sin(phase & waveforms[int(waveform_)][(phase >> 8) & 3]);
+
+	apply_key_level_scaling(state, channel_period, channel_octave);
+	apply_attenuation_adsr(state, oscillator, overrides);
 }
 
 // TODO: both the tremolo and ADSR envelopes should be half-resolution on an OPLL.
