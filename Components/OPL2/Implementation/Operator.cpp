@@ -274,13 +274,17 @@ LogSign Operator::snare_output(OperatorState &state) {
 //	constexpr int masks[] = {~0, 0};
 //	result += masks[state.lfsr_
 
-	if((state.raw_phase_ >> 11) & 0x200) {
-		// Result is -max if LFSR is 0, otherwise -0.
-		result = negative_log_sin(1024 + ((state.lfsr_^1) << 8));
-	} else {
-		// Result is +max if LFSR is 1, otherwise +0.
-		result = negative_log_sin(state.lfsr_ << 8);
-	}
+	const int sign = (state.raw_phase_ >> 11) & 0x200;
+	const int level = ((state.raw_phase_ >> 20) & 1) ^ state.lfsr_;
+	result = negative_log_sin(sign + (level << 8));
+
+//	if((state.raw_phase_ >> 11) & 0x200) {
+//		// Result is -max if LFSR is 0, otherwise -0.
+//		result = negative_log_sin(512 + ((state.lfsr_^1) << 8));
+//	} else {
+//		// Result is +max if LFSR is 1, otherwise +0.
+//		result = negative_log_sin(state.lfsr_ << 8);
+//	}
 
 
 //	printf("%d %d: %d/%d\n", state.lfsr_, (state.raw_phase_ >> 11) & 1023, result.log, result.sign);
