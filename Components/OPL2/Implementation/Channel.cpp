@@ -43,7 +43,7 @@ int Channel::update_melodic(const LowFrequencyOscillator &oscillator, Operator *
 		// Get modulator and carrier levels separately, return their sum.
 		modulator->update(modulator_state_, nullptr, oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, modulator_overrides);
 		carrier->update(carrier_state_, nullptr, oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, carrier_overrides);
-		return (modulator_state_.level() + carrier_state_.level());
+		return (modulator_state_.level() + carrier_state_.level()) >> 1;
 	}
 }
 
