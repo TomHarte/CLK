@@ -68,8 +68,6 @@ void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 
 	while(number_of_samples--) {
 		if(!audio_offset_) update_all_chanels();
-		if(!(audio_offset_&3))
-			oscillator_.update_lfsr();
 
 		*target = int16_t(output_levels_[audio_offset_ / channel_output_period]);
 		++target;
@@ -193,61 +191,63 @@ void OPLL::setup_fixed_instrument(int number, const uint8_t *data) {
 }
 
 void OPLL::update_all_chanels() {
-	// Update the LFO.
+	// Update the LFO and then the channels.
 	oscillator_.update();
+	for(int c = 0; c < 6; ++c) {
+		channels_[c].update(oscillator_);
+		oscillator_.update_lfsr();	// TODO: should update per slot, not per channel? Or even per cycle?
+	}
 
-	int channel_levels[9];
+	output_levels_[8] = output_levels_[12] = 0;
 
-#define VOLUME(x)	((x) * total_volume_) >> 11
+#define VOLUME(x)	((x) * total_volume_) >> 12
 
 	// Channels that are updated for melodic output regardless;
 	// in rhythm mode the final three channels — 6, 7, and 8 —
 	// are lost as their operators are used for drum noises.
-	for(int c = 0; c < 6; ++ c) {
-		channel_levels[c] = VOLUME(channels_[c].update_melodic(oscillator_));
-	}
+	output_levels_[3] = VOLUME(channels_[0].melodic_output());
+	output_levels_[4] = VOLUME(channels_[1].melodic_output());
+	output_levels_[5] = VOLUME(channels_[2].melodic_output());
 
-	output_levels_[3] = channel_levels[0];
-	output_levels_[4] = channel_levels[1];
-	output_levels_[5] = channel_levels[2];
-	output_levels_[9] = channel_levels[3];
-	output_levels_[10] = channel_levels[4];
-	output_levels_[11] = channel_levels[5];
+	output_levels_[9] = VOLUME(channels_[3].melodic_output());
+	output_levels_[10] = VOLUME(channels_[4].melodic_output());
+	output_levels_[11] = VOLUME(channels_[5].melodic_output());
 
 	if(depth_rhythm_control_ & 0x20) {
-		// Rhythm mode.
-		output_levels_[8] = output_levels_[12] = 0;
+		// TODO: pervasively, volume. And LFSR updates.
 
 		// Update channel 6 as if melodic, but with the bass instrument.
-		output_levels_[2] = output_levels_[15] =
-			VOLUME(channels_[6].update_bass(oscillator_, &operators_[32], depth_rhythm_control_ & 0x10));
+		channels_[6].update(oscillator_, &operators_[32], depth_rhythm_control_ & 0x10);
+		output_levels_[2] = output_levels_[15] = VOLUME(channels_[6].melodic_output());
 
 		// Use the modulator from channel 7 for the tom tom.
-		output_levels_[1] = output_levels_[14] =
-			VOLUME(channels_[7].update_tom_tom(oscillator_, &operators_[34], depth_rhythm_control_ & 0x04));
+		channels_[7].update(true, oscillator_, operators_[34], bool(depth_rhythm_control_ & 0x04));
+		output_levels_[1] = output_levels_[14] = VOLUME(channels_[7].tom_tom_output(operators_[34]));
 
 		// Use the carrier from channel 7 for the snare.
-		output_levels_[6] = output_levels_[16] =
-			VOLUME(channels_[7].update_snare(oscillator_, &operators_[35], depth_rhythm_control_ & 0x08));
+		channels_[7].update(false, oscillator_, operators_[35], bool(depth_rhythm_control_ & 0x08));
+		output_levels_[6] = output_levels_[16] = VOLUME(channels_[7].snare_output(operators_[35]));
 
-		// TODO: cymbal.
-		output_levels_[7] = output_levels_[17] = 0;
+		// Use the channel 7 modulator and the channel 8 carrier for a cymbal.
+		channels_[8].update(false, oscillator_, operators_[36], bool(depth_rhythm_control_ & 0x01));
+		output_levels_[7] = output_levels_[17] = VOLUME(channels_[7].cymbal_output(operators_[36], operators_[35], channels_[8]));
 
 		// TODO: high hat.
 		output_levels_[0] = output_levels_[13] = 0;
 	} else {
 		// Not in rhythm mode; channels 7, 8 and 9 are melodic.
-		for(int c = 7; c < 9; ++ c) {
-			channel_levels[c] = VOLUME(channels_[c].update_melodic(oscillator_));
+		for(int c = 6; c < 9; ++ c) {
+			channels_[c].update(oscillator_);
+			oscillator_.update_lfsr();	// TODO: should update per slot, not per channel? Or even per cycle?
 		}
 
 		output_levels_[0] = output_levels_[1] = output_levels_[2] =
-		output_levels_[6] = output_levels_[7] = output_levels_[8] =
-		output_levels_[12] = output_levels_[13] = output_levels_[14] = 0;
+		output_levels_[6] = output_levels_[7] =
+		output_levels_[13] = output_levels_[14] = 0;
 
-		output_levels_[15] = channel_levels[3];
-		output_levels_[16] = channel_levels[4];
-		output_levels_[17] = channel_levels[5];
+		output_levels_[15] = VOLUME(channels_[6].melodic_output());
+		output_levels_[16] = VOLUME(channels_[7].melodic_output());
+		output_levels_[17] = VOLUME(channels_[8].melodic_output());
 	}
 
 	// Test!

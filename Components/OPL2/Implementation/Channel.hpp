@@ -39,17 +39,23 @@ class Channel {
 		/// associated with this channel, and whether FM synthesis is in use.
 		void set_feedback_mode(uint8_t value);
 
-		/// Updates this channel, using the operators for melodic output.
-		int update_melodic(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, bool force_key_on = false, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
+		/// Updates one of this channel's operators.
+		void update(bool modulator, const LowFrequencyOscillator &oscillator, Operator &op, bool force_key_on = false, OperatorOverrides *overrides = nullptr);
 
-		/// Updates this channel's modulator state, to produce a tom tom.
-		int update_tom_tom(const LowFrequencyOscillator &oscillator, Operator *modulator, bool force_key_on, OperatorOverrides *modulator_overrides = nullptr);
+		/// Gets regular 'melodic' output for this channel, i.e. the output you'd expect from all channels when not in rhythm mode.
+		int melodic_output(Operator &modulator, Operator &carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
 
-		/// Updates this channel, using the carrier to produce a snare drum and the modulator to produce a tom tom.
-		int update_snare(const LowFrequencyOscillator &oscillator, Operator *carrier, bool force_key_on, OperatorOverrides *carrier_overrides = nullptr);
+		/// Generates tom tom output using this channel's modulator.
+		int tom_tom_output(Operator &modulator, OperatorOverrides *modulator_overrides = nullptr);
 
-		/// Updates this channel, using the carrier to produce a cymbal and the modulator to produce a high-hat.
-		int update_cymbal_high_hat(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
+		/// Generates snare output, using this channel's carrier.
+		int snare_output(Operator &carrier, OperatorOverrides *carrier_overrides = nullptr);
+
+		/// Generates cymbal output, using this channel's modulator and @c channel8 's carrier.
+		int cymbal_output(Operator &modulator, Operator &carrier, Channel &channel8, OperatorOverrides *modulator_overrides = nullptr);
+
+		/// Generates cymbal output, using this channel's modulator and @c channel8 's carrier.
+		int high_hat_output(Operator &modulator, Operator &carrier, Channel &channel8, OperatorOverrides *modulator_overrides = nullptr);
 
 		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
 		bool is_audible(Operator *carrier, OperatorOverrides *carrier_overrides = nullptr);
@@ -75,9 +81,10 @@ class Channel {
 		/// selections look the same when passed to the operators.
 		int frequency_shift_ = 0;
 
-		// Stored separately because carrier/modulator may not be unique per channel —
+		// Operator state is stored distinctly from Operators because
+		// carrier/modulator may not be unique per channel —
 		// on the OPLL there's an extra level of indirection.
-		OperatorState carrier_state_, modulator_state_;
+		OperatorState states_[2];
 };
 
 }

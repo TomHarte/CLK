@@ -33,30 +33,33 @@ void Channel::set_feedback_mode(uint8_t value) {
 	use_fm_synthesis_ = value & 1;
 }
 
-int Channel::update_melodic(const LowFrequencyOscillator &oscillator, Operator *modulator, Operator *carrier, bool force_key_on, OperatorOverrides *modulator_overrides, OperatorOverrides *carrier_overrides) {
-	modulator->update(modulator_state_, oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, modulator_overrides);
-	carrier->update(carrier_state_, oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, carrier_overrides);
+void Channel::update(bool modulator, const LowFrequencyOscillator &oscillator, Operator &op, bool force_key_on, OperatorOverrides *overrides) {
+	op.update(states_[int(modulator)], oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, overrides);
+}
 
+int Channel::melodic_output(Operator &modulator, Operator &carrier, OperatorOverrides *modulator_overrides, OperatorOverrides *carrier_overrides) {
 	if(use_fm_synthesis_) {
 		// Get modulator level, use that as a phase-adjusting input to the carrier and then return the carrier level.
-		const LogSign modulator_output = modulator->melodic_output(modulator_state_);
-		return carrier->melodic_output(carrier_state_, &modulator_output).level();
+		const LogSign modulator_output = modulator.melodic_output(states_[1]);
+		return carrier.melodic_output(states_[0], &modulator_output).level();
 	} else {
 		// Get modulator and carrier levels separately, return their sum.
-		return (carrier->melodic_output(carrier_state_).level() + modulator->melodic_output(carrier_state_).level()) >> 1;
+		return (carrier.melodic_output(states_[0]).level() + modulator.melodic_output(states_[1]).level()) >> 1;
 	}
 }
 
-int Channel::update_tom_tom(const LowFrequencyOscillator &oscillator, Operator *modulator, bool force_key_on, OperatorOverrides *modulator_overrides) {
-	modulator->update(modulator_state_, oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, modulator_overrides);
-	return modulator->melodic_output(modulator_state_).level();
+int Channel::tom_tom_output(Operator &modulator, OperatorOverrides *modulator_overrides) {
+	return modulator.melodic_output(states_[1]).level();
 }
 
-int Channel::update_snare(const LowFrequencyOscillator &oscillator, Operator *carrier, bool force_key_on, OperatorOverrides *carrier_overrides) {
-	carrier->update(carrier_state_, oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, carrier_overrides);
-	return carrier->snare_output(modulator_state_).level();
+int Channel::snare_output(Operator &carrier, OperatorOverrides *carrier_overrides) {
+	return carrier.snare_output(states_[0]).level();
+}
+
+int Channel::cymbal_output(Operator &modulator, Operator &carrier, Channel &channel8, OperatorOverrides *modulator_overrides) {
+	return carrier.cymbal_output(states_[0], channel8.states_[1]).level();
 }
 
 bool Channel::is_audible(Operator *carrier, OperatorOverrides *carrier_overrides) {
-	return carrier->is_audible(carrier_state_, carrier_overrides);
+	return carrier->is_audible(states_[0], carrier_overrides);
 }

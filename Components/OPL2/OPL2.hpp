@@ -91,18 +91,30 @@ struct OPLL: public OPLBase<OPLL> {
 
 
 		struct Channel: public ::Yamaha::OPL::Channel {
-			int update_melodic(const LowFrequencyOscillator &oscillator) {
-				return Yamaha::OPL::Channel::update_melodic(oscillator, modulator, modulator + 1, false, nullptr, &overrides);
+			void update(const LowFrequencyOscillator &oscillator) {
+				Yamaha::OPL::Channel::update(true, oscillator, modulator[0]);
+				Yamaha::OPL::Channel::update(false, oscillator, modulator[1], false, &overrides);
 			}
 
-			int update_bass(const LowFrequencyOscillator &oscillator, Operator *bass, bool key_on) {
-				return Yamaha::OPL::Channel::update_melodic(oscillator, bass, bass + 1, key_on, nullptr, &overrides);
+			void update(const LowFrequencyOscillator &oscillator, Operator *mod, bool key_on) {
+				Yamaha::OPL::Channel::update(true, oscillator, mod[0], key_on);
+				Yamaha::OPL::Channel::update(false, oscillator, mod[1], key_on, &overrides);
 			}
 
-			int update_tom_tom(const LowFrequencyOscillator &oscillator, Operator *bass, bool key_on) {
-				// TODO: should overrides be applied here?
-				return Yamaha::OPL::Channel::update_tom_tom(oscillator, bass, key_on, &overrides);
+			using ::Yamaha::OPL::Channel::update;
+
+			int melodic_output() {
+				return Yamaha::OPL::Channel::melodic_output(modulator[0], modulator[1]);
 			}
+
+//			int update_bass(const LowFrequencyOscillator &oscillator, Operator *bass, bool key_on) {
+//				return Yamaha::OPL::Channel::update_melodic(oscillator, bass, bass + 1, key_on, nullptr, &overrides);
+//			}
+//
+//			int update_tom_tom(const LowFrequencyOscillator &oscillator, Operator *bass, bool key_on) {
+//				// TODO: should overrides be applied here?
+//				return Yamaha::OPL::Channel::update_tom_tom(oscillator, bass, key_on, &overrides);
+//			}
 
 			bool is_audible() {
 				return Yamaha::OPL::Channel::is_audible(modulator + 1, &overrides);
