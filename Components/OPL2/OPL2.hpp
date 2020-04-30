@@ -126,6 +126,7 @@ struct OPLL: public OPLBase<OPLL> {
 		void update_all_chanels();
 		Channel channels_[9];
 		int output_levels_[18];
+		OperatorOverrides rhythm_overrides_[6];
 
 		void setup_fixed_instrument(int number, const uint8_t *data);
 		uint8_t custom_instrument_[8];

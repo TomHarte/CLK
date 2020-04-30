@@ -60,6 +60,10 @@ int Channel::cymbal_output(Operator &modulator, Operator &carrier, Channel &chan
 	return carrier.cymbal_output(states_[0], channel8.states_[1]).level();
 }
 
+int Channel::high_hat_output(Operator &modulator, Operator &carrier, Channel &channel8, OperatorOverrides *modulator_overrides) {
+	return carrier.high_hat_output(states_[0], channel8.states_[1]).level();
+}
+
 bool Channel::is_audible(Operator *carrier, OperatorOverrides *carrier_overrides) {
 	return carrier->is_audible(states_[0], carrier_overrides);
 }
