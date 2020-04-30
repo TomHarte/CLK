@@ -117,7 +117,9 @@ class ConcreteMachine:
 			map(write_pointers_, nullptr, 0x10000, 0);
 
 			// Take a copy of the cartridge and place it into memory.
-			cartridge_ = target.media.cartridges[0]->get_segments()[0].data;
+			if(!target.media.cartridges.empty()) {
+				cartridge_ = target.media.cartridges[0]->get_segments()[0].data;
+			}
 			if(cartridge_.size() < 48*1024) {
 				std::size_t new_space = 48*1024 - cartridge_.size();
 				cartridge_.resize(48*1024);
@@ -138,7 +140,15 @@ class ConcreteMachine:
 				//
 				//	0072ed54 = US/European BIOS 1.3
 				//	48d44a13 = Japanese BIOS 2.1
-				const auto roms = rom_fetcher({ {"MasterSystem", "the Master System BIOS", "bios.sms", 8*1024, { 0x0072ed54, 0x48d44a13 } } });
+				const bool is_japanese = target.region == Target::Region::Japan;
+				const auto roms = rom_fetcher(
+					{ {"MasterSystem",
+						is_japanese ? "the Japanese Master System BIOS" : "the European/US Master System BIOS",
+						is_japanese ? "japanese-bios.sms" : "bios.sms",
+						8*1024,
+						{ is_japanese ? 0x48d44a13u : 0x0072ed54u }
+					} }
+				);
 				if(!roms[0]) {
 					// No BIOS found; attempt to boot as though it has already disabled itself.
 					memory_control_ |= 0x08;
@@ -160,6 +170,7 @@ class ConcreteMachine:
 			}
 
 			// Apply a relatively low low-pass filter. More guidance needed here.
+			// TODO: this is disabled for now since it isn't applicable for the FM chip, I think.
 //			speaker_.set_high_frequency_cutoff(8000);
 
 			// Set default mixer levels: FM off, SN full-throttle.
