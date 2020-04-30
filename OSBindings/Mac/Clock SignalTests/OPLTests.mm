@@ -14,8 +14,7 @@
 @interface OPLTests: XCTestCase
 @end
 
-@implementation OPLTests {
-}
+@implementation OPLTests
 
 // MARK: - Table tests
 
@@ -68,7 +67,9 @@
 	// Check one complete cycle of samples.
 	NSEnumerator *goodValues = [knownGood objectEnumerator];
 	for(int c = 0; c < 16384; ++c) {
-		const int generated = channel.update_melodic(oscillator, &modulator, &carrier);
+		channel.update(true, oscillator, modulator);
+		channel.update(false, oscillator, carrier);
+		const int generated = channel.melodic_output(modulator, carrier);
 		const int known = [[goodValues nextObject] intValue] >> 2;
 		XCTAssertLessThanOrEqual(abs(generated - known), 30, "FM synthesis varies by more than 10 at sample %d of attenuation %d", c, attenuation);
 	}
@@ -119,7 +120,9 @@
 
 	int max = 0;
 	for(int c = 0; c < 16384; ++c) {
-		const int level = channel.update_melodic(oscillator, &modulator, &carrier, nullptr, &overrides);
+		channel.update(true, oscillator, modulator);
+		channel.update(false, oscillator, carrier, false, &overrides);
+		const int level = channel.melodic_output(modulator, carrier);
 		if(level > max) max = level;
 	}
 
