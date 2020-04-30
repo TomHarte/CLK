@@ -37,33 +37,33 @@ void Channel::update(bool modulator, const LowFrequencyOscillator &oscillator, O
 	op.update(states_[int(modulator)], oscillator, key_on_ || force_key_on, period_ << frequency_shift_, octave_, overrides);
 }
 
-int Channel::melodic_output(Operator &modulator, Operator &carrier, OperatorOverrides *modulator_overrides, OperatorOverrides *carrier_overrides) {
+int Channel::melodic_output(const Operator &modulator, const Operator &carrier, const OperatorOverrides *overrides) const {
 	if(use_fm_synthesis_) {
 		// Get modulator level, use that as a phase-adjusting input to the carrier and then return the carrier level.
 		const LogSign modulator_output = modulator.melodic_output(states_[1]);
-		return carrier.melodic_output(states_[0], &modulator_output).level();
+		return carrier.melodic_output(states_[0], &modulator_output, overrides).level();
 	} else {
 		// Get modulator and carrier levels separately, return their sum.
-		return (carrier.melodic_output(states_[0]).level() + modulator.melodic_output(states_[1]).level()) >> 1;
+		return (carrier.melodic_output(states_[0], nullptr, overrides).level() + modulator.melodic_output(states_[1], nullptr, overrides).level()) >> 1;
 	}
 }
 
-int Channel::tom_tom_output(Operator &modulator, OperatorOverrides *modulator_overrides) {
-	return modulator.melodic_output(states_[1]).level();
+int Channel::tom_tom_output(const Operator &modulator, const OperatorOverrides *overrides) const {
+	return modulator.melodic_output(states_[1], nullptr, overrides).level();
 }
 
-int Channel::snare_output(Operator &carrier, OperatorOverrides *carrier_overrides) {
-	return carrier.snare_output(states_[0]).level();
+int Channel::snare_output(const Operator &carrier, const OperatorOverrides *overrides) const {
+	return carrier.snare_output(states_[0], overrides).level();
 }
 
-int Channel::cymbal_output(Operator &modulator, Operator &carrier, Channel &channel8, OperatorOverrides *modulator_overrides) {
-	return carrier.cymbal_output(states_[0], channel8.states_[1]).level();
+int Channel::cymbal_output(const Operator &modulator, const Operator &carrier, const Channel &channel8, const OperatorOverrides *overrides) const {
+	return carrier.cymbal_output(states_[0], channel8.states_[1], overrides).level();
 }
 
-int Channel::high_hat_output(Operator &modulator, Operator &carrier, Channel &channel8, OperatorOverrides *modulator_overrides) {
-	return carrier.high_hat_output(states_[0], channel8.states_[1]).level();
+int Channel::high_hat_output(const Operator &modulator, const Operator &carrier, const Channel &channel8, const OperatorOverrides *overrides) const {
+	return carrier.high_hat_output(states_[0], channel8.states_[1], overrides).level();
 }
 
-bool Channel::is_audible(Operator *carrier, OperatorOverrides *carrier_overrides) {
-	return carrier->is_audible(states_[0], carrier_overrides);
+bool Channel::is_audible(Operator *carrier, OperatorOverrides *overrides) {
+	return carrier->is_audible(states_[0], overrides);
 }

@@ -229,19 +229,19 @@ void OPLL::update_all_chanels() {
 		channels_[8].update(false, oscillator_, operators_[37], bool(depth_rhythm_control_ & 0x02));
 
 		// Update channel 6 as if melodic, but with the bass instrument.
-		output_levels_[2] = output_levels_[15] = VOLUME(channels_[6].melodic_output());
+		output_levels_[2] = output_levels_[15] = VOLUME(channels_[6].melodic_output(&rhythm_overrides_[1]));
 
 		// Use the carrier from channel 7 for the snare.
-		output_levels_[6] = output_levels_[16] = VOLUME(channels_[7].snare_output(operators_[35]));
+		output_levels_[6] = output_levels_[16] = VOLUME(channels_[7].snare_output(operators_[35], &rhythm_overrides_[3]));
 
 		// Use the modulator from channel 8 for the tom tom.
-		output_levels_[1] = output_levels_[14] = VOLUME(channels_[8].tom_tom_output(operators_[37]));
+		output_levels_[1] = output_levels_[14] = VOLUME(channels_[8].tom_tom_output(operators_[37], &rhythm_overrides_[4]));
 
 		// Use the channel 7 modulator and the channel 8 carrier for a cymbal.
-		output_levels_[7] = output_levels_[17] = VOLUME(channels_[7].cymbal_output(operators_[36], operators_[35], channels_[8]));
+		output_levels_[7] = output_levels_[17] = VOLUME(channels_[7].cymbal_output(operators_[36], operators_[35], channels_[8], &rhythm_overrides_[5]));
 
 		// Use the channel 7 modulator and the channel 8 modulator (?) for a high-hat.
-		output_levels_[0] = output_levels_[13] = VOLUME(channels_[7].high_hat_output(operators_[36], operators_[35], channels_[8]));
+		output_levels_[0] = output_levels_[13] = VOLUME(channels_[7].high_hat_output(operators_[36], operators_[35], channels_[8], &rhythm_overrides_[2]));
 	} else {
 		// Not in rhythm mode; channels 7, 8 and 9 are melodic.
 		for(int c = 6; c < 9; ++ c) {

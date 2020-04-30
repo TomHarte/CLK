@@ -31,7 +31,7 @@ struct OperatorState {
 		int attack_time_ = 0;
 
 		int key_level_scaling_;
-		int channel_adsr_attenuation_;
+		int adsr_tremolo_attenuation_;
 		int lfsr_;
 
 		bool last_key_on_ = false;
@@ -95,18 +95,18 @@ class Operator {
 		bool is_audible(OperatorState &state, OperatorOverrides *overrides = nullptr);
 
 		/// Provides ordinary melodic output, optionally with modulation.
-		LogSign melodic_output(const OperatorState &state, const LogSign *phase_offset = nullptr);
+		LogSign melodic_output(const OperatorState &state, const LogSign *phase_offset = nullptr, const OperatorOverrides *overrides = nullptr) const;
 
 		/// Provides snare drum output, which is a function of phase and the captured LFSR level.
-		LogSign snare_output(const OperatorState &state);
+		LogSign snare_output(const OperatorState &state, const OperatorOverrides *overrides = nullptr) const;
 
 		/// Provides cymbal output, which is a function of the phase given by @c state, ordinarily the carrier of channel 8,
 		/// and the phase of @c modulator, which is ordinarily the modulator of channel 7.
-		LogSign cymbal_output(const OperatorState &state, const OperatorState &modulator);
+		LogSign cymbal_output(const OperatorState &state, const OperatorState &modulator, const OperatorOverrides *overrides = nullptr) const;
 
 		/// Provides high-hat output, which is a function of the phase given by @c state, ordinarily the carrier of channel 8,
 		/// and the phase of @c modulator, which is ordinarily the modulator of channel 7.
-		LogSign high_hat_output(const OperatorState &state, const OperatorState &modulator);
+		LogSign high_hat_output(const OperatorState &state, const OperatorState &modulator, const OperatorOverrides *overrides = nullptr) const;
 
 	private:
 		/// If true then an amplitude modulation of "3.7Hz" is applied,
@@ -161,10 +161,12 @@ class Operator {
 		void update_phase(OperatorState &state, const LowFrequencyOscillator &oscillator, int channel_period, int channel_octave);
 
 		/// Adds key-level scaling to the current output state.
-		int key_level_scaling(OperatorState &state, int channel_period, int channel_octave);
+		int key_level_scaling(const OperatorState &state, int channel_period, int channel_octave) const;
 
 		/// Adds ADSR and general channel attenuations to the output state.
-		int attenuation_adsr(OperatorState &state, const LowFrequencyOscillator &oscillator, const OperatorOverrides *overrides);
+		int adsr_tremolo_attenuation(const OperatorState &state, const LowFrequencyOscillator &oscillator) const;
+
+		int fixed_attenuation(const OperatorState &state, const OperatorOverrides *overrides) const;
 
 };
 

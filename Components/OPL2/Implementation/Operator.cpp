@@ -185,7 +185,7 @@ void Operator::update_phase(OperatorState &state, const LowFrequencyOscillator &
 	state.raw_phase_ += multipliers[frequency_multiple_] * (channel_period + vibrato) << channel_octave;
 }
 
-int Operator::key_level_scaling(OperatorState &state, int channel_period, int channel_octave) {
+int Operator::key_level_scaling(const OperatorState &state, int channel_period, int channel_octave) const {
 	// Calculate key-level scaling. Table is as per p14 of the YM3812 application manual,
 	// converted into a fixed-point scheme. Compare with https://www.smspower.org/Development/RE12
 	// and apologies for the highly ad hoc indentation.
@@ -208,23 +208,22 @@ int Operator::key_level_scaling(OperatorState &state, int channel_period, int ch
 	return (key_level_scales[channel_octave][channel_period >> 6] >> key_level_scale_shifts[key_level_scaling_]) << 7;
 }
 
-int Operator::attenuation_adsr(OperatorState &state, const LowFrequencyOscillator &oscillator, const OperatorOverrides *overrides) {
-	int attenuation = 0;
+int Operator::adsr_tremolo_attenuation(const OperatorState &state, const LowFrequencyOscillator &oscillator) const {
+	// Add optional tremolo to the current ADSR attenuation.
+	return (state.adsr_attenuation_ << 3) + (int(apply_amplitude_modulation_) * oscillator.tremolo << 4);
+}
 
-	// Combine the ADSR attenuation and overall channel attenuation.
+int Operator::fixed_attenuation(const OperatorState &state, const OperatorOverrides *overrides) const {
 	if(overrides) {
 		// Overrides here represent per-channel volume on an OPLL. The bits are defined to represent
 		// attenuations of 24db to 3db; the main envelope generator is stated to have a resolution of
 		// 0.325db (which I've assumed is supposed to say 0.375db).
-		attenuation += (state.adsr_attenuation_ << 3) + (overrides->attenuation << 7);
+		return overrides->attenuation << 7;
 	} else {
 		// Overrides here represent per-channel volume on an OPLL. The bits are defined to represent
 		// attenuations of 24db to 0.75db.
-		attenuation += (state.adsr_attenuation_ << 3) + (attenuation_ << 5);
+		return attenuation_ << 5;
 	}
-
-	// Add optional tremolo.
-	return attenuation + (int(apply_amplitude_modulation_) * oscillator.tremolo << 4);
 }
 
 void Operator::update(
@@ -237,7 +236,7 @@ void Operator::update(
 	update_adsr(state, oscillator, key_on, channel_period, channel_octave, overrides);
 	update_phase(state, oscillator, channel_period, channel_octave);
 	state.key_level_scaling_ = key_level_scaling(state, channel_period, channel_octave);
-	state.channel_adsr_attenuation_ = attenuation_adsr(state, oscillator, overrides);
+	state.adsr_tremolo_attenuation_ = adsr_tremolo_attenuation(state, oscillator);
 	state.lfsr_ = oscillator.lfsr;
 }
 
@@ -248,7 +247,7 @@ void Operator::update(
 // A heavy debt is owed to https://github.com/andete/ym2413/blob/master/results/rhythm/rhythm.md regarding
 // the drum sound generation below.
 
-LogSign Operator::melodic_output(const OperatorState &state, const LogSign *phase_offset) {
+LogSign Operator::melodic_output(const OperatorState &state, const LogSign *phase_offset, const OperatorOverrides *overrides) const {
 	// Calculate raw attenuation level.
 	constexpr int waveforms[4][4] = {
 		{1023, 1023, 1023, 1023},	// Sine: don't mask in any quadrant.
@@ -261,11 +260,11 @@ LogSign Operator::melodic_output(const OperatorState &state, const LogSign *phas
 
 	LogSign result = negative_log_sin(phase & waveforms[int(waveform_)][(phase >> 8) & 3]);
 	result += state.key_level_scaling_;
-	result += state.channel_adsr_attenuation_;
+	result += state.adsr_tremolo_attenuation_ + fixed_attenuation(state, overrides);
 	return result;
 }
 
-LogSign Operator::snare_output(const OperatorState &state) {
+LogSign Operator::snare_output(const OperatorState &state, const OperatorOverrides *overrides) const {
 	LogSign result;
 
 	// If noise is 0, output is positive.
@@ -276,11 +275,11 @@ LogSign Operator::snare_output(const OperatorState &state) {
 	result = negative_log_sin(sign + (level << 8));
 
 	result += state.key_level_scaling_;
-	result += state.channel_adsr_attenuation_;
+	result += state.adsr_tremolo_attenuation_ + fixed_attenuation(state, overrides);
 	return result;
 }
 
-LogSign Operator::cymbal_output(const OperatorState &state, const OperatorState &modulator) {
+LogSign Operator::cymbal_output(const OperatorState &state, const OperatorState &modulator, const OperatorOverrides *overrides) const {
 	const int output =
 		((state.raw_phase_ >> 16) ^ (state.raw_phase_ >> 14)) &
 		((modulator.raw_phase_ >> 18) ^ (modulator.raw_phase_ >> 13)) &
@@ -290,11 +289,11 @@ LogSign Operator::cymbal_output(const OperatorState &state, const OperatorState 
 	LogSign result = negative_log_sin(angles[output & 1]);
 
 	result += state.key_level_scaling_;
-	result += state.channel_adsr_attenuation_;
+	result += state.adsr_tremolo_attenuation_ + fixed_attenuation(state, overrides);
 	return result;
 }
 
-LogSign Operator::high_hat_output(const OperatorState &state, const OperatorState &modulator) {
+LogSign Operator::high_hat_output(const OperatorState &state, const OperatorState &modulator, const OperatorOverrides *overrides) const {
 	const int output =
 		((state.raw_phase_ >> 16) ^ (state.raw_phase_ >> 14)) &
 		((modulator.raw_phase_ >> 18) ^ (modulator.raw_phase_ >> 13)) &
@@ -304,6 +303,6 @@ LogSign Operator::high_hat_output(const OperatorState &state, const OperatorStat
 	LogSign result = negative_log_sin(angles[(output & 1) | (state.lfsr_ << 1)]);
 
 	result += state.key_level_scaling_;
-	result += state.channel_adsr_attenuation_;
+	result += state.adsr_tremolo_attenuation_ + fixed_attenuation(state, overrides);
 	return result;
 }

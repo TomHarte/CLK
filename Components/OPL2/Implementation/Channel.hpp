@@ -43,19 +43,19 @@ class Channel {
 		void update(bool modulator, const LowFrequencyOscillator &oscillator, Operator &op, bool force_key_on = false, OperatorOverrides *overrides = nullptr);
 
 		/// Gets regular 'melodic' output for this channel, i.e. the output you'd expect from all channels when not in rhythm mode.
-		int melodic_output(Operator &modulator, Operator &carrier, OperatorOverrides *modulator_overrides = nullptr, OperatorOverrides *carrier_overrides = nullptr);
+		int melodic_output(const Operator &modulator, const Operator &carrier, const OperatorOverrides *overrides = nullptr) const;
 
 		/// Generates tom tom output using this channel's modulator.
-		int tom_tom_output(Operator &modulator, OperatorOverrides *modulator_overrides = nullptr);
+		int tom_tom_output(const Operator &modulator, const OperatorOverrides *overrides = nullptr) const;
 
 		/// Generates snare output, using this channel's carrier.
-		int snare_output(Operator &carrier, OperatorOverrides *carrier_overrides = nullptr);
+		int snare_output(const Operator &carrier, const OperatorOverrides *overrides = nullptr) const;
 
 		/// Generates cymbal output, using this channel's modulator and @c channel8 's carrier.
-		int cymbal_output(Operator &modulator, Operator &carrier, Channel &channel8, OperatorOverrides *modulator_overrides = nullptr);
+		int cymbal_output(const Operator &modulator, const Operator &carrier, const Channel &channel8, const OperatorOverrides *overrides = nullptr) const;
 
 		/// Generates cymbal output, using this channel's modulator and @c channel8 's carrier.
-		int high_hat_output(Operator &modulator, Operator &carrier, Channel &channel8, OperatorOverrides *modulator_overrides = nullptr);
+		int high_hat_output(const Operator &modulator, const Operator &carrier, const Channel &channel8, const  OperatorOverrides *overrides = nullptr) const;
 
 		/// @returns @c true if this channel is currently producing any audio; @c false otherwise;
 		bool is_audible(Operator *carrier, OperatorOverrides *carrier_overrides = nullptr);
