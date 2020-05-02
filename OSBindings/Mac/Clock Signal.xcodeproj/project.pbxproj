@@ -1151,6 +1151,8 @@
 		4B5FADBF1DE3BF2B00AEC565 /* Microdisc.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = Microdisc.hpp; path = Oric/Microdisc.hpp; sourceTree = "<group>"; };
 		4B61908E24526E640013F202 /* LowFrequencyOscillator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = LowFrequencyOscillator.cpp; sourceTree = "<group>"; };
 		4B61908F24526E640013F202 /* LowFrequencyOscillator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = LowFrequencyOscillator.hpp; sourceTree = "<group>"; };
+		4B619092245BC1000013F202 /* PhaseGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PhaseGenerator.hpp; sourceTree = "<group>"; };
+		4B619093245CD63E0013F202 /* EnvelopeGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EnvelopeGenerator.hpp; sourceTree = "<group>"; };
 		4B622AE3222E0AD5008B59F2 /* DisplayMetrics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetrics.cpp; path = ../../Outputs/DisplayMetrics.cpp; sourceTree = "<group>"; };
 		4B622AE4222E0AD5008B59F2 /* DisplayMetrics.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = DisplayMetrics.hpp; path = ../../Outputs/DisplayMetrics.hpp; sourceTree = "<group>"; };
 		4B643F381D77AD1900D431D6 /* CSStaticAnalyser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSStaticAnalyser.h; path = StaticAnalyser/CSStaticAnalyser.h; sourceTree = "<group>"; };
@@ -3532,6 +3534,8 @@
 				4BC0CB3A2447ECAE00A79DBB /* Tables.hpp */,
 				4B61908E24526E640013F202 /* LowFrequencyOscillator.cpp */,
 				4B61908F24526E640013F202 /* LowFrequencyOscillator.hpp */,
+				4B619092245BC1000013F202 /* PhaseGenerator.hpp */,
+				4B619093245CD63E0013F202 /* EnvelopeGenerator.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";

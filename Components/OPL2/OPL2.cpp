@@ -11,6 +11,9 @@
 #include <cassert>
 #include <cmath>
 
+#include "Implementation/PhaseGenerator.hpp"
+#include "Implementation/EnvelopeGenerator.hpp"
+
 using namespace Yamaha::OPL;
 
 template <typename Child>
