@@ -29,17 +29,60 @@ namespace OPL {
 	this is largely for logical conformity with the phase generator that necessarily has to
 	apply vibrato.
 */
-template <int precision> class EnvelopeGenerator {
+template <int envelope_precision, int period_precision> class EnvelopeGenerator {
 	public:
 		/*!
 			Advances the envelope generator a single step, given the current state of the low-frequency oscillator, @c oscillator.
 		*/
-		void update(const LowFrequencyOscillator &oscillator);
+		void update(const LowFrequencyOscillator &oscillator) {
+			// Apply tremolo, which is fairly easy.
+			tremolo_ = tremolo_enable_ * oscillator.tremolo << 4;
+
+			// Something something something...
+			const int key_scaling_rate = key_scale_rate_ >> key_scale_rate_shift_;
+			switch(phase_) {
+				case Phase::Damp:
+					update_decay(oscillator, 12);
+					if(attenuation_ == 511) {
+						will_attack_();
+						phase_ = Phase::Attack;
+					}
+				break;
+
+				case Phase::Attack:
+					update_attack(oscillator, attack_rate_ + key_scaling_rate);
+
+					// Two possible terminating conditions: (i) the attack rate is 15; (ii) full volume has been reached.
+					if((attack_rate_ + key_scaling_rate) > 60 || attenuation_ <= 0) {
+						attenuation_ = 0;
+						phase_ = Phase::Decay;
+					}
+				break;
+
+				case Phase::Decay:
+					update_decay(oscillator, decay_rate_ + key_scaling_rate);
+					if(attenuation_ >= sustain_level_) {
+						attenuation_ = sustain_level_;
+						phase_ = use_sustain_level_ ? Phase::Sustain : Phase::Release;
+					}
+				break;
+
+				case Phase::Sustain:
+					// Nothing to do.
+				break;
+
+				case Phase::Release:
+					update_decay(oscillator, release_rate_ + key_scaling_rate);
+				break;
+			}
+		}
 
 		/*!
 			@returns The current attenuation from this envelope generator.
 		*/
-		int attenuation() const;
+		int attenuation() const {
+			return attenuation_ + tremolo_;
+		}
 
 		/*!
 			Enables or disables damping on this envelope generator. If damping is enabled then this envelope generator will
@@ -48,63 +91,165 @@ template <int precision> class EnvelopeGenerator {
 
 			@param will_attack Supply a will_attack callback to enable damping mode; supply nullopt to disable damping mode.
 		*/
-		void set_should_damp(const std::optional<std::function<void(void)>> &will_attack);
+		void set_should_damp(const std::optional<std::function<void(void)>> &will_attack) {
+			will_attack_ = will_attack;
+		}
 
 		/*!
 			Sets the current state of the key-on input.
 		*/
-		void set_key_on(bool);
+		void set_key_on(bool key_on) {
+			// Do nothing if this is not a leading or trailing edge.
+			if(key_on == key_on_) return;
+			key_on_ = key_on;
+
+			// Always transition to release upon a key off.
+			if(!key_on_) {
+				phase_ = Phase::Release;
+				return;
+			}
+
+			// On key on: if this is an envelope generator with damping, and damping is required,
+			// schedule that. If damping is not required, announce a pending attack now and
+			// transition to attack.
+			if(will_attack_) {
+				if(attenuation_ != 511) {
+					phase_ = Phase::Damp;
+					return;
+				}
+
+				will_attack_();
+			}
+			phase_ = Phase::Attack;
+		}
 
 		/*!
 			Sets the attack rate, which should be in the range 0–15.
 		*/
-		void set_attack_rate(int);
+		void set_attack_rate(int rate) {
+			attack_rate_ = rate << 2;
+		}
 
 		/*!
 			Sets the decay rate, which should be in the range 0–15.
 		*/
-		void set_decay_rate(int);
+		void set_decay_rate(int rate) {
+			decay_rate_ = rate << 2;
+		}
 
 		/*!
 			Sets the release rate, which should be in the range 0–15.
 		*/
-		void set_release_rate(int);
+		void set_release_rate(int rate) {
+			release_rate_ = rate << 2;
+		}
 
 		/*!
 			Sets the sustain level, which should be in the range 0–15.
 		*/
-		void set_sustain_level(int);
+		void set_sustain_level(int level) {
+			sustain_level_ = level << 3;
+			// TODO: verify the shift level here. Especially re: precision.
+		}
 
 		/*!
 			Enables or disables use of the sustain level. If this is disabled, the envelope proceeds
 			directly from decay to release.
 		*/
-		void set_use_sustain_level(bool);
+		void set_use_sustain_level(bool use) {
+			use_sustain_level_ = use;
+		}
 
 		/*!
 			Enables or disables key-rate scaling.
 		*/
-		void set_key_rate_scaling_enabled(bool enabled);
+		void set_key_scaling_rate_enabled(bool enabled) {
+			key_scale_rate_shift_ = int(enabled) * 2;
+		}
 
 		/*!
 			Enables or disables application of the low-frequency oscillator's tremolo.
 		*/
-		void set_tremolo_enabled(bool enabled);
+		void set_tremolo_enabled(bool enabled) {
+			tremolo_enable_ = int(enabled);
+		}
 
 		/*!
 			Sets the current period associated with the channel that owns this envelope generator;
 			this is used to select a key scaling rate if key-rate scaling is enabled.
 		*/
-		void set_period(int period, int octave);
+		void set_period(int period, int octave) {
+			key_scale_rate_ = (octave << 1) | (period >> (period_precision - 1));
+		}
 
 	private:
-		enum class ADSRPhase {
+		enum class Phase {
 			Attack, Decay, Sustain, Release, Damp
-		} adsr_phase_ = ADSRPhase::Attack;
-		int adsr_attenuation_ = 511;
+		} phase_ = Phase::Attack;
+		int attenuation_ = 511, tremolo_ = 0;
 
 		bool key_on_ = false;
 		std::optional<std::function<void(void)>> will_attack_;
+
+		int key_scale_rate_ = 0;
+		int key_scale_rate_shift_ = 0;
+
+		int tremolo_enable_ = 0;
+
+		int attack_rate_ = 0;
+		int decay_rate_ = 0;
+		int release_rate_ = 0;
+		int sustain_level_ = 0;
+		bool use_sustain_level_ = false;
+
+		void update_attack(const LowFrequencyOscillator &oscillator, int rate) {
+			// Rules:
+			//
+			// An attack rate of '13' has 32 samples in the attack phase; a rate of '12' has the same 32 steps, but spread out over 64 samples, etc.
+			// An attack rate of '14' uses a divide by four instead of two.
+			// 15 is instantaneous.
+
+			if(rate >= 56) {
+				attenuation_ -= (attenuation_ >> 2) - 1;
+			} else {
+				const int sample_length = 1 << (14 - (rate >> 2));	// TODO: don't throw away KSR bits.
+				if(!(oscillator.counter & (sample_length - 1))) {
+					attenuation_ -= (attenuation_ >> 3) - 1;
+				}
+			}
+		}
+
+		void update_decay(const LowFrequencyOscillator &oscillator, int rate) {
+			// Rules:
+			//
+			// (relative to a 511 scale)
+			//
+			// A rate of 0 is no decay at all.
+			// A rate of 1 means increase 4 per cycle.
+			// A rate of 2 means increase 2 per cycle.
+			// A rate of 3 means increase 1 per cycle.
+			// A rate of 4 means increase 1 every other cycle.
+			// A rate of 5 means increase once every fourth cycle.
+			// etc.
+			// eighth, sixteenth, 32nd, 64th, 128th, 256th, 512th, 1024th, 2048th, 4096th, 8192th
+
+			if(rate) {
+				// TODO: don't throw away low two bits of the rate.
+				switch(rate >> 2) {
+					case 1: attenuation_ += 32;	break;
+					case 2: attenuation_ += 16;	break;
+					default: {
+						const int sample_length = 1 << ((rate >> 2) - 4);
+						if(!(oscillator.counter & (sample_length - 1))) {
+							attenuation_ += 8;
+						}
+					} break;
+				}
+
+				// Clamp to the proper range.
+				attenuation_ = std::min(attenuation_, 511);
+			}
+		}
 };
 
 }

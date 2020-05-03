@@ -38,7 +38,7 @@ template <int precision> class PhaseGenerator {
 			const int vibrato = (top_freq >> vibrato_shifts[oscillator.vibrato]) * vibrato_signs[oscillator.vibrato >> 2] * enable_vibrato_;
 
 			// Apply phase update with vibrato from the low-frequency oscillator.
-			raw_phase_ += multiple_ * (period_ + vibrato) << octave_;
+			phase_ += multiple_ * (period_ + vibrato) << octave_;
 		}
 
 
@@ -48,7 +48,7 @@ template <int precision> class PhaseGenerator {
 		int phase() const {
 			// My table if multipliers is multiplied by two, so shift by one more
 			// than the stated precision.
-			return raw_phase_ >> precision_shift;
+			return phase_ >> precision_shift;
 		}
 
 		/*!
@@ -85,21 +85,22 @@ template <int precision> class PhaseGenerator {
 			enable_vibrato_ = int(enabled);
 		}
 
-		enum class Waveform {
-			Sine, HalfSine, AbsSine, PulseSine
-		};
+		/*!
+			Resets the current phase.
+		*/
+		void reset() {
+			phase_ = 0;
+		}
 
 	private:
 		static constexpr int precision_shift =  1 + precision;
 
-		int raw_phase_ = 0;
+		int phase_ = 0;
 
 		int multiple_ = 0;
 		int period_ = 0;
 		int octave_ = 0;
 		int enable_vibrato_ = 0;
-
-		Waveform waveform_ = Waveform::Sine;
 };
 
 }
