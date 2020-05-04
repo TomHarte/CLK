@@ -44,7 +44,7 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 				case Phase::Damp:
 					update_decay(oscillator, 12);
 					if(attenuation_ == 511) {
-						will_attack_();
+						(*will_attack_)();
 						phase_ = Phase::Attack;
 					}
 				break;
@@ -118,7 +118,7 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 					return;
 				}
 
-				will_attack_();
+				(*will_attack_)();
 			}
 			phase_ = Phase::Attack;
 		}
