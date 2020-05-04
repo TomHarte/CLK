@@ -52,6 +52,13 @@ template <int precision> class PhaseGenerator {
 		}
 
 		/*!
+			@returns Current phase, scaled up by (1 << precision).
+		*/
+		int scaled_phase() const {
+			return phase_ >> 1;
+		}
+
+		/*!
 			Sets the multiple for this phase generator, in the same terms as an OPL programmer,
 			i.e. a 4-bit number that is used as a lookup into the internal multiples table.
 		*/

@@ -27,7 +27,7 @@ template <int frequency_precision> class KeyLevelScaler {
 			// on the sign bit to clamp to zero.
 			level_ = key_level_scales[period >> (frequency_precision - 4)];
 			level_ -= 16 * (octave ^ 7);
-			level_ &= masks[(key_scale_rate_ >> ((sizeof(int) * 8) - 1)) & 1];
+			level_ &= masks[(level_ >> ((sizeof(int) * 8) - 1)) & 1];
 		}
 
 		/*!

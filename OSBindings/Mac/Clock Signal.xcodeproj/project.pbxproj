@@ -1154,6 +1154,7 @@
 		4B619092245BC1000013F202 /* PhaseGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PhaseGenerator.hpp; sourceTree = "<group>"; };
 		4B619093245CD63E0013F202 /* EnvelopeGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EnvelopeGenerator.hpp; sourceTree = "<group>"; };
 		4B619094245E73B90013F202 /* KeyLevelScaler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyLevelScaler.hpp; sourceTree = "<group>"; };
+		4B619095245FA04B0013F202 /* WaveformGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = WaveformGenerator.hpp; sourceTree = "<group>"; };
 		4B622AE3222E0AD5008B59F2 /* DisplayMetrics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetrics.cpp; path = ../../Outputs/DisplayMetrics.cpp; sourceTree = "<group>"; };
 		4B622AE4222E0AD5008B59F2 /* DisplayMetrics.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = DisplayMetrics.hpp; path = ../../Outputs/DisplayMetrics.hpp; sourceTree = "<group>"; };
 		4B643F381D77AD1900D431D6 /* CSStaticAnalyser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSStaticAnalyser.h; path = StaticAnalyser/CSStaticAnalyser.h; sourceTree = "<group>"; };
@@ -3538,6 +3539,7 @@
 				4B619092245BC1000013F202 /* PhaseGenerator.hpp */,
 				4B619093245CD63E0013F202 /* EnvelopeGenerator.hpp */,
 				4B619094245E73B90013F202 /* KeyLevelScaler.hpp */,
+				4B619095245FA04B0013F202 /* WaveformGenerator.hpp */,
 			);
 			path = Implementation;
 			sourceTree = "<group>";

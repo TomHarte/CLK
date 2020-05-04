@@ -13,6 +13,8 @@
 
 #include "Implementation/PhaseGenerator.hpp"
 #include "Implementation/EnvelopeGenerator.hpp"
+#include "Implementation/KeyLevelScaler.hpp"
+#include "Implementation/WaveformGenerator.hpp"
 
 using namespace Yamaha::OPL;
 
