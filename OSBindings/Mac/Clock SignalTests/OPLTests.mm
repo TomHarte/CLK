@@ -8,7 +8,8 @@
 
 #import <XCTest/XCTest.h>
 
-#include "OPL2.hpp"
+#include "Tables.hpp"
+
 #include <cmath>
 
 @interface OPLTests: XCTestCase
@@ -32,7 +33,7 @@
 
 // MARK: - Two-operator FM tests
 
-- (void)compareFMTo:(NSArray *)knownGood atAttenuation:(int)attenuation {
+/*- (void)compareFMTo:(NSArray *)knownGood atAttenuation:(int)attenuation {
 	Yamaha::OPL::Operator modulator, carrier;
 	Yamaha::OPL::Channel channel;
 	Yamaha::OPL::LowFrequencyOscillator oscillator;
@@ -165,6 +166,6 @@
 //		test_operator.update(test_state, true, 0, 0, 0);
 //		NSLog(@"%d", test_state.level());
 //	}
-}
+}*/
 
 @end

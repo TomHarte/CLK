@@ -79,7 +79,7 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 			// Address 2x Sets the octave and a single bit of the frequency, as well
 			// as setting key on and sustain mode.
 			case 0x20:
-				channels_[index].period = (channels_[index].period & 0xff) | (value & 1);
+				channels_[index].period = (channels_[index].period & 0xff) | ((value & 1) << 8);
 				channels_[index].octave = (value >> 1) & 7;
 				set_channel_period(index);
 
@@ -115,6 +115,9 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 void OPLL::set_channel_period(int channel) {
 	phase_generators_[channel + 0].set_period(channels_[channel].period, channels_[channel].octave);
 	phase_generators_[channel + 9].set_period(channels_[channel].period, channels_[channel].octave);
+
+	envelope_generators_[channel + 0].set_period(channels_[channel].period, channels_[channel].octave);
+	envelope_generators_[channel + 9].set_period(channels_[channel].period, channels_[channel].octave);
 
 	key_level_scalers_[channel + 0].set_period(channels_[channel].period, channels_[channel].octave);
 	key_level_scalers_[channel + 9].set_period(channels_[channel].period, channels_[channel].octave);
@@ -278,8 +281,9 @@ void OPLL::update_all_channels() {
 
 
 int OPLL::melodic_output(int channel) {
+	// TODO: key-rate scaling.
 	auto modulation = WaveformGenerator<period_precision>::wave(channels_[channel].modulator_waveform, phase_generators_[channel + 9].phase());
 	modulation += envelope_generators_[channel + 9].attenuation() + channels_[channel].modulator_attenuation;
 
-	return WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), modulation).level();
+	return WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), modulation).level() + channels_[channel].attenuation;
 }
