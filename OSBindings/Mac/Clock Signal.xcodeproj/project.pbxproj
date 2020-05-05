@@ -222,6 +222,8 @@
 		4B595FAE2086DFBA0083CAA8 /* AudioToggle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B595FAC2086DFBA0083CAA8 /* AudioToggle.cpp */; };
 		4B5FADBA1DE3151600AEC565 /* FileHolder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADB81DE3151600AEC565 /* FileHolder.cpp */; };
 		4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B5FADBE1DE3BF2B00AEC565 /* Microdisc.cpp */; };
+		4B619099245FBF7B0013F202 /* OPLL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B619097245FBF7B0013F202 /* OPLL.cpp */; };
+		4B61909A245FBF7B0013F202 /* OPLL.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B619097245FBF7B0013F202 /* OPLL.cpp */; };
 		4B622AE5222E0AD5008B59F2 /* DisplayMetrics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B622AE3222E0AD5008B59F2 /* DisplayMetrics.cpp */; };
 		4B643F3A1D77AD1900D431D6 /* CSStaticAnalyser.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F391D77AD1900D431D6 /* CSStaticAnalyser.mm */; };
 		4B643F3F1D77B88000D431D6 /* DocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B643F3E1D77B88000D431D6 /* DocumentController.swift */; };
@@ -793,8 +795,6 @@
 		4BC1317B2346DF2B00E4FF3D /* MSA.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC131782346DF2B00E4FF3D /* MSA.cpp */; };
 		4BC57CD92436A62900FBC404 /* State.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC57CD82436A62900FBC404 /* State.cpp */; };
 		4BC57CDA2436A62900FBC404 /* State.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC57CD82436A62900FBC404 /* State.cpp */; };
-		4BC57CE22436BFE000FBC404 /* OPL2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC57CE02436BFE000FBC404 /* OPL2.cpp */; };
-		4BC57CE32436BFE000FBC404 /* OPL2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC57CE02436BFE000FBC404 /* OPL2.cpp */; };
 		4BC5C3E022C994CD00795658 /* 68000MoveTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BC5C3DF22C994CC00795658 /* 68000MoveTests.mm */; };
 		4BC5FC3020CDDDEF00410AA0 /* AppleIIOptions.xib in Resources */ = {isa = PBXBuildFile; fileRef = 4BC5FC2E20CDDDEE00410AA0 /* AppleIIOptions.xib */; };
 		4BC751B21D157E61006C31D9 /* 6522Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BC751B11D157E61006C31D9 /* 6522Tests.swift */; };
@@ -1152,6 +1152,9 @@
 		4B619093245CD63E0013F202 /* EnvelopeGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = EnvelopeGenerator.hpp; sourceTree = "<group>"; };
 		4B619094245E73B90013F202 /* KeyLevelScaler.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = KeyLevelScaler.hpp; sourceTree = "<group>"; };
 		4B619095245FA04B0013F202 /* WaveformGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = WaveformGenerator.hpp; sourceTree = "<group>"; };
+		4B619096245FBEF80013F202 /* OPLBase.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = OPLBase.hpp; path = Implementation/OPLBase.hpp; sourceTree = "<group>"; };
+		4B619097245FBF7B0013F202 /* OPLL.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = OPLL.cpp; sourceTree = "<group>"; };
+		4B619098245FBF7B0013F202 /* OPLL.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = OPLL.hpp; sourceTree = "<group>"; };
 		4B622AE3222E0AD5008B59F2 /* DisplayMetrics.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = DisplayMetrics.cpp; path = ../../Outputs/DisplayMetrics.cpp; sourceTree = "<group>"; };
 		4B622AE4222E0AD5008B59F2 /* DisplayMetrics.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; name = DisplayMetrics.hpp; path = ../../Outputs/DisplayMetrics.hpp; sourceTree = "<group>"; };
 		4B643F381D77AD1900D431D6 /* CSStaticAnalyser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = CSStaticAnalyser.h; path = StaticAnalyser/CSStaticAnalyser.h; sourceTree = "<group>"; };
@@ -3575,6 +3578,9 @@
 				4BC0CB2F2447EC7C00A79DBB /* Implementation */,
 				4BC57CE02436BFE000FBC404 /* OPL2.cpp */,
 				4BC57CE12436BFE000FBC404 /* OPL2.hpp */,
+				4B619096245FBEF80013F202 /* OPLBase.hpp */,
+				4B619097245FBF7B0013F202 /* OPLL.cpp */,
+				4B619098245FBF7B0013F202 /* OPLL.hpp */,
 			);
 			path = OPL2;
 			sourceTree = "<group>";
@@ -4375,7 +4381,6 @@
 				4B894521201967B4007DE474 /* StaticAnalyser.cpp in Sources */,
 				4B8318B522D3E548006DB630 /* Macintosh.cpp in Sources */,
 				4B7BA03123C2B19C00B98D9E /* Jasmin.cpp in Sources */,
-				4BC57CE32436BFE000FBC404 /* OPL2.cpp in Sources */,
 				4B7F188F2154825E00388727 /* MasterSystem.cpp in Sources */,
 				4B055AA51FAE85EF0060FFFF /* Encoder.cpp in Sources */,
 				4BD5D2692199148100DDF17D /* ScanTargetGLSLFragments.cpp in Sources */,
@@ -4530,6 +4535,7 @@
 				4B894537201967B4007DE474 /* Z80.cpp in Sources */,
 				4B055A9F1FAE85DA0060FFFF /* HFE.cpp in Sources */,
 				4BD191F52191180E0042E144 /* ScanTarget.cpp in Sources */,
+				4B61909A245FBF7B0013F202 /* OPLL.cpp in Sources */,
 				4B055AEC1FAE9BA20060FFFF /* Z80Base.cpp in Sources */,
 				4B0F94FF208C1A1600FE41D9 /* NIB.cpp in Sources */,
 				4B0E04EB1FC9E78800F43484 /* CAS.cpp in Sources */,
@@ -4651,7 +4657,6 @@
 				4BEA52631DF339D7007E74F2 /* SoundGenerator.cpp in Sources */,
 				4BD67DD0209BF27B00AB2146 /* Encoder.cpp in Sources */,
 				4BAE495920328897004BE78E /* ZX8081OptionsPanel.swift in Sources */,
-				4BC57CE22436BFE000FBC404 /* OPL2.cpp in Sources */,
 				4B89451A201967B4007DE474 /* ConfidenceSummary.cpp in Sources */,
 				4BE0A3EE237BB170002AB46F /* ST.cpp in Sources */,
 				4B54C0C51F8D91D90050900F /* Keyboard.cpp in Sources */,
@@ -4702,6 +4707,7 @@
 				4BD0FBC3233706A200148981 /* CSApplication.m in Sources */,
 				4BBC951E1F368D83008F4C34 /* i8272.cpp in Sources */,
 				4B89449520194CB3007DE474 /* MachineForTarget.cpp in Sources */,
+				4B619099245FBF7B0013F202 /* OPLL.cpp in Sources */,
 				4B4A76301DB1A3FA007AAE2E /* AY38910.cpp in Sources */,
 				4B7BA03423C58B1F00B98D9E /* STX.cpp in Sources */,
 				4B6A4C991F58F09E00E3F787 /* 6502Base.cpp in Sources */,

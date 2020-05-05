@@ -11,6 +11,7 @@
 
 #include <optional>
 #include <functional>
+#include "LowFrequencyOscillator.hpp"
 
 namespace Yamaha {
 namespace OPL {

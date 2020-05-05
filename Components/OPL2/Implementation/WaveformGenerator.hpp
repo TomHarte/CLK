@@ -15,12 +15,12 @@
 namespace Yamaha {
 namespace OPL {
 
+enum class Waveform {
+	Sine, HalfSine, AbsSine, PulseSine
+};
+
 template <int phase_precision> class WaveformGenerator {
 	public:
-		enum class Waveform {
-			Sine, HalfSine, AbsSine, PulseSine
-		};
-
 		/*!
 			@returns The output of waveform @c form at [integral] phase @c phase.
 		*/

@@ -20,24 +20,7 @@
 namespace Yamaha {
 namespace OPL {
 
-template <typename Child> class OPLBase: public ::Outputs::Speaker::SampleSource {
-	public:
-		void write(uint16_t address, uint8_t value);
-
-	protected:
-		OPLBase(Concurrency::DeferringAsyncTaskQueue &task_queue);
-
-		Concurrency::DeferringAsyncTaskQueue &task_queue_;
-		LowFrequencyOscillator oscillator_;
-
-		uint8_t depth_rhythm_control_;
-		uint8_t csm_keyboard_split_;
-		bool waveform_enable_;
-
-	private:
-		uint8_t selected_register_ = 0;
-};
-
+/*
 struct OPL2: public OPLBase<OPL2> {
 	public:
 		// Creates a new OPL2.
@@ -132,7 +115,7 @@ struct OPLL: public OPLBase<OPLL> {
 		int audio_offset_ = 0;
 
 		std::atomic<int> total_volume_;
-};
+};*/
 
 }
 }

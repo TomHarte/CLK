@@ -18,6 +18,8 @@
 
 using namespace Yamaha::OPL;
 
+/*
+
 template <typename Child>
 OPLBase<Child>::OPLBase(Concurrency::DeferringAsyncTaskQueue &task_queue) : task_queue_(task_queue) {}
 
@@ -79,43 +81,42 @@ void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 		audio_offset_ = (audio_offset_ + 1) % update_period;
 	}
 
-
-/*	// Fill in any leftover from the previous session.
-	if(audio_offset_) {
-		while(audio_offset_ < update_period && number_of_samples) {
-			*target = int16_t(channels_[audio_offset_ / channel_output_period].level);
-			++target;
-			++audio_offset_;
-			--number_of_samples;
-		}
-		audio_offset_ = 0;
-	}
-
-	// End now if that provided everything that was asked for.
-	if(!number_of_samples) return;
-
-	int total_updates = int(number_of_samples) / update_period;
-	number_of_samples %= size_t(update_period);
-	audio_offset_ = int(number_of_samples);
-
-	while(total_updates--) {
-		update_all_chanels();
-
-		for(int c = 0; c < update_period; ++c) {
-			*target = int16_t(channels_[c / channel_output_period].level);
-			++target;
-		}
-	}
-
-	// If there are any other spots remaining, fill them.
-	if(number_of_samples) {
-		update_all_chanels();
-
-		for(int c = 0; c < int(number_of_samples); ++c) {
-			*target = int16_t(channels_[c / channel_output_period].level);
-			++target;
-		}
-	}*/
+//	// Fill in any leftover from the previous session.
+//	if(audio_offset_) {
+//		while(audio_offset_ < update_period && number_of_samples) {
+//			*target = int16_t(channels_[audio_offset_ / channel_output_period].level);
+//			++target;
+//			++audio_offset_;
+//			--number_of_samples;
+//		}
+//		audio_offset_ = 0;
+//	}
+//
+//	// End now if that provided everything that was asked for.
+//	if(!number_of_samples) return;
+//
+//	int total_updates = int(number_of_samples) / update_period;
+//	number_of_samples %= size_t(update_period);
+//	audio_offset_ = int(number_of_samples);
+//
+//	while(total_updates--) {
+//		update_all_chanels();
+//
+//		for(int c = 0; c < update_period; ++c) {
+//			*target = int16_t(channels_[c / channel_output_period].level);
+//			++target;
+//		}
+//	}
+//
+//	// If there are any other spots remaining, fill them.
+//	if(number_of_samples) {
+//		update_all_chanels();
+//
+//		for(int c = 0; c < int(number_of_samples); ++c) {
+//			*target = int16_t(channels_[c / channel_output_period].level);
+//			++target;
+//		}
+//	}
 }
 
 void OPLL::set_sample_volume_range(std::int16_t range) {
@@ -274,9 +275,9 @@ void OPLL::update_all_chanels() {
 #undef VOLUME
 }
 
-/*
-template <Personality personality>
-void OPL2<personality>::get_samples(std::size_t number_of_samples, std::int16_t *target) {
+
+//template <Personality personality>
+//void OPL2<personality>::get_samples(std::size_t number_of_samples, std::int16_t *target) {
 	// TODO.
 	//  out = exp(logsin(phase2 + exp(logsin(phase1) + gain1)) + gain2)
 
@@ -301,9 +302,9 @@ void OPL2<personality>::get_samples(std::size_t number_of_samples, std::int16_t 
 //		Tom tom, using operator 14,
 //		Cymbal, using operator 17; and
 //		Symbol, using operator 13.
-}
+//}
 
-*/
+
 
 void OPL2::write_register(uint8_t address, uint8_t value) {
 
@@ -393,3 +394,5 @@ uint8_t OPL2::read(uint16_t address) {
 	//	b5 = timer 2 flag
 	return 0xff;
 }
+
+*/
