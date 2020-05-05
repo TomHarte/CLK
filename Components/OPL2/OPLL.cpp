@@ -247,7 +247,23 @@ void OPLL::update_all_channels() {
 #define VOLUME(x)	int16_t(((x) * total_volume_) >> 12)
 
 	if(rhythm_mode_enabled_) {
-		// TODO!
+		// Advance the rhythm envelope generators.
+		// TODO: these need to be properly seeded.
+		for(int c = 0; c < 5; ++c) {
+			oscillator_.update_lfsr();
+			rhythm_generators_[c].update(oscillator_);
+		}
+
+		// Fill in the melodic channels.
+		output_levels_[3] = VOLUME(melodic_output(0));
+		output_levels_[4] = VOLUME(melodic_output(1));
+		output_levels_[5] = VOLUME(melodic_output(2));
+
+		output_levels_[9] = VOLUME(melodic_output(3));
+		output_levels_[10] = VOLUME(melodic_output(4));
+		output_levels_[11] = VOLUME(melodic_output(5));
+
+		// TODO: drum noises. Also subject to proper channel population.
 	} else {
 		for(int c = 6; c < 9; ++c) {
 			envelope_generators_[c + 0].update(oscillator_);
@@ -277,11 +293,13 @@ void OPLL::update_all_channels() {
 #undef VOLUME
 
 	// TODO: batch updates of the LFSR.
+	// TODO: modulator feedback.
 }
 
 
 int OPLL::melodic_output(int channel) {
 	// TODO: key-rate scaling.
+	// TODO: proper scales of all attenuations below.
 	auto modulation = WaveformGenerator<period_precision>::wave(channels_[channel].modulator_waveform, phase_generators_[channel + 9].phase());
 	modulation += envelope_generators_[channel + 9].attenuation() + channels_[channel].modulator_attenuation;
 
