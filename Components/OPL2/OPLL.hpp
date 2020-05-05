@@ -38,7 +38,12 @@ class OPLL: public OPLBase<OPLL> {
 		void write_register(uint8_t address, uint8_t value);
 
 		int audio_divider_ = 0;
+		int audio_offset_ = 0;
 		std::atomic<int> total_volume_;
+
+		void update_all_channels();
+		int melodic_output(int channel);
+		int16_t output_levels_[18];
 
 		static constexpr int period_precision = 9;
 		static constexpr int envelope_precision = 9;

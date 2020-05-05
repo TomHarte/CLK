@@ -211,5 +211,75 @@ void OPLL::set_sample_volume_range(std::int16_t range) {
 }
 
 void OPLL::get_samples(std::size_t number_of_samples, std::int16_t *target) {
-	// TODO.
+	// Both the OPLL and the OPL2 divide the input clock by 72 to get the base tick frequency;
+	// unlike the OPL2 the OPLL time-divides the output for 'mixing'.
+
+	const int update_period = 72 / audio_divider_;
+	const int channel_output_period = 4 / audio_divider_;
+
+	// TODO: the conditional below is terrible. Fix.
+	while(number_of_samples--) {
+		if(!audio_offset_) update_all_channels();
+
+		*target = output_levels_[audio_offset_ / channel_output_period];
+		++target;
+		audio_offset_ = (audio_offset_ + 1) % update_period;
+	}
+}
+
+void OPLL::update_all_channels() {
+	oscillator_.update();
+
+	// Update all phase generators. That's guaranteed.
+	for(int c = 0; c < 18; ++c) {
+		phase_generators_[c].update(oscillator_);
+	}
+
+	// Update the ADSR envelopes that are guaranteed to be melodic.
+	for(int c = 0; c < 6; ++c) {
+		envelope_generators_[c + 0].update(oscillator_);
+		envelope_generators_[c + 9].update(oscillator_);
+	}
+
+#define VOLUME(x)	int16_t(((x) * total_volume_) >> 12)
+
+	if(rhythm_mode_enabled_) {
+		// TODO!
+	} else {
+		for(int c = 6; c < 9; ++c) {
+			envelope_generators_[c + 0].update(oscillator_);
+			envelope_generators_[c + 9].update(oscillator_);
+		}
+
+		// All melodic. Fairly easy.
+		output_levels_[0] = output_levels_[1] = output_levels_[2] =
+		output_levels_[6] = output_levels_[7] = output_levels_[8] =
+		output_levels_[12] = output_levels_[13] = output_levels_[14] = 0;
+
+		output_levels_[3] = VOLUME(melodic_output(0));
+		output_levels_[4] = VOLUME(melodic_output(1));
+		output_levels_[5] = VOLUME(melodic_output(2));
+
+		output_levels_[9] = VOLUME(melodic_output(3));
+		output_levels_[10] = VOLUME(melodic_output(4));
+		output_levels_[11] = VOLUME(melodic_output(5));
+
+		output_levels_[15] = VOLUME(melodic_output(6));
+		output_levels_[16] = VOLUME(melodic_output(7));
+		output_levels_[17] = VOLUME(melodic_output(8));
+
+		// TODO: advance LFSR.
+	}
+
+#undef VOLUME
+
+	// TODO: batch updates of the LFSR.
+}
+
+
+int OPLL::melodic_output(int channel) {
+	auto modulation = WaveformGenerator<period_precision>::wave(channels_[channel].modulator_waveform, phase_generators_[channel + 9].phase());
+	modulation += envelope_generators_[channel + 9].attenuation() + channels_[channel].modulator_attenuation;
+
+	return WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), modulation).level();
 }
