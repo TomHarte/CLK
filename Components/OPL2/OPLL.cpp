@@ -298,10 +298,11 @@ void OPLL::update_all_channels() {
 
 
 int OPLL::melodic_output(int channel) {
-	// TODO: key-rate scaling.
-	// TODO: proper scales of all attenuations below.
+	// TODO: verify attenuation scales.
 	auto modulation = WaveformGenerator<period_precision>::wave(channels_[channel].modulator_waveform, phase_generators_[channel + 9].phase());
-	modulation += envelope_generators_[channel + 9].attenuation() + channels_[channel].modulator_attenuation;
+	modulation += envelope_generators_[channel + 9].attenuation() + (channels_[channel].modulator_attenuation << 5) + key_level_scalers_[channel + 9].attenuation();
 
-	return WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), modulation).level() + channels_[channel].attenuation;
+	auto carrier = WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), modulation);
+	carrier += envelope_generators_[channel].attenuation() + (channels_[channel].attenuation << 7) + key_level_scalers_[channel].attenuation();
+	return carrier.level();
 }

@@ -79,10 +79,10 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 		}
 
 		/*!
-			@returns The current attenuation from this envelope generator.
+			@returns The current attenuation from this envelope generator. This is independent of the envelope precision.
 		*/
 		int attenuation() const {
-			return attenuation_ + tremolo_;
+			return (attenuation_ + tremolo_) << 3;
 		}
 
 		/*!
