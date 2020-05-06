@@ -53,7 +53,15 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 		// Register 0xe enables or disables rhythm mode and contains the
 		// percussion key-on bits.
 		if(address == 0xe) {
+			const bool old_rhythm_mode = rhythm_mode_enabled_;
 			rhythm_mode_enabled_ = value & 0x20;
+			if(old_rhythm_mode != rhythm_mode_enabled_) {
+				// Change the instlled instruments for channels 6, 7 and 8
+				// if this was a transition into or out of rhythm mode.
+				install_instrument(6);
+				install_instrument(7);
+				install_instrument(8);
+			}
 			rhythm_generators_[0].set_key_on(value & 0x01);
 			rhythm_generators_[1].set_key_on(value & 0x02);
 			rhythm_generators_[2].set_key_on(value & 0x04);
@@ -106,7 +114,10 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 			case 0x30:
 				channels_[index].instrument = value >> 4;
 				channels_[index].attenuation = value >> 4;
-				install_instrument(index);
+
+				if(index < 6 || !rhythm_mode_enabled_) {
+					install_instrument(index);
+				}
 			return;
 		}
 	});
@@ -141,7 +152,9 @@ void OPLL::install_instrument(int channel) {
 	auto &modulator_phase = phase_generators_[channel + 9];
 	auto &modulator_scaler = key_level_scalers_[channel + 9];
 
-	const uint8_t *const instrument = instrument_definition(channels_[channel].instrument);
+	const uint8_t *const instrument = ((channel < 6) || !rhythm_mode_enabled_) ?
+		instrument_definition(channels_[channel].instrument) :
+		&percussion_patch_set[(channel - 6) * 8];
 
 	// Bytes 0 (modulator) and 1 (carrier):
 	//
@@ -264,6 +277,11 @@ void OPLL::update_all_channels() {
 		output_levels_[11] = VOLUME(melodic_output(5));
 
 		// TODO: drum noises. Also subject to proper channel population.
+
+		output_levels_[0] = output_levels_[1] = output_levels_[2] =
+		output_levels_[6] = output_levels_[7] = output_levels_[8] =
+		output_levels_[12] = output_levels_[13] = output_levels_[14] =
+		output_levels_[15] = output_levels_[16] = output_levels_[17] = 0;
 	} else {
 		for(int c = 6; c < 9; ++c) {
 			envelope_generators_[c + 0].update(oscillator_);
