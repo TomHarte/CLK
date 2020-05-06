@@ -27,6 +27,11 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, 
 			phase_generators_[c + 9].reset();
 		});
 	}
+
+	// Set default instrument.
+	for(int c = 0; c < 9; ++c) {
+		install_instrument(c);
+	}
 }
 
 // MARK: - Machine-facing programmatic input.
@@ -112,11 +117,14 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 			// instead nominate additional attenuations. This code reads those back
 			// from the stored instrument values.
 			case 0x30:
-				channels_[index].instrument = value >> 4;
 				channels_[index].attenuation = value & 0xf;
 
-				if(index < 6 || !rhythm_mode_enabled_) {
-					install_instrument(index);
+				// Install an instrument only if it's new.
+				if(channels_[index].instrument != value >> 4) {
+					channels_[index].instrument = value >> 4;
+					if(index < 6 || !rhythm_mode_enabled_) {
+						install_instrument(index);
+					}
 				}
 			return;
 		}

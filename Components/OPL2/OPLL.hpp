@@ -83,7 +83,7 @@ class OPLL: public OPLBase<OPLL> {
 		bool is_vrc7_ = false;
 
 		// Contains the current configuration of the custom instrument.
-		uint8_t custom_instrument_[8];
+		uint8_t custom_instrument_[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 		// Helpers to push per-channel information.
 
