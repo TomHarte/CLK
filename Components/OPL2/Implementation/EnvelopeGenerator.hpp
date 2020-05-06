@@ -186,7 +186,7 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 	private:
 		enum class Phase {
 			Attack, Decay, Sustain, Release, Damp
-		} phase_ = Phase::Attack;
+		} phase_ = Phase::Release;
 		int attenuation_ = 511, tremolo_ = 0;
 
 		bool key_on_ = false;
