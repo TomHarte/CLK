@@ -113,7 +113,7 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 			// from the stored instrument values.
 			case 0x30:
 				channels_[index].instrument = value >> 4;
-				channels_[index].attenuation = value >> 4;
+				channels_[index].attenuation = value & 0xf;
 
 				if(index < 6 || !rhythm_mode_enabled_) {
 					install_instrument(index);
@@ -211,7 +211,7 @@ void OPLL::install_instrument(int channel) {
 	modulator_envelope.set_release_rate(instrument[6] & 0xf);
 	modulator_envelope.set_sustain_level(instrument[6] >> 4);
 	carrier_envelope.set_release_rate(instrument[7] & 0xf);
-	carrier_envelope.set_release_rate(instrument[7] >> 4);
+	carrier_envelope.set_sustain_level(instrument[7] >> 4);
 }
 
 void OPLL::set_use_sustain(int channel) {
