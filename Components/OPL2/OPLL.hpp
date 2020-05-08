@@ -41,21 +41,40 @@ class OPLL: public OPLBase<OPLL> {
 		int audio_offset_ = 0;
 		std::atomic<int> total_volume_;
 
-		void update_all_channels();
-		int melodic_output(int channel);
 		int16_t output_levels_[18];
+		void update_all_channels();
+
+		int melodic_output(int channel);
+		int bass_drum();
+		int tom_tom();
+		int snare_drum();
+		int cymbal();
+		int high_hat();
 
 		static constexpr int period_precision = 9;
 		static constexpr int envelope_precision = 9;
 
-		// Standard melodic phase and envelope generators.
+		// Standard melodic phase and envelope generators;
+		//
+		// These are assigned as:
+		//
+		//		[x], 0 <= x < 9		= carrier for channel x;
+		//		[x+9]				= modulator for channel x.
+		//
 		PhaseGenerator<period_precision> phase_generators_[18];
 		EnvelopeGenerator<envelope_precision, period_precision> envelope_generators_[18];
 		KeyLevelScaler<period_precision> key_level_scalers_[18];
 
 		// Dedicated rhythm envelope generators and attenuations.
-		EnvelopeGenerator<envelope_precision, period_precision> rhythm_generators_[5];
-		int rhythm_attenuations_[5];
+		EnvelopeGenerator<envelope_precision, period_precision> rhythm_envelope_generators_[6];
+		enum RhythmIndices {
+			HighHat = 0,
+			Cymbal = 1,
+			TomTom = 2,
+			Snare = 3,
+			BassCarrier = 4,
+			BassModulator = 5
+		};
 
 		// Channel specifications.
 		struct Channel {

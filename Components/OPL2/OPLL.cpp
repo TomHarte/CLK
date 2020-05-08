@@ -32,6 +32,36 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, 
 	for(int c = 0; c < 9; ++c) {
 		install_instrument(c);
 	}
+
+	// Setup the rhythm envelope generators.
+
+	// Treat the bass exactly as if it were a melodic channel.
+	rhythm_envelope_generators_[BassCarrier].set_should_damp([this] {
+		// Propagate attack mode to the modulator, and reset both phases.
+		rhythm_envelope_generators_[BassModulator].set_key_on(true);
+		phase_generators_[6 + 0].reset();
+		phase_generators_[6 + 9].reset();
+	});
+
+	// Crib the proper rhythm envelope generator settings by installing
+	// the rhythm instruments and copying them over.
+	rhythm_mode_enabled_ = true;
+	install_instrument(6);
+	install_instrument(7);
+	install_instrument(8);
+
+	rhythm_envelope_generators_[BassCarrier] = envelope_generators_[6];
+	rhythm_envelope_generators_[BassModulator] = envelope_generators_[6 + 9];
+	rhythm_envelope_generators_[HighHat] = envelope_generators_[7];
+	rhythm_envelope_generators_[Cymbal] = envelope_generators_[8];
+	rhythm_envelope_generators_[TomTom] = envelope_generators_[8 + 9];
+	rhythm_envelope_generators_[Snare] = envelope_generators_[7 + 9];
+
+	// Return to ordinary default mode.
+	rhythm_mode_enabled_ = false;
+	install_instrument(6);
+	install_instrument(7);
+	install_instrument(8);
 }
 
 // MARK: - Machine-facing programmatic input.
@@ -67,11 +97,17 @@ void OPLL::write_register(uint8_t address, uint8_t value) {
 				install_instrument(7);
 				install_instrument(8);
 			}
-			rhythm_generators_[0].set_key_on(value & 0x01);
-			rhythm_generators_[1].set_key_on(value & 0x02);
-			rhythm_generators_[2].set_key_on(value & 0x04);
-			rhythm_generators_[3].set_key_on(value & 0x08);
-			rhythm_generators_[4].set_key_on(value & 0x10);
+			rhythm_envelope_generators_[0].set_key_on(value & 0x01);
+			rhythm_envelope_generators_[1].set_key_on(value & 0x02);
+			rhythm_envelope_generators_[2].set_key_on(value & 0x04);
+			rhythm_envelope_generators_[3].set_key_on(value & 0x08);
+			if(value & 0x10) {
+				rhythm_envelope_generators_[4].set_key_on(true);
+			} else {
+				rhythm_envelope_generators_[4].set_key_on(false);
+				rhythm_envelope_generators_[5].set_key_on(false);
+
+			}
 			return;
 		}
 
@@ -269,10 +305,8 @@ void OPLL::update_all_channels() {
 
 	if(rhythm_mode_enabled_) {
 		// Advance the rhythm envelope generators.
-		// TODO: these need to be properly seeded.
-		for(int c = 0; c < 5; ++c) {
-			oscillator_.update_lfsr();
-			rhythm_generators_[c].update(oscillator_);
+		for(int c = 0; c < 6; ++c) {
+			rhythm_envelope_generators_[c].update(oscillator_);
 		}
 
 		// Fill in the melodic channels.
@@ -284,12 +318,29 @@ void OPLL::update_all_channels() {
 		output_levels_[10] = VOLUME(melodic_output(4));
 		output_levels_[11] = VOLUME(melodic_output(5));
 
-		// TODO: drum noises. Also subject to proper channel population.
+		// Bass drum, which is a regular FM effect.
+		output_levels_[2] = output_levels_[15] = VOLUME(bass_drum());
+		oscillator_.update_lfsr();
 
-		output_levels_[0] = output_levels_[1] = output_levels_[2] =
-		output_levels_[6] = output_levels_[7] = output_levels_[8] =
-		output_levels_[12] = output_levels_[13] = output_levels_[14] =
-		output_levels_[15] = output_levels_[16] = output_levels_[17] = 0;
+		// Tom tom, which is a single operator.
+		output_levels_[1] = output_levels_[14] = VOLUME(tom_tom());
+		oscillator_.update_lfsr();
+
+		// Snare.
+		output_levels_[6] = output_levels_[16] = VOLUME(snare_drum());
+		oscillator_.update_lfsr();
+
+		// Cymbal.
+		output_levels_[7] = output_levels_[17] = VOLUME(cymbal());
+		oscillator_.update_lfsr();
+
+		// High-hat.
+		output_levels_[0] = output_levels_[13] = VOLUME(high_hat());
+		oscillator_.update_lfsr();
+
+		// Unutilised slots.
+		output_levels_[8] = output_levels_[12] = 0;
+		oscillator_.update_lfsr();
 	} else {
 		for(int c = 6; c < 9; ++c) {
 			envelope_generators_[c + 0].update(oscillator_);
@@ -312,8 +363,6 @@ void OPLL::update_all_channels() {
 		output_levels_[15] = VOLUME(melodic_output(6));
 		output_levels_[16] = VOLUME(melodic_output(7));
 		output_levels_[17] = VOLUME(melodic_output(8));
-
-		// TODO: advance LFSR.
 	}
 
 #undef VOLUME
@@ -322,13 +371,51 @@ void OPLL::update_all_channels() {
 	// TODO: modulator feedback.
 }
 
+// TODO: verify attenuation scales pervasively below.
 
 int OPLL::melodic_output(int channel) {
-	// TODO: verify attenuation scales.
 	auto modulation = WaveformGenerator<period_precision>::wave(channels_[channel].modulator_waveform, phase_generators_[channel + 9].phase());
 	modulation += envelope_generators_[channel + 9].attenuation() + (channels_[channel].modulator_attenuation << 5) + key_level_scalers_[channel + 9].attenuation();
 
 	auto carrier = WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), modulation);
 	carrier += envelope_generators_[channel].attenuation() + (channels_[channel].attenuation << 7) + key_level_scalers_[channel].attenuation();
 	return carrier.level();
+}
+
+int OPLL::bass_drum() {
+	// Use modulator 6 and carrier 6, attenuated as per the bass-specific envelope generators and the attenuation level for channel 6.
+	auto modulation = WaveformGenerator<period_precision>::wave(Waveform::Sine, phase_generators_[6 + 9].phase());
+	modulation += envelope_generators_[RhythmIndices::BassModulator].attenuation();
+
+	auto carrier = WaveformGenerator<period_precision>::wave(Waveform::Sine, phase_generators_[6].scaled_phase(), modulation);
+	carrier += envelope_generators_[RhythmIndices::BassCarrier].attenuation() + (channels_[6].attenuation << 7);
+	return carrier.level();
+}
+
+int OPLL::tom_tom() {
+	// Use modulator 8 and the 'instrument' selection for channel 8 as an attenuation.
+	auto tom_tom = WaveformGenerator<period_precision>::wave(Waveform::Sine, phase_generators_[8 + 9].phase());
+	tom_tom += envelope_generators_[RhythmIndices::TomTom].attenuation() + (channels_[8].instrument << 7);
+	return tom_tom.level();
+}
+
+int OPLL::snare_drum() {
+	// Use modulator 7 and the carrier attenuation level for channel 7.
+	LogSign snare = WaveformGenerator<period_precision>::snare(oscillator_, phase_generators_[7 + 9].phase());
+	snare += channels_[7].attenuation << 7;
+	return snare.level();
+}
+
+int OPLL::cymbal() {
+	// Use modulator 7, carrier 8 and the attenuation level for channel 8.
+	LogSign cymbal = WaveformGenerator<period_precision>::cymbal(phase_generators_[8].phase(), phase_generators_[7 + 9].phase());
+	cymbal += channels_[8].attenuation << 7;
+	return cymbal.level();
+}
+
+int OPLL::high_hat() {
+	// Use the 'instrument' selection for channel 7 as an attenuation.
+	LogSign high_hat = WaveformGenerator<period_precision>::high_hat(oscillator_, phase_generators_[8].phase(), phase_generators_[7 + 9].phase());
+	high_hat += channels_[7].instrument << 7;
+	return high_hat.level();
 }
