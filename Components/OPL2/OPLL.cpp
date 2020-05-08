@@ -18,21 +18,6 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, 
 	// be larger than 4.
 	assert(audio_divider <= 4);
 
-	// Set up proper damping management.
-	for(int c = 0; c < 9; ++c) {
-		envelope_generators_[c].set_should_damp([this, c] {
-			// Propagate attack mode to the modulator, and reset both phases.
-			envelope_generators_[c + 9].set_key_on(true);
-			phase_generators_[c + 0].reset();
-			phase_generators_[c + 9].reset();
-		});
-	}
-
-	// Set default instrument.
-	for(int c = 0; c < 9; ++c) {
-		install_instrument(c);
-	}
-
 	// Setup the rhythm envelope generators.
 
 	// Treat the bass exactly as if it were a melodic channel.
@@ -59,9 +44,21 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, 
 
 	// Return to ordinary default mode.
 	rhythm_mode_enabled_ = false;
-	install_instrument(6);
-	install_instrument(7);
-	install_instrument(8);
+
+	// Set up proper damping management.
+	for(int c = 0; c < 9; ++c) {
+		envelope_generators_[c].set_should_damp([this, c] {
+			// Propagate attack mode to the modulator, and reset both phases.
+			envelope_generators_[c + 9].set_key_on(true);
+			phase_generators_[c + 0].reset();
+			phase_generators_[c + 9].reset();
+		});
+	}
+
+	// Set default instrument.
+	for(int c = 0; c < 9; ++c) {
+		install_instrument(c);
+	}
 }
 
 // MARK: - Machine-facing programmatic input.
