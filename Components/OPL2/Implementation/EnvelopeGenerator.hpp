@@ -56,7 +56,7 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 					update_attack(oscillator, attack_rate_ + key_scaling_rate);
 
 					// Two possible terminating conditions: (i) the attack rate is 15; (ii) full volume has been reached.
-					if((attack_rate_ + key_scaling_rate) > 60 || attenuation_ <= 0) {
+					if(attenuation_ <= 0) {
 						attenuation_ = 0;
 						phase_ = Phase::Decay;
 					}
@@ -213,20 +213,28 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 		};
 
 		void update_attack(const LowFrequencyOscillator &oscillator, int rate) {
-			// Rules:
-			//
-			// An attack rate of '13' has 32 samples in the attack phase; a rate of '12' has the same 32 steps, but spread out over 64 samples, etc.
-			// An attack rate of '14' uses a divide by four instead of two.
-			// 15 is instantaneous.
-
-			if(rate >= 56) {
-				attenuation_ -= (attenuation_ >> 2) - 1;
-			} else {
-				const int sample_length = 1 << (14 - (rate >> 2));	// TODO: don't throw away KSR bits.
-				if(!(oscillator.counter & (sample_length - 1))) {
-					attenuation_ -= (attenuation_ >> 3) - 1;
-				}
+			// Special case: no attack.
+			if(rate < 4) {
+				return;
 			}
+
+			// Special case: instant attack.
+			if(rate >= 60) {
+				attenuation_ = 0;
+				return;
+			}
+
+			// Work out the number of cycles between each adjustment tick, and stop now
+			// if not at the next adjustment boundary.
+			const int shift_size = 13 - (std::min(rate, 52) >> 2);
+			if(oscillator.counter & ((1 << shift_size) - 1)) {
+				return;
+			}
+
+			// Apply dithered adjustment.
+			const int rate_shift = (rate > 55);
+			const int step = dithering_patterns[rate & 3][(oscillator.counter >> shift_size) & 7];
+			attenuation_ -= ((attenuation_ >> (3 - rate_shift)) + 1) * step;
 		}
 
 		void update_decay(const LowFrequencyOscillator &oscillator, int rate) {
