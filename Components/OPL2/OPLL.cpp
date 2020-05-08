@@ -52,10 +52,10 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, 
 
 	rhythm_envelope_generators_[BassCarrier] = envelope_generators_[6];
 	rhythm_envelope_generators_[BassModulator] = envelope_generators_[6 + 9];
-	rhythm_envelope_generators_[HighHat] = envelope_generators_[7];
+	rhythm_envelope_generators_[HighHat] = envelope_generators_[7 + 9];
 	rhythm_envelope_generators_[Cymbal] = envelope_generators_[8];
 	rhythm_envelope_generators_[TomTom] = envelope_generators_[8 + 9];
-	rhythm_envelope_generators_[Snare] = envelope_generators_[7 + 9];
+	rhythm_envelope_generators_[Snare] = envelope_generators_[7];
 
 	// Return to ordinary default mode.
 	rhythm_mode_enabled_ = false;
@@ -395,7 +395,8 @@ int OPLL::bass_drum() {
 int OPLL::tom_tom() {
 	// Use modulator 8 and the 'instrument' selection for channel 8 as an attenuation.
 	auto tom_tom = WaveformGenerator<period_precision>::wave(Waveform::Sine, phase_generators_[8 + 9].phase());
-	tom_tom += rhythm_envelope_generators_[RhythmIndices::TomTom].attenuation() + (channels_[8].instrument << 7);
+	tom_tom += rhythm_envelope_generators_[RhythmIndices::TomTom].attenuation();
+	tom_tom += channels_[8].instrument << 7;
 	return tom_tom.level();
 }
 
@@ -416,7 +417,7 @@ int OPLL::cymbal() {
 }
 
 int OPLL::high_hat() {
-	// Use the 'instrument' selection for channel 7 as an attenuation.
+	// Use modulator 7, carrier 8 a and the 'instrument' selection for channel 7 as an attenuation.
 	LogSign high_hat = WaveformGenerator<period_precision>::high_hat(oscillator_, phase_generators_[8].phase(), phase_generators_[7 + 9].phase());
 	high_hat += rhythm_envelope_generators_[RhythmIndices::HighHat].attenuation();
 	high_hat += channels_[7].instrument << 7;
