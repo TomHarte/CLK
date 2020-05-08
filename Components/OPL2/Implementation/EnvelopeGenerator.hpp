@@ -29,6 +29,8 @@ namespace OPL {
 	This code considers application of tremolo to be a function of the envelope generator;
 	this is largely for logical conformity with the phase generator that necessarily has to
 	apply vibrato.
+
+	TODO: use envelope_precision.
 */
 template <int envelope_precision, int period_precision> class EnvelopeGenerator {
 	public:
@@ -43,7 +45,7 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 			const int key_scaling_rate = key_scale_rate_ >> key_scale_rate_shift_;
 			switch(phase_) {
 				case Phase::Damp:
-					update_decay(oscillator, 12);
+					update_decay(oscillator, 12 << 2);
 					if(attenuation_ == 511) {
 						(*will_attack_)();
 						phase_ = Phase::Attack;
@@ -203,6 +205,13 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 		int sustain_level_ = 0;
 		bool use_sustain_level_ = false;
 
+		static constexpr int dithering_patterns[4][8] = {
+			{0, 1, 0, 1, 0, 1, 0, 1},
+			{0, 1, 0, 1, 1, 1, 0, 1},
+			{0, 1, 1, 1, 0, 1, 1, 1},
+			{0, 1, 1, 1, 1, 1, 1, 1},
+		};
+
 		void update_attack(const LowFrequencyOscillator &oscillator, int rate) {
 			// Rules:
 			//
@@ -221,35 +230,22 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 		}
 
 		void update_decay(const LowFrequencyOscillator &oscillator, int rate) {
-			// Rules:
-			//
-			// (relative to a 511 scale)
-			//
-			// A rate of 0 is no decay at all.
-			// A rate of 1 means increase 4 per cycle.
-			// A rate of 2 means increase 2 per cycle.
-			// A rate of 3 means increase 1 per cycle.
-			// A rate of 4 means increase 1 every other cycle.
-			// A rate of 5 means increase once every fourth cycle.
-			// etc.
-			// eighth, sixteenth, 32nd, 64th, 128th, 256th, 512th, 1024th, 2048th, 4096th, 8192th
-
-			if(rate) {
-				// TODO: don't throw away low two bits of the rate.
-				switch(rate >> 2) {
-					case 1: attenuation_ += 32;	break;
-					case 2: attenuation_ += 16;	break;
-					default: {
-						const int sample_length = 1 << ((rate >> 2) - 4);
-						if(!(oscillator.counter & (sample_length - 1))) {
-							attenuation_ += 8;
-						}
-					} break;
-				}
-
-				// Clamp to the proper range.
-				attenuation_ = std::min(attenuation_, 511);
+			// Special case: no decay.
+			if(rate < 4) {
+				return;
 			}
+
+			// Work out the number of cycles between each adjustment tick, and stop now
+			// if not at the next adjustment boundary.
+			const int shift_size = 13 - (std::min(rate, 52) >> 2);
+			if(oscillator.counter & ((1 << shift_size) - 1)) {
+				return;
+			}
+
+			// Apply dithered adjustment and clamp.
+			const int rate_shift = 1 + (rate > 59) + (rate > 55);
+			attenuation_ += dithering_patterns[rate & 3][(oscillator.counter >> shift_size) & 7] * (4 << rate_shift);
+			attenuation_ = std::min(attenuation_, 511);
 		}
 };
 
