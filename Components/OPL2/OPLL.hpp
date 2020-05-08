@@ -52,7 +52,7 @@ class OPLL: public OPLBase<OPLL> {
 		int high_hat();
 
 		static constexpr int period_precision = 9;
-		static constexpr int envelope_precision = 9;
+		static constexpr int envelope_precision = 7;
 
 		// Standard melodic phase and envelope generators;
 		//
