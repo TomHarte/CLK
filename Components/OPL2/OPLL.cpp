@@ -368,21 +368,23 @@ void OPLL::update_all_channels() {
 #undef VOLUME
 
 	// TODO: batch updates of the LFSR.
-	// TODO: modulator feedback.
 }
 
 // TODO: verify attenuation scales pervasively below.
 
 int OPLL::melodic_output(int channel) {
+	// The modulator always updates after the carrier, oddly enough. So calculate actual output first, based on the modulator's last value.
+	auto carrier = WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), channels_[channel].modulator_output);
+	carrier += envelope_generators_[channel].attenuation() + (channels_[channel].attenuation << 7) + key_level_scalers_[channel].attenuation();
+
+	// Get the modulator's new value.
 	auto modulation = WaveformGenerator<period_precision>::wave(channels_[channel].modulator_waveform, phase_generators_[channel + 9].phase());
 	modulation += envelope_generators_[channel + 9].attenuation() + (channels_[channel].modulator_attenuation << 5) + key_level_scalers_[channel + 9].attenuation();
 
 	// Apply feedback, if any.
 	phase_generators_[channel + 9].apply_feedback(channels_[channel].modulator_output, modulation, channels_[channel].modulator_feedback);
-	channels_[channel].modulator_output = modulation;	
+	channels_[channel].modulator_output = modulation;
 
-	auto carrier = WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), modulation);
-	carrier += envelope_generators_[channel].attenuation() + (channels_[channel].attenuation << 7) + key_level_scalers_[channel].attenuation();
 	return carrier.level();
 }
 
