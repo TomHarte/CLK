@@ -377,6 +377,10 @@ int OPLL::melodic_output(int channel) {
 	auto modulation = WaveformGenerator<period_precision>::wave(channels_[channel].modulator_waveform, phase_generators_[channel + 9].phase());
 	modulation += envelope_generators_[channel + 9].attenuation() + (channels_[channel].modulator_attenuation << 5) + key_level_scalers_[channel + 9].attenuation();
 
+	// Apply feedback, if any.
+	phase_generators_[channel + 9].apply_feedback(channels_[channel].modulator_output, modulation, channels_[channel].modulator_feedback);
+	channels_[channel].modulator_output = modulation;	
+
 	auto carrier = WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), modulation);
 	carrier += envelope_generators_[channel].attenuation() + (channels_[channel].attenuation << 7) + key_level_scalers_[channel].attenuation();
 	return carrier.level();

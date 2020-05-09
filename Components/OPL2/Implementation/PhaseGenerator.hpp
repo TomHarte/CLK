@@ -59,6 +59,15 @@ template <int precision> class PhaseGenerator {
 		}
 
 		/*!
+			Applies feedback based on two historic samples of a total output level,
+			plus the degree of feedback to apply
+		*/
+		void apply_feedback(LogSign first, LogSign second, int level) {
+			constexpr int masks[] = {0, ~0, ~0, ~0, ~0, ~0, ~0, ~0};
+			phase_ += ((second.level(precision) + first.level(precision)) >> (8 - level)) & masks[level];
+		}
+
+		/*!
 			Sets the multiple for this phase generator, in the same terms as an OPL programmer,
 			i.e. a 4-bit number that is used as a lookup into the internal multiples table.
 		*/

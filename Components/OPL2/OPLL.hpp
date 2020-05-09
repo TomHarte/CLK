@@ -91,6 +91,7 @@ class OPLL: public OPLBase<OPLL> {
 			int carrier_key_rate_scale_multiplier = 0;
 			int modulator_key_rate_scale_multiplier = 0;
 
+			LogSign modulator_output;
 			int modulator_feedback = 0;
 
 			bool use_sustain = false;
