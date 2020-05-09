@@ -12,7 +12,7 @@
 
 #include "../../Components/9918/9918.hpp"
 #include "../../Components/SN76489/SN76489.hpp"
-#include "../../Components/OPL2/OPLL.hpp"
+#include "../../Components/OPx/OPLL.hpp"
 
 #include "../MachineTypes.hpp"
 #include "../../Configurable/Configurable.hpp"
