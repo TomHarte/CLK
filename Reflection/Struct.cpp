@@ -122,7 +122,7 @@ template <typename Type> bool Reflection::get(const Struct &target, const std::s
 }
 
 template <typename Type> Type Reflection::get(const Struct &target, const std::string &name) {
-	Type value;
+	Type value{};
 	get(target, name, value);
 	return value;
 }
@@ -144,9 +144,7 @@ std::string Reflection::Struct::description() const {
 
 		// Output Bools as yes/no.
 		if(*type == typeid(bool)) {
-			bool value;
-			::Reflection::get(*this, key, value);
-			stream << (value ? "true" : "false");
+			stream << ::Reflection::get<bool>(*this, key);
 			continue;
 		}
 

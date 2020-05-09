@@ -15,7 +15,7 @@ using namespace Konami;
 SCC::SCC(Concurrency::DeferringAsyncTaskQueue &task_queue) :
 	task_queue_(task_queue) {}
 
-bool SCC::is_zero_level() {
+bool SCC::is_zero_level() const {
 	return !(channel_enable_ & 0x1f);
 }
 

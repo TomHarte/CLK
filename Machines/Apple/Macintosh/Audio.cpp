@@ -55,7 +55,7 @@ void Audio::set_enabled(bool on) {
 
 // MARK: - Output generation
 
-bool Audio::is_zero_level() {
+bool Audio::is_zero_level() const {
 	return !volume_ || !enabled_mask_;
 }
 

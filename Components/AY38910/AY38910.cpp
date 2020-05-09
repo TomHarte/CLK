@@ -234,7 +234,7 @@ template <bool is_stereo> void AY38910<is_stereo>::evaluate_output_volume() {
 	}
 }
 
-template <bool is_stereo> bool AY38910<is_stereo>::is_zero_level() {
+template <bool is_stereo> bool AY38910<is_stereo>::is_zero_level() const {
 	// Confirm that the AY is trivially at the zero level if all three volume controls are set to fixed zero.
 	return output_registers_[0x8] == 0 && output_registers_[0x9] == 0 && output_registers_[0xa] == 0;
 }

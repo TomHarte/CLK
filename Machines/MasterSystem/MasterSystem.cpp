@@ -12,6 +12,7 @@
 
 #include "../../Components/9918/9918.hpp"
 #include "../../Components/SN76489/SN76489.hpp"
+#include "../../Components/OPx/OPLL.hpp"
 
 #include "../MachineTypes.hpp"
 #include "../../Configurable/Configurable.hpp"
@@ -20,6 +21,7 @@
 #include "../../ClockReceiver/JustInTime.hpp"
 
 #include "../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
+#include "../../Outputs/Speaker/Implementation/CompoundSource.hpp"
 
 #define LOG_PREFIX "[SMS] "
 #include "../../Outputs/Log.hpp"
@@ -30,7 +32,7 @@
 #include <iostream>
 
 namespace {
-constexpr int sn76489_divider = 2;
+constexpr int audio_divider = 1;
 }
 
 namespace Sega {
@@ -96,12 +98,14 @@ class ConcreteMachine:
 			sn76489_(
 				(target.model == Target::Model::SG1000) ? TI::SN76489::Personality::SN76489 : TI::SN76489::Personality::SMS,
 				audio_queue_,
-				sn76489_divider),
-			speaker_(sn76489_),
+				audio_divider),
+			opll_(audio_queue_, audio_divider),
+			mixer_(sn76489_, opll_),
+			speaker_(mixer_),
 			keyboard_({Inputs::Keyboard::Key::Enter, Inputs::Keyboard::Key::Escape}, {}) {
 			// Pick the clock rate based on the region.
 			const double clock_rate = target.region == Target::Region::Europe ? 3546893.0 : 3579540.0;
-			speaker_.set_input_rate(static_cast<float>(clock_rate / sn76489_divider));
+			speaker_.set_input_rate(static_cast<float>(clock_rate / audio_divider));
 			set_clock_rate(clock_rate);
 
 			// Instantiate the joysticks.
@@ -113,7 +117,9 @@ class ConcreteMachine:
 			map(write_pointers_, nullptr, 0x10000, 0);
 
 			// Take a copy of the cartridge and place it into memory.
-			cartridge_ = target.media.cartridges[0]->get_segments()[0].data;
+			if(!target.media.cartridges.empty()) {
+				cartridge_ = target.media.cartridges[0]->get_segments()[0].data;
+			}
 			if(cartridge_.size() < 48*1024) {
 				std::size_t new_space = 48*1024 - cartridge_.size();
 				cartridge_.resize(48*1024);
@@ -134,7 +140,15 @@ class ConcreteMachine:
 				//
 				//	0072ed54 = US/European BIOS 1.3
 				//	48d44a13 = Japanese BIOS 2.1
-				const auto roms = rom_fetcher({ {"MasterSystem", "the Master System BIOS", "bios.sms", 8*1024, { 0x0072ed54, 0x48d44a13 } } });
+				const bool is_japanese = target.region == Target::Region::Japan;
+				const auto roms = rom_fetcher(
+					{ {"MasterSystem",
+						is_japanese ? "the Japanese Master System BIOS" : "the European/US Master System BIOS",
+						is_japanese ? "japanese-bios.sms" : "bios.sms",
+						8*1024,
+						{ is_japanese ? 0x48d44a13u : 0x0072ed54u }
+					} }
+				);
 				if(!roms[0]) {
 					// No BIOS found; attempt to boot as though it has already disabled itself.
 					memory_control_ |= 0x08;
@@ -155,8 +169,12 @@ class ConcreteMachine:
 				map(write_pointers_, ram_, 1024, 0xc000, 0x10000);
 			}
 
-			// Apple a relatively low low-pass filter. More guidance needed here.
-			speaker_.set_high_frequency_cutoff(8000);
+			// Apply a relatively low low-pass filter. More guidance needed here.
+			// TODO: this is disabled for now since it isn't applicable for the FM chip, I think.
+//			speaker_.set_high_frequency_cutoff(8000);
+
+			// Set default mixer levels: FM off, SN full-throttle.
+			set_mixer_levels(0);
 
 			keyboard_.set_delegate(this);
 		}
@@ -250,17 +268,29 @@ class ConcreteMachine:
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
 							case 0xc0: {
-								Joystick *const joypad1 = static_cast<Joystick *>(joysticks_[0].get());
-								Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
-								*cycle.value = static_cast<uint8_t>(joypad1->get_state() | (joypad2->get_state() << 6));
+								if(memory_control_ & 0x4) {
+									if(has_fm_audio_ && (address & 0xff) == 0xf2) {
+										*cycle.value = opll_detection_word_;
+									} else {
+										*cycle.value = 0xff;
+									}
+								} else {
+									Joystick *const joypad1 = static_cast<Joystick *>(joysticks_[0].get());
+									Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
+									*cycle.value = static_cast<uint8_t>(joypad1->get_state() | (joypad2->get_state() << 6));
+								}
 							} break;
 							case 0xc1: {
-								Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
+								if(memory_control_ & 0x4) {
+									*cycle.value = 0xff;
+								} else {
+									Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
 
-								*cycle.value =
-									(joypad2->get_state() >> 2) |
-									0x30 |
-									get_th_values();
+									*cycle.value =
+										(joypad2->get_state() >> 2) |
+										0x30 |
+										get_th_values();
+								}
 							} break;
 
 							default:
@@ -271,14 +301,15 @@ class ConcreteMachine:
 
 					case CPU::Z80::PartialMachineCycle::Output:
 						switch(address & 0xc1) {
-							case 0x00:
+							case 0x00:		// i.e. even ports less than 0x40.
 								if(is_master_system(model_)) {
 									// TODO: Obey the RAM enable.
+									printf("Memory control: %02x\n", memory_control_);
 									memory_control_ = *cycle.value;
 									page_cartridge();
 								}
 							break;
-							case 0x01: {
+							case 0x01: {	// i.e. odd ports less than 0x40.
 								// A programmer can force the TH lines to 0 here,
 								// causing a phoney lightgun latch, so check for any
 								// discontinuity in TH inputs.
@@ -291,20 +322,28 @@ class ConcreteMachine:
 									vdp_->latch_horizontal_counter();
 								}
 							} break;
-							case 0x40: case 0x41:
+							case 0x40: case 0x41:	// i.e. ports 0x40–0x7f.
 								update_audio();
 								sn76489_.write(*cycle.value);
 							break;
-							case 0x80: case 0x81:
+							case 0x80: case 0x81:	// i.e. ports 0x80–0xbf.
 								vdp_->write(address, *cycle.value);
 								z80_.set_interrupt_line(vdp_->get_interrupt_line());
 								time_until_interrupt_ = vdp_->get_time_until_interrupt();
 							break;
-							case 0xc0:
-								LOG("TODO: [output] I/O port A/N; " << int(*cycle.value));
-							break;
-							case 0xc1:
-								LOG("TODO: [output] I/O port B/misc");
+							case 0xc1: case 0xc0:	// i.e. ports 0xc0–0xff.
+								if(has_fm_audio_) {
+									switch(address & 0xff) {
+										case 0xf0: case 0xf1:
+											update_audio();
+											opll_.write(address, *cycle.value);
+										break;
+										case 0xf2:
+											opll_detection_word_ = *cycle.value;
+											set_mixer_levels(opll_detection_word_);
+										break;
+									}
+								}
 							break;
 
 							default:
@@ -312,6 +351,19 @@ class ConcreteMachine:
 							break;
 						}
 					break;
+
+/*
+	TODO: implementation of the below is incomplete.
+	Re: io_port_control_
+
+	Set the TH pins for ports A and B as outputs. Set their output level
+	to any value desired by writing to bits 7 and 5. Read the state of both
+	TH pins back through bits 7 and 6 of port $DD. If the data returned is
+	the same as the data written, it's an export machine, otherwise it's
+	a domestic one.
+
+	— Charles MacDonald
+ */
 
 					case CPU::Z80::PartialMachineCycle::Interrupt:
 						*cycle.value = 0xff;
@@ -405,7 +457,32 @@ class ConcreteMachine:
 		}
 
 		inline void update_audio() {
-			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(sn76489_divider)));
+			speaker_.run_for(audio_queue_, time_since_sn76489_update_.divide_cycles(Cycles(audio_divider)));
+		}
+
+		void set_mixer_levels(uint8_t mode) {
+			// This is as per the audio control register;
+			// see https://www.smspower.org/Development/AudioControlPort
+			update_audio();
+			audio_queue_.defer([this, mode] {
+				switch(mode & 3) {
+					case 0:	// SN76489 only; the default.
+						mixer_.set_relative_volumes({1.0f, 0.0f});
+					break;
+
+					case 1: // FM only.
+						mixer_.set_relative_volumes({0.0f, 1.0f});
+					break;
+
+					case 2: // No audio.
+						mixer_.set_relative_volumes({0.0f, 0.0f});
+					break;
+
+					case 3: // Both FM and SN76489.
+						mixer_.set_relative_volumes({0.5f, 0.5f});
+					break;
+				}
+			});
 		}
 
 		using Target = Analyser::Static::Sega::Target;
@@ -417,7 +494,10 @@ class ConcreteMachine:
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
 		TI::SN76489 sn76489_;
-		Outputs::Speaker::LowpassSpeaker<TI::SN76489> speaker_;
+		Yamaha::OPL::OPLL opll_;
+		Outputs::Speaker::CompoundSource<decltype(sn76489_), decltype(opll_)> mixer_;
+		Outputs::Speaker::LowpassSpeaker<decltype(mixer_)> speaker_;
+		uint8_t opll_detection_word_ = 0xff;
 
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 		Inputs::Keyboard keyboard_;
@@ -432,6 +512,9 @@ class ConcreteMachine:
 		std::vector<uint8_t> cartridge_;
 
 		uint8_t io_port_control_ = 0x0f;
+
+		// This is a static constexpr for now; I may use it in the future.
+		static constexpr bool has_fm_audio_ = true;
 
 		// The memory map has a 1kb granularity; this is determined by the SG1000's 1kb of RAM.
 		const uint8_t *read_pointers_[64];
