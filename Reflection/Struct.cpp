@@ -122,7 +122,7 @@ template <typename Type> bool Reflection::get(const Struct &target, const std::s
 }
 
 template <typename Type> Type Reflection::get(const Struct &target, const std::string &name) {
-	Type value;
+	Type value{};
 	get(target, name, value);
 	return value;
 }
