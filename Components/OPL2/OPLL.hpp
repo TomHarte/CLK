@@ -117,7 +117,7 @@ class OPLL: public OPLBase<OPLL> {
 		void set_use_sustain(int channel);
 
 		/// @returns The 8-byte definition of instrument @c instrument.
-		const uint8_t *instrument_definition(int instrument);
+		const uint8_t *instrument_definition(int instrument, int channel);
 };
 
 }

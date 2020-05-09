@@ -175,7 +175,12 @@ void OPLL::set_channel_period(int channel) {
 	key_level_scalers_[channel + 9].set_period(channels_[channel].period, channels_[channel].octave);
 }
 
-const uint8_t *OPLL::instrument_definition(int instrument) {
+const uint8_t *OPLL::instrument_definition(int instrument, int channel) {
+	// Divert to the appropriate rhythm instrument if in rhythm mode.
+	if(channel >= 6 && rhythm_mode_enabled_) {
+		return &percussion_patch_set[(channel - 6) * 8];
+	}
+
 	// Instrument 0 is the custom instrument.
 	if(!instrument) return custom_instrument_;
 
@@ -193,9 +198,7 @@ void OPLL::install_instrument(int channel) {
 	auto &modulator_phase = phase_generators_[channel + 9];
 	auto &modulator_scaler = key_level_scalers_[channel + 9];
 
-	const uint8_t *const instrument = ((channel < 6) || !rhythm_mode_enabled_) ?
-		instrument_definition(channels_[channel].instrument) :
-		&percussion_patch_set[(channel - 6) * 8];
+	const uint8_t *const instrument = instrument_definition(channels_[channel].instrument, channel);
 
 	// Bytes 0 (modulator) and 1 (carrier):
 	//
@@ -256,9 +259,9 @@ void OPLL::install_instrument(int channel) {
 }
 
 void OPLL::set_use_sustain(int channel) {
-	const uint8_t *const instrument = instrument_definition(channels_[channel].instrument);
-	envelope_generators_[channel + 0].set_sustain_level((instrument[1] & 0x20) || channels_[channel].use_sustain);
-	envelope_generators_[channel + 9].set_sustain_level((instrument[0] & 0x20) || channels_[channel].use_sustain);
+	const uint8_t *const instrument = instrument_definition(channels_[channel].instrument, channel);
+	envelope_generators_[channel + 0].set_use_sustain_level((instrument[1] & 0x20) || channels_[channel].use_sustain);
+	envelope_generators_[channel + 9].set_use_sustain_level((instrument[0] & 0x20) || channels_[channel].use_sustain);
 }
 
 // MARK: - Output generation.
