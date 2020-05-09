@@ -134,6 +134,8 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 			const auto delegate = delegate_.load();
 			if(!delegate) return;
 
+			const int scale = get_scale();
+
 			std::size_t cycles_remaining = size_t(cycles.as_integral());
 			if(!cycles_remaining) return;
 
@@ -156,6 +158,8 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 						sample_source_.get_samples(cycles_to_read, &output_buffer_[output_buffer_pointer_ ]);
 						output_buffer_pointer_ += cycles_to_read * (SampleSource::get_is_stereo() ? 2 : 1);
 
+						// TODO: apply scale.
+
 						// Announce to delegate if full.
 						if(output_buffer_pointer_ == output_buffer_.size()) {
 							output_buffer_pointer_ = 0;
@@ -174,7 +178,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 						input_buffer_depth_ += cycles_to_read * (SampleSource::get_is_stereo() ? 2 : 1);
 
 						if(input_buffer_depth_ == input_buffer_.size()) {
-							resample_input_buffer();
+							resample_input_buffer(scale);
 						}
 
 						cycles_remaining -= cycles_to_read;
@@ -246,6 +250,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 			}
 
 			// Do something sensible with any dangling input, if necessary.
+			const int scale = get_scale();
 			switch(conversion_) {
 				// Neither direct copying nor resampling larger currently use any temporary input.
 				// Although in the latter case that's just because it's unimplemented. But, regardless,
@@ -259,7 +264,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 					const size_t required_buffer_size = size_t(number_of_taps) * (SampleSource::get_is_stereo() ? 2 : 1);
 					if(input_buffer_.size() != required_buffer_size) {
 						if(input_buffer_depth_ >= required_buffer_size) {
-							resample_input_buffer();
+							resample_input_buffer(scale);
 							input_buffer_depth_ %= required_buffer_size;
 						}
 						input_buffer_.resize(required_buffer_size);
@@ -268,7 +273,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 			}
 		}
 
-		inline void resample_input_buffer() {
+		inline void resample_input_buffer(int scale) {
 			if constexpr (SampleSource::get_is_stereo()) {
 				output_buffer_[output_buffer_pointer_ + 0] = filter_->apply(input_buffer_.data(), 2);
 				output_buffer_[output_buffer_pointer_ + 1] = filter_->apply(input_buffer_.data() + 1, 2);
@@ -276,6 +281,18 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 			} else {
 				output_buffer_[output_buffer_pointer_] = filter_->apply(input_buffer_.data());
 				output_buffer_pointer_++;
+			}
+
+			// Apply scale, if supplied, clamping appropriately.
+			if(scale != 65536) {
+				#define SCALE(x) x = int16_t(std::max(std::min((int(x) * scale) >> 16, 32767), -32768))
+				if constexpr (SampleSource::get_is_stereo()) {
+					SCALE(output_buffer_[output_buffer_pointer_ - 2]);
+					SCALE(output_buffer_[output_buffer_pointer_ - 1]);
+				} else {
+					SCALE(output_buffer_[output_buffer_pointer_ - 1]);
+				}
+				#undef SCALE
 			}
 
 			// Announce to delegate if full.
@@ -301,6 +318,10 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 				input_buffer_depth_ = 0;
 			}
 		}
+
+		int get_scale() {
+			return int(65536.0 / sample_source_.get_average_output_peak());
+		};
 };
 
 }

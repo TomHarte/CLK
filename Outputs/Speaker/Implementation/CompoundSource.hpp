@@ -13,6 +13,7 @@
 
 #include <cassert>
 #include <cstring>
+#include <atomic>
 
 namespace Outputs {
 namespace Speaker {
@@ -26,7 +27,7 @@ template <typename... T> class CompoundSource:
 	public:
 		CompoundSource(T &... sources) : source_holder_(sources...) {
 			// Default: give all sources equal volume.
-			const float volume = 1.0f / static_cast<float>(source_holder_.size());
+			const auto volume = 1.0 / double(source_holder_.size());
 			for(std::size_t c = 0; c < source_holder_.size(); ++c) {
 				volumes_.push_back(volume);
 			}
@@ -40,10 +41,12 @@ template <typename... T> class CompoundSource:
 			source_holder_.skip_samples(number_of_samples);
 		}
 
+		/*!
+			Sets the total output volume of this CompoundSource.
+		*/
 		void set_sample_volume_range(int16_t range) {
 			volume_range_ = range;
 			push_volumes();
-			source_holder_.set_scaled_volume_range(range, volumes_.data());
 		}
 
 		/*!
@@ -51,17 +54,30 @@ template <typename... T> class CompoundSource:
 			compound. The caller should ensure that the number of items supplied
 			matches the number of sources and that the values in it sum to 1.0.
 		*/
-		void set_relative_volumes(const std::vector<float> &volumes) {
+		void set_relative_volumes(const std::vector<double> &volumes) {
 			assert(volumes.size() == source_holder_.size());
 			volumes_ = volumes;
 			push_volumes();
+			average_output_peak_ = 1.0 / source_holder_.total_scale(volumes_.data());
 		}
 
+		/*!
+			@returns true if any of the sources owned by this CompoundSource is stereo.
+		*/
 		static constexpr bool get_is_stereo() { return CompoundSourceHolder<T...>::get_is_stereo(); }
+
+		/*!
+			@returns the average output peak given the sources owned by this CompoundSource and the
+				current relative volumes.
+		*/
+		double get_average_output_peak() const {
+			return average_output_peak_;
+		}
 
 	private:
 		void push_volumes() {
-			source_holder_.set_scaled_volume_range(volume_range_, volumes_.data());
+			const double scale = source_holder_.total_scale(volumes_.data());
+			source_holder_.set_scaled_volume_range(volume_range_, volumes_.data(), scale);
 		}
 
 		template <typename... S> class CompoundSourceHolder: public Outputs::Speaker::SampleSource {
@@ -70,14 +86,18 @@ template <typename... T> class CompoundSource:
 					std::memset(target, 0, sizeof(std::int16_t) * number_of_samples);
 				}
 
-				void set_scaled_volume_range(int16_t range, float *volumes) {}
+				void set_scaled_volume_range(int16_t range, double *volumes, double scale) {}
 
-				std::size_t size() {
+				static constexpr std::size_t size() {
 					return 0;
 				}
 
 				static constexpr bool get_is_stereo() {
 					return false;
+				}
+
+				double total_scale(double *) const {
+					return 0.0;
 				}
 		};
 
@@ -125,17 +145,22 @@ template <typename... T> class CompoundSource:
 					next_source_.skip_samples(number_of_samples);
 				}
 
-				void set_scaled_volume_range(int16_t range, float *volumes) {
-					source_.set_sample_volume_range(static_cast<int16_t>(static_cast<float>(range * volumes[0])));
-					next_source_.set_scaled_volume_range(range, &volumes[1]);
+				void set_scaled_volume_range(int16_t range, double *volumes, double scale) {
+					const auto scaled_range = volumes[0] / double(source_.get_average_output_peak()) * double(range) / scale;
+					source_.set_sample_volume_range(int16_t(scaled_range));
+					next_source_.set_scaled_volume_range(range, &volumes[1], scale);
 				}
 
-				std::size_t size() {
-					return 1+next_source_.size();
+				static constexpr std::size_t size() {
+					return 1 + CompoundSourceHolder<R...>::size();
 				}
 
 				static constexpr bool get_is_stereo() {
 					return S::get_is_stereo() || CompoundSourceHolder<R...>::get_is_stereo();
+				}
+
+				double total_scale(double *volumes) const {
+					return (volumes[0] / source_.get_average_output_peak()) + next_source_.total_scale(&volumes[1]);
 				}
 
 			private:
@@ -144,8 +169,9 @@ template <typename... T> class CompoundSource:
 		};
 
 		CompoundSourceHolder<T...> source_holder_;
-		std::vector<float> volumes_;
+		std::vector<double> volumes_;
 		int16_t volume_range_ = 0;
+		std::atomic<double> average_output_peak_;
 };
 
 }

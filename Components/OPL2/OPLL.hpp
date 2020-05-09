@@ -30,6 +30,10 @@ class OPLL: public OPLBase<OPLL> {
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
 
+		// The OPLL is generally 'half' as loud as it's told to be. This won't strictly be true in
+		// rhythm mode, but it's correct for melodic output.
+		double get_average_output_peak() const { return 0.5; }
+
 		/// Reads from the OPL.
 		uint8_t read(uint16_t address);
 

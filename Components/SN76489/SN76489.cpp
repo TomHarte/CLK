@@ -86,7 +86,7 @@ void SN76489::write(uint8_t value) {
 	});
 }
 
-bool SN76489::is_zero_level() {
+bool SN76489::is_zero_level() const {
 	return channels_[0].volume == 0xf && channels_[1].volume == 0xf && channels_[2].volume == 0xf && channels_[3].volume == 0xf;
 }
 

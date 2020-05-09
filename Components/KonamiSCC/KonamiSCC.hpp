@@ -27,7 +27,7 @@ class SCC: public ::Outputs::Speaker::SampleSource {
 		SCC(Concurrency::DeferringAsyncTaskQueue &task_queue);
 
 		/// As per ::SampleSource; provides a broadphase test for silence.
-		bool is_zero_level();
+		bool is_zero_level() const;
 
 		/// As per ::SampleSource; provides audio output.
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);

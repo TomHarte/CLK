@@ -43,7 +43,7 @@ class SampleSource {
 				fill the target with zeroes; @c false if a call might return all zeroes or
 				might not.
 		*/
-		bool is_zero_level() {
+		bool is_zero_level() const {
 			return false;
 		}
 
@@ -51,13 +51,20 @@ class SampleSource {
 			Sets the proper output range for this sample source; it should write values
 			between 0 and volume.
 		*/
-		void set_sample_volume_range(std::int16_t volume) {
-		}
+		void set_sample_volume_range(std::int16_t volume) {}
 
 		/*!
 			Indicates whether this component will write stereo samples.
 		*/
 		static constexpr bool get_is_stereo() { return false; }
+
+		/*!
+			Permits a sample source to declare that, averaged over time, it will use only
+			a certain proportion of the allocated volume range. This commonly happens
+			in sample sources that use a time-multiplexed sound output — for example, if
+			one were to output only every other sample then it would return 0.5.
+		*/
+		double get_average_output_peak() const { return 1.0; }
 };
 
 }
