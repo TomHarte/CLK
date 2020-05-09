@@ -781,12 +781,6 @@
 		4BBFE83D21015D9C00BF1C40 /* CSJoystickManager.m in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFE83C21015D9C00BF1C40 /* CSJoystickManager.m */; };
 		4BBFFEE61F7B27F1005F3FEB /* TrackSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */; };
 		4BC0CB282446BC7B00A79DBB /* OPLTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BC0CB272446BC7B00A79DBB /* OPLTests.mm */; };
-		4BC0CB322447EC7D00A79DBB /* Operator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC0CB302447EC7C00A79DBB /* Operator.cpp */; };
-		4BC0CB332447EC7D00A79DBB /* Operator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC0CB302447EC7C00A79DBB /* Operator.cpp */; };
-		4BC0CB342447EC7D00A79DBB /* Operator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC0CB302447EC7C00A79DBB /* Operator.cpp */; };
-		4BC0CB372447EC9A00A79DBB /* Channel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC0CB352447EC9A00A79DBB /* Channel.cpp */; };
-		4BC0CB382447EC9A00A79DBB /* Channel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC0CB352447EC9A00A79DBB /* Channel.cpp */; };
-		4BC0CB392447EC9A00A79DBB /* Channel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC0CB352447EC9A00A79DBB /* Channel.cpp */; };
 		4BC131702346DE5000E4FF3D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC1316F2346DE5000E4FF3D /* StaticAnalyser.cpp */; };
 		4BC131712346DE5000E4FF3D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC1316F2346DE5000E4FF3D /* StaticAnalyser.cpp */; };
 		4BC131762346DE9100E4FF3D /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC131752346DE9100E4FF3D /* StaticAnalyser.cpp */; };
@@ -1666,10 +1660,6 @@
 		4BBFE83E21015DAE00BF1C40 /* CSJoystickManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CSJoystickManager.h; sourceTree = "<group>"; };
 		4BBFFEE51F7B27F1005F3FEB /* TrackSerialiser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TrackSerialiser.cpp; sourceTree = "<group>"; };
 		4BC0CB272446BC7B00A79DBB /* OPLTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = OPLTests.mm; sourceTree = "<group>"; };
-		4BC0CB302447EC7C00A79DBB /* Operator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Operator.cpp; sourceTree = "<group>"; };
-		4BC0CB312447EC7C00A79DBB /* Operator.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Operator.hpp; sourceTree = "<group>"; };
-		4BC0CB352447EC9A00A79DBB /* Channel.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Channel.cpp; sourceTree = "<group>"; };
-		4BC0CB362447EC9A00A79DBB /* Channel.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Channel.hpp; sourceTree = "<group>"; };
 		4BC0CB3A2447ECAE00A79DBB /* Tables.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Tables.hpp; sourceTree = "<group>"; };
 		4BC1316D2346DE5000E4FF3D /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
 		4BC1316E2346DE5000E4FF3D /* Target.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Target.hpp; sourceTree = "<group>"; };
@@ -1684,8 +1674,6 @@
 		4BC57CD424342E0600FBC404 /* MachineTypes.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MachineTypes.hpp; sourceTree = "<group>"; };
 		4BC57CD72436A61300FBC404 /* State.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = State.hpp; sourceTree = "<group>"; };
 		4BC57CD82436A62900FBC404 /* State.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = State.cpp; sourceTree = "<group>"; };
-		4BC57CE02436BFE000FBC404 /* OPL2.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = OPL2.cpp; sourceTree = "<group>"; };
-		4BC57CE12436BFE000FBC404 /* OPL2.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = OPL2.hpp; sourceTree = "<group>"; };
 		4BC5C3DF22C994CC00795658 /* 68000MoveTests.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = 68000MoveTests.mm; sourceTree = "<group>"; };
 		4BC5FC2F20CDDDEE00410AA0 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = "Clock Signal/Base.lproj/AppleIIOptions.xib"; sourceTree = SOURCE_ROOT; };
 		4BC751B11D157E61006C31D9 /* 6522Tests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = 6522Tests.swift; sourceTree = "<group>"; };
@@ -3529,10 +3517,6 @@
 		4BC0CB2F2447EC7C00A79DBB /* Implementation */ = {
 			isa = PBXGroup;
 			children = (
-				4BC0CB302447EC7C00A79DBB /* Operator.cpp */,
-				4BC0CB312447EC7C00A79DBB /* Operator.hpp */,
-				4BC0CB352447EC9A00A79DBB /* Channel.cpp */,
-				4BC0CB362447EC9A00A79DBB /* Channel.hpp */,
 				4BC0CB3A2447ECAE00A79DBB /* Tables.hpp */,
 				4B61908F24526E640013F202 /* LowFrequencyOscillator.hpp */,
 				4B619092245BC1000013F202 /* PhaseGenerator.hpp */,
@@ -3576,8 +3560,6 @@
 			isa = PBXGroup;
 			children = (
 				4BC0CB2F2447EC7C00A79DBB /* Implementation */,
-				4BC57CE02436BFE000FBC404 /* OPL2.cpp */,
-				4BC57CE12436BFE000FBC404 /* OPL2.hpp */,
 				4B619096245FBEF80013F202 /* OPLBase.hpp */,
 				4B619097245FBF7B0013F202 /* OPLL.cpp */,
 				4B619098245FBF7B0013F202 /* OPLL.hpp */,
@@ -4387,7 +4369,6 @@
 				4B894529201967B4007DE474 /* Disk.cpp in Sources */,
 				4B055AEA1FAE9B990060FFFF /* 6502Storage.cpp in Sources */,
 				4B055AA71FAE85EF0060FFFF /* SegmentParser.cpp in Sources */,
-				4BC0CB392447EC9A00A79DBB /* Channel.cpp in Sources */,
 				4BB0A65E204500A900FB3688 /* StaticAnalyser.cpp in Sources */,
 				4B055AC11FAE98DC0060FFFF /* MachineForTarget.cpp in Sources */,
 				4B65086122F4CFE0009C1100 /* Keyboard.cpp in Sources */,
@@ -4490,7 +4471,6 @@
 				4B0ACC2923775819008902D0 /* DMAController.cpp in Sources */,
 				4B055A951FAE85BB0060FFFF /* BitReverse.cpp in Sources */,
 				4B055ACE1FAE9B030060FFFF /* Plus3.cpp in Sources */,
-				4BC0CB342447EC7D00A79DBB /* Operator.cpp in Sources */,
 				4B055A8D1FAE85920060FFFF /* AsyncTaskQueue.cpp in Sources */,
 				4BAD13441FF709C700FD114A /* MSX.cpp in Sources */,
 				4B055AC41FAE9AE80060FFFF /* Keyboard.cpp in Sources */,
@@ -4567,7 +4547,6 @@
 				4B89451E201967B4007DE474 /* Tape.cpp in Sources */,
 				4BAF2B4E2004580C00480230 /* DMK.cpp in Sources */,
 				4BB697CE1D4BA44400248BDF /* CommodoreGCR.cpp in Sources */,
-				4BC0CB322447EC7D00A79DBB /* Operator.cpp in Sources */,
 				4B0ACC3023775819008902D0 /* TIASound.cpp in Sources */,
 				4B7136861F78724F008B8ED9 /* Encoder.cpp in Sources */,
 				4B0E04EA1FC9E5DA00F43484 /* CAS.cpp in Sources */,
@@ -4726,7 +4705,6 @@
 				4BEBFB4D2002C4BF000708CC /* MSXDSK.cpp in Sources */,
 				4BBFBB6C1EE8401E00C01E7A /* ZX8081.cpp in Sources */,
 				4B83348A1F5DB94B0097E338 /* IRQDelegatePortHandler.cpp in Sources */,
-				4BC0CB372447EC9A00A79DBB /* Channel.cpp in Sources */,
 				4B894524201967B4007DE474 /* Tape.cpp in Sources */,
 				4B7136891F78725F008B8ED9 /* Shifter.cpp in Sources */,
 				4BDB61EB2032806E0048AF91 /* CSAtari2600.mm in Sources */,
@@ -4795,7 +4773,6 @@
 				4B778F4A23A5F1FB0000D260 /* StaticAnalyser.cpp in Sources */,
 				4BD91D772401C2B8007BDC91 /* PatrikRakTests.swift in Sources */,
 				4B680CE223A5553100451D43 /* 68000ComparativeTests.mm in Sources */,
-				4BC0CB332447EC7D00A79DBB /* Operator.cpp in Sources */,
 				4B778F3723A5F11C0000D260 /* Parser.cpp in Sources */,
 				4B778F4523A5F1CD0000D260 /* SegmentParser.cpp in Sources */,
 				4B90467422C6FADD000E2074 /* 68000BitwiseTests.mm in Sources */,
@@ -4883,7 +4860,6 @@
 				4B778EEF23A5D6680000D260 /* AsyncTaskQueue.cpp in Sources */,
 				4B778F1223A5EC720000D260 /* CRT.cpp in Sources */,
 				4B778EF423A5DB3A0000D260 /* C1540.cpp in Sources */,
-				4BC0CB382447EC9A00A79DBB /* Channel.cpp in Sources */,
 				4B778F3C23A5F16F0000D260 /* FIRFilter.cpp in Sources */,
 				4B778F5423A5F2600000D260 /* UnformattedTrack.cpp in Sources */,
 				4B778EF823A5EB6E0000D260 /* NIB.cpp in Sources */,
