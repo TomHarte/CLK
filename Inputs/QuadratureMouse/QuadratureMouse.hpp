@@ -110,7 +110,7 @@ class QuadratureMouse: public Mouse {
 		}
 
 	private:
-		int number_of_buttons_ = 0;
+		const int number_of_buttons_ = 0;
 		std::atomic<int> button_flags_;
 		std::atomic<int> axes_[2];
 

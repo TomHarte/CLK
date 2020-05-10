@@ -17,7 +17,7 @@ Analyser::Static::TargetList Analyser::Static::Macintosh::GetTargets(const Media
 	Analyser::Static::TargetList targets;
 
 	using Target = Analyser::Static::Macintosh::Target;
-	auto *target = new Target;
+	auto *const target = new Target;
 	target->media = media;
 	targets.push_back(std::unique_ptr<Analyser::Static::Target>(target));
 

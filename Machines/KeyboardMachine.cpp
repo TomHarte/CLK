@@ -15,7 +15,7 @@ MachineTypes::MappedKeyboardMachine::MappedKeyboardMachine(const std::set<Inputs
 }
 
 bool MappedKeyboardMachine::keyboard_did_change_key(Inputs::Keyboard *keyboard, Inputs::Keyboard::Key key, bool is_pressed) {
-	uint16_t mapped_key = get_keyboard_mapper()->mapped_key_for_key(key);
+	const uint16_t mapped_key = get_keyboard_mapper()->mapped_key_for_key(key);
 	if(mapped_key == KeyNotMapped) return false;
 	set_key_state(mapped_key, is_pressed);
 	return true;
