@@ -35,8 +35,8 @@ class ConfidenceSummary: public ConfidenceSource {
 		float get_confidence() final;
 
 	private:
-		std::vector<ConfidenceSource *> sources_;
-		std::vector<float> weights_;
+		const std::vector<ConfidenceSource *> sources_;
+		const std::vector<float> weights_;
 		float weight_sum_;
 };
 

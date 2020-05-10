@@ -15,16 +15,16 @@ float ConfidenceCounter::get_confidence() {
 }
 
 void ConfidenceCounter::add_hit() {
-	hits_++;
+	++hits_;
 }
 
 void ConfidenceCounter::add_miss() {
-	misses_++;
+	++misses_;
 }
 
 void ConfidenceCounter::add_equivocal() {
 	if(hits_ > misses_) {
-		hits_++;
-		misses_++;
+		++hits_;
+		++misses_;
 	}
 }

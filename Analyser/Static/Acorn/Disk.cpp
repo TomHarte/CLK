@@ -21,8 +21,8 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetDFSCatalogue(const std::s
 	auto catalogue = std::make_unique<Catalogue>();
 	Storage::Encodings::MFM::Parser parser(false, disk);
 
-	Storage::Encodings::MFM::Sector *names = parser.get_sector(0, 0, 0);
-	Storage::Encodings::MFM::Sector *details = parser.get_sector(0, 0, 1);
+	const Storage::Encodings::MFM::Sector *const names = parser.get_sector(0, 0, 0);
+	const Storage::Encodings::MFM::Sector *const details = parser.get_sector(0, 0, 1);
 
 	if(!names || !details) return nullptr;
 	if(names->samples.empty() || details->samples.empty()) return nullptr;
@@ -84,7 +84,7 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetADFSCatalogue(const std::
 	std::vector<uint8_t> root_directory;
 	root_directory.reserve(5 * 256);
 	for(uint8_t c = 2; c < 7; c++) {
-		Storage::Encodings::MFM::Sector *sector = parser.get_sector(0, 0, c);
+		const Storage::Encodings::MFM::Sector *const sector = parser.get_sector(0, 0, c);
 		if(!sector) return nullptr;
 		root_directory.insert(root_directory.end(), sector->samples[0].begin(), sector->samples[0].end());
 	}

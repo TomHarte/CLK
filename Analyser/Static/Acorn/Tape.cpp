@@ -43,7 +43,7 @@ static std::unique_ptr<File::Chunk> GetNextChunk(const std::shared_ptr<Storage::
 	while(!tape->is_at_end() && name_ptr < sizeof(name)) {
 		name[name_ptr] = char(parser.get_next_byte(tape));
 		if(!name[name_ptr]) break;
-		name_ptr++;
+		++name_ptr;
 	}
 	name[sizeof(name)-1] = '\0';
 	new_chunk->name = name;

@@ -26,12 +26,12 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 
 		Instruction instruction;
 		instruction.address = address;
-		address++;
+		++address;
 
-		// get operation
-		uint8_t operation = memory[local_address];
+		// Get operation.
+		const uint8_t operation = memory[local_address];
 
-		// decode addressing mode
+		// Decode addressing mode.
 		switch(operation&0x1f) {
 			case 0x00:
 				if(operation >= 0x80) instruction.addressing_mode = Instruction::Immediate;
@@ -74,7 +74,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			break;
 		}
 
-		// decode operation
+		// Decode operation.
 #define RM_INSTRUCTION(base, op)	\
 	case base+0x09: case base+0x05: case base+0x15: case base+0x01: case base+0x11: case base+0x0d: case base+0x1d: case base+0x19:	\
 		instruction.operation = op;	\
@@ -222,14 +222,14 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 #undef M_INSTRUCTION
 #undef IM_INSTRUCTION
 
-		// get operand
+		// Get operand.
 		switch(instruction.addressing_mode) {
-			// zero-byte operands
+			// Zero-byte operands.
 			case Instruction::Implied:
 				instruction.operand = 0;
 			break;
 
-			// one-byte operands
+			// One-byte operands.
 			case Instruction::Immediate:
 			case Instruction::ZeroPage: case Instruction::ZeroPageX: case Instruction::ZeroPageY:
 			case Instruction::IndexedIndirectX: case Instruction::IndirectIndexedY:
@@ -242,7 +242,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			}
 			break;
 
-			// two-byte operands
+			// Two-byte operands.
 			case Instruction::Absolute: case Instruction::AbsoluteX: case Instruction::AbsoluteY:
 			case Instruction::Indirect: {
 				std::size_t low_operand_address = address_mapper(address);
@@ -255,13 +255,13 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			break;
 		}
 
-		// store the instruction away
+		// Store the instruction.
 		disassembly.disassembly.instructions_by_address[instruction.address] = instruction;
 
 		// TODO: something wider-ranging than this
 		if(instruction.addressing_mode == Instruction::Absolute || instruction.addressing_mode == Instruction::ZeroPage) {
-			std::size_t mapped_address = address_mapper(instruction.operand);
-			bool is_external = mapped_address >= memory.size();
+			const size_t mapped_address = address_mapper(instruction.operand);
+			const bool is_external = mapped_address >= memory.size();
 
 			switch(instruction.operation) {
 				default: break;
@@ -290,7 +290,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			}
 		}
 
-		// decide on overall flow control
+		// Decide on overall flow control.
 		if(instruction.operation == Instruction::RTS || instruction.operation == Instruction::RTI) return;
 		if(instruction.operation == Instruction::BRK) return;	// TODO: check whether IRQ vector is within memory range
 		if(instruction.operation == Instruction::JSR) {
