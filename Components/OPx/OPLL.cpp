@@ -28,6 +28,14 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, 
 		phase_generators_[6 + 9].reset();
 	});
 
+	// Set the other drums to damp, but only the TomTom to affect phase.
+	rhythm_envelope_generators_[TomTom].set_should_damp([this] {
+		phase_generators_[8 + 9].reset();
+	});
+	rhythm_envelope_generators_[Snare].set_should_damp({});
+	rhythm_envelope_generators_[Cymbal].set_should_damp({});
+	rhythm_envelope_generators_[HighHat].set_should_damp({});
+
 	// Crib the proper rhythm envelope generator settings by installing
 	// the rhythm instruments and copying them over.
 	rhythm_mode_enabled_ = true;
@@ -45,7 +53,7 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, 
 	// Return to ordinary default mode.
 	rhythm_mode_enabled_ = false;
 
-	// Set up proper damping management.
+	// Set up damping for the melodic channels.
 	for(int c = 0; c < 9; ++c) {
 		envelope_generators_[c].set_should_damp([this, c] {
 			// Propagate attack mode to the modulator, and reset both phases.
