@@ -327,7 +327,6 @@
 		4B778F3723A5F11C0000D260 /* Parser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368C1F788112008B8ED9 /* Parser.cpp */; };
 		4B778F3823A5F11C0000D260 /* SegmentParser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B71368F1F789C93008B8ED9 /* SegmentParser.cpp */; };
 		4B778F3923A5F11C0000D260 /* Shifter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B7136871F78725F008B8ED9 /* Shifter.cpp */; };
-		4B778F3A23A5F1570000D260 /* StandardOptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFE7B851FC39BF100160B38 /* StandardOptions.cpp */; };
 		4B778F3B23A5F1650000D260 /* KeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B54C0BB1F8D8E790050900F /* KeyboardMachine.cpp */; };
 		4B778F3C23A5F16F0000D260 /* FIRFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BC76E671C98E31700E6EF73 /* FIRFilter.cpp */; };
 		4B778F3D23A5F1750000D260 /* ncr5380.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BDACBEA22FFA5D20045EF7E /* ncr5380.cpp */; };
@@ -868,8 +867,6 @@
 		4BFCA1291ECBE7A700AC40C1 /* zexall.com in Resources */ = {isa = PBXBuildFile; fileRef = 4BFCA1281ECBE7A700AC40C1 /* zexall.com */; };
 		4BFCA12B1ECBE7C400AC40C1 /* ZexallTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BFCA12A1ECBE7C400AC40C1 /* ZexallTests.swift */; };
 		4BFDD78C1F7F2DB4008579B9 /* ImplicitSectors.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFDD78B1F7F2DB4008579B9 /* ImplicitSectors.cpp */; };
-		4BFE7B871FC39BF100160B38 /* StandardOptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFE7B851FC39BF100160B38 /* StandardOptions.cpp */; };
-		4BFE7B881FC39D8900160B38 /* StandardOptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFE7B851FC39BF100160B38 /* StandardOptions.cpp */; };
 		4BFF1D3922337B0300838EA1 /* 68000Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */; };
 		4BFF1D3A22337B0300838EA1 /* 68000Storage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4BFF1D3822337B0300838EA1 /* 68000Storage.cpp */; };
 		4BFF1D3D2235C3C100838EA1 /* EmuTOSTests.mm in Sources */ = {isa = PBXBuildFile; fileRef = 4BFF1D3C2235C3C100838EA1 /* EmuTOSTests.mm */; };
@@ -1792,7 +1789,6 @@
 		4BFCA12A1ECBE7C400AC40C1 /* ZexallTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ZexallTests.swift; sourceTree = "<group>"; };
 		4BFDD78A1F7F2DB4008579B9 /* ImplicitSectors.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ImplicitSectors.hpp; sourceTree = "<group>"; };
 		4BFDD78B1F7F2DB4008579B9 /* ImplicitSectors.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImplicitSectors.cpp; sourceTree = "<group>"; };
-		4BFE7B851FC39BF100160B38 /* StandardOptions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = StandardOptions.cpp; sourceTree = "<group>"; };
 		4BFE7B861FC39BF100160B38 /* StandardOptions.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = StandardOptions.hpp; sourceTree = "<group>"; };
 		4BFF1D342233778C00838EA1 /* 68000.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000.hpp; sourceTree = "<group>"; };
 		4BFF1D37223379D500838EA1 /* 68000Storage.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = 68000Storage.hpp; sourceTree = "<group>"; };
@@ -2163,7 +2159,6 @@
 			isa = PBXGroup;
 			children = (
 				4B31B88F1FBFBCD800C140D5 /* Configurable.hpp */,
-				4BFE7B851FC39BF100160B38 /* StandardOptions.cpp */,
 				4BFE7B861FC39BF100160B38 /* StandardOptions.hpp */,
 			);
 			name = Configurable;
@@ -4460,7 +4455,6 @@
 				4B0ACC03237756F6008902D0 /* Line.cpp in Sources */,
 				4B055AB11FAE86070060FFFF /* Tape.cpp in Sources */,
 				4BC1317B2346DF2B00E4FF3D /* MSA.cpp in Sources */,
-				4BFE7B881FC39D8900160B38 /* StandardOptions.cpp in Sources */,
 				4B894533201967B4007DE474 /* 6502.cpp in Sources */,
 				4B055AA91FAE85EF0060FFFF /* CommodoreGCR.cpp in Sources */,
 				4B055ADB1FAE9B460060FFFF /* 6560.cpp in Sources */,
@@ -4713,7 +4707,6 @@
 				4BEE0A6F1D72496600532C7B /* Cartridge.cpp in Sources */,
 				4B8805FB1DCFF807003085B1 /* Oric.cpp in Sources */,
 				4B6ED2F0208E2F8A0047B343 /* WOZ.cpp in Sources */,
-				4BFE7B871FC39BF100160B38 /* StandardOptions.cpp in Sources */,
 				4B15A9FC208249BB005E6C8D /* StaticAnalyser.cpp in Sources */,
 				4B5FADC01DE3BF2B00AEC565 /* Microdisc.cpp in Sources */,
 				4B54C0C81F8D91E50050900F /* Keyboard.cpp in Sources */,
@@ -4818,7 +4811,6 @@
 				4BB73EB71B587A5100552FC2 /* AllSuiteATests.swift in Sources */,
 				4B778EF023A5D68C0000D260 /* 68000Storage.cpp in Sources */,
 				4B01A6881F22F0DB001FD6E3 /* Z80MemptrTests.swift in Sources */,
-				4B778F3A23A5F1570000D260 /* StandardOptions.cpp in Sources */,
 				4B778EFA23A5EB790000D260 /* DMK.cpp in Sources */,
 				4BEE1EC122B5E2FD000A26A6 /* Encoder.cpp in Sources */,
 				4B121F9B1E06293F00BFDA12 /* PCMSegmentEventSourceTests.mm in Sources */,
