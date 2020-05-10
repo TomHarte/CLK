@@ -86,11 +86,11 @@ class Typer {
 		std::string string_;
 		std::size_t string_pointer_ = 0;
 
-		HalfCycles frequency_;
+		const HalfCycles frequency_;
 		HalfCycles counter_;
 		int phase_ = 0;
 
-		Delegate *delegate_;
+		Delegate *const delegate_;
 		CharacterMapper &character_mapper_;
 
 		uint16_t try_type_next_character();
