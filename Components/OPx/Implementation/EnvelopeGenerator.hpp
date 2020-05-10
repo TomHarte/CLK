@@ -84,7 +84,8 @@ template <int envelope_precision, int period_precision> class EnvelopeGenerator 
 			@returns The current attenuation from this envelope generator. This is independent of the envelope precision.
 		*/
 		int attenuation() const {
-			return (attenuation_ + tremolo_) << 3;
+			// TODO: if this envelope is fully released, should tremolo still be able to vocalise it?
+			return (attenuation_ << 3) + tremolo_;
 		}
 
 		/*!
