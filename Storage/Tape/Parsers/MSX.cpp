@@ -28,7 +28,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	while(!tape_player.get_tape()->is_at_end()) {
 		float next_length = 0.0f;
 		do {
-			next_length += static_cast<float>(tape_player.get_cycles_until_next_event()) / static_cast<float>(tape_player.get_input_clock_rate());
+			next_length += float(tape_player.get_cycles_until_next_event()) / float(tape_player.get_input_clock_rate());
 			tape_player.run_for_input_pulse();
 		} while(last_level == tape_player.get_input());
 		last_level = tape_player.get_input();
@@ -51,7 +51,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	float total_length = 0.0f;
 	samples = 512;
 	while(!tape_player.get_tape()->is_at_end()) {
-		total_length += static_cast<float>(tape_player.get_cycles_until_next_event()) / static_cast<float>(tape_player.get_input_clock_rate());
+		total_length += float(tape_player.get_cycles_until_next_event()) / float(tape_player.get_input_clock_rate());
 		if(tape_player.get_input() != last_level) {
 			samples--;
 			if(!samples) break;
@@ -69,7 +69,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	*/
 	total_length = total_length / 256.0f;			// To get the average, in microseconds.
 	// To convert to the loop count format used by the MSX BIOS.
-	uint8_t int_result = static_cast<uint8_t>(total_length / (0.00001145f * 0.75f));
+	uint8_t int_result = uint8_t(total_length / (0.00001145f * 0.75f));
 
 	auto result = std::make_unique<FileSpeed>();
 	result->minimum_start_bit_duration = int_result;
@@ -108,7 +108,7 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 		bool level = tape_player.get_input();
 		float duration = 0.0;
 		while(level == tape_player.get_input()) {
-			duration += static_cast<float>(tape_player.get_cycles_until_next_event()) / static_cast<float>(tape_player.get_input_clock_rate());
+			duration += float(tape_player.get_cycles_until_next_event()) / float(tape_player.get_input_clock_rate());
 			tape_player.run_for_input_pulse();
 		}
 
@@ -124,7 +124,7 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 		terminates with Flag C as this is presumed to be a hardware error of some sort. "
 	*/
 	int result = 0;
-	const int cycles_per_window = static_cast<int>(
+	const int cycles_per_window = int(
 		0.5f +
 		float(speed.low_high_disrimination_duration) *
 		0.0000173f *

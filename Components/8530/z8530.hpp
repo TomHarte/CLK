@@ -33,7 +33,7 @@ class z8530 {
 		std::uint8_t read(int address);
 		void write(int address, std::uint8_t value);
 		void reset();
-		bool get_interrupt_line();
+		bool get_interrupt_line() const;
 
 		struct Delegate {
 			virtual void did_change_interrupt_status(z8530 *, bool new_status) = 0;
@@ -53,7 +53,7 @@ class z8530 {
 				uint8_t read(bool data, uint8_t pointer);
 				void write(bool data, uint8_t pointer, uint8_t value);
 				void set_dcd(bool level);
-				bool get_interrupt_line();
+				bool get_interrupt_line() const;
 
 			private:
 				uint8_t data_ = 0xff;

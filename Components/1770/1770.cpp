@@ -824,11 +824,11 @@ void WD1770::set_head_loaded(bool head_loaded) {
 	if(head_loaded) posit_event(int(Event1770::HeadLoad));
 }
 
-bool WD1770::get_head_loaded() {
+bool WD1770::get_head_loaded() const {
 	return head_is_loaded_;
 }
 
-ClockingHint::Preference WD1770::preferred_clocking() {
+ClockingHint::Preference WD1770::preferred_clocking() const {
 	if(status_.busy) return ClockingHint::Preference::RealTime;
 	return Storage::Disk::MFMController::preferred_clocking();
 }

@@ -24,10 +24,9 @@ class Toggle: public Outputs::Speaker::SampleSource {
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
 		void skip_samples(const std::size_t number_of_samples);
-		static constexpr bool get_is_stereo() { return false; }
 
 		void set_output(bool enabled);
-		bool get_output();
+		bool get_output() const;
 
 	private:
 		// Accessed on the calling thread.

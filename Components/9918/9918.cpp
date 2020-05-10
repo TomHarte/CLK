@@ -33,7 +33,7 @@ struct ReverseTable {
 
 	ReverseTable() {
 		for(int c = 0; c < 256; ++c) {
-			map[c] = static_cast<uint8_t>(
+			map[c] = uint8_t(
 				((c & 0x80) >> 7) |
 				((c & 0x40) >> 5) |
 				((c & 0x20) >> 3) |
@@ -144,7 +144,7 @@ void Base::LineBuffer::reset_sprite_collection() {
 
 void Base::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_position, int screen_row) {
 	if(!(status_ & StatusSpriteOverflow)) {
-		status_ = static_cast<uint8_t>((status_ & ~0x1f) | (sprite_number & 0x1f));
+		status_ = uint8_t((status_ & ~0x1f) | (sprite_number & 0x1f));
 	}
 	if(buffer.sprites_stopped)
 		return;
@@ -531,7 +531,7 @@ void TMS9918::write(int address, uint8_t value) {
 
 	// The RAM pointer is always set on a second write, regardless of
 	// whether the caller is intending to enqueue a VDP operation.
-	ram_pointer_ = (ram_pointer_ & 0x00ff) | static_cast<uint16_t>(value << 8);
+	ram_pointer_ = (ram_pointer_ & 0x00ff) | uint16_t(value << 8);
 
 	write_phase_ = false;
 	if(value & 0x80) {
@@ -665,7 +665,7 @@ uint8_t TMS9918::get_current_line() {
 		}
 	}
 
-	return static_cast<uint8_t>(source_row);
+	return uint8_t(source_row);
 }
 
 uint8_t TMS9918::get_latched_horizontal_counter() {

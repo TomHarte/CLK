@@ -33,7 +33,7 @@ class Accessor {
 		uint16_t word() {
 			uint8_t low = byte();
 			uint8_t high = byte();
-			return static_cast<uint16_t>(low | (high << 8));
+			return uint16_t(low | (high << 8));
 		}
 
 		bool overrun() {
@@ -562,7 +562,7 @@ struct Z80Disassembler {
 			int access_type =
 				((instruction.source == Instruction::Location::Operand_Indirect) ? 1 : 0) |
 				((instruction.destination == Instruction::Location::Operand_Indirect) ? 2 : 0);
-			uint16_t address = static_cast<uint16_t>(instruction.operand);
+			uint16_t address = uint16_t(instruction.operand);
 			bool is_internal = address_mapper(address) < memory.size();
 			switch(access_type) {
 				default: break;
@@ -594,7 +594,7 @@ struct Z80Disassembler {
 				instruction.operation == Instruction::Operation::JR ||
 				instruction.operation == Instruction::Operation::CALL ||
 				instruction.operation == Instruction::Operation::RST) {
-				disassembly.remaining_entry_points.push_back(static_cast<uint16_t>(instruction.operand));
+				disassembly.remaining_entry_points.push_back(uint16_t(instruction.operand));
 			}
 
 			// This is it if: an unconditional RET, RETI, RETN, JP or JR is found.

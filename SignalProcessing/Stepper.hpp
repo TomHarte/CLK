@@ -35,12 +35,12 @@ class Stepper {
 			of steps that should be taken at the @c output_rate.
 		*/
 		Stepper(uint64_t output_rate, uint64_t input_rate) :
-			accumulated_error_(-((int64_t)input_rate << 1)),
+			accumulated_error_(-(int64_t(input_rate) << 1)),
 			input_rate_(input_rate),
 			output_rate_(output_rate),
 			whole_step_(output_rate / input_rate),
-			adjustment_up_((int64_t)(output_rate % input_rate) << 1),
-			adjustment_down_((int64_t)input_rate << 1) {}
+			adjustment_up_(int64_t(output_rate % input_rate) << 1),
+			adjustment_down_(int64_t(input_rate) << 1) {}
 
 		/*!
 			Advances one step at the input rate.
@@ -64,9 +64,9 @@ class Stepper {
 		*/
 		inline uint64_t step(uint64_t number_of_steps) {
 			uint64_t update = whole_step_ * number_of_steps;
-			accumulated_error_ += adjustment_up_ * (int64_t)number_of_steps;
+			accumulated_error_ += adjustment_up_ * int64_t(number_of_steps);
 			if(accumulated_error_ > 0) {
-				update += 1 + (uint64_t)(accumulated_error_ / adjustment_down_);
+				update += 1 + uint64_t(accumulated_error_ / adjustment_down_);
 				accumulated_error_ = (accumulated_error_ % adjustment_down_) - adjustment_down_;
 			}
 			return update;

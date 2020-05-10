@@ -69,7 +69,7 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 		// Timer 1
 		case 0x6:	case 0x4:	registers_.timer_latch[0] = (registers_.timer_latch[0]&0xff00) | value;	break;
 		case 0x5:	case 0x7:
-			registers_.timer_latch[0] = (registers_.timer_latch[0]&0x00ff) | static_cast<uint16_t>(value << 8);
+			registers_.timer_latch[0] = (registers_.timer_latch[0]&0x00ff) | uint16_t(value << 8);
 			registers_.interrupt_flags &= ~InterruptFlag::Timer1;
 			if(address == 0x05) {
 				registers_.next_timer[0] = registers_.timer_latch[0];
@@ -82,7 +82,7 @@ template <typename T> void MOS6522<T>::write(int address, uint8_t value) {
 		case 0x8:	registers_.timer_latch[1] = value;	break;
 		case 0x9:
 			registers_.interrupt_flags &= ~InterruptFlag::Timer2;
-			registers_.next_timer[1] = registers_.timer_latch[1] | static_cast<uint16_t>(value << 8);
+			registers_.next_timer[1] = registers_.timer_latch[1] | uint16_t(value << 8);
 			timer_is_running_[1] = true;
 			reevaluate_interrupts();
 		break;
@@ -281,11 +281,11 @@ template <typename T> void MOS6522<T>::do_phase2() {
 
 	registers_.timer[1] --;
 	if(registers_.next_timer[0] >= 0) {
-		registers_.timer[0] = static_cast<uint16_t>(registers_.next_timer[0]);
+		registers_.timer[0] = uint16_t(registers_.next_timer[0]);
 		registers_.next_timer[0] = -1;
 	}
 	if(registers_.next_timer[1] >= 0) {
-		registers_.timer[1] = static_cast<uint16_t>(registers_.next_timer[1]);
+		registers_.timer[1] = uint16_t(registers_.next_timer[1]);
 		registers_.next_timer[1] = -1;
 	}
 
@@ -383,9 +383,9 @@ template <typename T> void MOS6522<T>::run_for(const Cycles cycles) {
 }
 
 /*! @returns @c true if the IRQ line is currently active; @c false otherwise. */
-template <typename T> bool MOS6522<T>::get_interrupt_line() {
+template <typename T> bool MOS6522<T>::get_interrupt_line() const {
 	uint8_t interrupt_status = registers_.interrupt_flags & registers_.interrupt_enable & 0x7f;
-	return !!interrupt_status;
+	return interrupt_status;
 }
 
 template <typename T> void MOS6522<T>::evaluate_cb2_output() {

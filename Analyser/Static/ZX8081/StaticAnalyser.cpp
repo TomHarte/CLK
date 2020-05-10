@@ -34,7 +34,7 @@ Analyser::Static::TargetList Analyser::Static::ZX8081::GetTargets(const Media &m
 		std::vector<Storage::Data::ZX8081::File> files = GetFiles(media.tapes.front());
 		media.tapes.front()->reset();
 		if(!files.empty()) {
-			Target *target = new Target;
+			Target *const target = new Target;
 			destination.push_back(std::unique_ptr<::Analyser::Static::Target>(target));
 			target->machine = Machine::ZX8081;
 

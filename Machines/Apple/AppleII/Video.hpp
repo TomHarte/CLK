@@ -164,7 +164,7 @@ class VideoBase {
 		// State affecting logical state.
 		int row_ = 0, column_ = 0, flash_ = 0;
 		uint8_t flash_mask() {
-			return static_cast<uint8_t>((flash_ / flash_length) * 0xff);
+			return uint8_t((flash_ / flash_length) * 0xff);
 		}
 
 		// Enumerates all Apple II and IIe display modes.
@@ -178,7 +178,7 @@ class VideoBase {
 			FatLowRes
 		};
 		bool is_text_mode(GraphicsMode m) { return m <= GraphicsMode::DoubleText; }
-		bool is_double_mode(GraphicsMode m) { return !!(static_cast<int>(m)&1); }
+		bool is_double_mode(GraphicsMode m) { return !!(int(m)&1); }
 
 		// Various soft-switch values.
 		bool alternative_character_set_ = false, set_alternative_character_set_ = false;
@@ -309,7 +309,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 			}
 
 			// Calculate the address and return the value.
-			uint16_t read_address = static_cast<uint16_t>(get_row_address(mapped_row) + mapped_column - 25);
+			uint16_t read_address = uint16_t(get_row_address(mapped_row) + mapped_column - 25);
 			uint8_t value, aux_value;
 			bus_handler_.perform_read(read_address, 1, &value, &aux_value);
 			return value;
@@ -378,7 +378,7 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 					// 40 columns of rows prior to 192.
 					if(row_ < 192 && column_ < 40) {
 						const int character_row = row_ >> 3;
-						const uint16_t row_address = static_cast<uint16_t>((character_row >> 3) * 40 + ((character_row&7) << 7));
+						const uint16_t row_address = uint16_t((character_row >> 3) * 40 + ((character_row&7) << 7));
 
 						// Grab the memory contents that'll be needed momentarily.
 						const int fetch_end = std::min(40, ending_column);
@@ -390,21 +390,21 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 							case GraphicsMode::LowRes:
 							case GraphicsMode::FatLowRes:
 							case GraphicsMode::DoubleLowRes: {
-								const uint16_t text_address = static_cast<uint16_t>(((video_page()+1) * 0x400) + row_address);
-								fetch_address = static_cast<uint16_t>(text_address + column_);
+								const uint16_t text_address = uint16_t(((video_page()+1) * 0x400) + row_address);
+								fetch_address = uint16_t(text_address + column_);
 							} break;
 
 							case GraphicsMode::HighRes:
 							case GraphicsMode::DoubleHighRes:
-								fetch_address = static_cast<uint16_t>(((video_page()+1) * 0x2000) + row_address + ((row_&7) << 10) + column_);
+								fetch_address = uint16_t(((video_page()+1) * 0x2000) + row_address + ((row_&7) << 10) + column_);
 							break;
 						}
 
 						bus_handler_.perform_read(
 							fetch_address,
-							static_cast<size_t>(fetch_end - column_),
-							&base_stream_[static_cast<size_t>(column_)],
-							&auxiliary_stream_[static_cast<size_t>(column_)]);
+							size_t(fetch_end - column_),
+							&base_stream_[size_t(column_)],
+							&auxiliary_stream_[size_t(column_)]);
 					}
 
 					if(row_ < 192) {
@@ -439,25 +439,25 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 									case GraphicsMode::Text:
 										output_text(
 											&pixel_pointer_[pixel_start * 14 + 7],
-											&base_stream_[static_cast<size_t>(pixel_start)],
-											static_cast<size_t>(pixel_end - pixel_start),
-											static_cast<size_t>(pixel_row));
+											&base_stream_[size_t(pixel_start)],
+											size_t(pixel_end - pixel_start),
+											size_t(pixel_row));
 									break;
 
 									case GraphicsMode::DoubleText:
 										output_double_text(
 											&pixel_pointer_[pixel_start * 14],
-											&base_stream_[static_cast<size_t>(pixel_start)],
-											&auxiliary_stream_[static_cast<size_t>(pixel_start)],
-											static_cast<size_t>(pixel_end - pixel_start),
-											static_cast<size_t>(pixel_row));
+											&base_stream_[size_t(pixel_start)],
+											&auxiliary_stream_[size_t(pixel_start)],
+											size_t(pixel_end - pixel_start),
+											size_t(pixel_row));
 									break;
 
 									case GraphicsMode::LowRes:
 										output_low_resolution(
 											&pixel_pointer_[pixel_start * 14 + 7],
-											&base_stream_[static_cast<size_t>(pixel_start)],
-											static_cast<size_t>(pixel_end - pixel_start),
+											&base_stream_[size_t(pixel_start)],
+											size_t(pixel_end - pixel_start),
 											pixel_start,
 											pixel_row);
 									break;
@@ -465,8 +465,8 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 									case GraphicsMode::FatLowRes:
 										output_fat_low_resolution(
 											&pixel_pointer_[pixel_start * 14 + 7],
-											&base_stream_[static_cast<size_t>(pixel_start)],
-											static_cast<size_t>(pixel_end - pixel_start),
+											&base_stream_[size_t(pixel_start)],
+											size_t(pixel_end - pixel_start),
 											pixel_start,
 											pixel_row);
 									break;
@@ -474,9 +474,9 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 									case GraphicsMode::DoubleLowRes:
 										output_double_low_resolution(
 											&pixel_pointer_[pixel_start * 14],
-											&base_stream_[static_cast<size_t>(pixel_start)],
-											&auxiliary_stream_[static_cast<size_t>(pixel_start)],
-											static_cast<size_t>(pixel_end - pixel_start),
+											&base_stream_[size_t(pixel_start)],
+											&auxiliary_stream_[size_t(pixel_start)],
+											size_t(pixel_end - pixel_start),
 											pixel_start,
 											pixel_row);
 									break;
@@ -484,16 +484,16 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 									case GraphicsMode::HighRes:
 										output_high_resolution(
 											&pixel_pointer_[pixel_start * 14 + 7],
-											&base_stream_[static_cast<size_t>(pixel_start)],
-											static_cast<size_t>(pixel_end - pixel_start));
+											&base_stream_[size_t(pixel_start)],
+											size_t(pixel_end - pixel_start));
 									break;
 
 									case GraphicsMode::DoubleHighRes:
 										output_double_high_resolution(
 											&pixel_pointer_[pixel_start * 14],
-											&base_stream_[static_cast<size_t>(pixel_start)],
-											&auxiliary_stream_[static_cast<size_t>(pixel_start)],
-											static_cast<size_t>(pixel_end - pixel_start));
+											&base_stream_[size_t(pixel_start)],
+											&auxiliary_stream_[size_t(pixel_start)],
+											size_t(pixel_end - pixel_start));
 									break;
 
 									default: break;
@@ -596,12 +596,12 @@ template <class BusHandler, bool is_iie> class Video: public VideoBase {
 		uint16_t get_row_address(int row) {
 			const int character_row = row >> 3;
 			const int pixel_row = row & 7;
-			const uint16_t row_address = static_cast<uint16_t>((character_row >> 3) * 40 + ((character_row&7) << 7));
+			const uint16_t row_address = uint16_t((character_row >> 3) * 40 + ((character_row&7) << 7));
 
 			const GraphicsMode pixel_mode = graphics_mode(row);
 			return ((pixel_mode == GraphicsMode::HighRes) || (pixel_mode == GraphicsMode::DoubleHighRes)) ?
-				static_cast<uint16_t>(((video_page()+1) * 0x2000) + row_address + ((pixel_row&7) << 10)) :
-				static_cast<uint16_t>(((video_page()+1) * 0x400) + row_address);
+				uint16_t(((video_page()+1) * 0x2000) + row_address + ((pixel_row&7) << 10)) :
+				uint16_t(((video_page()+1) * 0x400) + row_address);
 		}
 
 		BusHandler &bus_handler_;

@@ -45,7 +45,7 @@ bool IntelligentKeyboard::serial_line_did_produce_bit(Serial::Line *, int bit) {
 	return true;
 }
 
-ClockingHint::Preference IntelligentKeyboard::preferred_clocking() {
+ClockingHint::Preference IntelligentKeyboard::preferred_clocking() const {
 	return output_line_.transmission_data_time_remaining().as_integral() ? ClockingHint::Preference::RealTime : ClockingHint::Preference::None;
 }
 

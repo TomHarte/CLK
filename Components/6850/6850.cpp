@@ -120,7 +120,7 @@ void ACIA::consider_transmission() {
 	}
 }
 
-ClockingHint::Preference ACIA::preferred_clocking() {
+ClockingHint::Preference ACIA::preferred_clocking() const {
 	// Real-time clocking is required if a transmission is ongoing; this is a courtesy for whomever
 	// is on the receiving end.
 	if(transmit.transmission_data_time_remaining() > 0) return ClockingHint::Preference::RealTime;

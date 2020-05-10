@@ -206,7 +206,7 @@ class SerialPort : public ::Commodore::Serial::Port {
 		/// Receives an input change from the base serial port class, and communicates it to the user-port VIA.
 		void set_input(::Commodore::Serial::Line line, ::Commodore::Serial::LineLevel level) {
 			std::shared_ptr<UserPortVIA> userPortVIA = user_port_via_.lock();
-			if(userPortVIA) userPortVIA->set_serial_line_state(line, static_cast<bool>(level));
+			if(userPortVIA) userPortVIA->set_serial_line_state(line, bool(level));
 		}
 
 		/// Sets the user-port VIA with which this serial port communicates.
@@ -425,19 +425,19 @@ class ConcreteMachine:
 				for(auto addr = video_range.start; addr < video_range.end; addr += 0x400) {
 					auto destination_address = (addr & 0x1fff) | (((addr & 0x8000) >> 2) ^ 0x2000);
 					if(processor_read_memory_map_[addr >> 10]) {
-						write_to_map(mos6560_bus_handler_.video_memory_map, &ram_[addr], static_cast<uint16_t>(destination_address), 0x400);
+						write_to_map(mos6560_bus_handler_.video_memory_map, &ram_[addr], uint16_t(destination_address), 0x400);
 					}
 				}
 			}
 			mos6560_bus_handler_.colour_memory = colour_ram_;
 
 			// install the BASIC ROM
-			write_to_map(processor_read_memory_map_, basic_rom_.data(), 0xc000, static_cast<uint16_t>(basic_rom_.size()));
+			write_to_map(processor_read_memory_map_, basic_rom_.data(), 0xc000, uint16_t(basic_rom_.size()));
 
 			// install the system ROM
-			write_to_map(processor_read_memory_map_, character_rom_.data(), 0x8000, static_cast<uint16_t>(character_rom_.size()));
-			write_to_map(mos6560_bus_handler_.video_memory_map, character_rom_.data(), 0x0000, static_cast<uint16_t>(character_rom_.size()));
-			write_to_map(processor_read_memory_map_, kernel_rom_.data(), 0xe000, static_cast<uint16_t>(kernel_rom_.size()));
+			write_to_map(processor_read_memory_map_, character_rom_.data(), 0x8000, uint16_t(character_rom_.size()));
+			write_to_map(mos6560_bus_handler_.video_memory_map, character_rom_.data(), 0x0000, uint16_t(character_rom_.size()));
+			write_to_map(processor_read_memory_map_, kernel_rom_.data(), 0xe000, uint16_t(kernel_rom_.size()));
 
 			// The insert_media occurs last, so if there's a conflict between cartridges and RAM,
 			// the cartridge wins.
@@ -459,7 +459,7 @@ class ConcreteMachine:
 			if(!media.cartridges.empty()) {
 				rom_address_ = 0xa000;
 				std::vector<uint8_t> rom_image = media.cartridges.front()->get_segments().front().data;
-				rom_length_ = static_cast<uint16_t>(rom_image.size());
+				rom_length_ = uint16_t(rom_image.size());
 
 				rom_ = rom_image;
 				rom_.resize(0x2000);
@@ -533,7 +533,7 @@ class ConcreteMachine:
 						const uint64_t tape_position = tape_->get_tape()->get_offset();
 						if(header) {
 							// serialise to wherever b2:b3 points
-							const uint16_t tape_buffer_pointer = static_cast<uint16_t>(ram_[0xb2]) | static_cast<uint16_t>(ram_[0xb3] << 8);
+							const uint16_t tape_buffer_pointer = uint16_t(ram_[0xb2]) | uint16_t(ram_[0xb3] << 8);
 							header->serialise(&ram_[tape_buffer_pointer], 0x8000 - tape_buffer_pointer);
 							hold_tape_ = true;
 							LOG("Vic-20: Found header");
@@ -550,15 +550,15 @@ class ConcreteMachine:
 
 						*value = 0x0c;	// i.e. NOP abs, to swallow the entire JSR
 					} else if(address == 0xf90b) {
-						uint8_t x = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
+						uint8_t x = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
 						if(x == 0xe) {
 							Storage::Tape::Commodore::Parser parser;
 							const uint64_t tape_position = tape_->get_tape()->get_offset();
 							const std::unique_ptr<Storage::Tape::Commodore::Data> data = parser.get_next_data(tape_->get_tape());
 							if(data) {
 								uint16_t start_address, end_address;
-								start_address = static_cast<uint16_t>(ram_[0xc1] | (ram_[0xc2] << 8));
-								end_address = static_cast<uint16_t>(ram_[0xae] | (ram_[0xaf] << 8));
+								start_address = uint16_t(ram_[0xc1] | (ram_[0xc2] << 8));
+								end_address = uint16_t(ram_[0xae] | (ram_[0xaf] << 8));
 
 								// perform a via-processor_write_memory_map_ memcpy
 								uint8_t *data_ptr = data->data.data();
@@ -573,8 +573,8 @@ class ConcreteMachine:
 
 								// set tape status, carry and flag
 								ram_[0x90] |= 0x40;
-								uint8_t	flags = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::Flags));
-								flags &= ~static_cast<uint8_t>((CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt));
+								uint8_t	flags = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::Flags));
+								flags &= ~uint8_t((CPU::MOS6502::Flag::Carry | CPU::MOS6502::Flag::Interrupt));
 								m6502_.set_value_of_register(CPU::MOS6502::Register::Flags, flags);
 
 								// to ensure that execution proceeds to 0xfccf, pretend a NOP was here and

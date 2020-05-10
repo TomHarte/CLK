@@ -77,7 +77,7 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 	int header_delay = 0;
 	bool is_five_and_three = false;
 	while(bit < segment.data.size() || pointer != scanning_sentinel || header_delay) {
-		shift_register = static_cast<uint_fast8_t>((shift_register << 1) | (segment.data[bit % segment.data.size()] ? 1 : 0));
+		shift_register = uint_fast8_t((shift_register << 1) | (segment.data[bit % segment.data.size()] ? 1 : 0));
 		++bit;
 
 		// Apple GCR parsing: bytes always have the top bit set.
@@ -113,7 +113,7 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 					new_sector = std::make_unique<Sector>();
 					new_sector->data.reserve(710);
 				} else {
-					sector_location = static_cast<std::size_t>(bit % segment.data.size());
+					sector_location = size_t(bit % segment.data.size());
 					header_delay = 200;	// Allow up to 200 bytes to find the body, if the
 										// track split comes in between.
 				}
@@ -211,7 +211,7 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 								// Undo the 6 and 2 mapping.
 								const uint8_t bit_reverse[] = {0, 2, 1, 3};
 								#define unmap(byte, nibble, shift)	\
-									sector->data[86 + byte] = static_cast<uint8_t>(\
+									sector->data[86 + byte] = uint8_t(\
 										(sector->data[86 + byte] << 2) | bit_reverse[(sector->data[nibble] >> shift)&3]);
 
 								for(std::size_t c = 0; c < 84; ++c) {

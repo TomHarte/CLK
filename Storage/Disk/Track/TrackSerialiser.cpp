@@ -45,7 +45,7 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 		Time extended_length = next_event.length * length_multiplier + time_error;
 		time_error.clock_rate = extended_length.clock_rate;
 		time_error.length = extended_length.length % extended_length.clock_rate;
-		pll.run_for(Cycles(static_cast<int>(extended_length.get<int64_t>())));
+		pll.run_for(Cycles(int(extended_length.get<int64_t>())));
 
 		if(next_event.type == Track::Event::IndexHole) break;
 		pll.add_pulse();

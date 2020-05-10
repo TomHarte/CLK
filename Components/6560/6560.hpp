@@ -81,14 +81,14 @@ template <class BusHandler> class MOS6560 {
 		}
 
 		void set_clock_rate(double clock_rate) {
-			speaker_.set_input_rate(static_cast<float>(clock_rate / 4.0));
+			speaker_.set_input_rate(float(clock_rate / 4.0));
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target)		{ crt_.set_scan_target(scan_target); 			}
 		Outputs::Display::ScanStatus get_scaled_scan_status() const			{ return crt_.get_scaled_scan_status() / 4.0f;	}
 		void set_display_type(Outputs::Display::DisplayType display_type)	{ crt_.set_display_type(display_type); 			}
-		Outputs::Display::DisplayType get_display_type()					{ return crt_.get_display_type(); 				}
-		Outputs::Speaker::Speaker *get_speaker() { return &speaker_; }
+		Outputs::Display::DisplayType get_display_type() const				{ return crt_.get_display_type(); 				}
+		Outputs::Speaker::Speaker *get_speaker()	 						{ return &speaker_; 							}
 
 		void set_high_frequency_cutoff(float cutoff) {
 			speaker_.set_high_frequency_cutoff(cutoff);
@@ -235,7 +235,7 @@ template <class BusHandler> class MOS6560 {
 					if(column_counter_&1) {
 						fetch_address = registers_.character_cell_start_address + (character_code_*(registers_.tall_characters ? 16 : 8)) + current_character_row_;
 					} else {
-						fetch_address = static_cast<uint16_t>(registers_.video_matrix_start_address + video_matrix_address_counter_);
+						fetch_address = uint16_t(registers_.video_matrix_start_address + video_matrix_address_counter_);
 						video_matrix_address_counter_++;
 						if(
 							(current_character_row_ == 15) ||
@@ -371,7 +371,7 @@ template <class BusHandler> class MOS6560 {
 
 				case 0x2:
 					registers_.number_of_columns = value & 0x7f;
-					registers_.video_matrix_start_address = static_cast<uint16_t>((registers_.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
+					registers_.video_matrix_start_address = uint16_t((registers_.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
 				break;
 
 				case 0x3:
@@ -380,8 +380,8 @@ template <class BusHandler> class MOS6560 {
 				break;
 
 				case 0x5:
-					registers_.character_cell_start_address = static_cast<uint16_t>((value & 0x0f) << 10);
-					registers_.video_matrix_start_address = static_cast<uint16_t>((registers_.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
+					registers_.character_cell_start_address = uint16_t((value & 0x0f) << 10);
+					registers_.video_matrix_start_address = uint16_t((registers_.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
 				break;
 
 				case 0xa:
@@ -420,11 +420,11 @@ template <class BusHandler> class MOS6560 {
 		/*
 			Reads from a 6560 register.
 		*/
-		uint8_t read(int address) {
+		uint8_t read(int address) const {
 			address &= 0xf;
 			switch(address) {
 				default: return registers_.direct_values[address];
-				case 0x03: return static_cast<uint8_t>(raster_value() << 7) | (registers_.direct_values[3] & 0x7f);
+				case 0x03: return uint8_t(raster_value() << 7) | (registers_.direct_values[3] & 0x7f);
 				case 0x04: return (raster_value() >> 1) & 0xff;
 			}
 		}
@@ -462,11 +462,11 @@ template <class BusHandler> class MOS6560 {
 
 		// counters that cover an entire field
 		int horizontal_counter_ = 0, vertical_counter_ = 0;
-		const int lines_this_field() {
+		int lines_this_field() const {
 			// Necessary knowledge here: only the NTSC 6560 supports interlaced video.
 			return registers_.interlaced ? (is_odd_frame_ ? 262 : 263) : timing_.lines_per_progressive_field;
 		}
-		const int raster_value() {
+		int raster_value() const {
 			const int bonus_line = (horizontal_counter_ + timing_.line_counter_increment_offset) / timing_.cycles_per_line;
 			const int line = vertical_counter_ + bonus_line;
 			const int final_line = lines_this_field();
@@ -481,7 +481,7 @@ template <class BusHandler> class MOS6560 {
 			}
 			// Cf. http://www.sleepingelephant.com/ipw-web/bulletin/bb/viewtopic.php?f=14&t=7237&start=15#p80737
 		}
-		bool is_odd_frame() {
+		bool is_odd_frame() const {
 			return is_odd_frame_ || !registers_.interlaced;
 		}
 

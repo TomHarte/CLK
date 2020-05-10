@@ -22,7 +22,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 
 		// the two bytes that will be first must be 0xaa and 0x55, either way around
 		auto *start = &segment.data[0];
-		if((data_size & static_cast<std::size_t>(~8191)) > 32768) {
+		if((data_size & size_t(~8191)) > 32768) {
 			start = &segment.data[segment.data.size() - 16384];
 		}
 		if(start[0] != 0xaa && start[0] != 0x55 && start[1] != 0xaa && start[1] != 0x55) continue;

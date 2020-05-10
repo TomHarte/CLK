@@ -315,7 +315,7 @@ class ConcreteMachine:
 			if(!media.cartridges.empty()) {
 				const auto &segment = media.cartridges.front()->get_segments().front();
 				memory_slots_[1].source = segment.data;
-				map(1, 0, static_cast<uint16_t>(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
+				map(1, 0, uint16_t(segment.start_address), std::min(segment.data.size(), 65536 - segment.start_address));
 
 				auto msx_cartridge = dynamic_cast<Analyser::Static::MSX::Cartridge *>(media.cartridges.front().get());
 				if(msx_cartridge) {
@@ -376,7 +376,7 @@ class ConcreteMachine:
 		void map(int slot, std::size_t source_address, uint16_t destination_address, std::size_t length) final {
 			assert(!(destination_address & 8191));
 			assert(!(length & 8191));
-			assert(static_cast<std::size_t>(destination_address) + length <= 65536);
+			assert(size_t(destination_address) + length <= 65536);
 
 			for(std::size_t c = 0; c < (length >> 13); ++c) {
 				if(memory_slots_[slot].wrapping_strategy == ROMSlotHandler::WrappingStrategy::Repeat) source_address %= memory_slots_[slot].source.size();
@@ -391,7 +391,7 @@ class ConcreteMachine:
 		void unmap(int slot, uint16_t destination_address, std::size_t length) final {
 			assert(!(destination_address & 8191));
 			assert(!(length & 8191));
-			assert(static_cast<std::size_t>(destination_address) + length <= 65536);
+			assert(size_t(destination_address) + length <= 65536);
 
 			for(std::size_t c = 0; c < (length >> 13); ++c) {
 				memory_slots_[slot].read_pointers[(destination_address >> 13) + c] = nullptr;
@@ -473,7 +473,7 @@ class ConcreteMachine:
 								// If a byte was found, return it with carry unset. Otherwise set carry to
 								// indicate error.
 								if(next_byte >= 0) {
-									z80_.set_value_of_register(CPU::Z80::Register::A, static_cast<uint16_t>(next_byte));
+									z80_.set_value_of_register(CPU::Z80::Register::A, uint16_t(next_byte));
 									z80_.set_value_of_register(CPU::Z80::Register::Flags, 0);
 								} else {
 									z80_.set_value_of_register(CPU::Z80::Register::Flags, 1);
@@ -523,9 +523,9 @@ class ConcreteMachine:
 
 							case 0xa2:
 								update_audio();
-								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BC2 | GI::AY38910::BC1));
+								ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BC1));
 								*cycle.value = ay_.get_data_output();
-								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
+								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							break;
 
 							case 0xa8:	case 0xa9:
@@ -550,9 +550,9 @@ class ConcreteMachine:
 
 							case 0xa0:	case 0xa1:
 								update_audio();
-								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(GI::AY38910::BDIR | GI::AY38910::BC2 | ((port == 0xa0) ? GI::AY38910::BC1 : 0)));
+								ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BDIR | GI::AY38910::BC2 | ((port == 0xa0) ? GI::AY38910::BC1 : 0)));
 								ay_.set_data_input(*cycle.value);
-								ay_.set_control_lines(static_cast<GI::AY38910::ControlLines>(0));
+								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							break;
 
 							case 0xa8:	case 0xa9:
@@ -588,16 +588,16 @@ class ConcreteMachine:
 							while(characters_written < input_text_.size()) {
 								const int next_write_address = (write_address + 1) % buffer_size;
 								if(next_write_address == read_address) break;
-								ram_[write_address + buffer_start] = static_cast<uint8_t>(input_text_[characters_written]);
+								ram_[write_address + buffer_start] = uint8_t(input_text_[characters_written]);
 								++characters_written;
 								write_address = next_write_address;
 							}
-							input_text_.erase(input_text_.begin(), input_text_.begin() + static_cast<std::string::difference_type>(characters_written));
+							input_text_.erase(input_text_.begin(), input_text_.begin() + std::string::difference_type(characters_written));
 
 							// Map the write address back into absolute terms and write it out again as PUTPNT.
 							write_address += buffer_start;
-							ram_[0xf3f8] = static_cast<uint8_t>(write_address);
-							ram_[0xf3f9] = static_cast<uint8_t>(write_address >> 8);
+							ram_[0xf3f8] = uint8_t(write_address);
+							ram_[0xf3f9] = uint8_t(write_address >> 8);
 						}
 					break;
 

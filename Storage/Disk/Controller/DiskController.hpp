@@ -134,7 +134,7 @@ class Controller:
 		/*!
 			As per ClockingHint::Source.
 		*/
-		ClockingHint::Preference preferred_clocking() override;
+		ClockingHint::Preference preferred_clocking() const override;
 
 	private:
 		Time bit_length_;

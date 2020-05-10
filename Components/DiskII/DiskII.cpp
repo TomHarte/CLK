@@ -85,13 +85,13 @@ void DiskII::run_for(const Cycles cycles) {
 			--flux_duration_;
 			if(!flux_duration_) inputs_ |= input_flux;
 		}
-		state_ = state_machine_[static_cast<std::size_t>(address)];
+		state_ = state_machine_[size_t(address)];
 		switch(state_ & 0xf) {
-			default:	shift_register_ = 0;													break;	// clear
-			case 0x8:																			break;	// nop
+			default:	shift_register_ = 0;										break;	// clear
+			case 0x8:																break;	// nop
 
-			case 0x9:	shift_register_ = static_cast<uint8_t>(shift_register_ << 1);			break;	// shift left, bringing in a zero
-			case 0xd:	shift_register_ = static_cast<uint8_t>((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
+			case 0x9:	shift_register_ = uint8_t(shift_register_ << 1);			break;	// shift left, bringing in a zero
+			case 0xd:	shift_register_ = uint8_t((shift_register_ << 1) | 1);		break;	// shift left, bringing in a one
 
 			case 0xa:	// shift right, bringing in write protected status
 				shift_register_ = (shift_register_ >> 1) | (is_write_protected() ? 0x80 : 0x00);
@@ -105,7 +105,7 @@ void DiskII::run_for(const Cycles cycles) {
 					return;
 				}
 			break;
-			case 0xb:	shift_register_ = data_input_;											break;	// load data register from data bus
+			case 0xb:	shift_register_ = data_input_;								break;	// load data register from data bus
 		}
 
 		// Currently writing?
@@ -225,7 +225,7 @@ void DiskII::set_component_prefers_clocking(ClockingHint::Source *component, Clo
 	decide_clocking_preference();
 }
 
-ClockingHint::Preference DiskII::preferred_clocking() {
+ClockingHint::Preference DiskII::preferred_clocking() const {
 	return clocking_preference_;
 }
 

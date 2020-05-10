@@ -58,7 +58,7 @@ Storage::Tape::Tape::Pulse CommodoreTAP::virtual_get_next_pulse() {
 		uint32_t next_length;
 		uint8_t next_byte = file_.get8();
 		if(!updated_layout_ || next_byte > 0) {
-			next_length = (uint32_t)next_byte << 3;
+			next_length = uint32_t(next_byte) << 3;
 		} else {
 			next_length = file_.get24le();
 		}

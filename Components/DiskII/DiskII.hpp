@@ -76,7 +76,7 @@ class DiskII :
 		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
 
 		// As per Sleeper.
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 
 		// The Disk II functions as a potential target for @c Activity::Sources.
 		void set_activity_observer(Activity::Observer *observer);

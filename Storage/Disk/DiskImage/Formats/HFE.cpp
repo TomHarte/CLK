@@ -23,7 +23,7 @@ HFE::HFE(const std::string &file_name) :
 	head_count_ = file_.get8();
 
 	file_.seek(7, SEEK_CUR);
-	track_list_offset_ = static_cast<long>(file_.get16le()) << 9;
+	track_list_offset_ = long(file_.get16le()) << 9;
 }
 
 HeadPosition HFE::get_maximum_head_position() {
@@ -46,8 +46,8 @@ uint16_t HFE::seek_track(Track::Address address) {
 	// based on an assumption of two heads.
 	file_.seek(track_list_offset_ + address.position.as_int() * 4, SEEK_SET);
 
-	long track_offset = static_cast<long>(file_.get16le()) << 9;	// Track offset, in units of 512 bytes.
-	uint16_t track_length = file_.get16le();						// Track length, in bytes, containing both the front and back track.
+	long track_offset = long(file_.get16le()) << 9;		// Track offset, in units of 512 bytes.
+	uint16_t track_length = file_.get16le();			// Track length, in bytes, containing both the front and back track.
 
 	file_.seek(track_offset, SEEK_SET);
 	if(address.head) file_.seek(256, SEEK_CUR);
@@ -73,13 +73,13 @@ std::shared_ptr<Track> HFE::get_track_at_position(Track::Address address) {
 		uint16_t c = 0;
 		while(c < track_length) {
 			// Decide how many bytes of at most 256 to read, and read them.
-			uint16_t length = static_cast<uint16_t>(std::min(256, track_length - c));
+			uint16_t length = uint16_t(std::min(256, track_length - c));
 			std::vector<uint8_t> section = file_.read(length);
 
 			// Push those into the PCMSegment. In HFE the least-significant bit is
 			// serialised first. TODO: move this logic to PCMSegment.
 			for(uint16_t byte = 0; byte < length; ++byte) {
-				const size_t base = static_cast<size_t>(c + byte) << 3;
+				const size_t base = size_t(c + byte) << 3;
 				segment.data[base + 0] = !!(section[byte] & 0x01);
 				segment.data[base + 1] = !!(section[byte] & 0x02);
 				segment.data[base + 2] = !!(section[byte] & 0x04);
@@ -110,14 +110,14 @@ void HFE::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 
 		// Convert the segment into a byte encoding, LSB first.
 		std::vector<uint8_t> byte_segment = segment.byte_data(false);
-		uint16_t data_length = std::min(static_cast<uint16_t>(byte_segment.size()), track_length);
+		uint16_t data_length = std::min(uint16_t(byte_segment.size()), track_length);
 
 		lock_guard.lock();
 		seek_track(track.first);
 
 		uint16_t c = 0;
 		while(c < data_length) {
-			uint16_t length = static_cast<uint16_t>(std::min(256, data_length - c));
+			uint16_t length = uint16_t(std::min(256, data_length - c));
 			file_.write(&byte_segment[c], length);
 			c += length;
 			file_.seek(256, SEEK_CUR);

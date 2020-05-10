@@ -34,7 +34,7 @@ float MultiSpeaker::get_ideal_clock_rate_in_range(float minimum, float maximum) 
 		ideal += speaker->get_ideal_clock_rate_in_range(minimum, maximum);
 	}
 
-	return ideal / static_cast<float>(speakers_.size());
+	return ideal / float(speakers_.size());
 }
 
 void MultiSpeaker::set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) {

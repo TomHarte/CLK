@@ -39,7 +39,7 @@ class i8272 : public Storage::Disk::MFMController {
 		void set_dma_acknowledge(bool dack);
 		void set_terminal_count(bool tc);
 
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 
 	protected:
 		virtual void select_drive(int number) = 0;
@@ -68,7 +68,7 @@ class i8272 : public Storage::Disk::MFMController {
 			NoLongerReady = (1 << 6)
 		};
 		void posit_event(int type) final;
-		int interesting_event_mask_ = static_cast<int>(Event8272::CommandByte);
+		int interesting_event_mask_ = int(Event8272::CommandByte);
 		int resume_point_ = 0;
 		bool is_access_command_ = false;
 

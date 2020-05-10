@@ -64,9 +64,9 @@ Tape::Pulse OricTAP::virtual_get_next_pulse() {
 				// [9...]:		filename, up to NULL byte
 				next_byte = file_.get8();
 
-				if(phase_counter_ == 4)	data_end_address_ = static_cast<uint16_t>(next_byte << 8);
+				if(phase_counter_ == 4)	data_end_address_ = uint16_t(next_byte << 8);
 				if(phase_counter_ == 5)	data_end_address_ |= next_byte;
-				if(phase_counter_ == 6)	data_start_address_ = static_cast<uint16_t>(next_byte << 8);
+				if(phase_counter_ == 6)	data_start_address_ = uint16_t(next_byte << 8);
 				if(phase_counter_ == 7)	data_start_address_ |= next_byte;
 
 				if(phase_counter_ >= 9 && !next_byte) {	// advance after the filename-ending NULL byte
@@ -106,7 +106,7 @@ Tape::Pulse OricTAP::virtual_get_next_pulse() {
 		parity ^= (parity >> 4);
 		parity ^= (parity >> 2);
 		parity ^= (parity >> 1);
-		current_value_ = static_cast<uint16_t>((static_cast<uint16_t>(next_byte) << 1) | ((parity&1) << 9) | (7 << 10));
+		current_value_ = uint16_t((uint16_t(next_byte) << 1) | ((parity&1) << 9) | (7 << 10));
 	}
 
 	// In slow mode, a 0 is 4 periods of 1200 Hz, a 1 is 8 periods at 2400 Hz.

@@ -105,7 +105,7 @@ class ConcreteMachine:
 			keyboard_({Inputs::Keyboard::Key::Enter, Inputs::Keyboard::Key::Escape}, {}) {
 			// Pick the clock rate based on the region.
 			const double clock_rate = target.region == Target::Region::Europe ? 3546893.0 : 3579540.0;
-			speaker_.set_input_rate(static_cast<float>(clock_rate / audio_divider));
+			speaker_.set_input_rate(float(clock_rate / audio_divider));
 			set_clock_rate(clock_rate);
 
 			// Instantiate the joysticks.
@@ -277,7 +277,7 @@ class ConcreteMachine:
 								} else {
 									Joystick *const joypad1 = static_cast<Joystick *>(joysticks_[0].get());
 									Joystick *const joypad2 = static_cast<Joystick *>(joysticks_[1].get());
-									*cycle.value = static_cast<uint8_t>(joypad1->get_state() | (joypad2->get_state() << 6));
+									*cycle.value = uint8_t(joypad1->get_state() | (joypad2->get_state() << 6));
 								}
 							} break;
 							case 0xc1: {
@@ -449,7 +449,7 @@ class ConcreteMachine:
 			// Quick not on TH inputs here: if either is setup as an output, then the
 			// currently output level is returned. Otherwise they're fixed at 1.
 			return
-				static_cast<uint8_t>(
+				uint8_t(
 					((io_port_control_ & 0x02) << 5) | ((io_port_control_&0x20) << 1) |
 					((io_port_control_ & 0x08) << 4) | (io_port_control_&0x80)
 				);
@@ -537,7 +537,7 @@ class ConcreteMachine:
 					map(
 						read_pointers_,
 						cartridge_.data() + start_addr,
-						std::min(static_cast<size_t>(0x4000), cartridge_.size() - start_addr),
+						std::min(size_t(0x4000), cartridge_.size() - start_addr),
 						c * 0x4000);
 				}
 

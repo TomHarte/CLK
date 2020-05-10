@@ -51,7 +51,7 @@ template <class T> class MOS6532 {
 				case 0x04: case 0x05: case 0x06: case 0x07:
 					if(address & 0x10) {
 						timer_.writtenShift = timer_.activeShift = (decodedAddress - 0x04) * 3 + (decodedAddress / 0x07);	// i.e. 0, 3, 6, 10
-						timer_.value = (static_cast<unsigned int>(value) << timer_.activeShift) ;
+						timer_.value = (unsigned(value) << timer_.activeShift) ;
 						timer_.interrupt_enabled = !!(address&0x08);
 						interrupt_status_ &= ~InterruptFlag::Timer;
 						evaluate_interrupts();
@@ -79,7 +79,7 @@ template <class T> class MOS6532 {
 
 				// Timer and interrupt control
 				case 0x04: case 0x06: {
-					uint8_t value = static_cast<uint8_t>(timer_.value >> timer_.activeShift);
+					uint8_t value = uint8_t(timer_.value >> timer_.activeShift);
 					timer_.interrupt_enabled = !!(address&0x08);
 					interrupt_status_ &= ~InterruptFlag::Timer;
 					evaluate_interrupts();
@@ -107,7 +107,7 @@ template <class T> class MOS6532 {
 		}
 
 		inline void run_for(const Cycles cycles) {
-			unsigned int number_of_cycles = static_cast<unsigned int>(cycles.as_integral());
+			unsigned int number_of_cycles = unsigned(cycles.as_integral());
 
 			// permit counting _to_ zero; counting _through_ zero initiates the other behaviour
 			if(timer_.value >= number_of_cycles) {
@@ -122,7 +122,7 @@ template <class T> class MOS6532 {
 		}
 
 		MOS6532() {
-			timer_.value = static_cast<unsigned int>((rand() & 0xff) << 10);
+			timer_.value = unsigned((rand() & 0xff) << 10);
 		}
 
 		inline void set_port_did_change(int port) {
@@ -142,7 +142,7 @@ template <class T> class MOS6532 {
 			}
 		}
 
-		inline bool get_inerrupt_line() {
+		inline bool get_inerrupt_line() const {
 			return interrupt_line_;
 		}
 

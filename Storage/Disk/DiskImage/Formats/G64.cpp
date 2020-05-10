@@ -40,7 +40,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	std::shared_ptr<Track> resulting_track;
 
 	// seek to this track's entry in the track table
-	file_.seek(static_cast<long>((address.position.as_half() * 4) + 0xc), SEEK_SET);
+	file_.seek(long((address.position.as_half() * 4) + 0xc), SEEK_SET);
 
 	// read the track offset
 	const uint32_t track_offset = file_.get32le();
@@ -49,7 +49,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	if(!track_offset) return nullptr;
 
 	// seek to the track start
-	file_.seek(static_cast<long>(track_offset), SEEK_SET);
+	file_.seek(long(track_offset), SEEK_SET);
 
 	// get the real track length
 	const uint16_t track_length = file_.get16le();
@@ -58,7 +58,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	const std::vector<uint8_t> track_contents = file_.read(track_length);
 
 	// seek to this track's entry in the speed zone table
-	file_.seek(static_cast<long>((address.position.as_half() * 4) + 0x15c), SEEK_SET);
+	file_.seek(long((address.position.as_half() * 4) + 0x15c), SEEK_SET);
 
 	// read the speed zone offsrt
 	const uint32_t speed_zone_offset = file_.get32le();
@@ -66,7 +66,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 	// if the speed zone is not constant, create a track based on the whole table; otherwise create one that's constant
 	if(speed_zone_offset > 3) {
 		// seek to start of speed zone
-		file_.seek(static_cast<long>(speed_zone_offset), SEEK_SET);
+		file_.seek(long(speed_zone_offset), SEEK_SET);
 
 		// read the speed zone bytes
 		const uint16_t speed_zone_length = (track_length + 3) >> 2;
@@ -79,7 +79,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 		unsigned int start_byte_in_current_speed = 0;
 		for(unsigned int byte = 0; byte < track_length; byte ++) {
 			unsigned int byte_speed = speed_zone_contents[byte >> 2] >> (6 - (byte&3)*2);
-			if(byte_speed != current_speed || byte == static_cast<uint16_t>(track_length-1)) {
+			if(byte_speed != current_speed || byte == uint16_t(track_length-1)) {
 				unsigned int number_of_bytes = byte - start_byte_in_current_speed;
 
 				PCMSegment segment(
@@ -96,7 +96,7 @@ std::shared_ptr<Track> G64::get_track_at_position(Track::Address address) {
 		resulting_track = std::make_shared<PCMTrack>(std::move(segments));
 	} else {
 		PCMSegment segment(
-			Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(static_cast<unsigned int>(speed_zone_offset)),
+			Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(unsigned(speed_zone_offset)),
 			track_length * 8,
 			track_contents
 		);

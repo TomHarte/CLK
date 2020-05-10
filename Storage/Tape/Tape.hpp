@@ -107,7 +107,7 @@ class TapePlayer: public TimedEventLoop, public ClockingHint::Source {
 
 		void run_for_input_pulse();
 
-		ClockingHint::Preference preferred_clocking() override;
+		ClockingHint::Preference preferred_clocking() const override;
 
 	protected:
 		virtual void process_next_event() override;
@@ -145,7 +145,7 @@ class BinaryTapePlayer : public TapePlayer {
 		};
 		void set_delegate(Delegate *delegate);
 
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 
 	protected:
 		Delegate *delegate_ = nullptr;

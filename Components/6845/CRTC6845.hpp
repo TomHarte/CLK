@@ -167,8 +167,8 @@ template <class T> class CRTC6845 {
 	private:
 		inline void perform_bus_cycle_phase1() {
 			// Skew theory of operation: keep a history of the last three states, and apply whichever is selected.
-			character_is_visible_shifter_ = (character_is_visible_shifter_ << 1) | static_cast<unsigned int>(character_is_visible_);
-			bus_state_.display_enable = (static_cast<int>(character_is_visible_shifter_) & display_skew_mask_) && line_is_visible_;
+			character_is_visible_shifter_ = (character_is_visible_shifter_ << 1) | unsigned(character_is_visible_);
+			bus_state_.display_enable = (int(character_is_visible_shifter_) & display_skew_mask_) && line_is_visible_;
 			bus_handler_.perform_bus_cycle_phase1(bus_state_);
 		}
 
@@ -240,7 +240,7 @@ template <class T> class CRTC6845 {
 		inline void do_end_of_frame() {
 			line_counter_ = 0;
 			line_is_visible_ = true;
-			line_address_ = static_cast<uint16_t>((registers_[12] << 8) | registers_[13]);
+			line_address_ = uint16_t((registers_[12] << 8) | registers_[13]);
 			bus_state_.refresh_address = line_address_;
 		}
 

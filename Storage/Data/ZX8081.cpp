@@ -11,7 +11,7 @@
 using namespace Storage::Data::ZX8081;
 
 static uint16_t short_at(std::size_t address, const std::vector<uint8_t> &data) {
-	return static_cast<uint16_t>(data[address] | (data[address + 1] << 8));
+	return uint16_t(data[address] | (data[address + 1] << 8));
 }
 
 static std::shared_ptr<File> ZX80FileFromData(const std::vector<uint8_t> &data) {
@@ -27,7 +27,7 @@ static std::shared_ptr<File> ZX80FileFromData(const std::vector<uint8_t> &data) 
 	uint16_t display_address = short_at(0xc, data);
 
 	// check that the end of file is contained within the supplied data
-	if(static_cast<size_t>(end_of_file - 0x4000) > data.size()) return nullptr;
+	if(size_t(end_of_file - 0x4000) > data.size()) return nullptr;
 
 	// check for the proper ordering of buffers
 	if(vars > end_of_file) return nullptr;

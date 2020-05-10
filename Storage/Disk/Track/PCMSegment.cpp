@@ -60,12 +60,12 @@ void PCMSegment::rotate_right(size_t length) {
 	// the left, do the opposite.
 	std::vector<uint8_t> data_copy;
 	if(length > 0) {
-		data_copy.insert(data_copy.end(), data.end() - static_cast<off_t>(length), data.end());
-		data.erase(data.end() - static_cast<off_t>(length), data.end());
+		data_copy.insert(data_copy.end(), data.end() - off_t(length), data.end());
+		data.erase(data.end() - off_t(length), data.end());
 		data.insert(data.begin(), data_copy.begin(), data_copy.end());
 	} else {
-		data_copy.insert(data_copy.end(), data.begin(), data.begin() - static_cast<off_t>(length));
-		data.erase(data.begin(), data.begin() - static_cast<off_t>(length));
+		data_copy.insert(data_copy.end(), data.begin(), data.begin() - off_t(length));
+		data.erase(data.begin(), data.begin() - off_t(length));
 		data.insert(data.end(), data_copy.begin(), data_copy.end());
 	}
 }
@@ -106,7 +106,7 @@ Storage::Disk::Track::Event PCMSegmentEventSource::get_next_event() {
 }
 
 Storage::Time PCMSegmentEventSource::get_length() {
-	return segment_->length_of_a_bit * static_cast<unsigned int>(segment_->data.size());
+	return segment_->length_of_a_bit * unsigned(segment_->data.size());
 }
 
 Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start) {
@@ -136,7 +136,7 @@ Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start) {
 	bit_pointer_ = 1 + (relative_time / segment_->length_of_a_bit).get<unsigned int>();
 
 	// map up to the correct amount of time
-	return half_bit_length + segment_->length_of_a_bit * static_cast<unsigned int>(bit_pointer_ - 1);
+	return half_bit_length + segment_->length_of_a_bit * unsigned(bit_pointer_ - 1);
 }
 
 const PCMSegment &PCMSegmentEventSource::segment() const {

@@ -8,5 +8,5 @@
 
 #include "Cartridge.hpp"
 
-const size_t Storage::Cartridge::Cartridge::Segment::UnknownAddress = static_cast<size_t>(-1);
+const size_t Storage::Cartridge::Cartridge::Segment::UnknownAddress = size_t(-1);
 

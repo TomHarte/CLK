@@ -61,7 +61,7 @@ template <	class T,
 	flag_adjustment_history_ |= 1;
 
 #define set_parity(v)	\
-	parity_overflow_result_ = static_cast<uint8_t>(v^1);\
+	parity_overflow_result_ = uint8_t(v^1);\
 	parity_overflow_result_ ^= parity_overflow_result_ >> 4;\
 	parity_overflow_result_ ^= parity_overflow_result_ << 2;\
 	parity_overflow_result_ ^= parity_overflow_result_ >> 1;
@@ -91,13 +91,13 @@ template <	class T,
 				case MicroOp::DecodeOperation:
 					refresh_addr_ = ir_;
 					ir_.halves.low = (ir_.halves.low & 0x80) | ((ir_.halves.low + current_instruction_page_->r_step) & 0x7f);
-					pc_.full += pc_increment_ & static_cast<uint16_t>(halt_mask_);
+					pc_.full += pc_increment_ & uint16_t(halt_mask_);
 					scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 					flag_adjustment_history_ <<= 1;
 				break;
 				case MicroOp::DecodeOperationNoRChange:
 					refresh_addr_ = ir_;
-					pc_.full += pc_increment_ & static_cast<uint16_t>(halt_mask_);
+					pc_.full += pc_increment_ & uint16_t(halt_mask_);
 					scheduled_program_counter_ = current_instruction_page_->instructions[operation_ & halt_mask_];
 				break;
 
@@ -153,7 +153,7 @@ template <	class T,
 				break;
 
 				case MicroOp::CCF:
-					half_carry_result_ = static_cast<uint8_t>(carry_result_ << 4);
+					half_carry_result_ = uint8_t(carry_result_ << 4);
 					carry_result_ ^= Flag::Carry;
 					subtract_flag_ = 0;
 					if(flag_adjustment_history_&2) {
@@ -192,12 +192,12 @@ template <	class T,
 // MARK: - 8-bit arithmetic
 
 #define set_arithmetic_flags(sub, b53)	\
-	sign_result_ = zero_result_ = static_cast<uint8_t>(result);	\
-	carry_result_ = static_cast<uint8_t>(result >> 8);	\
-	half_carry_result_ = static_cast<uint8_t>(half_result);	\
-	parity_overflow_result_ = static_cast<uint8_t>(overflow >> 5);	\
+	sign_result_ = zero_result_ = uint8_t(result);	\
+	carry_result_ = uint8_t(result >> 8);	\
+	half_carry_result_ = uint8_t(half_result);	\
+	parity_overflow_result_ = uint8_t(overflow >> 5);	\
 	subtract_flag_ = sub;	\
-	bit53_result_ = static_cast<uint8_t>(b53);	\
+	bit53_result_ = uint8_t(b53);	\
 	set_did_compute_flags();
 
 				case MicroOp::CP8: {
@@ -222,7 +222,7 @@ template <	class T,
 					// different and the result is different again
 					const int overflow = (value^a_) & (result^a_);
 
-					a_ = static_cast<uint8_t>(result);
+					a_ = uint8_t(result);
 					set_arithmetic_flags(Flag::Subtract, result);
 				} break;
 
@@ -235,7 +235,7 @@ template <	class T,
 					// different and the result is different again
 					const int overflow = (value^a_) & (result^a_);
 
-					a_ = static_cast<uint8_t>(result);
+					a_ = uint8_t(result);
 					set_arithmetic_flags(Flag::Subtract, result);
 				} break;
 
@@ -248,7 +248,7 @@ template <	class T,
 					// the same and the result is different
 					const int overflow = ~(value^a_) & (result^a_);
 
-					a_ = static_cast<uint8_t>(result);
+					a_ = uint8_t(result);
 					set_arithmetic_flags(0, result);
 				} break;
 
@@ -261,7 +261,7 @@ template <	class T,
 					// the same and the result is different
 					const int overflow = ~(value^a_) & (result^a_);
 
-					a_ = static_cast<uint8_t>(result);
+					a_ = uint8_t(result);
 					set_arithmetic_flags(0, result);
 				} break;
 
@@ -272,12 +272,12 @@ template <	class T,
 					const int result = -a_;
 					const int halfResult = -(a_&0xf);
 
-					a_ = static_cast<uint8_t>(result);
+					a_ = uint8_t(result);
 					bit53_result_ = sign_result_ = zero_result_ = a_;
 					parity_overflow_result_ = overflow ? Flag::Overflow : 0;
 					subtract_flag_ = Flag::Subtract;
-					carry_result_ = static_cast<uint8_t>(result >> 8);
-					half_carry_result_ = static_cast<uint8_t>(halfResult);
+					carry_result_ = uint8_t(result >> 8);
+					half_carry_result_ = uint8_t(halfResult);
 					set_did_compute_flags();
 				} break;
 
@@ -290,12 +290,12 @@ template <	class T,
 					const int overflow = (value ^ result) & ~value;
 					const int half_result = (value&0xf) + 1;
 
-					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>(result);
+					*static_cast<uint8_t *>(operation->source) = uint8_t(result);
 
 					// sign, zero and 5 & 3 are set directly from the result
-					bit53_result_ = sign_result_ = zero_result_ = static_cast<uint8_t>(result);
-					half_carry_result_ = static_cast<uint8_t>(half_result);
-					parity_overflow_result_ = static_cast<uint8_t>(overflow >> 5);
+					bit53_result_ = sign_result_ = zero_result_ = uint8_t(result);
+					half_carry_result_ = uint8_t(half_result);
+					parity_overflow_result_ = uint8_t(overflow >> 5);
 					subtract_flag_ = 0;
 					set_did_compute_flags();
 				} break;
@@ -309,12 +309,12 @@ template <	class T,
 					const int overflow = (value ^ result) & value;
 					const int half_result = (value&0xf) - 1;
 
-					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>(result);
+					*static_cast<uint8_t *>(operation->source) = uint8_t(result);
 
 					// sign, zero and 5 & 3 are set directly from the result
-					bit53_result_ = sign_result_ = zero_result_ = static_cast<uint8_t>(result);
-					half_carry_result_ = static_cast<uint8_t>(half_result);
-					parity_overflow_result_ = static_cast<uint8_t>(overflow >> 5);
+					bit53_result_ = sign_result_ = zero_result_ = uint8_t(result);
+					half_carry_result_ = uint8_t(half_result);
+					parity_overflow_result_ = uint8_t(overflow >> 5);
 					subtract_flag_ = Flag::Subtract;
 					set_did_compute_flags();
 				} break;
@@ -371,13 +371,13 @@ template <	class T,
 					const int result = sourceValue + destinationValue;
 					const int halfResult = (sourceValue&0xfff) + (destinationValue&0xfff);
 
-					bit53_result_ = static_cast<uint8_t>(result >> 8);
-					carry_result_ = static_cast<uint8_t>(result >> 16);
-					half_carry_result_ = static_cast<uint8_t>(halfResult >> 8);
+					bit53_result_ = uint8_t(result >> 8);
+					carry_result_ = uint8_t(result >> 16);
+					half_carry_result_ = uint8_t(halfResult >> 8);
 					subtract_flag_ = 0;
 					set_did_compute_flags();
 
-					*static_cast<uint16_t *>(operation->destination) = static_cast<uint16_t>(result);
+					*static_cast<uint16_t *>(operation->destination) = uint16_t(result);
 					memptr_.full++;
 				} break;
 
@@ -391,15 +391,15 @@ template <	class T,
 					const int overflow = (result ^ destinationValue) & ~(destinationValue ^ sourceValue);
 
 					bit53_result_	=
-					sign_result_	= static_cast<uint8_t>(result >> 8);
-					zero_result_	= static_cast<uint8_t>(result | sign_result_);
+					sign_result_	= uint8_t(result >> 8);
+					zero_result_	= uint8_t(result | sign_result_);
 					subtract_flag_	= 0;
-					carry_result_	= static_cast<uint8_t>(result >> 16);
-					half_carry_result_ = static_cast<uint8_t>(halfResult >> 8);
-					parity_overflow_result_ = static_cast<uint8_t>(overflow >> 13);
+					carry_result_	= uint8_t(result >> 16);
+					half_carry_result_ = uint8_t(halfResult >> 8);
+					parity_overflow_result_ = uint8_t(overflow >> 13);
 					set_did_compute_flags();
 
-					*static_cast<uint16_t *>(operation->destination) = static_cast<uint16_t>(result);
+					*static_cast<uint16_t *>(operation->destination) = uint16_t(result);
 					memptr_.full++;
 				} break;
 
@@ -416,15 +416,15 @@ template <	class T,
 					const int overflow = (result ^ destinationValue) & (sourceValue ^ destinationValue);
 
 					bit53_result_	=
-					sign_result_	= static_cast<uint8_t>(result >> 8);
-					zero_result_	= static_cast<uint8_t>(result | sign_result_);
+					sign_result_	= uint8_t(result >> 8);
+					zero_result_	= uint8_t(result | sign_result_);
 					subtract_flag_	= Flag::Subtract;
-					carry_result_	= static_cast<uint8_t>(result >> 16);
-					half_carry_result_ = static_cast<uint8_t>(halfResult >> 8);
-					parity_overflow_result_ = static_cast<uint8_t>(overflow >> 13);
+					carry_result_	= uint8_t(result >> 16);
+					half_carry_result_ = uint8_t(halfResult >> 8);
+					parity_overflow_result_ = uint8_t(overflow >> 13);
 					set_did_compute_flags();
 
-					*static_cast<uint16_t *>(operation->destination) = static_cast<uint16_t>(result);
+					*static_cast<uint16_t *>(operation->destination) = uint16_t(result);
 					memptr_.full++;
 				} break;
 
@@ -490,7 +490,7 @@ template <	class T,
 	de_.full += dir;	\
 	hl_.full += dir;	\
 	const uint8_t sum = a_ + temp8_;	\
-	bit53_result_ = static_cast<uint8_t>((sum&0x8) | ((sum & 0x02) << 4));	\
+	bit53_result_ = uint8_t((sum&0x8) | ((sum & 0x02) << 4));	\
 	subtract_flag_ = 0;	\
 	half_carry_result_ = 0;	\
 	parity_overflow_result_ = bc_.full ? Flag::Parity : 0;	\
@@ -530,7 +530,7 @@ template <	class T,
 	sign_result_ = zero_result_ = result;	\
 	\
 	result -= (halfResult >> 4)&1;	\
-	bit53_result_ = static_cast<uint8_t>((result&0x8) | ((result&0x2) << 4));	\
+	bit53_result_ = uint8_t((result&0x8) | ((result&0x2) << 4));	\
 	set_did_compute_flags();
 
 				case MicroOp::CPDR: {
@@ -675,25 +675,25 @@ template <	class T,
 
 				case MicroOp::RLA: {
 					const uint8_t new_carry = a_ >> 7;
-					a_ = static_cast<uint8_t>((a_ << 1) | (carry_result_ & Flag::Carry));
+					a_ = uint8_t((a_ << 1) | (carry_result_ & Flag::Carry));
 					set_rotate_flags();
 				} break;
 
 				case MicroOp::RRA: {
 					const uint8_t new_carry = a_ & 1;
-					a_ = static_cast<uint8_t>((a_ >> 1) | (carry_result_ << 7));
+					a_ = uint8_t((a_ >> 1) | (carry_result_ << 7));
 					set_rotate_flags();
 				} break;
 
 				case MicroOp::RLCA: {
 					const uint8_t new_carry = a_ >> 7;
-					a_ = static_cast<uint8_t>((a_ << 1) | new_carry);
+					a_ = uint8_t((a_ << 1) | new_carry);
 					set_rotate_flags();
 				} break;
 
 				case MicroOp::RRCA: {
 					const uint8_t new_carry = a_ & 1;
-					a_ = static_cast<uint8_t>((a_ >> 1) | (new_carry << 7));
+					a_ = uint8_t((a_ >> 1) | (new_carry << 7));
 					set_rotate_flags();
 				} break;
 
@@ -708,51 +708,51 @@ template <	class T,
 
 				case MicroOp::RLC:
 					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) << 1) | carry_result_);
+					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) << 1) | carry_result_);
 					set_shift_flags();
 				break;
 
 				case MicroOp::RRC:
 					carry_result_ = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) >> 1) | (carry_result_ << 7));
+					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1) | (carry_result_ << 7));
 					set_shift_flags();
 				break;
 
 				case MicroOp::RL: {
 					const uint8_t next_carry = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) << 1) | (carry_result_ & Flag::Carry));
+					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) << 1) | (carry_result_ & Flag::Carry));
 					carry_result_ = next_carry;
 					set_shift_flags();
 				} break;
 
 				case MicroOp::RR: {
 					const uint8_t next_carry = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) >> 1) | (carry_result_ << 7));
+					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1) | (carry_result_ << 7));
 					carry_result_ = next_carry;
 					set_shift_flags();
 				} break;
 
 				case MicroOp::SLA:
 					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>(*static_cast<uint8_t *>(operation->source) << 1);
+					*static_cast<uint8_t *>(operation->source) = uint8_t(*static_cast<uint8_t *>(operation->source) << 1);
 					set_shift_flags();
 				break;
 
 				case MicroOp::SRA:
 					carry_result_ = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) >> 1) | (*static_cast<uint8_t *>(operation->source) & 0x80));
+					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1) | (*static_cast<uint8_t *>(operation->source) & 0x80));
 					set_shift_flags();
 				break;
 
 				case MicroOp::SLL:
 					carry_result_ = *static_cast<uint8_t *>(operation->source) >> 7;
-					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>(*static_cast<uint8_t *>(operation->source) << 1) | 1;
+					*static_cast<uint8_t *>(operation->source) = uint8_t(*static_cast<uint8_t *>(operation->source) << 1) | 1;
 					set_shift_flags();
 				break;
 
 				case MicroOp::SRL:
 					carry_result_ = *static_cast<uint8_t *>(operation->source);
-					*static_cast<uint8_t *>(operation->source) = static_cast<uint8_t>((*static_cast<uint8_t *>(operation->source) >> 1));
+					*static_cast<uint8_t *>(operation->source) = uint8_t((*static_cast<uint8_t *>(operation->source) >> 1));
 					set_shift_flags();
 				break;
 
@@ -769,7 +769,7 @@ template <	class T,
 					memptr_.full = hl_.full + 1;
 					const uint8_t low_nibble = a_ & 0xf;
 					a_ = (a_ & 0xf0) | (temp8_ & 0xf);
-					temp8_ = static_cast<uint8_t>((temp8_ >> 4) | (low_nibble << 4));
+					temp8_ = uint8_t((temp8_ >> 4) | (low_nibble << 4));
 					set_decimal_rotate_flags();
 				} break;
 
@@ -777,7 +777,7 @@ template <	class T,
 					memptr_.full = hl_.full + 1;
 					const uint8_t low_nibble = a_ & 0xf;
 					a_ = (a_ & 0xf0) | (temp8_ >> 4);
-					temp8_ = static_cast<uint8_t>((temp8_ << 4) | low_nibble);
+					temp8_ = uint8_t((temp8_ << 4) | low_nibble);
 					set_decimal_rotate_flags();
 				} break;
 
@@ -880,11 +880,11 @@ template <	class T,
 				break;
 
 				case MicroOp::CalculateIndexAddress:
-					memptr_.full = static_cast<uint16_t>(*static_cast<uint16_t *>(operation->source) + int8_t(temp8_));
+					memptr_.full = uint16_t(*static_cast<uint16_t *>(operation->source) + int8_t(temp8_));
 				break;
 
 				case MicroOp::SetAddrAMemptr:
-					memptr_.full = static_cast<uint16_t>(((*static_cast<uint16_t *>(operation->source) + 1)&0xff) + (a_ << 8));
+					memptr_.full = uint16_t(((*static_cast<uint16_t *>(operation->source) + 1)&0xff) + (a_ << 8));
 				break;
 
 				case MicroOp::IndexedPlaceHolder:

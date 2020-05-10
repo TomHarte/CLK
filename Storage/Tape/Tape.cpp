@@ -64,7 +64,7 @@ void Tape::set_offset(uint64_t offset) {
 
 // MARK: - Player
 
-ClockingHint::Preference TapePlayer::preferred_clocking() {
+ClockingHint::Preference TapePlayer::preferred_clocking() const {
 	return (!tape_ || tape_->is_at_end()) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 
@@ -80,7 +80,7 @@ std::shared_ptr<Storage::Tape::Tape> TapePlayer::get_tape() {
 }
 
 bool TapePlayer::has_tape() {
-	return static_cast<bool>(tape_);
+	return bool(tape_);
 }
 
 void TapePlayer::get_next_pulse() {
@@ -118,7 +118,7 @@ BinaryTapePlayer::BinaryTapePlayer(int input_clock_rate) :
 	TapePlayer(input_clock_rate)
 {}
 
-ClockingHint::Preference BinaryTapePlayer::preferred_clocking() {
+ClockingHint::Preference BinaryTapePlayer::preferred_clocking() const {
 	if(!motor_is_running_) return ClockingHint::Preference::None;
 	return TapePlayer::preferred_clocking();
 }

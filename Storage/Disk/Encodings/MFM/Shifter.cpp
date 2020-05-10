@@ -24,7 +24,7 @@ void Shifter::set_should_obey_syncs(bool should_obey_syncs) {
 }
 
 void Shifter::add_input_bit(int value) {
-	shift_register_ = (shift_register_ << 1) | static_cast<unsigned int>(value);
+	shift_register_ = (shift_register_ << 1) | unsigned(value);
 	++bits_since_token_;
 
 	token_ = Token::None;

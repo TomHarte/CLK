@@ -33,6 +33,6 @@ void Toggle::set_output(bool enabled) {
 	});
 }
 
-bool Toggle::get_output() {
+bool Toggle::get_output() const {
 	return is_enabled_;
 }

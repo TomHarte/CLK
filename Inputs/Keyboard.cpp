@@ -20,7 +20,7 @@ Keyboard::Keyboard(const std::set<Key> &observed_keys, const std::set<Key> &esse
 	observed_keys_(observed_keys), essential_modifiers_(essential_modifiers), is_exclusive_(false) {}
 
 bool Keyboard::set_key_pressed(Key key, char value, bool is_pressed) {
-	std::size_t key_offset = static_cast<std::size_t>(key);
+	const size_t key_offset = size_t(key);
 	if(key_offset >= key_states_.size()) {
 		key_states_.resize(key_offset+1, false);
 	}
@@ -44,7 +44,7 @@ void Keyboard::set_delegate(Delegate *delegate) {
 }
 
 bool Keyboard::get_key_state(Key key) {
-	std::size_t key_offset = static_cast<std::size_t>(key);
+	const size_t key_offset = size_t(key);
 	if(key_offset >= key_states_.size()) return false;
 	return key_states_[key_offset];
 }

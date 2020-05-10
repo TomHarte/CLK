@@ -50,7 +50,7 @@ class DMAController: public WD::WD1770::Delegate, public ClockingHint::Source, p
 		void set_activity_observer(Activity::Observer *observer);
 
 		// ClockingHint::Source.
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 
 	private:
 		HalfCycles running_time_;

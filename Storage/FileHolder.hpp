@@ -158,7 +158,7 @@ class FileHolder final {
 				uint8_t get_bits(int q) {
 					uint8_t result = 0;
 					while(q--) {
-						result = static_cast<uint8_t>((result << 1) | get_bit());
+						result = uint8_t((result << 1) | get_bit());
 					}
 					return result;
 				}
@@ -179,7 +179,7 @@ class FileHolder final {
 				uint8_t get_bit() {
 					if(!bits_remaining_) {
 						bits_remaining_ = 8;
-						next_value_ = static_cast<uint8_t>(fgetc(file_));
+						next_value_ = uint8_t(fgetc(file_));
 					}
 
 					uint8_t bit;

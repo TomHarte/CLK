@@ -24,9 +24,9 @@ struct Time {
 	unsigned int length, clock_rate;
 	Time() : length(0), clock_rate(1) {}
 	Time(unsigned int unsigned_int_value) : length(unsigned_int_value), clock_rate(1) {}
-	Time(int int_value) : Time(static_cast<unsigned int>(int_value)) {}
+	Time(int int_value) : Time(unsigned(int_value)) {}
 	Time(unsigned int length, unsigned int clock_rate) : length(length), clock_rate(clock_rate) {}
-	Time(int length, int clock_rate) : Time(static_cast<unsigned int>(length), static_cast<unsigned int>(clock_rate)) {}
+	Time(int length, int clock_rate) : Time(unsigned(length), unsigned(clock_rate)) {}
 	Time(uint64_t length, uint64_t clock_rate) {
 		install_result(length, clock_rate);
 	}
@@ -48,27 +48,27 @@ struct Time {
 		@returns the floating point conversion of this @c Time. This will often be less precise.
 	*/
 	template <typename T> T get() const {
-		return static_cast<T>(length) / static_cast<T>(clock_rate);
+		return T(length) / T(clock_rate);
 	}
 
 	inline bool operator < (const Time &other) const {
-		return (uint64_t)other.clock_rate * (uint64_t)length < (uint64_t)clock_rate * (uint64_t)other.length;
+		return uint64_t(other.clock_rate) * uint64_t(length) < uint64_t(clock_rate) * uint64_t(other.length);
 	}
 
 	inline bool operator <= (const Time &other) const {
-		return (uint64_t)other.clock_rate * (uint64_t)length <= (uint64_t)clock_rate * (uint64_t)other.length;
+		return uint64_t(other.clock_rate) * uint64_t(length) <= uint64_t(clock_rate) * uint64_t(other.length);
 	}
 
 	inline bool operator > (const Time &other) const {
-		return (uint64_t)other.clock_rate * (uint64_t)length > (uint64_t)clock_rate * (uint64_t)other.length;
+		return uint64_t(other.clock_rate) * uint64_t(length) > uint64_t(clock_rate) * uint64_t(other.length);
 	}
 
 	inline bool operator >= (const Time &other) const {
-		return (uint64_t)other.clock_rate * (uint64_t)length >= (uint64_t)clock_rate * (uint64_t)other.length;
+		return uint64_t(other.clock_rate) * uint64_t(length) >= uint64_t(clock_rate) * uint64_t(other.length);
 	}
 
 	inline bool operator == (const Time &other) const {
-		return (uint64_t)other.clock_rate * (uint64_t)length == (uint64_t)clock_rate * (uint64_t)other.length;
+		return uint64_t(other.clock_rate) * uint64_t(length) == uint64_t(clock_rate) * uint64_t(other.length);
 	}
 
 	inline Time operator + (const Time &other) const {
@@ -77,11 +77,11 @@ struct Time {
 		uint64_t result_length;
 		uint64_t result_clock_rate;
 		if(clock_rate == other.clock_rate) {
-			result_length = (uint64_t)length + (uint64_t)other.length;
+			result_length = uint64_t(length) + uint64_t(other.length);
 			result_clock_rate = clock_rate;
 		} else {
-			result_length = (uint64_t)length * (uint64_t)other.clock_rate + (uint64_t)other.length * (uint64_t)clock_rate;
-			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+			result_length = uint64_t(length) * uint64_t(other.clock_rate) + uint64_t(other.length) * uint64_t(clock_rate);
+			result_clock_rate = uint64_t(clock_rate) * uint64_t(other.clock_rate);
 		}
 		return Time(result_length, result_clock_rate);
 	}
@@ -96,11 +96,11 @@ struct Time {
 		uint64_t result_length;
 		uint64_t result_clock_rate;
 		if(clock_rate == other.clock_rate) {
-			result_length = (uint64_t)length + (uint64_t)other.length;
-			result_clock_rate = (uint64_t)clock_rate;
+			result_length = uint64_t(length) + uint64_t(other.length);
+			result_clock_rate = uint64_t(clock_rate);
 		} else {
-			result_length = (uint64_t)length * (uint64_t)other.clock_rate + (uint64_t)other.length * (uint64_t)clock_rate;
-			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+			result_length = uint64_t(length) * uint64_t(other.clock_rate) + uint64_t(other.length) * uint64_t(clock_rate);
+			result_clock_rate = uint64_t(clock_rate) * uint64_t(other.clock_rate);
 		}
 		install_result(result_length, result_clock_rate);
 		return *this;
@@ -112,11 +112,11 @@ struct Time {
 		uint64_t result_length;
 		uint64_t result_clock_rate;
 		if(clock_rate == other.clock_rate) {
-			result_length = (uint64_t)length - (uint64_t)other.length;
+			result_length = uint64_t(length) - uint64_t(other.length);
 			result_clock_rate = clock_rate;
 		} else {
-			result_length = (uint64_t)length * (uint64_t)other.clock_rate - (uint64_t)other.length * (uint64_t)clock_rate;
-			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+			result_length = uint64_t(length) * uint64_t(other.clock_rate) - uint64_t(other.length) * uint64_t(clock_rate);
+			result_clock_rate = uint64_t(clock_rate) * uint64_t(other.clock_rate);
 		}
 		return Time(result_length, result_clock_rate);
 	}
@@ -127,64 +127,64 @@ struct Time {
 		uint64_t result_length;
 		uint64_t result_clock_rate;
 		if(clock_rate == other.clock_rate) {
-			result_length = (uint64_t)length - (uint64_t)other.length;
-			result_clock_rate = (uint64_t)clock_rate;
+			result_length = uint64_t(length) - uint64_t(other.length);
+			result_clock_rate = uint64_t(clock_rate);
 		} else {
-			result_length = (uint64_t)length * (uint64_t)other.clock_rate - (uint64_t)other.length * (uint64_t)clock_rate;
-			result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+			result_length = uint64_t(length) * uint64_t(other.clock_rate) - uint64_t(other.length) * uint64_t(clock_rate);
+			result_clock_rate = uint64_t(clock_rate) * uint64_t(other.clock_rate);
 		}
 		install_result(result_length, result_clock_rate);
 		return *this;
 	}
 
 	inline Time operator * (const Time &other) const {
-		uint64_t result_length = (uint64_t)length * (uint64_t)other.length;
-		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+		uint64_t result_length = uint64_t(length) * uint64_t(other.length);
+		uint64_t result_clock_rate = uint64_t(clock_rate) * uint64_t(other.clock_rate);
 		return Time(result_length, result_clock_rate);
 	}
 
 	inline Time &operator *= (const Time &other) {
-		uint64_t result_length = (uint64_t)length * (uint64_t)other.length;
-		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.clock_rate;
+		uint64_t result_length = uint64_t(length) * uint64_t(other.length);
+		uint64_t result_clock_rate = uint64_t(clock_rate) * uint64_t(other.clock_rate);
 		install_result(result_length, result_clock_rate);
 		return *this;
 	}
 
 	inline Time operator * (unsigned int multiplier) const {
-		uint64_t result_length = (uint64_t)length * (uint64_t)multiplier;
-		uint64_t result_clock_rate = (uint64_t)clock_rate;
+		uint64_t result_length = uint64_t(length) * uint64_t(multiplier);
+		uint64_t result_clock_rate = uint64_t(clock_rate);
 		return Time(result_length, result_clock_rate);
 	}
 
 	inline Time &operator *= (unsigned int multiplier) {
-		uint64_t result_length = (uint64_t)length * (uint64_t)multiplier;
-		uint64_t result_clock_rate = (uint64_t)clock_rate;
+		uint64_t result_length = uint64_t(length) * uint64_t(multiplier);
+		uint64_t result_clock_rate = uint64_t(clock_rate);
 		install_result(result_length, result_clock_rate);
 		return *this;
 	}
 
 	inline Time operator / (const Time &other) const {
-		uint64_t result_length = (uint64_t)length * (uint64_t)other.clock_rate;
-		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.length;
+		uint64_t result_length = uint64_t(length) * uint64_t(other.clock_rate);
+		uint64_t result_clock_rate = uint64_t(clock_rate) * uint64_t(other.length);
 		return Time(result_length, result_clock_rate);
 	}
 
 	inline Time &operator /= (const Time &other) {
-		uint64_t result_length = (uint64_t)length * (uint64_t)other.clock_rate;
-		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)other.length;
+		uint64_t result_length = uint64_t(length) * uint64_t(other.clock_rate);
+		uint64_t result_clock_rate = uint64_t(clock_rate) * uint64_t(other.length);
 		install_result(result_length, result_clock_rate);
 		return *this;
 	}
 
 	inline Time operator / (unsigned int divisor) const {
-		uint64_t result_length = (uint64_t)length;
-		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)divisor;
+		uint64_t result_length = uint64_t(length);
+		uint64_t result_clock_rate = uint64_t(clock_rate) * uint64_t(divisor);
 		return Time(result_length, result_clock_rate);
 	}
 
 	inline Time &operator /= (unsigned int divisor) {
-		uint64_t result_length = (uint64_t)length;
-		uint64_t result_clock_rate = (uint64_t)clock_rate * (uint64_t)divisor;
+		uint64_t result_length = uint64_t(length);
+		uint64_t result_clock_rate = uint64_t(clock_rate) * uint64_t(divisor);
 		install_result(result_length, result_clock_rate);
 		return *this;
 	}
@@ -206,8 +206,8 @@ struct Time {
 	private:
 		inline void install_result(uint64_t long_length, uint64_t long_clock_rate) {
 			if(long_length <= std::numeric_limits<unsigned int>::max() && long_clock_rate <= std::numeric_limits<unsigned int>::max()) {
-				length = static_cast<unsigned int>(long_length);
-				clock_rate = static_cast<unsigned int>(long_clock_rate);
+				length = unsigned(long_length);
+				clock_rate = unsigned(long_clock_rate);
 				return;
 			}
 
@@ -243,8 +243,8 @@ struct Time {
 			}
 
 			if(long_length <= std::numeric_limits<unsigned int>::max() && long_clock_rate <= std::numeric_limits<unsigned int>::max()) {
-				length = static_cast<unsigned int>(long_length);
-				clock_rate = static_cast<unsigned int>(long_clock_rate);
+				length = unsigned(long_length);
+				clock_rate = unsigned(long_clock_rate);
 			} else {
 				length = std::numeric_limits<unsigned int>::max();
 				clock_rate = 1u;
