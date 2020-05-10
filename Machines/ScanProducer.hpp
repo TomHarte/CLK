@@ -10,7 +10,7 @@
 #define ScanProducer_hpp
 
 #include "../Outputs/ScanTarget.hpp"
-#include "../Configurable/StandardOptions.hpp"
+#include "../Configurable/Configurable.hpp"
 
 #include "TimedMachine.hpp"
 

@@ -251,7 +251,7 @@ void DMAController::set_component_prefers_clocking(ClockingHint::Source *, Clock
 	update_clocking_observer();
 }
 
-ClockingHint::Preference DMAController::preferred_clocking() {
+ClockingHint::Preference DMAController::preferred_clocking() const {
 	return (fdc_.preferred_clocking() == ClockingHint::Preference::None) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
 }
 

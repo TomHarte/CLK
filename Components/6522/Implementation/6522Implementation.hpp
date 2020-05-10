@@ -383,9 +383,9 @@ template <typename T> void MOS6522<T>::run_for(const Cycles cycles) {
 }
 
 /*! @returns @c true if the IRQ line is currently active; @c false otherwise. */
-template <typename T> bool MOS6522<T>::get_interrupt_line() {
+template <typename T> bool MOS6522<T>::get_interrupt_line() const {
 	uint8_t interrupt_status = registers_.interrupt_flags & registers_.interrupt_enable & 0x7f;
-	return !!interrupt_status;
+	return interrupt_status;
 }
 
 template <typename T> void MOS6522<T>::evaluate_cb2_output() {

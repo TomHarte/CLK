@@ -20,7 +20,7 @@
 
 using namespace Motorola::MFP68901;
 
-ClockingHint::Preference MFP68901::preferred_clocking() {
+ClockingHint::Preference MFP68901::preferred_clocking() const {
 	// Rule applied: if any timer is actively running and permitted to produce an
 	// interrupt, request real-time running.
 	return

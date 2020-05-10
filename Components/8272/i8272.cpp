@@ -82,7 +82,7 @@ i8272::i8272(BusHandler &bus_handler, Cycles clock_rate) :
 	posit_event(static_cast<int>(Event8272::CommandByte));
 }
 
-ClockingHint::Preference i8272::preferred_clocking() {
+ClockingHint::Preference i8272::preferred_clocking() const {
 	const auto mfm_controller_preferred_clocking = Storage::Disk::MFMController::preferred_clocking();
 	if(mfm_controller_preferred_clocking != ClockingHint::Preference::None) return mfm_controller_preferred_clocking;
 	return is_sleeping_ ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;

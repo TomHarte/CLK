@@ -142,7 +142,7 @@ template <class T> class MOS6532 {
 			}
 		}
 
-		inline bool get_inerrupt_line() {
+		inline bool get_inerrupt_line() const {
 			return interrupt_line_;
 		}
 

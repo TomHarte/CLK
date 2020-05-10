@@ -112,7 +112,7 @@ template <class T> class MOS6522: public MOS6522Storage {
 		void run_for(const Cycles cycles);
 
 		/// @returns @c true if the IRQ line is currently active; @c false otherwise.
-		bool get_interrupt_line();
+		bool get_interrupt_line() const;
 
 		/// Updates the port handler to the current time and then requests that it flush.
 		void flush();

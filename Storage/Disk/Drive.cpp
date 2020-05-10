@@ -71,7 +71,7 @@ bool Drive::has_disk() const {
 	return has_disk_;
 }
 
-ClockingHint::Preference Drive::preferred_clocking() {
+ClockingHint::Preference Drive::preferred_clocking() const {
 	return (!has_disk_ || (time_until_motor_transition == Cycles(0) && !disk_is_rotating_)) ? ClockingHint::Preference::None : ClockingHint::Preference::JustInTime;
 }
 

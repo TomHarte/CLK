@@ -93,7 +93,7 @@ void CRT::set_display_type(Outputs::Display::DisplayType display_type) {
 	scan_target_->set_modals(scan_target_modals_);
 }
 
-Outputs::Display::DisplayType CRT::get_display_type() {
+Outputs::Display::DisplayType CRT::get_display_type() const {
 	return scan_target_modals_.display_type;
 }
 

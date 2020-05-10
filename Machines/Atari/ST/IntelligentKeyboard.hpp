@@ -58,7 +58,7 @@ class IntelligentKeyboard:
 	public Inputs::Mouse {
 	public:
 		IntelligentKeyboard(Serial::Line &input, Serial::Line &output);
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 		void run_for(HalfCycles duration);
 
 		void set_key_state(Key key, bool is_pressed);

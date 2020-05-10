@@ -225,7 +225,7 @@ void DiskII::set_component_prefers_clocking(ClockingHint::Source *component, Clo
 	decide_clocking_preference();
 }
 
-ClockingHint::Preference DiskII::preferred_clocking() {
+ClockingHint::Preference DiskII::preferred_clocking() const {
 	return clocking_preference_;
 }
 
