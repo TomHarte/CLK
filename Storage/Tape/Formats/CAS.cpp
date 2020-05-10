@@ -256,7 +256,7 @@ Tape::Pulse CAS::virtual_get_next_pulse() {
 	}
 
 	// A '1' is encoded with twice the frequency of a '0'.
-	pulse.length.length = static_cast<unsigned int>(2 - bit);
+	pulse.length.length = unsigned(2 - bit);
 	pulse.type = (distance_into_bit_ & 1) ? Pulse::Type::High : Pulse::Type::Low;
 
 	return pulse;

@@ -68,7 +68,7 @@ class i8272 : public Storage::Disk::MFMController {
 			NoLongerReady = (1 << 6)
 		};
 		void posit_event(int type) final;
-		int interesting_event_mask_ = static_cast<int>(Event8272::CommandByte);
+		int interesting_event_mask_ = int(Event8272::CommandByte);
 		int resume_point_ = 0;
 		bool is_access_command_ = false;
 

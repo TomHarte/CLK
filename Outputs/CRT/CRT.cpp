@@ -130,7 +130,7 @@ void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displ
 
 void CRT::set_composite_function_type(CompositeSourceType type, float offset_of_first_sample) {
 	if(type == DiscreteFourSamplesPerCycle) {
-		colour_burst_phase_adjustment_ = static_cast<uint8_t>(offset_of_first_sample * 256.0f) & 63;
+		colour_burst_phase_adjustment_ = uint8_t(offset_of_first_sample * 256.0f) & 63;
 	} else {
 		colour_burst_phase_adjustment_ = 0xff;
 	}
@@ -417,12 +417,12 @@ void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, uint8_t ampli
 
 void CRT::output_default_colour_burst(int number_of_cycles, uint8_t amplitude) {
 	// TODO: avoid applying a rounding error here?
-	output_colour_burst(number_of_cycles, static_cast<uint8_t>((phase_numerator_ * 256) / phase_denominator_), amplitude);
+	output_colour_burst(number_of_cycles, uint8_t((phase_numerator_ * 256) / phase_denominator_), amplitude);
 }
 
 void CRT::set_immediate_default_phase(float phase) {
 	phase = fmodf(phase, 1.0f);
-	phase_numerator_ = static_cast<int>(phase * static_cast<float>(phase_denominator_));
+	phase_numerator_ = int(phase * float(phase_denominator_));
 }
 
 void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
@@ -453,11 +453,11 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 	const int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
 
 	// make sure that the requested range is visible
-	if(static_cast<int>(first_cycle_after_sync) < horizontal_retrace_period) first_cycle_after_sync = static_cast<int>(horizontal_retrace_period);
-	if(static_cast<int>(first_cycle_after_sync + number_of_cycles) > horizontal_scan_period) number_of_cycles = static_cast<int>(horizontal_scan_period - static_cast<int>(first_cycle_after_sync));
+	if(int(first_cycle_after_sync) < horizontal_retrace_period) first_cycle_after_sync = int(horizontal_retrace_period);
+	if(int(first_cycle_after_sync + number_of_cycles) > horizontal_scan_period) number_of_cycles = int(horizontal_scan_period - int(first_cycle_after_sync));
 
-	float start_x = static_cast<float>(static_cast<int>(first_cycle_after_sync) - horizontal_retrace_period) / static_cast<float>(horizontal_scan_period);
-	float width = static_cast<float>(number_of_cycles) / static_cast<float>(horizontal_scan_period);
+	float start_x = float(int(first_cycle_after_sync) - horizontal_retrace_period) / float(horizontal_scan_period);
+	float width = float(number_of_cycles) / float(horizontal_scan_period);
 
 	// determine prima facie y extent
 	const int vertical_period = vertical_flywheel_->get_standard_period();
@@ -465,13 +465,13 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 	const int vertical_retrace_period = vertical_period - vertical_scan_period;
 
 	// make sure that the requested range is visible
-//	if(static_cast<int>(first_line_after_sync) * horizontal_period < vertical_retrace_period)
+//	if(int(first_line_after_sync) * horizontal_period < vertical_retrace_period)
 //		first_line_after_sync = (vertical_retrace_period + horizontal_period - 1) / horizontal_period;
 //	if((first_line_after_sync + number_of_lines) * horizontal_period > vertical_scan_period)
-//		number_of_lines = static_cast<int>(horizontal_scan_period - static_cast<int>(first_cycle_after_sync));
+//		number_of_lines = int(horizontal_scan_period - int(first_cycle_after_sync));
 
-	float start_y = static_cast<float>((static_cast<int>(first_line_after_sync) * horizontal_period) - vertical_retrace_period) / static_cast<float>(vertical_scan_period);
-	float height = static_cast<float>(static_cast<int>(number_of_lines) * horizontal_period) / vertical_scan_period;
+	float start_y = float((int(first_line_after_sync) * horizontal_period) - vertical_retrace_period) / float(vertical_scan_period);
+	float height = float(int(number_of_lines) * horizontal_period) / vertical_scan_period;
 
 	// adjust to ensure aspect ratio is correct
 	const float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);

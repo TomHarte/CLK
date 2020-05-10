@@ -59,7 +59,7 @@ class Line {
 		void reset_writing();
 
 		/// @returns The instantaneous level of this line.
-		bool read();
+		bool read() const;
 
 		struct ReadDelegate {
 			virtual bool serial_line_did_produce_bit(Line *line, int bit) = 0;

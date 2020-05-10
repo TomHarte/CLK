@@ -161,8 +161,8 @@ class ConcreteMachine:
 			ROM slot = ROM::Slot12;
 			for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : media.cartridges) {
 				const ROM first_slot_tried = slot;
-				while(rom_inserted_[static_cast<int>(slot)]) {
-					slot = static_cast<ROM>((static_cast<int>(slot) + 1) & 15);
+				while(rom_inserted_[int(slot)]) {
+					slot = ROM((int(slot) + 1) & 15);
 					if(slot == first_slot_tried) return false;
 				}
 				set_rom(slot, cartridge->get_segments().front().data, false);
@@ -313,7 +313,7 @@ class ConcreteMachine:
 																						// allow the PC read to return an RTS.
 									)
 								) {
-									uint8_t service_call = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
+									uint8_t service_call = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
 									if(address == 0xf0a8) {
 										if(!ram_[0x247] && service_call == 14) {
 											tape_.set_delegate(nullptr);
@@ -354,7 +354,7 @@ class ConcreteMachine:
 									}
 								}
 								if(basic_is_active_) {
-									*value &= roms_[static_cast<int>(ROM::BASIC)][address & 16383];
+									*value &= roms_[int(ROM::BASIC)][address & 16383];
 								}
 							} else if(rom_write_masks_[active_rom_]) {
 								roms_[active_rom_][address & 16383] = *value;
@@ -388,7 +388,7 @@ class ConcreteMachine:
 				}
 			}
 
-			return Cycles(static_cast<int>(cycles));
+			return Cycles(int(cycles));
 		}
 
 		forceinline void flush() {
@@ -503,8 +503,8 @@ class ConcreteMachine:
 
 				case ROM::OS:		target = os_;			break;
 				default:
-					target = roms_[static_cast<int>(slot)];
-					rom_write_masks_[static_cast<int>(slot)] = is_writeable;
+					target = roms_[int(slot)];
+					rom_write_masks_[int(slot)] = is_writeable;
 				break;
 			}
 
@@ -516,8 +516,8 @@ class ConcreteMachine:
 				rom_ptr += size_to_copy;
 			}
 
-			if(static_cast<int>(slot) < 16)
-				rom_inserted_[static_cast<int>(slot)] = true;
+			if(int(slot) < 16)
+				rom_inserted_[int(slot)] = true;
 		}
 
 		// MARK: - Work deferral updates.
@@ -566,7 +566,7 @@ class ConcreteMachine:
 		std::vector<uint8_t> dfs_, adfs1_, adfs2_;
 
 		// Paging
-		int active_rom_ = static_cast<int>(ROM::Slot0);
+		int active_rom_ = int(ROM::Slot0);
 		bool keyboard_is_active_ = false;
 		bool basic_is_active_ = false;
 

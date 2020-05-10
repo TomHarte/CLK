@@ -97,8 +97,8 @@ std::unique_ptr<Header> Parser::get_next_header_body(const std::shared_ptr<Stora
 
 	// parse if this is not pure data
 	if(header->type != Header::DataBlock) {
-		header->starting_address	= static_cast<uint16_t>(header->data[0] | (header->data[1] << 8));
-		header->ending_address		= static_cast<uint16_t>(header->data[2] | (header->data[3] << 8));
+		header->starting_address	= uint16_t(header->data[0] | (header->data[1] << 8));
+		header->ending_address		= uint16_t(header->data[2] | (header->data[3] << 8));
 
 		for(std::size_t c = 0; c < 16; c++) {
 			header->raw_name.push_back(header->data[4 + c]);
@@ -221,8 +221,8 @@ uint8_t Parser::get_next_byte_contents(const std::shared_ptr<Storage::Tape::Tape
 	if((check&1) == (byte_plus_parity >> 8))
 		set_error_flag();
 
-	add_parity_byte(static_cast<uint8_t>(byte_plus_parity));
-	return static_cast<uint8_t>(byte_plus_parity);
+	add_parity_byte(uint8_t(byte_plus_parity));
+	return uint8_t(byte_plus_parity);
 }
 
 /*!

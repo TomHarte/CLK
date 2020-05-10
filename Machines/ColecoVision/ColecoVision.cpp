@@ -122,7 +122,7 @@ class ConcreteMachine:
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			mixer_(sn76489_, ay_),
 			speaker_(mixer_) {
-			speaker_.set_input_rate(3579545.0f / static_cast<float>(sn76489_divider));
+			speaker_.set_input_rate(3579545.0f / float(sn76489_divider));
 			set_clock_rate(3579545);
 			joysticks_.emplace_back(new Joystick);
 			joysticks_.emplace_back(new Joystick);
@@ -143,7 +143,7 @@ class ConcreteMachine:
 				if(cartridge_.size() >= 32768)
 					cartridge_address_limit_ = 0xffff;
 				else
-					cartridge_address_limit_ = static_cast<uint16_t>(0x8000 + cartridge_.size() - 1);
+					cartridge_address_limit_ = uint16_t(0x8000 + cartridge_.size() - 1);
 
 				if(cartridge_.size() > 32768) {
 					// Ensure the cartrige is a multiple of 16kb in size, as that won't
@@ -381,7 +381,7 @@ class ConcreteMachine:
 
 	private:
 		inline void page_megacart(uint16_t address) {
-			const std::size_t selected_start = (static_cast<std::size_t>(address&63) << 14) % cartridge_.size();
+			const std::size_t selected_start = (size_t(address&63) << 14) % cartridge_.size();
 			cartridge_pages_[1] = &cartridge_[selected_start];
 		}
 		inline void update_audio() {

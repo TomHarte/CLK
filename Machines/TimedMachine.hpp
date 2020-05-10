@@ -30,7 +30,7 @@ class TimedMachine {
 		virtual void run_for(Time::Seconds duration) {
 			const double cycles = (duration * clock_rate_ * speed_multiplier_) + clock_conversion_error_;
 			clock_conversion_error_ = std::fmod(cycles, 1.0);
-			run_for(Cycles(static_cast<int>(cycles)));
+			run_for(Cycles(int(cycles)));
 		}
 
 		/*!

@@ -36,7 +36,7 @@ Storage::Disk::PCMSegment sync(int length, int bit_size) {
 	Storage::Disk::PCMSegment segment;
 
 	// Reserve sufficient storage.
-	segment.data.reserve(static_cast<size_t>(length * bit_size));
+	segment.data.reserve(size_t(length * bit_size));
 
 	// Write patters of 0xff padded with 0s to the selected bit size.
 	while(length--) {
@@ -75,8 +75,8 @@ Storage::Disk::PCMSegment AppleGCR::AppleII::header(uint8_t volume, uint8_t trac
 	data[2] = header_prologue[2];
 
 #define WriteFM(index, value)	\
-	data[index+0] = static_cast<uint8_t>(((value) >> 1) | 0xaa);	\
-	data[index+1] = static_cast<uint8_t>((value) | 0xaa);	\
+	data[index+0] = uint8_t(((value) >> 1) | 0xaa);	\
+	data[index+1] = uint8_t((value) | 0xaa);	\
 
 	WriteFM(3, volume);
 	WriteFM(5, track);
@@ -141,19 +141,19 @@ Storage::Disk::PCMSegment AppleGCR::AppleII::six_and_two_data(const uint8_t *sou
 	const uint8_t bit_reverse[] = {0, 2, 1, 3};
 	for(std::size_t c = 0; c < 84; ++c) {
 		data[3 + c] =
-			static_cast<uint8_t>(
+			uint8_t(
 				bit_reverse[source[c]&3] |
 				(bit_reverse[source[c + 86]&3] << 2) |
 				(bit_reverse[source[c + 172]&3] << 4)
 			);
 	}
 	data[87] =
-			static_cast<uint8_t>(
+			uint8_t(
 				(bit_reverse[source[84]&3] << 0) |
 				(bit_reverse[source[170]&3] << 2)
 			);
 	data[88] =
-			static_cast<uint8_t>(
+			uint8_t(
 				(bit_reverse[source[85]&3] << 0) |
 				(bit_reverse[source[171]&3] << 2)
 			);

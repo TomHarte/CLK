@@ -123,7 +123,7 @@ class TapePlayer: public Storage::Tape::BinaryTapePlayer {
 			@returns The next byte from the tape.
 		*/
 		uint8_t get_next_byte(bool use_fast_encoding) {
-			return static_cast<uint8_t>(parser_.get_next_byte(get_tape(), use_fast_encoding));
+			return uint8_t(parser_.get_next_byte(get_tape(), use_fast_encoding));
 		}
 
 	private:
@@ -475,7 +475,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 								} else {
 									flush_diskii();
 									const int disk_value = diskii_.read_address(address);
-									if(isReadOperation(operation) && disk_value != diskii_.DidNotLoad) *value = static_cast<uint8_t>(disk_value);
+									if(isReadOperation(operation) && disk_value != diskii_.DidNotLoad) *value = uint8_t(disk_value);
 								}
 							break;
 						}

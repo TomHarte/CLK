@@ -18,11 +18,11 @@ MFMController::MFMController(Cycles clock_rate) :
 }
 
 void MFMController::process_index_hole() {
-	posit_event(static_cast<int>(Event::IndexHole));
+	posit_event(int(Event::IndexHole));
 }
 
 void MFMController::process_write_completed() {
-	posit_event(static_cast<int>(Event::DataWritten));
+	posit_event(int(Event::DataWritten));
 }
 
 void MFMController::set_is_double_density(bool is_double_density) {

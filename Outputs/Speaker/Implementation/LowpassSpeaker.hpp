@@ -228,7 +228,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 				uint64_t(filter_parameters.output_cycles_per_second));
 
 			filter_ = std::make_unique<SignalProcessing::FIRFilter>(
-				static_cast<unsigned int>(number_of_taps),
+				unsigned(number_of_taps),
 				filter_parameters.input_cycles_per_second,
 				0.0,
 				high_pass_frequency,

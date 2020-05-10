@@ -352,9 +352,9 @@ class Base {
 					if(master_system_.cram_is_selected) {
 						// Adjust the palette.
 						master_system_.colour_ram[ram_pointer_ & 0x1f] = palette_pack(
-							static_cast<uint8_t>(((read_ahead_buffer_ >> 0) & 3) * 255 / 3),
-							static_cast<uint8_t>(((read_ahead_buffer_ >> 2) & 3) * 255 / 3),
-							static_cast<uint8_t>(((read_ahead_buffer_ >> 4) & 3) * 255 / 3)
+							uint8_t(((read_ahead_buffer_ >> 0) & 3) * 255 / 3),
+							uint8_t(((read_ahead_buffer_ >> 2) & 3) * 255 / 3),
+							uint8_t(((read_ahead_buffer_ >> 4) & 3) * 255 / 3)
 						);
 
 						// Schedule a CRAM dot; this is scheduled for wherever it should appear
@@ -518,7 +518,7 @@ class Base {
 	fetch_columns_4(location+12, column+4);
 
 			LineBuffer &line_buffer = line_buffers_[write_pointer_.row];
-			const size_t row_base = pattern_name_address_ & (0x3c00 | static_cast<size_t>(write_pointer_.row >> 3) * 40);
+			const size_t row_base = pattern_name_address_ & (0x3c00 | size_t(write_pointer_.row >> 3) * 40);
 			const size_t row_offset = pattern_generator_table_address_ & (0x3800 | (write_pointer_.row & 7));
 
 			switch(start) {
@@ -731,7 +731,7 @@ class Base {
 		const size_t scrolled_column = (column - horizontal_offset) & 0x1f;\
 		const size_t address = row_info.pattern_address_base + (scrolled_column << 1);	\
 		line_buffer.names[column].flags = ram_[address+1];	\
-		line_buffer.names[column].offset = static_cast<size_t>(	\
+		line_buffer.names[column].offset = size_t(	\
 			(((line_buffer.names[column].flags&1) << 8) | ram_[address]) << 5	\
 		) + row_info.sub_row[(line_buffer.names[column].flags&4) >> 2];	\
 	}
@@ -785,7 +785,7 @@ class Base {
 			};
 			const RowInfo scrolled_row_info = {
 				(pattern_name_address & size_t(((scrolled_row & ~7) << 3) | 0x3800)) - pattern_name_offset,
-				{static_cast<size_t>((scrolled_row & 7) << 2), 28 ^ static_cast<size_t>((scrolled_row & 7) << 2)}
+				{size_t((scrolled_row & 7) << 2), 28 ^ size_t((scrolled_row & 7) << 2)}
 			};
 			RowInfo row_info;
 			if(master_system_.vertical_scroll_lock) {

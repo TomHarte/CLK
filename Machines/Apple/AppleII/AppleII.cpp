@@ -331,7 +331,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			// The speaker, however, should think it is clocked at half the master clock, per a general
 			// decision to sample it at seven times the CPU clock (plus stretches).
-			speaker_.set_input_rate(static_cast<float>(master_clock / (2.0 * static_cast<float>(audio_divider))));
+			speaker_.set_input_rate(float(master_clock / (2.0 * float(audio_divider))));
 
 			// Apply a 6Khz low-pass filter. This was picked by ear and by an attempt to understand the
 			// Apple II schematic but, well, I don't claim much insight on the latter. This is definitely
@@ -387,7 +387,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			rom_ = std::move(*roms[1]);
 			if(rom_.size() > rom_size) {
-				rom_.erase(rom_.begin(), rom_.end() - static_cast<off_t>(rom_size));
+				rom_.erase(rom_.begin(), rom_.end() - off_t(rom_size));
 			}
 
 			video_.set_character_rom(*roms[0]);
@@ -735,7 +735,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					// If the selected card is a just-in-time card, update the just-in-time cards,
 					// and then message it specifically.
 					const bool is_read = isReadOperation(operation);
-					Apple::II::Card *const target = cards_[static_cast<size_t>(card_number)].get();
+					Apple::II::Card *const target = cards_[size_t(card_number)].get();
 					if(target && !is_every_cycle_card(target)) {
 						update_just_in_time_cards();
 						target->perform_bus_operation(select, is_read, address, value);
@@ -835,10 +835,10 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			}
 
 			// Prior to the IIe, the keyboard could produce uppercase only.
-			if(!is_iie()) value = static_cast<char>(toupper(value));
+			if(!is_iie()) value = char(toupper(value));
 
 			if(is_pressed) {
-				keyboard_input_ = static_cast<uint8_t>(value | 0x80);
+				keyboard_input_ = uint8_t(value | 0x80);
 				key_is_down_ = true;
 			} else {
 				if((keyboard_input_ & 0x7f) == value) {

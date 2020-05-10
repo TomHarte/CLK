@@ -174,7 +174,7 @@ void VideoBase::output_text(uint8_t *target, const uint8_t *const source, size_t
 	for(size_t c = 0; c < length; ++c) {
 		const int character = source[c] & character_zones[source[c] >> 6].address_mask;
 		const uint8_t xor_mask = character_zones[source[c] >> 6].xor_mask;
-		const std::size_t character_address = static_cast<std::size_t>(character << 3) + pixel_row;
+		const std::size_t character_address = size_t(character << 3) + pixel_row;
 		const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
 
 		// The character ROM is output MSB to LSB rather than LSB to MSB.
@@ -193,19 +193,19 @@ void VideoBase::output_text(uint8_t *target, const uint8_t *const source, size_t
 void VideoBase::output_double_text(uint8_t *target, const uint8_t *const source, const uint8_t *const auxiliary_source, size_t length, size_t pixel_row) const {
 	for(size_t c = 0; c < length; ++c) {
 		const std::size_t character_addresses[2] = {
-			static_cast<std::size_t>(
+			size_t(
 				(auxiliary_source[c] & character_zones[auxiliary_source[c] >> 6].address_mask) << 3
 			) + pixel_row,
-			static_cast<std::size_t>(
+			size_t(
 				(source[c] & character_zones[source[c] >> 6].address_mask) << 3
 			) + pixel_row
 		};
 
 		const uint8_t character_patterns[2] = {
-			static_cast<uint8_t>(
+			uint8_t(
 				character_rom_[character_addresses[0]] ^ character_zones[auxiliary_source[c] >> 6].xor_mask
 			),
-			static_cast<uint8_t>(
+			uint8_t(
 				character_rom_[character_addresses[1]] ^ character_zones[source[c] >> 6].xor_mask
 			)
 		};
@@ -235,7 +235,7 @@ void VideoBase::output_low_resolution(uint8_t *target, const uint8_t *const sour
 	for(size_t c = 0; c < length; ++c) {
 		// Low-resolution graphics mode shifts the colour code on a loop, but has to account for whether this
 		// 14-sample output window is starting at the beginning of a colour cycle or halfway through.
-		if((column + static_cast<int>(c))&1) {
+		if((column + int(c))&1) {
 			target[0] = target[4] = target[8] = target[12] = (source[c] >> row_shift) & 4;
 			target[1] = target[5] = target[9] = target[13] = (source[c] >> row_shift) & 8;
 			target[2] = target[6] = target[10] = (source[c] >> row_shift) & 1;
@@ -269,7 +269,7 @@ void VideoBase::output_fat_low_resolution(uint8_t *target, const uint8_t *const 
 void VideoBase::output_double_low_resolution(uint8_t *target, const uint8_t *const source, const uint8_t *const auxiliary_source, size_t length, int column, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
-		if((column + static_cast<int>(c))&1) {
+		if((column + int(c))&1) {
 			target[0] = target[4] = (auxiliary_source[c] >> row_shift) & 2;
 			target[1] = target[5] = (auxiliary_source[c] >> row_shift) & 4;
 			target[2] = target[6] = (auxiliary_source[c] >> row_shift) & 8;

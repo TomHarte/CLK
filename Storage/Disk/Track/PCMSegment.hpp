@@ -145,7 +145,7 @@ struct PCMSegment {
 
 	/// @returns the total amount of time occupied by all the data stored in this segment.
 	Time length() const {
-		return length_of_a_bit * static_cast<unsigned int>(data.size());
+		return length_of_a_bit * unsigned(data.size());
 	}
 };
 

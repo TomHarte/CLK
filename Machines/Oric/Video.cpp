@@ -105,7 +105,7 @@ void VideoOutput::set_colour_rom(const std::vector<uint8_t> &rom) {
 //	uint32_t test_value = 0x0001;
 //	if(*reinterpret_cast<uint8_t *>(&test_value) != 0x01) {
 //		for(std::size_t c = 0; c < 8; c++) {
-//			colour_forms_[c] = static_cast<uint16_t>((colour_forms_[c] >> 8) | (colour_forms_[c] << 8));
+//			colour_forms_[c] = uint16_t((colour_forms_[c] >> 8) | (colour_forms_[c] << 8));
 //		}
 //	}
 }

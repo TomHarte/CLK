@@ -79,7 +79,7 @@ namespace {
 i8272::i8272(BusHandler &bus_handler, Cycles clock_rate) :
 	Storage::Disk::MFMController(clock_rate),
 	bus_handler_(bus_handler) {
-	posit_event(static_cast<int>(Event8272::CommandByte));
+	posit_event(int(Event8272::CommandByte));
 }
 
 ClockingHint::Preference i8272::preferred_clocking() const {
@@ -97,7 +97,7 @@ void i8272::run_for(Cycles cycles) {
 	if(delay_time_ > 0) {
 		if(cycles.as_integral() >= delay_time_) {
 			delay_time_ = 0;
-			posit_event(static_cast<int>(Event8272::Timer));
+			posit_event(int(Event8272::Timer));
 		} else {
 			delay_time_ -= cycles.as_integral();
 		}
@@ -114,7 +114,7 @@ void i8272::run_for(Cycles cycles) {
 				while(steps--) {
 					// Perform a step.
 					int direction = (drives_[c].target_head_position < drives_[c].head_position) ? -1 : 1;
-					LOG("Target " << PADDEC(0) << drives_[c].target_head_position << " versus believed " << static_cast<int>(drives_[c].head_position));
+					LOG("Target " << PADDEC(0) << drives_[c].target_head_position << " versus believed " << int(drives_[c].head_position));
 					select_drive(c);
 					get_drive().step(Storage::Disk::HeadPosition(direction));
 					if(drives_[c].target_head_position >= 0) drives_[c].head_position += direction;
@@ -156,7 +156,7 @@ void i8272::run_for(Cycles cycles) {
 
 	// check for busy plus ready disabled
 	if(is_executing_ && !get_drive().get_is_ready()) {
-		posit_event(static_cast<int>(Event8272::NoLongerReady));
+		posit_event(int(Event8272::NoLongerReady));
 	}
 
 	is_sleeping_ = !delay_time_ && !drives_seeking_ && !head_timers_running_;
@@ -177,7 +177,7 @@ void i8272::write(int address, uint8_t value) {
 	} else {
 		// accumulate latest byte in the command byte sequence
 		command_.push_back(value);
-		posit_event(static_cast<int>(Event8272::CommandByte));
+		posit_event(int(Event8272::CommandByte));
 	}
 }
 
@@ -186,7 +186,7 @@ uint8_t i8272::read(int address) {
 		if(result_stack_.empty()) return 0xff;
 		uint8_t result = result_stack_.back();
 		result_stack_.pop_back();
-		if(result_stack_.empty()) posit_event(static_cast<int>(Event8272::ResultEmpty));
+		if(result_stack_.empty()) posit_event(int(Event8272::ResultEmpty));
 
 		return result;
 	} else {
@@ -198,16 +198,16 @@ uint8_t i8272::read(int address) {
 #define END_SECTION()	}
 
 #define MS_TO_CYCLES(x)			x * 8000
-#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = static_cast<int>(mask); return; case __LINE__:
-#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = static_cast<int>(Event8272::Timer); delay_time_ = MS_TO_CYCLES(ms); is_sleeping_ = false; update_clocking_observer(); case __LINE__: if(delay_time_) return;
+#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = int(mask); return; case __LINE__:
+#define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; interesting_event_mask_ = int(Event8272::Timer); delay_time_ = MS_TO_CYCLES(ms); is_sleeping_ = false; update_clocking_observer(); case __LINE__: if(delay_time_) return;
 
 #define PASTE(x, y) x##y
 #define CONCAT(x, y) PASTE(x, y)
 
 #define FIND_HEADER()	\
 	set_data_mode(DataMode::Scanning);	\
-	CONCAT(find_header, __LINE__): WAIT_FOR_EVENT(static_cast<int>(Event::Token) | static_cast<int>(Event::IndexHole)); \
-	if(event_type == static_cast<int>(Event::IndexHole)) { index_hole_limit_--; }	\
+	CONCAT(find_header, __LINE__): WAIT_FOR_EVENT(int(Event::Token) | int(Event::IndexHole)); \
+	if(event_type == int(Event::IndexHole)) { index_hole_limit_--; }	\
 	else if(get_latest_token().type == Token::ID) goto CONCAT(header_found, __LINE__);	\
 	\
 	if(index_hole_limit_) goto CONCAT(find_header, __LINE__);	\
@@ -215,8 +215,8 @@ uint8_t i8272::read(int address) {
 
 #define FIND_DATA()	\
 	set_data_mode(DataMode::Scanning);	\
-	CONCAT(find_data, __LINE__): WAIT_FOR_EVENT(static_cast<int>(Event::Token) | static_cast<int>(Event::IndexHole)); \
-	if(event_type == static_cast<int>(Event::Token)) { \
+	CONCAT(find_data, __LINE__): WAIT_FOR_EVENT(int(Event::Token) | int(Event::IndexHole)); \
+	if(event_type == int(Event::Token)) { \
 		if(get_latest_token().type == Token::Byte || get_latest_token().type == Token::Sync) goto CONCAT(find_data, __LINE__);	\
 	}
 
@@ -264,8 +264,8 @@ uint8_t i8272::read(int address) {
 	}
 
 void i8272::posit_event(int event_type) {
-	if(event_type == static_cast<int>(Event::IndexHole)) index_hole_count_++;
-	if(event_type == static_cast<int>(Event8272::NoLongerReady)) {
+	if(event_type == int(Event::IndexHole)) index_hole_count_++;
+	if(event_type == int(Event8272::NoLongerReady)) {
 		SetNotReady();
 		goto abort;
 	}
@@ -425,12 +425,12 @@ void i8272::posit_event(int event_type) {
 	// Performs the read data or read deleted data command.
 	read_data:
 			LOG(PADHEX(2) << "Read [deleted] data ["
-				<< static_cast<int>(command_[2]) << " "
-				<< static_cast<int>(command_[3]) << " "
-				<< static_cast<int>(command_[4]) << " "
-				<< static_cast<int>(command_[5]) << " ... "
-				<< static_cast<int>(command_[6]) << " "
-				<< static_cast<int>(command_[8]) << "]");
+				<< int(command_[2]) << " "
+				<< int(command_[3]) << " "
+				<< int(command_[4]) << " "
+				<< int(command_[5]) << " ... "
+				<< int(command_[6]) << " "
+				<< int(command_[8]) << "]");
 		read_next_data:
 			goto read_write_find_header;
 
@@ -439,7 +439,7 @@ void i8272::posit_event(int event_type) {
 		read_data_found_header:
 			FIND_DATA();
 			ClearControlMark();
-			if(event_type == static_cast<int>(Event::Token)) {
+			if(event_type == int(Event::Token)) {
 				if(get_latest_token().type != Token::Data && get_latest_token().type != Token::DeletedData) {
 					// Something other than a data mark came next, impliedly an ID or index mark.
 					SetMissingAddressMark();
@@ -470,24 +470,24 @@ void i8272::posit_event(int event_type) {
 		//
 		// TODO: consider DTL.
 		read_data_get_byte:
-			WAIT_FOR_EVENT(static_cast<int>(Event::Token) | static_cast<int>(Event::IndexHole));
-			if(event_type == static_cast<int>(Event::Token)) {
+			WAIT_FOR_EVENT(int(Event::Token) | int(Event::IndexHole));
+			if(event_type == int(Event::Token)) {
 				result_stack_.push_back(get_latest_token().byte_value);
 				distance_into_section_++;
 				SetDataRequest();
 				SetDataDirectionToProcessor();
-				WAIT_FOR_EVENT(static_cast<int>(Event8272::ResultEmpty) | static_cast<int>(Event::Token) | static_cast<int>(Event::IndexHole));
+				WAIT_FOR_EVENT(int(Event8272::ResultEmpty) | int(Event::Token) | int(Event::IndexHole));
 			}
 			switch(event_type) {
-				case static_cast<int>(Event8272::ResultEmpty):	// The caller read the byte in time; proceed as normal.
+				case int(Event8272::ResultEmpty):	// The caller read the byte in time; proceed as normal.
 					ResetDataRequest();
 					if(distance_into_section_ < (128 << size_)) goto read_data_get_byte;
 				break;
-				case static_cast<int>(Event::Token):				// The caller hasn't read the old byte yet and a new one has arrived
+				case int(Event::Token):				// The caller hasn't read the old byte yet and a new one has arrived
 					SetOverrun();
 					goto abort;
 				break;
-				case static_cast<int>(Event::IndexHole):
+				case int(Event::IndexHole):
 					SetEndOfCylinder();
 					goto abort;
 				break;
@@ -515,12 +515,12 @@ void i8272::posit_event(int event_type) {
 
 	write_data:
 			LOG(PADHEX(2) << "Write [deleted] data ["
-				<< static_cast<int>(command_[2]) << " "
-				<< static_cast<int>(command_[3]) << " "
-				<< static_cast<int>(command_[4]) << " "
-				<< static_cast<int>(command_[5]) << " ... "
-				<< static_cast<int>(command_[6]) << " "
-				<< static_cast<int>(command_[8]) << "]");
+				<< int(command_[2]) << " "
+				<< int(command_[3]) << " "
+				<< int(command_[4]) << " "
+				<< int(command_[5]) << " ... "
+				<< int(command_[6]) << " "
+				<< int(command_[8]) << "]");
 
 			if(get_drive().get_is_read_only()) {
 				SetNotWriteable();
@@ -571,7 +571,7 @@ void i8272::posit_event(int event_type) {
 	// Performs the read ID command.
 	read_id:
 		// Establishes the drive and head being addressed, and whether in double density mode.
-			LOG(PADHEX(2) << "Read ID [" << static_cast<int>(command_[0]) << " " << static_cast<int>(command_[1]) << "]");
+			LOG(PADHEX(2) << "Read ID [" << int(command_[0]) << " " << int(command_[1]) << "]");
 
 		// Sets a maximum index hole limit of 2 then waits either until it finds a header mark or sees too many index holes.
 		// If a header mark is found, reads in the following bytes that produce a header. Otherwise branches to data not found.
@@ -594,10 +594,10 @@ void i8272::posit_event(int event_type) {
 	// Performs read track.
 	read_track:
 			LOG(PADHEX(2) << "Read track ["
-				<< static_cast<int>(command_[2]) << " "
-				<< static_cast<int>(command_[3]) << " "
-				<< static_cast<int>(command_[4]) << " "
-				<< static_cast<int>(command_[5]) << "]");
+				<< int(command_[2]) << " "
+				<< int(command_[3]) << " "
+				<< int(command_[4]) << " "
+				<< int(command_[5]) << "]");
 
 			// Wait for the index hole.
 			WAIT_FOR_EVENT(Event::IndexHole);
@@ -627,7 +627,7 @@ void i8272::posit_event(int event_type) {
 			distance_into_section_++;
 			SetDataRequest();
 			// TODO: other possible exit conditions; find a way to merge with the read_data version of this.
-			WAIT_FOR_EVENT(static_cast<int>(Event8272::ResultEmpty));
+			WAIT_FOR_EVENT(int(Event8272::ResultEmpty));
 			ResetDataRequest();
 			if(distance_into_section_ < (128 << header_[2])) goto read_track_get_byte;
 
@@ -664,13 +664,13 @@ void i8272::posit_event(int event_type) {
 			expects_input_ = true;
 			distance_into_section_ = 0;
 		format_track_write_header:
-			WAIT_FOR_EVENT(static_cast<int>(Event::DataWritten) | static_cast<int>(Event::IndexHole));
+			WAIT_FOR_EVENT(int(Event::DataWritten) | int(Event::IndexHole));
 			switch(event_type) {
-				case static_cast<int>(Event::IndexHole):
+				case int(Event::IndexHole):
 					SetOverrun();
 					goto abort;
 				break;
-				case static_cast<int>(Event::DataWritten):
+				case int(Event::DataWritten):
 					header_[distance_into_section_] = input_;
 					write_byte(input_);
 					has_input_ = false;
@@ -683,10 +683,10 @@ void i8272::posit_event(int event_type) {
 			}
 
 			LOG(PADHEX(2) << "W:"
-				<< static_cast<int>(header_[0]) << " "
-				<< static_cast<int>(header_[1]) << " "
-				<< static_cast<int>(header_[2]) << " "
-				<< static_cast<int>(header_[3]) << ", "
+				<< int(header_[0]) << " "
+				<< int(header_[1]) << " "
+				<< int(header_[2]) << " "
+				<< int(header_[3]) << ", "
 				<< get_crc_generator().get_value());
 			write_crc();
 
@@ -706,8 +706,8 @@ void i8272::posit_event(int event_type) {
 			// Otherwise, pad out to the index hole.
 		format_track_pad:
 			write_byte(get_is_double_density() ? 0x4e : 0xff);
-			WAIT_FOR_EVENT(static_cast<int>(Event::DataWritten) | static_cast<int>(Event::IndexHole));
-			if(event_type != static_cast<int>(Event::IndexHole)) goto format_track_pad;
+			WAIT_FOR_EVENT(int(Event::DataWritten) | int(Event::IndexHole));
+			if(event_type != int(Event::IndexHole)) goto format_track_pad;
 
 			end_writing();
 
@@ -758,7 +758,7 @@ void i8272::posit_event(int event_type) {
 				// up in run_for understands to mean 'keep going until track 0 is active').
 				if(command_.size() > 2) {
 					drives_[drive].target_head_position = command_[2];
-					LOG(PADHEX(2) << "Seek to " << static_cast<int>(command_[2]));
+					LOG(PADHEX(2) << "Seek to " << int(command_[2]));
 				} else {
 					drives_[drive].target_head_position = -1;
 					drives_[drive].head_position = 0;
@@ -789,7 +789,7 @@ void i8272::posit_event(int event_type) {
 				// If a drive was found, return its results. Otherwise return a single 0x80.
 				if(found_drive != -1) {
 					drives_[found_drive].phase = Drive::NotSeeking;
-					status_[0] = static_cast<uint8_t>(found_drive);
+					status_[0] = uint8_t(found_drive);
 					main_status_ &= ~(1 << found_drive);
 					SetSeekEnd();
 
@@ -819,7 +819,7 @@ void i8272::posit_event(int event_type) {
 				int drive = command_[1] & 3;
 				select_drive(drive);
 				result_stack_= {
-					static_cast<uint8_t>(
+					uint8_t(
 						(command_[1] & 7) |	// drive and head number
 						0x08 |				// single sided
 						(get_drive().get_is_track_zero() ? 0x10 : 0x00)	|
@@ -853,9 +853,9 @@ void i8272::posit_event(int event_type) {
 	// Posts whatever is in result_stack_ as a result phase. Be aware that it is a stack, so the
 	// last thing in it will be returned first.
 	post_result:
-			LOGNBR(PADHEX(2) << "Result to " << static_cast<int>(command_[0] & 0x1f) << ", main " << static_cast<int>(main_status_) << "; ");
+			LOGNBR(PADHEX(2) << "Result to " << int(command_[0] & 0x1f) << ", main " << int(main_status_) << "; ");
 			for(std::size_t c = 0; c < result_stack_.size(); c++) {
-				LOGNBR(" " << static_cast<int>(result_stack_[result_stack_.size() - 1 - c]));
+				LOGNBR(" " << int(result_stack_[result_stack_.size() - 1 - c]));
 			}
 			LOGNBR(std::endl);
 

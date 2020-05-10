@@ -81,7 +81,7 @@ template <class BusHandler> class MOS6560 {
 		}
 
 		void set_clock_rate(double clock_rate) {
-			speaker_.set_input_rate(static_cast<float>(clock_rate / 4.0));
+			speaker_.set_input_rate(float(clock_rate / 4.0));
 		}
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target)		{ crt_.set_scan_target(scan_target); 			}
@@ -235,7 +235,7 @@ template <class BusHandler> class MOS6560 {
 					if(column_counter_&1) {
 						fetch_address = registers_.character_cell_start_address + (character_code_*(registers_.tall_characters ? 16 : 8)) + current_character_row_;
 					} else {
-						fetch_address = static_cast<uint16_t>(registers_.video_matrix_start_address + video_matrix_address_counter_);
+						fetch_address = uint16_t(registers_.video_matrix_start_address + video_matrix_address_counter_);
 						video_matrix_address_counter_++;
 						if(
 							(current_character_row_ == 15) ||
@@ -371,7 +371,7 @@ template <class BusHandler> class MOS6560 {
 
 				case 0x2:
 					registers_.number_of_columns = value & 0x7f;
-					registers_.video_matrix_start_address = static_cast<uint16_t>((registers_.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
+					registers_.video_matrix_start_address = uint16_t((registers_.video_matrix_start_address & 0x3c00) | ((value & 0x80) << 2));
 				break;
 
 				case 0x3:
@@ -380,8 +380,8 @@ template <class BusHandler> class MOS6560 {
 				break;
 
 				case 0x5:
-					registers_.character_cell_start_address = static_cast<uint16_t>((value & 0x0f) << 10);
-					registers_.video_matrix_start_address = static_cast<uint16_t>((registers_.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
+					registers_.character_cell_start_address = uint16_t((value & 0x0f) << 10);
+					registers_.video_matrix_start_address = uint16_t((registers_.video_matrix_start_address & 0x0200) | ((value & 0xf0) << 6));
 				break;
 
 				case 0xa:

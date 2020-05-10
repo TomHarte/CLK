@@ -161,11 +161,11 @@ class ConcreteJoystick: public Joystick {
 				const bool is_digital_axis = input.is_digital_axis();
 				const bool is_analogue_axis = input.is_analogue_axis();
 				if(is_digital_axis || is_analogue_axis) {
-					const size_t required_size = static_cast<size_t>(input.info.control.index+1);
+					const size_t required_size = size_t(input.info.control.index+1);
 					if(stick_types_.size() < required_size) {
 						stick_types_.resize(required_size);
 					}
-					stick_types_[static_cast<size_t>(input.info.control.index)] = is_digital_axis ? StickType::Digital : StickType::Analogue;
+					stick_types_[size_t(input.info.control.index)] = is_digital_axis ? StickType::Digital : StickType::Analogue;
 				}
 			}
 		}

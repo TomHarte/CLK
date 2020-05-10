@@ -121,7 +121,7 @@ void TZX::get_csw_recording_block() {
 
 void TZX::get_generalised_data_block() {
 	uint32_t block_length = file_.get32le();
-	long endpoint = file_.tell() + static_cast<long>(block_length);
+	long endpoint = file_.tell() + long(block_length);
 	uint16_t pause_after_block = file_.get16le();
 
 	uint32_t total_pilot_symbols = file_.get32le();
@@ -283,7 +283,7 @@ void TZX::get_pure_data_block() {
 }
 
 void TZX::get_direct_recording_block() {
-	const Storage::Time length_per_sample(static_cast<unsigned>(file_.get16le()), StandardTZXClock);
+	const Storage::Time length_per_sample(unsigned(file_.get16le()), StandardTZXClock);
 	const uint16_t pause_after_block = file_.get16le();
 	uint8_t used_bits_in_final_byte = file_.get8();
 	const uint32_t length_of_data = file_.get24le();
@@ -345,8 +345,8 @@ void TZX::get_kansas_city_block() {
 	pulse_durations[1] = file_.get16le();
 	const uint8_t packed_pulse_counts = file_.get8();
 	const unsigned int pulse_counts[2] = {
-		static_cast<unsigned int>((((packed_pulse_counts >> 4) - 1) & 15) + 1),
-		static_cast<unsigned int>((((packed_pulse_counts & 15) - 1) & 15) + 1)
+		unsigned((((packed_pulse_counts >> 4) - 1) & 15) + 1),
+		unsigned((((packed_pulse_counts & 15) - 1) & 15) + 1)
 	};
 	const uint8_t padding_flags = file_.get8();
 

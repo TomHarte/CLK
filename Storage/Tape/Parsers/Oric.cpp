@@ -138,7 +138,7 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 				return;
 			}
 			if(slow_sync_matching_depth < waves.size() && fast_sync_matching_depth < waves.size()) {
-				int least_depth = static_cast<int>(std::min(slow_sync_matching_depth, fast_sync_matching_depth));
+				int least_depth = int(std::min(slow_sync_matching_depth, fast_sync_matching_depth));
 				remove_waves(least_depth ? least_depth : 1);
 			}
 

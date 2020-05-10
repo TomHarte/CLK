@@ -189,7 +189,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
 
 		// SDL buffer length is in bytes, so there's no need to adjust for stereo/mono in here.
-		const std::size_t sample_length = static_cast<std::size_t>(len) / sizeof(int16_t);
+		const std::size_t sample_length = size_t(len) / sizeof(int16_t);
 		const std::size_t copy_length = std::min(sample_length, audio_buffer_.size());
 		int16_t *const target = static_cast<int16_t *>(static_cast<void *>(stream));
 
@@ -977,7 +977,7 @@ int main(int argc, char *argv[]) {
 							glGetIntegerv(GL_FRAMEBUFFER_BINDING, &target_framebuffer);
 							scan_target.set_target_framebuffer(target_framebuffer);
 							SDL_GetWindowSize(window, &window_width, &window_height);
-							if(activity_observer) activity_observer->set_aspect_ratio(static_cast<float>(window_width) / static_cast<float>(window_height));
+							if(activity_observer) activity_observer->set_aspect_ratio(float(window_width) / float(window_height));
 						} break;
 
 						default: break;
@@ -1211,8 +1211,8 @@ int main(int argc, char *argv[]) {
 				// unless the user seems to be using a hat.
 				// SDL will return a value in the range [-32768, 32767], so map from that to [0, 1.0]
 				if(!joysticks[c].hat_values()) {
-					const float x_axis = static_cast<float>(SDL_JoystickGetAxis(joysticks[c].get(), 0) + 32768) / 65535.0f;
-					const float y_axis = static_cast<float>(SDL_JoystickGetAxis(joysticks[c].get(), 1) + 32768) / 65535.0f;
+					const float x_axis = float(SDL_JoystickGetAxis(joysticks[c].get(), 0) + 32768) / 65535.0f;
+					const float y_axis = float(SDL_JoystickGetAxis(joysticks[c].get(), 1) + 32768) / 65535.0f;
 					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Horizontal), x_axis);
 					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Vertical), y_axis);
 				}

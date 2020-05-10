@@ -63,7 +63,7 @@ CSW::CSW(const std::string &file_name) :
 
 	// Grab all data remaining in the file.
 	std::vector<uint8_t> file_data;
-	std::size_t remaining_data = static_cast<std::size_t>(file.stats().st_size) - static_cast<std::size_t>(file.tell());
+	std::size_t remaining_data = size_t(file.stats().st_size) - size_t(file.tell());
 	file_data.resize(remaining_data);
 	file.read(file_data.data(), remaining_data);
 
@@ -71,14 +71,14 @@ CSW::CSW(const std::string &file_name) :
 		// The only clue given by CSW as to the output size in bytes is that there will be
 		// number_of_waves waves. Waves are usually one byte, but may be five. So this code
 		// is pessimistic.
-		source_data_.resize(static_cast<std::size_t>(number_of_waves) * 5);
+		source_data_.resize(size_t(number_of_waves) * 5);
 
 		// uncompress will tell how many compressed bytes there actually were, so use its
 		// modification of output_length to throw away all the memory that isn't actually
 		// needed.
-		uLongf output_length = static_cast<uLongf>(number_of_waves * 5);
+		uLongf output_length = uLongf(number_of_waves * 5);
 		uncompress(source_data_.data(), &output_length, file_data.data(), file_data.size());
-		source_data_.resize(static_cast<std::size_t>(output_length));
+		source_data_.resize(std::size_t(output_length));
 	} else {
 		source_data_ = std::move(file_data);
 	}
@@ -101,7 +101,7 @@ uint8_t CSW::get_next_byte() {
 
 uint32_t CSW::get_next_int32le() {
 	if(source_data_pointer_ > source_data_.size() - 4) return 0xffff;
-	uint32_t result = (uint32_t)(
+	uint32_t result = uint32_t(
 		(source_data_[source_data_pointer_ + 0] << 0) |
 		(source_data_[source_data_pointer_ + 1] << 8) |
 		(source_data_[source_data_pointer_ + 2] << 16) |

@@ -24,7 +24,7 @@ Drive::Drive(int input_clock_rate, int revolutions_per_minute, int number_of_hea
 	ready_type_(rdy_type) {
 	set_rotation_speed(revolutions_per_minute);
 
-	const auto seed = static_cast<std::default_random_engine::result_type>(std::chrono::system_clock::now().time_since_epoch().count());
+	const auto seed = std::default_random_engine::result_type(std::chrono::system_clock::now().time_since_epoch().count());
 	std::default_random_engine randomiser(seed);
 
 	// Get at least 64 bits of random information; rounding is likey to give this a slight bias.

@@ -156,7 +156,7 @@ class ConcreteMachine:
 
 		// to satisfy CRTMachine::Machine
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
-			bus_->speaker_.set_input_rate(static_cast<float>(get_clock_rate() / static_cast<double>(CPUTicksPerAudioTick)));
+			bus_->speaker_.set_input_rate(float(get_clock_rate() / double(CPUTicksPerAudioTick)));
 			bus_->tia_.set_crt_delegate(&frequency_mismatch_warner_);
 			bus_->tia_.set_scan_target(scan_target);
 		}

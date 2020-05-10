@@ -246,7 +246,7 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::shared_ptr<Tra
 			Storage::Disk::track_serialisation(*pair.second, Storage::Time(1, data_rate)));
 
 		// Rearrange sectors into ascending order.
-		std::vector<uint8_t> track_contents(static_cast<size_t>(524 * included_sectors.length));
+		std::vector<uint8_t> track_contents(size_t(524 * included_sectors.length));
 		for(const auto &sector_pair: sector_map) {
 			const size_t target_address = sector_pair.second.address.sector * 524;
 			if(target_address >= track_contents.size() || sector_pair.second.data.size() != 524) continue;

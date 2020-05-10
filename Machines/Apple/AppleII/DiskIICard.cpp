@@ -41,7 +41,7 @@ void DiskIICard::perform_bus_operation(Select select, bool is_read, uint16_t add
 			const int disk_value = diskii_.read_address(address);
 			if(is_read) {
 				if(disk_value != diskii_.DidNotLoad)
-					*value = static_cast<uint8_t>(disk_value);
+					*value = uint8_t(disk_value);
 			}
 		} break;
 		case Device:

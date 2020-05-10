@@ -48,18 +48,18 @@ std::unique_ptr<Catalogue> Analyser::Static::Acorn::GetDFSCatalogue(const std::s
 		char name[10];
 		snprintf(name, 10, "%c.%.7s", names->samples[0][file_offset + 7] & 0x7f, &names->samples[0][file_offset]);
 		new_file.name = name;
-		new_file.load_address = (uint32_t)(details->samples[0][file_offset] | (details->samples[0][file_offset+1] << 8) | ((details->samples[0][file_offset+6]&0x0c) << 14));
-		new_file.execution_address = (uint32_t)(details->samples[0][file_offset+2] | (details->samples[0][file_offset+3] << 8) | ((details->samples[0][file_offset+6]&0xc0) << 10));
-		new_file.is_protected = !!(names->samples[0][file_offset + 7] & 0x80);
+		new_file.load_address = uint32_t(details->samples[0][file_offset] | (details->samples[0][file_offset+1] << 8) | ((details->samples[0][file_offset+6]&0x0c) << 14));
+		new_file.execution_address = uint32_t(details->samples[0][file_offset+2] | (details->samples[0][file_offset+3] << 8) | ((details->samples[0][file_offset+6]&0xc0) << 10));
+		new_file.is_protected = names->samples[0][file_offset + 7] & 0x80;
 
-		long data_length = static_cast<long>(details->samples[0][file_offset+4] | (details->samples[0][file_offset+5] << 8) | ((details->samples[0][file_offset+6]&0x30) << 12));
+		long data_length = long(details->samples[0][file_offset+4] | (details->samples[0][file_offset+5] << 8) | ((details->samples[0][file_offset+6]&0x30) << 12));
 		int start_sector = details->samples[0][file_offset+7] | ((details->samples[0][file_offset+6]&0x03) << 8);
-		new_file.data.reserve(static_cast<std::size_t>(data_length));
+		new_file.data.reserve(size_t(data_length));
 
 		if(start_sector < 2) continue;
 		while(data_length > 0) {
-			uint8_t sector = static_cast<uint8_t>(start_sector % 10);
-			uint8_t track = static_cast<uint8_t>(start_sector / 10);
+			uint8_t sector = uint8_t(start_sector % 10);
+			uint8_t track = uint8_t(start_sector / 10);
 			start_sector++;
 
 			Storage::Encodings::MFM::Sector *next_sector = parser.get_sector(0, track, sector);

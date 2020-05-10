@@ -16,13 +16,13 @@ SoundGenerator::SoundGenerator(Concurrency::DeferringAsyncTaskQueue &audio_queue
 	audio_queue_(audio_queue) {}
 
 void SoundGenerator::set_sample_volume_range(std::int16_t range) {
-	volume_ = static_cast<unsigned int>(range / 2);
+	volume_ = unsigned(range / 2);
 }
 
 void SoundGenerator::get_samples(std::size_t number_of_samples, int16_t *target) {
 	if(is_enabled_) {
 		while(number_of_samples--) {
-			*target = static_cast<int16_t>((counter_ / (divider_+1)) * volume_);
+			*target = int16_t((counter_ / (divider_+1)) * volume_);
 			target++;
 			counter_ = (counter_ + 1) % ((divider_+1) * 2);
 		}

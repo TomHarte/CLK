@@ -250,7 +250,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 				if(low_operand_address >= memory.size() || high_operand_address >= memory.size()) return;
 				address += 2;
 
-				instruction.operand = memory[low_operand_address] | static_cast<uint16_t>(memory[high_operand_address] << 8);
+				instruction.operand = memory[low_operand_address] | uint16_t(memory[high_operand_address] << 8);
 			}
 			break;
 		}
@@ -302,7 +302,7 @@ static void AddToDisassembly(PartialDisassembly &disassembly, const std::vector<
 			return;
 		}
 		if(instruction.addressing_mode == Instruction::Relative) {
-			uint16_t destination = static_cast<uint16_t>(address + (int8_t)instruction.operand);
+			uint16_t destination = uint16_t(address + int8_t(instruction.operand));
 			disassembly.remaining_entry_points.push_back(destination);
 		}
 	}

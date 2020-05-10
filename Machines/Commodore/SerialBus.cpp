@@ -31,12 +31,12 @@ void ::Commodore::Serial::AttachPortAndBus(std::shared_ptr<Port> port, std::shar
 
 void Bus::add_port(std::shared_ptr<Port> port) {
 	ports_.push_back(port);
-	for(int line = static_cast<int>(ServiceRequest); line <= static_cast<int>(Reset); line++) {
+	for(int line = int(ServiceRequest); line <= int(Reset); line++) {
 		// the addition of a new device may change the line output...
-		set_line_output_did_change(static_cast<Line>(line));
+		set_line_output_did_change(Line(line));
 
 		// ... but the new device will need to be told the current state regardless
-		port->set_input(static_cast<Line>(line), line_levels_[line]);
+		port->set_input(Line(line), line_levels_[line]);
 	}
 }
 
@@ -46,7 +46,7 @@ void Bus::set_line_output_did_change(Line line) {
 	for(std::weak_ptr<Port> port : ports_) {
 		std::shared_ptr<Port> locked_port = port.lock();
 		if(locked_port) {
-			new_line_level = (LineLevel)(static_cast<bool>(new_line_level) & static_cast<bool>(locked_port->get_output(line)));
+			new_line_level = (LineLevel)(bool(new_line_level) & bool(locked_port->get_output(line)));
 		}
 	}
 

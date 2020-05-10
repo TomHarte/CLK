@@ -29,12 +29,12 @@ uint16_t ProcessorBase::get_value_of_register(Register r) const {
 
 void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 	switch (r) {
-		case Register::ProgramCounter:	pc_.full = value;						break;
-		case Register::StackPointer:	s_ = static_cast<uint8_t>(value);		break;
-		case Register::Flags:			set_flags(static_cast<uint8_t>(value));	break;
-		case Register::A:				a_ = static_cast<uint8_t>(value);		break;
-		case Register::X:				x_ = static_cast<uint8_t>(value);		break;
-		case Register::Y:				y_ = static_cast<uint8_t>(value);		break;
+		case Register::ProgramCounter:	pc_.full = value;			break;
+		case Register::StackPointer:	s_ = uint8_t(value);		break;
+		case Register::Flags:			set_flags(uint8_t(value));	break;
+		case Register::A:				a_ = uint8_t(value);		break;
+		case Register::X:				x_ = uint8_t(value);		break;
+		case Register::Y:				y_ = uint8_t(value);		break;
 		default: break;
 	}
 }
