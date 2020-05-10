@@ -63,6 +63,10 @@ class SampleSource {
 			a certain proportion of the allocated volume range. This commonly happens
 			in sample sources that use a time-multiplexed sound output — for example, if
 			one were to output only every other sample then it would return 0.5.
+
+			This is permitted to vary over time but there is no contract as to when it will be
+			used by a speaker. If it varies, it should do so very infrequently and only to
+			represent changes in hardware configuration.
 		*/
 		double get_average_output_peak() const { return 1.0; }
 };
