@@ -433,8 +433,6 @@
 		4B894531201967B4007DE474 /* StaticAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894506201967B4007DE474 /* StaticAnalyser.cpp */; };
 		4B894532201967B4007DE474 /* 6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B89450B201967B4007DE474 /* 6502.cpp */; };
 		4B894533201967B4007DE474 /* 6502.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B89450B201967B4007DE474 /* 6502.cpp */; };
-		4B894534201967B4007DE474 /* AddressMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B89450C201967B4007DE474 /* AddressMapper.cpp */; };
-		4B894535201967B4007DE474 /* AddressMapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B89450C201967B4007DE474 /* AddressMapper.cpp */; };
 		4B894536201967B4007DE474 /* Z80.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B89450D201967B4007DE474 /* Z80.cpp */; };
 		4B894537201967B4007DE474 /* Z80.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B89450D201967B4007DE474 /* Z80.cpp */; };
 		4B894538201967B4007DE474 /* Tape.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B894512201967B4007DE474 /* Tape.cpp */; };
@@ -1269,7 +1267,6 @@
 		4B894509201967B4007DE474 /* AddressMapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AddressMapper.hpp; sourceTree = "<group>"; };
 		4B89450A201967B4007DE474 /* Z80.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Z80.hpp; sourceTree = "<group>"; };
 		4B89450B201967B4007DE474 /* 6502.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = 6502.cpp; sourceTree = "<group>"; };
-		4B89450C201967B4007DE474 /* AddressMapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AddressMapper.cpp; sourceTree = "<group>"; };
 		4B89450D201967B4007DE474 /* Z80.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Z80.cpp; sourceTree = "<group>"; };
 		4B89450E201967B4007DE474 /* Kernel.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Kernel.hpp; sourceTree = "<group>"; };
 		4B894510201967B4007DE474 /* StaticAnalyser.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = StaticAnalyser.hpp; sourceTree = "<group>"; };
@@ -2875,7 +2872,6 @@
 			isa = PBXGroup;
 			children = (
 				4B89450B201967B4007DE474 /* 6502.cpp */,
-				4B89450C201967B4007DE474 /* AddressMapper.cpp */,
 				4B89450D201967B4007DE474 /* Z80.cpp */,
 				4B894508201967B4007DE474 /* 6502.hpp */,
 				4B894509201967B4007DE474 /* AddressMapper.hpp */,
@@ -4495,7 +4491,6 @@
 				4B8318BA22D3E579006DB630 /* MacintoshIMG.cpp in Sources */,
 				4B8318B822D3E566006DB630 /* IWM.cpp in Sources */,
 				4B0333B02094081A0050B93D /* AppleDSK.cpp in Sources */,
-				4B894535201967B4007DE474 /* AddressMapper.cpp in Sources */,
 				4B055AD41FAE9B0B0060FFFF /* Oric.cpp in Sources */,
 				4B055A921FAE85B50060FFFF /* PRG.cpp in Sources */,
 				4B055AAF1FAE85FD0060FFFF /* UnformattedTrack.cpp in Sources */,
@@ -4724,7 +4719,6 @@
 				4B54C0BC1F8D8E790050900F /* KeyboardMachine.cpp in Sources */,
 				4BB244D522AABAF600BE20E5 /* z8530.cpp in Sources */,
 				4BB73EA21B587A5100552FC2 /* AppDelegate.swift in Sources */,
-				4B894534201967B4007DE474 /* AddressMapper.cpp in Sources */,
 				4B1B88C8202E469300B67DFF /* MultiJoystickMachine.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
