@@ -26,7 +26,7 @@ template <int precision> class PhaseGenerator {
 			Advances the phase generator a single step, given the current state of the low-frequency oscillator, @c oscillator.
 		*/
 		void update(const LowFrequencyOscillator &oscillator) {
-			constexpr int vibrato_shifts[8] = {3, 1, 0, 1, 3, 1, 0, 1};
+			constexpr int vibrato_shifts[4] = {3, 1, 0, 1};
 			constexpr int vibrato_signs[2] = {1, -1};
 
 			// Get just the top three bits of the period_.
@@ -35,10 +35,10 @@ template <int precision> class PhaseGenerator {
 			// Cacluaute applicable vibrato as a function of (i) the top three bits of the
 			// oscillator period; (ii) the current low-frequency oscillator vibrato output; and
 			// (iii) whether vibrato is enabled.
-			const int vibrato = (top_freq >> vibrato_shifts[oscillator.vibrato]) * vibrato_signs[oscillator.vibrato >> 2] * enable_vibrato_;
+			const int vibrato = (top_freq >> vibrato_shifts[oscillator.vibrato & 3]) * vibrato_signs[oscillator.vibrato >> 2] * enable_vibrato_;
 
 			// Apply phase update with vibrato from the low-frequency oscillator.
-			phase_ += multiple_ * (period_ + vibrato) << octave_;
+			phase_ += (multiple_ * ((period_ << 1) + vibrato) << octave_) >> 1;
 		}
 
 
