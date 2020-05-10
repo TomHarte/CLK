@@ -28,6 +28,14 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, 
 		phase_generators_[6 + 9].reset();
 	});
 
+	// Set the other drums to damp, but only the TomTom to affect phase.
+	rhythm_envelope_generators_[TomTom].set_should_damp([this] {
+		phase_generators_[8 + 9].reset();
+	});
+	rhythm_envelope_generators_[Snare].set_should_damp({});
+	rhythm_envelope_generators_[Cymbal].set_should_damp({});
+	rhythm_envelope_generators_[HighHat].set_should_damp({});
+
 	// Crib the proper rhythm envelope generator settings by installing
 	// the rhythm instruments and copying them over.
 	rhythm_mode_enabled_ = true;
@@ -45,7 +53,7 @@ OPLL::OPLL(Concurrency::DeferringAsyncTaskQueue &task_queue, int audio_divider, 
 	// Return to ordinary default mode.
 	rhythm_mode_enabled_ = false;
 
-	// Set up proper damping management.
+	// Set up damping for the melodic channels.
 	for(int c = 0; c < 9; ++c) {
 		envelope_generators_[c].set_should_damp([this, c] {
 			// Propagate attack mode to the modulator, and reset both phases.
@@ -372,10 +380,12 @@ void OPLL::update_all_channels() {
 
 // TODO: verify attenuation scales pervasively below.
 
+#define ATTENUATION(x)	((x) << 7)
+
 int OPLL::melodic_output(int channel) {
 	// The modulator always updates after the carrier, oddly enough. So calculate actual output first, based on the modulator's last value.
 	auto carrier = WaveformGenerator<period_precision>::wave(channels_[channel].carrier_waveform, phase_generators_[channel].scaled_phase(), channels_[channel].modulator_output);
-	carrier += envelope_generators_[channel].attenuation() + (channels_[channel].attenuation << 7) + key_level_scalers_[channel].attenuation();
+	carrier += envelope_generators_[channel].attenuation() + ATTENUATION(channels_[channel].attenuation) + key_level_scalers_[channel].attenuation();
 
 	// Get the modulator's new value.
 	auto modulation = WaveformGenerator<period_precision>::wave(channels_[channel].modulator_waveform, phase_generators_[channel + 9].phase());
@@ -394,7 +404,7 @@ int OPLL::bass_drum() {
 	modulation += rhythm_envelope_generators_[RhythmIndices::BassModulator].attenuation();
 
 	auto carrier = WaveformGenerator<period_precision>::wave(Waveform::Sine, phase_generators_[6].scaled_phase(), modulation);
-	carrier += rhythm_envelope_generators_[RhythmIndices::BassCarrier].attenuation() + (channels_[6].attenuation << 7);
+	carrier += rhythm_envelope_generators_[RhythmIndices::BassCarrier].attenuation() + ATTENUATION(channels_[6].attenuation);
 	return carrier.level();
 }
 
@@ -402,7 +412,7 @@ int OPLL::tom_tom() {
 	// Use modulator 8 and the 'instrument' selection for channel 8 as an attenuation.
 	auto tom_tom = WaveformGenerator<period_precision>::wave(Waveform::Sine, phase_generators_[8 + 9].phase());
 	tom_tom += rhythm_envelope_generators_[RhythmIndices::TomTom].attenuation();
-	tom_tom += channels_[8].instrument << 7;
+	tom_tom += ATTENUATION(channels_[8].instrument);
 	return tom_tom.level();
 }
 
@@ -410,7 +420,7 @@ int OPLL::snare_drum() {
 	// Use modulator 7 and the carrier attenuation level for channel 7.
 	LogSign snare = WaveformGenerator<period_precision>::snare(oscillator_, phase_generators_[7 + 9].phase());
 	snare += rhythm_envelope_generators_[RhythmIndices::Snare].attenuation();
-	snare += channels_[7].attenuation << 7;
+	snare += ATTENUATION(channels_[7].attenuation);
 	return snare.level();
 }
 
@@ -418,7 +428,7 @@ int OPLL::cymbal() {
 	// Use modulator 7, carrier 8 and the attenuation level for channel 8.
 	LogSign cymbal = WaveformGenerator<period_precision>::cymbal(phase_generators_[8].phase(), phase_generators_[7 + 9].phase());
 	cymbal += rhythm_envelope_generators_[RhythmIndices::Cymbal].attenuation();
-	cymbal += channels_[8].attenuation << 7;
+	cymbal += ATTENUATION(channels_[8].attenuation);
 	return cymbal.level();
 }
 
@@ -426,6 +436,8 @@ int OPLL::high_hat() {
 	// Use modulator 7, carrier 8 a and the 'instrument' selection for channel 7 as an attenuation.
 	LogSign high_hat = WaveformGenerator<period_precision>::high_hat(oscillator_, phase_generators_[8].phase(), phase_generators_[7 + 9].phase());
 	high_hat += rhythm_envelope_generators_[RhythmIndices::HighHat].attenuation();
-	high_hat += channels_[7].instrument << 7;
+	high_hat += ATTENUATION(channels_[7].instrument);
 	return high_hat.level();
 }
+
+#undef ATTENUATION
