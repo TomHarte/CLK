@@ -1,0 +1,270 @@
+.\" Manpage for clksignal
+.\" Submit PRs to https://github.com/TomHarte/CLK to correct errors or typos.
+.TH man 1 "{{ dateStamp }}" "{{ version }}" "clksignal man page"
+.SH NAME
+clksignal \- A latency-hating emulator of 8- and 16-bit platforms: the Acorn Electron, Amstrad CPC, Apple II/II+/IIe and early Macintosh, Atari 2600 and ST, ColecoVision, Commodore Vic-20, MSX 1, Oric 1/Atmos, Sega Master System and Sinclair ZX80/81. 
+.SH SYNOPSIS
+clksignal [file or --new={machine}] [OPTIONS] [--rompath={path to ROMs}] [--speed={speed multiplier, e.g. 1.5}]  [--logical-keyboard] [--volume={0.0 to 1.0}]
+.SH DESCRIPTION
+Clock Signal (\fBCLK\fR) is an emulator for tourists that seeks to be invisible. Users directly launch classic software with no emulator or per-emulated-machine learning curve.
+
+Releases are hosted on GitHub.
+
+On the Mac it is a native Cocoa application. Under Linux, BSD and other UNIXes and UNIX-alikes it relies upon SDL 2.
+.SH MACHINE TYPES
+.TP
+Required machine type \fIand all options\fR are determined from the file, if specified.
+.TP
+Otherwise specify a machine.
+.TP
+.B --new=\fImachine\fR
+Machine types are:
+.RS
+.nf
+- AmstradCPC
+- AppleII
+- AtariST
+- Electron
+- Macintosh
+- MSX
+- Oric
+- Vic20
+- ZX8081
+.RE
+.SH UNIVERSAL OPTIONS
+.TP
+.B --rompath=\fIpath\fR
+\fIpath\fR is the path to the machine's ROM file
+.TP
+.B --speed=\fImultiplier\fR
+\fImultiplier\fR is the amount to accelerate the execution of the emulated machine. For example, 1.5 is 150% speed.
+.TP
+.B --logical-keyboard
+Enables the logical keyboard
+.TP
+.B --volume=\fIlevel\fR
+\fIlevel\fR is the volume multiplier, from 0.0 through 1.0, with 0 being mute, and 1.0 being full volume.
+.SH COLECOVISION OPTIONS
+.TP
+.B --output=\fItype\fR
+\fItype\fR is the video output format, either \fISVideo\fR or \fICompositeColour\fR.
+.SH SEGA MASTER SYSTEMS OPTIONS
+.TP
+.B --output=\fItype\fR
+\fItype\fR is the video output format, any one of:
+.RS
+.nf
+- RGB
+- SVideo
+- CompositeColour
+- CompositeMonochrome
+.RE
+.TP
+.B --region=\fIregion\fR
+\fIregion\fR is the region of the system, any one of:
+.RS
+.nf
+- Japan
+- USA
+- Europe
+- Brazil
+.RE
+.SH AMSTRAD CPC OPTIONS
+.TP
+.B --model=\fImodel\fR
+\fImodel\fR is the model of CPC being emulated, any one of:
+.RS
+.nf
+- CPC464
+- CPC664
+- CPC6128
+.RE
+.TP
+.B --output=\fItype\fR
+\fItype\fR is the video output format, any one of:
+.RS
+.nf
+- RGB
+- CompositeColour
+.RE
+.SH APPLE II OPTIONS
+.TP
+.B --disk-controller=\fIcontroller\fR
+\fIcontroller\fR is the version of disk controller being emulated, any one of:
+.RS
+.nf
+- None
+- SixteenSector
+- ThirteenSector
+.RE
+.TP
+.B --model=\fImodel\fR
+\fImodel\fR is the model of Apple II being emulated, any one of:
+.RS
+.nf
+- II
+- IIplus
+- IIe
+- EnhancedIIe
+.RE
+.TP
+.B --output=\fItype\fR
+\fItype\fR is the video output format, any one of:
+.RS
+.nf
+- CompositeColour
+- CompositeMonochrome
+.RE
+.SH ATARI ST OPTIONS
+.TP
+.B --output=\fItype\fR
+\fItype\fR is the video output format, any one of:
+.RS
+.nf
+- RGB
+- CompositeColour
+.RE
+.SH ACORN ELECTRON OPTIONS
+.TP
+.B --has-adfs
+.TP
+.B --has-dfs
+.TP
+.B --output=\fItype\fR
+\fItype\fR is the video output format, any one of:
+.RS
+.nf
+- RGB
+- CompositeColour
+- CompositeMonochrome
+.RE
+.TP
+.B --quickload
+.SH APPLE MACINTOSH OPTIONS
+.TP
+.B --model=\fImodel\fR
+\fImodel\fR is the model of Macintosh being emulated, any one of:
+.RS
+.nf
+- Mac128k
+- Mac512k
+- Mac512ke
+- MacPlus
+.TP
+.B --quickboot
+.RE
+.SH MSX OPTIONS
+.TP
+.B --has-disk-drive
+.TP
+.B --output=\fItype\fR
+\fItype\fR is the video output format, any one of:
+.RS
+.nf
+- RGB
+- SVideo
+- CompositeColour
+- CompositeMonochrome
+.RE
+.TP
+.B --quickload
+.TP
+.B --region=\fIregion\fR
+\fIregion\fR is the region of the system, any one of:
+.RS
+.nf
+- Japan
+- USA
+- Europe
+.RE
+.SH ORIC OPTIONS
+.TP
+.B --disk-interface=\fItype\fR
+\fItype\fR is the type of disk interface, any one of:
+.RS
+.nf
+- None
+- Microdisk
+- Pravetz
+- Jasmin
+- BD500
+.RE
+.TP
+.B --output=\fItype\fR
+\fItype\fR is the video output format, any one of:
+.RS
+.nf
+- RGB
+- SVideo
+- CompositeColour
+- CompositeMonochrome
+.RE
+.TP
+.B --quickload
+.TP
+.B --rom=\fIrom\fR
+\fIrom\fR is the ROM version of the system, any one of:
+.RS
+.nf
+- BASIC10
+- BASIC11
+- Pravetz
+.RE
+.SH VIC 20 OPTIONS
+.TP
+.B --enabled-ram.bank0
+.TP
+.B --enabled-ram.bank1
+.TP
+.B --enabled-ram.bank2
+.TP
+.B --enabled-ram.bank3
+.TP
+.B --enabled-ram.bank5
+.TP
+.B --has-c1540
+Indicates the presence of a Commodore 1540 disk drive
+.TP
+.B --output=\fItype\fR
+\fItype\fR is the video output format, any one of:
+.RS
+.nf
+- SVideo
+- CompositeColour
+.RE
+.TP
+.B --quickload
+.TP
+.B --region=\fIregion\fR
+\fIregion\fR is the region of the system, any one of:
+.RS
+.nf
+- American
+- Danish
+- Japanese
+- European
+- Swedish
+.RE
+.SH ZX80/81 OPTIONS
+.TP
+.B --ZX80-uses-ZX81-RPM
+.TP
+.B --automatic-tape-motor-control
+.TP
+.B --is-ZX81
+.TP
+.B --memory-model=\fImodel\fR
+\fImodel\fR is the memory model of the system, any one of:
+.RS
+.nf
+- Unexpanded
+- SixteenKB
+- SixtyFourKB
+.RE
+.TP
+.B --quickload
+.RE
+.SH BUGS
+No known bugs.
+.SH AUTHOR
+Thomas Harte (http://stackoverflow.com/users/427332/tommy)
