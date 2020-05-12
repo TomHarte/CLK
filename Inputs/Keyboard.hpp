@@ -80,10 +80,11 @@ class Keyboard {
 
 	private:
 		std::set<Key> observed_keys_;
-		std::set<Key> essential_modifiers_;
+		const std::set<Key> essential_modifiers_;
+		const bool is_exclusive_ = true;
+
 		std::vector<bool> key_states_;
 		Delegate *delegate_ = nullptr;
-		bool is_exclusive_ = true;
 };
 
 }

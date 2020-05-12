@@ -25,7 +25,7 @@ class MultiJoystick: public Inputs::Joystick {
 			}
 		}
 
-		std::vector<Input> &get_inputs() final {
+		const std::vector<Input> &get_inputs() final {
 			if(inputs.empty()) {
 				for(const auto &joystick: joysticks_) {
 					std::vector<Input> joystick_inputs = joystick->get_inputs();
