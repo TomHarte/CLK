@@ -133,30 +133,31 @@ class ConcreteMachine:
 				paging_registers_[2] = 0;
 			}
 
-			// Load the BIOS if relevant.
-			if(has_bios()) {
-				// TODO: there's probably a million other versions of the Master System BIOS; try to build a
-				// CRC32 catalogue of those. So far:
-				//
-				//	0072ed54 = US/European BIOS 1.3
-				//	48d44a13 = Japanese BIOS 2.1
-				const bool is_japanese = target.region == Target::Region::Japan;
-				const auto roms = rom_fetcher(
-					{ {"MasterSystem",
-						is_japanese ? "the Japanese Master System BIOS" : "the European/US Master System BIOS",
-						is_japanese ? "japanese-bios.sms" : "bios.sms",
-						8*1024,
-						{ is_japanese ? 0x48d44a13u : 0x0072ed54u }
-					} }
-				);
-				if(!roms[0]) {
-					// No BIOS found; attempt to boot as though it has already disabled itself.
-					memory_control_ |= 0x08;
-					std::cerr << "No BIOS found; attempting to start cartridge directly" << std::endl;
-				} else {
-					roms[0]->resize(8*1024);
-					memcpy(&bios_, roms[0]->data(), roms[0]->size());
-				}
+			// Load the BIOS if available.
+			//
+			// TODO: there's probably a million other versions of the Master System BIOS; try to build a
+			// CRC32 catalogue of those. So far:
+			//
+			//	0072ed54 = US/European BIOS 1.3
+			//	48d44a13 = Japanese BIOS 2.1
+			const bool is_japanese = target.region == Target::Region::Japan;
+			const auto roms = rom_fetcher(
+				{ {"MasterSystem",
+					is_japanese ? "the Japanese Master System BIOS" : "the European/US Master System BIOS",
+					is_japanese ? "japanese-bios.sms" : "bios.sms",
+					8*1024,
+					{ is_japanese ? 0x48d44a13u : 0x0072ed54u }
+				} }
+			);
+			if(!roms[0]) {
+				// No BIOS found; attempt to boot as though it has already disabled itself.
+				has_bios_ = false;
+				memory_control_ |= 0x08;
+				std::cerr << "No BIOS found; attempting to start cartridge directly" << std::endl;
+			} else {
+				has_bios_ = true;
+				roms[0]->resize(8*1024);
+				memcpy(&bios_, roms[0]->data(), roms[0]->size());
 			}
 			page_cartridge();
 
@@ -486,9 +487,9 @@ class ConcreteMachine:
 		}
 
 		using Target = Analyser::Static::Sega::Target;
-		Target::Model model_;
-		Target::Region region_;
-		Target::PagingScheme paging_scheme_;
+		const Target::Model model_;
+		const Target::Region region_;
+		const Target::PagingScheme paging_scheme_;
 		CPU::Z80::Processor<ConcreteMachine, false, false> z80_;
 		JustInTimeActor<TI::TMS::TMS9918> vdp_;
 
@@ -550,13 +551,11 @@ class ConcreteMachine:
 			}
 
 			// Throw the BIOS on top if this machine has one and it isn't disabled.
-			if(has_bios() && !(memory_control_ & 0x08)) {
+			if(has_bios_ && !(memory_control_ & 0x08)) {
 				map(read_pointers_, bios_, 8*1024, 0);
 			}
 		}
-		bool has_bios() {
-			return is_master_system(model_) && region_ != Target::Region::Japan;
-		}
+		bool has_bios_ = true;
 };
 
 }
