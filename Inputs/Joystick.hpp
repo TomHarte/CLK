@@ -98,7 +98,7 @@ class Joystick {
 		};
 
 		/// @returns The list of all inputs defined on this joystick.
-		virtual std::vector<Input> &get_inputs() = 0;
+		virtual const std::vector<Input> &get_inputs() = 0;
 
 		/*!
 			Sets the digital value of @c input. This may have direct effect or
@@ -170,7 +170,7 @@ class ConcreteJoystick: public Joystick {
 			}
 		}
 
-		std::vector<Input> &get_inputs() final {
+		const std::vector<Input> &get_inputs() final {
 			return inputs_;
 		}
 
@@ -223,7 +223,7 @@ class ConcreteJoystick: public Joystick {
 		}
 
 	private:
-		std::vector<Input> inputs_;
+		const std::vector<Input> inputs_;
 
 		enum class StickType {
 			Digital,
