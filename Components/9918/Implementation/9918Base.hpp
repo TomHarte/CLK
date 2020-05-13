@@ -51,7 +51,7 @@ class Base {
 		}
 
 	protected:
-		const static int output_lag = 11;	// i.e. pixel output will occur 11 cycles after corresponding data read.
+		static constexpr int output_lag = 11;	// i.e. pixel output will occur 11 cycles after corresponding data read.
 
 		// The default TMS palette.
 		const uint32_t palette[16] = {

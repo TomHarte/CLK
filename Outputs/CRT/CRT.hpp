@@ -83,7 +83,7 @@ class CRT {
 
 		Outputs::Display::ScanTarget *scan_target_ = &Outputs::Display::NullScanTarget::singleton;
 		Outputs::Display::ScanTarget::Modals scan_target_modals_;
-		static const uint8_t DefaultAmplitude = 80;
+		static constexpr uint8_t DefaultAmplitude = 80;
 
 #ifndef NDEBUG
 		size_t allocated_data_length_ = std::numeric_limits<size_t>::min();

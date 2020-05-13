@@ -121,13 +121,13 @@ class MappedKeyboardMachine: public Inputs::Keyboard::Delegate, public KeyboardM
 		};
 
 		/// Terminates a key sequence from the character mapper.
-		static const uint16_t KeyEndSequence = 0xffff;
+		static constexpr uint16_t KeyEndSequence = 0xffff;
 
 		/*!
 			Indicates that a key is not mapped (for the keyboard mapper) or that a
 			character cannot be typed (for the character mapper).
 		*/
-		static const uint16_t KeyNotMapped = 0xfffe;
+		static constexpr uint16_t KeyNotMapped = 0xfffe;
 
 		/*!
 			Allows individual machines to provide the mapping between host keys
