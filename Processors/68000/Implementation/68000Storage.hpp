@@ -323,7 +323,7 @@ class ProcessorStorage {
 			static constexpr int DestinationMask = 1 << 6;
 			uint8_t action = uint8_t(Action::None);
 
-			static const uint16_t NoBusProgram = std::numeric_limits<uint16_t>::max();
+			static constexpr uint16_t NoBusProgram = std::numeric_limits<uint16_t>::max();
 			uint16_t bus_program = NoBusProgram;
 
 			MicroOp() {}

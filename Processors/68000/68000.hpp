@@ -91,7 +91,7 @@ struct Microcycle {
 	/// Provides the 68000's bus grant line — indicating whether a bus request has been acknowledged.
 	static constexpr int BusGrant				= 1 << 10;
 
-	/// Contains a valid combination of the various static const int flags, describing the operation
+	/// Contains a valid combination of the various static constexpr int flags, describing the operation
 	/// performed by this Microcycle.
 	int operation = 0;
 

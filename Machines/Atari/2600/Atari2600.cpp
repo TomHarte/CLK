@@ -29,8 +29,8 @@
 #include "Cartridges/Unpaged.hpp"
 
 namespace {
-	static const double NTSC_clock_rate = 1194720;
-	static const double PAL_clock_rate = 1182298;
+	static constexpr double NTSC_clock_rate = 1194720;
+	static constexpr double PAL_clock_rate = 1182298;
 }
 
 namespace Atari2600 {
