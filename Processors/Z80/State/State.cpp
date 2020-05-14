@@ -45,6 +45,55 @@ State::State(const ProcessorBase &src): State() {
 	execution_state.operation = src.operation_;
 	execution_state.flag_adjustment_history = src.flag_adjustment_history_;
 	execution_state.pc_increment = src.pc_increment_;
+	execution_state.refresh_address = src.refresh_addr_.full;
+	execution_state.half_cycles_into_step = src.number_of_cycles_.as<int>();
+
+	// Search for the current holder of the scheduled_program_counter_.
+#define ContainedBy(x)	(src.scheduled_program_counter_ >= &src.x[0]) && (src.scheduled_program_counter_ < &src.x[src.x.size()])
+#define Populate(x, y)	\
+	execution_state.phase = ExecutionState::Phase::x;	\
+	execution_state.steps_into_phase = int(src.scheduled_program_counter_ - &src.y[0]);
+
+	if(ContainedBy(conditional_call_untaken_program_)) {
+		Populate(UntakenConditionalCall, conditional_call_untaken_program_);
+	} else if(ContainedBy(reset_program_)) {
+		Populate(Reset, reset_program_);
+	} else if(ContainedBy(irq_program_[0])) {
+		Populate(IRQMode0, irq_program_[0]);
+	} else if(ContainedBy(irq_program_[1])) {
+		Populate(IRQMode1, irq_program_[1]);
+	} else if(ContainedBy(irq_program_[2])) {
+		Populate(IRQMode2, irq_program_[2]);
+	} else if(ContainedBy(nmi_program_)) {
+		Populate(NMI, nmi_program_);
+	} else {
+		if(src.current_instruction_page_ == &src.base_page_) {
+			execution_state.instruction_page = 0;
+		} else if(src.current_instruction_page_ == &src.ed_page_) {
+			execution_state.instruction_page = 0xed;
+		} else if(src.current_instruction_page_ == &src.fd_page_) {
+			execution_state.instruction_page = 0xfd;
+		} else if(src.current_instruction_page_ == &src.dd_page_) {
+			execution_state.instruction_page = 0xdd;
+		} else if(src.current_instruction_page_ == &src.cb_page_) {
+			execution_state.instruction_page = 0xcb;
+		} else if(src.current_instruction_page_ == &src.fdcb_page_) {
+			execution_state.instruction_page = 0xfdcb;
+		} else if(src.current_instruction_page_ == &src.ddcb_page_) {
+			execution_state.instruction_page = 0xddcb;
+		}
+
+		if(ContainedBy(current_instruction_page_->fetch_decode_execute)) {
+			Populate(FetchDecode, current_instruction_page_->fetch_decode_execute);
+		} else {
+			// There's no need to determine which opcode because that knowledge is already
+			// contained in the dedicated opcode field.
+			Populate(Operation, current_instruction_page_->instructions[src.operation_]);
+		}
+	}
+
+#undef Populate
+#undef ContainedBy
 }
 
 void State::apply(ProcessorBase &target) {
@@ -82,8 +131,30 @@ void State::apply(ProcessorBase &target) {
 	target.operation_ = execution_state.operation;
 	target.flag_adjustment_history_ = execution_state.flag_adjustment_history;
 	target.pc_increment_ = execution_state.pc_increment;
+	target.refresh_addr_.full = execution_state.refresh_address;
+	target.number_of_cycles_ = HalfCycles(execution_state.half_cycles_into_step);
 
-	// TODO: scheduled_program_counter_ and number_of_cycles_.
+	switch(execution_state.instruction_page) {
+		default:		target.current_instruction_page_ = &target.base_page_;	break;
+		case 0xed:		target.current_instruction_page_ = &target.ed_page_;	break;
+		case 0xdd:		target.current_instruction_page_ = &target.dd_page_;	break;
+		case 0xcb:		target.current_instruction_page_ = &target.cb_page_;	break;
+		case 0xfd:		target.current_instruction_page_ = &target.fd_page_;	break;
+		case 0xfdcb:	target.current_instruction_page_ = &target.fdcb_page_;	break;
+		case 0xddcb:	target.current_instruction_page_ = &target.ddcb_page_;	break;
+	}
+
+	switch(execution_state.phase) {
+		case ExecutionState::Phase::UntakenConditionalCall:		target.scheduled_program_counter_ = &target.conditional_call_untaken_program_[0];						break;
+		case ExecutionState::Phase::Reset:						target.scheduled_program_counter_ = &target.reset_program_[0];											break;
+		case ExecutionState::Phase::IRQMode0:					target.scheduled_program_counter_ = &target.irq_program_[0][0];											break;
+		case ExecutionState::Phase::IRQMode1:					target.scheduled_program_counter_ = &target.irq_program_[1][0];											break;
+		case ExecutionState::Phase::IRQMode2:					target.scheduled_program_counter_ = &target.irq_program_[2][0];											break;
+		case ExecutionState::Phase::NMI:						target.scheduled_program_counter_ = &target.nmi_program_[0];											break;
+		case ExecutionState::Phase::FetchDecode:				target.scheduled_program_counter_ = &target.current_instruction_page_->fetch_decode_execute[0];			break;
+		case ExecutionState::Phase::Operation:					target.scheduled_program_counter_ = target.current_instruction_page_->instructions[target.operation_];	break;
+	}
+	target.scheduled_program_counter_ += execution_state.steps_into_phase;
 }
 
 // Boilerplate follows here, to establish 'reflection'.
@@ -127,6 +198,13 @@ State::ExecutionState::ExecutionState() {
 		DeclareField(temp16);
 		DeclareField(flag_adjustment_history);
 		DeclareField(pc_increment);
+		DeclareField(refresh_address);
+
+		AnnounceEnum(Phase);
+		DeclareField(phase);
+		DeclareField(half_cycles_into_step);
+		DeclareField(steps_into_phase);
+		DeclareField(instruction_page);
 	}
 }
 

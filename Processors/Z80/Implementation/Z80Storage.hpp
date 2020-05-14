@@ -127,8 +127,6 @@ class ProcessorStorage {
 			InstructionPage() : r_step(1), is_indexed(false) {}
 		};
 
-		typedef MicroOp InstructionTable[256][30];
-
 		ProcessorStorage();
 		void install_default_instruction_set();
 
@@ -223,6 +221,7 @@ class ProcessorStorage {
 			carry_result_			= flags;
 		}
 
+		typedef MicroOp InstructionTable[256][30];
 		virtual void assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets) = 0;
 		virtual void copy_program(const MicroOp *source, std::vector<MicroOp> &destination) = 0;
 

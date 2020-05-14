@@ -46,10 +46,10 @@ struct State: public Reflection::StructImpl<State> {
 		related to an access cycle.
 	*/
 	struct Inputs: public Reflection::StructImpl<Inputs> {
-		bool irq;
-		bool nmi;
-		bool bus_request;
-		bool wait;
+		bool irq = false;
+		bool nmi = false;
+		bool bus_request = false;
+		bool wait = false;
 
 		Inputs();
 	} inputs;
@@ -69,6 +69,17 @@ struct State: public Reflection::StructImpl<State> {
 		uint16_t temp16;
 		unsigned int flag_adjustment_history;
 		uint16_t pc_increment;
+		uint16_t refresh_address;
+
+		ReflectableEnum(Phase,
+			UntakenConditionalCall, Reset, IRQMode0, IRQMode1, IRQMode2,
+			NMI, FetchDecode, Operation
+		);
+
+		Phase phase;
+		int half_cycles_into_step;
+		int steps_into_phase;
+		uint16_t instruction_page = 0;
 
 		ExecutionState();
 	} execution_state;
