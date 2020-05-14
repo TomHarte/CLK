@@ -11,7 +11,7 @@
 using namespace CPU::MOS6502;
 
 State::State(const ProcessorBase &src): State() {
-	// Fill in registers.
+	// Registers.
 	registers.program_counter = src.pc_.full;
 	registers.stack_pointer = src.s_;
 	registers.flags = src.get_flags();
@@ -19,13 +19,13 @@ State::State(const ProcessorBase &src): State() {
 	registers.x = src.x_;
 	registers.y = src.y_;
 
-	// Fill in other inputs.
+	// Inputs.
 	inputs.ready = src.ready_line_is_enabled_;
 	inputs.irq = src.irq_line_;
 	inputs.nmi = src.nmi_line_is_enabled_;
 	inputs.reset = src.interrupt_requests_ & (ProcessorStorage::InterruptRequestFlags::Reset | ProcessorStorage::InterruptRequestFlags::PowerOn);
 
-	// Fill in execution state.
+	// Execution state.
 	execution_state.operation = src.operation_;
 	execution_state.operand = src.operand_;
 	execution_state.address = src.address_.full;
@@ -51,7 +51,7 @@ State::State(const ProcessorBase &src): State() {
 }
 
 void State::apply(ProcessorBase &target) {
-	// Grab registers.
+	// Registers.
 	target.pc_.full = registers.program_counter;
 	target.s_ = registers.stack_pointer;
 	target.set_flags(registers.flags);
@@ -59,13 +59,13 @@ void State::apply(ProcessorBase &target) {
 	target.x_ = registers.x;
 	target.y_ = registers.y;
 
-	// Grab other inputs.
+	// Inputs.
 	target.ready_line_is_enabled_ = inputs.ready;
 	target.set_irq_line(inputs.irq);
 	target.set_nmi_line(inputs.nmi);
 	target.set_reset_line(inputs.reset);
 
-	// Set execution state.
+	// Execution state.
 	target.ready_is_active_ = target.is_jammed_ = target.wait_is_active_ = target.stop_is_active_ = false;
 	switch(execution_state.phase) {
 		case State::ExecutionState::Phase::Ready:	target.ready_is_active_ = true;		break;
