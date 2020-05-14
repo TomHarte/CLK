@@ -60,6 +60,15 @@ struct State: public Reflection::StructImpl<State> {
 		obviously doesn't.
 	*/
 	struct ExecutionState: public Reflection::StructImpl<ExecutionState> {
+		bool is_halted;
+
+		uint8_t requests;
+		uint8_t last_requests;
+		uint8_t temp8;
+		uint8_t operation;
+		uint16_t temp16;
+		unsigned int flag_adjustment_history;
+		uint16_t pc_increment;
 
 		ExecutionState();
 	} execution_state;
