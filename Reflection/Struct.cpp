@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
+#include <type_traits>
 
 // MARK: - Setters
 
@@ -113,9 +114,18 @@ template <typename Type> bool Reflection::get(const Struct &target, const std::s
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
+	// If type is a direct match, copy.
 	if(*target_type == typeid(Type)) {
 		memcpy(&value, target.get(name), sizeof(Type));
 		return true;
+	}
+
+	// If the type is a registered enum and the value type is int, copy.
+	if constexpr (std::is_integral<Type>::value && sizeof(Type) == sizeof(int)) {
+		if(!Enum::name(*target_type).empty()) {
+			memcpy(&value, target.get(name), sizeof(int));
+			return true;
+		}
 	}
 
 	return false;
