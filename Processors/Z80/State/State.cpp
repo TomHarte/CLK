@@ -8,6 +8,8 @@
 
 #include "State.hpp"
 
+#include <cassert>
+
 using namespace CPU::Z80;
 
 State::State(const ProcessorBase &src): State() {
@@ -88,9 +90,11 @@ State::State(const ProcessorBase &src): State() {
 		} else {
 			// There's no need to determine which opcode because that knowledge is already
 			// contained in the dedicated opcode field.
-			Populate(Operation, current_instruction_page_->instructions[src.operation_]);
+			Populate(Operation, current_instruction_page_->instructions[src.operation_ & src.halt_mask_]);
 		}
 	}
+
+	assert(execution_state.steps_into_phase >= 0);
 
 #undef Populate
 #undef ContainedBy
