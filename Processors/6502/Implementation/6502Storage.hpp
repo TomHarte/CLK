@@ -285,7 +285,7 @@ class ProcessorStorage {
 		uint8_t irq_line_ = 0, irq_request_history_ = 0;
 		bool nmi_line_is_enabled_ = false, set_overflow_line_is_enabled_ = false;
 
-		// Allow state objects to capture and install state.
+		// Allow state objects to capture and apply state.
 		friend class State;
 };
 

@@ -127,8 +127,6 @@ class ProcessorStorage {
 			InstructionPage() : r_step(1), is_indexed(false) {}
 		};
 
-		typedef MicroOp InstructionTable[256][30];
-
 		ProcessorStorage();
 		void install_default_instruction_set();
 
@@ -195,8 +193,8 @@ class ProcessorStorage {
 
 			@returns The current value of the flags register.
 		*/
-		uint8_t get_flags() {
-			uint8_t result =
+		uint8_t get_flags() const {
+			return
 				(sign_result_ & Flag::Sign) |
 				(zero_result_ ? 0 : Flag::Zero) |
 				(bit53_result_ & (Flag::Bit5 | Flag::Bit3)) |
@@ -204,7 +202,6 @@ class ProcessorStorage {
 				(parity_overflow_result_ & Flag::Parity) |
 				subtract_flag_ |
 				(carry_result_ & Flag::Carry);
-			return result;
 		}
 
 		/*!
@@ -224,6 +221,7 @@ class ProcessorStorage {
 			carry_result_			= flags;
 		}
 
+		typedef MicroOp InstructionTable[256][30];
 		virtual void assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets) = 0;
 		virtual void copy_program(const MicroOp *source, std::vector<MicroOp> &destination) = 0;
 
@@ -232,4 +230,6 @@ class ProcessorStorage {
 		void assemble_cb_page(InstructionPage &target, RegisterPair16 &index, bool add_offsets);
 		void assemble_base_page(InstructionPage &target, RegisterPair16 &index, bool add_offsets, InstructionPage &cb_page);
 
+		// Allos state objects to capture and apply state.
+		friend class State;
 };
