@@ -38,6 +38,9 @@ struct Struct {
 			sufficiently formed for a formal language parser, etc.
 	*/
 	std::string description() const;
+
+	private:
+		void append(std::ostringstream &stream, const std::string &key, const std::type_info *type, size_t offset) const;
 };
 
 /*!
@@ -94,14 +97,14 @@ bool fuzzy_set(Struct &target, const std::string &name, const std::string &value
 
 	@returns @c true if the property was successfully read; @c false otherwise.
 */
-template <typename Type> bool get(const Struct &target, const std::string &name, Type &value);
+template <typename Type> bool get(const Struct &target, const std::string &name, Type &value, size_t offset = 0);
 
 /*!
 	Attempts to get the property @c name to @c value ; will perform limited type conversions.
 
 	@returns @c true if the property was successfully read; a default-constructed instance of Type otherwise.
 */
-template <typename Type> Type get(const Struct &target, const std::string &name);
+template <typename Type> Type get(const Struct &target, const std::string &name, size_t offset = 0);
 
 
 // TODO: move this elsewhere. It's just a sketch anyway.
@@ -225,7 +228,7 @@ template <typename Owner> class StructImpl: public Struct {
 			// If the declared item is an array, record it as a pointer to the
 			// first element plus a size.
 			if constexpr (std::is_array<Type>()) {
-				declare_emplace(&t[0], name, sizeof(*t) / sizeof(*t[0]));
+				declare_emplace(&(*t)[0], name, sizeof(*t) / sizeof(*t[0]));
 				return;
 			}
 
