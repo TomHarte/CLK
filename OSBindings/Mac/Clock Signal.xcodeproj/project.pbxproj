@@ -143,6 +143,8 @@
 		4B17B58C20A8A9D9007CCA8F /* StringSerialiser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B17B58920A8A9D9007CCA8F /* StringSerialiser.cpp */; };
 		4B1B58F6246CC4E8009C171E /* State.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B58F4246CC4E8009C171E /* State.cpp */; };
 		4B1B58F7246CC4E8009C171E /* State.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B58F4246CC4E8009C171E /* State.cpp */; };
+		4B1B58FF246E19FD009C171E /* State.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B58FD246E19FD009C171E /* State.cpp */; };
+		4B1B5900246E19FD009C171E /* State.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B58FD246E19FD009C171E /* State.cpp */; };
 		4B1B88BB202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */; };
 		4B1B88BC202E2EC100B67DFF /* MultiKeyboardMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */; };
 		4B1B88BD202E3D3D00B67DFF /* MultiMachine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4B3FCC3F201EC24200960631 /* MultiMachine.cpp */; };
@@ -988,6 +990,8 @@
 		4B17B58A20A8A9D9007CCA8F /* StringSerialiser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = StringSerialiser.hpp; sourceTree = "<group>"; };
 		4B1B58F4246CC4E8009C171E /* State.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = State.cpp; sourceTree = "<group>"; };
 		4B1B58F5246CC4E8009C171E /* State.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = State.hpp; sourceTree = "<group>"; };
+		4B1B58FD246E19FD009C171E /* State.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = State.cpp; sourceTree = "<group>"; };
+		4B1B58FE246E19FD009C171E /* State.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = State.hpp; sourceTree = "<group>"; };
 		4B1B88B9202E2EC100B67DFF /* MultiKeyboardMachine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiKeyboardMachine.cpp; sourceTree = "<group>"; };
 		4B1B88BA202E2EC100B67DFF /* MultiKeyboardMachine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MultiKeyboardMachine.hpp; sourceTree = "<group>"; };
 		4B1B88BE202E3DB200B67DFF /* MultiConfigurable.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MultiConfigurable.cpp; sourceTree = "<group>"; };
@@ -2020,6 +2024,15 @@
 			);
 			name = State;
 			path = Z80/State;
+			sourceTree = "<group>";
+		};
+		4B1B58FC246E19FD009C171E /* State */ = {
+			isa = PBXGroup;
+			children = (
+				4B1B58FD246E19FD009C171E /* State.cpp */,
+				4B1B58FE246E19FD009C171E /* State.hpp */,
+			);
+			path = State;
 			sourceTree = "<group>";
 		};
 		4B1E85791D174DEC001EF87D /* 6532 */ = {
@@ -3863,6 +3876,7 @@
 			children = (
 				4BFF1D342233778C00838EA1 /* 68000.hpp */,
 				4BFF1D36223379D500838EA1 /* Implementation */,
+				4B1B58FC246E19FD009C171E /* State */,
 			);
 			path = 68000;
 			sourceTree = "<group>";
@@ -4354,6 +4368,7 @@
 				4B055AAA1FAE85F50060FFFF /* CPM.cpp in Sources */,
 				4B055A9A1FAE85CB0060FFFF /* MFMDiskController.cpp in Sources */,
 				4B0ACC3123775819008902D0 /* TIASound.cpp in Sources */,
+				4B1B5900246E19FD009C171E /* State.cpp in Sources */,
 				4BC57CDA2436A62900FBC404 /* State.cpp in Sources */,
 				4B055ACB1FAE9AFB0060FFFF /* SerialBus.cpp in Sources */,
 				4B8318B122D3E53A006DB630 /* DiskIICard.cpp in Sources */,
@@ -4617,6 +4632,7 @@
 				4B74CF85231370BC00500CE8 /* MacintoshVolume.cpp in Sources */,
 				4B4518A51F75FD1C00926311 /* SSD.cpp in Sources */,
 				4B55CE5F1C3B7D960093A61B /* MachineDocument.swift in Sources */,
+				4B1B58FF246E19FD009C171E /* State.cpp in Sources */,
 				4B2B3A4C1F9B8FA70062DABF /* MemoryFuzzer.cpp in Sources */,
 				4B7913CC1DFCD80E00175A82 /* Video.cpp in Sources */,
 				4BC57CD92436A62900FBC404 /* State.cpp in Sources */,

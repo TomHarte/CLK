@@ -2,24 +2,24 @@
 //  State.hpp
 //  Clock Signal
 //
-//  Created by Thomas Harte on 13/05/2020.
+//  Created by Thomas Harte on 14/05/2020.
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef Z80_State_hpp
-#define Z80_State_hpp
+#ifndef MC68000_State_hpp
+#define MC68000_State_hpp
 
 #include "../../../Reflection/Enum.hpp"
 #include "../../../Reflection/Struct.hpp"
-#include "../Z80.hpp"
+#include "../68000.hpp"
 
 namespace CPU {
-namespace Z80 {
+namespace MC68000 {
 
 /*!
-	Provides a means for capturing or restoring complete Z80 state.
+	Provides a means for capturing or restoring complete 68000 state.
 
-	This is an optional adjunct to the Z80 class. If you want to take the rest of the Z80
+	This is an optional adjunct to the 68000 class. If you want to take the rest of the 68000
 	implementation but don't want any of the overhead of my sort-of half-reflection as
 	encapsulated in Reflection/[Enum/Struct].hpp just don't use this class.
 */
@@ -28,15 +28,7 @@ struct State: public Reflection::StructImpl<State> {
 		Provides the current state of the well-known, published internal registers.
 	*/
 	struct Registers: public Reflection::StructImpl<Registers> {
-		uint8_t a;
-		uint8_t flags;
-		uint16_t bc, de, hl;
-		uint16_t bcDash, deDash, hlDash;
-		uint16_t ix, iy, ir;
-		uint16_t program_counter, stack_pointer;
-		uint16_t memptr;
-		int interrupt_mode;
-		bool iff1, iff2;
+		uint32_t data[8], address[7];
 
 		Registers();
 	} registers;
@@ -46,11 +38,6 @@ struct State: public Reflection::StructImpl<State> {
 		related to an access cycle.
 	*/
 	struct Inputs: public Reflection::StructImpl<Inputs> {
-		bool irq = false;
-		bool nmi = false;
-		bool bus_request = false;
-		bool wait = false;
-
 		Inputs();
 	} inputs;
 
@@ -60,27 +47,6 @@ struct State: public Reflection::StructImpl<State> {
 		obviously doesn't.
 	*/
 	struct ExecutionState: public Reflection::StructImpl<ExecutionState> {
-		bool is_halted;
-
-		uint8_t requests;
-		uint8_t last_requests;
-		uint8_t temp8;
-		uint8_t operation;
-		uint16_t temp16;
-		unsigned int flag_adjustment_history;
-		uint16_t pc_increment;
-		uint16_t refresh_address;
-
-		ReflectableEnum(Phase,
-			UntakenConditionalCall, Reset, IRQMode0, IRQMode1, IRQMode2,
-			NMI, FetchDecode, Operation
-		);
-
-		Phase phase;
-		int half_cycles_into_step;
-		int steps_into_phase;
-		uint16_t instruction_page = 0;
-
 		ExecutionState();
 	} execution_state;
 
@@ -97,4 +63,4 @@ struct State: public Reflection::StructImpl<State> {
 }
 }
 
-#endif /* Z80_State_hpp */
+#endif /* MC68000_State_hpp */
