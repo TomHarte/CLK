@@ -22,6 +22,7 @@ State::State(const ProcessorBase &src): State() {
 	registers.status = src.get_status();
 	registers.program_counter = src.program_counter_.full;
 	registers.prefetch = src.prefetch_queue_.full;
+	registers.instruction = src.decoded_instruction_.full;
 
 	// Inputs.
 	inputs.bus_interrupt_level = uint8_t(src.bus_interrupt_level_);
@@ -31,6 +32,23 @@ State::State(const ProcessorBase &src): State() {
 	inputs.bus_request = src.bus_request_;
 	inputs.bus_grant = false;	// TODO (within the 68000).
 	inputs.halt = src.halt_;
+
+	// TODO:
+	//	execution_state_
+	//	last_trace_flag_
+	//	pending_interrupt_level_
+	//	accepted_interrupt_level_
+	//	is_starting_interrupt_
+	//	dbcc_false_address_
+	//	next_word_
+	//	active_[program_/micro_op_/step_]
+
+	// Execution state.
+	execution_state.e_clock_phase = src.e_clock_phase_.as<uint8_t>();
+	execution_state.effective_address[0] = src.effective_address_[0].full;
+	execution_state.effective_address[1] = src.effective_address_[1].full;
+	execution_state.source_data = src.source_bus_data_[0].full;
+	execution_state.destination_data = src.destination_bus_data_[0].full;
 }
 
 void State::apply(ProcessorBase &target) {
@@ -54,6 +72,7 @@ State::Registers::Registers() {
 		DeclareField(status);
 		DeclareField(program_counter);
 		DeclareField(prefetch);
+		DeclareField(instruction);
 	}
 }
 
@@ -71,5 +90,9 @@ State::Inputs::Inputs() {
 
 State::ExecutionState::ExecutionState() {
 	if(needs_declare()) {
+		DeclareField(e_clock_phase);
+		DeclareField(effective_address);
+		DeclareField(source_data);
+		DeclareField(destination_data);
 	}
 }

@@ -34,6 +34,7 @@ struct State: public Reflection::StructImpl<State> {
 		uint16_t status;
 		uint32_t program_counter;
 		uint32_t prefetch;
+		uint16_t instruction;
 
 		Registers();
 	} registers;
@@ -60,6 +61,11 @@ struct State: public Reflection::StructImpl<State> {
 		obviously doesn't.
 	*/
 	struct ExecutionState: public Reflection::StructImpl<ExecutionState> {
+		uint8_t e_clock_phase;
+		uint32_t effective_address[2];
+		uint32_t source_data;
+		uint32_t destination_data;
+
 		ExecutionState();
 	} execution_state;
 
