@@ -43,6 +43,14 @@ struct State: public Reflection::StructImpl<State> {
 		related to an access cycle.
 	*/
 	struct Inputs: public Reflection::StructImpl<Inputs> {
+		uint8_t bus_interrupt_level;
+		bool dtack;
+		bool is_peripheral_address;
+		bool bus_error;
+		bool bus_request;
+		bool bus_grant;
+		bool halt;
+
 		Inputs();
 	} inputs;
 
