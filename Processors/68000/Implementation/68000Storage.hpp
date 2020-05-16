@@ -43,7 +43,7 @@ class ProcessorStorage {
 		Microcycle dtack_cycle_;
 		Microcycle stop_cycle_;
 
-		// Various status bits.
+		// Various status parts.
 		int is_supervisor_;
 		int interrupt_level_;
 		uint_fast32_t zero_result_;		// The zero flag is set if this value is zero.
@@ -539,9 +539,13 @@ class ProcessorStorage {
 			address_[7].full -= 14;
 		}
 
+		inline uint16_t get_status() const;
+		inline void set_status(uint16_t);
+
 	private:
 		friend class ProcessorStorageConstructor;
 		friend class ProcessorStorageTests;
+		friend class State;
 };
 
 #endif /* MC68000Storage_h */

@@ -6,7 +6,7 @@
 //  Copyright © 2019 Thomas Harte. All rights reserved.
 //
 
-#define get_ccr() \
+#define ccr() \
 	(	\
 		(carry_flag_ 	? 0x0001 : 0x0000) |	\
 		(overflow_flag_	? 0x0002 : 0x0000) |	\
@@ -15,23 +15,23 @@
 		(extend_flag_	? 0x0010 : 0x0000)		\
 	)
 
-#define get_status() \
+#define status() \
 	uint16_t(	\
-		get_ccr() |	\
+		ccr() |	\
 		(interrupt_level_ << 8) |				\
 		(trace_flag_ ? 0x8000 : 0x0000) |		\
 		(is_supervisor_ << 13)					\
 	)
 
-#define set_ccr(x) \
+#define apply_ccr(x) \
 	carry_flag_			= (x) & 0x0001;	\
 	overflow_flag_		= (x) & 0x0002;	\
 	zero_result_		= ((x) & 0x0004) ^ 0x0004;	\
 	negative_flag_		= (x) & 0x0008;	\
 	extend_flag_		= (x) & 0x0010;
 
-#define set_status(x) \
-	set_ccr(x)	\
+#define apply_status(x) \
+	apply_ccr(x)	\
 	interrupt_level_ 	= ((x) >> 8) & 7;	\
 	trace_flag_			= (x) & 0x8000;	\
 	set_is_supervisor(!!(((x) >> 13) & 1));
@@ -101,7 +101,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							const auto offending_address = *active_step_->microcycle.address;
 							active_program_ = nullptr;
 							active_micro_op_ = long_exception_micro_ops_;
-							populate_bus_error_steps(2, get_status(), get_bus_code(), offending_address);
+							populate_bus_error_steps(2, status(), get_bus_code(), offending_address);
 							program_counter_.full -= 4;
 							active_step_ = &all_bus_steps_[active_micro_op_->bus_program];
 						}
@@ -116,7 +116,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						const auto offending_address = *active_step_->microcycle.address;
 						active_program_ = nullptr;
 						active_micro_op_ = long_exception_micro_ops_;
-						populate_bus_error_steps(3, get_status(), get_bus_code(), offending_address);
+						populate_bus_error_steps(3, status(), get_bus_code(), offending_address);
 						program_counter_.full -= 4;
 						active_step_ = &all_bus_steps_[active_micro_op_->bus_program];
 
@@ -277,7 +277,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							// The user has set the trace bit in the status register.
 							active_program_ = nullptr;
 							active_micro_op_ = short_exception_micro_ops_;
-							populate_trap_steps(9, get_status());
+							populate_trap_steps(9, status());
 							program_counter_.full -= 4;
 						} else {
 #ifdef LOG_TRACE
@@ -331,7 +331,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// A privilege violation has been detected.
 									active_program_ = nullptr;
 									active_micro_op_ = short_exception_micro_ops_;
-									populate_trap_steps(8, get_status());
+									populate_trap_steps(8, status());
 								} else {
 									// Standard instruction dispatch.
 									active_program_ = &instructions[decoded_instruction_.full];
@@ -353,13 +353,13 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								// or one on the A or F lines.
 								switch(decoded_instruction_.full >> 12) {
 									default:
-										populate_trap_steps(4, get_status());
+										populate_trap_steps(4, status());
 									break;
 									case 0xa:
-										populate_trap_steps(10, get_status());
+										populate_trap_steps(10, status());
 									break;
 									case 0xf:
-										populate_trap_steps(11, get_status());
+										populate_trap_steps(11, status());
 									break;
 								}
 							}
@@ -887,15 +887,15 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								*/
 
 								case Operation::MOVEtoSR:
-									set_status(source()->full);
+									apply_status(source()->full);
 								break;
 
 								case Operation::MOVEfromSR:
-									destination()->halves.low.full = get_status();
+									destination()->halves.low.full = status();
 								break;
 
 								case Operation::MOVEtoCCR:
-									set_ccr(source()->full);
+									apply_ccr(source()->full);
 								break;
 
 								case Operation::EXTbtow:
@@ -919,25 +919,25 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #define eor_op(a, b) a ^= b
 
 #define apply(op, func)	{\
-	auto status = get_status();	\
+	auto status = status();	\
 	op(status, prefetch_queue_.halves.high.full);	\
 	func(status);	\
 	program_counter_.full -= 2;	\
 }
 
-#define apply_sr(op)	apply(op, set_status)
-#define apply_ccr(op)	apply(op, set_ccr)
+#define apply_op_sr(op)	apply(op, apply_status)
+#define apply_op_ccr(op)	apply(op, apply_ccr)
 
-								case Operation::ANDItoSR:	apply_sr(and_op);	break;
-								case Operation::EORItoSR:	apply_sr(eor_op);	break;
-								case Operation::ORItoSR:	apply_sr(or_op);	break;
+								case Operation::ANDItoSR:	apply_op_sr(and_op);	break;
+								case Operation::EORItoSR:	apply_op_sr(eor_op);	break;
+								case Operation::ORItoSR:	apply_op_sr(or_op);		break;
 
-								case Operation::ANDItoCCR:	apply_ccr(and_op);	break;
-								case Operation::EORItoCCR:	apply_ccr(eor_op);	break;
-								case Operation::ORItoCCR:	apply_ccr(or_op);	break;
+								case Operation::ANDItoCCR:	apply_op_ccr(and_op);	break;
+								case Operation::EORItoCCR:	apply_op_ccr(eor_op);	break;
+								case Operation::ORItoCCR:	apply_op_ccr(or_op);	break;
 
-#undef apply_ccr
-#undef apply_sr
+#undef apply_op_ccr
+#undef apply_op_sr
 #undef apply
 #undef eor_op
 #undef or_op
@@ -988,7 +988,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	active_micro_op_ = short_exception_micro_ops_;					\
 	bus_program = &all_bus_steps_[active_micro_op_->bus_program];	\
 																	\
-	populate_trap_steps(5, get_status());							\
+	populate_trap_steps(5, status());								\
 	bus_program->microcycle.length = HalfCycles(20);				\
 																	\
 	program_counter_.full -= 2;
@@ -1297,7 +1297,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::TRAP: {
 									// Select the trap steps as next; the initial microcycle should be 4 cycles long.
 									bus_program = trap_steps_;
-									populate_trap_steps((decoded_instruction_.full & 15) + 32, get_status());
+									populate_trap_steps((decoded_instruction_.full & 15) + 32, status());
 									set_next_microcycle_length(HalfCycles(12));
 
 									// The program counter to push is actually one slot ago.
@@ -1308,7 +1308,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									if(overflow_flag_) {
 										// Select the trap steps as next; the initial microcycle should be skipped.
 										bus_program = trap_steps_;
-										populate_trap_steps(7, get_status());
+										populate_trap_steps(7, status());
 										set_next_microcycle_length(HalfCycles(4));
 
 										// Push the address after the TRAPV.
@@ -1334,7 +1334,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// exception is necessary.
 									if(is_under || is_over) {
 										bus_program = trap_steps_;
-										populate_trap_steps(6, get_status());
+										populate_trap_steps(6, status());
 										if(is_over) {
 											set_next_microcycle_length(HalfCycles(20));
 										} else {
@@ -1858,11 +1858,11 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								case Operation::RTE_RTR:
 									// If this is RTR, patch out the supervisor half of the status register.
 									if(decoded_instruction_.full == 0x4e77) {
-										const auto current_status = get_status();
+										const auto current_status = status();
 										source_bus_data_[0].halves.low.halves.high =
 											uint8_t(current_status >> 8);
 									}
-									set_status(source_bus_data_[0].full);
+									apply_status(source_bus_data_[0].full);
 								break;
 
 								/*
@@ -1888,7 +1888,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								break;
 
 								case Operation::STOP:
-									set_status(prefetch_queue_.halves.low.full);
+									apply_status(prefetch_queue_.halves.low.full);
 									execution_state_ = ExecutionState::Stopped;
 								break;
 
@@ -1968,7 +1968,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						case int_type(MicroOp::Action::PrepareINT):
 							// The INT sequence uses the same storage as the TRAP steps, so this'll get
 							// the necessary stack work set up.
-							populate_trap_steps(0, get_status());
+							populate_trap_steps(0, status());
 
 							// Mutate neessary internal state — effective_address_[0] is exposed
 							// on the data bus as the accepted interrupt number during the interrupt
@@ -2202,7 +2202,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> ProcessorSt
 	state.supervisor_stack_pointer = stack_pointers_[1].full;
 	state.program_counter = program_counter_.full;
 
-	state.status = get_status();
+	state.status = status();
 
 	return state;
 }
@@ -2211,17 +2211,25 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 	memcpy(data_, state.data, sizeof(state.data));
 	memcpy(address_, state.address, sizeof(state.address));
 
-	set_status(state.status);
+	apply_status(state.status);
 
 	stack_pointers_[0].full = state.user_stack_pointer;
 	stack_pointers_[1].full = state.supervisor_stack_pointer;
 	address_[7] = stack_pointers_[is_supervisor_];
 }
 
-#undef get_status
-#undef set_status
-#undef set_ccr
-#undef get_ccr
+uint16_t ProcessorStorage::get_status() const {
+	return status();
+}
+
+void ProcessorStorage::set_status(uint16_t status) {
+	apply_status(status);
+}
+
+#undef status
+#undef apply_status
+#undef apply_ccr
+#undef ccr
 #undef u_extend16
 #undef u_extend8
 #undef s_extend16
