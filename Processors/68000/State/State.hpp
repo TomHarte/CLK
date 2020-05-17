@@ -65,6 +65,12 @@ struct State: public Reflection::StructImpl<State> {
 		uint32_t effective_address[2];
 		uint32_t source_data;
 		uint32_t destination_data;
+		bool last_trace_flag;
+		uint16_t next_word;
+		uint32_t dbcc_false_address;
+		bool is_starting_interrupt;
+		uint8_t pending_interrupt_level;
+		uint8_t accepted_interrupt_level;
 
 		ExecutionState();
 	} execution_state;

@@ -35,12 +35,6 @@ State::State(const ProcessorBase &src): State() {
 
 	// TODO:
 	//	execution_state_
-	//	last_trace_flag_
-	//	pending_interrupt_level_
-	//	accepted_interrupt_level_
-	//	is_starting_interrupt_
-	//	dbcc_false_address_
-	//	next_word_
 	//	active_[program_/micro_op_/step_]
 
 	// Execution state.
@@ -49,6 +43,12 @@ State::State(const ProcessorBase &src): State() {
 	execution_state.effective_address[1] = src.effective_address_[1].full;
 	execution_state.source_data = src.source_bus_data_[0].full;
 	execution_state.destination_data = src.destination_bus_data_[0].full;
+	execution_state.last_trace_flag = src.last_trace_flag_;
+	execution_state.next_word = src.next_word_;
+	execution_state.dbcc_false_address = src.dbcc_false_address_;
+	execution_state.is_starting_interrupt = src.is_starting_interrupt_;
+	execution_state.pending_interrupt_level = uint8_t(src.pending_interrupt_level_);
+	execution_state.accepted_interrupt_level = uint8_t(src.accepted_interrupt_level_);
 }
 
 void State::apply(ProcessorBase &target) {
@@ -94,5 +94,11 @@ State::ExecutionState::ExecutionState() {
 		DeclareField(effective_address);
 		DeclareField(source_data);
 		DeclareField(destination_data);
+		DeclareField(last_trace_flag);
+		DeclareField(next_word);
+		DeclareField(dbcc_false_address);
+		DeclareField(is_starting_interrupt);
+		DeclareField(pending_interrupt_level);
+		DeclareField(accepted_interrupt_level);
 	}
 }
