@@ -38,7 +38,7 @@ class ProcessorStorage {
 			Halted,
 
 			/// Signals a transition from some other straight directly to cueing up an interrupt.
-			BeginInterrupt,
+			WillBeginInterrupt,
 		} execution_state_ = ExecutionState::Executing;
 		Microcycle dtack_cycle_;
 		Microcycle stop_cycle_;
@@ -75,8 +75,8 @@ class ProcessorStorage {
 		// Generic sources and targets for memory operations;
 		// by convention: [0] = source, [1] = destination.
 		RegisterPair32 effective_address_[2];
-		RegisterPair32 source_bus_data_[1];
-		RegisterPair32 destination_bus_data_[1];
+		RegisterPair32 source_bus_data_;
+		RegisterPair32 destination_bus_data_;
 
 		HalfCycles half_cycles_left_to_run_;
 		HalfCycles e_clock_phase_;
@@ -394,18 +394,18 @@ class ProcessorStorage {
 			void set_source(ProcessorStorage &storage, int mode, int reg) {
 				set_source_address(storage, reg);
 				switch(mode) {
-					case 0:		set_source(storage, &storage.data_[reg]);			break;
-					case 1:		set_source(storage, &storage.address_[reg]);		break;
-					default:	set_source(storage, &storage.source_bus_data_[0]);	break;
+					case 0:		set_source(storage, &storage.data_[reg]);		break;
+					case 1:		set_source(storage, &storage.address_[reg]);	break;
+					default:	set_source(storage, &storage.source_bus_data_);	break;
 				}
 			}
 
 			void set_destination(ProcessorStorage &storage, int mode, int reg) {
 				set_destination_address(storage, reg);
 				switch(mode) {
-					case 0:		set_destination(storage, &storage.data_[reg]);					break;
-					case 1:		set_destination(storage, &storage.address_[reg]);				break;
-					default:	set_destination(storage, &storage.destination_bus_data_[0]);	break;
+					case 0:		set_destination(storage, &storage.data_[reg]);				break;
+					case 1:		set_destination(storage, &storage.address_[reg]);			break;
+					default:	set_destination(storage, &storage.destination_bus_data_);	break;
 				}
 			}
 		};
@@ -438,13 +438,15 @@ class ProcessorStorage {
 		BusStep *movem_read_steps_;
 		BusStep *movem_write_steps_;
 
+		// These two are dynamically modified depending on the particular
+		// TRAP and bus error.
 		BusStep *trap_steps_;
 		BusStep *bus_error_steps_;
 
 		// Current bus step pointer, and outer program pointer.
-		Program *active_program_ = nullptr;
-		MicroOp *active_micro_op_ = nullptr;
-		BusStep *active_step_ = nullptr;
+		const Program *active_program_ = nullptr;
+		const MicroOp *active_micro_op_ = nullptr;
+		const BusStep *active_step_ = nullptr;
 		RegisterPair16 decoded_instruction_ = 0;
 		uint16_t next_word_ = 0;
 
@@ -455,9 +457,9 @@ class ProcessorStorage {
 		void set_is_supervisor(bool);
 
 		// Transient storage for MOVEM, TRAP and others.
-		uint32_t precomputed_addresses_[65];
 		RegisterPair16 throwaway_value_;
 		uint32_t movem_final_address_;
+		uint32_t precomputed_addresses_[65];	// This is a big chunk of rarely-used storage. It's placed last deliberately.
 
 		/*!
 			Evaluates the conditional described by @c code and returns @c true or @c false to
@@ -496,7 +498,7 @@ class ProcessorStorage {
 		*/
 		forceinline void populate_trap_steps(uint32_t vector, uint16_t status) {
 			// Fill in the status word value.
-			destination_bus_data_[0].full = status;
+			destination_bus_data_.full = status;
 
 			// Switch to supervisor mode, disable the trace bit.
 			set_is_supervisor(true);
@@ -507,7 +509,7 @@ class ProcessorStorage {
 
 			// Schedule the proper stack activity.
 			precomputed_addresses_[0] = address_[7].full - 2;	// PC.l
-			precomputed_addresses_[1] = address_[7].full - 6;	// status word (in destination_bus_data_[0])
+			precomputed_addresses_[1] = address_[7].full - 6;	// status word (in destination_bus_data_)
 			precomputed_addresses_[2] = address_[7].full - 4;	// PC.h
 			address_[7].full -= 6;
 
@@ -517,8 +519,8 @@ class ProcessorStorage {
 
 		forceinline void populate_bus_error_steps(uint32_t vector, uint16_t status, uint16_t bus_status, RegisterPair32 faulting_address) {
 			// Fill in the status word value.
-			destination_bus_data_[0].halves.low.full = status;
-			destination_bus_data_[0].halves.high.full = bus_status;
+			destination_bus_data_.halves.low.full = status;
+			destination_bus_data_.halves.high.full = bus_status;
 			effective_address_[1] = faulting_address;
 
 			// Switch to supervisor mode, disable the trace bit.

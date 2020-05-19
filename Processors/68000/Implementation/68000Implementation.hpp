@@ -210,7 +210,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 					if(bus_interrupt_level_ > interrupt_level_) {
 						pending_interrupt_level_ = bus_interrupt_level_;
 						program_counter_.full += 4;	// Don't return to this stop.
-						execution_state_ = ExecutionState::BeginInterrupt;
+						execution_state_ = ExecutionState::WillBeginInterrupt;
 						continue;
 					}
 
@@ -244,7 +244,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						bus_handler_.perform_bus_operation(stop_cycle_, is_supervisor_);
 				continue;
 
-				case ExecutionState::BeginInterrupt:
+				case ExecutionState::WillBeginInterrupt:
 #ifdef LOG_TRACE
 //					should_log = true;
 #endif
@@ -269,7 +269,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						// no instruction was ongoing. Either way, do a standard instruction operation.
 
 						if(pending_interrupt_level_) {
-							execution_state_ = ExecutionState::BeginInterrupt;
+							execution_state_ = ExecutionState::WillBeginInterrupt;
 							break;
 						}
 
@@ -302,7 +302,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 #ifndef NDEBUG
 							/* Debugging feature: reset the effective addresses and data latches, so that it's
 							more obvious if some of the instructions aren't properly feeding them. */
-							effective_address_[0].full = effective_address_[1].full = source_bus_data_[0].full = destination_bus_data_[0].full = 0x12344321;
+							effective_address_[0].full = effective_address_[1].full = source_bus_data_.full = destination_bus_data_.full = 0x12344321;
 #endif
 
 #ifdef LOG_TRACE
@@ -829,7 +829,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								// JMP: copies the source bus data to the program counter.
 								case Operation::RTS:
-									program_counter_ = source_bus_data_[0];
+									program_counter_ = source_bus_data_;
 								break;
 
 								/*
@@ -879,7 +879,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 								break;
 
 								case Operation::PEA:
-									destination_bus_data_[0] = effective_address_[0];
+									destination_bus_data_ = effective_address_[0];
 								break;
 
 								/*
@@ -1119,30 +1119,30 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::MOVEPtoMw:
 									// Write pattern is nW+ nw, which should write the low word of the source in big-endian form.
-									destination_bus_data_[0].halves.high.full = source()->halves.low.halves.high;
-									destination_bus_data_[0].halves.low.full = source()->halves.low.halves.low;
+									destination_bus_data_.halves.high.full = source()->halves.low.halves.high;
+									destination_bus_data_.halves.low.full = source()->halves.low.halves.low;
 								break;
 
 								case Operation::MOVEPtoMl:
 									// Write pattern is nW+ nWr+ nw+ nwr, which should write the source in big-endian form.
-									destination_bus_data_[0].halves.high.full = source()->halves.high.halves.high;
-									source_bus_data_[0].halves.high.full = source()->halves.high.halves.low;
-									destination_bus_data_[0].halves.low.full = source()->halves.low.halves.high;
-									source_bus_data_[0].halves.low.full = source()->halves.low.halves.low;
+									destination_bus_data_.halves.high.full = source()->halves.high.halves.high;
+									source_bus_data_.halves.high.full = source()->halves.high.halves.low;
+									destination_bus_data_.halves.low.full = source()->halves.low.halves.high;
+									source_bus_data_.halves.low.full = source()->halves.low.halves.low;
 								break;
 
 								case Operation::MOVEPtoRw:
 									// Read pattern is nRd+ nrd.
-									source()->halves.low.halves.high = destination_bus_data_[0].halves.high.halves.low;
-									source()->halves.low.halves.low = destination_bus_data_[0].halves.low.halves.low;
+									source()->halves.low.halves.high = destination_bus_data_.halves.high.halves.low;
+									source()->halves.low.halves.low = destination_bus_data_.halves.low.halves.low;
 								break;
 
 								case Operation::MOVEPtoRl:
 									// Read pattern is nRd+ nR+ nrd+ nr.
-									source()->halves.high.halves.high = destination_bus_data_[0].halves.high.halves.low;
-									source()->halves.high.halves.low = source_bus_data_[0].halves.high.halves.low;
-									source()->halves.low.halves.high = destination_bus_data_[0].halves.low.halves.low;
-									source()->halves.low.halves.low = source_bus_data_[0].halves.low.halves.low;
+									source()->halves.high.halves.high = destination_bus_data_.halves.high.halves.low;
+									source()->halves.high.halves.low = source_bus_data_.halves.high.halves.low;
+									source()->halves.low.halves.high = destination_bus_data_.halves.low.halves.low;
+									source()->halves.low.halves.low = source_bus_data_.halves.low.halves.low;
 								break;
 
 								/*
@@ -1448,7 +1448,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									effective_address_[1].full = address_[7].full;
 
 									// The current value of the address register will be pushed.
-									destination_bus_data_[0].full = source()->full;
+									destination_bus_data_.full = source()->full;
 
 									// The address register will then contain the bottom of the stack,
 									// and the stack pointer will be offset.
@@ -1458,7 +1458,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 
 								case Operation::UNLINK:
 									address_[7].full = effective_address_[1].full + 2;
-									destination()->full = destination_bus_data_[0].full;
+									destination()->full = destination_bus_data_.full;
 								break;
 
 								/*
@@ -1859,10 +1859,10 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 									// If this is RTR, patch out the supervisor half of the status register.
 									if(decoded_instruction_.full == 0x4e77) {
 										const auto current_status = status();
-										source_bus_data_[0].halves.low.halves.high =
+										source_bus_data_.halves.low.halves.high =
 											uint8_t(current_status >> 8);
 									}
-									apply_status(source_bus_data_[0].full);
+									apply_status(source_bus_data_.full);
 								break;
 
 								/*
@@ -1938,9 +1938,9 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							const auto mode = (decoded_instruction_.full >> 3) & 7;
 							// Determine the proper resumption address.
 							switch(mode) {
-								case 2: destination_bus_data_[0].full = program_counter_.full - 2; break;	/* (An) */
+								case 2: destination_bus_data_.full = program_counter_.full - 2; break;	/* (An) */
 								default:
-									destination_bus_data_[0].full = program_counter_.full;	/* Everything other than (An) */
+									destination_bus_data_.full = program_counter_.full;	/* Everything other than (An) */
 								break;
 							}
 							address_[7].full -= 4;
@@ -1948,7 +1948,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						} break;
 
 						case int_type(MicroOp::Action::PrepareBSR):
-							destination_bus_data_[0].full = (decoded_instruction_.full & 0xff) ? program_counter_.full - 2 : program_counter_.full;
+							destination_bus_data_.full = (decoded_instruction_.full & 0xff) ? program_counter_.full - 2 : program_counter_.full;
 							address_[7].full -= 4;
 							effective_address_[1].full = address_[7].full;
 						break;
@@ -2002,7 +2002,7 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 							}
 
 							// Otherwise, the vector is whatever we were just told it is.
-							effective_address_[0].full = uint32_t(source_bus_data_[0].halves.low.halves.low << 2);
+							effective_address_[0].full = uint32_t(source_bus_data_.halves.low.halves.low << 2);
 
 //							printf("Interrupt vector: %06x\n", effective_address_[0].full);
 						break;
@@ -2143,19 +2143,19 @@ template <class T, bool dtack_is_implicit, bool signal_will_perform> void Proces
 						break;
 
 						case int_type(MicroOp::Action::AssembleWordDataFromPrefetch) | MicroOp::SourceMask:
-							source_bus_data_[0] = prefetch_queue_.halves.low.full;
+							source_bus_data_ = prefetch_queue_.halves.low.full;
 						break;
 
 						case int_type(MicroOp::Action::AssembleWordDataFromPrefetch) | MicroOp::DestinationMask:
-							destination_bus_data_[0] = prefetch_queue_.halves.low.full;
+							destination_bus_data_ = prefetch_queue_.halves.low.full;
 						break;
 
 						case int_type(MicroOp::Action::AssembleLongWordDataFromPrefetch) | MicroOp::SourceMask:
-							source_bus_data_[0] = prefetch_queue_.full;
+							source_bus_data_ = prefetch_queue_.full;
 						break;
 
 						case int_type(MicroOp::Action::AssembleLongWordDataFromPrefetch) | MicroOp::DestinationMask:
-							destination_bus_data_[0] = prefetch_queue_.full;
+							destination_bus_data_ = prefetch_queue_.full;
 						break;
 
 						case int_type(MicroOp::Action::CopyToEffectiveAddress) | MicroOp::SourceMask:

@@ -300,7 +300,7 @@ struct ProcessorStorageConstructor {
 				if(tolower(access_pattern[1]) == 's') {
 					step.microcycle.operation = Microcycle::NewAddress;
 					step.microcycle.address = &storage_.effective_address_[1].full;
-					step.microcycle.value = isupper(access_pattern[1]) ? &storage_.destination_bus_data_[0].halves.high : &storage_.destination_bus_data_[0].halves.low;
+					step.microcycle.value = isupper(access_pattern[1]) ? &storage_.destination_bus_data_.halves.high : &storage_.destination_bus_data_.halves.low;
 					steps.push_back(step);
 
 					step.microcycle.operation = Microcycle::SameAddress | Microcycle::SelectWord;
@@ -312,7 +312,7 @@ struct ProcessorStorageConstructor {
 
 				// A stack read.
 				if(tolower(access_pattern[1]) == 'u') {
-					RegisterPair32 *const scratch_data = &storage_.source_bus_data_[0];
+					RegisterPair32 *const scratch_data = &storage_.source_bus_data_;
 
 					step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read;
 					step.microcycle.address = &storage_.effective_address_[0].full;
@@ -350,7 +350,7 @@ struct ProcessorStorageConstructor {
 			) {
 				const bool is_read = tolower(access_pattern[1]) == 'r';
 				const bool use_source_storage = tolower(end_of_pattern[-1]) == 'r';
-				RegisterPair32 *const scratch_data = use_source_storage ? &storage_.source_bus_data_[0] : &storage_.destination_bus_data_[0];
+				RegisterPair32 *const scratch_data = use_source_storage ? &storage_.source_bus_data_ : &storage_.destination_bus_data_;
 
 				assert(address_iterator != addresses.end());
 
@@ -377,7 +377,7 @@ struct ProcessorStorageConstructor {
 			if(token_length == 3) {
 				// The completing part of a TAS.
 				if(access_pattern[0] == 't' && access_pattern[1] == 'a' && access_pattern[2] == 's') {
-					RegisterPair32 *const scratch_data = &storage_.destination_bus_data_[0];
+					RegisterPair32 *const scratch_data = &storage_.destination_bus_data_;
 
 					assert(address_iterator != addresses.end());
 
@@ -399,7 +399,7 @@ struct ProcessorStorageConstructor {
 				if(access_pattern[0] == 'i' && access_pattern[1] == 'n' && access_pattern[2] == 't') {
 					step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::NewAddress;
 					step.microcycle.address = &storage_.effective_address_[0].full;		// The selected interrupt should be in bits 1–3; but 0 should be set.
-					step.microcycle.value = &storage_.source_bus_data_[0].halves.low;
+					step.microcycle.value = &storage_.source_bus_data_.halves.low;
 					steps.push_back(step);
 
 					step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::SameAddress | Microcycle::SelectByte;
@@ -3250,20 +3250,20 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	//
 	// Order of output is: PC.l, SR, PC.h.
 	trap_steps_ = &all_bus_steps_[trap_offset];
-	constructor.replace_write_values(trap_steps_, { &program_counter_.halves.low, &destination_bus_data_[0].halves.low, &program_counter_.halves.high });
+	constructor.replace_write_values(trap_steps_, { &program_counter_.halves.low, &destination_bus_data_.halves.low, &program_counter_.halves.high });
 
 	// Fill in the same order of writes for the interrupt micro-ops, though it divides the work differently.
-	constructor.replace_write_values(interrupt_micro_ops_, { &program_counter_.halves.low, &destination_bus_data_[0].halves.low, &program_counter_.halves.high });
+	constructor.replace_write_values(interrupt_micro_ops_, { &program_counter_.halves.low, &destination_bus_data_.halves.low, &program_counter_.halves.high });
 
 	// Link the bus error exception steps and fill in the proper sources.
 	bus_error_steps_ = &all_bus_steps_[bus_error_offset];
 	constructor.replace_write_values(bus_error_steps_, {
 		&program_counter_.halves.low,
-		&destination_bus_data_[0].halves.low,
+		&destination_bus_data_.halves.low,
 		&program_counter_.halves.high,
 		&decoded_instruction_,
 		&effective_address_[1].halves.low,
-		&destination_bus_data_[0].halves.high,
+		&destination_bus_data_.halves.high,
 		&effective_address_[1].halves.high
 	});
 

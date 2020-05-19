@@ -72,6 +72,49 @@ struct State: public Reflection::StructImpl<State> {
 		uint8_t pending_interrupt_level;
 		uint8_t accepted_interrupt_level;
 
+		// This is a reflective do-over of the ExecutionState enum within
+		// MC68000Storage; I've yet to decide how happy I am with that
+		// as an approach.
+		ReflectableEnum(Phase,
+			Executing,
+			WaitingForDTack,
+			Stopped,
+			Halted,
+			WillBeginInterrupt
+		);
+		Phase phase;
+
+		bool active_program;
+		uint32_t movem_final_address;
+		uint32_t source_addresses[65];
+
+		ReflectableEnum(MicroOpSource,
+			ActiveProgram,
+			LongException,
+			ShortException,
+			Interrupt
+		);
+		MicroOpSource micro_op_source;
+		uint8_t micro_op;
+
+		ReflectableEnum(BusStepSource,
+			FollowMicroOp,
+			BusError,
+			Trap,
+			Reset,
+			BranchTaken,
+			BranchByteNotTaken,
+			BranchWordNotTaken,
+			BSR,
+			DBccConditionTrue,
+			DBccConditionFalseNoBranch,
+			DBccConditionFalseBranch,
+			MovemRead,
+			MovemWrite,
+		);
+		BusStepSource bus_step_source;
+		uint8_t bus_step;
+
 		ExecutionState();
 	} execution_state;
 
