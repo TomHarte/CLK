@@ -165,6 +165,115 @@ State::State(const ProcessorBase &src): State() {
 }
 
 void State::apply(ProcessorBase &target) {
+	// Registers.
+	for(int c = 0; c < 7; ++c) {
+		target.address_[c].full = registers.address[c];
+		target.data_[c].full = registers.data[c];
+	}
+	target.data_[7].full = registers.data[7];
+	target.stack_pointers_[0] = registers.user_stack_pointer;
+	target.stack_pointers_[1] = registers.supervisor_stack_pointer;
+	target.address_[7] = target.stack_pointers_[(registers.status & 0x2000) >> 13];
+	target.set_status(registers.status);
+	target.program_counter_.full = registers.program_counter;
+	target.prefetch_queue_.full = registers.prefetch;
+	target.decoded_instruction_.full = registers.instruction;
+
+	// Inputs.
+	target.bus_interrupt_level_ = inputs.bus_interrupt_level;
+	target.dtack_ = inputs.dtack;
+	target.is_peripheral_address_ = inputs.is_peripheral_address;
+	target.bus_error_ = inputs.bus_error;
+	target.bus_request_ = inputs.bus_request;
+	// TODO: bus_grant.
+	target.halt_ = inputs.halt;
+
+	// Execution state.
+	target.e_clock_phase_ = HalfCycles(execution_state.e_clock_phase);
+	target.effective_address_[0].full = execution_state.effective_address[0];
+	target.effective_address_[1].full = execution_state.effective_address[1];
+	target.source_bus_data_.full = execution_state.source_data;
+	target.destination_bus_data_.full = execution_state.destination_data;
+	target.last_trace_flag_ = execution_state.last_trace_flag;
+	target.next_word_ = execution_state.next_word;
+	target.dbcc_false_address_ = execution_state.dbcc_false_address;
+	target.is_starting_interrupt_ = execution_state.is_starting_interrupt;
+	target.pending_interrupt_level_ = execution_state.pending_interrupt_level;
+	target.accepted_interrupt_level_ = execution_state.accepted_interrupt_level;
+	target.movem_final_address_ = execution_state.movem_final_address;
+
+	static_assert(sizeof(execution_state.source_addresses) == sizeof(target.precomputed_addresses_));
+	memcpy(&target.precomputed_addresses_, &execution_state.source_addresses, sizeof(target.precomputed_addresses_));
+
+	// See above; this flag indicates whether to populate the field.
+	target.active_program_ =
+		execution_state.active_program ?
+			&target.instructions[target.decoded_instruction_.full] : nullptr;
+
+	// Dodgy assumption duplicated here from above.
+	target.execution_state_ = CPU::MC68000::ProcessorStorage::ExecutionState(execution_state.phase);
+
+	// Decode the MicroOp.
+	switch(execution_state.micro_op_source) {
+		case ExecutionState::MicroOpSource::ActiveProgram:
+			target.active_micro_op_ = &target.all_micro_ops_[target.active_program_->micro_operations];
+		break;
+		case ExecutionState::MicroOpSource::LongException:
+			target.active_micro_op_ = target.long_exception_micro_ops_;
+		break;
+		case ExecutionState::MicroOpSource::ShortException:
+			target.active_micro_op_ = target.short_exception_micro_ops_;
+		break;
+		case ExecutionState::MicroOpSource::Interrupt:
+			target.active_micro_op_ = target.interrupt_micro_ops_;
+		break;
+	}
+	target.active_micro_op_ += execution_state.micro_op;
+
+
+	// Decode the BusStep.
+	switch(execution_state.bus_step_source) {
+		case ExecutionState::BusStepSource::Reset:
+			target.active_step_ = target.reset_bus_steps_;
+		break;
+		case ExecutionState::BusStepSource::BranchTaken:
+			target.active_step_ = target.branch_taken_bus_steps_;
+		break;
+		case ExecutionState::BusStepSource::BranchByteNotTaken:
+			target.active_step_ = target.branch_byte_not_taken_bus_steps_;
+		break;
+		case ExecutionState::BusStepSource::BranchWordNotTaken:
+			target.active_step_ = target.branch_word_not_taken_bus_steps_;
+		break;
+		case ExecutionState::BusStepSource::BSR:
+			target.active_step_ = target.bsr_bus_steps_;
+		break;
+		case ExecutionState::BusStepSource::DBccConditionTrue:
+			target.active_step_ = target.dbcc_condition_true_steps_;
+		break;
+		case ExecutionState::BusStepSource::DBccConditionFalseNoBranch:
+			target.active_step_ = target.dbcc_condition_false_no_branch_steps_;
+		break;
+		case ExecutionState::BusStepSource::DBccConditionFalseBranch:
+			target.active_step_ = target.dbcc_condition_false_branch_steps_;
+		break;
+		case ExecutionState::BusStepSource::MovemRead:
+			target.active_step_ = target.movem_read_steps_;
+		break;
+		case ExecutionState::BusStepSource::MovemWrite:
+			target.active_step_ = target.movem_write_steps_;
+		break;
+		case ExecutionState::BusStepSource::Trap:
+			target.active_step_ = target.trap_steps_;
+		break;
+		case ExecutionState::BusStepSource::BusError:
+			target.active_step_ = target.bus_error_steps_;
+		break;
+		case ExecutionState::BusStepSource::FollowMicroOp:
+			target.active_step_ = &target.all_bus_steps_[target.active_micro_op_->bus_program];
+		break;
+	}
+	target.active_step_ += execution_state.bus_step;
 }
 
 // Boilerplate follows here, to establish 'reflection'.
