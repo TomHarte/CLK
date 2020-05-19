@@ -8,6 +8,8 @@
 
 #include "State.hpp"
 
+#include <cassert>
+
 using namespace CPU::MC68000;
 
 State::State(const ProcessorBase &src): State() {
