@@ -56,6 +56,14 @@ class MultiStruct: public Reflection::Struct {
 			return nullptr;
 		}
 
+		size_t count_of(const std::string &name) const final {
+			for(auto &options: options_) {
+				auto info = options->type_of(name);
+				if(info) return options->count_of(name);
+			}
+			return 0;
+		}
+
 		const void *get(const std::string &name) const final {
 			for(auto &options: options_) {
 				auto value = options->get(name);

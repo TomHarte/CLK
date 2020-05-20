@@ -6,8 +6,8 @@
 //  Copyright © 2020 Thomas Harte. All rights reserved.
 //
 
-#ifndef State_hpp
-#define State_hpp
+#ifndef Z80_State_hpp
+#define Z80_State_hpp
 
 #include "../../../Reflection/Enum.hpp"
 #include "../../../Reflection/Struct.hpp"
@@ -97,4 +97,4 @@ struct State: public Reflection::StructImpl<State> {
 }
 }
 
-#endif /* State_hpp */
+#endif /* Z80_State_hpp */

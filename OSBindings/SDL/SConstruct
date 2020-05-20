@@ -85,6 +85,7 @@ SOURCES += glob.glob('../../Outputs/OpenGL/Primitives/*.cpp')
 SOURCES += glob.glob('../../Processors/6502/Implementation/*.cpp')
 SOURCES += glob.glob('../../Processors/6502/State/*.cpp')
 SOURCES += glob.glob('../../Processors/68000/Implementation/*.cpp')
+SOURCES += glob.glob('../../Processors/68000/State/*.cpp')
 SOURCES += glob.glob('../../Processors/Z80/Implementation/*.cpp')
 SOURCES += glob.glob('../../Processors/Z80/State/*.cpp')
 

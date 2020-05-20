@@ -9,7 +9,6 @@
 #ifndef Struct_hpp
 #define Struct_hpp
 
-#include <cassert>
 #include <cstdarg>
 #include <cstring>
 #include <string>
@@ -27,6 +26,7 @@ namespace Reflection {
 struct Struct {
 	virtual std::vector<std::string> all_keys() const = 0;
 	virtual const std::type_info *type_of(const std::string &name) const = 0;
+	virtual size_t count_of(const std::string &name) const = 0;
 	virtual void set(const std::string &name, const void *value) = 0;
 	virtual const void *get(const std::string &name) const = 0;
 	virtual std::vector<std::string> values_for(const std::string &name) const = 0;
@@ -37,6 +37,9 @@ struct Struct {
 			sufficiently formed for a formal language parser, etc.
 	*/
 	std::string description() const;
+
+	private:
+		void append(std::ostringstream &stream, const std::string &key, const std::type_info *type, size_t offset) const;
 };
 
 /*!
@@ -93,14 +96,14 @@ bool fuzzy_set(Struct &target, const std::string &name, const std::string &value
 
 	@returns @c true if the property was successfully read; @c false otherwise.
 */
-template <typename Type> bool get(const Struct &target, const std::string &name, Type &value);
+template <typename Type> bool get(const Struct &target, const std::string &name, Type &value, size_t offset = 0);
 
 /*!
 	Attempts to get the property @c name to @c value ; will perform limited type conversions.
 
 	@returns @c true if the property was successfully read; a default-constructed instance of Type otherwise.
 */
-template <typename Type> Type get(const Struct &target, const std::string &name);
+template <typename Type> Type get(const Struct &target, const std::string &name, size_t offset = 0);
 
 
 // TODO: move this elsewhere. It's just a sketch anyway.
@@ -142,6 +145,15 @@ template <typename Owner> class StructImpl: public Struct {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return nullptr;
 			return iterator->second.type;
+		}
+
+		/*!
+			@returns The number of instances of objects of the same type as @c name that sit consecutively in memory.
+		*/
+		size_t count_of(const std::string &name) const final {
+			const auto iterator = contents_.find(name);
+			if(iterator == contents_.end()) return 0;
+			return iterator->second.count;
 		}
 
 		/*!
@@ -206,9 +218,19 @@ template <typename Owner> class StructImpl: public Struct {
 			it'll be the struct that's exposed.
 		*/
 		template <typename Type> void declare(Type *t, const std::string &name) {
+			// If the declared item is a class, see whether it can be dynamically cast
+			// to a reflectable for emplacement. If so, exit early.
 			if constexpr (std::is_class<Type>()) {
 				if(declare_reflectable(t, name)) return;
 			}
+
+			// If the declared item is an array, record it as a pointer to the
+			// first element plus a size.
+			if constexpr (std::is_array<Type>()) {
+				declare_emplace(&(*t)[0], name, sizeof(*t) / sizeof(*t[0]));
+				return;
+			}
+
 			declare_emplace(t, name);
 		}
 
@@ -278,11 +300,11 @@ template <typename Owner> class StructImpl: public Struct {
 			return false;
 		}
 
-		template <typename Type> void declare_emplace(Type *t, const std::string &name) {
+		template <typename Type> void declare_emplace(Type *t, const std::string &name, size_t count = 1) {
 			contents_.emplace(
 				std::make_pair(
 					name,
-					Field(typeid(Type), reinterpret_cast<uint8_t *>(t) - reinterpret_cast<uint8_t *>(this), sizeof(Type))
+					Field(typeid(Type), reinterpret_cast<uint8_t *>(t) - reinterpret_cast<uint8_t *>(this), sizeof(Type), count)
 				));
 		}
 
@@ -290,8 +312,9 @@ template <typename Owner> class StructImpl: public Struct {
 			const std::type_info *type;
 			ssize_t offset;
 			size_t size;
-			Field(const std::type_info &type, ssize_t offset, size_t size) :
-				type(&type), offset(offset), size(size) {}
+			size_t count;
+			Field(const std::type_info &type, ssize_t offset, size_t size, size_t count) :
+				type(&type), offset(offset), size(size), count(count) {}
 		};
 		static inline std::unordered_map<std::string, Field> contents_;
 		static inline std::unordered_map<std::string, std::vector<bool>> permitted_enum_values_;

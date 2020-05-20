@@ -110,13 +110,13 @@ bool Reflection::fuzzy_set(Struct &target, const std::string &name, const std::s
 
 // MARK: - Getters
 
-template <typename Type> bool Reflection::get(const Struct &target, const std::string &name, Type &value) {
+template <typename Type> bool Reflection::get(const Struct &target, const std::string &name, Type &value, size_t offset) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
 	// If type is a direct match, copy.
 	if(*target_type == typeid(Type)) {
-		memcpy(&value, target.get(name), sizeof(Type));
+		memcpy(&value, reinterpret_cast<const uint8_t *>(target.get(name)) + offset * sizeof(Type), sizeof(Type));
 		return true;
 	}
 
@@ -131,13 +131,57 @@ template <typename Type> bool Reflection::get(const Struct &target, const std::s
 	return false;
 }
 
-template <typename Type> Type Reflection::get(const Struct &target, const std::string &name) {
+template <typename Type> Type Reflection::get(const Struct &target, const std::string &name, size_t offset) {
 	Type value{};
-	get(target, name, value);
+	get(target, name, value, offset);
 	return value;
 }
 
 // MARK: - Description
+
+void Reflection::Struct::append(std::ostringstream &stream, const std::string &key, const std::type_info *const type, size_t offset) const {
+	// Output Bools as yes/no.
+	if(*type == typeid(bool)) {
+		stream << ::Reflection::get<bool>(*this, key, offset);
+		return;
+	}
+
+	// Output Ints of all sizes as hex.
+#define OutputIntC(int_type, cast_type) if(*type == typeid(int_type)) { stream << std::setfill('0') << std::setw(sizeof(int_type)*2) << std::hex << cast_type(::Reflection::get<int_type>(*this, key, offset)); return; }
+#define OutputInt(int_type) OutputIntC(int_type, int_type)
+	OutputIntC(int8_t, int16_t);
+	OutputIntC(uint8_t, uint16_t);
+	OutputInt(int16_t);
+	OutputInt(uint16_t);
+	OutputInt(int32_t);
+	OutputInt(uint32_t);
+	OutputInt(int64_t);
+	OutputInt(uint64_t);
+#undef OutputInt
+#undef OutputIntC
+
+		// Output floats and strings natively.
+#define OutputNative(val_type) if(*type == typeid(val_type)) { stream << ::Reflection::get<val_type>(*this, key, offset); return; }
+	OutputNative(float);
+	OutputNative(double);
+	OutputNative(char *);
+	OutputNative(std::string);
+#undef OutputNative
+
+	// Output the current value of any enums.
+	if(!Enum::name(*type).empty()) {
+		const int value = ::Reflection::get<int>(*this, key, offset);
+		stream << Enum::to_string(*type, value);
+		return;
+	}
+
+	// Recurse to deal with embedded objects.
+	if(*type == typeid(Reflection::Struct)) {
+		const Reflection::Struct *const child = reinterpret_cast<const Reflection::Struct *>(get(key));
+		stream << child->description();
+		return;
+	}
+}
 
 std::string Reflection::Struct::description() const {
 	std::ostringstream stream;
@@ -150,47 +194,20 @@ std::string Reflection::Struct::description() const {
 		is_first = false;
 		stream << key << ": ";
 
+		const auto count = count_of(key);
 		const auto type = type_of(key);
 
-		// Output Bools as yes/no.
-		if(*type == typeid(bool)) {
-			stream << ::Reflection::get<bool>(*this, key);
-			continue;
+		if(count != 1) {
+			stream << "[";
 		}
 
-		// Output Ints of all sizes as hex.
-#define OutputIntC(int_type, cast_type) if(*type == typeid(int_type)) { stream << std::setfill('0') << std::setw(sizeof(int_type)*2) << std::hex << cast_type(::Reflection::get<int_type>(*this, key)); continue; }
-#define OutputInt(int_type) OutputIntC(int_type, int_type)
-		OutputIntC(int8_t, int16_t);
-		OutputIntC(uint8_t, uint16_t);
-		OutputInt(int16_t);
-		OutputInt(uint16_t);
-		OutputInt(int32_t);
-		OutputInt(uint32_t);
-		OutputInt(int64_t);
-		OutputInt(uint64_t);
-#undef OutputInt
-
-		// Output floats and strings natively.
-#define OutputNative(val_type) if(*type == typeid(val_type)) { stream << ::Reflection::get<val_type>(*this, key); continue; }
-		OutputNative(float);
-		OutputNative(double);
-		OutputNative(char *);
-		OutputNative(std::string);
-#undef OutputNAtive
-
-		// Output the current value of any enums.
-		if(!Enum::name(*type).empty()) {
-			const int value = ::Reflection::get<int>(*this, key);
-			stream << Enum::to_string(*type, value);
-			continue;
+		for(size_t index = 0; index < count; ++index) {
+			append(stream, key, type, index);
+			if(index != count-1) stream << ", ";
 		}
 
-		// Recurse to deal with embedded objects.
-		if(*type == typeid(Reflection::Struct)) {
-			const Reflection::Struct *const child = reinterpret_cast<const Reflection::Struct *>(get(key));
-			stream << child->description();
-			continue;
+		if(count != 1) {
+			stream << "]";
 		}
 	}
 
