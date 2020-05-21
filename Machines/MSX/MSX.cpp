@@ -284,7 +284,7 @@ class ConcreteMachine:
 			vdp_->set_display_type(display_type);
 		}
 
-		Outputs::Display::DisplayType get_display_type() final {
+		Outputs::Display::DisplayType get_display_type() const final {
 			return vdp_->get_display_type();
 		}
 
@@ -367,7 +367,7 @@ class ConcreteMachine:
 			);
 		}
 
-		bool can_type(char c) final {
+		bool can_type(char c) const final {
 			// Make an effort to type the entire printable ASCII range.
 			return c >= 32 && c < 127;
 		}

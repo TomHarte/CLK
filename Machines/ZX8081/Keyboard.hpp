@@ -30,15 +30,15 @@ enum Key: uint16_t {
 };
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
-	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key);
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const override;
 };
 
 class CharacterMapper: public ::Utility::CharacterMapper {
 	public:
 		CharacterMapper(bool is_zx81);
-		uint16_t *sequence_for_character(char character) override;
+		const uint16_t *sequence_for_character(char character) const override;
 
-		bool needs_pause_after_key(uint16_t key) override;
+		bool needs_pause_after_key(uint16_t key) const override;
 
 	private:
 		bool is_zx81_;

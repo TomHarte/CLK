@@ -26,19 +26,19 @@ class CharacterMapper {
 		virtual ~CharacterMapper() {}
 
 		/// @returns The EndSequence-terminated sequence of keys that would cause @c character to be typed.
-		virtual uint16_t *sequence_for_character(char character) = 0;
+		virtual const uint16_t *sequence_for_character(char character) const = 0;
 
 		/// The typer will automatically reset all keys in between each sequence that it types.
 		/// By default it will pause for one key's duration when doing so. Character mappers
 		/// can eliminate that pause by overriding this method.
 		/// @returns @c true if the typer should pause after performing a reset; @c false otherwise.
-		virtual bool needs_pause_after_reset_all_keys()	{ return true; }
+		virtual bool needs_pause_after_reset_all_keys() const	{ return true; }
 
 		/// The typer will pause between every entry in a keyboard sequence. On some machines
 		/// that may not be necessary — it'll often depends on whether the machine needs time to
 		/// observe a modifier like shift before it sees the actual keypress.
 		/// @returns @c true if the typer should pause after forwarding @c key; @c false otherwise.
-		virtual bool needs_pause_after_key(uint16_t key)	{ return true; }
+		virtual bool needs_pause_after_key(uint16_t key) const	{ return true; }
 
 	protected:
 		typedef uint16_t KeySequence[16];
@@ -48,7 +48,7 @@ class CharacterMapper {
 			with @c length entries, returns the sequence for character @c character if it exists; otherwise
 			returns @c nullptr.
 		*/
-		uint16_t *table_lookup_sequence_for_character(KeySequence *sequences, std::size_t length, char character);
+		uint16_t *table_lookup_sequence_for_character(KeySequence *sequences, std::size_t length, char character) const;
 };
 
 /*!
@@ -118,7 +118,7 @@ class TypeRecipient: public Typer::Delegate {
 		/*!
 			@returns @c true if the character mapper provides a mapping for @c c; @c false otherwise.
 		*/
-		bool can_type(char c) {
+		bool can_type(char c) const {
 			const auto sequence = character_mapper.sequence_for_character(c);
 			return sequence && sequence[0] != MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 		}
@@ -137,8 +137,8 @@ class TypeRecipient: public Typer::Delegate {
 			typer_ = nullptr;
 		}
 
-		virtual HalfCycles get_typer_delay() { return HalfCycles(0); }
-		virtual HalfCycles get_typer_frequency() { return HalfCycles(0); }
+		virtual HalfCycles get_typer_delay() const { return HalfCycles(0); }
+		virtual HalfCycles get_typer_frequency() const { return HalfCycles(0); }
 		std::unique_ptr<Typer> typer_;
 
 	private:

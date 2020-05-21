@@ -63,7 +63,7 @@ class IntelligentKeyboard:
 
 		void set_key_state(Key key, bool is_pressed);
 		class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
-			uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) final;
+			uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 		};
 
 		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
@@ -127,9 +127,9 @@ class IntelligentKeyboard:
 		void post_relative_mouse_event(int x, int y);
 
 		// Received mouse state.
-		std::atomic<int> mouse_movement_[2];
-		std::atomic<int> mouse_button_state_;
-		std::atomic<int> mouse_button_events_;
+		std::atomic<int> mouse_movement_[2]{0, 0};
+		std::atomic<int> mouse_button_state_{0};
+		std::atomic<int> mouse_button_events_{0};
 
 		// MARK: - Joystick.
 		void disable_joysticks();

@@ -104,7 +104,7 @@ struct MachineRunner {
 			Stopping,
 			Stopped
 		};
-		std::atomic<State> state_ = State::Running;
+		std::atomic<State> state_{State::Running};
 
 		Time::ScanSynchroniser scan_synchroniser_;
 

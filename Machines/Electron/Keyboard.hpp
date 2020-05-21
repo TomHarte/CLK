@@ -37,14 +37,14 @@ enum Key: uint16_t {
 };
 
 struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
-	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) final;
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	uint16_t *sequence_for_character(char character) override;
+	const uint16_t *sequence_for_character(char character) const override;
 
-	bool needs_pause_after_reset_all_keys() override	{ return false; }
-	bool needs_pause_after_key(uint16_t key) override;
+	bool needs_pause_after_reset_all_keys() const override	{ return false; }
+	bool needs_pause_after_key(uint16_t key) const override;
 };
 
 };

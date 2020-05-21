@@ -49,7 +49,7 @@ class KeyboardMachine: public KeyActions {
 		/*!
 			@returns @c true if this machine can type the character @c c as part of a @c type_string; @c false otherwise.
 		*/
-		virtual bool can_type(char c) { return false; }
+		virtual bool can_type(char c) const { return false; }
 
 		/*!
 			Provides a destination for keyboard input.
@@ -117,7 +117,7 @@ class MappedKeyboardMachine: public Inputs::Keyboard::Delegate, public KeyboardM
 		*/
 		class KeyboardMapper {
 			public:
-				virtual uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) = 0;
+				virtual uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const = 0;
 		};
 
 		/// Terminates a key sequence from the character mapper.

@@ -84,7 +84,7 @@ class Track {
 				int rhs_largest_position = rhs.position.as_largest();
 				return std::tie(head, largest_position) < std::tie(rhs.head, rhs_largest_position);
 			}
-			Address(int head, HeadPosition position) : head(head), position(position) {}
+			constexpr Address(int head, HeadPosition position) : head(head), position(position) {}
 		};
 
 		/*!

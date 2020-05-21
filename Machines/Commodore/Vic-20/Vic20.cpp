@@ -646,7 +646,7 @@ class ConcreteMachine:
 			mos6560_.set_display_type(display_type);
 		}
 
-		Outputs::Display::DisplayType get_display_type() final {
+		Outputs::Display::DisplayType get_display_type() const final {
 			return mos6560_.get_display_type();
 		}
 
@@ -663,7 +663,7 @@ class ConcreteMachine:
 			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
-		bool can_type(char c) final {
+		bool can_type(char c) const final {
 			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 

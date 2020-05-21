@@ -22,11 +22,6 @@ IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &outp
 	// Add two joysticks into the mix.
 	joysticks_.emplace_back(new Joystick);
 	joysticks_.emplace_back(new Joystick);
-
-	mouse_button_state_ = 0;
-	mouse_button_events_ = 0;
-	mouse_movement_[0] = 0;
-	mouse_movement_[1] = 0;
 }
 
 bool IntelligentKeyboard::serial_line_did_produce_bit(Serial::Line *, int bit) {
@@ -361,7 +356,7 @@ void IntelligentKeyboard::set_key_state(Key key, bool is_pressed) {
 	}
 }
 
-uint16_t IntelligentKeyboard::KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
+uint16_t IntelligentKeyboard::KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 	using Key = Inputs::Keyboard::Key;
 	using STKey = Atari::ST::Key;
 	switch(key) {

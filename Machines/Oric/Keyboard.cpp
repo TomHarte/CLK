@@ -10,7 +10,7 @@
 
 using namespace Oric;
 
-uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
+uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 #define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return Oric::dest
 	switch(key) {
 		default: break;
@@ -54,7 +54,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }
 
-uint16_t *CharacterMapper::sequence_for_character(char character) {
+const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 #define KEYS(...)	{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define SHIFT(...)	{KeyLeftShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define X			{MachineTypes::MappedKeyboardMachine::KeyNotMapped}

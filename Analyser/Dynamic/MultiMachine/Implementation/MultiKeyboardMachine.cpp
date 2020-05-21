@@ -36,7 +36,7 @@ void MultiKeyboardMachine::type_string(const std::string &string) {
 	}
 }
 
-bool MultiKeyboardMachine::can_type(char c) {
+bool MultiKeyboardMachine::can_type(char c) const {
 	bool can_type = true;
 	for(const auto &machine: machines_) {
 		can_type &= machine->can_type(c);
@@ -70,10 +70,10 @@ void MultiKeyboardMachine::MultiKeyboard::reset_all_keys() {
 	}
 }
 
-const std::set<Inputs::Keyboard::Key> &MultiKeyboardMachine::MultiKeyboard::observed_keys() {
+const std::set<Inputs::Keyboard::Key> &MultiKeyboardMachine::MultiKeyboard::observed_keys() const {
 	return observed_keys_;
 }
 
-bool MultiKeyboardMachine::MultiKeyboard::is_exclusive() {
+bool MultiKeyboardMachine::MultiKeyboard::is_exclusive() const {
 	return is_exclusive_;
 }

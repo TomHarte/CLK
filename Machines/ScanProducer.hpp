@@ -78,7 +78,7 @@ class ScanProducer {
 			Maps back from Outputs::Display::VideoSignal  to Configurable::Display,
 			calling @c get_display_type for the input.
 		*/
-		Configurable::Display get_video_signal_configurable() {
+		Configurable::Display get_video_signal_configurable() const {
 			switch(get_display_type()) {
 				default:
 				case Outputs::Display::DisplayType::RGB:					return Configurable::Display::RGB;
@@ -96,7 +96,7 @@ class ScanProducer {
 		/*!
 			Gets the display type.
 		*/
-		virtual Outputs::Display::DisplayType get_display_type() { return Outputs::Display::DisplayType::RGB; }
+		virtual Outputs::Display::DisplayType get_display_type() const { return Outputs::Display::DisplayType::RGB; }
 };
 
 }

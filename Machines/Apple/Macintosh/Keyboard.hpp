@@ -291,7 +291,7 @@ class Keyboard {
 	Provides a mapping from idiomatic PC keys to Macintosh keys.
 */
 class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
-	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) final;
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 };
 
 }

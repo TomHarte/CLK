@@ -201,7 +201,7 @@ class ConcreteMachine:
 			vdp_->set_display_type(display_type);
 		}
 
-		Outputs::Display::DisplayType get_display_type() final {
+		Outputs::Display::DisplayType get_display_type() const final {
 			return vdp_->get_display_type();
 		}
 

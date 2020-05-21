@@ -31,8 +31,8 @@ struct Rect {
 		float width, height;
 	} size;
 
-	Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
-	Rect(float x, float y, float width, float height) :
+	constexpr Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
+	constexpr Rect(float x, float y, float width, float height) :
 		origin({x, y}), size({width, height}) {}
 };
 
