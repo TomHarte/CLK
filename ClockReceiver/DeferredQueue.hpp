@@ -49,7 +49,7 @@ template <typename TimeUnit> class DeferredQueue {
 			@returns The amount of time until the next enqueued action will occur,
 				or TimeUnit(-1) if the queue is empty.
 		*/
-		TimeUnit time_until_next_action() {
+		TimeUnit time_until_next_action() const {
 			if(pending_actions_.empty()) return TimeUnit(-1);
 			return pending_actions_.front().delay;
 		}
@@ -95,7 +95,7 @@ template <typename TimeUnit> class DeferredQueue {
 template <typename TimeUnit> class DeferredQueuePerformer: public DeferredQueue<TimeUnit> {
 	public:
 		/// Constructs a DeferredQueue that will call target(period) in between deferred actions.
-		DeferredQueuePerformer(std::function<void(TimeUnit)> &&target) : target_(std::move(target)) {}
+		constexpr DeferredQueuePerformer(std::function<void(TimeUnit)> &&target) : target_(std::move(target)) {}
 
 		/*!
 			Runs for @c length units of time.

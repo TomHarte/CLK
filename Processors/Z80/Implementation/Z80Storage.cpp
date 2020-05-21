@@ -545,12 +545,12 @@ void ProcessorStorage::assemble_fetch_decode_execute(InstructionPage &target, in
 	target.fetch_decode_execute_data = target.fetch_decode_execute.data();
 }
 
-bool ProcessorBase::is_starting_new_instruction() {
+bool ProcessorBase::is_starting_new_instruction() const {
 	return
 		current_instruction_page_ == &base_page_ &&
 		scheduled_program_counter_ == &base_page_.fetch_decode_execute[0];
 }
 
-bool ProcessorBase::get_is_resetting() {
+bool ProcessorBase::get_is_resetting() const {
 	return request_status_ & (Interrupt::PowerOn | Interrupt::Reset);
 }

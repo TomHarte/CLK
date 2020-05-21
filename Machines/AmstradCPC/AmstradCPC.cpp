@@ -346,7 +346,7 @@ class CRTCBusHandler {
 		}
 
 		/// Gets the type of display.
-		Outputs::Display::DisplayType get_display_type() {
+		Outputs::Display::DisplayType get_display_type() const {
 			return crt_.get_display_type();
 		}
 
@@ -1044,7 +1044,7 @@ template <bool has_fdc> class ConcreteMachine:
 		}
 
 		/// A CRTMachine function; gets the output display type.
-		Outputs::Display::DisplayType get_display_type() {
+		Outputs::Display::DisplayType get_display_type() const final {
 			return crtc_bus_handler_.get_display_type();
 		}
 
@@ -1085,15 +1085,15 @@ template <bool has_fdc> class ConcreteMachine:
 			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
-		bool can_type(char c) final {
+		bool can_type(char c) const final {
 			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 
-		HalfCycles get_typer_delay() final {
+		HalfCycles get_typer_delay() const final {
 			return z80_.get_is_resetting() ? Cycles(3'400'000) : Cycles(0);
 		}
 
-		HalfCycles get_typer_frequency() final {
+		HalfCycles get_typer_frequency() const final {
 			return Cycles(80'000);	// Perform one key transition per frame.
 		}
 

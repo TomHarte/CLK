@@ -43,7 +43,7 @@ template <typename IntType = uint64_t, IntType polynomial = LSFRPolynomial<IntTy
 		/*!
 			Constructs an LFSR with a random initial value.
 		*/
-		LFSR() {
+		constexpr LFSR() noexcept {
 			// Randomise the value, ensuring it doesn't end up being 0;
 			// don't set any top bits, in case this is a signed type.
 			while(!value_) {

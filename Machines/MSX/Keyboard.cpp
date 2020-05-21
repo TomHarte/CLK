@@ -8,7 +8,7 @@
 
 #include "Keyboard.hpp"
 
-uint16_t MSX::KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
+uint16_t MSX::KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 #define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return MSX::Key::dest
 	switch(key) {
 		BIND(k0, Key0);		BIND(k1, Key1);		BIND(k2, Key2);		BIND(k3, Key3);		BIND(k4, Key4);

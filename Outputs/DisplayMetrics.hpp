@@ -29,17 +29,18 @@ class Metrics {
 
 		/// Notifies Metrics that the size of the output buffer has changed.
 		void announce_did_resize();
+
 		/// Provides Metrics with a new data point for output speed estimation.
 		void announce_draw_status(size_t lines, std::chrono::high_resolution_clock::duration duration, bool complete);
 
 		/// @returns @c true if Metrics thinks a lower output buffer resolution is desirable in the abstract; @c false otherwise.
-		bool should_lower_resolution();
+		bool should_lower_resolution() const;
 
 		/// @returns An estimate of the number of lines being produced per frame, excluding vertical sync.
-		float visible_lines_per_frame_estimate();
+		float visible_lines_per_frame_estimate() const;
 
 		/// @returns The number of lines since vertical retrace ended.
-		int current_line();
+		int current_line() const;
 
 	private:
 		int lines_this_frame_ = 0;

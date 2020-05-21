@@ -21,7 +21,7 @@ template <typename IntType, IntType reset_value, IntType output_xor, bool reflec
 			Instantiates a CRC16 that will compute the CRC16 specified by the supplied
 			@c polynomial and @c reset_value.
 		*/
-		Generator(IntType polynomial): value_(reset_value) {
+		constexpr Generator(IntType polynomial) noexcept: value_(reset_value) {
 			const IntType top_bit = IntType(~(IntType(~0) >> 1));
 			for(int c = 0; c < 256; c++) {
 				IntType shift_value = IntType(c << multibyte_shift);

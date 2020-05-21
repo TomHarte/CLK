@@ -409,7 +409,7 @@ class ConcreteMachine:
 			video_output_.set_display_type(display_type);
 		}
 
-		Outputs::Display::DisplayType get_display_type() final {
+		Outputs::Display::DisplayType get_display_type() const final {
 			return video_output_.get_display_type();
 		}
 
@@ -426,11 +426,11 @@ class ConcreteMachine:
 			evaluate_interrupts();
 		}
 
-		HalfCycles get_typer_delay() final {
+		HalfCycles get_typer_delay() const final {
 			return m6502_.get_is_resetting() ? Cycles(750'000) : Cycles(0);
 		}
 
-		HalfCycles get_typer_frequency() final {
+		HalfCycles get_typer_frequency() const final {
 			return Cycles(60'000);
 		}
 
@@ -438,7 +438,7 @@ class ConcreteMachine:
 			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
-		bool can_type(char c) final {
+		bool can_type(char c) const final {
 			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 

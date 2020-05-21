@@ -337,7 +337,7 @@ template<bool is_zx81> class ConcreteMachine:
 			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
-		bool can_type(char c) final {
+		bool can_type(char c) const final {
 			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 
@@ -393,11 +393,11 @@ template<bool is_zx81> class ConcreteMachine:
 		}
 
 		// MARK: - Typer timing
-		HalfCycles get_typer_delay() final {
+		HalfCycles get_typer_delay() const final {
 			return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
 		}
 
-		HalfCycles get_typer_frequency() final {
+		HalfCycles get_typer_frequency() const final {
 			return Cycles(146'250);
 		}
 

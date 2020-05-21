@@ -10,7 +10,7 @@
 
 using namespace ZX8081;
 
-uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
+uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 #define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return ZX8081::dest
 	switch(key) {
 		default: break;
@@ -44,7 +44,7 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 
 CharacterMapper::CharacterMapper(bool is_zx81) : is_zx81_(is_zx81) {}
 
-uint16_t *CharacterMapper::sequence_for_character(char character) {
+const uint16_t *CharacterMapper::sequence_for_character(char character) const {
 #define KEYS(...)	{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define SHIFT(...)	{KeyShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
 #define X			{MachineTypes::MappedKeyboardMachine::KeyNotMapped}
@@ -189,6 +189,6 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		return table_lookup_sequence_for_character(zx80_key_sequences, sizeof(zx80_key_sequences), character);
 }
 
-bool CharacterMapper::needs_pause_after_key(uint16_t key) {
+bool CharacterMapper::needs_pause_after_key(uint16_t key) const {
 	return key != KeyShift;
 }

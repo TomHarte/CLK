@@ -907,7 +907,7 @@ template <	class T,
 template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> bool Processor <T, uses_bus_request, uses_wait_line>
-				::get_bus_request_line() {
+				::get_bus_request_line() const {
 	return bus_request_line_;
 }
 
@@ -922,7 +922,7 @@ template <	class T,
 template <	class T,
 			bool uses_bus_request,
 			bool uses_wait_line> bool Processor <T, uses_bus_request, uses_wait_line>
-				::get_wait_line() {
+				::get_wait_line() const {
 	return wait_line_;
 }
 
@@ -1013,7 +1013,7 @@ template <	class T,
 
 #undef isTerminal
 
-bool ProcessorBase::get_halt_line() {
+bool ProcessorBase::get_halt_line() const {
 	return halt_mask_ == 0x00;
 }
 
@@ -1036,7 +1036,7 @@ void ProcessorBase::set_interrupt_line(bool value, HalfCycles offset) {
 	}
 }
 
-bool ProcessorBase::get_interrupt_line() {
+bool ProcessorBase::get_interrupt_line() const {
 	return irq_line_;
 }
 
@@ -1065,7 +1065,7 @@ void ProcessorBase::set_non_maskable_interrupt_line(bool value, HalfCycles offse
 	}
 }
 
-bool ProcessorBase::get_non_maskable_interrupt_line() {
+bool ProcessorBase::get_non_maskable_interrupt_line() const {
 	return nmi_line_;
 }
 

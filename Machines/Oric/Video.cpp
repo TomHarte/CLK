@@ -67,7 +67,7 @@ void VideoOutput::set_display_type(Outputs::Display::DisplayType display_type) {
 	}
 }
 
-Outputs::Display::DisplayType VideoOutput::get_display_type() {
+Outputs::Display::DisplayType VideoOutput::get_display_type() const {
 	return crt_.get_display_type();
 }
 

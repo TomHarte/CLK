@@ -34,13 +34,13 @@ void Metrics::add_line_total(int total) {
 	line_total_history_pointer_ = (line_total_history_pointer_ + 1) % line_total_history_.size();
 }
 
-float Metrics::visible_lines_per_frame_estimate() {
+float Metrics::visible_lines_per_frame_estimate() const {
 	// Just average the number of records contained in line_total_history_ to provide this estimate;
 	// that array should be an even number, to allow for potential interlaced sources.
 	return float(std::accumulate(line_total_history_.begin(), line_total_history_.end(), 0)) / float(line_total_history_.size());
 }
 
-int Metrics::current_line() {
+int Metrics::current_line() const {
 	return lines_this_frame_;
 }
 
@@ -79,7 +79,7 @@ void Metrics::announce_draw_status(size_t lines, std::chrono::high_resolution_cl
 	}
 }
 
-bool Metrics::should_lower_resolution() {
+bool Metrics::should_lower_resolution() const {
 	// If less than 100 frames are on record, return no opinion; otherwise
 	// suggest a lower resolution if more than 10 frames in the last 100-200
 	// took too long to produce.

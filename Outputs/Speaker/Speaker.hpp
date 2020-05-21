@@ -118,7 +118,7 @@ class Speaker {
 			}
 			delegate->speaker_did_complete_samples(this, mix_buffer_);
 		}
-		std::atomic<Delegate *> delegate_ = nullptr;
+		std::atomic<Delegate *> delegate_{nullptr};
 
 	private:
 		void compute_output_rate() {
@@ -131,7 +131,7 @@ class Speaker {
 		float input_rate_multiplier_ = 1.0f;
 		float output_cycles_per_second_ = 1.0f;
 		int output_buffer_size_ = 1;
-		std::atomic<bool> stereo_output_ = false;
+		std::atomic<bool> stereo_output_{false};
 		std::vector<int16_t> mix_buffer_;
 };
 

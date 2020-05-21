@@ -423,7 +423,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			video_.set_display_type(display_type);
 		}
 
-		Outputs::Display::DisplayType get_display_type() final {
+		Outputs::Display::DisplayType get_display_type() const final {
 			return video_.get_display_type();
 		}
 
@@ -857,7 +857,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
 		}
 
-		bool can_type(char c) final {
+		bool can_type(char c) const final {
 			// Make an effort to type the entire printable ASCII range.
 			return c >= 32 && c < 127;
 		}

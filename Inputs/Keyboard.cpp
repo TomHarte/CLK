@@ -30,7 +30,7 @@ bool Keyboard::set_key_pressed(Key key, char value, bool is_pressed) {
 	return false;
 }
 
-const std::set<Inputs::Keyboard::Key> &Keyboard::get_essential_modifiers() {
+const std::set<Inputs::Keyboard::Key> &Keyboard::get_essential_modifiers() const {
 	return essential_modifiers_;
 }
 
@@ -43,16 +43,16 @@ void Keyboard::set_delegate(Delegate *delegate) {
 	delegate_ = delegate;
 }
 
-bool Keyboard::get_key_state(Key key) {
+bool Keyboard::get_key_state(Key key) const {
 	const size_t key_offset = size_t(key);
 	if(key_offset >= key_states_.size()) return false;
 	return key_states_[key_offset];
 }
 
-const std::set<Keyboard::Key> &Keyboard::observed_keys() {
+const std::set<Keyboard::Key> &Keyboard::observed_keys() const {
 	return observed_keys_;
 }
 
-bool Keyboard::is_exclusive() {
+bool Keyboard::is_exclusive() const {
 	return is_exclusive_;
 }

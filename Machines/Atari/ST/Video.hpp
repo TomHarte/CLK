@@ -57,7 +57,7 @@ class Video {
 		/*!
 			Gets the type of output.
 		*/
-		Outputs::Display::DisplayType get_display_type();
+		Outputs::Display::DisplayType get_display_type() const;
 
 		/*!
 			Produces the next @c duration period of pixels.
