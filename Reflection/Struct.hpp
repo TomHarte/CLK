@@ -38,6 +38,20 @@ struct Struct {
 	*/
 	std::string description() const;
 
+	/*!
+		@returns The BSON serialisation of this struct.
+	*/
+	std::vector<uint8_t> serialise() const;
+
+	/*!
+		Applies as many fields as possible from the incoming BSON.
+	*/
+	bool deserialise(const std::vector<uint8_t> &bson);
+
+	/*!
+	*/
+	virtual bool should_serialise(const std::string &key) const { return true; }
+
 	private:
 		void append(std::ostringstream &stream, const std::string &key, const std::type_info *type, size_t offset) const;
 };
@@ -104,16 +118,6 @@ template <typename Type> bool get(const Struct &target, const std::string &name,
 	@returns @c true if the property was successfully read; a default-constructed instance of Type otherwise.
 */
 template <typename Type> Type get(const Struct &target, const std::string &name, size_t offset = 0);
-
-
-// TODO: move this elsewhere. It's just a sketch anyway.
-struct Serialisable {
-	/// Serialises this object, appending it to @c target.
-	virtual void serialise(std::vector<uint8_t> &target) = 0;
-	/// Deserialises this object from @c source.
-	/// @returns @c true if the deserialisation was successful; @c false otherwise.
-	virtual bool deserialise(const std::vector<uint8_t> &source) = 0;
-};
 
 template <typename Owner> class StructImpl: public Struct {
 	public:

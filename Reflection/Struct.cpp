@@ -10,8 +10,50 @@
 
 #include <algorithm>
 #include <iomanip>
+#include <iterator>
 #include <sstream>
 #include <type_traits>
+
+#define ForAllInts(x)	\
+	x(uint8_t);			\
+	x(int8_t);			\
+	x(uint16_t);		\
+	x(int16_t);			\
+	x(uint32_t);		\
+	x(int32_t);			\
+	x(uint64_t);		\
+	x(int64_t);
+
+#define ForAllFloats(x)	\
+	x(float);			\
+	x(double);
+
+namespace TypeInfo {
+
+static bool is_integral(const std::type_info *type) {
+	return
+		*type == typeid(uint8_t) || *type == typeid(int8_t) ||
+		*type == typeid(uint16_t) || *type == typeid(int16_t) ||
+		*type == typeid(uint32_t) || *type == typeid(int32_t) ||
+		*type == typeid(uint64_t) || *type == typeid(int64_t);
+}
+
+static bool is_floating_point(const std::type_info *type) {
+	return *type == typeid(float) || *type == typeid(double);
+}
+
+static size_t size(const std::type_info *type) {
+#define TestType(x)	if(*type == typeid(x)) return sizeof(x);
+	ForAllInts(TestType);
+	ForAllFloats(TestType);
+	TestType(char *);
+#undef TestType
+
+	// This is some sort of struct or object type.
+	return 0;
+}
+
+}
 
 // MARK: - Setters
 
@@ -128,6 +170,34 @@ template <typename Type> bool Reflection::get(const Struct &target, const std::s
 		}
 	}
 
+	// If the type is an int that is larger than the stored type, cast upward.
+	if constexpr (std::is_integral<Type>::value) {
+		constexpr size_t size = sizeof(Type);
+		const bool target_is_integral = TypeInfo::is_integral(target_type);
+		const size_t target_size = TypeInfo::size(target_type);
+
+		if(size > target_size && target_is_integral) {
+#define Map(x)	if(*target_type == typeid(x)) { value = static_cast<Type>(*reinterpret_cast<const x *>(target.get(name))); }
+			ForAllInts(Map);
+#undef Map
+			return true;
+		}
+	}
+
+	// If the type is a double and stored type is a float, cast upward.
+	if constexpr (std::is_floating_point<Type>::value) {
+		constexpr size_t size = sizeof(Type);
+		const bool target_is_floating_point = TypeInfo::is_floating_point(target_type);
+		const size_t target_size = TypeInfo::size(target_type);
+
+		if(size > target_size && target_is_floating_point) {
+#define Map(x)	if(*target_type == typeid(x)) { value = static_cast<Type>(*reinterpret_cast<const x *>(target.get(name))); }
+			ForAllFloats(Map);
+#undef Map
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -214,4 +284,99 @@ std::string Reflection::Struct::description() const {
 	stream << "}";
 
 	return stream.str();
+}
+
+std::vector<uint8_t> Reflection::Struct::serialise() const {
+	std::vector<uint8_t> result;
+
+	/* Contractually, this serialises as BSON. */
+
+	for(const auto &key: all_keys()) {
+		if(!should_serialise(key)) continue;
+
+		/* Here:	e_list	::=	element e_list | ""		*/
+		const auto count = count_of(key);
+		const auto type = type_of(key);
+
+		if(count > 1) {
+			// TODO: Arrays.
+		} else {
+			auto push_name = [&result, &key] () {
+				std::copy(key.begin(), key.end(), std::back_inserter(result));
+				result.push_back(0);
+			};
+
+			auto push_int = [push_name, &result] (uint8_t type, auto x) {
+				result.push_back(type);
+				push_name();
+				for(size_t c = 0; c < sizeof(x); ++c)
+					result.push_back(uint8_t((x) >> (8 * c)));
+			};
+
+			// Test for an exact match on Booleans.
+			if(*type == typeid(bool)) {
+				result.push_back(0x08);
+				push_name();
+				result.push_back(uint8_t(Reflection::get<bool>(*this, key)));
+				continue;
+			}
+
+			// Test for ints that will safely convert to an int32.
+			int32_t int32;
+			if(Reflection::get(*this, key, int32)) {
+				push_int(0x10, int32);
+				continue;
+			}
+
+			// Test for ints that can be converted to a uint64.
+			uint32_t uint64;
+			if(Reflection::get(*this, key, uint64)) {
+				push_int(0x11, uint64);
+				continue;
+			}
+
+			// Test for ints that can be converted to an int64.
+			int32_t int64;
+			if(Reflection::get(*this, key, int64)) {
+				push_int(0x12, int64);
+				continue;
+			}
+
+
+			/*	All ints should now be dealt with.	*/
+
+			// There's only one potential float type: a double.
+			double float64;
+			if(Reflection::get(*this, key, float64)) {
+				// TODO: place as little-endian IEEE 754-2008.
+				continue;
+			}
+
+			// Okay, check for a potential recursion.
+			if(*type == typeid(Reflection::Struct)) {
+				result.push_back(0x03);
+				push_name();
+
+				const Reflection::Struct *const child = reinterpret_cast<const Reflection::Struct *>(get(key));
+				const auto sub_document = child->serialise();
+				std::copy(sub_document.begin(), sub_document.end(), std::back_inserter(result));
+				continue;
+			}
+
+			// Should never reach here; that means a type was discovered in a struct which is intended for
+			// serialisation but which could not be parsed.
+			assert(false);
+		}
+	}
+
+	/*
+		document ::= int32 e_list "\x00"
+		The int32 is the total number of bytes comprising the document.
+	*/
+	result.push_back(0);
+	const uint32_t size_with_prefix = uint32_t(result.size()) + 2;
+	result.insert(result.begin(), uint8_t(size_with_prefix >> 8));
+	result.insert(result.begin(), uint8_t(size_with_prefix & 0xff));
+
+	return result;
 }
