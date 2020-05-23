@@ -183,16 +183,20 @@ template <typename Type> bool Reflection::get(const Struct &target, const std::s
 
 	// If the type is an int that is larger than the stored type and matches the signedness, cast upward.
 	if constexpr (std::is_integral<Type>::value) {
-		constexpr size_t size = sizeof(Type);
-		const bool target_is_integral = TypeInfo::is_integral(target_type);
-		const bool signs_match = std::is_signed<Type>::value == TypeInfo::is_signed(target_type);
-		const size_t target_size = TypeInfo::size(target_type);
+		if(TypeInfo::is_integral(target_type)) {
+			const bool target_is_signed = TypeInfo::is_signed(target_type);
+			const size_t target_size = TypeInfo::size(target_type);
 
-		if(signs_match && size > target_size && target_is_integral) {
-#define Map(x)	if(*target_type == typeid(x)) { value = static_cast<Type>(*reinterpret_cast<const x *>(target.get(name))); }
-			ForAllInts(Map);
+			// An unsigned type can map to any larger type, signed or unsigned;
+			// a signed type can map to a larger type only if it also is signed.
+			if(sizeof(Type) > target_size && (!target_is_signed || std::is_signed<Type>::value)) {
+				const auto address = reinterpret_cast<const uint8_t *>(target.get(name)) + offset * target_size;
+
+#define Map(x)	if(*target_type == typeid(x)) { value = static_cast<Type>(*reinterpret_cast<const x *>(address)); }
+				ForAllInts(Map);
 #undef Map
-			return true;
+				return true;
+			}
 		}
 	}
 
@@ -203,7 +207,9 @@ template <typename Type> bool Reflection::get(const Struct &target, const std::s
 		const size_t target_size = TypeInfo::size(target_type);
 
 		if(size > target_size && target_is_floating_point) {
-#define Map(x)	if(*target_type == typeid(x)) { value = static_cast<Type>(*reinterpret_cast<const x *>(target.get(name))); }
+				const auto address = reinterpret_cast<const uint8_t *>(target.get(name)) + offset * target_size;
+
+#define Map(x)	if(*target_type == typeid(x)) { value = static_cast<Type>(*reinterpret_cast<const x *>(address)); }
 			ForAllFloats(Map);
 #undef Map
 			return true;
@@ -317,27 +323,20 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 		if(*type == typeid(bool)) {
 			result.push_back(0x08);
 			push_name();
-			result.push_back(uint8_t(Reflection::get<bool>(*this, key)));
+			result.push_back(uint8_t(Reflection::get<bool>(*this, key, offset)));
 			return;
 		}
 
 		// Test for ints that will safely convert to an int32.
 		int32_t int32;
-		if(Reflection::get(*this, key, int32)) {
+		if(Reflection::get(*this, key, int32, offset)) {
 			push_int(0x10, int32);
 			return;
 		}
 
-		// Test for ints that can be converted to a uint64.
-		uint32_t uint64;
-		if(Reflection::get(*this, key, uint64)) {
-			push_int(0x11, uint64);
-			return;
-		}
-
 		// Test for ints that can be converted to an int64.
-		int32_t int64;
-		if(Reflection::get(*this, key, int64)) {
+		int64_t int64;
+		if(Reflection::get(*this, key, int64, offset)) {
 			push_int(0x12, int64);
 			return;
 		}
@@ -346,12 +345,13 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 
 		// There's only one potential float type: a double.
 		double float64;
-		if(Reflection::get(*this, key, float64)) {
+		if(Reflection::get(*this, key, float64, offset)) {
 			// TODO: place as little-endian IEEE 754-2008.
 			return;
 		}
 
 		// Okay, check for a potential recursion.
+		// Not currently supported: arrays of structs.
 		if(*type == typeid(Reflection::Struct)) {
 			result.push_back(0x03);
 			push_name();
@@ -373,7 +373,9 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 			The int32 is the total number of bytes comprising the document.
 		*/
 		data.push_back(0);
-		const uint32_t size_with_prefix = uint32_t(data.size()) + 2;
+		const uint32_t size_with_prefix = uint32_t(data.size()) + 4;
+		data.insert(data.begin(), uint8_t(size_with_prefix >> 24));
+		data.insert(data.begin(), uint8_t(size_with_prefix >> 16));
 		data.insert(data.begin(), uint8_t(size_with_prefix >> 8));
 		data.insert(data.begin(), uint8_t(size_with_prefix & 0xff));
 	};
@@ -390,6 +392,8 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 		if(count > 1) {
 			// In BSON, an array is a sub-document with ASCII keys '0', '1', etc.
 			result.push_back(0x04);
+			std::copy(key.begin(), key.end(), std::back_inserter(result));
+			result.push_back(0);
 
 			std::vector<uint8_t> array;
 			for(size_t c = 0; c < count; ++c) {
