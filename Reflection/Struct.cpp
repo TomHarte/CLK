@@ -306,24 +306,46 @@ std::string Reflection::Struct::description() const {
 
 /* Contractually, this serialises as BSON. */
 std::vector<uint8_t> Reflection::Struct::serialise() const {
-	auto append = [this] (std::vector<uint8_t> &result, const std::string &key, const std::string &output_name, const std::type_info *type, size_t offset) {
-		auto push_name = [&result, &output_name] () {
-			std::copy(output_name.begin(), output_name.end(), std::back_inserter(result));
-			result.push_back(0);
-		};
+	auto push_name = [] (std::vector<uint8_t> &result, const std::string &name) {
+		std::copy(name.begin(), name.end(), std::back_inserter(result));
+		result.push_back(0);
+	};
 
-		auto push_int = [push_name, &result] (uint8_t type, auto x) {
+	auto append = [push_name, this] (std::vector<uint8_t> &result, const std::string &key, const std::string &output_name, const std::type_info *type, size_t offset) {
+		auto push_int = [push_name, &result, &output_name] (uint8_t type, auto x) {
 			result.push_back(type);
-			push_name();
+			push_name(result, output_name);
 			for(size_t c = 0; c < sizeof(x); ++c)
 				result.push_back(uint8_t((x) >> (8 * c)));
+		};
+
+		auto push_string = [push_name, &result, &output_name] (const std::string &text) {
+			result.push_back(0x02);
+			push_name(result, output_name);
+
+			const uint32_t string_length = uint32_t(text.size() + 1);
+			result.push_back(uint8_t(string_length));
+			result.push_back(uint8_t(string_length >> 8));
+			result.push_back(uint8_t(string_length >> 16));
+			result.push_back(uint8_t(string_length >> 24));
+			std::copy(text.begin(), text.end(), std::back_inserter(result));
+			result.push_back(0);
 		};
 
 		// Test for an exact match on Booleans.
 		if(*type == typeid(bool)) {
 			result.push_back(0x08);
-			push_name();
+			push_name(result, output_name);
 			result.push_back(uint8_t(Reflection::get<bool>(*this, key, offset)));
+			return;
+		}
+
+		// Record the string value for enums.
+		if(!Reflection::Enum::name(*type).empty()) {
+			int value;
+			Reflection::get(*this, key, value, offset);
+			const auto text = Reflection::Enum::to_string(*type, 0);
+			push_string(text);
 			return;
 		}
 
@@ -354,7 +376,7 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 		// Not currently supported: arrays of structs.
 		if(*type == typeid(Reflection::Struct)) {
 			result.push_back(0x03);
-			push_name();
+			push_name(result, output_name);
 
 			const Reflection::Struct *const child = reinterpret_cast<const Reflection::Struct *>(get(key));
 			const auto sub_document = child->serialise();
@@ -391,9 +413,8 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 
 		if(count > 1) {
 			// In BSON, an array is a sub-document with ASCII keys '0', '1', etc.
-			result.push_back(0x04);
-			std::copy(key.begin(), key.end(), std::back_inserter(result));
-			result.push_back(0);
+			result.push_back(0x03);	// TODO: 0x04.
+			push_name(result, key);
 
 			std::vector<uint8_t> array;
 			for(size_t c = 0; c < count; ++c) {
