@@ -312,22 +312,23 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 	};
 
 	auto append = [push_name, this] (std::vector<uint8_t> &result, const std::string &key, const std::string &output_name, const std::type_info *type, size_t offset) {
-		auto push_int = [push_name, &result, &output_name] (uint8_t type, auto x) {
-			result.push_back(type);
-			push_name(result, output_name);
+		auto push_int = [push_name, &result, &output_name] (auto x) {
 			for(size_t c = 0; c < sizeof(x); ++c)
 				result.push_back(uint8_t((x) >> (8 * c)));
 		};
 
-		auto push_string = [push_name, &result, &output_name] (const std::string &text) {
+		auto push_named_int = [push_int, push_name, &result, &output_name] (uint8_t type, auto x) {
+			result.push_back(type);
+			push_name(result, output_name);
+			push_int(x);
+		};
+
+		auto push_string = [push_int, push_name, &result, &output_name] (const std::string &text) {
 			result.push_back(0x02);
 			push_name(result, output_name);
 
 			const uint32_t string_length = uint32_t(text.size() + 1);
-			result.push_back(uint8_t(string_length));
-			result.push_back(uint8_t(string_length >> 8));
-			result.push_back(uint8_t(string_length >> 16));
-			result.push_back(uint8_t(string_length >> 24));
+			push_int(string_length);
 			std::copy(text.begin(), text.end(), std::back_inserter(result));
 			result.push_back(0);
 		};
@@ -352,23 +353,50 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 		// Test for ints that will safely convert to an int32.
 		int32_t int32;
 		if(Reflection::get(*this, key, int32, offset)) {
-			push_int(0x10, int32);
+			push_named_int(0x10, int32);
 			return;
 		}
 
 		// Test for ints that can be converted to an int64.
 		int64_t int64;
 		if(Reflection::get(*this, key, int64, offset)) {
-			push_int(0x12, int64);
+			push_named_int(0x12, int64);
 			return;
 		}
 
-		/*	All ints should now be dealt with.	*/
-
-		// There's only one potential float type: a double.
+		// There's only one BSON float type: a double.
 		double float64;
 		if(Reflection::get(*this, key, float64, offset)) {
-			// TODO: place as little-endian IEEE 754-2008.
+			result.push_back(0x01);
+			push_name(result, output_name);
+
+			// The following declines to assume an internal representation
+			// for doubles, constructing IEEE 708 from first principles.
+			// Which is probably absurd given how often I've assumed
+			// e.g. two's complement.
+			int exponent;
+			const double mantissa = frexp(fabs(float64), &exponent);
+			exponent += 1022;
+			const uint64_t integer_mantissa =
+				static_cast<uint64_t>(mantissa * 9007199254740992.0);
+			const uint64_t binary64 =
+				((float64 < 0) ? 0x8000'0000'0000'0000 : 0) |
+				(integer_mantissa & 0x000f'ffff'ffff'ffff) |
+				(static_cast<uint64_t>(exponent) << 52);
+			push_int(binary64);
+
+			return;
+		}
+
+		// Store std::vector<uint_8>s as binary data.
+		if(*type == typeid(std::vector<uint8_t>)) {
+			result.push_back(0x05);
+			push_name(result, output_name);
+
+			auto source = reinterpret_cast<const std::vector<uint8_t> *>(get(key));
+			push_int(uint32_t(source->size()));
+			result.push_back(0x00);
+			std::copy(source->begin(), source->end(), std::back_inserter(result));
 			return;
 		}
 

@@ -14,6 +14,7 @@
 #include <string>
 #include <typeindex>
 #include <typeinfo>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -295,8 +296,8 @@ template <typename Owner> class StructImpl: public Struct {
 
 	private:
 		template <typename Type> bool declare_reflectable(Type *t, const std::string &name) {
-			Reflection::Struct *const str = static_cast<Reflection::Struct *>(t);
-			if(str) {
+			if constexpr (std::is_base_of<Reflection::Struct, Type>::value) {
+				Reflection::Struct *const str = static_cast<Reflection::Struct *>(t);
 				declare_emplace(str, name);
 				return true;
 			}
