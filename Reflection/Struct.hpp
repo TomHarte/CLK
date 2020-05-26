@@ -29,6 +29,7 @@ struct Struct {
 	virtual const std::type_info *type_of(const std::string &name) const = 0;
 	virtual size_t count_of(const std::string &name) const = 0;
 	virtual void set(const std::string &name, const void *value) = 0;
+	virtual void *get(const std::string &name) = 0;
 	virtual const void *get(const std::string &name) const = 0;
 	virtual std::vector<std::string> values_for(const std::string &name) const = 0;
 	virtual ~Struct() {}
@@ -40,21 +41,38 @@ struct Struct {
 	std::string description() const;
 
 	/*!
-		@returns The BSON serialisation of this struct.
+		Serialises this struct in BSON format.
+
+		Supported field types:
+
+			* [u]int[8/16/32/64]_t;
+			* float and double;
+			* bool;
+			* std::string;
+			* plain C-style arrays of any of the above;
+			* other reflective structs;
+			* std::vector<uint8_t> as raw binary data.
+
+		TODO: vector of string, possibly? Or more general vector support?
+
+		@returns The BSON serialisation.
 	*/
 	std::vector<uint8_t> serialise() const;
 
 	/*!
-		Applies as many fields as possible from the incoming BSON.
+		Applies as many fields as possible from the incoming BSON. Supports the same types
+		as @c serialise.
 	*/
 	bool deserialise(const std::vector<uint8_t> &bson);
 
 	/*!
+		Called to determine whether @c key should be included in the serialisation of this struct.
 	*/
 	virtual bool should_serialise(const std::string &key) const { return true; }
 
 	private:
 		void append(std::ostringstream &stream, const std::string &key, const std::type_info *type, size_t offset) const;
+		bool deserialise(const uint8_t *bson, size_t size);
 };
 
 /*!
@@ -68,9 +86,11 @@ template <typename Type> bool set(Struct &target, const std::string &name, Type 
 	Setting an int:
 
 		* to an int copies the int;
+		* to a smaller type, truncates the int;
 		* to an int64_t promotes the int; and
 		* to a registered enum, copies the int.
 */
+template <> bool set(Struct &target, const std::string &name, int64_t value);
 template <> bool set(Struct &target, const std::string &name, int value);
 
 /*!
@@ -88,6 +108,9 @@ template <> bool set(Struct &target, const std::string &name, const char *value)
 */
 template <> bool set(Struct &target, const std::string &name, bool value);
 
+
+template <> bool set(Struct &target, const std::string &name, float value);
+template <> bool set(Struct &target, const std::string &name, double value);
 
 /*!
 	Fuzzy-set attempts to set any property based on a string value. This is intended to allow input provided by the user.
@@ -126,6 +149,12 @@ template <typename Owner> class StructImpl: public Struct {
 			@returns the value of type @c Type that is loaded from the offset registered for the field @c name.
 				It is the caller's responsibility to provide an appropriate type of data.
 		*/
+		void *get(const std::string &name) final {
+			const auto iterator = contents_.find(name);
+			if(iterator == contents_.end()) return nullptr;
+			return reinterpret_cast<uint8_t *>(this) + iterator->second.offset;
+		}
+
 		const void *get(const std::string &name) const final {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return nullptr;

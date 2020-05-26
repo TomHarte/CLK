@@ -69,22 +69,58 @@ static size_t size(const std::type_info *type) {
 
 // MARK: - Setters
 
+template <> bool Reflection::set(Struct &target, const std::string &name, float value) {
+	const auto target_type = target.type_of(name);
+	if(!target_type) return false;
+
+	if(*target_type == typeid(float)) {
+		target.set(name, &value);
+		return true;
+	}
+
+	return set<double>(target, name, value);
+}
+
+template <> bool Reflection::set(Struct &target, const std::string &name, double value) {
+	const auto target_type = target.type_of(name);
+	if(!target_type) return false;
+
+	if(*target_type == typeid(double)) {
+		target.set(name, &value);
+		return true;
+	}
+
+	if(*target_type == typeid(float)) {
+		const float float_value = float(value);
+		target.set(name, &float_value);
+		return true;
+	}
+
+	return false;
+}
+
 template <> bool Reflection::set(Struct &target, const std::string &name, int value) {
+	return set<int64_t>(target, name, value);
+}
+
+template <> bool Reflection::set(Struct &target, const std::string &name, int64_t value) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
 	// No need to convert an int or a registered enum.
 	if(*target_type == typeid(int) || !Reflection::Enum::name(*target_type).empty()) {
+		const int value32 = int(value);
+		target.set(name, &value32);
+		return true;
+	}
+
+	// Set an int64_t directly.
+	if(*target_type == typeid(int64_t)) {
 		target.set(name, &value);
 		return true;
 	}
 
-	// Promote to an int64_t.
-	if(*target_type == typeid(int64_t)) {
-		const auto int64 = int64_t(value);
-		target.set(name, &int64);
-		return true;
-	}
+	// TODO: other int sizes.
 
 	return false;
 }
@@ -93,6 +129,14 @@ template <> bool Reflection::set(Struct &target, const std::string &name, const 
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
+	// If the target is a string, assign.
+	if(*target_type == typeid(std::string)) {
+		auto child = reinterpret_cast<std::string *>(target.get(name));
+		*child = value;
+		return true;
+	}
+
+	// From here on, make an attempt to convert to a named enum.
 	if(Reflection::Enum::name(*target_type).empty()) {
 		return false;
 	}
@@ -389,6 +433,14 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 			return;
 		}
 
+		// Strings are written naturally.
+		if(*type == typeid(std::string)) {
+			const uint8_t *address = reinterpret_cast<const uint8_t *>(get(key));
+			const std::string *const text = reinterpret_cast<const std::string *>(address + offset*sizeof(std::string));
+			push_string(*text);
+			return;
+		}
+
 		// Store std::vector<uint_8>s as binary data.
 		if(*type == typeid(std::vector<uint8_t>)) {
 			result.push_back(0x05);
@@ -442,7 +494,7 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 
 		if(count > 1) {
 			// In BSON, an array is a sub-document with ASCII keys '0', '1', etc.
-			result.push_back(0x03);	// TODO: 0x04.
+			result.push_back(0x04);
 			push_name(result, key);
 
 			std::vector<uint8_t> array;
@@ -459,4 +511,113 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 
 	wrap_object(result);
 	return result;
+}
+
+bool Reflection::Struct::deserialise(const std::vector<uint8_t> &bson) {
+	return deserialise(bson.data(), bson.size());
+}
+
+bool Reflection::Struct::deserialise(const uint8_t *bson, size_t size) {
+	// Validate the object's declared size.
+	const auto end = bson + size;
+	auto read_int = [&bson] (auto &target) {
+		constexpr auto shift = 8 * (sizeof(target) - 1);
+		target = 0;
+		for(size_t c = 0; c < sizeof(target); ++c) {
+			target >>= 8;
+			target |= decltype(target)(*bson) << shift;
+			++bson;
+		}
+	};
+
+	uint32_t object_size;
+	read_int(object_size);
+	if(object_size > size) return false;
+
+	while(true) {
+		const uint8_t next_type = *bson;
+		++bson;
+		if(!next_type) break;
+
+		std::string key;
+		while(*bson) {
+			key.push_back(char(*bson));
+			++bson;
+		}
+		++bson;
+
+		switch(next_type) {
+			default:
+				return false;
+
+			// TODO: arrays.
+
+			// 0x03: A subdocument; try to install the inner BSON.
+			// 0x05: Binary data. Seek to populate a std::vector<uint8_t>.
+			case 0x03:
+			case 0x05: {
+				const auto type = type_of(key);
+
+				uint32_t subobject_size;
+				read_int(subobject_size);
+
+				if(next_type == 0x03 && *type == typeid(Reflection::Struct)) {
+					auto child = reinterpret_cast<Reflection::Struct *>(get(key));
+					child->deserialise(bson - 4, size_t(end - bson + 4));
+					bson += subobject_size - 4;
+				}
+
+				if(next_type == 0x05 && *type == typeid(std::vector<uint8_t>)) {
+					auto child = reinterpret_cast<std::vector<uint8_t> *>(get(key));
+					*child = std::vector<uint8_t>(bson, bson + subobject_size);
+					bson += subobject_size;
+				}
+			} break;
+
+			// String.
+			case 0x02: {
+				uint32_t length;
+				read_int(length);
+
+				const std::string value(bson, bson + length - 1);
+				::Reflection::set<const std::string &>(*this, key, value);
+
+				bson += length;
+			} break;
+
+			// Boolean.
+			case 0x08: {
+				const bool value = *bson;
+				++bson;
+				::Reflection::set(*this, key, value);
+			} break;
+
+			// 32-bit int.
+			case 0x10: {
+				int32_t value;
+				read_int(value);
+				::Reflection::set(*this, key, value);
+			} break;
+
+			// 64-bit int.
+			case 0x12: {
+				int64_t value;
+				read_int(value);
+				::Reflection::set(*this, key, value);
+			} break;
+
+			// 64-bit double.
+			case 0x01: {
+				uint64_t value;
+				read_int(value);
+
+				// TODO: real conversion.
+				double double_value = double(value);
+
+				::Reflection::set(*this, key, double_value);
+			} break;
+		}
+	}
+
+	return true;
 }

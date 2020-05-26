@@ -72,6 +72,14 @@ class MultiStruct: public Reflection::Struct {
 			return nullptr;
 		}
 
+		void *get(const std::string &name) final {
+			for(auto &options: options_) {
+				auto value = options->get(name);
+				if(value) return value;
+			}
+			return nullptr;
+		}
+
 		void set(const std::string &name, const void *value) final {
 			const auto safe_type = type_of(name);
 			if(!safe_type) return;
