@@ -120,7 +120,9 @@ template <> bool Reflection::set(Struct &target, const std::string &name, int64_
 		return true;
 	}
 
-	// TODO: other int sizes.
+#define SetInt(x)	if(*target_type == typeid(x)) { x truncated_value = x(value); target.set(name, &truncated_value); }
+	ForAllInts(SetInt);
+#undef SetInt
 
 	return false;
 }
@@ -537,7 +539,8 @@ bool Reflection::Struct::deserialise(const uint8_t *bson, size_t size) {
 	while(true) {
 		const uint8_t next_type = *bson;
 		++bson;
-		if(!next_type) break;
+		if(!next_type)
+			break;
 
 		std::string key;
 		while(*bson) {
@@ -549,8 +552,6 @@ bool Reflection::Struct::deserialise(const uint8_t *bson, size_t size) {
 		switch(next_type) {
 			default:
 				return false;
-
-			// TODO: arrays.
 
 			// 0x03: A subdocument; try to install the inner BSON.
 			// 0x05: Binary data. Seek to populate a std::vector<uint8_t>.
@@ -572,6 +573,19 @@ bool Reflection::Struct::deserialise(const uint8_t *bson, size_t size) {
 					*child = std::vector<uint8_t>(bson, bson + subobject_size);
 					bson += subobject_size;
 				}
+			} break;
+
+			// Array. BSON's encoding of these is a minor pain, but could be worse;
+			// they're presented as a subobject with objects serialised in array order
+			// but given the string keys "0", "1", etc. So: validate the keys, decode
+			// the objects.
+			case 0x04: {
+				uint32_t subobject_size;
+				read_int(subobject_size);
+
+				// TODO: parse objects.
+
+				bson += subobject_size - 4;
 			} break;
 
 			// String.
@@ -611,10 +625,12 @@ bool Reflection::Struct::deserialise(const uint8_t *bson, size_t size) {
 				uint64_t value;
 				read_int(value);
 
-				// TODO: real conversion.
-				double double_value = double(value);
+				const double mantissa = 0.5 + double(value & 0x000f'ffff'ffff'ffff) / 9007199254740992.0;
+				const int exponent = ((value >> 52) & 2047) - 1022;
+				const double double_value = ldexp(mantissa, exponent);
+				const double sign = (value & 0x8000'0000'0000'0000) ? -1 : 1;
 
-				::Reflection::set(*this, key, double_value);
+				::Reflection::set(*this, key, double_value * sign);
 			} break;
 		}
 	}
