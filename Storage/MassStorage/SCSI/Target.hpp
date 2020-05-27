@@ -279,7 +279,7 @@ struct Executor {
 
 		auto copy_string = [] (uint8_t *destination, const char *source, size_t length) -> void {
 			// Copy as much of the string as will fit, and pad with spaces.
-			uint8_t *end = reinterpret_cast<uint8_t *>(stpncpy(reinterpret_cast<char *>(destination), source, length));
+			uint8_t *end = reinterpret_cast<uint8_t *>(strncpy(reinterpret_cast<char *>(destination), source, length));
 			while(end < destination + length) {
 				*end = ' ';
 				++end;
