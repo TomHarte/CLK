@@ -69,65 +69,65 @@ static size_t size(const std::type_info *type) {
 
 // MARK: - Setters
 
-template <> bool Reflection::set(Struct &target, const std::string &name, float value) {
+template <> bool Reflection::set(Struct &target, const std::string &name, float value, size_t offset) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
 	if(*target_type == typeid(float)) {
-		target.set(name, &value);
+		target.set(name, &value, offset);
 		return true;
 	}
 
 	return set<double>(target, name, value);
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, double value) {
+template <> bool Reflection::set(Struct &target, const std::string &name, double value, size_t offset) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
 	if(*target_type == typeid(double)) {
-		target.set(name, &value);
+		target.set(name, &value, offset);
 		return true;
 	}
 
 	if(*target_type == typeid(float)) {
 		const float float_value = float(value);
-		target.set(name, &float_value);
+		target.set(name, &float_value, offset);
 		return true;
 	}
 
 	return false;
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, int value) {
+template <> bool Reflection::set(Struct &target, const std::string &name, int value, size_t offset) {
 	return set<int64_t>(target, name, value);
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, int64_t value) {
+template <> bool Reflection::set(Struct &target, const std::string &name, int64_t value, size_t offset) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
 	// No need to convert an int or a registered enum.
 	if(*target_type == typeid(int) || !Reflection::Enum::name(*target_type).empty()) {
 		const int value32 = int(value);
-		target.set(name, &value32);
+		target.set(name, &value32, offset);
 		return true;
 	}
 
 	// Set an int64_t directly.
 	if(*target_type == typeid(int64_t)) {
-		target.set(name, &value);
+		target.set(name, &value, offset);
 		return true;
 	}
 
-#define SetInt(x)	if(*target_type == typeid(x)) { x truncated_value = x(value); target.set(name, &truncated_value); }
+#define SetInt(x)	if(*target_type == typeid(x)) { x truncated_value = x(value); target.set(name, &truncated_value, offset); }
 	ForAllInts(SetInt);
 #undef SetInt
 
 	return false;
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, const std::string &value) {
+template <> bool Reflection::set(Struct &target, const std::string &name, const std::string &value, size_t offset) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
@@ -147,22 +147,22 @@ template <> bool Reflection::set(Struct &target, const std::string &name, const 
 	if(enum_value < 0) {
 		return false;
 	}
-	target.set(name, &enum_value);
+	target.set(name, &enum_value, offset);
 
 	return true;
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, const char *value) {
+template <> bool Reflection::set(Struct &target, const std::string &name, const char *value, size_t offset) {
 	const std::string string(value);
 	return set<const std::string &>(target, name, string);
 }
 
-template <> bool Reflection::set(Struct &target, const std::string &name, bool value) {
+template <> bool Reflection::set(Struct &target, const std::string &name, bool value, size_t offset) {
 	const auto target_type = target.type_of(name);
 	if(!target_type) return false;
 
 	if(*target_type == typeid(bool)) {
-		target.set(name, &value);;
+		target.set(name, &value, offset);;
 	}
 
 	return false;
@@ -519,6 +519,45 @@ bool Reflection::Struct::deserialise(const std::vector<uint8_t> &bson) {
 	return deserialise(bson.data(), bson.size());
 }
 
+namespace {
+
+/*!
+	Provides a proxy struct that redirects calls to set to another object and property, picking
+	an offset based on the propety name specified here.
+*/
+struct ArrayReceiver: public Reflection::Struct {
+	ArrayReceiver(Reflection::Struct *target, const std::type_info *type, const std::string &key, size_t count) :
+		target_(target), type_(type), key_(key), count_(count) {}
+
+	std::vector<std::string> all_keys() const final { return {}; }
+	const std::type_info *type_of(const std::string &name) const final { return type_; }
+	size_t count_of(const std::string &name) const final { return 0; }
+
+	void set(const std::string &name, const void *value, size_t offset) final {
+		const auto index = size_t(std::stoi(name));
+		if(index >= count_) {
+			return;
+		}
+		target_->set(key_, value, index);
+	}
+
+	virtual std::vector<std::string> values_for(const std::string &name) const final {
+		return {};
+	}
+
+	void *get(const std::string &name) final {
+		return nullptr;
+	}
+
+	private:
+		Reflection::Struct *target_;
+		const std::type_info *type_;
+		std::string key_;
+		size_t count_;
+};
+
+}
+
 bool Reflection::Struct::deserialise(const uint8_t *bson, size_t size) {
 	// Validate the object's declared size.
 	const auto end = bson + size;
@@ -580,10 +619,12 @@ bool Reflection::Struct::deserialise(const uint8_t *bson, size_t size) {
 			// but given the string keys "0", "1", etc. So: validate the keys, decode
 			// the objects.
 			case 0x04: {
+				ArrayReceiver receiver(this, type_of(key), key, count_of(key));
+
 				uint32_t subobject_size;
 				read_int(subobject_size);
 
-				// TODO: parse objects.
+				receiver.deserialise(bson - 4, size_t(end - bson + 4));
 
 				bson += subobject_size - 4;
 			} break;

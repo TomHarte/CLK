@@ -28,9 +28,11 @@ struct Struct {
 	virtual std::vector<std::string> all_keys() const = 0;
 	virtual const std::type_info *type_of(const std::string &name) const = 0;
 	virtual size_t count_of(const std::string &name) const = 0;
-	virtual void set(const std::string &name, const void *value) = 0;
+	virtual void set(const std::string &name, const void *value, size_t offset = 0) = 0;
 	virtual void *get(const std::string &name) = 0;
-	virtual const void *get(const std::string &name) const = 0;
+	virtual const void *get(const std::string &name) const {
+		return const_cast<Struct *>(this)->get(name);
+	}
 	virtual std::vector<std::string> values_for(const std::string &name) const = 0;
 	virtual ~Struct() {}
 
@@ -80,7 +82,7 @@ struct Struct {
 
 	@returns @c true if the property was successfully set; @c false otherwise.
 */
-template <typename Type> bool set(Struct &target, const std::string &name, Type value);
+template <typename Type> bool set(Struct &target, const std::string &name, Type value, size_t offset = 0);
 
 /*!
 	Setting an int:
@@ -90,27 +92,27 @@ template <typename Type> bool set(Struct &target, const std::string &name, Type 
 		* to an int64_t promotes the int; and
 		* to a registered enum, copies the int.
 */
-template <> bool set(Struct &target, const std::string &name, int64_t value);
-template <> bool set(Struct &target, const std::string &name, int value);
+template <> bool set(Struct &target, const std::string &name, int64_t value, size_t offset);
+template <> bool set(Struct &target, const std::string &name, int value, size_t offset);
 
 /*!
 	Setting a string:
 
 		* to an enum, if the string names a member of the enum, sets the value.
 */
-template <> bool set(Struct &target, const std::string &name, const std::string &value);
-template <> bool set(Struct &target, const std::string &name, const char *value);
+template <> bool set(Struct &target, const std::string &name, const std::string &value, size_t offset);
+template <> bool set(Struct &target, const std::string &name, const char *value, size_t offset);
 
 /*!
 	Setting a bool:
 
 		* to a bool, copies the value.
 */
-template <> bool set(Struct &target, const std::string &name, bool value);
+template <> bool set(Struct &target, const std::string &name, bool value, size_t offset);
 
 
-template <> bool set(Struct &target, const std::string &name, float value);
-template <> bool set(Struct &target, const std::string &name, double value);
+template <> bool set(Struct &target, const std::string &name, float value, size_t offset);
+template <> bool set(Struct &target, const std::string &name, double value, size_t offset);
 
 /*!
 	Fuzzy-set attempts to set any property based on a string value. This is intended to allow input provided by the user.
@@ -155,21 +157,16 @@ template <typename Owner> class StructImpl: public Struct {
 			return reinterpret_cast<uint8_t *>(this) + iterator->second.offset;
 		}
 
-		const void *get(const std::string &name) const final {
-			const auto iterator = contents_.find(name);
-			if(iterator == contents_.end()) return nullptr;
-			return reinterpret_cast<const uint8_t *>(this) + iterator->second.offset;
-		}
-
 		/*!
 			Stores the @c value of type @c Type to the offset registered for the field @c name.
 
 			It is the caller's responsibility to provide an appropriate type of data.
 		*/
-		void set(const std::string &name, const void *value) final {
+		void set(const std::string &name, const void *value, size_t offset) final {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return;
-			memcpy(reinterpret_cast<uint8_t *>(this) + iterator->second.offset, value, iterator->second.size);
+			assert(offset < iterator->second.count);
+			memcpy(reinterpret_cast<uint8_t *>(this) + iterator->second.offset + offset * iterator->second.size, value, iterator->second.size);
 		}
 
 		/*!

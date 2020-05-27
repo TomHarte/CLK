@@ -80,7 +80,7 @@ class MultiStruct: public Reflection::Struct {
 			return nullptr;
 		}
 
-		void set(const std::string &name, const void *value) final {
+		void set(const std::string &name, const void *value, size_t offset) final {
 			const auto safe_type = type_of(name);
 			if(!safe_type) return;
 
@@ -91,7 +91,7 @@ class MultiStruct: public Reflection::Struct {
 				if(!type) continue;
 
 				if(*type == *safe_type) {
-					options->set(name, value);
+					options->set(name, value, offset);
 				}
 			}
 		}
