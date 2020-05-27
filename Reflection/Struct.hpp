@@ -9,11 +9,13 @@
 #ifndef Struct_hpp
 #define Struct_hpp
 
+#include <cassert>
 #include <cstdarg>
 #include <cstring>
 #include <string>
 #include <typeindex>
 #include <typeinfo>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -27,8 +29,11 @@ struct Struct {
 	virtual std::vector<std::string> all_keys() const = 0;
 	virtual const std::type_info *type_of(const std::string &name) const = 0;
 	virtual size_t count_of(const std::string &name) const = 0;
-	virtual void set(const std::string &name, const void *value) = 0;
-	virtual const void *get(const std::string &name) const = 0;
+	virtual void set(const std::string &name, const void *value, size_t offset = 0) = 0;
+	virtual void *get(const std::string &name) = 0;
+	virtual const void *get(const std::string &name) const {
+		return const_cast<Struct *>(this)->get(name);
+	}
 	virtual std::vector<std::string> values_for(const std::string &name) const = 0;
 	virtual ~Struct() {}
 
@@ -38,8 +43,39 @@ struct Struct {
 	*/
 	std::string description() const;
 
+	/*!
+		Serialises this struct in BSON format.
+
+		Supported field types:
+
+			* [u]int[8/16/32/64]_t;
+			* float and double;
+			* bool;
+			* std::string;
+			* plain C-style arrays of any of the above;
+			* other reflective structs;
+			* std::vector<uint8_t> as raw binary data.
+
+		TODO: vector of string, possibly? Or more general vector support?
+
+		@returns The BSON serialisation.
+	*/
+	std::vector<uint8_t> serialise() const;
+
+	/*!
+		Applies as many fields as possible from the incoming BSON. Supports the same types
+		as @c serialise.
+	*/
+	bool deserialise(const std::vector<uint8_t> &bson);
+
+	/*!
+		Called to determine whether @c key should be included in the serialisation of this struct.
+	*/
+	virtual bool should_serialise(const std::string &key) const { return true; }
+
 	private:
 		void append(std::ostringstream &stream, const std::string &key, const std::type_info *type, size_t offset) const;
+		bool deserialise(const uint8_t *bson, size_t size);
 };
 
 /*!
@@ -47,32 +83,37 @@ struct Struct {
 
 	@returns @c true if the property was successfully set; @c false otherwise.
 */
-template <typename Type> bool set(Struct &target, const std::string &name, Type value);
+template <typename Type> bool set(Struct &target, const std::string &name, Type value, size_t offset = 0);
 
 /*!
 	Setting an int:
 
 		* to an int copies the int;
+		* to a smaller type, truncates the int;
 		* to an int64_t promotes the int; and
 		* to a registered enum, copies the int.
 */
-template <> bool set(Struct &target, const std::string &name, int value);
+template <> bool set(Struct &target, const std::string &name, int64_t value, size_t offset);
+template <> bool set(Struct &target, const std::string &name, int value, size_t offset);
 
 /*!
 	Setting a string:
 
 		* to an enum, if the string names a member of the enum, sets the value.
 */
-template <> bool set(Struct &target, const std::string &name, const std::string &value);
-template <> bool set(Struct &target, const std::string &name, const char *value);
+template <> bool set(Struct &target, const std::string &name, const std::string &value, size_t offset);
+template <> bool set(Struct &target, const std::string &name, const char *value, size_t offset);
 
 /*!
 	Setting a bool:
 
 		* to a bool, copies the value.
 */
-template <> bool set(Struct &target, const std::string &name, bool value);
+template <> bool set(Struct &target, const std::string &name, bool value, size_t offset);
 
+
+template <> bool set(Struct &target, const std::string &name, float value, size_t offset);
+template <> bool set(Struct &target, const std::string &name, double value, size_t offset);
 
 /*!
 	Fuzzy-set attempts to set any property based on a string value. This is intended to allow input provided by the user.
@@ -105,26 +146,16 @@ template <typename Type> bool get(const Struct &target, const std::string &name,
 */
 template <typename Type> Type get(const Struct &target, const std::string &name, size_t offset = 0);
 
-
-// TODO: move this elsewhere. It's just a sketch anyway.
-struct Serialisable {
-	/// Serialises this object, appending it to @c target.
-	virtual void serialise(std::vector<uint8_t> &target) = 0;
-	/// Deserialises this object from @c source.
-	/// @returns @c true if the deserialisation was successful; @c false otherwise.
-	virtual bool deserialise(const std::vector<uint8_t> &source) = 0;
-};
-
 template <typename Owner> class StructImpl: public Struct {
 	public:
 		/*!
 			@returns the value of type @c Type that is loaded from the offset registered for the field @c name.
 				It is the caller's responsibility to provide an appropriate type of data.
 		*/
-		const void *get(const std::string &name) const final {
+		void *get(const std::string &name) final {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return nullptr;
-			return reinterpret_cast<const uint8_t *>(this) + iterator->second.offset;
+			return reinterpret_cast<uint8_t *>(this) + iterator->second.offset;
 		}
 
 		/*!
@@ -132,10 +163,11 @@ template <typename Owner> class StructImpl: public Struct {
 
 			It is the caller's responsibility to provide an appropriate type of data.
 		*/
-		void set(const std::string &name, const void *value) final {
+		void set(const std::string &name, const void *value, size_t offset) final {
 			const auto iterator = contents_.find(name);
 			if(iterator == contents_.end()) return;
-			memcpy(reinterpret_cast<uint8_t *>(this) + iterator->second.offset, value, iterator->second.size);
+			assert(offset < iterator->second.count);
+			memcpy(reinterpret_cast<uint8_t *>(this) + iterator->second.offset + offset * iterator->second.size, value, iterator->second.size);
 		}
 
 		/*!
@@ -291,8 +323,8 @@ template <typename Owner> class StructImpl: public Struct {
 
 	private:
 		template <typename Type> bool declare_reflectable(Type *t, const std::string &name) {
-			Reflection::Struct *const str = static_cast<Reflection::Struct *>(t);
-			if(str) {
+			if constexpr (std::is_base_of<Reflection::Struct, Type>::value) {
+				Reflection::Struct *const str = static_cast<Reflection::Struct *>(t);
 				declare_emplace(str, name);
 				return true;
 			}
