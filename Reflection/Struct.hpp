@@ -9,6 +9,7 @@
 #ifndef Struct_hpp
 #define Struct_hpp
 
+#include <cassert>
 #include <cstdarg>
 #include <cstring>
 #include <string>
