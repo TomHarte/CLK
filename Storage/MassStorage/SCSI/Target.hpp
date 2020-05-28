@@ -278,12 +278,12 @@ struct Executor {
 		};
 
 		auto copy_string = [] (uint8_t *destination, const char *source, size_t length) -> void {
-			// Copy as much of the string as will fit, and pad with spaces.
-			uint8_t *end = reinterpret_cast<uint8_t *>(strncpy(reinterpret_cast<char *>(destination), source, length));
-			while(end < destination + length) {
-				*end = ' ';
-				++end;
-			}
+			// Determine length of source and copy in as much as possible.
+			const auto source_length = std::min(strlen(source), length);
+			memcpy(destination, source, source_length);
+
+			// Fill the rest with spaces.
+			memset(&destination[source_length], ' ', length - source_length);
 		};
 		copy_string(&response[8], inq.vendor_identifier, 8);
 		copy_string(&response[16], inq.product_identifier, 16);
