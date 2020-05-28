@@ -10,6 +10,10 @@
 
 #include <cmath>
 
+#ifndef M_PI
+#define M_PI 3.1415926f
+#endif
+
 using namespace Outputs::Display::OpenGL;
 
 // MARK: - State setup for compiled shaders.
