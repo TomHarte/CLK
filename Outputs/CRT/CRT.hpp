@@ -55,10 +55,8 @@ class CRT {
 		};
 		void output_scan(const Scan *scan);
 
-		int16_t colour_burst_angle_ = 0;
 		uint8_t colour_burst_amplitude_ = 30;
 		int colour_burst_phase_adjustment_ = 0xff;
-		bool is_writing_composite_run_ = false;
 
 		int64_t phase_denominator_ = 1;
 		int64_t phase_numerator_ = 0;

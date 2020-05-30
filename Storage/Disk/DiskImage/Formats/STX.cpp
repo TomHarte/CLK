@@ -179,6 +179,7 @@ class TrackConstructor {
 
 		TrackConstructor(const std::vector<uint8_t> &track_data, const std::vector<Sector> &sectors, size_t track_size, uint16_t first_sync) :
 			track_data_(track_data), sectors_(sectors), track_size_(track_size), first_sync_(first_sync) {
+			(void)first_sync_;
 		}
 
 		std::shared_ptr<PCMTrack> get_track() {
@@ -383,8 +384,7 @@ class TrackConstructor {
 		const std::vector<uint8_t> &track_data_;
 		const std::vector<Sector> &sectors_;
 		const size_t track_size_;
-		const uint16_t first_sync_;
-
+        const uint16_t first_sync_;
 };
 
 }

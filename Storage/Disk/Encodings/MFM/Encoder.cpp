@@ -335,7 +335,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSec
 		sector_pointers(sectors),
 		26, 0xff,
 		6,
-		11, 0xff,
+		11, sector_gap_filler_byte,
 		6,
 		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 27, 0xff,
 		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
@@ -346,7 +346,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetFMTrackWithSec
 		sectors,
 		26, 0xff,
 		6,
-		11, 0xff,
+		11, sector_gap_filler_byte,
 		6,
 		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 27, 0xff,
 		6250);	// i.e. 250kbps (including clocks) * 60 = 15000kpm, at 300 rpm => 50 kbits/rotation => 6250 bytes/rotation
@@ -357,7 +357,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		sector_pointers(sectors),
 		50, 0x4e,
 		12,
-		22, 0x4e,
+		22, sector_gap_filler_byte,
 		12,
 		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 54, 0xff,
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kbps @ 300 rpm)
@@ -368,7 +368,7 @@ std::shared_ptr<Storage::Disk::Track> Storage::Encodings::MFM::GetMFMTrackWithSe
 		sectors,
 		50, 0x4e,
 		12,
-		22, 0x4e,
+		22, sector_gap_filler_byte,
 		12,
 		(sector_gap_length != DefaultSectorGapLength) ? sector_gap_length : 54, 0xff,
 		12500);	// unintelligently: double the single-density bytes/rotation (or: 500kbps @ 300 rpm)

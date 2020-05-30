@@ -80,6 +80,10 @@ i8272::i8272(BusHandler &bus_handler, Cycles clock_rate) :
 	Storage::Disk::MFMController(clock_rate),
 	bus_handler_(bus_handler) {
 	posit_event(int(Event8272::CommandByte));
+
+	// TODO: implement DMA, etc. I have a vague intention to implement the IBM PC
+	// one day, that should help to force that stuff.
+	(void)bus_handler_;
 }
 
 ClockingHint::Preference i8272::preferred_clocking() const {

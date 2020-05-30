@@ -545,9 +545,9 @@ class ProcessorStorage {
 		inline void set_status(uint16_t);
 
 	private:
-		friend class ProcessorStorageConstructor;
+		friend struct ProcessorStorageConstructor;
 		friend class ProcessorStorageTests;
-		friend class State;
+		friend struct State;
 };
 
 #endif /* MC68000Storage_h */

@@ -46,8 +46,8 @@ class i8272 : public Storage::Disk::MFMController {
 		virtual void select_drive(int number) = 0;
 
 	private:
-		// The bus handler, for interrupt and DMA-driven usage.
-		BusHandler &bus_handler_;
+		// The bus handler, for interrupt and DMA-driven usage. [TODO]
+        BusHandler &bus_handler_;
 		std::unique_ptr<BusHandler> allocated_bus_handler_;
 
 		// Status registers.

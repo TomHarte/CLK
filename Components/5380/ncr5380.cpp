@@ -18,6 +18,11 @@ NCR5380::NCR5380(SCSI::Bus &bus, int clock_rate) :
 	clock_rate_(clock_rate) {
 	device_id_ = bus_.add_device();
 	bus_.add_observer(this);
+
+	// TODO: use clock rate and expected phase. This implementation currently
+	// provides only CPU-driven polling behaviour.
+	(void)clock_rate_;
+	(void)expected_phase_;
 }
 
 void NCR5380::write(int address, uint8_t value, bool) {

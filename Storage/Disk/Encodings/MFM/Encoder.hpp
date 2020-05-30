@@ -39,8 +39,8 @@ std::shared_ptr<Storage::Disk::Track> GetMFMTrackWithSectors(const std::vector<c
 	@param sector_gap_length If specified, sets the distance in whole bytes between each ID and its data.
 	@param sector_gap_filler_byte If specified, sets the value (unencoded) that is used to populate the gap between each ID and its data.
 */
-std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<Sector> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0x4e);
-std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<const Sector *> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0x4e);
+std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<Sector> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0xff);
+std::shared_ptr<Storage::Disk::Track> GetFMTrackWithSectors(const std::vector<const Sector *> &sectors, std::size_t sector_gap_length = DefaultSectorGapLength, uint8_t sector_gap_filler_byte = 0xff);
 
 class Encoder {
 	public:

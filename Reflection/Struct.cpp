@@ -358,7 +358,7 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 	};
 
 	auto append = [push_name, this] (std::vector<uint8_t> &result, const std::string &key, const std::string &output_name, const std::type_info *type, size_t offset) {
-		auto push_int = [push_name, &result, &output_name] (auto x) {
+		auto push_int = [&result] (auto x) {
 			for(size_t c = 0; c < sizeof(x); ++c)
 				result.push_back(uint8_t((x) >> (8 * c)));
 		};

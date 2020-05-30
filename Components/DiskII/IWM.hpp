@@ -82,8 +82,9 @@ class IWM:
 
 		uint8_t data_register_ = 0;
 		uint8_t mode_ = 0;
-		bool read_write_ready_ = true;
-		bool write_overran_ = false;
+		// These related to functionality not-yet implemented.
+		// bool read_write_ready_ = true;
+		// bool write_overran_ = false;
 
 		int state_ = 0;
 
