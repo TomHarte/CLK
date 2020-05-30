@@ -31,7 +31,7 @@ Analyser::Static::Target *AppleTarget(const Storage::Encodings::AppleGCR::Sector
 	return target;
 }
 
-Analyser::Static::Target *OricTarget(const Storage::Encodings::AppleGCR::Sector *sector_zero) {
+Analyser::Static::Target *OricTarget(const Storage::Encodings::AppleGCR::Sector *) {
 	using Target = Analyser::Static::Oric::Target;
 	auto *const target = new Target;
 	target->rom = Target::ROM::Pravetz;
