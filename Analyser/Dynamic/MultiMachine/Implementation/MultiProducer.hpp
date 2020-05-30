@@ -69,7 +69,7 @@ class MultiTimedMachine: public MultiInterface<MachineTypes::TimedMachine>, publ
 		void run_for(Time::Seconds duration) final;
 
 	private:
-		void run_for(const Cycles cycles) final {}
+		void run_for(const Cycles) final {}
 		Delegate *delegate_ = nullptr;
 };
 

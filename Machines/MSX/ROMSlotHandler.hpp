@@ -47,13 +47,13 @@ class ROMSlotHandler {
 		virtual ~ROMSlotHandler() {}
 
 		/*! Advances time by @c half_cycles. */
-		virtual void run_for(HalfCycles half_cycles) {}
+		virtual void run_for([[maybe_unused]] HalfCycles half_cycles) {}
 
 		/*! Announces an attempt to write @c value to @c address. */
 		virtual void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) = 0;
 
 		/*! Seeks the result of a read at @c address; this is used only if the area is unmapped. */
-		virtual uint8_t read(uint16_t address) { return 0xff; }
+		virtual uint8_t read([[maybe_unused]] uint16_t address) { return 0xff; }
 
 		enum class WrappingStrategy {
 			/// Repeat causes all accesses to be modulo the size of the ROM.

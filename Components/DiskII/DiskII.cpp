@@ -219,7 +219,7 @@ void DiskII::process_event(const Storage::Disk::Drive::Event &event) {
 	}
 }
 
-void DiskII::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) {
+void DiskII::set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) {
 	drive_is_sleeping_[0] = drives_[0].preferred_clocking() == ClockingHint::Preference::None;
 	drive_is_sleeping_[1] = drives_[1].preferred_clocking() == ClockingHint::Preference::None;
 	decide_clocking_preference();

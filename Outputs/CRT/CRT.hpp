@@ -123,7 +123,7 @@ class CRT {
 			bool should_alternate,
 			Outputs::Display::InputDataType data_type);
 
-		/*! Constructs a monitor-style CRT — one that will take only an RGB or monochrome signal, and therefore has
+		/*! Constructs a monitor-style CRT — one that will take only an RGB or monochrome signal, and therefore has
 			no colour space or colour subcarrier frequency. This monitor will automatically map colour bursts to the black level.
 		*/
 		CRT(int cycles_per_line,
@@ -319,7 +319,7 @@ template <typename Receiver> class CRTFrequencyMismatchWarner: public Outputs::C
 	public:
 		CRTFrequencyMismatchWarner(Receiver &receiver) : receiver_(receiver) {}
 
-		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) final {
+		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *, int number_of_frames, int number_of_unexpected_vertical_syncs) final {
 			frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_frames = number_of_frames;
 			frame_records_[frame_record_pointer_ % frame_records_.size()].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
 			++frame_record_pointer_;

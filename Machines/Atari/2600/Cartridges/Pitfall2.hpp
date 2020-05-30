@@ -117,7 +117,6 @@ class Pitfall2: public BusExtender {
 
 		uint16_t featcher_address_[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 		uint8_t top_[8], bottom_[8], mask_[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-		uint8_t music_mode_[3];
 		uint8_t random_number_generator_ = 0;
 		uint8_t *rom_ptr_;
 		uint8_t audio_channel_[3];

@@ -71,7 +71,7 @@ struct Struct {
 	/*!
 		Called to determine whether @c key should be included in the serialisation of this struct.
 	*/
-	virtual bool should_serialise(const std::string &key) const { return true; }
+	virtual bool should_serialise([[maybe_unused]] const std::string &key) const { return true; }
 
 	private:
 		void append(std::ostringstream &stream, const std::string &key, const std::type_info *type, size_t offset) const;

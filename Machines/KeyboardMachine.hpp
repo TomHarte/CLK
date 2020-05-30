@@ -26,7 +26,7 @@ struct KeyActions {
 		Indicates that the key @c key has been either pressed or released, according to
 		the state of @c isPressed.
 	*/
-	virtual void set_key_state(uint16_t key, bool is_pressed) {}
+	virtual void set_key_state([[maybe_unused]] uint16_t key, [[maybe_unused]] bool is_pressed) {}
 
 	/*!
 		Instructs that all keys should now be treated as released.
@@ -49,7 +49,7 @@ class KeyboardMachine: public KeyActions {
 		/*!
 			@returns @c true if this machine can type the character @c c as part of a @c type_string; @c false otherwise.
 		*/
-		virtual bool can_type(char c) const { return false; }
+		virtual bool can_type([[maybe_unused]] char c) const { return false; }
 
 		/*!
 			Provides a destination for keyboard input.

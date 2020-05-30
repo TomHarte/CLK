@@ -23,7 +23,7 @@
 }
 
 - (void)setUp {
-    _machine = std::make_unique<RAM68000>();
+	_machine = std::make_unique<RAM68000>();
 }
 
 - (void)tearDown {
@@ -1137,7 +1137,7 @@
 
 - (void)testMULU_Imm {
 	self.machine->set_program({
-		0xc4fc, 0xffff		// MULU.W    #$ffff, D2
+		0xc4fc, 0xffff		// MULU.W	#$ffff, D2
 	});
 	auto state = self.machine->get_processor_state();
 	state.data[2] = 0xffff;

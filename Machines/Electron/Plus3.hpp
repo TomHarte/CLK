@@ -14,7 +14,7 @@
 
 namespace Electron {
 
-class Plus3 : public WD::WD1770 {
+class Plus3 final : public WD::WD1770 {
 	public:
 		Plus3();
 
@@ -26,7 +26,7 @@ class Plus3 : public WD::WD1770 {
 		void set_control_register(uint8_t control, uint8_t changes);
 		uint8_t last_control_ = 0;
 
-		void set_motor_on(bool on);
+		void set_motor_on(bool on) override;
 		std::string drive_name(size_t drive);
 };
 

@@ -173,9 +173,11 @@ template <class T> class MOS6532 {
 		bool interrupt_line_ = false;
 
 		// expected to be overridden
-		uint8_t get_port_input(int port)										{	return 0xff;	}
-		void set_port_output(int port, uint8_t value, uint8_t output_mask)		{}
-		void set_irq_line(bool new_value)										{}
+		void set_port_output([[maybe_unused]] int port, [[maybe_unused]] uint8_t value, [[maybe_unused]] uint8_t output_mask) {}
+		uint8_t get_port_input([[maybe_unused]] int port) {
+			return 0xff;
+		}
+		void set_irq_line(bool) {}
 
 		inline void evaluate_interrupts() {
 			interrupt_line_ =

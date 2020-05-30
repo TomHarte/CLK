@@ -135,7 +135,7 @@ class Keyboard {
 		/*!
 			The keyboard expects ~10 µs-frequency ticks, i.e. a clock rate of just around 100 kHz.
 		*/
-		void run_for(HalfCycles cycle) {
+		void run_for(HalfCycles) {	// TODO: honour the HalfCycles argument.
 			switch(mode_) {
 				default:
 				case Mode::Waiting: return;

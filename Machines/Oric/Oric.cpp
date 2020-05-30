@@ -155,7 +155,7 @@ class VIAPortHandler: public MOS::MOS6522::IRQDelegatePortHandler {
 			Reponds to changes in the 6522's port output. On an Oric port B sets the tape motor control
 			and the keyboard's active row. Port A is connected to the AY's data bus.
 		*/
-		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask)  {
+		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t)  {
 			if(port) {
 				keyboard_.set_active_row(value);
 				tape_player_.set_motor_control(value & 0x40);
@@ -568,7 +568,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// to satisfy MOS::MOS6522IRQDelegate::Delegate
-		void mos6522_did_change_interrupt_status(void *mos6522) final {
+		void mos6522_did_change_interrupt_status(void *) final {
 			set_interrupt_line();
 		}
 
@@ -608,7 +608,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 		}
 
 		// WD::WD1770::Delegate
-		void wd1770_did_change_output(WD::WD1770 *wd1770) final {
+		void wd1770_did_change_output(WD::WD1770 *) final {
 			set_interrupt_line();
 		}
 
@@ -648,7 +648,7 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			}
 		}
 
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) final {
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final {
 			diskii_clocking_preference_ = diskii_.preferred_clocking();
 		}
 

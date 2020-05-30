@@ -23,7 +23,7 @@ void Toggle::set_sample_volume_range(std::int16_t range) {
 	volume_ = range;
 }
 
-void Toggle::skip_samples(const std::size_t number_of_samples) {}
+void Toggle::skip_samples(std::size_t) {}
 
 void Toggle::set_output(bool enabled) {
 	if(is_enabled_ == enabled) return;

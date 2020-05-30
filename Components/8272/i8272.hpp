@@ -20,8 +20,9 @@ namespace i8272 {
 
 class BusHandler {
 	public:
-		virtual void set_dma_data_request(bool drq) {}
-		virtual void set_interrupt(bool irq) {}
+		virtual ~BusHandler() {}
+		virtual void set_dma_data_request([[maybe_unused]] bool drq) {}
+		virtual void set_interrupt([[maybe_unused]] bool irq) {}
 };
 
 class i8272 : public Storage::Disk::MFMController {

@@ -19,7 +19,7 @@ class BusExtender: public CPU::MOS6502::BusHandler {
 	public:
 		BusExtender(uint8_t *rom_base, std::size_t rom_size) : rom_base_(rom_base), rom_size_(rom_size) {}
 
-		void advance_cycles(int cycles) {}
+		void advance_cycles(int) {}
 
 	protected:
 		uint8_t *rom_base_;

@@ -99,7 +99,7 @@ struct Microcycle {
 	HalfCycles length = HalfCycles(4);
 
 	/*!
-		For expediency, this provides a full 32-bit byte-resolution address — e.g.
+		For expediency, this provides a full 32-bit byte-resolution address — e.g.
 		if reading indirectly via an address register, this will indicate the full
 		value of the address register.
 
@@ -334,7 +334,7 @@ class BusHandler {
 			FC0 and FC1 are provided inside the microcycle as the IsData and IsProgram
 			flags; FC2 is provided here as is_supervisor — it'll be either 0 or 1.
 		*/
-		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
+		HalfCycles perform_bus_operation([[maybe_unused]] const Microcycle &cycle, [[maybe_unused]] int is_supervisor) {
 			return HalfCycles(0);
 		}
 
@@ -343,7 +343,7 @@ class BusHandler {
 		/*!
 			Provides information about the path of execution if enabled via the template.
 		*/
-		void will_perform(uint32_t address, uint16_t opcode) {}
+		void will_perform([[maybe_unused]] uint32_t address, [[maybe_unused]] uint16_t opcode) {}
 };
 
 #include "Implementation/68000Storage.hpp"

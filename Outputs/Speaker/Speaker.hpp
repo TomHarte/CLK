@@ -76,7 +76,7 @@ class Speaker {
 				Provides the delegate with a hint that the input clock rate has changed, which provides an opportunity to
 				renegotiate the ideal clock rate, if desired.
 			*/
-			virtual void speaker_did_change_input_clock(Speaker *speaker) {}
+			virtual void speaker_did_change_input_clock([[maybe_unused]] Speaker *speaker) {}
 		};
 		virtual void set_delegate(Delegate *delegate) {
 			delegate_ = delegate;
@@ -87,7 +87,7 @@ class Speaker {
 		virtual void set_computed_output_rate(float cycles_per_second, int buffer_size, bool stereo) = 0;
 
 	protected:
-		void did_complete_samples(Speaker *speaker, const std::vector<int16_t> &buffer, bool is_stereo) {
+		void did_complete_samples(Speaker *, const std::vector<int16_t> &buffer, bool is_stereo) {
 			// Test the delegate for existence again, as it may have changed.
 			const auto delegate = delegate_.load();
 			if(!delegate) return;

@@ -20,7 +20,7 @@ Controller::Controller(Cycles clock_rate) :
 	set_expected_bit_length(Time(1));
 }
 
-void Controller::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) {
+void Controller::set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) {
 	update_clocking_observer();
 }
 

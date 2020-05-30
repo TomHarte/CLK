@@ -56,7 +56,7 @@ class DiskImage {
 		/*!
 			Replaces the Tracks indicated by the map, that maps from physical address to track content.
 		*/
-		virtual void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {}
+		virtual void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &) {}
 
 		/*!
 			Communicates that it is likely to be a while before any more tracks are written.

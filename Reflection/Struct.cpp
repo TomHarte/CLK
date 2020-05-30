@@ -99,7 +99,7 @@ template <> bool Reflection::set(Struct &target, const std::string &name, double
 }
 
 template <> bool Reflection::set(Struct &target, const std::string &name, int value, size_t offset) {
-	return set<int64_t>(target, name, value);
+	return set<int64_t>(target, name, value, offset);
 }
 
 template <> bool Reflection::set(Struct &target, const std::string &name, int64_t value, size_t offset) {
@@ -153,7 +153,7 @@ template <> bool Reflection::set(Struct &target, const std::string &name, const 
 
 template <> bool Reflection::set(Struct &target, const std::string &name, const char *value, size_t offset) {
 	const std::string string(value);
-	return set<const std::string &>(target, name, string);
+	return set<const std::string &>(target, name, string, offset);
 }
 
 template <> bool Reflection::set(Struct &target, const std::string &name, bool value, size_t offset) {
@@ -529,10 +529,10 @@ struct ArrayReceiver: public Reflection::Struct {
 		target_(target), type_(type), key_(key), count_(count) {}
 
 	std::vector<std::string> all_keys() const final { return {}; }
-	const std::type_info *type_of(const std::string &name) const final { return type_; }
-	size_t count_of(const std::string &name) const final { return 0; }
+	const std::type_info *type_of(const std::string &) const final { return type_; }
+	size_t count_of(const std::string &) const final { return 0; }
 
-	void set(const std::string &name, const void *value, size_t offset) final {
+	void set(const std::string &name, const void *value, size_t) final {
 		const auto index = size_t(std::stoi(name));
 		if(index >= count_) {
 			return;
@@ -540,11 +540,11 @@ struct ArrayReceiver: public Reflection::Struct {
 		target_->set(key_, value, index);
 	}
 
-	virtual std::vector<std::string> values_for(const std::string &name) const final {
+	virtual std::vector<std::string> values_for(const std::string &) const final {
 		return {};
 	}
 
-	void *get(const std::string &name) final {
+	void *get(const std::string &) final {
 		return nullptr;
 	}
 

@@ -45,7 +45,7 @@ constexpr GLenum AccumulationTextureUnit = GL_TEXTURE3;
 #define TextureAddressGetX(v)	uint16_t((v) & 0x7ff)
 #define TextureSub(a, b)		(((a) - (b)) & 0x3fffff)
 
-const GLint internalFormatForDepth(std::size_t depth) {
+constexpr GLint internalFormatForDepth(std::size_t depth) {
 	switch(depth) {
 		default: return GL_FALSE;
 		case 1: return GL_R8UI;
@@ -55,7 +55,7 @@ const GLint internalFormatForDepth(std::size_t depth) {
 	}
 }
 
-const GLenum formatForDepth(std::size_t depth) {
+constexpr GLenum formatForDepth(std::size_t depth) {
 	switch(depth) {
 		default: return GL_FALSE;
 		case 1: return GL_RED_INTEGER;
@@ -408,7 +408,7 @@ bool ScanTarget::is_soft_display_type() {
 	return modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::CompositeMonochrome;
 }
 
-void ScanTarget::update(int output_width, int output_height) {
+void ScanTarget::update(int, int output_height) {
 	if(fence_ != nullptr) {
 		// if the GPU is still busy, don't wait; we'll catch it next time
 		if(glClientWaitSync(fence_, GL_SYNC_FLUSH_COMMANDS_BIT, 0) == GL_TIMEOUT_EXPIRED) {

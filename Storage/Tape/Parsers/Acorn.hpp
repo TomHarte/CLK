@@ -38,7 +38,6 @@ class Shifter {
 		bool was_high_;
 
 		unsigned int input_pattern_;
-		unsigned int input_bit_counter_;
 
 		Delegate *delegate_;
 };

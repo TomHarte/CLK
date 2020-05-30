@@ -369,11 +369,11 @@ class ProcessorStorage {
 			/// b4-b6 = destination address register.
 			uint8_t source_dest = 0;
 
-			void set_source_address(ProcessorStorage &storage, int index) {
+			void set_source_address([[maybe_unused]] ProcessorStorage &storage, int index) {
 				source_dest = uint8_t((source_dest & 0x0f) | (index << 4));
 			}
 
-			void set_destination_address(ProcessorStorage &storage, int index) {
+			void set_destination_address([[maybe_unused]] ProcessorStorage &storage, int index) {
 				source_dest = uint8_t((source_dest & 0xf0) | index);
 			}
 

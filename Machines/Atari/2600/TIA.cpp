@@ -586,7 +586,7 @@ template<class T> void TIA::perform_motion_step(T &object) {
 	}
 }
 
-template<class T> void TIA::perform_border_motion(T &object, int start, int end) {
+template<class T> void TIA::perform_border_motion(T &object, int, int end) {
 	while(object.is_moving && object.motion_time < end)
 		perform_motion_step<T>(object);
 }

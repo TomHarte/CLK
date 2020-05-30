@@ -14,6 +14,6 @@ void IRQDelegatePortHandler::set_interrupt_delegate(Delegate *delegate) {
 	delegate_ = delegate;
 }
 
-void IRQDelegatePortHandler::set_interrupt_status(bool new_status) {
+void IRQDelegatePortHandler::set_interrupt_status(bool) {
 	if(delegate_) delegate_->mos6522_did_change_interrupt_status(this);
 }

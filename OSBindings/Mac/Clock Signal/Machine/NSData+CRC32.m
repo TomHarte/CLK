@@ -8,12 +8,10 @@
 
 #import "NSData+CRC32.h"
 
-#include <zlib.h>
-
 @implementation NSData (StdVector)
 
 - (NSNumber *)crc32 {
-    return @(crc32(crc32(0, Z_NULL, 0), self.bytes, (uInt)self.length));
+	return @(crc32(crc32(0, Z_NULL, 0), self.bytes, (uInt)self.length));
 }
 
 @end

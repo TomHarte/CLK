@@ -30,7 +30,7 @@ class PortHandler {
 
 			@param port_b @c true if the input being queried is Port B. @c false if it is Port A.
 		*/
-		virtual uint8_t get_port_input(bool port_b) {
+		virtual uint8_t get_port_input([[maybe_unused]] bool port_b) {
 			return 0xff;
 		}
 
@@ -40,7 +40,7 @@ class PortHandler {
 			@param port_b @c true if the output being posted is Port B. @c false if it is Port A.
 			@param value the value now being output.
 		*/
-		virtual void set_port_output(bool port_b, uint8_t value) {}
+		virtual void set_port_output([[maybe_unused]] bool port_b, [[maybe_unused]] uint8_t value) {}
 };
 
 /*!

@@ -107,7 +107,7 @@ class BusHandler {
 			during some periods; one way to simulate that is to have the bus handler return a number other than
 			Cycles(1) to describe lengthened bus cycles.
 		*/
-		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		Cycles perform_bus_operation([[maybe_unused]] CPU::MOS6502::BusOperation operation, [[maybe_unused]] uint16_t address, [[maybe_unused]] uint8_t *value) {
 			return Cycles(1);
 		}
 

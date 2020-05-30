@@ -880,13 +880,13 @@ bool i8272::seek_is_satisfied(int drive) {
 			(drives_[drive].target_head_position == -1 && get_drive().get_is_track_zero());
 }
 
-void i8272::set_dma_acknowledge(bool dack) {
+void i8272::set_dma_acknowledge(bool) {
 }
 
-void i8272::set_terminal_count(bool tc) {
+void i8272::set_terminal_count(bool) {
 }
 
-void i8272::set_data_input(uint8_t value) {
+void i8272::set_data_input(uint8_t) {
 }
 
 uint8_t i8272::get_data_output() {

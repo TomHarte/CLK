@@ -267,7 +267,7 @@ struct ScanTarget {
 		/// and indicates that its actual final size was @c actual_length.
 		///
 		/// It is required that every call to begin_data be paired with a call to end_data.
-		virtual void end_data(size_t actual_length) {}
+		virtual void end_data([[maybe_unused]] size_t actual_length) {}
 
 		/// Tells the scan target that its owner is about to change; this is a hint that existing
 		/// data and scan allocations should be invalidated.
@@ -318,7 +318,7 @@ struct ScanTarget {
 			@param location The location of the event.
 			@param composite_amplitude The amplitude of the colour burst on this line (0, if no colour burst was found).
 		*/
-		virtual void announce(Event event, bool is_visible, const Scan::EndPoint &location, uint8_t composite_amplitude) {}
+		virtual void announce([[maybe_unused]] Event event, [[maybe_unused]] bool is_visible, [[maybe_unused]] const Scan::EndPoint &location, [[maybe_unused]] uint8_t composite_amplitude) {}
 };
 
 struct ScanStatus {
@@ -373,10 +373,10 @@ struct ScanStatus {
 	Provides a null target for scans.
 */
 struct NullScanTarget: public ScanTarget {
-	void set_modals(Modals) {}
-	Scan *begin_scan() { return nullptr; }
-	uint8_t *begin_data(size_t required_length, size_t required_alignment = 1) { return nullptr; }
-	void submit() {}
+	void set_modals(Modals) override {}
+	Scan *begin_scan() override { return nullptr; }
+	uint8_t *begin_data(size_t, size_t) override { return nullptr; }
+	void submit() override {}
 
 	static NullScanTarget singleton;
 };

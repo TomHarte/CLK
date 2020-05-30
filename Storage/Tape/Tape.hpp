@@ -98,6 +98,7 @@ class Tape {
 class TapePlayer: public TimedEventLoop, public ClockingHint::Source {
 	public:
 		TapePlayer(int input_clock_rate);
+		virtual ~TapePlayer() {}
 
 		void set_tape(std::shared_ptr<Storage::Tape::Tape> tape);
 		bool has_tape();

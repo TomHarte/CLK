@@ -39,7 +39,7 @@ namespace C1540 {
 /*!
 	Provides an emulation of the C1540.
 */
-class Machine: public MachineBase {
+class Machine final: public MachineBase {
 	public:
 		Machine(Personality personality, const ROMMachine::ROMFetcher &rom_fetcher);
 

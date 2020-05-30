@@ -56,7 +56,7 @@ void ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 	}
 }
 
-void ScanTarget::set_sampling_window(int output_width, int output_height, Shader &target) {
+void ScanTarget::set_sampling_window(int output_width, int, Shader &target) {
 	if(modals_.display_type != DisplayType::CompositeColour) {
 		const float one_pixel_width = float(modals_.cycles_per_line) * modals_.visible_area.size.width / float(output_width);
 		const float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);

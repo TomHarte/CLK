@@ -40,7 +40,7 @@ enum class TVStandard {
 
 class Base {
 	public:
-		static const uint32_t palette_pack(uint8_t r, uint8_t g, uint8_t b) {
+		static uint32_t palette_pack(uint8_t r, uint8_t g, uint8_t b) {
 			uint32_t result = 0;
 			uint8_t *const result_ptr = reinterpret_cast<uint8_t *>(&result);
 			result_ptr[0] = r;
@@ -449,7 +449,7 @@ class Base {
 
 
 /***********************************************
-             TMS9918 Fetching Code
+	TMS9918 Fetching Code
 ************************************************/
 
 		template<bool use_end> void fetch_tms_refresh(int start, int end) {
@@ -693,7 +693,7 @@ class Base {
 
 
 /***********************************************
-          Master System Fetching Code
+	Master System Fetching Code
 ************************************************/
 
 		template<bool use_end> void fetch_sms(int start, int end) {
