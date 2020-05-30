@@ -42,7 +42,7 @@ Analyser::Static::Target *OricTarget(const Storage::Encodings::AppleGCR::Sector 
 
 }
 
-Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+Analyser::Static::TargetList Analyser::Static::DiskII::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	// This analyser can comprehend disks only.
 	if(media.disks.empty()) return {};
 

@@ -12,7 +12,7 @@
 // Use the Accelerate framework to vectorise, unless this is a Qt build.
 // Primarily that avoids gymnastics in the QMake file; it also eliminates
 // a difference in the Qt build across platforms.
-#if defined(__APPLE__) && !defined(QT_VERSION)
+#if defined(__APPLE__) && !defined(TARGET_QT)
 #include <Accelerate/Accelerate.h>
 #define USE_ACCELERATE
 #endif
