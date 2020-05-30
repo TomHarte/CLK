@@ -156,7 +156,7 @@ class FMEncoder: public Encoder {
 			output_short(FMDeletedDataAddressMark);
 		}
 
-		size_t item_size(SurfaceItem item) {
+		size_t item_size(SurfaceItem) {
 			// Marks are just slightly-invalid bytes, so everything is the same length.
 			return 2;
 		}

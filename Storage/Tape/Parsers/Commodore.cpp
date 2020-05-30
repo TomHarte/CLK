@@ -120,6 +120,9 @@ void Header::serialise(uint8_t *target, uint16_t length) {
 		case Header::EndOfTape:				target[0] = 0x05;	break;
 	}
 
+	// TODO: validate length.
+	(void)length;
+
 	std::memcpy(&target[1], data.data(), 191);
 }
 

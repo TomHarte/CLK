@@ -130,7 +130,7 @@ Video::Video() :
 	crt_.set_visible_area(crt_.get_rect_for_area(33, 260, 440, 1700, 4.0f / 3.0f));
 }
 
-void Video::set_ram(uint16_t *ram, size_t size) {
+void Video::set_ram(uint16_t *ram, size_t) {
 	ram_ = ram;
 }
 

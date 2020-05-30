@@ -286,7 +286,7 @@ void IntelligentKeyboard::set_mouse_position(uint16_t x, uint16_t y) {
 	mouse_position_[1] = std::min(int(y), mouse_range_[1]);
 }
 
-void IntelligentKeyboard::set_mouse_keycode_reporting(uint8_t delta_x, uint8_t delta_y) {
+void IntelligentKeyboard::set_mouse_keycode_reporting(uint8_t, uint8_t) {
 	LOG("Unimplemented: set mouse keycode reporting");
 }
 
@@ -308,7 +308,7 @@ void IntelligentKeyboard::set_mouse_y_upward() {
 	mouse_y_multiplier_ = -1;
 }
 
-void IntelligentKeyboard::set_mouse_button_actions(uint8_t actions) {
+void IntelligentKeyboard::set_mouse_button_actions(uint8_t) {
 	LOG("Unimplemented: set mouse button actions");
 }
 
@@ -461,6 +461,10 @@ void IntelligentKeyboard::set_joystick_interrogation_mode() {
 }
 
 void IntelligentKeyboard::set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical) {
+	// TODO: honour velocity thresholds.
+	(void)horizontal;
+	(void)vertical;
+
 	joystick_mode_ = JoystickMode::KeyCode;
 	clear_joystick_events();
 }
@@ -494,7 +498,7 @@ void IntelligentKeyboard::interrogate_joysticks() {
 	}
 }
 
-void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t rate) {
+void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t) {
 	LOG("Unimplemented: joystick monitoring mode");
 }
 

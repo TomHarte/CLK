@@ -125,6 +125,8 @@ std::vector<uint8_t> Storage::Data::ZX8081::DataFromString(const std::wstring &s
 	std::vector<uint8_t> data;
 
 	// TODO
+	(void)string;
+	(void)is_zx81;
 
 	return data;
 }

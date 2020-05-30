@@ -52,6 +52,9 @@ void Tape::set_is_in_input_mode(bool is_in_input_mode) {
 }
 
 void Tape::set_counter(uint8_t value) {
+	// TODO: use value.
+	(void)value;
+
 	output_.cycles_into_pulse = 0;
 	output_.bits_remaining_until_empty = 0;
 }
