@@ -126,11 +126,125 @@ SOURCES += \
 
 HEADERS += \
     ../../Activity/*.hpp \
+\
     ../../Analyser/*.hpp \
     ../../Analyser/Dynamic/*.hpp \
     ../../Analyser/Dynamic/MultiMachine/*.hpp \
     ../../Analyser/Dynamic/MultiMachine/Implementation/*.hpp \
+\
+    ../../Analyser/Static/*.hpp \
+    ../../Analyser/Static/Acorn/*.hpp \
+    ../../Analyser/Static/AmstradCPC/*.hpp \
+    ../../Analyser/Static/AppleII/*.hpp \
+    ../../Analyser/Static/Atari2600/*.hpp \
+    ../../Analyser/Static/AtariST/*.hpp \
+    ../../Analyser/Static/Coleco/*.hpp \
+    ../../Analyser/Static/Commodore/*.hpp \
+    ../../Analyser/Static/Disassembler/*.hpp \
+    ../../Analyser/Static/DiskII/*.hpp \
+    ../../Analyser/Static/Macintosh/*.hpp \
+    ../../Analyser/Static/MSX/*.hpp \
+    ../../Analyser/Static/Oric/*.hpp \
+    ../../Analyser/Static/Sega/*.hpp \
+    ../../Analyser/Static/ZX8081/*.hpp \
+\
     ../../ClockReceiver/*.hpp \
+\
+    ../../Components/1770/*.hpp \
+    ../../Components/5380/*.hpp \
+    ../../Components/6522/*.hpp \
+    ../../Components/6522/Implementation/*.hpp \
+    ../../Components/6532/*.hpp \
+    ../../Components/6560/*.hpp \
+    ../../Components/6845/*.hpp \
+    ../../Components/6850/*.hpp \
+    ../../Components/8255/*.hpp \
+    ../../Components/8272/*.hpp \
+    ../../Components/8530/*.hpp \
+    ../../Components/9918/*.hpp \
+    ../../Components/9918/Implementation/*.hpp \
+    ../../Components/68901/*.hpp \
+    ../../Components/AudioToggle/*.hpp \
+    ../../Components/AY38910/*.hpp \
+    ../../Components/DiskII/*.hpp \
+    ../../Components/KonamiSCC/*.hpp \
+    ../../Components/OPx/*.hpp \
+    ../../Components/OPx/Implementation/*.hpp \
+    ../../Components/Serial/*.hpp \
+    ../../Components/SN76489/*.hpp \
+\
+    ../../Concurrency/*.hpp \
+\
+    ../../Configurable/*.hpp \
+\
+    ../../Inputs/*.hpp \
+    ../../Inputs/QuadratureMouse/*.hpp \
+\
+    ../../Machines/*.hpp \
+    ../../Machines/AmstradCPC/*.hpp \
+    ../../Machines/Apple/AppleII/*.hpp \
+    ../../Machines/Apple/Macintosh/*.hpp \
+    ../../Machines/Atari/2600/*.hpp \
+    ../../Machines/Atari/ST/*.hpp \
+    ../../Machines/ColecoVision/*.hpp \
+    ../../Machines/Commodore/*.hpp \
+    ../../Machines/Commodore/1540/Implementation/*.hpp \
+    ../../Machines/Commodore/Vic-20/*.hpp \
+    ../../Machines/Electron/*.hpp \
+    ../../Machines/MasterSystem/*.hpp \
+    ../../Machines/MSX/*.hpp \
+    ../../Machines/Oric/*.hpp \
+    ../../Machines/Utility/*.hpp \
+    ../../Machines/ZX8081/*.hpp \
+\
+    ../../Numeric/*.hpp \
+\
+    ../../Outputs/*.hpp \
+    ../../Outputs/CRT/*.hpp \
+    ../../Outputs/CRT/Internals/*.hpp \
+    ../../Outputs/OpenGL/*.hpp \
+    ../../Outputs/OpenGL/Primitives/*.hpp \
+    ../../Outputs/Speaker/*.hpp \
+    ../../Outputs/Speaker/Implementation/*.hpp \
+\
+    ../../Processors/6502/*.hpp \
+    ../../Processors/6502/Implementation/*.hpp \
+    ../../Processors/6502/State/*.hpp \
+    ../../Processors/68000/*.hpp \
+    ../../Processors/68000/Implementation/*.hpp \
+    ../../Processors/68000/State/*.hpp \
+    ../../Processors/Z80/*.hpp \
+    ../../Processors/Z80/Implementation/*.hpp \
+    ../../Processors/Z80/State/*.hpp \
+\
+    ../../Reflection/*.hpp \
+\
+    ../../SignalProcessing/*.hpp \
+\
+    ../../Storage/*.hpp \
+    ../../Storage/Cartridge/*.hpp \
+    ../../Storage/Cartridge/Encodings/*.hpp \
+    ../../Storage/Cartridge/Formats/*.hpp \
+    ../../Storage/Data/*.hpp \
+    ../../Storage/Disk/*.hpp \
+    ../../Storage/Disk/Controller/*.hpp \
+    ../../Storage/Disk/DiskImage/*.hpp \
+    ../../Storage/Disk/DiskImage/Formats/*.hpp \
+    ../../Storage/Disk/DiskImage/Formats/Utility/*.hpp \
+    ../../Storage/Disk/DPLL/*.hpp \
+    ../../Storage/Disk/Encodings/*.hpp \
+    ../../Storage/Disk/Encodings/AppleGCR/*.hpp \
+    ../../Storage/Disk/Encodings/MFM/*.hpp \
+    ../../Storage/Disk/Parsers/*.hpp \
+    ../../Storage/Disk/Track/*.hpp \
+    ../../Storage/MassStorage/*.hpp \
+    ../../Storage/MassStorage/Encodings/*.hpp \
+    ../../Storage/MassStorage/Formats/*.hpp \
+    ../../Storage/MassStorage/SCSI/*.hpp \
+    ../../Storage/Tape/*.hpp \
+    ../../Storage/Tape/Formats/*.hpp \
+    ../../Storage/Tape/Parsers/*.hpp \
+\
     mainwindow.h
 
 FORMS += \
