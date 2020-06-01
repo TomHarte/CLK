@@ -5,8 +5,6 @@
 #include "ui_mainwindow.h"
 #include "timer.h"
 
-Timer *t;
-
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 	, ui(new Ui::MainWindow)
@@ -14,16 +12,23 @@ MainWindow::MainWindow(QWidget *parent)
 	ui->setupUi(this);
 	createActions();
 
-	// Start the emulation timer. TODO: not now.
-	timer = std::make_unique<QTimer>(this);
-	QThread *thread = new QThread(this);
-	timer->setInterval(1);
-	t = new Timer;
-	t->moveToThread(thread);
-	connect(timer.get(), SIGNAL(timeout()), t, SLOT(tick()));
-	connect(thread, SIGNAL(finished()), t, SLOT(deleteLater()));
-	thread->start();
-	timer->start();
+	// Set up the emulation timer. Bluffer's guide: the QTimer will post an
+	// event to an event loop. QThread is a thread with an event loop.
+	// My class, Timer, will be wired up to receive the QTimer's events.
+	qTimer = std::make_unique<QTimer>(this);
+	qTimer->setInterval(1);
+
+	timerThread = std::make_unique<QThread>(this);
+
+	timer = std::make_unique<Timer>();
+	timer->moveToThread(timerThread.get());
+
+	connect(qTimer.get(), SIGNAL(timeout()), timer.get(), SLOT(tick()));
+
+	// Start the thread and timer.
+	// TODO: not until there's actually something to display.
+	timerThread->start();
+	qTimer->start();
 }
 
 void MainWindow::createActions() {
@@ -47,11 +52,15 @@ void MainWindow::createActions() {
 
 void MainWindow::open() {
 	QString fileName = QFileDialog::getOpenFileName(this);
-//	if(!fileName.isEmpty())
-//		loadFile(fileName);
+	if(!fileName.isEmpty()) {
+		qDebug() << "Should open" << fileName;
+	}
 }
 
 MainWindow::~MainWindow() {
-	// TODO: stop thread somehow?
+	// Stop the timer by asking its QThread to exit and
+	// waiting for it to do so.
+	timerThread->exit();
+	while(timerThread->isRunning());
 }
 

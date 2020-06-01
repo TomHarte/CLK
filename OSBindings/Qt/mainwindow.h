@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <memory>
+#include "timer.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -19,7 +20,10 @@ class MainWindow : public QMainWindow {
 
 	private:
 		std::unique_ptr<Ui::MainWindow> ui;
-		std::unique_ptr<QTimer> timer;
+		std::unique_ptr<QTimer> qTimer;
+		std::unique_ptr<QThread> timerThread;
+		std::unique_ptr<Timer> timer;
+
 
 	private slots:
 		void open();
