@@ -47,7 +47,7 @@ class i8272 : public Storage::Disk::MFMController {
 
 	private:
 		// The bus handler, for interrupt and DMA-driven usage. [TODO]
-        BusHandler &bus_handler_;
+		BusHandler &bus_handler_;
 		std::unique_ptr<BusHandler> allocated_bus_handler_;
 
 		// Status registers.

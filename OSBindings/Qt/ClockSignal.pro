@@ -122,7 +122,8 @@ SOURCES += \
     ../../Storage/Tape/Parsers/*.cpp \
 \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    timer.cpp
 
 HEADERS += \
     ../../Activity/*.hpp \
@@ -245,7 +246,8 @@ HEADERS += \
     ../../Storage/Tape/Formats/*.hpp \
     ../../Storage/Tape/Parsers/*.hpp \
 \
-    mainwindow.h
+    mainwindow.h \
+    timer.h
 
 FORMS += \
     mainwindow.ui

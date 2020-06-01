@@ -2,20 +2,27 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <memory>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
-class MainWindow : public QMainWindow
-{
-    Q_OBJECT
+class MainWindow : public QMainWindow {
+		Q_OBJECT
 
-public:
-    MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+		void createActions();
 
-private:
-    Ui::MainWindow *ui;
+	public:
+		MainWindow(QWidget *parent = nullptr);
+		~MainWindow();
+
+	private:
+		std::unique_ptr<Ui::MainWindow> ui;
+		std::unique_ptr<QTimer> timer;
+
+	private slots:
+		void open();
 };
+
 #endif // MAINWINDOW_H
