@@ -1,9 +1,13 @@
 #include <QtWidgets>
 #include <QObject>
+#include <QStandardPaths>
 
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "timer.h"
+
+#include "../../Analyser/Static/StaticAnalyser.hpp"
+#include "../../Machines/Utility/MachineForTarget.hpp"
 
 /*
 	General Qt implementation notes:
@@ -61,7 +65,52 @@ void MainWindow::createActions() {
 void MainWindow::open() {
 	QString fileName = QFileDialog::getOpenFileName(this);
 	if(!fileName.isEmpty()) {
-		qDebug() << "Should open" << fileName;
+		const auto targets = Analyser::Static::GetTargets(fileName.toStdString());
+		if(targets.empty()) {
+			qDebug() << "Not media:" << fileName;
+		} else {
+			qDebug() << "Got media:" << fileName;
+
+			const QStringList appDataLocations = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
+			ROMMachine::ROMFetcher rom_fetcher = [&appDataLocations]
+				(const std::vector<ROMMachine::ROM> &roms) -> std::vector<std::unique_ptr<std::vector<uint8_t>>> {
+				std::vector<std::unique_ptr<std::vector<uint8_t>>> results;
+
+				for(const auto &rom: roms) {
+					FILE *file = nullptr;
+					for(const auto &path: appDataLocations) {
+						const std::string source = path.toStdString() + "/ROMImages/" + rom.machine_name + "/" + rom.file_name;
+						const std::string nativeSource = QDir::toNativeSeparators(QString::fromStdString(source)).toStdString();
+
+						qDebug() << "Taking a run at " << nativeSource.c_str();
+
+						file = fopen(nativeSource.c_str(), "rb");
+						if(file) break;
+					}
+
+					if(file) {
+						auto data = std::make_unique<std::vector<uint8_t>>();
+
+						fseek(file, 0, SEEK_END);
+						data->resize(std::ftell(file));
+						fseek(file, 0, SEEK_SET);
+						size_t read = fread(data->data(), 1, data->size(), file);
+						fclose(file);
+
+						if(read == data->size()) {
+							results.push_back(std::move(data));
+						} else {
+							results.push_back(nullptr);
+						}
+					} else {
+						results.push_back(nullptr);
+					}
+				}
+				return results;
+			};
+			Machine::Error error;
+			std::unique_ptr<Machine::DynamicMachine> machine(Machine::MachineForTargets(targets, rom_fetcher, error));
+		}
 	}
 }
 
