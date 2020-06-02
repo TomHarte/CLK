@@ -5,6 +5,14 @@
 #include "ui_mainwindow.h"
 #include "timer.h"
 
+/*
+	General Qt implementation notes:
+
+	*	it seems like Qt doesn't offer a way to constrain the aspect ratio of a view by constraining
+		the size of the window (i.e. you can use a custom layout to constrain a view, but that won't
+		affect the window, so isn't useful for this project). Therefore the emulation window
+*/
+
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent)
 	, ui(new Ui::MainWindow)
