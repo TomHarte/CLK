@@ -8,6 +8,7 @@
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
+#include "../../Outputs/OpenGL/ScanTarget.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -41,6 +42,9 @@ class MainWindow : public QMainWindow {
 		// File drag and drop is supported.
 		void dragEnterEvent(QDragEnterEvent* event) override;
 		void dropEvent(QDropEvent* event) override;
+
+		// Output.
+		Outputs::Display::OpenGL::ScanTarget scanTarget;
 
 	private slots:
 		void open();

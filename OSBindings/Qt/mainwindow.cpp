@@ -7,6 +7,7 @@
 
 #include "../../Numeric/CRC.hpp"
 
+
 /*
 	General Qt implementation notes:
 
@@ -34,11 +35,6 @@ MainWindow::MainWindow(QWidget *parent)
 	timer->moveToThread(timerThread.get());
 
 	connect(qTimer.get(), SIGNAL(timeout()), timer.get(), SLOT(tick()));
-
-	// Start the thread and timer.
-	// TODO: not until there's actually something to display.
-	timerThread->start();
-	qTimer->start();
 
 	// Hide the missing ROMs box unless or until it's needed; grab the text it
 	// began with as a prefix for future mutation.
@@ -144,12 +140,26 @@ void MainWindow::launchMachine() {
 	std::unique_ptr<Machine::DynamicMachine> machine(Machine::MachineForTargets(targets, rom_fetcher, error));
 
 	switch(error) {
-		default:
+		default: {
 			ui->missingROMsBox->setVisible(false);
 			uiPhase = UIPhase::RunningMachine;
 
-			// TODO: launch machine.
-		break;
+			// TODO: Install the OpenGL scan target.
+			// This is subject to having created an OpenGL context.
+//			const auto scan_producer = machine->scan_producer();
+//			if(scan_producer) {
+//				scan_producer->set_scan_target(&scanTarget);
+//			}
+
+			// If this is a timed machine, start up the timer.
+			const auto timedMachine = machine->timed_machine();
+			if(timedMachine) {
+				timer->setMachine(timedMachine);
+				timerThread->start();
+				qTimer->start();
+			}
+
+		} break;
 
 		case Machine::Error::MissingROM: {
 			ui->missingROMsBox->setVisible(true);
