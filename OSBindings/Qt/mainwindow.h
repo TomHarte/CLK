@@ -4,6 +4,10 @@
 #include <QMainWindow>
 #include <memory>
 #include "timer.h"
+#include "ui_mainwindow.h"
+
+#include "../../Analyser/Static/StaticAnalyser.hpp"
+#include "../../Machines/Utility/MachineForTarget.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -24,6 +28,19 @@ class MainWindow : public QMainWindow {
 		std::unique_ptr<QThread> timerThread;
 		std::unique_ptr<Timer> timer;
 
+		// Initial setup stuff.
+		Analyser::Static::TargetList targets;
+		enum class UIPhase {
+			NoFileSelected, RequestingROMs, RunningMachine
+		} uiPhase = UIPhase::NoFileSelected;
+		void launchMachine();
+
+		QString romRequestBaseText;
+		std::vector<ROMMachine::ROM> missingRoms;
+
+		// File drag and drop is supported.
+		void dragEnterEvent(QDragEnterEvent* event) override;
+		void dropEvent(QDropEvent* event) override;
 
 	private slots:
 		void open();
