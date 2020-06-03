@@ -267,13 +267,13 @@ template <Analyser::Static::Oric::Target::DiskInterface disk_interface> class Co
 			switch(disk_interface) {
 				default: break;
 				case DiskInterface::BD500:
-					rom_names.emplace_back(machine_name, "the ORIC Byte Drive 500 ROM", "bd500.rom", 8*1024, 0x61952e34);
+					rom_names.emplace_back(machine_name, "the Oric Byte Drive 500 ROM", "bd500.rom", 8*1024, 0x61952e34);
 				break;
 				case DiskInterface::Jasmin:
-					rom_names.emplace_back(machine_name, "the ORIC Jasmin ROM", "jasmin.rom", 2*1024, 0x37220e89);
+					rom_names.emplace_back(machine_name, "the Oric Jasmin ROM", "jasmin.rom", 2*1024, 0x37220e89);
 				break;
 				case DiskInterface::Microdisc:
-					rom_names.emplace_back(machine_name, "the ORIC Microdisc ROM", "microdisc.rom", 8*1024, 0xa9664a9c);
+					rom_names.emplace_back(machine_name, "the Oric Microdisc ROM", "microdisc.rom", 8*1024, 0xa9664a9c);
 				break;
 				case DiskInterface::Pravetz:
 					rom_names.emplace_back(machine_name, "the 8DOS boot ROM", "8dos.rom", 512, 0x49a74c06);
