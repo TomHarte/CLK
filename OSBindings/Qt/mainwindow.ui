@@ -22,7 +22,7 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
-  <widget class="QOpenGLWidget" name="openGLWidget">
+  <widget class="ScanTargetWidget" name="openGLWidget">
    <widget class="QPlainTextEdit" name="missingROMsBox">
     <property name="geometry">
      <rect>
@@ -60,6 +60,13 @@ Please drag and drop the following over this window:
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>ScanTargetWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>scantargetwidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

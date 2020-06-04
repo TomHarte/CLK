@@ -137,19 +137,19 @@ void MainWindow::launchMachine() {
 		return results;
 	};
 	Machine::Error error;
-	std::unique_ptr<Machine::DynamicMachine> machine(Machine::MachineForTargets(targets, rom_fetcher, error));
+	machine.reset(Machine::MachineForTargets(targets, rom_fetcher, error));
 
 	switch(error) {
 		default: {
 			ui->missingROMsBox->setVisible(false);
 			uiPhase = UIPhase::RunningMachine;
 
-			// TODO: Install the OpenGL scan target.
-			// This is subject to having created an OpenGL context.
-//			const auto scan_producer = machine->scan_producer();
-//			if(scan_producer) {
-//				scan_producer->set_scan_target(&scanTarget);
-//			}
+			// Supply the scan target.
+			// TODO: in the future, hypothetically, deal with non-scan producers.
+			const auto scan_producer = machine->scan_producer();
+			if(scan_producer) {
+				scan_producer->set_scan_target(ui->openGLWidget->getScanTarget());
+			}
 
 			// If this is a timed machine, start up the timer.
 			const auto timedMachine = machine->timed_machine();

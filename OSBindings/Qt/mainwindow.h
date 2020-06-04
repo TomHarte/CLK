@@ -8,7 +8,6 @@
 
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
-#include "../../Outputs/OpenGL/ScanTarget.hpp"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -43,8 +42,8 @@ class MainWindow : public QMainWindow {
 		void dragEnterEvent(QDragEnterEvent* event) override;
 		void dropEvent(QDropEvent* event) override;
 
-		// Output.
-		Outputs::Display::OpenGL::ScanTarget scanTarget;
+		// Ongoing state.
+		std::unique_ptr<Machine::DynamicMachine> machine;
 
 	private slots:
 		void open();

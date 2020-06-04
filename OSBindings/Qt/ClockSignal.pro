@@ -123,6 +123,7 @@ SOURCES += \
 \
     main.cpp \
     mainwindow.cpp \
+    scantargetwidget.cpp \
     timer.cpp
 
 HEADERS += \
@@ -247,6 +248,7 @@ HEADERS += \
     ../../Storage/Tape/Parsers/*.hpp \
 \
     mainwindow.h \
+    scantargetwidget.h \
     timer.h
 
 FORMS += \
