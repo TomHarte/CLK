@@ -18,6 +18,7 @@ LIBS += -lz
 DEFINES += QT_DEPRECATED_WARNINGS
 
 DEFINES += TARGET_QT
+QMAKE_CXXFLAGS_RELEASE += -DNDEBUG
 
 # You can also make your code fail to compile if it uses deprecated APIs.
 # In order to do so, uncomment the following line.
