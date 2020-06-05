@@ -2,6 +2,7 @@
 
 #include <QDebug>
 #include <QOpenGLContext>
+#include <QTimer>
 
 ScanTargetWidget::ScanTargetWidget(QWidget *parent) : QOpenGLWidget(parent) {}
 ScanTargetWidget::~ScanTargetWidget() {}
@@ -17,6 +18,7 @@ void ScanTargetWidget::paintGL() {
 	if(scanTarget) {
 		scanTarget->update(width(), height());
 		scanTarget->draw(width(), height());
+		QTimer::singleShot(500, this, SLOT(update()));	// TODO: obviously this is nonsense.
 	}
 }
 
@@ -28,6 +30,7 @@ Outputs::Display::OpenGL::ScanTarget *ScanTargetWidget::getScanTarget() {
 	makeCurrent();
 	if(!scanTarget) {
 		scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>(defaultFramebufferObject());
+		QTimer::singleShot(500, this, SLOT(update()));	// TODO: obviously this is nonsense.
 	}
 	return scanTarget.get();
 }
