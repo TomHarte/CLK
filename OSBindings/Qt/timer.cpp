@@ -14,7 +14,8 @@ void Timer::setMachine(MachineTypes::TimedMachine *machine, std::mutex *machineM
 
 void Timer::tick() {
 	const auto now = Time::nanos_now();
-	const auto duration = std::min(now - lastTickNanos, int64_t(500'000));
+	const auto duration = std::min(now - lastTickNanos, int64_t(500'000'000));
+//	qDebug() << duration << " [not " << now - lastTickNanos << "]";
 	lastTickNanos = now;
 
 	std::lock_guard lock_guard(*machineMutex);

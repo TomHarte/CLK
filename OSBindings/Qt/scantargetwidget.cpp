@@ -4,12 +4,16 @@
 #include <QOpenGLContext>
 #include <QTimer>
 
+#include "../../ClockReceiver/TimeTypes.hpp"
+
 ScanTargetWidget::ScanTargetWidget(QWidget *parent) : QOpenGLWidget(parent) {}
 ScanTargetWidget::~ScanTargetWidget() {}
 
 void ScanTargetWidget::initializeGL() {
 	glClearColor(0.5, 0.5, 1.0, 1.0);
 
+	// Follow each swapped frame with an additional update.
+	connect(this, SIGNAL(frameSwapped()), this, SLOT(update()));
 //	qDebug() << "share context: " << bool(context()->shareGroup());
 }
 
@@ -18,7 +22,15 @@ void ScanTargetWidget::paintGL() {
 	if(scanTarget) {
 		scanTarget->update(width(), height());
 		scanTarget->draw(width(), height());
-		QTimer::singleShot(500, this, SLOT(update()));	// TODO: obviously this is nonsense.
+
+//		static int64_t start = 0;
+//		static int frames = 0;
+//		if(!start) start = Time::nanos_now();
+//		else {
+//			++frames;
+//			const int64_t now = Time::nanos_now();
+//			qDebug() << double(frames) * 1e9 / double(now - start);
+//		}
 	}
 }
 

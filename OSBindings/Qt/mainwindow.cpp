@@ -181,6 +181,8 @@ void MainWindow::launchMachine() {
 					audioOutput = std::make_unique<QAudioOutput>(idealFormat, this);
 					audioOutput->setBufferSize(samplesPerBuffer * (audioIsStereo ? 2 : 1) * (audioIs8bit ? 1 : 2));
 
+					qDebug() << idealFormat;
+
 					// Start the output.
 					speaker->set_delegate(this);
 					audioIODevice = audioOutput->start();
