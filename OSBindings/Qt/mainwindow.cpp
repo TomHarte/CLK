@@ -22,6 +22,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
 	ui->setupUi(this);
 	createActions();
+	qApp->installEventFilter(this);
 
 	// Set up the emulation timer. Bluffer's guide: the QTimer will post an
 	// event to an event loop. QThread is a thread with an event loop.
@@ -250,3 +251,21 @@ void MainWindow::dropEvent(QDropEvent* event) {
 		break;
 	}
 }
+
+// MARK: Input capture.
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
+	switch(event->type()) {
+		case QEvent::KeyPress:
+		case QEvent::KeyRelease: {
+			const auto keyEvent = static_cast<QKeyEvent *>(event);
+			qDebug() << keyEvent->key() << " " << (event->type() == QEvent::KeyPress);
+		} break;
+
+		default:
+		break;
+	}
+
+	return QObject::eventFilter(obj, event);
+}
+

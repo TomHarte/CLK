@@ -10,7 +10,7 @@ ScanTargetWidget::~ScanTargetWidget() {}
 void ScanTargetWidget::initializeGL() {
 	glClearColor(0.5, 0.5, 1.0, 1.0);
 
-	qDebug() << "share context: " << bool(context()->shareGroup());
+//	qDebug() << "share context: " << bool(context()->shareGroup());
 }
 
 void ScanTargetWidget::paintGL() {

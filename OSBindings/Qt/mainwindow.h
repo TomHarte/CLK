@@ -22,6 +22,9 @@ class MainWindow : public QMainWindow {
 		MainWindow(QWidget *parent = nullptr);
 		~MainWindow();
 
+	protected:
+		bool eventFilter(QObject *obj, QEvent *event) override;
+
 	private:
 		std::unique_ptr<Ui::MainWindow> ui;
 		std::unique_ptr<QTimer> qTimer;
