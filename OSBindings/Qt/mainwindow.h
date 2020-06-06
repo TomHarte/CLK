@@ -47,6 +47,9 @@ class MainWindow : public QMainWindow {
 
 		// Ongoing state.
 		std::unique_ptr<Machine::DynamicMachine> machine;
+		std::mutex machineMutex;
+
+		bool processEvent(QKeyEvent *);
 
 	private slots:
 		void open();

@@ -155,7 +155,7 @@ void MainWindow::launchMachine() {
 			// If this is a timed machine, start up the timer.
 			const auto timedMachine = machine->timed_machine();
 			if(timedMachine) {
-				timer->setMachine(timedMachine);
+				timer->setMachine(timedMachine, &machineMutex);
 				timerThread->start();
 				qTimer->start();
 			}
@@ -259,7 +259,9 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 		case QEvent::KeyPress:
 		case QEvent::KeyRelease: {
 			const auto keyEvent = static_cast<QKeyEvent *>(event);
-			qDebug() << keyEvent->key() << " " << (event->type() == QEvent::KeyPress);
+			if(!processEvent(keyEvent)) {
+				return false;
+			}
 		} break;
 
 		default:
@@ -269,3 +271,69 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 	return QObject::eventFilter(obj, event);
 }
 
+bool MainWindow::processEvent(QKeyEvent *event) {
+	if(!machine) return true;
+
+	// First version: support keyboard input only.
+	const auto keyboardMachine = machine->keyboard_machine();
+	if(!keyboardMachine) return true;
+
+#define BIND2(qtKey, clkKey) case Qt::qtKey: key = Inputs::Keyboard::Key::clkKey; break;
+#define BIND(key) BIND2(Key_##key, key)
+
+	Inputs::Keyboard::Key key;
+	switch(event->key()) {
+		default: return true;
+
+		BIND(Escape);
+		BIND(F1);	BIND(F2);	BIND(F3);	BIND(F4);	BIND(F5);	BIND(F6);
+		BIND(F7);	BIND(F8);	BIND(F9);	BIND(F10);	BIND(F11);	BIND(F12);
+		BIND2(Key_Print, PrintScreen);
+		BIND(ScrollLock);	BIND(Pause);
+
+		BIND2(Key_AsciiTilde, BackTick);
+		BIND2(Key_1, k1);	BIND2(Key_2, k2);	BIND2(Key_3, k3);	BIND2(Key_4, k4);	BIND2(Key_5, k5);
+		BIND2(Key_6, k6);	BIND2(Key_7, k7);	BIND2(Key_8, k8);	BIND2(Key_9, k9);	BIND2(Key_0, k0);
+		BIND2(Key_Minus, Hyphen);
+		BIND2(Key_Plus, Equals);
+		BIND(Backspace);
+
+		BIND(Tab);	BIND(Q);	BIND(W);	BIND(E);	BIND(R);	BIND(T);	BIND(Y);
+		BIND(U);	BIND(I);	BIND(O);	BIND(P);
+		BIND2(Key_BraceLeft, OpenSquareBracket);
+		BIND2(Key_BraceRight, CloseSquareBracket);
+		BIND(Backslash);
+
+		BIND(CapsLock);	BIND(A);	BIND(S);	BIND(D);	BIND(F);	BIND(G);
+		BIND(H);		BIND(J);	BIND(K);	BIND(L);
+		BIND(Semicolon);
+		BIND2(Key_QuoteDbl, Quote);
+		// TODO: something to hash?
+		BIND2(Key_Return, Enter);
+
+		BIND2(Key_Shift, LeftShift);
+		BIND(Z);	BIND(X);	BIND(C);	BIND(V);
+		BIND(B);	BIND(N);	BIND(M);
+		BIND(Comma);
+		BIND2(Key_Period, FullStop);
+		BIND2(Key_Slash, ForwardSlash);
+		// Omitted: right shift.
+
+		BIND2(Key_Control, LeftControl);
+		BIND2(Key_Alt, LeftOption);
+		BIND2(Key_Meta, LeftMeta);
+		BIND(Space);
+		BIND2(Key_AltGr, RightOption);
+
+		BIND(Left);	BIND(Right);	BIND(Up);	BIND(Down);
+
+		BIND(Insert); BIND(Home);	BIND(PageUp);	BIND(Delete);	BIND(End);	BIND(PageDown);
+
+		BIND(NumLock);
+	}
+
+	std::unique_lock lock(machineMutex);
+	keyboardMachine->get_keyboard().set_key_pressed(key, event->text()[0].toLatin1(), event->type() == QEvent::KeyPress);
+
+	return true;
+}

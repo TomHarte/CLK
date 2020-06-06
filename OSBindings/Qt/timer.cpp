@@ -7,8 +7,9 @@
 
 Timer::Timer(QObject *parent) : QObject(parent) {}
 
-void Timer::setMachine(MachineTypes::TimedMachine *machine) {
+void Timer::setMachine(MachineTypes::TimedMachine *machine, std::mutex *machineMutex) {
 	this->machine = machine;
+	this->machineMutex = machineMutex;
 }
 
 void Timer::tick() {
@@ -16,5 +17,6 @@ void Timer::tick() {
 	const auto duration = std::min(now - lastTickNanos, int64_t(500'000));
 	lastTickNanos = now;
 
+	std::lock_guard lock_guard(*machineMutex);
 	machine->run_for(double(duration) / 1e9);
 }
