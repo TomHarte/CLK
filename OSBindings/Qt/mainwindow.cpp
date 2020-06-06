@@ -142,14 +142,49 @@ void MainWindow::launchMachine() {
 
 	switch(error) {
 		default: {
+			// TODO: correct assumptions herein that this is the first machine to be
+			// assigned to this window.
 			ui->missingROMsBox->setVisible(false);
 			uiPhase = UIPhase::RunningMachine;
+
+			// Install user-friendly options. TODO: plus user overrides.
+//			const auto configurable = machine->configurable_device();
+//			if(configurable) {
+//				configurable->set_options(configurable->get_options());
+//			}
 
 			// Supply the scan target.
 			// TODO: in the future, hypothetically, deal with non-scan producers.
 			const auto scan_producer = machine->scan_producer();
 			if(scan_producer) {
 				scan_producer->set_scan_target(ui->openGLWidget->getScanTarget());
+			}
+
+			// Install audio output if required.
+			const auto audio_producer = machine->audio_producer();
+			if(audio_producer) {
+				const auto speaker = audio_producer->get_speaker();
+				if(speaker) {
+					const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
+					QAudioFormat idealFormat = defaultDeviceInfo.preferredFormat();
+
+					// Use the ideal format's sample rate, provide stereo as long as at least two channels
+					// are available, and — at least for now — assume 512 samples/buffer is a good size.
+					audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
+					audioIs8bit = idealFormat.sampleSize() < 16;
+					const int samplesPerBuffer = 512;
+					speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
+
+					// Adjust format appropriately, and create an audio output.
+					idealFormat.setChannelCount(1 + int(audioIsStereo));
+					idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
+					audioOutput = std::make_unique<QAudioOutput>(idealFormat, this);
+					audioOutput->setBufferSize(samplesPerBuffer * (audioIsStereo ? 2 : 1) * (audioIs8bit ? 1 : 2));
+
+					// Start the output.
+					speaker->set_delegate(this);
+					audioIODevice = audioOutput->start();
+				}
 			}
 
 			// If this is a timed machine, start up the timer.
@@ -187,6 +222,12 @@ void MainWindow::launchMachine() {
 			ui->missingROMsBox->setPlainText(requestText);
 		} break;
 	}
+}
+
+void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
+	const auto bytesWritten = audioIODevice->write(reinterpret_cast<const char *>(buffer.data()), qint64(buffer.size()));
+//	qDebug() << bytesWritten << "; " << audioOutput->state();
+	(void)bytesWritten;
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event) {

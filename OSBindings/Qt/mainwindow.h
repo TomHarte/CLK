@@ -1,7 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
+#include <QAudioOutput>
 #include <QMainWindow>
+
 #include <memory>
 #include "timer.h"
 #include "ui_mainwindow.h"
@@ -13,7 +15,7 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
-class MainWindow : public QMainWindow {
+class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegate {
 		Q_OBJECT
 
 		void createActions();
@@ -48,6 +50,11 @@ class MainWindow : public QMainWindow {
 		// Ongoing state.
 		std::unique_ptr<Machine::DynamicMachine> machine;
 		std::mutex machineMutex;
+
+		std::unique_ptr<QAudioOutput> audioOutput;
+		QIODevice *audioIODevice = nullptr;
+		bool audioIs8bit = false, audioIsStereo = false;
+		void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override;
 
 		bool processEvent(QKeyEvent *);
 
