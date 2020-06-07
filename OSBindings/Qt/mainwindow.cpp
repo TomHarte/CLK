@@ -180,7 +180,7 @@ void MainWindow::launchMachine() {
 					// are available, and — at least for now — assume 512 samples/buffer is a good size.
 					audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
 					audioIs8bit = idealFormat.sampleSize() < 16;
-					const int samplesPerBuffer = 65536;
+					const int samplesPerBuffer = 512;
 					speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 
 					// Adjust format appropriately, and create an audio output.
@@ -322,7 +322,13 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 		case QEvent::User: {
 			const auto audioEvent = dynamic_cast<AudioEvent *>(event);
 			if(audioEvent) {
-				audioIODevice->write(reinterpret_cast<const char *>(audioEvent->audio.data()), qint64(audioEvent->audio.size()));
+				const char *buffer = reinterpret_cast<const char *>(audioEvent->audio.data());
+				size_t sizeLeft = audioEvent->audio.size() * sizeof(int16_t);
+				while(sizeLeft) {
+					const auto bytesWritten = audioIODevice->write(buffer, qint64(sizeLeft));
+					sizeLeft -= bytesWritten;
+					buffer += bytesWritten;
+				}
 			}
 		} break;
 
