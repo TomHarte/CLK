@@ -23,18 +23,7 @@ MainWindow::MainWindow(QWidget *parent)
 	createActions();
 	qApp->installEventFilter(this);
 
-	// Set up the emulation timer. Bluffer's guide: the QTimer will post an
-	// event to an event loop. QThread is a thread with an event loop.
-	// My class, Timer, will be wired up to receive the QTimer's events.
-	qTimer = std::make_unique<QTimer>(this);
-	qTimer->setInterval(1);
-
-	timerThread = std::make_unique<QThread>(this);
-
-	timer = std::make_unique<Timer>();
-	timer->moveToThread(timerThread.get());
-
-	connect(qTimer.get(), SIGNAL(timeout()), timer.get(), SLOT(tick()));
+	timer = std::make_unique<Timer>(this);
 
 	// Hide the missing ROMs box unless or until it's needed; grab the text it
 	// began with as a prefix for future mutation.
@@ -75,10 +64,8 @@ void MainWindow::open() {
 }
 
 MainWindow::~MainWindow() {
-	// Stop the timer by asking its QThread to exit and
-	// waiting for it to do so.
-	timerThread->exit();
-	while(timerThread->isRunning());
+	// Stop the timer
+	timer.reset();
 }
 
 // MARK: Machine launch.
@@ -178,9 +165,6 @@ void MainWindow::launchMachine() {
 					idealFormat.setChannelCount(1 + int(audioIsStereo));
 					idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
 					audioOutput = std::make_unique<QAudioOutput>(idealFormat, this);
-//					audioOutput->setBufferSize(samplesPerBuffer * (audioIsStereo ? 2 : 1) * (audioIs8bit ? 1 : 2));
-
-					qDebug() << idealFormat;
 
 					// Start the output.
 					speaker->set_delegate(this);
@@ -192,8 +176,7 @@ void MainWindow::launchMachine() {
 			const auto timedMachine = machine->timed_machine();
 			if(timedMachine) {
 				timer->setMachine(timedMachine, &machineMutex);
-				timerThread->start();
-				qTimer->start();
+				timer->start();
 			}
 
 		} break;

@@ -29,8 +29,6 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 	private:
 		std::unique_ptr<Ui::MainWindow> ui;
-		std::unique_ptr<QTimer> qTimer;
-		std::unique_ptr<QThread> timerThread;
 		std::unique_ptr<Timer> timer;
 
 		// Initial setup stuff.
