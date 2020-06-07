@@ -7,6 +7,14 @@
 
 #include "../../Numeric/CRC.hpp"
 
+namespace {
+
+struct AudioEvent: public QEvent {
+	AudioEvent() : QEvent(QEvent::Type::User) {}
+	std::vector<int16_t> audio;
+};
+
+}
 
 /*
 	General Qt implementation notes:
@@ -172,7 +180,7 @@ void MainWindow::launchMachine() {
 					// are available, and — at least for now — assume 512 samples/buffer is a good size.
 					audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
 					audioIs8bit = idealFormat.sampleSize() < 16;
-					const int samplesPerBuffer = 512;
+					const int samplesPerBuffer = 65536;
 					speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 
 					// Adjust format appropriately, and create an audio output.
@@ -227,9 +235,13 @@ void MainWindow::launchMachine() {
 }
 
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
-	const auto bytesWritten = audioIODevice->write(reinterpret_cast<const char *>(buffer.data()), qint64(buffer.size()));
+	// Forward this buffrer to the QThread that QAudioOutput lives on.
+	AudioEvent *event = new AudioEvent;
+	event->audio = buffer;
+	QApplication::instance()->postEvent(this, event);
+//	const auto bytesWritten = audioIODevice->write(reinterpret_cast<const char *>(buffer.data()), qint64(buffer.size()));
 //	qDebug() << bytesWritten << "; " << audioOutput->state();
-	(void)bytesWritten;
+//	(void)bytesWritten;
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
@@ -304,6 +316,13 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 			const auto keyEvent = static_cast<QKeyEvent *>(event);
 			if(!processEvent(keyEvent)) {
 				return false;
+			}
+		} break;
+
+		case QEvent::User: {
+			const auto audioEvent = dynamic_cast<AudioEvent *>(event);
+			if(audioEvent) {
+				audioIODevice->write(reinterpret_cast<const char *>(audioEvent->audio.data()), qint64(audioEvent->audio.size()));
 			}
 		} break;
 
