@@ -7,15 +7,6 @@
 
 #include "../../Numeric/CRC.hpp"
 
-namespace {
-
-struct AudioEvent: public QEvent {
-	AudioEvent() : QEvent(QEvent::Type::User) {}
-	std::vector<int16_t> audio;
-};
-
-}
-
 /*
 	General Qt implementation notes:
 
@@ -177,17 +168,17 @@ void MainWindow::launchMachine() {
 					QAudioFormat idealFormat = defaultDeviceInfo.preferredFormat();
 
 					// Use the ideal format's sample rate, provide stereo as long as at least two channels
-					// are available, and — at least for now — assume 512 samples/buffer is a good size.
+					// are available, and — at least for now — assume a good buffer size.
 					audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
 					audioIs8bit = idealFormat.sampleSize() < 16;
-					const int samplesPerBuffer = 512;
+					const int samplesPerBuffer = 256;
 					speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 
 					// Adjust format appropriately, and create an audio output.
 					idealFormat.setChannelCount(1 + int(audioIsStereo));
 					idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
 					audioOutput = std::make_unique<QAudioOutput>(idealFormat, this);
-					audioOutput->setBufferSize(samplesPerBuffer * (audioIsStereo ? 2 : 1) * (audioIs8bit ? 1 : 2));
+//					audioOutput->setBufferSize(samplesPerBuffer * (audioIsStereo ? 2 : 1) * (audioIs8bit ? 1 : 2));
 
 					qDebug() << idealFormat;
 
@@ -235,13 +226,13 @@ void MainWindow::launchMachine() {
 }
 
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
-	// Forward this buffrer to the QThread that QAudioOutput lives on.
-	AudioEvent *event = new AudioEvent;
-	event->audio = buffer;
-	QApplication::instance()->postEvent(this, event);
-//	const auto bytesWritten = audioIODevice->write(reinterpret_cast<const char *>(buffer.data()), qint64(buffer.size()));
-//	qDebug() << bytesWritten << "; " << audioOutput->state();
-//	(void)bytesWritten;
+	const char *data = reinterpret_cast<const char *>(buffer.data());
+	size_t sizeLeft = buffer.size() * sizeof(int16_t);
+	while(sizeLeft) {
+		const auto bytesWritten = audioIODevice->write(data, qint64(sizeLeft));
+		sizeLeft -= bytesWritten;
+		data += bytesWritten;
+	}
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
@@ -316,19 +307,6 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 			const auto keyEvent = static_cast<QKeyEvent *>(event);
 			if(!processEvent(keyEvent)) {
 				return false;
-			}
-		} break;
-
-		case QEvent::User: {
-			const auto audioEvent = dynamic_cast<AudioEvent *>(event);
-			if(audioEvent) {
-				const char *buffer = reinterpret_cast<const char *>(audioEvent->audio.data());
-				size_t sizeLeft = audioEvent->audio.size() * sizeof(int16_t);
-				while(sizeLeft) {
-					const auto bytesWritten = audioIODevice->write(buffer, qint64(sizeLeft));
-					sizeLeft -= bytesWritten;
-					buffer += bytesWritten;
-				}
 			}
 		} break;
 
