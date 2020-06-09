@@ -5,6 +5,7 @@
 #include <QMainWindow>
 
 #include <memory>
+#include "audiobuffer.h"
 #include "timer.h"
 #include "ui_mainwindow.h"
 
@@ -50,9 +51,9 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		std::mutex machineMutex;
 
 		std::unique_ptr<QAudioOutput> audioOutput;
-		QIODevice *audioIODevice = nullptr;
 		bool audioIs8bit = false, audioIsStereo = false;
 		void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override;
+		AudioBuffer audioBuffer;
 
 		bool processEvent(QKeyEvent *);
 

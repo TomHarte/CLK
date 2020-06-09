@@ -12,7 +12,7 @@
 
 	*	it seems like Qt doesn't offer a way to constrain the aspect ratio of a view by constraining
 		the size of the window (i.e. you can use a custom layout to constrain a view, but that won't
-		affect the window, so isn't useful for this project). Therefore the emulation window
+		affect the window, so isn't useful for this project). Therefore the emulation window resizes freely.
 */
 
 MainWindow::MainWindow(QWidget *parent)
@@ -149,6 +149,7 @@ void MainWindow::launchMachine() {
 			// Install audio output if required.
 			const auto audio_producer = machine->audio_producer();
 			if(audio_producer) {
+				static constexpr size_t samplesPerBuffer = 256;
 				const auto speaker = audio_producer->get_speaker();
 				if(speaker) {
 					const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
@@ -158,7 +159,6 @@ void MainWindow::launchMachine() {
 					// are available, and — at least for now — assume a good buffer size.
 					audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
 					audioIs8bit = idealFormat.sampleSize() < 16;
-					const int samplesPerBuffer = 256;
 					speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 
 					// Adjust format appropriately, and create an audio output.
@@ -166,17 +166,12 @@ void MainWindow::launchMachine() {
 					idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
 					audioOutput = std::make_unique<QAudioOutput>(idealFormat, this);
 
-					// Start the output. setBufferSize is supposed to set the audio buffer size, but
-					// appears not to work properly on macOS; experimenting with this on that platform
-					// revealed that setting the buffer size to 1024, then reading it back to find out
-					// what I actually got results in 2048. If I use a QIODevice-based audio output,
-					// i.e. one that pulls data as required, it then pulls in units of... 16384 bytes.
-					// That's almost 1/6th of a second — epic latency.
-					//
-					// So I have no idea. TODO: find an alternative audio library, I guess.
+					// Start the output. The additional `audioBuffer` is meant to minimise latency,
+					// believe it or not, given Qt's semantics.
 					speaker->set_delegate(this);
 					audioOutput->setBufferSize(samplesPerBuffer * sizeof(int16_t));
-					audioIODevice = audioOutput->start();
+					audioOutput->start(&audioBuffer);
+					audioBuffer.setDepth(audioOutput->bufferSize());
 				}
 			}
 
@@ -217,13 +212,14 @@ void MainWindow::launchMachine() {
 }
 
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
-	const char *data = reinterpret_cast<const char *>(buffer.data());
-	size_t sizeLeft = buffer.size() * sizeof(int16_t);
-	while(sizeLeft) {
-		const auto bytesWritten = audioIODevice->write(data, qint64(sizeLeft));
-		sizeLeft -= bytesWritten;
-		data += bytesWritten;
-	}
+	audioBuffer.write(buffer);
+//	const char *data = reinterpret_cast<const char *>(buffer.data());
+//	size_t sizeLeft = buffer.size() * sizeof(int16_t);
+//	while(sizeLeft) {
+//		const auto bytesWritten = audioIODevice->write(data, qint64(sizeLeft));
+//		sizeLeft -= bytesWritten;
+//		data += bytesWritten;
+//	}
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
