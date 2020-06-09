@@ -166,8 +166,16 @@ void MainWindow::launchMachine() {
 					idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
 					audioOutput = std::make_unique<QAudioOutput>(idealFormat, this);
 
-					// Start the output.
+					// Start the output. setBufferSize is supposed to set the audio buffer size, but
+					// appears not to work properly on macOS; experimenting with this on that platform
+					// revealed that setting the buffer size to 1024, then reading it back to find out
+					// what I actually got results in 2048. If I use a QIODevice-based audio output,
+					// i.e. one that pulls data as required, it then pulls in units of... 16384 bytes.
+					// That's almost 1/6th of a second — epic latency.
+					//
+					// So I have no idea. TODO: find an alternative audio library, I guess.
 					speaker->set_delegate(this);
+					audioOutput->setBufferSize(samplesPerBuffer * sizeof(int16_t));
 					audioIODevice = audioOutput->start();
 				}
 			}
