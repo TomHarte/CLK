@@ -38,22 +38,12 @@ struct AudioBuffer: public QIODevice {
 		if(readPointer == writePointer) return 0;
 
 		const size_t dataAvailable = std::min(writePointer - readPointer, size_t(maxlen));
-		size_t dataToCopy = dataAvailable;
-
-		// Push the read pointer such that only the most recent chunk is returned;
-		// nevertheless don't allow it to be pushed to a point where less than half
-		// a buffer is left, if avoidable. QAudioOutput doesn't make any guarantees
-		// about how much data it will read at a time so there's some second guessing here.
-		//
-		// TODO: can I be smarter than this?
-//		const size_t newReadPointer = std::min(writePointer - dataToCopy, writePointer - (buffer.size() >> 1));
-//		readPointer = std::max(readPointer, newReadPointer);
-
-		while(dataToCopy) {
-			const size_t nextLength = std::min(buffer.size() - (readPointer % buffer.size()), dataToCopy);
+		size_t bytesToCopy = dataAvailable;
+		while(bytesToCopy) {
+			const size_t nextLength = std::min(buffer.size() - (readPointer % buffer.size()), bytesToCopy);
 			memcpy(data, &buffer[readPointer % buffer.size()], nextLength);
 
-			dataToCopy -= nextLength;
+			bytesToCopy -= nextLength;
 			data += nextLength;
 			readPointer += nextLength;
 		}
@@ -77,12 +67,9 @@ struct AudioBuffer: public QIODevice {
 	void write(const std::vector<int16_t> &source) {
 		std::lock_guard lock(mutex);
 		const size_t sourceSize = source.size() * sizeof(int16_t);
-		size_t endPoint = std::min(writePointer + sourceSize, readPointer + buffer.size());
 
-		writePointer = endPoint - sourceSize;
 		size_t bytesToCopy = sourceSize;
 		auto data = reinterpret_cast<const uint8_t *>(source.data());
-
 		while(bytesToCopy) {
 			size_t nextLength = std::min(buffer.size() - (writePointer % buffer.size()), bytesToCopy);
 			memcpy(&buffer[writePointer % buffer.size()], data, nextLength);
@@ -91,6 +78,8 @@ struct AudioBuffer: public QIODevice {
 			data += nextLength;
 			writePointer += nextLength;
 		}
+
+		readPointer = std::max(readPointer, writePointer - buffer.size());
 	}
 
 	private:
