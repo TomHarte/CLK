@@ -249,6 +249,7 @@ HEADERS += \
     ../../Storage/Tape/Parsers/*.hpp \
 \
     audiobuffer.h \
+    functionthread.h \
     mainwindow.h \
     scantargetwidget.h \
     timer.h

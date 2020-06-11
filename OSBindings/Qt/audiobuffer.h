@@ -24,6 +24,7 @@ struct AudioBuffer: public QIODevice {
 	}
 
 	void setDepth(size_t depth) {
+		std::lock_guard lock(mutex);
 		buffer.resize(depth);
 	}
 
@@ -35,7 +36,7 @@ struct AudioBuffer: public QIODevice {
 		}
 
 		std::lock_guard lock(mutex);
-		if(readPointer == writePointer) return 0;
+		if(readPointer == writePointer || buffer.empty()) return 0;
 
 		const size_t dataAvailable = std::min(writePointer - readPointer, size_t(maxlen));
 		size_t bytesToCopy = dataAvailable;
@@ -66,6 +67,7 @@ struct AudioBuffer: public QIODevice {
 	// after the buffer is full will overwrite the newest data.
 	void write(const std::vector<int16_t> &source) {
 		std::lock_guard lock(mutex);
+		if(buffer.empty()) return;
 		const size_t sourceSize = source.size() * sizeof(int16_t);
 
 		size_t bytesToCopy = sourceSize;

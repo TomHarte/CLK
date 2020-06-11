@@ -133,12 +133,6 @@ void MainWindow::launchMachine() {
 			ui->missingROMsBox->setVisible(false);
 			uiPhase = UIPhase::RunningMachine;
 
-			// Install user-friendly options. TODO: plus user overrides.
-//			const auto configurable = machine->configurable_device();
-//			if(configurable) {
-//				configurable->set_options(configurable->get_options());
-//			}
-
 			// Supply the scan target.
 			// TODO: in the future, hypothetically, deal with non-scan producers.
 			const auto scan_producer = machine->scan_producer();
@@ -159,19 +153,23 @@ void MainWindow::launchMachine() {
 					// are available, and — at least for now — assume a good buffer size.
 					audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
 					audioIs8bit = idealFormat.sampleSize() < 16;
-					speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
-
-					// Adjust format appropriately, and create an audio output.
 					idealFormat.setChannelCount(1 + int(audioIsStereo));
 					idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
-					audioOutput = std::make_unique<QAudioOutput>(idealFormat, this);
 
-					// Start the output. The additional `audioBuffer` is meant to minimise latency,
-					// believe it or not, given Qt's semantics.
+					speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 					speaker->set_delegate(this);
-					audioOutput->setBufferSize(samplesPerBuffer * sizeof(int16_t));
-					audioOutput->start(&audioBuffer);
-					audioBuffer.setDepth(audioOutput->bufferSize());
+
+					audioThread.setFunction([this, idealFormat] {
+						// Create an audio output.
+						audioOutput = std::make_unique<QAudioOutput>(idealFormat);
+
+						// Start the output. The additional `audioBuffer` is meant to minimise latency,
+						// believe it or not, given Qt's semantics.
+						audioOutput->setBufferSize(samplesPerBuffer * sizeof(int16_t));
+						audioOutput->start(&audioBuffer);
+						audioBuffer.setDepth(audioOutput->bufferSize());
+					});
+					audioThread.start();
 				}
 			}
 
@@ -213,13 +211,6 @@ void MainWindow::launchMachine() {
 
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
 	audioBuffer.write(buffer);
-//	const char *data = reinterpret_cast<const char *>(buffer.data());
-//	size_t sizeLeft = buffer.size() * sizeof(int16_t);
-//	while(sizeLeft) {
-//		const auto bytesWritten = audioIODevice->write(data, qint64(sizeLeft));
-//		sizeLeft -= bytesWritten;
-//		data += bytesWritten;
-//	}
 }
 
 void MainWindow::dragEnterEvent(QDragEnterEvent* event) {
