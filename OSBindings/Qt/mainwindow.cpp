@@ -47,7 +47,6 @@ void MainWindow::createActions() {
 	openAct->setStatusTip(tr("Open an existing file"));
 	connect(openAct, &QAction::triggered, this, &MainWindow::open);
 	fileMenu->addAction(openAct);
-
 }
 
 void MainWindow::open() {
@@ -143,7 +142,7 @@ void MainWindow::launchMachine() {
 			// Install audio output if required.
 			const auto audio_producer = machine->audio_producer();
 			if(audio_producer) {
-				static constexpr size_t samplesPerBuffer = 256;
+				static constexpr size_t samplesPerBuffer = 2048;	// TODO: select this dynamically; it's very high.
 				const auto speaker = audio_producer->get_speaker();
 				if(speaker) {
 					const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();

@@ -4,6 +4,7 @@
 #include <QOpenGLWidget>
 
 #include "../../Outputs/OpenGL/ScanTarget.hpp"
+#include "../../ClockReceiver/VSyncPredictor.hpp"
 
 class ScanTargetWidget : public QOpenGLWidget
 {
@@ -20,8 +21,12 @@ class ScanTargetWidget : public QOpenGLWidget
 
 	private:
 		// This should be created only once there's an OpenGL context. So it
-		// can't be done at creation time.4
+		// can't be done at creation time.
 		std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> scanTarget;
+		Time::VSyncPredictor vsync_predictor_;
+
+	private slots:
+		void vsync();
 };
 
 #endif // SCANTARGETWIDGET_H
