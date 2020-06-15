@@ -65,7 +65,7 @@ void MainWindow::open() {
 MainWindow::~MainWindow() {
 	// Stop the audio output, and its thread.
 	if(audioOutput) {
-		audioOutput->stop();
+//		QMetaObject::invokeMethod(audioOutput.get(), "stop", Qt::BlockingQueuedConnection);
 		audioThread.stop();
 	}
 

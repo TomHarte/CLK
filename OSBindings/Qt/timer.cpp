@@ -13,7 +13,7 @@ Timer::Timer(QObject *parent) : QObject(parent) {
 		timer = std::make_unique<QTimer>();
 		timer->setInterval(1);
 
-		connect(timer.get(), SIGNAL(timeout()), this, SLOT(tick()), Qt::DirectConnection);
+		connect(timer.get(), &QTimer::timeout, this, &Timer::tick, Qt::DirectConnection);
 		timer->start();
 	});
 }
@@ -35,6 +35,6 @@ void Timer::tick() {
 }
 
 Timer::~Timer() {
-	QMetaObject::invokeMethod(timer.get(), "stop", Qt::QueuedConnection);
+	QMetaObject::invokeMethod(timer.get(), "stop", Qt::BlockingQueuedConnection);
 	thread.stop();
 }
