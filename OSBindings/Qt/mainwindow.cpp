@@ -66,9 +66,7 @@ MainWindow::~MainWindow() {
 	// Stop the audio output, and its thread.
 	if(audioOutput) {
 		audioOutput->stop();
-
-		audioThread.quit();
-		while(audioThread.isRunning());
+		audioThread.stop();
 	}
 
 	// Stop the timer.

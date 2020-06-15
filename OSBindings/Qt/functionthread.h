@@ -24,6 +24,11 @@ class FunctionThread: public QThread {
 			exec();
 		}
 
+		void stop() {
+			QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+			while(isRunning());
+		}
+
 	private:
 		std::function<void(void)> function;
 };
