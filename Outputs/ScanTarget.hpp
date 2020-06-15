@@ -138,6 +138,8 @@ inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
 	for use of shared memory where available.
 */
 struct ScanTarget {
+		virtual ~ScanTarget() {}
+
 
 	/*
 		This top section of the interface deals with modal settings. A ScanTarget can
