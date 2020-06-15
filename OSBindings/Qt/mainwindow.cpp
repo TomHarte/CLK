@@ -63,7 +63,15 @@ void MainWindow::open() {
 }
 
 MainWindow::~MainWindow() {
-	// Stop the timer
+	// Stop the audio output, and its thread.
+	if(audioOutput) {
+		audioOutput->stop();
+
+		audioThread.quit();
+		while(audioThread.isRunning());
+	}
+
+	// Stop the timer.
 	timer.reset();
 }
 
@@ -142,7 +150,7 @@ void MainWindow::launchMachine() {
 			// Install audio output if required.
 			const auto audio_producer = machine->audio_producer();
 			if(audio_producer) {
-				static constexpr size_t samplesPerBuffer = 2048;	// TODO: select this dynamically; it's very high.
+				static constexpr size_t samplesPerBuffer = 256;	// TODO: select this dynamically.
 				const auto speaker = audio_producer->get_speaker();
 				if(speaker) {
 					const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
@@ -175,8 +183,7 @@ void MainWindow::launchMachine() {
 			// If this is a timed machine, start up the timer.
 			const auto timedMachine = machine->timed_machine();
 			if(timedMachine) {
-				timer->setMachine(timedMachine, &machineMutex);
-				timer->start();
+				timer->startWithMachine(timedMachine, &machineMutex);
 			}
 
 		} break;

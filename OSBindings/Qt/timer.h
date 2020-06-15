@@ -8,6 +8,7 @@
 #include <QTimer>
 
 #include "../../Machines/Utility/MachineForTarget.hpp"
+#include "functionthread.h"
 
 class Timer : public QObject
 {
@@ -17,8 +18,7 @@ class Timer : public QObject
 		explicit Timer(QObject *parent = nullptr);
 		~Timer();
 
-		void setMachine(MachineTypes::TimedMachine *machine, std::mutex *machineMutex);
-		void start();
+		void startWithMachine(MachineTypes::TimedMachine *machine, std::mutex *machineMutex);
 
 	public slots:
 		void tick();
@@ -27,7 +27,7 @@ class Timer : public QObject
 		MachineTypes::TimedMachine *machine = nullptr;
 		std::mutex *machineMutex = nullptr;
 		int64_t lastTickNanos = 0;
-		std::unique_ptr<QThread> thread;
+		FunctionThread thread;
 		std::unique_ptr<QTimer> timer;
 };
 

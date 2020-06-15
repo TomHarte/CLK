@@ -6,21 +6,23 @@
 #include <QDebug>
 
 Timer::Timer(QObject *parent) : QObject(parent) {
-	// Set up the emulation timer. Bluffer's guide: the QTimer will post an
-	// event to an event loop. QThread is a thread with an event loop.
-	// My class, Timer, will be wired up to receive the QTimer's events.
-	timer = std::make_unique<QTimer>(this);
-	timer->setInterval(1);
+	thread.setFunction([this] {
+		// Set up the emulation timer. Bluffer's guide: the QTimer will post an
+		// event to an event loop. QThread is a thread with an event loop.
+		// My class, Timer, will be wired up to receive the QTimer's events.
+		timer = std::make_unique<QTimer>(&thread);
+		timer->setInterval(1);
 
-	thread = std::make_unique<QThread>(this);
-
-	moveToThread(thread.get());
-	connect(timer.get(), SIGNAL(timeout()), this, SLOT(tick()));
+		connect(timer.get(), SIGNAL(timeout()), this, SLOT(tick()), Qt::DirectConnection);
+		timer->start();
+	});
 }
 
-void Timer::setMachine(MachineTypes::TimedMachine *machine, std::mutex *machineMutex) {
+void Timer::startWithMachine(MachineTypes::TimedMachine *machine, std::mutex *machineMutex) {
 	this->machine = machine;
 	this->machineMutex = machineMutex;
+
+	thread.start();
 }
 
 void Timer::tick() {
@@ -33,14 +35,9 @@ void Timer::tick() {
 	machine->run_for(double(duration) / 1e9);
 }
 
-void Timer::start() {
-	thread->start();
-	timer->start();
-}
-
 Timer::~Timer() {
 	// Stop the timer, then ask the QThread to exit and wait for it to do so.
 	timer->stop();
-	thread->exit();
-	while(thread->isRunning());
+	thread.exit();
+	while(thread.isRunning());
 }
