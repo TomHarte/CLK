@@ -110,7 +110,7 @@ std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
 	std::vector<uint8_t> track_contents;
 	size_t number_of_bits;
 	{
-		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.get_file_access_mutex());
 		file_.seek(offset, SEEK_SET);
 
 		// In WOZ a track is up to 6646 bytes of data, followed by a two-byte record of the
@@ -148,7 +148,7 @@ void WOZ::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 	const uint32_t crc = crc_generator.compute_crc(post_crc_contents_);
 
 	// Grab the file lock, then write the CRC, then just dump the entire file buffer.
-	std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+	std::lock_guard lock_guard(file_.get_file_access_mutex());
 	file_.seek(8, SEEK_SET);
 	file_.put_le(crc);
 	file_.write(post_crc_contents_);

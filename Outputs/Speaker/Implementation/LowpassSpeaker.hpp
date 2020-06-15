@@ -43,7 +43,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 
 		// Implemented as per Speaker.
 		float get_ideal_clock_rate_in_range(float minimum, float maximum) final {
-			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
+			std::lock_guard lock_guard(filter_parameters_mutex_);
 
 			// return twice the cut off, if applicable
 			if(	filter_parameters_.high_frequency_cutoff > 0.0f &&
@@ -66,7 +66,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 
 		// Implemented as per Speaker.
 		void set_computed_output_rate(float cycles_per_second, int buffer_size, bool) final {
-			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
+			std::lock_guard lock_guard(filter_parameters_mutex_);
 			if(filter_parameters_.output_cycles_per_second == cycles_per_second && size_t(buffer_size) == output_buffer_.size()) {
 				return;
 			}
@@ -84,7 +84,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 			Sets the clock rate of the input audio.
 		*/
 		void set_input_rate(float cycles_per_second) {
-			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
+			std::lock_guard lock_guard(filter_parameters_mutex_);
 			if(filter_parameters_.input_cycles_per_second == cycles_per_second) {
 				return;
 			}
@@ -100,7 +100,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 			path to be explicit about its effect, and get that simulation for free.
 		*/
 		void set_high_frequency_cutoff(float high_frequency) {
-			std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
+			std::lock_guard lock_guard(filter_parameters_mutex_);
 			if(filter_parameters_.high_frequency_cutoff == high_frequency) {
 				return;
 			}
@@ -141,7 +141,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 
 			FilterParameters filter_parameters;
 			{
-				std::lock_guard<std::mutex> lock_guard(filter_parameters_mutex_);
+				std::lock_guard lock_guard(filter_parameters_mutex_);
 				filter_parameters = filter_parameters_;
 				filter_parameters_.parameters_are_dirty = false;
 				filter_parameters_.input_rate_changed = false;

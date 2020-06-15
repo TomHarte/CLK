@@ -131,7 +131,7 @@ void ScanTarget::set_modals(Modals modals) {
 Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 	if(allocation_has_failed_) return nullptr;
 
-	std::lock_guard<std::mutex> lock_guard(write_pointers_mutex_);
+	std::lock_guard lock_guard(write_pointers_mutex_);
 
 	const auto result = &scan_buffer_[write_pointers_.scan_buffer];
 	const auto read_pointers = read_pointers_.load();
@@ -156,7 +156,7 @@ Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 
 void ScanTarget::end_scan() {
 	if(vended_scan_) {
-		std::lock_guard<std::mutex> lock_guard(write_pointers_mutex_);
+		std::lock_guard lock_guard(write_pointers_mutex_);
 		vended_scan_->data_y = TextureAddressGetY(vended_write_area_pointer_);
 		vended_scan_->line = write_pointers_.line;
 		vended_scan_->scan.end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
@@ -181,7 +181,7 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 
 	if(allocation_has_failed_) return nullptr;
 
-	std::lock_guard<std::mutex> lock_guard(write_pointers_mutex_);
+	std::lock_guard lock_guard(write_pointers_mutex_);
 	if(write_area_texture_.empty()) {
 		allocation_has_failed_ = true;
 		return nullptr;
@@ -229,7 +229,7 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 void ScanTarget::end_data(size_t actual_length) {
 	if(allocation_has_failed_ || !data_is_allocated_) return;
 
-	std::lock_guard<std::mutex> lock_guard(write_pointers_mutex_);
+	std::lock_guard lock_guard(write_pointers_mutex_);
 
 	// Bookend the start of the new data, to safeguard for precision errors in sampling.
 	memcpy(
@@ -277,7 +277,7 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 	if(output_is_visible_ == is_visible) return;
 	if(is_visible) {
 		const auto read_pointers = read_pointers_.load();
-		std::lock_guard<std::mutex> lock_guard(write_pointers_mutex_);
+		std::lock_guard lock_guard(write_pointers_mutex_);
 
 		// Commit the most recent line only if any scans fell on it.
 		// Otherwise there's no point outputting it, it'll contribute nothing.
@@ -350,7 +350,7 @@ void ScanTarget::setup_pipeline() {
 	// Ensure the lock guard here has a restricted scope; this is the only time that a thread
 	// other than the main owner of write_pointers_ may adjust it.
 	{
-		std::lock_guard<std::mutex> lock_guard(write_pointers_mutex_);
+		std::lock_guard lock_guard(write_pointers_mutex_);
 		if(data_type_size != data_type_size_) {
 			// TODO: flush output.
 

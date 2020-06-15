@@ -23,8 +23,8 @@ void MultiInterface<MachineType>::perform_parallel(const std::function<void(Mach
 	std::condition_variable condition;
 	std::mutex mutex;
 	{
-		std::lock_guard<decltype(machines_mutex_)> machines_lock(machines_mutex_);
-		std::lock_guard<std::mutex> lock(mutex);
+		std::lock_guard machines_lock(machines_mutex_);
+		std::lock_guard lock(mutex);
 		outstanding_machines = machines_.size();
 
 		for(std::size_t index = 0; index < machines_.size(); ++index) {
@@ -32,20 +32,20 @@ void MultiInterface<MachineType>::perform_parallel(const std::function<void(Mach
 			queues_[index].enqueue([&mutex, &condition, machine, function, &outstanding_machines]() {
 				if(machine) function(machine);
 
-				std::lock_guard<std::mutex> lock(mutex);
+				std::lock_guard lock(mutex);
 				outstanding_machines--;
 				condition.notify_all();
 			});
 		}
 	}
 
-	std::unique_lock<std::mutex> lock(mutex);
+	std::unique_lock lock(mutex);
 	condition.wait(lock, [&outstanding_machines] { return !outstanding_machines; });
 }
 
 template <typename MachineType>
 void MultiInterface<MachineType>::perform_serial(const std::function<void(MachineType *)> &function) {
-	std::lock_guard<decltype(machines_mutex_)> machines_lock(machines_mutex_);
+	std::lock_guard machines_lock(machines_mutex_);
 	for(const auto &machine: machines_) {
 		const auto typed_machine = ::Machine::get<MachineType>(*machine.get());
 		if(typed_machine) function(typed_machine);
@@ -56,13 +56,13 @@ void MultiInterface<MachineType>::perform_serial(const std::function<void(Machin
 void MultiScanProducer::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	scan_target_ = scan_target;
 
-	std::lock_guard<decltype(machines_mutex_)> machines_lock(machines_mutex_);
+	std::lock_guard machines_lock(machines_mutex_);
 	const auto machine = machines_.front()->scan_producer();
 	if(machine) machine->set_scan_target(scan_target);
 }
 
 Outputs::Display::ScanStatus MultiScanProducer::get_scan_status() const {
-	std::lock_guard<decltype(machines_mutex_)> machines_lock(machines_mutex_);
+	std::lock_guard machines_lock(machines_mutex_);
 	const auto machine = machines_.front()->scan_producer();
 	if(machine) return machine->get_scan_status();
 	return Outputs::Display::ScanStatus();
@@ -74,7 +74,7 @@ void MultiScanProducer::did_change_machine_order() {
 	perform_serial([](MachineTypes::ScanProducer *machine) {
 		machine->set_scan_target(nullptr);
 	});
-	std::lock_guard<decltype(machines_mutex_)> machines_lock(machines_mutex_);
+	std::lock_guard machines_lock(machines_mutex_);
 	const auto machine = machines_.front()->scan_producer();
 	if(machine) machine->set_scan_target(scan_target_);
 }

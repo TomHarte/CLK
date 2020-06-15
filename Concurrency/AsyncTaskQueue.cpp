@@ -23,7 +23,7 @@ AsyncTaskQueue::AsyncTaskQueue()
 			std::function<void(void)> next_function;
 
 			// Take lock, check for a new task
-			std::unique_lock<std::mutex> lock(queue_mutex_);
+			std::unique_lock lock(queue_mutex_);
 			if(!pending_tasks_.empty()) {
 				next_function = pending_tasks_.front();
 				pending_tasks_.pop_front();
@@ -60,7 +60,7 @@ void AsyncTaskQueue::enqueue(std::function<void(void)> function) {
 #ifdef __APPLE__
 	dispatch_async(serial_dispatch_queue_, ^{function();});
 #else
-	std::lock_guard<std::mutex> lock(queue_mutex_);
+	std::lock_guard lock(queue_mutex_);
 	pending_tasks_.push_back(function);
 	processing_condition_.notify_all();
 #endif
@@ -72,9 +72,9 @@ void AsyncTaskQueue::flush() {
 #else
 	auto flush_mutex = std::make_shared<std::mutex>();
 	auto flush_condition = std::make_shared<std::condition_variable>();
-	std::unique_lock<std::mutex> lock(*flush_mutex);
+	std::unique_lock lock(*flush_mutex);
 	enqueue([=] () {
-		std::unique_lock<std::mutex> inner_lock(*flush_mutex);
+		std::unique_lock inner_lock(*flush_mutex);
 		flush_condition->notify_all();
 	});
 	flush_condition->wait(lock);

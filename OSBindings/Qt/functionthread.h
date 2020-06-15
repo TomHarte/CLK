@@ -25,7 +25,6 @@ class FunctionThread: public QThread {
 		}
 
 		void stop() {
-//			QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
 			quit();
 			wait();
 		}

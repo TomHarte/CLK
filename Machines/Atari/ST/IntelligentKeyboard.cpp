@@ -84,7 +84,7 @@ void IntelligentKeyboard::run_for(HalfCycles duration) {
 	// Forward key changes; implicit assumption here: mutexs are cheap while there's
 	// negligible contention.
 	{
-		std::lock_guard<decltype(key_queue_mutex_)> guard(key_queue_mutex_);
+		std::lock_guard guard(key_queue_mutex_);
 		for(uint8_t key: key_queue_) {
 			output_bytes({key});
 		}
@@ -348,7 +348,7 @@ void IntelligentKeyboard::post_relative_mouse_event(int x, int y) {
 
 // MARK: - Keyboard Input
 void IntelligentKeyboard::set_key_state(Key key, bool is_pressed) {
-	std::lock_guard<decltype(key_queue_mutex_)> guard(key_queue_mutex_);
+	std::lock_guard guard(key_queue_mutex_);
 	if(is_pressed) {
 		key_queue_.push_back(uint8_t(key));
 	} else {
