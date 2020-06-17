@@ -65,7 +65,9 @@ void MainWindow::open() {
 MainWindow::~MainWindow() {
 	// Stop the audio output, and its thread.
 	if(audioOutput) {
-//		QMetaObject::invokeMethod(audioOutput.get(), "stop", Qt::BlockingQueuedConnection);
+		audioThread.performAsync([this] {
+			audioOutput->stop();
+		});
 		audioThread.stop();
 	}
 
@@ -164,7 +166,7 @@ void MainWindow::launchMachine() {
 					speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 					speaker->set_delegate(this);
 
-					audioThread.setFunction([this, idealFormat] {
+					audioThread.performAsync([this, idealFormat] {
 						// Create an audio output.
 						audioOutput = std::make_unique<QAudioOutput>(idealFormat);
 
@@ -174,7 +176,6 @@ void MainWindow::launchMachine() {
 						audioOutput->start(&audioBuffer);
 						audioBuffer.setDepth(audioOutput->bufferSize());
 					});
-					audioThread.start();
 				}
 			}
 

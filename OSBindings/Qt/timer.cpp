@@ -5,8 +5,13 @@
 #include <algorithm>
 #include <QDebug>
 
-Timer::Timer(QObject *parent) : QObject(parent) {
-	thread.setFunction([this] {
+Timer::Timer(QObject *parent) : QObject(parent) {}
+
+void Timer::startWithMachine(MachineTypes::TimedMachine *machine, std::mutex *machineMutex) {
+	this->machine = machine;
+	this->machineMutex = machineMutex;
+
+	thread.performAsync([this] {
 		// Set up the emulation timer. Bluffer's guide: the QTimer will post an
 		// event to an event loop. QThread is a thread with an event loop.
 		// My class, Timer, will be wired up to receive the QTimer's events.
@@ -16,13 +21,6 @@ Timer::Timer(QObject *parent) : QObject(parent) {
 		connect(timer.get(), &QTimer::timeout, this, &Timer::tick, Qt::DirectConnection);
 		timer->start();
 	});
-}
-
-void Timer::startWithMachine(MachineTypes::TimedMachine *machine, std::mutex *machineMutex) {
-	this->machine = machine;
-	this->machineMutex = machineMutex;
-
-	thread.start();
 }
 
 void Timer::tick() {
@@ -35,6 +33,8 @@ void Timer::tick() {
 }
 
 Timer::~Timer() {
-	QMetaObject::invokeMethod(timer.get(), "stop", Qt::BlockingQueuedConnection);
+	thread.performAsync([this] {
+		timer->stop();
+	});
 	thread.stop();
 }
