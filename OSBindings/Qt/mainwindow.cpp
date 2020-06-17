@@ -35,31 +35,50 @@ void MainWindow::createActions() {
 	// Create a file menu.
 	QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
 
-//	QAction *newAct = new QAction(tr("&New"), this);
-//	newAct->setShortcuts(QKeySequence::New);
-//	newAct->setStatusTip(tr("Create a new file"));
-//	connect(newAct, &QAction::triggered, this, &MainWindow::newFile);
-//	fileMenu->addAction(newAct);
+	// Add file option: 'New...'
+	QAction *newAct = new QAction(tr("&New"), this);
+	newAct->setShortcuts(QKeySequence::New);
+	newAct->setStatusTip(tr("Create a new file"));
+	connect(newAct, &QAction::triggered, this, &MainWindow::newFile);
+	fileMenu->addAction(newAct);
 
-	// Add file option: 'Open..."
+	// Add file option: 'Open...'
 	QAction *openAct = new QAction(tr("&Open..."), this);
 	openAct->setShortcuts(QKeySequence::Open);
 	openAct->setStatusTip(tr("Open an existing file"));
 	connect(openAct, &QAction::triggered, this, &MainWindow::open);
 	fileMenu->addAction(openAct);
+
+	// Add Help menu, with an 'About...' option.
+	QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
+	QAction *aboutAct = helpMenu->addAction(tr("&About"), this, &MainWindow::about);
+	aboutAct->setStatusTip(tr("Show the application's About box"));
 }
 
 void MainWindow::open() {
 	QString fileName = QFileDialog::getOpenFileName(this);
 	if(!fileName.isEmpty()) {
 		targets = Analyser::Static::GetTargets(fileName.toStdString());
-		if(targets.empty()) {
-			qDebug() << "Not media:" << fileName;
-		} else {
-			qDebug() << "Got media:" << fileName;
+		if(!targets.empty()) {
 			launchMachine();
 		}
 	}
+}
+
+void MainWindow::newFile() {
+}
+
+void MainWindow::about() {
+	QMessageBox::about(this, tr("About Clock Signal"),
+		tr(	"<p>Clock Signal is an emulator of various platforms by "
+			"<a href=\"mailto:thomas.harte@gmail.com\">Thomas Harte</a>.</p>"
+
+			"<p>This emulator is offered under the MIT licence; its source code "
+			"is available from <a href=\"https://github.com/tomharte/CLK\">GitHub</a>.</p>"
+
+			"<p>This port is experimental, especially with regard to latency; "
+			"please don't hesitate to provide feedback.</p>"
+	));
 }
 
 MainWindow::~MainWindow() {
@@ -110,8 +129,6 @@ void MainWindow::launchMachine() {
 			for(const auto &path: appDataLocations) {
 				const std::string source = path.toStdString() + "/ROMImages/" + rom.machine_name + "/" + rom.file_name;
 				const std::string nativeSource = QDir::toNativeSeparators(QString::fromStdString(source)).toStdString();
-
-				qDebug() << "Taking a run at " << nativeSource.c_str();
 
 				file = fopen(nativeSource.c_str(), "rb");
 				if(file) break;
@@ -276,7 +293,6 @@ void MainWindow::dropEvent(QDropEvent* event) {
 
 		case UIPhase::RunningMachine:
 			// Attempt to insert into the running machine.
-			qDebug() << "Should start machine";
 		break;
 	}
 }

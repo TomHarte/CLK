@@ -14,6 +14,8 @@ int main(int argc, char *argv[])
 	format.setStencilBufferSize(0);
 	QSurfaceFormat::setDefaultFormat(format);
 
+	// TODO: something with QCommandLineParser to accept a file to launch.
+
 	QApplication a(argc, argv);
 	MainWindow w;
 	w.show();

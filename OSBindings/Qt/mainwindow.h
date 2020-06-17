@@ -61,6 +61,8 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 	private slots:
 		void open();
+		void newFile();
+		void about();
 };
 
 #endif // MAINWINDOW_H
