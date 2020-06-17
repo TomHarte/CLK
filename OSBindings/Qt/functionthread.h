@@ -20,9 +20,9 @@ class FunctionThread: public QThread {
 		FunctionThread() : QThread() {
 			// TODO: I've assumed a race condition here with the creation of performer; if QThread
 			// blocks on completion of `run` when starting then this is redundant.
-			performerFlag = false;
+			performerFlag.test_and_set();
 			start();
-			while(!performerFlag);
+			while(performerFlag.test_and_set());
 		}
 
 		void run() override {
@@ -30,7 +30,7 @@ class FunctionThread: public QThread {
 			// that created the QThread. To have events occur within a QThread, they have to be
 			// posted to an object created on that thread. FunctionPerformer fills that role.
 			performer = std::make_unique<FunctionPerformer>();
-			performerFlag = true;
+			performerFlag.clear();
 			exec();
 		}
 
@@ -75,7 +75,7 @@ class FunctionThread: public QThread {
 			}
 		};
 		std::unique_ptr<FunctionPerformer> performer;
-		std::atomic<bool> performerFlag;
+		std::atomic_flag performerFlag;
 };
 
 #endif // FUNCTIONTHREAD_H
