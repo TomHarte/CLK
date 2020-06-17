@@ -384,7 +384,7 @@ class TrackConstructor {
 		const std::vector<uint8_t> &track_data_;
 		const std::vector<Sector> &sectors_;
 		const size_t track_size_;
-        const uint16_t first_sync_;
+		const uint16_t first_sync_;
 };
 
 }

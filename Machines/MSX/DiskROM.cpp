@@ -24,7 +24,7 @@ void DiskROM::write(uint16_t address, uint8_t value, bool) {
 		break;
 		case 0x7ffc: {
 			const int selected_head = value & 1;
-            for_all_drives([selected_head] (Storage::Disk::Drive &drive, size_t) {
+			for_all_drives([selected_head] (Storage::Disk::Drive &drive, size_t) {
 				drive.set_head(selected_head);
 			});
 		} break;
@@ -32,7 +32,7 @@ void DiskROM::write(uint16_t address, uint8_t value, bool) {
 			set_drive(1 << (value & 1));
 
 			const bool drive_motor = value & 0x80;
-            for_all_drives([drive_motor] (Storage::Disk::Drive &drive, size_t) {
+			for_all_drives([drive_motor] (Storage::Disk::Drive &drive, size_t) {
 				drive.set_motor_on(drive_motor);
 			});
 		} break;

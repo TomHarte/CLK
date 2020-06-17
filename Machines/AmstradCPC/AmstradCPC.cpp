@@ -691,11 +691,11 @@ class FDC: public Intel::i8272::i8272 {
 			get_drive().set_motor_on(on);
 		}
 
-        void select_drive(int) {
-            // TODO: support more than one drive. (and in set_disk)
+		void select_drive(int) {
+			// TODO: support more than one drive. (and in set_disk)
 		}
 
-        void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int) {
+		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, int) {
 			get_drive().set_disk(disk);
 		}
 
@@ -1075,7 +1075,7 @@ template <bool has_fdc> class ConcreteMachine:
 			return !media.tapes.empty() || (!media.disks.empty() && has_fdc);
 		}
 
-        void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final {
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final {
 			fdc_is_sleeping_ = fdc_.preferred_clocking() == ClockingHint::Preference::None;
 			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 		}
