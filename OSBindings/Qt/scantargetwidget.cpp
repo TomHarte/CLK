@@ -10,11 +10,12 @@ ScanTargetWidget::ScanTargetWidget(QWidget *parent) : QOpenGLWidget(parent) {}
 ScanTargetWidget::~ScanTargetWidget() {}
 
 void ScanTargetWidget::initializeGL() {
-	glClearColor(0.5, 0.5, 1.0, 1.0);
+	// Retain the default background colour.
+	const QColor backgroundColour = palette().color(QWidget::backgroundRole());
+	glClearColor(backgroundColour.redF(), backgroundColour.greenF(), backgroundColour.blueF(), 1.0);
 
 	// Follow each swapped frame with an additional update.
 	connect(this, &QOpenGLWidget::frameSwapped, this, &ScanTargetWidget::vsync);
-//	qDebug() << "share context: " << bool(context()->shareGroup());
 }
 
 void ScanTargetWidget::paintGL() {
@@ -24,15 +25,6 @@ void ScanTargetWidget::paintGL() {
 		scanTarget->update(width(), height());
 		scanTarget->draw(width(), height());
 		vsync_predictor_.end_redraw();
-
-//		static int64_t start = 0;
-//		static int frames = 0;
-//		if(!start) start = Time::nanos_now();
-//		else {
-//			++frames;
-//			const int64_t now = Time::nanos_now();
-//			qDebug() << double(frames) * 1e9 / double(now - start);
-//		}
 	}
 }
 
