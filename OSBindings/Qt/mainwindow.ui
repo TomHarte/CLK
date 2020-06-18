@@ -23,21 +23,9 @@
    <string>MainWindow</string>
   </property>
   <widget class="ScanTargetWidget" name="openGLWidget">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
    <widget class="QPlainTextEdit" name="missingROMsBox">
-    <property name="geometry">
-     <rect>
-      <x>170</x>
-      <y>170</y>
-      <width>421</width>
-      <height>231</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
-      <horstretch>0</horstretch>
-      <verstretch>0</verstretch>
-     </sizepolicy>
-    </property>
     <property name="acceptDrops">
      <bool>true</bool>
     </property>
@@ -51,7 +39,7 @@ Please drag and drop the following over this window:
 
 </string>
     </property>
-   </widget>
+   </widget></item></layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionDo_this">
