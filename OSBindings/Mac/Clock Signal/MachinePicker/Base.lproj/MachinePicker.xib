@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="15702" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="16097" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="15702"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="16097"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -189,7 +189,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Electron" identifier="electron" id="muc-z9-Vqc">
                                 <view key="view" id="SRc-2D-95G">
-                                    <rect key="frame" x="10" y="33" width="604" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="674" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="JqM-IK-FMP">
@@ -220,7 +220,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="Macintosh" identifier="mac" id="lmR-z3-xSm">
                                 <view key="view" id="7Yf-vi-Q0W">
-                                    <rect key="frame" x="10" y="33" width="604" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="674" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ZOY-4E-Cfl">
@@ -257,7 +257,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="MSX" identifier="msx" id="6SR-DY-zdI">
                                 <view key="view" id="mWD-An-tR7">
-                                    <rect key="frame" x="10" y="33" width="604" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="674" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8xT-Pr-8SE">
@@ -449,7 +449,7 @@ Gw
                             </tabViewItem>
                             <tabViewItem label="ZX80" identifier="zx80" id="tMH-kF-GUz">
                                 <view key="view" id="8hL-Vn-Hg0">
-                                    <rect key="frame" x="10" y="33" width="604" height="94"/>
+                                    <rect key="frame" x="10" y="33" width="674" height="94"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="I1a-Eu-5UB">

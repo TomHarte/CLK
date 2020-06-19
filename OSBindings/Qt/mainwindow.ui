@@ -27,12 +27,92 @@
     <item>
      <widget class="QTabWidget" name="machineSelectionTabs">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="appleIITab">
        <attribute name="title">
         <string>Apple II</string>
        </attribute>
+       <layout class="QVBoxLayout" name="appleIILayout">
+        <item>
+         <layout class="QHBoxLayout" name="appleIIHorizontalLayout">
+          <item>
+           <layout class="QFormLayout" name="appleIIFormLayout">
+            <item row="0" column="0">
+             <widget class="QLabel" name="appleIIModelLabel">
+              <property name="text">
+               <string>Model:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QComboBox" name="appleIIModelComboBox">
+              <item>
+               <property name="text">
+                <string>Apple II</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Apple II+</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Apple IIe</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Enhanced IIe</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="appleIIDiskControllerLabel">
+              <property name="text">
+               <string>Disk Controller:</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QComboBox" name="appleIIDiskControllerComboBox">
+              <item>
+               <property name="text">
+                <string>Sixteen Sector</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Thirteen Sector</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>None</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="appleIISpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
+       </layout>
       </widget>
       <widget class="QWidget" name="amstradCPCTab">
        <attribute name="title">
@@ -90,7 +170,7 @@
       </widget>
      </widget>
     </item>
-    <item>
+    <item alignment="Qt::AlignBottom">
      <widget class="QLabel" name="topTipLabel">
       <property name="text">
        <string>TIP: the easiest way to get started is just to open the disk, tape or cartridge you want to use. The emulator will automatically configure a suitable machine and attempt to launch the software you've selected. Use this method to load Atari 2600, ColecoVision or Master System games.</string>
@@ -100,7 +180,7 @@
       </property>
      </widget>
     </item>
-    <item alignment="Qt::AlignRight">
+    <item alignment="Qt::AlignRight|Qt::AlignBottom">
      <widget class="QPushButton" name="startMachineButton">
       <property name="text">
        <string>Start Machine</string>
