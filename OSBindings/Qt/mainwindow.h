@@ -70,6 +70,21 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void open();
 		void newFile();
 		void about();
+		void startMachine();
+
+	private:
+		void start_appleII();
+		void start_amstradCPC();
+		void start_atariST();
+		void start_electron();
+		void start_macintosh();
+		void start_msx();
+		void start_oric();
+		void start_vic20();
+		void start_zx80();
+		void start_zx81();
+
+		void launchTarget(std::unique_ptr<Analyser::Static::Target> &&);
 };
 
 #endif // MAINWINDOW_H

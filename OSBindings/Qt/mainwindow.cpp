@@ -51,6 +51,9 @@ void MainWindow::createActions() {
 	QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
 	QAction *aboutAct = helpMenu->addAction(tr("&About"), this, &MainWindow::about);
 	aboutAct->setStatusTip(tr("Show the application's About box"));
+
+	// Link up the start machine button.
+	connect(ui->startMachineButton, &QPushButton::clicked, this, &MainWindow::startMachine);
 }
 
 void MainWindow::open() {
@@ -328,6 +331,8 @@ void MainWindow::setVisibleWidgetSet(WidgetSet set) {
 	ui->topTipLabel->setVisible(set == WidgetSet::MachinePicker);
 }
 
+// MARK: - Event Processing
+
 bool MainWindow::processEvent(QKeyEvent *event) {
 	if(!machine) return true;
 
@@ -393,4 +398,200 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 	keyboardMachine->get_keyboard().set_key_pressed(key, event->text()[0].toLatin1(), event->type() == QEvent::KeyPress);
 
 	return true;
+}
+
+// MARK: - New Machine Creation
+
+#include "../../Analyser/Static/Acorn/Target.hpp"
+#include "../../Analyser/Static/AmstradCPC/Target.hpp"
+#include "../../Analyser/Static/AppleII/Target.hpp"
+#include "../../Analyser/Static/AtariST/Target.hpp"
+#include "../../Analyser/Static/Commodore/Target.hpp"
+#include "../../Analyser/Static/Macintosh/Target.hpp"
+#include "../../Analyser/Static/MSX/Target.hpp"
+#include "../../Analyser/Static/Oric/Target.hpp"
+#include "../../Analyser/Static/ZX8081/Target.hpp"
+
+void MainWindow::startMachine() {
+	const auto selectedTab = ui->machineSelectionTabs->currentWidget();
+
+#define TEST(x)		\
+	if(selectedTab == ui->x ## Tab) {	\
+		qDebug() << #x;					\
+		start_##x();					\
+		return;							\
+	}
+
+	TEST(appleII);
+	TEST(amstradCPC);
+	TEST(atariST);
+	TEST(electron);
+	TEST(macintosh);
+	TEST(msx);
+	TEST(oric);
+	TEST(vic20);
+	TEST(zx80);
+	TEST(zx81);
+
+#undef TEST
+}
+
+void MainWindow::start_appleII() {
+	using Target = Analyser::Static::AppleII::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->appleIIModelComboBox->currentIndex()) {
+		default:	target->model = Target::Model::II;			break;
+		case 1:		target->model = Target::Model::IIplus;		break;
+		case 2:		target->model = Target::Model::IIe;			break;
+		case 3:		target->model = Target::Model::EnhancedIIe;	break;
+	}
+
+	switch(ui->appleIIDiskControllerComboBox->currentIndex()) {
+		default:	target->disk_controller = Target::DiskController::SixteenSector;	break;
+		case 1:		target->disk_controller = Target::DiskController::ThirteenSector;	break;
+		case 2:		target->disk_controller = Target::DiskController::None;				break;
+	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_amstradCPC() {
+	using Target = Analyser::Static::AmstradCPC::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->amstradCPCModelComboBox->currentIndex()) {
+		default:	target->model = Target::Model::CPC464;	break;
+		case 1:		target->model = Target::Model::CPC664;	break;
+		case 2:		target->model = Target::Model::CPC6128;	break;
+	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_atariST() {
+	using Target = Analyser::Static::AtariST::Target;
+	auto target = std::make_unique<Target>();
+
+	/* There are no options yet for an Atari ST. */
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_electron() {
+	using Target = Analyser::Static::Acorn::Target;
+	auto target = std::make_unique<Target>();
+
+	target->has_dfs = ui->electronDFSCheckBox->isChecked();
+	target->has_adfs = ui->electronADFSCheckBox->isChecked();
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_macintosh() {
+	using Target = Analyser::Static::Macintosh::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->macintoshModelComboBox->currentIndex()) {
+		default:	target->model = Target::Model::Mac512ke;	break;
+		case 1:		target->model = Target::Model::MacPlus;		break;
+	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_msx() {
+	using Target = Analyser::Static::MSX::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->msxRegionComboBox->currentIndex()) {
+		default:	target->region = Target::Region::Europe;	break;
+		case 1:		target->region = Target::Region::USA;		break;
+		case 2:		target->region = Target::Region::Japan;		break;
+	}
+
+	target->has_disk_drive = ui->msxDiskDriveCheckBox->isChecked();
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_oric() {
+	using Target = Analyser::Static::Oric::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->oricModelComboBox->currentIndex()) {
+		default:	target->rom = Target::ROM::BASIC10;	break;
+		case 1:		target->rom = Target::ROM::BASIC11;	break;
+		case 2:		target->rom = Target::ROM::Pravetz;	break;
+	}
+
+	switch(ui->oricDiskInterfaceComboBox->currentIndex()) {
+		default:	target->disk_interface = Target::DiskInterface::None;		break;
+		case 1:		target->disk_interface = Target::DiskInterface::Microdisc;	break;
+		case 2:		target->disk_interface = Target::DiskInterface::Jasmin;		break;
+		case 3:		target->disk_interface = Target::DiskInterface::Pravetz;	break;
+		case 4:		target->disk_interface = Target::DiskInterface::BD500;		break;
+	}
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_vic20() {
+	using Target = Analyser::Static::Commodore::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->vic20RegionComboBox->currentIndex()) {
+		default:	target->region = Target::Region::European;	break;
+		case 1:		target->region = Target::Region::American;	break;
+		case 2:		target->region = Target::Region::Danish;	break;
+		case 3:		target->region = Target::Region::Swedish;	break;
+		case 4:		target->region = Target::Region::Japanese;	break;
+	}
+
+	auto memoryModel = Target::MemoryModel::Unexpanded;
+	switch(ui->vic20MemorySizeComboBox->currentIndex()) {
+		default:	break;
+		case 1:		memoryModel = Target::MemoryModel::EightKB;		break;
+		case 2:		memoryModel = Target::MemoryModel::ThirtyTwoKB;	break;
+	}
+	target->set_memory_model(memoryModel);
+
+	target->has_c1540 = ui->vic20C1540CheckBox->isChecked();
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_zx80() {
+	using Target = Analyser::Static::ZX8081::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->zx80MemorySizeComboBox->currentIndex()) {
+		default:	target->memory_model = Target::MemoryModel::Unexpanded;	break;
+		case 1:		target->memory_model = Target::MemoryModel::SixteenKB;	break;
+	}
+
+	target->is_ZX81 = false;
+	target->ZX80_uses_ZX81_ROM = ui->zx80UseZX81ROMCheckBox->isChecked();
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::start_zx81() {
+	using Target = Analyser::Static::ZX8081::Target;
+	auto target = std::make_unique<Target>();
+
+	switch(ui->zx81MemorySizeComboBox->currentIndex()) {
+		default:	target->memory_model = Target::MemoryModel::Unexpanded;	break;
+		case 1:		target->memory_model = Target::MemoryModel::SixteenKB;	break;
+	}
+
+	target->is_ZX81 = true;
+
+	launchTarget(std::move(target));
+}
+
+void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target) {
+	targets.clear();
+	targets.push_back(std::move(target));
+	launchMachine();
 }
