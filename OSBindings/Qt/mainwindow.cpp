@@ -25,9 +25,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 	timer = std::make_unique<Timer>(this);
 
-	// Hide the missing ROMs box unless or until it's needed; grab the text it
-	// began with as a prefix for future mutation.
-	ui->missingROMsBox->setVisible(false);
+	setVisibleWidgetSet(WidgetSet::MachinePicker);
 	romRequestBaseText = ui->missingROMsBox->toPlainText();
 }
 
@@ -154,7 +152,7 @@ void MainWindow::launchMachine() {
 		default: {
 			// TODO: correct assumptions herein that this is the first machine to be
 			// assigned to this window.
-			ui->missingROMsBox->setVisible(false);
+			setVisibleWidgetSet(WidgetSet::RunningMachine);
 			uiPhase = UIPhase::RunningMachine;
 
 			// Supply the scan target.
@@ -205,7 +203,7 @@ void MainWindow::launchMachine() {
 		} break;
 
 		case Machine::Error::MissingROM: {
-			ui->missingROMsBox->setVisible(true);
+			setVisibleWidgetSet(WidgetSet::ROMRequester);
 			uiPhase = UIPhase::RequestingROMs;
 
 			// Populate request text.
@@ -314,6 +312,20 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 	}
 
 	return QObject::eventFilter(obj, event);
+}
+
+void MainWindow::setVisibleWidgetSet(WidgetSet set) {
+	// The volume slider is never visible by default; a running machine
+	// will show and hide it dynamically.
+	ui->volumeSlider->setVisible(false);
+
+	// Show or hide the missing ROMs box.
+	ui->missingROMsBox->setVisible(set == WidgetSet::ROMRequester);
+
+	// Show or hide the various machine-picking chrome.
+	ui->machineSelectionTabs->setVisible(set == WidgetSet::MachinePicker);
+	ui->startMachineButton->setVisible(set == WidgetSet::MachinePicker);
+	ui->topTipLabel->setVisible(set == WidgetSet::MachinePicker);
 }
 
 bool MainWindow::processEvent(QKeyEvent *event) {

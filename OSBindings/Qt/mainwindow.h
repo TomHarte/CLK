@@ -59,6 +59,13 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		bool processEvent(QKeyEvent *);
 
+		enum class WidgetSet {
+			MachinePicker,
+			ROMRequester,
+			RunningMachine,
+		};
+		void setVisibleWidgetSet(WidgetSet);
+
 	private slots:
 		void open();
 		void newFile();

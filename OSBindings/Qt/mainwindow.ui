@@ -23,25 +23,122 @@
    <string>MainWindow</string>
   </property>
   <widget class="ScanTargetWidget" name="openGLWidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
+   <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-   <widget class="QPlainTextEdit" name="missingROMsBox">
-    <property name="acceptDrops">
-     <bool>true</bool>
-    </property>
-    <property name="readOnly">
-     <bool>true</bool>
-    </property>
-    <property name="plainText">
-     <string>Clock Signal requires you to provide images of the system ROMs for this machine. They will be stored permanently; you need do this only once.
+     <widget class="QTabWidget" name="machineSelectionTabs">
+      <property name="currentIndex">
+       <number>2</number>
+      </property>
+      <widget class="QWidget" name="appleIITab">
+       <attribute name="title">
+        <string>Apple II</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="amstradCPCTab">
+       <attribute name="title">
+        <string>Amstrad CPC</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="atariSTTab">
+       <attribute name="title">
+        <string>Atari ST</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="atariSTLayout">
+        <item alignment="Qt::AlignTop">
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>At present only a 512k Atari ST is supported.</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="electronTab">
+       <attribute name="title">
+        <string>Electron</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="macintoshTab">
+       <attribute name="title">
+        <string>Macintosh</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="msxTab">
+       <attribute name="title">
+        <string>MSX</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="oricTab">
+       <attribute name="title">
+        <string>Oric</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="vic20Tab">
+       <attribute name="title">
+        <string>Vic-20</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="zx80Tab">
+       <attribute name="title">
+        <string>ZX80</string>
+       </attribute>
+      </widget>
+      <widget class="QWidget" name="zx81Tab">
+       <attribute name="title">
+        <string>ZX81</string>
+       </attribute>
+      </widget>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="topTipLabel">
+      <property name="text">
+       <string>TIP: the easiest way to get started is just to open the disk, tape or cartridge you want to use. The emulator will automatically configure a suitable machine and attempt to launch the software you've selected. Use this method to load Atari 2600, ColecoVision or Master System games.</string>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item alignment="Qt::AlignRight">
+     <widget class="QPushButton" name="startMachineButton">
+      <property name="text">
+       <string>Start Machine</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPlainTextEdit" name="missingROMsBox">
+      <property name="acceptDrops">
+       <bool>true</bool>
+      </property>
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+      <property name="plainText">
+       <string>Clock Signal requires you to provide images of the system ROMs for this machine. They will be stored permanently; you need do this only once.
 
 Please drag and drop the following over this window:
 
 </string>
-    </property>
-   </widget></item></layout>
+      </property>
+     </widget>
+    </item>
+    <item alignment="Qt::AlignHCenter|Qt::AlignBottom">
+     <widget class="QSlider" name="volumeSlider">
+      <property name="minimumSize">
+       <size>
+        <width>250</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+   </layout>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
   <action name="actionDo_this">
    <property name="text">
     <string>Do this</string>
