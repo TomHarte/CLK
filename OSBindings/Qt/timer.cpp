@@ -34,7 +34,9 @@ void Timer::tick() {
 
 Timer::~Timer() {
 	thread.performAsync([this] {
-		timer->stop();
+		if(timer) {
+			timer->stop();
+		}
 	});
 	thread.stop();
 }

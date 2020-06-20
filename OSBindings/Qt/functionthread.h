@@ -25,6 +25,10 @@ class FunctionThread: public QThread {
 			while(performerFlag.test_and_set());
 		}
 
+		~FunctionThread() {
+			stop();
+		}
+
 		void run() override {
 			// Gymnastics here: events posted directly to the QThread will occur on the thread
 			// that created the QThread. To have events occur within a QThread, they have to be
@@ -35,9 +39,11 @@ class FunctionThread: public QThread {
 		}
 
 		void stop() {
-			performAsync([this] {
-				this->quit();
-			});
+			if(isRunning()) {
+				performAsync([this] {
+					this->quit();
+				});
+			}
 			wait();
 		}
 
