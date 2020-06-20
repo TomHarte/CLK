@@ -83,7 +83,8 @@ void MainWindow::about() {
 }
 
 MainWindow::~MainWindow() {
-	// Stop the timer.
+	// Stop the timer; stopping this first ensures the machine won't attempt
+	// to write to the audioOutput while it is being shut down.
 	timer.reset();
 
 	// Stop the audio output, and its thread.
