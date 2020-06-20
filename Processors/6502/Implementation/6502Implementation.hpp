@@ -135,7 +135,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 	write_mem(v, targetAddress);\
 }
 
-					case CycleIncPCPushPCH:				pc_.full++;														// deliberate fallthrough
+					case CycleIncPCPushPCH:				pc_.full++;														[[fallthrough]];
 					case CyclePushPCH:					push(pc_.halves.high);											break;
 					case CyclePushPCL:					push(pc_.halves.low);											break;
 					case CyclePushOperand:				push(operand_);													break;
@@ -292,7 +292,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 // MARK: - ADC/SBC (and INS)
 
 					case OperationINS:
-						operand_++;			// deliberate fallthrough
+						operand_++;
+						[[fallthrough]];
 					case OperationSBC:
 						if(decimal_flag_ && has_decimal_mode(personality)) {
 							const uint16_t notCarry = carry_flag_ ^ 0x1;
@@ -322,8 +323,8 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						} else {
 							operand_ = ~operand_;
 						}
+						[[fallthrough]];
 
-					// deliberate fallthrough
 					case OperationADC:
 						if(decimal_flag_ && has_decimal_mode(personality)) {
 							const uint16_t decimalResult = uint16_t(a_) + uint16_t(operand_) + uint16_t(carry_flag_);
@@ -509,8 +510,9 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						operand_++;
 						read_mem(address_.halves.high, operand_);
 					break;
-					case CycleIncrementPCReadPCHLoadPCL:	// deliberate fallthrough
+					case CycleIncrementPCReadPCHLoadPCL:
 						pc_.full++;
+						[[fallthrough]];
 					case CycleReadPCHLoadPCL: {
 						uint16_t oldPC = pc_.full;
 						pc_.halves.low = operand_;
