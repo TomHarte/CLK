@@ -176,7 +176,6 @@ class Cycles: public WrappedInt<Cycles> {
 	public:
 		forceinline constexpr Cycles(IntType l) noexcept : WrappedInt<Cycles>(l) {}
 		forceinline constexpr Cycles() noexcept : WrappedInt<Cycles>() {}
-		forceinline constexpr Cycles(const Cycles &cycles) noexcept : WrappedInt<Cycles>(cycles.length_) {}
 
 	private:
 		friend WrappedInt;
@@ -198,7 +197,6 @@ class HalfCycles: public WrappedInt<HalfCycles> {
 		forceinline constexpr HalfCycles() noexcept : WrappedInt<HalfCycles>() {}
 
 		forceinline constexpr HalfCycles(const Cycles &cycles) noexcept : WrappedInt<HalfCycles>(cycles.as_integral() * 2) {}
-		forceinline constexpr HalfCycles(const HalfCycles &half_cycles) noexcept : WrappedInt<HalfCycles>(half_cycles.length_) {}
 
 		/// @returns The number of whole cycles completely covered by this span of half cycles.
 		forceinline constexpr Cycles cycles() const {
