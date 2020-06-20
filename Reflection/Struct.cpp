@@ -215,7 +215,8 @@ template <typename Type> bool Reflection::get(const Struct &target, const std::s
 
 	// If type is a direct match, copy.
 	if(*target_type == typeid(Type)) {
-		memcpy(&value, reinterpret_cast<const uint8_t *>(target.get(name)) + offset * sizeof(Type), sizeof(Type));
+		const auto address = reinterpret_cast<const uint8_t *>(target.get(name)) + offset * sizeof(Type);
+		value = *reinterpret_cast<const Type *>(address);
 		return true;
 	}
 
