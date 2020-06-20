@@ -50,12 +50,12 @@ struct AudioBuffer: public QIODevice {
 			readPointer += nextLength;
 		}
 
-		return dataAvailable;
+		return qint64(dataAvailable);
 	}
 
 	qint64 bytesAvailable() const override {
 		std::lock_guard lock(mutex);
-		return writePointer - readPointer;
+		return qint64(writePointer - readPointer);
 	}
 
 	// Required to make QIODevice concrete; not used.
