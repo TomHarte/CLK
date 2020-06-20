@@ -2174,6 +2174,7 @@ struct ProcessorStorageConstructor {
 
 								case bw(XXXl):		// CMPA.w (xxx).l, An
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case bw(XXXw):		// CMPA.w (xxx).w, An
 								case bw(d16PC):		// CMPA.w (d16, PC), An
 								case bw(d8PCXn):	// CMPA.w (d8, PC, Xn), An
@@ -3028,6 +3029,7 @@ struct ProcessorStorageConstructor {
 
 								case l(XXXl):		// TST.l (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case l(XXXw):		// TST.l (xxx).w
 								case l(d16An):		// TST.l (d16, An)
 								case l(d8AnXn):		// TST.l (d8, An, Xn)
