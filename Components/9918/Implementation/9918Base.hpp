@@ -421,7 +421,8 @@ class Base {
 */
 
 #define slot(n)	\
-		if(use_end && end == n) return;\
+		if(use_end && end == n) return;	\
+		[[fallthrough]];				\
 		case n
 
 #define external_slot(n)	\
