@@ -352,6 +352,7 @@ struct ScanStatus {
 			.retrace_duration = retrace_duration / dividend,
 			.current_position = current_position,
 			.hsync_count = hsync_count,
+			.is_in_retrace = is_in_retrace,
 		};
 		return result;
 	}
@@ -366,6 +367,7 @@ struct ScanStatus {
 			.retrace_duration = retrace_duration * multiplier,
 			.current_position = current_position,
 			.hsync_count = hsync_count,
+			.is_in_retrace = is_in_retrace,
 		};
 		return result;
 	}
