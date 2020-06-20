@@ -492,6 +492,8 @@ class ConcreteMachine:
 							performed_unmapped_access_ = true;
 						}
 						pc_address_ = address;	// This is retained so as to be able to name the source of an access to cartridge handlers.
+						[[fallthrough]];
+
 					case CPU::Z80::PartialMachineCycle::Read:
 						if(read_pointers_[address >> 13]) {
 							*cycle.value = read_pointers_[address >> 13][address & 8191];

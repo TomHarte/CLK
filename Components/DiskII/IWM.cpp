@@ -307,8 +307,8 @@ void IWM::run_for(const Cycles cycles) {
 			} else {
 				shift_register_ = sense();
 			}
+			[[fallthrough]];
 
-		/* Deliberate fallthrough. */
 		default:
 			if(drive_is_rotating_[active_drive_]) drives_[active_drive_]->run_for(cycles);
 		break;

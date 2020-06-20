@@ -237,6 +237,7 @@ class ConcreteMachine:
 						memory = rom_.data();
 						break;
 					}
+					[[fallthrough]];
 				case BusDevice::RAM:
 					memory = ram_.data();
 				break;

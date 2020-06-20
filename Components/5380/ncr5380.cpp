@@ -263,6 +263,7 @@ void NCR5380::scsi_bus_did_change(SCSI::Bus *, SCSI::BusState new_state, double 
 		case ExecutionState::WaitingForBusy:
 			if(!(new_state & SCSI::Line::Busy) || time_since_change < SCSI::DeskewDelay) return;
 			state_ = ExecutionState::WatchingBusy;
+			[[fallthrough]];
 
 		case ExecutionState::WatchingBusy:
 			if(!(new_state & SCSI::Line::Busy)) {

@@ -224,6 +224,7 @@ class ConcreteMachine:
 				switch(cycle.operation) {
 					case CPU::Z80::PartialMachineCycle::ReadOpcode:
 						if(!address) pc_zero_accesses_++;
+						[[fallthrough]];
 					case CPU::Z80::PartialMachineCycle::Read:
 						if(address < 0x2000) {
 							if(super_game_module_.replace_bios) {

@@ -833,7 +833,8 @@ template <	class T,
 // MARK: - Special-case Flow
 
 				case MicroOp::BeginIRQMode0:
-					pc_increment_ = 0;			// deliberate fallthrough
+					pc_increment_ = 0;
+					[[fallthrough]];
 				case MicroOp::BeginIRQ:
 					iff2_ = iff1_ = false;
 					request_status_ &= ~Interrupt::IRQ;
