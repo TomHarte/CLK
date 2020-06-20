@@ -83,6 +83,9 @@ void MainWindow::about() {
 }
 
 MainWindow::~MainWindow() {
+	// Stop the timer.
+	timer.reset();
+
 	// Stop the audio output, and its thread.
 	if(audioOutput) {
 		audioThread.performAsync([this] {
@@ -90,9 +93,6 @@ MainWindow::~MainWindow() {
 		});
 		audioThread.stop();
 	}
-
-	// Stop the timer.
-	timer.reset();
 }
 
 // MARK: Machine launch.
