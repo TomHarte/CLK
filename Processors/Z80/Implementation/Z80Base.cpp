@@ -73,7 +73,7 @@ void ProcessorBase::set_value_of_register(Register r, uint16_t value) {
 		case Register::StackPointer:	sp_.full = value;				break;
 
 		case Register::A:				a_ = uint8_t(value);			break;
-		case Register::AF:				a_ = uint8_t(value >> 8);		// deliberate fallthrough...
+		case Register::AF:				a_ = uint8_t(value >> 8);		[[fallthrough]];
 		case Register::Flags:			set_flags(uint8_t(value));		break;
 
 		case Register::B:				bc_.halves.high = uint8_t(value);	break;
