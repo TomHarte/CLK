@@ -1,8 +1,9 @@
 #ifndef AUDIOSOURCE_H
 #define AUDIOSOURCE_H
 
-#include <vector>
 #include <cstdint>
+#include <mutex>
+#include <vector>
 
 #include <QIODevice>
 
