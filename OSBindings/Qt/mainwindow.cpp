@@ -329,6 +329,12 @@ void MainWindow::setVisibleWidgetSet(WidgetSet set) {
 	ui->machineSelectionTabs->setVisible(set == WidgetSet::MachinePicker);
 	ui->startMachineButton->setVisible(set == WidgetSet::MachinePicker);
 	ui->topTipLabel->setVisible(set == WidgetSet::MachinePicker);
+
+	// Set appropriate focus if necessary; e.g. this ensures that machine-picker
+	// widgets aren't still selectable after a machine starts.
+	if(set != WidgetSet::MachinePicker) {
+		ui->openGLWidget->setFocus();
+	}
 }
 
 // MARK: - Event Processing
@@ -397,7 +403,7 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 	std::unique_lock lock(machineMutex);
 	keyboardMachine->get_keyboard().set_key_pressed(key, event->text()[0].toLatin1(), event->type() == QEvent::KeyPress);
 
-	return true;
+	return false;
 }
 
 // MARK: - New Machine Creation
