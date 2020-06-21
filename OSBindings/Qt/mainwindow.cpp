@@ -74,8 +74,13 @@ void MainWindow::createActions() {
 }
 
 void MainWindow::open() {
-	QString fileName = QFileDialog::getOpenFileName(this);
+	Settings settings;
+
+	// Use the Settings to get a default open path; write it back afterwards.
+	QString fileName = QFileDialog::getOpenFileName(this, tr("Open..."), settings.value("openPath").toString());
 	if(!fileName.isEmpty()) {
+		settings.setValue("openPath", QFileInfo(fileName).absoluteDir().path());
+
 		// My understanding of SDI: if a file was opened for a 'vacant' window, launch it directly there;
 		// otherwise create a new window for it.
 		if(machine) {
