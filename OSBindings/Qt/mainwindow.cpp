@@ -217,7 +217,7 @@ void MainWindow::launchMachine() {
 			// TODO: in the future, hypothetically, deal with non-scan producers.
 			const auto scan_producer = machine->scan_producer();
 			if(scan_producer) {
-				scan_producer->set_scan_target(ui->openGLWidget->getScanTarget());
+				ui->openGLWidget->setScanProducer(scan_producer);
 			}
 
 			// Install audio output if required.

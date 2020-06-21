@@ -4,6 +4,8 @@
 #include <QOpenGLWidget>
 
 #include "../../Outputs/OpenGL/ScanTarget.hpp"
+#include "../../Machines/ScanProducer.hpp"
+
 #include "../../ClockReceiver/VSyncPredictor.hpp"
 
 class ScanTargetWidget : public QOpenGLWidget
@@ -12,7 +14,9 @@ class ScanTargetWidget : public QOpenGLWidget
 		ScanTargetWidget(QWidget *parent = nullptr);
 		~ScanTargetWidget();
 
-		Outputs::Display::OpenGL::ScanTarget *getScanTarget();
+		// Sets the current scan producer; this scan producer will be
+		// handed a suitable scan target as soon as one exists.
+		void setScanProducer(MachineTypes::ScanProducer *);
 
 	protected:
 		void initializeGL() override;
@@ -26,6 +30,7 @@ class ScanTargetWidget : public QOpenGLWidget
 		Time::VSyncPredictor vsyncPredictor;
 		bool isConnected = false;
 		GLuint framebuffer = 0;
+		MachineTypes::ScanProducer *producer = nullptr;
 
 	private slots:
 		void vsync();

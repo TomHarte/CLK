@@ -20,7 +20,26 @@ void ScanTargetWidget::initializeGL() {
 
 void ScanTargetWidget::paintGL() {
 	glClear(GL_COLOR_BUFFER_BIT);
-	if(isConnected) {
+
+	// Gmynastics ahoy: if a producer has been specified or previously connected then:
+	//
+	//	(i) if it's a new producer, generate a new scan target and pass it on;
+	//	(ii) in any case, check whether the underlyiung framebuffer has changed; and
+	//	(iii) draw.
+	//
+	// The slightly convoluted scan target forwarding arrangement works around an issue
+	// with QOpenGLWidget under macOS, which I did not fully diagnose, in which creating
+	// a scan target in ::initializeGL did not work (and no other arrangement really works
+	// with regard to starting up).
+	if(isConnected || producer) {
+		if(producer) {
+			isConnected = true;
+			framebuffer = defaultFramebufferObject();
+			scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>(framebuffer);
+			producer->set_scan_target(scanTarget.get());
+			producer = nullptr;
+		}
+
 		// Qt reserves the right to change the framebuffer object due to window resizes or if setParent is called;
 		// therefore check whether it has changed.
 		const auto newFramebuffer = defaultFramebufferObject();
@@ -52,12 +71,7 @@ void ScanTargetWidget::resizeGL(int w, int h) {
 	glViewport(0, 0, w, h);
 }
 
-Outputs::Display::OpenGL::ScanTarget *ScanTargetWidget::getScanTarget() {
-	makeCurrent();
-	if(!scanTarget) {
-		isConnected = true;
-		framebuffer = defaultFramebufferObject();
-		scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>(framebuffer);
-	}
-	return scanTarget.get();
+void ScanTargetWidget::setScanProducer(MachineTypes::ScanProducer *producer) {
+	this->producer = producer;
+	repaint();
 }
