@@ -23,7 +23,7 @@ class ScanTargetWidget : public QOpenGLWidget
 		// This should be created only once there's an OpenGL context. So it
 		// can't be done at creation time.
 		std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> scanTarget;
-		Time::VSyncPredictor vsync_predictor_;
+		Time::VSyncPredictor vsyncPredictor;
 
 	private slots:
 		void vsync();

@@ -21,18 +21,18 @@ void ScanTargetWidget::initializeGL() {
 void ScanTargetWidget::paintGL() {
 	glClear(GL_COLOR_BUFFER_BIT);
 	if(scanTarget) {
-		vsync_predictor_.begin_redraw();
+		vsyncPredictor.begin_redraw();
 		scanTarget->update(width(), height());
 		scanTarget->draw(width(), height());
-		vsync_predictor_.end_redraw();
+		vsyncPredictor.end_redraw();
 	}
 }
 
 void ScanTargetWidget::vsync() {
-	vsync_predictor_.announce_vsync();
+	vsyncPredictor.announce_vsync();
 
 	const auto time_now = Time::nanos_now();
-	const auto delay_time = ((vsync_predictor_.suggested_draw_time() - time_now) / 1'000'000) - 5;	// TODO: the extra 5 is a random guess.
+	const auto delay_time = ((vsyncPredictor.suggested_draw_time() - time_now) / 1'000'000) - 5;	// TODO: the extra 5 is a random guess.
 	if(delay_time > 0) {
 		QTimer::singleShot(delay_time, this, SLOT(repaint()));
 	} else {
