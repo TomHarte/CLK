@@ -104,8 +104,7 @@ void MainWindow::newFile() {
 	other->show();
 }
 
-void MainWindow::tile(const QMainWindow *previous)
-{
+void MainWindow::tile(const QMainWindow *previous) {
 	// This entire function is essentially verbatim from the Qt SDI example.
 	if (!previous)
 		return;
@@ -457,7 +456,7 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 	}
 
 	std::unique_lock lock(machineMutex);
-	keyboardMachine->get_keyboard().set_key_pressed(key, event->text()[0].toLatin1(), event->type() == QEvent::KeyPress);
+	keyboardMachine->get_keyboard().set_key_pressed(key, event->text().size() ? event->text()[0].toLatin1() : '\0', event->type() == QEvent::KeyPress);
 
 	return false;
 }
