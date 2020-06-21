@@ -21,6 +21,14 @@ void ScanTargetWidget::initializeGL() {
 void ScanTargetWidget::paintGL() {
 	glClear(GL_COLOR_BUFFER_BIT);
 	if(isConnected) {
+		// Qt reserves the right to change the framebuffer object due to window resizes or if setParent is called;
+		// therefore check whether it has changed.
+		const auto newFramebuffer = defaultFramebufferObject();
+		if(framebuffer != newFramebuffer) {
+			framebuffer = newFramebuffer;
+			scanTarget->set_target_framebuffer(framebuffer);
+		}
+
 		vsyncPredictor.begin_redraw();
 		scanTarget->update(width(), height());
 		scanTarget->draw(width(), height());
@@ -41,14 +49,15 @@ void ScanTargetWidget::vsync() {
 }
 
 void ScanTargetWidget::resizeGL(int w, int h) {
-	glViewport(0,0,w,h);
+	glViewport(0, 0, w, h);
 }
 
 Outputs::Display::OpenGL::ScanTarget *ScanTargetWidget::getScanTarget() {
 	makeCurrent();
 	if(!scanTarget) {
 		isConnected = true;
-		scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>(defaultFramebufferObject());
+		framebuffer = defaultFramebufferObject();
+		scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>(framebuffer);
 	}
 	return scanTarget.get();
 }
