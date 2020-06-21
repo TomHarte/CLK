@@ -3,6 +3,7 @@
 #include <QStandardPaths>
 
 #include "mainwindow.h"
+#include "settings.h"
 #include "timer.h"
 
 #include "../../Numeric/CRC.hpp"
@@ -15,37 +16,53 @@
 		affect the window, so isn't useful for this project). Therefore the emulation window resizes freely.
 */
 
-MainWindow::MainWindow(QWidget *parent)
-	: QMainWindow(parent)
-	, ui(new Ui::MainWindow)
-{
-	ui->setupUi(this);
-	createActions();
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
+	init();
+	setVisibleWidgetSet(WidgetSet::MachinePicker);
+}
+
+MainWindow::MainWindow(const QString &fileName) {
+	init();
+	launchFile(fileName);
+}
+
+void MainWindow::init() {
 	qApp->installEventFilter(this);
 
-	timer = std::make_unique<Timer>(this);
-
-	setVisibleWidgetSet(WidgetSet::MachinePicker);
+	ui = std::make_unique<Ui::MainWindow>();
+	ui->setupUi(this);
 	romRequestBaseText = ui->missingROMsBox->toPlainText();
+
+	createActions();
+	restoreSelections();
+
+	timer = std::make_unique<Timer>(this);
 }
 
 void MainWindow::createActions() {
 	// Create a file menu.
-	QMenu *fileMenu = menuBar()->addMenu(tr("&File"));
+	QMenu *const fileMenu = menuBar()->addMenu(tr("&File"));
 
-	// Add file option: 'New...'
-	QAction *newAct = new QAction(tr("&New"), this);
+	// Add file option: 'New'
+	QAction *const newAct = new QAction(tr("&New"), this);
 	newAct->setShortcuts(QKeySequence::New);
 	newAct->setStatusTip(tr("Create a new file"));
 	connect(newAct, &QAction::triggered, this, &MainWindow::newFile);
 	fileMenu->addAction(newAct);
 
 	// Add file option: 'Open...'
-	QAction *openAct = new QAction(tr("&Open..."), this);
+	QAction *const openAct = new QAction(tr("&Open..."), this);
 	openAct->setShortcuts(QKeySequence::Open);
 	openAct->setStatusTip(tr("Open an existing file"));
 	connect(openAct, &QAction::triggered, this, &MainWindow::open);
 	fileMenu->addAction(openAct);
+
+	// Add a separator and then an 'Insert...'.
+	fileMenu->addSeparator();
+	QAction *const insertAct = new QAction(tr("&Insert..."), this);
+	insertAct->setStatusTip(tr("Open an existing file"));
+	connect(insertAct, &QAction::triggered, this, &MainWindow::insert);
+	fileMenu->addAction(insertAct);
 
 	// Add Help menu, with an 'About...' option.
 	QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -59,26 +76,61 @@ void MainWindow::createActions() {
 void MainWindow::open() {
 	QString fileName = QFileDialog::getOpenFileName(this);
 	if(!fileName.isEmpty()) {
-		targets = Analyser::Static::GetTargets(fileName.toStdString());
-		if(!targets.empty()) {
-			launchMachine();
+		// My understanding of SDI: if a file was opened for a 'vacant' window, launch it directly there;
+		// otherwise create a new window for it.
+		if(machine) {
+			MainWindow *const other = new MainWindow(fileName);
+			other->tile(this);
+			other->show();
+		} else {
+			launchFile(fileName);
 		}
 	}
 }
 
-void MainWindow::newFile() {
+void MainWindow::insert() {
 }
+
+void MainWindow::launchFile(const QString &fileName) {
+	targets = Analyser::Static::GetTargets(fileName.toStdString());
+	if(!targets.empty()) {
+		launchMachine();
+	}
+}
+
+void MainWindow::newFile() {
+	MainWindow *other = new MainWindow;
+	other->tile(this);
+	other->show();
+}
+
+void MainWindow::tile(const QMainWindow *previous)
+{
+	// This entire function is essentially verbatim from the Qt SDI example.
+	if (!previous)
+		return;
+
+	int topFrameWidth = previous->geometry().top() - previous->pos().y();
+	if (!topFrameWidth)
+		topFrameWidth = 40;
+
+	const QPoint pos = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
+	if (screen()->availableGeometry().contains(rect().bottomRight() + pos))
+		move(pos);
+}
+
 
 void MainWindow::about() {
 	QMessageBox::about(this, tr("About Clock Signal"),
-		tr(	"<p>Clock Signal is an emulator of various platforms by "
-			"<a href=\"mailto:thomas.harte@gmail.com\">Thomas Harte</a>.</p>"
+		tr(	"<p>Clock Signal is an emulator of various platforms.</p>"
 
 			"<p>This emulator is offered under the MIT licence; its source code "
 			"is available from <a href=\"https://github.com/tomharte/CLK\">GitHub</a>.</p>"
 
 			"<p>This port is experimental, especially with regard to latency; "
-			"please don't hesitate to provide feedback.</p>"
+			"please don't hesitate to provide feedback, "
+			"<a href=\"mailto:thomas.harte@gmail.com\">by email</a> or via the "
+			"<a href=\"https://github.com/tomharte/CLK/issues\">GitHub issue tracker</a>.</p>"
 	));
 }
 
@@ -94,6 +146,9 @@ MainWindow::~MainWindow() {
 		});
 		audioThread.stop();
 	}
+
+	// Store the current user selections.
+	storeSelections();
 }
 
 // MARK: Machine launch.
@@ -424,7 +479,6 @@ void MainWindow::startMachine() {
 
 #define TEST(x)		\
 	if(selectedTab == ui->x ## Tab) {	\
-		qDebug() << #x;					\
 		start_##x();					\
 		return;							\
 	}
@@ -601,4 +655,15 @@ void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target
 	targets.clear();
 	targets.push_back(std::move(target));
 	launchMachine();
+}
+
+// MARK - UI state
+
+void MainWindow::storeSelections() {
+	Settings settings;
+
+	settings.setValue("machineSelection", ui->machineSelectionTabs->currentIndex());
+}
+
+void MainWindow::restoreSelections() {
 }

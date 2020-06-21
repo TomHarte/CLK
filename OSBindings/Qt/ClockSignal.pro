@@ -252,6 +252,7 @@ HEADERS += \
     functionthread.h \
     mainwindow.h \
     scantargetwidget.h \
+    settings.h \
     timer.h
 
 FORMS += \

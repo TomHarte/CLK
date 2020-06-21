@@ -25,6 +25,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 	public:
 		MainWindow(QWidget *parent = nullptr);
 		~MainWindow();
+		explicit MainWindow(const QString &fileName);
 
 	protected:
 		bool eventFilter(QObject *obj, QEvent *event) override;
@@ -70,6 +71,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void open();
 		void newFile();
 		void about();
+		void insert();
 		void startMachine();
 
 	private:
@@ -84,7 +86,14 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void start_zx80();
 		void start_zx81();
 
+		void launchFile(const QString &fileName);
 		void launchTarget(std::unique_ptr<Analyser::Static::Target> &&);
+
+		void restoreSelections();
+		void storeSelections();
+
+		void init();
+		void tile(const QMainWindow *previous);
 };
 
 #endif // MAINWINDOW_H
