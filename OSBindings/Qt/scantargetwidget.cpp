@@ -20,7 +20,7 @@ void ScanTargetWidget::initializeGL() {
 
 void ScanTargetWidget::paintGL() {
 	glClear(GL_COLOR_BUFFER_BIT);
-	if(scanTarget) {
+	if(isConnected) {
 		vsyncPredictor.begin_redraw();
 		scanTarget->update(width(), height());
 		scanTarget->draw(width(), height());
@@ -47,6 +47,7 @@ void ScanTargetWidget::resizeGL(int w, int h) {
 Outputs::Display::OpenGL::ScanTarget *ScanTargetWidget::getScanTarget() {
 	makeCurrent();
 	if(!scanTarget) {
+		isConnected = true;
 		scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>(defaultFramebufferObject());
 	}
 	return scanTarget.get();

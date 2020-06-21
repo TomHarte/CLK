@@ -24,6 +24,7 @@ class ScanTargetWidget : public QOpenGLWidget
 		// can't be done at creation time.
 		std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> scanTarget;
 		Time::VSyncPredictor vsyncPredictor;
+		bool isConnected = false;
 
 	private slots:
 		void vsync();
