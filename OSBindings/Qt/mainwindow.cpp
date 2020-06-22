@@ -8,6 +8,26 @@
 
 #include "../../Numeric/CRC.hpp"
 
+namespace {
+
+std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *file) {
+	auto data = std::make_unique<std::vector<uint8_t>>();
+
+	fseek(file, 0, SEEK_END);
+	data->resize(std::ftell(file));
+	fseek(file, 0, SEEK_SET);
+	size_t read = fread(data->data(), 1, data->size(), file);
+	fclose(file);
+
+	if(read == data->size()) {
+		return data;
+	}
+
+	return nullptr;
+}
+
+}
+
 /*
 	General Qt implementation notes:
 
@@ -26,7 +46,41 @@ MainWindow::MainWindow(const QString &fileName) {
 	launchFile(fileName);
 }
 
+MainWindow::~MainWindow() {
+	// Stop the timer; stopping this first ensures the machine won't attempt
+	// to write to the audioOutput while it is being shut down.
+	timer.reset();
+
+	// Stop the audio output, and its thread.
+	if(audioOutput) {
+		audioThread.performAsync([this] {
+			audioOutput->stop();
+		});
+		audioThread.stop();
+	}
+
+	// Store the current user selections.
+	storeSelections();
+
+	// SDI behaviour, which may or may not be normal (?): if the user is closing a
+	// final window, and it contains a machine, send them back to the machine picker.
+	// i.e. assume they were closing that document, not the application.
+	--mainWindowCount;
+	if(machine && !mainWindowCount) {
+		MainWindow *const other = new MainWindow;
+		other->show();
+	}
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+	if(mainWindowCount == 1 && machine) {
+		qDebug() << "close, yah";
+	}
+	QMainWindow::closeEvent(event);
+}
+
 void MainWindow::init() {
+	++mainWindowCount;
 	qApp->installEventFilter(this);
 
 	ui = std::make_unique<Ui::MainWindow>();
@@ -47,53 +101,74 @@ void MainWindow::createActions() {
 	QAction *const newAct = new QAction(tr("&New"), this);
 	newAct->setShortcuts(QKeySequence::New);
 	newAct->setStatusTip(tr("Create a new file"));
-	connect(newAct, &QAction::triggered, this, &MainWindow::newFile);
+	connect(newAct, &QAction::triggered, this, [this] {
+		storeSelections();
+
+		MainWindow *other = new MainWindow;
+		other->tile(this);
+		other->show();
+	});
 	fileMenu->addAction(newAct);
 
 	// Add file option: 'Open...'
 	QAction *const openAct = new QAction(tr("&Open..."), this);
 	openAct->setShortcuts(QKeySequence::Open);
 	openAct->setStatusTip(tr("Open an existing file"));
-	connect(openAct, &QAction::triggered, this, &MainWindow::open);
+	connect(openAct, &QAction::triggered, this, [this] {
+		const QString fileName = getFilename("Open...");
+		if(!fileName.isEmpty()) {
+			// My understanding of SDI: if a file was opened for a 'vacant' window, launch it directly there;
+			// otherwise create a new window for it.
+			if(machine) {
+				MainWindow *const other = new MainWindow(fileName);
+				other->tile(this);
+				other->show();
+			} else {
+				launchFile(fileName);
+			}
+		}
+	});
 	fileMenu->addAction(openAct);
 
 	// Add a separator and then an 'Insert...'.
 	fileMenu->addSeparator();
 	QAction *const insertAct = new QAction(tr("&Insert..."), this);
 	insertAct->setStatusTip(tr("Open an existing file"));
-	connect(insertAct, &QAction::triggered, this, &MainWindow::insert);
+	connect(insertAct, &QAction::triggered, this, [] {
+		// TODO.
+	});
 	fileMenu->addAction(insertAct);
 
 	// Add Help menu, with an 'About...' option.
 	QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
-	QAction *aboutAct = helpMenu->addAction(tr("&About"), this, &MainWindow::about);
+	QAction *aboutAct = helpMenu->addAction(tr("&About"), this, [this] {
+		QMessageBox::about(this, tr("About Clock Signal"),
+			tr(	"<p>Clock Signal is an emulator of various platforms.</p>"
+
+				"<p>This emulator is offered under the MIT licence; its source code "
+				"is available from <a href=\"https://github.com/tomharte/CLK\">GitHub</a>.</p>"
+
+				"<p>This port is experimental, especially with regard to latency; "
+				"please don't hesitate to provide feedback, "
+				"<a href=\"mailto:thomas.harte@gmail.com\">by email</a> or via the "
+				"<a href=\"https://github.com/tomharte/CLK/issues\">GitHub issue tracker</a>.</p>"
+		));
+	});
 	aboutAct->setStatusTip(tr("Show the application's About box"));
 
 	// Link up the start machine button.
 	connect(ui->startMachineButton, &QPushButton::clicked, this, &MainWindow::startMachine);
 }
 
-void MainWindow::open() {
+QString MainWindow::getFilename(const char *title) {
 	Settings settings;
 
 	// Use the Settings to get a default open path; write it back afterwards.
-	QString fileName = QFileDialog::getOpenFileName(this, tr("Open..."), settings.value("openPath").toString());
+	QString fileName = QFileDialog::getOpenFileName(this, tr(title), settings.value("openPath").toString());
 	if(!fileName.isEmpty()) {
 		settings.setValue("openPath", QFileInfo(fileName).absoluteDir().path());
-
-		// My understanding of SDI: if a file was opened for a 'vacant' window, launch it directly there;
-		// otherwise create a new window for it.
-		if(machine) {
-			MainWindow *const other = new MainWindow(fileName);
-			other->tile(this);
-			other->show();
-		} else {
-			launchFile(fileName);
-		}
 	}
-}
-
-void MainWindow::insert() {
+	return fileName;
 }
 
 void MainWindow::launchFile(const QString &fileName) {
@@ -101,12 +176,6 @@ void MainWindow::launchFile(const QString &fileName) {
 	if(!targets.empty()) {
 		launchMachine();
 	}
-}
-
-void MainWindow::newFile() {
-	MainWindow *other = new MainWindow;
-	other->tile(this);
-	other->show();
 }
 
 void MainWindow::tile(const QMainWindow *previous) {
@@ -123,59 +192,7 @@ void MainWindow::tile(const QMainWindow *previous) {
 		move(pos);
 }
 
-
-void MainWindow::about() {
-	QMessageBox::about(this, tr("About Clock Signal"),
-		tr(	"<p>Clock Signal is an emulator of various platforms.</p>"
-
-			"<p>This emulator is offered under the MIT licence; its source code "
-			"is available from <a href=\"https://github.com/tomharte/CLK\">GitHub</a>.</p>"
-
-			"<p>This port is experimental, especially with regard to latency; "
-			"please don't hesitate to provide feedback, "
-			"<a href=\"mailto:thomas.harte@gmail.com\">by email</a> or via the "
-			"<a href=\"https://github.com/tomharte/CLK/issues\">GitHub issue tracker</a>.</p>"
-	));
-}
-
-MainWindow::~MainWindow() {
-	// Stop the timer; stopping this first ensures the machine won't attempt
-	// to write to the audioOutput while it is being shut down.
-	timer.reset();
-
-	// Stop the audio output, and its thread.
-	if(audioOutput) {
-		audioThread.performAsync([this] {
-			audioOutput->stop();
-		});
-		audioThread.stop();
-	}
-
-	// Store the current user selections.
-	storeSelections();
-}
-
 // MARK: Machine launch.
-
-namespace {
-
-std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *file) {
-	auto data = std::make_unique<std::vector<uint8_t>>();
-
-	fseek(file, 0, SEEK_END);
-	data->resize(std::ftell(file));
-	fseek(file, 0, SEEK_SET);
-	size_t read = fread(data->data(), 1, data->size(), file);
-	fclose(file);
-
-	if(read == data->size()) {
-		return data;
-	}
-
-	return nullptr;
-}
-
-}
 
 void MainWindow::launchMachine() {
 	const QStringList appDataLocations = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
@@ -309,9 +326,16 @@ void MainWindow::dropEvent(QDropEvent* event) {
 	event->accept();
 
 	switch(uiPhase) {
-		case UIPhase::NoFileSelected:
+		case UIPhase::NoFileSelected: {
 			// Treat exactly as a File -> Open... .
-		break;
+			// TODO: permit multiple files dropped at once.
+			const auto fileName = event->mimeData()->urls()[0].toLocalFile();
+			launchFile(fileName);
+		} break;
+
+		case UIPhase::RunningMachine: {
+			// Attempt to insert into the running machine.
+		} break;
 
 		case UIPhase::RequestingROMs: {
 			// Attempt to match up the dragged files to the requested ROM list;
@@ -351,10 +375,6 @@ void MainWindow::dropEvent(QDropEvent* event) {
 
 			if(foundROM) launchMachine();
 		} break;
-
-		case UIPhase::RunningMachine:
-			// Attempt to insert into the running machine.
-		break;
 	}
 }
 
@@ -369,6 +389,9 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 				return false;
 			}
 		} break;
+
+		case QEvent::Close:
+		break;
 
 		default:
 		break;
@@ -670,4 +693,7 @@ void MainWindow::storeSelections() {
 }
 
 void MainWindow::restoreSelections() {
+	Settings settings;
+
+	ui->machineSelectionTabs->setCurrentIndex(settings.value("machineSelection").toInt());
 }

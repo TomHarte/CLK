@@ -68,10 +68,6 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void setVisibleWidgetSet(WidgetSet);
 
 	private slots:
-		void open();
-		void newFile();
-		void about();
-		void insert();
 		void startMachine();
 
 	private:
@@ -94,6 +90,10 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		void init();
 		void tile(const QMainWindow *previous);
+		QString getFilename(const char *title);
+
+		void closeEvent(QCloseEvent *event) override;
+		static inline int mainWindowCount = 0;
 };
 
 #endif // MAINWINDOW_H
