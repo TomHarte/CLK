@@ -62,20 +62,17 @@ MainWindow::~MainWindow() {
 	// Store the current user selections.
 	storeSelections();
 
-	// SDI behaviour, which may or may not be normal (?): if the user is closing a
-	// final window, and it contains a machine, send them back to the machine picker.
-	// i.e. assume they were closing that document, not the application.
 	--mainWindowCount;
-	if(machine && !mainWindowCount) {
-		MainWindow *const other = new MainWindow;
-		other->show();
-	}
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-	if(mainWindowCount == 1 && machine) {
-		qDebug() << "close, yah";
-	}
+	// SDI behaviour, which may or may not be normal (?): if the user is closing a
+	// final window, and it contains a machine, send them back to the machine picker.
+	// i.e. assume they were closing that document, not the application.
+//	if(mainWindowCount == 1 && machine) {
+//		MainWindow *const other = new MainWindow;
+//		other->show();
+//	}
 	QMainWindow::closeEvent(event);
 }
 
