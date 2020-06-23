@@ -94,6 +94,8 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		void closeEvent(QCloseEvent *event) override;
 		static inline int mainWindowCount = 0;
+
+		void deleteMachine();
 };
 
 #endif // MAINWINDOW_H

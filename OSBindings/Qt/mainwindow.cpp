@@ -46,7 +46,7 @@ MainWindow::MainWindow(const QString &fileName) {
 	launchFile(fileName);
 }
 
-MainWindow::~MainWindow() {
+void MainWindow::deleteMachine() {
 	// Stop the timer; stopping this first ensures the machine won't attempt
 	// to write to the audioOutput while it is being shut down.
 	timer.reset();
@@ -62,21 +62,29 @@ MainWindow::~MainWindow() {
 		audioThread.stop();
 	}
 
+	machine.reset();
+}
+
+MainWindow::~MainWindow() {
+	deleteMachine();
+
 	// Store the current user selections.
 	storeSelections();
 
 	--mainWindowCount;
+	qDebug() << "Count: " << mainWindowCount;
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
 	// SDI behaviour, which may or may not be normal (?): if the user is closing a
 	// final window, and it contains a machine, send them back to the machine picker.
 	// i.e. assume they were closing that document, not the application.
-//	if(mainWindowCount == 1 && machine) {
-//		MainWindow *const other = new MainWindow;
-//		other->setAttribute(Qt::WA_DeleteOnClose);
-//		other->show();
-//	}
+	if(mainWindowCount == 1 && machine) {
+		setVisibleWidgetSet(WidgetSet::MachinePicker);
+		deleteMachine();
+		event->ignore();
+		return;
+	}
 	QMainWindow::closeEvent(event);
 }
 
@@ -90,8 +98,6 @@ void MainWindow::init() {
 
 	createActions();
 	restoreSelections();
-
-	timer = std::make_unique<Timer>(this);
 }
 
 void MainWindow::createActions() {
@@ -280,6 +286,7 @@ void MainWindow::launchMachine() {
 			// If this is a timed machine, start up the timer.
 			const auto timedMachine = machine->timed_machine();
 			if(timedMachine) {
+				timer = std::make_unique<Timer>(this);
 				timer->startWithMachine(timedMachine, &machineMutex);
 			}
 

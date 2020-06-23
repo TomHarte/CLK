@@ -42,6 +42,10 @@ class VSyncPredictor {
 			last_vsync_ = vsync_time;
 		}
 
+		void pause() {
+			last_vsync_ = 0;
+		}
+
 		Nanos suggested_draw_time() {
 			// TODO: this is a very simple version of how this calculation
 			// should be made. It's tracking the average amount of time these

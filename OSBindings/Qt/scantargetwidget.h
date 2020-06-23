@@ -34,6 +34,8 @@ class ScanTargetWidget : public QOpenGLWidget
 		GLuint framebuffer = 0;
 		MachineTypes::ScanProducer *producer = nullptr;
 
+		void setDefaultClearColour();
+
 	private slots:
 		void vsync();
 };
