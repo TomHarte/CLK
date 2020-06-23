@@ -184,6 +184,7 @@ void MainWindow::launchFile(const QString &fileName) {
 	targets = Analyser::Static::GetTargets(fileName.toStdString());
 	if(!targets.empty()) {
 		launchMachine();
+		setWindowTitle(QFileInfo(fileName).fileName());
 	}
 }
 
@@ -370,7 +371,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 
 						// Ensure the destination folder exists.
 						const std::string path = appDataLocation + "/ROMImages/" + rom.machine_name;
-						QDir dir(QString::fromStdString(path));
+						const QDir dir(QString::fromStdString(path));
 						if (!dir.exists())
 							dir.mkpath(".");
 
@@ -422,6 +423,18 @@ void MainWindow::setVisibleWidgetSet(WidgetSet set) {
 	ui->machineSelectionTabs->setVisible(set == WidgetSet::MachinePicker);
 	ui->startMachineButton->setVisible(set == WidgetSet::MachinePicker);
 	ui->topTipLabel->setVisible(set == WidgetSet::MachinePicker);
+
+	// Consider setting a window title, if it's knowable.
+	switch(set) {
+		case WidgetSet::MachinePicker:
+			setWindowTitle(tr("Select a machine..."));
+		break;
+		case WidgetSet::ROMRequester:
+			setWindowTitle(tr("Provide ROMs..."));
+		break;
+		default:
+		break;
+	}
 
 	// Set appropriate focus if necessary; e.g. this ensures that machine-picker
 	// widgets aren't still selectable after a machine starts.
@@ -535,6 +548,8 @@ void MainWindow::startMachine() {
 }
 
 void MainWindow::start_appleII() {
+	setWindowTitle(tr("Apple II"));
+
 	using Target = Analyser::Static::AppleII::Target;
 	auto target = std::make_unique<Target>();
 
@@ -555,6 +570,8 @@ void MainWindow::start_appleII() {
 }
 
 void MainWindow::start_amstradCPC() {
+	setWindowTitle(tr("Amstrad CPC"));
+
 	using Target = Analyser::Static::AmstradCPC::Target;
 	auto target = std::make_unique<Target>();
 
@@ -568,6 +585,8 @@ void MainWindow::start_amstradCPC() {
 }
 
 void MainWindow::start_atariST() {
+	setWindowTitle(tr("Atari ST"));
+
 	using Target = Analyser::Static::AtariST::Target;
 	auto target = std::make_unique<Target>();
 
@@ -577,6 +596,8 @@ void MainWindow::start_atariST() {
 }
 
 void MainWindow::start_electron() {
+	setWindowTitle(tr("Acorn Electron"));
+
 	using Target = Analyser::Static::Acorn::Target;
 	auto target = std::make_unique<Target>();
 
@@ -587,6 +608,8 @@ void MainWindow::start_electron() {
 }
 
 void MainWindow::start_macintosh() {
+	setWindowTitle(tr("Macintosh"));
+
 	using Target = Analyser::Static::Macintosh::Target;
 	auto target = std::make_unique<Target>();
 
@@ -599,6 +622,8 @@ void MainWindow::start_macintosh() {
 }
 
 void MainWindow::start_msx() {
+	setWindowTitle(tr("MSX"));
+
 	using Target = Analyser::Static::MSX::Target;
 	auto target = std::make_unique<Target>();
 
@@ -614,6 +639,8 @@ void MainWindow::start_msx() {
 }
 
 void MainWindow::start_oric() {
+	setWindowTitle(tr("Oric"));
+
 	using Target = Analyser::Static::Oric::Target;
 	auto target = std::make_unique<Target>();
 
@@ -635,6 +662,8 @@ void MainWindow::start_oric() {
 }
 
 void MainWindow::start_vic20() {
+	setWindowTitle(tr("Vic-20"));
+
 	using Target = Analyser::Static::Commodore::Target;
 	auto target = std::make_unique<Target>();
 
@@ -660,6 +689,8 @@ void MainWindow::start_vic20() {
 }
 
 void MainWindow::start_zx80() {
+	setWindowTitle(tr("ZX80"));
+
 	using Target = Analyser::Static::ZX8081::Target;
 	auto target = std::make_unique<Target>();
 
@@ -675,6 +706,8 @@ void MainWindow::start_zx80() {
 }
 
 void MainWindow::start_zx81() {
+	setWindowTitle(tr("ZX81"));
+
 	using Target = Analyser::Static::ZX8081::Target;
 	auto target = std::make_unique<Target>();
 
