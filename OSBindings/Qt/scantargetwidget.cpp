@@ -75,3 +75,9 @@ void ScanTargetWidget::setScanProducer(MachineTypes::ScanProducer *producer) {
 	this->producer = producer;
 	repaint();
 }
+
+void ScanTargetWidget::stop() {
+	makeCurrent();
+	scanTarget.reset();
+	isConnected = false;
+}

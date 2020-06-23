@@ -18,6 +18,8 @@ class ScanTargetWidget : public QOpenGLWidget
 		// handed a suitable scan target as soon as one exists.
 		void setScanProducer(MachineTypes::ScanProducer *);
 
+		void stop();
+
 	protected:
 		void initializeGL() override;
 		void resizeGL(int w, int h) override;

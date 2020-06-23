@@ -51,6 +51,9 @@ MainWindow::~MainWindow() {
 	// to write to the audioOutput while it is being shut down.
 	timer.reset();
 
+	// Shut down the scan target while it still has a context for cleanup.
+	ui->openGLWidget->stop();
+
 	// Stop the audio output, and its thread.
 	if(audioOutput) {
 		audioThread.performAsync([this] {
@@ -71,6 +74,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
 	// i.e. assume they were closing that document, not the application.
 //	if(mainWindowCount == 1 && machine) {
 //		MainWindow *const other = new MainWindow;
+//		other->setAttribute(Qt::WA_DeleteOnClose);
 //		other->show();
 //	}
 	QMainWindow::closeEvent(event);
@@ -103,6 +107,7 @@ void MainWindow::createActions() {
 
 		MainWindow *other = new MainWindow;
 		other->tile(this);
+		other->setAttribute(Qt::WA_DeleteOnClose);
 		other->show();
 	});
 	fileMenu->addAction(newAct);
@@ -119,6 +124,7 @@ void MainWindow::createActions() {
 			if(machine) {
 				MainWindow *const other = new MainWindow(fileName);
 				other->tile(this);
+				other->setAttribute(Qt::WA_DeleteOnClose);
 				other->show();
 			} else {
 				launchFile(fileName);

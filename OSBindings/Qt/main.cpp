@@ -17,7 +17,10 @@ int main(int argc, char *argv[])
 	// TODO: something with QCommandLineParser to accept a file to launch.
 
 	QApplication a(argc, argv);
-	MainWindow w;
-	w.show();
+
+	MainWindow *w = new MainWindow();
+	w->setAttribute(Qt::WA_DeleteOnClose);
+	w->show();
+
 	return a.exec();
 }
