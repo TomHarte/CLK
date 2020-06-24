@@ -49,6 +49,7 @@ void ScanTargetWidget::paintGL() {
 		vsyncPredictor.begin_redraw();
 		scanTarget->update(width(), height());
 		scanTarget->draw(width(), height());
+		glFinish();	// Make sure all costs are properly accounted for in the vsync predictor.
 		vsyncPredictor.end_redraw();
 	}
 }
