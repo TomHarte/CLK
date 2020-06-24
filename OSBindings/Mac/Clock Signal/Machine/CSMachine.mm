@@ -151,7 +151,6 @@ struct ActivityObserver: public Activity::Observer {
 	MachineTypes::JoystickMachine *_joystickMachine;
 
 	CSJoystickManager *_joystickManager;
-	std::bitset<65536> _depressedKeys;
 	NSMutableArray<NSString *> *_leds;
 
 	CSHighPrecisionTimer *_timer;

@@ -82,6 +82,7 @@ std::vector<std::string> AllMachines(Type type, bool long_names);
 
 /*!
 	Returns a map from long machine name to the list of options that machine exposes, for all machines.
+	In all cases, user-friendly selections will have been filled in by default.
 */
 std::map<std::string, std::unique_ptr<Reflection::Struct>> AllOptionsByMachineName();
 

@@ -282,6 +282,16 @@ void MainWindow::launchMachine() {
 						audioBuffer.setDepth(audioOutput->bufferSize());
 					});
 				}
+
+				// Set user-friendly default options.
+				const std::string longMachineName = Machine::LongNameForTargetMachine(targets[0]->machine);
+				const auto configurable = machine->configurable_device();
+				if(configurable) {
+					configurable->set_options(Machine::AllOptionsByMachineName()[longMachineName]);
+				}
+
+				// Update the window title. TODO: clearly I need a proper functional solution for this.
+				setWindowTitle(QString::fromStdString(longMachineName));
 			}
 
 			// If this is a timed machine, start up the timer.
@@ -459,6 +469,10 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 	switch(event->key()) {
 		default: return true;
 
+		// TODO: Qt factors in modifiers when deciding which key to declare has been pressed.
+		// E.g. on my keyboard a shifted Key_Comma produces a Key_Less, not a Key_Comma and a shift.
+		// Find a way to disable that, or else work around it here.
+
 		BIND(Escape);
 		BIND(F1);	BIND(F2);	BIND(F3);	BIND(F4);	BIND(F5);	BIND(F6);
 		BIND(F7);	BIND(F8);	BIND(F9);	BIND(F10);	BIND(F11);	BIND(F12);
@@ -481,6 +495,7 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 		BIND(CapsLock);	BIND(A);	BIND(S);	BIND(D);	BIND(F);	BIND(G);
 		BIND(H);		BIND(J);	BIND(K);	BIND(L);
 		BIND(Semicolon);
+		BIND2(Key_Apostrophe, Quote);
 		BIND2(Key_QuoteDbl, Quote);
 		// TODO: something to hash?
 		BIND2(Key_Return, Enter);
@@ -548,8 +563,6 @@ void MainWindow::startMachine() {
 }
 
 void MainWindow::start_appleII() {
-	setWindowTitle(tr("Apple II"));
-
 	using Target = Analyser::Static::AppleII::Target;
 	auto target = std::make_unique<Target>();
 
@@ -570,8 +583,6 @@ void MainWindow::start_appleII() {
 }
 
 void MainWindow::start_amstradCPC() {
-	setWindowTitle(tr("Amstrad CPC"));
-
 	using Target = Analyser::Static::AmstradCPC::Target;
 	auto target = std::make_unique<Target>();
 
@@ -585,8 +596,6 @@ void MainWindow::start_amstradCPC() {
 }
 
 void MainWindow::start_atariST() {
-	setWindowTitle(tr("Atari ST"));
-
 	using Target = Analyser::Static::AtariST::Target;
 	auto target = std::make_unique<Target>();
 
@@ -596,8 +605,6 @@ void MainWindow::start_atariST() {
 }
 
 void MainWindow::start_electron() {
-	setWindowTitle(tr("Acorn Electron"));
-
 	using Target = Analyser::Static::Acorn::Target;
 	auto target = std::make_unique<Target>();
 
@@ -608,8 +615,6 @@ void MainWindow::start_electron() {
 }
 
 void MainWindow::start_macintosh() {
-	setWindowTitle(tr("Macintosh"));
-
 	using Target = Analyser::Static::Macintosh::Target;
 	auto target = std::make_unique<Target>();
 
@@ -622,8 +627,6 @@ void MainWindow::start_macintosh() {
 }
 
 void MainWindow::start_msx() {
-	setWindowTitle(tr("MSX"));
-
 	using Target = Analyser::Static::MSX::Target;
 	auto target = std::make_unique<Target>();
 
@@ -639,8 +642,6 @@ void MainWindow::start_msx() {
 }
 
 void MainWindow::start_oric() {
-	setWindowTitle(tr("Oric"));
-
 	using Target = Analyser::Static::Oric::Target;
 	auto target = std::make_unique<Target>();
 
@@ -662,8 +663,6 @@ void MainWindow::start_oric() {
 }
 
 void MainWindow::start_vic20() {
-	setWindowTitle(tr("Vic-20"));
-
 	using Target = Analyser::Static::Commodore::Target;
 	auto target = std::make_unique<Target>();
 
@@ -689,8 +688,6 @@ void MainWindow::start_vic20() {
 }
 
 void MainWindow::start_zx80() {
-	setWindowTitle(tr("ZX80"));
-
 	using Target = Analyser::Static::ZX8081::Target;
 	auto target = std::make_unique<Target>();
 
@@ -706,8 +703,6 @@ void MainWindow::start_zx80() {
 }
 
 void MainWindow::start_zx81() {
-	setWindowTitle(tr("ZX81"));
-
 	using Target = Analyser::Static::ZX8081::Target;
 	auto target = std::make_unique<Target>();
 
