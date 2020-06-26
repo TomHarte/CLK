@@ -139,12 +139,16 @@ void MainWindow::createActions() {
 
 	// Add a separator and then an 'Insert...'.
 	fileMenu->addSeparator();
-	QAction *const insertAct = new QAction(tr("&Insert..."), this);
-	insertAct->setStatusTip(tr("Open an existing file"));
-	connect(insertAct, &QAction::triggered, this, [] {
-		// TODO.
+	insertAction = new QAction(tr("&Insert..."), this);
+	insertAction->setStatusTip(tr("Open an existing file"));
+	insertAction->setEnabled(false);
+	connect(insertAction, &QAction::triggered, this, [this] {
+		const QString fileName = getFilename("Insert...");
+		if(!fileName.isEmpty()) {
+			insertFile(fileName);
+		}
 	});
-	fileMenu->addAction(insertAct);
+	fileMenu->addAction(insertAction);
 
 	// Add Help menu, with an 'About...' option.
 	QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
@@ -176,6 +180,16 @@ QString MainWindow::getFilename(const char *title) {
 		settings.setValue("openPath", QFileInfo(fileName).absoluteDir().path());
 	}
 	return fileName;
+}
+
+void MainWindow::insertFile(const QString &fileName) {
+	if(!machine) return;
+
+	auto mediaTarget = machine->media_target();
+	if(!mediaTarget) return;
+
+	Analyser::Static::Media media = Analyser::Static::GetMedia(fileName.toStdString());
+	mediaTarget->insert_media(media);
 }
 
 void MainWindow::launchFile(const QString &fileName) {
@@ -299,6 +313,11 @@ void MainWindow::launchMachine() {
 				timer->startWithMachine(timedMachine, &machineMutex);
 			}
 
+			// If the machine can accept new media while running, enable
+			// the inert action.
+			if(machine->media_target()) {
+				insertAction->setEnabled(true);
+			}
 		} break;
 
 		case Machine::Error::MissingROM: {
@@ -347,14 +366,17 @@ void MainWindow::dropEvent(QDropEvent* event) {
 	switch(uiPhase) {
 		case UIPhase::NoFileSelected: {
 			// Treat exactly as a File -> Open... .
-			// TODO: permit multiple files dropped at once.
 			const auto fileName = event->mimeData()->urls()[0].toLocalFile();
 			launchFile(fileName);
 		} break;
 
 		case UIPhase::RunningMachine: {
 			// Attempt to insert into the running machine.
+			const auto fileName = event->mimeData()->urls()[0].toLocalFile();
+			insertFile(fileName);
 		} break;
+
+		// TODO: permit multiple files dropped at once in both of the above cases.
 
 		case UIPhase::RequestingROMs: {
 			// Attempt to match up the dragged files to the requested ROM list;

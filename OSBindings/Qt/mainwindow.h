@@ -82,6 +82,9 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void start_zx80();
 		void start_zx81();
 
+		QAction *insertAction = nullptr;
+		void insertFile(const QString &fileName);
+
 		void launchFile(const QString &fileName);
 		void launchTarget(std::unique_ptr<Analyser::Static::Target> &&);
 
