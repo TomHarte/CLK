@@ -34,6 +34,8 @@ class ScanTargetWidget : public QOpenGLWidget
 		GLuint framebuffer = 0;
 		MachineTypes::ScanProducer *producer = nullptr;
 
+		Time::Nanos requested_redraw_time_ = 0;
+
 		void setDefaultClearColour();
 
 	private slots:

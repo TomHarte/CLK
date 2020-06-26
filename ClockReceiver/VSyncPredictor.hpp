@@ -11,24 +11,38 @@
 
 #include "TimeTypes.hpp"
 #include <cmath>
+#include <cstdio>
 
 namespace Time {
 
 /*!
 	For platforms that provide no avenue into vsync tracking other than block-until-sync,
-	this class tracks: (i) how long frame draw takes; and (ii) the apparent frame period; in order
-	to suggest when you should next start drawing.
+	this class tracks: (i) how long frame draw takes; (ii) the apparent frame period; and
+	(iii) optionally, timer jitter; in order to suggest when you should next start drawing.
 */
 class VSyncPredictor {
 	public:
+		/*!
+			Announces to the predictor that the work of producing an output frame has begun.
+		*/
 		void begin_redraw() {
 			redraw_begin_time_ = nanos_now();
 		}
 
+		/*!
+			Announces to the predictor that the work of producing an output frame has ended;
+			the predictor will use the amount of time between each begin/end pair to modify
+			its expectations as to how long it takes to draw a frame.
+		*/
 		void end_redraw() {
 			redraw_period_.post(nanos_now() - redraw_begin_time_);
 		}
 
+		/*!
+			Informs the predictor that a block-on-vsync has just ended, i.e. that the moment this
+			machine calls retrace is now. The predictor uses these notifications to estimate output
+			frame rate.
+		*/
 		void announce_vsync() {
 			const auto vsync_time = nanos_now();
 			if(last_vsync_) {
@@ -37,16 +51,35 @@ class VSyncPredictor {
 			last_vsync_ = vsync_time;
 		}
 
+		/*!
+			Adds a record of how much jitter was experienced in scheduling; these values will be
+			factored into the @c suggested_draw_time if supplied.
+
+			A positive number means the timer occurred late. A negative number means it occurred early.
+		*/
+		void add_timer_jitter(Time::Nanos jitter) {
+			timer_jitter_.post(jitter);
+		}
+
+		/*!
+			Announces to the vsync predictor that output is now paused. This ends frame period
+			calculations until the next announce_vsync() restarts frame-length counting.
+		*/
 		void pause() {
 			last_vsync_ = 0;
 		}
 
+		/*!
+			@return The time at which redrawing should begin, given the predicted frame period, how
+			long it appears to take to draw a frame and how much jitter there is in scheduling
+			(if those figures are being supplied).
+		*/
 		Nanos suggested_draw_time() {
-			const auto mean = (vsync_period_.mean() - redraw_period_.mean()) / 1;
-			const auto variance = (vsync_period_.variance() + redraw_period_.variance()) / 1;
+			const auto mean = vsync_period_.mean() - redraw_period_.mean() - timer_jitter_.mean();
+			const auto variance = vsync_period_.variance() + redraw_period_.variance() + timer_jitter_.variance();
 
 			// Permit three standard deviations from the mean, to cover 99.9% of cases.
-			const auto period = mean + Nanos(3.0f * sqrt(float(variance)));
+			const auto period = mean - Nanos(3.0f * sqrt(float(variance)));
 
 			return last_vsync_ + period;
 		}
@@ -94,6 +127,7 @@ class VSyncPredictor {
 
 		VarianceCollector vsync_period_{1'000'000'000 / 60};	// 60Hz: seems like a good first guess.
 		VarianceCollector redraw_period_{1'000'000'000 / 60};	// A less convincing first guess.
+		VarianceCollector timer_jitter_{0};						// Seed at 0 in case this feature isn't used by the owner.
 };
 
 }

@@ -17,6 +17,11 @@ void ScanTargetWidget::initializeGL() {
 }
 
 void ScanTargetWidget::paintGL() {
+	if(requested_redraw_time_) {
+		vsyncPredictor.add_timer_jitter(Time::nanos_now() - requested_redraw_time_);
+		requested_redraw_time_ = 0;
+	}
+
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	// Gmynastics ahoy: if a producer has been specified or previously connected then:
@@ -60,10 +65,12 @@ void ScanTargetWidget::vsync() {
 	vsyncPredictor.announce_vsync();
 
 	const auto time_now = Time::nanos_now();
-	const auto delay_time = ((vsyncPredictor.suggested_draw_time() - time_now) / 1'000'000) - 5;	// TODO: the extra 5 is a random guess.
+	requested_redraw_time_ = vsyncPredictor.suggested_draw_time();
+	const auto delay_time = (requested_redraw_time_ - time_now) / 1'000'000;
 	if(delay_time > 0) {
 		QTimer::singleShot(delay_time, this, SLOT(repaint()));
 	} else {
+		requested_redraw_time_ = 0;
 		repaint();
 	}
 }
@@ -83,6 +90,7 @@ void ScanTargetWidget::stop() {
 	isConnected = false;
 	setDefaultClearColour();
 	vsyncPredictor.pause();
+	requested_redraw_time_ = 0;
 }
 
 void ScanTargetWidget::setDefaultClearColour() {
