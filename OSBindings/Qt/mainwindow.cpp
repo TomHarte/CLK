@@ -67,12 +67,10 @@ void MainWindow::deleteMachine() {
 
 MainWindow::~MainWindow() {
 	deleteMachine();
+	--mainWindowCount;
 
 	// Store the current user selections.
 	storeSelections();
-
-	--mainWindowCount;
-	qDebug() << "Count: " << mainWindowCount;
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -724,14 +722,92 @@ void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target
 
 // MARK - UI state
 
+// An assumption made widely below is that it's more likely I'll preserve combo box text
+// than indices. This has historically been true on the Mac, as I tend to add additional
+// options but the existing text is rarely affected.
+
 void MainWindow::storeSelections() {
 	Settings settings;
 
+	// Machine selection.
 	settings.setValue("machineSelection", ui->machineSelectionTabs->currentIndex());
+
+	// Apple II.
+	settings.setValue("appleII.model", ui->appleIIModelComboBox->currentText());
+	settings.setValue("appleII.diskController", ui->appleIIDiskControllerComboBox->currentText());
+
+	// Amstrad CPC.
+	settings.setValue("amstradcpc.model", ui->amstradCPCModelComboBox->currentText());
+
+	// Atari ST: nothing.
+
+	// Electron.
+	settings.setValue("electron.hasDFS", ui->electronDFSCheckBox->isChecked());
+	settings.setValue("electron.hasADFS", ui->electronADFSCheckBox->isChecked());
+
+	// Macintosh.
+	settings.setValue("macintosh.model", ui->macintoshModelComboBox->currentText());
+
+	// MSX.
+	settings.setValue("msx.region", ui->msxRegionComboBox->currentText());
+	settings.setValue("msx.hasDiskDrive", ui->msxDiskDriveCheckBox->isChecked());
+
+	// Oric.
+	settings.setValue("msx.model", ui->oricModelComboBox->currentText());
+	settings.setValue("msx.diskInterface", ui->oricDiskInterfaceComboBox->currentText());
+
+	// Vic-20.
+	settings.setValue("vic20.region", ui->vic20RegionComboBox->currentText());
+	settings.setValue("vic20.memorySize", ui->vic20MemorySizeComboBox->currentText());
+	settings.setValue("vic20.has1540", ui->vic20C1540CheckBox->isChecked());
+
+	// ZX80.
+	settings.setValue("zx80.memorySize", ui->zx80MemorySizeComboBox->currentText());
+	settings.setValue("zx80.usesZX81ROM", ui->zx80UseZX81ROMCheckBox->isChecked());
+
+	// ZX81.
+	settings.setValue("zx81.memorySize", ui->zx81MemorySizeComboBox->currentText());
 }
 
 void MainWindow::restoreSelections() {
 	Settings settings;
 
+	// Machine selection.
 	ui->machineSelectionTabs->setCurrentIndex(settings.value("machineSelection").toInt());
+
+	// Apple II.
+	ui->appleIIModelComboBox->setCurrentText(settings.value("appleII.model").toString());
+	ui->appleIIDiskControllerComboBox->setCurrentText(settings.value("appleII.diskController").toString());
+
+	// Amstrad CPC.
+	ui->amstradCPCModelComboBox->setCurrentText(settings.value("amstradcpc.model").toString());
+
+	// Atari ST: nothing.
+
+	// Electron.
+	ui->electronDFSCheckBox->setCheckState(settings.value("electron.hasDFS").toBool() ? Qt::Checked : Qt::Unchecked);
+	ui->electronADFSCheckBox->setCheckState(settings.value("electron.hasADFS").toBool() ? Qt::Checked : Qt::Unchecked);
+
+	// Macintosh.
+	ui->macintoshModelComboBox->setCurrentText(settings.value("macintosh.model").toString());
+
+	// MSX.
+	ui->msxRegionComboBox->setCurrentText(settings.value("msx.region").toString());
+	ui->msxDiskDriveCheckBox->setCheckState(settings.value("msx.hasDiskDrive").toBool() ? Qt::Checked : Qt::Unchecked);
+
+	// Oric.
+	ui->oricModelComboBox->setCurrentText(settings.value("msx.model").toString());
+	ui->oricDiskInterfaceComboBox->setCurrentText(settings.value("msx.diskInterface").toString());
+
+	// Vic-20.
+	ui->vic20RegionComboBox->setCurrentText(settings.value("vic20.region").toString());
+	ui->vic20MemorySizeComboBox->setCurrentText(settings.value("vic20.memorySize").toString());
+	ui->vic20C1540CheckBox->setCheckState(settings.value("vic20.has1540").toBool() ? Qt::Checked : Qt::Unchecked);
+
+	// ZX80.
+	ui->zx80MemorySizeComboBox->setCurrentText(settings.value("zx80.memorySize").toString());
+	ui->zx80UseZX81ROMCheckBox->setCheckState(settings.value("zx80.usesZX81ROM").toBool() ? Qt::Checked : Qt::Unchecked);
+
+	// ZX81.
+	ui->zx81MemorySizeComboBox->setCurrentText(settings.value("zx81.memorySize").toString());
 }
