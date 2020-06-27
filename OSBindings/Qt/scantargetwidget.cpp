@@ -52,8 +52,11 @@ void ScanTargetWidget::paintGL() {
 		}
 
 		vsyncPredictor.begin_redraw();
-		scanTarget->update(width(), height());
-		scanTarget->draw(width(), height());
+		const int devicePixelRatio = QPaintDevice::devicePixelRatio();
+		const int outputWidth = width()*devicePixelRatio;
+		const int outputHeight = height()*devicePixelRatio;
+		scanTarget->update(outputWidth, outputHeight);
+		scanTarget->draw(outputWidth, outputHeight);
 		glFinish();	// Make sure all costs are properly accounted for in the vsync predictor.
 		vsyncPredictor.end_redraw();
 	}
@@ -76,7 +79,8 @@ void ScanTargetWidget::vsync() {
 }
 
 void ScanTargetWidget::resizeGL(int w, int h) {
-	glViewport(0, 0, w, h);
+	const int devicePixelRatio = QPaintDevice::devicePixelRatio();
+	glViewport(0, 0, w*devicePixelRatio, h*devicePixelRatio);
 }
 
 void ScanTargetWidget::setScanProducer(MachineTypes::ScanProducer *producer) {
