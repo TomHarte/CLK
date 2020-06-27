@@ -250,101 +250,104 @@ void MainWindow::launchMachine() {
 	Machine::Error error;
 	machine.reset(Machine::MachineForTargets(targets, rom_fetcher, error));
 
-	switch(error) {
-		default: {
-			// TODO: correct assumptions herein that this is the first machine to be
-			// assigned to this window.
-			setVisibleWidgetSet(WidgetSet::RunningMachine);
-			uiPhase = UIPhase::RunningMachine;
+	if(error != Machine::Error::None) {
+		switch(error) {
+			default: break;
+			case Machine::Error::MissingROM: {
+				setVisibleWidgetSet(WidgetSet::ROMRequester);
+				uiPhase = UIPhase::RequestingROMs;
 
-			// Supply the scan target.
-			// TODO: in the future, hypothetically, deal with non-scan producers.
-			const auto scan_producer = machine->scan_producer();
-			if(scan_producer) {
-				ui->openGLWidget->setScanProducer(scan_producer);
-			}
+				// Populate request text.
+				QString requestText = romRequestBaseText;
+				size_t index = 0;
+				for(const auto rom: missingRoms) {
+					requestText += "• ";
+					requestText += rom.descriptive_name.c_str();
 
-			// Install audio output if required.
-			const auto audio_producer = machine->audio_producer();
-			if(audio_producer) {
-				static constexpr size_t samplesPerBuffer = 256;	// TODO: select this dynamically.
-				const auto speaker = audio_producer->get_speaker();
-				if(speaker) {
-					const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
-					QAudioFormat idealFormat = defaultDeviceInfo.preferredFormat();
-
-					// Use the ideal format's sample rate, provide stereo as long as at least two channels
-					// are available, and — at least for now — assume a good buffer size.
-					audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
-					audioIs8bit = idealFormat.sampleSize() < 16;
-					idealFormat.setChannelCount(1 + int(audioIsStereo));
-					idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
-
-					speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
-					speaker->set_delegate(this);
-
-					audioThread.performAsync([this, idealFormat] {
-						// Create an audio output.
-						audioOutput = std::make_unique<QAudioOutput>(idealFormat);
-
-						// Start the output. The additional `audioBuffer` is meant to minimise latency,
-						// believe it or not, given Qt's semantics.
-						audioOutput->setBufferSize(samplesPerBuffer * sizeof(int16_t));
-						audioOutput->start(&audioBuffer);
-						audioBuffer.setDepth(audioOutput->bufferSize());
-					});
+					++index;
+					if(index == missingRoms.size()) {
+						requestText += ".\n";
+						continue;
+					}
+					if(index == missingRoms.size() - 1) {
+						requestText += "; and\n";
+						continue;
+					}
+					requestText += ";\n";
 				}
-
-				// Set user-friendly default options.
-				const std::string longMachineName = Machine::LongNameForTargetMachine(targets[0]->machine);
-				const auto configurable = machine->configurable_device();
-				if(configurable) {
-					configurable->set_options(Machine::AllOptionsByMachineName()[longMachineName]);
-				}
-
-				// Update the window title. TODO: clearly I need a proper functional solution for this.
-				setWindowTitle(QString::fromStdString(longMachineName));
-			}
-
-			// If this is a timed machine, start up the timer.
-			const auto timedMachine = machine->timed_machine();
-			if(timedMachine) {
-				timer = std::make_unique<Timer>(this);
-				timer->startWithMachine(timedMachine, &machineMutex);
-			}
-
-			// If the machine can accept new media while running, enable
-			// the inert action.
-			if(machine->media_target()) {
-				insertAction->setEnabled(true);
-			}
-		} break;
-
-		case Machine::Error::MissingROM: {
-			setVisibleWidgetSet(WidgetSet::ROMRequester);
-			uiPhase = UIPhase::RequestingROMs;
-
-			// Populate request text.
-			QString requestText = romRequestBaseText;
-			size_t index = 0;
-			for(const auto rom: missingRoms) {
-				requestText += "• ";
-				requestText += rom.descriptive_name.c_str();
-
-				++index;
-				if(index == missingRoms.size()) {
-					requestText += ".\n";
-					continue;
-				}
-				if(index == missingRoms.size() - 1) {
-					requestText += "; and\n";
-					continue;
-				}
-				requestText += ";\n";
-			}
-			ui->missingROMsBox->setPlainText(requestText);
-		} break;
+				ui->missingROMsBox->setPlainText(requestText);
+			} break;
+		}
+		return;
 	}
+
+	setVisibleWidgetSet(WidgetSet::RunningMachine);
+	uiPhase = UIPhase::RunningMachine;
+
+	// Supply the scan target.
+	// TODO: in the future, hypothetically, deal with non-scan producers.
+	const auto scan_producer = machine->scan_producer();
+	if(scan_producer) {
+		ui->openGLWidget->setScanProducer(scan_producer);
+	}
+
+	// Install audio output if required.
+	const auto audio_producer = machine->audio_producer();
+	if(audio_producer) {
+		static constexpr size_t samplesPerBuffer = 256;	// TODO: select this dynamically.
+		const auto speaker = audio_producer->get_speaker();
+		if(speaker) {
+			const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
+			QAudioFormat idealFormat = defaultDeviceInfo.preferredFormat();
+
+			// Use the ideal format's sample rate, provide stereo as long as at least two channels
+			// are available, and — at least for now — assume a good buffer size.
+			audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
+			audioIs8bit = idealFormat.sampleSize() < 16;
+			idealFormat.setChannelCount(1 + int(audioIsStereo));
+			idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
+
+			speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
+			speaker->set_delegate(this);
+
+			audioThread.performAsync([this, idealFormat] {
+				// Create an audio output.
+				audioOutput = std::make_unique<QAudioOutput>(idealFormat);
+
+				// Start the output. The additional `audioBuffer` is meant to minimise latency,
+				// believe it or not, given Qt's semantics.
+				audioOutput->setBufferSize(samplesPerBuffer * sizeof(int16_t));
+				audioOutput->start(&audioBuffer);
+				audioBuffer.setDepth(audioOutput->bufferSize());
+			});
+		}
+	}
+
+	// Set user-friendly default options.
+	const std::string longMachineName = Machine::LongNameForTargetMachine(targets[0]->machine);
+	const auto configurable = machine->configurable_device();
+	if(configurable) {
+		configurable->set_options(Machine::AllOptionsByMachineName()[longMachineName]);
+	}
+
+
+	// If this is a timed machine, start up the timer.
+	const auto timedMachine = machine->timed_machine();
+	if(timedMachine) {
+		timer = std::make_unique<Timer>(this);
+		timer->startWithMachine(timedMachine, &machineMutex);
+	}
+
+	// If the machine can accept new media while running, enable
+	// the inert action.
+	if(machine->media_target()) {
+		insertAction->setEnabled(true);
+	}
+
+	// Update the window title. TODO: clearly I need a proper functional solution for the window title.
+	setWindowTitle(QString::fromStdString(longMachineName));
+
+	// TODO: add machine-specific UI.
 }
 
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
@@ -742,7 +745,7 @@ void MainWindow::launchTarget(std::unique_ptr<Analyser::Static::Target> &&target
 	launchMachine();
 }
 
-// MARK - UI state
+// MARK: - UI state
 
 // An assumption made widely below is that it's more likely I'll preserve combo box text
 // than indices. This has historically been true on the Mac, as I tend to add additional
