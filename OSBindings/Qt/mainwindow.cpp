@@ -324,7 +324,8 @@ void MainWindow::launchMachine() {
 	}
 
 	// Set user-friendly default options.
-	const std::string longMachineName = Machine::LongNameForTargetMachine(targets[0]->machine);
+	const auto machineType = targets[0]->machine;
+	const std::string longMachineName = Machine::LongNameForTargetMachine(machineType);
 	const auto configurable = machine->configurable_device();
 	if(configurable) {
 		configurable->set_options(Machine::AllOptionsByMachineName()[longMachineName]);
@@ -348,7 +349,103 @@ void MainWindow::launchMachine() {
 	setWindowTitle(QString::fromStdString(longMachineName));
 
 	// TODO: add machine-specific UI.
+
+	switch(machineType) {
+		case Analyser::Machine::AmstradCPC:
+			addDisplayMenu("Television", "", "", "Monitor");
+		break;
+
+		case Analyser::Machine::AppleII:
+			addDisplayMenu("Colour", "Monochrome", "", "");
+		break;
+
+		case Analyser::Machine::AtariST:
+			addDisplayMenu("Television", "", "", "Monitor");
+		break;
+
+		case Analyser::Machine::ColecoVision:
+			addDisplayMenu("Composite", "", "S-Video", "");
+		break;
+
+		case Analyser::Machine::Vic20:
+			addDisplayMenu("Composite", "", "S-Video", "");
+		break;
+
+		case Analyser::Machine::Electron:
+			addDisplayMenu("Composite", "", "S-Video", "RGB");
+		break;
+
+		case Analyser::Machine::MasterSystem:
+			addDisplayMenu("Composite", "", "S-Video", "SCART");
+		break;
+
+		case Analyser::Machine::MSX:
+			addDisplayMenu("Composite", "", "S-Video", "SCART");
+		break;
+
+		case Analyser::Machine::Oric:
+			addDisplayMenu("Composite", "", "", "SCART");
+		break;
+
+		default: break;
+	}
 }
+
+void MainWindow::addDisplayMenu(const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb) {
+	// Create a display menu.
+	QMenu *const displayMenu = menuBar()->addMenu(tr("&Display"));
+
+	QAction *compositeColourAction = nullptr;
+	QAction *compositeMonochromeAction = nullptr;
+	QAction *sVideoAction = nullptr;
+	QAction *rgbAction = nullptr;
+
+	// Add all requested actions.
+#define Add(name, action)								\
+	if(!name.empty()) {									\
+		action = new QAction(tr(name.c_str()), this);	\
+		action->setCheckable(true);						\
+		displayMenu->addAction(action);					\
+	}
+
+	Add(compositeColour, compositeColourAction);
+	Add(compositeMono, compositeMonochromeAction);
+	Add(svideo, sVideoAction);
+	Add(rgb, rgbAction);
+
+#undef Add
+
+	// TODO: use the existing machine configuration and/or settings to determine what is currently ticked.
+	auto options = machine->configurable_device()->get_options();
+	Configurable::Display defaultDisplay = Configurable::Display::RGB;//Reflection::get<Configurable::Display>(*options, "output");
+
+	// Add actions to the generated options.
+	size_t index = 0;
+	for(auto action: {compositeColourAction, compositeMonochromeAction, sVideoAction, rgbAction}) {
+		constexpr Configurable::Display displaySelections[] = {
+			Configurable::Display::CompositeColour,
+			Configurable::Display::CompositeMonochrome,
+			Configurable::Display::SVideo,
+			Configurable::Display::RGB,
+		};
+		const Configurable::Display displaySelection = displaySelections[index];
+		++index;
+
+		if(!action) continue;
+
+		action->setChecked(displaySelection == defaultDisplay);
+		connect(action, &QAction::triggered, this, [=] {
+			for(auto otherAction: {compositeColourAction, compositeMonochromeAction, sVideoAction, rgbAction}) {
+				if(otherAction && otherAction != action) otherAction->setChecked(false);
+			}
+
+			auto options = machine->configurable_device()->get_options();
+			Reflection::set(*options, "output", int(displaySelection));
+			machine->configurable_device()->set_options(options);
+		});
+	}
+}
+
 
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
 	audioBuffer.write(buffer);
