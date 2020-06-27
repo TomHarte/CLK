@@ -100,6 +100,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		void deleteMachine();
 
+		QMenu *displayMenu = nullptr;
 		void addDisplayMenu(const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb);
 };
 

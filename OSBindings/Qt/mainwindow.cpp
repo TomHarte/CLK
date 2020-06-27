@@ -62,7 +62,11 @@ void MainWindow::deleteMachine() {
 		audioThread.stop();
 	}
 
+	// Release the machine.
 	machine.reset();
+
+	// Remove any machine-specific options.
+	if(displayMenu) menuBar()->removeAction(displayMenu->menuAction());
 }
 
 MainWindow::~MainWindow() {
@@ -393,7 +397,7 @@ void MainWindow::launchMachine() {
 
 void MainWindow::addDisplayMenu(const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb) {
 	// Create a display menu.
-	QMenu *const displayMenu = menuBar()->addMenu(tr("&Display"));
+	displayMenu = menuBar()->addMenu(tr("&Display"));
 
 	QAction *compositeColourAction = nullptr;
 	QAction *compositeMonochromeAction = nullptr;
