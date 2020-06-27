@@ -102,6 +102,11 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		QMenu *displayMenu = nullptr;
 		void addDisplayMenu(const std::string &machinePrefix, const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb);
+
+		QMenu *enhancementsMenu = nullptr;
+		void addEnhancementsMenu(const std::string &machinePrefix, bool offerQuickLoad, bool offerQuickBoot);
+
+		QMenu *controlsMenu = nullptr;
 };
 
 #endif // MAINWINDOW_H

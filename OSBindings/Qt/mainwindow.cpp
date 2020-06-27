@@ -66,7 +66,9 @@ void MainWindow::deleteMachine() {
 	machine.reset();
 
 	// Remove any machine-specific options.
-	if(displayMenu) menuBar()->removeAction(displayMenu->menuAction());
+	if(displayMenu)			menuBar()->removeAction(displayMenu->menuAction());
+	if(enhancementsMenu)	menuBar()->removeAction(enhancementsMenu->menuAction());
+	if(controlsMenu)		menuBar()->removeAction(controlsMenu->menuAction());
 }
 
 MainWindow::~MainWindow() {
@@ -352,7 +354,6 @@ void MainWindow::launchMachine() {
 	// Update the window title. TODO: clearly I need a proper functional solution for the window title.
 	setWindowTitle(QString::fromStdString(longMachineName));
 
-
 	// Add machine-specific UI.
 	const std::string settingsPrefix = Machine::ShortNameForTargetMachine(machineType);
 	switch(machineType) {
@@ -372,12 +373,13 @@ void MainWindow::launchMachine() {
 			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "");
 		break;
 
-		case Analyser::Machine::Vic20:
-			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "");
-		break;
-
 		case Analyser::Machine::Electron:
 			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "RGB");
+			addEnhancementsMenu(settingsPrefix, true, false);
+		break;
+
+		case Analyser::Machine::Macintosh:
+			addEnhancementsMenu(settingsPrefix, false, true);
 		break;
 
 		case Analyser::Machine::MasterSystem:
@@ -386,10 +388,19 @@ void MainWindow::launchMachine() {
 
 		case Analyser::Machine::MSX:
 			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
+			addEnhancementsMenu(settingsPrefix, true, false);
 		break;
 
 		case Analyser::Machine::Oric:
 			addDisplayMenu(settingsPrefix, "Composite", "", "", "SCART");
+		break;
+
+		case Analyser::Machine::Vic20:
+			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "");
+			addEnhancementsMenu(settingsPrefix, true, false);
+		break;
+
+		case Analyser::Machine::ZX8081:
 		break;
 
 		default: break;
@@ -466,6 +477,42 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 	}
 }
 
+void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, bool offerQuickLoad, bool offerQuickBoot) {
+	enhancementsMenu = menuBar()->addMenu(tr("&Enhancements"));
+
+	auto options = machine->configurable_device()->get_options();
+	Settings settings;
+
+#define Add(offered, text, setting)																	\
+	if(offered) {																					\
+		QAction *const action = new QAction(tr(text), this);										\
+		action->setCheckable(true);																	\
+		enhancementsMenu->addAction(action);														\
+																									\
+		const auto settingName = QString::fromStdString(machinePrefix + "." + setting);				\
+		if(settings.contains(settingName)) {														\
+			const bool isSelected = settings.value(settingName).toBool();							\
+			Reflection::set(*options, setting, isSelected);											\
+		}																							\
+		action->setChecked(Reflection::get<bool>(*options, setting) ? Qt::Checked : Qt::Unchecked);	\
+																									\
+		connect(action, &QAction::triggered, this, [=] {											\
+			auto options = machine->configurable_device()->get_options();							\
+			Reflection::set(*options, setting, action->isChecked());								\
+			machine->configurable_device()->set_options(options);									\
+																									\
+			Settings settings;																		\
+			settings.setValue(settingName, action->isChecked());									\
+		});																							\
+	}
+
+	Add(offerQuickLoad, "Load Quickly", "quickload");
+	Add(offerQuickBoot, "Start Quickly", "quickboot");
+
+#undef Add
+
+	machine->configurable_device()->set_options(options);
+}
 
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
 	audioBuffer.write(buffer);
