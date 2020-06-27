@@ -7,7 +7,6 @@
 //
 
 #include "Struct.hpp"
-#include "TypeInfo.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -157,70 +156,6 @@ bool Reflection::fuzzy_set(Struct &target, const std::string &name, const std::s
 	return false;
 }
 
-// MARK: - Getters
-
-template <typename Type> bool Reflection::get(const Struct &target, const std::string &name, Type &value, size_t offset) {
-	const auto target_type = target.type_of(name);
-	if(!target_type) return false;
-
-	// If type is a direct match, copy.
-	if(*target_type == typeid(Type)) {
-		const auto address = reinterpret_cast<const uint8_t *>(target.get(name)) + offset * sizeof(Type);
-		value = *reinterpret_cast<const Type *>(address);
-		return true;
-	}
-
-	// If the type is a registered enum and the value type is int, copy.
-	if constexpr (std::is_integral<Type>::value && sizeof(Type) == sizeof(int)) {
-		if(!Enum::name(*target_type).empty()) {
-			memcpy(&value, target.get(name), sizeof(int));
-			return true;
-		}
-	}
-
-	// If the type is an int that is larger than the stored type and matches the signedness, cast upward.
-	if constexpr (std::is_integral<Type>::value) {
-		if(TypeInfo::is_integral(target_type)) {
-			const bool target_is_signed = TypeInfo::is_signed(target_type);
-			const size_t target_size = TypeInfo::size(target_type);
-
-			// An unsigned type can map to any larger type, signed or unsigned;
-			// a signed type can map to a larger type only if it also is signed.
-			if(sizeof(Type) > target_size && (!target_is_signed || std::is_signed<Type>::value)) {
-				const auto address = reinterpret_cast<const uint8_t *>(target.get(name)) + offset * target_size;
-
-#define Map(x)	if(*target_type == typeid(x)) { value = static_cast<Type>(*reinterpret_cast<const x *>(address)); }
-				ForAllInts(Map);
-#undef Map
-				return true;
-			}
-		}
-	}
-
-	// If the type is a double and stored type is a float, cast upward.
-	if constexpr (std::is_floating_point<Type>::value) {
-		constexpr size_t size = sizeof(Type);
-		const bool target_is_floating_point = TypeInfo::is_floating_point(target_type);
-		const size_t target_size = TypeInfo::size(target_type);
-
-		if(size > target_size && target_is_floating_point) {
-				const auto address = reinterpret_cast<const uint8_t *>(target.get(name)) + offset * target_size;
-
-#define Map(x)	if(*target_type == typeid(x)) { value = static_cast<Type>(*reinterpret_cast<const x *>(address)); }
-			ForAllFloats(Map);
-#undef Map
-			return true;
-		}
-	}
-
-	return false;
-}
-
-template <typename Type> Type Reflection::get(const Struct &target, const std::string &name, size_t offset) {
-	Type value{};
-	get(target, name, value, offset);
-	return value;
-}
 
 // MARK: - Description
 
