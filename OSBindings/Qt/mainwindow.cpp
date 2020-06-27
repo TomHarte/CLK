@@ -352,50 +352,51 @@ void MainWindow::launchMachine() {
 	// Update the window title. TODO: clearly I need a proper functional solution for the window title.
 	setWindowTitle(QString::fromStdString(longMachineName));
 
-	// TODO: add machine-specific UI.
 
+	// Add machine-specific UI.
+	const std::string settingsPrefix = Machine::ShortNameForTargetMachine(machineType);
 	switch(machineType) {
 		case Analyser::Machine::AmstradCPC:
-			addDisplayMenu("Television", "", "", "Monitor");
+			addDisplayMenu(settingsPrefix, "Television", "", "", "Monitor");
 		break;
 
 		case Analyser::Machine::AppleII:
-			addDisplayMenu("Colour", "Monochrome", "", "");
+			addDisplayMenu(settingsPrefix, "Colour", "Monochrome", "", "");
 		break;
 
 		case Analyser::Machine::AtariST:
-			addDisplayMenu("Television", "", "", "Monitor");
+			addDisplayMenu(settingsPrefix, "Television", "", "", "Monitor");
 		break;
 
 		case Analyser::Machine::ColecoVision:
-			addDisplayMenu("Composite", "", "S-Video", "");
+			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "");
 		break;
 
 		case Analyser::Machine::Vic20:
-			addDisplayMenu("Composite", "", "S-Video", "");
+			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "");
 		break;
 
 		case Analyser::Machine::Electron:
-			addDisplayMenu("Composite", "", "S-Video", "RGB");
+			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "RGB");
 		break;
 
 		case Analyser::Machine::MasterSystem:
-			addDisplayMenu("Composite", "", "S-Video", "SCART");
+			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
 		break;
 
 		case Analyser::Machine::MSX:
-			addDisplayMenu("Composite", "", "S-Video", "SCART");
+			addDisplayMenu(settingsPrefix, "Composite", "", "S-Video", "SCART");
 		break;
 
 		case Analyser::Machine::Oric:
-			addDisplayMenu("Composite", "", "", "SCART");
+			addDisplayMenu(settingsPrefix, "Composite", "", "", "SCART");
 		break;
 
 		default: break;
 	}
 }
 
-void MainWindow::addDisplayMenu(const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb) {
+void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb) {
 	// Create a display menu.
 	displayMenu = menuBar()->addMenu(tr("&Display"));
 
@@ -419,9 +420,21 @@ void MainWindow::addDisplayMenu(const std::string &compositeColour, const std::s
 
 #undef Add
 
-	// TODO: use the existing machine configuration and/or settings to determine what is currently ticked.
+	// Get the machine's default setting.
 	auto options = machine->configurable_device()->get_options();
-	Configurable::Display defaultDisplay = Configurable::Display::RGB;//Reflection::get<Configurable::Display>(*options, "output");
+	auto defaultDisplay = Reflection::get<Configurable::Display>(*options, "output");
+
+	// Check whether there's an alternative selection in the user settings. If so, apply it.
+	Settings settings;
+	const auto settingName = QString::fromStdString(machinePrefix + ".displayType");
+	if(settings.contains(settingName)) {
+		auto userSelectedDisplay = Configurable::Display(settings.value(settingName).toInt());
+		if(userSelectedDisplay != defaultDisplay) {
+			defaultDisplay = userSelectedDisplay;
+			Reflection::set(*options, "output", int(userSelectedDisplay));
+			machine->configurable_device()->set_options(options);
+		}
+	}
 
 	// Add actions to the generated options.
 	size_t index = 0;
@@ -446,6 +459,9 @@ void MainWindow::addDisplayMenu(const std::string &compositeColour, const std::s
 			auto options = machine->configurable_device()->get_options();
 			Reflection::set(*options, "output", int(displaySelection));
 			machine->configurable_device()->set_options(options);
+
+			Settings settings;
+			settings.setValue(settingName, int(displaySelection));
 		});
 	}
 }
