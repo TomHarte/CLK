@@ -8,10 +8,6 @@
 
 #include "../../Numeric/CRC.hpp"
 
-// There are machine-specific controls for the following:
-#include "../../Machines/ZX8081/ZX8081.hpp"
-#include "../../Machines/Atari/2600/Atari2600.hpp"
-
 namespace {
 
 std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *file) {
@@ -369,6 +365,10 @@ void MainWindow::launchMachine() {
 			addDisplayMenu(settingsPrefix, "Colour", "Monochrome", "", "");
 		break;
 
+		case Analyser::Machine::Atari2600:
+			addAtari2600Menu();
+		break;
+
 		case Analyser::Machine::AtariST:
 			addDisplayMenu(settingsPrefix, "Television", "", "", "Monitor");
 		break;
@@ -472,12 +472,13 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 				if(otherAction && otherAction != action) otherAction->setChecked(false);
 			}
 
+			Settings settings;
+			settings.setValue(settingName, int(displaySelection));
+
+			std::lock_guard lock_guard(machineMutex);
 			auto options = machine->configurable_device()->get_options();
 			Reflection::set(*options, "output", int(displaySelection));
 			machine->configurable_device()->set_options(options);
-
-			Settings settings;
-			settings.setValue(settingName, int(displaySelection));
 		});
 	}
 }
@@ -505,6 +506,7 @@ void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *m
 		action->setChecked(Reflection::get<bool>(*options, setting) ? Qt::Checked : Qt::Unchecked);	\
 																									\
 		connect(action, &QAction::triggered, this, [=] {											\
+			std::lock_guard lock_guard(machineMutex);												\
 			auto options = machine->configurable_device()->get_options();							\
 			Reflection::set(*options, setting, action->isChecked());								\
 			machine->configurable_device()->set_options(options);									\
@@ -526,7 +528,6 @@ void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *m
 	machine->configurable_device()->set_options(options);
 }
 
-//QMenu *controlsMenu = nullptr;
 void MainWindow::addZX8081Menu(const std::string &machinePrefix) {
 	controlsMenu = menuBar()->addMenu(tr("Tape &Control"));
 
@@ -537,6 +538,7 @@ void MainWindow::addZX8081Menu(const std::string &machinePrefix) {
 	startTapeAction = new QAction(tr("Start Tape"), this);
 	controlsMenu->addAction(startTapeAction);
 	connect(startTapeAction, &QAction::triggered, this, [=] {
+		std::lock_guard lock_guard(machineMutex);
 		static_cast<ZX8081::Machine *>(machine->raw_pointer())->set_tape_is_playing(true);
 		updateTapeControls();
 	});
@@ -544,6 +546,7 @@ void MainWindow::addZX8081Menu(const std::string &machinePrefix) {
 	stopTapeAction = new QAction(tr("Stop Tape"), this);
 	controlsMenu->addAction(stopTapeAction);
 	connect(stopTapeAction, &QAction::triggered, this, [=] {
+		std::lock_guard lock_guard(machineMutex);
 		static_cast<ZX8081::Machine *>(machine->raw_pointer())->set_tape_is_playing(false);
 		updateTapeControls();
 	});
@@ -561,6 +564,59 @@ void MainWindow::updateTapeControls() {
 
 	startTapeAction->setEnabled(!isPlaying && startStopEnabled);
 	stopTapeAction->setEnabled(isPlaying && startStopEnabled);
+}
+
+void MainWindow::addAtari2600Menu() {
+	controlsMenu = menuBar()->addMenu(tr("&Switches"));
+
+	QAction *const blackAndWhiteAction = new QAction(tr("Black and white"));
+	blackAndWhiteAction->setCheckable(true);
+	connect(blackAndWhiteAction, &QAction::triggered, this, [=] {
+		std::lock_guard lock_guard(machineMutex);
+		// TODO: is this switch perhaps misnamed?
+		static_cast<Atari2600::Machine *>(machine->raw_pointer())->set_switch_is_enabled(Atari2600SwitchColour, blackAndWhiteAction->isChecked());
+	});
+	controlsMenu->addAction(blackAndWhiteAction);
+
+	QAction *const leftDifficultyAction = new QAction(tr("Left Difficulty"));
+	leftDifficultyAction->setCheckable(true);
+	connect(leftDifficultyAction, &QAction::triggered, this, [=] {
+		std::lock_guard lock_guard(machineMutex);
+		static_cast<Atari2600::Machine *>(machine->raw_pointer())->set_switch_is_enabled(Atari2600SwitchLeftPlayerDifficulty, leftDifficultyAction->isChecked());
+	});
+	controlsMenu->addAction(leftDifficultyAction);
+
+	QAction *const rightDifficultyAction = new QAction(tr("Right Difficulty"));
+	rightDifficultyAction->setCheckable(true);
+	connect(rightDifficultyAction, &QAction::triggered, this, [=] {
+		std::lock_guard lock_guard(machineMutex);
+		static_cast<Atari2600::Machine *>(machine->raw_pointer())->set_switch_is_enabled(Atari2600SwitchRightPlayerDifficulty, rightDifficultyAction->isChecked());
+	});
+	controlsMenu->addAction(rightDifficultyAction);
+
+	controlsMenu->addSeparator();
+
+	QAction *const gameSelectAction = new QAction(tr("Game Select"));
+	controlsMenu->addAction(gameSelectAction);
+	connect(gameSelectAction, &QAction::triggered, this, [=] {
+		toggleAtari2600Switch(Atari2600SwitchSelect);
+	});
+
+	QAction *const gameResetAction = new QAction(tr("Game Reset"));
+	controlsMenu->addAction(gameResetAction);
+	connect(gameSelectAction, &QAction::triggered, this, [=] {
+		toggleAtari2600Switch(Atari2600SwitchReset);
+	});
+}
+
+void MainWindow::toggleAtari2600Switch(Atari2600Switch toggleSwitch) {
+	std::lock_guard lock_guard(machineMutex);
+	const auto atari2600 = static_cast<Atari2600::Machine *>(machine->raw_pointer());
+
+	atari2600->set_switch_is_enabled(toggleSwitch, true);
+	QTimer::singleShot(500, this, [atari2600, toggleSwitch] {
+		atari2600->set_switch_is_enabled(toggleSwitch, false);
+	});
 }
 
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {

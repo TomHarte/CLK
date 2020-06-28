@@ -13,6 +13,10 @@
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
 
+// There are machine-specific controls for the following:
+#include "../../Machines/ZX8081/ZX8081.hpp"
+#include "../../Machines/Atari/2600/Atari2600.hpp"
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -113,6 +117,9 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		QAction *startTapeAction = nullptr;
 		void addZX8081Menu(const std::string &machinePrefix);
 		void updateTapeControls();
+
+		void addAtari2600Menu();
+		void toggleAtari2600Switch(Atari2600Switch toggleSwitch);
 };
 
 #endif // MAINWINDOW_H
