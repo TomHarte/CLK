@@ -105,8 +105,10 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		QMenu *enhancementsMenu = nullptr;
 		void addEnhancementsMenu(const std::string &machinePrefix, bool offerQuickLoad, bool offerQuickBoot);
+		void addEnhancementsItems(const std::string &machinePrefix, QMenu *menu, bool offerQuickLoad, bool offerQuickBoot, bool automatic_tape_motor_control);
 
 		QMenu *controlsMenu = nullptr;
+		void addZX8081Menu(const std::string &machinePrefix);
 };
 
 #endif // MAINWINDOW_H

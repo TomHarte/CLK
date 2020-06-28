@@ -401,6 +401,7 @@ void MainWindow::launchMachine() {
 		break;
 
 		case Analyser::Machine::ZX8081:
+			addZX8081Menu(settingsPrefix);
 		break;
 
 		default: break;
@@ -479,7 +480,10 @@ void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::str
 
 void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, bool offerQuickLoad, bool offerQuickBoot) {
 	enhancementsMenu = menuBar()->addMenu(tr("&Enhancements"));
+	addEnhancementsItems(machinePrefix, enhancementsMenu, offerQuickLoad, offerQuickBoot, false);
+}
 
+void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *menu, bool offerQuickLoad, bool offerQuickBoot, bool offerAutomaticTapeControl) {
 	auto options = machine->configurable_device()->get_options();
 	Settings settings;
 
@@ -487,7 +491,7 @@ void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, bool offe
 	if(offered) {																					\
 		QAction *const action = new QAction(tr(text), this);										\
 		action->setCheckable(true);																	\
-		enhancementsMenu->addAction(action);														\
+		menu->addAction(action);																	\
 																									\
 		const auto settingName = QString::fromStdString(machinePrefix + "." + setting);				\
 		if(settings.contains(settingName)) {														\
@@ -509,10 +513,26 @@ void MainWindow::addEnhancementsMenu(const std::string &machinePrefix, bool offe
 	Add(offerQuickLoad, "Load Quickly", "quickload");
 	Add(offerQuickBoot, "Start Quickly", "quickboot");
 
+	if(offerAutomaticTapeControl) menu->addSeparator();
+	Add(offerAutomaticTapeControl, "Start and Stop Tape Automatically", "automatic_tape_motor_control");
+
 #undef Add
 
 	machine->configurable_device()->set_options(options);
 }
+
+//QMenu *controlsMenu = nullptr;
+void MainWindow::addZX8081Menu(const std::string &machinePrefix) {
+	controlsMenu = menuBar()->addMenu(tr("Tape &Control"));
+
+	// Add the quick-load option.
+	addEnhancementsItems(machinePrefix, controlsMenu, true, false, true);
+
+	// TODO: start and stop tape options, possibly both disabled as per the automatic control and,
+	// if not, with start enabled, stop disabled and appropriate wiring. Also add an additional
+	// connection from the automatic tape control action to update in the future.
+}
+
 
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
 	audioBuffer.write(buffer);
@@ -597,9 +617,6 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 				return false;
 			}
 		} break;
-
-		case QEvent::Close:
-		break;
 
 		default:
 		break;
