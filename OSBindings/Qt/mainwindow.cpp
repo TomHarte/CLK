@@ -8,6 +8,10 @@
 
 #include "../../Numeric/CRC.hpp"
 
+// There are machine-specific controls for the following:
+#include "../../Machines/ZX8081/ZX8081.hpp"
+#include "../../Machines/Atari/2600/Atari2600.hpp"
+
 namespace {
 
 std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *file) {
@@ -487,9 +491,9 @@ void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *m
 	auto options = machine->configurable_device()->get_options();
 	Settings settings;
 
-#define Add(offered, text, setting)																	\
+#define Add(offered, text, setting, action)															\
 	if(offered) {																					\
-		QAction *const action = new QAction(tr(text), this);										\
+		action = new QAction(tr(text), this);														\
 		action->setCheckable(true);																	\
 		menu->addAction(action);																	\
 																									\
@@ -510,11 +514,12 @@ void MainWindow::addEnhancementsItems(const std::string &machinePrefix, QMenu *m
 		});																							\
 	}
 
-	Add(offerQuickLoad, "Load Quickly", "quickload");
-	Add(offerQuickBoot, "Start Quickly", "quickboot");
+	QAction *action;
+	Add(offerQuickLoad, "Load Quickly", "quickload", action);
+	Add(offerQuickBoot, "Start Quickly", "quickboot", action);
 
 	if(offerAutomaticTapeControl) menu->addSeparator();
-	Add(offerAutomaticTapeControl, "Start and Stop Tape Automatically", "automatic_tape_motor_control");
+	Add(offerAutomaticTapeControl, "Start and Stop Tape Automatically", "automatic_tape_motor_control", automaticTapeControlAction);
 
 #undef Add
 
@@ -528,11 +533,35 @@ void MainWindow::addZX8081Menu(const std::string &machinePrefix) {
 	// Add the quick-load option.
 	addEnhancementsItems(machinePrefix, controlsMenu, true, false, true);
 
-	// TODO: start and stop tape options, possibly both disabled as per the automatic control and,
-	// if not, with start enabled, stop disabled and appropriate wiring. Also add an additional
-	// connection from the automatic tape control action to update in the future.
+	// Add the start/stop items.
+	startTapeAction = new QAction(tr("Start Tape"), this);
+	controlsMenu->addAction(startTapeAction);
+	connect(startTapeAction, &QAction::triggered, this, [=] {
+		static_cast<ZX8081::Machine *>(machine->raw_pointer())->set_tape_is_playing(true);
+		updateTapeControls();
+	});
+
+	stopTapeAction = new QAction(tr("Stop Tape"), this);
+	controlsMenu->addAction(stopTapeAction);
+	connect(stopTapeAction, &QAction::triggered, this, [=] {
+		static_cast<ZX8081::Machine *>(machine->raw_pointer())->set_tape_is_playing(false);
+		updateTapeControls();
+	});
+
+	updateTapeControls();
+
+	connect(automaticTapeControlAction, &QAction::triggered, this, [=] {
+		updateTapeControls();
+	});
 }
 
+void MainWindow::updateTapeControls() {
+	const bool startStopEnabled = !automaticTapeControlAction->isChecked();
+	const bool isPlaying = static_cast<ZX8081::Machine *>(machine->raw_pointer())->get_tape_is_playing();
+
+	startTapeAction->setEnabled(!isPlaying && startStopEnabled);
+	stopTapeAction->setEnabled(isPlaying && startStopEnabled);
+}
 
 void MainWindow::speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) {
 	audioBuffer.write(buffer);

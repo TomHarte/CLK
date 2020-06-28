@@ -104,11 +104,15 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void addDisplayMenu(const std::string &machinePrefix, const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb);
 
 		QMenu *enhancementsMenu = nullptr;
+		QAction *automaticTapeControlAction = nullptr;
 		void addEnhancementsMenu(const std::string &machinePrefix, bool offerQuickLoad, bool offerQuickBoot);
 		void addEnhancementsItems(const std::string &machinePrefix, QMenu *menu, bool offerQuickLoad, bool offerQuickBoot, bool automatic_tape_motor_control);
 
 		QMenu *controlsMenu = nullptr;
+		QAction *stopTapeAction = nullptr;
+		QAction *startTapeAction = nullptr;
 		void addZX8081Menu(const std::string &machinePrefix);
+		void updateTapeControls();
 };
 
 #endif // MAINWINDOW_H
