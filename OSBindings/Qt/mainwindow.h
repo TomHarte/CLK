@@ -41,8 +41,10 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		// Initial setup stuff.
 		Analyser::Static::TargetList targets;
 		enum class UIPhase {
-			NoFileSelected, RequestingROMs, RunningMachine
-		} uiPhase = UIPhase::NoFileSelected;
+			SelectingMachine, RequestingROMs, RunningMachine
+		} uiPhase = UIPhase::SelectingMachine;
+		void setUIPhase(UIPhase);
+
 		void launchMachine();
 
 		QString romRequestBaseText;
@@ -63,13 +65,6 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		FunctionThread audioThread;
 
 		bool processEvent(QKeyEvent *);
-
-		enum class WidgetSet {
-			MachinePicker,
-			ROMRequester,
-			RunningMachine,
-		};
-		void setVisibleWidgetSet(WidgetSet);
 
 	private slots:
 		void startMachine();

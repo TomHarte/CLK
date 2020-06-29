@@ -38,7 +38,7 @@ std::unique_ptr<std::vector<uint8_t>> fileContentsAndClose(FILE *file) {
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 	init();
-	setVisibleWidgetSet(WidgetSet::MachinePicker);
+	setUIPhase(UIPhase::SelectingMachine);
 }
 
 MainWindow::MainWindow(const QString &fileName) {
@@ -81,10 +81,10 @@ MainWindow::~MainWindow() {
 
 void MainWindow::closeEvent(QCloseEvent *event) {
 	// SDI behaviour, which may or may not be normal (?): if the user is closing a
-	// final window, and it contains a machine, send them back to the machine picker.
-	// i.e. assume they were closing that document, not the application.
-	if(mainWindowCount == 1 && machine) {
-		setVisibleWidgetSet(WidgetSet::MachinePicker);
+	// final window, and it is anywher ebeyond the machine picker, send them back
+	// to the start. i.e. assume they were closing that document, not the application.
+	if(mainWindowCount == 1 && uiPhase != UIPhase::SelectingMachine) {
+		setUIPhase(UIPhase::SelectingMachine);
 		deleteMachine();
 		event->ignore();
 		return;
@@ -260,8 +260,7 @@ void MainWindow::launchMachine() {
 		switch(error) {
 			default: break;
 			case Machine::Error::MissingROM: {
-				setVisibleWidgetSet(WidgetSet::ROMRequester);
-				uiPhase = UIPhase::RequestingROMs;
+				setUIPhase(UIPhase::RequestingROMs);
 
 				// Populate request text.
 				QString requestText = romRequestBaseText;
@@ -287,8 +286,7 @@ void MainWindow::launchMachine() {
 		return;
 	}
 
-	setVisibleWidgetSet(WidgetSet::RunningMachine);
-	uiPhase = UIPhase::RunningMachine;
+	setUIPhase(UIPhase::RunningMachine);
 
 	// Supply the scan target.
 	// TODO: in the future, hypothetically, deal with non-scan producers.
@@ -636,7 +634,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 	event->accept();
 
 	switch(uiPhase) {
-		case UIPhase::NoFileSelected: {
+		case UIPhase::SelectingMachine: {
 			// Treat exactly as a File -> Open... .
 			const auto fileName = event->mimeData()->urls()[0].toLocalFile();
 			launchFile(fileName);
@@ -710,25 +708,27 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
 	return QObject::eventFilter(obj, event);
 }
 
-void MainWindow::setVisibleWidgetSet(WidgetSet set) {
+void MainWindow::setUIPhase(UIPhase phase) {
+	uiPhase = phase;
+
 	// The volume slider is never visible by default; a running machine
 	// will show and hide it dynamically.
 	ui->volumeSlider->setVisible(false);
 
 	// Show or hide the missing ROMs box.
-	ui->missingROMsBox->setVisible(set == WidgetSet::ROMRequester);
+	ui->missingROMsBox->setVisible(phase == UIPhase::RequestingROMs);
 
 	// Show or hide the various machine-picking chrome.
-	ui->machineSelectionTabs->setVisible(set == WidgetSet::MachinePicker);
-	ui->startMachineButton->setVisible(set == WidgetSet::MachinePicker);
-	ui->topTipLabel->setVisible(set == WidgetSet::MachinePicker);
+	ui->machineSelectionTabs->setVisible(phase == UIPhase::SelectingMachine);
+	ui->startMachineButton->setVisible(phase == UIPhase::SelectingMachine);
+	ui->topTipLabel->setVisible(phase == UIPhase::SelectingMachine);
 
 	// Consider setting a window title, if it's knowable.
-	switch(set) {
-		case WidgetSet::MachinePicker:
+	switch(phase) {
+		case UIPhase::SelectingMachine:
 			setWindowTitle(tr("Select a machine..."));
 		break;
-		case WidgetSet::ROMRequester:
+		case UIPhase::RequestingROMs:
 			setWindowTitle(tr("Provide ROMs..."));
 		break;
 		default:
@@ -737,7 +737,7 @@ void MainWindow::setVisibleWidgetSet(WidgetSet set) {
 
 	// Set appropriate focus if necessary; e.g. this ensures that machine-picker
 	// widgets aren't still selectable after a machine starts.
-	if(set != WidgetSet::MachinePicker) {
+	if(phase != UIPhase::SelectingMachine) {
 		ui->openGLWidget->setFocus();
 	}
 }
