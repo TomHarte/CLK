@@ -43,6 +43,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		enum class UIPhase {
 			SelectingMachine, RequestingROMs, RunningMachine
 		} uiPhase = UIPhase::SelectingMachine;
+		QString openFileName;
 		void setUIPhase(UIPhase);
 
 		void launchMachine();

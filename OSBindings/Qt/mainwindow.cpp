@@ -201,8 +201,8 @@ void MainWindow::insertFile(const QString &fileName) {
 void MainWindow::launchFile(const QString &fileName) {
 	targets = Analyser::Static::GetTargets(fileName.toStdString());
 	if(!targets.empty()) {
+		openFileName = QFileInfo(fileName).fileName();
 		launchMachine();
-		setWindowTitle(QFileInfo(fileName).fileName());
 	}
 }
 
@@ -335,7 +335,6 @@ void MainWindow::launchMachine() {
 		configurable->set_options(Machine::AllOptionsByMachineName()[longMachineName]);
 	}
 
-
 	// If this is a timed machine, start up the timer.
 	const auto timedMachine = machine->timed_machine();
 	if(timedMachine) {
@@ -348,9 +347,6 @@ void MainWindow::launchMachine() {
 	if(machine->media_target()) {
 		insertAction->setEnabled(true);
 	}
-
-	// Update the window title. TODO: clearly I need a proper functional solution for the window title.
-	setWindowTitle(QString::fromStdString(longMachineName));
 
 	// Add machine-specific UI.
 	const std::string settingsPrefix = Machine::ShortNameForTargetMachine(machineType);
@@ -731,7 +727,15 @@ void MainWindow::setUIPhase(UIPhase phase) {
 		case UIPhase::RequestingROMs:
 			setWindowTitle(tr("Provide ROMs..."));
 		break;
+
 		default:
+			// Update the window title. TODO: clearly I need a proper functional solution for the window title.
+			if(openFileName.isEmpty()) {
+				const auto machineType = targets[0]->machine;
+				setWindowTitle(QString::fromStdString(Machine::LongNameForTargetMachine(machineType)));
+			} else {
+				setWindowTitle(openFileName);
+			}
 		break;
 	}
 
