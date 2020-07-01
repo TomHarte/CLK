@@ -17,14 +17,6 @@
  */
 class FunctionThread: public QThread {
 	public:
-		FunctionThread() : QThread() {
-			// TODO: I've assumed a race condition here with the creation of performer; if QThread
-			// blocks on completion of `run` when starting then this is redundant.
-			performerFlag.test_and_set();
-			start();
-			while(performerFlag.test_and_set());
-		}
-
 		~FunctionThread() {
 			stop();
 		}
@@ -33,7 +25,7 @@ class FunctionThread: public QThread {
 			// Gymnastics here: events posted directly to the QThread will occur on the thread
 			// that created the QThread. To have events occur within a QThread, they have to be
 			// posted to an object created on that thread. FunctionPerformer fills that role.
-			performer = std::make_unique<FunctionPerformer>();
+			if(!performer) performer = std::make_unique<FunctionPerformer>();
 			performerFlag.clear();
 			exec();
 		}
@@ -45,6 +37,18 @@ class FunctionThread: public QThread {
 				});
 			}
 			wait();
+		}
+
+		void start() {
+			if(isRunning()) {
+				return;
+			}
+
+			// TODO: I've assumed a race condition here with the creation of performer; if QThread
+			// blocks on completion of `run` when starting then this is redundant.
+			performerFlag.test_and_set();
+			QThread::start();
+			while(performerFlag.test_and_set());
 		}
 
 		/*!

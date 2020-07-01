@@ -11,6 +11,7 @@ void Timer::startWithMachine(MachineTypes::TimedMachine *machine, std::mutex *ma
 	this->machine = machine;
 	this->machineMutex = machineMutex;
 
+	thread.start();
 	thread.performAsync([this] {
 		// Set up the emulation timer. Bluffer's guide: the QTimer will post an
 		// event to an event loop. QThread is a thread with an event loop.

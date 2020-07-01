@@ -315,6 +315,7 @@ void MainWindow::launchMachine() {
 			speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
 			speaker->set_delegate(this);
 
+			audioThread.start();
 			audioThread.performAsync([this, idealFormat] {
 				// Create an audio output.
 				audioOutput = std::make_unique<QAudioOutput>(idealFormat);
