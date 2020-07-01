@@ -10,6 +10,7 @@
 #define VSyncPredictor_hpp
 
 #include "TimeTypes.hpp"
+#include <cassert>
 #include <cmath>
 #include <cstdio>
 
@@ -44,11 +45,22 @@ class VSyncPredictor {
 			frame rate.
 		*/
 		void announce_vsync() {
-			const auto vsync_time = nanos_now();
+			const auto now = nanos_now();
+
 			if(last_vsync_) {
-				vsync_period_.post(vsync_time - last_vsync_);
+				last_vsync_ += frame_duration_;
+				vsync_jitter_.post(last_vsync_ - now);
+				last_vsync_ = (last_vsync_ + now) >> 1;
+			} else {
+				last_vsync_ = now;
 			}
-			last_vsync_ = vsync_time;
+		}
+
+		/*!
+			Sets the frame rate for the target display.
+		*/
+		void set_frame_rate(float rate) {
+			frame_duration_ = Nanos(1'000'000'000.0f / rate);
 		}
 
 		/*!
@@ -75,11 +87,13 @@ class VSyncPredictor {
 			(if those figures are being supplied).
 		*/
 		Nanos suggested_draw_time() {
-			const auto mean = vsync_period_.mean() - redraw_period_.mean() - timer_jitter_.mean();
-			const auto variance = vsync_period_.variance() + redraw_period_.variance() + timer_jitter_.variance();
+			const auto mean = redraw_period_.mean() - timer_jitter_.mean() - vsync_jitter_.mean();
+			const auto variance = redraw_period_.variance() + timer_jitter_.variance() + vsync_jitter_.variance();
 
 			// Permit three standard deviations from the mean, to cover 99.9% of cases.
 			const auto period = mean - Nanos(3.0f * sqrt(float(variance)));
+
+			assert(abs(period) < 10'000'000'000);
 
 			return last_vsync_ + period;
 		}
@@ -95,6 +109,7 @@ class VSyncPredictor {
 				}
 
 				void post(Time::Nanos value) {
+					assert(abs(value) < 10'000'000'000);	// 10 seconds is a very liberal maximum.
 					sum_ -= history_[write_pointer_];
 					sum_ += value;
 					history_[write_pointer_] = value;
@@ -110,10 +125,10 @@ class VSyncPredictor {
 					// in whole every time, given the way that the mean mutates.
 					Time::Nanos variance = 0;
 					for(int c = 0; c < 128; ++c) {
-						const auto difference = (history_[c] * 128) - sum_;
-						variance += difference * difference;
+						const auto difference = ((history_[c] * 128) - sum_) / 128;
+						variance += (difference * difference);
 					}
-					return variance / (128 * 128 * 128);
+					return variance / 128;
 				}
 
 			private:
@@ -124,8 +139,9 @@ class VSyncPredictor {
 
 		Nanos redraw_begin_time_ = 0;
 		Nanos last_vsync_ = 0;
+		Nanos frame_duration_ = 1'000'000'000 / 60;
 
-		VarianceCollector vsync_period_{1'000'000'000 / 60};	// 60Hz: seems like a good first guess.
+		VarianceCollector vsync_jitter_{0};
 		VarianceCollector redraw_period_{1'000'000'000 / 60};	// A less convincing first guess.
 		VarianceCollector timer_jitter_{0};						// Seed at 0 in case this feature isn't used by the owner.
 };

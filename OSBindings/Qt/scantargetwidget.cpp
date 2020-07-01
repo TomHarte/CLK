@@ -2,6 +2,7 @@
 
 #include <QDebug>
 #include <QOpenGLContext>
+#include <QScreen>
 #include <QTimer>
 
 #include "../../ClockReceiver/TimeTypes.hpp"
@@ -18,9 +19,17 @@ void ScanTargetWidget::initializeGL() {
 
 void ScanTargetWidget::paintGL() {
 	if(requested_redraw_time_) {
-		vsyncPredictor.add_timer_jitter(Time::nanos_now() - requested_redraw_time_);
+		const auto now = Time::nanos_now();
+		vsyncPredictor.add_timer_jitter(now - requested_redraw_time_);
 		requested_redraw_time_ = 0;
 	}
+
+	const float newOutputScale = float(window()->screen()->devicePixelRatio());
+	if(outputScale != newOutputScale) {
+		outputScale = newOutputScale;
+		resize();
+	}
+	vsyncPredictor.set_frame_rate(float(window()->screen()->refreshRate()));
 
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -52,11 +61,8 @@ void ScanTargetWidget::paintGL() {
 		}
 
 		vsyncPredictor.begin_redraw();
-		const int devicePixelRatio = QPaintDevice::devicePixelRatio();
-		const int outputWidth = width()*devicePixelRatio;
-		const int outputHeight = height()*devicePixelRatio;
-		scanTarget->update(outputWidth, outputHeight);
-		scanTarget->draw(outputWidth, outputHeight);
+		scanTarget->update(scaledWidth, scaledHeight);
+		scanTarget->draw(scaledWidth, scaledHeight);
 		glFinish();	// Make sure all costs are properly accounted for in the vsync predictor.
 		vsyncPredictor.end_redraw();
 	}
@@ -79,8 +85,22 @@ void ScanTargetWidget::vsync() {
 }
 
 void ScanTargetWidget::resizeGL(int w, int h) {
-	const int devicePixelRatio = QPaintDevice::devicePixelRatio();
-	glViewport(0, 0, w*devicePixelRatio, h*devicePixelRatio);
+	if(width != w || height != h) {
+		width = w;
+		height = h;
+		resize();
+	}
+}
+
+void ScanTargetWidget::resize() {
+	const int newScaledWidth = int(float(width) * outputScale);
+	const int newScaledHeight = int(float(height) * outputScale);
+
+	if(newScaledWidth != scaledWidth || newScaledHeight != scaledHeight) {
+		scaledWidth = newScaledWidth;
+		scaledHeight = newScaledHeight;
+		glViewport(0, 0, scaledWidth, scaledHeight);
+	}
 }
 
 void ScanTargetWidget::setScanProducer(MachineTypes::ScanProducer *producer) {

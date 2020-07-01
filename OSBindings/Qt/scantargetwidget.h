@@ -38,6 +38,11 @@ class ScanTargetWidget : public QOpenGLWidget
 
 		void setDefaultClearColour();
 
+		int width = 0, height = 0;
+		int scaledWidth = 0, scaledHeight = 0;
+		float outputScale = 1.0f;
+		void resize();
+
 	private slots:
 		void vsync();
 };
