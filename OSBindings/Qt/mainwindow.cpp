@@ -58,6 +58,7 @@ void MainWindow::deleteMachine() {
 	if(audioOutput) {
 		audioThread.performAsync([this] {
 			audioOutput->stop();
+			audioOutput.reset();
 		});
 		audioThread.stop();
 	}
