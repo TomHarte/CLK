@@ -1,6 +1,9 @@
 #include "scantargetwidget.h"
 
+#include <QApplication>
 #include <QDebug>
+#include <QDesktopWidget>
+#include <QGuiApplication>
 #include <QOpenGLContext>
 #include <QScreen>
 #include <QTimer>
@@ -24,12 +27,16 @@ void ScanTargetWidget::paintGL() {
 		requested_redraw_time_ = 0;
 	}
 
-	const float newOutputScale = float(window()->screen()->devicePixelRatio());
+	// TODO: if Qt 5.14 can be guaranteed, just use window()->screen().
+	const auto screenNumber = QApplication::desktop()->screenNumber(this);
+	QScreen *const screen = QGuiApplication::screens()[screenNumber];
+
+	const float newOutputScale = float(screen->devicePixelRatio());
 	if(outputScale != newOutputScale) {
 		outputScale = newOutputScale;
 		resize();
 	}
-	vsyncPredictor.set_frame_rate(float(window()->screen()->refreshRate()));
+	vsyncPredictor.set_frame_rate(float(screen->refreshRate()));
 
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -115,6 +122,7 @@ void ScanTargetWidget::stop() {
 	setDefaultClearColour();
 	vsyncPredictor.pause();
 	requested_redraw_time_ = 0;
+	repaint();
 }
 
 void ScanTargetWidget::setDefaultClearColour() {
