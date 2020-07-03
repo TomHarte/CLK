@@ -1,6 +1,8 @@
-#include <QtWidgets>
 #include <QObject>
 #include <QStandardPaths>
+
+#include <QtWidgets>
+#include <QtGlobal>
 
 #include "mainwindow.h"
 #include "settings.h"
@@ -217,7 +219,9 @@ void MainWindow::tile(const QMainWindow *previous) {
 		topFrameWidth = 40;
 
 	const QPoint pos = previous->pos() + 2 * QPoint(topFrameWidth, topFrameWidth);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
 	if (screen()->availableGeometry().contains(rect().bottomRight() + pos))
+#endif
 		move(pos);
 }
 
@@ -687,25 +691,6 @@ void MainWindow::dropEvent(QDropEvent* event) {
 	}
 }
 
-// MARK: Input capture.
-
-bool MainWindow::eventFilter(QObject *obj, QEvent *event) {
-	switch(event->type()) {
-		case QEvent::KeyPress:
-		case QEvent::KeyRelease: {
-			const auto keyEvent = static_cast<QKeyEvent *>(event);
-			if(!processEvent(keyEvent)) {
-				return false;
-			}
-		} break;
-
-		default:
-		break;
-	}
-
-	return QObject::eventFilter(obj, event);
-}
-
 void MainWindow::setUIPhase(UIPhase phase) {
 	uiPhase = phase;
 
@@ -749,6 +734,14 @@ void MainWindow::setUIPhase(UIPhase phase) {
 }
 
 // MARK: - Event Processing
+
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+	processEvent(event);
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent *event) {
+	processEvent(event);
+}
 
 bool MainWindow::processEvent(QKeyEvent *event) {
 	if(!machine) return true;

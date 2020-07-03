@@ -32,7 +32,8 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		explicit MainWindow(const QString &fileName);
 
 	protected:
-		bool eventFilter(QObject *obj, QEvent *event) override;
+		void keyPressEvent(QKeyEvent *event) override;
+		void keyReleaseEvent(QKeyEvent *event) override;
 
 	private:
 		std::unique_ptr<Ui::MainWindow> ui;
