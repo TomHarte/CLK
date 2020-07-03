@@ -307,29 +307,31 @@ void MainWindow::launchMachine() {
 		const auto speaker = audio_producer->get_speaker();
 		if(speaker) {
 			const QAudioDeviceInfo &defaultDeviceInfo = QAudioDeviceInfo::defaultOutputDevice();
-			QAudioFormat idealFormat = defaultDeviceInfo.preferredFormat();
+			if(!defaultDeviceInfo.isNull()) {
+				QAudioFormat idealFormat = defaultDeviceInfo.preferredFormat();
 
-			// Use the ideal format's sample rate, provide stereo as long as at least two channels
-			// are available, and — at least for now — assume a good buffer size.
-			audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
-			audioIs8bit = idealFormat.sampleSize() < 16;
-			idealFormat.setChannelCount(1 + int(audioIsStereo));
-			idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
+				// Use the ideal format's sample rate, provide stereo as long as at least two channels
+				// are available, and — at least for now — assume a good buffer size.
+				audioIsStereo = (idealFormat.channelCount() > 1) && speaker->get_is_stereo();
+				audioIs8bit = idealFormat.sampleSize() < 16;
+				idealFormat.setChannelCount(1 + int(audioIsStereo));
+				idealFormat.setSampleSize(audioIs8bit ? 8 : 16);
 
-			speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
-			speaker->set_delegate(this);
+				speaker->set_output_rate(idealFormat.sampleRate(), samplesPerBuffer, audioIsStereo);
+				speaker->set_delegate(this);
 
-			audioThread.start();
-			audioThread.performAsync([this, idealFormat] {
-				// Create an audio output.
-				audioOutput = std::make_unique<QAudioOutput>(idealFormat);
+				audioThread.start();
+				audioThread.performAsync([this, idealFormat] {
+					// Create an audio output.
+					audioOutput = std::make_unique<QAudioOutput>(idealFormat);
 
-				// Start the output. The additional `audioBuffer` is meant to minimise latency,
-				// believe it or not, given Qt's semantics.
-				audioOutput->setBufferSize(samplesPerBuffer * sizeof(int16_t));
-				audioOutput->start(&audioBuffer);
-				audioBuffer.setDepth(audioOutput->bufferSize());
-			});
+					// Start the output. The additional `audioBuffer` is meant to minimise latency,
+					// believe it or not, given Qt's semantics.
+					audioOutput->setBufferSize(samplesPerBuffer * sizeof(int16_t));
+					audioOutput->start(&audioBuffer);
+					audioBuffer.setDepth(audioOutput->bufferSize());
+				});
+			}
 		}
 	}
 
