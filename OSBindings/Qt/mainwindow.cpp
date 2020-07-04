@@ -715,6 +715,8 @@ void MainWindow::setUIPhase(UIPhase phase) {
 	// widgets aren't still selectable after a machine starts.
 	if(phase != UIPhase::SelectingMachine) {
 		ui->openGLWidget->setFocus();
+	} else {
+		ui->startMachineButton->setDefault(true);
 	}
 
 	// Indicate whether to catch mouse input.

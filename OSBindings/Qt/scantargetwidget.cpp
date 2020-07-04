@@ -143,13 +143,20 @@ void ScanTargetWidget::setMouseDelegate(MouseDelegate *delegate) {
 }
 
 void ScanTargetWidget::keyPressEvent(QKeyEvent *event) {
+	// Use CTRL+Escape to end mouse captured mode, if currently captured; otherwise ignore the event.
+	// Empirical note: control actually appears to mean command on the Mac. I have no idea what the
+	// Mac's command key would actually be as a modifier. Fingers crossed control means control
+	// elsewhere (?).
 	if(mouseIsCaptured && event->key() == Qt::Key_Escape && event->modifiers()&Qt::ControlModifier) {
 		releaseMouse();
 
 		QCursor cursor;
 		cursor.setShape(Qt::ArrowCursor);
 		setCursor(cursor);
+		return;
 	}
+
+	event->ignore();
 }
 
 void ScanTargetWidget::releaseMouse() {
