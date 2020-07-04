@@ -114,7 +114,6 @@ void MainWindow::createActions() {
 	// Add file option: 'New'
 	QAction *const newAct = new QAction(tr("&New"), this);
 	newAct->setShortcuts(QKeySequence::New);
-	newAct->setStatusTip(tr("Create a new file"));
 	connect(newAct, &QAction::triggered, this, [this] {
 		storeSelections();
 
@@ -128,7 +127,6 @@ void MainWindow::createActions() {
 	// Add file option: 'Open...'
 	QAction *const openAct = new QAction(tr("&Open..."), this);
 	openAct->setShortcuts(QKeySequence::Open);
-	openAct->setStatusTip(tr("Open an existing file"));
 	connect(openAct, &QAction::triggered, this, [this] {
 		const QString fileName = getFilename("Open...");
 		if(!fileName.isEmpty()) {
@@ -149,7 +147,6 @@ void MainWindow::createActions() {
 	// Add a separator and then an 'Insert...'.
 	fileMenu->addSeparator();
 	insertAction = new QAction(tr("&Insert..."), this);
-	insertAction->setStatusTip(tr("Open an existing file"));
 	insertAction->setEnabled(false);
 	connect(insertAction, &QAction::triggered, this, [this] {
 		const QString fileName = getFilename("Insert...");
@@ -159,9 +156,20 @@ void MainWindow::createActions() {
 	});
 	fileMenu->addAction(insertAction);
 
+	addHelpMenu();
+
+	// Link up the start machine button.
+	connect(ui->startMachineButton, &QPushButton::clicked, this, &MainWindow::startMachine);
+}
+
+void MainWindow::addHelpMenu() {
+	if(helpMenu) {
+		menuBar()->removeAction(helpMenu->menuAction());
+	}
+
 	// Add Help menu, with an 'About...' option.
-	QMenu *helpMenu = menuBar()->addMenu(tr("&Help"));
-	QAction *aboutAct = helpMenu->addAction(tr("&About"), this, [this] {
+	helpMenu = menuBar()->addMenu(tr("&Help"));
+	helpMenu->addAction(tr("&About"), this, [this] {
 		QMessageBox::about(this, tr("About Clock Signal"),
 			tr(	"<p>Clock Signal is an emulator of various platforms.</p>"
 
@@ -174,10 +182,6 @@ void MainWindow::createActions() {
 				"<a href=\"https://github.com/tomharte/CLK/issues\">GitHub issue tracker</a>.</p>"
 		));
 	});
-	aboutAct->setStatusTip(tr("Show the application's About box"));
-
-	// Link up the start machine button.
-	connect(ui->startMachineButton, &QPushButton::clicked, this, &MainWindow::startMachine);
 }
 
 QString MainWindow::getFilename(const char *title) {
@@ -412,6 +416,9 @@ void MainWindow::launchMachine() {
 
 		default: break;
 	}
+
+	// Push the help menu after any that were just added.
+	addHelpMenu();
 }
 
 void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb) {

@@ -124,6 +124,9 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		void setWindowTitle();
 		bool mouseIsCaptured = false;
+
+		QMenu *helpMenu = nullptr;
+		void addHelpMenu();
 };
 
 #endif // MAINWINDOW_H
