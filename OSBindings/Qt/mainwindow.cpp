@@ -709,30 +709,41 @@ void MainWindow::setUIPhase(UIPhase phase) {
 	ui->topTipLabel->setVisible(phase == UIPhase::SelectingMachine);
 
 	// Consider setting a window title, if it's knowable.
-	switch(phase) {
-		case UIPhase::SelectingMachine:
-			setWindowTitle(tr("Select a machine..."));
-		break;
-		case UIPhase::RequestingROMs:
-			setWindowTitle(tr("Provide ROMs..."));
-		break;
-
-		default:
-			// Update the window title. TODO: clearly I need a proper functional solution for the window title.
-			if(openFileName.isEmpty()) {
-				const auto machineType = targets[0]->machine;
-				setWindowTitle(QString::fromStdString(Machine::LongNameForTargetMachine(machineType)));
-			} else {
-				setWindowTitle(openFileName);
-			}
-		break;
-	}
+	setWindowTitle();
 
 	// Set appropriate focus if necessary; e.g. this ensures that machine-picker
 	// widgets aren't still selectable after a machine starts.
 	if(phase != UIPhase::SelectingMachine) {
 		ui->openGLWidget->setFocus();
 	}
+
+	// Indicate whether to catch mouse input.
+	ui->openGLWidget->setMouseDelegate(
+		(phase == UIPhase::RunningMachine && machine && machine->mouse_machine()) ? this : nullptr
+	);
+}
+
+void MainWindow::setWindowTitle() {
+	QString title;
+
+	switch(uiPhase) {
+		case UIPhase::SelectingMachine:		title = tr("Select a machine...");		break;
+		case UIPhase::RequestingROMs:		title = tr("Provide ROMs...");			break;
+
+		default:
+			// Update the window title. TODO: clearly I need a proper functional solution for the window title.
+			if(openFileName.isEmpty()) {
+				const auto machineType = targets[0]->machine;
+				title = QString::fromStdString(Machine::LongNameForTargetMachine(machineType));
+			} else {
+				title = openFileName;
+			}
+		break;
+	}
+
+	if(mouseIsCaptured) title += " (press control+escape to release mouse)";
+
+	QMainWindow::setWindowTitle(title);
 }
 
 // MARK: - Event Processing
@@ -815,6 +826,27 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 	keyboardMachine->get_keyboard().set_key_pressed(key, event->text().size() ? event->text()[0].toLatin1() : '\0', event->type() == QEvent::KeyPress);
 
 	return false;
+}
+
+void MainWindow::setMouseIsCaptured(bool isCaptured) {
+	mouseIsCaptured = isCaptured;
+	setWindowTitle();
+}
+
+void MainWindow::moveMouse(QPoint vector) {
+	std::unique_lock lock(machineMutex);
+	auto mouseMachine = machine->mouse_machine();
+	if(!mouseMachine) return;
+
+	mouseMachine->get_mouse().move(vector.x(), vector.y());
+}
+
+void MainWindow::setButtonPressed(int index, bool isPressed) {
+	std::unique_lock lock(machineMutex);
+	auto mouseMachine = machine->mouse_machine();
+	if(!mouseMachine) return;
+
+	mouseMachine->get_mouse().set_button_pressed(index, isPressed);
 }
 
 // MARK: - New Machine Creation

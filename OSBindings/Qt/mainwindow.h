@@ -21,7 +21,7 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
-class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegate {
+class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegate, public ScanTargetWidget::MouseDelegate {
 		Q_OBJECT
 
 		void createActions();
@@ -34,6 +34,10 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 	protected:
 		void keyPressEvent(QKeyEvent *event) override;
 		void keyReleaseEvent(QKeyEvent *event) override;
+
+		void setMouseIsCaptured(bool) override;
+		void moveMouse(QPoint) override;
+		void setButtonPressed(int index, bool isPressed) override;
 
 	private:
 		std::unique_ptr<Ui::MainWindow> ui;
@@ -117,6 +121,9 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		void addAtari2600Menu();
 		void toggleAtari2600Switch(Atari2600Switch toggleSwitch);
+
+		void setWindowTitle();
+		bool mouseIsCaptured = false;
 };
 
 #endif // MAINWINDOW_H
