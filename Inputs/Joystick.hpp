@@ -216,11 +216,8 @@ class ConcreteJoystick: public Joystick {
 		}
 
 	protected:
-		virtual void did_set_input(const Input &input, float value) {
-		}
-
-		virtual void did_set_input(const Input &input, bool value) {
-		}
+		virtual void did_set_input([[maybe_unused]] const Input &input, [[maybe_unused]] float value) {}
+		virtual void did_set_input([[maybe_unused]] const Input &input, [[maybe_unused]] bool value) {}
 
 	private:
 		const std::vector<Input> inputs_;

@@ -9,13 +9,15 @@
 #ifndef i8255_hpp
 #define i8255_hpp
 
+#include <cstdint>
+
 namespace Intel {
 namespace i8255 {
 
 class PortHandler {
 	public:
-		void set_value(int port, uint8_t value) {}
-		uint8_t get_value(int port) { return 0xff; }
+		void set_value([[maybe_unused]] int port, [[maybe_unused]] uint8_t value) {}
+		uint8_t get_value([[maybe_unused]] int port) { return 0xff; }
 };
 
 // TODO: Modes 1 and 2.

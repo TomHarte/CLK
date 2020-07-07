@@ -99,7 +99,7 @@ class UserPortVIA: public MOS::MOS6522::IRQDelegatePortHandler {
 		}
 
 		/// Receives announcements from the 6522 of user-port output, which might affect what's currently being presented onto the serial bus.
-		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t mask) {
+		void set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 			// Line 7 of port A is inverted and output as serial ATN.
 			if(!port) {
 				std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
@@ -654,7 +654,7 @@ class ConcreteMachine:
 			return mos6560_.get_speaker();
 		}
 
-		void mos6522_did_change_interrupt_status(void *mos6522) final {
+		void mos6522_did_change_interrupt_status(void *) final {
 			m6502_.set_nmi_line(user_port_via_.get_interrupt_line());
 			m6502_.set_irq_line(keyboard_via_.get_interrupt_line());
 		}
@@ -691,7 +691,7 @@ class ConcreteMachine:
 			set_use_fast_tape();
 		}
 
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference clocking) final {
 			tape_is_sleeping_ = clocking == ClockingHint::Preference::None;
 			set_use_fast_tape();
 		}

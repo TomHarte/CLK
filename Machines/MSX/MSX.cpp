@@ -492,6 +492,8 @@ class ConcreteMachine:
 							performed_unmapped_access_ = true;
 						}
 						pc_address_ = address;	// This is retained so as to be able to name the source of an access to cartridge handlers.
+						[[fallthrough]];
+
 					case CPU::Z80::PartialMachineCycle::Read:
 						if(read_pointers_[address >> 13]) {
 							*cycle.value = read_pointers_[address >> 13][address & 8191];
@@ -662,7 +664,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Sleeper
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final {
 			tape_player_is_sleeping_ = tape_player_.preferred_clocking() == ClockingHint::Preference::None;
 			set_use_fast_tape();
 		}

@@ -252,7 +252,7 @@ void VideoBase::output_low_resolution(uint8_t *target, const uint8_t *const sour
 	}
 }
 
-void VideoBase::output_fat_low_resolution(uint8_t *target, const uint8_t *const source, size_t length, int column, int row) const {
+void VideoBase::output_fat_low_resolution(uint8_t *target, const uint8_t *const source, size_t length, int, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
 		// Fat low-resolution mode appears not to do anything to try to make odd and

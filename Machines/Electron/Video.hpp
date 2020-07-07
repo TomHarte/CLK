@@ -93,7 +93,6 @@ class VideoOutput {
 		inline void setup_base_address();
 
 		int output_position_ = 0;
-		int unused_cycles_ = 0;
 
 		uint8_t palette_[16];
 		uint8_t screen_mode_ = 6;

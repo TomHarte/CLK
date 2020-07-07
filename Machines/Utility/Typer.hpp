@@ -38,7 +38,7 @@ class CharacterMapper {
 		/// that may not be necessary — it'll often depends on whether the machine needs time to
 		/// observe a modifier like shift before it sees the actual keypress.
 		/// @returns @c true if the typer should pause after forwarding @c key; @c false otherwise.
-		virtual bool needs_pause_after_key(uint16_t key) const	{ return true; }
+		virtual bool needs_pause_after_key([[maybe_unused]] uint16_t key) const	{ return true; }
 
 	protected:
 		typedef uint16_t KeySequence[16];
@@ -127,7 +127,7 @@ class TypeRecipient: public Typer::Delegate {
 			Provided in order to conform to that part of the Typer::Delegate interface that goes above and
 			beyond KeyboardMachine::Machine; responds to the end of typing by clearing all keys.
 		*/
-		void typer_reset(Typer *typer) {
+		void typer_reset(Typer *) override {
 			clear_all_keys();
 
 			// It's unsafe to deallocate typer right now, since it is the caller, but also it has a small

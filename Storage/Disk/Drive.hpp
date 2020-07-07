@@ -35,7 +35,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
 		Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
-		~Drive();
+		virtual ~Drive();
 
 		/*!
 			Replaces whatever is in the drive with @c disk. Supply @c nullptr to eject any current disk and leave none inserted.
@@ -145,7 +145,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 			virtual void process_write_completed() {}
 
 			/// Informs the delegate of the passing of @c cycles.
-			virtual void advance(const Cycles cycles) {}
+			virtual void advance([[maybe_unused]] Cycles cycles) {}
 		};
 
 		/// Sets the current event delegate.
@@ -183,7 +183,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		/*!
 			Announces the result of a step.
 		*/
-		virtual void did_step(HeadPosition to_position) {}
+		virtual void did_step([[maybe_unused]] HeadPosition to_position) {}
 
 		/*!
 			Announces new media installation.

@@ -64,7 +64,7 @@ size_t AppleDSK::logical_sector_for_physical_sector(size_t physical) {
 std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 	std::vector<uint8_t> track_data;
 	{
-		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.get_file_access_mutex());
 		file_.seek(file_offset(address), SEEK_SET);
 		track_data = file_.read(size_t(bytes_per_sector * sectors_per_track_));
 	}
@@ -115,7 +115,7 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>>
 	}
 
 	// Grab the file lock and write out the new tracks.
-	std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+	std::lock_guard lock_guard(file_.get_file_access_mutex());
 	for(const auto &pair: tracks_by_address) {
 		file_.seek(file_offset(pair.first), SEEK_SET);
 		file_.write(pair.second);

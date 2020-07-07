@@ -27,8 +27,8 @@ FileHolder::FileHolder(const std::string &file_name, FileMode ideal_mode)
 			file_ = std::fopen(file_name.c_str(), "rb+");
 			if(file_) break;
 			is_read_only_ = true;
+			[[fallthrough]];
 
-		// deliberate fallthrough...
 		case FileMode::Read:
 			file_ = std::fopen(file_name.c_str(), "rb");
 		break;

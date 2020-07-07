@@ -103,6 +103,9 @@ Storage::Disk::PCMSegment AppleGCR::five_and_three_data(const uint8_t *source) {
 	data[411] = epilogue[1];
 	data[416] = epilogue[2];
 
+	// TODO: encode.
+	(void)source;
+
 //	std::size_t source_pointer = 0;
 //	std::size_t destination_pointer = 3;
 //	while(source_pointer < 255) {

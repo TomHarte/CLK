@@ -67,7 +67,7 @@
 	CVDisplayLinkStart(_displayLink);
 }
 
-static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, CVOptionFlags flagsIn, CVOptionFlags *flagsOut, void *displayLinkContext) {
+static CVReturn DisplayLinkCallback(__unused CVDisplayLinkRef displayLink, const CVTimeStamp *now, const CVTimeStamp *outputTime, __unused CVOptionFlags flagsIn, __unused CVOptionFlags *flagsOut, void *displayLinkContext) {
 	CSOpenGLView *const view = (__bridge CSOpenGLView *)displayLinkContext;
 
 	// Schedule an opportunity to check that the display link is still linked to the correct display.
@@ -298,7 +298,7 @@ static CVReturn DisplayLinkCallback(CVDisplayLinkRef displayLink, const CVTimeSt
 	if(!self.shouldCaptureMouse) {
 		[_mouseHideTimer invalidate];
 
-		_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 repeats:NO block:^(NSTimer * _Nonnull timer) {
+		_mouseHideTimer = [NSTimer scheduledTimerWithTimeInterval:3.0 repeats:NO block:^(__unused NSTimer * _Nonnull timer) {
 			[NSCursor setHiddenUntilMouseMoves:YES];
 			[self.delegate openGLViewWillHideOSMouseCursor:self];
 		}];

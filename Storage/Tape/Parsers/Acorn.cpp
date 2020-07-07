@@ -69,7 +69,6 @@ Shifter::Shifter() :
 	pll_(PLLClockRate / 4800, *this),
 	was_high_(false),
 	input_pattern_(0),
-	input_bit_counter_(0),
 	delegate_(nullptr) {}
 
 void Shifter::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {

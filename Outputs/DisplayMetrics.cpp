@@ -50,7 +50,7 @@ void Metrics::announce_did_resize() {
 	frames_missed_ = frames_hit_ = 0;
 }
 
-void Metrics::announce_draw_status(size_t lines, std::chrono::high_resolution_clock::duration duration, bool complete) {
+void Metrics::announce_draw_status(size_t, std::chrono::high_resolution_clock::duration, bool complete) {
 	if(!complete) {
 		++frames_missed_;
 	} else {

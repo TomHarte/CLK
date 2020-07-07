@@ -110,10 +110,10 @@ class ProcessorStorage {
 				/// Resets: IFF1, IFF2, interrupt mode, the PC, I and R; sets all flags, the SP to 0xffff and a_ to 0xff.
 				Reset
 			};
-			Type type;
+			Type type = Type::Reset;
 			void *source = nullptr;
 			void *destination = nullptr;
-			PartialMachineCycle machine_cycle;
+			PartialMachineCycle machine_cycle{};
 		};
 
 		struct InstructionPage {
@@ -121,10 +121,8 @@ class ProcessorStorage {
 			std::vector<MicroOp> all_operations;
 			std::vector<MicroOp> fetch_decode_execute;
 			MicroOp *fetch_decode_execute_data = nullptr;
-			uint8_t r_step;
-			bool is_indexed;
-
-			InstructionPage() : r_step(1), is_indexed(false) {}
+			uint8_t r_step = 1;
+			bool is_indexed = false;
 		};
 
 		ProcessorStorage();
@@ -230,6 +228,6 @@ class ProcessorStorage {
 		void assemble_cb_page(InstructionPage &target, RegisterPair16 &index, bool add_offsets);
 		void assemble_base_page(InstructionPage &target, RegisterPair16 &index, bool add_offsets, InstructionPage &cb_page);
 
-		// Allos state objects to capture and apply state.
-		friend class State;
+		// Allow state objects to capture and apply state.
+		friend struct State;
 };

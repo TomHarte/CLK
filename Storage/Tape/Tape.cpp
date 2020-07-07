@@ -134,7 +134,7 @@ bool BinaryTapePlayer::get_motor_control() const {
 	return motor_is_running_;
 }
 
-void BinaryTapePlayer::set_tape_output(bool set) {
+void BinaryTapePlayer::set_tape_output(bool) {
 	// TODO
 }
 

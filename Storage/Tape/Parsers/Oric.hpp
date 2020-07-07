@@ -48,7 +48,7 @@ class Parser: public Storage::Tape::PulseClassificationParser<WaveType, SymbolTy
 		struct Pattern
 		{
 			WaveType type;
-			int count;
+			int count = 0;
 		};
 		std::size_t pattern_matching_depth(const std::vector<WaveType> &waves, const Pattern *pattern);
 };

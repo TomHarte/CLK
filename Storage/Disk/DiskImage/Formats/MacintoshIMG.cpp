@@ -169,7 +169,7 @@ std::shared_ptr<::Storage::Disk::Track> MacintoshIMG::get_track_at_position(::St
 			Bit 5 indicates double sided or not.
 	*/
 
-	std::lock_guard<decltype(buffer_mutex_)> buffer_lock(buffer_mutex_);
+	std::lock_guard buffer_lock(buffer_mutex_);
 	if(encoding_ == Encoding::GCR400 || encoding_ == Encoding::GCR800) {
 		// Perform a GCR encoding.
 		const auto included_sectors = Storage::Encodings::AppleGCR::Macintosh::sectors_in_track(address.position.as_int());
@@ -259,7 +259,7 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::shared_ptr<Tra
 
 	// Grab the buffer mutex and update the in-memory buffer.
 	{
-		std::lock_guard<decltype(buffer_mutex_)> buffer_lock(buffer_mutex_);
+		std::lock_guard buffer_lock(buffer_mutex_);
 		for(const auto &pair: tracks_by_address) {
 			const auto included_sectors = Storage::Encodings::AppleGCR::Macintosh::sectors_in_track(pair.first.position.as_int());
 			size_t start_sector = size_t(included_sectors.start * get_head_count() + included_sectors.length * pair.first.head);
@@ -283,7 +283,7 @@ void MacintoshIMG::set_tracks(const std::map<Track::Address, std::shared_ptr<Tra
 
 	// Grab the file lock and write out the new tracks.
 	{
-		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.get_file_access_mutex());
 
 		if(!is_diskCopy_file_) {
 			// Just dump out the new sectors. Grossly lazy, possibly worth improving.

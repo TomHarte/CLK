@@ -93,7 +93,7 @@ State::State(const ProcessorBase &src): State() {
 	// Encode the BusStep.
 	struct BusStepOption {
 		const ProcessorBase::BusStep *const base;
-		const ExecutionState::BusStepSource source;
+		const ExecutionState::BusStepSource source = ExecutionState::BusStepSource::FollowMicroOp;
 	};
 	BusStepOption bus_step_options[] =  {
 		{

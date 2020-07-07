@@ -86,7 +86,7 @@ template <typename... T> class CompoundSource:
 					std::memset(target, 0, sizeof(std::int16_t) * number_of_samples);
 				}
 
-				void set_scaled_volume_range(int16_t range, double *volumes, double scale) {}
+				void set_scaled_volume_range(int16_t, double *, double) {}
 
 				static constexpr std::size_t size() {
 					return 0;

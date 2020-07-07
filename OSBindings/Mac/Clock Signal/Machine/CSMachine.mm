@@ -72,7 +72,7 @@ struct ActivityObserver: public Activity::Observer {
 		[machine.delegate machine:machine led:[NSString stringWithUTF8String:name.c_str()] didChangeToLit:lit];
 	}
 
-	void announce_drive_event(const std::string &name, DriveEvent event) final {
+	void announce_drive_event(const std::string &name, DriveEvent) final {
 		[machine.delegate machine:machine ledShouldBlink:[NSString stringWithUTF8String:name.c_str()]];
 	}
 
@@ -151,7 +151,6 @@ struct ActivityObserver: public Activity::Observer {
 	MachineTypes::JoystickMachine *_joystickMachine;
 
 	CSJoystickManager *_joystickManager;
-	std::bitset<65536> _depressedKeys;
 	NSMutableArray<NSString *> *_leds;
 
 	CSHighPrecisionTimer *_timer;

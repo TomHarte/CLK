@@ -60,7 +60,7 @@ bool MultiMachine::would_collapse(const std::vector<std::unique_ptr<DynamicMachi
 }
 
 void MultiMachine::did_run_machines(MultiTimedMachine *) {
-	std::lock_guard<decltype(machines_mutex_)> machines_lock(machines_mutex_);
+	std::lock_guard machines_lock(machines_mutex_);
 #ifndef NDEBUG
 	for(const auto &machine: machines_) {
 		auto timed_machine = machine->timed_machine();

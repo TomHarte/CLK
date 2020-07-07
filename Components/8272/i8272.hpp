@@ -20,8 +20,9 @@ namespace i8272 {
 
 class BusHandler {
 	public:
-		virtual void set_dma_data_request(bool drq) {}
-		virtual void set_interrupt(bool irq) {}
+		virtual ~BusHandler() {}
+		virtual void set_dma_data_request([[maybe_unused]] bool drq) {}
+		virtual void set_interrupt([[maybe_unused]] bool irq) {}
 };
 
 class i8272 : public Storage::Disk::MFMController {
@@ -45,7 +46,7 @@ class i8272 : public Storage::Disk::MFMController {
 		virtual void select_drive(int number) = 0;
 
 	private:
-		// The bus handler, for interrupt and DMA-driven usage.
+		// The bus handler, for interrupt and DMA-driven usage. [TODO]
 		BusHandler &bus_handler_;
 		std::unique_ptr<BusHandler> allocated_bus_handler_;
 

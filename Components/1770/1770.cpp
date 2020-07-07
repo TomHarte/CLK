@@ -498,7 +498,7 @@ void WD1770::posit_event(int new_event_type) {
 
 			if(get_crc_generator().get_value()) {
 				LOG("CRC error; terminating");
-				update_status([this] (Status &status) {
+				update_status([] (Status &status) {
 					status.crc_error = true;
 				});
 				goto wait_for_command;
@@ -816,8 +816,8 @@ void WD1770::update_status(std::function<void(Status &)> updater) {
 	if(status_.busy != old_status.busy) update_clocking_observer();
 }
 
-void WD1770::set_head_load_request(bool head_load) {}
-void WD1770::set_motor_on(bool motor_on) {}
+void WD1770::set_head_load_request(bool) {}
+void WD1770::set_motor_on(bool) {}
 
 void WD1770::set_head_loaded(bool head_loaded) {
 	head_is_loaded_ = head_loaded;

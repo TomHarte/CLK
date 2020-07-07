@@ -61,7 +61,6 @@ class SCC: public ::Outputs::Speaker::SampleSource {
 		} waves_[4];
 
 		std::uint8_t channel_enable_ = 0;
-		std::uint8_t test_register_ = 0;
 
 		void evaluate_output_volume();
 

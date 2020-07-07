@@ -118,7 +118,7 @@ struct MachineRunner {
 		std::atomic<double> _frame_period;
 
 		static constexpr Uint32 timer_period = 4;
-		static Uint32 sdl_callback(Uint32 interval, void *param) {
+		static Uint32 sdl_callback(Uint32, void *param) {
 			reinterpret_cast<MachineRunner *>(param)->update();
 			return timer_period;
 		}
@@ -140,7 +140,7 @@ struct MachineRunner {
 
 			const auto vsync_time = vsync_time_.load();
 
-			std::unique_lock<std::mutex> lock_guard(*machine_mutex);
+			std::unique_lock lock_guard(*machine_mutex);
 			const auto scan_producer = machine->scan_producer();
 			const auto timed_machine = machine->timed_machine();
 
@@ -176,8 +176,8 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	static constexpr size_t buffered_samples = 1024;
 	bool is_stereo = false;
 
-	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) final {
-		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
+	void speaker_did_complete_samples(Outputs::Speaker::Speaker *, const std::vector<int16_t> &buffer) final {
+		std::lock_guard lock_guard(audio_buffer_mutex_);
 		const size_t buffer_size = buffered_samples * (is_stereo ? 2 : 1);
 		if(audio_buffer_.size() > buffer_size) {
 			audio_buffer_.erase(audio_buffer_.begin(), audio_buffer_.end() - buffer_size);
@@ -186,7 +186,7 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate {
 	}
 
 	void audio_callback(Uint8 *stream, int len) {
-		std::lock_guard<std::mutex> lock_guard(audio_buffer_mutex_);
+		std::lock_guard lock_guard(audio_buffer_mutex_);
 
 		// SDL buffer length is in bytes, so there's no need to adjust for stereo/mono in here.
 		const std::size_t sample_length = size_t(len) / sizeof(int16_t);
@@ -234,7 +234,7 @@ class ActivityObserver: public Activity::Observer {
 		}
 
 		void set_aspect_ratio(float aspect_ratio) {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+			std::lock_guard lock_guard(mutex);
 			lights_.clear();
 
 			// Generate a bunch of LEDs for connected drives.
@@ -261,7 +261,7 @@ class ActivityObserver: public Activity::Observer {
 		}
 
 		void draw() {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+			std::lock_guard lock_guard(mutex);
 			for(const auto &lit_led: lit_leds_) {
 				if(blinking_leds_.find(lit_led) == blinking_leds_.end() && lights_.find(lit_led) != lights_.end())
 					lights_[lit_led]->draw(0.0, 0.8, 0.0);
@@ -272,24 +272,24 @@ class ActivityObserver: public Activity::Observer {
 	private:
 		std::vector<std::string> leds_;
 		void register_led(const std::string &name) final {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+			std::lock_guard lock_guard(mutex);
 			leds_.push_back(name);
 		}
 
 		std::vector<std::string> drives_;
 		void register_drive(const std::string &name) final {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+			std::lock_guard lock_guard(mutex);
 			drives_.push_back(name);
 		}
 
 		void set_led_status(const std::string &name, bool lit) final {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+			std::lock_guard lock_guard(mutex);
 			if(lit) lit_leds_.insert(name);
 			else lit_leds_.erase(name);
 		}
 
-		void announce_drive_event(const std::string &name, DriveEvent event) final {
-			std::lock_guard<std::mutex> lock_guard(mutex);
+		void announce_drive_event(const std::string &name, DriveEvent) final {
+			std::lock_guard lock_guard(mutex);
 			blinking_leds_.insert(name);
 		}
 
@@ -963,7 +963,7 @@ int main(int argc, char *argv[]) {
 		// on vsync, anyway.
 
 		// Grab the machine lock and process all pending events.
-		std::lock_guard<std::mutex> lock_guard(machine_mutex);
+		std::lock_guard lock_guard(machine_mutex);
 		const auto keyboard_machine = machine->keyboard_machine();
 		SDL_Event event;
 		while(SDL_PollEvent(&event)) {

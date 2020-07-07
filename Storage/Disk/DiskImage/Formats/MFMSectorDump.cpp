@@ -29,7 +29,7 @@ std::shared_ptr<Track> MFMSectorDump::get_track_at_position(Track::Address addre
 	const long file_offset = get_file_offset_for_position(address);
 
 	{
-		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.get_file_access_mutex());
 		file_.seek(file_offset, SEEK_SET);
 		file_.read(sectors, sizeof(sectors));
 	}
@@ -48,7 +48,7 @@ void MFMSectorDump::set_tracks(const std::map<Track::Address, std::shared_ptr<Tr
 		decode_sectors(*track.second, parsed_track, first_sector_, first_sector_ + uint8_t(sectors_per_track_-1), sector_size_, is_double_density_);
 		const long file_offset = get_file_offset_for_position(track.first);
 
-		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.get_file_access_mutex());
 		file_.ensure_is_at_least_length(file_offset);
 		file_.seek(file_offset, SEEK_SET);
 		file_.write(parsed_track, sizeof(parsed_track));

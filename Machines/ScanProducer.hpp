@@ -91,7 +91,7 @@ class ScanProducer {
 		/*!
 			Sets the display type.
 		*/
-		virtual void set_display_type(Outputs::Display::DisplayType display_type) {}
+		virtual void set_display_type(Outputs::Display::DisplayType) {}
 
 		/*!
 			Gets the display type.

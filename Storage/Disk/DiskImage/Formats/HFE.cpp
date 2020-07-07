@@ -58,7 +58,7 @@ uint16_t HFE::seek_track(Track::Address address) {
 std::shared_ptr<Track> HFE::get_track_at_position(Track::Address address) {
 	PCMSegment segment;
 	{
-		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.get_file_access_mutex());
 		uint16_t track_length = seek_track(address);
 
 		segment.data.resize(track_length * 8);
@@ -102,7 +102,7 @@ std::shared_ptr<Track> HFE::get_track_at_position(Track::Address address) {
 
 void HFE::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
 	for(auto &track : tracks) {
-		std::unique_lock<std::mutex> lock_guard(file_.get_file_access_mutex());
+		std::unique_lock lock_guard(file_.get_file_access_mutex());
 		uint16_t track_length = seek_track(track.first);
 		lock_guard.unlock();
 

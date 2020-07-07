@@ -260,7 +260,7 @@ static Analyser::Static::TargetList CartridgeTargetsFrom(
 	return targets;
 }
 
-Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+Analyser::Static::TargetList Analyser::Static::MSX::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	TargetList destination;
 
 	// Append targets for any cartridges that look correct.

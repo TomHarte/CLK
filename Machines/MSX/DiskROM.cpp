@@ -17,14 +17,14 @@ DiskROM::DiskROM(const std::vector<uint8_t> &rom) :
 	set_is_double_density(true);
 }
 
-void DiskROM::write(uint16_t address, uint8_t value, bool pc_is_outside_bios) {
+void DiskROM::write(uint16_t address, uint8_t value, bool) {
 	switch(address) {
 		case 0x7ff8: case 0x7ff9: case 0x7ffa: case 0x7ffb:
 			WD::WD1770::write(address, value);
 		break;
 		case 0x7ffc: {
 			const int selected_head = value & 1;
-			for_all_drives([selected_head] (Storage::Disk::Drive &drive, size_t index) {
+			for_all_drives([selected_head] (Storage::Disk::Drive &drive, size_t) {
 				drive.set_head(selected_head);
 			});
 		} break;
@@ -32,7 +32,7 @@ void DiskROM::write(uint16_t address, uint8_t value, bool pc_is_outside_bios) {
 			set_drive(1 << (value & 1));
 
 			const bool drive_motor = value & 0x80;
-			for_all_drives([drive_motor] (Storage::Disk::Drive &drive, size_t index) {
+			for_all_drives([drive_motor] (Storage::Disk::Drive &drive, size_t) {
 				drive.set_motor_on(drive_motor);
 			});
 		} break;

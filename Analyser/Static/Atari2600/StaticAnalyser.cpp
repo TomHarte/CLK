@@ -88,7 +88,7 @@ static void DeterminePagingFor8kCartridge(Target &target, const Storage::Cartrid
 	else if(tigervision_access_count > atari_access_count) target.paging_model = Target::PagingModel::Tigervision;
 }
 
-static void DeterminePagingFor16kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const Analyser::Static::MOS6502::Disassembly &disassembly) {
+static void DeterminePagingFor16kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &, const Analyser::Static::MOS6502::Disassembly &disassembly) {
 	// Make an assumption that this is the Atari paging model.
 	target.paging_model = Target::PagingModel::Atari16k;
 
@@ -108,7 +108,7 @@ static void DeterminePagingFor16kCartridge(Target &target, const Storage::Cartri
 	if(mnetwork_access_count > atari_access_count) target.paging_model = Target::PagingModel::MNetwork;
 }
 
-static void DeterminePagingFor64kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const Analyser::Static::MOS6502::Disassembly &disassembly) {
+static void DeterminePagingFor64kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &, const Analyser::Static::MOS6502::Disassembly &disassembly) {
 	// Make an assumption that this is a Tigervision if there is a write to 3F.
 	target.paging_model =
 		(disassembly.external_stores.find(0x3f) != disassembly.external_stores.end()) ?
@@ -177,7 +177,7 @@ static void DeterminePagingForCartridge(Target &target, const Storage::Cartridge
 	}
 }
 
-Analyser::Static::TargetList Analyser::Static::Atari2600::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+Analyser::Static::TargetList Analyser::Static::Atari2600::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	// TODO: sanity checking; is this image really for an Atari 2600?
 	auto target = std::make_unique<Target>();
 	target->confidence = 0.5;

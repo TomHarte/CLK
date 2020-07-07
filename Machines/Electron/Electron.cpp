@@ -215,7 +215,8 @@ class ConcreteMachine:
 								activity_observer_->set_led_status(caps_led, caps_led_state_);
 						}
 
-					// deliberate fallthrough; fe07 contains the display mode.
+						[[fallthrough]];	// fe07 contains the display mode.
+
 
 					case 0xfe02: case 0xfe03:
 					case 0xfe08: case 0xfe09: case 0xfe0a: case 0xfe0b:
@@ -421,7 +422,7 @@ class ConcreteMachine:
 			m6502_.run_for(cycles);
 		}
 
-		void tape_did_change_interrupt_status(Tape *tape) final {
+		void tape_did_change_interrupt_status(Tape *) final {
 			interrupt_status_ = (interrupt_status_ & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | tape_.get_interrupt_status();
 			evaluate_interrupts();
 		}

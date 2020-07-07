@@ -43,7 +43,7 @@ class AudioGenerator: public ::Outputs::Speaker::SampleSource {
 };
 
 struct BusHandler {
-	void perform_read(uint16_t address, uint8_t *pixel_data, uint8_t *colour_data) {
+	void perform_read([[maybe_unused]] uint16_t address, [[maybe_unused]] uint8_t *pixel_data, [[maybe_unused]] uint8_t *colour_data) {
 		*pixel_data = 0xff;
 		*colour_data = 0xff;
 	}

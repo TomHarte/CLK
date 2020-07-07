@@ -183,7 +183,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		using Microcycle = CPU::MC68000::Microcycle;
 
-		forceinline HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
+		forceinline HalfCycles perform_bus_operation(const Microcycle &cycle, int) {
 			// Advance time.
 			advance_time(cycle.length);
 
@@ -490,7 +490,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 
 		// MARK: Interrupt updates.
 
-		void did_change_interrupt_status(Zilog::SCC::z8530 *sender, bool new_status) final {
+		void did_change_interrupt_status(Zilog::SCC::z8530 *, bool) final {
 			update_interrupt_input();
 		}
 
@@ -541,7 +541,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 	private:
 		bool quickboot_ = false;
 
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final {
 			scsi_bus_is_clocked_ = scsi_bus_.preferred_clocking() != ClockingHint::Preference::None;
 		}
 
@@ -654,7 +654,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 				using Port = MOS::MOS6522::Port;
 				using Line = MOS::MOS6522::Line;
 
-				void set_port_output(Port port, uint8_t value, uint8_t direction_mask) {
+				void set_port_output(Port port, uint8_t value, uint8_t) {
 					/*
 						Peripheral lines: keyboard data, interrupt configuration.
 						(See p176 [/215])
@@ -745,7 +745,7 @@ template <Analyser::Static::Macintosh::Target::Model model> class ConcreteMachin
 					audio_.flush();
 				}
 
-				void set_interrupt_status(bool status) {
+				void set_interrupt_status(bool) {
 					machine_.update_interrupt_input();
 				}
 

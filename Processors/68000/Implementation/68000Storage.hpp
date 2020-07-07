@@ -23,6 +23,16 @@ class ProcessorStorage {
 
 		RegisterPair32 prefetch_queue_;		// Each word will go into the low part of the word, then proceed upward.
 
+		// Generic sources and targets for memory operations;
+		// by convention: effective_address_[0] = source, [1] = destination.
+		//
+		// These, and the various register contents above, should be kept
+		// close to the top of this class so that small-integer offsets can be
+		// used in instances of Program (see below).
+		RegisterPair32 effective_address_[2];
+		RegisterPair32 source_bus_data_;
+		RegisterPair32 destination_bus_data_;
+
 		enum class ExecutionState {
 			/// The normal mode, this means the 68000 is expending processing effort.
 			Executing,
@@ -71,12 +81,6 @@ class ProcessorStorage {
 		// TODO: surely this doesn't need to be distinct from the pending_interrupt_level_?
 		int accepted_interrupt_level_ = 0;
 		bool is_starting_interrupt_ = false;
-
-		// Generic sources and targets for memory operations;
-		// by convention: [0] = source, [1] = destination.
-		RegisterPair32 effective_address_[2];
-		RegisterPair32 source_bus_data_;
-		RegisterPair32 destination_bus_data_;
 
 		HalfCycles half_cycles_left_to_run_;
 		HalfCycles e_clock_phase_;
@@ -369,11 +373,11 @@ class ProcessorStorage {
 			/// b4-b6 = destination address register.
 			uint8_t source_dest = 0;
 
-			void set_source_address(ProcessorStorage &storage, int index) {
+			void set_source_address([[maybe_unused]] ProcessorStorage &storage, int index) {
 				source_dest = uint8_t((source_dest & 0x0f) | (index << 4));
 			}
 
-			void set_destination_address(ProcessorStorage &storage, int index) {
+			void set_destination_address([[maybe_unused]] ProcessorStorage &storage, int index) {
 				source_dest = uint8_t((source_dest & 0xf0) | index);
 			}
 
@@ -383,11 +387,13 @@ class ProcessorStorage {
 
 			void set_source(ProcessorStorage &storage, RegisterPair32 *target) {
 				source_offset = decltype(source_offset)(reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage));
+				// Test that destination_offset could be stored fully within the integer size provided for source_offset.
 				assert(source_offset == (reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage)));
 			}
 
 			void set_destination(ProcessorStorage &storage, RegisterPair32 *target) {
 				destination_offset = decltype(destination_offset)(reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage));
+				// Test that destination_offset could be stored fully within the integer size provided for destination_offset.
 				assert(destination_offset == (reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage)));
 			}
 
@@ -545,9 +551,9 @@ class ProcessorStorage {
 		inline void set_status(uint16_t);
 
 	private:
-		friend class ProcessorStorageConstructor;
+		friend struct ProcessorStorageConstructor;
 		friend class ProcessorStorageTests;
-		friend class State;
+		friend struct State;
 };
 
 #endif /* MC68000Storage_h */

@@ -19,7 +19,7 @@ Keyboard::Keyboard(const std::set<Key> &essential_modifiers) : essential_modifie
 Keyboard::Keyboard(const std::set<Key> &observed_keys, const std::set<Key> &essential_modifiers) :
 	observed_keys_(observed_keys), essential_modifiers_(essential_modifiers), is_exclusive_(false) {}
 
-bool Keyboard::set_key_pressed(Key key, char value, bool is_pressed) {
+bool Keyboard::set_key_pressed(Key key, char, bool is_pressed) {
 	const size_t key_offset = size_t(key);
 	if(key_offset >= key_states_.size()) {
 		key_states_.resize(key_offset+1, false);

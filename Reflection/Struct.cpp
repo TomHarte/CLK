@@ -15,57 +15,6 @@
 #include <sstream>
 #include <type_traits>
 
-#define ForAllInts(x)	\
-	x(uint8_t);			\
-	x(int8_t);			\
-	x(uint16_t);		\
-	x(int16_t);			\
-	x(uint32_t);		\
-	x(int32_t);			\
-	x(uint64_t);		\
-	x(int64_t);
-
-#define ForAllFloats(x)	\
-	x(float);			\
-	x(double);
-
-namespace TypeInfo {
-
-static bool is_integral(const std::type_info *type) {
-	return
-		*type == typeid(uint8_t) || *type == typeid(int8_t) ||
-		*type == typeid(uint16_t) || *type == typeid(int16_t) ||
-		*type == typeid(uint32_t) || *type == typeid(int32_t) ||
-		*type == typeid(uint64_t) || *type == typeid(int64_t);
-}
-
-static bool is_floating_point(const std::type_info *type) {
-	return *type == typeid(float) || *type == typeid(double);
-}
-
-static bool is_signed(const std::type_info *type) {
-	return
-		*type == typeid(int8_t) ||
-		*type == typeid(int16_t) ||
-		*type == typeid(int32_t) ||
-		*type == typeid(int64_t) ||
-		*type == typeid(double) ||
-		*type == typeid(float);
-}
-
-static size_t size(const std::type_info *type) {
-#define TestType(x)	if(*type == typeid(x)) return sizeof(x);
-	ForAllInts(TestType);
-	ForAllFloats(TestType);
-	TestType(char *);
-#undef TestType
-
-	// This is some sort of struct or object type.
-	return 0;
-}
-
-}
-
 // MARK: - Setters
 
 template <> bool Reflection::set(Struct &target, const std::string &name, float value, size_t offset) {
@@ -99,7 +48,7 @@ template <> bool Reflection::set(Struct &target, const std::string &name, double
 }
 
 template <> bool Reflection::set(Struct &target, const std::string &name, int value, size_t offset) {
-	return set<int64_t>(target, name, value);
+	return set<int64_t>(target, name, value, offset);
 }
 
 template <> bool Reflection::set(Struct &target, const std::string &name, int64_t value, size_t offset) {
@@ -153,7 +102,7 @@ template <> bool Reflection::set(Struct &target, const std::string &name, const 
 
 template <> bool Reflection::set(Struct &target, const std::string &name, const char *value, size_t offset) {
 	const std::string string(value);
-	return set<const std::string &>(target, name, string);
+	return set<const std::string &>(target, name, string, offset);
 }
 
 template <> bool Reflection::set(Struct &target, const std::string &name, bool value, size_t offset) {
@@ -207,69 +156,6 @@ bool Reflection::fuzzy_set(Struct &target, const std::string &name, const std::s
 	return false;
 }
 
-// MARK: - Getters
-
-template <typename Type> bool Reflection::get(const Struct &target, const std::string &name, Type &value, size_t offset) {
-	const auto target_type = target.type_of(name);
-	if(!target_type) return false;
-
-	// If type is a direct match, copy.
-	if(*target_type == typeid(Type)) {
-		memcpy(&value, reinterpret_cast<const uint8_t *>(target.get(name)) + offset * sizeof(Type), sizeof(Type));
-		return true;
-	}
-
-	// If the type is a registered enum and the value type is int, copy.
-	if constexpr (std::is_integral<Type>::value && sizeof(Type) == sizeof(int)) {
-		if(!Enum::name(*target_type).empty()) {
-			memcpy(&value, target.get(name), sizeof(int));
-			return true;
-		}
-	}
-
-	// If the type is an int that is larger than the stored type and matches the signedness, cast upward.
-	if constexpr (std::is_integral<Type>::value) {
-		if(TypeInfo::is_integral(target_type)) {
-			const bool target_is_signed = TypeInfo::is_signed(target_type);
-			const size_t target_size = TypeInfo::size(target_type);
-
-			// An unsigned type can map to any larger type, signed or unsigned;
-			// a signed type can map to a larger type only if it also is signed.
-			if(sizeof(Type) > target_size && (!target_is_signed || std::is_signed<Type>::value)) {
-				const auto address = reinterpret_cast<const uint8_t *>(target.get(name)) + offset * target_size;
-
-#define Map(x)	if(*target_type == typeid(x)) { value = static_cast<Type>(*reinterpret_cast<const x *>(address)); }
-				ForAllInts(Map);
-#undef Map
-				return true;
-			}
-		}
-	}
-
-	// If the type is a double and stored type is a float, cast upward.
-	if constexpr (std::is_floating_point<Type>::value) {
-		constexpr size_t size = sizeof(Type);
-		const bool target_is_floating_point = TypeInfo::is_floating_point(target_type);
-		const size_t target_size = TypeInfo::size(target_type);
-
-		if(size > target_size && target_is_floating_point) {
-				const auto address = reinterpret_cast<const uint8_t *>(target.get(name)) + offset * target_size;
-
-#define Map(x)	if(*target_type == typeid(x)) { value = static_cast<Type>(*reinterpret_cast<const x *>(address)); }
-			ForAllFloats(Map);
-#undef Map
-			return true;
-		}
-	}
-
-	return false;
-}
-
-template <typename Type> Type Reflection::get(const Struct &target, const std::string &name, size_t offset) {
-	Type value{};
-	get(target, name, value, offset);
-	return value;
-}
 
 // MARK: - Description
 
@@ -358,7 +244,7 @@ std::vector<uint8_t> Reflection::Struct::serialise() const {
 	};
 
 	auto append = [push_name, this] (std::vector<uint8_t> &result, const std::string &key, const std::string &output_name, const std::type_info *type, size_t offset) {
-		auto push_int = [push_name, &result, &output_name] (auto x) {
+		auto push_int = [&result] (auto x) {
 			for(size_t c = 0; c < sizeof(x); ++c)
 				result.push_back(uint8_t((x) >> (8 * c)));
 		};
@@ -529,10 +415,10 @@ struct ArrayReceiver: public Reflection::Struct {
 		target_(target), type_(type), key_(key), count_(count) {}
 
 	std::vector<std::string> all_keys() const final { return {}; }
-	const std::type_info *type_of(const std::string &name) const final { return type_; }
-	size_t count_of(const std::string &name) const final { return 0; }
+	const std::type_info *type_of(const std::string &) const final { return type_; }
+	size_t count_of(const std::string &) const final { return 0; }
 
-	void set(const std::string &name, const void *value, size_t offset) final {
+	void set(const std::string &name, const void *value, size_t) final {
 		const auto index = size_t(std::stoi(name));
 		if(index >= count_) {
 			return;
@@ -540,11 +426,11 @@ struct ArrayReceiver: public Reflection::Struct {
 		target_->set(key_, value, index);
 	}
 
-	virtual std::vector<std::string> values_for(const std::string &name) const final {
+	virtual std::vector<std::string> values_for(const std::string &) const final {
 		return {};
 	}
 
-	void *get(const std::string &name) final {
+	void *get(const std::string &) final {
 		return nullptr;
 	}
 

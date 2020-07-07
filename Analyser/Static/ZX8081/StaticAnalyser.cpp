@@ -28,7 +28,7 @@ static std::vector<Storage::Data::ZX8081::File> GetFiles(const std::shared_ptr<S
 	return files;
 }
 
-Analyser::Static::TargetList Analyser::Static::ZX8081::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+Analyser::Static::TargetList Analyser::Static::ZX8081::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType potential_platforms) {
 	TargetList destination;
 	if(!media.tapes.empty()) {
 		std::vector<Storage::Data::ZX8081::File> files = GetFiles(media.tapes.front());

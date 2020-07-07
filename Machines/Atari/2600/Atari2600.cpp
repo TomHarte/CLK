@@ -212,7 +212,7 @@ class ConcreteMachine:
 
 using namespace Atari2600;
 
-Machine *Machine::Atari2600(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+Machine *Machine::Atari2600(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &) {
 	const Target *const atari_target = dynamic_cast<const Target *>(target);
 	return new Atari2600::ConcreteMachine(*atari_target);
 }

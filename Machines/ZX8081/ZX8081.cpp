@@ -269,6 +269,7 @@ template<bool is_zx81> class ConcreteMachine:
 						tape_player_.set_motor_control((address >= automatic_tape_motor_start_address_) && (address < automatic_tape_motor_end_address_));
 					}
 					is_opcode_read = true;
+					[[fallthrough]];
 
 				case CPU::Z80::PartialMachineCycle::Read:
 					if(address < ram_base_) {

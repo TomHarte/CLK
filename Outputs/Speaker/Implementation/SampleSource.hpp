@@ -25,7 +25,7 @@ class SampleSource {
 		/*!
 			Should write the next @c number_of_samples to @c target.
 		*/
-		void get_samples(std::size_t number_of_samples, std::int16_t *target) {}
+		void get_samples([[maybe_unused]] std::size_t number_of_samples, [[maybe_unused]] std::int16_t *target) {}
 
 		/*!
 			Should skip the next @c number_of_samples. Subclasses of this SampleSource
@@ -51,7 +51,7 @@ class SampleSource {
 			Sets the proper output range for this sample source; it should write values
 			between 0 and volume.
 		*/
-		void set_sample_volume_range(std::int16_t volume) {}
+		void set_sample_volume_range([[maybe_unused]] std::int16_t volume) {}
 
 		/*!
 			Indicates whether this component will write stereo samples.

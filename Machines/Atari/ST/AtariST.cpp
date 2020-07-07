@@ -237,6 +237,7 @@ class ConcreteMachine:
 						memory = rom_.data();
 						break;
 					}
+					[[fallthrough]];
 				case BusDevice::RAM:
 					memory = ram_.data();
 				break;
@@ -529,7 +530,7 @@ class ConcreteMachine:
 		bool keyboard_needs_clock_ = false;
 		bool mfp_is_realtime_ = false;
 		ClockingHint::Preference dma_clocking_preference_ = ClockingHint::Preference::None;
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final {
 			// This is being called by one of the components; avoid any time flushing here as that's
 			// already dealt with (and, just to be absolutely sure, to avoid recursive mania).
 			may_defer_acias_ =
@@ -580,7 +581,7 @@ class ConcreteMachine:
 		}
 
 		// MARK - MFP input.
-		void mfp68901_did_change_interrupt_status(Motorola::MFP68901::MFP68901 *mfp) final {
+		void mfp68901_did_change_interrupt_status(Motorola::MFP68901::MFP68901 *) final {
 			update_interrupt_input();
 		}
 

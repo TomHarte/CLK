@@ -75,6 +75,7 @@ namespace Serial {
 	class Port {
 		public:
 			Port() : line_levels_{High, High, High, High, High} {}
+			virtual ~Port() {}
 
 			/*!
 				Sets the current level of an output line on this serial port.

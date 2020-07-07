@@ -145,7 +145,7 @@ bool is_bd500(Storage::Encodings::MFM::Parser &parser) {
 
 }
 
-Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	auto target = std::make_unique<Target>();
 	target->confidence = 0.5;
 

@@ -804,7 +804,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			m6502_.run_for(cycles);
 		}
 
-		void reset_all_keys() final {
+		void reset_all_keys(Inputs::Keyboard *) final {
 			open_apple_is_pressed_ = closed_apple_is_pressed_ = key_is_down_ = false;
 		}
 

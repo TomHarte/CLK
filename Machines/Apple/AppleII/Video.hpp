@@ -29,7 +29,7 @@ class BusHandler {
 			from auxiliary memory to @c auxiliary_target. If the machine has no axiliary memory,
 			it needn't write anything to auxiliary_target.
 		*/
-		void perform_read(uint16_t address, size_t count, uint8_t *base_target, uint8_t *auxiliary_target) {
+		void perform_read([[maybe_unused]] uint16_t address, [[maybe_unused]] size_t count, [[maybe_unused]] uint8_t *base_target, [[maybe_unused]] uint8_t *auxiliary_target) {
 		}
 };
 

@@ -31,6 +31,7 @@ class Video {
 
 		/// Advances time by @c half-cycles.
 		void run_for(const HalfCycles);
+
 		/// Forces output to catch up to the current output position.
 		void flush();
 

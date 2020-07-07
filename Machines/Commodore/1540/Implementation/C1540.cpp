@@ -122,7 +122,7 @@ void MachineBase::set_activity_observer(Activity::Observer *observer) {
 
 // MARK: - 6522 delegate
 
-void MachineBase::mos6522_did_change_interrupt_status(void *mos6522) {
+void MachineBase::mos6522_did_change_interrupt_status(void *) {
 	// both VIAs are connected to the IRQ line
 	m6502_.set_irq_line(serial_port_VIA_.get_interrupt_line() || drive_VIA_.get_interrupt_line());
 }
@@ -153,11 +153,11 @@ void MachineBase::process_index_hole()	{}
 
 // MARK: - Drive VIA delegate
 
-void MachineBase::drive_via_did_step_head(void *driveVIA, int direction) {
+void MachineBase::drive_via_did_step_head(void *, int direction) {
 	get_drive().step(Storage::Disk::HeadPosition(direction, 2));
 }
 
-void MachineBase::drive_via_did_set_data_density(void *driveVIA, int density) {
+void MachineBase::drive_via_did_set_data_density(void *, int density) {
 	set_expected_bit_length(Storage::Encodings::CommodoreGCR::length_of_a_bit_in_time_zone(unsigned(density)));
 }
 
@@ -170,7 +170,7 @@ uint8_t SerialPortVIA::get_port_input(MOS::MOS6522::Port port) {
 	return 0xff;
 }
 
-void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t mask) {
+void SerialPortVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 	if(port) {
 		std::shared_ptr<::Commodore::Serial::Port> serialPort = serial_port_.lock();
 		if(serialPort) {
@@ -243,7 +243,7 @@ void DriveVIA::set_control_line_output(MOS::MOS6522::Port port, MOS::MOS6522::Li
 	}
 }
 
-void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t direction_mask) {
+void DriveVIA::set_port_output(MOS::MOS6522::Port port, uint8_t value, uint8_t) {
 	if(port) {
 		if(previous_port_b_output_ != value) {
 			// record drive motor state
