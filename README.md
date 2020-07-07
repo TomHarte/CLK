@@ -4,7 +4,7 @@ Clock Signal ('CLK') is an emulator for tourists that seeks to be invisible. Use
 
 [Releases](https://github.com/TomHarte/CLK/releases) are hosted on GitHub.
 
-On the Mac it is a native Cocoa application; under Linux, BSD and other UNIXes and UNIX-alikes it can be built either with Qt or with SDL.
+On the Mac it is a native Cocoa application; under Linux, BSD and other UNIXes and UNIX-alikes it can be built either with Qt or with SDL; the Qt build should be considered preliminary, pending a sustainable workaround for its keyboard handling.
 
 So its aims are:
 * single-click load of any piece of source media for any supported platform;
