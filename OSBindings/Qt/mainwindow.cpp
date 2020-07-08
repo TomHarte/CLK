@@ -800,7 +800,7 @@ std::optional<Inputs::Keyboard::Key> MainWindow::keyForEvent(QKeyEvent *event) {
 	if(QGuiApplication::platformName() == QLatin1String("xcb")) {
 #define BIND(code, key) 	case code:	return Inputs::Keyboard::Key::key;
 
-		switch(event->nativeVirtualKey()) {
+		switch(event->nativeScanCode()) {
 			default: qDebug() << "Unmapped" << event->nativeScanCode(); return {};
 
 			BIND(1, Escape);
