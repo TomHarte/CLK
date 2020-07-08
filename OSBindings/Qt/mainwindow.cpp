@@ -765,6 +765,12 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event) {
 	processEvent(event);
 }
 
+#if defined(Q_OS_UNIX) && !defined(Q_OS_MAC)
+
+#include <QX11Info>
+
+#endif
+
 bool MainWindow::processEvent(QKeyEvent *event) {
 	if(!machine) return true;
 
@@ -797,10 +803,9 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 	//
 	// You can't. Qt is the worst. SDL doesn't have this problem, including in X11, so this seems to be a problem
 	// Qt has invented for itself.
-	//
-	// TODO: find a workaround. Platform-specific use of either nativeScanCode() or nativeVirtualKey() maybe,
-	// but if so, how to interpret the meaning?
 
+	// Workaround for X11: assume
+//	QX11Info::isPlatformX11();
 
 #define BIND2(qtKey, clkKey) case Qt::qtKey: key = Inputs::Keyboard::Key::clkKey; break;
 #define BIND(key) BIND2(Key_##key, key)
