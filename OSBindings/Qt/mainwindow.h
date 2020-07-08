@@ -5,6 +5,8 @@
 #include <QMainWindow>
 
 #include <memory>
+#include <optional>
+
 #include "audiobuffer.h"
 #include "timer.h"
 #include "ui_mainwindow.h"
@@ -127,6 +129,8 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		QMenu *helpMenu = nullptr;
 		void addHelpMenu();
+
+		std::optional<Inputs::Keyboard::Key> keyForEvent(QKeyEvent *);
 };
 
 #endif // MAINWINDOW_H

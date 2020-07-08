@@ -1,11 +1,5 @@
 QT += core gui multimedia widgets
 
-unix:!mac {
-	# For non-Mac UNIX targets, include X11 extras to check for X11.
-	# x11extras isn't supported on the Mac.
-	QT += x11extras
-}
-
 CONFIG += c++17
 
 # Permit multiple source files in different directories to have the same file name.

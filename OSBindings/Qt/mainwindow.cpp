@@ -765,54 +765,52 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event) {
 	processEvent(event);
 }
 
-#if defined(Q_OS_UNIX) && !defined(Q_OS_MAC)
+// Qt is the worst.
+//
+// Assume your keyboard has a key labelled both . and >, as they do on US and UK keyboards. Call it the dot key.
+// Perform the following:
+//	1.	press dot key;
+//	2.	press shift key;
+//	3.	release dot key;
+//	4.	release shift key.
+//
+// Per empirical testing, and key repeat aside, on both macOS and Ubuntu 19.04 that sequence will result in
+// _three_ keypress events, but only _two_ key release events. You'll get presses for Qt::Key_Period, Qt::Key_Greater
+// and Qt::Key_Shift. You'll get releases only for Qt::Key_Greater and Qt::Key_Shift.
+//
+// How can you detect at runtime that Key_Greater and Key_Period are the same physical key?
+//
+// You can't. On Ubuntu they have the same values for QKeyEvent::nativeScanCode(), which are unique to the key,
+// but they have different ::nativeVirtualKey()s.
+//
+// On macOS they have the same ::nativeScanCode() only because on macOS [almost] all keys have the same
+// ::nativeScanCode(). So that's not usable. They have the same ::nativeVirtualKey()s, but since that isn't true
+// on Ubuntu, that's also not usable.
+//
+// So how can you track the physical keys on a keyboard via Qt?
+//
+// You can't. Qt is the worst. SDL doesn't have this problem, including in X11, but I'm not sure I want the extra
+// dependency. I may need to reassess.
 
-#include <QX11Info>
+std::optional<Inputs::Keyboard::Key> MainWindow::keyForEvent(QKeyEvent *event) {
+	// Workaround for X11: assume PC-esque mapping from ::nativeScanCode to symbols.
 
-#endif
+	if(QGuiApplication::platformName() == QLatin1String("xcb")) {
+#define BIND(code, key) 	case code:	return Inputs::Keyboard::Key::key;
 
-bool MainWindow::processEvent(QKeyEvent *event) {
-	if(!machine) return true;
+		switch(event->nativeVirtualKey()) {
+			default: qDebug() << "Unmapped" << event->nativeScanCode(); return {};
+		}
 
-	const auto keyboardMachine = machine->keyboard_machine();
-	if(!keyboardMachine) return true;
+#undef BIND
+	}
 
-	// Qt is the worst.
-	//
-	// Assume your keyboard has a key labelled both . and >, as they do on US and UK keyboards. Call it the dot key.
-	// Perform the following:
-	//	1.	press dot key;
-	//	2.	press shift key;
-	//	3.	release dot key;
-	//	4.	release shift key.
-	//
-	// Per empirical testing, and key repeat aside, on both macOS and Ubuntu 19.04 that sequence will result in
-	// _three_ keypress events, but only _two_ key release events. You'll get presses for Qt::Key_Period, Qt::Key_Greater
-	// and Qt::Key_Shift. You'll get releases only for Qt::Key_Greater and Qt::Key_Shift.
-	//
-	// How can you detect at runtime that Key_Greater and Key_Period are the same physical key?
-	//
-	// You can't. On Ubuntu they have the same values for QKeyEvent::nativeScanCode(), which are unique to the key,
-	// but they have different ::nativeVirtualKey()s.
-	//
-	// On macOS they have the same ::nativeScanCode() only because on macOS [almost] all keys have the same
-	// ::nativeScanCode(). So that's not usable. They have the same ::nativeVirtualKey()s, but since that isn't true
-	// on Ubuntu, that's also not usable.
-	//
-	// So how can you track the physical keys on a keyboard via Qt?
-	//
-	// You can't. Qt is the worst. SDL doesn't have this problem, including in X11, so this seems to be a problem
-	// Qt has invented for itself.
-
-	// Workaround for X11: assume
-//	QX11Info::isPlatformX11();
-
-#define BIND2(qtKey, clkKey) case Qt::qtKey: key = Inputs::Keyboard::Key::clkKey; break;
+	// Fall back on a limited, faulty adaptation.
+#define BIND2(qtKey, clkKey) case Qt::qtKey: return Inputs::Keyboard::Key::clkKey;
 #define BIND(key) BIND2(Key_##key, key)
 
-	Inputs::Keyboard::Key key;
 	switch(event->key()) {
-		default: return true;
+		default: return {};
 
 		BIND(Escape);
 		BIND(F1);	BIND(F2);	BIND(F3);	BIND(F4);	BIND(F5);	BIND(F6);
@@ -862,8 +860,22 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 		BIND(NumLock);
 	}
 
+#undef BIND
+#undef BIND2
+}
+
+
+bool MainWindow::processEvent(QKeyEvent *event) {
+	if(!machine) return true;
+
+	const auto keyboardMachine = machine->keyboard_machine();
+	if(!keyboardMachine) return true;
+
+	const auto key = keyForEvent(event);
+	if(!key) return true;
+
 	std::unique_lock lock(machineMutex);
-	keyboardMachine->get_keyboard().set_key_pressed(key, event->text().size() ? event->text()[0].toLatin1() : '\0', event->type() == QEvent::KeyPress);
+	keyboardMachine->get_keyboard().set_key_pressed(*key, event->text().size() ? event->text()[0].toLatin1() : '\0', event->type() == QEvent::KeyPress);
 
 	return false;
 }
