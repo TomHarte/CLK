@@ -794,12 +794,78 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event) {
 
 std::optional<Inputs::Keyboard::Key> MainWindow::keyForEvent(QKeyEvent *event) {
 	// Workaround for X11: assume PC-esque mapping from ::nativeScanCode to symbols.
+	//
+	// Yucky, ugly, harcoded yuck. TODO: work out how `xmodmap -pke` seems to derive these codes at runtime.
 
 	if(QGuiApplication::platformName() == QLatin1String("xcb")) {
 #define BIND(code, key) 	case code:	return Inputs::Keyboard::Key::key;
 
 		switch(event->nativeVirtualKey()) {
 			default: qDebug() << "Unmapped" << event->nativeScanCode(); return {};
+
+			BIND(1, Escape);
+			BIND(67, F1);	BIND(68, F2);	BIND(69, F3);	BIND(70, F4);	BIND(71, F5);
+			BIND(72, F6);	BIND(73, F7);	BIND(74, F8);	BIND(75, F9);	BIND(76, F10);
+			BIND(95, F11);	BIND(96, F12);
+			BIND(107, PrintScreen);
+			BIND(78, ScrollLock);
+			BIND(127, Pause);
+
+			BIND(49, BackTick);
+			BIND(10, k1);	BIND(11, k2);	BIND(12, k3);	BIND(13, k4);	BIND(14, k5);
+			BIND(15, k6);	BIND(16, k7);	BIND(17, k8);	BIND(18, k9);	BIND(19, k0);
+			BIND(20, Hyphen);
+			BIND(21, Equals);
+			BIND(22, Backspace);
+
+			BIND(23, Tab);
+			BIND(24, Q);	BIND(25, W);	BIND(26, E);	BIND(27, R);	BIND(28, T);
+			BIND(29, Y);	BIND(30, U);	BIND(31, I);	BIND(32, O);	BIND(33, P);
+			BIND(34, OpenSquareBracket);
+			BIND(35, CloseSquareBracket);
+			BIND(51, Backslash);
+
+			BIND(66, CapsLock);
+			BIND(38, A);	BIND(39, S);	BIND(40, D);	BIND(41, F);	BIND(42, G);
+			BIND(43, H);	BIND(44, J);	BIND(45, K);	BIND(46, L);
+			BIND(47, Semicolon);
+			BIND(48, Quote);
+			BIND(36, Enter);
+
+			BIND(50, LeftShift);
+			BIND(52, Z);	BIND(53, X);	BIND(54, C);	BIND(55, V);
+			BIND(56, B);	BIND(57, N);	BIND(58, M);
+			BIND(59, Comma);
+			BIND(60, FullStop);
+			BIND(61, ForwardSlash);
+			BIND(62, RightShift);
+
+			BIND(105, LeftControl);
+			BIND(204, LeftOption);
+			BIND(205, LeftMeta);
+			BIND(65, Space);
+			BIND(108, RightOption);
+
+			BIND(113, Left);	BIND(114, Right);	BIND(111, Up);	BIND(116, Down);
+
+			BIND(118, Insert);
+			BIND(119, Delete);
+			BIND(110, Home);
+			BIND(115, End);
+
+			BIND(77, NumLock);
+
+			BIND(106, KeypadSlash);
+			BIND(63, KeypadAsterisk);
+			BIND(91, KeypadDelete);
+			BIND(79, Keypad7);	BIND(80, Keypad8);	BIND(81, Keypad9);	BIND(86, KeypadPlus);
+			BIND(83, Keypad4);	BIND(84, Keypad5);	BIND(85, Keypad6);	BIND(82, KeypadMinus);
+			BIND(87, Keypad1);	BIND(88, Keypad2);	BIND(89, Keypad3);	BIND(104, KeypadEnter);
+			BIND(90, Keypad0);
+			BIND(129, KeypadDecimalPoint);
+			BIND(125, KeypadEquals);
+
+			BIND(146, Help);
 		}
 
 #undef BIND
