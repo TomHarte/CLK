@@ -74,6 +74,8 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		bool processEvent(QKeyEvent *);
 
+		void changeEvent(QEvent *) override;
+
 	private slots:
 		void startMachine();
 
