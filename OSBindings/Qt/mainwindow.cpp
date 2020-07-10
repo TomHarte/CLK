@@ -759,7 +759,7 @@ void MainWindow::setWindowTitle() {
 
 void MainWindow::changeEvent(QEvent *event) {
 	// Clear current key state upon any window activation change.
-	if(event->type() == QEvent::ActivationChange) {
+	if(machine && event->type() == QEvent::ActivationChange) {
 		const auto keyboardMachine = machine->keyboard_machine();
 		if(keyboardMachine) {
 			keyboardMachine->clear_all_keys();
