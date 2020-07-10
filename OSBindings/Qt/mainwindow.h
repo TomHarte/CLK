@@ -91,6 +91,10 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void start_zx80();
 		void start_zx81();
 
+		enum class KeyboardInputMode {
+			Keyboard, Joystick
+		} keyboardInputMode;
+
 		QAction *insertAction = nullptr;
 		void insertFile(const QString &fileName);
 
@@ -131,6 +135,8 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		QMenu *helpMenu = nullptr;
 		void addHelpMenu();
+
+		QMenu *inputMenu = nullptr;
 
 		std::optional<Inputs::Keyboard::Key> keyForEvent(QKeyEvent *);
 };

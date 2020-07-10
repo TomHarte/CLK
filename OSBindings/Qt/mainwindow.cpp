@@ -72,6 +72,8 @@ void MainWindow::deleteMachine() {
 	if(displayMenu)			menuBar()->removeAction(displayMenu->menuAction());
 	if(enhancementsMenu)	menuBar()->removeAction(enhancementsMenu->menuAction());
 	if(controlsMenu)		menuBar()->removeAction(controlsMenu->menuAction());
+	if(inputMenu)			menuBar()->removeAction(inputMenu->menuAction());
+	displayMenu = enhancementsMenu = controlsMenu = inputMenu = nullptr;
 }
 
 MainWindow::~MainWindow() {
@@ -359,6 +361,38 @@ void MainWindow::launchMachine() {
 	if(machine->media_target()) {
 		insertAction->setEnabled(true);
 	}
+
+	// Add an 'input' menu if justified (i.e. machine has both a keyboard and joystick input, and the keyboard is exclusive).
+	auto keyboardMachine = machine->keyboard_machine();
+	auto joystickMachine = machine->joystick_machine();
+	if(keyboardMachine && joystickMachine && keyboardMachine->get_keyboard().is_exclusive()) {
+		inputMenu = menuBar()->addMenu(tr("&Input"));
+
+		QAction *const asKeyboardAction = new QAction(tr("Use Keyboard as Keyboard"), this);
+		asKeyboardAction->setCheckable(true);
+		asKeyboardAction->setChecked(true);
+		asKeyboardAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_K));
+		inputMenu->addAction(asKeyboardAction);
+
+		QAction *const asJoystickAction = new QAction(tr("Use Keyboard as Joystick"), this);
+		asJoystickAction->setCheckable(true);
+		asJoystickAction->setChecked(false);
+		asJoystickAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_J));
+		inputMenu->addAction(asJoystickAction);
+
+		connect(asKeyboardAction, &QAction::triggered, this, [=] {
+			keyboardInputMode = KeyboardInputMode::Keyboard;
+			asKeyboardAction->setChecked(true);
+			asJoystickAction->setChecked(false);
+		});
+
+		connect(asJoystickAction, &QAction::triggered, this, [=] {
+			keyboardInputMode = KeyboardInputMode::Joystick;
+			asKeyboardAction->setChecked(false);
+			asJoystickAction->setChecked(true);
+		});
+	}
+	keyboardInputMode = keyboardMachine ? KeyboardInputMode::Keyboard : KeyboardInputMode::Joystick;
 
 	// Add machine-specific UI.
 	const std::string settingsPrefix = Machine::ShortNameForTargetMachine(machineType);
@@ -769,7 +803,6 @@ void MainWindow::changeEvent(QEvent *event) {
 
 	event->ignore();
 }
-
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {
 	processEvent(event);
