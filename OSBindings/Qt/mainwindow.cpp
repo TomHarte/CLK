@@ -981,14 +981,53 @@ std::optional<Inputs::Keyboard::Key> MainWindow::keyForEvent(QKeyEvent *event) {
 bool MainWindow::processEvent(QKeyEvent *event) {
 	if(!machine) return true;
 
-	const auto keyboardMachine = machine->keyboard_machine();
-	if(!keyboardMachine) return true;
-
 	const auto key = keyForEvent(event);
 	if(!key) return true;
 
+	const bool isPressed = event->type() == QEvent::KeyPress;
 	std::unique_lock lock(machineMutex);
-	keyboardMachine->get_keyboard().set_key_pressed(*key, event->text().size() ? event->text()[0].toLatin1() : '\0', event->type() == QEvent::KeyPress);
+
+	switch(keyboardInputMode) {
+		case KeyboardInputMode::Keyboard: {
+			const auto keyboardMachine = machine->keyboard_machine();
+			if(!keyboardMachine) return true;
+
+			auto keyboard = keyboardMachine->get_keyboard();
+			keyboard.set_key_pressed(*key, event->text().size() ? event->text()[0].toLatin1() : '\0', isPressed);
+			if(keyboard.is_exclusive() || keyboard.observed_keys().find(*key) != keyboard.observed_keys().end()) {
+				return false;
+			}
+		}
+		[[fallthrough]];
+
+		case KeyboardInputMode::Joystick: {
+			const auto joystickMachine = machine->joystick_machine();
+			if(!joystickMachine) return true;
+
+			const auto &joysticks = joystickMachine->get_joysticks();
+			if(!joysticks.empty()) {
+				using Key = Inputs::Keyboard::Key;
+				switch(*key) {
+					case Key::Left:		joysticks[0]->set_input(Inputs::Joystick::Input::Left, isPressed);		break;
+					case Key::Right:	joysticks[0]->set_input(Inputs::Joystick::Input::Right, isPressed);		break;
+					case Key::Up:		joysticks[0]->set_input(Inputs::Joystick::Input::Up, isPressed);		break;
+					case Key::Down:		joysticks[0]->set_input(Inputs::Joystick::Input::Down, isPressed);		break;
+					case Key::Space:	joysticks[0]->set_input(Inputs::Joystick::Input::Fire, isPressed);		break;
+					case Key::A:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 0), isPressed);	break;
+					case Key::S:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 1), isPressed);	break;
+					case Key::D:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 2), isPressed);	break;
+					case Key::F:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 3), isPressed);	break;
+					default:
+						if(event->text().size()) {
+							joysticks[0]->set_input(Inputs::Joystick::Input(event->text()[0].toLatin1()), isPressed);
+						} else {
+							joysticks[0]->set_input(Inputs::Joystick::Input::Fire, isPressed);
+						}
+					break;
+				}
+			}
+		} break;
+	}
 
 	return false;
 }
