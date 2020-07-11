@@ -5,6 +5,8 @@
 #include <QMainWindow>
 
 #include <memory>
+#include <optional>
+
 #include "audiobuffer.h"
 #include "timer.h"
 #include "ui_mainwindow.h"
@@ -72,6 +74,8 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		bool processEvent(QKeyEvent *);
 
+		void changeEvent(QEvent *) override;
+
 	private slots:
 		void startMachine();
 
@@ -86,6 +90,10 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		void start_vic20();
 		void start_zx80();
 		void start_zx81();
+
+		enum class KeyboardInputMode {
+			Keyboard, Joystick
+		} keyboardInputMode;
 
 		QAction *insertAction = nullptr;
 		void insertFile(const QString &fileName);
@@ -127,6 +135,10 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		QMenu *helpMenu = nullptr;
 		void addHelpMenu();
+
+		QMenu *inputMenu = nullptr;
+
+		std::optional<Inputs::Keyboard::Key> keyForEvent(QKeyEvent *);
 };
 
 #endif // MAINWINDOW_H

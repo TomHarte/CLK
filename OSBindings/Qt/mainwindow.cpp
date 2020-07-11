@@ -72,6 +72,8 @@ void MainWindow::deleteMachine() {
 	if(displayMenu)			menuBar()->removeAction(displayMenu->menuAction());
 	if(enhancementsMenu)	menuBar()->removeAction(enhancementsMenu->menuAction());
 	if(controlsMenu)		menuBar()->removeAction(controlsMenu->menuAction());
+	if(inputMenu)			menuBar()->removeAction(inputMenu->menuAction());
+	displayMenu = enhancementsMenu = controlsMenu = inputMenu = nullptr;
 }
 
 MainWindow::~MainWindow() {
@@ -359,6 +361,38 @@ void MainWindow::launchMachine() {
 	if(machine->media_target()) {
 		insertAction->setEnabled(true);
 	}
+
+	// Add an 'input' menu if justified (i.e. machine has both a keyboard and joystick input, and the keyboard is exclusive).
+	auto keyboardMachine = machine->keyboard_machine();
+	auto joystickMachine = machine->joystick_machine();
+	if(keyboardMachine && joystickMachine && keyboardMachine->get_keyboard().is_exclusive()) {
+		inputMenu = menuBar()->addMenu(tr("&Input"));
+
+		QAction *const asKeyboardAction = new QAction(tr("Use Keyboard as Keyboard"), this);
+		asKeyboardAction->setCheckable(true);
+		asKeyboardAction->setChecked(true);
+		asKeyboardAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_K));
+		inputMenu->addAction(asKeyboardAction);
+
+		QAction *const asJoystickAction = new QAction(tr("Use Keyboard as Joystick"), this);
+		asJoystickAction->setCheckable(true);
+		asJoystickAction->setChecked(false);
+		asJoystickAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_J));
+		inputMenu->addAction(asJoystickAction);
+
+		connect(asKeyboardAction, &QAction::triggered, this, [=] {
+			keyboardInputMode = KeyboardInputMode::Keyboard;
+			asKeyboardAction->setChecked(true);
+			asJoystickAction->setChecked(false);
+		});
+
+		connect(asJoystickAction, &QAction::triggered, this, [=] {
+			keyboardInputMode = KeyboardInputMode::Joystick;
+			asKeyboardAction->setChecked(false);
+			asJoystickAction->setChecked(true);
+		});
+	}
+	keyboardInputMode = keyboardMachine ? KeyboardInputMode::Keyboard : KeyboardInputMode::Joystick;
 
 	// Add machine-specific UI.
 	const std::string settingsPrefix = Machine::ShortNameForTargetMachine(machineType);
@@ -757,6 +791,19 @@ void MainWindow::setWindowTitle() {
 
 // MARK: - Event Processing
 
+void MainWindow::changeEvent(QEvent *event) {
+	// Clear current key state upon any window activation change.
+	if(machine && event->type() == QEvent::ActivationChange) {
+		const auto keyboardMachine = machine->keyboard_machine();
+		if(keyboardMachine) {
+			keyboardMachine->clear_all_keys();
+			return;
+		}
+	}
+
+	event->ignore();
+}
+
 void MainWindow::keyPressEvent(QKeyEvent *event) {
 	processEvent(event);
 }
@@ -765,49 +812,118 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event) {
 	processEvent(event);
 }
 
-bool MainWindow::processEvent(QKeyEvent *event) {
-	if(!machine) return true;
+// Qt is the worst.
+//
+// Assume your keyboard has a key labelled both . and >, as they do on US and UK keyboards. Call it the dot key.
+// Perform the following:
+//	1.	press dot key;
+//	2.	press shift key;
+//	3.	release dot key;
+//	4.	release shift key.
+//
+// Per empirical testing, and key repeat aside, on both macOS and Ubuntu 19.04 that sequence will result in
+// _three_ keypress events, but only _two_ key release events. You'll get presses for Qt::Key_Period, Qt::Key_Greater
+// and Qt::Key_Shift. You'll get releases only for Qt::Key_Greater and Qt::Key_Shift.
+//
+// How can you detect at runtime that Key_Greater and Key_Period are the same physical key?
+//
+// You can't. On Ubuntu they have the same values for QKeyEvent::nativeScanCode(), which are unique to the key,
+// but they have different ::nativeVirtualKey()s.
+//
+// On macOS they have the same ::nativeScanCode() only because on macOS [almost] all keys have the same
+// ::nativeScanCode(). So that's not usable. They have the same ::nativeVirtualKey()s, but since that isn't true
+// on Ubuntu, that's also not usable.
+//
+// So how can you track the physical keys on a keyboard via Qt?
+//
+// You can't. Qt is the worst. SDL doesn't have this problem, including in X11, but I'm not sure I want the extra
+// dependency. I may need to reassess.
 
-	const auto keyboardMachine = machine->keyboard_machine();
-	if(!keyboardMachine) return true;
+std::optional<Inputs::Keyboard::Key> MainWindow::keyForEvent(QKeyEvent *event) {
+	// Workaround for X11: assume PC-esque mapping from ::nativeScanCode to symbols.
+	//
+	// Yucky, ugly, harcoded yuck. TODO: work out how `xmodmap -pke` seems to derive these codes at runtime.
 
-	// Qt is the worst.
-	//
-	// Assume your keyboard has a key labelled both . and >, as they do on US and UK keyboards. Call it the dot key.
-	// Perform the following:
-	//	1.	press dot key;
-	//	2.	press shift key;
-	//	3.	release dot key;
-	//	4.	release shift key.
-	//
-	// Per empirical testing, and key repeat aside, on both macOS and Ubuntu 19.04 that sequence will result in
-	// _three_ keypress events, but only _two_ key release events. You'll get presses for Qt::Key_Period, Qt::Key_Greater
-	// and Qt::Key_Shift. You'll get releases only for Qt::Key_Greater and Qt::Key_Shift.
-	//
-	// How can you detect at runtime that Key_Greater and Key_Period are the same physical key?
-	//
-	// You can't. On Ubuntu they have the same values for QKeyEvent::nativeScanCode(), which are unique to the key,
-	// but they have different ::nativeVirtualKey()s.
-	//
-	// On macOS they have the same ::nativeScanCode() only because on macOS [almost] all keys have the same
-	// ::nativeScanCode(). So that's not usable. They have the same ::nativeVirtualKey()s, but since that isn't true
-	// on Ubuntu, that's also not usable.
-	//
-	// So how can you track the physical keys on a keyboard via Qt?
-	//
-	// You can't. Qt is the worst. SDL doesn't have this problem, including in X11, so this seems to be a problem
-	// Qt has invented for itself.
-	//
-	// TODO: find a workaround. Platform-specific use of either nativeScanCode() or nativeVirtualKey() maybe,
-	// but if so, how to interpret the meaning?
+	if(QGuiApplication::platformName() == QLatin1String("xcb")) {
+#define BIND(code, key) 	case code:	return Inputs::Keyboard::Key::key;
 
+		switch(event->nativeScanCode()) {
+			default: qDebug() << "Unmapped" << event->nativeScanCode(); return {};
 
-#define BIND2(qtKey, clkKey) case Qt::qtKey: key = Inputs::Keyboard::Key::clkKey; break;
+			BIND(1, Escape);
+			BIND(67, F1);	BIND(68, F2);	BIND(69, F3);	BIND(70, F4);	BIND(71, F5);
+			BIND(72, F6);	BIND(73, F7);	BIND(74, F8);	BIND(75, F9);	BIND(76, F10);
+			BIND(95, F11);	BIND(96, F12);
+			BIND(107, PrintScreen);
+			BIND(78, ScrollLock);
+			BIND(127, Pause);
+
+			BIND(49, BackTick);
+			BIND(10, k1);	BIND(11, k2);	BIND(12, k3);	BIND(13, k4);	BIND(14, k5);
+			BIND(15, k6);	BIND(16, k7);	BIND(17, k8);	BIND(18, k9);	BIND(19, k0);
+			BIND(20, Hyphen);
+			BIND(21, Equals);
+			BIND(22, Backspace);
+
+			BIND(23, Tab);
+			BIND(24, Q);	BIND(25, W);	BIND(26, E);	BIND(27, R);	BIND(28, T);
+			BIND(29, Y);	BIND(30, U);	BIND(31, I);	BIND(32, O);	BIND(33, P);
+			BIND(34, OpenSquareBracket);
+			BIND(35, CloseSquareBracket);
+			BIND(51, Backslash);
+
+			BIND(66, CapsLock);
+			BIND(38, A);	BIND(39, S);	BIND(40, D);	BIND(41, F);	BIND(42, G);
+			BIND(43, H);	BIND(44, J);	BIND(45, K);	BIND(46, L);
+			BIND(47, Semicolon);
+			BIND(48, Quote);
+			BIND(36, Enter);
+
+			BIND(50, LeftShift);
+			BIND(52, Z);	BIND(53, X);	BIND(54, C);	BIND(55, V);
+			BIND(56, B);	BIND(57, N);	BIND(58, M);
+			BIND(59, Comma);
+			BIND(60, FullStop);
+			BIND(61, ForwardSlash);
+			BIND(62, RightShift);
+
+			BIND(105, LeftControl);
+			BIND(204, LeftOption);
+			BIND(205, LeftMeta);
+			BIND(65, Space);
+			BIND(108, RightOption);
+
+			BIND(113, Left);	BIND(114, Right);	BIND(111, Up);	BIND(116, Down);
+
+			BIND(118, Insert);
+			BIND(119, Delete);
+			BIND(110, Home);
+			BIND(115, End);
+
+			BIND(77, NumLock);
+
+			BIND(106, KeypadSlash);
+			BIND(63, KeypadAsterisk);
+			BIND(91, KeypadDelete);
+			BIND(79, Keypad7);	BIND(80, Keypad8);	BIND(81, Keypad9);	BIND(86, KeypadPlus);
+			BIND(83, Keypad4);	BIND(84, Keypad5);	BIND(85, Keypad6);	BIND(82, KeypadMinus);
+			BIND(87, Keypad1);	BIND(88, Keypad2);	BIND(89, Keypad3);	BIND(104, KeypadEnter);
+			BIND(90, Keypad0);
+			BIND(129, KeypadDecimalPoint);
+			BIND(125, KeypadEquals);
+
+			BIND(146, Help);
+		}
+
+#undef BIND
+	}
+
+	// Fall back on a limited, faulty adaptation.
+#define BIND2(qtKey, clkKey) case Qt::qtKey: return Inputs::Keyboard::Key::clkKey;
 #define BIND(key) BIND2(Key_##key, key)
 
-	Inputs::Keyboard::Key key;
 	switch(event->key()) {
-		default: return true;
+		default: return {};
 
 		BIND(Escape);
 		BIND(F1);	BIND(F2);	BIND(F3);	BIND(F4);	BIND(F5);	BIND(F6);
@@ -857,8 +973,61 @@ bool MainWindow::processEvent(QKeyEvent *event) {
 		BIND(NumLock);
 	}
 
+#undef BIND
+#undef BIND2
+}
+
+
+bool MainWindow::processEvent(QKeyEvent *event) {
+	if(!machine) return true;
+
+	const auto key = keyForEvent(event);
+	if(!key) return true;
+
+	const bool isPressed = event->type() == QEvent::KeyPress;
 	std::unique_lock lock(machineMutex);
-	keyboardMachine->get_keyboard().set_key_pressed(key, event->text().size() ? event->text()[0].toLatin1() : '\0', event->type() == QEvent::KeyPress);
+
+	switch(keyboardInputMode) {
+		case KeyboardInputMode::Keyboard: {
+			const auto keyboardMachine = machine->keyboard_machine();
+			if(!keyboardMachine) return true;
+
+			auto keyboard = keyboardMachine->get_keyboard();
+			keyboard.set_key_pressed(*key, event->text().size() ? event->text()[0].toLatin1() : '\0', isPressed);
+			if(keyboard.is_exclusive() || keyboard.observed_keys().find(*key) != keyboard.observed_keys().end()) {
+				return false;
+			}
+		}
+		[[fallthrough]];
+
+		case KeyboardInputMode::Joystick: {
+			const auto joystickMachine = machine->joystick_machine();
+			if(!joystickMachine) return true;
+
+			const auto &joysticks = joystickMachine->get_joysticks();
+			if(!joysticks.empty()) {
+				using Key = Inputs::Keyboard::Key;
+				switch(*key) {
+					case Key::Left:		joysticks[0]->set_input(Inputs::Joystick::Input::Left, isPressed);		break;
+					case Key::Right:	joysticks[0]->set_input(Inputs::Joystick::Input::Right, isPressed);		break;
+					case Key::Up:		joysticks[0]->set_input(Inputs::Joystick::Input::Up, isPressed);		break;
+					case Key::Down:		joysticks[0]->set_input(Inputs::Joystick::Input::Down, isPressed);		break;
+					case Key::Space:	joysticks[0]->set_input(Inputs::Joystick::Input::Fire, isPressed);		break;
+					case Key::A:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 0), isPressed);	break;
+					case Key::S:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 1), isPressed);	break;
+					case Key::D:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 2), isPressed);	break;
+					case Key::F:		joysticks[0]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Fire, 3), isPressed);	break;
+					default:
+						if(event->text().size()) {
+							joysticks[0]->set_input(Inputs::Joystick::Input(event->text()[0].toLatin1()), isPressed);
+						} else {
+							joysticks[0]->set_input(Inputs::Joystick::Input::Fire, isPressed);
+						}
+					break;
+				}
+			}
+		} break;
+	}
 
 	return false;
 }
