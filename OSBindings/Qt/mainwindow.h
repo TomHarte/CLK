@@ -15,6 +15,8 @@
 #include "../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../Machines/Utility/MachineForTarget.hpp"
 
+#include "../../Activity/Observer.hpp"
+
 // There are machine-specific controls for the following:
 #include "../../Machines/ZX8081/ZX8081.hpp"
 #include "../../Machines/Atari/2600/Atari2600.hpp"
@@ -23,7 +25,7 @@ QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
-class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegate, public ScanTargetWidget::MouseDelegate {
+class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegate, public ScanTargetWidget::MouseDelegate, public Activity::Observer {
 		Q_OBJECT
 
 		void createActions();
@@ -139,6 +141,12 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		QMenu *inputMenu = nullptr;
 
 		std::optional<Inputs::Keyboard::Key> keyForEvent(QKeyEvent *);
+
+		void register_led(const std::string &) override;
+		void set_led_status(const std::string &, bool) override;
+		std::map<std::string, bool> ledStatuses;
+		void addActivityObserver();
+		void updateStatusBarText();
 };
 
 #endif // MAINWINDOW_H

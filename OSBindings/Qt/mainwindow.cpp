@@ -74,6 +74,9 @@ void MainWindow::deleteMachine() {
 	if(controlsMenu)		menuBar()->removeAction(controlsMenu->menuAction());
 	if(inputMenu)			menuBar()->removeAction(inputMenu->menuAction());
 	displayMenu = enhancementsMenu = controlsMenu = inputMenu = nullptr;
+
+	// Remove the status bar, if any.
+	setStatusBar(nullptr);
 }
 
 MainWindow::~MainWindow() {
@@ -453,6 +456,9 @@ void MainWindow::launchMachine() {
 
 	// Push the help menu after any that were just added.
 	addHelpMenu();
+
+	// Add activity LED UI.
+	addActivityObserver();
 }
 
 void MainWindow::addDisplayMenu(const std::string &machinePrefix, const std::string &compositeColour, const std::string &compositeMono, const std::string &svideo, const std::string &rgb) {
@@ -1319,4 +1325,37 @@ void MainWindow::restoreSelections() {
 #undef Tabs
 #undef CheckBox
 #undef ComboBox
+}
+
+// MARK: - Activity observation
+
+void MainWindow::addActivityObserver() {
+	auto activitySource = machine->activity_source();
+	if(!activitySource) return;
+
+	setStatusBar(new QStatusBar());
+	activitySource->set_activity_observer(this);
+}
+
+void MainWindow::register_led(const std::string &name) {
+	ledStatuses[name] = false;
+	updateStatusBarText();
+}
+
+void MainWindow::set_led_status(const std::string &name, bool isLit) {
+	ledStatuses[name] = isLit;
+	updateStatusBarText();	// Assumption here: Qt's attempt at automatic thread confinement will work here.
+}
+
+void MainWindow::updateStatusBarText() {
+	QString fullText;
+	bool isFirst = true;
+	for(const auto &pair: ledStatuses) {
+		if(!isFirst) fullText += " | ";
+		fullText += QString::fromStdString(pair.first);
+		fullText += " ";
+		fullText += pair.second ? "■" : "□";
+		isFirst = false;
+	}
+	statusBar()->showMessage(fullText);
 }
