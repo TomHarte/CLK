@@ -47,8 +47,16 @@ void VideoBase::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
+Outputs::Display::ScanStatus VideoBase::get_scaled_scan_status() const {
+	return crt_.get_scaled_scan_status() / 14.0f;
+}
+
 void VideoBase::set_display_type(Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
+}
+
+Outputs::Display::DisplayType VideoBase::get_display_type() const {
+	return crt_.get_display_type();
 }
 
 /*
@@ -56,7 +64,7 @@ void VideoBase::set_display_type(Outputs::Display::DisplayType display_type) {
 */
 void VideoBase::set_alternative_character_set(bool alternative_character_set) {
 	set_alternative_character_set_ = alternative_character_set;
-	deferrer_.defer(Cycles(2), [=] {
+	deferrer_.defer(Cycles(2), [this, alternative_character_set] {
 		alternative_character_set_ = alternative_character_set;
 		if(alternative_character_set) {
 			character_zones[1].address_mask = 0xff;
@@ -74,7 +82,7 @@ bool VideoBase::get_alternative_character_set() {
 
 void VideoBase::set_80_columns(bool columns_80) {
 	set_columns_80_ = columns_80;
-	deferrer_.defer(Cycles(2), [=] {
+	deferrer_.defer(Cycles(2), [this, columns_80] {
 		columns_80_ = columns_80;
 	});
 }
@@ -101,7 +109,7 @@ bool VideoBase::get_page2() {
 
 void VideoBase::set_text(bool text) {
 	set_text_ = text;
-	deferrer_.defer(Cycles(2), [=] {
+	deferrer_.defer(Cycles(2), [this, text] {
 		text_ = text;
 	});
 }
@@ -112,7 +120,7 @@ bool VideoBase::get_text() {
 
 void VideoBase::set_mixed(bool mixed) {
 	set_mixed_ = mixed;
-	deferrer_.defer(Cycles(2), [=] {
+	deferrer_.defer(Cycles(2), [this, mixed] {
 		mixed_ = mixed;
 	});
 }
@@ -123,7 +131,7 @@ bool VideoBase::get_mixed() {
 
 void VideoBase::set_high_resolution(bool high_resolution) {
 	set_high_resolution_ = high_resolution;
-	deferrer_.defer(Cycles(2), [=] {
+	deferrer_.defer(Cycles(2), [this, high_resolution] {
 		high_resolution_ = high_resolution;
 	});
 }
@@ -134,7 +142,7 @@ bool VideoBase::get_high_resolution() {
 
 void VideoBase::set_annunciator_3(bool annunciator_3) {
 	set_annunciator_3_ = annunciator_3;
-	deferrer_.defer(Cycles(2), [=] {
+	deferrer_.defer(Cycles(2), [this, annunciator_3] {
 		annunciator_3_ = annunciator_3;
 		high_resolution_mask_ = annunciator_3_ ? 0x7f : 0xff;
 	});
@@ -166,7 +174,7 @@ void VideoBase::output_text(uint8_t *target, const uint8_t *const source, size_t
 	for(size_t c = 0; c < length; ++c) {
 		const int character = source[c] & character_zones[source[c] >> 6].address_mask;
 		const uint8_t xor_mask = character_zones[source[c] >> 6].xor_mask;
-		const std::size_t character_address = static_cast<std::size_t>(character << 3) + pixel_row;
+		const std::size_t character_address = size_t(character << 3) + pixel_row;
 		const uint8_t character_pattern = character_rom_[character_address] ^ xor_mask;
 
 		// The character ROM is output MSB to LSB rather than LSB to MSB.
@@ -185,19 +193,19 @@ void VideoBase::output_text(uint8_t *target, const uint8_t *const source, size_t
 void VideoBase::output_double_text(uint8_t *target, const uint8_t *const source, const uint8_t *const auxiliary_source, size_t length, size_t pixel_row) const {
 	for(size_t c = 0; c < length; ++c) {
 		const std::size_t character_addresses[2] = {
-			static_cast<std::size_t>(
+			size_t(
 				(auxiliary_source[c] & character_zones[auxiliary_source[c] >> 6].address_mask) << 3
 			) + pixel_row,
-			static_cast<std::size_t>(
+			size_t(
 				(source[c] & character_zones[source[c] >> 6].address_mask) << 3
 			) + pixel_row
 		};
 
 		const uint8_t character_patterns[2] = {
-			static_cast<uint8_t>(
+			uint8_t(
 				character_rom_[character_addresses[0]] ^ character_zones[auxiliary_source[c] >> 6].xor_mask
 			),
-			static_cast<uint8_t>(
+			uint8_t(
 				character_rom_[character_addresses[1]] ^ character_zones[source[c] >> 6].xor_mask
 			)
 		};
@@ -227,7 +235,7 @@ void VideoBase::output_low_resolution(uint8_t *target, const uint8_t *const sour
 	for(size_t c = 0; c < length; ++c) {
 		// Low-resolution graphics mode shifts the colour code on a loop, but has to account for whether this
 		// 14-sample output window is starting at the beginning of a colour cycle or halfway through.
-		if((column + static_cast<int>(c))&1) {
+		if((column + int(c))&1) {
 			target[0] = target[4] = target[8] = target[12] = (source[c] >> row_shift) & 4;
 			target[1] = target[5] = target[9] = target[13] = (source[c] >> row_shift) & 8;
 			target[2] = target[6] = target[10] = (source[c] >> row_shift) & 1;
@@ -244,7 +252,7 @@ void VideoBase::output_low_resolution(uint8_t *target, const uint8_t *const sour
 	}
 }
 
-void VideoBase::output_fat_low_resolution(uint8_t *target, const uint8_t *const source, size_t length, int column, int row) const {
+void VideoBase::output_fat_low_resolution(uint8_t *target, const uint8_t *const source, size_t length, int, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
 		// Fat low-resolution mode appears not to do anything to try to make odd and
@@ -261,7 +269,7 @@ void VideoBase::output_fat_low_resolution(uint8_t *target, const uint8_t *const 
 void VideoBase::output_double_low_resolution(uint8_t *target, const uint8_t *const source, const uint8_t *const auxiliary_source, size_t length, int column, int row) const {
 	const int row_shift = row&4;
 	for(size_t c = 0; c < length; ++c) {
-		if((column + static_cast<int>(c))&1) {
+		if((column + int(c))&1) {
 			target[0] = target[4] = (auxiliary_source[c] >> row_shift) & 2;
 			target[1] = target[5] = (auxiliary_source[c] >> row_shift) & 4;
 			target[2] = target[6] = (auxiliary_source[c] >> row_shift) & 8;

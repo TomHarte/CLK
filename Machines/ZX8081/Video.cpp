@@ -49,7 +49,7 @@ void Video::flush(bool next_sync) {
 		if(line_data_) {
 			// If there is output data queued, output it either if it's being interrupted by
 			// sync, or if we're past its end anyway. Otherwise let it be.
-			int data_length = static_cast<int>(line_data_pointer_ - line_data_);
+			int data_length = int(line_data_pointer_ - line_data_);
 			if(data_length < int(time_since_update_.as_integral()) || next_sync) {
 				auto output_length = std::min(data_length, int(time_since_update_.as_integral()));
 				crt_.output_data(output_length);
@@ -108,4 +108,8 @@ void Video::output_byte(uint8_t byte) {
 
 void Video::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
+}
+
+Outputs::Display::ScanStatus Video::get_scaled_scan_status() const {
+	return crt_.get_scaled_scan_status() / 2.0f;
 }

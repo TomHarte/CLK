@@ -11,7 +11,7 @@
 using namespace Storage::Data::ZX8081;
 
 static uint16_t short_at(std::size_t address, const std::vector<uint8_t> &data) {
-	return static_cast<uint16_t>(data[address] | (data[address + 1] << 8));
+	return uint16_t(data[address] | (data[address + 1] << 8));
 }
 
 static std::shared_ptr<File> ZX80FileFromData(const std::vector<uint8_t> &data) {
@@ -27,7 +27,7 @@ static std::shared_ptr<File> ZX80FileFromData(const std::vector<uint8_t> &data) 
 	uint16_t display_address = short_at(0xc, data);
 
 	// check that the end of file is contained within the supplied data
-	if(static_cast<size_t>(end_of_file - 0x4000) > data.size()) return nullptr;
+	if(size_t(end_of_file - 0x4000) > data.size()) return nullptr;
 
 	// check for the proper ordering of buffers
 	if(vars > end_of_file) return nullptr;
@@ -39,7 +39,7 @@ static std::shared_ptr<File> ZX80FileFromData(const std::vector<uint8_t> &data) 
 
 	// TODO: check that the line numbers declared above exist (?)
 
-	std::shared_ptr<File> file(new File);
+	auto file = std::make_shared<File>();
 	file->data = data;
 	file->isZX81 = false;
 	return file;
@@ -81,7 +81,7 @@ static std::shared_ptr<File> ZX81FileFromData(const std::vector<uint8_t> &data) 
 
 	// TODO: check that the line numbers declared above exist (?)
 
-	std::shared_ptr<File> file(new File);
+	auto file = std::make_shared<File>();
 	file->name = StringFromData(name_data, true);
 	file->data = data;
 	file->isZX81 = true;
@@ -125,6 +125,8 @@ std::vector<uint8_t> Storage::Data::ZX8081::DataFromString(const std::wstring &s
 	std::vector<uint8_t> data;
 
 	// TODO
+	(void)string;
+	(void)is_zx81;
 
 	return data;
 }

@@ -30,15 +30,21 @@ enum Key: uint16_t {
 	KeyZ			= 0x00c0 | 0x08,	KeyA			= 0x00c0 | 0x04,	KeyQ			= 0x00c0 | 0x02,	Key1			= 0x00c0 | 0x01,
 	KeyShift		= 0x00d0 | 0x08,	KeyControl		= 0x00d0 | 0x04,	KeyFunc			= 0x00d0 | 0x02,	KeyEscape		= 0x00d0 | 0x01,
 
+	// Virtual keys.
+	KeyF1	= 0xfff0, KeyF2, KeyF3, KeyF4, KeyF5, KeyF6, KeyF7, KeyF8, KeyF9, KeyF0,
+
 	KeyBreak		= 0xfffd,
 };
 
-struct KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
-	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) override;
+struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	uint16_t *sequence_for_character(char character);
+	const uint16_t *sequence_for_character(char character) const override;
+
+	bool needs_pause_after_reset_all_keys() const override	{ return false; }
+	bool needs_pause_after_key(uint16_t key) const override;
 };
 
 };

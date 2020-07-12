@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "../../Storage.hpp"
+#include "../../../Numeric/LFSR.hpp"
 #include "Track.hpp"
 
 namespace Storage {
@@ -38,6 +39,13 @@ struct PCMSegment {
 		If it is @c false then no flux transition occurs.
 	*/
 	std::vector<bool> data;
+
+	/*!
+		If a segment has a fuzzy mask then anywhere the mask has a value
+		of @c true, a random bit will be ORd onto whatever is in the
+		corresponding slot in @c data.
+	*/
+	std::vector<bool> fuzzy_mask;
 
 	/*!
 		Constructs an instance of PCMSegment with the specified @c length_of_a_bit
@@ -137,7 +145,7 @@ struct PCMSegment {
 
 	/// @returns the total amount of time occupied by all the data stored in this segment.
 	Time length() const {
-		return length_of_a_bit * static_cast<unsigned int>(data.size());
+		return length_of_a_bit * unsigned(data.size());
 	}
 };
 
@@ -192,6 +200,7 @@ class PCMSegmentEventSource {
 		std::shared_ptr<PCMSegment> segment_;
 		std::size_t bit_pointer_;
 		Track::Event next_event_;
+		Numeric::LFSR<uint64_t> lfsr_;
 };
 
 }

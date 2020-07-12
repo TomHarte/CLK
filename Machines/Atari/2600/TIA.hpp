@@ -75,6 +75,7 @@ class TIA {
 
 		void set_crt_delegate(Outputs::CRT::Delegate *);
 		void set_scan_target(Outputs::Display::ScanTarget *);
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 	private:
 		Outputs::CRT::CRT crt_;
@@ -238,15 +239,15 @@ class TIA {
 			int size = 1;
 			const bool enqueues = false;
 
-			inline void skip_pixels(const int count, int from_horizontal_counter) {
+			inline void skip_pixels(const int count, int) {
 				pixel_position = std::max(0, pixel_position - count);
 			}
 
-			inline void reset_pixels(int copy) {
+			inline void reset_pixels(int) {
 				pixel_position = size;
 			}
 
-			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, int from_horizontal_counter) {
+			inline void output_pixels(uint8_t *const target, const int count, const uint8_t collision_identity, [[maybe_unused]] int from_horizontal_counter) {
 				int output_cursor = 0;
 				while(pixel_position && output_cursor < count)
 				{
@@ -256,8 +257,8 @@ class TIA {
 				}
 			}
 
-			void dequeue_pixels(uint8_t *const target, const uint8_t collision_identity, const int time_now) {}
-			void enqueue_pixels(const int start, const int end, int from_horizontal_counter) {}
+			void dequeue_pixels([[maybe_unused]] uint8_t *const target, [[maybe_unused]] uint8_t collision_identity, [[maybe_unused]] int time_now) {}
+			void enqueue_pixels([[maybe_unused]] int start, [[maybe_unused]] int end, [[maybe_unused]] int from_horizontal_counter) {}
 		};
 
 		// missile state

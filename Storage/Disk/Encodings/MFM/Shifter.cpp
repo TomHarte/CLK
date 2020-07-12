@@ -24,8 +24,8 @@ void Shifter::set_should_obey_syncs(bool should_obey_syncs) {
 }
 
 void Shifter::add_input_bit(int value) {
-	shift_register_ = (shift_register_ << 1) | static_cast<unsigned int>(value);
-	bits_since_token_++;
+	shift_register_ = (shift_register_ << 1) | unsigned(value);
+	++bits_since_token_;
 
 	token_ = Token::None;
 	if(should_obey_syncs_) {
@@ -57,6 +57,20 @@ void Shifter::add_input_bit(int value) {
 		} else {
 			switch(shift_register_ & 0xffff) {
 				case Storage::Encodings::MFM::MFMIndexSync:
+					// This models a bit of slightly weird WD behaviour;
+					// if an index sync was detected where it wasn't expected,
+					// the WD will resync but also may return the clock bits
+					// rather than data bits as the next byte read, depending
+					// on framing.
+					//
+					// TODO: make this optional, if ever a Shifter with
+					// well-defined non-WD behaviour is needed.
+					//
+					// TODO: Verify WD behaviour.
+					if(bits_since_token_&1) {
+						shift_register_ >>= 1;
+					}
+
 					bits_since_token_ = 0;
 					is_awaiting_marker_value_ = true;
 
@@ -108,7 +122,7 @@ void Shifter::add_input_bit(int value) {
 }
 
 uint8_t Shifter::get_byte() const {
-	return static_cast<uint8_t>(
+	return uint8_t(
 		((shift_register_ & 0x0001) >> 0) |
 		((shift_register_ & 0x0004) >> 1) |
 		((shift_register_ & 0x0010) >> 2) |

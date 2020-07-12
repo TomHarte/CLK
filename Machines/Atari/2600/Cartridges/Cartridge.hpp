@@ -19,7 +19,7 @@ class BusExtender: public CPU::MOS6502::BusHandler {
 	public:
 		BusExtender(uint8_t *rom_base, std::size_t rom_size) : rom_base_(rom_base), rom_size_(rom_size) {}
 
-		void advance_cycles(int cycles) {}
+		void advance_cycles(int) {}
 
 	protected:
 		uint8_t *rom_base_;
@@ -39,7 +39,7 @@ template<class T> class Cartridge:
 			// consider doing something less fragile.
 		}
 
-		void run_for(const Cycles cycles)	{
+		void run_for(const Cycles cycles) override	{
 			// Horizontal counter resets are used as a proxy for whether this really is an Atari 2600
 			// title. Random memory accesses are likely to trigger random counter resets.
 			horizontal_counter_resets_ = 0;
@@ -50,13 +50,13 @@ template<class T> class Cartridge:
 		/*!
 			Adjusts @c confidence_counter according to the results of the most recent run_for.
 		*/
-		void apply_confidence(Analyser::Dynamic::ConfidenceCounter &confidence_counter) {
+		void apply_confidence(Analyser::Dynamic::ConfidenceCounter &confidence_counter) override {
 			if(cycle_count_.as_integral() < 200) return;
 			if(horizontal_counter_resets_ > 10)
 				confidence_counter.add_miss();
 		}
 
-		void set_reset_line(bool state)		{ m6502_.set_reset_line(state);	}
+		void set_reset_line(bool state) override	{ m6502_.set_reset_line(state);	}
 
 		// to satisfy CPU::MOS6502::Processor
 		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
@@ -181,9 +181,9 @@ template<class T> class Cartridge:
 				if((address&0x1280) == 0x280) {
 					update_6532();
 					if(isReadOperation(operation)) {
-						returnValue &= mos6532_.get_register(address);
+						returnValue &= mos6532_.read(address);
 					} else {
-						mos6532_.set_register(address, *value);
+						mos6532_.write(address, *value);
 					}
 				}
 
@@ -197,7 +197,7 @@ template<class T> class Cartridge:
 			return Cycles(cycles_run_for / 3);
 		}
 
-		void flush() {
+		void flush() override {
 			update_audio();
 			update_video();
 			audio_queue_.perform();

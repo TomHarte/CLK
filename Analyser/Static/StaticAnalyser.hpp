@@ -35,6 +35,16 @@ struct Media {
 	bool empty() const {
 		return disks.empty() && tapes.empty() && cartridges.empty() && mass_storage_devices.empty();
 	}
+
+	Media &operator +=(const Media &rhs) {
+#define append(name)	name.insert(name.end(), rhs.name.begin(), rhs.name.end());
+		append(disks);
+		append(tapes);
+		append(cartridges);
+		append(mass_storage_devices);
+#undef append
+		return *this;
+	}
 };
 
 /*!
@@ -42,11 +52,12 @@ struct Media {
 	and instructions on how to launch the software attached, plus a measure of confidence in this target's correctness.
 */
 struct Target {
+	Target(Machine machine) : machine(machine) {}
 	virtual ~Target() {}
 
 	Machine machine;
 	Media media;
-	float confidence;
+	float confidence = 0.0f;
 };
 typedef std::vector<std::unique_ptr<Target>> TargetList;
 

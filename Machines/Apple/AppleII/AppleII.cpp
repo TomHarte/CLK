@@ -9,10 +9,7 @@
 #include "AppleII.hpp"
 
 #include "../../../Activity/Source.hpp"
-#include "../../MediaTarget.hpp"
-#include "../../CRTMachine.hpp"
-#include "../../JoystickMachine.hpp"
-#include "../../KeyboardMachine.hpp"
+#include "../../MachineTypes.hpp"
 #include "../../Utility/MemoryFuzzer.hpp"
 #include "../../Utility/StringSerialiser.hpp"
 
@@ -37,24 +34,20 @@
 namespace Apple {
 namespace II {
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayCompositeMonochrome | Configurable::DisplayCompositeColour)
-	);
-}
-
 #define is_iie() ((model == Analyser::Static::AppleII::Target::Model::IIe) || (model == Analyser::Static::AppleII::Target::Model::EnhancedIIe))
 
 template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::JoystickMachine,
 	public CPU::MOS6502::BusHandler,
 	public Inputs::Keyboard,
 	public Configurable::Device,
 	public Apple::II::Machine,
 	public Activity::Source,
-	public JoystickMachine::Machine,
 	public Apple::II::Card::Delegate {
 	private:
 		struct VideoBusHandler : public Apple::II::Video::BusHandler {
@@ -79,7 +72,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		void update_video() {
 			video_.run_for(cycles_since_video_update_.flush<Cycles>());
 		}
-		static const int audio_divider = 8;
+		static constexpr int audio_divider = 8;
 		void update_audio() {
 			speaker_.run_for(audio_queue_, cycles_since_audio_update_.divide(Cycles(audio_divider)));
 		}
@@ -147,7 +140,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			card_became_just_in_time_ |= !is_every_cycle;
 		}
 
-		void card_did_change_select_constraints(Apple::II::Card *card) override {
+		void card_did_change_select_constraints(Apple::II::Card *card) final {
 			pick_card_messaging_group(card);
 		}
 
@@ -283,12 +276,12 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 						Input(Input::Fire, 2),
 					}) {}
 
-					void did_set_input(const Input &input, float value) override {
+					void did_set_input(const Input &input, float value) final {
 						if(!input.info.control.index && (input.type == Input::Type::Horizontal || input.type == Input::Type::Vertical))
 							axes[(input.type == Input::Type::Horizontal) ? 0 : 1] = 1.0f - value;
 					}
 
-					void did_set_input(const Input &input, bool value) override {
+					void did_set_input(const Input &input, bool value) final {
 						if(input.type == Input::Type::Fire && input.info.control.index < 3) {
 							buttons[input.info.control.index] = value;
 						}
@@ -329,7 +322,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			audio_toggle_(audio_queue_),
 			speaker_(audio_toggle_) {
 			// The system's master clock rate.
-			const float master_clock = 14318180.0;
+			constexpr float master_clock = 14318180.0;
 
 			// This is where things get slightly convoluted: establish the machine as having a clock rate
 			// equal to the number of cycles of work the 6502 will actually achieve. Which is less than
@@ -338,7 +331,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			// The speaker, however, should think it is clocked at half the master clock, per a general
 			// decision to sample it at seven times the CPU clock (plus stretches).
-			speaker_.set_input_rate(static_cast<float>(master_clock / (2.0 * static_cast<float>(audio_divider))));
+			speaker_.set_input_rate(float(master_clock / (2.0 * float(audio_divider))));
 
 			// Apply a 6Khz low-pass filter. This was picked by ear and by an attempt to understand the
 			// Apple II schematic but, well, I don't claim much insight on the latter. This is definitely
@@ -394,7 +387,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 
 			rom_ = std::move(*roms[1]);
 			if(rom_.size() > rom_size) {
-				rom_.erase(rom_.begin(), rom_.end() - static_cast<off_t>(rom_size));
+				rom_.erase(rom_.begin(), rom_.end() - off_t(rom_size));
 			}
 
 			video_.set_character_rom(*roms[0]);
@@ -417,16 +410,24 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_.set_scan_target(scan_target);
 		}
 
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+			return video_.get_scaled_scan_status();
+		}
+
 		/// Sets the type of display.
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			video_.set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Display::DisplayType get_display_type() const final {
+			return video_.get_display_type();
+		}
+
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
@@ -734,7 +735,7 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					// If the selected card is a just-in-time card, update the just-in-time cards,
 					// and then message it specifically.
 					const bool is_read = isReadOperation(operation);
-					Apple::II::Card *const target = cards_[static_cast<size_t>(card_number)].get();
+					Apple::II::Card *const target = cards_[size_t(card_number)].get();
 					if(target && !is_every_cycle_card(target)) {
 						update_just_in_time_cards();
 						target->perform_bus_operation(select, is_read, address, value);
@@ -799,26 +800,26 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		void run_for(const Cycles cycles) override {
+		void run_for(const Cycles cycles) final {
 			m6502_.run_for(cycles);
 		}
 
-		void reset_all_keys() override {
+		void reset_all_keys(Inputs::Keyboard *) final {
 			open_apple_is_pressed_ = closed_apple_is_pressed_ = key_is_down_ = false;
 		}
 
-		void set_key_pressed(Key key, char value, bool is_pressed) override {
+		bool set_key_pressed(Key key, char value, bool is_pressed) final {
 			switch(key) {
 				default: break;
 				case Key::F12:
 					m6502_.set_reset_line(is_pressed);
-				return;
+				return true;
 				case Key::LeftOption:
 					open_apple_is_pressed_ = is_pressed;
-				return;
+				return true;
 				case Key::RightOption:
 					closed_apple_is_pressed_ = is_pressed;
-				return;
+				return true;
 			}
 
 			// If no ASCII value is supplied, look for a few special cases.
@@ -829,55 +830,52 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 					case Key::Down:			value = 0x0a;	break;
 					case Key::Up:			value = 0x0b;	break;
 					case Key::Backspace:	value = 0x7f;	break;
-					default: return;
+					default: return false;
 				}
 			}
 
 			// Prior to the IIe, the keyboard could produce uppercase only.
-			if(!is_iie()) value = static_cast<char>(toupper(value));
+			if(!is_iie()) value = char(toupper(value));
 
 			if(is_pressed) {
-				keyboard_input_ = static_cast<uint8_t>(value | 0x80);
+				keyboard_input_ = uint8_t(value | 0x80);
 				key_is_down_ = true;
 			} else {
 				if((keyboard_input_ & 0x7f) == value) {
 					key_is_down_ = false;
 				}
 			}
+
+			return true;
 		}
 
-		Inputs::Keyboard &get_keyboard() override {
+		Inputs::Keyboard &get_keyboard() final {
 			return *this;
 		}
 
-		void type_string(const std::string &string) override {
-			string_serialiser_.reset(new Utility::StringSerialiser(string, true));
+		void type_string(const std::string &string) final {
+			string_serialiser_ = std::make_unique<Utility::StringSerialiser>(string, true);
+		}
+
+		bool can_type(char c) const final {
+			// Make an effort to type the entire printable ASCII range.
+			return c >= 32 && c < 127;
 		}
 
 		// MARK:: Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			return Apple::II::get_options();
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() override {
-			return get_accurate_selections();
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
 		}
 
 		// MARK: MediaTarget
-		bool insert_media(const Analyser::Static::Media &media) override {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.disks.empty()) {
 				auto diskii = diskii_card();
 				if(diskii) diskii->set_disk(media.disks[0], 0);
@@ -886,14 +884,14 @@ template <Analyser::Static::AppleII::Target::Model model> class ConcreteMachine:
 		}
 
 		// MARK: Activity::Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			for(const auto &card: cards_) {
 				if(card) card->set_activity_observer(observer);
 			}
 		}
 
 		// MARK: JoystickMachine
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return joysticks_;
 		}
 };

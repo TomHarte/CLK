@@ -26,10 +26,10 @@ class MSA final: public DiskImage {
 		MSA(const std::string &file_name);
 
 		// Implemented to satisfy @c DiskImage.
-		HeadPosition get_maximum_head_position() override;
-		int get_head_count() override;
-		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) override;
-		bool get_is_read_only() override { return false; }
+		HeadPosition get_maximum_head_position() final;
+		int get_head_count() final;
+		std::shared_ptr<::Storage::Disk::Track> get_track_at_position(::Storage::Disk::Track::Address address) final;
+		bool get_is_read_only() final { return false; }
 
 	private:
 		FileHolder file_;

@@ -13,17 +13,7 @@
 */
 
 template <Personality personality, typename T, bool uses_ready_line> void Processor<personality, T, uses_ready_line>::run_for(const Cycles cycles) {
-	static const MicroOp do_branch[] = {
-		CycleReadFromPC,
-		CycleAddSignedOperandToPC,
-		OperationMoveToNextProgram
-	};
 	static uint8_t throwaway_target;
-	static const MicroOp fetch_decode_execute[] = {
-		CycleFetchOperation,
-		CycleFetchOperand,
-		OperationDecodeOperation
-	};
 
 	// These plus program below act to give the compiler permission to update these values
 	// without touching the class storage (i.e. it explicitly says they need be completely up
@@ -33,22 +23,21 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 	uint16_t busAddress = bus_address_;
 	uint8_t *busValue = bus_value_;
 
-#define checkSchedule(op) \
+#define checkSchedule() \
 	if(!scheduled_program_counter_) {\
-	if(interrupt_requests_) {\
-		if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
-			interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
-			scheduled_program_counter_ = get_reset_program();\
-		} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {\
-			interrupt_requests_ &= ~InterruptRequestFlags::NMI;\
-			scheduled_program_counter_ = get_nmi_program();\
-		} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {\
-			scheduled_program_counter_ = get_irq_program();\
-		} \
-	} else {\
-		scheduled_program_counter_ = fetch_decode_execute;\
-	}\
-		op;\
+		if(interrupt_requests_) {\
+			if(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn)) {\
+				interrupt_requests_ &= ~InterruptRequestFlags::PowerOn;\
+				scheduled_program_counter_ = operations_[size_t(OperationsSlot::Reset)];\
+			} else if(interrupt_requests_ & InterruptRequestFlags::NMI) {\
+				interrupt_requests_ &= ~InterruptRequestFlags::NMI;\
+				scheduled_program_counter_ = operations_[size_t(OperationsSlot::NMI)];\
+			} else if(interrupt_requests_ & InterruptRequestFlags::IRQ) {\
+				scheduled_program_counter_ = operations_[size_t(OperationsSlot::IRQ)];\
+			} \
+		} else {\
+			scheduled_program_counter_ = operations_[size_t(OperationsSlot::FetchDecodeExecute)];\
+		}\
 	}
 
 #define bus_access() \
@@ -146,7 +135,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 	write_mem(v, targetAddress);\
 }
 
-					case CycleIncPCPushPCH:				pc_.full++;														// deliberate fallthrough
+					case CycleIncPCPushPCH:				pc_.full++;														[[fallthrough]];
 					case CyclePushPCH:					push(pc_.halves.high);											break;
 					case CyclePushPCL:					push(pc_.halves.low);											break;
 					case CyclePushOperand:				push(operand_);													break;
@@ -258,17 +247,17 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 
 					case OperationCMP: {
 						const uint16_t temp16 = a_ - operand_;
-						negative_result_ = zero_result_ = static_cast<uint8_t>(temp16);
+						negative_result_ = zero_result_ = uint8_t(temp16);
 						carry_flag_ = ((~temp16) >> 8)&1;
 					} continue;
 					case OperationCPX: {
 						const uint16_t temp16 = x_ - operand_;
-						negative_result_ = zero_result_ = static_cast<uint8_t>(temp16);
+						negative_result_ = zero_result_ = uint8_t(temp16);
 						carry_flag_ = ((~temp16) >> 8)&1;
 					} continue;
 					case OperationCPY: {
 						const uint16_t temp16 = y_ - operand_;
-						negative_result_ = zero_result_ = static_cast<uint8_t>(temp16);
+						negative_result_ = zero_result_ = uint8_t(temp16);
 						carry_flag_ = ((~temp16) >> 8)&1;
 					} continue;
 
@@ -303,11 +292,12 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 // MARK: - ADC/SBC (and INS)
 
 					case OperationINS:
-						operand_++;			// deliberate fallthrough
+						operand_++;
+						[[fallthrough]];
 					case OperationSBC:
 						if(decimal_flag_ && has_decimal_mode(personality)) {
 							const uint16_t notCarry = carry_flag_ ^ 0x1;
-							const uint16_t decimalResult = static_cast<uint16_t>(a_) - static_cast<uint16_t>(operand_) - notCarry;
+							const uint16_t decimalResult = uint16_t(a_) - uint16_t(operand_) - notCarry;
 							uint16_t temp16;
 
 							temp16 = (a_&0xf) - (operand_&0xf) - notCarry;
@@ -316,13 +306,13 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							temp16 += (a_&0xf0) - (operand_&0xf0);
 
 							overflow_flag_ = ( ( (decimalResult^a_)&(~decimalResult^operand_) )&0x80) >> 1;
-							negative_result_ = static_cast<uint8_t>(temp16);
-							zero_result_ = static_cast<uint8_t>(decimalResult);
+							negative_result_ = uint8_t(temp16);
+							zero_result_ = uint8_t(decimalResult);
 
 							if(temp16 > 0xff) temp16 -= 0x60;
 
 							carry_flag_ = (temp16 > 0xff) ? 0 : Flag::Carry;
-							a_ = static_cast<uint8_t>(temp16);
+							a_ = uint8_t(temp16);
 
 							if(is_65c02(personality)) {
 								negative_result_ = zero_result_ = a_;
@@ -333,22 +323,22 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						} else {
 							operand_ = ~operand_;
 						}
+						[[fallthrough]];
 
-					// deliberate fallthrough
 					case OperationADC:
 						if(decimal_flag_ && has_decimal_mode(personality)) {
-							const uint16_t decimalResult = static_cast<uint16_t>(a_) + static_cast<uint16_t>(operand_) + static_cast<uint16_t>(carry_flag_);
+							const uint16_t decimalResult = uint16_t(a_) + uint16_t(operand_) + uint16_t(carry_flag_);
 
 							uint8_t low_nibble = (a_ & 0xf) + (operand_ & 0xf) + carry_flag_;
 							if(low_nibble >= 0xa) low_nibble = ((low_nibble + 0x6) & 0xf) + 0x10;
-							uint16_t result = static_cast<uint16_t>(a_ & 0xf0) + static_cast<uint16_t>(operand_ & 0xf0) + static_cast<uint16_t>(low_nibble);
-							negative_result_ = static_cast<uint8_t>(result);
+							uint16_t result = uint16_t(a_ & 0xf0) + uint16_t(operand_ & 0xf0) + uint16_t(low_nibble);
+							negative_result_ = uint8_t(result);
 							overflow_flag_ = (( (result^a_)&(result^operand_) )&0x80) >> 1;
 							if(result >= 0xa0) result += 0x60;
 
 							carry_flag_ = (result >> 8) ? 1 : 0;
-							a_ = static_cast<uint8_t>(result);
-							zero_result_ = static_cast<uint8_t>(decimalResult);
+							a_ = uint8_t(result);
+							zero_result_ = uint8_t(decimalResult);
 
 							if(is_65c02(personality)) {
 								negative_result_ = zero_result_ = a_;
@@ -356,9 +346,9 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 								break;
 							}
 						} else {
-							const uint16_t result = static_cast<uint16_t>(a_) + static_cast<uint16_t>(operand_) + static_cast<uint16_t>(carry_flag_);
+							const uint16_t result = uint16_t(a_) + uint16_t(operand_) + uint16_t(carry_flag_);
 							overflow_flag_ = (( (result^a_)&(result^operand_) )&0x80) >> 1;
-							negative_result_ = zero_result_ = a_ = static_cast<uint8_t>(result);
+							negative_result_ = zero_result_ = a_ = uint8_t(result);
 							carry_flag_ = (result >> 8)&1;
 						}
 
@@ -382,13 +372,13 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					continue;
 
 					case OperationROL: {
-						const uint8_t temp8 = static_cast<uint8_t>((operand_ << 1) | carry_flag_);
+						const uint8_t temp8 = uint8_t((operand_ << 1) | carry_flag_);
 						carry_flag_ = operand_ >> 7;
 						operand_ = negative_result_ = zero_result_ = temp8;
 					} continue;
 
 					case OperationRLA: {
-						const uint8_t temp8 = static_cast<uint8_t>((operand_ << 1) | carry_flag_);
+						const uint8_t temp8 = uint8_t((operand_ << 1) | carry_flag_);
 						carry_flag_ = operand_ >> 7;
 						operand_ = temp8;
 						a_ &= operand_;
@@ -416,13 +406,13 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					continue;
 
 					case OperationROR: {
-						const uint8_t temp8 = static_cast<uint8_t>((operand_ >> 1) | (carry_flag_ << 7));
+						const uint8_t temp8 = uint8_t((operand_ >> 1) | (carry_flag_ << 7));
 						carry_flag_ = operand_ & 1;
 						operand_ = negative_result_ = zero_result_ = temp8;
 					} continue;
 
 					case OperationRRA: {
-						const uint8_t temp8 = static_cast<uint8_t>((operand_ >> 1) | (carry_flag_ << 7));
+						const uint8_t temp8 = uint8_t((operand_ >> 1) | (carry_flag_ << 7));
 						carry_flag_ = operand_ & 1;
 						operand_ = temp8;
 					} continue;
@@ -520,8 +510,9 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						operand_++;
 						read_mem(address_.halves.high, operand_);
 					break;
-					case CycleIncrementPCReadPCHLoadPCL:	// deliberate fallthrough
+					case CycleIncrementPCReadPCHLoadPCL:
 						pc_.full++;
+						[[fallthrough]];
 					case CycleReadPCHLoadPCL: {
 						uint16_t oldPC = pc_.full;
 						pc_.halves.low = operand_;
@@ -566,7 +557,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 #define BRA(condition)	\
 	pc_.full++; \
 	if(condition) {	\
-		scheduled_program_counter_ = do_branch;	\
+		scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoBRA)];	\
 	}
 
 					case OperationBPL: BRA(!(negative_result_&0x80));				continue;
@@ -582,7 +573,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 #undef BRA
 
 					case CycleAddSignedOperandToPC:
-						nextAddress.full = static_cast<uint16_t>(pc_.full + (int8_t)operand_);
+						nextAddress.full = uint16_t(pc_.full + int8_t(operand_));
 						pc_.halves.low = nextAddress.halves.low;
 						if(nextAddress.halves.high != pc_.halves.high) {
 							uint16_t halfUpdatedPc = pc_.full;
@@ -593,40 +584,27 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							// 65C02 modification to all branches: a branch that is taken but requires only a single cycle
 							// to target its destination skips any pending interrupts.
 							// Cf. http://forum.6502.org/viewtopic.php?f=4&t=1634
-							scheduled_program_counter_ = fetch_decode_execute;
+							scheduled_program_counter_ = operations_[size_t(OperationsSlot::FetchDecodeExecute)];
 						}
 					continue;
 
 					case CycleFetchFromHalfUpdatedPC: {
-						uint16_t halfUpdatedPc = static_cast<uint16_t>(((pc_.halves.low + (int8_t)operand_) & 0xff) | (pc_.halves.high << 8));
+						uint16_t halfUpdatedPc = uint16_t(((pc_.halves.low + int8_t(operand_)) & 0xff) | (pc_.halves.high << 8));
 						throwaway_read(halfUpdatedPc);
 					} break;
 
 					case OperationAddSignedOperandToPC16:
-						pc_.full = static_cast<uint16_t>(pc_.full + (int8_t)operand_);
+						pc_.full = uint16_t(pc_.full + int8_t(operand_));
 					continue;
 
 					case OperationBBRBBS: {
 						// To reach here, the 6502 has (i) read the operation; (ii) read the first operand;
 						// and (iii) read from the corresponding zero page.
-						const uint8_t mask = static_cast<uint8_t>(1 << ((operation_ >> 4)&7));
+						const uint8_t mask = uint8_t(1 << ((operation_ >> 4)&7));
 						if((operand_ & mask) == ((operation_ & 0x80) ? mask : 0)) {
-							static const MicroOp do_branch[] = {
-								CycleFetchOperand,			// Fetch offset.
-								OperationIncrementPC,
-								CycleFetchFromHalfUpdatedPC,
-								OperationAddSignedOperandToPC16,
-								OperationMoveToNextProgram
-							};
-							scheduled_program_counter_ = do_branch;
+							scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoBBRBBS)];
 						} else {
-							static const MicroOp do_not_branch[] = {
-								CycleFetchOperand,
-								OperationIncrementPC,
-								CycleFetchFromHalfUpdatedPC,
-								OperationMoveToNextProgram
-							};
-							scheduled_program_counter_ = do_not_branch;
+							scheduled_program_counter_ = operations_[size_t(OperationsSlot::DoNotBBRBBS)];
 						}
 					} break;
 
@@ -643,7 +621,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 						if(decimal_flag_) {
 							a_ &= operand_;
 							uint8_t unshiftedA = a_;
-							a_ = static_cast<uint8_t>((a_ >> 1) | (carry_flag_ << 7));
+							a_ = uint8_t((a_ >> 1) | (carry_flag_ << 7));
 							zero_result_ = negative_result_ = a_;
 							overflow_flag_ = (a_^(a_ << 1))&Flag::Overflow;
 
@@ -653,7 +631,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 							if(carry_flag_) a_ += 0x60;
 						} else {
 							a_ &= operand_;
-							a_ = static_cast<uint8_t>((a_ >> 1) | (carry_flag_ << 7));
+							a_ = uint8_t((a_ >> 1) | (carry_flag_ << 7));
 							negative_result_ = zero_result_ = a_;
 							carry_flag_ = (a_ >> 6)&1;
 							overflow_flag_ = (a_^(a_ << 1))&Flag::Overflow;
@@ -663,7 +641,7 @@ template <Personality personality, typename T, bool uses_ready_line> void Proces
 					case OperationSBX:
 						x_ &= a_;
 						uint16_t difference = x_ - operand_;
-						x_ = static_cast<uint8_t>(difference);
+						x_ = uint8_t(difference);
 						negative_result_ = zero_result_ = x_;
 						carry_flag_ = ((difference >> 8)&1)^1;
 					continue;
@@ -704,8 +682,8 @@ void ProcessorBase::set_reset_line(bool active) {
 	interrupt_requests_ = (interrupt_requests_ & ~InterruptRequestFlags::Reset) | (active ? InterruptRequestFlags::Reset : 0);
 }
 
-bool ProcessorBase::get_is_resetting() {
-	return !!(interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn));
+bool ProcessorBase::get_is_resetting() const {
+	return interrupt_requests_ & (InterruptRequestFlags::Reset | InterruptRequestFlags::PowerOn);
 }
 
 void ProcessorBase::set_power_on(bool active) {
@@ -730,57 +708,7 @@ void ProcessorBase::set_nmi_line(bool active) {
 	nmi_line_is_enabled_ = active;
 }
 
-inline const ProcessorStorage::MicroOp *ProcessorStorage::get_reset_program() {
-	static const MicroOp reset[] = {
-		CycleFetchOperand,
-		CycleFetchOperand,
-		CycleNoWritePush,
-		CycleNoWritePush,
-		OperationRSTPickVector,
-		CycleNoWritePush,
-		OperationSetNMIRSTFlags,
-		CycleReadVectorLow,
-		CycleReadVectorHigh,
-		OperationMoveToNextProgram
-	};
-	return reset;
-}
-
-inline const ProcessorStorage::MicroOp *ProcessorStorage::get_irq_program() {
-	static const MicroOp reset[] = {
-		CycleFetchOperand,
-		CycleFetchOperand,
-		CyclePushPCH,
-		CyclePushPCL,
-		OperationBRKPickVector,
-		OperationSetOperandFromFlags,
-		CyclePushOperand,
-		OperationSetIRQFlags,
-		CycleReadVectorLow,
-		CycleReadVectorHigh,
-		OperationMoveToNextProgram
-	};
-	return reset;
-}
-
-inline const ProcessorStorage::MicroOp *ProcessorStorage::get_nmi_program() {
-	static const MicroOp reset[] = {
-		CycleFetchOperand,
-		CycleFetchOperand,
-		CyclePushPCH,
-		CyclePushPCL,
-		OperationNMIPickVector,
-		OperationSetOperandFromFlags,
-		CyclePushOperand,
-		OperationSetNMIRSTFlags,
-		CycleReadVectorLow,
-		CycleReadVectorHigh,
-		OperationMoveToNextProgram
-	};
-	return reset;
-}
-
-uint8_t ProcessorStorage::get_flags() {
+uint8_t ProcessorStorage::get_flags() const {
 	return carry_flag_ | overflow_flag_ | (inverse_interrupt_flag_ ^ Flag::Interrupt) | (negative_result_ & 0x80) | (zero_result_ ? 0 : Flag::Zero) | Flag::Always | decimal_flag_;
 }
 

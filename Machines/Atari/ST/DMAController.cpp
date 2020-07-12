@@ -8,6 +8,9 @@
 
 #include "DMAController.hpp"
 
+#define LOG_PREFIX "[DMA] "
+#include "../../../Outputs/Log.hpp"
+
 #include <cstdio>
 
 using namespace Atari::ST;
@@ -42,7 +45,7 @@ uint16_t DMAController::read(int address) {
 				if(control_ & Control::CPUTarget) {
 					return 0xffff;
 				} else {
-					return 0xff00 | fdc_.get_register(control_ >> 1);
+					return 0xff00 | fdc_.read(control_ >> 1);
 				}
 			}
 		break;
@@ -75,7 +78,7 @@ void DMAController::write(int address, uint16_t value) {
 				if(control_ & Control::CPUTarget) {
 					// TODO: HDC.
 				} else {
-					fdc_.set_register(control_ >> 1, uint8_t(value));
+					fdc_.write(control_ >> 1, uint8_t(value));
 				}
 			}
 		break;
@@ -102,19 +105,28 @@ void DMAController::write(int address, uint16_t value) {
 			control_ = value;
 		break;
 
-		// DMA addressing.
+		// DMA addressing; cf. http://www.atari-forum.com/viewtopic.php?t=30289 on a hardware
+		// feature emulated here: 'carry' will ripple upwards if a write resets the top bit
+		// of the byte it is adjusting.
 		case 4:	address_ = int((address_ & 0x00ffff) | ((value & 0xff) << 16));	break;
-		case 5:	address_ = int((address_ & 0xff00ff) | ((value & 0xff) << 8));	break;
-		case 6:	address_ = int((address_ & 0xffff00) | ((value & 0xff) << 0));	break;
+		case 5:
+			if(((value << 8) ^ address_) & ~(value << 8) & 0x8000) address_ += 0x10000;
+			address_ = int((address_ & 0xff00ff) | ((value & 0xff) << 8));
+		break;
+		case 6:
+			if((value ^ address_) & ~value & 0x80) address_ += 0x100;
+			address_ = int((address_ & 0xffff00) | ((value & 0xfe) << 0));
+		break;	// Lowest bit: discarded.
 	}
 }
 
 void DMAController::set_floppy_drive_selection(bool drive1, bool drive2, bool side2) {
+//	LOG("Selected: " << (drive1 ? "1" : "-") << (drive2 ? "2" : "-") << (side2 ? "s" : "-"));
 	fdc_.set_floppy_drive_selection(drive1, drive2, side2);
 }
 
 void DMAController::set_floppy_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive) {
-	fdc_.drives_[drive]->set_disk(disk);
+	fdc_.set_disk(disk, drive);
 }
 
 void DMAController::run_for(HalfCycles duration) {
@@ -141,7 +153,7 @@ void DMAController::wd1770_did_change_output(WD::WD1770 *) {
 
 			// Read from the data register into the active buffer.
 			if(bytes_received_ < 16) {
-				buffer_[active_buffer_].contents[bytes_received_] = fdc_.get_register(3);
+				buffer_[active_buffer_].contents[bytes_received_] = fdc_.read(3);
 				++bytes_received_;
 			}
 			if(bytes_received_ == 16) {
@@ -171,6 +183,7 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 	bus_request_line_ = false;
 	if(delegate_) delegate_->dma_controller_did_change_output(this);
 
+	size <<= 1;	// Convert to bytes.
 	if(control_ & Control::Direction) {
 		// TODO: writes.
 		return 0;
@@ -178,11 +191,19 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		// Check that the older buffer is full; stop if not.
 		if(!buffer_[active_buffer_ ^ 1].is_full) return 0;
 
+#define b(i, n) " " << PADHEX(2) << int(buffer_[i].contents[n])
+#define b2(i, n) b(i, n) << b(i, n+1)
+#define b4(i, n) b2(i, n) << b2(i, n+2)
+#define b16(i) b4(i, 0) << b4(i, 4) << b4(i, 8) << b4(i, 12)
+//		LOG("[1] to " << PADHEX(6) << address_ << b16(active_buffer_ ^ 1));
+
 		for(int c = 0; c < 8; ++c) {
-			ram[size_t(address_ >> 1) & (size - 1)] = uint16_t(
-				(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 0] << 8) |
-				(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 1] << 0)
-			);
+			if(size_t(address_) < size) {
+				ram[address_ >> 1] = uint16_t(
+					(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 0] << 8) |
+					(buffer_[active_buffer_ ^ 1].contents[(c << 1) + 1] << 0)
+				);
+			}
 			address_ += 2;
 		}
 		buffer_[active_buffer_ ^ 1].is_full = false;
@@ -190,11 +211,19 @@ int DMAController::bus_grant(uint16_t *ram, size_t size) {
 		// Check that the newer buffer is full; stop if not.
 		if(!buffer_[active_buffer_ ].is_full) return 8;
 
+//		LOG("[2] to " << PADHEX(6) << address_ << b16(active_buffer_));
+#undef b16
+#undef b4
+#undef b2
+#undef b
+
 		for(int c = 0; c < 8; ++c) {
-			ram[size_t(address_ >> 1) & (size - 1)] = uint16_t(
-				(buffer_[active_buffer_].contents[(c << 1) + 0] << 8) |
-				(buffer_[active_buffer_].contents[(c << 1) + 1] << 0)
-			);
+			if(size_t(address_) < size) {
+				ram[address_ >> 1] = uint16_t(
+					(buffer_[active_buffer_].contents[(c << 1) + 0] << 8) |
+					(buffer_[active_buffer_].contents[(c << 1) + 1] << 0)
+				);
+			}
 			address_ += 2;
 		}
 		buffer_[active_buffer_].is_full = false;
@@ -222,11 +251,10 @@ void DMAController::set_component_prefers_clocking(ClockingHint::Source *, Clock
 	update_clocking_observer();
 }
 
-ClockingHint::Preference DMAController::preferred_clocking() {
+ClockingHint::Preference DMAController::preferred_clocking() const {
 	return (fdc_.preferred_clocking() == ClockingHint::Preference::None) ? ClockingHint::Preference::None : ClockingHint::Preference::RealTime;
 }
 
 void DMAController::set_activity_observer(Activity::Observer *observer) {
-	fdc_.drives_[0]->set_activity_observer(observer, "Internal", true);
-	fdc_.drives_[1]->set_activity_observer(observer, "External", true);
+	fdc_.set_activity_observer(observer);
 }

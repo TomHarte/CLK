@@ -28,7 +28,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	while(!tape_player.get_tape()->is_at_end()) {
 		float next_length = 0.0f;
 		do {
-			next_length += static_cast<float>(tape_player.get_cycles_until_next_event()) / static_cast<float>(tape_player.get_input_clock_rate());
+			next_length += float(tape_player.get_cycles_until_next_event()) / float(tape_player.get_input_clock_rate());
 			tape_player.run_for_input_pulse();
 		} while(last_level == tape_player.get_input());
 		last_level = tape_player.get_input();
@@ -51,7 +51,7 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	float total_length = 0.0f;
 	samples = 512;
 	while(!tape_player.get_tape()->is_at_end()) {
-		total_length += static_cast<float>(tape_player.get_cycles_until_next_event()) / static_cast<float>(tape_player.get_input_clock_rate());
+		total_length += float(tape_player.get_cycles_until_next_event()) / float(tape_player.get_input_clock_rate());
 		if(tape_player.get_input() != last_level) {
 			samples--;
 			if(!samples) break;
@@ -69,9 +69,9 @@ std::unique_ptr<Parser::FileSpeed> Parser::find_header(Storage::Tape::BinaryTape
 	*/
 	total_length = total_length / 256.0f;			// To get the average, in microseconds.
 	// To convert to the loop count format used by the MSX BIOS.
-	uint8_t int_result = static_cast<uint8_t>(total_length / (0.00001145f * 0.75f));
+	uint8_t int_result = uint8_t(total_length / (0.00001145f * 0.75f));
 
-	std::unique_ptr<FileSpeed> result(new FileSpeed);
+	auto result = std::make_unique<FileSpeed>();
 	result->minimum_start_bit_duration = int_result;
 	result->low_high_disrimination_duration = (int_result * 3) >> 2;
 
@@ -101,14 +101,14 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 		So I'm going to look for the next two consecutive pulses that are each big
 		enough to be half of a zero.
 	*/
-	const float minimum_start_bit_duration = static_cast<float>(speed.minimum_start_bit_duration) * 0.00001145f * 0.5f;
+	const float minimum_start_bit_duration = float(speed.minimum_start_bit_duration) * 0.00001145f * 0.5f;
 	int input = 0;
 	while(!tape_player.get_tape()->is_at_end()) {
 		// Find next transition.
 		bool level = tape_player.get_input();
 		float duration = 0.0;
 		while(level == tape_player.get_input()) {
-			duration += static_cast<float>(tape_player.get_cycles_until_next_event()) / static_cast<float>(tape_player.get_input_clock_rate());
+			duration += float(tape_player.get_cycles_until_next_event()) / float(tape_player.get_input_clock_rate());
 			tape_player.run_for_input_pulse();
 		}
 
@@ -124,11 +124,11 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 		terminates with Flag C as this is presumed to be a hardware error of some sort. "
 	*/
 	int result = 0;
-	const int cycles_per_window = static_cast<int>(
+	const int cycles_per_window = int(
 		0.5f +
-		static_cast<float>(speed.low_high_disrimination_duration) *
+		float(speed.low_high_disrimination_duration) *
 		0.0000173f *
-		static_cast<float>(tape_player.get_input_clock_rate())
+		float(tape_player.get_input_clock_rate())
 	);
 	int bits_left = 8;
 	bool level = tape_player.get_input();
@@ -137,7 +137,7 @@ int Parser::get_byte(const FileSpeed &speed, Storage::Tape::BinaryTapePlayer &ta
 		int transitions = 0;
 		int cycles_remaining = cycles_per_window;
 		while(!tape_player.get_tape()->is_at_end() && cycles_remaining) {
-			const int cycles_until_next_event = static_cast<int>(tape_player.get_cycles_until_next_event());
+			const int cycles_until_next_event = int(tape_player.get_cycles_until_next_event());
 			const int cycles_to_run_for = std::min(cycles_until_next_event, cycles_remaining);
 
 			cycles_remaining -= cycles_to_run_for;

@@ -29,9 +29,9 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 }
 
 void Parser::post_pulse() {
-	const float expected_pulse_length = 300.0f / 1000000.0f;
-	const float expected_gap_length = 1300.0f / 1000000.0f;
-	float pulse_time = pulse_time_.get<float>();
+	constexpr float expected_pulse_length = 300.0f / 1000000.0f;
+	constexpr float expected_gap_length = 1300.0f / 1000000.0f;
+	auto pulse_time = pulse_time_.get<float>();
 
 	if(pulse_time > expected_gap_length * 1.25f) {
 		push_wave(WaveType::LongGap);
@@ -81,9 +81,9 @@ void Parser::inspect_waves(const std::vector<WaveType> &waves) {
 			// check are 8 and 3.
 			std::size_t gaps_to_swallow = wave_offset + ((waves[number_of_pulses + wave_offset] == WaveType::Gap) ? 1 : 0);
 			switch(number_of_pulses) {
-				case 8:		push_symbol(SymbolType::One, static_cast<int>(number_of_pulses + gaps_to_swallow));		break;
-				case 3:		push_symbol(SymbolType::Zero, static_cast<int>(number_of_pulses + gaps_to_swallow));	break;
-				default:	push_symbol(SymbolType::Unrecognised, 1);												break;
+				case 8:		push_symbol(SymbolType::One, int(number_of_pulses + gaps_to_swallow));		break;
+				case 3:		push_symbol(SymbolType::Zero, int(number_of_pulses + gaps_to_swallow));		break;
+				default:	push_symbol(SymbolType::Unrecognised, 1);									break;
 			}
 		}
 	}
@@ -120,12 +120,12 @@ std::shared_ptr<std::vector<uint8_t>> Parser::get_next_file_data(const std::shar
 	if(is_at_end(tape)) return nullptr;
 	return_symbol(symbol);
 
-	std::shared_ptr<std::vector<uint8_t>> result(new std::vector<uint8_t>);
+	auto result = std::make_shared<std::vector<uint8_t>>();
 	int byte;
 	while(!is_at_end(tape)) {
 		byte = get_next_byte(tape);
 		if(byte == -1) return result;
-		result->push_back(static_cast<uint8_t>(byte));
+		result->push_back(uint8_t(byte));
 	}
 	return result;
 }

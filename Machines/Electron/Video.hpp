@@ -39,14 +39,20 @@ class VideoOutput {
 		/// Sets the destination for output.
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 
+		/// Gets the current scan status.
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
+
 		/// Sets the type of output.
 		void set_display_type(Outputs::Display::DisplayType);
+
+		/// Gets the type of output.
+		Outputs::Display::DisplayType get_display_type() const;
 
 		/*!
 			Writes @c value to the register at @c address. May mutate the results of @c get_next_interrupt,
 			@c get_cycles_until_next_ram_availability and @c get_memory_access_range.
 		*/
-		void set_register(int address, uint8_t value);
+		void write(int address, uint8_t value);
 
 		/*!
 			Describes an interrupt the video hardware will generate by its identity and scheduling time.
@@ -62,7 +68,7 @@ class VideoOutput {
 			The time until signalling returned is the number of cycles after the final one triggered
 			by the most recent call to @c run_for.
 
-			This result may be mutated by calls to @c set_register.
+			This result may be mutated by calls to @c write.
 		*/
 		Interrupt get_next_interrupt();
 
@@ -87,7 +93,6 @@ class VideoOutput {
 		inline void setup_base_address();
 
 		int output_position_ = 0;
-		int unused_cycles_ = 0;
 
 		uint8_t palette_[16];
 		uint8_t screen_mode_ = 6;

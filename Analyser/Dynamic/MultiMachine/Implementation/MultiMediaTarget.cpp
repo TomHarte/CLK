@@ -12,7 +12,7 @@ using namespace Analyser::Dynamic;
 
 MultiMediaTarget::MultiMediaTarget(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines) {
 	for(const auto &machine: machines) {
-		MediaTarget::Machine *media_target = machine->media_target();
+		auto media_target = machine->media_target();
 		if(media_target) targets_.push_back(media_target);
 	}
 }

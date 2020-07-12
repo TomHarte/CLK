@@ -11,9 +11,9 @@
 #include "Utility/ImplicitSectors.hpp"
 
 namespace {
-	const int sectors_per_track = 9;
-	const int sector_size = 2;
-	const off_t track_size = (128 << sector_size)*sectors_per_track;
+	constexpr int sectors_per_track = 9;
+	constexpr int sector_size = 2;
+	constexpr off_t track_size = (128 << sector_size)*sectors_per_track;
 }
 
 using namespace Storage::Disk;
@@ -27,7 +27,7 @@ MSXDSK::MSXDSK(const std::string &file_name) :
 	// Throw if there would seemingly be an incomplete track.
 	if(file_size % track_size) throw Error::InvalidFormat;
 
-	track_count_ = static_cast<int>(file_size / track_size);
+	track_count_ = int(file_size / track_size);
 	head_count_ = 1;
 
 	// Throw if too large or too small or too large for single sided and

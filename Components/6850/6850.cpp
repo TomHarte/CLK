@@ -120,7 +120,7 @@ void ACIA::consider_transmission() {
 	}
 }
 
-ClockingHint::Preference ACIA::preferred_clocking() {
+ClockingHint::Preference ACIA::preferred_clocking() const {
 	// Real-time clocking is required if a transmission is ongoing; this is a courtesy for whomever
 	// is on the receiving end.
 	if(transmit.transmission_data_time_remaining() > 0) return ClockingHint::Preference::RealTime;
@@ -148,7 +148,7 @@ uint8_t ACIA::parity(uint8_t value) {
 	return value ^ (parity_ == Parity::Even);
 }
 
-bool ACIA::serial_line_did_produce_bit(Serial::Line *line, int bit) {
+bool ACIA::serial_line_did_produce_bit(Serial::Line *, int bit) {
 	// Shift this bit into the 11-bit input register; this is big enough to hold
 	// the largest transmission symbol.
 	++bits_received_;

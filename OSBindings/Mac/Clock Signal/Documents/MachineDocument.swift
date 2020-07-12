@@ -8,6 +8,7 @@
 
 import AudioToolbox
 import Cocoa
+import QuartzCore
 
 class MachineDocument:
 	NSDocument,
@@ -15,7 +16,6 @@ class MachineDocument:
 	CSMachineDelegate,
 	CSOpenGLViewDelegate,
 	CSOpenGLViewResponderDelegate,
-	CSBestEffortUpdaterDelegate,
 	CSAudioQueueDelegate,
 	CSROMReciverViewDelegate
 {
@@ -25,8 +25,6 @@ class MachineDocument:
 	private let actionLock = NSLock()
 	/// Ensures exclusive access between calls to machine.updateView and machine.drawView, and close().
 	private let drawLock = NSLock()
-	/// Ensures exclusive access to the best-effort updater.
-	private let bestEffortLock = NSLock()
 
 	// MARK: - Machine details.
 
@@ -43,9 +41,6 @@ class MachineDocument:
 
 	/// The output audio queue, if any.
 	private var audioQueue: CSAudioQueue!
-
-	/// The best-effort updater.
-	private var bestEffortUpdater: CSBestEffortUpdater?
 
 	// MARK: - Main NIB connections.
 
@@ -67,6 +62,10 @@ class MachineDocument:
 	@IBAction func showActivity(_ sender: AnyObject!) {
 		activityPanel.setIsVisible(true)
 	}
+
+	/// The volume view.
+	@IBOutlet var volumeView: NSBox!
+	@IBOutlet var volumeSlider: NSSlider!
 
 	// MARK: - NSDocument Overrides and NSWindowDelegate methods.
 
@@ -90,19 +89,13 @@ class MachineDocument:
 	}
 
 	override func close() {
+		machine?.stop()
+
 		activityPanel?.setIsVisible(false)
 		activityPanel = nil
 
 		optionsPanel?.setIsVisible(false)
 		optionsPanel = nil
-
-		bestEffortLock.lock()
-		if let bestEffortUpdater = bestEffortUpdater {
-			bestEffortUpdater.delegate = nil
-			bestEffortUpdater.flush()
-			self.bestEffortUpdater = nil
-		}
-		bestEffortLock.unlock()
 
 		actionLock.lock()
 		drawLock.lock()
@@ -122,6 +115,7 @@ class MachineDocument:
 	override func windowControllerDidLoadNib(_ aController: NSWindowController) {
 		super.windowControllerDidLoadNib(aController)
 		aController.window?.contentAspectRatio = self.aspectRatio()
+		volumeSlider.floatValue = userDefaultsVolume()
 	}
 
 	private var missingROMs: [CSMissingROM] = []
@@ -133,6 +127,7 @@ class MachineDocument:
 			self.machine = machine
 			setupMachineOutput()
 			setupActivityDisplay()
+			machine.setVolume(userDefaultsVolume())
 		} else {
 			// Store the selected machine and list of missing ROMs, and
 			// show the missing ROMs dialogue.
@@ -186,12 +181,10 @@ class MachineDocument:
 	// MARK: - Connections Between Machine and the Outside World
 
 	private func setupMachineOutput() {
-		if let machine = self.machine, let openGLView = self.openGLView {
+		if let machine = self.machine, let openGLView = self.openGLView, machine.view != openGLView {
 			// Establish the output aspect ratio and audio.
 			let aspectRatio = self.aspectRatio()
-			openGLView.perform(glContext: {
-				machine.setView(openGLView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
-			})
+			machine.setView(openGLView, aspectRatio: Float(aspectRatio.width / aspectRatio.height))
 
 			// Attach an options panel if one is available.
 			if let optionsPanelNibName = self.machineDescription?.optionsPanelNibName {
@@ -202,7 +195,6 @@ class MachineDocument:
 			}
 
 			machine.delegate = self
-			self.bestEffortUpdater = CSBestEffortUpdater()
 
 			// Callbacks from the OpenGL may come on a different thread, immediately following the .delegate set;
 			// hence the full setup of the best-effort updater prior to setting self as a delegate.
@@ -221,61 +213,54 @@ class MachineDocument:
 			openGLView.window!.makeKeyAndOrderFront(self)
 			openGLView.window!.makeFirstResponder(openGLView)
 
-			// Start accepting best effort updates.
-			self.bestEffortUpdater!.delegate = self
+			// Start forwarding best-effort updates.
+			machine.start()
 		}
 	}
 
 	func machineSpeakerDidChangeInputClock(_ machine: CSMachine) {
-		setupAudioQueueClockRate()
+		// setupAudioQueueClockRate not only needs blocking access to the machine,
+		// but may be triggered on an arbitrary thread by a running machine, and that
+		// running machine may not be able to stop running until it has been called
+		// (e.g. if it is currently trying to run_until an audio event). Break the
+		// deadlock with an async dispatch. 
+		DispatchQueue.main.async {
+			self.setupAudioQueueClockRate()
+		}
 	}
 
 	private func setupAudioQueueClockRate() {
-		// establish and provide the audio queue, taking advice as to an appropriate sampling rate
+		// Establish and provide the audio queue, taking advice as to an appropriate sampling rate.
+		//
+		// TODO: this needs to be threadsafe. FIX!
 		let maximumSamplingRate = CSAudioQueue.preferredSamplingRate()
-		let selectedSamplingRate = self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate)))
+		let selectedSamplingRate = Float64(self.machine.idealSamplingRate(from: NSRange(location: 0, length: NSInteger(maximumSamplingRate))))
+		let isStereo = self.machine.isStereo()
 		if selectedSamplingRate > 0 {
-			audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate))
-			audioQueue.delegate = self
-			self.machine.audioQueue = self.audioQueue
-			self.machine.setAudioSamplingRate(selectedSamplingRate, bufferSize:audioQueue.preferredBufferSize)
+			// [Re]create the audio queue only if necessary.
+			if self.audioQueue == nil || self.audioQueue.samplingRate != selectedSamplingRate {
+				self.machine.audioQueue = nil
+				self.audioQueue = CSAudioQueue(samplingRate: Float64(selectedSamplingRate), isStereo:isStereo)
+				self.audioQueue.delegate = self
+				self.machine.audioQueue = self.audioQueue
+				self.machine.setAudioSamplingRate(Float(selectedSamplingRate), bufferSize:audioQueue.preferredBufferSize, stereo:isStereo)
+			}
 		}
 	}
 
 	/// Responds to the CSAudioQueueDelegate dry-queue warning message by requesting a machine update.
 	final func audioQueueIsRunningDry(_ audioQueue: CSAudioQueue) {
-		bestEffortLock.lock()
-		bestEffortUpdater?.update()
-		bestEffortLock.unlock()
 	}
 
 	/// Responds to the CSOpenGLViewDelegate redraw message by requesting a machine update if this is a timed
 	/// request, and ordering a redraw regardless of the motivation.
 	final func openGLViewRedraw(_ view: CSOpenGLView, event redrawEvent: CSOpenGLViewRedrawEvent) {
-		if redrawEvent == .timer {
-			bestEffortLock.lock()
-			if let bestEffortUpdater = bestEffortUpdater {
-				bestEffortLock.unlock()
-				bestEffortUpdater.update()
-			} else {
-				bestEffortLock.unlock()
-			}
-		}
-
 		if drawLock.try() {
 			if redrawEvent == .timer {
 				machine.updateView(forPixelSize: view.backingSize)
 			}
 			machine.drawView(forPixelSize: view.backingSize)
 			drawLock.unlock()
-		}
-	}
-
-	/// Responds to CSBestEffortUpdaterDelegate update message by running the machine.
-	final func bestEffortUpdater(_ bestEffortUpdater: CSBestEffortUpdater!, runForInterval duration: TimeInterval, didSkipPreviousUpdate: Bool) {
-		if let machine = self.machine, actionLock.try() {
-			machine.run(forInterval: duration)
-			actionLock.unlock()
 		}
 	}
 
@@ -553,8 +538,12 @@ class MachineDocument:
 	}
 
 	// MARK: Joystick-via-the-keyboard selection
-	@IBAction func useKeyboardAsKeyboard(_ sender: NSMenuItem?) {
-		machine.inputMode = .keyboard
+	@IBAction func useKeyboardAsPhysicalKeyboard(_ sender: NSMenuItem?) {
+		machine.inputMode = .keyboardPhysical
+	}
+
+	@IBAction func useKeyboardAsLogicalKeyboard(_ sender: NSMenuItem?) {
+		machine.inputMode = .keyboardLogical
 	}
 
 	@IBAction func useKeyboardAsJoystick(_ sender: NSMenuItem?) {
@@ -567,13 +556,22 @@ class MachineDocument:
 	override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
 		if let menuItem = item as? NSMenuItem {
 			switch item.action {
-				case #selector(self.useKeyboardAsKeyboard):
+				case #selector(self.useKeyboardAsPhysicalKeyboard):
 					if machine == nil || !machine.hasExclusiveKeyboard {
 						menuItem.state = .off
 						return false
 					}
 
-					menuItem.state = machine.inputMode == .keyboard ? .on : .off
+					menuItem.state = machine.inputMode == .keyboardPhysical ? .on : .off
+					return true
+
+				case #selector(self.useKeyboardAsLogicalKeyboard):
+					if machine == nil || !machine.hasExclusiveKeyboard {
+						menuItem.state = .off
+						return false
+					}
+
+					menuItem.state = machine.inputMode == .keyboardLogical ? .on : .off
 					return true
 
 				case #selector(self.useKeyboardAsJoystick):
@@ -720,5 +718,67 @@ class MachineDocument:
 				led.isLit = isLit
 			}
 		}
+	}
+
+	// MARK: - Volume Control.
+	@IBAction func setVolume(_ sender: NSSlider!) {
+		if let machine = self.machine {
+			machine.setVolume(sender.floatValue)
+			setUserDefaultsVolume(sender.floatValue)
+		}
+	}
+
+	// This class is pure nonsense to work around Xcode's opaque behaviour.
+	// If I make the main class a sub of CAAnimationDelegate then the compiler
+	// generates a bridging header that doesn't include QuartzCore and therefore
+	// can't find a declaration of the CAAnimationDelegate protocol. Doesn't
+	// seem to matter what I add explicitly to the link stage, which version of
+	// macOS I set as the target, etc.
+	//
+	// So, the workaround: make my CAAnimationDelegate something that doesn't
+	// appear in the bridging header.
+	fileprivate class ViewFader: NSObject, CAAnimationDelegate {
+		var volumeView: NSView
+
+		init(view: NSView) {
+			volumeView = view
+		}
+
+		func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
+			volumeView.isHidden = true
+		}
+	}
+	fileprivate var animationFader: ViewFader? = nil
+
+	func openGLViewDidShowOSMouseCursor(_ view: CSOpenGLView) {
+		// The OS mouse cursor became visible, so show the volume controls.
+		animationFader = nil
+		volumeView.layer?.removeAllAnimations()
+		volumeView.isHidden = false
+		volumeView.layer?.opacity = 1.0
+	}
+
+	func openGLViewWillHideOSMouseCursor(_ view: CSOpenGLView) {
+		// The OS mouse cursor will be hidden, so hide the volume controls.
+		if !volumeView.isHidden && volumeView.layer?.animation(forKey: "opacity") == nil {
+			let fadeAnimation = CABasicAnimation(keyPath: "opacity")
+			fadeAnimation.fromValue = 1.0
+			fadeAnimation.toValue = 0.0
+			fadeAnimation.duration = 0.2
+			animationFader = ViewFader(view: volumeView)
+			fadeAnimation.delegate = animationFader
+			volumeView.layer?.add(fadeAnimation, forKey: "opacity")
+			volumeView.layer?.opacity = 0.0
+		}
+	}
+
+	// The user's selected volume is stored as 1 - volume in the user defaults in order
+	// to take advantage of the default value being 0.
+	private func userDefaultsVolume() -> Float {
+		return 1.0 - UserDefaults.standard.float(forKey: "defaultVolume")
+	}
+
+	private func setUserDefaultsVolume(_ volume: Float) {
+		UserDefaults.standard.set(1.0 - volume, forKey: "defaultVolume")
 	}
 }

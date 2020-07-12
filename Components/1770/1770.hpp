@@ -31,59 +31,63 @@ class WD1770: public Storage::Disk::MFMController {
 			@param p The type of controller to emulate.
 		*/
 		WD1770(Personality p);
+		virtual ~WD1770() {}
 
 		/// Sets the value of the double-density input; when @c is_double_density is @c true, reads and writes double-density format data.
 		using Storage::Disk::MFMController::set_is_double_density;
 
 		/// Writes @c value to the register at @c address. Only the low two bits of the address are decoded.
-		void set_register(int address, uint8_t value);
+		void write(int address, uint8_t value);
 
 		/// Fetches the value of the register @c address. Only the low two bits of the address are decoded.
-		uint8_t get_register(int address);
+		uint8_t read(int address);
 
 		/// Runs the controller for @c number_of_cycles cycles.
 		void run_for(const Cycles cycles);
 
 		enum Flag: uint8_t {
-			NotReady		= 0x80,
+			NotReady		= 0x80,		// 0x80
 			MotorOn			= 0x80,
-			WriteProtect	= 0x40,
-			RecordType		= 0x20,
+			WriteProtect	= 0x40,		// 0x40
+			RecordType		= 0x20,		// 0x20
 			SpinUp			= 0x20,
 			HeadLoaded		= 0x20,
-			RecordNotFound	= 0x10,
+			RecordNotFound	= 0x10,		// 0x10
 			SeekError		= 0x10,
-			CRCError		= 0x08,
-			LostData		= 0x04,
+			CRCError		= 0x08,		// 0x08
+			LostData		= 0x04,		// 0x04
 			TrackZero		= 0x04,
-			DataRequest		= 0x02,
+			DataRequest		= 0x02,		// 0x02
 			Index			= 0x02,
-			Busy			= 0x01
+			Busy			= 0x01		// 0x01
 		};
 
 		/// @returns The current value of the IRQ line output.
-		inline bool get_interrupt_request_line()		{	return status_.interrupt_request;	}
+		inline bool get_interrupt_request_line() const	{	return status_.interrupt_request;	}
 
 		/// @returns The current value of the DRQ line output.
-		inline bool get_data_request_line()				{	return status_.data_request;		}
+		inline bool get_data_request_line() const		{	return status_.data_request;		}
 
 		class Delegate {
 			public:
 				virtual void wd1770_did_change_output(WD1770 *wd1770) = 0;
 		};
-		inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;			}
+		inline void set_delegate(Delegate *delegate)	{	delegate_ = delegate;				}
 
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 
 	protected:
 		virtual void set_head_load_request(bool head_load);
 		virtual void set_motor_on(bool motor_on);
 		void set_head_loaded(bool head_loaded);
 
+		/// @returns The last value posted to @c set_head_loaded.
+		bool get_head_loaded() const;
+
 	private:
-		Personality personality_;
-		inline bool has_motor_on_line() { return (personality_ != P1793 ) && (personality_ != P1773); }
-		inline bool has_head_load_line() { return (personality_ == P1793 ); }
+		const Personality personality_;
+		bool has_motor_on_line() const { return (personality_ != P1793 ) && (personality_ != P1773); }
+		bool has_head_load_line() const { return (personality_ == P1793 ); }
 
 		struct Status {
 			bool write_protect = false;
@@ -96,6 +100,7 @@ class WD1770: public Storage::Disk::MFMController {
 			bool data_request = false;
 			bool interrupt_request = false;
 			bool busy = false;
+			bool track_zero = false;
 			enum {
 				One, Two, Three
 			} type = One;

@@ -27,22 +27,30 @@ class VideoOutput {
 
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
 		void set_display_type(Outputs::Display::DisplayType display_type);
+		Outputs::Display::DisplayType get_display_type() const;
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
+
+		void register_crt_frequency_mismatch();
 
 	private:
 		uint8_t *ram_;
 		Outputs::CRT::CRT crt_;
+		Outputs::CRT::CRTFrequencyMismatchWarner<VideoOutput> frequency_mismatch_warner_;
+		bool crt_is_60Hz_ = false;
 
-		// Counters and limits
+		void update_crt_frequency();
+
+		// Counters and limits.
 		int counter_ = 0, frame_counter_ = 0;
 		int v_sync_start_position_, v_sync_end_position_, counter_period_;
 
-		// Output target and device
-		uint8_t *rgb_pixel_target_;
-		uint32_t *composite_pixel_target_;
+		// Output target and device.
+		uint8_t *rgb_pixel_target_ = nullptr;
+		uint32_t *composite_pixel_target_ = nullptr;
 		uint32_t colour_forms_[8];
 		Outputs::Display::InputDataType data_type_;
 
-		// Registers
+		// Registers.
 		uint8_t ink_, paper_;
 
 		int character_set_base_address_ = 0xb400;

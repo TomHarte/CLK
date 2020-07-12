@@ -1,0 +1,51 @@
+%global debug_package %{nil}
+Name:           {{ packageName }}
+Version:        {{ version }}
+Release:        1%{?dist}
+Summary:        {{ rpmSummary }}
+
+License:        {{ rpmLicense }}
+URL:            https://github.com/{{ github_user }}/{{ github_repo }}
+Source0:        {{ packageName }}-{{ version }}.tar
+Source1:        clksignal.1.gz
+
+{% for dep in deps %}
+Requires: {{ dep }}
+{% endfor %}
+
+%description
+{{ readme['content'] | b64decode }}
+
+%prep
+%autosetup
+
+%build
+cd OSBindings/SDL
+scons
+
+%install
+rm -rf $RPM_BUILD_ROOT
+mkdir -p %{buildroot}/%{_bindir}
+mkdir -p %{buildroot}/%{_docdir}
+install -p -m 755 OSBindings/SDL/clksignal %{buildroot}/%{_bindir}
+install -d -p -m 755 %{buildroot}/%{_docdir}/CLK
+install -p -m 644 LICENSE %{buildroot}/%{_docdir}/CLK
+install -p -m 644 BUILD.txt %{buildroot}/%{_docdir}/CLK
+install -p -m 644 README.md %{buildroot}/%{_docdir}/CLK
+install -p -m 644 README.txt %{buildroot}/%{_docdir}/CLK
+install -d -p -m 755 %{buildroot}/%{_mandir}/man1
+install -p -m 644 %{_sourcedir}/clksignal.1.gz %{buildroot}/%{_mandir}/man1
+install -d -p -m 755 %{buildroot}/%{_datadir}/CLK
+
+%files
+%{_bindir}/clksignal
+%license %{_docdir}/CLK/LICENSE
+%doc %{_docdir}/CLK/BUILD.txt
+%doc %{_docdir}/CLK/README.md
+%doc %{_docdir}/CLK/README.txt
+%doc %{_mandir}/man1/clksignal.1.gz
+%dir %{_datadir}/CLK
+
+%changelog
+* Sun May 11 2020 <{{ ansible_env.USER }}@{{ ansible_env.HOSTNAME }}>
+- Initial revision of package

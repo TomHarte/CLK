@@ -52,7 +52,7 @@ class MassStorageDevice {
 		/*!
 			Sets new contents for the block at @c address.
 		*/
-		virtual void set_block(size_t address, const std::vector<uint8_t> &) {}
+		virtual void set_block([[maybe_unused]] size_t address, const std::vector<uint8_t> &) {}
 };
 
 }

@@ -8,14 +8,11 @@
 
 #include "AtariST.hpp"
 
-#include "../../CRTMachine.hpp"
-#include "../../JoystickMachine.hpp"
-#include "../../KeyboardMachine.hpp"
-#include "../../MouseMachine.hpp"
-#include "../../MediaTarget.hpp"
+#include "../../MachineTypes.hpp"
 #include "../../../Activity/Source.hpp"
 
 //#define LOG_TRACE
+//bool should_log = false;
 #include "../../../Processors/68000/68000.hpp"
 
 #include "../../../Components/AY38910/AY38910.hpp"
@@ -28,6 +25,7 @@
 
 #include "../../../ClockReceiver/JustInTime.hpp"
 #include "../../../ClockReceiver/ForceInline.hpp"
+#include "../../../Configurable/StandardOptions.hpp"
 
 #include "../../../Outputs/Speaker/Implementation/LowpassSpeaker.hpp"
 
@@ -40,23 +38,26 @@
 namespace Atari {
 namespace ST {
 
-const int CLOCK_RATE = 8021247;
+constexpr int CLOCK_RATE = 8021247;
 
 using Target = Analyser::Static::Target;
 class ConcreteMachine:
 	public Atari::ST::Machine,
 	public CPU::MC68000::BusHandler,
-	public CRTMachine::Machine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MouseMachine,
+	public MachineTypes::JoystickMachine,
+	public MachineTypes::MappedKeyboardMachine,
+	public MachineTypes::MediaTarget,
 	public ClockingHint::Observer,
 	public Motorola::ACIA::ACIA::InterruptDelegate,
 	public Motorola::MFP68901::MFP68901::InterruptDelegate,
 	public DMAController::Delegate,
-	public MouseMachine::Machine,
-	public JoystickMachine::Machine,
-	public KeyboardMachine::MappedMachine,
 	public Activity::Source,
-	public MediaTarget::Machine,
 	public GI::AY38910::PortHandler,
+	public Configurable::Device,
 	public Video::RangeObserver {
 	public:
 		ConcreteMachine(const Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -92,8 +93,10 @@ class ConcreteMachine:
 
 			const bool is_early_tos = true;
 			if(is_early_tos) {
+				rom_start_ = 0xfc0000;
 				for(c = 0xfc; c < 0xff; ++c) memory_map_[c] = BusDevice::ROM;
 			} else {
+				rom_start_ = 0xe00000;
 				for(c = 0xe0; c < 0xe4; ++c) memory_map_[c] = BusDevice::ROM;
 			}
 
@@ -130,6 +133,18 @@ class ConcreteMachine:
 			video_->set_scan_target(scan_target);
 		}
 
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+			return video_->get_scaled_scan_status();
+		}
+
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
+			video_->set_display_type(display_type);
+		}
+
+		Outputs::Display::DisplayType get_display_type() const final {
+			return video_->get_display_type();
+		}
+
 		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
@@ -164,7 +179,10 @@ class ConcreteMachine:
 			// An interrupt acknowledge, perhaps?
 			if(cycle.operation & Microcycle::InterruptAcknowledge) {
 				// Current implementation: everything other than 6 (i.e. the MFP is autovectored.
-				if((cycle.word_address()&7) != 6) {
+				const int interrupt_level = cycle.word_address()&7;
+				if(interrupt_level != 6) {
+					video_interrupts_pending_ &= ~interrupt_level;
+					update_interrupt_input();
 					mc68000_.set_is_peripheral_address(true);
 					return HalfCycles(0);
 				} else {
@@ -219,13 +237,14 @@ class ConcreteMachine:
 						memory = rom_.data();
 						break;
 					}
+					[[fallthrough]];
 				case BusDevice::RAM:
 					memory = ram_.data();
 				break;
 
 				case BusDevice::ROM:
 					memory = rom_.data();
-					address %= rom_.size();
+					address -= rom_start_;
 				break;
 
 				case BusDevice::Floating:
@@ -248,11 +267,11 @@ class ConcreteMachine:
 				return delay;
 
 				case BusDevice::IO:
-					switch(address >> 1) {
+					switch(address & 0xfffe) {	// TODO: surely it's going to be even less precise than this?
 						default:
 //							assert(false);
 
-						case 0x7fc000:
+						case 0x8000:
 							/* Memory controller configuration:
 									b0, b1: bank 1
 									b2, b3: bank 0
@@ -264,8 +283,64 @@ class ConcreteMachine:
 							*/
 						break;
 
-						case 0x7fc400:	/* PSG: write to select register, read to read register. */
-						case 0x7fc401:	/* PSG: write to write register. */
+						// Video controls.
+						case 0x8200:	case 0x8202:	case 0x8204:	case 0x8206:
+						case 0x8208:	case 0x820a:	case 0x820c:	case 0x820e:
+						case 0x8210:	case 0x8212:	case 0x8214:	case 0x8216:
+						case 0x8218:	case 0x821a:	case 0x821c:	case 0x821e:
+						case 0x8220:	case 0x8222:	case 0x8224:	case 0x8226:
+						case 0x8228:	case 0x822a:	case 0x822c:	case 0x822e:
+						case 0x8230:	case 0x8232:	case 0x8234:	case 0x8236:
+						case 0x8238:	case 0x823a:	case 0x823c:	case 0x823e:
+						case 0x8240:	case 0x8242:	case 0x8244:	case 0x8246:
+						case 0x8248:	case 0x824a:	case 0x824c:	case 0x824e:
+						case 0x8250:	case 0x8252:	case 0x8254:	case 0x8256:
+						case 0x8258:	case 0x825a:	case 0x825c:	case 0x825e:
+						case 0x8260:	case 0x8262:
+							if(!cycle.data_select_active()) return delay;
+
+							if(cycle.operation & Microcycle::Read) {
+								cycle.set_value16(video_->read(int(address >> 1)));
+							} else {
+								video_->write(int(address >> 1), cycle.value16());
+							}
+						break;
+
+						// DMA.
+						case 0x8604:	case 0x8606:	case 0x8608:	case 0x860a:	case 0x860c:
+							if(!cycle.data_select_active()) return delay;
+
+							if(cycle.operation & Microcycle::Read) {
+								cycle.set_value16(dma_->read(int(address >> 1)));
+							} else {
+								dma_->write(int(address >> 1), cycle.value16());
+							}
+						break;
+
+						// Audio.
+						//
+						// Re: mirrors, Dan Hollis' hardware register list asserts:
+						//
+						// "Note: PSG Registers are now fixed at these addresses. All other addresses are masked out on the Falcon. Any
+						// writes to the shadow registers $8804-$88FF will cause bus errors.", which I am taking to imply that those shadow
+						// registers exist on the Atari ST.
+						case 0x8800: case 0x8802: case 0x8804: case 0x8806: case 0x8808: case 0x880a: case 0x880c: case 0x880e:
+						case 0x8810: case 0x8812: case 0x8814: case 0x8816: case 0x8818: case 0x881a: case 0x881c: case 0x881e:
+						case 0x8820: case 0x8822: case 0x8824: case 0x8826: case 0x8828: case 0x882a: case 0x882c: case 0x882e:
+						case 0x8830: case 0x8832: case 0x8834: case 0x8836: case 0x8838: case 0x883a: case 0x883c: case 0x883e:
+						case 0x8840: case 0x8842: case 0x8844: case 0x8846: case 0x8848: case 0x884a: case 0x884c: case 0x884e:
+						case 0x8850: case 0x8852: case 0x8854: case 0x8856: case 0x8858: case 0x885a: case 0x885c: case 0x885e:
+						case 0x8860: case 0x8862: case 0x8864: case 0x8866: case 0x8868: case 0x886a: case 0x886c: case 0x886e:
+						case 0x8870: case 0x8872: case 0x8874: case 0x8876: case 0x8878: case 0x887a: case 0x887c: case 0x887e:
+						case 0x8880: case 0x8882: case 0x8884: case 0x8886: case 0x8888: case 0x888a: case 0x888c: case 0x888e:
+						case 0x8890: case 0x8892: case 0x8894: case 0x8896: case 0x8898: case 0x889a: case 0x889c: case 0x889e:
+						case 0x88a0: case 0x88a2: case 0x88a4: case 0x88a6: case 0x88a8: case 0x88aa: case 0x88ac: case 0x88ae:
+						case 0x88b0: case 0x88b2: case 0x88b4: case 0x88b6: case 0x88b8: case 0x88ba: case 0x88bc: case 0x88be:
+						case 0x88c0: case 0x88c2: case 0x88c4: case 0x88c6: case 0x88c8: case 0x88ca: case 0x88cc: case 0x88ce:
+						case 0x88d0: case 0x88d2: case 0x88d4: case 0x88d6: case 0x88d8: case 0x88da: case 0x88dc: case 0x88de:
+						case 0x88e0: case 0x88e2: case 0x88e4: case 0x88e6: case 0x88e8: case 0x88ea: case 0x88ec: case 0x88ee:
+						case 0x88f0: case 0x88f2: case 0x88f4: case 0x88f6: case 0x88f8: case 0x88fa: case 0x88fc: case 0x88fe:
+
 							if(!cycle.data_select_active()) return delay;
 
 							advance_time(HalfCycles(2));
@@ -276,25 +351,26 @@ class ConcreteMachine:
 								cycle.set_value8_high(ay_.get_data_output());
 								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							} else {
-								if((address >> 1) == 0x7fc400) {
-									ay_.set_control_lines(GI::AY38910::BC1);
-								} else {
-									ay_.set_control_lines(GI::AY38910::ControlLines(GI::AY38910::BC2 | GI::AY38910::BDIR));
-								}
+								// Net effect here: addresses with bit 1 set write to a register,
+								// addresses with bit 1 clear select a register.
+								ay_.set_control_lines(GI::AY38910::ControlLines(
+									GI::AY38910::BC2 | GI::AY38910::BDIR
+									| ((address&2) ? 0 : GI::AY38910::BC1)
+								));
 								ay_.set_data_input(cycle.value8_high());
 								ay_.set_control_lines(GI::AY38910::ControlLines(0));
 							}
 						return delay + HalfCycles(2);
 
 						// The MFP block:
-						case 0x7ffd00:	case 0x7ffd01:	case 0x7ffd02:	case 0x7ffd03:
-						case 0x7ffd04:	case 0x7ffd05:	case 0x7ffd06:	case 0x7ffd07:
-						case 0x7ffd08:	case 0x7ffd09:	case 0x7ffd0a:	case 0x7ffd0b:
-						case 0x7ffd0c:	case 0x7ffd0d:	case 0x7ffd0e:	case 0x7ffd0f:
-						case 0x7ffd10:	case 0x7ffd11:	case 0x7ffd12:	case 0x7ffd13:
-						case 0x7ffd14:	case 0x7ffd15:	case 0x7ffd16:	case 0x7ffd17:
-						case 0x7ffd18:	case 0x7ffd19:	case 0x7ffd1a:	case 0x7ffd1b:
-						case 0x7ffd1c:	case 0x7ffd1d:	case 0x7ffd1e:	case 0x7ffd1f:
+						case 0xfa00:	case 0xfa02:	case 0xfa04:	case 0xfa06:
+						case 0xfa08:	case 0xfa0a:	case 0xfa0c:	case 0xfa0e:
+						case 0xfa10:	case 0xfa12:	case 0xfa14:	case 0xfa16:
+						case 0xfa18:	case 0xfa1a:	case 0xfa1c:	case 0xfa1e:
+						case 0xfa20:	case 0xfa22:	case 0xfa24:	case 0xfa26:
+						case 0xfa28:	case 0xfa2a:	case 0xfa2c:	case 0xfa2e:
+						case 0xfa30:	case 0xfa32:	case 0xfa34:	case 0xfa36:
+						case 0xfa38:	case 0xfa3a:	case 0xfa3c:	case 0xfa3e:
 							if(!cycle.data_select_active()) return delay;
 
 							if(cycle.operation & Microcycle::Read) {
@@ -304,53 +380,19 @@ class ConcreteMachine:
 							}
 						break;
 
-						// Video controls.
-						case 0x7fc100:	case 0x7fc101:	case 0x7fc102:	case 0x7fc103:
-						case 0x7fc104:	case 0x7fc105:	case 0x7fc106:	case 0x7fc107:
-						case 0x7fc108:	case 0x7fc109:	case 0x7fc10a:	case 0x7fc10b:
-						case 0x7fc10c:	case 0x7fc10d:	case 0x7fc10e:	case 0x7fc10f:
-						case 0x7fc110:	case 0x7fc111:	case 0x7fc112:	case 0x7fc113:
-						case 0x7fc114:	case 0x7fc115:	case 0x7fc116:	case 0x7fc117:
-						case 0x7fc118:	case 0x7fc119:	case 0x7fc11a:	case 0x7fc11b:
-						case 0x7fc11c:	case 0x7fc11d:	case 0x7fc11e:	case 0x7fc11f:
-						case 0x7fc120:	case 0x7fc121:	case 0x7fc122:	case 0x7fc123:
-						case 0x7fc124:	case 0x7fc125:	case 0x7fc126:	case 0x7fc127:
-						case 0x7fc128:	case 0x7fc129:	case 0x7fc12a:	case 0x7fc12b:
-						case 0x7fc12c:	case 0x7fc12d:	case 0x7fc12e:	case 0x7fc12f:
-						case 0x7fc130:	case 0x7fc131:
-							if(!cycle.data_select_active()) return delay;
-
-							if(cycle.operation & Microcycle::Read) {
-								cycle.set_value16(video_->read(int(address >> 1)));
-							} else {
-								video_->write(int(address >> 1), cycle.value16());
-							}
-						break;
-
 						// ACIAs.
-						case 0x7ffe00:	case 0x7ffe01:	case 0x7ffe02:	case 0x7ffe03: {
+						case 0xfc00:	case 0xfc02:	case 0xfc04:	case 0xfc06: {
 							// Set VPA.
 							mc68000_.set_is_peripheral_address(!cycle.data_select_active());
 							if(!cycle.data_select_active()) return delay;
 
-							const auto acia_ = ((address >> 1) < 0x7ffe02) ? &keyboard_acia_ : &midi_acia_;
+							const auto acia_ = (address & 4) ? &midi_acia_ : &keyboard_acia_;
 							if(cycle.operation & Microcycle::Read) {
 								cycle.set_value8_high((*acia_)->read(int(address >> 1)));
 							} else {
 								(*acia_)->write(int(address >> 1), cycle.value8_high());
 							}
 						} break;
-
-						// DMA.
-						case 0x7fc302:	case 0x7fc303:	case 0x7fc304:	case 0x7fc305:	case 0x7fc306:
-							if(!cycle.data_select_active()) return delay;
-
-							if(cycle.operation & Microcycle::Read) {
-								cycle.set_value16(dma_->read(int(address >> 1)));
-							} else {
-								dma_->write(int(address >> 1), cycle.value16());
-							}
-						break;
 					}
 				return HalfCycles(0);
 			}
@@ -396,7 +438,8 @@ class ConcreteMachine:
 			// Advance the relevant counters.
 			cycles_since_audio_update_ += length;
 			mfp_ += length;
-			dma_ += length;
+			if(dma_clocking_preference_ != ClockingHint::Preference::None)
+				dma_ += length;
 			keyboard_acia_ += length;
 			midi_acia_ += length;
 			bus_phase_ += length;
@@ -417,7 +460,7 @@ class ConcreteMachine:
 				mfp_.flush();
 			}
 
-			if(dma_is_realtime_) {
+			if(dma_clocking_preference_ == ClockingHint::Preference::RealTime) {
 				dma_.flush();
 			}
 
@@ -426,6 +469,7 @@ class ConcreteMachine:
 				length -= cycles_until_video_event_;
 				video_ += cycles_until_video_event_;
 				cycles_until_video_event_ = video_->get_next_sequence_point();
+				assert(cycles_until_video_event_ > HalfCycles(0));
 
 				mfp_->set_timer_event_input(1, video_->display_enabled());
 				update_interrupt_input();
@@ -450,8 +494,8 @@ class ConcreteMachine:
 		JustInTimeActor<Motorola::ACIA::ACIA, 16> midi_acia_;
 
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
-		GI::AY38910::AY38910 ay_;
-		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
+		GI::AY38910::AY38910<false> ay_;
+		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910<false>> speaker_;
 		HalfCycles cycles_since_audio_update_;
 
 		JustInTimeActor<DMAController> dma_;
@@ -461,6 +505,7 @@ class ConcreteMachine:
 
 		std::vector<uint8_t> ram_;
 		std::vector<uint8_t> rom_;
+		uint32_t rom_start_ = 0;
 
 		enum class BusDevice {
 			/// A mostly RAM page is one that returns ROM for the first 8 bytes, RAM elsewhere.
@@ -484,8 +529,8 @@ class ConcreteMachine:
 		bool may_defer_acias_ = true;
 		bool keyboard_needs_clock_ = false;
 		bool mfp_is_realtime_ = false;
-		bool dma_is_realtime_ = false;
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final {
+		ClockingHint::Preference dma_clocking_preference_ = ClockingHint::Preference::None;
+		void set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference) final {
 			// This is being called by one of the components; avoid any time flushing here as that's
 			// already dealt with (and, just to be absolutely sure, to avoid recursive mania).
 			may_defer_acias_ =
@@ -493,7 +538,7 @@ class ConcreteMachine:
 				(midi_acia_.last_valid()->preferred_clocking() != ClockingHint::Preference::RealTime);
 			keyboard_needs_clock_ = ikbd_.preferred_clocking() != ClockingHint::Preference::None;
 			mfp_is_realtime_ = mfp_.last_valid()->preferred_clocking() == ClockingHint::Preference::RealTime;
-			dma_is_realtime_ = dma_.last_valid()->preferred_clocking() == ClockingHint::Preference::RealTime;
+			dma_clocking_preference_ = dma_.last_valid()->preferred_clocking();
 		}
 
 		// MARK: - GPIP input.
@@ -507,7 +552,7 @@ class ConcreteMachine:
 			// that's implemented, just offers magical zero-cost DMA insertion and
 			// extrication.
 			if(dma_->get_bus_request_line()) {
-				dma_->bus_grant(reinterpret_cast<uint16_t *>(ram_.data()), ram_.size());
+				dma_->bus_grant(reinterpret_cast<uint16_t *>(ram_.data()), ram_.size() >> 1);
 			}
 		}
 		void set_gpip_input() {
@@ -524,7 +569,7 @@ class ConcreteMachine:
 					GPIP 0: centronics busy
 			*/
 			mfp_->set_port_input(
-				0x80 |	// b7: Monochrome monitor detect (1 = is monochrome).
+				0x80 |	// b7: Monochrome monitor detect (0 = is monochrome).
 				0x40 |	// b6: RS-232 ring indicator.
 				(dma_->get_interrupt_line() ? 0x00 : 0x20) |	// b5: FD/HS interrupt (0 = interrupt requested).
 				((keyboard_acia_->get_interrupt_line() || midi_acia_->get_interrupt_line()) ? 0x00 : 0x10) |	// b4: Keyboard/MIDI interrupt (0 = interrupt requested).
@@ -536,16 +581,31 @@ class ConcreteMachine:
 		}
 
 		// MARK - MFP input.
-		void mfp68901_did_change_interrupt_status(Motorola::MFP68901::MFP68901 *mfp) final {
+		void mfp68901_did_change_interrupt_status(Motorola::MFP68901::MFP68901 *) final {
 			update_interrupt_input();
 		}
 
+		int video_interrupts_pending_ = 0;
+		bool previous_hsync_ = false, previous_vsync_ = false;
 		void update_interrupt_input() {
+			// Complete guess: set video interrupts pending if/when hsync of vsync
+			// go inactive. Reset upon IACK.
+			const bool hsync = video_.last_valid()->hsync();
+			const bool vsync = video_.last_valid()->vsync();
+			if(previous_hsync_ != hsync && previous_hsync_) {
+				video_interrupts_pending_ |= 2;
+			}
+			if(previous_vsync_ != vsync && previous_vsync_) {
+				video_interrupts_pending_ |= 4;
+			}
+			previous_vsync_ = vsync;
+			previous_hsync_ = hsync;
+
 			if(mfp_->get_interrupt_line()) {
 				mc68000_.set_interrupt_level(6);
-			} else if(video_->vsync()) {
+			} else if(video_interrupts_pending_ & 4) {
 				mc68000_.set_interrupt_level(4);
-			} else if(video_->hsync()) {
+			} else if(video_interrupts_pending_ & 2) {
 				mc68000_.set_interrupt_level(2);
 			} else {
 				mc68000_.set_interrupt_level(0);
@@ -578,7 +638,7 @@ class ConcreteMachine:
 				// TODO: ?
 			} else {
 				/*
-					TODO: Port A:
+					Port A:
 						b7: reserved
 						b6: "freely usable output (monitor jack)"
 						b5: centronics strobe
@@ -604,7 +664,7 @@ class ConcreteMachine:
 		}
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			dma_->set_activity_observer(observer);
 		}
 
@@ -612,6 +672,18 @@ class ConcreteMachine:
 		Video::Range video_range_;
 		void video_did_change_access_range(Video *video) final {
 			video_range_ = video->get_memory_access_range();
+		}
+
+		// MARK: - Configuration options.
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			return options;
+		}
+
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_video_signal_configurable(options->output);
 		}
 };
 

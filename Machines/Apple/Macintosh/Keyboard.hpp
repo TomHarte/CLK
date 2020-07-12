@@ -18,7 +18,7 @@
 namespace Apple {
 namespace Macintosh {
 
-static const uint16_t KeypadMask = 0x100;
+constexpr uint16_t KeypadMask = 0x100;
 
 /*!
 	Defines the keycodes that could be passed directly to a Macintosh via set_key_pressed.
@@ -135,7 +135,7 @@ class Keyboard {
 		/*!
 			The keyboard expects ~10 µs-frequency ticks, i.e. a clock rate of just around 100 kHz.
 		*/
-		void run_for(HalfCycles cycle) {
+		void run_for(HalfCycles) {	// TODO: honour the HalfCycles argument.
 			switch(mode_) {
 				default:
 				case Mode::Waiting: return;
@@ -210,7 +210,7 @@ class Keyboard {
 
 		void enqueue_key_state(uint16_t key, bool is_pressed) {
 			// Front insert; messages will be pop_back'd.
-			std::lock_guard<decltype(key_queue_mutex_)> lock(key_queue_mutex_);
+			std::lock_guard lock(key_queue_mutex_);
 
 			// Keys on the keypad are preceded by a $79 keycode; in the internal naming scheme
 			// they are indicated by having bit 8 set. So add the $79 prefix if required.
@@ -228,7 +228,7 @@ class Keyboard {
 			switch(command) {
 				case 0x10:		// Inquiry.
 				case 0x14: {	// Instant.
-					std::lock_guard<decltype(key_queue_mutex_)> lock(key_queue_mutex_);
+					std::lock_guard lock(key_queue_mutex_);
 					if(!key_queue_.empty()) {
 						const auto new_message = key_queue_.back();
 						key_queue_.pop_back();
@@ -290,8 +290,8 @@ class Keyboard {
 /*!
 	Provides a mapping from idiomatic PC keys to Macintosh keys.
 */
-class KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
-	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) final;
+class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 };
 
 }

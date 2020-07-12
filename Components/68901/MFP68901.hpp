@@ -61,7 +61,7 @@ class MFP68901: public ClockingHint::Source {
 		/// @returns @c true if the interrupt output is currently active; @c false otherwise.s
 		bool get_interrupt_line();
 
-		static const int NoAcknowledgement = 0x100;
+		static constexpr int NoAcknowledgement = 0x100;
 
 		/// Communicates an interrupt acknowledge cycle.
 		///
@@ -76,7 +76,7 @@ class MFP68901: public ClockingHint::Source {
 		void set_interrupt_delegate(InterruptDelegate *delegate);
 
 		// ClockingHint::Source.
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 
 	private:
 		// MARK: - Timers
@@ -93,7 +93,7 @@ class MFP68901: public ClockingHint::Source {
 			uint8_t value = 0;
 			uint8_t reload_value = 0;
 			int prescale = 1;
-			int divisor = 1;
+			int prescale_count = 1;
 			bool event_input = false;
 		} timers_[4];
 		uint8_t timer_ab_control_[2] = { 0, 0 };

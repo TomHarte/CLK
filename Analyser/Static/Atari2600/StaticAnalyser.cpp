@@ -16,24 +16,22 @@ using namespace Analyser::Static::Atari2600;
 using Target = Analyser::Static::Atari2600::Target;
 
 static void DeterminePagingFor2kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &segment) {
-	// if this is a 2kb cartridge then it's definitely either unpaged or a CommaVid
-	uint16_t entry_address, break_address;
+	// If this is a 2kb cartridge then it's definitely either unpaged or a CommaVid.
+	const uint16_t entry_address = uint16_t(segment.data[0x7fc] | (segment.data[0x7fd] << 8)) & 0x1fff;
+	const uint16_t break_address = uint16_t(segment.data[0x7fe] | (segment.data[0x7ff] << 8)) & 0x1fff;
 
-	entry_address = (static_cast<uint16_t>(segment.data[0x7fc] | (segment.data[0x7fd] << 8))) & 0x1fff;
-	break_address = (static_cast<uint16_t>(segment.data[0x7fe] | (segment.data[0x7ff] << 8))) & 0x1fff;
-
-	// a CommaVid start address needs to be outside of its RAM
+	// A CommaVid start address needs to be outside of its RAM.
 	if(entry_address < 0x1800 || break_address < 0x1800) return;
 
 	std::function<std::size_t(uint16_t address)> high_location_mapper = [](uint16_t address) {
 		address &= 0x1fff;
-		return static_cast<std::size_t>(address - 0x1800);
+		return size_t(address - 0x1800);
 	};
 	Analyser::Static::MOS6502::Disassembly high_location_disassembly =
 		Analyser::Static::MOS6502::Disassemble(segment.data, high_location_mapper, {entry_address, break_address});
 
-	// assume that any kind of store that looks likely to be intended for large amounts of memory implies
-	// large amounts of memory
+	// Assume that any kind of store that looks likely to be intended for large amounts of memory implies
+	// large amounts of memory.
 	bool has_wide_area_store = false;
 	for(std::map<uint16_t, Analyser::Static::MOS6502::Instruction>::value_type &entry : high_location_disassembly.instructions_by_address) {
 		if(entry.second.operation == Analyser::Static::MOS6502::Instruction::STA) {
@@ -45,17 +43,17 @@ static void DeterminePagingFor2kCartridge(Target &target, const Storage::Cartrid
 		}
 	}
 
-	// conclude that this is a CommaVid if it attempted to write something to the CommaVid RAM locations;
+	// Conclude that this is a CommaVid if it attempted to write something to the CommaVid RAM locations;
 	// caveat: false positives aren't likely to be problematic; a false positive is a 2KB ROM that always addresses
 	// itself so as to land in ROM even if mapped as a CommaVid and this code is on the fence as to whether it
-	// attempts to modify itself but it probably doesn't
+	// attempts to modify itself but it probably doesn't.
 	if(has_wide_area_store) target.paging_model = Target::PagingModel::CommaVid;
 }
 
 static void DeterminePagingFor8kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const Analyser::Static::MOS6502::Disassembly &disassembly) {
 	// Activision stack titles have their vectors at the top of the low 4k, not the top, and
 	// always list 0xf000 as both vectors; they do not repeat them, and, inexplicably, they all
-	// issue an SEI as their first instruction (maybe some sort of relic of the development environment?)
+	// issue an SEI as their first instruction (maybe some sort of relic of the development environment?).
 	if(
 		segment.data[4095] == 0xf0 && segment.data[4093] == 0xf0 && segment.data[4094] == 0x00 && segment.data[4092] == 0x00 &&
 		(segment.data[8191] != 0xf0 || segment.data[8189] != 0xf0 || segment.data[8190] != 0x00 || segment.data[8188] != 0x00) &&
@@ -65,7 +63,7 @@ static void DeterminePagingFor8kCartridge(Target &target, const Storage::Cartrid
 		return;
 	}
 
-	// make an assumption that this is the Atari paging model
+	// Make an assumption that this is the Atari paging model.
 	target.paging_model = Target::PagingModel::Atari8k;
 
 	std::set<uint16_t> internal_accesses;
@@ -90,8 +88,8 @@ static void DeterminePagingFor8kCartridge(Target &target, const Storage::Cartrid
 	else if(tigervision_access_count > atari_access_count) target.paging_model = Target::PagingModel::Tigervision;
 }
 
-static void DeterminePagingFor16kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const Analyser::Static::MOS6502::Disassembly &disassembly) {
-	// make an assumption that this is the Atari paging model
+static void DeterminePagingFor16kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &, const Analyser::Static::MOS6502::Disassembly &disassembly) {
+	// Make an assumption that this is the Atari paging model.
 	target.paging_model = Target::PagingModel::Atari16k;
 
 	std::set<uint16_t> internal_accesses;
@@ -110,8 +108,8 @@ static void DeterminePagingFor16kCartridge(Target &target, const Storage::Cartri
 	if(mnetwork_access_count > atari_access_count) target.paging_model = Target::PagingModel::MNetwork;
 }
 
-static void DeterminePagingFor64kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &segment, const Analyser::Static::MOS6502::Disassembly &disassembly) {
-	// make an assumption that this is a Tigervision if there is a write to 3F
+static void DeterminePagingFor64kCartridge(Target &target, const Storage::Cartridge::Cartridge::Segment &, const Analyser::Static::MOS6502::Disassembly &disassembly) {
+	// Make an assumption that this is a Tigervision if there is a write to 3F.
 	target.paging_model =
 		(disassembly.external_stores.find(0x3f) != disassembly.external_stores.end()) ?
 			Target::PagingModel::Tigervision : Target::PagingModel::MegaBoy;
@@ -123,17 +121,15 @@ static void DeterminePagingForCartridge(Target &target, const Storage::Cartridge
 		return;
 	}
 
-	uint16_t entry_address, break_address;
-
-	entry_address = static_cast<uint16_t>(segment.data[segment.data.size() - 4] | (segment.data[segment.data.size() - 3] << 8));
-	break_address = static_cast<uint16_t>(segment.data[segment.data.size() - 2] | (segment.data[segment.data.size() - 1] << 8));
+	const uint16_t entry_address = uint16_t(segment.data[segment.data.size() - 4] | (segment.data[segment.data.size() - 3] << 8));
+	const uint16_t break_address = uint16_t(segment.data[segment.data.size() - 2] | (segment.data[segment.data.size() - 1] << 8));
 
 	std::function<std::size_t(uint16_t address)> address_mapper = [](uint16_t address) {
-		if(!(address & 0x1000)) return static_cast<std::size_t>(-1);
-		return static_cast<std::size_t>(address & 0xfff);
+		if(!(address & 0x1000)) return size_t(-1);
+		return size_t(address & 0xfff);
 	};
 
-	std::vector<uint8_t> final_4k(segment.data.end() - 4096, segment.data.end());
+	const std::vector<uint8_t> final_4k(segment.data.end() - 4096, segment.data.end());
 	Analyser::Static::MOS6502::Disassembly disassembly = Analyser::Static::MOS6502::Disassemble(final_4k, address_mapper, {entry_address, break_address});
 
 	switch(segment.data.size()) {
@@ -159,7 +155,7 @@ static void DeterminePagingForCartridge(Target &target, const Storage::Cartridge
 		break;
 	}
 
-	// check for a Super Chip. Atari ROM images [almost] always have the same value stored over RAM
+	// Check for a Super Chip. Atari ROM images [almost] always have the same value stored over RAM
 	// regions; when they don't they at least seem to have the first 128 bytes be the same as the
 	// next 128 bytes. So check for that.
 	if(	target.paging_model != Target::PagingModel::CBSRamPlus &&
@@ -174,17 +170,16 @@ static void DeterminePagingForCartridge(Target &target, const Storage::Cartridge
 		target.uses_superchip = has_superchip;
 	}
 
-	// check for a Tigervision or Tigervision-esque scheme
+	// Check for a Tigervision or Tigervision-esque scheme
 	if(target.paging_model == Target::PagingModel::None && segment.data.size() > 4096) {
 		bool looks_like_tigervision = disassembly.external_stores.find(0x3f) != disassembly.external_stores.end();
 		if(looks_like_tigervision) target.paging_model = Target::PagingModel::Tigervision;
 	}
 }
 
-Analyser::Static::TargetList Analyser::Static::Atari2600::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+Analyser::Static::TargetList Analyser::Static::Atari2600::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	// TODO: sanity checking; is this image really for an Atari 2600?
-	std::unique_ptr<Target> target(new Target);
-	target->machine = Machine::Atari2600;
+	auto target = std::make_unique<Target>();
 	target->confidence = 0.5;
 	target->media.cartridges = media.cartridges;
 	target->paging_model = Target::PagingModel::None;

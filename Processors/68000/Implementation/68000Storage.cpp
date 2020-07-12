@@ -300,7 +300,7 @@ struct ProcessorStorageConstructor {
 				if(tolower(access_pattern[1]) == 's') {
 					step.microcycle.operation = Microcycle::NewAddress;
 					step.microcycle.address = &storage_.effective_address_[1].full;
-					step.microcycle.value = isupper(access_pattern[1]) ? &storage_.destination_bus_data_[0].halves.high : &storage_.destination_bus_data_[0].halves.low;
+					step.microcycle.value = isupper(access_pattern[1]) ? &storage_.destination_bus_data_.halves.high : &storage_.destination_bus_data_.halves.low;
 					steps.push_back(step);
 
 					step.microcycle.operation = Microcycle::SameAddress | Microcycle::SelectWord;
@@ -312,7 +312,7 @@ struct ProcessorStorageConstructor {
 
 				// A stack read.
 				if(tolower(access_pattern[1]) == 'u') {
-					RegisterPair32 *const scratch_data = &storage_.source_bus_data_[0];
+					RegisterPair32 *const scratch_data = &storage_.source_bus_data_;
 
 					step.microcycle.operation = Microcycle::NewAddress | Microcycle::Read;
 					step.microcycle.address = &storage_.effective_address_[0].full;
@@ -350,7 +350,7 @@ struct ProcessorStorageConstructor {
 			) {
 				const bool is_read = tolower(access_pattern[1]) == 'r';
 				const bool use_source_storage = tolower(end_of_pattern[-1]) == 'r';
-				RegisterPair32 *const scratch_data = use_source_storage ? &storage_.source_bus_data_[0] : &storage_.destination_bus_data_[0];
+				RegisterPair32 *const scratch_data = use_source_storage ? &storage_.source_bus_data_ : &storage_.destination_bus_data_;
 
 				assert(address_iterator != addresses.end());
 
@@ -377,7 +377,7 @@ struct ProcessorStorageConstructor {
 			if(token_length == 3) {
 				// The completing part of a TAS.
 				if(access_pattern[0] == 't' && access_pattern[1] == 'a' && access_pattern[2] == 's') {
-					RegisterPair32 *const scratch_data = &storage_.destination_bus_data_[0];
+					RegisterPair32 *const scratch_data = &storage_.destination_bus_data_;
 
 					assert(address_iterator != addresses.end());
 
@@ -399,7 +399,7 @@ struct ProcessorStorageConstructor {
 				if(access_pattern[0] == 'i' && access_pattern[1] == 'n' && access_pattern[2] == 't') {
 					step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::NewAddress;
 					step.microcycle.address = &storage_.effective_address_[0].full;		// The selected interrupt should be in bits 1–3; but 0 should be set.
-					step.microcycle.value = &storage_.source_bus_data_[0].halves.low;
+					step.microcycle.value = &storage_.source_bus_data_.halves.low;
 					steps.push_back(step);
 
 					step.microcycle.operation = Microcycle::InterruptAcknowledge | Microcycle::SameAddress | Microcycle::SelectByte;
@@ -909,6 +909,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// TAS (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case XXXw:		// TAS (xxx).w
 								case d16An:		// TAS (d16, An)
 								case d8AnXn:	// TAS (d8, An, Xn)
@@ -962,6 +963,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// [BCHG/BSET].b Dn, (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case XXXw:		// [BCHG/BSET].b Dn, (xxx).w
 								case d16An:		// [BCHG/BSET].b Dn, (d16, An)
 								case d8AnXn:	// [BCHG/BSET].b Dn, (d8, An, Xn)
@@ -1013,7 +1015,11 @@ struct ProcessorStorageConstructor {
 						case Decoder::RTE_RTR: {
 							program.set_requires_supervisor(instruction == 0x4e73);
 
-							// TODO: something explicit to ensure the nR nr nr is exclusively linked.
+							// The targets of the nR nr nr below are reset to the program counter elsewhere;
+							// look for the comment "relink the RTE and RTR bus steps". It is currently not
+							// explicitly tested that these bus steps are not shared with a non-RTE/RTR operation,
+							// just assumed because the repetition of nr is fairly silly. A more explicit soution
+							// might be preferable in the future.
 							op(Action::PrepareRTE_RTR, seq("nR nr nr", { &storage_.precomputed_addresses_[0], &storage_.precomputed_addresses_[1], &storage_.precomputed_addresses_[2] } ));
 							op(Action::PerformOperation, seq("np np"));
 							op();
@@ -1062,6 +1068,7 @@ struct ProcessorStorageConstructor {
 
 									case l(PreDec):		// [AND/OR/EOR].l Dn, -(An)
 										op(int(Action::Decrement4) | MicroOp::DestinationMask, seq("n"));
+										[[fallthrough]];
 									case l(Ind):		// [AND/OR/EOR].l Dn, (An)
 									case l(PostInc):	// [AND/OR/EOR].l Dn, (An)+
 										op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd", { ea(1), ea(1) }));
@@ -1073,6 +1080,7 @@ struct ProcessorStorageConstructor {
 
 									case bw(XXXl):		// [AND/OR/EOR].bw Dn, (xxx).l
 										op(Action::None, seq("np"));
+										[[fallthrough]];
 									case bw(XXXw):		// [AND/OR/EOR].bw Dn, (xxx).w
 									case bw(d16An):		// [AND/OR/EOR].bw Dn, (d16, An)
 									case bw(d8AnXn):	// [AND/OR/EOR].bw Dn, (d8, An, Xn)
@@ -1082,6 +1090,7 @@ struct ProcessorStorageConstructor {
 
 									case l(XXXl):		// [AND/OR/EOR].l Dn, (xxx).l
 										op(Action::None, seq("np"));
+										[[fallthrough]];
 									case l(XXXw):		// [AND/OR/EOR].l Dn, (xxx).w
 									case l(d16An):		// [AND/OR/EOR].l Dn, (d16, An)
 									case l(d8AnXn):		// [AND/OR/EOR].l Dn, (d8, An, Xn)
@@ -1123,6 +1132,7 @@ struct ProcessorStorageConstructor {
 
 									case l(PreDec):		// [AND/OR].l -(An), Dn
 										op(int(Action::Decrement4) | MicroOp::SourceMask, seq("n"));
+										[[fallthrough]];
 									case l(Ind):		// [AND/OR].l (An), Dn,
 									case l(PostInc):	// [AND/OR].l (An)+, Dn
 										op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) }));
@@ -1134,6 +1144,7 @@ struct ProcessorStorageConstructor {
 
 									case bw(XXXl):		// [AND/OR].bw (xxx).l, Dn
 										op(Action::None, seq("np"));
+										[[fallthrough]];
 									case bw(XXXw):		// [AND/OR].bw (xxx).w, Dn
 									case bw(d16An):		// [AND/OR].bw (d16, An), Dn
 									case bw(d16PC):		// [AND/OR].bw (d16, PC), Dn
@@ -1145,6 +1156,7 @@ struct ProcessorStorageConstructor {
 
 									case l(XXXl):		// [AND/OR].bw (xxx).l, Dn
 										op(Action::None, seq("np"));
+										[[fallthrough]];
 									case l(XXXw):		// [AND/OR].bw (xxx).w, Dn
 									case l(d16An):		// [AND/OR].l (d16, An), Dn
 									case l(d16PC):		// [AND/OR].l (d16, PC), Dn
@@ -1197,6 +1209,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// [DIVU/DIVS] (XXX).l, Dn
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case XXXw:		// [DIVU/DIVS] (XXX).w, Dn
 								case d16An:		// [DIVU/DIVS] (d16, An), Dn
 								case d16PC:		// [DIVU/DIVS] (d16, PC), Dn
@@ -1243,6 +1256,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// [MULU/MULS] (XXX).l, Dn
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case XXXw:		// [MULU/MULS] (XXX).w, Dn
 								case d16An:		// [MULU/MULS] (d16, An), Dn
 								case d16PC:		// [MULU/MULS] (d16, PC), Dn
@@ -1429,6 +1443,7 @@ struct ProcessorStorageConstructor {
 
 									case bw(XXXl):		// ADD/SUB.bw (xxx).l, Dn
 										op(Action::None, seq("np"));
+										[[fallthrough]];
 									case bw(XXXw):		// ADD/SUB.bw (xxx).w, Dn
 									case bw(d16PC):		// ADD/SUB.bw (d16, PC), Dn
 									case bw(d8PCXn):	// ADD/SUB.bw (d8, PC, Xn), Dn
@@ -1441,6 +1456,7 @@ struct ProcessorStorageConstructor {
 
 									case l(XXXl):		// ADD/SUB.l (xxx).l, Dn
 										op(Action::None, seq("np"));
+										[[fallthrough]];
 									case l(XXXw):		// ADD/SUB.l (xxx).w, Dn
 									case l(d16PC):		// ADD/SUB.l (d16, PC), Dn
 									case l(d8PCXn):		// ADD/SUB.l (d8, PC, Xn), Dn
@@ -1505,6 +1521,7 @@ struct ProcessorStorageConstructor {
 
 									case bw(XXXl):		// ADD/SUB.bw Dn, (xxx).l
 										op(Action::None, seq("np"));
+										[[fallthrough]];
 									case bw(XXXw):		// ADD/SUB.bw Dn, (xxx).w
 									case bw(d16An):		// ADD/SUB.bw (d16, An), Dn
 									case bw(d8AnXn):	// ADD/SUB.bw (d8, An, Xn), Dn
@@ -1515,6 +1532,7 @@ struct ProcessorStorageConstructor {
 
 									case l(XXXl):		// ADD/SUB.l Dn, (xxx).l
 										op(Action::None, seq("np"));
+										[[fallthrough]];
 									case l(XXXw):		// ADD/SUB.l Dn, (xxx).w
 									case l(d16An):		// ADD/SUB.l (d16, An), Dn
 									case l(d8AnXn):		// ADD/SUB.l (d8, An, Xn), Dn
@@ -1575,6 +1593,7 @@ struct ProcessorStorageConstructor {
 
 								case bw(XXXl):		// ADDA/SUBA.w (xxx).l, An
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case bw(XXXw):		// ADDA/SUBA.w (xxx).w, An
 								case bw(d16An):		// ADDA/SUBA.w (d16, An), An
 								case bw(d8AnXn):	// ADDA/SUBA.w (d8, An, Xn), An
@@ -1587,6 +1606,7 @@ struct ProcessorStorageConstructor {
 
 								case l(XXXl):		// ADDA/SUBA.l (xxx).l, An
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case l(XXXw):		// ADDA/SUBA.l (xxx).w, An
 								case l(d16An):		// ADDA/SUBA.l (d16, An), An
 								case l(d8AnXn):		// ADDA/SUBA.l (d8, An, Xn), An
@@ -1652,6 +1672,7 @@ struct ProcessorStorageConstructor {
 
 								case l(PreDec):		// [ADD/SUB]Q.l #, -(An)
 									op(int(Action::Decrement4) | MicroOp::DestinationMask, seq("n"));
+									[[fallthrough]];
 								case l(Ind):		// [ADD/SUB]Q.l #, (An)
 								case l(PostInc):	// [ADD/SUB]Q.l #, (An)+
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::DestinationMask, seq("nRd+ nrd np", { ea(1), ea(1) }));
@@ -1669,6 +1690,7 @@ struct ProcessorStorageConstructor {
 
 								case bw(XXXl):		// [ADD/SUB]Q.bw #, (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case bw(XXXw):		// [ADD/SUB]Q.bw #, (xxx).w
 								case bw(d16An):		// [ADD/SUB]Q.bw #, (d16, An)
 								case bw(d8AnXn):	// [ADD/SUB]Q.bw #, (d8, An, Xn)
@@ -1678,6 +1700,7 @@ struct ProcessorStorageConstructor {
 
 								case l(XXXl):		// [ADD/SUB]Q.l #, (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case l(XXXw):		// [ADD/SUB]Q.l #, (xxx).w
 								case l(d16An):		// [ADD/SUB]Q.l #, (d16, An)
 								case l(d8AnXn):		// [ADD/SUB]Q.l #, (d8, An, Xn)
@@ -1787,6 +1810,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// BTST.b Dn, (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case XXXw:		// BTST.b Dn, (xxx).w
 								case d16An:		// BTST.b Dn, (d16, An)
 								case d8AnXn:	// BTST.b Dn, (d8, An, Xn)
@@ -1928,6 +1952,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:	// AS(L/R)/LS(L/R)/RO(L/R)/ROX(L/R).w (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case XXXw:	// AS(L/R)/LS(L/R)/RO(L/R)/ROX(L/R).w (xxx).w
 								case d16An:		// AS(L/R)/LS(L/R)/RO(L/R)/ROX(L/R).w (d16, An)
 								case d8AnXn:	// AS(L/R)/LS(L/R)/RO(L/R)/ROX(L/R).w (d8, An, Xn)
@@ -1986,6 +2011,7 @@ struct ProcessorStorageConstructor {
 
 								case bw(XXXl):		// [CLR/NEG/NEGX/NOT].bw (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case bw(XXXw):		// [CLR/NEG/NEGX/NOT].bw (xxx).w
 								case bw(d16An):		// [CLR/NEG/NEGX/NOT].bw (d16, An)
 								case bw(d8AnXn):	// [CLR/NEG/NEGX/NOT].bw (d8, An, Xn)
@@ -1996,6 +2022,7 @@ struct ProcessorStorageConstructor {
 
 								case l(XXXl):		// [CLR/NEG/NEGX/NOT].l (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case l(XXXw):		// [CLR/NEG/NEGX/NOT].l (xxx).w
 								case l(d16An):		// [CLR/NEG/NEGX/NOT].l (d16, An)
 								case l(d8AnXn):		// [CLR/NEG/NEGX/NOT].l (d8, An, Xn)
@@ -2061,6 +2088,7 @@ struct ProcessorStorageConstructor {
 
 								case bw(XXXl):		// CMP.bw (xxx).l, Dn
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case bw(XXXw):		// CMP.bw (xxx).w, Dn
 								case bw(d16An):		// CMP.bw (d16, An), Dn
 								case bw(d8AnXn):	// CMP.bw (d8, An, Xn), Dn
@@ -2073,6 +2101,7 @@ struct ProcessorStorageConstructor {
 
 								case l(XXXl):		// CMP.l (xxx).l, Dn
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case l(XXXw):		// CMP.l (xxx).w, Dn
 								case l(d16An):		// CMP.l (d16, An), Dn
 								case l(d8AnXn):		// CMP.l (d8, An, Xn), Dn
@@ -2145,6 +2174,7 @@ struct ProcessorStorageConstructor {
 
 								case bw(XXXl):		// CMPA.w (xxx).l, An
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case bw(XXXw):		// CMPA.w (xxx).w, An
 								case bw(d16PC):		// CMPA.w (d16, PC), An
 								case bw(d8PCXn):	// CMPA.w (d8, PC, Xn), An
@@ -2156,6 +2186,7 @@ struct ProcessorStorageConstructor {
 
 								case l(XXXl):		// CMPA.l (xxx).l, An
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case l(XXXw):		// CMPA.l (xxx).w, An
 								case l(d16PC):		// CMPA.l (d16, PC), An
 								case l(d8PCXn):		// CMPA.l (d8, PC, Xn), An
@@ -2349,6 +2380,7 @@ struct ProcessorStorageConstructor {
 
 									 case XXXl:
 										op(Action::None, seq("np"));
+										[[fallthrough]];
 									 case XXXw:
 									 case d16An:
 									 case d8AnXn:
@@ -2366,6 +2398,10 @@ struct ProcessorStorageConstructor {
 
 							// ... but otherwise assume that the true source of a destination will be the computed source address.
 							program.set_source(storage_, &storage_.effective_address_[0]);
+
+							// Beware below: PrepareJSR will pre-emptively subtract four from A7 in order
+							// to facilitate the peculiar stack write order of JSR. Therefore any address
+							// calculation that might be a function of A7 needs to be done before PrepareJSR.
 
 							const int mode = combined_mode(ea_mode, ea_register);
 							switch(mode) {
@@ -2387,15 +2423,15 @@ struct ProcessorStorageConstructor {
 								case XXXw:		// JSR (xxx).W
 								case d16PC:		// JSR (d16, PC)
 								case d16An:		// JSR (d16, An)
-									op(Action::PrepareJSR);
 									op(address_action_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PrepareJSR);
 									op(Action::PerformOperation, seq("n np nW+ nw np", { ea(1), ea(1) }));
 								break;
 
 								case d8PCXn:	// JSR (d8, PC, Xn)
 								case d8AnXn:	// JSR (d8, An, Xn)
-									op(Action::PrepareJSR);
 									op(calc_action_for_mode(mode) | MicroOp::SourceMask);
+									op(Action::PrepareJSR);
 									op(Action::PerformOperation, seq("n nn np nW+ nw np", { ea(1), ea(1) }));
 								break;
 							}
@@ -2490,6 +2526,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// LEA (xxx).L, An
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case XXXw:		// LEA (xxx).W, An
 								case d16An:		// LEA (d16, An), An
 								case d16PC:		// LEA (d16, PC), An
@@ -2535,6 +2572,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// MOVE SR, (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case XXXw:		// MOVE SR, (xxx).w
 								case d16An:		// MOVE SR, (d16, An)
 								case d8AnXn:	// MOVE SR, (d8, An, Xn)
@@ -2578,6 +2616,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// MOVE (xxx).L, SR/CCR
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case XXXw:		// MOVE (xxx).W, SR/CCR
 								case d16PC:		// MOVE (d16, PC), SR/CCR
 								case d8PCXn:	// MOVE (d8, PC, Xn), SR/CCR
@@ -2656,6 +2695,7 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case XXXw:
 								case d16An:
 								case d8AnXn:
@@ -2739,6 +2779,7 @@ struct ProcessorStorageConstructor {
 
 								case l(PreDec):		// MOVE[A].l -(An), <ea>
 									op(dec(ea_register) | MicroOp::SourceMask, seq("n"));
+									[[fallthrough]];
 								case l(Ind):		// MOVE[A].l (An), <ea>
 								case l(PostInc):	// MOVE[A].l (An)+, <ea>
 									op(	int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask,
@@ -2750,6 +2791,7 @@ struct ProcessorStorageConstructor {
 
 								case bw(XXXl):		// MOVE[A].bw (xxx).L, <ea>
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case bw(XXXw):		// MOVE[A].bw (xxx).W, <ea>
 								case bw(d16An):		// MOVE[A].bw (d16, An), <ea>
 								case bw(d8AnXn):	// MOVE[A].bw (d8, An, Xn), <ea>
@@ -2762,6 +2804,7 @@ struct ProcessorStorageConstructor {
 
 								case l(XXXl):		// MOVE[A].l (xxx).L, <ea>
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case l(XXXw):		// MOVE[A].l (xxx).W, <ea>
 								case l(d16An):		// MOVE[A].l (d16, An), <ea>
 								case l(d8AnXn):		// MOVE[A].l (d8, An, Xn), <ea>
@@ -2919,12 +2962,13 @@ struct ProcessorStorageConstructor {
 
 								case XXXl:		// CHK (xxx).l, Dn
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case XXXw:		// CHK (xxx).w, Dn
 								case d16An:		// CHK (d16, An), Dn
 								case d16PC:		// CHK (d16, PC), Dn
 								case d8AnXn:	// CHK (d8, An, Xn), Dn
 								case d8PCXn:	// CHK (d8, PC, Xn), Dn
-									op(address_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nr", mode), { ea(0) }));
+									op(address_action_for_mode(mode) | MicroOp::SourceMask, seq(pseq("np nr np", mode), { ea(0) }));
 								break;
 
 								case Imm:		// CHK #, Dn
@@ -2951,6 +2995,7 @@ struct ProcessorStorageConstructor {
 
 								case bw(PreDec):	// TST.bw -(An)
 									op(dec(ea_register) | MicroOp::SourceMask, seq("n"));
+									[[fallthrough]];
 								case bw(Ind):		// TST.bw (An)
 								case bw(PostInc):	// TST.bw (An)+
 									op(Action::None, seq("nr", { a(ea_register) }, !is_byte_access));
@@ -2962,6 +3007,7 @@ struct ProcessorStorageConstructor {
 
 								case l(PreDec):		// TST.l -(An)
 									op(int(Action::Decrement4) | MicroOp::SourceMask, seq("n"));
+									[[fallthrough]];
 								case l(Ind):		// TST.l (An)
 								case l(PostInc):	// TST.l (An)+
 									op(int(Action::CopyToEffectiveAddress) | MicroOp::SourceMask, seq("nR+ nr", { ea(0), ea(0) }));
@@ -2973,6 +3019,7 @@ struct ProcessorStorageConstructor {
 
 								case bw(XXXl):		// TST.bw (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case bw(XXXw):		// TST.bw (xxx).w
 								case bw(d16An):		// TST.bw (d16, An)
 								case bw(d8AnXn):	// TST.bw (d8, An, Xn)
@@ -2982,6 +3029,7 @@ struct ProcessorStorageConstructor {
 
 								case l(XXXl):		// TST.l (xxx).l
 									op(Action::None, seq("np"));
+									[[fallthrough]];
 								case l(XXXw):		// TST.l (xxx).w
 								case l(d16An):		// TST.l (d16, An)
 								case l(d8AnXn):		// TST.l (d8, An, Xn)
@@ -3242,21 +3290,21 @@ CPU::MC68000::ProcessorStorage::ProcessorStorage() {
 	//
 	// Order of output is: PC.l, SR, PC.h.
 	trap_steps_ = &all_bus_steps_[trap_offset];
-	constructor.replace_write_values(trap_steps_, { &program_counter_.halves.low, &destination_bus_data_[0].halves.low, &program_counter_.halves.high });
+	constructor.replace_write_values(trap_steps_, { &program_counter_.halves.low, &destination_bus_data_.halves.low, &program_counter_.halves.high });
 
 	// Fill in the same order of writes for the interrupt micro-ops, though it divides the work differently.
-	constructor.replace_write_values(interrupt_micro_ops_, { &program_counter_.halves.low, &destination_bus_data_[0].halves.low, &program_counter_.halves.high });
+	constructor.replace_write_values(interrupt_micro_ops_, { &program_counter_.halves.low, &destination_bus_data_.halves.low, &program_counter_.halves.high });
 
 	// Link the bus error exception steps and fill in the proper sources.
 	bus_error_steps_ = &all_bus_steps_[bus_error_offset];
 	constructor.replace_write_values(bus_error_steps_, {
 		&program_counter_.halves.low,
-		&destination_bus_data_[0].halves.low,
+		&destination_bus_data_.halves.low,
 		&program_counter_.halves.high,
 		&decoded_instruction_,
-		&effective_address_[0].halves.low,
-		&destination_bus_data_[0].halves.high,
-		&effective_address_[0].halves.high
+		&effective_address_[1].halves.low,
+		&destination_bus_data_.halves.high,
+		&effective_address_[1].halves.high
 	});
 
 	// Also relink the RTE and RTR bus steps to collect the program counter.

@@ -10,17 +10,14 @@
 #define AppleII_hpp
 
 #include "../../../Configurable/Configurable.hpp"
+#include "../../../Configurable/StandardOptions.hpp"
 #include "../../../Analyser/Static/StaticAnalyser.hpp"
 #include "../../ROMMachine.hpp"
 
 #include <memory>
-#include <vector>
 
 namespace Apple {
 namespace II {
-
-/// @returns The options available for an Apple II.
-std::vector<std::unique_ptr<Configurable::Option>> get_options();
 
 class Machine {
 	public:
@@ -28,6 +25,18 @@ class Machine {
 
 		/// Creates and returns an AppleII.
 		static Machine *AppleII(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher);
+
+		/// Defines the runtime options available for an Apple II.
+		class Options: public Reflection::StructImpl<Options>, public Configurable::DisplayOption<Options> {
+			friend Configurable::DisplayOption<Options>;
+			public:
+				Options(Configurable::OptionsType) : Configurable::DisplayOption<Options>(Configurable::Display::CompositeColour)  {
+					if(needs_declare()) {
+						declare_display_option();
+						limit_enum(&output, Configurable::Display::CompositeMonochrome, Configurable::Display::CompositeColour, -1);
+					}
+				}
+		};
 };
 
 }

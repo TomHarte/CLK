@@ -15,7 +15,7 @@ using namespace Konami;
 SCC::SCC(Concurrency::DeferringAsyncTaskQueue &task_queue) :
 	task_queue_(task_queue) {}
 
-bool SCC::is_zero_level() {
+bool SCC::is_zero_level() const {
 	return !(channel_enable_ & 0x1f);
 }
 
@@ -55,7 +55,7 @@ void SCC::write(uint16_t address, uint8_t value) {
 	address &= 0xff;
 	if(address < 0x80) ram_[address] = value;
 
-	task_queue_.defer([=] {
+	task_queue_.defer([this, address, value] {
 		// Check for a write into waveform memory.
 		if(address < 0x80) {
 			waves_[address >> 5].samples[address & 0x1f] = value;
@@ -87,13 +87,13 @@ void SCC::write(uint16_t address, uint8_t value) {
 
 void SCC::evaluate_output_volume() {
 	transient_output_level_ =
-		static_cast<int16_t>(
+		int16_t(
 			((
-				(channel_enable_ & 0x01) ? static_cast<int8_t>(waves_[0].samples[channels_[0].offset]) * channels_[0].amplitude : 0 +
-				(channel_enable_ & 0x02) ? static_cast<int8_t>(waves_[1].samples[channels_[1].offset]) * channels_[1].amplitude : 0 +
-				(channel_enable_ & 0x04) ? static_cast<int8_t>(waves_[2].samples[channels_[2].offset]) * channels_[2].amplitude : 0 +
-				(channel_enable_ & 0x08) ? static_cast<int8_t>(waves_[3].samples[channels_[3].offset]) * channels_[3].amplitude : 0 +
-				(channel_enable_ & 0x10) ? static_cast<int8_t>(waves_[3].samples[channels_[4].offset]) * channels_[4].amplitude : 0
+				(channel_enable_ & 0x01) ? int8_t(waves_[0].samples[channels_[0].offset]) * channels_[0].amplitude : 0 +
+				(channel_enable_ & 0x02) ? int8_t(waves_[1].samples[channels_[1].offset]) * channels_[1].amplitude : 0 +
+				(channel_enable_ & 0x04) ? int8_t(waves_[2].samples[channels_[2].offset]) * channels_[2].amplitude : 0 +
+				(channel_enable_ & 0x08) ? int8_t(waves_[3].samples[channels_[3].offset]) * channels_[3].amplitude : 0 +
+				(channel_enable_ & 0x10) ? int8_t(waves_[3].samples[channels_[4].offset]) * channels_[4].amplitude : 0
 			) * master_volume_) / (255*15*5)
 			// Five channels, each with 8-bit samples and 4-bit volumes implies a natural range of 0 to 255*15*5.
 		);

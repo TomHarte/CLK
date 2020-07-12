@@ -29,8 +29,7 @@ enum Register {
 	Flags,
 	A,
 	X,
-	Y,
-	S
+	Y
 };
 
 /*
@@ -108,7 +107,7 @@ class BusHandler {
 			during some periods; one way to simulate that is to have the bus handler return a number other than
 			Cycles(1) to describe lengthened bus cycles.
 		*/
-		Cycles perform_bus_operation(CPU::MOS6502::BusOperation operation, uint16_t address, uint8_t *value) {
+		Cycles perform_bus_operation([[maybe_unused]] CPU::MOS6502::BusOperation operation, [[maybe_unused]] uint16_t address, [[maybe_unused]] uint8_t *value) {
 			return Cycles(1);
 		}
 
@@ -136,7 +135,7 @@ class ProcessorBase: public ProcessorStorage {
 			@param r The register to set.
 			@returns The value of the register. 8-bit registers will be returned as unsigned.
 		*/
-		uint16_t get_value_of_register(Register r);
+		uint16_t get_value_of_register(Register r) const;
 
 		/*!
 			Sets the value of a register.
@@ -160,7 +159,7 @@ class ProcessorBase: public ProcessorStorage {
 
 			@returns @c true if the line is logically active; @c false otherwise.
 		*/
-		inline bool get_is_resetting();
+		inline bool get_is_resetting() const;
 
 		/*!
 			This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
@@ -195,7 +194,7 @@ class ProcessorBase: public ProcessorStorage {
 
 			@returns @c true if the 6502 is jammed; @c false otherwise.
 		*/
-		bool is_jammed();
+		bool is_jammed() const;
 };
 
 /*!

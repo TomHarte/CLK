@@ -71,15 +71,14 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		GLuint target_framebuffer_;
 		const float output_gamma_;
 
-		// Outputs::Display::ScanTarget overrides.
-		void set_modals(Modals) override;
-		Scan *begin_scan() override;
-		void end_scan() override;
-		uint8_t *begin_data(size_t required_length, size_t required_alignment) override;
-		void end_data(size_t actual_length) override;
-		void submit() override;
-		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) override;
-		void will_change_owner() override;
+		// Outputs::Display::ScanTarget finals.
+		void set_modals(Modals) final;
+		Scan *begin_scan() final;
+		void end_scan() final;
+		uint8_t *begin_data(size_t required_length, size_t required_alignment) final;
+		void end_data(size_t actual_length) final;
+		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) final;
+		void will_change_owner() final;
 
 		bool output_is_visible_ = false;
 
@@ -109,13 +108,18 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 			// The sizes below might be less hassle as something more natural like ints,
 			// but squeezing this struct into 64 bits makes the std::atomics more likely
 			// to be lock free; they are under LLVM x86-64.
-			int write_area = 0;
+			int write_area = 1;	// By convention this points to the vended area. Which is preceded by a guard pixel. So a sensible default construction is write_area = 1.
 			uint16_t scan_buffer = 0;
 			uint16_t line = 0;
 		};
 
 		/// A pointer to the next thing that should be provided to the caller for data.
 		PointerSet write_pointers_;
+
+		/// A mutex for gettng access to write_pointers_; access to write_pointers_,
+		/// data_type_size_ or write_area_texture_ is almost never contended, so this
+		/// is cheap for the main use case.
+		std::mutex write_pointers_mutex_;
 
 		/// A pointer to the final thing currently cleared for submission.
 		std::atomic<PointerSet> submit_pointers_;
@@ -188,7 +192,6 @@ class ScanTarget: public Outputs::Display::ScanTarget {
 		// Track allocation failures.
 		bool data_is_allocated_ = false;
 		bool allocation_has_failed_ = false;
-		bool line_allocation_has_failed_ = false;
 
 		// Receives scan target modals.
 		Modals modals_;

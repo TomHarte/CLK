@@ -122,7 +122,7 @@ void TextureTarget::draw(float aspect_ratio, float colour_threshold) const {
 			"{"
 				"fragColour = clamp(texture(texID, texCoordVarying), threshold, 1.0);"
 			"}";
-		pixel_shader_.reset(new Shader(vertex_shader, fragment_shader));
+		pixel_shader_ = std::make_unique<Shader>(vertex_shader, fragment_shader);
 		pixel_shader_->bind();
 
 		test_gl(glGenVertexArrays, 1, &drawing_vertex_array_);

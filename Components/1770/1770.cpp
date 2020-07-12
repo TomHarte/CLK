@@ -18,19 +18,19 @@ using namespace WD;
 WD1770::WD1770(Personality p) :
 		Storage::Disk::MFMController(8000000),
 		personality_(p),
-		interesting_event_mask_(static_cast<int>(Event1770::Command)) {
+		interesting_event_mask_(int(Event1770::Command)) {
 	set_is_double_density(false);
-	posit_event(static_cast<int>(Event1770::Command));
+	posit_event(int(Event1770::Command));
 }
 
-void WD1770::set_register(int address, uint8_t value) {
+void WD1770::write(int address, uint8_t value) {
 	switch(address&3) {
 		case 0: {
 			if((value&0xf0) == 0xd0) {
 				if(value == 0xd0) {
 					// Force interrupt **immediately**.
 					LOG("Force interrupt immediately");
-					posit_event(static_cast<int>(Event1770::ForceInterrupt));
+					posit_event(int(Event1770::ForceInterrupt));
 				} else {
 					ERROR("!!!TODO: force interrupt!!!");
 					update_status([] (Status &status) {
@@ -39,7 +39,7 @@ void WD1770::set_register(int address, uint8_t value) {
 				}
 			} else {
 				command_ = value;
-				posit_event(static_cast<int>(Event1770::Command));
+				posit_event(int(Event1770::Command));
 			}
 		}
 		break;
@@ -54,27 +54,35 @@ void WD1770::set_register(int address, uint8_t value) {
 	}
 }
 
-uint8_t WD1770::get_register(int address) {
+uint8_t WD1770::read(int address) {
 	switch(address&3) {
 		default: {
 			update_status([] (Status &status) {
 				status.interrupt_request = false;
 			});
 			uint8_t status =
-					(status_.write_protect ? Flag::WriteProtect : 0) |
-					(status_.crc_error ? Flag::CRCError : 0) |
-					(status_.busy ? Flag::Busy : 0);
+				(status_.crc_error ? Flag::CRCError : 0) |
+				(status_.busy ? Flag::Busy : 0);
+
+			// Per Jean Louis-Guérin's documentation:
+			//
+			//	* 	the write-protect bit is locked into place by a type 2 or type 3 command, but is
+			//		read live after a type 1.
+			//	*	the track 0 bit is captured during a type 1 instruction and lost upon any other type,
+			//		it is not live sampled.
 			switch(status_.type) {
 				case Status::One:
 					status |=
-						(get_drive().get_is_track_zero() ? Flag::TrackZero : 0) |
-						(status_.seek_error ? Flag::SeekError : 0);
-						// TODO: index hole
+						(status_.track_zero ? Flag::TrackZero : 0) |
+						(status_.seek_error ? Flag::SeekError : 0) |
+						(get_drive().get_is_read_only() ? Flag::WriteProtect : 0) |
+						(get_drive().get_index_pulse() ? Flag::Index : 0);
 				break;
 
 				case Status::Two:
 				case Status::Three:
 					status |=
+						(status_.write_protect ? Flag::WriteProtect : 0) |
 						(status_.record_type ? Flag::RecordType : 0) |
 						(status_.lost_data ? Flag::LostData : 0) |
 						(status_.data_request ? Flag::DataRequest : 0) |
@@ -91,10 +99,15 @@ uint8_t WD1770::get_register(int address) {
 				if(status_.type == Status::One)
 					status |= (status_.spin_up ? Flag::SpinUp : 0);
 			}
+//			LOG("Returned status " << PADHEX(2) << int(status) << " of type " << 1+int(status_.type));
 			return status;
 		}
-		case 1:		return track_;
-		case 2:		return sector_;
+		case 1:
+			LOG("Returned track " << int(track_));
+			return track_;
+		case 2:
+			LOG("Returned sector " << int(sector_));
+			return sector_;
 		case 3:
 			update_status([] (Status &status) {
 				status.data_request = false;
@@ -110,25 +123,27 @@ void WD1770::run_for(const Cycles cycles) {
 		const auto number_of_cycles = cycles.as_integral();
 		if(delay_time_ <= number_of_cycles) {
 			delay_time_ = 0;
-			posit_event(static_cast<int>(Event1770::Timer));
+			posit_event(int(Event1770::Timer));
 		} else {
 			delay_time_ -= number_of_cycles;
 		}
 	}
 }
 
-#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = static_cast<int>(mask); return; case __LINE__:
+#define WAIT_FOR_EVENT(mask)	resume_point_ = __LINE__; interesting_event_mask_ = int(mask); return; case __LINE__:
 #define WAIT_FOR_TIME(ms)		resume_point_ = __LINE__; delay_time_ = ms * 8000; WAIT_FOR_EVENT(Event1770::Timer);
-#define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; distance_into_section_ = 0; WAIT_FOR_EVENT(Event::Token); if(get_latest_token().type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = static_cast<int>(Event::Token); return; }
+#define WAIT_FOR_BYTES(count)	resume_point_ = __LINE__; distance_into_section_ = 0; WAIT_FOR_EVENT(Event::Token); if(get_latest_token().type == Token::Byte) distance_into_section_++; if(distance_into_section_ < count) { interesting_event_mask_ = int(Event::Token); return; }
 #define BEGIN_SECTION()	switch(resume_point_) { default:
 #define END_SECTION()	(void)0; }
 
 #define READ_ID()	\
-		if(new_event_type == static_cast<int>(Event::Token)) {	\
-			if(!distance_into_section_ && get_latest_token().type == Token::ID) {set_data_mode(DataMode::Reading); distance_into_section_++; }	\
-			else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {	\
+		if(new_event_type == int(Event::Token)) {	\
+			if(!distance_into_section_ && get_latest_token().type == Token::ID) {\
+				set_data_mode(DataMode::Reading);	\
+				++distance_into_section_;	\
+			} else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {	\
 				header_[distance_into_section_ - 1] = get_latest_token().byte_value;	\
-				distance_into_section_++;	\
+				++distance_into_section_;	\
 			}	\
 		}
 
@@ -161,10 +176,10 @@ void WD1770::run_for(const Cycles cycles) {
 // +--------+----------+-------------------------+
 
 void WD1770::posit_event(int new_event_type) {
-	if(new_event_type == static_cast<int>(Event::IndexHole)) {
+	if(new_event_type == int(Event::IndexHole)) {
 		index_hole_count_++;
 		if(index_hole_count_target_ == index_hole_count_) {
-			posit_event(static_cast<int>(Event1770::IndexHoleTarget));
+			posit_event(int(Event1770::IndexHoleTarget));
 			index_hole_count_target_ = -1;
 		}
 
@@ -179,15 +194,16 @@ void WD1770::posit_event(int new_event_type) {
 		}
 	}
 
-	if(new_event_type == static_cast<int>(Event1770::ForceInterrupt)) {
+	if(new_event_type == int(Event1770::ForceInterrupt)) {
 		interesting_event_mask_ = 0;
 		resume_point_ = 0;
 		update_status([] (Status &status) {
 			status.type = Status::One;
 			status.data_request = false;
+			status.spin_up = false;
 		});
 	} else {
-		if(!(interesting_event_mask_ & static_cast<int>(new_event_type))) return;
+		if(!(interesting_event_mask_ & int(new_event_type))) return;
 		interesting_event_mask_ &= ~new_event_type;
 	}
 
@@ -210,6 +226,7 @@ void WD1770::posit_event(int new_event_type) {
 		update_status([] (Status &status) {
 			status.busy = true;
 			status.interrupt_request = false;
+			status.track_zero = false;	// Always reset by a non-type 1; so reset regardless and set properly later.
 		});
 
 		LOG("Starting " << PADHEX(2) << int(command_));
@@ -242,6 +259,7 @@ void WD1770::posit_event(int new_event_type) {
 			status.data_request = false;
 		});
 
+		LOG("Step/Seek/Restore with track " << int(track_) << " data " << int(data_));
 		if(!has_motor_on_line() && !has_head_load_line()) goto test_type1_type;
 
 		if(has_motor_on_line()) goto begin_type1_spin_up;
@@ -274,16 +292,16 @@ void WD1770::posit_event(int new_event_type) {
 		}
 
 	perform_seek_or_restore_command:
-		if(track_ == data_) goto verify;
+		if(track_ == data_) goto verify_seek;
 		step_direction_ = (data_ > track_);
 
 	adjust_track:
-		if(step_direction_) track_++; else track_--;
+		if(step_direction_) ++track_; else --track_;
 
 	perform_step:
 		if(!step_direction_ && get_drive().get_is_track_zero()) {
 			track_ = 0;
-			goto verify;
+			goto verify_seek;
 		}
 		get_drive().step(Storage::Disk::HeadPosition(step_direction_ ? 1 : -1));
 		Cycles::IntType time_to_wait;
@@ -295,14 +313,17 @@ void WD1770::posit_event(int new_event_type) {
 			case 3: time_to_wait = (personality_ == P1772) ? 3 : 30;	break;
 		}
 		WAIT_FOR_TIME(time_to_wait);
-		if(command_ >> 5) goto verify;
+		if(command_ >> 5) goto verify_seek;
 		goto perform_seek_or_restore_command;
 
 	perform_step_command:
 		if(command_ & 0x10) goto adjust_track;
 		goto perform_step;
 
-	verify:
+	verify_seek:
+		update_status([this] (Status &status) {
+			status.track_zero = get_drive().get_is_track_zero();
+		});
 		if(!(command_ & 0x04)) {
 			goto wait_for_command;
 		}
@@ -311,17 +332,20 @@ void WD1770::posit_event(int new_event_type) {
 		distance_into_section_ = 0;
 
 	verify_read_data:
-		WAIT_FOR_EVENT(static_cast<int>(Event::IndexHole) | static_cast<int>(Event::Token));
+		WAIT_FOR_EVENT(int(Event::IndexHole) | int(Event::Token));
 		READ_ID();
 
 		if(index_hole_count_ == 6) {
+			LOG("Nothing found to verify");
 			update_status([] (Status &status) {
 				status.seek_error = true;
 			});
 			goto wait_for_command;
 		}
 		if(distance_into_section_ == 7) {
+			distance_into_section_ = 0;
 			set_data_mode(DataMode::Scanning);
+
 			if(get_crc_generator().get_value()) {
 				update_status([] (Status &status) {
 					status.crc_error = true;
@@ -336,8 +360,6 @@ void WD1770::posit_event(int new_event_type) {
 				});
 				goto wait_for_command;
 			}
-
-			distance_into_section_ = 0;
 		}
 		goto verify_read_data;
 
@@ -394,8 +416,11 @@ void WD1770::posit_event(int new_event_type) {
 			goto wait_for_command;
 		}
 
+		distance_into_section_ = 0;
+		set_data_mode(DataMode::Scanning);
+
 	type2_get_header:
-		WAIT_FOR_EVENT(static_cast<int>(Event::IndexHole) | static_cast<int>(Event::Token));
+		WAIT_FOR_EVENT(int(Event::IndexHole) | int(Event::Token));
 		READ_ID();
 
 		if(index_hole_count_ == 5) {
@@ -406,8 +431,10 @@ void WD1770::posit_event(int new_event_type) {
 			goto wait_for_command;
 		}
 		if(distance_into_section_ == 7) {
-			LOG("Considering " << std::dec << int(header_[0]) << "/" << int(header_[2]));
+			distance_into_section_ = 0;
 			set_data_mode(DataMode::Scanning);
+
+			LOG("Considering " << std::dec << int(header_[0]) << "/" << int(header_[2]));
 			if(		header_[0] == track_ && header_[2] == sector_ &&
 					(has_motor_on_line() || !(command_&0x02) || ((command_&0x08) >> 3) == header_[1])) {
 				LOG("Found " << std::dec << int(header_[0]) << "/" << int(header_[2]));
@@ -424,7 +451,6 @@ void WD1770::posit_event(int new_event_type) {
 				});
 				goto type2_read_or_write_data;
 			}
-			distance_into_section_ = 0;
 		}
 		goto type2_get_header;
 
@@ -455,7 +481,7 @@ void WD1770::posit_event(int new_event_type) {
 			status.data_request = true;
 		});
 		distance_into_section_++;
-		if(distance_into_section_ == 128 << header_[3]) {
+		if(distance_into_section_ == 128 << (header_[3]&3)) {
 			distance_into_section_ = 0;
 			goto type2_check_crc;
 		}
@@ -467,19 +493,24 @@ void WD1770::posit_event(int new_event_type) {
 		header_[distance_into_section_] = get_latest_token().byte_value;
 		distance_into_section_++;
 		if(distance_into_section_ == 2) {
+			distance_into_section_ = 0;
+			set_data_mode(DataMode::Scanning);
+
 			if(get_crc_generator().get_value()) {
 				LOG("CRC error; terminating");
-				update_status([this] (Status &status) {
+				update_status([] (Status &status) {
 					status.crc_error = true;
 				});
 				goto wait_for_command;
 			}
 
+			LOG("Finished reading sector " << std::dec << int(sector_));
+
 			if(command_ & 0x10) {
 				sector_++;
+				LOG("Advancing to search for sector " << std::dec << int(sector_));
 				goto test_type2_write_protection;
 			}
-			LOG("Finished reading sector " << std::dec << int(sector_));
 			goto wait_for_command;
 		}
 		goto type2_check_crc;
@@ -533,7 +564,7 @@ void WD1770::posit_event(int new_event_type) {
 		*/
 		write_byte(data_);
 		distance_into_section_++;
-		if(distance_into_section_ == 128 << header_[3]) {
+		if(distance_into_section_ == 128 << (header_[3]&3)) {
 			goto type2_write_crc;
 		}
 
@@ -612,8 +643,8 @@ void WD1770::posit_event(int new_event_type) {
 		distance_into_section_ = 0;
 
 	read_address_get_header:
-		WAIT_FOR_EVENT(static_cast<int>(Event::IndexHole) | static_cast<int>(Event::Token));
-		if(new_event_type == static_cast<int>(Event::Token)) {
+		WAIT_FOR_EVENT(int(Event::IndexHole) | int(Event::Token));
+		if(new_event_type == int(Event::Token)) {
 			if(!distance_into_section_ && get_latest_token().type == Token::ID) {set_data_mode(DataMode::Reading); distance_into_section_++; }
 			else if(distance_into_section_ && distance_into_section_ < 7 && get_latest_token().type == Token::Byte) {
 				if(status_.data_request) {
@@ -627,9 +658,11 @@ void WD1770::posit_event(int new_event_type) {
 				update_status([] (Status &status) {
 					status.data_request = true;
 				});
-				distance_into_section_++;
+				++distance_into_section_;
 
 				if(distance_into_section_ == 7) {
+					distance_into_section_ = 0;
+
 					if(get_crc_generator().get_value()) {
 						update_status([] (Status &status) {
 							status.crc_error = true;
@@ -653,7 +686,7 @@ void WD1770::posit_event(int new_event_type) {
 		index_hole_count_ = 0;
 
 	read_track_read_byte:
-		WAIT_FOR_EVENT(static_cast<int>(Event::Token) | static_cast<int>(Event::IndexHole));
+		WAIT_FOR_EVENT(int(Event::Token) | int(Event::IndexHole));
 		if(index_hole_count_) {
 			goto wait_for_command;
 		}
@@ -720,7 +753,7 @@ void WD1770::posit_event(int new_event_type) {
 				case 0xfd: case 0xfe:
 					// clock is 0xc7 = 1010 0000 0010 1010 = 0xa022
 					write_raw_short(
-						static_cast<uint16_t>(
+						uint16_t(
 							0xa022 |
 							((data_ & 0x80) << 7) |
 							((data_ & 0x40) << 6) |
@@ -783,15 +816,19 @@ void WD1770::update_status(std::function<void(Status &)> updater) {
 	if(status_.busy != old_status.busy) update_clocking_observer();
 }
 
-void WD1770::set_head_load_request(bool head_load) {}
-void WD1770::set_motor_on(bool motor_on) {}
+void WD1770::set_head_load_request(bool) {}
+void WD1770::set_motor_on(bool) {}
 
 void WD1770::set_head_loaded(bool head_loaded) {
 	head_is_loaded_ = head_loaded;
-	if(head_loaded) posit_event(static_cast<int>(Event1770::HeadLoad));
+	if(head_loaded) posit_event(int(Event1770::HeadLoad));
 }
 
-ClockingHint::Preference WD1770::preferred_clocking() {
+bool WD1770::get_head_loaded() const {
+	return head_is_loaded_;
+}
+
+ClockingHint::Preference WD1770::preferred_clocking() const {
 	if(status_.busy) return ClockingHint::Preference::RealTime;
 	return Storage::Disk::MFMController::preferred_clocking();
 }

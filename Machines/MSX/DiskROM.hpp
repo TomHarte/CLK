@@ -25,9 +25,9 @@ class DiskROM: public ROMSlotHandler, public WD::WD1770 {
 	public:
 		DiskROM(const std::vector<uint8_t> &rom);
 
-		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) override;
-		uint8_t read(uint16_t address) override;
-		void run_for(HalfCycles half_cycles) override;
+		void write(uint16_t address, uint8_t value, bool pc_is_outside_bios) final;
+		uint8_t read(uint16_t address) final;
+		void run_for(HalfCycles half_cycles) final;
 
 		void set_disk(std::shared_ptr<Storage::Disk::Disk> disk, size_t drive);
 		void set_activity_observer(Activity::Observer *observer);
@@ -36,11 +36,8 @@ class DiskROM: public ROMSlotHandler, public WD::WD1770 {
 		const std::vector<uint8_t> &rom_;
 
 		long int controller_cycles_ = 0;
-		size_t selected_drive_ = 0;
-		int selected_head_ = 0;
-		std::array<std::shared_ptr<Storage::Disk::Drive>, 2> drives_;
 
-		void set_head_load_request(bool head_load) override;
+		void set_head_load_request(bool head_load) final;
 };
 
 }

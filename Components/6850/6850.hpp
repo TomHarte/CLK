@@ -86,7 +86,7 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 		Serial::Line request_to_send;
 
 		// ClockingHint::Source.
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 
 		struct InterruptDelegate {
 			virtual void acia6850_did_change_interrupt_status(ACIA *acia) = 0;
@@ -100,7 +100,7 @@ class ACIA: public ClockingHint::Source, private Serial::Line::ReadDelegate {
 		} parity_ = Parity::None;
 		int data_bits_ = 7, stop_bits_ = 2;
 
-		static const int NoValueMask = 0x100;
+		static constexpr int NoValueMask = 0x100;
 		int next_transmission_ = NoValueMask;
 		int received_data_ = NoValueMask;
 

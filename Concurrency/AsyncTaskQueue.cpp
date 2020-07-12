@@ -18,12 +18,12 @@ AsyncTaskQueue::AsyncTaskQueue()
 #ifdef __APPLE__
 	serial_dispatch_queue_ = dispatch_queue_create("com.thomasharte.clocksignal.asyntaskqueue", DISPATCH_QUEUE_SERIAL);
 #else
-	thread_.reset(new std::thread([this]() {
+	thread_ = std::make_unique<std::thread>([this]() {
 		while(!should_destruct_) {
 			std::function<void(void)> next_function;
 
 			// Take lock, check for a new task
-			std::unique_lock<std::mutex> lock(queue_mutex_);
+			std::unique_lock lock(queue_mutex_);
 			if(!pending_tasks_.empty()) {
 				next_function = pending_tasks_.front();
 				pending_tasks_.pop_front();
@@ -39,7 +39,7 @@ AsyncTaskQueue::AsyncTaskQueue()
 				processing_condition_.wait(lock);
 			}
 		}
-	}));
+	});
 #endif
 }
 
@@ -60,7 +60,7 @@ void AsyncTaskQueue::enqueue(std::function<void(void)> function) {
 #ifdef __APPLE__
 	dispatch_async(serial_dispatch_queue_, ^{function();});
 #else
-	std::lock_guard<std::mutex> lock(queue_mutex_);
+	std::lock_guard lock(queue_mutex_);
 	pending_tasks_.push_back(function);
 	processing_condition_.notify_all();
 #endif
@@ -70,11 +70,11 @@ void AsyncTaskQueue::flush() {
 #ifdef __APPLE__
 	dispatch_sync(serial_dispatch_queue_, ^{});
 #else
-	std::shared_ptr<std::mutex> flush_mutex(new std::mutex);
-	std::shared_ptr<std::condition_variable> flush_condition(new std::condition_variable);
-	std::unique_lock<std::mutex> lock(*flush_mutex);
+	auto flush_mutex = std::make_shared<std::mutex>();
+	auto flush_condition = std::make_shared<std::condition_variable>();
+	std::unique_lock lock(*flush_mutex);
 	enqueue([=] () {
-		std::unique_lock<std::mutex> inner_lock(*flush_mutex);
+		std::unique_lock inner_lock(*flush_mutex);
 		flush_condition->notify_all();
 	});
 	flush_condition->wait(lock);
@@ -88,7 +88,7 @@ DeferringAsyncTaskQueue::~DeferringAsyncTaskQueue() {
 
 void DeferringAsyncTaskQueue::defer(std::function<void(void)> function) {
 	if(!deferred_tasks_) {
-		deferred_tasks_.reset(new std::list<std::function<void(void)>>);
+		deferred_tasks_ = std::make_shared<std::list<std::function<void(void)>>>();
 	}
 	deferred_tasks_->push_back(function);
 }

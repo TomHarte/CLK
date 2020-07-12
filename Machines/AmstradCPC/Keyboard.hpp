@@ -33,12 +33,15 @@ enum Key: uint16_t {
 #undef Line
 };
 
-struct KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
-	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key);
+struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const override;
 };
 
 struct CharacterMapper: public ::Utility::CharacterMapper {
-	uint16_t *sequence_for_character(char character);
+	const uint16_t *sequence_for_character(char character) const override;
+
+	bool needs_pause_after_reset_all_keys() const override	{ return false; }
+	bool needs_pause_after_key(uint16_t key) const override;
 };
 
 };

@@ -47,6 +47,7 @@
 #include "../../Storage/Disk/DiskImage/Formats/OricMFMDSK.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/SSD.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/ST.hpp"
+#include "../../Storage/Disk/DiskImage/Formats/STX.hpp"
 #include "../../Storage/Disk/DiskImage/Formats/WOZ.hpp"
 
 // Mass Storage Devices (i.e. usually, hard disks)
@@ -147,6 +148,7 @@ static Media GetMediaAndPlatforms(const std::string &file_name, TargetPlatform::
 	Format("sms", result.cartridges, Cartridge::BinaryDump, TargetPlatform::Sega)								// SMS
 	Format("ssd", result.disks, Disk::DiskImageHolder<Storage::Disk::SSD>, TargetPlatform::Acorn)				// SSD
 	Format("st", result.disks, Disk::DiskImageHolder<Storage::Disk::ST>, TargetPlatform::AtariST)				// ST
+	Format("stx", result.disks, Disk::DiskImageHolder<Storage::Disk::STX>, TargetPlatform::AtariST)				// STX
 	Format("tap", result.tapes, Tape::CommodoreTAP, TargetPlatform::Commodore)									// TAP (Commodore)
 	Format("tap", result.tapes, Tape::OricTAP, TargetPlatform::Oric)											// TAP (Oric)
 	Format("tsx", result.tapes, Tape::TZX, TargetPlatform::MSX)													// TSX

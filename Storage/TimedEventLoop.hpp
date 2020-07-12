@@ -52,12 +52,12 @@ namespace Storage {
 			/*!
 				@returns the number of whole cycles remaining until the next event is triggered.
 			*/
-			Cycles::IntType get_cycles_until_next_event();
+			Cycles::IntType get_cycles_until_next_event() const;
 
 			/*!
 				@returns the input clock rate.
 			*/
-			Cycles::IntType get_input_clock_rate();
+			Cycles::IntType get_input_clock_rate() const;
 
 		protected:
 			/*!
@@ -79,7 +79,7 @@ namespace Storage {
 				forward between calls into run_for; a subclass can receive arbitrarily many instructions to
 				advance before receiving a process_next_event.
 			*/
-			virtual void advance(const Cycles cycles) {};
+			virtual void advance([[maybe_unused]] const Cycles cycles) {};
 
 			/*!
 				Resets timing, throwing away any current internal state. So clears any fractional ticks

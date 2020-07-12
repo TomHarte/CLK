@@ -16,6 +16,7 @@
 #include "../../../../../Analyser/Static/Acorn/Target.hpp"
 #include "../../../../../Analyser/Static/AmstradCPC/Target.hpp"
 #include "../../../../../Analyser/Static/AppleII/Target.hpp"
+#include "../../../../../Analyser/Static/AtariST/Target.hpp"
 #include "../../../../../Analyser/Static/Commodore/Target.hpp"
 #include "../../../../../Analyser/Static/Macintosh/Target.hpp"
 #include "../../../../../Analyser/Static/MSX/Target.hpp"
@@ -27,6 +28,8 @@
 @implementation CSStaticAnalyser {
 	Analyser::Static::TargetList _targets;
 }
+
+// MARK: - File-based Initialiser
 
 - (instancetype)initWithFileAtURL:(NSURL *)url {
 	self = [super init];
@@ -41,12 +44,60 @@
 	return self;
 }
 
+// MARK: - Machine-based Initialisers
+
+- (instancetype)initWithAmstradCPCModel:(CSMachineCPCModel)model {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::AmstradCPC::Target;
+		auto target = std::make_unique<Target>();
+		switch(model) {
+			case CSMachineCPCModel464:	target->model = Target::Model::CPC464;	break;
+			case CSMachineCPCModel664:	target->model = Target::Model::CPC664;	break;
+			case CSMachineCPCModel6128: target->model = Target::Model::CPC6128;	break;
+		}
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
+- (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::AppleII::Target;
+		auto target = std::make_unique<Target>();
+		switch(model) {
+			default:									target->model = Target::Model::II;				break;
+			case CSMachineAppleIIModelAppleIIPlus:		target->model = Target::Model::IIplus;			break;
+			case CSMachineAppleIIModelAppleIIe:			target->model = Target::Model::IIe;				break;
+			case CSMachineAppleIIModelAppleEnhancedIIe:	target->model = Target::Model::EnhancedIIe;		break;
+		}
+		switch(diskController) {
+			default:
+			case CSMachineAppleIIDiskControllerNone:			target->disk_controller = Target::DiskController::None;				break;
+			case CSMachineAppleIIDiskControllerSixteenSector:	target->disk_controller = Target::DiskController::SixteenSector;	break;
+			case CSMachineAppleIIDiskControllerThirteenSector:	target->disk_controller = Target::DiskController::ThirteenSector;	break;
+		}
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
+- (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model {
+	self = [super init];
+	if(self) {
+		using Target = Analyser::Static::AtariST::Target;
+		auto target = std::make_unique<Target>();
+		_targets.push_back(std::move(target));
+	}
+	return self;
+}
+
 - (instancetype)initWithElectronDFS:(BOOL)dfs adfs:(BOOL)adfs {
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Acorn::Target;
-		std::unique_ptr<Target> target(new Target);
-		target->machine = Analyser::Machine::Electron;
+		auto target = std::make_unique<Target>();
 		target->has_dfs = !!dfs;
 		target->has_adfs = !!adfs;
 		_targets.push_back(std::move(target));
@@ -54,17 +105,21 @@
 	return self;
 }
 
-- (instancetype)initWithAmstradCPCModel:(CSMachineCPCModel)model {
+- (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model {
 	self = [super init];
 	if(self) {
-		using Target = Analyser::Static::AmstradCPC::Target;
-		std::unique_ptr<Target> target(new Target);
-		target->machine = Analyser::Machine::AmstradCPC;
+		using Target = Analyser::Static::Macintosh::Target;
+		auto target = std::make_unique<Target>();
+
+		using Model = Target::Model;
 		switch(model) {
-			case CSMachineCPCModel464: target->model = Analyser::Static::AmstradCPC::Target::Model::CPC464;		break;
-			case CSMachineCPCModel664: target->model = Analyser::Static::AmstradCPC::Target::Model::CPC664;		break;
-			case CSMachineCPCModel6128: target->model = Analyser::Static::AmstradCPC::Target::Model::CPC6128;	break;
+			default:
+			case CSMachineMacintoshModel128k:	target->model = Model::Mac128k;		break;
+			case CSMachineMacintoshModel512k:	target->model = Model::Mac512k;		break;
+			case CSMachineMacintoshModel512ke:	target->model = Model::Mac512ke;	break;
+			case CSMachineMacintoshModelPlus:	target->model = Model::MacPlus;		break;
 		}
+
 		_targets.push_back(std::move(target));
 	}
 	return self;
@@ -74,13 +129,12 @@
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::MSX::Target;
-		std::unique_ptr<Target> target(new Target);
-		target->machine = Analyser::Machine::MSX;
+		auto target = std::make_unique<Target>();
 		target->has_disk_drive = !!hasDiskDrive;
 		switch(region) {
-			case CSMachineMSXRegionAmerican:	target->region = Analyser::Static::MSX::Target::Region::USA;	break;
-			case CSMachineMSXRegionEuropean:	target->region = Analyser::Static::MSX::Target::Region::Europe;	break;
-			case CSMachineMSXRegionJapanese:	target->region = Analyser::Static::MSX::Target::Region::Japan;	break;
+			case CSMachineMSXRegionAmerican:	target->region = Target::Region::USA;		break;
+			case CSMachineMSXRegionEuropean:	target->region = Target::Region::Europe;	break;
+			case CSMachineMSXRegionJapanese:	target->region = Target::Region::Japan;		break;
 		}
 		_targets.push_back(std::move(target));
 	}
@@ -91,8 +145,7 @@
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Oric::Target;
-		std::unique_ptr<Target> target(new Target);
-		target->machine = Analyser::Machine::Oric;
+		auto target = std::make_unique<Target>();
 		switch(model) {
 			case CSMachineOricModelOric1:		target->rom = Target::ROM::BASIC10;	break;
 			case CSMachineOricModelOricAtmos:	target->rom = Target::ROM::BASIC11;	break;
@@ -102,6 +155,8 @@
 			case CSMachineOricDiskInterfaceNone:		target->disk_interface = Target::DiskInterface::None;		break;
 			case CSMachineOricDiskInterfaceMicrodisc:	target->disk_interface = Target::DiskInterface::Microdisc;	break;
 			case CSMachineOricDiskInterfacePravetz:		target->disk_interface = Target::DiskInterface::Pravetz;	break;
+			case CSMachineOricDiskInterfaceJasmin:		target->disk_interface = Target::DiskInterface::Jasmin;		break;
+			case CSMachineOricDiskInterfaceBD500:		target->disk_interface = Target::DiskInterface::BD500;		break;
 		}
 		_targets.push_back(std::move(target));
 	}
@@ -112,8 +167,7 @@
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::Commodore::Target;
-		std::unique_ptr<Target> target(new Target);
-		target->machine = Analyser::Machine::Vic20;
+		auto target = std::make_unique<Target>();
 		switch(region) {
 			case CSMachineVic20RegionDanish:	target->region = Target::Region::Danish;	break;
 			case CSMachineVic20RegionSwedish:	target->region = Target::Region::Swedish;	break;
@@ -121,11 +175,13 @@
 			case CSMachineVic20RegionEuropean:	target->region = Target::Region::European;	break;
 			case CSMachineVic20RegionJapanese:	target->region = Target::Region::Japanese;	break;
 		}
+		auto memory_model = Target::MemoryModel::Unexpanded;
 		switch(memorySize) {
-			default:	target->memory_model = Target::MemoryModel::Unexpanded;		break;
-			case 8:		target->memory_model = Target::MemoryModel::EightKB;		break;
-			case 32:	target->memory_model = Target::MemoryModel::ThirtyTwoKB;	break;
+			default:	break;
+			case 8:		memory_model = Target::MemoryModel::EightKB;		break;
+			case 32:	memory_model = Target::MemoryModel::ThirtyTwoKB;	break;
 		}
+		target->set_memory_model(memory_model);
 		target->has_c1540 = !!hasC1540;
 		_targets.push_back(std::move(target));
 	}
@@ -145,8 +201,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::ZX8081::Target;
-		std::unique_ptr<Target> target(new Target);
-		target->machine = Analyser::Machine::ZX8081;
+		auto target = std::make_unique<Target>();
 		target->is_ZX81 = false;
 		target->ZX80_uses_ZX81_ROM = !!useZX81ROM;
 		target->memory_model = ZX8081MemoryModelFromSize(memorySize);
@@ -159,8 +214,7 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	self = [super init];
 	if(self) {
 		using Target = Analyser::Static::ZX8081::Target;
-		std::unique_ptr<Target> target(new Target);
-		target->machine = Analyser::Machine::ZX8081;
+		auto target = std::make_unique<Target>();
 		target->is_ZX81 = true;
 		target->memory_model = ZX8081MemoryModelFromSize(memorySize);
 		_targets.push_back(std::move(target));
@@ -168,66 +222,14 @@ static Analyser::Static::ZX8081::Target::MemoryModel ZX8081MemoryModelFromSize(K
 	return self;
 }
 
-- (instancetype)initWithAppleIIModel:(CSMachineAppleIIModel)model diskController:(CSMachineAppleIIDiskController)diskController {
-	self = [super init];
-	if(self) {
-		using Target = Analyser::Static::AppleII::Target;
-		std::unique_ptr<Target> target(new Target);
-		target->machine = Analyser::Machine::AppleII;
-		switch(model) {
-			default:									target->model = Target::Model::II;				break;
-			case CSMachineAppleIIModelAppleIIPlus:		target->model = Target::Model::IIplus;			break;
-			case CSMachineAppleIIModelAppleIIe:			target->model = Target::Model::IIe;				break;
-			case CSMachineAppleIIModelAppleEnhancedIIe:	target->model = Target::Model::EnhancedIIe;		break;
-		}
-		switch(diskController) {
-			default:
-			case CSMachineAppleIIDiskControllerNone:			target->disk_controller = Target::DiskController::None;				break;
-			case CSMachineAppleIIDiskControllerSixteenSector:	target->disk_controller = Target::DiskController::SixteenSector;	break;
-			case CSMachineAppleIIDiskControllerThirteenSector:	target->disk_controller = Target::DiskController::ThirteenSector;	break;
-		}
-		_targets.push_back(std::move(target));
-	}
-	return self;
-}
-
-- (instancetype)initWithMacintoshModel:(CSMachineMacintoshModel)model {
-	self = [super init];
-	if(self) {
-		using Target = Analyser::Static::Macintosh::Target;
-		std::unique_ptr<Target> target(new Target);
-		target->machine = Analyser::Machine::Macintosh;
-
-		using Model = Target::Model;
-		switch(model) {
-			default:
-			case CSMachineMacintoshModel128k:	target->model = Model::Mac128k;		break;
-			case CSMachineMacintoshModel512k:	target->model = Model::Mac512k;		break;
-			case CSMachineMacintoshModel512ke:	target->model = Model::Mac512ke;	break;
-			case CSMachineMacintoshModelPlus:	target->model = Model::MacPlus;		break;
-		}
-
-		_targets.push_back(std::move(target));
-	}
-	return self;
-}
-
-- (instancetype)initWithAtariSTModel:(CSMachineAtariSTModel)model {
-	self = [super init];
-	if(self) {
-		using Target = Analyser::Static::Macintosh::Target;
-		std::unique_ptr<Target> target(new Target);
-		target->machine = Analyser::Machine::AtariST;
-		_targets.push_back(std::move(target));
-	}
-	return self;
-}
+// MARK: - NIB mapping
 
 - (NSString *)optionsPanelNibName {
 	switch(_targets.front()->machine) {
 		case Analyser::Machine::AmstradCPC:		return @"CompositeOptions";
 		case Analyser::Machine::AppleII:		return @"AppleIIOptions";
 		case Analyser::Machine::Atari2600:		return @"Atari2600Options";
+		case Analyser::Machine::AtariST:		return @"CompositeOptions";
 		case Analyser::Machine::ColecoVision:	return @"CompositeOptions";
 		case Analyser::Machine::Electron:		return @"QuickLoadCompositeOptions";
 		case Analyser::Machine::Macintosh:		return @"MacintoshOptions";

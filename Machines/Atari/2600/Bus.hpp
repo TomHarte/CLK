@@ -33,6 +33,7 @@ class Bus {
 		virtual void run_for(const Cycles cycles) = 0;
 		virtual void apply_confidence(Analyser::Dynamic::ConfidenceCounter &confidence_counter) = 0;
 		virtual void set_reset_line(bool state) = 0;
+		virtual void flush() = 0;
 
 		// the RIOT, TIA and speaker
 		PIA mos6532_;

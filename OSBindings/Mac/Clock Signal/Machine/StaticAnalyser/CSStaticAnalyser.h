@@ -49,7 +49,9 @@ typedef NS_ENUM(NSInteger, CSMachineOricModel) {
 typedef NS_ENUM(NSInteger, CSMachineOricDiskInterface) {
 	CSMachineOricDiskInterfaceNone,
 	CSMachineOricDiskInterfaceMicrodisc,
-	CSMachineOricDiskInterfacePravetz
+	CSMachineOricDiskInterfacePravetz,
+	CSMachineOricDiskInterfaceJasmin,
+	CSMachineOricDiskInterfaceBD500
 };
 
 typedef NS_ENUM(NSInteger, CSMachineVic20Region) {

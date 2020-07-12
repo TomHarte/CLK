@@ -10,6 +10,10 @@
 
 #include <cmath>
 
+#ifndef M_PI
+#define M_PI 3.1415926f
+#endif
+
 using namespace Outputs::Display::OpenGL;
 
 // MARK: - State setup for compiled shaders.
@@ -56,7 +60,7 @@ void ScanTarget::set_uniforms(ShaderType type, Shader &target) const {
 	}
 }
 
-void ScanTarget::set_sampling_window(int output_width, int output_height, Shader &target) {
+void ScanTarget::set_sampling_window(int output_width, int, Shader &target) {
 	if(modals_.display_type != DisplayType::CompositeColour) {
 		const float one_pixel_width = float(modals_.cycles_per_line) * modals_.visible_area.size.width / float(output_width);
 		const float clocks_per_angle = float(modals_.cycles_per_line) * float(modals_.colour_cycle_denominator) / float(modals_.colour_cycle_numerator);
@@ -470,11 +474,11 @@ std::unique_ptr<Shader> ScanTarget::conversion_shader() const {
 			"fragColour = vec4(fragColour3, 0.64);"
 		"}";
 
-	return std::unique_ptr<Shader>(new Shader(
+	return std::make_unique<Shader>(
 		vertex_shader,
 		fragment_shader,
 		bindings(ShaderType::Conversion)
-	));
+	);
 }
 
 std::unique_ptr<Shader> ScanTarget::composition_shader() const {
@@ -544,11 +548,11 @@ std::unique_ptr<Shader> ScanTarget::composition_shader() const {
 		break;
 	}
 
-	return std::unique_ptr<Shader>(new Shader(
+	return std::make_unique<Shader>(
 		vertex_shader,
 		fragment_shader + "}",
 		bindings(ShaderType::Composition)
-	));
+	);
 }
 
 std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
@@ -656,9 +660,9 @@ std::unique_ptr<Shader> ScanTarget::qam_separation_shader() const {
 			"fragColour = fragColour*0.5 + vec4(0.5);"
 		"}";
 
-	return std::unique_ptr<Shader>(new Shader(
+	return std::make_unique<Shader>(
 		vertex_shader,
 		fragment_shader,
 		bindings(ShaderType::QAMSeparation)
-	));
+	);
 }

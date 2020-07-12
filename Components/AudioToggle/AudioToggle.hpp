@@ -26,7 +26,7 @@ class Toggle: public Outputs::Speaker::SampleSource {
 		void skip_samples(const std::size_t number_of_samples);
 
 		void set_output(bool enabled);
-		bool get_output();
+		bool get_output() const;
 
 	private:
 		// Accessed on the calling thread.

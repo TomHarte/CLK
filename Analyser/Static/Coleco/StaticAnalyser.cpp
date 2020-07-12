@@ -22,7 +22,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 
 		// the two bytes that will be first must be 0xaa and 0x55, either way around
 		auto *start = &segment.data[0];
-		if((data_size & static_cast<std::size_t>(~8191)) > 32768) {
+		if((data_size & size_t(~8191)) > 32768) {
 			start = &segment.data[segment.data.size() - 16384];
 		}
 		if(start[0] != 0xaa && start[0] != 0x55 && start[1] != 0xaa && start[1] != 0x55) continue;
@@ -52,10 +52,9 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return coleco_cartridges;
 }
 
-Analyser::Static::TargetList Analyser::Static::Coleco::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+Analyser::Static::TargetList Analyser::Static::Coleco::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	TargetList targets;
-	std::unique_ptr<Target> target(new Target);
-	target->machine = Machine::ColecoVision;
+	auto target = std::make_unique<Target>(Machine::ColecoVision);
 	target->confidence = 1.0f - 1.0f / 32768.0f;
 	target->media.cartridges = ColecoCartridgesFrom(media.cartridges);
 	if(!target->media.empty())

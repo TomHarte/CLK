@@ -24,15 +24,15 @@ namespace Dynamic {
 	Makes a static internal copy of the list of machines; makes no guarantees about the
 	order of delivered messages.
 */
-struct MultiMediaTarget: public MediaTarget::Machine {
+struct MultiMediaTarget: public MachineTypes::MediaTarget {
 	public:
 		MultiMediaTarget(const std::vector<std::unique_ptr<::Machine::DynamicMachine>> &machines);
 
 		// Below is the standard MediaTarget::Machine interface; see there for documentation.
-		bool insert_media(const Analyser::Static::Media &media) override;
+		bool insert_media(const Analyser::Static::Media &media) final;
 
 	private:
-		std::vector<MediaTarget::Machine *> targets_;
+		std::vector<MachineTypes::MediaTarget *> targets_;
 };
 
 }

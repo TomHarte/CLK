@@ -70,6 +70,16 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 	}
 }
 
+#pragma mark - Port Logic
+
+struct PortAccessDelegateTopByte: public CPU::Z80::AllRAMProcessor::PortAccessDelegate {
+	uint8_t z80_all_ram_processor_input(uint16_t port) final { return port >> 8; }
+};
+
+struct PortAccessDelegate191: public CPU::Z80::AllRAMProcessor::PortAccessDelegate {
+	uint8_t z80_all_ram_processor_input(uint16_t port) final { return 191; }
+};
+
 #pragma mark - Capture class
 
 @interface CSTestMachineZ80BusOperationCapture()
@@ -104,6 +114,9 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 	NSMutableArray<CSTestMachineZ80BusOperationCapture *> *_busOperationCaptures;
 	int _timeSeekingReadOpcode;
+
+	PortAccessDelegateTopByte _topBytePortDelegate;
+	PortAccessDelegate191 _value191PortDelegate;
 }
 
 #pragma mark - Lifecycle
@@ -114,6 +127,7 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 		_processor->reset_power_on();
 		_busOperationHandler = new BusOperationHandler(self);
 		_busOperationCaptures = [[NSMutableArray alloc] init];
+		self.portLogic = CSTestMachinePortLogicReturnUpperByte;
 	}
 	return self;
 }
@@ -130,6 +144,10 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 
 - (void)runForNumberOfCycles:(int)cycles {
 	_processor->run_for(Cycles(cycles));
+}
+
+- (void)runForInstruction {
+	_processor->run_for_instruction();
 }
 
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineZ80Register)reg {
@@ -171,6 +189,16 @@ static CPU::Z80::Register registerForRegister(CSTestMachineZ80Register reg) {
 - (void)setWaitLine:(BOOL)waitLine {
 	_waitLine = waitLine;
 	_processor->set_wait_line(waitLine ? true : false);
+}
+
+- (void)setPortLogic:(CSTestMachinePortLogic)portLogic {
+	_portLogic = portLogic;
+
+	if(_portLogic == CSTestMachinePortLogicReturn191) {
+		_processor->set_port_access_delegate(&_value191PortDelegate);
+	} else {
+		_processor->set_port_access_delegate(&_topBytePortDelegate);
+	}
 }
 
 - (CPU::AllRAMProcessor *)processor {

@@ -8,6 +8,11 @@
 
 #include "IntelligentKeyboard.hpp"
 
+#include <algorithm>
+
+#define LOG_PREFIX "[IKYB] "
+#include "../../../Outputs/Log.hpp"
+
 using namespace Atari::ST;
 
 IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &output) : output_line_(output) {
@@ -17,10 +22,6 @@ IntelligentKeyboard::IntelligentKeyboard(Serial::Line &input, Serial::Line &outp
 	// Add two joysticks into the mix.
 	joysticks_.emplace_back(new Joystick);
 	joysticks_.emplace_back(new Joystick);
-
-	mouse_button_state_ = 0;
-	mouse_movement_[0] = 0;
-	mouse_movement_[1] = 0;
 }
 
 bool IntelligentKeyboard::serial_line_did_produce_bit(Serial::Line *, int bit) {
@@ -39,33 +40,51 @@ bool IntelligentKeyboard::serial_line_did_produce_bit(Serial::Line *, int bit) {
 	return true;
 }
 
-ClockingHint::Preference IntelligentKeyboard::preferred_clocking() {
+ClockingHint::Preference IntelligentKeyboard::preferred_clocking() const {
 	return output_line_.transmission_data_time_remaining().as_integral() ? ClockingHint::Preference::RealTime : ClockingHint::Preference::None;
 }
 
 void IntelligentKeyboard::run_for(HalfCycles duration) {
 	// Take this opportunity to check for joystick, mouse and keyboard events,
 	// which will have been received asynchronously.
-	if(mouse_mode_ == MouseMode::Relative) {
-		const int captured_movement[2] = { mouse_movement_[0].load(), mouse_movement_[1].load() };
-		const int captured_button_state = mouse_button_state_;
-		if(
-			(posted_button_state_ != captured_button_state) ||
-			(abs(captured_movement[0]) >= mouse_threshold_[0]) ||
-			(abs(captured_movement[1]) >= mouse_threshold_[1]) ) {
-			mouse_movement_[0] -= captured_movement[0];
-			mouse_movement_[1] -= captured_movement[1];
+	const int captured_movement[2] = { mouse_movement_[0].load(), mouse_movement_[1].load() };
+	switch(mouse_mode_) {
+		case MouseMode::Relative: {
+			const int captured_button_state = mouse_button_state_;
+			if(
+				(posted_button_state_ != captured_button_state) ||
+				(abs(captured_movement[0]) >= mouse_threshold_[0]) ||
+				(abs(captured_movement[1]) >= mouse_threshold_[1]) ) {
+				mouse_movement_[0] -= captured_movement[0];
+				mouse_movement_[1] -= captured_movement[1];
 
-			post_relative_mouse_event(captured_movement[0], captured_movement[1]);
-		}
-	} else {
-		// TODO: absolute-mode mouse updates.
+				post_relative_mouse_event(captured_movement[0], captured_movement[1] * mouse_y_multiplier_);
+			}
+		} break;
+
+		case MouseMode::Absolute: {
+			const int scaled_movement[2] = { captured_movement[0] / mouse_scale_[0], captured_movement[1] / mouse_scale_[1] };
+			mouse_position_[0] += scaled_movement[0];
+			mouse_position_[1] += mouse_y_multiplier_ * scaled_movement[1];
+
+			// Clamp to range.
+			mouse_position_[0] = std::min(std::max(mouse_position_[0], 0), mouse_range_[0]);
+			mouse_position_[1] = std::min(std::max(mouse_position_[1], 0), mouse_range_[1]);
+
+			mouse_movement_[0] -= scaled_movement[0] * mouse_scale_[0];
+			mouse_movement_[1] -= scaled_movement[1] * mouse_scale_[1];
+		} break;
+
+		case MouseMode::Disabled:
+			mouse_movement_[0] = 0;
+			mouse_movement_[1] = 0;
+		break;
 	}
 
 	// Forward key changes; implicit assumption here: mutexs are cheap while there's
 	// negligible contention.
 	{
-		std::lock_guard<decltype(key_queue_mutex_)> guard(key_queue_mutex_);
+		std::lock_guard guard(key_queue_mutex_);
 		for(uint8_t key: key_queue_) {
 			output_bytes({key});
 		}
@@ -76,13 +95,46 @@ void IntelligentKeyboard::run_for(HalfCycles duration) {
 	// machine advertises as joystick 1 is mapped to the Atari ST's joystick 2, so as to
 	// maintain both the normal emulation expections that the first joystick is the primary
 	// one and the Atari ST's convention that the main joystick is in port 2.
-	for(size_t c = 0; c < 2; ++c) {
-		const auto joystick = static_cast<Joystick *>(joysticks_[c ^ 1].get());
-		if(joystick->has_event()) {
-			output_bytes({
-				uint8_t(0xfe | c),
-				joystick->get_state()
-			});
+	if(joystick_mode_ == JoystickMode::Event || joystick_mode_ == JoystickMode::KeyCode) {
+		for(size_t c = 0; c < 2; ++c) {
+			const auto joystick = static_cast<Joystick *>(joysticks_[c ^ 1].get());
+			if(joystick->has_event()) {
+
+				if(joystick_mode_ == JoystickMode::Event) {
+					// Event mode: forward a joystick event message.
+					output_bytes({
+						uint8_t(0xfe | c),
+						joystick->get_state()
+					});
+				} else {
+					// Key code mode: decompose the joystick event into
+					// instantaneous key events.
+					const auto event_mask = joystick->event_mask();
+					const auto new_state = joystick->get_state();
+					const auto new_presses = (event_mask ^ new_state) & new_state;
+
+					// Send cursor keys for the movement.
+					const Key keys[] = {Key::Up, Key::Down, Key::Left, Key::Right};
+					for(int key = 0; key < 4; ++key) {
+						if(new_presses & (1 << key)) {
+							output_bytes({
+								uint8_t(keys[key]),
+								uint8_t(0x80 | uint8_t(keys[key]))
+							});
+						}
+					}
+
+					// Check also for fire, but the key to send depends
+					// on the joystick.
+					if(new_presses & 0x80) {
+						const Key fire_buttons[] = {Key::Joystick1Button, Key::Joystick2Button};
+						output_bytes({
+							uint8_t(fire_buttons[c]),
+							uint8_t(0x80 | uint8_t(fire_buttons[c]))
+						});
+					}
+				}
+			}
 		}
 	}
 
@@ -208,49 +260,68 @@ void IntelligentKeyboard::reset() {
 }
 
 void IntelligentKeyboard::resume() {
+	LOG("Unimplemented: resume");
 }
 
 void IntelligentKeyboard::pause() {
+	LOG("Unimplemented: pause");
 }
 
 void IntelligentKeyboard::disable_mouse() {
+	mouse_mode_ = MouseMode::Disabled;
 }
 
 void IntelligentKeyboard::set_relative_mouse_position_reporting() {
+	mouse_mode_ = MouseMode::Relative;
 }
 
 void IntelligentKeyboard::set_absolute_mouse_position_reporting(uint16_t max_x, uint16_t max_y) {
+	mouse_mode_ = MouseMode::Absolute;
+	mouse_range_[0] = int(max_x);
+	mouse_range_[1] = int(max_y);
 }
 
 void IntelligentKeyboard::set_mouse_position(uint16_t x, uint16_t y) {
+	mouse_position_[0] = std::min(int(x), mouse_range_[0]);
+	mouse_position_[1] = std::min(int(y), mouse_range_[1]);
 }
 
-void IntelligentKeyboard::set_mouse_keycode_reporting(uint8_t delta_x, uint8_t delta_y) {
+void IntelligentKeyboard::set_mouse_keycode_reporting(uint8_t, uint8_t) {
+	LOG("Unimplemented: set mouse keycode reporting");
 }
 
 void IntelligentKeyboard::set_mouse_threshold(uint8_t x, uint8_t y) {
+	mouse_threshold_[0] = x;
+	mouse_threshold_[1] = y;
 }
 
 void IntelligentKeyboard::set_mouse_scale(uint8_t x, uint8_t y) {
+	mouse_scale_[0] = x;
+	mouse_scale_[1] = y;
 }
 
 void IntelligentKeyboard::set_mouse_y_downward() {
+	mouse_y_multiplier_ = 1;
 }
 
 void IntelligentKeyboard::set_mouse_y_upward() {
+	mouse_y_multiplier_ = -1;
 }
 
-void IntelligentKeyboard::set_mouse_button_actions(uint8_t actions) {
+void IntelligentKeyboard::set_mouse_button_actions(uint8_t) {
+	LOG("Unimplemented: set mouse button actions");
 }
 
 void IntelligentKeyboard::interrogate_mouse_position() {
+	const int captured_mouse_button_events_ = mouse_button_events_;
+	mouse_button_events_ &= ~captured_mouse_button_events_;
 	output_bytes({
-		0xf7,	// Beginning of mouse response.
-		0x00,	// 0000dcba; a = right button down since last interrogation, b = right button up since, c/d = left button.
-		0x00,	// x motion: MSB, LSB
-		0x00,
-		0x00,	// y motion: MSB, LSB
-		0x00
+		0xf7,									// Beginning of mouse response.
+		uint8_t(captured_mouse_button_events_),	// 0000dcba; a = right button down since last interrogation, b = right button up since, c/d = left button.
+		uint8_t(mouse_position_[0] >> 8),		// x position: MSB, LSB
+		uint8_t(mouse_position_[0] & 0xff),
+		uint8_t(mouse_position_[1] >> 8),		// y position: MSB, LSB
+		uint8_t(mouse_position_[1] & 0xff)
 	});
 }
 
@@ -277,7 +348,7 @@ void IntelligentKeyboard::post_relative_mouse_event(int x, int y) {
 
 // MARK: - Keyboard Input
 void IntelligentKeyboard::set_key_state(Key key, bool is_pressed) {
-	std::lock_guard<decltype(key_queue_mutex_)> guard(key_queue_mutex_);
+	std::lock_guard guard(key_queue_mutex_);
 	if(is_pressed) {
 		key_queue_.push_back(uint8_t(key));
 	} else {
@@ -285,11 +356,11 @@ void IntelligentKeyboard::set_key_state(Key key, bool is_pressed) {
 	}
 }
 
-uint16_t IntelligentKeyboard::KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
+uint16_t IntelligentKeyboard::KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 	using Key = Inputs::Keyboard::Key;
 	using STKey = Atari::ST::Key;
 	switch(key) {
-		default: return KeyboardMachine::MappedMachine::KeyNotMapped;
+		default: return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 
 #define Bind(x, y) case Key::x: return uint16_t(STKey::y)
 #define QBind(x) case Key::x: return uint16_t(STKey::x)
@@ -358,11 +429,16 @@ int IntelligentKeyboard::get_number_of_buttons() {
 }
 
 void IntelligentKeyboard::set_button_pressed(int index, bool is_pressed) {
-	const auto mask = 1 << (index ^ 1);	// The primary button is b1; the secondary is b0.
+	index ^= 1;		// The primary button is b1; the secondary is b0.
+
+	const auto mask = 1 << index;
+	const auto event_mask = 1 << (index << 1);
 	if(is_pressed) {
 		mouse_button_state_ |= mask;
+		mouse_button_events_ |= event_mask;
 	} else {
 		mouse_button_state_ &= ~mask;
+		mouse_button_events_ |= event_mask << 1;
 	}
 }
 
@@ -377,28 +453,55 @@ void IntelligentKeyboard::disable_joysticks() {
 
 void IntelligentKeyboard::set_joystick_event_mode() {
 	joystick_mode_ = JoystickMode::Event;
+	clear_joystick_events();
 }
 
 void IntelligentKeyboard::set_joystick_interrogation_mode() {
 	joystick_mode_ = JoystickMode::Interrogation;
 }
 
-void IntelligentKeyboard::interrogate_joysticks() {
-	const auto joystick1 = static_cast<Joystick *>(joysticks_[0].get());
-	const auto joystick2 = static_cast<Joystick *>(joysticks_[1].get());
+void IntelligentKeyboard::set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical) {
+	// TODO: honour velocity thresholds.
+	(void)horizontal;
+	(void)vertical;
 
-	output_bytes({
-		0xfd,
-		joystick2->get_state(),
-		joystick1->get_state()
-	});
+	joystick_mode_ = JoystickMode::KeyCode;
+	clear_joystick_events();
 }
 
-void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t rate) {
+void IntelligentKeyboard::clear_joystick_events() {
+	const auto joystick1 = static_cast<Joystick *>(joysticks_[0].get());
+	const auto joystick2 = static_cast<Joystick *>(joysticks_[1].get());
+	joystick1->get_state();
+	joystick2->get_state();
+}
+
+void IntelligentKeyboard::interrogate_joysticks() {
+	if(joystick_mode_ != JoystickMode::Interrogation) {
+		// Joystick::get_state() implicitly clears Joystick::has_event,
+		// so don't permit interrogation if the user isn't in interrogation
+		// mode because it might cause dropped events.
+		output_bytes({
+			0xfd,
+			0x00,
+			0x00
+		});
+	} else {
+		const auto joystick1 = static_cast<Joystick *>(joysticks_[0].get());
+		const auto joystick2 = static_cast<Joystick *>(joysticks_[1].get());
+
+		output_bytes({
+			0xfd,
+			joystick2->get_state(),
+			joystick1->get_state()
+		});
+	}
+}
+
+void IntelligentKeyboard::set_joystick_monitoring_mode(uint8_t) {
+	LOG("Unimplemented: joystick monitoring mode");
 }
 
 void IntelligentKeyboard::set_joystick_fire_button_monitoring_mode() {
-}
-
-void IntelligentKeyboard::set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical) {
+	LOG("Unimplemented: joystick fire button monitoring mode");
 }

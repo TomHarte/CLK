@@ -82,7 +82,7 @@ void Bus::add_observer(Observer *observer) {
 	observers_.push_back(observer);
 }
 
-ClockingHint::Preference Bus::preferred_clocking() {
+ClockingHint::Preference Bus::preferred_clocking() const {
 	return (dispatch_index_ < dispatch_times_.size()) ? ClockingHint::Preference::RealTime : ClockingHint::Preference::None;
 }
 

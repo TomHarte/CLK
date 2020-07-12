@@ -20,6 +20,7 @@ class ProcessorStorage {
 				DecodeOperationNoRChange,
 				MoveToNextProgram,
 
+				Increment8NoFlags,
 				Increment8,
 				Increment16,
 				Decrement8,
@@ -73,46 +74,56 @@ class ProcessorStorage {
 				JumpTo66,
 				HALT,
 
+				/// Decrements BC; if BC is 0 then moves to the next instruction. Otherwise allows this instruction to finish.
 				DJNZ,
+
 				DAA,
 				CPL,
 				SCF,
 				CCF,
 
+				/// Resets the bit in @c source implied by @c operation_ .
 				RES,
+				/// Tests the bit in @c source implied by @c operation_ .
 				BIT,
+				/// Sets the bit in @c source implied by @c operation_ .
 				SET,
 
+				/// Sets @c memptr_ to the target address implied by @c operation_ .
 				CalculateRSTDestination,
 
+				/// Resets subtract and carry, sets sign, zero, five and three according to the value of @c a_ and sets parity to the value of @c IFF2 .
 				SetAFlags,
+				/// Resets subtract and carry, sets sign, zero, five and three according to the value of @c operation and sets parity the same as sign.
 				SetInFlags,
+				/// Sets @c memptr_ to @c bc_.full+1 .
+				SetOutFlags,
+				/// Sets @c temp8_ to 0.
 				SetZero,
 
+				/// A no-op; used in instruction lists to indicate where an index calculation should go if this is an I[X/Y]+d operation.
 				IndexedPlaceHolder,
 
+				/// Sets @c memptr_ to (a_ << 8) + ((source_ + 1) & 0xff)
 				SetAddrAMemptr,
 
+				/// Resets: IFF1, IFF2, interrupt mode, the PC, I and R; sets all flags, the SP to 0xffff and a_ to 0xff.
 				Reset
 			};
-			Type type;
-			void *source;
-			void *destination;
-			PartialMachineCycle machine_cycle;
+			Type type = Type::Reset;
+			void *source = nullptr;
+			void *destination = nullptr;
+			PartialMachineCycle machine_cycle{};
 		};
 
 		struct InstructionPage {
 			std::vector<MicroOp *> instructions;
 			std::vector<MicroOp> all_operations;
 			std::vector<MicroOp> fetch_decode_execute;
-			MicroOp *fetch_decode_execute_data;
-			uint8_t r_step;
-			bool is_indexed;
-
-			InstructionPage() : r_step(1), is_indexed(false) {}
+			MicroOp *fetch_decode_execute_data = nullptr;
+			uint8_t r_step = 1;
+			bool is_indexed = false;
 		};
-
-		typedef MicroOp InstructionTable[256][30];
 
 		ProcessorStorage();
 		void install_default_instruction_set();
@@ -180,8 +191,8 @@ class ProcessorStorage {
 
 			@returns The current value of the flags register.
 		*/
-		uint8_t get_flags() {
-			uint8_t result =
+		uint8_t get_flags() const {
+			return
 				(sign_result_ & Flag::Sign) |
 				(zero_result_ ? 0 : Flag::Zero) |
 				(bit53_result_ & (Flag::Bit5 | Flag::Bit3)) |
@@ -189,7 +200,6 @@ class ProcessorStorage {
 				(parity_overflow_result_ & Flag::Parity) |
 				subtract_flag_ |
 				(carry_result_ & Flag::Carry);
-			return result;
 		}
 
 		/*!
@@ -209,6 +219,7 @@ class ProcessorStorage {
 			carry_result_			= flags;
 		}
 
+		typedef MicroOp InstructionTable[256][30];
 		virtual void assemble_page(InstructionPage &target, InstructionTable &table, bool add_offsets) = 0;
 		virtual void copy_program(const MicroOp *source, std::vector<MicroOp> &destination) = 0;
 
@@ -217,4 +228,6 @@ class ProcessorStorage {
 		void assemble_cb_page(InstructionPage &target, RegisterPair16 &index, bool add_offsets);
 		void assemble_base_page(InstructionPage &target, RegisterPair16 &index, bool add_offsets, InstructionPage &cb_page);
 
+		// Allow state objects to capture and apply state.
+		friend struct State;
 };

@@ -17,23 +17,23 @@ using namespace TI::TMS;
 
 namespace {
 
-const uint8_t StatusInterrupt = 0x80;
-const uint8_t StatusSpriteOverflow = 0x40;
+constexpr uint8_t StatusInterrupt = 0x80;
+constexpr uint8_t StatusSpriteOverflow = 0x40;
 
-const int StatusSpriteCollisionShift = 5;
-const uint8_t StatusSpriteCollision = 0x20;
+constexpr int StatusSpriteCollisionShift = 5;
+constexpr uint8_t StatusSpriteCollision = 0x20;
 
 // 342 internal cycles are 228/227.5ths of a line, so 341.25 cycles should be a whole
 // line. Therefore multiply everything by four, but set line length to 1365 rather than 342*4 = 1368.
-const unsigned int CRTCyclesPerLine = 1365;
-const unsigned int CRTCyclesDivider = 4;
+constexpr unsigned int CRTCyclesPerLine = 1365;
+constexpr unsigned int CRTCyclesDivider = 4;
 
 struct ReverseTable {
 	std::uint8_t map[256];
 
 	ReverseTable() {
 		for(int c = 0; c < 256; ++c) {
-			map[c] = static_cast<uint8_t>(
+			map[c] = uint8_t(
 				((c & 0x80) >> 7) |
 				((c & 0x40) >> 5) |
 				((c & 0x20) >> 3) |
@@ -117,8 +117,20 @@ void TMS9918::set_scan_target(Outputs::Display::ScanTarget *scan_target) {
 	crt_.set_scan_target(scan_target);
 }
 
+Outputs::Display::ScanStatus TMS9918::get_scaled_scan_status() const {
+	// The input was scaled by 3/4 to convert half cycles to internal ticks,
+	// so undo that and also allow for: (i) the multiply by 4 that it takes
+	// to reach the CRT; and (ii) the fact that the half-cycles value was scaled,
+	// and this should really reply in whole cycles.
+	return crt_.get_scaled_scan_status() * (4.0f / (3.0f * 8.0f));
+}
+
 void TMS9918::set_display_type(Outputs::Display::DisplayType display_type) {
 	crt_.set_display_type(display_type);
+}
+
+Outputs::Display::DisplayType TMS9918::get_display_type() const {
+	return crt_.get_display_type();
 }
 
 void Base::LineBuffer::reset_sprite_collection() {
@@ -132,7 +144,7 @@ void Base::LineBuffer::reset_sprite_collection() {
 
 void Base::posit_sprite(LineBuffer &buffer, int sprite_number, int sprite_position, int screen_row) {
 	if(!(status_ & StatusSpriteOverflow)) {
-		status_ = static_cast<uint8_t>((status_ & ~0x1f) | (sprite_number & 0x1f));
+		status_ = uint8_t((status_ & ~0x1f) | (sprite_number & 0x1f));
 	}
 	if(buffer.sprites_stopped)
 		return;
@@ -352,8 +364,7 @@ void TMS9918::run_for(const HalfCycles cycles) {
 				// Output video stream.
 				// --------------------
 
-#define intersect(left, right, code)	\
-	{	\
+#define intersect(left, right, code)	{	\
 		const int start = std::max(read_pointer_.column, left);	\
 		const int end = std::min(end_column, right);	\
 		if(end > start) {\
@@ -493,7 +504,7 @@ void Base::output_border(int cycles, uint32_t cram_dot) {
 	}
 }
 
-void TMS9918::set_register(int address, uint8_t value) {
+void TMS9918::write(int address, uint8_t value) {
 	// Writes to address 0 are writes to the video RAM. Store
 	// the value and return.
 	if(!(address & 1)) {
@@ -520,7 +531,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 
 	// The RAM pointer is always set on a second write, regardless of
 	// whether the caller is intending to enqueue a VDP operation.
-	ram_pointer_ = (ram_pointer_ & 0x00ff) | static_cast<uint16_t>(value << 8);
+	ram_pointer_ = (ram_pointer_ & 0x00ff) | uint16_t(value << 8);
 
 	write_phase_ = false;
 	if(value & 0x80) {
@@ -625,7 +636,7 @@ void TMS9918::set_register(int address, uint8_t value) {
 
 uint8_t TMS9918::get_current_line() {
 	// Determine the row to return.
-	static const int row_change_position = 63;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
+	constexpr int row_change_position = 63;	// This is the proper Master System value; substitute if any other VDPs turn out to have this functionality.
 	int source_row =
 		(write_pointer_.column < row_change_position)
 			? (write_pointer_.row + mode_timing_.total_lines - 1)%mode_timing_.total_lines
@@ -654,7 +665,7 @@ uint8_t TMS9918::get_current_line() {
 		}
 	}
 
-	return static_cast<uint8_t>(source_row);
+	return uint8_t(source_row);
 }
 
 uint8_t TMS9918::get_latched_horizontal_counter() {
@@ -671,7 +682,7 @@ void TMS9918::latch_horizontal_counter() {
 	latched_column_ = write_pointer_.column;
 }
 
-uint8_t TMS9918::get_register(int address) {
+uint8_t TMS9918::read(int address) {
 	write_phase_ = false;
 
 	// Reads from address 0 read video RAM, via the read-ahead buffer.
@@ -830,8 +841,8 @@ void Base::draw_tms_character(int start, int end) {
 		int sprite_collision = 0;
 		memset(&sprite_buffer[start], 0, size_t(end - start)*sizeof(sprite_buffer[0]));
 
-		static const uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
-		static const int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+		constexpr uint32_t sprite_colour_selection_masks[2] = {0x00000000, 0xffffffff};
+		constexpr int colour_masks[16] = {0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
 		// Draw all sprites into the sprite buffer.
 		const int shifter_target = sprites_16x16_ ? 32 : 16;

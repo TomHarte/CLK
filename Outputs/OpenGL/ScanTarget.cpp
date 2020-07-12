@@ -45,7 +45,7 @@ constexpr GLenum AccumulationTextureUnit = GL_TEXTURE3;
 #define TextureAddressGetX(v)	uint16_t((v) & 0x7ff)
 #define TextureSub(a, b)		(((a) - (b)) & 0x3fffff)
 
-const GLint internalFormatForDepth(std::size_t depth) {
+constexpr GLint internalFormatForDepth(std::size_t depth) {
 	switch(depth) {
 		default: return GL_FALSE;
 		case 1: return GL_R8UI;
@@ -55,7 +55,7 @@ const GLint internalFormatForDepth(std::size_t depth) {
 	}
 }
 
-const GLenum formatForDepth(std::size_t depth) {
+constexpr GLenum formatForDepth(std::size_t depth) {
 	switch(depth) {
 		default: return GL_FALSE;
 		case 1: return GL_RED_INTEGER;
@@ -131,6 +131,8 @@ void ScanTarget::set_modals(Modals modals) {
 Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 	if(allocation_has_failed_) return nullptr;
 
+	std::lock_guard lock_guard(write_pointers_mutex_);
+
 	const auto result = &scan_buffer_[write_pointers_.scan_buffer];
 	const auto read_pointers = read_pointers_.load();
 
@@ -154,6 +156,7 @@ Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 
 void ScanTarget::end_scan() {
 	if(vended_scan_) {
+		std::lock_guard lock_guard(write_pointers_mutex_);
 		vended_scan_->data_y = TextureAddressGetY(vended_write_area_pointer_);
 		vended_scan_->line = write_pointers_.line;
 		vended_scan_->scan.end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
@@ -177,6 +180,8 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 	assert(required_alignment);
 
 	if(allocation_has_failed_) return nullptr;
+
+	std::lock_guard lock_guard(write_pointers_mutex_);
 	if(write_area_texture_.empty()) {
 		allocation_has_failed_ = true;
 		return nullptr;
@@ -213,6 +218,8 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 	// Everything checks out, note expectation of a future end_data and return the pointer.
 	data_is_allocated_ = true;
 	vended_write_area_pointer_ = write_pointers_.write_area = TextureAddress(aligned_start_x, output_y);
+
+	assert(write_pointers_.write_area >= 1 && ((size_t(write_pointers_.write_area) + required_length + 1) * data_type_size_) <= write_area_texture_.size());
 	return &write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_];
 
 	// Note state at exit:
@@ -221,6 +228,8 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 
 void ScanTarget::end_data(size_t actual_length) {
 	if(allocation_has_failed_ || !data_is_allocated_) return;
+
+	std::lock_guard lock_guard(write_pointers_mutex_);
 
 	// Bookend the start of the new data, to safeguard for precision errors in sampling.
 	memcpy(
@@ -251,21 +260,6 @@ void ScanTarget::will_change_owner() {
 	vended_scan_ = nullptr;
 }
 
-void ScanTarget::submit() {
-	if(allocation_has_failed_) {
-		// Reset all pointers to where they were; this also means
-		// the stencil won't be properly populated.
-		write_pointers_ = submit_pointers_.load();
-		frame_is_complete_ = false;
-	} else {
-		// Advance submit pointer.
-		submit_pointers_.store(write_pointers_);
-	}
-
-	// Continue defaulting to a failed allocation for as long as there isn't a line available.
-	allocation_has_failed_ = line_allocation_has_failed_;
-}
-
 void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
 	// Forward the event to the display metrics tracker.
 	display_metrics_.announce_event(event);
@@ -273,10 +267,8 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 	if(event == ScanTarget::Event::EndVerticalRetrace) {
 		// The previous-frame-is-complete flag is subject to a two-slot queue because
 		// measurement for *this* frame needs to begin now, meaning that the previous
-		// result needs to be put somewhere. Setting frame_is_complete_ back to true
-		// only after it has been put somewhere also doesn't work, since if the first
-		// few lines of a frame are skipped for any reason, there'll be nowhere to
-		// put it.
+		// result needs to be put somewhere — it'll be attached to the first successful
+		// line output.
 		is_first_in_frame_ = true;
 		previous_frame_was_complete_ = frame_is_complete_;
 		frame_is_complete_ = true;
@@ -285,6 +277,7 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 	if(output_is_visible_ == is_visible) return;
 	if(is_visible) {
 		const auto read_pointers = read_pointers_.load();
+		std::lock_guard lock_guard(write_pointers_mutex_);
 
 		// Commit the most recent line only if any scans fell on it.
 		// Otherwise there's no point outputting it, it'll contribute nothing.
@@ -299,24 +292,13 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 			// Attempt to allocate a new line; note allocation failure if necessary.
 			const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
 			if(next_line == read_pointers.line) {
-				line_allocation_has_failed_ = allocation_has_failed_ = true;
+				allocation_has_failed_ = true;
 				active_line_ = nullptr;
 			} else {
-				line_allocation_has_failed_ = false;
 				write_pointers_.line = next_line;
 				active_line_ = &line_buffer_[size_t(write_pointers_.line)];
 			}
 			provided_scans_ = 0;
-		} else {
-			// Just check whether a new line is available now, if waiting.
-			if(line_allocation_has_failed_) {
-				const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
-				if(next_line != read_pointers.line) {
-					line_allocation_has_failed_ = false;
-					write_pointers_.line = next_line;
-					active_line_ = &line_buffer_[size_t(write_pointers_.line)];
-				}
-			}
 		}
 
 		if(active_line_) {
@@ -329,6 +311,7 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 		}
 	} else {
 		if(active_line_) {
+			// A successfully-allocated line is ending.
 			active_line_->end_points[1].x = location.x;
 			active_line_->end_points[1].y = location.y;
 			active_line_->end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
@@ -345,20 +328,38 @@ void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::
 			}
 #endif
 		}
+
+		// A line is complete; submit latest updates if nothing failed.
+		if(allocation_has_failed_) {
+			// Reset all pointers to where they were; this also means
+			// the stencil won't be properly populated.
+			write_pointers_ = submit_pointers_.load();
+			frame_is_complete_ = false;
+		} else {
+			// Advance submit pointer.
+			submit_pointers_.store(write_pointers_);
+		}
+		allocation_has_failed_ = false;
 	}
 	output_is_visible_ = is_visible;
 }
 
 void ScanTarget::setup_pipeline() {
 	const auto data_type_size = Outputs::Display::size_for_data_type(modals_.input_data_type);
-	if(data_type_size != data_type_size_) {
-		// TODO: flush output.
 
-		data_type_size_ = data_type_size;
-		write_area_texture_.resize(WriteAreaWidth*WriteAreaHeight*data_type_size_);
+	// Ensure the lock guard here has a restricted scope; this is the only time that a thread
+	// other than the main owner of write_pointers_ may adjust it.
+	{
+		std::lock_guard lock_guard(write_pointers_mutex_);
+		if(data_type_size != data_type_size_) {
+			// TODO: flush output.
 
-		write_pointers_.scan_buffer = 0;
-		write_pointers_.write_area = 0;
+			data_type_size_ = data_type_size;
+			write_area_texture_.resize(WriteAreaWidth*WriteAreaHeight*data_type_size_);
+
+			write_pointers_.scan_buffer = 0;
+			write_pointers_.write_area = 0;
+		}
 	}
 
 	// Prepare to bind line shaders.
@@ -369,7 +370,7 @@ void ScanTarget::setup_pipeline() {
 	const bool needs_qam_buffer = (modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::SVideo);
 	if(needs_qam_buffer) {
 		if(!qam_chroma_texture_) {
-			qam_chroma_texture_.reset(new TextureTarget(LineBufferWidth, LineBufferHeight, QAMChromaTextureUnit, GL_NEAREST, false));
+			qam_chroma_texture_ = std::make_unique<TextureTarget>(LineBufferWidth, LineBufferHeight, QAMChromaTextureUnit, GL_NEAREST, false);
 		}
 
 		qam_separation_shader_ = qam_separation_shader();
@@ -407,7 +408,7 @@ bool ScanTarget::is_soft_display_type() {
 	return modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::CompositeMonochrome;
 }
 
-void ScanTarget::update(int output_width, int output_height) {
+void ScanTarget::update(int, int output_height) {
 	if(fence_ != nullptr) {
 		// if the GPU is still busy, don't wait; we'll catch it next time
 		if(glClientWaitSync(fence_, GL_SYNC_FLUSH_COMMANDS_BIT, 0) == GL_TIMEOUT_EXPIRED) {

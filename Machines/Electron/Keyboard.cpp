@@ -10,10 +10,12 @@
 
 using namespace Electron;
 
-uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
+uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 #define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return Electron::Key::dest
 	switch(key) {
-		default: return KeyCopy;
+		default: break;
+
+		BIND(BackTick, KeyCopy);
 
 		BIND(k0, Key0);		BIND(k1, Key1);		BIND(k2, Key2);		BIND(k3, Key3);		BIND(k4, Key4);
 		BIND(k5, Key5);		BIND(k6, Key6);		BIND(k7, Key7);		BIND(k8, Key8);		BIND(k9, Key9);
@@ -50,15 +52,28 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(KeypadMinus, KeyMinus);			BIND(KeypadPlus, KeyColon);
 
 		BIND(Space, KeySpace);
+
+		// Virtual mappings.
+		BIND(F1, KeyF1);
+		BIND(F2, KeyF2);
+		BIND(F3, KeyF3);
+		BIND(F4, KeyF4);
+		BIND(F5, KeyF5);
+		BIND(F6, KeyF6);
+		BIND(F7, KeyF7);
+		BIND(F8, KeyF8);
+		BIND(F9, KeyF9);
+		BIND(F10, KeyF0);
 	}
 #undef BIND
+	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }
 
-uint16_t *CharacterMapper::sequence_for_character(char character) {
-#define KEYS(...)	{__VA_ARGS__, KeyboardMachine::MappedMachine::KeyEndSequence}
-#define SHIFT(...)	{KeyShift, __VA_ARGS__, KeyboardMachine::MappedMachine::KeyEndSequence}
-#define CTRL(...)	{KeyControl, __VA_ARGS__, KeyboardMachine::MappedMachine::KeyEndSequence}
-#define X			{KeyboardMachine::MappedMachine::KeyNotMapped}
+const uint16_t *CharacterMapper::sequence_for_character(char character) const {
+#define KEYS(...)	{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
+#define SHIFT(...)	{KeyShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
+#define CTRL(...)	{KeyControl, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
+#define X			{MachineTypes::MappedKeyboardMachine::KeyNotMapped}
 	static KeySequence key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,
@@ -66,7 +81,7 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		/* ACK */	X,							/* BEL */	X,
 		/* BS */	KEYS(KeyDelete),			/* HT */	X,
 		/* LF */	KEYS(KeyReturn),			/* VT */	X,
-		/* FF */	X,							/* CR */	X,
+		/* FF */	X,							/* CR */	KEYS(KeyReturn),
 		/* SO */	X,							/* SI */	X,
 		/* DLE */	X,							/* DC1 */	X,
 		/* DC2 */	X,							/* DC3 */	X,
@@ -130,4 +145,8 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 #undef X
 
 	return table_lookup_sequence_for_character(key_sequences, sizeof(key_sequences), character);
+}
+
+bool CharacterMapper::needs_pause_after_key(uint16_t key) const {
+	return key != KeyControl && key != KeyShift && key != KeyFunc;
 }

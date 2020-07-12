@@ -10,7 +10,6 @@
 
 #include <cassert>
 
-#define LOG_TRACE
 #include "TestRunner68000.hpp"
 
 class CPU::MC68000::ProcessorStorageTests {
@@ -111,7 +110,7 @@ class CPU::MC68000::ProcessorStorageTests {
 }
 
 - (void)setUp {
-    _machine.reset(new RAM68000());
+	_machine = std::make_unique<RAM68000>();
 }
 
 - (void)tearDown {
@@ -120,7 +119,7 @@ class CPU::MC68000::ProcessorStorageTests {
 
 - (void)testABCDLong {
 	for(int d = 0; d < 100; ++d) {
-		_machine.reset(new RAM68000());
+		_machine = std::make_unique<RAM68000>();
 		_machine->set_program({
 			0xc100		// ABCD D0, D0
 		});
@@ -224,8 +223,68 @@ class CPU::MC68000::ProcessorStorageTests {
 	_machine->run_for_instructions(1);
 
 	const auto state = _machine->processor().get_state();
-	XCTAssert(state.program_counter == 0x1008);	// i.e. the interrupt happened, the instruction performed was the one at 1004, and therefore
-												// by the wonders of prefetch the program counter is now at 1008.
+	XCTAssertEqual(state.program_counter, 0x1008);	// i.e. the interrupt happened, the instruction performed was the one at 1004, and therefore
+													// by the wonders of prefetch the program counter is now at 1008.
+}
+
+- (void)testAddressErrorStack {
+	// Cause an address error.
+	_machine->set_program({
+		0x3c7c,	0x2001,		// MOVEA.w #$2001, A6
+		0x4a9e,				// TST (A6)+
+	});
+	_machine->run_for_instructions(2);
+
+	// Check what was left on the stack for appropriate fields.
+	const auto stack_frame = _machine->ram_at(0x1f8);
+
+	// Function code et al.
+	XCTAssertEqual(stack_frame[0],
+		(0x4a9e & 0xffe0)	|	// Top 11 bits: decoded instruction;
+		0x10				|	// Bit 4: read or write;
+		0x0					|	// Bit 3: 0 = in instruction, 1 = not;
+		0x5						// Bits 0–2: FC0–2, i.e. bit 2 = supervisor, bit 1 = is program, bit 0 = is data.
+	);
+
+	// Access address.
+	XCTAssertEqual(stack_frame[1], 0x0000);
+	XCTAssertEqual(stack_frame[2], 0x2001);
+
+	// Instruction.
+	XCTAssertEqual(stack_frame[3], 0x4a9e);
+
+	// Status.
+	XCTAssertEqual(stack_frame[4], 0x2700);
+
+	// PC.
+	XCTAssertEqual(stack_frame[5], 0x0000);
+	XCTAssertEqual(stack_frame[6], 0x1004);
+}
+
+- (void)testShiftDuration {
+	//
+	_machine->set_program({
+		0x7004,		// MOVE.l #$4, D0
+		0x7207,		// MOVE.l #$7, D1
+		0x7401,		// MOVE.l #$1, D2
+
+		0xe16e,		// lsl d0, d6
+		0xe36e,		// lsl d1, d6
+		0xe56e,		// lsl d2, d6
+	});
+	_machine->run_for_instructions(3);
+
+	_machine->reset_cycle_count();
+	_machine->run_for_instructions(1);
+	XCTAssertEqual(_machine->get_cycle_count(), 6 + 8);
+	_machine->reset_cycle_count();
+
+	_machine->run_for_instructions(1);
+	XCTAssertEqual(_machine->get_cycle_count(), 6 + 14);
+	_machine->reset_cycle_count();
+
+	_machine->run_for_instructions(1);
+	XCTAssertEqual(_machine->get_cycle_count(), 6 + 2);
 }
 
 - (void)testOpcodeCoverage {

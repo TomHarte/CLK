@@ -35,7 +35,9 @@ class Keyboard {
 			Keypad4, Keypad5, Keypad6, KeypadMinus,
 			Keypad1, Keypad2, Keypad3, KeypadEnter,
 			Keypad0, KeypadDecimalPoint, KeypadEquals,
-			Help
+			Help,
+
+			Max = Help
 		};
 
 		/// Constructs a Keyboard that declares itself to observe all keys.
@@ -45,14 +47,16 @@ class Keyboard {
 		Keyboard(const std::set<Key> &observed_keys, const std::set<Key> &essential_modifiers);
 
 		// Host interface.
-		virtual void set_key_pressed(Key key, char value, bool is_pressed);
+
+		/// @returns @c true if the key press affects the machine; @c false otherwise.
+		virtual bool set_key_pressed(Key key, char value, bool is_pressed);
 		virtual void reset_all_keys();
 
 		/// @returns a set of all Keys that this keyboard responds to.
-		virtual const std::set<Key> &observed_keys();
+		virtual const std::set<Key> &observed_keys() const;
 
 		/// @returns the list of modifiers that this keyboard considers 'essential' (i.e. both mapped and highly used).
-		virtual const std::set<Inputs::Keyboard::Key> &get_essential_modifiers();
+		virtual const std::set<Inputs::Keyboard::Key> &get_essential_modifiers() const;
 
 		/*!
 			@returns @c true if this keyboard, on its original machine, looked
@@ -64,22 +68,23 @@ class Keyboard {
 			which has some buttons that you'd expect an emulator to map to its host
 			keyboard but which does not offer a full keyboard.
 		*/
-		virtual bool is_exclusive();
+		virtual bool is_exclusive() const;
 
 		// Delegate interface.
 		struct Delegate {
-			virtual void keyboard_did_change_key(Keyboard *keyboard, Key key, bool is_pressed) = 0;
+			virtual bool keyboard_did_change_key(Keyboard *keyboard, Key key, bool is_pressed) = 0;
 			virtual void reset_all_keys(Keyboard *keyboard) = 0;
 		};
 		void set_delegate(Delegate *delegate);
-		bool get_key_state(Key key);
+		bool get_key_state(Key key) const;
 
 	private:
 		std::set<Key> observed_keys_;
-		std::set<Key> essential_modifiers_;
+		const std::set<Key> essential_modifiers_;
+		const bool is_exclusive_ = true;
+
 		std::vector<bool> key_states_;
 		Delegate *delegate_ = nullptr;
-		bool is_exclusive_ = true;
 };
 
 }

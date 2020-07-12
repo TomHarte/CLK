@@ -179,10 +179,9 @@ static bool CheckBootSector(const std::shared_ptr<Storage::Disk::Disk> &disk, co
 	return false;
 }
 
-Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
+Analyser::Static::TargetList Analyser::Static::AmstradCPC::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
 	TargetList destination;
-	std::unique_ptr<Target> target(new Target);
-	target->machine = Machine::AmstradCPC;
+	auto target = std::make_unique<Target>();
 	target->confidence = 0.5;
 
 	target->model = Target::Model::CPC6128;

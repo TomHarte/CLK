@@ -11,7 +11,7 @@
 using namespace Storage::Tape::Acorn;
 
 namespace {
-const int PLLClockRate = 1920000;
+constexpr int PLLClockRate = 1920000;
 }
 
 Parser::Parser(): crc_(0x1021) {
@@ -37,13 +37,13 @@ int Parser::get_next_byte(const std::shared_ptr<Storage::Tape::Tape> &tape) {
 		set_error_flag();
 		return -1;
 	}
-	crc_.add(static_cast<uint8_t>(value));
+	crc_.add(uint8_t(value));
 	return value;
 }
 
 unsigned int Parser::get_next_short(const std::shared_ptr<Storage::Tape::Tape> &tape) {
-	unsigned int result = static_cast<unsigned int>(get_next_byte(tape));
-	result |= static_cast<unsigned int>(get_next_byte(tape)) << 8;
+	unsigned int result = unsigned(get_next_byte(tape));
+	result |= unsigned(get_next_byte(tape)) << 8;
 	return result;
 }
 
@@ -66,16 +66,13 @@ void Parser::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 
 
 Shifter::Shifter() :
-	pll_(PLLClockRate / 4800, 15),
+	pll_(PLLClockRate / 4800, *this),
 	was_high_(false),
 	input_pattern_(0),
-	input_bit_counter_(0),
-	delegate_(nullptr) {
-	pll_.set_delegate(this);
-}
+	delegate_(nullptr) {}
 
 void Shifter::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
-	pll_.run_for(Cycles(static_cast<int>(static_cast<float>(PLLClockRate) * pulse.length.get<float>())));
+	pll_.run_for(Cycles(int(float(PLLClockRate) * pulse.length.get<float>())));
 
 	bool is_high = pulse.type == Storage::Tape::Tape::Pulse::High;
 	if(is_high != was_high_) {
@@ -85,7 +82,7 @@ void Shifter::process_pulse(const Storage::Tape::Tape::Pulse &pulse) {
 }
 
 void Shifter::digital_phase_locked_loop_output_bit(int value) {
-	input_pattern_ = ((input_pattern_ << 1) | static_cast<unsigned int>(value)) & 0xf;
+	input_pattern_ = ((input_pattern_ << 1) | unsigned(value)) & 0xf;
 	switch(input_pattern_) {
 		case 0x5:	delegate_->acorn_shifter_output_bit(0); input_pattern_ = 0;	break;
 		case 0xf:	delegate_->acorn_shifter_output_bit(1); input_pattern_ = 0;	break;

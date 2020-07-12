@@ -18,15 +18,15 @@
 using namespace Storage::Disk;
 
 namespace {
-	const int number_of_tracks = 35;
-	const int bytes_per_sector = 256;
+	constexpr int number_of_tracks = 35;
+	constexpr int bytes_per_sector = 256;
 }
 
 AppleDSK::AppleDSK(const std::string &file_name) :
 	file_(file_name) {
 	if(file_.stats().st_size % (number_of_tracks*bytes_per_sector)) throw Error::InvalidFormat;
 
-	sectors_per_track_ = static_cast<int>(file_.stats().st_size / (number_of_tracks*bytes_per_sector));
+	sectors_per_track_ = int(file_.stats().st_size / (number_of_tracks*bytes_per_sector));
 	if(sectors_per_track_ != 13 && sectors_per_track_ != 16) throw Error::InvalidFormat;
 
 	// Check whether this is a Pro DOS disk by inspecting the filename.
@@ -64,13 +64,13 @@ size_t AppleDSK::logical_sector_for_physical_sector(size_t physical) {
 std::shared_ptr<Track> AppleDSK::get_track_at_position(Track::Address address) {
 	std::vector<uint8_t> track_data;
 	{
-		std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+		std::lock_guard lock_guard(file_.get_file_access_mutex());
 		file_.seek(file_offset(address), SEEK_SET);
-		track_data = file_.read(static_cast<size_t>(bytes_per_sector * sectors_per_track_));
+		track_data = file_.read(size_t(bytes_per_sector * sectors_per_track_));
 	}
 
 	Storage::Disk::PCMSegment segment;
-	const uint8_t track = static_cast<uint8_t>(address.position.as_int());
+	const uint8_t track = uint8_t(address.position.as_int());
 
 	// In either case below, the code aims for exactly 50,000 bits per track.
 	if(sectors_per_track_ == 16) {
@@ -104,7 +104,7 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>>
 			Storage::Disk::track_serialisation(*pair.second, Storage::Time(1, 50000)));
 
 		// Rearrange sectors into Apple DOS or Pro-DOS order.
-		std::vector<uint8_t> track_contents(static_cast<size_t>(bytes_per_sector * sectors_per_track_));
+		std::vector<uint8_t> track_contents(size_t(bytes_per_sector * sectors_per_track_));
 		for(const auto &sector_pair: sector_map) {
 			const size_t target_address = logical_sector_for_physical_sector(sector_pair.second.address.sector);
 			memcpy(&track_contents[target_address*256], sector_pair.second.data.data(), bytes_per_sector);
@@ -115,7 +115,7 @@ void AppleDSK::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>>
 	}
 
 	// Grab the file lock and write out the new tracks.
-	std::lock_guard<std::mutex> lock_guard(file_.get_file_access_mutex());
+	std::lock_guard lock_guard(file_.get_file_access_mutex());
 	for(const auto &pair: tracks_by_address) {
 		file_.seek(file_offset(pair.first), SEEK_SET);
 		file_.write(pair.second);

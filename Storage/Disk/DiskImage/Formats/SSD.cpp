@@ -9,8 +9,8 @@
 #include "SSD.hpp"
 
 namespace {
-	static const int sectors_per_track = 10;
-	static const int sector_size = 1;
+	constexpr int sectors_per_track = 10;
+	constexpr int sector_size = 1;
 }
 
 using namespace Storage::Disk;

@@ -39,7 +39,7 @@ class z8530 {
 		void reset();
 
 		/// @returns The current value of the status output: @c true for active; @c false for inactive.
-		bool get_interrupt_line();
+		bool get_interrupt_line() const;
 
 		struct Delegate {
 			/*!
@@ -70,7 +70,7 @@ class z8530 {
 				uint8_t read(bool data, uint8_t pointer);
 				void write(bool data, uint8_t pointer, uint8_t value);
 				void set_dcd(bool level);
-				bool get_interrupt_line();
+				bool get_interrupt_line() const;
 
 			private:
 				uint8_t data_ = 0xff;

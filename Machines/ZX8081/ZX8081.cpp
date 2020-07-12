@@ -8,9 +8,7 @@
 
 #include "ZX8081.hpp"
 
-#include "../MediaTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../MachineTypes.hpp"
 
 #include "../../Components/AY38910/AY38910.hpp"
 #include "../../Processors/Z80/Z80.hpp"
@@ -18,7 +16,6 @@
 #include "../../Storage/Tape/Parsers/ZX8081.hpp"
 
 #include "../../ClockReceiver/ForceInline.hpp"
-#include "../../Configurable/StandardOptions.hpp"
 
 #include "../Utility/MemoryFuzzer.hpp"
 #include "../Utility/Typer.hpp"
@@ -51,28 +48,25 @@ enum ROMType: uint8_t {
 	ZX80 = 0, ZX81
 };
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::AutomaticTapeMotorControl | Configurable::QuickLoadTape)
-	);
-}
-
 template<bool is_zx81> class ConcreteMachine:
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
 	public Configurable::Device,
-	public Utility::TypeRecipient,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public CPU::Z80::BusHandler,
 	public Machine {
 	public:
 		ConcreteMachine(const Analyser::Static::ZX8081::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
+			Utility::TypeRecipient<CharacterMapper>(is_zx81),
 			z80_(*this),
 			tape_player_(ZX8081ClockRate),
 			ay_(GI::AY38910::Personality::AY38910, audio_queue_),
 			speaker_(ay_) {
 			set_clock_rate(ZX8081ClockRate);
-			speaker_.set_input_rate(static_cast<float>(ZX8081ClockRate) / 2.0f);
+			speaker_.set_input_rate(float(ZX8081ClockRate) / 2.0f);
 			clear_all_keys();
 
 			const bool use_zx81_rom = target.is_ZX81 || target.ZX80_uses_ZX81_ROM;
@@ -86,7 +80,7 @@ template<bool is_zx81> class ConcreteMachine:
 			rom_ = std::move(*roms[0]);
 			rom_.resize(use_zx81_rom ? 8192 : 4096);
 
-			if(is_zx81) {
+			if constexpr (is_zx81) {
 				tape_trap_address_ = 0x37c;
 				tape_return_address_ = 0x380;
 				vsync_start_ = HalfCycles(32);
@@ -101,7 +95,7 @@ template<bool is_zx81> class ConcreteMachine:
 				automatic_tape_motor_start_address_ = 0x0206;
 				automatic_tape_motor_end_address_ = 0x024d;
 			}
-			rom_mask_ = static_cast<uint16_t>(rom_.size() - 1);
+			rom_mask_ = uint16_t(rom_.size() - 1);
 
 			switch(target.memory_model) {
 				case Analyser::Static::ZX8081::Target::MemoryModel::Unexpanded:
@@ -158,7 +152,7 @@ template<bool is_zx81> class ConcreteMachine:
 				video_.run_for(cycle.length);
 			}
 
-			if(is_zx81) horizontal_counter_ %= HalfCycles(Cycles(207));
+			if constexpr (is_zx81) horizontal_counter_ %= HalfCycles(Cycles(207));
 			if(!tape_advance_delay_) {
 				tape_player_.run_for(cycle.length);
 			} else {
@@ -185,7 +179,7 @@ template<bool is_zx81> class ConcreteMachine:
 					if(!(address & 1)) nmi_is_enabled_ = is_zx81;
 
 					// The below emulates the ZonX AY expansion device.
-					if(is_zx81) {
+					if constexpr (is_zx81) {
 						if((address&0xef) == 0xcf) {
 							ay_set_register(*cycle.value);
 						} else if((address&0xef) == 0x0f) {
@@ -209,7 +203,7 @@ template<bool is_zx81> class ConcreteMachine:
 					}
 
 					// The below emulates the ZonX AY expansion device.
-					if(is_zx81) {
+					if constexpr (is_zx81) {
 						if((address&0xef) == 0xcf) {
 							value &= ay_read_data();
 						}
@@ -236,7 +230,7 @@ template<bool is_zx81> class ConcreteMachine:
 						z80_.set_interrupt_line(false);
 					}
 					if(has_latched_video_byte_) {
-						std::size_t char_address = static_cast<std::size_t>((address & 0xfe00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
+						std::size_t char_address = size_t((address & 0xfe00) | ((latched_video_byte_ & 0x3f) << 3) | line_counter_);
 						const uint8_t mask = (latched_video_byte_ & 0x80) ? 0x00 : 0xff;
 						if(char_address < ram_base_) {
 							latched_video_byte_ = rom_[char_address & rom_mask_] ^ mask;
@@ -256,7 +250,7 @@ template<bool is_zx81> class ConcreteMachine:
 						const int next_byte = parser_.get_next_byte(tape_player_.get_tape());
 						if(next_byte != -1) {
 							const uint16_t hl = z80_.get_value_of_register(CPU::Z80::Register::HL);
-							ram_[hl & ram_mask_] = static_cast<uint8_t>(next_byte);
+							ram_[hl & ram_mask_] = uint8_t(next_byte);
 							*cycle.value = 0x00;
 							z80_.set_value_of_register(CPU::Z80::Register::ProgramCounter, tape_return_address_ - 1);
 
@@ -275,6 +269,7 @@ template<bool is_zx81> class ConcreteMachine:
 						tape_player_.set_motor_control((address >= automatic_tape_motor_start_address_) && (address < automatic_tape_motor_end_address_));
 					}
 					is_opcode_read = true;
+					[[fallthrough]];
 
 				case CPU::Z80::PartialMachineCycle::Read:
 					if(address < ram_base_) {
@@ -308,25 +303,29 @@ template<bool is_zx81> class ConcreteMachine:
 
 		forceinline void flush() {
 			video_.flush();
-			if(is_zx81) {
+			if constexpr (is_zx81) {
 				update_audio();
 				audio_queue_.perform();
 			}
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_.set_scan_target(scan_target);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override final {
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+			return video_.get_scaled_scan_status();
+		}
+
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return is_zx81 ? &speaker_ : nullptr;
 		}
 
-		void run_for(const Cycles cycles) override final {
+		void run_for(const Cycles cycles) final {
 			z80_.run_for(cycles);
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.tapes.empty()) {
 				tape_player_.set_tape(media.tapes.front());
 			}
@@ -335,20 +334,45 @@ template<bool is_zx81> class ConcreteMachine:
 			return !media.tapes.empty();
 		}
 
-		void type_string(const std::string &string) override final {
-			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper(is_zx81));
-			Utility::TypeRecipient::add_typer(string, std::move(mapper));
+		void type_string(const std::string &string) final {
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
+		}
+
+		bool can_type(char c) const final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
 		}
 
 		// MARK: - Keyboard
-		void set_key_state(uint16_t key, bool is_pressed) override final {
-			if(is_pressed)
-				key_states_[key >> 8] &= static_cast<uint8_t>(~key);
-			else
-				key_states_[key >> 8] |= static_cast<uint8_t>(key);
+		void set_key_state(uint16_t key, bool is_pressed) final {
+			const auto line = key >> 8;
+
+			// Check for special cases.
+			if(line > 7) {
+				switch(key) {
+#define ShiftedKey(source, base)	\
+					case source:	\
+						set_key_state(KeyShift, is_pressed);	\
+						set_key_state(base, is_pressed);		\
+					break;
+
+					ShiftedKey(KeyDelete, Key0);
+					ShiftedKey(KeyBreak, KeySpace);
+					ShiftedKey(KeyUp, Key7);
+					ShiftedKey(KeyDown, Key6);
+					ShiftedKey(KeyLeft, Key5);
+					ShiftedKey(KeyRight, Key8);
+					ShiftedKey(KeyEdit, is_zx81 ? Key1 : KeyEnter);
+#undef ShiftedKey
+				}
+			} else {
+				if(is_pressed)
+					key_states_[line] &= uint8_t(~key);
+				else
+					key_states_[line] |= uint8_t(key);
+			}
 		}
 
-		void clear_all_keys() override final {
+		void clear_all_keys() final {
 			memset(key_states_, 0xff, 8);
 		}
 
@@ -361,52 +385,40 @@ template<bool is_zx81> class ConcreteMachine:
 			}
 		}
 
-		void set_tape_is_playing(bool is_playing) override final {
+		void set_tape_is_playing(bool is_playing) final {
 			tape_player_.set_motor_control(is_playing);
 		}
 
-		bool get_tape_is_playing() override final {
+		bool get_tape_is_playing() final {
 			return tape_player_.get_motor_control();
 		}
 
 		// MARK: - Typer timing
-		HalfCycles get_typer_delay() override final { return Cycles(7000000); }
-		HalfCycles get_typer_frequency() override final { return Cycles(390000); }
+		HalfCycles get_typer_delay() const final {
+			return z80_.get_is_resetting() ? Cycles(7'000'000) : Cycles(0);
+		}
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		HalfCycles get_typer_frequency() const final {
+			return Cycles(146'250);
+		}
+
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			return ZX8081::get_options();
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);	// OptionsType is arbitrary, but not optional.
+			options->automatic_tape_motor_control = use_automatic_tape_motor_control_;
+			options->quickload = allow_fast_tape_hack_;
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			bool quickload;
-			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				allow_fast_tape_hack_ = quickload;
-				set_use_fast_tape();
-			}
-
-			bool autotapemotor;
-			if(Configurable::get_automatic_tape_motor_control_selection(selections_by_option, autotapemotor)) {
-				set_use_automatic_tape_motor_control(autotapemotor);
-			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_automatic_tape_motor_control_selection(selection_set, false);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, true);
-			Configurable::append_automatic_tape_motor_control_selection(selection_set, true);
-			return selection_set;
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) {
+			const auto options = dynamic_cast<Options *>(str.get());
+			set_use_automatic_tape_motor_control(options->automatic_tape_motor_control);
+			allow_fast_tape_hack_ = options->quickload;
+			set_use_fast_tape();
 		}
 
 	private:
@@ -464,8 +476,9 @@ template<bool is_zx81> class ConcreteMachine:
 
 		// MARK: - Audio
 		Concurrency::DeferringAsyncTaskQueue audio_queue_;
-		GI::AY38910::AY38910 ay_;
-		Outputs::Speaker::LowpassSpeaker<GI::AY38910::AY38910> speaker_;
+		using AY = GI::AY38910::AY38910<false>;
+		AY ay_;
+		Outputs::Speaker::LowpassSpeaker<AY> speaker_;
 		HalfCycles time_since_ay_update_;
 		inline void ay_set_register(uint8_t value) {
 			update_audio();

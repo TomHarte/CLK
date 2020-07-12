@@ -21,8 +21,7 @@ using PagingModel = Analyser::Static::Atari2600::Target::PagingModel;
 @end
 
 @implementation AtariROMRecord
-+ (instancetype)recordWithPagingModel:(PagingModel)pagingModel usesSuperchip:(BOOL)usesSuperchip
-{
++ (instancetype)recordWithPagingModel:(PagingModel)pagingModel usesSuperchip:(BOOL)usesSuperchip {
 	AtariROMRecord *record = [[AtariROMRecord alloc] init];
 	record->_pagingModel = pagingModel;
 	record->_usesSuperchip = usesSuperchip;
@@ -578,11 +577,9 @@ static NSDictionary<NSString *, AtariROMRecord *> *romRecordsBySHA1 = @{
 
 @implementation AtariStaticAnalyserTests
 
-- (void)testROMsOfSize:(NSInteger)size
-{
+- (void)testROMsOfSize:(NSInteger)size {
 	NSString *basePath = [[[NSBundle bundleForClass:[self class]] resourcePath] stringByAppendingPathComponent:@"Atari ROMs"];
-	for(NSString *testFile in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:basePath error:nil])
-	{
+	for(NSString *testFile in [[NSFileManager defaultManager] contentsOfDirectoryAtPath:basePath error:nil]) {
 		NSString *fullPath = [basePath stringByAppendingPathComponent:testFile];
 
 		// get a SHA1 for the file

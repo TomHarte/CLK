@@ -29,7 +29,7 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 
 		/// Adds time to the actor.
 		forceinline void operator += (const LocalTimeScale &rhs) {
-			if(multiplier != 1) {
+			if constexpr (multiplier != 1) {
 				time_since_update_ += rhs * multiplier;
 			} else {
 				time_since_update_ += rhs;
@@ -43,6 +43,13 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 			return &object_;
 		}
 
+		/// Acts exactly as per the standard ->, but preserves constness.
+		forceinline const T *operator->() const {
+			auto non_const_this = const_cast<JustInTimeActor<T, multiplier, divider, LocalTimeScale, TargetTimeScale> *>(this);
+			non_const_this->flush();
+			return &object_;
+		}
+
 		/// Returns a pointer to the included object without flushing time.
 		forceinline T *last_valid() {
 			return &object_;
@@ -52,8 +59,9 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		forceinline void flush() {
 			if(!is_flushed_) {
 				is_flushed_ = true;
-				if(divider == 1) {
-					object_.run_for(time_since_update_.template flush<TargetTimeScale>());
+				if constexpr (divider == 1) {
+					const auto duration = time_since_update_.template flush<TargetTimeScale>();
+					object_.run_for(duration);
 				} else {
 					const auto duration = time_since_update_.template divide<TargetTimeScale>(LocalTimeScale(divider));
 					if(duration > TargetTimeScale(0))
@@ -66,6 +74,48 @@ template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = H
 		T object_;
 		LocalTimeScale time_since_update_;
 		bool is_flushed_ = true;
+};
+
+/*!
+	A RealTimeActor presents the same interface as a JustInTimeActor but doesn't defer work.
+	Time added will be performed immediately.
+
+	Its primary purpose is to allow consumers to remain flexible in their scheduling.
+*/
+template <class T, int multiplier = 1, int divider = 1, class LocalTimeScale = HalfCycles, class TargetTimeScale = LocalTimeScale> class RealTimeActor {
+	public:
+		template<typename... Args> RealTimeActor(Args&&... args) : object_(std::forward<Args>(args)...) {}
+
+		forceinline void operator += (const LocalTimeScale &rhs) {
+			if constexpr (multiplier == 1 && divider == 1) {
+				object_.run_for(TargetTimeScale(rhs));
+				return;
+			}
+
+			if constexpr (multiplier == 1) {
+				accumulated_time_ += rhs;
+			} else {
+				accumulated_time_ += rhs * multiplier;
+			}
+
+			if constexpr (divider == 1) {
+				const auto duration = accumulated_time_.template flush<TargetTimeScale>();
+				object_.run_for(duration);
+			} else {
+				const auto duration = accumulated_time_.template divide<TargetTimeScale>(LocalTimeScale(divider));
+				if(duration > TargetTimeScale(0))
+					object_.run_for(duration);
+			}
+		}
+
+		forceinline T *operator->()				{	return &object_;	}
+		forceinline const T *operator->() const	{	return &object_;	}
+		forceinline T *last_valid() 			{	return &object_;	}
+		forceinline void flush()				{}
+
+	private:
+		T object_;
+		LocalTimeScale accumulated_time_;
 };
 
 /*!

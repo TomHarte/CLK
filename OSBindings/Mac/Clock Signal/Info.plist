@@ -394,6 +394,7 @@
 			<array>
 				<string>msa</string>
 				<string>st</string>
+				<string>stx</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string>floppy35.png</string>

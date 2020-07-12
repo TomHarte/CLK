@@ -49,10 +49,10 @@ std::vector<File> Analyser::Static::Oric::GetFiles(const std::shared_ptr<Storage
 		}
 
 		// read end and start addresses
-		new_file.ending_address = static_cast<uint16_t>(parser.get_next_byte(tape, is_fast) << 8);
-		new_file.ending_address |= static_cast<uint16_t>(parser.get_next_byte(tape, is_fast));
-		new_file.starting_address = static_cast<uint16_t>(parser.get_next_byte(tape, is_fast) << 8);
-		new_file.starting_address |= static_cast<uint16_t>(parser.get_next_byte(tape, is_fast));
+		new_file.ending_address = uint16_t(parser.get_next_byte(tape, is_fast) << 8);
+		new_file.ending_address |= uint16_t(parser.get_next_byte(tape, is_fast));
+		new_file.starting_address = uint16_t(parser.get_next_byte(tape, is_fast) << 8);
+		new_file.starting_address |= uint16_t(parser.get_next_byte(tape, is_fast));
 
 		// skip an empty byte
 		parser.get_next_byte(tape, is_fast);
@@ -61,7 +61,7 @@ std::vector<File> Analyser::Static::Oric::GetFiles(const std::shared_ptr<Storage
 		char file_name[17];
 		int name_pos = 0;
 		while(name_pos < 16) {
-			file_name[name_pos] = (char)parser.get_next_byte(tape, is_fast);
+			file_name[name_pos] = char(parser.get_next_byte(tape, is_fast));
 			if(!file_name[name_pos]) break;
 			name_pos++;
 		}
@@ -72,7 +72,7 @@ std::vector<File> Analyser::Static::Oric::GetFiles(const std::shared_ptr<Storage
 		std::size_t body_length = new_file.ending_address - new_file.starting_address + 1;
 		new_file.data.reserve(body_length);
 		for(std::size_t c = 0; c < body_length; c++) {
-			new_file.data.push_back(static_cast<uint8_t>(parser.get_next_byte(tape, is_fast)));
+			new_file.data.push_back(uint8_t(parser.get_next_byte(tape, is_fast)));
 		}
 
 		// only one validation check: was there enough tape?

@@ -10,6 +10,8 @@
 
 #include "Utility/ImplicitSectors.hpp"
 
+#include <cassert>
+
 using namespace Storage::Disk;
 
 MSA::MSA(const std::string &file_name) :
@@ -31,6 +33,9 @@ MSA::MSA(const std::string &file_name) :
 			// This is an uncompressed track.
 			uncompressed_tracks_.push_back(file_.read(data_length));
 		} else {
+#ifndef NDEBUG
+			const auto start_of_track = file_.tell();
+#endif
 			// This is an RLE-compressed track.
 			std::vector<uint8_t> track;
 			track.reserve(sectors_per_track_ * 512);
@@ -56,12 +61,18 @@ MSA::MSA(const std::string &file_name) :
 				}
 			}
 
-			if(pointer != data_length || track.size() != sectors_per_track_ * 512) throw Error::InvalidFormat;
+#ifndef NDEBUG
+			assert(file_.tell() - start_of_track == pointer);
+#endif
+
+			if(pointer != data_length || track.size() != sectors_per_track_ * 512)
+				throw Error::InvalidFormat;
 			uncompressed_tracks_.push_back(std::move(track));
 		}
 	}
 
-	if(uncompressed_tracks_.size() != size_t((ending_track_ - starting_track_ + 1)*sides_)) throw Error::InvalidFormat;
+	if(uncompressed_tracks_.size() != size_t((ending_track_ - starting_track_ + 1)*sides_))
+		throw Error::InvalidFormat;
 }
 
 std::shared_ptr<::Storage::Disk::Track> MSA::get_track_at_position(::Storage::Disk::Track::Address address) {
@@ -69,14 +80,15 @@ std::shared_ptr<::Storage::Disk::Track> MSA::get_track_at_position(::Storage::Di
 
 	const auto position = address.position.as_int();
 	if(position < starting_track_) return nullptr;
-	if(position >= ending_track_) return nullptr;
+	if(position > ending_track_) return nullptr;
 
-	const auto &track = uncompressed_tracks_[size_t(position) * size_t(sides_) + size_t(address.head)];
+	const auto &track = uncompressed_tracks_[size_t(position - starting_track_) * size_t(sides_) + size_t(address.head)];
+	assert(!track.empty());
 	return track_for_sectors(track.data(), sectors_per_track_, uint8_t(position), uint8_t(address.head), 1, 2, true);
 }
 
 HeadPosition MSA::get_maximum_head_position() {
-	return HeadPosition(ending_track_);
+	return HeadPosition(ending_track_ + 1);
 }
 
 int MSA::get_head_count() {

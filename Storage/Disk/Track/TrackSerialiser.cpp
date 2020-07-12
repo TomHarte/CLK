@@ -14,18 +14,19 @@
 // just return a copy of that segment.
 Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track, Time length_of_a_bit) {
 	unsigned int history_size = 16;
-	DigitalPhaseLockedLoop pll(100, history_size);
 	std::unique_ptr<Track> track_copy(track.clone());
 
 	// ResultAccumulator exists to append whatever comes out of the PLL to
 	// its PCMSegment.
-	struct ResultAccumulator: public DigitalPhaseLockedLoop::Delegate {
+	struct ResultAccumulator {
 		PCMSegment result;
+		bool is_recording = false;
 		void digital_phase_locked_loop_output_bit(int value) {
-			result.data.push_back(!!value);
+			if(is_recording) result.data.push_back(!!value);
 		}
 	} result_accumulator;
 	result_accumulator.result.length_of_a_bit = length_of_a_bit;
+	DigitalPhaseLockedLoop<ResultAccumulator> pll(100, result_accumulator);
 
 	// Obtain a length multiplier which is 100 times the reciprocal
 	// of the expected bit length. So a perfect bit length from
@@ -44,7 +45,7 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 		Time extended_length = next_event.length * length_multiplier + time_error;
 		time_error.clock_rate = extended_length.clock_rate;
 		time_error.length = extended_length.length % extended_length.clock_rate;
-		pll.run_for(Cycles(static_cast<int>(extended_length.get<int64_t>())));
+		pll.run_for(Cycles(int(extended_length.get<int64_t>())));
 
 		if(next_event.type == Track::Event::IndexHole) break;
 		pll.add_pulse();
@@ -55,7 +56,7 @@ Storage::Disk::PCMSegment Storage::Disk::track_serialisation(const Track &track,
 			if(!history_size) {
 				track_copy->seek_to(Time(0));
 				time_error.set_zero();
-				pll.set_delegate(&result_accumulator);
+				result_accumulator.is_recording = true;
 			}
 		}
 	}

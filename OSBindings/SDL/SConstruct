@@ -50,6 +50,7 @@ SOURCES += glob.glob('../../Components/AudioToggle/*.cpp')
 SOURCES += glob.glob('../../Components/AY38910/*.cpp')
 SOURCES += glob.glob('../../Components/DiskII/*.cpp')
 SOURCES += glob.glob('../../Components/KonamiSCC/*.cpp')
+SOURCES += glob.glob('../../Components/OPx/*.cpp')
 SOURCES += glob.glob('../../Components/SN76489/*.cpp')
 SOURCES += glob.glob('../../Components/Serial/*.cpp')
 
@@ -82,8 +83,13 @@ SOURCES += glob.glob('../../Outputs/OpenGL/*.cpp')
 SOURCES += glob.glob('../../Outputs/OpenGL/Primitives/*.cpp')
 
 SOURCES += glob.glob('../../Processors/6502/Implementation/*.cpp')
+SOURCES += glob.glob('../../Processors/6502/State/*.cpp')
 SOURCES += glob.glob('../../Processors/68000/Implementation/*.cpp')
+SOURCES += glob.glob('../../Processors/68000/State/*.cpp')
 SOURCES += glob.glob('../../Processors/Z80/Implementation/*.cpp')
+SOURCES += glob.glob('../../Processors/Z80/State/*.cpp')
+
+SOURCES += glob.glob('../../Reflection/*.cpp')
 
 SOURCES += glob.glob('../../SignalProcessing/*.cpp')
 
@@ -112,7 +118,7 @@ SOURCES += glob.glob('../../Storage/Tape/Formats/*.cpp')
 SOURCES += glob.glob('../../Storage/Tape/Parsers/*.cpp')
 
 # add additional compiler flags
-env.Append(CCFLAGS = ['--std=c++11', '-Wall', '-O3', '-DNDEBUG'])
+env.Append(CCFLAGS = ['--std=c++17', '-Wall', '-O2', '-DNDEBUG'])
 
 # add additional libraries to link against
 env.Append(LIBS = ['libz', 'pthread', 'GL'])

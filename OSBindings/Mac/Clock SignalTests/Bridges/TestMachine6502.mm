@@ -23,7 +23,7 @@ static CPU::MOS6502::Register registerForRegister(CSTestMachine6502Register reg)
 		case CSTestMachine6502RegisterA:					return CPU::MOS6502::Register::A;
 		case CSTestMachine6502RegisterX:					return CPU::MOS6502::Register::X;
 		case CSTestMachine6502RegisterY:					return CPU::MOS6502::Register::Y;
-		case CSTestMachine6502RegisterStackPointer:			return CPU::MOS6502::Register::S;
+		case CSTestMachine6502RegisterStackPointer:			return CPU::MOS6502::Register::StackPointer;
 	}
 }
 

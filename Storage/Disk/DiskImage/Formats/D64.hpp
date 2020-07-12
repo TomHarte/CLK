@@ -29,9 +29,9 @@ class D64: public DiskImage {
 		D64(const std::string &file_name);
 
 		// implemented to satisfy @c Disk
-		HeadPosition get_maximum_head_position() override;
+		HeadPosition get_maximum_head_position() final;
 		using DiskImage::get_is_read_only;
-		std::shared_ptr<Track> get_track_at_position(Track::Address address) override;
+		std::shared_ptr<Track> get_track_at_position(Track::Address address) final;
 
 	private:
 		Storage::FileHolder file_;

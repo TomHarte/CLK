@@ -51,45 +51,47 @@ namespace MC68000 {
 struct Microcycle {
 	/// Indicates that the address strobe and exactly one of the data strobes are active; you can determine
 	/// which by inspecting the low bit of the provided address. The RW line indicates a read.
-	static const int SelectByte				= 1 << 0;
+	static constexpr int SelectByte				= 1 << 0;
 	// Maintenance note: this is bit 0 to reduce the cost of getting a host-endian
-	// bytewise address. See implementation of host_endian_byte_address().
+	// bytewise address. The assumption that it is bit 0 is also used for branchless
+	// selection in a few places. See implementation of host_endian_byte_address(),
+	// value8_high(), value8_low() and value16().
 
 	/// Indicates that the address and both data select strobes are active.
-	static const int SelectWord				= 1 << 1;
+	static constexpr int SelectWord				= 1 << 1;
 
 	/// A NewAddress cycle is one in which the address strobe is initially low but becomes high;
 	/// this correlates to states 0 to 5 of a standard read/write cycle.
-	static const int NewAddress				= 1 << 2;
+	static constexpr int NewAddress				= 1 << 2;
 
 	/// A SameAddress cycle is one in which the address strobe is continuously asserted, but neither
 	/// of the data strobes are.
-	static const int SameAddress			= 1 << 3;
+	static constexpr int SameAddress			= 1 << 3;
 
 	/// A Reset cycle is one in which the RESET output is asserted.
-	static const int Reset					= 1 << 4;
+	static constexpr int Reset					= 1 << 4;
 
 	/// If set, indicates a read. Otherwise, a write.
-	static const int Read 					= 1 << 5;
+	static constexpr int Read 					= 1 << 5;
 
 	/// Contains the value of line FC0 if it is not implicit via InterruptAcknowledge.
-	static const int IsData 				= 1 << 6;
+	static constexpr int IsData 				= 1 << 6;
 
 	/// Contains the value of line FC1 if it is not implicit via InterruptAcknowledge.
-	static const int IsProgram 				= 1 << 7;
+	static constexpr int IsProgram 				= 1 << 7;
 
 	/// The interrupt acknowledge cycle is that during which the 68000 seeks to obtain the vector for
 	/// an interrupt it plans to observe. Noted on a real 68000 by all FCs being set to 1.
-	static const int InterruptAcknowledge	= 1 << 8;
+	static constexpr int InterruptAcknowledge	= 1 << 8;
 
 	/// Represents the state of the 68000's valid memory address line — indicating whether this microcycle
 	/// is synchronised with the E clock to satisfy a valid peripheral address request.
-	static const int IsPeripheral 			= 1 << 9;
+	static constexpr int IsPeripheral 			= 1 << 9;
 
 	/// Provides the 68000's bus grant line — indicating whether a bus request has been acknowledged.
-	static const int BusGrant				= 1 << 10;
+	static constexpr int BusGrant				= 1 << 10;
 
-	/// Contains a valid combination of the various static const int flags, describing the operation
+	/// Contains a valid combination of the various static constexpr int flags, describing the operation
 	/// performed by this Microcycle.
 	int operation = 0;
 
@@ -97,7 +99,7 @@ struct Microcycle {
 	HalfCycles length = HalfCycles(4);
 
 	/*!
-		For expediency, this provides a full 32-bit byte-resolution address — e.g.
+		For expediency, this provides a full 32-bit byte-resolution address — e.g.
 		if reading indirectly via an address register, this will indicate the full
 		value of the address register.
 
@@ -223,9 +225,8 @@ struct Microcycle {
 		this is a write cycle.
 	*/
 	forceinline uint16_t value16() const {
-		if(operation & SelectWord) return value->full;
-		const auto shift = byte_shift();
-		return uint16_t((value->halves.low << shift) | (0xff00 >> shift));
+		const uint16_t values[] = { value->full, uint16_t((value->halves.low << 8) | value->halves.low) };
+		return values[operation & SelectByte];
 	}
 
 	/*!
@@ -233,11 +234,8 @@ struct Microcycle {
 		@c 0xff otherwise. Assumes this is a write cycle.
 	*/
 	forceinline uint8_t value8_high() const {
-		if(operation & SelectWord) {
-			return uint8_t(value->full >> 8);
-		}
-
-		return uint8_t(value->halves.low | (0xff00 >> ((*address & 1) << 3)));
+		const uint8_t values[] = { uint8_t(value->full >> 8), value->halves.low};
+		return values[operation & SelectByte];
 	}
 
 	/*!
@@ -245,11 +243,8 @@ struct Microcycle {
 		@c 0xff otherwise. Assumes this is a write cycle.
 	*/
 	forceinline uint8_t value8_low() const {
-		if(operation & SelectWord) {
-			return uint8_t(value->full);
-		}
-
-		return uint8_t(value->halves.low | (0x00ff << ((*address & 1) << 3)));
+		const uint8_t values[] = { uint8_t(value->full), value->halves.low};
+		return values[operation & SelectByte];
 	}
 
 	/*!
@@ -339,7 +334,7 @@ class BusHandler {
 			FC0 and FC1 are provided inside the microcycle as the IsData and IsProgram
 			flags; FC2 is provided here as is_supervisor — it'll be either 0 or 1.
 		*/
-		HalfCycles perform_bus_operation(const Microcycle &cycle, int is_supervisor) {
+		HalfCycles perform_bus_operation([[maybe_unused]] const Microcycle &cycle, [[maybe_unused]] int is_supervisor) {
 			return HalfCycles(0);
 		}
 
@@ -348,7 +343,7 @@ class BusHandler {
 		/*!
 			Provides information about the path of execution if enabled via the template.
 		*/
-		void will_perform(uint32_t address, uint16_t opcode) {}
+		void will_perform([[maybe_unused]] uint32_t address, [[maybe_unused]] uint16_t opcode) {}
 };
 
 #include "Implementation/68000Storage.hpp"

@@ -40,7 +40,9 @@ enum class Key: uint16_t {
 	Insert = 0x52, Delete,
 	ISO = 0x60, Undo, Help, KeypadOpenBracket, KeypadCloseBracket, KeypadDivide, KeypadMultiply,
 	Keypad7, Keypad8, Keypad9, Keypad4, Keypad5, Keypad6, Keypad1, Keypad2, Keypad3, Keypad0, KeypadDecimalPoint,
-	KeypadEnter
+	KeypadEnter,
+	Joystick1Button = 0x74,	// These keycodes are used only in joystick keycode mode.
+	Joystick2Button = 0x75,
 };
 static_assert(uint16_t(Key::RightShift) == 0x36, "RightShift should have key code 0x36; check intermediate entries");
 static_assert(uint16_t(Key::F10) == 0x44, "F10 should have key code 0x44; check intermediate entries");
@@ -56,12 +58,12 @@ class IntelligentKeyboard:
 	public Inputs::Mouse {
 	public:
 		IntelligentKeyboard(Serial::Line &input, Serial::Line &output);
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 		void run_for(HalfCycles duration);
 
 		void set_key_state(Key key, bool is_pressed);
-		class KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
-			uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) final;
+		class KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
+			uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const final;
 		};
 
 		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() {
@@ -110,12 +112,14 @@ class IntelligentKeyboard:
 		void reset_all_buttons() final;
 
 		enum class MouseMode {
-			Relative, Absolute
+			Relative, Absolute, Disabled
 		} mouse_mode_ = MouseMode::Relative;
 
 		// Absolute positioning state.
-		int mouse_range_[2] = {0, 0};
-		int mouse_scale_[2] = {0, 0};
+		int mouse_range_[2] = {320, 200};
+		int mouse_scale_[2] = {1, 1};
+		int mouse_position_[2] = {0, 0};
+		int mouse_y_multiplier_ = 1;
 
 		// Relative positioning state.
 		int posted_button_state_ = 0;
@@ -123,8 +127,9 @@ class IntelligentKeyboard:
 		void post_relative_mouse_event(int x, int y);
 
 		// Received mouse state.
-		std::atomic<int> mouse_movement_[2];
-		std::atomic<int> mouse_button_state_;
+		std::atomic<int> mouse_movement_[2]{0, 0};
+		std::atomic<int> mouse_button_state_{0};
+		std::atomic<int> mouse_button_events_{0};
 
 		// MARK: - Joystick.
 		void disable_joysticks();
@@ -140,8 +145,10 @@ class IntelligentKeyboard:
 		void set_joystick_keycode_mode(VelocityThreshold horizontal, VelocityThreshold vertical);
 		void interrogate_joysticks();
 
+		void clear_joystick_events();
+
 		enum class JoystickMode {
-			Disabled, Event, Interrogation
+			Disabled, Event, Interrogation, KeyCode
 		} joystick_mode_ = JoystickMode::Event;
 
 		class Joystick: public Inputs::ConcreteJoystick {
@@ -155,7 +162,7 @@ class IntelligentKeyboard:
 						Input(Input::Fire, 0),
 					}) {}
 
-				void did_set_input(const Input &input, bool is_active) override {
+				void did_set_input(const Input &input, bool is_active) final {
 					uint8_t mask = 0;
 					switch(input.type) {
 						default: return;
@@ -176,6 +183,10 @@ class IntelligentKeyboard:
 
 				bool has_event() {
 					return returned_state_ != state_;
+				}
+
+				uint8_t event_mask() {
+					return returned_state_ ^ state_;
 				}
 
 			private:

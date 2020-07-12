@@ -21,7 +21,7 @@ namespace Disassembler {
 */
 template <typename T> std::function<std::size_t(T)> OffsetMapper(T start_address) {
 	return [start_address](T argument) {
-		return static_cast<std::size_t>(argument - start_address);
+		return size_t(argument - start_address);
 	};
 }
 

@@ -1,0 +1,174 @@
+- name: Automatically generate RPMs from CLK git repo
+  hosts: localhost
+  vars:
+  - arch: "amd64"
+  - deps:
+    - gcc-c++
+    - mesa-libGL-devel
+    - python3-github3py
+    - python3-scons
+    - SDL2-devel
+    - zlib-devel
+  - github_repo: "CLK"
+  - github_user: "TomHarte"
+  - packageName: "{{ github_repo }}"
+  - releaseURL: "https://github.com/TomHarte/CLK/releases/latest"
+  - rpmLicense: "MIT"
+  - rpmSummary: "A latency-hating emulator of 8- and 16-bit platforms: the Acorn Electron, Amstrad CPC, Apple II/II+/IIe and early Macintosh, Atari 2600 and ST, ColecoVision, Commodore Vic-20, MSX 1, Oric 1/Atmos, Sega Master System and Sinclair ZX80/81."
+  - rpmTools:
+    - pandoc
+    - rpm-build
+    - rpmdevtools
+#  - version: "head"
+  - version: "current"
+#  - version: "2020-05-10"
+
+  tasks:
+  - name: set the date
+    set_fact:
+      dateStamp: "{{ lookup('pipe','date \"+%0d %B %Y\"') }}"
+
+  - name: install required rpm development tools
+    package:
+      name: "{{ item }}"
+      state: latest
+    with_items:
+    - "{{ rpmTools }}"
+    - "{{ deps }}"
+    become: yes
+
+  - name: create rpm development tree in user home directory
+    command: rpmdev-setuptree
+
+  - name: create temp working directory
+    tempfile:
+      state: directory
+      prefix: "{{ packageName }}."
+    register: tempdir
+
+  - name: Find current release tag
+    github_release:
+      user: "{{ github_user }}"
+      repo: "{{ github_repo }}"
+      action: latest_release
+    register: release_data
+
+  - name: Fetch HEAD
+    git:
+      repo: "https://github.com/{{ github_user }}/{{ github_repo }}.git"
+      dest: "{{ tempdir.path }}/source"
+      version: "HEAD"
+    when: version == "head"
+
+  - name: Fetch current release
+    git:
+      repo: "https://github.com/{{ github_user }}/{{ github_repo }}.git"
+      dest: "{{ tempdir.path }}/source"
+      version: "{{ release_data.tag }}"
+    when: version == "current"
+
+  - name: Fetch named release
+    git:
+      repo: "https://github.com/{{ github_user }}/{{ github_repo }}.git"
+      dest: "{{ tempdir.path }}/source"
+      version: "{{ version }}"
+    when: ( version != "current" ) and ( version != "head" )
+
+  - name: set the release variable (head)
+    set_fact:
+      version: "git{{ ansible_date_time.epoch }}"
+    when: version == "head"
+
+  - name: set the release variable (current)
+    set_fact:
+      version: "{{ release_data.tag | regex_replace( '-','' ) }}"
+    when: version == "current"
+
+  - debug:
+      var: version
+
+  - name: convert README.md to text for packaging
+    command: "pandoc -f markdown -t plain --wrap=none {{ tempdir.path }}/source/README.md -o {{ tempdir.path }}/source/README.txt"
+
+  - name: set description from README.txt
+    slurp:
+      src: "{{ tempdir.path }}/source/README.txt"
+    register: readme
+
+  - debug:
+      msg: "{{ readme['content'] | b64decode }}"
+
+  - name: create symlink to checkout dir with version
+    file:
+      src: "{{ tempdir.path }}/source"
+      dest: "{{ tempdir.path }}/{{ packageName }}-{{ version }}"
+      state: link
+
+  - name: create the new source archive
+    archive:
+      dest: "{{ ansible_env.HOME }}/rpmbuild/SOURCES/{{ packageName }}-{{ version }}.tar"
+      path: "{{ tempdir.path }}/{{ packageName }}-{{ version }}"
+      format: tar
+
+  - name: template the man page to the sources directory
+    template:
+      src: "clksignal.1.j2"
+      dest: "{{ ansible_env.HOME }}/rpmbuild/SOURCES/clksignal.1"
+
+  - name: compress the man page
+    archive:
+      path: "{{ ansible_env.HOME }}/rpmbuild/SOURCES/clksignal.1"
+      dest: "{{ ansible_env.HOME }}/rpmbuild/SOURCES/clksignal.1.gz"
+      format: gz
+      remove: Yes
+
+  - name: remove existing spec files
+    file:
+      path: "{{ ansible_env.HOME }}/rpmbuild/SPECS/{{ packageName }}-{{ version }}.spec"
+      state: absent
+
+  - name: create spec file from template
+    template:
+      src: package.spec.j2
+      dest: "{{ ansible_env.HOME }}/rpmbuild/SPECS/{{ packageName }}-{{ version }}.spec"
+
+  - name: build rpm
+    command: "rpmbuild -bb {{ ansible_env.HOME }}/rpmbuild/SPECS/{{ packageName }}-{{ version }}.spec"
+    register: rpmbuild
+
+  - debug:
+      var: rpmbuild
+
+  - name: register rpmbuild output file variable
+    set_fact:
+      rpmBuildOut: "{{ tempdir.path }}/rpmbuild.out"
+
+  - name: write output to file
+    copy:
+      content: "{{ rpmbuild.stdout }}"
+      dest: "{{ rpmBuildOut }}"
+
+  - name: set the rpm file variable
+    set_fact:
+      rpmFile: "{{ lookup( 'pipe', 'egrep ^Wrote:\  ' + rpmBuildOut ) }}"
+
+  - debug:
+      var: rpmFile
+
+  - name: update the rpm file variable
+    set_fact:
+      rpmFile: "{{ rpmFile | regex_replace('^Wrote: ', '' ) }}"
+
+  - debug:
+      var: rpmFile
+
+  - name: install package
+    package:
+      name: "{{ rpmFile }}"
+      state: latest
+    become: true
+
+#  - name: remove temp directory
+#    file:
+#      path: "{{ tempdir.path }}"
+#      state: absent

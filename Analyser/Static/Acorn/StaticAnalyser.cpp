@@ -29,7 +29,7 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 		if(segment.data.size() != 0x4000 && segment.data.size() != 0x2000) continue;
 
 		// is a copyright string present?
-		uint8_t copyright_offset = segment.data[7];
+		const uint8_t copyright_offset = segment.data[7];
 		if(
 			segment.data[copyright_offset] != 0x00 ||
 			segment.data[copyright_offset+1] != 0x28 ||
@@ -57,9 +57,8 @@ static std::vector<std::shared_ptr<Storage::Cartridge::Cartridge>>
 	return acorn_cartridges;
 }
 
-Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
-	std::unique_ptr<Target> target(new Target);
-	target->machine = Machine::Electron;
+Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
+	auto target = std::make_unique<Target>();
 	target->confidence = 0.5; // TODO: a proper estimation
 	target->has_dfs = false;
 	target->has_adfs = false;
@@ -84,8 +83,8 @@ Analyser::Static::TargetList Analyser::Static::Acorn::GetTargets(const Media &me
 			// check also for a continuous threading of BASIC lines; if none then this probably isn't BASIC code,
 			// so that's also justification to *RUN
 			std::size_t pointer = 0;
-			uint8_t *data = &files.front().data[0];
-			std::size_t data_size = files.front().data.size();
+			uint8_t *const data = &files.front().data[0];
+			const std::size_t data_size = files.front().data.size();
 			while(1) {
 				if(pointer >= data_size-1 || data[pointer] != 13) {
 					is_basic = false;

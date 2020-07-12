@@ -19,12 +19,10 @@ using namespace Analyser::Static::Commodore;
 
 class CommodoreGCRParser: public Storage::Disk::Controller {
 	public:
-		std::shared_ptr<Storage::Disk::Drive> drive;
-
 		CommodoreGCRParser() : Storage::Disk::Controller(4000000), shift_register_(0), track_(1) {
-			drive.reset(new Storage::Disk::Drive(4000000, 300, 2));
-			set_drive(drive);
-			drive->set_motor_on(true);
+			emplace_drive(4000000, 300, 2);
+			set_drive(1);
+			get_drive().set_motor_on(true);
 		}
 
 		struct Sector {
@@ -40,7 +38,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 			@returns a sector if one was found; @c nullptr otherwise.
 		*/
 		std::shared_ptr<Sector> get_sector(uint8_t track, uint8_t sector) {
-			int difference = static_cast<int>(track) - static_cast<int>(track_);
+			int difference = int(track) - int(track_);
 			track_ = track;
 
 			if(difference) {
@@ -61,6 +59,10 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 			return get_sector(sector);
 		}
 
+		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk) {
+			get_drive().set_disk(disk);
+		}
+
 	private:
 		unsigned int shift_register_;
 		int index_count_;
@@ -69,7 +71,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 		std::shared_ptr<Sector> sector_cache_[65536];
 
 		void process_input_bit(int value) {
-			shift_register_ = ((shift_register_ << 1) | static_cast<unsigned int>(value)) & 0x3ff;
+			shift_register_ = ((shift_register_ << 1) | unsigned(value)) & 0x3ff;
 			bit_count_++;
 		}
 
@@ -110,22 +112,22 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 		}
 
 		std::shared_ptr<Sector> get_sector(uint8_t sector) {
-			uint16_t sector_address = static_cast<uint16_t>((track_ << 8) | sector);
+			const uint16_t sector_address = uint16_t((track_ << 8) | sector);
 			if(sector_cache_[sector_address]) return sector_cache_[sector_address];
 
-			std::shared_ptr<Sector> first_sector = get_next_sector();
+			const std::shared_ptr<Sector> first_sector = get_next_sector();
 			if(!first_sector) return first_sector;
 			if(first_sector->sector == sector) return first_sector;
 
 			while(1) {
-				std::shared_ptr<Sector> next_sector = get_next_sector();
+				const std::shared_ptr<Sector> next_sector = get_next_sector();
 				if(next_sector->sector == first_sector->sector) return nullptr;
 				if(next_sector->sector == sector) return next_sector;
 			}
 		}
 
 		std::shared_ptr<Sector> get_next_sector() {
-			std::shared_ptr<Sector> sector(new Sector);
+			auto sector = std::make_shared<Sector>();
 			const int max_index_count = index_count_ + 2;
 
 			while(index_count_ < max_index_count) {
@@ -136,12 +138,12 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 				}
 
 				// get sector details, skip if this looks malformed
-				uint8_t checksum = static_cast<uint8_t>(get_next_byte());
-				sector->sector = static_cast<uint8_t>(get_next_byte());
-				sector->track = static_cast<uint8_t>(get_next_byte());
+				uint8_t checksum = uint8_t(get_next_byte());
+				sector->sector = uint8_t(get_next_byte());
+				sector->track = uint8_t(get_next_byte());
 				uint8_t disk_id[2];
-				disk_id[0] = static_cast<uint8_t>(get_next_byte());
-				disk_id[1] = static_cast<uint8_t>(get_next_byte());
+				disk_id[0] = uint8_t(get_next_byte());
+				disk_id[1] = uint8_t(get_next_byte());
 				if(checksum != (sector->sector ^ sector->track ^ disk_id[0] ^ disk_id[1])) continue;
 
 				// look for the following data
@@ -152,12 +154,12 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 
 				checksum = 0;
 				for(std::size_t c = 0; c < 256; c++) {
-					sector->data[c] = static_cast<uint8_t>(get_next_byte());
+					sector->data[c] = uint8_t(get_next_byte());
 					checksum ^= sector->data[c];
 				}
 
 				if(checksum == get_next_byte()) {
-					uint16_t sector_address = static_cast<uint16_t>((sector->track << 8) | sector->sector);
+					uint16_t sector_address = uint16_t((sector->track << 8) | sector->sector);
 					sector_cache_[sector_address] = sector;
 					return sector;
 				}
@@ -170,7 +172,7 @@ class CommodoreGCRParser: public Storage::Disk::Controller {
 std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<Storage::Disk::Disk> &disk) {
 	std::vector<File> files;
 	CommodoreGCRParser parser;
-	parser.drive->set_disk(disk);
+	parser.set_disk(disk);
 
 	// find any sector whatsoever to establish the current track
 	std::shared_ptr<CommodoreGCRParser::Sector> sector;
@@ -190,7 +192,7 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 	}
 
 	// parse directory
-	std::size_t header_pointer = static_cast<std::size_t>(-32);
+	std::size_t header_pointer = size_t(-32);
 	while(header_pointer+32+31 < directory.size()) {
 		header_pointer += 32;
 
@@ -214,7 +216,7 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 		}
 		new_file.name = Storage::Data::Commodore::petscii_from_bytes(&new_file.raw_name[0], 16, false);
 
-		std::size_t number_of_sectors = static_cast<std::size_t>(directory[header_pointer + 0x1e]) + (static_cast<std::size_t>(directory[header_pointer + 0x1f]) << 8);
+		std::size_t number_of_sectors = size_t(directory[header_pointer + 0x1e]) + (size_t(directory[header_pointer + 0x1f]) << 8);
 		new_file.data.reserve((number_of_sectors - 1) * 254 + 252);
 
 		bool is_first_sector = true;
@@ -225,7 +227,7 @@ std::vector<File> Analyser::Static::Commodore::GetFiles(const std::shared_ptr<St
 			next_track = sector->data[0];
 			next_sector = sector->data[1];
 
-			if(is_first_sector) new_file.starting_address = static_cast<uint16_t>(sector->data[2]) | static_cast<uint16_t>(sector->data[3] << 8);
+			if(is_first_sector) new_file.starting_address = uint16_t(sector->data[2]) | uint16_t(sector->data[3] << 8);
 			if(next_track)
 				new_file.data.insert(new_file.data.end(), sector->data.begin() + (is_first_sector ? 4 : 2), sector->data.end());
 			else

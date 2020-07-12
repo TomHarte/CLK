@@ -24,24 +24,33 @@ namespace Disk {
 
 class Drive: public ClockingHint::Source, public TimedEventLoop {
 	public:
-		Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads);
-		Drive(int input_clock_rate, int number_of_heads);
-		~Drive();
+		enum class ReadyType {
+			/// Indicates that RDY will go active when the motor is on and two index holes have passed; it will go inactive when the motor is off.
+			ShugartRDY,
+			/// Indicates that RDY will go active when the motor is on and two index holes have passed; it will go inactive when the disk is ejected.
+			ShugartModifiedRDY,
+			/// Indicates that RDY will go active when the head steps; it will go inactive when the disk is ejected.
+			IBMRDY,
+		};
+
+		Drive(int input_clock_rate, int revolutions_per_minute, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
+		Drive(int input_clock_rate, int number_of_heads, ReadyType rdy_type = ReadyType::ShugartRDY);
+		virtual ~Drive();
 
 		/*!
-			Replaces whatever is in the drive with @c disk.
+			Replaces whatever is in the drive with @c disk. Supply @c nullptr to eject any current disk and leave none inserted.
 		*/
 		void set_disk(const std::shared_ptr<Disk> &disk);
 
 		/*!
 			@returns @c true if a disk is currently inserted; @c false otherwise.
 		*/
-		bool has_disk();
+		bool has_disk() const;
 
 		/*!
 			@returns @c true if the drive head is currently at track zero; @c false otherwise.
 		*/
-		bool get_is_track_zero();
+		bool get_is_track_zero() const;
 
 		/*!
 			Steps the disk head the specified number of tracks. Positive numbers step inwards (i.e. away from track 0),
@@ -57,17 +66,17 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		/*!
 			Gets the head count for this disk.
 		*/
-		int get_head_count();
+		int get_head_count() const;
 
 		/*!
 			@returns @c true if the inserted disk is read-only or no disk is inserted; @c false otherwise.
 		*/
-		bool get_is_read_only();
+		bool get_is_read_only() const;
 
 		/*!
 			@returns @c true if the drive is ready; @c false otherwise.
 		*/
-		bool get_is_ready();
+		bool get_is_ready() const;
 
 		/*!
 			Sets whether the disk motor is on.
@@ -75,9 +84,14 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		void set_motor_on(bool);
 
 		/*!
-			@returns @c true if the motor is on; @c false otherwise.
+			@returns @c true if the motor on input is active; @c false otherwise. This does not necessarily indicate whether the drive is spinning, due to momentum.
 		*/
-		bool get_motor_on();
+		bool get_motor_on() const;
+
+		/*!
+			@returns @c true if the index pulse output is active; @c false otherwise.
+		*/
+		bool get_index_pulse() const;
 
 		/*!
 			Begins write mode, initiating a PCM sampled region of data. Bits should be written via
@@ -104,7 +118,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 			@returns @c true if the drive has received a call to begin_writing but not yet a call to
 			end_writing; @c false otherwise.
 		*/
-		bool is_writing();
+		bool is_writing() const;
 
 		/*!
 			Advances the drive by @c number_of_cycles cycles.
@@ -131,14 +145,14 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 			virtual void process_write_completed() {}
 
 			/// Informs the delegate of the passing of @c cycles.
-			virtual void advance(const Cycles cycles) {}
+			virtual void advance([[maybe_unused]] Cycles cycles) {}
 		};
 
 		/// Sets the current event delegate.
 		void set_event_delegate(EventDelegate *);
 
 		// As per Sleeper.
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 
 		/// Adds an activity observer; it'll be notified of disk activity.
 		/// The caller can specify whether to add an LED based on disk motor.
@@ -163,13 +177,13 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		/*!
 			@returns the current value of the tachometer pulse offered by some drives.
 		*/
-		bool get_tachometer();
+		bool get_tachometer() const;
 
 	protected:
 		/*!
 			Announces the result of a step.
 		*/
-		virtual void did_step(HeadPosition to_position) {}
+		virtual void did_step([[maybe_unused]] HeadPosition to_position) {}
 
 		/*!
 			Announces new media installation.
@@ -180,7 +194,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 			@returns the current rotation of the disk, a float in the half-open range
 				0.0 (the index hole) to 1.0 (back to the index hole, a whole rotation later).
 		*/
-		float get_rotation();
+		float get_rotation() const;
 
 	private:
 		// Drives contain an entire disk; from that a certain track
@@ -191,7 +205,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 
 		// Contains the multiplier that converts between track-relative lengths
 		// to real-time lengths. So it's the reciprocal of rotation speed.
-		float rotational_multiplier_;
+		float rotational_multiplier_ = 1.0f;
 
 		// A count of time since the index hole was last seen. Which is used to
 		// determine how far the drive is into a full rotation when switching to
@@ -208,7 +222,13 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		int available_heads_ = 0;
 
 		// Motor control state.
-		bool motor_is_on_ = false;
+		bool motor_input_is_on_ = false;
+		bool disk_is_rotating_ = false;
+		Cycles time_until_motor_transition;
+		void set_disk_is_rotating(bool);
+
+		// Current state of the index pulse output.
+		Cycles index_pulse_remaining_;
 
 		// If the drive is not currently reading then it is writing. While writing
 		// it can optionally be told to clamp to the index hole.
@@ -221,8 +241,10 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		PCMSegment write_segment_;
 		Time write_start_time_;
 
-		// Indicates progress towards drive ready state.
+		// Indicates progress towards Shugart-style drive ready states.
 		int ready_index_count_ = 0;
+		ReadyType ready_type_;
+		bool is_ready_ = false;
 
 		// Maintains appropriate counting to know when to indicate that writing
 		// is complete.
@@ -235,7 +257,7 @@ class Drive: public ClockingHint::Source, public TimedEventLoop {
 		void advance(const Cycles cycles) override;
 
 		// Helper for track changes.
-		float get_time_into_track();
+		float get_time_into_track() const;
 
 		// The target (if any) for track events.
 		EventDelegate *event_delegate_ = nullptr;

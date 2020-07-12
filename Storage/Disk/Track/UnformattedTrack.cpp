@@ -17,7 +17,7 @@ Track::Event UnformattedTrack::get_next_event() {
 	return event;
 }
 
-Storage::Time UnformattedTrack::seek_to(const Time &time_since_index_hole) {
+Storage::Time UnformattedTrack::seek_to(const Time &) {
 	return Time(0);
 }
 

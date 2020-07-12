@@ -17,7 +17,7 @@ void z8530::reset() {
 	// TODO.
 }
 
-bool z8530::get_interrupt_line() {
+bool z8530::get_interrupt_line() const {
 	return
 		(master_interrupt_control_ & 0x8) &&
 		(
@@ -405,7 +405,7 @@ void z8530::Channel::set_dcd(bool level) {
 	}
 }
 
-bool z8530::Channel::get_interrupt_line() {
+bool z8530::Channel::get_interrupt_line() const {
 	return
 		(interrupt_mask_ & 1) && external_status_interrupt_;
 	// TODO: other potential causes of an interrupt.

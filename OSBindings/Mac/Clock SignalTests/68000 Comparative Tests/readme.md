@@ -29,3 +29,9 @@ I follow every generated opcode with three words of mostly-random data; this dat
 Similarly, all initial register contents are random except that the lowest bit is never set, just in case any of them is used to calculate an address for a word or longword.
 
 So the output is very scattergun approach, with a lot of redundancy. 
+
+## Questionable Results
+
+I am presently unconvinced by the results for  the N flag on many of the [A/S/N]BCD results, as these often seem to conflict with Bart Trzynadlowski's 68knotes.txt.
+
+This emulator seems not yet to generate values for the undocumented flags of DIVU and DIVS that match those listed here, but that's through lack of documentation. The objective here is to test my implementation of behaviour I am able to find descriptions of against other people's implementations of that same behaviour, to flush out errors in my comprehension and implementation.

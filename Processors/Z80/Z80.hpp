@@ -94,15 +94,15 @@ struct PartialMachineCycle {
 		InterruptStart,
 	};
 	/// The operation being carried out by the Z80. See the various getters below for better classification.
-	const Operation operation;
+	const Operation operation = Operation::Internal;
 	/// The length of this operation.
 	const HalfCycles length;
 	/// The current value of the address bus.
-	const uint16_t *const address;
+	const uint16_t *const address = nullptr;
 	/// If the Z80 is outputting to the data bus, a pointer to that value. Otherwise, a pointer to the location where the current data bus value should be placed.
-	uint8_t *const value;
+	uint8_t *const value = nullptr;
 	/// @c true if this operation is occurring only because of an external request; @c false otherwise.
-	const bool was_requested;
+	const bool was_requested = false;
 
 	/*!
 		@returns @c true if the processor believes that the bus handler should actually do something with
@@ -145,7 +145,7 @@ class BusHandler {
 			during some periods or may impose wait states so predictably that it's more efficient just to add them
 			via this mechanism.
 		*/
-		HalfCycles perform_machine_cycle(const PartialMachineCycle &cycle) {
+		HalfCycles perform_machine_cycle([[maybe_unused]] const PartialMachineCycle &cycle) {
 			return HalfCycles(0);
 		}
 
@@ -171,7 +171,7 @@ class ProcessorBase: public ProcessorStorage {
 			@param r The register to set.
 			@returns The value of the register. 8-bit registers will be returned as unsigned.
 		*/
-		uint16_t get_value_of_register(Register r);
+		uint16_t get_value_of_register(Register r) const;
 
 		/*!
 			Sets the value of a register.
@@ -186,7 +186,7 @@ class ProcessorBase: public ProcessorStorage {
 		/*!
 			Gets the value of the HALT output line.
 		*/
-		inline bool get_halt_line();
+		inline bool get_halt_line() const;
 
 		/*!
 			Sets the logical value of the interrupt line.
@@ -200,7 +200,7 @@ class ProcessorBase: public ProcessorStorage {
 		/*!
 			Gets the value of the interrupt line.
 		*/
-		inline bool get_interrupt_line();
+		inline bool get_interrupt_line() const;
 
 		/*!
 			Sets the logical value of the non-maskable interrupt line.
@@ -212,7 +212,7 @@ class ProcessorBase: public ProcessorStorage {
 		/*!
 			Gets the value of the non-maskable interrupt line.
 		*/
-		inline bool get_non_maskable_interrupt_line();
+		inline bool get_non_maskable_interrupt_line() const;
 
 		/*!
 			Sets the logical value of the reset line.
@@ -220,10 +220,24 @@ class ProcessorBase: public ProcessorStorage {
 		inline void set_reset_line(bool value);
 
 		/*!
+			Gets whether the Z80 would reset at the next opportunity.
+
+			@returns @c true if the line is logically active; @c false otherwise.
+		*/
+		bool get_is_resetting() const;
+
+		/*!
 			This emulation automatically sets itself up in power-on state at creation, which has the effect of triggering a
 			reset at the first opportunity. Use @c reset_power_on to disable that behaviour.
 		*/
 		void reset_power_on();
+
+		/*!
+			@returns @c true if the Z80 is currently beginning to fetch a new instruction; @c false otherwise.
+
+			This is not a speedy operation.
+		*/
+		bool is_starting_new_instruction() const;
 };
 
 /*!
@@ -257,7 +271,7 @@ template <class T, bool uses_bus_request, bool uses_wait_line> class Processor: 
 		/*!
 			Gets the logical value of the bus request line.
 		*/
-		bool get_bus_request_line();
+		bool get_bus_request_line() const;
 
 		/*!
 			Sets the logical value of the wait line, having asserted that this Z80 supports the wait line.
@@ -267,7 +281,7 @@ template <class T, bool uses_bus_request, bool uses_wait_line> class Processor: 
 		/*!
 			Gets the logical value of the bus request line.
 		*/
-		bool get_wait_line();
+		bool get_wait_line() const;
 
 	private:
 		T &bus_handler_;

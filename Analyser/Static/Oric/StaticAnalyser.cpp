@@ -20,7 +20,9 @@
 
 using namespace Analyser::Static::Oric;
 
-static int Score(const Analyser::Static::MOS6502::Disassembly &disassembly, const std::set<uint16_t> &rom_functions, const std::set<uint16_t> &variable_locations) {
+namespace {
+
+int score(const Analyser::Static::MOS6502::Disassembly &disassembly, const std::set<uint16_t> &rom_functions, const std::set<uint16_t> &variable_locations) {
 	int score = 0;
 
 	for(const auto address : disassembly.outward_calls)		score += (rom_functions.find(address) != rom_functions.end()) ? 1 : -1;
@@ -30,7 +32,7 @@ static int Score(const Analyser::Static::MOS6502::Disassembly &disassembly, cons
 	return score;
 }
 
-static int Basic10Score(const Analyser::Static::MOS6502::Disassembly &disassembly) {
+int basic10_score(const Analyser::Static::MOS6502::Disassembly &disassembly) {
 	const std::set<uint16_t> rom_functions = {
 		0x0228,	0x022b,
 		0xc3ca,	0xc3f8,	0xc448,	0xc47c,	0xc4b5,	0xc4e3,	0xc4e0,	0xc524,	0xc56f,	0xc5a2,	0xc5f8,	0xc60a,	0xc6a5,	0xc6de,	0xc719,	0xc738,
@@ -51,10 +53,10 @@ static int Basic10Score(const Analyser::Static::MOS6502::Disassembly &disassembl
 		0x0228, 0x0229, 0x022a, 0x022b, 0x022c, 0x022d, 0x0230
 	};
 
-	return Score(disassembly, rom_functions, variable_locations);
+	return score(disassembly, rom_functions, variable_locations);
 }
 
-static int Basic11Score(const Analyser::Static::MOS6502::Disassembly &disassembly) {
+int basic11_score(const Analyser::Static::MOS6502::Disassembly &disassembly) {
 	const std::set<uint16_t> rom_functions = {
 		0x0238,	0x023b,	0x023e,	0x0241,	0x0244,	0x0247,
 		0xc3c6,	0xc3f4,	0xc444,	0xc47c,	0xc4a8,	0xc4d3,	0xc4e0,	0xc524,	0xc55f,	0xc592,	0xc5e8,	0xc5fa,	0xc692,	0xc6b3,	0xc6ee,	0xc70d,
@@ -76,10 +78,10 @@ static int Basic11Score(const Analyser::Static::MOS6502::Disassembly &disassembl
 		0x0244, 0x0245, 0x0246, 0x0247, 0x0248, 0x0249, 0x024a, 0x024b, 0x024c
 	};
 
-	return Score(disassembly, rom_functions, variable_locations);
+	return score(disassembly, rom_functions, variable_locations);
 }
 
-static bool IsMicrodisc(Storage::Encodings::MFM::Parser &parser) {
+bool is_microdisc(Storage::Encodings::MFM::Parser &parser) {
 	/*
 		The Microdisc boot sector is sector 2 of track 0 and contains a 23-byte signature.
 	*/
@@ -100,9 +102,51 @@ static bool IsMicrodisc(Storage::Encodings::MFM::Parser &parser) {
 	return !std::memcmp(signature, first_sample.data(), sizeof(signature));
 }
 
-Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
-	std::unique_ptr<Target> target(new Target);
-	target->machine = Machine::Oric;
+bool is_400_loader(Storage::Encodings::MFM::Parser &parser, uint16_t range_start, uint16_t range_end) {
+	/*
+		Both the Jasmin and BD-DOS boot sectors are sector 1 of track 0 and are loaded at $400;
+		use disassembly to test for likely matches.
+	*/
+
+	Storage::Encodings::MFM::Sector *sector = parser.get_sector(0, 0, 1);
+	if(!sector) return false;
+	if(sector->samples.empty()) return false;
+
+	// Take a copy of the first sampling, and keep only the final 256 bytes (assuming at least that many were found).
+	std::vector<uint8_t> first_sample = sector->samples[0];
+	if(first_sample.size() < 256) return false;
+	if(first_sample.size() > 256) {
+		first_sample.erase(first_sample.end() - 256, first_sample.end());
+	}
+
+	// Grab a disassembly.
+	const auto disassembly =
+		Analyser::Static::MOS6502::Disassemble(first_sample, Analyser::Static::Disassembler::OffsetMapper(0x400), {0x400});
+
+	// Check for references to the Jasmin registers.
+	int register_hits = 0;
+	for(auto list : {disassembly.external_stores, disassembly.external_loads, disassembly.external_modifies}) {
+		for(auto address : list) {
+			register_hits += (address >= range_start && address <= range_end);
+		}
+	}
+
+	// Arbitrary, sure, but as long as at least two accesses to the requested register range are found, accept this.
+	return register_hits >= 2;
+}
+
+bool is_jasmin(Storage::Encodings::MFM::Parser &parser) {
+	return is_400_loader(parser, 0x3f4, 0x3ff);
+}
+
+bool is_bd500(Storage::Encodings::MFM::Parser &parser) {
+	return is_400_loader(parser, 0x310, 0x323);
+}
+
+}
+
+Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
+	auto target = std::make_unique<Target>();
 	target->confidence = 0.5;
 
 	int basic10_votes = 0;
@@ -115,12 +159,10 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &med
 			for(const auto &file : tape_files) {
 				if(file.data_type == File::MachineCode) {
 					std::vector<uint16_t> entry_points = {file.starting_address};
-					Analyser::Static::MOS6502::Disassembly disassembly =
+					const Analyser::Static::MOS6502::Disassembly disassembly =
 						Analyser::Static::MOS6502::Disassemble(file.data, Analyser::Static::Disassembler::OffsetMapper(file.starting_address), entry_points);
 
-					int basic10_score = Basic10Score(disassembly);
-					int basic11_score = Basic11Score(disassembly);
-					if(basic10_score > basic11_score) basic10_votes++; else basic11_votes++;
+					if(basic10_score(disassembly) > basic11_score(disassembly)) ++basic10_votes; else ++basic11_votes;
 				}
 			}
 
@@ -130,12 +172,22 @@ Analyser::Static::TargetList Analyser::Static::Oric::GetTargets(const Media &med
 	}
 
 	if(!media.disks.empty()) {
-		// Only the Microdisc is emulated right now, so accept only disks that it can boot from.
+		// 8-DOS is recognised by a dedicated Disk II analyser, so check only for Microdisc,
+		// Jasmin and BD-DOS formats here.
 		for(auto &disk: media.disks) {
 			Storage::Encodings::MFM::Parser parser(true, disk);
-			if(IsMicrodisc(parser)) {
+
+			if(is_microdisc(parser)) {
 				target->disk_interface = Target::DiskInterface::Microdisc;
 				target->media.disks.push_back(disk);
+			} else if(is_jasmin(parser)) {
+				target->disk_interface = Target::DiskInterface::Jasmin;
+				target->should_start_jasmin = true;
+				target->media.disks.push_back(disk);
+			} else if(is_bd500(parser)) {
+				target->disk_interface = Target::DiskInterface::BD500;
+				target->media.disks.push_back(disk);
+				target->rom = Target::ROM::BASIC10;
 			}
 		}
 	}

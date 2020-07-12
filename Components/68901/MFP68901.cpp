@@ -8,15 +8,19 @@
 
 #include "MFP68901.hpp"
 
+#include <algorithm>
 #include <cstring>
 
+#ifndef NDEBUG
+#define NDEBUG
+#endif
+
 #define LOG_PREFIX "[MFP] "
-//#define NDEBUG
 #include "../../Outputs/Log.hpp"
 
 using namespace Motorola::MFP68901;
 
-ClockingHint::Preference MFP68901::preferred_clocking() {
+ClockingHint::Preference MFP68901::preferred_clocking() const {
 	// Rule applied: if any timer is actively running and permitted to produce an
 	// interrupt, request real-time running.
 	return
@@ -109,7 +113,7 @@ void MFP68901::write(int address, uint8_t value) {
 		return;
 	}
 
-	const int timer_prescales[] = {
+	constexpr int timer_prescales[] = {
 		1, 4, 10, 16, 50, 64, 100, 200
 	};
 
@@ -179,12 +183,26 @@ void MFP68901::run_for(HalfCycles time) {
 	cycles_left_ += time;
 
 	const int cycles = int(cycles_left_.flush<Cycles>().as_integral());
+	if(!cycles) return;
+
 	for(int c = 0; c < 4; ++c) {
 		if(timers_[c].mode >= TimerMode::Delay) {
-			const int dividend = (cycles + timers_[c].prescale - timers_[c].divisor);
-			const int decrements = dividend / timers_[c].prescale;
-			timers_[c].divisor = timers_[c].prescale - (dividend % timers_[c].prescale);
-			if(decrements) decrement_timer(c, decrements);
+			// This code applies the timer prescaling only. prescale_count is used to count
+			// upwards rather than downwards for simplicity, but on the real hardware it's
+			// pretty safe to assume it actually counted downwards. So the clamp to 0 is
+			// because gymnastics may need to occur when the prescale value is altered, e.g.
+			// if a prescale of 256 is set and the prescale_count is currently 2 then the
+			// counter should roll over in 254 cycles. If the user at that point changes the
+			// prescale_count to 1 then the counter will need to be altered to -253 and
+			// allowed to keep counting up until it crosses both 0 and 1.
+			const int dividend = timers_[c].prescale_count + cycles;
+			const int decrements = std::max(dividend / timers_[c].prescale, 0);
+			if(decrements) {
+				decrement_timer(c, decrements);
+				timers_[c].prescale_count = dividend % timers_[c].prescale;
+			} else {
+				timers_[c].prescale_count += cycles;
+			}
 		}
 	}
 }
@@ -198,11 +216,17 @@ HalfCycles MFP68901::get_next_sequence_point() {
 void MFP68901::set_timer_mode(int timer, TimerMode mode, int prescale, bool reset_timer) {
 	LOG("Timer " << timer << " mode set: " << int(mode) << "; prescale: " << prescale);
 	timers_[timer].mode = mode;
-	timers_[timer].prescale = prescale;
 	if(reset_timer) {
-		timers_[timer].divisor = prescale;
+		timers_[timer].prescale_count = 0;
 		timers_[timer].value = timers_[timer].reload_value;
+	} else {
+		// This hoop is because the prescale_count here goes upward but I'm assuming it goes downward in
+		// real hardware. Therefore this deals with the "switched to a lower prescaling" case whereby the
+		// old cycle should be allowed naturally to expire.
+		timers_[timer].prescale_count = prescale - (timers_[timer].prescale - timers_[timer].prescale_count);
 	}
+
+	timers_[timer].prescale = prescale;
 }
 
 void MFP68901::set_timer_data(int timer, uint8_t value) {
@@ -341,7 +365,7 @@ int MFP68901::acknowledge_interrupt() {
 
 	int selected = 0;
 	while((1 << selected) != mask) ++selected;
-	LOG("Interrupt acknowledged: " << selected);
+//	LOG("Interrupt acknowledged: " << selected);
 	return (interrupt_vector_ & 0xf0) | uint8_t(selected);
 }
 

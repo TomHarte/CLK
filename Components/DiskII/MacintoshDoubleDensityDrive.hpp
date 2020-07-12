@@ -32,14 +32,14 @@ class DoubleDensityDrive: public IWMDrive {
 		*/
 		void set_rotation_speed(float revolutions_per_minute);
 
-		void set_enabled(bool) override;
-		void set_control_lines(int) override;
-		bool read() override;
-
 	private:
+		void set_enabled(bool) final;
+		void set_control_lines(int) final;
+		bool read() final;
+
 		// To receive the proper notifications from Storage::Disk::Drive.
-		void did_step(Storage::Disk::HeadPosition to_position) override;
-		void did_set_disk() override;
+		void did_step(Storage::Disk::HeadPosition to_position) final;
+		void did_set_disk() final;
 
 		const bool is_800k_;
 		bool has_new_disk_ = false;

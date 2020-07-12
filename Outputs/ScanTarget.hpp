@@ -11,12 +11,14 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "../ClockReceiver/TimeTypes.hpp"
 
 namespace Outputs {
 namespace Display {
 
 enum class Type {
 	PAL50,
+	PAL60,
 	NTSC60
 };
 
@@ -29,8 +31,8 @@ struct Rect {
 		float width, height;
 	} size;
 
-	Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
-	Rect(float x, float y, float width, float height) :
+	constexpr Rect() : origin({0.0f, 0.0f}), size({1.0f, 1.0f}) {}
+	constexpr Rect(float x, float y, float width, float height) :
 		origin({x, y}), size({width, height}) {}
 };
 
@@ -136,6 +138,8 @@ inline DisplayType natural_display_type_for_data_type(InputDataType data_type) {
 	for use of shared memory where available.
 */
 struct ScanTarget {
+		virtual ~ScanTarget() {}
+
 
 	/*
 		This top section of the interface deals with modal settings. A ScanTarget can
@@ -265,24 +269,28 @@ struct ScanTarget {
 		/// and indicates that its actual final size was @c actual_length.
 		///
 		/// It is required that every call to begin_data be paired with a call to end_data.
-		virtual void end_data(size_t actual_length) {}
+		virtual void end_data([[maybe_unused]] size_t actual_length) {}
 
 		/// Tells the scan target that its owner is about to change; this is a hint that existing
 		/// data and scan allocations should be invalidated.
 		virtual void will_change_owner() {}
 
-		/// Marks the end of an atomic set of data. Drawing is best effort, so the scan target should either:
+		/// Acts as a fence, marking the end of an atomic set of [begin/end]_[scan/data] calls] — all future pieces of
+		/// data will have no relation to scans prior to the submit() and all future scans will similarly have no relation to
+		/// prior runs of data.
+		///
+		/// Drawing is defined to be best effort, so the scan target should either:
 		///
 		///		(i)	output everything received since the previous submit; or
-		///		(ii) output nothing.
+		///		(ii)	output nothing.
 		///
 		/// If there were any allocation failures — i.e. any nullptr responses to begin_data or
 		/// begin_scan — then (ii) is a required response. But a scan target may also need to opt for (ii)
 		/// for any other reason.
 		///
 		/// The ScanTarget isn't bound to take any drawing action immediately; it may sit on submitted data for
-		/// as long as it feels is appropriate subject to an @c flush.
-		virtual void submit() = 0;
+		/// as long as it feels is appropriate, subject to a @c flush.
+		virtual void submit() {}
 
 
 	/*
@@ -301,22 +309,78 @@ struct ScanTarget {
 		/*!
 			Provides a hint that the named event has occurred.
 
+			Guarantee:
+			* any announce acts as an implicit fence on data/scans, much as a submit().
+
+			Permitted ScanTarget implementation:
+			* ignore all output during retrace periods.
+
 			@param event The event.
 			@param is_visible @c true if the output stream is visible immediately after this event; @c false otherwise.
 			@param location The location of the event.
 			@param composite_amplitude The amplitude of the colour burst on this line (0, if no colour burst was found).
 		*/
-		virtual void announce(Event event, bool is_visible, const Scan::EndPoint &location, uint8_t composite_amplitude) {}
+		virtual void announce([[maybe_unused]] Event event, [[maybe_unused]] bool is_visible, [[maybe_unused]] const Scan::EndPoint &location, [[maybe_unused]] uint8_t composite_amplitude) {}
+};
+
+struct ScanStatus {
+	/// The current (prediced) length of a field (including retrace).
+	Time::Seconds field_duration;
+	/// The difference applied to the field_duration estimate during the last field.
+	Time::Seconds field_duration_gradient;
+	/// The amount of time this device spends in retrace.
+	Time::Seconds retrace_duration;
+	/// The distance into the current field, from a small negative amount (in retrace) through
+	/// 0 (start of visible area field) to 1 (end of field).
+	///
+	/// This will increase monotonically, being a measure
+	/// of the current vertical position — i.e. if current_position = 0.8 then a caller can
+	/// conclude that the top 80% of the visible part of the display has been painted.
+	float current_position;
+	/// The total number of hsyncs so far encountered;
+	int hsync_count;
+	/// @c true if retrace is currently going on; @c false otherwise.
+	bool is_in_retrace;
+
+	/*!
+		@returns this ScanStatus, with time-relative fields scaled by dividing them by @c dividend.
+	*/
+	ScanStatus operator / (float dividend) {
+		const ScanStatus result = {
+			.field_duration = field_duration / dividend,
+			.field_duration_gradient = field_duration_gradient / dividend,
+			.retrace_duration = retrace_duration / dividend,
+			.current_position = current_position,
+			.hsync_count = hsync_count,
+			.is_in_retrace = is_in_retrace,
+		};
+		return result;
+	}
+
+	/*!
+		@returns this ScanStatus, with time-relative fields scaled by multiplying them by @c multiplier.
+	*/
+	ScanStatus operator * (float multiplier) {
+		const ScanStatus result = {
+			.field_duration = field_duration * multiplier,
+			.field_duration_gradient = field_duration_gradient * multiplier,
+			.retrace_duration = retrace_duration * multiplier,
+			.current_position = current_position,
+			.hsync_count = hsync_count,
+			.is_in_retrace = is_in_retrace,
+		};
+		return result;
+	}
 };
 
 /*!
 	Provides a null target for scans.
 */
 struct NullScanTarget: public ScanTarget {
-	void set_modals(Modals) {}
-	Scan *begin_scan() { return nullptr; }
-	uint8_t *begin_data(size_t required_length, size_t required_alignment = 1) { return nullptr; }
-	void submit() {}
+	void set_modals(Modals) override {}
+	Scan *begin_scan() override { return nullptr; }
+	uint8_t *begin_data(size_t, size_t) override { return nullptr; }
+	void submit() override {}
 
 	static NullScanTarget singleton;
 };

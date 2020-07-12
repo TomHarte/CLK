@@ -16,7 +16,7 @@ namespace Atari2600 {
 
 // This should be a divisor of 38; audio counters are updated every 38 cycles, though lesser dividers
 // will give greater resolution to changes in audio state. 1, 2 and 19 are the only divisors of 38.
-const int CPUTicksPerAudioTick = 2;
+constexpr int CPUTicksPerAudioTick = 2;
 
 class TIASound: public Outputs::Speaker::SampleSource {
 	public:
@@ -29,6 +29,7 @@ class TIASound: public Outputs::Speaker::SampleSource {
 		// To satisfy ::SampleSource.
 		void get_samples(std::size_t number_of_samples, int16_t *target);
 		void set_sample_volume_range(std::int16_t range);
+		static constexpr bool get_is_stereo() { return false; }
 
 	private:
 		Concurrency::DeferringAsyncTaskQueue &audio_queue_;

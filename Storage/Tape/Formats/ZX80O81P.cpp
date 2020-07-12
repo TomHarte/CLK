@@ -15,8 +15,8 @@ ZX80O81P::ZX80O81P(const std::string &file_name) {
 	Storage::FileHolder file(file_name);
 
 	// Grab the actual file contents
-	data_.resize(static_cast<std::size_t>(file.stats().st_size));
-	file.read(data_.data(), static_cast<std::size_t>(file.stats().st_size));
+	data_.resize(size_t(file.stats().st_size));
+	file.read(data_.data(), size_t(file.stats().st_size));
 
 	// If it's a ZX81 file, prepend a file name.
 	std::string type = file.extension();

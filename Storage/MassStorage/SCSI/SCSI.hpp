@@ -21,7 +21,7 @@ namespace SCSI {
 
 typedef int BusState;
 
-static const BusState DefaultBusState = 0;
+constexpr BusState DefaultBusState = 0;
 
 /*!
 	SCSI bus state is encoded entirely within an int.
@@ -139,7 +139,7 @@ class Bus: public ClockingHint::Source, public Activity::Source {
 		void update_observers();
 
 		// As per ClockingHint::Source.
-		ClockingHint::Preference preferred_clocking() final;
+		ClockingHint::Preference preferred_clocking() const final;
 
 		// Fulfilling public Activity::Source.
 		void set_activity_observer(Activity::Observer *observer) final;

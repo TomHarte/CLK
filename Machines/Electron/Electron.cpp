@@ -9,9 +9,8 @@
 #include "Electron.hpp"
 
 #include "../../Activity/Source.hpp"
-#include "../MediaTarget.hpp"
-#include "../CRTMachine.hpp"
-#include "../KeyboardMachine.hpp"
+#include "../MachineTypes.hpp"
+#include "../../Configurable/Configurable.hpp"
 
 #include "../../ClockReceiver/ClockReceiver.hpp"
 #include "../../ClockReceiver/ForceInline.hpp"
@@ -32,21 +31,17 @@
 
 namespace Electron {
 
-std::vector<std::unique_ptr<Configurable::Option>> get_options() {
-	return Configurable::standard_options(
-		static_cast<Configurable::StandardOptions>(Configurable::DisplayRGB | Configurable::DisplayCompositeColour | Configurable::QuickLoadTape)
-	);
-}
-
 class ConcreteMachine:
 	public Machine,
-	public CRTMachine::Machine,
-	public MediaTarget::Machine,
-	public KeyboardMachine::MappedMachine,
+	public MachineTypes::TimedMachine,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::MediaTarget,
+	public MachineTypes::MappedKeyboardMachine,
 	public Configurable::Device,
 	public CPU::MOS6502::BusHandler,
 	public Tape::Delegate,
-	public Utility::TypeRecipient,
+	public Utility::TypeRecipient<CharacterMapper>,
 	public Activity::Source {
 	public:
 		ConcreteMachine(const Analyser::Static::Acorn::Target &target, const ROMMachine::ROMFetcher &rom_fetcher) :
@@ -62,7 +57,7 @@ class ConcreteMachine:
 			set_clock_rate(2000000);
 
 			speaker_.set_input_rate(2000000 / SoundGenerator::clock_rate_divider);
-			speaker_.set_high_frequency_cutoff(7000);
+			speaker_.set_high_frequency_cutoff(6000);
 
 			const std::string machine_name = "Electron";
 			std::vector<ROMMachine::ROM> required_roms = {
@@ -88,7 +83,7 @@ class ConcreteMachine:
 			set_rom(ROM::OS, *roms[1], false);
 
 			if(target.has_dfs || target.has_adfs) {
-				plus3_.reset(new Plus3);
+				plus3_ = std::make_unique<Plus3>();
 
 				if(target.has_dfs) {
 					set_rom(ROM::Slot0, *roms[dfs_rom_position], true);
@@ -114,23 +109,46 @@ class ConcreteMachine:
 			audio_queue_.flush();
 		}
 
-		void set_key_state(uint16_t key, bool isPressed) override final {
-			if(key == KeyBreak) {
-				m6502_.set_reset_line(isPressed);
-			} else {
-				if(isPressed)
-					key_states_[key >> 4] |= key&0xf;
-				else
-					key_states_[key >> 4] &= ~(key&0xf);
+		void set_key_state(uint16_t key, bool isPressed) final {
+			switch(key) {
+				default:
+					if(isPressed)
+						key_states_[key >> 4] |= key&0xf;
+					else
+						key_states_[key >> 4] &= ~(key&0xf);
+				break;
+
+				case KeyBreak:
+					m6502_.set_reset_line(isPressed);
+				break;
+
+#define FuncShiftedKey(source, dest)	\
+				case source:	\
+					set_key_state(KeyFunc, isPressed);	\
+					set_key_state(dest, isPressed);	\
+				break;
+
+				FuncShiftedKey(KeyF1, Key1);
+				FuncShiftedKey(KeyF2, Key2);
+				FuncShiftedKey(KeyF3, Key3);
+				FuncShiftedKey(KeyF4, Key4);
+				FuncShiftedKey(KeyF5, Key5);
+				FuncShiftedKey(KeyF6, Key6);
+				FuncShiftedKey(KeyF7, Key7);
+				FuncShiftedKey(KeyF8, Key8);
+				FuncShiftedKey(KeyF9, Key9);
+				FuncShiftedKey(KeyF0, Key0);
+
+#undef FuncShiftedKey
 			}
 		}
 
-		void clear_all_keys() override final {
+		void clear_all_keys() final {
 			memset(key_states_, 0, sizeof(key_states_));
 			if(is_holding_shift_) set_key_state(KeyShift, true);
 		}
 
-		bool insert_media(const Analyser::Static::Media &media) override final {
+		bool insert_media(const Analyser::Static::Media &media) final {
 			if(!media.tapes.empty()) {
 				tape_.set_tape(media.tapes.front());
 			}
@@ -143,8 +161,8 @@ class ConcreteMachine:
 			ROM slot = ROM::Slot12;
 			for(std::shared_ptr<Storage::Cartridge::Cartridge> cartridge : media.cartridges) {
 				const ROM first_slot_tried = slot;
-				while(rom_inserted_[static_cast<int>(slot)]) {
-					slot = static_cast<ROM>((static_cast<int>(slot) + 1) & 15);
+				while(rom_inserted_[int(slot)]) {
+					slot = ROM((int(slot) + 1) & 15);
 					if(slot == first_slot_tried) return false;
 				}
 				set_rom(slot, cartridge->get_segments().front().data, false);
@@ -197,14 +215,15 @@ class ConcreteMachine:
 								activity_observer_->set_led_status(caps_led, caps_led_state_);
 						}
 
-					// deliberate fallthrough; fe07 contains the display mode.
+						[[fallthrough]];	// fe07 contains the display mode.
+
 
 					case 0xfe02: case 0xfe03:
 					case 0xfe08: case 0xfe09: case 0xfe0a: case 0xfe0b:
 					case 0xfe0c: case 0xfe0d: case 0xfe0e: case 0xfe0f:
 						if(!isReadOperation(operation)) {
 							update_display();
-							video_output_.set_register(address, *value);
+							video_output_.write(address, *value);
 							video_access_range_ = video_output_.get_memory_access_range();
 							queue_next_display_interrupt();
 						}
@@ -260,9 +279,9 @@ class ConcreteMachine:
 								set_key_state(KeyShift, false);
 							}
 							if(isReadOperation(operation))
-								*value = plus3_->get_register(address);
+								*value = plus3_->read(address);
 							else
-								plus3_->set_register(address, *value);
+								plus3_->write(address, *value);
 						}
 					break;
 					case 0xfc00:
@@ -295,7 +314,7 @@ class ConcreteMachine:
 																						// allow the PC read to return an RTS.
 									)
 								) {
-									uint8_t service_call = static_cast<uint8_t>(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
+									uint8_t service_call = uint8_t(m6502_.get_value_of_register(CPU::MOS6502::Register::X));
 									if(address == 0xf0a8) {
 										if(!ram_[0x247] && service_call == 14) {
 											tape_.set_delegate(nullptr);
@@ -336,7 +355,7 @@ class ConcreteMachine:
 									}
 								}
 								if(basic_is_active_) {
-									*value &= roms_[static_cast<int>(ROM::BASIC)][address & 16383];
+									*value &= roms_[int(ROM::BASIC)][address & 16383];
 								}
 							} else if(rom_write_masks_[active_rom_]) {
 								roms_[active_rom_][address & 16383] = *value;
@@ -346,10 +365,10 @@ class ConcreteMachine:
 				}
 			}
 
-			cycles_since_display_update_ += Cycles(static_cast<int>(cycles));
-			cycles_since_audio_update_ += Cycles(static_cast<int>(cycles));
+			cycles_since_display_update_ += Cycles(int(cycles));
+			cycles_since_audio_update_ += Cycles(int(cycles));
 			if(cycles_since_audio_update_ > Cycles(16384)) update_audio();
-			tape_.run_for(Cycles(static_cast<int>(cycles)));
+			tape_.run_for(Cycles(int(cycles)));
 
 			cycles_until_display_interrupt_ -= cycles;
 			if(cycles_until_display_interrupt_ < 0) {
@@ -358,8 +377,8 @@ class ConcreteMachine:
 				queue_next_display_interrupt();
 			}
 
-			if(typer_) typer_->run_for(Cycles(static_cast<int>(cycles)));
-			if(plus3_) plus3_->run_for(Cycles(4*static_cast<int>(cycles)));
+			if(typer_) typer_->run_for(Cycles(int(cycles)));
+			if(plus3_) plus3_->run_for(Cycles(4*int(cycles)));
 			if(shift_restart_counter_) {
 				shift_restart_counter_ -= cycles;
 				if(shift_restart_counter_ <= 0) {
@@ -370,7 +389,7 @@ class ConcreteMachine:
 				}
 			}
 
-			return Cycles(static_cast<int>(cycles));
+			return Cycles(int(cycles));
 		}
 
 		forceinline void flush() {
@@ -379,78 +398,73 @@ class ConcreteMachine:
 			audio_queue_.perform();
 		}
 
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override final {
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
 			video_output_.set_scan_target(scan_target);
 		}
 
-		void set_display_type(Outputs::Display::DisplayType display_type) override {
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+			return video_output_.get_scaled_scan_status();
+		}
+
+		void set_display_type(Outputs::Display::DisplayType display_type) final {
 			video_output_.set_display_type(display_type);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override final {
+		Outputs::Display::DisplayType get_display_type() const final {
+			return video_output_.get_display_type();
+		}
+
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &speaker_;
 		}
 
-		void run_for(const Cycles cycles) override final {
+		void run_for(const Cycles cycles) final {
 			m6502_.run_for(cycles);
 		}
 
-		void tape_did_change_interrupt_status(Tape *tape) override final {
+		void tape_did_change_interrupt_status(Tape *) final {
 			interrupt_status_ = (interrupt_status_ & ~(Interrupt::TransmitDataEmpty | Interrupt::ReceiveDataFull | Interrupt::HighToneDetect)) | tape_.get_interrupt_status();
 			evaluate_interrupts();
 		}
 
-		HalfCycles get_typer_delay() override final {
-			return m6502_.get_is_resetting() ? Cycles(625*25*128) : Cycles(0);	// wait one second if resetting
+		HalfCycles get_typer_delay() const final {
+			return m6502_.get_is_resetting() ? Cycles(750'000) : Cycles(0);
 		}
 
-		HalfCycles get_typer_frequency() override final {
-			return Cycles(625*128*2);	// accept a new character every two frames
+		HalfCycles get_typer_frequency() const final {
+			return Cycles(60'000);
 		}
 
-		void type_string(const std::string &string) override final {
-			std::unique_ptr<CharacterMapper> mapper(new CharacterMapper());
-			Utility::TypeRecipient::add_typer(string, std::move(mapper));
+		void type_string(const std::string &string) final {
+			Utility::TypeRecipient<CharacterMapper>::add_typer(string);
 		}
 
-		KeyboardMapper *get_keyboard_mapper() override {
+		bool can_type(char c) const final {
+			return Utility::TypeRecipient<CharacterMapper>::can_type(c);
+		}
+
+		KeyboardMapper *get_keyboard_mapper() final {
 			return &keyboard_mapper_;
 		}
 
 		// MARK: - Configuration options.
-		std::vector<std::unique_ptr<Configurable::Option>> get_options() override {
-			return Electron::get_options();
+		std::unique_ptr<Reflection::Struct> get_options() final {
+			auto options = std::make_unique<Options>(Configurable::OptionsType::UserFriendly);
+			options->output = get_video_signal_configurable();
+			options->quickload = allow_fast_tape_hack_;
+			return options;
 		}
 
-		void set_selections(const Configurable::SelectionSet &selections_by_option) override {
-			bool quickload;
-			if(Configurable::get_quick_load_tape(selections_by_option, quickload)) {
-				allow_fast_tape_hack_ = quickload;
-				set_use_fast_tape_hack();
-			}
+		void set_options(const std::unique_ptr<Reflection::Struct> &str) final {
+			const auto options = dynamic_cast<Options *>(str.get());
 
-			Configurable::Display display;
-			if(Configurable::get_display(selections_by_option, display)) {
-				set_video_signal_configurable(display);
-			}
-		}
-
-		Configurable::SelectionSet get_accurate_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, false);
-			Configurable::append_display_selection(selection_set, Configurable::Display::CompositeColour);
-			return selection_set;
-		}
-
-		Configurable::SelectionSet get_user_friendly_selections() override {
-			Configurable::SelectionSet selection_set;
-			Configurable::append_quick_load_tape_selection(selection_set, true);
-			Configurable::append_display_selection(selection_set, Configurable::Display::RGB);
-			return selection_set;
+			set_video_signal_configurable(options->output);
+			allow_fast_tape_hack_ = options->quickload;
+			set_use_fast_tape_hack();
 		}
 
 		// MARK: - Activity Source
-		void set_activity_observer(Activity::Observer *observer) override {
+		void set_activity_observer(Activity::Observer *observer) final {
 			activity_observer_ = observer;
 			if(activity_observer_) {
 				activity_observer_->register_led(caps_led);
@@ -490,8 +504,8 @@ class ConcreteMachine:
 
 				case ROM::OS:		target = os_;			break;
 				default:
-					target = roms_[static_cast<int>(slot)];
-					rom_write_masks_[static_cast<int>(slot)] = is_writeable;
+					target = roms_[int(slot)];
+					rom_write_masks_[int(slot)] = is_writeable;
 				break;
 			}
 
@@ -503,8 +517,8 @@ class ConcreteMachine:
 				rom_ptr += size_to_copy;
 			}
 
-			if(static_cast<int>(slot) < 16)
-				rom_inserted_[static_cast<int>(slot)] = true;
+			if(int(slot) < 16)
+				rom_inserted_[int(slot)] = true;
 		}
 
 		// MARK: - Work deferral updates.
@@ -553,7 +567,7 @@ class ConcreteMachine:
 		std::vector<uint8_t> dfs_, adfs1_, adfs2_;
 
 		// Paging
-		int active_rom_ = static_cast<int>(ROM::Slot0);
+		int active_rom_ = int(ROM::Slot0);
 		bool keyboard_is_active_ = false;
 		bool basic_is_active_ = false;
 

@@ -11,8 +11,7 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "../../CRTMachine.hpp"
-#include "../../JoystickMachine.hpp"
+#include "../../MachineTypes.hpp"
 
 #include "../../../Analyser/Static/Atari2600/Target.hpp"
 
@@ -30,8 +29,8 @@
 #include "Cartridges/Unpaged.hpp"
 
 namespace {
-	static const double NTSC_clock_rate = 1194720;
-	static const double PAL_clock_rate = 1182298;
+	static constexpr double NTSC_clock_rate = 1194720;
+	static constexpr double PAL_clock_rate = 1182298;
 }
 
 namespace Atari2600 {
@@ -48,7 +47,7 @@ class Joystick: public Inputs::ConcreteJoystick {
 			}),
 			bus_(bus), shift_(shift), fire_tia_input_(fire_tia_input) {}
 
-		void did_set_input(const Input &digital_input, bool is_active) override {
+		void did_set_input(const Input &digital_input, bool is_active) final {
 			switch(digital_input.type) {
 				case Input::Up:		bus_->mos6532_.update_port_input(0, 0x10 >> shift_, is_active);		break;
 				case Input::Down:	bus_->mos6532_.update_port_input(0, 0x20 >> shift_, is_active);		break;
@@ -76,59 +75,60 @@ using Target = Analyser::Static::Atari2600::Target;
 
 class ConcreteMachine:
 	public Machine,
-	public CRTMachine::Machine,
-	public JoystickMachine::Machine,
-	public Outputs::CRT::Delegate {
+	public MachineTypes::TimedMachine,
+	public MachineTypes::AudioProducer,
+	public MachineTypes::ScanProducer,
+	public MachineTypes::JoystickMachine {
 	public:
-		ConcreteMachine(const Target &target) {
-			set_clock_rate(NTSC_clock_rate);
-
+		ConcreteMachine(const Target &target) : frequency_mismatch_warner_(*this) {
 			const std::vector<uint8_t> &rom = target.media.cartridges.front()->get_segments().front().data;
 
 			using PagingModel = Target::PagingModel;
 			switch(target.paging_model) {
-				case PagingModel::ActivisionStack:	bus_.reset(new Cartridge::Cartridge<Cartridge::ActivisionStack>(rom));	break;
-				case PagingModel::CBSRamPlus:		bus_.reset(new Cartridge::Cartridge<Cartridge::CBSRAMPlus>(rom));		break;
-				case PagingModel::CommaVid:			bus_.reset(new Cartridge::Cartridge<Cartridge::CommaVid>(rom));			break;
-				case PagingModel::MegaBoy:			bus_.reset(new Cartridge::Cartridge<Cartridge::MegaBoy>(rom));			break;
-				case PagingModel::MNetwork:			bus_.reset(new Cartridge::Cartridge<Cartridge::MNetwork>(rom));			break;
-				case PagingModel::None:				bus_.reset(new Cartridge::Cartridge<Cartridge::Unpaged>(rom));			break;
-				case PagingModel::ParkerBros:		bus_.reset(new Cartridge::Cartridge<Cartridge::ParkerBros>(rom));		break;
-				case PagingModel::Pitfall2:			bus_.reset(new Cartridge::Cartridge<Cartridge::Pitfall2>(rom));			break;
-				case PagingModel::Tigervision:		bus_.reset(new Cartridge::Cartridge<Cartridge::Tigervision>(rom));		break;
+				case PagingModel::ActivisionStack:	bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::ActivisionStack>>(rom);	break;
+				case PagingModel::CBSRamPlus:		bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::CBSRAMPlus>>(rom);		break;
+				case PagingModel::CommaVid:			bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::CommaVid>>(rom);		break;
+				case PagingModel::MegaBoy:			bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::MegaBoy>>(rom);			break;
+				case PagingModel::MNetwork:			bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::MNetwork>>(rom);		break;
+				case PagingModel::None:				bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Unpaged>>(rom);			break;
+				case PagingModel::ParkerBros:		bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::ParkerBros>>(rom);		break;
+				case PagingModel::Pitfall2:			bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Pitfall2>>(rom);		break;
+				case PagingModel::Tigervision:		bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Tigervision>>(rom);		break;
 
 				case PagingModel::Atari8k:
 					if(target.uses_superchip) {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari8kSuperChip>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari8kSuperChip>>(rom);
 					} else {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari8k>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari8k>>(rom);
 					}
 				break;
 				case PagingModel::Atari16k:
 					if(target.uses_superchip) {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari16kSuperChip>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari16kSuperChip>>(rom);
 					} else {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari16k>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari16k>>(rom);
 					}
 				break;
 				case PagingModel::Atari32k:
 					if(target.uses_superchip) {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari32kSuperChip>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari32kSuperChip>>(rom);
 					} else {
-						bus_.reset(new Cartridge::Cartridge<Cartridge::Atari32k>(rom));
+						bus_ = std::make_unique<Cartridge::Cartridge<Cartridge::Atari32k>>(rom);
 					}
 				break;
 			}
 
 			joysticks_.emplace_back(new Joystick(bus_.get(), 0, 0));
 			joysticks_.emplace_back(new Joystick(bus_.get(), 4, 1));
+
+			set_is_ntsc(is_ntsc_);
 		}
 
-		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() override {
+		const std::vector<std::unique_ptr<Inputs::Joystick>> &get_joysticks() final {
 			return joysticks_;
 		}
 
-		void set_switch_is_enabled(Atari2600Switch input, bool state) override {
+		void set_switch_is_enabled(Atari2600Switch input, bool state) final {
 			switch(input) {
 				case Atari2600SwitchReset:					bus_->mos6532_.update_port_input(1, 0x01, state);	break;
 				case Atari2600SwitchSelect:					bus_->mos6532_.update_port_input(1, 0x02, state);	break;
@@ -138,7 +138,7 @@ class ConcreteMachine:
 			}
 		}
 
-		bool get_switch_is_enabled(Atari2600Switch input) override {
+		bool get_switch_is_enabled(Atari2600Switch input) final {
 			uint8_t port_input = bus_->mos6532_.get_port_input(1);
 			switch(input) {
 				case Atari2600SwitchReset:					return !!(port_input & 0x01);
@@ -150,90 +150,69 @@ class ConcreteMachine:
 			}
 		}
 
-		void set_reset_switch(bool state) override {
+		void set_reset_switch(bool state) final {
 			bus_->set_reset_line(state);
 		}
 
 		// to satisfy CRTMachine::Machine
-		void set_scan_target(Outputs::Display::ScanTarget *scan_target) override {
-			bus_->speaker_.set_input_rate(static_cast<float>(get_clock_rate() / static_cast<double>(CPUTicksPerAudioTick)));
-			bus_->tia_.set_crt_delegate(this);
+		void set_scan_target(Outputs::Display::ScanTarget *scan_target) final {
+			bus_->speaker_.set_input_rate(float(get_clock_rate() / double(CPUTicksPerAudioTick)));
+			bus_->tia_.set_crt_delegate(&frequency_mismatch_warner_);
 			bus_->tia_.set_scan_target(scan_target);
 		}
 
-		Outputs::Speaker::Speaker *get_speaker() override {
+		Outputs::Display::ScanStatus get_scaled_scan_status() const final {
+			return bus_->tia_.get_scaled_scan_status() / 3.0f;
+		}
+
+		Outputs::Speaker::Speaker *get_speaker() final {
 			return &bus_->speaker_;
 		}
 
-		void run_for(const Cycles cycles) override {
+		void run_for(const Cycles cycles) final {
 			bus_->run_for(cycles);
 			bus_->apply_confidence(confidence_counter_);
 		}
 
-		// to satisfy Outputs::CRT::Delegate
-		void crt_did_end_batch_of_frames(Outputs::CRT::CRT *crt, int number_of_frames, int number_of_unexpected_vertical_syncs) override {
-			const std::size_t number_of_frame_records = sizeof(frame_records_) / sizeof(frame_records_[0]);
-			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_frames = number_of_frames;
-			frame_records_[frame_record_pointer_ % number_of_frame_records].number_of_unexpected_vertical_syncs = number_of_unexpected_vertical_syncs;
-			frame_record_pointer_ ++;
-
-			if(frame_record_pointer_ >= 6) {
-				int total_number_of_frames = 0;
-				int total_number_of_unexpected_vertical_syncs = 0;
-				for(std::size_t c = 0; c < number_of_frame_records; c++) {
-					total_number_of_frames += frame_records_[c].number_of_frames;
-					total_number_of_unexpected_vertical_syncs += frame_records_[c].number_of_unexpected_vertical_syncs;
-				}
-
-				if(total_number_of_unexpected_vertical_syncs >= total_number_of_frames >> 1) {
-					for(std::size_t c = 0; c < number_of_frame_records; c++) {
-						frame_records_[c].number_of_frames = 0;
-						frame_records_[c].number_of_unexpected_vertical_syncs = 0;
-					}
-					is_ntsc_ ^= true;
-
-					double clock_rate;
-					if(is_ntsc_) {
-						clock_rate = NTSC_clock_rate;
-						bus_->tia_.set_output_mode(TIA::OutputMode::NTSC);
-					} else {
-						clock_rate = PAL_clock_rate;
-						bus_->tia_.set_output_mode(TIA::OutputMode::PAL);
-					}
-
-					bus_->speaker_.set_input_rate(static_cast<float>(clock_rate / static_cast<double>(CPUTicksPerAudioTick)));
-					bus_->speaker_.set_high_frequency_cutoff(static_cast<float>(clock_rate / (static_cast<double>(CPUTicksPerAudioTick) * 2.0)));
-					set_clock_rate(clock_rate);
-				}
-			}
+		void flush() {
+			bus_->flush();
 		}
 
-		float get_confidence() override {
+		void register_crt_frequency_mismatch() {
+			is_ntsc_ ^= true;
+			set_is_ntsc(is_ntsc_);
+		}
+
+		float get_confidence() final {
 			return confidence_counter_.get_confidence();
 		}
 
 	private:
-		// the bus
+		// The bus.
 		std::unique_ptr<Bus> bus_;
 
-		// output frame rate tracker
-		struct FrameRecord {
-			int number_of_frames = 0;
-			int number_of_unexpected_vertical_syncs = 0;
-		} frame_records_[4];
-		unsigned int frame_record_pointer_ = 0;
+		// Output frame rate tracker.
+		Outputs::CRT::CRTFrequencyMismatchWarner<ConcreteMachine> frequency_mismatch_warner_;
 		bool is_ntsc_ = true;
 		std::vector<std::unique_ptr<Inputs::Joystick>> joysticks_;
 
 		// a confidence counter
 		Analyser::Dynamic::ConfidenceCounter confidence_counter_;
+
+		void set_is_ntsc(bool is_ntsc) {
+			bus_->tia_.set_output_mode(is_ntsc ? TIA::OutputMode::NTSC : TIA::OutputMode::PAL);
+			const double clock_rate = is_ntsc ? NTSC_clock_rate : PAL_clock_rate;
+			bus_->speaker_.set_input_rate(float(clock_rate) / float(CPUTicksPerAudioTick));
+			bus_->speaker_.set_high_frequency_cutoff(float(clock_rate) / float(CPUTicksPerAudioTick * 2));
+			set_clock_rate(clock_rate);
+		}
 };
 
 }
 
 using namespace Atari2600;
 
-Machine *Machine::Atari2600(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &rom_fetcher) {
+Machine *Machine::Atari2600(const Analyser::Static::Target *target, const ROMMachine::ROMFetcher &) {
 	const Target *const atari_target = dynamic_cast<const Target *>(target);
 	return new Atari2600::ConcreteMachine(*atari_target);
 }

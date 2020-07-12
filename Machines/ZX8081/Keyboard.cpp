@@ -10,7 +10,7 @@
 
 using namespace ZX8081;
 
-uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
+uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) const {
 #define BIND(source, dest)	case Inputs::Keyboard::Key::source:	return ZX8081::dest
 	switch(key) {
 		default: break;
@@ -28,17 +28,26 @@ uint16_t KeyboardMapper::mapped_key_for_key(Inputs::Keyboard::Key key) {
 		BIND(FullStop, KeyDot);
 		BIND(Enter, KeyEnter);
 		BIND(Space, KeySpace);
+
+		// Virtual keys follow.
+		BIND(Backspace, KeyDelete);
+		BIND(Escape, KeyBreak);
+		BIND(Up, KeyUp);
+		BIND(Down, KeyDown);
+		BIND(Left, KeyLeft);
+		BIND(Right, KeyRight);
+		BIND(BackTick, KeyEdit);	BIND(F1, KeyEdit);
 	}
 #undef BIND
-	return KeyboardMachine::MappedMachine::KeyNotMapped;
+	return MachineTypes::MappedKeyboardMachine::KeyNotMapped;
 }
 
 CharacterMapper::CharacterMapper(bool is_zx81) : is_zx81_(is_zx81) {}
 
-uint16_t *CharacterMapper::sequence_for_character(char character) {
-#define KEYS(...)	{__VA_ARGS__, KeyboardMachine::MappedMachine::KeyEndSequence}
-#define SHIFT(...)	{KeyShift, __VA_ARGS__, KeyboardMachine::MappedMachine::KeyEndSequence}
-#define X			{KeyboardMachine::MappedMachine::KeyNotMapped}
+const uint16_t *CharacterMapper::sequence_for_character(char character) const {
+#define KEYS(...)	{__VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
+#define SHIFT(...)	{KeyShift, __VA_ARGS__, MachineTypes::MappedKeyboardMachine::KeyEndSequence}
+#define X			{MachineTypes::MappedKeyboardMachine::KeyNotMapped}
 	static KeySequence zx81_key_sequences[] = {
 		/* NUL */	X,							/* SOH */	X,
 		/* STX */	X,							/* ETX */	X,
@@ -46,7 +55,7 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		/* ACK */	X,							/* BEL */	X,
 		/* BS */	SHIFT(Key0),				/* HT */	X,
 		/* LF */	KEYS(KeyEnter),				/* VT */	X,
-		/* FF */	X,							/* CR */	X,
+		/* FF */	X,							/* CR */	KEYS(KeyEnter),
 		/* SO */	X,							/* SI */	X,
 		/* DLE */	X,							/* DC1 */	X,
 		/* DC2 */	X,							/* DC3 */	X,
@@ -112,7 +121,7 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		/* ACK */	X,							/* BEL */	X,
 		/* BS */	SHIFT(Key0),				/* HT */	X,
 		/* LF */	KEYS(KeyEnter),				/* VT */	X,
-		/* FF */	X,							/* CR */	X,
+		/* FF */	X,							/* CR */	KEYS(KeyEnter),
 		/* SO */	X,							/* SI */	X,
 		/* DLE */	X,							/* DC1 */	X,
 		/* DC2 */	X,							/* DC3 */	X,
@@ -178,4 +187,8 @@ uint16_t *CharacterMapper::sequence_for_character(char character) {
 		return table_lookup_sequence_for_character(zx81_key_sequences, sizeof(zx81_key_sequences), character);
 	else
 		return table_lookup_sequence_for_character(zx80_key_sequences, sizeof(zx80_key_sequences), character);
+}
+
+bool CharacterMapper::needs_pause_after_key(uint16_t key) const {
+	return key != KeyShift;
 }

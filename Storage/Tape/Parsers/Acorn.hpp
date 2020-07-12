@@ -10,14 +10,14 @@
 #define Storage_Tape_Parsers_Acorn_hpp
 
 #include "TapeParser.hpp"
-#include "../../../NumberTheory/CRC.hpp"
+#include "../../../Numeric/CRC.hpp"
 #include "../../Disk/DPLL/DigitalPhaseLockedLoop.hpp"
 
 namespace Storage {
 namespace Tape {
 namespace Acorn {
 
-class Shifter: public Storage::DigitalPhaseLockedLoop::Delegate {
+class Shifter {
 	public:
 		Shifter();
 
@@ -34,11 +34,10 @@ class Shifter: public Storage::DigitalPhaseLockedLoop::Delegate {
 		void digital_phase_locked_loop_output_bit(int value);
 
 	private:
-		Storage::DigitalPhaseLockedLoop pll_;
+		Storage::DigitalPhaseLockedLoop<Shifter, 15> pll_;
 		bool was_high_;
 
 		unsigned int input_pattern_;
-		unsigned int input_bit_counter_;
 
 		Delegate *delegate_;
 };

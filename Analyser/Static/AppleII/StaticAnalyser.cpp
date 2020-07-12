@@ -9,9 +9,8 @@
 #include "StaticAnalyser.hpp"
 #include "Target.hpp"
 
-Analyser::Static::TargetList Analyser::Static::AppleII::GetTargets(const Media &media, const std::string &file_name, TargetPlatform::IntType potential_platforms) {
-	auto target = std::unique_ptr<Target>(new Target);
-	target->machine = Machine::AppleII;
+Analyser::Static::TargetList Analyser::Static::AppleII::GetTargets(const Media &media, const std::string &, TargetPlatform::IntType) {
+	auto target = std::make_unique<Target>();
 	target->media = media;
 
 	if(!target->media.disks.empty())

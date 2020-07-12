@@ -7,7 +7,6 @@
 //
 
 #include "TimedEventLoop.hpp"
-#include "../NumberTheory/Factors.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -46,11 +45,11 @@ void TimedEventLoop::run_for(const Cycles cycles) {
 	assert(cycles_until_event_ > 0);
 }
 
-Cycles::IntType TimedEventLoop::get_cycles_until_next_event() {
+Cycles::IntType TimedEventLoop::get_cycles_until_next_event() const {
 	return std::max(cycles_until_event_, Cycles::IntType(0));
 }
 
-Cycles::IntType TimedEventLoop::get_input_clock_rate() {
+Cycles::IntType TimedEventLoop::get_input_clock_rate() const {
 	return input_clock_rate_;
 }
 

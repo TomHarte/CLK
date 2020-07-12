@@ -46,6 +46,11 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 	CSTestMachineZ80RegisterMemPtr
 };
 
+typedef NS_ENUM(NSInteger, CSTestMachinePortLogic) {
+	CSTestMachinePortLogicReturnUpperByte,
+	CSTestMachinePortLogicReturn191
+};
+
 @interface CSTestMachineZ80 : CSTestMachine
 
 - (void)setData:(nonnull NSData *)data atAddress:(uint16_t)startAddress;
@@ -53,6 +58,7 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 - (uint8_t)valueAtAddress:(uint16_t)address;
 
 - (void)runForNumberOfCycles:(int)cycles;
+- (void)runForInstruction;
 
 - (void)setValue:(uint16_t)value forRegister:(CSTestMachineZ80Register)reg;
 - (uint16_t)valueForRegister:(CSTestMachineZ80Register)reg;
@@ -66,5 +72,7 @@ typedef NS_ENUM(NSInteger, CSTestMachineZ80Register) {
 @property(nonatomic) BOOL nmiLine;
 @property(nonatomic) BOOL irqLine;
 @property(nonatomic) BOOL waitLine;
+
+@property(nonatomic) CSTestMachinePortLogic portLogic;
 
 @end

@@ -27,8 +27,8 @@
 
 - (void)setUp {
 	// To limit tests run to a subset of files and/or of tests, uncomment and fill in below.
-//	_fileSet = [NSSet setWithArray:@[@"eor.json"]];
-//	_testSet = [NSSet setWithArray:@[@"EOR b0c0", @"EOR b0c2", @"EOR b0c3", @"EOR b0c5", @"EOR b0c6", @"EOR b0c7", @"OR b0c7"]];
+//	_fileSet = [NSSet setWithArray:@[@"jmp_jsr.json"]];
+//	_testSet = [NSSet setWithArray:@[@"CHK 41a8"]];
 }
 
 - (void)testAll {
@@ -172,6 +172,7 @@
 		XCTAssertEqual(state.supervisor_stack_pointer, [finalState[@"a7"] integerValue], @"%@: A7 inconsistent", name);
 		XCTAssertEqual(state.user_stack_pointer, [finalState[@"usp"] integerValue], @"%@: USP inconsistent", name);
 		XCTAssertEqual(state.status, [finalState[@"sr"] integerValue], @"%@: Status inconsistent", name);
+		XCTAssertEqual(state.program_counter - 4, [finalState[@"pc"] integerValue], @"%@: Program counter inconsistent", name);
 
 		// Test final memory state.
 		NSArray<NSNumber *> *const finalMemory = test[@"final memory"];

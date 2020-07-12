@@ -10,6 +10,7 @@
 #import "CSMachine+Target.h"
 
 #include "CSROMFetcher.hpp"
+#import "CSHighPrecisionTimer.h"
 
 #include "MediaTarget.hpp"
 #include "JoystickMachine.hpp"
@@ -20,10 +21,14 @@
 #include "Typer.hpp"
 #include "../../../../Activity/Observer.hpp"
 
+#include "../../../../ClockReceiver/TimeTypes.hpp"
+#include "../../../../ClockReceiver/ScanSynchroniser.hpp"
+
 #import "CSStaticAnalyser+TargetVector.h"
 #import "NSBundle+DataResource.h"
 #import "NSData+StdVector.h"
 
+#include <atomic>
 #include <bitset>
 
 #import <OpenGL/OpenGL.h>
@@ -32,7 +37,7 @@
 #include "../../../../Outputs/OpenGL/ScanTarget.hpp"
 #include "../../../../Outputs/OpenGL/Screenshot.hpp"
 
-@interface CSMachine()
+@interface CSMachine() <CSOpenGLViewDisplayLinkDelegate>
 - (void)speaker:(Outputs::Speaker::Speaker *)speaker didCompleteSamples:(const int16_t *)samples length:(int)length;
 - (void)speakerDidChangeInputClock:(Outputs::Speaker::Speaker *)speaker;
 - (void)addLED:(NSString *)led;
@@ -46,12 +51,12 @@ struct LockProtectedDelegate {
 };
 
 struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockProtectedDelegate {
-	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) override {
+	void speaker_did_complete_samples(Outputs::Speaker::Speaker *speaker, const std::vector<int16_t> &buffer) final {
 		[machineAccessLock lock];
 		[machine speaker:speaker didCompleteSamples:buffer.data() length:(int)buffer.size()];
 		[machineAccessLock unlock];
 	}
-	void speaker_did_change_input_clock(Outputs::Speaker::Speaker *speaker) override {
+	void speaker_did_change_input_clock(Outputs::Speaker::Speaker *speaker) final {
 		[machineAccessLock lock];
 		[machine speakerDidChangeInputClock:speaker];
 		[machineAccessLock unlock];
@@ -59,15 +64,15 @@ struct SpeakerDelegate: public Outputs::Speaker::Speaker::Delegate, public LockP
 };
 
 struct ActivityObserver: public Activity::Observer {
-	void register_led(const std::string &name) override {
+	void register_led(const std::string &name) final {
 		[machine addLED:[NSString stringWithUTF8String:name.c_str()]];
 	}
 
-	void set_led_status(const std::string &name, bool lit) override {
+	void set_led_status(const std::string &name, bool lit) final {
 		[machine.delegate machine:machine led:[NSString stringWithUTF8String:name.c_str()] didChangeToLit:lit];
 	}
 
-	void announce_drive_event(const std::string &name, DriveEvent event) override {
+	void announce_drive_event(const std::string &name, DriveEvent) final {
 		[machine.delegate machine:machine ledShouldBlink:[NSString stringWithUTF8String:name.c_str()]];
 	}
 
@@ -143,11 +148,22 @@ struct ActivityObserver: public Activity::Observer {
 
 	CSStaticAnalyser *_analyser;
 	std::unique_ptr<Machine::DynamicMachine> _machine;
-	JoystickMachine::Machine *_joystickMachine;
+	MachineTypes::JoystickMachine *_joystickMachine;
 
 	CSJoystickManager *_joystickManager;
-	std::bitset<65536> _depressedKeys;
 	NSMutableArray<NSString *> *_leds;
+
+	CSHighPrecisionTimer *_timer;
+	CGSize _pixelSize;
+	std::atomic_flag _isUpdating;
+	Time::Nanos _syncTime;
+	Time::Nanos _timeDiff;
+	double _refreshPeriod;
+	BOOL _isSyncLocking;
+
+	Time::ScanSynchroniser _scanSynchroniser;
+
+	NSTimer *_joystickTimer;
 
 	std::unique_ptr<Outputs::Display::OpenGL::ScanTarget> _scanTarget;
 }
@@ -184,9 +200,10 @@ struct ActivityObserver: public Activity::Observer {
 			return nil;
 		}
 
+		// Use the keyboard as a joystick if the machine has no keyboard, or if it has a 'non-exclusive' keyboard.
 		_inputMode =
 			(_machine->keyboard_machine() && _machine->keyboard_machine()->get_keyboard().is_exclusive())
-				? CSMachineKeyboardInputModeKeyboard : CSMachineKeyboardInputModeJoystick;
+				? CSMachineKeyboardInputModeKeyboardPhysical : CSMachineKeyboardInputModeJoystick;
 
 		_leds = [[NSMutableArray alloc] init];
 		Activity::Source *const activity_source = _machine->activity_source();
@@ -201,6 +218,8 @@ struct ActivityObserver: public Activity::Observer {
 		_speakerDelegate.machineAccessLock = _delegateMachineAccessLock;
 
 		_joystickMachine = _machine->joystick_machine();
+		[self updateJoystickTimer];
+		_isUpdating.clear();
 	}
 	return self;
 }
@@ -214,6 +233,8 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)dealloc {
+	[_joystickTimer invalidate];
+
 	// The two delegate's references to this machine are nilled out here because close_output may result
 	// in a data flush, which might cause an audio callback, which could cause the audio queue to decide
 	// that it's out of data, resulting in an attempt further to run the machine while it is dealloc'ing.
@@ -233,7 +254,7 @@ struct ActivityObserver: public Activity::Observer {
 
 - (float)idealSamplingRateFromRange:(NSRange)range {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
 		if(speaker) {
 			return speaker->get_ideal_clock_rate_in_range((float)range.location, (float)(range.location + range.length));
 		}
@@ -241,17 +262,27 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
-- (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize {
+- (BOOL)isStereo {
 	@synchronized(self) {
-		[self setSpeakerDelegate:&_speakerDelegate sampleRate:samplingRate bufferSize:bufferSize];
+		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		if(speaker) {
+			return speaker->get_is_stereo();
+		}
+		return NO;
 	}
 }
 
-- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize {
+- (void)setAudioSamplingRate:(float)samplingRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo {
 	@synchronized(self) {
-		Outputs::Speaker::Speaker *speaker = _machine->crt_machine()->get_speaker();
+		[self setSpeakerDelegate:&_speakerDelegate sampleRate:samplingRate bufferSize:bufferSize stereo:stereo];
+	}
+}
+
+- (BOOL)setSpeakerDelegate:(Outputs::Speaker::Speaker::Delegate *)delegate sampleRate:(float)sampleRate bufferSize:(NSUInteger)bufferSize stereo:(BOOL)stereo {
+	@synchronized(self) {
+		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
 		if(speaker) {
-			speaker->set_output_rate(sampleRate, (int)bufferSize);
+			speaker->set_output_rate(sampleRate, (int)bufferSize, stereo);
 			speaker->set_delegate(delegate);
 			return YES;
 		}
@@ -259,74 +290,87 @@ struct ActivityObserver: public Activity::Observer {
 	}
 }
 
-- (void)runForInterval:(NSTimeInterval)interval {
+- (void)updateJoystickTimer {
+	// Joysticks updates are scheduled for a nominal 200 polls/second, using a plain old NSTimer.
+	if(_joystickMachine && _joystickManager) {
+		_joystickTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 / 200.0 target:self selector:@selector(updateJoysticks) userInfo:nil repeats:YES];
+	} else {
+		[_joystickTimer invalidate];
+		_joystickTimer = nil;
+	}
+}
+
+- (void)updateJoysticks {
+	[_joystickManager update];
+
+	// TODO: configurable mapping from physical joypad inputs to machine inputs.
+	// Until then, apply a default mapping.
+
 	@synchronized(self) {
-		if(_joystickMachine && _joystickManager) {
-			[_joystickManager update];
+		size_t c = 0;
+		auto &machine_joysticks = _joystickMachine->get_joysticks();
+		for(CSJoystick *joystick in _joystickManager.joysticks) {
+			size_t target = c % machine_joysticks.size();
+			++c;
 
-			// TODO: configurable mapping from physical joypad inputs to machine inputs.
-			// Until then, apply a default mapping.
-
-			size_t c = 0;
-			auto &machine_joysticks = _joystickMachine->get_joysticks();
-			for(CSJoystick *joystick in _joystickManager.joysticks) {
-				size_t target = c % machine_joysticks.size();
-				++c;
-
-				// Post the first two analogue axes presented by the controller as horizontal and vertical inputs,
-				// unless the user seems to be using a hat.
-				// SDL will return a value in the range [-32768, 32767], so map from that to [0, 1.0]
-				if(!joystick.hats.count || !joystick.hats[0].direction) {
-					if(joystick.axes.count > 0) {
-						const float x_axis = joystick.axes[0].position;
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Horizontal), x_axis);
-					}
-					if(joystick.axes.count > 1) {
-						const float y_axis = joystick.axes[1].position;
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Vertical), y_axis);
-					}
-				} else {
-					// Forward hats as directions; hats always override analogue inputs.
-					for(CSJoystickHat *hat in joystick.hats) {
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Up), !!(hat.direction & CSJoystickHatDirectionUp));
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Down), !!(hat.direction & CSJoystickHatDirectionDown));
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Left), !!(hat.direction & CSJoystickHatDirectionLeft));
-						machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Right), !!(hat.direction & CSJoystickHatDirectionRight));
-					}
+			// Post the first two analogue axes presented by the controller as horizontal and vertical inputs,
+			// unless the user seems to be using a hat.
+			// SDL will return a value in the range [-32768, 32767], so map from that to [0, 1.0]
+			if(!joystick.hats.count || !joystick.hats[0].direction) {
+				if(joystick.axes.count > 0) {
+					const float x_axis = joystick.axes[0].position;
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Horizontal), x_axis);
 				}
+				if(joystick.axes.count > 1) {
+					const float y_axis = joystick.axes[1].position;
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Vertical), y_axis);
+				}
+			} else {
+				// Forward hats as directions; hats always override analogue inputs.
+				for(CSJoystickHat *hat in joystick.hats) {
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Up), !!(hat.direction & CSJoystickHatDirectionUp));
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Down), !!(hat.direction & CSJoystickHatDirectionDown));
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Left), !!(hat.direction & CSJoystickHatDirectionLeft));
+					machine_joysticks[target]->set_input(Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Right), !!(hat.direction & CSJoystickHatDirectionRight));
+				}
+			}
 
-				// Forward all fire buttons, mapping as a function of index.
-				if(machine_joysticks[target]->get_number_of_fire_buttons()) {
-					std::vector<bool> button_states((size_t)machine_joysticks[target]->get_number_of_fire_buttons());
-					for(CSJoystickButton *button in joystick.buttons) {
-						if(button.isPressed) button_states[(size_t)(((int)button.index - 1) % machine_joysticks[target]->get_number_of_fire_buttons())] = true;
-					}
-					for(size_t index = 0; index < button_states.size(); ++index) {
-						machine_joysticks[target]->set_input(
-							Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Fire, index),
-							button_states[index]);
-					}
+			// Forward all fire buttons, mapping as a function of index.
+			if(machine_joysticks[target]->get_number_of_fire_buttons()) {
+				std::vector<bool> button_states((size_t)machine_joysticks[target]->get_number_of_fire_buttons());
+				for(CSJoystickButton *button in joystick.buttons) {
+					if(button.isPressed) button_states[(size_t)(((int)button.index - 1) % machine_joysticks[target]->get_number_of_fire_buttons())] = true;
+				}
+				for(size_t index = 0; index < button_states.size(); ++index) {
+					machine_joysticks[target]->set_input(
+						Inputs::Joystick::Input(Inputs::Joystick::Input::Type::Fire, index),
+						button_states[index]);
 				}
 			}
 		}
-		_machine->crt_machine()->run_for(interval);
 	}
 }
 
 - (void)setView:(CSOpenGLView *)view aspectRatio:(float)aspectRatio {
 	_view = view;
+	_view.displayLinkDelegate = self;
 	[view performWithGLContext:^{
 		[self setupOutputWithAspectRatio:aspectRatio];
-	}];
+	} flushDrawable:NO];
 }
 
 - (void)setupOutputWithAspectRatio:(float)aspectRatio {
-	_scanTarget.reset(new Outputs::Display::OpenGL::ScanTarget);
-	_machine->crt_machine()->set_scan_target(_scanTarget.get());
+	_scanTarget = std::make_unique<Outputs::Display::OpenGL::ScanTarget>();
+	_machine->scan_producer()->set_scan_target(_scanTarget.get());
 }
 
 - (void)updateViewForPixelSize:(CGSize)pixelSize {
-	_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+//	_pixelSize = pixelSize;
+
+//	@synchronized(self) {
+//		const auto scan_status = _machine->crt_machine()->get_scan_status();
+//		NSLog(@"FPS (hopefully): %0.2f [retrace: %0.4f]", 1.0f / scan_status.field_duration, scan_status.retrace_duration);
+//	}
 }
 
 - (void)drawViewForPixelSize:(CGSize)pixelSize {
@@ -334,7 +378,7 @@ struct ActivityObserver: public Activity::Observer {
 }
 
 - (void)paste:(NSString *)paste {
-	KeyboardMachine::Machine *keyboardMachine = _machine->keyboard_machine();
+	auto keyboardMachine = _machine->keyboard_machine();
 	if(keyboardMachine)
 		keyboardMachine->type_string([paste UTF8String]);
 }
@@ -364,26 +408,28 @@ struct ActivityObserver: public Activity::Observer {
 
 - (void)applyMedia:(const Analyser::Static::Media &)media {
 	@synchronized(self) {
-		MediaTarget::Machine *const mediaTarget = _machine->media_target();
+		const auto mediaTarget = _machine->media_target();
 		if(mediaTarget) mediaTarget->insert_media(media);
 	}
 }
 
 - (void)setJoystickManager:(CSJoystickManager *)joystickManager {
-	@synchronized(self) {
-		_joystickManager = joystickManager;
-		if(_joystickMachine) {
+	_joystickManager = joystickManager;
+	if(_joystickMachine) {
+		@synchronized(self) {
 			auto &machine_joysticks = _joystickMachine->get_joysticks();
 			for(const auto &joystick: machine_joysticks) {
 				joystick->reset_all_inputs();
 			}
 		}
 	}
+
+	[self updateJoystickTimer];
 }
 
 - (void)setKey:(uint16_t)key characters:(NSString *)characters isPressed:(BOOL)isPressed {
 	auto keyboard_machine = _machine->keyboard_machine();
-	if(keyboard_machine && (self.inputMode == CSMachineKeyboardInputModeKeyboard || !keyboard_machine->get_keyboard().is_exclusive())) {
+	if(keyboard_machine && (self.inputMode != CSMachineKeyboardInputModeJoystick || !keyboard_machine->get_keyboard().is_exclusive())) {
 		Inputs::Keyboard::Key mapped_key = Inputs::Keyboard::Key::Help;	// Make an innocuous default guess.
 #define BIND(source, dest) case source: mapped_key = Inputs::Keyboard::Key::dest; break;
 		// Connect the Carbon-era Mac keyboard scancodes to Clock Signal's 'universal' enumeration in order
@@ -441,26 +487,19 @@ struct ActivityObserver: public Activity::Observer {
 		}
 #undef BIND
 
-		Inputs::Keyboard &keyboard = keyboard_machine->get_keyboard();
-
-		if(keyboard.observed_keys().find(mapped_key) != keyboard.observed_keys().end()) {
-			// Don't pass anything on if this is not new information.
-			if(_depressedKeys[key] == !!isPressed) return;
-			_depressedKeys[key] = !!isPressed;
-
-			// Pick an ASCII code, if any.
-			char pressedKey = '\0';
-			if(characters.length) {
-				unichar firstCharacter = [characters characterAtIndex:0];
-				if(firstCharacter < 128) {
-					pressedKey = (char)firstCharacter;
-				}
+		// Pick an ASCII code, if any.
+		char pressedKey = '\0';
+		if(characters.length) {
+			unichar firstCharacter = [characters characterAtIndex:0];
+			if(firstCharacter < 128) {
+				pressedKey = (char)firstCharacter;
 			}
+		}
 
-			@synchronized(self) {
-				keyboard.set_key_pressed(mapped_key, pressedKey, isPressed);
+		@synchronized(self) {
+			if(keyboard_machine->apply_key(mapped_key, pressedKey, isPressed, self.inputMode == CSMachineKeyboardInputModeKeyboardLogical)) {
+				return;
 			}
-			return;
 		}
 	}
 
@@ -546,9 +585,9 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		_useFastLoadingHack = useFastLoadingHack;
 
-		Configurable::SelectionSet selection_set;
-		append_quick_load_tape_selection(selection_set, useFastLoadingHack ? true : false);
-		configurable_device->set_selections(selection_set);
+		auto options = configurable_device->get_options();
+		Reflection::set(*options, "quickload", useFastLoadingHack ? true : false);
+		configurable_device->set_options(options);
 	}
 }
 
@@ -559,7 +598,6 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		_videoSignal = videoSignal;
 
-		Configurable::SelectionSet selection_set;
 		Configurable::Display display;
 		switch(videoSignal) {
 			case CSMachineVideoSignalRGB:					display = Configurable::Display::RGB;					break;
@@ -567,45 +605,35 @@ struct ActivityObserver: public Activity::Observer {
 			case CSMachineVideoSignalComposite:				display = Configurable::Display::CompositeColour;		break;
 			case CSMachineVideoSignalMonochromeComposite:	display = Configurable::Display::CompositeMonochrome;	break;
 		}
-		append_display_selection(selection_set, display);
-		configurable_device->set_selections(selection_set);
+
+		auto options = configurable_device->get_options();
+		Reflection::set(*options, "output", int(display));
+		configurable_device->set_options(options);
 	}
 }
 
-- (bool)supportsVideoSignal:(CSMachineVideoSignal)videoSignal {
+- (BOOL)supportsVideoSignal:(CSMachineVideoSignal)videoSignal {
 	Configurable::Device *configurable_device = _machine->configurable_device();
 	if(!configurable_device) return NO;
 
 	// Get the options this machine provides.
-	std::vector<std::unique_ptr<Configurable::Option>> options;
 	@synchronized(self) {
-		options = configurable_device->get_options();
-	}
+		auto options = configurable_device->get_options();
 
-	// Get the standard option for this video signal.
-	Configurable::StandardOptions option;
-	switch(videoSignal) {
-		case CSMachineVideoSignalRGB:					option = Configurable::DisplayRGB;					break;
-		case CSMachineVideoSignalSVideo:				option = Configurable::DisplaySVideo;				break;
-		case CSMachineVideoSignalComposite:				option = Configurable::DisplayCompositeColour;		break;
-		case CSMachineVideoSignalMonochromeComposite:	option = Configurable::DisplayCompositeMonochrome;	break;
-	}
-	std::unique_ptr<Configurable::Option> display_option = std::move(standard_options(option).front());
-	Configurable::ListOption *display_list_option = dynamic_cast<Configurable::ListOption *>(display_option.get());
-	NSAssert(display_list_option, @"Expected display option to be a list");
+		// Get the standard option for this video signal.
+		Configurable::Display option;
+		switch(videoSignal) {
+			case CSMachineVideoSignalRGB:					option = Configurable::Display::RGB;					break;
+			case CSMachineVideoSignalSVideo:				option = Configurable::Display::SVideo;					break;
+			case CSMachineVideoSignalComposite:				option = Configurable::Display::CompositeColour;		break;
+			case CSMachineVideoSignalMonochromeComposite:	option = Configurable::Display::CompositeMonochrome;	break;
+		}
 
-	// See whether the video signal is included in the machine options.
-	for(auto &candidate: options) {
-		Configurable::ListOption *list_option = dynamic_cast<Configurable::ListOption *>(candidate.get());
+		// Map to a string and check against returned options for the 'output' field.
+		const auto string_option = Reflection::Enum::to_string<Configurable::Display>(option);
+		const auto all_values = options->values_for("output");
 
-		// Both should be list options
-		if(!list_option) continue;
-
-		// Check for same name of option.
-		if(candidate->short_name != display_option->short_name) continue;
-
-		// Check that the video signal option is included.
-		return std::find(list_option->options.begin(), list_option->options.end(), display_list_option->options.front()) != list_option->options.end();
+		return std::find(all_values.begin(), all_values.end(), string_option) != all_values.end();
 	}
 
 	return NO;
@@ -618,9 +646,9 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		_useAutomaticTapeMotorControl = useAutomaticTapeMotorControl;
 
-		Configurable::SelectionSet selection_set;
-		append_automatic_tape_motor_control_selection(selection_set, useAutomaticTapeMotorControl ? true : false);
-		configurable_device->set_selections(selection_set);
+		auto options = configurable_device->get_options();
+		Reflection::set(*options, "automatic_tape_motor_control", useAutomaticTapeMotorControl ? true : false);
+		configurable_device->set_options(options);
 	}
 }
 
@@ -631,9 +659,9 @@ struct ActivityObserver: public Activity::Observer {
 	@synchronized(self) {
 		_useQuickBootingHack = useQuickBootingHack;
 
-		Configurable::SelectionSet selection_set;
-		append_quick_boot_selection(selection_set, useQuickBootingHack ? true : false);
-		configurable_device->set_selections(selection_set);
+		auto options = configurable_device->get_options();
+		Reflection::set(*options, "quickboot", useQuickBootingHack ? true : false);
+		configurable_device->set_options(options);
 	}
 }
 
@@ -679,6 +707,24 @@ struct ActivityObserver: public Activity::Observer {
 			essential_modifiers.find(Inputs::Keyboard::Key::RightMeta) != essential_modifiers.end();
 }
 
+#pragma mark - Volume control
+
+- (void)setVolume:(float)volume {
+	@synchronized(self) {
+		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		if(speaker) {
+			return speaker->set_output_volume(volume);
+		}
+	}
+}
+
+- (BOOL)hasAudioOutput {
+	@synchronized(self) {
+		Outputs::Speaker::Speaker *speaker = _machine->audio_producer()->get_speaker();
+		return speaker ? YES : NO;
+	}
+}
+
 #pragma mark - Activity observation
 
 - (void)addLED:(NSString *)led {
@@ -687,6 +733,115 @@ struct ActivityObserver: public Activity::Observer {
 
 - (NSArray<NSString *> *)leds {
 	return _leds;
+}
+
+#pragma mark - Timer
+
+- (void)openGLViewDisplayLinkDidFire:(CSOpenGLView *)view now:(const CVTimeStamp *)now outputTime:(const CVTimeStamp *)outputTime {
+	// First order of business: grab a timestamp.
+	const auto timeNow = Time::nanos_now();
+
+	CGSize pixelSize = view.backingSize;
+	BOOL isSyncLocking;
+	@synchronized(self) {
+		// Store a means to map from CVTimeStamp.hostTime to Time::Nanos;
+		// there is an extremely dodgy assumption here that the former is in ns.
+		if(!_timeDiff) {
+			_timeDiff = int64_t(now->hostTime) - int64_t(timeNow);
+		}
+
+		// Store the next end-of-frame time. TODO: and start of next and implied visible duration, if raster racing?
+		_syncTime = int64_t(now->hostTime) + _timeDiff;
+
+		// Also crib the current view pixel size.
+		_pixelSize = pixelSize;
+
+		// Set the current refresh period.
+		_refreshPeriod = double(now->videoRefreshPeriod) / double(now->videoTimeScale);
+
+		// Determine where responsibility lies for drawing.
+		isSyncLocking = _isSyncLocking;
+	}
+
+	// Draw the current output. (TODO: do this within the timer if either raster racing or, at least, sync matching).
+	if(!isSyncLocking) {
+		[self.view performWithGLContext:^{
+			self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
+		} flushDrawable:YES];
+	}
+}
+
+#define TICKS	600
+
+- (void)start {
+	__block auto lastTime = Time::nanos_now();
+
+	_timer = [[CSHighPrecisionTimer alloc] initWithTask:^{
+		// Grab the time now and, therefore, the amount of time since the timer last fired
+		// (subject to a cap to avoid potential perpetual regression).
+		const auto timeNow = Time::nanos_now();
+		lastTime = std::max(timeNow - Time::Nanos(10'000'000'000 / TICKS), lastTime);
+		const auto duration = timeNow - lastTime;
+
+		CGSize pixelSize;
+		BOOL splitAndSync = NO;
+		@synchronized(self) {
+			// If this tick includes vsync then inspect the machine.
+			if(timeNow >= self->_syncTime && lastTime < self->_syncTime) {
+				splitAndSync = self->_isSyncLocking = self->_scanSynchroniser.can_synchronise(self->_machine->scan_producer()->get_scan_status(), self->_refreshPeriod);
+
+				// If the time window is being split, run up to the split, then check out machine speed, possibly
+				// adjusting multiplier, then run after the split.
+				if(splitAndSync) {
+					self->_machine->timed_machine()->run_for((double)(self->_syncTime - lastTime) / 1e9);
+					self->_machine->timed_machine()->set_speed_multiplier(
+						self->_scanSynchroniser.next_speed_multiplier(self->_machine->scan_producer()->get_scan_status())
+					);
+					self->_machine->timed_machine()->run_for((double)(timeNow - self->_syncTime) / 1e9);
+				}
+			}
+
+			// If the time window is being split, run up to the split, then check out machine speed, possibly
+			// adjusting multiplier, then run after the split.
+			if(!splitAndSync) {
+				self->_machine->timed_machine()->run_for((double)duration / 1e9);
+			}
+			pixelSize = self->_pixelSize;
+		}
+
+		// If this was not a split-and-sync then dispatch the update request asynchronously, unless
+		// there is an earlier one not yet finished, in which case don't worry about it for now.
+		//
+		// If it was a split-and-sync then spin until it is safe to dispatch, and dispatch with
+		// a concluding draw. Implicit assumption here: whatever is left to be done in the final window
+		// can be done within the retrace period.
+		auto wasUpdating = self->_isUpdating.test_and_set();
+		if(wasUpdating && splitAndSync) {
+			while(self->_isUpdating.test_and_set());
+			wasUpdating = false;
+		}
+		if(!wasUpdating) {
+			dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
+				[self.view performWithGLContext:^{
+					self->_scanTarget->update((int)pixelSize.width, (int)pixelSize.height);
+
+					if(splitAndSync) {
+						self->_scanTarget->draw((int)pixelSize.width, (int)pixelSize.height);
+					}
+				} flushDrawable:splitAndSync];
+				self->_isUpdating.clear();
+			});
+		}
+
+		lastTime = timeNow;
+	} interval:uint64_t(1000000000) / uint64_t(TICKS)];
+}
+
+#undef TICKS
+
+- (void)stop {
+	[_timer invalidate];
+	_timer = nil;
 }
 
 @end

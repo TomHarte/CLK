@@ -25,35 +25,24 @@ template<typename T> class TypedDynamicMachine: public ::Machine::DynamicMachine
 			return *this;
 		}
 
-		Activity::Source *activity_source() override {
-			return get<Activity::Source>();
+#define Provide(type, name)	\
+		type *name() final {	\
+			return get<type>();	\
 		}
 
-		MediaTarget::Machine *media_target() override {
-			return get<MediaTarget::Machine>();
-		}
+		Provide(Activity::Source, activity_source)
+		Provide(Configurable::Device, configurable_device)
+		Provide(MachineTypes::TimedMachine, timed_machine)
+		Provide(MachineTypes::ScanProducer, scan_producer)
+		Provide(MachineTypes::AudioProducer, audio_producer)
+		Provide(MachineTypes::JoystickMachine, joystick_machine)
+		Provide(MachineTypes::KeyboardMachine, keyboard_machine)
+		Provide(MachineTypes::MouseMachine, mouse_machine)
+		Provide(MachineTypes::MediaTarget, media_target)
 
-		CRTMachine::Machine *crt_machine() override {
-			return get<CRTMachine::Machine>();
-		}
+#undef Provide
 
-		JoystickMachine::Machine *joystick_machine() override {
-			return get<JoystickMachine::Machine>();
-		}
-
-		KeyboardMachine::Machine *keyboard_machine() override {
-			return get<KeyboardMachine::Machine>();
-		}
-
-		MouseMachine::Machine *mouse_machine() override {
-			return get<MouseMachine::Machine>();
-		}
-
-		Configurable::Device *configurable_device() override {
-			return get<Configurable::Device>();
-		}
-
-		void *raw_pointer() override {
+		void *raw_pointer() final {
 			return get();
 		}
 

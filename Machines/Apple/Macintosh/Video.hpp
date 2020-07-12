@@ -17,11 +17,11 @@
 namespace Apple {
 namespace Macintosh {
 
-static const HalfCycles line_length(704);
-static const int number_of_lines = 370;
-static const HalfCycles frame_length(line_length * HalfCycles(number_of_lines));
-static const int sync_start = 36;
-static const int sync_end = 38;
+constexpr HalfCycles line_length(704);
+constexpr int number_of_lines = 370;
+constexpr HalfCycles frame_length(line_length * HalfCycles(number_of_lines));
+constexpr int sync_start = 36;
+constexpr int sync_end = 38;
 
 /*!
 	Models the 68000-era Macintosh video hardware, producing a 512x348 pixel image,
@@ -41,6 +41,9 @@ class Video {
 			Sets the target device for video data.
 		*/
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+
+		/// Gets the current scan status.
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
 
 		/*!
 			Produces the next @c duration period of pixels.

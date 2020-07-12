@@ -23,6 +23,16 @@ class ProcessorStorage {
 
 		RegisterPair32 prefetch_queue_;		// Each word will go into the low part of the word, then proceed upward.
 
+		// Generic sources and targets for memory operations;
+		// by convention: effective_address_[0] = source, [1] = destination.
+		//
+		// These, and the various register contents above, should be kept
+		// close to the top of this class so that small-integer offsets can be
+		// used in instances of Program (see below).
+		RegisterPair32 effective_address_[2];
+		RegisterPair32 source_bus_data_;
+		RegisterPair32 destination_bus_data_;
+
 		enum class ExecutionState {
 			/// The normal mode, this means the 68000 is expending processing effort.
 			Executing,
@@ -38,12 +48,12 @@ class ProcessorStorage {
 			Halted,
 
 			/// Signals a transition from some other straight directly to cueing up an interrupt.
-			BeginInterrupt,
+			WillBeginInterrupt,
 		} execution_state_ = ExecutionState::Executing;
 		Microcycle dtack_cycle_;
 		Microcycle stop_cycle_;
 
-		// Various status bits.
+		// Various status parts.
 		int is_supervisor_;
 		int interrupt_level_;
 		uint_fast32_t zero_result_;		// The zero flag is set if this value is zero.
@@ -52,6 +62,8 @@ class ProcessorStorage {
 		uint_fast32_t overflow_flag_;	// The overflow flag is set if this value is non-zero.
 		uint_fast32_t negative_flag_;	// The negative flag is set if this value is non-zero.
 		uint_fast32_t trace_flag_;		// The trace flag is set if this value is non-zero.
+
+		uint_fast32_t last_trace_flag_ = 0;
 
 		// Bus inputs.
 		int bus_interrupt_level_ = 0;
@@ -69,12 +81,6 @@ class ProcessorStorage {
 		// TODO: surely this doesn't need to be distinct from the pending_interrupt_level_?
 		int accepted_interrupt_level_ = 0;
 		bool is_starting_interrupt_ = false;
-
-		// Generic sources and targets for memory operations;
-		// by convention: [0] = source, [1] = destination.
-		RegisterPair32 effective_address_[2];
-		RegisterPair32 source_bus_data_[1];
-		RegisterPair32 destination_bus_data_[1];
 
 		HalfCycles half_cycles_left_to_run_;
 		HalfCycles e_clock_phase_;
@@ -317,11 +323,11 @@ class ProcessorStorage {
 				// steps detail appropriately.
 				PrepareINTVector,
 			};
-			static const int SourceMask = 1 << 7;
-			static const int DestinationMask = 1 << 6;
+			static constexpr int SourceMask = 1 << 7;
+			static constexpr int DestinationMask = 1 << 6;
 			uint8_t action = uint8_t(Action::None);
 
-			static const uint16_t NoBusProgram = std::numeric_limits<uint16_t>::max();
+			static constexpr uint16_t NoBusProgram = std::numeric_limits<uint16_t>::max();
 			uint16_t bus_program = NoBusProgram;
 
 			MicroOp() {}
@@ -367,11 +373,11 @@ class ProcessorStorage {
 			/// b4-b6 = destination address register.
 			uint8_t source_dest = 0;
 
-			void set_source_address(ProcessorStorage &storage, int index) {
+			void set_source_address([[maybe_unused]] ProcessorStorage &storage, int index) {
 				source_dest = uint8_t((source_dest & 0x0f) | (index << 4));
 			}
 
-			void set_destination_address(ProcessorStorage &storage, int index) {
+			void set_destination_address([[maybe_unused]] ProcessorStorage &storage, int index) {
 				source_dest = uint8_t((source_dest & 0xf0) | index);
 			}
 
@@ -381,29 +387,31 @@ class ProcessorStorage {
 
 			void set_source(ProcessorStorage &storage, RegisterPair32 *target) {
 				source_offset = decltype(source_offset)(reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage));
+				// Test that destination_offset could be stored fully within the integer size provided for source_offset.
 				assert(source_offset == (reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage)));
 			}
 
 			void set_destination(ProcessorStorage &storage, RegisterPair32 *target) {
 				destination_offset = decltype(destination_offset)(reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage));
+				// Test that destination_offset could be stored fully within the integer size provided for destination_offset.
 				assert(destination_offset == (reinterpret_cast<uint8_t *>(target) - reinterpret_cast<uint8_t *>(&storage)));
 			}
 
 			void set_source(ProcessorStorage &storage, int mode, int reg) {
 				set_source_address(storage, reg);
 				switch(mode) {
-					case 0:		set_source(storage, &storage.data_[reg]);			break;
-					case 1:		set_source(storage, &storage.address_[reg]);		break;
-					default:	set_source(storage, &storage.source_bus_data_[0]);	break;
+					case 0:		set_source(storage, &storage.data_[reg]);		break;
+					case 1:		set_source(storage, &storage.address_[reg]);	break;
+					default:	set_source(storage, &storage.source_bus_data_);	break;
 				}
 			}
 
 			void set_destination(ProcessorStorage &storage, int mode, int reg) {
 				set_destination_address(storage, reg);
 				switch(mode) {
-					case 0:		set_destination(storage, &storage.data_[reg]);					break;
-					case 1:		set_destination(storage, &storage.address_[reg]);				break;
-					default:	set_destination(storage, &storage.destination_bus_data_[0]);	break;
+					case 0:		set_destination(storage, &storage.data_[reg]);				break;
+					case 1:		set_destination(storage, &storage.address_[reg]);			break;
+					default:	set_destination(storage, &storage.destination_bus_data_);	break;
 				}
 			}
 		};
@@ -436,13 +444,15 @@ class ProcessorStorage {
 		BusStep *movem_read_steps_;
 		BusStep *movem_write_steps_;
 
+		// These two are dynamically modified depending on the particular
+		// TRAP and bus error.
 		BusStep *trap_steps_;
 		BusStep *bus_error_steps_;
 
 		// Current bus step pointer, and outer program pointer.
-		Program *active_program_ = nullptr;
-		MicroOp *active_micro_op_ = nullptr;
-		BusStep *active_step_ = nullptr;
+		const Program *active_program_ = nullptr;
+		const MicroOp *active_micro_op_ = nullptr;
+		const BusStep *active_step_ = nullptr;
 		RegisterPair16 decoded_instruction_ = 0;
 		uint16_t next_word_ = 0;
 
@@ -453,9 +463,9 @@ class ProcessorStorage {
 		void set_is_supervisor(bool);
 
 		// Transient storage for MOVEM, TRAP and others.
-		uint32_t precomputed_addresses_[65];
 		RegisterPair16 throwaway_value_;
 		uint32_t movem_final_address_;
+		uint32_t precomputed_addresses_[65];	// This is a big chunk of rarely-used storage. It's placed last deliberately.
 
 		/*!
 			Evaluates the conditional described by @c code and returns @c true or @c false to
@@ -494,18 +504,18 @@ class ProcessorStorage {
 		*/
 		forceinline void populate_trap_steps(uint32_t vector, uint16_t status) {
 			// Fill in the status word value.
-			destination_bus_data_[0].full = status;
+			destination_bus_data_.full = status;
 
 			// Switch to supervisor mode, disable the trace bit.
 			set_is_supervisor(true);
-			trace_flag_ = 0;
+			trace_flag_ = last_trace_flag_ = 0;
 
 			// Pick a vector.
 			effective_address_[0].full = vector << 2;
 
 			// Schedule the proper stack activity.
 			precomputed_addresses_[0] = address_[7].full - 2;	// PC.l
-			precomputed_addresses_[1] = address_[7].full - 6;	// status word (in destination_bus_data_[0])
+			precomputed_addresses_[1] = address_[7].full - 6;	// status word (in destination_bus_data_)
 			precomputed_addresses_[2] = address_[7].full - 4;	// PC.h
 			address_[7].full -= 6;
 
@@ -515,13 +525,13 @@ class ProcessorStorage {
 
 		forceinline void populate_bus_error_steps(uint32_t vector, uint16_t status, uint16_t bus_status, RegisterPair32 faulting_address) {
 			// Fill in the status word value.
-			destination_bus_data_[0].halves.low.full = status;
-			destination_bus_data_[0].halves.high.full = bus_status;
+			destination_bus_data_.halves.low.full = status;
+			destination_bus_data_.halves.high.full = bus_status;
 			effective_address_[1] = faulting_address;
 
 			// Switch to supervisor mode, disable the trace bit.
 			set_is_supervisor(true);
-			trace_flag_ = 0;
+			trace_flag_ = last_trace_flag_ = 0;
 
 			// Pick a vector.
 			effective_address_[0].full = vector << 2;
@@ -537,9 +547,13 @@ class ProcessorStorage {
 			address_[7].full -= 14;
 		}
 
+		inline uint16_t get_status() const;
+		inline void set_status(uint16_t);
+
 	private:
-		friend class ProcessorStorageConstructor;
+		friend struct ProcessorStorageConstructor;
 		friend class ProcessorStorageTests;
+		friend struct State;
 };
 
 #endif /* MC68000Storage_h */

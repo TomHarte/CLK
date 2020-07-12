@@ -41,7 +41,7 @@ void DiskIICard::perform_bus_operation(Select select, bool is_read, uint16_t add
 			const int disk_value = diskii_.read_address(address);
 			if(is_read) {
 				if(disk_value != diskii_.DidNotLoad)
-					*value = static_cast<uint8_t>(disk_value);
+					*value = uint8_t(disk_value);
 			}
 		} break;
 		case Device:
@@ -50,7 +50,7 @@ void DiskIICard::perform_bus_operation(Select select, bool is_read, uint16_t add
 	}
 }
 
-void DiskIICard::run_for(Cycles cycles, int stretches) {
+void DiskIICard::run_for(Cycles cycles, int) {
 	if(diskii_clocking_preference_ == ClockingHint::Preference::None) return;
 	diskii_.run_for(Cycles(cycles.as_integral() * 2));
 }
@@ -63,7 +63,7 @@ void DiskIICard::set_activity_observer(Activity::Observer *observer) {
 	diskii_.set_activity_observer(observer);
 }
 
-void DiskIICard::set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference preference) {
+void DiskIICard::set_component_prefers_clocking(ClockingHint::Source *, ClockingHint::Preference preference) {
 	diskii_clocking_preference_ = preference;
 	set_select_constraints((preference != ClockingHint::Preference::RealTime) ? (IO | Device) : None);
 }

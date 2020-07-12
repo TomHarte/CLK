@@ -31,7 +31,15 @@
 }
 
 - (void)invalidate {
-	dispatch_suspend(_timer);
+	NSConditionLock *lock = [[NSConditionLock alloc] initWithCondition:0];
+
+	dispatch_source_set_cancel_handler(_timer, ^{
+		[lock lock];
+		[lock unlockWithCondition:1];
+	});
+
+	dispatch_source_cancel(_timer);
+	[lock lockWhenCondition:1];
 }
 
 @end

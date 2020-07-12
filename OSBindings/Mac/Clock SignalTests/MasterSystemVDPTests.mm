@@ -22,8 +22,7 @@
 	[super setUp];
 
 	// Create a valid OpenGL context, so that a VDP can be constructed.
-	NSOpenGLPixelFormatAttribute attributes[] =
-	{
+	NSOpenGLPixelFormatAttribute attributes[] = {
 		NSOpenGLPFAOpenGLProfile,	NSOpenGLProfileVersion3_2Core,
 		0
 	};
@@ -44,15 +43,15 @@
 	TI::TMS::TMS9918 vdp(TI::TMS::Personality::SMSVDP);
 
 	// Disable end-of-frame interrupts, enable line interrupts.
-	vdp.set_register(1, 0x00);
-	vdp.set_register(1, 0x81);
+	vdp.write(1, 0x00);
+	vdp.write(1, 0x81);
 
-	vdp.set_register(1, 0x10);
-	vdp.set_register(1, 0x80);
+	vdp.write(1, 0x10);
+	vdp.write(1, 0x80);
 
 	// Set a line interrupt to occur in five lines.
-	vdp.set_register(1, 5);
-	vdp.set_register(1, 0x8a);
+	vdp.write(1, 5);
+	vdp.write(1, 0x8a);
 
 	// Get time until interrupt.
 	auto time_until_interrupt = vdp.get_time_until_interrupt().as_integral() - 1;
@@ -70,7 +69,7 @@
 	NSAssert(vdp.get_interrupt_line(), @"Interrupt line wasn't set when promised [1]");
 
 	// Read the status register to clear interrupt status.
-	vdp.get_register(1);
+	vdp.read(1);
 	NSAssert(!vdp.get_interrupt_line(), @"Interrupt wasn't reset by status read");
 
 	// Check interrupt flag isn't set prior to the reported time.
@@ -87,20 +86,20 @@
 	TI::TMS::TMS9918 vdp(TI::TMS::Personality::SMSVDP);
 
 	// Disable end-of-frame interrupts, enable line interrupts, set an interrupt to occur every line.
-	vdp.set_register(1, 0x00);
-	vdp.set_register(1, 0x81);
+	vdp.write(1, 0x00);
+	vdp.write(1, 0x81);
 
-	vdp.set_register(1, 0x10);
-	vdp.set_register(1, 0x80);
+	vdp.write(1, 0x10);
+	vdp.write(1, 0x80);
 
-	vdp.set_register(1, 0);
-	vdp.set_register(1, 0x8a);
+	vdp.write(1, 0);
+	vdp.write(1, 0x8a);
 
 	// Advance to outside of the counted area.
 	while(vdp.get_current_line() < 200) vdp.run_for(Cycles(228));
 
 	// Clear the pending interrupt and ask about the next one (i.e. the first one).
-	vdp.get_register(1);
+	vdp.read(1);
 	auto time_until_interrupt = vdp.get_time_until_interrupt().as_integral() - 1;
 
 	// Check that an interrupt is now scheduled.
@@ -122,16 +121,16 @@
 	for(int c = 0; c < 256; ++c) {
 		for(int with_eof = (c < 192) ? 0 : 1; with_eof < 2; ++with_eof) {
 			// Enable or disable end-of-frame interrupts as required.
-			vdp.set_register(1, with_eof ? 0x20 : 0x00);
-			vdp.set_register(1, 0x81);
+			vdp.write(1, with_eof ? 0x20 : 0x00);
+			vdp.write(1, 0x81);
 
 			// Enable line interrupts.
-			vdp.set_register(1, 0x10);
-			vdp.set_register(1, 0x80);
+			vdp.write(1, 0x10);
+			vdp.write(1, 0x80);
 
 			// Set the line interrupt timing as desired.
-			vdp.set_register(1, c);
-			vdp.set_register(1, 0x8a);
+			vdp.write(1, c);
+			vdp.write(1, 0x8a);
 
 			// Now run through an entire frame...
 			int half_cycles = 262*228*2;
@@ -139,7 +138,7 @@
 			while(half_cycles--) {
 				// Validate that an interrupt happened if one was expected, and clear anything that's present.
 				NSAssert(vdp.get_interrupt_line() == (last_time_until_interrupt == 0), @"Unexpected interrupt state change; expected %d but got %d; position %d %d @ %d", (last_time_until_interrupt == 0), vdp.get_interrupt_line(), c, with_eof, half_cycles);
-				vdp.get_register(1);
+				vdp.read(1);
 
 				vdp.run_for(HalfCycles(1));
 

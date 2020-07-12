@@ -15,8 +15,17 @@
 
 #include <vector>
 
+// Testing hook; not for any other user.
+class VideoTester;
+
 namespace Atari {
 namespace ST {
+
+struct LineLength {
+	int length = 1024;
+	int hsync_start = 1024;
+	int hsync_end = 1024;
+};
 
 /*!
 	Models a combination of the parts of the GLUE, MMU and Shifter that in net
@@ -36,6 +45,19 @@ class Video {
 			Sets the target device for video data.
 		*/
 		void set_scan_target(Outputs::Display::ScanTarget *scan_target);
+
+		/// Gets the current scan status.
+		Outputs::Display::ScanStatus get_scaled_scan_status() const;
+
+		/*!
+			Sets the type of output.
+		*/
+		void set_display_type(Outputs::Display::DisplayType);
+
+		/*!
+			Gets the type of output.
+		*/
+		Outputs::Display::DisplayType get_display_type() const;
 
 		/*!
 			Produces the next @c duration period of pixels.
@@ -104,7 +126,6 @@ class Video {
 		Range get_memory_access_range();
 
 	private:
-		void advance(HalfCycles duration);
 		DeferredQueue<HalfCycles> deferrer_;
 
 		Outputs::CRT::CRT crt_;
@@ -117,10 +138,8 @@ class Video {
 		int current_address_ = 0;
 
 		uint16_t *ram_ = nullptr;
-		uint16_t line_buffer_[256];
 
 		int x_ = 0, y_ = 0, next_y_ = 0;
-		int next_load_toggle_ = -1;
 		bool load_ = false;
 		int load_base_ = 0;
 
@@ -152,7 +171,7 @@ class Video {
 			} sync_schedule = SyncSchedule::None;
 			bool sync = false;
 		} vertical_, next_vertical_;
-		int line_length_ = 1024;
+		LineLength line_length_;
 
 		int data_latch_position_ = 0;
 		int data_latch_read_position_ = 0;
@@ -161,83 +180,72 @@ class Video {
 
 		void reset_fifo();
 
-		class Shifter {
-			public:
-				Shifter(Outputs::CRT::CRT &crt, uint16_t *palette) : crt_(crt), palette_(palette) {}
-				void output_blank(int duration);
-				void output_sync(int duration);
-				void output_border(int duration, OutputBpp bpp);
-				void output_pixels(int duration, OutputBpp bpp);
+		/*!
+			Provides a target for control over the output video stream, which is considered to be
+			a permanently shifting shifter, that you need to reload when appropriate, which can be
+			overridden by the blank and sync levels.
 
+			This stream will automatically insert a colour burst.
+		*/
+		class VideoStream {
+			public:
+				VideoStream(Outputs::CRT::CRT &crt, uint16_t *palette) : crt_(crt), palette_(palette) {}
+
+				enum class OutputMode {
+					Sync, Blank, ColourBurst, Pixels,
+				};
+
+				/// Sets the current data format for the shifter. Changes in output BPP flush the shifter.
+				void set_bpp(OutputBpp bpp);
+
+				/// Outputs signal of type @c mode for @c duration.
+				void output(int duration, OutputMode mode);
+
+				/// Warns the video stream that the border colour, included in the palette that it holds a pointer to,
+				/// will change momentarily. This should be called after the relevant @c output() updates, and
+				/// is used to help elide border-regio output.
+				void will_change_border_colour();
+
+				/// Loads 64 bits into the Shifter. The shifter shifts continuously. If you also declare
+				/// a pixels region then whatever is being shifted will reach the display, in a form that
+				/// depends on the current output BPP.
 				void load(uint64_t value);
 
 			private:
+				// The target CRT and the palette to use.
+				Outputs::CRT::CRT &crt_;
+				uint16_t *palette_ = nullptr;
+
+				// Internal stateful processes.
+				void generate(int duration, OutputMode mode, bool is_terminal);
+
+				void flush_border();
+				void flush_pixels();
+				void shift(int duration);
+				void output_pixels(int duration);
+
+				// Internal state that is a function of output intent.
 				int duration_ = 0;
-				enum class OutputMode {
-					Sync, Blank, Border, Pixels
-				} output_mode_ = OutputMode::Sync;
-				uint16_t border_colour_ = 0;
+				OutputMode output_mode_ = OutputMode::Sync;
 				OutputBpp bpp_ = OutputBpp::Four;
 				union {
 					uint64_t output_shifter_;
 					uint32_t shifter_halves_[2];
 				};
 
-				void flush_output(OutputMode next_mode);
-
+				// Internal state for handling output serialisation.
 				uint16_t *pixel_buffer_ = nullptr;
-				size_t pixel_pointer_ = 0;
-
-				Outputs::CRT::CRT &crt_;
-				uint16_t *palette_ = nullptr;
-		} shifter_;
+				int pixel_pointer_ = 0;
+		} video_stream_;
 
 		/// Contains copies of the various observeable fields, after the relevant propagation delay.
 		struct PublicState {
 			bool display_enable = false;
+			bool hsync = false;
+			bool vsync = false;
 		} public_state_;
 
-		struct Event {
-			int delay;
-			enum class Type {
-				SetDisplayEnable, ResetDisplayEnable
-			} type;
-
-			Event(Type type, int delay) : delay(delay), type(type) {}
-
-			void apply(PublicState &state) {
-				apply(type, state);
-			}
-
-			static void apply(Type type, PublicState &state) {
-				switch(type) {
-					default:
-					case Type::SetDisplayEnable:	state.display_enable = true;	break;
-					case Type::ResetDisplayEnable:	state.display_enable = false;	break;
-				}
-			}
-		};
-
-		std::vector<Event> pending_events_;
-		void add_event(int delay, Event::Type type) {
-			// Apply immediately if there's no delay (or a negative delay).
-			if(delay <= 0) {
-				Event::apply(type, public_state_);
-				return;
-			}
-
-			// Otherwise enqueue, having subtracted the delay for any preceding events,
-			// and subtracting from the subsequent, if any.
-			auto insertion_point = pending_events_.begin();
-			while(insertion_point != pending_events_.end() && insertion_point->delay > delay) {
-				delay -= insertion_point->delay;
-				++insertion_point;
-			}
-			if(insertion_point != pending_events_.end()) {
-				insertion_point->delay -= delay;
-			}
-			pending_events_.emplace(insertion_point, type, delay);
-		}
+		friend class ::VideoTester;
 };
 
 }

@@ -26,12 +26,13 @@ class SN76489: public Outputs::Speaker::SampleSource {
 		SN76489(Personality personality, Concurrency::DeferringAsyncTaskQueue &task_queue, int additional_divider = 1);
 
 		/// Writes a new value to the SN76489.
-		void set_register(uint8_t value);
+		void write(uint8_t value);
 
 		// As per SampleSource.
 		void get_samples(std::size_t number_of_samples, std::int16_t *target);
-		bool is_zero_level();
+		bool is_zero_level() const;
 		void set_sample_volume_range(std::int16_t range);
+		static constexpr bool get_is_stereo() { return false; }
 
 	private:
 		int master_divider_ = 0;

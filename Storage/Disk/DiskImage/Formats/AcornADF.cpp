@@ -11,8 +11,8 @@
 #include "Utility/ImplicitSectors.hpp"
 
 namespace {
-	static const int sectors_per_track = 16;
-	static const int sector_size = 1;
+	constexpr int sectors_per_track = 16;
+	constexpr int sector_size = 1;
 }
 
 using namespace Storage::Disk;
@@ -20,8 +20,8 @@ using namespace Storage::Disk;
 AcornADF::AcornADF(const std::string &file_name) : MFMSectorDump(file_name) {
 	// very loose validation: the file needs to be a multiple of 256 bytes
 	// and not ungainly large
-	if(file_.stats().st_size % static_cast<off_t>(128 << sector_size)) throw Error::InvalidFormat;
-	if(file_.stats().st_size < 7 * static_cast<off_t>(128 << sector_size)) throw Error::InvalidFormat;
+	if(file_.stats().st_size % off_t(128 << sector_size)) throw Error::InvalidFormat;
+	if(file_.stats().st_size < 7 * off_t(128 << sector_size)) throw Error::InvalidFormat;
 
 	// check that the initial directory's 'Hugo's are present
 	file_.seek(513, SEEK_SET);

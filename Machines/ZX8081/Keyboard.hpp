@@ -23,16 +23,22 @@ enum Key: uint16_t {
 	KeyP		= 0x0500 | 0x01,	KeyO	= 0x0500 | 0x02,	KeyI = 0x0500 | 0x04,	KeyU = 0x0500 | 0x08,	KeyY = 0x0500 | 0x10,
 	KeyEnter	= 0x0600 | 0x01,	KeyL	= 0x0600 | 0x02,	KeyK = 0x0600 | 0x04,	KeyJ = 0x0600 | 0x08,	KeyH = 0x0600 | 0x10,
 	KeySpace	= 0x0700 | 0x01,	KeyDot	= 0x0700 | 0x02,	KeyM = 0x0700 | 0x04,	KeyN = 0x0700 | 0x08,	KeyB = 0x0700 | 0x10,
+
+	// Add some virtual keys; these do not exist on a real ZX80 or ZX81. They're just a convenience.
+	KeyDelete	= 0x0801,
+	KeyBreak, KeyLeft, KeyRight, KeyUp, KeyDown, KeyEdit
 };
 
-struct KeyboardMapper: public KeyboardMachine::MappedMachine::KeyboardMapper {
-	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key);
+struct KeyboardMapper: public MachineTypes::MappedKeyboardMachine::KeyboardMapper {
+	uint16_t mapped_key_for_key(Inputs::Keyboard::Key key) const override;
 };
 
 class CharacterMapper: public ::Utility::CharacterMapper {
 	public:
 		CharacterMapper(bool is_zx81);
-		uint16_t *sequence_for_character(char character);
+		const uint16_t *sequence_for_character(char character) const override;
+
+		bool needs_pause_after_key(uint16_t key) const override;
 
 	private:
 		bool is_zx81_;

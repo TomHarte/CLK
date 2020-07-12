@@ -27,16 +27,16 @@ class DiskIICard: public Card, public ClockingHint::Observer {
 	public:
 		DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sector);
 
-		void perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) override;
-		void run_for(Cycles cycles, int stretches) override;
+		void perform_bus_operation(Select select, bool is_read, uint16_t address, uint8_t *value) final;
+		void run_for(Cycles cycles, int stretches) final;
 
-		void set_activity_observer(Activity::Observer *observer) override;
+		void set_activity_observer(Activity::Observer *observer) final;
 
 		void set_disk(const std::shared_ptr<Storage::Disk::Disk> &disk, int drive);
 		Storage::Disk::Drive &get_drive(int drive);
 
 	private:
-		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) override;
+		void set_component_prefers_clocking(ClockingHint::Source *component, ClockingHint::Preference clocking) final;
 		std::vector<uint8_t> boot_;
 		Apple::DiskII diskii_;
 		ClockingHint::Preference diskii_clocking_preference_ = ClockingHint::Preference::RealTime;

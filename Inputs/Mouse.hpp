@@ -20,7 +20,7 @@ class Mouse {
 		/*!
 			Indicates a movement of the mouse.
 		*/
-		virtual void move(int x, int y) {}
+		virtual void move([[maybe_unused]] int x, [[maybe_unused]] int y) {}
 
 		/*!
 			@returns the number of buttons on this mouse.
@@ -34,7 +34,7 @@ class Mouse {
 			The intention is that @c index be semantic, not positional:
 			0 for the primary button, 1 for the secondary, 2 for the tertiary, etc.
 		*/
-		virtual void set_button_pressed(int index, bool is_pressed) {}
+		virtual void set_button_pressed([[maybe_unused]] int index, [[maybe_unused]] bool is_pressed) {}
 
 		/*!
 			Releases all depressed buttons.

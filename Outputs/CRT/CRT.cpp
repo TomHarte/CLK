@@ -17,15 +17,15 @@ using namespace Outputs::CRT;
 
 void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Display::ColourSpace colour_space, int colour_cycle_numerator, int colour_cycle_denominator, int vertical_sync_half_lines, bool should_alternate) {
 
-	const int millisecondsHorizontalRetraceTime = 7;	// Source: Dictionary of Video and Television Technology, p. 234.
-	const int scanlinesVerticalRetraceTime = 8;			// Source: ibid.
+	constexpr int millisecondsHorizontalRetraceTime = 7;	// Source: Dictionary of Video and Television Technology, p. 234.
+	constexpr int scanlinesVerticalRetraceTime = 8;			// Source: ibid.
 
-														// To quote:
-														//
-														//	"retrace interval; The interval of time for the return of the blanked scanning beam of
-														//	a TV picture tube or camera tube to the starting point of a line or field. It is about
-														//	7 microseconds for horizontal retrace and 500 to 750 microseconds for vertical retrace
-														//  in NTSC and PAL TV."
+															// To quote:
+															//
+															//	"retrace interval; The interval of time for the return of the blanked scanning beam of
+															//	a TV picture tube or camera tube to the starting point of a line or field. It is about
+															//	7 microseconds for horizontal retrace and 500 to 750 microseconds for vertical retrace
+															//  in NTSC and PAL TV."
 
 	time_multiplier_ = 65535 / cycles_per_line;
 	phase_denominator_ = int64_t(cycles_per_line) * int64_t(colour_cycle_denominator) * int64_t(time_multiplier_);
@@ -50,8 +50,8 @@ void CRT::set_new_timing(int cycles_per_line, int height_of_display, Outputs::Di
 	// The vertical slywheel has an ideal period of `multiplied_cycles_per_line * height_of_display`,
 	// will accept syncs within 1/8th of that (i.e. tolerates 12.5% error) and takes scanlinesVerticalRetraceTime
 	// to retrace.
-	horizontal_flywheel_.reset(new Flywheel(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 5));
-	vertical_flywheel_.reset(new Flywheel(multiplied_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * multiplied_cycles_per_line, (multiplied_cycles_per_line * height_of_display) >> 3));
+	horizontal_flywheel_ = std::make_unique<Flywheel>(multiplied_cycles_per_line, (millisecondsHorizontalRetraceTime * multiplied_cycles_per_line) >> 6, multiplied_cycles_per_line >> 5);
+	vertical_flywheel_ = std::make_unique<Flywheel>(multiplied_cycles_per_line * height_of_display, scanlinesVerticalRetraceTime * multiplied_cycles_per_line, (multiplied_cycles_per_line * height_of_display) >> 3);
 
 	// Figure out the divisor necessary to get the horizontal flywheel into a 16-bit range.
 	const int real_clock_scan_period = vertical_flywheel_->get_scan_period();
@@ -93,6 +93,10 @@ void CRT::set_display_type(Outputs::Display::DisplayType display_type) {
 	scan_target_->set_modals(scan_target_modals_);
 }
 
+Outputs::Display::DisplayType CRT::get_display_type() const {
+	return scan_target_modals_.display_type;
+}
+
 void CRT::set_phase_linked_luminance_offset(float offset) {
 	scan_target_modals_.input_data_tweaks.phase_linked_luminance_offset = offset;
 	scan_target_->set_modals(scan_target_modals_);
@@ -111,8 +115,10 @@ void CRT::set_brightness(float brightness) {
 void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displayType) {
 	switch(displayType) {
 		case Outputs::Display::Type::PAL50:
+		case Outputs::Display::Type::PAL60:
 			scan_target_modals_.intended_gamma = 2.8f;
-			set_new_timing(cycles_per_line, 312, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);	// i.e. 283.7516 colour cycles per line; 2.5 lines = vertical sync.
+			set_new_timing(cycles_per_line, (displayType == Outputs::Display::Type::PAL50) ? 312 : 262, Outputs::Display::ColourSpace::YUV, 709379, 2500, 5, true);
+					// i.e. 283.7516 colour cycles per line; 2.5 lines = vertical sync.
 		break;
 
 		case Outputs::Display::Type::NTSC60:
@@ -124,7 +130,7 @@ void CRT::set_new_display_type(int cycles_per_line, Outputs::Display::Type displ
 
 void CRT::set_composite_function_type(CompositeSourceType type, float offset_of_first_sample) {
 	if(type == DiscreteFourSamplesPerCycle) {
-		colour_burst_phase_adjustment_ = static_cast<uint8_t>(offset_of_first_sample * 256.0f) & 63;
+		colour_burst_phase_adjustment_ = uint8_t(offset_of_first_sample * 256.0f) & 63;
 	} else {
 		colour_burst_phase_adjustment_ = 0xff;
 	}
@@ -158,6 +164,18 @@ CRT::CRT(	int cycles_per_line,
 	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
 	set_new_display_type(cycles_per_line, display_type);
 }
+
+CRT::CRT(int cycles_per_line,
+	int clocks_per_pixel_greatest_common_divisor,
+	int height_of_display,
+	int vertical_sync_half_lines,
+	Outputs::Display::InputDataType data_type) {
+	scan_target_modals_.input_data_type = data_type;
+	scan_target_modals_.cycles_per_line = cycles_per_line;
+	scan_target_modals_.clocks_per_pixel_greatest_common_divisor = clocks_per_pixel_greatest_common_divisor;
+	set_new_timing(cycles_per_line, height_of_display, Outputs::Display::ColourSpace::YIQ, 1, 1, vertical_sync_half_lines, false);
+}
+
 
 // MARK: - Sync loop
 
@@ -292,6 +310,8 @@ void CRT::advance_cycles(int number_of_cycles, bool hsync_requested, bool vsync_
 // MARK: - stream feeding methods
 
 void CRT::output_scan(const Scan *const scan) {
+	assert(scan->number_of_cycles >= 0);
+
 	// Simplified colour burst logic: if it's within the back porch we'll take it.
 	if(scan->type == Scan::Type::ColourBurst) {
 		if(!colour_burst_amplitude_ && horizontal_flywheel_->get_current_time() < (horizontal_flywheel_->get_standard_period() * 12) >> 6) {
@@ -397,12 +417,12 @@ void CRT::output_colour_burst(int number_of_cycles, uint8_t phase, uint8_t ampli
 
 void CRT::output_default_colour_burst(int number_of_cycles, uint8_t amplitude) {
 	// TODO: avoid applying a rounding error here?
-	output_colour_burst(number_of_cycles, static_cast<uint8_t>((phase_numerator_ * 256) / phase_denominator_), amplitude);
+	output_colour_burst(number_of_cycles, uint8_t((phase_numerator_ * 256) / phase_denominator_), amplitude);
 }
 
 void CRT::set_immediate_default_phase(float phase) {
 	phase = fmodf(phase, 1.0f);
-	phase_numerator_ = static_cast<int>(phase * static_cast<float>(phase_denominator_));
+	phase_numerator_ = int(phase * float(phase_denominator_));
 }
 
 void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
@@ -418,7 +438,9 @@ void CRT::output_data(int number_of_cycles, size_t number_of_samples) {
 	output_scan(&scan);
 }
 
-Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio) {
+// MARK: - Getters.
+
+Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int number_of_lines, int first_cycle_after_sync, int number_of_cycles, float aspect_ratio) const {
 	first_cycle_after_sync *= time_multiplier_;
 	number_of_cycles *= time_multiplier_;
 
@@ -431,11 +453,11 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 	const int horizontal_retrace_period = horizontal_period - horizontal_scan_period;
 
 	// make sure that the requested range is visible
-	if(static_cast<int>(first_cycle_after_sync) < horizontal_retrace_period) first_cycle_after_sync = static_cast<int>(horizontal_retrace_period);
-	if(static_cast<int>(first_cycle_after_sync + number_of_cycles) > horizontal_scan_period) number_of_cycles = static_cast<int>(horizontal_scan_period - static_cast<int>(first_cycle_after_sync));
+	if(int(first_cycle_after_sync) < horizontal_retrace_period) first_cycle_after_sync = int(horizontal_retrace_period);
+	if(int(first_cycle_after_sync + number_of_cycles) > horizontal_scan_period) number_of_cycles = int(horizontal_scan_period - int(first_cycle_after_sync));
 
-	float start_x = static_cast<float>(static_cast<int>(first_cycle_after_sync) - horizontal_retrace_period) / static_cast<float>(horizontal_scan_period);
-	float width = static_cast<float>(number_of_cycles) / static_cast<float>(horizontal_scan_period);
+	float start_x = float(int(first_cycle_after_sync) - horizontal_retrace_period) / float(horizontal_scan_period);
+	float width = float(number_of_cycles) / float(horizontal_scan_period);
 
 	// determine prima facie y extent
 	const int vertical_period = vertical_flywheel_->get_standard_period();
@@ -443,13 +465,13 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 	const int vertical_retrace_period = vertical_period - vertical_scan_period;
 
 	// make sure that the requested range is visible
-//	if(static_cast<int>(first_line_after_sync) * horizontal_period < vertical_retrace_period)
+//	if(int(first_line_after_sync) * horizontal_period < vertical_retrace_period)
 //		first_line_after_sync = (vertical_retrace_period + horizontal_period - 1) / horizontal_period;
 //	if((first_line_after_sync + number_of_lines) * horizontal_period > vertical_scan_period)
-//		number_of_lines = static_cast<int>(horizontal_scan_period - static_cast<int>(first_cycle_after_sync));
+//		number_of_lines = int(horizontal_scan_period - int(first_cycle_after_sync));
 
-	float start_y = static_cast<float>((static_cast<int>(first_line_after_sync) * horizontal_period) - vertical_retrace_period) / static_cast<float>(vertical_scan_period);
-	float height = static_cast<float>(static_cast<int>(number_of_lines) * horizontal_period) / vertical_scan_period;
+	float start_y = float((int(first_line_after_sync) * horizontal_period) - vertical_retrace_period) / float(vertical_scan_period);
+	float height = float(int(number_of_lines) * horizontal_period) / vertical_scan_period;
 
 	// adjust to ensure aspect ratio is correct
 	const float adjusted_aspect_ratio = (3.0f*aspect_ratio / 4.0f);
@@ -464,4 +486,14 @@ Outputs::Display::Rect CRT::get_rect_for_area(int first_line_after_sync, int num
 	}
 
 	return Outputs::Display::Rect(start_x, start_y, width, height);
+}
+
+Outputs::Display::ScanStatus CRT::get_scaled_scan_status() const {
+	Outputs::Display::ScanStatus status;
+	status.field_duration = float(vertical_flywheel_->get_locked_period()) / float(time_multiplier_);
+	status.field_duration_gradient = float(vertical_flywheel_->get_last_period_adjustment()) / float(time_multiplier_);
+	status.retrace_duration = float(vertical_flywheel_->get_retrace_period()) / float(time_multiplier_);
+	status.current_position = float(vertical_flywheel_->get_current_phase()) / float(vertical_flywheel_->get_locked_scan_period());
+	status.hsync_count = vertical_flywheel_->get_number_of_retraces();
+	return status;
 }
