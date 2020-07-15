@@ -250,12 +250,8 @@ template<bool is_zx81> class ConcreteMachine:
 						}
 					}
 
-					if(should_autorun_ && address == print_status_address_) {
-						const uint16_t status_code = z80_.get_value_of_register(CPU::Z80::Register::A);
-						const uint16_t line_number = 0; // TODO.
-						if(!status_code && !line_number) {
-							type_string("r \n");
-						}
+					if(should_autorun_ && address == finished_load_address_) {
+						type_string("r \n");
 						should_autorun_ = false;
 					}
 
@@ -431,10 +427,12 @@ template<bool is_zx81> class ConcreteMachine:
 		static constexpr uint16_t automatic_tape_motor_start_address_ = is_zx81 ? 0x340 : 0x206;
 		static constexpr uint16_t automatic_tape_motor_end_address_ = is_zx81 ? 0x3c3 : 0x24d;
 
-		// When automatically loading, if the PC gets to the print_status_address_ in order to print 0/0
-		// after loading from tape (i.e. loading completed, in context) then the emulator will automatically
-		// RUN whatever has been loaded.
-		static constexpr uint16_t print_status_address_ = is_zx81 ? 0x6d1 : 0x4a8;
+		// When automatically loading, if the PC gets to the finished_load_address_ in order to print 0/0
+		// (so it's anything that indicates that loading completed, but the program did not autorun) then the
+		// emulator will automatically RUN whatever has been loaded.
+		static constexpr uint16_t finished_load_address_ = is_zx81 ?
+			0x6d1 :	// ZX81: this is the routine that prints 0/0 (i.e. success).
+			0x256;	// ZX80: this is the start of the list command; the ZX80 lists a program after loading.
 		bool should_autorun_ = false;
 
 		std::vector<uint8_t> ram_;
