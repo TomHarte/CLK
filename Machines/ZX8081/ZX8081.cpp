@@ -80,21 +80,6 @@ template<bool is_zx81> class ConcreteMachine:
 			rom_ = std::move(*roms[0]);
 			rom_.resize(use_zx81_rom ? 8192 : 4096);
 
-			if constexpr (is_zx81) {
-				tape_trap_address_ = 0x37c;
-				tape_return_address_ = 0x380;
-				vsync_start_ = HalfCycles(32);
-				vsync_end_ = HalfCycles(64);
-				automatic_tape_motor_start_address_ = 0x0340;
-				automatic_tape_motor_end_address_ = 0x03c3;
-			} else {
-				tape_trap_address_ = 0x220;
-				tape_return_address_ = 0x248;
-				vsync_start_ = HalfCycles(26);
-				vsync_end_ = HalfCycles(66);
-				automatic_tape_motor_start_address_ = 0x0206;
-				automatic_tape_motor_end_address_ = 0x024d;
-			}
 			rom_mask_ = uint16_t(rom_.size() - 1);
 
 			switch(target.memory_model) {
@@ -118,6 +103,7 @@ template<bool is_zx81> class ConcreteMachine:
 
 			if(!target.loading_command.empty()) {
 				type_string(target.loading_command);
+				should_autorun_ = true;
 			}
 
 			insert_media(target.media);
@@ -263,6 +249,13 @@ template<bool is_zx81> class ConcreteMachine:
 							tape_player_.get_tape()->set_offset(prior_offset);
 						}
 					}
+
+					if(should_autorun_ && address == finished_load_address_) {
+						type_string(is_zx81 ? "r \n" : "r\n ");	// Spaces here are not especially scientific; they merely ensure sufficient pauses for both the ZX80 and 81, empirically.
+						should_autorun_ = false;
+					}
+
+					if(address >= 0x24d && address < 0x256) printf("PC: %04x\n", address);
 
 					// Check for automatic tape control.
 					if(use_automatic_tape_motor_control_) {
@@ -425,8 +418,24 @@ template<bool is_zx81> class ConcreteMachine:
 		CPU::Z80::Processor<ConcreteMachine, false, is_zx81> z80_;
 		Video video_;
 
-		uint16_t tape_trap_address_, tape_return_address_;
-		uint16_t automatic_tape_motor_start_address_, automatic_tape_motor_end_address_;
+		// If fast tape loading is enabled then the PC will be trapped at tape_trap_address_;
+		// the emulator will then do a high-level reinterpretation of the standard ZX80/81 reading
+		// of a single byte, and the next thing executed will be at tape_return_address_;
+		static constexpr uint16_t tape_trap_address_ = is_zx81 ? 0x37c : 0x220;
+		static constexpr uint16_t tape_return_address_ = is_zx81 ? 0x380 : 0x248;
+
+		// If automatic tape motor control is enabled then the tape will be permitted to play any time
+		// the program counter is >= automatic_tape_motor_start_address_ and < automatic_tape_motor_end_address_.
+		static constexpr uint16_t automatic_tape_motor_start_address_ = is_zx81 ? 0x340 : 0x206;
+		static constexpr uint16_t automatic_tape_motor_end_address_ = is_zx81 ? 0x3c3 : 0x24d;
+
+		// When automatically loading, if the PC gets to the finished_load_address_ in order to print 0/0
+		// (so it's anything that indicates that loading completed, but the program did not autorun) then the
+		// emulator will automatically RUN whatever has been loaded.
+		static constexpr uint16_t finished_load_address_ = is_zx81 ?
+			0x6d1 :	// ZX81: this is the routine that prints 0/0 (i.e. success).
+			0x203;	// ZX80: this is the JR that exits the ZX80's LOAD and returns to MAIN-EXEC.
+		bool should_autorun_ = false;
 
 		std::vector<uint8_t> ram_;
 		uint16_t ram_mask_, ram_base_;
@@ -445,7 +454,8 @@ template<bool is_zx81> class ConcreteMachine:
 
 		bool nmi_is_enabled_ = false;
 
-		HalfCycles vsync_start_, vsync_end_;
+		static constexpr auto vsync_start_ = is_zx81 ? HalfCycles(32) : HalfCycles(26);
+		static constexpr auto vsync_end_ = is_zx81 ? HalfCycles(64) : HalfCycles(66);
 		HalfCycles horizontal_counter_;
 
 		uint8_t latched_video_byte_ = 0;
