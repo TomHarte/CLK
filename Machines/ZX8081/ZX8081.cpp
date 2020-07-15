@@ -251,9 +251,11 @@ template<bool is_zx81> class ConcreteMachine:
 					}
 
 					if(should_autorun_ && address == finished_load_address_) {
-						type_string("r \n");
+						type_string(is_zx81 ? "r \n" : "r\n ");	// Spaces here are not especially scientific; they merely ensure sufficient pauses for both the ZX80 and 81, empirically.
 						should_autorun_ = false;
 					}
+
+					if(address >= 0x24d && address < 0x256) printf("PC: %04x\n", address);
 
 					// Check for automatic tape control.
 					if(use_automatic_tape_motor_control_) {
@@ -432,7 +434,7 @@ template<bool is_zx81> class ConcreteMachine:
 		// emulator will automatically RUN whatever has been loaded.
 		static constexpr uint16_t finished_load_address_ = is_zx81 ?
 			0x6d1 :	// ZX81: this is the routine that prints 0/0 (i.e. success).
-			0x256;	// ZX80: this is the start of the list command; the ZX80 lists a program after loading.
+			0x203;	// ZX80: this is the JR that exits the ZX80's LOAD and returns to MAIN-EXEC.
 		bool should_autorun_ = false;
 
 		std::vector<uint8_t> ram_;
