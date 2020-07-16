@@ -282,7 +282,7 @@ void Drive::get_next_event(float duration_already_passed) {
 
 		// If this random transition is closer than 5µs to the next real bit,
 		// discard it.
-		if(random_interval_ < current_event_.length - 5.0f / 1'000'000.f) {
+		if(random_interval_ - 5.0f / 1'000'000.f < current_event_.length) {
 			random_interval_ = 0.0f;
 		} else {
 			random_interval_ -= current_event_.length;
