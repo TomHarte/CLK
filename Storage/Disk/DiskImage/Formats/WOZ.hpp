@@ -52,7 +52,7 @@ class WOZ: public DiskImage {
 				the track does not exit.
 		*/
 		long file_offset(Track::Address address);
-		constexpr static long NoSuchTrack = 0;	// This is definitely an offset a track can't lie at.
+		constexpr static long NoSuchTrack = 0;	// This is an offset a track definitely can't lie at.
 };
 
 }
