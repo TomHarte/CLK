@@ -161,9 +161,7 @@ std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> 
 	sector->address.sector = ((header[4] << 1) | 1) & header[5];
 
 	// Check the header checksum.
-	// The 0x11 is reverse engineered from the game 'Alien Rain' and is present even on the boot sector,
-	// so probably isn't copy protection?
-	uint_fast8_t checksum = (((header[6] << 1) | 1) & header[7]) ^ (is_five_and_three ? 0x11 : 0x00);
+	const uint_fast8_t checksum = ((header[6] << 1) | 1) & header[7];
 	if(checksum != (sector->address.volume^sector->address.track^sector->address.sector)) return nullptr;
 
 	// Unmap the sector contents.
@@ -205,7 +203,7 @@ std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> 
 		sector->encoding = Sector::Encoding::FiveAndThree;
 	} else {
 		// Undo the 6 and 2 mapping.
-		const uint8_t bit_reverse[] = {0, 2, 1, 3};
+		constexpr uint8_t bit_reverse[] = {0, 2, 1, 3};
 		#define unmap(byte, nibble, shift)	\
 			sector->data[86 + byte] = uint8_t(\
 				(sector->data[86 + byte] << 2) | bit_reverse[(sector->data[nibble] >> shift)&3]);
@@ -285,10 +283,10 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 
 				// If this is the start of a data section, and at least
 				// one header has been witnessed, start a sector.
-				if(scanner[2] == data_prologue[2] || is_five_and_three) {
+				if(scanner[2] == data_prologue[2]) {
 					new_sector = std::make_unique<Sector>();
 					new_sector->data.reserve(710);
-				} else {
+				} else {	// i.e. the third symbol is from either of the header prologues.
 					sector_location = size_t(bit % segment.data.size());
 					header_delay = 200;	// Allow up to 200 bytes to find the body, if the
 										// track split comes in between.
