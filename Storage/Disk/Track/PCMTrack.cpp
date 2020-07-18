@@ -121,17 +121,17 @@ Track::Event PCMTrack::get_next_event() {
 	return event;
 }
 
-Storage::Time PCMTrack::seek_to(const Time &time_since_index_hole) {
+float PCMTrack::seek_to(float time_since_index_hole) {
 	// initial condition: no time yet accumulated, the whole thing requested yet to navigate
-	Storage::Time accumulated_time;
-	Storage::Time time_left_to_seek = time_since_index_hole;
+	float accumulated_time = 0.0f;
+	float time_left_to_seek = time_since_index_hole;
 
 	// search from the first segment
 	segment_pointer_ = 0;
 	do {
 		// if this segment extends beyond the amount of time left to seek, trust it to complete
 		// the seek
-		Storage::Time segment_time = segment_event_sources_[segment_pointer_].get_length();
+		const float segment_time = segment_event_sources_[segment_pointer_].get_length().get<float>();
 		if(segment_time > time_left_to_seek) {
 			return accumulated_time + segment_event_sources_[segment_pointer_].seek_to(time_left_to_seek);
 		}

@@ -20,7 +20,7 @@ namespace Disk {
 class UnformattedTrack: public Track {
 	public:
 		Event get_next_event() final;
-		Time seek_to(const Time &time_since_index_hole) final;
+		float seek_to(float time_since_index_hole) final;
 		Track *clone() const final;
 };
 

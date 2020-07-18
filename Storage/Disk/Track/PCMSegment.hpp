@@ -183,7 +183,7 @@ class PCMSegmentEventSource {
 
 			@returns the time the source is now at.
 		*/
-		Time seek_to(const Time &time_from_start);
+		float seek_to(float time_from_start);
 
 		/*!
 			@returns the total length of the stream of data that the source will provide.

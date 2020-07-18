@@ -109,9 +109,9 @@ Storage::Time PCMSegmentEventSource::get_length() {
 	return segment_->length_of_a_bit * unsigned(segment_->data.size());
 }
 
-Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start) {
+float PCMSegmentEventSource::seek_to(float time_from_start) {
 	// test for requested time being beyond the end
-	const Time length = get_length();
+	const float length = get_length().get<float>();
 	if(time_from_start >= length) {
 		next_event_.type = Track::Event::IndexHole;
 		bit_pointer_ = segment_->data.size()+1;
@@ -122,21 +122,21 @@ Storage::Time PCMSegmentEventSource::seek_to(const Time &time_from_start) {
 	next_event_.type = Track::Event::FluxTransition;
 
 	// test for requested time being before the first bit
-	Time half_bit_length = segment_->length_of_a_bit;
-	half_bit_length.length >>= 1;
+	const float bit_length = segment_->length_of_a_bit.get<float>();
+	const float half_bit_length = bit_length / 2.0f;
 	if(time_from_start < half_bit_length) {
 		bit_pointer_ = 0;
-		return Storage::Time(0);
+		return 0.0f;
 	}
 
 	// adjust for time to get to bit zero and determine number of bits in;
 	// bit_pointer_ always records _the next bit_ that might trigger an event,
 	// so should be one beyond the one reached by a seek.
-	const Time relative_time = time_from_start - half_bit_length;
-	bit_pointer_ = 1 + (relative_time / segment_->length_of_a_bit).get<unsigned int>();
+	const float relative_time = time_from_start + half_bit_length;	// the period [0, 0.5) should map to window 0; [0.5, 1.5) should map to window 1; etc.
+	bit_pointer_ = 1 + size_t(relative_time / bit_length);
 
 	// map up to the correct amount of time
-	return half_bit_length + segment_->length_of_a_bit * unsigned(bit_pointer_ - 1);
+	return half_bit_length + segment_->length_of_a_bit.get<float>() * float(bit_pointer_ - 1);
 }
 
 const PCMSegment &PCMSegmentEventSource::segment() const {

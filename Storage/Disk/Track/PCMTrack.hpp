@@ -50,7 +50,7 @@ class PCMTrack: public Track {
 
 		// as per @c Track
 		Event get_next_event() final;
-		Time seek_to(const Time &time_since_index_hole) final;
+		float seek_to(float time_since_index_hole) final;
 		Track *clone() const final;
 
 		// Obtains a copy of this track, flattened to a single PCMSegment, which
