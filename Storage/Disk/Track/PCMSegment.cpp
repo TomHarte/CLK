@@ -132,11 +132,11 @@ float PCMSegmentEventSource::seek_to(float time_from_start) {
 	// adjust for time to get to bit zero and determine number of bits in;
 	// bit_pointer_ always records _the next bit_ that might trigger an event,
 	// so should be one beyond the one reached by a seek.
-	const float relative_time = time_from_start + half_bit_length;	// the period [0, 0.5) should map to window 0; [0.5, 1.5) should map to window 1; etc.
-	bit_pointer_ = 1 + size_t(relative_time / bit_length);
+	const float relative_time = time_from_start + half_bit_length;	// the period [0, 0.5) should map to window 0, ending with bit 0; [0.5, 1.5) should map to window 1; etc.
+	bit_pointer_ = size_t(relative_time / bit_length);
 
-	// map up to the correct amount of time
-	return half_bit_length + segment_->length_of_a_bit.get<float>() * float(bit_pointer_ - 1);
+	// Map up to the correct amount of time; this should be the start of the window that ends upon the bit at bit_pointer_.
+	return bit_length * float(bit_pointer_) - half_bit_length;
 }
 
 const PCMSegment &PCMSegmentEventSource::segment() const {
