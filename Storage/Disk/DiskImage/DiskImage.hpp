@@ -67,6 +67,12 @@ class DiskImage {
 			@returns whether the disk image is read only. Defaults to @c true if not overridden.
 		*/
 		virtual bool get_is_read_only() { return true; }
+
+		/*!
+			@returns @c true if the tracks at the two addresses are different. @c false if they are the same track.
+				This can avoid some degree of work when disk images offer sub-head-position precision.
+		*/
+		virtual bool tracks_differ(Track::Address lhs, Track::Address rhs) { return lhs == rhs; }
 };
 
 class DiskImageHolderBase: public Disk {
@@ -93,6 +99,7 @@ template <typename T> class DiskImageHolder: public DiskImageHolderBase {
 		void set_track_at_position(Track::Address address, const std::shared_ptr<Track> &track);
 		void flush_tracks();
 		bool get_is_read_only();
+		bool tracks_differ(Track::Address lhs, Track::Address rhs);
 
 	private:
 		T disk_image_;

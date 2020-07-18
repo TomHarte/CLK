@@ -58,3 +58,7 @@ template <typename T> std::shared_ptr<Track> DiskImageHolder<T>::get_track_at_po
 template <typename T> DiskImageHolder<T>::~DiskImageHolder() {
 	if(update_queue_) update_queue_->flush();
 }
+
+template <typename T> bool DiskImageHolder<T>::tracks_differ(Track::Address lhs, Track::Address rhs) {
+	return disk_image_.tracks_differ(lhs, rhs);
+}

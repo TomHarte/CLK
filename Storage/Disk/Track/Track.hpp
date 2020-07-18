@@ -84,6 +84,13 @@ class Track {
 				int rhs_largest_position = rhs.position.as_largest();
 				return std::tie(head, largest_position) < std::tie(rhs.head, rhs_largest_position);
 			}
+			constexpr bool operator == (const Address &rhs) const {
+				return head == rhs.head && position == rhs.position;
+			}
+			constexpr bool operator != (const Address &rhs) const {
+				return head != rhs.head || position != rhs.position;
+			}
+
 			constexpr Address(int head, HeadPosition position) : head(head), position(position) {}
 		};
 
@@ -107,11 +114,11 @@ class Track {
 		virtual Event get_next_event() = 0;
 
 		/*!
-			Jumps to the event latest offset that is less than or equal to the input time.
+			Jumps to the start of the fist event that will occur after @c time_since_index_hole.
 
 			@returns the time jumped to.
 		*/
-		virtual Time seek_to(const Time &time_since_index_hole) = 0;
+		virtual float seek_to(float time_since_index_hole) = 0;
 
 		/*!
 			The virtual copy constructor pattern; returns a copy of the Track.
