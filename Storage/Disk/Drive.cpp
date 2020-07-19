@@ -304,11 +304,6 @@ void Drive::get_next_event(float duration_already_passed) {
 		current_event_.type = Track::Event::IndexHole;
 	}
 
-	// Begin a 2ms period of holding the index line pulse active if this is an index pulse event.
-	if(current_event_.type == Track::Event::IndexHole) {
-		index_pulse_remaining_ = Cycles((get_input_clock_rate() * 2) / 1000);
-	}
-
 	// divide interval, which is in terms of a single rotation of the disk, by rotation speed to
 	// convert it into revolutions per second; this is achieved by multiplying by rotational_multiplier_
 	float interval = std::max((current_event_.length - duration_already_passed) * rotational_multiplier_, 0.0f);
@@ -331,6 +326,9 @@ void Drive::process_next_event() {
 			is_ready_ = true;
 		}
 		cycles_since_index_hole_ = 0;
+
+		// Begin a 2ms period of holding the index line pulse active.
+		index_pulse_remaining_ = Cycles((get_input_clock_rate() * 2) / 1000);
 	}
 	if(
 		event_delegate_ &&
