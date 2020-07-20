@@ -250,6 +250,15 @@ void Drive::run_for(const Cycles cycles) {
 // MARK: - Track timed event loop
 
 void Drive::get_next_event(float duration_already_passed) {
+	/*
+		Quick word on random-bit generation logic below; it seeks to obey the following logic:
+		if there is a gap of 15µs between recorded bits, start generating flux transitions
+		at random intervals thereafter, unless and until one is within 5µs of the next real transition.
+
+		This behaviour is based on John Morris' observations of an MC3470, as described in his WOZ
+		file format documentation — https://applesaucefdc.com/woz/reference2/
+	*/
+
 	if(!disk_) {
 		current_event_.type = Track::Event::IndexHole;
 		current_event_.length = 1.0f;
@@ -268,17 +277,18 @@ void Drive::get_next_event(float duration_already_passed) {
 	// If gain has now been turned up so as to generate noise, generate some noise.
 	if(random_interval_ > 0.0f) {
 		current_event_.type = Track::Event::FluxTransition;
-		current_event_.length = float(2 + (random_source_&1)) / 1000000.0f;
+		current_event_.length = float(2 + (random_source_&1)) / 1'000'000.0f;
 		random_source_ = (random_source_ >> 1) | (random_source_ << 63);
 
-		if(random_interval_ < current_event_.length) {
-			current_event_.length = random_interval_;
+		// If this random transition is closer than 5µs to the next real bit,
+		// discard it.
+		if(random_interval_ - 5.0f / 1'000'000.f < current_event_.length) {
 			random_interval_ = 0.0f;
 		} else {
 			random_interval_ -= current_event_.length;
+			set_next_event_time_interval(current_event_.length);
+			return;
 		}
-		set_next_event_time_interval(current_event_.length);
-		return;
 	}
 
 	if(track_) {
@@ -299,9 +309,9 @@ void Drive::get_next_event(float duration_already_passed) {
 	// convert it into revolutions per second; this is achieved by multiplying by rotational_multiplier_
 	float interval = std::max((current_event_.length - duration_already_passed) * rotational_multiplier_, 0.0f);
 
-	// An interval greater than 15ms => adjust gain up the point where noise starts happening.
-	// Seed that up and leave a 15ms gap until it starts.
-	constexpr float safe_gain_period = 15.0f / 1000000.0f;
+	// An interval greater than 15µs => adjust gain up the point where noise starts happening.
+	// Seed that up and leave a 15µs gap until it starts.
+	constexpr float safe_gain_period = 15.0f / 1'000'000.0f;
 	if(interval >= safe_gain_period) {
 		random_interval_ = interval - safe_gain_period;
 		interval = safe_gain_period;

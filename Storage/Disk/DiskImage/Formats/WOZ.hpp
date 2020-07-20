@@ -34,6 +34,9 @@ class WOZ: public DiskImage {
 
 	private:
 		Storage::FileHolder file_;
+		enum class Type {
+			WOZ1, WOZ2
+		} type_ = Type::WOZ1;
 		bool is_read_only_ = false;
 		bool is_3_5_disk_ = false;
 		uint8_t track_map_[160];
@@ -49,7 +52,7 @@ class WOZ: public DiskImage {
 				the track does not exit.
 		*/
 		long file_offset(Track::Address address);
-		constexpr static long NoSuchTrack = 0;	// This is definitely an offset a track can't lie at.
+		constexpr static long NoSuchTrack = 0;	// This is an offset a track definitely can't lie at.
 };
 
 }

@@ -18,11 +18,21 @@ using namespace Storage::Disk;
 WOZ::WOZ(const std::string &file_name) :
 	file_(file_name) {
 
-	const char signature[8] = {
+	constexpr const char signature1[8] = {
 		'W', 'O', 'Z', '1',
 		char(0xff), 0x0a, 0x0d, 0x0a
 	};
-	if(!file_.check_signature(signature, 8)) throw Error::InvalidFormat;
+	constexpr const char signature2[8] = {
+		'W', 'O', 'Z', '2',
+		char(0xff), 0x0a, 0x0d, 0x0a
+	};
+
+	const bool isWoz1 = file_.check_signature(signature1, 8);
+	file_.seek(0, SEEK_SET);
+	const bool isWoz2 = file_.check_signature(signature2, 8);
+
+	if(!isWoz1 && !isWoz2) throw Error::InvalidFormat;
+	type_ = isWoz2 ? Type::WOZ2 : Type::WOZ1;
 
 	// Get the file's CRC32.
 	const uint32_t crc = file_.get32le();
@@ -52,13 +62,22 @@ WOZ::WOZ(const std::string &file_name) :
 		switch(chunk_id) {
 			case CK("INFO"): {
 				const uint8_t version = file_.get8();
-				if(version != 1) break;
+				if(version > 2) break;
 				is_3_5_disk_ = file_.get8() == 2;
 				is_read_only_ = file_.get8() == 1;
-				/* Ignored:
-					1 byte: Synchronized; 1 = Cross track sync was used during imaging.
-					1 byte: Cleaned; 1 = MC3470 fake bits have been removed.
-					32 bytes: Cretor; a UTF-8 string.
+				/*
+					Ignored:
+						1 byte: Synchronized; 1 = Cross track sync was used during imaging.
+						1 byte: Cleaned; 1 = MC3470 fake bits have been removed.
+						32 bytes: Creator; a UTF-8 string.
+
+					And, if version 2, following the creator:
+						1 byte number of disk sides
+						1 byte boot sector format
+						1 byte optimal bit timing
+						2 bytes compatible hardware
+						2 bytes minimum required RAM
+						2 bytes largest track
 				*/
 			} break;
 
@@ -99,11 +118,15 @@ long WOZ::file_offset(Track::Address address) {
 	if(track_map_[table_position] == 0xff) return NoSuchTrack;
 
 	// Seek to the real track.
-	return tracks_offset_ + track_map_[table_position] * 6656;
+	switch(type_) {
+		case Type::WOZ1:	return tracks_offset_ + track_map_[table_position] * 6656;
+		default:
+		case Type::WOZ2:	return tracks_offset_ + track_map_[table_position] * 8;
+	}
 }
 
 std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
-	long offset = file_offset(address);
+	const long offset = file_offset(address);
 	if(offset == NoSuchTrack) return nullptr;
 
 	// Seek to the real track.
@@ -113,18 +136,34 @@ std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
 		std::lock_guard lock_guard(file_.get_file_access_mutex());
 		file_.seek(offset, SEEK_SET);
 
-		// In WOZ a track is up to 6646 bytes of data, followed by a two-byte record of the
-		// number of bytes that actually had data in them, then a two-byte count of the number
-		// of bits that were used. Other information follows but is not intended for emulation.
-		track_contents = file_.read(6646);
-		file_.seek(2, SEEK_CUR);
-		number_of_bits = std::min(file_.get16le(), uint16_t(6646*8));
+		switch(type_) {
+			case Type::WOZ1:
+				// In WOZ 1, a track is up to 6646 bytes of data, followed by a two-byte record of the
+				// number of bytes that actually had data in them, then a two-byte count of the number
+				// of bits that were used. Other information follows but is not intended for emulation.
+				track_contents = file_.read(6646);
+				file_.seek(2, SEEK_CUR);
+				number_of_bits = std::min(file_.get16le(), uint16_t(6646*8));
+			break;
+
+			case Type::WOZ2: {
+				// In WOZ 2 an extra level of indirection allows for variable track sizes.
+				const uint16_t starting_block = file_.get16le();
+				file_.seek(2, SEEK_CUR);	// Skip the block count; the amount of data to read is implied by the number of bits.
+				number_of_bits = file_.get32le();
+
+				file_.seek(starting_block * 512, SEEK_SET);
+				track_contents = file_.read((number_of_bits + 7) >> 3);
+			} break;
+		}
 	}
 
 	return std::make_shared<PCMTrack>(PCMSegment(number_of_bits, track_contents));
 }
 
 void WOZ::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) {
+	if(type_ == Type::WOZ2) return;
+
 	for(const auto &pair: tracks) {
 		// Decode the track and store, patching into the post_crc_contents_.
 		auto segment = Storage::Disk::track_serialisation(*pair.second, Storage::Time(1, 50000));
@@ -155,5 +194,5 @@ void WOZ::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 }
 
 bool WOZ::get_is_read_only() {
-	return file_.get_is_known_read_only();
+	return file_.get_is_known_read_only() || is_read_only_ || type_ == Type::WOZ2;	// WOZ 2 disks are currently read only.
 }
