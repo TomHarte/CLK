@@ -72,7 +72,7 @@ class DiskImage {
 			@returns @c true if the tracks at the two addresses are different. @c false if they are the same track.
 				This can avoid some degree of work when disk images offer sub-head-position precision.
 		*/
-		virtual bool tracks_differ(Track::Address lhs, Track::Address rhs) { return lhs == rhs; }
+		virtual bool tracks_differ(Track::Address lhs, Track::Address rhs) { return lhs != rhs; }
 };
 
 class DiskImageHolderBase: public Disk {
