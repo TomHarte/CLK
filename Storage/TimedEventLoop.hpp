@@ -103,7 +103,7 @@ namespace Storage {
 		private:
 			Cycles::IntType input_clock_rate_ = 0;
 			Cycles::IntType cycles_until_event_ = 0;
-			float subcycles_until_event_ = 0.0;
+			float subcycles_until_event_ = 0.0f;
 	};
 
 }

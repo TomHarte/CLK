@@ -112,10 +112,22 @@ int WOZ::get_head_count() {
 }
 
 long WOZ::file_offset(Track::Address address) {
-	// Calculate table position; if this track is defined to be unformatted, return no track.
-	const int table_position = address.head * (is_3_5_disk_ ? 80 : 160) +
-		(is_3_5_disk_ ? address.position.as_int() : address.position.as_quarter());
-	if(track_map_[table_position] == 0xff) return NoSuchTrack;
+	// Calculate table position.
+	int table_position;
+	if(!is_3_5_disk_) {
+		table_position = address.head * 160 + address.position.as_quarter();
+	} else {
+		if(type_ == Type::WOZ1) {
+			table_position = address.head * 80 + address.position.as_int();
+		} else {
+			table_position = address.head + (address.position.as_int() * 2);
+		}
+	}
+
+	// Check that this track actually exists.
+	if(track_map_[table_position] == 0xff) {
+		return NoSuchTrack;
+	}
 
 	// Seek to the real track.
 	switch(type_) {
@@ -125,9 +137,17 @@ long WOZ::file_offset(Track::Address address) {
 	}
 }
 
+bool WOZ::tracks_differ(Track::Address lhs, Track::Address rhs) {
+	const long offset1 = file_offset(lhs);
+	const long offset2 = file_offset(rhs);
+	return offset1 != offset2;
+}
+
 std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
 	const long offset = file_offset(address);
-	if(offset == NoSuchTrack) return nullptr;
+	if(offset == NoSuchTrack) {
+		return nullptr;
+	}
 
 	// Seek to the real track.
 	std::vector<uint8_t> track_contents;
@@ -194,5 +214,12 @@ void WOZ::set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tra
 }
 
 bool WOZ::get_is_read_only() {
-	return file_.get_is_known_read_only() || is_read_only_ || type_ == Type::WOZ2;	// WOZ 2 disks are currently read only.
+	/*
+		There is an unintended issue with the disk code that sites above here: it doesn't understand the idea
+		of multiple addresses mapping to the same track, yet it maintains a cache of track contents. Therefore
+		if a WOZ is written to, what's written will magically be exactly 1/4 track wide, not affecting its
+		neighbours. I've made WOZs readonly until I can correct that issue.
+	*/
+	return true;
+//	return file_.get_is_known_read_only() || is_read_only_ || type_ == Type::WOZ2;	// WOZ 2 disks are currently read only.
 }

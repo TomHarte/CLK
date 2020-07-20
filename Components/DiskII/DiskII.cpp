@@ -191,7 +191,6 @@ void DiskII::set_state_machine(const std::vector<uint8_t> &state_machine) {
 				((source_address&0x02) ? 0x02 : 0x00);
 			uint8_t source_value = state_machine[source_address];
 
-			// Remap into Beneath Apple Pro-DOS value form.
 			source_value =
 				((source_value & 0x80) ? 0x10 : 0x0) |
 				((source_value & 0x40) ? 0x20 : 0x0) |

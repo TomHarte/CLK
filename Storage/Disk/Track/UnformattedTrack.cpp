@@ -17,8 +17,8 @@ Track::Event UnformattedTrack::get_next_event() {
 	return event;
 }
 
-Storage::Time UnformattedTrack::seek_to(const Time &) {
-	return Time(0);
+float UnformattedTrack::seek_to(float) {
+	return 0.0f;
 }
 
 Track *UnformattedTrack::clone() const {

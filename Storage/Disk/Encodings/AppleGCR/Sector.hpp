@@ -21,9 +21,9 @@ struct Sector {
 		Describes the location of a sector, implementing < to allow for use as a set key.
 	*/
 	struct Address {
-		struct {
+		union {
 			/// For Apple II-type sectors, provides the volume number.
-			uint_fast8_t volume = 0;
+			uint_fast8_t volume;
 			/// For Macintosh-type sectors, provides the format from the sector header.
 			uint_fast8_t format = 0;
 		};

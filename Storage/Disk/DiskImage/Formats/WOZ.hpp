@@ -31,6 +31,7 @@ class WOZ: public DiskImage {
 		std::shared_ptr<Track> get_track_at_position(Track::Address address) final;
 		void set_tracks(const std::map<Track::Address, std::shared_ptr<Track>> &tracks) final;
 		bool get_is_read_only() final;
+		bool tracks_differ(Track::Address, Track::Address) final;
 
 	private:
 		Storage::FileHolder file_;

@@ -80,6 +80,10 @@ bool Drive::get_is_track_zero() const {
 }
 
 void Drive::step(HeadPosition offset) {
+	if(offset == HeadPosition(0)) {
+		return;
+	}
+
 	if(ready_type_ == ReadyType::IBMRDY) {
 		is_ready_ = true;
 	}
@@ -94,7 +98,7 @@ void Drive::step(HeadPosition offset) {
 	}
 
 	// If the head moved, flush the old track.
-	if(head_position_ != old_head_position) {
+	if(disk_ && disk_->tracks_differ(Track::Address(head_, head_position_), Track::Address(head_, old_head_position))) {
 		track_ = nullptr;
 	}
 
@@ -300,11 +304,6 @@ void Drive::get_next_event(float duration_already_passed) {
 		current_event_.type = Track::Event::IndexHole;
 	}
 
-	// Begin a 2ms period of holding the index line pulse active if this is an index pulse event.
-	if(current_event_.type == Track::Event::IndexHole) {
-		index_pulse_remaining_ = Cycles((get_input_clock_rate() * 2) / 1000);
-	}
-
 	// divide interval, which is in terms of a single rotation of the disk, by rotation speed to
 	// convert it into revolutions per second; this is achieved by multiplying by rotational_multiplier_
 	float interval = std::max((current_event_.length - duration_already_passed) * rotational_multiplier_, 0.0f);
@@ -327,6 +326,9 @@ void Drive::process_next_event() {
 			is_ready_ = true;
 		}
 		cycles_since_index_hole_ = 0;
+
+		// Begin a 2ms period of holding the index line pulse active.
+		index_pulse_remaining_ = Cycles((get_input_clock_rate() * 2) / 1000);
 	}
 	if(
 		event_delegate_ &&
@@ -355,8 +357,8 @@ void Drive::setup_track() {
 	}
 
 	float offset = 0.0f;
-	const auto track_time_now = get_time_into_track();
-	const auto time_found = track_->seek_to(Time(track_time_now)).get<float>();
+	const float track_time_now = get_time_into_track();
+	const float time_found = track_->seek_to(track_time_now);
 
 	// `time_found` can be greater than `track_time_now` if limited precision caused rounding.
 	if(time_found <= track_time_now) {

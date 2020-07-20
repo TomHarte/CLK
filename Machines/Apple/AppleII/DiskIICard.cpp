@@ -20,7 +20,9 @@ DiskIICard::DiskIICard(const ROMMachine::ROMFetcher &rom_fetcher, bool is_16_sec
 	} else {
 		roms = rom_fetcher({
 			{"DiskII", "the Disk II 13-sector boot ROM", "boot-13.rom", 256, 0xd34eb2ff},
-			{"DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620 }
+			{"DiskII", "the Disk II 16-sector state machine ROM", "state-machine-16.rom", 256, { 0x9796a238, 0xb72a2c70 } }
+//			{"DiskII", "the Disk II 13-sector state machine ROM", "state-machine-13.rom", 256, 0x62e22620 }
+			/* TODO: once the DiskII knows how to decode common images of the 13-sector state machine, use that instead of the 16-sector. */
 		});
 	}
 	if(!roms[0] || !roms[1]) {
