@@ -57,14 +57,14 @@ uint8_t unmap_five_and_three(uint8_t source) {
 	return five_and_three_unmapping[source - 0xab];
 }
 
-std::unique_ptr<Sector> decode_macintosh_sector(const std::array<uint_fast8_t, 8> &header, const std::unique_ptr<Sector> &original) {
-	// There must be at least 704 bytes to decode from.
-	if(original->data.size() < 704) return nullptr;
+std::unique_ptr<Sector> decode_macintosh_sector(const std::array<uint_fast8_t, 8> *header, const std::unique_ptr<Sector> &original) {
+	// There must be a header and at least 704 bytes to decode from.
+	if(!header || original->data.size() < 704) return nullptr;
 
 	// Attempt a six-and-two unmapping of the header.
 	std::array<uint_fast8_t, 5> decoded_header;
 	for(size_t c = 0; c < decoded_header.size(); ++c) {
-		decoded_header[c] = unmap_six_and_two(header[c]);
+		decoded_header[c] = unmap_six_and_two((*header)[c]);
 		if(decoded_header[c] == 0xff) {
 			return nullptr;
 		}
@@ -140,29 +140,32 @@ std::unique_ptr<Sector> decode_macintosh_sector(const std::array<uint_fast8_t, 8
 	return sector;
 }
 
-std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> &header, const std::unique_ptr<Sector> &original, bool is_five_and_three) {
+std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> *header, const std::unique_ptr<Sector> &original, bool is_five_and_three) {
 	// There must be at least 411 bytes to decode a five-and-three sector from;
 	// there must be only 343 if this is a six-and-two sector.
 	const size_t data_size = is_five_and_three ? 411 : 343;
 	if(original->data.size() < data_size) return nullptr;
 
-	// Check for apparent four and four encoding.
-	uint_fast8_t header_mask = 0xff;
-	for(auto c : header) header_mask &= c;
-	header_mask &= 0xaa;
-	if(header_mask != 0xaa) return nullptr;
-
-	// Allocate a sector and fill the header fields.
+	// Allocate a sector.
 	auto sector = std::make_unique<Sector>();
 	sector->data.resize(data_size);
 
-	sector->address.volume = ((header[0] << 1) | 1) & header[1];
-	sector->address.track = ((header[2] << 1) | 1) & header[3];
-	sector->address.sector = ((header[4] << 1) | 1) & header[5];
+	// If there is a header, check for apparent four and four encoding.
+	if(header) {
+		uint_fast8_t header_mask = 0xff;
+		for(auto c : *header) header_mask &= c;
+		header_mask &= 0xaa;
+		if(header_mask != 0xaa) return nullptr;
 
-	// Check the header checksum.
-	const uint_fast8_t checksum = ((header[6] << 1) | 1) & header[7];
-	if(checksum != (sector->address.volume^sector->address.track^sector->address.sector)) return nullptr;
+		// Fill the header fields.
+		sector->address.volume = (((*header)[0] << 1) | 1) & (*header)[1];
+		sector->address.track = (((*header)[2] << 1) | 1) & (*header)[3];
+		sector->address.sector = (((*header)[4] << 1) | 1) & (*header)[5];
+
+		// Check the header checksum.
+		const uint_fast8_t checksum = (((*header)[6] << 1) | 1) & (*header)[7];
+		if(checksum != (sector->address.volume^sector->address.track^sector->address.sector)) return nullptr;
+	}
 
 	// Unmap the sector contents.
 	for(size_t index = 0; index < data_size; ++index) {
@@ -177,9 +180,6 @@ std::unique_ptr<Sector> decode_appleii_sector(const std::array<uint_fast8_t, 8> 
 		sector->data[c] ^= sector->data[c-1];
 	}
 	if(sector->data.back()) return nullptr;
-
-	// Having checked the checksum, remove it.
-	sector->data.resize(sector->data.size() - 1);
 
 	if(is_five_and_three) {
 		// TODO: the below is almost certainly incorrect; Beneath Apple DOS partly documents
@@ -250,6 +250,7 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 	size_t bit = 0;
 	int header_delay = 0;
 	bool is_five_and_three = false;
+	bool has_header = false;
 	while(bit < segment.data.size() || pointer != scanning_sentinel || header_delay) {
 		shift_register = uint_fast8_t((shift_register << 1) | (segment.data[bit % segment.data.size()] ? 1 : 0));
 		++bit;
@@ -290,6 +291,7 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 					sector_location = size_t(bit % segment.data.size());
 					header_delay = 200;	// Allow up to 200 bytes to find the body, if the
 										// track split comes in between.
+					has_header = true;
 				}
 			}
 		} else {
@@ -308,18 +310,19 @@ std::map<std::size_t, Sector> Storage::Encodings::AppleGCR::sectors_from_segment
 					pointer = scanning_sentinel;
 
 					// Potentially this is a Macintosh sector.
-					auto macintosh_sector = decode_macintosh_sector(header, sector);
+					auto macintosh_sector = decode_macintosh_sector(has_header ? &header : nullptr, sector);
 					if(macintosh_sector) {
 						result.insert(std::make_pair(sector_location, std::move(*macintosh_sector)));
 						continue;
 					}
 
 					// Apple II then?
-					auto appleii_sector = decode_appleii_sector(header, sector, is_five_and_three);
+					auto appleii_sector = decode_appleii_sector(has_header ? &header : nullptr, sector, is_five_and_three);
 					if(appleii_sector) {
 						result.insert(std::make_pair(sector_location, std::move(*appleii_sector)));
 					}
 
+					has_header = false;
 				} else {
 					new_sector->data.push_back(value);
 				}
