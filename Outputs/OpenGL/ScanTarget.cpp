@@ -119,7 +119,7 @@ void ScanTarget::set_target_framebuffer(GLuint target_framebuffer) {
 	is_updating_.clear();
 }
 
-void ScanTarget::set_modals(Modals modals) {
+void BufferingScanTarget::set_modals(Modals modals) {
 	// Don't change the modals while drawing is ongoing; a previous set might be
 	// in the process of being established.
 	while(is_updating_.test_and_set());
@@ -128,7 +128,7 @@ void ScanTarget::set_modals(Modals modals) {
 	is_updating_.clear();
 }
 
-Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
+Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
 	if(allocation_has_failed_) return nullptr;
 
 	std::lock_guard lock_guard(write_pointers_mutex_);
@@ -154,7 +154,7 @@ Outputs::Display::ScanTarget::Scan *ScanTarget::begin_scan() {
 	return &result->scan;
 }
 
-void ScanTarget::end_scan() {
+void BufferingScanTarget::end_scan() {
 	if(vended_scan_) {
 		std::lock_guard lock_guard(write_pointers_mutex_);
 		vended_scan_->data_y = TextureAddressGetY(vended_write_area_pointer_);
@@ -176,7 +176,7 @@ void ScanTarget::end_scan() {
 	vended_scan_ = nullptr;
 }
 
-uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignment) {
+uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required_alignment) {
 	assert(required_alignment);
 
 	if(allocation_has_failed_) return nullptr;
@@ -226,7 +226,7 @@ uint8_t *ScanTarget::begin_data(size_t required_length, size_t required_alignmen
 	//		write_pointers_.write_area points to the first pixel the client is expected to draw to.
 }
 
-void ScanTarget::end_data(size_t actual_length) {
+void BufferingScanTarget::end_data(size_t actual_length) {
 	if(allocation_has_failed_ || !data_is_allocated_) return;
 
 	std::lock_guard lock_guard(write_pointers_mutex_);
@@ -260,7 +260,7 @@ void ScanTarget::will_change_owner() {
 	vended_scan_ = nullptr;
 }
 
-void ScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
+void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
 	// Forward the event to the display metrics tracker.
 	display_metrics_.announce_event(event);
 
@@ -400,7 +400,7 @@ void ScanTarget::setup_pipeline() {
 	input_shader_->set_uniform("textureName", GLint(SourceDataTextureUnit - GL_TEXTURE0));
 }
 
-Outputs::Display::Metrics &ScanTarget::display_metrics() {
+const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
 	return display_metrics_;
 }
 
