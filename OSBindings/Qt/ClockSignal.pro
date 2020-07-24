@@ -1,6 +1,9 @@
 QT += core gui multimedia widgets
 
+# Be specific about C++17 but also try the vaguer C++1z for older
+# versions of Qt.
 CONFIG += c++17
+CONFIG += c++1z
 
 # Permit multiple source files in different directories to have the same file name.
 CONFIG += object_parallel_to_source
