@@ -44,6 +44,12 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		const Metrics &display_metrics();
 
 	protected:
+		static constexpr int WriteAreaWidth = 2048;
+		static constexpr int WriteAreaHeight = 2048;
+
+		static constexpr int LineBufferWidth = 2048;
+		static constexpr int LineBufferHeight = 2048;
+
 		BufferingScanTarget();
 
 		// Extends the definition of a Scan to include two extra fields,
@@ -92,10 +98,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		Modals modals_;
 		bool modals_are_dirty_ = false;
 
-		// Track allocation failures.
-		bool data_is_allocated_ = false;
-		bool allocation_has_failed_ = false;
-
 		/// Maintains a buffer of the most recent scans.
 		// TODO: have the owner supply a buffer and its size.
 		// That'll allow owners to place this in shared video memory if possible.
@@ -119,26 +121,7 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// A pointer to the first thing not yet submitted for display.
 		std::atomic<PointerSet> read_pointers_;
 
-		// Ephemeral state that helps in line composition.
-		Line *active_line_ = nullptr;
-		int provided_scans_ = 0;
-		bool is_first_in_frame_ = true;
-		bool frame_is_complete_ = true;
-		bool previous_frame_was_complete_ = true;
-
-		// Ephemeral information for the begin/end functions.
-		Scan *vended_scan_ = nullptr;
-		int vended_write_area_pointer_ = 0;
-
-		static constexpr int WriteAreaWidth = 2048;
-		static constexpr int WriteAreaHeight = 2048;
-
-		static constexpr int LineBufferWidth = 2048;
-		static constexpr int LineBufferHeight = 2048;
-
 		Metrics display_metrics_;
-
-		bool output_is_visible_ = false;
 
 		std::array<Line, LineBufferHeight> line_buffer_;
 		std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
@@ -170,6 +153,25 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		// Uses a texture to vend write areas.
 		uint8_t *write_area_ = nullptr;
 		size_t data_type_size_ = 0;
+
+		// Tracks changes in raster visibility in order to populate
+		// Lines and LineMetadatas.
+		bool output_is_visible_ = false;
+
+		// Track allocation failures.
+		bool data_is_allocated_ = false;
+		bool allocation_has_failed_ = false;
+
+		// Ephemeral information for the begin/end functions.
+		Scan *vended_scan_ = nullptr;
+		int vended_write_area_pointer_ = 0;
+
+		// Ephemeral state that helps in line composition.
+		Line *active_line_ = nullptr;
+		int provided_scans_ = 0;
+		bool is_first_in_frame_ = true;
+		bool frame_is_complete_ = true;
+		bool previous_frame_was_complete_ = true;
 };
 
 
