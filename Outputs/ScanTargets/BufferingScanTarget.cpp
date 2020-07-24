@@ -8,6 +8,9 @@
 
 #include "BufferingScanTarget.hpp"
 
+#include <cassert>
+#include <cstring>
+
 using namespace Outputs::Display;
 
 BufferingScanTarget::BufferingScanTarget() {
