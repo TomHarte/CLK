@@ -52,6 +52,10 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 
 		BufferingScanTarget();
 
+		// This is included because it's assumed that scan targets will want to expose one.
+		// It is the subclass's responsibility to post timings.
+		Metrics display_metrics_;
+
 		// Extends the definition of a Scan to include two extra fields,
 		// completing this scan's source data and destination locations.
 		struct Scan {
@@ -99,10 +103,14 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		bool modals_are_dirty_ = false;
 
 		/// Maintains a buffer of the most recent scans.
-		// TODO: have the owner supply a buffer and its size.
+		// TODO: have the owner supply buffers and sizes.
 		// That'll allow owners to place this in shared video memory if possible.
 		std::array<Scan, 16384> scan_buffer_;
+		std::array<Line, LineBufferHeight> line_buffer_;
+		std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
 
+		// TODO: make this an implementation detail.
+		// ... and expose some sort of difference?
 		struct PointerSet {
 			// This constructor is here to appease GCC's interpretation of
 			// an ambiguity in the C++ standard; cf. https://stackoverflow.com/questions/17430377
@@ -120,11 +128,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 
 		/// A pointer to the first thing not yet submitted for display.
 		std::atomic<PointerSet> read_pointers_;
-
-		Metrics display_metrics_;
-
-		std::array<Line, LineBufferHeight> line_buffer_;
-		std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
 
 		// Used by subclasses to set a new base address for the texture.
 		// When called this will flush all existing data and load up the
