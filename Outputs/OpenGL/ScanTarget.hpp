@@ -145,6 +145,9 @@ class ScanTarget: public Outputs::Display::BufferingScanTarget {
 			contrast tends to be low, such as a composite colour display.
 		*/
 		bool is_soft_display_type();
+
+		// Storage for the write area.
+		std::vector<uint8_t> write_area_texture_;
 };
 
 }

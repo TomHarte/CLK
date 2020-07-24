@@ -29,7 +29,7 @@ namespace Display {
 	Provides basic thread-safe (hopefully) circular queues for any scan target that:
 
 		*	will store incoming Scans into a linear circular buffer and pack regions of
-			incoming pixel data into a 2d texture;
+			incoming pixel data into a 2048x2048 2d texture;
 		*	will compose whole lines of content by partioning the Scans based on sync
 			placement and then pasting together their content;
 		*	will process those lines as necessary to map from input format to whatever
@@ -44,6 +44,8 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		const Metrics &display_metrics();
 
 	protected:
+		BufferingScanTarget();
+
 		// Extends the definition of a Scan to include two extra fields,
 		// completing this scan's source data and destination locations.
 		struct Scan {
@@ -99,11 +101,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		// That'll allow owners to place this in shared video memory if possible.
 		std::array<Scan, 16384> scan_buffer_;
 
-		/// A mutex for gettng access to write_pointers_; access to write_pointers_,
-		/// data_type_size_ or write_area_texture_ is almost never contended, so this
-		/// is cheap for the main use case.
-		std::mutex write_pointers_mutex_;
-
 		struct PointerSet {
 			// This constructor is here to appease GCC's interpretation of
 			// an ambiguity in the C++ standard; cf. https://stackoverflow.com/questions/17430377
@@ -115,9 +112,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 			uint16_t scan_buffer = 0;
 			uint16_t line = 0;
 		};
-
-		/// A pointer to the next thing that should be provided to the caller for data.
-		PointerSet write_pointers_;
 
 		/// A pointer to the final thing currently cleared for submission.
 		std::atomic<PointerSet> submit_pointers_;
@@ -144,14 +138,16 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 
 		Metrics display_metrics_;
 
-		// Uses a texture to vend write areas.
-		std::vector<uint8_t> write_area_texture_;
-		size_t data_type_size_ = 0;
-
 		bool output_is_visible_ = false;
 
 		std::array<Line, LineBufferHeight> line_buffer_;
 		std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
+
+		// Used by subclasses to set a new base address for the texture.
+		// When called this will flush all existing data and load up the
+		// new data size.
+		void set_write_area(uint8_t *base);
+		size_t write_area_data_size() const;
 
 	private:
 		// ScanTarget overrides.
@@ -162,6 +158,18 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		void end_data(size_t actual_length) final;
 		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) final;
 		void will_change_owner() final;
+
+		/// A mutex for gettng access to write_pointers_; access to write_pointers_,
+		/// data_type_size_ or write_area_texture_ is almost never contended, so this
+		/// is cheap for the main use case.
+		std::mutex write_pointers_mutex_;
+
+		/// A pointer to the next thing that should be provided to the caller for data.
+		PointerSet write_pointers_;
+
+		// Uses a texture to vend write areas.
+		uint8_t *write_area_ = nullptr;
+		size_t data_type_size_ = 0;
 };
 
 

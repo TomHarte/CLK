@@ -79,10 +79,6 @@ ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
 	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_NEAREST, false),
 	full_display_rectangle_(-1.0f, -1.0f, 2.0f, 2.0f) {
 
-	// Ensure proper initialisation of the two atomic pointer sets.
-	read_pointers_.store(write_pointers_);
-	submit_pointers_.store(write_pointers_);
-
 	// Allocate space for the scans and lines.
 	allocate_buffer(scan_buffer_, scan_buffer_name_, scan_vertex_array_);
 	allocate_buffer(line_buffer_, line_buffer_name_, line_vertex_array_);
@@ -96,8 +92,7 @@ ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
 	test_gl(glBlendFunc, GL_SRC_ALPHA, GL_CONSTANT_COLOR);
 	test_gl(glBlendColor, 0.4f, 0.4f, 0.4f, 1.0f);
 
-	// Establish initial state for the two atomic flags.
-	is_updating_.clear();
+	// Establish initial state for is_drawing_to_accumulation_buffer_.
 	is_drawing_to_accumulation_buffer_.clear();
 }
 
@@ -119,17 +114,9 @@ void ScanTarget::setup_pipeline() {
 
 	// Ensure the lock guard here has a restricted scope; this is the only time that a thread
 	// other than the main owner of write_pointers_ may adjust it.
-	{
-		std::lock_guard lock_guard(write_pointers_mutex_);
-		if(data_type_size != data_type_size_) {
-			// TODO: flush output.
-
-			data_type_size_ = data_type_size;
-			write_area_texture_.resize(WriteAreaWidth*WriteAreaHeight*data_type_size_);
-
-			write_pointers_.scan_buffer = 0;
-			write_pointers_.write_area = 0;
-		}
+	if(data_type_size != write_area_data_size()) {
+		write_area_texture_.resize(WriteAreaWidth*WriteAreaHeight*data_type_size);
+		set_write_area(write_area_texture_.data());
 	}
 
 	// Prepare to bind line shaders.
@@ -252,11 +239,11 @@ void ScanTarget::update(int, int output_height) {
 			test_gl(glTexImage2D,
 				GL_TEXTURE_2D,
 				0,
-				internalFormatForDepth(data_type_size_),
+				internalFormatForDepth(write_area_data_size()),
 				WriteAreaWidth,
 				WriteAreaHeight,
 				0,
-				formatForDepth(data_type_size_),
+				formatForDepth(write_area_data_size()),
 				GL_UNSIGNED_BYTE,
 				nullptr);
 			texture_exists_ = true;
@@ -271,9 +258,9 @@ void ScanTarget::update(int, int output_height) {
 				0, start_y,
 				WriteAreaWidth,
 				1 + end_y - start_y,
-				formatForDepth(data_type_size_),
+				formatForDepth(write_area_data_size()),
 				GL_UNSIGNED_BYTE,
-				&write_area_texture_[size_t(TextureAddress(0, start_y)) * data_type_size_]);
+				&write_area_texture_[size_t(TextureAddress(0, start_y)) * write_area_data_size()]);
 		} else {
 			// The circular buffer wrapped around; submit the data from the read pointer to the end of
 			// the buffer and from the start of the buffer to the submit pointer.
@@ -282,7 +269,7 @@ void ScanTarget::update(int, int output_height) {
 				0, 0,
 				WriteAreaWidth,
 				1 + end_y,
-				formatForDepth(data_type_size_),
+				formatForDepth(write_area_data_size()),
 				GL_UNSIGNED_BYTE,
 				&write_area_texture_[0]);
 			test_gl(glTexSubImage2D,
@@ -290,9 +277,9 @@ void ScanTarget::update(int, int output_height) {
 				0, start_y,
 				WriteAreaWidth,
 				WriteAreaHeight - start_y,
-				formatForDepth(data_type_size_),
+				formatForDepth(write_area_data_size()),
 				GL_UNSIGNED_BYTE,
-				&write_area_texture_[size_t(TextureAddress(0, start_y)) * data_type_size_]);
+				&write_area_texture_[size_t(TextureAddress(0, start_y)) * write_area_data_size()]);
 		}
 	}
 

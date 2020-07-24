@@ -10,6 +10,15 @@
 
 using namespace Outputs::Display;
 
+BufferingScanTarget::BufferingScanTarget() {
+	// Ensure proper initialisation of the two atomic pointer sets.
+	read_pointers_.store(write_pointers_);
+	submit_pointers_.store(write_pointers_);
+
+	// Establish initial state for is_updating_.
+	is_updating_.clear();
+}
+
 void BufferingScanTarget::set_modals(Modals modals) {
 	// Don't change the modals while drawing is ongoing; a previous set might be
 	// in the process of being established.
@@ -47,7 +56,7 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 	if(allocation_has_failed_) return nullptr;
 
 	std::lock_guard lock_guard(write_pointers_mutex_);
-	if(write_area_texture_.empty()) {
+	if(!write_area_) {
 		allocation_has_failed_ = true;
 		return nullptr;
 	}
@@ -84,8 +93,8 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 	data_is_allocated_ = true;
 	vended_write_area_pointer_ = write_pointers_.write_area = TextureAddress(aligned_start_x, output_y);
 
-	assert(write_pointers_.write_area >= 1 && ((size_t(write_pointers_.write_area) + required_length + 1) * data_type_size_) <= write_area_texture_.size());
-	return &write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_];
+	assert(write_pointers_.write_area >= 1 && ((size_t(write_pointers_.write_area) + required_length + 1) * data_type_size_) <= WriteAreaWidth*WriteAreaHeight*data_type_size_);
+	return &write_area_[size_t(write_pointers_.write_area) * data_type_size_];
 
 	// Note state at exit:
 	//		write_pointers_.write_area points to the first pixel the client is expected to draw to.
@@ -98,8 +107,8 @@ void BufferingScanTarget::end_data(size_t actual_length) {
 
 	// Bookend the start of the new data, to safeguard for precision errors in sampling.
 	memcpy(
-		&write_area_texture_[size_t(write_pointers_.write_area - 1) * data_type_size_],
-		&write_area_texture_[size_t(write_pointers_.write_area) * data_type_size_],
+		&write_area_[size_t(write_pointers_.write_area - 1) * data_type_size_],
+		&write_area_[size_t(write_pointers_.write_area) * data_type_size_],
 		data_type_size_);
 
 	// Advance to the end of the current run.
@@ -107,14 +116,14 @@ void BufferingScanTarget::end_data(size_t actual_length) {
 
 	// Also bookend the end.
 	memcpy(
-		&write_area_texture_[size_t(write_pointers_.write_area - 1) * data_type_size_],
-		&write_area_texture_[size_t(write_pointers_.write_area - 2) * data_type_size_],
+		&write_area_[size_t(write_pointers_.write_area - 1) * data_type_size_],
+		&write_area_[size_t(write_pointers_.write_area - 2) * data_type_size_],
 		data_type_size_);
 
 	// The write area was allocated in the knowledge that there's sufficient
 	// distance left on the current line, but there's a risk of exactly filling
 	// the final line, in which case this should wrap back to 0.
-	write_pointers_.write_area %= (write_area_texture_.size() / data_type_size_);
+	write_pointers_.write_area %= WriteAreaWidth*WriteAreaHeight;
 
 	// Record that no further end_data calls are expected.
 	data_is_allocated_ = false;
@@ -237,4 +246,15 @@ Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
 
 	vended_scan_ = result;
 	return &result->scan;
+}
+
+void BufferingScanTarget::set_write_area(uint8_t *base) {
+	std::lock_guard lock_guard(write_pointers_mutex_);
+	write_area_ = base;
+	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
+	write_pointers_ = submit_pointers_ = read_pointers_ = PointerSet();
+}
+
+size_t BufferingScanTarget::write_area_data_size() const {
+	return data_type_size_;
 }
