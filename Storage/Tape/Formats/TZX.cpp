@@ -247,10 +247,10 @@ void TZX::get_data_block(const DataBlock &data_block) {
 
 void TZX::get_data(const Data &data) {
 	// Output data.
-	for(unsigned int c = 0; c < data.data_length; c++) {
+	for(decltype(data.data_length) c = 0; c < data.data_length; c++) {
 		uint8_t next_byte = file_.get8();
 
-		unsigned int bits = (c != data.data_length-1) ? 8 : data.number_of_bits_in_final_byte;
+		auto bits = (c != data.data_length-1) ? 8 : data.number_of_bits_in_final_byte;
 		while(bits--) {
 			unsigned int pulse_length = (next_byte & 0x80) ? data.length_of_one_bit_pulse : data.length_of_zero_bit_pulse;
 			next_byte <<= 1;

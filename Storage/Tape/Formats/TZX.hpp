@@ -77,7 +77,7 @@ class TZX: public PulseQueuedTape {
 			unsigned int length_of_one_bit_pulse;
 			unsigned int number_of_bits_in_final_byte;
 			unsigned int pause_after_block;
-			long data_length;
+			uint32_t data_length;
 		};
 
 		struct DataBlock {
