@@ -316,6 +316,8 @@ void z8530::Channel::write(bool data, uint8_t pointer, uint8_t value) {
 				}
 				LOG("Receive bit count: " << receive_bit_count);
 
+				(void)receive_bit_count;
+
 				/*
 					b7,b6:
 						00 = 5 receive bits per character
