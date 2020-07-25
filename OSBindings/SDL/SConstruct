@@ -1,19 +1,19 @@
 import glob
 import sys
 
-# establish UTF-8 encoding for Python 2
+# Establish UTF-8 encoding for Python 2.
 if sys.version_info < (3, 0):
 	reload(sys)
 	sys.setdefaultencoding('utf-8')
 
-# create build environment
+# Create build environment.
 env = Environment()
 
-# determine compiler and linker flags for SDL
+# Determine compiler and linker flags for SDL.
 env.ParseConfig('sdl2-config --cflags')
 env.ParseConfig('sdl2-config --libs')
 
-# gather a list of source files
+# Gather a list of source files.
 SOURCES = glob.glob('*.cpp')
 
 SOURCES += glob.glob('../../Analyser/Dynamic/*.cpp')
@@ -118,11 +118,11 @@ SOURCES += glob.glob('../../Storage/Tape/*.cpp')
 SOURCES += glob.glob('../../Storage/Tape/Formats/*.cpp')
 SOURCES += glob.glob('../../Storage/Tape/Parsers/*.cpp')
 
-# add additional compiler flags
-env.Append(CCFLAGS = ['--std=c++17', '-Wall', '-O2', '-DNDEBUG'])
+# Add additional compiler flags; c++1z is insurance in case c++17 isn't fully implemented.
+env.Append(CCFLAGS = ['--std=c++17', '--std=c++1z', '-Wall', '-O2', '-DNDEBUG'])
 
-# add additional libraries to link against
+# Add additional libraries to link against.
 env.Append(LIBS = ['libz', 'pthread', 'GL'])
 
-# build target
+# Build target.
 env.Program(target = 'clksignal', source = SOURCES)
