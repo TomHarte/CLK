@@ -166,6 +166,7 @@ std::shared_ptr<Track> WOZ::get_track_at_position(Track::Address address) {
 				number_of_bits = std::min(file_.get16le(), uint16_t(6646*8));
 			break;
 
+			default:
 			case Type::WOZ2: {
 				// In WOZ 2 an extra level of indirection allows for variable track sizes.
 				const uint16_t starting_block = file_.get16le();
