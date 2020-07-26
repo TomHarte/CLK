@@ -11,6 +11,10 @@
 #include <cassert>
 #include <cstring>
 
+#define TextureAddressGetY(v)	uint16_t((v) >> 11)
+#define TextureAddressGetX(v)	uint16_t((v) & 0x7ff)
+#define TextureSub(a, b)		(((a) - (b)) & 0x3fffff)
+
 using namespace Outputs::Display;
 
 BufferingScanTarget::BufferingScanTarget() {

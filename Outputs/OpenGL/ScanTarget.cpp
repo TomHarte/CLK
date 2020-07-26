@@ -189,10 +189,8 @@ void ScanTarget::update(int, int output_height) {
 			modals_are_dirty_ = false;
 		}
 
-		// Determine the start time of this submission group.
+		// Determine the start time of this submission group and the number of lines it will contain.
 		line_submission_begin_time_ = std::chrono::high_resolution_clock::now();
-
-		// Determine how many lines are about to be submitted.
 		lines_submitted_ = (area.end.line - area.start.line + line_buffer_.size()) % line_buffer_.size();
 
 		// Submit scans; only the new ones need to be communicated.
