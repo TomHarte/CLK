@@ -22,15 +22,6 @@ BufferingScanTarget::BufferingScanTarget() {
 	is_updating_.clear();
 }
 
-void BufferingScanTarget::set_modals(Modals modals) {
-	// Don't change the modals while drawing is ongoing; a previous set might be
-	// in the process of being established.
-	while(is_updating_.test_and_set());
-	modals_ = modals;
-	modals_are_dirty_ = true;
-	is_updating_.clear();
-}
-
 void BufferingScanTarget::end_scan() {
 	if(vended_scan_) {
 		std::lock_guard lock_guard(write_pointers_mutex_);
@@ -260,4 +251,46 @@ void BufferingScanTarget::set_write_area(uint8_t *base) {
 
 size_t BufferingScanTarget::write_area_data_size() const {
 	return data_type_size_;
+}
+
+void BufferingScanTarget::set_modals(Modals modals) {
+	perform([=] {
+		modals_ = modals;
+		modals_are_dirty_ = true;
+	});
+}
+
+void BufferingScanTarget::perform(const std::function<void(const OutputArea &)> &function) {
+	// The area to draw is that between the read pointers, representing wherever reading
+	// last stopped, and the submit pointers, representing all the new data that has been
+	// cleared for submission.
+	const auto submit_pointers = submit_pointers_.load();
+	const auto read_pointers = read_pointers_.load();
+
+	OutputArea area;
+
+	area.start.line = read_pointers.line;
+	area.end.line = submit_pointers.line;
+
+	area.start.scan = read_pointers.scan_buffer;
+	area.end.scan = submit_pointers.scan_buffer;
+
+	area.start.write_area_x = TextureAddressGetX(read_pointers.write_area);
+	area.start.write_area_y = TextureAddressGetY(read_pointers.write_area);
+	area.end.write_area_x = TextureAddressGetX(submit_pointers.write_area);
+	area.end.write_area_y = TextureAddressGetY(submit_pointers.write_area);
+
+	// Perform only while holding the is_updating lock.
+	while(is_updating_.test_and_set(std::memory_order_acquire));
+	function(area);
+	is_updating_.clear(std::memory_order_release);
+
+	// Update the read pointers.
+	read_pointers_.store(submit_pointers);
+}
+
+void BufferingScanTarget::perform(const std::function<void(void)> &function) {
+	while(is_updating_.test_and_set(std::memory_order_acquire));
+	function();
+	is_updating_.clear(std::memory_order_release);
 }

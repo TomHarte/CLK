@@ -14,6 +14,7 @@
 
 #include <array>
 #include <atomic>
+#include <functional>
 #include <mutex>
 #include <vector>
 
@@ -95,10 +96,8 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 			bool previous_frame_was_complete;
 		};
 
-		// TODO: put this behind accessors.
-		std::atomic_flag is_updating_;
-
-		// These are safe to read if you have is_updating_.
+		// These are safe to read only within a `perform` block.
+		// TODO: can I do better than that?
 		Modals modals_;
 		bool modals_are_dirty_ = false;
 
@@ -109,31 +108,34 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		std::array<Line, LineBufferHeight> line_buffer_;
 		std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
 
-		// TODO: make this an implementation detail.
-		// ... and expose some sort of difference?
-		struct PointerSet {
-			// This constructor is here to appease GCC's interpretation of
-			// an ambiguity in the C++ standard; cf. https://stackoverflow.com/questions/17430377
-			PointerSet() noexcept {}
-
-			// Squeezing this struct into 64 bits makes the std::atomics more likely
-			// to be lock free; they are under LLVM x86-64.
-			int write_area = 1;	// By convention this points to the vended area. Which is preceded by a guard pixel. So a sensible default construction is write_area = 1.
-			uint16_t scan_buffer = 0;
-			uint16_t line = 0;
-		};
-
-		/// A pointer to the final thing currently cleared for submission.
-		std::atomic<PointerSet> submit_pointers_;
-
-		/// A pointer to the first thing not yet submitted for display.
-		std::atomic<PointerSet> read_pointers_;
-
 		// Used by subclasses to set a new base address for the texture.
 		// When called this will flush all existing data and load up the
 		// new data size.
 		void set_write_area(uint8_t *base);
 		size_t write_area_data_size() const;
+
+		/// Defines a segment of data now ready for output, consisting of start and endpoints for:
+		///
+		///	(i) the region of the write area that has been modified; if the caller is using shared memory
+		/// for the write area then it can ignore this information;
+		///
+		/// (ii) the number of scans that have been completed; and
+		///
+		/// (iii) the number of lines that have been completed.
+		///
+		/// New write areas and scans are exposed only upon completion of the corresponding lines.
+		struct OutputArea {
+			struct Endpoint {
+				int write_area_x, write_area_y;
+				size_t scan;
+				size_t line;
+			};
+
+			Endpoint start, end;
+		};
+		void perform(const std::function<void(const OutputArea &)> &);
+		void perform(const std::function<void(void)> &);
+
 
 	private:
 		// ScanTarget overrides.
@@ -144,14 +146,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		void end_data(size_t actual_length) final;
 		void announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t colour_burst_amplitude) final;
 		void will_change_owner() final;
-
-		/// A mutex for gettng access to write_pointers_; access to write_pointers_,
-		/// data_type_size_ or write_area_texture_ is almost never contended, so this
-		/// is cheap for the main use case.
-		std::mutex write_pointers_mutex_;
-
-		/// A pointer to the next thing that should be provided to the caller for data.
-		PointerSet write_pointers_;
 
 		// Uses a texture to vend write areas.
 		uint8_t *write_area_ = nullptr;
@@ -175,6 +169,45 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		bool is_first_in_frame_ = true;
 		bool frame_is_complete_ = true;
 		bool previous_frame_was_complete_ = true;
+
+		// TODO: make this an implementation detail.
+		// ... and expose some sort of difference?
+		struct PointerSet {
+			// This constructor is here to appease GCC's interpretation of
+			// an ambiguity in the C++ standard; cf. https://stackoverflow.com/questions/17430377
+			PointerSet() noexcept {}
+
+			// Squeezing this struct into 64 bits makes the std::atomics more likely
+			// to be lock free; they are under LLVM x86-64.
+
+			// Points to the vended area in the write area texture.
+			// The vended area is always preceded by a guard pixel, so a
+			// sensible default construction is write_area = 1.
+			int32_t write_area = 1;
+
+			// Points into the scan buffer.
+			uint16_t scan_buffer = 0;
+
+			// Points into the line buffer.
+			uint16_t line = 0;
+		};
+
+		/// A pointer to the final thing currently cleared for submission.
+		std::atomic<PointerSet> submit_pointers_;
+
+		/// A pointer to the first thing not yet submitted for display.
+		std::atomic<PointerSet> read_pointers_;
+
+		/// This is used as a spinlock to guard `perform` calls.
+		std::atomic_flag is_updating_;
+
+		/// A mutex for gettng access to write_pointers_; access to write_pointers_,
+		/// data_type_size_ or write_area_texture_ is almost never contended, so this
+		/// is cheap for the main use case.
+		std::mutex write_pointers_mutex_;
+
+		/// A pointer to the next thing that should be provided to the caller for data.
+		PointerSet write_pointers_;
 };
 
 
