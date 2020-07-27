@@ -79,6 +79,9 @@ ScanTarget::ScanTarget(GLuint target_framebuffer, float output_gamma) :
 	unprocessed_line_texture_(LineBufferWidth, LineBufferHeight, UnprocessedLineBufferTextureUnit, GL_NEAREST, false),
 	full_display_rectangle_(-1.0f, -1.0f, 2.0f, 2.0f) {
 
+	set_scan_buffer(scan_buffer_.data(), scan_buffer_.size());
+	set_line_buffer(line_buffer_.data(), line_metadata_buffer_.data(), line_buffer_.size());
+
 	// Allocate space for the scans and lines.
 	allocate_buffer(scan_buffer_, scan_buffer_name_, scan_vertex_array_);
 	allocate_buffer(line_buffer_, line_buffer_name_, line_vertex_array_);
@@ -253,7 +256,7 @@ void ScanTarget::update(int, int output_height) {
 					1 + area.end.write_area_y - area.start.write_area_y,
 					formatForDepth(write_area_data_size()),
 					GL_UNSIGNED_BYTE,
-					&write_area_texture_[size_t(TextureAddress(0, area.start.write_area_y)) * write_area_data_size()]);
+					&write_area_texture_[size_t(area.start.write_area_y * WriteAreaWidth) * write_area_data_size()]);
 			} else {
 				// The circular buffer wrapped around; submit the data from the read pointer to the end of
 				// the buffer and from the start of the buffer to the submit pointer.
@@ -264,7 +267,7 @@ void ScanTarget::update(int, int output_height) {
 					WriteAreaHeight - area.start.write_area_y,
 					formatForDepth(write_area_data_size()),
 					GL_UNSIGNED_BYTE,
-					&write_area_texture_[size_t(TextureAddress(0, area.start.write_area_y)) * write_area_data_size()]);
+					&write_area_texture_[size_t(area.start.write_area_y * WriteAreaWidth) * write_area_data_size()]);
 				test_gl(glTexSubImage2D,
 					GL_TEXTURE_2D, 0,
 					0, 0,

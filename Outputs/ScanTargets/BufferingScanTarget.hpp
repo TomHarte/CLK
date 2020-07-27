@@ -18,8 +18,6 @@
 #include <mutex>
 #include <vector>
 
-#define TextureAddress(x, y)	(((y) << 11) | (x))
-
 namespace Outputs {
 namespace Display {
 
@@ -44,9 +42,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 	protected:
 		static constexpr int WriteAreaWidth = 2048;
 		static constexpr int WriteAreaHeight = 2048;
-
-		static constexpr int LineBufferWidth = 2048;
-		static constexpr int LineBufferHeight = 2048;
 
 		BufferingScanTarget();
 
@@ -93,22 +88,23 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 			bool previous_frame_was_complete;
 		};
 
+		/// Sets the area of memory to use as a scan buffer.
+		void set_scan_buffer(Scan *buffer, size_t size);
+
+		/// Sets the area of memory to use as line and line metadata buffers.
+		void set_line_buffer(Line *line_buffer, LineMetadata *metadata_buffer, size_t size);
+
 		// These are safe to read only within a `perform` block.
 		// TODO: can I do better than that?
 		Modals modals_;
 		bool modals_are_dirty_ = false;
 
-		/// Maintains a buffer of the most recent scans.
-		// TODO: have the owner supply buffers and sizes.
-		// That'll allow owners to place this in shared video memory if possible.
-		std::array<Scan, 16384> scan_buffer_;
-		std::array<Line, LineBufferHeight> line_buffer_;
-		std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
-
-		// Used by subclasses to set a new base address for the texture.
-		// When called this will flush all existing data and load up the
-		// new data size.
+		/// Sets a new base address for the texture.
+		/// When called this will flush all existing data and load up the
+		/// new data size.
 		void set_write_area(uint8_t *base);
+
+		/// @returns The number of bytes per input sample, as per the latest modals.
 		size_t write_area_data_size() const;
 
 		/// Defines a segment of data now ready for output, consisting of start and endpoints for:
@@ -130,9 +126,12 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 
 			Endpoint start, end;
 		};
-		void perform(const std::function<void(const OutputArea &)> &);
-		void perform(const std::function<void(void)> &);
+		/// Performs @c action ensuring that no other @c perform actions, or any
+		/// change to modals, occurs simultaneously.
+		void perform(const std::function<void(void)> &action);
 
+		/// Acts as per void(void) @c perform but also dequeues all latest available video output.
+		void perform(const std::function<void(const OutputArea &)> &);
 
 	private:
 		// ScanTarget overrides.
@@ -205,6 +204,15 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 
 		/// A pointer to the next thing that should be provided to the caller for data.
 		PointerSet write_pointers_;
+
+		// The owner-supplied scan buffer and size.
+		Scan *scan_buffer_ = nullptr;
+		size_t scan_buffer_size_ = 0;
+
+		// The owner-supplied line buffer and size.
+		Line *line_buffer_ = nullptr;
+		LineMetadata *line_metadata_buffer_ = nullptr;
+		size_t line_buffer_size_ = 0;
 };
 
 

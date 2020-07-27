@@ -14,6 +14,7 @@
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
 #define TextureAddressGetX(v)	uint16_t((v) & 0x7ff)
 #define TextureSub(a, b)		(((a) - (b)) & 0x3fffff)
+#define TextureAddress(x, y)	(((y) << 11) | (x))
 
 using namespace Outputs::Display;
 
@@ -162,7 +163,7 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			}
 
 			// Attempt to allocate a new line; note allocation failure if necessary.
-			const auto next_line = uint16_t((write_pointers_.line + 1) % LineBufferHeight);
+			const auto next_line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
 			if(next_line == read_pointers.line) {
 				allocation_has_failed_ = true;
 				active_line_ = nullptr;
@@ -229,7 +230,7 @@ Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
 	const auto read_pointers = read_pointers_.load();
 
 	// Advance the pointer.
-	const auto next_write_pointer = decltype(write_pointers_.scan_buffer)((write_pointers_.scan_buffer + 1) % scan_buffer_.size());
+	const auto next_write_pointer = decltype(write_pointers_.scan_buffer)((write_pointers_.scan_buffer + 1) % scan_buffer_size_);
 
 	// Check whether that's too many.
 	if(next_write_pointer == read_pointers.scan_buffer) {
@@ -297,4 +298,15 @@ void BufferingScanTarget::perform(const std::function<void(void)> &function) {
 	while(is_updating_.test_and_set(std::memory_order_acquire));
 	function();
 	is_updating_.clear(std::memory_order_release);
+}
+
+void BufferingScanTarget::set_scan_buffer(Scan *buffer, size_t size) {
+	scan_buffer_ = buffer;
+	scan_buffer_size_ = size;
+}
+
+void BufferingScanTarget::set_line_buffer(Line *line_buffer, LineMetadata *metadata_buffer, size_t size) {
+	line_buffer_ = line_buffer;
+	line_metadata_buffer_ = metadata_buffer;
+	line_buffer_size_ = size;
 }

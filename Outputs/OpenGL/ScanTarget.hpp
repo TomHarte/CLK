@@ -51,6 +51,9 @@ class ScanTarget: public Outputs::Display::BufferingScanTarget {
 		void update(int output_width, int output_height);
 
 	private:
+		static constexpr int LineBufferWidth = 2048;
+		static constexpr int LineBufferHeight = 2048;
+
 #ifndef NDEBUG
 		struct OpenGLVersionDumper {
 			OpenGLVersionDumper() {
@@ -146,8 +149,11 @@ class ScanTarget: public Outputs::Display::BufferingScanTarget {
 		*/
 		bool is_soft_display_type();
 
-		// Storage for the write area.
+		// Storage for the various buffers.
 		std::vector<uint8_t> write_area_texture_;
+		std::array<Scan, 16384> scan_buffer_;
+		std::array<Line, LineBufferHeight> line_buffer_;
+		std::array<LineMetadata, LineBufferHeight> line_metadata_buffer_;
 };
 
 }
