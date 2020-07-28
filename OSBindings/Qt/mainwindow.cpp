@@ -1338,24 +1338,25 @@ void MainWindow::addActivityObserver() {
 }
 
 void MainWindow::register_led(const std::string &name) {
+	std::lock_guard guard(ledStatusesLock);
 	ledStatuses[name] = false;
-	updateStatusBarText();
+	QMetaObject::invokeMethod(this, "updateStatusBarText");
 }
 
 void MainWindow::set_led_status(const std::string &name, bool isLit) {
+	std::lock_guard guard(ledStatusesLock);
 	ledStatuses[name] = isLit;
-	updateStatusBarText();	// Assumption here: Qt's attempt at automatic thread confinement will work here.
+	QMetaObject::invokeMethod(this, "updateStatusBarText");
 }
 
 void MainWindow::updateStatusBarText() {
 	QString fullText;
-	bool isFirst = true;
+	std::lock_guard guard(ledStatusesLock);
 	for(const auto &pair: ledStatuses) {
-		if(!isFirst) fullText += " | ";
+		if(!fullText.isEmpty()) fullText += " | ";
 		fullText += QString::fromStdString(pair.first);
 		fullText += " ";
 		fullText += pair.second ? "■" : "□";
-		isFirst = false;
 	}
 	statusBar()->showMessage(fullText);
 }
