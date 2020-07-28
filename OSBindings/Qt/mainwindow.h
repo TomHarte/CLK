@@ -102,7 +102,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		QAction *insertAction = nullptr;
 		void insertFile(const QString &fileName);
 
-		void launchFile(const QString &fileName);
+		bool launchFile(const QString &fileName);
 		void launchTarget(std::unique_ptr<Analyser::Static::Target> &&);
 
 		void restoreSelections();

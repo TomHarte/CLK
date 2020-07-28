@@ -45,7 +45,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
 MainWindow::MainWindow(const QString &fileName) {
 	init();
-	launchFile(fileName);
+	if(!launchFile(fileName)) {
+		setUIPhase(UIPhase::SelectingMachine);
+	}
 }
 
 void MainWindow::deleteMachine() {
@@ -210,11 +212,17 @@ void MainWindow::insertFile(const QString &fileName) {
 	mediaTarget->insert_media(media);
 }
 
-void MainWindow::launchFile(const QString &fileName) {
+bool MainWindow::launchFile(const QString &fileName) {
 	targets = Analyser::Static::GetTargets(fileName.toStdString());
 	if(!targets.empty()) {
 		openFileName = QFileInfo(fileName).fileName();
 		launchMachine();
+		return true;
+	} else {
+		QMessageBox msgBox;
+		msgBox.setText("Unable to open file: " + fileName);
+		msgBox.exec();
+		return false;
 	}
 }
 
