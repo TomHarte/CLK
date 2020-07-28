@@ -5,6 +5,7 @@
 #include <QMainWindow>
 
 #include <memory>
+#include <mutex>
 #include <optional>
 
 #include "audiobuffer.h"
@@ -80,6 +81,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 	private slots:
 		void startMachine();
+		void updateStatusBarText();
 
 	private:
 		void start_appleII();
@@ -100,7 +102,7 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 		QAction *insertAction = nullptr;
 		void insertFile(const QString &fileName);
 
-		void launchFile(const QString &fileName);
+		bool launchFile(const QString &fileName);
 		void launchTarget(std::unique_ptr<Analyser::Static::Target> &&);
 
 		void restoreSelections();
@@ -144,9 +146,11 @@ class MainWindow : public QMainWindow, public Outputs::Speaker::Speaker::Delegat
 
 		void register_led(const std::string &) override;
 		void set_led_status(const std::string &, bool) override;
+
+		std::recursive_mutex ledStatusesLock;
 		std::map<std::string, bool> ledStatuses;
+
 		void addActivityObserver();
-		void updateStatusBarText();
 };
 
 #endif // MAINWINDOW_H
