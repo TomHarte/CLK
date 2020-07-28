@@ -45,7 +45,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
 MainWindow::MainWindow(const QString &fileName) {
 	init();
-	launchFile(fileName);
+	if(!launchFile(fileName)) {
+		setUIPhase(UIPhase::SelectingMachine);
+	}
 }
 
 void MainWindow::deleteMachine() {
@@ -210,11 +212,17 @@ void MainWindow::insertFile(const QString &fileName) {
 	mediaTarget->insert_media(media);
 }
 
-void MainWindow::launchFile(const QString &fileName) {
+bool MainWindow::launchFile(const QString &fileName) {
 	targets = Analyser::Static::GetTargets(fileName.toStdString());
 	if(!targets.empty()) {
 		openFileName = QFileInfo(fileName).fileName();
 		launchMachine();
+		return true;
+	} else {
+		QMessageBox msgBox;
+		msgBox.setText("Unable to open file: " + fileName);
+		msgBox.exec();
+		return false;
 	}
 }
 
@@ -707,6 +715,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 			bool foundROM = false;
 			const auto appDataLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString();
 
+			QString unusedRoms;
 			for(const auto &url: event->mimeData()->urls()) {
 				const char *const name = url.toLocalFile().toUtf8();
 				FILE *const file = fopen(name, "rb");
@@ -716,6 +725,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 				CRC::CRC32 generator;
 				const uint32_t crc = generator.compute_crc(*contents);
 
+				bool wasUsed = false;
 				for(const auto &rom: missingRoms) {
 					if(std::find(rom.crc32s.begin(), rom.crc32s.end(), crc) != rom.crc32s.end()) {
 						foundROM = true;
@@ -731,10 +741,22 @@ void MainWindow::dropEvent(QDropEvent* event) {
 						FILE *const target = fopen(destination.c_str(), "wb");
 						fwrite(contents->data(), 1, contents->size(), target);
 						fclose(target);
+
+						wasUsed = true;
 					}
+				}
+
+				if(!wasUsed) {
+					if(!unusedRoms.isEmpty()) unusedRoms += ", ";
+					unusedRoms += url.fileName();
 				}
 			}
 
+			if(!unusedRoms.isEmpty()) {
+				QMessageBox msgBox;
+				msgBox.setText("Couldn't identify ROMs: " + unusedRoms);
+				msgBox.exec();
+			}
 			if(foundROM) launchMachine();
 		} break;
 	}
@@ -1338,24 +1360,25 @@ void MainWindow::addActivityObserver() {
 }
 
 void MainWindow::register_led(const std::string &name) {
+	std::lock_guard guard(ledStatusesLock);
 	ledStatuses[name] = false;
-	updateStatusBarText();
+	QMetaObject::invokeMethod(this, "updateStatusBarText");
 }
 
 void MainWindow::set_led_status(const std::string &name, bool isLit) {
+	std::lock_guard guard(ledStatusesLock);
 	ledStatuses[name] = isLit;
-	updateStatusBarText();	// Assumption here: Qt's attempt at automatic thread confinement will work here.
+	QMetaObject::invokeMethod(this, "updateStatusBarText");
 }
 
 void MainWindow::updateStatusBarText() {
 	QString fullText;
-	bool isFirst = true;
+	std::lock_guard guard(ledStatusesLock);
 	for(const auto &pair: ledStatuses) {
-		if(!isFirst) fullText += " | ";
+		if(!fullText.isEmpty()) fullText += " | ";
 		fullText += QString::fromStdString(pair.first);
 		fullText += " ";
 		fullText += pair.second ? "■" : "□";
-		isFirst = false;
 	}
 	statusBar()->showMessage(fullText);
 }
