@@ -715,6 +715,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 			bool foundROM = false;
 			const auto appDataLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation).toStdString();
 
+			QString unusedRoms;
 			for(const auto &url: event->mimeData()->urls()) {
 				const char *const name = url.toLocalFile().toUtf8();
 				FILE *const file = fopen(name, "rb");
@@ -724,6 +725,7 @@ void MainWindow::dropEvent(QDropEvent* event) {
 				CRC::CRC32 generator;
 				const uint32_t crc = generator.compute_crc(*contents);
 
+				bool wasUsed = false;
 				for(const auto &rom: missingRoms) {
 					if(std::find(rom.crc32s.begin(), rom.crc32s.end(), crc) != rom.crc32s.end()) {
 						foundROM = true;
@@ -739,10 +741,22 @@ void MainWindow::dropEvent(QDropEvent* event) {
 						FILE *const target = fopen(destination.c_str(), "wb");
 						fwrite(contents->data(), 1, contents->size(), target);
 						fclose(target);
+
+						wasUsed = true;
 					}
+				}
+
+				if(!wasUsed) {
+					if(!unusedRoms.isEmpty()) unusedRoms += ", ";
+					unusedRoms += url.fileName();
 				}
 			}
 
+			if(!unusedRoms.isEmpty()) {
+				QMessageBox msgBox;
+				msgBox.setText("Couldn't identify ROMs: " + unusedRoms);
+				msgBox.exec();
+			}
 			if(foundROM) launchMachine();
 		} break;
 	}
