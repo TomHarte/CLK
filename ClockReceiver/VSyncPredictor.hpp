@@ -64,6 +64,13 @@ class VSyncPredictor {
 		}
 
 		/*!
+			@returns The time this class currently believes a whole frame occupies.
+		*/
+		Time::Nanos frame_duration() {
+			return frame_duration_;
+		}
+
+		/*!
 			Adds a record of how much jitter was experienced in scheduling; these values will be
 			factored into the @c suggested_draw_time if supplied.
 
@@ -87,15 +94,13 @@ class VSyncPredictor {
 			(if those figures are being supplied).
 		*/
 		Nanos suggested_draw_time() {
-			const auto mean = redraw_period_.mean() - timer_jitter_.mean() - vsync_jitter_.mean();
+			const auto mean = redraw_period_.mean() + timer_jitter_.mean() + vsync_jitter_.mean();
 			const auto variance = redraw_period_.variance() + timer_jitter_.variance() + vsync_jitter_.variance();
 
 			// Permit three standard deviations from the mean, to cover 99.9% of cases.
-			const auto period = mean - Nanos(3.0f * sqrt(float(variance)));
+			const auto period = mean + Nanos(3.0f * sqrt(float(variance)));
 
-			assert(abs(period) < 10'000'000'000);
-
-			return last_vsync_ + period;
+			return last_vsync_ + frame_duration_ - period;
 		}
 
 	private:
@@ -109,7 +114,6 @@ class VSyncPredictor {
 				}
 
 				void post(Time::Nanos value) {
-					assert(abs(value) < 10'000'000'000);	// 10 seconds is a very liberal maximum.
 					sum_ -= history_[write_pointer_];
 					sum_ += value;
 					history_[write_pointer_] = value;

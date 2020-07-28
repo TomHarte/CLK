@@ -86,7 +86,7 @@ void ScanTargetWidget::vsync() {
 	const auto time_now = Time::nanos_now();
 	requestedRedrawTime = vsyncPredictor.suggested_draw_time();
 	const auto delay_time = (requestedRedrawTime - time_now) / 1'000'000;
-	if(delay_time > 0) {
+	if(delay_time > 0 && delay_time < vsyncPredictor.frame_duration()) {
 		QTimer::singleShot(delay_time, this, SLOT(repaint()));
 	} else {
 		requestedRedrawTime = 0;
