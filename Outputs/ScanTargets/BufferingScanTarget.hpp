@@ -94,10 +94,12 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// Sets the area of memory to use as line and line metadata buffers.
 		void set_line_buffer(Line *line_buffer, LineMetadata *metadata_buffer, size_t size);
 
-		// These are safe to read only within a `perform` block.
-		// TODO: can I do better than that?
-		Modals modals_;
-		bool modals_are_dirty_ = false;
+		/// @returns new Modals if any have been set since the last call to get_new_modals().
+		///		The caller must be within a @c perform block.
+		const Modals *new_modals();
+
+		/// @returns the current @c Modals.
+		const Modals &modals() const;
 
 		/// Sets a new base address for the texture.
 		/// When called this will flush all existing data and load up the
@@ -213,6 +215,11 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		Line *line_buffer_ = nullptr;
 		LineMetadata *line_metadata_buffer_ = nullptr;
 		size_t line_buffer_size_ = 0;
+
+		// Current modals and whether they've yet been returned
+		// from a call to @c get_new_modals.
+		Modals modals_;
+		bool modals_are_dirty_ = false;
 };
 
 

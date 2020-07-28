@@ -114,7 +114,8 @@ void ScanTarget::set_target_framebuffer(GLuint target_framebuffer) {
 }
 
 void ScanTarget::setup_pipeline() {
-	const auto data_type_size = Outputs::Display::size_for_data_type(modals_.input_data_type);
+	auto modals = BufferingScanTarget::modals();
+	const auto data_type_size = Outputs::Display::size_for_data_type(modals.input_data_type);
 
 	// Resize the texture only if required.
 	if(data_type_size != write_area_data_size()) {
@@ -127,7 +128,7 @@ void ScanTarget::setup_pipeline() {
 	test_gl(glBindBuffer, GL_ARRAY_BUFFER, line_buffer_name_);
 
 	// Destroy or create a QAM buffer and shader, if appropriate.
-	const bool needs_qam_buffer = (modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::SVideo);
+	const bool needs_qam_buffer = (modals.display_type == DisplayType::CompositeColour || modals.display_type == DisplayType::SVideo);
 	if(needs_qam_buffer) {
 		if(!qam_chroma_texture_) {
 			qam_chroma_texture_ = std::make_unique<TextureTarget>(LineBufferWidth, LineBufferHeight, QAMChromaTextureUnit, GL_NEAREST, false);
@@ -146,8 +147,8 @@ void ScanTarget::setup_pipeline() {
 	output_shader_ = conversion_shader();
 	enable_vertex_attributes(ShaderType::Conversion, *output_shader_);
 	set_uniforms(ShaderType::Conversion, *output_shader_);
-	output_shader_->set_uniform("origin", modals_.visible_area.origin.x, modals_.visible_area.origin.y);
-	output_shader_->set_uniform("size", modals_.visible_area.size.width, modals_.visible_area.size.height);
+	output_shader_->set_uniform("origin", modals.visible_area.origin.x, modals.visible_area.origin.y);
+	output_shader_->set_uniform("size", modals.visible_area.size.width, modals.visible_area.size.height);
 	output_shader_->set_uniform("textureName", GLint(UnprocessedLineBufferTextureUnit - GL_TEXTURE0));
 	output_shader_->set_uniform("qamTextureName", GLint(QAMChromaTextureUnit - GL_TEXTURE0));
 
@@ -161,7 +162,8 @@ void ScanTarget::setup_pipeline() {
 }
 
 bool ScanTarget::is_soft_display_type() {
-	return modals_.display_type == DisplayType::CompositeColour || modals_.display_type == DisplayType::CompositeMonochrome;
+	const auto display_type = modals().display_type;
+	return display_type == DisplayType::CompositeColour || display_type == DisplayType::CompositeMonochrome;
 }
 
 void ScanTarget::update(int, int output_height) {
@@ -186,10 +188,10 @@ void ScanTarget::update(int, int output_height) {
 	// Grab the new output list.
 	perform([=] (const OutputArea &area) {
 		// Establish the pipeline if necessary.
-		const bool did_setup_pipeline = modals_are_dirty_;
-		if(modals_are_dirty_) {
+		const auto new_modals = BufferingScanTarget::new_modals();
+		const bool did_setup_pipeline = bool(new_modals);
+		if(did_setup_pipeline) {
 			setup_pipeline();
-			modals_are_dirty_ = false;
 		}
 
 		// Determine the start time of this submission group and the number of lines it will contain.
@@ -291,7 +293,7 @@ void ScanTarget::update(int, int output_height) {
 
 				// Determine the proper clear colour — this needs to be anything that describes black
 				// in the input colour encoding at use.
-				if(modals_.input_data_type == InputDataType::Luminance8Phase8) {
+				if(modals().input_data_type == InputDataType::Luminance8Phase8) {
 					// Supply both a zero luminance and a colour-subcarrier-disengaging phase.
 					test_gl(glClearColor, 0.0f, 1.0f, 0.0f, 0.0f);
 				} else {

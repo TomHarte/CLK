@@ -310,3 +310,15 @@ void BufferingScanTarget::set_line_buffer(Line *line_buffer, LineMetadata *metad
 	line_metadata_buffer_ = metadata_buffer;
 	line_buffer_size_ = size;
 }
+
+const Outputs::Display::ScanTarget::Modals *BufferingScanTarget::new_modals() {
+	if(!modals_are_dirty_) {
+		return nullptr;
+	}
+	modals_are_dirty_ = false;
+	return &modals_;
+}
+
+const Outputs::Display::ScanTarget::Modals &BufferingScanTarget::modals() const {
+	return modals_;
+}
