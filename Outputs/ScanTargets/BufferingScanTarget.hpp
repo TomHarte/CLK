@@ -94,13 +94,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// Sets the area of memory to use as line and line metadata buffers.
 		void set_line_buffer(Line *line_buffer, LineMetadata *metadata_buffer, size_t size);
 
-		/// @returns new Modals if any have been set since the last call to get_new_modals().
-		///		The caller must be within a @c perform block.
-		const Modals *new_modals();
-
-		/// @returns the current @c Modals.
-		const Modals &modals() const;
-
 		/// Sets a new base address for the texture.
 		/// When called this will flush all existing data and load up the
 		/// new data size.
@@ -134,6 +127,13 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 
 		/// Acts as per void(void) @c perform but also dequeues all latest available video output.
 		void perform(const std::function<void(const OutputArea &)> &);
+
+		/// @returns new Modals if any have been set since the last call to get_new_modals().
+		///		The caller must be within a @c perform block.
+		const Modals *new_modals();
+
+		/// @returns the current @c Modals.
+		const Modals &modals() const;
 
 	private:
 		// ScanTarget overrides.
@@ -193,7 +193,9 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// A pointer to the final thing currently cleared for submission.
 		std::atomic<PointerSet> submit_pointers_;
 
-		/// A pointer to the first thing not yet submitted for display.
+		/// A pointer to the first thing not yet submitted for display; this is
+		/// atomic since it also acts as the buffer into which the write_pointers_
+		/// may run and is therefore used by both producer and consumer.
 		std::atomic<PointerSet> read_pointers_;
 
 		/// This is used as a spinlock to guard `perform` calls.
