@@ -63,7 +63,7 @@ class Audio: public ::Outputs::Speaker::SampleSource {
 		// A queue of fetched samples; read from by one thread,
 		// written to by another.
 		struct {
-			std::array<uint8_t, 740> buffer;
+			std::array<std::atomic<uint8_t>, 740> buffer;
 			size_t read_pointer = 0, write_pointer = 0;
 		} sample_queue_;
 
