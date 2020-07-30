@@ -33,7 +33,7 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 	assert(required_alignment);
 
 	// Acquire the standard producer lock, nominally over write_pointers_.
-	std::lock_guard lock_guard(write_pointers_mutex_);
+	std::lock_guard lock_guard(producer_mutex_);
 
 	// If allocation has already failed on this line, continue the trend.
 	if(allocation_has_failed_) return nullptr;
@@ -85,7 +85,7 @@ uint8_t *BufferingScanTarget::begin_data(size_t required_length, size_t required
 
 void BufferingScanTarget::end_data(size_t actual_length) {
 	// Acquire the producer lock.
-	std::lock_guard lock_guard(write_pointers_mutex_);
+	std::lock_guard lock_guard(producer_mutex_);
 
 	// Do nothing if no data write is actually ongoing.
 	if(allocation_has_failed_ || !data_is_allocated_) return;
@@ -117,7 +117,7 @@ void BufferingScanTarget::end_data(size_t actual_length) {
 // MARK: - Producer; scans.
 
 Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
-	std::lock_guard lock_guard(write_pointers_mutex_);
+	std::lock_guard lock_guard(producer_mutex_);
 
 	// If there's already an allocation failure on this line, do no work.
 	if(allocation_has_failed_) {
@@ -148,7 +148,7 @@ Outputs::Display::ScanTarget::Scan *BufferingScanTarget::begin_scan() {
 }
 
 void BufferingScanTarget::end_scan() {
-	std::lock_guard lock_guard(write_pointers_mutex_);
+	std::lock_guard lock_guard(producer_mutex_);
 
 	// Complete the scan only if one is afoot.
 	if(vended_scan_) {
@@ -174,7 +174,7 @@ void BufferingScanTarget::end_scan() {
 // MARK: - Producer; lines.
 
 void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::Display::ScanTarget::Scan::EndPoint &location, uint8_t composite_amplitude) {
-	std::lock_guard lock_guard(write_pointers_mutex_);
+	std::lock_guard lock_guard(producer_mutex_);
 
 	// Forward the event to the display metrics tracker.
 	display_metrics_.announce_event(event);
@@ -277,7 +277,7 @@ const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
 }
 
 void BufferingScanTarget::set_write_area(uint8_t *base) {
-	std::lock_guard lock_guard(write_pointers_mutex_);
+	std::lock_guard lock_guard(producer_mutex_);
 	write_area_ = base;
 	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 	write_pointers_ = submit_pointers_ = read_pointers_ = PointerSet();

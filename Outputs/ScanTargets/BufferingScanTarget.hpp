@@ -201,10 +201,13 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		/// This is used as a spinlock to guard `perform` calls.
 		std::atomic_flag is_updating_;
 
-		/// A mutex for gettng access to write_pointers_; access to write_pointers_,
-		/// data_type_size_ or write_area_texture_ is almost never contended, so this
-		/// is cheap for the main use case.
-		std::mutex write_pointers_mutex_;
+		/// A mutex for gettng access to anything the producer modifies — i.e. the write_pointers_,
+		/// data_type_size_ and write_area_texture_, and all other state to do with capturing
+		/// data, scans and lines.
+		///
+		/// This is almost never contended. The main collision is a user-prompted change of modals while the
+		/// emulation thread is running.
+		std::mutex producer_mutex_;
 
 		/// A pointer to the next thing that should be provided to the caller for data.
 		PointerSet write_pointers_;
