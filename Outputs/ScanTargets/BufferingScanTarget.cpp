@@ -212,8 +212,9 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 		// Commit the most recent line only if any scans fell on it and all allocation was successful.
 		if(!allocation_has_failed_ && provided_scans_) {
 			// Store metadata.
-			line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
-			line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = previous_frame_was_complete_;
+			LineMetadata &metadata = line_metadata_buffer_[size_t(write_pointers_.line)];
+			metadata.is_first_in_frame = is_first_in_frame_;
+			metadata.previous_frame_was_complete = previous_frame_was_complete_;
 			is_first_in_frame_ = false;
 
 			// Store actual line data.
@@ -244,6 +245,7 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 // MARK: - Producer; other state.
 
 void BufferingScanTarget::will_change_owner() {
+	std::lock_guard lock_guard(producer_mutex_);
 	allocation_has_failed_ = true;
 	vended_scan_ = nullptr;
 }
@@ -264,9 +266,13 @@ void BufferingScanTarget::set_write_area(uint8_t *base) {
 	write_area_ = base;
 	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 	write_pointers_ = submit_pointers_ = read_pointers_ = PointerSet();
+	allocation_has_failed_ = true;
+	vended_scan_ = nullptr;
 }
 
 size_t BufferingScanTarget::write_area_data_size() const {
+	// TODO: can I guarantee this is safe without requiring that set_write_area
+	// be within an @c perform block?
 	return data_type_size_;
 }
 
