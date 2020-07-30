@@ -90,7 +90,7 @@ void Controller::set_drive(int index_mask) {
 		return;
 	}
 
-	ClockingHint::Preference former_prefernece = preferred_clocking();
+	const ClockingHint::Preference former_preference = preferred_clocking();
 
 	// Stop receiving events from the current drive.
 	get_drive().set_event_delegate(nullptr);
@@ -114,7 +114,7 @@ void Controller::set_drive(int index_mask) {
 
 	get_drive().set_event_delegate(this);
 
-	if(preferred_clocking() != former_prefernece) {
+	if(preferred_clocking() != former_preference) {
 		update_clocking_observer();
 	}
 }

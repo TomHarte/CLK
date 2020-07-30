@@ -38,7 +38,7 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 
 	// b4: side select
 	if(changes & 0x10) {
-		const int head = (control & 0x10) ? 1 : 0;
+		const int head = (control & 0x10) >> 4;
 		for_all_drives([head] (Storage::Disk::Drive &drive, size_t) {
 			drive.set_head(head);
 		});
@@ -52,7 +52,7 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 	// b0: IRQ enable
 	if(changes & 0x01) {
 		const bool had_irq = get_interrupt_request_line();
-		irq_enable_ = !!(control & 0x01);
+		irq_enable_ = bool(control & 0x01);
 		const bool has_irq = get_interrupt_request_line();
 		if(has_irq != had_irq && delegate_) {
 			delegate_->wd1770_did_change_output(this);
@@ -62,9 +62,14 @@ void Microdisc::set_control_register(uint8_t control, uint8_t changes) {
 	// b7: EPROM select (0 = select)
 	// b1: ROM disable (0 = disable)
 	if(changes & 0x82) {
-		enable_overlay_ram_ = control & 0x80;
-		disable_basic_rom_ = !(control & 0x02);
-		select_paged_item();
+		PagedItem item;
+		if(control & 0x02) item = PagedItem::BASIC;
+		else if(control & 0x80) {
+			item = PagedItem::RAM;
+		} else {
+			item = PagedItem::DiskROM;
+		}
+		set_paged_item(item);
 	}
 }
 
