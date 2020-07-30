@@ -44,28 +44,18 @@ class DiskController: public WD::WD1770 {
 	protected:
 		Delegate *delegate_ = nullptr;
 
-		bool enable_overlay_ram_ = false;
-		bool disable_basic_rom_ = false;
-		void select_paged_item() {
-			PagedItem item = PagedItem::RAM;
-			if(!enable_overlay_ram_) {
-				item = disable_basic_rom_ ? PagedItem::DiskROM : PagedItem::BASIC;
-			}
-			set_paged_item(item);
-		}
-
-	private:
-		PagedItem paged_item_ = PagedItem::DiskROM;
-		int clock_rate_;
-		Storage::Disk::Drive::ReadyType ready_type_;
-
-		inline void set_paged_item(PagedItem item) {
+		void set_paged_item(PagedItem item) {
 			if(paged_item_ == item) return;
 			paged_item_ = item;
 			if(delegate_) {
 				delegate_->disk_controller_did_change_paged_item(this);
 			}
 		}
+
+	private:
+		PagedItem paged_item_ = PagedItem::DiskROM;
+		int clock_rate_;
+		Storage::Disk::Drive::ReadyType ready_type_;
 };
 
 
