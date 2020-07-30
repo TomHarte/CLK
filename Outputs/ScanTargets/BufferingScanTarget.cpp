@@ -157,17 +157,6 @@ void BufferingScanTarget::end_scan() {
 		vended_scan_->scan.end_points[0].data_offset += TextureAddressGetX(vended_write_area_pointer_);
 		vended_scan_->scan.end_points[1].data_offset += TextureAddressGetX(vended_write_area_pointer_);
 		vended_scan_ = nullptr;
-
-#ifdef LOG_SCANS
-		if(vended_scan_->scan.composite_amplitude) {
-			std::cout << "S: ";
-			std::cout << vended_scan_->scan.end_points[0].composite_angle << "/" << vended_scan_->scan.end_points[0].data_offset << "/" << vended_scan_->scan.end_points[0].cycles_since_end_of_horizontal_retrace << " -> ";
-			std::cout << vended_scan_->scan.end_points[1].composite_angle << "/" << vended_scan_->scan.end_points[1].data_offset << "/" << vended_scan_->scan.end_points[1].cycles_since_end_of_horizontal_retrace << " => ";
-			std::cout << double(vended_scan_->scan.end_points[1].composite_angle - vended_scan_->scan.end_points[0].composite_angle) / (double(vended_scan_->scan.end_points[1].data_offset - vended_scan_->scan.end_points[0].data_offset) * 64.0f) << "/";
-			std::cout << double(vended_scan_->scan.end_points[1].composite_angle - vended_scan_->scan.end_points[0].composite_angle) / (double(vended_scan_->scan.end_points[1].cycles_since_end_of_horizontal_retrace - vended_scan_->scan.end_points[0].cycles_since_end_of_horizontal_retrace) * 64.0f);
-			std::cout << std::endl;
-		}
-#endif
 	}
 }
 
@@ -189,34 +178,23 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 		frame_is_complete_ = true;
 	}
 
-	// Proceed only if a change in visibility has occurred.
+	// Proceed from here only if a change in visibility has occurred.
 	if(output_is_visible_ == is_visible) return;
 	output_is_visible_ = is_visible;
 
 	if(is_visible) {
 		const auto read_pointers = read_pointers_.load(std::memory_order::memory_order_relaxed);
 
-		// Commit the most recent line only if any scans fell on it.
-		// Otherwise there's no point outputting it, it'll contribute nothing.
-		if(provided_scans_) {
-			// Store metadata if concluding a previous line.
-			if(active_line_) {
-				line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
-				line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = previous_frame_was_complete_;
-				is_first_in_frame_ = false;
-			}
-
-			// Attempt to allocate a new line; note allocation failure if necessary.
-			const auto next_line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
-			if(next_line == read_pointers.line) {
-				allocation_has_failed_ = true;
-				active_line_ = nullptr;
-			} else {
-				write_pointers_.line = next_line;
-				active_line_ = &line_buffer_[size_t(write_pointers_.line)];
-			}
-			provided_scans_ = 0;
+		// Attempt to allocate a new line, noting allocation failure if necessary.
+		const auto next_line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
+		if(next_line == read_pointers.line) {
+			allocation_has_failed_ = true;
+			active_line_ = nullptr;
+		} else {
+			write_pointers_.line = next_line;
+			active_line_ = &line_buffer_[size_t(write_pointers_.line)];
 		}
+		provided_scans_ = 0;
 
 		// If there was space for a new line, establish its start.
 		if(active_line_) {
@@ -228,39 +206,31 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			active_line_->composite_amplitude = composite_amplitude;
 		}
 	} else {
-		// Complete the current line if there is one.
-		if(active_line_) {
+		// Commit the most recent line only if any scans fell on it and all allocation was successful.
+		if(active_line_ && provided_scans_ && !allocation_has_failed_) {
+			// Store metadata.
+			line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
+			line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = previous_frame_was_complete_;
+			is_first_in_frame_ = false;
+
+			// Store actual line data.
 			active_line_->end_points[1].x = location.x;
 			active_line_->end_points[1].y = location.y;
 			active_line_->end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
 			active_line_->end_points[1].composite_angle = location.composite_angle;
 
-#ifdef LOG_LINES
-			if(active_line_->composite_amplitude) {
-				std::cout << "L: ";
-				std::cout << active_line_->end_points[0].composite_angle << "/" << active_line_->end_points[0].cycles_since_end_of_horizontal_retrace << " -> ";
-				std::cout << active_line_->end_points[1].composite_angle << "/" << active_line_->end_points[1].cycles_since_end_of_horizontal_retrace << " => ";
-				std::cout << (active_line_->end_points[1].composite_angle - active_line_->end_points[0].composite_angle) << "/" << (active_line_->end_points[1].cycles_since_end_of_horizontal_retrace - active_line_->end_points[0].cycles_since_end_of_horizontal_retrace) << " => ";
-				std::cout << double(active_line_->end_points[1].composite_angle - active_line_->end_points[0].composite_angle) / (double(active_line_->end_points[1].cycles_since_end_of_horizontal_retrace - active_line_->end_points[0].cycles_since_end_of_horizontal_retrace) * 64.0f);
-				std::cout << std::endl;
-			}
-#endif
-		}
-
-		if(allocation_has_failed_) {
-			// If allocation failed at any point, reset all pointers to where they
-			// were before this line, note that the frame will now be incomplete and
-			// throw away the active line.
-			write_pointers_ = submit_pointers_.load();
-			frame_is_complete_ = false;
-			active_line_ = nullptr;
-		} else {
-			// The line ended and there were no allocation failures. So enqueue the
-			// latest line for potential output.
+			// Update the submit pointers with all lines, scans and data written during this line.
 			submit_pointers_.store(write_pointers_, std::memory_order::memory_order_release);
+		} else {
+			// Something failed, so reset all pointers to where they
+			// were before this line and note that the frame will now be incomplete.
+			write_pointers_ = submit_pointers_.load(std::memory_order::memory_order_relaxed);
+			frame_is_complete_ = false;
 		}
 
-		// Reset the allocation-has-failed flag for the next line.
+		// Reset the allocation-has-failed flag for the next line
+		// and mark no line as active.
+		active_line_ = nullptr;
 		allocation_has_failed_ = false;
 	}
 }
