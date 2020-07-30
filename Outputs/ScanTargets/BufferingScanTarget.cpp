@@ -11,6 +11,12 @@
 #include <cassert>
 #include <cstring>
 
+// If enabled, this uses the producer lock to cover both production and consumption
+// rather than attempting to proceed lockfree. This is primarily for diagnostic purposes;
+// it allows empirical exploration of whether the logical and memory barriers that are
+// meant to mediate things between the read pointers and the submit pointers are functioning.
+#define ONE_BIG_LOCK
+
 #define TextureAddressGetY(v)	uint16_t((v) >> 11)
 #define TextureAddressGetX(v)	uint16_t((v) & 0x7ff)
 #define TextureSub(a, b)		(((a) - (b)) & 0x3fffff)
@@ -20,11 +26,11 @@ using namespace Outputs::Display;
 
 BufferingScanTarget::BufferingScanTarget() {
 	// Ensure proper initialisation of the two atomic pointer sets.
-	read_pointers_.store(write_pointers_);
-	submit_pointers_.store(write_pointers_);
+	read_pointers_.store(write_pointers_, std::memory_order::memory_order_relaxed);
+	submit_pointers_.store(write_pointers_, std::memory_order::memory_order_relaxed);
 
 	// Establish initial state for is_updating_.
-	is_updating_.clear();
+	is_updating_.clear(std::memory_order::memory_order_relaxed);
 }
 
 // MARK: - Producer; pixel data.
@@ -191,7 +197,6 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			allocation_has_failed_ = true;
 			active_line_ = nullptr;
 		} else {
-			write_pointers_.line = next_line;
 			active_line_ = &line_buffer_[size_t(write_pointers_.line)];
 		}
 		provided_scans_ = 0;
@@ -218,6 +223,9 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			active_line_->end_points[1].y = location.y;
 			active_line_->end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
 			active_line_->end_points[1].composite_angle = location.composite_angle;
+
+			// Advance the line pointer.
+			write_pointers_.line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
 
 			// Update the submit pointers with all lines, scans and data written during this line.
 			submit_pointers_.store(write_pointers_, std::memory_order::memory_order_release);
@@ -247,7 +255,9 @@ const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
 }
 
 void BufferingScanTarget::set_write_area(uint8_t *base) {
+#ifndef ONE_BIG_LOCK
 	std::lock_guard lock_guard(producer_mutex_);
+#endif
 	write_area_ = base;
 	data_type_size_ = Outputs::Display::size_for_data_type(modals_.input_data_type);
 	write_pointers_ = submit_pointers_ = read_pointers_ = PointerSet();
@@ -267,6 +277,10 @@ void BufferingScanTarget::set_modals(Modals modals) {
 // MARK: - Consumer.
 
 void BufferingScanTarget::perform(const std::function<void(const OutputArea &)> &function) {
+#ifdef ONE_BIG_LOCK
+	std::lock_guard lock_guard(producer_mutex_);
+#endif
+
 	// The area to draw is that between the read pointers, representing wherever reading
 	// last stopped, and the submit pointers, representing all the new data that has been
 	// cleared for submission.

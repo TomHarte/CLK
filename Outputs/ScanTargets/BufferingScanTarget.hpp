@@ -168,8 +168,10 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		bool frame_is_complete_ = true;
 		bool previous_frame_was_complete_ = true;
 
-		// TODO: make this an implementation detail.
-		// ... and expose some sort of difference?
+		// By convention everything in the PointerSet points to the next instance
+		// of whatever it is that will be used. So a client should start with whatever
+		// is pointed to by the read pointers and carry until it gets to a value that
+		// is equal to whatever is in the submit pointers.
 		struct PointerSet {
 			// This constructor is here to appease GCC's interpretation of
 			// an ambiguity in the C++ standard; cf. https://stackoverflow.com/questions/17430377
