@@ -162,7 +162,6 @@ class BufferingScanTarget: public Outputs::Display::ScanTarget {
 		int vended_write_area_pointer_ = 0;
 
 		// Ephemeral state that helps in line composition.
-		Line *active_line_ = nullptr;
 		int provided_scans_ = 0;
 		bool is_first_in_frame_ = true;
 		bool frame_is_complete_ = true;

@@ -195,34 +195,33 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 		const auto next_line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
 		if(next_line == read_pointers.line) {
 			allocation_has_failed_ = true;
-			active_line_ = nullptr;
-		} else {
-			active_line_ = &line_buffer_[size_t(write_pointers_.line)];
 		}
 		provided_scans_ = 0;
 
 		// If there was space for a new line, establish its start.
-		if(active_line_) {
-			active_line_->end_points[0].x = location.x;
-			active_line_->end_points[0].y = location.y;
-			active_line_->end_points[0].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
-			active_line_->end_points[0].composite_angle = location.composite_angle;
-			active_line_->line = write_pointers_.line;
-			active_line_->composite_amplitude = composite_amplitude;
+		if(!allocation_has_failed_) {
+			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
+			active_line.end_points[0].x = location.x;
+			active_line.end_points[0].y = location.y;
+			active_line.end_points[0].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
+			active_line.end_points[0].composite_angle = location.composite_angle;
+			active_line.line = write_pointers_.line;
+			active_line.composite_amplitude = composite_amplitude;
 		}
 	} else {
 		// Commit the most recent line only if any scans fell on it and all allocation was successful.
-		if(active_line_ && provided_scans_ && !allocation_has_failed_) {
+		if(!allocation_has_failed_ && provided_scans_) {
 			// Store metadata.
 			line_metadata_buffer_[size_t(write_pointers_.line)].is_first_in_frame = is_first_in_frame_;
 			line_metadata_buffer_[size_t(write_pointers_.line)].previous_frame_was_complete = previous_frame_was_complete_;
 			is_first_in_frame_ = false;
 
 			// Store actual line data.
-			active_line_->end_points[1].x = location.x;
-			active_line_->end_points[1].y = location.y;
-			active_line_->end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
-			active_line_->end_points[1].composite_angle = location.composite_angle;
+			Line &active_line = line_buffer_[size_t(write_pointers_.line)];
+			active_line.end_points[1].x = location.x;
+			active_line.end_points[1].y = location.y;
+			active_line.end_points[1].cycles_since_end_of_horizontal_retrace = location.cycles_since_end_of_horizontal_retrace;
+			active_line.end_points[1].composite_angle = location.composite_angle;
 
 			// Advance the line pointer.
 			write_pointers_.line = uint16_t((write_pointers_.line + 1) % line_buffer_size_);
@@ -230,15 +229,14 @@ void BufferingScanTarget::announce(Event event, bool is_visible, const Outputs::
 			// Update the submit pointers with all lines, scans and data written during this line.
 			submit_pointers_.store(write_pointers_, std::memory_order::memory_order_release);
 		} else {
-			// Something failed, so reset all pointers to where they
-			// were before this line and note that the frame will now be incomplete.
+			// Something failed, or there was nothing on the line anyway, so reset all pointers to where they
+			// were before this line. Mark frame as incomplete if this was an allocation failure.
 			write_pointers_ = submit_pointers_.load(std::memory_order::memory_order_relaxed);
-			frame_is_complete_ = false;
+			frame_is_complete_ &= !allocation_has_failed_;
 		}
 
 		// Reset the allocation-has-failed flag for the next line
 		// and mark no line as active.
-		active_line_ = nullptr;
 		allocation_has_failed_ = false;
 	}
 }
@@ -255,6 +253,11 @@ const Outputs::Display::Metrics &BufferingScanTarget::display_metrics() {
 }
 
 void BufferingScanTarget::set_write_area(uint8_t *base) {
+	// This is a bit of a hack. This call needs the producer mutex and should be
+	// safe to call from a @c perform block in order to support all potential consumers.
+	// But the temporary hack of ONE_BIG_LOCK then implies that either I need a recursive
+	// mutex, or I have to make a coupling assumption about my caller. I've done the latter,
+	// because ONE_BIG_LOCK is really really meant to be temporary. I hope.
 #ifndef ONE_BIG_LOCK
 	std::lock_guard lock_guard(producer_mutex_);
 #endif
