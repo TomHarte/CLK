@@ -85,6 +85,7 @@ SOURCES += \
 \
 	$$SRC/Outputs/*.cpp \
 	$$SRC/Outputs/CRT/*.cpp \
+	$$SRC/Outputs/ScanTargets/*.cpp \
 	$$SRC/Outputs/OpenGL/*.cpp \
 	$$SRC/Outputs/OpenGL/Primitives/*.cpp \
 \
@@ -204,6 +205,7 @@ HEADERS += \
 	$$SRC/Outputs/*.hpp \
 	$$SRC/Outputs/CRT/*.hpp \
 	$$SRC/Outputs/CRT/Internals/*.hpp \
+	$$SRC/Outputs/ScanTargets/*.hpp \
 	$$SRC/Outputs/OpenGL/*.hpp \
 	$$SRC/Outputs/OpenGL/Primitives/*.hpp \
 	$$SRC/Outputs/Speaker/*.hpp \
