@@ -131,7 +131,7 @@ template <typename SampleSource> class LowpassSpeaker: public Speaker {
 			at construction, filtering it and passing it on to the speaker's delegate if there is one.
 		*/
 		void run_for(const Cycles cycles) {
-			const auto delegate = delegate_.load();
+			const auto delegate = delegate_.load(std::memory_order::memory_order_relaxed);
 			if(!delegate) return;
 
 			const int scale = get_scale();
