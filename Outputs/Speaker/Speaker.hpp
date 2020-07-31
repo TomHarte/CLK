@@ -45,6 +45,16 @@ class Speaker {
 			compute_output_rate();
 		}
 
+		/*!
+			Takes a copy of the most recent output rate provided to @c rhs.
+		*/
+		void copy_output_rate(const Speaker &rhs) {
+			output_cycles_per_second_ = rhs.output_cycles_per_second_;
+			output_buffer_size_ = rhs.output_buffer_size_;
+			stereo_output_.store(rhs.stereo_output_.load(std::memory_order::memory_order_relaxed), std::memory_order::memory_order_relaxed);
+			compute_output_rate();
+		}
+
 		/// Sets the output volume, in the range [0, 1].
 		virtual void set_output_volume(float) = 0;
 
