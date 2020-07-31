@@ -89,9 +89,28 @@ void MultiMachine::did_run_machines(MultiTimedMachine *) {
 
 void MultiMachine::pick_first() {
 	has_picked_ = true;
+
+	// Ensure output rate specifics are properly copied; these may be set only once by the owner,
+	// but rather than being propagated directly by the MultiSpeaker only the derived computed
+	// output rate is propagated. So this ensures that if a new derivation is made, it's made correctly.
+	if(machines_[0]->audio_producer()) {
+		auto multi_speaker = audio_producer_.get_speaker();
+		auto specific_speaker = machines_[0]->audio_producer()->get_speaker();
+
+		if(specific_speaker && multi_speaker) {
+			specific_speaker->copy_output_rate(*multi_speaker);
+		}
+	}
+
+	// TODO: because it is not invalid for a caller to keep a reference to anything previously returned,
+	// this erase can be added only once the Multi machines that take static copies of the machines list
+	// are updated.
+	//
+	// Example failing use case otherwise: a caller still has reference to the MultiJoystickMachine, and
+	// it has dangling references to the various JoystickMachines.
+	//
+	// This gets into particularly long grass with the MultiConfigurable and its MultiStruct.
 //	machines_.erase(machines_.begin() + 1, machines_.end());
-	// TODO: this isn't quite correct, because it may leak OpenGL/etc resources through failure to
-	// request a close_output while the context is active.
 }
 
 void *MultiMachine::raw_pointer() {
